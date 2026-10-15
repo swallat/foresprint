@@ -1,0 +1,20 @@
+# Team-Konfiguration. Erläuterungen: `sprintforecast hilfe team`
+name: Demo-Team
+unit: PT
+sprint:
+  length_days: 14
+  numbering: yearly
+  first:
+    id: '2026.1'
+    start: 2026-01-07
+forecast:
+  reference_capacity: 45
+  window: 5
+  roadmap_share: 0.8
+  rounding: 1
+  trend_mode: klassisch
+  horizon: 3
+capacity:
+  overhead_share: 0.0
+  region: NW
+  rounding: 1

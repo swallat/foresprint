@@ -1,0 +1,838 @@
+# SPDX-License-Identifier: EUPL-1.2
+"""Seiten und Seitenleiste der Weboberfläche. Einstieg: web/app.py, Seiten: web/seiten/*.py.
+
+Liest und schreibt dieselben YAML-Dateien wie die Kommandozeile. Konfiguration über
+Umgebungsvariablen: SPRINTFORECAST_DATEN (Datenverzeichnis), SPRINTFORECAST_STICHTAG.
+"""
+
+from __future__ import annotations
+
+import copy
+import os
+from collections.abc import Callable
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+import altair as alt
+import pandas as pd
+import streamlit as st
+
+from sprintforecast.calendar import holiday_name, workdays
+from sprintforecast.capacity import sprint_capacity
+from sprintforecast.engine import CapacitySource
+from sprintforecast.forecast import (
+    Forecast,
+    TimelineEntry,
+    apply_planning,
+    build_forecast,
+    find_sprint,
+)
+from sprintforecast.git import GitError, commit_directory, pending_changes
+from sprintforecast.git import repo_root as git_root
+from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW
+from sprintforecast.model import Numbering, Planning, Sprint, Team
+from sprintforecast.plugins import WebPage
+from sprintforecast.report import capacity_label, fmt, pct, period, render, status
+from sprintforecast.settings import REGIONS, SETTINGS, Kind, Setting, applicable, changes
+from sprintforecast.storage import (
+    STICHTAG_ENV,
+    DataError,
+    Repository,
+    TeamData,
+    default_data_dir,
+)
+from sprintforecast.validate import Level, check_all, check_team
+from sprintforecast.web.logic import (
+    PEOPLE_COLUMNS,
+    TEAM_REGION,
+    absence_matrix,
+    absence_sprints,
+    edit_absences,
+    parse_numbers,
+    people_from_table,
+    people_table,
+    sprints_to_save,
+    with_people,
+    with_sprints,
+)
+
+# Seiten: Dateiname unter web/seiten → (Titel, Material-Icon). Gruppen für die Navigation.
+PAGES: dict[str, dict[str, tuple[str, str]]] = {
+    "Sprint": {
+        "forecast": ("Forecast", ":material/trending_up:"),
+        "fehltage": ("Fehltage", ":material/event_busy:"),
+        "planning": ("Planning", ":material/edit_note:"),
+        "review": ("Review", ":material/task_alt:"),
+    },
+    "Team": {
+        "personen": ("Personen", ":material/group:"),
+        "einstellungen": ("Einstellungen", ":material/tune:"),
+        "neues_team": ("Neues Team", ":material/group_add:"),
+    },
+    "Daten & Hilfe": {
+        "pruefung": ("Prüfung", ":material/fact_check:"),
+        "hilfe": ("Hilfe", ":material/help:"),
+    },
+}
+PAGE_INFO = {key: info for group in PAGES.values() for key, info in group.items()}
+
+
+def page_path(key: str) -> str:
+    return f"seiten/{key}.py"
+
+
+def page_link(key: str, label: str | None = None) -> None:
+    title, icon = PAGE_INFO[key]
+    st.page_link(page_path(key), label=label or title, icon=icon)
+
+
+def today() -> date:
+    raw = os.environ.get(STICHTAG_ENV)
+    return date.fromisoformat(raw) if raw else date.today()
+
+
+def repository() -> Repository:
+    return Repository(default_data_dir())
+
+
+def help_text(key: str) -> str:
+    f = FIELDS[key]
+    return f"{f.what}\n\nQuelle: {f.source}\n\nBeispiel: {f.example}"
+
+
+# --- Speichern mit Prüfung -----------------------------------------------------------
+
+
+def save(
+    data_after: TeamData,
+    filenames: list[str],
+    write: Callable[[], list[Path]],
+    tag: str | None = None,
+    block_on_all_errors: bool = False,
+) -> bool:
+    """Prüft den neuen Stand und schreibt bei Erfolg. Committet wird über die Seitenleiste."""
+    issues = check_team(data_after, today())
+    relevant = [i for i in issues if any(n in i.where for n in filenames)]
+    blocking = issues if block_on_all_errors else relevant
+    errors = [i for i in blocking if i.level is Level.ERROR]
+    if errors:
+        for i in errors:
+            st.error(f"{i.where}: {i.message}")
+        st.error("Nicht gespeichert – bitte die Fehler beheben.")
+        return False
+    paths = write()
+    for i in relevant:
+        if i.level is Level.WARNING:
+            st.warning(f"{i.where}: {i.message}")
+    if tag:
+        tags = st.session_state.setdefault("pending_tags", [])
+        if tag not in tags:
+            tags.append(tag)
+    names = ", ".join(p.name for p in paths)
+    st.success(
+        f"Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der Seitenleiste."
+    )
+    return True
+
+
+# --- Seiten ---------------------------------------------------------------------------
+
+
+def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    team = data.team
+    unit = team.unit.value
+    st.header(f"Forecast {team.name}")
+    upcoming = fc.upcoming()
+    cols = st.columns(min(len(upcoming), 4) or 1)
+    for col, e in zip(cols, upcoming, strict=False):
+        col.metric(
+            f"{e.sprint.id} ({status(fc, e).replace('*', '')})",
+            f"{fmt(e.result.plan)} {unit}",
+            help=f"Kapazität {capacity_label(e)} PT · Roadmap {fmt(e.result.roadmap, 2)} · "
+            f"Kleinkram {fmt(e.result.small_stuff, 2)}",
+        )
+
+    rows = [
+        {
+            "Sprint": e.sprint.id,
+            "Zeitraum": period(e),
+            "Status": status(fc, e).replace("*", ""),
+            "Kapazität (PT)": capacity_label(e),
+            "n. Velocity-Trend": fmt(e.result.normalized_velocity.trend, 2),
+            f"Forecast PLAN ({unit})": fmt(e.result.plan),
+            "Roadmap": fmt(e.result.roadmap, 2),
+            "Kleinkram": fmt(e.result.small_stuff, 2),
+        }
+        for e in upcoming
+    ]
+    st.dataframe(pd.DataFrame(rows), hide_index=True)
+    trend = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is CapacitySource.TREND]
+    if trend:
+        st.warning(
+            f"Für {', '.join(trend)} sind noch keine Fehltage erfasst – die Kapazität ist nur "
+            "geschätzt (Trend). Auf der Seite **Fehltage** eintragen."
+        )
+    current = fc.current
+    if current and current.result.planning_total is not None:
+        st.info(
+            f"Planning {current.sprint.id}: Summe {fmt(current.result.planning_total, 2)} {unit}, "
+            f"Delta zum Forecast PLAN {fmt(current.result.planning_delta, 2)} {unit}"
+        )
+
+    st.subheader("Verlauf")
+    history = fc.history(10)
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Sprint": e.sprint.id,
+                    "Kapazität (PT)": fmt(e.result.capacity.value),
+                    "Forecast IST": fmt(e.result.forecast_ist.value, 2),
+                    "Velocity": fmt(e.result.velocity.value, 2),
+                    "n. Velocity": fmt(e.result.normalized_velocity.value, 2),
+                    "Ø n. Velocity": fmt(e.result.normalized_velocity.average, 2),
+                    "Fulfillment": pct(e.result.fulfillment.value),
+                    "Scope Creep": pct(e.result.scope_creep.value),
+                }
+                for e in history
+            ]
+        ),
+        hide_index=True,
+    )
+    chart = _chart(fc, history + [e for e in upcoming if e not in history], unit)
+    if chart is None:
+        st.info(
+            "Noch keine Werte für ein Diagramm – nach den ersten Sprints Planning und Review "
+            "erfassen (oder die Historie über ein Import-Plugin übernehmen)."
+        )
+    else:
+        st.altair_chart(chart, width="stretch")
+
+    if st.button("Bericht FORECAST.md schreiben"):
+        path = repo.team_dir(team.key) / "FORECAST.md"
+        path.write_text(render(fc), encoding="utf-8")
+        st.success(f"Geschrieben: {path}")
+
+
+def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart | None:
+    """Liniendiagramm; None, solange es keine Werte gibt (leere Daten lässt Altair scheitern)."""
+    records = []
+    for e in entries:
+        r = e.result
+        future = e.sprint.end > fc.today
+        values = {
+            "Forecast IST / PLAN": r.plan if future else r.forecast_ist.value,
+            "Velocity": r.velocity.trend if future else r.velocity.value,
+            "n. Velocity": r.normalized_velocity.trend if future else r.normalized_velocity.value,
+        }
+        for name, value in values.items():
+            if value is not None:
+                records.append(
+                    {"Sprint": e.sprint.id, "Kennzahl": name, unit: value, "Prognose": future}
+                )
+    if not records:
+        return None
+    order = [e.sprint.id for e in entries]
+    return (
+        alt.Chart(pd.DataFrame(records))
+        .mark_line(point=True)
+        .encode(
+            x=alt.X("Sprint:N", sort=order),
+            y=alt.Y(f"{unit}:Q"),
+            color="Kennzahl:N",
+            strokeDash=alt.StrokeDash("Prognose:N", legend=None),
+            tooltip=[
+                alt.Tooltip("Sprint:N"),
+                alt.Tooltip("Kennzahl:N"),
+                alt.Tooltip(f"{unit}:Q", format=".2f"),
+            ],
+        )
+    )
+
+
+def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header("Planbare Fehltage")
+    st.markdown(help_text("absences").replace("\n\n", "  \n"))
+    if not data.people:
+        st.warning("Noch keine Personen erfasst – zuerst auf der Seite **Personen** anlegen.")
+        return
+    count = st.number_input(
+        "Anzahl Sprints", min_value=1, max_value=26, value=data.team.forecast.horizon + 1
+    )
+    sprints = absence_sprints(data, fc, int(count))
+    if not sprints:
+        st.info("Keine Sprints gefunden.")
+        return
+    for s in sprints:
+        days = workdays(s.start, s.end)
+        hol = [
+            f"{d:%d.%m.} {name}"
+            for d in days
+            if (name := holiday_name(d, data.team.capacity.region))
+        ]
+        st.caption(
+            f"**{s.id}**: {s.start:%d.%m.} – {s.end:%d.%m.%Y}, {len(days)} Arbeitstage"
+            + (f" · Feiertage: {', '.join(hol)}" if hol else "")
+            + ("" if data.sprint(s.id) else " · noch keine Sprintdatei")
+        )
+    rows = absence_matrix(data.people, sprints)
+    column_config: dict[str, Any] = {
+        "id": None,
+        "Person": st.column_config.TextColumn(disabled=True),
+    }
+    for s in sprints:
+        column_config[s.id] = st.column_config.NumberColumn(
+            s.id, min_value=0.0, max_value=float(len(workdays(s.start, s.end))), step=0.5
+        )
+    edited = st.data_editor(
+        pd.DataFrame(rows),
+        column_config=column_config,
+        hide_index=True,
+        key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
+    )
+    st.caption("Leere Zellen: Person ist in diesem Sprint nicht im Team.")
+    edited_sprints = edit_absences(data.people, sprints, edited.to_dict("records"))
+    to_save = sprints_to_save(data, sprints, edited_sprints)
+    preview = with_sprints(data, to_save)
+    fc_preview = build_forecast(preview, fc.today)
+    if new := [s.id for s in to_save if data.sprint(s.id) is None]:
+        st.caption(
+            f"Beim Speichern werden die Sprintdateien {', '.join(new)} angelegt. Ab dann gilt "
+            "dort die Kapazität laut Personenliste statt des Trends."
+        )
+    st.subheader(
+        "Kapazität und Prognose" + (" (Vorschau, noch nicht gespeichert)" if to_save else "")
+    )
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Sprint": s.id,
+                    "Kapazität (PT)": fmt(sprint_capacity(data.team, data.people, s).capacity),
+                    f"Forecast PLAN ({data.team.unit.value})": fmt(e.result.plan)
+                    if (e := fc_preview.entry(s.id))
+                    else "–",
+                }
+                for s in edited_sprints
+            ]
+        ),
+        hide_index=True,
+    )
+    if st.button("Fehltage speichern", type="primary", disabled=not to_save):
+        save(
+            preview,
+            [f"{s.id}.yaml" for s in to_save],
+            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
+        )
+
+
+def _sprint_choice(data: TeamData, fc: Forecast, purpose: str, label: str) -> Sprint | None:
+    options = [e.sprint.id for e in fc.history(6)] + [e.sprint.id for e in fc.upcoming()]
+    default = fc.default_entry(purpose)
+    index = options.index(default.sprint.id) if default and default.sprint.id in options else 0
+    if not options:
+        return None
+    chosen = st.selectbox(label, options, index=index, key=f"{purpose}-sprint")
+    return copy.deepcopy(find_sprint(data, chosen))
+
+
+def _number(label: str, value: float | None, key: str, help: str | None = None) -> float | None:
+    return st.number_input(
+        label, min_value=0.0, value=value, step=0.25, format="%.2f", key=key, help=help
+    )
+
+
+def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header("Sprint Planning")
+    sprint = _sprint_choice(data, fc, "current", "Sprint")
+    if sprint is None:
+        return
+    unit = data.team.unit.value
+    entry = fc.entry(sprint.id)
+    if entry:
+        st.metric(
+            f"Forecast PLAN {sprint.id}",
+            f"{fmt(entry.result.plan)} {unit}",
+            help=f"Kapazität {capacity_label(entry)} PT",
+        )
+    if data.sprint(sprint.id) is None:
+        st.warning(
+            "Für diesen Sprint sind noch keine Fehltage erfasst – die Kapazität ist nur "
+            "geschätzt. Empfehlung: zuerst die Seite **Fehltage**."
+        )
+    with st.form(f"planning-{sprint.id}"):
+        forecast_ist = _number(
+            f"Forecast IST ({unit})",
+            sprint.forecast_ist,
+            f"fist-{sprint.id}",
+            help_text("forecast_ist"),
+        )
+        p = sprint.planning or Planning()
+        with st.expander("Kontrollrechnung (optional)", expanded=sprint.planning is not None):
+            st.caption(
+                "Prüft, ob die Planung in den Forecast PLAN passt: Delta = Forecast PLAN − "
+                "(Überkipper + Backlog − Korrekturen). Wirkt sich auf keine andere Kennzahl aus. "
+                "Ist der Forecast IST leer, wird er mit Überkipper + Backlog vorbelegt; weicht er "
+                "davon ab, erscheint ein Hinweis."
+            )
+            carryover = _number(
+                f"Überkipper ({unit})",
+                p.carryover or None,
+                f"carry-{sprint.id}",
+                help_text("carryover"),
+            )
+            backlog = _number(
+                f"Backlog ({unit})", p.backlog or None, f"backlog-{sprint.id}", help_text("backlog")
+            )
+            corrections_raw = st.text_input(
+                f"Korrekturen Restaufwände ({unit})",
+                " ".join(f"{c:g}" for c in p.corrections),
+                help=help_text("corrections"),
+            )
+        submitted = st.form_submit_button("Planning speichern", type="primary")
+    if not submitted:
+        return
+    try:
+        corrections = parse_numbers(corrections_raw)
+    except ValueError:
+        st.error("Korrekturen: bitte Zahlen mit Leerzeichen getrennt eingeben.")
+        return
+    prefilled = apply_planning(
+        sprint,
+        forecast_ist,
+        Planning(carryover=carryover or 0.0, backlog=backlog or 0.0, corrections=corrections),
+    )
+    if prefilled:
+        st.info(
+            "Forecast IST aus Überkipper + Backlog übernommen: "
+            f"{fmt(sprint.forecast_ist, 2)} {unit}"
+        )
+    after = with_sprints(data, [sprint])
+    if save(
+        after,
+        [f"{sprint.id}.yaml"],
+        lambda: [repo.save_sprint(data.team.key, sprint)],
+    ):
+        e = build_forecast(after, fc.today).entry(sprint.id)
+        if e and e.result.planning_total is not None:
+            st.info(
+                f"Planning-Summe {fmt(e.result.planning_total, 2)} {unit} · Forecast PLAN "
+                f"{fmt(e.result.plan)} {unit} · Delta {fmt(e.result.planning_delta, 2)} {unit}"
+            )
+
+
+def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header("Sprint Review")
+    sprint = _sprint_choice(data, fc, "review", "Sprint")
+    if sprint is None:
+        return
+    unit = data.team.unit.value
+    computed = sprint_capacity(data.team, data.people, sprint).capacity if data.people else None
+    with st.form(f"review-{sprint.id}"):
+        capacity = _number(
+            "Kapazität (PT) – wird eingefroren",
+            sprint.capacity if sprint.capacity is not None else computed,
+            f"capacity-{sprint.id}",
+            help_text("capacity")
+            + (f"\n\nLaut Personenliste und Fehltagen: {fmt(computed)} PT" if computed else ""),
+        )
+        velocity = _number(
+            f"Velocity ({unit})", sprint.velocity, f"velocity-{sprint.id}", help_text("velocity")
+        )
+        scope = st.number_input(
+            "Scope Creep (%)",
+            key=f"scope-{sprint.id}",
+            min_value=0.0,
+            max_value=500.0,
+            value=None if sprint.scope_creep is None else round(sprint.scope_creep * 100, 4),
+            step=5.0,
+            help=help_text("scope_creep"),
+        )
+        tag = st.checkbox(
+            f"Beim Commit Tag {data.team.key}/{sprint.id} setzen",
+            value=True,
+            key=f"review-tag-{sprint.id}",
+        )
+        submitted = st.form_submit_button("Review speichern", type="primary")
+    if not submitted:
+        return
+    if capacity is None:
+        st.error("Bitte die Kapazität angeben.")
+        return
+    sprint.capacity = capacity
+    sprint.velocity = velocity
+    sprint.scope_creep = None if scope is None else scope / 100
+    save(
+        with_sprints(data, [sprint]),
+        [f"{sprint.id}.yaml"],
+        lambda: [repo.save_sprint(data.team.key, sprint)],
+        tag=f"{data.team.key}/{sprint.id}" if tag else None,
+    )
+
+
+def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header("Personen")
+    st.markdown(
+        "Eine Zeile je Zeitraum im Team.  \n"
+        "**Austritt:** in der Zeile **bis** setzen – nicht löschen, sonst ändern sich "
+        "Kapazitäten und Fehltage vergangener Sprints.  \n"
+        "**FTE-Änderung:** in der bisherigen Zeile **bis** setzen und eine neue Zeile mit "
+        "**gleichem Namen** und neuem FTE-Anteil anlegen."
+    )
+    show_former = st.toggle("Ehemalige anzeigen", value=False, key="show_former")
+    rows, hidden = people_table(data.people, fc.today, show_former)
+    if hidden:
+        st.caption(f"{len(hidden)} ehemalige Person(en) ausgeblendet.")
+    frame = pd.DataFrame(rows, columns=PEOPLE_COLUMNS)
+    for col in ("ab", "bis"):
+        frame[col] = pd.to_datetime(frame[col])
+    edited = st.data_editor(
+        frame,
+        column_config={
+            "_id": None,  # interne ID, wird automatisch vergeben
+            "Name": st.column_config.TextColumn("Name", required=True),
+            "Bundesland": st.column_config.SelectboxColumn(
+                "Bundesland",
+                options=[TEAM_REGION, *REGIONS],
+                default=TEAM_REGION,
+                help="(Team) = Einstellung des Teams",
+            ),
+            "ab": st.column_config.DateColumn(
+                "ab", format="DD.MM.YYYY", required=True, default=fc.today
+            ),
+            "bis": st.column_config.DateColumn(
+                "bis", format="DD.MM.YYYY", help="Leer = weiterhin im Team"
+            ),
+            "FTE": st.column_config.NumberColumn(
+                "FTE",
+                min_value=0.05,
+                max_value=1.0,
+                step=0.05,
+                default=1.0,
+                help="Anteil im Team, 1 = Vollzeit",
+            ),
+        },
+        num_rows="dynamic",
+        hide_index=True,
+        key=f"people-{data.team.key}-{show_former}",
+    )
+    result = people_from_table(edited.to_dict("records"), data.people, hidden)
+    confirmed = True
+    if result.deleted:
+        st.warning(
+            f"Gelöscht: {', '.join(result.deleted)}.  \nZeilen nur löschen, wenn sie "
+            "**falsch erfasst** wurden. Verlässt jemand das Team, stattdessen **bis** setzen – "
+            "sonst entstehen Inkonsistenzen (z. B. Fehltage für unbekannte Personen)."
+        )
+        confirmed = st.checkbox("Ja, die Zeilen waren Fehleingaben", key="confirm_delete")
+    if not st.button("Personen speichern", type="primary", disabled=not confirmed):
+        return
+    if result.errors:
+        for e in result.errors:
+            st.error(e)
+        return
+    save(
+        with_people(data, result.people),
+        ["people.yaml"],
+        lambda: [repo.save_people(data.team.key, result.people)],
+        block_on_all_errors=True,
+    )
+
+
+def _setting_widget(setting: Setting, team: Team, key: str) -> str:
+    """Zeigt das passende Eingabefeld und liefert den Wert als Text für Setting.parse."""
+    shown = setting.display(team)
+    label = setting.label
+    match setting.kind:
+        case Kind.TEXT:
+            return st.text_input(label, shown, help=setting.help, key=key)
+        case Kind.CHOICE:
+            assert setting.choices is not None
+            options = ([""] if setting.optional else []) + list(setting.choices)
+            return st.selectbox(
+                label,
+                options,
+                index=options.index(shown) if shown in options else 0,
+                format_func=lambda k: f"{k} – {setting.choices[k]}" if k else "(keine Angabe)",
+                help=setting.help,
+                key=key,
+            )
+        case Kind.DATE:
+            value = st.date_input(
+                label, setting.get(team), help=setting.help, key=key, format="DD.MM.YYYY"
+            )
+            return value.isoformat() if isinstance(value, date) else ""
+        case Kind.INT:
+            value = st.number_input(
+                label,
+                min_value=int(setting.minimum) if setting.minimum is not None else None,
+                max_value=int(setting.maximum) if setting.maximum is not None else None,
+                value=int(shown),
+                step=1,
+                help=setting.help,
+                key=key,
+            )
+            return str(value)
+        case Kind.NUMBER | Kind.PERCENT:
+            value = st.number_input(
+                label,
+                min_value=float(setting.minimum) if setting.minimum is not None else None,
+                max_value=float(setting.maximum) if setting.maximum is not None else None,
+                value=float(shown),
+                step=0.5 if setting.kind is Kind.PERCENT else 1.0,
+                help=setting.help,
+                key=key,
+            )
+            return str(value)
+    raise AssertionError(setting.kind)
+
+
+def _settings_form(team: Team, has_sprints: bool, form_key: str, submit: str) -> Team | None:
+    """Formular für alle Einstellungen; liefert das geänderte Team nach dem Absenden."""
+    edited = copy.deepcopy(team)
+    with st.form(form_key):
+        raw = {
+            s.key: _setting_widget(s, team, f"{form_key}-{s.key}") for s in applicable(has_sprints)
+        }
+        submitted = st.form_submit_button(submit, type="primary")
+    if not submitted:
+        return None
+    errors = []
+    for s in applicable(has_sprints):
+        try:
+            value = s.parse(raw[s.key])
+            if value is None and s.only_without_sprints:
+                raise ValueError("Bitte einen Wert eingeben.")
+            s.set(edited, value)
+        except ValueError as e:
+            errors.append(f"{s.label}: {e}")
+    for e in errors:
+        st.error(e)
+    return None if errors else edited
+
+
+def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header(f"Einstellungen {data.team.name}")
+    edited = _settings_form(data.team, bool(data.sprints), f"settings-{data.team.key}", "Speichern")
+    if edited is None:
+        return
+    diff = changes(data.team, edited)
+    if not diff:
+        st.info("Keine Änderungen.")
+        return
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {"Einstellung": s.label, "bisher": old or "–", "neu": new or "–"}
+                for s, old, new in diff
+            ]
+        ),
+        hide_index=True,
+    )
+    if any(s.retroactive for s, _, _ in diff):
+        st.warning("Mindestens eine Änderung wirkt rückwirkend auf alle berechneten Werte.")
+    after = copy.deepcopy(data)
+    after.team = edited
+    save(
+        after,
+        ["team.yaml"],
+        lambda: [repo.save_team(edited)],
+    )
+
+
+def page_new_team(repo: Repository) -> None:
+    st.header("Neues Team anlegen")
+    key = (
+        st.text_input("Team-Kürzel (Verzeichnisname)", help="Kleinbuchstaben, z. B. team-a")
+        .strip()
+        .lower()
+    )
+    if not key:
+        return
+    if repo.exists(key):
+        st.error(f"Team '{key}' existiert bereits.")
+        return
+    team = Team(key=key, name=key.upper())
+    team.sprint.first_start = today()
+    team.sprint.first_id = f"{today().year}.1"
+    team.sprint.numbering = Numbering.YEARLY
+    edited = _settings_form(team, False, f"new-{key}", "Team anlegen")
+    if edited is None:
+        return
+    if save(
+        TeamData(team=edited),
+        ["team.yaml"],
+        lambda: [repo.save_team(edited), repo.save_people(key, [])],
+    ):
+        st.session_state["selected_team"] = key
+        page_link("personen", "Weiter: Personen erfassen")
+
+
+def page_check(repo: Repository) -> None:
+    st.header("Prüfung aller Teams")
+    for key, issues in check_all(repo, today()).items():
+        if not issues:
+            st.success(f"{key}: keine Befunde")
+            continue
+        st.subheader(key)
+        for i in issues:
+            (st.error if i.level is Level.ERROR else st.warning)(f"{i.where}: {i.message}")
+
+
+def page_help(repo: Repository) -> None:
+    st.header("Hilfe")
+    st.markdown(
+        "Die Weboberfläche bearbeitet dieselben Dateien wie die Kommandozeile – beides lässt "
+        "sich mischen. Gespeichert wird lokal; mit **Änderungen committen** in der Seitenleiste "
+        "landen die Änderungen im Git-Repository der Daten."
+    )
+    ablauf, begriffe, felder, team, befehle = st.tabs(
+        ["Ablauf", "Begriffe", "Eingabefelder", "Team-Einstellungen", "Kommandozeile"]
+    )
+    with ablauf:
+        for step in WORKFLOW:
+            with st.container(border=True):
+                left, right = st.columns([3, 1], vertical_alignment="center")
+                left.caption(step.when)
+                left.markdown(f"**{step.title}**  \n{step.text}")
+                with right:
+                    page_link(step.page)
+    with begriffe:
+        st.table(pd.DataFrame(TERMS, columns=["Begriff", "Bedeutung"]).set_index("Begriff"))
+        st.subheader("Kapazitätsquelle im Forecast")
+        st.table(
+            pd.DataFrame(CAPACITY_SOURCES, columns=["Quelle", "Bedeutung"]).set_index("Quelle")
+        )
+    with felder:
+        for f in FIELDS.values():
+            with st.container(border=True):
+                st.markdown(f"**{f.title}**  \n{f.what}")
+                st.caption(f"Quelle: {f.source} · Beispiel: {f.example}")
+    with team:
+        st.table(
+            pd.DataFrame(
+                [(s.label, s.help) for s in SETTINGS], columns=["Einstellung", "Bedeutung"]
+            ).set_index("Einstellung")
+        )
+        page_link("einstellungen", "Einstellungen ändern")
+    with befehle:
+        st.table(pd.DataFrame(COMMANDS, columns=["Befehl", "Zweck"]).set_index("Befehl"))
+        st.caption("Ausführen mit `uv run …` im Ordner des Tools.")
+
+
+# --- Seitenleiste und Seitenaufruf ----------------------------------------------------
+
+
+def sidebar(repo: Repository) -> None:
+    """Teamauswahl in der Seitenleiste (vor der Seite, damit diese das Team kennt)."""
+    teams = repo.teams()
+    with st.sidebar:
+        if not teams:
+            st.info("Noch kein Team vorhanden.")
+            return
+        wanted = st.session_state.get("selected_team")
+        team = st.selectbox("Team", teams, index=teams.index(wanted) if wanted in teams else 0)
+        st.session_state["selected_team"] = team
+
+
+def sidebar_footer(repo: Repository) -> None:
+    """Git-Bereich und Hinweise – nach der Seite gezeichnet, damit gerade Gespeichertes
+    bereits als offene Änderung erscheint."""
+    _git_panel(repo)
+    st.caption(f"Daten: `{repo.root.resolve()}`  \nStichtag: {today():%d.%m.%Y}")
+
+
+COMMIT_DEFAULT = "Sprint-Daten aktualisiert"
+
+
+def _commit_clicked(root: Path, tags: list[str]) -> None:
+    """Callback des Commit-Knopfs; läuft vor dem nächsten Durchlauf des Skripts."""
+    message = st.session_state.get("commit_message", "").strip() or COMMIT_DEFAULT
+    use_tags = tags and st.session_state.get("use_tags", True)
+    try:
+        rev = commit_directory(root, message, tags if use_tags else None)
+    except GitError as e:
+        st.session_state["commit_error"] = str(e)
+        return
+    st.session_state["pending_tags"] = []
+    st.session_state["last_commit"] = rev
+    st.session_state["commit_message"] = COMMIT_DEFAULT
+
+
+def _git_panel(repo: Repository) -> None:
+    if git_root(repo.root) is None:
+        st.caption("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich.")
+        return
+    if last := st.session_state.pop("last_commit", None):
+        st.success(f"Committet ({last}). Pushen nicht vergessen.")
+    if error := st.session_state.pop("commit_error", None):
+        st.error(error)
+    try:
+        changes = pending_changes(repo.root)
+    except GitError as e:
+        st.caption(f"Git: {e}")
+        return
+    tags = st.session_state.get("pending_tags", [])
+    with st.expander(
+        f"Git: {len(changes)} offene Änderung(en)" if changes else "Git: alles committet",
+        expanded=bool(changes),
+        icon=":material/commit:",
+    ):
+        if not changes:
+            st.caption("Keine offenen Änderungen im Datenverzeichnis.")
+            return
+        st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
+        st.session_state.setdefault("commit_message", COMMIT_DEFAULT)
+        st.text_input("Commit-Nachricht", key="commit_message")
+        if tags:
+            st.checkbox(f"Tags setzen: {', '.join(tags)}", value=True, key="use_tags")
+        st.button(
+            "Änderungen committen",
+            type="primary",
+            icon=":material/save:",
+            on_click=_commit_clicked,
+            args=(repo.root, list(tags)),
+        )
+
+
+TEAM_PAGES = {
+    "forecast": page_forecast,
+    "fehltage": page_absences,
+    "planning": page_planning,
+    "review": page_review,
+    "personen": page_people,
+    "einstellungen": page_settings,
+}
+GLOBAL_PAGES = {
+    "neues_team": page_new_team,
+    "pruefung": page_check,
+    "hilfe": page_help,
+}
+
+
+def run_page(key: str) -> None:
+    """Wird von den Seitendateien unter web/seiten aufgerufen."""
+    repo = repository()
+    team = st.session_state.get("selected_team")
+    if key in GLOBAL_PAGES:
+        GLOBAL_PAGES[key](repo)
+        return
+    if team is None or not repo.exists(team):
+        st.header(PAGE_INFO[key][0])
+        st.info(
+            "Noch kein Team vorhanden – ein Team anlegen oder über ein Import-Plugin übernehmen."
+        )
+        page_link("neues_team")
+        return
+    try:
+        data = repo.load(team)
+    except DataError as e:
+        st.error(str(e))
+        return
+    TEAM_PAGES[key](repo, data, build_forecast(data, today()))
+
+
+def run_plugin_page(page: WebPage) -> None:
+    """Seite eines Plugins (siehe sprintforecast.plugins)."""
+    page.render(repository())

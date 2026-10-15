@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: EUPL-1.2
+from datetime import date
+from pathlib import Path
+
+import pytest
+
+from sprintforecast.engine import CapacitySource
+from sprintforecast.forecast import build_forecast
+from sprintforecast.storage import DataError, Repository
+from sprintforecast.validate import Level, check_team
+
+TODAY = date(2026, 10, 15)
+
+
+def test_roundtrip_keeps_files_stable(data_dir: Path):
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    before = {p: p.read_text() for p in (data_dir / "demo").rglob("*.yaml")}
+    repo.save_team(data.team)
+    repo.save_people("demo", data.people)
+    for s in data.sprints:
+        repo.save_sprint("demo", s)
+    after = {p: p.read_text() for p in (data_dir / "demo").rglob("*.yaml")}
+    assert before == after
+
+
+def test_unquoted_sprint_id_gives_helpful_error(data_dir: Path):
+    path = data_dir / "demo" / "sprints" / "2026.20.yaml"
+    path.write_text(path.read_text().replace("id: '2026.20'", "id: 2026.20"))
+    with pytest.raises(DataError, match="Anführungszeichen"):
+        Repository(data_dir).load("demo")
+
+
+def test_unknown_team_lists_known_teams(data_dir: Path):
+    with pytest.raises(DataError, match="demo"):
+        Repository(data_dir).load("gibtsnicht")
+
+
+def test_demo_data_is_valid(data_dir: Path):
+    assert check_team(Repository(data_dir).load("demo"), TODAY) == []
+
+
+def test_validation_finds_errors_and_warnings(data_dir: Path):
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    s = data.sprint("2026.20")
+    s.absences["niemand"] = 1
+    s.absences["anna"] = 20
+    s.velocity = None
+    s.scope_creep = 30
+    data.people[0].memberships[0].fte = 1.5
+    issues = check_team(data, TODAY)
+    errors = [i.message for i in issues if i.level is Level.ERROR]
+    warnings = [i.message for i in issues if i.level is Level.WARNING]
+    assert any("unbekannte Person 'niemand'" in m for m in errors)
+    assert any("nur 10 Arbeitstage" in m for m in errors)
+    assert any("fte 1.5" in m for m in errors)
+    assert any("Velocity fehlt" in m for m in warnings)
+    assert any("scope_creep 30" in m for m in warnings)
+
+
+def test_capacity_sources_in_forecast(data_dir: Path):
+    fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
+    sources = {e.sprint.id: e.result.plan_capacity_source for e in fc.upcoming()}
+    assert sources == {
+        "2026.21": CapacitySource.PEOPLE,
+        "2026.22": CapacitySource.PEOPLE,
+        "2026.23": CapacitySource.TREND,
+        "2026.24": CapacitySource.TREND,
+    }
+    assert fc.current.sprint.id == "2026.21"
+    assert all(e.result.plan_capacity_source is CapacitySource.RECORDED for e in fc.history())
+
+
+def test_apply_planning():
+    from datetime import date as d
+
+    from sprintforecast.forecast import apply_planning
+    from sprintforecast.model import Planning, Sprint
+
+    s = Sprint("x", d(2026, 1, 1), d(2026, 1, 15))
+    assert apply_planning(s, None, Planning(carryover=1, backlog=7.5, corrections=[2])) is True
+    assert s.forecast_ist == 8.5  # Überkipper + Backlog, Korrekturen nur fürs Delta
+    assert s.planning.total == 6.5
+    assert apply_planning(s, 9.0, Planning(backlog=7.5)) is False
+    assert s.forecast_ist == 9.0
+    assert apply_planning(s, 9.0, Planning()) is False
+    assert s.planning is None  # leere Kontrollrechnung = nicht erfasst
+
+
+def test_planning_plausibility(data_dir: Path):
+    data = Repository(data_dir).load("demo")
+    s = data.sprint("2026.21")  # laufend; Demo: Überkipper 0.25 + Backlog 9.75 = IST 10
+    s.forecast_ist = 12
+    messages = [i.message for i in check_team(data, TODAY)]
+    assert any("Forecast IST 12 weicht von Überkipper + Backlog (10)" in m for m in messages)
+    s.forecast_ist = 10
+    s.planning.corrections = [20]
+    messages = [i.message for i in check_team(data, TODAY)]
+    assert not any("weicht" in m for m in messages)
+    assert any("Korrekturen sind größer" in m for m in messages)
+    # abgeschlossene Sprints (z. B. importierte Historie) werden nicht geprüft
+    assert not any("weicht" in i.message for i in check_team(data, date(2027, 1, 1)))

@@ -1,0 +1,19 @@
+# Sprint 2026.5. Erläuterungen zu allen Feldern: `sprintforecast hilfe sprint`
+id: '2026.5'
+start: 2026-03-04
+end: 2026-03-18
+absences:
+  anna: 2
+  ben: 5
+  cem: 5
+  dana: 2
+  emil: 1
+capacity: 33.2
+forecast_ist: 11.75
+velocity: 10.25
+scope_creep: 0.1
+planning:
+  carryover: 0.5
+  backlog: 11.25
+  corrections:
+  - 0

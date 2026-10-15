@@ -1,0 +1,46 @@
+[project]
+name = "sprintforecast"
+version = "0.1.0"
+description = "Velocity- und Kapazitäts-Forecast für Scrum-Teams mit Git als Datenablage"
+readme = "README.md"
+license = "EUPL-1.2"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Sebastian Wallat", email = "873008+swallat@users.noreply.github.com" }
+]
+requires-python = ">=3.15"
+dependencies = [
+    "holidays>=0.106",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+sprintforecast = "sprintforecast:main"
+
+[project.optional-dependencies]
+web = [
+    "streamlit>=1.66.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# Deutsche Texte verwenden bewusst Gedankenstriche und Multiplikationszeichen.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
