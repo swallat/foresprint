@@ -1,0 +1,18 @@
+# Sprint 2026.14. Erläuterungen zu allen Feldern: `sprintforecast hilfe sprint`
+id: '2026.14'
+start: 2026-07-08
+end: 2026-07-22
+absences:
+  anna: 3
+  cem: 1
+  dana: 2
+  emil: 2
+capacity: 35.4
+forecast_ist: 13.25
+velocity: 12.5
+scope_creep: 0.05
+planning:
+  carryover: 0.25
+  backlog: 13
+  corrections:
+  - 1.5

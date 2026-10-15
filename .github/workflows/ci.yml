@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Keine Tabellenkalkulationen im Repository
+        run: |
+          if git ls-files | grep -iE '\.(xlsx|xlsm|xls)$'; then
+            echo "::error::Tabellenkalkulationen dürfen nicht ins Repository (echte Team-Daten)."
+            exit 1
+          fi
+      - uses: jdx/mise-action@v3
+      - run: uv sync --locked --all-extras
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run pytest
+      - run: uv run sprintforecast --daten examples/teams pruefen

@@ -1,0 +1,37 @@
+# Personenliste. Zugehörigkeiten mit Zeitraum und FTE-Anteil (1.0 = Vollzeit im Team).
+# Personen nie löschen, sondern Zugehörigkeit mit `to:` beenden – sonst ändert sich die Historie.
+people:
+- id: anna
+  name: Anna
+  memberships:
+  - from: 2025-01-01
+    to: null
+    fte: 1
+- id: ben
+  name: Ben
+  memberships:
+  - from: 2025-01-01
+    to: 2026-05-31
+    fte: 1
+  - from: 2026-06-01
+    to: null
+    fte: 0.5
+- id: cem
+  name: Cem
+  region: BY
+  memberships:
+  - from: 2025-01-01
+    to: null
+    fte: 1
+- id: dana
+  name: Dana
+  memberships:
+  - from: 2026-03-01
+    to: null
+    fte: 1
+- id: emil
+  name: Emil
+  memberships:
+  - from: 2025-01-01
+    to: 2026-07-31
+    fte: 0.8

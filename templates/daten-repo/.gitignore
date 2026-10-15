@@ -1,0 +1,4 @@
+# Tabellenkalkulationen nie committen – sie können echte Team-Daten enthalten.
+*.xlsx
+*.xlsm
+*.xls

@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: EUPL-1.2
+"""Kleine Git-Helfer für Commit und Sprint-Tag."""
+
+from __future__ import annotations
+
+import re
+import subprocess
+from pathlib import Path
+
+
+class GitError(Exception):
+    pass
+
+
+# Tabellenkalkulationen dürfen nie committet werden (können echte Team-Daten enthalten).
+FORBIDDEN = re.compile(r"\.xls[xm]?$", re.IGNORECASE)
+
+
+def _git(cwd: Path, *args: str, strip: bool = True) -> str:
+    try:
+        proc = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+    except FileNotFoundError as e:
+        raise GitError("git ist nicht installiert oder nicht im PATH") from e
+    if proc.returncode != 0:
+        raise GitError(proc.stderr.strip() or proc.stdout.strip())
+    return proc.stdout.strip() if strip else proc.stdout
+
+
+def repo_root(path: Path) -> Path | None:
+    """Wurzel des Git-Repositorys, in dem ``path`` liegt – oder None."""
+    path = path.resolve()
+    while not path.exists():
+        path = path.parent
+    try:
+        return Path(_git(path if path.is_dir() else path.parent, "rev-parse", "--show-toplevel"))
+    except GitError:
+        return None
+
+
+def pending_changes(path: Path) -> list[tuple[str, str]]:
+    """Nicht committete Änderungen unterhalb von ``path`` als (Status, Pfad relativ zur Wurzel)."""
+    root = repo_root(path)
+    if root is None:
+        raise GitError(f"{path} liegt in keinem Git-Repository")
+    # Nicht strippen: Die Statusspalte beginnt ggf. mit einem Leerzeichen (" M datei").
+    out = _git(
+        root,
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--",
+        str(path.resolve()),
+        strip=False,
+    )
+    changes = []
+    for line in out.splitlines():
+        status, file = line[:2].strip(), line[3:]
+        if " -> " in file:  # Umbenennung
+            file = file.split(" -> ", 1)[1]
+        changes.append((status, file.strip('"')))
+    return changes
+
+
+def commit_directory(path: Path, message: str, tags: list[str] | None = None) -> str:
+    """Committet alle Änderungen unterhalb von ``path`` (nur dort) und setzt optional Tags."""
+    root = repo_root(path)
+    if root is None:
+        raise GitError(f"{path} liegt in keinem Git-Repository")
+    changes = pending_changes(path)
+    if not changes:
+        raise GitError("Keine Änderungen zum Committen")
+    if blocked := [f for _, f in changes if FORBIDDEN.search(f)]:
+        raise GitError(
+            "Tabellenkalkulationen werden nicht committet – bitte entfernen oder in .gitignore "
+            f"aufnehmen: {', '.join(blocked)}"
+        )
+    target = str(path.resolve())
+    _git(root, "add", "--all", "--", target)
+    _git(root, "commit", "-m", message, "--", target)
+    for tag in tags or []:
+        _git(root, "tag", "-a", tag, "-m", message)
+    return _git(root, "rev-parse", "--short", "HEAD")
+
+
+def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
+    """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
+    cwd = paths[0].resolve().parent
+    root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
+    _git(root, "add", "--", *(str(p.resolve()) for p in paths))
+    _git(root, "commit", "-m", message, "--", *(str(p.resolve()) for p in paths))
+    if tag:
+        _git(root, "tag", "-a", tag, "-m", message)
+    return _git(root, "rev-parse", "--short", "HEAD")

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dist/
+
+# Echte Team-Daten und Tabellenkalkulationen gehören nicht in dieses (Code-)Repository.
+*.xlsx
+*.xlsm
+*.xls
+/teams/

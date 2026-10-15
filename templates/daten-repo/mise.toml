@@ -1,0 +1,11 @@
+[tools]
+python = "3.15.0"
+uv = "0.13.1"
+
+[env]
+SPRINTFORECAST_DATEN = "teams"
+
+[tasks.sf]
+description = "sprintforecast aufrufen, z. B. `mise run sf -- forecast team-a`"
+# Version des Tools festnageln; bei Updates hier anheben.
+run = "uvx --from git+https://github.com/swallat/sprint-forecast@main sprintforecast"
