@@ -36,7 +36,8 @@ sprintforecast forecast team-a     # Prognose auf der Kommandozeile
 ```
 
 **Datenverzeichnis:** `--daten PFAD`, sonst die Umgebungsvariable `SPRINTFORECAST_DATEN`,
-sonst das **aktuelle Verzeichnis**. Teams sind Unterordner mit einer `team.yaml`.
+sonst das **aktuelle Verzeichnis**. Teams sind Unterordner mit einer `team.yaml`; enthält
+das aktuelle Verzeichnis keine, aber einen Unterordner `teams` mit Teams, wird dieser genommen.
 
 **Windows PowerShell:**
 

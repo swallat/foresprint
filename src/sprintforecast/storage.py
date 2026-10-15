@@ -39,9 +39,26 @@ class DataError(Exception):
     """Eine Datei fehlt oder ist nicht lesbar."""
 
 
+# Unterordner, in dem ein Daten-Repository die Teams üblicherweise ablegt (siehe Vorlage).
+TEAMS_SUBDIR = "teams"
+
+
+def _has_teams(path: Path) -> bool:
+    return path.is_dir() and any((p / "team.yaml").is_file() for p in path.iterdir())
+
+
 def default_data_dir() -> Path:
-    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis."""
-    return Path(os.environ.get(DATA_ENV) or ".")
+    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis.
+
+    Enthält das aktuelle Verzeichnis selbst keine Teams, aber einen Unterordner ``teams``
+    mit Teams (Aufbau eines Daten-Repositorys), wird dieser verwendet.
+    """
+    if configured := os.environ.get(DATA_ENV):
+        return Path(configured)
+    here = Path(".")
+    if not _has_teams(here) and _has_teams(here / TEAMS_SUBDIR):
+        return here / TEAMS_SUBDIR
+    return here
 
 
 def _read(path: Path) -> dict[str, Any]:
