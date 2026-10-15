@@ -15,16 +15,38 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
 
 ## Installation
 
-Als Werkzeug mit [uv](https://docs.astral.sh/uv/) – uv besorgt dabei auch Python 3.15:
+Ein Befehl – installiert bei Bedarf [uv](https://docs.astral.sh/uv/), lädt Python 3.15 und
+installiert sprintforecast mit Weboberfläche. Git wird nicht benötigt.
 
-```bash
-uv tool install "sprintforecast[web] @ git+https://github.com/swallat/sprint-forecast"
-sprintforecast --version
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.ps1 | iex"
 ```
 
-Aktualisieren mit `uv tool upgrade sprintforecast`, entfernen mit
-`uv tool uninstall sprintforecast`. `[web]` bringt die Weboberfläche mit;
-ohne Extra wird nur die Kommandozeile installiert.
+**Linux / macOS:**
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
+```
+
+Danach ein neues Terminal öffnen. **Aktualisieren:** denselben Befehl erneut ausführen.
+Optionen (Umgebungsvariablen vor dem Aufruf setzen):
+
+| Variable | Wirkung |
+|---|---|
+| `SPRINTFORECAST_WITH="name @ git+https://…"` | zusätzlich Plugins installieren (mehrere mit `;` getrennt; braucht Git) |
+| `SPRINTFORECAST_REF=v1.0` | bestimmten Tag oder Branch statt `main` installieren |
+
+Beispiel Windows mit Plugin: `$env:SPRINTFORECAST_WITH = "mein-plugin @ git+https://…"` und
+dann der Befehl oben. Das Plugin muss die Quelle des Kerns in `[tool.uv.sources]` festlegen.
+Entfernen: `uv tool uninstall sprintforecast`.
+
+Manuell ohne Skript:
+
+```bash
+uv tool install "sprintforecast[web] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
+```
 
 ## Schnellstart
 
@@ -42,9 +64,8 @@ das aktuelle Verzeichnis keine, aber einen Unterordner `teams` mit Teams, wird d
 **Windows PowerShell:**
 
 ```powershell
-uv tool install "sprintforecast[web] @ git+https://github.com/swallat/sprint-forecast"
 cd "$HOME\sprint-daten"
-sprintforecast web
+sprintforecast web --app
 ```
 
 Demo ausprobieren (im Ordner dieses Repositorys):
@@ -236,6 +257,10 @@ der Historie aus einem bisherigen Werkzeug. Installiert werden sie neben dem Too
 uv tool install "sprintforecast[web] @ git+https://github.com/swallat/sprint-forecast" \
   --with "mein-plugin @ git+https://…"
 ```
+
+Legt das Plugin die Quelle des Kerns selbst fest (`[tool.uv.sources]`), den Kern ohne
+Adresse angeben – sonst meldet uv „conflicting URLs“:
+`uv tool install "sprintforecast[web]" --with "mein-plugin @ git+https://…"`.
 
 Formatneutrale Hilfsfunktion für Importe: `sprintforecast.storage.import_sprints`.
 
