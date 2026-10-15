@@ -18,6 +18,13 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from sprintforecast.analysis import (
+    average_focus_factor,
+    band,
+    buffer_hint,
+    completion,
+    focus_factor,
+)
 from sprintforecast.calendar import holiday_name, workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource
@@ -64,6 +71,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "fehltage": ("Fehltage", ":material/event_busy:"),
         "planning": ("Planning", ":material/edit_note:"),
         "review": ("Review", ":material/task_alt:"),
+        "analyse": ("Analyse", ":material/insights:"),
     },
     "Team": {
         "personen": ("Personen", ":material/group:"),
@@ -471,6 +479,124 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
 
 
+def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header("Analyse")
+    st.caption(
+        "Ergänzt den Forecast. Die Werte auf der Seite **Forecast** (Forecast PLAN, Roadmap, "
+        "Kleinkram) bleiben unverändert."
+    )
+    unit = data.team.unit.value
+    window = data.team.forecast.window
+
+    st.subheader("Bandbreite")
+    rows = []
+    for e in fc.upcoming():
+        b = band(fc, e)
+        rows.append(
+            {
+                "Sprint": e.sprint.id,
+                f"Forecast PLAN ({unit})": fmt(e.result.plan),
+                "konservativ": fmt(b.low if b else None),
+                "mittel": fmt(b.mid if b else None),
+                "optimistisch": fmt(b.high if b else None),
+            }
+        )
+    st.dataframe(pd.DataFrame(rows), hide_index=True)
+    st.caption(
+        f"Forecast mit der niedrigsten, mittleren (Median) und höchsten normierten Velocity der "
+        f"letzten {window} Sprints statt des Trends – zeigt, wie stark die Planung schwanken kann."
+    )
+
+    st.subheader("Wann ist es fertig?")
+    share = data.team.forecast.roadmap_share
+    with st.form("completion"):
+        rest = st.number_input(
+            f"Restmenge ({unit})", min_value=0.0, value=None, step=1.0, key="rest",
+            help="Noch offene Arbeit, z. B. die Summe eines Roadmap-Themas.",
+        )  # fmt: skip
+        basis = st.radio(
+            "Verfügbar je Sprint",
+            [f"Roadmap-Anteil ({pct(share)})", "gesamter Forecast"],
+            horizontal=True,
+            key="basis",
+        )
+        submitted = st.form_submit_button("Berechnen", type="primary")
+    if submitted and rest:
+        used_share = share if basis.startswith("Roadmap") else 1.0
+        result = completion(data, fc.today, rest, used_share)
+        if result is None:
+            st.warning("Zu wenig Historie für eine Fertigstellungsprognose.")
+        else:
+            left, right = st.columns(2)
+            left.metric("wahrscheinlich (50 %)", result.p50 or "nach dem Zeitraum")
+            right.metric("mit 85 % Sicherheit", result.p85 or "nach dem Zeitraum")
+            chart = pd.DataFrame({"Sprint": result.sprints, "fertig bis dahin": result.cumulative})
+            # vom ersten Sprint mit Chance bis zum ersten mit (fast) 100 %
+            done = chart.index[chart["fertig bis dahin"] >= 0.999]
+            chart = chart[chart["fertig bis dahin"] > 0]
+            if len(done):
+                chart = chart.loc[: done[0]]
+            st.altair_chart(
+                alt.Chart(chart)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Sprint:N", sort=list(chart["Sprint"])),
+                    y=alt.Y(
+                        "fertig bis dahin:Q", axis=alt.Axis(format="%"), title="Wahrscheinlichkeit"
+                    ),
+                    tooltip=["Sprint:N", alt.Tooltip("fertig bis dahin:Q", format=".0%")],
+                ),
+                width="stretch",
+            )
+            st.caption(
+                f"Monte-Carlo-Simulation ({result.runs:,} Durchläufe) ab dem nächsten Sprint: je "
+                "Sprint eine zufällige normierte Velocity der letzten Sprints × Kapazität."
+                + (
+                    f" Ohne erfasste Fehltage mit Ø Kapazität gerechnet: "
+                    f"{', '.join(result.trend_capacity_sprints[:4])}"
+                    f"{' …' if len(result.trend_capacity_sprints) > 4 else ''}."
+                    if result.trend_capacity_sprints
+                    else ""
+                )
+            )
+
+    st.subheader("Fokusfaktor")
+    st.metric(
+        f"Ø Fokusfaktor (letzte {window} Sprints)",
+        fmt(average_focus_factor(fc), 2),
+        help="Velocity / Kapazität. Anders als die normierte Velocity unabhängig von der "
+        "Referenzkapazität – damit zwischen Teams vergleichbar. Literaturwerte (0,6–0,8) "
+        "beziehen sich meist auf reine Arbeitszeit; zählt die Kapazität alle Anwesenheitstage, "
+        "liegen die Werte niedriger.",
+    )
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {"Sprint": e.sprint.id, "Fokusfaktor": fmt(focus_factor(e), 2)}
+                for e in fc.history(window)
+            ]
+        ),
+        hide_index=True,
+    )
+
+    st.subheader("Puffer für Ungeplantes")
+    hint = buffer_hint(fc)
+    if hint.average_scope_creep is None:
+        st.info("Scope Creep wurde zuletzt nicht erfasst – keine Empfehlung möglich.")
+    else:
+        text = (
+            f"Ø Scope Creep der letzten {hint.samples} Sprints: "
+            f"**{pct(hint.average_scope_creep)}** · eingestellter Kleinkram-Anteil: "
+            f"**{pct(hint.configured_small_stuff)}**"
+        )
+        if hint.buffer_too_small:
+            st.warning(text + " – der Puffer ist kleiner als der ungeplante Anteil.")
+        elif hint.sufficient_data:
+            st.success(text + " – passt.")
+        else:
+            st.info(text + " – zu wenige Werte für eine Empfehlung.")
+
+
 def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Personen")
     st.markdown(
@@ -801,6 +927,7 @@ TEAM_PAGES = {
     "fehltage": page_absences,
     "planning": page_planning,
     "review": page_review,
+    "analyse": page_analysis,
     "personen": page_people,
     "einstellungen": page_settings,
 }

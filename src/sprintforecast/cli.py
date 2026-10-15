@@ -46,7 +46,7 @@ from sprintforecast.model import (
     new_person_id,
 )
 from sprintforecast.plugins import load_plugins
-from sprintforecast.report import capacity_label, fmt, period, render, status
+from sprintforecast.report import capacity_label, fmt, pct, period, render, status
 from sprintforecast.settings import SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
@@ -717,6 +717,99 @@ def forecast(
             "[yellow]⚠ Trend = keine Fehltage erfasst, Kapazität geschätzt. "
             f"Belastbarer mit: sprintforecast fehltage {team} <SPRINT>[/yellow]"
         )
+
+
+@app.command()
+def analyse(
+    ctx: typer.Context,
+    team: TeamArg,
+    rest: Annotated[
+        float | None,
+        typer.Option(help="Restmenge, für die der Fertigstellungs-Sprint geschätzt wird."),
+    ] = None,
+    gesamt: Annotated[
+        bool,
+        typer.Option(
+            "--gesamt",
+            help="Für --rest den ganzen Forecast nutzen statt nur des Roadmap-Anteils.",
+        ),
+    ] = False,
+) -> None:
+    """Ergänzende Analysen: Bandbreite, Fokusfaktor, Puffer, Fertigstellung (--rest)."""
+    from sprintforecast.analysis import (
+        average_focus_factor,
+        band,
+        buffer_hint,
+        completion,
+        focus_factor,
+    )
+
+    c = _ctx(ctx)
+    data = _load(c, team)
+    fc = build_forecast(data, c.today)
+    unit = data.team.unit.value
+
+    table = Table(title=f"Bandbreite {data.team.name} – zusätzlich zum Forecast PLAN")
+    for col in ("Sprint", f"Forecast PLAN {unit}", "konservativ", "mittel", "optimistisch"):
+        table.add_column(col, justify="left" if col == "Sprint" else "right")
+    for e in fc.upcoming():
+        b = band(fc, e)
+        table.add_row(
+            e.sprint.id,
+            fmt(e.result.plan),
+            *(fmt(v) for v in ((b.low, b.mid, b.high) if b else (None, None, None))),
+        )
+    console.print(table)
+    console.print(
+        "[dim]konservativ/mittel/optimistisch = niedrigste/mittlere/höchste normierte Velocity "
+        f"der letzten {data.team.forecast.window} Sprints × Kapazität.[/dim]"
+    )
+
+    focus = Table(title="Fokusfaktor (Velocity / Kapazität)")
+    focus.add_column("Sprint")
+    focus.add_column("Fokusfaktor", justify="right")
+    for e in fc.history(data.team.forecast.window):
+        focus.add_row(e.sprint.id, fmt(focus_factor(e), 2))
+    focus.add_row("[bold]Ø[/bold]", f"[bold]{fmt(average_focus_factor(fc), 2)}[/bold]")
+    console.print(focus)
+
+    hint = buffer_hint(fc)
+    if hint.average_scope_creep is None:
+        console.print("Puffer: Scope Creep wurde zuletzt nicht erfasst – keine Empfehlung.")
+    else:
+        colour = "yellow" if hint.buffer_too_small else "green"
+        console.print(
+            f"Puffer: Ø Scope Creep {pct(hint.average_scope_creep)} ({hint.samples} Sprints), "
+            f"Kleinkram-Anteil {pct(hint.configured_small_stuff)} – "
+            f"[{colour}]"
+            + (
+                "Puffer kleiner als der ungeplante Anteil"
+                if hint.buffer_too_small
+                else "passt"
+                if hint.sufficient_data
+                else "zu wenige Werte für eine Empfehlung"
+            )
+            + f"[/{colour}]"
+        )
+
+    if rest is not None:
+        share = 1.0 if gesamt else data.team.forecast.roadmap_share
+        result = completion(data, c.today, rest, share)
+        if result is None:
+            err.print("[red]Zu wenig Historie für eine Fertigstellungsprognose.[/red]")
+            raise typer.Exit(1)
+        basis = "gesamter Forecast" if gesamt else f"Roadmap-Anteil {pct(share)}"
+        console.print(
+            f"Fertigstellung von {fmt(rest, 1)} {unit} ({basis}, ab dem nächsten Sprint): "
+            f"wahrscheinlich bis [bold]{result.p50 or 'nach dem Zeitraum'}[/bold], "
+            f"mit 85 % Sicherheit bis [bold]{result.p85 or 'nach dem Zeitraum'}[/bold]."
+        )
+        if result.trend_capacity_sprints:
+            console.print(
+                f"[dim]Ohne erfasste Fehltage gerechnet mit Ø Kapazität: "
+                f"{', '.join(result.trend_capacity_sprints[:4])}"
+                f"{' …' if len(result.trend_capacity_sprints) > 4 else ''}[/dim]"
+            )
 
 
 @app.command()
