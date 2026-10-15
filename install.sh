@@ -3,19 +3,31 @@
 #
 #   curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
 #
-# Erneut ausführen = aktualisieren. Optional:
-#   SPRINTFORECAST_WITH="name @ git+https://…"  zusätzliche Pakete (Plugins), mehrere mit ";"
-#                                               getrennt; das Plugin muss die Quelle des Kerns
-#                                               in [tool.uv.sources] festlegen (braucht Git)
-#   SPRINTFORECAST_REF=…                        Branch oder Tag statt main
+# Erneut ausführen = aktualisieren. Das Skript fragt nach Plugins und merkt sich die Auswahl.
+# Ohne Rückfrage:
+#   SPRINTFORECAST_WITH="besitzer/repo; name @ git+https://…"  Plugins (leer = keine)
+#   SPRINTFORECAST_REF=…                                       Branch oder Tag statt main
 set -eu
 
 REF="${SPRINTFORECAST_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
 CORE="sprintforecast[web] @ https://github.com/swallat/sprint-forecast/archive/refs/${KIND}/${REF}.zip"
+PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"
 
 say() { printf '%s\n' "$*"; }
+trim() { printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+
+# „besitzer/repo“ → git+https://github.com/besitzer/repo; alles andere unverändert
+expand() {
+    case "$1" in
+        *[!A-Za-z0-9_./-]* | */*/* | /* | */ | '') printf '%s' "$1" ;;
+        */*) printf 'git+https://github.com/%s' "$1" ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+interactive() { [ -t 1 ] && (exec </dev/tty) 2>/dev/null; }
 
 if ! command -v uv >/dev/null 2>&1; then
     say "==> uv wird installiert (https://docs.astral.sh/uv/)"
@@ -24,29 +36,70 @@ if ! command -v uv >/dev/null 2>&1; then
     export PATH
 fi
 
-if [ -n "${SPRINTFORECAST_WITH:-}" ]; then
+saved=""
+[ -f "$PLUGIN_FILE" ] && saved=$(trim "$(cat "$PLUGIN_FILE")")
+if [ -n "${SPRINTFORECAST_WITH+x}" ]; then
+    plugins="$SPRINTFORECAST_WITH"
+elif interactive; then
+    {
+        say ""
+        say "Plugins installieren? Mehrere mit ';' trennen, z. B.:"
+        say "  besitzer/repo   oder   name @ git+https://…"
+        if [ -n "$saved" ]; then
+            printf 'Plugins [Enter = beibehalten: %s | - = keine]: ' "$saved"
+        else
+            printf 'Plugins [Enter = keine]: '
+        fi
+    } >/dev/tty
+    answer=""
+    read -r answer </dev/tty || answer=""
+    answer=$(trim "$answer")
+    case "$answer" in
+        "") plugins="$saved" ;;
+        -) plugins="" ;;
+        *) plugins="$answer" ;;
+    esac
+else
+    plugins="$saved"
+fi
+
+set -- --force --reinstall --python 3.15
+specs=""
+OLD_IFS=$IFS
+IFS=';'
+for item in $plugins; do
+    IFS=$OLD_IFS
+    item=$(trim "$item")
+    [ -z "$item" ] && continue
+    spec=$(expand "$item")
+    set -- "$@" --with "$spec"
+    specs="${specs:+$specs; }$item"
+done
+IFS=$OLD_IFS
+
+if [ -n "$specs" ]; then
     if ! command -v git >/dev/null 2>&1; then
         say "Für Plugins aus Git-Repositories wird Git benötigt (z. B. 'brew install git' bzw. 'sudo apt install git')." >&2
         exit 1
     fi
-    say "==> mit Plugins: ${SPRINTFORECAST_WITH}"
+    say "==> mit Plugins: $specs"
     # Die Quelle des Kerns kommt aus dem Plugin ([tool.uv.sources]) – sonst „conflicting URLs“.
-    set -- --force --reinstall --python 3.15 "sprintforecast[web]"
-    OLD_IFS=$IFS
-    IFS=';'
-    for spec in $SPRINTFORECAST_WITH; do
-        IFS=$OLD_IFS
-        spec=$(printf '%s' "$spec" | sed 's/^ *//; s/ *$//')
-        [ -n "$spec" ] && set -- "$@" --with "$spec"
-    done
-    IFS=$OLD_IFS
+    set -- "$@" "sprintforecast[web]"
 else
-    set -- --force --reinstall --python 3.15 "$CORE"
+    set -- "$@" "$CORE"
 fi
 
 say "==> sprintforecast wird installiert (Python 3.15 wird bei Bedarf geladen)"
 uv tool install "$@"
 uv tool update-shell >/dev/null 2>&1 || true
+
+# Auswahl für das nächste Aktualisieren merken
+if [ -n "$specs" ]; then
+    mkdir -p "$(dirname "$PLUGIN_FILE")"
+    printf '%s\n' "$specs" >"$PLUGIN_FILE"
+else
+    rm -f "$PLUGIN_FILE"
+fi
 
 say ""
 say "Fertig: sprintforecast $("$(uv tool dir --bin)/sprintforecast" --version)"
