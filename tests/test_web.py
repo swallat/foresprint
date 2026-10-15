@@ -240,7 +240,9 @@ def test_analysis_page(app: AppTest):
     goto(app, "analyse")
     assert app.header[0].value == "Analyse"
     app.number_input(key="rest").set_value(40.0)
+    app.number_input(key="project_share").set_value(50.0)
     click(app, "Berechnen")
+    assert any("40 % des Forecasts" in m.label for m in app.metric)
     labels = [m.label for m in app.metric]
     assert "mit 85 % Sicherheit" in labels
     assert any(m.value.startswith("2026.") or m.value.startswith("2027.") for m in app.metric)

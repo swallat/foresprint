@@ -734,6 +734,15 @@ def analyse(
             help="Für --rest den ganzen Forecast nutzen statt nur des Roadmap-Anteils.",
         ),
     ] = False,
+    anteil: Annotated[
+        float,
+        typer.Option(
+            min=1,
+            max=100,
+            help="Projektanteil in %: welcher Teil der Roadmap- bzw. Gesamtkapazität in die "
+            "Restmenge fließt (Standard 100).",
+        ),
+    ] = 100.0,
 ) -> None:
     """Ergänzende Analysen: Bandbreite, Fokusfaktor, Puffer, Fertigstellung (--rest)."""
     from sprintforecast.analysis import (
@@ -793,16 +802,20 @@ def analyse(
         )
 
     if rest is not None:
-        share = 1.0 if gesamt else data.team.forecast.roadmap_share
+        basis_share = 1.0 if gesamt else data.team.forecast.roadmap_share
+        share = basis_share * anteil / 100
         result = completion(data, c.today, rest, share)
         if result is None:
             err.print("[red]Zu wenig Historie für eine Fertigstellungsprognose.[/red]")
             raise typer.Exit(1)
-        basis = "gesamter Forecast" if gesamt else f"Roadmap-Anteil {pct(share)}"
+        basis = "gesamter Forecast" if gesamt else f"Roadmap-Anteil {pct(basis_share)}"
+        if anteil < 100:
+            basis += f" × Projektanteil {fmt(anteil, 0)} % = {pct(share)} des Forecasts"
         console.print(
             f"Fertigstellung von {fmt(rest, 1)} {unit} ({basis}, ab dem nächsten Sprint): "
             f"wahrscheinlich bis [bold]{result.p50 or 'nach dem Zeitraum'}[/bold], "
-            f"mit 85 % Sicherheit bis [bold]{result.p85 or 'nach dem Zeitraum'}[/bold]."
+            f"mit 85 % Sicherheit bis [bold]{result.p85 or 'nach dem Zeitraum'}[/bold] "
+            f"(≈ {fmt(result.per_sprint, 1)} {unit} je Sprint)."
         )
         if result.trend_capacity_sprints:
             console.print(

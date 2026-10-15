@@ -222,3 +222,11 @@ def test_analyse(data_dir: Path):
     assert report.exit_code == 0
     text = (data_dir / "demo" / "FORECAST.md").read_text()
     assert text.index("## Prognose") < text.index("## Ergänzend: Bandbreite")
+
+
+def test_analyse_with_project_share(data_dir: Path):
+    full = run(data_dir, "analyse", "demo", "--rest", "40")
+    half = run(data_dir, "analyse", "demo", "--rest", "40", "--anteil", "50")
+    assert half.exit_code == 0, half.output
+    assert "Projektanteil 50 % = 40 % des Forecasts" in half.output
+    assert "je Sprint" in half.output and full.output != half.output

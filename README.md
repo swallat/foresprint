@@ -219,7 +219,8 @@ zum Forecast, die bisherigen Werte bleiben unverändert:
 - **Puffer:** Ø Scope Creep der letzten Sprints im Vergleich zum Kleinkram-Anteil.
 - **Wann ist es fertig?** Monte-Carlo-Simulation ab dem nächsten Sprint: in welchem Sprint
   eine Restmenge wahrscheinlich (50 %) bzw. mit 85 % Sicherheit erledigt ist – mit dem
-  Roadmap-Anteil oder (`--gesamt`) dem ganzen Forecast. Sprints ohne erfasste Fehltage
+  Roadmap-Anteil oder (`--gesamt`) dem ganzen Forecast, optional nur mit einem
+  **Projektanteil** davon (`--anteil 50` = die Hälfte). Sprints ohne erfasste Fehltage
   rechnen mit der Ø Kapazität.
 
 Der Bericht `FORECAST.md` enthält am Ende einen Abschnitt „Ergänzend: Bandbreite“.

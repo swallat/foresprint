@@ -126,6 +126,8 @@ class Completion:
     # Wahrscheinlichkeit, bis einschließlich Sprint i fertig zu sein
     cumulative: list[float]
     trend_capacity_sprints: list[str]
+    # Erwartete Menge je Sprint für die Restmenge (Median Velocity × Ø Kapazität × Anteil)
+    per_sprint: float
 
 
 def completion(
@@ -139,6 +141,9 @@ def completion(
 ) -> Completion | None:
     """Simuliert ab dem nächsten Sprint, wann ``remaining`` erledigt ist.
 
+    ``share`` ist der Anteil des Forecasts, der der Restmenge je Sprint zur Verfügung steht,
+    z. B. Roadmap-Anteil × Projektanteil (0,8 × 0,5 = 0,4).
+
     Je Sprint wird zufällig eine normierte Velocity der letzten Sprints gezogen und mit der
     Kapazität des Sprints umgerechnet. Für Sprints ohne erfasste Fehltage wird statt des
     (über viele Sprints instabilen) Trends die Ø Kapazität der letzten Sprints genommen.
@@ -147,7 +152,7 @@ def completion(
     longer.team.forecast.horizon = max_sprints
     fc = build_forecast(longer, today)
     history = normalized_history(fc)
-    if len(history) < 2 or remaining <= 0:
+    if len(history) < 2 or remaining <= 0 or share <= 0:
         return None
     window = data.team.forecast.window
     avg_capacity = statistics.fmean(
@@ -190,4 +195,5 @@ def completion(
         sprints=[e.sprint.id for e in future],
         cumulative=cumulative,
         trend_capacity_sprints=trend_ids,
+        per_sprint=statistics.median(history) / ref * statistics.median(capacities) * share,
     )
