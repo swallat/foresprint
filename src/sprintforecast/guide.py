@@ -132,6 +132,14 @@ WORKFLOW: list[Step] = [
         cli="sprintforecast review TEAM --commit",
     ),
     Step(
+        when="Bei Roadmap-Fragen",
+        title="Analyse",
+        text="Ergänzend zum Forecast: Bandbreite (konservativ/optimistisch), Fokusfaktor, "
+        "Puffer-Empfehlung und „Wann ist es fertig?“ für eine Restmenge.",
+        page="analyse",
+        cli="sprintforecast analyse TEAM [--rest MENGE]",
+    ),
+    Step(
         when="Bei Teamänderungen",
         title="Personen und Einstellungen",
         text="Eintritt, Austritt und FTE-Änderungen erfassen; Team-Einstellungen wie "
@@ -183,6 +191,10 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast personen TEAM", "Personen pflegen"),
     ("sprintforecast einstellungen TEAM", "Team-Einstellungen ändern"),
     ("sprintforecast kapazitaet TEAM [SPRINT]", "Kapazitätsberechnung im Detail"),
+    (
+        "sprintforecast analyse TEAM [--rest MENGE]",
+        "Bandbreite, Fokusfaktor, Puffer, Fertigstellung",
+    ),
     ("sprintforecast bericht [TEAM]", "FORECAST.md erzeugen"),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
     ("sprintforecast pruefen", "Alle Daten prüfen (für CI und vor dem Commit)"),

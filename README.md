@@ -83,6 +83,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | Sprint | Forecast | Prognose für laufenden + kommende Sprints, Verlauf, Diagramm, Bericht schreiben |
 | | Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast |
 | | Planning / Review | Formulare mit Erklärungen zu jedem Feld |
+| | Analyse | ergänzend: Bandbreite, Fokusfaktor, Puffer-Empfehlung, „Wann ist es fertig?“ |
 | Team | Personen | eine Tabelle (Zeile je Zeitraum, FTE); IDs automatisch; Ehemalige ausblendbar |
 | | Einstellungen | alle Team-Einstellungen; Änderungen werden vor dem Speichern angezeigt |
 | | Neues Team | Team anlegen |
@@ -205,6 +206,23 @@ planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
   2. multiplikativ `Ø_vorletzt / Ø_vorvorletzt × Trend_vorher`, danach linear.
 - `linear`: durchgehend linear.
 - `flat`: letzter Ø bleibt konstant (robust bei langen Horizonten).
+
+## Ergänzende Analysen
+
+`sprintforecast analyse TEAM [--rest MENGE] [--gesamt]` bzw. Seite **Analyse** – zusätzlich
+zum Forecast, die bisherigen Werte bleiben unverändert:
+
+- **Bandbreite:** Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity
+  der letzten Sprints (konservativ / mittel / optimistisch).
+- **Fokusfaktor:** Velocity / Kapazität – unabhängig von der Referenzkapazität, daher
+  zwischen Teams vergleichbar.
+- **Puffer:** Ø Scope Creep der letzten Sprints im Vergleich zum Kleinkram-Anteil.
+- **Wann ist es fertig?** Monte-Carlo-Simulation ab dem nächsten Sprint: in welchem Sprint
+  eine Restmenge wahrscheinlich (50 %) bzw. mit 85 % Sicherheit erledigt ist – mit dem
+  Roadmap-Anteil oder (`--gesamt`) dem ganzen Forecast. Sprints ohne erfasste Fehltage
+  rechnen mit der Ø Kapazität.
+
+Der Bericht `FORECAST.md` enthält am Ende einen Abschnitt „Ergänzend: Bandbreite“.
 
 ## Erweiterungen (Plugins)
 

@@ -211,3 +211,14 @@ def test_teams_subdirectory_is_found(
     # Liegen Teams direkt im aktuellen Verzeichnis, haben diese Vorrang
     monkeypatch.chdir(root / "teams")
     assert runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"]).exit_code == 0
+
+
+def test_analyse(data_dir: Path):
+    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    assert result.exit_code == 0, result.output
+    for text in ("Bandbreite", "konservativ", "Fokusfaktor", "Puffer", "Fertigstellung von 40"):
+        assert text in result.output
+    report = run(data_dir, "bericht", "demo")
+    assert report.exit_code == 0
+    text = (data_dir / "demo" / "FORECAST.md").read_text()
+    assert text.index("## Prognose") < text.index("## Ergänzend: Bandbreite")

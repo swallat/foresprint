@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from sprintforecast.analysis import average_focus_factor, band, buffer_hint
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import Forecast, TimelineEntry
 
@@ -129,4 +130,42 @@ def render(fc: Forecast, history: int = 10) -> str:
             ),
             "```",
         ]
+    lines += _analysis_section(fc)
     return "\n".join(lines) + "\n"
+
+
+def _analysis_section(fc: Forecast) -> list[str]:
+    """Ergänzende Analysen (Bandbreite, Fokusfaktor, Puffer) – am Ende des Berichts."""
+    unit = fc.data.team.unit.value
+    rows = [(e, b) for e in fc.upcoming() if (b := band(fc, e)) is not None]
+    lines: list[str] = []
+    if rows:
+        lines += [
+            "",
+            "## Ergänzend: Bandbreite",
+            "",
+            f"Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der "
+            f"letzten {rows[0][1].samples} Sprints (statt des Trends).",
+            "",
+            f"| Sprint | Forecast PLAN ({unit}) | konservativ | mittel | optimistisch |",
+            "|---|---|---|---|---|",
+        ]
+        lines += [
+            f"| {e.sprint.id} | {fmt(e.result.plan)} | {fmt(b.low)} | {fmt(b.mid)} "
+            f"| {fmt(b.high)} |"
+            for e, b in rows
+        ]
+    focus = average_focus_factor(fc)
+    hint = buffer_hint(fc)
+    facts = []
+    if focus is not None:
+        facts.append(f"Ø Fokusfaktor (Velocity / Kapazität): {fmt(focus, 2)}")
+    if hint.average_scope_creep is not None:
+        facts.append(
+            f"Ø Scope Creep ({hint.samples} Sprints): {pct(hint.average_scope_creep)} · "
+            f"Kleinkram-Anteil: {pct(hint.configured_small_stuff)}"
+            + (" ⚠️ Puffer kleiner als der ungeplante Anteil" if hint.buffer_too_small else "")
+        )
+    if facts:
+        lines += ["", *[f"- {f}" for f in facts]]
+    return lines

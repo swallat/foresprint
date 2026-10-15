@@ -234,3 +234,13 @@ def test_people_page_toggle_former(app: AppTest):
     assert not any("ehemalige Person" in c.value for c in app.caption)
     click(app, "Personen speichern")  # unverändert speichern geht ohne Rückfrage
     assert any("Gespeichert" in s.value for s in app.success)
+
+
+def test_analysis_page(app: AppTest):
+    goto(app, "analyse")
+    assert app.header[0].value == "Analyse"
+    app.number_input(key="rest").set_value(40.0)
+    click(app, "Berechnen")
+    labels = [m.label for m in app.metric]
+    assert "mit 85 % Sicherheit" in labels
+    assert any(m.value.startswith("2026.") or m.value.startswith("2027.") for m in app.metric)
