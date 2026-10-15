@@ -31,15 +31,22 @@ curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/instal
 ```
 
 Danach ein neues Terminal öffnen. **Aktualisieren:** denselben Befehl erneut ausführen.
-Optionen (Umgebungsvariablen vor dem Aufruf setzen):
+
+**Plugins:** Das Skript fragt, ob Plugins mitinstalliert werden sollen – mehrere mit `;`
+getrennt, als Kurzform `besitzer/repo` (wird zu `git+https://github.com/besitzer/repo`) oder
+vollständig `name @ git+https://…`. Die Auswahl wird gemerkt (Windows:
+`%APPDATA%\sprintforecast\plugins.txt`, sonst `~/.config/sprintforecast/plugins`); beim
+Aktualisieren genügt Enter, `-` entfernt alle Plugins. Plugins aus Git-Repositories brauchen Git,
+private zusätzlich eine Anmeldung. Ein Plugin muss die Quelle des Kerns in `[tool.uv.sources]`
+festlegen.
+
+Ohne Rückfrage (Umgebungsvariablen vor dem Aufruf setzen):
 
 | Variable | Wirkung |
 |---|---|
-| `SPRINTFORECAST_WITH="name @ git+https://…"` | zusätzlich Plugins installieren (mehrere mit `;` getrennt; braucht Git) |
+| `SPRINTFORECAST_WITH="besitzer/repo; …"` | diese Plugins installieren (leer = keine) |
 | `SPRINTFORECAST_REF=v1.0` | bestimmten Tag oder Branch statt `main` installieren |
 
-Beispiel Windows mit Plugin: `$env:SPRINTFORECAST_WITH = "mein-plugin @ git+https://…"` und
-dann der Befehl oben. Das Plugin muss die Quelle des Kerns in `[tool.uv.sources]` festlegen.
 Entfernen: `uv tool uninstall sprintforecast`.
 
 Manuell ohne Skript:
