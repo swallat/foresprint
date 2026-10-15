@@ -194,3 +194,20 @@ def test_version_and_help_without_command():
     assert result.exit_code == 0 and __version__ in result.output
     result = runner.invoke(app, [])
     assert result.exit_code == 0 and "forecast" in result.output
+
+
+def test_teams_subdirectory_is_found(
+    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Start im Wurzelordner eines Daten-Repos mit Unterordner teams/."""
+    import shutil
+
+    root = tmp_path / "sprint-daten"
+    shutil.copytree(data_dir, root / "teams")
+    monkeypatch.delenv("SPRINTFORECAST_DATEN", raising=False)
+    monkeypatch.chdir(root)
+    result = runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"])
+    assert result.exit_code == 0, result.output
+    # Liegen Teams direkt im aktuellen Verzeichnis, haben diese Vorrang
+    monkeypatch.chdir(root / "teams")
+    assert runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"]).exit_code == 0
