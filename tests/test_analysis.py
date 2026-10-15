@@ -73,6 +73,11 @@ def test_completion_is_deterministic_with_constant_velocity():
     assert result.p50 == result.p85 == future[2]  # 8 + 8 + 8 ≥ 20 im 3. Sprint
     assert result.cumulative[2] == pytest.approx(1.0)
     assert analysis.completion(data, TODAY, remaining=20, share=1.0, runs=10).p85 == future[1]
+    # Projektanteil 50 % vom Roadmap-Anteil → 4 je Sprint → im 5. Sprint fertig
+    half = analysis.completion(data, TODAY, remaining=20, share=0.8 * 0.5, runs=10)
+    assert half.p85 == future[4]
+    assert half.per_sprint == pytest.approx(4.0)
+    assert analysis.completion(data, TODAY, remaining=20, share=0) is None
 
 
 def test_completion_on_demo(data_dir: Path):

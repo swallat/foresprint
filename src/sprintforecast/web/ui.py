@@ -520,15 +520,31 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
             horizontal=True,
             key="basis",
         )
+        project = st.number_input(
+            "Projektanteil (%)",
+            min_value=1.0,
+            max_value=100.0,
+            value=100.0,
+            step=5.0,
+            key="project_share",
+            help="Welcher Teil der oben gewählten Kapazität in dieses Projekt fließt – z. B. 50, "
+            "wenn parallel ein zweites Roadmap-Thema gleich stark bearbeitet wird.",
+        )
         submitted = st.form_submit_button("Berechnen", type="primary")
     if submitted and rest:
-        used_share = share if basis.startswith("Roadmap") else 1.0
+        basis_share = share if basis.startswith("Roadmap") else 1.0
+        used_share = basis_share * project / 100
         result = completion(data, fc.today, rest, used_share)
         if result is None:
             st.warning("Zu wenig Historie für eine Fertigstellungsprognose.")
         else:
-            left, right = st.columns(2)
-            left.metric("wahrscheinlich (50 %)", result.p50 or "nach dem Zeitraum")
+            left, middle, right = st.columns(3)
+            left.metric(
+                f"je Sprint für das Projekt ({pct(used_share)} des Forecasts)",
+                f"≈ {fmt(result.per_sprint, 1)} {unit}",
+                help="Median der normierten Velocity × typische Kapazität × Anteil.",
+            )
+            middle.metric("wahrscheinlich (50 %)", result.p50 or "nach dem Zeitraum")
             right.metric("mit 85 % Sicherheit", result.p85 or "nach dem Zeitraum")
             chart = pd.DataFrame({"Sprint": result.sprints, "fertig bis dahin": result.cumulative})
             # vom ersten Sprint mit Chance bis zum ersten mit (fast) 100 %
