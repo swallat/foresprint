@@ -145,6 +145,19 @@ def test_settings_save(app: AppTest, data_dir: Path):
     assert any("rückwirkend" in w.value for w in app.warning)
 
 
+def test_overhead_fields_stay_in_sync(app: AppTest, data_dir: Path):
+    goto(app, "einstellungen")
+    app.number_input(key="settings-demo-capacity.overhead_days").set_value(1.0).run()
+    # 14 Kalendertage = 10 Arbeitstage → 1 PT = 10 %
+    assert app.number_input(key="settings-demo-capacity.overhead_share").value == 10.0
+    app.number_input(key="settings-demo-capacity.overhead_share").set_value(20.0).run()
+    assert app.number_input(key="settings-demo-capacity.overhead_days").value == 2.0
+    click(app, "Speichern")
+    capacity = load(data_dir / "demo" / "team.yaml")["capacity"]
+    assert capacity["overhead_share"] == pytest.approx(0.2)
+    assert capacity["overhead_days"] == 2
+
+
 def test_new_team(app: AppTest, data_dir: Path):
     goto(app, "neues_team")
     app.text_input[0].set_value("team-b").run()

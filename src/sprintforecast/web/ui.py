@@ -51,6 +51,7 @@ from sprintforecast.git import (
     init_data_repository,
     pending_changes,
 )
+from sprintforecast.git import NO_WINDOW
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
@@ -58,6 +59,7 @@ from sprintforecast.model import Numbering, Planning, Sprint, Team
 from sprintforecast.plugins import WebPage
 from sprintforecast.products import (
     MEASURES,
+    PRODUCTION_MEASURES,
     Distribution,
     balance,
     by_po,
@@ -166,7 +168,7 @@ def help_text(key: str) -> str:
 def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
     return pd.DataFrame(
         [
-            {t("Kennzahl"): s.name, t("Formel"): s.formula, t("Rechnung"): s.calculation}
+            {t("Kennzahl"): s.name, t("Formel"): s.formula}
             for s in steps(fc, entry)
         ]
     )
@@ -369,17 +371,17 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 
 def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
-    """Tooltip-Text: Formel und eingesetzte Zahlen einer Kennzahl."""
+    """Tooltip-Text: symbolische Formel einer Kennzahl."""
     if e is None or (s := formula_step(fc, e, key)) is None:
         return ""
-    return f"**{s.formula}**\n\n{s.calculation}"
+    return s.formula
 
 
 def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
     """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
     if not entries:
         return
-    with st.expander(t("Rechenweg: Formeln mit eingesetzten Zahlen"), icon=":material/function:"):
+    with st.expander(t("Rechenweg: Formeln"), icon=":material/function:"):
         ids = [e.sprint.id for e in entries]
         default = fc.default_entry("planning")
         index = ids.index(default.sprint.id) if default and default.sprint.id in ids else 0
@@ -646,6 +648,15 @@ def _distribution_caption(d: Distribution, unit: str) -> str:
         return t(
             "Standard: {basis} / Anzahl betreuter Produkte – noch nicht berechenbar.", basis=basis
         )
+    if any(r.product.share is not None for r in d.rows if r.active):
+        return t(
+            "Standard = {basis}{frozen} {available} {unit}: Produkte mit festem Anteil "
+            "bekommen diesen, der Rest verteilt sich gleichmäßig auf die übrigen.",
+            basis=basis,
+            frozen=t(" (beim Planning eingefroren)") if d.plan_frozen else "",
+            available=fmt(d.available, 2),
+            unit=unit,
+        )
     return t(
         "Standard = {basis}{frozen} {available} {unit} / {count} betreute Produkte = "
         "**{share} {unit}** je Produkt.",
@@ -656,6 +667,34 @@ def _distribution_caption(d: Distribution, unit: str) -> str:
         count=d.active_count,
         share=fmt(d.available / d.active_count, 2),
     )
+
+
+def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
+    """Kapazität der Personen mit Produktionszugriff und Warnung bei Überplanung."""
+    if d.production_share is None or d.production_available is None:
+        return
+    people = sum(1 for p in data.people if p.production_access)
+    planned = d.total("production_planned")
+    st.caption(
+        t(
+            "Produktionszugriff: {count} Person(en) = {share} der Kapazität → bis zu "
+            "**{available} {unit}** möglich, eingeplant {planned} {unit}.",
+            count=people,
+            share=pct(d.production_share),
+            available=fmt(d.production_available, 2),
+            unit=unit,
+            planned=fmt(planned, 2) if planned is not None else "–",
+        )
+    )
+    if (over := d.production_overload) is not None:
+        st.warning(
+            t(
+                "Mehr Tickets mit Produktionszugriff eingeplant, als die Gruppe schaffen kann "
+                "({over} {unit} zu viel) – andere Personen können sie nicht bearbeiten.",
+                over=fmt(over, 2),
+                unit=unit,
+            )
+        )
 
 
 def _product_editor(
@@ -686,8 +725,27 @@ def _product_editor(
             if m in FIELDS
             else t("Verfügbare Menge / Anzahl betreuter Produkte"),
         )
+    show_production = d.production_share is not None or any(
+        d.has(m) for m in PRODUCTION_MEASURES
+    )
+    for m, label in PRODUCTION_MEASURES.items():
+        column_config[label] = (
+            st.column_config.NumberColumn(
+                f"{measure_label(m)} ({unit})",
+                min_value=0.0,
+                step=0.25,
+                format="%.2f",
+                disabled=m not in editable,
+                help=t(
+                    "Teilmenge von Planning bzw. Erledigt: Tickets, die nur Personen mit "
+                    "Produktionszugriff bearbeiten können."
+                ),
+            )
+            if show_production
+            else None
+        )
     frame = pd.DataFrame(product_values_table(d))
-    for label in MEASURES.values():
+    for label in (*MEASURES.values(), *PRODUCTION_MEASURES.values()):
         frame[label] = frame[label].astype("float64").round(2)
     edited = st.data_editor(
         frame,
@@ -1017,13 +1075,21 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     if data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
-        rows = _product_editor(d, ["preplanned", "planned"], f"planning-products-{sprint.id}", unit)
+        rows = _product_editor(
+            d,
+            ["preplanned", "planned", "production_planned"],
+            f"planning-products-{sprint.id}",
+            unit,
+        )
         if rows is not None:
             base = _base_sprint(data, sprint)
-            after = apply_product_values(base, rows, ["preplanned", "planned"])
+            after = apply_product_values(
+                base, rows, ["preplanned", "planned", "production_planned"]
+            )
             preview = with_sprints(data, [after])
             fc_preview = build_forecast(preview, fc.today)
             d_preview = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+            _production_hint(d_preview, data, unit)
             planned = d_preview.total("planned")
             if planned is not None and r.plan is not None:
                 rest = r.plan - planned
@@ -1420,13 +1486,15 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
     )
     d = distribution(fc, entry)
-    rows = _product_editor(d, ["preplanned", "planned", "done"], f"products-{sprint.id}", unit)
+    editable = list(MEASURES.keys() - {"standard"}) + list(PRODUCTION_MEASURES)
+    rows = _product_editor(d, editable, f"products-{sprint.id}", unit)
     if rows is not None:
         base = _base_sprint(data, sprint)
-        after = apply_product_values(base, rows, ["preplanned", "planned", "done"])
+        after = apply_product_values(base, rows, editable)
         preview = with_sprints(data, [after])
         fc_preview = build_forecast(preview, fc.today)
         d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+        _production_hint(d, data, unit)
         changed = after.products != base.products
         if st.button(t("Produktwerte speichern"), type="primary", disabled=not changed):
             save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
@@ -1489,12 +1557,23 @@ def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
     for col in ("ab", "bis"):
         frame[col] = pd.to_datetime(frame[col])
     frame["PO"] = frame["PO"].astype("string")
+    frame["Anteil"] = frame["Anteil"].astype("float")
     edited = st.data_editor(
         frame,
         column_config={
             "_id": None,
             "Name": st.column_config.TextColumn(t("Name"), required=True),
             "PO": st.column_config.TextColumn("PO", help=t("Verantwortlicher Product Owner")),
+            "Anteil": st.column_config.NumberColumn(
+                t("Anteil (%)"),
+                min_value=0.0,
+                max_value=100.0,
+                step=0.5,
+                help=t(
+                    "Vereinbarter fester Anteil an der Teamkapazität, z. B. 10. Leer = gleichmäßig "
+                    "auf den Rest verteilt."
+                ),
+            ),
             "ab": st.column_config.DateColumn(
                 t("ab"), format="DD.MM.YYYY", help=t("Leer = schon immer")
             ),
@@ -1553,6 +1632,7 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
     frame = pd.DataFrame(rows, columns=PEOPLE_COLUMNS)
     for col in ("ab", "bis"):
         frame[col] = pd.to_datetime(frame[col])
+    frame["Produktionszugriff"] = frame["Produktionszugriff"].astype(bool)
     edited = st.data_editor(
         frame,
         column_config={
@@ -1577,6 +1657,14 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 step=0.05,
                 default=1.0,
                 help=t("Anteil im Team, 1 = Vollzeit"),
+            ),
+            "Produktionszugriff": st.column_config.CheckboxColumn(
+                t("Produktionszugriff"),
+                default=False,
+                help=t(
+                    "Darf Tickets bearbeiten, die Produktionszugriff erfordern. Gilt für die "
+                    "Person, nicht für den einzelnen Zeitraum."
+                ),
             ),
         },
         num_rows="dynamic",
@@ -1655,12 +1743,69 @@ def _setting_widget(setting: Setting, team: Team, key: str) -> str:
     raise AssertionError(setting.kind)
 
 
+OVERHEAD_KEYS = ("capacity.overhead_share", "capacity.overhead_days")
+
+
+def _sprint_workdays(team: Team, form_key: str) -> float:
+    """Arbeitstage je Sprint (Mo–Fr aus der Sprintlänge) – Umrechnung zwischen PT und %."""
+    length = st.session_state.get(f"{form_key}-sprint.length_days", team.sprint.length_days)
+    return max(float(length) * 5 / 7, 1.0)
+
+
+def _overhead_widgets(team: Team, form_key: str) -> dict[str, str]:
+    share = next(s for s in SETTINGS if s.key == OVERHEAD_KEYS[0])
+    days = next(s for s in SETTINGS if s.key == OVERHEAD_KEYS[1])
+    share_key, days_key = (f"{form_key}-{k}" for k in OVERHEAD_KEYS)
+    if share_key not in st.session_state or days_key not in st.session_state:
+        # Nur eines gesetzt (z. B. aus der Datei): das andere daraus ableiten.
+        wd = _sprint_workdays(team, form_key)
+        d = team.capacity.overhead_days or team.capacity.overhead_share * wd
+        st.session_state[days_key] = round(d, 2)
+        st.session_state[share_key] = round(d / wd * 100, 1)
+
+    def from_days() -> None:
+        wd = _sprint_workdays(team, form_key)
+        st.session_state[share_key] = round(st.session_state[days_key] / wd * 100, 1)
+
+    def from_share() -> None:
+        wd = _sprint_workdays(team, form_key)
+        st.session_state[days_key] = round(st.session_state[share_key] / 100 * wd, 2)
+
+    left, right = st.columns(2)
+    with left:
+        share_value = st.number_input(
+            share.title,
+            min_value=float(share.minimum),
+            max_value=float(share.maximum),
+            step=0.5,
+            help=share.text,
+            key=share_key,
+            on_change=from_share,
+        )
+    with right:
+        days_value = st.number_input(
+            days.title,
+            min_value=float(days.minimum),
+            max_value=float(days.maximum),
+            step=days.step,
+            help=days.text,
+            key=days_key,
+            on_change=from_days,
+        )
+    return {OVERHEAD_KEYS[0]: str(share_value), OVERHEAD_KEYS[1]: str(days_value)}
+
+
 def _settings_form(team: Team, has_sprints: bool, form_key: str, submit: str) -> Team | None:
     """Formular für alle Einstellungen; liefert das geänderte Team nach dem Absenden."""
     edited = copy.deepcopy(team)
+    # Die beiden Scrum-Abzüge sind derselbe Wert: außerhalb des Formulars, damit sie sich
+    # sofort abgleichen können (Formularfelder reagieren erst beim Absenden).
+    raw = _overhead_widgets(team, form_key)
     with st.form(form_key):
-        raw = {
-            s.key: _setting_widget(s, team, f"{form_key}-{s.key}") for s in applicable(has_sprints)
+        raw |= {
+            s.key: _setting_widget(s, team, f"{form_key}-{s.key}")
+            for s in applicable(has_sprints)
+            if s.key not in OVERHEAD_KEYS
         }
         submitted = st.form_submit_button(submit, type="primary")
     if not submitted:
@@ -1759,7 +1904,11 @@ def _browse(key: str) -> None:
     )
     try:
         out = subprocess.run(
-            [sys.executable, "-c", script], capture_output=True, text=True, timeout=600
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=600,
+            **NO_WINDOW,
         )
     except OSError, subprocess.TimeoutExpired:
         out = None

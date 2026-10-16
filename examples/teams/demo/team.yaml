@@ -12,7 +12,7 @@ forecast:
   window: 5
   roadmap_share: 0.8
   rounding: 1
-  trend_mode: klassisch
+  trend_mode: classic
   horizon: 3
 capacity:
   overhead_share: 0.0

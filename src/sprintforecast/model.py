@@ -16,11 +16,16 @@ class Unit(StrEnum):
 
 class TrendMode(StrEnum):
     # Klassisch: 1. Zukunftssprint linear, 2. multiplikativ, danach linear.
-    KLASSISCH = "klassisch"
+    CLASSIC = "classic"
     # Durchgehend lineare Fortschreibung des gleitenden Durchschnitts.
     LINEAR = "linear"
     # Letzten bekannten Durchschnitt unverändert fortschreiben.
     FLAT = "flat"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "TrendMode | None":
+        # Ältere Dateien nennen den Modus noch deutsch.
+        return cls.CLASSIC if value == "klassisch" else None
 
 
 class ProductBasis(StrEnum):
@@ -52,7 +57,7 @@ class ForecastSettings:
     window: int = 5
     roadmap_share: float = 0.8
     rounding: int = 1
-    trend_mode: TrendMode = TrendMode.KLASSISCH
+    trend_mode: TrendMode = TrendMode.CLASSIC
     horizon: int = 3
     product_basis: ProductBasis = ProductBasis.PLAN
 
@@ -61,8 +66,8 @@ class ForecastSettings:
 class CapacitySettings:
     # Anteil der Kapazität für Scrum-Termine u. Ä., der pauschal abgezogen wird.
     overhead_share: float = 0.0
-    # Fester Abzug für Scrum-Termine in PT je Vollzeitperson und Sprint (× FTE); zusätzlich
-    # zum Anteil, z. B. 1 für Planning, Review und Retro.
+    # Derselbe Abzug in PT je Vollzeitperson und Sprint (× FTE), z. B. 1 für Planning, Review
+    # und Retro. Ist er gesetzt, gilt er statt des Anteils (nicht zusätzlich).
     overhead_days: float = 0.0
     # Bundesland-Kürzel für Feiertage (z. B. "NW", "BY"); Personen können abweichen.
     region: str | None = None
@@ -95,6 +100,8 @@ class Person:
     name: str
     region: str | None = None
     memberships: list[Membership] = field(default_factory=list)
+    # Darf Tickets bearbeiten, die Produktionszugriff erfordern (kleine Personengruppe).
+    production_access: bool = False
 
     def fte_on(self, day: date) -> float:
         for m in self.memberships:
@@ -132,6 +139,9 @@ class Product:
     po: str | None = None
     start: date | None = None
     end: date | None = None
+    # Vereinbarter fester Anteil an der verteilbaren Menge (0–1), z. B. 0.1 = 10 %. Ohne Angabe
+    # teilen sich die Produkte ohne festen Anteil den Rest gleichmäßig.
+    share: float | None = None
 
     def active_between(self, start: date, end: date) -> bool:
         """Betreut im Sprint [start, end) – mindestens an einem Tag."""
@@ -148,9 +158,21 @@ class ProductValues:
     planned: float | None = None
     # Im Sprint tatsächlich erledigt (Review).
     done: float | None = None
+    # Davon Tickets, die Produktionszugriff erfordern (Teilmenge von planned bzw. done).
+    production_planned: float | None = None
+    production_done: float | None = None
 
     def is_empty(self) -> bool:
-        return self.preplanned is None and self.planned is None and self.done is None
+        return all(
+            v is None
+            for v in (
+                self.preplanned,
+                self.planned,
+                self.done,
+                self.production_planned,
+                self.production_done,
+            )
+        )
 
 
 @dataclass
