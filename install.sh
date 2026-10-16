@@ -7,6 +7,7 @@
 # Ohne Rückfrage:
 #   SPRINTFORECAST_WITH="besitzer/repo; name @ git+https://…"  Plugins (leer = keine)
 #   SPRINTFORECAST_REF=…                                       Branch oder Tag statt main
+#   SPRINTFORECAST_NO_SHORTCUT=1                               keinen Starter anlegen
 set -eu
 
 REF="${SPRINTFORECAST_REF:-main}"
@@ -101,7 +102,12 @@ else
     rm -f "$PLUGIN_FILE"
 fi
 
+# Starter zum Doppelklicken (abschaltbar mit SPRINTFORECAST_NO_SHORTCUT=1)
+if [ -z "${SPRINTFORECAST_NO_SHORTCUT:-}" ]; then
+    "$(uv tool dir --bin)/sprintforecast" verknuepfung || say "Hinweis: Starter nicht angelegt."
+fi
+
 say ""
 say "Fertig: sprintforecast $("$(uv tool dir --bin)/sprintforecast" --version)"
-say "Neues Terminal öffnen, dann z. B.:"
+say "Start per Doppelklick auf „Sprint-Forecast“ – oder im neuen Terminal z. B.:"
 say "  cd ~/sprint-daten && sprintforecast web --app"

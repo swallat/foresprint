@@ -21,7 +21,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from sprintforecast import __version__, updater
+from sprintforecast import LOG_ENV, __version__, updater
 from sprintforecast.calendar import day_label, holiday_name, workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource
@@ -1052,7 +1052,13 @@ def web(
         "--client.toolbarMode", "minimal",
     ]  # fmt: skip
     console.print(f"Weboberfläche: [bold]{url}[/bold] (Beenden mit Strg+C)")
-    server = subprocess.Popen(cmd, env=env)
+    popen: dict = {}
+    if log := os.environ.get(LOG_ENV):
+        # Doppelklick-Start: kein Konsolenfenster, Ausgaben des Servers ins Protokoll
+        popen["stdout"] = popen["stderr"] = open(log, "a", encoding="utf-8")  # noqa: SIM115
+        if sys.platform == "win32":
+            popen["creationflags"] = subprocess.CREATE_NO_WINDOW
+    server = subprocess.Popen(cmd, env=env, **popen)
     try:
         if app_mode:
             _open_app_window(url, server, browser_path)
@@ -1330,6 +1336,24 @@ def datenordner(
     target = teams_dir(pfad) or pfad
     save_data_dir(target)
     console.print(f"[green]Datenordner gemerkt: {target.resolve()}[/green]")
+
+
+@app.command()
+def verknuepfung() -> None:
+    """Starter zum Doppelklicken anlegen (Desktop/Startmenü, macOS: Programme)."""
+    from sprintforecast import shortcuts
+
+    try:
+        paths = shortcuts.create()
+    except (RuntimeError, OSError) as e:
+        err.print(f"[red]{e}[/red]")
+        raise typer.Exit(1) from e
+    for path in paths:
+        console.print(f"[green]Angelegt: {path}[/green]")
+    console.print(
+        "Doppelklick startet die Weboberfläche als App. Beim ersten Start wird der "
+        "Datenordner eingerichtet."
+    )
 
 
 @app.command()
