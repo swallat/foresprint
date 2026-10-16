@@ -5,6 +5,8 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Lücken: {count} Sprint(s) ohne Velocity im Fenster des Durchschnitts werden übersprungen; das Fenster reicht entsprechend weiter zurück.": "Gaps: {count} sprint(s) without velocity in the window of the average are skipped; the window reaches back accordingly.",
+    "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen (Vorsicht bei langen Horizonten). Robust ist „konstant“ (flat) – einstellbar mit `sprintforecast einstellungen`.": "Trend mode {mode}: extrapolates fluctuations and can rise or fall (caution with long horizons). “Constant” (flat) is robust – set with `sprintforecast settings`.",
     "1 PT je Person bei 10 Arbeitstagen entspricht 10 %; Vollzeit: −1 PT, halbtags (FTE 0,5): −0,5 PT": "1 PT per person with 10 working days equals 10 %; full time: −1 PT, half time (FTE 0.5): −0.5 PT",
     "10 Arbeitstage im Sprint: Mo–Fr + FTE 0,8 → 8 PT · mon,tue,wed,thu + FTE 1 → 8 PT · Mo–Fr + FTE 0,5 (halbtags) → 5 PT": "10 working days in the sprint: Mon–Fri + FTE 0.8 → 8 PT · mon,tue,wed,thu + FTE 1 → 8 PT · Mon–Fri + FTE 0.5 (half time) → 5 PT",
     "Abzug für Scrum-Termine": "Deduction for Scrum events",

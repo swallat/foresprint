@@ -49,6 +49,43 @@ def absence_status_label(sprint: Sprint) -> str:
     }[absence_status(sprint)]
 
 
+def reliability_notes(fc: Forecast) -> list[str]:
+    """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht)."""
+    from sprintforecast.analysis import MIN_SAMPLES, sample_count
+    from sprintforecast.model import TrendMode
+
+    notes = []
+    samples = sample_count(fc)
+    if samples and samples < MIN_SAMPLES:
+        notes.append(
+            t(
+                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
+                "belastbarer). Plan und Spanne sind grobe Hinweise.",
+                samples=samples,
+                min=MIN_SAMPLES,
+            )
+        )
+    mode = fc.data.team.forecast.trend_mode
+    if any(e.result.trend_fallback for e in fc.upcoming()):
+        notes.append(
+            t(
+                "Historie dünn: Für den Trend-Modus {mode} reicht die Historie nicht, es gilt "
+                "„konstant“ (letzter Durchschnitt).",
+                mode=mode.value,
+            )
+        )
+    if mode is not TrendMode.FLAT:
+        notes.append(
+            t(
+                "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen "
+                "(Vorsicht bei langen Horizonten). Robust ist „konstant“ (flat) – einstellbar mit "
+                "`sprintforecast einstellungen`.",
+                mode=mode.value,
+            )
+        )
+    return notes
+
+
 def status(fc: Forecast, e: TimelineEntry) -> str:
     if e.sprint.end <= fc.today:
         return t("abgeschlossen")
@@ -105,6 +142,9 @@ def render(fc: Forecast, history: int = 10) -> str:
                 team=team.key,
             ),
         ]
+
+    for note in reliability_notes(fc):
+        lines += ["", f"⚠️ {note}"]
 
     current = fc.current
     if current and current.result.planning_total is not None:

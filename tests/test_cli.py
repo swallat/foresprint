@@ -324,3 +324,14 @@ def test_datenordner(tmp_path: Path, data_dir: Path):
     assert result.exit_code == 0, result.output
     assert "Datenordner gemerkt" in result.output
     assert "Gemerkt:" in run(data_dir, "datenordner").output
+
+
+def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
+    plain = run(data_dir, "forecast", "demo")
+    assert "schreibt Schwankungen fort" not in plain.output  # Standard flat: keine Warnung
+    team = data_dir / "demo" / "team.yaml"
+    team.write_text(team.read_text().replace("trend_mode: flat", "trend_mode: classic"))
+    result = run(data_dir, "forecast", "demo")
+    assert "Trend-Modus classic" in result.output and "schreibt Schwankungen fort" in result.output
+    report = run(data_dir, "bericht", "demo", "-o", "-")
+    assert "Trend-Modus classic" in report.output

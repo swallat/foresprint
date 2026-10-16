@@ -70,7 +70,15 @@ from sprintforecast.model import (
 from sprintforecast.plugins import load_plugins
 from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
-from sprintforecast.report import capacity_label, fmt, pct, period, render, status
+from sprintforecast.report import (
+    capacity_label,
+    fmt,
+    pct,
+    period,
+    reliability_notes,
+    render,
+    status,
+)
 from sprintforecast.settings import SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
@@ -1038,6 +1046,8 @@ def forecast(
             )
             + "[/yellow]"
         )
+    for note in reliability_notes(fc):
+        console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
     if rechenweg is not None:
         from sprintforecast.formulas import steps
 

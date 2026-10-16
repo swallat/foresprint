@@ -39,7 +39,7 @@ from sprintforecast.calendar import (
     team_workdays,
 )
 from sprintforecast.capacity import sprint_capacity
-from sprintforecast.engine import UNSURE_SOURCES
+from sprintforecast.engine import UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
@@ -549,6 +549,15 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
                 "belastbarer). Plan und Spanne sind grobe Hinweise.",
                 samples=sample_count(fc),
                 min=MIN_SAMPLES,
+            )
+        )
+    series = [x.result.normalized_velocity.value for x in fc.history()]
+    if gaps := gaps_in_window(series, fc.data.team.forecast.window):
+        st.info(
+            t(
+                "Lücken: {count} Sprint(s) ohne Velocity im Fenster des Durchschnitts werden "
+                "übersprungen; das Fenster reicht entsprechend weiter zurück.",
+                count=gaps,
             )
         )
     if any(e.result.trend_fallback for e in upcoming):
