@@ -36,6 +36,8 @@ from sprintforecast.forecast import (
     find_sprint,
     freeze_plan,
 )
+from sprintforecast.formulas import GENERAL, steps
+from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import GitError, commit_directory, pending_changes
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW
@@ -203,7 +205,8 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         col.metric(
             f"{e.sprint.id} ({status(fc, e).replace('*', '')})",
             f"{fmt(e.result.plan)} {unit}",
-            help=f"Kapazität {capacity_label(e)} PT · Roadmap {fmt(e.result.roadmap, 2)} · "
+            help=_formula_help(fc, e, "Forecast PLAN")
+            + f"\n\nKapazität {capacity_label(e)} PT · Roadmap {fmt(e.result.roadmap, 2)} · "
             f"Kleinkram {fmt(e.result.small_stuff, 2)}",
         )
 
@@ -220,7 +223,17 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         }
         for e in upcoming
     ]
-    st.dataframe(pd.DataFrame(rows), hide_index=True)
+    st.dataframe(
+        pd.DataFrame(rows),
+        hide_index=True,
+        column_config={
+            "Kapazität (PT)": st.column_config.TextColumn(help=GENERAL["capacity"]),
+            "n. Velocity-Trend": st.column_config.TextColumn(help=GENERAL["trend"]),
+            f"Forecast PLAN ({unit})": st.column_config.TextColumn(help=GENERAL["plan"]),
+            "Roadmap": st.column_config.TextColumn(help=GENERAL["roadmap"]),
+            "Kleinkram": st.column_config.TextColumn(help=GENERAL["small_stuff"]),
+        },
+    )
     trend = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is CapacitySource.TREND]
     if trend:
         st.warning(
@@ -253,7 +266,14 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             ]
         ),
         hide_index=True,
+        column_config={
+            "n. Velocity": st.column_config.TextColumn(help=GENERAL["normalized_velocity"]),
+            "Ø n. Velocity": st.column_config.TextColumn(help=GENERAL["average"]),
+            "Fulfillment": st.column_config.TextColumn(help=GENERAL["fulfillment"]),
+            "Scope Creep": st.column_config.TextColumn(help=GENERAL["scope_creep"]),
+        },
     )
+    _formula_expander(fc, history + [e for e in upcoming if e not in history])
     chart = _chart(fc, history + [e for e in upcoming if e not in history], unit)
     if chart is None:
         st.info(
@@ -267,6 +287,35 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = repo.team_dir(team.key) / "FORECAST.md"
         path.write_text(render(fc), encoding="utf-8")
         st.success(f"Geschrieben: {path}")
+
+
+def _formula_help(fc: Forecast, e: TimelineEntry | None, name: str) -> str:
+    """Tooltip-Text: Formel und eingesetzte Zahlen einer Kennzahl."""
+    if e is None or (s := formula_step(fc, e, name)) is None:
+        return ""
+    return f"**{s.formula}**\n\n{s.calculation}"
+
+
+def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
+    """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
+    if not entries:
+        return
+    with st.expander("Rechenweg: Formeln mit eingesetzten Zahlen", icon=":material/function:"):
+        ids = [e.sprint.id for e in entries]
+        default = fc.default_entry("planning")
+        index = ids.index(default.sprint.id) if default and default.sprint.id in ids else 0
+        chosen = st.selectbox("Sprint", ids, index=index, key="formula-sprint")
+        entry = next(e for e in entries if e.sprint.id == chosen)
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"Kennzahl": s.name, "Formel": s.formula, "Rechnung": s.calculation}
+                    for s in steps(fc, entry)
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
 
 
 def _next_dates(fc: Forecast) -> None:
@@ -782,9 +831,16 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
     breakdown = sprint_capacity(data.team, data.people, after)
     entry = build_forecast(preview, fc.today).entry(after.id)
     left, right = st.columns(2)
-    left.metric("Kapazität (PT)", fmt(breakdown.capacity))
+    fc_after = build_forecast(preview, fc.today)
+    left.metric(
+        "Kapazität (PT)",
+        fmt(breakdown.capacity),
+        help=_formula_help(fc_after, entry, "Kapazität"),
+    )
     right.metric(
-        f"Forecast PLAN ({data.team.unit.value})", fmt(entry.result.plan) if entry else "–"
+        f"Forecast PLAN ({data.team.unit.value})",
+        fmt(entry.result.plan) if entry else "–",
+        help=_formula_help(fc_after, entry, "Forecast PLAN"),
     )
     if after.capacity is not None:
         st.info(
@@ -818,11 +874,28 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     cols[0].metric(
         "Kapazität (PT)",
         fmt(r.plan_capacity),
-        help=f"Quelle: {r.plan_capacity_source or '–'}",
+        help=f"Quelle: {r.plan_capacity_source or '–'}\n\n" + _formula_help(fc, entry, "Kapazität"),
     )
-    cols[1].metric(f"Forecast PLAN ({unit})", fmt(r.plan))
-    cols[2].metric(f"Roadmap ({pct(data.team.forecast.roadmap_share)})", fmt(r.roadmap, 2))
-    cols[3].metric("Kleinkram", fmt(r.small_stuff, 2))
+    cols[1].metric(
+        f"Forecast PLAN ({unit})", fmt(r.plan), help=_formula_help(fc, entry, "Forecast PLAN")
+    )
+    cols[2].metric(
+        f"Roadmap ({pct(data.team.forecast.roadmap_share)})",
+        fmt(r.roadmap, 2),
+        help=_formula_help(fc, entry, "Roadmap"),
+    )
+    cols[3].metric("Kleinkram", fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "Kleinkram"))
+    with st.expander("Rechenweg", icon=":material/function:"):
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"Kennzahl": s.name, "Formel": s.formula, "Rechnung": s.calculation}
+                    for s in steps(fc, entry)
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
     if r.plan_capacity_source is CapacitySource.TREND:
         st.warning("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt.")
         st.button("Zurück zu den Fehltagen", on_click=_goto, args=(0,))

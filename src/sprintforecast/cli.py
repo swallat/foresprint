@@ -783,6 +783,12 @@ def forecast(
     ctx: typer.Context,
     team: TeamArg,
     verlauf: Annotated[int, typer.Option(help="Anzahl vergangener Sprints in der Anzeige.")] = 5,
+    rechenweg: Annotated[
+        str | None,
+        typer.Option(
+            help="Rechenweg (Formeln mit Zahlen) eines Sprints zeigen; „-“ = nächstes Planning."
+        ),
+    ] = None,
 ) -> None:
     """Prognose für den laufenden und die kommenden Sprints anzeigen."""
     c = _ctx(ctx)
@@ -826,6 +832,22 @@ def forecast(
             "[yellow]⚠ Trend = keine Fehltage erfasst, Kapazität geschätzt. "
             f"Belastbarer mit: sprintforecast fehltage {team} <SPRINT>[/yellow]"
         )
+    if rechenweg is not None:
+        from sprintforecast.formulas import steps
+
+        default = fc.default_entry("planning")
+        entry = default if rechenweg == "-" else fc.entry(rechenweg)
+        if entry is None:
+            err.print(f"[red]Sprint {rechenweg} nicht in der Prognose.[/red]")
+            raise typer.Exit(1)
+        table = Table(title=f"Rechenweg Sprint {entry.sprint.id}", show_lines=True)
+        for col in ("Kennzahl", "Formel", "Rechnung"):
+            table.add_column(col)
+        for st in steps(fc, entry):
+            table.add_row(f"[bold]{st.name}[/bold]", escape(st.formula), escape(st.calculation))
+        console.print(table)
+    else:
+        console.print("[dim]Rechenweg eines Sprints: --rechenweg SPRINT (bzw. - )[/dim]")
 
 
 @app.command()

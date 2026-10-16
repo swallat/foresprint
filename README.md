@@ -286,6 +286,11 @@ products:                   # optional, je Produkt-ID
 - `linear`: durchgehend linear.
 - `flat`: letzter Ø bleibt konstant (robust bei langen Horizonten).
 
+**Rechenweg:** Jede Kennzahl lässt sich mit eingesetzten Zahlen nachvollziehen – in der
+Weboberfläche per Tooltip (ⓘ an Kennzahlen und Spaltenköpfen) und im ausklappbaren
+**Rechenweg** auf Forecast- und Planning-Seite, auf der Kommandozeile mit
+`sprintforecast forecast TEAM --rechenweg SPRINT`.
+
 ## Ergänzende Analysen
 
 `sprintforecast analyse TEAM [--rest MENGE] [--gesamt]` bzw. Seite **Analyse** – zusätzlich
