@@ -22,11 +22,14 @@ import streamlit as st
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
+    MIN_SAMPLES,
     average_focus_factor,
     band,
     buffer_hint,
     completion,
+    few_samples,
     focus_factor,
+    sample_count,
 )
 from sprintforecast.calendar import (
     countries,
@@ -67,6 +70,7 @@ from sprintforecast.model import (
     ProductBasis,
     Sprint,
     Team,
+    TrendMode,
     absence_status,
 )
 from sprintforecast.plugins import WebPage
@@ -78,7 +82,7 @@ from sprintforecast.products import (
     by_po,
     distribution,
     measure_label,
-    plan_of,
+    plan_view,
 )
 from sprintforecast.report import (
     absence_status_label,
@@ -395,9 +399,21 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     upcoming = fc.upcoming()
     cols = st.columns(min(len(upcoming), 4) or 1)
     for col, e in zip(cols, upcoming, strict=False):
+        b = band(fc, e)
         col.metric(
             f"{e.sprint.id} ({status(fc, e).replace('*', '')})",
             f"{fmt(e.result.plan)} {unit}",
+            delta=(
+                t(
+                    "Spanne {low}–{high} (letzte {samples} Sprints)",
+                    low=fmt(b.low),
+                    high=fmt(b.high),
+                    samples=b.samples,
+                )
+                if b
+                else t("Spanne nicht berechenbar")
+            ),
+            delta_color="off",
             help=_formula_help(fc, e, "plan")
             + "\n\n"
             + t(
@@ -405,28 +421,44 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 capacity=capacity_label(e),
                 roadmap=fmt(e.result.roadmap, 2),
                 small=fmt(e.result.small_stuff, 2),
+            )
+            + "\n\n"
+            + t("Fehltage: {state}", state=absence_status_label(e.sprint))
+            + (
+                "\n\n"
+                + t("Prognose beim Planning: {plan} {unit}", plan=fmt(view.frozen), unit=unit)
+                if (view := plan_view(e)).frozen is not None
+                else ""
             ),
         )
+    _forecast_notes(fc, upcoming)
 
     capacity_col, trend_col, plan_col = (
         t("Kapazität (PT)"),
         t("n. Velocity-Trend"),
-        f"Forecast PLAN ({unit})",
+        t("Prognose aktuell ({unit})", unit=unit),
     )
+    frozen_col, diff_col = t("Prognose beim Planning ({unit})", unit=unit), t("Differenz")
+    show_frozen = any(e.sprint.forecast_plan is not None for e in upcoming)
     small_col = t("Kleinkram")
-    rows = [
-        {
+    rows = []
+    for e in upcoming:
+        view = plan_view(e)
+        row = {
             "Sprint": e.sprint.id,
             t("Zeitraum"): period(e),
             "Status": status(fc, e).replace("*", ""),
+            t("Fehltage"): absence_status_label(e.sprint),
             capacity_col: capacity_label(e),
             trend_col: fmt(e.result.normalized_velocity.trend, 2),
             plan_col: fmt(e.result.plan),
-            "Roadmap": fmt(e.result.roadmap, 2),
-            small_col: fmt(e.result.small_stuff, 2),
         }
-        for e in upcoming
-    ]
+        if show_frozen:
+            row[frozen_col] = fmt(view.frozen)
+            row[diff_col] = "–" if view.difference is None else _signed(view.difference)
+        rows.append(
+            row | {"Roadmap": fmt(e.result.roadmap, 2), small_col: fmt(e.result.small_stuff, 2)}
+        )
     st.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
@@ -505,6 +537,37 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = repo.team_dir(team.key) / "FORECAST.md"
         path.write_text(render(fc), encoding="utf-8")
         st.success(t("Geschrieben: {path}", path=path))
+
+
+def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
+    """Hinweise zur Belastbarkeit direkt an den Kacheln: wenig Daten, dünne Historie und ein
+    Trend-Modus, der Rauschen fortschreibt."""
+    if sample_count(fc) and few_samples(fc):
+        st.warning(
+            t(
+                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
+                "belastbarer). Plan und Spanne sind grobe Hinweise.",
+                samples=sample_count(fc),
+                min=MIN_SAMPLES,
+            )
+        )
+    if any(e.result.trend_fallback for e in upcoming):
+        st.info(
+            t(
+                "Historie dünn: Für den Trend-Modus {mode} reicht die Historie nicht, es gilt "
+                "„konstant“ (letzter Durchschnitt).",
+                mode=fc.data.team.forecast.trend_mode.value,
+            )
+        )
+    if fc.data.team.forecast.trend_mode is not TrendMode.FLAT:
+        st.warning(
+            t(
+                "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen "
+                "(Vorsicht bei langen Horizonten). Robust ist „konstant“ – einstellbar unter "
+                "**Team → Einstellungen**.",
+                mode=fc.data.team.forecast.trend_mode.value,
+            )
+        )
 
 
 def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
@@ -925,7 +988,7 @@ def _others() -> str:
     return t("Weitere")
 
 
-def _distribution_caption(d: Distribution, unit: str) -> str:
+def _standard_text(d: Distribution, unit: str) -> str:
     basis = t("Roadmap-Anteil des Forecast PLAN") if d.basis.value == "roadmap" else "Forecast PLAN"
     if d.available is None or not d.active_count:
         return t(
@@ -936,7 +999,7 @@ def _distribution_caption(d: Distribution, unit: str) -> str:
             "Standard = {basis}{frozen} {available} {unit}: Produkte mit festem Anteil "
             "bekommen diesen, der Rest verteilt sich gleichmäßig auf die übrigen.",
             basis=basis,
-            frozen=t(" (beim Planning eingefroren)") if d.plan_frozen else "",
+            frozen=t(" (Prognose beim Planning, eingefroren)") if d.plan_frozen else "",
             available=fmt(d.available, 2),
             unit=unit,
         )
@@ -944,11 +1007,31 @@ def _distribution_caption(d: Distribution, unit: str) -> str:
         "Standard = {basis}{frozen} {available} {unit} / {count} betreute Produkte = "
         "**{share} {unit}** je Produkt.",
         basis=basis,
-        frozen=t(" (beim Planning eingefroren)") if d.plan_frozen else "",
+        frozen=t(" (Prognose beim Planning, eingefroren)") if d.plan_frozen else "",
         available=fmt(d.available, 2),
         unit=unit,
         count=d.active_count,
         share=fmt(d.available / d.active_count, 2),
+    )
+
+
+def _distribution_caption(d: Distribution, unit: str) -> str:
+    return _standard_text(d, unit) + _frozen_note(d, unit)
+
+
+def _frozen_note(d: Distribution, unit: str) -> str:
+    """Hinweis, wenn die verteilbare Menge beim Planning eingefroren wurde und die aktuelle
+    Prognose davon abweicht."""
+    if not d.plan_frozen or d.plan is None or d.current_plan is None:
+        return ""
+    diff = d.current_plan - d.plan
+    if abs(diff) < 0.05:
+        return ""
+    return " " + t(
+        "Prognose aktuell: {current} {unit} (Differenz {diff} {unit}).",
+        current=fmt(d.current_plan, 2),
+        unit=unit,
+        diff=_signed(diff),
     )
 
 
@@ -1411,7 +1494,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.info(t("Für diesen Sprint gibt es keine Prognose."))
         return
     r = entry.result
-    cols = st.columns(4)
+    view = plan_view(entry)
+    cols = st.columns(5 if view.frozen is not None else 4)
     cols[0].metric(
         t("Kapazität (PT)"),
         fmt(r.plan_capacity),
@@ -1419,13 +1503,30 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         + "\n\n"
         + _formula_help(fc, entry, "capacity"),
     )
-    cols[1].metric(f"Forecast PLAN ({unit})", fmt(r.plan), help=_formula_help(fc, entry, "plan"))
-    cols[2].metric(
+    cols[1].metric(
+        t("Prognose aktuell ({unit})", unit=unit),
+        fmt(r.plan),
+        help=_formula_help(fc, entry, "plan"),
+    )
+    rest = cols[2:]
+    if view.frozen is not None:
+        rest[0].metric(
+            t("Prognose beim Planning ({unit})", unit=unit),
+            fmt(view.frozen),
+            delta=None if view.difference is None else _signed(view.difference),
+            delta_color="off",
+            help=t(
+                "Beim Planning eingefroren (Basis der Standardverteilung je Produkt). Die Zahl "
+                "darunter ist die Differenz der aktuellen Prognose zu diesem Stand."
+            ),
+        )
+        rest = rest[1:]
+    rest[0].metric(
         f"Roadmap ({pct(data.team.forecast.roadmap_share)})",
         fmt(r.roadmap, 2),
         help=_formula_help(fc, entry, "roadmap"),
     )
-    cols[3].metric(
+    rest[1].metric(
         t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
     )
     with st.expander(t("Rechenweg"), icon=":material/function:"):
@@ -1511,8 +1612,17 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if entry:
         st.caption(
             t(
-                "Forecast PLAN {plan} {unit} · Kapazität {capacity} PT",
+                "Prognose aktuell {plan} {unit}{frozen} · Kapazität {capacity} PT",
                 plan=fmt(entry.result.plan),
+                frozen=(
+                    t(
+                        ", beim Planning {frozen} {unit}",
+                        frozen=fmt(sprint.forecast_plan),
+                        unit=unit,
+                    )
+                    if sprint.forecast_plan is not None
+                    else ""
+                ),
                 unit=unit,
                 capacity=capacity_label(entry),
             )
@@ -1823,8 +1933,13 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 f"≈ {fmt(result.per_sprint, 1)} {unit}",
                 help=t("Median der normierten Velocity × typische Kapazität × Anteil."),
             )
-            middle.metric(t("wahrscheinlich (50 %)"), result.p50 or later)
-            right.metric(t("mit 85 % Sicherheit"), result.p85 or later)
+            frequency = t(
+                "Modellabhängige Häufigkeit in der Simulation aus {count} Sprints Historie – keine "
+                "Zusage.",
+                count=result.samples,
+            )
+            middle.metric(t("in 50 % der Simulationen"), result.p50 or later, help=frequency)
+            right.metric(t("in 85 % der Simulationen"), result.p85 or later, help=frequency)
             done_col = t("fertig bis dahin")
             chart = pd.DataFrame({"Sprint": result.sprints, done_col: result.cumulative})
             # vom ersten Sprint mit Chance bis zum ersten mit (fast) 100 %
@@ -1847,16 +1962,28 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 width="stretch",
             )
             caption = t(
-                "Monte-Carlo-Simulation ({runs} Durchläufe) ab dem nächsten Sprint: je Sprint "
-                "eine zufällige normierte Velocity der letzten Sprints × Kapazität.",
+                "Monte-Carlo-Simulation ({runs} Durchläufe, Stichprobe: {samples} Sprints) ab "
+                "dem nächsten Sprint: je Sprint eine zufällige normierte Velocity der letzten "
+                "Sprints × Kapazität. Die Prozentwerte sind modellabhängige Häufigkeiten, keine "
+                "Zusagen.",
                 runs=f"{result.runs:,}",
+                samples=result.samples,
             )
+            if result.samples < MIN_SAMPLES:
+                st.warning(
+                    t(
+                        "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
+                        "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
+                        samples=result.samples,
+                        min=MIN_SAMPLES,
+                    )
+                )
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:
                     listed += " …"
                 caption += t(
-                    " Ohne erfasste Fehltage mit Ø Kapazität gerechnet: {sprints}.", sprints=listed
+                    " Ohne Personenliste mit Ø Kapazität gerechnet: {sprints}.", sprints=listed
                 )
             if not result.p85:
                 caption += t(
@@ -1932,9 +2059,13 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
 
 def _available_text(d: Distribution, data: TeamData, unit: str) -> str:
     """Woraus sich die verteilbare Menge ergibt (Forecast PLAN bzw. dessen Roadmap-Anteil)."""
+    return _available_base(d, data, unit) + _frozen_note(d, unit)
+
+
+def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
     if d.plan is None:
         return t("Für diesen Sprint ist noch kein Forecast PLAN berechenbar.")
-    frozen = t(" (beim Planning eingefroren)") if d.plan_frozen else ""
+    frozen = t(" (Prognose beim Planning, eingefroren)") if d.plan_frozen else ""
     if d.basis is ProductBasis.ROADMAP:
         share = data.team.forecast.roadmap_share
         return t(
@@ -2058,25 +2189,38 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         entry = fc_base.entry(sprint.id) or entry
     fc_view = whatif_forecast(fc_base, assumed) if assumed else fc_base
     shown = fc_view.entry(sprint.id) or entry
-    shown_plan, frozen = plan_of(shown)
+    shown_plan = shown.result.plan  # aktuell berechnet (mit Annahme, falls eingetragen)
+    frozen_plan = sprint.forecast_plan  # beim Planning eingefroren
     with headline:
-        plan_col, capacity_col, trend_col = st.columns(3)
+        columns = st.columns(4 if frozen_plan is not None else 3)
+        plan_col, capacity_col, trend_col = columns[0], columns[-2], columns[-1]
         delta = None
-        if assumed and shown_plan is not None and plan_of(entry)[0] is not None:
+        if assumed and shown_plan is not None and entry.result.plan is not None:
             delta = t(
                 "{diff} {unit} (ohne Annahme {old} {unit})",
-                diff=_signed(shown_plan - plan_of(entry)[0]),
+                diff=_signed(shown_plan - entry.result.plan),
                 unit=unit,
-                old=fmt(plan_of(entry)[0]),
+                old=fmt(entry.result.plan),
             )
         plan_col.metric(
-            t("Forecast PLAN {id}", id=sprint.id),
+            t("Prognose aktuell {id}", id=sprint.id),
             f"{fmt(shown_plan)} {unit}",
             delta=delta,
             delta_color="off",
             help=(_formula_help(fc_view, shown, "plan") + "\n\n" if shown_plan is not None else "")
-            + (t("Beim Planning eingefroren.") if frozen else t("Aktuell berechnet.")),
+            + t("Aktuell berechnet."),
         )
+        if frozen_plan is not None:
+            columns[1].metric(
+                t("Prognose beim Planning {id}", id=sprint.id),
+                f"{fmt(frozen_plan)} {unit}",
+                delta=None if shown_plan is None else _signed(shown_plan - frozen_plan),
+                delta_color="off",
+                help=t(
+                    "Beim Planning eingefroren (Basis der verteilbaren Menge). Die Zahl darunter "
+                    "ist die Differenz der aktuellen Prognose dazu."
+                ),
+            )
         capacity_col.metric(t("Kapazität (PT)"), capacity_label(shown))
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
     if assumed:
@@ -2091,7 +2235,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if sprint.forecast_plan is not None:
             st.caption(
                 t(
-                    "Der Forecast PLAN dieses Sprints ist beim Planning eingefroren – die Annahme "
+                    "Die Prognose beim Planning dieses Sprints ist eingefroren – die Annahme "
                     "ändert ihn nicht."
                 )
             )

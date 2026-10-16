@@ -86,6 +86,8 @@ class Distribution:
     # die Menge, die diese Gruppe im Sprint schaffen kann (Anteil × Forecast PLAN).
     production_share: float | None = None
     production_available: float | None = None
+    # Aktuell berechneter Forecast PLAN (weicht von ``plan`` ab, wenn dieser eingefroren ist).
+    current_plan: float | None = None
 
     @property
     def production_overload(self) -> float | None:
@@ -113,6 +115,26 @@ def plan_of(entry: TimelineEntry) -> tuple[float | None, bool]:
     if entry.sprint.forecast_plan is not None:
         return entry.sprint.forecast_plan, True
     return entry.result.plan, False
+
+
+@dataclass(frozen=True)
+class PlanView:
+    """Beide Stände des Forecast PLAN eines Sprints: aktuell berechnet und beim Planning
+    eingefroren (None, solange nicht eingefroren)."""
+
+    current: float | None
+    frozen: float | None
+
+    @property
+    def difference(self) -> float | None:
+        """Aktuell − beim Planning; None ohne eingefrorenen oder aktuellen Wert."""
+        if self.current is None or self.frozen is None:
+            return None
+        return self.current - self.frozen
+
+
+def plan_view(entry: TimelineEntry) -> PlanView:
+    return PlanView(current=entry.result.plan, frozen=entry.sprint.forecast_plan)
 
 
 def standard_shares(active: list[Product], available: float | None) -> dict[str, float]:
@@ -163,6 +185,7 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
         rows=rows,
         production_share=group,
         production_available=plan * group if plan is not None and group is not None else None,
+        current_plan=entry.result.plan,
     )
 
 
