@@ -33,15 +33,24 @@ davon unberührt.
 | A13 | Die Referenzkapazität kürzt sich in der Rechnung heraus und ist nur ein Darstellungsmaßstab; Fokusfaktor und normierte Velocity sind dieselbe Größe unter zwei Namen. | wichtig | Referenzkapazität entfernen oder erklären; eine normierte Größe |
 | A14 | Rundung: `round_down` überall ist ein systematischer Bias; die Kapazität wird abgerundet und danach als Nenner genutzt. | nice-to-have | Rundung erst bei der Ausgabe; bewusste Wahl im Hilfetext begründen |
 | A15 | `trend()` vergleicht mit `is TrendMode.X`; ein Text landet im Zweig `linear`. | nice-to-have | Wert am Anfang in `TrendMode` umwandeln |
+| A16 | Definition von „Erledigt“: Teilanteile offener Tickets zählen mit (Teampraxis). Ohne Dokumentation ist die Zahl zwischen Teams nicht vergleichbar. | wichtig | Definition in Hilfe und README festhalten. Ein Stichtag für einen Wechsel der Zählweise (wie `unit_since`) ist nur für Teams nötig, die ihre Zählweise ändern, und daher später und optional |
 
-### Tests
+### Tests (Teil von K1)
 
-- Eigenschaftstests ergänzen: konstante Velocity ergibt konstanten Forecast; der Plan liegt in der
-  Bandbreite; ein Feiertagssprint hat weniger Kapazität als ein Normalsprint; Randfall „genau
-  `window` Sprints“.
-- Rückblickende Prüfung: Prognosen mit damals verfügbaren Daten gegen einen einfachen konstanten
-  Forecast vergleichen; Trefferquote behaupteter Wahrscheinlichkeiten prüfen.
-- Bestehende Konsistenztests behalten (Stärke), aber nicht mit Fachlichkeit verwechseln.
+Die vorhandenen Konsistenztests bleiben (Stärke: Seiten laufen nicht auseinander), prüfen aber
+nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachliche Tests**:
+
+- Eigenschaftstests: konstante Velocity ergibt konstanten Forecast in jedem Trend-Modus; der Plan
+  liegt in der Bandbreite; ein Feiertagssprint hat weniger Kapazität als ein Normalsprint; mehr
+  Personen ergeben nie weniger Kapazität; Randfälle „genau `window` Sprints“, FTE 0, leere
+  Historie, unterschiedliche Sprintlängen; der Forecast ist nie negativ.
+- Rückblickende Prüfung (Backtest): Für jeden Sprint einer Historie wird mit den damals
+  verfügbaren Daten prognostiziert und mit dem tatsächlichen Wert verglichen; die Modi werden
+  gegen einen einfachen konstanten Forecast (Mittel/Median der letzten Werte) verglichen. Als
+  Test mit synthetischen Reihen (stationär, Trend, Sprung) und der Demo-Historie. Die
+  Trefferquote behaupteter Wahrscheinlichkeiten ist ein Ziel für lange Historien, keine
+  Voraussetzung für K1.
+- Handgerechnete Beispiele für Feiertage, FTE, Overhead und Fehltage bleiben als Vorbild.
 
 ## B. Bedienung und Begriffe
 
@@ -89,17 +98,76 @@ davon unberührt.
   5. Dateien stabil formatiert und sortiert schreiben, damit Konflikte selten werden.
   6. Die Git-Anmeldung eigens einrichten (Credential Manager, SSH-Rückfragen, Dateisperren,
      Zeilenenden unter Windows).
-- Alternativ nennt der Pilot einen erreichbaren Git-Ansprechpartner. Die Abnahme erfolgt mit
-  zwei gleichzeitig arbeitenden Personen und absichtlich erzeugten Konflikten.
-- Die Beobachtung der Prüfung: „ein Sprint pro Datei“ hält Konflikte nur dann selten, wenn je
-  Sprint eine Person schreibt.
+- Ein erreichbarer Git-Ansprechpartner ist hilfreich, ersetzt aber nicht die terminalfreie
+  Abnahme: Sie erfolgt mit zwei gleichzeitig arbeitenden Personen und absichtlich erzeugten
+  Konflikten.
+- „Ein Sprint pro Datei“ hält Konflikte nur dann selten, wenn je Sprint eine Person schreibt.
+- Nach jedem Zusammenführen läuft die Gesamtvalidierung: Ein Schlüssel-Merge kann technisch
+  gelingen und fachlich ungültig sein (zwei Personen ändern verschiedene Produktanteile, die
+  zusammen 120 % ergeben). Dazu gehören gesicherte lokale Änderungen, Abbruch und Wiederaufnahme
+  sowie der Umgang mit erneuten Änderungen auf dem Remote beim Push.
 
-## E. Phasen (Kern)
+## E. Performance (Phase P)
+
+Die Anwendung ist in erster Linie eine GUI und fühlt sich langsam an. Zwei unabhängige
+Messungen (Windows, Python 3.14, Demo-Team mit 22 Sprints und 25 YAML-Dateien) zeigen: Der
+Rechenkern braucht etwa 0,25 bis 1,3 ms, ein Team zu laden etwa 18 ms. Die Langsamkeit entsteht
+vor und nach der Berechnung, nicht in der Sprache. Gemessen sind nicht: Browserstart,
+Frontend-Rendering und Roundtrip.
+
+Maßnahmen (in dieser Reihenfolge):
+
+1. Die Update-Anzeige wartet nicht mehr auf den Hintergrundthread (`result(wait=4.0)` blockiert
+   sonst potenziell jeden Durchlauf bis zu 4 Sekunden); das Ergebnis erscheint beim nächsten
+   Durchlauf.
+2. Der Git-Status wird nicht bei jedem Durchlauf abgefragt, sondern kurz zwischengespeichert und
+   nach Speichern, Commit und Synchronisation ungültig gemacht (gemessen: Median etwa 61 ms).
+3. Das Team wird nach Dateiversion (inklusive neuer und gelöschter Dateien) zwischengespeichert,
+   der Forecast zusätzlich nach Datenstand und Stichtag; nach Speichern und Synchronisation wird
+   neu geladen. Seiten laden nur, was sie brauchen.
+4. YAML mit dem C-Loader, falls verfügbar (gemessen: etwa 18 auf 6 ms).
+5. `pandas`, `altair` und die CLI-Importe werden erst geladen, wo sie gebraucht werden (rund
+   1 bis 1,5 Sekunden Kaltstart).
+6. Unabhängige Bereiche als Fragmente, Eingaben in Formularen bündeln.
+
+Ziele: Start unter 3 Sekunden, normale Eingaben unter 200 ms. Vorher und nachher wird mit
+Stoppuhr auf einem normalen Arbeitsrechner gemessen; das Messprotokoll gehört zum PR.
+
+## F. Technologie
+
+Bewertung durch zwei unabhängige Prüfungen:
+
+- **Python bleibt.** Der Kern ist reines, getestetes Python; die Feiertagsbibliothek `holidays`
+  (rund 200 Länder mit Regionen) hat in Rust und Go kein gleichwertiges Gegenstück. Ein Neubau
+  in Rust oder Go würde mehrere Monate kosten und die Langsamkeit nicht beheben, weil sie in der
+  Architektur (Neuberechnung, Laden, Aufrufe) liegt. Auch dort fehlt ein fertiger Tabellen-Editor.
+- **Streamlit bleibt vorerst.** Für Tabellen, Formulare, Diagramme und Sprint-Spalten mit
+  Auswahlfeldern reicht es. Grenzen: Neuausführung der Seite bei jeder Eingabe, Zustandsführung,
+  Drag-and-drop, Fensterverhalten.
+- **Alternative: NiceGUI** (ereignisgesteuert, Tabellen mit AG Grid, Diagramme mit ECharts,
+  nativer Modus). Weitere Kandidaten: PySide6/Qt; bei verbindlichem Drag-and-drop oder Roadmap
+  FastAPI mit Vue/React; bei gleichzeitiger Zusammenarbeit als Hauptnutzen eine gemeinsame
+  Server-Web-App.
+- **Technologie-Gate** (nach Phase P, vor K2 und K3): Die gemessenen Zeiten werden gegen die Ziele
+  aus E geprüft, und genau ein kritischer Ablauf (Fehltage-Matrix, Forecast-Kachel, ein
+  Auslastungsbalken, ungespeicherter Entwurf, Repo-Wechsel) wird als NiceGUI-Spike gebaut und
+  gemessen. Erfüllt Streamlit die Ziele, bleibt es. Scheitert es an der Interaktionsarchitektur,
+  wird schrittweise migriert; die Kernlogik bleibt dabei unverändert. Rust oder Go erst, wenn
+  repräsentative Profile echte CPU-Engpässe zeigen.
+- Zusätzlich: Eine getestete Release-Kombination der Abhängigkeiten festlegen. Die Untergrenze
+  `requires-python` wird gesondert entschieden.
+
+## G. Phasen und Reihenfolge
+
+Das Ticketsystem (siehe [konzept-ticketsystem.md](konzept-ticketsystem.md)) beginnt erst, wenn
+der Kern vollständig umgesetzt und gut getestet ist.
 
 | Phase | Inhalt | Abnahmekriterium |
 |---|---|---|
-| **K1 Berechnung** | A1 bis A5 samt Eigenschaftstests; B1 und B2 | Eigenschaftstests grün; der Plan liegt in der Bandbreite; unbekannte und bestätigte Fehltage sind unterscheidbar |
-| **K2 Begriffe und Anzeige** | B3 bis B7, A6 bis A13 | Eine Person ohne Einweisung trägt Fehltage ein und sieht, wie viel in den nächsten Sprint passt |
-| **K3 Datenordner und Sync** | Abschnitt D | Zwei Personen arbeiten parallel, einschließlich absichtlicher Konflikte, ohne Terminal und ohne Datenverlust |
+| **P Performance** | Abschnitt E | Messprotokoll vorher/nachher; Ziele aus E erreicht oder Rest benannt |
+| **K1 Berechnung und Zustände** | A1 bis A6, A8, A10, A16, B1, B2 samt fachlichen Tests (Eigenschaftstests, Backtest) | Alle fachlichen Tests grün; der Plan liegt in der Bandbreite; unbekannte und bestätigte Fehltage sind unterscheidbar |
+| **Gate Technologie** | Abschnitt F | Messung auf einem Arbeitsrechner; Entscheidung bleiben/migrieren dokumentiert |
+| **K2 Begriffe und Anzeige** | B3 bis B7, A7, A9, A11 bis A13 | Eine Person ohne Einweisung trägt Fehltage ein und sieht, wie viel in den nächsten Sprint passt |
+| **K3 Datenordner und Sync** | Abschnitt D (mehrere PRs) | Zwei Personen arbeiten parallel, einschließlich absichtlicher Konflikte, ohne Terminal und ohne Datenverlust; nach jedem Zusammenführen läuft die Gesamtvalidierung |
 
 Die übrigen Punkte (A14, A15, B8 bis B10) können nebenbei oder später folgen.
