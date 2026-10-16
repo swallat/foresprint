@@ -702,16 +702,62 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
 
 
+# Der auf einem der Boards bewusst gewählte Sprint gilt auch auf den anderen Boards.
+BOARD_SPRINT = "board-sprint"
+
+
 def _sprint_choice(
-    data: TeamData, fc: Forecast, purpose: str, label: str, key: str | None = None
+    data: TeamData,
+    fc: Forecast,
+    purpose: str,
+    label: str,
+    key: str | None = None,
+    shared: bool = False,
 ) -> Sprint | None:
     options = [e.sprint.id for e in fc.history(6)] + [e.sprint.id for e in fc.upcoming()]
-    default = fc.default_entry(purpose)
-    index = options.index(default.sprint.id) if default and default.sprint.id in options else 0
     if not options:
         return None
-    chosen = st.selectbox(label, options, index=index, key=key or f"{purpose}-sprint")
+    widget_key = key or f"{purpose}-sprint"
+    wanted = st.session_state.get(BOARD_SPRINT) if shared else None
+    kwargs: dict[str, Any] = {}
+    if wanted in options:
+        st.session_state[widget_key] = wanted
+    else:
+        default = fc.default_entry(purpose)
+        kwargs["index"] = (
+            options.index(default.sprint.id) if default and default.sprint.id in options else 0
+        )
+
+    def remember() -> None:
+        st.session_state[BOARD_SPRINT] = st.session_state[widget_key]
+
+    chosen = st.selectbox(
+        label, options, key=widget_key, on_change=remember if shared else None, **kwargs
+    )
     return copy.deepcopy(find_sprint(data, chosen))
+
+
+BOARDS = ("vorplanung", "planning", "review")
+
+
+def _board_nav(data: TeamData, sprint: Sprint, current: str) -> None:
+    """Die drei Boards mit dem Stand für den gewählten Sprint – Wechsel mit einem Klick."""
+    recorded = data.sprint(sprint.id)
+    done = {
+        "vorplanung": recorded is not None
+        and any(v.preplanned is not None for v in recorded.products.values()),
+        "planning": recorded is not None and recorded.forecast_ist is not None,
+        "review": recorded is not None and recorded.velocity is not None,
+    }
+    for col, key in zip(st.columns(len(BOARDS)), BOARDS, strict=True):
+        title, icon = PAGE_INFO[key]
+        with col:
+            st.page_link(
+                page_path(key),
+                label=f"{'✅' if done[key] else '⬜'} {t(title)}",
+                icon=icon,
+                disabled=key == current,
+            )
 
 
 def _number(label: str, value: float | None, key: str, help: str | None = None) -> float | None:
@@ -1020,9 +1066,10 @@ def _goto(step: int) -> None:
 def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Planning")
     show_flash()
-    sprint = _sprint_choice(data, fc, "planning", "Sprint")
+    sprint = _sprint_choice(data, fc, "planning", "Sprint", shared=True)
     if sprint is None:
         return
+    _board_nav(data, sprint, "planning")
     # Neuer Sprint gewählt → beim ersten Schritt beginnen.
     if st.session_state.get("planning-last-sprint") != sprint.id:
         st.session_state["planning-last-sprint"] = sprint.id
@@ -1332,9 +1379,10 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
 
 def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Review")
-    sprint = _sprint_choice(data, fc, "review", "Sprint")
+    sprint = _sprint_choice(data, fc, "review", "Sprint", shared=True)
     if sprint is None:
         return
+    _board_nav(data, sprint, "review")
     unit = data.team.unit.value
     computed = sprint_capacity(data.team, data.people, sprint).capacity if data.people else None
     with st.form(f"review-{sprint.id}"):
@@ -1564,10 +1612,11 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
         page_link("produktliste", t("Produkte anlegen"))
         return
-    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="vorplanung-sprint")
+    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="vorplanung-sprint", shared=True)
     entry = fc.entry(sprint.id) if sprint else None
     if sprint is None or entry is None:
         return
+    _board_nav(data, sprint, "vorplanung")
     st.caption(
         t(
             "Vor dem Planning tragen die POs ein, wie viel sie je Produkt für den Sprint vorsehen. "
