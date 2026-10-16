@@ -30,7 +30,13 @@ from sprintforecast.analysis import (
     completion,
     focus_factor,
 )
-from sprintforecast.calendar import day_label, holiday_name, workdays
+from sprintforecast.calendar import (
+    countries,
+    day_label,
+    holiday_name,
+    subdivisions,
+    team_workdays,
+)
 from sprintforecast.capacity import expected_absence_rate, sprint_capacity
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import (
@@ -69,7 +75,7 @@ from sprintforecast.products import (
     plan_of,
 )
 from sprintforecast.report import capacity_label, fmt, pct, period, render, source_label, status
-from sprintforecast.settings import REGIONS, SETTINGS, Kind, Setting, applicable, changes
+from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
@@ -237,9 +243,9 @@ def show_flash() -> None:
 
 def sprint_caption(data: TeamData, s: Sprint) -> str:
     """Zeitraum, Arbeitstage und Feiertage eines Sprints."""
-    days = workdays(s.start, s.end)
-    region = data.team.capacity.region
-    hol = [f"{d:%d.%m.} {name}" for d in days if (name := holiday_name(d, region))]
+    days = team_workdays(data.team, s.start, s.end)
+    region, country = data.team.capacity.region, data.team.capacity.country
+    hol = [f"{d:%d.%m.} {name}" for d in days if (name := holiday_name(d, region, country))]
     last = f"{days[-1]:%d.%m.%Y}" if days else f"{s.end:%d.%m.%Y}"
     text = t(
         "**{id}**: {start} – {last} (letzter Arbeitstag; der nächste Sprint beginnt am {next}), "
@@ -499,7 +505,7 @@ def _next_dates(fc: Forecast) -> None:
     current, planning = fc.current, fc.default_entry("planning")
     items = []
     if current is not None:
-        days = workdays(current.sprint.start, current.sprint.end)
+        days = team_workdays(fc.data.team, current.sprint.start, current.sprint.end)
         review_day = days[-1] if days else current.sprint.end
         done = current.sprint.velocity is not None
         items.append(
@@ -607,7 +613,10 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     }
     for s in sprints:
         column_config[s.id] = st.column_config.NumberColumn(
-            s.id, min_value=0.0, max_value=float(len(workdays(s.start, s.end))), step=0.5
+            s.id,
+            min_value=0.0,
+            max_value=float(len(team_workdays(data.team, s.start, s.end))),
+            step=0.5,
         )
     edited = st.data_editor(
         pd.DataFrame(rows),
@@ -1246,7 +1255,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
                 "prüfen und bestätigen."
             )
         )
-    days = len(workdays(base.start, base.end))
+    days = len(team_workdays(data.team, base.start, base.end))
     edited = st.data_editor(
         pd.DataFrame(absence_matrix(data.people, [shown_sprint])),
         column_config={
@@ -1951,7 +1960,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     probe.id: st.column_config.NumberColumn(
                         t("Voraussichtlich fehlend (Tage)"),
                         min_value=0.0,
-                        max_value=float(len(workdays(probe.start, probe.end))),
+                        max_value=float(len(team_workdays(data.team, probe.start, probe.end))),
                         step=0.5,
                     ),
                 },
@@ -2253,11 +2262,38 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
         column_config={
             "_id": None,  # interne ID, wird automatisch vergeben
             "Name": st.column_config.TextColumn(t("Name"), required=True),
-            "Bundesland": st.column_config.SelectboxColumn(
-                t("Bundesland"),
-                options=[TEAM_REGION, *REGIONS],
+            "Land": st.column_config.SelectboxColumn(
+                t("Land"),
+                options=[TEAM_REGION, *countries()],
                 default=TEAM_REGION,
-                help=t("(Team) = Einstellung des Teams"),
+                help=t(
+                    "(Team) = Einstellung des Teams; abweichendes Land für Feiertage und Wochenende"
+                ),
+            ),
+            "Arbeitswoche": st.column_config.TextColumn(
+                t("Arbeitswoche"),
+                help=t(
+                    "Leer = wie Land/Team. mon-fri, sun-thu, mon-sat oder die Arbeitstage, z. B. "
+                    "mon,tue,wed,thu für eine 4-Tage-Woche"
+                ),
+            ),
+            "Bundesland": st.column_config.SelectboxColumn(
+                t("Region"),
+                options=[
+                    TEAM_REGION,
+                    *sorted(
+                        {
+                            *subdivisions(data.team.capacity.country),
+                            *(
+                                c
+                                for code in {p.country for p in data.people if p.country}
+                                for c in subdivisions(code)
+                            ),
+                        }
+                    ),
+                ],
+                default=TEAM_REGION,
+                help=t("(Team) = Einstellung des Teams; Bundesland, Staat oder Provinz"),
             ),
             "ab": st.column_config.DateColumn(
                 t("ab"), format="DD.MM.YYYY", required=True, default=fc.today
