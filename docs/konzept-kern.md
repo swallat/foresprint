@@ -107,6 +107,33 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
   zusammen 120 % ergeben). Dazu gehören gesicherte lokale Änderungen, Abbruch und Wiederaufnahme
   sowie der Umgang mit erneuten Änderungen auf dem Remote beim Push.
 
+### Umfang: alle Alltags-Git-Vorgänge ohne Terminal
+
+Ziel ist, dass eine Person die Daten-Repos vollständig aus der App heraus pflegen kann. Dazu
+gehören neben „Speichern und teilen“ und der Konfliktlösung:
+
+- **Änderungen verwerfen** (einzelne Datei oder alles), mit Rückfrage und Anzeige, was verloren
+  geht.
+- **Verlauf** je Team, Sprint oder Datei anzeigen (wer hat wann was geändert) und einen früheren
+  Stand wiederherstellen; die Wiederherstellung ist selbst eine Änderung und rückgängig machbar.
+- **Tags** verwalten, nicht nur setzen (anzeigen, nachträglich setzen, löschen).
+- **Datenordner** wählen, neu anlegen, klonen und zwischen zuletzt benutzten Ordnern umschalten
+  (ein Teil davon gibt es bereits).
+- **Anmelde-Hilfe:** fehlende Authentifizierung erkennen und verständlich erklären, was zu tun
+  ist (Zugangstoken oder SSH-Schlüssel hinterlegen, Credential Manager).
+- **Fehlerzustände** mit klaren Meldungen und nächstem Schritt: offline, Push abgelehnt, Git
+  nicht installiert, gesperrte Datei, unvollständiger Merge, detached HEAD.
+- Die App ruft weiterhin das Programm `git` auf (keine eigene Git-Bibliothek): Das nutzt die
+  Anmeldung des Rechners und ist stabiler. Fehlt Git, erklärt die App die Installation.
+
+Bewusst nicht Teil der App: Branches, Rebase, Force-Push, Stash, Submodule und Ähnliches. Das
+Modell bleibt „ein Branch, immer synchron halten“. Wer mehr braucht, nutzt ein Terminal oder
+einen Git-Client.
+
+Abnahme: Alle genannten Alltagsvorgänge funktionieren in einem Test mit zwei Personen und
+absichtlich erzeugten Konflikten ohne Terminal, einschließlich der Fehlerfälle (offline,
+abgelehnter Push, fehlende Anmeldung).
+
 ## E. Performance (Phase P)
 
 Die Anwendung ist in erster Linie eine GUI und fühlt sich langsam an. Zwei unabhängige
@@ -168,6 +195,6 @@ der Kern vollständig umgesetzt und gut getestet ist.
 | **K1 Berechnung und Zustände** | A1 bis A6, A8, A10, A16, B1, B2 samt fachlichen Tests (Eigenschaftstests, Backtest) | Alle fachlichen Tests grün; der Plan liegt in der Bandbreite; unbekannte und bestätigte Fehltage sind unterscheidbar |
 | **Gate Technologie** | Abschnitt F | Messung auf einem Arbeitsrechner; Entscheidung bleiben/migrieren dokumentiert |
 | **K2 Begriffe und Anzeige** | B3 bis B7, A7, A9, A11 bis A13 | Eine Person ohne Einweisung trägt Fehltage ein und sieht, wie viel in den nächsten Sprint passt |
-| **K3 Datenordner und Sync** | Abschnitt D (mehrere PRs) | Zwei Personen arbeiten parallel, einschließlich absichtlicher Konflikte, ohne Terminal und ohne Datenverlust; nach jedem Zusammenführen läuft die Gesamtvalidierung |
+| **K3 Datenordner und Sync** | Abschnitt D inklusive Umfang „Alltags-Git ohne Terminal“ (mehrere PRs) | Zwei Personen arbeiten parallel, einschließlich absichtlicher Konflikte, ohne Terminal und ohne Datenverlust; alle Alltagsvorgänge und Fehlerfälle funktionieren in der App; nach jedem Zusammenführen läuft die Gesamtvalidierung |
 
 Die übrigen Punkte (A14, A15, B8 bis B10) können nebenbei oder später folgen.
