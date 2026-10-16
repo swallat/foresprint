@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 from functools import cache
 
 import holidays
 
-from sprintforecast.model import Numbering, Sprint, Team
+from sprintforecast.model import Numbering, Person, Sprint, Team
 
 
 def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
@@ -52,30 +53,95 @@ def day_label(d: date) -> str:
     return f"{WEEKDAYS[language()][d.weekday()]} {d:%d.%m.%Y}"
 
 
-def workdays(start: date, end: date) -> list[date]:
-    """Werktage (Mo–Fr) im halboffenen Intervall [start, end)."""
+# Wochenende als Wochentagsnummern (Montag = 0): Sa/So.
+DEFAULT_WEEKEND: frozenset[int] = frozenset({5, 6})
+DEFAULT_COUNTRY = "DE"
+# Arbeitswochen, die sich unabhängig vom Land einstellen lassen (Wert = Wochenende).
+WORKWEEKS: dict[str, frozenset[int]] = {
+    "mon-fri": frozenset({5, 6}),
+    "sun-thu": frozenset({4, 5}),
+    "mon-sat": frozenset({6}),
+}
+
+
+@cache
+def countries() -> dict[str, str]:
+    """Unterstützte Länder: ISO-Code → Name (aus der holidays-Bibliothek)."""
+    from holidays import registry
+
+    supported = set(holidays.list_supported_countries())
+    names = {}
+    for cls_name, *codes in registry.COUNTRIES.values():
+        code = codes[0]
+        if code in supported:
+            names[code] = re.sub(r"(?<!^)(?=[A-Z])", " ", cls_name)
+    return dict(sorted(names.items()))
+
+
+@cache
+def subdivisions(country: str) -> list[str]:
+    """Gültige Regionscodes (Bundesland, Staat, Provinz …) eines Landes."""
+    return list(holidays.list_supported_countries().get(country.upper(), []))
+
+
+@cache
+def country_weekend(country: str) -> frozenset[int]:
+    """Wochenende des Landes laut holidays-Bibliothek (z. B. Fr/Sa in Saudi-Arabien)."""
+    try:
+        return frozenset(holidays.country_holidays(country.upper()).weekend)
+    except NotImplementedError:
+        return DEFAULT_WEEKEND
+
+
+def team_weekend(team: Team) -> frozenset[int]:
+    """Wochenende des Teams: eingestellte Arbeitswoche, sonst das des Landes."""
+    return WORKWEEKS.get(team.capacity.workweek) or country_weekend(team.capacity.country)
+
+
+def person_weekend(team: Team, person: Person) -> frozenset[int]:
+    """Eine Person in einem anderen Land folgt dessen Wochenende."""
+    return country_weekend(person.country) if person.country else team_weekend(team)
+
+
+def workdays(start: date, end: date, weekend: frozenset[int] = DEFAULT_WEEKEND) -> list[date]:
+    """Werktage im halboffenen Intervall [start, end); ``weekend`` = freie Wochentage."""
     days = []
     day = start
     while day < end:
-        if day.weekday() < 5:
+        if day.weekday() not in weekend:
             days.append(day)
         day += timedelta(days=1)
     return days
 
 
+def team_workdays(team: Team, start: date, end: date) -> list[date]:
+    return workdays(start, end, team_weekend(team))
+
+
 @cache
-def _holiday_calendar(region: str | None, year: int, lang: str = "de") -> holidays.HolidayBase:
-    return holidays.country_holidays(
-        "DE", subdiv=region, years=year, language="en_US" if lang == "en" else "de"
-    )
+def _holiday_calendar(
+    country: str, region: str | None, year: int, lang: str = "de"
+) -> holidays.HolidayBase:
+    # Nicht jede Sprache gibt es für jedes Land – die Bibliothek fällt dann auf die Landessprache.
+    # Unbekanntes Land oder unpassende Region lässt die Rechnung nicht abstürzen (die Prüfung
+    # meldet den Fehler); es gelten dann nur die landesweiten bzw. keine Feiertage.
+    language = "en_US" if lang == "en" else "de"
+    for subdiv in (region or None, None):
+        try:
+            return holidays.country_holidays(
+                country.upper(), subdiv=subdiv, years=year, language=language
+            )
+        except NotImplementedError:
+            continue
+    return holidays.HolidayBase()
 
 
-def is_holiday(day: date, region: str | None) -> bool:
-    return day in _holiday_calendar(region, day.year)
+def is_holiday(day: date, region: str | None, country: str = DEFAULT_COUNTRY) -> bool:
+    return day in _holiday_calendar(country, region, day.year)
 
 
-def holiday_name(day: date, region: str | None) -> str | None:
+def holiday_name(day: date, region: str | None, country: str = DEFAULT_COUNTRY) -> str | None:
     """Name des Feiertags in der eingestellten Sprache – oder None."""
     from sprintforecast.i18n import language
 
-    return _holiday_calendar(region, day.year, language()).get(day)
+    return _holiday_calendar(country, region, day.year, language()).get(day)

@@ -9,6 +9,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any
 
+from sprintforecast.calendar import countries, subdivisions
 from sprintforecast.i18n import t
 from sprintforecast.model import Numbering, ProductBasis, Team, TrendMode, Unit
 
@@ -77,7 +78,7 @@ class Setting:
         """Auswahlmöglichkeiten mit übersetzten Beschreibungen."""
         if self.choices is None:
             return None
-        return {k: v if self is _REGION else t(v) for k, v in self.choices.items()}
+        return {k: v if self is _COUNTRY else t(v) for k, v in self.choices.items()}
 
     def parse(self, raw: str) -> Any:
         """Wandelt eine Texteingabe in den Wert um; wirft ValueError mit deutscher Meldung."""
@@ -88,6 +89,11 @@ class Setting:
             raise ValueError(t("Bitte einen Wert eingeben."))
         match self.kind:
             case Kind.TEXT:
+                if self.key == "capacity.region":
+                    raw = raw.upper()
+                    known = {c for code in countries() for c in subdivisions(code)}
+                    if raw not in known:
+                        raise ValueError(t("Unbekannter Regionscode: {value}", value=raw))
                 return raw
             case Kind.CHOICE:
                 assert self.choices is not None
@@ -172,15 +178,42 @@ SETTINGS: list[Setting] = [
         set=_setter("unit", Unit),
     ),
     Setting(
-        key="capacity.region",
-        label="Bundesland",
-        help="Für die Feiertage. Leer = nur bundesweite Feiertage. Einzelne Personen "
-        "können in der Personenliste abweichen.",
+        key="capacity.country",
+        label="Land",
+        help="Für die Feiertage und das Wochenende (ISO-Ländercode, z. B. DE, AT, CH, US, GB, "
+        "SA). Einzelne Personen können in der Personenliste ein anderes Land haben.",
         kind=Kind.CHOICE,
-        choices=REGIONS,
+        choices=countries(),
+        get=_getter("capacity.country"),
+        set=_setter("capacity.country"),
+        retroactive=True,
+    ),
+    Setting(
+        key="capacity.region",
+        label="Region (Bundesland, Staat, Provinz)",
+        help="Für regionale Feiertage, z. B. NW (Deutschland), CA (USA), ON (Kanada). Leer = nur "
+        "landesweite Feiertage. Muss zum Land passen; einzelne Personen können abweichen.",
+        kind=Kind.TEXT,
         optional=True,
         get=_getter("capacity.region"),
         set=_setter("capacity.region"),
+        retroactive=True,
+    ),
+    Setting(
+        key="capacity.workweek",
+        label="Arbeitswoche",
+        help="Welche Tage als Arbeitstage zählen. „auto“ folgt dem Land (z. B. Sonntag bis "
+        "Donnerstag in Saudi-Arabien).",
+        kind=Kind.CHOICE,
+        choices={
+            "auto": "wie im Land",
+            "mon-fri": "Montag bis Freitag",
+            "sun-thu": "Sonntag bis Donnerstag",
+            "mon-sat": "Montag bis Samstag",
+        },
+        get=_getter("capacity.workweek"),
+        set=_setter("capacity.workweek"),
+        retroactive=True,
     ),
     Setting(
         key="capacity.overhead_share",
@@ -341,8 +374,8 @@ SETTINGS: list[Setting] = [
 ]
 
 BY_KEY = {s.key: s for s in SETTINGS}
-# Bundesländer bleiben unübersetzt (Eigennamen).
-_REGION = BY_KEY["capacity.region"]
+# Ländernamen bleiben unübersetzt (Eigennamen).
+_COUNTRY = BY_KEY["capacity.country"]
 
 
 def applicable(has_sprints: bool) -> list[Setting]:
