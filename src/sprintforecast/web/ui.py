@@ -1358,7 +1358,7 @@ def _setting_widget(setting: Setting, team: Team, key: str) -> str:
                 min_value=float(setting.minimum) if setting.minimum is not None else None,
                 max_value=float(setting.maximum) if setting.maximum is not None else None,
                 value=float(shown),
-                step=0.5 if setting.kind is Kind.PERCENT else 1.0,
+                step=setting.step or (0.5 if setting.kind is Kind.PERCENT else 1.0),
                 help=setting.help,
                 key=key,
             )

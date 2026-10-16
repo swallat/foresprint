@@ -217,6 +217,7 @@ forecast:
   product_basis: plan       # Standard je Produkt aus: plan (Forecast PLAN) | roadmap
 capacity:
   overhead_share: 0.0       # pauschaler Abzug für Scrum-Termine
+  overhead_days: 1          # optional: zusätzlich fester Abzug in PT je Person und Sprint (× FTE)
   region: NW                # Bundesland für Feiertage
 ```
 
@@ -275,7 +276,8 @@ products:                   # optional, je Produkt-ID
 **Kapazität eines Sprints** – in dieser Reihenfolge:
 1. `capacity` in der Sprintdatei (eingefroren oder manuell) → *erfasst*
 2. Sprintdatei existiert, Personenliste vorhanden → Σ Personen
-   (Arbeitstage − Feiertage − Fehltage) × FTE − Overhead → *Personenliste*
+   (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine → *Personenliste*;
+   Abzug = Summe × Anteil (%) + Σ min(Kapazität der Person, PT je Person × FTE)
 3. Keine Sprintdatei → Kapazitäts-Trend → *Trend* (im Bericht mit ⚠️ markiert)
 
 **Trend-Modi** (`forecast.trend_mode`):

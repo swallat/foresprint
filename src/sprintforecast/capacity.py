@@ -16,14 +16,21 @@ class PersonCapacity:
     workdays: int
     holidays: int
     absence_days: float
+    # Verfügbar nach Feiertagen und Fehltagen (vor den Abzügen für Scrum-Termine).
     capacity: float
+    mean_fte: float = 1.0
+    # Fester Abzug für Scrum-Termine: PT je Person × FTE, höchstens die Kapazität.
+    overhead: float = 0.0
 
 
 @dataclass
 class CapacityBreakdown:
     people: list[PersonCapacity] = field(default_factory=list)
     gross: float = 0.0
+    # Abzug Scrum-Termine gesamt = Anteil + feste PT
     overhead: float = 0.0
+    overhead_share_part: float = 0.0
+    overhead_days_part: float = 0.0
     capacity: float = 0.0
 
 
@@ -36,22 +43,29 @@ def person_capacity(team: Team, person: Person, sprint: Sprint) -> PersonCapacit
     absence = min(sprint.absences.get(person.id, 0.0), len(working))
     available = sum(person.fte_on(d) for d in working)
     mean_fte = available / len(working) if working else 0.0
+    capacity = max(available - absence * mean_fte, 0.0)
     return PersonCapacity(
         person=person,
         workdays=len(days),
         holidays=len(days) - len(working),
         absence_days=absence,
-        capacity=max(available - absence * mean_fte, 0.0),
+        capacity=capacity,
+        mean_fte=mean_fte,
+        overhead=min(capacity, team.capacity.overhead_days * mean_fte),
     )
 
 
 def sprint_capacity(team: Team, people: list[Person], sprint: Sprint) -> CapacityBreakdown:
     rows = [pc for p in people if (pc := person_capacity(team, p, sprint)) is not None]
     gross = sum(r.capacity for r in rows)
-    overhead = gross * team.capacity.overhead_share
+    share_part = gross * team.capacity.overhead_share
+    days_part = sum(r.overhead for r in rows)
+    overhead = share_part + days_part
     return CapacityBreakdown(
         people=rows,
         gross=gross,
         overhead=overhead,
-        capacity=round_down(gross - overhead, team.capacity.rounding),
+        overhead_share_part=share_part,
+        overhead_days_part=days_part,
+        capacity=round_down(max(gross - overhead, 0.0), team.capacity.rounding),
     )

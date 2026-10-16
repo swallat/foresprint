@@ -58,6 +58,8 @@ class Setting:
     only_without_sprints: bool = False
     # Ändert rückwirkend die Berechnung aller Sprints.
     retroactive: bool = False
+    # Schrittweite im Eingabefeld der Weboberfläche (sonst je Art).
+    step: float | None = None
 
     def parse(self, raw: str) -> Any:
         """Wandelt eine Texteingabe in den Wert um; wirft ValueError mit deutscher Meldung."""
@@ -172,6 +174,18 @@ SETTINGS: list[Setting] = [
         maximum=90,
         get=_getter("capacity.overhead_share"),
         set=_setter("capacity.overhead_share", float),
+    ),
+    Setting(
+        key="capacity.overhead_days",
+        label="Abzug für Scrum-Termine (PT je Person)",
+        help="Fester Abzug je Sprint und Vollzeitperson (Teilzeit anteilig), z. B. 1 für "
+        "Planning, Review und Retro. Gilt zusätzlich zum Abzug in %; 0 = kein fester Abzug.",
+        kind=Kind.NUMBER,
+        minimum=0,
+        maximum=20,
+        step=0.25,
+        get=_getter("capacity.overhead_days"),
+        set=_setter("capacity.overhead_days", float),
     ),
     Setting(
         key="sprint.length_days",

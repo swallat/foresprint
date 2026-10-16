@@ -142,6 +142,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             ),
             capacity=CapacitySettings(
                 overhead_share=float(capacity.get("overhead_share", 0.0)),
+                overhead_days=float(capacity.get("overhead_days", 0.0)),
                 region=capacity.get("region"),
                 rounding=int(capacity.get("rounding", 1)),
             ),
@@ -167,16 +168,16 @@ def team_to_dict(team: Team) -> dict[str, Any]:
     }
     if team.forecast.product_basis is not ProductBasis.PLAN:
         forecast["product_basis"] = team.forecast.product_basis.value
+    capacity: dict[str, Any] = {"overhead_share": team.capacity.overhead_share}
+    if team.capacity.overhead_days:
+        capacity["overhead_days"] = _clean(team.capacity.overhead_days)
+    capacity |= {"region": team.capacity.region, "rounding": team.capacity.rounding}
     return {
         "name": team.name,
         "unit": team.unit.value,
         "sprint": sprint,
         "forecast": forecast,
-        "capacity": {
-            "overhead_share": team.capacity.overhead_share,
-            "region": team.capacity.region,
-            "rounding": team.capacity.rounding,
-        },
+        "capacity": capacity,
     }
 
 
