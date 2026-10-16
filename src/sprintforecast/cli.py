@@ -1035,7 +1035,7 @@ def web(
         )
         raise typer.Exit(1)
     c = _ctx(ctx)
-    env = os.environ | {DATA_ENV: str(c.repo.root.resolve())}
+    env = os.environ | {DATA_ENV: str(c.repo.root.resolve())} | updater.web_environment(sys.argv)
     if c.stichtag:
         env[STICHTAG_ENV] = c.stichtag
     actual_port = free_port(port)
@@ -1087,7 +1087,13 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
         case BrowserKind.APP:
             console.print(f"Öffne {found.name} als App-Fenster …")
             started = time.monotonic()
-            subprocess.run(browser_command(found, url))
+            window = subprocess.Popen(browser_command(found, url))
+            while window.poll() is None:
+                if server.poll() is not None:
+                    # Server beendet (z. B. Neustart für eine Aktualisierung) → Fenster zu
+                    window.terminate()
+                    return
+                time.sleep(0.5)
             if time.monotonic() - started >= _HANDOFF_SECONDS:
                 console.print("App-Fenster geschlossen – beende die Weboberfläche.")
                 raise KeyboardInterrupt
