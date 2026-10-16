@@ -2311,9 +2311,26 @@ def _shutdown_soon() -> None:
     threading.Timer(1.5, lambda: os._exit(0)).start()
 
 
+def _manual_update_check(check: updater.Check | None) -> None:
+    """Knopf „Nach Updates suchen“ (die automatische Prüfung läuft nur einmal je Tag)."""
+    manual = st.session_state.get("manual-check")
+    if manual is not None:
+        if manual.error:
+            st.caption(t("Suche nicht möglich: {error}", error=manual.error))
+        else:
+            st.caption(t("Version {current} ist aktuell.", current=manual.current))
+    if check is not None and check.installation is None:
+        return  # nicht mit uv installiert – hier gibt es nichts zu aktualisieren
+    if st.button(t("Nach Updates suchen"), icon=":material/refresh:", key="manual-check-button"):
+        with st.spinner(t("Suche …")):
+            st.session_state["manual-check"] = updater.check(force=True, timeout=8.0)
+        st.rerun()
+
+
 def _update_panel() -> None:
-    check = _update_check().result(wait=4.0)
+    check = st.session_state.get("manual-check") or _update_check().result(wait=4.0)
     if check is None or not check.available:
+        _manual_update_check(check)
         return
     restarting = t("Wird aktualisiert und neu gestartet … Das Fenster öffnet sich gleich neu.")
     if st.session_state.get("restarting"):
