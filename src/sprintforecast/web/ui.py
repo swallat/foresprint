@@ -16,10 +16,8 @@ import sys
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import altair as alt
-import pandas as pd
 import streamlit as st
 
 from sprintforecast import updater
@@ -88,6 +86,7 @@ from sprintforecast.storage import (
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
+from sprintforecast.web.lazy import LazyModule
 from sprintforecast.web.logic import (
     CALENDAR_COLUMNS,
     PEOPLE_COLUMNS,
@@ -116,6 +115,13 @@ from sprintforecast.web.logic import (
     with_people,
     with_sprints,
 )
+
+if TYPE_CHECKING:
+    import altair as alt
+    import pandas as pd
+else:  # erst beim ersten Zugriff laden (Kaltstart)
+    alt = LazyModule("altair")
+    pd = LazyModule("pandas")
 
 # Seiten: Dateiname unter web/seiten → (Titel, Material-Icon). Gruppen für die Navigation.
 # Titel und Gruppen sind deutsche Quelltexte und werden bei der Anzeige übersetzt.
