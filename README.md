@@ -37,6 +37,13 @@ curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/instal
 
 Danach ein neues Terminal öffnen.
 
+**Start per Doppelklick:** Das Skript legt einen Starter **„Sprint-Forecast“** an – unter
+Windows auf dem Desktop und im Startmenü, unter macOS in `~/Applications` (plus Alias auf dem
+Schreibtisch), unter Linux als Programmeintrag und auf dem Desktop. Er startet die
+Weboberfläche als App-Fenster (unter Windows ohne Konsolenfenster); beim ersten Start führt
+die Oberfläche durch die Einrichtung des Datenordners. Neu anlegen: `sprintforecast
+verknuepfung`; Protokoll: `app.log` neben der Plugin-Auswahl.
+
 **Aktualisieren** – automatisch, ähnlich wie bei Claude Code: Beim Start eines Befehls prüft
 sprintforecast höchstens einmal am Tag im Hintergrund, ob es eine neuere Version gibt (Feld
 `version` in `pyproject.toml` des installierten Branches). Ist eine da, wird sie **nach dem
@@ -76,6 +83,7 @@ Ohne Rückfrage (Umgebungsvariablen vor dem Aufruf setzen):
 |---|---|
 | `SPRINTFORECAST_WITH="besitzer/repo; …"` | diese Plugins installieren (leer = keine) |
 | `SPRINTFORECAST_REF=v1.0` | bestimmten Tag oder Branch statt `main` installieren |
+| `SPRINTFORECAST_NO_SHORTCUT=1` | keinen Starter zum Doppelklicken anlegen |
 
 Entfernen: `uv tool uninstall sprintforecast`.
 
