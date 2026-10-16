@@ -755,6 +755,8 @@ EN: dict[str, str] = {
     "Saldo = Σ Erledigt − Σ Standard": "Balance = Σ done − Σ standard",
     "Team": "Team",
     "Anteil (%)": "Share (%)",
+    "Vergangene Sprints": "Past sprints",
+    "Zeigt zusätzlich die letzten abgeschlossenen Sprints, um Fehltage nachzutragen. Sie fließen in die erwarteten Fehltage ein (Einstellung); eine beim Review eingefrorene Kapazität ändert sich dadurch nicht.": "Also shows the last finished sprints so absences can be added retroactively. They feed into the expected absences (setting); a capacity frozen at the review does not change.",
     "Für Sprints ohne Eintrag werden die Fehltage aus den letzten {count} Sprints erwartet: Ø {rate} der Kapazität.": "For sprints without an entry the absences are expected from the last {count} sprints: Ø {rate} of the capacity.",
     "Erwartete Fehltage: In den letzten Sprints sind noch keine Fehltage erfasst – es gilt der Trend der Kapazität.": "Expected absences: no absences are recorded in the last sprints yet – the capacity trend applies.",
     "erwartete Fehltage": "expected absences",

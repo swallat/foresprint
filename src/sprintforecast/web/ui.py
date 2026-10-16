@@ -579,12 +579,25 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     count = st.number_input(
         t("Anzahl Sprints"), min_value=1, max_value=26, value=data.team.forecast.horizon + 1
     )
-    sprints = absence_sprints(data, fc, int(count))
+    past = st.number_input(
+        t("Vergangene Sprints"),
+        min_value=0,
+        max_value=26,
+        value=0,
+        key="absences-past",
+        help=t(
+            "Zeigt zusätzlich die letzten abgeschlossenen Sprints, um Fehltage nachzutragen. "
+            "Sie fließen in die erwarteten Fehltage ein (Einstellung); eine beim Review "
+            "eingefrorene Kapazität ändert sich dadurch nicht."
+        ),
+    )
+    sprints = absence_sprints(data, fc, int(count), int(past))
     if not sprints:
         st.info(t("Keine Sprints gefunden."))
         return
     for s in sprints:
-        st.caption(sprint_caption(data, s))
+        caption = sprint_caption(data, s)
+        st.caption(caption + (f" · {t('abgeschlossen')}" if s.end <= fc.today else ""))
     rows = absence_matrix(data.people, sprints)
     column_config: dict[str, Any] = {
         "id": None,

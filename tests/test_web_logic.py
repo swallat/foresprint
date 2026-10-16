@@ -265,3 +265,16 @@ def test_default_forecast_ist_falls_back_to_previous_sprint(data_dir: Path):
     expected = next(s.forecast_ist for s in reversed(earlier) if s.forecast_ist is not None)
     assert default_forecast_ist(fc, current) == expected
     assert own is not None
+
+
+def test_absence_sprints_can_include_past_sprints(data_dir: Path):
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.web.logic import absence_sprints
+
+    data = Repository(data_dir).load("demo")
+    fc = build_forecast(data, TODAY)
+    plain = absence_sprints(data, fc, 3)
+    with_past = absence_sprints(data, fc, 3, past=2)
+    assert [s.id for s in with_past[2:]] == [s.id for s in plain]
+    assert all(s.end <= TODAY for s in with_past[:2])
+    assert len(with_past) == len(plain) + 2
