@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from sprintforecast.config import config_dir
+from sprintforecast.i18n import t
 
 PACKAGE = "sprintforecast"
 DEFAULT_REPO = "swallat/sprint-forecast"
@@ -194,7 +195,7 @@ def remote_version(inst: Installation, timeout: float = 5.0) -> str:
     project = tomllib.loads(_fetch(url, timeout)).get("project", {})
     version = project.get("version")
     if not isinstance(version, str):
-        raise ValueError(f"Keine Version in {url}")
+        raise ValueError(t("Keine Version in {url}", url=url))
     return version
 
 
@@ -371,7 +372,7 @@ def restart_with_update() -> str | None:
     Liefert eine Fehlermeldung oder None. Der Aufrufer beendet danach den Server."""
     uv = find_uv()
     if uv is None:
-        return "uv nicht gefunden – bitte das Installationsskript erneut ausführen."
+        return t("uv nicht gefunden – bitte das Installationsskript erneut ausführen.")
     try:
         restart = json.loads(os.environ.get(RESTART_ENV, "null")) or {}
         extra = [int(p) for p in os.environ.get(PIDS_ENV, "").split(",") if p.strip()]
@@ -382,7 +383,7 @@ def restart_with_update() -> str | None:
             uv, pids=[os.getpid(), *extra], then=restart.get("cmd"), cwd=restart.get("cwd")
         )
     except OSError as e:
-        return f"Aktualisierung nicht startbar: {e}"
+        return t("Aktualisierung nicht startbar: {error}", error=e)
     latest = load_state().get("latest")
     update_state(
         attempted=latest, attempted_at=datetime.now(UTC).isoformat(), failure_reported=False
@@ -403,7 +404,9 @@ def startup_notices(now: datetime | None = None) -> list[str]:
     messages = []
     seen = state.get("seen_version")
     if seen and is_newer(current, seen):
-        messages.append(f"sprintforecast wurde auf Version {current} aktualisiert.")
+        messages.append(
+            t("sprintforecast wurde auf Version {version} aktualisiert.", version=current)
+        )
     changes: dict[str, Any] = {"seen_version": current}
     attempted = state.get("attempted")
     attempted_at = _parse_time(state.get("attempted_at"))
@@ -414,8 +417,12 @@ def startup_notices(now: datetime | None = None) -> list[str]:
         and not state.get("failure_reported")
     ):
         messages.append(
-            f"Die automatische Aktualisierung auf {attempted} hat nicht geklappt – "
-            f"Protokoll: {log_file()}. Manuell: sprintforecast aktualisieren"
+            t(
+                "Die automatische Aktualisierung auf {version} hat nicht geklappt – "
+                "Protokoll: {log}. Manuell: sprintforecast aktualisieren",
+                version=attempted,
+                log=log_file(),
+            )
         )
         changes["failure_reported"] = True
     update_state(**changes)
@@ -462,8 +469,12 @@ class AutoUpdate:
         latest = result.latest
         if mode() is Mode.NOTICE:
             say(
-                f"Neue Version {latest} verfügbar (installiert: {result.current}) – "
-                "aktualisieren mit: sprintforecast aktualisieren"
+                t(
+                    "Neue Version {latest} verfügbar (installiert: {current}) – "
+                    "aktualisieren mit: sprintforecast aktualisieren",
+                    latest=latest,
+                    current=result.current,
+                )
             )
             return
         state = load_state()
@@ -471,19 +482,36 @@ class AutoUpdate:
             return  # schon versucht; Fehlschlag meldet startup_notices
         uv = find_uv()
         if uv is None:
-            say(f"Neue Version {latest} verfügbar – uv nicht gefunden, bitte neu installieren.")
+            say(
+                t(
+                    "Neue Version {latest} verfügbar – uv nicht gefunden, bitte neu installieren.",
+                    latest=latest,
+                )
+            )
             return
         try:
             schedule_after_exit(uv)
         except OSError as e:
-            say(f"Neue Version {latest} verfügbar – Aktualisierung nicht startbar: {e}")
+            say(
+                t(
+                    "Neue Version {latest} verfügbar – Aktualisierung nicht startbar: {error}",
+                    latest=latest,
+                    error=e,
+                )
+            )
             return
         update_state(
             attempted=latest,
             attempted_at=datetime.now(UTC).isoformat(),
             failure_reported=False,
         )
-        say(f"Neue Version {latest} wird im Hintergrund installiert (gilt ab dem nächsten Start).")
+        say(
+            t(
+                "Neue Version {latest} wird im Hintergrund installiert (gilt ab dem nächsten "
+                "Start).",
+                latest=latest,
+            )
+        )
 
 
 def status_line() -> str:
@@ -494,10 +522,16 @@ def status_line() -> str:
     if inst is None:
         return text
     if inst.pinned:
-        return f"{text} (fest: {inst.ref})"
+        return t("{text} (fest: {ref})", text=text, ref=inst.ref)
     latest = load_state().get("latest")
     if not is_newer(latest, current):
         return text
     if mode() is Mode.ON:
-        return f"{text} · Version {latest} wird nach dem Beenden installiert"
-    return f"{text} · Version {latest} verfügbar (`sprintforecast aktualisieren`)"
+        return t(
+            "{text} · Version {latest} wird nach dem Beenden installiert", text=text, latest=latest
+        )
+    return t(
+        "{text} · Version {latest} verfügbar (`sprintforecast aktualisieren`)",
+        text=text,
+        latest=latest,
+    )

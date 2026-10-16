@@ -9,6 +9,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any
 
+from sprintforecast.i18n import t
 from sprintforecast.model import Numbering, ProductBasis, Team, TrendMode, Unit
 
 # Bundesländer in der Schreibweise der holidays-Bibliothek.
@@ -61,13 +62,30 @@ class Setting:
     # Schrittweite im Eingabefeld der Weboberfläche (sonst je Art).
     step: float | None = None
 
+    @property
+    def title(self) -> str:
+        """Bezeichnung in der eingestellten Sprache."""
+        return t(self.label)
+
+    @property
+    def text(self) -> str:
+        """Erklärung in der eingestellten Sprache."""
+        return t(self.help)
+
+    @property
+    def options(self) -> dict[str, str] | None:
+        """Auswahlmöglichkeiten mit übersetzten Beschreibungen."""
+        if self.choices is None:
+            return None
+        return {k: v if self is _REGION else t(v) for k, v in self.choices.items()}
+
     def parse(self, raw: str) -> Any:
         """Wandelt eine Texteingabe in den Wert um; wirft ValueError mit deutscher Meldung."""
         raw = raw.strip()
         if raw == "":
             if self.optional:
                 return None
-            raise ValueError("Bitte einen Wert eingeben.")
+            raise ValueError(t("Bitte einen Wert eingeben."))
         match self.kind:
             case Kind.TEXT:
                 return raw
@@ -75,20 +93,20 @@ class Setting:
                 assert self.choices is not None
                 value = raw.upper() if raw.upper() in self.choices else raw
                 if value not in self.choices:
-                    raise ValueError(f"Erlaubt: {', '.join(self.choices)}")
+                    raise ValueError(t("Erlaubt: {values}", values=", ".join(self.choices)))
                 return value
             case Kind.DATE:
                 try:
                     return date.fromisoformat(raw)
                 except ValueError as e:
-                    raise ValueError("Datum im Format JJJJ-MM-TT eingeben.") from e
+                    raise ValueError(t("Datum im Format JJJJ-MM-TT eingeben.")) from e
             case Kind.INT | Kind.NUMBER | Kind.PERCENT:
                 try:
                     number = float(raw.replace(",", ".").removesuffix("%").strip())
                 except ValueError as e:
-                    raise ValueError("Bitte eine Zahl eingeben.") from e
+                    raise ValueError(t("Bitte eine Zahl eingeben.")) from e
                 if self.kind is Kind.INT and not number.is_integer():
-                    raise ValueError("Bitte eine ganze Zahl eingeben.")
+                    raise ValueError(t("Bitte eine ganze Zahl eingeben."))
                 self.check_range(number)
                 if self.kind is Kind.INT:
                     return int(number)
@@ -97,9 +115,9 @@ class Setting:
 
     def check_range(self, shown: float) -> None:
         if self.minimum is not None and shown < self.minimum:
-            raise ValueError(f"Der Wert muss ≥ {_plain(self.minimum)} sein.")
+            raise ValueError(t("Der Wert muss ≥ {value} sein.", value=_plain(self.minimum)))
         if self.maximum is not None and shown > self.maximum:
-            raise ValueError(f"Der Wert muss ≤ {_plain(self.maximum)} sein.")
+            raise ValueError(t("Der Wert muss ≤ {value} sein.", value=_plain(self.maximum)))
 
     def display(self, team: Team) -> str:
         """Aktueller Wert als Text, so wie er auch eingegeben würde."""
@@ -309,6 +327,8 @@ SETTINGS: list[Setting] = [
 ]
 
 BY_KEY = {s.key: s for s in SETTINGS}
+# Bundesländer bleiben unübersetzt (Eigennamen).
+_REGION = BY_KEY["capacity.region"]
 
 
 def applicable(has_sprints: bool) -> list[Setting]:

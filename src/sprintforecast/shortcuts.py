@@ -14,6 +14,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from sprintforecast.i18n import t
+
 APP_NAME = "Sprint-Forecast"
 APP_SCRIPT = "sprintforecast-app"
 
@@ -42,7 +44,7 @@ def windows_script(program: str, workdir: str) -> str:
             "$link = $shell.CreateShortcut($path)",
             f"$link.TargetPath = {_ps_quote(program)}",
             f"$link.WorkingDirectory = {_ps_quote(workdir)}",
-            "$link.Description = 'Sprint-Forecast starten'",
+            "$link.Description = 'Sprint-Forecast'",
             "$link.Save()",
             "Write-Output $path",
         ]
@@ -54,7 +56,7 @@ def desktop_entry(program: str) -> str:
         "[Desktop Entry]\n"
         "Type=Application\n"
         f"Name={APP_NAME}\n"
-        "Comment=Velocity- und Kapazitäts-Forecast\n"
+        f"Comment={t('Velocity- und Kapazitäts-Forecast')}\n"
         f'Exec="{program}"\n'
         "Icon=office-calendar\n"
         "Terminal=false\n"
@@ -90,8 +92,11 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
     program = app_program()
     if program is None:
         raise RuntimeError(
-            f"{APP_SCRIPT} nicht gefunden – bitte sprintforecast mit dem Installationsskript "
-            "installieren bzw. aktualisieren."
+            t(
+                "{program} nicht gefunden – bitte sprintforecast mit dem Installationsskript "
+                "installieren bzw. aktualisieren.",
+                program=APP_SCRIPT,
+            )
         )
     home = home or Path.home()
     if platform == "win32":
@@ -101,7 +106,7 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
             text=True,
         )
         if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or "Verknüpfung nicht angelegt")
+            raise RuntimeError(proc.stderr.strip() or t("Verknüpfung nicht angelegt"))
         return [Path(line) for line in proc.stdout.splitlines() if line.strip()]
     if platform == "darwin":
         bundle = mac_bundle(home / "Applications", program)

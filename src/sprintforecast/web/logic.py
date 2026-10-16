@@ -11,6 +11,7 @@ from typing import Any
 
 from sprintforecast.calendar import following_sprint, next_id, workdays
 from sprintforecast.forecast import Forecast
+from sprintforecast.i18n import t
 from sprintforecast.model import Membership, Person, Product, ProductValues, Sprint, new_person_id
 from sprintforecast.products import MEASURES, Distribution
 from sprintforecast.storage import TeamData
@@ -161,7 +162,7 @@ def apply_calendar(
         except ValueError:
             last = None
         if last is None:
-            errors.append(f"Zeile {i + 1}: letzter Tag fehlt")
+            errors.append(t("Zeile {row}: letzter Tag fehlt", row=i + 1))
             last = original.end - timedelta(days=1)
         if last == original.end - timedelta(days=1):
             # unverändert → Länge behalten, d. h. mit dem Vorgänger mitverschieben
@@ -169,7 +170,13 @@ def apply_calendar(
         else:
             end = last + timedelta(days=1)
         if end <= sprint.start:
-            errors.append(f"Sprint {sprint.id}: letzter Tag liegt vor dem Start {sprint.start}")
+            errors.append(
+                t(
+                    "Sprint {id}: letzter Tag liegt vor dem Start {start}",
+                    id=sprint.id,
+                    start=sprint.start,
+                )
+            )
         sprint.end = end if end > sprint.start else original.end
         result.append(sprint)
     return result, errors
@@ -228,7 +235,7 @@ def people_from_table(
             continue
         name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
         if not name:
-            errors.append(f"Zeile {i}: Name fehlt")
+            errors.append(t("Zeile {row}: Name fehlt", row=i))
             continue
         pid = None if is_blank(row.get("_id")) else str(row["_id"])
         if pid is None:
@@ -244,17 +251,21 @@ def people_from_table(
             person = visible_people[pid] = Person(id=pid, name=name, region=region)
         elif person.name != name or person.region != region:
             errors.append(
-                f"Zeile {i}: Für {person.name} stehen in mehreren Zeilen unterschiedliche Namen "
-                "oder Bundesländer – bitte einheitlich eintragen."
+                t(
+                    "Zeile {row}: Für {name} stehen in mehreren Zeilen unterschiedliche Namen "
+                    "oder Bundesländer – bitte einheitlich eintragen.",
+                    row=i,
+                    name=person.name,
+                )
             )
             continue
         try:
             start, end = as_date(row.get("ab")), as_date(row.get("bis"))
         except ValueError:
-            errors.append(f"Zeile {i} ({name}): ungültiges Datum")
+            errors.append(t("Zeile {row} ({name}): ungültiges Datum", row=i, name=name))
             continue
         if start is None:
-            errors.append(f"Zeile {i} ({name}): 'ab' fehlt")
+            errors.append(t("Zeile {row} ({name}): 'ab' fehlt", row=i, name=name))
             continue
         fte = 1.0 if is_blank(row.get("FTE")) else float(row["FTE"])
         person.memberships.append(Membership(start=start, end=end, fte=fte))
@@ -315,10 +326,10 @@ def products_from_table(
             continue
         name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
         if not name:
-            errors.append(f"Zeile {i}: Name fehlt")
+            errors.append(t("Zeile {row}: Name fehlt", row=i))
             continue
         if name.lower() in seen:
-            errors.append(f"Zeile {i}: {name} ist doppelt")
+            errors.append(t("Zeile {row}: {name} ist doppelt", row=i, name=name))
             continue
         seen.add(name.lower())
         pid = None if is_blank(row.get("_id")) else str(row["_id"])
@@ -328,10 +339,10 @@ def products_from_table(
         try:
             start, end = as_date(row.get("ab")), as_date(row.get("bis"))
         except ValueError:
-            errors.append(f"Zeile {i} ({name}): ungültiges Datum")
+            errors.append(t("Zeile {row} ({name}): ungültiges Datum", row=i, name=name))
             continue
         if start and end and end < start:
-            errors.append(f"Zeile {i} ({name}): 'bis' liegt vor 'ab'")
+            errors.append(t("Zeile {row} ({name}): 'bis' liegt vor 'ab'", row=i, name=name))
             continue
         po = None if is_blank(row.get("PO")) else str(row["PO"]).strip()
         result.append(Product(id=pid, name=name, po=po, start=start, end=end))

@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 
+from sprintforecast.i18n import t
 from sprintforecast.model import (
     CapacitySettings,
     ForecastSettings,
@@ -96,13 +97,13 @@ def _read(path: Path) -> dict[str, Any]:
     try:
         content = yaml.safe_load(path.read_text(encoding="utf-8"))
     except FileNotFoundError as e:
-        raise DataError(f"Datei fehlt: {path}") from e
+        raise DataError(t("Datei fehlt: {path}", path=path)) from e
     except yaml.YAMLError as e:
-        raise DataError(f"{path}: kein gültiges YAML ({e})") from e
+        raise DataError(t("{path}: kein gültiges YAML ({error})", path=path, error=e)) from e
     if content is None:
         return {}
     if not isinstance(content, dict):
-        raise DataError(f"{path}: Inhalt muss ein YAML-Objekt sein")
+        raise DataError(t("{path}: Inhalt muss ein YAML-Objekt sein", path=path))
     return content
 
 
@@ -116,7 +117,9 @@ def _float(value: Any, where: str) -> float | None:
     if value is None or value == "":
         return None
     if isinstance(value, bool) or not isinstance(value, int | float):
-        raise DataError(f"{where}: Zahl erwartet, gefunden {value!r}")
+        raise DataError(
+            t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+        )
     return float(value)
 
 
@@ -126,7 +129,13 @@ def _date(value: Any, where: str) -> date:
     try:
         return date.fromisoformat(str(value))
     except ValueError as e:
-        raise DataError(f"{where}: Datum im Format JJJJ-MM-TT erwartet, gefunden {value!r}") from e
+        raise DataError(
+            t(
+                "{where}: Datum im Format JJJJ-MM-TT erwartet, gefunden {value}",
+                where=where,
+                value=repr(value),
+            )
+        ) from e
 
 
 def _clean(value: float | None) -> float | int | None:
@@ -138,7 +147,7 @@ def _clean(value: float | None) -> float | int | None:
 # --- Team -----------------------------------------------------------------------------
 
 TEAM_HEADER = """\
-# Team-Konfiguration. Erläuterungen: `sprintforecast hilfe team`
+# Team settings. Explanations: `sprintforecast help team`
 """
 
 
@@ -211,8 +220,8 @@ def team_to_dict(team: Team) -> dict[str, Any]:
 # --- Personen -------------------------------------------------------------------------
 
 PEOPLE_HEADER = """\
-# Personenliste. Zugehörigkeiten mit Zeitraum und FTE-Anteil (1.0 = Vollzeit im Team).
-# Personen nie löschen, sondern Zugehörigkeit mit `to:` beenden – sonst ändert sich die Historie.
+# People. Memberships with period and FTE share (1.0 = full time in the team).
+# Never delete people; end the membership with `to:` instead – otherwise history changes.
 """
 
 
@@ -221,7 +230,7 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
     for i, p in enumerate(d.get("people") or []):
         at = f"{where}: people[{i}]"
         if "id" not in p:
-            raise DataError(f"{at}: Feld 'id' fehlt")
+            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
         memberships = [
             Membership(
                 start=_date(m.get("from"), at),
@@ -257,8 +266,8 @@ def people_to_dict(people: list[Person]) -> dict[str, Any]:
 # --- Produkte ------------------------------------------------------------------------
 
 PRODUCTS_HEADER = """\
-# Produkte des Teams. Zeitraum (from/to) = wann das Team das Produkt betreut; po optional.
-# Produkte nicht löschen, sondern mit `to:` beenden – sonst ändern sich vergangene Auswertungen.
+# Products of the team. Period (from/to) = when the team works on the product; po optional.
+# Never delete products; end them with `to:` instead – otherwise past evaluations change.
 """
 
 
@@ -267,7 +276,7 @@ def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
     for i, p in enumerate(d.get("products") or []):
         at = f"{where}: products[{i}]"
         if not isinstance(p, dict) or "id" not in p:
-            raise DataError(f"{at}: Feld 'id' fehlt")
+            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
         products.append(
             Product(
                 id=str(p["id"]),
@@ -295,16 +304,18 @@ def products_to_dict(products: list[Product]) -> dict[str, Any]:
 # --- Sprints --------------------------------------------------------------------------
 
 SPRINT_HEADER = """\
-# Sprint {id}. Erläuterungen zu allen Feldern: `sprintforecast hilfe sprint`
+# Sprint {id}. Explanations of all fields: `sprintforecast help fields`
 """
 
 
 def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
     for key in ("id", "start", "end"):
         if d.get(key) is None:
-            raise DataError(f"{where}: Feld '{key}' fehlt")
+            raise DataError(t("{where}: Feld '{key}' fehlt", where=where, key=key))
     if isinstance(d["id"], float):
-        raise DataError(f'{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"')
+        raise DataError(
+            t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
+        )
     planning = None
     if p := d.get("planning"):
         planning = Planning(
@@ -316,7 +327,7 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
     for pid, values in (d.get("products") or {}).items():
         at = f"{where}: products.{pid}"
         if not isinstance(values, dict):
-            raise DataError(f"{at}: Objekt mit preplanned/planned/done erwartet")
+            raise DataError(t("{where}: Objekt mit preplanned/planned/done erwartet", where=at))
         products[str(pid)] = ProductValues(
             preplanned=_float(values.get("preplanned"), at),
             planned=_float(values.get("planned"), at),
@@ -408,8 +419,15 @@ class Repository:
     def load(self, key: str) -> TeamData:
         base = self.team_dir(key)
         if not (base / "team.yaml").is_file():
-            known = ", ".join(self.teams()) or "keine"
-            raise DataError(f"Team '{key}' nicht gefunden unter {self.root} (vorhanden: {known})")
+            known = ", ".join(self.teams()) or t("keine")
+            raise DataError(
+                t(
+                    "Team '{key}' nicht gefunden unter {root} (vorhanden: {known})",
+                    key=key,
+                    root=self.root,
+                    known=known,
+                )
+            )
         team = team_from_dict(key, _read(base / "team.yaml"), str(base / "team.yaml"))
         people_file = base / "people.yaml"
         people = (
@@ -425,7 +443,9 @@ class Repository:
         for f in sorted((base / "sprints").glob("*.yaml")):
             sprint = sprint_from_dict(_read(f), str(f))
             if sprint.id != f.stem:
-                raise DataError(f"{f}: id '{sprint.id}' passt nicht zum Dateinamen")
+                raise DataError(
+                    t("{file}: id '{id}' passt nicht zum Dateinamen", file=f, id=sprint.id)
+                )
             sprints.append(sprint)
         sprints.sort(key=lambda s: s.start)
         return TeamData(team=team, people=people, sprints=sprints, products=products)

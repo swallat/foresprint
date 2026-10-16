@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 
@@ -275,3 +276,75 @@ TOPICS: dict[str, str] = {
     "team": "Team-Einstellungen",
     "befehle": "Alle Befehle",
 }
+
+
+# Englische Namen der Befehle (deutsch → englisch); beide funktionieren immer.
+COMMAND_ALIASES: dict[str, str] = {
+    "hilfe": "help",
+    "fehltage": "absences",
+    "personen": "people",
+    "einstellungen": "settings",
+    "analyse": "analysis",
+    "bericht": "report",
+    "pruefen": "check",
+    "kapazitaet": "capacity",
+    "produkte": "products",
+    "produktliste": "product-list",
+    "aktualisieren": "update",
+    "verknuepfung": "shortcut",
+    "datenordner": "data-dir",
+    "sprache": "language",
+}
+# Englische Themen der Hilfe (englisch → deutsch).
+TOPIC_ALIASES: dict[str, str] = {
+    "workflow": "ablauf",
+    "terms": "begriffe",
+    "fields": "felder",
+    "commands": "befehle",
+}
+OPTION_ALIASES: dict[str, str] = {
+    "--daten": "--data",
+    "--stichtag": "--as-of",
+    "--ehemalige": "--former",
+    "--verlauf": "--history",
+    "--rechenweg": "--explain",
+    "--rest": "--remaining",
+    "--gesamt": "--total",
+    "--anteil": "--share",
+    "--ausgabe": "--output",
+    "--streng": "--strict",
+    "--anzahl": "--count",
+    "--anlegen": "--create",
+    "--ende": "--end",
+    "--vorplanung": "--preplanning",
+    "--pruefen": "--check",
+    "--erzwingen": "--force",
+}
+_PLACEHOLDERS = {"MENGE": "AMOUNT", "THEMA": "TOPIC", "PFAD": "PATH", "DATUM": "DATE"}
+
+
+def command_text(text: str) -> str:
+    """Befehle und Optionen in der Schreibweise der eingestellten Sprache."""
+    from sprintforecast.i18n import is_english
+
+    if not is_english():
+        return text
+    text = re.sub(
+        r"sprintforecast (\w+)",
+        lambda m: f"sprintforecast {COMMAND_ALIASES.get(m.group(1), m.group(1))}",
+        text,
+    )
+    text = re.sub(r"--[a-z]+", lambda m: OPTION_ALIASES.get(m.group(0), m.group(0)), text)
+    text = re.sub(
+        r"\b(" + "|".join(_PLACEHOLDERS) + r")\b", lambda m: _PLACEHOLDERS[m.group(1)], text
+    )
+    return re.sub(
+        r"(sprintforecast help) (\w+)",
+        lambda m: f"{m.group(1)} {_topic_en(m.group(2))}",
+        text,
+    )
+
+
+def _topic_en(topic: str) -> str:
+    english = {de: en for en, de in TOPIC_ALIASES.items()}
+    return english.get(topic, topic)

@@ -1,5 +1,5 @@
-# Produkte des Teams. Zeitraum (from/to) = wann das Team das Produkt betreut; po optional.
-# Produkte nicht löschen, sondern mit `to:` beenden – sonst ändern sich vergangene Auswertungen.
+# Products of the team. Period (from/to) = when the team works on the product; po optional.
+# Never delete products; end them with `to:` instead – otherwise past evaluations change.
 products:
 - id: webshop
   name: Webshop
