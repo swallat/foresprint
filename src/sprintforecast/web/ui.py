@@ -35,8 +35,8 @@ from sprintforecast.calendar import (
     subdivisions,
     team_workdays,
 )
-from sprintforecast.capacity import expected_absence_rate, sprint_capacity
-from sprintforecast.engine import CapacitySource
+from sprintforecast.capacity import sprint_capacity
+from sprintforecast.engine import UNSURE_SOURCES
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
@@ -60,7 +60,15 @@ from sprintforecast.git import (
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
-from sprintforecast.model import Numbering, Planning, ProductBasis, Sprint, Team
+from sprintforecast.model import (
+    AbsenceState,
+    Numbering,
+    Planning,
+    ProductBasis,
+    Sprint,
+    Team,
+    absence_status,
+)
 from sprintforecast.plugins import WebPage
 from sprintforecast.products import (
     MEASURES,
@@ -72,7 +80,16 @@ from sprintforecast.products import (
     measure_label,
     plan_of,
 )
-from sprintforecast.report import capacity_label, fmt, pct, period, render, source_label, status
+from sprintforecast.report import (
+    absence_status_label,
+    capacity_label,
+    fmt,
+    pct,
+    period,
+    render,
+    source_label,
+    status,
+)
 from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
@@ -422,15 +439,17 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         },
     )
     _whatif_panel(fc, upcoming, unit)
-    trend = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is CapacitySource.TREND]
-    if trend:
-        st.warning(
-            t(
-                "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
-                "geschätzt (Trend). Auf der Seite **Fehltage** eintragen.",
-                sprints=", ".join(trend),
+    for source in UNSURE_SOURCES:
+        unsure = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is source]
+        if unsure:
+            st.warning(
+                t(
+                    "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
+                    "geschätzt ({source}). Auf der Seite **Fehltage** eintragen.",
+                    sprints=", ".join(unsure),
+                    source=source_label(source),
+                )
             )
-        )
     current = fc.current
     if current and current.result.planning_total is not None:
         st.info(
@@ -634,34 +653,33 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
     )
     st.caption(t("Leere Zellen: Person ist in diesem Sprint nicht im Team."))
-    history = data.team.capacity.absence_history
-    if history:
-        past = [e.sprint for e in fc.history() if e.recorded]
-        rate = expected_absence_rate(data.team, data.people, past, history)
+    live = edit_absences(data.people, sprints, edited.to_dict("records"))
+    confirmed = _absence_states(live, sprints)
+    edited_sprints = edit_absences(
+        data.people, sprints, edited.to_dict("records"), confirmed=confirmed
+    )
+    history = fc.absences
+    if data.team.capacity.absence_history and history is not None:
         st.caption(
             t(
-                "Für Sprints ohne Eintrag werden die Fehltage aus den letzten {count} Sprints "
-                "erwartet: Ø {rate} der Kapazität.",
-                count=history,
-                rate=pct(rate),
+                "Für Sprints mit unbekannten Fehltagen werden Fehltage nach den letzten "
+                "Sprints mit bestätigten Fehltagen erwartet: Ø {rate} der Kapazität "
+                "(Sprints {sprints}).",
+                rate=pct(history.rate),
+                sprints=", ".join(history.sprints),
             )
-            if rate is not None
+            if history.rate is not None
             else t(
-                "Erwartete Fehltage: In den letzten Sprints sind noch keine Fehltage erfasst – "
-                "es gilt der Trend der Kapazität."
+                "Noch kein Sprint mit bestätigten Fehltagen in der Historie – bis dahin wird "
+                "für unbekannte Fehltage ohne Abzug gerechnet (Kalender und Personenliste)."
             )
         )
-    edited_sprints = edit_absences(data.people, sprints, edited.to_dict("records"))
     to_save = sprints_to_save(data, sprints, edited_sprints)
     preview = with_sprints(data, to_save)
     fc_preview = build_forecast(preview, fc.today)
     if new := [s.id for s in to_save if data.sprint(s.id) is None]:
         st.caption(
-            t(
-                "Beim Speichern werden die Sprintdateien {sprints} angelegt. Ab dann gilt dort "
-                "die Kapazität laut Personenliste statt des Trends.",
-                sprints=", ".join(new),
-            )
+            t("Beim Speichern werden die Sprintdateien {sprints} angelegt.", sprints=", ".join(new))
         )
     st.subheader(
         t("Kapazität und Prognose") + (t(" (Vorschau, noch nicht gespeichert)") if to_save else "")
@@ -671,12 +689,12 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             [
                 {
                     "Sprint": s.id,
-                    t("Kapazität (PT)"): fmt(sprint_capacity(data.team, data.people, s).capacity),
-                    f"Forecast PLAN ({data.team.unit.value})": fmt(e.result.plan)
-                    if (e := fc_preview.entry(s.id))
-                    else "–",
+                    t("Fehltage"): absence_status_label(s),
+                    t("Kapazität (PT)"): capacity_label(e) if e else "–",
+                    f"Forecast PLAN ({data.team.unit.value})": fmt(e.result.plan) if e else "–",
                 }
                 for s in edited_sprints
+                for e in [fc_preview.entry(s.id)]
             ]
         ),
         hide_index=True,
@@ -688,6 +706,44 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
         )
     _reset_absences(repo, data, fc.today)
+
+
+def _absence_states(live: list[Sprint], sprints: list[Sprint]) -> set[str]:
+    """Stand der Fehltage je Sprint anzeigen; „niemand fehlt“ lässt sich ausdrücklich
+    bestätigen. Liefert die Sprints, für die das (ohne Einträge) bestätigt ist."""
+    st.subheader(t("Stand der Fehltage"))
+    st.caption(
+        t(
+            "Sprints mit eingetragenen Fehltagen sind bestätigt. **Niemand fehlt** bestätigt "
+            "ausdrücklich, dass es keine Fehltage gibt; ohne Bestätigung gelten die Fehltage als "
+            "unbekannt und werden geschätzt."
+        )
+    )
+    frame = pd.DataFrame(
+        [
+            {
+                "Sprint": s.id,
+                t("Stand"): absence_status_label(s),
+                t("Niemand fehlt"): (
+                    absence_status(orig) is AbsenceState.CONFIRMED and not orig.absences
+                ),
+            }
+            for s, orig in zip(live, sprints, strict=True)
+        ]
+    )
+    edited = st.data_editor(
+        frame,
+        column_config={
+            "Sprint": st.column_config.TextColumn(disabled=True),
+            t("Stand"): st.column_config.TextColumn(disabled=True),
+            t("Niemand fehlt"): st.column_config.CheckboxColumn(
+                help=t("Bestätigt ausdrücklich: In diesem Sprint fehlt niemand.")
+            ),
+        },
+        hide_index=True,
+        key=f"absence-states-{sprints[0].id}-{len(sprints)}",
+    )
+    return {str(r["Sprint"]) for r in edited.to_dict("records") if r[t("Niemand fehlt")]}
 
 
 def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
@@ -1359,7 +1415,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     )
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
-    if r.plan_capacity_source is CapacitySource.TREND:
+    if r.plan_capacity_source in UNSURE_SOURCES:
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
     if data.products:

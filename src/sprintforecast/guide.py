@@ -236,7 +236,15 @@ TERMS: list[tuple[str, str]] = [
 CAPACITY_SOURCES: list[tuple[str, str]] = [
     ("erfasst", "Wert steht in der Sprintdatei (beim Review eingefroren oder manuell)."),
     ("Personenliste", "Aus Personen, Feiertagen und Fehltagen berechnet."),
-    ("Trend", "Für den Sprint sind noch keine Fehltage erfasst – Kapazität geschätzt."),
+    (
+        "Kalender, Fehltage unbekannt",
+        "Fehltage noch unbekannt und noch keine Historie: Kapazität laut Personenliste und "
+        "Kalender (Feiertage, Sprintlänge), ohne Abzug für Fehltage.",
+    ),
+    (
+        "Trend",
+        "Nur für Teams ohne Personenliste: Kapazität wie die normierte Velocity fortgeschrieben.",
+    ),
     (
         "voraussichtliche Fehltage",
         "Fehltage noch nicht bestätigt: Kapazität laut Personenliste mit den in der "
@@ -244,8 +252,9 @@ CAPACITY_SOURCES: list[tuple[str, str]] = [
     ),
     (
         "erwartete Fehltage",
-        "Keine Fehltage erfasst: Kapazität laut Personenliste, gemindert um die "
-        "durchschnittlichen Fehltage der letzten Sprints (Einstellung).",
+        "Fehltage unbekannt: Kapazität laut Personenliste und Kalender, gemindert um die "
+        "durchschnittlichen Fehltage der letzten Sprints mit bestätigten Fehltagen "
+        "(Einstellung „Fehltage-Historie“).",
     ),
 ]
 

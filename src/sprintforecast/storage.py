@@ -23,6 +23,7 @@ import yaml
 from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
 from sprintforecast.model import (
+    AbsenceState,
     CapacitySettings,
     ForecastSettings,
     Membership,
@@ -38,6 +39,8 @@ from sprintforecast.model import (
     Team,
     TrendMode,
     Unit,
+    absence_status,
+    explicit_state_needed,
 )
 
 DATA_ENV = "SPRINTFORECAST_DATEN"
@@ -198,7 +201,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 region=capacity.get("region"),
                 workweek=str(capacity.get("workweek", "auto")),
                 rounding=int(capacity.get("rounding", 1)),
-                absence_history=int(capacity.get("absence_history", 0)),
+                absence_history=int(capacity.get("absence_history", 4)),
             ),
         )
     except (ValueError, TypeError) as e:
@@ -230,7 +233,7 @@ def team_to_dict(team: Team) -> dict[str, Any]:
     capacity |= {"region": team.capacity.region, "rounding": team.capacity.rounding}
     if team.capacity.workweek != "auto":
         capacity["workweek"] = team.capacity.workweek
-    if team.capacity.absence_history:
+    if team.capacity.absence_history != CapacitySettings().absence_history:  # auch 0 = aus
         capacity["absence_history"] = team.capacity.absence_history
     return {
         "name": team.name,
@@ -394,6 +397,25 @@ def _prognoses_to(prognoses: list[Prognosis]) -> list[dict[str, Any]]:
     return out
 
 
+def _absence_state(d: dict[str, Any], where: str) -> AbsenceState | None:
+    """Gespeicherter Stand der Fehltage; ältere Dateien kennen nur ``absences_confirmed``."""
+    raw = d.get("absence_state")
+    if raw is not None:
+        try:
+            return AbsenceState(raw)
+        except ValueError as e:
+            allowed = ", ".join(s.value for s in AbsenceState)
+            raise DataError(
+                t(
+                    "{where}: absence_state '{value}' unbekannt (erlaubt: {allowed})",
+                    where=where,
+                    value=raw,
+                    allowed=allowed,
+                )
+            ) from e
+    return AbsenceState.CONFIRMED if d.get("absences_confirmed") else None
+
+
 def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
     for key in ("id", "start", "end"):
         if d.get(key) is None:
@@ -437,7 +459,7 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         forecast_plan=_float(d.get("forecast_plan"), f"{where}: forecast_plan"),
         products=products,
         note=d.get("note"),
-        absences_confirmed=bool(d.get("absences_confirmed", False)),
+        absence_state=_absence_state(d, where),
         expected_absences={
             str(pid): _float(days, f"{where}: expected_absences.{pid}") or 0.0
             for pid, days in (d.get("expected_absences") or {}).items()
@@ -454,7 +476,13 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
         "start": s.start,
         "end": s.end,
         "absences": {k: _clean(v) for k, v in s.absences.items()},
-        **({"absences_confirmed": True} if s.absences_confirmed else {}),
+        **({"absence_state": s.absence_state.value} if explicit_state_needed(s) else {}),
+        # Ältere Programmversionen kennen nur dieses Feld.
+        **(
+            {"absences_confirmed": True}
+            if explicit_state_needed(s) and s.absence_state is AbsenceState.CONFIRMED
+            else {}
+        ),
         "capacity": _clean(s.capacity),
         "forecast_ist": _clean(s.forecast_ist),
         "velocity": _clean(s.velocity),
@@ -631,13 +659,28 @@ class Repository:
     def sprint_path(self, key: str, sprint_id: str) -> Path:
         return self.team_dir(key) / "sprints" / f"{sprint_id}.yaml"
 
+    def _pinned_absence_state(self, path: Path, sprint: Sprint) -> AbsenceState:
+        if path.is_file():
+            try:
+                return absence_status(sprint_from_dict(_read(path), str(path)))
+            except DataError:
+                pass
+        if sprint.velocity is not None:  # bereits ausgewerteter Sprint (z. B. Import)
+            return AbsenceState.CONFIRMED
+        return absence_status(sprint)
+
     def delete_sprint(self, key: str, sprint_id: str) -> None:
         """Entfernt eine Sprintdatei (der Sprint entsteht danach wieder aus dem Kalender)."""
         self.sprint_path(key, sprint_id).unlink(missing_ok=True)
         clear_team_cache()
 
     def save_sprint(self, key: str, sprint: Sprint) -> Path:
+        """Schreibt den Sprint. Ist sein Stand der Fehltage noch nicht festgelegt, wird er
+        jetzt festgelegt (aus der bisherigen Datei, bei neuen Dateien aus dem Inhalt) – damit
+        z. B. das Speichern des Plannings Fehltage nicht stillschweigend bestätigt."""
         path = self.sprint_path(key, sprint.id)
+        if sprint.absence_state is None:
+            sprint.absence_state = self._pinned_absence_state(path, sprint)
         _write(path, SPRINT_HEADER.format(id=sprint.id), sprint_to_dict(sprint))
         return path
 

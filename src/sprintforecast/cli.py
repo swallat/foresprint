@@ -25,7 +25,7 @@ from rich.table import Table
 from sprintforecast import LOG_ENV, __version__, updater
 from sprintforecast.calendar import day_label, holiday_name, team_workdays
 from sprintforecast.capacity import sprint_capacity
-from sprintforecast.engine import CapacitySource
+from sprintforecast.engine import UNSURE_SOURCES
 from sprintforecast.forecast import (
     Forecast,
     apply_planning,
@@ -1025,11 +1025,12 @@ def forecast(
             style=None if future else "dim",
         )
     console.print(table)
-    if any(e.result.plan_capacity_source is CapacitySource.TREND for e in fc.upcoming()):
+    if any(e.result.plan_capacity_source in UNSURE_SOURCES for e in fc.upcoming()):
         console.print(
             "[yellow]"
             + t(
-                "⚠ Trend = keine Fehltage erfasst, Kapazität geschätzt. Belastbarer mit: {command}",
+                "⚠ Trend/Kalender = keine Fehltage bekannt, Kapazität geschätzt. "
+                "Belastbarer mit: {command}",
                 command=cmd(f"sprintforecast fehltage {team} <SPRINT>"),
             )
             + "[/yellow]"

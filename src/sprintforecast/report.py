@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 from sprintforecast.analysis import average_focus_factor, band, buffer_hint
-from sprintforecast.engine import CapacitySource
+from sprintforecast.engine import UNSURE_SOURCES, CapacitySource
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import is_english, t
+from sprintforecast.model import AbsenceState, Sprint, absence_status
 
 
 def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
@@ -34,9 +35,18 @@ def source_label(source: CapacitySource | None) -> str:
 def capacity_label(e: TimelineEntry) -> str:
     source = e.result.plan_capacity_source
     value = fmt(e.result.plan_capacity)
-    if source is CapacitySource.TREND:
-        return f"{value} ⚠️ {t('Trend')}"
+    if source in UNSURE_SOURCES:
+        return f"{value} ⚠️ {source_label(source)}"
     return f"{value} ({source_label(source)})" if source else value
+
+
+def absence_status_label(sprint: Sprint) -> str:
+    """Stand der Fehltage eines Sprints in Worten."""
+    return {
+        AbsenceState.CONFIRMED: t("bestätigt"),
+        AbsenceState.EXPECTED: t("voraussichtlich"),
+        AbsenceState.UNKNOWN: t("unbekannt"),
+    }[absence_status(sprint)]
 
 
 def status(fc: Forecast, e: TimelineEntry) -> str:
@@ -85,13 +95,13 @@ def render(fc: Forecast, history: int = 10) -> str:
             f"| {fmt(r.normalized_velocity.trend, 2)} | **{fmt(r.plan)}** "
             f"| {fmt(r.roadmap, 2)} | {fmt(r.small_stuff, 2)} |"
         )
-    if any(e.result.plan_capacity_source is CapacitySource.TREND for e in upcoming):
+    if any(e.result.plan_capacity_source in UNSURE_SOURCES for e in upcoming):
         lines += [
             "",
             t(
-                "⚠️ *Trend*: Für diesen Sprint sind noch keine Fehltage erfasst, die Kapazität ist "
-                "geschätzt. Mit `sprintforecast fehltage {team} <SPRINT>` wird die Prognose "
-                "belastbar.",
+                "⚠️ *Trend/Kalender*: Für diesen Sprint sind noch keine Fehltage erfasst, die "
+                "Kapazität ist geschätzt. Mit `sprintforecast fehltage {team} <SPRINT>` wird die "
+                "Prognose belastbar.",
                 team=team.key,
             ),
         ]

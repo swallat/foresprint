@@ -22,7 +22,15 @@ from sprintforecast import i18n
 from sprintforecast.engine import CapacitySource, round_down
 from sprintforecast.forecast import absences_known, build_forecast
 from sprintforecast.formulas import steps
-from sprintforecast.model import ProductBasis, ProductValues, Prognosis, Sprint, TrendMode, Unit
+from sprintforecast.model import (
+    AbsenceState,
+    ProductBasis,
+    ProductValues,
+    Prognosis,
+    Sprint,
+    TrendMode,
+    Unit,
+)
 from sprintforecast.products import distribution
 from sprintforecast.report import fmt, render
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
@@ -79,7 +87,13 @@ STATES = {
         None,
     ),
     "Fehltage eingetragen": (lambda s: s.absences.update({"anna": 2.0}), "PEOPLE"),
-    "Forecast IST gesetzt": (lambda s: setattr(s, "forecast_ist", 9.0), "PEOPLE"),
+    # Neu: Das Planning allein bestätigt keine Fehltage (B2) – Stand „unbekannt“ bleibt.
+    "Forecast IST gesetzt": (lambda s: setattr(s, "forecast_ist", 9.0), None),
+    # Ältere Dateien ohne gespeicherten Stand: Ein geplanter Sprint gilt als bestätigt.
+    "Forecast IST gesetzt (altes Format)": (
+        lambda s: (setattr(s, "forecast_ist", 9.0), setattr(s, "absence_state", None)),
+        "PEOPLE",
+    ),
     "voraussichtliche Fehltage": (lambda s: s.expected_absences.update({"anna": 3.0}), "EXPECTED"),
     "feste Kapazität": (lambda s: setattr(s, "capacity", 30.0), "RECORDED"),
 }
@@ -88,9 +102,8 @@ STATES = {
 def prepare_state(data_dir: Path, state: str, history: int) -> None:
     repo = Repository(data_dir)
     data = repo.load("demo")
-    if history:
-        data.team.capacity.absence_history = history
-        repo.save_team(data.team)
+    data.team.capacity.absence_history = history
+    repo.save_team(data.team)
     change, _ = STATES[state]
     if state != "keine Datei":
         sprint = target_sprint(data)
@@ -102,7 +115,8 @@ def expected_source(state: str, history: int) -> CapacitySource:
     fixed = STATES[state][1]
     if fixed:
         return CapacitySource[fixed]
-    return CapacitySource.ESTIMATED if history else CapacitySource.TREND
+    # Mit Personenliste nie der Trend: Historie → erwartete Fehltage, sonst Kalender (A2).
+    return CapacitySource.ESTIMATED if history else CapacitySource.CALENDAR
 
 
 @pytest.mark.parametrize("history", [0, 3])
@@ -140,8 +154,12 @@ def test_absences_known_rules():
     assert not absences_known(Sprint(**base, products={"a": ProductValues(preplanned=1.0)}))
     assert not absences_known(Sprint(**base, expected_absences={"anna": 1.0}))
     assert absences_known(Sprint(**base, absences={"anna": 1.0}))
-    assert absences_known(Sprint(**base, absences_confirmed=True))
-    assert absences_known(Sprint(**base, forecast_ist=5.0))
+    assert absences_known(Sprint(**base, absence_state=AbsenceState.CONFIRMED))
+    assert absences_known(Sprint(**base, forecast_ist=5.0))  # ältere Datei ohne Stand
+    # Ausdrücklich „unbekannt“ gespeichert: Planning-Werte bestätigen nichts
+    unknown = AbsenceState.UNKNOWN
+    assert not absences_known(Sprint(**base, forecast_ist=5.0, absence_state=unknown))
+    assert absences_known(Sprint(**base, absences={"anna": 1.0}, absence_state=unknown))
 
 
 def test_confirmed_absences_beat_expected_absences(data_dir: Path):
