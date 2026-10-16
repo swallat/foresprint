@@ -307,7 +307,20 @@ def people_from_table(
         if start is None:
             errors.append(t("Zeile {row} ({name}): 'ab' fehlt", row=i, name=name))
             continue
-        fte = 1.0 if is_blank(row.get("FTE")) else float(row["FTE"])
+        try:
+            fte = 1.0 if is_blank(row.get("FTE")) else float(row["FTE"])
+        except TypeError, ValueError:
+            fte = -1.0
+        if not 0 <= fte <= 1:
+            errors.append(
+                t(
+                    "Zeile {row} ({name}): FTE muss zwischen 0 und 1 liegen "
+                    "(0 = keine Kapazität, z. B. bei längerer Abwesenheit)",
+                    row=i,
+                    name=name,
+                )
+            )
+            continue
         person.memberships.append(Membership(start=start, end=end, fte=fte))
 
     deleted = []
