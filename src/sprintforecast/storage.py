@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +28,7 @@ from sprintforecast.model import (
     Product,
     ProductBasis,
     ProductValues,
+    Prognosis,
     Sprint,
     SprintSettings,
     Team,
@@ -314,6 +315,56 @@ SPRINT_HEADER = """\
 """
 
 
+def _prognoses_from(raw: Any, where: str) -> list[Prognosis]:
+    result = []
+    for i, p in enumerate(raw or []):
+        at_ = f"{where}: prognoses[{i}]"
+        if not isinstance(p, dict) or p.get("at") is None:
+            raise DataError(t("{where}: Feld 'at' fehlt", where=at_))
+        stamp = p["at"]
+        try:
+            when = stamp if isinstance(stamp, datetime) else datetime.fromisoformat(str(stamp))
+        except ValueError as e:
+            raise DataError(
+                t("{where}: ungültiger Zeitpunkt '{value}'", where=at_, value=stamp)
+            ) from e
+        result.append(
+            Prognosis(
+                at=when,
+                comment=str(p["comment"]) if p.get("comment") else None,
+                forecast_ist=_float(p.get("forecast_ist"), at_),
+                not_done=_float(p.get("not_done"), at_),
+                additional_done=_float(p.get("additional_done"), at_),
+                expected_done=_float(p.get("expected_done"), at_),
+                target=str(p["target"]) if p.get("target") is not None else None,
+                plan=_float(p.get("plan"), at_),
+                preplanned={
+                    str(k): _float(v, at_) or 0.0 for k, v in (p.get("preplanned") or {}).items()
+                },
+            )
+        )
+    return result
+
+
+def _prognoses_to(prognoses: list[Prognosis]) -> list[dict[str, Any]]:
+    out = []
+    for p in prognoses:
+        entry: dict[str, Any] = {"at": p.at.replace(microsecond=0)}
+        if p.comment:
+            entry["comment"] = p.comment
+        for key in ("forecast_ist", "not_done", "additional_done", "expected_done"):
+            if (value := getattr(p, key)) is not None:
+                entry[key] = _clean(value)
+        if p.target is not None:
+            entry["target"] = p.target
+        if p.plan is not None:
+            entry["plan"] = _clean(p.plan)
+        if p.preplanned:
+            entry["preplanned"] = {k: _clean(v) for k, v in p.preplanned.items()}
+        out.append(entry)
+    return out
+
+
 def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
     for key in ("id", "start", "end"):
         if d.get(key) is None:
@@ -357,6 +408,9 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         forecast_plan=_float(d.get("forecast_plan"), f"{where}: forecast_plan"),
         products=products,
         note=d.get("note"),
+        not_done=_float(d.get("not_done"), f"{where}: not_done"),
+        additional_done=_float(d.get("additional_done"), f"{where}: additional_done"),
+        prognoses=_prognoses_from(d.get("prognoses"), where),
     )
 
 
@@ -396,6 +450,12 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
     }
     if products:
         d["products"] = products
+    if s.not_done is not None:
+        d["not_done"] = _clean(s.not_done)
+    if s.additional_done is not None:
+        d["additional_done"] = _clean(s.additional_done)
+    if s.prognoses:
+        d["prognoses"] = _prognoses_to(s.prognoses)
     if s.note:
         d["note"] = s.note
     return d

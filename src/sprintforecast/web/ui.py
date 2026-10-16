@@ -85,6 +85,7 @@ from sprintforecast.web.logic import (
     PEOPLE_COLUMNS,
     PRODUCT_COLUMNS,
     TEAM_REGION,
+    Assumption,
     absence_matrix,
     absence_sprints,
     apply_calendar,
@@ -99,6 +100,7 @@ from sprintforecast.web.logic import (
     product_table,
     product_values_table,
     products_from_table,
+    record_prognoses,
     resettable_sprints,
     sprints_to_save,
     whatif_forecast,
@@ -259,10 +261,10 @@ def _signed(value: float) -> str:
     return ("+" if value > 0 else "") + fmt(value)
 
 
-def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str, float]:
+def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str, Assumption]:
     """Prognose des Teams für offene Sprints: Forecast IST − voraussichtlich nicht erledigt +
     zusätzlich erledigt = erwartete Velocity. Nichts wird gespeichert."""
-    assumed: dict[str, float] = {}
+    assumed: dict[str, Assumption] = {}
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
         ist_col, open_col, extra_col, result_col = st.columns(4)
@@ -297,9 +299,8 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
         if ist is None or not changed:
             result_col.metric(t("Erwartet erledigt"), "–")
             continue
-        expected = max(ist - (not_done or 0.0) + (extra or 0.0), 0.0)
-        result_col.metric(t("Erwartet erledigt"), f"{fmt(expected, 2)} {unit}")
-        assumed[sprint.id] = expected
+        assumed[sprint.id] = Assumption(ist, not_done, extra)
+        result_col.metric(t("Erwartet erledigt"), f"{fmt(assumed[sprint.id].expected, 2)} {unit}")
     return assumed
 
 
@@ -1410,6 +1411,28 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
             st.success(t("Planning {id} vollständig – der Sprint kann starten.", id=sprint.id))
 
 
+def _review_prognosis_hint(sprint: Sprint, unit: str) -> None:
+    """Letzte Prognose des Teams aus der PO-Vorplanung – zum Vergleich mit dem Ergebnis."""
+    if not sprint.prognoses:
+        return
+    last = sprint.prognoses[-1]
+    text = t(
+        "Letzte Prognose ({at}): erwartet erledigt **{expected} {unit}**",
+        at=f"{last.at:%d.%m.%Y %H:%M}",
+        expected=fmt(last.expected_done, 2),
+        unit=unit,
+    )
+    if last.comment:
+        text += f" – {last.comment}"
+    if sprint.velocity is not None and last.expected_done is not None:
+        text += " · " + t(
+            "Abweichung zur Velocity: {diff} {unit}",
+            diff=_signed(sprint.velocity - last.expected_done),
+            unit=unit,
+        )
+    st.caption(text)
+
+
 def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Review")
     sprint = _sprint_choice(data, fc, "review", "Sprint", shared=True)
@@ -1418,6 +1441,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     _board_nav(data, sprint, "review")
     unit = data.team.unit.value
     computed = sprint_capacity(data.team, data.people, sprint).capacity if data.people else None
+    _review_prognosis_hint(sprint, unit)
     with st.form(f"review-{sprint.id}"):
         capacity = _number(
             t("Kapazität (PT) – wird eingefroren"),
@@ -1433,6 +1457,28 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
         velocity = _number(
             f"Velocity ({unit})", sprint.velocity, f"velocity-{sprint.id}", help_text("velocity")
+        )
+        not_done_col, extra_col = st.columns(2)
+        not_done = not_done_col.number_input(
+            t("Davon nicht erledigt ({unit})", unit=unit),
+            key=f"not-done-{sprint.id}",
+            min_value=0.0,
+            value=sprint.not_done,
+            step=0.25,
+            format="%.2f",
+            help=t(
+                "Menge des Forecast IST, die im Sprint nicht fertig wurde. Optional – "
+                "Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt."
+            ),
+        )
+        additional = extra_col.number_input(
+            t("Zusätzlich erledigt ({unit})", unit=unit),
+            key=f"additional-done-{sprint.id}",
+            min_value=0.0,
+            value=sprint.additional_done,
+            step=0.25,
+            format="%.2f",
+            help=t("Menge, die zusätzlich zum Forecast IST geschafft wurde. Optional."),
         )
         scope = st.number_input(
             "Scope Creep (%)",
@@ -1463,6 +1509,8 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         return
     sprint.capacity = capacity
     sprint.velocity = velocity
+    sprint.not_done = not_done
+    sprint.additional_done = additional
     sprint.scope_creep = None if scope is None else scope / 100
     if product_rows is not None:
         sprint = apply_product_values(sprint, product_rows, ["done"])
@@ -1631,6 +1679,29 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.info(text + t(" – zu wenige Werte für eine Empfehlung."))
 
 
+def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None:
+    """Bisherige Prognosen der offenen Sprints aus früheren Vorplanungen."""
+    rows = []
+    for sprint in sprints:
+        recorded = data.sprint(sprint.id)
+        for p in recorded.prognoses if recorded else []:
+            rows.append(
+                {
+                    t("Zeitpunkt"): f"{p.at:%d.%m.%Y %H:%M}",
+                    "Sprint": sprint.id,
+                    t("Kommentar"): p.comment or "",
+                    f"Forecast IST ({unit})": fmt(p.forecast_ist, 2),
+                    t("nicht erledigt"): fmt(p.not_done, 2),
+                    t("zusätzlich erledigt"): fmt(p.additional_done, 2),
+                    t("erwartet erledigt"): fmt(p.expected_done, 2),
+                    t("Forecast PLAN {id}", id=p.target or "–"): fmt(p.plan),
+                }
+            )
+    if rows:
+        st.markdown(f"**{t('Bisherige Prognosen')}**")
+        st.dataframe(pd.DataFrame(rows[::-1]), hide_index=True)
+
+
 def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     """Board der POs vor dem Planning: je Produkt vorsehen, was in den Sprint soll."""
     st.header(t("PO-Vorplanung"))
@@ -1657,7 +1728,8 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "vereinbarte Anteil des Produkts."
         )
     )
-    assumed: dict[str, float] = {}
+    assumed: dict[str, Assumption] = {}
+    comment = ""
     if open_velocity_sprints(fc):
         with st.expander(
             t("Was-wäre-wenn: Prognose des Teams für den letzten Sprint"),
@@ -1668,12 +1740,25 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     "Prognose des Teams für den letzten Sprint eintragen: Forecast IST, was "
                     "voraussichtlich nicht fertig wird und was zusätzlich geschafft wird. Der "
                     "Forecast PLAN und damit die verteilbare Menge werden neu berechnet. Das gilt "
-                    "nur für diese Ansicht und wird nicht gespeichert – erfasst wird die "
-                    "Velocity erst im Review.",
+                    "nur für diese Ansicht; mit **Vorplanung speichern** wird die Annahme samt "
+                    "Kommentar als Prognose festgehalten. Die Velocity selbst wird erst im Review "
+                    "erfasst.",
                     unit=unit,
                 )
             )
             assumed = _whatif_inputs(fc, unit, "vorplanung-whatif")
+            comment = (
+                st.text_input(
+                    t("Kommentar zur Prognose"),
+                    key=f"vorplanung-comment-{sprint.id}",
+                    placeholder=t(
+                        "Woher stammt die Annahme? z. B. Prognose aus dem Daily vom 16.10."
+                    ),
+                )
+                if assumed
+                else ""
+            )
+            _prognosis_history(data, list(open_velocity_sprints(fc)), unit)
     fc_view = whatif_forecast(fc, assumed) if assumed else fc
     if assumed:
         shown = fc_view.entry(sprint.id)
@@ -1746,9 +1831,17 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             ),
             hide_index=True,
         )
-    changed = after.products != base.products
+    changed = after.products != base.products or bool(assumed)
     if st.button(t("PO-Vorplanung speichern"), type="primary", disabled=not changed):
-        save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
+        to_save = [after]
+        if assumed:
+            plan = fc_preview.entry(after.id).result.plan if fc_preview.entry(after.id) else None
+            to_save = record_prognoses(data, after, assumed, plan, comment)
+        save(
+            with_sprints(data, to_save),
+            [f"{s.id}.yaml" for s in to_save],
+            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
+        )
     page_link("planning", t("Weiter zum Planning"))
 
 

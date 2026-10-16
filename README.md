@@ -290,6 +290,19 @@ velocity: null
 scope_creep: null           # Anteil, 0.3 = 30 %
 planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
 forecast_plan: 10.1         # Forecast PLAN beim Planning (eingefroren), optional
+not_done: 1.5              # Review, optional: Menge, die nicht fertig wurde
+additional_done: 0.5       # Review, optional: zusätzlich zum Forecast IST erledigt
+                           # (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt)
+prognoses:                 # PO-Vorplanung: Prognosen des Teams für diesen offenen Sprint
+- at: 2026-10-16 09:30:00
+  comment: Prognose aus dem Daily      # woher die Annahme stammt
+  forecast_ist: 10
+  not_done: 2
+  additional_done: 0.5
+  expected_done: 8.5
+  target: '2026.22'        # Zielsprint der Vorplanung
+  plan: 9.9                # Forecast PLAN des Zielsprints mit dieser Annahme
+  preplanned: {webshop: 4}
 products:                   # optional, je Produkt-ID
   webshop: {preplanned: 4, planned: 4.5, done: 4, production_planned: 1, production_done: 0.5}
                             # production_*: davon Tickets mit Produktionszugriff (optional)
