@@ -344,3 +344,14 @@ def test_choose_folder_requires_git(
     assert any("in keinem Git-Repository" in e.value for e in at.error)
     click(at, f"Git-Repository in {plain} anlegen")
     assert (plain / ".git").is_dir()
+
+
+def test_whatif_panel_on_forecast_page(app: AppTest):
+    goto(app, "forecast")
+    box = next(n for n in app.number_input if n.key and n.key.startswith("whatif-"))
+    before = len(app.dataframe)
+    box.set_value(14.0).run()
+    assert not app.exception
+    assert len(app.dataframe) == before + 1
+    shown = [d.value for d in app.dataframe if "Differenz" in d.value.columns]
+    assert shown and len(shown[0]) >= 1
