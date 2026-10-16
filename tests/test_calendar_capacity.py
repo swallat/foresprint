@@ -96,3 +96,23 @@ def test_new_person_id():
     assert new_person_id("Jörg Müller-Weiß", set()) == "joerg-mueller-weiss"
     assert new_person_id("Anna", {"anna", "anna-2"}) == "anna-3"
     assert new_person_id("!!!", set()) == "person"
+
+
+def test_overhead_in_days_and_percent(data_dir):
+    from datetime import date
+
+    from sprintforecast.capacity import sprint_capacity
+    from sprintforecast.storage import Repository
+
+    data = Repository(data_dir).load("demo")
+    sprint = data.sprint("2026.22")
+    base = sprint_capacity(data.team, data.people, sprint)
+    data.team.capacity.overhead_days = 1
+    fixed = sprint_capacity(data.team, data.people, sprint)
+    # Anna 1, Ben 0,5 (FTE), Cem 1, Dana 1 → 3,5 PT
+    assert fixed.overhead_days_part == 3.5
+    assert fixed.capacity == base.capacity - 3.5
+    data.team.capacity.overhead_share = 0.1
+    both = sprint_capacity(data.team, data.people, sprint)
+    assert both.overhead == pytest.approx(3.5 + base.gross * 0.1)
+    assert sprint.start == date(2026, 10, 28)

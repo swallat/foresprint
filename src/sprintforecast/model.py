@@ -23,6 +23,13 @@ class TrendMode(StrEnum):
     FLAT = "flat"
 
 
+class ProductBasis(StrEnum):
+    # Standardverteilung je Produkt aus dem gesamten Forecast PLAN …
+    PLAN = "plan"
+    # … oder nur aus dem Roadmap-Anteil (Kleinkram wird nicht auf Produkte verteilt).
+    ROADMAP = "roadmap"
+
+
 class Numbering(StrEnum):
     # 2026.1, 2026.2, …; Zähler beginnt mit dem Startjahr eines Sprints neu.
     YEARLY = "yearly"
@@ -47,12 +54,16 @@ class ForecastSettings:
     rounding: int = 1
     trend_mode: TrendMode = TrendMode.KLASSISCH
     horizon: int = 3
+    product_basis: ProductBasis = ProductBasis.PLAN
 
 
 @dataclass
 class CapacitySettings:
     # Anteil der Kapazität für Scrum-Termine u. Ä., der pauschal abgezogen wird.
     overhead_share: float = 0.0
+    # Fester Abzug für Scrum-Termine in PT je Vollzeitperson und Sprint (× FTE); zusätzlich
+    # zum Anteil, z. B. 1 für Planning, Review und Retro.
+    overhead_days: float = 0.0
     # Bundesland-Kürzel für Feiertage (z. B. "NW", "BY"); Personen können abweichen.
     region: str | None = None
     rounding: int = 1
@@ -102,13 +113,44 @@ class Person:
 _UMLAUTS = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
 
 
-def new_person_id(name: str, existing: set[str]) -> str:
+def new_person_id(name: str, existing: set[str], fallback: str = "person") -> str:
     """Interne ID aus dem Namen, z. B. „Jörg Müller“ → „joerg-mueller“; eindeutig gemacht."""
-    slug = re.sub(r"[^a-z0-9]+", "-", name.lower().translate(_UMLAUTS)).strip("-") or "person"
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower().translate(_UMLAUTS)).strip("-") or fallback
     candidate, n = slug, 2
     while candidate in existing:
         candidate, n = f"{slug}-{n}", n + 1
     return candidate
+
+
+@dataclass
+class Product:
+    """Produkt, das das Team betreut. Wie Personen nie löschen, sondern mit ``end`` beenden."""
+
+    id: str
+    name: str
+    # Verantwortlicher PO (optional, nur zur Gruppierung).
+    po: str | None = None
+    start: date | None = None
+    end: date | None = None
+
+    def active_between(self, start: date, end: date) -> bool:
+        """Betreut im Sprint [start, end) – mindestens an einem Tag."""
+        return (self.start is None or self.start < end) and (self.end is None or self.end >= start)
+
+
+@dataclass
+class ProductValues:
+    """Werte eines Produkts in einem Sprint (Schätzeinheit des Teams); None = keine Angabe."""
+
+    # In der PO-seitigen Vorplanung vorgesehen (vor dem Planning).
+    preplanned: float | None = None
+    # Im Sprint Planning eingeplant.
+    planned: float | None = None
+    # Im Sprint tatsächlich erledigt (Review).
+    done: float | None = None
+
+    def is_empty(self) -> bool:
+        return self.preplanned is None and self.planned is None and self.done is None
 
 
 @dataclass
@@ -141,4 +183,8 @@ class Sprint:
     velocity: float | None = None
     scope_creep: float | None = None
     planning: Planning | None = None
+    # Forecast PLAN zum Zeitpunkt des Plannings (eingefroren) – Basis der Standardverteilung.
+    forecast_plan: float | None = None
+    # Werte je Produkt-ID.
+    products: dict[str, ProductValues] = field(default_factory=dict)
     note: str | None = None

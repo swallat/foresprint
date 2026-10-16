@@ -5,9 +5,11 @@ from functools import partial
 
 import streamlit as st
 
+from sprintforecast.i18n import t
 from sprintforecast.plugins import web_pages
 from sprintforecast.web.ui import (
     PAGES,
+    apply_language,
     page_path,
     repository,
     run_plugin_page,
@@ -16,9 +18,10 @@ from sprintforecast.web.ui import (
 )
 
 st.set_page_config(page_title="Sprint-Forecast", page_icon="📈", layout="wide")
+apply_language()
 pages = {
-    group: [
-        st.Page(page_path(key), title=title, icon=icon, default=key == "forecast")
+    t(group): [
+        st.Page(page_path(key), title=t(title), icon=icon, default=key == "forecast")
         for key, (title, icon) in entries.items()
     ]
     for group, entries in PAGES.items()

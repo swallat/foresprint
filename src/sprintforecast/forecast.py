@@ -45,9 +45,18 @@ class Forecast:
         return next((e for e in self.entries if e.sprint.id == sprint_id), None)
 
     def default_entry(self, purpose: str) -> TimelineEntry | None:
-        """Vorschlag je Zweck: current (Planning), next (Fehltage), review (Review)."""
+        """Vorschlag je Zweck: current (laufend), planning (nächstes Planning), next (Fehltage),
+        review (Review)."""
         if purpose == "current":
             return self.current
+        if purpose == "planning":
+            # Der früheste laufende oder künftige Sprint ohne Forecast IST.
+            open_ = [
+                e
+                for e in self.entries
+                if e.sprint.end > self.today and e.sprint.forecast_ist is None
+            ]
+            return open_[0] if open_ else None
         if purpose == "next":
             future = [e for e in self.entries if e.sprint.start > self.today]
             return future[0] if future else None
@@ -96,6 +105,28 @@ def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Plannin
     prefilled = forecast_ist is None and planned > 0
     sprint.forecast_ist = planned if prefilled else forecast_ist
     return prefilled
+
+
+def freeze_plan(
+    sprint: Sprint, entry: TimelineEntry | None, today: date, refreeze: bool = False
+) -> None:
+    """Merkt den Forecast PLAN zum Planning – Basis der Standardverteilung je Produkt.
+    Ein bereits eingefrorener Wert bleibt, außer ``refreeze``; abgeschlossene Sprints bleiben
+    unverändert."""
+    if entry is None or sprint.end <= today or entry.result.plan is None:
+        return
+    if sprint.forecast_plan is not None and not refreeze:
+        return
+    sprint.forecast_plan = entry.result.plan
+
+
+def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, float] | None:
+    """(eingefroren, aktuell), wenn sich der Forecast PLAN seit dem Einfrieren geändert hat."""
+    if entry is None or sprint.forecast_plan is None or entry.result.plan is None:
+        return None
+    if abs(sprint.forecast_plan - entry.result.plan) < 1e-9:
+        return None
+    return sprint.forecast_plan, entry.result.plan
 
 
 def resolve_capacity(

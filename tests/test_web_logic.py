@@ -108,3 +108,55 @@ def test_parse_numbers():
     assert parse_numbers("4,25 4.5; 1") == [4.25, 4.5, 1.0]
     with pytest.raises(ValueError):
         parse_numbers("4,25 x")
+
+
+def _calendar(data_dir):
+    from datetime import date
+
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.storage import Repository
+    from sprintforecast.web.logic import absence_sprints, calendar_table
+
+    data = Repository(data_dir).load("demo")
+    fc = build_forecast(data, date(2026, 10, 15))
+    return data, fc, absence_sprints, calendar_table
+
+
+def test_calendar_shifts_persisted_sprints_outside_window(data_dir):
+    from datetime import date
+
+    from sprintforecast.validate import Level, check_team
+    from sprintforecast.web.logic import apply_calendar, calendar_to_save, with_sprints
+
+    data, fc, absence_sprints, calendar_table = _calendar(data_dir)
+    shown = absence_sprints(data, fc, 1)  # nur 2026.21; 2026.22 liegt gespeichert dahinter
+    rows = calendar_table(data, shown, fc.today)
+    rows[0]["Letzter Tag"] = date(2026, 11, 3)
+    after, errors = apply_calendar(data, shown, rows)
+    assert not errors
+    to_save = calendar_to_save(data, shown, after, create_missing=False)
+    s22 = next(s for s in to_save if s.id == "2026.22")
+    assert s22.start == date(2026, 11, 4)
+    issues = check_team(with_sprints(data, to_save), fc.today)
+    assert not [i for i in issues if i.level is Level.ERROR]
+
+
+def test_calendar_rejects_id_collision(data_dir):
+    from datetime import date
+
+    from sprintforecast.storage import Repository
+    from sprintforecast.web.logic import apply_calendar
+
+    data, fc, absence_sprints, calendar_table = _calendar(data_dir)
+    repo = Repository(data_dir)
+    # gespeicherte 2026.25 und 2027.1, dazwischen erzeugte 2026.26
+    for s in absence_sprints(data, fc, 7):
+        if s.id in ("2026.25", "2027.1"):
+            repo.save_sprint("demo", s)
+    data, fc, absence_sprints, calendar_table = _calendar(data_dir)
+    shown = absence_sprints(data, fc, 7)
+    assert [s.id for s in shown][-3:] == ["2026.25", "2026.26", "2027.1"]
+    rows = calendar_table(data, shown, fc.today)
+    rows[-3]["Letzter Tag"] = date(2027, 1, 12)
+    _, errors = apply_calendar(data, shown, rows)
+    assert any("2027.1" in e and "doppelt" in e for e in errors)

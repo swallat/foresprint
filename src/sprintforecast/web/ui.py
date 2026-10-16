@@ -3,12 +3,16 @@
 
 Liest und schreibt dieselben YAML-Dateien wie die Kommandozeile. Konfiguration über
 Umgebungsvariablen: SPRINTFORECAST_DATEN (Datenverzeichnis), SPRINTFORECAST_STICHTAG.
+Texte sind über i18n.t übersetzbar; interne Spaltenschlüssel der Tabellen bleiben deutsch,
+angezeigt werden die übersetzten Beschriftungen.
 """
 
 from __future__ import annotations
 
 import copy
 import os
+import subprocess
+import sys
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -18,6 +22,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from sprintforecast import updater
 from sprintforecast.analysis import (
     average_focus_factor,
     band,
@@ -25,7 +30,7 @@ from sprintforecast.analysis import (
     completion,
     focus_factor,
 )
-from sprintforecast.calendar import holiday_name, workdays
+from sprintforecast.calendar import day_label, holiday_name, workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import (
@@ -34,51 +39,88 @@ from sprintforecast.forecast import (
     apply_planning,
     build_forecast,
     find_sprint,
+    freeze_plan,
+    refreeze_offer,
 )
-from sprintforecast.git import GitError, commit_directory, pending_changes
+from sprintforecast.formulas import general, steps
+from sprintforecast.formulas import step as formula_step
+from sprintforecast.git import (
+    GitError,
+    clone_repository,
+    commit_directory,
+    init_data_repository,
+    pending_changes,
+)
 from sprintforecast.git import repo_root as git_root
-from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW
+from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
+from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
 from sprintforecast.model import Numbering, Planning, Sprint, Team
 from sprintforecast.plugins import WebPage
-from sprintforecast.report import capacity_label, fmt, pct, period, render, status
+from sprintforecast.products import (
+    MEASURES,
+    Distribution,
+    balance,
+    by_po,
+    distribution,
+    measure_label,
+)
+from sprintforecast.report import capacity_label, fmt, pct, period, render, source_label, status
 from sprintforecast.settings import REGIONS, SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
+    DATA_ENV,
     STICHTAG_ENV,
     DataError,
     Repository,
     TeamData,
     default_data_dir,
+    save_data_dir,
+    teams_dir,
 )
+from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
 from sprintforecast.web.logic import (
+    CALENDAR_COLUMNS,
     PEOPLE_COLUMNS,
+    PRODUCT_COLUMNS,
     TEAM_REGION,
     absence_matrix,
     absence_sprints,
+    apply_calendar,
+    apply_product_values,
+    calendar_table,
+    calendar_to_save,
     edit_absences,
     parse_numbers,
     people_from_table,
     people_table,
+    product_table,
+    product_values_table,
+    products_from_table,
     sprints_to_save,
     with_people,
     with_sprints,
 )
 
 # Seiten: Dateiname unter web/seiten → (Titel, Material-Icon). Gruppen für die Navigation.
+# Titel und Gruppen sind deutsche Quelltexte und werden bei der Anzeige übersetzt.
 PAGES: dict[str, dict[str, tuple[str, str]]] = {
     "Sprint": {
         "forecast": ("Forecast", ":material/trending_up:"),
         "fehltage": ("Fehltage", ":material/event_busy:"),
+        "sprints": ("Sprintkalender", ":material/calendar_month:"),
         "planning": ("Planning", ":material/edit_note:"),
         "review": ("Review", ":material/task_alt:"),
+        "produkte": ("Produktverteilung", ":material/pie_chart:"),
         "analyse": ("Analyse", ":material/insights:"),
     },
     "Team": {
         "personen": ("Personen", ":material/group:"),
+        "produktliste": ("Produkte", ":material/category:"),
         "einstellungen": ("Einstellungen", ":material/tune:"),
         "neues_team": ("Neues Team", ":material/group_add:"),
     },
     "Daten & Hilfe": {
+        "datenordner": ("Datenordner", ":material/folder_open:"),
         "pruefung": ("Prüfung", ":material/fact_check:"),
         "hilfe": ("Hilfe", ":material/help:"),
     },
@@ -92,7 +134,7 @@ def page_path(key: str) -> str:
 
 def page_link(key: str, label: str | None = None) -> None:
     title, icon = PAGE_INFO[key]
-    st.page_link(page_path(key), label=label or title, icon=icon)
+    st.page_link(page_path(key), label=label or t(title), icon=icon)
 
 
 def today() -> date:
@@ -104,9 +146,30 @@ def repository() -> Repository:
     return Repository(default_data_dir())
 
 
+def apply_language() -> None:
+    """Sprache für diesen Durchlauf festlegen (aus Einstellung bzw. Umgebung)."""
+    set_language(None)
+    set_language(language())
+
+
+def _language_changed() -> None:
+    code = st.session_state["language"]
+    save_language(code)
+    set_language(code)
+
+
 def help_text(key: str) -> str:
     f = FIELDS[key]
-    return f"{f.what}\n\nQuelle: {f.source}\n\nBeispiel: {f.example}"
+    return f"{t(f.what)}\n\n{t('Quelle')}: {t(f.source)}\n\n{t('Beispiel')}: {t(f.example)}"
+
+
+def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {t("Kennzahl"): s.name, t("Formel"): s.formula, t("Rechnung"): s.calculation}
+            for s in steps(fc, entry)
+        ]
+    )
 
 
 # --- Speichern mit Prüfung -----------------------------------------------------------
@@ -118,8 +181,18 @@ def save(
     write: Callable[[], list[Path]],
     tag: str | None = None,
     block_on_all_errors: bool = False,
+    flash: bool = False,
 ) -> bool:
-    """Prüft den neuen Stand und schreibt bei Erfolg. Committet wird über die Seitenleiste."""
+    """Prüft den neuen Stand und schreibt bei Erfolg. Committet wird über die Seitenleiste.
+
+    Mit ``flash`` erscheinen Hinweise erst im nächsten Durchlauf (für ``st.rerun()``)."""
+
+    def notify(kind: str, text: str) -> None:
+        if flash:
+            st.session_state.setdefault("flash", []).append((kind, text))
+        else:
+            getattr(st, kind)(text)
+
     issues = check_team(data_after, today())
     relevant = [i for i in issues if any(n in i.where for n in filenames)]
     blocking = issues if block_on_all_errors else relevant
@@ -127,21 +200,52 @@ def save(
     if errors:
         for i in errors:
             st.error(f"{i.where}: {i.message}")
-        st.error("Nicht gespeichert – bitte die Fehler beheben.")
+        st.error(t("Nicht gespeichert – bitte die Fehler beheben."))
         return False
     paths = write()
     for i in relevant:
         if i.level is Level.WARNING:
-            st.warning(f"{i.where}: {i.message}")
+            notify("warning", f"{i.where}: {i.message}")
     if tag:
         tags = st.session_state.setdefault("pending_tags", [])
         if tag not in tags:
             tags.append(tag)
-    names = ", ".join(p.name for p in paths)
-    st.success(
-        f"Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der Seitenleiste."
+    notify(
+        "success",
+        t(
+            "Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der "
+            "Seitenleiste.",
+            names=", ".join(p.name for p in paths),
+        ),
     )
     return True
+
+
+def show_flash() -> None:
+    for kind, text in st.session_state.pop("flash", []):
+        getattr(st, kind)(text)
+
+
+def sprint_caption(data: TeamData, s: Sprint) -> str:
+    """Zeitraum, Arbeitstage und Feiertage eines Sprints."""
+    days = workdays(s.start, s.end)
+    region = data.team.capacity.region
+    hol = [f"{d:%d.%m.} {name}" for d in days if (name := holiday_name(d, region))]
+    last = f"{days[-1]:%d.%m.%Y}" if days else f"{s.end:%d.%m.%Y}"
+    text = t(
+        "**{id}**: {start} – {last} (letzter Arbeitstag; der nächste Sprint beginnt am {next}), "
+        "{days} Arbeitstage Mo–Fr",
+        id=s.id,
+        start=f"{s.start:%d.%m.}",
+        last=last,
+        next=f"{s.end:%d.%m.}",
+        days=len(days),
+    )
+    if hol:
+        text += t(" · davon Feiertage: {holidays}", holidays=", ".join(hol))
+    if not data.sprint(s.id):
+        text += t(" · noch keine Sprintdatei")
+    return text
 
 
 # --- Seiten ---------------------------------------------------------------------------
@@ -151,55 +255,87 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     team = data.team
     unit = team.unit.value
     st.header(f"Forecast {team.name}")
+    _next_dates(fc)
     upcoming = fc.upcoming()
     cols = st.columns(min(len(upcoming), 4) or 1)
     for col, e in zip(cols, upcoming, strict=False):
         col.metric(
             f"{e.sprint.id} ({status(fc, e).replace('*', '')})",
             f"{fmt(e.result.plan)} {unit}",
-            help=f"Kapazität {capacity_label(e)} PT · Roadmap {fmt(e.result.roadmap, 2)} · "
-            f"Kleinkram {fmt(e.result.small_stuff, 2)}",
+            help=_formula_help(fc, e, "plan")
+            + "\n\n"
+            + t(
+                "Kapazität {capacity} PT · Roadmap {roadmap} · Kleinkram {small}",
+                capacity=capacity_label(e),
+                roadmap=fmt(e.result.roadmap, 2),
+                small=fmt(e.result.small_stuff, 2),
+            ),
         )
 
+    capacity_col, trend_col, plan_col = (
+        t("Kapazität (PT)"),
+        t("n. Velocity-Trend"),
+        f"Forecast PLAN ({unit})",
+    )
+    small_col = t("Kleinkram")
     rows = [
         {
             "Sprint": e.sprint.id,
-            "Zeitraum": period(e),
+            t("Zeitraum"): period(e),
             "Status": status(fc, e).replace("*", ""),
-            "Kapazität (PT)": capacity_label(e),
-            "n. Velocity-Trend": fmt(e.result.normalized_velocity.trend, 2),
-            f"Forecast PLAN ({unit})": fmt(e.result.plan),
+            capacity_col: capacity_label(e),
+            trend_col: fmt(e.result.normalized_velocity.trend, 2),
+            plan_col: fmt(e.result.plan),
             "Roadmap": fmt(e.result.roadmap, 2),
-            "Kleinkram": fmt(e.result.small_stuff, 2),
+            small_col: fmt(e.result.small_stuff, 2),
         }
         for e in upcoming
     ]
-    st.dataframe(pd.DataFrame(rows), hide_index=True)
+    st.dataframe(
+        pd.DataFrame(rows),
+        hide_index=True,
+        column_config={
+            capacity_col: st.column_config.TextColumn(help=general("capacity")),
+            trend_col: st.column_config.TextColumn(help=general("trend")),
+            plan_col: st.column_config.TextColumn(help=general("plan")),
+            "Roadmap": st.column_config.TextColumn(help=general("roadmap")),
+            small_col: st.column_config.TextColumn(help=general("small_stuff")),
+        },
+    )
     trend = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is CapacitySource.TREND]
     if trend:
         st.warning(
-            f"Für {', '.join(trend)} sind noch keine Fehltage erfasst – die Kapazität ist nur "
-            "geschätzt (Trend). Auf der Seite **Fehltage** eintragen."
+            t(
+                "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
+                "geschätzt (Trend). Auf der Seite **Fehltage** eintragen.",
+                sprints=", ".join(trend),
+            )
         )
     current = fc.current
     if current and current.result.planning_total is not None:
         st.info(
-            f"Planning {current.sprint.id}: Summe {fmt(current.result.planning_total, 2)} {unit}, "
-            f"Delta zum Forecast PLAN {fmt(current.result.planning_delta, 2)} {unit}"
+            t(
+                "Planning {id}: Summe {total} {unit}, Delta zum Forecast PLAN {delta} {unit}",
+                id=current.sprint.id,
+                total=fmt(current.result.planning_total, 2),
+                delta=fmt(current.result.planning_delta, 2),
+                unit=unit,
+            )
         )
 
-    st.subheader("Verlauf")
+    st.subheader(t("Verlauf"))
     history = fc.history(10)
+    nvel, avg = t("n. Velocity"), t("Ø n. Velocity")
     st.dataframe(
         pd.DataFrame(
             [
                 {
                     "Sprint": e.sprint.id,
-                    "Kapazität (PT)": fmt(e.result.capacity.value),
-                    "Forecast IST": fmt(e.result.forecast_ist.value, 2),
+                    capacity_col: fmt(e.result.capacity.value),
+                    t("Forecast IST"): fmt(e.result.forecast_ist.value, 2),
                     "Velocity": fmt(e.result.velocity.value, 2),
-                    "n. Velocity": fmt(e.result.normalized_velocity.value, 2),
-                    "Ø n. Velocity": fmt(e.result.normalized_velocity.average, 2),
+                    nvel: fmt(e.result.normalized_velocity.value, 2),
+                    avg: fmt(e.result.normalized_velocity.average, 2),
                     "Fulfillment": pct(e.result.fulfillment.value),
                     "Scope Creep": pct(e.result.scope_creep.value),
                 }
@@ -207,37 +343,108 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             ]
         ),
         hide_index=True,
+        column_config={
+            nvel: st.column_config.TextColumn(help=general("normalized_velocity")),
+            avg: st.column_config.TextColumn(help=general("average")),
+            "Fulfillment": st.column_config.TextColumn(help=general("fulfillment")),
+            "Scope Creep": st.column_config.TextColumn(help=general("scope_creep")),
+        },
     )
+    _formula_expander(fc, history + [e for e in upcoming if e not in history])
     chart = _chart(fc, history + [e for e in upcoming if e not in history], unit)
     if chart is None:
         st.info(
-            "Noch keine Werte für ein Diagramm – nach den ersten Sprints Planning und Review "
-            "erfassen (oder die Historie über ein Import-Plugin übernehmen)."
+            t(
+                "Noch keine Werte für ein Diagramm – nach den ersten Sprints Planning und Review "
+                "erfassen (oder die Historie über ein Import-Plugin übernehmen)."
+            )
         )
     else:
         st.altair_chart(chart, width="stretch")
 
-    if st.button("Bericht FORECAST.md schreiben"):
+    if st.button(t("Bericht FORECAST.md schreiben")):
         path = repo.team_dir(team.key) / "FORECAST.md"
         path.write_text(render(fc), encoding="utf-8")
-        st.success(f"Geschrieben: {path}")
+        st.success(t("Geschrieben: {path}", path=path))
+
+
+def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
+    """Tooltip-Text: Formel und eingesetzte Zahlen einer Kennzahl."""
+    if e is None or (s := formula_step(fc, e, key)) is None:
+        return ""
+    return f"**{s.formula}**\n\n{s.calculation}"
+
+
+def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
+    """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
+    if not entries:
+        return
+    with st.expander(t("Rechenweg: Formeln mit eingesetzten Zahlen"), icon=":material/function:"):
+        ids = [e.sprint.id for e in entries]
+        default = fc.default_entry("planning")
+        index = ids.index(default.sprint.id) if default and default.sprint.id in ids else 0
+        chosen = st.selectbox("Sprint", ids, index=index, key="formula-sprint")
+        entry = next(e for e in entries if e.sprint.id == chosen)
+        st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
+
+
+def _next_dates(fc: Forecast) -> None:
+    """Die nächsten Sprint-Termine mit dem, was dort zu tun ist."""
+    current, planning = fc.current, fc.default_entry("planning")
+    items = []
+    if current is not None:
+        days = workdays(current.sprint.start, current.sprint.end)
+        review_day = days[-1] if days else current.sprint.end
+        done = current.sprint.velocity is not None
+        items.append(
+            (
+                f"Review {current.sprint.id}",
+                day_label(review_day),
+                t("erfasst ✓") if done else t("Velocity und Erledigt je Produkt erfassen"),
+                "review",
+            )
+        )
+    if planning is not None:
+        missing = fc.data.sprint(planning.sprint.id) is None
+        items.append(
+            (
+                f"Planning {planning.sprint.id}",
+                day_label(planning.sprint.start),
+                t("Fehltage → Forecast PLAN → Forecast IST")
+                + (t(" (Fehltage noch nicht erfasst)") if missing else ""),
+                "planning",
+            )
+        )
+    if not items:
+        return
+    with st.container(border=True):
+        st.caption(t("Nächste Termine"))
+        for title, when, todo, page in items:
+            left, middle, right = st.columns([2, 4, 2], vertical_alignment="center")
+            left.markdown(f"**{title}**  \n{when}")
+            middle.markdown(todo)
+            with right:
+                page_link(page, t("Öffnen"))
 
 
 def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart | None:
     """Liniendiagramm; None, solange es keine Werte gibt (leere Daten lässt Altair scheitern)."""
     records = []
+    metric, forecast_col = t("Kennzahl"), t("Prognose")
     for e in entries:
         r = e.result
         future = e.sprint.end > fc.today
         values = {
-            "Forecast IST / PLAN": r.plan if future else r.forecast_ist.value,
+            t("Forecast IST / PLAN"): r.plan if future else r.forecast_ist.value,
             "Velocity": r.velocity.trend if future else r.velocity.value,
-            "n. Velocity": r.normalized_velocity.trend if future else r.normalized_velocity.value,
+            t("n. Velocity"): r.normalized_velocity.trend
+            if future
+            else r.normalized_velocity.value,
         }
         for name, value in values.items():
             if value is not None:
                 records.append(
-                    {"Sprint": e.sprint.id, "Kennzahl": name, unit: value, "Prognose": future}
+                    {"Sprint": e.sprint.id, metric: name, unit: value, forecast_col: future}
                 )
     if not records:
         return None
@@ -248,11 +455,11 @@ def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart |
         .encode(
             x=alt.X("Sprint:N", sort=order),
             y=alt.Y(f"{unit}:Q"),
-            color="Kennzahl:N",
-            strokeDash=alt.StrokeDash("Prognose:N", legend=None),
+            color=f"{metric}:N",
+            strokeDash=alt.StrokeDash(f"{forecast_col}:N", legend=None),
             tooltip=[
                 alt.Tooltip("Sprint:N"),
-                alt.Tooltip("Kennzahl:N"),
+                alt.Tooltip(f"{metric}:N"),
                 alt.Tooltip(f"{unit}:Q", format=".2f"),
             ],
         )
@@ -260,34 +467,24 @@ def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart |
 
 
 def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
-    st.header("Planbare Fehltage")
+    st.header(t("Planbare Fehltage"))
     st.markdown(help_text("absences").replace("\n\n", "  \n"))
     if not data.people:
-        st.warning("Noch keine Personen erfasst – zuerst auf der Seite **Personen** anlegen.")
+        st.warning(t("Noch keine Personen erfasst – zuerst auf der Seite **Personen** anlegen."))
         return
     count = st.number_input(
-        "Anzahl Sprints", min_value=1, max_value=26, value=data.team.forecast.horizon + 1
+        t("Anzahl Sprints"), min_value=1, max_value=26, value=data.team.forecast.horizon + 1
     )
     sprints = absence_sprints(data, fc, int(count))
     if not sprints:
-        st.info("Keine Sprints gefunden.")
+        st.info(t("Keine Sprints gefunden."))
         return
     for s in sprints:
-        days = workdays(s.start, s.end)
-        hol = [
-            f"{d:%d.%m.} {name}"
-            for d in days
-            if (name := holiday_name(d, data.team.capacity.region))
-        ]
-        st.caption(
-            f"**{s.id}**: {s.start:%d.%m.} – {s.end:%d.%m.%Y}, {len(days)} Arbeitstage"
-            + (f" · Feiertage: {', '.join(hol)}" if hol else "")
-            + ("" if data.sprint(s.id) else " · noch keine Sprintdatei")
-        )
+        st.caption(sprint_caption(data, s))
     rows = absence_matrix(data.people, sprints)
     column_config: dict[str, Any] = {
         "id": None,
-        "Person": st.column_config.TextColumn(disabled=True),
+        "Person": st.column_config.TextColumn(t("Person"), disabled=True),
     }
     for s in sprints:
         column_config[s.id] = st.column_config.NumberColumn(
@@ -299,25 +496,28 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         hide_index=True,
         key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
     )
-    st.caption("Leere Zellen: Person ist in diesem Sprint nicht im Team.")
+    st.caption(t("Leere Zellen: Person ist in diesem Sprint nicht im Team."))
     edited_sprints = edit_absences(data.people, sprints, edited.to_dict("records"))
     to_save = sprints_to_save(data, sprints, edited_sprints)
     preview = with_sprints(data, to_save)
     fc_preview = build_forecast(preview, fc.today)
     if new := [s.id for s in to_save if data.sprint(s.id) is None]:
         st.caption(
-            f"Beim Speichern werden die Sprintdateien {', '.join(new)} angelegt. Ab dann gilt "
-            "dort die Kapazität laut Personenliste statt des Trends."
+            t(
+                "Beim Speichern werden die Sprintdateien {sprints} angelegt. Ab dann gilt dort "
+                "die Kapazität laut Personenliste statt des Trends.",
+                sprints=", ".join(new),
+            )
         )
     st.subheader(
-        "Kapazität und Prognose" + (" (Vorschau, noch nicht gespeichert)" if to_save else "")
+        t("Kapazität und Prognose") + (t(" (Vorschau, noch nicht gespeichert)") if to_save else "")
     )
     st.dataframe(
         pd.DataFrame(
             [
                 {
                     "Sprint": s.id,
-                    "Kapazität (PT)": fmt(sprint_capacity(data.team, data.people, s).capacity),
+                    t("Kapazität (PT)"): fmt(sprint_capacity(data.team, data.people, s).capacity),
                     f"Forecast PLAN ({data.team.unit.value})": fmt(e.result.plan)
                     if (e := fc_preview.entry(s.id))
                     else "–",
@@ -327,7 +527,7 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         ),
         hide_index=True,
     )
-    if st.button("Fehltage speichern", type="primary", disabled=not to_save):
+    if st.button(t("Fehltage speichern"), type="primary", disabled=not to_save):
         save(
             preview,
             [f"{s.id}.yaml" for s in to_save],
@@ -335,13 +535,88 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
 
 
-def _sprint_choice(data: TeamData, fc: Forecast, purpose: str, label: str) -> Sprint | None:
+def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header(t("Sprintkalender"))
+    st.markdown(
+        t(
+            "Künftige Sprints entstehen automatisch aus dem Kalender: Jeder Sprint beginnt am Tag "
+            "nach dem letzten Tag des vorherigen und dauert {days} Kalendertage (Einstellung "
+            "*Sprintlänge*). Eine Sprintdatei wird angelegt, sobald etwas für den Sprint "
+            "gespeichert wird – oder hier mit **Sprints anlegen**.  \n"
+            "Weicht ein Sprint ab (z. B. drei Wochen über Weihnachten), den **letzten Tag** "
+            "ändern; die folgenden Sprints verschieben sich mit. Arbeitstage zählen Mo–Fr vom "
+            "Start bis einschließlich zum letzten Tag, Feiertage werden erst bei der Kapazität "
+            "abgezogen.",
+            days=data.team.sprint.length_days,
+        )
+    )
+    count = st.number_input(t("Anzahl Sprints"), min_value=1, max_value=26, value=6, key="cal-n")
+    sprints = absence_sprints(data, fc, int(count))
+    if not sprints:
+        st.info(t("Keine Sprints gefunden."))
+        return
+    rows = calendar_table(data, sprints, fc.today)
+    for row in rows:
+        row["Status"] = t(row["Status"])
+    frame = pd.DataFrame(rows, columns=CALENDAR_COLUMNS)
+    for col in ("Start", "Letzter Tag"):
+        frame[col] = pd.to_datetime(frame[col])
+    edited = st.data_editor(
+        frame,
+        column_config={
+            "Sprint": st.column_config.TextColumn(disabled=True),
+            "Start": st.column_config.DateColumn(t("Start"), format="DD.MM.YYYY", disabled=True),
+            "Letzter Tag": st.column_config.DateColumn(
+                t("Letzter Tag"),
+                format="DD.MM.YYYY",
+                help=t("Der nächste Sprint beginnt am Tag danach."),
+            ),
+            "Arbeitstage": st.column_config.NumberColumn(
+                t("Arbeitstage"),
+                disabled=True,
+                help=t("Mo–Fr vom Start bis einschließlich zum letzten Tag"),
+            ),
+            "Status": st.column_config.TextColumn(disabled=True),
+        },
+        hide_index=True,
+        key=f"calendar-{data.team.key}-{len(sprints)}",
+    )
+    after, errors = apply_calendar(data, sprints, edited.to_dict("records"))
+    for e in errors:
+        st.error(e)
+    to_save = calendar_to_save(data, sprints, after, create_missing=True)
+    if to_save:
+        st.caption(
+            t("Beim Speichern: ")
+            + ", ".join(
+                f"{s.id} ({t('neu') if data.sprint(s.id) is None else t('geändert')})"
+                for s in to_save
+            )
+        )
+    if st.button(
+        t("Sprints anlegen bzw. speichern"), type="primary", disabled=bool(errors) or not to_save
+    ):
+        preview = with_sprints(data, to_save)
+        # Überschneidungen meldet die Prüfung am Nachfolger – ihn mit prüfen.
+        ids = [x.id for x in preview.sprints]
+        saved = {x.id for x in to_save}
+        checked = saved | {ids[i + 1] for i, sid in enumerate(ids[:-1]) if sid in saved}
+        save(
+            preview,
+            [f"{sid}.yaml" for sid in checked],
+            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
+        )
+
+
+def _sprint_choice(
+    data: TeamData, fc: Forecast, purpose: str, label: str, key: str | None = None
+) -> Sprint | None:
     options = [e.sprint.id for e in fc.history(6)] + [e.sprint.id for e in fc.upcoming()]
     default = fc.default_entry(purpose)
     index = options.index(default.sprint.id) if default and default.sprint.id in options else 0
     if not options:
         return None
-    chosen = st.selectbox(label, options, index=index, key=f"{purpose}-sprint")
+    chosen = st.selectbox(label, options, index=index, key=key or f"{purpose}-sprint")
     return copy.deepcopy(find_sprint(data, chosen))
 
 
@@ -351,41 +626,482 @@ def _number(label: str, value: float | None, key: str, help: str | None = None) 
     )
 
 
+# --- Produkte: Tabelle und Diagramm ---------------------------------------------------
+
+# Kategorische Farben in fester Reihenfolge (Produkt = Katalogposition); Standard neutral.
+SERIES_COLORS = [
+    "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948",
+]  # fmt: skip
+STANDARD_COLOR = "#9a9a94"
+MAX_PRODUCT_COLORS = len(SERIES_COLORS)
+
+
+def _others() -> str:
+    return t("Weitere")
+
+
+def _distribution_caption(d: Distribution, unit: str) -> str:
+    basis = t("Roadmap-Anteil des Forecast PLAN") if d.basis.value == "roadmap" else "Forecast PLAN"
+    if d.available is None or not d.active_count:
+        return t(
+            "Standard: {basis} / Anzahl betreuter Produkte – noch nicht berechenbar.", basis=basis
+        )
+    return t(
+        "Standard = {basis}{frozen} {available} {unit} / {count} betreute Produkte = "
+        "**{share} {unit}** je Produkt.",
+        basis=basis,
+        frozen=t(" (beim Planning eingefroren)") if d.plan_frozen else "",
+        available=fmt(d.available, 2),
+        unit=unit,
+        count=d.active_count,
+        share=fmt(d.available / d.active_count, 2),
+    )
+
+
+def _product_editor(
+    d: Distribution, editable: list[str], key: str, unit: str
+) -> list[dict[str, Any]] | None:
+    """Tabelle Produkt × Standard/Vorplanung/Planning/Erledigt; ``editable`` sind bearbeitbar."""
+    if not d.rows:
+        st.info(
+            t(
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
+                "Produkte** anlegen (optional)."
+            )
+        )
+        return None
+    column_config: dict[str, Any] = {
+        "_id": None,
+        "Produkt": st.column_config.TextColumn(t("Produkt"), disabled=True),
+        "PO": st.column_config.TextColumn(disabled=True),
+    }
+    for m, label in MEASURES.items():
+        column_config[label] = st.column_config.NumberColumn(
+            f"{measure_label(m)} ({unit})",
+            min_value=0.0,
+            step=0.25,
+            format="%.2f",
+            disabled=m not in editable,
+            help=t(FIELDS[m].what)
+            if m in FIELDS
+            else t("Verfügbare Menge / Anzahl betreuter Produkte"),
+        )
+    frame = pd.DataFrame(product_values_table(d))
+    for label in MEASURES.values():
+        frame[label] = frame[label].astype("float64").round(2)
+    edited = st.data_editor(
+        frame,
+        column_config=column_config,
+        hide_index=True,
+        key=key,
+    )
+    st.caption(_distribution_caption(d, unit))
+    return edited.to_dict("records")
+
+
+def _product_chart(d: Distribution, unit: str) -> alt.Chart | None:
+    """Gruppierte Balken je Produkt: Standard (grau), Vorplanung, Planning, Erledigt."""
+    product, metric = t("Produkt"), t("Kennzahl")
+    records = [
+        {product: r.product.name, metric: measure_label(m), unit: value}
+        for r in d.rows
+        for m in MEASURES
+        if (value := r.value(m)) is not None
+    ]
+    if not records:
+        return None
+    labels = [measure_label(m) for m in MEASURES]
+    return (
+        alt.Chart(pd.DataFrame(records))
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X(
+                f"{product}:N",
+                sort=[r.product.name for r in d.rows],
+                title=None,
+                axis=alt.Axis(labelAngle=0),
+            ),
+            xOffset=alt.XOffset(f"{metric}:N", sort=labels),
+            y=alt.Y(f"{unit}:Q"),
+            color=alt.Color(
+                f"{metric}:N",
+                sort=labels,
+                scale=alt.Scale(domain=labels, range=[STANDARD_COLOR, *SERIES_COLORS[:3]]),
+                legend=alt.Legend(orient="top", title=None),
+            ),
+            tooltip=[f"{product}:N", f"{metric}:N", alt.Tooltip(f"{unit}:Q", format=".2f")],
+        )
+    )
+
+
+def _product_colors(names: list[str]) -> alt.Scale:
+    """Farbe folgt dem Produkt (Position in der Produktliste), nicht seinem Rang."""
+    others = _others()
+    domain = [n for n in names if n != others]
+    rng = [SERIES_COLORS[i % MAX_PRODUCT_COLORS] for i in range(len(domain))]
+    if others in names:
+        domain.append(others)
+        rng.append(STANDARD_COLOR)
+    return alt.Scale(domain=domain, range=rng)
+
+
+def _product_name(fc: Forecast, product_id: str, name: str) -> str:
+    """Bei mehr als acht Produkten werden die hinteren als „Weitere“ zusammengefasst."""
+    products = fc.data.products
+    if len(products) <= MAX_PRODUCT_COLORS:
+        return name
+    index = next((i for i, p in enumerate(products) if p.id == product_id), None)
+    return name if index is not None and index < MAX_PRODUCT_COLORS - 1 else _others()
+
+
+def _product_rank(fc: Forecast, product_id: str) -> int:
+    """Position in der Produktliste – bestimmt die Stapelreihenfolge."""
+    ids = [p.id for p in fc.data.products]
+    return ids.index(product_id) if product_id in ids else len(ids)
+
+
+def _history_chart(
+    fc: Forecast, entries: list[TimelineEntry], measure: str, unit: str
+) -> alt.Chart | None:
+    product = t("Produkt")
+    records = []
+    for e in entries:
+        for r in distribution(fc, e).rows:
+            value = r.value(measure)
+            if value is not None:
+                records.append(
+                    {
+                        "Sprint": e.sprint.id,
+                        product: _product_name(fc, r.product.id, r.product.name),
+                        "rank": _product_rank(fc, r.product.id),
+                        unit: value,
+                    }
+                )
+    if not records:
+        return None
+    frame = (
+        pd.DataFrame(records)
+        .groupby(["Sprint", product], as_index=False)
+        .agg({"rank": "min", unit: "sum"})
+    )
+    names = [p.name for p in fc.data.products]
+    present = list(dict.fromkeys(frame[product]))
+    ordered = [n for n in names if n in present] + [n for n in present if n not in names]
+    return (
+        alt.Chart(frame)
+        .mark_bar(stroke="white", strokeWidth=2)
+        .encode(
+            x=alt.X(
+                "Sprint:N",
+                sort=[e.sprint.id for e in entries],
+                title=None,
+                axis=alt.Axis(labelAngle=0),
+            ),
+            y=alt.Y(f"{unit}:Q", stack="zero"),
+            color=alt.Color(
+                f"{product}:N",
+                sort=ordered,
+                scale=_product_colors(ordered),
+                legend=alt.Legend(orient="top", title=None),
+            ),
+            order=alt.Order("rank:Q"),
+            tooltip=["Sprint:N", f"{product}:N", alt.Tooltip(f"{unit}:Q", format=".2f")],
+        )
+    )
+
+
+def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> None:
+    rows = balance(fc, entries)
+    if not rows:
+        st.info(t("Noch kein **Erledigt je Produkt** erfasst – im Review eintragen."))
+        return
+    product, direction = t("Produkt"), t("Richtung")
+    more, less = t("mehr als Standard"), t("weniger als Standard")
+    saldo = f"{t('Saldo')} ({unit})"
+    frame = pd.DataFrame(
+        [
+            {
+                product: b.product.name,
+                "Sprints": b.sprints,
+                f"Σ Standard ({unit})": round(b.standard, 2),
+                f"Σ {t('Erledigt')} ({unit})": round(b.done, 2),
+                saldo: round(b.difference, 2),
+                direction: more if b.difference >= 0 else less,
+            }
+            for b in rows
+        ]
+    )
+    st.altair_chart(
+        alt.Chart(frame)
+        .mark_bar(cornerRadius=4)
+        .encode(
+            y=alt.Y(f"{product}:N", sort=[b.product.name for b in rows], title=None),
+            x=alt.X(f"{saldo}:Q"),
+            color=alt.Color(
+                f"{direction}:N",
+                scale=alt.Scale(domain=[more, less], range=["#2a78d6", "#e34948"]),
+                legend=alt.Legend(orient="top", title=None),
+            ),
+            tooltip=list(frame.columns[:-1]),
+        ),
+        width="stretch",
+    )
+    st.dataframe(frame.drop(columns=direction), hide_index=True)
+    st.caption(
+        t(
+            "Saldo = Σ Erledigt − Σ Standard über die Sprints mit erfasstem Erledigt. Positiv: "
+            "Das Produkt hat mehr bekommen als den gleichmäßigen Anteil."
+        )
+    )
+
+
+def _base_sprint(data: TeamData, sprint: Sprint) -> Sprint:
+    return copy.deepcopy(data.sprint(sprint.id) or sprint)
+
+
+# --- Planning (geführter Ablauf zum Sprintstart) --------------------------------------
+
+PLANNING_STEPS = ["1 · Fehltage", "2 · Forecast PLAN & Einplanung", "3 · Forecast IST"]
+STEP_KEY = "planning-step"
+
+
+def _goto(step: int) -> None:
+    st.session_state["planning-goto"] = step
+
+
 def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Planning")
-    sprint = _sprint_choice(data, fc, "current", "Sprint")
+    show_flash()
+    sprint = _sprint_choice(data, fc, "planning", "Sprint")
     if sprint is None:
         return
+    # Neuer Sprint gewählt → beim ersten Schritt beginnen.
+    if st.session_state.get("planning-last-sprint") != sprint.id:
+        st.session_state["planning-last-sprint"] = sprint.id
+        st.session_state["planning-goto"] = 0
+    if (goto := st.session_state.pop("planning-goto", None)) is not None:
+        st.session_state[STEP_KEY] = goto
+    st.caption(
+        t(
+            "Planning am **{day}** · Ablauf: zuerst die bekannten Fehltage, dann mit dem Forecast "
+            "PLAN die Tickets einplanen, vor dem Sprintstart den Forecast IST eintragen.",
+            day=day_label(sprint.start),
+        )
+    )
+    step = st.radio(
+        t("Schritt"),
+        range(len(PLANNING_STEPS)),
+        format_func=lambda i: t(PLANNING_STEPS[i]),
+        horizontal=True,
+        key=STEP_KEY,
+        label_visibility="collapsed",
+    )
+    recorded = data.sprint(sprint.id)
+    done = [
+        recorded is not None,
+        recorded is not None and any(v.planned is not None for v in recorded.products.values()),
+        recorded is not None and recorded.forecast_ist is not None,
+    ]
+    marks = [
+        f"{'✅' if ok else '⬜'} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)
+    ]
+    st.caption(" · ".join(marks))
+    if step == 0:
+        _planning_absences(repo, data, fc, sprint)
+    elif step == 1:
+        _planning_plan(repo, data, fc, sprint)
+    else:
+        _planning_ist(repo, data, fc, sprint)
+
+
+def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
+    st.subheader(t("Bekannte Fehltage"))
+    st.caption(sprint_caption(data, sprint))
+    if not data.people:
+        st.warning(
+            t(
+                "Noch keine Personen erfasst – Kapazität nur geschätzt. Personen unter "
+                "**Team → Personen** anlegen."
+            )
+        )
+        st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
+        return
+    base = _base_sprint(data, sprint)
+    days = len(workdays(base.start, base.end))
+    edited = st.data_editor(
+        pd.DataFrame(absence_matrix(data.people, [base])),
+        column_config={
+            "id": None,
+            "Person": st.column_config.TextColumn(t("Person"), disabled=True),
+            base.id: st.column_config.NumberColumn(
+                t("Fehltage"),
+                min_value=0.0,
+                max_value=float(days),
+                step=0.5,
+                help=help_text("absences"),
+            ),
+        },
+        hide_index=True,
+        key=f"planning-absences-{base.id}",
+    )
+    [after] = edit_absences(data.people, [base], edited.to_dict("records"))
+    to_save = sprints_to_save(data, [base], [after])
+    preview = with_sprints(data, [after])
+    breakdown = sprint_capacity(data.team, data.people, after)
+    fc_after = build_forecast(preview, fc.today)
+    entry = fc_after.entry(after.id)
+    left, right = st.columns(2)
+    left.metric(
+        t("Kapazität (PT)"),
+        fmt(breakdown.capacity),
+        help=_formula_help(fc_after, entry, "capacity"),
+    )
+    right.metric(
+        f"Forecast PLAN ({data.team.unit.value})",
+        fmt(entry.result.plan) if entry else "–",
+        help=_formula_help(fc_after, entry, "plan"),
+    )
+    if after.capacity is not None:
+        st.info(
+            t(
+                "In der Sprintdatei ist eine feste Kapazität ({capacity} PT) eingetragen – sie "
+                "gilt statt der Berechnung aus den Fehltagen.",
+                capacity=fmt(after.capacity),
+            )
+        )
+    if to_save:
+        if st.button(t("Fehltage speichern und weiter"), type="primary"):
+            ok = save(
+                preview,
+                [f"{after.id}.yaml"],
+                lambda: [repo.save_sprint(data.team.key, after)],
+                flash=True,
+            )
+            if ok:
+                _goto(1)
+                st.rerun()
+    else:
+        st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
+
+
+def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     entry = fc.entry(sprint.id)
-    if entry:
-        st.metric(
-            f"Forecast PLAN {sprint.id}",
-            f"{fmt(entry.result.plan)} {unit}",
-            help=f"Kapazität {capacity_label(entry)} PT",
+    st.subheader(t("Forecast PLAN – so viel einplanen"))
+    if entry is None:
+        st.info(t("Für diesen Sprint gibt es keine Prognose."))
+        return
+    r = entry.result
+    cols = st.columns(4)
+    cols[0].metric(
+        t("Kapazität (PT)"),
+        fmt(r.plan_capacity),
+        help=t("Quelle: {source}", source=source_label(r.plan_capacity_source) or "–")
+        + "\n\n"
+        + _formula_help(fc, entry, "capacity"),
+    )
+    cols[1].metric(f"Forecast PLAN ({unit})", fmt(r.plan), help=_formula_help(fc, entry, "plan"))
+    cols[2].metric(
+        f"Roadmap ({pct(data.team.forecast.roadmap_share)})",
+        fmt(r.roadmap, 2),
+        help=_formula_help(fc, entry, "roadmap"),
+    )
+    cols[3].metric(
+        t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
+    )
+    with st.expander(t("Rechenweg"), icon=":material/function:"):
+        st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
+    if r.plan_capacity_source is CapacitySource.TREND:
+        st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
+        st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
+    if data.products:
+        st.subheader(t("Einplanung je Produkt"))
+        d = distribution(fc, entry)
+        rows = _product_editor(d, ["preplanned", "planned"], f"planning-products-{sprint.id}", unit)
+        if rows is not None:
+            base = _base_sprint(data, sprint)
+            after = apply_product_values(base, rows, ["preplanned", "planned"])
+            preview = with_sprints(data, [after])
+            fc_preview = build_forecast(preview, fc.today)
+            d_preview = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+            planned = d_preview.total("planned")
+            if planned is not None and r.plan is not None:
+                rest = r.plan - planned
+                (st.success if rest >= 0 else st.warning)(
+                    t(
+                        "Eingeplant je Produkt: **{planned} {unit}** von {plan} {unit} – ",
+                        planned=fmt(planned, 2),
+                        plan=fmt(r.plan),
+                        unit=unit,
+                    )
+                    + (
+                        t("noch {rest} frei.", rest=fmt(rest, 2))
+                        if rest >= 0
+                        else t("{rest} zu viel.", rest=fmt(-rest, 2))
+                    )
+                )
+            if chart := _product_chart(d_preview, unit):
+                st.altair_chart(chart, width="stretch")
+            if after.products != base.products or data.sprint(after.id) is None:
+                if st.button(t("Produktwerte speichern und weiter"), type="primary"):
+                    ok = save(
+                        preview,
+                        [f"{after.id}.yaml"],
+                        lambda: [repo.save_sprint(data.team.key, after)],
+                        flash=True,
+                    )
+                    if ok:
+                        _goto(2)
+                        st.rerun()
+                return
+    else:
+        st.caption(
+            t(
+                "Optional: Mit Produkten unter **Team → Produkte** lässt sich hier die "
+                "Verteilung auf die Produkte planen und auswerten."
+            )
         )
-    if data.sprint(sprint.id) is None:
-        st.warning(
-            "Für diesen Sprint sind noch keine Fehltage erfasst – die Kapazität ist nur "
-            "geschätzt. Empfehlung: zuerst die Seite **Fehltage**."
+    st.button(t("Weiter"), on_click=_goto, args=(2,), type="primary")
+
+
+def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
+    unit = data.team.unit.value
+    sprint = _base_sprint(data, sprint)
+    entry = fc.entry(sprint.id)
+    st.subheader(t("Forecast IST – vor dem Sprintstart"))
+    if entry:
+        st.caption(
+            t(
+                "Forecast PLAN {plan} {unit} · Kapazität {capacity} PT",
+                plan=fmt(entry.result.plan),
+                unit=unit,
+                capacity=capacity_label(entry),
+            )
+        )
+    planned = [v.planned for v in sprint.products.values() if v.planned is not None]
+    if planned:
+        st.caption(
+            t("Summe Planning je Produkt: {total} {unit}", total=fmt(sum(planned), 2), unit=unit)
         )
     with st.form(f"planning-{sprint.id}"):
         forecast_ist = _number(
-            f"Forecast IST ({unit})",
+            t("Forecast IST ({unit})", unit=unit),
             sprint.forecast_ist,
             f"fist-{sprint.id}",
             help_text("forecast_ist"),
         )
         p = sprint.planning or Planning()
-        with st.expander("Kontrollrechnung (optional)", expanded=sprint.planning is not None):
+        with st.expander(t("Kontrollrechnung (optional)"), expanded=sprint.planning is not None):
             st.caption(
-                "Prüft, ob die Planung in den Forecast PLAN passt: Delta = Forecast PLAN − "
-                "(Überkipper + Backlog − Korrekturen). Wirkt sich auf keine andere Kennzahl aus. "
-                "Ist der Forecast IST leer, wird er mit Überkipper + Backlog vorbelegt; weicht er "
-                "davon ab, erscheint ein Hinweis."
+                t(
+                    "Prüft, ob die Planung in den Forecast PLAN passt: Delta = Forecast PLAN − "
+                    "(Überkipper + Backlog − Korrekturen). Wirkt sich auf keine andere Kennzahl "
+                    "aus. Ist der Forecast IST leer, wird er mit Überkipper + Backlog vorbelegt; "
+                    "weicht er davon ab, erscheint ein Hinweis."
+                )
             )
             carryover = _number(
-                f"Überkipper ({unit})",
+                t("Überkipper ({unit})", unit=unit),
                 p.carryover or None,
                 f"carry-{sprint.id}",
                 help_text("carryover"),
@@ -394,27 +1110,47 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 f"Backlog ({unit})", p.backlog or None, f"backlog-{sprint.id}", help_text("backlog")
             )
             corrections_raw = st.text_input(
-                f"Korrekturen Restaufwände ({unit})",
+                t("Korrekturen Restaufwände ({unit})", unit=unit),
                 " ".join(f"{c:g}" for c in p.corrections),
                 help=help_text("corrections"),
             )
-        submitted = st.form_submit_button("Planning speichern", type="primary")
+        refreeze = False
+        if offer := refreeze_offer(sprint, entry):
+            refreeze = st.checkbox(
+                t(
+                    "Forecast PLAN neu einfrieren ({frozen} → {current} {unit})",
+                    frozen=fmt(offer[0]),
+                    current=fmt(offer[1]),
+                    unit=unit,
+                ),
+                value=False,
+                key=f"refreeze-{sprint.id}",
+                help=t(
+                    "Der beim ersten Planning eingefrorene Wert ist die Basis der "
+                    "Standardverteilung je Produkt und bleibt sonst unverändert."
+                ),
+            )
+        submitted = st.form_submit_button(t("Planning speichern"), type="primary")
     if not submitted:
         return
     try:
         corrections = parse_numbers(corrections_raw)
     except ValueError:
-        st.error("Korrekturen: bitte Zahlen mit Leerzeichen getrennt eingeben.")
+        st.error(t("Korrekturen: bitte Zahlen mit Leerzeichen getrennt eingeben."))
         return
     prefilled = apply_planning(
         sprint,
         forecast_ist,
         Planning(carryover=carryover or 0.0, backlog=backlog or 0.0, corrections=corrections),
     )
+    freeze_plan(sprint, entry, fc.today, refreeze=refreeze)
     if prefilled:
         st.info(
-            "Forecast IST aus Überkipper + Backlog übernommen: "
-            f"{fmt(sprint.forecast_ist, 2)} {unit}"
+            t(
+                "Forecast IST aus Überkipper + Backlog übernommen: {value} {unit}",
+                value=fmt(sprint.forecast_ist, 2),
+                unit=unit,
+            )
         )
     after = with_sprints(data, [sprint])
     if save(
@@ -425,9 +1161,17 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         e = build_forecast(after, fc.today).entry(sprint.id)
         if e and e.result.planning_total is not None:
             st.info(
-                f"Planning-Summe {fmt(e.result.planning_total, 2)} {unit} · Forecast PLAN "
-                f"{fmt(e.result.plan)} {unit} · Delta {fmt(e.result.planning_delta, 2)} {unit}"
+                t(
+                    "Planning-Summe {total} {unit} · Forecast PLAN {plan} {unit} · Delta "
+                    "{delta} {unit}",
+                    total=fmt(e.result.planning_total, 2),
+                    plan=fmt(e.result.plan),
+                    delta=fmt(e.result.planning_delta, 2),
+                    unit=unit,
+                )
             )
+        if sprint.forecast_ist is not None:
+            st.success(t("Planning {id} vollständig – der Sprint kann starten.", id=sprint.id))
 
 
 def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
@@ -439,11 +1183,16 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     computed = sprint_capacity(data.team, data.people, sprint).capacity if data.people else None
     with st.form(f"review-{sprint.id}"):
         capacity = _number(
-            "Kapazität (PT) – wird eingefroren",
+            t("Kapazität (PT) – wird eingefroren"),
             sprint.capacity if sprint.capacity is not None else computed,
             f"capacity-{sprint.id}",
             help_text("capacity")
-            + (f"\n\nLaut Personenliste und Fehltagen: {fmt(computed)} PT" if computed else ""),
+            + (
+                "\n\n"
+                + t("Laut Personenliste und Fehltagen: {capacity} PT", capacity=fmt(computed))
+                if computed
+                else ""
+            ),
         )
         velocity = _number(
             f"Velocity ({unit})", sprint.velocity, f"velocity-{sprint.id}", help_text("velocity")
@@ -457,20 +1206,29 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             step=5.0,
             help=help_text("scope_creep"),
         )
+        product_rows = None
+        entry = fc.entry(sprint.id)
+        if data.products and entry is not None:
+            st.markdown(f"**{t('Erledigt je Produkt')}**")
+            product_rows = _product_editor(
+                distribution(fc, entry), ["done"], f"review-products-{sprint.id}", unit
+            )
         tag = st.checkbox(
-            f"Beim Commit Tag {data.team.key}/{sprint.id} setzen",
+            t("Beim Commit Tag {tag} setzen", tag=f"{data.team.key}/{sprint.id}"),
             value=True,
             key=f"review-tag-{sprint.id}",
         )
-        submitted = st.form_submit_button("Review speichern", type="primary")
+        submitted = st.form_submit_button(t("Review speichern"), type="primary")
     if not submitted:
         return
     if capacity is None:
-        st.error("Bitte die Kapazität angeben.")
+        st.error(t("Bitte die Kapazität angeben."))
         return
     sprint.capacity = capacity
     sprint.velocity = velocity
     sprint.scope_creep = None if scope is None else scope / 100
+    if product_rows is not None:
+        sprint = apply_product_values(sprint, product_rows, ["done"])
     save(
         with_sprints(data, [sprint]),
         [f"{sprint.id}.yaml"],
@@ -480,15 +1238,17 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 
 def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
-    st.header("Analyse")
+    st.header(t("Analyse"))
     st.caption(
-        "Ergänzt den Forecast. Die Werte auf der Seite **Forecast** (Forecast PLAN, Roadmap, "
-        "Kleinkram) bleiben unverändert."
+        t(
+            "Ergänzt den Forecast. Die Werte auf der Seite **Forecast** (Forecast PLAN, Roadmap, "
+            "Kleinkram) bleiben unverändert."
+        )
     )
     unit = data.team.unit.value
     window = data.team.forecast.window
 
-    st.subheader("Bandbreite")
+    st.subheader(t("Bandbreite"))
     rows = []
     for e in fc.upcoming():
         b = band(fc, e)
@@ -496,60 +1256,73 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
             {
                 "Sprint": e.sprint.id,
                 f"Forecast PLAN ({unit})": fmt(e.result.plan),
-                "konservativ": fmt(b.low if b else None),
-                "mittel": fmt(b.mid if b else None),
-                "optimistisch": fmt(b.high if b else None),
+                t("konservativ"): fmt(b.low if b else None),
+                t("mittel"): fmt(b.mid if b else None),
+                t("optimistisch"): fmt(b.high if b else None),
             }
         )
     st.dataframe(pd.DataFrame(rows), hide_index=True)
     st.caption(
-        f"Forecast mit der niedrigsten, mittleren (Median) und höchsten normierten Velocity der "
-        f"letzten {window} Sprints statt des Trends – zeigt, wie stark die Planung schwanken kann."
+        t(
+            "Forecast mit der niedrigsten, mittleren (Median) und höchsten normierten Velocity "
+            "der letzten {window} Sprints statt des Trends – zeigt, wie stark die Planung "
+            "schwanken kann.",
+            window=window,
+        )
     )
 
-    st.subheader("Wann ist es fertig?")
+    st.subheader(t("Wann ist es fertig?"))
     share = data.team.forecast.roadmap_share
     with st.form("completion"):
         rest = st.number_input(
-            f"Restmenge ({unit})", min_value=0.0, value=None, step=1.0, key="rest",
-            help="Noch offene Arbeit, z. B. die Summe eines Roadmap-Themas.",
+            t("Restmenge ({unit})", unit=unit), min_value=0.0, value=None, step=1.0, key="rest",
+            help=t("Noch offene Arbeit, z. B. die Summe eines Roadmap-Themas."),
         )  # fmt: skip
         basis = st.radio(
-            "Verfügbar je Sprint",
-            [f"Roadmap-Anteil ({pct(share)})", "gesamter Forecast"],
+            t("Verfügbar je Sprint"),
+            ["roadmap", "total"],
+            format_func=lambda k: (
+                t("Roadmap-Anteil ({share})", share=pct(share))
+                if k == "roadmap"
+                else t("gesamter Forecast")
+            ),
             horizontal=True,
             key="basis",
         )
         project = st.number_input(
-            "Projektanteil (%)",
+            t("Projektanteil (%)"),
             min_value=1.0,
             max_value=100.0,
             value=100.0,
             step=5.0,
             key="project_share",
-            help="Welcher Teil der oben gewählten Kapazität in dieses Projekt fließt – z. B. 50, "
-            "wenn parallel ein zweites Roadmap-Thema gleich stark bearbeitet wird.",
+            help=t(
+                "Welcher Teil der oben gewählten Kapazität in dieses Projekt fließt – z. B. 50, "
+                "wenn parallel ein zweites Roadmap-Thema gleich stark bearbeitet wird."
+            ),
         )
-        submitted = st.form_submit_button("Berechnen", type="primary")
+        submitted = st.form_submit_button(t("Berechnen"), type="primary")
     if submitted and rest:
-        basis_share = share if basis.startswith("Roadmap") else 1.0
+        basis_share = share if basis == "roadmap" else 1.0
         used_share = basis_share * project / 100
         result = completion(data, fc.today, rest, used_share)
         if result is None:
-            st.warning("Zu wenig Historie für eine Fertigstellungsprognose.")
+            st.warning(t("Zu wenig Historie für eine Fertigstellungsprognose."))
         else:
+            later = t("nach dem Zeitraum")
             left, middle, right = st.columns(3)
             left.metric(
-                f"je Sprint für das Projekt ({pct(used_share)} des Forecasts)",
+                t("je Sprint für das Projekt ({share} des Forecasts)", share=pct(used_share)),
                 f"≈ {fmt(result.per_sprint, 1)} {unit}",
-                help="Median der normierten Velocity × typische Kapazität × Anteil.",
+                help=t("Median der normierten Velocity × typische Kapazität × Anteil."),
             )
-            middle.metric("wahrscheinlich (50 %)", result.p50 or "nach dem Zeitraum")
-            right.metric("mit 85 % Sicherheit", result.p85 or "nach dem Zeitraum")
-            chart = pd.DataFrame({"Sprint": result.sprints, "fertig bis dahin": result.cumulative})
+            middle.metric(t("wahrscheinlich (50 %)"), result.p50 or later)
+            right.metric(t("mit 85 % Sicherheit"), result.p85 or later)
+            done_col = t("fertig bis dahin")
+            chart = pd.DataFrame({"Sprint": result.sprints, done_col: result.cumulative})
             # vom ersten Sprint mit Chance bis zum ersten mit (fast) 100 %
-            done = chart.index[chart["fertig bis dahin"] >= 0.999]
-            chart = chart[chart["fertig bis dahin"] > 0]
+            done = chart.index[chart[done_col] >= 0.999]
+            chart = chart[chart[done_col] > 0]
             if len(done):
                 chart = chart.loc[: done[0]]
             st.altair_chart(
@@ -558,74 +1331,225 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 .encode(
                     x=alt.X("Sprint:N", sort=list(chart["Sprint"])),
                     y=alt.Y(
-                        "fertig bis dahin:Q", axis=alt.Axis(format="%"), title="Wahrscheinlichkeit"
+                        f"{done_col}:Q",
+                        axis=alt.Axis(format="%"),
+                        title=t("Wahrscheinlichkeit"),
                     ),
-                    tooltip=["Sprint:N", alt.Tooltip("fertig bis dahin:Q", format=".0%")],
+                    tooltip=["Sprint:N", alt.Tooltip(f"{done_col}:Q", format=".0%")],
                 ),
                 width="stretch",
             )
-            st.caption(
-                f"Monte-Carlo-Simulation ({result.runs:,} Durchläufe) ab dem nächsten Sprint: je "
-                "Sprint eine zufällige normierte Velocity der letzten Sprints × Kapazität."
-                + (
-                    f" Ohne erfasste Fehltage mit Ø Kapazität gerechnet: "
-                    f"{', '.join(result.trend_capacity_sprints[:4])}"
-                    f"{' …' if len(result.trend_capacity_sprints) > 4 else ''}."
-                    if result.trend_capacity_sprints
-                    else ""
-                )
+            caption = t(
+                "Monte-Carlo-Simulation ({runs} Durchläufe) ab dem nächsten Sprint: je Sprint "
+                "eine zufällige normierte Velocity der letzten Sprints × Kapazität.",
+                runs=f"{result.runs:,}",
             )
+            if result.trend_capacity_sprints:
+                listed = ", ".join(result.trend_capacity_sprints[:4])
+                if len(result.trend_capacity_sprints) > 4:
+                    listed += " …"
+                caption += t(
+                    " Ohne erfasste Fehltage mit Ø Kapazität gerechnet: {sprints}.", sprints=listed
+                )
+            st.caption(caption)
 
-    st.subheader("Fokusfaktor")
+    st.subheader(t("Fokusfaktor"))
     st.metric(
-        f"Ø Fokusfaktor (letzte {window} Sprints)",
+        t("Ø Fokusfaktor (letzte {window} Sprints)", window=window),
         fmt(average_focus_factor(fc), 2),
-        help="Velocity / Kapazität. Anders als die normierte Velocity unabhängig von der "
-        "Referenzkapazität – damit zwischen Teams vergleichbar. Literaturwerte (0,6–0,8) "
-        "beziehen sich meist auf reine Arbeitszeit; zählt die Kapazität alle Anwesenheitstage, "
-        "liegen die Werte niedriger.",
+        help=t(
+            "Velocity / Kapazität. Anders als die normierte Velocity unabhängig von der "
+            "Referenzkapazität – damit zwischen Teams vergleichbar. Literaturwerte (0,6–0,8) "
+            "beziehen sich meist auf reine Arbeitszeit; zählt die Kapazität alle "
+            "Anwesenheitstage, liegen die Werte niedriger."
+        ),
     )
     st.dataframe(
         pd.DataFrame(
             [
-                {"Sprint": e.sprint.id, "Fokusfaktor": fmt(focus_factor(e), 2)}
+                {"Sprint": e.sprint.id, t("Fokusfaktor"): fmt(focus_factor(e), 2)}
                 for e in fc.history(window)
             ]
         ),
         hide_index=True,
     )
 
-    st.subheader("Puffer für Ungeplantes")
+    st.subheader(t("Puffer für Ungeplantes"))
     hint = buffer_hint(fc)
     if hint.average_scope_creep is None:
-        st.info("Scope Creep wurde zuletzt nicht erfasst – keine Empfehlung möglich.")
+        st.info(t("Scope Creep wurde zuletzt nicht erfasst – keine Empfehlung möglich."))
     else:
-        text = (
-            f"Ø Scope Creep der letzten {hint.samples} Sprints: "
-            f"**{pct(hint.average_scope_creep)}** · eingestellter Kleinkram-Anteil: "
-            f"**{pct(hint.configured_small_stuff)}**"
+        text = t(
+            "Ø Scope Creep der letzten {count} Sprints: **{scope}** · eingestellter "
+            "Kleinkram-Anteil: **{small}**",
+            count=hint.samples,
+            scope=pct(hint.average_scope_creep),
+            small=pct(hint.configured_small_stuff),
         )
         if hint.buffer_too_small:
-            st.warning(text + " – der Puffer ist kleiner als der ungeplante Anteil.")
+            st.warning(text + t(" – der Puffer ist kleiner als der ungeplante Anteil."))
         elif hint.sufficient_data:
-            st.success(text + " – passt.")
+            st.success(text + t(" – passt."))
         else:
-            st.info(text + " – zu wenige Werte für eine Empfehlung.")
+            st.info(text + t(" – zu wenige Werte für eine Empfehlung."))
+
+
+def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header(t("Produktverteilung"))
+    unit = data.team.unit.value
+    if not data.products:
+        st.info(
+            t(
+                "Noch keine Produkte erfasst. Mit Produkten zeigt diese Seite, wie sich die "
+                "Sprint-Menge auf die Produkte verteilt: Standard, PO-Vorplanung, Planning und "
+                "Erledigt."
+            )
+        )
+        page_link("produktliste", t("Produkte anlegen"))
+        return
+    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="products-sprint")
+    if sprint is None:
+        return
+    entry = fc.entry(sprint.id)
+    if entry is None:
+        return
+    st.caption(
+        t(
+            "Die **PO-Vorplanung** tragen die POs vor dem Planning ein, **Planning** wird im "
+            "Sprint Planning gefüllt, **Erledigt** im Review. Alles lässt sich auch hier pflegen."
+        )
+    )
+    d = distribution(fc, entry)
+    rows = _product_editor(d, ["preplanned", "planned", "done"], f"products-{sprint.id}", unit)
+    if rows is not None:
+        base = _base_sprint(data, sprint)
+        after = apply_product_values(base, rows, ["preplanned", "planned", "done"])
+        preview = with_sprints(data, [after])
+        fc_preview = build_forecast(preview, fc.today)
+        d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+        changed = after.products != base.products
+        if st.button(t("Produktwerte speichern"), type="primary", disabled=not changed):
+            save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
+        if chart := _product_chart(d, unit):
+            st.altair_chart(chart, width="stretch")
+        if po_rows := by_po(d):
+            st.markdown(f"**{t('Je PO')}**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {"PO": po, **{measure_label(m): fmt(v, 2) for m, v in totals.items()}}
+                        for po, totals in po_rows
+                    ]
+                ),
+                hide_index=True,
+            )
+
+    st.subheader(t("Verlauf"))
+    count = st.number_input(
+        t("Anzahl Sprints"), min_value=2, max_value=26, value=6, key="products-n"
+    )
+    entries = [e for e in fc.entries if e.sprint.start <= sprint.start][-int(count) :]
+    chosen = st.radio(
+        t("Kennzahl"),
+        ["done", "planned", "preplanned"],
+        format_func=measure_label,
+        horizontal=True,
+        key="products-measure",
+    )
+    chart = _history_chart(fc, entries, chosen, unit)
+    if chart is None:
+        st.info(
+            t(
+                "In diesen Sprints ist noch kein Wert „{measure}“ erfasst.",
+                measure=measure_label(chosen),
+            )
+        )
+    else:
+        st.altair_chart(chart, width="stretch")
+    st.subheader(t("Saldo gegenüber der Standardverteilung"))
+    _balance_section(fc, entries, unit)
+
+
+def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header(t("Produkte"))
+    st.markdown(
+        t(
+            "Produkte, die das Team betreut – mit verantwortlichem PO (optional) und Zeitraum.  \n"
+            "**Produkt abgegeben:** **bis** setzen statt löschen – sonst fehlen die Werte "
+            "vergangener Sprints in der Auswertung.  \n"
+            "**Neues Produkt:** Zeile ergänzen, **ab** = erster betreuter Tag (leer = schon "
+            "immer)."
+        )
+    )
+    show_former = st.toggle(t("Ehemalige anzeigen"), value=False, key="show_former_products")
+    rows, hidden = product_table(data.products, fc.today, show_former)
+    if hidden:
+        st.caption(t("{count} ehemalige(s) Produkt(e) ausgeblendet.", count=len(hidden)))
+    frame = pd.DataFrame(rows, columns=PRODUCT_COLUMNS)
+    for col in ("ab", "bis"):
+        frame[col] = pd.to_datetime(frame[col])
+    frame["PO"] = frame["PO"].astype("string")
+    edited = st.data_editor(
+        frame,
+        column_config={
+            "_id": None,
+            "Name": st.column_config.TextColumn(t("Name"), required=True),
+            "PO": st.column_config.TextColumn("PO", help=t("Verantwortlicher Product Owner")),
+            "ab": st.column_config.DateColumn(
+                t("ab"), format="DD.MM.YYYY", help=t("Leer = schon immer")
+            ),
+            "bis": st.column_config.DateColumn(
+                t("bis"), format="DD.MM.YYYY", help=t("Leer = weiterhin betreut")
+            ),
+        },
+        num_rows="dynamic",
+        hide_index=True,
+        key=f"products-list-{data.team.key}-{show_former}",
+    )
+    result = products_from_table(edited.to_dict("records"), data.products, hidden)
+    confirmed = True
+    if result.deleted:
+        st.warning(
+            t(
+                "Gelöscht: {names}.  \nNur löschen, wenn falsch erfasst. Gibt das Team ein "
+                "Produkt ab, stattdessen **bis** setzen.",
+                names=", ".join(result.deleted),
+            )
+        )
+        confirmed = st.checkbox(
+            t("Ja, die Zeilen waren Fehleingaben"), key="confirm_delete_products"
+        )
+    if not st.button(t("Produkte speichern"), type="primary", disabled=not confirmed):
+        return
+    if result.errors:
+        for e in result.errors:
+            st.error(e)
+        return
+    after = copy.deepcopy(data)
+    after.products = result.products
+    save(
+        after,
+        ["products.yaml"],
+        lambda: [repo.save_products(data.team.key, result.products)],
+        block_on_all_errors=True,
+    )
 
 
 def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
-    st.header("Personen")
+    st.header(t("Personen"))
     st.markdown(
-        "Eine Zeile je Zeitraum im Team.  \n"
-        "**Austritt:** in der Zeile **bis** setzen – nicht löschen, sonst ändern sich "
-        "Kapazitäten und Fehltage vergangener Sprints.  \n"
-        "**FTE-Änderung:** in der bisherigen Zeile **bis** setzen und eine neue Zeile mit "
-        "**gleichem Namen** und neuem FTE-Anteil anlegen."
+        t(
+            "Eine Zeile je Zeitraum im Team.  \n"
+            "**Austritt:** in der Zeile **bis** setzen – nicht löschen, sonst ändern sich "
+            "Kapazitäten und Fehltage vergangener Sprints.  \n"
+            "**FTE-Änderung:** in der bisherigen Zeile **bis** setzen und eine neue Zeile mit "
+            "**gleichem Namen** und neuem FTE-Anteil anlegen."
+        )
     )
-    show_former = st.toggle("Ehemalige anzeigen", value=False, key="show_former")
+    show_former = st.toggle(t("Ehemalige anzeigen"), value=False, key="show_former")
     rows, hidden = people_table(data.people, fc.today, show_former)
     if hidden:
-        st.caption(f"{len(hidden)} ehemalige Person(en) ausgeblendet.")
+        st.caption(t("{count} ehemalige Person(en) ausgeblendet.", count=len(hidden)))
     frame = pd.DataFrame(rows, columns=PEOPLE_COLUMNS)
     for col in ("ab", "bis"):
         frame[col] = pd.to_datetime(frame[col])
@@ -633,18 +1557,18 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
         frame,
         column_config={
             "_id": None,  # interne ID, wird automatisch vergeben
-            "Name": st.column_config.TextColumn("Name", required=True),
+            "Name": st.column_config.TextColumn(t("Name"), required=True),
             "Bundesland": st.column_config.SelectboxColumn(
-                "Bundesland",
+                t("Bundesland"),
                 options=[TEAM_REGION, *REGIONS],
                 default=TEAM_REGION,
-                help="(Team) = Einstellung des Teams",
+                help=t("(Team) = Einstellung des Teams"),
             ),
             "ab": st.column_config.DateColumn(
-                "ab", format="DD.MM.YYYY", required=True, default=fc.today
+                t("ab"), format="DD.MM.YYYY", required=True, default=fc.today
             ),
             "bis": st.column_config.DateColumn(
-                "bis", format="DD.MM.YYYY", help="Leer = weiterhin im Team"
+                t("bis"), format="DD.MM.YYYY", help=t("Leer = weiterhin im Team")
             ),
             "FTE": st.column_config.NumberColumn(
                 "FTE",
@@ -652,7 +1576,7 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 max_value=1.0,
                 step=0.05,
                 default=1.0,
-                help="Anteil im Team, 1 = Vollzeit",
+                help=t("Anteil im Team, 1 = Vollzeit"),
             ),
         },
         num_rows="dynamic",
@@ -663,12 +1587,15 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
     confirmed = True
     if result.deleted:
         st.warning(
-            f"Gelöscht: {', '.join(result.deleted)}.  \nZeilen nur löschen, wenn sie "
-            "**falsch erfasst** wurden. Verlässt jemand das Team, stattdessen **bis** setzen – "
-            "sonst entstehen Inkonsistenzen (z. B. Fehltage für unbekannte Personen)."
+            t(
+                "Gelöscht: {names}.  \nZeilen nur löschen, wenn sie **falsch erfasst** wurden. "
+                "Verlässt jemand das Team, stattdessen **bis** setzen – sonst entstehen "
+                "Inkonsistenzen (z. B. Fehltage für unbekannte Personen).",
+                names=", ".join(result.deleted),
+            )
         )
-        confirmed = st.checkbox("Ja, die Zeilen waren Fehleingaben", key="confirm_delete")
-    if not st.button("Personen speichern", type="primary", disabled=not confirmed):
+        confirmed = st.checkbox(t("Ja, die Zeilen waren Fehleingaben"), key="confirm_delete")
+    if not st.button(t("Personen speichern"), type="primary", disabled=not confirmed):
         return
     if result.errors:
         for e in result.errors:
@@ -685,25 +1612,23 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
 def _setting_widget(setting: Setting, team: Team, key: str) -> str:
     """Zeigt das passende Eingabefeld und liefert den Wert als Text für Setting.parse."""
     shown = setting.display(team)
-    label = setting.label
+    label, help = setting.title, setting.text
     match setting.kind:
         case Kind.TEXT:
-            return st.text_input(label, shown, help=setting.help, key=key)
+            return st.text_input(label, shown, help=help, key=key)
         case Kind.CHOICE:
-            assert setting.choices is not None
-            options = ([""] if setting.optional else []) + list(setting.choices)
+            choices = setting.options or {}
+            options = ([""] if setting.optional else []) + list(choices)
             return st.selectbox(
                 label,
                 options,
                 index=options.index(shown) if shown in options else 0,
-                format_func=lambda k: f"{k} – {setting.choices[k]}" if k else "(keine Angabe)",
-                help=setting.help,
+                format_func=lambda k: f"{k} – {choices[k]}" if k else t("(keine Angabe)"),
+                help=help,
                 key=key,
             )
         case Kind.DATE:
-            value = st.date_input(
-                label, setting.get(team), help=setting.help, key=key, format="DD.MM.YYYY"
-            )
+            value = st.date_input(label, setting.get(team), help=help, key=key, format="DD.MM.YYYY")
             return value.isoformat() if isinstance(value, date) else ""
         case Kind.INT:
             value = st.number_input(
@@ -712,7 +1637,7 @@ def _setting_widget(setting: Setting, team: Team, key: str) -> str:
                 max_value=int(setting.maximum) if setting.maximum is not None else None,
                 value=int(shown),
                 step=1,
-                help=setting.help,
+                help=help,
                 key=key,
             )
             return str(value)
@@ -722,8 +1647,8 @@ def _setting_widget(setting: Setting, team: Team, key: str) -> str:
                 min_value=float(setting.minimum) if setting.minimum is not None else None,
                 max_value=float(setting.maximum) if setting.maximum is not None else None,
                 value=float(shown),
-                step=0.5 if setting.kind is Kind.PERCENT else 1.0,
-                help=setting.help,
+                step=setting.step or (0.5 if setting.kind is Kind.PERCENT else 1.0),
+                help=help,
                 key=key,
             )
             return str(value)
@@ -745,35 +1670,37 @@ def _settings_form(team: Team, has_sprints: bool, form_key: str, submit: str) ->
         try:
             value = s.parse(raw[s.key])
             if value is None and s.only_without_sprints:
-                raise ValueError("Bitte einen Wert eingeben.")
+                raise ValueError(t("Bitte einen Wert eingeben."))
             s.set(edited, value)
         except ValueError as e:
-            errors.append(f"{s.label}: {e}")
+            errors.append(f"{s.title}: {e}")
     for e in errors:
         st.error(e)
     return None if errors else edited
 
 
 def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
-    st.header(f"Einstellungen {data.team.name}")
-    edited = _settings_form(data.team, bool(data.sprints), f"settings-{data.team.key}", "Speichern")
+    st.header(t("Einstellungen {team}", team=data.team.name))
+    edited = _settings_form(
+        data.team, bool(data.sprints), f"settings-{data.team.key}", t("Speichern")
+    )
     if edited is None:
         return
     diff = changes(data.team, edited)
     if not diff:
-        st.info("Keine Änderungen.")
+        st.info(t("Keine Änderungen."))
         return
     st.dataframe(
         pd.DataFrame(
             [
-                {"Einstellung": s.label, "bisher": old or "–", "neu": new or "–"}
+                {t("Einstellung"): s.title, t("bisher"): old or "–", t("neu"): new or "–"}
                 for s, old, new in diff
             ]
         ),
         hide_index=True,
     )
     if any(s.retroactive for s, _, _ in diff):
-        st.warning("Mindestens eine Änderung wirkt rückwirkend auf alle berechneten Werte.")
+        st.warning(t("Mindestens eine Änderung wirkt rückwirkend auf alle berechneten Werte."))
     after = copy.deepcopy(data)
     after.team = edited
     save(
@@ -784,22 +1711,22 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 
 def page_new_team(repo: Repository) -> None:
-    st.header("Neues Team anlegen")
+    st.header(t("Neues Team anlegen"))
     key = (
-        st.text_input("Team-Kürzel (Verzeichnisname)", help="Kleinbuchstaben, z. B. team-a")
+        st.text_input(t("Team-Kürzel (Verzeichnisname)"), help=t("Kleinbuchstaben, z. B. team-a"))
         .strip()
         .lower()
     )
     if not key:
         return
     if repo.exists(key):
-        st.error(f"Team '{key}' existiert bereits.")
+        st.error(t("Team {team} existiert bereits.", team=repr(key)))
         return
     team = Team(key=key, name=key.upper())
     team.sprint.first_start = today()
     team.sprint.first_id = f"{today().year}.1"
     team.sprint.numbering = Numbering.YEARLY
-    edited = _settings_form(team, False, f"new-{key}", "Team anlegen")
+    edited = _settings_form(team, False, f"new-{key}", t("Team anlegen"))
     if edited is None:
         return
     if save(
@@ -808,14 +1735,157 @@ def page_new_team(repo: Repository) -> None:
         lambda: [repo.save_team(edited), repo.save_people(key, [])],
     ):
         st.session_state["selected_team"] = key
-        page_link("personen", "Weiter: Personen erfassen")
+        page_link("personen", t("Weiter: Personen erfassen"))
+
+
+def needs_setup(root: Path) -> bool:
+    """Kein Datenordner gefunden: weder Teams noch ein Git-Repository."""
+    return teams_dir(root) is None and git_root(root) is None
+
+
+def _use_data_dir(path: Path) -> None:
+    save_data_dir(path)
+    os.environ[DATA_ENV] = str(path.resolve())
+    st.session_state.pop("selected_team", None)
+    st.session_state["flash"] = [("success", t("Datenordner: `{path}`", path=path.resolve()))]
+
+
+def _browse(key: str) -> None:
+    """Ordnerauswahl des Systems (in eigenem Prozess – Tk braucht den Hauptthread)."""
+    title = t("Datenordner wählen").replace("'", "")
+    script = (
+        "import tkinter, tkinter.filedialog as f; r = tkinter.Tk(); r.withdraw(); "
+        f"r.attributes('-topmost', True); print(f.askdirectory(title='{title}'))"
+    )
+    try:
+        out = subprocess.run(
+            [sys.executable, "-c", script], capture_output=True, text=True, timeout=600
+        )
+    except OSError, subprocess.TimeoutExpired:
+        out = None
+    if out is not None and out.returncode == 0 and out.stdout.strip():
+        st.session_state[key] = out.stdout.strip()
+    elif out is None or out.returncode != 0:
+        st.session_state["browse-error"] = True
+
+
+def _path_input(label: str, key: str, default: str) -> Path:
+    st.session_state.setdefault(key, default)
+    left, right = st.columns([5, 1], vertical_alignment="bottom")
+    raw = left.text_input(label, key=key)
+    right.button(t("Durchsuchen …"), key=f"{key}-browse", on_click=_browse, args=(key,))
+    if st.session_state.pop("browse-error", False):
+        st.caption(t("Kein Ordnerdialog verfügbar – bitte den Pfad eintippen."))
+    return Path(raw.strip()).expanduser()
+
+
+def page_data_dir(repo: Repository, setup: bool = False) -> None:
+    st.header(t("Datenordner"))
+    show_flash()
+    if setup:
+        st.warning(
+            t(
+                "Kein Datenordner gefunden. Die Team-Daten liegen in einem **Git-Repository** – "
+                "so sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen "
+                "vorhandenen Ordner wählen, ein neues Daten-Repository anlegen oder ein "
+                "bestehendes klonen."
+            )
+        )
+    else:
+        root = git_root(repo.root)
+        st.markdown(t("Aktuell: `{path}`", path=repo.root.resolve()))
+        st.caption(
+            t("Git-Repository: `{path}`", path=root)
+            if root
+            else t("Achtung: liegt in keinem Git-Repository.")
+        )
+    choose, create, clone = st.tabs(
+        [
+            t("Vorhandenen Ordner wählen"),
+            t("Neues Daten-Repository anlegen"),
+            t("Repository klonen"),
+        ]
+    )
+    home = Path.home()
+    with choose:
+        path = _path_input(t("Ordner"), "data-path", str(repo.root.resolve()))
+        if st.button(t("Übernehmen"), type="primary", key="data-choose"):
+            if not path.is_dir():
+                st.error(t("Ordner nicht gefunden: {path}", path=path))
+            elif git_root(path) is None:
+                st.error(
+                    t(
+                        "Der Ordner liegt in keinem Git-Repository. Entweder hier eines anlegen "
+                        "oder einen anderen Ordner wählen."
+                    )
+                )
+                st.session_state["offer-init"] = str(path)
+            else:
+                _use_data_dir(teams_dir(path) or path)
+                st.rerun()
+        offer = st.session_state.get("offer-init")
+        if offer and st.button(
+            t("Git-Repository in {path} anlegen", path=offer), key="data-init-here"
+        ):
+            try:
+                target = init_data_repository(Path(offer), teams_folder=False)
+            except GitError as e:
+                st.error(str(e))
+            else:
+                st.session_state.pop("offer-init", None)
+                _use_data_dir(teams_dir(target) or target)
+                st.rerun()
+    with create:
+        st.caption(
+            t(
+                "Legt den Ordner mit `git init`, einer `.gitignore` (keine Tabellenkalkulationen) "
+                "und dem Unterordner `teams` an. Danach unter **Neues Team** ein Team anlegen."
+            )
+        )
+        path = _path_input(t("Neuer Ordner"), "data-new", str(home / "sprint-daten"))
+        if st.button(t("Anlegen"), type="primary", key="data-create"):
+            if path.exists() and any(path.iterdir()) and teams_dir(path) is None:
+                st.error(
+                    t(
+                        "{path} ist nicht leer – bitte einen leeren oder neuen Ordner wählen.",
+                        path=path,
+                    )
+                )
+            else:
+                try:
+                    target = init_data_repository(path)
+                except GitError as e:
+                    st.error(str(e))
+                else:
+                    _use_data_dir(target)
+                    st.rerun()
+    with clone:
+        st.caption(
+            t(
+                "Für Kolleginnen und Kollegen: das gemeinsame Daten-Repository des Teams klonen. "
+                "Je nach Server fragt Git nach der Anmeldung."
+            )
+        )
+        url = st.text_input(
+            t("Adresse"), placeholder="https://git.example.com/team/sprint-daten.git"
+        )
+        path = _path_input(t("Zielordner"), "data-clone", str(home / "sprint-daten"))
+        if st.button(t("Klonen"), type="primary", key="data-clone-go", disabled=not url.strip()):
+            with st.spinner(t("Klone …")):
+                try:
+                    clone_repository(url.strip(), path)
+                except GitError as e:
+                    st.error(t("Klonen fehlgeschlagen: {error}", error=e))
+                else:
+                    _use_data_dir(teams_dir(path) or path)
+                    st.rerun()
 
 
 def page_check(repo: Repository) -> None:
-    st.header("Prüfung aller Teams")
+    st.header(t("Prüfung aller Teams"))
     for key, issues in check_all(repo, today()).items():
         if not issues:
-            st.success(f"{key}: keine Befunde")
+            st.success(t("{team}: keine Befunde", team=key))
             continue
         st.subheader(key)
         for i in issues:
@@ -823,74 +1893,170 @@ def page_check(repo: Repository) -> None:
 
 
 def page_help(repo: Repository) -> None:
-    st.header("Hilfe")
+    st.header(t("Hilfe"))
     st.markdown(
-        "Die Weboberfläche bearbeitet dieselben Dateien wie die Kommandozeile – beides lässt "
-        "sich mischen. Gespeichert wird lokal; mit **Änderungen committen** in der Seitenleiste "
-        "landen die Änderungen im Git-Repository der Daten."
+        t(
+            "Die Weboberfläche bearbeitet dieselben Dateien wie die Kommandozeile – beides lässt "
+            "sich mischen. Gespeichert wird lokal; mit **Änderungen committen** in der "
+            "Seitenleiste landen die Änderungen im Git-Repository der Daten."
+        )
     )
     ablauf, begriffe, felder, team, befehle = st.tabs(
-        ["Ablauf", "Begriffe", "Eingabefelder", "Team-Einstellungen", "Kommandozeile"]
+        [
+            t("Ablauf"),
+            t("Begriffe"),
+            t("Eingabefelder"),
+            t("Team-Einstellungen"),
+            t("Kommandozeile"),
+        ]
     )
     with ablauf:
         for step in WORKFLOW:
             with st.container(border=True):
                 left, right = st.columns([3, 1], vertical_alignment="center")
-                left.caption(step.when)
-                left.markdown(f"**{step.title}**  \n{step.text}")
+                left.caption(t(step.when))
+                left.markdown(f"**{t(step.title)}**  \n{t(step.text)}")
                 with right:
                     page_link(step.page)
     with begriffe:
-        st.table(pd.DataFrame(TERMS, columns=["Begriff", "Bedeutung"]).set_index("Begriff"))
-        st.subheader("Kapazitätsquelle im Forecast")
+        term, meaning = t("Begriff"), t("Bedeutung")
         st.table(
-            pd.DataFrame(CAPACITY_SOURCES, columns=["Quelle", "Bedeutung"]).set_index("Quelle")
+            pd.DataFrame([(t(a), t(b)) for a, b in TERMS], columns=[term, meaning]).set_index(term)
+        )
+        st.subheader(t("Kapazitätsquelle im Forecast"))
+        source = t("Quelle")
+        st.table(
+            pd.DataFrame(
+                [(t(a), t(b)) for a, b in CAPACITY_SOURCES], columns=[source, meaning]
+            ).set_index(source)
         )
     with felder:
         for f in FIELDS.values():
             with st.container(border=True):
-                st.markdown(f"**{f.title}**  \n{f.what}")
-                st.caption(f"Quelle: {f.source} · Beispiel: {f.example}")
+                st.markdown(f"**{t(f.title)}**  \n{t(f.what)}")
+                st.caption(f"{t('Quelle')}: {t(f.source)} · {t('Beispiel')}: {t(f.example)}")
     with team:
+        setting, meaning = t("Einstellung"), t("Bedeutung")
         st.table(
             pd.DataFrame(
-                [(s.label, s.help) for s in SETTINGS], columns=["Einstellung", "Bedeutung"]
-            ).set_index("Einstellung")
+                [(s.title, s.text) for s in SETTINGS], columns=[setting, meaning]
+            ).set_index(setting)
         )
-        page_link("einstellungen", "Einstellungen ändern")
+        page_link("einstellungen", t("Einstellungen ändern"))
     with befehle:
-        st.table(pd.DataFrame(COMMANDS, columns=["Befehl", "Zweck"]).set_index("Befehl"))
-        st.caption("Ausführen mit `uv run …` im Ordner des Tools.")
+        command, purpose = t("Befehl"), t("Zweck")
+        st.table(
+            pd.DataFrame(
+                [(command_text(a), t(b)) for a, b in COMMANDS], columns=[command, purpose]
+            ).set_index(command)
+        )
+        st.caption(t("Ausführen mit `uv run …` im Ordner des Tools."))
 
 
 # --- Seitenleiste und Seitenaufruf ----------------------------------------------------
 
 
 def sidebar(repo: Repository) -> None:
-    """Teamauswahl in der Seitenleiste (vor der Seite, damit diese das Team kennt)."""
+    """Sprach- und Teamauswahl in der Seitenleiste (vor der Seite, damit diese sie kennt)."""
     teams = repo.teams()
     with st.sidebar:
+        codes = list(LANGUAGES)
+        st.session_state.setdefault("language", language())
+        st.selectbox(
+            "Sprache / Language",
+            codes,
+            format_func=LANGUAGES.get,
+            key="language",
+            on_change=_language_changed,
+        )
         if not teams:
-            st.info("Noch kein Team vorhanden.")
+            st.info(t("Noch kein Team vorhanden."))
             return
         wanted = st.session_state.get("selected_team")
         team = st.selectbox("Team", teams, index=teams.index(wanted) if wanted in teams else 0)
         st.session_state["selected_team"] = team
 
 
+@st.cache_resource
+def _update_check() -> updater.AutoUpdate:
+    """Einmal je Serverstart im Hintergrund auf eine neue Version prüfen."""
+    return updater.AutoUpdate().start()
+
+
+def _shutdown_soon() -> None:
+    """Beendet den Server kurz nach dem Zeichnen der Meldung (Neustart übernimmt der
+    Aktualisierungsprozess)."""
+    import threading
+
+    threading.Timer(1.5, lambda: os._exit(0)).start()
+
+
+def _update_panel() -> None:
+    check = _update_check().result(wait=4.0)
+    if check is None or not check.available:
+        return
+    restarting = t("Wird aktualisiert und neu gestartet … Das Fenster öffnet sich gleich neu.")
+    if st.session_state.get("restarting"):
+        st.info(restarting)
+        return
+    if (
+        updater.load_state().get("attempted") == check.latest
+        and st.session_state.get("update-started") is None
+    ):
+        st.warning(
+            t(
+                "Version {latest} ist verfügbar, die Aktualisierung hat aber nicht gegriffen "
+                "(Protokoll: `{log}`). Notfalls das Installationsskript erneut ausführen.",
+                latest=check.latest,
+                log=updater.log_file(),
+            )
+        )
+        return
+    with st.container(border=True):
+        st.markdown(
+            t(
+                "**Neue Version {latest}** verfügbar (installiert: {current}).",
+                latest=check.latest,
+                current=check.current,
+            )
+        )
+        if updater.mode() is updater.Mode.ON:
+            st.caption(t("Wird beim Schließen automatisch installiert."))
+        if st.button(t("Jetzt aktualisieren und neu starten"), icon=":material/system_update:"):
+            if error := updater.restart_with_update():
+                st.error(error)
+                return
+            st.session_state["restarting"] = True
+            st.session_state["update-started"] = True
+            st.info(restarting)
+            _shutdown_soon()
+
+
 def sidebar_footer(repo: Repository) -> None:
     """Git-Bereich und Hinweise – nach der Seite gezeichnet, damit gerade Gespeichertes
     bereits als offene Änderung erscheint."""
+    _update_panel()
     _git_panel(repo)
-    st.caption(f"Daten: `{repo.root.resolve()}`  \nStichtag: {today():%d.%m.%Y}")
+    st.caption(
+        t(
+            "Daten: `{path}`  \nStichtag: {day}  \n{version}",
+            path=repo.root.resolve(),
+            day=f"{today():%d.%m.%Y}",
+            version=status_line(),
+        )
+    )
 
 
 COMMIT_DEFAULT = "Sprint-Daten aktualisiert"
 
 
+def _commit_default() -> str:
+    return t(COMMIT_DEFAULT)
+
+
 def _commit_clicked(root: Path, tags: list[str]) -> None:
     """Callback des Commit-Knopfs; läuft vor dem nächsten Durchlauf des Skripts."""
-    message = st.session_state.get("commit_message", "").strip() or COMMIT_DEFAULT
+    message = st.session_state.get("commit_message", "").strip() or _commit_default()
     use_tags = tags and st.session_state.get("use_tags", True)
     try:
         rev = commit_directory(root, message, tags if use_tags else None)
@@ -899,15 +2065,15 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
         return
     st.session_state["pending_tags"] = []
     st.session_state["last_commit"] = rev
-    st.session_state["commit_message"] = COMMIT_DEFAULT
+    st.session_state["commit_message"] = _commit_default()
 
 
 def _git_panel(repo: Repository) -> None:
     if git_root(repo.root) is None:
-        st.caption("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich.")
+        st.caption(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
         return
     if last := st.session_state.pop("last_commit", None):
-        st.success(f"Committet ({last}). Pushen nicht vergessen.")
+        st.success(t("Committet ({rev}). Pushen nicht vergessen.", rev=last))
     if error := st.session_state.pop("commit_error", None):
         st.error(error)
     try:
@@ -917,20 +2083,22 @@ def _git_panel(repo: Repository) -> None:
         return
     tags = st.session_state.get("pending_tags", [])
     with st.expander(
-        f"Git: {len(changes)} offene Änderung(en)" if changes else "Git: alles committet",
+        t("Git: {count} offene Änderung(en)", count=len(changes))
+        if changes
+        else t("Git: alles committet"),
         expanded=bool(changes),
         icon=":material/commit:",
     ):
         if not changes:
-            st.caption("Keine offenen Änderungen im Datenverzeichnis.")
+            st.caption(t("Keine offenen Änderungen im Datenverzeichnis."))
             return
         st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
-        st.session_state.setdefault("commit_message", COMMIT_DEFAULT)
-        st.text_input("Commit-Nachricht", key="commit_message")
+        st.session_state.setdefault("commit_message", _commit_default())
+        st.text_input(t("Commit-Nachricht"), key="commit_message")
         if tags:
-            st.checkbox(f"Tags setzen: {', '.join(tags)}", value=True, key="use_tags")
+            st.checkbox(t("Tags setzen: {tags}", tags=", ".join(tags)), value=True, key="use_tags")
         st.button(
-            "Änderungen committen",
+            t("Änderungen committen"),
             type="primary",
             icon=":material/save:",
             on_click=_commit_clicked,
@@ -941,13 +2109,17 @@ def _git_panel(repo: Repository) -> None:
 TEAM_PAGES = {
     "forecast": page_forecast,
     "fehltage": page_absences,
+    "sprints": page_calendar,
     "planning": page_planning,
     "review": page_review,
+    "produkte": page_products,
     "analyse": page_analysis,
     "personen": page_people,
+    "produktliste": page_product_list,
     "einstellungen": page_settings,
 }
 GLOBAL_PAGES = {
+    "datenordner": page_data_dir,
     "neues_team": page_new_team,
     "pruefung": page_check,
     "hilfe": page_help,
@@ -957,14 +2129,17 @@ GLOBAL_PAGES = {
 def run_page(key: str) -> None:
     """Wird von den Seitendateien unter web/seiten aufgerufen."""
     repo = repository()
+    if needs_setup(repo.root):
+        page_data_dir(repo, setup=True)
+        return
     team = st.session_state.get("selected_team")
     if key in GLOBAL_PAGES:
         GLOBAL_PAGES[key](repo)
         return
     if team is None or not repo.exists(team):
-        st.header(PAGE_INFO[key][0])
+        st.header(t(PAGE_INFO[key][0]))
         st.info(
-            "Noch kein Team vorhanden – ein Team anlegen oder über ein Import-Plugin übernehmen."
+            t("Noch kein Team vorhanden – ein Team anlegen oder über ein Import-Plugin übernehmen.")
         )
         page_link("neues_team")
         return

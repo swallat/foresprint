@@ -9,6 +9,7 @@ from datetime import date
 from enum import StrEnum
 
 from sprintforecast.calendar import workdays
+from sprintforecast.i18n import t
 from sprintforecast.storage import DataError, Repository, TeamData
 
 
@@ -16,12 +17,21 @@ class Level(StrEnum):
     ERROR = "Fehler"
     WARNING = "Hinweis"
 
+    @property
+    def label(self) -> str:
+        """Anzeigename in der eingestellten Sprache."""
+        return t(self.value)
+
 
 @dataclass
 class Issue:
     level: Level
     where: str
     message: str
+
+
+def _g(value: float) -> str:
+    return f"{value:g}"
 
 
 def check_team(data: TeamData, today: date) -> list[Issue]:
@@ -36,92 +46,189 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
 
     f = team.forecast
     if f.reference_capacity <= 0:
-        error("team.yaml", "forecast.reference_capacity muss > 0 sein")
+        error("team.yaml", t("forecast.reference_capacity muss > 0 sein"))
     if f.window < 1:
-        error("team.yaml", "forecast.window muss ≥ 1 sein")
+        error("team.yaml", t("forecast.window muss ≥ 1 sein"))
     if not 0 <= f.roadmap_share <= 1:
-        error("team.yaml", "forecast.roadmap_share muss zwischen 0 und 1 liegen")
+        error("team.yaml", t("forecast.roadmap_share muss zwischen 0 und 1 liegen"))
     if not 0 <= team.capacity.overhead_share < 1:
-        error("team.yaml", "capacity.overhead_share muss zwischen 0 und 1 liegen")
+        error("team.yaml", t("capacity.overhead_share muss zwischen 0 und 1 liegen"))
+    if team.capacity.overhead_days < 0:
+        error("team.yaml", t("capacity.overhead_days darf nicht negativ sein"))
     if team.sprint.length_days < 1:
-        error("team.yaml", "sprint.length_days muss ≥ 1 sein")
+        error("team.yaml", t("sprint.length_days muss ≥ 1 sein"))
     if not data.sprints and (team.sprint.first_id is None or team.sprint.first_start is None):
         error(
-            "team.yaml", "Ohne Sprintdateien wird sprint.first.id und sprint.first.start benötigt"
+            "team.yaml",
+            t("Ohne Sprintdateien wird sprint.first.id und sprint.first.start benötigt"),
         )
 
     ids: set[str] = set()
     for p in data.people:
         where = f"people.yaml: {p.id}"
         if p.id in ids:
-            error(where, "id ist doppelt")
+            error(where, t("id ist doppelt"))
         ids.add(p.id)
         if not p.memberships:
-            warn(where, "keine Zugehörigkeit (memberships) eingetragen")
+            warn(where, t("keine Zugehörigkeit (memberships) eingetragen"))
         ordered = sorted(p.memberships, key=lambda m: m.start)
         for m in ordered:
             if not 0 < m.fte <= 1:
-                error(where, f"fte {m.fte} muss zwischen 0 und 1 liegen")
+                error(where, t("fte {fte} muss zwischen 0 und 1 liegen", fte=m.fte))
             if m.end is not None and m.end < m.start:
-                error(where, f"Zugehörigkeit endet ({m.end}) vor ihrem Beginn ({m.start})")
+                error(
+                    where,
+                    t(
+                        "Zugehörigkeit endet ({end}) vor ihrem Beginn ({start})",
+                        end=m.end,
+                        start=m.start,
+                    ),
+                )
         for a, b in itertools.pairwise(ordered):
             if a.end is None or a.end >= b.start:
-                error(where, f"Zugehörigkeiten überschneiden sich ({a.start} / {b.start})")
+                error(
+                    where,
+                    t("Zugehörigkeiten überschneiden sich ({a} / {b})", a=a.start, b=b.start),
+                )
+
+    product_ids: set[str] = set()
+    for prod in data.products:
+        where = f"products.yaml: {prod.id}"
+        if prod.id in product_ids:
+            error(where, t("id ist doppelt"))
+        product_ids.add(prod.id)
+        if prod.start and prod.end and prod.end < prod.start:
+            error(
+                where,
+                t(
+                    "Zeitraum endet ({end}) vor seinem Beginn ({start})",
+                    end=prod.end,
+                    start=prod.start,
+                ),
+            )
+    products = {p.id: p for p in data.products}
 
     people = {p.id: p for p in data.people}
     previous = None
     for s in data.sprints:
         where = f"sprints/{s.id}.yaml"
         if s.end <= s.start:
-            error(where, "end muss nach start liegen")
+            error(where, t("end muss nach start liegen"))
         if previous is not None and s.start < previous.end:
-            error(where, f"überschneidet sich mit Sprint {previous.id}")
+            error(where, t("überschneidet sich mit Sprint {id}", id=previous.id))
         if previous is not None and s.start > previous.end:
-            warn(where, f"Lücke zu Sprint {previous.id} ({previous.end} → {s.start})")
+            warn(
+                where,
+                t(
+                    "Lücke zu Sprint {id} ({end} → {start})",
+                    id=previous.id,
+                    end=previous.end,
+                    start=s.start,
+                ),
+            )
         previous = s
 
         days = len(workdays(s.start, s.end))
         for pid, absent in s.absences.items():
             person = people.get(pid)
             if person is None:
-                error(where, f"Fehltage für unbekannte Person '{pid}'")
+                error(where, t("Fehltage für unbekannte Person '{id}'", id=pid))
             elif not person.active_between(s.start, s.end):
-                warn(where, f"'{pid}' ist in diesem Sprint nicht im Team")
+                warn(where, t("'{id}' ist in diesem Sprint nicht im Team", id=pid))
             if absent < 0:
-                error(where, f"Fehltage für '{pid}' sind negativ")
+                error(where, t("Fehltage für '{id}' sind negativ", id=pid))
             elif absent > days:
-                error(where, f"'{pid}': {absent} Fehltage, der Sprint hat nur {days} Arbeitstage")
+                error(
+                    where,
+                    t(
+                        "'{id}': {absent} Fehltage, der Sprint hat nur {days} Arbeitstage",
+                        id=pid,
+                        absent=_g(absent),
+                        days=days,
+                    ),
+                )
 
-        for name in ("capacity", "forecast_ist", "velocity"):
-            value = getattr(s, name)
-            if value is not None and value < 0:
-                error(where, f"{name} darf nicht negativ sein")
-        if s.scope_creep is not None and not 0 <= s.scope_creep <= 1:
-            warn(where, f"scope_creep {s.scope_creep} liegt außerhalb 0–1 (Anteil, nicht Prozent?)")
-        if s.capacity == 0:
-            warn(where, "Kapazität 0 – normierte Velocity nicht berechenbar")
-        if s.velocity is not None and s.forecast_ist and s.velocity > 2 * s.forecast_ist:
-            warn(where, "Velocity ist mehr als doppelt so hoch wie Forecast IST – Tippfehler?")
-
-        if s.planning is not None and s.end > today:
-            planned = s.planning.committed
-            if s.forecast_ist is not None and planned and abs(s.forecast_ist - planned) > 0.05:
+        for pid, values in s.products.items():
+            product = products.get(pid)
+            if product is None:
+                error(where, t("Werte für unbekanntes Produkt '{id}'", id=pid))
+            elif not product.active_between(s.start, s.end) and not values.is_empty():
                 warn(
                     where,
-                    f"Forecast IST {s.forecast_ist:g} weicht von Überkipper + Backlog "
-                    f"({planned:g}) ab – Tippfehler oder Ticket vergessen?",
+                    t(
+                        "Produkt '{id}' wird in diesem Sprint laut Produktliste nicht betreut",
+                        id=pid,
+                    ),
                 )
-            if sum(s.planning.corrections) > planned:
-                warn(where, "Korrekturen sind größer als Überkipper + Backlog")
+            for name in ("preplanned", "planned", "done"):
+                value = getattr(values, name)
+                if value is not None and value < 0:
+                    error(
+                        where, t("products.{id}.{name} darf nicht negativ sein", id=pid, name=name)
+                    )
+        planned = [v.planned for v in s.products.values() if v.planned is not None]
+        if planned and s.forecast_ist is not None and sum(planned) > s.forecast_ist + 0.05:
+            warn(
+                where,
+                t(
+                    "Planning je Produkt ({planned}) ist größer als der Forecast IST ({ist})",
+                    planned=_g(sum(planned)),
+                    ist=_g(s.forecast_ist),
+                ),
+            )
+        done = [v.done for v in s.products.values() if v.done is not None]
+        if done and s.velocity is not None and sum(done) > s.velocity + 0.05:
+            warn(
+                where,
+                t(
+                    "Erledigt je Produkt ({done}) ist größer als die Velocity ({velocity})",
+                    done=_g(sum(done)),
+                    velocity=_g(s.velocity),
+                ),
+            )
+
+        for name in ("capacity", "forecast_ist", "velocity", "forecast_plan"):
+            value = getattr(s, name)
+            if value is not None and value < 0:
+                error(where, t("{name} darf nicht negativ sein", name=name))
+        if s.scope_creep is not None and not 0 <= s.scope_creep <= 1:
+            warn(
+                where,
+                t(
+                    "scope_creep {value} liegt außerhalb 0–1 (Anteil, nicht Prozent?)",
+                    value=_g(s.scope_creep),
+                ),
+            )
+        if s.capacity == 0:
+            warn(where, t("Kapazität 0 – normierte Velocity nicht berechenbar"))
+        if s.velocity is not None and s.forecast_ist and s.velocity > 2 * s.forecast_ist:
+            warn(where, t("Velocity ist mehr als doppelt so hoch wie Forecast IST – Tippfehler?"))
+
+        if s.planning is not None and s.end > today:
+            committed = s.planning.committed
+            if s.forecast_ist is not None and committed and abs(s.forecast_ist - committed) > 0.05:
+                warn(
+                    where,
+                    t(
+                        "Forecast IST {ist} weicht von Überkipper + Backlog ({planned}) ab – "
+                        "Tippfehler oder Ticket vergessen?",
+                        ist=_g(s.forecast_ist),
+                        planned=_g(committed),
+                    ),
+                )
+            if sum(s.planning.corrections) > committed:
+                warn(where, t("Korrekturen sind größer als Überkipper + Backlog"))
 
         if s.end <= today:
             if s.velocity is None:
-                warn(where, "Sprint ist beendet, Velocity fehlt (Review erfassen)")
+                warn(where, t("Sprint ist beendet, Velocity fehlt (Review erfassen)"))
             if s.capacity is None:
                 warn(
                     where,
-                    "Sprint ist beendet, Kapazität nicht eingefroren "
-                    "(wird sonst aus der aktuellen Personenliste berechnet)",
+                    t(
+                        "Sprint ist beendet, Kapazität nicht eingefroren "
+                        "(wird sonst aus der aktuellen Personenliste berechnet)"
+                    ),
                 )
     return issues
 

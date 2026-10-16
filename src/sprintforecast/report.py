@@ -6,12 +6,16 @@ from __future__ import annotations
 from sprintforecast.analysis import average_focus_factor, band, buffer_hint
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import Forecast, TimelineEntry
+from sprintforecast.i18n import is_english, t
 
 
 def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
+    """Zahl mit Tausender- und Dezimaltrennzeichen der Sprache (1.234,5 bzw. 1,234.5)."""
     if value is None:
         return "–"
-    text = f"{value:,.{digits}f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    text = f"{value:,.{digits}f}"
+    if not is_english():
+        text = text.replace(",", "_").replace(".", ",").replace("_", ".")
     return text + suffix
 
 
@@ -23,20 +27,24 @@ def period(e: TimelineEntry) -> str:
     return f"{e.sprint.start:%d.%m.} – {e.sprint.end:%d.%m.%Y}"
 
 
+def source_label(source: CapacitySource | None) -> str:
+    return t(source.value) if source else ""
+
+
 def capacity_label(e: TimelineEntry) -> str:
     source = e.result.plan_capacity_source
     value = fmt(e.result.plan_capacity)
     if source is CapacitySource.TREND:
-        return f"{value} ⚠️ Trend"
-    return f"{value} ({source})" if source else value
+        return f"{value} ⚠️ {t('Trend')}"
+    return f"{value} ({source_label(source)})" if source else value
 
 
 def status(fc: Forecast, e: TimelineEntry) -> str:
     if e.sprint.end <= fc.today:
-        return "abgeschlossen"
+        return t("abgeschlossen")
     if e.sprint.start <= fc.today:
-        return "**laufend**"
-    return "geplant"
+        return f"**{t('laufend')}**"
+    return t("geplant")
 
 
 def render(fc: Forecast, history: int = 10) -> str:
@@ -46,16 +54,27 @@ def render(fc: Forecast, history: int = 10) -> str:
     lines = [
         f"# Sprint-Forecast {team.name}",
         "",
-        f"Stand: {fc.today:%d.%m.%Y} · Einheit: {unit} · "
-        f"Referenzkapazität: {fmt(f.reference_capacity, 0)} PT · "
-        f"Ø über {f.window} Sprints · Trend: `{f.trend_mode.value}`",
+        t(
+            "Stand: {today} · Einheit: {unit} · Referenzkapazität: {ref} PT · Ø über {window} "
+            "Sprints · Trend: `{mode}`",
+            today=f"{fc.today:%d.%m.%Y}",
+            unit=unit,
+            ref=fmt(f.reference_capacity, 0),
+            window=f.window,
+            mode=f.trend_mode.value,
+        ),
         "",
-        "> Automatisch erzeugt mit `sprintforecast bericht`. Nicht von Hand bearbeiten.",
+        t("> Automatisch erzeugt mit `sprintforecast bericht`. Nicht von Hand bearbeiten."),
         "",
-        "## Prognose",
+        f"## {t('Prognose')}",
         "",
-        "| Sprint | Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend "
-        f"| **Forecast PLAN** ({unit}) | Roadmap ({pct(f.roadmap_share)}) | Kleinkram |",
+        "| Sprint | "
+        + t(
+            "Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** ({unit}) "
+            "| Roadmap ({share}) | Kleinkram |",
+            unit=unit,
+            share=pct(f.roadmap_share),
+        ),
         "|---|---|---|---|---|---|---|---|",
     ]
     upcoming = fc.upcoming()
@@ -69,9 +88,12 @@ def render(fc: Forecast, history: int = 10) -> str:
     if any(e.result.plan_capacity_source is CapacitySource.TREND for e in upcoming):
         lines += [
             "",
-            "⚠️ *Trend*: Für diesen Sprint sind noch keine Fehltage erfasst, die Kapazität ist "
-            "geschätzt. Mit `sprintforecast fehltage "
-            f"{team.key} <SPRINT>` wird die Prognose belastbar.",
+            t(
+                "⚠️ *Trend*: Für diesen Sprint sind noch keine Fehltage erfasst, die Kapazität ist "
+                "geschätzt. Mit `sprintforecast fehltage {team} <SPRINT>` wird die Prognose "
+                "belastbar.",
+                team=team.key,
+            ),
         ]
 
     current = fc.current
@@ -79,17 +101,25 @@ def render(fc: Forecast, history: int = 10) -> str:
         r = current.result
         lines += [
             "",
-            f"**Planning {current.sprint.id}:** Summe {fmt(r.planning_total, 2)} {unit}, "
-            f"Delta zum Forecast PLAN {fmt(r.planning_delta, 2)} {unit}",
+            t(
+                "**Planning {id}:** Summe {total} {unit}, Delta zum Forecast PLAN {delta} {unit}",
+                id=current.sprint.id,
+                total=fmt(r.planning_total, 2),
+                delta=fmt(r.planning_delta, 2),
+                unit=unit,
+            ),
         ]
 
     past = fc.history(history)
     lines += [
         "",
-        f"## Verlauf (letzte {len(past)} Sprints)",
+        t("## Verlauf (letzte {count} Sprints)", count=len(past)),
         "",
-        "| Sprint | Kapazität (PT) | Forecast IST | Velocity | n. Velocity | Ø n. Velocity "
-        "| Fulfillment | Scope Creep |",
+        "| Sprint | "
+        + t(
+            "Kapazität (PT) | Forecast IST | Velocity | n. Velocity | Ø n. Velocity "
+            "| Fulfillment | Scope Creep |"
+        ),
         "|---|---|---|---|---|---|---|---|",
     ]
     for e in past:
@@ -109,10 +139,12 @@ def render(fc: Forecast, history: int = 10) -> str:
 
         lines += [
             "",
-            "## Diagramm",
+            f"## {t('Diagramm')}",
             "",
-            "Linien: Forecast IST (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und "
-            "normierte Velocity (Vergangenheit: Ist-Wert, Zukunft: Trend).",
+            t(
+                "Linien: Forecast IST (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und "
+                "normierte Velocity (Vergangenheit: Ist-Wert, Zukunft: Trend)."
+            ),
             "",
             "```mermaid",
             "xychart-beta",
@@ -130,6 +162,7 @@ def render(fc: Forecast, history: int = 10) -> str:
             ),
             "```",
         ]
+    lines += _products_section(fc)
     lines += _analysis_section(fc)
     return "\n".join(lines) + "\n"
 
@@ -142,12 +175,18 @@ def _analysis_section(fc: Forecast) -> list[str]:
     if rows:
         lines += [
             "",
-            "## Ergänzend: Bandbreite",
+            t("## Ergänzend: Bandbreite"),
             "",
-            f"Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der "
-            f"letzten {rows[0][1].samples} Sprints (statt des Trends).",
+            t(
+                "Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der "
+                "letzten {count} Sprints (statt des Trends).",
+                count=rows[0][1].samples,
+            ),
             "",
-            f"| Sprint | Forecast PLAN ({unit}) | konservativ | mittel | optimistisch |",
+            t(
+                "| Sprint | Forecast PLAN ({unit}) | konservativ | mittel | optimistisch |",
+                unit=unit,
+            ),
             "|---|---|---|---|---|",
         ]
         lines += [
@@ -159,13 +198,65 @@ def _analysis_section(fc: Forecast) -> list[str]:
     hint = buffer_hint(fc)
     facts = []
     if focus is not None:
-        facts.append(f"Ø Fokusfaktor (Velocity / Kapazität): {fmt(focus, 2)}")
+        facts.append(t("Ø Fokusfaktor (Velocity / Kapazität): {value}", value=fmt(focus, 2)))
     if hint.average_scope_creep is not None:
         facts.append(
-            f"Ø Scope Creep ({hint.samples} Sprints): {pct(hint.average_scope_creep)} · "
-            f"Kleinkram-Anteil: {pct(hint.configured_small_stuff)}"
-            + (" ⚠️ Puffer kleiner als der ungeplante Anteil" if hint.buffer_too_small else "")
+            t(
+                "Ø Scope Creep ({count} Sprints): {scope} · Kleinkram-Anteil: {small}",
+                count=hint.samples,
+                scope=pct(hint.average_scope_creep),
+                small=pct(hint.configured_small_stuff),
+            )
+            + (t(" ⚠️ Puffer kleiner als der ungeplante Anteil") if hint.buffer_too_small else "")
         )
     if facts:
         lines += ["", *[f"- {f}" for f in facts]]
+    return lines
+
+
+def _products_section(fc: Forecast, history: int = 6) -> list[str]:
+    """Verteilung je Produkt: laufender und nächster Sprint, Saldo der letzten Sprints."""
+    from sprintforecast.products import MEASURES, balance, distribution, measure_label
+
+    if not fc.data.products:
+        return []
+    unit = fc.data.team.unit.value
+    lines = ["", f"## {t('Produkte')}"]
+    shown = []
+    for e in (fc.current, fc.default_entry("planning")):
+        if e is not None and e not in shown:
+            shown.append(e)
+    for e in shown:
+        d = distribution(fc, e)
+        if not d.rows:
+            continue
+        lines += [
+            "",
+            f"**Sprint {e.sprint.id}** ({status(fc, e).replace('*', '')})",
+            "",
+            f"| {t('Produkt')} | PO | "
+            + " | ".join(f"{measure_label(m)} ({unit})" for m in MEASURES)
+            + " |",
+            "|---|---|" + "---|" * len(MEASURES),
+        ]
+        lines += [
+            f"| {r.product.name} | {r.product.po or ''} | "
+            + " | ".join(fmt(r.value(m), 2) for m in MEASURES)
+            + " |"
+            for r in d.rows
+        ]
+    rows = balance(fc, fc.history(history))
+    if rows:
+        lines += [
+            "",
+            t("**Saldo** (Σ Erledigt − Σ Standard, letzte {count} Sprints)", count=history),
+            "",
+            t("| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo ({unit}) |", unit=unit),
+            "|---|---|---|---|---|",
+        ]
+        lines += [
+            f"| {b.product.name} | {b.sprints} | {fmt(b.standard, 2)} | {fmt(b.done, 2)} "
+            f"| {fmt(b.difference, 2)} |"
+            for b in rows
+        ]
     return lines

@@ -6,12 +6,14 @@ from __future__ import annotations
 import copy
 import math
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
-from sprintforecast.calendar import following_sprint
+from sprintforecast.calendar import following_sprint, next_id, workdays
 from sprintforecast.forecast import Forecast
-from sprintforecast.model import Membership, Person, Sprint, new_person_id
+from sprintforecast.i18n import t
+from sprintforecast.model import Membership, Person, Product, ProductValues, Sprint, new_person_id
+from sprintforecast.products import MEASURES, Distribution
 from sprintforecast.storage import TeamData
 
 
@@ -113,6 +115,108 @@ def sprints_to_save(data: TeamData, originals: list[Sprint], edited: list[Sprint
     ]
 
 
+# --- Sprintkalender -------------------------------------------------------------------
+
+CALENDAR_COLUMNS = ["Sprint", "Start", "Letzter Tag", "Arbeitstage", "Status"]
+
+
+def calendar_table(data: TeamData, sprints: list[Sprint], today: date) -> list[dict[str, Any]]:
+    """Eine Zeile je Sprint; „Letzter Tag“ = Ende − 1 (das Ende ist der Start des nächsten)."""
+    rows = []
+    for s in sprints:
+        if s.end <= today:
+            state = "abgeschlossen"
+        elif s.start <= today:
+            state = "laufend"
+        else:
+            state = "geplant" if data.sprint(s.id) else "noch ohne Datei"
+        rows.append(
+            {
+                "Sprint": s.id,
+                "Start": s.start,
+                "Letzter Tag": s.end - timedelta(days=1),
+                "Arbeitstage": len(workdays(s.start, s.end)),
+                "Status": state,
+            }
+        )
+    return rows
+
+
+def apply_calendar(
+    data: TeamData, sprints: list[Sprint], rows: list[dict[str, Any]]
+) -> tuple[list[Sprint], list[str]]:
+    """Übernimmt geänderte letzte Tage; jeder folgende Sprint beginnt am Tag danach und
+    behält seine Länge, sofern sein letzter Tag nicht selbst geändert wurde. IDs noch nicht
+    angelegter Sprints werden neu vergeben. Liefert (Sprints, Fehler)."""
+    errors: list[str] = []
+    result: list[Sprint] = []
+    persisted = {s.id for s in data.sprints}
+    for i, (original, row) in enumerate(zip(sprints, rows, strict=True)):
+        sprint = copy.deepcopy(original)
+        if result:
+            previous = result[-1]
+            sprint.start = previous.end
+            if data.sprint(original.id) is None:
+                sprint.id = next_id(previous.id, sprint.start, data.team.sprint.numbering)
+        try:
+            last = as_date(row.get("Letzter Tag"))
+        except ValueError:
+            last = None
+        if last is None:
+            errors.append(t("Zeile {row}: letzter Tag fehlt", row=i + 1))
+            last = original.end - timedelta(days=1)
+        if last == original.end - timedelta(days=1):
+            # unverändert → Länge behalten, d. h. mit dem Vorgänger mitverschieben
+            end = sprint.start + (original.end - original.start)
+        else:
+            end = last + timedelta(days=1)
+        if end <= sprint.start:
+            errors.append(
+                t(
+                    "Sprint {id}: letzter Tag liegt vor dem Start {start}",
+                    id=sprint.id,
+                    start=sprint.start,
+                )
+            )
+        sprint.end = end if end > sprint.start else original.end
+        if sprint.id != original.id and (
+            sprint.id in persisted or any(s.id == sprint.id for s in result)
+        ):
+            errors.append(
+                t(
+                    "Sprint-ID {id} wäre doppelt – bitte zuerst die folgenden Sprints anpassen.",
+                    id=sprint.id,
+                )
+            )
+        result.append(sprint)
+    # Gespeicherte Sprints nach dem angezeigten Zeitraum um dieselbe Differenz verschieben.
+    if sprints and result:
+        delta = result[-1].end - sprints[-1].end
+        if delta:
+            for later in data.sprints:
+                if later.start >= sprints[-1].end:
+                    moved = copy.deepcopy(later)
+                    moved.start += delta
+                    moved.end += delta
+                    result.append(moved)
+    return result, errors
+
+
+def calendar_to_save(
+    data: TeamData, originals: list[Sprint], after: list[Sprint], create_missing: bool
+) -> list[Sprint]:
+    """Zu speichernde Sprints: geänderte Daten, auf Wunsch fehlende Dateien und verschobene
+    gespeicherte Sprints nach dem angezeigten Zeitraum."""
+    window, shifted = after[: len(originals)], after[len(originals) :]
+    changed = [
+        new
+        for old, new in zip(originals, window, strict=True)
+        if (old.start, old.end) != (new.start, new.end)
+        or (create_missing and data.sprint(new.id) is None)
+    ]
+    return changed + shifted
+
+
 # --- Personen -------------------------------------------------------------------------
 
 # Auswahlwert für „Bundesland wie im Team eingestellt“.
@@ -166,7 +270,7 @@ def people_from_table(
             continue
         name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
         if not name:
-            errors.append(f"Zeile {i}: Name fehlt")
+            errors.append(t("Zeile {row}: Name fehlt", row=i))
             continue
         pid = None if is_blank(row.get("_id")) else str(row["_id"])
         if pid is None:
@@ -182,17 +286,21 @@ def people_from_table(
             person = visible_people[pid] = Person(id=pid, name=name, region=region)
         elif person.name != name or person.region != region:
             errors.append(
-                f"Zeile {i}: Für {person.name} stehen in mehreren Zeilen unterschiedliche Namen "
-                "oder Bundesländer – bitte einheitlich eintragen."
+                t(
+                    "Zeile {row}: Für {name} stehen in mehreren Zeilen unterschiedliche Namen "
+                    "oder Bundesländer – bitte einheitlich eintragen.",
+                    row=i,
+                    name=person.name,
+                )
             )
             continue
         try:
             start, end = as_date(row.get("ab")), as_date(row.get("bis"))
         except ValueError:
-            errors.append(f"Zeile {i} ({name}): ungültiges Datum")
+            errors.append(t("Zeile {row} ({name}): ungültiges Datum", row=i, name=name))
             continue
         if start is None:
-            errors.append(f"Zeile {i} ({name}): 'ab' fehlt")
+            errors.append(t("Zeile {row} ({name}): 'ab' fehlt", row=i, name=name))
             continue
         fte = 1.0 if is_blank(row.get("FTE")) else float(row["FTE"])
         person.memberships.append(Membership(start=start, end=end, fte=fte))
@@ -213,6 +321,101 @@ def people_from_table(
     order = {p.id: n for n, p in enumerate(original)}
     people.sort(key=lambda p: (order.get(p.id, len(order)), p.name.lower()))
     return PeopleResult(people=people, errors=errors, deleted=deleted)
+
+
+# --- Produkte ------------------------------------------------------------------------
+
+PRODUCT_COLUMNS = ["_id", "Name", "PO", "ab", "bis"]
+
+
+def product_table(
+    products: list[Product], today: date, show_former: bool
+) -> tuple[list[dict[str, Any]], list[Product]]:
+    """Eine Zeile je Produkt. Liefert (Zeilen, ausgeblendete ehemalige Produkte)."""
+    visible = [p for p in products if show_former or p.end is None or p.end >= today]
+    hidden = [p for p in products if p not in visible]
+    rows = [
+        {"_id": p.id, "Name": p.name, "PO": p.po or "", "ab": p.start, "bis": p.end}
+        for p in visible
+    ]
+    return rows, hidden
+
+
+@dataclass
+class ProductsResult:
+    products: list[Product]
+    errors: list[str]
+    deleted: list[str]
+
+
+def products_from_table(
+    rows: list[dict[str, Any]], original: list[Product], hidden: list[Product]
+) -> ProductsResult:
+    """Baut die Produktliste aus der Tabelle; neue Zeilen bekommen eine ID aus dem Namen."""
+    errors: list[str] = []
+    used = {p.id for p in original}
+    seen: set[str] = set()
+    result: list[Product] = []
+    for i, row in enumerate(rows, start=1):
+        if all(is_blank(row.get(c)) for c in PRODUCT_COLUMNS if c != "_id"):
+            continue
+        name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
+        if not name:
+            errors.append(t("Zeile {row}: Name fehlt", row=i))
+            continue
+        if name.lower() in seen:
+            errors.append(t("Zeile {row}: {name} ist doppelt", row=i, name=name))
+            continue
+        seen.add(name.lower())
+        pid = None if is_blank(row.get("_id")) else str(row["_id"])
+        if pid is None:
+            pid = new_person_id(name, used, fallback="produkt")
+            used.add(pid)
+        try:
+            start, end = as_date(row.get("ab")), as_date(row.get("bis"))
+        except ValueError:
+            errors.append(t("Zeile {row} ({name}): ungültiges Datum", row=i, name=name))
+            continue
+        if start and end and end < start:
+            errors.append(t("Zeile {row} ({name}): 'bis' liegt vor 'ab'", row=i, name=name))
+            continue
+        po = None if is_blank(row.get("PO")) else str(row["PO"]).strip()
+        result.append(Product(id=pid, name=name, po=po, start=start, end=end))
+    kept = {p.id for p in result} | {p.id for p in hidden}
+    deleted = [p.name for p in original if p.id not in kept]
+    order = {p.id: n for n, p in enumerate(original)}
+    products = [*result, *copy.deepcopy(hidden)]
+    products.sort(key=lambda p: order.get(p.id, len(order)))
+    return ProductsResult(products=products, errors=errors, deleted=deleted)
+
+
+def product_values_table(d: Distribution) -> list[dict[str, Any]]:
+    """Eine Zeile je Produkt mit Standard und den erfassten Werten (Spaltennamen wie MEASURES)."""
+    return [
+        {
+            "_id": r.product.id,
+            "Produkt": r.product.name + ("" if r.active else " (nicht betreut)"),
+            "PO": r.product.po or "",
+            **{label: r.value(m) for m, label in MEASURES.items()},
+        }
+        for r in d.rows
+    ]
+
+
+def apply_product_values(sprint: Sprint, rows: list[dict[str, Any]], measures: list[str]) -> Sprint:
+    """Kopie von ``sprint`` mit den bearbeiteten Spalten ``measures`` (z. B. ["planned"])."""
+    result = copy.deepcopy(sprint)
+    for row in rows:
+        pid = str(row["_id"])
+        values = result.products.get(pid, ProductValues())
+        for m in measures:
+            raw = row.get(MEASURES[m])
+            setattr(values, m, None if is_blank(raw) else float(raw))
+        if values.is_empty():
+            result.products.pop(pid, None)
+        else:
+            result.products[pid] = values
+    return result
 
 
 def parse_numbers(raw: str) -> list[float]:

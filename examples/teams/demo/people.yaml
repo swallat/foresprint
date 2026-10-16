@@ -1,5 +1,5 @@
-# Personenliste. Zugehörigkeiten mit Zeitraum und FTE-Anteil (1.0 = Vollzeit im Team).
-# Personen nie löschen, sondern Zugehörigkeit mit `to:` beenden – sonst ändert sich die Historie.
+# People. Memberships with period and FTE share (1.0 = full time in the team).
+# Never delete people; end the membership with `to:` instead – otherwise history changes.
 people:
 - id: anna
   name: Anna
