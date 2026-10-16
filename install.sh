@@ -64,7 +64,7 @@ else
     plugins="$saved"
 fi
 
-set -- --force --reinstall --python 3.15
+set -- --force --reinstall --python 3.14
 specs=""
 OLD_IFS=$IFS
 IFS=';'
@@ -90,7 +90,7 @@ else
     set -- "$@" "$CORE"
 fi
 
-say "==> sprintforecast wird installiert (Python 3.15 wird bei Bedarf geladen)"
+say "==> sprintforecast wird installiert (Python 3.14 wird bei Bedarf geladen)"
 uv tool install "$@"
 uv tool update-shell >/dev/null 2>&1 || true
 

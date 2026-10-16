@@ -67,6 +67,7 @@ from sprintforecast.model import (
     new_person_id,
 )
 from sprintforecast.plugins import load_plugins
+from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
 from sprintforecast.report import capacity_label, fmt, pct, period, render, status
 from sprintforecast.settings import SETTINGS, Setting, applicable, changes
@@ -1311,13 +1312,14 @@ def web(
         "--client.toolbarMode", "minimal",
     ]  # fmt: skip
     console.print(t("Weboberfläche: [bold]{url}[/bold] (Beenden mit Strg+C)", url=url))
-    popen: dict = {}
+    popen: dict = popen_options()
     if log := os.environ.get(LOG_ENV):
         # Doppelklick-Start: kein Konsolenfenster, Ausgaben des Servers ins Protokoll
         popen["stdout"] = popen["stderr"] = open(log, "a", encoding="utf-8")  # noqa: SIM115
         if sys.platform == "win32":
             popen["creationflags"] = subprocess.CREATE_NO_WINDOW
     server = subprocess.Popen(cmd_line, env=env, **popen)
+    adopt(server)  # alles, was der Server später startet, endet mit ihm
     try:
         if app_mode:
             _open_app_window(url, server, browser_path)
@@ -1325,12 +1327,7 @@ def web(
     except KeyboardInterrupt:
         pass
     finally:
-        if server.poll() is None:
-            server.terminate()
-            try:
-                server.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                server.kill()
+        terminate_tree(server)
 
 
 # Endet der Browserprozess schneller, hat er vermutlich an eine laufende Instanz übergeben –
@@ -1353,6 +1350,7 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
             console.print(t("Öffne {browser} als App-Fenster …", browser=found.name))
             started = time.monotonic()
             window = subprocess.Popen(browser_command(found, url))
+            adopt(window)
             while window.poll() is None:
                 if server.poll() is not None:
                     # Server beendet (z. B. Neustart für eine Aktualisierung) → Fenster zu
