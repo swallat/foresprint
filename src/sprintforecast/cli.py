@@ -1172,7 +1172,11 @@ def analyse(
                 project=fmt(anteil, 0),
                 share=pct(share),
             )
-        later = t("nach dem Zeitraum")
+        later = t(
+            "später als {last} ({count} Sprints)",
+            last=result.sprints[-1] if result.sprints else "–",
+            count=len(result.sprints),
+        )
         console.print(
             t(
                 "Fertigstellung von {rest} {unit} ({basis}, ab dem nächsten Sprint): "

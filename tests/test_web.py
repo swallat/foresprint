@@ -447,3 +447,11 @@ def test_review_tracks_not_done_and_additional(app: AppTest, data_dir: Path):
     click(app, "Review speichern")
     sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
     assert (sprint["velocity"], sprint["not_done"], sprint["additional_done"]) == (9, 2, 1)
+
+
+def test_analysis_too_large_rest_explains_horizon(app: AppTest):
+    goto(app, "analyse")
+    app.number_input(key="rest").set_value(100000.0)
+    click(app, "Berechnen")
+    assert any("später als" in m.value for m in app.metric)
+    assert any("höchstens" in c.value and "Sprints" in c.value for c in app.caption)
