@@ -348,9 +348,9 @@ def test_choose_folder_requires_git(
 
 def test_whatif_panel_on_forecast_page(app: AppTest):
     goto(app, "forecast")
-    box = next(n for n in app.number_input if n.key and n.key.startswith("whatif-"))
+    box = next(n for n in app.number_input if n.key and n.key.endswith("-open"))
     before = len(app.dataframe)
-    box.set_value(14.0).run()
+    box.set_value(6.0).run()
     assert not app.exception
     assert len(app.dataframe) == before + 1
     shown = [d.value for d in app.dataframe if "Differenz" in d.value.columns]
@@ -397,3 +397,21 @@ def test_manual_update_check_button(app: AppTest, monkeypatch: pytest.MonkeyPatc
     click(app, "Nach Updates suchen")
     assert calls == [True]
     assert any("0.2.0" in c.value and "aktuell" in c.value for c in app.caption)
+
+
+def test_preplanning_whatif_is_not_saved(app: AppTest, data_dir: Path):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    box = next(
+        n
+        for n in app.number_input
+        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-open")
+    )
+    before = [m.value for m in app.metric]
+    box.set_value(6.0).run()
+    assert not app.exception
+    assert any("Rechnung mit angenommener Velocity" in i.value for i in app.info)
+    assert [m.value for m in app.metric] != before
+    assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
+    for sprint_file in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        assert "velocity: 2" not in sprint_file.read_text()
