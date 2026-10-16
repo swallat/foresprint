@@ -122,6 +122,15 @@ WORKFLOW: list[Step] = [
     ),
     Step(
         when="Jederzeit",
+        title="Künftige Sprints anlegen",
+        text="Folgesprints entstehen automatisch aus Sprintlänge und Ende des Vorgängers. Im "
+        "Sprintkalender lassen sie sich vorab anlegen und abweichende Längen (z. B. über "
+        "Weihnachten) über den letzten Tag festlegen.",
+        page="sprints",
+        cli="sprintforecast sprints TEAM [--anlegen] [--ende SPRINT=DATUM]",
+    ),
+    Step(
+        when="Jederzeit",
         title="Fehltage pflegen",
         text="Sobald Urlaub, Schulungen o. Ä. bekannt sind, je Person und Sprint eintragen – "
         "auch für künftige Sprints. Ohne Fehltage ist die Kapazität nur geschätzt (Trend).",
@@ -232,6 +241,7 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast web --app", "Weboberfläche als App in eigenem Fenster"),
     ("sprintforecast forecast TEAM", "Prognose für laufenden und kommende Sprints"),
     ("sprintforecast fehltage TEAM [SPRINT]", "Fehltage je Person erfassen"),
+    ("sprintforecast sprints TEAM [--anlegen]", "Sprintkalender: kommende Sprints, Enddaten"),
     ("sprintforecast planning TEAM", "Forecast IST und Planning-Werte erfassen"),
     ("sprintforecast review TEAM", "Velocity und Scope Creep erfassen, Kapazität einfrieren"),
     ("sprintforecast personen TEAM", "Personen pflegen"),

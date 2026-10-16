@@ -6,10 +6,10 @@ from __future__ import annotations
 import copy
 import math
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
-from sprintforecast.calendar import following_sprint
+from sprintforecast.calendar import following_sprint, next_id, workdays
 from sprintforecast.forecast import Forecast
 from sprintforecast.model import Membership, Person, Product, ProductValues, Sprint, new_person_id
 from sprintforecast.products import MEASURES, Distribution
@@ -112,6 +112,67 @@ def sprints_to_save(data: TeamData, originals: list[Sprint], edited: list[Sprint
         for old, new in zip(originals, edited, strict=True)
         if new.absences != old.absences or data.sprint(new.id) is None
     ]
+
+
+# --- Sprintkalender -------------------------------------------------------------------
+
+CALENDAR_COLUMNS = ["Sprint", "Start", "Letzter Tag", "Arbeitstage", "Status"]
+
+
+def calendar_table(data: TeamData, sprints: list[Sprint], today: date) -> list[dict[str, Any]]:
+    """Eine Zeile je Sprint; „Letzter Tag“ = Ende − 1 (das Ende ist der Start des nächsten)."""
+    rows = []
+    for s in sprints:
+        if s.end <= today:
+            state = "abgeschlossen"
+        elif s.start <= today:
+            state = "laufend"
+        else:
+            state = "geplant" if data.sprint(s.id) else "noch ohne Datei"
+        rows.append(
+            {
+                "Sprint": s.id,
+                "Start": s.start,
+                "Letzter Tag": s.end - timedelta(days=1),
+                "Arbeitstage": len(workdays(s.start, s.end)),
+                "Status": state,
+            }
+        )
+    return rows
+
+
+def apply_calendar(
+    data: TeamData, sprints: list[Sprint], rows: list[dict[str, Any]]
+) -> tuple[list[Sprint], list[str]]:
+    """Übernimmt geänderte letzte Tage; jeder folgende Sprint beginnt am Tag danach und
+    behält seine Länge, sofern sein letzter Tag nicht selbst geändert wurde. IDs noch nicht
+    angelegter Sprints werden neu vergeben. Liefert (Sprints, Fehler)."""
+    errors: list[str] = []
+    result: list[Sprint] = []
+    for i, (original, row) in enumerate(zip(sprints, rows, strict=True)):
+        sprint = copy.deepcopy(original)
+        if result:
+            previous = result[-1]
+            sprint.start = previous.end
+            if data.sprint(original.id) is None:
+                sprint.id = next_id(previous.id, sprint.start, data.team.sprint.numbering)
+        try:
+            last = as_date(row.get("Letzter Tag"))
+        except ValueError:
+            last = None
+        if last is None:
+            errors.append(f"Zeile {i + 1}: letzter Tag fehlt")
+            last = original.end - timedelta(days=1)
+        if last == original.end - timedelta(days=1):
+            # unverändert → Länge behalten, d. h. mit dem Vorgänger mitverschieben
+            end = sprint.start + (original.end - original.start)
+        else:
+            end = last + timedelta(days=1)
+        if end <= sprint.start:
+            errors.append(f"Sprint {sprint.id}: letzter Tag liegt vor dem Start {sprint.start}")
+        sprint.end = end if end > sprint.start else original.end
+        result.append(sprint)
+    return result, errors
 
 
 # --- Personen -------------------------------------------------------------------------

@@ -271,3 +271,17 @@ def test_aktualisieren_outside_uv_tool(data_dir: Path):
     result = run(data_dir, "aktualisieren", "--pruefen")
     assert result.exit_code == 1
     assert "nicht mit `uv tool install` installiert" in result.output
+
+
+def test_sprints_calendar_and_longer_sprint(data_dir: Path):
+    result = run(data_dir, "sprints", "demo")
+    assert result.exit_code == 0, result.output
+    assert "Di 27.10.2026" in result.output  # letzter Tag von 2026.21
+    # 2026.25 drei Wochen bis Di 12.01.2027 → 2026.26 entfällt, danach 2027.1
+    result = run(data_dir, "sprints", "demo", "--ende", "2026.25=2027-01-12", "--anlegen")
+    assert result.exit_code == 0, result.output
+    s25 = load(data_dir / "demo" / "sprints" / "2026.25.yaml")
+    assert s25["end"] == date(2027, 1, 13)
+    nxt = load(data_dir / "demo" / "sprints" / "2027.1.yaml")
+    assert nxt["start"] == date(2027, 1, 13)
+    assert run(data_dir, "pruefen").exit_code == 0

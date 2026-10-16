@@ -135,6 +135,7 @@ Kommandozeile und prüft vor jedem Speichern:
 |---|---|---|
 | Sprint | Forecast | Prognose für laufenden + kommende Sprints, Verlauf, Diagramm, Bericht schreiben |
 | | Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast |
+| | Sprintkalender | kommende Sprints mit Start, letztem Tag und Arbeitstagen; anlegen, Länge anpassen |
 | | Planning | geführter Ablauf: 1. Fehltage, 2. Forecast PLAN & Einplanung je Produkt, 3. Forecast IST |
 | | Review | Velocity, Scope Creep, Erledigt je Produkt; Kapazität wird eingefroren |
 | | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
@@ -156,6 +157,7 @@ weiterhin von dir.
 
 | Wann | Befehl | Was passiert |
 |---|---|---|
+| Sprints vorab anlegen | `sprintforecast sprints team-a --anlegen` | Kommende Sprints (Start, letzter Tag, Arbeitstage) anzeigen und Dateien anlegen; `--ende 2026.25=2027-01-12` verlängert einen Sprint, die folgenden verschieben sich. |
 | Urlaub o. Ä. wird bekannt | `sprintforecast fehltage team-a [SPRINT]` | Fehltage je Person erfassen (Standard: nächster Sprint). Zeigt Kapazität und Prognose. |
 | Team ändert sich | `sprintforecast personen team-a` | Person hinzufügen, FTE ändern, Austritt eintragen. |
 | Einstellungen ändern | `sprintforecast einstellungen team-a` | Bundesland, Referenzkapazität, Trend-Modus usw. geführt ändern; zeigt die Änderungen vor dem Speichern. |
@@ -244,7 +246,7 @@ products:
 ```yaml
 id: '2026.21'               # in Anführungszeichen!
 start: 2026-10-14
-end: 2026-10-28             # Arbeitstage zählen von start bis einschließlich end − 1
+end: 2026-10-28             # = Start des nächsten Sprints (exklusiv); letzter Tag 27.10.
 absences: {ben: 3, cem: 5}  # planbare Fehltage (Arbeitstage), ohne Feiertage
 capacity: null              # wird beim Review eingefroren; manuell nur ohne Personenliste
 forecast_ist: 10

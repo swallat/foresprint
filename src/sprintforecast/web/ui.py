@@ -25,7 +25,7 @@ from sprintforecast.analysis import (
     completion,
     focus_factor,
 )
-from sprintforecast.calendar import holiday_name, workdays
+from sprintforecast.calendar import day_label, holiday_name, workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import (
@@ -54,12 +54,15 @@ from sprintforecast.storage import (
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
 from sprintforecast.web.logic import (
+    CALENDAR_COLUMNS,
     PEOPLE_COLUMNS,
     PRODUCT_COLUMNS,
     TEAM_REGION,
     absence_matrix,
     absence_sprints,
+    apply_calendar,
     apply_product_values,
+    calendar_table,
     edit_absences,
     parse_numbers,
     people_from_table,
@@ -77,6 +80,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
     "Sprint": {
         "forecast": ("Forecast", ":material/trending_up:"),
         "fehltage": ("Fehltage", ":material/event_busy:"),
+        "sprints": ("Sprintkalender", ":material/calendar_month:"),
         "planning": ("Planning", ":material/edit_note:"),
         "review": ("Review", ":material/task_alt:"),
         "produkte": ("Produktverteilung", ":material/pie_chart:"),
@@ -169,13 +173,6 @@ def save(
 def show_flash() -> None:
     for kind, text in st.session_state.pop("flash", []):
         getattr(st, kind)(text)
-
-
-WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-
-
-def day_label(d: date) -> str:
-    return f"{WEEKDAYS[d.weekday()]} {d:%d.%m.%Y}"
 
 
 def sprint_caption(data: TeamData, s: Sprint) -> str:
@@ -408,6 +405,66 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if st.button("Fehltage speichern", type="primary", disabled=not to_save):
         save(
             preview,
+            [f"{s.id}.yaml" for s in to_save],
+            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
+        )
+
+
+def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    st.header("Sprintkalender")
+    st.markdown(
+        "Künftige Sprints entstehen automatisch aus dem Kalender: Jeder Sprint beginnt am Tag "
+        f"nach dem letzten Tag des vorherigen und dauert {data.team.sprint.length_days} "
+        "Kalendertage (Einstellung *Sprintlänge*). Eine Sprintdatei wird angelegt, sobald "
+        "etwas für den Sprint gespeichert wird – oder hier mit **Sprints anlegen**.  \n"
+        "Weicht ein Sprint ab (z. B. drei Wochen über Weihnachten), den **letzten Tag** ändern; "
+        "die folgenden Sprints verschieben sich mit. Arbeitstage zählen Mo–Fr vom Start bis "
+        "einschließlich zum letzten Tag, Feiertage werden erst bei der Kapazität abgezogen."
+    )
+    count = st.number_input("Anzahl Sprints", min_value=1, max_value=26, value=6, key="cal-n")
+    sprints = absence_sprints(data, fc, int(count))
+    if not sprints:
+        st.info("Keine Sprints gefunden.")
+        return
+    frame = pd.DataFrame(calendar_table(data, sprints, fc.today), columns=CALENDAR_COLUMNS)
+    for col in ("Start", "Letzter Tag"):
+        frame[col] = pd.to_datetime(frame[col])
+    edited = st.data_editor(
+        frame,
+        column_config={
+            "Sprint": st.column_config.TextColumn(disabled=True),
+            "Start": st.column_config.DateColumn(format="DD.MM.YYYY", disabled=True),
+            "Letzter Tag": st.column_config.DateColumn(
+                format="DD.MM.YYYY", help="Der nächste Sprint beginnt am Tag danach."
+            ),
+            "Arbeitstage": st.column_config.NumberColumn(
+                disabled=True, help="Mo–Fr vom Start bis einschließlich zum letzten Tag"
+            ),
+            "Status": st.column_config.TextColumn(disabled=True),
+        },
+        hide_index=True,
+        key=f"calendar-{data.team.key}-{len(sprints)}",
+    )
+    after, errors = apply_calendar(data, sprints, edited.to_dict("records"))
+    for e in errors:
+        st.error(e)
+    to_save = [
+        new
+        for old, new in zip(sprints, after, strict=True)
+        if data.sprint(new.id) is None or (old.start, old.end) != (new.start, new.end)
+    ]
+    if to_save:
+        st.caption(
+            "Beim Speichern: "
+            + ", ".join(
+                f"{s.id} ({'neu' if data.sprint(s.id) is None else 'geändert'})" for s in to_save
+            )
+        )
+    if st.button(
+        "Sprints anlegen bzw. speichern", type="primary", disabled=bool(errors) or not to_save
+    ):
+        save(
+            with_sprints(data, to_save),
             [f"{s.id}.yaml" for s in to_save],
             lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
         )
@@ -1520,6 +1577,7 @@ def _git_panel(repo: Repository) -> None:
 TEAM_PAGES = {
     "forecast": page_forecast,
     "fehltage": page_absences,
+    "sprints": page_calendar,
     "planning": page_planning,
     "review": page_review,
     "produkte": page_products,
