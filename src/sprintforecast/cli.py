@@ -255,8 +255,17 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
             fmt_plain(pc.absence_days),
             fmt(pc.capacity),
         )
-    if breakdown.overhead:
-        table.add_row("Abzug Scrum-Termine", "", "", "", f"−{fmt(breakdown.overhead)}")
+    if breakdown.overhead_days_part:
+        days = fmt_plain(data.team.capacity.overhead_days)
+        table.add_row(
+            f"Abzug Scrum-Termine ({days} PT je Person × FTE)",
+            "", "", "", f"−{fmt(breakdown.overhead_days_part)}",
+        )  # fmt: skip
+    if breakdown.overhead_share_part:
+        table.add_row(
+            f"Abzug Scrum-Termine ({pct(data.team.capacity.overhead_share)})",
+            "", "", "", f"−{fmt(breakdown.overhead_share_part)}",
+        )  # fmt: skip
     table.add_row("[bold]Summe[/bold]", "", "", "", f"[bold]{fmt(breakdown.capacity)}[/bold]")
     return table
 

@@ -61,6 +61,9 @@ class ForecastSettings:
 class CapacitySettings:
     # Anteil der Kapazität für Scrum-Termine u. Ä., der pauschal abgezogen wird.
     overhead_share: float = 0.0
+    # Fester Abzug für Scrum-Termine in PT je Vollzeitperson und Sprint (× FTE); zusätzlich
+    # zum Anteil, z. B. 1 für Planning, Review und Retro.
+    overhead_days: float = 0.0
     # Bundesland-Kürzel für Feiertage (z. B. "NW", "BY"); Personen können abweichen.
     region: str | None = None
     rounding: int = 1

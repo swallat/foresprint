@@ -43,6 +43,8 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
         error("team.yaml", "forecast.roadmap_share muss zwischen 0 und 1 liegen")
     if not 0 <= team.capacity.overhead_share < 1:
         error("team.yaml", "capacity.overhead_share muss zwischen 0 und 1 liegen")
+    if team.capacity.overhead_days < 0:
+        error("team.yaml", "capacity.overhead_days darf nicht negativ sein")
     if team.sprint.length_days < 1:
         error("team.yaml", "sprint.length_days muss ≥ 1 sein")
     if not data.sprints and (team.sprint.first_id is None or team.sprint.first_start is None):
