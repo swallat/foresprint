@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from sprintforecast.calendar import following_sprint, next_id, workdays
-from sprintforecast.forecast import Forecast, build_forecast, find_sprint
+from sprintforecast.forecast import Forecast, absences_known, build_forecast, find_sprint
 from sprintforecast.i18n import t
 from sprintforecast.model import (
     Membership,
@@ -199,6 +199,7 @@ def edit_absences(
                 sprint.absences[person.id] = days
             else:
                 sprint.absences.pop(person.id, None)
+        sprint.absences_confirmed = True
         result.append(sprint)
     return result
 
@@ -234,7 +235,9 @@ def sprints_to_save(data: TeamData, originals: list[Sprint], edited: list[Sprint
     return [
         new
         for old, new in zip(originals, edited, strict=True)
-        if new.absences != old.absences or data.sprint(new.id) is None
+        if new.absences != old.absences
+        or (new.absences_confirmed != old.absences_confirmed and not absences_known(old))
+        or data.sprint(new.id) is None
     ]
 
 
