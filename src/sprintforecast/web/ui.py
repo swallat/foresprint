@@ -1441,22 +1441,19 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     _board_nav(data, sprint, "review")
     unit = data.team.unit.value
     computed = sprint_capacity(data.team, data.people, sprint).capacity if data.people else None
+    st.caption(
+        t(
+            "Im Review wird festgehalten, was der Sprint geschafft hat: erledigte Menge, was "
+            "nicht fertig wurde und was zusätzlich erledigt wurde."
+        )
+    )
     _review_prognosis_hint(sprint, unit)
     with st.form(f"review-{sprint.id}"):
-        capacity = _number(
-            t("Kapazität (PT) – wird eingefroren"),
-            sprint.capacity if sprint.capacity is not None else computed,
-            f"capacity-{sprint.id}",
-            help_text("capacity")
-            + (
-                "\n\n"
-                + t("Laut Personenliste und Fehltagen: {capacity} PT", capacity=fmt(computed))
-                if computed
-                else ""
-            ),
-        )
         velocity = _number(
-            f"Velocity ({unit})", sprint.velocity, f"velocity-{sprint.id}", help_text("velocity")
+            t("Geschafft – Velocity ({unit})", unit=unit),
+            sprint.velocity,
+            f"velocity-{sprint.id}",
+            help_text("velocity"),
         )
         not_done_col, extra_col = st.columns(2)
         not_done = not_done_col.number_input(
@@ -1496,6 +1493,23 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             product_rows = _product_editor(
                 distribution(fc, entry), ["done"], f"review-products-{sprint.id}", unit
             )
+        st.markdown(f"**{t('Personentage des Sprints')}**")
+        capacity = _number(
+            t("Verfügbare Personentage (PT) – wird eingefroren"),
+            sprint.capacity if sprint.capacity is not None else computed,
+            f"capacity-{sprint.id}",
+            t(
+                "Nur die Bezugsgröße, um die geschaffte Menge zwischen Sprints vergleichbar zu "
+                "machen (Velocity / Personentage). Vorbelegt laut Personenliste und Fehltagen; "
+                "wird hier eingefroren."
+            )
+            + (
+                "\n\n"
+                + t("Laut Personenliste und Fehltagen: {capacity} PT", capacity=fmt(computed))
+                if computed
+                else ""
+            ),
+        )
         tag = st.checkbox(
             t("Beim Commit Tag {tag} setzen", tag=f"{data.team.key}/{sprint.id}"),
             value=True,
@@ -1505,7 +1519,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if not submitted:
         return
     if capacity is None:
-        st.error(t("Bitte die Kapazität angeben."))
+        st.error(t("Bitte die verfügbaren Personentage angeben."))
         return
     sprint.capacity = capacity
     sprint.velocity = velocity
