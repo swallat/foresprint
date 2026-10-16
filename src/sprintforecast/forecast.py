@@ -8,13 +8,14 @@ from datetime import date
 
 from sprintforecast.calendar import following_sprint
 from sprintforecast.capacity import (
+    AbsenceHistory,
+    absence_history,
     capacity_with_expected_absences,
     estimated_capacity,
-    expected_absence_rate,
     sprint_capacity,
 )
 from sprintforecast.engine import CapacitySource, SprintInput, SprintResult, compute
-from sprintforecast.model import Planning, Sprint
+from sprintforecast.model import AbsenceState, Planning, Sprint, absence_status
 from sprintforecast.storage import TeamData
 
 
@@ -31,6 +32,8 @@ class Forecast:
     data: TeamData
     today: date
     entries: list[TimelineEntry]
+    # Fehltage-Historie, nach der unbekannte Fehltage geschätzt werden (None = ohne Personenliste).
+    absences: AbsenceHistory | None = None
 
     @property
     def current(self) -> TimelineEntry | None:
@@ -135,46 +138,46 @@ def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, 
 
 
 def absences_known(sprint: Sprint) -> bool:
-    """Fehltage gelten als bekannt, wenn welche eingetragen sind, sie bestätigt wurden (Seite
-    Fehltage, auch ohne Einträge) oder der Sprint schon geplant bzw. ausgewertet wurde. Eine
-    Sprintdatei, die nur z. B. die PO-Vorplanung enthält oder versehentlich leer entstanden ist,
-    bestätigt sie nicht – sonst spränge die Kapazität auf „alle anwesend“."""
-    return (
-        bool(sprint.absences)
-        or sprint.absences_confirmed
-        or sprint.planning is not None
-        or any(v is not None for v in (sprint.forecast_ist, sprint.velocity, sprint.forecast_plan))
-    )
+    """Fehltage gelten als bestätigt, wenn welche eingetragen sind, ausdrücklich „niemand
+    fehlt“ bestätigt wurde (Seite Fehltage) oder – bei älteren Dateien ohne gespeicherten
+    Stand – der Sprint schon geplant bzw. ausgewertet wurde. Voraussichtliche Fehltage aus der
+    PO-Vorplanung bestätigen nichts."""
+    return absence_status(sprint) is AbsenceState.CONFIRMED
 
 
 def resolve_capacity(
-    data: TeamData, sprint: Sprint, recorded: bool, absence_rate: float | None = None
+    data: TeamData, sprint: Sprint, history: AbsenceHistory | None = None
 ) -> tuple[float | None, CapacitySource | None]:
+    """Kapazität eines Sprints und ihre Quelle.
+
+    Mit Personenliste wird sie immer aus Kalender und Personen berechnet (Feiertage,
+    Sprintlänge, FTE); geschätzt werden nur unbekannte Fehltage. Der Trend der Kapazität gilt
+    nur für Teams ohne Personenliste."""
     if sprint.capacity is not None:
         return sprint.capacity, CapacitySource.RECORDED
-    if recorded and data.people and absences_known(sprint):
+    if not data.people:
+        return None, None
+    state = absence_status(sprint)
+    if state is AbsenceState.CONFIRMED:
         return sprint_capacity(data.team, data.people, sprint).capacity, CapacitySource.PEOPLE
-    if data.people and sprint.expected_absences:
+    if state is AbsenceState.EXPECTED:
         capacity = capacity_with_expected_absences(data.team, data.people, sprint)
         return capacity, CapacitySource.EXPECTED
-    if absence_rate is not None and data.people:
-        capacity = estimated_capacity(data.team, data.people, sprint, absence_rate)
-        return capacity, CapacitySource.ESTIMATED
-    return None, None
+    rate = history.rate if history is not None else None
+    capacity = estimated_capacity(data.team, data.people, sprint, rate or 0.0)
+    return capacity, CapacitySource.ESTIMATED if rate is not None else CapacitySource.CALENDAR
 
 
 def build_forecast(data: TeamData, today: date | None = None) -> Forecast:
     today = today or date.today()
     line = timeline(data, today)
-    rate = None
-    if data.team.capacity.absence_history > 0 and data.people:
+    history = None
+    if data.people:
         past = [s for s, rec in line if rec and s.end <= today]
-        rate = expected_absence_rate(
-            data.team, data.people, past, data.team.capacity.absence_history
-        )
+        history = absence_history(data.team, data.people, past, data.team.capacity.absence_history)
     inputs = []
-    for sprint, recorded in line:
-        capacity, source = resolve_capacity(data, sprint, recorded, rate)
+    for sprint, _ in line:
+        capacity, source = resolve_capacity(data, sprint, history)
         inputs.append(
             SprintInput(
                 id=sprint.id,
@@ -191,4 +194,4 @@ def build_forecast(data: TeamData, today: date | None = None) -> Forecast:
         TimelineEntry(sprint=s, recorded=r, result=res)
         for (s, r), res in zip(line, results, strict=True)
     ]
-    return Forecast(data=data, today=today, entries=entries)
+    return Forecast(data=data, today=today, entries=entries, absences=history)

@@ -124,8 +124,14 @@ class CapacitySource(StrEnum):
     RECORDED = "erfasst"
     PEOPLE = "Personenliste"
     TREND = "Trend"
+    # Personenliste und Kalender; Fehltage unbekannt und keine Historie, daher ohne Abzug.
+    CALENDAR = "Kalender, Fehltage unbekannt"
     ESTIMATED = "erwartete Fehltage"
     EXPECTED = "voraussichtliche Fehltage"
+
+
+# Quellen ohne bekannte Fehltage und ohne Historie: Die Kapazität ist nur geschätzt.
+UNSURE_SOURCES = (CapacitySource.TREND, CapacitySource.CALENDAR)
 
 
 class PlanSource(StrEnum):

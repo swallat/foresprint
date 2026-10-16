@@ -103,7 +103,17 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
         return Step(
             "capacity",
             name,
-            t("Keine Fehltage erfasst → Trend der Kapazität (wie n. Velocity fortgeschrieben)"),
+            t("Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)"),
+            f"= {_n(r.plan_capacity, 1)} PT",
+        )
+    if source is CapacitySource.CALENDAR:
+        return Step(
+            "capacity",
+            name,
+            t(
+                "Fehltage unbekannt und noch keine Historie → Kapazität laut Personenliste und "
+                "Kalender (Feiertage, Sprintlänge) ohne Abzug für Fehltage"
+            ),
             f"= {_n(r.plan_capacity, 1)} PT",
         )
     if source is CapacitySource.EXPECTED:
@@ -117,14 +127,17 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             f"= {_n(r.plan_capacity, 1)} PT",
         )
     if source is CapacitySource.ESTIMATED:
-        rate = fc.data.team.capacity.absence_history
+        history = fc.absences
+        used = history.sprints if history else []
+        quota = history.rate if history and history.rate is not None else 0.0
         return Step(
             "capacity",
             name,
             t(
-                "Keine Fehltage erfasst → Kapazität laut Personenliste, gemindert um die "
-                "durchschnittlichen Fehltage der letzten {count} Sprints",
-                count=rate,
+                "Fehltage unbekannt → Kapazität laut Personenliste und Kalender, gemindert um "
+                "die durchschnittlichen Fehltage ({share}) der Sprints {sprints}",
+                share=pct(quota),
+                sprints=", ".join(used),
             ),
             f"= {_n(r.plan_capacity, 1)} PT",
         )

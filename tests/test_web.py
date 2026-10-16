@@ -56,7 +56,21 @@ def git(cwd: Path, *args: str) -> str:
 def test_forecast_is_default_page(app: AppTest):
     values = [m.value for m in app.metric]
     assert values[:2] == ["9,0 PT", "10,1 PT"]  # wie `sprintforecast forecast demo`
-    assert any("2026.23" in w.value and "Trend" in w.value for w in app.warning)
+    # Mit Personenliste kommt die Kapazität aus Kalender und Personen: keine Trend-Warnung
+    assert not any("Trend" in w.value for w in app.warning)
+
+
+def test_forecast_warns_when_absences_unknown_and_no_history(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    team = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team.read_text())
+    raw["capacity"]["absence_history"] = 0  # keine Schätzung
+    team.write_text(yaml.safe_dump(raw))
+    at = start(data_dir, monkeypatch)
+    assert any(
+        "2026.23" in w.value and "Kalender, Fehltage unbekannt" in w.value for w in at.warning
+    )
 
 
 @pytest.mark.parametrize("page", sorted(PAGE_INFO))
@@ -74,11 +88,30 @@ def test_help_shows_workflow_and_terms(app: AppTest):
     assert any("Commitment" in c.value for c in app.caption)  # Quelle Forecast IST
 
 
-def test_absences_save_creates_missing_sprint_files(app: AppTest, data_dir: Path):
+def test_absences_save_does_not_confirm_silently(app: AppTest, data_dir: Path):
+    """Speichern ohne Eintrag und ohne ausdrückliche Bestätigung legt nichts an (B2)."""
     goto(app, "fehltage")
+    assert not any("angelegt" in c.value for c in app.caption)
+    assert next(b for b in app.button if b.label == "Fehltage speichern").disabled
+    assert not (data_dir / "demo" / "sprints" / "2026.24.yaml").exists()
+
+
+def test_absences_confirm_nobody_absent_creates_sprint_files(app: AppTest, data_dir: Path):
+    goto(app, "fehltage")
+    frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
+    states = f"absence-states-{frame['Sprint'].iloc[0]}-{len(frame)}"
+    rows = {
+        i: {"Niemand fehlt": True}
+        for i, sprint in enumerate(frame["Sprint"])
+        if sprint in ("2026.23", "2026.24")
+    }
+    app.session_state[states] = {"edited_rows": rows, "added_rows": [], "deleted_rows": []}
+    app.run()
     assert any("2026.23, 2026.24 angelegt" in c.value for c in app.caption)
     click(app, "Fehltage speichern")
-    assert load(data_dir / "demo" / "sprints" / "2026.24.yaml")["absences"] == {}
+    saved = load(data_dir / "demo" / "sprints" / "2026.24.yaml")
+    assert saved["absences"] == {} and saved["absence_state"] == "confirmed"
+    assert saved["absences_confirmed"] is True  # ältere Programmversionen lesen es weiter
     goto(app, "forecast")
     assert not any("Trend" in w.value for w in app.warning)
 

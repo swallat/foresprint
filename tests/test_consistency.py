@@ -223,15 +223,19 @@ def test_analysis_band_uses_the_same_plan(web: AppTest, fc):
             assert row["mittel"] == fmt(b.mid)
 
 
-def test_absences_page_preview_matches_engine_for_known_sprints(web: AppTest, fc):
-    """Sprints mit Datei: Kapazität und Forecast PLAN der Vorschau = Rechenkern."""
+def test_absences_page_preview_matches_engine(web: AppTest, fc):
+    """Kapazität (mit Quelle), Stand der Fehltage und Forecast PLAN der Vorschau = Rechenkern –
+    für alle Sprints, auch für Sprints mit unbekannten Fehltagen."""
+    from sprintforecast.report import absence_status_label, capacity_label
+
     page(web, "fehltage")
     table = next(d.value for d in web.dataframe if "Kapazität (PT)" in d.value.columns)
+    assert len(table) >= 4
     for _, row in table.iterrows():
         entry = fc.entry(row["Sprint"])
-        if entry.recorded and entry.result.plan_capacity_source.value == "Personenliste":
-            assert num(row["Kapazität (PT)"]) == pytest.approx(entry.result.plan_capacity)
-            assert num(row.iloc[2]) == pytest.approx(entry.result.plan)
+        assert row["Kapazität (PT)"] == capacity_label(entry)
+        assert row["Fehltage"] == absence_status_label(entry.sprint)
+        assert num(row["Forecast PLAN (PT)"]) == pytest.approx(entry.result.plan)
 
 
 def test_history_table_matches_engine(web: AppTest, fc):

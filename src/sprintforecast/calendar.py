@@ -9,7 +9,7 @@ from functools import cache
 
 import holidays
 
-from sprintforecast.model import Numbering, Person, Sprint, Team
+from sprintforecast.model import AbsenceState, Numbering, Person, Sprint, Team
 
 
 def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
@@ -31,12 +31,18 @@ def following_sprint(team: Team, previous: Sprint | None) -> Sprint:
                 "sprint.first_id/first_start fehlen in team.yaml."
             )
         start = team.sprint.first_start
-        return Sprint(id=team.sprint.first_id, start=start, end=start + length)
+        return Sprint(
+            id=team.sprint.first_id,
+            start=start,
+            end=start + length,
+            absence_state=AbsenceState.UNKNOWN,
+        )
     start = previous.end
     return Sprint(
         id=next_id(previous.id, start, team.sprint.numbering),
         start=start,
         end=start + length,
+        absence_state=AbsenceState.UNKNOWN,
     )
 
 
