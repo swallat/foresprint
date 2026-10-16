@@ -13,7 +13,7 @@ from sprintforecast.calendar import following_sprint, next_id, workdays
 from sprintforecast.forecast import Forecast
 from sprintforecast.i18n import t
 from sprintforecast.model import Membership, Person, Product, ProductValues, Sprint, new_person_id
-from sprintforecast.products import MEASURES, Distribution
+from sprintforecast.products import MEASURES, PRODUCTION_MEASURES, Distribution
 from sprintforecast.storage import TeamData
 
 
@@ -221,7 +221,9 @@ def calendar_to_save(
 
 # Auswahlwert für „Bundesland wie im Team eingestellt“.
 TEAM_REGION = "(Team)"
-PEOPLE_COLUMNS = ["_id", "Name", "Bundesland", "ab", "bis", "FTE"]
+PEOPLE_COLUMNS = ["_id", "Name", "Bundesland", "ab", "bis", "FTE", "Produktionszugriff"]
+# Spalten, die allein eine Zeile nicht „befüllt“ machen (Häkchen-Spalte hat immer einen Wert).
+PEOPLE_FLAG_COLUMNS = ("_id", "Produktionszugriff")
 
 
 def people_table(
@@ -238,6 +240,7 @@ def people_table(
             "ab": m.start,
             "bis": m.end,
             "FTE": m.fte,
+            "Produktionszugriff": p.production_access,
         }
         for p in sorted(visible, key=lambda p: p.name.lower())
         for m in p.memberships
@@ -266,7 +269,7 @@ def people_from_table(
     visible_people: dict[str, Person] = {}
 
     for i, row in enumerate(rows, start=1):
-        if all(is_blank(row.get(c)) for c in PEOPLE_COLUMNS if c != "_id"):
+        if all(is_blank(row.get(c)) for c in PEOPLE_COLUMNS if c not in PEOPLE_FLAG_COLUMNS):
             continue
         name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
         if not name:
@@ -279,6 +282,7 @@ def people_from_table(
             pid = new_person_id(name, used)
             used.add(pid)
             name_to_id[name.lower()] = pid
+        access = not is_blank(row.get("Produktionszugriff")) and bool(row["Produktionszugriff"])
         raw_region = row.get("Bundesland")
         region = None if is_blank(raw_region) or raw_region == TEAM_REGION else str(raw_region)
         person = visible_people.get(pid)
@@ -294,6 +298,7 @@ def people_from_table(
                 )
             )
             continue
+        person.production_access = person.production_access or access
         try:
             start, end = as_date(row.get("ab")), as_date(row.get("bis"))
         except ValueError:
@@ -325,7 +330,7 @@ def people_from_table(
 
 # --- Produkte ------------------------------------------------------------------------
 
-PRODUCT_COLUMNS = ["_id", "Name", "PO", "ab", "bis"]
+PRODUCT_COLUMNS = ["_id", "Name", "PO", "Anteil", "ab", "bis"]
 
 
 def product_table(
@@ -335,7 +340,14 @@ def product_table(
     visible = [p for p in products if show_former or p.end is None or p.end >= today]
     hidden = [p for p in products if p not in visible]
     rows = [
-        {"_id": p.id, "Name": p.name, "PO": p.po or "", "ab": p.start, "bis": p.end}
+        {
+            "_id": p.id,
+            "Name": p.name,
+            "PO": p.po or "",
+            "Anteil": None if p.share is None else round(p.share * 100, 6),
+            "ab": p.start,
+            "bis": p.end,
+        }
         for p in visible
     ]
     return rows, hidden
@@ -380,7 +392,13 @@ def products_from_table(
             errors.append(t("Zeile {row} ({name}): 'bis' liegt vor 'ab'", row=i, name=name))
             continue
         po = None if is_blank(row.get("PO")) else str(row["PO"]).strip()
-        result.append(Product(id=pid, name=name, po=po, start=start, end=end))
+        share = None if is_blank(row.get("Anteil")) else float(row["Anteil"]) / 100
+        if share is not None and not 0 < share <= 1:
+            errors.append(
+                t("Zeile {row} ({name}): Anteil muss zwischen 0 und 100 % liegen", row=i, name=name)
+            )
+            continue
+        result.append(Product(id=pid, name=name, po=po, start=start, end=end, share=share))
     kept = {p.id for p in result} | {p.id for p in hidden}
     deleted = [p.name for p in original if p.id not in kept]
     order = {p.id: n for n, p in enumerate(original)}
@@ -396,7 +414,7 @@ def product_values_table(d: Distribution) -> list[dict[str, Any]]:
             "_id": r.product.id,
             "Produkt": r.product.name + ("" if r.active else " (nicht betreut)"),
             "PO": r.product.po or "",
-            **{label: r.value(m) for m, label in MEASURES.items()},
+            **{label: r.value(m) for m, label in (MEASURES | PRODUCTION_MEASURES).items()},
         }
         for r in d.rows
     ]
@@ -409,7 +427,7 @@ def apply_product_values(sprint: Sprint, rows: list[dict[str, Any]], measures: l
         pid = str(row["_id"])
         values = result.products.get(pid, ProductValues())
         for m in measures:
-            raw = row.get(MEASURES[m])
+            raw = row.get((MEASURES | PRODUCTION_MEASURES)[m])
             setattr(values, m, None if is_blank(raw) else float(raw))
         if values.is_empty():
             result.products.pop(pid, None)

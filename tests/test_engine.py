@@ -35,7 +35,7 @@ AVG = [N, N, N, 8.0, 10.0, 12.0, N, N, N]
 
 
 def test_trend_classic_mixes_linear_and_multiplicative():
-    t = trend(AVG, TrendMode.KLASSISCH)
+    t = trend(AVG, TrendMode.CLASSIC)
     assert t[:6] == [N] * 6
     assert t[6] == pytest.approx(14.0)  # 12 + (12 − 10)
     assert t[7] == pytest.approx(16.8)  # 12 / 10 × 14

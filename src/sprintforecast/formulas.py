@@ -42,20 +42,20 @@ def _g(value: float) -> str:
 
 # Allgemeine Formeln – z. B. für Spaltenköpfe (Anzeige mit general()).
 GENERAL: dict[str, str] = {
-    "capacity": "Σ Personen (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine; "
+    "capacity": "Kapazität = Σ Personen (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine; "  # noqa: E501
     "nach dem Review eingefroren; ohne Fehltage: Trend",
-    "normalized_velocity": "Velocity / Kapazität × Referenzkapazität",
-    "average": "Mittel der normierten Velocity der letzten Sprints (Fenster)",
-    "trend": "Fortschreibung des Ø in die Zukunft (Trend-Modus)",
-    "plan": "abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)",
-    "roadmap": "Forecast PLAN × Roadmap-Anteil",
-    "small_stuff": "Forecast PLAN − Roadmap",
-    "fulfillment": "Velocity / Forecast IST",
-    "scope_creep": "nachträglich hinzugekommen / Forecast IST",
-    "focus_factor": "Velocity / Kapazität",
-    "delta": "Forecast PLAN − (Überkipper + Backlog − Korrekturen)",
-    "standard": "verfügbar / Anzahl betreuter Produkte",
-    "balance": "Σ Erledigt − Σ Standard",
+    "normalized_velocity": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
+    "average": "Ø n. Velocity = Mittel(n. Velocity der letzten Sprints im Fenster)",
+    "trend": "n. Velocity-Trend = Fortschreibung(Ø n. Velocity) gemäß Trend-Modus",
+    "plan": "Forecast PLAN = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)",
+    "roadmap": "Roadmap = Forecast PLAN × Roadmap-Anteil",
+    "small_stuff": "Kleinkram = Forecast PLAN − Roadmap",
+    "fulfillment": "Fulfillment = Velocity / Forecast IST",
+    "scope_creep": "Scope Creep = nachträglich hinzugekommen / Forecast IST",
+    "focus_factor": "Fokusfaktor = Velocity / Kapazität",
+    "delta": "Planning-Delta = Forecast PLAN − (Überkipper + Backlog − Korrekturen)",
+    "standard": "Standard = verfügbar × Anteil des Produkts (ohne festen Anteil: Rest / Anzahl dieser Produkte)",  # noqa: E501
+    "balance": "Saldo = Σ Erledigt − Σ Standard",
 }
 
 
@@ -127,7 +127,10 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
     return Step(
         "average",
         name,
-        t("Mittel der letzten {window} Sprints (fehlende Werte zählen nicht)", window=window),
+        t(
+            "Ø n. Velocity = Mittel der n. Velocity der letzten {window} Sprints (fehlende Werte zählen nicht)",  # noqa: E501
+            window=window,
+        ),
         f"({' + '.join(_n(v) for v in present)}) / {len(present)} = {_n(avg)}",
     )
 
@@ -144,7 +147,9 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
         return Step("trend", name, formula, calculation)
 
     if m[i].average is not None:
-        return made(t("Vergangener Sprint: Ø statt Trend"), f"Ø = {_n(m[i].average)}")
+        return made(
+            t("n. Velocity-Trend = Ø n. Velocity – vergangener Sprint"), f"Ø = {_n(m[i].average)}"
+        )
     if value is None:
         return made(general("trend"), t("– (zu wenig Historie)"))
 
@@ -158,21 +163,23 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
         return avg(j) if avg(j) is not None else tr(j)
 
     if mode is TrendMode.FLAT:
-        return made(t("flat: letzter Wert bleibt"), f"= {_n(known(i - 1))}")
+        return made(t("n. Velocity-Trend = Wert_vorher (flat)"), f"= {_n(known(i - 1))}")
     a1, a2 = avg(i - 1), avg(i - 2)
-    if mode is TrendMode.KLASSISCH and a1 is not None and a2 is not None:
+    if mode is TrendMode.CLASSIC and a1 is not None and a2 is not None:
         return made(
-            t("klassisch, 1. Zukunftssprint linear: Ø_vorher + (Ø_vorher − Ø_vorvorher)"),
+            t(
+                "n. Velocity-Trend = Ø_vorher + (Ø_vorher − Ø_vorvorher) (klassisch, 1. Zukunftssprint)"  # noqa: E501
+            ),
             f"{_n(a1)} + ({_n(a1)} − {_n(a2)}) = {_n(value)}",
         )
-    if mode is TrendMode.KLASSISCH and i >= 2 and tr(i - 2) is None:
+    if mode is TrendMode.CLASSIC and i >= 2 and tr(i - 2) is None:
         return made(
-            t("klassisch, 2. Zukunftssprint multiplikativ: Ø[−2] / Ø[−3] × Trend[−1]"),
+            t("n. Velocity-Trend = Ø[−2] / Ø[−3] × Trend[−1] (klassisch, 2. Zukunftssprint)"),
             f"{_n(avg(i - 2))} / {_n(avg(i - 3))} × {_n(tr(i - 1))} = {_n(value)}",
         )
     k1, k2 = known(i - 1), known(i - 2)
     return made(
-        t("linear: Wert_vorher + (Wert_vorher − Wert_vorvorher)"),
+        t("n. Velocity-Trend = Wert_vorher + (Wert_vorher − Wert_vorvorher) (linear)"),
         f"{_n(k1)} + ({_n(k1)} − {_n(k2)}) = {_n(value)}",
     )
 
@@ -204,8 +211,8 @@ def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
                 "plan",
                 "Forecast PLAN",
                 t(
-                    "abgerundet auf {digits} Stelle(n): (n. Velocity-Trend / Referenzkapazität "
-                    "× Kapazität)",
+                    "Forecast PLAN = abgerundet auf {digits} Stelle(n): (n. Velocity-Trend / "
+                    "Referenzkapazität × Kapazität)",
                     digits=f.rounding,
                 ),
                 f"{_n(r.normalized_velocity.trend)} / {_n(ref, 0)} × {_n(r.plan_capacity, 1)} = "
@@ -218,7 +225,7 @@ def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
             Step(
                 "plan",
                 "Forecast PLAN",
-                t("Vergangener Sprint: Forecast IST, abgerundet"),
+                t("Forecast PLAN = abgerundet(Forecast IST) – vergangener Sprint"),
                 f"{_n(r.forecast_ist.value)} → {fmt(r.plan, f.rounding)} {unit}",
             )
         )

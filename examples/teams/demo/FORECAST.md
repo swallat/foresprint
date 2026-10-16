@@ -1,6 +1,6 @@
 # Sprint-Forecast Demo-Team
 
-Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Sprints · Trend: `klassisch`
+Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Sprints · Trend: `classic`
 
 > Automatisch erzeugt mit `sprintforecast bericht`. Nicht von Hand bearbeiten.
 

@@ -73,10 +73,10 @@ def trend(average: Series, mode: TrendMode) -> Series:
             result[i] = known(i - 1)
             continue
         a1, a2 = avg(i - 1), avg(i - 2)
-        if mode is TrendMode.KLASSISCH and a1 is not None:
+        if mode is TrendMode.CLASSIC and a1 is not None:
             # =(Ø[i-1] − Ø[i-2]) + Ø[i-1]
             result[i] = None if a2 is None else a1 + (a1 - a2)
-        elif mode is TrendMode.KLASSISCH and i >= 2 and tr(i - 2) is None:
+        elif mode is TrendMode.CLASSIC and i >= 2 and tr(i - 2) is None:
             # =Ø[i-2] / Ø[i-3] × Trend[i-1]
             ratio = _div(avg(i - 2), avg(i - 3))
             t1 = tr(i - 1)

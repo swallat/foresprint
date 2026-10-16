@@ -58,8 +58,9 @@ def person_capacity(team: Team, person: Person, sprint: Sprint) -> PersonCapacit
 def sprint_capacity(team: Team, people: list[Person], sprint: Sprint) -> CapacityBreakdown:
     rows = [pc for p in people if (pc := person_capacity(team, p, sprint)) is not None]
     gross = sum(r.capacity for r in rows)
-    share_part = gross * team.capacity.overhead_share
+    # Prozent und PT je Person sind derselbe Abzug in zwei Einheiten: nicht addieren.
     days_part = sum(r.overhead for r in rows)
+    share_part = 0.0 if team.capacity.overhead_days else gross * team.capacity.overhead_share
     overhead = share_part + days_part
     return CapacityBreakdown(
         people=rows,
@@ -69,3 +70,13 @@ def sprint_capacity(team: Team, people: list[Person], sprint: Sprint) -> Capacit
         overhead_days_part=days_part,
         capacity=round_down(max(gross - overhead, 0.0), team.capacity.rounding),
     )
+
+
+def production_share(team: Team, people: list[Person], sprint: Sprint) -> float | None:
+    """Anteil der Personen mit Produktionszugriff an der Kapazität des Sprints (0–1).
+    None, wenn niemand Produktionszugriff hat."""
+    group = [p for p in people if p.production_access]
+    if not group:
+        return None
+    total = sprint_capacity(team, people, sprint).gross
+    return sprint_capacity(team, group, sprint).gross / total if total else 0.0
