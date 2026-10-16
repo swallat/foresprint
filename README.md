@@ -170,7 +170,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
 | Boards | PO-Vorplanung | je Produkt vorsehen, was in den Sprint soll – im Vergleich zum Standard, Summe je PO |
 | | Planning | geführter Ablauf: 1. Fehltage, 2. Forecast PLAN & Einplanung je Produkt, 3. Forecast IST |
-| | Review | Velocity, Scope Creep, Erledigt je Produkt; Kapazität wird eingefroren |
+| | Review | Velocity, Scope Creep, Erledigt je Produkt, nicht erledigt/zusätzlich erledigt; verfügbare Personentage werden eingefroren |
 | | Analyse | ergänzend: Bandbreite, Fokusfaktor, Puffer-Empfehlung, „Wann ist es fertig?“ |
 | Team | Personen | eine Tabelle (Zeile je Zeitraum, FTE); IDs automatisch; Ehemalige ausblendbar |
 | | Produkte | Produktliste mit PO und Zeitraum (ab/bis); Ehemalige ausblendbar |
@@ -197,7 +197,7 @@ weiterhin von dir.
 | Produkte ändern sich | `sprintforecast produktliste team-a` | Produkt anlegen, PO ändern, Produkt abgeben (mit Enddatum). |
 | PO-Vorplanung | `sprintforecast produkte team-a --vorplanung` | POs tragen je Produkt ein, was sie vorsehen; Vergleich mit dem Standard. |
 | Sprint Planning | `sprintforecast planning team-a` | Geführt: 1. Fehltage, 2. Forecast PLAN und Planning je Produkt, 3. Forecast IST (+ optional Kontrollrechnung). Friert den Forecast PLAN ein. Standard: nächster noch nicht geplanter Sprint. |
-| Sprint Review | `sprintforecast review team-a --commit` | Erfasst Velocity, Scope Creep und Erledigt je Produkt, friert die Kapazität ein, committet und setzt Tag `team-a/<sprint>`. |
+| Sprint Review | `sprintforecast review team-a --commit` | Erfasst Velocity, Scope Creep und Erledigt je Produkt, friert die verfügbaren Personentage ein, committet und setzt Tag `team-a/<sprint>`. |
 | PO-Planung | `sprintforecast forecast team-a` | Prognose für laufenden + nächste Sprints. |
 | Produktauswertung | `sprintforecast produkte team-a [SPRINT]` | Verteilung je Produkt und Saldo der letzten Sprints. |
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
