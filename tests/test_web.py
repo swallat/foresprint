@@ -415,3 +415,35 @@ def test_preplanning_whatif_is_not_saved(app: AppTest, data_dir: Path):
     assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
     for sprint_file in (data_dir / "demo" / "sprints").glob("*.yaml"):
         assert "velocity: 2" not in sprint_file.read_text()
+
+
+def test_preplanning_saves_prognosis_with_comment(app: AppTest, data_dir: Path):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    box = next(
+        n
+        for n in app.number_input
+        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-open")
+    )
+    box.set_value(3.0).run()
+    comment = next(i for i in app.text_input if i.key and i.key.startswith("vorplanung-comment-"))
+    comment.set_value("Prognose aus dem Daily").run()
+    click(app, "PO-Vorplanung speichern")
+    sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
+    prognosis = sprint["prognoses"][-1]
+    assert prognosis["comment"] == "Prognose aus dem Daily"
+    assert prognosis["not_done"] == 3
+    assert prognosis["expected_done"] == 7  # Forecast IST 10 - 3
+    assert prognosis["target"] == "2026.23"
+    assert sprint["velocity"] is None  # die Velocity bleibt dem Review vorbehalten
+
+
+def test_review_tracks_not_done_and_additional(app: AppTest, data_dir: Path):
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    app.number_input(key="velocity-2026.21").set_value(9.0)
+    app.number_input(key="not-done-2026.21").set_value(2.0)
+    app.number_input(key="additional-done-2026.21").set_value(1.0)
+    click(app, "Review speichern")
+    sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
+    assert (sprint["velocity"], sprint["not_done"], sprint["additional_done"]) == (9, 2, 1)
