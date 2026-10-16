@@ -113,10 +113,14 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "forecast": ("Forecast", ":material/trending_up:"),
         "fehltage": ("Fehltage", ":material/event_busy:"),
         "sprints": ("Sprintkalender", ":material/calendar_month:"),
-        "planning": ("Planning", ":material/edit_note:"),
-        "review": ("Review", ":material/task_alt:"),
         "produkte": ("Produktverteilung", ":material/pie_chart:"),
         "analyse": ("Analyse", ":material/insights:"),
+    },
+    # Die drei Boards in zeitlicher Reihenfolge: vor dem Planning, Planning, Review.
+    "Boards": {
+        "vorplanung": ("PO-Vorplanung", ":material/groups:"),
+        "planning": ("Planning", ":material/edit_note:"),
+        "review": ("Review", ":material/task_alt:"),
     },
     "Team": {
         "personen": ("Personen", ":material/group:"),
@@ -1546,6 +1550,86 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.info(text + t(" – zu wenige Werte für eine Empfehlung."))
 
 
+def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Board der POs vor dem Planning: je Produkt vorsehen, was in den Sprint soll."""
+    st.header(t("PO-Vorplanung"))
+    show_flash()
+    unit = data.team.unit.value
+    if not data.products:
+        st.info(
+            t(
+                "Noch keine Produkte erfasst. Die PO-Vorplanung verteilt die Sprint-Menge auf die "
+                "Produkte des Teams."
+            )
+        )
+        page_link("produktliste", t("Produkte anlegen"))
+        return
+    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="vorplanung-sprint")
+    entry = fc.entry(sprint.id) if sprint else None
+    if sprint is None or entry is None:
+        return
+    st.caption(
+        t(
+            "Vor dem Planning tragen die POs ein, wie viel sie je Produkt für den Sprint vorsehen. "
+            "Zum Vergleich steht der **Standard** – die gleichmäßige Verteilung bzw. der "
+            "vereinbarte Anteil des Produkts."
+        )
+    )
+    d = distribution(fc, entry)
+    rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit)
+    if rows is None:
+        return
+    base = _base_sprint(data, sprint)
+    after = apply_product_values(base, rows, ["preplanned"])
+    preview = with_sprints(data, [after])
+    fc_preview = build_forecast(preview, fc.today)
+    d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+    total = d.total("preplanned")
+    left, middle, right = st.columns(3)
+    left.metric(t("Verteilbar"), f"{fmt(d.available, 2)} {unit}")
+    middle.metric(t("Vorgesehen (Σ)"), f"{fmt(total, 2)} {unit}")
+    if total is not None and d.available is not None:
+        rest = d.available - total
+        right.metric(
+            t("Noch frei") if rest >= 0 else t("Zu viel"),
+            f"{fmt(abs(rest), 2)} {unit}",
+            delta=None,
+        )
+    comparison = [
+        {
+            t("Produkt"): r.product.name,
+            "PO": r.product.po or "",
+            t("Standard"): fmt(r.standard, 2),
+            t("PO-Vorplanung"): fmt(r.preplanned, 2),
+            t("Differenz"): _signed(r.preplanned - r.standard)
+            if r.preplanned is not None and r.standard is not None
+            else "–",
+        }
+        for r in d.rows
+        if r.active or r.preplanned is not None
+    ]
+    st.dataframe(pd.DataFrame(comparison), hide_index=True)
+    if po_rows := by_po(d):
+        st.markdown(f"**{t('Je PO')}**")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "PO": po,
+                        t("Standard"): fmt(totals["standard"], 2),
+                        t("PO-Vorplanung"): fmt(totals["preplanned"], 2),
+                    }
+                    for po, totals in po_rows
+                ]
+            ),
+            hide_index=True,
+        )
+    changed = after.products != base.products
+    if st.button(t("PO-Vorplanung speichern"), type="primary", disabled=not changed):
+        save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
+    page_link("planning", t("Weiter zum Planning"))
+
+
 def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Produktverteilung"))
     unit = data.team.unit.value
@@ -1568,7 +1652,8 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.caption(
         t(
             "Die **PO-Vorplanung** tragen die POs vor dem Planning ein, **Planning** wird im "
-            "Sprint Planning gefüllt, **Erledigt** im Review. Alles lässt sich auch hier pflegen."
+            "Sprint Planning gefüllt, **Erledigt** im Review – jeweils auf den Seiten der "
+            "**Boards**. Alles lässt sich auch hier pflegen."
         )
     )
     d = distribution(fc, entry)
@@ -2345,6 +2430,7 @@ TEAM_PAGES = {
     "forecast": page_forecast,
     "fehltage": page_absences,
     "sprints": page_calendar,
+    "vorplanung": page_preplanning,
     "planning": page_planning,
     "review": page_review,
     "produkte": page_products,
