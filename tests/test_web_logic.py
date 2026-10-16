@@ -300,3 +300,15 @@ def test_saving_preplanning_does_not_change_capacity_source(data_dir: Path):
     sprint.absences = {"anna": 2.0}  # eingetragene Fehltage bestätigen die Kapazität
     confirmed = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
     assert confirmed.result.plan_capacity_source is CapacitySource.PEOPLE
+
+
+def test_unchanged_preview_keeps_forecast_of_unsaved_sprint(data_dir: Path):
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.web.ui import _preview_forecast
+
+    data = Repository(data_dir).load("demo")
+    fc = build_forecast(data, TODAY)
+    target = next(e for e in fc.upcoming() if not e.recorded)
+    base = target.sprint
+    after = type(base)(id=base.id, start=base.start, end=base.end)
+    assert _preview_forecast(data, fc, base, after) is fc
