@@ -72,6 +72,9 @@ class CapacitySettings:
     # Bundesland-Kürzel für Feiertage (z. B. "NW", "BY"); Personen können abweichen.
     region: str | None = None
     rounding: int = 1
+    # Für künftige Sprints ohne eingetragene Fehltage: die durchschnittlichen Fehltage der
+    # letzten so vielen Sprints (aus den Plannings) erwarten. 0 = aus (Trend der Kapazität).
+    absence_history: int = 0
 
 
 @dataclass

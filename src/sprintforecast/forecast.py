@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from sprintforecast.calendar import following_sprint
-from sprintforecast.capacity import sprint_capacity
+from sprintforecast.capacity import estimated_capacity, expected_absence_rate, sprint_capacity
 from sprintforecast.engine import CapacitySource, SprintInput, SprintResult, compute
 from sprintforecast.model import Planning, Sprint
 from sprintforecast.storage import TeamData
@@ -130,21 +130,30 @@ def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, 
 
 
 def resolve_capacity(
-    data: TeamData, sprint: Sprint, recorded: bool
+    data: TeamData, sprint: Sprint, recorded: bool, absence_rate: float | None = None
 ) -> tuple[float | None, CapacitySource | None]:
     if sprint.capacity is not None:
         return sprint.capacity, CapacitySource.RECORDED
     if recorded and data.people:
         return sprint_capacity(data.team, data.people, sprint).capacity, CapacitySource.PEOPLE
+    if absence_rate is not None and data.people:
+        capacity = estimated_capacity(data.team, data.people, sprint, absence_rate)
+        return capacity, CapacitySource.ESTIMATED
     return None, None
 
 
 def build_forecast(data: TeamData, today: date | None = None) -> Forecast:
     today = today or date.today()
     line = timeline(data, today)
+    rate = None
+    if data.team.capacity.absence_history > 0 and data.people:
+        past = [s for s, rec in line if rec and s.end <= today]
+        rate = expected_absence_rate(
+            data.team, data.people, past, data.team.capacity.absence_history
+        )
     inputs = []
     for sprint, recorded in line:
-        capacity, source = resolve_capacity(data, sprint, recorded)
+        capacity, source = resolve_capacity(data, sprint, recorded, rate)
         inputs.append(
             SprintInput(
                 id=sprint.id,
