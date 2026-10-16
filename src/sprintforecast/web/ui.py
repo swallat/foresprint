@@ -40,6 +40,7 @@ from sprintforecast.forecast import (
     build_forecast,
     find_sprint,
     freeze_plan,
+    refreeze_offer,
 )
 from sprintforecast.formulas import general, steps
 from sprintforecast.formulas import step as formula_step
@@ -87,6 +88,7 @@ from sprintforecast.web.logic import (
     apply_calendar,
     apply_product_values,
     calendar_table,
+    calendar_to_save,
     edit_absences,
     parse_numbers,
     people_from_table,
@@ -582,11 +584,7 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
     after, errors = apply_calendar(data, sprints, edited.to_dict("records"))
     for e in errors:
         st.error(e)
-    to_save = [
-        new
-        for old, new in zip(sprints, after, strict=True)
-        if data.sprint(new.id) is None or (old.start, old.end) != (new.start, new.end)
-    ]
+    to_save = calendar_to_save(data, sprints, after, create_missing=True)
     if to_save:
         st.caption(
             t("Beim Speichern: ")
@@ -598,9 +596,14 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if st.button(
         t("Sprints anlegen bzw. speichern"), type="primary", disabled=bool(errors) or not to_save
     ):
+        preview = with_sprints(data, to_save)
+        # Überschneidungen meldet die Prüfung am Nachfolger – ihn mit prüfen.
+        ids = [x.id for x in preview.sprints]
+        saved = {x.id for x in to_save}
+        checked = saved | {ids[i + 1] for i, sid in enumerate(ids[:-1]) if sid in saved}
         save(
-            with_sprints(data, to_save),
-            [f"{s.id}.yaml" for s in to_save],
+            preview,
+            [f"{sid}.yaml" for sid in checked],
             lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
         )
 
@@ -1111,6 +1114,22 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
                 " ".join(f"{c:g}" for c in p.corrections),
                 help=help_text("corrections"),
             )
+        refreeze = False
+        if offer := refreeze_offer(sprint, entry):
+            refreeze = st.checkbox(
+                t(
+                    "Forecast PLAN neu einfrieren ({frozen} → {current} {unit})",
+                    frozen=fmt(offer[0]),
+                    current=fmt(offer[1]),
+                    unit=unit,
+                ),
+                value=False,
+                key=f"refreeze-{sprint.id}",
+                help=t(
+                    "Der beim ersten Planning eingefrorene Wert ist die Basis der "
+                    "Standardverteilung je Produkt und bleibt sonst unverändert."
+                ),
+            )
         submitted = st.form_submit_button(t("Planning speichern"), type="primary")
     if not submitted:
         return
@@ -1124,7 +1143,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
         forecast_ist,
         Planning(carryover=carryover or 0.0, backlog=backlog or 0.0, corrections=corrections),
     )
-    freeze_plan(sprint, entry, fc.today)
+    freeze_plan(sprint, entry, fc.today, refreeze=refreeze)
     if prefilled:
         st.info(
             t(

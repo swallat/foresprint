@@ -89,6 +89,7 @@ def test_check_caches_for_a_day(env: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def test_auto_update_schedules_once(env: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(sys, "platform", "linux")  # Shell-Variante, auch unter Windows
     remote(monkeypatch, "0.3.0")
     monkeypatch.setattr(updater, "find_uv", lambda: "/bin/uv")
     started: list[list[str]] = []
@@ -151,6 +152,7 @@ def test_version_matches_pyproject():
 
 
 def test_restart_with_update_waits_and_relaunches(env: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.setattr(updater, "find_uv", lambda: "/bin/uv")
     monkeypatch.setenv(updater.PIDS_ENV, "4242")
     monkeypatch.setenv(
@@ -169,7 +171,33 @@ def test_restart_with_update_waits_and_relaunches(env: Path, monkeypatch: pytest
 
 def test_powershell_restart_command(tmp_path: Path):
     script = updater._powershell_script(
-        [1], ["uv", "tool"], tmp_path / "log", False, ["C:\\sf.exe", "web", "--app"], "C:\\d"
+        [1],
+        ["uv", "tool"],
+        tmp_path / "log",
+        False,
+        ["C:\\sf.exe", "--daten", "C:\\Team Data", "web", "--app"],
+        "C:\\d",
     )
-    assert "Start-Process -FilePath 'C:\\sf.exe' -ArgumentList @('web', '--app')" in script
+    assert (
+        "Start-Process -FilePath 'C:\\sf.exe' "
+        """-ArgumentList '--daten "C:\\Team Data" web --app'"""
+    ) in script
     assert "-WorkingDirectory 'C:\\d'" in script
+    bare = updater._powershell_script([1], ["uv"], tmp_path / "log", False, ["C:\\sf.exe"], None)
+    assert "Start-Process -FilePath 'C:\\sf.exe'\n" in bare + "\n"
+
+
+def test_notice_alias_in_environment(env: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv(updater.MODE_ENV, "notice")
+    assert updater.mode() is updater.Mode.NOTICE
+
+
+def test_restart_uses_double_click_launcher(monkeypatch: pytest.MonkeyPatch):
+    import json
+
+    monkeypatch.setenv(updater.LAUNCHER_ENV, json.dumps(["/bin/sprintforecast-app"]))
+    restart = json.loads(updater.web_environment(["/x", "web", "--app"])[updater.RESTART_ENV])
+    assert restart["cmd"] == ["/bin/sprintforecast-app"]
+    monkeypatch.delenv(updater.LAUNCHER_ENV)
+    restart = json.loads(updater.web_environment(["/x", "web", "--app"])[updater.RESTART_ENV])
+    assert restart["cmd"][1:] == ["web", "--app"]

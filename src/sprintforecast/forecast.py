@@ -50,11 +50,13 @@ class Forecast:
         if purpose == "current":
             return self.current
         if purpose == "planning":
-            # Der laufende Sprint, solange sein Planning fehlt – sonst der nächste.
-            current = self.current
-            if current is not None and current.sprint.forecast_ist is None:
-                return current
-            return self.default_entry("next")
+            # Der früheste laufende oder künftige Sprint ohne Forecast IST.
+            open_ = [
+                e
+                for e in self.entries
+                if e.sprint.end > self.today and e.sprint.forecast_ist is None
+            ]
+            return open_[0] if open_ else None
         if purpose == "next":
             future = [e for e in self.entries if e.sprint.start > self.today]
             return future[0] if future else None
@@ -105,12 +107,26 @@ def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Plannin
     return prefilled
 
 
-def freeze_plan(sprint: Sprint, entry: TimelineEntry | None, today: date) -> None:
+def freeze_plan(
+    sprint: Sprint, entry: TimelineEntry | None, today: date, refreeze: bool = False
+) -> None:
     """Merkt den Forecast PLAN zum Planning – Basis der Standardverteilung je Produkt.
-    Abgeschlossene Sprints bleiben unverändert."""
+    Ein bereits eingefrorener Wert bleibt, außer ``refreeze``; abgeschlossene Sprints bleiben
+    unverändert."""
     if entry is None or sprint.end <= today or entry.result.plan is None:
         return
+    if sprint.forecast_plan is not None and not refreeze:
+        return
     sprint.forecast_plan = entry.result.plan
+
+
+def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, float] | None:
+    """(eingefroren, aktuell), wenn sich der Forecast PLAN seit dem Einfrieren geändert hat."""
+    if entry is None or sprint.forecast_plan is None or entry.result.plan is None:
+        return None
+    if abs(sprint.forecast_plan - entry.result.plan) < 1e-9:
+        return None
+    return sprint.forecast_plan, entry.result.plan
 
 
 def resolve_capacity(

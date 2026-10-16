@@ -32,6 +32,7 @@ from sprintforecast.forecast import (
     build_forecast,
     find_sprint,
     freeze_plan,
+    refreeze_offer,
 )
 from sprintforecast.git import GitError, commit
 from sprintforecast.guide import (
@@ -78,7 +79,7 @@ from sprintforecast.storage import (
     default_data_dir,
 )
 from sprintforecast.updater import PACKAGE
-from sprintforecast.validate import Level, check_all, issues_for
+from sprintforecast.validate import Level, check_all, check_team, issues_for
 
 app = typer.Typer(
     help=t("Velocity- und Kapazitäts-Forecast für Scrum-Teams. Einstieg: `sprintforecast hilfe`."),
@@ -871,7 +872,19 @@ def planning(
         default = plan_values.committed
         console.print(f"[dim]{t('Vorbelegt mit Überkipper + Backlog.')}[/dim]")
     apply_planning(s, _ask_number(t("Forecast IST ({unit})", unit=unit), default), plan_values)
-    freeze_plan(s, fc.entry(s.id), c.today)
+    refreeze = False
+    if offer := refreeze_offer(s, fc.entry(s.id)):
+        refreeze = Confirm.ask(
+            t(
+                "Der eingefrorene Forecast PLAN ({frozen}) weicht vom aktuellen ({current}) ab. "
+                "Neu einfrieren?",
+                frozen=fmt(offer[0]),
+                current=fmt(offer[1]),
+            ),
+            default=False,
+            console=console,
+        )
+    freeze_plan(s, fc.entry(s.id), c.today, refreeze=refreeze)
     path = c.repo.save_sprint(team, s)
     _saved(path)
     fc = build_forecast(_load(c, team), c.today)
@@ -1401,7 +1414,13 @@ def sprints(
     ] = None,
     commit_: CommitOpt = False,
 ) -> None:
-    from sprintforecast.web.logic import absence_sprints, apply_calendar, calendar_table
+    from sprintforecast.web.logic import (
+        absence_sprints,
+        apply_calendar,
+        calendar_table,
+        calendar_to_save,
+        with_sprints,
+    )
 
     c = _ctx(ctx)
     data = _load(c, team)
@@ -1448,11 +1467,16 @@ def sprints(
         "die Kapazität ab). Der nächste Sprint beginnt am Tag nach dem letzten Tag."
     )
     console.print(table)
-    changed = [
-        new
-        for old, new in zip(planned, after, strict=True)
-        if (old.start, old.end) != (new.start, new.end) or (anlegen and data.sprint(new.id) is None)
+    changed = calendar_to_save(data, planned, after, create_missing=anlegen)
+    blocking = [
+        i
+        for i in check_team(with_sprints(data, changed), c.today)
+        if i.level is Level.ERROR and i.where.startswith("sprints/")
     ]
+    if blocking:
+        for i in blocking:
+            err.print(f"[red]{i.where}: {i.message}[/red]")
+        raise typer.Exit(1)
     if not changed:
         if not anlegen:
             console.print(f"[dim]{cmd(t('Fehlende Sprintdateien anlegen mit --anlegen.'))}[/dim]")

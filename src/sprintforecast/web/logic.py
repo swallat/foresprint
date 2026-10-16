@@ -150,6 +150,7 @@ def apply_calendar(
     angelegter Sprints werden neu vergeben. Liefert (Sprints, Fehler)."""
     errors: list[str] = []
     result: list[Sprint] = []
+    persisted = {s.id for s in data.sprints}
     for i, (original, row) in enumerate(zip(sprints, rows, strict=True)):
         sprint = copy.deepcopy(original)
         if result:
@@ -178,8 +179,42 @@ def apply_calendar(
                 )
             )
         sprint.end = end if end > sprint.start else original.end
+        if sprint.id != original.id and (
+            sprint.id in persisted or any(s.id == sprint.id for s in result)
+        ):
+            errors.append(
+                t(
+                    "Sprint-ID {id} wäre doppelt – bitte zuerst die folgenden Sprints anpassen.",
+                    id=sprint.id,
+                )
+            )
         result.append(sprint)
+    # Gespeicherte Sprints nach dem angezeigten Zeitraum um dieselbe Differenz verschieben.
+    if sprints and result:
+        delta = result[-1].end - sprints[-1].end
+        if delta:
+            for later in data.sprints:
+                if later.start >= sprints[-1].end:
+                    moved = copy.deepcopy(later)
+                    moved.start += delta
+                    moved.end += delta
+                    result.append(moved)
     return result, errors
+
+
+def calendar_to_save(
+    data: TeamData, originals: list[Sprint], after: list[Sprint], create_missing: bool
+) -> list[Sprint]:
+    """Zu speichernde Sprints: geänderte Daten, auf Wunsch fehlende Dateien und verschobene
+    gespeicherte Sprints nach dem angezeigten Zeitraum."""
+    window, shifted = after[: len(originals)], after[len(originals) :]
+    changed = [
+        new
+        for old, new in zip(originals, window, strict=True)
+        if (old.start, old.end) != (new.start, new.end)
+        or (create_missing and data.sprint(new.id) is None)
+    ]
+    return changed + shifted
 
 
 # --- Personen -------------------------------------------------------------------------

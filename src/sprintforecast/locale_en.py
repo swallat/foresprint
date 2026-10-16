@@ -765,4 +765,9 @@ EN: dict[str, str] = {
     "3 · Forecast IST": "3 · Commitment",
     # --- web (3) ---
     "Forecast IST / PLAN": "Commitment / PLAN",
+    # --- review fixes ---
+    "Der beim ersten Planning eingefrorene Wert ist die Basis der Standardverteilung je Produkt und bleibt sonst unverändert.": "The value frozen at the first planning is the basis of the standard distribution per product and otherwise stays unchanged.",
+    "Der eingefrorene Forecast PLAN ({frozen}) weicht vom aktuellen ({current}) ab. Neu einfrieren?": "The frozen Forecast PLAN ({frozen}) differs from the current one ({current}). Freeze again?",
+    "Forecast PLAN neu einfrieren ({frozen} → {current} {unit})": "Freeze Forecast PLAN again ({frozen} → {current} {unit})",
+    "Sprint-ID {id} wäre doppelt – bitte zuerst die folgenden Sprints anpassen.": "Sprint ID {id} would be duplicated – please adjust the following sprints first.",
 }

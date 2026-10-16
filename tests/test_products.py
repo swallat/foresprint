@@ -113,3 +113,23 @@ def test_validation_of_product_values(fc):
     messages = [i.message for i in check_team(data, TODAY)]
     assert any("unbekanntes Produkt 'unbekannt'" in m for m in messages)
     assert any("größer als der Forecast IST" in m for m in messages)
+
+
+def test_freeze_keeps_existing_plan_unless_requested(fc):
+    from sprintforecast.forecast import refreeze_offer
+
+    entry = fc.entry("2026.22")
+    entry.sprint.forecast_plan = 9.0
+    freeze_plan(entry.sprint, entry, TODAY)
+    assert entry.sprint.forecast_plan == 9.0
+    assert refreeze_offer(entry.sprint, entry) == (9.0, pytest.approx(10.1))
+    freeze_plan(entry.sprint, entry, TODAY, refreeze=True)
+    assert entry.sprint.forecast_plan == pytest.approx(10.1)
+    assert refreeze_offer(entry.sprint, entry) is None
+
+
+def test_planning_default_skips_committed_future_sprint(fc):
+    assert fc.default_entry("planning").sprint.id == "2026.22"
+    fc.entry("2026.22").sprint.forecast_ist = 10
+    assert fc.default_entry("planning").sprint.id == "2026.23"
+    assert fc.default_entry("next").sprint.id == "2026.22"  # Fehltage unverändert
