@@ -120,26 +120,23 @@ def test_cache_follows_data_folder_change(data_dir: Path, tmp_path: Path):
 
 
 def test_loader_uses_c_loader_when_available():
-    import yaml as pyyaml
-
-    expected = getattr(pyyaml, "CSafeLoader", pyyaml.SafeLoader)
-    assert storage._YAML_LOADER is expected
+    assert storage._YAML_LOADER is getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 
 def test_loader_falls_back_without_c_loader(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    import importlib
+    monkeypatch.delattr(yaml, "CSafeLoader", raising=False)
+    assert storage._pick_loader() is yaml.SafeLoader
+    monkeypatch.setattr(storage, "_YAML_LOADER", yaml.SafeLoader)
+    (tmp_path / "a.yaml").write_text("x: 1\nd: 2026-10-15\n", encoding="utf-8")
+    assert storage._read(tmp_path / "a.yaml")["x"] == 1
 
-    import yaml as pyyaml
 
-    monkeypatch.delattr(pyyaml, "CSafeLoader", raising=False)
-    reloaded = importlib.reload(storage)
-    try:
-        assert reloaded._YAML_LOADER is pyyaml.SafeLoader
-        (tmp_path / "a.yaml").write_text("x: 1\n", encoding="utf-8")
-        assert reloaded._read(tmp_path / "a.yaml") == {"x": 1}
-    finally:
-        monkeypatch.undo()
-        importlib.reload(storage)
+def test_both_loaders_read_demo_data_identically(data_dir: Path):
+    for f in data_dir.rglob("*.yaml"):
+        text = f.read_text(encoding="utf-8")
+        assert yaml.load(text, Loader=yaml.SafeLoader) == yaml.load(
+            text, Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+        )
 
 
 @pytest.fixture

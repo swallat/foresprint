@@ -74,6 +74,10 @@ def measure(data: Path, team: str, runs: int, today: date) -> dict[str, float]:
         result[f"import {module}"] = import_ms(module, max(3, runs // 3))
     repo = Repository(data)
     result["Team laden (ohne Cache)"] = median_ms(lambda: repo.load(team), runs)
+    cached = getattr(repo, "load_cached", None)  # erst ab Phase P vorhanden
+    result["Team laden (Cache-Treffer)"] = (
+        median_ms(lambda: cached(team), runs) if cached else float("nan")
+    )
     loaded = repo.load(team)
     result["build_forecast"] = median_ms(lambda: build_forecast(loaded, today), runs)
     try:
@@ -122,7 +126,8 @@ def main() -> None:
     if args.md:
         print("\n| Messung | ms |\n|---|---:|")
     for name, ms in values.items():
-        print(f"| {name} | {ms:.1f} |" if args.md else f"{name:<45} {ms:9.1f} ms")
+        shown = "–" if ms != ms else f"{ms:.1f}"  # nan: nicht vorhanden
+        print(f"| {name} | {shown} |" if args.md else f"{name:<45} {shown:>9} ms")
 
 
 if __name__ == "__main__":
