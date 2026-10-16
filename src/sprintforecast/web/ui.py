@@ -31,7 +31,7 @@ from sprintforecast.analysis import (
     focus_factor,
 )
 from sprintforecast.calendar import day_label, holiday_name, workdays
-from sprintforecast.capacity import sprint_capacity
+from sprintforecast.capacity import expected_absence_rate, sprint_capacity
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import (
     Forecast,
@@ -601,6 +601,23 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
     )
     st.caption(t("Leere Zellen: Person ist in diesem Sprint nicht im Team."))
+    history = data.team.capacity.absence_history
+    if history:
+        past = [e.sprint for e in fc.history() if e.recorded]
+        rate = expected_absence_rate(data.team, data.people, past, history)
+        st.caption(
+            t(
+                "Für Sprints ohne Eintrag werden die Fehltage aus den letzten {count} Sprints "
+                "erwartet: Ø {rate} der Kapazität.",
+                count=history,
+                rate=pct(rate),
+            )
+            if rate is not None
+            else t(
+                "Erwartete Fehltage: In den letzten Sprints sind noch keine Fehltage erfasst – "
+                "es gilt der Trend der Kapazität."
+            )
+        )
     edited_sprints = edit_absences(data.people, sprints, edited.to_dict("records"))
     to_save = sprints_to_save(data, sprints, edited_sprints)
     preview = with_sprints(data, to_save)
