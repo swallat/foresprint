@@ -9,7 +9,10 @@
 
 from __future__ import annotations
 
+import copy
 import os
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -17,6 +20,7 @@ from typing import Any
 
 import yaml
 
+from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
 from sprintforecast.model import (
     CapacitySettings,
@@ -94,9 +98,14 @@ def default_data_dir() -> Path:
     return here
 
 
+# C-Implementierung von libyaml, falls PyYAML damit gebaut wurde (deutlich schneller);
+# sonst der reine Python-Lader mit identischem Ergebnis.
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+
 def _read(path: Path) -> dict[str, Any]:
     try:
-        content = yaml.safe_load(path.read_text(encoding="utf-8"))
+        content = yaml.load(path.read_text(encoding="utf-8"), Loader=_YAML_LOADER)
     except FileNotFoundError as e:
         raise DataError(t("Datei fehlt: {path}", path=path)) from e
     except yaml.YAMLError as e:
@@ -112,6 +121,7 @@ def _write(path: Path, header: str, content: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     body = yaml.safe_dump(content, allow_unicode=True, sort_keys=False, width=100)
     path.write_text(header + body, encoding="utf-8")
+    clear_team_cache()
 
 
 def _float(value: Any, where: str) -> float | None:
@@ -498,6 +508,43 @@ class TeamData:
         return next((s for s in self.sprints if s.id == sprint_id), None)
 
 
+# Zwischenspeicher für geladene Teams (Oberfläche: bei jeder Eingabe läuft die Seite neu).
+# Schlüssel: (Datenordner, Team); Wert: (Dateiversion, Team). Die Dateiversion besteht aus
+# Pfad, Änderungszeit und Größe aller Team-Dateien – neue und gelöschte Dateien ändern sie.
+_TEAM_CACHE: dict[tuple[str, str], tuple[tuple, TeamData]] = {}
+_TEAM_CACHE_LOCK = threading.Lock()
+# Dateien, die gerade erst geändert wurden, werden nicht zwischengespeichert: Bei grober
+# Zeitauflösung des Dateisystems könnte eine zweite Änderung in derselben Zeiteinheit sonst
+# unbemerkt bleiben.
+_TEAM_CACHE_SETTLE = 2.0
+
+
+def clear_team_cache() -> None:
+    """Verwirft alle zwischengespeicherten Teams und Git-Stände (nach jedem Schreiben, beim
+    Wechsel des Datenordners und bei Bedarf)."""
+    with _TEAM_CACHE_LOCK:
+        _TEAM_CACHE.clear()
+    invalidate_status()
+
+
+def _file_version(base: Path) -> tuple[tuple, bool]:
+    """Dateiversion eines Teams und ob eine Datei so frisch ist, dass sie noch unsicher ist."""
+    files = [base / "team.yaml", base / "people.yaml", base / "products.yaml"]
+    files += sorted((base / "sprints").glob("*.yaml"))
+    now = time.time()
+    version: list[tuple] = []
+    fresh = False
+    for f in files:
+        try:
+            info = f.stat()
+        except OSError:
+            version.append((f.name, None))
+            continue
+        version.append((f.name, info.st_mtime_ns, info.st_size))
+        fresh = fresh or now - info.st_mtime < _TEAM_CACHE_SETTLE
+    return tuple(version), fresh
+
+
 class Repository:
     def __init__(self, root: Path) -> None:
         self.root = root
@@ -547,6 +594,21 @@ class Repository:
         sprints.sort(key=lambda s: s.start)
         return TeamData(team=team, people=people, sprints=sprints, products=products)
 
+    def load_cached(self, key: str) -> TeamData:
+        """Wie :meth:`load`, aber nur bei geänderten Dateien neu gelesen. Der Aufrufer erhält
+        eine eigene Kopie und darf sie verändern."""
+        version, fresh = _file_version(self.team_dir(key))
+        cache_key = (str(self.root.resolve()), key)
+        with _TEAM_CACHE_LOCK:
+            hit = _TEAM_CACHE.get(cache_key)
+        if hit is not None and hit[0] == version:
+            return copy.deepcopy(hit[1])
+        data = self.load(key)
+        if not fresh:
+            with _TEAM_CACHE_LOCK:
+                _TEAM_CACHE[cache_key] = (version, copy.deepcopy(data))
+        return data
+
     def save_team(self, team: Team) -> Path:
         path = self.team_dir(team.key) / "team.yaml"
         _write(path, TEAM_HEADER, team_to_dict(team))
@@ -568,6 +630,7 @@ class Repository:
     def delete_sprint(self, key: str, sprint_id: str) -> None:
         """Entfernt eine Sprintdatei (der Sprint entsteht danach wieder aus dem Kalender)."""
         self.sprint_path(key, sprint_id).unlink(missing_ok=True)
+        clear_team_cache()
 
     def save_sprint(self, key: str, sprint: Sprint) -> Path:
         path = self.sprint_path(key, sprint.id)
