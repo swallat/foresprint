@@ -408,6 +408,14 @@ uv run pytest
 uv run ruff check && uv run ruff format --check
 ```
 
+### Release
+
+1. Version in `pyproject.toml` und `src/sprintforecast/__init__.py` erhöhen, `uv lock` ausführen, per Pull Request nach `main` bringen.
+2. Tag auf den Merge-Commit setzen und pushen: `git tag -a v0.4.2 -m "Version 0.4.2" && git push origin v0.4.2`.
+3. Der Workflow *Release* (`.github/workflows/release.yml`) prüft Tests und Lint, vergleicht Tag und Version, baut Wheel und Quellpaket (`uv build`) und schreibt die Release-Seite mit den Dateien und automatisch erzeugten Notizen (aus den gemergten Pull Requests seit dem letzten Tag).
+
+Für einen bereits vorhandenen Tag lässt sich das Release unter *Actions → Release → Run workflow* nachholen. Die normale CI baut bei jedem Push ebenfalls die Pakete und legt sie als Artefakt `dist` ab.
+
 ## Lizenz
 
 [EUPL-1.2](LICENSE) (European Union Public Licence). Kurz: Nutzung, auch kommerziell und
