@@ -1233,7 +1233,8 @@ def _history_chart(
 
 
 def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> None:
-    rows = balance(fc, entries)
+    all_rows = balance(fc, entries)
+    rows = [b for b in all_rows if b.sprints]  # nur Produkte mit mindestens einem Wert
     if not rows:
         st.info(t("Noch kein **Erledigt je Produkt** erfasst – im Review eintragen."))
         return
@@ -1249,10 +1250,12 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
                 f"Σ {t('Erledigt')} ({unit})": round(b.done, 2),
                 saldo: round(b.difference, 2),
                 direction: more if b.difference >= 0 else less,
+                t("ohne Wert"): b.missing,
             }
             for b in rows
         ]
     )
+    missing_col = t("ohne Wert")
     st.altair_chart(
         alt.Chart(frame)
         .mark_bar(cornerRadius=4)
@@ -1264,15 +1267,19 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
                 scale=alt.Scale(domain=[more, less], range=["#2a78d6", "#e34948"]),
                 legend=alt.Legend(orient="top", title=None),
             ),
-            tooltip=list(frame.columns[:-1]),
+            tooltip=[c for c in frame.columns if c not in (direction, missing_col)],
         ),
         width="stretch",
     )
-    st.dataframe(frame.drop(columns=direction), hide_index=True)
+    shown = frame.drop(columns=direction)
+    if not frame[missing_col].any():
+        shown = shown.drop(columns=missing_col)
+    st.dataframe(shown, hide_index=True)
     st.caption(
         t(
-            "Saldo = Σ Erledigt − Σ Standard über die Sprints mit erfasstem Erledigt. Positiv: "
-            "Das Produkt hat mehr bekommen als den gleichmäßigen Anteil."
+            "Saldo = Σ Erledigt − Σ Standard über die Sprints, in denen für das Produkt Erledigt "
+            "erfasst ist. Positiv: Das Produkt hat mehr bekommen als den gleichmäßigen Anteil. "
+            "Sprints ohne Wert (nicht erfasst, nicht 0) zählen nicht mit."
         )
     )
 

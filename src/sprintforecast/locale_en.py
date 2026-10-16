@@ -5,6 +5,11 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Feste Anteile ergeben 100 % ({period}) – für Produkte ohne festen Anteil bleibt nichts": "Fixed shares add up to 100 % ({period}) – nothing is left for products without a fixed share",
+    "Feste Anteile ergeben {total} % ({period}) – mehr als 100 %": "Fixed shares add up to {total} % ({period}) – more than 100 %",
+    "Saldo = Σ Erledigt − Σ Standard über die Sprints, in denen für das Produkt Erledigt erfasst ist. Positiv: Das Produkt hat mehr bekommen als den gleichmäßigen Anteil. Sprints ohne Wert (nicht erfasst, nicht 0) zählen nicht mit.": "Balance = Σ done − Σ default over the sprints in which done is recorded for the product. Positive: the product received more than the even share. Sprints without a value (not recorded, not 0) do not count.",
+    "heute": "today",
+    "ohne Wert": "no value",
     " (Prognose beim Planning, eingefroren)": " (forecast at planning, frozen)",
     " Ohne Personenliste mit Ø Kapazität gerechnet: {sprints}.": " Calculated with Ø capacity because there is no people list: {sprints}.",
     ", beim Planning {frozen} {unit}": ", at planning {frozen} {unit}",

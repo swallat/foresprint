@@ -200,3 +200,47 @@ def test_planning_default_skips_committed_future_sprint(fc):
     fc.entry("2026.22").sprint.forecast_ist = 10
     assert fc.default_entry("planning").sprint.id == "2026.23"
     assert fc.default_entry("next").sprint.id == "2026.22"  # Fehltage unverändert
+
+
+def test_fixed_shares_over_100_percent_are_rejected(fc):
+    """A10: Zwei feste Anteile von je 60 % werden abgelehnt."""
+    for p in fc.data.products:
+        if p.id in ("webshop", "app"):
+            p.share = 0.6
+    issues = check_team(fc.data, TODAY)
+    errors = [i for i in issues if i.level.value == "Fehler" and "mehr als 100 %" in i.message]
+    assert errors and errors[0].where == "products.yaml"
+    assert "120" in errors[0].message
+
+
+def test_fixed_shares_adding_to_100_percent_warn_when_others_remain(fc):
+    for p in fc.data.products:
+        if p.id in ("webshop", "app"):
+            p.share = 0.5
+    issues = check_team(fc.data, TODAY)
+    assert not [i for i in issues if i.level.value == "Fehler" and "100 %" in i.message]
+    assert any("bleibt nichts" in i.message for i in issues)
+
+
+def test_balance_distinguishes_missing_from_zero(fc):
+    """A10: In einem Sprint mit Erledigt für andere Produkte zählt ein fehlender Wert nicht
+    als 0 – weder sein Erledigt noch sein Standard fließen in den Saldo ein."""
+    from sprintforecast.products import balance
+
+    entry = fc.entry("2026.20")
+    sprint = entry.sprint
+    recorded = {pid: v.done for pid, v in sprint.products.items() if v.done is not None}
+    assert len(recorded) >= 2
+    before = {b.product.id: b for b in balance(fc, [entry])}
+    skipped = next(iter(recorded))
+    sprint.products[skipped].done = None  # nicht erfasst
+    after = {b.product.id: b for b in balance(fc, [entry])}
+    assert after[skipped].missing == 1 and after[skipped].sprints == 0
+    assert after[skipped].standard == 0.0 and after[skipped].done == 0.0  # nicht als 0 gezählt
+    other = next(pid for pid in recorded if pid != skipped)
+    assert after[other].difference == pytest.approx(before[other].difference)
+    # als echte 0 erfasst, zählt der Standard dagegen mit
+    sprint.products[skipped].done = 0.0
+    zero = {b.product.id: b for b in balance(fc, [entry])}
+    assert zero[skipped].sprints == 1 and zero[skipped].missing == 0
+    assert zero[skipped].difference == pytest.approx(-before[skipped].standard)
