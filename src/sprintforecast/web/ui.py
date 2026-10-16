@@ -92,13 +92,16 @@ from sprintforecast.web.logic import (
     calendar_table,
     calendar_to_save,
     edit_absences,
+    open_velocity_sprints,
     parse_numbers,
     people_from_table,
     people_table,
     product_table,
     product_values_table,
     products_from_table,
+    resettable_sprints,
     sprints_to_save,
+    whatif_forecast,
     with_people,
     with_sprints,
 )
@@ -110,10 +113,14 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "forecast": ("Forecast", ":material/trending_up:"),
         "fehltage": ("Fehltage", ":material/event_busy:"),
         "sprints": ("Sprintkalender", ":material/calendar_month:"),
-        "planning": ("Planning", ":material/edit_note:"),
-        "review": ("Review", ":material/task_alt:"),
         "produkte": ("Produktverteilung", ":material/pie_chart:"),
         "analyse": ("Analyse", ":material/insights:"),
+    },
+    # Die drei Boards in zeitlicher Reihenfolge: vor dem Planning, Planning, Review.
+    "Boards": {
+        "vorplanung": ("PO-Vorplanung", ":material/groups:"),
+        "planning": ("Planning", ":material/edit_note:"),
+        "review": ("Review", ":material/task_alt:"),
     },
     "Team": {
         "personen": ("Personen", ":material/group:"),
@@ -248,6 +255,66 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
 # --- Seiten ---------------------------------------------------------------------------
 
 
+def _signed(value: float) -> str:
+    return ("+" if value > 0 else "") + fmt(value)
+
+
+def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> None:
+    """Was-wäre-wenn: erwartete erledigte Menge offener Sprints → Forecast PLAN der nächsten."""
+    sprints = open_velocity_sprints(fc)
+    if not sprints:
+        return
+    with st.expander(
+        t("Was-wäre-wenn: mit erwarteter Velocity rechnen"), icon=":material/science:"
+    ):
+        st.caption(
+            t(
+                "Vorab bekannte erledigte Menge ({unit}) eines noch nicht abgeschlossenen Sprints "
+                "eintragen – der Forecast PLAN der nächsten Sprints wird damit neu berechnet. "
+                "Nichts wird gespeichert.",
+                unit=unit,
+            )
+        )
+        assumed: dict[str, float] = {}
+        for sprint, col in zip(sprints, st.columns(len(sprints)), strict=True):
+            planned = f"{fmt(sprint.forecast_ist, 2)} {unit}" if sprint.forecast_ist else "–"
+            value = col.number_input(
+                t("Erwartet erledigt {id} ({unit})", id=sprint.id, unit=unit),
+                min_value=0.0,
+                value=None,
+                step=0.25,
+                format="%.2f",
+                key=f"whatif-{sprint.id}",
+                help=t("Forecast IST des Sprints: {ist}", ist=planned),
+            )
+            if value is not None:
+                assumed[sprint.id] = value
+        if not assumed:
+            return
+        scenario = whatif_forecast(fc, assumed)
+        plan_now, plan_new = (
+            f"Forecast PLAN ({unit})",
+            t("Forecast PLAN mit Annahme ({unit})", unit=unit),
+        )
+        diff = t("Differenz")
+        rows = []
+        for e in upcoming:
+            other = scenario.entry(e.sprint.id)
+            now, new = e.result.plan, other.result.plan if other else None
+            rows.append(
+                {
+                    "Sprint": e.sprint.id,
+                    plan_now: fmt(now),
+                    plan_new: fmt(new),
+                    diff: "–" if now is None or new is None else _signed(new - now),
+                    t("n. Velocity-Trend"): fmt(other.result.normalized_velocity.trend, 2)
+                    if other
+                    else "–",
+                }
+            )
+        st.dataframe(pd.DataFrame(rows), hide_index=True)
+
+
 def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     team = data.team
     unit = team.unit.value
@@ -299,6 +366,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             small_col: st.column_config.TextColumn(help=general("small_stuff")),
         },
     )
+    _whatif_panel(fc, upcoming, unit)
     trend = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is CapacitySource.TREND]
     if trend:
         st.warning(
@@ -530,6 +598,35 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             [f"{s.id}.yaml" for s in to_save],
             lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
         )
+    _reset_absences(repo, data, fc.today)
+
+
+def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
+    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“ (Trend)."""
+    resettable = resettable_sprints(data, today)
+    if not resettable:
+        return
+    st.subheader(t("Fehltage zurücksetzen"))
+    st.caption(
+        t(
+            "Für diese Sprints wurden Fehltage bestätigt, sonst ist nichts erfasst. Zurücksetzen "
+            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Kapazität wird "
+            "wieder aus dem Trend geschätzt."
+        )
+    )
+    chosen = st.multiselect(
+        t("Sprints"),
+        [s.id for s in resettable],
+        default=[s.id for s in resettable],
+        key=f"reset-absences-{data.team.key}",
+    )
+    if st.button(t("Auf „keine Informationen“ zurücksetzen"), disabled=not chosen):
+        for sprint_id in chosen:
+            repo.delete_sprint(data.team.key, sprint_id)
+        st.session_state["flash"] = [
+            ("success", t("Zurückgesetzt: {sprints}", sprints=", ".join(chosen)))
+        ]
+        st.rerun()
 
 
 def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
@@ -1453,6 +1550,86 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.info(text + t(" – zu wenige Werte für eine Empfehlung."))
 
 
+def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Board der POs vor dem Planning: je Produkt vorsehen, was in den Sprint soll."""
+    st.header(t("PO-Vorplanung"))
+    show_flash()
+    unit = data.team.unit.value
+    if not data.products:
+        st.info(
+            t(
+                "Noch keine Produkte erfasst. Die PO-Vorplanung verteilt die Sprint-Menge auf die "
+                "Produkte des Teams."
+            )
+        )
+        page_link("produktliste", t("Produkte anlegen"))
+        return
+    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="vorplanung-sprint")
+    entry = fc.entry(sprint.id) if sprint else None
+    if sprint is None or entry is None:
+        return
+    st.caption(
+        t(
+            "Vor dem Planning tragen die POs ein, wie viel sie je Produkt für den Sprint vorsehen. "
+            "Zum Vergleich steht der **Standard** – die gleichmäßige Verteilung bzw. der "
+            "vereinbarte Anteil des Produkts."
+        )
+    )
+    d = distribution(fc, entry)
+    rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit)
+    if rows is None:
+        return
+    base = _base_sprint(data, sprint)
+    after = apply_product_values(base, rows, ["preplanned"])
+    preview = with_sprints(data, [after])
+    fc_preview = build_forecast(preview, fc.today)
+    d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+    total = d.total("preplanned")
+    left, middle, right = st.columns(3)
+    left.metric(t("Verteilbar"), f"{fmt(d.available, 2)} {unit}")
+    middle.metric(t("Vorgesehen (Σ)"), f"{fmt(total, 2)} {unit}")
+    if total is not None and d.available is not None:
+        rest = d.available - total
+        right.metric(
+            t("Noch frei") if rest >= 0 else t("Zu viel"),
+            f"{fmt(abs(rest), 2)} {unit}",
+            delta=None,
+        )
+    comparison = [
+        {
+            t("Produkt"): r.product.name,
+            "PO": r.product.po or "",
+            t("Standard"): fmt(r.standard, 2),
+            t("PO-Vorplanung"): fmt(r.preplanned, 2),
+            t("Differenz"): _signed(r.preplanned - r.standard)
+            if r.preplanned is not None and r.standard is not None
+            else "–",
+        }
+        for r in d.rows
+        if r.active or r.preplanned is not None
+    ]
+    st.dataframe(pd.DataFrame(comparison), hide_index=True)
+    if po_rows := by_po(d):
+        st.markdown(f"**{t('Je PO')}**")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "PO": po,
+                        t("Standard"): fmt(totals["standard"], 2),
+                        t("PO-Vorplanung"): fmt(totals["preplanned"], 2),
+                    }
+                    for po, totals in po_rows
+                ]
+            ),
+            hide_index=True,
+        )
+    changed = after.products != base.products
+    if st.button(t("PO-Vorplanung speichern"), type="primary", disabled=not changed):
+        save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
+    page_link("planning", t("Weiter zum Planning"))
+
+
 def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Produktverteilung"))
     unit = data.team.unit.value
@@ -1475,7 +1652,8 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.caption(
         t(
             "Die **PO-Vorplanung** tragen die POs vor dem Planning ein, **Planning** wird im "
-            "Sprint Planning gefüllt, **Erledigt** im Review. Alles lässt sich auch hier pflegen."
+            "Sprint Planning gefüllt, **Erledigt** im Review – jeweils auf den Seiten der "
+            "**Boards**. Alles lässt sich auch hier pflegen."
         )
     )
     d = distribution(fc, entry)
@@ -1645,11 +1823,11 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
             ),
             "FTE": st.column_config.NumberColumn(
                 "FTE",
-                min_value=0.05,
-                max_value=1.0,
                 step=0.05,
                 default=1.0,
-                help=t("Anteil im Team, 1 = Vollzeit"),
+                help=t(
+                    "Anteil im Team, 1 = Vollzeit, 0 = keine Kapazität (z. B. längere Abwesenheit)"
+                ),
             ),
             "Produktionszugriff": st.column_config.CheckboxColumn(
                 t("Produktionszugriff"),
@@ -1676,11 +1854,11 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
             )
         )
         confirmed = st.checkbox(t("Ja, die Zeilen waren Fehleingaben"), key="confirm_delete")
-    if not st.button(t("Personen speichern"), type="primary", disabled=not confirmed):
-        return
-    if result.errors:
-        for e in result.errors:
-            st.error(e)
+    for e in result.errors:
+        st.error(e)
+    if not st.button(
+        t("Personen speichern"), type="primary", disabled=not confirmed or bool(result.errors)
+    ):
         return
     save(
         with_people(data, result.people),
@@ -2252,6 +2430,7 @@ TEAM_PAGES = {
     "forecast": page_forecast,
     "fehltage": page_absences,
     "sprints": page_calendar,
+    "vorplanung": page_preplanning,
     "planning": page_planning,
     "review": page_review,
     "produkte": page_products,

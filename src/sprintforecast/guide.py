@@ -151,7 +151,7 @@ WORKFLOW: list[Step] = [
         title="PO-Vorplanung je Produkt",
         text="Betreut das Team mehrere Produkte, tragen die POs ein, wie viel sie je Produkt "
         "vorsehen – im Vergleich zum Standard (verfügbare Menge / Anzahl Produkte).",
-        page="produkte",
+        page="vorplanung",
         cli="sprintforecast produkte TEAM --vorplanung",
     ),
     Step(
