@@ -73,7 +73,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             warn(where, t("keine Zugehörigkeit (memberships) eingetragen"))
         ordered = sorted(p.memberships, key=lambda m: m.start)
         for m in ordered:
-            if not 0 < m.fte <= 1:
+            if not 0 <= m.fte <= 1:
                 error(where, t("fte {fte} muss zwischen 0 und 1 liegen", fte=m.fte))
             if m.end is not None and m.end < m.start:
                 error(

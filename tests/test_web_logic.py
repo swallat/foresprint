@@ -160,3 +160,23 @@ def test_calendar_rejects_id_collision(data_dir):
     rows[-3]["Letzter Tag"] = date(2027, 1, 12)
     _, errors = apply_calendar(data, shown, rows)
     assert any("2027.1" in e and "doppelt" in e for e in errors)
+
+
+def test_fte_zero_is_allowed_and_out_of_range_is_reported(data_dir: Path):
+    from sprintforecast.capacity import sprint_capacity
+    from sprintforecast.validate import check_team
+
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    rows, hidden = people_table(data.people, TODAY, show_former=True)
+    before = sprint_capacity(data.team, data.people, data.sprint("2026.22")).capacity
+    rows[0]["FTE"] = 0.0
+    result = people_from_table(rows, data.people, hidden)
+    assert result.errors == []
+    assert result.people[0].memberships[-1].fte == 0.0
+    data.people = result.people
+    assert [i for i in check_team(data, TODAY) if i.level.value == "Fehler"] == []
+    assert sprint_capacity(data.team, data.people, data.sprint("2026.22")).capacity < before
+    for bad in (1.5, -0.5, "abc"):
+        rows[0]["FTE"] = bad
+        assert people_from_table(rows, data.people, hidden).errors

@@ -1645,11 +1645,11 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
             ),
             "FTE": st.column_config.NumberColumn(
                 "FTE",
-                min_value=0.05,
-                max_value=1.0,
                 step=0.05,
                 default=1.0,
-                help=t("Anteil im Team, 1 = Vollzeit"),
+                help=t(
+                    "Anteil im Team, 1 = Vollzeit, 0 = keine Kapazität (z. B. längere Abwesenheit)"  # noqa: E501
+                ),
             ),
             "Produktionszugriff": st.column_config.CheckboxColumn(
                 t("Produktionszugriff"),
@@ -1676,11 +1676,11 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
             )
         )
         confirmed = st.checkbox(t("Ja, die Zeilen waren Fehleingaben"), key="confirm_delete")
-    if not st.button(t("Personen speichern"), type="primary", disabled=not confirmed):
-        return
-    if result.errors:
-        for e in result.errors:
-            st.error(e)
+    for e in result.errors:
+        st.error(e)
+    if not st.button(
+        t("Personen speichern"), type="primary", disabled=not confirmed or bool(result.errors)
+    ):
         return
     save(
         with_people(data, result.people),
