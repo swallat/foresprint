@@ -100,7 +100,11 @@ def default_data_dir() -> Path:
 
 # C-Implementierung von libyaml, falls PyYAML damit gebaut wurde (deutlich schneller);
 # sonst der reine Python-Lader mit identischem Ergebnis.
-_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+def _pick_loader() -> type:
+    return getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+
+_YAML_LOADER = _pick_loader()
 
 
 def _read(path: Path) -> dict[str, Any]:
