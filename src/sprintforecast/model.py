@@ -15,11 +15,12 @@ class Unit(StrEnum):
 
 
 class TrendMode(StrEnum):
-    # Klassisch: 1. Zukunftssprint linear, 2. multiplikativ, danach linear.
+    # Klassisch: 1. Zukunftssprint linear, 2. multiplikativ, danach linear. Schreibt Rauschen
+    # fort – nur ausdrücklich wählen.
     CLASSIC = "classic"
-    # Durchgehend lineare Fortschreibung des gleitenden Durchschnitts.
+    # Durchgehend lineare Fortschreibung des gleitenden Durchschnitts (wie ``classic``).
     LINEAR = "linear"
-    # Letzten bekannten Durchschnitt unverändert fortschreiben.
+    # Letzten bekannten Durchschnitt unverändert fortschreiben (Standard, robust).
     FLAT = "flat"
 
     @classmethod
@@ -57,7 +58,7 @@ class ForecastSettings:
     window: int = 5
     roadmap_share: float = 0.8
     rounding: int = 1
-    trend_mode: TrendMode = TrendMode.CLASSIC
+    trend_mode: TrendMode = TrendMode.FLAT
     horizon: int = 3
     product_basis: ProductBasis = ProductBasis.PLAN
 

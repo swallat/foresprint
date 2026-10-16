@@ -187,7 +187,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 window=int(forecast.get("window", 5)),
                 roadmap_share=float(forecast.get("roadmap_share", 0.8)),
                 rounding=int(forecast.get("rounding", 1)),
-                trend_mode=TrendMode(forecast.get("trend_mode", "classic")),
+                trend_mode=TrendMode(forecast.get("trend_mode", "flat")),
                 horizon=int(forecast.get("horizon", 3)),
                 product_basis=ProductBasis(forecast.get("product_basis", "plan")),
             ),
