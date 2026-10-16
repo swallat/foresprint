@@ -12,7 +12,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
-from sprintforecast.web.ui import PAGE_INFO, PLANNING_STEPS
+from sprintforecast.web.ui import PAGE_INFO
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
@@ -87,7 +87,7 @@ def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
     """Planning-Seite, Sprint wählen und zum Schritt (0–2) des Ablaufs springen."""
     goto(at, "planning")
     at.selectbox(key="planning-sprint").set_value(sprint).run()
-    at.radio(key="planning-step").set_value(PLANNING_STEPS[step]).run()
+    at.radio(key="planning-step").set_value(step).run()
     assert not at.exception, at.exception
     return at
 
@@ -96,14 +96,14 @@ def test_planning_defaults_to_next_planning(app: AppTest):
     goto(app, "planning")
     # 2026.21 läuft und ist bereits geplant (Forecast IST) → als Nächstes 2026.22
     assert app.selectbox(key="planning-sprint").value == "2026.22"
-    assert app.radio(key="planning-step").value == PLANNING_STEPS[0]
+    assert app.radio(key="planning-step").value == 0
 
 
 def test_planning_flow_absences_then_plan(app: AppTest, data_dir: Path):
     goto(app, "planning")
     assert any("Arbeitstage Mo–Fr" in c.value for c in app.caption)
     click(app, "Weiter")  # Fehltage unverändert, Sprintdatei existiert
-    assert app.radio(key="planning-step").value == PLANNING_STEPS[1]
+    assert app.radio(key="planning-step").value == 1
     assert any(m.label.startswith("Forecast PLAN") for m in app.metric)
     assert any("Standard = Forecast PLAN" in c.value for c in app.caption)
 
@@ -171,7 +171,7 @@ def test_team_without_history(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
         "name: Neu\nsprint:\n  first: {id: '2026.20', start: 2026-10-14}\n"
     )
     at = start(data_dir, monkeypatch)
-    assert at.sidebar.selectbox[0].value == "aaa-neu"
+    assert at.sidebar.selectbox[1].value == "aaa-neu"
     assert any("Noch keine Werte" in i.value for i in at.info)
     for page in ("fehltage", "planning", "review", "personen", "einstellungen"):
         goto(at, page)
@@ -245,7 +245,7 @@ def test_sidebar_on_every_page(app: AppTest):
     Direktaufrufe liefen dann ohne Navigation und Teamauswahl."""
     for page in ("planning", "hilfe", "pruefung"):
         goto(app, page)
-        assert app.sidebar.selectbox[0].value == "demo"
+        assert app.sidebar.selectbox[1].value == "demo"
 
 
 def test_people_page_toggle_former(app: AppTest):
@@ -284,7 +284,7 @@ def test_products_page(app: AppTest):
     assert any("3 betreute Produkte" in c.value for c in app.caption)
     app.selectbox(key="products-sprint").set_value("2026.20").run()
     assert any("Saldo" in c.value for c in app.caption)
-    app.radio(key="products-measure").set_value("Planning").run()
+    app.radio(key="products-measure").set_value("planned").run()
     assert not app.exception
 
 

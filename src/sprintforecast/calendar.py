@@ -39,12 +39,17 @@ def following_sprint(team: Team, previous: Sprint | None) -> Sprint:
     )
 
 
-WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+WEEKDAYS = {
+    "de": ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+    "en": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+}
 
 
 def day_label(d: date) -> str:
-    """„Mi 28.10.2026“."""
-    return f"{WEEKDAYS[d.weekday()]} {d:%d.%m.%Y}"
+    """„Mi 28.10.2026“ bzw. „Wed 28.10.2026“."""
+    from sprintforecast.i18n import language
+
+    return f"{WEEKDAYS[language()][d.weekday()]} {d:%d.%m.%Y}"
 
 
 def workdays(start: date, end: date) -> list[date]:
@@ -59,8 +64,10 @@ def workdays(start: date, end: date) -> list[date]:
 
 
 @cache
-def _holiday_calendar(region: str | None, year: int) -> holidays.HolidayBase:
-    return holidays.country_holidays("DE", subdiv=region, years=year)
+def _holiday_calendar(region: str | None, year: int, lang: str = "de") -> holidays.HolidayBase:
+    return holidays.country_holidays(
+        "DE", subdiv=region, years=year, language="en_US" if lang == "en" else "de"
+    )
 
 
 def is_holiday(day: date, region: str | None) -> bool:
@@ -68,4 +75,7 @@ def is_holiday(day: date, region: str | None) -> bool:
 
 
 def holiday_name(day: date, region: str | None) -> str | None:
-    return _holiday_calendar(region, day.year).get(day)
+    """Name des Feiertags in der eingestellten Sprache – oder None."""
+    from sprintforecast.i18n import language
+
+    return _holiday_calendar(region, day.year, language()).get(day)

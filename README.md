@@ -17,6 +17,8 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
   konfigurierbar je Team.
 - **Erweiterbar:** Plugins können Befehle und Seiten ergänzen, z. B. Importe.
 - **SP/PT-neutral:** Die Schätzeinheit ist eine Team-Einstellung.
+- **Deutsch und Englisch:** Oberfläche, Kommandozeile und Bericht in beiden Sprachen; die
+  YAML-Dateien sind immer englisch (Schlüssel und Kommentare).
 
 ## Installation
 
@@ -92,6 +94,15 @@ Manuell ohne Skript:
 ```bash
 uv tool install "sprintforecast[web] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
 ```
+
+## Sprache / Language
+
+Deutsch ist Standard. Umschalten in der Seitenleiste der Weboberfläche (**Sprache / Language**)
+oder mit `sprintforecast sprache en` (bzw. `sprintforecast language de`); die Wahl wird
+gemerkt. `SPRINTFORECAST_LANG=en` hat Vorrang. Alle Befehle und wichtigen Optionen haben
+englische Namen, z. B. `sprintforecast absences TEAM`, `forecast TEAM --explain SPRINT`,
+`--data PATH` – die deutschen Namen funktionieren immer. Die YAML-Dateien sind unabhängig von
+der Sprache englisch; nur der Bericht `FORECAST.md` folgt der eingestellten Sprache.
 
 ## Schnellstart
 

@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from sprintforecast.forecast import Forecast, TimelineEntry
+from sprintforecast.i18n import t
 from sprintforecast.model import Product, ProductBasis, ProductValues, Sprint
 
 # Spalten der Auswertung: Attribut → Anzeigename
@@ -25,6 +26,11 @@ MEASURES: dict[str, str] = {
     "planned": "Planning",
     "done": "Erledigt",
 }
+
+
+def measure_label(measure: str) -> str:
+    """Anzeigename einer Kennzahl in der eingestellten Sprache."""
+    return t(MEASURES[measure])
 
 
 def sprint_products(products: list[Product], sprint: Sprint) -> list[Product]:
@@ -153,7 +159,7 @@ def by_po(d: Distribution) -> list[tuple[str, dict[str, float | None]]]:
         return []
     groups: dict[str, list[ProductRow]] = {}
     for r in d.rows:
-        groups.setdefault(r.product.po or "(ohne PO)", []).append(r)
+        groups.setdefault(r.product.po or t("(ohne PO)"), []).append(r)
     result = []
     for po, rows in groups.items():
         totals: dict[str, float | None] = {}
