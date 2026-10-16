@@ -374,6 +374,15 @@ def test_preplanning_page_saves_values(app: AppTest, data_dir: Path):
     assert sprint["products"]["webshop"]["preplanned"] == 3.5
 
 
+def test_board_sprint_carries_over_between_boards(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.21").run()
+    goto(app, "planning")
+    assert app.selectbox(key="planning-sprint").value == "2026.21"
+    goto(app, "review")
+    assert app.selectbox(key="review-sprint").value == "2026.21"
+
+
 def test_manual_update_check_button(app: AppTest, monkeypatch: pytest.MonkeyPatch):
     from sprintforecast import updater
 
