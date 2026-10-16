@@ -1647,8 +1647,8 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 "FTE",
                 step=0.05,
                 default=1.0,
-                help=t(
-                    "Anteil im Team, 1 = Vollzeit, 0 = keine Kapazität (z. B. längere Abwesenheit)"  # noqa: E501
+                help=t(  # noqa: E501
+                    "Anteil im Team, 1 = Vollzeit, 0 = keine Kapazität (z. B. längere Abwesenheit)"
                 ),
             ),
             "Produktionszugriff": st.column_config.CheckboxColumn(
