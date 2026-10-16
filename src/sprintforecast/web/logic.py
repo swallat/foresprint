@@ -149,14 +149,19 @@ def with_people(data: TeamData, people: list[Person]) -> TeamData:
 # --- Fehltage-Matrix ------------------------------------------------------------------
 
 
-def absence_sprints(data: TeamData, fc: Forecast, count: int) -> list[Sprint]:
-    """Laufender Sprint und die folgenden – erfasst oder aus dem Kalender erzeugt."""
+def absence_sprints(data: TeamData, fc: Forecast, count: int, past: int = 0) -> list[Sprint]:
+    """Laufender Sprint und die folgenden – erfasst oder aus dem Kalender erzeugt –, davor
+    optional die letzten ``past`` abgeschlossenen Sprints (zum Nachtragen von Fehltagen)."""
     start = fc.current or fc.default_entry("next")
     if start is None:
         return []
-    result = []
+    result: list[Sprint] = []
+    if past > 0:
+        earlier = [e.sprint.id for e in fc.history()][-past:]
+        result += [copy.deepcopy(s) for sid in earlier if (s := data.sprint(sid)) is not None]
+    chain_start = len(result)
     sprint: Sprint | None = data.sprint(start.sprint.id) or copy.deepcopy(start.sprint)
-    while sprint is not None and len(result) < count:
+    while sprint is not None and len(result) - chain_start < count:
         result.append(copy.deepcopy(sprint))
         following = following_sprint(data.team, sprint)
         sprint = data.sprint(following.id) or following
