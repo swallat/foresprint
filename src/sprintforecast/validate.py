@@ -211,6 +211,29 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                 ),
             )
 
+        for name in ("not_done", "additional_done"):
+            value = getattr(s, name)
+            if value is not None and value < 0:
+                error(where, t("{name} darf nicht negativ sein", name=name))
+        if (
+            s.velocity is not None
+            and s.forecast_ist is not None
+            and (s.not_done is not None or s.additional_done is not None)
+        ):
+            expected = s.forecast_ist - (s.not_done or 0.0) + (s.additional_done or 0.0)
+            if abs(expected - s.velocity) > 0.05:
+                warn(
+                    where,
+                    t(
+                        "Forecast IST ({ist}) − nicht erledigt ({open}) + zusätzlich erledigt "
+                        "({extra}) ergibt {expected}, die Velocity ist aber {velocity}",
+                        ist=_g(s.forecast_ist),
+                        open=_g(s.not_done or 0.0),
+                        extra=_g(s.additional_done or 0.0),
+                        expected=_g(expected),
+                        velocity=_g(s.velocity),
+                    ),
+                )
         for name in ("capacity", "forecast_ist", "velocity", "forecast_plan"):
             value = getattr(s, name)
             if value is not None and value < 0:
