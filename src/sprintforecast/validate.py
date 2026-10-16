@@ -8,7 +8,12 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-from sprintforecast.calendar import WORKWEEKS, countries, subdivisions, team_workdays
+from sprintforecast.calendar import (
+    countries,
+    subdivisions,
+    team_workdays,
+    weekend_from_workweek,
+)
 from sprintforecast.i18n import t
 from sprintforecast.storage import DataError, Repository, TeamData
 
@@ -65,7 +70,9 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                 country=country,
             ),
         )
-    if team.capacity.workweek != "auto" and team.capacity.workweek not in WORKWEEKS:
+    try:
+        weekend_from_workweek(team.capacity.workweek)
+    except ValueError:
         error("team.yaml", t("Unbekannte Arbeitswoche '{value}'", value=team.capacity.workweek))
     if team.capacity.absence_history < 0:
         error("team.yaml", t("capacity.absence_history darf nicht negativ sein"))
@@ -109,6 +116,10 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
 
     for p in data.people:
         where = f"people.yaml: {p.id}"
+        try:
+            weekend_from_workweek(p.workweek)
+        except ValueError:
+            error(where, t("Unbekannte Arbeitswoche '{value}'", value=p.workweek))
         if p.country and p.country not in countries():
             error(where, t("Land '{country}' wird nicht unterstützt", country=p.country))
         elif p.region and p.region not in subdivisions(p.country or country):
