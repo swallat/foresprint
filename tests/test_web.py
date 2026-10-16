@@ -355,3 +355,20 @@ def test_whatif_panel_on_forecast_page(app: AppTest):
     assert len(app.dataframe) == before + 1
     shown = [d.value for d in app.dataframe if "Differenz" in d.value.columns]
     assert shown and len(shown[0]) >= 1
+
+
+def test_preplanning_page_saves_values(app: AppTest, data_dir: Path):
+    goto(app, "vorplanung")
+    assert app.selectbox(key="vorplanung-sprint").value == "2026.22"
+    assert any("Standard" in c.value for c in app.caption)
+    assert not app.exception
+    # Bearbeiten der Tabelle: Vorplanung für ein Produkt setzen und speichern
+    app.session_state["vorplanung-2026.22"] = {
+        "edited_rows": {0: {"PO-Vorplanung": 3.5}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
+    sprint = load(data_dir / "demo" / "sprints" / "2026.22.yaml")
+    assert sprint["products"]["webshop"]["preplanned"] == 3.5
