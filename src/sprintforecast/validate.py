@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from enum import StrEnum
 
 from sprintforecast.calendar import (
@@ -37,6 +37,41 @@ class Issue:
 
 def _g(value: float) -> str:
     return f"{value:g}"
+
+
+def _check_product_shares(data: TeamData, today: date, error, warning) -> None:
+    """Feste Anteile der gleichzeitig betreuten Produkte dürfen zusammen nicht über 100 %
+    liegen (je Sprint und heute); bei genau 100 % bleibt für Produkte ohne Anteil nichts."""
+    periods = [(t("Sprint {id}", id=s.id), s.start, s.end) for s in data.sprints]
+    periods.append((t("heute"), today, today + timedelta(days=1)))
+    reported: set[tuple[float, bool]] = set()
+    for label, start, end in periods:
+        active = [p for p in data.products if p.active_between(start, end)]
+        total = sum(p.share for p in active if p.share is not None)
+        rest = any(p.share is None for p in active)
+        key = (round(total, 6), rest)
+        if key in reported:
+            continue
+        if total > 1 + 1e-9:
+            reported.add(key)
+            error(
+                "products.yaml",
+                t(
+                    "Feste Anteile ergeben {total} % ({period}) – mehr als 100 %",
+                    total=f"{total * 100:g}",
+                    period=label,
+                ),
+            )
+        elif total > 1 - 1e-9 and rest:
+            reported.add(key)
+            warning(
+                "products.yaml",
+                t(
+                    "Feste Anteile ergeben 100 % ({period}) – für Produkte ohne festen "
+                    "Anteil bleibt nichts",
+                    period=label,
+                ),
+            )
 
 
 def check_team(data: TeamData, today: date) -> list[Issue]:
@@ -150,6 +185,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                 ),
             )
     products = {p.id: p for p in data.products}
+    _check_product_shares(data, today, error, warn)
 
     people = {p.id: p for p in data.people}
     previous = None

@@ -195,6 +195,8 @@ class Balance:
     sprints: int
     standard: float
     done: float
+    # Sprints, in denen für das Produkt kein „Erledigt“ erfasst ist (fehlt ≠ 0): nicht gezählt.
+    missing: int = 0
 
     @property
     def difference(self) -> float:
@@ -203,7 +205,9 @@ class Balance:
 
 
 def balance(fc: Forecast, entries: list[TimelineEntry]) -> list[Balance]:
-    """Saldo je Produkt über die Sprints, in denen Erledigt erfasst wurde."""
+    """Saldo je Produkt über die Sprints, in denen Erledigt für das Produkt erfasst wurde. Ein
+    fehlender Wert zählt nicht als 0; solche Sprints werden gezählt (``missing``) und fließen
+    weder mit Erledigt noch mit dem Standard ein."""
     order = {p.id: i for i, p in enumerate(fc.data.products)}
     sums: dict[str, Balance] = {}
     for e in entries:
@@ -214,9 +218,12 @@ def balance(fc: Forecast, entries: list[TimelineEntry]) -> list[Balance]:
             if r.standard is None and r.done is None:
                 continue
             b = sums.setdefault(r.product.id, Balance(r.product, 0, 0.0, 0.0))
+            if r.done is None:  # Wert fehlt: weder als 0 noch mit dem Standard zählen
+                b.missing += 1
+                continue
             b.sprints += 1
             b.standard += r.standard or 0.0
-            b.done += r.done or 0.0
+            b.done += r.done
     return sorted(sums.values(), key=lambda b: order.get(b.product.id, len(order)))
 
 
