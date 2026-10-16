@@ -312,3 +312,26 @@ def test_unchanged_preview_keeps_forecast_of_unsaved_sprint(data_dir: Path):
     base = target.sprint
     after = type(base)(id=base.id, start=base.start, end=base.end)
     assert _preview_forecast(data, fc, base, after) is fc
+
+
+def test_empty_sprint_file_does_not_confirm_absences(data_dir: Path):
+    from sprintforecast.engine import CapacitySource
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.model import Sprint
+    from sprintforecast.web.logic import with_sprints
+
+    data = Repository(data_dir).load("demo")
+    base = build_forecast(data, TODAY)
+    target = next(e for e in base.upcoming() if not e.recorded)
+    sprint = Sprint(id=target.sprint.id, start=target.sprint.start, end=target.sprint.end)
+    legacy = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
+    assert legacy.result.plan_capacity_source is CapacitySource.TREND  # leere Datei: unbekannt
+    sprint.absences_confirmed = True
+    confirmed = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
+    assert confirmed.result.plan_capacity_source is CapacitySource.PEOPLE
+
+    from sprintforecast.storage import Repository as Repo
+
+    repo = Repo(data_dir)
+    repo.save_sprint("demo", sprint)
+    assert repo.load("demo").sprint(sprint.id).absences_confirmed is True

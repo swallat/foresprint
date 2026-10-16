@@ -462,3 +462,33 @@ def test_absences_page_can_edit_past_sprints(app: AppTest, data_dir: Path):
     app.number_input(key="absences-past").set_value(1).run()
     assert not app.exception
     assert any("abgeschlossen" in c.value for c in app.caption)
+
+
+def _pt(text: str) -> float:
+    return float(text.replace(" PT", "").replace(",", "."))
+
+
+def test_forecast_plan_is_consistent_across_pages(app: AppTest):
+    """Forecast PLAN eines noch nicht gespeicherten Sprints: Forecast-Seite, PO-Vorplanung
+    (Kopfzahl und Verteilbar) und Produktverteilung nennen denselben Wert."""
+    sprint = "2026.23"
+    goto(app, "forecast")
+    forecast = next(m for m in app.metric if m.label.startswith(sprint))
+    expected = _pt(forecast.value)
+
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value(sprint).run()
+    headline = next(m for m in app.metric if m.label == f"Forecast PLAN {sprint}")
+    available = next(m for m in app.metric if m.label == "Verteilbar")
+    assert _pt(headline.value) == expected
+    assert abs(_pt(available.value) - expected) < 0.05
+
+    goto(app, "produkte")
+    app.selectbox(key="products-sprint").set_value(sprint).run()
+    assert any(f"{expected:.2f}".replace(".", ",") in c.value for c in app.caption)
+
+
+def test_planning_absences_warns_when_nothing_entered(app: AppTest):
+    goto(app, "planning")
+    app.selectbox(key="planning-sprint").set_value("2026.23").run()
+    assert any("Noch keine Fehltage eingetragen" in w.value for w in app.warning)

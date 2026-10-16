@@ -130,16 +130,16 @@ def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, 
 
 
 def absences_known(sprint: Sprint) -> bool:
-    """Fehltage gelten als bekannt, wenn welche eingetragen sind, der Sprint schon geplant bzw.
-    ausgewertet wurde oder die Sprintdatei sonst leer ist (= auf der Seite Fehltage ohne
-    Einträge bestätigt). Enthält die Datei nur z. B. die PO-Vorplanung oder eine Prognose,
-    bestätigt sie die Fehltage nicht – sonst spränge die Kapazität beim Speichern auf „alle
-    anwesend“."""
-    if sprint.absences or sprint.planning is not None:
-        return True
-    if any(v is not None for v in (sprint.forecast_ist, sprint.velocity, sprint.forecast_plan)):
-        return True
-    return not sprint.products and not sprint.prognoses
+    """Fehltage gelten als bekannt, wenn welche eingetragen sind, sie bestätigt wurden (Seite
+    Fehltage, auch ohne Einträge) oder der Sprint schon geplant bzw. ausgewertet wurde. Eine
+    Sprintdatei, die nur z. B. die PO-Vorplanung enthält oder versehentlich leer entstanden ist,
+    bestätigt sie nicht – sonst spränge die Kapazität auf „alle anwesend“."""
+    return (
+        bool(sprint.absences)
+        or sprint.absences_confirmed
+        or sprint.planning is not None
+        or any(v is not None for v in (sprint.forecast_ist, sprint.velocity, sprint.forecast_plan))
+    )
 
 
 def resolve_capacity(

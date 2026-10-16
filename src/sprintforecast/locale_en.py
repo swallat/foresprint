@@ -755,6 +755,7 @@ EN: dict[str, str] = {
     "Saldo = Σ Erledigt − Σ Standard": "Balance = Σ done − Σ standard",
     "Team": "Team",
     "Anteil (%)": "Share (%)",
+    "Noch keine Fehltage eingetragen: Hier wird mit voller Besetzung gerechnet ({capacity} PT). Die Forecast-Seite schätzt für diesen Sprint bisher {estimate} PT. Bekannte Fehltage bitte eintragen; „Weiter“ ohne Eintrag heißt, dass niemand fehlt.": 'No absences entered yet: the calculation here assumes full staffing ({capacity} PT). The forecast page currently estimates {estimate} PT for this sprint. Please enter known absences; "Continue" without an entry means nobody is absent.',
     "{diff} {unit} (ohne Annahme {old} {unit})": "{diff} {unit} (without assumption {old} {unit})",
     "Beim Planning eingefroren.": "Frozen at planning.",
     "Aktuell berechnet.": "Currently calculated.",

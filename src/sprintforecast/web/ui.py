@@ -1224,6 +1224,17 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
     breakdown = sprint_capacity(data.team, data.people, after)
     fc_after = build_forecast(preview, fc.today)
     entry = fc_after.entry(after.id)
+    if not after.absences and (current := fc.entry(after.id)) is not None:
+        st.warning(
+            t(
+                "Noch keine Fehltage eingetragen: Hier wird mit voller Besetzung gerechnet "
+                "({capacity} PT). Die Forecast-Seite schätzt für diesen Sprint bisher {estimate} "
+                "PT. Bekannte Fehltage bitte eintragen; „Weiter“ ohne Eintrag heißt, dass niemand "
+                "fehlt.",
+                capacity=fmt(breakdown.capacity),
+                estimate=capacity_label(current),
+            )
+        )
     left, right = st.columns(2)
     left.metric(
         t("Kapazität (PT)"),
@@ -1993,7 +2004,7 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
         base = _base_sprint(data, sprint)
         after = apply_product_values(base, rows, editable)
         preview = with_sprints(data, [after])
-        fc_preview = build_forecast(preview, fc.today)
+        fc_preview = _preview_forecast(data, fc, base, after)
         d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
         _production_hint(d, data, unit)
         changed = after.products != base.products
