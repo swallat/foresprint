@@ -170,7 +170,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
 | Boards | PO-Vorplanung | je Produkt vorsehen, was in den Sprint soll – im Vergleich zum Standard, Summe je PO |
 | | Planning | geführter Ablauf: 1. Fehltage, 2. Forecast PLAN & Einplanung je Produkt, 3. Forecast IST |
-| | Review | Velocity, Scope Creep, Erledigt je Produkt; Kapazität wird eingefroren |
+| | Review | Velocity, Scope Creep, Erledigt je Produkt, nicht erledigt/zusätzlich erledigt; verfügbare Personentage werden eingefroren |
 | | Analyse | ergänzend: Bandbreite, Fokusfaktor, Puffer-Empfehlung, „Wann ist es fertig?“ |
 | Team | Personen | eine Tabelle (Zeile je Zeitraum, FTE); IDs automatisch; Ehemalige ausblendbar |
 | | Produkte | Produktliste mit PO und Zeitraum (ab/bis); Ehemalige ausblendbar |
@@ -197,7 +197,7 @@ weiterhin von dir.
 | Produkte ändern sich | `sprintforecast produktliste team-a` | Produkt anlegen, PO ändern, Produkt abgeben (mit Enddatum). |
 | PO-Vorplanung | `sprintforecast produkte team-a --vorplanung` | POs tragen je Produkt ein, was sie vorsehen; Vergleich mit dem Standard. |
 | Sprint Planning | `sprintforecast planning team-a` | Geführt: 1. Fehltage, 2. Forecast PLAN und Planning je Produkt, 3. Forecast IST (+ optional Kontrollrechnung). Friert den Forecast PLAN ein. Standard: nächster noch nicht geplanter Sprint. |
-| Sprint Review | `sprintforecast review team-a --commit` | Erfasst Velocity, Scope Creep und Erledigt je Produkt, friert die Kapazität ein, committet und setzt Tag `team-a/<sprint>`. |
+| Sprint Review | `sprintforecast review team-a --commit` | Erfasst Velocity, Scope Creep und Erledigt je Produkt, friert die verfügbaren Personentage ein, committet und setzt Tag `team-a/<sprint>`. |
 | PO-Planung | `sprintforecast forecast team-a` | Prognose für laufenden + nächste Sprints. |
 | Produktauswertung | `sprintforecast produkte team-a [SPRINT]` | Verteilung je Produkt und Saldo der letzten Sprints. |
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
@@ -290,6 +290,19 @@ velocity: null
 scope_creep: null           # Anteil, 0.3 = 30 %
 planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
 forecast_plan: 10.1         # Forecast PLAN beim Planning (eingefroren), optional
+not_done: 1.5              # Review, optional: Menge, die nicht fertig wurde
+additional_done: 0.5       # Review, optional: zusätzlich zum Forecast IST erledigt
+                           # (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt)
+prognoses:                 # PO-Vorplanung: Prognosen des Teams für diesen offenen Sprint
+- at: 2026-10-16 09:30:00
+  comment: Prognose aus dem Daily      # woher die Annahme stammt
+  forecast_ist: 10
+  not_done: 2
+  additional_done: 0.5
+  expected_done: 8.5
+  target: '2026.22'        # Zielsprint der Vorplanung
+  plan: 9.9                # Forecast PLAN des Zielsprints mit dieser Annahme
+  preplanned: {webshop: 4}
 products:                   # optional, je Produkt-ID
   webshop: {preplanned: 4, planned: 4.5, done: 4, production_planned: 1, production_done: 0.5}
                             # production_*: davon Tickets mit Produktionszugriff (optional)
