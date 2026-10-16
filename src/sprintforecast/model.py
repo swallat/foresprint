@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 
 
@@ -193,6 +193,26 @@ class Planning:
 
 
 @dataclass
+class Prognosis:
+    """Prognose des Teams für einen noch offenen Sprint, festgehalten bei einer PO-Vorplanung.
+    Die Vorplanung wird mehrfach durchgeführt – jede Annahme bleibt nachvollziehbar."""
+
+    at: datetime
+    # Woher die Annahme stammt (z. B. „Prognose aus dem Daily vom 16.10.“).
+    comment: str | None = None
+    forecast_ist: float | None = None
+    # Voraussichtlich nicht erledigt bzw. zusätzlich zum Forecast IST erledigt.
+    not_done: float | None = None
+    additional_done: float | None = None
+    # Forecast IST − nicht erledigt + zusätzlich erledigt.
+    expected_done: float | None = None
+    # Forecast PLAN des Zielsprints mit dieser Annahme und die dabei vorgesehene Vorplanung.
+    target: str | None = None
+    plan: float | None = None
+    preplanned: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
 class Sprint:
     id: str
     start: date
@@ -210,3 +230,9 @@ class Sprint:
     # Werte je Produkt-ID.
     products: dict[str, ProductValues] = field(default_factory=dict)
     note: str | None = None
+    # Im Review erfasst: Menge, die nicht fertig wurde, bzw. zusätzlich zum Forecast IST
+    # erledigt wurde (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt).
+    not_done: float | None = None
+    additional_done: float | None = None
+    # Prognosen des Teams aus den PO-Vorplanungen, ältere zuerst.
+    prognoses: list[Prognosis] = field(default_factory=list)

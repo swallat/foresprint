@@ -6,13 +6,21 @@ from __future__ import annotations
 import copy
 import math
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sprintforecast.calendar import following_sprint, next_id, workdays
 from sprintforecast.forecast import Forecast, build_forecast, find_sprint
 from sprintforecast.i18n import t
-from sprintforecast.model import Membership, Person, Product, ProductValues, Sprint, new_person_id
+from sprintforecast.model import (
+    Membership,
+    Person,
+    Product,
+    ProductValues,
+    Prognosis,
+    Sprint,
+    new_person_id,
+)
 from sprintforecast.products import MEASURES, PRODUCTION_MEASURES, Distribution
 from sprintforecast.storage import TeamData
 
@@ -57,7 +65,59 @@ def open_velocity_sprints(fc: Forecast, count: int = 2) -> list[Sprint]:
     return open_[-count:]
 
 
-def whatif_forecast(fc: Forecast, velocities: dict[str, float]) -> Forecast:
+@dataclass(frozen=True)
+class Assumption:
+    """Prognose des Teams für einen offenen Sprint."""
+
+    forecast_ist: float
+    not_done: float | None = None
+    additional_done: float | None = None
+
+    @property
+    def expected(self) -> float:
+        """Erwartete erledigte Menge (Velocity)."""
+        return max(self.forecast_ist - (self.not_done or 0.0) + (self.additional_done or 0.0), 0.0)
+
+
+def record_prognoses(
+    data: TeamData,
+    target: Sprint,
+    assumed: dict[str, Assumption],
+    plan: float | None,
+    comment: str,
+    now: datetime | None = None,
+) -> list[Sprint]:
+    """Hängt die Annahmen als Prognose an die betroffenen Sprints (Kopien) und liefert alle zu
+    speichernden Sprints samt ``target`` (der Zielsprint der Vorplanung)."""
+    now = (now or datetime.now()).replace(microsecond=0)
+    result = {target.id: target}
+    preplanned = {
+        pid: v.preplanned for pid, v in target.products.items() if v.preplanned is not None
+    }
+    for sprint_id, a in assumed.items():
+        sprint = result.get(sprint_id)
+        if sprint is None:
+            found = find_sprint(data, sprint_id)
+            if found is None:
+                continue
+            sprint = result[sprint_id] = copy.deepcopy(found)
+        sprint.prognoses.append(
+            Prognosis(
+                at=now,
+                comment=comment.strip() or None,
+                forecast_ist=a.forecast_ist,
+                not_done=a.not_done,
+                additional_done=a.additional_done,
+                expected_done=a.expected,
+                target=target.id,
+                plan=plan,
+                preplanned=preplanned,
+            )
+        )
+    return list(result.values())
+
+
+def whatif_forecast(fc: Forecast, velocities: dict[str, float] | dict[str, Assumption]) -> Forecast:
     """Forecast unter der Annahme, dass die genannten Sprints die Velocity erreichen.
     Nichts wird gespeichert; ``fc`` bleibt unverändert."""
     changed = []
@@ -66,7 +126,7 @@ def whatif_forecast(fc: Forecast, velocities: dict[str, float]) -> Forecast:
         if sprint is None:
             continue
         sprint = copy.deepcopy(sprint)
-        sprint.velocity = velocity
+        sprint.velocity = velocity.expected if isinstance(velocity, Assumption) else velocity
         changed.append(sprint)
     return build_forecast(with_sprints(fc.data, changed), fc.today)
 

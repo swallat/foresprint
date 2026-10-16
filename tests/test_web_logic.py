@@ -214,3 +214,39 @@ def test_reset_future_absences_to_unknown(data_dir: Path):
     repo.delete_sprint("demo", nxt.id)
     assert resettable_sprints(repo.load("demo"), TODAY) == []
     assert repo.load("demo").sprint(nxt.id) is None
+
+
+def test_prognosis_roundtrip_and_validation(data_dir: Path):
+    from datetime import datetime
+
+    from sprintforecast.validate import check_team
+    from sprintforecast.web.logic import Assumption, record_prognoses
+
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    target = data.sprint("2026.22") or build_target(data)
+    a = Assumption(10.0, not_done=2.0, additional_done=0.5)
+    assert a.expected == 8.5
+    sprints = record_prognoses(
+        data, target, {"2026.21": a}, 9.9, " Daily ", datetime(2026, 10, 16, 9, 30, 12, 7)
+    )
+    assert {s.id for s in sprints} == {"2026.22", "2026.21"}
+    for s in sprints:
+        repo.save_sprint("demo", s)
+    p = repo.load("demo").sprint("2026.21").prognoses[-1]
+    assert (p.comment, p.expected_done, p.plan, p.target) == ("Daily", 8.5, 9.9, "2026.22")
+    assert p.at == datetime(2026, 10, 16, 9, 30, 12)
+    # Review-Werte, die nicht zur Velocity passen, werden gewarnt
+    s = repo.load("demo")
+    sprint = s.sprint("2026.21")
+    sprint.velocity, sprint.not_done, sprint.additional_done = 9.0, 2.0, 0.0
+    messages = [i.message for i in check_team(s, TODAY)]
+    assert any("ergibt 8" in m for m in messages)
+    sprint.not_done = -1.0
+    assert any(i.level.value == "Fehler" for i in check_team(s, TODAY))
+
+
+def build_target(data):
+    from sprintforecast.forecast import find_sprint
+
+    return find_sprint(data, "2026.22")
