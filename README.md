@@ -310,6 +310,8 @@ velocity: null
 scope_creep: null           # Anteil, 0.3 = 30 %
 planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
 forecast_plan: 10.1         # Forecast PLAN beim Planning (eingefroren), optional
+absences_confirmed: true   # Fehltage bestätigt (Seite Fehltage); ohne Einträge und ohne Bestätigung
+                           # gilt „Fehltage unbekannt“ (Kapazität per Trend bzw. erwartete Fehltage)
 not_done: 1.5              # Review, optional: Menge, die nicht fertig wurde
 additional_done: 0.5       # Review, optional: zusätzlich zum Forecast IST erledigt
                            # (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt)
