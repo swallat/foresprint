@@ -225,8 +225,21 @@ Version; später nur als gekennzeichneter Indikator.
 ### 7.1 Produktzuordnung und übergeordnete Vorhaben
 
 - Zuordnung eines Tickets zum Produkt in konfigurierbarer Reihenfolge (z. B. Label, dann
-  Komponente) über eine Tabelle; widersprüchliche Treffer erscheinen als „mehrdeutig“, keine
-  Treffer als „nicht zugeordnet“.
+  Komponente) über eine Tabelle; keine Treffer ergeben „nicht zugeordnet“.
+- **Tickets mit mehreren Produkten** (Querschnittsthemen) zählen im Gesamtwert immer **einmal
+  und unverändert**. Für die Sicht je Produkt gilt:
+  - **Standard: gleichmäßige Aufteilung** auf alle Produkte, die das Ticket trifft. Das Ticket
+    ist als „geteilt“ markiert.
+  - **Option: eigene Aufteilung je Ticket** (Prozent oder Einheiten je Produkt). Sie wird in der
+    Vormerkung bzw. im Planning- und Review-Stand gespeichert, nicht im Ticketsystem. Auch
+    „produktübergreifend“ (ganz ohne Produktzuordnung) ist ein zulässiger Wert; so lässt sich
+    das heutige Vorgehen abbilden, solche Tickets ohne Produkttracking mitzunehmen.
+  - Die Summe der Anteile muss genau den Wert des Tickets ergeben; Rundungsreste gehen an das
+    erste Produkt, eine Prüfung lehnt Aufteilungen ab, die nicht aufgehen. Dieselbe Aufteilung
+    gilt für Last, Zusage und Erledigt, damit Produkt- und Gesamtbilanz zusammenpassen.
+  - Widersprüchliche Treffer, die kein echtes Mehrprodukt-Ticket sind (z. B. zwei Labels
+    derselben Produktfamilie), erscheinen als „mehrdeutig“, bis die PO es klärt.
+  - Ohne Ticketsystem ändert sich nichts: Produktwerte werden wie bisher von Hand erfasst.
 - Übergeordnete Vorhaben (Epic oder verlinkter Eintrag eines anderen Projekts) sind optional und
   nur **Lesehilfe**: Tickets lassen sich filtern und gruppieren, je Vorhaben die vorgemerkte
   Last. Gemeint ist der Anteil des Teams im geladenen Umfang. Fehlende Verknüpfung, nicht
@@ -290,3 +303,5 @@ Jede Phase ist ein eigener, kleiner Pull Request (oder ein Stapel).
   kennt (Teamangabe beim Review)?
 - Welche Kandidaten-Auswahlen soll die Seite „Ticketsystem“ anbieten (Sprint, Status, Label,
   Backlog ohne Sprint, eigene JQL)?
+- Soll die App Tickets mit sehr vielen Produkten oder häufig geänderter Aufteilung als Kandidat
+  zum Teilen im Refinement melden (Hinweis, keine Pflicht)?
