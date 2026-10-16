@@ -372,3 +372,19 @@ def test_preplanning_page_saves_values(app: AppTest, data_dir: Path):
     click(app, "PO-Vorplanung speichern")
     sprint = load(data_dir / "demo" / "sprints" / "2026.22.yaml")
     assert sprint["products"]["webshop"]["preplanned"] == 3.5
+
+
+def test_manual_update_check_button(app: AppTest, monkeypatch: pytest.MonkeyPatch):
+    from sprintforecast import updater
+
+    calls = []
+
+    def fake_check(force: bool = False, timeout: float = 5.0, now=None):
+        calls.append(force)
+        inst = updater.Installation(repo="x/y", ref="main", pinned=False)
+        return updater.Check("0.2.0", "0.2.0", inst)
+
+    monkeypatch.setattr(updater, "check", fake_check)
+    click(app, "Nach Updates suchen")
+    assert calls == [True]
+    assert any("0.2.0" in c.value and "aktuell" in c.value for c in app.caption)
