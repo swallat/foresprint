@@ -6,7 +6,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass, field
 
-from sprintforecast.calendar import is_holiday, workdays
+from sprintforecast.calendar import is_holiday, person_weekend, workdays
 from sprintforecast.engine import round_down
 from sprintforecast.model import Person, Sprint, Team
 
@@ -36,11 +36,14 @@ class CapacityBreakdown:
 
 
 def person_capacity(team: Team, person: Person, sprint: Sprint) -> PersonCapacity | None:
-    region = person.region or team.capacity.region
-    days = [d for d in workdays(sprint.start, sprint.end) if person.fte_on(d) > 0]
+    country = person.country or team.capacity.country
+    # Hat die Person ein eigenes Land, gilt nicht die Region des Teams.
+    region = person.region or (None if person.country else team.capacity.region)
+    weekend = person_weekend(team, person)
+    days = [d for d in workdays(sprint.start, sprint.end, weekend) if person.fte_on(d) > 0]
     if not days:
         return None
-    working = [d for d in days if not is_holiday(d, region)]
+    working = [d for d in days if not is_holiday(d, region, country)]
     absence = min(sprint.absences.get(person.id, 0.0), len(working))
     available = sum(person.fte_on(d) for d in working)
     mean_fte = available / len(working) if working else 0.0

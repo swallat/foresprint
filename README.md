@@ -12,7 +12,8 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
 - **Aktualisiert sich selbst:** prüft täglich auf eine neue Version und installiert sie nach
   dem Beenden (abschaltbar).
 - **Kapazität aus einer Personenliste:** Personen mit Zugehörigkeitszeitraum und FTE,
-  planbare Fehltage je Sprint, Feiertage je Bundesland.
+  planbare Fehltage je Sprint, Feiertage und Arbeitswoche je Land und Region (weltweit, über die
+  Bibliothek `holidays`).
 - **Nachvollziehbare Rechenlogik:** normierte Velocity, gleitender Durchschnitt und Trend,
   konfigurierbar je Team.
 - **Erweiterbar:** Plugins können Befehle und Seiten ergänzen, z. B. Importe.
@@ -271,7 +272,9 @@ capacity:
   overhead_days: 1          # optional: zusätzlich fester Abzug in PT je Person und Sprint (× FTE)
   absence_history: 4        # optional: Kapazität künftiger Sprints ohne Fehltage um die Ø Fehltage
                             # der letzten 4 Sprints mindern (0 = aus, dann Trend)
-  region: NW                # Bundesland für Feiertage
+  country: DE               # optional (Standard DE): ISO-Ländercode für Feiertage und Wochenende
+  region: NW                # Region im Land (Bundesland, Staat, Provinz), z. B. NW, CA, ON
+  workweek: auto            # optional: auto (wie im Land) | mon-fri | sun-thu | mon-sat
 ```
 
 **`people.yaml`** – Personen werden nie gelöscht, nur Zugehörigkeiten beendet:
@@ -281,6 +284,7 @@ people:
 - id: ben
   name: Ben
   region: BY                # optional, sonst Team-Region
+  country: AT               # optional: abweichendes Land der Person (Feiertage, Wochenende)
   production_access: true   # optional: darf Tickets mit Produktionszugriff bearbeiten
   memberships:
   - {from: 2025-01-01, to: 2026-05-31, fte: 1}

@@ -161,7 +161,7 @@ def test_overhead_fields_stay_in_sync(app: AppTest, data_dir: Path):
 def test_new_team(app: AppTest, data_dir: Path):
     goto(app, "neues_team")
     app.text_input[0].set_value("team-b").run()
-    app.selectbox(key="new-team-b-capacity.region").set_value("BY")
+    app.text_input(key="new-team-b-capacity.region").set_value("BY")
     click(app, "Team anlegen")
     team = load(data_dir / "team-b" / "team.yaml")
     assert team["capacity"]["region"] == "BY"
