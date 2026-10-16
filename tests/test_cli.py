@@ -70,7 +70,7 @@ def test_planning_reports_delta(data_dir: Path):
     sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
     assert sprint["forecast_ist"] == 9
     assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
-    assert "Delta 0,50" in result.output  # Forecast PLAN 9,0 − Planning 8,5
+    assert "Delta 1,00" in result.output  # Forecast PLAN 9,5 − Planning 8,5
 
 
 def test_personen_change_fte(data_dir: Path):
@@ -312,7 +312,7 @@ def test_forecast_rechenweg(data_dir: Path):
     result = run(data_dir, "forecast", "demo", "--rechenweg", "2026.22")
     assert result.exit_code == 0, result.output
     assert "Rechenweg Sprint 2026.22" in result.output
-    assert "10,185" in result.output
+    assert "11,229" in result.output  # 16,84 / 45 × 30,0
 
 
 def test_datenordner(tmp_path: Path, data_dir: Path):

@@ -106,6 +106,8 @@ def _trend(average: Series, mode: TrendMode | str) -> tuple[Series, list[bool]]:
                 value = None if k1 is None or k2 is None else k1 + (k1 - k2)
             if value is None and (value := known(i - 1)) is not None:
                 fallback[i] = True  # Historie dünn: letzten Durchschnitt fortschreiben
+            elif i > 0 and fallback[i - 1]:
+                fallback[i] = True  # baut auf einem Wert auf, der schon „flat“ war
         # Mengen, Kapazität und Anteile sind nie negativ; eine Fortschreibung unter null
         # (Rauschen) wird auf null begrenzt.
         result[i] = None if value is None else max(value, 0.0)

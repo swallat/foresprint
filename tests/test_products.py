@@ -27,8 +27,8 @@ def fc(data_dir: Path):
 def test_standard_is_plan_divided_by_active_products(fc):
     d = distribution(fc, fc.entry("2026.22"))
     assert [r.product.id for r in d.rows] == ["webshop", "app", "portal"]  # Altsystem beendet
-    assert d.available == pytest.approx(10.1)
-    assert all(r.standard == pytest.approx(10.1 / 3) for r in d.rows)
+    assert d.available == pytest.approx(11.2)
+    assert all(r.standard == pytest.approx(11.2 / 3) for r in d.rows)
     assert d.total("preplanned") == 10
 
 
@@ -36,9 +36,9 @@ def test_fixed_share_and_rest_split_evenly(fc):
     next(p for p in fc.data.products if p.id == "app").share = 0.1
     d = distribution(fc, fc.entry("2026.22"))
     standard = {r.product.id: r.standard for r in d.rows}
-    assert standard["app"] == pytest.approx(1.01)
-    assert standard["webshop"] == standard["portal"] == pytest.approx((10.1 - 1.01) / 2)
-    assert sum(standard.values()) == pytest.approx(10.1)
+    assert standard["app"] == pytest.approx(1.12)
+    assert standard["webshop"] == standard["portal"] == pytest.approx((11.2 - 1.12) / 2)
+    assert sum(standard.values()) == pytest.approx(11.2)
 
 
 def test_share_roundtrip_and_table(data_dir: Path):
@@ -102,7 +102,7 @@ def test_production_values_roundtrip_and_validation(data_dir: Path):
 def test_roadmap_basis(fc):
     fc.data.team.forecast.product_basis = ProductBasis.ROADMAP
     d = distribution(fc, fc.entry("2026.22"))
-    assert d.available == pytest.approx(10.1 * 0.8)
+    assert d.available == pytest.approx(11.2 * 0.8)
 
 
 def test_inactive_product_with_values_has_no_standard(fc):
@@ -189,9 +189,9 @@ def test_freeze_keeps_existing_plan_unless_requested(fc):
     entry.sprint.forecast_plan = 9.0
     freeze_plan(entry.sprint, entry, TODAY)
     assert entry.sprint.forecast_plan == 9.0
-    assert refreeze_offer(entry.sprint, entry) == (9.0, pytest.approx(10.1))
+    assert refreeze_offer(entry.sprint, entry) == (9.0, pytest.approx(11.2))
     freeze_plan(entry.sprint, entry, TODAY, refreeze=True)
-    assert entry.sprint.forecast_plan == pytest.approx(10.1)
+    assert entry.sprint.forecast_plan == pytest.approx(11.2)
     assert refreeze_offer(entry.sprint, entry) is None
 
 
