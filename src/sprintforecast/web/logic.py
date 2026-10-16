@@ -117,6 +117,15 @@ def record_prognoses(
     return list(result.values())
 
 
+def default_forecast_ist(fc: Forecast, sprint: Sprint) -> float | None:
+    """Vorbelegung des Forecast IST im Was-wäre-wenn: der erfasste Wert des Sprints, sonst der
+    des nächstfrüheren Sprints, für den einer erfasst ist."""
+    if sprint.forecast_ist is not None:
+        return sprint.forecast_ist
+    earlier = [e.sprint for e in fc.entries if e.sprint.start < sprint.start]
+    return next((s.forecast_ist for s in reversed(earlier) if s.forecast_ist is not None), None)
+
+
 def whatif_forecast(fc: Forecast, velocities: dict[str, float] | dict[str, Assumption]) -> Forecast:
     """Forecast unter der Annahme, dass die genannten Sprints die Velocity erreichen.
     Nichts wird gespeichert; ``fc`` bleibt unverändert."""
