@@ -21,11 +21,17 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from sprintforecast import __version__
+from sprintforecast import __version__, updater
 from sprintforecast.calendar import holiday_name, workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource
-from sprintforecast.forecast import Forecast, apply_planning, build_forecast, find_sprint
+from sprintforecast.forecast import (
+    Forecast,
+    apply_planning,
+    build_forecast,
+    find_sprint,
+    freeze_plan,
+)
 from sprintforecast.git import GitError, commit
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, TOPICS, WORKFLOW
 from sprintforecast.launcher import (
@@ -41,11 +47,14 @@ from sprintforecast.model import (
     Numbering,
     Person,
     Planning,
+    Product,
+    ProductValues,
     Sprint,
     Team,
     new_person_id,
 )
 from sprintforecast.plugins import load_plugins
+from sprintforecast.products import MEASURES, Distribution, balance, distribution
 from sprintforecast.report import capacity_label, fmt, pct, period, render, status
 from sprintforecast.settings import SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
@@ -56,6 +65,7 @@ from sprintforecast.storage import (
     TeamData,
     default_data_dir,
 )
+from sprintforecast.updater import PACKAGE
 from sprintforecast.validate import Level, check_all, issues_for
 
 app = typer.Typer(
@@ -102,8 +112,20 @@ def _main(
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
         raise typer.Exit()
+    if ctx.invoked_subcommand != "aktualisieren":
+        _auto_update()
     today = date.fromisoformat(stichtag) if stichtag else date.today()
     ctx.obj = Context(repo=Repository(daten or default_data_dir()), today=today, stichtag=stichtag)
+
+
+def _auto_update() -> None:
+    """Hinweise zur letzten Aktualisierung; Prüfung im Hintergrund, Installation am Ende."""
+    import atexit
+
+    for message in updater.startup_notices():
+        err.print(f"[cyan]{message}[/cyan]")
+    auto = updater.AutoUpdate().start()
+    atexit.register(auto.finish, lambda text: err.print(f"[cyan]{text}[/cyan]"))
 
 
 def _load(c: Context, team: str) -> TeamData:
@@ -541,17 +563,30 @@ def fehltage(
         raise typer.Exit(1)
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "next")
+    path = _ask_absences(c, data, s)
+    console.print(_capacity_table(data, s))
+    console.print(f"[green]Gespeichert: {path}[/green]")
+    _show_sprint_forecast(c, team, s.id)
+    _maybe_commit(c, team, [path], f"{data.team.name} {s.id}: Fehltage erfasst", None, commit_)
+
+
+def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
     days = workdays(s.start, s.end)
     region = data.team.capacity.region
     hol = [f"{d:%d.%m.} {holiday_name(d, region)}" for d in days if holiday_name(d, region)]
-    console.print(
-        Panel(
-            f"Sprint [bold]{s.id}[/bold]: {s.start:%d.%m.%Y} – {s.end:%d.%m.%Y}, "
-            f"{len(days)} Arbeitstage"
-            + (f"\nFeiertage ({region or 'bundesweit'}): {', '.join(hol)}" if hol else ""),
-            border_style="cyan",
-        )
+    last = days[-1] if days else s.end
+    return Panel(
+        f"Sprint [bold]{s.id}[/bold]: {s.start:%d.%m.%Y} – {last:%d.%m.%Y} (letzter Arbeitstag; "
+        f"der nächste Sprint beginnt am {s.end:%d.%m.}), {len(days)} Arbeitstage Mo–Fr"
+        + (f"\ndavon Feiertage ({region or 'bundesweit'}): {', '.join(hol)}" if hol else ""),
+        border_style="cyan",
     )
+
+
+def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
+    """Fragt die Fehltage je aktiver Person ab und speichert den Sprint."""
+    days = workdays(s.start, s.end)
+    console.print(_sprint_panel(data, s))
     _explain("absences")
     for p in data.people:
         if not p.active_between(s.start, s.end):
@@ -568,31 +603,91 @@ def fehltage(
         console=console,
     ):
         s.capacity = None
-    path = c.repo.save_sprint(team, s)
-    console.print(_capacity_table(data, s))
-    console.print(f"[green]Gespeichert: {path}[/green]")
-    _show_sprint_forecast(c, team, s.id)
-    _maybe_commit(c, team, [path], f"{data.team.name} {s.id}: Fehltage erfasst", None, commit_)
+    return c.repo.save_sprint(data.team.key, s)
+
+
+def _ask_product_values(data: TeamData, fc: Forecast, s: Sprint, measure: str) -> bool:
+    """Fragt einen Wert (preplanned/planned/done) je Produkt ab. True, wenn etwas geändert."""
+    entry = fc.entry(s.id)
+    if not data.products or entry is None:
+        return False
+    d = distribution(fc, entry)
+    if not d.rows:
+        return False
+    unit = data.team.unit.value
+    console.print(_distribution_table(d, unit))
+    _explain(measure)
+    before = copy.deepcopy(s.products)
+    for r in d.rows:
+        values = s.products.get(r.product.id, ProductValues())
+        setattr(
+            values,
+            measure,
+            _ask_number(
+                f"{r.product.name} – {MEASURES[measure]} ({unit})", getattr(values, measure)
+            ),
+        )
+        if values.is_empty():
+            s.products.pop(r.product.id, None)
+        else:
+            s.products[r.product.id] = values
+    return s.products != before
+
+
+def _distribution_table(d: Distribution, unit: str) -> Table:
+    basis = "Roadmap-Anteil" if d.basis.value == "roadmap" else "Forecast PLAN"
+    table = Table(title=f"Produkte Sprint {d.sprint.id}")
+    table.add_column("Produkt")
+    table.add_column("PO")
+    for label in MEASURES.values():
+        table.add_column(f"{label} {unit}", justify="right")
+    for r in d.rows:
+        table.add_row(
+            r.product.name + ("" if r.active else " [dim](nicht betreut)[/dim]"),
+            r.product.po or "",
+            *(fmt(r.value(m), 2) for m in MEASURES),
+        )
+    table.add_row("[bold]Summe[/bold]", "", *(fmt(d.total(m), 2) for m in MEASURES))
+    if d.available is not None and d.active_count:
+        table.caption = (
+            f"Standard = {basis}{' (eingefroren)' if d.plan_frozen else ''} "
+            f"{fmt(d.available, 2)} / {d.active_count} Produkte"
+        )
+    return table
 
 
 @app.command()
 def planning(
     ctx: typer.Context, team: TeamArg, sprint: SprintArg = None, commit_: CommitOpt = False
 ) -> None:
-    """Sprint Planning erfassen: Forecast IST und Planning-Werte (Standard: laufender Sprint)."""
+    """Sprint Planning geführt: 1. Fehltage, 2. Forecast PLAN und Einplanung je Produkt,
+    3. Forecast IST (Standard: nächstes Planning)."""
     c = _ctx(ctx)
     data = _load(c, team)
     fc = build_forecast(data, c.today)
-    s = _find_or_create(data, fc, sprint, "current")
-    if data.sprint(s.id) is not None:
+    s = _find_or_create(data, fc, sprint, "planning")
+    paths: list[Path] = []
+    console.rule(f"Planning {s.id} – Schritt 1: Fehltage")
+    if data.people and Confirm.ask(
+        "Bekannte Fehltage für den Sprint erfassen bzw. prüfen?",
+        default=data.sprint(s.id) is None,
+        console=console,
+    ):
+        paths.append(_ask_absences(c, data, s))
+        console.print(_capacity_table(data, s))
+    elif data.sprint(s.id) is None:
+        console.print("[yellow]Ohne Fehltage ist die Kapazität nur geschätzt (Trend).[/yellow]")
+    data = _load(c, team) if paths else data
+    fc = build_forecast(data, c.today)
+    s = copy.deepcopy(data.sprint(s.id) or s)
+    console.rule(f"Planning {s.id} – Schritt 2: Forecast PLAN und Einplanung")
+    if data.sprint(s.id):
         _show_sprint_forecast(c, team, s.id)
-    else:
-        console.print(
-            "[yellow]Für diesen Sprint wurden noch keine Fehltage erfasst – die Kapazität ist "
-            f"nur geschätzt. Empfehlung: zuerst `sprintforecast fehltage {team} {s.id}`.[/yellow]"
-        )
-        if not Confirm.ask("Trotzdem fortfahren?", default=False, console=console):
-            raise typer.Exit()
+    if data.products and Confirm.ask(
+        "Planning je Produkt erfassen?", default=True, console=console
+    ):
+        _ask_product_values(data, fc, s, "planned")
+    console.rule(f"Planning {s.id} – Schritt 3: Forecast IST")
     unit = data.team.unit.value
     planning = None
     if Confirm.ask(
@@ -615,6 +710,7 @@ def planning(
         default = planning.committed
         console.print("[dim]Vorbelegt mit Überkipper + Backlog.[/dim]")
     apply_planning(s, _ask_number(f"Forecast IST ({unit})", default), planning)
+    freeze_plan(s, fc.entry(s.id), c.today)
     path = c.repo.save_sprint(team, s)
     console.print(f"[green]Gespeichert: {path}[/green]")
     fc = build_forecast(_load(c, team), c.today)
@@ -662,6 +758,10 @@ def review(
     s.velocity = _ask_number(f"Velocity ({unit})", s.velocity)
     _explain("scope_creep")
     s.scope_creep = _ask_number("Scope Creep (Anteil 0–1)", s.scope_creep)
+    if data.products and Confirm.ask(
+        "Erledigt je Produkt erfassen?", default=True, console=console
+    ):
+        _ask_product_values(data, fc, s, "done")
     path = c.repo.save_sprint(team, s)
     console.print(f"[green]Gespeichert: {path}[/green]")
     _maybe_commit(
@@ -976,6 +1076,203 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
             console.print(
                 f"[yellow]Kein Browser gefunden. Bitte {url} in einem Browser öffnen.[/yellow]"
             )
+
+
+@app.command()
+def produkte(
+    ctx: typer.Context,
+    team: TeamArg,
+    sprint: SprintArg = None,
+    vorplanung: Annotated[
+        bool, typer.Option("--vorplanung", help="PO-Vorplanung je Produkt erfassen.")
+    ] = False,
+    verlauf: Annotated[int, typer.Option(help="Sprints für den Saldo.")] = 6,
+    commit_: CommitOpt = False,
+) -> None:
+    """Verteilung auf die Produkte: Standard, PO-Vorplanung, Planning, Erledigt, Saldo."""
+    c = _ctx(ctx)
+    data = _load(c, team)
+    if not data.products:
+        err.print(f"[red]Keine Produkte erfasst. Zuerst: sprintforecast produktliste {team}[/red]")
+        raise typer.Exit(1)
+    fc = build_forecast(data, c.today)
+    s = copy.deepcopy(_find_or_create(data, fc, sprint, "planning"))
+    unit = data.team.unit.value
+    if vorplanung and _ask_product_values(data, fc, s, "preplanned"):
+        path = c.repo.save_sprint(team, s)
+        console.print(f"[green]Gespeichert: {path}[/green]")
+        _maybe_commit(c, team, [path], f"{data.team.name} {s.id}: PO-Vorplanung", None, commit_)
+        data = _load(c, team)
+        fc = build_forecast(data, c.today)
+    entry = fc.entry(s.id)
+    if entry is not None:
+        console.print(_distribution_table(distribution(fc, entry), unit))
+    entries = [e for e in fc.entries if e.sprint.start <= s.start][-verlauf:]
+    rows = balance(fc, entries)
+    if rows:
+        table = Table(title="Saldo: Σ Erledigt − Σ Standard")
+        for col in ("Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo"):
+            table.add_column(col, justify="left" if col == "Produkt" else "right")
+        for b in rows:
+            colour = "green" if b.difference >= 0 else "red"
+            table.add_row(
+                b.product.name,
+                str(b.sprints),
+                fmt(b.standard, 2),
+                fmt(b.done, 2),
+                f"[{colour}]{fmt(b.difference, 2)}[/{colour}]",
+            )
+        console.print(table)
+
+
+@app.command()
+def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
+    """Produkte des Teams pflegen (neu, PO ändern, abgeben)."""
+    c = _ctx(ctx)
+    data = _load(c, team)
+    products = data.products
+    changed = False
+    while True:
+        table = Table(title="Produkte")
+        for col in ("Name", "PO", "ab", "bis"):
+            table.add_column(col)
+        for p in products:
+            table.add_row(
+                p.name,
+                p.po or "",
+                f"{p.start:%d.%m.%Y}" if p.start else "–",
+                f"{p.end:%d.%m.%Y}" if p.end else "–",
+            )
+        console.print(table)
+        action = Prompt.ask(
+            "Aktion: n = neues Produkt, p = PO ändern, e = Produkt abgeben, q = fertig",
+            choices=["n", "p", "e", "q"],
+            default="q",
+            console=console,
+        )
+        if action == "q":
+            break
+        if action == "n":
+            name = Prompt.ask("Name", console=console).strip()
+            if not name or any(p.name.lower() == name.lower() for p in products):
+                console.print("[red]Bitte einen neuen, eindeutigen Namen eingeben.[/red]")
+                continue
+            po = (
+                Prompt.ask(
+                    "PO (leer = keine Angabe)", default="", show_default=False, console=console
+                ).strip()
+                or None
+            )
+            start = _ask_date("Betreut ab", c.today)
+            pid = new_person_id(name, {p.id for p in products}, fallback="produkt")
+            products.append(Product(id=pid, name=name, po=po, start=start))
+        else:
+            current = [p for p in products if p.end is None or p.end >= c.today]
+            if not current:
+                console.print("[red]Keine aktiven Produkte.[/red]")
+                continue
+            names = {p.name.lower(): p for p in current}
+            console.print("[dim]Produkte: " + ", ".join(p.name for p in current) + "[/dim]")
+            raw = Prompt.ask("Name", console=console).strip().lower()
+            product = names.get(raw)
+            if product is None:
+                console.print("[red]Produkt nicht gefunden.[/red]")
+                continue
+            if action == "p":
+                product.po = (
+                    Prompt.ask("Neuer PO", default=product.po or "", console=console).strip()
+                    or None
+                )
+            else:
+                product.end = _ask_date("Letzter betreuter Tag", c.today)
+        changed = True
+    if changed:
+        path = c.repo.save_products(team, products)
+        console.print(f"[green]Gespeichert: {path}[/green]")
+        _maybe_commit(
+            c, team, [path], f"{data.team.name}: Produktliste aktualisiert", None, commit_
+        )
+
+
+@app.command()
+def aktualisieren(
+    pruefen_: Annotated[
+        bool, typer.Option("--pruefen", help="Nur prüfen, nicht installieren.")
+    ] = False,
+    erzwingen: Annotated[
+        bool, typer.Option("--erzwingen", help="Auch ohne neue Version neu installieren.")
+    ] = False,
+    auto: Annotated[
+        str | None,
+        typer.Option(
+            help="Automatik einstellen: an (installiert selbst), hinweis (nur melden), aus.",
+        ),
+    ] = None,
+) -> None:
+    """sprintforecast auf die neueste Version aktualisieren (Plugins bleiben erhalten)."""
+    if auto is not None:
+        try:
+            mode = updater.Mode(auto.strip().lower())
+        except ValueError:
+            err.print("[red]--auto: an, hinweis oder aus[/red]")
+            raise typer.Exit(1) from None
+        updater.update_state(mode=mode.value)
+        console.print(f"Automatische Aktualisierung: [bold]{mode.value}[/bold]")
+        if os.environ.get(updater.MODE_ENV):
+            console.print(f"[yellow]Hinweis: {updater.MODE_ENV} hat Vorrang.[/yellow]")
+        return
+    result = updater.check(force=True)
+    inst = result.installation
+    if inst is None:
+        console.print(
+            f"Version {result.current} – nicht mit `uv tool install` installiert (z. B. "
+            "Entwicklung mit `uv run`). Aktualisieren mit `git pull` bzw. erneut mit dem "
+            "Installationsskript."
+        )
+        raise typer.Exit(1)
+    if inst.pinned and not erzwingen:
+        console.print(
+            f"Version {result.current}, fest installiert auf [bold]{inst.ref}[/bold]. Für eine "
+            "andere Version das Installationsskript mit SPRINTFORECAST_REF erneut ausführen."
+        )
+        return
+    if result.error:
+        err.print(f"[red]Prüfung fehlgeschlagen: {result.error}[/red]")
+        if not erzwingen:
+            raise typer.Exit(1)
+    console.print(
+        f"Installiert: [bold]{result.current}[/bold] · verfügbar: "
+        f"[bold]{result.latest or '–'}[/bold] ({inst.repo}, {inst.ref})"
+    )
+    if not result.available and not erzwingen:
+        console.print("[green]sprintforecast ist aktuell.[/green]")
+        return
+    if pruefen_:
+        console.print("Aktualisieren mit: sprintforecast aktualisieren")
+        return
+    uv = updater.find_uv()
+    if uv is None:
+        err.print("[red]uv nicht gefunden – bitte das Installationsskript erneut ausführen.[/red]")
+        raise typer.Exit(1)
+    if sys.platform == "win32":
+        updater.schedule_after_exit(uv, visible=True)
+        updater.update_state(attempted=result.latest, failure_reported=False)
+        console.print(
+            "Die Aktualisierung startet nach diesem Befehl in einem eigenen Fenster "
+            "(Windows sperrt laufende Programme)."
+        )
+        return
+    code = updater.run_upgrade(uv)
+    if code != 0:
+        err.print(f"[red]Aktualisierung fehlgeschlagen (Exit-Code {code}).[/red]")
+        raise typer.Exit(code)
+    version = subprocess.run(
+        [sys.executable, "-c", f"import importlib.metadata as m; print(m.version({PACKAGE!r}))"],
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    updater.update_state(seen_version=version or result.latest)
+    console.print(f"[green]Installiert: Version {version or result.latest}.[/green]")
 
 
 @app.command()

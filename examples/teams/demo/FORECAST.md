@@ -44,3 +44,44 @@ xychart-beta
     line [14.50, 13.50, 10.25, 12.50, 16.50, 14.00, 11.50, 10.50, 12.75, 9.75, 10.35, 9.28, 8.21, 7.14]
     line [16.95, 18.93, 11.25, 15.89, 19.24, 18.53, 16.32, 16.58, 17.65, 15.13, 16.02, 15.28, 14.53, 13.79]
 ```
+
+## Produkte
+
+**Sprint 2026.21** (laufend)
+
+| Produkt | PO | Standard (PT) | PO-Vorplanung (PT) | Planning (PT) | Erledigt (PT) |
+|---|---|---|---|---|---|
+| Webshop | Alex | 3,00 | 3,50 | 4,00 | – |
+| Mobile App | Alex | 3,00 | 3,00 | 3,00 | – |
+| Kundenportal | Bea | 3,00 | 3,00 | 3,00 | – |
+
+**Sprint 2026.22** (geplant)
+
+| Produkt | PO | Standard (PT) | PO-Vorplanung (PT) | Planning (PT) | Erledigt (PT) |
+|---|---|---|---|---|---|
+| Webshop | Alex | 3,37 | 3,00 | – | – |
+| Mobile App | Alex | 3,37 | 3,00 | – | – |
+| Kundenportal | Bea | 3,37 | 4,00 | – | – |
+
+**Saldo** (Σ Erledigt − Σ Standard, letzte 6 Sprints)
+
+| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo (PT) |
+|---|---|---|---|---|
+| Webshop | 4 | 14,57 | 16,50 | 1,93 |
+| Mobile App | 4 | 14,57 | 14,75 | 0,18 |
+| Kundenportal | 3 | 10,33 | 8,75 | -1,58 |
+| Altsystem | 2 | 6,73 | 4,50 | -2,23 |
+
+## Ergänzend: Bandbreite
+
+Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der letzten 5 Sprints (statt des Trends).
+
+| Sprint | Forecast PLAN (PT) | konservativ | mittel | optimistisch |
+|---|---|---|---|---|
+| 2026.21 | 9,0 | 8,5 | 9,3 | 10,5 |
+| 2026.22 | 10,1 | 10,0 | 11,0 | 12,3 |
+| 2026.23 | 9,2 | 9,6 | 10,5 | 11,8 |
+| 2026.24 | 8,7 | 9,5 | 10,4 | 11,7 |
+
+- Ø Fokusfaktor (Velocity / Kapazität): 0,37
+- Ø Scope Creep (5 Sprints): 6 % · Kleinkram-Anteil: 20 %

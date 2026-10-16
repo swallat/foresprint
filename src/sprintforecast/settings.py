@@ -9,7 +9,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any
 
-from sprintforecast.model import Numbering, Team, TrendMode, Unit
+from sprintforecast.model import Numbering, ProductBasis, Team, TrendMode, Unit
 
 # Bundesländer in der Schreibweise der holidays-Bibliothek.
 REGIONS: dict[str, str] = {
@@ -278,6 +278,19 @@ SETTINGS: list[Setting] = [
         maximum=3,
         get=_getter("forecast.rounding"),
         set=_setter("forecast.rounding", int),
+    ),
+    Setting(
+        key="forecast.product_basis",
+        label="Standardverteilung je Produkt aus",
+        help="Welche Menge gleichmäßig auf die betreuten Produkte verteilt wird "
+        "(Standard = Menge / Anzahl Produkte).",
+        kind=Kind.CHOICE,
+        choices={
+            "plan": "gesamter Forecast PLAN",
+            "roadmap": "nur Roadmap-Anteil (Kleinkram bleibt produktübergreifend)",
+        },
+        get=lambda t: t.forecast.product_basis.value,
+        set=_setter("forecast.product_basis", ProductBasis),
     ),
 ]
 

@@ -11,7 +11,8 @@ from typing import Any
 
 from sprintforecast.calendar import following_sprint
 from sprintforecast.forecast import Forecast
-from sprintforecast.model import Membership, Person, Sprint, new_person_id
+from sprintforecast.model import Membership, Person, Product, ProductValues, Sprint, new_person_id
+from sprintforecast.products import MEASURES, Distribution
 from sprintforecast.storage import TeamData
 
 
@@ -213,6 +214,101 @@ def people_from_table(
     order = {p.id: n for n, p in enumerate(original)}
     people.sort(key=lambda p: (order.get(p.id, len(order)), p.name.lower()))
     return PeopleResult(people=people, errors=errors, deleted=deleted)
+
+
+# --- Produkte ------------------------------------------------------------------------
+
+PRODUCT_COLUMNS = ["_id", "Name", "PO", "ab", "bis"]
+
+
+def product_table(
+    products: list[Product], today: date, show_former: bool
+) -> tuple[list[dict[str, Any]], list[Product]]:
+    """Eine Zeile je Produkt. Liefert (Zeilen, ausgeblendete ehemalige Produkte)."""
+    visible = [p for p in products if show_former or p.end is None or p.end >= today]
+    hidden = [p for p in products if p not in visible]
+    rows = [
+        {"_id": p.id, "Name": p.name, "PO": p.po or "", "ab": p.start, "bis": p.end}
+        for p in visible
+    ]
+    return rows, hidden
+
+
+@dataclass
+class ProductsResult:
+    products: list[Product]
+    errors: list[str]
+    deleted: list[str]
+
+
+def products_from_table(
+    rows: list[dict[str, Any]], original: list[Product], hidden: list[Product]
+) -> ProductsResult:
+    """Baut die Produktliste aus der Tabelle; neue Zeilen bekommen eine ID aus dem Namen."""
+    errors: list[str] = []
+    used = {p.id for p in original}
+    seen: set[str] = set()
+    result: list[Product] = []
+    for i, row in enumerate(rows, start=1):
+        if all(is_blank(row.get(c)) for c in PRODUCT_COLUMNS if c != "_id"):
+            continue
+        name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
+        if not name:
+            errors.append(f"Zeile {i}: Name fehlt")
+            continue
+        if name.lower() in seen:
+            errors.append(f"Zeile {i}: {name} ist doppelt")
+            continue
+        seen.add(name.lower())
+        pid = None if is_blank(row.get("_id")) else str(row["_id"])
+        if pid is None:
+            pid = new_person_id(name, used, fallback="produkt")
+            used.add(pid)
+        try:
+            start, end = as_date(row.get("ab")), as_date(row.get("bis"))
+        except ValueError:
+            errors.append(f"Zeile {i} ({name}): ungültiges Datum")
+            continue
+        if start and end and end < start:
+            errors.append(f"Zeile {i} ({name}): 'bis' liegt vor 'ab'")
+            continue
+        po = None if is_blank(row.get("PO")) else str(row["PO"]).strip()
+        result.append(Product(id=pid, name=name, po=po, start=start, end=end))
+    kept = {p.id for p in result} | {p.id for p in hidden}
+    deleted = [p.name for p in original if p.id not in kept]
+    order = {p.id: n for n, p in enumerate(original)}
+    products = [*result, *copy.deepcopy(hidden)]
+    products.sort(key=lambda p: order.get(p.id, len(order)))
+    return ProductsResult(products=products, errors=errors, deleted=deleted)
+
+
+def product_values_table(d: Distribution) -> list[dict[str, Any]]:
+    """Eine Zeile je Produkt mit Standard und den erfassten Werten (Spaltennamen wie MEASURES)."""
+    return [
+        {
+            "_id": r.product.id,
+            "Produkt": r.product.name + ("" if r.active else " (nicht betreut)"),
+            "PO": r.product.po or "",
+            **{label: r.value(m) for m, label in MEASURES.items()},
+        }
+        for r in d.rows
+    ]
+
+
+def apply_product_values(sprint: Sprint, rows: list[dict[str, Any]], measures: list[str]) -> Sprint:
+    """Kopie von ``sprint`` mit den bearbeiteten Spalten ``measures`` (z. B. ["planned"])."""
+    result = copy.deepcopy(sprint)
+    for row in rows:
+        pid = str(row["_id"])
+        values = result.products.get(pid, ProductValues())
+        for m in measures:
+            raw = row.get(MEASURES[m])
+            setattr(values, m, None if is_blank(raw) else float(raw))
+        if values.is_empty():
+            result.products.pop(pid, None)
+        else:
+            result.products[pid] = values
+    return result
 
 
 def parse_numbers(raw: str) -> list[float]:

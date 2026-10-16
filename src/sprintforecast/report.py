@@ -130,6 +130,7 @@ def render(fc: Forecast, history: int = 10) -> str:
             ),
             "```",
         ]
+    lines += _products_section(fc)
     lines += _analysis_section(fc)
     return "\n".join(lines) + "\n"
 
@@ -168,4 +169,50 @@ def _analysis_section(fc: Forecast) -> list[str]:
         )
     if facts:
         lines += ["", *[f"- {f}" for f in facts]]
+    return lines
+
+
+def _products_section(fc: Forecast, history: int = 6) -> list[str]:
+    """Verteilung je Produkt: laufender und nächster Sprint, Saldo der letzten Sprints."""
+    from sprintforecast.products import MEASURES, balance, distribution
+
+    if not fc.data.products:
+        return []
+    unit = fc.data.team.unit.value
+    lines = ["", "## Produkte"]
+    shown = []
+    for e in (fc.current, fc.default_entry("planning")):
+        if e is not None and e not in shown:
+            shown.append(e)
+    for e in shown:
+        d = distribution(fc, e)
+        if not d.rows:
+            continue
+        lines += [
+            "",
+            f"**Sprint {e.sprint.id}** ({status(fc, e).replace('*', '')})",
+            "",
+            "| Produkt | PO | " + " | ".join(f"{v} ({unit})" for v in MEASURES.values()) + " |",
+            "|---|---|" + "---|" * len(MEASURES),
+        ]
+        lines += [
+            f"| {r.product.name} | {r.product.po or ''} | "
+            + " | ".join(fmt(r.value(m), 2) for m in MEASURES)
+            + " |"
+            for r in d.rows
+        ]
+    rows = balance(fc, fc.history(history))
+    if rows:
+        lines += [
+            "",
+            f"**Saldo** (Σ Erledigt − Σ Standard, letzte {history} Sprints)",
+            "",
+            f"| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo ({unit}) |",
+            "|---|---|---|---|---|",
+        ]
+        lines += [
+            f"| {b.product.name} | {b.sprints} | {fmt(b.standard, 2)} | {fmt(b.done, 2)} "
+            f"| {fmt(b.difference, 2)} |"
+            for b in rows
+        ]
     return lines

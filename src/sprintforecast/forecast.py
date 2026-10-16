@@ -45,9 +45,16 @@ class Forecast:
         return next((e for e in self.entries if e.sprint.id == sprint_id), None)
 
     def default_entry(self, purpose: str) -> TimelineEntry | None:
-        """Vorschlag je Zweck: current (Planning), next (Fehltage), review (Review)."""
+        """Vorschlag je Zweck: current (laufend), planning (nächstes Planning), next (Fehltage),
+        review (Review)."""
         if purpose == "current":
             return self.current
+        if purpose == "planning":
+            # Der laufende Sprint, solange sein Planning fehlt – sonst der nächste.
+            current = self.current
+            if current is not None and current.sprint.forecast_ist is None:
+                return current
+            return self.default_entry("next")
         if purpose == "next":
             future = [e for e in self.entries if e.sprint.start > self.today]
             return future[0] if future else None
@@ -96,6 +103,14 @@ def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Plannin
     prefilled = forecast_ist is None and planned > 0
     sprint.forecast_ist = planned if prefilled else forecast_ist
     return prefilled
+
+
+def freeze_plan(sprint: Sprint, entry: TimelineEntry | None, today: date) -> None:
+    """Merkt den Forecast PLAN zum Planning – Basis der Standardverteilung je Produkt.
+    Abgeschlossene Sprints bleiben unverändert."""
+    if entry is None or sprint.end <= today or entry.result.plan is None:
+        return
+    sprint.forecast_plan = entry.result.plan
 
 
 def resolve_capacity(
