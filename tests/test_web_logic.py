@@ -278,3 +278,25 @@ def test_absence_sprints_can_include_past_sprints(data_dir: Path):
     assert [s.id for s in with_past[2:]] == [s.id for s in plain]
     assert all(s.end <= TODAY for s in with_past[:2])
     assert len(with_past) == len(plain) + 2
+
+
+def test_saving_preplanning_does_not_change_capacity_source(data_dir: Path):
+    from sprintforecast.engine import CapacitySource
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.model import ProductValues
+    from sprintforecast.web.logic import with_sprints
+
+    data = Repository(data_dir).load("demo")
+    before = build_forecast(data, TODAY)
+    target = next(e for e in before.upcoming() if not e.recorded)
+    assert target.result.plan_capacity_source is CapacitySource.TREND
+
+    sprint = target.sprint
+    sprint.products["webshop"] = ProductValues(preplanned=3.0)  # nur Vorplanung, keine Fehltage
+    after = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
+    assert after.result.plan_capacity_source is CapacitySource.TREND
+    assert after.result.plan == target.result.plan
+
+    sprint.absences = {"anna": 2.0}  # eingetragene Fehltage bestätigen die Kapazität
+    confirmed = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
+    assert confirmed.result.plan_capacity_source is CapacitySource.PEOPLE
