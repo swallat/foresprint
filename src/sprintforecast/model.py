@@ -240,5 +240,8 @@ class Sprint:
     # Die Fehltage wurden auf der Seite Fehltage bzw. im Planning bestätigt (auch ohne Einträge).
     # Ohne Bestätigung und ohne Einträge gilt der Sprint als „Fehltage unbekannt“.
     absences_confirmed: bool = False
+    # Voraussichtliche Fehltage je Person aus der PO-Vorplanung (Prognose, noch nicht bestätigt):
+    # Sie wirken auf die Kapazität und den Forecast PLAN, solange keine Fehltage bestätigt sind.
+    expected_absences: dict[str, float] = field(default_factory=dict)
     # Prognosen des Teams aus den PO-Vorplanungen, ältere zuerst.
     prognoses: list[Prognosis] = field(default_factory=list)

@@ -165,6 +165,7 @@ def completion(
             CapacitySource.RECORDED,
             CapacitySource.PEOPLE,
             CapacitySource.ESTIMATED,
+            CapacitySource.EXPECTED,
         ):
             capacities.append(e.result.plan_capacity or 0.0)
         else:

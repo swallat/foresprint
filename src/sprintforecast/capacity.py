@@ -109,3 +109,10 @@ def estimated_capacity(team: Team, people: list[Person], sprint: Sprint, rate: f
     """Kapazität eines Sprints ohne eingetragene Fehltage, gemindert um die erwarteten."""
     b = sprint_capacity(team, people, sprint)
     return round_down(max(b.gross * (1 - rate) - b.overhead, 0.0), team.capacity.rounding)
+
+
+def capacity_with_expected_absences(team: Team, people: list[Person], sprint: Sprint) -> float:
+    """Kapazität eines Sprints mit seinen voraussichtlichen Fehltagen (PO-Vorplanung)."""
+    probe = copy.deepcopy(sprint)
+    probe.absences = dict(sprint.expected_absences)
+    return sprint_capacity(team, people, probe).capacity

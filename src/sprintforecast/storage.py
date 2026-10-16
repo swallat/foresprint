@@ -412,6 +412,10 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         products=products,
         note=d.get("note"),
         absences_confirmed=bool(d.get("absences_confirmed", False)),
+        expected_absences={
+            str(pid): _float(days, f"{where}: expected_absences.{pid}") or 0.0
+            for pid, days in (d.get("expected_absences") or {}).items()
+        },
         not_done=_float(d.get("not_done"), f"{where}: not_done"),
         additional_done=_float(d.get("additional_done"), f"{where}: additional_done"),
         prognoses=_prognoses_from(d.get("prognoses"), where),
@@ -455,6 +459,8 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
     }
     if products:
         d["products"] = products
+    if s.expected_absences:
+        d["expected_absences"] = {k: _clean(v) for k, v in s.expected_absences.items()}
     if s.not_done is not None:
         d["not_done"] = _clean(s.not_done)
     if s.additional_done is not None:

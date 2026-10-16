@@ -238,6 +238,11 @@ CAPACITY_SOURCES: list[tuple[str, str]] = [
     ("Personenliste", "Aus Personen, Feiertagen und Fehltagen berechnet."),
     ("Trend", "Für den Sprint sind noch keine Fehltage erfasst – Kapazität geschätzt."),
     (
+        "voraussichtliche Fehltage",
+        "Fehltage noch nicht bestätigt: Kapazität laut Personenliste mit den in der "
+        "PO-Vorplanung eingetragenen voraussichtlichen Fehltagen.",
+    ),
+    (
         "erwartete Fehltage",
         "Keine Fehltage erfasst: Kapazität laut Personenliste, gemindert um die "
         "durchschnittlichen Fehltage der letzten Sprints (Einstellung).",

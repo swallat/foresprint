@@ -36,6 +36,7 @@ from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
+    absences_known,
     apply_planning,
     build_forecast,
     find_sprint,
@@ -1142,6 +1143,38 @@ def _goto(step: int) -> None:
     st.session_state["planning-goto"] = step
 
 
+def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str) -> None:
+    """Eingefrorenen Forecast PLAN zur Korrektur eines Fehlers wieder freigeben."""
+    with st.expander(
+        t("Forecast PLAN {plan} {unit} ist eingefroren", plan=fmt(sprint.forecast_plan), unit=unit),
+        icon=":material/lock:",
+    ):
+        st.warning(
+            t(
+                "Das Einfrieren hebst du nur auf, um einen **Fehler** zu korrigieren. Tickets, die "
+                "nach dem Planning hinzugezogen oder herausgenommen wurden, gehören **nicht "
+                "nachträglich ins Planning**, sondern fließen im **Review** ein (Davon nicht "
+                "erledigt / Zusätzlich erledigt). Nach dem Aufheben wird der Forecast PLAN neu "
+                "berechnet und beim nächsten Speichern des Plannings wieder eingefroren."
+            )
+        )
+        confirmed = st.checkbox(
+            t("Ja, es handelt sich um eine Fehlerkorrektur"), key=f"unfreeze-{sprint.id}"
+        )
+        if st.button(
+            t("Einfrieren aufheben"), disabled=not confirmed, key=f"unfreeze-go-{sprint.id}"
+        ):
+            released = copy.deepcopy(sprint)
+            released.forecast_plan = None
+            if save(
+                with_sprints(data, [released]),
+                [f"{released.id}.yaml"],
+                lambda: [repo.save_sprint(data.team.key, released)],
+                flash=True,
+            ):
+                st.rerun()
+
+
 def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Planning")
     show_flash()
@@ -1149,6 +1182,8 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if sprint is None:
         return
     _board_nav(data, sprint, "planning")
+    if sprint.forecast_plan is not None:
+        _unfreeze_panel(repo, data, sprint, data.team.unit.value)
     # Neuer Sprint gewählt → beim ersten Schritt beginnen.
     if st.session_state.get("planning-last-sprint") != sprint.id:
         st.session_state["planning-last-sprint"] = sprint.id
@@ -1201,9 +1236,19 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
         return
     base = _base_sprint(data, sprint)
+    shown_sprint = copy.deepcopy(base)
+    prefilled = not absences_known(base) and bool(base.expected_absences)
+    if prefilled:
+        shown_sprint.absences = dict(base.expected_absences)
+        st.info(
+            t(
+                "Vorbelegt mit den voraussichtlichen Fehltagen aus der PO-Vorplanung – bitte "
+                "prüfen und bestätigen."
+            )
+        )
     days = len(workdays(base.start, base.end))
     edited = st.data_editor(
-        pd.DataFrame(absence_matrix(data.people, [base])),
+        pd.DataFrame(absence_matrix(data.people, [shown_sprint])),
         column_config={
             "id": None,
             "Person": st.column_config.TextColumn(t("Person"), disabled=True),
@@ -1218,7 +1263,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         hide_index=True,
         key=f"planning-absences-{base.id}",
     )
-    [after] = edit_absences(data.people, [base], edited.to_dict("records"))
+    [after] = edit_absences(data.people, [shown_sprint], edited.to_dict("records"))
     to_save = sprints_to_save(data, [base], [after])
     preview = with_sprints(data, [after])
     breakdown = sprint_capacity(data.team, data.people, after)
@@ -1302,6 +1347,18 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     if data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
+        carried = False
+        for row in d.rows:
+            if row.planned is None and row.preplanned is not None:
+                row.planned = row.preplanned
+                carried = True
+        if carried:
+            st.caption(
+                t(
+                    "Die Einplanung ist mit der letzten PO-Vorplanung vorbelegt – bitte prüfen, "
+                    "anpassen und speichern."
+                )
+            )
         rows = _product_editor(
             d,
             ["preplanned", "planned", "production_planned"],
@@ -1500,7 +1557,9 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.caption(
         t(
             "Im Review wird festgehalten, was der Sprint geschafft hat: erledigte Menge, was "
-            "nicht fertig wurde und was zusätzlich erledigt wurde."
+            "nicht fertig wurde und was zusätzlich erledigt wurde. Nach dem Planning "
+            "hinzugezogene oder herausgenommene Tickets fließen hier ein – nicht nachträglich "
+            "ins Planning."
         )
     )
     _review_prognosis_hint(sprint, unit)
@@ -1865,7 +1924,50 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 else ""
             )
             _prognosis_history(data, list(open_velocity_sprints(fc)), unit)
-    fc_view = whatif_forecast(fc, assumed) if assumed else fc
+    expected = dict(sprint.expected_absences)
+    if data.people:
+        with st.expander(t("Voraussichtliche Fehltage"), icon=":material/event_busy:"):
+            st.caption(
+                t(
+                    "Schon bekannte oder erwartete Fehltage für diesen Sprint. Sie sind eine "
+                    "Prognose für die POs und wirken auf Kapazität und Forecast PLAN, bis im "
+                    "Planning die Fehltage bestätigt werden (dort werden sie vorbelegt)."
+                )
+            )
+            if absences_known(sprint):
+                st.info(
+                    t(
+                        "Die Fehltage dieses Sprints sind bereits bestätigt – die "
+                        "voraussichtlichen Fehltage haben keine Wirkung mehr."
+                    )
+                )
+            probe = _base_sprint(data, sprint)
+            probe.absences = dict(probe.expected_absences)
+            edited_expected = st.data_editor(
+                pd.DataFrame(absence_matrix(data.people, [probe])),
+                column_config={
+                    "id": None,
+                    "Person": st.column_config.TextColumn(t("Person"), disabled=True),
+                    probe.id: st.column_config.NumberColumn(
+                        t("Voraussichtlich fehlend (Tage)"),
+                        min_value=0.0,
+                        max_value=float(len(workdays(probe.start, probe.end))),
+                        step=0.5,
+                    ),
+                },
+                hide_index=True,
+                key=f"vorplanung-expected-{sprint.id}",
+            )
+            [probe_after] = edit_absences(data.people, [probe], edited_expected.to_dict("records"))
+            expected = dict(probe_after.absences)
+    saved_expected = dict(sprint.expected_absences)
+    fc_base = fc
+    if expected != saved_expected:
+        with_expected = _base_sprint(data, sprint)
+        with_expected.expected_absences = expected
+        fc_base = build_forecast(with_sprints(data, [with_expected]), fc.today)
+        entry = fc_base.entry(sprint.id) or entry
+    fc_view = whatif_forecast(fc_base, assumed) if assumed else fc_base
     shown = fc_view.entry(sprint.id) or entry
     shown_plan, frozen = plan_of(shown)
     with headline:
@@ -1910,7 +2012,8 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         return
     base = _base_sprint(data, sprint)
     after = apply_product_values(base, rows, ["preplanned"])
-    fc_preview = _preview_forecast(data, fc, base, after)
+    after.expected_absences = expected
+    fc_preview = _preview_forecast(data, fc_base, base, after)
     if assumed:
         fc_preview = whatif_forecast(fc_preview, assumed)
     d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
@@ -1957,7 +2060,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             ),
             hide_index=True,
         )
-    changed = after.products != base.products or bool(assumed)
+    changed = after.products != base.products or bool(assumed) or expected != saved_expected
     if st.button(t("PO-Vorplanung speichern"), type="primary", disabled=not changed):
         to_save = [after]
         if assumed:

@@ -132,6 +132,12 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             )
         previous = s
 
+        for pid, absent in s.expected_absences.items():
+            if pid not in people:
+                error(where, t("Voraussichtliche Fehltage für unbekannte Person '{id}'", id=pid))
+            elif absent < 0:
+                error(where, t("expected_absences.{id} darf nicht negativ sein", id=pid))
+
         days = len(workdays(s.start, s.end))
         for pid, absent in s.absences.items():
             person = people.get(pid)
