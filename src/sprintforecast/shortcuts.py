@@ -104,6 +104,7 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
             ["powershell", "-NoProfile", "-Command", windows_script(program, str(home))],
             capture_output=True,
             text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         if proc.returncode != 0:
             raise RuntimeError(proc.stderr.strip() or t("Verknüpfung nicht angelegt"))

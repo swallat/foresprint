@@ -2,7 +2,8 @@
 """Verteilung der Sprint-Menge auf die Produkte des Teams.
 
 Je Produkt und Sprint:
-    Standard     = verfügbare Menge / Anzahl betreuter Produkte
+    Standard     = verfügbare Menge × vereinbarter Anteil des Produkts (share) bzw.
+                   (verfügbare Menge − Σ feste Anteile) / Anzahl Produkte ohne festen Anteil
                    verfügbar = Forecast PLAN (eingefroren beim Planning, sonst aktuell)
                    bzw. nur dessen Roadmap-Anteil (Einstellung forecast.product_basis)
     Vorplanung   = PO-seitig vorgesehen (vor dem Planning)
@@ -15,6 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from sprintforecast.capacity import production_share
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
 from sprintforecast.model import Product, ProductBasis, ProductValues, Sprint
@@ -28,9 +30,16 @@ MEASURES: dict[str, str] = {
 }
 
 
+# Davon-Werte für Tickets, die Produktionszugriff erfordern (Teilmenge von Planning/Erledigt)
+PRODUCTION_MEASURES: dict[str, str] = {
+    "production_planned": "davon Produktionszugriff (Planning)",
+    "production_done": "davon Produktionszugriff (Erledigt)",
+}
+
+
 def measure_label(measure: str) -> str:
     """Anzeigename einer Kennzahl in der eingestellten Sprache."""
-    return t(MEASURES[measure])
+    return t((MEASURES | PRODUCTION_MEASURES)[measure])
 
 
 def sprint_products(products: list[Product], sprint: Sprint) -> list[Product]:
@@ -56,6 +65,8 @@ class ProductRow:
     preplanned: float | None
     planned: float | None
     done: float | None
+    production_planned: float | None = None
+    production_done: float | None = None
 
     def value(self, measure: str) -> float | None:
         return getattr(self, measure)
@@ -71,6 +82,19 @@ class Distribution:
     # Verteilbare Menge (Forecast PLAN oder dessen Roadmap-Anteil).
     available: float | None
     rows: list[ProductRow] = field(default_factory=list)
+    # Anteil der Personen mit Produktionszugriff an der Kapazität (None = keine Gruppe) und
+    # die Menge, die diese Gruppe im Sprint schaffen kann (Anteil × Forecast PLAN).
+    production_share: float | None = None
+    production_available: float | None = None
+
+    @property
+    def production_overload(self) -> float | None:
+        """Um wie viel das Planning mit Produktionszugriff die Gruppe übersteigt (sonst None)."""
+        planned = self.total("production_planned")
+        if planned is None or self.production_available is None:
+            return None
+        over = planned - self.production_available
+        return over if over > 0.05 else None
 
     @property
     def active_count(self) -> int:
@@ -91,6 +115,16 @@ def plan_of(entry: TimelineEntry) -> tuple[float | None, bool]:
     return entry.result.plan, False
 
 
+def standard_shares(active: list[Product], available: float | None) -> dict[str, float]:
+    """Standardmenge je betreutem Produkt: feste Anteile zuerst, der Rest gleichmäßig."""
+    if available is None or not active:
+        return {}
+    fixed = {p.id: available * p.share for p in active if p.share is not None}
+    rest = [p for p in active if p.share is None]
+    left = max(available - sum(fixed.values()), 0.0)
+    return fixed | {p.id: left / len(rest) for p in rest}
+
+
 def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
     data = fc.data
     sprint = entry.sprint
@@ -102,7 +136,7 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
     products = sprint_products(data.products, sprint)
     known = {p.id for p in data.products}
     active = [p for p in products if p.id in known and p.active_between(sprint.start, sprint.end)]
-    share = available / len(active) if available is not None and active else None
+    shares = standard_shares(active, available)
     rows = []
     for p in products:
         values = sprint.products.get(p.id, ProductValues())
@@ -111,14 +145,24 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
             ProductRow(
                 product=p,
                 active=is_active,
-                standard=share if is_active else None,
+                standard=shares.get(p.id) if is_active else None,
                 preplanned=values.preplanned,
                 planned=values.planned,
                 done=values.done,
+                production_planned=values.production_planned,
+                production_done=values.production_done,
             )
         )
+    group = production_share(data.team, data.people, sprint)
     return Distribution(
-        sprint=sprint, plan=plan, plan_frozen=frozen, basis=basis, available=available, rows=rows
+        sprint=sprint,
+        plan=plan,
+        plan_frozen=frozen,
+        basis=basis,
+        available=available,
+        rows=rows,
+        production_share=group,
+        production_available=plan * group if plan is not None and group is not None else None,
     )
 
 

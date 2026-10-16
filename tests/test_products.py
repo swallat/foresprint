@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from sprintforecast.forecast import build_forecast, freeze_plan
-from sprintforecast.model import Product, ProductBasis
+from sprintforecast.model import Product, ProductBasis, ProductValues
 from sprintforecast.products import balance, by_po, distribution
 from sprintforecast.storage import Repository
 from sprintforecast.validate import check_team
@@ -30,6 +30,73 @@ def test_standard_is_plan_divided_by_active_products(fc):
     assert d.available == pytest.approx(10.1)
     assert all(r.standard == pytest.approx(10.1 / 3) for r in d.rows)
     assert d.total("preplanned") == 10
+
+
+def test_fixed_share_and_rest_split_evenly(fc):
+    next(p for p in fc.data.products if p.id == "app").share = 0.1
+    d = distribution(fc, fc.entry("2026.22"))
+    standard = {r.product.id: r.standard for r in d.rows}
+    assert standard["app"] == pytest.approx(1.01)
+    assert standard["webshop"] == standard["portal"] == pytest.approx((10.1 - 1.01) / 2)
+    assert sum(standard.values()) == pytest.approx(10.1)
+
+
+def test_share_roundtrip_and_table(data_dir: Path):
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    data.products[0].share = 0.1
+    repo.save_products("demo", data.products)
+    again = repo.load("demo").products
+    assert again[0].share == pytest.approx(0.1)
+    assert again[1].share is None
+    rows, hidden = product_table(again, TODAY, True)
+    assert rows[0]["Anteil"] == pytest.approx(10.0)
+    result = products_from_table(rows, again, hidden)
+    assert result.errors == [] and result.products[0].share == pytest.approx(0.1)
+    rows[1]["Anteil"] = 150
+    assert products_from_table(rows, again, hidden).errors
+
+
+def test_production_access_group(data_dir: Path):
+    from sprintforecast.web.logic import people_from_table, people_table
+
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    base = build_forecast(data, TODAY)
+    assert distribution(base, base.entry("2026.22")).production_share is None
+
+    rows, hidden = people_table(data.people, TODAY, True)
+    for row in rows:
+        row["Produktionszugriff"] = row["Name"] == "Ben"  # Ben arbeitet 0,5 FTE
+    people = people_from_table(rows, data.people, hidden).people
+    assert [p.name for p in people if p.production_access] == ["Ben"]
+    data.people = people
+    repo.save_people("demo", people)
+    assert [p.id for p in repo.load("demo").people if p.production_access] == ["ben"]
+
+    fc = build_forecast(data, TODAY)
+    entry = fc.entry("2026.22")
+    entry.sprint.products["webshop"] = ProductValues(planned=2, production_planned=1)
+    d = distribution(fc, entry)
+    assert 0 < d.production_share < 0.5
+    assert d.production_available == pytest.approx(d.plan * d.production_share)
+    assert d.production_overload is None
+    entry.sprint.products["webshop"].production_planned = 50
+    assert distribution(fc, entry).production_overload is not None
+
+
+def test_production_values_roundtrip_and_validation(data_dir: Path):
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    sprint = data.sprint("2026.21")
+    sprint.products["webshop"] = ProductValues(planned=1, production_planned=2, production_done=-1)
+    messages = [i.message for i in check_team(data, TODAY)]
+    assert any("production_done" in m for m in messages)
+    assert any("Produktionszugriff" in m or "production access" in m for m in messages)
+    sprint.products["webshop"] = ProductValues(planned=3, production_planned=1)
+    repo.save_sprint("demo", sprint)
+    saved = repo.load("demo").sprint("2026.21").products["webshop"]
+    assert saved.production_planned == 1 and saved.production_done is None
 
 
 def test_roadmap_basis(fc):

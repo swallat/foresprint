@@ -97,6 +97,8 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
         if prod.id in product_ids:
             error(where, t("id ist doppelt"))
         product_ids.add(prod.id)
+        if prod.share is not None and not 0 < prod.share <= 1:
+            error(where, t("share muss zwischen 0 und 1 liegen"))
         if prod.start and prod.end and prod.end < prod.start:
             error(
                 where,
@@ -160,11 +162,33 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                         id=pid,
                     ),
                 )
-            for name in ("preplanned", "planned", "done"):
+            for name in (
+                "preplanned",
+                "planned",
+                "done",
+                "production_planned",
+                "production_done",
+            ):
                 value = getattr(values, name)
                 if value is not None and value < 0:
                     error(
                         where, t("products.{id}.{name} darf nicht negativ sein", id=pid, name=name)
+                    )
+        for pid, values in s.products.items():
+            for whole, part in (
+                (values.planned, values.production_planned),
+                (values.done, values.production_done),
+            ):
+                if part is not None and part > (whole or 0.0) + 0.05:
+                    warn(
+                        where,
+                        t(
+                            "Produkt '{id}': Produktionszugriff ({part}) ist größer als der "
+                            "Gesamtwert ({whole})",
+                            id=pid,
+                            part=_g(part),
+                            whole=_g(whole or 0.0),
+                        ),
                     )
         planned = [v.planned for v in s.products.values() if v.planned is not None]
         if planned and s.forecast_ist is not None and sum(planned) > s.forecast_ist + 0.05:

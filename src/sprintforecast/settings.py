@@ -197,7 +197,8 @@ SETTINGS: list[Setting] = [
         key="capacity.overhead_days",
         label="Abzug für Scrum-Termine (PT je Person)",
         help="Fester Abzug je Sprint und Vollzeitperson (Teilzeit anteilig), z. B. 1 für "
-        "Planning, Review und Retro. Gilt zusätzlich zum Abzug in %; 0 = kein fester Abzug.",
+        "Planning, Review und Retro. Entspricht dem Abzug in % (beide Felder gleichen sich ab); "
+        "0 = der Abzug in % gilt.",
         kind=Kind.NUMBER,
         minimum=0,
         maximum=20,
@@ -273,7 +274,7 @@ SETTINGS: list[Setting] = [
         help="Wie der Durchschnitt in die Zukunft fortgeschrieben wird.",
         kind=Kind.CHOICE,
         choices={
-            "klassisch": "linear, dann multiplikativ, dann linear",
+            "classic": "linear, dann multiplikativ, dann linear",
             "linear": "durchgehend linear",
             "flat": "letzter Durchschnitt bleibt konstant",
         },

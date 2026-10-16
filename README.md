@@ -244,7 +244,7 @@ forecast:
   window: 5                 # gleitender Durchschnitt
   roadmap_share: 0.8
   rounding: 1               # Forecast PLAN wird abgerundet
-  trend_mode: klassisch     # klassisch | linear | flat
+  trend_mode: classic     # classic | linear | flat
   horizon: 3                # künftige Sprints in der Prognose
   product_basis: plan       # Standard je Produkt aus: plan (Forecast PLAN) | roadmap
 capacity:
@@ -260,6 +260,7 @@ people:
 - id: ben
   name: Ben
   region: BY                # optional, sonst Team-Region
+  production_access: true   # optional: darf Tickets mit Produktionszugriff bearbeiten
   memberships:
   - {from: 2025-01-01, to: 2026-05-31, fte: 1}
   - {from: 2026-06-01, to: null, fte: 0.5}
@@ -270,6 +271,7 @@ people:
 ```yaml
 products:
 - {id: webshop, name: Webshop, po: Alex, from: null, to: null}
+- {id: partner, name: Partnerportal, share: 0.1}  # laut Vereinbarung 10 % der Kapazität
 - {id: portal, name: Kundenportal, po: Bea, from: 2026-09-02, to: null}
 - {id: altsystem, name: Altsystem, po: Bea, from: null, to: 2026-09-15}
 ```
@@ -288,7 +290,8 @@ scope_creep: null           # Anteil, 0.3 = 30 %
 planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
 forecast_plan: 10.1         # Forecast PLAN beim Planning (eingefroren), optional
 products:                   # optional, je Produkt-ID
-  webshop: {preplanned: 4, planned: 4.5, done: 4}
+  webshop: {preplanned: 4, planned: 4.5, done: 4, production_planned: 1, production_done: 0.5}
+                            # production_*: davon Tickets mit Produktionszugriff (optional)
 ```
 
 ## Rechenlogik
@@ -302,7 +305,7 @@ products:                   # optional, je Produkt-ID
 | Roadmap / Kleinkram | Forecast PLAN × 0,8 / Rest |
 | Fulfillment | Velocity / Forecast IST |
 | Planning-Delta | Forecast PLAN − (Überkipper + Backlog − Korrekturen) |
-| Standard je Produkt | verfügbar / Anzahl im Sprint betreuter Produkte; verfügbar = Forecast PLAN (beim Planning eingefroren, sonst aktuell) bzw. dessen Roadmap-Anteil |
+| Standard je Produkt | verfügbar × `share` (fester Anteil, optional) bzw. (verfügbar − Σ feste Anteile) / Anzahl der Produkte ohne `share`; verfügbar = Forecast PLAN (beim Planning eingefroren, sonst aktuell) bzw. dessen Roadmap-Anteil |
 | Saldo je Produkt | Σ Erledigt − Σ Standard über die Sprints mit erfasstem Erledigt |
 
 **Kapazität eines Sprints** – in dieser Reihenfolge:
@@ -313,7 +316,7 @@ products:                   # optional, je Produkt-ID
 3. Keine Sprintdatei → Kapazitäts-Trend → *Trend* (im Bericht mit ⚠️ markiert)
 
 **Trend-Modi** (`forecast.trend_mode`):
-- `klassisch` (Standard): 1. Zukunftssprint linear `Ø + (Ø − Ø_vorher)`,
+- `classic` (Standard): 1. Zukunftssprint linear `Ø + (Ø − Ø_vorher)`,
   2. multiplikativ `Ø_vorletzt / Ø_vorvorletzt × Trend_vorher`, danach linear.
 - `linear`: durchgehend linear.
 - `flat`: letzter Ø bleibt konstant (robust bei langen Horizonten).

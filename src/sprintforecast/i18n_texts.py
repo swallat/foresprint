@@ -21,7 +21,7 @@ def all_static_texts() -> list[str]:
     from sprintforecast.engine import CapacitySource
     from sprintforecast.formulas import GENERAL
     from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, TOPICS, WORKFLOW
-    from sprintforecast.products import MEASURES
+    from sprintforecast.products import MEASURES, PRODUCTION_MEASURES
     from sprintforecast.settings import _REGION, SETTINGS
     from sprintforecast.validate import Level
 
@@ -39,6 +39,7 @@ def all_static_texts() -> list[str]:
         if s.choices and s is not _REGION:
             texts += list(s.choices.values())
     texts += list(MEASURES.values())
+    texts += list(PRODUCTION_MEASURES.values())
     texts += list(GENERAL.values())
     texts += [level.value for level in Level]
     texts += [source.value for source in CapacitySource]

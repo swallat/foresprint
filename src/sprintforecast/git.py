@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 from sprintforecast.i18n import t
@@ -18,9 +20,18 @@ class GitError(Exception):
 FORBIDDEN = re.compile(r"\.xls[xm]?$", re.IGNORECASE)
 
 
+# Windows: keine Konsolenfenster für Hilfsprozesse (sonst blitzt bei jedem Aufruf eines auf).
+NO_WINDOW: dict = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
+
+_ROOT_CACHE: dict[Path, tuple[float, Path | None]] = {}
+_ROOT_TTL = 30.0
+
+
 def _git(cwd: Path, *args: str, strip: bool = True) -> str:
     try:
-        proc = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+        proc = subprocess.run(
+            ["git", *args], cwd=cwd, capture_output=True, text=True, **NO_WINDOW
+        )
     except FileNotFoundError as e:
         raise GitError(t("git ist nicht installiert oder nicht im PATH")) from e
     if proc.returncode != 0:
@@ -31,12 +42,18 @@ def _git(cwd: Path, *args: str, strip: bool = True) -> str:
 def repo_root(path: Path) -> Path | None:
     """Wurzel des Git-Repositorys, in dem ``path`` liegt – oder None."""
     path = path.resolve()
-    while not path.exists():
-        path = path.parent
+    cached = _ROOT_CACHE.get(path)
+    if cached and time.monotonic() - cached[0] < _ROOT_TTL:
+        return cached[1]
+    start = path
+    while not start.exists():
+        start = start.parent
     try:
-        return Path(_git(path if path.is_dir() else path.parent, "rev-parse", "--show-toplevel"))
+        root = Path(_git(start if start.is_dir() else start.parent, "rev-parse", "--show-toplevel"))
     except GitError:
-        return None
+        root = None
+    _ROOT_CACHE[path] = (time.monotonic(), root)
+    return root
 
 
 def pending_changes(path: Path) -> list[tuple[str, str]]:

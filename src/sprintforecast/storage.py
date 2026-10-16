@@ -172,7 +172,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 window=int(forecast.get("window", 5)),
                 roadmap_share=float(forecast.get("roadmap_share", 0.8)),
                 rounding=int(forecast.get("rounding", 1)),
-                trend_mode=TrendMode(forecast.get("trend_mode", "klassisch")),
+                trend_mode=TrendMode(forecast.get("trend_mode", "classic")),
                 horizon=int(forecast.get("horizon", 3)),
                 product_basis=ProductBasis(forecast.get("product_basis", "plan")),
             ),
@@ -245,6 +245,7 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
                 name=str(p.get("name") or p["id"]),
                 region=p.get("region"),
                 memberships=memberships,
+                production_access=bool(p.get("production_access", False)),
             )
         )
     return people
@@ -256,6 +257,8 @@ def people_to_dict(people: list[Person]) -> dict[str, Any]:
         entry: dict[str, Any] = {"id": p.id, "name": p.name}
         if p.region:
             entry["region"] = p.region
+        if p.production_access:
+            entry["production_access"] = True
         entry["memberships"] = [
             {"from": m.start, "to": m.end, "fte": _clean(m.fte)} for m in p.memberships
         ]
@@ -284,6 +287,7 @@ def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
                 po=str(p["po"]) if p.get("po") else None,
                 start=_date(p["from"], at) if p.get("from") else None,
                 end=_date(p["to"], at) if p.get("to") else None,
+                share=float(p["share"]) if p.get("share") is not None else None,
             )
         )
     return products
@@ -295,6 +299,8 @@ def products_to_dict(products: list[Product]) -> dict[str, Any]:
         entry: dict[str, Any] = {"id": p.id, "name": p.name}
         if p.po:
             entry["po"] = p.po
+        if p.share is not None:
+            entry["share"] = _clean(p.share)
         entry["from"] = p.start
         entry["to"] = p.end
         out.append(entry)
@@ -332,6 +338,8 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
             preplanned=_float(values.get("preplanned"), at),
             planned=_float(values.get("planned"), at),
             done=_float(values.get("done"), at),
+            production_planned=_float(values.get("production_planned"), at),
+            production_done=_float(values.get("production_done"), at),
         )
     absences = {}
     for pid, days in (d.get("absences") or {}).items():
@@ -374,7 +382,13 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
     products = {
         pid: {
             k: _clean(v)
-            for k, v in (("preplanned", pv.preplanned), ("planned", pv.planned), ("done", pv.done))
+            for k, v in (
+                ("preplanned", pv.preplanned),
+                ("planned", pv.planned),
+                ("done", pv.done),
+                ("production_planned", pv.production_planned),
+                ("production_done", pv.production_done),
+            )
             if v is not None
         }
         for pid, pv in s.products.items()
