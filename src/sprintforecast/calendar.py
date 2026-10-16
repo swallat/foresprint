@@ -39,6 +39,14 @@ def following_sprint(team: Team, previous: Sprint | None) -> Sprint:
     )
 
 
+WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+
+def day_label(d: date) -> str:
+    """„Mi 28.10.2026“."""
+    return f"{WEEKDAYS[d.weekday()]} {d:%d.%m.%Y}"
+
+
 def workdays(start: date, end: date) -> list[date]:
     """Werktage (Mo–Fr) im halboffenen Intervall [start, end)."""
     days = []

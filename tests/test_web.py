@@ -294,3 +294,10 @@ def test_product_list_page(app: AppTest, data_dir: Path):
     click(app, "Produkte speichern")
     assert any("Gespeichert" in s.value for s in app.success)
     assert len(load(data_dir / "demo" / "products.yaml")["products"]) == 4
+
+
+def test_calendar_page_creates_sprints(app: AppTest, data_dir: Path):
+    goto(app, "sprints")
+    assert any("2026.23 (neu)" in c.value for c in app.caption)
+    click(app, "Sprints anlegen bzw. speichern")
+    assert (data_dir / "demo" / "sprints" / "2026.26.yaml").exists()

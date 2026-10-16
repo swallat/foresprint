@@ -22,7 +22,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from sprintforecast import __version__, updater
-from sprintforecast.calendar import holiday_name, workdays
+from sprintforecast.calendar import day_label, holiday_name, workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import (
@@ -1076,6 +1076,80 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
             console.print(
                 f"[yellow]Kein Browser gefunden. Bitte {url} in einem Browser öffnen.[/yellow]"
             )
+
+
+@app.command()
+def sprints(
+    ctx: typer.Context,
+    team: TeamArg,
+    anzahl: Annotated[int, typer.Option(help="Anzahl Sprints ab dem laufenden.")] = 6,
+    anlegen: Annotated[
+        bool, typer.Option("--anlegen", help="Fehlende Sprintdateien anlegen.")
+    ] = False,
+    ende: Annotated[
+        list[str] | None,
+        typer.Option(
+            help="Abweichender letzter Tag, z. B. --ende 2026.25=2027-01-12 (mehrfach möglich); "
+            "folgende Sprints verschieben sich.",
+        ),
+    ] = None,
+    commit_: CommitOpt = False,
+) -> None:
+    """Sprintkalender: kommende Sprints anzeigen, anlegen und Enddaten anpassen."""
+    from sprintforecast.web.logic import absence_sprints, apply_calendar, calendar_table
+
+    c = _ctx(ctx)
+    data = _load(c, team)
+    fc = build_forecast(data, c.today)
+    planned = absence_sprints(data, fc, anzahl)
+    rows = calendar_table(data, planned, c.today)
+    for raw in ende or []:
+        sid, _, day = raw.partition("=")
+        row = next((r for r in rows if r["Sprint"] == sid.strip()), None)
+        try:
+            last = date.fromisoformat(day.strip())
+        except ValueError:
+            last = None
+        if row is None or last is None:
+            err.print(
+                f"[red]--ende {raw}: erwartet SPRINT=JJJJ-MM-TT eines gezeigten Sprints[/red]"
+            )
+            raise typer.Exit(1)
+        row["Letzter Tag"] = last
+    after, errors = apply_calendar(data, planned, rows)
+    for e in errors:
+        err.print(f"[red]{e}[/red]")
+    if errors:
+        raise typer.Exit(1)
+    shown = calendar_table(data, after, c.today)
+    table = Table(title=f"Sprintkalender {data.team.name}")
+    for col in shown[0]:
+        table.add_column(col, justify="right" if col == "Arbeitstage" else "left")
+    for r in shown:
+        table.add_row(
+            r["Sprint"],
+            day_label(r["Start"]),
+            day_label(r["Letzter Tag"]),
+            str(r["Arbeitstage"]),
+            r["Status"],
+        )
+    table.caption = (
+        "Arbeitstage: Mo–Fr vom Start bis einschließlich zum letzten Tag (Feiertage zieht erst "
+        "die Kapazität ab). Der nächste Sprint beginnt am Tag nach dem letzten Tag."
+    )
+    console.print(table)
+    changed = [
+        new
+        for old, new in zip(planned, after, strict=True)
+        if (old.start, old.end) != (new.start, new.end) or (anlegen and data.sprint(new.id) is None)
+    ]
+    if not changed:
+        if not anlegen:
+            console.print("[dim]Fehlende Sprintdateien anlegen mit --anlegen.[/dim]")
+        return
+    paths = [c.repo.save_sprint(team, s) for s in changed]
+    console.print(f"[green]Gespeichert: {', '.join(p.name for p in paths)}[/green]")
+    _maybe_commit(c, team, paths, f"{data.team.name}: Sprintkalender", None, commit_)
 
 
 @app.command()
