@@ -22,7 +22,7 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
 
 ## Installation
 
-Ein Befehl – installiert bei Bedarf [uv](https://docs.astral.sh/uv/), lädt Python 3.15 und
+Ein Befehl – installiert bei Bedarf [uv](https://docs.astral.sh/uv/), lädt Python 3.14 und
 installiert sprintforecast mit Weboberfläche. Git wird nur für Plugins benötigt.
 
 **Windows (PowerShell):**

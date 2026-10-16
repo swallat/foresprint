@@ -41,7 +41,7 @@ if (Test-Path Env:SPRINTFORECAST_WITH) {
 }
 
 $items = @($plugins.Split(";") | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-$arguments = @("tool", "install", "--force", "--reinstall", "--python", "3.15")
+$arguments = @("tool", "install", "--force", "--reinstall", "--python", "3.14")
 if ($items.Count -gt 0) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         throw "Für Plugins aus Git-Repositories wird Git benötigt: winget install Git.Git"
@@ -54,7 +54,7 @@ if ($items.Count -gt 0) {
     $arguments += $core
 }
 
-Write-Host "==> sprintforecast wird installiert (Python 3.15 wird bei Bedarf geladen)"
+Write-Host "==> sprintforecast wird installiert (Python 3.14 wird bei Bedarf geladen)"
 & uv @arguments
 if ($LASTEXITCODE -ne 0) { throw "Installation fehlgeschlagen (Exit-Code $LASTEXITCODE)" }
 # Kein Umleiten von stderr: in Windows PowerShell 5.1 würde das mit "Stop" zum Abbruch führen.
