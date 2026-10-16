@@ -781,7 +781,7 @@ EN: dict[str, str] = {
     "Prognose des Teams für einen noch nicht abgeschlossenen Sprint eintragen: Forecast IST, was voraussichtlich nicht fertig wird und was zusätzlich geschafft wird. Der Forecast PLAN der nächsten Sprints wird damit neu berechnet. Nichts wird gespeichert.": "Enter the team's forecast for a sprint that is not finished yet: commitment, what is expected not to be finished and what is done in addition. The Forecast PLAN of the next sprints is recalculated with it. Nothing is saved.",
     "Was-wäre-wenn: Prognose des Teams für den letzten Sprint": "What if: the team's forecast for the last sprint",
     "Sprint {id}": "Sprint {id}",
-    "Eingeplante Menge des Sprints; vorbelegt mit dem erfassten Forecast IST.": "Amount planned for the sprint; prefilled with the recorded commitment.",
+    "Eingeplante Menge des Sprints. Vorbelegt mit dem erfassten Forecast IST, sonst mit dem des vorherigen Sprints.": "Amount planned for the sprint. Prefilled with the recorded commitment, otherwise with that of the previous sprint.",
     "Voraussichtlich nicht erledigt ({unit})": "Expected not finished ({unit})",
     "Menge der Tickets, die laut Prognose des Teams nicht fertig werden.": "Amount of tickets the team expects not to finish.",
     "Zusätzlich erledigt ({unit})": "Additionally done ({unit})",

@@ -250,3 +250,18 @@ def build_target(data):
     from sprintforecast.forecast import find_sprint
 
     return find_sprint(data, "2026.22")
+
+
+def test_default_forecast_ist_falls_back_to_previous_sprint(data_dir: Path):
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.web.logic import default_forecast_ist
+
+    fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
+    current = fc.current.sprint
+    assert default_forecast_ist(fc, current) == current.forecast_ist
+    own = current.forecast_ist
+    current.forecast_ist = None
+    earlier = [e.sprint for e in fc.entries if e.sprint.start < current.start]
+    expected = next(s.forecast_ist for s in reversed(earlier) if s.forecast_ist is not None)
+    assert default_forecast_ist(fc, current) == expected
+    assert own is not None

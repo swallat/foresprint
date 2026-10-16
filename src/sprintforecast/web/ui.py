@@ -92,6 +92,7 @@ from sprintforecast.web.logic import (
     apply_product_values,
     calendar_table,
     calendar_to_save,
+    default_forecast_ist,
     edit_absences,
     open_velocity_sprints,
     parse_numbers,
@@ -267,15 +268,19 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     assumed: dict[str, Assumption] = {}
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
+        default_ist = default_forecast_ist(fc, sprint)
         ist_col, open_col, extra_col, result_col = st.columns(4)
         ist = ist_col.number_input(
             t("Forecast IST ({unit})", unit=unit),
             min_value=0.0,
-            value=sprint.forecast_ist,
+            value=default_ist,
             step=0.25,
             format="%.2f",
             key=f"{prefix}-{sprint.id}-ist",
-            help=t("Eingeplante Menge des Sprints; vorbelegt mit dem erfassten Forecast IST."),
+            help=t(
+                "Eingeplante Menge des Sprints. Vorbelegt mit dem erfassten Forecast IST, "
+                "sonst mit dem des vorherigen Sprints."
+            ),
         )
         not_done = open_col.number_input(
             t("Voraussichtlich nicht erledigt ({unit})", unit=unit),
@@ -295,7 +300,7 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
             key=f"{prefix}-{sprint.id}-extra",
             help=t("Menge, die laut Prognose zusätzlich zum Forecast IST geschafft wird."),
         )
-        changed = not_done is not None or extra is not None or ist != sprint.forecast_ist
+        changed = not_done is not None or extra is not None or ist != default_ist
         if ist is None or not changed:
             result_col.metric(t("Erwartet erledigt"), "–")
             continue
