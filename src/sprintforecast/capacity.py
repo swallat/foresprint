@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field
 
 from sprintforecast.calendar import is_holiday, workdays
@@ -80,3 +81,31 @@ def production_share(team: Team, people: list[Person], sprint: Sprint) -> float 
         return None
     total = sprint_capacity(team, people, sprint).gross
     return sprint_capacity(team, group, sprint).gross / total if total else 0.0
+
+
+def expected_absence_rate(
+    team: Team, people: list[Person], past: list[Sprint], count: int
+) -> float | None:
+    """Durchschnittlicher Anteil der Kapazität, der in den letzten ``count`` Sprints durch
+    Fehltage verloren ging (0–1). Berücksichtigt werden abgeschlossene Sprints, die in der
+    Planung bearbeitet wurden (Fehltage oder Planning erfasst). None ohne solche Sprints."""
+    if count <= 0:
+        return None
+    rates = []
+    for sprint in past:
+        if not sprint.absences and sprint.planning is None:
+            continue
+        without = copy.deepcopy(sprint)
+        without.absences = {}
+        full = sprint_capacity(team, people, without).gross
+        if full <= 0:
+            continue
+        rates.append(1 - sprint_capacity(team, people, sprint).gross / full)
+    rates = rates[-count:]
+    return sum(rates) / len(rates) if rates else None
+
+
+def estimated_capacity(team: Team, people: list[Person], sprint: Sprint, rate: float) -> float:
+    """Kapazität eines Sprints ohne eingetragene Fehltage, gemindert um die erwarteten."""
+    b = sprint_capacity(team, people, sprint)
+    return round_down(max(b.gross * (1 - rate) - b.overhead, 0.0), team.capacity.rounding)

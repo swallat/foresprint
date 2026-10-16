@@ -182,6 +182,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 overhead_days=float(capacity.get("overhead_days", 0.0)),
                 region=capacity.get("region"),
                 rounding=int(capacity.get("rounding", 1)),
+                absence_history=int(capacity.get("absence_history", 0)),
             ),
         )
     except (ValueError, TypeError) as e:
@@ -209,6 +210,8 @@ def team_to_dict(team: Team) -> dict[str, Any]:
     if team.capacity.overhead_days:
         capacity["overhead_days"] = _clean(team.capacity.overhead_days)
     capacity |= {"region": team.capacity.region, "rounding": team.capacity.rounding}
+    if team.capacity.absence_history:
+        capacity["absence_history"] = team.capacity.absence_history
     return {
         "name": team.name,
         "unit": team.unit.value,

@@ -117,3 +117,31 @@ def test_overhead_in_days_and_percent(data_dir):
     both = sprint_capacity(data.team, data.people, sprint)
     assert both.overhead == pytest.approx(3.5)
     assert sprint.start == date(2026, 10, 28)
+
+
+def test_expected_absences_estimate_future_capacity(data_dir):
+    from datetime import date
+
+    from sprintforecast.capacity import expected_absence_rate
+    from sprintforecast.engine import CapacitySource
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.storage import Repository
+
+    data = Repository(data_dir).load("demo")
+    today = date(2026, 10, 15)
+    base = build_forecast(data, today)
+    unrecorded = [e for e in base.upcoming() if not e.recorded]
+    assert unrecorded and unrecorded[0].result.plan_capacity_source is CapacitySource.TREND
+
+    past = [e.sprint for e in base.history() if e.recorded]
+    assert expected_absence_rate(data.team, data.people, past, 0) is None
+    sprint = past[-1]
+    sprint.absences = {data.people[0].id: 5.0}
+    rate = expected_absence_rate(data.team, data.people, [sprint], 1)
+    assert rate is not None and 0 < rate < 1
+
+    data.team.capacity.absence_history = 3
+    estimated = build_forecast(data, today)
+    entry = next(e for e in estimated.upcoming() if not e.recorded)
+    assert entry.result.plan_capacity_source is CapacitySource.ESTIMATED
+    assert entry.result.plan_capacity > 0

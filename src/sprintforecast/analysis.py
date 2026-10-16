@@ -161,7 +161,11 @@ def completion(
     future = [e for e in fc.entries if e.sprint.start > today][:max_sprints]
     capacities, trend_ids = [], []
     for e in future:
-        if e.result.plan_capacity_source in (CapacitySource.RECORDED, CapacitySource.PEOPLE):
+        if e.result.plan_capacity_source in (
+            CapacitySource.RECORDED,
+            CapacitySource.PEOPLE,
+            CapacitySource.ESTIMATED,
+        ):
             capacities.append(e.result.plan_capacity or 0.0)
         else:
             capacities.append(avg_capacity)
