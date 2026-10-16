@@ -260,24 +260,46 @@ def _signed(value: float) -> str:
 
 
 def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str, float]:
-    """Eingabefelder für die erwartete erledigte Menge offener Sprints (nichts wird gespeichert)."""
-    sprints = open_velocity_sprints(fc)
+    """Prognose des Teams für offene Sprints: Forecast IST − voraussichtlich nicht erledigt +
+    zusätzlich erledigt = erwartete Velocity. Nichts wird gespeichert."""
     assumed: dict[str, float] = {}
-    if not sprints:
-        return assumed
-    for sprint, col in zip(sprints, st.columns(len(sprints)), strict=True):
-        planned = f"{fmt(sprint.forecast_ist, 2)} {unit}" if sprint.forecast_ist else "–"
-        value = col.number_input(
-            t("Erwartet erledigt {id} ({unit})", id=sprint.id, unit=unit),
+    for sprint in open_velocity_sprints(fc):
+        st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
+        ist_col, open_col, extra_col, result_col = st.columns(4)
+        ist = ist_col.number_input(
+            t("Forecast IST ({unit})", unit=unit),
+            min_value=0.0,
+            value=sprint.forecast_ist,
+            step=0.25,
+            format="%.2f",
+            key=f"{prefix}-{sprint.id}-ist",
+            help=t("Eingeplante Menge des Sprints; vorbelegt mit dem erfassten Forecast IST."),
+        )
+        not_done = open_col.number_input(
+            t("Voraussichtlich nicht erledigt ({unit})", unit=unit),
             min_value=0.0,
             value=None,
             step=0.25,
             format="%.2f",
-            key=f"{prefix}-{sprint.id}",
-            help=t("Forecast IST des Sprints: {ist}", ist=planned),
+            key=f"{prefix}-{sprint.id}-open",
+            help=t("Menge der Tickets, die laut Prognose des Teams nicht fertig werden."),
         )
-        if value is not None:
-            assumed[sprint.id] = value
+        extra = extra_col.number_input(
+            t("Zusätzlich erledigt ({unit})", unit=unit),
+            min_value=0.0,
+            value=None,
+            step=0.25,
+            format="%.2f",
+            key=f"{prefix}-{sprint.id}-extra",
+            help=t("Menge, die laut Prognose zusätzlich zum Forecast IST geschafft wird."),
+        )
+        changed = not_done is not None or extra is not None or ist != sprint.forecast_ist
+        if ist is None or not changed:
+            result_col.metric(t("Erwartet erledigt"), "–")
+            continue
+        expected = max(ist - (not_done or 0.0) + (extra or 0.0), 0.0)
+        result_col.metric(t("Erwartet erledigt"), f"{fmt(expected, 2)} {unit}")
+        assumed[sprint.id] = expected
     return assumed
 
 
@@ -291,9 +313,11 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
     ):
         st.caption(
             t(
-                "Vorab bekannte erledigte Menge ({unit}) eines noch nicht abgeschlossenen Sprints "
-                "eintragen – der Forecast PLAN der nächsten Sprints wird damit neu berechnet. "
-                "Nichts wird gespeichert.",
+                "Prognose des Teams für einen noch nicht abgeschlossenen Sprint eintragen: "
+                "Forecast IST, was voraussichtlich nicht fertig wird und was zusätzlich geschafft "
+                "wird. "
+                "Der Forecast PLAN der nächsten Sprints wird damit neu berechnet. Nichts wird "
+                "gespeichert.",
                 unit=unit,
             )
         )
@@ -1636,12 +1660,13 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     assumed: dict[str, float] = {}
     if open_velocity_sprints(fc):
         with st.expander(
-            t("Was-wäre-wenn: erledigte Menge des letzten Sprints annehmen"),
+            t("Was-wäre-wenn: Prognose des Teams für den letzten Sprint"),
             icon=":material/science:",
         ):
             st.caption(
                 t(
-                    "Vorab bekannte erledigte Menge ({unit}) des letzten Sprints eintragen: Der "
+                    "Prognose des Teams für den letzten Sprint eintragen: Forecast IST, was "
+                    "voraussichtlich nicht fertig wird und was zusätzlich geschafft wird. Der "
                     "Forecast PLAN und damit die verteilbare Menge werden neu berechnet. Das gilt "
                     "nur für diese Ansicht und wird nicht gespeichert – erfasst wird die "
                     "Velocity erst im Review.",
