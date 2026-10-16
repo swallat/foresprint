@@ -2808,7 +2808,8 @@ def _manual_update_check(check: updater.Check | None) -> None:
 
 
 def _update_panel() -> None:
-    check = st.session_state.get("manual-check") or _update_check().result(wait=4.0)
+    # Nicht auf den Hintergrundthread warten: Das Ergebnis erscheint beim nächsten Durchlauf.
+    check = st.session_state.get("manual-check") or _update_check().result()
     if check is None or not check.available:
         _manual_update_check(check)
         return
