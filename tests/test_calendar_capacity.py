@@ -112,7 +112,8 @@ def test_overhead_in_days_and_percent(data_dir):
     # Anna 1, Ben 0,5 (FTE), Cem 1, Dana 1 → 3,5 PT
     assert fixed.overhead_days_part == 3.5
     assert fixed.capacity == base.capacity - 3.5
+    # Mit PT-Abzug gilt der Prozentwert nicht zusätzlich (derselbe Abzug in zwei Einheiten).
     data.team.capacity.overhead_share = 0.1
     both = sprint_capacity(data.team, data.people, sprint)
-    assert both.overhead == pytest.approx(3.5 + base.gross * 0.1)
+    assert both.overhead == pytest.approx(3.5)
     assert sprint.start == date(2026, 10, 28)

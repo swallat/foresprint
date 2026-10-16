@@ -15,6 +15,8 @@ import sys
 from pathlib import Path
 
 from sprintforecast.i18n import t
+from sprintforecast.icon import write_icon
+from sprintforecast.launcher import profile_dir
 
 APP_NAME = "Sprint-Forecast"
 APP_SCRIPT = "sprintforecast-app"
@@ -35,7 +37,12 @@ def _ps_quote(text: str) -> str:
     return "'" + text.replace("'", "''") + "'"
 
 
-def windows_script(program: str, workdir: str) -> str:
+def icon_dir() -> Path:
+    """Ordner für das Logo (neben dem Browserprofil der App)."""
+    return profile_dir().parent
+
+
+def windows_script(program: str, workdir: str, icon: str | None = None) -> str:
     """PowerShell: Verknüpfungen auf dem Desktop und im Startmenü anlegen; gibt die Pfade aus."""
     lines = ["$shell = New-Object -ComObject WScript.Shell"]
     for folder in ("Desktop", "Programs"):
@@ -45,26 +52,27 @@ def windows_script(program: str, workdir: str) -> str:
             f"$link.TargetPath = {_ps_quote(program)}",
             f"$link.WorkingDirectory = {_ps_quote(workdir)}",
             "$link.Description = 'Sprint-Forecast'",
+            *([f"$link.IconLocation = {_ps_quote(icon)}"] if icon else []),
             "$link.Save()",
             "Write-Output $path",
         ]
     return "\n".join(lines)
 
 
-def desktop_entry(program: str) -> str:
+def desktop_entry(program: str, icon: str = "office-calendar") -> str:
     return (
         "[Desktop Entry]\n"
         "Type=Application\n"
         f"Name={APP_NAME}\n"
         f"Comment={t('Velocity- und Kapazitäts-Forecast')}\n"
         f'Exec="{program}"\n'
-        "Icon=office-calendar\n"
+        f"Icon={icon}\n"
         "Terminal=false\n"
         "Categories=Office;ProjectManagement;\n"
     )
 
 
-def mac_bundle(app_dir: Path, program: str) -> Path:
+def mac_bundle(app_dir: Path, program: str, icon: Path | None = None) -> Path:
     """Minimales App-Bundle, das `sprintforecast-app` startet."""
     contents = app_dir / f"{APP_NAME}.app" / "Contents"
     (contents / "MacOS").mkdir(parents=True, exist_ok=True)
@@ -77,9 +85,13 @@ def mac_bundle(app_dir: Path, program: str) -> Path:
         f"<key>CFBundleExecutable</key><string>{APP_NAME}</string>\n"
         "<key>CFBundleIdentifier</key><string>de.sprintforecast.app</string>\n"
         "<key>CFBundlePackageType</key><string>APPL</string>\n"
-        "</dict></plist>\n",
+        + (f"<key>CFBundleIconFile</key><string>{icon.stem}</string>\n" if icon else "")
+        + "</dict></plist>\n",
         encoding="utf-8",
     )
+    if icon:
+        (contents / "Resources").mkdir(exist_ok=True)
+        shutil.copyfile(icon, contents / "Resources" / icon.name)
     starter = contents / "MacOS" / APP_NAME
     # GUI-Apps erben keinen Shell-PATH – daher absoluter Pfad; Ausgabe ins Protokoll.
     starter.write_text(f'#!/bin/sh\ncd "$HOME"\nexec "{program}"\n', encoding="utf-8")
@@ -101,15 +113,21 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
     home = home or Path.home()
     if platform == "win32":
         proc = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", windows_script(program, str(home))],
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                windows_script(program, str(home), str(write_icon(icon_dir(), "ico"))),
+            ],
             capture_output=True,
             text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         if proc.returncode != 0:
             raise RuntimeError(proc.stderr.strip() or t("Verknüpfung nicht angelegt"))
         return [Path(line) for line in proc.stdout.splitlines() if line.strip()]
     if platform == "darwin":
-        bundle = mac_bundle(home / "Applications", program)
+        bundle = mac_bundle(home / "Applications", program, write_icon(icon_dir(), "icns"))
         paths = [bundle]
         desktop = home / "Desktop"
         if desktop.is_dir():
@@ -119,7 +137,7 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
             alias.symlink_to(bundle)
             paths.append(alias)
         return paths
-    entry = desktop_entry(program)
+    entry = desktop_entry(program, str(write_icon(icon_dir(), "png")))
     data_home = Path(os.environ.get("XDG_DATA_HOME") or home / ".local" / "share")
     targets = [data_home / "applications" / "sprintforecast.desktop"]
     if (home / "Desktop").is_dir():
