@@ -18,6 +18,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from sprintforecast import updater
 from sprintforecast.analysis import (
     average_focus_factor,
     band,
@@ -1587,9 +1588,55 @@ def sidebar(repo: Repository) -> None:
         st.session_state["selected_team"] = team
 
 
+@st.cache_resource
+def _update_check() -> updater.AutoUpdate:
+    """Einmal je Serverstart im Hintergrund auf eine neue Version prüfen."""
+    return updater.AutoUpdate().start()
+
+
+def _shutdown_soon() -> None:
+    """Beendet den Server kurz nach dem Zeichnen der Meldung (Neustart übernimmt der
+    Aktualisierungsprozess)."""
+    import threading
+
+    threading.Timer(1.5, lambda: os._exit(0)).start()
+
+
+def _update_panel() -> None:
+    check = _update_check().result(wait=4.0)
+    if check is None or not check.available:
+        return
+    if st.session_state.get("restarting"):
+        st.info("Wird aktualisiert und neu gestartet … Das Fenster öffnet sich gleich neu.")
+        return
+    if (
+        updater.load_state().get("attempted") == check.latest
+        and st.session_state.get("update-started") is None
+    ):
+        st.warning(
+            f"Version {check.latest} ist verfügbar, die Aktualisierung hat aber nicht gegriffen "
+            f"(Protokoll: `{updater.log_file()}`). Notfalls das Installationsskript erneut "
+            "ausführen."
+        )
+        return
+    with st.container(border=True):
+        st.markdown(f"**Neue Version {check.latest}** verfügbar (installiert: {check.current}).")
+        if updater.mode() is updater.Mode.ON:
+            st.caption("Wird beim Schließen automatisch installiert.")
+        if st.button("Jetzt aktualisieren und neu starten", icon=":material/system_update:"):
+            if error := updater.restart_with_update():
+                st.error(error)
+                return
+            st.session_state["restarting"] = True
+            st.session_state["update-started"] = True
+            st.info("Wird aktualisiert und neu gestartet … Das Fenster öffnet sich gleich neu.")
+            _shutdown_soon()
+
+
 def sidebar_footer(repo: Repository) -> None:
     """Git-Bereich und Hinweise – nach der Seite gezeichnet, damit gerade Gespeichertes
     bereits als offene Änderung erscheint."""
+    _update_panel()
     _git_panel(repo)
     st.caption(f"Daten: `{repo.root.resolve()}`  \nStichtag: {today():%d.%m.%Y}  \n{status_line()}")
 

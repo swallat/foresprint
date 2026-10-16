@@ -95,13 +95,7 @@ def test_auto_update_schedules_once(env: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(subprocess, "Popen", lambda args, **kwargs: started.append(args) or None)
     said: list[str] = []
     updater.AutoUpdate().start().finish(said.append)
-    assert started and started[0][-5:] == [
-        "/bin/uv",
-        "tool",
-        "upgrade",
-        "--reinstall",
-        "sprintforecast",
-    ]
+    assert started and "/bin/uv tool upgrade --reinstall sprintforecast" in started[0][-1]
     assert "0.3.0 wird im Hintergrund installiert" in said[0]
     assert updater.load_state()["attempted"] == "0.3.0"
     # Zweiter Start: nicht erneut anstoßen
@@ -154,3 +148,28 @@ def test_version_matches_pyproject():
 
     pyproject = Path(__file__).parent.parent / "pyproject.toml"
     assert tomllib.loads(pyproject.read_text())["project"]["version"] == __version__
+
+
+def test_restart_with_update_waits_and_relaunches(env: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(updater, "find_uv", lambda: "/bin/uv")
+    monkeypatch.setenv(updater.PIDS_ENV, "4242")
+    monkeypatch.setenv(
+        updater.RESTART_ENV, '{"cmd": ["/bin/sprintforecast", "web", "--app"], "cwd": "/daten x"}'
+    )
+    updater.update_state(latest="0.3.0")
+    started: list[list[str]] = []
+    monkeypatch.setattr(subprocess, "Popen", lambda args, **kwargs: started.append(args))
+    assert updater.restart_with_update() is None
+    script = started[0][-1]
+    assert "while kill -0 4242" in script
+    assert script.index("tool upgrade") < script.index("exec /bin/sprintforecast web --app")
+    assert "cd '/daten x'" in script
+    assert updater.load_state()["attempted"] == "0.3.0"
+
+
+def test_powershell_restart_command(tmp_path: Path):
+    script = updater._powershell_script(
+        [1], ["uv", "tool"], tmp_path / "log", False, ["C:\\sf.exe", "web", "--app"], "C:\\d"
+    )
+    assert "Start-Process -FilePath 'C:\\sf.exe' -ArgumentList @('web', '--app')" in script
+    assert "-WorkingDirectory 'C:\\d'" in script

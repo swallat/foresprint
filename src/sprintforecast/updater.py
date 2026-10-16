@@ -20,6 +20,7 @@ import base64
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -265,7 +266,14 @@ def run_upgrade(uv: str) -> int:
     return subprocess.run(upgrade_command(uv)).returncode
 
 
-def _powershell_script(pids: list[int], command: list[str], log: Path, visible: bool) -> str:
+def _powershell_script(
+    pids: list[int],
+    command: list[str],
+    log: Path,
+    visible: bool,
+    then: list[str] | None = None,
+    cwd: str | None = None,
+) -> str:
     def quote(text: str) -> str:
         return "'" + text.replace("'", "''") + "'"
 
@@ -279,25 +287,50 @@ def _powershell_script(pids: list[int], command: list[str], log: Path, visible: 
         lines += [
             "Write-Host 'sprintforecast wird aktualisiert …'",
             f"{call} 2>&1 | Tee-Object -FilePath {quote(str(log))}",
+        ]
+    else:
+        lines.append(f"{call} *> {quote(str(log))}")
+    if then:
+        args = ", ".join(quote(a) for a in then[1:]) or "''"
+        location = f" -WorkingDirectory {quote(cwd)}" if cwd else ""
+        lines.append(f"Start-Process -FilePath {quote(then[0])} -ArgumentList @({args}){location}")
+    elif visible:
+        lines += [
             "Write-Host ''",
             "Write-Host 'Fertig. Dieses Fenster schließt sich in 15 Sekunden.'",
             "Start-Sleep -Seconds 15",
         ]
-    else:
-        lines.append(f"{call} *> {quote(str(log))}")
     return "\n".join(lines)
 
 
-def schedule_after_exit(uv: str, visible: bool = False) -> None:
-    """Startet einen eigenständigen Prozess, der nach dem Ende dieses Prozesses aktualisiert."""
+def _posix_script(
+    pids: list[int], command: list[str], then: list[str] | None, cwd: str | None
+) -> str:
+    waits = "; ".join(f"while kill -0 {p} 2>/dev/null; do sleep 1; done" for p in pids)
+    script = f"{waits}; {shlex.join(command)}"
+    if then:
+        script += f"; cd {shlex.quote(cwd or '.')} && exec {shlex.join(then)} >/dev/null 2>&1"
+    return script
+
+
+def schedule_after_exit(
+    uv: str,
+    visible: bool = False,
+    pids: list[int] | None = None,
+    then: list[str] | None = None,
+    cwd: str | None = None,
+) -> None:
+    """Startet einen eigenständigen Prozess, der nach dem Ende dieses Prozesses (bzw. der
+    Prozesse ``pids``) aktualisiert und danach optional ``then`` startet (Neustart)."""
     log = log_file()
     log.parent.mkdir(parents=True, exist_ok=True)
     command = upgrade_command(uv)
-    pids = [os.getpid()]
+    pids = list(pids or [os.getpid()])
     if sys.platform == "win32":
         # Der uv-Starter (sprintforecast.exe) ist der Elternprozess und ebenfalls gesperrt.
-        pids.append(os.getppid())
-        script = _powershell_script(pids, command, log, visible)
+        if os.getppid() not in pids:
+            pids.append(os.getppid())
+        script = _powershell_script(pids, command, log, visible, then, cwd)
         encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass"]
         args += ["-EncodedCommand", encoded]
@@ -308,15 +341,58 @@ def schedule_after_exit(uv: str, visible: bool = False) -> None:
         except OSError:
             subprocess.Popen(args, creationflags=flags)
         return
-    wait = 'while kill -0 "$1" 2>/dev/null; do sleep 1; done; shift; exec "$@"'
     with log.open("w", encoding="utf-8") as out:
         subprocess.Popen(
-            ["/bin/sh", "-c", wait, "sh", str(pids[0]), *command],
+            ["/bin/sh", "-c", _posix_script(pids, command, then, cwd)],
             stdin=subprocess.DEVNULL,
             stdout=out,
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
+
+
+# --- Weboberfläche --------------------------------------------------------------------
+
+# Von `sprintforecast web` an die Weboberfläche übergeben: Prozesse, auf deren Ende die
+# Aktualisierung warten muss, und der Befehl für den Neustart (JSON-Liste).
+PIDS_ENV = "SPRINTFORECAST_PARENT_PIDS"
+RESTART_ENV = "SPRINTFORECAST_RESTART"
+
+
+def web_environment(argv: list[str]) -> dict[str, str]:
+    """Umgebung für den Server der Weboberfläche (aufgerufen von `sprintforecast web`)."""
+    pids = [os.getpid()]
+    if sys.platform == "win32":
+        pids.append(os.getppid())
+    program = shutil.which(PACKAGE) or argv[0]
+    return {
+        PIDS_ENV: ",".join(map(str, pids)),
+        RESTART_ENV: json.dumps({"cmd": [program, *argv[1:]], "cwd": os.getcwd()}),
+    }
+
+
+def restart_with_update() -> str | None:
+    """Plant Aktualisierung und Neustart nach dem Ende der Weboberfläche.
+    Liefert eine Fehlermeldung oder None. Der Aufrufer beendet danach den Server."""
+    uv = find_uv()
+    if uv is None:
+        return "uv nicht gefunden – bitte das Installationsskript erneut ausführen."
+    try:
+        restart = json.loads(os.environ.get(RESTART_ENV, "null")) or {}
+        extra = [int(p) for p in os.environ.get(PIDS_ENV, "").split(",") if p.strip()]
+    except ValueError:
+        restart, extra = {}, []
+    try:
+        schedule_after_exit(
+            uv, pids=[os.getpid(), *extra], then=restart.get("cmd"), cwd=restart.get("cwd")
+        )
+    except OSError as e:
+        return f"Aktualisierung nicht startbar: {e}"
+    latest = load_state().get("latest")
+    update_state(
+        attempted=latest, attempted_at=datetime.now(UTC).isoformat(), failure_reported=False
+    )
+    return None
 
 
 # --- Einbindung in die Kommandozeile --------------------------------------------------
@@ -367,6 +443,12 @@ class AutoUpdate:
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
         return self
+
+    def result(self, wait: float = 0.0) -> Check | None:
+        """Ergebnis der Prüfung; wartet höchstens ``wait`` Sekunden darauf."""
+        if self._thread is not None and wait:
+            self._thread.join(timeout=wait)
+        return self._result
 
     def _run(self) -> None:
         try:

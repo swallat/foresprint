@@ -50,6 +50,11 @@ Aktualisierung, bis das Programm geschlossen ist (laufende Programme sind dort g
 | `sprintforecast aktualisieren --auto hinweis` | nur auf neue Versionen hinweisen; `--auto aus` schaltet ab, `--auto an` wieder ein |
 | `SPRINTFORECAST_AUTOUPDATE=an\|hinweis\|aus` | wie `--auto`, hat Vorrang (z. B. für verwaltete Rechner) |
 
+**In der Weboberfläche:** Beim Start wird im Hintergrund geprüft; ist eine neue Version da,
+erscheint sie in der Seitenleiste. Sie wird beim Schließen installiert – oder sofort mit
+**Jetzt aktualisieren und neu starten**: Die App beendet sich, aktualisiert und öffnet sich
+neu (gleiches Datenverzeichnis, gleiche Optionen).
+
 Protokoll und Stand liegen neben der Plugin-Auswahl (`update.log`, `update.json`). Auf einen
 Tag festgelegte Installationen (`SPRINTFORECAST_REF=v…`) werden nicht automatisch
 aktualisiert. Das Installationsskript erneut auszuführen geht weiterhin.
