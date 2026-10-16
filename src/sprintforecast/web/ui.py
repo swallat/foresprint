@@ -259,6 +259,28 @@ def _signed(value: float) -> str:
     return ("+" if value > 0 else "") + fmt(value)
 
 
+def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str, float]:
+    """Eingabefelder für die erwartete erledigte Menge offener Sprints (nichts wird gespeichert)."""
+    sprints = open_velocity_sprints(fc)
+    assumed: dict[str, float] = {}
+    if not sprints:
+        return assumed
+    for sprint, col in zip(sprints, st.columns(len(sprints)), strict=True):
+        planned = f"{fmt(sprint.forecast_ist, 2)} {unit}" if sprint.forecast_ist else "–"
+        value = col.number_input(
+            t("Erwartet erledigt {id} ({unit})", id=sprint.id, unit=unit),
+            min_value=0.0,
+            value=None,
+            step=0.25,
+            format="%.2f",
+            key=f"{prefix}-{sprint.id}",
+            help=t("Forecast IST des Sprints: {ist}", ist=planned),
+        )
+        if value is not None:
+            assumed[sprint.id] = value
+    return assumed
+
+
 def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> None:
     """Was-wäre-wenn: erwartete erledigte Menge offener Sprints → Forecast PLAN der nächsten."""
     sprints = open_velocity_sprints(fc)
@@ -275,20 +297,7 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
                 unit=unit,
             )
         )
-        assumed: dict[str, float] = {}
-        for sprint, col in zip(sprints, st.columns(len(sprints)), strict=True):
-            planned = f"{fmt(sprint.forecast_ist, 2)} {unit}" if sprint.forecast_ist else "–"
-            value = col.number_input(
-                t("Erwartet erledigt {id} ({unit})", id=sprint.id, unit=unit),
-                min_value=0.0,
-                value=None,
-                step=0.25,
-                format="%.2f",
-                key=f"whatif-{sprint.id}",
-                help=t("Forecast IST des Sprints: {ist}", ist=planned),
-            )
-            if value is not None:
-                assumed[sprint.id] = value
+        assumed = _whatif_inputs(fc, unit)
         if not assumed:
             return
         scenario = whatif_forecast(fc, assumed)
@@ -1624,14 +1633,53 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "vereinbarte Anteil des Produkts."
         )
     )
-    d = distribution(fc, entry)
+    assumed: dict[str, float] = {}
+    if open_velocity_sprints(fc):
+        with st.expander(
+            t("Was-wäre-wenn: erledigte Menge des letzten Sprints annehmen"),
+            icon=":material/science:",
+        ):
+            st.caption(
+                t(
+                    "Vorab bekannte erledigte Menge ({unit}) des letzten Sprints eintragen: Der "
+                    "Forecast PLAN und damit die verteilbare Menge werden neu berechnet. Das gilt "
+                    "nur für diese Ansicht und wird nicht gespeichert – erfasst wird die "
+                    "Velocity erst im Review.",
+                    unit=unit,
+                )
+            )
+            assumed = _whatif_inputs(fc, unit, "vorplanung-whatif")
+    fc_view = whatif_forecast(fc, assumed) if assumed else fc
+    if assumed:
+        shown = fc_view.entry(sprint.id)
+        before = entry.result.plan
+        st.info(
+            t(
+                "Rechnung mit angenommener Velocity – Forecast PLAN {id}: **{new} {unit}** "
+                "(ohne Annahme {old} {unit}).",
+                id=sprint.id,
+                new=fmt(shown.result.plan) if shown else "–",
+                old=fmt(before),
+                unit=unit,
+            )
+        )
+        if sprint.forecast_plan is not None:
+            st.caption(
+                t(
+                    "Der Forecast PLAN dieses Sprints ist beim Planning eingefroren – die Annahme "
+                    "ändert ihn nicht."
+                )
+            )
+    d = distribution(fc_view, fc_view.entry(sprint.id) or entry)
     rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit)
     if rows is None:
         return
     base = _base_sprint(data, sprint)
     after = apply_product_values(base, rows, ["preplanned"])
-    preview = with_sprints(data, [after])
+    preview = with_sprints(data, [after])  # nur die Vorplanung – die Annahme wird nie gespeichert
     fc_preview = build_forecast(preview, fc.today)
+    if assumed:
+        fc_preview = whatif_forecast(fc_preview, assumed)
     d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
     total = d.total("preplanned")
     left, middle, right = st.columns(3)
