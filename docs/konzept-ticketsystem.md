@@ -1,6 +1,6 @@
 # Konzept: Ticketsystem-Anbindung und Vormerkplanung (optional)
 
-Status: Entwurf, Version 4, noch nichts umgesetzt. Zielgruppe der Funktionen sind Product
+Status: Entwurf, Version 5, noch nichts umgesetzt. Beginnt erst nach den Kern-Phasen. Zielgruppe der Funktionen sind Product
 Owner (POs). Dieses Dokument beschreibt **nur die optionale Ticketanbindung**. Alles, was ohne
 Ticketsystem gilt (Berechnung, Bedienung, Datenordner und Synchronisation), steht in
 [konzept-kern.md](konzept-kern.md).
@@ -72,9 +72,16 @@ durch folgende Schritte:
 | **Vormerkung** | `app` (im Daten-Repo) / `aus` | `app` |
 
 - Der Assistent baut die Kandidaten-Abfrage aus der Auswahl, gespeichert wird die Abfrage.
-- Was die Kandidaten-Abfrage trifft, gilt als „nicht ready“. Liegt ein solches Ticket **auch**
-  in einem echten Sprint und ist die Regel an, ist das ein **Regelverstoß** (Hinweis, keine
-  Sperre). Ein gesonderter „Ready“-Schalter entfällt.
+- Was die Kandidaten-Abfrage trifft, ist ein **Kandidat**. Die App behauptet damit nicht, dass
+  ein Ticket „ready“ oder „nicht ready“ ist: „Backlog ohne Sprint“ kann auch fertig refinete
+  Tickets enthalten, und ein Ticket, das einem Sprint zugeordnet wird, trifft diese Abfrage nicht
+  mehr. Die Regel „unrefinete Tickets nicht in echten Sprints“ ist daher nur mit einem
+  eigenständigen Kriterium sinnvoll (z. B. ein Status oder ein Label, das „nicht refined“
+  bedeutet, oder die Mitgliedschaft im Pro-forma-Refinement-Sprint). Ist die Regel an, wählt
+  der Assistent dieses Kriterium ausdrücklich; ein Ticket, das es erfüllt und **auch** in einem
+  echten Sprint liegt, ist ein **Regelverstoß** (Hinweis, keine Sperre). Nicht lesbare Tickets
+  kann die App nur für bereits bekannte Tickets anzeigen; eine Vollständigkeitsbehauptung gibt es
+  nicht.
 - Teams, die unrefinete Tickets in künftigen Sprints planen, stellen die Vormerkung auf `aus`;
   dann ist das Ticketsystem selbst die Vormerkung, und die App zeigt nur die Auslastung der
   künftigen Sprints.
@@ -174,8 +181,40 @@ Definitionen:
 - **Herausgenommene Tickets** zählen weder zu Erledigt noch zu Nicht erledigt; sie werden mit
   ihrem Rest zum Planning gesondert aufgeführt.
 
-**Bilanz:** Zusage + Zugänge − Herausgenommen = Erledigt + Nicht erledigt − Neuschätzung. Sie
-muss aufgehen und ist Gegenstand eines Tests.
+**Ergänzende Regeln** (aus der Prüfung der Definitionen):
+
+- Für Tickets mit Status „abgeschlossen“ gilt der neue Rest als 0, unabhängig vom Feld; ein
+  abweichendes Feld wird als Datenproblem gemeldet.
+- Für Zugänge ersetzt der Eintrittsrest überall den Rest zum Planning, auch wenn sie später
+  fertig werden. Ein Zugang ohne bekannten Eintrittsrest blockiert die Bestätigung des
+  Review-Stands; die App hält dafür beim ersten Laden, in dem das Ticket im Sprint auftaucht,
+  einen Zwischenstand fest.
+- Ein Ticket, das nach geleisteter Arbeit herausgenommen wird, zählt nicht zu Erledigt. Das ist
+  eine fachliche Entscheidung (die Zusage wurde nicht erfüllt) und gehört in den Hilfetext. Wird
+  ein Ticket herausgenommen und im selben Sprint wieder hinzugefügt, zählt die Zugehörigkeit zum
+  Review-Zeitpunkt mit dem Rest zum Planning als Startwert.
+- Tickets, die zwischen zwei Momentaufnahmen hinein- und wieder herausgehen, sind für die App
+  unsichtbar; dafür gibt es eine manuelle Ereigniserfassung im Review.
+- Die **Zusage** nutzt wie die Last den Rückfall auf das Original, wenn kein Rest gepflegt ist
+  (als „Schätzung“ gekennzeichnet).
+
+**Bilanz:** Zusage + Zugänge − Herausgenommen = Erledigt + Nicht erledigt − Neuschätzung. Da die
+Neuschätzung aus denselben Zahlen berechnet wird, ist die Bilanz weitgehend eine Identität; ein
+grüner Bilanztest beweist keine richtige Datenerfassung. Deshalb gehören unabhängig erwartete
+Ergebnisse und Ereignisfälle (Hochschätzung, Zugang, Entfernung, Zugang und danach fertig) dazu.
+
+### 6.3 Übergabe an den Kern
+
+Die Sprint-Datei bleibt die **einzige Quelle** für den Kern (`forecast_ist`, `velocity`,
+`not_done`, `additional_done`, `products`). Die Momentaufnahmen sind Herleitung:
+
+- Ein bestätigter Vorschlag schreibt in die Sprint-Datei; spätere manuelle Änderungen bleiben
+  erlaubt, und die Datenprüfung meldet Abweichungen zum Review-Stand.
+- Vorschläge überschreiben bestätigte Werte nie stillschweigend und zählen nicht zusätzlich.
+- Beim Abschalten des Ticketsystems bleiben alle bestätigten Werte erhalten.
+- Das manuelle Feld „voraussichtlich nicht erledigt“ (Was-wäre-wenn) wird mit dem Überläufer-
+  Rest aus dem Ticketsystem vorbelegt und als „aus dem Ticketsystem“ gekennzeichnet, damit es
+  keine zwei Eingabewege für dieselbe Größe gibt.
 
 **Vorschlag aus dem Ticketsystem:** Aus den Restständen schlägt die App einen geleisteten Anteil
 vor (`max(Rest zum Planning − neuer Rest, 0)`) und markiert Tickets, bei denen der neue Rest
@@ -225,7 +264,9 @@ Version; später nur als gekennzeichneter Indikator.
 ### 7.1 Produktzuordnung und übergeordnete Vorhaben
 
 - Zuordnung eines Tickets zum Produkt in konfigurierbarer Reihenfolge (z. B. Label, dann
-  Komponente) über eine Tabelle; keine Treffer ergeben „nicht zugeordnet“.
+  Komponente) über eine Tabelle; die **erste Quelle mit Treffer gewinnt**. Ein Mehrprodukt-Ticket
+  entsteht nur bei mehreren Treffern in derselben Quelle. Keine Treffer ergeben „nicht
+  zugeordnet“.
 - **Tickets mit mehreren Produkten** (Querschnittsthemen) zählen im Gesamtwert immer **einmal
   und unverändert**. Für die Sicht je Produkt gilt:
   - **Standard: gleichmäßige Aufteilung** auf alle Produkte, die das Ticket trifft. Das Ticket
@@ -235,8 +276,13 @@ Version; später nur als gekennzeichneter Indikator.
     „produktübergreifend“ (ganz ohne Produktzuordnung) ist ein zulässiger Wert; so lässt sich
     das heutige Vorgehen abbilden, solche Tickets ohne Produkttracking mitzunehmen.
   - Die Summe der Anteile muss genau den Wert des Tickets ergeben; Rundungsreste gehen an das
-    erste Produkt, eine Prüfung lehnt Aufteilungen ab, die nicht aufgehen. Dieselbe Aufteilung
-    gilt für Last, Zusage und Erledigt, damit Produkt- und Gesamtbilanz zusammenpassen.
+    erste Produkt (Vergleiche mit Toleranz), eine Prüfung lehnt Aufteilungen ab, die nicht
+    aufgehen. Absolute Einheiten werden intern in **Gewichte** umgewandelt; dieselben
+    eingefrorenen Gewichte aus dem Planning-Stand gelten für alle Bilanzgrößen (Last, Zusage,
+    Erledigt, Rest, Neuschätzung, Zu- und Abgänge), damit Produkt- und Gesamtbilanz
+    zusammenpassen. „Produktübergreifend“ ist ein sichtbarer Sammelposten in den Summen.
+    Ändert sich die Aufteilung zwischen Planning und Review, braucht es eine ausdrückliche
+    Umbuchung.
   - Widersprüchliche Treffer, die kein echtes Mehrprodukt-Ticket sind (z. B. zwei Labels
     derselben Produktfamilie), erscheinen als „mehrdeutig“, bis die PO es klärt.
   - Ohne Ticketsystem ändert sich nichts: Produktwerte werden wie bisher von Hand erfasst.
@@ -267,8 +313,11 @@ sprintforecast/
 
 ## 9. Phasen (Ticketsystem)
 
-Voraussetzung ist das Kern-Konzept: Phase K1 (Berechnung) vor der Vormerkung, Phase K3
-(Datenordner und Synchronisation) vor dem Betrieb mit mehreren POs.
+Voraussetzung ist das Kern-Konzept: Das Ticketsystem beginnt erst, wenn **alle Kern-Phasen**
+(P, K1, K2, K3) umgesetzt und gut getestet sind. Offen ist, ob die Vormerkung (T3) oder der
+Review-Vorschlag (T4) zuerst kommt; die Entscheidung fällt, wenn es soweit ist. Für T3 sind K1
+und K3 zwingend, ein Zwei-PO-Betrieb gehört in sein Abnahmekriterium. Vor T2 gibt es einen
+kleinen Windows-Auslieferungs- und Git-Konfliktversuch.
 
 | Phase | Inhalt | Abnahmekriterium |
 |---|---|---|
