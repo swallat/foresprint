@@ -482,6 +482,10 @@ class Repository:
     def sprint_path(self, key: str, sprint_id: str) -> Path:
         return self.team_dir(key) / "sprints" / f"{sprint_id}.yaml"
 
+    def delete_sprint(self, key: str, sprint_id: str) -> None:
+        """Entfernt eine Sprintdatei (der Sprint entsteht danach wieder aus dem Kalender)."""
+        self.sprint_path(key, sprint_id).unlink(missing_ok=True)
+
     def save_sprint(self, key: str, sprint: Sprint) -> Path:
         path = self.sprint_path(key, sprint.id)
         _write(path, SPRINT_HEADER.format(id=sprint.id), sprint_to_dict(sprint))
