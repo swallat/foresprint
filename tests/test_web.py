@@ -492,3 +492,12 @@ def test_planning_absences_warns_when_nothing_entered(app: AppTest):
     goto(app, "planning")
     app.selectbox(key="planning-sprint").set_value("2026.23").run()
     assert any("Noch keine Fehltage eingetragen" in w.value for w in app.warning)
+
+
+def test_formula_expander_fragment_switches_sprint(app: AppTest):
+    """Rechenweg und Was-wäre-wenn sind Fragmente: Eingaben zeichnen nur sie neu."""
+    ids = list(app.selectbox(key="formula-sprint").options)
+    app.selectbox(key="formula-sprint").set_value(ids[-1]).run()
+    assert not app.exception, app.exception
+    assert app.selectbox(key="formula-sprint").value == ids[-1]
+    assert app.metric  # Rest der Seite bleibt erhalten

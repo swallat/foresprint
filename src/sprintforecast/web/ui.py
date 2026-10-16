@@ -324,6 +324,7 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     return assumed
 
 
+@st.fragment
 def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> None:
     """Was-wäre-wenn: erwartete erledigte Menge offener Sprints → Forecast PLAN der nächsten."""
     sprints = open_velocity_sprints(fc)
@@ -494,6 +495,7 @@ def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
     return s.formula
 
 
+@st.fragment
 def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
     """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
     if not entries:
