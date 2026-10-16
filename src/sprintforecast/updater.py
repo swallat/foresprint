@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import tomllib
 import urllib.request
 from collections.abc import Callable
@@ -190,10 +191,14 @@ def _fetch(url: str, timeout: float) -> str:
         return response.read().decode("utf-8")
 
 
-def remote_version(inst: Installation, timeout: float = 5.0) -> str:
-    """Version im ``pyproject.toml`` des installierten Branches; wirft OSError/ValueError."""
+def remote_version(inst: Installation, timeout: float = 5.0, fresh: bool = False) -> str:
+    """Version im ``pyproject.toml`` des installierten Branches; wirft OSError/ValueError.
+
+    raw.githubusercontent.com hält Antworten einige Minuten vor; mit ``fresh`` (manuelle Suche)
+    wird der Zwischenspeicher durch einen wechselnden Parameter umgangen."""
     url = f"https://raw.githubusercontent.com/{inst.repo}/{inst.ref}/pyproject.toml"
-    project = tomllib.loads(_fetch(url, timeout)).get("project", {})
+    request_url = f"{url}?nocache={int(time.time())}" if fresh else url
+    project = tomllib.loads(_fetch(request_url, timeout)).get("project", {})
     version = project.get("version")
     if not isinstance(version, str):
         raise ValueError(t("Keine Version in {url}", url=url))
@@ -224,7 +229,7 @@ def check(force: bool = False, timeout: float = 5.0, now: datetime | None = None
     if not force and last is not None and now - last < CHECK_INTERVAL:
         return Check(current, state.get("latest"), inst)
     try:
-        latest = remote_version(inst, timeout)
+        latest = remote_version(inst, timeout, fresh=force)
     except (OSError, ValueError, tomllib.TOMLDecodeError) as e:
         update_state(last_check=now.isoformat())  # nicht bei jedem Start erneut warten
         return Check(current, state.get("latest"), inst, str(e))

@@ -1613,7 +1613,11 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if result is None:
             st.warning(t("Zu wenig Historie für eine Fertigstellungsprognose."))
         else:
-            later = t("nach dem Zeitraum")
+            later = t(
+                "später als {last} ({count} Sprints)",
+                last=result.sprints[-1] if result.sprints else "–",
+                count=len(result.sprints),
+            )
             left, middle, right = st.columns(3)
             left.metric(
                 t("je Sprint für das Projekt ({share} des Forecasts)", share=pct(used_share)),
@@ -1654,6 +1658,12 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     listed += " …"
                 caption += t(
                     " Ohne erfasste Fehltage mit Ø Kapazität gerechnet: {sprints}.", sprints=listed
+                )
+            if not result.p85:
+                caption += t(
+                    " Die Simulation reicht höchstens {count} Sprints in die Zukunft; die "
+                    "Restmenge ist dafür zu groß oder der Anteil je Sprint zu klein.",
+                    count=len(result.sprints),
                 )
             st.caption(caption)
 

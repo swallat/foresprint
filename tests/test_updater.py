@@ -201,3 +201,11 @@ def test_restart_uses_double_click_launcher(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv(updater.LAUNCHER_ENV)
     restart = json.loads(updater.web_environment(["/x", "web", "--app"])[updater.RESTART_ENV])
     assert restart["cmd"][1:] == ["web", "--app"]
+
+
+def test_forced_check_bypasses_http_cache(env: Path, monkeypatch: pytest.MonkeyPatch):
+    calls = remote(monkeypatch, "0.9.0")
+    updater.check()
+    assert "?nocache=" not in calls[0]
+    updater.check(force=True)
+    assert "pyproject.toml?nocache=" in calls[1]
