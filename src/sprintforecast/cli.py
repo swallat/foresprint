@@ -56,6 +56,7 @@ from sprintforecast.launcher import (
 )
 from sprintforecast.launcher import Kind as BrowserKind
 from sprintforecast.model import (
+    AbsenceState,
     Membership,
     Numbering,
     Person,
@@ -749,6 +750,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
             s.absences[p.id] = min(value, len(days))
         else:
             s.absences.pop(p.id, None)
+    s.absence_state = AbsenceState.CONFIRMED  # alle Personen wurden gefragt, auch „0“
     if s.capacity is not None and Confirm.ask(
         t(
             "Für den Sprint ist eine feste Kapazität ({capacity}) eingetragen. Entfernen, damit "
@@ -837,9 +839,10 @@ def planning(
         paths.append(_ask_absences(c, data, s))
         console.print(_capacity_table(data, s))
     elif data.sprint(s.id) is None:
-        console.print(
-            f"[yellow]{t('Ohne Fehltage ist die Kapazität nur geschätzt (Trend).')}[/yellow]"
+        hint = t(
+            "Ohne bestätigte Fehltage ist die Kapazität nur geschätzt (Kalender und Historie)."
         )
+        console.print(f"[yellow]{hint}[/yellow]")
     data = _load(c, team) if paths else data
     fc = build_forecast(data, c.today)
     s = copy.deepcopy(data.sprint(s.id) or s)

@@ -5,6 +5,9 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Fehltage für {id}: {state}. Gerechnet wird mit {capacity} PT. Bekannte Fehltage bitte eintragen – oder ausdrücklich bestätigen, dass niemand fehlt. „Weiter ohne Bestätigung“ lässt die Fehltage unbekannt.": "Absences for {id}: {state}. Calculating with {capacity} PT. Please enter known absences – or explicitly confirm that nobody is absent. “Continue without confirmation” leaves the absences unknown.",
+    "Niemand fehlt – bestätigen und weiter": "Nobody is absent – confirm and continue",
+    "Weiter ohne Bestätigung": "Continue without confirmation",
     "Beim Speichern werden die Sprintdateien {sprints} angelegt.": "Saving creates the sprint files {sprints}.",
     "Bestätigt ausdrücklich: In diesem Sprint fehlt niemand.": "Explicitly confirms that nobody is absent in this sprint.",
     "Für Sprints mit unbekannten Fehltagen werden Fehltage nach den letzten Sprints mit bestätigten Fehltagen erwartet: Ø {rate} der Kapazität (Sprints {sprints}).": "For sprints with unknown absences, absences are expected from the last sprints with confirmed absences: Ø {rate} of the capacity (sprints {sprints}).",
@@ -229,7 +232,7 @@ EN: dict[str, str] = {
     "Ausgeschiedene Personen anzeigen.": "Show people who left.",
     "Name": "Name",
     "bundesweit": "nationwide",
-    "Ohne Fehltage ist die Kapazität nur geschätzt (Trend).": "Without absences the capacity is only estimated (trend).",
+    "Ohne bestätigte Fehltage ist die Kapazität nur geschätzt (Kalender und Historie).": "Without confirmed absences the capacity is only estimated (calendar and history).",
     "Committen und Tag TEAM/SPRINT setzen.": "Commit and set tag TEAM/SPRINT.",
     "Anzahl vergangener Sprints in der Anzeige.": "Number of past sprints shown.",
     "Rechenweg (Formeln mit Zahlen) eines Sprints zeigen; „-“ = nächstes Planning.": 'Show the calculation (formulas with numbers) of a sprint; "-" = next planning.',

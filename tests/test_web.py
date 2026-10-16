@@ -524,7 +524,36 @@ def test_forecast_plan_is_consistent_across_pages(app: AppTest):
 def test_planning_absences_warns_when_nothing_entered(app: AppTest):
     goto(app, "planning")
     app.selectbox(key="planning-sprint").set_value("2026.23").run()
-    assert any("Noch keine Fehltage eingetragen" in w.value for w in app.warning)
+    assert any("Fehltage für 2026.23: unbekannt" in w.value for w in app.warning)
+
+
+def test_planning_continue_without_confirmation_keeps_absences_unknown(
+    app: AppTest, data_dir: Path
+):
+    goto(app, "planning")
+    app.selectbox(key="planning-sprint").set_value("2026.23").run()
+    click(app, "Weiter ohne Bestätigung")
+    assert app.radio(key="planning-step").value == 1
+    assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()  # nichts bestätigt
+
+
+def test_planning_nobody_absent_needs_explicit_confirmation(app: AppTest, data_dir: Path):
+    goto(app, "planning")
+    app.selectbox(key="planning-sprint").set_value("2026.23").run()
+    click(app, "Niemand fehlt – bestätigen und weiter")
+    saved = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
+    assert saved["absence_state"] == "confirmed" and saved["absences"] == {}
+    assert app.radio(key="planning-step").value == 1
+
+
+def test_saving_planning_values_keeps_unconfirmed_absences_unknown(app: AppTest, data_dir: Path):
+    """Forecast IST im Planning speichern bestätigt keine Fehltage (B2)."""
+    planning_step(app, "2026.23", 2)
+    app.number_input(key="fist-2026.23").set_value(9.0)
+    click(app, "Planning speichern")
+    saved = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
+    assert saved["forecast_ist"] == 9
+    assert saved["absence_state"] == "unknown"
 
 
 def test_formula_expander_fragment_switches_sprint(app: AppTest):

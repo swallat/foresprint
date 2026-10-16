@@ -1340,24 +1340,24 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
     [after] = edit_absences(data.people, [shown_sprint], edited.to_dict("records"))
     to_save = sprints_to_save(data, [base], [after])
     preview = with_sprints(data, [after])
-    breakdown = sprint_capacity(data.team, data.people, after)
     fc_after = build_forecast(preview, fc.today)
     entry = fc_after.entry(after.id)
-    if not after.absences and (current := fc.entry(after.id)) is not None:
+    unconfirmed = absence_status(after) is not AbsenceState.CONFIRMED
+    if unconfirmed:
         st.warning(
             t(
-                "Noch keine Fehltage eingetragen: Hier wird mit voller Besetzung gerechnet "
-                "({capacity} PT). Die Forecast-Seite schätzt für diesen Sprint bisher {estimate} "
-                "PT. Bekannte Fehltage bitte eintragen; „Weiter“ ohne Eintrag heißt, dass niemand "
-                "fehlt.",
-                capacity=fmt(breakdown.capacity),
-                estimate=capacity_label(current),
+                "Fehltage für {id}: {state}. Gerechnet wird mit {capacity} PT. Bekannte Fehltage "
+                "bitte eintragen – oder ausdrücklich bestätigen, dass niemand fehlt. „Weiter ohne "
+                "Bestätigung“ lässt die Fehltage unbekannt.",
+                id=after.id,
+                state=absence_status_label(after),
+                capacity=capacity_label(entry) if entry else "–",
             )
         )
     left, right = st.columns(2)
     left.metric(
         t("Kapazität (PT)"),
-        fmt(breakdown.capacity),
+        fmt(entry.result.plan_capacity) if entry else "–",
         help=_formula_help(fc_after, entry, "capacity"),
     )
     right.metric(
@@ -1384,6 +1384,21 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
             if ok:
                 _goto(1)
                 st.rerun()
+    elif unconfirmed:
+        nobody, skip = st.columns(2)
+        if nobody.button(t("Niemand fehlt – bestätigen und weiter"), type="primary"):
+            confirmed = copy.deepcopy(after)
+            confirmed.absence_state = AbsenceState.CONFIRMED
+            ok = save(
+                with_sprints(data, [confirmed]),
+                [f"{after.id}.yaml"],
+                lambda: [repo.save_sprint(data.team.key, confirmed)],
+                flash=True,
+            )
+            if ok:
+                _goto(1)
+                st.rerun()
+        skip.button(t("Weiter ohne Bestätigung"), on_click=_goto, args=(1,))
     else:
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
 
