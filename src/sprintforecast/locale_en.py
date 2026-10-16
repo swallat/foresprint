@@ -755,6 +755,8 @@ EN: dict[str, str] = {
     "Saldo = Σ Erledigt − Σ Standard": "Balance = Σ done − Σ standard",
     "Team": "Team",
     "Anteil (%)": "Share (%)",
+    "Zeile {row} ({name}): Arbeitswoche '{value}' ist unbekannt": "Row {row} ({name}): work week '{value}' is unknown",
+    "Leer = wie Land/Team. mon-fri, sun-thu, mon-sat oder die Arbeitstage, z. B. mon,tue,wed,thu für eine 4-Tage-Woche": "Empty = as country/team. mon-fri, sun-thu, mon-sat or the working days, e.g. mon,tue,wed,thu for a 4-day week",
     "Land": "Country",
     "Region": "Region",
     "Für die Feiertage und das Wochenende (ISO-Ländercode, z. B. DE, AT, CH, US, GB, SA). Einzelne Personen können in der Personenliste ein anderes Land haben.": "For public holidays and the weekend (ISO country code, e.g. DE, AT, CH, US, GB, SA). Individual people can have a different country in the people list.",

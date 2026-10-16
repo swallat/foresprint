@@ -163,3 +163,56 @@ def test_settings_page_changes_country(data_dir: Path, monkeypatch: pytest.Monke
     # Die Seiten rechnen danach mit US-Feiertagen
     at.switch_page("seiten/forecast.py").run()
     assert not at.exception, at.exception  # auch mit Cems (nicht mehr passender) Region BY
+
+
+def test_four_day_week_person():
+    sprint = Sprint(id="1", start=date(2026, 10, 12), end=date(2026, 10, 26))  # Mo–So, 2 Wochen
+    team = _team("DE")
+    full = sprint_capacity(team, [_person()], sprint)
+    four = sprint_capacity(team, [_person(workweek="mon,tue,wed,thu")], sprint)
+    assert full.gross == 10 and four.gross == 8
+    assert four.people[0].workdays == 8
+    # Feiertag auf einen freien Tag (Freitag) kostet nichts, auf einen Arbeitstag schon
+    friday = Sprint(id="2", start=date(2026, 10, 26), end=date(2026, 11, 9))
+    with_holiday = sprint_capacity(_team("DE", "NW"), [_person(workweek="mon,tue,wed,thu")], friday)
+    assert with_holiday.gross == 8  # 1.11. ist Sonntag, kein Arbeitstag
+    team_day = Sprint(id="3", start=date(2026, 12, 21), end=date(2027, 1, 4))  # 25./26.12. + 1.1.
+    five = sprint_capacity(_team("DE"), [_person()], team_day).gross
+    four_days = sprint_capacity(_team("DE"), [_person(workweek="mon,tue,wed,thu")], team_day).gross
+    # 25.12. und 1.1. fallen auf Freitage: die Vollzeitperson verliert zwei Tage (10 → 8), die
+    # Person mit Mo–Do-Woche nichts (8 → 8)
+    assert five == 8 and four_days == 8
+    assert sprint_capacity(_team("DE"), [_person(workweek="mon-sat")], team_day).gross >= five
+
+
+def test_workweek_parsing_and_validation(data_dir: Path):
+    from sprintforecast.calendar import weekend_from_workweek
+
+    assert weekend_from_workweek("auto") is None and weekend_from_workweek(None) is None
+    assert weekend_from_workweek("mon,tue,wed,thu") == {4, 5, 6}
+    assert weekend_from_workweek("Mon Tue Wed") == {3, 4, 5, 6}
+    assert weekend_from_workweek("sun-thu") == {4, 5}
+    for bad in ("xyz", "mon,foo", ","):
+        with pytest.raises(ValueError):
+            weekend_from_workweek(bad)
+    data = Repository(data_dir).load("demo")
+    data.people[0].workweek = "mon,xyz"
+    errors = [i for i in check_team(data, date(2026, 10, 15)) if i.level.value == "Fehler"]
+    assert any("xyz" in i.message for i in errors)
+    # Roundtrip
+    repo = Repository(data_dir)
+    data.people[0].workweek = "mon,tue,wed,thu"
+    repo.save_people("demo", data.people)
+    assert repo.load("demo").people[0].workweek == "mon,tue,wed,thu"
+
+
+def test_people_table_keeps_workweek(data_dir: Path):
+    from sprintforecast.web.logic import people_from_table, people_table
+
+    data = Repository(data_dir).load("demo")
+    data.people[0].workweek = "mon,tue,wed,thu"
+    rows, hidden = people_table(data.people, date(2026, 10, 15), show_former=True)
+    assert rows[0]["Arbeitswoche"] == "mon,tue,wed,thu"
+    assert people_from_table(rows, data.people, hidden).people[0].workweek == "mon,tue,wed,thu"
+    rows[0]["Arbeitswoche"] = "kaputt"
+    assert people_from_table(rows, data.people, hidden).errors

@@ -111,6 +111,9 @@ class Person:
     production_access: bool = False
     # Abweichendes Land der Person (Feiertage und Wochenende); sonst das des Teams.
     country: str | None = None
+    # Eigene Arbeitswoche der Person (z. B. "mon,tue,wed,thu" bei einer 4-Tage-Woche); sonst die
+    # des Landes bzw. des Teams.
+    workweek: str | None = None
 
     def fte_on(self, day: date) -> float:
         for m in self.memberships:

@@ -255,6 +255,7 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
                 name=str(p.get("name") or p["id"]),
                 region=p.get("region"),
                 country=str(p["country"]).upper() if p.get("country") else None,
+                workweek=str(p["workweek"]) if p.get("workweek") else None,
                 memberships=memberships,
                 production_access=bool(p.get("production_access", False)),
             )
@@ -268,6 +269,8 @@ def people_to_dict(people: list[Person]) -> dict[str, Any]:
         entry: dict[str, Any] = {"id": p.id, "name": p.name}
         if p.country:
             entry["country"] = p.country
+        if p.workweek:
+            entry["workweek"] = p.workweek
         if p.region:
             entry["region"] = p.region
         if p.production_access:

@@ -2128,6 +2128,13 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     "(Team) = Einstellung des Teams; abweichendes Land für Feiertage und Wochenende"
                 ),
             ),
+            "Arbeitswoche": st.column_config.TextColumn(
+                t("Arbeitswoche"),
+                help=t(
+                    "Leer = wie Land/Team. mon-fri, sun-thu, mon-sat oder die Arbeitstage, z. B. "
+                    "mon,tue,wed,thu für eine 4-Tage-Woche"
+                ),
+            ),
             "Bundesland": st.column_config.SelectboxColumn(
                 t("Region"),
                 options=[
