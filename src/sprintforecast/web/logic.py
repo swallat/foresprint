@@ -10,7 +10,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from sprintforecast.calendar import following_sprint, next_id, workdays
-from sprintforecast.forecast import Forecast
+from sprintforecast.forecast import Forecast, build_forecast, find_sprint
 from sprintforecast.i18n import t
 from sprintforecast.model import Membership, Person, Product, ProductValues, Sprint, new_person_id
 from sprintforecast.products import MEASURES, PRODUCTION_MEASURES, Distribution
@@ -46,6 +46,29 @@ def with_sprints(data: TeamData, sprints: list[Sprint]) -> TeamData:
         by_id[s.id] = copy.deepcopy(s)
     result.sprints = sorted(by_id.values(), key=lambda s: s.start)
     return result
+
+
+def open_velocity_sprints(fc: Forecast, count: int = 2) -> list[Sprint]:
+    """Laufende bzw. abgelaufene Sprints ohne erfasste Velocity (die letzten ``count``) –
+    für sie lässt sich eine erwartete Velocity annehmen."""
+    open_ = [
+        e.sprint for e in fc.entries if e.sprint.start <= fc.today and e.sprint.velocity is None
+    ]
+    return open_[-count:]
+
+
+def whatif_forecast(fc: Forecast, velocities: dict[str, float]) -> Forecast:
+    """Forecast unter der Annahme, dass die genannten Sprints die Velocity erreichen.
+    Nichts wird gespeichert; ``fc`` bleibt unverändert."""
+    changed = []
+    for sprint_id, velocity in velocities.items():
+        sprint = find_sprint(fc.data, sprint_id)
+        if sprint is None:
+            continue
+        sprint = copy.deepcopy(sprint)
+        sprint.velocity = velocity
+        changed.append(sprint)
+    return build_forecast(with_sprints(fc.data, changed), fc.today)
 
 
 def with_people(data: TeamData, people: list[Person]) -> TeamData:

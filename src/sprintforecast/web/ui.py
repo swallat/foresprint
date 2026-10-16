@@ -92,6 +92,7 @@ from sprintforecast.web.logic import (
     calendar_table,
     calendar_to_save,
     edit_absences,
+    open_velocity_sprints,
     parse_numbers,
     people_from_table,
     people_table,
@@ -99,6 +100,7 @@ from sprintforecast.web.logic import (
     product_values_table,
     products_from_table,
     sprints_to_save,
+    whatif_forecast,
     with_people,
     with_sprints,
 )
@@ -248,6 +250,66 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
 # --- Seiten ---------------------------------------------------------------------------
 
 
+def _signed(value: float) -> str:
+    return ("+" if value > 0 else "") + fmt(value)
+
+
+def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> None:
+    """Was-wäre-wenn: erwartete erledigte Menge offener Sprints → Forecast PLAN der nächsten."""
+    sprints = open_velocity_sprints(fc)
+    if not sprints:
+        return
+    with st.expander(
+        t("Was-wäre-wenn: mit erwarteter Velocity rechnen"), icon=":material/science:"
+    ):
+        st.caption(
+            t(
+                "Vorab bekannte erledigte Menge ({unit}) eines noch nicht abgeschlossenen Sprints "
+                "eintragen – der Forecast PLAN der nächsten Sprints wird damit neu berechnet. "
+                "Nichts wird gespeichert.",
+                unit=unit,
+            )
+        )
+        assumed: dict[str, float] = {}
+        for sprint, col in zip(sprints, st.columns(len(sprints)), strict=True):
+            planned = f"{fmt(sprint.forecast_ist, 2)} {unit}" if sprint.forecast_ist else "–"
+            value = col.number_input(
+                t("Erwartet erledigt {id} ({unit})", id=sprint.id, unit=unit),
+                min_value=0.0,
+                value=None,
+                step=0.25,
+                format="%.2f",
+                key=f"whatif-{sprint.id}",
+                help=t("Forecast IST des Sprints: {ist}", ist=planned),
+            )
+            if value is not None:
+                assumed[sprint.id] = value
+        if not assumed:
+            return
+        scenario = whatif_forecast(fc, assumed)
+        plan_now, plan_new = (
+            f"Forecast PLAN ({unit})",
+            t("Forecast PLAN mit Annahme ({unit})", unit=unit),
+        )
+        diff = t("Differenz")
+        rows = []
+        for e in upcoming:
+            other = scenario.entry(e.sprint.id)
+            now, new = e.result.plan, other.result.plan if other else None
+            rows.append(
+                {
+                    "Sprint": e.sprint.id,
+                    plan_now: fmt(now),
+                    plan_new: fmt(new),
+                    diff: "–" if now is None or new is None else _signed(new - now),
+                    t("n. Velocity-Trend"): fmt(other.result.normalized_velocity.trend, 2)
+                    if other
+                    else "–",
+                }
+            )
+        st.dataframe(pd.DataFrame(rows), hide_index=True)
+
+
 def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     team = data.team
     unit = team.unit.value
@@ -299,6 +361,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             small_col: st.column_config.TextColumn(help=general("small_stuff")),
         },
     )
+    _whatif_panel(fc, upcoming, unit)
     trend = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is CapacitySource.TREND]
     if trend:
         st.warning(

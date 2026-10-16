@@ -180,3 +180,18 @@ def test_fte_zero_is_allowed_and_out_of_range_is_reported(data_dir: Path):
     for bad in (1.5, -0.5, "abc"):
         rows[0]["FTE"] = bad
         assert people_from_table(rows, data.people, hidden).errors
+
+
+def test_whatif_velocity_changes_next_plan(data_dir: Path):
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.web.logic import open_velocity_sprints, whatif_forecast
+
+    fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
+    open_ = open_velocity_sprints(fc)
+    assert open_, "der laufende Sprint hat noch keine Velocity"
+    current = open_[-1].id
+    low = whatif_forecast(fc, {current: 4.0})
+    high = whatif_forecast(fc, {current: 14.0})
+    nxt = fc.upcoming()[-1].sprint.id
+    assert high.entry(nxt).result.plan > low.entry(nxt).result.plan
+    assert fc.entry(current).sprint.velocity is None  # nichts verändert
