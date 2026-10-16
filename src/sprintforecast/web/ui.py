@@ -52,10 +52,10 @@ from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     NO_WINDOW,
     GitError,
+    cached_pending_changes,
     clone_repository,
     commit_directory,
     init_data_repository,
-    pending_changes,
 )
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
@@ -80,6 +80,7 @@ from sprintforecast.storage import (
     DataError,
     Repository,
     TeamData,
+    clear_team_cache,
     default_data_dir,
     save_data_dir,
     teams_dir,
@@ -2547,6 +2548,7 @@ def needs_setup(root: Path) -> bool:
 
 def _use_data_dir(path: Path) -> None:
     save_data_dir(path)
+    clear_team_cache()
     os.environ[DATA_ENV] = str(path.resolve())
     st.session_state.pop("selected_team", None)
     st.session_state["flash"] = [("success", t("Datenordner: `{path}`", path=path.resolve()))]
@@ -2901,7 +2903,7 @@ def _git_panel(repo: Repository) -> None:
     if error := st.session_state.pop("commit_error", None):
         st.error(error)
     try:
-        changes = pending_changes(repo.root)
+        changes = cached_pending_changes(repo.root)
     except GitError as e:
         st.caption(f"Git: {e}")
         return
@@ -2943,6 +2945,8 @@ TEAM_PAGES = {
     "produktliste": page_product_list,
     "einstellungen": page_settings,
 }
+# Seiten, die keine Prognose anzeigen und daher nur den Stichtag aus ``fc`` lesen.
+NO_FORECAST = {"personen", "produktliste", "einstellungen"}
 GLOBAL_PAGES = {
     "datenordner": page_data_dir,
     "neues_team": page_new_team,
@@ -2969,11 +2973,13 @@ def run_page(key: str) -> None:
         page_link("neues_team")
         return
     try:
-        data = repo.load(team)
+        data = repo.load_cached(team)
     except DataError as e:
         st.error(str(e))
         return
-    TEAM_PAGES[key](repo, data, build_forecast(data, today()))
+    # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
+    fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
+    TEAM_PAGES[key](repo, data, fc)
 
 
 def run_plugin_page(page: WebPage) -> None:

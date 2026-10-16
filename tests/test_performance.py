@@ -1,0 +1,194 @@
+# SPDX-License-Identifier: EUPL-1.2
+"""Phase P: Zwischenspeicher liefern nie veraltete Daten; schwere Importe bleiben aus dem Start."""
+
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import pytest
+import yaml
+
+from sprintforecast import storage
+from sprintforecast.git import (
+    cached_pending_changes,
+    commit_directory,
+    invalidate_status,
+    pending_changes,
+)
+from sprintforecast.storage import Repository, clear_team_cache
+
+TEAM = "demo"
+
+
+@pytest.fixture(autouse=True)
+def _clean_caches():
+    clear_team_cache()
+    yield
+    clear_team_cache()
+
+
+def age(root: Path) -> None:
+    """Alle Dateien als „alt“ markieren, sonst werden frische Dateien nicht zwischengespeichert."""
+    old = time.time() - 60
+    for f in root.rglob("*.yaml"):
+        os.utime(f, (old, old))
+
+
+def test_cache_returns_equal_independent_copy(data_dir: Path):
+    age(data_dir)
+    repo = Repository(data_dir)
+    first = repo.load_cached(TEAM)
+    second = repo.load_cached(TEAM)
+    assert second is not first
+    assert second.sprints == repo.load(TEAM).sprints
+    second.sprints.clear()  # Änderungen am Ergebnis dürfen den Zwischenspeicher nicht verändern
+    assert len(repo.load_cached(TEAM).sprints) == len(first.sprints)
+
+
+def test_cache_is_used_for_unchanged_files(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    age(data_dir)
+    repo = Repository(data_dir)
+    repo.load_cached(TEAM)
+    monkeypatch.setattr(Repository, "load", lambda *a: pytest.fail("neu gelesen"))
+    repo.load_cached(TEAM)
+
+
+def test_cache_sees_save_through_repository(data_dir: Path):
+    age(data_dir)
+    repo = Repository(data_dir)
+    data = repo.load_cached(TEAM)
+    sprint = data.sprints[-1]
+    sprint.forecast_ist = 123.0
+    repo.save_sprint(TEAM, sprint)
+    assert repo.load_cached(TEAM).sprint(sprint.id).forecast_ist == 123.0
+
+
+def write_raw(path: Path, **changes) -> None:
+    """Sprintdatei außerhalb von Repository schreiben (Editor, git pull)."""
+    raw = yaml.safe_load(path.read_text())
+    raw.update(changes)
+    path.write_text(yaml.safe_dump(raw))
+    os.utime(path, (time.time() - 30, time.time() - 30))
+
+
+def test_cache_sees_external_edit_added_and_deleted_files(data_dir: Path):
+    age(data_dir)
+    repo = Repository(data_dir)
+    last = repo.load_cached(TEAM).sprints[-1]
+    path = repo.sprint_path(TEAM, last.id)
+    write_raw(path, not_done=7)
+    assert repo.load_cached(TEAM).sprint(last.id).not_done == 7
+    other = repo.sprint_path(TEAM, "9999.1")  # neue Datei
+    other.write_text(path.read_text())
+    write_raw(other, id="9999.1", start="2099-01-01", end="2099-01-15")
+    assert repo.load_cached(TEAM).sprint("9999.1") is not None
+    other.unlink()  # gelöschte Datei
+    assert repo.load_cached(TEAM).sprint("9999.1") is None
+
+
+def test_cache_does_not_trust_fresh_files(data_dir: Path):
+    """Zwei Änderungen in derselben Zeiteinheit (gleiche Größe, gleiche Änderungszeit) dürfen
+    nicht unbemerkt bleiben: Frische Dateien werden nicht zwischengespeichert."""
+    repo = Repository(data_dir)
+    path = repo.sprint_path(TEAM, repo.load_cached(TEAM).sprints[-1].id)
+    sprint_id = path.stem
+    now = time.time_ns()
+    for value in (11, 12):
+        raw = yaml.safe_load(path.read_text())
+        raw["forecast_ist"] = value
+        path.write_text(yaml.safe_dump(raw))
+        os.utime(path, ns=(now, now))
+        assert repo.load_cached(TEAM).sprint(sprint_id).forecast_ist == value
+
+
+def test_cache_follows_data_folder_change(data_dir: Path, tmp_path: Path):
+    age(data_dir)
+    other = tmp_path / "other"
+    other.mkdir()
+    shutil.copytree(data_dir / TEAM, other / TEAM)
+    sprint = Repository(other).load(TEAM).sprints[-1]
+    sprint.forecast_ist = 77.0
+    Repository(other).save_sprint(TEAM, sprint)
+    age(other)
+    first = Repository(data_dir).load_cached(TEAM).sprint(sprint.id)
+    second = Repository(other).load_cached(TEAM).sprint(sprint.id)
+    assert first.forecast_ist != 77.0
+    assert second.forecast_ist == 77.0
+
+
+def test_loader_uses_c_loader_when_available():
+    import yaml as pyyaml
+
+    expected = getattr(pyyaml, "CSafeLoader", pyyaml.SafeLoader)
+    assert storage._YAML_LOADER is expected
+
+
+def test_loader_falls_back_without_c_loader(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    import importlib
+
+    import yaml as pyyaml
+
+    monkeypatch.delattr(pyyaml, "CSafeLoader", raising=False)
+    reloaded = importlib.reload(storage)
+    try:
+        assert reloaded._YAML_LOADER is pyyaml.SafeLoader
+        (tmp_path / "a.yaml").write_text("x: 1\n", encoding="utf-8")
+        assert reloaded._read(tmp_path / "a.yaml") == {"x": 1}
+    finally:
+        monkeypatch.undo()
+        importlib.reload(storage)
+
+
+@pytest.fixture
+def git_dir(data_dir: Path) -> Path:
+    subprocess.run(["git", "init", "-q"], cwd=data_dir, check=True)
+    for k, v in (("user.email", "t@example.org"), ("user.name", "T")):
+        subprocess.run(["git", "config", k, v], cwd=data_dir, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=data_dir, check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=data_dir, check=True)
+    invalidate_status()
+    return data_dir
+
+
+def test_git_status_invalidated_by_save(git_dir: Path):
+    repo = Repository(git_dir)
+    assert cached_pending_changes(git_dir) == []
+    sprint = repo.load(TEAM).sprints[-1]
+    sprint.forecast_ist = 99.0
+    repo.save_sprint(TEAM, sprint)  # Schreiben macht den Git-Stand ungültig
+    assert [f.rsplit("/", 1)[-1] for _, f in cached_pending_changes(git_dir)] == [
+        f"{sprint.id}.yaml"
+    ]
+
+
+def test_git_status_not_requeried_within_ttl(git_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    cached_pending_changes(git_dir)
+    monkeypatch.setattr("sprintforecast.git._git", lambda *a, **k: pytest.fail("neu abgefragt"))
+    assert cached_pending_changes(git_dir) == []
+
+
+def test_git_status_invalidated_by_commit(git_dir: Path):
+    repo = Repository(git_dir)
+    sprint = repo.load(TEAM).sprints[-1]
+    sprint.forecast_ist = 98.0
+    repo.save_sprint(TEAM, sprint)
+    assert cached_pending_changes(git_dir)
+    commit_directory(git_dir, "test")
+    assert cached_pending_changes(git_dir) == []
+    assert pending_changes(git_dir) == []
+
+
+def test_gui_import_loads_no_heavy_modules():
+    """Kein pandas/altair/rich/typer/CLI beim Import der Oberfläche (Kaltstart)."""
+    code = (
+        "import sys, sprintforecast.web.ui\n"
+        "bad = [m for m in ('pandas', 'altair', 'rich', 'typer', 'sprintforecast.cli')"
+        " if m in sys.modules]\n"
+        "print(','.join(bad))"
+    )
+    pytest.importorskip("streamlit")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == ""

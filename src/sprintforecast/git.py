@@ -78,6 +78,28 @@ def pending_changes(path: Path) -> list[tuple[str, str]]:
     return changes
 
 
+_STATUS_CACHE: dict[Path, tuple[float, list[tuple[str, str]]]] = {}
+_STATUS_TTL = 5.0
+
+
+def cached_pending_changes(path: Path) -> list[tuple[str, str]]:
+    """Wie :func:`pending_changes`, aber höchstens alle paar Sekunden neu abgefragt (für die
+    Oberfläche, die bei jeder Eingabe neu zeichnet). Nach Speichern, Commit und Wechsel des
+    Datenordners mit :func:`invalidate_status` ungültig machen."""
+    key = path.resolve()
+    cached = _STATUS_CACHE.get(key)
+    if cached and time.monotonic() - cached[0] < _STATUS_TTL:
+        return list(cached[1])
+    changes = pending_changes(path)
+    _STATUS_CACHE[key] = (time.monotonic(), changes)
+    return list(changes)
+
+
+def invalidate_status() -> None:
+    """Verwirft zwischengespeicherte Git-Stände (nach Speichern, Commit, Synchronisation)."""
+    _STATUS_CACHE.clear()
+
+
 def commit_directory(path: Path, message: str, tags: list[str] | None = None) -> str:
     """Committet alle Änderungen unterhalb von ``path`` (nur dort) und setzt optional Tags."""
     root = repo_root(path)
@@ -99,6 +121,7 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
     _git(root, "commit", "-m", message, "--", target)
     for tag in tags or []:
         _git(root, "tag", "-a", tag, "-m", message)
+    invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
 
 
@@ -110,6 +133,7 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     _git(root, "commit", "-m", message, "--", *(str(p.resolve()) for p in paths))
     if tag:
         _git(root, "tag", "-a", tag, "-m", message)
+    invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
 
 
