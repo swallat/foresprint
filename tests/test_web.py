@@ -55,7 +55,7 @@ def git(cwd: Path, *args: str) -> str:
 
 def test_forecast_is_default_page(app: AppTest):
     values = [m.value for m in app.metric]
-    assert values[:2] == ["9,0 PT", "10,1 PT"]  # wie `sprintforecast forecast demo`
+    assert values[:2] == ["9,5 PT", "11,2 PT"]  # wie `sprintforecast forecast demo`
     # Mit Personenliste kommt die Kapazität aus Kalender und Personen: keine Trend-Warnung
     assert not any("Trend" in w.value for w in app.warning)
 
@@ -169,11 +169,11 @@ def test_review_saves_and_freezes_capacity(app: AppTest, data_dir: Path):
 
 def test_settings_save(app: AppTest, data_dir: Path):
     goto(app, "einstellungen")
-    app.selectbox(key="settings-demo-forecast.trend_mode").set_value("flat")
+    app.selectbox(key="settings-demo-forecast.trend_mode").set_value("classic")
     app.number_input(key="settings-demo-forecast.roadmap_share").set_value(70.0)
     click(app, "Speichern")
     team = load(data_dir / "demo" / "team.yaml")
-    assert team["forecast"]["trend_mode"] == "flat"
+    assert team["forecast"]["trend_mode"] == "classic"
     assert team["forecast"]["roadmap_share"] == pytest.approx(0.7)
     assert any("rückwirkend" in w.value for w in app.warning)
 
@@ -324,7 +324,7 @@ def test_planning_freezes_forecast_plan(app: AppTest, data_dir: Path):
     app.number_input(key="fist-2026.22").set_value(10.0)
     click(app, "Planning speichern")
     sprint = load(data_dir / "demo" / "sprints" / "2026.22.yaml")
-    assert sprint["forecast_plan"] == 10.1
+    assert sprint["forecast_plan"] == 11.2
     assert any("kann starten" in s.value for s in app.success)
 
 

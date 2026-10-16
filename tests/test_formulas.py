@@ -4,6 +4,7 @@ from pathlib import Path
 
 from sprintforecast.forecast import build_forecast
 from sprintforecast.formulas import step, steps
+from sprintforecast.model import TrendMode
 from sprintforecast.storage import Repository
 
 
@@ -11,8 +12,27 @@ def fc(data_dir: Path):
     return build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
 
 
+def test_formulas_flat_default_calculation(data_dir: Path):
+    f = fc(data_dir)  # Demo: Trend-Modus flat
+    e = f.entry("2026.22")
+    assert step(f, e, "plan").calculation == "16,84 / 45 × 30,0 = 11,229 → 11,2 PT"
+    assert step(f, e, "trend").formula == "n. Velocity-Trend = Wert_vorher (flat)"
+
+
+def test_formulas_thin_history_note(data_dir: Path):
+    data = Repository(data_dir).load("demo")
+    data.team.forecast.trend_mode = TrendMode.LINEAR
+    data.team.forecast.window = 20  # genau so viele Sprints mit Velocity wie das Fenster
+    f = build_forecast(data, date(2026, 10, 15))
+    e = f.entry("2026.22")
+    assert e.result.trend_fallback
+    assert "Historie dünn" in step(f, e, "trend").formula
+
+
 def test_formulas_are_symbolic_and_calculation_has_numbers(data_dir: Path):
-    f = fc(data_dir)
+    data = Repository(data_dir).load("demo")
+    data.team.forecast.trend_mode = TrendMode.CLASSIC  # klassische Formel prüfen
+    f = build_forecast(data, date(2026, 10, 15))
     e = f.entry("2026.22")
     plan = step(f, e, "plan")
     assert plan.formula.startswith("Forecast PLAN = ")

@@ -82,7 +82,7 @@ def test_cli_in_english(data_dir: Path, english):
     result = runner.invoke(app, [*base, "forecast", "demo", "--explain", "2026.22"])
     assert result.exit_code == 0, result.output
     assert "Calculation sprint 2026.22" in result.output
-    assert "10.185" in result.output  # Dezimalpunkt
+    assert "11.229" in result.output  # Dezimalpunkt
     assert "Small items" in result.output
     result = runner.invoke(app, [*base, "help", "commands"])
     assert "sprintforecast absences TEAM [SPRINT]" in result.output
