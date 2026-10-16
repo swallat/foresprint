@@ -23,7 +23,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from sprintforecast import LOG_ENV, __version__, updater
-from sprintforecast.calendar import day_label, holiday_name, workdays
+from sprintforecast.calendar import day_label, holiday_name, team_workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import (
@@ -444,7 +444,7 @@ def _help_table(topic: str) -> Table:
 def _ask_setting(setting: Setting, team: Team, *, required: bool = False) -> None:
     console.print(f"[dim]{setting.text}[/dim]")
     label = setting.title
-    if options := setting.options:
+    if (options := setting.options) and len(options) <= 25:
         listed = ", ".join(f"{k} = {v}" for k, v in options.items())
         console.print(f"[dim]{t('Möglich: {options}', options=listed)}[/dim]")
     if setting.optional and not required:
@@ -710,9 +710,13 @@ def fehltage(
 
 
 def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
-    days = workdays(s.start, s.end)
-    region = data.team.capacity.region
-    hol = [f"{d:%d.%m.} {holiday_name(d, region)}" for d in days if holiday_name(d, region)]
+    days = team_workdays(data.team, s.start, s.end)
+    region, country = data.team.capacity.region, data.team.capacity.country
+    hol = [
+        f"{d:%d.%m.} {holiday_name(d, region, country)}"
+        for d in days
+        if holiday_name(d, region, country)
+    ]
     last = days[-1] if days else s.end
     text = t(
         "Sprint [bold]{id}[/bold]: {start} – {last} (letzter Arbeitstag; der nächste Sprint "
@@ -734,7 +738,7 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
 
 def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
     """Fragt die Fehltage je aktiver Person ab und speichert den Sprint."""
-    days = workdays(s.start, s.end)
+    days = team_workdays(data.team, s.start, s.end)
     console.print(_sprint_panel(data, s))
     _explain("absences")
     for p in data.people:

@@ -69,8 +69,12 @@ class CapacitySettings:
     # Derselbe Abzug in PT je Vollzeitperson und Sprint (× FTE), z. B. 1 für Planning, Review
     # und Retro. Ist er gesetzt, gilt er statt des Anteils (nicht zusätzlich).
     overhead_days: float = 0.0
-    # Bundesland-Kürzel für Feiertage (z. B. "NW", "BY"); Personen können abweichen.
+    # Land (ISO 3166-1, z. B. "DE", "US") und Region darin (z. B. "NW", "CA") für die Feiertage;
+    # Personen können abweichen. Die Arbeitswoche folgt dem Land ("auto") oder ist festgelegt
+    # ("mon-fri", "sun-thu", "mon-sat").
+    country: str = "DE"
     region: str | None = None
+    workweek: str = "auto"
     rounding: int = 1
     # Für künftige Sprints ohne eingetragene Fehltage: die durchschnittlichen Fehltage der
     # letzten so vielen Sprints (aus den Plannings) erwarten. 0 = aus (Trend der Kapazität).
@@ -105,6 +109,11 @@ class Person:
     memberships: list[Membership] = field(default_factory=list)
     # Darf Tickets bearbeiten, die Produktionszugriff erfordern (kleine Personengruppe).
     production_access: bool = False
+    # Abweichendes Land der Person (Feiertage und Wochenende); sonst das des Teams.
+    country: str | None = None
+    # Eigene Arbeitswoche der Person (z. B. "mon,tue,wed,thu" bei einer 4-Tage-Woche); sonst die
+    # des Landes bzw. des Teams.
+    workweek: str | None = None
 
     def fte_on(self, day: date) -> float:
         for m in self.memberships:
