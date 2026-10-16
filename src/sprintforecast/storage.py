@@ -51,17 +51,44 @@ def _has_teams(path: Path) -> bool:
     return path.is_dir() and any((p / "team.yaml").is_file() for p in path.iterdir())
 
 
-def default_data_dir() -> Path:
-    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis.
+def teams_dir(path: Path) -> Path | None:
+    """``path`` bzw. dessen Unterordner ``teams``, falls dort Teams liegen."""
+    if _has_teams(path):
+        return path
+    if _has_teams(path / TEAMS_SUBDIR):
+        return path / TEAMS_SUBDIR
+    return None
 
-    Enthält das aktuelle Verzeichnis selbst keine Teams, aber einen Unterordner ``teams``
-    mit Teams (Aufbau eines Daten-Repositorys), wird dieser verwendet.
+
+def saved_data_dir() -> Path | None:
+    """In der Weboberfläche (oder mit `sprintforecast datenordner`) gemerkter Datenordner."""
+    from sprintforecast import config
+
+    raw = config.load().get("data_dir")
+    path = Path(raw) if raw else None
+    return path if path is not None and path.is_dir() else None
+
+
+def save_data_dir(path: Path) -> None:
+    from sprintforecast import config
+
+    config.update(data_dir=str(path.resolve()))
+
+
+def default_data_dir() -> Path:
+    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis, falls es
+    Teams enthält > gemerkter Datenordner > aktuelles Verzeichnis.
+
+    Enthält ein Verzeichnis selbst keine Teams, aber einen Unterordner ``teams`` mit Teams
+    (Aufbau eines Daten-Repositorys), wird dieser verwendet.
     """
     if configured := os.environ.get(DATA_ENV):
         return Path(configured)
     here = Path(".")
-    if not _has_teams(here) and _has_teams(here / TEAMS_SUBDIR):
-        return here / TEAMS_SUBDIR
+    if found := teams_dir(here):
+        return found
+    if saved := saved_data_dir():
+        return teams_dir(saved) or saved
     return here
 
 

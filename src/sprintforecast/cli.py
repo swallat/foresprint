@@ -1306,6 +1306,33 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
 
 
 @app.command()
+def datenordner(
+    pfad: Annotated[
+        Path | None, typer.Argument(help="Ordner merken (muss in einem Git-Repository liegen).")
+    ] = None,
+) -> None:
+    """Gemerkten Datenordner anzeigen oder setzen (gilt, wenn das aktuelle Verzeichnis keine
+    Teams enthält und weder --daten noch SPRINTFORECAST_DATEN gesetzt sind)."""
+    from sprintforecast.git import repo_root
+    from sprintforecast.storage import save_data_dir, saved_data_dir, teams_dir
+
+    if pfad is None:
+        saved = saved_data_dir()
+        console.print(f"Gemerkt: {saved}" if saved else "Kein Datenordner gemerkt.")
+        console.print(f"Verwendet (ohne --daten): {default_data_dir().resolve()}")
+        return
+    if not pfad.is_dir():
+        err.print(f"[red]Ordner nicht gefunden: {pfad}[/red]")
+        raise typer.Exit(1)
+    if repo_root(pfad) is None:
+        err.print(f"[red]{pfad} liegt in keinem Git-Repository (git init bzw. git clone).[/red]")
+        raise typer.Exit(1)
+    target = teams_dir(pfad) or pfad
+    save_data_dir(target)
+    console.print(f"[green]Datenordner gemerkt: {target.resolve()}[/green]")
+
+
+@app.command()
 def aktualisieren(
     pruefen_: Annotated[
         bool, typer.Option("--pruefen", help="Nur prüfen, nicht installieren.")

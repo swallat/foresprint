@@ -91,3 +91,44 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     if tag:
         _git(root, "tag", "-a", tag, "-m", message)
     return _git(root, "rev-parse", "--short", "HEAD")
+
+
+GITIGNORE = """\
+# Tabellenkalkulationen nie committen – sie können echte Team-Daten enthalten.
+*.xlsx
+*.xlsm
+*.xls
+"""
+
+
+def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
+    """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und
+    liefert den Ordner für die Teams."""
+    path.mkdir(parents=True, exist_ok=True)
+    if repo_root(path) is None:
+        _git(path, "init", "-q")
+    ignore = path / ".gitignore"
+    if not ignore.exists():
+        ignore.write_text(GITIGNORE, encoding="utf-8")
+    if not teams_folder:
+        return path
+    teams = path / "teams"
+    teams.mkdir(exist_ok=True)
+    return teams
+
+
+def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
+    """Klont ein bestehendes Daten-Repository nach ``path``."""
+    if path.exists() and any(path.iterdir()):
+        raise GitError(f"{path} ist nicht leer")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        proc = subprocess.run(
+            ["git", "clone", url, str(path)], capture_output=True, text=True, timeout=timeout
+        )
+    except FileNotFoundError as e:
+        raise GitError("git ist nicht installiert oder nicht im PATH") from e
+    except subprocess.TimeoutExpired as e:
+        raise GitError("Klonen dauert zu lange – Adresse und Anmeldung prüfen") from e
+    if proc.returncode != 0:
+        raise GitError(proc.stderr.strip() or proc.stdout.strip())

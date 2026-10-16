@@ -259,6 +259,7 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast bericht [TEAM]", "FORECAST.md erzeugen"),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
     ("sprintforecast pruefen", "Alle Daten prüfen (für CI und vor dem Commit)"),
+    ("sprintforecast datenordner [PFAD]", "Gemerkten Datenordner anzeigen bzw. setzen"),
     (
         "sprintforecast aktualisieren",
         "Auf die neueste Version aktualisieren (--auto an|hinweis|aus)",

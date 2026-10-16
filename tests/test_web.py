@@ -301,3 +301,33 @@ def test_calendar_page_creates_sprints(app: AppTest, data_dir: Path):
     assert any("2026.23 (neu)" in c.value for c in app.caption)
     click(app, "Sprints anlegen bzw. speichern")
     assert (data_dir / "demo" / "sprints" / "2026.26.yaml").exists()
+
+
+def test_setup_when_no_data_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    empty = tmp_path / "leer"
+    empty.mkdir()
+    at = start(empty, monkeypatch)
+    assert any("Kein Datenordner gefunden" in w.value for w in at.warning)
+    target = tmp_path / "neu" / "sprint-daten"
+    at.text_input(key="data-new").set_value(str(target)).run()
+    click(at, "Anlegen")
+    assert (target / ".git").is_dir() and (target / "teams").is_dir()
+    assert "*.xlsx" in (target / ".gitignore").read_text()
+    from sprintforecast.storage import saved_data_dir
+
+    assert saved_data_dir() == (target / "teams").resolve()
+    assert not any("Kein Datenordner gefunden" in w.value for w in at.warning)
+
+
+def test_choose_folder_requires_git(
+    tmp_path: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    at = start(data_dir, monkeypatch)
+    goto(at, "datenordner")
+    plain = tmp_path / "ohne-git"
+    plain.mkdir()
+    at.text_input(key="data-path").set_value(str(plain)).run()
+    click(at, "Übernehmen")
+    assert any("in keinem Git-Repository" in e.value for e in at.error)
+    click(at, f"Git-Repository in {plain} anlegen")
+    assert (plain / ".git").is_dir()

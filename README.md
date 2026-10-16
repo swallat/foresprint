@@ -95,8 +95,15 @@ sprintforecast forecast team-a     # Prognose auf der Kommandozeile
 ```
 
 **Datenverzeichnis:** `--daten PFAD`, sonst die Umgebungsvariable `SPRINTFORECAST_DATEN`,
-sonst das **aktuelle Verzeichnis**. Teams sind Unterordner mit einer `team.yaml`; enthält
-das aktuelle Verzeichnis keine, aber einen Unterordner `teams` mit Teams, wird dieser genommen.
+sonst das **aktuelle Verzeichnis**, falls es Teams enthält, sonst der **gemerkte
+Datenordner** (Weboberfläche: Seite *Datenordner*, Kommandozeile: `sprintforecast
+datenordner PFAD`). Teams sind Unterordner mit einer `team.yaml`; enthält ein Verzeichnis
+keine, aber einen Unterordner `teams` mit Teams, wird dieser genommen.
+
+Findet die Weboberfläche keinen Datenordner (keine Teams, kein Git-Repository), führt sie
+durch die Einrichtung: vorhandenen Ordner wählen (muss in einem Git-Repository liegen), neues
+Daten-Repository anlegen (`git init`, `.gitignore`, Ordner `teams`) oder das gemeinsame
+Daten-Repository des Teams klonen.
 
 **Windows PowerShell:**
 
@@ -149,6 +156,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | | Produkte | Produktliste mit PO und Zeitraum (ab/bis); Ehemalige ausblendbar |
 | | Einstellungen | alle Team-Einstellungen; Änderungen werden vor dem Speichern angezeigt |
 | | Neues Team | Team anlegen |
+| Daten & Hilfe | Datenordner | Datenordner wählen, neu anlegen oder klonen (Git-Repository) |
 | | Prüfung | Befunde aller Teams |
 | | Hilfe | Ablauf, Begriffe, Eingabefelder, Einstellungen, Befehle |
 
