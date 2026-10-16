@@ -156,3 +156,44 @@ def test_app_window_closes_server(data_dir: Path, tmp_path: Path, monkeypatch: p
     port = int(args.split("--app=http://localhost:")[1].split()[0])
     with socket.socket() as s, pytest.raises(ConnectionRefusedError):
         s.connect(("localhost", port))  # Server ist beendet
+
+
+def test_terminate_tree_stops_children():
+    import subprocess
+    import sys
+    import time
+
+    from sprintforecast.proctree import adopt, popen_options, terminate_tree
+
+    # Elternprozess startet ein Kind und wartet – beides muss enden.
+    code = (
+        "import subprocess, sys, time\n"
+        "c = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+        "print(c.pid, flush=True)\n"
+        "time.sleep(60)\n"
+    )
+    parent = subprocess.Popen(
+        [sys.executable, "-c", code], stdout=subprocess.PIPE, text=True, **popen_options()
+    )
+    adopt(parent)
+    child_pid = int(parent.stdout.readline())
+    terminate_tree(parent, timeout=5)
+    assert parent.poll() is not None
+    deadline = time.monotonic() + 5
+    alive = True
+    while alive and time.monotonic() < deadline:
+        if sys.platform == "win32":
+            out = subprocess.run(
+                ["tasklist", "/FI", f"PID eq {child_pid}"], capture_output=True, text=True
+            ).stdout
+            alive = str(child_pid) in out
+        else:
+            import os
+
+            try:
+                os.kill(child_pid, 0)
+            except OSError:
+                alive = False
+        if alive:
+            time.sleep(0.2)
+    assert not alive

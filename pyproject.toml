@@ -8,7 +8,7 @@ license-files = ["LICENSE"]
 authors = [
     { name = "Sebastian Wallat", email = "873008+swallat@users.noreply.github.com" }
 ]
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 dependencies = [
     "holidays>=0.106",
     "pyyaml>=6.0.3",
