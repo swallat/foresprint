@@ -455,3 +455,10 @@ def test_analysis_too_large_rest_explains_horizon(app: AppTest):
     click(app, "Berechnen")
     assert any("später als" in m.value for m in app.metric)
     assert any("höchstens" in c.value and "Sprints" in c.value for c in app.caption)
+
+
+def test_absences_page_can_edit_past_sprints(app: AppTest, data_dir: Path):
+    goto(app, "fehltage")
+    app.number_input(key="absences-past").set_value(1).run()
+    assert not app.exception
+    assert any("abgeschlossen" in c.value for c in app.caption)
