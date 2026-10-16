@@ -92,6 +92,7 @@ class CapacitySource(StrEnum):
     PEOPLE = "Personenliste"
     TREND = "Trend"
     ESTIMATED = "erwartete Fehltage"
+    EXPECTED = "voraussichtliche Fehltage"
 
 
 class PlanSource(StrEnum):

@@ -8,7 +8,12 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-from sprintforecast.calendar import workdays
+from sprintforecast.calendar import (
+    countries,
+    subdivisions,
+    team_workdays,
+    weekend_from_workweek,
+)
 from sprintforecast.i18n import t
 from sprintforecast.storage import DataError, Repository, TeamData
 
@@ -53,6 +58,22 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
         error("team.yaml", t("forecast.roadmap_share muss zwischen 0 und 1 liegen"))
     if not 0 <= team.capacity.overhead_share < 1:
         error("team.yaml", t("capacity.overhead_share muss zwischen 0 und 1 liegen"))
+    country = team.capacity.country
+    if country not in countries():
+        error("team.yaml", t("Land '{country}' wird nicht unterstützt", country=country))
+    elif team.capacity.region and team.capacity.region not in subdivisions(country):
+        error(
+            "team.yaml",
+            t(
+                "Region '{region}' gehört nicht zum Land {country}",
+                region=team.capacity.region,
+                country=country,
+            ),
+        )
+    try:
+        weekend_from_workweek(team.capacity.workweek)
+    except ValueError:
+        error("team.yaml", t("Unbekannte Arbeitswoche '{value}'", value=team.capacity.workweek))
     if team.capacity.absence_history < 0:
         error("team.yaml", t("capacity.absence_history darf nicht negativ sein"))
     if team.capacity.overhead_days < 0:
@@ -93,6 +114,24 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                     t("Zugehörigkeiten überschneiden sich ({a} / {b})", a=a.start, b=b.start),
                 )
 
+    for p in data.people:
+        where = f"people.yaml: {p.id}"
+        try:
+            weekend_from_workweek(p.workweek)
+        except ValueError:
+            error(where, t("Unbekannte Arbeitswoche '{value}'", value=p.workweek))
+        if p.country and p.country not in countries():
+            error(where, t("Land '{country}' wird nicht unterstützt", country=p.country))
+        elif p.region and p.region not in subdivisions(p.country or country):
+            error(
+                where,
+                t(
+                    "Region '{region}' gehört nicht zum Land {country}",
+                    region=p.region,
+                    country=p.country or country,
+                ),
+            )
+
     product_ids: set[str] = set()
     for prod in data.products:
         where = f"products.yaml: {prod.id}"
@@ -132,7 +171,13 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             )
         previous = s
 
-        days = len(workdays(s.start, s.end))
+        for pid, absent in s.expected_absences.items():
+            if pid not in people:
+                error(where, t("Voraussichtliche Fehltage für unbekannte Person '{id}'", id=pid))
+            elif absent < 0:
+                error(where, t("expected_absences.{id} darf nicht negativ sein", id=pid))
+
+        days = len(team_workdays(team, s.start, s.end))
         for pid, absent in s.absences.items():
             person = people.get(pid)
             if person is None:

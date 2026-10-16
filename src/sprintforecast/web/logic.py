@@ -9,7 +9,12 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from sprintforecast.calendar import following_sprint, next_id, workdays
+from sprintforecast.calendar import (
+    following_sprint,
+    next_id,
+    team_workdays,
+    weekend_from_workweek,
+)
 from sprintforecast.forecast import Forecast, absences_known, build_forecast, find_sprint
 from sprintforecast.i18n import t
 from sprintforecast.model import (
@@ -261,7 +266,7 @@ def calendar_table(data: TeamData, sprints: list[Sprint], today: date) -> list[d
                 "Sprint": s.id,
                 "Start": s.start,
                 "Letzter Tag": s.end - timedelta(days=1),
-                "Arbeitstage": len(workdays(s.start, s.end)),
+                "Arbeitstage": len(team_workdays(data.team, s.start, s.end)),
                 "Status": state,
             }
         )
@@ -347,7 +352,17 @@ def calendar_to_save(
 
 # Auswahlwert für „Bundesland wie im Team eingestellt“.
 TEAM_REGION = "(Team)"
-PEOPLE_COLUMNS = ["_id", "Name", "Bundesland", "ab", "bis", "FTE", "Produktionszugriff"]
+PEOPLE_COLUMNS = [
+    "_id",
+    "Name",
+    "Land",
+    "Bundesland",
+    "Arbeitswoche",
+    "ab",
+    "bis",
+    "FTE",
+    "Produktionszugriff",
+]
 # Spalten, die allein eine Zeile nicht „befüllt“ machen (Häkchen-Spalte hat immer einen Wert).
 PEOPLE_FLAG_COLUMNS = ("_id", "Produktionszugriff")
 
@@ -362,7 +377,9 @@ def people_table(
         {
             "_id": p.id,
             "Name": p.name,
+            "Land": p.country or TEAM_REGION,
             "Bundesland": p.region or TEAM_REGION,
+            "Arbeitswoche": p.workweek or "",
             "ab": m.start,
             "bis": m.end,
             "FTE": m.fte,
@@ -409,12 +426,36 @@ def people_from_table(
             used.add(pid)
             name_to_id[name.lower()] = pid
         access = not is_blank(row.get("Produktionszugriff")) and bool(row["Produktionszugriff"])
+        raw_country = row.get("Land")
+        country = None if is_blank(raw_country) or raw_country == TEAM_REGION else str(raw_country)
+        raw_workweek = row.get("Arbeitswoche")
+        workweek = None if is_blank(raw_workweek) else str(raw_workweek).strip().lower()
+        if workweek is not None:
+            try:
+                weekend_from_workweek(workweek)
+            except ValueError:
+                errors.append(
+                    t(
+                        "Zeile {row} ({name}): Arbeitswoche '{value}' ist unbekannt",
+                        row=i,
+                        name=name,
+                        value=workweek,
+                    )
+                )
+                continue
         raw_region = row.get("Bundesland")
         region = None if is_blank(raw_region) or raw_region == TEAM_REGION else str(raw_region)
         person = visible_people.get(pid)
         if person is None:
-            person = visible_people[pid] = Person(id=pid, name=name, region=region)
-        elif person.name != name or person.region != region:
+            person = visible_people[pid] = Person(
+                id=pid, name=name, region=region, country=country, workweek=workweek
+            )
+        elif (
+            person.name != name
+            or person.region != region
+            or person.country != country
+            or person.workweek != workweek
+        ):
             errors.append(
                 t(
                     "Zeile {row}: Für {name} stehen in mehreren Zeilen unterschiedliche Namen "
