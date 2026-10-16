@@ -29,9 +29,7 @@ _ROOT_TTL = 30.0
 
 def _git(cwd: Path, *args: str, strip: bool = True) -> str:
     try:
-        proc = subprocess.run(
-            ["git", *args], cwd=cwd, capture_output=True, text=True, **NO_WINDOW
-        )
+        proc = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, **NO_WINDOW)
     except FileNotFoundError as e:
         raise GitError(t("git ist nicht installiert oder nicht im PATH")) from e
     if proc.returncode != 0:

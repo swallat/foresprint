@@ -394,7 +394,9 @@ def products_from_table(
         po = None if is_blank(row.get("PO")) else str(row["PO"]).strip()
         share = None if is_blank(row.get("Anteil")) else float(row["Anteil"]) / 100
         if share is not None and not 0 < share <= 1:
-            errors.append(t("Zeile {row} ({name}): Anteil muss zwischen 0 und 100 % liegen", row=i, name=name))
+            errors.append(
+                t("Zeile {row} ({name}): Anteil muss zwischen 0 und 100 % liegen", row=i, name=name)
+            )
             continue
         result.append(Product(id=pid, name=name, po=po, start=start, end=end, share=share))
     kept = {p.id for p in result} | {p.id for p in hidden}

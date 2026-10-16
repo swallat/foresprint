@@ -42,7 +42,7 @@ def _g(value: float) -> str:
 
 # Allgemeine Formeln – z. B. für Spaltenköpfe (Anzeige mit general()).
 GENERAL: dict[str, str] = {
-    "capacity": "Kapazität = Σ Personen (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine; "
+    "capacity": "Kapazität = Σ Personen (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine; "  # noqa: E501
     "nach dem Review eingefroren; ohne Fehltage: Trend",
     "normalized_velocity": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
     "average": "Ø n. Velocity = Mittel(n. Velocity der letzten Sprints im Fenster)",
@@ -54,7 +54,7 @@ GENERAL: dict[str, str] = {
     "scope_creep": "Scope Creep = nachträglich hinzugekommen / Forecast IST",
     "focus_factor": "Fokusfaktor = Velocity / Kapazität",
     "delta": "Planning-Delta = Forecast PLAN − (Überkipper + Backlog − Korrekturen)",
-    "standard": "Standard = verfügbar × Anteil des Produkts (ohne festen Anteil: Rest / Anzahl dieser Produkte)",
+    "standard": "Standard = verfügbar × Anteil des Produkts (ohne festen Anteil: Rest / Anzahl dieser Produkte)",  # noqa: E501
     "balance": "Saldo = Σ Erledigt − Σ Standard",
 }
 
@@ -127,7 +127,10 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
     return Step(
         "average",
         name,
-        t("Ø n. Velocity = Mittel der n. Velocity der letzten {window} Sprints (fehlende Werte zählen nicht)", window=window),
+        t(
+            "Ø n. Velocity = Mittel der n. Velocity der letzten {window} Sprints (fehlende Werte zählen nicht)",  # noqa: E501
+            window=window,
+        ),
         f"({' + '.join(_n(v) for v in present)}) / {len(present)} = {_n(avg)}",
     )
 
@@ -144,7 +147,9 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
         return Step("trend", name, formula, calculation)
 
     if m[i].average is not None:
-        return made(t("n. Velocity-Trend = Ø n. Velocity – vergangener Sprint"), f"Ø = {_n(m[i].average)}")
+        return made(
+            t("n. Velocity-Trend = Ø n. Velocity – vergangener Sprint"), f"Ø = {_n(m[i].average)}"
+        )
     if value is None:
         return made(general("trend"), t("– (zu wenig Historie)"))
 
@@ -162,7 +167,9 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     a1, a2 = avg(i - 1), avg(i - 2)
     if mode is TrendMode.CLASSIC and a1 is not None and a2 is not None:
         return made(
-            t("n. Velocity-Trend = Ø_vorher + (Ø_vorher − Ø_vorvorher) (klassisch, 1. Zukunftssprint)"),
+            t(
+                "n. Velocity-Trend = Ø_vorher + (Ø_vorher − Ø_vorvorher) (klassisch, 1. Zukunftssprint)"  # noqa: E501
+            ),
             f"{_n(a1)} + ({_n(a1)} − {_n(a2)}) = {_n(value)}",
         )
     if mode is TrendMode.CLASSIC and i >= 2 and tr(i - 2) is None:

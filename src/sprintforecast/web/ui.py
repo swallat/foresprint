@@ -45,13 +45,13 @@ from sprintforecast.forecast import (
 from sprintforecast.formulas import general, steps
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
+    NO_WINDOW,
     GitError,
     clone_repository,
     commit_directory,
     init_data_repository,
     pending_changes,
 )
-from sprintforecast.git import NO_WINDOW
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
@@ -166,12 +166,7 @@ def help_text(key: str) -> str:
 
 
 def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
-    return pd.DataFrame(
-        [
-            {t("Kennzahl"): s.name, t("Formel"): s.formula}
-            for s in steps(fc, entry)
-        ]
-    )
+    return pd.DataFrame([{t("Kennzahl"): s.name, t("Formel"): s.formula} for s in steps(fc, entry)])
 
 
 # --- Speichern mit Prüfung -----------------------------------------------------------
@@ -725,9 +720,7 @@ def _product_editor(
             if m in FIELDS
             else t("Verfügbare Menge / Anzahl betreuter Produkte"),
         )
-    show_production = d.production_share is not None or any(
-        d.has(m) for m in PRODUCTION_MEASURES
-    )
+    show_production = d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
     for m, label in PRODUCTION_MEASURES.items():
         column_config[label] = (
             st.column_config.NumberColumn(
