@@ -21,3 +21,17 @@ jobs:
       - run: uv run ruff format --check
       - run: uv run pytest
       - run: uv run sprintforecast --daten examples/teams pruefen
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+      - run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          retention-days: 14
