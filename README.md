@@ -203,6 +203,19 @@ weiterhin von dir.
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
 | Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. |
 
+### PO-Vorplanung und Planning
+
+- **Voraussichtliche Fehltage:** Auf dem Board *PO-Vorplanung* lassen sich schon vor dem Planning
+  Fehltage je Person als **Prognose** eintragen. Sie wirken auf Kapazität (Quelle „voraussichtliche
+  Fehltage“) und Forecast PLAN, gelten aber nicht als bestätigt. Im *Planning* (Schritt 1) sind sie
+  vorbelegt; erst „Fehltage speichern“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
+- **Einplanung aus der Vorplanung:** Im Planning (Schritt 2) ist die Einplanung je Produkt mit der
+  letzten PO-Vorplanung vorbelegt (bitte prüfen und speichern).
+- **Einfrieren aufheben:** Der beim Planning eingefrorene Forecast PLAN lässt sich auf dem Planning-Board
+  nur nach Bestätigung einer Fehlerkorrektur freigeben. Tickets, die nach dem Planning hinzugezogen oder
+  herausgenommen werden, gehören nicht nachträglich ins Planning, sondern fließen im *Review* ein
+  (Davon nicht erledigt / Zusätzlich erledigt).
+
 ### Längere oder kürzere Sprints (z. B. über Weihnachten)
 
 Einzelne Sprints lassen sich verlängern oder verkürzen, indem man ihren **letzten Tag** ändert:
@@ -312,6 +325,8 @@ planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
 forecast_plan: 10.1         # Forecast PLAN beim Planning (eingefroren), optional
 absences_confirmed: true   # Fehltage bestätigt (Seite Fehltage); ohne Einträge und ohne Bestätigung
                            # gilt „Fehltage unbekannt“ (Kapazität per Trend bzw. erwartete Fehltage)
+expected_absences: {anna: 2}   # PO-Vorplanung: voraussichtliche Fehltage (Prognose); wirken auf
+                           # Kapazität und Forecast PLAN, bis die Fehltage bestätigt sind
 not_done: 1.5              # Review, optional: Menge, die nicht fertig wurde
 additional_done: 0.5       # Review, optional: zusätzlich zum Forecast IST erledigt
                            # (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt)

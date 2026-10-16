@@ -7,7 +7,12 @@ from dataclasses import dataclass
 from datetime import date
 
 from sprintforecast.calendar import following_sprint
-from sprintforecast.capacity import estimated_capacity, expected_absence_rate, sprint_capacity
+from sprintforecast.capacity import (
+    capacity_with_expected_absences,
+    estimated_capacity,
+    expected_absence_rate,
+    sprint_capacity,
+)
 from sprintforecast.engine import CapacitySource, SprintInput, SprintResult, compute
 from sprintforecast.model import Planning, Sprint
 from sprintforecast.storage import TeamData
@@ -149,6 +154,9 @@ def resolve_capacity(
         return sprint.capacity, CapacitySource.RECORDED
     if recorded and data.people and absences_known(sprint):
         return sprint_capacity(data.team, data.people, sprint).capacity, CapacitySource.PEOPLE
+    if data.people and sprint.expected_absences:
+        capacity = capacity_with_expected_absences(data.team, data.people, sprint)
+        return capacity, CapacitySource.EXPECTED
     if absence_rate is not None and data.people:
         capacity = estimated_capacity(data.team, data.people, sprint, absence_rate)
         return capacity, CapacitySource.ESTIMATED
