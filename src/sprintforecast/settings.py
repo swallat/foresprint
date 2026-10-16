@@ -207,6 +207,19 @@ SETTINGS: list[Setting] = [
         set=_setter("capacity.overhead_days", float),
     ),
     Setting(
+        key="capacity.absence_history",
+        label="Erwartete Fehltage aus den letzten Sprints (Anzahl)",
+        help="Für künftige Sprints ohne eingetragene Fehltage wird die Kapazität um die "
+        "durchschnittlichen Fehltage der letzten so vielen Sprints (aus den Plannings) gemindert. "
+        "0 = aus; dann folgt die Kapazität dem Trend.",
+        kind=Kind.INT,
+        minimum=0,
+        maximum=26,
+        get=_getter("capacity.absence_history"),
+        set=_setter("capacity.absence_history", int),
+        retroactive=True,
+    ),
+    Setting(
         key="sprint.length_days",
         label="Sprintlänge (Kalendertage)",
         help="Gilt für neu erzeugte Sprints; bereits erfasste Sprints behalten ihre Daten.",

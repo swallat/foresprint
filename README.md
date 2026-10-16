@@ -251,6 +251,8 @@ forecast:
 capacity:
   overhead_share: 0.0       # pauschaler Abzug für Scrum-Termine
   overhead_days: 1          # optional: zusätzlich fester Abzug in PT je Person und Sprint (× FTE)
+  absence_history: 4        # optional: Kapazität künftiger Sprints ohne Fehltage um die Ø Fehltage
+                            # der letzten 4 Sprints mindern (0 = aus, dann Trend)
   region: NW                # Bundesland für Feiertage
 ```
 

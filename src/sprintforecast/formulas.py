@@ -106,6 +106,18 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             t("Keine Fehltage erfasst → Trend der Kapazität (wie n. Velocity fortgeschrieben)"),
             f"= {_n(r.plan_capacity, 1)} PT",
         )
+    if source is CapacitySource.ESTIMATED:
+        rate = fc.data.team.capacity.absence_history
+        return Step(
+            "capacity",
+            name,
+            t(
+                "Keine Fehltage erfasst → Kapazität laut Personenliste, gemindert um die "
+                "durchschnittlichen Fehltage der letzten {count} Sprints",
+                count=rate,
+            ),
+            f"= {_n(r.plan_capacity, 1)} PT",
+        )
     return Step("capacity", name, t("nicht bestimmbar"), "–")
 
 
