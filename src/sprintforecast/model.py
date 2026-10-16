@@ -23,7 +23,7 @@ class TrendMode(StrEnum):
     FLAT = "flat"
 
     @classmethod
-    def _missing_(cls, value: object) -> "TrendMode | None":
+    def _missing_(cls, value: object) -> TrendMode | None:
         # Ältere Dateien nennen den Modus noch deutsch.
         return cls.CLASSIC if value == "klassisch" else None
 
