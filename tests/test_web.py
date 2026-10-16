@@ -567,3 +567,14 @@ def test_formula_expander_fragment_switches_sprint(app: AppTest):
     assert not app.exception, app.exception
     assert app.selectbox(key="formula-sprint").value == ids[-1]
     assert app.metric  # Rest der Seite bleibt erhalten
+
+
+def test_forecast_shows_gaps_skipped_by_the_average(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    path = data_dir / "demo" / "sprints" / "2026.19.yaml"
+    raw = yaml.safe_load(path.read_text())
+    raw["velocity"] = None  # Lücke mitten in der Historie
+    path.write_text(yaml.safe_dump(raw))
+    at = start(data_dir, monkeypatch)
+    assert any("Lücken: 1 Sprint" in i.value for i in at.info)
