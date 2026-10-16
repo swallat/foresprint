@@ -76,6 +76,28 @@ FIELDS: dict[str, Field] = {
         source="Tickets mit Teilfortschritt.",
         example="4.25 4.5",
     ),
+    "preplanned": Field(
+        title="PO-Vorplanung je Produkt",
+        what="Menge, die der PO eines Produkts für den Sprint vorsieht – vor dem Planning, als "
+        "Grundlage für die Abstimmung zwischen den POs. Im Vergleich steht der Standard "
+        "(verfügbare Menge / Anzahl betreuter Produkte).",
+        source="PO-Runde bzw. Vorbereitung der POs, z. B. Summe der vorgesehenen Tickets.",
+        example="4",
+    ),
+    "planned": Field(
+        title="Planning je Produkt",
+        what="Im Sprint Planning für das Produkt eingeplante Menge (Summe der Tickets des "
+        "Produkts im Sprint).",
+        source="Sprint-Board beim Planning, gefiltert nach Produkt (Komponente, Label, Epic …).",
+        example="4.5",
+    ),
+    "done": Field(
+        title="Erledigt je Produkt",
+        what="Im Sprint für das Produkt tatsächlich erledigte Menge (Schätzungen der fertigen "
+        "Tickets). Die Summe entspricht höchstens der Velocity.",
+        source="Im Review: Sprint-Bericht, gefiltert nach Produkt.",
+        example="3.75",
+    ),
 }
 
 
@@ -115,19 +137,29 @@ WORKFLOW: list[Step] = [
         cli="sprintforecast forecast TEAM",
     ),
     Step(
+        when="Vor dem Planning (POs)",
+        title="PO-Vorplanung je Produkt",
+        text="Betreut das Team mehrere Produkte, tragen die POs ein, wie viel sie je Produkt "
+        "vorsehen – im Vergleich zum Standard (verfügbare Menge / Anzahl Produkte).",
+        page="produkte",
+        cli="sprintforecast produkte TEAM --vorplanung",
+    ),
+    Step(
         when="Sprint Planning (Sprintstart)",
-        title="Planning erfassen",
-        text="Forecast IST (die zugesagte Menge) eintragen. Optional die Kontrollrechnung "
-        "aus Überkipper, Backlog und Korrekturen: Sie zeigt als Delta, ob die Planung in den "
-        "Forecast PLAN passt, und wirkt sich auf keine andere Kennzahl aus.",
+        title="Planning in drei Schritten",
+        text="1. Bekannte Fehltage für den Sprint eintragen. 2. Mit dem Forecast PLAN die "
+        "Tickets einplanen, optional je Produkt. 3. Vor dem Sprintstart den Forecast IST (die "
+        "zugesagte Menge) eintragen; der Forecast PLAN wird dabei eingefroren. Optional die "
+        "Kontrollrechnung aus Überkipper, Backlog und Korrekturen (Delta zum Forecast PLAN).",
         page="planning",
         cli="sprintforecast planning TEAM",
     ),
     Step(
         when="Sprint Review (Sprintende)",
         title="Review erfassen",
-        text="Velocity und Scope Creep eintragen. Die Kapazität des Sprints wird dabei "
-        "eingefroren, damit spätere Änderungen an der Personenliste die Historie nicht ändern.",
+        text="Velocity, Scope Creep und optional Erledigt je Produkt eintragen. Die Kapazität "
+        "des Sprints wird dabei eingefroren, damit spätere Änderungen an der Personenliste die "
+        "Historie nicht ändern.",
         page="review",
         cli="sprintforecast review TEAM --commit",
     ),
@@ -146,6 +178,14 @@ WORKFLOW: list[Step] = [
         "Bundesland oder Referenzkapazität anpassen.",
         page="personen",
         cli="sprintforecast personen TEAM · sprintforecast einstellungen TEAM",
+    ),
+    Step(
+        when="Wenn sich die Produkte ändern",
+        title="Produkte pflegen",
+        text="Neue Produkte mit PO und Beginn anlegen, abgegebene mit „bis“ beenden statt "
+        "löschen – so bleiben vergangene Auswertungen erhalten.",
+        page="produktliste",
+        cli="sprintforecast produktliste TEAM",
     ),
 ]
 
@@ -169,6 +209,12 @@ TERMS: list[tuple[str, str]] = [
     ("Kleinkram", "Rest des Forecast PLAN für Bugs, Support und Kleinigkeiten."),
     ("Fulfillment", "Velocity / Forecast IST – wie gut wurde die Zusage gehalten?"),
     (
+        "Standard je Produkt",
+        "Verfügbare Menge / Anzahl betreuter Produkte. Verfügbar = Forecast PLAN (beim "
+        "Planning eingefroren) oder nur dessen Roadmap-Anteil (Einstellung).",
+    ),
+    ("Saldo je Produkt", "Σ Erledigt − Σ Standard über mehrere Sprints."),
+    (
         "Delta",
         "Forecast PLAN − Planning-Summe (Überkipper + Backlog − Korrekturen). Optionale "
         "Kontrollrechnung im Planning; beeinflusst keine andere Kennzahl.",
@@ -189,6 +235,11 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast planning TEAM", "Forecast IST und Planning-Werte erfassen"),
     ("sprintforecast review TEAM", "Velocity und Scope Creep erfassen, Kapazität einfrieren"),
     ("sprintforecast personen TEAM", "Personen pflegen"),
+    ("sprintforecast produktliste TEAM", "Produkte pflegen (PO, Zeitraum)"),
+    (
+        "sprintforecast produkte TEAM [SPRINT] [--vorplanung]",
+        "Verteilung je Produkt anzeigen, PO-Vorplanung erfassen, Saldo",
+    ),
     ("sprintforecast einstellungen TEAM", "Team-Einstellungen ändern"),
     ("sprintforecast kapazitaet TEAM [SPRINT]", "Kapazitätsberechnung im Detail"),
     (
@@ -198,6 +249,10 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast bericht [TEAM]", "FORECAST.md erzeugen"),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
     ("sprintforecast pruefen", "Alle Daten prüfen (für CI und vor dem Commit)"),
+    (
+        "sprintforecast aktualisieren",
+        "Auf die neueste Version aktualisieren (--auto an|hinweis|aus)",
+    ),
     ("sprintforecast hilfe [THEMA]", "Diese Hilfe"),
 ]
 

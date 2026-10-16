@@ -12,7 +12,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
-from sprintforecast.web.ui import PAGE_INFO
+from sprintforecast.web.ui import PAGE_INFO, PLANNING_STEPS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
@@ -83,9 +83,33 @@ def test_absences_save_creates_missing_sprint_files(app: AppTest, data_dir: Path
     assert not any("Trend" in w.value for w in app.warning)
 
 
-def test_planning_saves(app: AppTest, data_dir: Path):
+def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
+    """Planning-Seite, Sprint wählen und zum Schritt (0–2) des Ablaufs springen."""
+    goto(at, "planning")
+    at.selectbox(key="planning-sprint").set_value(sprint).run()
+    at.radio(key="planning-step").set_value(PLANNING_STEPS[step]).run()
+    assert not at.exception, at.exception
+    return at
+
+
+def test_planning_defaults_to_next_planning(app: AppTest):
     goto(app, "planning")
-    assert app.selectbox(key="current-sprint").value == "2026.21"
+    # 2026.21 läuft und ist bereits geplant (Forecast IST) → als Nächstes 2026.22
+    assert app.selectbox(key="planning-sprint").value == "2026.22"
+    assert app.radio(key="planning-step").value == PLANNING_STEPS[0]
+
+
+def test_planning_flow_absences_then_plan(app: AppTest, data_dir: Path):
+    goto(app, "planning")
+    assert any("Arbeitstage Mo–Fr" in c.value for c in app.caption)
+    click(app, "Weiter")  # Fehltage unverändert, Sprintdatei existiert
+    assert app.radio(key="planning-step").value == PLANNING_STEPS[1]
+    assert any(m.label.startswith("Forecast PLAN") for m in app.metric)
+    assert any("Standard = Forecast PLAN" in c.value for c in app.caption)
+
+
+def test_planning_saves(app: AppTest, data_dir: Path):
+    planning_step(app, "2026.21", 2)
     app.number_input(key="fist-2026.21").set_value(9.5)
     app.number_input(key="backlog-2026.21").set_value(8.0)
     app.text_input[0].set_value("0,5 1")
@@ -188,8 +212,7 @@ def test_commit_button(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
-    goto(app, "planning")
-    app.selectbox(key="current-sprint").set_value("2026.22").run()
+    planning_step(app, "2026.22", 2)
     assert app.number_input(key="fist-2026.22").value is None  # nicht der Wert von 2026.21
     app.number_input(key="carry-2026.22").set_value(1.5)
     app.number_input(key="backlog-2026.22").set_value(11.0)
@@ -200,8 +223,7 @@ def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
 
 
 def test_planning_warns_on_mismatch(app: AppTest, data_dir: Path):
-    goto(app, "planning")
-    app.selectbox(key="current-sprint").set_value("2026.22").run()
+    planning_step(app, "2026.22", 2)
     app.number_input(key="fist-2026.22").set_value(20.0)
     app.number_input(key="backlog-2026.22").set_value(11.0)
     click(app, "Planning speichern")
@@ -210,8 +232,7 @@ def test_planning_warns_on_mismatch(app: AppTest, data_dir: Path):
 
 
 def test_planning_control_calculation_is_optional(app: AppTest, data_dir: Path):
-    goto(app, "planning")
-    app.selectbox(key="current-sprint").set_value("2026.22").run()
+    planning_step(app, "2026.22", 2)
     app.number_input(key="fist-2026.22").set_value(11.0)
     click(app, "Planning speichern")
     sprint = load(data_dir / "demo" / "sprints" / "2026.22.yaml")
@@ -246,3 +267,30 @@ def test_analysis_page(app: AppTest):
     labels = [m.label for m in app.metric]
     assert "mit 85 % Sicherheit" in labels
     assert any(m.value.startswith("2026.") or m.value.startswith("2027.") for m in app.metric)
+
+
+def test_planning_freezes_forecast_plan(app: AppTest, data_dir: Path):
+    planning_step(app, "2026.22", 2)
+    app.number_input(key="fist-2026.22").set_value(10.0)
+    click(app, "Planning speichern")
+    sprint = load(data_dir / "demo" / "sprints" / "2026.22.yaml")
+    assert sprint["forecast_plan"] == 10.1
+    assert any("kann starten" in s.value for s in app.success)
+
+
+def test_products_page(app: AppTest):
+    goto(app, "produkte")
+    assert app.selectbox(key="products-sprint").value == "2026.22"
+    assert any("3 betreute Produkte" in c.value for c in app.caption)
+    app.selectbox(key="products-sprint").set_value("2026.20").run()
+    assert any("Saldo" in c.value for c in app.caption)
+    app.radio(key="products-measure").set_value("Planning").run()
+    assert not app.exception
+
+
+def test_product_list_page(app: AppTest, data_dir: Path):
+    goto(app, "produktliste")
+    assert any("1 ehemalige(s) Produkt" in c.value for c in app.caption)
+    click(app, "Produkte speichern")
+    assert any("Gespeichert" in s.value for s in app.success)
+    assert len(load(data_dir / "demo" / "products.yaml")["products"]) == 4

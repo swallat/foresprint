@@ -15,3 +15,20 @@ planning:
   backlog: 8.25
   corrections:
   - 1.25
+products:
+  webshop:
+    preplanned: 3
+    planned: 3
+    done: 3.5
+  app:
+    preplanned: 3
+    planned: 2.5
+    done: 3
+  altsystem:
+    preplanned: 2
+    planned: 2
+    done: 2
+  portal:
+    preplanned: 2
+    planned: 2.5
+    done: 2

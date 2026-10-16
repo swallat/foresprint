@@ -68,6 +68,16 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             if a.end is None or a.end >= b.start:
                 error(where, f"Zugehörigkeiten überschneiden sich ({a.start} / {b.start})")
 
+    product_ids: set[str] = set()
+    for prod in data.products:
+        where = f"products.yaml: {prod.id}"
+        if prod.id in product_ids:
+            error(where, "id ist doppelt")
+        product_ids.add(prod.id)
+        if prod.start and prod.end and prod.end < prod.start:
+            error(where, f"Zeitraum endet ({prod.end}) vor seinem Beginn ({prod.start})")
+    products = {p.id: p for p in data.products}
+
     people = {p.id: p for p in data.people}
     previous = None
     for s in data.sprints:
@@ -92,7 +102,33 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             elif absent > days:
                 error(where, f"'{pid}': {absent} Fehltage, der Sprint hat nur {days} Arbeitstage")
 
-        for name in ("capacity", "forecast_ist", "velocity"):
+        for pid, values in s.products.items():
+            product = products.get(pid)
+            if product is None:
+                error(where, f"Werte für unbekanntes Produkt '{pid}'")
+            elif not product.active_between(s.start, s.end) and not values.is_empty():
+                warn(
+                    where, f"Produkt '{pid}' wird in diesem Sprint laut Produktliste nicht betreut"
+                )
+            for name in ("preplanned", "planned", "done"):
+                value = getattr(values, name)
+                if value is not None and value < 0:
+                    error(where, f"products.{pid}.{name} darf nicht negativ sein")
+        planned = [v.planned for v in s.products.values() if v.planned is not None]
+        if planned and s.forecast_ist is not None and sum(planned) > s.forecast_ist + 0.05:
+            warn(
+                where,
+                f"Planning je Produkt ({sum(planned):g}) ist größer als der Forecast IST "
+                f"({s.forecast_ist:g})",
+            )
+        done = [v.done for v in s.products.values() if v.done is not None]
+        if done and s.velocity is not None and sum(done) > s.velocity + 0.05:
+            warn(
+                where,
+                f"Erledigt je Produkt ({sum(done):g}) ist größer als die Velocity ({s.velocity:g})",
+            )
+
+        for name in ("capacity", "forecast_ist", "velocity", "forecast_plan"):
             value = getattr(s, name)
             if value is not None and value < 0:
                 error(where, f"{name} darf nicht negativ sein")
