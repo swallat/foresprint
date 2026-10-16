@@ -93,13 +93,43 @@ def country_weekend(country: str) -> frozenset[int]:
         return DEFAULT_WEEKEND
 
 
+WEEKDAY_CODES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+
+def weekend_from_workweek(value: str | None) -> frozenset[int] | None:
+    """Freie Wochentage zu einer Arbeitswoche: ein Name (``mon-fri``, ``sun-thu``,
+    ``mon-sat``) oder eine Liste der Arbeitstage wie ``mon,tue,wed,thu`` (4-Tage-Woche).
+    None für ``auto``/leer; wirft ValueError bei unbekannten Angaben."""
+    if value is None or value.strip().lower() in {"", "auto"}:
+        return None
+    value = value.strip().lower()
+    if value in WORKWEEKS:
+        return WORKWEEKS[value]
+    codes = [part.strip() for part in value.replace(";", ",").replace(" ", ",").split(",")]
+    worked = {WEEKDAY_CODES.index(c) for c in codes if c}
+    if any(c and c not in WEEKDAY_CODES for c in codes) or not worked:
+        raise ValueError(value)
+    return frozenset(set(range(7)) - worked)
+
+
 def team_weekend(team: Team) -> frozenset[int]:
     """Wochenende des Teams: eingestellte Arbeitswoche, sonst das des Landes."""
-    return WORKWEEKS.get(team.capacity.workweek) or country_weekend(team.capacity.country)
+    try:
+        explicit = weekend_from_workweek(team.capacity.workweek)
+    except ValueError:
+        explicit = None
+    return explicit or country_weekend(team.capacity.country)
 
 
 def person_weekend(team: Team, person: Person) -> frozenset[int]:
-    """Eine Person in einem anderen Land folgt dessen Wochenende."""
+    """Freie Tage einer Person: eigene Arbeitswoche, sonst das Wochenende ihres Landes, sonst
+    das des Teams."""
+    try:
+        own = weekend_from_workweek(person.workweek)
+    except ValueError:
+        own = None
+    if own is not None:
+        return own
     return country_weekend(person.country) if person.country else team_weekend(team)
 
 

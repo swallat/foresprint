@@ -285,6 +285,7 @@ people:
   name: Ben
   region: BY                # optional, sonst Team-Region
   country: AT               # optional: abweichendes Land der Person (Feiertage, Wochenende)
+  workweek: mon,tue,wed,thu # optional: eigene Arbeitswoche, z. B. 4-Tage-Woche (sonst Land/Team)
   production_access: true   # optional: darf Tickets mit Produktionszugriff bearbeiten
   memberships:
   - {from: 2025-01-01, to: 2026-05-31, fte: 1}
