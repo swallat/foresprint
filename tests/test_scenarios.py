@@ -142,7 +142,7 @@ def test_file_state_decides_capacity_source_and_pages_agree(
     goto(at, "vorplanung")
     at.selectbox(key="vorplanung-sprint").set_value(TARGET).run()
     assert not at.exception, at.exception
-    headline = next(m for m in at.metric if m.label == f"Forecast PLAN {TARGET}")
+    headline = next(m for m in at.metric if m.label == f"Prognose aktuell {TARGET}")
     available = next(m for m in at.metric if m.label == "Verteilbar")
     assert num(headline.value) == pytest.approx(plan)
     assert num(available.value) == pytest.approx(plan, abs=0.051)
@@ -212,8 +212,12 @@ def test_frozen_plan_drives_distribution_but_not_forecast_page(
     assert num(tile.value) == pytest.approx(live)  # Forecast-Seite: live berechnet
     goto(at, "vorplanung")
     at.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
-    headline = next(m for m in at.metric if m.label == "Forecast PLAN 2026.22")
-    assert num(headline.value) == pytest.approx(5.0)  # Board: eingefroren
+    # Board: beide Stände getrennt – aktuell berechnet und beim Planning eingefroren (B1)
+    headline = next(m for m in at.metric if m.label == "Prognose aktuell 2026.22")
+    assert num(headline.value) == pytest.approx(live)
+    frozen = next(m for m in at.metric if m.label == "Prognose beim Planning 2026.22")
+    assert num(frozen.value) == pytest.approx(5.0)
+    assert num(frozen.delta.replace("−", "-")) == pytest.approx(live - 5.0)  # Differenz
     assert num(next(m for m in at.metric if m.label == "Verteilbar").value) == pytest.approx(5.0)
 
 
@@ -271,7 +275,7 @@ def test_whatif_target_is_the_open_sprint_itself(data_dir: Path, monkeypatch: py
     box = next(n for n in at.number_input if n.key and n.key.endswith("-open"))
     box.set_value(3.0).run()
     assert not at.exception, at.exception
-    assert any(m.label == "Forecast PLAN 2026.21" for m in at.metric)
+    assert any(m.label == "Prognose aktuell 2026.21" for m in at.metric)
 
 
 # --- 4. Produktbasis, feste Anteile ------------------------------------------------------------
@@ -409,7 +413,7 @@ def test_unit_sp_changes_labels_but_not_numbers(data_dir: Path, monkeypatch: pyt
     assert tile.value.endswith(" SP") and num(tile.value) == pytest.approx(reference)
     goto(at, "vorplanung")
     at.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
-    headline = next(m for m in at.metric if m.label == "Forecast PLAN 2026.22")
+    headline = next(m for m in at.metric if m.label == "Prognose aktuell 2026.22")
     assert headline.value.endswith(" SP")
     capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
     assert "PT" not in capacity.value or "SP" not in capacity.value  # Kapazität bleibt PT
@@ -507,7 +511,7 @@ def test_english_ui_shows_same_numbers(data_dir: Path, monkeypatch: pytest.Monke
         goto(at, "vorplanung")
         at.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
         assert not at.exception, at.exception
-        headline = next(m for m in at.metric if m.label == "Forecast PLAN 2026.22")
+        headline = next(m for m in at.metric if m.label == "Current forecast 2026.22")
         assert num(headline.value) == pytest.approx(plan)
     finally:
         i18n.save_language("de")
@@ -545,7 +549,7 @@ def test_preplanning_saves_expected_absences_and_changes_plan(
         }
         at.run()
         assert not at.exception, at.exception
-        return num(next(m for m in at.metric if m.label == f"Forecast PLAN {TARGET}").value)
+        return num(next(m for m in at.metric if m.label == f"Prognose aktuell {TARGET}").value)
 
     few, many = plan_with(2.0), plan_with(8.0)
     assert many < few  # mehr voraussichtliche Fehltage → kleinerer Forecast PLAN

@@ -1188,13 +1188,15 @@ def analyse(
         console.print(
             t(
                 "Fertigstellung von {rest} {unit} ({basis}, ab dem nächsten Sprint): "
-                "wahrscheinlich bis [bold]{p50}[/bold], mit 85 % Sicherheit bis [bold]{p85}"
-                "[/bold] (≈ {per_sprint} {unit} je Sprint).",
+                "in 50 % der Simulationen bis [bold]{p50}[/bold], in 85 % bis [bold]{p85}"
+                "[/bold] (modellabhängige Häufigkeit, Stichprobe {samples} Sprints; "
+                "≈ {per_sprint} {unit} je Sprint).",
                 rest=fmt(rest, 1),
                 unit=unit,
                 basis=basis,
                 p50=result.p50 or later,
                 p85=result.p85 or later,
+                samples=result.samples,
                 per_sprint=fmt(result.per_sprint, 1),
             )
         )
@@ -1204,7 +1206,7 @@ def analyse(
                 listed += " …"
             console.print(
                 "[dim]"
-                + t("Ohne erfasste Fehltage gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
+                + t("Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
                 + "[/dim]"
             )
 

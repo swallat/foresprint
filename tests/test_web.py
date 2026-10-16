@@ -137,7 +137,7 @@ def test_planning_flow_absences_then_plan(app: AppTest, data_dir: Path):
     assert any("Arbeitstage Mo–Fr" in c.value for c in app.caption)
     click(app, "Weiter")  # Fehltage unverändert, Sprintdatei existiert
     assert app.radio(key="planning-step").value == 1
-    assert any(m.label.startswith("Forecast PLAN") for m in app.metric)
+    assert any(m.label.startswith("Prognose aktuell") for m in app.metric)
     assert any("Standard = Forecast PLAN" in c.value for c in app.caption)
 
 
@@ -311,7 +311,11 @@ def test_analysis_page(app: AppTest):
     click(app, "Berechnen")
     assert any("40 % des Forecasts" in m.label for m in app.metric)
     labels = [m.label for m in app.metric]
-    assert "mit 85 % Sicherheit" in labels
+    assert "in 85 % der Simulationen" in labels
+    assert "mit 85 % Sicherheit" not in labels  # keine Zusage: modellabhängige Häufigkeit
+    # Die Simulation zieht nur aus dem Fenster (5 Sprints): Warnung und Stichprobe sichtbar
+    assert any("Wenig Daten" in w.value and "5 Sprints" in w.value for w in app.warning)
+    assert any("Stichprobe: 5 Sprints" in c.value for c in app.caption)
     assert any(m.value.startswith("2026.") or m.value.startswith("2027.") for m in app.metric)
 
 
@@ -511,7 +515,7 @@ def test_forecast_plan_is_consistent_across_pages(app: AppTest):
 
     goto(app, "vorplanung")
     app.selectbox(key="vorplanung-sprint").set_value(sprint).run()
-    headline = next(m for m in app.metric if m.label == f"Forecast PLAN {sprint}")
+    headline = next(m for m in app.metric if m.label == f"Prognose aktuell {sprint}")
     available = next(m for m in app.metric if m.label == "Verteilbar")
     assert _pt(headline.value) == expected
     assert abs(_pt(available.value) - expected) < 0.05

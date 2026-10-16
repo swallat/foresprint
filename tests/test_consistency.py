@@ -23,7 +23,7 @@ from sprintforecast.cli import app as cli_app
 from sprintforecast.forecast import build_forecast
 from sprintforecast.formulas import steps
 from sprintforecast.products import distribution
-from sprintforecast.report import fmt, render
+from sprintforecast.report import absence_status_label, capacity_label, fmt, render
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 
 TODAY = date(2026, 10, 15)
@@ -169,10 +169,12 @@ def test_forecast_page_matches_engine(web: AppTest, fc):
         sid = e.sprint.id
         assert num(tiles[sid]) == pytest.approx(num(fmt(r.plan)))
         row = table[table["Sprint"] == sid].iloc[0]
-        assert row.iloc[5] == fmt(r.plan)
+        assert row["Prognose aktuell (PT)"] == fmt(r.plan)
         assert row["Roadmap"] == fmt(r.roadmap, 2)
         assert row["Kleinkram"] == fmt(r.small_stuff, 2)
-        assert row.iloc[4] == fmt(r.normalized_velocity.trend, 2)
+        assert row["n. Velocity-Trend"] == fmt(r.normalized_velocity.trend, 2)
+        assert row["Fehltage"] == absence_status_label(e.sprint)
+        assert row["Kapazität (PT)"] == capacity_label(e)
 
 
 @pytest.mark.parametrize("sprint", ["2026.21", "2026.22", "2026.23", "2026.24"])
@@ -182,7 +184,7 @@ def test_planning_vorplanung_products_and_analysis_agree(web: AppTest, fc, sprin
     page(web, "vorplanung")
     web.selectbox(key="vorplanung-sprint").set_value(sprint).run()
     assert not web.exception, web.exception
-    headline = next(m for m in web.metric if m.label == f"Forecast PLAN {sprint}")
+    headline = next(m for m in web.metric if m.label == f"Prognose aktuell {sprint}")
     available = next(m for m in web.metric if m.label == "Verteilbar")
     assert num(headline.value) == pytest.approx(expected)
     assert num(available.value) == pytest.approx(expected, abs=0.051)
@@ -208,7 +210,7 @@ def test_planning_page_shows_engine_plan(web: AppTest, fc):
     web.selectbox(key="planning-sprint").set_value(sprint).run()
     web.radio(key="planning-step").set_value(1).run()
     assert not web.exception, web.exception
-    tile = next(m for m in web.metric if m.label.startswith("Forecast PLAN"))
+    tile = next(m for m in web.metric if m.label.startswith("Prognose aktuell"))
     assert num(tile.value) == pytest.approx(fc.entry(sprint).result.plan)
 
 
