@@ -195,3 +195,22 @@ def test_whatif_velocity_changes_next_plan(data_dir: Path):
     nxt = fc.upcoming()[-1].sprint.id
     assert high.entry(nxt).result.plan > low.entry(nxt).result.plan
     assert fc.entry(current).sprint.velocity is None  # nichts verändert
+
+
+def test_reset_future_absences_to_unknown(data_dir: Path):
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.model import Sprint
+    from sprintforecast.web.logic import resettable_sprints
+
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    assert resettable_sprints(data, TODAY) == []
+    last = max(data.sprints, key=lambda s: s.start)
+    nxt = build_forecast(data, TODAY).entries[-1].sprint
+    assert nxt.start > last.start
+    repo.save_sprint("demo", Sprint(id=nxt.id, start=nxt.start, end=nxt.end))
+    data = repo.load("demo")
+    assert [s.id for s in resettable_sprints(data, TODAY)] == [nxt.id]
+    repo.delete_sprint("demo", nxt.id)
+    assert resettable_sprints(repo.load("demo"), TODAY) == []
+    assert repo.load("demo").sprint(nxt.id) is None

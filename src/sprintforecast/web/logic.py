@@ -129,6 +129,32 @@ def edit_absences(
     return result
 
 
+def _only_absences(sprint: Sprint) -> bool:
+    """Sprint trägt außer (leeren) Fehltagen nichts – eine reine Bestätigung der Fehltage."""
+    return (
+        sprint.capacity is None
+        and sprint.forecast_ist is None
+        and sprint.velocity is None
+        and sprint.scope_creep is None
+        and sprint.planning is None
+        and sprint.forecast_plan is None
+        and not sprint.products
+        and not sprint.note
+    )
+
+
+def resettable_sprints(data: TeamData, today: date) -> list[Sprint]:
+    """Künftige Sprintdateien, die nur Fehltage enthalten und am Ende der erfassten Sprints
+    stehen: Löschen stellt „keine Informationen“ her (Kapazität wieder per Trend)."""
+    result: list[Sprint] = []
+    for sprint in reversed(sorted(data.sprints, key=lambda s: s.start)):
+        if sprint.start > today and _only_absences(sprint):
+            result.append(sprint)
+        else:
+            break
+    return sorted(result, key=lambda s: s.start)
+
+
 def sprints_to_save(data: TeamData, originals: list[Sprint], edited: list[Sprint]) -> list[Sprint]:
     """Geänderte Sprints plus Sprints ohne Datei – Speichern bestätigt deren Fehltage."""
     return [

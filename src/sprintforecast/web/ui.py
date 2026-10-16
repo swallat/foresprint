@@ -99,6 +99,7 @@ from sprintforecast.web.logic import (
     product_table,
     product_values_table,
     products_from_table,
+    resettable_sprints,
     sprints_to_save,
     whatif_forecast,
     with_people,
@@ -593,6 +594,35 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             [f"{s.id}.yaml" for s in to_save],
             lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
         )
+    _reset_absences(repo, data, fc.today)
+
+
+def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
+    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“ (Trend)."""
+    resettable = resettable_sprints(data, today)
+    if not resettable:
+        return
+    st.subheader(t("Fehltage zurücksetzen"))
+    st.caption(
+        t(
+            "Für diese Sprints wurden Fehltage bestätigt, sonst ist nichts erfasst. Zurücksetzen "
+            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Kapazität wird "
+            "wieder aus dem Trend geschätzt."
+        )
+    )
+    chosen = st.multiselect(
+        t("Sprints"),
+        [s.id for s in resettable],
+        default=[s.id for s in resettable],
+        key=f"reset-absences-{data.team.key}",
+    )
+    if st.button(t("Auf „keine Informationen“ zurücksetzen"), disabled=not chosen):
+        for sprint_id in chosen:
+            repo.delete_sprint(data.team.key, sprint_id)
+        st.session_state["flash"] = [
+            ("success", t("Zurückgesetzt: {sprints}", sprints=", ".join(chosen)))
+        ]
+        st.rerun()
 
 
 def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
