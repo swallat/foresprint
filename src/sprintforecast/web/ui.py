@@ -16,10 +16,8 @@ import sys
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import altair as alt
-import pandas as pd
 import streamlit as st
 
 from sprintforecast import updater
@@ -54,10 +52,10 @@ from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     NO_WINDOW,
     GitError,
+    cached_pending_changes,
     clone_repository,
     commit_directory,
     init_data_repository,
-    pending_changes,
 )
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
@@ -82,12 +80,14 @@ from sprintforecast.storage import (
     DataError,
     Repository,
     TeamData,
+    clear_team_cache,
     default_data_dir,
     save_data_dir,
     teams_dir,
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
+from sprintforecast.web.lazy import LazyModule
 from sprintforecast.web.logic import (
     CALENDAR_COLUMNS,
     PEOPLE_COLUMNS,
@@ -116,6 +116,13 @@ from sprintforecast.web.logic import (
     with_people,
     with_sprints,
 )
+
+if TYPE_CHECKING:
+    import altair as alt
+    import pandas as pd
+else:  # erst beim ersten Zugriff laden (Kaltstart)
+    alt = LazyModule("altair")
+    pd = LazyModule("pandas")
 
 # Seiten: Dateiname unter web/seiten → (Titel, Material-Icon). Gruppen für die Navigation.
 # Titel und Gruppen sind deutsche Quelltexte und werden bei der Anzeige übersetzt.
@@ -317,6 +324,7 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     return assumed
 
 
+@st.fragment
 def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> None:
     """Was-wäre-wenn: erwartete erledigte Menge offener Sprints → Forecast PLAN der nächsten."""
     sprints = open_velocity_sprints(fc)
@@ -487,6 +495,7 @@ def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
     return s.formula
 
 
+@st.fragment
 def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
     """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
     if not entries:
@@ -2541,6 +2550,7 @@ def needs_setup(root: Path) -> bool:
 
 def _use_data_dir(path: Path) -> None:
     save_data_dir(path)
+    clear_team_cache()
     os.environ[DATA_ENV] = str(path.resolve())
     st.session_state.pop("selected_team", None)
     st.session_state["flash"] = [("success", t("Datenordner: `{path}`", path=path.resolve()))]
@@ -2808,7 +2818,8 @@ def _manual_update_check(check: updater.Check | None) -> None:
 
 
 def _update_panel() -> None:
-    check = st.session_state.get("manual-check") or _update_check().result(wait=4.0)
+    # Nicht auf den Hintergrundthread warten: Das Ergebnis erscheint beim nächsten Durchlauf.
+    check = st.session_state.get("manual-check") or _update_check().result()
     if check is None or not check.available:
         _manual_update_check(check)
         return
@@ -2894,7 +2905,7 @@ def _git_panel(repo: Repository) -> None:
     if error := st.session_state.pop("commit_error", None):
         st.error(error)
     try:
-        changes = pending_changes(repo.root)
+        changes = cached_pending_changes(repo.root)
     except GitError as e:
         st.caption(f"Git: {e}")
         return
@@ -2936,6 +2947,8 @@ TEAM_PAGES = {
     "produktliste": page_product_list,
     "einstellungen": page_settings,
 }
+# Seiten, die keine Prognose anzeigen und daher nur den Stichtag aus ``fc`` lesen.
+NO_FORECAST = {"personen", "produktliste", "einstellungen"}
 GLOBAL_PAGES = {
     "datenordner": page_data_dir,
     "neues_team": page_new_team,
@@ -2962,11 +2975,13 @@ def run_page(key: str) -> None:
         page_link("neues_team")
         return
     try:
-        data = repo.load(team)
+        data = repo.load_cached(team)
     except DataError as e:
         st.error(str(e))
         return
-    TEAM_PAGES[key](repo, data, build_forecast(data, today()))
+    # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
+    fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
+    TEAM_PAGES[key](repo, data, fc)
 
 
 def run_plugin_page(page: WebPage) -> None:

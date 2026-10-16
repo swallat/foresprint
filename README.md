@@ -61,7 +61,8 @@ Aktualisierung, bis das Programm geschlossen ist (laufende Programme sind dort g
 | `SPRINTFORECAST_AUTOUPDATE=an\|hinweis\|aus` | wie `--auto`, hat Vorrang (z. B. für verwaltete Rechner) |
 
 **In der Weboberfläche:** Beim Start wird im Hintergrund geprüft; ist eine neue Version da,
-erscheint sie in der Seitenleiste. Sie wird beim Schließen installiert – oder sofort mit
+erscheint sie in der Seitenleiste (beim nächsten Seitenaufbau nach der Prüfung, die Oberfläche
+wartet nicht darauf). Sie wird beim Schließen installiert – oder sofort mit
 **Jetzt aktualisieren und neu starten**: Die App beendet sich, aktualisiert und öffnet sich
 neu (gleiches Datenverzeichnis, gleiche Optionen).
 
@@ -185,7 +186,8 @@ Kommandozeile und prüft vor jedem Speichern:
 unter **Git** die offenen Änderungen im Datenverzeichnis; **Änderungen committen** übernimmt
 sie mit frei wählbarer Nachricht (nach einem Review optional mit Tag `TEAM/SPRINT`).
 Committet wird nur das Datenverzeichnis, Tabellenkalkulationen (`*.xlsx` …) werden abgelehnt. Gepusht wird
-weiterhin von dir.
+weiterhin von dir. Der Git-Stand wird kurz (5 Sekunden) zwischengespeichert; Änderungen außerhalb der
+App (Editor, Terminal) erscheinen daher mit kleiner Verzögerung, eigene Speicherungen sofort.
 
 ## Ablauf im Sprint
 
@@ -428,6 +430,7 @@ uv sync --all-extras
 uv run sprintforecast --daten examples/teams web   # aus dem Quellcode starten
 uv run pytest
 uv run ruff check && uv run ruff format --check
+uv run python scripts/measure.py --md      # Messung der Antwortzeiten (siehe docs/performance.md)
 ```
 
 ### Release
