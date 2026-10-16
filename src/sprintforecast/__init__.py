@@ -28,6 +28,12 @@ def app_main() -> None:
     sys.stdout = out if sys.stdout is None else sys.stdout
     sys.stderr = out if sys.stderr is None else sys.stderr
     os.environ[LOG_ENV] = str(log)
+    import json
+
+    from sprintforecast.updater import LAUNCHER_ENV
+
+    # Für „Aktualisieren und neu starten“: diesen Starter erneut aufrufen, nicht die CLI.
+    os.environ[LAUNCHER_ENV] = json.dumps([sys.argv[0], *sys.argv[1:]])
     from sprintforecast.cli import app
 
     app(args=["web", "--app", *sys.argv[1:]], prog_name="sprintforecast")

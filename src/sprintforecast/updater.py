@@ -96,6 +96,7 @@ def mode() -> Mode:
                 "1": "an",
                 "true": "an",
                 "on": "an",
+                "notice": "hinweis",
                 "0": "aus",
                 "false": "aus",
                 "off": "aus",
@@ -287,9 +288,11 @@ def _powershell_script(
     else:
         lines.append(f"{call} *> {quote(str(log))}")
     if then:
-        args = ", ".join(quote(a) for a in then[1:]) or "''"
+        # Eine einzige, nach Windows-Regeln gequotete Befehlszeile: Start-Process verbindet
+        # Array-Elemente nur mit Leerzeichen, Pfade mit Leerzeichen würden sonst zerfallen.
+        args = f" -ArgumentList {quote(subprocess.list2cmdline(then[1:]))}" if then[1:] else ""
         location = f" -WorkingDirectory {quote(cwd)}" if cwd else ""
-        lines.append(f"Start-Process -FilePath {quote(then[0])} -ArgumentList @({args}){location}")
+        lines.append(f"Start-Process -FilePath {quote(then[0])}{args}{location}")
     elif visible:
         lines += [
             "Write-Host ''",
@@ -353,6 +356,8 @@ def schedule_after_exit(
 # Aktualisierung warten muss, und der Befehl für den Neustart (JSON-Liste).
 PIDS_ENV = "SPRINTFORECAST_PARENT_PIDS"
 RESTART_ENV = "SPRINTFORECAST_RESTART"
+# Von sprintforecast-app gesetzt: ursprünglicher Starter samt Argumenten (JSON-Liste).
+LAUNCHER_ENV = "SPRINTFORECAST_LAUNCHER"
 
 
 def web_environment(argv: list[str]) -> dict[str, str]:
@@ -360,10 +365,14 @@ def web_environment(argv: list[str]) -> dict[str, str]:
     pids = [os.getpid()]
     if sys.platform == "win32":
         pids.append(os.getppid())
-    program = shutil.which(PACKAGE) or argv[0]
+    if launcher := os.environ.get(LAUNCHER_ENV):
+        # Doppelklick-Start: denselben Starter (ohne Konsolenfenster) wieder aufrufen.
+        cmd = json.loads(launcher)
+    else:
+        cmd = [shutil.which(PACKAGE) or argv[0], *argv[1:]]
     return {
         PIDS_ENV: ",".join(map(str, pids)),
-        RESTART_ENV: json.dumps({"cmd": [program, *argv[1:]], "cwd": os.getcwd()}),
+        RESTART_ENV: json.dumps({"cmd": cmd, "cwd": os.getcwd()}),
     }
 
 
