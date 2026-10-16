@@ -65,6 +65,7 @@ from sprintforecast.products import (
     by_po,
     distribution,
     measure_label,
+    plan_of,
 )
 from sprintforecast.report import capacity_label, fmt, pct, period, render, source_label, status
 from sprintforecast.settings import REGIONS, SETTINGS, Kind, Setting, applicable, changes
@@ -1118,6 +1119,15 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
     )
 
 
+def _preview_forecast(data: TeamData, fc: Forecast, base: Sprint, after: Sprint) -> Forecast:
+    """Forecast für die Vorschau einer Eingabe. Ist der Sprint noch nicht gespeichert und hat
+    die Eingabe nichts geändert, bleibt es beim bisherigen Forecast – eine (leere) Sprintdatei
+    würde sonst die Kapazität von der Schätzung auf „alle anwesend“ umstellen."""
+    if data.sprint(after.id) is None and after.products == base.products:
+        return fc
+    return build_forecast(with_sprints(data, [after]), fc.today)
+
+
 def _base_sprint(data: TeamData, sprint: Sprint) -> Sprint:
     return copy.deepcopy(data.sprint(sprint.id) or sprint)
 
@@ -1293,7 +1303,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
                 base, rows, ["preplanned", "planned", "production_planned"]
             )
             preview = with_sprints(data, [after])
-            fc_preview = build_forecast(preview, fc.today)
+            fc_preview = _preview_forecast(data, fc, base, after)
             d_preview = distribution(fc_preview, fc_preview.entry(after.id) or entry)
             _production_hint(d_preview, data, unit)
             planned = d_preview.total("planned")
@@ -1812,6 +1822,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "vereinbarte Anteil des Produkts."
         )
     )
+    headline = st.container()
     assumed: dict[str, Assumption] = {}
     comment = ""
     if open_velocity_sprints(fc):
@@ -1844,19 +1855,37 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             )
             _prognosis_history(data, list(open_velocity_sprints(fc)), unit)
     fc_view = whatif_forecast(fc, assumed) if assumed else fc
-    if assumed:
-        shown = fc_view.entry(sprint.id)
-        before = entry.result.plan
-        st.info(
-            t(
-                "Rechnung mit angenommener Velocity – Forecast PLAN {id}: **{new} {unit}** "
-                "(ohne Annahme {old} {unit}).",
-                id=sprint.id,
-                new=fmt(shown.result.plan) if shown else "–",
-                old=fmt(before),
+    shown = fc_view.entry(sprint.id) or entry
+    shown_plan, frozen = plan_of(shown)
+    with headline:
+        plan_col, capacity_col, trend_col = st.columns(3)
+        delta = None
+        if assumed and shown_plan is not None and plan_of(entry)[0] is not None:
+            delta = t(
+                "{diff} {unit} (ohne Annahme {old} {unit})",
+                diff=_signed(shown_plan - plan_of(entry)[0]),
                 unit=unit,
+                old=fmt(plan_of(entry)[0]),
             )
+        plan_col.metric(
+            t("Forecast PLAN {id}", id=sprint.id),
+            f"{fmt(shown_plan)} {unit}",
+            delta=delta,
+            delta_color="off",
+            help=(_formula_help(fc_view, shown, "plan") + "\n\n" if shown_plan is not None else "")
+            + (t("Beim Planning eingefroren.") if frozen else t("Aktuell berechnet.")),
         )
+        capacity_col.metric(t("Kapazität (PT)"), capacity_label(shown))
+        trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
+    if assumed:
+        if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
+            st.caption(
+                t(
+                    "Rechnung: {calculation} · Kapazität {capacity} PT",
+                    calculation=plan_step.calculation,
+                    capacity=capacity_label(shown),
+                )
+            )
         if sprint.forecast_plan is not None:
             st.caption(
                 t(
@@ -1870,8 +1899,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         return
     base = _base_sprint(data, sprint)
     after = apply_product_values(base, rows, ["preplanned"])
-    preview = with_sprints(data, [after])  # nur die Vorplanung – die Annahme wird nie gespeichert
-    fc_preview = build_forecast(preview, fc.today)
+    fc_preview = _preview_forecast(data, fc, base, after)
     if assumed:
         fc_preview = whatif_forecast(fc_preview, assumed)
     d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
