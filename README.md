@@ -203,6 +203,24 @@ weiterhin von dir.
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
 | Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. |
 
+### Längere oder kürzere Sprints (z. B. über Weihnachten)
+
+Einzelne Sprints lassen sich verlängern oder verkürzen, indem man ihren **letzten Tag** ändert:
+
+- **Weboberfläche:** Seite *Sprintkalender* → in der Zeile des Sprints den **Letzten Tag** ändern →
+  *Sprints anlegen bzw. speichern*. Die Spalte *Arbeitstage* zählt Mo–Fr mit.
+- **Kommandozeile:** `sprintforecast sprints team-a --ende 2026.25=2027-01-12` (Form `SPRINT=letzter Tag`, mehrfach möglich).
+- **Folgesprints:** Jeder folgende Sprint beginnt am Tag nach dem letzten Tag des vorherigen und behält seine
+  bisherige Länge; noch nicht angelegte Sprints bekommen neue IDs. Die Standard-Sprintlänge (Einstellung
+  *Sprintlänge*) gilt nur für neu erzeugte Sprints.
+- **Forecast:** Die Kapazität zählt die tatsächlichen Arbeitstage des Sprints (abzüglich Feiertage und Fehltage), die
+  Velocity ist auf die Kapazität normiert. Ein Sprint mit doppelt so vielen Arbeitstagen erhält daher etwa den
+  doppelten Forecast PLAN, und die Normierung bleibt mit den kürzeren Sprints vergleichbar.
+- **Brückentage:** Amtliche Feiertage der eingestellten Region werden automatisch abgezogen; Brückentage sowie
+  24. und 31. Dezember trägt man als **Fehltage** je Person ein.
+- **Review:** Wie bei jedem Sprint Velocity eintragen; die Kapazität wird eingefroren. Für einen bereits erfassten
+  Sprint ändert man das Ende nachträglich über denselben Weg; die Sprintdatei behält ihre Daten.
+
 Alle Assistenten erklären jedes Feld (was, woher, Beispiel). Nachschlagen:
 `sprintforecast hilfe begriffe`, `… hilfe sprint`, `… hilfe team`.
 

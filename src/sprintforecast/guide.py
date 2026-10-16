@@ -126,7 +126,9 @@ WORKFLOW: list[Step] = [
         title="Künftige Sprints anlegen",
         text="Folgesprints entstehen automatisch aus Sprintlänge und Ende des Vorgängers. Im "
         "Sprintkalender lassen sie sich vorab anlegen und abweichende Längen (z. B. über "
-        "Weihnachten) über den letzten Tag festlegen.",
+        "Weihnachten) über den letzten Tag festlegen; die folgenden Sprints verschieben sich "
+        "mit. Die Kapazität zählt die Arbeitstage des Sprints, der Forecast PLAN skaliert daher "
+        "mit der Länge. Brückentage als Fehltage eintragen.",
         page="sprints",
         cli="sprintforecast sprints TEAM [--anlegen] [--ende SPRINT=DATUM]",
     ),
