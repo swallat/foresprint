@@ -285,3 +285,10 @@ def test_sprints_calendar_and_longer_sprint(data_dir: Path):
     nxt = load(data_dir / "demo" / "sprints" / "2027.1.yaml")
     assert nxt["start"] == date(2027, 1, 13)
     assert run(data_dir, "pruefen").exit_code == 0
+
+
+def test_forecast_rechenweg(data_dir: Path):
+    result = run(data_dir, "forecast", "demo", "--rechenweg", "2026.22")
+    assert result.exit_code == 0, result.output
+    assert "Rechenweg Sprint 2026.22" in result.output
+    assert "10,185" in result.output
