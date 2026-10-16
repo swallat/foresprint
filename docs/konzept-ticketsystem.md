@@ -1,56 +1,60 @@
-# Konzept: Ticket-Anbindung und Vormerkplanung
+# Konzept: Ticketsystem-Anbindung und Vormerkplanung (optional)
 
-Status: Entwurf, Version 3, noch nichts umgesetzt. Zielgruppe der neuen Funktionen sind
-Product Owner (POs). Version 3 arbeitet die Ergebnisse zweier unabhängiger kritischer
-Prüfungen und die Vorgaben aus der Teampraxis ein.
+Status: Entwurf, Version 4, noch nichts umgesetzt. Zielgruppe der Funktionen sind Product
+Owner (POs). Dieses Dokument beschreibt **nur die optionale Ticketanbindung**. Alles, was ohne
+Ticketsystem gilt (Berechnung, Bedienung, Datenordner und Synchronisation), steht in
+[konzept-kern.md](konzept-kern.md).
 
 ## 1. Ziel
 
-Product Owner sollen
+Product Owner sollen, wenn ein Ticketsystem aktiviert ist (zunächst Jira Data Center, später
+z. B. GitLab oder GitHub),
 
-1. Ticketdaten aus dem Ticketsystem direkt in der App nutzen (zunächst Jira Data Center),
-2. noch nicht fertig refinete Tickets auf einer Sprint-Zeitleiste **vormerken** können, ohne
-   sie in einen echten Sprint zu legen, und sehen, ob die Vormerkung zur Kapazität passt,
-3. das Ergebnis eines Sprints (Zusage, Erledigt, nicht erledigt) mit Jira-Daten als Vorschlag
+1. Ticketdaten direkt in der App nutzen,
+2. noch nicht fertig refinete Tickets auf einer Sprint-Zeitleiste **vormerken** und sehen, ob die
+   Vormerkung zur Kapazität passt, ohne die Tickets in einen echten Sprint zu legen,
+3. das Ergebnis eines Sprints (Zusage, Erledigt, nicht erledigt) mit Ticketdaten als Vorschlag
    erfassen.
 
 ## 2. Grundsätze
 
-- **Allgemein gültig und Open Source.** Die Software enthält keine Annahmen über eine
-  bestimmte Jira-Instanz: keine URLs, Feldnamen, Projekte, Labels oder Regeln als Standard.
-  Alles Instanz- und Teamspezifische wird in der Einrichtung abgefragt und in der Konfiguration
-  des Teams im Daten-Repo abgelegt (ohne Geheimnisse).
+- **Das Ticketsystem ist eine Option, kein Muss.** Standard ist „kein Ticketsystem“. Dann gibt es
+  weder Ticketseiten noch Menüeinträge noch Vormerkungen, und die App arbeitet wie bisher. Die
+  **Ticketplanung der POs auf Sprints** wird nur sichtbar, wenn ein Ticketsystem aktiviert ist.
+- **Allgemein gültig und Open Source.** Die Software enthält keine Annahmen über eine bestimmte
+  Instanz: keine URLs, Feldnamen, Projekte, Labels oder Regeln als Standard. Alles Instanz- und
+  Teamspezifische wird in der Einrichtung abgefragt und in der Konfiguration des Teams im
+  Daten-Repo abgelegt (ohne Geheimnisse).
 - **Wenige, klare Einstellungen.** Eigenheiten wie ein Pro-forma-Refinement-Sprint sind
   abschaltbar, aber es gibt bewusst nur wenige unabhängige Schalter und sinnvolle Standards.
-  Ungültige Kombinationen werden abgelehnt, nicht alle denkbaren unterstützt.
-- **Nur lesend gegenüber dem Ticketsystem.** Es wird nie nach Jira geschrieben.
-- **Wer verantwortet was:** Jira verantwortet Ticketdaten und Sprintzuordnung. Die App
-  verantwortet Vormerkungen (unverbindliche Planungsabsicht) und die festgehaltenen
+  Ungültige Kombinationen werden abgelehnt.
+- **Nur lesend gegenüber dem Ticketsystem.** Es wird nie dorthin geschrieben.
+- **Wer verantwortet was:** Das Ticketsystem verantwortet Ticketdaten und Sprintzuordnung. Die
+  App verantwortet Vormerkungen (unverbindliche Planungsabsicht) und die festgehaltenen
   Planungs- und Review-Stände (Snapshots).
-- **Datenhaltung in Git.** Das Daten-Repo ist Speicher und Synchronisationsweg (siehe 8).
 - **Kapazität und Forecast funktionieren auch ohne Ticketsystem.** Die Anbindung ergänzt, sie
   ist nie Voraussetzung.
 
 ## 3. Nicht-Ziele (vorerst)
 
 - Kein Ersatz für das Ticketsystem, keine Ticket-Bearbeitung.
+- Keine Vormerkung ohne Ticketsystem (kein manuelles Ticketlisten-Planen).
 - Kein Import alter Sprints aus dem Ticketsystem (denkbares späteres Feature).
 - Keine Roadmap-/Gantt-Ansicht über mehrere Vorhaben oder Teams.
 - Keine Umrechnung zwischen Personentagen und Story Points. Eine spätere Umstellung der Einheit
   erfolgt über einen Stichtag (`unit_since`), nicht über einen Umrechnungsfaktor.
 - Keine Prüfung von Verknüpfungsregeln im Ticketsystem (die App zeigt nur an, was fehlt).
 - Keine Ableitung der Vormerkung aus Zielstart/Zielende. Diese Felder tragen teils harte
-  Deadlines; höchstens später als reine Anzeige „Zieltermin laut Jira“.
-- Weitere Quellen (GitHub, GitLab) erst, wenn eine zweite Anbindung konkret ansteht.
-- Der volle Einrichtungs-Assistent über alle Einstellungen und eine PO-Startseite sind nicht
-  Voraussetzung für den ersten Nutzen (siehe 4 und 11).
+  Deadlines; höchstens später als reine Anzeige „Zieltermin laut Ticketsystem“.
+- Weitere Quellen (GitLab, GitHub) erst, wenn eine zweite Anbindung konkret ansteht.
 
 ## 4. Einrichtung
 
-### 4.1 Erste Version: Seite „Ticketsystem“
+### 4.1 Ticketsystem aktivieren
 
-Die Schritte für Team, Kalender, Kapazität, Forecast, Personen und Produkte gibt es bereits als
-Seiten. Neu gebraucht wird die Jira-Anbindung als geführte Abfolge:
+In den Einstellungen des Teams gibt es `ticket_source: none | jira` (Standard `none`). Erst mit
+`jira` erscheint die Seite „Ticketsystem“ und, darauf aufbauend, die Vormerkung. Die Seite führt
+durch folgende Schritte:
 
 1. Verbindung testen (Adresse, Token).
 2. Projekt und Board wählen.
@@ -58,9 +62,6 @@ Seiten. Neu gebraucht wird die Jira-Anbindung als geführte Abfolge:
 4. **Kandidaten** festlegen (siehe 4.2).
 5. Produkt-Tabelle (siehe 7.1).
 6. Zusammenfassung und Speichern in `jira.yaml`.
-
-Ein durchgehender Assistent über alle Einstellungen (Team bis Forecast) folgt später, wenn eine
-PO-Startseite entsteht.
 
 ### 4.2 Einstellungen (bewusst wenige)
 
@@ -75,11 +76,10 @@ PO-Startseite entsteht.
   in einem echten Sprint und ist die Regel an, ist das ein **Regelverstoß** (Hinweis, keine
   Sperre). Ein gesonderter „Ready“-Schalter entfällt.
 - Teams, die unrefinete Tickets in künftigen Sprints planen, stellen die Vormerkung auf `aus`;
-  dann ist Jira selbst die Vormerkung, und die App zeigt nur die Auslastung der künftigen
-  Sprints.
+  dann ist das Ticketsystem selbst die Vormerkung, und die App zeigt nur die Auslastung der
+  künftigen Sprints.
 - Expertenoptionen: eigene JQL, kombinierte Produktzuordnung, Linkrichtung. Abhängige
-  Einstellungen werden nur bei Bedarf gezeigt.
-- Die Konfiguration hat ein versioniertes Schema.
+  Einstellungen werden nur bei Bedarf gezeigt. Die Konfiguration hat ein versioniertes Schema.
 
 ## 5. Ticketsystem anbinden
 
@@ -133,7 +133,8 @@ vorgeschlagen und per Auswahl bestätigt. In der Software stehen dafür **keine*
   einem Test dafür.
 - Cache nur im Prozess (zeitbegrenzt, mit Aktualisieren-Knopf), nicht auf Platte; getrennt nach
   Instanz und Konto, damit ein Kontowechsel keine fremden Daten zeigt.
-- Die Git-Anmeldung (siehe 8) ist unabhängig vom Jira-Token.
+- Die Git-Anmeldung (siehe [Kern-Konzept, Abschnitt D](konzept-kern.md)) ist unabhängig vom
+  Token.
 
 ## 6. Schätzfelder, Last und Erledigt
 
@@ -144,10 +145,13 @@ vorgeschlagen und per Auswahl bestätigt. In der Software stehen dafür **keine*
 
 ### 6.2 Vorgehen im Team und Definitionen
 
+Ohne Ticketsystem tragen die POs Zusage, Erledigt und Nicht erledigt wie bisher von Hand ein.
+Mit Ticketsystem entstehen daraus **Vorschläge**:
+
 Am Sprintende schätzt das Team für nicht abgeschlossene Tickets **zwei Zahlen**: den im Sprint
 **geleisteten** Anteil und den **neuen Rest**. Der neue Rest wird ins Restfeld geschrieben. Der
-geleistete Anteil steht in Jira nicht; er wird in der App je Ticket erfasst. Fertige Tickets
-zählen mit ihrem Rest zum Planning als geleistet.
+geleistete Anteil steht im Ticketsystem nicht; er wird in der App je Ticket erfasst. Fertige
+Tickets zählen mit ihrem Rest zum Planning als geleistet.
 
 Zwei Momentaufnahmen werden im Daten-Repo festgehalten (nur Ticket-Schlüssel und Zahlen, keine
 Titel oder Beschreibungen):
@@ -173,36 +177,35 @@ Definitionen:
 **Bilanz:** Zusage + Zugänge − Herausgenommen = Erledigt + Nicht erledigt − Neuschätzung. Sie
 muss aufgehen und ist Gegenstand eines Tests.
 
-**Vorschlag aus Jira:** Aus den Restständen schlägt die App einen geleisteten Anteil vor
-(`max(Rest zum Planning − neuer Rest, 0)`) und markiert Tickets, bei denen der neue Rest höher
-ist als der Planungsrest. Die PO bestätigt oder ändert. Ohne die Teamangabe gilt das Ergebnis
-nicht als bestätigt, und die bisherigen Werte der Sprint-Datei bleiben maßgeblich.
+**Vorschlag aus dem Ticketsystem:** Aus den Restständen schlägt die App einen geleisteten Anteil
+vor (`max(Rest zum Planning − neuer Rest, 0)`) und markiert Tickets, bei denen der neue Rest
+höher ist als der Planungsrest. Die PO bestätigt oder ändert. Ohne die Teamangabe gilt das
+Ergebnis nicht als bestätigt, und die bisherigen Werte der Sprint-Datei bleiben maßgeblich.
 
 **Last einer Vormerkung** = Restaufwand, sonst ursprünglicher Umfang (als „Schätzung“
 gekennzeichnet), sonst ein lokaler Platzhalter in der Einheit des Teams, sonst „ungeschätzt“.
 Die Zahl ungeschätzter Tickets wird je Sprint ausgewiesen; ohne sie gibt es keine vollständige
 „passt“-Aussage.
 
-Ein **Fortschritt** je Ticket oder Vorhaben (z. B. `erledigt / (erledigt + Rest)`) ist
-schätzungsabhängig und gehört nicht in die erste Version; später nur als gekennzeichneter
-Indikator.
+Ein **Fortschritt** je Ticket oder Vorhaben ist schätzungsabhängig und gehört nicht in die erste
+Version; später nur als gekennzeichneter Indikator.
 
-## 7. Vormerkung und Auslastung
+## 7. Vormerkung und Auslastung (nur mit aktiviertem Ticketsystem)
 
 - **Speicherung:** eine Datei je Vormerkung, `vormerkungen/<TICKET>.yaml`, mit Ziel-Sprint,
-  optionalem Platzhalter und Notiz. Titel und Umfang kommen immer live aus Jira. Der Name
-  „Vormerkung“ (statt „Roadmap“) vermeidet die Verwechslung mit dem bestehenden Roadmap-Anteil
-  im Forecast.
-- **Zuordnung gewinnt Jira:** Ein eindeutig bestimmter aktueller oder künftiger Jira-Sprint
-  gilt für die tatsächliche Zuordnung. Die Last zählt **immer beim Jira-Sprint**, nie beim
-  vorgemerkten Zielsprint. Eine abweichende Absicht bleibt als Vergleich sichtbar. Geschlossene
-  Sprints erzeugen keine neue Zusage, und der eingefrorene Planning-Stand wird durch spätere
-  Jira-Änderungen nicht verändert.
+  optionalem Platzhalter und Notiz. Titel und Umfang kommen immer live aus dem Ticketsystem. Der
+  Name „Vormerkung“ (statt „Roadmap“) vermeidet die Verwechslung mit dem bestehenden
+  Roadmap-Anteil im Forecast.
+- **Zuordnung gewinnt das Ticketsystem:** Ein eindeutig bestimmter aktueller oder künftiger
+  Sprint gilt für die tatsächliche Zuordnung. Die Last zählt **immer beim Sprint des
+  Ticketsystems**, nie beim vorgemerkten Zielsprint. Eine abweichende Absicht bleibt als
+  Vergleich sichtbar. Geschlossene Sprints erzeugen keine neue Zusage, und der eingefrorene
+  Planning-Stand wird durch spätere Änderungen im Ticketsystem nicht verändert.
 - **Abgleich bei jedem Laden:**
 
 | Zustand im Ticketsystem | Reaktion |
 |---|---|
-| Ticket in aktuellem oder künftigem echten Sprint | Vormerkung „eingeplant“; Last zählt beim Jira-Sprint; Abweichung vom Ziel-Sprint wird gezeigt |
+| Ticket in aktuellem oder künftigem echten Sprint | Vormerkung „eingeplant“; Last zählt beim Sprint des Ticketsystems; Abweichung vom Ziel-Sprint wird gezeigt |
 | Ticket in echtem Sprint, trifft Kandidaten-Abfrage, Regel an | Regelverstoß anzeigen |
 | Eingeplantes Ticket wieder bei den Kandidaten | Warnung, Ziel-Sprint bleibt |
 | Ticket erledigt, nie in einem Sprint | Vormerkung entfällt, Hinweis |
@@ -230,38 +233,12 @@ Indikator.
   lesbares Ziel und widersprüchliche Zuordnungen sind unterschiedliche Zustände;
   Mehrfachverknüpfungen vervielfachen keine Last. Kein Bestandteil des ersten Nutzens.
 
-## 8. Datenordner und Synchronisation
-
-- Die App kann den Datenordner im Betrieb wechseln (Seite „Datenordner“: vorhandenen Ordner
-  wählen, neues Daten-Repo anlegen, bestehendes klonen). Geplant: aktives Repo und Team
-  dauerhaft anzeigen, eine Liste der zuletzt benutzten Ordner als Umschalter; beim Wechsel
-  werden ungespeicherte Eingaben behandelt und alte Formularzustände verworfen.
-- Wer die App für ein Team ohne gemeinsame POs nutzt, verwendet ein eigenes Daten-Repo.
-- Fehltage je Person sind für POs zugänglich, weil sie zur Sprintplanung gehören.
-- **Synchronisation über Git.** Heute gibt es Commit in der App. Mindestumfang, damit es für
-  Nicht-Techniker alltagstauglich ist:
-  1. Ein Knopf „Speichern und teilen“ (Pull, Commit, Push) mit Anzeige des Stands (voraus,
-     hinterher, offline) und der Änderungen anderer seit dem letzten Laden.
-  2. Veraltete Formulare vor dem Speichern erkennen; eigene Änderungen sichern, bevor
-     synchronisiert wird.
-  3. Konfliktdateien erkennen, **bevor** die YAML geladen wird; die betroffene Bearbeitung ist
-     gesperrt, eine geführte Wiederherstellung wird angeboten.
-  4. Ein Zusammenführen auf Schlüsselebene (verschiedene Schlüssel derselben Datei werden
-     vereinigt); nur echte Wertkonflikte gehen an den Menschen, in der App mit „meine/andere
-     Änderung“, danach läuft die Datenprüfung.
-  5. Die Vormerkung liegt in einer Datei je Ticket, und die App schreibt Dateien stabil
-     formatiert und sortiert, damit Konflikte selten werden.
-  6. Die Git-Anmeldung wird eigens eingerichtet (Credential Manager, SSH-Rückfragen,
-     Dateisperren, Zeilenenden unter Windows).
-- Alternativ nennt der Pilot einen erreichbaren Git-Ansprechpartner. Die Abnahme erfolgt mit
-  zwei gleichzeitig arbeitenden POs und absichtlich erzeugten Konflikten.
-
-## 9. Architektur
+## 8. Architektur
 
 ```
 sprintforecast/
   Kern: capacity, forecast, calendar      (kennt weder Quellen noch Vormerkung)
-  sources/   neutrales Ticketmodell + Schnittstelle TicketSource
+  sources/    neutrales Ticketmodell + Schnittstelle TicketSource
   vormerkung/ Vormerkungen: Modell + Speicherung
   Adapter jira  im selben Repo, optionaler Zusatz: sprintforecast[jira]
 ```
@@ -272,42 +249,28 @@ sprintforecast/
   Verbindung testen) und wächst erst bei der zweiten Quelle. Der Jira-Adapter ist ein optionales
   Extra, das beim Import geprüft wird; ein eigenes Plugin-Registrierungsverfahren oder ein
   privates Paket ist nicht nötig, weil die Software nichts Instanzspezifisches enthält.
-- Der Kern importiert nie aus `sources/` oder `vormerkung/` (per Test erzwungen).
+- Der Kern importiert nie aus `sources/` oder `vormerkung/` (per Test erzwungen). Ohne
+  installiertes Extra und mit `ticket_source: none` wird nichts davon geladen.
 
-## 10. Voraussetzung: Forecast-Kern
+## 9. Phasen (Ticketsystem)
 
-Die Vormerkung vergleicht Last mit dem Forecast PLAN 2 bis 6 Sprints im Voraus. Eine Prüfung
-des bestehenden Kerns ergab Punkte, die davor geklärt werden sollten (Empfehlungen, noch zu
-entscheiden):
-
-- Der Standard-Trend (`classic`/`linear`) extrapoliert Rauschen und kann sinken oder negativ
-  werden; vorgeschlagen ist `flat` (oder Median) als Standard.
-- Kapazität in Sprints ohne bestätigte Fehltage aus Kalender und Personen berechnen, nicht per
-  Trend; nur die Fehltage schätzen.
-- Bandbreite direkt an der Forecast-Kachel, Stichprobengröße nennen, Formulierungen wie „85 %
-  Sicherheit“ abschwächen.
-- Eigenschaftstests: konstante Velocity ergibt konstanten Forecast; Plan liegt in der
-  Bandbreite; ein Feiertagssprint hat weniger Kapazität als ein Normalsprint.
-- PO-Begriffe: z. B. „Forecast IST“ → „Zusage“; der Begriff „Roadmap“ (derzeit ein
-  reservierter Anteil) ist umzubenennen, wenn er frei werden soll.
-
-## 11. Phasen
+Voraussetzung ist das Kern-Konzept: Phase K1 (Berechnung) vor der Vormerkung, Phase K3
+(Datenordner und Synchronisation) vor dem Betrieb mit mehreren POs.
 
 | Phase | Inhalt | Abnahmekriterium |
 |---|---|---|
-| **0 Kern und Definitionen** | Punkte aus 10; Definitionen aus 6.2 festschreiben; Format von Planning- und Review-Stand | Eigenschaftstests grün; Bilanz aus 6.2 als Test, auch mit Hochschätzung, Zugang und Entfernung |
-| **1 Jira-Spike** | Verbindung, Felder, Kandidaten-Abfrage, Produktzuordnung gegen die echte Instanz auf dem PO-Arbeitsplatz | Σ Rest der Kandidaten stimmt mit dem Jira-Board überein; Produktzuordnung trifft ≥ 95 % der Tickets; Token nur im Schlüsselbund |
-| **2 Minimale Einrichtung und Sync** | Seite „Ticketsystem“ (4.1), Umschalter für Datenordner, „Speichern und teilen“, Konflikterkennung | Zwei POs arbeiten parallel, einschließlich absichtlicher Konflikte, ohne Terminal und ohne Datenverlust |
-| **3 Vormerkung und Auslastung** | `vormerkungen/`, Balken, Spalten, Abgleich, Übernahme, Alterung; Planning-Stand wird ab hier mitgeschrieben | Eine PO bereitet zwei Sprints vor; jedes Ticket zählt einmal; Unbekanntes bleibt sichtbar |
-| **4 Review-Vorschlag** | Vorschlag für geleistet/Erledigt aus dem Review-Stand, Bestätigung durch die PO | Über drei reale Sprints stimmen bestätigte Werte mit den manuellen Werten bis auf erklärbare Differenzen überein; gezielte Fälle für Hochschätzung, Zugang, Entfernung |
+| **T0 Definitionen** | Definitionen aus 6.2 festschreiben; Format von Planning- und Review-Stand | Bilanz aus 6.2 als Test, auch mit Hochschätzung, Zugang und Entfernung |
+| **T1 Spike** | Verbindung, Felder, Kandidaten-Abfrage, Produktzuordnung gegen die echte Instanz auf dem PO-Arbeitsplatz | Σ Rest der Kandidaten stimmt mit dem Board überein; Produktzuordnung trifft ≥ 95 % der Tickets; Token nur im Schlüsselbund |
+| **T2 Einrichtung** | `ticket_source`, Seite „Ticketsystem“ (4.1), Nur-GET-Absicherung | Mit `none` ändert sich nichts; mit `jira` lassen sich Verbindung und Felder in der App einrichten |
+| **T3 Vormerkung und Auslastung** | `vormerkungen/`, Balken, Spalten, Abgleich, Übernahme, Alterung; Planning-Stand wird ab hier mitgeschrieben | Eine PO bereitet zwei Sprints vor; jedes Ticket zählt einmal; Unbekanntes bleibt sichtbar |
+| **T4 Review-Vorschlag** | Vorschlag für geleistet/Erledigt aus dem Review-Stand, Bestätigung durch die PO | Über drei reale Sprints stimmen bestätigte Werte mit den manuellen Werten bis auf erklärbare Differenzen überein; gezielte Fälle für Hochschätzung, Zugang, Entfernung |
 
-Spätere Kandidaten: durchgehender Assistent für alle Einstellungen, PO-Startseite,
-Vorhaben-Gruppierung, Anzeige „Zieltermin laut Jira“, Import alter Sprints, Export des
-Forecasts je Sprint (CSV/JSON), Drag-and-drop, weitere Quellen.
+Spätere Kandidaten: Vorhaben-Gruppierung, Anzeige „Zieltermin laut Ticketsystem“, Import alter
+Sprints, Export des Forecasts je Sprint (CSV/JSON), Drag-and-drop, weitere Quellen.
 
 Jede Phase ist ein eigener, kleiner Pull Request (oder ein Stapel).
 
-## 12. Tests
+## 10. Tests
 
 - Keine echten Netzaufrufe in der CI: gefälschter Server (`httpx.MockTransport`) mit
   aufgezeichneten Antworten; ein manuell auslösbarer Test gegen eine echte Instanz, weil
@@ -315,16 +278,15 @@ Jede Phase ist ein eigener, kleiner Pull Request (oder ein Stapel).
 - Ein Test je Abgleichfall aus 7, Tests für Last, Zusage, Erledigt und die Bilanz (Hochschätzung,
   Zugang, Entfernung, fehlender Eintrittsrest), Tests für die Einstellungen aus 4.2 einschließlich
   ungültiger Kombinationen, AppTest für die neuen Seiten.
+- Test, dass mit `ticket_source: none` keine Ticketseite, kein Menüeintrag und keine Vormerkung
+  erscheint und kein Ticketmodul geladen wird.
 - Tests, dass nur GET gesendet wird und dass Token und Ticketdaten nie in Logs oder
   Fehlermeldungen auftauchen. In Dateien dürfen ausdrücklich nur Ticket-Schlüssel und die
   Zahlen der Snapshots stehen, keine Titel oder Beschreibungen.
-- Ein Zwei-PO-Test mit absichtlich erzeugten Konflikten (Phase 2).
 
-## 13. Offene Punkte
+## 11. Offene Punkte
 
-- Wie wird der Eintrittsrest von Zugängen erfasst, wenn Jira nur den aktuellen Wert kennt
-  (Teamangabe beim Review)?
-- Reicht ein Datenordner-Umschalter mit Liste der letzten Ordner, oder soll er Teams mehrerer
-  Daten-Repos gleichzeitig zeigen?
+- Wie wird der Eintrittsrest von Zugängen erfasst, wenn das Ticketsystem nur den aktuellen Wert
+  kennt (Teamangabe beim Review)?
 - Welche Kandidaten-Auswahlen soll die Seite „Ticketsystem“ anbieten (Sprint, Status, Label,
   Backlog ohne Sprint, eigene JQL)?
