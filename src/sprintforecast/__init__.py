@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Velocity- und Kapazitäts-Forecast für Scrum-Teams mit Git als Datenablage."""
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 
 def main() -> None:

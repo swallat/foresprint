@@ -1,6 +1,6 @@
 [project]
 name = "sprintforecast"
-version = "0.4.1"
+version = "0.5.0"
 description = "Velocity- und Kapazitäts-Forecast für Scrum-Teams mit Git als Datenablage"
 readme = "README.md"
 license = "EUPL-1.2"
