@@ -108,8 +108,32 @@ def test_handoff_keeps_server_running(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)
     monkeypatch.setattr(cli, "find_browser", lambda explicit: Browser(Kind.APP, "Edge", "/e"))
-    monkeypatch.setattr(cli.subprocess, "run", lambda cmd: None)
-    cli._open_app_window("http://localhost:1", server=None, explicit=None)  # kein Abbruch
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda cmd: FakeProcess(done=True))
+    cli._open_app_window("http://localhost:1", server=FakeProcess(), explicit=None)  # kein Abbruch
+
+
+class FakeProcess:
+    def __init__(self, done: bool = False) -> None:
+        self.done = done
+        self.terminated = False
+
+    def poll(self) -> int | None:
+        return 0 if self.done else None
+
+    def terminate(self) -> None:
+        self.terminated = True
+
+
+def test_window_closes_when_server_ends(monkeypatch: pytest.MonkeyPatch):
+    """Beendet sich der Server (Neustart für eine Aktualisierung), schließt das Fenster."""
+    from sprintforecast import cli
+
+    window = FakeProcess()
+    monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)
+    monkeypatch.setattr(cli, "find_browser", lambda explicit: Browser(Kind.APP, "Edge", "/e"))
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda cmd: window)
+    cli._open_app_window("http://localhost:1", server=FakeProcess(done=True), explicit=None)
+    assert window.terminated
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Fake-Browser als Shell-Skript")

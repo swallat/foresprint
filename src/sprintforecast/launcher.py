@@ -25,6 +25,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from sprintforecast.i18n import t
+
 BROWSER_ENV = "SPRINTFORECAST_BROWSER"
 
 
@@ -137,7 +139,7 @@ def find_browser(explicit: str | None = None) -> Browser:
     if explicit:
         path = shutil.which(explicit) or (explicit if Path(explicit).is_file() else None)
         if path is None:
-            raise FileNotFoundError(f"Browser nicht gefunden: {explicit}")
+            raise FileNotFoundError(t("Browser nicht gefunden: {browser}", browser=explicit))
         kind = Kind.WINDOW if "firefox" in Path(path).name.lower() else Kind.APP
         return Browser(kind, Path(path).stem, path)
 
@@ -193,7 +195,7 @@ def free_port(preferred: int) -> int:
             except OSError:
                 continue
             return s.getsockname()[1]
-    raise OSError("Kein freier Port gefunden")
+    raise OSError(t("Kein freier Port gefunden"))
 
 
 def wait_until_ready(url: str, server: subprocess.Popen, timeout: float = 60) -> bool:

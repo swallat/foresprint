@@ -6,6 +6,7 @@
 # Ohne Rückfrage (vorher setzen):
 #   $env:SPRINTFORECAST_WITH = "besitzer/repo; name @ git+https://…"   Plugins ("" = keine)
 #   $env:SPRINTFORECAST_REF = "…"                                      Branch oder Tag statt main
+#   $env:SPRINTFORECAST_NO_SHORTCUT = "1"                              keinen Starter anlegen
 $ErrorActionPreference = "Stop"
 
 $ref = if ($env:SPRINTFORECAST_REF) { $env:SPRINTFORECAST_REF } else { "main" }
@@ -68,7 +69,11 @@ if ($items.Count -gt 0) {
 }
 
 $bin = (& uv tool dir --bin).Trim()
+# Starter zum Doppelklicken (abschaltbar mit $env:SPRINTFORECAST_NO_SHORTCUT = "1")
+if (-not $env:SPRINTFORECAST_NO_SHORTCUT) {
+    try { & (Join-Path $bin 'sprintforecast.exe') verknuepfung } catch { Write-Host "Hinweis: Starter nicht angelegt." }
+}
 Write-Host ""
 Write-Host "Fertig: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"
-Write-Host "Neues PowerShell-Fenster öffnen, dann z. B.:"
+Write-Host "Start per Doppelklick auf „Sprint-Forecast“ (Desktop/Startmenü) – oder im neuen PowerShell-Fenster z. B.:"
 Write-Host "  cd `"$HOME\sprint-daten`"; sprintforecast web --app"

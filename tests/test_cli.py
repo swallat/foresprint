@@ -55,7 +55,7 @@ def test_fehltage_rejects_invalid_number(data_dir: Path):
 
 def test_review_freezes_capacity(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
-    result = run(data_dir, "review", "demo", "2026.21", input="y\n9,5\n0.1\n")
+    result = run(data_dir, "review", "demo", "2026.21", input="y\n9,5\n0.1\nn\n")
     assert result.exit_code == 0, result.output
     sprint = load(path)
     assert sprint["capacity"] == 25.5
@@ -64,7 +64,8 @@ def test_review_freezes_capacity(data_dir: Path):
 
 
 def test_planning_reports_delta(data_dir: Path):
-    result = run(data_dir, "planning", "demo", input="y\n1\n8\n0.5\n9\n")
+    # Fehltage prüfen? n · Planning je Produkt? n · Kontrollrechnung? y …
+    result = run(data_dir, "planning", "demo", "2026.21", input="n\nn\ny\n1\n8\n0.5\n9\n")
     assert result.exit_code == 0, result.output
     sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
     assert sprint["forecast_ist"] == 9
@@ -96,8 +97,8 @@ def test_pruefen_fails_on_error(data_dir: Path):
 
 def test_init_new_team(tmp_path: Path):
     answers = [
-        "Team A", "PT", "by", "10", "14", "yearly", "2026-10-14", "2026.20",
-        "40", "", "", "", "", "",
+        "Team A", "PT", "by", "10", "", "14", "yearly", "2026-10-14", "2026.20",
+        "40", "", "", "", "", "", "",
     ]  # fmt: skip
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
@@ -110,8 +111,8 @@ def test_init_new_team(tmp_path: Path):
 
 def test_einstellungen_changes_and_validates(data_dir: Path):
     # Reihenfolge: Name, Einheit, Bundesland, Overhead, Länge, Nummerierung,
-    # Referenz, Fenster, Trend, Roadmap, Horizont, Rundung, Speichern?
-    answers = ["", "SP", "xx", "he", "", "", "", "-5", "50", "", "flat", "75", "", "", "y"]
+    # Referenz, Fenster, Trend, Roadmap, Horizont, Rundung, Produktbasis, Speichern?
+    answers = ["", "SP", "xx", "he", "", "", "", "", "-5", "50", "", "flat", "75", "", "", "", "y"]
     result = run(data_dir, "einstellungen", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
     assert "Erlaubt:" in result.output  # Bundesland xx
@@ -128,14 +129,14 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
 
 def test_einstellungen_without_changes(data_dir: Path):
     before = (data_dir / "demo" / "team.yaml").read_text()
-    result = run(data_dir, "einstellungen", "demo", input="\n" * 12)
+    result = run(data_dir, "einstellungen", "demo", input="\n" * 14)
     assert result.exit_code == 0, result.output
     assert "Keine Änderungen" in result.output
     assert (data_dir / "demo" / "team.yaml").read_text() == before
 
 
 def test_review_shows_plausibility_warning(data_dir: Path):
-    result = run(data_dir, "review", "demo", "2026.21", input="y\n9.5\n30\n")
+    result = run(data_dir, "review", "demo", "2026.21", input="y\n9.5\n30\nn\n")
     assert result.exit_code == 0, result.output
     assert "scope_creep 30" in result.output
 
@@ -143,14 +144,14 @@ def test_review_shows_plausibility_warning(data_dir: Path):
 def test_commit_refused_on_errors(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.22.yaml"
     path.write_text(path.read_text().replace("cem: 5", "unbekannt: 5"))
-    result = run(data_dir, "planning", "demo", "2026.22", "--commit", input="n\n10\n")
+    result = run(data_dir, "planning", "demo", "2026.22", "--commit", input="n\nn\nn\n10\n")
     assert result.exit_code == 1
     assert "Nicht committet" in result.output
 
 
 def test_planning_prefills_forecast_ist(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.22.yaml"
-    result = run(data_dir, "planning", "demo", "2026.22", input="y\n1.5\n11\n\n\n")
+    result = run(data_dir, "planning", "demo", "2026.22", input="n\nn\ny\n1.5\n11\n\n\n")
     assert result.exit_code == 0, result.output
     assert "Vorbelegt mit Überkipper + Backlog" in result.output
     sprint = load(path)
@@ -160,7 +161,7 @@ def test_planning_prefills_forecast_ist(data_dir: Path):
 
 def test_planning_without_control_calculation(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.22.yaml"
-    result = run(data_dir, "planning", "demo", "2026.22", input="n\n11\n")
+    result = run(data_dir, "planning", "demo", "2026.22", input="n\nn\nn\n11\n")
     assert result.exit_code == 0, result.output
     sprint = load(path)
     assert sprint["forecast_ist"] == 11
@@ -230,3 +231,75 @@ def test_analyse_with_project_share(data_dir: Path):
     assert half.exit_code == 0, half.output
     assert "Projektanteil 50 % = 40 % des Forecasts" in half.output
     assert "je Sprint" in half.output and full.output != half.output
+
+
+def test_planning_flow_next_sprint(data_dir: Path):
+    # Standard: nächstes Planning (2026.22). Fehltage: Anna 1, Ben 0, Cem 5, Dana 0;
+    # Planning je Produkt: Webshop 4, App 3, Portal 3; ohne Kontrollrechnung; Forecast IST 10
+    answers = ["y", "1", "0", "5", "0", "y", "4", "3", "3", "n", "10"]
+    result = run(data_dir, "planning", "demo", input="\n".join(answers) + "\n")
+    assert result.exit_code == 0, result.output
+    assert "Planning 2026.22 – Schritt 3" in result.output
+    sprint = load(data_dir / "demo" / "sprints" / "2026.22.yaml")
+    assert sprint["absences"] == {"anna": 1, "cem": 5}
+    assert sprint["products"]["webshop"] == {"preplanned": 3, "planned": 4}
+    assert sprint["forecast_ist"] == 10
+    assert sprint["forecast_plan"] is not None
+
+
+def test_produkte_and_vorplanung(data_dir: Path):
+    result = run(data_dir, "produkte", "demo", "2026.23", "--vorplanung", input="2\n2\n2\n")
+    assert result.exit_code == 0, result.output
+    sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
+    assert sprint["products"] == {p: {"preplanned": 2} for p in ("webshop", "app", "portal")}
+    assert "Saldo" in result.output
+
+
+def test_produktliste_add_and_end(data_dir: Path):
+    answers = ["n", "Neues Produkt", "Cleo", "2026-11-01", "e", "mobile app", "2026-12-31", "q"]
+    result = run(data_dir, "produktliste", "demo", input="\n".join(answers) + "\n")
+    assert result.exit_code == 0, result.output
+    products = load(data_dir / "demo" / "products.yaml")["products"]
+    assert products[-1] == {
+        "id": "neues-produkt", "name": "Neues Produkt", "po": "Cleo",
+        "from": date(2026, 11, 1), "to": None,
+    }  # fmt: skip
+    assert products[1]["to"] == date(2026, 12, 31)
+
+
+def test_aktualisieren_outside_uv_tool(data_dir: Path):
+    result = run(data_dir, "aktualisieren", "--pruefen")
+    assert result.exit_code == 1
+    assert "nicht mit `uv tool install` installiert" in result.output
+
+
+def test_sprints_calendar_and_longer_sprint(data_dir: Path):
+    result = run(data_dir, "sprints", "demo")
+    assert result.exit_code == 0, result.output
+    assert "Di 27.10.2026" in result.output  # letzter Tag von 2026.21
+    # 2026.25 drei Wochen bis Di 12.01.2027 → 2026.26 entfällt, danach 2027.1
+    result = run(data_dir, "sprints", "demo", "--ende", "2026.25=2027-01-12", "--anlegen")
+    assert result.exit_code == 0, result.output
+    s25 = load(data_dir / "demo" / "sprints" / "2026.25.yaml")
+    assert s25["end"] == date(2027, 1, 13)
+    nxt = load(data_dir / "demo" / "sprints" / "2027.1.yaml")
+    assert nxt["start"] == date(2027, 1, 13)
+    assert run(data_dir, "pruefen").exit_code == 0
+
+
+def test_forecast_rechenweg(data_dir: Path):
+    result = run(data_dir, "forecast", "demo", "--rechenweg", "2026.22")
+    assert result.exit_code == 0, result.output
+    assert "Rechenweg Sprint 2026.22" in result.output
+    assert "10,185" in result.output
+
+
+def test_datenordner(tmp_path: Path, data_dir: Path):
+    import subprocess
+
+    assert run(data_dir, "datenordner", str(tmp_path)).exit_code == 1  # kein Git
+    subprocess.run(["git", "init", "-q", str(data_dir)], check=True)
+    result = run(data_dir, "datenordner", str(data_dir))
+    assert result.exit_code == 0, result.output
+    assert "Datenordner gemerkt" in result.output
+    assert "Gemerkt:" in run(data_dir, "datenordner").output

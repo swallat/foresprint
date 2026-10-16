@@ -3,6 +3,7 @@
 
 <daten>/<team>/team.yaml          Team-Konfiguration
 <daten>/<team>/people.yaml        Personenliste mit Zugehörigkeiten
+<daten>/<team>/products.yaml      Produktliste (optional)
 <daten>/<team>/sprints/<id>.yaml  ein Sprint pro Datei
 """
 
@@ -16,6 +17,7 @@ from typing import Any
 
 import yaml
 
+from sprintforecast.i18n import t
 from sprintforecast.model import (
     CapacitySettings,
     ForecastSettings,
@@ -23,6 +25,9 @@ from sprintforecast.model import (
     Numbering,
     Person,
     Planning,
+    Product,
+    ProductBasis,
+    ProductValues,
     Sprint,
     SprintSettings,
     Team,
@@ -47,17 +52,44 @@ def _has_teams(path: Path) -> bool:
     return path.is_dir() and any((p / "team.yaml").is_file() for p in path.iterdir())
 
 
-def default_data_dir() -> Path:
-    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis.
+def teams_dir(path: Path) -> Path | None:
+    """``path`` bzw. dessen Unterordner ``teams``, falls dort Teams liegen."""
+    if _has_teams(path):
+        return path
+    if _has_teams(path / TEAMS_SUBDIR):
+        return path / TEAMS_SUBDIR
+    return None
 
-    Enthält das aktuelle Verzeichnis selbst keine Teams, aber einen Unterordner ``teams``
-    mit Teams (Aufbau eines Daten-Repositorys), wird dieser verwendet.
+
+def saved_data_dir() -> Path | None:
+    """In der Weboberfläche (oder mit `sprintforecast datenordner`) gemerkter Datenordner."""
+    from sprintforecast import config
+
+    raw = config.load().get("data_dir")
+    path = Path(raw) if raw else None
+    return path if path is not None and path.is_dir() else None
+
+
+def save_data_dir(path: Path) -> None:
+    from sprintforecast import config
+
+    config.update(data_dir=str(path.resolve()))
+
+
+def default_data_dir() -> Path:
+    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis, falls es
+    Teams enthält > gemerkter Datenordner > aktuelles Verzeichnis.
+
+    Enthält ein Verzeichnis selbst keine Teams, aber einen Unterordner ``teams`` mit Teams
+    (Aufbau eines Daten-Repositorys), wird dieser verwendet.
     """
     if configured := os.environ.get(DATA_ENV):
         return Path(configured)
     here = Path(".")
-    if not _has_teams(here) and _has_teams(here / TEAMS_SUBDIR):
-        return here / TEAMS_SUBDIR
+    if found := teams_dir(here):
+        return found
+    if saved := saved_data_dir():
+        return teams_dir(saved) or saved
     return here
 
 
@@ -65,13 +97,13 @@ def _read(path: Path) -> dict[str, Any]:
     try:
         content = yaml.safe_load(path.read_text(encoding="utf-8"))
     except FileNotFoundError as e:
-        raise DataError(f"Datei fehlt: {path}") from e
+        raise DataError(t("Datei fehlt: {path}", path=path)) from e
     except yaml.YAMLError as e:
-        raise DataError(f"{path}: kein gültiges YAML ({e})") from e
+        raise DataError(t("{path}: kein gültiges YAML ({error})", path=path, error=e)) from e
     if content is None:
         return {}
     if not isinstance(content, dict):
-        raise DataError(f"{path}: Inhalt muss ein YAML-Objekt sein")
+        raise DataError(t("{path}: Inhalt muss ein YAML-Objekt sein", path=path))
     return content
 
 
@@ -85,7 +117,9 @@ def _float(value: Any, where: str) -> float | None:
     if value is None or value == "":
         return None
     if isinstance(value, bool) or not isinstance(value, int | float):
-        raise DataError(f"{where}: Zahl erwartet, gefunden {value!r}")
+        raise DataError(
+            t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+        )
     return float(value)
 
 
@@ -95,7 +129,13 @@ def _date(value: Any, where: str) -> date:
     try:
         return date.fromisoformat(str(value))
     except ValueError as e:
-        raise DataError(f"{where}: Datum im Format JJJJ-MM-TT erwartet, gefunden {value!r}") from e
+        raise DataError(
+            t(
+                "{where}: Datum im Format JJJJ-MM-TT erwartet, gefunden {value}",
+                where=where,
+                value=repr(value),
+            )
+        ) from e
 
 
 def _clean(value: float | None) -> float | int | None:
@@ -107,7 +147,7 @@ def _clean(value: float | None) -> float | int | None:
 # --- Team -----------------------------------------------------------------------------
 
 TEAM_HEADER = """\
-# Team-Konfiguration. Erläuterungen: `sprintforecast hilfe team`
+# Team settings. Explanations: `sprintforecast help team`
 """
 
 
@@ -134,9 +174,11 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 rounding=int(forecast.get("rounding", 1)),
                 trend_mode=TrendMode(forecast.get("trend_mode", "klassisch")),
                 horizon=int(forecast.get("horizon", 3)),
+                product_basis=ProductBasis(forecast.get("product_basis", "plan")),
             ),
             capacity=CapacitySettings(
                 overhead_share=float(capacity.get("overhead_share", 0.0)),
+                overhead_days=float(capacity.get("overhead_days", 0.0)),
                 region=capacity.get("region"),
                 rounding=int(capacity.get("rounding", 1)),
             ),
@@ -152,31 +194,34 @@ def team_to_dict(team: Team) -> dict[str, Any]:
     }
     if team.sprint.first_id is not None and team.sprint.first_start is not None:
         sprint["first"] = {"id": team.sprint.first_id, "start": team.sprint.first_start}
+    forecast: dict[str, Any] = {
+        "reference_capacity": _clean(team.forecast.reference_capacity),
+        "window": team.forecast.window,
+        "roadmap_share": team.forecast.roadmap_share,
+        "rounding": team.forecast.rounding,
+        "trend_mode": team.forecast.trend_mode.value,
+        "horizon": team.forecast.horizon,
+    }
+    if team.forecast.product_basis is not ProductBasis.PLAN:
+        forecast["product_basis"] = team.forecast.product_basis.value
+    capacity: dict[str, Any] = {"overhead_share": team.capacity.overhead_share}
+    if team.capacity.overhead_days:
+        capacity["overhead_days"] = _clean(team.capacity.overhead_days)
+    capacity |= {"region": team.capacity.region, "rounding": team.capacity.rounding}
     return {
         "name": team.name,
         "unit": team.unit.value,
         "sprint": sprint,
-        "forecast": {
-            "reference_capacity": _clean(team.forecast.reference_capacity),
-            "window": team.forecast.window,
-            "roadmap_share": team.forecast.roadmap_share,
-            "rounding": team.forecast.rounding,
-            "trend_mode": team.forecast.trend_mode.value,
-            "horizon": team.forecast.horizon,
-        },
-        "capacity": {
-            "overhead_share": team.capacity.overhead_share,
-            "region": team.capacity.region,
-            "rounding": team.capacity.rounding,
-        },
+        "forecast": forecast,
+        "capacity": capacity,
     }
 
 
 # --- Personen -------------------------------------------------------------------------
 
 PEOPLE_HEADER = """\
-# Personenliste. Zugehörigkeiten mit Zeitraum und FTE-Anteil (1.0 = Vollzeit im Team).
-# Personen nie löschen, sondern Zugehörigkeit mit `to:` beenden – sonst ändert sich die Historie.
+# People. Memberships with period and FTE share (1.0 = full time in the team).
+# Never delete people; end the membership with `to:` instead – otherwise history changes.
 """
 
 
@@ -185,7 +230,7 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
     for i, p in enumerate(d.get("people") or []):
         at = f"{where}: people[{i}]"
         if "id" not in p:
-            raise DataError(f"{at}: Feld 'id' fehlt")
+            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
         memberships = [
             Membership(
                 start=_date(m.get("from"), at),
@@ -218,25 +263,75 @@ def people_to_dict(people: list[Person]) -> dict[str, Any]:
     return {"people": out}
 
 
+# --- Produkte ------------------------------------------------------------------------
+
+PRODUCTS_HEADER = """\
+# Products of the team. Period (from/to) = when the team works on the product; po optional.
+# Never delete products; end them with `to:` instead – otherwise past evaluations change.
+"""
+
+
+def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
+    products = []
+    for i, p in enumerate(d.get("products") or []):
+        at = f"{where}: products[{i}]"
+        if not isinstance(p, dict) or "id" not in p:
+            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
+        products.append(
+            Product(
+                id=str(p["id"]),
+                name=str(p.get("name") or p["id"]),
+                po=str(p["po"]) if p.get("po") else None,
+                start=_date(p["from"], at) if p.get("from") else None,
+                end=_date(p["to"], at) if p.get("to") else None,
+            )
+        )
+    return products
+
+
+def products_to_dict(products: list[Product]) -> dict[str, Any]:
+    out = []
+    for p in products:
+        entry: dict[str, Any] = {"id": p.id, "name": p.name}
+        if p.po:
+            entry["po"] = p.po
+        entry["from"] = p.start
+        entry["to"] = p.end
+        out.append(entry)
+    return {"products": out}
+
+
 # --- Sprints --------------------------------------------------------------------------
 
 SPRINT_HEADER = """\
-# Sprint {id}. Erläuterungen zu allen Feldern: `sprintforecast hilfe sprint`
+# Sprint {id}. Explanations of all fields: `sprintforecast help fields`
 """
 
 
 def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
     for key in ("id", "start", "end"):
         if d.get(key) is None:
-            raise DataError(f"{where}: Feld '{key}' fehlt")
+            raise DataError(t("{where}: Feld '{key}' fehlt", where=where, key=key))
     if isinstance(d["id"], float):
-        raise DataError(f'{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"')
+        raise DataError(
+            t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
+        )
     planning = None
     if p := d.get("planning"):
         planning = Planning(
             carryover=_float(p.get("carryover"), where) or 0.0,
             backlog=_float(p.get("backlog"), where) or 0.0,
             corrections=[_float(c, where) or 0.0 for c in p.get("corrections") or []],
+        )
+    products = {}
+    for pid, values in (d.get("products") or {}).items():
+        at = f"{where}: products.{pid}"
+        if not isinstance(values, dict):
+            raise DataError(t("{where}: Objekt mit preplanned/planned/done erwartet", where=at))
+        products[str(pid)] = ProductValues(
+            preplanned=_float(values.get("preplanned"), at),
+            planned=_float(values.get("planned"), at),
+            done=_float(values.get("done"), at),
         )
     absences = {}
     for pid, days in (d.get("absences") or {}).items():
@@ -251,6 +346,8 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         velocity=_float(d.get("velocity"), f"{where}: velocity"),
         scope_creep=_float(d.get("scope_creep"), f"{where}: scope_creep"),
         planning=planning,
+        forecast_plan=_float(d.get("forecast_plan"), f"{where}: forecast_plan"),
+        products=products,
         note=d.get("note"),
     )
 
@@ -272,6 +369,19 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
             "backlog": _clean(s.planning.backlog),
             "corrections": [_clean(c) for c in s.planning.corrections],
         }
+    if s.forecast_plan is not None:
+        d["forecast_plan"] = _clean(s.forecast_plan)
+    products = {
+        pid: {
+            k: _clean(v)
+            for k, v in (("preplanned", pv.preplanned), ("planned", pv.planned), ("done", pv.done))
+            if v is not None
+        }
+        for pid, pv in s.products.items()
+        if not pv.is_empty()
+    }
+    if products:
+        d["products"] = products
     if s.note:
         d["note"] = s.note
     return d
@@ -285,6 +395,7 @@ class TeamData:
     team: Team
     people: list[Person] = field(default_factory=list)
     sprints: list[Sprint] = field(default_factory=list)
+    products: list[Product] = field(default_factory=list)
 
     def sprint(self, sprint_id: str) -> Sprint | None:
         return next((s for s in self.sprints if s.id == sprint_id), None)
@@ -308,21 +419,36 @@ class Repository:
     def load(self, key: str) -> TeamData:
         base = self.team_dir(key)
         if not (base / "team.yaml").is_file():
-            known = ", ".join(self.teams()) or "keine"
-            raise DataError(f"Team '{key}' nicht gefunden unter {self.root} (vorhanden: {known})")
+            known = ", ".join(self.teams()) or t("keine")
+            raise DataError(
+                t(
+                    "Team '{key}' nicht gefunden unter {root} (vorhanden: {known})",
+                    key=key,
+                    root=self.root,
+                    known=known,
+                )
+            )
         team = team_from_dict(key, _read(base / "team.yaml"), str(base / "team.yaml"))
         people_file = base / "people.yaml"
         people = (
             people_from_dict(_read(people_file), str(people_file)) if people_file.is_file() else []
         )
+        products_file = base / "products.yaml"
+        products = (
+            products_from_dict(_read(products_file), str(products_file))
+            if products_file.is_file()
+            else []
+        )
         sprints = []
         for f in sorted((base / "sprints").glob("*.yaml")):
             sprint = sprint_from_dict(_read(f), str(f))
             if sprint.id != f.stem:
-                raise DataError(f"{f}: id '{sprint.id}' passt nicht zum Dateinamen")
+                raise DataError(
+                    t("{file}: id '{id}' passt nicht zum Dateinamen", file=f, id=sprint.id)
+                )
             sprints.append(sprint)
         sprints.sort(key=lambda s: s.start)
-        return TeamData(team=team, people=people, sprints=sprints)
+        return TeamData(team=team, people=people, sprints=sprints, products=products)
 
     def save_team(self, team: Team) -> Path:
         path = self.team_dir(team.key) / "team.yaml"
@@ -332,6 +458,11 @@ class Repository:
     def save_people(self, key: str, people: list[Person]) -> Path:
         path = self.team_dir(key) / "people.yaml"
         _write(path, PEOPLE_HEADER, people_to_dict(people))
+        return path
+
+    def save_products(self, key: str, products: list[Product]) -> Path:
+        path = self.team_dir(key) / "products.yaml"
+        _write(path, PRODUCTS_HEADER, products_to_dict(products))
         return path
 
     def sprint_path(self, key: str, sprint_id: str) -> Path:

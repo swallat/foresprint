@@ -13,3 +13,11 @@ def data_dir(tmp_path: Path) -> Path:
     target = tmp_path / "teams"
     shutil.copytree(EXAMPLES, target)
     return target
+
+
+@pytest.fixture(autouse=True)
+def isolated_config(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch):
+    """Keine echten Benutzereinstellungen (gemerkter Datenordner, Update-Stand) verwenden."""
+    config = tmp_path_factory.mktemp("config")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(config))
+    monkeypatch.setenv("APPDATA", str(config))

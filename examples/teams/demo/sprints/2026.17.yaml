@@ -1,4 +1,4 @@
-# Sprint 2026.17. Erläuterungen zu allen Feldern: `sprintforecast hilfe sprint`
+# Sprint 2026.17. Explanations of all fields: `sprintforecast help fields`
 id: '2026.17'
 start: 2026-08-19
 end: 2026-09-02
@@ -16,3 +16,16 @@ planning:
   backlog: 10.5
   corrections:
   - 0.75
+products:
+  webshop:
+    preplanned: 5
+    planned: 5
+    done: 4.5
+  app:
+    preplanned: 4
+    planned: 4.75
+    done: 4.5
+  altsystem:
+    preplanned: 3
+    planned: 3
+    done: 2.5

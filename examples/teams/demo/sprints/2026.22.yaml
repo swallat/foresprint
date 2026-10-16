@@ -1,4 +1,4 @@
-# Sprint 2026.22. Erläuterungen zu allen Feldern: `sprintforecast hilfe sprint`
+# Sprint 2026.22. Explanations of all fields: `sprintforecast help fields`
 id: '2026.22'
 start: 2026-10-28
 end: 2026-11-11
@@ -8,3 +8,10 @@ capacity: null
 forecast_ist: null
 velocity: null
 scope_creep: null
+products:
+  webshop:
+    preplanned: 3
+  app:
+    preplanned: 3
+  portal:
+    preplanned: 4
