@@ -410,7 +410,7 @@ def test_preplanning_whatif_is_not_saved(app: AppTest, data_dir: Path):
     before = [m.value for m in app.metric]
     box.set_value(6.0).run()
     assert not app.exception
-    assert any("Rechnung mit angenommener Velocity" in i.value for i in app.info)
+    assert any("Rechnung:" in c.value for c in app.caption)
     assert [m.value for m in app.metric] != before
     assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
     for sprint_file in (data_dir / "demo" / "sprints").glob("*.yaml"):
