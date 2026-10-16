@@ -292,3 +292,14 @@ def test_forecast_rechenweg(data_dir: Path):
     assert result.exit_code == 0, result.output
     assert "Rechenweg Sprint 2026.22" in result.output
     assert "10,185" in result.output
+
+
+def test_datenordner(tmp_path: Path, data_dir: Path):
+    import subprocess
+
+    assert run(data_dir, "datenordner", str(tmp_path)).exit_code == 1  # kein Git
+    subprocess.run(["git", "init", "-q", str(data_dir)], check=True)
+    result = run(data_dir, "datenordner", str(data_dir))
+    assert result.exit_code == 0, result.output
+    assert "Datenordner gemerkt" in result.output
+    assert "Gemerkt:" in run(data_dir, "datenordner").output

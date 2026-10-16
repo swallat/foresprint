@@ -35,6 +35,8 @@ from importlib import metadata
 from pathlib import Path
 from typing import Any
 
+from sprintforecast.config import config_dir
+
 PACKAGE = "sprintforecast"
 DEFAULT_REPO = "swallat/sprint-forecast"
 DEFAULT_REF = "main"
@@ -51,13 +53,6 @@ class Mode(StrEnum):
 
 
 # --- Ablage ---------------------------------------------------------------------------
-
-
-def config_dir() -> Path:
-    """Gleicher Ort wie die gemerkte Plugin-Auswahl der Installationsskripte."""
-    if sys.platform == "win32" and os.environ.get("APPDATA"):
-        return Path(os.environ["APPDATA"]) / PACKAGE
-    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / PACKAGE
 
 
 def state_file() -> Path:

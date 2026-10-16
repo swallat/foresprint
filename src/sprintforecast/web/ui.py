@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import copy
 import os
+import subprocess
+import sys
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -39,7 +41,13 @@ from sprintforecast.forecast import (
 )
 from sprintforecast.formulas import GENERAL, steps
 from sprintforecast.formulas import step as formula_step
-from sprintforecast.git import GitError, commit_directory, pending_changes
+from sprintforecast.git import (
+    GitError,
+    clone_repository,
+    commit_directory,
+    init_data_repository,
+    pending_changes,
+)
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW
 from sprintforecast.model import Numbering, Planning, Sprint, Team
@@ -48,11 +56,14 @@ from sprintforecast.products import MEASURES, Distribution, balance, by_po, dist
 from sprintforecast.report import capacity_label, fmt, pct, period, render, status
 from sprintforecast.settings import REGIONS, SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
+    DATA_ENV,
     STICHTAG_ENV,
     DataError,
     Repository,
     TeamData,
     default_data_dir,
+    save_data_dir,
+    teams_dir,
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
@@ -96,6 +107,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "neues_team": ("Neues Team", ":material/group_add:"),
     },
     "Daten & Hilfe": {
+        "datenordner": ("Datenordner", ":material/folder_open:"),
         "pruefung": ("Prüfung", ":material/fact_check:"),
         "hilfe": ("Hilfe", ":material/help:"),
     },
@@ -1521,6 +1533,125 @@ def page_new_team(repo: Repository) -> None:
         page_link("personen", "Weiter: Personen erfassen")
 
 
+def needs_setup(root: Path) -> bool:
+    """Kein Datenordner gefunden: weder Teams noch ein Git-Repository."""
+    return teams_dir(root) is None and git_root(root) is None
+
+
+def _use_data_dir(path: Path) -> None:
+    save_data_dir(path)
+    os.environ[DATA_ENV] = str(path.resolve())
+    st.session_state.pop("selected_team", None)
+    st.session_state["flash"] = [("success", f"Datenordner: `{path.resolve()}`")]
+
+
+def _browse(key: str) -> None:
+    """Ordnerauswahl des Systems (in eigenem Prozess – Tk braucht den Hauptthread)."""
+    script = (
+        "import tkinter, tkinter.filedialog as f; r = tkinter.Tk(); r.withdraw(); "
+        "r.attributes('-topmost', True); print(f.askdirectory(title='Datenordner wählen'))"
+    )
+    try:
+        out = subprocess.run(
+            [sys.executable, "-c", script], capture_output=True, text=True, timeout=600
+        )
+    except OSError, subprocess.TimeoutExpired:
+        out = None
+    if out is not None and out.returncode == 0 and out.stdout.strip():
+        st.session_state[key] = out.stdout.strip()
+    elif out is None or out.returncode != 0:
+        st.session_state["browse-error"] = True
+
+
+def _path_input(label: str, key: str, default: str) -> Path:
+    st.session_state.setdefault(key, default)
+    left, right = st.columns([5, 1], vertical_alignment="bottom")
+    raw = left.text_input(label, key=key)
+    right.button("Durchsuchen …", key=f"{key}-browse", on_click=_browse, args=(key,))
+    if st.session_state.pop("browse-error", False):
+        st.caption("Kein Ordnerdialog verfügbar – bitte den Pfad eintippen.")
+    return Path(raw.strip()).expanduser()
+
+
+def page_data_dir(repo: Repository, setup: bool = False) -> None:
+    st.header("Datenordner")
+    show_flash()
+    if setup:
+        st.warning(
+            "Kein Datenordner gefunden. Die Team-Daten liegen in einem **Git-Repository** – "
+            "so sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen "
+            "vorhandenen Ordner wählen, ein neues Daten-Repository anlegen oder ein bestehendes "
+            "klonen."
+        )
+    else:
+        root = git_root(repo.root)
+        st.markdown(f"Aktuell: `{repo.root.resolve()}`")
+        st.caption(
+            f"Git-Repository: `{root}`" if root else "Achtung: liegt in keinem Git-Repository."
+        )
+    choose, create, clone = st.tabs(
+        ["Vorhandenen Ordner wählen", "Neues Daten-Repository anlegen", "Repository klonen"]
+    )
+    home = Path.home()
+    with choose:
+        path = _path_input("Ordner", "data-path", str(repo.root.resolve()))
+        if st.button("Übernehmen", type="primary", key="data-choose"):
+            if not path.is_dir():
+                st.error(f"Ordner nicht gefunden: {path}")
+            elif git_root(path) is None:
+                st.error(
+                    "Der Ordner liegt in keinem Git-Repository. Entweder hier eines anlegen "
+                    "oder einen anderen Ordner wählen."
+                )
+                st.session_state["offer-init"] = str(path)
+            else:
+                _use_data_dir(teams_dir(path) or path)
+                st.rerun()
+        offer = st.session_state.get("offer-init")
+        if offer and st.button(f"Git-Repository in {offer} anlegen", key="data-init-here"):
+            try:
+                target = init_data_repository(Path(offer), teams_folder=False)
+            except GitError as e:
+                st.error(str(e))
+            else:
+                st.session_state.pop("offer-init", None)
+                _use_data_dir(teams_dir(target) or target)
+                st.rerun()
+    with create:
+        st.caption(
+            "Legt den Ordner mit `git init`, einer `.gitignore` (keine Tabellenkalkulationen) "
+            "und dem Unterordner `teams` an. Danach unter **Neues Team** ein Team anlegen."
+        )
+        path = _path_input("Neuer Ordner", "data-new", str(home / "sprint-daten"))
+        if st.button("Anlegen", type="primary", key="data-create"):
+            if path.exists() and any(path.iterdir()) and teams_dir(path) is None:
+                st.error(f"{path} ist nicht leer – bitte einen leeren oder neuen Ordner wählen.")
+            else:
+                try:
+                    target = init_data_repository(path)
+                except GitError as e:
+                    st.error(str(e))
+                else:
+                    _use_data_dir(target)
+                    st.rerun()
+    with clone:
+        st.caption(
+            "Für Kolleginnen und Kollegen: das gemeinsame Daten-Repository des Teams klonen. "
+            "Je nach Server fragt Git nach der Anmeldung."
+        )
+        url = st.text_input("Adresse", placeholder="https://git.example.com/team/sprint-daten.git")
+        path = _path_input("Zielordner", "data-clone", str(home / "sprint-daten"))
+        if st.button("Klonen", type="primary", key="data-clone-go", disabled=not url.strip()):
+            with st.spinner("Klone …"):
+                try:
+                    clone_repository(url.strip(), path)
+                except GitError as e:
+                    st.error(f"Klonen fehlgeschlagen: {e}")
+                else:
+                    _use_data_dir(teams_dir(path) or path)
+                    st.rerun()
+
+
 def page_check(repo: Repository) -> None:
     st.header("Prüfung aller Teams")
     for key, issues in check_all(repo, today()).items():
@@ -1707,6 +1838,7 @@ TEAM_PAGES = {
     "einstellungen": page_settings,
 }
 GLOBAL_PAGES = {
+    "datenordner": page_data_dir,
     "neues_team": page_new_team,
     "pruefung": page_check,
     "hilfe": page_help,
@@ -1716,6 +1848,9 @@ GLOBAL_PAGES = {
 def run_page(key: str) -> None:
     """Wird von den Seitendateien unter web/seiten aufgerufen."""
     repo = repository()
+    if needs_setup(repo.root):
+        page_data_dir(repo, setup=True)
+        return
     team = st.session_state.get("selected_team")
     if key in GLOBAL_PAGES:
         GLOBAL_PAGES[key](repo)
