@@ -55,7 +55,7 @@ from sprintforecast.git import (
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
-from sprintforecast.model import Numbering, Planning, Sprint, Team
+from sprintforecast.model import Numbering, Planning, ProductBasis, Sprint, Team
 from sprintforecast.plugins import WebPage
 from sprintforecast.products import (
     MEASURES,
@@ -1716,6 +1716,31 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
         st.dataframe(pd.DataFrame(rows[::-1]), hide_index=True)
 
 
+def _available_text(d: Distribution, data: TeamData, unit: str) -> str:
+    """Woraus sich die verteilbare Menge ergibt (Forecast PLAN bzw. dessen Roadmap-Anteil)."""
+    if d.plan is None:
+        return t("Für diesen Sprint ist noch kein Forecast PLAN berechenbar.")
+    frozen = t(" (beim Planning eingefroren)") if d.plan_frozen else ""
+    if d.basis is ProductBasis.ROADMAP:
+        share = data.team.forecast.roadmap_share
+        return t(
+            "Verteilbar = Roadmap-Anteil des Forecast PLAN{frozen}: {plan} {unit} × {share} = "
+            "{available} {unit}. Der Kleinkram-Anteil wird nicht auf Produkte verteilt "
+            "(Einstellung „Standardverteilung je Produkt aus“).",
+            frozen=frozen,
+            plan=fmt(d.plan, 2),
+            unit=unit,
+            share=pct(share),
+            available=fmt(d.available, 2),
+        )
+    return t(
+        "Verteilbar = Forecast PLAN{frozen}: {plan} {unit}.",
+        frozen=frozen,
+        plan=fmt(d.plan, 2),
+        unit=unit,
+    )
+
+
 def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     """Board der POs vor dem Planning: je Produkt vorsehen, was in den Sprint soll."""
     st.header(t("PO-Vorplanung"))
@@ -1807,8 +1832,11 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
     total = d.total("preplanned")
     left, middle, right = st.columns(3)
-    left.metric(t("Verteilbar"), f"{fmt(d.available, 2)} {unit}")
+    left.metric(
+        t("Verteilbar"), f"{fmt(d.available, 2)} {unit}", help=_available_text(d, data, unit)
+    )
     middle.metric(t("Vorgesehen (Σ)"), f"{fmt(total, 2)} {unit}")
+    st.caption(_available_text(d, data, unit))
     if total is not None and d.available is not None:
         rest = d.available - total
         right.metric(
