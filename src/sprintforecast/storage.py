@@ -180,7 +180,9 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             capacity=CapacitySettings(
                 overhead_share=float(capacity.get("overhead_share", 0.0)),
                 overhead_days=float(capacity.get("overhead_days", 0.0)),
+                country=str(capacity.get("country", "DE")).upper(),
                 region=capacity.get("region"),
+                workweek=str(capacity.get("workweek", "auto")),
                 rounding=int(capacity.get("rounding", 1)),
                 absence_history=int(capacity.get("absence_history", 0)),
             ),
@@ -209,7 +211,11 @@ def team_to_dict(team: Team) -> dict[str, Any]:
     capacity: dict[str, Any] = {"overhead_share": team.capacity.overhead_share}
     if team.capacity.overhead_days:
         capacity["overhead_days"] = _clean(team.capacity.overhead_days)
+    if team.capacity.country != "DE":
+        capacity["country"] = team.capacity.country
     capacity |= {"region": team.capacity.region, "rounding": team.capacity.rounding}
+    if team.capacity.workweek != "auto":
+        capacity["workweek"] = team.capacity.workweek
     if team.capacity.absence_history:
         capacity["absence_history"] = team.capacity.absence_history
     return {
@@ -248,6 +254,8 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
                 id=str(p["id"]),
                 name=str(p.get("name") or p["id"]),
                 region=p.get("region"),
+                country=str(p["country"]).upper() if p.get("country") else None,
+                workweek=str(p["workweek"]) if p.get("workweek") else None,
                 memberships=memberships,
                 production_access=bool(p.get("production_access", False)),
             )
@@ -259,6 +267,10 @@ def people_to_dict(people: list[Person]) -> dict[str, Any]:
     out = []
     for p in people:
         entry: dict[str, Any] = {"id": p.id, "name": p.name}
+        if p.country:
+            entry["country"] = p.country
+        if p.workweek:
+            entry["workweek"] = p.workweek
         if p.region:
             entry["region"] = p.region
         if p.production_access:
@@ -412,6 +424,10 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         products=products,
         note=d.get("note"),
         absences_confirmed=bool(d.get("absences_confirmed", False)),
+        expected_absences={
+            str(pid): _float(days, f"{where}: expected_absences.{pid}") or 0.0
+            for pid, days in (d.get("expected_absences") or {}).items()
+        },
         not_done=_float(d.get("not_done"), f"{where}: not_done"),
         additional_done=_float(d.get("additional_done"), f"{where}: additional_done"),
         prognoses=_prognoses_from(d.get("prognoses"), where),
@@ -455,6 +471,8 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
     }
     if products:
         d["products"] = products
+    if s.expected_absences:
+        d["expected_absences"] = {k: _clean(v) for k, v in s.expected_absences.items()}
     if s.not_done is not None:
         d["not_done"] = _clean(s.not_done)
     if s.additional_done is not None:

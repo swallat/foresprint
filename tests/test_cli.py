@@ -97,7 +97,7 @@ def test_pruefen_fails_on_error(data_dir: Path):
 
 def test_init_new_team(tmp_path: Path):
     answers = [
-        "Team A", "PT", "by", "10", "", "", "14", "yearly", "2026-10-14", "2026.20",
+        "Team A", "PT", "", "by", "", "10", "", "", "14", "yearly", "2026-10-14", "2026.20",
         "40", "", "", "", "", "", "",
     ]  # fmt: skip
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
@@ -115,8 +115,10 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
     answers = [
         "",
         "SP",
+        "",
         "xx",
         "he",
+        "",
         "",
         "",
         "",
@@ -134,7 +136,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
     ]
     result = run(data_dir, "einstellungen", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
-    assert "Erlaubt:" in result.output  # Bundesland xx
+    assert "Unbekannter Regionscode" in result.output  # Region xx
     assert "muss ≥ 1" in result.output  # Referenz -5
     assert "rückwirkend" in result.output
     team = load(data_dir / "demo" / "team.yaml")
@@ -148,7 +150,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
 
 def test_einstellungen_without_changes(data_dir: Path):
     before = (data_dir / "demo" / "team.yaml").read_text()
-    result = run(data_dir, "einstellungen", "demo", input="\n" * 15)
+    result = run(data_dir, "einstellungen", "demo", input="\n" * 17)
     assert result.exit_code == 0, result.output
     assert "Keine Änderungen" in result.output
     assert (data_dir / "demo" / "team.yaml").read_text() == before

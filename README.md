@@ -12,7 +12,8 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
 - **Aktualisiert sich selbst:** prüft täglich auf eine neue Version und installiert sie nach
   dem Beenden (abschaltbar).
 - **Kapazität aus einer Personenliste:** Personen mit Zugehörigkeitszeitraum und FTE,
-  planbare Fehltage je Sprint, Feiertage je Bundesland.
+  planbare Fehltage je Sprint, Feiertage und Arbeitswoche je Land und Region (weltweit, über die
+  Bibliothek `holidays`).
 - **Nachvollziehbare Rechenlogik:** normierte Velocity, gleitender Durchschnitt und Trend,
   konfigurierbar je Team.
 - **Erweiterbar:** Plugins können Befehle und Seiten ergänzen, z. B. Importe.
@@ -203,6 +204,19 @@ weiterhin von dir.
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
 | Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. |
 
+### PO-Vorplanung und Planning
+
+- **Voraussichtliche Fehltage:** Auf dem Board *PO-Vorplanung* lassen sich schon vor dem Planning
+  Fehltage je Person als **Prognose** eintragen. Sie wirken auf Kapazität (Quelle „voraussichtliche
+  Fehltage“) und Forecast PLAN, gelten aber nicht als bestätigt. Im *Planning* (Schritt 1) sind sie
+  vorbelegt; erst „Fehltage speichern“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
+- **Einplanung aus der Vorplanung:** Im Planning (Schritt 2) ist die Einplanung je Produkt mit der
+  letzten PO-Vorplanung vorbelegt (bitte prüfen und speichern).
+- **Einfrieren aufheben:** Der beim Planning eingefrorene Forecast PLAN lässt sich auf dem Planning-Board
+  nur nach Bestätigung einer Fehlerkorrektur freigeben. Tickets, die nach dem Planning hinzugezogen oder
+  herausgenommen werden, gehören nicht nachträglich ins Planning, sondern fließen im *Review* ein
+  (Davon nicht erledigt / Zusätzlich erledigt).
+
 ### Längere oder kürzere Sprints (z. B. über Weihnachten)
 
 Einzelne Sprints lassen sich verlängern oder verkürzen, indem man ihren **letzten Tag** ändert:
@@ -271,7 +285,9 @@ capacity:
   overhead_days: 1          # optional: zusätzlich fester Abzug in PT je Person und Sprint (× FTE)
   absence_history: 4        # optional: Kapazität künftiger Sprints ohne Fehltage um die Ø Fehltage
                             # der letzten 4 Sprints mindern (0 = aus, dann Trend)
-  region: NW                # Bundesland für Feiertage
+  country: DE               # optional (Standard DE): ISO-Ländercode für Feiertage und Wochenende
+  region: NW                # Region im Land (Bundesland, Staat, Provinz), z. B. NW, CA, ON
+  workweek: auto            # optional: auto (wie im Land) | mon-fri | sun-thu | mon-sat
 ```
 
 **`people.yaml`** – Personen werden nie gelöscht, nur Zugehörigkeiten beendet:
@@ -281,6 +297,8 @@ people:
 - id: ben
   name: Ben
   region: BY                # optional, sonst Team-Region
+  country: AT               # optional: abweichendes Land der Person (Feiertage, Wochenende)
+  workweek: mon,tue,wed,thu # optional: eigene Arbeitswoche, z. B. 4-Tage-Woche (sonst Land/Team)
   production_access: true   # optional: darf Tickets mit Produktionszugriff bearbeiten
   memberships:
   - {from: 2025-01-01, to: 2026-05-31, fte: 1}
@@ -312,6 +330,8 @@ planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
 forecast_plan: 10.1         # Forecast PLAN beim Planning (eingefroren), optional
 absences_confirmed: true   # Fehltage bestätigt (Seite Fehltage); ohne Einträge und ohne Bestätigung
                            # gilt „Fehltage unbekannt“ (Kapazität per Trend bzw. erwartete Fehltage)
+expected_absences: {anna: 2}   # PO-Vorplanung: voraussichtliche Fehltage (Prognose); wirken auf
+                           # Kapazität und Forecast PLAN, bis die Fehltage bestätigt sind
 not_done: 1.5              # Review, optional: Menge, die nicht fertig wurde
 additional_done: 0.5       # Review, optional: zusätzlich zum Forecast IST erledigt
                            # (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt)
