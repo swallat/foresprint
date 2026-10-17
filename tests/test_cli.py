@@ -224,8 +224,7 @@ def test_invalid_stichtag_is_a_usage_error(data_dir: Path, option: str):
     result = runner.invoke(app, args)
     assert result.exit_code == 2, result.output
     assert "Datum im Format JJJJ-MM-TT erwartet" in result.output
-    assert "Traceback" not in result.output
-    assert not isinstance(result.exception, ValueError)
+    assert isinstance(result.exception, SystemExit)  # Nutzungsfehler, kein ungefangener ValueError
 
 
 def test_version_and_help_without_command():
