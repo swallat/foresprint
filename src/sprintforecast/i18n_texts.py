@@ -20,7 +20,15 @@ WORDS = [
 def all_static_texts() -> list[str]:
     from sprintforecast.engine import CapacitySource
     from sprintforecast.formulas import GENERAL
-    from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, TOPICS, WORKFLOW
+    from sprintforecast.guide import (
+        CAPACITY_SOURCES,
+        COMMANDS,
+        FIELDS,
+        GIT_HELP,
+        TERMS,
+        TOPICS,
+        WORKFLOW,
+    )
     from sprintforecast.products import MEASURES, PRODUCTION_MEASURES
     from sprintforecast.settings import _COUNTRY, SETTINGS
     from sprintforecast.validate import Level
@@ -33,6 +41,8 @@ def all_static_texts() -> list[str]:
     for left, right in [*TERMS, *CAPACITY_SOURCES]:
         texts += [left, right]
     texts += [purpose for _, purpose in COMMANDS]
+    for left, right in GIT_HELP:
+        texts += [left, right]
     texts += list(TOPICS.values())
     for s in SETTINGS:
         texts += [s.label, s.help]
