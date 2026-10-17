@@ -2179,7 +2179,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     try:
         corrections = parse_numbers(corrections_raw)
     except ValueError:
-        st.error(t("Korrekturen: bitte Zahlen mit Leerzeichen getrennt eingeben."))
+        st.error(t("Korrekturen: bitte endliche Zahlen mit Leerzeichen getrennt eingeben."))
         return
     prefilled = apply_planning(
         sprint,

@@ -241,6 +241,13 @@ def test_huge_share_number_is_a_data_error(data_dir: Path):
         Repository(data_dir).load("demo")
 
 
+@pytest.mark.parametrize("raw", [float("nan"), float("inf"), "nan", "-inf"])
+def test_non_finite_share_is_a_data_error(data_dir: Path, raw: float | str):
+    edit(data_dir, PRODUCTS, product_share(raw))
+    with pytest.raises(DataError, match=r"share: endliche Zahl erwartet"):
+        Repository(data_dir).load("demo")
+
+
 def test_unquoted_first_sprint_id_is_explained(data_dir: Path):
     path = data_dir / "demo" / "team.yaml"
     text = path.read_text(encoding="utf-8")
