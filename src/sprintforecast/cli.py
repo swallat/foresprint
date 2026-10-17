@@ -160,7 +160,8 @@ def _main(
             envvar=DATA_ENV,
             help=t(
                 "Verzeichnis mit den Team-Daten (je Team ein Unterordner). "
-                "Standard: aktuelles Verzeichnis."
+                "Standard: aktuelles Verzeichnis, falls es Teams enthält, sonst der gemerkte "
+                "Datenordner."
             ),
         ),
     ] = None,

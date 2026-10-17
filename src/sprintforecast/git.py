@@ -581,8 +581,9 @@ def secret_in_url_error() -> GitError:
         t(
             "Die Adresse enthält einen Benutzernamen, ein Kennwort, einen Token oder "
             "Parameter (alles ab „?“ oder „#“). Bitte nur die reine Adresse eintragen, z. B. "
-            "https://server/team/daten.git; die Anmeldung übernimmt Git bzw. der Anmeldedienst "
-            "des Rechners (siehe Hilfe, „Anmeldung“)."
+            "https://server/team/daten.git; die Anmeldung übernimmt der Anmeldedienst des "
+            "Rechners, fehlt sie, erklärt die App den nächsten Schritt (siehe Hilfe, "
+            "„Anmeldung“)."
         ),
         "secret_in_url",
     )

@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
+import re
 from datetime import date
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import yaml
 from typer.testing import CliRunner
 
 from sprintforecast.cli import app
+from sprintforecast.guide import COMMAND_ALIASES, COMMANDS
 
 runner = CliRunner(env={"COLUMNS": "200"})
 
@@ -422,3 +424,16 @@ def test_cli_reports_unwritable_settings_without_traceback(
         assert result.exit_code == 1
         assert "Zugriff verweigert" in result.output
         assert result.exception is None or isinstance(result.exception, SystemExit)
+
+
+def test_help_command_list_covers_every_cli_command():
+    """Jeder Befehl der CLI steht in guide.COMMANDS, und dort steht kein unbekannter Befehl."""
+    english = set(COMMAND_ALIASES.values())
+    registered = {
+        info.name
+        for info in app.registered_commands
+        if info.name not in english and info.callback.__module__ == "sprintforecast.cli"
+    }
+    listed = {m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast (\w+)", left))}
+    assert not registered - listed, f"Fehlt in guide.COMMANDS: {registered - listed}"
+    assert not listed - registered, f"Kein CLI-Befehl: {listed - registered}"
