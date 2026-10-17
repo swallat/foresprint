@@ -240,9 +240,9 @@ def _lenient_float(value: Any, where: str) -> float | None:
         return None
     try:
         return float(value)
-    except (TypeError, ValueError) as e:
+    except (TypeError, ValueError, OverflowError) as e:  # OverflowError: ganze Zahl > 1e308
         raise DataError(
-            t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+            t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value)[:60])
         ) from e
 
 
@@ -279,6 +279,33 @@ def _sequence(value: Any, where: str, name: str) -> list[Any]:
     return value
 
 
+def _code(value: Any, where: str, name: str) -> str | None:
+    """Land oder Region als Text (``DE``, ``NW``); fehlt der Eintrag, ``None``. Unquotiert liest
+    YAML ``NO`` (Norwegen) und ``ON`` (Ontario) als Wahrheitswert: Das wird erklärt statt still
+    zu einem falschen Wert."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        raise DataError(
+            t(
+                "{where}: '{name}' bitte in Anführungszeichen setzen, z. B. {name}: \"NO\" "
+                "(unquotiert liest YAML das als Wahrheitswert)",
+                where=where,
+                name=name,
+            )
+        )
+    if not isinstance(value, str):
+        raise DataError(
+            t(
+                "{where}: '{name}' muss ein Text sein (z. B. DE oder NW), gefunden {value}",
+                where=where,
+                name=name,
+                value=repr(value)[:60],
+            )
+        )
+    return value
+
+
 @contextlib.contextmanager
 def _well_formed(where: str) -> Iterator[None]:
     """Fängt Aufbaufehler, die die Einzelprüfungen nicht kennen (z. B. ein Text, wo ein Objekt
@@ -287,7 +314,7 @@ def _well_formed(where: str) -> Iterator[None]:
         yield
     except DataError:
         raise
-    except (AttributeError, TypeError, KeyError, ValueError) as e:
+    except (AttributeError, TypeError, KeyError, ValueError, OverflowError) as e:
         raise DataError(
             t(
                 "{where}: Aufbau der Datei ungültig ({error}). Listen beginnen mit '- ', "
@@ -299,6 +326,8 @@ def _well_formed(where: str) -> Iterator[None]:
 
 
 def _date(value: Any, where: str) -> date:
+    if isinstance(value, datetime):  # „2026-10-14 08:00:00“ liest YAML als Zeitstempel
+        return value.date()
     if isinstance(value, date):
         return value
     try:
@@ -326,6 +355,18 @@ TEAM_HEADER = """\
 """
 
 
+def _first_id(value: Any, where: str) -> str | None:
+    """ID des ersten Sprints; wie bei den Sprintdateien muss eine Zahl wie 2026.20 in
+    Anführungszeichen stehen (sonst wird daraus 2026.2)."""
+    if value is None:
+        return None
+    if isinstance(value, float):
+        raise DataError(
+            t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
+        )
+    return str(value)
+
+
 def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
     sprint = _mapping(d.get("sprint"), where, "sprint")
     forecast = _mapping(d.get("forecast"), where, "forecast")
@@ -349,7 +390,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             sprint=SprintSettings(
                 length_days=int(sprint.get("length_days", 14)),
                 numbering=Numbering(sprint.get("numbering", "yearly")),
-                first_id=str(first["id"]) if first.get("id") is not None else None,
+                first_id=_first_id(first.get("id"), where),
                 first_start=_date(first["start"], where) if first.get("start") else None,
             ),
             forecast=ForecastSettings(
@@ -365,14 +406,14 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             capacity=CapacitySettings(
                 overhead_share=float(capacity.get("overhead_share", 0.0)),
                 overhead_days=float(capacity.get("overhead_days", 0.0)),
-                country=str(capacity.get("country", "DE")).upper(),
-                region=capacity.get("region"),
+                country=(_code(capacity.get("country"), where, "capacity.country") or "DE").upper(),
+                region=_code(capacity.get("region"), where, "capacity.region"),
                 workweek=str(capacity.get("workweek", "auto")),
                 rounding=int(capacity.get("rounding", 1)),
                 absence_history=int(capacity.get("absence_history", 4)),
             ),
         )
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError, OverflowError) as e:  # OverflowError: int(inf)
         raise DataError(f"{where}: {e}") from e
 
 
@@ -446,8 +487,10 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
             Person(
                 id=str(p["id"]),
                 name=str(p.get("name") or p["id"]),
-                region=p.get("region"),
-                country=str(p["country"]).upper() if p.get("country") else None,
+                region=_code(p.get("region"), at, "region"),
+                country=(
+                    code.upper() if (code := _code(p.get("country"), at, "country")) else None
+                ),
                 workweek=str(p["workweek"]) if p.get("workweek") else None,
                 memberships=memberships,
                 production_access=bool(p.get("production_access", False)),
