@@ -10,14 +10,28 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 
 from __future__ import annotations
 
+import io
 import shutil
+import tarfile
+import tempfile
 import time
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 from sprintforecast import git as gitmod
 from sprintforecast.git import GitError, _git, hint_for, pending_changes, repo_root
 from sprintforecast.i18n import t
+from sprintforecast.yamlmerge import (
+    MISSING,
+    OURS,
+    KeyConflict,
+    header_of,
+    merge3,
+)
 
 # Wie oft ein Push nach "inzwischen hat jemand anderes hochgeladen" neu versucht wird.
 MAX_ATTEMPTS = 3
@@ -63,6 +77,22 @@ class SyncState:
         return self.remote is not None and not self.detached and self.unfinished is None
 
 
+@dataclass(frozen=True)
+class ConflictFile:
+    """Eine Datei, die beim Zusammenführen nicht von selbst zusammenpasst."""
+
+    file: str  # relativ zur Repository-Wurzel
+    keys: tuple[KeyConflict, ...] = ()  # echte Wertkonflikte (nur bei Zusammenführen je Schlüssel)
+    whole: bool = False  # nur als Ganzes entscheidbar (kein YAML, gelöscht auf einer Seite)
+    ours_deleted: bool = False
+    theirs_deleted: bool = False
+
+    @property
+    def open(self) -> bool:
+        """Braucht eine Entscheidung (sonst wird die Datei automatisch zusammengeführt)."""
+        return self.whole or bool(self.keys)
+
+
 @dataclass
 class SyncResult:
     """Ergebnis von :func:`sync`: was getan wurde, was von anderen kam und woran es ggf. hakt."""
@@ -71,6 +101,9 @@ class SyncResult:
     pulled: list[Commit] = field(default_factory=list)  # neu von anderen
     pulled_files: list[tuple[str, str]] = field(default_factory=list)
     pushed: bool = False
+    merged: bool = False  # fremde Änderungen wurden zusammengeführt
+    conflicts: list[ConflictFile] = field(default_factory=list)
+    validation: list[str] = field(default_factory=list)  # neue Fehler nach dem Zusammenführen
     error: GitError | None = None
 
     @property
@@ -212,49 +245,199 @@ def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str,
     return commits, files
 
 
-def _merge(root: Path, upstream: str) -> None:
-    """Führt den Server-Stand ein. Bei Konflikten wird abgebrochen (nichts geht verloren, die
-    eigenen Änderungen sind bereits committet)."""
+def _parse(text: str) -> Any:
+    from sprintforecast.storage import _YAML_LOADER
+
+    content = yaml.load(text, Loader=_YAML_LOADER)
+    return {} if content is None else content
+
+
+def _stages(root: Path) -> dict[str, set[int]]:
+    """Nicht zusammengeführte Dateien mit den vorhandenen Ständen (1 = Basis, 2 = meine,
+    3 = andere)."""
+    out = _git(root, "ls-files", "-u", "-z", strip=False, check=False)
+    stages: dict[str, set[int]] = {}
+    for entry in filter(None, out.split("\0")):
+        info, _, name = entry.partition("\t")
+        stages.setdefault(name, set()).add(int(info.split()[2]))
+    return stages
+
+
+def _stage_text(root: Path, stage: int, file: str) -> str:
+    return _git(root, "show", f":{stage}:{file}", strip=False)
+
+
+def _analyse(
+    root: Path, file: str, stages: set[int], choices: dict[tuple[str, ...], str]
+) -> tuple[ConflictFile, str | None]:
+    """Prüft eine Datei: lässt sie sich auf Schlüsselebene zusammenführen? Liefert die offenen
+    Wertkonflikte und – wenn keine bleiben – den zusammengeführten Text."""
+    whole = ConflictFile(
+        file, whole=True, ours_deleted=2 not in stages, theirs_deleted=3 not in stages
+    )
+    if not file.endswith((".yaml", ".yml")) or not {2, 3} <= stages:
+        return whole, None
+    try:
+        ours_text, theirs_text = _stage_text(root, 2, file), _stage_text(root, 3, file)
+        base = _parse(_stage_text(root, 1, file)) if 1 in stages else MISSING
+        ours, theirs = _parse(ours_text), _parse(theirs_text)
+        if not isinstance(ours, dict) or not isinstance(theirs, dict):
+            return whole, None
+        merged, conflicts = merge3(base, ours, theirs, choices)
+    except yaml.YAMLError, GitError:
+        return whole, None
+    if conflicts:
+        return ConflictFile(file, keys=tuple(conflicts)), None
+    from sprintforecast.storage import dump_yaml
+
+    return ConflictFile(file), header_of(ours_text or theirs_text) + dump_yaml(merged)
+
+
+def pending_conflicts(path: Path) -> list[ConflictFile]:
+    """Dateien eines unvollständigen Zusammenführens: mit ihren echten Wertkonflikten (leer =
+    lässt sich automatisch zusammenführen) bzw. als Ganzes zu entscheiden."""
+    root = _root(path)
+    return [_analyse(root, f, st, {})[0] for f, st in sorted(_stages(root).items())]
+
+
+def resolve_conflicts(
+    path: Path, choices: dict[str, dict[tuple[str, ...], str]] | None = None
+) -> list[ConflictFile]:
+    """Löst alles, was sich lösen lässt: Dateien ohne Wertkonflikt automatisch, die übrigen
+    nach ``choices`` (Datei → Pfad → "ours"/"theirs"; Pfad ``()`` = ganze Datei). Liefert die
+    verbleibenden Konflikte. Das Zusammenführen wird erst von :func:`sync` abgeschlossen."""
+    root = _root(path)
+    for file, stages in sorted(_stages(root).items()):
+        wanted = (choices or {}).get(file, {})
+        info, merged = _analyse(root, file, stages, wanted)
+        if info.whole:
+            choice = wanted.get(())
+            if choice is None:
+                continue
+            keep = 2 if choice == OURS else 3
+            if keep in stages:
+                _git(root, "checkout", "--ours" if choice == OURS else "--theirs", "--", file)
+                _git(root, "add", "--", file)
+            else:  # auf dieser Seite gelöscht
+                _git(root, "rm", "-q", "--", file)
+        elif merged is not None:
+            (root / file).write_text(merged, encoding="utf-8", newline="\n")
+            _git(root, "add", "--", file)
+    gitmod.invalidate_status()
+    return pending_conflicts(path)
+
+
+def _merge(root: Path, upstream: str, path: Path) -> list[ConflictFile]:
+    """Führt den Server-Stand ein. Bei Konflikten bleibt das Zusammenführen offen, alles
+    automatisch Lösbare ist erledigt; zurück kommen die Konflikte für den Menschen (leer =
+    fertig). Die eigenen Änderungen sind bereits committet."""
     try:
         _git(root, "merge", "--no-edit", upstream)
+        return []
     except GitError as e:
-        if e.kind in {"conflict", "error"}:
-            files = _git(root, "diff", "--name-only", "--diff-filter=U", check=False).split()
-            _git(root, "merge", "--abort", check=False)
-            if files:
-                raise GitError(
-                    t(
-                        "Zusammenführen nicht möglich, Konflikt in: {files}",
-                        files=", ".join(files),
-                    ),
-                    "conflict",
-                    hint_for("conflict"),
-                ) from e
-        raise
+        if e.kind not in {"conflict", "error"} or not (_git_dir(root) / "MERGE_HEAD").exists():
+            raise
+    remaining = resolve_conflicts(path)
+    if not remaining:
+        _git(root, "commit", "--no-edit")
+    return remaining
 
 
-def sync(path: Path, message: str, tags: list[str] | None = None) -> SyncResult:
+def _conflict_error() -> GitError:
+    return GitError(
+        t("Zusammenführen: Konflikte warten auf deine Entscheidung."),
+        "conflict",
+        hint_for("conflict"),
+    )
+
+
+def _error_set(repo_dir: Path, today: date) -> set[tuple[str, str, str]]:
+    from sprintforecast.storage import Repository
+    from sprintforecast.validate import Level, check_all
+
+    return {
+        (key, i.where, i.message)
+        for key, issues in check_all(Repository(repo_dir), today).items()
+        for i in issues
+        if i.level is Level.ERROR
+    }
+
+
+def _errors_at(root: Path, path: Path, rev: str, today: date) -> set[tuple[str, str, str]]:
+    """Fehler der Gesamtvalidierung für den Stand eines Commits (ohne ihn auszuchecken)."""
+    rel = path.resolve().relative_to(root).as_posix()
+    tree = rev if rel == "." else f"{rev}:{rel}"
+    try:
+        data = gitmod._git_bytes(root, "archive", "--format=tar", tree)
+    except GitError:
+        return set()
+    with tempfile.TemporaryDirectory() as tmp, tarfile.open(fileobj=io.BytesIO(data)) as tar:
+        tar.extractall(tmp, filter="data")
+        return _error_set(Path(tmp), today)
+
+
+def new_errors(path: Path, baseline: str, today: date | None = None) -> list[str]:
+    """Fehler der Gesamtvalidierung im Arbeitsstand, die im Stand ``baseline`` (Commit) noch
+    nicht vorhanden waren – als lesbare Zeilen."""
+    root = _root(path)
+    today = today or date.today()
+    found = _error_set(path, today) - _errors_at(root, path, baseline, today)
+    return [f"{key}: {where}: {message}" for key, where, message in sorted(found)]
+
+
+def _unpushed_merges(root: Path, current: SyncState) -> bool:
+    if not current.upstream:
+        return False
+    count = _git(root, "rev-list", "--merges", "--count", f"{current.upstream}..HEAD")
+    return count.isdigit() and int(count) > 0
+
+
+def sync(
+    path: Path,
+    message: str,
+    tags: list[str] | None = None,
+    today: date | None = None,
+    allow_invalid: bool = False,
+) -> SyncResult:
     """„Speichern und teilen“: eigene Änderungen committen, die der anderen holen und
-    zusammenführen, hochladen. Erwartbare Fehler (offline, abgelehnt, Anmeldung …) stehen in
-    ``result.error``; was bis dahin gelang (z. B. der eigene Commit), bleibt erhalten."""
+    zusammenführen, prüfen, hochladen. Erwartbare Fehler (offline, abgelehnt, Anmeldung,
+    Konflikt …) stehen in ``result.error``; was bis dahin gelang (z. B. der eigene Commit),
+    bleibt erhalten. Bei Konflikten bleibt das Zusammenführen offen (``result.conflicts``);
+    nach der Entscheidung (:func:`resolve_conflicts`) setzt ein erneuter Aufruf fort. Nach
+    einem Zusammenführen läuft die Gesamtvalidierung: Neue Fehler verhindern das Hochladen,
+    außer mit ``allow_invalid``."""
     result = SyncResult()
     try:
         root = _root(path)
         current = state(path)
-        if current.unfinished or current.conflicts:
+        if current.unfinished == "rebase":
             raise GitError(
-                t("Ein früheres Zusammenführen ist noch nicht abgeschlossen."),
+                t("Ein früherer Vorgang ist noch nicht abgeschlossen."),
                 "merge_in_progress",
                 hint_for("merge_in_progress"),
             )
         if current.detached:
             raise GitError(t("Kein Branch ausgewählt."), "detached", hint_for("detached"))
+        # 0. Wiederaufnahme: ein offenes Zusammenführen zuerst abschließen.
+        if current.unfinished == "merge":
+            result.conflicts = resolve_conflicts(path)
+            if result.conflicts:
+                raise _conflict_error()
+            _git(root, "commit", "--no-edit")
+            result.merged = True
+        elif current.conflicts:
+            raise GitError(
+                t("Ein früherer Vorgang ist noch nicht abgeschlossen."),
+                "merge_in_progress",
+                hint_for("merge_in_progress"),
+            )
         # 1. Eigenes sichern: erst als Commit, dann ist nichts mehr in Gefahr.
         if pending_changes(path):
             result.committed = gitmod.commit_directory(path, message, tags)
+        current = state(path)
         if current.remote is None:
             raise GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
-        # 2. Server-Stand holen, 3. zusammenführen, 4. hochladen (bei Wettlauf erneut).
+        # 2. Server-Stand holen, 3. zusammenführen, 4. prüfen, 5. hochladen (bei Wettlauf neu).
         for attempt in range(MAX_ATTEMPTS):
             current = fetch(path)
             if current.fetch_error is not None:
@@ -263,7 +446,20 @@ def sync(path: Path, message: str, tags: list[str] | None = None) -> SyncResult:
             result.pulled += [c for c in commits if c not in result.pulled]
             result.pulled_files += [f for f in files if f not in result.pulled_files]
             if current.upstream and current.behind:
-                _merge(root, current.upstream)
+                result.conflicts = _merge(root, current.upstream, path)
+                if result.conflicts:
+                    raise _conflict_error()
+                result.merged = True
+                current = state(path)
+            if not allow_invalid and _unpushed_merges(root, current):
+                found = new_errors(path, current.upstream or "HEAD", today)
+                if found:
+                    result.validation = found
+                    raise GitError(
+                        t("Die zusammengeführten Daten sind nicht gültig."),
+                        "invalid",
+                        hint_for("invalid"),
+                    )
             try:
                 _push(root, current)
             except GitError as e:
@@ -293,6 +489,13 @@ def _push(root: Path, current: SyncState) -> None:
         current.branch or "HEAD",
         network=True,
     )
+
+
+def restore_file(path: Path, file: Path) -> None:
+    """Stellt eine Datei auf den letzten gespeicherten (committeten) Stand zurück."""
+    root = _root(path)
+    _git(root, "checkout", "HEAD", "--", str(file.resolve()))
+    gitmod.invalidate_status()
 
 
 def abort_unfinished(path: Path) -> None:

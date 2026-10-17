@@ -70,6 +70,8 @@ def _git(
             cwd=cwd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             stdin=subprocess.DEVNULL,
             env=_env(network),
             timeout=timeout or (NETWORK_TIMEOUT if network else 120),
@@ -84,6 +86,27 @@ def _git(
             return ""
         raise classify(proc.stderr.strip() or proc.stdout.strip())
     return proc.stdout.strip() if strip else proc.stdout
+
+
+def _git_bytes(cwd: Path, *args: str) -> bytes:
+    """Wie :func:`_git`, liefert aber die rohe Ausgabe (z. B. ein Archiv)."""
+    try:
+        proc = subprocess.run(
+            ["git", *args],
+            cwd=cwd,
+            capture_output=True,
+            stdin=subprocess.DEVNULL,
+            env=_env(False),
+            timeout=120,
+            **NO_WINDOW,
+        )
+    except FileNotFoundError as e:
+        raise classify("", missing=True) from e
+    except subprocess.TimeoutExpired as e:
+        raise classify("", timeout=True) from e
+    if proc.returncode != 0:
+        raise classify(proc.stderr.decode("utf-8", "replace").strip())
+    return proc.stdout
 
 
 # Erkennungsmuster in der Reihenfolge der Prüfung (englische Git-Meldungen, siehe _env).
@@ -208,6 +231,7 @@ def title_for(kind: str) -> str:
         "rejected": t("Hochladen abgelehnt, weil inzwischen etwas Neues da ist"),
         "merge_in_progress": t("Zusammenführen ist unvollständig"),
         "conflict": t("Konflikt beim Zusammenführen"),
+        "invalid": t("Zusammengeführte Daten sind nicht gültig"),
         "dirty": t("Offene Änderungen außerhalb des Datenordners"),
         "detached": t("Kein Branch ausgewählt (detached HEAD)"),
         "no_upstream": t("Branch ist nicht mit dem Server verbunden"),
@@ -249,8 +273,14 @@ def hint_for(kind: str, url: str = "") -> str:
             "Änderungen bleiben dabei erhalten."
         ),
         "conflict": t(
-            "Dieselbe Stelle wurde von zwei Personen geändert. Das Zusammenführen wurde "
-            "abgebrochen; es ist nichts verloren."
+            "Dieselbe Stelle wurde von zwei Personen geändert. Auf der Seite „Konflikte "
+            "lösen“ je Eintrag „meine“ oder „andere“ Änderung wählen, oder das "
+            "Zusammenführen abbrechen. Es ist nichts verloren."
+        ),
+        "invalid": t(
+            "Die Zusammenführung war technisch möglich, aber die Daten sind nun fachlich "
+            "ungültig (siehe Liste). Nichts wurde hochgeladen. Bitte die Werte korrigieren und "
+            "erneut „Speichern und teilen“ wählen – oder bewusst „Trotzdem teilen“."
         ),
         "dirty": t(
             "Es gibt nicht gesicherte Änderungen außerhalb des Datenordners, die mit den "

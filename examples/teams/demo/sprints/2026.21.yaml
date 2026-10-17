@@ -16,12 +16,12 @@ planning:
   corrections:
   - 1.5
 products:
-  webshop:
-    preplanned: 3.5
-    planned: 4
   app:
     preplanned: 3
     planned: 3
   portal:
     preplanned: 3
     planned: 3
+  webshop:
+    preplanned: 3.5
+    planned: 4
