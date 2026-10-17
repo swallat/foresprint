@@ -86,8 +86,21 @@ class Distribution:
     # die Menge, die diese Gruppe im Sprint schaffen kann (Anteil × Forecast PLAN).
     production_share: float | None = None
     production_available: float | None = None
+    # Ist überhaupt jemand als berechtigt markiert? Ohne Markierung ist die Konfiguration
+    # unbekannt – das ist etwas anderes als „Berechtigte sind in diesem Sprint nicht da“.
+    production_configured: bool = False
     # Aktuell berechneter Forecast PLAN (weicht von ``plan`` ab, wenn dieser eingefroren ist).
     current_plan: float | None = None
+
+    @property
+    def production_state(self) -> str:
+        """``unconfigured`` (niemand markiert), ``unavailable`` (Berechtigte markiert, aber im
+        Sprint ohne Kapazität) oder ``ok``."""
+        if not self.production_configured:
+            return "unconfigured"
+        if not self.production_share:
+            return "unavailable"
+        return "ok"
 
     @property
     def production_overload(self) -> float | None:
@@ -183,6 +196,7 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
         basis=basis,
         available=available,
         rows=rows,
+        production_configured=any(p.production_access for p in data.people),
         production_share=group,
         production_available=plan * group if plan is not None and group is not None else None,
         current_plan=entry.result.plan,
