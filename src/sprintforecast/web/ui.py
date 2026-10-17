@@ -1331,6 +1331,10 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                 "berechnet und beim nächsten Speichern des Plannings wieder eingefroren."
             )
         )
+        # Nach dem Aufheben die Bestätigung zurücksetzen, damit sie beim nächsten Einfrieren
+        # desselben Sprints nicht noch angehakt ist.
+        if st.session_state.pop("unfreeze-reset", None) == sprint.id:
+            st.session_state[f"unfreeze-{sprint.id}"] = False
         confirmed = st.checkbox(
             t("Ja, es handelt sich um eine Fehlerkorrektur"), key=f"unfreeze-{sprint.id}"
         )
@@ -1345,6 +1349,7 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                 lambda: [repo.save_sprint(data.team.key, released)],
                 flash=True,
             ):
+                st.session_state["unfreeze-reset"] = sprint.id
                 st.rerun()
 
 

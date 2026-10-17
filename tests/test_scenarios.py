@@ -244,6 +244,16 @@ def test_unfreeze_clears_the_frozen_plan_after_confirmation(
     d = distribution(fc, fc.entry("2026.21"))
     assert not d.plan_frozen and d.available == pytest.approx(fc.entry("2026.21").result.plan)
 
+    # Wird der Sprint erneut eingefroren, ist die Bestätigung nicht mehr angehakt – auch wenn
+    # der Browser den alten Wert noch kennt.
+    at.session_state["unfreeze-2026.21"] = True
+    sprint = load(data_dir).sprint("2026.21")
+    sprint.forecast_plan = 10.1
+    Repository(data_dir).save_sprint("demo", sprint)
+    at.run()
+    assert at.checkbox(key="unfreeze-2026.21").value is False
+    assert next(b for b in at.button if b.key == "unfreeze-go-2026.21").disabled
+
 
 # --- 3. Was-wäre-wenn --------------------------------------------------------------------------
 
