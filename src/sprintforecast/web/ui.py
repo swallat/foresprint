@@ -148,20 +148,20 @@ else:  # erst beim ersten Zugriff laden (Kaltstart)
 # Seiten: Dateiname unter web/seiten → (Titel, Material-Icon). Gruppen für die Navigation.
 # Titel und Gruppen sind deutsche Quelltexte und werden bei der Anzeige übersetzt.
 PAGES: dict[str, dict[str, tuple[str, str]]] = {
-    "Sprint": {
-        "forecast": ("Forecast", ":material/trending_up:"),
-        "fehltage": ("Fehltage", ":material/event_busy:"),
-        "sprints": ("Sprintkalender", ":material/calendar_month:"),
-        "produkte": ("Produktverteilung", ":material/pie_chart:"),
-        "analyse": ("Analyse", ":material/insights:"),
-    },
-    # Die drei Boards in zeitlicher Reihenfolge: vor dem Planning, Planning, Review.
-    "Boards": {
+    # Aufgaben im Sprint in zeitlicher Reihenfolge: vorbereiten, Planning, abschließen.
+    "Aufgaben": {
+        "fehltage": ("Sprint vorbereiten: Fehltage", ":material/event_busy:"),
         "vorplanung": ("PO-Vorplanung", ":material/groups:"),
         "planning": ("Planning", ":material/edit_note:"),
-        "review": ("Review", ":material/task_alt:"),
+        "review": ("Sprint abschließen (Review)", ":material/task_alt:"),
     },
-    "Team": {
+    "Auswertung": {
+        "forecast": ("Forecast", ":material/trending_up:"),
+        "analyse": ("Analyse", ":material/insights:"),
+        "produkte": ("Produktverteilung", ":material/pie_chart:"),
+    },
+    "Team verwalten": {
+        "sprints": ("Sprintkalender", ":material/calendar_month:"),
         "personen": ("Personen", ":material/group:"),
         "produktliste": ("Produkte", ":material/category:"),
         "einstellungen": ("Einstellungen", ":material/tune:"),

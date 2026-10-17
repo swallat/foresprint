@@ -244,7 +244,11 @@ WORKFLOW: list[Step] = [
 
 TERMS: list[tuple[str, str]] = [
     ("Kapazität", "Verfügbare Personentage im Sprint (immer PT, auch bei SP-Teams)."),
-    ("Commitment", "Im Planning zugesagte Menge."),
+    (
+        "Commitment",
+        "Die im Planning zugesagte Menge – die Zusage zu Sprintbeginn, kein Ergebnis (früher "
+        "„Forecast IST“; die Datei-Schlüssel heißen weiter forecast_ist).",
+    ),
     ("Velocity", "Im Sprint erledigte Menge."),
     (
         "Normierte Velocity",
@@ -282,7 +286,21 @@ TERMS: list[tuple[str, str]] = [
         "Empfohlene Planungsmenge: n. Velocity-Trend / Referenzkapazität × Kapazität, abgerundet. "
         "Nie negativ.",
     ),
-    ("Roadmap", "Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %)."),
+    (
+        "Roadmap",
+        "Reservierter Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %). Es ist eine "
+        "Aufteilung der Prognose, kein weiterer Wert: Roadmap + Kleinkram = Forecast PLAN.",
+    ),
+    (
+        "Angekündigte Fehltage",
+        "Von den POs in der Vorplanung eingetragene Fehltage (Prognose, noch nicht bestätigt). "
+        "Nicht zu verwechseln mit den erwarteten Fehltagen.",
+    ),
+    (
+        "Erwartete Fehltage",
+        "Schätzung nach der Historie (Ø der letzten Sprints mit bestätigten Fehltagen) für "
+        "Sprints, deren Fehltage unbekannt sind. Rechnerisch, nicht von jemandem eingetragen.",
+    ),
     ("Kleinkram", "Rest des Forecast PLAN für Bugs, Support und Kleinigkeiten."),
     ("Fulfillment", "Velocity / Commitment – wie gut wurde die Zusage gehalten?"),
     (

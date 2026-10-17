@@ -5,6 +5,16 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Aufgaben": "Tasks",
+    "Auswertung": "Reports",
+    "Sprint abschließen (Review)": "Close the sprint (review)",
+    "Sprint vorbereiten: Fehltage": "Prepare the sprint: absences",
+    "Team verwalten": "Manage team",
+    "Die im Planning zugesagte Menge – die Zusage zu Sprintbeginn, kein Ergebnis (früher „Forecast IST“; die Datei-Schlüssel heißen weiter forecast_ist).": "The amount committed at planning – the commitment at sprint start, not a result (formerly “Forecast IST”; the file keys are still called forecast_ist).",
+    "Reservierter Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %). Es ist eine Aufteilung der Prognose, kein weiterer Wert: Roadmap + Kleinkram = Forecast PLAN.": "Reserved share of the Forecast PLAN for roadmap topics (default 80 %). It is a split of the forecast, not another value: roadmap + small items = Forecast PLAN.",
+    "Von den POs in der Vorplanung eingetragene Fehltage (Prognose, noch nicht bestätigt). Nicht zu verwechseln mit den erwarteten Fehltagen.": "Absences entered by the POs in the pre-planning (forecast, not yet confirmed). Not to be confused with the expected absences.",
+    "Erwartete Fehltage": "Expected absences",
+    "Schätzung nach der Historie (Ø der letzten Sprints mit bestätigten Fehltagen) für Sprints, deren Fehltage unbekannt sind. Rechnerisch, nicht von jemandem eingetragen.": "Estimate from the history (average of the last sprints with confirmed absences) for sprints whose absences are unknown. Calculated, not entered by anyone.",
     "Lücken: {count} Sprint(s) ohne Velocity im Fenster des Durchschnitts werden übersprungen; das Fenster reicht entsprechend weiter zurück.": "Gaps: {count} sprint(s) without velocity in the window of the average are skipped; the window reaches back accordingly.",
     "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen (Vorsicht bei langen Horizonten). Robust ist „konstant“ (flat) – einstellbar mit `sprintforecast einstellungen`.": "Trend mode {mode}: extrapolates fluctuations and can rise or fall (caution with long horizons). “Constant” (flat) is robust – set with `sprintforecast settings`.",
     "1 PT je Person bei 10 Arbeitstagen entspricht 10 %; Vollzeit: −1 PT, halbtags (FTE 0,5): −0,5 PT": "1 PT per person with 10 working days equals 10 %; full time: −1 PT, half time (FTE 0.5): −0.5 PT",
