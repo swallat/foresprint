@@ -112,7 +112,7 @@ def saved_data_dir() -> Path | None:
     from sprintforecast import config
 
     raw = config.load().get("data_dir")
-    path = Path(raw) if raw else None
+    path = Path(raw) if isinstance(raw, str) and raw else None
     return path if path is not None and path.is_dir() else None
 
 

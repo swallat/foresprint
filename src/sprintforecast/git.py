@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import subprocess
@@ -10,7 +11,7 @@ import sys
 import tempfile
 import time
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, NamedTuple
@@ -403,6 +404,7 @@ def title_for(kind: str) -> str:
         "new_branch": t("Branch fehlt auf dem Server"),
         "remote_special": t("Ungewöhnliche Server-Einstellung"),
         "certificate": t("Zertifikat des Servers nicht anerkannt"),
+        "folder": t("Ordner nicht nutzbar"),
         "nothing_to_share": t("Noch nichts zu teilen"),
     }
     return titles.get(kind, t("Git-Fehler"))
@@ -1057,33 +1059,68 @@ GITIGNORE = """\
 """
 
 
+@contextlib.contextmanager
+def _folder_access(path: Path) -> Iterator[None]:
+    """Der Zielordner ``path`` eines Anlegens bzw. Klonens: Eine Datei an dieser Stelle und
+    Dateisystemfehler (keine Rechte, Pfad unbrauchbar) kommen als :class:`GitError` der Art
+    ``folder`` mit Klartext statt als rohe Ausnahme."""
+    if path.is_file():
+        raise GitError(
+            t("{path} ist eine Datei, kein Ordner – bitte einen Ordner angeben.", path=path),
+            "folder",
+        )
+    try:
+        yield
+    except PermissionError as e:
+        raise GitError(
+            t(
+                "Keine Zugriffsrechte für {path} – bitte einen anderen Ordner wählen oder die "
+                "Rechte anpassen.",
+                path=path,
+            ),
+            "folder",
+        ) from e
+    except OSError as e:
+        raise GitError(
+            t(
+                "{path} lässt sich nicht anlegen ({reason}) – bitte den Pfad prüfen.",
+                path=path,
+                reason=e.strerror or e,
+            ),
+            "folder",
+        ) from e
+
+
 def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
     """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und
-    liefert den Ordner für die Teams."""
-    path.mkdir(parents=True, exist_ok=True)
-    if repo_root(path) is None:
-        _git(path, "init", "-q")
-        forget_roots(path)
-    ignore = path / ".gitignore"
-    if not ignore.exists():
-        ignore.write_text(GITIGNORE, encoding="utf-8")
-    if not teams_folder:
-        return path
-    teams = path / "teams"
-    teams.mkdir(exist_ok=True)
-    return teams
+    liefert den Ordner für die Teams. Eine Datei als Ziel und Dateisystemfehler kommen als
+    :class:`GitError` (Art ``folder``)."""
+    with _folder_access(path):
+        path.mkdir(parents=True, exist_ok=True)
+        if repo_root(path) is None:
+            _git(path, "init", "-q")
+            forget_roots(path)
+        ignore = path / ".gitignore"
+        if not ignore.exists():
+            ignore.write_text(GITIGNORE, encoding="utf-8")
+        if not teams_folder:
+            return path
+        teams = path / "teams"
+        teams.mkdir(exist_ok=True)
+        return teams
 
 
 def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
     """Klont ein bestehendes Daten-Repository nach ``path``. Die Adresse wird wie bei
     :func:`parse_remote_url` geprüft (Zugangsdaten in der Adresse, relative Pfade, ``git://`` und
-    ``file://`` werden abgelehnt). Fehler (Adresse, Anmeldung, Server nicht erreichbar,
-    Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
+    ``file://`` werden abgelehnt). Fehler (Adresse, Zielordner, Anmeldung, Server nicht
+    erreichbar, Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
     # Beim Klonen reicht auch http:// (viele Repositories im Firmennetz haben nichts anderes).
     address = parse_remote_url(url, allow_insecure=True)
-    if path.exists() and any(path.iterdir()):
-        raise GitError(t("{path} ist nicht leer", path=path))
-    path.parent.mkdir(parents=True, exist_ok=True)
+    with _folder_access(path):
+        if path.exists() and any(path.iterdir()):
+            raise GitError(t("{path} ist nicht leer", path=path))
+        path.parent.mkdir(parents=True, exist_ok=True)
     try:
         _git(
             path.parent,
