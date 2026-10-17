@@ -532,3 +532,45 @@ def test_spreadsheet_is_still_refused(alice: Person):
 )
 def test_classify(text: str, kind: str):
     assert classify(text).kind == kind
+
+
+MARKED = "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n"
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_files_with_conflict_markers_are_not_committed_or_shared(
+    alice: Person, remote: Path, newline: str
+):
+    """Markierungen ohne offenes Zusammenführen (z. B. nach einem Git-Client) würden sonst
+    geteilt und sperrten die Bearbeitung bei allen anderen."""
+    before = git(remote, "rev-parse", "main")
+    alice.write("a/2026.2.yaml", MARKED.replace("\n", newline))
+    result = alice.sync("Mit Markierungen")
+    assert result.error is not None and result.error.kind == "conflict"
+    assert "2026.2.yaml" in str(result.error)
+    assert not result.committed and not result.pushed
+    assert git(remote, "rev-parse", "main") == before  # nichts hochgeladen
+    assert git(alice.root, "log", "-1", "--format=%s") == "Start"  # nichts committet
+    with pytest.raises(GitError) as caught:
+        gitmod.commit_directory(alice.data, "Noch einmal")
+    assert caught.value.kind == "conflict" and "Konflikte lösen" in caught.value.hint
+
+
+def test_other_changes_are_committed_when_the_marked_file_is_gone(alice: Person):
+    alice.write("a/2026.2.yaml", MARKED)
+    alice.write("a/2026.3.yaml", "velocity: 7\n")
+    assert alice.sync("Mit Markierungen").error is not None
+    (alice.data / "a" / "2026.2.yaml").unlink()  # die Datei ist weg: der Rest lässt sich teilen
+    invalidate_status()
+    assert alice.sync("Ohne Markierungen").ok
+
+
+def test_markdown_with_a_line_of_equal_signs_is_not_mistaken_for_a_conflict(alice: Person):
+    alice.write("a/NOTIZ.md", "<<<<<<< x\n=======\n>>>>>>> y\n")  # nur Datendateien werden geprüft
+    assert alice.sync("Notiz").ok
+
+
+def test_commit_of_given_files_refuses_conflict_markers(alice: Person):
+    file = alice.write("a/2026.2.yaml", MARKED)
+    with pytest.raises(GitError, match="Konfliktmarkierungen"):
+        gitmod.commit([file], "Mit Markierungen")
