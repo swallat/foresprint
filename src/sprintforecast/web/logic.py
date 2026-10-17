@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import math
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -15,15 +16,17 @@ from sprintforecast.calendar import (
     team_workdays,
     weekend_from_workweek,
 )
-from sprintforecast.forecast import Forecast, absences_known, build_forecast, find_sprint
+from sprintforecast.forecast import Forecast, build_forecast, find_sprint
 from sprintforecast.i18n import t
 from sprintforecast.model import (
+    AbsenceState,
     Membership,
     Person,
     Product,
     ProductValues,
     Prognosis,
     Sprint,
+    absence_status,
     new_person_id,
 )
 from sprintforecast.products import MEASURES, PRODUCTION_MEASURES, Distribution
@@ -187,9 +190,17 @@ def absence_matrix(people: list[Person], sprints: list[Sprint]) -> list[dict[str
 
 
 def edit_absences(
-    people: list[Person], sprints: list[Sprint], rows: list[dict[str, Any]]
+    people: list[Person],
+    sprints: list[Sprint],
+    rows: list[dict[str, Any]],
+    confirmed: Collection[str] | None = None,
 ) -> list[Sprint]:
-    """Überträgt die bearbeitete Matrix auf Kopien aller Sprints (gleiche Reihenfolge)."""
+    """Überträgt die bearbeitete Matrix auf Kopien aller Sprints (gleiche Reihenfolge).
+
+    Eingetragene Fehltage bestätigen den Sprint. Ohne Einträge bestätigt nichts stillschweigend:
+    ``confirmed`` nennt die Sprints, für die ausdrücklich „niemand fehlt“ bestätigt ist. Ist
+    ``confirmed`` angegeben, verliert ein Sprint ohne Einträge, der dort fehlt, seine
+    Bestätigung (zurück auf unbekannt); ohne Angabe bleibt der Stand unverändert."""
     by_id = {p.id: p for p in people}
     result = []
     for original in sprints:
@@ -204,7 +215,10 @@ def edit_absences(
                 sprint.absences[person.id] = days
             else:
                 sprint.absences.pop(person.id, None)
-        sprint.absences_confirmed = True
+        if sprint.absences or (confirmed is not None and sprint.id in confirmed):
+            sprint.absence_state = AbsenceState.CONFIRMED
+        elif confirmed is not None and absence_status(original) is AbsenceState.CONFIRMED:
+            sprint.absence_state = AbsenceState.UNKNOWN  # Bestätigung aufgehoben
         result.append(sprint)
     return result
 
@@ -236,13 +250,13 @@ def resettable_sprints(data: TeamData, today: date) -> list[Sprint]:
 
 
 def sprints_to_save(data: TeamData, originals: list[Sprint], edited: list[Sprint]) -> list[Sprint]:
-    """Geänderte Sprints plus Sprints ohne Datei – Speichern bestätigt deren Fehltage."""
+    """Sprints, deren Fehltage oder deren Stand (unbekannt / voraussichtlich / bestätigt) sich
+    geändert haben. Sprints ohne Datei werden nur angelegt, wenn dazu etwas eingetragen oder
+    bestätigt wurde."""
     return [
         new
         for old, new in zip(originals, edited, strict=True)
-        if new.absences != old.absences
-        or (new.absences_confirmed != old.absences_confirmed and not absences_known(old))
-        or data.sprint(new.id) is None
+        if new.absences != old.absences or absence_status(new) is not absence_status(old)
     ]
 
 

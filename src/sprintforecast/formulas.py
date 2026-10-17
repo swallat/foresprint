@@ -103,7 +103,17 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
         return Step(
             "capacity",
             name,
-            t("Keine Fehltage erfasst → Trend der Kapazität (wie n. Velocity fortgeschrieben)"),
+            t("Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)"),
+            f"= {_n(r.plan_capacity, 1)} PT",
+        )
+    if source is CapacitySource.CALENDAR:
+        return Step(
+            "capacity",
+            name,
+            t(
+                "Fehltage unbekannt und noch keine Historie → Kapazität laut Personenliste und "
+                "Kalender (Feiertage, Sprintlänge) ohne Abzug für Fehltage"
+            ),
             f"= {_n(r.plan_capacity, 1)} PT",
         )
     if source is CapacitySource.EXPECTED:
@@ -117,14 +127,17 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             f"= {_n(r.plan_capacity, 1)} PT",
         )
     if source is CapacitySource.ESTIMATED:
-        rate = fc.data.team.capacity.absence_history
+        history = fc.absences
+        used = history.sprints if history else []
+        quota = history.rate if history and history.rate is not None else 0.0
         return Step(
             "capacity",
             name,
             t(
-                "Keine Fehltage erfasst → Kapazität laut Personenliste, gemindert um die "
-                "durchschnittlichen Fehltage der letzten {count} Sprints",
-                count=rate,
+                "Fehltage unbekannt → Kapazität laut Personenliste und Kalender, gemindert um "
+                "die durchschnittlichen Fehltage ({share}) der Sprints {sprints}",
+                share=pct(quota),
+                sprints=", ".join(used),
             ),
             f"= {_n(r.plan_capacity, 1)} PT",
         )
@@ -138,10 +151,8 @@ def _index(fc: Forecast, e: TimelineEntry) -> int:
 def average_step(fc: Forecast, e: TimelineEntry) -> Step:
     i = _index(fc, e)
     window = fc.data.team.forecast.window
-    values = [
-        x.result.normalized_velocity.value for x in fc.entries[max(0, i - window + 1) : i + 1]
-    ]
-    present = [v for v in values if v is not None]
+    values = [x.result.normalized_velocity.value for x in fc.entries[: i + 1]]
+    present = [v for v in values if v is not None][-window:]  # Sprints ohne Wert zählen nicht
     avg = e.result.normalized_velocity.average
     name = t("Ø n. Velocity")
     if avg is None:
@@ -150,7 +161,7 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
         "average",
         name,
         t(
-            "Ø n. Velocity = Mittel der n. Velocity der letzten {window} Sprints (fehlende Werte zählen nicht)",  # noqa: E501
+            "Ø n. Velocity = Mittel der n. Velocity der letzten {window} Sprints mit Wert (Sprints ohne Wert zählen nicht)",  # noqa: E501
             window=window,
         ),
         f"({' + '.join(_n(v) for v in present)}) / {len(present)} = {_n(avg)}",
@@ -184,6 +195,15 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     def known(j: int) -> float | None:
         return avg(j) if avg(j) is not None else tr(j)
 
+    if e.result.trend_fallback:
+        return made(
+            t(
+                "Historie dünn: für {mode} fehlt ein zweiter Durchschnitt, daher gilt "
+                "n. Velocity-Trend = Wert_vorher (flat)",
+                mode=mode.value,
+            ),
+            f"= {_n(known(i - 1))}",
+        )
     if mode is TrendMode.FLAT:
         return made(t("n. Velocity-Trend = Wert_vorher (flat)"), f"= {_n(known(i - 1))}")
     a1, a2 = avg(i - 1), avg(i - 2)

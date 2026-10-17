@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from enum import StrEnum
 
@@ -15,11 +15,12 @@ class Unit(StrEnum):
 
 
 class TrendMode(StrEnum):
-    # Klassisch: 1. Zukunftssprint linear, 2. multiplikativ, danach linear.
+    # Klassisch: 1. Zukunftssprint linear, 2. multiplikativ, danach linear. Schreibt Rauschen
+    # fort – nur ausdrücklich wählen.
     CLASSIC = "classic"
-    # Durchgehend lineare Fortschreibung des gleitenden Durchschnitts.
+    # Durchgehend lineare Fortschreibung des gleitenden Durchschnitts (wie ``classic``).
     LINEAR = "linear"
-    # Letzten bekannten Durchschnitt unverändert fortschreiben.
+    # Letzten bekannten Durchschnitt unverändert fortschreiben (Standard, robust).
     FLAT = "flat"
 
     @classmethod
@@ -33,6 +34,17 @@ class ProductBasis(StrEnum):
     PLAN = "plan"
     # … oder nur aus dem Roadmap-Anteil (Kleinkram wird nicht auf Produkte verteilt).
     ROADMAP = "roadmap"
+
+
+class AbsenceState(StrEnum):
+    """Stand der Fehltage eines Sprints – bestimmt, womit die Kapazität gerechnet wird."""
+
+    # Nichts bekannt: Kapazität aus Kalender und Personen, Fehltage nach Historie geschätzt.
+    UNKNOWN = "unknown"
+    # Voraussichtliche Fehltage aus der PO-Vorplanung (Prognose, nicht bestätigt).
+    EXPECTED = "expected"
+    # Fehltage bestätigt – auch „niemand fehlt“.
+    CONFIRMED = "confirmed"
 
 
 class Numbering(StrEnum):
@@ -57,7 +69,7 @@ class ForecastSettings:
     window: int = 5
     roadmap_share: float = 0.8
     rounding: int = 1
-    trend_mode: TrendMode = TrendMode.CLASSIC
+    trend_mode: TrendMode = TrendMode.FLAT
     horizon: int = 3
     product_basis: ProductBasis = ProductBasis.PLAN
 
@@ -76,9 +88,9 @@ class CapacitySettings:
     region: str | None = None
     workweek: str = "auto"
     rounding: int = 1
-    # Für künftige Sprints ohne eingetragene Fehltage: die durchschnittlichen Fehltage der
-    # letzten so vielen Sprints (aus den Plannings) erwarten. 0 = aus (Trend der Kapazität).
-    absence_history: int = 0
+    # Für künftige Sprints ohne bekannte Fehltage: die durchschnittlichen Fehltage der letzten so
+    # vielen Sprints mit bestätigten Fehltagen erwarten. 0 = keine Schätzung (ohne Abzug).
+    absence_history: int = 4
 
 
 @dataclass
@@ -246,11 +258,55 @@ class Sprint:
     # erledigt wurde (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt).
     not_done: float | None = None
     additional_done: float | None = None
-    # Die Fehltage wurden auf der Seite Fehltage bzw. im Planning bestätigt (auch ohne Einträge).
-    # Ohne Bestätigung und ohne Einträge gilt der Sprint als „Fehltage unbekannt“.
-    absences_confirmed: bool = False
+    # Ausdrücklich gespeicherter Stand der Fehltage. ``None`` = nicht gespeichert (ältere
+    # Dateien): dann wird er aus den vorhandenen Feldern abgeleitet (siehe absence_status).
+    absence_state: AbsenceState | None = None
     # Voraussichtliche Fehltage je Person aus der PO-Vorplanung (Prognose, noch nicht bestätigt):
     # Sie wirken auf die Kapazität und den Forecast PLAN, solange keine Fehltage bestätigt sind.
     expected_absences: dict[str, float] = field(default_factory=dict)
     # Prognosen des Teams aus den PO-Vorplanungen, ältere zuerst.
     prognoses: list[Prognosis] = field(default_factory=list)
+
+    @property
+    def absences_confirmed(self) -> bool:
+        """Fehltage bestätigt: eingetragen, ausdrücklich „niemand fehlt“ oder (ältere Dateien)
+        aus den vorhandenen Feldern abgeleitet."""
+        return absence_status(self) is AbsenceState.CONFIRMED
+
+    @absences_confirmed.setter
+    def absences_confirmed(self, value: bool) -> None:
+        if value:
+            self.absence_state = AbsenceState.CONFIRMED
+        elif self.absence_state is AbsenceState.CONFIRMED:
+            self.absence_state = AbsenceState.UNKNOWN
+
+
+def _legacy_known(sprint: Sprint) -> bool:
+    """Ältere Dateien ohne gespeicherten Stand: Fehltage galten als bekannt, wenn der Sprint
+    schon geplant bzw. ausgewertet wurde. Eine Datei, die nur z. B. die PO-Vorplanung enthält
+    oder versehentlich leer entstanden ist, bestätigt sie nicht."""
+    return sprint.planning is not None or any(
+        v is not None for v in (sprint.forecast_ist, sprint.velocity, sprint.forecast_plan)
+    )
+
+
+def explicit_state_needed(sprint: Sprint) -> bool:
+    """Muss der Stand gespeichert werden? Nicht nötig, wenn die ältere Ableitung aus den Feldern
+    dasselbe ergäbe – so bleiben vorhandene Dateien beim Speichern unverändert."""
+    if sprint.absence_state is None:
+        return False
+    derived = replace(sprint, absence_state=None)
+    return absence_status(sprint) is not absence_status(derived)
+
+
+def absence_status(sprint: Sprint) -> AbsenceState:
+    """Stand der Fehltage: bestätigt, voraussichtlich oder unbekannt.
+
+    Eingetragene Fehltage sind bestätigt. Sonst gilt der gespeicherte Stand; fehlt er (ältere
+    Dateien), wird er aus den vorhandenen Feldern abgeleitet. Voraussichtliche Fehltage
+    wirken nur, solange nichts bestätigt ist."""
+    if sprint.absences or sprint.absence_state is AbsenceState.CONFIRMED:
+        return AbsenceState.CONFIRMED
+    if sprint.absence_state is None and _legacy_known(sprint):
+        return AbsenceState.CONFIRMED
+    return AbsenceState.EXPECTED if sprint.expected_absences else AbsenceState.UNKNOWN

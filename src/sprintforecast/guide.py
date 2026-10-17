@@ -24,6 +24,40 @@ FIELDS: dict[str, Field] = {
         source="Urlaubskalender bzw. Abfrage im Team. Halbe Tage als 0.5.",
         example="2 Tage Urlaub + halber Tag Schulung → 2.5",
     ),
+    "absence_state": Field(
+        title="Stand der Fehltage",
+        what="Je Sprint gibt es drei Stände: „unbekannt“ (nichts erfasst: die Kapazität kommt "
+        "aus Kalender und Personenliste, die Fehltage werden nach den letzten Sprints "
+        "geschätzt), „voraussichtlich“ (Prognose aus der PO-Vorplanung, noch nicht bestätigt) "
+        "und „bestätigt“ (Fehltage eingetragen oder ausdrücklich „niemand fehlt“ bestätigt). "
+        "Weiter ohne Eintrag bestätigt nichts: Ohne Bestätigung bleibt der Sprint „unbekannt“.",
+        source="Seite Fehltage (Spalte „Niemand fehlt“) bzw. Planning, Schritt 1.",
+        example="Sprint 2026.23: keine Einträge, „Niemand fehlt“ angehakt → bestätigt, volle "
+        "Besetzung",
+    ),
+    "fte": Field(
+        title="FTE und Arbeitswoche",
+        what="FTE ist der Anteil an den Arbeitstagen der Person, den sie im Team arbeitet "
+        "(1 = alle ihre Arbeitstage). Die Arbeitswoche (z. B. mon,tue,wed,thu) legt fest, welche "
+        "Wochentage ihre Arbeitstage sind. Teilzeit bitte nur einmal abbilden: Entweder die "
+        "volle Arbeitswoche mit FTE 0,8 oder die Vier-Tage-Woche mit FTE 1 – nicht beides, sonst "
+        "wird doppelt abgezogen (10 Tage → 8 × 0,8 = 6,4 statt 8 PT).",
+        source="Arbeitsvertrag bzw. Absprache mit der Person (Seite Personen).",
+        example="10 Arbeitstage im Sprint: Mo–Fr + FTE 0,8 → 8 PT · mon,tue,wed,thu + FTE 1 → "
+        "8 PT · Mo–Fr + FTE 0,5 (halbtags) → 5 PT",
+    ),
+    "overhead": Field(
+        title="Abzug für Scrum-Termine",
+        what="Zeit für Dailys, Planning, Review, Retro und Refinement, die nicht für Tickets "
+        "zur Verfügung steht. Wahlweise in Prozent oder als feste PT je Person und Sprint "
+        "(× FTE) – beides ist derselbe Abzug in zwei Einheiten, die Felder gleichen sich ab. "
+        "Sind PT je Person gesetzt, gelten sie statt der Prozent. Der Abzug wirkt gleich für "
+        "bestätigte, voraussichtliche und erwartete Fehltage: erst Feiertage und Fehltage, dann "
+        "der Abzug, dann die Rundung.",
+        source="Team-Einstellungen (Abzug für Scrum-Termine).",
+        example="1 PT je Person bei 10 Arbeitstagen entspricht 10 %; Vollzeit: −1 PT, halbtags "
+        "(FTE 0,5): −0,5 PT",
+    ),
     "capacity": Field(
         title="Kapazität",
         what="Verfügbare Personentage (PT) des Teams im Sprint. Wird normalerweise aus "
@@ -43,8 +77,9 @@ FIELDS: dict[str, Field] = {
     ),
     "velocity": Field(
         title="Velocity",
-        what="Im Sprint tatsächlich fertiggestellte Menge (nur Tickets, die 'Done' sind; "
-        "Schätzung des Tickets, nicht der tatsächliche Aufwand).",
+        what="Im Sprint tatsächlich erledigte Menge: Schätzungen der fertigen Tickets plus – "
+        "nach Teampraxis – die im Sprint erledigten Teilanteile offener Tickets (Schätzung des "
+        "Tickets, nicht der tatsächliche Aufwand). Siehe „Erledigt je Produkt“.",
         source="Im Review: Sprint-Bericht bzw. in Jira im Velocity-Diagramm der Wert „Completed“.",
         example="13.5",
     ),
@@ -94,8 +129,11 @@ FIELDS: dict[str, Field] = {
     ),
     "done": Field(
         title="Erledigt je Produkt",
-        what="Im Sprint für das Produkt tatsächlich erledigte Menge (Schätzungen der fertigen "
-        "Tickets). Die Summe entspricht höchstens der Velocity.",
+        what="Im Sprint für das Produkt tatsächlich erledigte Menge: Schätzungen der fertigen "
+        "Tickets plus die im Sprint erledigten Teilanteile offener Tickets (Teampraxis). Die "
+        "Summe über die Produkte entspricht höchstens der Velocity. Diese Zählweise sollte im "
+        "Team einheitlich sein – sonst sind Velocity und Erledigt zwischen Teams oder über eine "
+        "Umstellung hinweg nicht vergleichbar.",
         source="Im Review: Sprint-Bericht, gefiltert nach Produkt.",
         example="3.75",
     ),
@@ -136,7 +174,9 @@ WORKFLOW: list[Step] = [
         when="Jederzeit",
         title="Fehltage pflegen",
         text="Sobald Urlaub, Schulungen o. Ä. bekannt sind, je Person und Sprint eintragen – "
-        "auch für künftige Sprints. Ohne Fehltage ist die Kapazität nur geschätzt (Trend).",
+        "auch für künftige Sprints. Sind keine bekannt, ausdrücklich „Niemand fehlt“ bestätigen. "
+        "Ohne Bestätigung bleiben die Fehltage „unbekannt“ und werden nach den letzten "
+        "Sprints geschätzt.",
         page="fehltage",
         cli="sprintforecast fehltage TEAM [SPRINT]",
     ),
@@ -211,11 +251,36 @@ TERMS: list[tuple[str, str]] = [
         "Velocity / Kapazität × Referenzkapazität. Macht Sprints mit Urlaub und voll "
         "besetzte Sprints vergleichbar.",
     ),
-    ("Ø (gleitend)", "Durchschnitt der letzten Sprints (Standard 5, einstellbar)."),
-    ("Trend", "Fortschreibung des Durchschnitts in die Zukunft."),
+    (
+        "Ø (gleitend)",
+        "Durchschnitt der letzten Sprints mit Wert (Standard 5, einstellbar). Sprints ohne "
+        "Wert zählen nicht mit, das Fenster reicht dann weiter zurück.",
+    ),
+    (
+        "Trend",
+        "Fortschreibung des Durchschnitts in die Zukunft. Standard „konstant“ (letzter "
+        "Durchschnitt). „Linear“ und „klassisch“ schreiben auch Rauschen fort und müssen "
+        "ausdrücklich gewählt werden; bei dünner Historie gilt „konstant“.",
+    ),
+    (
+        "Prognose aktuell / beim Planning",
+        "Prognose aktuell: der heute berechnete Forecast PLAN. Prognose beim Planning: der im "
+        "Planning eingefrorene Stand (Basis der Verteilung je Produkt). Die Differenz zeigt, "
+        "wie sich die Prognose seitdem verändert hat.",
+    ),
+    (
+        "Spanne",
+        "Forecast mit der niedrigsten und höchsten normierten Velocity der letzten Sprints. "
+        "Bei weniger als 8 Sprints mit Velocity nur ein grober Hinweis.",
+    ),
+    (
+        "Erledigt",
+        "Fertige Tickets plus im Sprint erledigte Teilanteile offener Tickets (Teampraxis).",
+    ),
     (
         "Forecast PLAN",
-        "Empfohlene Planungsmenge: n. Velocity-Trend / Referenzkapazität × Kapazität, abgerundet.",
+        "Empfohlene Planungsmenge: n. Velocity-Trend / Referenzkapazität × Kapazität, abgerundet. "
+        "Nie negativ.",
     ),
     ("Roadmap", "Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %)."),
     ("Kleinkram", "Rest des Forecast PLAN für Bugs, Support und Kleinigkeiten."),
@@ -236,7 +301,15 @@ TERMS: list[tuple[str, str]] = [
 CAPACITY_SOURCES: list[tuple[str, str]] = [
     ("erfasst", "Wert steht in der Sprintdatei (beim Review eingefroren oder manuell)."),
     ("Personenliste", "Aus Personen, Feiertagen und Fehltagen berechnet."),
-    ("Trend", "Für den Sprint sind noch keine Fehltage erfasst – Kapazität geschätzt."),
+    (
+        "Kalender, Fehltage unbekannt",
+        "Fehltage noch unbekannt und noch keine Historie: Kapazität laut Personenliste und "
+        "Kalender (Feiertage, Sprintlänge), ohne Abzug für Fehltage.",
+    ),
+    (
+        "Trend",
+        "Nur für Teams ohne Personenliste: Kapazität wie die normierte Velocity fortgeschrieben.",
+    ),
     (
         "voraussichtliche Fehltage",
         "Fehltage noch nicht bestätigt: Kapazität laut Personenliste mit den in der "
@@ -244,8 +317,9 @@ CAPACITY_SOURCES: list[tuple[str, str]] = [
     ),
     (
         "erwartete Fehltage",
-        "Keine Fehltage erfasst: Kapazität laut Personenliste, gemindert um die "
-        "durchschnittlichen Fehltage der letzten Sprints (Einstellung).",
+        "Fehltage unbekannt: Kapazität laut Personenliste und Kalender, gemindert um die "
+        "durchschnittlichen Fehltage der letzten Sprints mit bestätigten Fehltagen "
+        "(Einstellung „Fehltage-Historie“).",
     ),
 ]
 

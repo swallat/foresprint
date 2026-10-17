@@ -20,6 +20,9 @@ from sprintforecast.engine import CapacitySource, round_down
 from sprintforecast.forecast import Forecast, TimelineEntry, build_forecast
 from sprintforecast.storage import TeamData
 
+# Unter so vielen Sprints mit Velocity sind Spanne und Häufigkeiten nur grobe Hinweise.
+MIN_SAMPLES = 8
+
 
 def _recent(values: list[float | None], window: int) -> list[float]:
     present = [v for v in values if v is not None]
@@ -31,6 +34,15 @@ def normalized_history(fc: Forecast) -> list[float]:
     return _recent(
         [e.result.normalized_velocity.value for e in fc.history()], fc.data.team.forecast.window
     )
+
+
+def sample_count(fc: Forecast) -> int:
+    """Anzahl aller bisherigen Sprints mit normierter Velocity (Stichprobe der Prognose)."""
+    return sum(1 for e in fc.history() if e.result.normalized_velocity.value is not None)
+
+
+def few_samples(fc: Forecast) -> bool:
+    return sample_count(fc) < MIN_SAMPLES
 
 
 # --- Bandbreite -----------------------------------------------------------------------
@@ -118,11 +130,13 @@ class Completion:
     remaining: float
     share: float  # Anteil des Forecasts, der für die Restmenge zur Verfügung steht
     runs: int
-    # Sprint-IDs, in denen die Restmenge mit 50 % bzw. 85 % Wahrscheinlichkeit erledigt ist;
-    # None = nicht innerhalb des betrachteten Zeitraums.
+    # Sprint-IDs, in denen die Restmenge in 50 % bzw. 85 % der Simulationsläufe erledigt ist
+    # (modellabhängige Häufigkeit, keine Zusage); None = nicht innerhalb des Zeitraums.
     p50: str | None
     p85: str | None
     sprints: list[str]
+    # Stichprobe: Anzahl der Sprints, aus denen die Simulation zieht.
+    samples: int
     # Wahrscheinlichkeit, bis einschließlich Sprint i fertig zu sein
     cumulative: list[float]
     trend_capacity_sprints: list[str]
@@ -165,6 +179,7 @@ def completion(
             CapacitySource.RECORDED,
             CapacitySource.PEOPLE,
             CapacitySource.ESTIMATED,
+            CapacitySource.CALENDAR,
             CapacitySource.EXPECTED,
         ):
             capacities.append(e.result.plan_capacity or 0.0)
@@ -198,6 +213,7 @@ def completion(
         p50=first_reaching(0.5),
         p85=first_reaching(0.85),
         sprints=[e.sprint.id for e in future],
+        samples=len(history),
         cumulative=cumulative,
         trend_capacity_sprints=trend_ids,
         per_sprint=statistics.median(history) / ref * statistics.median(capacities) * share,

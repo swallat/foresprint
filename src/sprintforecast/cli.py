@@ -25,7 +25,7 @@ from rich.table import Table
 from sprintforecast import LOG_ENV, __version__, updater
 from sprintforecast.calendar import day_label, holiday_name, team_workdays
 from sprintforecast.capacity import sprint_capacity
-from sprintforecast.engine import CapacitySource
+from sprintforecast.engine import UNSURE_SOURCES
 from sprintforecast.forecast import (
     Forecast,
     apply_planning,
@@ -56,6 +56,7 @@ from sprintforecast.launcher import (
 )
 from sprintforecast.launcher import Kind as BrowserKind
 from sprintforecast.model import (
+    AbsenceState,
     Membership,
     Numbering,
     Person,
@@ -69,7 +70,15 @@ from sprintforecast.model import (
 from sprintforecast.plugins import load_plugins
 from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
-from sprintforecast.report import capacity_label, fmt, pct, period, render, status
+from sprintforecast.report import (
+    capacity_label,
+    fmt,
+    pct,
+    period,
+    reliability_notes,
+    render,
+    status,
+)
 from sprintforecast.settings import SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
@@ -749,6 +758,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
             s.absences[p.id] = min(value, len(days))
         else:
             s.absences.pop(p.id, None)
+    s.absence_state = AbsenceState.CONFIRMED  # alle Personen wurden gefragt, auch „0“
     if s.capacity is not None and Confirm.ask(
         t(
             "Für den Sprint ist eine feste Kapazität ({capacity}) eingetragen. Entfernen, damit "
@@ -837,9 +847,10 @@ def planning(
         paths.append(_ask_absences(c, data, s))
         console.print(_capacity_table(data, s))
     elif data.sprint(s.id) is None:
-        console.print(
-            f"[yellow]{t('Ohne Fehltage ist die Kapazität nur geschätzt (Trend).')}[/yellow]"
+        hint = t(
+            "Ohne bestätigte Fehltage ist die Kapazität nur geschätzt (Kalender und Historie)."
         )
+        console.print(f"[yellow]{hint}[/yellow]")
     data = _load(c, team) if paths else data
     fc = build_forecast(data, c.today)
     s = copy.deepcopy(data.sprint(s.id) or s)
@@ -1025,15 +1036,18 @@ def forecast(
             style=None if future else "dim",
         )
     console.print(table)
-    if any(e.result.plan_capacity_source is CapacitySource.TREND for e in fc.upcoming()):
+    if any(e.result.plan_capacity_source in UNSURE_SOURCES for e in fc.upcoming()):
         console.print(
             "[yellow]"
             + t(
-                "⚠ Trend = keine Fehltage erfasst, Kapazität geschätzt. Belastbarer mit: {command}",
+                "⚠ Trend/Kalender = keine Fehltage bekannt, Kapazität geschätzt. "
+                "Belastbarer mit: {command}",
                 command=cmd(f"sprintforecast fehltage {team} <SPRINT>"),
             )
             + "[/yellow]"
         )
+    for note in reliability_notes(fc):
+        console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
     if rechenweg is not None:
         from sprintforecast.formulas import steps
 
@@ -1184,13 +1198,15 @@ def analyse(
         console.print(
             t(
                 "Fertigstellung von {rest} {unit} ({basis}, ab dem nächsten Sprint): "
-                "wahrscheinlich bis [bold]{p50}[/bold], mit 85 % Sicherheit bis [bold]{p85}"
-                "[/bold] (≈ {per_sprint} {unit} je Sprint).",
+                "in 50 % der Simulationen bis [bold]{p50}[/bold], in 85 % bis [bold]{p85}"
+                "[/bold] (modellabhängige Häufigkeit, Stichprobe {samples} Sprints; "
+                "≈ {per_sprint} {unit} je Sprint).",
                 rest=fmt(rest, 1),
                 unit=unit,
                 basis=basis,
                 p50=result.p50 or later,
                 p85=result.p85 or later,
+                samples=result.samples,
                 per_sprint=fmt(result.per_sprint, 1),
             )
         )
@@ -1200,7 +1216,7 @@ def analyse(
                 listed += " …"
             console.print(
                 "[dim]"
-                + t("Ohne erfasste Fehltage gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
+                + t("Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
                 + "[/dim]"
             )
 

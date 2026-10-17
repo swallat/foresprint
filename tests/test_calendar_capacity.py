@@ -131,7 +131,15 @@ def test_expected_absences_estimate_future_capacity(data_dir):
     today = date(2026, 10, 15)
     base = build_forecast(data, today)
     unrecorded = [e for e in base.upcoming() if not e.recorded]
-    assert unrecorded and unrecorded[0].result.plan_capacity_source is CapacitySource.TREND
+    # Fehltage unbekannt: Kapazität aus Kalender und Personen, Quote aus bestätigten Sprints
+    assert unrecorded and unrecorded[0].result.plan_capacity_source is CapacitySource.ESTIMATED
+    data.team.capacity.absence_history = 0
+    unrecorded = [e for e in build_forecast(data, today).upcoming() if not e.recorded]
+    assert unrecorded[0].result.plan_capacity_source is CapacitySource.CALENDAR
+    data.people = []
+    unrecorded = [e for e in build_forecast(data, today).upcoming() if not e.recorded]
+    assert unrecorded[0].result.plan_capacity_source is CapacitySource.TREND  # keine Personenliste
+    data = Repository(data_dir).load("demo")
 
     past = [e.sprint for e in base.history() if e.recorded]
     assert expected_absence_rate(data.team, data.people, past, 0) is None

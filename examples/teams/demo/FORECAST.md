@@ -1,6 +1,6 @@
 # Sprint-Forecast Demo-Team
 
-Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Sprints · Trend: `classic`
+Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Sprints · Trend: `flat`
 
 > Automatisch erzeugt mit `sprintforecast bericht`. Nicht von Hand bearbeiten.
 
@@ -8,14 +8,12 @@ Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Spri
 
 | Sprint | Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** (PT) | Roadmap (80 %) | Kleinkram |
 |---|---|---|---|---|---|---|---|
-| 2026.21 | 14.10. – 28.10.2026 | **laufend** | 25,5 (Personenliste) | 16,02 | **9,0** | 7,20 | 1,80 |
-| 2026.22 | 28.10. – 11.11.2026 | geplant | 30,0 (Personenliste) | 15,28 | **10,1** | 8,08 | 2,02 |
-| 2026.23 | 11.11. – 25.11.2026 | geplant | 28,8 ⚠️ Trend | 14,53 | **9,2** | 7,36 | 1,84 |
-| 2026.24 | 25.11. – 09.12.2026 | geplant | 28,4 ⚠️ Trend | 13,79 | **8,7** | 6,96 | 1,74 |
+| 2026.21 | 14.10. – 28.10.2026 | **laufend** | 25,5 (Personenliste) | 16,84 | **9,5** | 7,60 | 1,90 |
+| 2026.22 | 28.10. – 11.11.2026 | geplant | 30,0 (Personenliste) | 16,84 | **11,2** | 8,96 | 2,24 |
+| 2026.23 | 11.11. – 25.11.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 9,04 | 2,26 |
+| 2026.24 | 25.11. – 09.12.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 9,04 | 2,26 |
 
-⚠️ *Trend*: Für diesen Sprint sind noch keine Fehltage erfasst, die Kapazität ist geschätzt. Mit `sprintforecast fehltage demo <SPRINT>` wird die Prognose belastbar.
-
-**Planning 2026.21:** Summe 8,50 PT, Delta zum Forecast PLAN 0,50 PT
+**Planning 2026.21:** Summe 8,50 PT, Delta zum Forecast PLAN 1,00 PT
 
 ## Verlauf (letzte 10 Sprints)
 
@@ -40,9 +38,9 @@ Linien: Forecast IST (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und 
 xychart-beta
     x-axis ["2026.11", "2026.12", "2026.13", "2026.14", "2026.15", "2026.16", "2026.17", "2026.18", "2026.19", "2026.20", "2026.21", "2026.22", "2026.23", "2026.24"]
     y-axis "PT"
-    line [14.25, 11.75, 13.50, 13.25, 14.50, 13.25, 12.75, 10.00, 11.50, 12.00, 10.00, 10.10, 9.20, 8.70]
-    line [14.50, 13.50, 10.25, 12.50, 16.50, 14.00, 11.50, 10.50, 12.75, 9.75, 10.35, 9.28, 8.21, 7.14]
-    line [16.95, 18.93, 11.25, 15.89, 19.24, 18.53, 16.32, 16.58, 17.65, 15.13, 16.02, 15.28, 14.53, 13.79]
+    line [14.25, 11.75, 13.50, 13.25, 14.50, 13.25, 12.75, 10.00, 11.50, 12.00, 10.00, 11.20, 11.30, 11.30]
+    line [14.50, 13.50, 10.25, 12.50, 16.50, 14.00, 11.50, 10.50, 12.75, 9.75, 11.70, 11.70, 11.70, 11.70]
+    line [16.95, 18.93, 11.25, 15.89, 19.24, 18.53, 16.32, 16.58, 17.65, 15.13, 16.84, 16.84, 16.84, 16.84]
 ```
 
 ## Produkte
@@ -51,17 +49,17 @@ xychart-beta
 
 | Produkt | PO | Standard (PT) | PO-Vorplanung (PT) | Planning (PT) | Erledigt (PT) |
 |---|---|---|---|---|---|
-| Webshop | Alex | 3,00 | 3,50 | 4,00 | – |
-| Mobile App | Alex | 3,00 | 3,00 | 3,00 | – |
-| Kundenportal | Bea | 3,00 | 3,00 | 3,00 | – |
+| Webshop | Alex | 3,17 | 3,50 | 4,00 | – |
+| Mobile App | Alex | 3,17 | 3,00 | 3,00 | – |
+| Kundenportal | Bea | 3,17 | 3,00 | 3,00 | – |
 
 **Sprint 2026.22** (geplant)
 
 | Produkt | PO | Standard (PT) | PO-Vorplanung (PT) | Planning (PT) | Erledigt (PT) |
 |---|---|---|---|---|---|
-| Webshop | Alex | 3,37 | 3,00 | – | – |
-| Mobile App | Alex | 3,37 | 3,00 | – | – |
-| Kundenportal | Bea | 3,37 | 4,00 | – | – |
+| Webshop | Alex | 3,73 | 3,00 | – | – |
+| Mobile App | Alex | 3,73 | 3,00 | – | – |
+| Kundenportal | Bea | 3,73 | 4,00 | – | – |
 
 **Saldo** (Σ Erledigt − Σ Standard, letzte 6 Sprints)
 
@@ -78,10 +76,10 @@ Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der le
 
 | Sprint | Forecast PLAN (PT) | konservativ | mittel | optimistisch |
 |---|---|---|---|---|
-| 2026.21 | 9,0 | 8,5 | 9,3 | 10,5 |
-| 2026.22 | 10,1 | 10,0 | 11,0 | 12,3 |
-| 2026.23 | 9,2 | 9,6 | 10,5 | 11,8 |
-| 2026.24 | 8,7 | 9,5 | 10,4 | 11,7 |
+| 2026.21 | 9,5 | 8,5 | 9,3 | 10,5 |
+| 2026.22 | 11,2 | 10,0 | 11,0 | 12,3 |
+| 2026.23 | 11,3 | 10,2 | 11,2 | 12,5 |
+| 2026.24 | 11,3 | 10,2 | 11,2 | 12,5 |
 
 - Ø Fokusfaktor (Velocity / Kapazität): 0,37
 - Ø Scope Creep (5 Sprints): 6 % · Kleinkram-Anteil: 20 %

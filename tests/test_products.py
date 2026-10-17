@@ -27,8 +27,8 @@ def fc(data_dir: Path):
 def test_standard_is_plan_divided_by_active_products(fc):
     d = distribution(fc, fc.entry("2026.22"))
     assert [r.product.id for r in d.rows] == ["webshop", "app", "portal"]  # Altsystem beendet
-    assert d.available == pytest.approx(10.1)
-    assert all(r.standard == pytest.approx(10.1 / 3) for r in d.rows)
+    assert d.available == pytest.approx(11.2)
+    assert all(r.standard == pytest.approx(11.2 / 3) for r in d.rows)
     assert d.total("preplanned") == 10
 
 
@@ -36,9 +36,9 @@ def test_fixed_share_and_rest_split_evenly(fc):
     next(p for p in fc.data.products if p.id == "app").share = 0.1
     d = distribution(fc, fc.entry("2026.22"))
     standard = {r.product.id: r.standard for r in d.rows}
-    assert standard["app"] == pytest.approx(1.01)
-    assert standard["webshop"] == standard["portal"] == pytest.approx((10.1 - 1.01) / 2)
-    assert sum(standard.values()) == pytest.approx(10.1)
+    assert standard["app"] == pytest.approx(1.12)
+    assert standard["webshop"] == standard["portal"] == pytest.approx((11.2 - 1.12) / 2)
+    assert sum(standard.values()) == pytest.approx(11.2)
 
 
 def test_share_roundtrip_and_table(data_dir: Path):
@@ -102,7 +102,7 @@ def test_production_values_roundtrip_and_validation(data_dir: Path):
 def test_roadmap_basis(fc):
     fc.data.team.forecast.product_basis = ProductBasis.ROADMAP
     d = distribution(fc, fc.entry("2026.22"))
-    assert d.available == pytest.approx(10.1 * 0.8)
+    assert d.available == pytest.approx(11.2 * 0.8)
 
 
 def test_inactive_product_with_values_has_no_standard(fc):
@@ -189,9 +189,9 @@ def test_freeze_keeps_existing_plan_unless_requested(fc):
     entry.sprint.forecast_plan = 9.0
     freeze_plan(entry.sprint, entry, TODAY)
     assert entry.sprint.forecast_plan == 9.0
-    assert refreeze_offer(entry.sprint, entry) == (9.0, pytest.approx(10.1))
+    assert refreeze_offer(entry.sprint, entry) == (9.0, pytest.approx(11.2))
     freeze_plan(entry.sprint, entry, TODAY, refreeze=True)
-    assert entry.sprint.forecast_plan == pytest.approx(10.1)
+    assert entry.sprint.forecast_plan == pytest.approx(11.2)
     assert refreeze_offer(entry.sprint, entry) is None
 
 
@@ -200,3 +200,47 @@ def test_planning_default_skips_committed_future_sprint(fc):
     fc.entry("2026.22").sprint.forecast_ist = 10
     assert fc.default_entry("planning").sprint.id == "2026.23"
     assert fc.default_entry("next").sprint.id == "2026.22"  # Fehltage unverändert
+
+
+def test_fixed_shares_over_100_percent_are_rejected(fc):
+    """A10: Zwei feste Anteile von je 60 % werden abgelehnt."""
+    for p in fc.data.products:
+        if p.id in ("webshop", "app"):
+            p.share = 0.6
+    issues = check_team(fc.data, TODAY)
+    errors = [i for i in issues if i.level.value == "Fehler" and "mehr als 100 %" in i.message]
+    assert errors and errors[0].where == "products.yaml"
+    assert "120" in errors[0].message
+
+
+def test_fixed_shares_adding_to_100_percent_warn_when_others_remain(fc):
+    for p in fc.data.products:
+        if p.id in ("webshop", "app"):
+            p.share = 0.5
+    issues = check_team(fc.data, TODAY)
+    assert not [i for i in issues if i.level.value == "Fehler" and "100 %" in i.message]
+    assert any("bleibt nichts" in i.message for i in issues)
+
+
+def test_balance_distinguishes_missing_from_zero(fc):
+    """A10: In einem Sprint mit Erledigt für andere Produkte zählt ein fehlender Wert nicht
+    als 0 – weder sein Erledigt noch sein Standard fließen in den Saldo ein."""
+    from sprintforecast.products import balance
+
+    entry = fc.entry("2026.20")
+    sprint = entry.sprint
+    recorded = {pid: v.done for pid, v in sprint.products.items() if v.done is not None}
+    assert len(recorded) >= 2
+    before = {b.product.id: b for b in balance(fc, [entry])}
+    skipped = next(iter(recorded))
+    sprint.products[skipped].done = None  # nicht erfasst
+    after = {b.product.id: b for b in balance(fc, [entry])}
+    assert after[skipped].missing == 1 and after[skipped].sprints == 0
+    assert after[skipped].standard == 0.0 and after[skipped].done == 0.0  # nicht als 0 gezählt
+    other = next(pid for pid in recorded if pid != skipped)
+    assert after[other].difference == pytest.approx(before[other].difference)
+    # als echte 0 erfasst, zählt der Standard dagegen mit
+    sprint.products[skipped].done = 0.0
+    zero = {b.product.id: b for b in balance(fc, [entry])}
+    assert zero[skipped].sprints == 1 and zero[skipped].missing == 0
+    assert zero[skipped].difference == pytest.approx(-before[skipped].standard)
