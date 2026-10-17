@@ -11,6 +11,7 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 from __future__ import annotations
 
 import io
+import os
 import re
 import shutil
 import tarfile
@@ -423,8 +424,15 @@ def _error_set(repo_dir: Path, today: date) -> set[tuple[str, str, str]]:
     from sprintforecast.storage import Repository
     from sprintforecast.validate import Level, check_all
 
+    # Ohne den Ordner im Text: Der Vergleich Arbeitsstand gegen Commit läuft in verschiedenen
+    # Ordnern, und Ladefehler nennen den Dateipfad.
+    prefix = str(repo_dir)
+
+    def relative(text: str) -> str:
+        return text.replace(prefix + os.sep, "").replace(prefix, "")
+
     return {
-        (key, i.where, i.message)
+        (key, relative(i.where), relative(i.message))
         for key, issues in check_all(Repository(repo_dir), today).items()
         for i in issues
         if i.level is Level.ERROR
