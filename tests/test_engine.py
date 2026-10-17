@@ -171,3 +171,14 @@ def test_thin_history_forecast_is_flat_and_flagged(mode):
 
 def test_two_sprints_give_no_forecast():
     assert [x.plan for x in _thin([8.0, 10.0], TrendMode.FLAT)[2:]] == [None, None]
+
+
+def test_trend_text_equals_enum_mode():
+    assert trend(AVG, "linear") == trend(AVG, TrendMode.LINEAR)
+    assert trend(AVG, "klassisch") == trend(AVG, TrendMode.CLASSIC)
+
+
+def test_trend_rejects_unknown_mode():
+    """Ein unbekannter Text darf nicht still als ``linear`` gerechnet werden."""
+    with pytest.raises(ValueError, match="Unbekannter Trend-Modus 'foo'"):
+        trend(AVG, "foo")

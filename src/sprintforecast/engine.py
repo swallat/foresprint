@@ -90,10 +90,20 @@ def gaps_in_window(values: Series, window: int) -> int:
     return 0
 
 
+def parse_trend_mode(mode: TrendMode | str) -> TrendMode:
+    """Wandelt einen Text in ``TrendMode`` um; ein unbekannter Wert ist ein Fehler (kein stilles
+    ``linear``)."""
+    try:
+        return TrendMode(mode)
+    except ValueError:
+        erlaubt = ", ".join(m.value for m in TrendMode)
+        raise ValueError(f"Unbekannter Trend-Modus {mode!r} (erlaubt: {erlaubt})") from None
+
+
 def _trend(average: Series, mode: TrendMode | str) -> tuple[Series, list[bool]]:
     """Trend und je Position, ob statt des gewählten Modus auf ``flat`` zurückgegriffen wurde
     (zu wenig Historie für die Fortschreibung)."""
-    mode = TrendMode(mode)
+    mode = parse_trend_mode(mode)
     result: Series = [None] * len(average)
     fallback = [False] * len(average)
 
@@ -213,7 +223,7 @@ def _metric_series(values: Series, settings: ForecastSettings) -> tuple[list[Met
     if thin_history(values, settings.window):
         # Dünne Historie: nur der Durchschnitt, keine Fortschreibung eines Anstiegs.
         trends, _ = _trend(averages, TrendMode.FLAT)
-        fallback = [TrendMode(settings.trend_mode) is not TrendMode.FLAT] * len(values)
+        fallback = [parse_trend_mode(settings.trend_mode) is not TrendMode.FLAT] * len(values)
     else:
         trends, fallback = _trend(averages, settings.trend_mode)
     metrics = [Metric(v, a, t) for v, a, t in zip(values, averages, trends, strict=True)]
