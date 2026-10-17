@@ -252,9 +252,11 @@ def _analysis_section(fc: Forecast) -> list[str]:
     if hint.average_scope_creep is not None:
         facts.append(
             t(
-                "Ø Scope Creep ({count} Sprints): {scope} · Kleinkram-Anteil: {small}",
+                "Ø Scope Creep ({count} Sprints): {scope} des Commitments = {late} des Forecast "
+                "PLAN · Kleinkram-Anteil: {small}",
                 count=hint.samples,
                 scope=pct(hint.average_scope_creep),
+                late=pct(hint.average_late_share),
                 small=pct(hint.configured_small_stuff),
             )
             + (t(" ⚠️ Puffer kleiner als der ungeplante Anteil") if hint.buffer_too_small else "")

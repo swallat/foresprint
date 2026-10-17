@@ -2074,10 +2074,12 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
         st.info(t("Scope Creep wurde zuletzt nicht erfasst – keine Empfehlung möglich."))
     else:
         text = t(
-            "Ø Scope Creep der letzten {count} Sprints: **{scope}** · eingestellter "
-            "Kleinkram-Anteil: **{small}**",
+            "Ø Scope Creep der letzten {count} Sprints: **{scope}** des Commitments = "
+            "**{late}** des Forecast PLAN · eingestellter Kleinkram-Anteil (bezogen auf den "
+            "Forecast PLAN): **{small}**",
             count=hint.samples,
             scope=pct(hint.average_scope_creep),
+            late=pct(hint.average_late_share),
             small=pct(hint.configured_small_stuff),
         )
         if hint.buffer_too_small:
