@@ -407,6 +407,7 @@ def _merge(
             raise
     remaining = resolve_conflicts(path)
     if not remaining:
+        gitmod.refuse_staged_conflict_markers(root)
         _git(root, "commit", "--no-edit")
     return remaining
 
@@ -505,6 +506,7 @@ def sync(
             result.conflicts = resolve_conflicts(path)
             if result.conflicts:
                 raise _conflict_error()
+            gitmod.refuse_staged_conflict_markers(root)
             _git(root, "commit", "--no-edit")
             result.merged = True
         elif current.conflicts:

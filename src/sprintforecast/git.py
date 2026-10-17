@@ -1006,13 +1006,14 @@ def invalidate_status() -> None:
         hook()
 
 
-def refuse_conflict_markers(files: Iterable[Path]) -> None:
+def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
     """Verweigert das Committen von Datendateien, in denen noch Konfliktmarkierungen eines
     unvollständigen Zusammenführens stehen: Sie würden geteilt und sperrten dann die Bearbeitung
-    bei allen anderen."""
+    bei allen anderen. ``files`` sind absolute Pfade; die Meldung nennt sie relativ zu ``root``
+    (Sprintdateien und team.yaml heißen in jedem Team gleich)."""
     from sprintforecast.storage import has_conflict_markers  # storage importiert dieses Modul
 
-    marked = []
+    marked: list[str] = []
     for file in files:
         if not DATA_FILES.search(file.name):
             continue
@@ -1021,23 +1022,36 @@ def refuse_conflict_markers(files: Iterable[Path]) -> None:
         except OSError:  # gelöscht oder nicht lesbar: nichts zu prüfen
             continue
         if has_conflict_markers(text):
-            marked.append(file.name)
+            try:
+                name = file.resolve().relative_to(root.resolve()).as_posix()
+            except ValueError:
+                name = file.as_posix()
+            if name not in marked:
+                marked.append(name)
     if marked:
-        files = ", ".join(marked)
+        names = ", ".join(marked)
         raise GitError(
             t(
                 "In diesen Dateien stehen noch Konfliktmarkierungen (<<<<<<<, =======, "
-                ">>>>>>>), sie werden nicht committet: {files}",
-                files=files,
+                ">>>>>>>), sie werden nicht übernommen: {files}",
+                files=names,
             ),
             "conflict",
             t(
-                "Betroffen: {files}. Die Dateien stammen aus einem unvollständigen "
-                "Zusammenführen. Auf der Seite „Konflikte lösen“ den letzten Stand "
-                "wiederherstellen, oder die Markierungen in einem Editor entfernen.",
-                files=files,
+                "Betroffen: {files}. Die Markierungen stammen aus einem unvollständigen "
+                "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
+                "erscheint, dort den letzten Stand wiederherstellen.",
+                files=names,
             ),
         )
+
+
+def refuse_staged_conflict_markers(root: Path) -> None:
+    """Wie :func:`refuse_conflict_markers` für alles, was gerade vorgemerkt ist (vor einem
+    Commit, der nicht über :func:`commit_directory` läuft: Zusammenführen abschließen,
+    Wiederherstellen, Zurücknehmen)."""
+    staged = split_z(_git(root, "diff", "--cached", "--name-only", "-z", strip=False))
+    refuse_conflict_markers(root, (root / name for name in staged))
 
 
 def commit_directory(path: Path, message: str, tags: list[str] | None = None) -> str:
@@ -1056,7 +1070,7 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
                 files=", ".join(blocked),
             )
         )
-    refuse_conflict_markers(root / f for status, f in changes if "D" not in status)
+    refuse_conflict_markers(root, (root / f for status, f in changes if "D" not in status))
     names = check_new_tags(root, tags)  # vor dem Commit: bei einem Konflikt bleibt alles offen
     target = str(path.resolve())
     try:
@@ -1073,7 +1087,7 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
     cwd = paths[0].resolve().parent
     root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
-    refuse_conflict_markers(paths)
+    refuse_conflict_markers(root, paths)
     names = check_new_tags(root, [tag] if tag else None)
     try:
         _git(root, "add", "--", *(str(p.resolve()) for p in paths))
