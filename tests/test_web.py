@@ -1249,6 +1249,48 @@ def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path
     assert any("Gespeichert" in s.value for s in app.success)  # die Meldung kommt nach dem Laden
 
 
+def captions(app: AppTest) -> list[str]:
+    return [c.value for c in app.caption]
+
+
+def test_range_is_shown_at_the_planning_forecast(app: AppTest):
+    """Planning Schritt 2: Spanne und Stichprobe direkt unter den Kacheln, die Kapazitätsquelle
+    unter der Kapazität."""
+    planning_step(app, "2026.22", 1)
+    assert "Spanne 10,0–12,3 aus den letzten 5 Sprints" in captions(app)
+    capacity = next(m for m in app.metric if m.label == "Kapazität (PT)")
+    assert "Personen" in capacity.delta  # Quelle: Kalender und Personenliste
+
+
+def test_range_is_shown_at_the_absences_forecast_line(app: AppTest):
+    goto(app, "fehltage")
+    assert any("In den nächsten Sprint" in m.value for m in app.markdown)
+    assert any(c.startswith("Spanne ") and "aus den letzten 5 Sprints" in c for c in captions(app))
+
+
+def test_range_is_shown_at_the_preplanning_forecast(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    assert "Spanne 10,2–12,5 aus den letzten 5 Sprints" in captions(app)
+
+
+def test_range_note_warns_about_little_data(data_dir: Path):
+    """Mit weniger als fünf Sprints mit Velocity steht der Hinweis gleich an der Spanne."""
+    from datetime import date
+
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.report import band_note
+    from sprintforecast.storage import Repository
+
+    for file in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if file.stem not in ("2026.17", "2026.18", "2026.19", "2026.20", "2026.21"):
+            file.unlink()
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    note = band_note(fc, fc.entry("2026.22"))
+    assert note.startswith("Spanne ") and "aus den letzten 4 Sprints" in note
+    assert note.endswith("wenig Daten, grober Hinweis")
+
+
 def test_absences_page_shows_the_step_bar_and_shares_the_board_sprint(app: AppTest):
     goto(app, "fehltage")
     assert app.selectbox(key="absences-sprint").value == "2026.22"
