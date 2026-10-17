@@ -517,8 +517,9 @@ CAPACITY_SOURCES: list[tuple[str, str]] = [
 ]
 
 COMMANDS: list[tuple[str, str]] = [
-    ("sprintforecast web", "Weboberfläche im Browser starten"),
-    ("sprintforecast web --app", "Weboberfläche als App in eigenem Fenster"),
+    ("sprintforecast web", "Weboberfläche als App in eigenem Fenster starten"),
+    ("sprintforecast web --no-app", "Weboberfläche in einem Browser-Tab statt als App"),
+    ("sprintforecast web --no-browser", "Server starten, ohne ein Fenster zu öffnen"),
     ("sprintforecast verknuepfung", "Starter zum Doppelklicken anlegen (Desktop/Startmenü)"),
     ("sprintforecast forecast TEAM", "Prognose für laufenden und kommende Sprints"),
     ("sprintforecast fehltage TEAM [SPRINT]", "Fehltage je Person erfassen"),
