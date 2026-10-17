@@ -1420,6 +1420,7 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
         found = find_browser(explicit)
     except FileNotFoundError as e:
         console.print(f"[yellow]{t('{error} – suche automatisch.', error=e)}[/yellow]")
+        os.environ.pop(BROWSER_ENV, None)  # sonst läse find_browser die ungültige Vorgabe erneut
         found = find_browser(None)
     match found.kind:
         case BrowserKind.APP:
