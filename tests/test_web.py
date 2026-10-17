@@ -621,3 +621,13 @@ def test_absences_page_answers_how_much_fits_into_the_next_sprint(app: AppTest):
     assert "In den nächsten Sprint 2026.22 passen 11,2 PT" in text
     frame = next(d.value for d in app.dataframe if "Kapazität (PT)" in d.value.columns)
     assert frame.loc[frame["Sprint"] == "2026.22", "Forecast PLAN (PT)"].iloc[0] == "11,2"
+
+
+@pytest.mark.parametrize("page", ["vorplanung", "planning", "review"])
+def test_board_navigation_highlights_the_active_page(app: AppTest, page: str):
+    """Die aktive Board-Seite ist hervorgehoben (kein ausgegrauter Link); die anderen sind Links."""
+    goto(app, page)
+    active = [m.value for m in app.markdown if "board-active" in m.value]
+    assert len(active) == 1
+    title = {"vorplanung": "PO-Vorplanung", "planning": "Planning", "review": "Sprint abschließen"}
+    assert title[page] in active[0]

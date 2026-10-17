@@ -191,8 +191,9 @@ WORKFLOW: list[Step] = [
     Step(
         when="Vor dem Planning (POs)",
         title="PO-Vorplanung je Produkt",
-        text="Betreut das Team mehrere Produkte, tragen die POs ein, wie viel sie je Produkt "
-        "vorsehen – im Vergleich zum Standard (verfügbare Menge / Anzahl Produkte).",
+        text="Nur mit eingeschalteter Produktverteilung (Einstellungen). Betreut das Team "
+        "mehrere Produkte, tragen die POs ein, wie viel sie je Produkt vorsehen – im "
+        "Vergleich zum Standard (verfügbare Menge / Anzahl Produkte).",
         page="vorplanung",
         cli="sprintforecast produkte TEAM --vorplanung",
     ),
@@ -234,7 +235,8 @@ WORKFLOW: list[Step] = [
     Step(
         when="Wenn sich die Produkte ändern",
         title="Produkte pflegen",
-        text="Neue Produkte mit PO und Beginn anlegen, abgegebene mit „bis“ beenden statt "
+        text="Nur mit eingeschalteter Produktverteilung. Neue Produkte (mit PO, falls "
+        "„Zuordnung PO“ an ist) und Beginn anlegen, abgegebene mit „bis“ beenden statt "
         "löschen – so bleiben vergangene Auswertungen erhalten.",
         page="produktliste",
         cli="sprintforecast produktliste TEAM",
@@ -297,6 +299,14 @@ TERMS: list[tuple[str, str]] = [
         "Roadmap",
         "Reservierter Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %). Es ist eine "
         "Aufteilung der Prognose, kein weiterer Wert: Roadmap + Kleinkram = Forecast PLAN.",
+    ),
+    (
+        "Funktionsbereiche",
+        "Drei optionale Bereiche, unabhängig voneinander in den Einstellungen zuschaltbar "
+        "(bei neuen Teams aus): Produktverteilung (mehrere Produkte), Zuordnung PO "
+        "(Product Owner je Produkt) und Produktionszugriff (nur ein Teil der Personen darf "
+        "bestimmte Tickets bearbeiten). Ausgeschaltete Bereiche blenden Seiten, Spalten und "
+        "Hinweise aus; erfasste Werte bleiben in den Dateien erhalten.",
     ),
     (
         "Angekündigte Fehltage",

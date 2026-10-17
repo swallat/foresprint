@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from sprintforecast.capacity import production_share
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
-from sprintforecast.model import Product, ProductBasis, ProductValues, Sprint
+from sprintforecast.model import Features, Product, ProductBasis, ProductValues, Sprint
 
 # Spalten der Auswertung: Attribut → Anzeigename
 MEASURES: dict[str, str] = {
@@ -89,6 +89,8 @@ class Distribution:
     # Ist überhaupt jemand als berechtigt markiert? Ohne Markierung ist die Konfiguration
     # unbekannt – das ist etwas anderes als „Berechtigte sind in diesem Sprint nicht da“.
     production_configured: bool = False
+    # Welche Bereiche das Team nutzt (steuert Spalten und Hinweise in der Oberfläche).
+    features: Features = field(default_factory=Features)
     # Aktuell berechneter Forecast PLAN (weicht von ``plan`` ab, wenn dieser eingefroren ist).
     current_plan: float | None = None
 
@@ -117,6 +119,9 @@ class Distribution:
 
     def total(self, measure: str) -> float | None:
         values = [v for r in self.rows if (v := r.value(measure)) is not None]
+        if not values and measure in PRODUCTION_MEASURES:
+            # Teams ohne Produktverteilung erfassen die Mengen mit Produktionszugriff je Sprint.
+            return getattr(self.sprint, measure)
         return sum(values) if values else None
 
     def has(self, measure: str) -> bool:
@@ -197,6 +202,7 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
         available=available,
         rows=rows,
         production_configured=any(p.production_access for p in data.people),
+        features=data.team.features,
         production_share=group,
         production_available=plan * group if plan is not None and group is not None else None,
         current_plan=entry.result.plan,

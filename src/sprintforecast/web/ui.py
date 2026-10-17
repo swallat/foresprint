@@ -10,6 +10,7 @@ angezeigt werden die übersetzten Beschriftungen.
 from __future__ import annotations
 
 import copy
+import html
 import os
 import subprocess
 import sys
@@ -174,6 +175,22 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
     },
 }
 PAGE_INFO = {key: info for group in PAGES.values() for key, info in group.items()}
+# Seiten, die nur erscheinen, wenn das Team den Funktionsbereich nutzt (Team → Einstellungen).
+PAGE_FEATURES = {"vorplanung": "products", "produkte": "products", "produktliste": "products"}
+
+
+def enabled_pages(repo: Repository) -> set[str]:
+    """Seiten für das gewählte Team: Seiten abgeschalteter Funktionsbereiche entfallen."""
+    team = st.session_state.get("selected_team")
+    try:
+        features = repo.load_cached(team).team.features if team and repo.exists(team) else None
+    except DataError:
+        features = None
+    return {
+        key
+        for key in PAGE_INFO
+        if features is None or getattr(features, PAGE_FEATURES.get(key, ""), True)
+    }
 
 
 def page_path(key: str) -> str:
@@ -181,6 +198,8 @@ def page_path(key: str) -> str:
 
 
 def page_link(key: str, label: str | None = None) -> None:
+    if key not in st.session_state.get("enabled-pages", PAGE_INFO):
+        return  # Seite gehört zu einem abgeschalteten Funktionsbereich
     title, icon = PAGE_INFO[key]
     st.page_link(page_path(key), label=label or t(title), icon=icon)
 
@@ -1012,15 +1031,21 @@ def _board_nav(data: TeamData, sprint: Sprint, current: str) -> None:
         "planning": recorded is not None and recorded.forecast_ist is not None,
         "review": recorded is not None and recorded.velocity is not None,
     }
-    for col, key in zip(st.columns(len(BOARDS)), BOARDS, strict=True):
+    boards = [b for b in BOARDS if b in st.session_state.get("enabled-pages", BOARDS)]
+    for col, key in zip(st.columns(len(boards)), boards, strict=True):
         title, icon = PAGE_INFO[key]
+        label = f"{'✅' if done[key] else '⬜'} {t(title)}"
         with col:
-            st.page_link(
-                page_path(key),
-                label=f"{'✅' if done[key] else '⬜'} {t(title)}",
-                icon=icon,
-                disabled=key == current,
-            )
+            if key == current:
+                # Aktive Seite deutlich hervorgehoben (kein ausgegrauter Link).
+                st.markdown(
+                    '<div class="board-active" style="background:#2a78d6;color:#fff;'
+                    "font-weight:600;padding:0.45rem 0.9rem;border-radius:0.5rem;"
+                    f'text-align:center">{html.escape(label)}</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.page_link(page_path(key), label=label, icon=icon)
 
 
 def _number(label: str, value: float | None, key: str, help: str | None = None) -> float | None:
@@ -1093,6 +1118,8 @@ def _frozen_note(d: Distribution, unit: str) -> str:
 def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
     """Kapazität der Personen mit Produktionszugriff und Warnung bei Überplanung – ein
     Engpasshinweis (grobe Näherung über den Kapazitätsanteil), keine Zusage."""
+    if not d.features.production:
+        return
     planned = d.total("production_planned")
     entered = planned is not None or d.total("production_done") is not None
     if d.production_state == "unconfigured":
@@ -1158,7 +1185,7 @@ def _product_editor(
     column_config: dict[str, Any] = {
         "_id": None,
         "Produkt": st.column_config.TextColumn(t("Produkt"), disabled=True),
-        "PO": st.column_config.TextColumn(disabled=True),
+        "PO": st.column_config.TextColumn(disabled=True) if d.features.po else None,
     }
     for m, label in MEASURES.items():
         column_config[label] = st.column_config.NumberColumn(
@@ -1171,7 +1198,9 @@ def _product_editor(
             if m in FIELDS
             else t("Verfügbare Menge / Anzahl betreuter Produkte"),
         )
-    show_production = d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
+    show_production = d.features.production and (
+        d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
+    )
     for m, label in PRODUCTION_MEASURES.items():
         column_config[label] = (
             st.column_config.NumberColumn(
@@ -1536,7 +1565,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         help=_formula_help(fc_after, entry, "capacity"),
     )
     right.metric(
-        f"Forecast PLAN ({data.team.unit.value})",
+        t("Prognose aktuell ({unit})", unit=data.team.unit.value),
         fmt(entry.result.plan) if entry else "–",
         help=_formula_help(fc_after, entry, "plan"),
     )
@@ -1626,7 +1655,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     if r.plan_capacity_source in UNSURE_SOURCES:
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
-    if data.products:
+    features = data.team.features
+    if features.products and data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
         carried = False
@@ -1686,14 +1716,53 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
                         _goto(2)
                         st.rerun()
                 return
-    else:
+    elif features.products:
         st.caption(
             t(
                 "Optional: Mit Produkten unter **Team → Produkte** lässt sich hier die "
                 "Verteilung auf die Produkte planen und auswerten."
             )
         )
+    elif features.production and _planning_production(repo, data, fc, sprint, entry):
+        return
     st.button(t("Weiter"), on_click=_goto, args=(2,), type="primary")
+
+
+def _planning_production(
+    repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint, entry: TimelineEntry
+) -> bool:
+    """Teams ohne Produktverteilung: Menge mit Produktionszugriff je Sprint. True, wenn eine
+    Änderung gespeichert werden kann (der Aufrufer zeigt dann kein „Weiter“)."""
+    unit = data.team.unit.value
+    st.subheader(t("Themen mit Produktionszugriff"))
+    base = _base_sprint(data, sprint)
+    planned = _number(
+        t("Davon mit Produktionszugriff ({unit})", unit=unit),
+        base.production_planned,
+        f"production-planned-{base.id}",
+        t(
+            "Teilmenge des Plannings: Tickets, die nur Personen mit Produktionszugriff "
+            "bearbeiten können."
+        ),
+    )
+    after = copy.deepcopy(base)
+    after.production_planned = planned
+    preview = with_sprints(data, [after])
+    fc_preview = _preview_forecast(data, fc, base, after)
+    _production_hint(distribution(fc_preview, fc_preview.entry(after.id) or entry), data, unit)
+    if after.production_planned == base.production_planned:
+        return False
+    if st.button(t("Speichern und weiter"), type="primary", key="production-planned-save"):
+        ok = save(
+            preview,
+            [f"{after.id}.yaml"],
+            lambda: [repo.save_sprint(data.team.key, after)],
+            flash=True,
+        )
+        if ok:
+            _goto(2)
+            st.rerun()
+    return True
 
 
 def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
@@ -1894,10 +1963,22 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
         product_rows = None
         entry = fc.entry(sprint.id)
-        if data.products and entry is not None:
+        production_done = sprint.production_done
+        if data.team.features.products and data.products and entry is not None:
             st.markdown(f"**{t('Erledigt je Produkt')}**")
             product_rows = _product_editor(
                 distribution(fc, entry), ["done"], f"review-products-{sprint.id}", unit
+            )
+        elif data.team.features.production and not data.team.features.products:
+            st.markdown(f"**{t('Themen mit Produktionszugriff')}**")
+            production_done = _number(
+                t("Davon mit Produktionszugriff erledigt ({unit})", unit=unit),
+                sprint.production_done,
+                f"production-done-{sprint.id}",
+                t(
+                    "Teilmenge der Velocity: Tickets, die nur Personen mit Produktionszugriff "
+                    "bearbeiten können."
+                ),
             )
         st.markdown(f"**{t('Personentage des Sprints')}**")
         capacity = _number(
@@ -1932,6 +2013,8 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     sprint.not_done = not_done
     sprint.additional_done = additional
     sprint.scope_creep = None if scope is None else scope / 100
+    if data.team.features.production and not data.team.features.products:
+        sprint.production_done = production_done
     if product_rows is not None:
         sprint = apply_product_values(sprint, product_rows, ["done"])
     save(
@@ -2363,7 +2446,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     comparison = [
         {
             t("Produkt"): r.product.name,
-            "PO": r.product.po or "",
+            **({"PO": r.product.po or ""} if data.team.features.po else {}),
             t("Standard"): fmt(r.standard, 2),
             t("PO-Vorplanung"): fmt(r.preplanned, 2),
             t("Differenz"): _signed(r.preplanned - r.standard)
@@ -2374,7 +2457,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if r.active or r.preplanned is not None
     ]
     st.dataframe(pd.DataFrame(comparison), hide_index=True)
-    if po_rows := by_po(d):
+    if po_rows := (by_po(d) if data.team.features.po else []):
         st.markdown(f"**{t('Je PO')}**")
         st.dataframe(
             pd.DataFrame(
@@ -2444,7 +2527,7 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
             save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
         if chart := _product_chart(d, unit):
             st.altair_chart(chart, width="stretch")
-        if po_rows := by_po(d):
+        if po_rows := (by_po(d) if data.team.features.po else []):
             st.markdown(f"**{t('Je PO')}**")
             st.dataframe(
                 pd.DataFrame(
@@ -2507,7 +2590,9 @@ def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
         column_config={
             "_id": None,
             "Name": st.column_config.TextColumn(t("Name"), required=True),
-            "PO": st.column_config.TextColumn("PO", help=t("Verantwortlicher Product Owner")),
+            "PO": st.column_config.TextColumn("PO", help=t("Verantwortlicher Product Owner"))
+            if data.team.features.po
+            else None,
             "Anteil": st.column_config.NumberColumn(
                 t("Anteil (%)"),
                 min_value=0.0,
@@ -2636,7 +2721,9 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     "Darf Tickets bearbeiten, die Produktionszugriff erfordern. Gilt für die "
                     "Person, nicht für den einzelnen Zeitraum."
                 ),
-            ),
+            )
+            if data.team.features.production
+            else None,
         },
         num_rows="dynamic",
         hide_index=True,
@@ -2828,6 +2915,20 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_new_team(repo: Repository) -> None:
     st.header(t("Neues Team anlegen"))
+    st.markdown(
+        t(
+            "**Welche Bereiche braucht das Team?** Drei Bereiche sind optional und zunächst "
+            "**aus**; sie lassen sich unten jetzt oder später unter **Einstellungen** "
+            "zuschalten:  \n"
+            "• **Produktverteilung** – das Team betreut mehrere Produkte, die Sprint-Menge wird "
+            "darauf verteilt (Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt).  \n"
+            "• **Zuordnung PO** – jedes Produkt hat einen Product Owner, Summen je PO "
+            "(nur zusammen mit der Produktverteilung sinnvoll).  \n"
+            "• **Produktionszugriff** – nur ein Teil der Personen darf bestimmte Tickets "
+            "bearbeiten; es wird erfasst, wie viel Menge davon betroffen ist, mit "
+            "Engpass-Hinweis."
+        )
+    )
     key = (
         st.text_input(t("Team-Kürzel (Verzeichnisname)"), help=t("Kleinbuchstaben, z. B. team-a"))
         .strip()

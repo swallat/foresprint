@@ -1,6 +1,10 @@
 # Team settings. Explanations: `sprintforecast help team`
 name: Demo-Team
 unit: PT
+features:
+  products: true
+  po: true
+  production: true
 sprint:
   length_days: 14
   numbering: yearly

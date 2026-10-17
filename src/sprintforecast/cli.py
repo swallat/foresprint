@@ -487,7 +487,9 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
         Panel(
             t(
                 "Neues Team [bold]{team}[/bold] anlegen. Alle Werte sind später mit "
-                "[bold]{command}[/bold] änderbar.",
+                "[bold]{command}[/bold] änderbar.\nOptional sind die Bereiche Produktverteilung "
+                "(mehrere Produkte), Zuordnung PO und Produktionszugriff; sie sind zunächst "
+                "aus (Enter übernimmt „aus“).",
                 team=team,
                 command=cmd(f"sprintforecast einstellungen {team}"),
             )
@@ -776,6 +778,21 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
     return c.repo.save_sprint(data.team.key, s)
 
 
+def _require_products(data: TeamData, team: str) -> None:
+    """Beendet den Befehl, wenn das Team die Produktverteilung nicht nutzt."""
+    if not data.team.features.products:
+        err.print(
+            "[yellow]"
+            + t(
+                "Die Produktverteilung ist für dieses Team ausgeschaltet. Einschalten mit: "
+                "{command}",
+                command=cmd(f"sprintforecast einstellungen {team}"),
+            )
+            + "[/yellow]"
+        )
+        raise typer.Exit(1)
+
+
 def _ask_product_values(data: TeamData, fc: Forecast, s: Sprint, measure: str) -> bool:
     """Fragt einen Wert (preplanned/planned/done) je Produkt ab. True, wenn etwas geändert."""
     entry = fc.entry(s.id)
@@ -808,16 +825,21 @@ def _distribution_table(d: Distribution, unit: str) -> Table:
     basis = t("Roadmap-Anteil") if d.basis.value == "roadmap" else "Forecast PLAN"
     table = Table(title=t("Produkte Sprint {id}", id=d.sprint.id))
     table.add_column(t("Produkt"))
-    table.add_column("PO")
+    if d.features.po:
+        table.add_column("PO")
     for m in MEASURES:
         table.add_column(f"{measure_label(m)} {unit}", justify="right")
     for r in d.rows:
         table.add_row(
             r.product.name + ("" if r.active else f" [dim]({t('nicht betreut')})[/dim]"),
-            r.product.po or "",
+            *((r.product.po or "",) if d.features.po else ()),
             *(fmt(r.value(m), 2) for m in MEASURES),
         )
-    table.add_row(f"[bold]{t('Summe')}[/bold]", "", *(fmt(d.total(m), 2) for m in MEASURES))
+    table.add_row(
+        f"[bold]{t('Summe')}[/bold]",
+        *(("",) if d.features.po else ()),
+        *(fmt(d.total(m), 2) for m in MEASURES),
+    )
     if d.available is not None and d.active_count:
         table.caption = t(
             "Standard = {basis}{frozen} {available} / {count} Produkte",
@@ -861,8 +883,10 @@ def planning(
     console.rule(t("Planning {id} – Schritt 2: Forecast PLAN und Einplanung", id=s.id))
     if data.sprint(s.id):
         _show_sprint_forecast(c, team, s.id)
-    if data.products and Confirm.ask(
-        t("Planning je Produkt erfassen?"), default=True, console=console
+    if (
+        data.team.features.products
+        and data.products
+        and Confirm.ask(t("Planning je Produkt erfassen?"), default=True, console=console)
     ):
         _ask_product_values(data, fc, s, "planned")
     console.rule(t("Planning {id} – Schritt 3: Commitment", id=s.id))
@@ -968,8 +992,10 @@ def review(
     s.velocity = _ask_number(f"Velocity ({unit})", s.velocity)
     _explain("scope_creep")
     s.scope_creep = _ask_number(t("Scope Creep (Anteil 0–1)"), s.scope_creep)
-    if data.products and Confirm.ask(
-        t("Erledigt je Produkt erfassen?"), default=True, console=console
+    if (
+        data.team.features.products
+        and data.products
+        and Confirm.ask(t("Erledigt je Produkt erfassen?"), default=True, console=console)
     ):
         _ask_product_values(data, fc, s, "done")
     path = c.repo.save_sprint(team, s)
@@ -1535,6 +1561,7 @@ def produkte(
 ) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
+    _require_products(data, team)
     if not data.products:
         err.print(
             "[red]"
@@ -1586,23 +1613,27 @@ def produkte(
 def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
+    _require_products(data, team)
     products = data.products
+    with_po = data.team.features.po
     changed = False
     while True:
         table = Table(title=t("Produkte"))
-        for col in ("Name", "PO", "ab", "bis"):
+        for col in ("Name", *(("PO",) if with_po else ()), "ab", "bis"):
             table.add_column(t(col))
         for p in products:
             table.add_row(
                 p.name,
-                p.po or "",
+                *((p.po or "",) if with_po else ()),
                 f"{p.start:%d.%m.%Y}" if p.start else "–",
                 f"{p.end:%d.%m.%Y}" if p.end else "–",
             )
         console.print(table)
         action = Prompt.ask(
-            t("Aktion: n = neues Produkt, p = PO ändern, e = Produkt abgeben, q = fertig"),
-            choices=["n", "p", "e", "q"],
+            t("Aktion: n = neues Produkt, p = PO ändern, e = Produkt abgeben, q = fertig")
+            if with_po
+            else t("Aktion: n = neues Produkt, e = Produkt abgeben, q = fertig"),
+            choices=["n", "p", "e", "q"] if with_po else ["n", "e", "q"],
             default="q",
             console=console,
         )
@@ -1614,10 +1645,17 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
                 console.print(f"[red]{t('Bitte einen neuen, eindeutigen Namen eingeben.')}[/red]")
                 continue
             po = (
-                Prompt.ask(
-                    t("PO (leer = keine Angabe)"), default="", show_default=False, console=console
-                ).strip()
-                or None
+                (
+                    Prompt.ask(
+                        t("PO (leer = keine Angabe)"),
+                        default="",
+                        show_default=False,
+                        console=console,
+                    ).strip()
+                    or None
+                )
+                if with_po
+                else None
             )
             start = _ask_date(t("Betreut ab"), c.today)
             pid = new_person_id(name, {p.id for p in products}, fallback="produkt")
