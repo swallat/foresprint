@@ -292,6 +292,23 @@ def today() -> date:
     return date.fromisoformat(raw) if raw else date.today()
 
 
+def stichtag_problem() -> str | None:
+    """Meldung, wenn die Umgebung keinen gültigen Stichtag enthält (sonst scheitert ``today``)."""
+    raw = os.environ.get(STICHTAG_ENV)
+    if raw:
+        try:
+            date.fromisoformat(raw)
+        except ValueError:
+            return t(
+                "Die Umgebungsvariable `{name}` enthält „{value}“ – erwartet wird ein Datum im "
+                "Format JJJJ-MM-TT. Bitte die Variable korrigieren oder entfernen und die "
+                "Weboberfläche neu starten.",
+                name=STICHTAG_ENV,
+                value=raw,
+            )
+    return None
+
+
 # Der Datenordner gehört zur Browser-Sitzung (nicht zum Prozess): Wechselt eine Sitzung den
 # Ordner, speichern andere offene Fenster weiter in ihren eigenen.
 DATA_DIR_KEY = "active-data-dir"
