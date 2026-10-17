@@ -1772,7 +1772,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
     recorded = data.sprint(sprint.id)
     done = [
-        recorded is not None,
+        board_steps_done(recorded)["fehltage"],  # wie der Haken der Schrittleiste oben
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
         recorded is not None and recorded.forecast_ist is not None,
     ]
@@ -2704,7 +2704,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         # Die Quelle steht unter dem Wert (nicht im Wert): sonst wird die Zahl abgeschnitten.
         capacity_col.metric(
             t("Kapazität (PT)"),
-            fmt(shown.result.plan_capacity),
+            fmt_capacity(shown.result.plan_capacity, shown.capacity_digits),
             delta=capacity_source_note(shown) or None,
             delta_color="off",
             delta_arrow="off",

@@ -468,8 +468,9 @@ GIT_HELP: list[tuple[str, str]] = [
         "Kennwort. Bei https braucht der Server meist einen Zugangstoken (GitHub: Personal "
         "access token, GitLab: Zugriffstoken mit „write_repository“), den du einmal im "
         "Anmeldedienst deines Rechners hinterlegst (Windows: Anmeldeinformationsverwaltung, "
-        "macOS: Schlüsselbund). Bei SSH muss der Schlüssel beim Server hinterlegt und im "
-        "ssh-agent verfügbar sein.",
+        "macOS: Schlüsselbund); mit der GitHub-CLI richtet `gh auth setup-git` die Anmeldung "
+        "ein. Bei SSH muss der Schlüssel beim Server hinterlegt und im ssh-agent verfügbar "
+        "sein.",
     ),
     (
         "Name und E-Mail-Adresse",

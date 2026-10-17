@@ -644,6 +644,28 @@ def test_preplanning_capacity_metric_keeps_the_value_free_of_the_source(app: App
     assert capacity.delta == "erwartete Fehltage"  # Fehltage unbekannt, nach Historie geschätzt
 
 
+@pytest.mark.parametrize(("digits", "expected"), [(0, "25"), (1, "25,3"), (2, "25,25")])
+def test_preplanning_capacity_metric_rounds_like_the_other_pages(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, digits: int, expected: str
+):
+    """Wie überall: Rundung laut Team-Einstellung, kaufmännisch (25,25 → 25,3, nicht 25,2)."""
+    team = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team.read_text())
+    raw["capacity"]["rounding"] = digits
+    team.write_text(yaml.safe_dump(raw))
+    sprint = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    content = yaml.safe_load(sprint.read_text())
+    content["absences"]["ben"] = 3.5  # 25,25 PT: genau auf der Hälfte
+    sprint.write_text(yaml.safe_dump(content))
+    at = goto(start(data_dir, monkeypatch), "vorplanung")
+    at.selectbox(key="vorplanung-sprint").set_value("2026.21").run()
+    capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
+    assert capacity.value == expected
+    goto(at, "planning")
+    assert at.selectbox(key="planning-sprint").value == "2026.21"
+    assert any(m.label == "Kapazität (PT)" and m.value == expected for m in at.metric)
+
+
 def test_preplanning_capacity_metric_marks_an_unsure_source(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -1071,6 +1093,39 @@ def test_start_task_and_step_bar_agree_on_prepared_sprint(
     goto(at, "planning")
     assert at.selectbox(key="planning-sprint").value == "2026.22"
     assert nav_done(at)["fehltage"] == done
+
+
+@pytest.mark.parametrize(
+    ("fields", "mark"),
+    [
+        ({}, "✅"),
+        ({"absences": {}}, "⬜"),  # unbekannt: Sprintdatei vorhanden, Fehltage nicht bestätigt
+        ({"absences": {}, "absence_state": "confirmed"}, "✅"),
+        ({"absences": {}, "expected_absences": {"cem": 2}}, "⬜"),
+    ],
+)
+def test_planning_progress_line_agrees_with_the_step_bar(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, fields: dict, mark: str
+):
+    """Die Fortschrittszeile des Planning und die Schrittleiste darüber nennen für „Fehltage“
+    denselben Stand."""
+    _change_2026_22(data_dir, **fields)
+    at = goto(start(data_dir, monkeypatch), "planning")
+    assert at.selectbox(key="planning-sprint").value == "2026.22"
+    line = next(c.value for c in at.caption if c.value.endswith(" Commitment"))
+    assert line.startswith(f"{mark} Fehltage")
+    assert nav_done(at)["fehltage"] == (mark == "✅")
+
+
+def test_board_nav_css_follows_the_step_count():
+    """Die Spaltenzahl und die Breite, ab der alle Schritte nebeneinander stehen, hängen an der
+    Zahl der Schritte (vier mit, drei ohne den Bereich Produkte)."""
+    from sprintforecast.web.ui import _board_nav_css
+
+    four, three = _board_nav_css(4), _board_nav_css(3)
+    assert "repeat(4, minmax(0, 1fr))" in four and "min-width: 65.5rem" in four
+    assert "repeat(3, minmax(0, 1fr))" in three and "min-width: 49rem" in three
+    assert "st-key-board-active-" in four  # der aktive Schritt bekommt die Farbe
 
 
 def test_start_prepare_says_when_absences_are_only_announced(
