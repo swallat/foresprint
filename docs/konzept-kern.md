@@ -63,8 +63,8 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
 | B5 | Unsicherheit steht abseits der Entscheidung (Seite „Analyse“). | wichtig | Spanne, Stichprobengröße und Kapazitätsquelle direkt an der Kachel |
 | B6 | Die Formelansicht zeigt nicht die eingesetzten Zahlen; die Formeln der Trend-Modi sind für Nichtfachleute schwer lesbar. | wichtig | kurze Erklärung in Alltagssprache, ausklappbar die eingesetzten Werte und Quellen |
 | B7 | Der Einstieg verlangt ein Git-Repository und 6+ Reviews, bevor ein Forecast erscheint. | wichtig | Forecast schon ab 2 bis 3 Sprints (`flat`) mit Hinweis „Historie dünn“ |
-| B8 | Das Was-wäre-wenn-Panel gibt es zweimal mit leicht anderem Text; die Prognosen-Historie ist ein Audit-Log mit 8 Spalten. | nice-to-have | eine Stelle; letzte Prognose und Abweichung im Review genügen |
-| B9 | Sprintkalender-Texte behaupten Mo–Fr trotz konfigurierter Arbeitswoche; Fehltage in „Tagen“ (Halbtagskraft) sind missverständlich. | nice-to-have | Texte anpassen; Spaltenhilfe ergänzen |
+| B8 (umgesetzt) | Das Was-wäre-wenn-Panel gibt es zweimal mit leicht anderem Text; die Prognosen-Historie ist ein Audit-Log mit 8 Spalten. | nice-to-have | eine Stelle; letzte Prognose und Abweichung im Review genügen |
+| B9 (umgesetzt) | Sprintkalender-Texte behaupten Mo–Fr trotz konfigurierter Arbeitswoche; Fehltage in „Tagen“ (Halbtagskraft) sind missverständlich. | nice-to-have | Texte anpassen; Spaltenhilfe ergänzen |
 | B10 | Aktionen „FTE ändern“ und „Austritt erfassen“ statt manuellem Aufteilen von Zeilen. | nice-to-have | später |
 
 ## C. Einrichtung

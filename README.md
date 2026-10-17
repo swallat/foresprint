@@ -301,7 +301,7 @@ Speicherungen sofort.
 Einzelne Sprints lassen sich verlängern oder verkürzen, indem man ihren **letzten Tag** ändert:
 
 - **Weboberfläche:** Seite *Sprintkalender* → in der Zeile des Sprints den **Letzten Tag** ändern →
-  *Sprints anlegen bzw. speichern*. Die Spalte *Arbeitstage* zählt Mo–Fr mit.
+  *Sprints anlegen bzw. speichern*. Die Spalte *Arbeitstage* zählt die Arbeitstage der konfigurierten Arbeitswoche des Teams (Standard Mo–Fr) mit.
 - **Kommandozeile:** `sprintforecast sprints team-a --ende 2026.25=2027-01-12` (Form `SPRINT=letzter Tag`, mehrfach möglich).
 - **Folgesprints:** Jeder folgende Sprint beginnt am Tag nach dem letzten Tag des vorherigen und behält seine
   bisherige Länge; noch nicht angelegte Sprints bekommen neue IDs. Die Standard-Sprintlänge (Einstellung
