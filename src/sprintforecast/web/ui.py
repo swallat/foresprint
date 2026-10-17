@@ -4365,7 +4365,10 @@ def _lost_status(item: Lost) -> str:
     """Status einer verlorenen Änderung; bei Umbenennungen mit altem und neuem Pfad."""
     name = status_name(item.status)
     if item.orig:
-        return t("{name}: {orig} → {file}", name=name, orig=item.orig, file=item.file)
+        # Als Code: Pfade können Zeichen enthalten, die Markdown sonst deutet.
+        return t(
+            "{name}: {orig} → {file}", name=name, orig=md_code(item.orig), file=md_code(item.file)
+        )
     return name
 
 
