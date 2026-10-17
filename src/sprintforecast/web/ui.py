@@ -352,6 +352,40 @@ def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
 # --- Speichern mit Prüfung -----------------------------------------------------------
 
 
+def _next_step() -> str:
+    """Was die Seitenleiste nach dem Speichern anbietet: ``"share"`` („Speichern und teilen“,
+    der Datenordner hat einen Server), ``"commit"`` („Änderungen committen“) oder ``""`` (nichts:
+    kein Git, ein Problem oder ein Zustand, der erst gelöst werden muss). Nutzt nur den
+    Zwischenspeicher, den die Seitenleiste ohnehin füllt; vor dem Schreiben abfragen, denn das
+    leert ihn."""
+    root = data_dir()
+    if not git_available() or git_root(root) is None:
+        return ""
+    try:
+        state = cached_sync_state(root)
+    except GitError:
+        return ""
+    if state.unfinished or state.conflicts or state.detached:
+        return ""
+    return "share" if state.remote is not None else "commit"
+
+
+def _saved_text(names: str, step: str) -> str:
+    if step == "share":
+        return t(
+            "Gespeichert: {names}. Mit **Speichern und teilen** in der Seitenleiste in Git "
+            "sichern und mit dem Team teilen (nur lokal: **Änderungen committen**).",
+            names=names,
+        )
+    if step == "commit":
+        return t(
+            "Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der "
+            "Seitenleiste.",
+            names=names,
+        )
+    return t("Gespeichert: {names}.", names=names)
+
+
 def save(
     data_after: TeamData,
     filenames: list[str],
@@ -379,6 +413,7 @@ def save(
             st.error(f"{i.where}: {i.message}")
         st.error(t("Nicht gespeichert – bitte die Fehler beheben."))
         return False
+    step = _next_step()
     paths = write()
     for i in relevant:
         if i.level is Level.WARNING:
@@ -387,14 +422,7 @@ def save(
         tags = st.session_state.setdefault("pending_tags", [])
         if tag not in tags:
             tags.append(tag)
-    notify(
-        "success",
-        t(
-            "Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der "
-            "Seitenleiste.",
-            names=", ".join(p.name for p in paths),
-        ),
-    )
+    notify("success", _saved_text(", ".join(p.name for p in paths), step))
     return True
 
 
@@ -3852,8 +3880,10 @@ def page_help(repo: Repository) -> None:
     st.markdown(
         t(
             "Die Weboberfläche bearbeitet dieselben Dateien wie die Kommandozeile – beides lässt "
-            "sich mischen. Gespeichert wird lokal; mit **Änderungen committen** in der "
-            "Seitenleiste landen die Änderungen im Git-Repository der Daten."
+            "sich mischen. Gespeichert wird lokal. Liegen die Daten in einem Git-Repository, "
+            "sichert **Änderungen committen** in der Seitenleiste die Änderungen dort; hat das "
+            "Team einen Server, sichert **Speichern und teilen** sie und teilt sie mit dem Team. "
+            "Mehr im Reiter „Zusammenarbeit (Git)“."
         )
     )
     ablauf, begriffe, felder, team, zusammenarbeit, befehle = st.tabs(
