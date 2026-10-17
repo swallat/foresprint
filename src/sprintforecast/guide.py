@@ -414,6 +414,14 @@ GIT_HELP: list[tuple[str, str]] = [
         "sie mit dem Server ab und meldet, wenn das nicht gelang (der Tag bleibt dann lokal).",
     ),
     (
+        "Zwischen Datenordnern umschalten",
+        "Oben in der Seitenleiste stehen der aktive Datenordner und sein Branch. Unter "
+        "„Datenordner wechseln“ und auf der Seite „Datenordner“ lassen sich die zuletzt "
+        "benutzten Ordner umschalten. Beim Wechsel werden nicht gespeicherte Eingaben in "
+        "Formularen und alle Zwischenspeicher des alten Ordners verworfen; offene Änderungen im "
+        "alten Ordner bleiben dort erhalten und erscheinen beim Zurückwechseln wieder.",
+    ),
+    (
         "Server nicht erreichbar (offline)",
         "Deine Änderungen werden trotzdem lokal gesichert. Später erneut „Speichern und "
         "teilen“ wählen, wenn Internet bzw. VPN wieder da ist.",

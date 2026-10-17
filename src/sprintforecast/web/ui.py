@@ -150,6 +150,8 @@ from sprintforecast.storage import (
     TeamData,
     clear_team_cache,
     default_data_dir,
+    forget_data_dir,
+    recent_data_dirs,
     save_data_dir,
     team_version,
     teams_dir,
@@ -3009,12 +3011,87 @@ def needs_setup(root: Path) -> bool:
     return teams_dir(root) is None and git_root(root) is None
 
 
+# Zustand, der beim Wechsel des Datenordners erhalten bleibt; alles andere (Formulareingaben,
+# Teamwahl, vorgemerkte Tags, Git-Meldungen) gehört zum alten Ordner und wird verworfen.
+_SWITCH_KEEP = {"language", "flash", "restarting", "update-started", "manual-check"}
+
+
 def _use_data_dir(path: Path) -> None:
+    """Wechselt den Datenordner: merkt ihn, leert die Zwischenspeicher (Teams, Git-Stand) und
+    verwirft alte Formularzustände, damit nichts vom bisherigen Ordner im neuen landet."""
     save_data_dir(path)
     clear_team_cache()
     os.environ[DATA_ENV] = str(path.resolve())
-    st.session_state.pop("selected_team", None)
+    for name in list(st.session_state.keys()):
+        if name not in _SWITCH_KEEP:
+            del st.session_state[name]
     st.session_state["flash"] = [("success", t("Datenordner: `{path}`", path=path.resolve()))]
+
+
+def _switch_clicked(target: Path) -> None:
+    _use_data_dir(target)
+
+
+def _forget_clicked(target: Path) -> None:
+    forget_data_dir(target)
+
+
+def _recent_label(path: Path) -> str:
+    return f"{path.name or path}  ({path})" + ("" if path.is_dir() else t(" – nicht gefunden"))
+
+
+def _open_changes(repo: Repository) -> int:
+    try:
+        return len(cached_pending_changes(repo.root))
+    except GitError:
+        return 0
+
+
+def _recent_dirs(repo: Repository) -> list[Path]:
+    """Zuletzt benutzte Datenordner ohne den aktiven."""
+    current = repo.root.resolve()
+    return [p for p in recent_data_dirs() if p.resolve() != current]
+
+
+def _switch_panel(repo: Repository) -> None:
+    """Umschalter zwischen den zuletzt benutzten Datenordnern (Seitenleiste)."""
+    options = _recent_dirs(repo)
+    if not options:
+        return
+    with st.expander(t("Datenordner wechseln"), icon=":material/folder_open:"):
+        target = st.selectbox(
+            t("Zuletzt benutzt"), options, format_func=_recent_label, key="switch-target"
+        )
+        st.caption(
+            t(
+                "Beim Wechsel werden nicht gespeicherte Eingaben in Formularen verworfen. "
+                "Offene Änderungen im bisherigen Ordner ({count}) bleiben dort erhalten.",
+                count=_open_changes(repo),
+            )
+        )
+        st.button(
+            t("Wechseln"),
+            key="switch-go",
+            on_click=_switch_clicked,
+            args=(target,),
+            disabled=not target.is_dir(),
+        )
+
+
+def _active_repo_caption(repo: Repository) -> None:
+    """Aktives Repository (Ordner und Branch) dauerhaft sichtbar."""
+    branch = ""
+    if git_available() and git_root(repo.root) is not None:
+        try:
+            current = cached_sync_state(repo.root)
+        except GitError:
+            current = None
+        if current is not None:
+            branch = current.branch or t("kein Branch")
+    st.markdown(
+        f"**{t('Datenordner')}:** `{repo.root.name or repo.root}`"
+        + (f" · {t('Branch')} `{branch}`" if branch else "")
+    )
 
 
 def _browse(key: str) -> None:
@@ -3069,6 +3146,32 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             t("Git-Repository: `{path}`", path=root)
             if root
             else t("Achtung: liegt in keinem Git-Repository.")
+        )
+    if recent := _recent_dirs(repo):
+        st.subheader(t("Zuletzt benutzt"))
+        for n, folder in enumerate(recent):
+            left, switch, forget = st.columns([6, 1.2, 1.2], vertical_alignment="center")
+            left.markdown(_recent_label(folder))
+            switch.button(
+                t("Wechseln"),
+                key=f"recent-go-{n}",
+                on_click=_switch_clicked,
+                args=(folder,),
+                disabled=not folder.is_dir(),
+            )
+            forget.button(
+                t("Entfernen"),
+                key=f"recent-forget-{n}",
+                on_click=_forget_clicked,
+                args=(folder,),
+                help=t("Nur aus der Liste entfernen; der Ordner bleibt bestehen."),
+            )
+        st.caption(
+            t(
+                "Beim Wechsel werden nicht gespeicherte Eingaben in Formularen verworfen. "
+                "Offene Änderungen im bisherigen Ordner ({count}) bleiben dort erhalten.",
+                count=_open_changes(repo),
+            )
         )
     choose, create, clone = st.tabs(
         [
@@ -3243,6 +3346,8 @@ def sidebar(repo: Repository) -> None:
     """Sprach- und Teamauswahl in der Seitenleiste (vor der Seite, damit diese sie kennt)."""
     teams = repo.teams()
     with st.sidebar:
+        _active_repo_caption(repo)
+        _switch_panel(repo)
         codes = list(LANGUAGES)
         st.session_state.setdefault("language", language())
         st.selectbox(
