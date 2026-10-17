@@ -167,6 +167,7 @@ from sprintforecast.storage import (
     STICHTAG_ENV,
     ConflictError,
     DataError,
+    FileAccessError,
     Repository,
     TeamData,
     clear_team_cache,
@@ -176,6 +177,7 @@ from sprintforecast.storage import (
     save_data_dir,
     team_version,
     teams_dir,
+    write_text,
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
@@ -379,7 +381,11 @@ def save(
             st.error(f"{i.where}: {i.message}")
         st.error(t("Nicht gespeichert – bitte die Fehler beheben."))
         return False
-    paths = write()
+    try:
+        paths = write()
+    except FileAccessError as e:
+        st.error(str(e))
+        return False
     for i in relevant:
         if i.level is Level.WARNING:
             notify("warning", f"{i.where}: {i.message}")
@@ -728,7 +734,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
     if st.button(t("Bericht FORECAST.md schreiben")):
         path = repo.team_dir(team.key) / "FORECAST.md"
-        path.write_text(render(fc), encoding="utf-8")
+        write_text(path, render(fc))
         st.success(t("Geschrieben: {path}", path=path))
 
 
@@ -4934,6 +4940,8 @@ def run_page(key: str) -> None:
     fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
     try:
         TEAM_PAGES[key](repo, data, fc)
+    except FileAccessError as e:  # Schreib- oder Löschfehler außerhalb von save()
+        st.error(str(e))
     finally:
         # Auch nach ``st.rerun()`` (eine Ausnahme): Der eigene Speicherstand gilt als gesehen,
         # sonst hielte der nächste Durchlauf ihn für eine fremde Änderung.

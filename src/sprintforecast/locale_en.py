@@ -131,6 +131,9 @@ EN: dict[str, str] = {
     "{where}: absence_state '{value}' unbekannt (erlaubt: {allowed})": "{where}: absence_state '{value}' unknown (allowed: {allowed})",
     # --- storage ---
     "Datei fehlt: {path}": "File missing: {path}",
+    "{path}: nicht lesbar ({reason}). Rechte prüfen oder die Datei in einem anderen Programm schließen.": "{path}: cannot be read ({reason}). Check the permissions or close the file in any other program.",
+    "{path}: nicht gespeichert ({reason}). Die Datei wurde nicht verändert. Ist der Ordner beschreibbar, und ist die Datei in keinem anderen Programm geöffnet?": "{path}: not saved ({reason}). The file was not changed. Is the folder writable, and is the file open in another program?",
+    "{path}: nicht gelöscht ({reason}). Ist die Datei schreibgeschützt oder in einem anderen Programm geöffnet?": "{path}: not deleted ({reason}). Is the file read-only or open in another program?",
     "{path}: kein gültiges YAML ({error})": "{path}: invalid YAML ({error})",
     "{path}: Inhalt muss ein YAML-Objekt sein": "{path}: content must be a YAML mapping",
     "{where}: Zahl erwartet, gefunden {value}": "{where}: number expected, found {value}",

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import functools
 import os
 import subprocess
 import sys
@@ -87,9 +88,11 @@ from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
     DataError,
+    FileAccessError,
     Repository,
     TeamData,
     default_data_dir,
+    write_text,
 )
 from sprintforecast.updater import PACKAGE
 from sprintforecast.validate import Level, check_all, check_team, issues_for
@@ -108,9 +111,17 @@ def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[...
     alias = COMMAND_ALIASES.get(name)
 
     def register(fn: Callable[..., Any]) -> Callable[..., Any]:
-        app.command(name, help=t(help), hidden=bool(alias) and is_english())(fn)
+        @functools.wraps(fn)
+        def guarded(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return fn(*args, **kwargs)
+            except FileAccessError as e:  # Meldung statt Traceback (kein Schreibrecht u. Ä.)
+                err.print(f"[red]{escape(str(e))}[/red]")
+                raise typer.Exit(1) from e
+
+        app.command(name, help=t(help), hidden=bool(alias) and is_english())(guarded)
         if alias:
-            app.command(alias, help=t(help), hidden=not is_english())(fn)
+            app.command(alias, help=t(help), hidden=not is_english())(guarded)
         return fn
 
     return register
@@ -1285,7 +1296,7 @@ def bericht(
             sys.stdout.write(text)
             continue
         target = ausgabe if ausgabe is not None and team else c.repo.team_dir(key) / "FORECAST.md"
-        target.write_text(text, encoding="utf-8")
+        write_text(target, text)
         console.print(f"[green]{target}[/green]")
 
 
