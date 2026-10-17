@@ -1150,6 +1150,85 @@ def test_start_prepare_says_when_absences_are_only_announced(
     assert at.selectbox(key="absences-sprint").value == "2026.22"
 
 
+def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    assert not nav_done(app)["vorplanung"]
+    app.session_state["vorplanung-2026.23"] = {
+        "edited_rows": {0: {"PO-Vorplanung": 2.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
+    assert nav_done(app)["vorplanung"]  # schon im selben Durchlauf, ohne weiteren Klick
+    assert any("Gespeichert" in s.value for s in app.success)  # die Meldung folgt im Neuaufbau
+
+
+def test_planning_save_updates_the_step_bar_at_once(app: AppTest):
+    planning_step(app, "2026.22", 2)
+    assert not nav_done(app)["planning"]
+    app.number_input(key="carry-2026.22").set_value(1.5)
+    app.number_input(key="backlog-2026.22").set_value(11.0)
+    click(app, "Planning speichern")
+    assert nav_done(app)["planning"]
+    assert any("Gespeichert" in s.value for s in app.success)
+    assert any("Delta" in i.value for i in app.info)  # auch die Hinweise erscheinen im Neuaufbau
+
+
+def test_review_save_updates_the_step_bar_at_once(app: AppTest):
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    assert not nav_done(app)["review"]
+    app.number_input(key="velocity-2026.21").set_value(9.25)
+    click(app, "Review speichern")
+    assert nav_done(app)["review"]
+    assert app.session_state["pending_tags"] == ["demo/2026.21"]  # der Tag-Vorschlag bleibt
+    assert any("Gespeichert" in s.value for s in app.success)  # die Meldung folgt im Neuaufbau
+
+
+def add_unknown_absence(data_dir: Path, sprint: str) -> str:
+    """Macht die Sprintdatei ungültig (Fehltage einer unbekannten Person); liefert ihren Inhalt."""
+    path = data_dir / "demo" / "sprints" / f"{sprint}.yaml"
+    content = load(path)
+    content["absences"] = {**(content.get("absences") or {}), "niemand": 1}
+    path.write_text(yaml.safe_dump(content))
+    return path.read_text()
+
+
+def test_failed_review_save_keeps_the_errors_and_does_not_rerun(app: AppTest, data_dir: Path):
+    """Schlägt das Speichern fehl, bleibt die Fehlermeldung stehen (ein Neuaufbau würde sie
+    verwerfen) und die Schrittleiste springt nicht um."""
+    before = add_unknown_absence(data_dir, "2026.21")
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    assert not nav_done(app)["review"]
+    app.number_input(key="velocity-2026.21").set_value(9.25)
+    click(app, "Review speichern")
+    assert any("unbekannte Person" in e.value for e in app.error)
+    assert any("Nicht gespeichert" in e.value for e in app.error)
+    assert not nav_done(app)["review"]
+    assert (data_dir / "demo" / "sprints" / "2026.21.yaml").read_text() == before
+    assert not any("Gespeichert" in s.value for s in app.success)
+
+
+def test_failed_preplanning_save_keeps_the_errors_and_does_not_rerun(app: AppTest, data_dir: Path):
+    before = add_unknown_absence(data_dir, "2026.22")
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    app.session_state["vorplanung-2026.22"] = {
+        "edited_rows": {0: {"PO-Vorplanung": 2.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
+    assert any("unbekannte Person" in e.value for e in app.error)
+    assert any("Nicht gespeichert" in e.value for e in app.error)
+    assert (data_dir / "demo" / "sprints" / "2026.22.yaml").read_text() == before
+    assert not any("Gespeichert" in s.value for s in app.success)
+
+
 def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path):
     """Nach „Fehltage speichern“ zeigt die Leiste den neuen Stand sofort (kein Klick später)."""
     goto(app, "fehltage")
