@@ -12,7 +12,7 @@ def test_general_capacity_formula_names_trend_only_without_people_list(english):
     """Mit Personenliste kommt die Kapazität aus Kalender und Personen; der Trend gilt nur ohne."""
     de = GENERAL["capacity"]
     assert de.count("Trend") == 1 and de.endswith("Trend nur ohne Personenliste")
-    assert "unbekannte Fehltage nach der Historie geschätzt" in de
+    assert "unbekannte Fehltage nach der Historie geschätzt (ohne Historie ohne Abzug)" in de
     assert "ohne Fehltage: Trend" not in de
     assert general("capacity").endswith("trend only without a people list")
 

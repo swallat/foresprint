@@ -1920,7 +1920,8 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
         hint = (
             t(
                 "Noch keine Sprintdatei – die Prognose rechnet bis dahin mit Kalender und "
-                "Personenliste; die unbekannten Fehltage werden nach der Historie geschätzt."
+                "Personenliste; die unbekannten Fehltage werden nach der Historie geschätzt "
+                "(ohne Historie ohne Abzug)."
             )
             if data.people
             else t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")

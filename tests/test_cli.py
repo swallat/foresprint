@@ -42,7 +42,8 @@ def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_li
     assert result.exit_code == 0, result.output
     assert "Noch keine Sprintdatei" in result.output
     assert "Kalender und Personenliste" in result.output
-    assert "Fehltage werden nach der Historie geschätzt" in result.output
+    text = " ".join(result.output.split())  # Umbrüche der Konsole
+    assert "Fehltage werden nach der Historie geschätzt (ohne Historie ohne Abzug)" in text
     assert "Trend" not in result.output
 
 
