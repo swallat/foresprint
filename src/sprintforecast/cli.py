@@ -23,7 +23,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from sprintforecast import LOG_ENV, __version__, updater
-from sprintforecast.calendar import day_label, holiday_name, team_workdays
+from sprintforecast.calendar import day_label, holiday_name, team_workdays, workweek_label
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError
 from sprintforecast.engine import UNSURE_SOURCES
@@ -737,12 +737,13 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
     last = days[-1] if days else s.end
     text = t(
         "Sprint [bold]{id}[/bold]: {start} – {last} (letzter Arbeitstag; der nächste Sprint "
-        "beginnt am {next}), {days} Arbeitstage Mo–Fr",
+        "beginnt am {next}), {days} Arbeitstage ({week})",
         id=s.id,
         start=f"{s.start:%d.%m.%Y}",
         last=f"{last:%d.%m.%Y}",
         next=f"{s.end:%d.%m.}",
         days=len(days),
+        week=workweek_label(data.team),
     )
     if hol:
         text += "\n" + t(
@@ -1526,8 +1527,9 @@ def sprints(
             t(r["Status"]),
         )
     table.caption = t(
-        "Arbeitstage: Mo–Fr vom Start bis einschließlich zum letzten Tag (Feiertage zieht erst "
-        "die Kapazität ab). Der nächste Sprint beginnt am Tag nach dem letzten Tag."
+        "Arbeitstage: {week} vom Start bis einschließlich zum letzten Tag (Feiertage zieht erst "
+        "die Kapazität ab). Der nächste Sprint beginnt am Tag nach dem letzten Tag.",
+        week=workweek_label(data.team),
     )
     console.print(table)
     changed = calendar_to_save(data, planned, after, create_missing=anlegen)
