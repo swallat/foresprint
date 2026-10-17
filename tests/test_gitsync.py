@@ -189,6 +189,33 @@ def test_different_keys_of_same_file_are_merged(alice: Person, bob: Person, remo
     assert merged == {"velocity": 11, "scope_creep": 2, "note": "Bob"}
 
 
+def test_locked_file_during_automatic_merge_is_a_message_and_the_merge_can_resume(
+    alice: Person, bob: Person, remote: Path, monkeypatch
+):
+    """Lässt sich die zusammengeführte Datei nicht schreiben (gesperrt, schreibgeschützt), meldet
+    „Speichern und teilen“ das mit Hinweis statt mit Traceback; das Zusammenführen bleibt offen
+    und wird beim nächsten Versuch zu Ende geführt."""
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Alice").ok
+    bob.write("a/2026.1.yaml", "velocity: 10\nscope_creep: 2\nnote: Bob\n")
+    real = Path.write_text
+
+    def locked(self, *args, **kwargs):
+        if self.name == "2026.1.yaml":
+            raise PermissionError(13, "Permission denied")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", locked)
+    result = bob.sync("Bob")
+    assert result.error is not None and result.error.kind == "locked"
+    assert "2026.1.yaml" in str(result.error) and "Permission denied" in str(result.error)
+    monkeypatch.undo()
+    again = bob.sync("Bob")
+    assert again.ok and again.pushed
+    merged = yaml.safe_load(git(remote, "show", f"main:{FILE}"))
+    assert merged == {"velocity": 11, "scope_creep": 2, "note": "Bob"}
+
+
 def test_people_are_merged_per_entry(alice: Person, bob: Person, remote: Path):
     people = "people:\n- id: anna\n  fte: 1\n- id: ben\n  fte: 1\n"
     alice.write("a/people.yaml", people)
@@ -532,3 +559,99 @@ def test_spreadsheet_is_still_refused(alice: Person):
 )
 def test_classify(text: str, kind: str):
     assert classify(text).kind == kind
+
+
+MARKED = "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n"
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_files_with_conflict_markers_are_not_committed_or_shared(
+    alice: Person, remote: Path, newline: str
+):
+    """Markierungen ohne offenes Zusammenführen (z. B. nach einem Git-Client) würden sonst
+    geteilt und sperrten die Bearbeitung bei allen anderen."""
+    before = git(remote, "rev-parse", "main")
+    alice.write("a/2026.2.yaml", MARKED.replace("\n", newline))
+    result = alice.sync("Mit Markierungen")
+    assert result.error is not None and result.error.kind == "conflict"
+    assert "teams/a/2026.2.yaml" in str(result.error)  # Pfad statt nur des Dateinamens
+    assert "Konflikte lösen" in result.error.hint
+    assert not result.committed and not result.pushed
+    assert git(remote, "rev-parse", "main") == before  # nichts hochgeladen
+    assert git(alice.root, "log", "-1", "--format=%s") == "Start"  # nichts committet
+    with pytest.raises(GitError) as caught:
+        gitmod.commit_directory(alice.data, "Noch einmal")
+    assert caught.value.kind == "conflict"
+
+
+def test_message_names_the_team_when_several_teams_have_the_same_file(alice: Person):
+    alice.write("a/2026.2.yaml", MARKED)
+    alice.write("b/2026.2.yaml", MARKED)
+    with pytest.raises(GitError) as caught:
+        gitmod.commit_directory(alice.data, "Beide")
+    text = str(caught.value) + caught.value.hint
+    assert "teams/a/2026.2.yaml" in text and "teams/b/2026.2.yaml" in text
+
+
+def test_other_changes_are_shared_once_the_marked_file_is_gone(alice: Person, remote: Path):
+    alice.write("a/2026.2.yaml", MARKED)
+    alice.write("a/2026.3.yaml", "velocity: 7\n")
+    assert alice.sync("Mit Markierungen").error is not None
+    (alice.data / "a" / "2026.2.yaml").unlink()  # die Datei ist weg: der Rest lässt sich teilen
+    invalidate_status()
+    result = alice.sync("Ohne Markierungen")
+    assert result.ok and result.committed and result.pushed
+    assert git(remote, "show", "main:teams/a/2026.3.yaml") == "velocity: 7"
+    assert git(remote, "ls-tree", "--name-only", "main", "teams/a/").count("2026.2.yaml") == 0
+
+
+@pytest.mark.parametrize(
+    "how", ["yml", "tracked-modified", "renamed"], ids=["yml", "tracked", "renamed"]
+)
+def test_conflict_markers_are_refused_for_other_kinds_of_change(alice: Person, how: str):
+    if how == "yml":
+        alice.write("a/notizen.yml", MARKED)
+    elif how == "tracked-modified":
+        alice.write("a/2026.1.yaml", MARKED)  # eine bereits verfolgte Datei, Status „M“
+    else:
+        alice.write("a/2026.1.yaml", MARKED)
+        git(alice.root, "mv", "teams/a/2026.1.yaml", "teams/a/2026.5.yaml")  # Status „R“
+    invalidate_status()
+    with pytest.raises(GitError) as caught:
+        gitmod.commit_directory(alice.data, "Mit Markierungen")
+    assert caught.value.kind == "conflict"
+    assert git(alice.root, "log", "-1", "--format=%s") == "Start"
+
+
+def test_deleted_tracked_file_is_not_checked(alice: Person):
+    (alice.data / "a" / "2026.1.yaml").unlink()
+    invalidate_status()
+    assert gitmod.commit_directory(alice.data, "Datei entfernt")
+
+
+def test_markdown_with_a_line_of_equal_signs_is_not_mistaken_for_a_conflict(alice: Person):
+    alice.write("a/NOTIZ.md", "<<<<<<< x\n=======\n>>>>>>> y\n")  # nur Datendateien werden geprüft
+    assert alice.sync("Notiz").ok
+
+
+def test_commit_of_given_files_refuses_conflict_markers(alice: Person):
+    file = alice.write("a/2026.2.yaml", MARKED)
+    with pytest.raises(GitError, match="Konfliktmarkierungen") as caught:
+        gitmod.commit([file], "Mit Markierungen")
+    assert caught.value.kind == "conflict"
+    assert git(alice.root, "log", "-1", "--format=%s") == "Start"
+
+
+def test_finishing_an_open_merge_does_not_commit_leftover_markers(
+    alice: Person, bob: Person, remote: Path
+):
+    """Wer die Datei im Git-Client als gelöst vormerkt, ohne die Markierungen zu entfernen, kann
+    das Zusammenführen nicht über „Speichern und teilen“ abschließen und hochladen."""
+    conflict_between_alice_and_bob(alice, bob)
+    git(bob.root, "add", "--", FILE)  # „gelöst“, aber die Markierungen stehen noch darin
+    assert "<<<<<<<" in (bob.root / FILE).read_text()
+    result = bob.sync("Abschließen")
+    assert result.error is not None and result.error.kind == "conflict"
+    assert not result.pushed
+    assert (bob.root / ".git" / "MERGE_HEAD").exists()  # das Zusammenführen bleibt offen
+    assert git(remote, "show", f"main:{FILE}").startswith("velocity: 11")  # Server unverändert

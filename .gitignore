@@ -10,3 +10,6 @@ dist/
 *.xlsm
 *.xls
 /teams/
+
+# Bilder fehlgeschlagener Browsertests.
+test-results/

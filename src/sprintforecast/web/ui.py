@@ -167,6 +167,7 @@ from sprintforecast.storage import (
     STICHTAG_ENV,
     ConflictError,
     DataError,
+    FileAccessError,
     Repository,
     TeamData,
     clear_team_cache,
@@ -176,6 +177,7 @@ from sprintforecast.storage import (
     save_data_dir,
     team_version,
     teams_dir,
+    write_text,
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
@@ -396,7 +398,11 @@ def save(
             st.error(f"{i.where}: {i.message}")
         st.error(t("Nicht gespeichert – bitte die Fehler beheben."))
         return False
-    paths = write()
+    try:
+        paths = write()
+    except FileAccessError as e:
+        st.error(str(e))
+        return False
     for i in relevant:
         if i.level is Level.WARNING:
             notify("warning", f"{i.where}: {i.message}")
@@ -745,7 +751,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
     if st.button(t("Bericht FORECAST.md schreiben")):
         path = repo.team_dir(team.key) / "FORECAST.md"
-        path.write_text(render(fc), encoding="utf-8")
+        write_text(path, render(fc))
         st.success(t("Geschrieben: {path}", path=path))
 
 
@@ -1081,7 +1087,7 @@ def _absence_states(live: list[Sprint], sprints: list[Sprint]) -> set[str]:
 
 
 def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
-    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“ (Trend)."""
+    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“."""
     resettable = resettable_sprints(data, today)
     if not resettable:
         return
@@ -1089,8 +1095,9 @@ def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
     st.caption(
         t(
             "Für diese Sprints wurden Fehltage bestätigt, sonst ist nichts erfasst. Zurücksetzen "
-            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Kapazität wird "
-            "wieder aus dem Trend geschätzt."
+            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Fehltage werden "
+            "wieder nach der Historie geschätzt (ohne Historie ohne Abzug); die Kapazität kommt "
+            "weiter aus Kalender und Personen."
         )
     )
     chosen = st.multiselect(
@@ -2158,34 +2165,53 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
         Planning(carryover=carryover or 0.0, backlog=backlog or 0.0, corrections=corrections),
     )
     freeze_plan(sprint, entry, fc.today, refreeze=refreeze)
-    if prefilled:
-        st.info(
-            t(
-                "Commitment aus Überkipper + Backlog übernommen: {value} {unit}",
-                value=fmt(sprint.forecast_ist, 2),
-                unit=unit,
-            )
+    prefill_note = (
+        t(
+            "Commitment aus Überkipper + Backlog übernommen: {value} {unit}",
+            value=fmt(sprint.forecast_ist, 2),
+            unit=unit,
         )
+        if prefilled
+        else None
+    )
+    if prefill_note:
+        st.info(prefill_note)
     after = with_sprints(data, [sprint])
     if save(
         after,
         [f"{sprint.id}.yaml"],
         lambda: [repo.save_sprint(data.team.key, sprint)],
+        flash=True,
     ):
+        # Die Hinweise erscheinen im nächsten Durchlauf; er zeichnet auch die Schrittleiste neu.
+        flash = st.session_state.setdefault("flash", [])
+        if (
+            prefill_note
+        ):  # im nächsten Durchlauf ist das Commitment gespeichert, kein Vorschlag mehr
+            flash.append(("info", prefill_note))
         e = build_forecast(after, fc.today).entry(sprint.id)
         if e and e.result.planning_total is not None:
-            st.info(
-                t(
-                    "Planning-Summe {total} {unit} · Forecast PLAN {plan} {unit} · Delta "
-                    "{delta} {unit}",
-                    total=fmt(e.result.planning_total, 2),
-                    plan=fmt(e.result.plan),
-                    delta=fmt(e.result.planning_delta, 2),
-                    unit=unit,
+            flash.append(
+                (
+                    "info",
+                    t(
+                        "Planning-Summe {total} {unit} · Forecast PLAN {plan} {unit} · Delta "
+                        "{delta} {unit}",
+                        total=fmt(e.result.planning_total, 2),
+                        plan=fmt(e.result.plan),
+                        delta=fmt(e.result.planning_delta, 2),
+                        unit=unit,
+                    ),
                 )
             )
         if sprint.forecast_ist is not None:
-            st.success(t("Planning {id} vollständig – der Sprint kann starten.", id=sprint.id))
+            flash.append(
+                (
+                    "success",
+                    t("Planning {id} vollständig – der Sprint kann starten.", id=sprint.id),
+                )
+            )
+        st.rerun()
 
 
 def _review_prognosis_hint(sprint: Sprint, unit: str) -> None:
@@ -2325,12 +2351,14 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         sprint.production_done = production_done
     if product_rows is not None:
         sprint = apply_product_values(sprint, product_rows, review_measures)
-    save(
+    if save(
         with_sprints(data, [sprint]),
         [f"{sprint.id}.yaml"],
         lambda: [repo.save_sprint(data.team.key, sprint)],
         tag=f"{data.team.key}/{sprint.id}" if tag else None,
-    )
+        flash=True,
+    ):
+        st.rerun()  # die Schrittleiste oben zeigt den gespeicherten Stand
 
 
 def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
@@ -2803,11 +2831,13 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if assumed:
             plan = fc_preview.entry(after.id).result.plan if fc_preview.entry(after.id) else None
             to_save = record_prognoses(data, after, assumed, plan, comment)
-        save(
+        if save(
             with_sprints(data, to_save),
             [f"{s.id}.yaml" for s in to_save],
             lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
-        )
+            flash=True,
+        ):
+            st.rerun()  # die Schrittleiste oben zeigt den gespeicherten Stand
     page_link("planning", t("Weiter zum Planning"))
 
 
@@ -4951,6 +4981,8 @@ def run_page(key: str) -> None:
     fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
     try:
         TEAM_PAGES[key](repo, data, fc)
+    except FileAccessError as e:  # Schreib- oder Löschfehler außerhalb von save()
+        st.error(str(e))
     finally:
         # Auch nach ``st.rerun()`` (eine Ausnahme): Der eigene Speicherstand gilt als gesehen,
         # sonst hielte der nächste Durchlauf ihn für eine fremde Änderung.
@@ -4964,4 +4996,7 @@ def run_plugin_page(page: WebPage) -> None:
     if _merge_open(repo):
         page_conflicts(repo)
         return
-    page.render(repo)
+    try:
+        page.render(repo)
+    except FileAccessError as e:  # Schreib- oder Lesefehler im Plugin
+        st.error(str(e))
