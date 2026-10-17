@@ -193,7 +193,10 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   optional mit Tag `TEAM/SPRINT`), holt dann den Stand der anderen, führt beides zusammen und lädt
   es hoch. Danach steht in der Seitenleiste, was von anderen übernommen wurde (wer, wann, welche
   Dateien). Bei einem Wettlauf (jemand lädt zwischendurch hoch) wird erneut geholt und
-  hochgeladen. Verschiedene Werte derselben Datei (z. B. Fehltage von Anna und von Ben im selben
+  hochgeladen. Hat der Server eine ganz andere Historie (meist das falsche Repository, z. B. ein
+  Code-Repository), wird nichts zusammengeführt oder hochgeladen, sondern mit Hinweis abgebrochen;
+  nur nach ausdrücklicher Bestätigung wird trotzdem zusammengeführt. Ein Tag, den es lokal schon
+  gibt, bricht das Speichern ab, bevor etwas committet wird. Verschiedene Werte derselben Datei (z. B. Fehltage von Anna und von Ben im selben
   Sprint, zwei verschiedene Personen in `people.yaml`) werden automatisch vereinigt. Nur wenn beide
   denselben Wert unterschiedlich geändert haben, ist die Bearbeitung gesperrt, und die Seite
   **Konflikte lösen** fragt je Eintrag „Meine Änderung“ oder „Andere Änderung“ (Dateien, die auf

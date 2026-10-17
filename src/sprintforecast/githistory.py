@@ -11,6 +11,7 @@ NUL-getrennter Ausgabe (``-z``): Nur so bleiben Namen mit Umlauten oder Anführu
 from __future__ import annotations
 
 import contextlib
+import os
 import shutil
 import time
 from collections.abc import Iterator
@@ -23,7 +24,6 @@ from sprintforecast.git import (
     GitError,
     _git,
     changes_in,
-    check_name,
     split_z,
 )
 from sprintforecast.gitsync import _git_dir, _root, state
@@ -170,28 +170,102 @@ def _new_trash(root: Path) -> Path:
         return trash
 
 
+def _paths_of(changes: list[Change]) -> list[str]:
+    """Alle von den Änderungen berührten Pfade (neuer und bisheriger Name), ohne Doppelte."""
+    return list(dict.fromkeys(p for c in changes for p in (c.file, c.orig) if p))
+
+
 def _backup(root: Path, trash: Path, changes: list[Change]) -> None:
-    for change in changes:
-        source = root / change.file
+    for name in _paths_of(changes):
+        source = root / name
         if source.is_file():
-            (trash / change.file).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, trash / change.file)
+            (trash / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, trash / name)
 
 
-def _put_back(root: Path, trash: Path, changes: list[Change]) -> None:
-    """Legt gesicherte Dateien zurück (nach einem Teilfehler)."""
-    for change in changes:
-        saved = trash / change.file
-        if saved.is_file():
-            with contextlib.suppress(OSError):
-                (root / change.file).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(saved, root / change.file)
+@dataclass(frozen=True)
+class _Snapshot:
+    """Zustand vor dem Verwerfen, damit sich nach einem Teilfehler alles zurücklegen lässt:
+    welche Dateien es gab (Inhalt liegt im Papierkorb), welche nicht (z. B. gelöscht oder
+    vor einer Umbenennung) und die Vormerkung (Index)."""
+
+    present: tuple[str, ...]
+    absent: tuple[str, ...]
+    index: bytes | None
+
+
+def _snapshot(root: Path, changes: list[Change]) -> _Snapshot:
+    paths = _paths_of(changes)
+    try:
+        index = (_git_dir(root) / "index").read_bytes()
+    except OSError:
+        index = None
+    return _Snapshot(
+        tuple(p for p in paths if (root / p).is_file()),
+        tuple(p for p in paths if not (root / p).exists()),
+        index,
+    )
+
+
+def _write_index(root: Path, data: bytes) -> None:
+    index = _git_dir(root) / "index"
+    tmp = index.with_name("index.sprintforecast-rollback")
+    try:
+        tmp.write_bytes(data)
+        os.replace(tmp, index)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def _put_back(root: Path, trash: Path, snap: _Snapshot) -> list[str]:
+    """Stellt den Zustand vor dem Verwerfen her (nach einem Teilfehler): gesicherte Dateien
+    zurückkopieren, wieder angelegte (vorher gelöschte) Dateien entfernen, Vormerkung
+    zurückschreiben. Liefert, was sich nicht wiederherstellen ließ (leer = alles)."""
+    failed: list[str] = []
+    for name in snap.present:
+        try:
+            saved = trash / name
+            if not saved.is_file():
+                raise OSError(name)
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(saved, root / name)
+        except OSError:
+            failed.append(name)
+    for name in snap.absent:
+        try:
+            (root / name).unlink(missing_ok=True)
+        except OSError:
+            failed.append(name)
+    if snap.index is not None:
+        try:
+            _write_index(root, snap.index)
+        except OSError:
+            failed.append(t("die Vormerkung (Index)"))
+    return failed
+
+
+def _rollback_hint(failed: list[str], trash: Path) -> str:
+    if not failed:
+        return t(
+            "Der ursprüngliche Zustand (Dateien und Vormerkung) wurde wiederhergestellt. "
+            "Sicherung der Änderungen: {trash}",
+            trash=trash,
+        )
+    return t(
+        "Der ursprüngliche Zustand konnte nicht vollständig wiederhergestellt werden. "
+        "Nicht wiederhergestellt: {files}. Die Sicherung der Änderungen liegt in {trash}; "
+        "bitte die Dateien von dort zurückkopieren.",
+        files=", ".join(failed),
+        trash=trash,
+    )
 
 
 def discard(path: Path, files: list[str] | None = None) -> Path | None:
     """Verwirft offene Änderungen (einzelne Dateien oder alles im Datenordner). Die Dateien
     werden vorher in einen Papierkorb unter ``.git`` kopiert; dessen Ordner wird zurückgegeben.
-    Scheitert etwas, wird der Stand aus der Sicherung zurückgelegt."""
+    Scheitert etwas, wird der Zustand davor aus der Sicherung wiederhergestellt (Dateien,
+    gelöschte Dateien, Vormerkung); die Fehlermeldung nennt, was sich nicht wiederherstellen
+    ließ und wo die Sicherung liegt."""
     root = _root(path)
     _no_unfinished(path)
     changes = _selected(path, files)
@@ -200,6 +274,7 @@ def discard(path: Path, files: list[str] | None = None) -> Path | None:
     trash = _new_trash(root)
     try:
         _backup(root, trash, changes)
+        snap = _snapshot(root, changes)
     except OSError as e:
         shutil.rmtree(trash, ignore_errors=True)
         raise GitError(
@@ -210,12 +285,12 @@ def discard(path: Path, files: list[str] | None = None) -> Path | None:
     try:
         _apply_discard(root, changes)
     except (GitError, OSError) as e:
-        _put_back(root, trash, changes)
+        failed = _put_back(root, trash, snap)
         gitmod.invalidate_status()
         raise GitError(
             t("Das Verwerfen ist nicht vollständig gelungen: {error}", error=e),
             getattr(e, "kind", "error"),
-            t("Die Änderungen wurden aus der Sicherung zurückgelegt: {trash}", trash=trash),
+            _rollback_hint(failed, trash),
         ) from e
     gitmod.invalidate_status()
     if not any(trash.iterdir()):
@@ -283,20 +358,56 @@ def _check_rev(rev: str) -> str:
     return rev
 
 
-def _rollback_restore(root: Path, rel: str, added: set[str]) -> None:
+def _rollback_restore(
+    root: Path, rel: str, added: set[str], saved: dict[str, Path] | None = None
+) -> list[str]:
     """Macht ein halb ausgeführtes Wiederherstellen rückgängig (vorher gab es in diesem
-    Bereich keine offenen Änderungen, HEAD ist also der richtige Stand)."""
-    _git(root, "reset", "-q", "HEAD", "--", rel, check=False)
-    _git(root, "checkout", "HEAD", "--", rel, check=False)
-    for file in added:
-        with contextlib.suppress(OSError):
+    Bereich keine offenen Änderungen, HEAD ist also der richtige Stand). ``saved``: vorher
+    gesicherte ignorierte Dateien (Pfad → Sicherung), die wieder an ihren Platz kommen.
+    Liefert, was sich nicht zurücksetzen ließ (leer = alles)."""
+    saved = saved or {}
+    failed: list[str] = []
+    for args in (("reset", "-q", "HEAD", "--", rel), ("checkout", "HEAD", "--", rel)):
+        try:
+            _git(root, *args)
+        except GitError:
+            failed.append(rel)
+    for file in sorted(added - saved.keys()):
+        try:
             (root / file).unlink(missing_ok=True)
+        except OSError:
+            failed.append(file)
+    for file, backup in sorted(saved.items()):
+        try:
+            shutil.copy2(backup, root / file)
+        except OSError:
+            failed.append(file)
+    left = _git(
+        root, "status", "--porcelain", "-z", "--untracked-files=no", "--", rel,
+        check=False, strip=False,
+    )  # fmt: skip
+    if left and rel not in failed:
+        failed.append(rel)
+    return list(dict.fromkeys(failed))
+
+
+def _save_ignored(root: Path, trash: Path, files: list[str]) -> dict[str, Path]:
+    """Sichert ignorierte, nicht verfolgte Dateien, die ein Wiederherstellen überschreiben
+    würde (Pfad → Sicherung im Papierkorb)."""
+    saved: dict[str, Path] = {}
+    for file in files:
+        (trash / file).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(root / file, trash / file)
+        saved[file] = trash / file
+    return saved
 
 
 def restore_version(path: Path, scope: Path, rev: str, message: str | None = None) -> str:
     """Stellt ``scope`` (Datei oder Ordner) auf den Stand von ``rev`` zurück – als neuer Commit,
     der sich mit :func:`revert_commit` zurücknehmen lässt. Gibt den Kurz-Hash zurück. Mit
-    offenen Änderungen im Bereich wird abgelehnt (sie würden sonst überschrieben)."""
+    offenen Änderungen im Bereich wird abgelehnt (sie würden sonst überschrieben). Ignorierte,
+    nicht verfolgte Dateien (z. B. ``*.tmp``), die der alte Stand überschreiben würde, werden
+    vorher in den Papierkorb unter ``.git/sprintforecast-verworfen`` gesichert."""
     root = _root(path)
     _no_unfinished(path)
     rev = _check_rev(rev)
@@ -312,6 +423,25 @@ def restore_version(path: Path, scope: Path, rev: str, message: str | None = Non
     then = set(split_z(_git(root, "ls-tree", "-r", "-z", "--name-only", rev, *where, strip=False)))
     now = set(split_z(_git(root, "ls-files", "-z", *where, strip=False)))
     gone = sorted(now - then)
+    listing = _git(
+        root, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", *where,
+        check=False, strip=False,
+    )  # fmt: skip
+    ignored = split_z(listing)
+    clash = sorted(set(ignored) & then)
+    saved: dict[str, Path] = {}
+    trash: Path | None = None
+    if clash:
+        trash = _new_trash(root)
+        try:
+            saved = _save_ignored(root, trash, clash)
+        except OSError as e:
+            shutil.rmtree(trash, ignore_errors=True)
+            raise GitError(
+                t("Die Sicherung ignorierter Dateien ist nicht möglich: {error}", error=e),
+                "error",
+                t("Es wurde nichts verändert."),
+            ) from e
     try:
         for chunk in _chunks(sorted(then)):
             _git(root, "checkout", rev, "--", *chunk)
@@ -323,9 +453,21 @@ def restore_version(path: Path, scope: Path, rev: str, message: str | None = Non
         text = message or t("Stand von {rev} wiederhergestellt ({scope})", rev=short, scope=rel)
         _git(root, "add", "--all", "--", rel)
         _git(root, "commit", "-m", text, "--", rel)
-    except GitError:
-        _rollback_restore(root, rel, then - now)
+    except GitError as e:
+        failed = _rollback_restore(root, rel, then - now, saved)
         gitmod.invalidate_status()
+        if failed:
+            where_saved = trash if trash else _git_dir(root) / "sprintforecast-verworfen"
+            raise GitError(
+                str(e),
+                e.kind,
+                t(
+                    "Der ursprüngliche Stand konnte nicht vollständig wiederhergestellt werden "
+                    "(betroffen: {files}). Gesicherte ignorierte Dateien liegen in {trash}.",
+                    files=", ".join(failed),
+                    trash=where_saved,
+                ),
+            ) from e
         raise
     gitmod.invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
@@ -447,13 +589,8 @@ def list_tags(path: Path, check_server: bool = False) -> list[Tag]:
 
 
 def _valid_name(root: Path, name: str) -> str:
-    """Prüft einen Tag-Namen (kein führendes „-“, gültiger Referenzname)."""
-    name = check_name(name)
-    try:
-        _git(root, "check-ref-format", f"refs/tags/{name}")
-    except GitError as e:
-        raise GitError(t("Ungültiger Tag-Name: {name}", name=name)) from e
-    return name
+    """Prüft einen Tag-Namen (siehe :func:`sprintforecast.git.valid_tag_name`)."""
+    return gitmod.valid_tag_name(root, name)
 
 
 def _commit_of(root: Path, ref: str) -> str:
@@ -470,17 +607,53 @@ def set_tag(
     """Setzt (auch nachträglich) einen Tag und lädt ihn hoch. Gibt eine Warnung zurück, wenn
     das Hochladen scheiterte (der Tag bleibt dann lokal; ein erneuter Aufruf lädt ihn hoch).
     Gibt es den Tag lokal schon auf demselben Stand, wird nur hochgeladen; auf einem anderen
-    Stand lehnt die Funktion ab."""
+    Stand lehnt die Funktion ab. Ist der Server erreichbar und hat den Namen schon für einen
+    anderen Stand, wird der Tag nicht angelegt (Fehler ``tag_exists``); hat er ihn für
+    denselben Stand, wird er übernommen."""
     root = _root(path)
     name = _valid_name(root, name)
     rev = _check_rev(rev)
     existing = _commit_of(root, f"refs/tags/{name}")
-    if existing and existing != _commit_of(root, rev):
+    target = _commit_of(root, rev)
+    if existing and existing != target:
         raise GitError(t("Der Tag {name} existiert bereits.", name=name))
     if not existing:
+        if _adopt_server_tag(root, name, target):
+            return None
         _git(root, "tag", "-a", "-m", message or name, "--", name, rev)
         gitmod.invalidate_status()
     return _push_tag(root, name)
+
+
+def _adopt_server_tag(root: Path, name: str, target: str) -> bool:
+    """Fragt (wenn erreichbar) den Server: Ist der Name dort für einen anderen Stand vergeben,
+    Fehler. Zeigt er auf denselben Stand, wird dieser Tag geholt (True), statt einen zweiten
+    anzulegen, den der Server als abweichend ablehnen würde."""
+    if not (remote := _remote(root)):
+        return False
+    try:
+        on_server = _server_tags(root, remote).get(name)
+    except GitError:
+        return False  # ohne Antwort des Servers lässt sich nichts sagen
+    if not on_server or not target:
+        return False
+    if on_server != target:
+        raise GitError(
+            t(
+                "Der Tag {name} ist auf dem Server bereits für einen anderen Stand vergeben "
+                "({rev}). Er wurde nicht angelegt.",
+                name=name,
+                rev=on_server[:7],
+            ),
+            "tag_exists",
+            t("Einen anderen Namen wählen oder den Tag auf dem Server zuerst löschen."),
+        )
+    try:
+        _git(root, "fetch", remote, f"refs/tags/{name}:refs/tags/{name}", network=True)
+    except GitError:
+        return False
+    gitmod.invalidate_status()
+    return True
 
 
 def _push_tag(root: Path, name: str) -> GitError | None:

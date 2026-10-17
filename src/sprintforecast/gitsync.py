@@ -11,6 +11,7 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 from __future__ import annotations
 
 import io
+import re
 import shutil
 import tarfile
 import tempfile
@@ -347,13 +348,56 @@ def resolve_conflicts(
     return pending_conflicts(path)
 
 
-def _merge(root: Path, upstream: str, path: Path) -> list[ConflictFile]:
+def _unrelated(root: Path, remote: str | None, upstream: str) -> bool:
+    """Haben der eigene Stand und ``upstream`` keinen gemeinsamen Ursprung? Unterscheidet
+    „kein gemeinsamer Vorfahr“ (Rückgabecode 1) von echten Fehlern (werden ausgelöst) und
+    von einem flachen Klon, dessen abgeschnittene Historie nur so aussieht: Dort wird erst
+    die volle Historie geholt. Ohne eigenen Commit gibt es nichts, was sich vermischen ließe."""
+    if not _ref_exists(root, "HEAD"):
+        return False
+    for attempt in range(2):
+        proc = gitmod._git_result(root, "merge-base", "HEAD", upstream)
+        if proc.returncode == 0 and proc.stdout.strip():
+            return False
+        if proc.returncode not in {0, 1}:
+            raise gitmod.classify(proc.stderr.strip() or proc.stdout.strip())
+        shallow = _git(root, "rev-parse", "--is-shallow-repository", check=False) == "true"
+        if attempt == 0 and shallow and remote:
+            _git(root, "fetch", "--unshallow", "--prune", remote, network=True)
+            continue
+        break
+    return True
+
+
+def _public_url(url: str) -> str:
+    """Adresse ohne Zugangsdaten (``https://user:token@host`` → ``https://host``)."""
+    return re.sub(r"^([a-z][a-z0-9+.-]*://)[^/@]*@", r"\1", url, flags=re.IGNORECASE)
+
+
+def _unrelated_error(current: SyncState, target: str) -> GitError:
+    branch = target.split("/", 1)[-1]
+    return GitError(
+        t(
+            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
+            "Datenordner.",
+            url=_public_url(current.url) or current.remote or "?",
+            branch=branch,
+        ),
+        "unrelated_histories",
+        hint_for("unrelated_histories"),
+    )
+
+
+def _merge(
+    root: Path, upstream: str, path: Path, allow_unrelated: bool = False
+) -> list[ConflictFile]:
     """Führt den Server-Stand ein. Bei Konflikten bleibt das Zusammenführen offen, alles
     automatisch Lösbare ist erledigt; zurück kommen die Konflikte für den Menschen (leer =
-    fertig). Die eigenen Änderungen sind bereits committet."""
+    fertig). Die eigenen Änderungen sind bereits committet. Unverwandte Historien werden nur
+    mit ``allow_unrelated`` zusammengeführt (der Aufrufer hat sie vorher geprüft)."""
     args = ["merge", "--no-edit"]
-    if not _git(root, "merge-base", "HEAD", upstream, check=False):
-        args.append("--allow-unrelated-histories")  # z. B. zwei getrennt begonnene Repositories
+    if allow_unrelated:
+        args.append("--allow-unrelated-histories")
     try:
         _git(root, *args, upstream)
         return []
@@ -427,6 +471,7 @@ def sync(
     tags: list[str] | None = None,
     today: date | None = None,
     allow_invalid: bool = False,
+    allow_unrelated: bool = False,
 ) -> SyncResult:
     """„Speichern und teilen“: eigene Änderungen committen, die der anderen holen und
     zusammenführen, prüfen, hochladen. Erwartbare Fehler (offline, abgelehnt, Anmeldung,
@@ -434,7 +479,13 @@ def sync(
     bleibt erhalten. Bei Konflikten bleibt das Zusammenführen offen (``result.conflicts``);
     nach der Entscheidung (:func:`resolve_conflicts`) setzt ein erneuter Aufruf fort. Nach
     einem Zusammenführen läuft die Gesamtvalidierung: Neue Fehler verhindern das Hochladen,
-    außer mit ``allow_invalid``."""
+    außer mit ``allow_invalid``. Hat der Server eine fremde Historie ohne gemeinsamen Ursprung
+    (meist das falsche Repository), bricht die Funktion vor dem Zusammenführen mit der
+    Fehlerart ``unrelated_histories`` ab; nur mit ``allow_unrelated`` (ausdrückliche
+    Bestätigung) wird trotzdem zusammengeführt, danach gilt die übliche Konfliktbehandlung.
+    Tags (``tags``) werden vor dem Commit geprüft: Ist ein Name ungültig oder lokal schon
+    vergeben, bricht die Funktion ab, ohne zu committen; fehlende Tags werden auch ohne neuen
+    Commit nachgeholt."""
     result = SyncResult()
     try:
         root = _root(path)
@@ -463,6 +514,16 @@ def sync(
         # 1. Eigenes sichern: erst als Commit, dann ist nichts mehr in Gefahr.
         if pending_changes(path):
             result.committed = gitmod.commit_directory(path, message, tags)
+        elif tags:
+            _, elsewhere = gitmod.ensure_tags(root, tags, message)
+            result.notes += [
+                t(
+                    "Der Tag {tag} zeigt auf einen anderen Commit als den aktuellen Stand und "
+                    "wurde nicht verschoben.",
+                    tag=tag,
+                )
+                for tag in elsewhere
+            ]
         current = state(path)
         if current.remote is None:
             raise GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
@@ -471,13 +532,18 @@ def sync(
             current = fetch(path)
             if current.fetch_error is not None:
                 raise current.fetch_error
+            unrelated = False
+            if target := _server_branch(root, current):
+                unrelated = _unrelated(root, current.remote, target)
+                if unrelated and not allow_unrelated:
+                    raise _unrelated_error(current, target)
             if not current.upstream and current.branch:
                 current = _adopt_remote_branch(root, current)
             commits, files = incoming(path)
             result.pulled += [c for c in commits if c not in result.pulled]
             result.pulled_files += [f for f in files if f not in result.pulled_files]
             if current.upstream and current.behind:
-                result.conflicts = _merge(root, current.upstream, path)
+                result.conflicts = _merge(root, current.upstream, path, unrelated)
                 if result.conflicts:
                     raise _conflict_error()
                 result.merged = True
@@ -507,6 +573,17 @@ def sync(
     return result
 
 
+def _server_branch(root: Path, current: SyncState) -> str | None:
+    """Der Stand des Servers zum aktuellen Branch (z. B. ``origin/main``), soweit es ihn gibt:
+    der verbundene Upstream oder, vor der ersten Verbindung, der gleichnamige Branch."""
+    candidate = current.upstream or (
+        f"{current.remote}/{current.branch}" if current.remote and current.branch else None
+    )
+    if candidate and _ref_exists(root, f"refs/remotes/{candidate}"):
+        return candidate
+    return None
+
+
 def _adopt_remote_branch(root: Path, current: SyncState) -> SyncState:
     """Hat der Server den Branch schon, dieser Rechner ihn aber noch nicht mit dem Server
     verbunden (z. B. ein getrennt begonnenes Repository), wird er jetzt verbunden. Danach
@@ -518,6 +595,10 @@ def _adopt_remote_branch(root: Path, current: SyncState) -> SyncState:
     return current
 
 
+def _git_ok(root: Path, *args: str) -> bool:
+    return gitmod._git_result(root, *args).returncode == 0
+
+
 def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
     """Hinweise zu Tags, die ``push --follow-tags`` nicht veröffentlicht hat: Der Name ist auf
     dem Server schon für einen anderen Stand vergeben (zwei Personen haben denselben Sprint
@@ -525,10 +606,19 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
     notes: list[str] = []
     if not tags or not current.remote:
         return notes
+    head = _git(root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}", check=False)
     for tag in tags:
-        local = _git(root, "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}^{{commit}}",
-                     check=False)  # fmt: skip
+        local = gitmod.tag_commit(root, tag)
         if not local:
+            continue
+        if local != head and not _git_ok(root, "merge-base", "--is-ancestor", local, "HEAD"):
+            notes.append(
+                t(
+                    "Der Tag {tag} zeigt auf einen anderen Commit, der nicht zum aktuellen "
+                    "Stand gehört; er wurde nicht verschoben.",
+                    tag=tag,
+                )
+            )
             continue
         try:
             out = _git(root, "ls-remote", "--tags", current.remote, f"refs/tags/{tag}",

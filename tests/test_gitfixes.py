@@ -3,6 +3,7 @@
 echten Git-Repositories."""
 
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -258,22 +259,124 @@ def make_stranger(tmp_path: Path, remote: Path, files: dict[str, str]) -> Person
     return person
 
 
-def test_first_share_against_server_with_unrelated_history(
+def test_first_share_against_server_with_unrelated_history_is_refused(
+    alice: Person, remote: Path, tmp_path: Path
+):
+    server_head = git(remote, "rev-parse", "main")
+    carol = make_stranger(tmp_path, remote, {"a/2026.2.yaml": "velocity: 5\n"})
+    result = carol.sync("Carol startet")
+    assert result.error is not None and result.error.kind == "unrelated_histories"
+    assert str(remote) in str(result.error) and "main" in str(result.error)
+    assert "ausdrücklich" in result.error.hint
+    assert result.committed  # die eigenen Änderungen sind gesichert
+    assert not result.pushed and not result.merged
+    assert git(remote, "rev-parse", "main") == server_head
+    assert not (carol.data / "a" / "team.yaml").exists()
+    assert gitsync.state(carol.data).upstream is None  # auch nicht verbunden
+
+
+def test_first_share_against_server_with_unrelated_history_when_confirmed(
     alice: Person, remote: Path, tmp_path: Path
 ):
     carol = make_stranger(tmp_path, remote, {"a/2026.2.yaml": "velocity: 5\n"})
-    result = carol.sync("Carol startet")
+    result = carol.sync("Carol startet", allow_unrelated=True)
     assert result.ok, result.error
     assert result.pushed and result.merged
     assert (carol.data / "a" / "team.yaml").exists() and (carol.data / "a" / "2026.2.yaml").exists()
     assert git(carol.root, "rev-parse", "HEAD") == git(remote, "rev-parse", "main")
 
 
+def test_code_repository_on_the_server_is_not_merged_silently(remote: Path, tmp_path: Path):
+    code = tmp_path / "code"
+    git(tmp_path, "init", "-q", "-b", "main", str(code))
+    git(code, "config", "user.name", "Dev")
+    git(code, "config", "user.email", "dev@example.org")
+    (code / "app.py").write_text("print('hallo')\n", encoding="utf-8")
+    git(code, "add", "-A")
+    git(code, "commit", "-qm", "Code")
+    git(code, "push", "-q", str(remote), "main")
+    server_head = git(remote, "rev-parse", "main")
+    carol = make_stranger(tmp_path, remote, {"a/team.yaml": "name: A\n"})
+    result = carol.sync("Daten")
+    assert result.error is not None and result.error.kind == "unrelated_histories"
+    assert git(remote, "rev-parse", "main") == server_head
+    assert not (carol.root / "app.py").exists()
+
+
+def test_unrelated_histories_with_same_named_gitignore_and_readme(
+    alice: Person, remote: Path, tmp_path: Path
+):
+    (alice.root / ".gitignore").write_text("*.log\n", encoding="utf-8")
+    (alice.root / "README.md").write_text("Alices Daten\n", encoding="utf-8")
+    git(alice.root, "add", ".gitignore", "README.md")
+    git(alice.root, "commit", "-qm", "Dateien im Hauptordner")
+    assert alice.sync("Weiter").ok
+    carol = make_stranger(tmp_path, remote, {"a/2026.2.yaml": "velocity: 5\n"})
+    (carol.root / ".gitignore").write_text("*.bak\n", encoding="utf-8")
+    (carol.root / "README.md").write_text("Carols Daten\n", encoding="utf-8")
+    git(carol.root, "add", ".gitignore", "README.md")
+    git(carol.root, "commit", "-qm", "Carols Hauptordner")
+    refused = carol.sync("Carol startet")
+    assert refused.error is not None and refused.error.kind == "unrelated_histories"
+    assert gitsync.state(carol.data).unfinished is None
+    result = carol.sync("Carol startet", allow_unrelated=True)
+    assert result.error is not None and result.error.kind == "conflict"
+    assert sorted(c.file for c in result.conflicts) == [".gitignore", "README.md"]
+    assert all(c.whole for c in result.conflicts)
+    assert gitsync.state(carol.data).unfinished == "merge"
+
+
+def test_reinitialised_server_is_refused_even_with_connected_upstream(
+    alice: Person, remote: Path, tmp_path: Path
+):
+    shutil.rmtree(remote)
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(remote))
+    fresh = tmp_path / "frisch"
+    git(tmp_path, "init", "-q", "-b", "main", str(fresh))
+    git(fresh, "config", "user.name", "Neu")
+    git(fresh, "config", "user.email", "neu@example.org")
+    (fresh / "README.md").write_text("neu\n", encoding="utf-8")
+    git(fresh, "add", "-A")
+    git(fresh, "commit", "-qm", "Neu aufgesetzt")
+    git(fresh, "push", "-q", str(remote), "main")
+    server_head = git(remote, "rev-parse", "main")
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Weiter")
+    assert result.error is not None and result.error.kind == "unrelated_histories"
+    assert result.committed and not result.merged and not result.pushed
+    assert git(remote, "rev-parse", "main") == server_head
+    assert gitsync.state(alice.data).upstream == "origin/main"
+
+
+def test_merge_base_errors_are_not_mistaken_for_unrelated_histories(alice: Person):
+    with pytest.raises(GitError):
+        gitsync._unrelated(alice.root, "origin", "origin/gibt-es-nicht")
+
+
+def test_shallow_clone_is_not_mistaken_for_unrelated_histories(
+    alice: Person, remote: Path, tmp_path: Path
+):
+    shallow = tmp_path / "flach"
+    git(tmp_path, "clone", "-q", "--depth", "1", f"file://{remote}", str(shallow))
+    git(shallow, "config", "user.name", "Flach")
+    git(shallow, "config", "user.email", "flach@example.org")
+    for i in (1, 2):
+        alice.write("a/x.yaml", f"v: {i}\n")
+        assert alice.sync(f"Stand {i}").ok
+    git(shallow, "fetch", "-q", "--depth", "1", "origin")  # abgeschnittene, getrennte Spitze
+    person = Person("Flach", shallow)
+    person.write("b/team.yaml", "name: B\n")
+    result = person.sync("Flach", allow_invalid=True)  # die Testdaten sind fachlich unvollständig
+    assert result.ok, result.error
+    assert result.pushed
+    assert git(shallow, "rev-parse", "HEAD") == git(remote, "rev-parse", "main")
+
+
 def test_first_share_with_unrelated_history_and_conflict(
     alice: Person, remote: Path, tmp_path: Path
 ):
     carol = make_stranger(tmp_path, remote, {"a/team.yaml": "name: Anders\n"})
-    result = carol.sync("Carol startet")
+    result = carol.sync("Carol startet", allow_unrelated=True)
     assert result.error is not None and result.error.kind == "conflict"
     assert [c.file for c in result.conflicts] == ["teams/a/team.yaml"]
     assert gitsync.state(carol.data).unfinished == "merge"
@@ -491,3 +594,276 @@ def test_merge_does_not_treat_true_as_one():
     assert merged["a"] is False and conflicts == []
     merged, conflicts = merge3({"a": 1}, {"a": True}, {"a": 2})
     assert [c.path for c in conflicts] == [("a",)]
+
+
+# --- Review-Nachbesserungen: Tags vor dem Commit prüfen ----------------------------------------
+
+
+def head_of(person: Person) -> str:
+    return git(person.root, "rev-parse", "HEAD")
+
+
+def test_sync_with_an_existing_tag_aborts_before_committing(alice: Person, remote: Path):
+    git(alice.root, "tag", "-a", "-m", "alt", "a/t")
+    before = head_of(alice)
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Neu", ["a/t"])
+    assert result.error is not None and result.error.kind == "tag_exists"
+    assert result.committed is None and not result.pushed
+    assert head_of(alice) == before
+    assert pending_changes(alice.data)  # die Änderungen sind unverändert offen
+    again = alice.sync("Neu", ["a/t"])  # kein stilles Gelingen beim zweiten Mal
+    assert again.error is not None and again.error.kind == "tag_exists"
+    assert "a/t" not in git(remote, "tag").split()
+
+
+def test_sync_with_an_invalid_tag_name_aborts_before_committing(alice: Person):
+    before = head_of(alice)
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Neu", ["a/ungültig name"])
+    assert result.error is not None and "Ungültiger Tag-Name" in str(result.error)
+    assert result.committed is None and head_of(alice) == before
+    assert pending_changes(alice.data)
+
+
+def test_sync_adds_a_missing_tag_without_a_new_commit(alice: Person, remote: Path):
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "Schon committet")
+    invalidate_status()
+    before = head_of(alice)
+    result = alice.sync("Neu", ["a/nachgeholt"])
+    assert result.ok, result.error
+    assert result.committed is None and head_of(alice) == before
+    assert git(remote, "rev-list", "-n", "1", "a/nachgeholt") == before
+    assert result.notes == []
+
+
+def test_sync_notes_a_tag_that_points_to_another_commit(alice: Person):
+    git(alice.root, "tag", "-a", "-m", "alt", "a/alt")
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "Schon committet")
+    invalidate_status()
+    result = alice.sync("Neu", ["a/alt"])
+    assert result.ok, result.error
+    assert any("a/alt" in n and "anderen Commit" in n for n in result.notes)
+
+
+def test_tag_notes_report_a_tag_on_a_foreign_commit(alice: Person):
+    tree = git(alice.root, "rev-parse", "HEAD^{tree}")
+    foreign = git(alice.root, "commit-tree", tree, "-m", "fremd")
+    git(alice.root, "tag", "-a", "-m", "fremd", "a/fremd", foreign)
+    current = gitsync.state(alice.data)
+    notes = gitsync._tag_notes(alice.root, current, ["a/fremd"])
+    assert any("a/fremd" in n and "anderen Commit" in n for n in notes)
+
+
+def test_commit_invalidates_the_status_cache_even_if_tagging_fails(alice: Person, monkeypatch):
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    assert gitmod.cached_pending_changes(alice.data)  # füllt den Zwischenspeicher
+    real = gitmod._git
+
+    def flaky(cwd, *args, **kwargs):
+        if args[:1] == ("tag",):
+            raise GitError("Tag kaputt")
+        return real(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(gitmod, "_git", flaky)
+    with pytest.raises(GitError, match="Tag kaputt"):
+        gitmod.commit_directory(alice.data, "Neu", ["a/neu"])
+    monkeypatch.setattr(gitmod, "_git", real)
+    assert gitmod.cached_pending_changes(alice.data) == []  # der Commit ist erfolgt
+
+
+# --- Tag-Namen -------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("name", ["HEAD", "@", " a/x", "a/x ", "\ta/x", "  "])
+def test_ambiguous_or_padded_tag_names_are_rejected(alice: Person, name: str):
+    with pytest.raises(GitError, match="Ungültiger Tag-Name"):
+        githistory.set_tag(alice.data, name)
+    with pytest.raises(GitError, match="Ungültiger Tag-Name"):
+        githistory.delete_tag(alice.data, name)
+    with pytest.raises(GitError, match="Ungültiger Tag-Name"):
+        gitmod.check_name(name)
+    assert githistory.list_tags(alice.data) == []
+
+
+def test_set_tag_refuses_a_name_the_server_has_for_another_version(
+    alice: Person, bob: Person, remote: Path
+):
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    assert alice.sync("Weiter", ["a/s"]).ok  # bob kennt den Tag und den Stand noch nicht
+    with pytest.raises(GitError) as info:
+        githistory.set_tag(bob.data, "a/s")
+    assert info.value.kind == "tag_exists" and "a/s" in str(info.value)
+    assert githistory.list_tags(bob.data) == []  # nichts abweichend angelegt
+
+
+def test_set_tag_adopts_a_server_tag_for_the_same_version(alice: Person, bob: Person):
+    assert githistory.set_tag(alice.data, "a/gleich") is None
+    assert githistory.set_tag(bob.data, "a/gleich") is None
+    assert [t.name for t in githistory.list_tags(bob.data, check_server=True)] == ["a/gleich"]
+    assert githistory.list_tags(bob.data, check_server=True)[0].differs is False
+
+
+# --- Einstellungen: ältere Sicherung bleibt ------------------------------------------------------
+
+
+def test_config_update_keeps_every_damaged_file():
+    file = config.config_dir() / "settings.json"
+    file.parent.mkdir(parents=True, exist_ok=True)
+    file.write_text('{"erste": ', encoding="utf-8")
+    config.update(a=1)
+    file.write_text('{"zweite": ', encoding="utf-8")
+    config.update(a=2)
+    file.write_text('{"dritte": ', encoding="utf-8")
+    config.update(a=3)
+    backups = [p for p in file.parent.iterdir() if p.name.startswith("settings.json.defekt")]
+    assert sorted(p.read_text(encoding="utf-8") for p in backups) == [
+        '{"dritte": ',
+        '{"erste": ',
+        '{"zweite": ',
+    ]
+
+
+# --- Verwerfen: Rollback bei Teilfehler ----------------------------------------------------------
+
+
+def mixed_state(solo: Path) -> str:
+    """Umbenennung (vorgemerkt), gelöschte und geänderte Datei; liefert den Status davor."""
+    (solo / "c.yaml").write_text("w: 1\n", encoding="utf-8")
+    commit_all(solo, "c")
+    git(solo, "mv", "b.yaml", "d.yaml")
+    (solo / "a" / "team.yaml").unlink()
+    (solo / "c.yaml").write_text("w: 2\n", encoding="utf-8")
+    invalidate_status()
+    return git(solo, "status", "--porcelain")
+
+
+def assert_mixed_state(solo: Path) -> None:
+    assert (solo / "d.yaml").read_text(encoding="utf-8") == "v: 1\n"
+    assert not (solo / "b.yaml").exists()
+    assert not (solo / "a" / "team.yaml").exists()
+    assert (solo / "c.yaml").read_text(encoding="utf-8") == "w: 2\n"
+
+
+@pytest.mark.parametrize("fail_after_restore", [False, True])
+def test_discard_partial_failure_restores_files_deletions_and_index(
+    solo: Path, monkeypatch, fail_after_restore: bool
+):
+    before = mixed_state(solo)
+    real = githistory._git
+
+    def flaky(cwd, *args, **kwargs):
+        if args[:1] == ("restore",):
+            if fail_after_restore:
+                real(cwd, *args, **kwargs)
+            raise GitError("kaputt")
+        return real(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(githistory, "_git", flaky)
+    with pytest.raises(GitError) as info:
+        githistory.discard(solo)
+    monkeypatch.setattr(githistory, "_git", real)
+    assert git(solo, "status", "--porcelain") == before  # auch die Umbenennung ist vorgemerkt
+    assert_mixed_state(solo)
+    assert "wiederhergestellt" in info.value.hint
+    assert "nicht vollständig" not in info.value.hint
+    assert "sprintforecast-verworfen" in info.value.hint
+
+
+def test_discard_partial_failure_reports_honestly_what_could_not_be_restored(
+    solo: Path, monkeypatch
+):
+    mixed_state(solo)
+    real = githistory._git
+    real_copy = shutil.copy2
+
+    def flaky(cwd, *args, **kwargs):
+        if args[:1] == ("restore",):
+            raise GitError("kaputt")
+        return real(cwd, *args, **kwargs)
+
+    def copy(src, dst, *args, **kwargs):
+        if ".git" not in Path(dst).parts:  # nur das Zurücklegen scheitert, nicht die Sicherung
+            raise OSError("gesperrt")
+        return real_copy(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(githistory, "_git", flaky)
+    monkeypatch.setattr(githistory.shutil, "copy2", copy)
+    with pytest.raises(GitError) as info:
+        githistory.discard(solo)
+    hint = info.value.hint
+    assert "nicht vollständig" in hint and "c.yaml" in hint
+    assert "sprintforecast-verworfen" in hint
+    assert "Zustand (Dateien und Vormerkung) wurde wiederhergestellt" not in hint
+
+
+# --- Wiederherstellen: Rollback und ignorierte Dateien -----------------------------------------
+
+
+def test_restore_version_failed_commit_rolls_back_completely(solo: Path, monkeypatch):
+    first = git(solo, "rev-parse", "HEAD")
+    (solo / "b.yaml").write_text("v: 2\n", encoding="utf-8")
+    (solo / "a" / "team.yaml").unlink()
+    (solo / "neu.yaml").write_text("x: 1\n", encoding="utf-8")
+    commit_all(solo, "Zwei")
+    head = git(solo, "rev-parse", "HEAD")
+    real = githistory._git
+
+    def flaky(cwd, *args, **kwargs):
+        if args[:1] == ("commit",):
+            raise GitError("Commit kaputt")
+        return real(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(githistory, "_git", flaky)
+    with pytest.raises(GitError, match="Commit kaputt"):
+        githistory.restore_version(solo, solo, first)
+    monkeypatch.setattr(githistory, "_git", real)
+    assert git(solo, "rev-parse", "HEAD") == head
+    assert git(solo, "status", "--porcelain") == ""
+    assert (solo / "b.yaml").read_text(encoding="utf-8") == "v: 2\n"
+    assert not (solo / "a" / "team.yaml").exists()
+    assert (solo / "neu.yaml").exists()
+
+
+def ignored_setup(solo: Path) -> str:
+    """Ein früherer Stand verfolgt ``x.tmp``; jetzt ist die Datei ignoriert und lokal anders."""
+    (solo / ".gitignore").write_text("*.tmp\n", encoding="utf-8")
+    (solo / "x.tmp").write_text("alt\n", encoding="utf-8")
+    git(solo, "add", "-f", "-A")
+    git(solo, "commit", "-qm", "mit tmp")
+    old = git(solo, "rev-parse", "HEAD")
+    git(solo, "rm", "-q", "--cached", "x.tmp")
+    git(solo, "commit", "-qm", "ohne tmp")
+    (solo / "x.tmp").write_text("lokal wichtig\n", encoding="utf-8")
+    invalidate_status()
+    assert git(solo, "status", "--porcelain") == ""
+    return old
+
+
+def test_restore_version_saves_ignored_files_it_would_overwrite(solo: Path):
+    old = ignored_setup(solo)
+    githistory.restore_version(solo, solo, old)
+    assert (solo / "x.tmp").read_text(encoding="utf-8") == "alt\n"
+    saved = list((solo / ".git" / "sprintforecast-verworfen").glob("*/x.tmp"))
+    assert [p.read_text(encoding="utf-8") for p in saved] == ["lokal wichtig\n"]
+
+
+def test_restore_version_rollback_puts_ignored_files_back(solo: Path, monkeypatch):
+    old = ignored_setup(solo)
+    real = githistory._git
+
+    def flaky(cwd, *args, **kwargs):
+        if args[:1] == ("commit",):
+            raise GitError("Commit kaputt")
+        return real(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(githistory, "_git", flaky)
+    with pytest.raises(GitError, match="Commit kaputt"):
+        githistory.restore_version(solo, solo, old)
+    monkeypatch.setattr(githistory, "_git", real)
+    assert (solo / "x.tmp").read_text(encoding="utf-8") == "lokal wichtig\n"
+    assert git(solo, "status", "--porcelain") == ""

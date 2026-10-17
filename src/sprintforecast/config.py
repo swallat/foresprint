@@ -12,6 +12,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -54,13 +55,20 @@ def _keep_damaged(path: Path) -> None:
     else:
         if isinstance(content, dict):
             return
-    shutil.copy2(path, path.with_name(path.name + ".defekt"))
+    target = path.with_name(path.name + ".defekt")
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    n = 0
+    while target.exists():  # eine ältere Sicherung bleibt erhalten
+        n += 1
+        target = path.with_name(f"{path.name}.defekt-{stamp}" + (f"-{n}" if n > 1 else ""))
+    shutil.copy2(path, target)
 
 
 def update(**changes: Any) -> None:
     """Speichert Einstellungen: atomar (über eine Zwischendatei, nie halb geschrieben); eine
-    beschädigte Datei wird vorher als ``settings.json.defekt`` gesichert. Schlägt das fehl,
-    kommt eine :class:`SettingsError` mit verständlicher Meldung."""
+    beschädigte Datei wird vorher als ``settings.json.defekt`` gesichert (eine ältere
+    Sicherung bleibt erhalten, die neue bekommt einen Zeitstempel). Schlägt das fehl, kommt
+    eine :class:`SettingsError` mit verständlicher Meldung."""
     path = _settings_file()
     tmp: str | None = None
     try:
