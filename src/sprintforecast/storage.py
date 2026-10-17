@@ -118,7 +118,10 @@ def recent_data_dirs() -> list[Path]:
     from sprintforecast import config
 
     raw = config.load().get("recent_data_dirs")
-    return [Path(p) for p in raw if isinstance(p, str)] if isinstance(raw, list) else []
+    if not isinstance(raw, list):
+        return []
+    # Leere Einträge würden zu „.“ (dem aktuellen Ordner).
+    return [Path(p) for p in raw if isinstance(p, str) and p.strip()]
 
 
 def save_data_dir(path: Path) -> None:
@@ -173,7 +176,7 @@ def _read(path: Path) -> dict[str, Any]:
         content = yaml.load(text, Loader=_YAML_LOADER)
     except FileNotFoundError as e:
         raise DataError(t("Datei fehlt: {path}", path=path)) from e
-    except yaml.YAMLError as e:
+    except (yaml.YAMLError, ValueError) as e:  # z. B. ein unmögliches Datum (2026-13-45)
         raise DataError(t("{path}: kein gültiges YAML ({error})", path=path, error=e)) from e
     if content is None:
         return {}
@@ -193,19 +196,27 @@ def _write(path: Path, header: str, content: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = header + dump_yaml(content)
     try:
-        if path.read_bytes() == text.encode("utf-8"):
-            return
+        current = path.read_bytes()
     except OSError:
-        pass
-    with tempfile.NamedTemporaryFile(
-        "w", encoding="utf-8", newline="\n", dir=path.parent, suffix=".tmp", delete=False
-    ) as tmp:
-        tmp.write(text)
+        current = None
+    if current is not None:
+        if current == text.encode("utf-8"):
+            return
+        if has_conflict_markers(current.decode("utf-8", errors="replace")):
+            # Nie über einen unvollständigen Merge schreiben: Die Markierungen gingen verloren.
+            raise ConflictError([path])
+    tmp_name: str | None = None
     try:
-        os.replace(tmp.name, path)
-    except OSError:  # z. B. von einem anderen Programm gesperrt: Temporärdatei aufräumen
-        Path(tmp.name).unlink(missing_ok=True)
-        raise
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", newline="\n", dir=path.parent, suffix=".tmp", delete=False
+        ) as tmp:
+            tmp_name = tmp.name
+            tmp.write(text)
+        os.replace(tmp_name, path)
+        tmp_name = None
+    finally:
+        if tmp_name:  # Schreib- oder Umbenennungsfehler (z. B. gesperrt): nichts zurücklassen
+            Path(tmp_name).unlink(missing_ok=True)
     clear_team_cache()
 
 
@@ -775,6 +786,8 @@ class Repository:
         if path.is_file():
             try:
                 return absence_status(sprint_from_dict(_read(path), str(path)))
+            except ConflictError:
+                raise
             except DataError:
                 pass
         if sprint.velocity is not None:  # bereits ausgewerteter Sprint (z. B. Import)
@@ -801,6 +814,18 @@ def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[
     """Übernimmt Sprints (z. B. aus einem Import-Plugin). Ein neues Team wird mit ``team``
     angelegt; bei einem vorhandenen Team bleiben Einstellungen und Personen erhalten und
     gleichnamige Sprintdateien werden ersetzt."""
+    # Vorab prüfen, damit nicht erst ein Teil geschrieben wird, bevor ein Konflikt auffällt.
+    marked = [
+        p
+        for p in (
+            repo.team_dir(team.key) / "team.yaml",
+            repo.team_dir(team.key) / "people.yaml",
+            *(repo.sprint_path(team.key, s.id) for s in sprints),
+        )
+        if p.is_file() and has_conflict_markers(p.read_text(encoding="utf-8", errors="replace"))
+    ]
+    if marked:
+        raise ConflictError(marked)
     paths = []
     if not repo.exists(team.key):
         paths.append(repo.save_team(team))

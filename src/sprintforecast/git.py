@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from sprintforecast.i18n import t
@@ -48,7 +49,8 @@ def _env(network: bool) -> dict[str, str]:
     """Umgebung für Git: englische Meldungen (damit sie sich erkennen lassen) und bei
     Netzwerkaufrufen keine Rückfrage im Terminal. Anmeldehelfer (Credential Manager) laufen
     weiter."""
-    env = {**os.environ, "LC_ALL": "C", "LANGUAGE": "C"}
+    # Pfade sind nie Suchmuster: Dateinamen mit *, ? oder [ bleiben wörtlich gemeint.
+    env = {**os.environ, "LC_ALL": "C", "LANGUAGE": "C", "GIT_LITERAL_PATHSPECS": "1"}
     if network:
         env["GIT_TERMINAL_PROMPT"] = "0"
     return env
@@ -86,6 +88,22 @@ def _git(
             return ""
         raise classify(proc.stderr.strip() or proc.stdout.strip())
     return proc.stdout.strip() if strip else proc.stdout
+
+
+def split_z(out: str) -> list[str]:
+    """Zerlegt NUL-getrennte Git-Ausgabe (``-z``) in ihre Einträge. Nur so bleiben Pfade mit
+    Umlauten, Anführungszeichen oder Tabulatoren unverändert (ohne ``-z`` setzt Git sie in
+    Anführungszeichen und maskiert Sonderzeichen)."""
+    return [item for item in out.split("\0") if item]
+
+
+def check_name(name: str) -> str:
+    """Prüft einen Tag-Namen, der an Git übergeben wird: er darf nicht mit ``-`` beginnen (Git
+    läse ihn sonst als Option). Gibt den bereinigten Namen zurück."""
+    name = name.strip()
+    if not name or name.startswith("-"):
+        raise GitError(t("Ungültiger Tag-Name: {name}", name=name))
+    return name
 
 
 def _git_bytes(cwd: Path, *args: str) -> bytes:
@@ -344,8 +362,28 @@ def repo_root(path: Path) -> Path | None:
     return root
 
 
-def pending_changes(path: Path) -> list[tuple[str, str]]:
-    """Nicht committete Änderungen unterhalb von ``path`` als (Status, Pfad relativ zur Wurzel)."""
+def forget_roots(path: Path) -> None:
+    """Vergisst zwischengespeicherte Wurzeln für ``path``, darunter und darüber (nach
+    ``git init`` oder ``git clone`` – sonst gälte „kein Repository“ noch bis zu 30 Sekunden)."""
+    path = path.resolve()
+    for key in [k for k in _ROOT_CACHE if k == path or path in k.parents or k in path.parents]:
+        del _ROOT_CACHE[key]
+
+
+@dataclass(frozen=True)
+class Change:
+    """Eine nicht committete Änderung. ``status``: M geändert, D gelöscht, A neu (vorgemerkt),
+    R umbenannt, ?? neu (nicht vorgemerkt) – auch kombiniert (AM, RM, AD …). ``orig`` ist bei
+    Umbenennungen und Kopien der bisherige Pfad."""
+
+    status: str
+    file: str  # relativ zur Repository-Wurzel
+    orig: str = ""
+
+
+def changes_in(path: Path) -> list[Change]:
+    """Nicht committete Änderungen unterhalb von ``path``, bei Umbenennungen mit dem bisherigen
+    Pfad."""
     root = repo_root(path)
     if root is None:
         raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
@@ -354,18 +392,32 @@ def pending_changes(path: Path) -> list[tuple[str, str]]:
         root,
         "status",
         "--porcelain=v1",
+        "-z",
         "--untracked-files=all",
         "--",
         str(path.resolve()),
         strip=False,
     )
+    entries = out.split("\0")
     changes = []
-    for line in out.splitlines():
-        status, file = line[:2].strip(), line[3:]
-        if " -> " in file:  # Umbenennung
-            file = file.split(" -> ", 1)[1]
-        changes.append((status, file.strip('"')))
+    i = 0
+    while i < len(entries):
+        entry = entries[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        xy, file, orig = entry[:2], entry[3:], ""
+        if ("R" in xy or "C" in xy) and i < len(entries):  # der bisherige Pfad folgt
+            orig = entries[i]
+            i += 1
+        changes.append(Change(xy.strip(), file, orig))
     return changes
+
+
+def pending_changes(path: Path) -> list[tuple[str, str]]:
+    """Nicht committete Änderungen unterhalb von ``path`` als (Status, Pfad relativ zur Wurzel);
+    bei Umbenennungen der neue Pfad (den bisherigen liefert :func:`changes_in`)."""
+    return [(c.status, c.file) for c in changes_in(path)]
 
 
 _STATUS_CACHE: dict[Path, tuple[float, list[tuple[str, str]]]] = {}
@@ -396,6 +448,8 @@ def on_invalidate(hook: Callable[[], object]) -> None:
 def invalidate_status() -> None:
     """Verwirft zwischengespeicherte Git-Stände (nach Speichern, Commit, Synchronisation)."""
     _STATUS_CACHE.clear()
+    for key in [k for k, (_, root) in _ROOT_CACHE.items() if root is None]:
+        del _ROOT_CACHE[key]  # „kein Repository“ ist nicht von Dauer
     for hook in _INVALIDATE_HOOKS:
         hook()
 
@@ -420,7 +474,7 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
     _git(root, "add", "--all", "--", target)
     _git(root, "commit", "-m", message, "--", target)
     for tag in tags or []:
-        _git(root, "tag", "-a", tag, "-m", message)
+        _git(root, "tag", "-a", "-m", message, "--", check_name(tag))
     invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
 
@@ -432,7 +486,7 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     _git(root, "add", "--", *(str(p.resolve()) for p in paths))
     _git(root, "commit", "-m", message, "--", *(str(p.resolve()) for p in paths))
     if tag:
-        _git(root, "tag", "-a", tag, "-m", message)
+        _git(root, "tag", "-a", "-m", message, "--", check_name(tag))
     invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
 
@@ -442,6 +496,8 @@ GITIGNORE = """\
 *.xlsx
 *.xlsm
 *.xls
+# Übrig gebliebene Zwischendateien des Speicherns.
+*.tmp
 """
 
 
@@ -451,6 +507,7 @@ def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     if repo_root(path) is None:
         _git(path, "init", "-q")
+        forget_roots(path)
     ignore = path / ".gitignore"
     if not ignore.exists():
         ignore.write_text(GITIGNORE, encoding="utf-8")
@@ -464,12 +521,17 @@ def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
 def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
     """Klont ein bestehendes Daten-Repository nach ``path``. Fehler (Anmeldung, Server nicht
     erreichbar, Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
+    url = url.strip()
+    if not url or url.startswith("-"):  # Git läse die Adresse sonst als Option
+        raise GitError(t("Ungültige Adresse: {url}", url=url))
     if path.exists() and any(path.iterdir()):
         raise GitError(t("{path} ist nicht leer", path=path))
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        _git(path.parent, "clone", url, str(path), network=True, timeout=timeout)
+        _git(path.parent, "clone", "--", url, str(path), network=True, timeout=timeout)
     except GitError as e:
         if e.kind == "auth":
             e.hint = auth_help(url)
         raise
+    finally:
+        forget_roots(path)
