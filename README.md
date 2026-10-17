@@ -24,8 +24,11 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
 ## Installation
 
 Ein Befehl – installiert bei Bedarf [uv](https://docs.astral.sh/uv/), lädt Python 3.14 und
-installiert sprintforecast mit Weboberfläche. Git wird für Plugins aus Git-Repositories sowie für
-Commit, Teilen, Verlauf und Klonen der Daten benötigt; ohne Git läuft die App ohne diese Funktionen.
+installiert sprintforecast mit Weboberfläche. Git wird für Plugins aus Git-Repositories sowie zum
+Anlegen, Committen, Teilen, Verlauf und Klonen der Daten benötigt (auch `sprintforecast datenordner
+PFAD` verlangt ein Git-Repository). Ohne Git läuft die App mit einem Datenordner ohne Repository
+(`--daten`, `SPRINTFORECAST_DATEN` oder „Ohne Git verwenden“ auf der Seite Datenordner), aber ohne
+diese Funktionen.
 
 **Windows (PowerShell):**
 
@@ -308,7 +311,7 @@ Speicherungen sofort.
 - **Angekündigte Fehltage:** Auf dem Board *PO-Vorplanung* lassen sich schon vor dem Planning
   Fehltage je Person als **Prognose** eintragen. Sie wirken auf Kapazität (Quelle „angekündigte
   Fehltage“) und Forecast PLAN, gelten aber nicht als bestätigt. Im *Planning* (Schritt 1) sind sie
-  vorbelegt; erst „Fehltage speichern“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
+  vorbelegt; erst „Fehltage speichern und weiter“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
 - **Stand der Fehltage je Sprint** (unbekannt / angekündigt / bestätigt) ist überall sichtbar
   (Forecast, Fehltage, Planning). „Weiter ohne Bestätigung“ im Planning bestätigt **nichts**: Wer wirklich
   keine Fehltage hat, bestätigt das ausdrücklich („Niemand fehlt – bestätigen und weiter“ bzw. Spalte

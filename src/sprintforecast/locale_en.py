@@ -330,7 +330,7 @@ EN: dict[str, str] = {
     "Aktualisierung fehlgeschlagen (Exit-Code {code}).": "Update failed (exit code {code}).",
     "In der Sprintdatei eingetragen/eingefroren: {capacity} PT": "Recorded/frozen in the sprint file: {capacity} PT",
     "Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.": "No sprint file yet – until then the forecast uses the capacity trend.",
-    "Verzeichnis mit den Team-Daten (je Team ein Unterordner). Standard: aktuelles Verzeichnis.": "Folder with the team data (one subfolder per team). Default: current folder.",
+    "Verzeichnis mit den Team-Daten (je Team ein Unterordner). Standard: aktuelles Verzeichnis, falls es Teams enthält, sonst der gemerkte Datenordner.": "Folder with the team data (one subfolder per team). Default: current folder if it contains teams, otherwise the remembered data folder.",
     "Datum (JJJJ-MM-TT), das als „heute“ gilt – für Rückblicke und Tests.": 'Date (YYYY-MM-DD) treated as "today" – for retrospectives and tests.',
     "Version anzeigen.": "Show version.",
     "Bitte einen Wert eingeben.": "Please enter a value.",
