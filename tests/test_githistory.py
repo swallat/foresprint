@@ -4,7 +4,7 @@
 from pathlib import Path
 
 import pytest
-from gitrepos import Person, git
+from gitrepos import Denying, Person, git, serve
 
 from sprintforecast import githistory, gitsync
 from sprintforecast.git import GitError, invalidate_status
@@ -148,6 +148,21 @@ def test_tags_set_later_listed_and_deleted_also_on_server(alice: Person, remote:
         githistory.set_tag(alice.data, "ungültig name ~")
     assert githistory.delete_tag(alice.data, "a/2026.1") is None
     assert githistory.list_tags(alice.data) == [] and git(remote, "tag") == ""
+
+
+@pytest.mark.usefixtures("no_login_prompt")
+def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Person):
+    """„Nur lokal erledigt“ zeigt die Warnung ohne Überschrift (``GitError.full()``): Sie nennt
+    die Ursache selbst, denn der Hinweis beginnt gleich mit dem nächsten Schritt."""
+    with serve(Denying) as port:
+        git(alice.root, "remote", "set-url", "origin", f"http://127.0.0.1:{port}/r.git")
+        warning = githistory.set_tag(alice.data, "a/lokal")
+    assert warning is not None and warning.kind == "auth"
+    text = warning.full()
+    assert text.startswith("Anmeldung fehlt oder wurde abgelehnt. ")
+    assert text.count("fehlt oder wurde abgelehnt") == 1
+    assert "Zugangstoken" in text and text.endswith("Danach noch einmal versuchen.")
+    assert [t.name for t in githistory.list_tags(alice.data)] == ["a/lokal"]  # Tag bleibt lokal
 
 
 def test_tag_upload_failure_is_a_warning_and_tag_stays(alice: Person, tmp_path: Path):

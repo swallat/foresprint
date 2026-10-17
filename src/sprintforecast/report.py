@@ -45,12 +45,23 @@ def source_label(source: CapacitySource | None) -> str:
     return t(source.value) if source else ""
 
 
+def capacity_source_note(e: TimelineEntry) -> str:
+    """Quelle der Kapazität allein (ohne Zahl) – für Kennzahlen, deren Wert nicht durch einen
+    angehängten Text gekürzt werden soll; bei unsicherer Quelle mit Warnzeichen, ohne Quelle
+    leer."""
+    source = e.result.plan_capacity_source
+    if source in UNSURE_SOURCES:
+        return f"⚠️ {source_label(source)}"
+    return source_label(source)
+
+
 def capacity_label(e: TimelineEntry) -> str:
+    """Kapazität mit angehängter Quelle als ein Text (Tabellen, Berichte, Kommandozeile)."""
     source = e.result.plan_capacity_source
     value = fmt_capacity(e.result.plan_capacity, e.capacity_digits)
     if source in UNSURE_SOURCES:
-        return f"{value} ⚠️ {source_label(source)}"
-    return f"{value} ({source_label(source)})" if source else value
+        return f"{value} {capacity_source_note(e)}"
+    return f"{value} ({capacity_source_note(e)})" if source else value
 
 
 def absence_status_label(sprint: Sprint) -> str:

@@ -4,11 +4,26 @@
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from sprintforecast.git import invalidate_status
 from sprintforecast.storage import save_data_dir
+
+
+def nav_steps(at: Any) -> list[tuple[str, str, bool]]:
+    """Schrittleiste der Aufgabenseiten (``AppTest``): je Schritt (Seite, Beschriftung, aktiv)
+    in der Reihenfolge der Leiste. Jeder Schritt ist ein Link in einem Container mit Schlüssel
+    ``board-step-…`` bzw. ``board-active-…`` – alle gleich aufgebaut, der aktive nur anders
+    gefärbt (CSS)."""
+    steps = []
+    for node in at.main:
+        key = getattr(node, "key", None)
+        if isinstance(key, str) and key.startswith(("board-step-", "board-active-")):
+            [link] = [child for child in node if child.type == "page_link"]
+            steps.append((link.proto.page, link.proto.label, key.startswith("board-active-")))
+    return steps
 
 
 def _git(cwd: Path, *args: str) -> str:

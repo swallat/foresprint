@@ -6,11 +6,13 @@ import pandas as pd
 import pytest
 
 from sprintforecast.forecast import build_forecast
-from sprintforecast.model import AbsenceState
+from sprintforecast.model import AbsenceState, ProductValues, Sprint
 from sprintforecast.storage import Repository
 from sprintforecast.web.logic import (
     absence_matrix,
     absence_sprints,
+    apply_product_values,
+    board_steps_done,
     edit_absences,
     parse_numbers,
     people_from_table,
@@ -342,3 +344,65 @@ def test_empty_sprint_file_does_not_confirm_absences(data_dir: Path):
     repo = Repo(data_dir)
     repo.save_sprint("demo", sprint)
     assert repo.load("demo").sprint(sprint.id).absences_confirmed is True
+
+
+def _sprint(**fields) -> Sprint:
+    return Sprint(id="2026.30", start=date(2026, 12, 1), end=date(2026, 12, 14), **fields)
+
+
+def test_board_steps_done_without_a_sprint_file_nothing_is_done():
+    assert board_steps_done(None) == {
+        "fehltage": False,
+        "vorplanung": False,
+        "planning": False,
+        "review": False,
+    }
+    # Eine leere Datei bestätigt auch nichts (Stand unbekannt)
+    assert not any(board_steps_done(_sprint()).values())
+
+
+def test_board_steps_done_absences_only_when_confirmed():
+    """Haken bei den Fehltagen nur für den Stand „bestätigt“ (Zustand je Sprint), nicht für
+    „angekündigt“ oder „unbekannt“ und nicht, weil eine Datei existiert."""
+    entered = _sprint(absences={"anna": 1.0})
+    assert board_steps_done(entered)["fehltage"]
+    nobody = _sprint(absence_state=AbsenceState.CONFIRMED)
+    assert board_steps_done(nobody)["fehltage"]  # ausdrücklich „niemand fehlt“
+    unknown = _sprint(absence_state=AbsenceState.UNKNOWN)
+    assert not board_steps_done(unknown)["fehltage"]
+    expected = _sprint(expected_absences={"anna": 2.0})
+    assert not board_steps_done(expected)["fehltage"]  # angekündigt bestätigt nichts
+    only_preplanned = _sprint(products={"app": ProductValues(preplanned=3.0)})
+    assert not board_steps_done(only_preplanned)["fehltage"]
+    # Nur die Fehltage sind erfasst: die anderen Schritte bleiben offen
+    assert board_steps_done(entered) == {
+        "fehltage": True,
+        "vorplanung": False,
+        "planning": False,
+        "review": False,
+    }
+
+
+def test_blank_product_cells_stay_none_and_zero_stays_zero():
+    """Die Tabellen zeigen leere Zellen als „–“ (nur Anzeige): Zurück kommt weiter NaN bzw.
+    None = nicht erfasst, und 0 bleibt eine erfasste Null."""
+    base = _sprint(products={"app": ProductValues(preplanned=2.0)})
+    rows = [
+        {"_id": "app", "PO-Vorplanung": float("nan"), "Planning": 0.0},
+        {"_id": "web", "PO-Vorplanung": None, "Planning": float("nan")},
+    ]
+    after = apply_product_values(base, rows, ["preplanned", "planned"])
+    assert after.products["app"].preplanned is None
+    assert after.products["app"].planned == 0.0
+    assert "web" not in after.products  # nichts erfasst: kein leerer Eintrag
+
+
+def test_board_steps_done_other_steps_follow_their_values():
+    sprint = _sprint(
+        products={"app": ProductValues(), "web": ProductValues(preplanned=0.0)},
+        forecast_ist=0.0,  # 0 ist erfasst (nicht „fehlt“)
+        velocity=7.5,
+    )
+    done = board_steps_done(sprint)
+    assert done["vorplanung"] and done["planning"] and done["review"]
+    assert not board_steps_done(_sprint(products={"app": ProductValues(planned=2.0)}))["vorplanung"]
