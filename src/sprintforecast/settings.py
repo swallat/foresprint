@@ -294,8 +294,10 @@ SETTINGS: list[Setting] = [
     Setting(
         key="forecast.reference_capacity",
         label="Referenzkapazität (PT)",
-        help="Bezugsgröße der normierten Velocity. Am besten die Kapazität eines voll "
-        "besetzten Sprints. Ändert alle normierten Werte, aber nicht den Forecast PLAN.",
+        help="Darstellungsmaßstab der normierten Velocity (n. Velocity = Fokusfaktor × "
+        "Referenzkapazität). Am besten die Kapazität eines voll besetzten Sprints. Sie kürzt "
+        "sich in der Rechnung heraus: Ändert alle normierten Werte, aber nicht den Forecast "
+        "PLAN.",
         kind=Kind.NUMBER,
         minimum=1,
         retroactive=True,

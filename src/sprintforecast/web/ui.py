@@ -39,7 +39,7 @@ from sprintforecast.calendar import (
     team_workdays,
 )
 from sprintforecast.capacity import sprint_capacity
-from sprintforecast.engine import UNSURE_SOURCES, gaps_in_window
+from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
@@ -50,7 +50,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.formulas import general, steps
+from sprintforecast.formulas import fte_change_note, general, plain_explanation, steps
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     NO_WINDOW,
@@ -148,20 +148,20 @@ else:  # erst beim ersten Zugriff laden (Kaltstart)
 # Seiten: Dateiname unter web/seiten → (Titel, Material-Icon). Gruppen für die Navigation.
 # Titel und Gruppen sind deutsche Quelltexte und werden bei der Anzeige übersetzt.
 PAGES: dict[str, dict[str, tuple[str, str]]] = {
-    "Sprint": {
-        "forecast": ("Forecast", ":material/trending_up:"),
-        "fehltage": ("Fehltage", ":material/event_busy:"),
-        "sprints": ("Sprintkalender", ":material/calendar_month:"),
-        "produkte": ("Produktverteilung", ":material/pie_chart:"),
-        "analyse": ("Analyse", ":material/insights:"),
-    },
-    # Die drei Boards in zeitlicher Reihenfolge: vor dem Planning, Planning, Review.
-    "Boards": {
+    # Aufgaben im Sprint in zeitlicher Reihenfolge: vorbereiten, Planning, abschließen.
+    "Aufgaben": {
+        "fehltage": ("Sprint vorbereiten: Fehltage", ":material/event_busy:"),
         "vorplanung": ("PO-Vorplanung", ":material/groups:"),
         "planning": ("Planning", ":material/edit_note:"),
-        "review": ("Review", ":material/task_alt:"),
+        "review": ("Sprint abschließen (Review)", ":material/task_alt:"),
     },
-    "Team": {
+    "Auswertung": {
+        "forecast": ("Forecast", ":material/trending_up:"),
+        "analyse": ("Analyse", ":material/insights:"),
+        "produkte": ("Produktverteilung", ":material/pie_chart:"),
+    },
+    "Team verwalten": {
+        "sprints": ("Sprintkalender", ":material/calendar_month:"),
         "personen": ("Personen", ":material/group:"),
         "produktliste": ("Produkte", ":material/category:"),
         "einstellungen": ("Einstellungen", ":material/tune:"),
@@ -299,7 +299,7 @@ def _signed(value: float) -> str:
 
 
 def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str, Assumption]:
-    """Prognose des Teams für offene Sprints: Forecast IST − voraussichtlich nicht erledigt +
+    """Prognose des Teams für offene Sprints: Commitment − voraussichtlich nicht erledigt +
     zusätzlich erledigt = erwartete Velocity. Nichts wird gespeichert."""
     assumed: dict[str, Assumption] = {}
     for sprint in open_velocity_sprints(fc):
@@ -307,14 +307,14 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
         default_ist = default_forecast_ist(fc, sprint)
         ist_col, open_col, extra_col, result_col = st.columns(4)
         ist = ist_col.number_input(
-            t("Forecast IST ({unit})", unit=unit),
+            t("Commitment ({unit})", unit=unit),
             min_value=0.0,
             value=default_ist,
             step=0.25,
             format="%.2f",
             key=f"{prefix}-{sprint.id}-ist",
             help=t(
-                "Eingeplante Menge des Sprints. Vorbelegt mit dem erfassten Forecast IST, "
+                "Eingeplante Menge des Sprints. Vorbelegt mit dem erfassten Commitment, "
                 "sonst mit dem des vorherigen Sprints."
             ),
         )
@@ -334,7 +334,7 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
             step=0.25,
             format="%.2f",
             key=f"{prefix}-{sprint.id}-extra",
-            help=t("Menge, die laut Prognose zusätzlich zum Forecast IST geschafft wird."),
+            help=t("Menge, die laut Prognose zusätzlich zum Commitment geschafft wird."),
         )
         changed = not_done is not None or extra is not None or ist != default_ist
         if ist is None or not changed:
@@ -357,7 +357,7 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
         st.caption(
             t(
                 "Prognose des Teams für einen noch nicht abgeschlossenen Sprint eintragen: "
-                "Forecast IST, was voraussichtlich nicht fertig wird und was zusätzlich geschafft "
+                "Commitment, was voraussichtlich nicht fertig wird und was zusätzlich geschafft "
                 "wird. "
                 "Der Forecast PLAN der nächsten Sprints wird damit neu berechnet. Nichts wird "
                 "gespeichert.",
@@ -431,6 +431,13 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 else ""
             ),
         )
+        col.caption(
+            t(
+                "Kapazität {capacity} PT · Fehltage {state}",
+                capacity=capacity_label(e),
+                state=absence_status_label(e.sprint),
+            )
+        )
     _forecast_notes(fc, upcoming)
 
     capacity_col, trend_col, plan_col = (
@@ -503,7 +510,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 {
                     "Sprint": e.sprint.id,
                     capacity_col: fmt(e.result.capacity.value),
-                    t("Forecast IST"): fmt(e.result.forecast_ist.value, 2),
+                    t("Commitment"): fmt(e.result.forecast_ist.value, 2),
                     "Velocity": fmt(e.result.velocity.value, 2),
                     nvel: fmt(e.result.normalized_velocity.value, 2),
                     avg: fmt(e.result.normalized_velocity.average, 2),
@@ -542,6 +549,16 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
 def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
     """Hinweise zur Belastbarkeit direkt an den Kacheln: wenig Daten, dünne Historie und ein
     Trend-Modus, der Rauschen fortschreibt."""
+    if sample_count(fc) < MIN_THIN_HISTORY:
+        st.info(
+            t(
+                "Noch kein Forecast: bisher {samples} Sprint(s) mit Velocity. Ab {min} Sprints "
+                "entsteht ein erster Forecast (mit Hinweis „Historie dünn“); die Velocity "
+                "im Review erfassen oder die Historie über ein Import-Plugin übernehmen.",
+                samples=sample_count(fc),
+                min=MIN_THIN_HISTORY,
+            )
+        )
     if sample_count(fc) and few_samples(fc):
         st.warning(
             t(
@@ -597,6 +614,14 @@ def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
         index = ids.index(default.sprint.id) if default and default.sprint.id in ids else 0
         chosen = st.selectbox("Sprint", ids, index=index, key="formula-sprint")
         entry = next(e for e in entries if e.sprint.id == chosen)
+        _rechenweg(fc, entry)
+
+
+def _rechenweg(fc: Forecast, entry: TimelineEntry) -> None:
+    """Erst eine Erklärung in Alltagssprache, die eingesetzten Werte und Quellen darunter
+    auf Wunsch."""
+    st.markdown(plain_explanation(fc, entry))
+    with st.popover(t("Eingesetzte Werte und Quellen"), icon=":material/table:"):
         st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
 
 
@@ -622,7 +647,7 @@ def _next_dates(fc: Forecast) -> None:
             (
                 f"Planning {planning.sprint.id}",
                 day_label(planning.sprint.start),
-                t("Fehltage → Forecast PLAN → Forecast IST")
+                t("Fehltage → Forecast PLAN → Commitment")
                 + (t(" (Fehltage noch nicht erfasst)") if missing else ""),
                 "planning",
             )
@@ -647,7 +672,7 @@ def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart |
         r = e.result
         future = e.sprint.end > fc.today
         values = {
-            t("Forecast IST / PLAN"): r.plan if future else r.forecast_ist.value,
+            t("Commitment / PLAN"): r.plan if future else r.forecast_ist.value,
             "Velocity": r.velocity.trend if future else r.velocity.value,
             t("n. Velocity"): r.normalized_velocity.trend
             if future
@@ -725,6 +750,14 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
     )
     st.caption(t("Leere Zellen: Person ist in diesem Sprint nicht im Team."))
+    approx = {
+        p.person.name
+        for s in sprints
+        for p in sprint_capacity(data.team, data.people, s).people
+        if p.fte_changes
+    }
+    if approx:
+        st.caption(fte_change_note(sorted(approx)))
     live = edit_absences(data.people, sprints, edited.to_dict("records"))
     confirmed = _absence_states(live, sprints)
     edited_sprints = edit_absences(
@@ -756,6 +789,19 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.subheader(
         t("Kapazität und Prognose") + (t(" (Vorschau, noch nicht gespeichert)") if to_save else "")
     )
+    if next_sprint := next((s for s in edited_sprints if s.start > fc.today), None):
+        next_entry = fc_preview.entry(next_sprint.id)
+        if next_entry is not None and next_entry.result.plan is not None:
+            st.markdown(
+                t(
+                    "**In den nächsten Sprint {id} passen {plan} {unit}** "
+                    "(Kapazität {capacity} PT)",
+                    id=next_sprint.id,
+                    plan=fmt(next_entry.result.plan),
+                    unit=data.team.unit.value,
+                    capacity=fmt(next_entry.result.plan_capacity),
+                )
+            )
     st.dataframe(
         pd.DataFrame(
             [
@@ -1045,15 +1091,40 @@ def _frozen_note(d: Distribution, unit: str) -> str:
 
 
 def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
-    """Kapazität der Personen mit Produktionszugriff und Warnung bei Überplanung."""
+    """Kapazität der Personen mit Produktionszugriff und Warnung bei Überplanung – ein
+    Engpasshinweis (grobe Näherung über den Kapazitätsanteil), keine Zusage."""
+    planned = d.total("production_planned")
+    entered = planned is not None or d.total("production_done") is not None
+    if d.production_state == "unconfigured":
+        if entered:
+            st.info(
+                t(
+                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team → Personen) – "
+                    "ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht prüfen."
+                )
+            )
+        return
+    if d.production_state == "unavailable":
+        if planned:
+            st.warning(
+                t(
+                    "Produktionszugriff: Die als berechtigt markierten Personen haben in diesem "
+                    "Sprint keine Kapazität (Fehltage, Feiertage oder nicht im Team) – "
+                    "eingeplante Tickets mit Produktionszugriff ({planned} {unit}) kann niemand "
+                    "bearbeiten (Engpass).",
+                    planned=fmt(planned, 2),
+                    unit=unit,
+                )
+            )
+        return
     if d.production_share is None or d.production_available is None:
         return
     people = sum(1 for p in data.people if p.production_access)
-    planned = d.total("production_planned")
     st.caption(
         t(
             "Produktionszugriff: {count} Person(en) = {share} der Kapazität → bis zu "
-            "**{available} {unit}** möglich, eingeplant {planned} {unit}.",
+            "**{available} {unit}** möglich (grobe Näherung: Kapazitätsanteil × Forecast PLAN), "
+            "eingeplant {planned} {unit}.",
             count=people,
             share=pct(d.production_share),
             available=fmt(d.production_available, 2),
@@ -1308,7 +1379,7 @@ def _base_sprint(data: TeamData, sprint: Sprint) -> Sprint:
 
 # --- Planning (geführter Ablauf zum Sprintstart) --------------------------------------
 
-PLANNING_STEPS = ["1 · Fehltage", "2 · Forecast PLAN & Einplanung", "3 · Forecast IST"]
+PLANNING_STEPS = ["1 · Fehltage", "2 · Forecast PLAN & Einplanung", "3 · Commitment"]
 STEP_KEY = "planning-step"
 
 
@@ -1371,7 +1442,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.caption(
         t(
             "Planning am **{day}** · Ablauf: zuerst die bekannten Fehltage, dann mit dem Forecast "
-            "PLAN die Tickets einplanen, vor dem Sprintstart den Forecast IST eintragen.",
+            "PLAN die Tickets einplanen, vor dem Sprintstart das Commitment eintragen.",
             day=day_label(sprint.start),
         )
     )
@@ -1420,7 +1491,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         shown_sprint.absences = dict(base.expected_absences)
         st.info(
             t(
-                "Vorbelegt mit den voraussichtlichen Fehltagen aus der PO-Vorplanung – bitte "
+                "Vorbelegt mit den angekündigten Fehltagen aus der PO-Vorplanung – bitte "
                 "prüfen und bestätigen."
             )
         )
@@ -1551,7 +1622,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
     )
     with st.expander(t("Rechenweg"), icon=":material/function:"):
-        st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
+        _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
@@ -1629,7 +1700,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     unit = data.team.unit.value
     sprint = _base_sprint(data, sprint)
     entry = fc.entry(sprint.id)
-    st.subheader(t("Forecast IST – vor dem Sprintstart"))
+    st.subheader(t("Commitment – vor dem Sprintstart"))
     if entry:
         st.caption(
             t(
@@ -1655,7 +1726,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
         )
     with st.form(f"planning-{sprint.id}"):
         forecast_ist = _number(
-            t("Forecast IST ({unit})", unit=unit),
+            t("Commitment ({unit})", unit=unit),
             sprint.forecast_ist,
             f"fist-{sprint.id}",
             help_text("forecast_ist"),
@@ -1666,7 +1737,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
                 t(
                     "Prüft, ob die Planung in den Forecast PLAN passt: Delta = Forecast PLAN − "
                     "(Überkipper + Backlog − Korrekturen). Wirkt sich auf keine andere Kennzahl "
-                    "aus. Ist der Forecast IST leer, wird er mit Überkipper + Backlog vorbelegt; "
+                    "aus. Ist das Commitment leer, wird es mit Überkipper + Backlog vorbelegt; "
                     "weicht er davon ab, erscheint ein Hinweis."
                 )
             )
@@ -1717,7 +1788,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if prefilled:
         st.info(
             t(
-                "Forecast IST aus Überkipper + Backlog übernommen: {value} {unit}",
+                "Commitment aus Überkipper + Backlog übernommen: {value} {unit}",
                 value=fmt(sprint.forecast_ist, 2),
                 unit=unit,
             )
@@ -1799,8 +1870,8 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             step=0.25,
             format="%.2f",
             help=t(
-                "Menge des Forecast IST, die im Sprint nicht fertig wurde. Optional – "
-                "Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt."
+                "Menge des Commitments, die im Sprint nicht fertig wurde. Optional – "
+                "Velocity = Commitment − nicht erledigt + zusätzlich erledigt."
             ),
         )
         additional = extra_col.number_input(
@@ -1810,7 +1881,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             value=sprint.additional_done,
             step=0.25,
             format="%.2f",
-            help=t("Menge, die zusätzlich zum Forecast IST geschafft wurde. Optional."),
+            help=t("Menge, die zusätzlich zum Commitment geschafft wurde. Optional."),
         )
         scope = st.number_input(
             "Scope Creep (%)",
@@ -2019,10 +2090,12 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
         t("Ø Fokusfaktor (letzte {window} Sprints)", window=window),
         fmt(average_focus_factor(fc), 2),
         help=t(
-            "Velocity / Kapazität. Anders als die normierte Velocity unabhängig von der "
-            "Referenzkapazität – damit zwischen Teams vergleichbar. Literaturwerte (0,6–0,8) "
-            "beziehen sich meist auf reine Arbeitszeit; zählt die Kapazität alle "
-            "Anwesenheitstage, liegen die Werte niedriger."
+            "Velocity / Kapazität. Dieselbe Größe wie die normierte Velocity, nur ohne "
+            "Referenzkapazität (n. Velocity = Fokusfaktor × Referenzkapazität). Er hängt von "
+            "der Schätzeinheit ab (bei Story Points z. B. von der Schätzskala des Teams) und "
+            "ist daher nicht zwischen Teams vergleichbar – sinnvoll ist der Verlauf im eigenen "
+            "Team. Literaturwerte (0,6–0,8) beziehen sich meist auf reine Arbeitszeit; zählt "
+            "die Kapazität alle Anwesenheitstage, liegen die Werte niedriger."
         ),
     )
     st.dataframe(
@@ -2041,10 +2114,12 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
         st.info(t("Scope Creep wurde zuletzt nicht erfasst – keine Empfehlung möglich."))
     else:
         text = t(
-            "Ø Scope Creep der letzten {count} Sprints: **{scope}** · eingestellter "
-            "Kleinkram-Anteil: **{small}**",
+            "Ø Scope Creep der letzten {count} Sprints: **{scope}** des Commitments = "
+            "**{late}** des Forecast PLAN · eingestellter Kleinkram-Anteil (bezogen auf den "
+            "Forecast PLAN): **{small}**",
             count=hint.samples,
             scope=pct(hint.average_scope_creep),
+            late=pct(hint.average_late_share),
             small=pct(hint.configured_small_stuff),
         )
         if hint.buffer_too_small:
@@ -2066,7 +2141,7 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
                     t("Zeitpunkt"): f"{p.at:%d.%m.%Y %H:%M}",
                     "Sprint": sprint.id,
                     t("Kommentar"): p.comment or "",
-                    f"Forecast IST ({unit})": fmt(p.forecast_ist, 2),
+                    f"Commitment ({unit})": fmt(p.forecast_ist, 2),
                     t("nicht erledigt"): fmt(p.not_done, 2),
                     t("zusätzlich erledigt"): fmt(p.additional_done, 2),
                     t("erwartet erledigt"): fmt(p.expected_done, 2),
@@ -2143,7 +2218,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         ):
             st.caption(
                 t(
-                    "Prognose des Teams für den letzten Sprint eintragen: Forecast IST, was "
+                    "Prognose des Teams für den letzten Sprint eintragen: Commitment, was "
                     "voraussichtlich nicht fertig wird und was zusätzlich geschafft wird. Der "
                     "Forecast PLAN und damit die verteilbare Menge werden neu berechnet. Das gilt "
                     "nur für diese Ansicht; mit **Vorplanung speichern** wird die Annahme samt "
@@ -2167,7 +2242,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             _prognosis_history(data, list(open_velocity_sprints(fc)), unit)
     expected = dict(sprint.expected_absences)
     if data.people:
-        with st.expander(t("Voraussichtliche Fehltage"), icon=":material/event_busy:"):
+        with st.expander(t("Angekündigte Fehltage"), icon=":material/event_busy:"):
             st.caption(
                 t(
                     "Schon bekannte oder erwartete Fehltage für diesen Sprint. Sie sind eine "
@@ -2179,7 +2254,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 st.info(
                     t(
                         "Die Fehltage dieses Sprints sind bereits bestätigt – die "
-                        "voraussichtlichen Fehltage haben keine Wirkung mehr."
+                        "angekündigten Fehltage haben keine Wirkung mehr."
                     )
                 )
             probe = _base_sprint(data, sprint)
@@ -2190,7 +2265,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     "id": None,
                     "Person": st.column_config.TextColumn(t("Person"), disabled=True),
                     probe.id: st.column_config.NumberColumn(
-                        t("Voraussichtlich fehlend (Tage)"),
+                        t("Angekündigt fehlend (Tage)"),
                         min_value=0.0,
                         max_value=float(len(team_workdays(data.team, probe.start, probe.end))),
                         step=0.5,
@@ -2831,10 +2906,10 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
     if setup:
         st.warning(
             t(
-                "Kein Datenordner gefunden. Die Team-Daten liegen in einem **Git-Repository** – "
-                "so sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen "
-                "vorhandenen Ordner wählen, ein neues Daten-Repository anlegen oder ein "
-                "bestehendes klonen."
+                "Kein Datenordner gefunden. Empfohlen ist ein **Git-Repository**: So sind "
+                "Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen vorhandenen "
+                "Ordner wählen (auch ohne Git möglich), ein neues Daten-Repository anlegen oder "
+                "ein bestehendes klonen."
             )
         )
     else:
@@ -2859,10 +2934,11 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             if not path.is_dir():
                 st.error(t("Ordner nicht gefunden: {path}", path=path))
             elif git_root(path) is None:
-                st.error(
+                st.warning(
                     t(
-                        "Der Ordner liegt in keinem Git-Repository. Entweder hier eines anlegen "
-                        "oder einen anderen Ordner wählen."
+                        "Der Ordner liegt in keinem Git-Repository. Das Programm funktioniert "
+                        "auch ohne Git – nur Commit und Verlauf stehen dann nicht zur Verfügung. "
+                        "Du kannst hier ein Repository anlegen oder den Ordner ohne Git verwenden."
                     )
                 )
                 st.session_state["offer-init"] = str(path)
@@ -2870,6 +2946,12 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 _use_data_dir(teams_dir(path) or path)
                 st.rerun()
         offer = st.session_state.get("offer-init")
+        if offer and st.button(
+            t("Ohne Git verwenden"), key="data-without-git", disabled=not Path(offer).is_dir()
+        ):
+            st.session_state.pop("offer-init", None)
+            _use_data_dir(teams_dir(Path(offer)) or Path(offer))
+            st.rerun()
         if offer and st.button(
             t("Git-Repository in {path} anlegen", path=offer), key="data-init-here"
         ):

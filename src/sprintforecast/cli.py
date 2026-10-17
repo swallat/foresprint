@@ -331,6 +331,10 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
             t("Abzug Scrum-Termine ({share})", share=pct(data.team.capacity.overhead_share)),
             "", "", "", f"−{fmt(breakdown.overhead_share_part)}",
         )  # fmt: skip
+    if breakdown.approximated:
+        from sprintforecast.formulas import fte_change_note
+
+        table.caption = fte_change_note([p.person.name for p in breakdown.approximated])
     table.add_row(
         f"[bold]{t('Summe')}[/bold]", "", "", "", f"[bold]{fmt(breakdown.capacity)}[/bold]"
     )
@@ -828,7 +832,7 @@ def _distribution_table(d: Distribution, unit: str) -> Table:
 @command(
     "planning",
     "Sprint Planning geführt: 1. Fehltage, 2. Forecast PLAN und Einplanung je Produkt, "
-    "3. Forecast IST (Standard: nächstes Planning).",
+    "3. Commitment (Standard: nächstes Planning).",
 )
 def planning(
     ctx: typer.Context, team: TeamArg, sprint: SprintArg = None, commit_: CommitOpt = False
@@ -861,7 +865,7 @@ def planning(
         t("Planning je Produkt erfassen?"), default=True, console=console
     ):
         _ask_product_values(data, fc, s, "planned")
-    console.rule(t("Planning {id} – Schritt 3: Forecast IST", id=s.id))
+    console.rule(t("Planning {id} – Schritt 3: Commitment", id=s.id))
     unit = data.team.unit.value
     plan_values = None
     if Confirm.ask(
@@ -887,7 +891,7 @@ def planning(
     if default is None and plan_values is not None and plan_values.committed:
         default = plan_values.committed
         console.print(f"[dim]{t('Vorbelegt mit Überkipper + Backlog.')}[/dim]")
-    apply_planning(s, _ask_number(t("Forecast IST ({unit})", unit=unit), default), plan_values)
+    apply_planning(s, _ask_number(t("Commitment ({unit})", unit=unit), default), plan_values)
     refreeze = False
     if offer := refreeze_offer(s, fc.entry(s.id)):
         refreeze = Confirm.ask(
@@ -1056,6 +1060,9 @@ def forecast(
         if entry is None:
             err.print(f"[red]{t('Sprint {id} nicht in der Prognose.', id=rechenweg)}[/red]")
             raise typer.Exit(1)
+        from sprintforecast.formulas import plain_explanation
+
+        console.print(escape(plain_explanation(fc, entry)).replace("**", ""))
         table = Table(title=t("Rechenweg Sprint {id}", id=entry.sprint.id), show_lines=True)
         for col in ("Kennzahl", "Formel", "Rechnung"):
             table.add_column(t(col))
@@ -1164,8 +1171,10 @@ def analyse(
         )
         console.print(
             t(
-                "Puffer: Ø Scope Creep {scope} ({count} Sprints), Kleinkram-Anteil {small} – ",
+                "Puffer: Ø Scope Creep {scope} des Commitments = {late} des Forecast PLAN "
+                "({count} Sprints), Kleinkram-Anteil {small} – ",
                 scope=pct(hint.average_scope_creep),
+                late=pct(hint.average_late_share),
                 count=hint.samples,
                 small=pct(hint.configured_small_stuff),
             )

@@ -3,7 +3,7 @@ from datetime import date
 from pathlib import Path
 
 from sprintforecast.forecast import build_forecast
-from sprintforecast.formulas import step, steps
+from sprintforecast.formulas import plain_explanation, step, steps
 from sprintforecast.model import TrendMode
 from sprintforecast.storage import Repository
 
@@ -51,3 +51,27 @@ def test_past_sprint_steps(data_dir: Path):
     assert names[:3] == ["Kapazität", "n. Velocity", "Ø n. Velocity"]
     assert "Fulfillment" in names and "Planning-Delta" in names
     assert step(f, f.entry("2026.20"), "average").calculation.endswith("/ 5 = 16,84")
+
+
+def test_plain_explanation_names_numbers_sources_and_sprints(data_dir: Path):
+    f = fc(data_dir)
+    text = plain_explanation(f, f.entry("2026.22"))
+    assert "16,84" in text and "30,0 PT" in text and "Personenliste" in text
+    assert "11,229" in text and "**11,2 PT**" in text
+    assert "2026.16, 2026.17, 2026.18, 2026.19, 2026.20" in text  # Basis des Durchschnitts
+    assert "schreibt Schwankungen" not in text  # flat: keine Warnung
+
+
+def test_plain_explanation_warns_for_extrapolating_modes_and_thin_history(data_dir: Path):
+    data = Repository(data_dir).load("demo")
+    data.team.forecast.trend_mode = TrendMode.LINEAR
+    f = build_forecast(data, date(2026, 10, 15))
+    assert "schreibt Schwankungen" in plain_explanation(f, f.entry("2026.22"))
+    data.team.forecast.window = 20
+    thin = build_forecast(data, date(2026, 10, 15))
+    assert "Historie ist dünn" in plain_explanation(thin, thin.entry("2026.22"))
+
+
+def test_plain_explanation_for_past_sprint(data_dir: Path):
+    f = fc(data_dir)
+    assert "Vergangener Sprint" in plain_explanation(f, f.entry("2026.20"))

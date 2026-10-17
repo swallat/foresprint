@@ -30,6 +30,15 @@ class Step:
         return f"{self.formula}\n\n{self.calculation}"
 
 
+def fte_change_note(names: list[str]) -> str:
+    """Hinweis auf die Näherung bei FTE-Wechsel im Sprint (A7)."""
+    return t(
+        "≈ Näherung: Bei FTE-Wechsel im Sprint werden Fehltage mit der mittleren FTE gewichtet "
+        "({names}).",
+        names=", ".join(names),
+    )
+
+
 def _n(value: float | None, digits: int = 2) -> str:
     return fmt(value, digits)
 
@@ -50,8 +59,8 @@ GENERAL: dict[str, str] = {
     "plan": "Forecast PLAN = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)",
     "roadmap": "Roadmap = Forecast PLAN × Roadmap-Anteil",
     "small_stuff": "Kleinkram = Forecast PLAN − Roadmap",
-    "fulfillment": "Fulfillment = Velocity / Forecast IST",
-    "scope_creep": "Scope Creep = nachträglich hinzugekommen / Forecast IST",
+    "fulfillment": "Fulfillment = Velocity / Commitment",
+    "scope_creep": "Scope Creep = nachträglich hinzugekommen / Commitment",
     "focus_factor": "Fokusfaktor = Velocity / Kapazität",
     "delta": "Planning-Delta = Forecast PLAN − (Überkipper + Backlog − Korrekturen)",
     "standard": "Standard = verfügbar × Anteil des Produkts (ohne festen Anteil: Rest / Anzahl dieser Produkte)",  # noqa: E501
@@ -87,18 +96,16 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             minus += f" − {_n(b.overhead_days_part)} ({t('Scrum-Termine PT')})"
         if b.overhead_share_part:
             minus += f" − {_n(b.overhead_share_part)} ({pct(team.capacity.overhead_share)})"
-        return Step(
-            "capacity",
-            name,
-            general("capacity"),
-            t(
-                "{parts} = {gross}{minus} → {capacity} PT (abgerundet)",
-                parts=parts,
-                gross=_n(b.gross),
-                minus=minus,
-                capacity=_n(b.capacity, 1),
-            ),
+        calculation = t(
+            "{parts} = {gross}{minus} → {capacity} PT (abgerundet)",
+            parts=parts,
+            gross=_n(b.gross),
+            minus=minus,
+            capacity=_n(b.capacity, 1),
         )
+        if b.approximated:
+            calculation += " · " + fte_change_note([p.person.name for p in b.approximated])
+        return Step("capacity", name, general("capacity"), calculation)
     if source is CapacitySource.TREND:
         return Step(
             "capacity",
@@ -121,7 +128,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             "capacity",
             name,
             t(
-                "Keine Fehltage bestätigt → Kapazität laut Personenliste mit den voraussichtlichen "
+                "Keine Fehltage bestätigt → Kapazität laut Personenliste mit den angekündigten "
                 "Fehltagen aus der PO-Vorplanung"
             ),
             f"= {_n(r.plan_capacity, 1)} PT",
@@ -226,6 +233,65 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     )
 
 
+def plain_explanation(fc: Forecast, e: TimelineEntry) -> str:
+    """Kurze Erklärung in Alltagssprache, wie die Prognose eines Sprints entsteht – mit den
+    wichtigsten Zahlen und Quellen. Die ausführlichen Formeln liefert :func:`steps`."""
+    team = fc.data.team
+    f = team.forecast
+    r = e.result
+    unit = team.unit.value
+    if r.plan is None:
+        return t("Für diesen Sprint ist noch keine Prognose berechenbar (zu wenig Historie).")
+    if r.plan_source is PlanSource.ACTUAL:
+        return t(
+            "Vergangener Sprint: Es zählt das Commitment ({value} {unit}), abgerundet auf {plan}.",
+            value=_n(r.forecast_ist.value),
+            unit=unit,
+            plan=fmt(r.plan, f.rounding),
+        )
+    index = next(i for i, x in enumerate(fc.entries) if x.sprint.id == e.sprint.id)
+    basis = [
+        x.sprint.id for x in fc.entries[:index] if x.result.normalized_velocity.value is not None
+    ][-f.window :]
+    trend = r.normalized_velocity.trend
+    raw = trend / f.reference_capacity * (r.plan_capacity or 0.0) if trend is not None else 0.0
+    parts = [
+        t(
+            "Das Team hat zuletzt (Sprints {sprints}) umgerechnet auf eine Referenzkapazität von "
+            "{ref} PT durchschnittlich {trend} {unit} geschafft (normierte Velocity).",
+            sprints=", ".join(basis),
+            ref=_n(f.reference_capacity, 0),
+            trend=_n(trend),
+            unit=unit,
+        ),
+        t(
+            "Für {id} stehen {capacity} PT zur Verfügung ({source}). Das ergibt {trend} / {ref} "
+            "× {capacity} = {raw} {unit}, abgerundet **{plan} {unit}**.",
+            id=e.sprint.id,
+            capacity=_n(r.plan_capacity, 1),
+            source=t(r.plan_capacity_source.value) if r.plan_capacity_source else "–",
+            trend=_n(trend),
+            ref=_n(f.reference_capacity, 0),
+            raw=_n(raw, 3),
+            unit=unit,
+            plan=fmt(r.plan, f.rounding),
+        ),
+    ]
+    if r.trend_fallback:
+        parts.append(
+            t("Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.")
+        )
+    elif f.trend_mode is not TrendMode.FLAT:
+        parts.append(
+            t(
+                "Der Trend-Modus {mode} schreibt Schwankungen der letzten Sprints fort – "
+                "vorsichtig lesen.",
+                mode=f.trend_mode.value,
+            )
+        )
+    return " ".join(parts)
+
+
 def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
     """Alle Rechenschritte eines Sprints in Lesereihenfolge."""
     team = fc.data.team
@@ -267,7 +333,7 @@ def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
             Step(
                 "plan",
                 "Forecast PLAN",
-                t("Forecast PLAN = abgerundet(Forecast IST) – vergangener Sprint"),
+                t("Forecast PLAN = abgerundet(Commitment) – vergangener Sprint"),
                 f"{_n(r.forecast_ist.value)} → {fmt(r.plan, f.rounding)} {unit}",
             )
         )

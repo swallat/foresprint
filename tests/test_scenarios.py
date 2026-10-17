@@ -88,13 +88,13 @@ STATES = {
     ),
     "Fehltage eingetragen": (lambda s: s.absences.update({"anna": 2.0}), "PEOPLE"),
     # Neu: Das Planning allein bestätigt keine Fehltage (B2) – Stand „unbekannt“ bleibt.
-    "Forecast IST gesetzt": (lambda s: setattr(s, "forecast_ist", 9.0), None),
+    "Commitment gesetzt": (lambda s: setattr(s, "forecast_ist", 9.0), None),
     # Ältere Dateien ohne gespeicherten Stand: Ein geplanter Sprint gilt als bestätigt.
-    "Forecast IST gesetzt (altes Format)": (
+    "Commitment gesetzt (altes Format)": (
         lambda s: (setattr(s, "forecast_ist", 9.0), setattr(s, "absence_state", None)),
         "PEOPLE",
     ),
-    "voraussichtliche Fehltage": (lambda s: s.expected_absences.update({"anna": 3.0}), "EXPECTED"),
+    "angekündigte Fehltage": (lambda s: s.expected_absences.update({"anna": 3.0}), "EXPECTED"),
     "feste Kapazität": (lambda s: setattr(s, "capacity", 30.0), "RECORDED"),
 }
 
@@ -562,7 +562,7 @@ def test_preplanning_saves_expected_absences_and_changes_plan(
         return num(next(m for m in at.metric if m.label == f"Prognose aktuell {TARGET}").value)
 
     few, many = plan_with(2.0), plan_with(8.0)
-    assert many < few  # mehr voraussichtliche Fehltage → kleinerer Forecast PLAN
+    assert many < few  # mehr angekündigte Fehltage → kleinerer Forecast PLAN
     next(b for b in at.button if b.label == "PO-Vorplanung speichern").click().run()
     saved = yaml.safe_load((data_dir / "demo" / "sprints" / f"{TARGET}.yaml").read_text())
     assert sum(saved["expected_absences"].values()) == 8
@@ -585,7 +585,7 @@ def test_planning_prefills_absences_and_products_from_preplanning(
     at = web(data_dir, monkeypatch)
     goto(at, "planning")
     at.selectbox(key="planning-sprint").set_value(TARGET).run()
-    assert any("Vorbelegt mit den voraussichtlichen Fehltagen" in i.value for i in at.info)
+    assert any("Vorbelegt mit den angekündigten Fehltagen" in i.value for i in at.info)
     # Bestätigen übernimmt die vorbelegten Fehltage als echte Fehltage
     next(b for b in at.button if b.label == "Fehltage speichern und weiter").click().run()
     assert not at.exception, at.exception

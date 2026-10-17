@@ -58,7 +58,7 @@ class Forecast:
         if purpose == "current":
             return self.current
         if purpose == "planning":
-            # Der früheste laufende oder künftige Sprint ohne Forecast IST.
+            # Der früheste laufende oder künftige Sprint ohne Commitment.
             open_ = [
                 e
                 for e in self.entries
@@ -101,7 +101,7 @@ def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Plannin
     """Übernimmt die Planning-Eingaben in ``sprint``.
 
     Die Kontrollrechnung (Überkipper, Backlog, Korrekturen) ist optional; leer bzw. 0 heißt
-    „nicht erfasst“. Ein leerer Forecast IST wird mit Überkipper + Backlog vorbelegt.
+    „nicht erfasst“. Ein leeres Commitment wird mit Überkipper + Backlog vorbelegt.
     Liefert True, wenn vorbelegt wurde.
     """
     if planning is not None and not (
@@ -140,7 +140,7 @@ def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, 
 def absences_known(sprint: Sprint) -> bool:
     """Fehltage gelten als bestätigt, wenn welche eingetragen sind, ausdrücklich „niemand
     fehlt“ bestätigt wurde (Seite Fehltage) oder – bei älteren Dateien ohne gespeicherten
-    Stand – der Sprint schon geplant bzw. ausgewertet wurde. Voraussichtliche Fehltage aus der
+    Stand – der Sprint schon geplant bzw. ausgewertet wurde. Angekündigte Fehltage aus der
     PO-Vorplanung bestätigen nichts."""
     return absence_status(sprint) is AbsenceState.CONFIRMED
 

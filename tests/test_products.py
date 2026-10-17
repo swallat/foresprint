@@ -179,7 +179,7 @@ def test_validation_of_product_values(fc):
     s.products["app"].planned = 7
     messages = [i.message for i in check_team(data, TODAY)]
     assert any("unbekanntes Produkt 'unbekannt'" in m for m in messages)
-    assert any("größer als der Forecast IST" in m for m in messages)
+    assert any("größer als das Commitment" in m for m in messages)
 
 
 def test_freeze_keeps_existing_plan_unless_requested(fc):
@@ -244,3 +244,24 @@ def test_balance_distinguishes_missing_from_zero(fc):
     zero = {b.product.id: b for b in balance(fc, [entry])}
     assert zero[skipped].sprints == 1 and zero[skipped].missing == 0
     assert zero[skipped].difference == pytest.approx(-before[skipped].standard)
+
+
+def test_production_state_distinguishes_unconfigured_from_unavailable(fc):
+    """A11: „niemand markiert“ (Konfiguration unbekannt) ≠ „Berechtigte sind im Sprint nicht da“."""
+    entry = fc.entry("2026.22")
+    for p in fc.data.people:
+        p.production_access = False
+    unconfigured = distribution(fc, entry)
+    assert unconfigured.production_state == "unconfigured"
+    assert unconfigured.production_share is None
+
+    anna = next(p for p in fc.data.people if p.id == "anna")
+    anna.production_access = True
+    assert distribution(fc, entry).production_state == "ok"
+    assert distribution(fc, entry).production_share > 0
+
+    entry.sprint.absences = {"anna": 10.0}  # die einzige Berechtigte fehlt den ganzen Sprint
+    fc = build_forecast(fc.data, TODAY)
+    unavailable = distribution(fc, fc.entry("2026.22"))
+    assert unavailable.production_state == "unavailable"
+    assert unavailable.production_share == 0.0

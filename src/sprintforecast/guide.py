@@ -28,7 +28,7 @@ FIELDS: dict[str, Field] = {
         title="Stand der Fehltage",
         what="Je Sprint gibt es drei Stände: „unbekannt“ (nichts erfasst: die Kapazität kommt "
         "aus Kalender und Personenliste, die Fehltage werden nach den letzten Sprints "
-        "geschätzt), „voraussichtlich“ (Prognose aus der PO-Vorplanung, noch nicht bestätigt) "
+        "geschätzt), „angekündigt“ (Prognose aus der PO-Vorplanung, noch nicht bestätigt) "
         "und „bestätigt“ (Fehltage eingetragen oder ausdrücklich „niemand fehlt“ bestätigt). "
         "Weiter ohne Eintrag bestätigt nichts: Ohne Bestätigung bleibt der Sprint „unbekannt“.",
         source="Seite Fehltage (Spalte „Niemand fehlt“) bzw. Planning, Schritt 1.",
@@ -52,7 +52,7 @@ FIELDS: dict[str, Field] = {
         "zur Verfügung steht. Wahlweise in Prozent oder als feste PT je Person und Sprint "
         "(× FTE) – beides ist derselbe Abzug in zwei Einheiten, die Felder gleichen sich ab. "
         "Sind PT je Person gesetzt, gelten sie statt der Prozent. Der Abzug wirkt gleich für "
-        "bestätigte, voraussichtliche und erwartete Fehltage: erst Feiertage und Fehltage, dann "
+        "bestätigte, angekündigte und erwartete Fehltage: erst Feiertage und Fehltage, dann "
         "der Abzug, dann die Rundung.",
         source="Team-Einstellungen (Abzug für Scrum-Termine).",
         example="1 PT je Person bei 10 Arbeitstagen entspricht 10 %; Vollzeit: −1 PT, halbtags "
@@ -66,13 +66,13 @@ FIELDS: dict[str, Field] = {
         example="5 Personen × 10 Tage − 6.5 Fehltage = 43.5",
     ),
     "forecast_ist": Field(
-        title="Forecast IST",
+        title="Commitment",
         what="Die im Sprint Planning für DIESEN Sprint zugesagte Menge: Summe der Schätzungen "
         "aller Tickets, die zu Sprintbeginn im Sprint liegen. Nicht die Velocity des Vorsprints; "
         "später hinzugekommene Tickets zählen zum Scope Creep.",
         source="Direkt nach dem Planning: Summe der Schätzungen auf dem Board bzw. in Jira im "
         "Sprint-Bericht/Velocity-Diagramm der Wert „Commitment“. Entspricht Überkipper + "
-        "Backlog; leer gelassen wird er mit dieser Summe aus der Kontrollrechnung vorbelegt.",
+        "Backlog; leer gelassen wird es mit dieser Summe aus der Kontrollrechnung vorbelegt.",
         example="15.5",
     ),
     "velocity": Field(
@@ -86,8 +86,8 @@ FIELDS: dict[str, Field] = {
     "scope_creep": Field(
         title="Scope Creep",
         what="Anteil der Arbeit, die nach dem Planning in den Sprint gekommen ist, bezogen auf "
-        "den Forecast IST (0.3 = 30 %). Leer lassen, wenn unbekannt – nicht 0 eintragen.",
-        source="Sprint-Bericht: nachträglich hinzugefügte Schätzungen / Forecast IST.",
+        "das Commitment (0.3 = 30 %). Leer lassen, wenn unbekannt – nicht 0 eintragen.",
+        source="Sprint-Bericht: nachträglich hinzugefügte Schätzungen / Commitment.",
         example="4.5 nachträglich bei 15 zugesagt → 0.3",
     ),
     "carryover": Field(
@@ -100,7 +100,7 @@ FIELDS: dict[str, Field] = {
     "backlog": Field(
         title="Backlog",
         what="Summe der im Planning neu eingeplanten Tickets. Teil der optionalen "
-        "Kontrollrechnung; Überkipper + Backlog ergibt den Forecast IST.",
+        "Kontrollrechnung; Überkipper + Backlog ergibt das Commitment.",
         source="Sprint-Board beim Planning.",
         example="33.6",
     ),
@@ -200,7 +200,7 @@ WORKFLOW: list[Step] = [
         when="Sprint Planning (Sprintstart)",
         title="Planning in drei Schritten",
         text="1. Bekannte Fehltage für den Sprint eintragen. 2. Mit dem Forecast PLAN die "
-        "Tickets einplanen, optional je Produkt. 3. Vor dem Sprintstart den Forecast IST (die "
+        "Tickets einplanen, optional je Produkt. 3. Vor dem Sprintstart das Commitment (die "
         "zugesagte Menge) eintragen; der Forecast PLAN wird dabei eingefroren. Optional die "
         "Kontrollrechnung aus Überkipper, Backlog und Korrekturen (Delta zum Forecast PLAN).",
         page="planning",
@@ -244,12 +244,23 @@ WORKFLOW: list[Step] = [
 
 TERMS: list[tuple[str, str]] = [
     ("Kapazität", "Verfügbare Personentage im Sprint (immer PT, auch bei SP-Teams)."),
-    ("Forecast IST", "Im Planning zugesagte Menge."),
+    (
+        "Commitment",
+        "Die im Planning zugesagte Menge – die Zusage zu Sprintbeginn, kein Ergebnis (früher "
+        "„Forecast IST“; die Datei-Schlüssel heißen weiter forecast_ist).",
+    ),
     ("Velocity", "Im Sprint erledigte Menge."),
     (
         "Normierte Velocity",
         "Velocity / Kapazität × Referenzkapazität. Macht Sprints mit Urlaub und voll "
-        "besetzte Sprints vergleichbar.",
+        "besetzte Sprints vergleichbar. Dieselbe Größe wie der Fokusfaktor, nur mit "
+        "Referenzkapazität skaliert; die Referenzkapazität ändert den Forecast PLAN nicht.",
+    ),
+    (
+        "Fokusfaktor",
+        "Velocity / Kapazität (= normierte Velocity / Referenzkapazität). Nicht zwischen Teams "
+        "vergleichbar, da er von der Schätzeinheit abhängt; sinnvoll ist der Verlauf im eigenen "
+        "Team.",
     ),
     (
         "Ø (gleitend)",
@@ -282,9 +293,23 @@ TERMS: list[tuple[str, str]] = [
         "Empfohlene Planungsmenge: n. Velocity-Trend / Referenzkapazität × Kapazität, abgerundet. "
         "Nie negativ.",
     ),
-    ("Roadmap", "Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %)."),
+    (
+        "Roadmap",
+        "Reservierter Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %). Es ist eine "
+        "Aufteilung der Prognose, kein weiterer Wert: Roadmap + Kleinkram = Forecast PLAN.",
+    ),
+    (
+        "Angekündigte Fehltage",
+        "Von den POs in der Vorplanung eingetragene Fehltage (Prognose, noch nicht bestätigt). "
+        "Nicht zu verwechseln mit den erwarteten Fehltagen.",
+    ),
+    (
+        "Erwartete Fehltage",
+        "Schätzung nach der Historie (Ø der letzten Sprints mit bestätigten Fehltagen) für "
+        "Sprints, deren Fehltage unbekannt sind. Rechnerisch, nicht von jemandem eingetragen.",
+    ),
     ("Kleinkram", "Rest des Forecast PLAN für Bugs, Support und Kleinigkeiten."),
-    ("Fulfillment", "Velocity / Forecast IST – wie gut wurde die Zusage gehalten?"),
+    ("Fulfillment", "Velocity / Commitment – wie gut wurde die Zusage gehalten?"),
     (
         "Standard je Produkt",
         "Verfügbare Menge / Anzahl betreuter Produkte. Verfügbar = Forecast PLAN (beim "
@@ -311,9 +336,9 @@ CAPACITY_SOURCES: list[tuple[str, str]] = [
         "Nur für Teams ohne Personenliste: Kapazität wie die normierte Velocity fortgeschrieben.",
     ),
     (
-        "voraussichtliche Fehltage",
+        "angekündigte Fehltage",
         "Fehltage noch nicht bestätigt: Kapazität laut Personenliste mit den in der "
-        "PO-Vorplanung eingetragenen voraussichtlichen Fehltagen.",
+        "PO-Vorplanung eingetragenen angekündigten Fehltagen.",
     ),
     (
         "erwartete Fehltage",
@@ -330,7 +355,7 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast forecast TEAM", "Prognose für laufenden und kommende Sprints"),
     ("sprintforecast fehltage TEAM [SPRINT]", "Fehltage je Person erfassen"),
     ("sprintforecast sprints TEAM [--anlegen]", "Sprintkalender: kommende Sprints, Enddaten"),
-    ("sprintforecast planning TEAM", "Forecast IST und Planning-Werte erfassen"),
+    ("sprintforecast planning TEAM", "Commitment und Planning-Werte erfassen"),
     ("sprintforecast review TEAM", "Velocity und Scope Creep erfassen, Kapazität einfrieren"),
     ("sprintforecast personen TEAM", "Personen pflegen"),
     ("sprintforecast produktliste TEAM", "Produkte pflegen (PO, Zeitraum)"),

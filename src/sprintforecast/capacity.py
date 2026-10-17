@@ -20,6 +20,8 @@ class PersonCapacity:
     # Verfügbar nach Feiertagen und Fehltagen (vor den Abzügen für Scrum-Termine).
     capacity: float
     mean_fte: float = 1.0
+    # Die FTE wechselt im Sprint: Fehltage werden mit der mittleren FTE gewichtet (Näherung).
+    fte_changes: bool = False
     # Fester Abzug für Scrum-Termine: PT je Person × FTE, höchstens die Kapazität.
     overhead: float = 0.0
 
@@ -27,6 +29,12 @@ class PersonCapacity:
 @dataclass
 class CapacityBreakdown:
     people: list[PersonCapacity] = field(default_factory=list)
+
+    @property
+    def approximated(self) -> list[PersonCapacity]:
+        """Personen mit FTE-Wechsel im Sprint (Fehltage nur näherungsweise gewichtet)."""
+        return [p for p in self.people if p.fte_changes and p.absence_days]
+
     gross: float = 0.0
     # Abzug Scrum-Termine gesamt = Anteil + feste PT
     overhead: float = 0.0
@@ -66,6 +74,7 @@ def person_capacity(
         absence_days=absence,
         capacity=capacity,
         mean_fte=mean_fte,
+        fte_changes=len({person.fte_on(d) for d in working}) > 1,
         overhead=min(capacity, team.capacity.overhead_days * mean_fte),
     )
 
@@ -73,7 +82,7 @@ def person_capacity(
 def sprint_capacity(
     team: Team, people: list[Person], sprint: Sprint, absence_rate: float = 0.0
 ) -> CapacityBreakdown:
-    """Kapazität des Sprints. Eine gemeinsame Rechnung für bestätigte, voraussichtliche und
+    """Kapazität des Sprints. Eine gemeinsame Rechnung für bestätigte, angekündigte und
     erwartete Fehltage: erst Feiertage und Fehltage (bzw. erwartete Quote) je Person, dann der
     Abzug für Scrum-Termine, dann die Rundung.
 
@@ -125,7 +134,7 @@ def absence_history(
     Berücksichtigt werden abgeschlossene Sprints, deren Fehltage **bestätigt** sind – dieselbe
     Definition wie für die Kapazität (``absence_status``). Bestätigte Sprints ohne Fehltage
     zählen mit der Quote 0 mit, sonst wäre die Quote zu hoch. Unbekannte und nur
-    voraussichtliche Sprints bleiben außen vor."""
+    angekündigte Sprints bleiben außen vor."""
     if count <= 0:
         return AbsenceHistory(None, [], [])
     used: list[tuple[str, float]] = []
@@ -160,7 +169,7 @@ def estimated_capacity(team: Team, people: list[Person], sprint: Sprint, rate: f
 
 
 def capacity_with_expected_absences(team: Team, people: list[Person], sprint: Sprint) -> float:
-    """Kapazität eines Sprints mit seinen voraussichtlichen Fehltagen (PO-Vorplanung)."""
+    """Kapazität eines Sprints mit seinen angekündigten Fehltagen (PO-Vorplanung)."""
     probe = copy.deepcopy(sprint)
     probe.absences = dict(sprint.expected_absences)
     return sprint_capacity(team, people, probe).capacity

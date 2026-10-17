@@ -102,3 +102,20 @@ def test_existing_values_are_unchanged(data_dir: Path):
     # Demo mit Trend-Modus flat (Standard): konstanter Durchschnitt statt klassischer Trend
     assert upcoming["2026.21"] == (9.5, pytest.approx(7.6))
     assert upcoming["2026.22"] == (11.2, pytest.approx(8.96))
+
+
+def test_buffer_hint_compares_on_the_same_base():
+    """A9: Scope Creep ist auf das Commitment bezogen, der Kleinkram-Anteil auf den Forecast PLAN –
+    verglichen wird auf dem Forecast PLAN."""
+    data = team_with([10.0] * 6, scope=[0.3] * 6)
+    fc = build_forecast(data, date(2026, 12, 31))
+    hint = analysis.buffer_hint(fc)
+    # Plan = Commitment (10): 30 % Scope Creep sind 30 % des Plans, mehr als die 20 % Kleinkram
+    assert hint.average_scope_creep == pytest.approx(0.3)
+    assert hint.average_late_share == pytest.approx(0.3) and hint.buffer_too_small
+    for sprint in data.sprints:
+        sprint.forecast_plan = 20.0  # beim Planning wurde doppelt so viel prognostiziert
+    hint = analysis.buffer_hint(build_forecast(data, date(2026, 12, 31)))
+    assert hint.average_scope_creep == pytest.approx(0.3)  # Eingabe unverändert
+    assert hint.average_late_share == pytest.approx(0.15)  # 0,3 × 10 / 20
+    assert not hint.buffer_too_small

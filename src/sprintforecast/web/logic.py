@@ -126,7 +126,7 @@ def record_prognoses(
 
 
 def default_forecast_ist(fc: Forecast, sprint: Sprint) -> float | None:
-    """Vorbelegung des Forecast IST im Was-wäre-wenn: der erfasste Wert des Sprints, sonst der
+    """Vorbelegung des Commitments im Was-wäre-wenn: der erfasste Wert des Sprints, sonst der
     des nächstfrüheren Sprints, für den einer erfasst ist."""
     if sprint.forecast_ist is not None:
         return sprint.forecast_ist
@@ -250,7 +250,7 @@ def resettable_sprints(data: TeamData, today: date) -> list[Sprint]:
 
 
 def sprints_to_save(data: TeamData, originals: list[Sprint], edited: list[Sprint]) -> list[Sprint]:
-    """Sprints, deren Fehltage oder deren Stand (unbekannt / voraussichtlich / bestätigt) sich
+    """Sprints, deren Fehltage oder deren Stand (unbekannt / angekündigt / bestätigt) sich
     geändert haben. Sprints ohne Datei werden nur angelegt, wenn dazu etwas eingetragen oder
     bestätigt wurde."""
     return [
