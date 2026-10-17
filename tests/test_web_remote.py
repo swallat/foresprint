@@ -95,6 +95,26 @@ def test_sidebar_offers_the_setup_and_the_page_shows_the_section(
     assert at.text_input(key=FIELD).value == ""
 
 
+def test_check_and_save_buttons_sit_next_to_each_other(repo: Path, data_dir: Path, monkeypatch):
+    """„Verbindung prüfen“ und „Speichern“ gehören zusammen: ein waagerechter Container, in dem
+    die Knöpfe links beginnen und nur so breit wie ihr Text sind (früher zwei gleich breite
+    Spalten, die Knöpfe weit auseinander)."""
+    from streamlit.proto.Block_pb2 import Block
+
+    at = datenordner(data_dir, monkeypatch)
+    group = next(
+        node
+        for node in walk(at.main)
+        if {"git-remote-check", "git-remote-save"}
+        <= {getattr(c, "key", None) for c in getattr(node, "children", {}).values()}
+    )
+    assert group.type == "flex_container"
+    assert group.proto.flex_container.direction == Block.FlexContainer.Direction.HORIZONTAL
+    assert [c.key for c in group.children.values()] == ["git-remote-check", "git-remote-save"]
+    # linksbündig (nicht auseinandergezogen)
+    assert group.proto.flex_container.justify == Block.FlexContainer.Justify.JUSTIFY_START
+
+
 def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory, monkeypatch):
     server = make_server(servers(tmp_path_factory))
     at = datenordner(data_dir, monkeypatch)
@@ -278,6 +298,9 @@ def test_missing_login_is_explained_and_nothing_is_saved(repo: Path, data_dir: P
         click(at, "git-remote-save")
     assert "Anmeldung fehlt oder wurde abgelehnt" in shown(at, "error")
     assert "Zugangstoken" in shown(at, "error")
+    assert shown(at, "error").count("fehlt oder wurde abgelehnt") == 1  # Überschrift nur einmal
+    assert "gh auth setup-git" in shown(at, "error")  # https: die Schritte für https
+    assert "ssh-keygen" not in shown(at, "error")
     assert not offers(at)
     assert remotes(repo) == ""
 

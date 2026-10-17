@@ -12,6 +12,7 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 from typer.testing import CliRunner
+from webfixtures import nav_steps
 
 from sprintforecast.cli import app as cli_app
 from sprintforecast.model import Features, Sprint, Team
@@ -133,6 +134,21 @@ def test_product_pages_exist_only_with_product_distribution(
     off = page_keys(start(data_dir, monkeypatch))
     assert not {"vorplanung", "produkte", "produktliste"} & off
     assert {"fehltage", "planning", "review", "forecast", "personen"} <= off
+
+
+def test_step_bar_has_three_steps_without_the_products_area(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Ohne Funktionsbereich Produkte entfällt die PO-Vorplanung: Fehltage, Planning, Review."""
+    at = goto(start(data_dir, monkeypatch), "planning")
+    assert [key for key, _, _ in nav_steps(at)] == ["fehltage", "vorplanung", "planning", "review"]
+    set_features(data_dir, products=False)
+    at = start(data_dir, monkeypatch)
+    for page in ("fehltage", "planning", "review"):
+        goto(at, page)
+        steps = nav_steps(at)
+        assert [key for key, _, _ in steps] == ["fehltage", "planning", "review"]
+        assert [key for key, _, active in steps if active] == [page]
 
 
 def test_planning_and_review_ignore_products_when_distribution_is_off(

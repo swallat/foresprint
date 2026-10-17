@@ -637,6 +637,23 @@ def parse_numbers(raw: str) -> list[float]:
     return [float(x.replace(",", ".")) for x in raw.replace(";", " ").split()]
 
 
+def board_steps_done(recorded: Sprint | None) -> dict[str, bool]:
+    """Erledigt-Haken der Schrittleiste (Fehltage, PO-Vorplanung, Planning, Review) für einen
+    Sprint – aus den gespeicherten Daten, ``recorded`` ist der Sprint ohne Sprintdatei ``None``.
+
+    Fehltage zählen nur als erledigt, wenn sie bestätigt sind (Stand ``absence_status``:
+    eingetragen oder ausdrücklich „niemand fehlt“); unbekannte und nur angekündigte Fehltage
+    (aus der PO-Vorplanung) bekommen keinen Haken."""
+    if recorded is None:
+        return {"fehltage": False, "vorplanung": False, "planning": False, "review": False}
+    return {
+        "fehltage": absence_status(recorded) is AbsenceState.CONFIRMED,
+        "vorplanung": any(v.preplanned is not None for v in recorded.products.values()),
+        "planning": recorded.forecast_ist is not None,
+        "review": recorded.velocity is not None,
+    }
+
+
 @dataclass
 class StartTask:
     """Eine der drei Aufgaben der Startseite: wohin der Klick führt und warum."""
@@ -663,10 +680,16 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
     else:
         sprint = fc.data.sprint(nxt.sprint.id) or nxt.sprint
         sid = sprint.id
-        if absence_status(sprint) is AbsenceState.UNKNOWN:
-            tasks.append(
-                StartTask("prepare", "fehltage", sid, t("Sprint {id}: Fehltage unbekannt.", id=sid))
+        # Wie der Haken „Fehltage“ der Schrittleiste (``board_steps_done``): Als bekannt gelten
+        # nur bestätigte Fehltage; angekündigte (aus der PO-Vorplanung) bestätigen nichts.
+        absences = absence_status(sprint)
+        if absences is not AbsenceState.CONFIRMED:
+            hint = (
+                t("Sprint {id}: Fehltage unbekannt.", id=sid)
+                if absences is AbsenceState.UNKNOWN
+                else t("Sprint {id}: Fehltage angekündigt, noch nicht bestätigt.", id=sid)
             )
+            tasks.append(StartTask("prepare", "fehltage", sid, hint))
         elif products and not any(v.preplanned is not None for v in sprint.products.values()):
             tasks.append(
                 StartTask(
