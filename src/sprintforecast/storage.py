@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import math
 import os
 import re
 import tempfile
@@ -294,7 +295,15 @@ def _float(value: Any, where: str) -> float | None:
         raise DataError(
             t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value))
         )
-    return float(value)
+    try:
+        number = float(value)
+    except OverflowError:  # ganze Zahl jenseits des Bereichs von float
+        number = math.inf
+    if not math.isfinite(number):
+        raise DataError(
+            t("{where}: endliche Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+        )
+    return number
 
 
 def _lenient_float(value: Any, where: str) -> float | None:
@@ -302,11 +311,20 @@ def _lenient_float(value: Any, where: str) -> float | None:
     if value is None:
         return None
     try:
-        return float(value)
+        number = float(value)
     except (TypeError, ValueError, OverflowError) as e:  # OverflowError: ganze Zahl > 1e308
         raise DataError(
             t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value)[:60])
         ) from e
+    if not math.isfinite(number):  # auch Text wie "nan" oder "inf"
+        raise DataError(
+            t(
+                "{where}: endliche Zahl erwartet, gefunden {value}",
+                where=where,
+                value=repr(value)[:60],
+            )
+        )
+    return number
 
 
 def _mapping(value: Any, where: str, name: str) -> dict[str, Any]:
@@ -418,6 +436,14 @@ TEAM_HEADER = """\
 """
 
 
+def _finite(value: Any) -> float:
+    """``float(value)`` für Einstellungen in team.yaml; nan und inf sind keine gültigen Werte."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(t("keine endliche Zahl: {value}", value=value))
+    return number
+
+
 def _first_id(value: Any, where: str) -> str | None:
     """ID des ersten Sprints; wie bei den Sprintdateien muss eine Zahl wie 2026.20 in
     Anführungszeichen stehen (sonst wird daraus 2026.2)."""
@@ -457,9 +483,9 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 first_start=_date(first["start"], where) if first.get("start") else None,
             ),
             forecast=ForecastSettings(
-                reference_capacity=float(forecast.get("reference_capacity", 67)),
+                reference_capacity=_finite(forecast.get("reference_capacity", 67)),
                 window=int(forecast.get("window", 5)),
-                roadmap_share=float(forecast.get("roadmap_share", 0.8)),
+                roadmap_share=_finite(forecast.get("roadmap_share", 0.8)),
                 rounding=int(forecast.get("rounding", 1)),
                 trend_mode=TrendMode(forecast.get("trend_mode", "flat")),
                 horizon=int(forecast.get("horizon", 3)),
@@ -467,8 +493,8 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             ),
             features=features,
             capacity=CapacitySettings(
-                overhead_share=float(capacity.get("overhead_share", 0.0)),
-                overhead_days=float(capacity.get("overhead_days", 0.0)),
+                overhead_share=_finite(capacity.get("overhead_share", 0.0)),
+                overhead_days=_finite(capacity.get("overhead_days", 0.0)),
                 country=(_code(capacity.get("country"), where, "capacity.country") or "DE").upper(),
                 region=_code(capacity.get("region"), where, "capacity.region"),
                 workweek=str(capacity.get("workweek", "auto")),
