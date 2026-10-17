@@ -35,3 +35,20 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
           retention-days: 14
+
+  # Browsertests (Playwright, Chromium) gegen die laufende Weboberfläche; getrennt von den
+  # schnellen Tests, damit ein fehlender Browser oder ein langsamer Lauf sie nicht aufhält.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+      - run: uv sync --locked --all-extras
+      - run: uv run playwright install --with-deps chromium
+      - run: uv run pytest -m e2e -v
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-bilder
+          path: test-results/e2e/
+          retention-days: 7
