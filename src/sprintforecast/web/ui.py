@@ -50,7 +50,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.formulas import general, steps
+from sprintforecast.formulas import general, plain_explanation, steps
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     NO_WINDOW,
@@ -431,6 +431,13 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 else ""
             ),
         )
+        col.caption(
+            t(
+                "Kapazität {capacity} PT · Fehltage {state}",
+                capacity=capacity_label(e),
+                state=absence_status_label(e.sprint),
+            )
+        )
     _forecast_notes(fc, upcoming)
 
     capacity_col, trend_col, plan_col = (
@@ -597,6 +604,14 @@ def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
         index = ids.index(default.sprint.id) if default and default.sprint.id in ids else 0
         chosen = st.selectbox("Sprint", ids, index=index, key="formula-sprint")
         entry = next(e for e in entries if e.sprint.id == chosen)
+        _rechenweg(fc, entry)
+
+
+def _rechenweg(fc: Forecast, entry: TimelineEntry) -> None:
+    """Erst eine Erklärung in Alltagssprache, die eingesetzten Werte und Quellen darunter
+    auf Wunsch."""
+    st.markdown(plain_explanation(fc, entry))
+    with st.popover(t("Eingesetzte Werte und Quellen"), icon=":material/table:"):
         st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
 
 
@@ -1551,7 +1566,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
     )
     with st.expander(t("Rechenweg"), icon=":material/function:"):
-        st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
+        _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))

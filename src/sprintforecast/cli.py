@@ -1056,6 +1056,9 @@ def forecast(
         if entry is None:
             err.print(f"[red]{t('Sprint {id} nicht in der Prognose.', id=rechenweg)}[/red]")
             raise typer.Exit(1)
+        from sprintforecast.formulas import plain_explanation
+
+        console.print(escape(plain_explanation(fc, entry)).replace("**", ""))
         table = Table(title=t("Rechenweg Sprint {id}", id=entry.sprint.id), show_lines=True)
         for col in ("Kennzahl", "Formel", "Rechnung"):
             table.add_column(t(col))

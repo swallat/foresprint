@@ -5,6 +5,14 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Vergangener Sprint: Es zählt das Commitment ({value} {unit}), abgerundet auf {plan}.": "Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.",
+    "Für diesen Sprint ist noch keine Prognose berechenbar (zu wenig Historie).": "No forecast can be calculated for this sprint yet (too little history).",
+    "Das Team hat zuletzt (Sprints {sprints}) umgerechnet auf eine Referenzkapazität von {ref} PT durchschnittlich {trend} {unit} geschafft (normierte Velocity).": "The team recently (sprints {sprints}) achieved an average of {trend} {unit}, converted to a reference capacity of {ref} PT (normalized velocity).",
+    "Für {id} stehen {capacity} PT zur Verfügung ({source}). Das ergibt {trend} / {ref} × {capacity} = {raw} {unit}, abgerundet **{plan} {unit}**.": "{capacity} PT are available for {id} ({source}). That gives {trend} / {ref} × {capacity} = {raw} {unit}, rounded down **{plan} {unit}**.",
+    "Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.": "The history is thin: the last average applies, without extrapolation.",
+    "Der Trend-Modus {mode} schreibt Schwankungen der letzten Sprints fort – vorsichtig lesen.": "Trend mode {mode} extrapolates fluctuations of the last sprints – read with caution.",
+    "Eingesetzte Werte und Quellen": "Values used and sources",
+    "Kapazität {capacity} PT · Fehltage {state}": "Capacity {capacity} PT · absences {state}",
     "Aufgaben": "Tasks",
     "Auswertung": "Reports",
     "Sprint abschließen (Review)": "Close the sprint (review)",
