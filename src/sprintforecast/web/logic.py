@@ -718,11 +718,12 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
 WITHOUT_GIT_KEY = "without_git_dirs"
 
 
-def _resolved(path: Path) -> str:
+def resolved_path(path: Path) -> Path:
+    """Aufgelöster Pfad; ein nicht auflösbarer (toter Netzlaufwerkpfad) bleibt, wie er ist."""
     try:
-        return str(path.resolve())
-    except OSError:
-        return str(path)
+        return path.resolve()
+    except OSError, RuntimeError:
+        return path
 
 
 def without_git_dirs() -> list[str]:
@@ -732,13 +733,13 @@ def without_git_dirs() -> list[str]:
 
 
 def is_without_git(path: Path) -> bool:
-    return _resolved(path) in without_git_dirs()
+    return str(resolved_path(path)) in without_git_dirs()
 
 
 def remember_without_git(path: Path) -> None:
     """Merkt die Entscheidung dauerhaft (ohne Doppelte). Wirft ``config.SettingsError``, wenn
     die Einstellungen nicht gespeichert werden können."""
-    here = _resolved(path)
+    here = str(resolved_path(path))
     known = without_git_dirs()
     if here not in known:
         config.update(**{WITHOUT_GIT_KEY: [*known, here]})
@@ -746,7 +747,7 @@ def remember_without_git(path: Path) -> None:
 
 def forget_without_git(path: Path) -> None:
     """Nimmt die Entscheidung zurück (z. B. wenn der Wechsel in den Ordner scheiterte)."""
-    here = _resolved(path)
+    here = str(resolved_path(path))
     known = without_git_dirs()
     if here in known:
         config.update(**{WITHOUT_GIT_KEY: [p for p in known if p != here]})
