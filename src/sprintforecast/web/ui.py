@@ -590,13 +590,10 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         col.metric(
             f"{e.sprint.id} ({status(fc, e).replace('*', '')})",
             f"{fmt(e.result.plan)} {unit}",
+            # Kurz halten: Die Zeile unter der Zahl kürzt Streamlit mit „…“; wie viele Sprints die
+            # Spanne trägt, steht darum in der Beschriftung darunter.
             delta=(
-                t(
-                    "Spanne {low}–{high} (letzte {samples} Sprints)",
-                    low=fmt(b.low),
-                    high=fmt(b.high),
-                    samples=b.samples,
-                )
+                t("Spanne {low}–{high}", low=fmt(b.low), high=fmt(b.high))
                 if b
                 else t("Spanne nicht berechenbar")
             ),
@@ -625,6 +622,8 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 state=absence_status_label(e.sprint),
             )
         )
+        if b:
+            col.caption(t("Spanne aus den letzten {samples} Sprints", samples=b.samples))
     _forecast_notes(fc, upcoming)
 
     capacity_col, trend_col, plan_col = (

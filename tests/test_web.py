@@ -127,6 +127,17 @@ def test_forecast_page_shows_the_forecast(app: AppTest):
     assert not any("Trend" in w.value for w in app.warning)
 
 
+def test_forecast_range_stays_short_and_names_its_samples_below(app: AppTest):
+    """Die Zeile unter der Kennzahl wird bei vier Spalten abgeschnitten: nur die Spanne selbst,
+    die Zahl der Sprints dahinter steht in der Beschriftung."""
+    goto(app, "forecast")
+    deltas = [m.delta for m in app.metric[:3]]
+    assert all(d.startswith("Spanne ") and "(" not in d for d in deltas), deltas
+    assert all(len(d) <= 20 for d in deltas), deltas
+    captions = [c.value for c in app.caption]
+    assert sum("Spanne aus den letzten 5 Sprints" in c for c in captions) >= 1
+
+
 def test_forecast_warns_when_absences_unknown_and_no_history(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
