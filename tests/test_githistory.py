@@ -172,3 +172,39 @@ def test_tag_upload_failure_is_a_warning_and_tag_stays(alice: Person, tmp_path: 
     assert [t.name for t in githistory.list_tags(alice.data)] == ["a/lokal"]
     assert githistory.delete_tag(alice.data, "a/lokal").kind == "offline"
     assert githistory.list_tags(alice.data) == []
+
+
+MARKED = "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n"
+
+
+def test_restore_refuses_a_state_with_conflict_markers_and_changes_nothing(alice: Person):
+    """Ein früher geteilter Fehlerstand (vor der Prüfung beim Committen) lässt sich nicht
+    wiederherstellen; der aktuelle Stand bleibt unverändert."""
+    alice.write("a/2026.1.yaml", MARKED)
+    git(alice.root, "add", "-A")
+    git(alice.root, "-c", "core.hooksPath=/dev/null", "commit", "-qm", "kaputt")
+    bad = git(alice.root, "rev-parse", "--short", "HEAD")
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Repariert").ok
+    before = git(alice.root, "rev-parse", "HEAD")
+    with pytest.raises(GitError) as caught:
+        githistory.restore_version(alice.data, alice.data / "a", bad)
+    assert caught.value.kind == "conflict"
+    assert git(alice.root, "rev-parse", "HEAD") == before
+    assert git(alice.root, "status", "--porcelain") == ""
+    assert (alice.data / "a" / "2026.1.yaml").read_text().startswith("velocity: 11")
+
+
+def test_revert_refuses_a_state_with_conflict_markers_and_changes_nothing(alice: Person):
+    alice.write("a/2026.1.yaml", MARKED)
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "kaputt")
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Repariert").ok
+    repair = git(alice.root, "rev-parse", "--short", "HEAD")
+    before = git(alice.root, "rev-parse", "HEAD")
+    with pytest.raises(GitError) as caught:
+        githistory.revert_commit(alice.data, repair)  # würde die Markierungen zurückbringen
+    assert caught.value.kind == "conflict"
+    assert git(alice.root, "rev-parse", "HEAD") == before
+    assert git(alice.root, "status", "--porcelain") == ""
