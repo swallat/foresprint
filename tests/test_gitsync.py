@@ -1,0 +1,380 @@
+# SPDX-License-Identifier: EUPL-1.2
+"""„Speichern und teilen“ mit echten Git-Repositories: ein Server (bare) und zwei Klone."""
+
+import http.server
+import subprocess
+import threading
+from dataclasses import dataclass
+from pathlib import Path
+
+import pytest
+
+from sprintforecast import gitsync
+from sprintforecast.git import GitError, classify, clone_repository, invalidate_status
+
+
+def git(cwd: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=cwd, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+@dataclass
+class Person:
+    name: str
+    root: Path
+
+    @property
+    def data(self) -> Path:
+        return self.root / "teams"
+
+    def write(self, rel: str, text: str) -> Path:
+        file = self.data / rel
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(text, encoding="utf-8")
+        invalidate_status()
+        return file
+
+    def sync(self, message: str = "Änderung", tags: list[str] | None = None):
+        return gitsync.sync(self.data, message, tags)
+
+
+def make_clone(remote: Path, target: Path, name: str) -> Person:
+    git(target.parent, "clone", "-q", str(remote), str(target))
+    git(target, "config", "user.name", name)
+    git(target, "config", "user.email", f"{name.lower()}@example.org")
+    return Person(name, target)
+
+
+@pytest.fixture(autouse=True)
+def clean_caches():
+    invalidate_status()
+    gitsync._FETCHED.clear()
+    yield
+    invalidate_status()
+
+
+@pytest.fixture
+def remote(tmp_path: Path) -> Path:
+    bare = tmp_path / "server.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(bare))
+    return bare
+
+
+@pytest.fixture
+def alice(tmp_path: Path, remote: Path) -> Person:
+    git(tmp_path, "init", "-q", "-b", "main", str(tmp_path / "alice"))
+    person = Person("Alice", tmp_path / "alice")
+    git(person.root, "config", "user.name", "Alice")
+    git(person.root, "config", "user.email", "alice@example.org")
+    git(person.root, "remote", "add", "origin", str(remote))
+    person.write("a/team.yaml", "name: A\n")
+    person.write("a/2026.1.yaml", "velocity: 10\nscope_creep: 1\n")
+    assert person.sync("Start").ok
+    return person
+
+
+@pytest.fixture
+def bob(tmp_path: Path, remote: Path, alice: Person) -> Person:
+    return make_clone(remote, tmp_path / "bob", "Bob")
+
+
+def test_state_without_remote(tmp_path: Path):
+    git(tmp_path, "init", "-q", "-b", "main")
+    state = gitsync.state(tmp_path)
+    assert state.remote is None and state.upstream is None and not state.can_share
+    assert state.branch == "main" and (state.ahead, state.behind) == (0, 0)
+
+
+def test_first_sync_connects_branch_and_pushes(alice: Person, remote: Path):
+    state = gitsync.state(alice.data)
+    assert state.upstream == "origin/main" and (state.ahead, state.behind) == (0, 0)
+    assert git(remote, "log", "-1", "--format=%s", "main") == "Start"
+
+
+def test_ahead_and_behind(alice: Person, bob: Person):
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "lokal")
+    assert gitsync.state(alice.data).ahead == 1
+    assert alice.sync().ok
+    # Bob weiß noch nichts davon, bis er den Stand holt
+    assert gitsync.state(bob.data).behind == 0
+    state = gitsync.fetch(bob.data)
+    assert state.behind == 1 and state.fetch_error is None and state.fetched_at
+
+
+def test_sync_shows_changes_by_others(alice: Person, bob: Person):
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    assert alice.sync("Review 2026.2", ["a/2026.2"]).ok
+    result = bob.sync()
+    assert result.ok and not result.committed
+    assert [c.subject for c in result.pulled] == ["Review 2026.2"]
+    assert result.pulled[0].author == "Alice"
+    assert ("A", "teams/a/2026.2.yaml") in result.pulled_files
+    assert (bob.data / "a" / "2026.2.yaml").read_text() == "velocity: 5\n"
+    assert "a/2026.2" in git(bob.root, "tag")  # Tag kam mit
+
+
+def test_incoming_before_pull(alice: Person, bob: Person):
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    alice.sync("Korrektur")
+    gitsync.fetch(bob.data)
+    commits, files = gitsync.incoming(bob.data)
+    assert [c.subject for c in commits] == ["Korrektur"]
+    assert files == [("M", "teams/a/2026.1.yaml")]
+
+
+def test_parallel_changes_in_different_files_are_merged(alice: Person, bob: Person):
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    bob.write("a/2026.3.yaml", "velocity: 7\n")
+    assert alice.sync("Alice").ok
+    result = bob.sync("Bob")
+    assert result.ok and result.pushed and result.committed
+    again = alice.sync()
+    assert again.ok and (alice.data / "a" / "2026.3.yaml").exists()
+    assert (alice.data / "a" / "2026.2.yaml").exists()
+    # Verlauf enthält beide Änderungen, nichts ging verloren
+    log = git(alice.root, "log", "--format=%s", "--no-merges")
+    assert "Alice" in log and "Bob" in log
+
+
+def test_push_race_is_retried(alice: Person, bob: Person, tmp_path: Path, monkeypatch):
+    """Zwischen Abgleich und Push lädt jemand anderes hoch: Der Push wird abgelehnt, die App
+    holt den neuen Stand und versucht es erneut."""
+    carol = make_clone(
+        Path(git(alice.root, "remote", "get-url", "origin")), tmp_path / "c", "Carol"
+    )
+    carol.write("a/2026.9.yaml", "velocity: 1\n")
+    real_push = gitsync._push
+    calls = []
+
+    def racing_push(root, current):
+        if root != bob.root.resolve():
+            return real_push(root, current)
+        calls.append(1)
+        if len(calls) == 1:
+            assert carol.sync("Carol").ok  # kommt Bob zuvor
+        real_push(root, current)
+
+    monkeypatch.setattr(gitsync, "_push", racing_push)
+    bob.write("a/2026.3.yaml", "velocity: 7\n")
+    result = bob.sync("Bob")
+    assert result.ok and len(calls) == 2
+    assert (bob.data / "a" / "2026.9.yaml").exists()
+    assert gitsync.state(bob.data).ahead == 0
+
+
+def test_push_rejected_for_good_reports_next_step(alice: Person, bob: Person, monkeypatch):
+    def always_rejected(root, current):
+        raise classify("! [rejected] main -> main (fetch first)")
+
+    monkeypatch.setattr(gitsync, "_push", always_rejected)
+    bob.write("a/2026.3.yaml", "velocity: 7\n")
+    result = bob.sync("Bob")
+    assert result.error and result.error.kind == "rejected"
+    assert "Speichern und teilen" in result.error.hint
+    assert result.committed  # lokal gesichert
+    assert git(bob.root, "status", "--porcelain") == ""
+
+
+def test_server_denies_push(alice: Person, bob: Person, remote: Path):
+    hook = remote / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho 'protected branch' >&2\nexit 1\n")
+    hook.chmod(0o755)
+    bob.write("a/2026.3.yaml", "velocity: 7\n")
+    result = bob.sync("Bob")
+    assert result.error and result.error.kind == "denied"
+    assert gitsync.state(bob.data).ahead == 1  # nichts verloren
+
+
+def test_conflict_is_aborted_and_nothing_is_lost(alice: Person, bob: Person, remote: Path):
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Alice").ok
+    bob.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
+    result = bob.sync("Bob")
+    assert result.error and result.error.kind == "conflict"
+    assert "2026.1.yaml" in str(result.error)
+    state = gitsync.state(bob.data)
+    assert state.unfinished is None and not state.conflicts  # Zustand sauber
+    assert (bob.data / "a" / "2026.1.yaml").read_text() == "velocity: 12\nscope_creep: 1\n"
+    assert git(remote, "show", "main:teams/a/2026.1.yaml").startswith("velocity: 11")
+    assert state.ahead == 1 and state.behind == 1
+
+
+def test_offline_keeps_local_work(alice: Person, tmp_path: Path):
+    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "gibt-es-nicht.git"))
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Offline")
+    assert result.error and result.error.kind == "offline"
+    assert result.committed and not result.pushed
+    state = gitsync.state(alice.data)
+    assert state.offline and state.ahead == 1
+
+
+def test_timeout_counts_as_offline():
+    assert classify("", timeout=True).kind == "offline"
+
+
+def test_no_remote_still_saves(tmp_path: Path):
+    git(tmp_path, "init", "-q", "-b", "main")
+    git(tmp_path, "config", "user.name", "X")
+    git(tmp_path, "config", "user.email", "x@example.org")
+    person = Person("X", tmp_path)
+    person.write("a/team.yaml", "name: A\n")
+    result = person.sync("Lokal")
+    assert result.committed and result.error and result.error.kind == "no_remote"
+
+
+class _Denying(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="x"')
+        self.end_headers()
+
+    def log_message(self, *args):
+        pass
+
+
+def test_missing_login_is_explained(alice: Person):
+    server = http.server.HTTPServer(("127.0.0.1", 0), _Denying)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        git(
+            alice.root,
+            "remote",
+            "set-url",
+            "origin",
+            f"http://127.0.0.1:{server.server_port}/r.git",
+        )
+        alice.write("a/2026.2.yaml", "velocity: 5\n")
+        result = alice.sync("Login")
+    finally:
+        server.shutdown()
+    assert result.error and result.error.kind == "auth"
+    assert "Zugangstoken" in result.error.hint
+    assert result.committed
+
+
+def test_auth_help_for_ssh_differs():
+    from sprintforecast.git import auth_help
+
+    assert "SSH" in auth_help("git@example.org:team/daten.git")
+    assert "Zugangstoken" in auth_help("https://example.org/team/daten.git")
+
+
+def test_clone_with_missing_login_is_explained(tmp_path: Path):
+    server = http.server.HTTPServer(("127.0.0.1", 0), _Denying)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        with pytest.raises(GitError) as info:
+            clone_repository(f"http://127.0.0.1:{server.server_port}/r.git", tmp_path / "ziel")
+    finally:
+        server.shutdown()
+    assert info.value.kind == "auth" and info.value.hint
+
+
+def test_locked_file(alice: Person):
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    (alice.root / ".git" / "index.lock").write_text("")
+    result = alice.sync("Gesperrt")
+    assert result.error and result.error.kind == "locked"
+    assert "Programm" in result.error.hint
+
+
+def test_git_missing(alice: Person, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("PATH", "")
+    result = alice.sync("ohne Git")
+    assert result.error and result.error.kind == "git_missing"
+    assert "installieren" in result.error.hint
+    assert not gitsync.git_available()
+
+
+def test_unfinished_merge_blocks_and_can_be_aborted(alice: Person, bob: Person):
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Alice").ok
+    bob.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
+    git(bob.root, "add", "-A")
+    git(bob.root, "commit", "-qm", "Bob")
+    git(bob.root, "fetch", "-q")
+    subprocess.run(["git", "merge", "origin/main"], cwd=bob.root, capture_output=True)  # Konflikt
+    invalidate_status()
+    state = gitsync.state(bob.data)
+    assert state.unfinished == "merge" and state.conflicts == ("teams/a/2026.1.yaml",)
+    result = bob.sync("Bob")
+    assert result.error and result.error.kind == "merge_in_progress"
+    gitsync.abort_unfinished(bob.data)
+    state = gitsync.state(bob.data)
+    assert state.unfinished is None and not state.conflicts
+    assert (bob.data / "a" / "2026.1.yaml").read_text() == "velocity: 12\nscope_creep: 1\n"
+
+
+def test_detached_head_blocks_and_reattach(alice: Person):
+    git(alice.root, "checkout", "-q", "--detach")
+    invalidate_status()
+    assert gitsync.state(alice.data).detached
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Detached")
+    assert result.error and result.error.kind == "detached"
+    assert not result.committed  # nichts auf einen namenlosen Stand schreiben
+    git(alice.root, "stash", "-u", "-q")  # nur damit der Wechsel ohne offene Änderungen läuft
+    assert gitsync.reattach(alice.data) == "main"
+    assert gitsync.state(alice.data).branch == "main"
+
+
+def test_reattach_rescues_orphan_commits(alice: Person):
+    git(alice.root, "checkout", "-q", "--detach")
+    (alice.root / "teams" / "a" / "neu.yaml").write_text("x: 1\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "auf losem Stand")
+    invalidate_status()
+    assert gitsync.reattach(alice.data) == "main"
+    assert "rettung-" in git(alice.root, "branch", "--list")
+
+
+def test_identity_missing_is_explained(
+    alice: Person, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    git(alice.root, "config", "--unset", "user.name")
+    git(alice.root, "config", "--unset", "user.email")
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "user.useConfigOnly")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "true")
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Ohne Namen")
+    assert result.error and result.error.kind == "identity"
+    gitsync.set_identity("Alice", "alice@example.org")
+    assert alice.sync("Mit Namen").ok
+    with pytest.raises(GitError):
+        gitsync.set_identity("", "keine-adresse")
+
+
+def test_spreadsheet_is_still_refused(alice: Person):
+    (alice.data / "blatt.xlsx").write_bytes(b"x")
+    invalidate_status()
+    result = alice.sync("Tabelle")
+    assert result.error and "Tabellenkalkulationen" in str(result.error)
+
+
+@pytest.mark.parametrize(
+    ("text", "kind"),
+    [
+        ("fatal: Authentication failed for 'https://x/'", "auth"),
+        ("fatal: could not read Username for 'https://x': terminal prompts disabled", "auth"),
+        ("git@x: Permission denied (publickey).\nfatal: Could not read from remote", "auth"),
+        ("fatal: unable to access 'https://x/': Could not resolve host: x", "offline"),
+        ("fatal: unable to access 'https://x/': The requested URL returned error: 403", "auth"),
+        ("fatal: Unable to create '/r/.git/index.lock': File exists.", "locked"),
+        ("error: Your local changes to the following files would be overwritten by merge", "dirty"),
+        ("fatal: You have not concluded your merge (MERGE_HEAD exists).", "merge_in_progress"),
+        ("CONFLICT (content): Merge conflict in a.yaml", "conflict"),
+        ("fatal: Repository not found.", "not_found"),
+        ("etwas ganz anderes", "error"),
+    ],
+)
+def test_classify(text: str, kind: str):
+    assert classify(text).kind == kind
