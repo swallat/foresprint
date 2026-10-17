@@ -35,6 +35,17 @@ def test_forecast_and_report(data_dir: Path):
     assert "```mermaid" in report
 
 
+def test_forecast_table_has_a_range_column(data_dir: Path):
+    result = run(data_dir, "forecast", "demo")
+    assert result.exit_code == 0, result.output
+    assert "Spanne" in result.output
+    for expected in ("8,5–10,5", "10,0–12,3", "10,2–12,5"):  # 2026.21, .22 und .23/.24
+        assert expected in result.output
+    report = run(data_dir, "bericht", "demo", "-o", "-").output
+    assert "**Forecast PLAN** (PT) | Spanne |" in report
+    assert "**10,0** | 10,0–12,3 |" in report or "| 10,0–12,3 |" in report
+
+
 def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
     # Sprint 2026.23 hat noch keine Datei; aktive Personen: Anna, Ben, Cem, Dana
     result = run(data_dir, "fehltage", "demo", "2026.23", input="2\n0\n1,5\n0\n")

@@ -64,6 +64,32 @@ def capacity_label(e: TimelineEntry) -> str:
     return f"{value} ({capacity_source_note(e)})" if source else value
 
 
+def band_range(fc: Forecast, e: TimelineEntry) -> str:
+    """„niedrig–hoch“ der Spanne eines künftigen Sprints für Tabellen („–“, wenn nicht
+    berechenbar)."""
+    from sprintforecast.analysis import band
+
+    b = band(fc, e)
+    return f"{fmt(b.low)}–{fmt(b.high)}" if b else "–"
+
+
+def band_note(fc: Forecast, e: TimelineEntry) -> str:
+    """Spanne mit Stichprobengröße als Satz direkt an einer Prognose-Kachel; bei wenig Daten
+    mit Hinweis. Leer, wenn die Spanne nicht berechenbar ist."""
+    from sprintforecast.analysis import band, few_samples
+
+    b = band(fc, e)
+    if b is None:
+        return ""
+    note = t(
+        "Spanne {low}–{high} aus den letzten {samples} Sprints",
+        low=fmt(b.low),
+        high=fmt(b.high),
+        samples=b.samples,
+    )
+    return f"{note} · {t('wenig Daten, grober Hinweis')}" if few_samples(fc) else note
+
+
 def absence_status_label(sprint: Sprint) -> str:
     """Stand der Fehltage eines Sprints in Worten."""
     return {
@@ -142,11 +168,11 @@ def render(fc: Forecast, history: int = 10) -> str:
         "| Sprint | "
         + t(
             "Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** ({unit}) "
-            "| Roadmap ({share}) | Kleinkram |",
+            "| Spanne | Roadmap ({share}) | Kleinkram |",
             unit=unit,
             share=pct(f.roadmap_share),
         ),
-        "|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     upcoming = fc.upcoming()
     for e in upcoming:
@@ -154,7 +180,7 @@ def render(fc: Forecast, history: int = 10) -> str:
         lines.append(
             f"| {e.sprint.id} | {period(e)} | {status(fc, e)} | {capacity_label(e)} "
             f"| {fmt(r.normalized_velocity.trend, 2)} | **{fmt(r.plan)}** "
-            f"| {fmt(r.roadmap, 2)} | {fmt(r.small_stuff, 2)} |"
+            f"| {band_range(fc, e)} | {fmt(r.roadmap, 2)} | {fmt(r.small_stuff, 2)} |"
         )
     if any(e.result.plan_capacity_source in UNSURE_SOURCES for e in upcoming):
         lines += [

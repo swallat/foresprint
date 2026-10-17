@@ -151,6 +151,7 @@ from sprintforecast.products import (
 )
 from sprintforecast.report import (
     absence_status_label,
+    band_note,
     capacity_label,
     capacity_source_note,
     fmt,
@@ -998,6 +999,8 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     ),
                 )
             )
+            if note := band_note(fc_preview, next_entry):
+                st.caption(note)
     st.dataframe(
         pd.DataFrame(
             [
@@ -1907,6 +1910,9 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     cols[0].metric(
         t("Kapazität (PT)"),
         fmt_capacity(r.plan_capacity, entry.capacity_digits),
+        # Die Quelle steht unter dem Wert (nicht im Wert): sonst wird die Zahl abgeschnitten.
+        delta=capacity_source_note(entry) or None,
+        delta_color="off",
         help=t("Quelle: {source}", source=source_label(r.plan_capacity_source) or "–")
         + "\n\n"
         + _formula_help(fc, entry, "capacity"),
@@ -1937,6 +1943,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     rest[1].metric(
         t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
     )
+    if note := band_note(fc, entry):
+        st.caption(note)
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
@@ -2731,6 +2739,8 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc_view, shown, "capacity"),
         )
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
+        if note := band_note(fc_view, shown):
+            st.caption(note)
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
             st.caption(

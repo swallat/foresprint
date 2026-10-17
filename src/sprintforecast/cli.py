@@ -73,6 +73,7 @@ from sprintforecast.plugins import load_plugins
 from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
 from sprintforecast.report import (
+    band_range,
     capacity_label,
     fmt,
     fmt_capacity,
@@ -1051,6 +1052,7 @@ def forecast(
         "Velocity",
         t("n. Vel. (Ø/Trend)"),
         f"Forecast PLAN {unit}",
+        t("Spanne"),
         "Roadmap",
         t("Kleinkram"),
     ]
@@ -1068,6 +1070,7 @@ def forecast(
             fmt(r.velocity.value, 2),
             fmt(n_vel, 2),
             f"[bold]{fmt(r.plan)}[/bold]" if future else fmt(r.plan),
+            band_range(fc, e) if future else "",
             fmt(r.roadmap, 2) if future else "",
             fmt(r.small_stuff, 2) if future else "",
             style=None if future else "dim",
