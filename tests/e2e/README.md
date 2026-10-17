@@ -22,7 +22,7 @@ Umgebungsvariablen:
 | `E2E_CHANNEL` | einen installierten Browser nehmen, z. B. `msedge` oder `chrome` (Windows) |
 | `E2E_EXECUTABLE` | Pfad zu einem Chromium (statt des von Playwright geladenen) |
 | `E2E_HEADED=1` | sichtbares Fenster, zum Zusehen |
-| `E2E_ARTIFACTS` | Ordner für Bilder fehlgeschlagener Tests (Standard `test-results/e2e`) |
+| `E2E_ARTIFACTS` | Ordner für Bilder und Server-Protokolle fehlgeschlagener Tests (Standard `test-results/e2e`) |
 
 ## Aufbau
 
@@ -35,6 +35,14 @@ Umgebungsvariablen:
   `test_sprint_choice`, `test_language`, `test_stepbar` (gleiche Höhe bei jeder Breite),
   `test_tables` (keine „None“-Zellen, nichts abgeschnitten), `test_server_mask`,
   `test_two_clones` (Alice und Bob: Änderungen, Wertkonflikt, Neustart im Konflikt, Tags).
+
+## Fehlersuche
+
+Schlägt ein Test fehl, liegen im Ordner `test-results/e2e/` (in der CI als Artefakt `e2e-bilder`)
+ein Bild je geöffneter Seite (`<Test>.png`, bei mehreren `<Test>-1.png` …) und das Protokoll
+jeder beteiligten App (`<Test>-<App>.log`). Beides wird gesichert, solange Seiten und Server noch
+laufen. Eine App, die nicht startet, wird sofort wieder beendet; ihr Protokoll steht in der
+Fehlermeldung.
 
 ## Nicht flackern
 

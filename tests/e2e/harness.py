@@ -9,11 +9,13 @@ Servers, Playwright-Locatoren mit automatischem Warten).
 from __future__ import annotations
 
 import contextlib
+import functools
 import os
 import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -39,15 +41,26 @@ START_TIMEOUT = 90  # Sekunden bis zum ersten Lebenszeichen des Servers
 # --- Git -----------------------------------------------------------------------------------
 
 
-def git_env(name: str = "Test") -> dict[str, str]:
-    """Umgebung für Git: feste Person, keine Benutzer- und Systemeinstellungen des Rechners."""
+@functools.cache
+def _empty_gitconfig() -> Path:
+    folder = Path(tempfile.mkdtemp(prefix="sprintforecast-e2e-"))
+    config = folder / "gitconfig"
+    config.touch()
+    return config
+
+
+def git_env(name: str = "Test", config: Path | None = None) -> dict[str, str]:
+    """Umgebung für Git: feste Person, keine Benutzer- und Systemeinstellungen des Rechners.
+    Die „globale“ Konfiguration ist eine eigene, leere Datei und nicht ``/dev/null``: Die App
+    schreibt Name und E-Mail mit ``git config --global``, und Git ersetzt die Datei dabei durch
+    eine neue (unter root wäre das Gerät ``/dev/null`` selbst zerstört)."""
     return {
         "GIT_AUTHOR_NAME": name,
         "GIT_AUTHOR_EMAIL": f"{name.lower()}@example.invalid",
         "GIT_COMMITTER_NAME": name,
         "GIT_COMMITTER_EMAIL": f"{name.lower()}@example.invalid",
         "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_GLOBAL": str(config or _empty_gitconfig()),
         "GIT_TERMINAL_PROMPT": "0",
     }
 
@@ -123,11 +136,28 @@ def make_bare(path: Path) -> Path:
 
 
 def _child_processes(pid: int) -> list[int]:
-    """Kindprozesse (nur Linux/macOS; unter Windows beendet ``taskkill /T`` den ganzen Baum)."""
+    """Kindprozesse (nur Linux/macOS; unter Windows beendet ``taskkill /T`` den ganzen Baum).
+    Ohne ``pgrep`` (schlanke Container ohne procps) liest es ``/proc``."""
     if sys.platform == "win32":
         return []
-    done = subprocess.run(["pgrep", "-P", str(pid)], capture_output=True, text=True)
+    try:
+        done = subprocess.run(["pgrep", "-P", str(pid)], capture_output=True, text=True)
+    except FileNotFoundError:
+        return _children_from_proc(pid)
     return [int(line) for line in done.stdout.split()]
+
+
+def _children_from_proc(pid: int) -> list[int]:
+    found = []
+    for entry in Path("/proc").glob("[0-9]*"):
+        try:
+            # „PID (Name) Zustand PPID …“: der Name darf Leerzeichen und Klammern enthalten.
+            fields = (entry / "stat").read_text().rpartition(")")[2].split()
+            if int(fields[1]) == pid:
+                found.append(int(entry.name))
+        except OSError, ValueError, IndexError:
+            continue
+    return found
 
 
 class App:
@@ -149,6 +179,8 @@ class App:
         home.mkdir(parents=True, exist_ok=True)
         self.config = home / "einstellungen"
         self.log = home / "server.log"
+        self.gitconfig = home / "gitconfig"
+        self.gitconfig.touch()
         self.language = language
         self.person = person
         self.port = 0
@@ -165,7 +197,7 @@ class App:
             for key, value in os.environ.items()
             if not key.startswith(("SPRINTFORECAST_", "STREAMLIT_"))
         }
-        env |= git_env(self.person)
+        env |= git_env(self.person, self.gitconfig)
         env |= {
             DATA_ENV: str(self.data_dir),
             STICHTAG_ENV: STICHTAG,
@@ -198,16 +230,23 @@ class App:
             stderr=subprocess.STDOUT,
             **popen_options(),
         )
-        self._wait_until_healthy()
+        try:
+            self._wait_until_healthy()
+        except BaseException:
+            self.stop()  # sonst läuft der halb gestartete Server nach dem Testlauf weiter
+            raise
         return self
 
     def _wait_until_healthy(self) -> None:
+        # Ohne Proxy: eine Proxy-Vorgabe der Umgebung (http_proxy) würde den lokalen Server nie
+        # erreichen und den Start 90 Sekunden lang scheitern lassen.
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         deadline = time.monotonic() + START_TIMEOUT
         while time.monotonic() < deadline:
             if self._process is not None and self._process.poll() is not None:
                 break
             try:
-                with urllib.request.urlopen(f"{self.url}/_stcore/health", timeout=2) as reply:
+                with opener.open(f"{self.url}/_stcore/health", timeout=2) as reply:
                     if reply.status == 200:
                         return
             except urllib.error.URLError, OSError:
@@ -223,16 +262,22 @@ class App:
         eine eigene Sitzung: Wer nur den Startprozess abschießt, lässt ihn laufen."""
         process = self._process
         self._process = None
-        if process is not None:
-            servers = _child_processes(process.pid)
-            terminate_tree(process, timeout=10)
-            for server in servers:
-                # Uvicorn wartet nach SIGTERM auf offene Verbindungen: hier endgültig beenden.
-                with contextlib.suppress(OSError):
-                    os.killpg(server, signal.SIGKILL)
-        if self._log_file is not None:
-            self._log_file.close()
-            self._log_file = None
+        try:
+            if process is not None:
+                servers: list[int] = []
+                with contextlib.suppress(OSError):  # ohne Liste bleibt immer noch terminate_tree
+                    servers = _child_processes(process.pid)
+                try:
+                    terminate_tree(process, timeout=10)
+                finally:
+                    for server in servers:
+                        # Uvicorn wartet nach SIGTERM auf offene Verbindungen: endgültig beenden.
+                        with contextlib.suppress(OSError):
+                            os.killpg(server, signal.SIGKILL)
+        finally:
+            if self._log_file is not None:
+                self._log_file.close()
+                self._log_file = None
 
     def restart(self) -> App:
         """Beendet den Server und startet ihn neu (gleiche Daten und Einstellungen)."""
