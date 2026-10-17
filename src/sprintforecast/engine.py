@@ -31,6 +31,12 @@ def round_down(value: float, digits: int) -> float:
     return math.copysign(math.floor(abs(value) * factor + _EPS) / factor, value)
 
 
+def round_half_up(value: float, digits: int) -> float:
+    """Kaufmännisch runden (ab ,5 auf, mit Toleranz für Gleitkommafehler); ohne Richtungs-Bias."""
+    factor = 10**digits
+    return math.copysign(math.floor(abs(value) * factor + 0.5 + _EPS) / factor, value)
+
+
 def _div(a: float | None, b: float | None) -> float | None:
     if a is None or b is None or b == 0:
         return None

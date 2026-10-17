@@ -7,7 +7,7 @@ import copy
 from dataclasses import dataclass, field
 
 from sprintforecast.calendar import is_holiday, person_weekend, workdays
-from sprintforecast.engine import round_down
+from sprintforecast.engine import round_half_up
 from sprintforecast.model import AbsenceState, Person, Sprint, Team, absence_status
 
 
@@ -40,7 +40,15 @@ class CapacityBreakdown:
     overhead: float = 0.0
     overhead_share_part: float = 0.0
     overhead_days_part: float = 0.0
+    # Ungerundet: die Prognose rechnet damit weiter (kein Rundungsfehler im Nenner der
+    # normierten Velocity). Gerundet wird erst beim Anzeigen und Einfrieren (``rounded``).
     capacity: float = 0.0
+    rounding: int = 1
+
+    @property
+    def rounded(self) -> float:
+        """Kapazität für Anzeige und Speicherung (kaufmännisch gerundet)."""
+        return round_half_up(self.capacity, self.rounding)
 
 
 def person_capacity(
@@ -102,7 +110,8 @@ def sprint_capacity(
         overhead=overhead,
         overhead_share_part=share_part,
         overhead_days_part=days_part,
-        capacity=round_down(max(gross - overhead, 0.0), team.capacity.rounding),
+        capacity=max(gross - overhead, 0.0),
+        rounding=team.capacity.rounding,
     )
 
 

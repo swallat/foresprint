@@ -19,7 +19,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
 from sprintforecast import i18n
-from sprintforecast.engine import CapacitySource, round_down
+from sprintforecast.engine import CapacitySource, round_down, round_half_up
 from sprintforecast.forecast import absences_known, build_forecast
 from sprintforecast.formulas import steps
 from sprintforecast.model import (
@@ -360,7 +360,9 @@ def test_capacity_details_add_up(data_dir: Path):
     breakdown = sprint_capacity(data.team, data.people, sprint)
     assert breakdown.gross == pytest.approx(sum(r.capacity for r in breakdown.people))
     assert breakdown.overhead == pytest.approx(breakdown.overhead_days_part)
-    assert breakdown.capacity == round_down(breakdown.gross - breakdown.overhead, 1)
+    # Intern ungerundet (A14); gerundet wird erst für Anzeige und Einfrieren.
+    assert breakdown.capacity == pytest.approx(breakdown.gross - breakdown.overhead)
+    assert breakdown.rounded == round_half_up(breakdown.gross - breakdown.overhead, 1)
     # Prozent und PT gleichzeitig: nur ein Abzug
     data.team.capacity.overhead_share = 0.5
     again = sprint_capacity(data.team, data.people, sprint)
@@ -370,6 +372,21 @@ def test_capacity_details_add_up(data_dir: Path):
         person.production_access = True
     share = production_share(data.team, data.people, sprint)
     assert 0 < share < 1
+
+
+def test_capacity_stays_unrounded_internally(data_dir: Path):
+    """A14: Der Nenner der normierten Velocity ist nicht abgerundet; ``rounded`` rundet
+    kaufmännisch."""
+    from sprintforecast.capacity import sprint_capacity
+
+    data = load(data_dir)
+    sprint = data.sprint("2026.22")
+    data.team.capacity.overhead_share = 0.0123
+    b = sprint_capacity(data.team, data.people, sprint)
+    assert b.capacity == pytest.approx(b.gross * (1 - 0.0123))
+    assert b.capacity != round(b.capacity, 1)
+    assert b.rounded == round_half_up(b.capacity, 1)
+    assert abs(b.rounded - b.capacity) <= 0.05 + 1e-9
 
 
 def test_zero_fte_and_midsprint_change(data_dir: Path):
