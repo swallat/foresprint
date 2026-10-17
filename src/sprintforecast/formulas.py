@@ -66,7 +66,8 @@ def _exact(value: float | None, digits: int = 4) -> str:
 # Allgemeine Formeln – z. B. für Spaltenköpfe (Anzeige mit general()).
 GENERAL: dict[str, str] = {
     "capacity": "Kapazität = Σ Personen (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine; "  # noqa: E501
-    "nach dem Review eingefroren; ohne Fehltage: Trend",
+    "nach dem Review eingefroren; unbekannte Fehltage nach der Historie geschätzt "
+    "(ohne Historie ohne Abzug); Trend nur ohne Personenliste",
     "normalized_velocity": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
     "average": "Ø n. Velocity = Mittel(n. Velocity der letzten Sprints im Fenster)",
     "trend": "n. Velocity-Trend = Fortschreibung(Ø n. Velocity) gemäß Trend-Modus",

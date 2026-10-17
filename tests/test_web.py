@@ -2,6 +2,7 @@
 """Weboberfläche: Seiten rendern, Formulare speichern, Commit (ohne Browser via AppTest)."""
 
 import subprocess
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,9 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps, nav_titles
 
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.forecast import build_forecast
+from sprintforecast.model import Sprint
+from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -193,6 +196,22 @@ def test_absences_confirm_nobody_absent_creates_sprint_files(app: AppTest, data_
     assert saved["absences_confirmed"] is True  # ältere Programmversionen lesen es weiter
     goto(app, "forecast")
     assert not any("Trend" in w.value for w in app.warning)
+
+
+def test_reset_absences_text_names_calendar_and_people_not_trend(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Nach dem Zurücksetzen bleibt die Kapazität aus Kalender und Personen; nur die Fehltage
+    werden nach der Historie geschätzt (Trend gibt es nur ohne Personenliste)."""
+    repo = Repository(data_dir)
+    nxt = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
+    repo.save_sprint("demo", Sprint(id=nxt.id, start=nxt.start, end=nxt.end))
+    at = goto(start(data_dir, monkeypatch), "fehltage")
+    assert "Fehltage zurücksetzen" in [s.value for s in at.subheader]
+    caption = next(c.value for c in at.caption if "Zurücksetzen löscht" in c.value)
+    assert "Trend" not in caption
+    assert "nach der Historie geschätzt (ohne Historie ohne Abzug)" in caption
+    assert "Kalender und Personen" in caption
 
 
 def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
