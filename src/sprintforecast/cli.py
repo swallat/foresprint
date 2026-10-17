@@ -1171,8 +1171,10 @@ def analyse(
         )
         console.print(
             t(
-                "Puffer: Ø Scope Creep {scope} ({count} Sprints), Kleinkram-Anteil {small} – ",
+                "Puffer: Ø Scope Creep {scope} des Commitments = {late} des Forecast PLAN "
+                "({count} Sprints), Kleinkram-Anteil {small} – ",
                 scope=pct(hint.average_scope_creep),
+                late=pct(hint.average_late_share),
                 count=hint.samples,
                 small=pct(hint.configured_small_stuff),
             )

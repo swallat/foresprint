@@ -5,6 +5,9 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Ø Scope Creep der letzten {count} Sprints: **{scope}** des Commitments = **{late}** des Forecast PLAN · eingestellter Kleinkram-Anteil (bezogen auf den Forecast PLAN): **{small}**": "Ø scope creep of the last {count} sprints: **{scope}** of the commitment = **{late}** of the Forecast PLAN · configured small-items share (relative to the Forecast PLAN): **{small}**",
+    "Puffer: Ø Scope Creep {scope} des Commitments = {late} des Forecast PLAN ({count} Sprints), Kleinkram-Anteil {small} – ": "Buffer: Ø scope creep {scope} of the commitment = {late} of the Forecast PLAN ({count} sprints), small-items share {small} – ",
+    "Ø Scope Creep ({count} Sprints): {scope} des Commitments = {late} des Forecast PLAN · Kleinkram-Anteil: {small}": "Ø scope creep ({count} sprints): {scope} of the commitment = {late} of the Forecast PLAN · small-items share: {small}",
     "≈ Näherung: Bei FTE-Wechsel im Sprint werden Fehltage mit der mittleren FTE gewichtet ({names}).": "≈ Approximation: with an FTE change within the sprint, absences are weighted with the mean FTE ({names}).",
     "Der Ordner liegt in keinem Git-Repository. Das Programm funktioniert auch ohne Git – nur Commit und Verlauf stehen dann nicht zur Verfügung. Du kannst hier ein Repository anlegen oder den Ordner ohne Git verwenden.": "The folder is not in a Git repository. The program also works without Git – only commit and history are then unavailable. You can create a repository here or use the folder without Git.",
     "Ohne Git verwenden": "Use without Git",
