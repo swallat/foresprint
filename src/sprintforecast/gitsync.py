@@ -349,7 +349,18 @@ def resolve_conflicts(
             else:  # auf dieser Seite gelöscht
                 _git(root, "rm", "-q", "--", file)
         elif merged is not None:
-            (root / file).write_text(merged, encoding="utf-8", newline="\n")
+            try:
+                (root / file).write_text(merged, encoding="utf-8", newline="\n")
+            except OSError as e:  # gesperrt oder schreibgeschützt: das Zusammenführen bleibt offen
+                raise GitError(
+                    t(
+                        "{file} konnte nicht geschrieben werden ({reason}).",
+                        file=file,
+                        reason=e.strerror or str(e),
+                    ),
+                    "locked",
+                    hint_for("locked"),
+                ) from e
             _git(root, "add", "--", file)
     gitmod.invalidate_status()
     return pending_conflicts(path)
