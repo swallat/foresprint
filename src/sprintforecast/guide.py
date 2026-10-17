@@ -276,6 +276,22 @@ TERMS: list[tuple[str, str]] = [
         "ausdrücklich gewählt werden; bei dünner Historie gilt „konstant“.",
     ),
     (
+        "Trend-Modi",
+        "Beispiel: Der Durchschnitt war zuletzt 44, davor 40. "
+        "Konstant (Standard): die nächsten Sprints bleiben bei 44, 44, 44. Robust, folgt aber "
+        "keiner Entwicklung. "
+        "Linear: der letzte Schritt (+4) wird fortgesetzt: 48, 52, 56. "
+        "Klassisch: erst linear (48), dann prozentual wie zuletzt (+10 %: 52,8), danach "
+        "wieder linear (57,6). "
+        "Linear und klassisch schreiben auch zufällige Schwankungen fort; die Prognose kann dann "
+        "steigen oder fallen und liegt bei längerem Horizont schnell außerhalb der Spanne. Sie "
+        "passen nur bei einem belegten, stabilen Trend. Reicht die Historie nicht (weniger "
+        "Sprints mit Wert als für den Modus nötig), gilt „konstant“; das steht dann als Hinweis "
+        "dabei. Die Prognose wird nie negativ. Den Modus kann man jederzeit unter Team → "
+        "Einstellungen wechseln; es gehen keine Daten verloren, nur die Prognose wird neu "
+        "berechnet.",
+    ),
+    (
         "Prognose aktuell / beim Planning",
         "Prognose aktuell: der heute berechnete Forecast PLAN. Prognose beim Planning: der im "
         "Planning eingefrorene Stand (Basis der Verteilung je Produkt). Die Differenz zeigt, "
@@ -284,7 +300,7 @@ TERMS: list[tuple[str, str]] = [
     (
         "Spanne",
         "Forecast mit der niedrigsten und höchsten normierten Velocity der letzten Sprints. "
-        "Bei weniger als 8 Sprints mit Velocity nur ein grober Hinweis.",
+        "Bei weniger als 5 Sprints mit Velocity nur ein grober Hinweis.",
     ),
     (
         "Erledigt",
