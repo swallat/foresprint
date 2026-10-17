@@ -154,6 +154,7 @@ from sprintforecast.report import (
     absence_status_label,
     capacity_label,
     fmt,
+    fmt_capacity,
     pct,
     period,
     render,
@@ -690,7 +691,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             [
                 {
                     "Sprint": e.sprint.id,
-                    capacity_col: fmt(e.result.capacity.value),
+                    capacity_col: fmt_capacity(e.result.capacity.value, e.capacity_digits),
                     t("Commitment"): fmt(e.result.forecast_ist.value, 2),
                     "Velocity": fmt(e.result.velocity.value, 2),
                     nvel: fmt(e.result.normalized_velocity.value, 2),
@@ -983,7 +984,9 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     id=next_sprint.id,
                     plan=fmt(next_entry.result.plan),
                     unit=data.team.unit.value,
-                    capacity=fmt(next_entry.result.plan_capacity),
+                    capacity=fmt_capacity(
+                        next_entry.result.plan_capacity, next_entry.capacity_digits
+                    ),
                 )
             )
     st.dataframe(
@@ -1767,7 +1770,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
     left, right = st.columns(2)
     left.metric(
         t("Kapazität (PT)"),
-        fmt(entry.result.plan_capacity) if entry else "–",
+        fmt_capacity(entry.result.plan_capacity, entry.capacity_digits) if entry else "–",
         help=_formula_help(fc_after, entry, "capacity"),
     )
     right.metric(
@@ -1780,7 +1783,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
             t(
                 "In der Sprintdatei ist eine feste Kapazität ({capacity} PT) eingetragen – sie "
                 "gilt statt der Berechnung aus den Fehltagen.",
-                capacity=fmt(after.capacity),
+                capacity=fmt_capacity(after.capacity, data.team.capacity.rounding),
             )
         )
     if to_save:
@@ -1825,7 +1828,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     cols = st.columns(5 if view.frozen is not None else 4)
     cols[0].metric(
         t("Kapazität (PT)"),
-        fmt(r.plan_capacity),
+        fmt_capacity(r.plan_capacity, entry.capacity_digits),
         help=t("Quelle: {source}", source=source_label(r.plan_capacity_source) or "–")
         + "\n\n"
         + _formula_help(fc, entry, "capacity"),
@@ -2199,7 +2202,10 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             )
             + (
                 "\n\n"
-                + t("Laut Personenliste und Fehltagen: {capacity} PT", capacity=fmt(computed))
+                + t(
+                    "Laut Personenliste und Fehltagen: {capacity} PT",
+                    capacity=fmt_capacity(computed, data.team.capacity.rounding),
+                )
                 if computed
                 else ""
             ),

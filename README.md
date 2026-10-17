@@ -405,6 +405,8 @@ capacity:
   country: DE               # optional (Standard DE): ISO-Ländercode für Feiertage und Wochenende
   region: NW                # Region im Land (Bundesland, Staat, Provinz), z. B. NW, CA, ON
   workweek: auto            # optional: auto (wie im Land) | mon-fri | sun-thu | mon-sat
+  rounding: 1               # optional: Stellen der angezeigten und im Review eingefrorenen
+                            # Kapazität (kaufmännisch gerundet); die Prognose rechnet ungerundet
 ```
 
 **`people.yaml`** – Personen werden nie gelöscht, nur Zugehörigkeiten beendet:
@@ -520,10 +522,14 @@ Fenster (`window`, Standard 5) und die Schwelle von 5 Sprints für belastbare Au
 3. Nur **ohne Personenliste**: Kapazitäts-Trend → *Trend* (⚠️)
 
 **Abzug für Scrum-Termine** (eine gemeinsame Rechnung für bestätigte, angekündigte und
-erwartete Fehltage): erst Feiertage und Fehltage je Person, dann der Abzug, dann die Rundung.
-Feste PT je Person (`overhead_days` × FTE, höchstens die Kapazität der Person) **ersetzen** den
-Prozentabzug (`overhead_share`); beide sind derselbe Abzug in zwei Einheiten und werden nicht
-addiert.
+erwartete Fehltage): erst Feiertage und Fehltage je Person, dann der Abzug. Die Kapazität bleibt
+dabei ungerundet (die Prognose rechnet damit weiter); kaufmännisch gerundet (ab ,5 auf) wird sie
+erst bei der Anzeige und beim Einfrieren im Review, auf `capacity.rounding` Stellen (Standard 1)
+– überall gleich, ein Wert wird nirgends zwei verschieden gezeigt. Die Gleichungen im Rechenweg
+zeigen die Zahlen, mit denen gerechnet wird (Kapazität und Trend bis 4 Nachkommastellen, z. B.
+`16,8433 / 45 × 25,25`), der Forecast PLAN bleibt abgerundet. Feste PT je Person
+(`overhead_days` × FTE, höchstens die Kapazität der Person) **ersetzen** den Prozentabzug
+(`overhead_share`); beide sind derselbe Abzug in zwei Einheiten und werden nicht addiert.
 
 **Trend-Modi** (`forecast.trend_mode`):
 - `flat` (Standard): letzter Ø bleibt konstant (robust).

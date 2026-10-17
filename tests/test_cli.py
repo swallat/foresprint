@@ -317,7 +317,7 @@ def test_forecast_rechenweg(data_dir: Path):
     result = run(data_dir, "forecast", "demo", "--rechenweg", "2026.22")
     assert result.exit_code == 0, result.output
     assert "Rechenweg Sprint 2026.22" in result.output
-    assert "11,229" in result.output  # 16,84 / 45 × 30,0
+    assert "16,8433 / 45 × 30 = 11,229" in result.output
 
 
 def test_datenordner(tmp_path: Path, data_dir: Path):
