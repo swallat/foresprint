@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from gitrepos import Person, git
+from gitrepos import Person, git, rmtree_force
 
 from sprintforecast import config, githistory, gitsync, storage
 from sprintforecast import git as gitmod
@@ -330,7 +330,7 @@ def test_unrelated_histories_with_same_named_gitignore_and_readme(
 def test_reinitialised_server_is_refused_even_with_connected_upstream(
     alice: Person, remote: Path, tmp_path: Path
 ):
-    shutil.rmtree(remote)
+    rmtree_force(remote)
     git(tmp_path, "init", "-q", "--bare", "-b", "main", str(remote))
     fresh = tmp_path / "frisch"
     git(tmp_path, "init", "-q", "-b", "main", str(fresh))
@@ -479,7 +479,13 @@ def test_revert_names_missing_identity_correctly(solo: Path, monkeypatch: pytest
         monkeypatch.delenv(key, raising=False)
     monkeypatch.delenv("EMAIL", raising=False)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
-    monkeypatch.setenv("HOME", str(solo / "leer"))
+    # Keine Benutzereinstellungen des Rechners (unter Windows: USERPROFILE statt HOME): sonst
+    # fände Git dort einen Namen und der Test sähe nie „keine Identität“.
+    empty_config = solo.parent / "leer.gitconfig"
+    empty_config.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty_config))
+    for variable in ("HOME", "USERPROFILE", "XDG_CONFIG_HOME"):
+        monkeypatch.setenv(variable, str(solo / "leer"))
     with pytest.raises(GitError) as info:
         githistory.revert_commit(solo, rev)
     assert info.value.kind == "identity"
@@ -574,6 +580,22 @@ def test_saving_over_conflict_markers_is_refused(data_dir: Path):
     (data_dir / "demo" / "team.yaml").write_text(MARKED, encoding="utf-8")
     with pytest.raises(ConflictError):
         repo.save_team(team)
+
+
+def test_conflict_markers_with_windows_line_endings_are_detected(data_dir: Path):
+    """Unter Windows schreibt Git die Markierungen mit CRLF; auch dann darf nichts darüber
+    gespeichert werden."""
+    crlf = MARKED.replace("\n", "\r\n")
+    assert storage.has_conflict_markers(crlf)
+    assert not storage.has_conflict_markers("velocity: 1\r\nnote: =======\r\n")
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    sprint = data.sprints[0]
+    path = repo.sprint_path("demo", sprint.id)
+    path.write_bytes(crlf.encode("utf-8"))
+    with pytest.raises(ConflictError):
+        repo.save_sprint("demo", sprint)
+    assert path.read_bytes() == crlf.encode("utf-8")  # unverändert
 
 
 def test_import_over_conflict_markers_is_refused(data_dir: Path):

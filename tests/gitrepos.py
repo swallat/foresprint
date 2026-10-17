@@ -3,6 +3,9 @@
 
 import contextlib
 import http.server
+import os
+import shutil
+import stat
 import subprocess
 import threading
 from collections.abc import Iterator
@@ -22,6 +25,16 @@ def git(cwd: Path, *args: str) -> str:
     return subprocess.run(
         ["git", *args], cwd=cwd, check=True, capture_output=True, text=True
     ).stdout.strip()
+
+
+def rmtree_force(path: Path) -> None:
+    """Löscht einen Ordner samt schreibgeschützter Dateien (Git-Objekte sind es unter Windows)."""
+
+    def make_writable(function, name, _error) -> None:
+        os.chmod(name, stat.S_IWRITE)
+        function(name)
+
+    shutil.rmtree(path, onexc=make_writable)
 
 
 def make_local(tmp_path: Path, name: str = "work", commit: bool = True) -> Path:
