@@ -424,3 +424,27 @@ def test_plan_of_demo_lies_in_band():
     for e in fc.upcoming():
         b = analysis.band(fc, e)
         assert b is not None and b.low <= e.result.plan <= b.high
+
+
+def test_fte_change_within_sprint_weights_absences_with_mean_fte():
+    """A7: Näherung bei FTE-Wechsel im Sprint, handgerechnet und als solche gekennzeichnet."""
+    changing = Person(
+        "a",
+        "A",
+        memberships=[
+            Membership(date(2020, 1, 1), date(2026, 3, 6), fte=1.0),
+            Membership(date(2026, 3, 9), fte=0.5),
+        ],
+    )
+    team = Team(key="t", name="T")
+    team.capacity.region = "NW"
+    sprint = sprint_at(START, absences={"a": 2})
+    breakdown = sprint_capacity(team, [changing], sprint)
+    # 5 Tage × 1 + 5 Tage × 0,5 = 7,5; mittlere FTE 0,75; 2 Fehltage × 0,75 = 1,5
+    assert breakdown.capacity == pytest.approx(6.0)
+    assert breakdown.people[0].fte_changes
+    assert [p.person.id for p in breakdown.approximated] == ["a"]
+    steady = sprint_capacity(team, [person("b", fte=0.5)], sprint_at(START, absences={"b": 2}))
+    assert not steady.people[0].fte_changes and not steady.approximated
+    # ohne Fehltage ist nichts genähert
+    assert not sprint_capacity(team, [changing], sprint_at(START)).approximated

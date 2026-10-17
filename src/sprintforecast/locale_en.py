@@ -5,6 +5,7 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "≈ Näherung: Bei FTE-Wechsel im Sprint werden Fehltage mit der mittleren FTE gewichtet ({names}).": "≈ Approximation: with an FTE change within the sprint, absences are weighted with the mean FTE ({names}).",
     "Der Ordner liegt in keinem Git-Repository. Das Programm funktioniert auch ohne Git – nur Commit und Verlauf stehen dann nicht zur Verfügung. Du kannst hier ein Repository anlegen oder den Ordner ohne Git verwenden.": "The folder is not in a Git repository. The program also works without Git – only commit and history are then unavailable. You can create a repository here or use the folder without Git.",
     "Ohne Git verwenden": "Use without Git",
     "Kein Datenordner gefunden. Empfohlen ist ein **Git-Repository**: So sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen vorhandenen Ordner wählen (auch ohne Git möglich), ein neues Daten-Repository anlegen oder ein bestehendes klonen.": "No data folder found. A **Git repository** is recommended: changes are traceable and shareable with the team. Please choose an existing folder (also possible without Git), create a new data repository or clone an existing one.",

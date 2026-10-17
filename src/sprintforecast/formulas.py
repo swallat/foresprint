@@ -30,6 +30,15 @@ class Step:
         return f"{self.formula}\n\n{self.calculation}"
 
 
+def fte_change_note(names: list[str]) -> str:
+    """Hinweis auf die Näherung bei FTE-Wechsel im Sprint (A7)."""
+    return t(
+        "≈ Näherung: Bei FTE-Wechsel im Sprint werden Fehltage mit der mittleren FTE gewichtet "
+        "({names}).",
+        names=", ".join(names),
+    )
+
+
 def _n(value: float | None, digits: int = 2) -> str:
     return fmt(value, digits)
 
@@ -87,18 +96,16 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             minus += f" − {_n(b.overhead_days_part)} ({t('Scrum-Termine PT')})"
         if b.overhead_share_part:
             minus += f" − {_n(b.overhead_share_part)} ({pct(team.capacity.overhead_share)})"
-        return Step(
-            "capacity",
-            name,
-            general("capacity"),
-            t(
-                "{parts} = {gross}{minus} → {capacity} PT (abgerundet)",
-                parts=parts,
-                gross=_n(b.gross),
-                minus=minus,
-                capacity=_n(b.capacity, 1),
-            ),
+        calculation = t(
+            "{parts} = {gross}{minus} → {capacity} PT (abgerundet)",
+            parts=parts,
+            gross=_n(b.gross),
+            minus=minus,
+            capacity=_n(b.capacity, 1),
         )
+        if b.approximated:
+            calculation += " · " + fte_change_note([p.person.name for p in b.approximated])
+        return Step("capacity", name, general("capacity"), calculation)
     if source is CapacitySource.TREND:
         return Step(
             "capacity",
