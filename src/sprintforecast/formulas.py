@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sprintforecast.capacity import sprint_capacity
-from sprintforecast.engine import CapacitySource, Metric, PlanSource
+from sprintforecast.engine import CapacitySource, Metric, PlanSource, parse_trend_mode
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
 from sprintforecast.model import TrendMode
@@ -178,7 +178,7 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
 def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     """Rechenweg des n. Velocity-Trends – wie engine.trend."""
     i = _index(fc, e)
-    mode = fc.data.team.forecast.trend_mode
+    mode = parse_trend_mode(fc.data.team.forecast.trend_mode)
     m: list[Metric] = [x.result.normalized_velocity for x in fc.entries]
     value = m[i].trend
     name = t("n. Velocity-Trend")
