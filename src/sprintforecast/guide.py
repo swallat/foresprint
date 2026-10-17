@@ -184,7 +184,9 @@ WORKFLOW: list[Step] = [
         when="Vor dem Planning / PO-Planung",
         title="Forecast ansehen",
         text="Zeigt den Forecast PLAN für den laufenden und die kommenden Sprints – die "
-        "empfohlene Planungsmenge, aufgeteilt in Roadmap und Kleinkram.",
+        "empfohlene Planungsmenge, aufgeteilt in Roadmap und Kleinkram. Die Startseite führt "
+        "über drei Aufgaben (Sprint vorbereiten, Planning, Sprint abschließen) zur jeweils "
+        "nächsten sinnvollen Seite.",
         page="forecast",
         cli="sprintforecast forecast TEAM",
     ),
@@ -212,7 +214,8 @@ WORKFLOW: list[Step] = [
         title="Review erfassen",
         text="Velocity, Scope Creep und optional Erledigt je Produkt eintragen. Die Kapazität "
         "des Sprints wird dabei eingefroren, damit spätere Änderungen an der Personenliste die "
-        "Historie nicht ändern.",
+        "Historie nicht ändern. Produktwerte werden nur auf den Boards (Vorplanung, Planning, "
+        "Review) erfasst; die Produktverteilung wertet sie nur aus.",
         page="review",
         cli="sprintforecast review TEAM --commit",
     ),

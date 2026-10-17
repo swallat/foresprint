@@ -26,7 +26,7 @@ enabled = enabled_pages(repo)
 st.session_state["enabled-pages"] = enabled
 pages = {
     t(group): [
-        st.Page(page_path(key), title=t(title), icon=icon, default=key == "forecast")
+        st.Page(page_path(key), title=t(title), icon=icon, default=key == "start")
         for key, (title, icon) in entries.items()
         if key in enabled
     ]
