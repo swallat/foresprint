@@ -94,6 +94,23 @@ class CapacitySettings:
 
 
 @dataclass
+class Features:
+    """Optionale Bereiche, die nicht jedes Team braucht – unabhängig voneinander zuschaltbar.
+    Bei einem neuen Team sind alle aus."""
+
+    # Verteilung des Sprints auf mehrere Produkte (Produktliste, PO-Vorplanung, Planning und
+    # Erledigt je Produkt, Standardverteilung, Saldo).
+    products: bool = False
+    # Zuordnung eines PO zu jedem Produkt (Spalte PO, Summen je PO).
+    po: bool = False
+    # Themen mit Produktionszugriff: Personen mit Berechtigung, Engpass-Hinweis, davon-Mengen.
+    production: bool = False
+    # False: Die Datei hat keinen Abschnitt ``features`` (ältere Dateien) – die Werte wurden
+    # aus den vorhandenen Daten abgeleitet, damit nichts verschwindet.
+    explicit: bool = True
+
+
+@dataclass
 class Team:
     key: str
     name: str
@@ -101,6 +118,7 @@ class Team:
     sprint: SprintSettings = field(default_factory=SprintSettings)
     forecast: ForecastSettings = field(default_factory=ForecastSettings)
     capacity: CapacitySettings = field(default_factory=CapacitySettings)
+    features: Features = field(default_factory=Features)
 
 
 @dataclass
@@ -254,6 +272,10 @@ class Sprint:
     # Werte je Produkt-ID.
     products: dict[str, ProductValues] = field(default_factory=dict)
     note: str | None = None
+    # Davon Menge mit Produktionszugriff, wenn das Team keine Produktverteilung nutzt (sonst
+    # stehen die Werte je Produkt in ``products``): im Planning eingeplant, im Review erledigt.
+    production_planned: float | None = None
+    production_done: float | None = None
     # Im Review erfasst: Menge, die nicht fertig wurde, bzw. zusätzlich zum Commitment
     # erledigt wurde (Velocity = Commitment − nicht erledigt + zusätzlich erledigt).
     not_done: float | None = None
