@@ -82,6 +82,7 @@ from sprintforecast.githistory import (
     list_tags,
     restore_version,
     revert_commit,
+    server_reachable,
     set_tag,
     upload_tag,
 )
@@ -3689,6 +3690,7 @@ def _sync_clicked(
         st.session_state["commit_message"] = _commit_default()
     st.session_state["sync_result"] = result
     st.session_state.pop("tags-server", None)  # der Abgleich der Tags ist nicht mehr aktuell
+    st.session_state.pop("tags-server-failed", None)
     st.session_state.pop("unrelated-confirm", None)  # eine Bestätigung gilt nur einmal
     # Die Rückfrage zur fremden Historie bleibt über Durchläufe stehen (Ankreuzen, Knopf).
     if result.error is not None and result.error.kind == "unrelated_histories":
@@ -3999,7 +4001,10 @@ def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> No
 def _tags_check_clicked(root: Path) -> None:
     """Fragt den Server nach den Tags (Netzwerk, nur auf Klick) und merkt das Ergebnis."""
     try:
-        st.session_state["tags-server"] = list_tags(root, check_server=True)
+        tags = list_tags(root, check_server=True)
+        # Ohne lokale Tags verrät die Liste nicht, ob der Abgleich gelang.
+        st.session_state["tags-server-failed"] = not tags and not server_reachable(root)
+        st.session_state["tags-server"] = tags
     except GitError as e:
         st.session_state["commit_error"] = e
 
@@ -4192,7 +4197,13 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
         args=(repo.root,),
         help=t("Fragt den Server nach seinen Tags (Netzwerk) und zeigt, wo es welchen gibt."),
     )
-    if checked is not None and tags and all(tag.on_server is None for tag in tags):
+    if checked is None:
+        failed = False
+    elif tags:
+        failed = all(tag.on_server is None for tag in tags)
+    else:
+        failed = bool(st.session_state.get("tags-server-failed"))
+    if failed:
         st.warning(
             t(
                 "Der Server konnte nicht abgefragt werden (nicht erreichbar oder nicht "

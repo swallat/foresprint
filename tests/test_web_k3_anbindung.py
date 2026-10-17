@@ -181,6 +181,19 @@ def test_tag_list_shows_status_after_server_check(shared, data_dir, monkeypatch)
     assert rows["beide"] == "auf dem Server"
 
 
+def test_failed_server_check_without_local_tags_is_not_reported_as_no_tags(
+    shared, data_dir, monkeypatch
+):
+    """Ohne lokale Tags und mit unerreichbarem Server darf nicht „Noch keine Tags“ allein stehen."""
+    root, _, _ = shared
+    git(root, "remote", "set-url", "origin", str(root / "gibt-es-nicht"))
+    invalidate_status()
+    at = goto(start(data_dir, monkeypatch), "verlauf")
+    main_button(at, "Mit dem Server abgleichen").click().run()
+    assert not at.exception, at.exception
+    assert any("Der Server konnte nicht abgefragt werden" in w.value for w in at.main.warning)
+
+
 def test_local_only_tag_can_be_uploaded(shared, data_dir, monkeypatch):
     _, _, server = shared
     tag_setup(shared)
