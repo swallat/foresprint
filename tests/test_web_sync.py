@@ -214,3 +214,92 @@ def test_git_missing_is_explained(data_dir: Path, monkeypatch):
     monkeypatch.setenv("PATH", "")
     at = start(data_dir, monkeypatch)
     assert any("Git ist nicht installiert" in e.value for e in at.sidebar.error)
+
+
+def open_history(at: AppTest) -> AppTest:
+    at.switch_page("seiten/verlauf.py").run()
+    assert not at.exception, at.exception
+    return at
+
+
+def main_button(at: AppTest, label: str):
+    return next(b for b in at.button if b.label == label)
+
+
+def test_discard_asks_and_shows_what_is_lost(shared, data_dir: Path, monkeypatch):
+    root, _, _ = shared
+    sprint = root / SPRINT
+    original = sprint.read_text()
+    sprint.write_text(original.replace("velocity: 9.75", "velocity: 1.0"))
+    (root / "teams" / "neu.yaml").write_text("x: 1\n")
+    invalidate_status()
+    at = open_history(start(data_dir, monkeypatch))
+    assert len(at.checkbox) == 2  # je Datei eine Auswahl
+    main_button(at, "Alles verwerfen …").click().run()
+    warning = " ".join(w.value for w in at.warning)
+    assert "geht verloren" in warning and "2026.20.yaml" in warning and "neu.yaml" in warning
+    assert main_button(at, "Jetzt verwerfen").disabled  # erst nach Bestätigung
+    assert sprint.read_text() != original  # noch nichts passiert
+    at.checkbox(key="discard-confirm").check().run()
+    main_button(at, "Jetzt verwerfen").click().run()
+    assert not at.exception
+    assert sprint.read_text() == original and not (root / "teams" / "neu.yaml").exists()
+    assert any("Änderungen verworfen" in s.value for s in at.success)
+
+
+def test_discard_single_file_only(shared, data_dir: Path, monkeypatch):
+    root, _, _ = shared
+    sprint = root / SPRINT
+    sprint.write_text(sprint.read_text().replace("velocity: 9.75", "velocity: 1.0"))
+    (root / "teams" / "neu.yaml").write_text("x: 1\n")
+    invalidate_status()
+    at = open_history(start(data_dir, monkeypatch))
+    labels = [c.label for c in at.checkbox]
+    chosen = next(i for i, label in enumerate(labels) if "neu.yaml" in label)
+    at.checkbox(key=f"disc-{chosen}").check()
+    for i in range(len(labels)):
+        if i != chosen:
+            at.checkbox(key=f"disc-{i}").uncheck()
+    main_button(at, "Ausgewählte verwerfen …").click().run()
+    at.checkbox(key="discard-confirm").check().run()
+    main_button(at, "Jetzt verwerfen").click().run()
+    assert not (root / "teams" / "neu.yaml").exists()
+    assert "velocity: 1.0" in sprint.read_text()  # andere Datei bleibt
+
+
+def test_history_restore_and_undo_in_the_app(shared, data_dir: Path, monkeypatch):
+    root, _, _ = shared
+    sprint = root / SPRINT
+    original = sprint.read_text()
+    bad = original.replace("velocity: 9.75", "velocity: 1.0")
+    sprint.write_text(bad)
+    git(root, "commit", "-qam", "Fehlerhafte Eingabe")
+    invalidate_status()
+    at = open_history(start(data_dir, monkeypatch))
+    entries = at.selectbox(key=f"history-entry-{root / 'teams' / 'demo'}")
+    assert "Fehlerhafte Eingabe" in entries.options[0]
+    entries.select_index(1).run()  # der Stand davor
+    main_button(at, "Diesen Stand wiederherstellen").click().run()
+    assert not at.exception
+    assert sprint.read_text() == original
+    assert any("Wiederhergestellt" in s.value for s in at.success)
+    # Die Wiederherstellung steht jetzt oben im Verlauf und lässt sich zurücknehmen
+    entries = at.selectbox(key=f"history-entry-{root / 'teams' / 'demo'}")
+    assert "wiederhergestellt" in entries.options[0]
+    entries.select_index(0).run()
+    main_button(at, "Diese Änderung zurücknehmen").click().run()
+    assert sprint.read_text() == bad
+    assert git(root, "status", "--porcelain") == ""
+
+
+def test_tags_set_later_and_delete_in_the_app(shared, data_dir: Path, monkeypatch):
+    root, _, server = shared
+    at = open_history(start(data_dir, monkeypatch))
+    at.text_input[0].set_value("demo/2026.20")
+    next(b for b in at.button if b.label == "Tag setzen").click().run()
+    assert not at.exception
+    assert "demo/2026.20" in git(root, "tag") and "demo/2026.20" in git(server, "tag")
+    assert any("demo/2026.20" in str(r) for t in at.table for r in t.value.index)
+    at.checkbox(key="tag-confirm").check().run()
+    main_button(at, "Tag löschen").click().run()
+    assert git(root, "tag") == "" and git(server, "tag") == ""

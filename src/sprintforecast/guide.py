@@ -378,6 +378,26 @@ GIT_HELP: list[tuple[str, str]] = [
         "fremde Änderungen zu überschreiben.",
     ),
     (
+        "Änderungen verwerfen",
+        "Auf der Seite „Änderungen und Verlauf“ lassen sich einzelne Dateien oder alle offenen "
+        "Änderungen verwerfen. Vorher zeigt die App, was verloren geht (Datei, Status, "
+        "Zeilen), und verlangt eine Bestätigung. Zur Sicherheit landet eine Kopie im "
+        "Papierkorb unter `.git`.",
+    ),
+    (
+        "Verlauf und früheren Stand wiederherstellen",
+        "Der Verlauf zeigt je Team, Sprint oder Datei, wer wann was geändert hat. Ein "
+        "früherer Stand lässt sich wiederherstellen; das ist selbst eine neue Änderung und "
+        "kann über „Diese Änderung zurücknehmen“ rückgängig gemacht werden. Offene "
+        "Änderungen im betroffenen Bereich müssen vorher gespeichert oder verworfen werden.",
+    ),
+    (
+        "Tags verwalten",
+        "Tags (z. B. `team/2026.21`) markieren abgeschlossene Reviews. Sie lassen sich "
+        "anzeigen, nachträglich an einen beliebigen Stand setzen und löschen; die App gleicht "
+        "sie mit dem Server ab und meldet, wenn das nicht gelang (der Tag bleibt dann lokal).",
+    ),
+    (
         "Server nicht erreichbar (offline)",
         "Deine Änderungen werden trotzdem lokal gesichert. Später erneut „Speichern und "
         "teilen“ wählen, wenn Internet bzw. VPN wieder da ist.",

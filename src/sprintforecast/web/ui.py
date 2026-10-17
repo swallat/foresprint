@@ -67,6 +67,19 @@ from sprintforecast.git import (
 )
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.git import title_for as git_title
+from sprintforecast.githistory import (
+    Entry as HistoryEntry,
+)
+from sprintforecast.githistory import (
+    delete_tag,
+    discard,
+    discard_preview,
+    history,
+    list_tags,
+    restore_version,
+    revert_commit,
+    set_tag,
+)
 from sprintforecast.gitsync import (
     Commit,
     ConflictFile,
@@ -205,6 +218,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
     },
     "Daten & Hilfe": {
         "datenordner": ("Datenordner", ":material/folder_open:"),
+        "verlauf": ("Änderungen und Verlauf", ":material/history:"),
         "pruefung": ("Prüfung", ":material/fact_check:"),
         "hilfe": ("Hilfe", ":material/help:"),
     },
@@ -3580,6 +3594,231 @@ def _git_panel(repo: Repository) -> None:
             )
 
 
+# --- Änderungen verwerfen, Verlauf, Tags -----------------------------------------------------
+
+_STATUS_NAMES = {"M": "geändert", "D": "gelöscht", "A": "neu", "??": "neu", "AM": "neu"}
+
+
+def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> None:
+    """Führt einen Git-Vorgang im Callback aus; Meldung oder Fehler erscheinen im nächsten
+    Durchlauf."""
+    try:
+        result = action()
+    except GitError as e:
+        st.session_state["commit_error"] = e
+        return
+    clear_team_cache()
+    kind = "success"
+    if isinstance(result, GitError):  # Warnung, z. B. Tag nur lokal gesetzt
+        kind, text = "warning", t("Nur lokal erledigt: {error}", error=result.full())
+    else:
+        text = ok(result)
+    st.session_state["flash"] = [(kind, text)]
+
+
+def _discard_request(files: list[str] | None) -> None:
+    st.session_state["discard-request"] = files if files is not None else "ALL"
+    st.session_state.pop("discard-confirm", None)
+
+
+def _discard_cancel() -> None:
+    st.session_state.pop("discard-request", None)
+    st.session_state.pop("discard-confirm", None)
+
+
+def _discard_selected(lost: list) -> None:
+    chosen = [item.file for i, item in enumerate(lost) if st.session_state.get(f"disc-{i}")]
+    if chosen:
+        _discard_request(chosen)
+
+
+def _discard_go(root: Path, files: list[str] | None) -> None:
+    _discard_cancel()
+    _git_action(
+        lambda: discard(root, files),
+        lambda trash: (
+            t("Änderungen verworfen. Sicherungskopie: {path}", path=trash)
+            if trash
+            else t("Änderungen verworfen.")
+        ),
+    )
+
+
+def _tab_changes(repo: Repository) -> None:
+    lost = discard_preview(repo.root)
+    if not lost:
+        st.success(t("Keine offenen Änderungen im Datenverzeichnis."))
+        return
+    st.caption(
+        t(
+            "Verwerfen setzt Dateien auf den letzten gespeicherten (committeten) Stand zurück. "
+            "Vorher wird eine Sicherungskopie im Papierkorb unter `.git` angelegt."
+        )
+    )
+    for i, item in enumerate(lost):
+        st.checkbox(
+            t(
+                "{file} – {status} (+{added} −{removed} Zeilen)",
+                file=item.file,
+                status=t(_STATUS_NAMES.get(item.status, "geändert")),
+                added=item.added,
+                removed=item.removed,
+            ),
+            key=f"disc-{i}",
+        )
+    left, right = st.columns(2)
+    left.button(t("Ausgewählte verwerfen …"), on_click=_discard_selected, args=(lost,))
+    right.button(t("Alles verwerfen …"), on_click=_discard_request, args=(None,))
+    request = st.session_state.get("discard-request")
+    if request is None:
+        return
+    files = None if request == "ALL" else request
+    shown = [item for item in lost if files is None or item.file in files]
+    with st.container(border=True):
+        st.warning(
+            t(
+                "Das geht verloren ({count} Datei(en)):  \n{list}",
+                count=len(shown),
+                list="  \n".join(
+                    f"`{i.file}` – {t(_STATUS_NAMES.get(i.status, 'geändert'))}, "
+                    f"+{i.added} −{i.removed}"
+                    for i in shown
+                ),
+            )
+        )
+        sure = st.checkbox(t("Ja, diese Änderungen verwerfen"), key="discard-confirm")
+        ok, cancel = st.columns(2)
+        ok.button(
+            t("Jetzt verwerfen"),
+            type="primary",
+            disabled=not sure,
+            on_click=_discard_go,
+            args=(repo.root, files),
+        )
+        cancel.button(t("Abbrechen"), on_click=_discard_cancel)
+
+
+def _entry_label(e: HistoryEntry) -> str:
+    return f"{e.day} · {e.author} · {e.subject} ({e.short})"
+
+
+def _tab_history(repo: Repository) -> None:
+    team = st.session_state.get("selected_team")
+    scopes = [t("Datenordner")]
+    if team and repo.exists(team):
+        scopes = [t("Team"), t("Sprint"), t("Datei"), *scopes]
+    kind = st.radio(t("Anzeigen für"), scopes, horizontal=True, key="history-scope")
+    scope = repo.root
+    if team and repo.exists(team) and kind != t("Datenordner"):
+        base = repo.team_dir(team)
+        scope = base
+        if kind == t("Sprint"):
+            ids = sorted(p.stem for p in (base / "sprints").glob("*.yaml"))
+            if ids:
+                scope = base / "sprints" / f"{st.selectbox(t('Sprint'), ids[::-1])}.yaml"
+        elif kind == t("Datei"):
+            files = sorted(p.relative_to(base).as_posix() for p in base.rglob("*.yaml"))
+            scope = base / st.selectbox(t("Datei"), files)
+    entries = history(repo.root, scope)
+    if not entries:
+        st.info(t("Noch keine gespeicherten Änderungen für diese Auswahl."))
+        return
+    chosen = st.selectbox(
+        t("Stand"), entries, format_func=_entry_label, key=f"history-entry-{scope}"
+    )
+    if chosen.files:
+        st.code("\n".join(chosen.files), language=None)
+    rel = scope.resolve().relative_to(git_root(repo.root) or repo.root.resolve()).as_posix()
+    left, right = st.columns(2)
+    left.button(
+        t("Diesen Stand wiederherstellen"),
+        type="primary",
+        key="history-restore",
+        on_click=_git_action,
+        args=(
+            lambda: restore_version(repo.root, scope, chosen.rev),
+            lambda rev: t("Wiederhergestellt als neue Änderung ({rev}).", rev=rev),
+        ),
+        help=t(
+            "Setzt {scope} auf den Stand nach dieser Änderung zurück. Das ist selbst eine "
+            "Änderung und kann hier wieder zurückgenommen werden.",
+            scope=rel,
+        ),
+    )
+    right.button(
+        t("Diese Änderung zurücknehmen"),
+        key="history-revert",
+        disabled=chosen.merge,
+        on_click=_git_action,
+        args=(
+            lambda: revert_commit(repo.root, chosen.rev),
+            lambda rev: t("Zurückgenommen als neue Änderung ({rev}).", rev=rev),
+        ),
+        help=t("Macht genau diese Änderung rückgängig (z. B. eine Wiederherstellung)."),
+    )
+
+
+def _tab_tags(repo: Repository) -> None:
+    tags = list_tags(repo.root)
+    if tags:
+        st.table(
+            pd.DataFrame(
+                [(tag.name, tag.target, tag.day, tag.subject) for tag in tags],
+                columns=[t("Tag"), t("Stand"), t("Datum"), t("Nachricht")],
+            ).set_index(t("Tag"))
+        )
+    else:
+        st.caption(t("Noch keine Tags."))
+    entries = history(repo.root, limit=60)
+    with st.form("tag-set"):
+        name = st.text_input(t("Neuer Tag"), placeholder="team/2026.21")
+        target = st.selectbox(
+            t("Am Stand"), entries or [None], format_func=lambda e: _entry_label(e) if e else "HEAD"
+        )
+        message = st.text_input(t("Nachricht (optional)"))
+        if st.form_submit_button(t("Tag setzen")):
+            _git_action(
+                lambda: set_tag(repo.root, name, target.rev if target else "HEAD", message or None),
+                lambda _: t("Tag {name} gesetzt und geteilt.", name=name),
+            )
+            st.rerun()
+    if tags:
+        doomed = st.selectbox(t("Tag löschen"), [tag.name for tag in tags])
+        sure = st.checkbox(t("Ja, den Tag lokal und auf dem Server löschen"), key="tag-confirm")
+        st.button(
+            t("Tag löschen"),
+            disabled=not sure,
+            on_click=_git_action,
+            args=(
+                lambda: delete_tag(repo.root, doomed),
+                lambda _: t("Tag {name} gelöscht.", name=doomed),
+            ),
+        )
+
+
+def page_history(repo: Repository) -> None:
+    st.header(t("Änderungen und Verlauf"))
+    show_flash()
+    if problem := st.session_state.pop("commit_error", None):
+        if isinstance(problem, GitError):
+            _show_problem(problem)
+        else:
+            st.error(problem)
+    if not git_available():
+        _show_problem(classify("", missing=True))
+        return
+    if git_root(repo.root) is None:
+        st.info(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
+        return
+    changes, history_tab, tags = st.tabs([t("Offene Änderungen"), t("Verlauf"), t("Tags")])
+    with changes:
+        _tab_changes(repo)
+    with history_tab:
+        _tab_history(repo)
+    with tags:
+        _tab_tags(repo)
+
+
 TEAM_PAGES = {
     "forecast": page_forecast,
     "fehltage": page_absences,
@@ -3597,6 +3836,7 @@ TEAM_PAGES = {
 NO_FORECAST = {"personen", "produktliste", "einstellungen"}
 GLOBAL_PAGES = {
     "datenordner": page_data_dir,
+    "verlauf": page_history,
     "neues_team": page_new_team,
     "pruefung": page_check,
     "hilfe": page_help,
