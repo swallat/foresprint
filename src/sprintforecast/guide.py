@@ -253,7 +253,14 @@ TERMS: list[tuple[str, str]] = [
     (
         "Normierte Velocity",
         "Velocity / Kapazität × Referenzkapazität. Macht Sprints mit Urlaub und voll "
-        "besetzte Sprints vergleichbar.",
+        "besetzte Sprints vergleichbar. Dieselbe Größe wie der Fokusfaktor, nur mit "
+        "Referenzkapazität skaliert; die Referenzkapazität ändert den Forecast PLAN nicht.",
+    ),
+    (
+        "Fokusfaktor",
+        "Velocity / Kapazität (= normierte Velocity / Referenzkapazität). Nicht zwischen Teams "
+        "vergleichbar, da er von der Schätzeinheit abhängt; sinnvoll ist der Verlauf im eigenen "
+        "Team.",
     ),
     (
         "Ø (gleitend)",

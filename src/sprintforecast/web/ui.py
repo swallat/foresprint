@@ -1078,15 +1078,40 @@ def _frozen_note(d: Distribution, unit: str) -> str:
 
 
 def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
-    """Kapazität der Personen mit Produktionszugriff und Warnung bei Überplanung."""
+    """Kapazität der Personen mit Produktionszugriff und Warnung bei Überplanung – ein
+    Engpasshinweis (grobe Näherung über den Kapazitätsanteil), keine Zusage."""
+    planned = d.total("production_planned")
+    entered = planned is not None or d.total("production_done") is not None
+    if d.production_state == "unconfigured":
+        if entered:
+            st.info(
+                t(
+                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team → Personen) – "
+                    "ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht prüfen."
+                )
+            )
+        return
+    if d.production_state == "unavailable":
+        if planned:
+            st.warning(
+                t(
+                    "Produktionszugriff: Die als berechtigt markierten Personen haben in diesem "
+                    "Sprint keine Kapazität (Fehltage, Feiertage oder nicht im Team) – "
+                    "eingeplante Tickets mit Produktionszugriff ({planned} {unit}) kann niemand "
+                    "bearbeiten (Engpass).",
+                    planned=fmt(planned, 2),
+                    unit=unit,
+                )
+            )
+        return
     if d.production_share is None or d.production_available is None:
         return
     people = sum(1 for p in data.people if p.production_access)
-    planned = d.total("production_planned")
     st.caption(
         t(
             "Produktionszugriff: {count} Person(en) = {share} der Kapazität → bis zu "
-            "**{available} {unit}** möglich, eingeplant {planned} {unit}.",
+            "**{available} {unit}** möglich (grobe Näherung: Kapazitätsanteil × Forecast PLAN), "
+            "eingeplant {planned} {unit}.",
             count=people,
             share=pct(d.production_share),
             available=fmt(d.production_available, 2),
@@ -2052,10 +2077,12 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
         t("Ø Fokusfaktor (letzte {window} Sprints)", window=window),
         fmt(average_focus_factor(fc), 2),
         help=t(
-            "Velocity / Kapazität. Anders als die normierte Velocity unabhängig von der "
-            "Referenzkapazität – damit zwischen Teams vergleichbar. Literaturwerte (0,6–0,8) "
-            "beziehen sich meist auf reine Arbeitszeit; zählt die Kapazität alle "
-            "Anwesenheitstage, liegen die Werte niedriger."
+            "Velocity / Kapazität. Dieselbe Größe wie die normierte Velocity, nur ohne "
+            "Referenzkapazität (n. Velocity = Fokusfaktor × Referenzkapazität). Er hängt von "
+            "der Schätzeinheit ab (bei Story Points z. B. von der Schätzskala des Teams) und "
+            "ist daher nicht zwischen Teams vergleichbar – sinnvoll ist der Verlauf im eigenen "
+            "Team. Literaturwerte (0,6–0,8) beziehen sich meist auf reine Arbeitszeit; zählt "
+            "die Kapazität alle Anwesenheitstage, liegen die Werte niedriger."
         ),
     )
     st.dataframe(

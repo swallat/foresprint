@@ -449,8 +449,10 @@ zum Forecast, die bisherigen Werte bleiben unverändert:
 
 - **Bandbreite:** Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity
   der letzten Sprints (konservativ / mittel / optimistisch).
-- **Fokusfaktor:** Velocity / Kapazität – unabhängig von der Referenzkapazität, daher
-  zwischen Teams vergleichbar.
+- **Fokusfaktor:** Velocity / Kapazität – dieselbe Größe wie die normierte Velocity, nur ohne
+  Referenzkapazität (n. Velocity = Fokusfaktor × Referenzkapazität). Er hängt von der
+  Schätzeinheit ab (bei Story Points von der Schätzskala des Teams) und ist daher **nicht**
+  zwischen Teams vergleichbar, sondern zeigt den Verlauf im eigenen Team.
 - **Puffer:** Ø Scope Creep der letzten Sprints im Vergleich zum Kleinkram-Anteil.
 - **Wann ist es fertig?** Monte-Carlo-Simulation ab dem nächsten Sprint: in welchem Sprint
   eine Restmenge in 50 % bzw. 85 % der Simulationsläufe erledigt ist (modellabhängige Häufigkeit
