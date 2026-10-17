@@ -110,4 +110,4 @@ fi
 say ""
 say "Fertig: sprintforecast $("$(uv tool dir --bin)/sprintforecast" --version)"
 say "Start per Doppelklick auf „Sprint-Forecast“ – oder im neuen Terminal z. B.:"
-say "  cd ~/sprint-daten && sprintforecast web --app"
+say "  cd ~/sprint-daten && sprintforecast web"

@@ -76,4 +76,4 @@ if (-not $env:SPRINTFORECAST_NO_SHORTCUT) {
 Write-Host ""
 Write-Host "Fertig: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"
 Write-Host "Start per Doppelklick auf „Sprint-Forecast“ (Desktop/Startmenü) – oder im neuen PowerShell-Fenster z. B.:"
-Write-Host "  cd `"$HOME\sprint-daten`"; sprintforecast web --app"
+Write-Host "  cd `"$HOME\sprint-daten`"; sprintforecast web"
