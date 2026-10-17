@@ -166,13 +166,14 @@ Kommandozeile und prüft vor jedem Speichern:
 
 | Bereich | Seite | Inhalt |
 |---|---|---|
-| Aufgaben (in zeitlicher Reihenfolge) | Sprint vorbereiten: Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast; Stand je Sprint, „Niemand fehlt“ ausdrücklich bestätigen |
+| Aufgaben (in zeitlicher Reihenfolge) | Start | drei Aufgaben-Kacheln („Sprint vorbereiten“, „Planning“, „Sprint abschließen“); jede führt je nach Stand des Sprints zur nächsten sinnvollen Seite (z. B. Fehltage unbekannt → Fehltage) |
+| | Sprint vorbereiten: Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast; Stand je Sprint, „Niemand fehlt“ ausdrücklich bestätigen |
 | | PO-Vorplanung | je Produkt vorsehen, was in den Sprint soll – im Vergleich zum Standard, Summe je PO; angekündigte Fehltage |
 | | Planning | geführter Ablauf: 1. Fehltage, 2. Forecast PLAN & Einplanung je Produkt, 3. Commitment |
 | | Sprint abschließen (Review) | Velocity, Scope Creep, Erledigt je Produkt, nicht erledigt/zusätzlich erledigt; verfügbare Personentage werden eingefroren |
 | Auswertung | Forecast | Prognose für laufenden + kommende Sprints (mit Spanne), Verlauf, Diagramm, Bericht schreiben |
 | | Analyse | ergänzend: Bandbreite, Fokusfaktor, Puffer-Empfehlung, „Wann ist es fertig?“ |
-| | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
+| | Produktverteilung | reine Auswertung: Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo; geändert werden die Werte nur auf den Boards (Links auf der Seite) |
 | Team verwalten | Sprintkalender | kommende Sprints mit Start, letztem Tag und Arbeitstagen; anlegen, Länge anpassen |
 | | Personen | eine Tabelle (Zeile je Zeitraum, FTE); IDs automatisch; Ehemalige ausblendbar |
 | | Produkte | Produktliste mit PO und Zeitraum (ab/bis); Ehemalige ausblendbar |
@@ -183,7 +184,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | | Prüfung | Befunde aller Teams |
 | | Hilfe | Ablauf, Begriffe, Eingabefelder, Einstellungen, Befehle |
 
-Die Startseite ist weiterhin der **Forecast** („Wie viel passt in den nächsten Sprint?“).
+Die Startseite bietet die drei Aufgaben **Sprint vorbereiten**, **Planning** und **Sprint abschließen**; der **Forecast** („Wie viel passt in den nächsten Sprint?“) steht unter **Auswertung**. Die Sprintauswahl ist auf allen Seiten gleich (Beschriftung „Sprint“, gleiche Reihenfolge, Vorgabe: laufender Sprint) und gilt seitenübergreifend. Produktwerte (PO-Vorplanung, Planning, Erledigt) werden ausschließlich auf den Boards erfasst; die Seite **Produktverteilung** ist nur Auswertung. Ohne offenen Sprint verweisen „Sprint vorbereiten“ und „Planning“ auf den Sprintkalender.
 
 **Speichern, Committen und Teilen:** Jede Seite speichert in die YAML-Dateien. Die Seitenleiste
 zeigt unter **Git** den Stand gegenüber dem Server (noch nicht geteilt, neu von anderen, offline,
