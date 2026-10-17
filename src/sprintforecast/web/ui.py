@@ -1071,7 +1071,7 @@ def _absence_states(live: list[Sprint], sprints: list[Sprint]) -> set[str]:
 
 
 def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
-    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“ (Trend)."""
+    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“."""
     resettable = resettable_sprints(data, today)
     if not resettable:
         return
@@ -1079,8 +1079,9 @@ def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
     st.caption(
         t(
             "Für diese Sprints wurden Fehltage bestätigt, sonst ist nichts erfasst. Zurücksetzen "
-            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Kapazität wird "
-            "wieder aus dem Trend geschätzt."
+            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Fehltage werden "
+            "wieder nach der Historie geschätzt (ohne Historie ohne Abzug); die Kapazität kommt "
+            "weiter aus Kalender und Personen."
         )
     )
     chosen = st.multiselect(
