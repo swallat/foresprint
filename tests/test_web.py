@@ -1150,6 +1150,42 @@ def test_start_prepare_says_when_absences_are_only_announced(
     assert at.selectbox(key="absences-sprint").value == "2026.22"
 
 
+def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    assert not nav_done(app)["vorplanung"]
+    app.session_state["vorplanung-2026.23"] = {
+        "edited_rows": {0: {"PO-Vorplanung": 2.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
+    assert nav_done(app)["vorplanung"]  # schon im selben Durchlauf, ohne weiteren Klick
+    assert any("Gespeichert" in s.value for s in app.success)  # die Meldung folgt im Neuaufbau
+
+
+def test_planning_save_updates_the_step_bar_at_once(app: AppTest):
+    planning_step(app, "2026.22", 2)
+    assert not nav_done(app)["planning"]
+    app.number_input(key="carry-2026.22").set_value(1.5)
+    app.number_input(key="backlog-2026.22").set_value(11.0)
+    click(app, "Planning speichern")
+    assert nav_done(app)["planning"]
+    assert any("Gespeichert" in s.value for s in app.success)
+    assert any("Delta" in i.value for i in app.info)  # auch die Hinweise erscheinen im Neuaufbau
+
+
+def test_review_save_updates_the_step_bar_at_once(app: AppTest):
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    assert not nav_done(app)["review"]
+    app.number_input(key="velocity-2026.21").set_value(9.25)
+    click(app, "Review speichern")
+    assert nav_done(app)["review"]
+    assert app.session_state["pending_tags"] == ["demo/2026.21"]  # der Tag-Vorschlag bleibt
+
+
 def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path):
     """Nach „Fehltage speichern“ zeigt die Leiste den neuen Stand sofort (kein Klick später)."""
     goto(app, "fehltage")
