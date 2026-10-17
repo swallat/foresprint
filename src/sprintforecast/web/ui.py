@@ -3460,23 +3460,31 @@ def _browse(key: str) -> None:
         st.session_state["browse-error"] = True
 
 
-def _path_input(label: str, key: str, default: str) -> Path:
+def _path_input(label: str, key: str, default: str) -> Path | None:
+    """Pfadfeld mit „Durchsuchen“. ``None``, wenn ein Benutzerkürzel (``~``, ``~name``) nicht
+    aufzulösen ist, weil der Benutzerordner unbekannt ist: Die Knöpfe bleiben dann gesperrt."""
     st.session_state.setdefault(key, default)
     left, right = st.columns([5, 1], vertical_alignment="bottom")
     raw = left.text_input(label, key=key)
     right.button(t("Durchsuchen …"), key=f"{key}-browse", on_click=_browse, args=(key,))
     if st.session_state.pop("browse-error", False):
         st.caption(t("Kein Ordnerdialog verfügbar – bitte den Pfad eintippen."))
-    return Path(raw.strip()).expanduser()
+    try:
+        return Path(raw.strip()).expanduser()
+    except RuntimeError:
+        st.error(
+            t(
+                "Benutzerordner unbekannt: {path} lässt sich nicht auflösen. Bitte den "
+                "vollständigen Pfad ohne „~“ eintippen.",
+                path=md_code(raw.strip()),
+            )
+        )
+        return None
 
 
 # --- Server (Remote) einrichten -------------------------------------------------------------
 # Alle Schlüssel beginnen mit ``git-remote-``: Sie überstehen veraltete Eingaben
 # (``_discard_stale_inputs``), und ein Wechsel des Datenordners verwirft sie (``_use_data_dir``).
-
-# Fehlerarten zu einer eingegebenen Adresse: Ihre Meldung nennt nur den Grund, die Überschrift
-# (``git_title``) liefert die Oberfläche.
-ADDRESS_ERRORS = {"bad_url", "secret_in_url", "insecure_url"}
 
 
 def _remote_url_changed() -> None:
@@ -3764,7 +3772,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
     home = Path.home()
     with choose:
         path = _path_input(t("Ordner"), "data-path", str(repo.root.resolve()))
-        if st.button(t("Übernehmen"), type="primary", key="data-choose"):
+        if st.button(t("Übernehmen"), type="primary", key="data-choose", disabled=path is None):
             if not path.is_dir():
                 st.error(t("Ordner nicht gefunden: {path}", path=path))
             elif git_root(path) is None:
@@ -3806,7 +3814,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             try:
                 target = init_data_repository(Path(offer), teams_folder=False)
             except GitError as e:
-                st.error(str(e))
+                _show_problem(e)
             else:
                 if problem := _use_data_dir(teams_dir(target) or target):
                     st.error(problem)
@@ -3821,8 +3829,12 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             )
         )
         path = _path_input(t("Neuer Ordner"), "data-new", str(home / "sprint-daten"))
-        if st.button(t("Anlegen"), type="primary", key="data-create"):
-            if path.exists() and any(path.iterdir()) and teams_dir(path) is None:
+        if st.button(t("Anlegen"), type="primary", key="data-create", disabled=path is None):
+            try:
+                occupied = path.is_dir() and any(path.iterdir()) and teams_dir(path) is None
+            except OSError:  # nicht lesbar: ``init_data_repository`` nennt dann den Grund
+                occupied = False
+            if occupied:
                 st.error(
                     t(
                         "{path} ist nicht leer – bitte einen leeren oder neuen Ordner wählen.",
@@ -3833,7 +3845,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 try:
                     target = init_data_repository(path)
                 except GitError as e:
-                    st.error(str(e))
+                    _show_problem(e)
                 else:
                     if problem := _use_data_dir(target):
                         st.error(problem)
@@ -3850,14 +3862,17 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             t("Adresse"), placeholder="https://git.example.com/team/sprint-daten.git"
         )
         path = _path_input(t("Zielordner"), "data-clone", str(home / "sprint-daten"))
-        if st.button(t("Klonen"), type="primary", key="data-clone-go", disabled=not url.strip()):
+        if st.button(
+            t("Klonen"),
+            type="primary",
+            key="data-clone-go",
+            disabled=not url.strip() or path is None,
+        ):
             with st.spinner(t("Klone …")):
                 try:
                     clone_repository(url.strip(), path)
                 except GitError as e:
-                    # Die Meldungen zur Adresse tragen ihre Überschrift nicht mehr selbst.
-                    detail = f"{git_title(e.kind)}: {e}" if e.kind in ADDRESS_ERRORS else str(e)
-                    st.error(t("Klonen fehlgeschlagen: {error}", error=detail))
+                    _show_problem(e)
                 else:
                     if problem := _use_data_dir(teams_dir(path) or path):
                         st.error(problem)
