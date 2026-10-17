@@ -221,6 +221,11 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   detached HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die
   Anmeldung des Rechners (Credential Manager, SSH-Agent) wird genutzt.
 
+- **Datenordner wechseln:** Die Seitenleiste zeigt Datenordner und Branch dauerhaft; die Liste der
+  zuletzt benutzten Ordner (bis zu 8, in den Benutzereinstellungen gemerkt) dient als Umschalter in
+  der Seitenleiste und auf der Seite **Datenordner** (dort auch „Entfernen“ aus der Liste). Beim
+  Wechsel werden nicht gespeicherte Formulareingaben und alle Zwischenspeicher (Teams, Git-Stand)
+  des alten Ordners verworfen; offene Änderungen im alten Ordner bleiben dort erhalten.
 - **Änderungen und Verlauf** (eigene Seite): *Verwerfen* einzelner Dateien oder aller offenen
   Änderungen mit Anzeige, was verloren geht, und Bestätigung (eine Kopie landet im Papierkorb unter
   `.git/sprintforecast-verworfen`). *Verlauf* je Team, Sprint oder Datei (wer, wann, was);
