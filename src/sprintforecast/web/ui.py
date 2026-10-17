@@ -2919,6 +2919,20 @@ def page_new_team(repo: Repository) -> None:
     if repo.exists(key):
         st.error(t("Team {team} existiert bereits.", team=repr(key)))
         return
+    st.markdown(
+        t(
+            "**Welche Bereiche braucht das Team?** Drei Bereiche sind optional und zunächst "
+            "**aus**; sie lassen sich unten jetzt oder später unter **Einstellungen** "
+            "zuschalten:  \n"
+            "• **Produktverteilung** – das Team betreut mehrere Produkte, die Sprint-Menge wird "
+            "darauf verteilt (Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt).  \n"
+            "• **Zuordnung PO** – jedes Produkt hat einen Product Owner, Summen je PO "
+            "(nur zusammen mit der Produktverteilung sinnvoll).  \n"
+            "• **Produktionszugriff** – nur ein Teil der Personen darf bestimmte Tickets "
+            "bearbeiten; es wird erfasst, wie viel Menge davon betroffen ist, mit "
+            "Engpass-Hinweis."
+        )
+    )
     team = Team(key=key, name=key.upper())
     team.sprint.first_start = today()
     team.sprint.first_id = f"{today().year}.1"
