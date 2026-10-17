@@ -90,6 +90,7 @@ from sprintforecast.storage import (
     Repository,
     TeamData,
     default_data_dir,
+    team_key_problem,
 )
 from sprintforecast.updater import PACKAGE
 from sprintforecast.validate import Level, check_all, check_team, issues_for
@@ -486,6 +487,9 @@ def _ask_setting(setting: Setting, team: Team, *, required: bool = False) -> Non
 @command("init", "Neues Team geführt anlegen.")
 def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
+    if problem := team_key_problem(team):
+        err.print(f"[red]{problem}[/red]")
+        raise typer.Exit(1)
     if c.repo.exists(team):
         err.print(f"[red]{t('Team {team} existiert bereits.', team=repr(team))}[/red]")
         raise typer.Exit(1)

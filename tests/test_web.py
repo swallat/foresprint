@@ -281,6 +281,26 @@ def test_new_team(app: AppTest, data_dir: Path):
     assert app.session_state["selected_team"] == "team-b"
 
 
+@pytest.mark.parametrize("key", ["../x", "a/b", "..", "con", "-x", "a" * 65])
+def test_new_team_rejects_invalid_key(app: AppTest, data_dir: Path, key: str):
+    goto(app, "neues_team")
+    app.text_input[0].set_value(key).run()
+    assert not app.exception, app.exception
+    assert any("Kleinbuchstaben, Ziffern" in e.value or "Windows" in e.value for e in app.error)
+    assert not [b for b in app.button if b.label == "Team anlegen"]  # kein Formular
+    assert sorted(p.name for p in data_dir.parent.iterdir()) == ["teams"]
+    assert sorted(p.name for p in data_dir.iterdir()) == ["demo"]
+
+
+def test_new_team_key_is_normalized_before_the_check(app: AppTest, data_dir: Path):
+    goto(app, "neues_team")
+    app.text_input[0].set_value("  Team_C ").run()
+    assert not app.error
+    click(app, "Team anlegen")
+    assert (data_dir / "team_c" / "team.yaml").is_file()
+    assert app.session_state["selected_team"] == "team_c"
+
+
 def test_without_any_team(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     at = start(tmp_path, monkeypatch)
     assert any("Noch kein Team" in i.value for i in at.info)

@@ -684,6 +684,8 @@ EN: dict[str, str] = {
     "{rest} zu viel.": "{rest} too much.",
     "(keine Angabe)": "(not specified)",
     "Kleinbuchstaben, z. B. team-a": "Lower case, e.g. team-a",
+    "Kürzel: Kleinbuchstaben, Ziffern, Bindestrich und Unterstrich (höchstens 64 Zeichen; am Anfang ein Buchstabe oder eine Ziffer)": "Key: lower-case letters, digits, hyphen and underscore (at most 64 characters; starting with a letter or digit)",
+    "Kürzel: Diese Namen sind unter Windows für Geräte reserviert (CON, PRN, AUX, NUL, COM0 bis COM9, LPT0 bis LPT9).": "Key: these names are reserved for devices on Windows (CON, PRN, AUX, NUL, COM0 to COM9, LPT0 to LPT9).",
     "Klonen fehlgeschlagen: {error}": "Cloning failed: {error}",
     "Wahrscheinlichkeit": "Probability",
     "geändert": "changed",
