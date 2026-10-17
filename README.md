@@ -180,7 +180,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | | Produkte | Produktliste mit PO und Zeitraum (ab/bis); Ehemalige ausblendbar |
 | | Einstellungen | alle Team-Einstellungen; Änderungen werden vor dem Speichern angezeigt |
 | | Neues Team | Team anlegen |
-| Daten & Hilfe | Datenordner | Datenordner wählen, neu anlegen oder klonen (Git-Repository) |
+| Daten & Hilfe | Datenordner | Datenordner wählen, neu anlegen oder klonen (Git-Repository); Server (Remote) eintragen, prüfen und ändern |
 | | Änderungen und Verlauf | Offene Änderungen verwerfen, Verlauf je Team/Sprint/Datei, früheren Stand wiederherstellen, Tags verwalten |
 | | Prüfung | Befunde aller Teams |
 | | Hilfe | Ablauf, Begriffe, Eingabefelder, Einstellungen, Befehle |
@@ -228,6 +228,23 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   Datei, fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und
   detached HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die
   Anmeldung des Rechners (Credential Manager, SSH-Agent) wird genutzt.
+- **Server (Remote) eintragen:** Hat ein Datenordner noch keinen Server, verweist die Seitenleiste
+  („Server einrichten“) auf die Seite **Datenordner**; dort steht der Abschnitt **Server
+  (Remote)** auch zum Ändern der Adresse. Die Adresse wird sofort geprüft (erlaubt sind
+  `https://…`, `ssh://…`, `git@server:pfad` und vollständige Ordnerpfade; `http://` nur nach
+  ausdrücklicher Bestätigung), **Verbindung prüfen** fragt den Server nach seinen Branches und
+  ändert nichts, **Speichern** prüft erneut und speichert nur bei bestandener Prüfung. Ist der
+  Server nachweislich nicht erreichbar (Netzwerkfehler, Zeitüberschreitung) oder fehlt ihm der
+  lokale Branch, lässt sich die Adresse nur mit ausdrücklicher Bestätigung trotzdem speichern;
+  ein nicht gefundenes Repository (Tippfehler im Projektnamen), eine abgelehnte Anmeldung oder
+  ein nicht anerkanntes Zertifikat werden nie gespeichert. Hat der neue Ordner noch keine Daten,
+  der Server aber schon, warnt die Maske und verweist auf **Repository klonen**.
+  Zugangsdaten (Benutzername, Kennwort, Token) in
+  der Adresse werden abgelehnt, nie gespeichert und nie angezeigt; die Anmeldung übernimmt wie
+  immer der Anmeldedienst des Rechners. Die App legt keine SSH-Schlüssel an und ändert keine
+  globale Git-Konfiguration. Mehrere Adressen oder eine eigene Upload-Adresse (`pushurl`) sowie
+  ein offenes Zusammenführen sperren das Speichern. Wer einem bestehenden Team beitritt, wählt
+  besser **Repository klonen**.
 
 - **Datenordner wechseln:** Die Seitenleiste zeigt Datenordner (mit übergeordnetem Ordner, z. B.
   `daten/teams`) und Branch dauerhaft; die Liste der zuletzt benutzten Ordner (bis zu 8, in den

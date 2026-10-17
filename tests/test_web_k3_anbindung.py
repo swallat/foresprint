@@ -70,6 +70,9 @@ def test_unrelated_histories_ask_for_explicit_confirmation(shared, data_dir, mon
     assert "Server hat eine andere Historie" in text
     assert "falsches Repository" in text
     assert str(server) in text and "main" in text
+    # Der richtige Ausweg bei einer falschen Adresse ist die Maske unter „Datenordner“.
+    assert "Server (Remote)" in text
+    assert [p.proto.label for p in at.sidebar.get("page_link")] == ["Server-Adresse ändern"]
     assert at.sidebar.button(key="unrelated-go").disabled  # ohne Bestätigung geht nichts
     # Das Ankreuzen löst einen neuen Durchlauf aus; der Dialog bleibt stehen.
     at.sidebar.checkbox(key="unrelated-confirm").check().run()

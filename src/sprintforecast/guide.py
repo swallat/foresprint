@@ -425,7 +425,9 @@ GIT_HELP: list[tuple[str, str]] = [
         "Enthält der Server eine ganz andere Historie als der Datenordner (meist ist ein "
         "falsches Repository verbunden, z. B. ein Code-Repository), führt „Speichern und "
         "teilen“ nichts zusammen und lädt nichts hoch; die eigenen Änderungen bleiben lokal "
-        "gesichert. Die Seitenleiste nennt Server und Branch. Nur wenn der Server wirklich das "
+        "gesichert. Die Seitenleiste nennt Server und Branch. Ist es das falsche Repository, "
+        "lässt sich die Adresse auf der Seite „Datenordner“ unter „Server (Remote)“ ändern "
+        "(der Link „Server-Adresse ändern“ führt dorthin). Nur wenn der Server wirklich das "
         "richtige Daten-Repository ist, lässt sich das Zusammenführen mit dem Kästchen „Ja, "
         "beide Historien zusammenführen“ und dem Knopf darunter bewusst bestätigen; "
         "„Abbrechen“ ändert nichts.",
@@ -444,7 +446,21 @@ GIT_HELP: list[tuple[str, str]] = [
     (
         "Server nicht erreichbar (offline)",
         "Deine Änderungen werden trotzdem lokal gesichert. Später erneut „Speichern und "
-        "teilen“ wählen, wenn Internet bzw. VPN wieder da ist.",
+        "teilen“ wählen, wenn Internet bzw. VPN wieder da ist. Stimmt die Adresse nicht "
+        "(Tippfehler, Server umgezogen), lässt sie sich auf der Seite „Datenordner“ unter "
+        "„Server (Remote)“ ändern.",
+    ),
+    (
+        "Server (Remote) einrichten",
+        "Auf der Seite „Datenordner“ zeigt der Abschnitt „Server (Remote)“, welcher Server zum "
+        "Datenordner gehört. Dort wird die Adresse eingetragen oder geändert; „Verbindung "
+        "prüfen“ testet sie, ohne etwas zu ändern, und „Speichern“ prüft noch einmal und "
+        "übernimmt sie nur, wenn die Verbindung klappt. Erlaubt sind https://…, ssh://…, "
+        "git@server:pfad und ein vollständiger Ordnerpfad; http:// nur nach ausdrücklicher "
+        "Bestätigung. Benutzername, Kennwort und Token gehören nicht in die Adresse (siehe "
+        "„Anmeldung“). Ist der Server nicht erreichbar oder fehlt ihm der Branch, lässt sich "
+        "die Adresse nur mit ausdrücklicher Bestätigung trotzdem speichern. Wer einem "
+        "bestehenden Team beitritt, wählt besser „Repository klonen“ auf derselben Seite.",
     ),
     (
         "Anmeldung",
