@@ -50,6 +50,26 @@ def test_analyse_rejects_non_finite_options(data_dir: Path, args: list[str]):
     assert "endliche Zahl" in result.output
 
 
+def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_list(
+    data_dir: Path,
+):
+    result = run(data_dir, "kapazitaet", "demo", "2026.25")
+    assert result.exit_code == 0, result.output
+    assert "Noch keine Sprintdatei" in result.output
+    assert "Kalender und Personenliste" in result.output
+    text = " ".join(result.output.split())  # Umbrüche der Konsole
+    assert "Fehltage werden nach der Historie geschätzt (ohne Historie ohne Abzug)" in text
+    assert "Trend" not in result.output
+
+
+def test_kapazitaet_without_sprint_file_names_trend_without_people_list(data_dir: Path):
+    (data_dir / "demo" / "people.yaml").unlink()
+    result = run(data_dir, "kapazitaet", "demo", "2026.25")
+    assert result.exit_code == 0, result.output
+    assert "Noch keine Sprintdatei" in result.output
+    assert "Kapazitäts-Trend" in result.output
+
+
 def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
     # Sprint 2026.23 hat noch keine Datei; aktive Personen: Anna, Ben, Cem, Dana
     result = run(data_dir, "fehltage", "demo", "2026.23", input="2\n0\n1,5\n0\n")
