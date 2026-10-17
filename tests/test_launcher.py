@@ -173,6 +173,9 @@ def web_run(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     """Ruft `sprintforecast web` ohne echten Server und Browser auf und meldet, was geschah."""
     pytest.importorskip("streamlit")
     from sprintforecast import cli
+    from sprintforecast.idle import IDLE_ENV
+
+    monkeypatch.delenv(IDLE_ENV, raising=False)  # sonst gälte der Wert des Aufrufers
 
     def run(*options: str) -> dict:
         seen: dict = {"window": None, "env": None, "cmd": None}
@@ -225,6 +228,22 @@ def test_web_no_browser_opens_nothing_and_never_stops_itself(web_run, options: l
     assert seen["window"] is None
     assert IDLE_ENV not in seen["env"]
     assert _headless(seen["cmd"]) == "true"
+
+
+def test_invalid_browser_variable_falls_back_to_automatic_search(
+    no_browsers: dict, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Zeigt SPRINTFORECAST_BROWSER auf einen nicht vorhandenen Pfad, sucht `web` selbst weiter
+    (kein Traceback), obwohl der App-Modus jetzt der Standard ist."""
+    from sprintforecast import cli
+
+    missing = str(tmp_path / "gibt-es-nicht")
+    monkeypatch.setenv(launcher.BROWSER_ENV, missing)
+    opened: list[str] = []
+    monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)
+    monkeypatch.setattr(cli.webbrowser, "open", opened.append)
+    cli._open_app_window("http://localhost:1", server=FakeProcess(), explicit=missing)
+    assert opened == ["http://localhost:1"]  # kein App-fähiger Browser: der Standardbrowser
 
 
 def test_terminate_tree_stops_children():
