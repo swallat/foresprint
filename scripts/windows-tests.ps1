@@ -88,7 +88,7 @@ $script:Sections = New-Object System.Collections.Generic.List[object]
 $script:TempRoot = ''
 $script:SavedEnv = @{}
 $script:Locks = New-Object System.Collections.Generic.List[object]
-$script:LeftoverIds = New-Object System.Collections.Generic.List[int]
+$script:Leftover = @{}
 $script:ReportWritten = $false
 $script:Notes = ''
 $script:Context = [ordered]@{}
@@ -120,7 +120,10 @@ function Protect-Text {
     $out = [regex]::Replace($out, '(?<=://)[^/@\s]+@', '***@')
     $profileDir = if ($script:OnWindows) { $env:USERPROFILE } else { $env:HOME }
     if (-not [string]::IsNullOrEmpty($profileDir)) {
-        $out = [regex]::Replace($out, [regex]::Escape($profileDir), '%USERPROFILE%', 'IgnoreCase')
+        # Git und uv geben Pfade oft mit Schrägstrichen aus.
+        foreach ($variant in @($profileDir, $profileDir.Replace('\', '/'))) {
+            $out = [regex]::Replace($out, [regex]::Escape($variant), '%USERPROFILE%', 'IgnoreCase')
+        }
     }
     return $out
 }
@@ -283,6 +286,8 @@ function Invoke-Native {
     $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
     if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
     $psi.EnvironmentVariables['PYTHONUTF8'] = '1'
+    # Jeder Aufruf der CLI könnte sonst nach seinem Ende die echte Installation aktualisieren.
+    if (-not $MitAutoUpdate) { $psi.EnvironmentVariables['SPRINTFORECAST_AUTOUPDATE'] = 'aus' }
     foreach ($key in $Environment.Keys) { $psi.EnvironmentVariables[[string]$key] = [string]$Environment[$key] }
 
     $result = [pscustomobject]@{ ExitCode = -1; Output = ''; Error = ''; TimedOut = $false; Seconds = 0.0 }
@@ -424,7 +429,7 @@ function Get-SfKind {
         return $(if ($CommandLine -match 'streamlit') { 'Server (Streamlit)' } else { 'Python' })
     }
     # Der Pfad kann Leerzeichen enthalten; dann steht das Anführungszeichen vor "--user-data-dir".
-    if ($CommandLine -match 'user-data-dir=[^"]*sprintforecast') { return 'Browser (App-Fenster)' }
+    if ($CommandLine -match 'user-data-dir="?[^"]*sprintforecast') { return 'Browser (App-Fenster)' }
     if ($Name -ieq 'uv.exe' -and $CommandLine -match 'sprintforecast') { return 'Aktualisierung (uv)' }
     return ''
 }
@@ -444,10 +449,28 @@ function Get-SfProcess {
                 Name        = $name
                 Kind        = $kind
                 CommandLine = $cmd
+                Created     = [string]$p.CreationDate
             }
         }
     }
     return $found
+}
+
+function Get-ProcessCreated {
+    # Startzeit eines Prozesses (Win32_Process); leer, wenn es ihn nicht (mehr) gibt.
+    param([int]$ProcessId)
+    $found = @(Get-CimInstance -ClassName Win32_Process -Filter ('ProcessId = {0}' -f $ProcessId) -ErrorAction SilentlyContinue)
+    if ($found.Count -eq 0) { return '' }
+    return ([string]$found[0].CreationDate)
+}
+
+function Add-Leftover {
+    # Merkt einen gestarteten Prozess mit seiner Startzeit: Aufgeräumt wird später nur, was noch
+    # derselbe Prozess ist (die Nummer könnte inzwischen jemand anderem gehören).
+    param($Process)
+    if (-not $script:Leftover.ContainsKey($Process.Id)) {
+        $script:Leftover[$Process.Id] = [string]$Process.Created
+    }
 }
 
 function Format-ProcessTable {
@@ -671,20 +694,32 @@ function Test-AppEnde {
     $started = Start-Process @sp
     Write-Line ('Gestartet (PID {0}); warte auf Server und Fenster …' -f $started.Id)
 
-    $isUp = Wait-Until -TimeoutSeconds 90 -Condition {
+    Add-Leftover ([pscustomobject]@{ Id = [int]$started.Id; Created = (Get-ProcessCreated -ProcessId $started.Id) })
+    # Alles, was zur App gehört, sofort merken: Bricht jemand ab, räumt das Skript es auf.
+    $serverUp = Wait-Until -TimeoutSeconds 90 -Condition {
         $now = @(Get-SfProcess)
-        (@($now | Where-Object { $_.Kind -like 'Browser*' }).Count -gt 0) -and
-        (@($now | Where-Object { $_.Kind -like 'Server*' }).Count -gt 0)
+        foreach ($p in $now) { Add-Leftover $p }
+        @($now | Where-Object { $_.Kind -like 'Server*' }).Count -gt 0
     }
+    # Chromium-Browser (Edge, Chrome, …) mit eigenem Profil; bei Firefox oder dem Standardbrowser
+    # gibt es keinen solchen Prozess.
+    $windowUp = $serverUp -and (Wait-Until -TimeoutSeconds 30 -Condition {
+            $now = @(Get-SfProcess)
+            foreach ($p in $now) { Add-Leftover $p }
+            @($now | Where-Object { $_.Kind -like 'Browser*' }).Count -gt 0
+        })
     Restore-ProcessEnv
     $running = @(Get-SfProcess)
-    foreach ($p in $running) { $script:LeftoverIds.Add($p.Id) }
+    foreach ($p in $running) { Add-Leftover $p }
+    if ($serverUp -and -not $windowUp) {
+        Add-Text $Section 'Es wurde kein Browser mit eigenem Profil erkannt (Firefox, Standardbrowser oder ein Browser ohne Profilordner). Das Fenster muss von Hand geschlossen werden.'
+    }
     Add-Block $Section 'Prozesse bei geöffnetem Fenster' (Format-ProcessTable $running)
     $log = Join-Path (Get-ConfigDir) 'app.log'
 
-    if (-not $isUp) {
+    if (-not $serverUp) {
         Add-Block $Section 'app.log' (Get-LogTail $log)
-        Complete-Section $Section 'FEHLER' 'Server oder Fenster waren nach 90 s nicht da (siehe app.log).'
+        Complete-Section $Section 'FEHLER' 'Der Server war nach 90 s nicht da (siehe app.log).'
         return
     }
 
@@ -703,37 +738,44 @@ function Test-AppEnde {
     # Starter das Schließen als Übergabe an eine laufende Instanz.
     Start-Sleep -Seconds 8
 
-    # Fenster schließen wie mit dem Schließen-Knopf (WM_CLOSE).
-    $closeAttempted = $false
+    # Fenster schließen wie mit dem Schließen-Knopf (WM_CLOSE). „Geschlossen“ heißt: Das Fenster
+    # ist weg (Prozess beendet oder kein Fensterhandle mehr). Bleiben Browserprozesse zurück, ist
+    # das gerade das, was die Prüfung danach misst.
+    $windowClosed = $false
+    $closedBy = ''
     $browserMain = @(Get-SfProcess | Where-Object {
             $_.Kind -like 'Browser*' -and $_.CommandLine -match '--app=' -and $_.CommandLine -notmatch '--type='
         } | Select-Object -First 1)
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
     if ($browserMain.Count -gt 0) {
-        $proc = Get-Process -Id $browserMain[0].Id -ErrorAction SilentlyContinue
+        $mainId = [int]$browserMain[0].Id
+        $proc = Get-Process -Id $mainId -ErrorAction SilentlyContinue
         if ($proc -and $proc.MainWindowHandle -ne 0) {
-            $closeAttempted = $proc.CloseMainWindow()
+            [void]$proc.CloseMainWindow()
+            $windowClosed = Wait-Until -TimeoutSeconds 15 -Condition {
+                $current = Get-Process -Id $mainId -ErrorAction SilentlyContinue
+                (-not $current) -or ($current.MainWindowHandle -eq 0)
+            }
+            if ($windowClosed) { $closedBy = 'Skript' }
         }
     }
-    $watch = [System.Diagnostics.Stopwatch]::StartNew()
-    $browserGone = $false
-    if ($closeAttempted) {
-        Write-Line 'Fenster wurde per Skript geschlossen.'
-        $browserGone = Wait-Until -TimeoutSeconds 15 -Condition { @(Get-SfProcess | Where-Object { $_.Kind -like 'Browser*' }).Count -eq 0 }
-    }
-    if (-not $browserGone -and (Test-Interactive)) {
-        Write-Line 'Das Fenster ließ sich nicht automatisch schließen.' 'Yellow'
+    if (-not $windowClosed -and (Test-Interactive)) {
+        if ($browserMain.Count -eq 0) {
+            Write-Line 'Es wurde kein Fenster mit eigenem Browserprofil erkannt (Firefox oder Standardbrowser?).' 'Yellow'
+        } else {
+            Write-Line 'Das Fenster ließ sich nicht automatisch schließen.' 'Yellow'
+        }
         Write-Line 'Bitte das App-Fenster jetzt mit dem Schließen-Knopf (X) schließen.' 'Yellow'
         [void](Read-Host 'Danach Enter drücken')
         $watch.Restart()
-        $closeAttempted = $true
-        Add-Text $Section 'Das Fenster wurde von Hand geschlossen.'
-    } elseif ($closeAttempted) {
-        Add-Text $Section 'Das Fenster wurde per Skript geschlossen (CloseMainWindow, gleich wie der Schließen-Knopf).'
+        $windowClosed = $true
+        $closedBy = 'Hand'
     }
-    if (-not $closeAttempted) {
-        Complete-Section $Section 'HINWEIS' 'Fenster konnte nicht geschlossen werden (ohne Rückfragen); Ende der App nicht geprüft.'
+    if (-not $windowClosed) {
+        Complete-Section $Section 'HINWEIS' 'Das Fenster ließ sich ohne Rückfragen nicht schließen; das Ende der App wurde nicht geprüft.'
         return
     }
+    Add-Text $Section $(if ($closedBy -eq 'Skript') { 'Das Fenster wurde per Skript geschlossen (CloseMainWindow, wie der Schließen-Knopf).' } else { 'Das Fenster wurde von Hand geschlossen.' })
 
     # Warten und beobachten, wann welcher Prozess endet. Gezählt wird alles, was zur App gehört,
     # auch später Gestartetes (z. B. eine Aktualisierung mit uv); vorher lief nichts.
@@ -809,7 +851,7 @@ function Test-UvTool {
         Complete-Section $Section 'OK' ('uv-Tool sprintforecast v{0} installiert; Aktualisierung nicht ausgeführt.' -f $installed)
         return
     }
-    $answer = Read-Host 'uv tool upgrade sprintforecast jetzt ausführen? Die App muss geschlossen sein. [j/N]'
+    $answer = Read-Host 'uv tool upgrade --reinstall sprintforecast jetzt ausführen (so aktualisiert die App)? Sie muss geschlossen sein. [j/N]'
     if (([string]$answer).Trim().ToLowerInvariant() -notin @('j', 'ja', 'y', 'yes')) {
         Complete-Section $Section 'OK' ('uv-Tool sprintforecast v{0} installiert; Aktualisierung auf Wunsch nicht ausgeführt.' -f $installed)
         return
@@ -822,15 +864,15 @@ function Test-UvTool {
             return
         }
     }
-    $up = Invoke-Native -FilePath $script:Uv -Arguments @('tool', 'upgrade', 'sprintforecast') -TimeoutSeconds 600
-    Add-Block $Section 'uv tool upgrade sprintforecast' (Format-Native $up)
+    $up = Invoke-Native -FilePath $script:Uv -Arguments @('tool', 'upgrade', '--reinstall', 'sprintforecast') -TimeoutSeconds 600
+    Add-Block $Section 'uv tool upgrade --reinstall sprintforecast' (Format-Native $up)
     $after = Invoke-Native -FilePath $script:Uv -Arguments @('tool', 'list') -TimeoutSeconds 60
     Add-Block $Section 'uv tool list (danach)' (Format-Native $after)
     Add-Block $Section 'update.log (letzte Zeilen)' (Get-LogTail (Join-Path (Get-ConfigDir) 'update.log') 30)
     if ($up.ExitCode -eq 0) {
-        Complete-Section $Section 'OK' 'uv tool upgrade lief ohne Fehler.'
+        Complete-Section $Section 'OK' 'uv tool upgrade --reinstall lief ohne Fehler.'
     } else {
-        Complete-Section $Section 'FEHLER' ('uv tool upgrade endete mit Exitcode {0} (bei "os error 32" hielt noch ein Prozess Dateien offen).' -f $up.ExitCode)
+        Complete-Section $Section 'FEHLER' ('uv tool upgrade --reinstall endete mit Exitcode {0} (bei "os error 32" hielt noch ein Prozess Dateien offen).' -f $up.ExitCode)
     }
 }
 
@@ -899,6 +941,9 @@ function Test-Anmeldung {
         if (-not $url) { continue }
         $r = Invoke-Git -Directory '' -Arguments @('ls-remote', '--symref', '--', $url, 'HEAD') -TimeoutSeconds 90
         Add-Block $Section ('git ls-remote ({0}) {1}' -f $label, $url) (Format-Native $r)
+        if ($r.TimedOut -and $label -eq 'SSH') {
+            Add-Text $Section 'Zeitüberschreitung bei SSH: Vermutlich wartete SSH auf eine Eingabe, die dieses Skript nicht stellen kann (Passwortsatz des Schlüssels, Bestätigung des Servers beim ersten Verbinden). Einmal von Hand `ssh -T <benutzer>@<server>` ausführen und bestätigen, dann das Skript wiederholen.'
+        }
         if ($r.ExitCode -eq 0) { $passed += $label } else { $failed += $label }
     }
     $summary = if ($failed.Count -gt 0) {
@@ -934,7 +979,7 @@ function Test-Zeilenenden {
         GIT_COMMITTER_NAME = 'sprintforecast Windows-Test'; GIT_COMMITTER_EMAIL = 'test@example.invalid'
     }
     [void](Invoke-Git -Directory $origin -Arguments @('add', '-A'))
-    $commit = Invoke-Git -Directory $origin -Arguments @('commit', '-q', '-m', 'Testdaten') -Environment $identity
+    $commit = Invoke-Git -Directory $origin -Arguments @('-c', 'commit.gpgsign=false', 'commit', '-q', '--no-verify', '-m', 'Testdaten') -Environment $identity
     Add-Block $Section 'git commit im Daten-Repository' (Format-Native $commit)
     if ($commit.ExitCode -ne 0) {
         Complete-Section $Section 'FEHLER' 'Das Testrepository konnte nicht committet werden.'
@@ -1046,7 +1091,9 @@ function Test-Sperre {
             $verdict = 'OK'
         } else {
             $lines += ('Speichern scheiterte mit {0}: {1}' -f $outcome.type, $outcome.message)
-            $verdict = if ($outcome.type -in @('PermissionError', 'OSError')) { 'HINWEIS' } else { 'OK' }
+            $verdict = 'FEHLER'  # unerwartete Art von Fehler
+            if ($outcome.type -in @('PermissionError', 'OSError')) { $verdict = 'HINWEIS' }
+            if ($outcome.type -in @('DataError', 'ConflictError', 'GitError')) { $verdict = 'OK' }
         }
         $lines += ('Datei unverändert: {0}' -f $(if ($before -eq $after -or ($null -ne $outcome -and $outcome.ok)) { 'ja' } else { 'NEIN' }))
         $lines += ('Zwischendateien (*.tmp) übrig: {0}' -f $leftovers.Count)
@@ -1069,6 +1116,27 @@ function Test-Sperre {
 # Prüfung 6: Symlink-Recht
 # ------------------------------------------------------------------------------------------
 
+function New-SymbolicLinkProbe {
+    # Legt eine symbolische Verknüpfung an. Windows PowerShell 5.1 verlangt für New-Item auch im
+    # Entwicklermodus Administratorrechte; "mklink" (cmd) nicht. Darum zuerst mklink, dann New-Item.
+    param([string]$Link, [string]$Target)
+    $messages = @()
+    if ($script:OnWindows -and $env:ComSpec) {
+        $r = Invoke-Native -FilePath $env:ComSpec -Arguments @('/c', 'mklink', $Link, $Target) -TimeoutSeconds 30
+        if ($r.ExitCode -eq 0 -and (Test-Path -LiteralPath $Link)) {
+            return [pscustomobject]@{ Ok = $true; Method = 'mklink'; Message = '' }
+        }
+        $messages += ('mklink: ' + (Format-Native $r))
+    }
+    try {
+        [void](New-Item -ItemType SymbolicLink -Path $Link -Target $Target -ErrorAction Stop)
+        return [pscustomobject]@{ Ok = $true; Method = 'New-Item'; Message = '' }
+    } catch {
+        $messages += ('New-Item: ' + $_.Exception.Message)
+    }
+    return [pscustomobject]@{ Ok = $false; Method = ''; Message = ($messages -join "`n") }
+}
+
 function Test-Symlink {
     param($Section)
     $dir = Join-Path (Get-TempRoot) 'symlink'
@@ -1088,16 +1156,17 @@ function Test-Symlink {
         }
     }
     Add-Text $Section ('Administrator: {0}; Entwicklermodus: {1}' -f $admin, $developerMode)
-    try {
-        [void](New-Item -ItemType SymbolicLink -Path $link -Target $target -ErrorAction Stop)
-        $ok = (Get-Item -LiteralPath $link).LinkType -eq 'SymbolicLink'
-        if ($ok) {
-            Complete-Section $Section 'OK' 'Symbolische Verknüpfungen dürfen angelegt werden (der Symlink-Test der Entwicklung läuft).'
+    $probe = New-SymbolicLinkProbe -Link $link -Target $target
+    if ($probe.Ok) {
+        $isLink = $false
+        try { $isLink = ((Get-Item -LiteralPath $link -Force).LinkType -eq 'SymbolicLink') } catch { $isLink = $false }
+        if ($isLink) {
+            Complete-Section $Section 'OK' ('Symbolische Verknüpfungen dürfen angelegt werden ({0}); der Symlink-Test der Entwicklung läuft.' -f $probe.Method)
         } else {
             Complete-Section $Section 'HINWEIS' 'Verknüpfung angelegt, aber nicht als SymbolicLink erkannt.'
         }
-    } catch {
-        Add-Block $Section 'Fehlermeldung' $_.Exception.Message
+    } else {
+        Add-Block $Section 'Fehlermeldungen' $probe.Message
         Complete-Section $Section 'HINWEIS' 'Kein Recht für symbolische Verknüpfungen (normal ohne Administrator/Entwicklermodus). Die App braucht es nicht; nur ein Test der Entwicklung wird dann übersprungen bzw. scheitert.'
     }
 }
@@ -1115,12 +1184,12 @@ function Test-Interaktiv {
     $items = @(
         @{
             Id = 'netz'; Title = 'Netz getrennt'
-            Do = 'Trennen Sie das Netzwerk (WLAN aus oder Flugmodus). Öffnen Sie die App mit Ihrem echten Daten-Repository (Starter oder Verknüpfung) und lösen Sie dort Abgleichen bzw. Hochladen aus.'
+            Do = 'Trennen Sie das Netzwerk (WLAN aus oder Flugmodus). Öffnen Sie die App mit Ihrem echten Daten-Repository (Starter oder Verknüpfung) und lösen Sie dort Abgleichen bzw. Hochladen aus. Schließen Sie die App danach und verbinden Sie das Netz wieder, bevor Sie hier weitermachen.'
             Ask = 'Erscheint eine verständliche Meldung (keine Fehlerseite, kein Traceback), und lässt sich die App danach weiter bedienen?'
         },
         @{
             Id = 'branch'; Title = 'Geschützter Branch'
-            Do = 'Speichern Sie in der App eine kleine Änderung in einem Repository mit geschütztem Branch (z. B. main) und laden Sie sie hoch.'
+            Do = 'Besser in einem Test-Repository: Speichern Sie in der App eine kleine Änderung in einem Repository mit geschütztem Branch (z. B. main) und laden Sie sie hoch. In einem echten Repository bleibt die Änderung als Commit zurück.'
             Ask = 'Nennt die Meldung den Grund (Branch geschützt oder keine Schreibrechte) und den nächsten Schritt, und bleibt Ihre lokale Änderung erhalten?'
         },
         @{ Id = 'start'; Title = 'Optik: Startseite'; Do = 'Öffnen Sie die Startseite.'; Ask = 'Drei Aufgaben-Kacheln, jede führt zur passenden Seite, Text gut lesbar?' },
@@ -1130,7 +1199,7 @@ function Test-Interaktiv {
         @{ Id = 'konflikt'; Title = 'Optik: Konfliktseite'; Do = 'Falls ein Konflikt vorliegt oder erzeugt wurde: öffnen Sie "Konflikte lösen".'; Ask = 'Ist verständlich, was passiert ist und was Sie tun können?' },
         @{ Id = 'whatif'; Title = 'Optik: Was-wäre-wenn und Historie'; Do = 'Öffnen Sie Was-wäre-wenn und die Prognosen-Historie.'; Ask = 'Übersichtlich und verständlich?' },
         @{ Id = 'kalender'; Title = 'Optik: Kalendertexte und Rechenweg'; Do = 'Öffnen Sie den Sprintkalender und den Rechenweg der Kapazität.'; Ask = 'Texte nach Arbeitswoche verständlich, Rechenweg nachvollziehbar?' },
-        @{ Id = 'englisch'; Title = 'Optik: englische Oberfläche'; Do = 'Stellen Sie die Sprache auf Englisch (sprintforecast sprache en oder in den Einstellungen) und sehen Sie sich die Seiten an.'; Ask = 'Alles übersetzt, keine deutschen Reste, Layout nicht gebrochen?' }
+        @{ Id = 'englisch'; Title = 'Optik: englische Oberfläche'; Do = 'Stellen Sie die Sprache in der Seitenleiste (Sprache / Language) auf Englisch und sehen Sie sich die Seiten an. Danach wieder auf Deutsch stellen: Die Wahl bleibt in den Einstellungen gespeichert.'; Ask = 'Alles übersetzt, keine deutschen Reste, Layout nicht gebrochen?' }
     )
     $worst = 'OK'
     $answered = 0
@@ -1163,8 +1232,9 @@ function Clear-TestData {
     }
     $script:Locks.Clear()
     if ($script:OnWindows) {
-        foreach ($id in $script:LeftoverIds) {
-            if (Get-Process -Id $id -ErrorAction SilentlyContinue) {
+        foreach ($id in @($script:Leftover.Keys)) {
+            $created = Get-ProcessCreated -ProcessId $id
+            if ($created -and $created -eq $script:Leftover[$id]) {
                 Write-Line ('Beende übrig gebliebenen Prozess {0}.' -f $id) 'Yellow'
                 Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
             }
@@ -1193,9 +1263,26 @@ function Clear-TestData {
 # Zum Testen einzelner Funktionen: ". .\scripts\windows-tests.ps1" lädt nur die Funktionen.
 if ($MyInvocation.InvocationName -eq '.') { return }
 
-if (-not $Bericht) {
-    $Bericht = Join-Path (Get-Location).Path ('sprintforecast-windows-bericht-{0}.md' -f (Get-Date -Format 'yyyyMMdd-HHmm'))
+function Resolve-ReportPath {
+    # Vollständiger Pfad (ein relativer gilt zum aktuellen Ordner von PowerShell, nicht des
+    # Prozesses) und eine Schreibprobe vorab: Ein Fehler soll vor den Prüfungen auffallen, nicht
+    # erst danach den Bericht kosten. Ist der Ort nicht beschreibbar, dient der Temp-Ordner.
+    param([string]$Path)
+    $here = (Get-Location).ProviderPath
+    if (-not $Path) { $Path = 'sprintforecast-windows-bericht-{0}.md' -f (Get-Date -Format 'yyyyMMdd-HHmm') }
+    if (-not [IO.Path]::IsPathRooted($Path)) { $Path = Join-Path $here $Path }
+    $Path = [IO.Path]::GetFullPath($Path)
+    try {
+        [IO.File]::WriteAllText($Path, '')
+        return $Path
+    } catch {
+        $fallback = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetFileName($Path))
+        Write-Line ('Der Bericht kann nicht nach {0} geschrieben werden ({1}); er landet in {2}.' -f $Path, $_.Exception.Message, $fallback) 'Yellow'
+        return $fallback
+    }
 }
+
+$Bericht = Resolve-ReportPath -Path $Bericht
 
 try {
     Write-Line 'sprintforecast – Windows-Prüfung' 'Cyan'
@@ -1216,6 +1303,9 @@ try {
     }
 } finally {
     try { Clear-TestData } catch { Write-Line ('Aufräumen: ' + $_.Exception.Message) 'Yellow' }
+    if ($script:Sections.Count -eq 0) {
+        Remove-Item -LiteralPath $Bericht -ErrorAction SilentlyContinue  # nur die Schreibprobe lag da
+    }
     if (-not $script:ReportWritten -and $script:Sections.Count -gt 0) {
         try {
             Write-Report -Path $Bericht
