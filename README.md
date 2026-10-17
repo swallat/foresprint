@@ -184,12 +184,32 @@ Kommandozeile und prüft vor jedem Speichern:
 
 Die Startseite ist weiterhin der **Forecast** („Wie viel passt in den nächsten Sprint?“).
 
-**Speichern und Committen:** Jede Seite speichert in die YAML-Dateien. Die Seitenleiste zeigt
-unter **Git** die offenen Änderungen im Datenverzeichnis; **Änderungen committen** übernimmt
-sie mit frei wählbarer Nachricht (nach einem Review optional mit Tag `TEAM/SPRINT`).
-Committet wird nur das Datenverzeichnis, Tabellenkalkulationen (`*.xlsx` …) werden abgelehnt. Gepusht wird
-weiterhin von dir. Der Git-Stand wird kurz (5 Sekunden) zwischengespeichert; Änderungen außerhalb der
-App (Editor, Terminal) erscheinen daher mit kleiner Verzögerung, eigene Speicherungen sofort.
+**Speichern, Committen und Teilen:** Jede Seite speichert in die YAML-Dateien. Die Seitenleiste
+zeigt unter **Git** den Stand gegenüber dem Server (noch nicht geteilt, neu von anderen, offline,
+wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
+
+- **Speichern und teilen** sichert zuerst die eigenen Änderungen (Commit, nach einem Review
+  optional mit Tag `TEAM/SPRINT`), holt dann den Stand der anderen, führt beides zusammen und lädt
+  es hoch. Danach steht in der Seitenleiste, was von anderen übernommen wurde (wer, wann, welche
+  Dateien). Bei einem Wettlauf (jemand lädt zwischendurch hoch) wird erneut geholt und
+  hochgeladen. Ein Konflikt (dieselbe Stelle von zwei Personen geändert) bricht das
+  Zusammenführen ab; nichts geht verloren, der eigene Commit bleibt erhalten. Die Auflösung in
+  der App folgt in einem eigenen Schritt.
+- **Stand prüfen** fragt den Server, ob es Neues gibt, und ändert nichts. Der Serverstand wird
+  nur dabei und beim Teilen abgefragt.
+- **Änderungen committen** sichert nur lokal, ohne zu teilen.
+- Fehlerfälle erklärt die App verständlich mit nächstem Schritt: Server nicht erreichbar,
+  Hochladen abgelehnt (inzwischen Neues da bzw. vom Server verboten), fehlende Anmeldung
+  (https-Zugangstoken bzw. SSH-Schlüssel, Credential Manager), Git nicht installiert, gesperrte
+  Datei, fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und
+  detached HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die
+  Anmeldung des Rechners (Credential Manager, SSH-Agent) wird genutzt.
+
+Committet wird nur das Datenverzeichnis, Tabellenkalkulationen (`*.xlsx` …) werden abgelehnt. Das
+Modell ist „ein Branch, immer synchron halten“; Branches, Rebase, Force-Push und Stash gehören
+bewusst nicht zur App. Der Git-Stand wird kurz (5 Sekunden) zwischengespeichert; Änderungen
+außerhalb der App (Editor, Terminal) erscheinen daher mit kleiner Verzögerung, eigene
+Speicherungen sofort.
 
 ## Ablauf im Sprint
 

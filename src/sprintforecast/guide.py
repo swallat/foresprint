@@ -333,6 +333,69 @@ TERMS: list[tuple[str, str]] = [
     ),
 ]
 
+# Zusammenarbeit über Git: Erklärungen für die Hilfeseite (Titel, Text).
+GIT_HELP: list[tuple[str, str]] = [
+    (
+        "Speichern und teilen",
+        "Der Knopf in der Seitenleiste sichert zuerst deine Änderungen (als Commit), holt dann "
+        "die Änderungen der anderen vom Server, führt beides zusammen und lädt das Ergebnis "
+        "hoch. Deine eigenen Änderungen sind dadurch immer gesichert, bevor etwas Fremdes "
+        "dazukommt. Es gilt das einfache Modell „ein Branch, immer synchron halten“.",
+    ),
+    (
+        "Stand in der Seitenleiste",
+        "„noch nicht geteilt“ sind eigene Commits, die der Server noch nicht kennt; „neu von "
+        "anderen“ sind Commits auf dem Server, die du noch nicht hast. Der Serverstand wird "
+        "nur beim Klick auf „Stand prüfen“ und beim Teilen abgefragt; die Angabe „geprüft vor "
+        "… Min.“ zeigt, wie aktuell er ist.",
+    ),
+    (
+        "Änderungen anderer",
+        "Vor dem Teilen listet die Seitenleiste, was andere seit deinem letzten Abgleich "
+        "geändert haben (wer, wann, welche Dateien). Nach dem Teilen steht dort, was "
+        "übernommen wurde.",
+    ),
+    (
+        "Konflikt",
+        "Haben zwei Personen dieselbe Stelle derselben Datei geändert, bricht die App das "
+        "Zusammenführen ab. Nichts geht verloren: Deine Änderungen bleiben als Commit "
+        "erhalten, der Server bleibt unverändert. Die Auflösung in der App folgt in einer "
+        "späteren Version.",
+    ),
+    (
+        "Server nicht erreichbar (offline)",
+        "Deine Änderungen werden trotzdem lokal gesichert. Später erneut „Speichern und "
+        "teilen“ wählen, wenn Internet bzw. VPN wieder da ist.",
+    ),
+    (
+        "Anmeldung",
+        "Die App nutzt die Anmeldung deines Rechners und fragt selbst nicht nach einem "
+        "Kennwort. Bei https braucht der Server meist einen Zugangstoken (GitHub: Personal "
+        "access token, GitLab: Zugriffstoken mit „write_repository“), den du einmal im "
+        "Anmeldedienst deines Rechners hinterlegst (Windows: Anmeldeinformationsverwaltung, "
+        "macOS: Schlüsselbund). Bei SSH muss der Schlüssel beim Server hinterlegt und im "
+        "ssh-agent verfügbar sein.",
+    ),
+    (
+        "Name und E-Mail-Adresse",
+        "Git braucht beides für jeden Commit. Fehlt es, fragt die App danach und hinterlegt es "
+        "für deinen Benutzer.",
+    ),
+    (
+        "Gesperrte Datei",
+        "Benutzt ein anderes Programm (Git-Client, Editor, Virenscanner, Cloud-Ordner) eine "
+        "Datei im Repository, kann Git sie nicht ändern. Andere Programme schließen und "
+        "erneut versuchen.",
+    ),
+    (
+        "Unvollständiges Zusammenführen, detached HEAD",
+        "Ist ein früheres Zusammenführen unterbrochen worden, bietet die Seitenleiste „Zusammen"
+        "führen abbrechen“ an. Steht das Repository auf keinem Branch (detached HEAD), führt "
+        "„Zurück auf den Branch“ zurück; Commits ohne Branch werden vorher auf einem "
+        "Rettungsbranch gesichert.",
+    ),
+]
+
 CAPACITY_SOURCES: list[tuple[str, str]] = [
     ("erfasst", "Wert steht in der Sprintdatei (beim Review eingefroren oder manuell)."),
     ("Personenliste", "Aus Personen, Feiertagen und Fehltagen berechnet."),
