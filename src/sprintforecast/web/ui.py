@@ -183,6 +183,7 @@ from sprintforecast.web.logic import (
     record_prognoses,
     resettable_sprints,
     sprints_to_save,
+    start_tasks,
     whatif_forecast,
     with_people,
     with_sprints,
@@ -201,6 +202,7 @@ else:  # erst beim ersten Zugriff laden (Kaltstart)
 PAGES: dict[str, dict[str, tuple[str, str]]] = {
     # Aufgaben im Sprint in zeitlicher Reihenfolge: vorbereiten, Planning, abschließen.
     "Aufgaben": {
+        "start": ("Start", ":material/home:"),
         "fehltage": ("Sprint vorbereiten: Fehltage", ":material/event_busy:"),
         "vorplanung": ("PO-Vorplanung", ":material/groups:"),
         "planning": ("Planning", ":material/edit_note:"),
@@ -461,6 +463,47 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
         st.dataframe(pd.DataFrame(rows), hide_index=True)
 
 
+START_TASKS = {
+    "prepare": ("Sprint vorbereiten", ":material/event_busy:"),
+    "planning": ("Planning", ":material/edit_note:"),
+    "review": ("Sprint abschließen", ":material/task_alt:"),
+}
+
+
+def _start_clicked(page: str, sprint_id: str | None) -> None:
+    if sprint_id is not None:
+        st.session_state[BOARD_SPRINT] = sprint_id  # die Zielseite öffnet diesen Sprint
+    st.session_state["start-goto"] = page
+
+
+def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Einstieg über die drei Aufgaben; jede führt zur nächsten sinnvollen Seite."""
+    st.header(t("Was möchtest du tun?"))
+    if (goto := st.session_state.pop("start-goto", None)) is not None:
+        st.switch_page(page_path(goto))
+    tasks = start_tasks(fc, "vorplanung" in st.session_state.get("enabled-pages", PAGE_INFO))
+    for col, task in zip(st.columns(len(tasks)), tasks, strict=True):
+        title, icon = START_TASKS[task.key]
+        with col, st.container(border=True):
+            st.subheader(f"{'✅' if task.done else '⬜'} {t(title)}")
+            st.write(task.hint)
+            st.button(
+                t("Öffnen"),
+                key=f"start-{task.key}",
+                icon=icon,
+                type="secondary" if task.done else "primary",
+                on_click=_start_clicked,
+                args=(task.page, task.sprint_id),
+            )
+    st.caption(
+        t(
+            "Danach: den **Forecast** ansehen, mit **Analyse** und **Produktverteilung** auswerten "
+            "oder unter **Team verwalten** Sprintkalender, Personen und Produkte pflegen."
+        )
+    )
+    page_link("forecast")
+
+
 def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     team = data.team
     unit = team.unit.value
@@ -598,7 +641,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "Scope Creep": st.column_config.TextColumn(help=general("scope_creep")),
         },
     )
-    _formula_expander(fc, history + [e for e in upcoming if e not in history])
+    _formula_expander(fc)
     chart = _chart(fc, history + [e for e in upcoming if e not in history], unit)
     if chart is None:
         st.info(
@@ -674,17 +717,15 @@ def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
 
 
 @st.fragment
-def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
+def _formula_expander(fc: Forecast) -> None:
     """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
-    if not entries:
+    if not sprint_options(fc):
         return
     with st.expander(t("Rechenweg: Formeln"), icon=":material/function:"):
-        ids = [e.sprint.id for e in entries]
-        default = fc.default_entry("planning")
-        index = ids.index(default.sprint.id) if default and default.sprint.id in ids else 0
-        chosen = st.selectbox("Sprint", ids, index=index, key="formula-sprint")
-        entry = next(e for e in entries if e.sprint.id == chosen)
-        _rechenweg(fc, entry)
+        sprint = sprint_select(fc.data, fc, "formula-sprint")
+        entry = fc.entry(sprint.id) if sprint else None
+        if entry is not None:
+            _rechenweg(fc, entry)
 
 
 def _rechenweg(fc: Forecast, entry: TimelineEntry) -> None:
@@ -1035,38 +1076,35 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
 
 
-# Der auf einem der Boards bewusst gewählte Sprint gilt auch auf den anderen Boards.
+# Der irgendwo bewusst gewählte Sprint gilt auf allen Seiten, die einen Sprint wählen.
 BOARD_SPRINT = "board-sprint"
 
 
-def _sprint_choice(
-    data: TeamData,
-    fc: Forecast,
-    purpose: str,
-    label: str,
-    key: str | None = None,
-    shared: bool = False,
-) -> Sprint | None:
-    options = [e.sprint.id for e in fc.history(6)] + [e.sprint.id for e in fc.upcoming()]
+def sprint_options(fc: Forecast) -> list[str]:
+    """Wählbare Sprints in fester Reihenfolge: letzte abgeschlossene, laufender, kommende."""
+    return [e.sprint.id for e in fc.history(6)] + [e.sprint.id for e in fc.upcoming()]
+
+
+def sprint_select(data: TeamData, fc: Forecast, key: str) -> Sprint | None:
+    """Gemeinsame Sprintauswahl aller Seiten: gleiche Beschriftung und Reihenfolge, Vorgabe ist
+    der zuletzt gewählte, sonst der laufende Sprint (ohne laufenden: der nächste offene)."""
+    options = sprint_options(fc)
     if not options:
         return None
-    widget_key = key or f"{purpose}-sprint"
-    wanted = st.session_state.get(BOARD_SPRINT) if shared else None
+    wanted = st.session_state.get(BOARD_SPRINT)
     kwargs: dict[str, Any] = {}
     if wanted in options:
-        st.session_state[widget_key] = wanted
+        st.session_state[key] = wanted
     else:
-        default = fc.default_entry(purpose)
+        default = fc.current or fc.default_entry("planning")
         kwargs["index"] = (
             options.index(default.sprint.id) if default and default.sprint.id in options else 0
         )
 
     def remember() -> None:
-        st.session_state[BOARD_SPRINT] = st.session_state[widget_key]
+        st.session_state[BOARD_SPRINT] = st.session_state[key]
 
-    chosen = st.selectbox(
-        label, options, key=widget_key, on_change=remember if shared else None, **kwargs
-    )
+    chosen = st.selectbox(t("Sprint"), options, key=key, on_change=remember, **kwargs)
     return copy.deepcopy(find_sprint(data, chosen))
 
 
@@ -1279,6 +1317,38 @@ def _product_editor(
     )
     st.caption(_distribution_caption(d, unit))
     return edited.to_dict("records")
+
+
+def _product_table(d: Distribution, unit: str) -> bool:
+    """Schreibgeschützte Tabelle Produkt × Standard/Vorplanung/Planning/Erledigt (Auswertung).
+    False, wenn der Sprint keine Produkte hat."""
+    if not d.rows:
+        st.info(
+            t(
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
+                "Produkte** anlegen (optional)."
+            )
+        )
+        return False
+    show_production = d.features.production and (
+        d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
+    )
+    columns = dict(MEASURES) | (PRODUCTION_MEASURES if show_production else {})
+    frame = pd.DataFrame(product_values_table(d))
+    frame = frame.drop(columns=["_id", *([] if d.features.po else ["PO"])])
+    frame = frame[["Produkt", *(["PO"] if d.features.po else []), *columns.values()]]
+    for label in columns.values():
+        frame[label] = frame[label].astype("float64").round(2)
+    st.dataframe(
+        frame,
+        hide_index=True,
+        column_config={
+            label: st.column_config.NumberColumn(f"{measure_label(m)} ({unit})", format="%.2f")
+            for m, label in columns.items()
+        },
+    )
+    st.caption(_distribution_caption(d, unit))
+    return True
 
 
 def _product_chart(d: Distribution, unit: str) -> alt.Chart | None:
@@ -1507,7 +1577,7 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
 def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Planning")
     show_flash()
-    sprint = _sprint_choice(data, fc, "planning", "Sprint", shared=True)
+    sprint = sprint_select(data, fc, "planning-sprint")
     if sprint is None:
         return
     _board_nav(data, sprint, "planning")
@@ -1959,7 +2029,7 @@ def _review_prognosis_hint(sprint: Sprint, unit: str) -> None:
 
 def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Review")
-    sprint = _sprint_choice(data, fc, "review", "Sprint", shared=True)
+    sprint = sprint_select(data, fc, "review-sprint")
     if sprint is None:
         return
     _board_nav(data, sprint, "review")
@@ -2330,7 +2400,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
         page_link("produktliste", t("Produkte anlegen"))
         return
-    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="vorplanung-sprint", shared=True)
+    sprint = sprint_select(data, fc, "vorplanung-sprint")
     entry = fc.entry(sprint.id) if sprint else None
     if sprint is None or entry is None:
         return
@@ -2550,7 +2620,7 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
         page_link("produktliste", t("Produkte anlegen"))
         return
-    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="products-sprint")
+    sprint = sprint_select(data, fc, "products-sprint")
     if sprint is None:
         return
     entry = fc.entry(sprint.id)
@@ -2558,24 +2628,18 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
         return
     st.caption(
         t(
-            "Die **PO-Vorplanung** tragen die POs vor dem Planning ein, **Planning** wird im "
-            "Sprint Planning gefüllt, **Erledigt** im Review – jeweils auf den Seiten der "
-            "**Boards**. Alles lässt sich auch hier pflegen."
+            "Reine Auswertung: Die Werte werden nicht hier, sondern im Ablauf erfasst – die "
+            "**PO-Vorplanung** vor dem Planning, **Planning** im Sprint Planning, **Erledigt** "
+            "im Review."
         )
     )
+    links = st.columns(3)
+    for col, key in zip(links, BOARDS, strict=True):
+        with col:
+            page_link(key, t("Ändern: {page}", page=t(PAGE_INFO[key][0])))
     d = distribution(fc, entry)
-    editable = list(MEASURES.keys() - {"standard"}) + list(PRODUCTION_MEASURES)
-    rows = _product_editor(d, editable, f"products-{sprint.id}", unit)
-    if rows is not None:
-        base = _base_sprint(data, sprint)
-        after = apply_product_values(base, rows, editable)
-        preview = with_sprints(data, [after])
-        fc_preview = _preview_forecast(data, fc, base, after)
-        d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+    if _product_table(d, unit):
         _production_hint(d, data, unit)
-        changed = after.products != base.products
-        if st.button(t("Produktwerte speichern"), type="primary", disabled=not changed):
-            save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
         if chart := _product_chart(d, unit):
             st.altair_chart(chart, width="stretch")
         if po_rows := (by_po(d) if data.team.features.po else []):
@@ -3925,6 +3989,7 @@ def page_history(repo: Repository) -> None:
 
 
 TEAM_PAGES = {
+    "start": page_start,
     "forecast": page_forecast,
     "fehltage": page_absences,
     "sprints": page_calendar,
