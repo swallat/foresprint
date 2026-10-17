@@ -1937,11 +1937,16 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
             + "[/dim]"
         )
     if data.sprint(s.id) is None:
-        console.print(
-            "[yellow]"
-            + t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
-            + "[/yellow]"
+        hint = (
+            t(
+                "Noch keine Sprintdatei – die Prognose rechnet bis dahin mit Kalender und "
+                "Personenliste; die unbekannten Fehltage werden nach der Historie geschätzt "
+                "(ohne Historie ohne Abzug)."
+            )
+            if data.people
+            else t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
         )
+        console.print(f"[yellow]{hint}[/yellow]")
 
 
 # Erweiterungen (z. B. Import-Plugins) registrieren ihre Befehle zuletzt.
