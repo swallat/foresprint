@@ -369,7 +369,7 @@ def test_setup_when_no_data_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert not any("Kein Datenordner gefunden" in w.value for w in at.warning)
 
 
-def test_choose_folder_requires_git(
+def test_choose_folder_without_git_offers_init_or_use_without_git(
     tmp_path: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     at = start(data_dir, monkeypatch)
@@ -378,9 +378,43 @@ def test_choose_folder_requires_git(
     plain.mkdir()
     at.text_input(key="data-path").set_value(str(plain)).run()
     click(at, "Übernehmen")
-    assert any("in keinem Git-Repository" in e.value for e in at.error)
+    assert any("in keinem Git-Repository" in w.value for w in at.warning)
     click(at, f"Git-Repository in {plain} anlegen")
     assert (plain / ".git").is_dir()
+
+
+def test_choose_folder_can_be_used_without_git(
+    tmp_path: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """B7: Git ist keine Voraussetzung für den Einstieg."""
+    at = start(data_dir, monkeypatch)
+    goto(at, "datenordner")
+    plain = tmp_path / "ohne-git"
+    plain.mkdir()
+    at.text_input(key="data-path").set_value(str(plain)).run()
+    click(at, "Übernehmen")
+    click(at, "Ohne Git verwenden")
+    assert not (plain / ".git").exists()
+    from sprintforecast.storage import saved_data_dir
+
+    assert saved_data_dir() == plain.resolve()
+    assert any("liegt in keinem Git-Repository" in c.value for c in at.sidebar.caption)
+
+
+def test_new_team_with_three_sprints_gets_a_first_forecast(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """B7: Forecast schon ab 3 Sprints (Historie dünn), vorher ein Hinweis statt leerer Seite."""
+    sprints = sorted((data_dir / "demo" / "sprints").glob("*.yaml"))
+    for f in sprints[3:]:
+        f.unlink()
+    at = start(data_dir, monkeypatch)
+    assert any(m.value.endswith("PT") and m.value != "– PT" for m in at.metric)
+    assert any("Wenig Daten" in w.value for w in at.warning)
+    assert not any("Noch kein Forecast" in i.value for i in at.info)
+    sprints[2].unlink()  # nur zwei Sprints mit Velocity
+    at = start(data_dir, monkeypatch)
+    assert any("Noch kein Forecast: bisher 2 Sprint(s)" in i.value for i in at.info)
 
 
 def test_whatif_panel_on_forecast_page(app: AppTest):

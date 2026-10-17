@@ -39,7 +39,7 @@ from sprintforecast.calendar import (
     team_workdays,
 )
 from sprintforecast.capacity import sprint_capacity
-from sprintforecast.engine import UNSURE_SOURCES, gaps_in_window
+from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
@@ -549,6 +549,16 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
 def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
     """Hinweise zur Belastbarkeit direkt an den Kacheln: wenig Daten, dünne Historie und ein
     Trend-Modus, der Rauschen fortschreibt."""
+    if sample_count(fc) < MIN_THIN_HISTORY:
+        st.info(
+            t(
+                "Noch kein Forecast: bisher {samples} Sprint(s) mit Velocity. Ab {min} Sprints "
+                "entsteht ein erster Forecast (mit Hinweis „Historie dünn“); die Velocity "
+                "im Review erfassen oder die Historie über ein Import-Plugin übernehmen.",
+                samples=sample_count(fc),
+                min=MIN_THIN_HISTORY,
+            )
+        )
     if sample_count(fc) and few_samples(fc):
         st.warning(
             t(
@@ -2846,10 +2856,10 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
     if setup:
         st.warning(
             t(
-                "Kein Datenordner gefunden. Die Team-Daten liegen in einem **Git-Repository** – "
-                "so sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen "
-                "vorhandenen Ordner wählen, ein neues Daten-Repository anlegen oder ein "
-                "bestehendes klonen."
+                "Kein Datenordner gefunden. Empfohlen ist ein **Git-Repository**: So sind "
+                "Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen vorhandenen "
+                "Ordner wählen (auch ohne Git möglich), ein neues Daten-Repository anlegen oder "
+                "ein bestehendes klonen."
             )
         )
     else:
@@ -2874,10 +2884,11 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             if not path.is_dir():
                 st.error(t("Ordner nicht gefunden: {path}", path=path))
             elif git_root(path) is None:
-                st.error(
+                st.warning(
                     t(
-                        "Der Ordner liegt in keinem Git-Repository. Entweder hier eines anlegen "
-                        "oder einen anderen Ordner wählen."
+                        "Der Ordner liegt in keinem Git-Repository. Das Programm funktioniert "
+                        "auch ohne Git – nur Commit und Verlauf stehen dann nicht zur Verfügung. "
+                        "Du kannst hier ein Repository anlegen oder den Ordner ohne Git verwenden."
                     )
                 )
                 st.session_state["offer-init"] = str(path)
@@ -2885,6 +2896,12 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 _use_data_dir(teams_dir(path) or path)
                 st.rerun()
         offer = st.session_state.get("offer-init")
+        if offer and st.button(
+            t("Ohne Git verwenden"), key="data-without-git", disabled=not Path(offer).is_dir()
+        ):
+            st.session_state.pop("offer-init", None)
+            _use_data_dir(teams_dir(Path(offer)) or Path(offer))
+            st.rerun()
         if offer and st.button(
             t("Git-Repository in {path} anlegen", path=offer), key="data-init-here"
         ):
