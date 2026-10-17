@@ -1073,8 +1073,8 @@ def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
         t(
             "Für diese Sprints wurden Fehltage bestätigt, sonst ist nichts erfasst. Zurücksetzen "
             "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Fehltage werden "
-            "wieder nach der Historie geschätzt; die Kapazität kommt weiter aus Kalender und "
-            "Personen."
+            "wieder nach der Historie geschätzt (ohne Historie ohne Abzug); die Kapazität kommt "
+            "weiter aus Kalender und Personen."
         )
     )
     chosen = st.multiselect(

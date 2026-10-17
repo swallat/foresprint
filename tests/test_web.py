@@ -210,7 +210,8 @@ def test_reset_absences_text_names_calendar_and_people_not_trend(
     assert "Fehltage zurücksetzen" in [s.value for s in at.subheader]
     caption = next(c.value for c in at.caption if "Zurücksetzen löscht" in c.value)
     assert "Trend" not in caption
-    assert "nach der Historie geschätzt" in caption and "Kalender und Personen" in caption
+    assert "nach der Historie geschätzt (ohne Historie ohne Abzug)" in caption
+    assert "Kalender und Personen" in caption
 
 
 def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
