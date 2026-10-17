@@ -25,6 +25,7 @@ from sprintforecast.i18n import t
 from sprintforecast.model import (
     AbsenceState,
     CapacitySettings,
+    Features,
     ForecastSettings,
     Membership,
     Numbering,
@@ -174,6 +175,16 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
     forecast = d.get("forecast") or {}
     capacity = d.get("capacity") or {}
     first = sprint.get("first") or {}
+    raw_features = d.get("features")
+    features = (
+        Features(
+            products=bool((raw_features or {}).get("products", False)),
+            po=bool((raw_features or {}).get("po", False)),
+            production=bool((raw_features or {}).get("production", False)),
+        )
+        if "features" in d
+        else Features(explicit=False)  # ältere Datei: Repository.load leitet die Werte ab
+    )
     try:
         return Team(
             key=key,
@@ -194,6 +205,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 horizon=int(forecast.get("horizon", 3)),
                 product_basis=ProductBasis(forecast.get("product_basis", "plan")),
             ),
+            features=features,
             capacity=CapacitySettings(
                 overhead_share=float(capacity.get("overhead_share", 0.0)),
                 overhead_days=float(capacity.get("overhead_days", 0.0)),
@@ -238,6 +250,11 @@ def team_to_dict(team: Team) -> dict[str, Any]:
     return {
         "name": team.name,
         "unit": team.unit.value,
+        "features": {
+            "products": team.features.products,
+            "po": team.features.po,
+            "production": team.features.production,
+        },
         "sprint": sprint,
         "forecast": forecast,
         "capacity": capacity,
@@ -459,6 +476,8 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         forecast_plan=_float(d.get("forecast_plan"), f"{where}: forecast_plan"),
         products=products,
         note=d.get("note"),
+        production_planned=_float(d.get("production_planned"), f"{where}: production_planned"),
+        production_done=_float(d.get("production_done"), f"{where}: production_done"),
         absence_state=_absence_state(d, where),
         expected_absences={
             str(pid): _float(days, f"{where}: expected_absences.{pid}") or 0.0
@@ -515,6 +534,10 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
         d["products"] = products
     if s.expected_absences:
         d["expected_absences"] = {k: _clean(v) for k, v in s.expected_absences.items()}
+    if s.production_planned is not None:
+        d["production_planned"] = _clean(s.production_planned)
+    if s.production_done is not None:
+        d["production_done"] = _clean(s.production_done)
     if s.not_done is not None:
         d["not_done"] = _clean(s.not_done)
     if s.additional_done is not None:
@@ -624,6 +647,13 @@ class Repository:
                 )
             sprints.append(sprint)
         sprints.sort(key=lambda s: s.start)
+        if not team.features.explicit:  # ältere Datei: vorhandene Daten bleiben sichtbar
+            team.features = Features(
+                products=bool(products),
+                po=any(p.po for p in products),
+                production=any(p.production_access for p in people),
+                explicit=False,
+            )
         return TeamData(team=team, people=people, sprints=sprints, products=products)
 
     def load_cached(self, key: str) -> TeamData:

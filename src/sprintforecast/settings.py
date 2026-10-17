@@ -158,6 +158,23 @@ def _getter(path: str) -> Callable[[Team], Any]:
     return lambda team: getattr(getattr(team, section) if section else team, attr)
 
 
+def _switch(path: str) -> Callable[[Team], str]:
+    get = _getter(path)
+    return lambda team: "an" if get(team) else "aus"
+
+
+def _switch_setter(path: str) -> Callable[[Team, Any], None]:
+    section, _, attr = path.rpartition(".")
+
+    def apply(team: Team, value: Any) -> None:
+        setattr(getattr(team, section), attr, value == "an")
+        getattr(team, section).explicit = True
+
+    return apply
+
+
+SWITCH = {"aus": "aus", "an": "an"}
+
 SETTINGS: list[Setting] = [
     Setting(
         key="name",
@@ -176,6 +193,41 @@ SETTINGS: list[Setting] = [
         choices={"PT": "Personentage", "SP": "Story Points"},
         get=lambda t: t.unit.value,
         set=_setter("unit", Unit),
+    ),
+    Setting(
+        key="features.products",
+        label="Produktverteilung",
+        help="Nur nötig, wenn das Team mehrere Produkte betreut und die Sprint-Menge darauf "
+        "verteilt wird: Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt, "
+        "Standardverteilung und Saldo. Aus: Diese Seiten und Eingaben entfallen; bereits "
+        "erfasste Werte bleiben in den Dateien erhalten.",
+        kind=Kind.CHOICE,
+        choices=SWITCH,
+        get=_switch("features.products"),
+        set=_switch_setter("features.products"),
+    ),
+    Setting(
+        key="features.po",
+        label="Zuordnung PO",
+        help="Jedes Produkt hat einen verantwortlichen Product Owner; die Vorplanung zeigt "
+        "Summen je PO. Sinnvoll nur zusammen mit der Produktverteilung. Aus: Es gibt keine "
+        "Spalte PO und keine Summen je PO.",
+        kind=Kind.CHOICE,
+        choices=SWITCH,
+        get=_switch("features.po"),
+        set=_switch_setter("features.po"),
+    ),
+    Setting(
+        key="features.production",
+        label="Produktionszugriff",
+        help="Nur ein Teil der Personen darf Tickets mit Produktionszugriff bearbeiten. An: "
+        "Personen werden als berechtigt markiert, im Planning und Review wird erfasst, wie "
+        "viel Menge davon Produktionszugriff braucht, und ein Engpass-Hinweis zeigt, ob die "
+        "berechtigte Gruppe das schafft. Aus: keine Markierung, keine Eingaben, kein Hinweis.",
+        kind=Kind.CHOICE,
+        choices=SWITCH,
+        get=_switch("features.production"),
+        set=_switch_setter("features.production"),
     ),
     Setting(
         key="capacity.country",
