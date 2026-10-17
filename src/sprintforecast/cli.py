@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import math
 import os
 import subprocess
 import sys
@@ -228,6 +229,9 @@ def _ask_number(
                 f"[red]{t('Bitte eine Zahl eingeben (Dezimaltrennzeichen , oder .).')}[/red]"
             )
             continue
+        if not math.isfinite(value):
+            console.print(f"[red]{t('Bitte eine endliche Zahl eingeben.')}[/red]")
+            continue
         if value < minimum:
             console.print(
                 f"[red]{t('Der Wert muss ≥ {value} sein.', value=fmt_plain(minimum))}[/red]"
@@ -241,9 +245,13 @@ def _ask_numbers(label: str, default: list[float]) -> list[float]:
     while True:
         raw = Prompt.ask(label, default=shown, show_default=bool(shown), console=console).strip()
         try:
-            return [float(x.replace(",", ".")) for x in raw.split()] if raw else []
+            values = [float(x.replace(",", ".")) for x in raw.split()] if raw else []
         except ValueError:
             console.print(f"[red]{t('Bitte Zahlen mit Leerzeichen getrennt eingeben.')}[/red]")
+            continue
+        if all(math.isfinite(v) for v in values):
+            return values
+        console.print(f"[red]{t('Bitte eine endliche Zahl eingeben.')}[/red]")
 
 
 def _ask_date(label: str, default: date | None) -> date:

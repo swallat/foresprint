@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import copy
+import math
 import os
 import re
 import tempfile
@@ -229,7 +230,15 @@ def _float(value: Any, where: str) -> float | None:
         raise DataError(
             t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value))
         )
-    return float(value)
+    try:
+        number = float(value)
+    except OverflowError:  # ganze Zahl jenseits des Bereichs von float
+        number = math.inf
+    if not math.isfinite(number):
+        raise DataError(
+            t("{where}: endliche Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+        )
+    return number
 
 
 def _date(value: Any, where: str) -> date:
