@@ -181,6 +181,9 @@ Bewertung durch zwei unabhängige Prüfungen:
   gemessen. Erfüllt Streamlit die Ziele, bleibt es. Scheitert es an der Interaktionsarchitektur,
   wird schrittweise migriert; die Kernlogik bleibt dabei unverändert. Rust oder Go erst, wenn
   repräsentative Profile echte CPU-Engpässe zeigen.
+- **Entscheidung (Owner):** Streamlit bleibt zunächst. Ein Wechsel wird erst erwogen, wenn er
+  notwendig wird (konkrete Probleme aus Nutzertests oder harter Bedarf wie Drag-and-drop). Auf
+  weitere Zeitmessungen wird bis dahin verzichtet.
 - Zusätzlich: Eine getestete Release-Kombination der Abhängigkeiten festlegen. Die Untergrenze
   `requires-python` wird gesondert entschieden.
 

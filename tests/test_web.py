@@ -313,8 +313,9 @@ def test_analysis_page(app: AppTest):
     labels = [m.label for m in app.metric]
     assert "in 85 % der Simulationen" in labels
     assert "mit 85 % Sicherheit" not in labels  # keine Zusage: modellabhängige Häufigkeit
-    # Die Simulation zieht nur aus dem Fenster (5 Sprints): Warnung und Stichprobe sichtbar
-    assert any("Wenig Daten" in w.value and "5 Sprints" in w.value for w in app.warning)
+    # Die Simulation zieht nur aus dem Fenster (5 Sprints): Stichprobe sichtbar, bei Erreichen
+    # der Schwelle (5) keine Warnung mehr
+    assert not any("Wenig Daten" in w.value for w in app.warning)
     assert any("Stichprobe: 5 Sprints" in c.value for c in app.caption)
     assert any(m.value.startswith("2026.") or m.value.startswith("2027.") for m in app.metric)
 
