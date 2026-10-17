@@ -53,7 +53,7 @@ FIELDS: dict[str, Field] = {
         "(× FTE) – beides ist derselbe Abzug in zwei Einheiten, die Felder gleichen sich ab. "
         "Sind PT je Person gesetzt, gelten sie statt der Prozent. Der Abzug wirkt gleich für "
         "bestätigte, angekündigte und erwartete Fehltage: erst Feiertage und Fehltage, dann "
-        "der Abzug, dann die Rundung.",
+        "der Abzug. Gerundet wird erst bei der Anzeige und beim Einfrieren.",
         source="Team-Einstellungen (Abzug für Scrum-Termine).",
         example="1 PT je Person bei 10 Arbeitstagen entspricht 10 %; Vollzeit: −1 PT, halbtags "
         "(FTE 0,5): −0,5 PT",

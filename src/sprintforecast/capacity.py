@@ -92,7 +92,8 @@ def sprint_capacity(
 ) -> CapacityBreakdown:
     """Kapazität des Sprints. Eine gemeinsame Rechnung für bestätigte, angekündigte und
     erwartete Fehltage: erst Feiertage und Fehltage (bzw. erwartete Quote) je Person, dann der
-    Abzug für Scrum-Termine, dann die Rundung.
+    Abzug für Scrum-Termine. Das Ergebnis (``capacity``) bleibt ungerundet; gerundet wird erst
+    für Anzeige und Einfrieren (``CapacityBreakdown.rounded``, kaufmännisch).
 
     Der Abzug: feste PT je Person (``overhead_days`` × FTE, höchstens die Kapazität der Person)
     ersetzen den Prozentabzug (``overhead_share``); beide sind derselbe Abzug in zwei Einheiten

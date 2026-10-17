@@ -83,6 +83,24 @@ def test_cli_in_english(data_dir: Path, english):
     assert "## History (last" in result.output and "Small items" in result.output
 
 
+def test_capacity_in_english(data_dir: Path, english):
+    from datetime import date
+
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.formulas import plain_explanation, step
+    from sprintforecast.report import fmt_capacity
+    from sprintforecast.storage import Repository
+
+    assert fmt_capacity(25.25) == "25.3"  # kaufmännisch gerundet, Dezimalpunkt
+    assert fmt_capacity(1234.25) == "1,234.3"
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    e = fc.entry("2026.23")  # Kapazität 30,4375 (erwartete Fehltage: aus der Historie geschätzt)
+    assert "30.4 PT are available" in plain_explanation(fc, e)
+    assert "16.8433 / 45 × 30.4375 = 11.393" in plain_explanation(fc, e)
+    assert step(fc, e, "plan").calculation == "16.8433 / 45 × 30.4375 = 11.393 → 11.3 PT"
+    assert step(fc, e, "capacity").calculation == "= 30.4 PT"
+
+
 def test_language_command(data_dir: Path):
     from typer.testing import CliRunner
 
