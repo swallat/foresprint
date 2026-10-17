@@ -1,8 +1,8 @@
 # Konzept: Verbesserungen am Kern (ohne Ticketsystem)
 
 Status (Stand Oktober 2026): Phase P, K1 bis K3 sowie A14, A15, B8 und B9 sind umgesetzt, im
-Einzelnen siehe die Spalte „Stand“ der Tabellen und den Abschnitt G. Offen sind B10, der
-Einrichtungs-Assistent (C) und die Reste, die in den Tabellen stehen; das Ticketsystem folgt in
+Einzelnen siehe die Spalte „Stand“ der Tabellen und den Abschnitt G. Offen sind B10 (nur in der
+Weboberfläche), der Einrichtungs-Assistent (C) und die Reste, die in den Tabellen stehen; das Ticketsystem folgt in
 einem eigenen Konzept. Dieses Dokument sammelt alles, was **unabhängig von einem Ticketsystem**
 gilt: Berechnung, Bedienung, Einrichtung, Datenordner und Synchronisation.
 Die Ticketanbindung steht in [konzept-ticketsystem.md](konzept-ticketsystem.md); sie ist
@@ -23,8 +23,8 @@ davon unberührt.
 | # | Punkt | Priorität | Empfehlung | Stand |
 |---|---|---|---|---|
 | A1 | Standard-Trend (`classic`/`linear`) extrapoliert Rauschen, kann sinken oder negativ werden, und liegt ab dem dritten Zukunftssprint unter der eigenen Bandbreite. | kritisch | `flat` (oder Median) als Standard; `classic`/`linear` nur ausdrücklich gewählt, mit Warnhinweis; negative Ergebnisse abfangen | umgesetzt. Rest: Teams mit gespeichertem `classic` bleiben darauf (nur Warnhinweis); im laufenden Sprint rechnen Plan und Spanne mit unterschiedlichen Sprints (ändert Zahlen, Entscheidung offen) |
-| A2 | Ohne bestätigte Fehltage und ohne `absence_history` wird die **Kapazität** per Trend fortgeschrieben, obwohl Personen, Feiertage und Sprintlänge bekannt sind. | kritisch | Kapazität immer aus Kalender und Personen; nur die unbekannten Fehltage schätzen (`absence_history` mit sinnvollem Standard); Trend nur für Teams ohne Personenliste | teilweise: Rechnung umgesetzt; drei Hilfetexte (Tooltip „Kapazität“, Hinweis bei `kapazitaet`, „Fehltage zurücksetzen“) nennen noch den Trend |
-| A3 | Der Punktwert steht ohne Unsicherheit auf der Hauptseite; „85 % Sicherheit“ ist bei wenigen Werten zu stark; Monte Carlo läuft schon mit zwei Messwerten. | kritisch | Bandbreite und Stichprobengröße direkt an der Forecast-Kachel; Warnung bei wenig Daten; Formulierung „modellabhängige Häufigkeit“ | teilweise: Forecast-Seite umgesetzt; CLI, Bericht und die Kacheln auf Planning, Fehltage und Vorplanung ohne Spanne und Warnung |
+| A2 | Ohne bestätigte Fehltage und ohne `absence_history` wird die **Kapazität** per Trend fortgeschrieben, obwohl Personen, Feiertage und Sprintlänge bekannt sind. | kritisch | Kapazität immer aus Kalender und Personen; nur die unbekannten Fehltage schätzen (`absence_history` mit sinnvollem Standard); Trend nur für Teams ohne Personenliste | umgesetzt (Rechnung; die drei Hilfetexte Tooltip „Kapazität“, Hinweis bei `kapazitaet` und „Fehltage zurücksetzen“ nennen seit #67 Kalender und Personen). Rest: die Tabelle von `kapazitaet` zeigt bei Sprints ohne Datei Fehltage 0 ohne den geschätzten Abzug (Anzeige, Entscheidung offen) |
+| A3 | Der Punktwert steht ohne Unsicherheit auf der Hauptseite; „85 % Sicherheit“ ist bei wenigen Werten zu stark; Monte Carlo läuft schon mit zwei Messwerten. | kritisch | Bandbreite und Stichprobengröße direkt an der Forecast-Kachel; Warnung bei wenig Daten; Formulierung „modellabhängige Häufigkeit“ | teilweise: Forecast-Seite umgesetzt; CLI (`forecast`) und Bericht warnen bei wenig Daten (K1) und zeigen die Spanne im Abschnitt „Ergänzend“ bzw. in `analyse`, aber nicht in der Forecast-Tabelle; die Kacheln auf Planning, Fehltage und Vorplanung ohne Spanne und Warnung; `analyse --rest` ohne Warnung bei wenig Daten |
 | A4 | Bei genau `window` Sprints Historie liefern `classic`/`linear` keinen Forecast; `rolling_average` zählt Positionen statt Werte, Lücken werden still übergangen. | wichtig | Fallback auf `flat` mit Hinweis „Historie dünn“; einheitliche Regel für Lücken, sichtbar gemacht | umgesetzt. Rest: der Lücken-Hinweis erscheint nur in der Weboberfläche |
 | A5 | Die Fehltage-Historie überspringt bestätigte Null-Sprints und verzerrt so die Quote; sie nutzt nicht dieselbe Definition wie `absences_known`. | wichtig | dieselbe Definition verwenden; die tatsächlich verwendeten Sprints anzeigen | umgesetzt. Rest: ältere Sprintdateien mit Velocity, aber ohne erfasste Fehltage, zählen als „niemand fehlte“ (Entscheidung offen) |
 | A6 | Teilzeit und Arbeitswoche: Wer eine 80-%-Stelle mit vier vollen Tagen als `workweek=mon,tue,wed,thu` und `fte=0.8` einträgt, wird doppelt abgezogen (8 × 0,8). | wichtig | Bedeutung von FTE festlegen und mit Beispielen erklären (FTE = Anteil an den Arbeitstagen der Person oder des Teams) | teilweise: Bedeutung festgelegt und in der Hilfe erklärt; die Spaltenhilfe der FTE und der CLI-Text widersprechen noch |
@@ -35,7 +35,7 @@ davon unberührt.
 | A11 | Produktionszugriff: „niemand markiert“ ist `None`, nicht 0; die Übersetzung in Liefermenge ist grob. | wichtig | unbekannte Konfiguration und fehlende Berechtigte unterscheiden; als Engpasshinweis kennzeichnen | umgesetzt |
 | A12 | Die Aussage „Fokusfaktor ist zwischen Teams vergleichbar“ ist bei Story Points falsch. | wichtig | Aussage entfernen | umgesetzt |
 | A13 | Die Referenzkapazität kürzt sich in der Rechnung heraus und ist nur ein Darstellungsmaßstab; Fokusfaktor und normierte Velocity sind dieselbe Größe unter zwei Namen. | wichtig | Referenzkapazität entfernen oder erklären; eine normierte Größe | teilweise: Hilfe erklärt die Referenzkapazität; README sagt noch nicht, dass sie sich herauskürzt; zwei Namen für dieselbe Größe bleiben |
-| A14 | Rundung: `round_down` überall ist ein systematischer Bias; die Kapazität wird abgerundet und danach als Nenner genutzt. | nice-to-have | Rundung erst bei der Ausgabe; bewusste Wahl im Hilfetext begründen | umgesetzt (#50, #52, #54) |
+| A14 | Rundung: `round_down` überall ist ein systematischer Bias; die Kapazität wird abgerundet und danach als Nenner genutzt. | nice-to-have | Rundung erst bei der Ausgabe; bewusste Wahl im Hilfetext begründen | umgesetzt (#52, #54) |
 | A15 | `trend()` vergleicht mit `is TrendMode.X`; ein Text landet im Zweig `linear`. | nice-to-have | Wert am Anfang in `TrendMode` umwandeln | umgesetzt (#50) |
 | A16 | Definition von „Erledigt“: Teilanteile offener Tickets zählen mit (Teampraxis). Ohne Dokumentation ist die Zahl zwischen Teams nicht vergleichbar. | wichtig | Definition in Hilfe und README festhalten. Ein Stichtag für einen Wechsel der Zählweise (wie `unit_since`) ist nur für Teams nötig, die ihre Zählweise ändern, und daher später und optional | umgesetzt |
 
@@ -60,7 +60,7 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
 
 | # | Punkt | Priorität | Empfehlung | Stand |
 |---|---|---|---|---|
-| B1 | „Forecast PLAN“ bedeutet je nach Seite die aktuelle Berechnung oder den eingefrorenen Stand. | kritisch | überall „Prognose aktuell“, „Prognose beim Planning“ und die Differenz zeigen | teilweise: Kacheln zeigen den eingefrorenen Stand nur im Tooltip; CLI und Bericht ohne „Prognose beim Planning“ |
+| B1 | „Forecast PLAN“ bedeutet je nach Seite die aktuelle Berechnung oder den eingefrorenen Stand. | kritisch | überall „Prognose aktuell“, „Prognose beim Planning“ und die Differenz zeigen | teilweise: Planning und Vorplanung zeigen „Prognose beim Planning“ mit der Differenz; die Forecast-Kacheln nennen den eingefrorenen Stand nur im Tooltip (die Tabelle darunter zeigt Stand und Differenz); CLI und Bericht ohne „Prognose beim Planning“ |
 | B2 | „Weiter ohne Eintrag“ im Planning setzt Fehltage stillschweigend auf „niemand fehlt“; unbekannt und 0 sind zu leicht verwechselbar. | kritisch | expliziter Zustand je Sprint (unbekannt / voraussichtlich / bestätigt) statt der Dateiheuristik; ausdrückliche Bestätigung „niemand fehlt“ | teilweise: Zustand je Sprint umgesetzt; das Review friert bei „unbekannt“ die volle Besetzung ohne Hinweis ein |
 | B3 | „Forecast IST“ ist die Zusage zu Sprintbeginn, kein Ergebnis. „Roadmap“ bezeichnet einen reservierten Anteil. „erwartete“ und „voraussichtliche“ Fehltage sind zwei Mechanismen mit fast gleichem Namen. | wichtig | z. B. „Zusage“; „Roadmap“-Anteil umbenennen; die beiden Fehltage-Begriffe unterscheidbar machen | teilweise: „Forecast IST“ heißt „Commitment“; „Roadmap“ ist nicht umbenannt (Name offen) |
 | B4 | 15 bis 16 Seiten mit konkurrierenden Wegen (Produktwerte auf „Produktverteilung“ und auf allen Boards; Sprintauswahl uneinheitlich). | wichtig | Einstieg über Aufgaben („Sprint vorbereiten“, „Planning“, „Sprint abschließen“); Produktverteilung als Auswertung; Stammdaten unter „Team verwalten“ | umgesetzt (#43) |
@@ -69,7 +69,7 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
 | B7 | Der Einstieg verlangt ein Git-Repository und 6+ Reviews, bevor ein Forecast erscheint. | wichtig | Forecast schon ab 2 bis 3 Sprints (`flat`) mit Hinweis „Historie dünn“ | umgesetzt |
 | B8 | Das Was-wäre-wenn-Panel gibt es zweimal mit leicht anderem Text; die Prognosen-Historie ist ein Audit-Log mit 8 Spalten. | nice-to-have | eine Stelle; letzte Prognose und Abweichung im Review genügen | umgesetzt (#51) |
 | B9 | Sprintkalender-Texte behaupten Mo–Fr trotz konfigurierter Arbeitswoche; Fehltage in „Tagen“ (Halbtagskraft) sind missverständlich. | nice-to-have | Texte anpassen; Spaltenhilfe ergänzen | umgesetzt (#51) |
-| B10 | Aktionen „FTE ändern“ und „Austritt erfassen“ statt manuellem Aufteilen von Zeilen. | nice-to-have | später | offen |
+| B10 | Aktionen „FTE ändern“ und „Austritt erfassen“ statt manuellem Aufteilen von Zeilen. | nice-to-have | später | teilweise: Kommandozeile umgesetzt (`personen`: Aktionen n = neue Person, f = FTE ändern, a = Austritt); die Weboberfläche verlangt weiter das manuelle Aufteilen der Zeilen |
 
 ## C. Einrichtung
 
@@ -141,7 +141,10 @@ Stand je Vorgang:
 - **Fehlerzustände** mit klaren Meldungen und nächstem Schritt: offline, Push abgelehnt und Git
   nicht installiert sind umgesetzt; gesperrte Datei, unvollständiger Merge und detached HEAD nur
   teilweise (der Hinweis passt nicht in jedem Fall zur Ursache). Schreib- und Lesefehler der
-  Datendateien (kein Schreibrecht, Datei gesperrt) zeigen noch einen Traceback statt einer Meldung.
+  Datendateien (kein Schreibrecht, Datei gesperrt) zeigen seit #63 eine Meldung mit Datei,
+  Ursache und nächstem Schritt, ebenso ein falscher Aufbau der YAML-Dateien seit #64. Offen
+  bleiben das Anlegen und Klonen eines Datenordners in einem nicht beschreibbaren Ordner und ein
+  nicht lesbarer Datenordner.
 - Die App ruft weiterhin das Programm `git` auf (keine eigene Git-Bibliothek): Das nutzt die
   Anmeldung des Rechners und ist stabiler. Fehlt Git, erklärt die App die Installation.
 
@@ -223,4 +226,4 @@ der Kern vollständig umgesetzt und gut getestet ist.
 | **K2 Begriffe und Anzeige** | B3 bis B7, A7, A9, A11 bis A13 | Eine Person ohne Einweisung trägt Fehltage ein und sieht, wie viel in den nächsten Sprint passt | gemergt (#36); Reste siehe Tabellen A und B |
 | **K3 Datenordner und Sync** | Abschnitt D inklusive Umfang „Alltags-Git ohne Terminal“ (mehrere PRs) | Zwei Personen arbeiten parallel, einschließlich absichtlicher Konflikte, ohne Terminal und ohne Datenverlust; alle Alltagsvorgänge und Fehlerfälle funktionieren in der App; nach jedem Zusammenführen läuft die Gesamtvalidierung | gemergt (#38, #39, #40, #42, #44, #45, #48, #53); Reste siehe Abschnitt D |
 
-Die übrigen Punkte (A14, A15, B8, B9) sind nebenbei umgesetzt; B10 steht aus.
+Die übrigen Punkte (A14, A15, B8, B9) sind nebenbei umgesetzt; B10 ist in der Kommandozeile umgesetzt, in der Weboberfläche steht es aus.
