@@ -276,7 +276,7 @@ def test_overhead_days_replace_percentage_for_confirmed_and_expected_absences():
 
 
 def test_expected_and_estimated_absences_use_the_same_overhead_rule():
-    """Bestätigte Fehltage (2 Tage), erwartete Quote (20 %) und voraussichtliche Fehltage rechnen
+    """Bestätigte Fehltage (2 Tage), erwartete Quote (20 %) und angekündigte Fehltage rechnen
     gleich: erst Fehltage, dann Overhead, dann Rundung."""
     people = [person("a")]
     team = Team(key="t", name="T")

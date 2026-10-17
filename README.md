@@ -6,7 +6,7 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
 - **Git ist die Datenbank:** YAML-Dateien, ein Sprint pro Datei, gut diff- und mergebar.
 - **Geführte Eingabe:** Assistenten für Planning, Review und Fehltage, mit Erklärung zu
   jedem Feld und Plausibilitätsprüfung. Das Planning folgt dem Ablauf am Termin:
-  Fehltage → Forecast PLAN & Einplanung → Forecast IST.
+  Fehltage → Forecast PLAN & Einplanung → Commitment.
 - **Mehrere Produkte:** Standardverteilung, PO-Vorplanung, Planning und Erledigt je Produkt,
   mit Diagrammen und Saldo; die Produktliste kann sich über die Zeit ändern.
 - **Aktualisiert sich selbst:** prüft täglich auf eine neue Version und installiert sie nach
@@ -171,7 +171,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | | Sprintkalender | kommende Sprints mit Start, letztem Tag und Arbeitstagen; anlegen, Länge anpassen |
 | | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
 | Boards | PO-Vorplanung | je Produkt vorsehen, was in den Sprint soll – im Vergleich zum Standard, Summe je PO |
-| | Planning | geführter Ablauf: 1. Fehltage, 2. Forecast PLAN & Einplanung je Produkt, 3. Forecast IST |
+| | Planning | geführter Ablauf: 1. Fehltage, 2. Forecast PLAN & Einplanung je Produkt, 3. Commitment |
 | | Review | Velocity, Scope Creep, Erledigt je Produkt, nicht erledigt/zusätzlich erledigt; verfügbare Personentage werden eingefroren |
 | | Analyse | ergänzend: Bandbreite, Fokusfaktor, Puffer-Empfehlung, „Wann ist es fertig?“ |
 | Team | Personen | eine Tabelle (Zeile je Zeitraum, FTE); IDs automatisch; Ehemalige ausblendbar |
@@ -199,7 +199,7 @@ App (Editor, Terminal) erscheinen daher mit kleiner Verzögerung, eigene Speiche
 | Einstellungen ändern | `sprintforecast einstellungen team-a` | Bundesland, Referenzkapazität, Trend-Modus usw. geführt ändern; zeigt die Änderungen vor dem Speichern. |
 | Produkte ändern sich | `sprintforecast produktliste team-a` | Produkt anlegen, PO ändern, Produkt abgeben (mit Enddatum). |
 | PO-Vorplanung | `sprintforecast produkte team-a --vorplanung` | POs tragen je Produkt ein, was sie vorsehen; Vergleich mit dem Standard. |
-| Sprint Planning | `sprintforecast planning team-a` | Geführt: 1. Fehltage, 2. Forecast PLAN und Planning je Produkt, 3. Forecast IST (+ optional Kontrollrechnung). Friert den Forecast PLAN ein. Standard: nächster noch nicht geplanter Sprint. |
+| Sprint Planning | `sprintforecast planning team-a` | Geführt: 1. Fehltage, 2. Forecast PLAN und Planning je Produkt, 3. Commitment (+ optional Kontrollrechnung). Friert den Forecast PLAN ein. Standard: nächster noch nicht geplanter Sprint. |
 | Sprint Review | `sprintforecast review team-a --commit` | Erfasst Velocity, Scope Creep und Erledigt je Produkt, friert die verfügbaren Personentage ein, committet und setzt Tag `team-a/<sprint>`. |
 | PO-Planung | `sprintforecast forecast team-a` | Prognose für laufenden + nächste Sprints. |
 | Produktauswertung | `sprintforecast produkte team-a [SPRINT]` | Verteilung je Produkt und Saldo der letzten Sprints. |
@@ -208,14 +208,14 @@ App (Editor, Terminal) erscheinen daher mit kleiner Verzögerung, eigene Speiche
 
 ### PO-Vorplanung und Planning
 
-- **Voraussichtliche Fehltage:** Auf dem Board *PO-Vorplanung* lassen sich schon vor dem Planning
-  Fehltage je Person als **Prognose** eintragen. Sie wirken auf Kapazität (Quelle „voraussichtliche
+- **Angekündigte Fehltage:** Auf dem Board *PO-Vorplanung* lassen sich schon vor dem Planning
+  Fehltage je Person als **Prognose** eintragen. Sie wirken auf Kapazität (Quelle „angekündigte
   Fehltage“) und Forecast PLAN, gelten aber nicht als bestätigt. Im *Planning* (Schritt 1) sind sie
   vorbelegt; erst „Fehltage speichern“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
-- **Stand der Fehltage je Sprint** (unbekannt / voraussichtlich / bestätigt) ist überall sichtbar
+- **Stand der Fehltage je Sprint** (unbekannt / angekündigt / bestätigt) ist überall sichtbar
   (Forecast, Fehltage, Planning). „Weiter ohne Eintrag“ im Planning bestätigt **nichts**: Wer wirklich
   keine Fehltage hat, bestätigt das ausdrücklich („Niemand fehlt – bestätigen und weiter“ bzw. Spalte
-  *Niemand fehlt* auf der Seite Fehltage). Das Speichern von Planning-Werten (Forecast IST, Einplanung)
+  *Niemand fehlt* auf der Seite Fehltage). Das Speichern von Planning-Werten (Commitment, Einplanung)
   ändert den Stand der Fehltage nicht. Das Datum, an dem ein Sprint geplant wurde, ist kein Beleg mehr.
 - **Einplanung aus der Vorplanung:** Im Planning (Schritt 2) ist die Einplanung je Produkt mit der
   letzten PO-Vorplanung vorbelegt (bitte prüfen und speichern).
@@ -355,11 +355,11 @@ absence_state: confirmed   # Stand der Fehltage: unknown | expected | confirmed.
                            # Einträge, absences_confirmed: true oder ein schon geplanter bzw.
                            # ausgewerteter Sprint gelten als bestätigt).
 absences_confirmed: true   # nur für ältere Programmversionen; wird zusammen mit „confirmed“ geschrieben
-expected_absences: {anna: 2}   # PO-Vorplanung: voraussichtliche Fehltage (Prognose); wirken auf
+expected_absences: {anna: 2}   # PO-Vorplanung: angekündigte Fehltage (Prognose); wirken auf
                            # Kapazität und Forecast PLAN, bis die Fehltage bestätigt sind
 not_done: 1.5              # Review, optional: Menge, die nicht fertig wurde
-additional_done: 0.5       # Review, optional: zusätzlich zum Forecast IST erledigt
-                           # (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt)
+additional_done: 0.5       # Review, optional: zusätzlich zum Commitment erledigt
+                           # (Velocity = Commitment − nicht erledigt + zusätzlich erledigt)
 prognoses:                 # PO-Vorplanung: Prognosen des Teams für diesen offenen Sprint
 - at: 2026-10-16 09:30:00
   comment: Prognose aus dem Daily      # woher die Annahme stammt
@@ -382,9 +382,9 @@ products:                   # optional, je Produkt-ID
 | Normierte Velocity | Velocity / Kapazität × Referenzkapazität |
 | Ø | Mittel der letzten `window` Sprints **mit Wert**, nur wenn der Sprint selbst einen Wert hat; Sprints ohne Wert (Lücken) zählen nicht mit, das Fenster reicht weiter zurück |
 | Trend | Fortschreibung des Ø in die Zukunft (nie negativ) |
-| Forecast PLAN | n. Velocity-Trend / Referenz × Kapazität, auf 1 Stelle abgerundet, nie negativ; Vergangenheit: Forecast IST |
+| Forecast PLAN | n. Velocity-Trend / Referenz × Kapazität, auf 1 Stelle abgerundet, nie negativ; Vergangenheit: Commitment |
 | Roadmap / Kleinkram | Forecast PLAN × 0,8 / Rest |
-| Fulfillment | Velocity / Forecast IST |
+| Fulfillment | Velocity / Commitment |
 | Planning-Delta | Forecast PLAN − (Überkipper + Backlog − Korrekturen) |
 | Erledigt | fertige Tickets **plus** im Sprint erledigte Teilanteile offener Tickets (Teampraxis); sollte im Team einheitlich gezählt werden, sonst sind Velocity und Erledigt über eine Umstellung hinweg nicht vergleichbar |
 | Standard je Produkt | verfügbar × `share` (fester Anteil, optional) bzw. (verfügbar − Σ feste Anteile) / Anzahl der Produkte ohne `share`; verfügbar = Forecast PLAN (beim Planning eingefroren, sonst aktuell) bzw. dessen Roadmap-Anteil |
@@ -397,15 +397,15 @@ products:                   # optional, je Produkt-ID
    Je nach **Stand der Fehltage** des Sprints (`absence_state`):
    - *bestätigt* (Fehltage eingetragen oder ausdrücklich „niemand fehlt“) → Σ Personen
      (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug → *Personenliste*
-   - *voraussichtlich* (PO-Vorplanung) → dasselbe mit den voraussichtlichen Fehltagen →
-     *voraussichtliche Fehltage*
+   - *angekündigt* (PO-Vorplanung) → dasselbe mit den angekündigten Fehltagen →
+     *angekündigte Fehltage*
    - *unbekannt* → Kalender und Personen, gemindert um die Ø Fehltage der letzten
      `absence_history` Sprints **mit bestätigten Fehltagen** (bestätigte Sprints ohne Fehltage
      zählen mit 0 mit; die verwendeten Sprints zeigt die Fehltage-Seite) → *erwartete Fehltage*;
      gibt es noch keine solche Historie, ohne Abzug → *Kalender, Fehltage unbekannt* (⚠️)
 3. Nur **ohne Personenliste**: Kapazitäts-Trend → *Trend* (⚠️)
 
-**Abzug für Scrum-Termine** (eine gemeinsame Rechnung für bestätigte, voraussichtliche und
+**Abzug für Scrum-Termine** (eine gemeinsame Rechnung für bestätigte, angekündigte und
 erwartete Fehltage): erst Feiertage und Fehltage je Person, dann der Abzug, dann die Rundung.
 Feste PT je Person (`overhead_days` × FTE, höchstens die Kapazität der Person) **ersetzen** den
 Prozentabzug (`overhead_share`); beide sind derselbe Abzug in zwei Einheiten und werden nicht

@@ -50,8 +50,8 @@ GENERAL: dict[str, str] = {
     "plan": "Forecast PLAN = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)",
     "roadmap": "Roadmap = Forecast PLAN × Roadmap-Anteil",
     "small_stuff": "Kleinkram = Forecast PLAN − Roadmap",
-    "fulfillment": "Fulfillment = Velocity / Forecast IST",
-    "scope_creep": "Scope Creep = nachträglich hinzugekommen / Forecast IST",
+    "fulfillment": "Fulfillment = Velocity / Commitment",
+    "scope_creep": "Scope Creep = nachträglich hinzugekommen / Commitment",
     "focus_factor": "Fokusfaktor = Velocity / Kapazität",
     "delta": "Planning-Delta = Forecast PLAN − (Überkipper + Backlog − Korrekturen)",
     "standard": "Standard = verfügbar × Anteil des Produkts (ohne festen Anteil: Rest / Anzahl dieser Produkte)",  # noqa: E501
@@ -121,7 +121,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             "capacity",
             name,
             t(
-                "Keine Fehltage bestätigt → Kapazität laut Personenliste mit den voraussichtlichen "
+                "Keine Fehltage bestätigt → Kapazität laut Personenliste mit den angekündigten "
                 "Fehltagen aus der PO-Vorplanung"
             ),
             f"= {_n(r.plan_capacity, 1)} PT",
@@ -267,7 +267,7 @@ def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
             Step(
                 "plan",
                 "Forecast PLAN",
-                t("Forecast PLAN = abgerundet(Forecast IST) – vergangener Sprint"),
+                t("Forecast PLAN = abgerundet(Commitment) – vergangener Sprint"),
                 f"{_n(r.forecast_ist.value)} → {fmt(r.plan, f.rounding)} {unit}",
             )
         )

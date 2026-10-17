@@ -256,7 +256,7 @@ def test_analyse_with_project_share(data_dir: Path):
 
 def test_planning_flow_next_sprint(data_dir: Path):
     # Standard: nächstes Planning (2026.22). Fehltage: Anna 1, Ben 0, Cem 5, Dana 0;
-    # Planning je Produkt: Webshop 4, App 3, Portal 3; ohne Kontrollrechnung; Forecast IST 10
+    # Planning je Produkt: Webshop 4, App 3, Portal 3; ohne Kontrollrechnung; Commitment 10
     answers = ["y", "1", "0", "5", "0", "y", "4", "3", "3", "n", "10"]
     result = run(data_dir, "planning", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output

@@ -209,7 +209,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
 
         for pid, absent in s.expected_absences.items():
             if pid not in people:
-                error(where, t("Voraussichtliche Fehltage für unbekannte Person '{id}'", id=pid))
+                error(where, t("Angekündigte Fehltage für unbekannte Person '{id}'", id=pid))
             elif absent < 0:
                 error(where, t("expected_absences.{id} darf nicht negativ sein", id=pid))
 
@@ -278,7 +278,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             warn(
                 where,
                 t(
-                    "Planning je Produkt ({planned}) ist größer als der Forecast IST ({ist})",
+                    "Planning je Produkt ({planned}) ist größer als das Commitment ({ist})",
                     planned=_g(sum(planned)),
                     ist=_g(s.forecast_ist),
                 ),
@@ -308,7 +308,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                 warn(
                     where,
                     t(
-                        "Forecast IST ({ist}) − nicht erledigt ({open}) + zusätzlich erledigt "
+                        "Commitment ({ist}) − nicht erledigt ({open}) + zusätzlich erledigt "
                         "({extra}) ergibt {expected}, die Velocity ist aber {velocity}",
                         ist=_g(s.forecast_ist),
                         open=_g(s.not_done or 0.0),
@@ -332,7 +332,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
         if s.capacity == 0:
             warn(where, t("Kapazität 0 – normierte Velocity nicht berechenbar"))
         if s.velocity is not None and s.forecast_ist and s.velocity > 2 * s.forecast_ist:
-            warn(where, t("Velocity ist mehr als doppelt so hoch wie Forecast IST – Tippfehler?"))
+            warn(where, t("Velocity ist mehr als doppelt so hoch wie Commitment – Tippfehler?"))
 
         if s.planning is not None and s.end > today:
             committed = s.planning.committed
@@ -340,7 +340,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                 warn(
                     where,
                     t(
-                        "Forecast IST {ist} weicht von Überkipper + Backlog ({planned}) ab – "
+                        "Commitment {ist} weicht von Überkipper + Backlog ({planned}) ab – "
                         "Tippfehler oder Ticket vergessen?",
                         ist=_g(s.forecast_ist),
                         planned=_g(committed),

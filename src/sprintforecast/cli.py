@@ -828,7 +828,7 @@ def _distribution_table(d: Distribution, unit: str) -> Table:
 @command(
     "planning",
     "Sprint Planning geführt: 1. Fehltage, 2. Forecast PLAN und Einplanung je Produkt, "
-    "3. Forecast IST (Standard: nächstes Planning).",
+    "3. Commitment (Standard: nächstes Planning).",
 )
 def planning(
     ctx: typer.Context, team: TeamArg, sprint: SprintArg = None, commit_: CommitOpt = False
@@ -861,7 +861,7 @@ def planning(
         t("Planning je Produkt erfassen?"), default=True, console=console
     ):
         _ask_product_values(data, fc, s, "planned")
-    console.rule(t("Planning {id} – Schritt 3: Forecast IST", id=s.id))
+    console.rule(t("Planning {id} – Schritt 3: Commitment", id=s.id))
     unit = data.team.unit.value
     plan_values = None
     if Confirm.ask(
@@ -887,7 +887,7 @@ def planning(
     if default is None and plan_values is not None and plan_values.committed:
         default = plan_values.committed
         console.print(f"[dim]{t('Vorbelegt mit Überkipper + Backlog.')}[/dim]")
-    apply_planning(s, _ask_number(t("Forecast IST ({unit})", unit=unit), default), plan_values)
+    apply_planning(s, _ask_number(t("Commitment ({unit})", unit=unit), default), plan_values)
     refreeze = False
     if offer := refreeze_offer(s, fc.entry(s.id)):
         refreeze = Confirm.ask(

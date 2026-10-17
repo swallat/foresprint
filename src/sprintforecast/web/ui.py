@@ -299,7 +299,7 @@ def _signed(value: float) -> str:
 
 
 def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str, Assumption]:
-    """Prognose des Teams für offene Sprints: Forecast IST − voraussichtlich nicht erledigt +
+    """Prognose des Teams für offene Sprints: Commitment − voraussichtlich nicht erledigt +
     zusätzlich erledigt = erwartete Velocity. Nichts wird gespeichert."""
     assumed: dict[str, Assumption] = {}
     for sprint in open_velocity_sprints(fc):
@@ -307,14 +307,14 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
         default_ist = default_forecast_ist(fc, sprint)
         ist_col, open_col, extra_col, result_col = st.columns(4)
         ist = ist_col.number_input(
-            t("Forecast IST ({unit})", unit=unit),
+            t("Commitment ({unit})", unit=unit),
             min_value=0.0,
             value=default_ist,
             step=0.25,
             format="%.2f",
             key=f"{prefix}-{sprint.id}-ist",
             help=t(
-                "Eingeplante Menge des Sprints. Vorbelegt mit dem erfassten Forecast IST, "
+                "Eingeplante Menge des Sprints. Vorbelegt mit dem erfassten Commitment, "
                 "sonst mit dem des vorherigen Sprints."
             ),
         )
@@ -334,7 +334,7 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
             step=0.25,
             format="%.2f",
             key=f"{prefix}-{sprint.id}-extra",
-            help=t("Menge, die laut Prognose zusätzlich zum Forecast IST geschafft wird."),
+            help=t("Menge, die laut Prognose zusätzlich zum Commitment geschafft wird."),
         )
         changed = not_done is not None or extra is not None or ist != default_ist
         if ist is None or not changed:
@@ -357,7 +357,7 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
         st.caption(
             t(
                 "Prognose des Teams für einen noch nicht abgeschlossenen Sprint eintragen: "
-                "Forecast IST, was voraussichtlich nicht fertig wird und was zusätzlich geschafft "
+                "Commitment, was voraussichtlich nicht fertig wird und was zusätzlich geschafft "
                 "wird. "
                 "Der Forecast PLAN der nächsten Sprints wird damit neu berechnet. Nichts wird "
                 "gespeichert.",
@@ -503,7 +503,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 {
                     "Sprint": e.sprint.id,
                     capacity_col: fmt(e.result.capacity.value),
-                    t("Forecast IST"): fmt(e.result.forecast_ist.value, 2),
+                    t("Commitment"): fmt(e.result.forecast_ist.value, 2),
                     "Velocity": fmt(e.result.velocity.value, 2),
                     nvel: fmt(e.result.normalized_velocity.value, 2),
                     avg: fmt(e.result.normalized_velocity.average, 2),
@@ -622,7 +622,7 @@ def _next_dates(fc: Forecast) -> None:
             (
                 f"Planning {planning.sprint.id}",
                 day_label(planning.sprint.start),
-                t("Fehltage → Forecast PLAN → Forecast IST")
+                t("Fehltage → Forecast PLAN → Commitment")
                 + (t(" (Fehltage noch nicht erfasst)") if missing else ""),
                 "planning",
             )
@@ -647,7 +647,7 @@ def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart |
         r = e.result
         future = e.sprint.end > fc.today
         values = {
-            t("Forecast IST / PLAN"): r.plan if future else r.forecast_ist.value,
+            t("Commitment / PLAN"): r.plan if future else r.forecast_ist.value,
             "Velocity": r.velocity.trend if future else r.velocity.value,
             t("n. Velocity"): r.normalized_velocity.trend
             if future
@@ -1308,7 +1308,7 @@ def _base_sprint(data: TeamData, sprint: Sprint) -> Sprint:
 
 # --- Planning (geführter Ablauf zum Sprintstart) --------------------------------------
 
-PLANNING_STEPS = ["1 · Fehltage", "2 · Forecast PLAN & Einplanung", "3 · Forecast IST"]
+PLANNING_STEPS = ["1 · Fehltage", "2 · Forecast PLAN & Einplanung", "3 · Commitment"]
 STEP_KEY = "planning-step"
 
 
@@ -1371,7 +1371,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.caption(
         t(
             "Planning am **{day}** · Ablauf: zuerst die bekannten Fehltage, dann mit dem Forecast "
-            "PLAN die Tickets einplanen, vor dem Sprintstart den Forecast IST eintragen.",
+            "PLAN die Tickets einplanen, vor dem Sprintstart das Commitment eintragen.",
             day=day_label(sprint.start),
         )
     )
@@ -1420,7 +1420,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         shown_sprint.absences = dict(base.expected_absences)
         st.info(
             t(
-                "Vorbelegt mit den voraussichtlichen Fehltagen aus der PO-Vorplanung – bitte "
+                "Vorbelegt mit den angekündigten Fehltagen aus der PO-Vorplanung – bitte "
                 "prüfen und bestätigen."
             )
         )
@@ -1629,7 +1629,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     unit = data.team.unit.value
     sprint = _base_sprint(data, sprint)
     entry = fc.entry(sprint.id)
-    st.subheader(t("Forecast IST – vor dem Sprintstart"))
+    st.subheader(t("Commitment – vor dem Sprintstart"))
     if entry:
         st.caption(
             t(
@@ -1655,7 +1655,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
         )
     with st.form(f"planning-{sprint.id}"):
         forecast_ist = _number(
-            t("Forecast IST ({unit})", unit=unit),
+            t("Commitment ({unit})", unit=unit),
             sprint.forecast_ist,
             f"fist-{sprint.id}",
             help_text("forecast_ist"),
@@ -1666,7 +1666,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
                 t(
                     "Prüft, ob die Planung in den Forecast PLAN passt: Delta = Forecast PLAN − "
                     "(Überkipper + Backlog − Korrekturen). Wirkt sich auf keine andere Kennzahl "
-                    "aus. Ist der Forecast IST leer, wird er mit Überkipper + Backlog vorbelegt; "
+                    "aus. Ist das Commitment leer, wird es mit Überkipper + Backlog vorbelegt; "
                     "weicht er davon ab, erscheint ein Hinweis."
                 )
             )
@@ -1717,7 +1717,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if prefilled:
         st.info(
             t(
-                "Forecast IST aus Überkipper + Backlog übernommen: {value} {unit}",
+                "Commitment aus Überkipper + Backlog übernommen: {value} {unit}",
                 value=fmt(sprint.forecast_ist, 2),
                 unit=unit,
             )
@@ -1799,8 +1799,8 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             step=0.25,
             format="%.2f",
             help=t(
-                "Menge des Forecast IST, die im Sprint nicht fertig wurde. Optional – "
-                "Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt."
+                "Menge des Commitments, die im Sprint nicht fertig wurde. Optional – "
+                "Velocity = Commitment − nicht erledigt + zusätzlich erledigt."
             ),
         )
         additional = extra_col.number_input(
@@ -1810,7 +1810,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             value=sprint.additional_done,
             step=0.25,
             format="%.2f",
-            help=t("Menge, die zusätzlich zum Forecast IST geschafft wurde. Optional."),
+            help=t("Menge, die zusätzlich zum Commitment geschafft wurde. Optional."),
         )
         scope = st.number_input(
             "Scope Creep (%)",
@@ -2066,7 +2066,7 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
                     t("Zeitpunkt"): f"{p.at:%d.%m.%Y %H:%M}",
                     "Sprint": sprint.id,
                     t("Kommentar"): p.comment or "",
-                    f"Forecast IST ({unit})": fmt(p.forecast_ist, 2),
+                    f"Commitment ({unit})": fmt(p.forecast_ist, 2),
                     t("nicht erledigt"): fmt(p.not_done, 2),
                     t("zusätzlich erledigt"): fmt(p.additional_done, 2),
                     t("erwartet erledigt"): fmt(p.expected_done, 2),
@@ -2143,7 +2143,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         ):
             st.caption(
                 t(
-                    "Prognose des Teams für den letzten Sprint eintragen: Forecast IST, was "
+                    "Prognose des Teams für den letzten Sprint eintragen: Commitment, was "
                     "voraussichtlich nicht fertig wird und was zusätzlich geschafft wird. Der "
                     "Forecast PLAN und damit die verteilbare Menge werden neu berechnet. Das gilt "
                     "nur für diese Ansicht; mit **Vorplanung speichern** wird die Annahme samt "
@@ -2167,7 +2167,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             _prognosis_history(data, list(open_velocity_sprints(fc)), unit)
     expected = dict(sprint.expected_absences)
     if data.people:
-        with st.expander(t("Voraussichtliche Fehltage"), icon=":material/event_busy:"):
+        with st.expander(t("Angekündigte Fehltage"), icon=":material/event_busy:"):
             st.caption(
                 t(
                     "Schon bekannte oder erwartete Fehltage für diesen Sprint. Sie sind eine "
@@ -2179,7 +2179,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 st.info(
                     t(
                         "Die Fehltage dieses Sprints sind bereits bestätigt – die "
-                        "voraussichtlichen Fehltage haben keine Wirkung mehr."
+                        "angekündigten Fehltage haben keine Wirkung mehr."
                     )
                 )
             probe = _base_sprint(data, sprint)
@@ -2190,7 +2190,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     "id": None,
                     "Person": st.column_config.TextColumn(t("Person"), disabled=True),
                     probe.id: st.column_config.NumberColumn(
-                        t("Voraussichtlich fehlend (Tage)"),
+                        t("Angekündigt fehlend (Tage)"),
                         min_value=0.0,
                         max_value=float(len(team_workdays(data.team, probe.start, probe.end))),
                         step=0.5,
