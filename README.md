@@ -415,7 +415,7 @@ production_done: 0.5        # bzw. im Review erledigt, je Sprint mit Produktions
 
 **Neue Teams:** Ein erster Forecast erscheint schon ab **3 Sprints mit Velocity** („Historie dünn“:
 Ø aus allen vorhandenen Sprints, konstant fortgeschrieben, mit Warnung „Wenig Daten“); das volle
-Fenster (`window`, Standard 5) und die Schwelle von 8 Sprints für belastbare Aussagen kommen später.
+Fenster (`window`, Standard 5) und die Schwelle von 5 Sprints für belastbare Aussagen kommen später.
 
 **Kapazität eines Sprints** – in dieser Reihenfolge:
 1. `capacity` in der Sprintdatei (eingefroren oder manuell) → *erfasst*
@@ -444,13 +444,17 @@ addiert.
   2. multiplikativ `Ø_vorletzt / Ø_vorvorletzt × Trend_vorher`, danach linear.
 - `linear`: durchgehend linear.
 
+Beispiel (Ø zuletzt 44, davor 40, drei Zukunftssprints): `flat` → 44, 44, 44; `linear` → 48, 52, 56;
+`classic` → 48, 52,8 (44/40 = +10 % auf 48), 57,6. Den Modus kann man jederzeit wechseln; es gehen
+keine Daten verloren, die Prognose wird nur neu berechnet.
+
 ⚠️ `classic` und `linear` schreiben auch Rauschen fort: Der Forecast kann steigen oder fallen und
 liegt bei längerem Horizont schnell außerhalb der Bandbreite. Sie sind nur ausdrücklich zu wählen
 (die Oberfläche warnt dann). Der Forecast ist nie negativ. Reicht die Historie nicht für den
 gewählten Modus (z. B. genau `window` Sprints), gilt `flat` mit dem Hinweis „Historie dünn“.
 
 **Unsicherheit:** Die Forecast-Kacheln zeigen die Spanne (niedrigste bis höchste n. Velocity der
-letzten Sprints) und warnen bei weniger als 8 Sprints mit Velocity. Aussagen wie „in 85 % der
+letzten Sprints) und warnen bei weniger als 5 Sprints mit Velocity. Aussagen wie „in 85 % der
 Simulationen“ sind modellabhängige Häufigkeiten aus der Historie (Stichprobe wird angezeigt),
 keine Zusagen.
 
