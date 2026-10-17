@@ -674,3 +674,31 @@ def test_plan_with_announced_absences_uses_the_unrounded_capacity(data_dir: Path
     sprint.expected_absences = {"ben": 0.5, "cem": 4.5, "dana": 3.0}
     fc = build_forecast(data, TODAY)
     assert_plan_from_unrounded_capacity(fc, "2026.22", CapacitySource.EXPECTED)
+
+
+def test_capacity_label_is_the_value_followed_by_the_source_note():
+    """Die Quelle allein (für Kennzahlen, deren Wert nicht gekürzt werden soll) und der
+    zusammengesetzte Text der Tabellen sagen dasselbe."""
+    from types import SimpleNamespace
+
+    from sprintforecast.engine import UNSURE_SOURCES, CapacitySource
+    from sprintforecast.report import capacity_source_note
+
+    def entry(source):
+        return SimpleNamespace(
+            result=SimpleNamespace(plan_capacity=50.55, plan_capacity_source=source),
+            capacity_digits=1,
+        )
+
+    value = fmt_capacity(50.55, 1)
+    assert capacity_source_note(entry(None)) == ""
+    assert capacity_label(entry(None)) == value
+    for source in CapacitySource:
+        note = capacity_source_note(entry(source))
+        assert note.endswith(source.value)
+        if source in UNSURE_SOURCES:
+            assert note.startswith("⚠️ ")
+            assert capacity_label(entry(source)) == f"{value} {note}"
+        else:
+            assert "⚠" not in note
+            assert capacity_label(entry(source)) == f"{value} ({note})"

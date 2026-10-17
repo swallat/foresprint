@@ -11,8 +11,15 @@ import pytest
 import yaml
 from gitrepos import Denying, Person, git, make_clone
 
+from sprintforecast import git as gitmod
 from sprintforecast import gitsync
-from sprintforecast.git import GitError, classify, clone_repository, invalidate_status
+from sprintforecast.git import (
+    GitError,
+    classify,
+    clone_repository,
+    invalidate_status,
+    title_for,
+)
 
 
 def test_state_without_remote(tmp_path: Path):
@@ -292,6 +299,123 @@ def test_auth_help_for_ssh_differs():
 
     assert "SSH" in auth_help("git@example.org:team/daten.git")
     assert "Zugangstoken" in auth_help("https://example.org/team/daten.git")
+
+
+@pytest.mark.parametrize(
+    "url", ["https://example.org/team/daten.git", "git@example.org:team/daten.git", ""]
+)
+def test_auth_help_does_not_repeat_the_heading(url: str):
+    """Die Überschrift („Anmeldung fehlt oder wurde abgelehnt“) steht schon über dem Hinweis."""
+    from sprintforecast.git import auth_help, hint_for, title_for
+
+    hint = auth_help(url)
+    assert "fehlt oder wurde abgelehnt" not in hint
+    assert "fehlt oder wurde abgelehnt" in title_for("auth")
+    assert hint_for("auth", url) == hint
+    assert hint.endswith("Danach noch einmal versuchen.")
+
+
+def test_auth_help_is_cut_to_the_address():
+    from sprintforecast.git import auth_help
+
+    https = auth_help("https://example.org/team/daten.git")
+    assert "Zugangstoken" in https and "`gh auth setup-git`" in https
+    assert "Anmeldedienst des Rechners" in https
+    # nicht mehr alle Betriebssysteme in einem Satz, keine SSH-Schritte
+    for other in ("Windows", "macOS", "Linux", "credential.helper", "ssh-keygen", "SSH"):
+        assert other not in https, other
+
+    ssh = auth_help("git@example.org:team/daten.git")
+    assert auth_help("ssh://git@example.org/team/daten.git") == ssh
+    assert ssh.startswith("Diese Adresse nutzt die Anmeldung per SSH-Schlüssel. Dafür ")
+    assert "ssh-keygen -t ed25519" in ssh and ".pub" in ssh and "ssh-agent" in ssh
+    for other in ("Zugangstoken", "gh auth", "Anmeldedienst", "Windows", "https"):
+        assert other not in ssh, other
+
+
+LOGIN_FAILURES = [
+    pytest.param(
+        "git@example.org:team/daten.git",
+        "git@example.org: Permission denied (publickey).\n"
+        "fatal: Could not read from remote repository.",
+        "ssh-keygen",
+        "Zugangstoken",
+        id="ssh",
+    ),
+    pytest.param(
+        "ssh://git@example.org/team/daten.git",
+        "git@example.org: Permission denied (publickey).",
+        "ssh-keygen",
+        "Zugangstoken",
+        id="ssh-url",
+    ),
+    pytest.param(
+        "https://example.org/team/daten.git",
+        "fatal: Authentication failed for 'https://example.org/team/daten.git/'",
+        "Zugangstoken",
+        "ssh-keygen",
+        id="https",
+    ),
+]
+
+
+@pytest.mark.parametrize(("url", "message", "expected", "absent"), LOGIN_FAILURES)
+def test_fetch_login_failure_names_the_steps_for_the_address(
+    alice: Person, monkeypatch: pytest.MonkeyPatch, url: str, message: str, expected: str,
+    absent: str,
+):  # fmt: skip
+    """Scheitert der Abgleich an der Anmeldung, passt der Hinweis zur Adresse des Servers: bei
+    SSH die SSH-Schritte, bei https der Zugangstoken – nicht der Text für https überall."""
+    git(alice.root, "remote", "set-url", "origin", url)
+    real_git = gitsync._git
+
+    def failing(root, *args, **kwargs):
+        if args[:1] == ("fetch",):
+            raise classify(message)
+        return real_git(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitsync, "_git", failing)
+    error = gitsync.fetch(alice.data).fetch_error
+    assert error is not None and error.kind == "auth"
+    assert expected in error.hint and absent not in error.hint
+    # „Speichern und teilen“ meldet denselben Hinweis
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    shared = alice.sync("Login")
+    assert shared.error is not None and shared.error.kind == "auth"
+    assert shared.error.hint == error.hint
+    assert shared.committed  # lokal gesichert
+
+
+@pytest.mark.parametrize(("url", "message", "expected", "absent"), LOGIN_FAILURES)
+def test_clone_login_failure_names_the_steps_for_the_address(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, url: str, message: str, expected: str,
+    absent: str,
+):  # fmt: skip
+    def failing(*args, **kwargs):
+        raise classify(message)
+
+    monkeypatch.setattr(gitmod, "_git", failing)
+    with pytest.raises(GitError) as info:
+        clone_repository(url, tmp_path / "ziel")
+    assert info.value.kind == "auth"
+    assert expected in info.value.hint and absent not in info.value.hint
+
+
+def test_login_failure_without_a_heading_names_the_cause():
+    """„Nur lokal erledigt“ (z. B. ein Tag, der nicht hochgeladen werden konnte) zeigt
+    ``GitError.full()`` ohne Überschrift: Die Ursache steht deshalb dort voran, der Hinweis
+    selbst wiederholt sie nicht."""
+    error = classify("fatal: Authentication failed for 'https://example.org/team/daten.git/'")
+    assert error.kind == "auth"
+    text = error.full()
+    assert text.startswith(title_for("auth") + ". ")
+    assert text.count("fehlt oder wurde abgelehnt") == 1
+    assert "Authentication failed" in text  # die Meldung von Git bleibt erhalten
+    assert text.endswith(error.hint)
+    # andere Fehlerarten bleiben unverändert: Meldung, dann Hinweis
+    offline = classify("fatal: unable to access 'https://x/': Could not resolve host: x")
+    assert offline.full() == f"{offline} {offline.hint}"
+    assert classify("fatal: etwas Unbekanntes").full() == "fatal: etwas Unbekanntes"
 
 
 def test_clone_with_missing_login_is_explained(tmp_path: Path):
