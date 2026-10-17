@@ -189,6 +189,33 @@ def test_different_keys_of_same_file_are_merged(alice: Person, bob: Person, remo
     assert merged == {"velocity": 11, "scope_creep": 2, "note": "Bob"}
 
 
+def test_locked_file_during_automatic_merge_is_a_message_and_the_merge_can_resume(
+    alice: Person, bob: Person, remote: Path, monkeypatch
+):
+    """Lässt sich die zusammengeführte Datei nicht schreiben (gesperrt, schreibgeschützt), meldet
+    „Speichern und teilen“ das mit Hinweis statt mit Traceback; das Zusammenführen bleibt offen
+    und wird beim nächsten Versuch zu Ende geführt."""
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Alice").ok
+    bob.write("a/2026.1.yaml", "velocity: 10\nscope_creep: 2\nnote: Bob\n")
+    real = Path.write_text
+
+    def locked(self, *args, **kwargs):
+        if self.name == "2026.1.yaml":
+            raise PermissionError(13, "Permission denied")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", locked)
+    result = bob.sync("Bob")
+    assert result.error is not None and result.error.kind == "locked"
+    assert "2026.1.yaml" in str(result.error) and "Permission denied" in str(result.error)
+    monkeypatch.undo()
+    again = bob.sync("Bob")
+    assert again.ok and again.pushed
+    merged = yaml.safe_load(git(remote, "show", f"main:{FILE}"))
+    assert merged == {"velocity": 11, "scope_creep": 2, "note": "Bob"}
+
+
 def test_people_are_merged_per_entry(alice: Person, bob: Person, remote: Path):
     people = "people:\n- id: anna\n  fte: 1\n- id: ben\n  fte: 1\n"
     alice.write("a/people.yaml", people)
