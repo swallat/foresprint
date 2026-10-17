@@ -481,7 +481,9 @@ def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Was möchtest du tun?"))
     if (goto := st.session_state.pop("start-goto", None)) is not None:
         st.switch_page(page_path(goto))
-    tasks = start_tasks(fc, "vorplanung" in st.session_state.get("enabled-pages", PAGE_INFO))
+    tasks = start_tasks(
+        fc, "vorplanung" in st.session_state.get("enabled-pages", PAGE_INFO) and bool(data.products)
+    )
     for col, task in zip(st.columns(len(tasks)), tasks, strict=True):
         title, icon = START_TASKS[task.key]
         with col, st.container(border=True):
@@ -719,10 +721,10 @@ def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
 @st.fragment
 def _formula_expander(fc: Forecast) -> None:
     """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
-    if not sprint_options(fc):
+    if not sprint_options(fc, None):
         return
     with st.expander(t("Rechenweg: Formeln"), icon=":material/function:"):
-        sprint = sprint_select(fc.data, fc, "formula-sprint")
+        sprint = sprint_select(fc.data, fc, "formula-sprint", "current", None)
         entry = fc.entry(sprint.id) if sprint else None
         if entry is not None:
             _rechenweg(fc, entry)
@@ -1080,15 +1082,23 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
 BOARD_SPRINT = "board-sprint"
 
 
-def sprint_options(fc: Forecast) -> list[str]:
+def sprint_options(fc: Forecast, history: int | None = 6) -> list[str]:
     """Wählbare Sprints in fester Reihenfolge: letzte abgeschlossene, laufender, kommende."""
-    return [e.sprint.id for e in fc.history(6)] + [e.sprint.id for e in fc.upcoming()]
+    return [e.sprint.id for e in fc.history(history)] + [e.sprint.id for e in fc.upcoming()]
 
 
-def sprint_select(data: TeamData, fc: Forecast, key: str) -> Sprint | None:
-    """Gemeinsame Sprintauswahl aller Seiten: gleiche Beschriftung und Reihenfolge, Vorgabe ist
-    der zuletzt gewählte, sonst der laufende Sprint (ohne laufenden: der nächste offene)."""
-    options = sprint_options(fc)
+def sprint_select(
+    data: TeamData,
+    fc: Forecast,
+    key: str,
+    purpose: str = "planning",
+    history: int | None = 6,
+) -> Sprint | None:
+    """Gemeinsame Sprintauswahl aller Seiten: gleiche Beschriftung und Reihenfolge. Vorgabe ist
+    der zuletzt gewählte Sprint, sonst der Vorschlag der Aufgabe (``purpose``, siehe
+    ``Forecast.default_entry``: planning = nächstes Planning, review = offener Rückblick),
+    ersatzweise der laufende Sprint."""
+    options = sprint_options(fc, history)
     if not options:
         return None
     wanted = st.session_state.get(BOARD_SPRINT)
@@ -1096,7 +1106,7 @@ def sprint_select(data: TeamData, fc: Forecast, key: str) -> Sprint | None:
     if wanted in options:
         st.session_state[key] = wanted
     else:
-        default = fc.current or fc.default_entry("planning")
+        default = fc.default_entry(purpose) or fc.current
         kwargs["index"] = (
             options.index(default.sprint.id) if default and default.sprint.id in options else 0
         )
@@ -2029,7 +2039,7 @@ def _review_prognosis_hint(sprint: Sprint, unit: str) -> None:
 
 def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Review")
-    sprint = sprint_select(data, fc, "review-sprint")
+    sprint = sprint_select(data, fc, "review-sprint", "review")
     if sprint is None:
         return
     _board_nav(data, sprint, "review")
@@ -2085,10 +2095,11 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         product_rows = None
         entry = fc.entry(sprint.id)
         production_done = sprint.production_done
+        review_measures = ["done", *(["production_done"] if data.team.features.production else [])]
         if data.team.features.products and data.products and entry is not None:
             st.markdown(f"**{t('Erledigt je Produkt')}**")
             product_rows = _product_editor(
-                distribution(fc, entry), ["done"], f"review-products-{sprint.id}", unit
+                distribution(fc, entry), review_measures, f"review-products-{sprint.id}", unit
             )
         elif data.team.features.production and not data.team.features.products:
             st.markdown(f"**{t('Themen mit Produktionszugriff')}**")
@@ -2137,7 +2148,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if data.team.features.production and not data.team.features.products:
         sprint.production_done = production_done
     if product_rows is not None:
-        sprint = apply_product_values(sprint, product_rows, ["done"])
+        sprint = apply_product_values(sprint, product_rows, review_measures)
     save(
         with_sprints(data, [sprint]),
         [f"{sprint.id}.yaml"],

@@ -1214,6 +1214,7 @@ EN: dict[str, str] = {
     "Sprint {id}: Commitment fehlt noch.": "Sprint {id}: commitment still missing.",
     "Sprint {id}: Fehltage bekannt, PO-Vorplanung fehlt noch.": "Sprint {id}: absences known, PO pre-planning still missing.",
     "Sprint {id}: Fehltage unbekannt.": "Sprint {id}: absences unknown.",
+    "Sprint {id} läuft noch – Review am Sprintende.": "Sprint {id} is still running – review at the end of the sprint.",
     "Sprint {id}: Velocity fehlt noch.": "Sprint {id}: velocity still missing.",
     "Sprint {id}: abgeschlossen.": "Sprint {id}: closed.",
     "Sprint {id}: vorbereitet.": "Sprint {id}: prepared.",

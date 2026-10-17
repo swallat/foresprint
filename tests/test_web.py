@@ -105,6 +105,19 @@ def test_start_prepare_asks_for_preplanning_once_absences_are_known(
     assert at.selectbox(key="vorplanung-sprint").value == "2026.22"
 
 
+def test_start_prepare_is_not_stuck_without_products(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Funktionsbereich Produkte an, aber keine Produkte angelegt: keine dauerhafte Vorplanung."""
+    import shutil
+
+    shutil.rmtree(data_dir / "demo" / "products", ignore_errors=True)
+    (data_dir / "demo" / "products.yaml").unlink(missing_ok=True)
+    _change_2026_22(data_dir, products={})
+    at = start(data_dir, monkeypatch)
+    assert not any("PO-Vorplanung fehlt noch" in w.value for w in at.main.markdown)
+
+
 def test_forecast_page_shows_the_forecast(app: AppTest):
     goto(app, "forecast")
     values = [m.value for m in app.metric]
@@ -181,8 +194,8 @@ def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
 
 def test_planning_defaults_to_next_planning(app: AppTest):
     goto(app, "planning")
-    # Vorgabe ist überall der laufende Sprint (2026.21); die Startseite führt zum nächsten
-    assert app.selectbox(key="planning-sprint").value == "2026.21"
+    # 2026.21 läuft und ist bereits geplant (Commitment) → als Nächstes 2026.22
+    assert app.selectbox(key="planning-sprint").value == "2026.22"
     assert app.radio(key="planning-step").value == 0
 
 
@@ -385,7 +398,7 @@ def test_planning_freezes_forecast_plan(app: AppTest, data_dir: Path):
 
 def test_products_page(app: AppTest):
     goto(app, "produkte")
-    assert app.selectbox(key="products-sprint").value == "2026.21"
+    assert app.selectbox(key="products-sprint").value == "2026.22"
     assert any("3 betreute Produkte" in c.value for c in app.caption)
     app.selectbox(key="products-sprint").set_value("2026.20").run()
     assert any("Saldo" in c.value for c in app.caption)
@@ -716,9 +729,15 @@ def test_sprint_selection_is_the_same_on_all_pages(app: AppTest):
         goto(app, page)
         box = app.selectbox(key=key)
         assert box.label == "Sprint"
-        assert box.value == "2026.21"  # laufender Sprint
+        # Vorgabe je Aufgabe: Planning-Seiten der nächste Planning-Kandidat, Review der offene
+        # Rückblick, Rechenweg der laufende Sprint
+        assert box.value == {"review-sprint": "2026.21", "formula-sprint": "2026.21"}.get(
+            key, "2026.22"
+        )
         seen.append(list(box.options))
-    assert all(options == seen[0] for options in seen)
+    # Rechenweg zeigt die ganze Historie, sonst gleiche Reihenfolge und gleiche Zukunft
+    assert all(options == seen[0] for options in seen[:-1])
+    assert seen[-1][-len(seen[0]) :] == seen[0] or set(seen[0]) <= set(seen[-1])
     app.selectbox(key="formula-sprint").set_value("2026.23").run()
     for page, key in pages.items():
         goto(app, page)
