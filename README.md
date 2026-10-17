@@ -166,21 +166,23 @@ Kommandozeile und prüft vor jedem Speichern:
 
 | Bereich | Seite | Inhalt |
 |---|---|---|
-| Sprint | Forecast | Prognose für laufenden + kommende Sprints, Verlauf, Diagramm, Bericht schreiben |
-| | Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast; Stand je Sprint, „Niemand fehlt“ ausdrücklich bestätigen |
-| | Sprintkalender | kommende Sprints mit Start, letztem Tag und Arbeitstagen; anlegen, Länge anpassen |
-| | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
-| Boards | PO-Vorplanung | je Produkt vorsehen, was in den Sprint soll – im Vergleich zum Standard, Summe je PO |
+| Aufgaben (in zeitlicher Reihenfolge) | Sprint vorbereiten: Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast; Stand je Sprint, „Niemand fehlt“ ausdrücklich bestätigen |
+| | PO-Vorplanung | je Produkt vorsehen, was in den Sprint soll – im Vergleich zum Standard, Summe je PO; angekündigte Fehltage |
 | | Planning | geführter Ablauf: 1. Fehltage, 2. Forecast PLAN & Einplanung je Produkt, 3. Commitment |
-| | Review | Velocity, Scope Creep, Erledigt je Produkt, nicht erledigt/zusätzlich erledigt; verfügbare Personentage werden eingefroren |
+| | Sprint abschließen (Review) | Velocity, Scope Creep, Erledigt je Produkt, nicht erledigt/zusätzlich erledigt; verfügbare Personentage werden eingefroren |
+| Auswertung | Forecast | Prognose für laufenden + kommende Sprints (mit Spanne), Verlauf, Diagramm, Bericht schreiben |
 | | Analyse | ergänzend: Bandbreite, Fokusfaktor, Puffer-Empfehlung, „Wann ist es fertig?“ |
-| Team | Personen | eine Tabelle (Zeile je Zeitraum, FTE); IDs automatisch; Ehemalige ausblendbar |
+| | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
+| Team verwalten | Sprintkalender | kommende Sprints mit Start, letztem Tag und Arbeitstagen; anlegen, Länge anpassen |
+| | Personen | eine Tabelle (Zeile je Zeitraum, FTE); IDs automatisch; Ehemalige ausblendbar |
 | | Produkte | Produktliste mit PO und Zeitraum (ab/bis); Ehemalige ausblendbar |
 | | Einstellungen | alle Team-Einstellungen; Änderungen werden vor dem Speichern angezeigt |
 | | Neues Team | Team anlegen |
 | Daten & Hilfe | Datenordner | Datenordner wählen, neu anlegen oder klonen (Git-Repository) |
 | | Prüfung | Befunde aller Teams |
 | | Hilfe | Ablauf, Begriffe, Eingabefelder, Einstellungen, Befehle |
+
+Die Startseite ist weiterhin der **Forecast** („Wie viel passt in den nächsten Sprint?“).
 
 **Speichern und Committen:** Jede Seite speichert in die YAML-Dateien. Die Seitenleiste zeigt
 unter **Git** die offenen Änderungen im Datenverzeichnis; **Änderungen committen** übernimmt
