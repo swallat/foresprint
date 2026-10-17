@@ -138,6 +138,11 @@ EN: dict[str, str] = {
     "{path}: kein gültiges YAML ({error})": "{path}: invalid YAML ({error})",
     "{path}: Inhalt muss ein YAML-Objekt sein": "{path}: content must be a YAML mapping",
     "{where}: Zahl erwartet, gefunden {value}": "{where}: number expected, found {value}",
+    "{where}: '{name}' bitte in Anführungszeichen setzen, z. B. {name}: \"NO\" (unquotiert liest YAML das als Wahrheitswert)": "{where}: please put '{name}' in quotes, e.g. {name}: \"NO\" (unquoted, YAML reads it as a boolean)",
+    "{where}: '{name}' muss ein Text sein (z. B. DE oder NW), gefunden {value}": "{where}: '{name}' must be text (e.g. DE or NW), found {value}",
+    "{where}: '{name}' muss ein Objekt sein (Zeilen der Form 'Schlüssel: Wert'), gefunden {value}": "{where}: '{name}' must be a mapping (lines of the form 'key: value'), found {value}",
+    "{where}: '{name}' muss eine Liste sein (Einträge mit '- '), gefunden {value}": "{where}: '{name}' must be a list (entries starting with '- '), found {value}",
+    "{where}: Aufbau der Datei ungültig ({error}). Listen beginnen mit '- ', Objekte bestehen aus Zeilen 'Schlüssel: Wert'.": "{where}: invalid file structure ({error}). Lists start with '- ', mappings consist of lines 'key: value'.",
     "{where}: Datum im Format JJJJ-MM-TT erwartet, gefunden {value}": (
         "{where}: date in format YYYY-MM-DD expected, found {value}"
     ),
