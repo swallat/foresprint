@@ -85,7 +85,7 @@ def test_help_shows_workflow_and_terms(app: AppTest):
     assert [t.label for t in app.tabs] == [
         "Ablauf", "Begriffe", "Eingabefelder", "Team-Einstellungen", "Kommandozeile",
     ]  # fmt: skip
-    assert any("Commitment" in c.value for c in app.caption)  # Quelle Forecast IST
+    assert any("Commitment" in c.value for c in app.caption)  # Quelle Commitment
 
 
 def test_absences_save_does_not_confirm_silently(app: AppTest, data_dir: Path):
@@ -127,7 +127,7 @@ def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
 
 def test_planning_defaults_to_next_planning(app: AppTest):
     goto(app, "planning")
-    # 2026.21 läuft und ist bereits geplant (Forecast IST) → als Nächstes 2026.22
+    # 2026.21 läuft und ist bereits geplant (Commitment) → als Nächstes 2026.22
     assert app.selectbox(key="planning-sprint").value == "2026.22"
     assert app.radio(key="planning-step").value == 0
 
@@ -470,7 +470,7 @@ def test_preplanning_saves_prognosis_with_comment(app: AppTest, data_dir: Path):
     prognosis = sprint["prognoses"][-1]
     assert prognosis["comment"] == "Prognose aus dem Daily"
     assert prognosis["not_done"] == 3
-    assert prognosis["expected_done"] == 7  # Forecast IST 10 - 3
+    assert prognosis["expected_done"] == 7  # Commitment 10 - 3
     assert prognosis["target"] == "2026.23"
     assert sprint["velocity"] is None  # die Velocity bleibt dem Review vorbehalten
 
@@ -551,7 +551,7 @@ def test_planning_nobody_absent_needs_explicit_confirmation(app: AppTest, data_d
 
 
 def test_saving_planning_values_keeps_unconfirmed_absences_unknown(app: AppTest, data_dir: Path):
-    """Forecast IST im Planning speichern bestätigt keine Fehltage (B2)."""
+    """Commitment im Planning speichern bestätigt keine Fehltage (B2)."""
     planning_step(app, "2026.23", 2)
     app.number_input(key="fist-2026.23").set_value(9.0)
     click(app, "Planning speichern")

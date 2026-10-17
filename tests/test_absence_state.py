@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Stand der Fehltage je Sprint (unbekannt / voraussichtlich / bestätigt) und die Historie der
+"""Stand der Fehltage je Sprint (unbekannt / angekündigt / bestätigt) und die Historie der
 Fehltage (A5, B2)."""
 
 from datetime import date
@@ -62,7 +62,7 @@ def test_resaving_a_legacy_file_keeps_it_unchanged(data_dir: Path):
 
 
 def test_saving_planning_values_pins_the_unknown_state(data_dir: Path):
-    """Das Planning allein (Forecast IST) bestätigt keine Fehltage: Der Stand wird mit der
+    """Das Planning allein (Commitment) bestätigt keine Fehltage: Der Stand wird mit der
     Datei festgehalten."""
     repo = Repository(data_dir)
     sprint = Sprint("2026.30", START, END, forecast_ist=9.0, absence_state=AbsenceState.UNKNOWN)

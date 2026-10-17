@@ -44,7 +44,7 @@ def absence_status_label(sprint: Sprint) -> str:
     """Stand der Fehltage eines Sprints in Worten."""
     return {
         AbsenceState.CONFIRMED: t("bestätigt"),
-        AbsenceState.EXPECTED: t("voraussichtlich"),
+        AbsenceState.EXPECTED: t("angekündigt"),
         AbsenceState.UNKNOWN: t("unbekannt"),
     }[absence_status(sprint)]
 
@@ -167,7 +167,7 @@ def render(fc: Forecast, history: int = 10) -> str:
         "",
         "| Sprint | "
         + t(
-            "Kapazität (PT) | Forecast IST | Velocity | n. Velocity | Ø n. Velocity "
+            "Kapazität (PT) | Commitment | Velocity | n. Velocity | Ø n. Velocity "
             "| Fulfillment | Scope Creep |"
         ),
         "|---|---|---|---|---|---|---|---|",
@@ -192,7 +192,7 @@ def render(fc: Forecast, history: int = 10) -> str:
             f"## {t('Diagramm')}",
             "",
             t(
-                "Linien: Forecast IST (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und "
+                "Linien: Commitment (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und "
                 "normierte Velocity (Vergangenheit: Ist-Wert, Zukunft: Trend)."
             ),
             "",

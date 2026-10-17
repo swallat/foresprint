@@ -179,7 +179,7 @@ def test_validation_of_product_values(fc):
     s.products["app"].planned = 7
     messages = [i.message for i in check_team(data, TODAY)]
     assert any("unbekanntes Produkt 'unbekannt'" in m for m in messages)
-    assert any("größer als der Forecast IST" in m for m in messages)
+    assert any("größer als das Commitment" in m for m in messages)
 
 
 def test_freeze_keeps_existing_plan_unless_requested(fc):

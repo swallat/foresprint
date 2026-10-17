@@ -2,9 +2,9 @@
 """Rechenkern: Velocity-, Kapazitäts- und Prognoseberechnung je Sprint.
 
 Kennzahlen (je Sprint):
-    Forecast IST, Velocity, Kapazität, Scope Creep   → Eingaben
+    Commitment, Velocity, Kapazität, Scope Creep   → Eingaben
     Normierte Velocity  = Velocity / Kapazität × Referenzkapazität
-    Fulfillment         = Velocity / Forecast IST
+    Fulfillment         = Velocity / Commitment
     Ø (gleitend)        = Durchschnitt über ``window`` Sprints je Kennzahl
     Trend               = Fortschreibung des Durchschnitts in die Zukunft
     Forecast PLAN       = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)
@@ -129,7 +129,7 @@ class CapacitySource(StrEnum):
     # Personenliste und Kalender; Fehltage unbekannt und keine Historie, daher ohne Abzug.
     CALENDAR = "Kalender, Fehltage unbekannt"
     ESTIMATED = "erwartete Fehltage"
-    EXPECTED = "voraussichtliche Fehltage"
+    EXPECTED = "angekündigte Fehltage"
 
 
 # Quellen ohne bekannte Fehltage und ohne Historie: Die Kapazität ist nur geschätzt.
@@ -227,7 +227,7 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
             plan_source = PlanSource.FORECAST
             plan = max(plan, 0.0)
         elif s.forecast_ist is not None:
-            # Auch der Rückgriff auf Forecast IST wird abgerundet.
+            # Auch der Rückgriff auf Commitment wird abgerundet.
             plan = round_down(s.forecast_ist, settings.rounding)
             plan_source = PlanSource.ACTUAL
         else:
