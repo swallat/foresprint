@@ -336,6 +336,30 @@ def test_commit_button(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     assert at.session_state["pending_tags"] == []
 
 
+def test_commit_button_refuses_files_with_conflict_markers(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Markierungen ohne offenes Zusammenführen: nichts wird committet, die Meldung nennt die
+    Datei und den Weg zur Seite „Konflikte lösen“."""
+    for var in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{var}_NAME", "T")
+        monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")
+    git(data_dir, "init", "-q", "-b", "main")
+    git(data_dir, "add", "-A")
+    git(data_dir, "commit", "-qm", "init")
+    sprint = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    sprint.write_text(
+        "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n", encoding="utf-8"
+    )
+    at = start(data_dir, monkeypatch)
+    at.text_input(key="commit_message").set_value("Mit Markierungen")
+    next(b for b in at.button if b.label == "Änderungen committen").click().run()
+    assert not at.exception, at.exception
+    assert git(data_dir, "log", "-1", "--format=%s") == "init"
+    shown = " ".join(e.value for e in [*at.sidebar.error, *at.error])
+    assert "Konflikte lösen" in shown and "2026.21.yaml" in shown
+
+
 def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
     planning_step(app, "2026.22", 2)
     assert app.number_input(key="fist-2026.22").value is None  # nicht der Wert von 2026.21
