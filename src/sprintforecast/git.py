@@ -83,8 +83,11 @@ class GitError(Exception):
         self.hint = scrub(hint)
 
     def full(self) -> str:
-        """Meldung samt nächstem Schritt."""
-        return f"{self} {self.hint}".strip()
+        """Meldung samt nächstem Schritt – für Stellen ohne Überschrift (``title_for``). Bei
+        einem Anmeldefehler steht die Ursache voran: Der Hinweis (:func:`auth_help`) beginnt
+        gleich mit dem nächsten Schritt, weil die Überschrift sie sonst nennt."""
+        cause = f"{title_for(self.kind)}." if self.kind == "auth" and self.hint else ""
+        return " ".join(part for part in (cause, str(self), self.hint) if part).strip()
 
 
 # Tabellenkalkulationen dürfen nie committet werden (können echte Team-Daten enthalten).
@@ -486,21 +489,23 @@ def hint_for(kind: str, url: str = "") -> str:
 
 
 def auth_help(url: str = "") -> str:
-    """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH)."""
+    """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH). Der Text beginnt gleich
+    mit dem nächsten Schritt und wiederholt die Ursache nicht: Wo der Hinweis unter der
+    Überschrift (``title_for``) steht („Anmeldung fehlt oder wurde abgelehnt“), nennt sie schon
+    diese; wo es keine gibt, stellt :meth:`GitError.full` sie voran."""
     if url.lower().startswith("ssh://") or _SCP_FORM.match(url):
         return t(
-            "Die Anmeldung per SSH fehlt oder wurde abgelehnt. Einen SSH-Schlüssel anlegen "
+            "Diese Adresse nutzt die Anmeldung per SSH-Schlüssel. Dafür einen Schlüssel anlegen "
             "(`ssh-keygen -t ed25519`), den öffentlichen Teil (Datei `.pub`) beim Server "
             "(GitHub, GitLab …) unter „SSH-Schlüssel“ hinterlegen und den Schlüssel im "
-            "ssh-agent ohne Kennwortabfrage verfügbar machen; danach noch einmal versuchen."
+            "ssh-agent ohne Kennwortabfrage verfügbar machen. Danach noch einmal versuchen."
         )
     return t(
-        "Die Anmeldung fehlt oder wurde abgelehnt. Bei https braucht der Server meist einen "
-        "Zugangstoken statt des Kennworts (GitHub: Settings › Developer settings › Personal "
-        "access tokens; GitLab: Zugriffstoken mit dem Recht „write_repository“). Den Token im "
-        "Anmeldedienst des Rechners hinterlegen (Windows: Anmeldeinformationsverwaltung, macOS: "
-        "Schlüsselbund, Linux: `git config --global credential.helper store`) bzw. beim "
-        "nächsten Anmeldefenster als Kennwort eingeben; danach noch einmal versuchen."
+        "Bei https braucht der Server meist einen Zugangstoken statt des Kennworts (GitHub: "
+        "Settings › Developer settings › Personal access tokens; GitLab: Zugriffstoken mit dem "
+        "Recht „write_repository“). Wer die GitHub-CLI nutzt, richtet die Anmeldung mit "
+        "`gh auth setup-git` ein; sonst den Token im Anmeldedienst des Rechners hinterlegen "
+        "oder beim nächsten Anmeldefenster als Kennwort eingeben. Danach noch einmal versuchen."
     )
 
 

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import contextlib
 import copy
-import html
 import os
 import subprocess
 import sys
@@ -153,6 +152,7 @@ from sprintforecast.products import (
 from sprintforecast.report import (
     absence_status_label,
     capacity_label,
+    capacity_source_note,
     fmt,
     fmt_capacity,
     pct,
@@ -190,6 +190,7 @@ from sprintforecast.web.logic import (
     absence_sprints,
     apply_calendar,
     apply_product_values,
+    board_steps_done,
     calendar_table,
     calendar_to_save,
     default_forecast_ist,
@@ -885,6 +886,10 @@ def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart |
 
 def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Planbare Fehltage"))
+    # Gewählter Sprint und Schrittleiste wie auf den Boards; die Tabelle darunter zeigt weiter
+    # mehrere Sprints.
+    if (board_sprint := sprint_select(data, fc, "absences-sprint")) is not None:
+        _board_nav(data, board_sprint, "fehltage")
     st.markdown(help_text("absences").replace("\n\n", "  \n"))
     if not data.people:
         st.warning(t("Noch keine Personen erfasst – zuerst auf der Seite **Personen** anlegen."))
@@ -933,6 +938,7 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         column_config=column_config,
         hide_index=True,
         key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
+        placeholder="",  # leer = nicht im Team (siehe Hinweis darunter), nicht „None“
     )
     st.caption(t("Leere Zellen: Person ist in diesem Sprint nicht im Team."))
     approx = {
@@ -1004,12 +1010,15 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         ),
         hide_index=True,
     )
-    if st.button(t("Fehltage speichern"), type="primary", disabled=not to_save):
-        save(
-            preview,
-            [f"{s.id}.yaml" for s in to_save],
-            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
-        )
+    # Nach dem Speichern neu laden, damit die Schrittleiste oben den gespeicherten Stand (Haken)
+    # zeigt; die Meldung erscheint dann im nächsten Durchlauf (flash).
+    if st.button(t("Fehltage speichern"), type="primary", disabled=not to_save) and save(
+        preview,
+        [f"{s.id}.yaml" for s in to_save],
+        lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
+        flash=True,
+    ):
+        st.rerun()
     _reset_absences(repo, data, fc.today)
 
 
@@ -1197,33 +1206,79 @@ def sprint_select(
     return copy.deepcopy(find_sprint(data, chosen))
 
 
+# Die drei Boards der Produktwerte; mit „Fehltage“ davor die Schrittleiste (Reihenfolge wie in
+# Seitenleiste und Startseite: vorbereiten, PO-Vorplanung, Planning, Review).
 BOARDS = ("vorplanung", "planning", "review")
+BOARD_STEPS = ("fehltage", *BOARDS)
+
+# Schrittleiste: Alle Schritte sind gleich aufgebaut – ein Link in einem Container mit Schlüssel,
+# in einem Raster gleich breiter Spalten. Gleiche Höhe, Breite und Ausrichtung; nur die Farbe
+# unterscheidet den aktiven Schritt, darum springt beim Wechsel nichts. Der Text bricht nie um
+# (Überlanges wird gekürzt, der volle Text steht im Tooltip). Je nach Breite des Bereichs stehen
+# alle Schritte nebeneinander, zu zweit oder untereinander – nie überlappend (Container-Abfrage
+# statt Fensterbreite, denn die Seitenleiste verändert den Platz).
+BOARD_NAV_STEP_REM = 16  # Mindestbreite eines Schritts (der längste Titel samt Symbol passt)
+BOARD_NAV_CSS = """
+<style>
+div.st-key-board-nav-box { container-type: inline-size; }
+div.st-key-board-nav {
+    display: grid; gap: 0.5rem; grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@container (max-width: 33rem) {
+    div.st-key-board-nav { grid-template-columns: minmax(0, 1fr); }
+}
+div.st-key-board-nav > div { min-width: 0; }
+div.st-key-board-nav [class*="st-key-board-step-"],
+div.st-key-board-nav [class*="st-key-board-active-"] { height: 2.5rem; gap: 0; }
+div.st-key-board-nav [data-testid="stElementContainer"],
+div.st-key-board-nav [data-testid="stPageLink-NavLink"] { margin: 0; }
+div.st-key-board-nav [data-testid="stPageLink"] { width: 100%; }
+div.st-key-board-nav [data-testid="stPageLink-NavLink"] {
+    box-sizing: border-box; width: 100%; height: 2.5rem; padding: 0 0.75rem;
+    justify-content: center; align-items: center; border-radius: 0.5rem;
+    border: 1px solid rgba(128, 128, 128, 0.4); white-space: nowrap; overflow: hidden;
+}
+div.st-key-board-nav [data-testid="stPageLink-NavLink"] p {
+    margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-NavLink"] {
+    background: #2a78d6; border-color: #2a78d6; font-weight: 600;
+}
+div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-NavLink"],
+div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-NavLink"] * {
+    color: #fff;
+}
+</style>
+"""
+
+
+def _board_nav_css(count: int) -> str:
+    """CSS der Schrittleiste; ab der Breite, in der alle ``count`` Schritte nebeneinander
+    passen, stehen sie in einer Zeile."""
+    wide = count * BOARD_NAV_STEP_REM + (count - 1) * 0.5
+    return BOARD_NAV_CSS.replace(
+        "</style>",
+        f"@container (min-width: {wide:g}rem) {{\n"
+        f"    div.st-key-board-nav {{ grid-template-columns: repeat({count}, minmax(0, 1fr)); }}\n"
+        "}\n</style>",
+    )
 
 
 def _board_nav(data: TeamData, sprint: Sprint, current: str) -> None:
-    """Die drei Boards mit dem Stand für den gewählten Sprint – Wechsel mit einem Klick."""
-    recorded = data.sprint(sprint.id)
-    done = {
-        "vorplanung": recorded is not None
-        and any(v.preplanned is not None for v in recorded.products.values()),
-        "planning": recorded is not None and recorded.forecast_ist is not None,
-        "review": recorded is not None and recorded.velocity is not None,
-    }
-    boards = [b for b in BOARDS if b in st.session_state.get("enabled-pages", BOARDS)]
-    for col, key in zip(st.columns(len(boards)), boards, strict=True):
-        title, icon = PAGE_INFO[key]
-        label = f"{'✅' if done[key] else '⬜'} {t(title)}"
-        with col:
-            if key == current:
-                # Aktive Seite deutlich hervorgehoben (kein ausgegrauter Link).
-                st.markdown(
-                    '<div class="board-active" style="background:#2a78d6;color:#fff;'
-                    "font-weight:600;padding:0.45rem 0.9rem;border-radius:0.5rem;"
-                    f'text-align:center">{html.escape(label)}</div>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.page_link(page_path(key), label=label, icon=icon)
+    """Schrittleiste Fehltage → PO-Vorplanung → Planning → Review mit dem Stand für den
+    gewählten Sprint – Wechsel mit einem Klick. Seiten abgeschalteter Funktionsbereiche
+    (PO-Vorplanung ohne Produkte) entfallen."""
+    done = board_steps_done(data.sprint(sprint.id))
+    enabled = st.session_state.get("enabled-pages", BOARD_STEPS)
+    steps = [key for key in BOARD_STEPS if key in enabled]
+    st.html(_board_nav_css(len(steps)))
+    with st.container(key="board-nav-box"), st.container(key="board-nav"):
+        for key in steps:
+            title, icon = PAGE_INFO[key]
+            label = f"{'✅' if done[key] else '⬜'} {t(title)}"
+            active = key == current
+            with st.container(key=f"board-{'active' if active else 'step'}-{key}"):
+                st.page_link(page_path(key), label=label, icon=icon, help=label, width="stretch")
 
 
 def _number(label: str, value: float | None, key: str, help: str | None = None) -> float | None:
@@ -1233,6 +1288,9 @@ def _number(label: str, value: float | None, key: str, help: str | None = None) 
 
 
 # --- Produkte: Tabelle und Diagramm ---------------------------------------------------
+
+# Anzeige für nicht erfasste Werte in Tabellen (statt des vorgegebenen „None“).
+NO_VALUE = "–"
 
 # Kategorische Farben in fester Reihenfolge (Produkt = Katalogposition); Standard neutral.
 SERIES_COLORS = [
@@ -1403,6 +1461,7 @@ def _product_editor(
         column_config=column_config,
         hide_index=True,
         key=key,
+        placeholder=NO_VALUE,  # nur die Anzeige: „nicht erfasst“ bleibt in den Daten None
     )
     st.caption(_distribution_caption(d, unit))
     return edited.to_dict("records")
@@ -1435,6 +1494,7 @@ def _product_table(d: Distribution, unit: str) -> bool:
             label: st.column_config.NumberColumn(f"{measure_label(m)} ({unit})", format="%.2f")
             for m, label in columns.items()
         },
+        placeholder=NO_VALUE,
     )
     st.caption(_distribution_caption(d, unit))
     return True
@@ -1749,6 +1809,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         },
         hide_index=True,
         key=f"planning-absences-{base.id}",
+        placeholder="",  # leer = Person ist in diesem Sprint nicht im Team, nicht „None“
     )
     [after] = edit_absences(data.people, [shown_sprint], edited.to_dict("records"))
     to_save = sprints_to_save(data, [base], [after])
@@ -2310,11 +2371,10 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if result is None:
             st.warning(t("Zu wenig Historie für eine Fertigstellungsprognose."))
         else:
-            later = t(
-                "später als {last} ({count} Sprints)",
-                last=result.sprints[-1] if result.sprints else "–",
-                count=len(result.sprints),
-            )
+            # Der Wert bleibt kurz („später als 2027.21“), damit er nicht abgeschnitten wird; die
+            # Länge der Simulation steht darunter.
+            later = t("später als {last}", last=result.sprints[-1] if result.sprints else "–")
+            horizon = t("Simulation über {count} Sprints", count=len(result.sprints))
             left, middle, right = st.columns(3)
             left.metric(
                 t("je Sprint für das Projekt ({share} des Forecasts)", share=pct(used_share)),
@@ -2326,8 +2386,18 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 "Zusage.",
                 count=result.samples,
             )
-            middle.metric(t("in 50 % der Simulationen"), result.p50 or later, help=frequency)
-            right.metric(t("in 85 % der Simulationen"), result.p85 or later, help=frequency)
+            for column, label, reached in (
+                (middle, t("in 50 % der Simulationen"), result.p50),
+                (right, t("in 85 % der Simulationen"), result.p85),
+            ):
+                column.metric(
+                    label,
+                    reached or later,
+                    delta=None if reached else horizon,
+                    delta_color="off",
+                    delta_arrow="off",
+                    help=frequency,
+                )
             done_col = t("fertig bis dahin")
             chart = pd.DataFrame({"Sprint": result.sprints, done_col: result.cumulative})
             # vom ersten Sprint mit Chance bis zum ersten mit (fast) 100 %
@@ -2568,6 +2638,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 },
                 hide_index=True,
                 key=f"vorplanung-expected-{sprint.id}",
+                placeholder="",  # leer = Person ist in diesem Sprint nicht im Team
             )
             [probe_after] = edit_absences(data.people, [probe], edited_expected.to_dict("records"))
             expected = dict(probe_after.absences)
@@ -2612,7 +2683,15 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     "ist die Differenz der aktuellen Prognose dazu."
                 ),
             )
-        capacity_col.metric(t("Kapazität (PT)"), capacity_label(shown))
+        # Die Quelle steht unter dem Wert (nicht im Wert): sonst wird die Zahl abgeschnitten.
+        capacity_col.metric(
+            t("Kapazität (PT)"),
+            fmt(shown.result.plan_capacity),
+            delta=capacity_source_note(shown) or None,
+            delta_color="off",
+            delta_arrow="off",
+            help=_formula_help(fc_view, shown, "capacity"),
+        )
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
@@ -2819,6 +2898,7 @@ def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
         num_rows="dynamic",
         hide_index=True,
         key=f"products-list-{data.team.key}-{show_former}",
+        placeholder="",  # „leer = schon immer“ usw.: leere Zellen bleiben leer, nicht „None“
     )
     result = products_from_table(edited.to_dict("records"), data.products, hidden)
     confirmed = True
@@ -2934,6 +3014,7 @@ def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
         num_rows="dynamic",
         hide_index=True,
         key=f"people-{data.team.key}-{show_former}",
+        placeholder="",  # „Leer = weiterhin im Team“ usw.: leere Zellen bleiben leer, nicht „None“
     )
     result = people_from_table(edited.to_dict("records"), data.people, hidden)
     confirmed = True
@@ -3566,17 +3647,18 @@ def _remote_section(repo: Repository) -> None:
             address = parse_remote_url(raw, allow_insecure=insecure)
         except GitError as e:
             _show_problem(e)
-    left, right = st.columns(2)
-    check_clicked = left.button(
-        t("Verbindung prüfen"), key="git-remote-check", disabled=address is None
-    )
     locked = merge_open or bool(info.special)
-    save_clicked = right.button(
-        t("Speichern"),
-        type="primary",
-        key="git-remote-save",
-        disabled=address is None or locked,
-    )
+    # Beide Knöpfe gehören zusammen: nebeneinander, linksbündig, nur so breit wie ihr Text.
+    with st.container(horizontal=True):
+        check_clicked = st.button(
+            t("Verbindung prüfen"), key="git-remote-check", disabled=address is None
+        )
+        save_clicked = st.button(
+            t("Speichern"),
+            type="primary",
+            key="git-remote-save",
+            disabled=address is None or locked,
+        )
     if address is not None and (check_clicked or save_clicked):
         st.session_state.pop("git-remote-offer", None)
         if save_clicked:
