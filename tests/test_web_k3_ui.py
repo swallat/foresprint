@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Oberfläche der Git-Synchronisation und des Datenordner-Umschalters: Review-Befunde (AppTest)."""
 
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -12,7 +11,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
 from sprintforecast.git import invalidate_status
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, save_data_dir
+from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 SPRINT = Path("teams") / "demo" / "sprints" / "2026.20.yaml"
@@ -49,29 +48,6 @@ def tag_box(at: AppTest):
 
 def sidebar_button(at: AppTest, label: str):
     return next(b for b in at.sidebar.button if b.label == label)
-
-
-@pytest.fixture
-def repo(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Git-Repository um ``data_dir`` (Aufbau ``<repo>/teams``) mit einem Commit."""
-    for var in ("AUTHOR", "COMMITTER"):
-        monkeypatch.setenv(f"GIT_{var}_NAME", "T")
-        monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")
-    root = data_dir.parent
-    git(root, "init", "-q", "-b", "main")
-    git(root, "add", "-A")
-    git(root, "commit", "-qm", "init")
-    invalidate_status()
-    return root
-
-
-@pytest.fixture
-def second_folder(data_dir: Path, tmp_path: Path) -> Path:
-    second = tmp_path / "zweiter-ordner"
-    shutil.copytree(data_dir / "demo", second / "zweit")
-    save_data_dir(second)
-    save_data_dir(data_dir)
-    return second
 
 
 def diverge(root: Path) -> None:
@@ -200,10 +176,17 @@ def test_pending_tags_and_message_survive_switching_back(
     at.session_state["commit_message"] = "Review 20"
     at.run()
     sidebar_button(at, "Wechseln").click().run()
-    assert not at.session_state["pending_tags"] if "pending_tags" in at.session_state else True
+    # Der zweite Ordner startet ohne die Tags und die Nachricht des ersten ...
+    assert "pending_tags" not in at.session_state or not at.session_state["pending_tags"]
+    assert at.session_state["commit_message"] != "Review 20"
+    # ... und führt eine eigene Nachricht.
+    at.session_state["commit_message"] = "Zweiter Ordner"
+    at.run()
     sidebar_button(at, "Wechseln").click().run()  # zurück
     assert at.session_state["pending_tags"] == ["demo/2026.20"]
     assert at.session_state["commit_message"] == "Review 20"
+    sidebar_button(at, "Wechseln").click().run()  # wieder in den zweiten
+    assert at.session_state["commit_message"] == "Zweiter Ordner"
 
 
 # --- W6: Löschbestätigung für Tags gilt einmal und nur für den gewählten Tag ------------

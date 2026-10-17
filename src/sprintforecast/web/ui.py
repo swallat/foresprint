@@ -9,6 +9,7 @@ angezeigt werden die übersetzten Beschriftungen.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import html
 import os
@@ -42,6 +43,7 @@ from sprintforecast.calendar import (
     team_workdays,
 )
 from sprintforecast.capacity import sprint_capacity
+from sprintforecast.config import SettingsError, config_dir
 from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
@@ -71,6 +73,8 @@ from sprintforecast.githistory import (
     Entry as HistoryEntry,
 )
 from sprintforecast.githistory import (
+    Lost,
+    Tag,
     delete_tag,
     discard,
     discard_preview,
@@ -78,7 +82,9 @@ from sprintforecast.githistory import (
     list_tags,
     restore_version,
     revert_commit,
+    server_reachable,
     set_tag,
+    upload_tag,
 )
 from sprintforecast.gitsync import (
     Commit,
@@ -173,6 +179,8 @@ from sprintforecast.web.logic import (
     calendar_to_save,
     default_forecast_ist,
     edit_absences,
+    forget_without_git,
+    is_without_git,
     open_velocity_sprints,
     parse_numbers,
     people_from_table,
@@ -181,6 +189,7 @@ from sprintforecast.web.logic import (
     product_values_table,
     products_from_table,
     record_prognoses,
+    remember_without_git,
     resettable_sprints,
     sprints_to_save,
     start_tasks,
@@ -286,9 +295,29 @@ def apply_language() -> None:
     set_language(language())
 
 
+def _settings_problem(error: SettingsError, consequence: str) -> str:
+    """Meldung zu nicht speicherbaren Einstellungen: was passiert ist, was unterblieb und was
+    zu tun ist."""
+    return t(
+        "{error}  \n{consequence} Bitte prüfen, ob der Ordner `{folder}` beschreibbar ist "
+        "(Schreibrechte, freier Speicherplatz, bei Netzlaufwerken: verbunden), und es dann "
+        "noch einmal versuchen.",
+        error=error,
+        consequence=consequence,
+        folder=config_dir(),
+    )
+
+
 def _language_changed() -> None:
     code = st.session_state["language"]
-    save_language(code)
+    try:
+        save_language(code)
+    except SettingsError as e:
+        st.session_state["language"] = language()  # die Auswahl zeigt wieder die gültige Sprache
+        st.session_state.setdefault("flash", []).append(
+            ("error", _settings_problem(e, t("Die Sprache wurde nicht geändert.")))
+        )
+        return
     set_language(code)
 
 
@@ -3096,33 +3125,34 @@ def page_new_team(repo: Repository) -> None:
 def needs_setup(root: Path) -> bool:
     """Kein Datenordner gefunden: weder Teams noch ein Git-Repository (und nicht ausdrücklich
     „ohne Git“ gewählt)."""
-    return (
-        teams_dir(root) is None
-        and git_root(root) is None
-        and str(root.resolve()) not in st.session_state.get("without-git", [])
-    )
+    return teams_dir(root) is None and git_root(root) is None and not is_without_git(root)
 
 
 # Zustand, der beim Wechsel des Datenordners erhalten bleibt; alles andere (Formulareingaben,
 # Teamwahl, vorgemerkte Tags, Git-Meldungen) gehört zum alten Ordner und wird verworfen.
 _SWITCH_KEEP = {
     "language", "flash", "restarting", "update-started", "manual-check", "active-data-dir",
-    "folder-state", "without-git",
+    "folder-state",
 }  # fmt: skip
 # Zustand, der zu einem Ordner gehört und beim Zurückwechseln wieder da ist.
 _PER_FOLDER = ("pending_tags", "commit_message", "use_tags")
 
 
-def _use_data_dir(path: Path) -> None:
+def _use_data_dir(path: Path) -> str | None:
     """Wechselt den Datenordner: merkt ihn, leert die Zwischenspeicher (Teams, Git-Stand) und
-    verwirft alte Formularzustände, damit nichts vom bisherigen Ordner im neuen landet."""
+    verwirft alte Formularzustände, damit nichts vom bisherigen Ordner im neuen landet.
+    Lassen sich die Einstellungen nicht speichern, unterbleibt der Wechsel ganz; die Meldung
+    (mit nächstem Schritt) wird zurückgegeben."""
+    try:
+        save_data_dir(path)
+    except SettingsError as e:
+        return _settings_problem(e, t("Der Datenordner wurde nicht gewechselt."))
     folders = st.session_state.setdefault("folder-state", {})
     folders[str(data_dir().resolve())] = {
         name: copy.deepcopy(st.session_state[name])
         for name in _PER_FOLDER
         if name in st.session_state
     }
-    save_data_dir(path)
     clear_team_cache()
     # Nur die Vorgabe für neue Sitzungen; diese Sitzung führt ihren Ordner selbst.
     os.environ[DATA_ENV] = str(path.resolve())
@@ -3132,6 +3162,7 @@ def _use_data_dir(path: Path) -> None:
     st.session_state[DATA_DIR_KEY] = str(path.resolve())
     st.session_state.update(copy.deepcopy(folders.get(str(path.resolve()), {})))
     st.session_state["flash"] = [("success", t("Datenordner: `{path}`", path=path.resolve()))]
+    return None
 
 
 def _switch_clicked(target: Path) -> None:
@@ -3141,11 +3172,17 @@ def _switch_clicked(target: Path) -> None:
         )
         _DIR_CHECKED.pop(target, None)
         return
-    _use_data_dir(target)
+    if problem := _use_data_dir(target):
+        st.session_state.setdefault("flash", []).append(("error", problem))
 
 
 def _forget_clicked(target: Path) -> None:
-    forget_data_dir(target)
+    try:
+        forget_data_dir(target)
+    except SettingsError as e:
+        st.session_state.setdefault("flash", []).append(
+            ("error", _settings_problem(e, t("Der Ordner wurde nicht aus der Liste entfernt.")))
+        )
 
 
 # Ob ein zuletzt benutzter Ordner noch da ist, wird kurz gemerkt: Die Liste wird bei jedem
@@ -3190,10 +3227,18 @@ def _switch_hint(repo: Repository) -> str:
     return f"{head} {tail}"
 
 
+def _resolved(path: Path) -> Path:
+    """Aufgelöster Pfad; ein nicht auflösbarer (toter Netzlaufwerkpfad) bleibt, wie er ist."""
+    try:
+        return path.resolve()
+    except OSError, RuntimeError:
+        return path
+
+
 def _recent_dirs(repo: Repository) -> list[Path]:
     """Zuletzt benutzte Datenordner ohne den aktiven (gemerkt sind aufgelöste Pfade)."""
-    current = repo.root.resolve()
-    return [p for p in recent_data_dirs() if p != current]
+    current = _resolved(repo.root)
+    return [p for p in recent_data_dirs() if _resolved(p) != current]
 
 
 def _switch_panel(repo: Repository) -> None:
@@ -3327,20 +3372,30 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                     )
                 )
                 st.session_state["offer-init"] = str(path)
+            elif problem := _use_data_dir(teams_dir(path) or path):
+                st.error(problem)
             else:
-                _use_data_dir(teams_dir(path) or path)
                 st.rerun()
         offer = st.session_state.get("offer-init")
         if offer and st.button(
             t("Ohne Git verwenden"), key="data-without-git", disabled=not Path(offer).is_dir()
         ):
-            st.session_state.pop("offer-init", None)
             target = teams_dir(Path(offer)) or Path(offer)
-            _use_data_dir(target)
             # Bewusste Wahl: Ohne Teams und ohne Git nicht wieder zur Einrichtung, sondern
-            # weiter zu „Neues Team“.
-            st.session_state.setdefault("without-git", []).append(str(target.resolve()))
-            st.rerun()
+            # weiter zu „Neues Team“ – dauerhaft je Ordner, auch nach dem Neuladen des Tabs.
+            try:
+                remember_without_git(target)
+            except SettingsError as e:
+                st.error(_settings_problem(e, t("Der Ordner wurde nicht übernommen.")))
+            else:
+                if problem := _use_data_dir(target):
+                    # Nicht halb übernehmen: Die Entscheidung gilt nur mit dem Wechsel.
+                    with contextlib.suppress(SettingsError):
+                        forget_without_git(target)
+                    st.error(problem)
+                else:
+                    st.session_state.pop("offer-init", None)
+                    st.rerun()
         if offer and st.button(
             t("Git-Repository in {path} anlegen", path=offer), key="data-init-here"
         ):
@@ -3349,9 +3404,11 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             except GitError as e:
                 st.error(str(e))
             else:
-                st.session_state.pop("offer-init", None)
-                _use_data_dir(teams_dir(target) or target)
-                st.rerun()
+                if problem := _use_data_dir(teams_dir(target) or target):
+                    st.error(problem)
+                else:
+                    st.session_state.pop("offer-init", None)
+                    st.rerun()
     with create:
         st.caption(
             t(
@@ -3374,8 +3431,10 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 except GitError as e:
                     st.error(str(e))
                 else:
-                    _use_data_dir(target)
-                    st.rerun()
+                    if problem := _use_data_dir(target):
+                        st.error(problem)
+                    else:
+                        st.rerun()
     with clone:
         st.caption(
             t(
@@ -3394,8 +3453,10 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 except GitError as e:
                     st.error(t("Klonen fehlgeschlagen: {error}", error=e))
                 else:
-                    _use_data_dir(teams_dir(path) or path)
-                    st.rerun()
+                    if problem := _use_data_dir(teams_dir(path) or path):
+                        st.error(problem)
+                    else:
+                        st.rerun()
 
 
 def page_check(repo: Repository) -> None:
@@ -3610,17 +3671,62 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
     st.session_state["commit_message"] = _commit_default()
 
 
-def _sync_clicked(root: Path, tags: list[str], allow_invalid: bool = False) -> None:
+def _sync_clicked(
+    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
+) -> None:
     """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
     message = st.session_state.get("commit_message", "").strip() or _commit_default()
     use_tags = tags and st.session_state.get("use_tags", True)
-    result = sync(root, message, tags if use_tags else None, today(), allow_invalid=allow_invalid)
+    result = sync(
+        root,
+        message,
+        tags if use_tags else None,
+        today(),
+        allow_invalid=allow_invalid,
+        allow_unrelated=allow_unrelated,
+    )
     if result.committed:
         st.session_state["pending_tags"] = []
         st.session_state["commit_message"] = _commit_default()
     st.session_state["sync_result"] = result
+    st.session_state.pop("tags-server", None)  # der Abgleich der Tags ist nicht mehr aktuell
+    st.session_state.pop("tags-server-failed", None)
+    st.session_state.pop("unrelated-confirm", None)  # eine Bestätigung gilt nur einmal
+    # Die Rückfrage zur fremden Historie bleibt über Durchläufe stehen (Ankreuzen, Knopf).
+    if result.error is not None and result.error.kind == "unrelated_histories":
+        st.session_state["unrelated"] = result.error
+    else:
+        st.session_state.pop("unrelated", None)
     if result.pulled_files:
         clear_team_cache()  # Dateien haben sich geändert: neu laden
+
+
+def _unrelated_cancel() -> None:
+    st.session_state.pop("unrelated", None)
+    st.session_state.pop("unrelated-confirm", None)
+
+
+def _unrelated_go(root: Path, tags: list[str]) -> None:
+    _unrelated_cancel()
+    _sync_clicked(root, tags, allow_unrelated=True)
+
+
+def _unrelated_dialog(root: Path, tags: list[str], error: GitError) -> None:
+    """Der Server hat eine fremde Historie: erklären und nur nach ausdrücklicher Bestätigung
+    zusammenführen. Vorgabe ist Abbrechen (Knopf gesperrt, bis das Kästchen gesetzt ist)."""
+    with st.container(border=True):
+        st.error(f"**{git_title(error.kind)}**  \n{error.hint}")
+        st.markdown(str(error))  # nennt Server-Adresse und Branch
+        sure = st.checkbox(t("Ja, beide Historien zusammenführen"), key="unrelated-confirm")
+        st.button(
+            t("Beide Historien zusammenführen"),
+            key="unrelated-go",
+            type="primary",
+            disabled=not sure,
+            on_click=_unrelated_go,
+            args=(root, tags),
+        )
+        st.button(t("Abbrechen"), key="unrelated-cancel", on_click=_unrelated_cancel)
 
 
 def _fetch_clicked(root: Path) -> None:
@@ -3685,7 +3791,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
     else:
         if done:
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
-        _show_problem(result.error)
+        if result.error.kind != "unrelated_histories":  # die Rückfrage steht darunter
+            _show_problem(result.error)
         if result.validation:
             st.markdown("\n".join(f"- {line}" for line in result.validation))
             st.button(
@@ -3695,6 +3802,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
                 args=(root, tags, True),
                 help=t("Lädt die Daten hoch, obwohl die Prüfung neue Fehler meldet."),
             )
+    for note in result.notes:  # Hinweise, auch wenn alles gelang
+        st.warning(note)
     if result.pulled:
         with st.expander(t("Neu von anderen"), expanded=True):
             _show_incoming(result.pulled, result.pulled_files)
@@ -3756,6 +3865,8 @@ def _git_panel(repo: Repository) -> None:
             st.error(error)
     if result := st.session_state.pop("sync_result", None):
         _show_sync_result(result, repo.root, list(st.session_state.get("pending_tags", [])))
+    if unrelated := st.session_state.get("unrelated"):
+        _unrelated_dialog(repo.root, list(st.session_state.get("pending_tags", [])), unrelated)
     try:
         changes = cached_pending_changes(repo.root)
         state = cached_sync_state(repo.root)
@@ -3845,7 +3956,29 @@ def _git_panel(repo: Repository) -> None:
 
 # --- Änderungen verwerfen, Verlauf, Tags -----------------------------------------------------
 
-_STATUS_NAMES = {"M": "geändert", "D": "gelöscht", "A": "neu", "??": "neu", "AM": "neu"}
+# Statuswerte von ``git status --porcelain`` (ohne Leerzeichen), auch kombiniert.
+_STATUS_NAMES = {
+    "M": "geändert", "MM": "geändert", "T": "geändert", "TM": "geändert",
+    "D": "gelöscht", "MD": "gelöscht",
+    "A": "neu", "??": "neu", "AM": "neu", "AD": "neu, danach gelöscht",
+    "R": "umbenannt", "RM": "umbenannt und geändert", "RD": "umbenannt, danach gelöscht",
+    "C": "kopiert", "CM": "kopiert und geändert",
+    "DD": "Konflikt", "UU": "Konflikt", "AA": "Konflikt", "UD": "Konflikt", "DU": "Konflikt",
+    "AU": "Konflikt", "UA": "Konflikt",
+}  # fmt: skip
+
+
+def status_name(status: str) -> str:
+    """Verständlicher Name eines Git-Status (unbekannte gelten als „geändert“)."""
+    return t(_STATUS_NAMES.get(status, "geändert"))
+
+
+def _lost_status(item: Lost) -> str:
+    """Status einer verlorenen Änderung; bei Umbenennungen mit altem und neuem Pfad."""
+    name = status_name(item.status)
+    if item.orig:
+        return t("{name}: {orig} → {file}", name=name, orig=item.orig, file=item.file)
+    return name
 
 
 def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> None:
@@ -3865,12 +3998,49 @@ def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> No
     st.session_state["flash"] = [(kind, text)]
 
 
+def _tags_check_clicked(root: Path) -> None:
+    """Fragt den Server nach den Tags (Netzwerk, nur auf Klick) und merkt das Ergebnis."""
+    try:
+        tags = list_tags(root, check_server=True)
+        # Ohne lokale Tags verrät die Liste nicht, ob der Abgleich gelang.
+        st.session_state["tags-server-failed"] = not tags and not server_reachable(root)
+        st.session_state["tags-server"] = tags
+    except GitError as e:
+        st.session_state["commit_error"] = e
+
+
+def _tags_recheck(root: Path) -> None:
+    """Nach einer Tag-Aktion den bereits abgefragten Serverstand erneuern."""
+    if "tags-server" in st.session_state:
+        _tags_check_clicked(root)
+
+
 def _tag_delete_go(root: Path, name: str) -> None:
     st.session_state.pop(f"tag-confirm-{name}", None)  # die Bestätigung gilt nur einmal
     _git_action(
         lambda: delete_tag(root, name),
         lambda _: t("Tag {name} gelöscht.", name=name),
     )
+    _tags_recheck(root)
+
+
+def _tag_upload_go(root: Path, name: str) -> None:
+    _git_action(
+        lambda: upload_tag(root, name),
+        lambda _: t("Tag {name} zum Server übertragen.", name=name),
+    )
+    _tags_recheck(root)
+
+
+def _tag_state(tag: Tag) -> str:
+    """Wo es den Tag gibt (leer, solange der Server nicht abgefragt wurde)."""
+    if not tag.local:
+        return t("nur auf dem Server")
+    if tag.on_server is None:
+        return ""
+    if not tag.on_server:
+        return t("nur lokal")
+    return t("unterschiedlich") if tag.differs else t("auf dem Server")
 
 
 def _discard_request(files: list[str] | None) -> None:
@@ -3917,7 +4087,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
             t(
                 "{file} – {status} (+{added} −{removed} Zeilen)",
                 file=item.file,
-                status=t(_STATUS_NAMES.get(item.status, "geändert")),
+                status=_lost_status(item),
                 added=item.added,
                 removed=item.removed,
             ),
@@ -3939,9 +4109,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
                 "Das geht verloren ({count} Datei(en)):  \n{list}",
                 count=len(shown),
                 list="  \n".join(
-                    f"`{i.file}` – {t(_STATUS_NAMES.get(i.status, 'geändert'))}, "
-                    f"+{i.added} −{i.removed}"
-                    for i in shown
+                    f"`{i.file}` – {_lost_status(i)}, +{i.added} −{i.removed}" for i in shown
                 ),
             )
         )
@@ -4019,16 +4187,48 @@ def _tab_history(repo: Repository, locked: bool = False) -> None:
 
 
 def _tab_tags(repo: Repository, locked: bool = False) -> None:
-    tags = list_tags(repo.root)
+    checked = st.session_state.get("tags-server")
+    tags = checked if checked is not None else list_tags(repo.root)
+    st.button(
+        t("Mit dem Server abgleichen"),
+        key="tags-check",
+        icon=":material/refresh:",
+        on_click=_tags_check_clicked,
+        args=(repo.root,),
+        help=t("Fragt den Server nach seinen Tags (Netzwerk) und zeigt, wo es welchen gibt."),
+    )
+    if checked is None:
+        failed = False
+    elif tags:
+        failed = all(tag.on_server is None for tag in tags)
+    else:
+        failed = bool(st.session_state.get("tags-server-failed"))
+    if failed:
+        st.warning(
+            t(
+                "Der Server konnte nicht abgefragt werden (nicht erreichbar oder nicht "
+                "eingerichtet). Angezeigt sind nur die Tags auf diesem Rechner."
+            )
+        )
     if tags:
         st.table(
             pd.DataFrame(
-                [(tag.name, tag.target, tag.day, tag.subject) for tag in tags],
-                columns=[t("Tag"), t("Stand"), t("Datum"), t("Nachricht")],
+                [(tag.name, _tag_state(tag), tag.target, tag.day, tag.subject) for tag in tags],
+                columns=[t("Tag"), t("Server"), t("Stand"), t("Datum"), t("Nachricht")],
             ).set_index(t("Tag"))
         )
     else:
         st.caption(t("Noch keine Tags."))
+    local_only = [tag.name for tag in tags if tag.local and tag.on_server is False]
+    if local_only:
+        st.selectbox(t("Tag zum Server übertragen"), local_only, key="tag-upload")
+        st.button(
+            t("Zum Server übertragen"),
+            key="tag-upload-go",
+            disabled=locked,
+            on_click=_tag_upload_go,
+            args=(repo.root, st.session_state.get("tag-upload", local_only[0])),
+        )
     entries = history(repo.root, limit=60)
     with st.form("tag-set"):
         name = st.text_input(t("Neuer Tag"), placeholder="team/2026.21")
@@ -4041,6 +4241,7 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
                 lambda: set_tag(repo.root, name, target.rev if target else "HEAD", message or None),
                 lambda _: t("Tag {name} gesetzt und geteilt.", name=name),
             )
+            _tags_recheck(repo.root)
             st.rerun()
     if tags:
         doomed = st.selectbox(t("Tag löschen"), [tag.name for tag in tags])
@@ -4121,7 +4322,7 @@ _KEEP_STATE = {
     "enabled-pages", "sync_result", "last_commit", "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
     "planning-goto", "planning-last-sprint", "board-sprint", "formula-sprint",
-    "active-data-dir", "folder-state", "without-git",
+    "active-data-dir", "folder-state",
 }  # fmt: skip
 
 

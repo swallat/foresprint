@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from gitrepos import alice, bob, clean_caches, remote  # noqa: F401  (Fixtures)
+from webfixtures import repo, second_folder, shared  # noqa: F401  (Fixtures)
 
 EXAMPLES = Path(__file__).parent.parent / "examples" / "teams"
 

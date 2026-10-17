@@ -23,27 +23,6 @@ def git(cwd: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-@pytest.fixture
-def shared(data_dir: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch):
-    """Alice (App auf data_dir) und Bob (zweiter Klon) teilen sich einen Server."""
-    for var in ("AUTHOR", "COMMITTER"):
-        monkeypatch.setenv(f"GIT_{var}_NAME", "T")
-        monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")
-    work = tmp_path_factory.mktemp("zwei-personen")
-    server = work / "server.git"
-    git(work, "init", "-q", "--bare", "-b", "main", str(server))
-    root = data_dir.parent
-    git(root, "init", "-q", "-b", "main")
-    git(root, "remote", "add", "origin", str(server))
-    git(root, "add", "-A")
-    git(root, "commit", "-qm", "Start")
-    git(root, "push", "-q", "-u", "origin", "main")
-    bob = work / "bob"
-    git(work, "clone", "-q", str(server), str(bob))
-    invalidate_status()
-    return root, bob, server
-
-
 def start(data_dir: Path, monkeypatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
