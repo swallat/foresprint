@@ -19,7 +19,7 @@ def run(data_dir: Path, *args: str, input: str | None = None):
 
 
 def load(path: Path) -> dict:
-    return yaml.safe_load(path.read_text())
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def test_forecast_and_report(data_dir: Path):
@@ -29,7 +29,7 @@ def test_forecast_and_report(data_dir: Path):
 
     result = run(data_dir, "bericht", "demo")
     assert result.exit_code == 0, result.output
-    report = (data_dir / "demo" / "FORECAST.md").read_text()
+    report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     assert "# Sprint-Forecast Demo-Team" in report
     assert "| 2026.21 |" in report and "**laufend**" in report
     assert "```mermaid" in report
@@ -89,7 +89,9 @@ def test_personen_change_fte(data_dir: Path):
 def test_pruefen_fails_on_error(data_dir: Path):
     assert run(data_dir, "pruefen").exit_code == 0
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
-    path.write_text(path.read_text().replace("cem: 5", "unbekannt: 5"))
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("cem: 5", "unbekannt: 5"), encoding="utf-8"
+    )
     result = run(data_dir, "pruefen")
     assert result.exit_code == 1
     assert "unbekannte Person" in result.output
@@ -154,11 +156,11 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
 
 
 def test_einstellungen_without_changes(data_dir: Path):
-    before = (data_dir / "demo" / "team.yaml").read_text()
+    before = (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8")
     result = run(data_dir, "einstellungen", "demo", input="\n" * 20)
     assert result.exit_code == 0, result.output
     assert "Keine Änderungen" in result.output
-    assert (data_dir / "demo" / "team.yaml").read_text() == before
+    assert (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8") == before
 
 
 def test_review_shows_plausibility_warning(data_dir: Path):
@@ -169,7 +171,9 @@ def test_review_shows_plausibility_warning(data_dir: Path):
 
 def test_commit_refused_on_errors(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.22.yaml"
-    path.write_text(path.read_text().replace("cem: 5", "unbekannt: 5"))
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("cem: 5", "unbekannt: 5"), encoding="utf-8"
+    )
     result = run(data_dir, "planning", "demo", "2026.22", "--commit", input="n\nn\nn\n10\n")
     assert result.exit_code == 1
     assert "Nicht committet" in result.output
@@ -247,7 +251,7 @@ def test_analyse(data_dir: Path):
         assert text in result.output
     report = run(data_dir, "bericht", "demo")
     assert report.exit_code == 0
-    text = (data_dir / "demo" / "FORECAST.md").read_text()
+    text = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     assert text.index("## Prognose") < text.index("## Ergänzend: Bandbreite")
 
 
@@ -335,7 +339,10 @@ def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
     plain = run(data_dir, "forecast", "demo")
     assert "schreibt Schwankungen fort" not in plain.output  # Standard flat: keine Warnung
     team = data_dir / "demo" / "team.yaml"
-    team.write_text(team.read_text().replace("trend_mode: flat", "trend_mode: classic"))
+    team.write_text(
+        team.read_text(encoding="utf-8").replace("trend_mode: flat", "trend_mode: classic"),
+        encoding="utf-8",
+    )
     result = run(data_dir, "forecast", "demo")
     assert "Trend-Modus classic" in result.output and "schreibt Schwankungen fort" in result.output
     report = run(data_dir, "bericht", "demo", "-o", "-")
