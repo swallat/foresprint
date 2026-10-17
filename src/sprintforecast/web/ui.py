@@ -14,6 +14,7 @@ import html
 import os
 import subprocess
 import sys
+import time
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -57,12 +58,38 @@ from sprintforecast.git import (
     NO_WINDOW,
     GitError,
     cached_pending_changes,
+    classify,
     clone_repository,
     commit_directory,
+    hint_for,
     init_data_repository,
 )
 from sprintforecast.git import repo_root as git_root
-from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
+from sprintforecast.git import title_for as git_title
+from sprintforecast.gitsync import (
+    Commit,
+    SyncResult,
+    SyncState,
+    abort_unfinished,
+    git_available,
+    incoming,
+    reattach,
+    set_identity,
+    sync,
+)
+from sprintforecast.gitsync import (
+    cached_state as cached_sync_state,
+)
+from sprintforecast.gitsync import fetch as fetch_remote
+from sprintforecast.guide import (
+    CAPACITY_SOURCES,
+    COMMANDS,
+    FIELDS,
+    GIT_HELP,
+    TERMS,
+    WORKFLOW,
+    command_text,
+)
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
 from sprintforecast.model import (
     AbsenceState,
@@ -3130,12 +3157,13 @@ def page_help(repo: Repository) -> None:
             "Seitenleiste landen die Änderungen im Git-Repository der Daten."
         )
     )
-    ablauf, begriffe, felder, team, befehle = st.tabs(
+    ablauf, begriffe, felder, team, zusammenarbeit, befehle = st.tabs(
         [
             t("Ablauf"),
             t("Begriffe"),
             t("Eingabefelder"),
             t("Team-Einstellungen"),
+            t("Zusammenarbeit (Git)"),
             t("Kommandozeile"),
         ]
     )
@@ -3172,6 +3200,10 @@ def page_help(repo: Repository) -> None:
             ).set_index(setting)
         )
         page_link("einstellungen", t("Einstellungen ändern"))
+    with zusammenarbeit:
+        for title, text in GIT_HELP:
+            with st.container(border=True):
+                st.markdown(f"**{t(title)}**  \n{t(text)}")
     with befehle:
         command, purpose = t("Befehl"), t("Zweck")
         st.table(
@@ -3308,49 +3340,227 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
     try:
         rev = commit_directory(root, message, tags if use_tags else None)
     except GitError as e:
-        st.session_state["commit_error"] = str(e)
+        st.session_state["commit_error"] = e
         return
     st.session_state["pending_tags"] = []
     st.session_state["last_commit"] = rev
     st.session_state["commit_message"] = _commit_default()
 
 
+def _sync_clicked(root: Path, tags: list[str]) -> None:
+    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
+    message = st.session_state.get("commit_message", "").strip() or _commit_default()
+    use_tags = tags and st.session_state.get("use_tags", True)
+    result = sync(root, message, tags if use_tags else None)
+    if result.committed:
+        st.session_state["pending_tags"] = []
+        st.session_state["commit_message"] = _commit_default()
+    st.session_state["sync_result"] = result
+    if result.pulled_files:
+        clear_team_cache()  # Dateien haben sich geändert: neu laden
+
+
+def _fetch_clicked(root: Path) -> None:
+    fetch_remote(root)
+
+
+def _abort_clicked(root: Path) -> None:
+    try:
+        abort_unfinished(root)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+    else:
+        clear_team_cache()
+        st.session_state["flash"] = [("success", t("Zusammenführen abgebrochen."))]
+
+
+def _reattach_clicked(root: Path) -> None:
+    try:
+        branch = reattach(root)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+    else:
+        clear_team_cache()
+        st.session_state["flash"] = [
+            ("success", t("Zurück auf den Branch {branch}.", branch=branch))
+        ]
+
+
+def _identity_clicked() -> None:
+    try:
+        set_identity(st.session_state.get("git-name", ""), st.session_state.get("git-email", ""))
+    except GitError as e:
+        st.session_state["commit_error"] = e
+    else:
+        st.session_state["flash"] = [
+            ("success", t("Name und E-Mail-Adresse gespeichert. Bitte noch einmal versuchen."))
+        ]
+
+
+def _show_problem(error: GitError) -> None:
+    """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git."""
+    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error}")
+    if error.hint and str(error):
+        with st.expander(t("Technische Meldung")):
+            st.code(str(error), language=None)
+    if error.kind == "identity":
+        st.text_input(t("Name"), key="git-name")
+        st.text_input(t("E-Mail-Adresse"), key="git-email")
+        st.button(t("Speichern"), key="git-identity", on_click=_identity_clicked)
+
+
+def _show_sync_result(result: SyncResult) -> None:
+    done = []
+    if result.committed:
+        done.append(t("Eigene Änderungen gesichert ({rev})", rev=result.committed))
+    if result.pulled:
+        done.append(t("{count} Änderung(en) von anderen übernommen", count=len(result.pulled)))
+    if result.pushed:
+        done.append(t("Hochgeladen"))
+    if result.error is None:
+        st.success(" · ".join(done) if done else t("Alles ist auf dem aktuellen Stand."))
+    else:
+        if done:
+            st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
+        _show_problem(result.error)
+    if result.pulled:
+        with st.expander(t("Neu von anderen"), expanded=True):
+            _show_incoming(result.pulled, result.pulled_files)
+
+
+def _show_incoming(commits: list[Commit], files: list[tuple[str, str]]) -> None:
+    for c in commits:
+        st.markdown(f"`{c.rev}` {c.day} **{c.author}**: {c.subject}")
+    if files:
+        st.code("\n".join(f"{status:>2} {file}" for status, file in files), language=None)
+
+
+def _status_text(state: SyncState) -> str:
+    """Eine Zeile zum Stand gegenüber dem Server."""
+    if state.unfinished or state.conflicts:
+        return t("Zusammenführen unvollständig")
+    if state.detached:
+        return t("Kein Branch ausgewählt")
+    if state.remote is None:
+        return t("Kein Server eingerichtet – Änderungen bleiben lokal.")
+    parts = []
+    if state.ahead:
+        parts.append(t("{count} noch nicht geteilt", count=state.ahead))
+    if state.behind:
+        parts.append(t("{count} neu von anderen", count=state.behind))
+    if not parts:
+        parts.append(t("synchron mit {upstream}", upstream=state.upstream or state.remote))
+    if state.fetch_error is not None:
+        parts.append(
+            t("Server nicht erreichbar")
+            if state.offline
+            else t("Server meldet: {kind}", kind=git_title(state.fetch_error.kind))
+        )
+    elif state.fetched_at is None:
+        parts.append(t("Serverstand noch nicht geprüft"))
+    else:
+        minutes = int((time.time() - state.fetched_at) // 60)
+        parts.append(
+            t("Serverstand geprüft vor {minutes} Min.", minutes=minutes)
+            if minutes
+            else t("Serverstand gerade geprüft")
+        )
+    return " · ".join(parts)
+
+
 def _git_panel(repo: Repository) -> None:
+    if not git_available():
+        _show_problem(classify("", missing=True))
+        return
     if git_root(repo.root) is None:
         st.caption(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
         return
     if last := st.session_state.pop("last_commit", None):
-        st.success(t("Committet ({rev}). Pushen nicht vergessen.", rev=last))
+        st.success(t("Committet ({rev}). Geteilt wird erst mit „Speichern und teilen“.", rev=last))
     if error := st.session_state.pop("commit_error", None):
-        st.error(error)
+        if isinstance(error, GitError):
+            _show_problem(error)
+        else:
+            st.error(error)
+    if result := st.session_state.pop("sync_result", None):
+        _show_sync_result(result)
     try:
         changes = cached_pending_changes(repo.root)
+        state = cached_sync_state(repo.root)
     except GitError as e:
         st.caption(f"Git: {e}")
         return
     tags = st.session_state.get("pending_tags", [])
+    st.caption(_status_text(state))
     with st.expander(
         t("Git: {count} offene Änderung(en)", count=len(changes))
         if changes
         else t("Git: alles committet"),
-        expanded=bool(changes),
+        expanded=bool(changes) or state.behind > 0 or state.unfinished is not None,
         icon=":material/commit:",
     ):
-        if not changes:
-            st.caption(t("Keine offenen Änderungen im Datenverzeichnis."))
+        if state.unfinished or state.conflicts:
+            st.warning(hint_for("merge_in_progress"))
+            st.button(
+                t("Zusammenführen abbrechen"),
+                key="git-abort",
+                on_click=_abort_clicked,
+                args=(repo.root,),
+            )
             return
-        st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
-        st.session_state.setdefault("commit_message", _commit_default())
-        st.text_input(t("Commit-Nachricht"), key="commit_message")
-        if tags:
-            st.checkbox(t("Tags setzen: {tags}", tags=", ".join(tags)), value=True, key="use_tags")
-        st.button(
-            t("Änderungen committen"),
-            type="primary",
-            icon=":material/save:",
-            on_click=_commit_clicked,
-            args=(repo.root, list(tags)),
-        )
+        if state.detached:
+            st.warning(hint_for("detached"))
+            st.button(
+                t("Zurück auf den Branch"),
+                key="git-reattach",
+                on_click=_reattach_clicked,
+                args=(repo.root,),
+            )
+            return
+        if state.behind:
+            commits, files = incoming(repo.root)
+            st.markdown(t("**Neu von anderen** (noch nicht übernommen)"))
+            _show_incoming(commits, files)
+        if changes:
+            st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
+            st.session_state.setdefault("commit_message", _commit_default())
+            st.text_input(t("Commit-Nachricht"), key="commit_message")
+            if tags:
+                st.checkbox(
+                    t("Tags setzen: {tags}", tags=", ".join(tags)), value=True, key="use_tags"
+                )
+        else:
+            st.caption(t("Keine offenen Änderungen im Datenverzeichnis."))
+        if state.remote is not None:
+            st.button(
+                t("Speichern und teilen"),
+                type="primary",
+                icon=":material/sync:",
+                key="git-sync",
+                on_click=_sync_clicked,
+                args=(repo.root, list(tags)),
+                help=t(
+                    "Sichert deine Änderungen, holt die der anderen, führt beides zusammen und "
+                    "lädt es hoch."
+                ),
+            )
+            st.button(
+                t("Stand prüfen"),
+                icon=":material/refresh:",
+                key="git-fetch",
+                on_click=_fetch_clicked,
+                args=(repo.root,),
+                help=t("Fragt den Server, ob es Neues gibt (ändert nichts)."),
+            )
+        if changes:
+            st.button(
+                t("Änderungen committen"),
+                type="secondary" if state.remote is not None else "primary",
+                icon=":material/save:",
+                on_click=_commit_clicked,
+                args=(repo.root, list(tags)),
+                help=t("Nur lokal sichern, ohne zu teilen."),
+            )
 
 
 TEAM_PAGES = {

@@ -83,7 +83,8 @@ def test_pages_render(app: AppTest, page: str):
 def test_help_shows_workflow_and_terms(app: AppTest):
     goto(app, "hilfe")
     assert [t.label for t in app.tabs] == [
-        "Ablauf", "Begriffe", "Eingabefelder", "Team-Einstellungen", "Kommandozeile",
+        "Ablauf", "Begriffe", "Eingabefelder", "Team-Einstellungen", "Zusammenarbeit (Git)",
+        "Kommandozeile",
     ]  # fmt: skip
     assert any("Commitment" in c.value for c in app.caption)  # Quelle Commitment
 
