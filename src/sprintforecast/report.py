@@ -66,19 +66,21 @@ def capacity_label(e: TimelineEntry) -> str:
 
 def band_range(fc: Forecast, e: TimelineEntry) -> str:
     """„niedrig–hoch“ der Spanne eines künftigen Sprints für Tabellen („–“, wenn nicht
-    berechenbar)."""
+    berechenbar oder der Sprint schon abgeschlossen ist)."""
     from sprintforecast.analysis import band
 
-    b = band(fc, e)
+    b = band(fc, e) if e.sprint.end > fc.today else None
     return f"{fmt(b.low)}–{fmt(b.high)}" if b else "–"
 
 
-def band_note(fc: Forecast, e: TimelineEntry) -> str:
+def band_note(fc: Forecast, e: TimelineEntry, without_assumption: bool = False) -> str:
     """Spanne mit Stichprobengröße als Satz direkt an einer Prognose-Kachel; bei wenig Daten
-    mit Hinweis. Leer, wenn die Spanne nicht berechenbar ist."""
+    mit Hinweis. Leer, wenn die Spanne nicht berechenbar ist oder der Sprint schon abgeschlossen
+    ist (die Spanne gehört zur heutigen Historie, die Prognose eines alten Sprints nicht).
+    ``without_assumption``: Die Prognose daneben rechnet mit einer Annahme, die Spanne nicht."""
     from sprintforecast.analysis import band, few_samples
 
-    b = band(fc, e)
+    b = band(fc, e) if e.sprint.end > fc.today else None
     if b is None:
         return ""
     note = t(
@@ -87,6 +89,8 @@ def band_note(fc: Forecast, e: TimelineEntry) -> str:
         high=fmt(b.high),
         samples=b.samples,
     )
+    if without_assumption:
+        note = f"{note} ({t('ohne die Annahme')})"
     return f"{note} · {t('wenig Daten, grober Hinweis')}" if few_samples(fc) else note
 
 

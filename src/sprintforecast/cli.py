@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import functools
 import os
 import subprocess
 import sys
@@ -88,9 +89,11 @@ from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
     DataError,
+    FileAccessError,
     Repository,
     TeamData,
     default_data_dir,
+    write_text,
 )
 from sprintforecast.updater import PACKAGE
 from sprintforecast.validate import Level, check_all, check_team, issues_for
@@ -103,15 +106,32 @@ console = Console()
 err = Console(stderr=True)
 
 
+def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Gibt einen Schreib- oder Lesefehler der Datendateien als Meldung aus (Exit-Code 1)."""
+    if getattr(fn, "_guarded", False):
+        return fn
+
+    @functools.wraps(fn)
+    def guarded(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return fn(*args, **kwargs)
+        except FileAccessError as e:  # Meldung statt Traceback (kein Schreibrecht u. Ä.)
+            err.print(f"[red]{escape(str(e))}[/red]")
+            raise typer.Exit(1) from e
+
+    guarded._guarded = True  # type: ignore[attr-defined]
+    return guarded
+
+
 def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Registriert einen Befehl unter dem deutschen und – falls vorhanden – dem englischen
     Namen; der Name der jeweils anderen Sprache bleibt in der Hilfe ausgeblendet."""
     alias = COMMAND_ALIASES.get(name)
 
     def register(fn: Callable[..., Any]) -> Callable[..., Any]:
-        app.command(name, help=t(help), hidden=bool(alias) and is_english())(fn)
+        app.command(name, help=t(help), hidden=bool(alias) and is_english())(_guarded(fn))
         if alias:
-            app.command(alias, help=t(help), hidden=not is_english())(fn)
+            app.command(alias, help=t(help), hidden=not is_english())(_guarded(fn))
         return fn
 
     return register
@@ -1057,7 +1077,10 @@ def forecast(
         t("Kleinkram"),
     ]
     for i, col in enumerate(columns):
-        table.add_column(col, justify="left" if i < 3 else "right")
+        band = col == t("Spanne")  # nie mitten in der Zahl kürzen: lieber umbrechen die anderen
+        table.add_column(
+            col, justify="left" if i < 3 else "right", no_wrap=band, min_width=9 if band else None
+        )
     for e in fc.history(verlauf) + fc.upcoming():
         r = e.result
         future = e.sprint.end > c.today
@@ -1288,7 +1311,7 @@ def bericht(
             sys.stdout.write(text)
             continue
         target = ausgabe if ausgabe is not None and team else c.repo.team_dir(key) / "FORECAST.md"
-        target.write_text(text, encoding="utf-8")
+        write_text(target, text)
         console.print(f"[green]{target}[/green]")
 
 
@@ -1920,14 +1943,22 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
             + "[/dim]"
         )
     if data.sprint(s.id) is None:
-        console.print(
-            "[yellow]"
-            + t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
-            + "[/yellow]"
+        hint = (
+            t(
+                "Noch keine Sprintdatei – die Prognose rechnet bis dahin mit Kalender und "
+                "Personenliste; die unbekannten Fehltage werden nach der Historie geschätzt "
+                "(ohne Historie ohne Abzug)."
+            )
+            if data.people
+            else t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
         )
+        console.print(f"[yellow]{hint}[/yellow]")
 
 
 # Erweiterungen (z. B. Import-Plugins) registrieren ihre Befehle zuletzt.
 for _plugin in load_plugins():
     if _plugin.register_cli is not None:
         _plugin.register_cli(app)
+for _command in app.registered_commands:  # auch die Befehle der Erweiterungen
+    if _command.callback is not None:
+        _command.callback = _guarded(_command.callback)

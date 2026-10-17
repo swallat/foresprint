@@ -9,12 +9,14 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import os
 import re
 import tempfile
 import threading
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -53,6 +55,11 @@ STICHTAG_ENV = "SPRINTFORECAST_STICHTAG"
 
 class DataError(Exception):
     """Eine Datei fehlt oder ist nicht lesbar."""
+
+
+class FileAccessError(DataError):
+    """Eine Datei lässt sich nicht lesen, schreiben oder löschen (fehlende Rechte, in einem
+    anderen Programm geöffnet, Datenträger voll). Die Meldung ist für Anwender gedacht."""
 
 
 class ConflictError(DataError):
@@ -178,6 +185,8 @@ def _read(path: Path) -> dict[str, Any]:
         content = yaml.load(text, Loader=_YAML_LOADER)
     except FileNotFoundError as e:
         raise DataError(t("Datei fehlt: {path}", path=path)) from e
+    except OSError as e:  # keine Leserechte, Ordner statt Datei, Netzlaufwerk nicht erreichbar
+        raise _not_readable(path, e) from e
     except (yaml.YAMLError, ValueError) as e:  # z. B. ein unmögliches Datum (2026-13-45)
         raise DataError(t("{path}: kein gültiges YAML ({error})", path=path, error=e)) from e
     if content is None:
@@ -192,9 +201,76 @@ def dump_yaml(content: Any) -> str:
     return yaml.safe_dump(content, allow_unicode=True, sort_keys=False, width=100)
 
 
+def _reason(error: OSError) -> str:
+    return error.strerror or str(error)
+
+
+def _not_readable(path: Path, error: OSError) -> FileAccessError:
+    return FileAccessError(
+        t(
+            "{path}: nicht lesbar ({reason}). Rechte prüfen oder die Datei in einem "
+            "anderen Programm schließen.",
+            path=path,
+            reason=_reason(error),
+        )
+    )
+
+
+def _not_saved(path: Path, error: OSError) -> FileAccessError:
+    return FileAccessError(
+        t(
+            "{path}: nicht gespeichert ({reason}). Die Datei wurde nicht verändert. Ist der "
+            "Ordner beschreibbar, und ist die Datei in keinem anderen Programm geöffnet?",
+            path=path,
+            reason=_reason(error),
+        )
+    )
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        raise _not_readable(path, e) from e
+
+
 def _write(path: Path, header: str, content: dict[str, Any]) -> None:
     """Schreibt stabil: immer Zeilenende LF, nur bei geändertem Inhalt (keine unnötigen
-    Änderungen für Git) und über eine Zwischendatei (kein halb geschriebener Stand)."""
+    Änderungen für Git) und über eine Zwischendatei (kein halb geschriebener Stand).
+    Schreibfehler (``OSError``) kommen als :class:`FileAccessError` mit verständlicher Meldung."""
+    try:
+        _write_atomic(path, header, content)
+    except OSError as e:
+        raise _not_saved(path, e) from e
+
+
+def write_text(path: Path, text: str) -> None:
+    """Schreibt eine Textdatei (z. B. den Bericht) über eine Zwischendatei; Fehler wie bei
+    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF)."""
+    try:
+        _replace_with(path, text, newline=None)
+    except OSError as e:
+        raise _not_saved(path, e) from e
+
+
+def _replace_with(path: Path, text: str, newline: str | None) -> None:
+    """Schreibt ``text`` in eine Zwischendatei neben ``path`` und ersetzt ``path`` damit: Die
+    Datei ist danach entweder ganz neu oder unverändert, nie halb geschrieben."""
+    tmp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", newline=newline, dir=path.parent, suffix=".tmp", delete=False
+        ) as tmp:
+            tmp_name = tmp.name
+            tmp.write(text)
+        os.replace(tmp_name, path)
+        tmp_name = None
+    finally:
+        if tmp_name:  # Schreib- oder Umbenennungsfehler (z. B. gesperrt): nichts zurücklassen
+            Path(tmp_name).unlink(missing_ok=True)
+
+
+def _write_atomic(path: Path, header: str, content: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = header + dump_yaml(content)
     try:
@@ -207,18 +283,7 @@ def _write(path: Path, header: str, content: dict[str, Any]) -> None:
         if has_conflict_markers(current.decode("utf-8", errors="replace")):
             # Nie über einen unvollständigen Merge schreiben: Die Markierungen gingen verloren.
             raise ConflictError([path])
-    tmp_name: str | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            "w", encoding="utf-8", newline="\n", dir=path.parent, suffix=".tmp", delete=False
-        ) as tmp:
-            tmp_name = tmp.name
-            tmp.write(text)
-        os.replace(tmp_name, path)
-        tmp_name = None
-    finally:
-        if tmp_name:  # Schreib- oder Umbenennungsfehler (z. B. gesperrt): nichts zurücklassen
-            Path(tmp_name).unlink(missing_ok=True)
+    _replace_with(path, text, newline="\n")
     clear_team_cache()
 
 
@@ -232,7 +297,100 @@ def _float(value: Any, where: str) -> float | None:
     return float(value)
 
 
+def _lenient_float(value: Any, where: str) -> float | None:
+    """Wie ``float(value)`` (auch Zahlen in Anführungszeichen), aber mit Dateistelle im Fehler."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError, OverflowError) as e:  # OverflowError: ganze Zahl > 1e308
+        raise DataError(
+            t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value)[:60])
+        ) from e
+
+
+def _mapping(value: Any, where: str, name: str) -> dict[str, Any]:
+    """Ein Objekt (``Schlüssel: Wert``); fehlt es oder ist es leer, ein leeres Objekt."""
+    if not value:
+        return {}
+    if not isinstance(value, dict):
+        raise DataError(
+            t(
+                "{where}: '{name}' muss ein Objekt sein (Zeilen der Form 'Schlüssel: Wert'), "
+                "gefunden {value}",
+                where=where,
+                name=name,
+                value=repr(value)[:60],
+            )
+        )
+    return value
+
+
+def _sequence(value: Any, where: str, name: str) -> list[Any]:
+    """Eine Liste (Einträge mit ``- ``); fehlt sie oder ist sie leer, eine leere Liste."""
+    if not value:
+        return []
+    if not isinstance(value, list):
+        raise DataError(
+            t(
+                "{where}: '{name}' muss eine Liste sein (Einträge mit '- '), gefunden {value}",
+                where=where,
+                name=name,
+                value=repr(value)[:60],
+            )
+        )
+    return value
+
+
+def _code(value: Any, where: str, name: str) -> str | None:
+    """Land oder Region als Text (``DE``, ``NW``); fehlt der Eintrag, ``None``. Unquotiert liest
+    YAML ``NO`` (Norwegen) und ``ON`` (Ontario) als Wahrheitswert: Das wird erklärt statt still
+    zu einem falschen Wert."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        raise DataError(
+            t(
+                "{where}: '{name}' bitte in Anführungszeichen setzen, z. B. {name}: \"NO\" "
+                "(unquotiert liest YAML das als Wahrheitswert)",
+                where=where,
+                name=name,
+            )
+        )
+    if not isinstance(value, str):
+        raise DataError(
+            t(
+                "{where}: '{name}' muss ein Text sein (z. B. DE oder NW), gefunden {value}",
+                where=where,
+                name=name,
+                value=repr(value)[:60],
+            )
+        )
+    return value
+
+
+@contextlib.contextmanager
+def _well_formed(where: str) -> Iterator[None]:
+    """Fängt Aufbaufehler, die die Einzelprüfungen nicht kennen (z. B. ein Text, wo ein Objekt
+    steht), und meldet sie mit dem Dateinamen statt als Absturz."""
+    try:
+        yield
+    except DataError:
+        raise
+    except (AttributeError, TypeError, KeyError, ValueError, OverflowError) as e:
+        raise DataError(
+            t(
+                "{where}: Aufbau der Datei ungültig ({error}). Listen beginnen mit '- ', "
+                "Objekte bestehen aus Zeilen 'Schlüssel: Wert'.",
+                where=where,
+                error=f"{type(e).__name__}: {e}",
+            )
+        ) from e
+
+
 def _date(value: Any, where: str) -> date:
+    if isinstance(value, datetime):  # „2026-10-14 08:00:00“ liest YAML als Zeitstempel
+        return value.date()
     if isinstance(value, date):
         return value
     try:
@@ -260,17 +418,29 @@ TEAM_HEADER = """\
 """
 
 
+def _first_id(value: Any, where: str) -> str | None:
+    """ID des ersten Sprints; wie bei den Sprintdateien muss eine Zahl wie 2026.20 in
+    Anführungszeichen stehen (sonst wird daraus 2026.2)."""
+    if value is None:
+        return None
+    if isinstance(value, float):
+        raise DataError(
+            t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
+        )
+    return str(value)
+
+
 def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
-    sprint = d.get("sprint") or {}
-    forecast = d.get("forecast") or {}
-    capacity = d.get("capacity") or {}
-    first = sprint.get("first") or {}
-    raw_features = d.get("features")
+    sprint = _mapping(d.get("sprint"), where, "sprint")
+    forecast = _mapping(d.get("forecast"), where, "forecast")
+    capacity = _mapping(d.get("capacity"), where, "capacity")
+    first = _mapping(sprint.get("first"), where, "sprint.first")
+    raw_features = _mapping(d.get("features"), where, "features")
     features = (
         Features(
-            products=bool((raw_features or {}).get("products", False)),
-            po=bool((raw_features or {}).get("po", False)),
-            production=bool((raw_features or {}).get("production", False)),
+            products=bool(raw_features.get("products", False)),
+            po=bool(raw_features.get("po", False)),
+            production=bool(raw_features.get("production", False)),
         )
         if "features" in d
         else Features(explicit=False)  # ältere Datei: Repository.load leitet die Werte ab
@@ -283,7 +453,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             sprint=SprintSettings(
                 length_days=int(sprint.get("length_days", 14)),
                 numbering=Numbering(sprint.get("numbering", "yearly")),
-                first_id=str(first["id"]) if first.get("id") is not None else None,
+                first_id=_first_id(first.get("id"), where),
                 first_start=_date(first["start"], where) if first.get("start") else None,
             ),
             forecast=ForecastSettings(
@@ -299,14 +469,14 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             capacity=CapacitySettings(
                 overhead_share=float(capacity.get("overhead_share", 0.0)),
                 overhead_days=float(capacity.get("overhead_days", 0.0)),
-                country=str(capacity.get("country", "DE")).upper(),
-                region=capacity.get("region"),
+                country=(_code(capacity.get("country"), where, "capacity.country") or "DE").upper(),
+                region=_code(capacity.get("region"), where, "capacity.region"),
                 workweek=str(capacity.get("workweek", "auto")),
                 rounding=int(capacity.get("rounding", 1)),
                 absence_history=int(capacity.get("absence_history", 4)),
             ),
         )
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError, OverflowError) as e:  # OverflowError: int(inf)
         raise DataError(f"{where}: {e}") from e
 
 
@@ -361,9 +531,9 @@ PEOPLE_HEADER = """\
 
 def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
     people = []
-    for i, p in enumerate(d.get("people") or []):
+    for i, p in enumerate(_sequence(d.get("people"), where, "people")):
         at = f"{where}: people[{i}]"
-        if "id" not in p:
+        if not isinstance(p, dict) or "id" not in p:
             raise DataError(t("{where}: Feld 'id' fehlt", where=at))
         memberships = [
             Membership(
@@ -371,14 +541,19 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
                 end=_date(m["to"], at) if m.get("to") else None,
                 fte=_float(m.get("fte", 1.0), at) or 0.0,
             )
-            for m in p.get("memberships") or []
+            for m in (
+                _mapping(m, at, f"memberships[{j}]")
+                for j, m in enumerate(_sequence(p.get("memberships"), at, "memberships"))
+            )
         ]
         people.append(
             Person(
                 id=str(p["id"]),
                 name=str(p.get("name") or p["id"]),
-                region=p.get("region"),
-                country=str(p["country"]).upper() if p.get("country") else None,
+                region=_code(p.get("region"), at, "region"),
+                country=(
+                    code.upper() if (code := _code(p.get("country"), at, "country")) else None
+                ),
                 workweek=str(p["workweek"]) if p.get("workweek") else None,
                 memberships=memberships,
                 production_access=bool(p.get("production_access", False)),
@@ -416,7 +591,7 @@ PRODUCTS_HEADER = """\
 
 def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
     products = []
-    for i, p in enumerate(d.get("products") or []):
+    for i, p in enumerate(_sequence(d.get("products"), where, "products")):
         at = f"{where}: products[{i}]"
         if not isinstance(p, dict) or "id" not in p:
             raise DataError(t("{where}: Feld 'id' fehlt", where=at))
@@ -427,7 +602,7 @@ def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
                 po=str(p["po"]) if p.get("po") else None,
                 start=_date(p["from"], at) if p.get("from") else None,
                 end=_date(p["to"], at) if p.get("to") else None,
-                share=float(p["share"]) if p.get("share") is not None else None,
+                share=_lenient_float(p.get("share"), f"{at}: share"),
             )
         )
     return products
@@ -456,7 +631,7 @@ SPRINT_HEADER = """\
 
 def _prognoses_from(raw: Any, where: str) -> list[Prognosis]:
     result = []
-    for i, p in enumerate(raw or []):
+    for i, p in enumerate(_sequence(raw, where, "prognoses")):
         at_ = f"{where}: prognoses[{i}]"
         if not isinstance(p, dict) or p.get("at") is None:
             raise DataError(t("{where}: Feld 'at' fehlt", where=at_))
@@ -478,7 +653,8 @@ def _prognoses_from(raw: Any, where: str) -> list[Prognosis]:
                 target=str(p["target"]) if p.get("target") is not None else None,
                 plan=_float(p.get("plan"), at_),
                 preplanned={
-                    str(k): _float(v, at_) or 0.0 for k, v in (p.get("preplanned") or {}).items()
+                    str(k): _float(v, at_) or 0.0
+                    for k, v in _mapping(p.get("preplanned"), at_, "preplanned").items()
                 },
             )
         )
@@ -532,14 +708,17 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
             t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
         )
     planning = None
-    if p := d.get("planning"):
+    if p := _mapping(d.get("planning"), where, "planning"):
         planning = Planning(
             carryover=_float(p.get("carryover"), where) or 0.0,
             backlog=_float(p.get("backlog"), where) or 0.0,
-            corrections=[_float(c, where) or 0.0 for c in p.get("corrections") or []],
+            corrections=[
+                _float(c, where) or 0.0
+                for c in _sequence(p.get("corrections"), where, "corrections")
+            ],
         )
     products = {}
-    for pid, values in (d.get("products") or {}).items():
+    for pid, values in _mapping(d.get("products"), where, "products").items():
         at = f"{where}: products.{pid}"
         if not isinstance(values, dict):
             raise DataError(t("{where}: Objekt mit preplanned/planned/done erwartet", where=at))
@@ -551,7 +730,7 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
             production_done=_float(values.get("production_done"), at),
         )
     absences = {}
-    for pid, days in (d.get("absences") or {}).items():
+    for pid, days in _mapping(d.get("absences"), where, "absences").items():
         absences[str(pid)] = _float(days, f"{where}: absences.{pid}") or 0.0
     return Sprint(
         id=str(d["id"]),
@@ -571,7 +750,9 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         absence_state=_absence_state(d, where),
         expected_absences={
             str(pid): _float(days, f"{where}: expected_absences.{pid}") or 0.0
-            for pid, days in (d.get("expected_absences") or {}).items()
+            for pid, days in _mapping(
+                d.get("expected_absences"), where, "expected_absences"
+            ).items()
         },
         not_done=_float(d.get("not_done"), f"{where}: not_done"),
         additional_done=_float(d.get("additional_done"), f"{where}: additional_done"),
@@ -722,20 +903,23 @@ class Repository:
                     known=known,
                 )
             )
-        team = team_from_dict(key, _read(base / "team.yaml"), str(base / "team.yaml"))
+        team_file = base / "team.yaml"
+        with _well_formed(str(team_file)):
+            team = team_from_dict(key, _read(team_file), str(team_file))
         people_file = base / "people.yaml"
-        people = (
-            people_from_dict(_read(people_file), str(people_file)) if people_file.is_file() else []
-        )
+        people = []
+        if people_file.is_file():
+            with _well_formed(str(people_file)):
+                people = people_from_dict(_read(people_file), str(people_file))
         products_file = base / "products.yaml"
-        products = (
-            products_from_dict(_read(products_file), str(products_file))
-            if products_file.is_file()
-            else []
-        )
+        products = []
+        if products_file.is_file():
+            with _well_formed(str(products_file)):
+                products = products_from_dict(_read(products_file), str(products_file))
         sprints = []
         for f in sorted((base / "sprints").glob("*.yaml")):
-            sprint = sprint_from_dict(_read(f), str(f))
+            with _well_formed(str(f)):
+                sprint = sprint_from_dict(_read(f), str(f))
             if sprint.id != f.stem:
                 raise DataError(
                     t("{file}: id '{id}' passt nicht zum Dateinamen", file=f, id=sprint.id)
@@ -787,9 +971,10 @@ class Repository:
     def _pinned_absence_state(self, path: Path, sprint: Sprint) -> AbsenceState:
         if path.is_file():
             try:
-                return absence_status(sprint_from_dict(_read(path), str(path)))
-            except ConflictError:
-                raise
+                with _well_formed(str(path)):
+                    return absence_status(sprint_from_dict(_read(path), str(path)))
+            except ConflictError, FileAccessError:
+                raise  # nicht lesbar ist kein „Datei kaputt“: nichts überschreiben
             except DataError:
                 pass
         if sprint.velocity is not None:  # bereits ausgewerteter Sprint (z. B. Import)
@@ -798,8 +983,20 @@ class Repository:
 
     def delete_sprint(self, key: str, sprint_id: str) -> None:
         """Entfernt eine Sprintdatei (der Sprint entsteht danach wieder aus dem Kalender)."""
-        self.sprint_path(key, sprint_id).unlink(missing_ok=True)
-        clear_team_cache()
+        path = self.sprint_path(key, sprint_id)
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as e:
+            raise FileAccessError(
+                t(
+                    "{path}: nicht gelöscht ({reason}). Ist die Datei schreibgeschützt oder in "
+                    "einem anderen Programm geöffnet?",
+                    path=path,
+                    reason=_reason(e),
+                )
+            ) from e
+        finally:
+            clear_team_cache()
 
     def save_sprint(self, key: str, sprint: Sprint) -> Path:
         """Schreibt den Sprint. Ist sein Stand der Fehltage noch nicht festgelegt, wird er
@@ -824,7 +1021,7 @@ def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[
             repo.team_dir(team.key) / "people.yaml",
             *(repo.sprint_path(team.key, s.id) for s in sprints),
         )
-        if p.is_file() and has_conflict_markers(p.read_text(encoding="utf-8", errors="replace"))
+        if p.is_file() and has_conflict_markers(_read_text(p))
     ]
     if marked:
         raise ConflictError(marked)

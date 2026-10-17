@@ -168,6 +168,7 @@ from sprintforecast.storage import (
     STICHTAG_ENV,
     ConflictError,
     DataError,
+    FileAccessError,
     Repository,
     TeamData,
     clear_team_cache,
@@ -177,6 +178,7 @@ from sprintforecast.storage import (
     save_data_dir,
     team_version,
     teams_dir,
+    write_text,
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
@@ -380,7 +382,11 @@ def save(
             st.error(f"{i.where}: {i.message}")
         st.error(t("Nicht gespeichert – bitte die Fehler beheben."))
         return False
-    paths = write()
+    try:
+        paths = write()
+    except FileAccessError as e:
+        st.error(str(e))
+        return False
     for i in relevant:
         if i.level is Level.WARNING:
             notify("warning", f"{i.where}: {i.message}")
@@ -729,7 +735,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
     if st.button(t("Bericht FORECAST.md schreiben")):
         path = repo.team_dir(team.key) / "FORECAST.md"
-        path.write_text(render(fc), encoding="utf-8")
+        write_text(path, render(fc))
         st.success(t("Geschrieben: {path}", path=path))
 
 
@@ -1067,7 +1073,7 @@ def _absence_states(live: list[Sprint], sprints: list[Sprint]) -> set[str]:
 
 
 def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
-    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“ (Trend)."""
+    """Künftige Sprints ohne Informationen zu Fehltagen zurück auf „unbekannt“."""
     resettable = resettable_sprints(data, today)
     if not resettable:
         return
@@ -1075,8 +1081,9 @@ def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
     st.caption(
         t(
             "Für diese Sprints wurden Fehltage bestätigt, sonst ist nichts erfasst. Zurücksetzen "
-            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Kapazität wird "
-            "wieder aus dem Trend geschätzt."
+            "löscht die Sprintdatei: Es liegen dann keine Informationen vor, die Fehltage werden "
+            "wieder nach der Historie geschätzt (ohne Historie ohne Abzug); die Kapazität kommt "
+            "weiter aus Kalender und Personen."
         )
     )
     chosen = st.multiselect(
@@ -1913,6 +1920,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         # Die Quelle steht unter dem Wert (nicht im Wert): sonst wird die Zahl abgeschnitten.
         delta=capacity_source_note(entry) or None,
         delta_color="off",
+        delta_arrow="off",
         help=t("Quelle: {source}", source=source_label(r.plan_capacity_source) or "–")
         + "\n\n"
         + _formula_help(fc, entry, "capacity"),
@@ -2739,7 +2747,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc_view, shown, "capacity"),
         )
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
-        if note := band_note(fc_view, shown):
+        if note := band_note(fc_view, shown, without_assumption=bool(assumed)):
             st.caption(note)
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
@@ -4967,6 +4975,8 @@ def run_page(key: str) -> None:
     fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
     try:
         TEAM_PAGES[key](repo, data, fc)
+    except FileAccessError as e:  # Schreib- oder Löschfehler außerhalb von save()
+        st.error(str(e))
     finally:
         # Auch nach ``st.rerun()`` (eine Ausnahme): Der eigene Speicherstand gilt als gesehen,
         # sonst hielte der nächste Durchlauf ihn für eine fremde Änderung.
@@ -4980,4 +4990,7 @@ def run_plugin_page(page: WebPage) -> None:
     if _merge_open(repo):
         page_conflicts(repo)
         return
-    page.render(repo)
+    try:
+        page.render(repo)
+    except FileAccessError as e:  # Schreib- oder Lesefehler im Plugin
+        st.error(str(e))
