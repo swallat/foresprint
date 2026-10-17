@@ -69,45 +69,53 @@ Referenz des Eigentümers (Windows, vorher): Team laden ca. 18 ms (PyYAML `safe_
 im Planning-Rerun), `build_forecast` 0,25 bis 1,3 ms, Seitenwechsel im AppTest 35 bis 45 ms,
 `import pandas` 0,4 bis 1,0 s, `import streamlit` ca. 0,5 s, `git status` Median ca. 61 ms.
 
-## Messprotokoll Windows (Eigentümer, Python 3.14.8, Demo-Team, `main` nach Merge von PR 1)
+## Messprotokoll Windows (Eigentümer, Python 3.14.8, Demo-Team)
 
-Gemessen am 17.10.2026 mit `uv run python .\scripts\measure.py --md` auf dem Arbeitsrechner. Die
-Zeile „Team laden (Cache-Treffer)“ gibt es erst mit PR 1: Das ist also der Stand **nachher**. Ein
-Lauf mit dem Stand davor (Commit `78010e5`) steht noch aus; bis dahin gelten als „vorher“ die
-Referenzwerte weiter unten.
+Gemessen am 17.10.2026 mit `scripts\measure.py --md` auf dem Arbeitsrechner. Vorher = Commit
+`78010e5` (vor PR 1), nachher = `main` nach dem Merge von PR 1. Mediane in ms.
 
-| Messung | nachher (ms) |
-|---|---:|
-| import yaml | 24,2 |
-| import pandas | 488,8 |
-| import altair | 321,3 |
-| import streamlit | 433,3 |
-| import rich.console | 49,6 |
-| import typer | 74,3 |
-| import sprintforecast.storage | 50,1 |
-| import sprintforecast.forecast | 124,4 |
-| import sprintforecast.web.ui | 730,9 |
-| import sprintforecast.cli | 394,9 |
-| Team laden (ohne Cache) | 5,0 |
-| Team laden (Cache-Treffer) | 1,1 |
-| build_forecast | 0,3 |
-| git status (pending_changes) | 52,9 |
-| AppTest Start (kalt, erster Lauf) | 1175,4 |
-| AppTest erneuter Lauf (gleiche Seite) | 23,6 |
-| AppTest Seite forecast | 24,0 |
-| AppTest Seite fehltage | 18,5 |
-| AppTest Seite planning | 18,8 |
-| AppTest Seite analyse | 17,4 |
-| AppTest Seite produkte | 46,4 |
-| AppTest Seite personen | 16,2 |
-| AppTest Seite hilfe | 23,6 |
+| Messung | vorher | nachher |
+|---|---:|---:|
+| import yaml | 23,8 | 24,2 |
+| import pandas | 475,1 | 488,8 |
+| import altair | 331,6 | 321,3 |
+| import streamlit | 480,2 | 433,3 |
+| import rich.console | 53,3 | 49,6 |
+| import typer | 74,9 | 74,3 |
+| import sprintforecast.storage | 46,5 | 50,1 |
+| import sprintforecast.forecast | 124,9 | 124,4 |
+| import sprintforecast.web.ui | 1364,8 | 730,9 |
+| import sprintforecast.cli | 409,6 | 394,9 |
+| Team laden (ohne Cache) | 18,4 | 5,0 |
+| Team laden (Cache-Treffer) | – | 1,1 |
+| build_forecast | 0,3 | 0,3 |
+| git status (pending_changes) | 60,0 | 52,9 |
+| AppTest Start (kalt, erster Lauf) | 1165,7 | 1175,4 |
+| AppTest erneuter Lauf (gleiche Seite) | 99,4 | 23,6 |
+| AppTest Seite forecast | 101,4 | 24,0 |
+| AppTest Seite fehltage | 94,1 | 18,5 |
+| AppTest Seite planning | 96,5 | 18,8 |
+| AppTest Seite analyse | 90,2 | 17,4 |
+| AppTest Seite produkte | 122,1 | 46,4 |
+| AppTest Seite personen | 91,4 | 16,2 |
+| AppTest Seite hilfe | 80,5 | 23,6 |
 
-Gegen die Referenzwerte vorher (Windows): Team laden ca. 18 → 5 ms, Seitenwechsel im AppTest
-35 bis 45 → 16 bis 24 ms (nur `produkte` 46 ms), `import sprintforecast.web.ui` enthält weder
-`pandas` noch `altair`. Der Git-Status liegt mit 53 ms weiter bei der Größenordnung der Referenz
-(ca. 61 ms); der Zwischenspeicher spart ihn bei Eingaben innerhalb von 5 Sekunden. Der kalte Start
-im AppTest (1,2 s) enthält noch kein Browserfenster; die Stoppuhr-Messung bis zur ersten Seite im
-Browser (Ziel unter 3 s) und für normale Eingaben (Ziel unter 200 ms) steht noch aus.
+Ergebnis (nur Python-Prozess, ohne Browser):
+
+- **Seitenaufbau und erneuter Lauf** sinken von 80 bis 120 ms auf 16 bis 47 ms (Seite
+  `produkte` 122 → 46 ms, alle anderen unter 25 ms). Normale Eingaben liegen damit im
+  Python-Teil weit unter dem Ziel von 200 ms.
+- **Team laden** 18 → 5 ms (C-Lader), bei unverändertem Stand 1,1 ms (Cache).
+- **Import der Oberfläche** 1365 → 731 ms (ohne `pandas`/`altair`).
+- **Kalter Start** im AppTest bleibt bei etwa 1,2 s: Die Startseite (Forecast) braucht
+  `pandas` und `altair`, was sich vom Import in den ersten Seitenaufbau verschiebt. Hier bringt
+  PR 1 auf diesem Rechner nichts.
+- **Git-Status** 60 → 53 ms pro Abfrage; der Zwischenspeicher spart ihn bei Eingaben innerhalb von
+  5 Sekunden.
+- Einzelne Importzeiten schwanken um 10 bis 20 % (Reihenfolge, Festplattencache).
+
+Die Stoppuhr-Messung im Browser (Start bis zur ersten Seite, Ziel unter 3 s; normale Eingaben,
+Ziel unter 200 ms) steht noch aus.
 
 ## Umgesetzte Maßnahmen
 
