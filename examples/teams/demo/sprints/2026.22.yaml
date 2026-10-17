@@ -9,9 +9,9 @@ forecast_ist: null
 velocity: null
 scope_creep: null
 products:
-  webshop:
-    preplanned: 3
   app:
     preplanned: 3
   portal:
     preplanned: 4
+  webshop:
+    preplanned: 3
