@@ -53,7 +53,73 @@ def git(cwd: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def test_forecast_is_default_page(app: AppTest):
+def test_start_is_default_page(app: AppTest):
+    assert app.header[0].value == "Was möchtest du tun?"
+    # 2026.22 ist vorbereitet (Fehltage, Vorplanung), aber noch nicht eingeplant
+    assert [s.value for s in app.subheader] == [
+        "✅ Sprint vorbereiten",
+        "⬜ Planning",
+        "⬜ Sprint abschließen",
+    ]
+
+
+def test_start_tasks_lead_to_the_next_sensible_step(app: AppTest):
+    """Heute 2026-10-15: 2026.21 läuft (Review offen), 2026.22 ist der nächste Planning-Kandidat."""
+    app.button(key="start-planning").click().run()
+    assert not app.exception, app.exception
+    assert app.header[0].value == "Sprint Planning"
+    assert app.selectbox(key="planning-sprint").value == "2026.22"
+
+    goto(app, "start")
+    app.button(key="start-review").click().run()
+    assert not app.exception, app.exception
+    assert app.header[0].value == "Sprint Review"
+    assert app.selectbox(key="review-sprint").value == "2026.21"
+
+
+def _change_2026_22(data_dir: Path, **fields) -> None:
+    path = data_dir / "demo" / "sprints" / "2026.22.yaml"
+    raw = yaml.safe_load(path.read_text())
+    raw.update(fields)
+    path.write_text(yaml.safe_dump(raw))
+
+
+def test_start_prepare_asks_for_absences_when_unknown(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _change_2026_22(data_dir, absences={})
+    at = start(data_dir, monkeypatch)
+    assert any("Fehltage unbekannt" in w.value for w in at.main.markdown)
+    at.button(key="start-prepare").click().run()
+    assert at.header[0].value == "Planbare Fehltage"
+
+
+def test_start_prepare_asks_for_preplanning_once_absences_are_known(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _change_2026_22(data_dir, products={})
+    at = start(data_dir, monkeypatch)
+    assert any("PO-Vorplanung fehlt noch" in w.value for w in at.main.markdown)
+    at.button(key="start-prepare").click().run()
+    assert at.header[0].value == "PO-Vorplanung"
+    assert at.selectbox(key="vorplanung-sprint").value == "2026.22"
+
+
+def test_start_prepare_is_not_stuck_without_products(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Funktionsbereich Produkte an, aber keine Produkte angelegt: keine dauerhafte Vorplanung."""
+    import shutil
+
+    shutil.rmtree(data_dir / "demo" / "products", ignore_errors=True)
+    (data_dir / "demo" / "products.yaml").unlink(missing_ok=True)
+    _change_2026_22(data_dir, products={})
+    at = start(data_dir, monkeypatch)
+    assert not any("PO-Vorplanung fehlt noch" in w.value for w in at.main.markdown)
+
+
+def test_forecast_page_shows_the_forecast(app: AppTest):
+    goto(app, "forecast")
     values = [m.value for m in app.metric]
     assert values[:2] == ["9,5 PT", "11,2 PT"]  # wie `sprintforecast forecast demo`
     # Mit Personenliste kommt die Kapazität aus Kalender und Personen: keine Trend-Warnung
@@ -67,7 +133,7 @@ def test_forecast_warns_when_absences_unknown_and_no_history(
     raw = yaml.safe_load(team.read_text())
     raw["capacity"]["absence_history"] = 0  # keine Schätzung
     team.write_text(yaml.safe_dump(raw))
-    at = start(data_dir, monkeypatch)
+    at = goto(start(data_dir, monkeypatch), "forecast")
     assert any(
         "2026.23" in w.value and "Kalender, Fehltage unbekannt" in w.value for w in at.warning
     )
@@ -217,7 +283,7 @@ def test_team_without_history(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     (team / "team.yaml").write_text(
         "name: Neu\nsprint:\n  first: {id: '2026.20', start: 2026-10-14}\n"
     )
-    at = start(data_dir, monkeypatch)
+    at = goto(start(data_dir, monkeypatch), "forecast")
     assert at.sidebar.selectbox[1].value == "aaa-neu"
     assert any("Noch keine Werte" in i.value for i in at.info)
     for page in ("fehltage", "planning", "review", "personen", "einstellungen"):
@@ -410,12 +476,12 @@ def test_new_team_with_three_sprints_gets_a_first_forecast(
     sprints = sorted((data_dir / "demo" / "sprints").glob("*.yaml"))
     for f in sprints[3:]:
         f.unlink()
-    at = start(data_dir, monkeypatch)
+    at = goto(start(data_dir, monkeypatch), "forecast")
     assert any(m.value.endswith("PT") and m.value != "– PT" for m in at.metric)
     assert any("Wenig Daten" in w.value for w in at.warning)
     assert not any("Noch kein Forecast" in i.value for i in at.info)
     sprints[2].unlink()  # nur zwei Sprints mit Velocity
-    at = start(data_dir, monkeypatch)
+    at = goto(start(data_dir, monkeypatch), "forecast")
     assert any("Noch kein Forecast: bisher 2 Sprint(s)" in i.value for i in at.info)
 
 
@@ -432,7 +498,7 @@ def test_whatif_panel_on_forecast_page(app: AppTest):
 
 def test_preplanning_page_saves_values(app: AppTest, data_dir: Path):
     goto(app, "vorplanung")
-    assert app.selectbox(key="vorplanung-sprint").value == "2026.22"
+    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
     assert any("Standard" in c.value for c in app.caption)
     assert not app.exception
     # Bearbeiten der Tabelle: Vorplanung für ein Produkt setzen und speichern
@@ -598,6 +664,7 @@ def test_saving_planning_values_keeps_unconfirmed_absences_unknown(app: AppTest,
 
 def test_formula_expander_fragment_switches_sprint(app: AppTest):
     """Rechenweg und Was-wäre-wenn sind Fragmente: Eingaben zeichnen nur sie neu."""
+    goto(app, "forecast")
     ids = list(app.selectbox(key="formula-sprint").options)
     app.selectbox(key="formula-sprint").set_value(ids[-1]).run()
     assert not app.exception, app.exception
@@ -612,7 +679,7 @@ def test_forecast_shows_gaps_skipped_by_the_average(
     raw = yaml.safe_load(path.read_text())
     raw["velocity"] = None  # Lücke mitten in der Historie
     path.write_text(yaml.safe_dump(raw))
-    at = start(data_dir, monkeypatch)
+    at = goto(start(data_dir, monkeypatch), "forecast")
     assert any("Lücken: 1 Sprint" in i.value for i in at.info)
 
 
@@ -633,3 +700,45 @@ def test_board_navigation_highlights_the_active_page(app: AppTest, page: str):
     assert len(active) == 1
     title = {"vorplanung": "PO-Vorplanung", "planning": "Planning", "review": "Sprint abschließen"}
     assert title[page] in active[0]
+
+
+def test_products_page_is_evaluation_only(app: AppTest):
+    """B4: Produktwerte werden nur auf den Boards erfasst; die Auswertung hat keine Eingabe."""
+    goto(app, "produkte")
+    assert not app.main.button  # kein „Produktwerte speichern“
+    assert not app.number_input.values or all(
+        n.key == "products-n" for n in app.number_input
+    )  # nur die Anzahl für den Verlauf
+    assert any("Reine Auswertung" in c.value for c in app.caption)
+    assert any(len(d.value) for d in app.dataframe)  # Tabelle bleibt sichtbar
+    links = [p.proto.page for p in app.get("page_link")]
+    assert {"vorplanung", "planning", "review"} <= set(links)
+
+
+def test_sprint_selection_is_the_same_on_all_pages(app: AppTest):
+    """Gleiche Beschriftung, Reihenfolge und Vorgabe; eine Wahl gilt auf allen Seiten."""
+    pages = {
+        "planning": "planning-sprint",
+        "review": "review-sprint",
+        "vorplanung": "vorplanung-sprint",
+        "produkte": "products-sprint",
+        "forecast": "formula-sprint",
+    }
+    seen = []
+    for page, key in pages.items():
+        goto(app, page)
+        box = app.selectbox(key=key)
+        assert box.label == "Sprint"
+        # Vorgabe je Aufgabe: Planning-Seiten der nächste Planning-Kandidat, Review der offene
+        # Rückblick, Rechenweg der laufende Sprint
+        assert box.value == {"review-sprint": "2026.21", "formula-sprint": "2026.21"}.get(
+            key, "2026.22"
+        )
+        seen.append(list(box.options))
+    # Rechenweg zeigt die ganze Historie, sonst gleiche Reihenfolge und gleiche Zukunft
+    assert all(options == seen[0] for options in seen[:-1])
+    assert seen[-1][-len(seen[0]) :] == seen[0] or set(seen[0]) <= set(seen[-1])
+    app.selectbox(key="formula-sprint").set_value("2026.23").run()
+    for page, key in pages.items():
+        goto(app, page)
+        assert app.selectbox(key=key).value == "2026.23"

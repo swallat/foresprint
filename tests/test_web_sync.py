@@ -142,7 +142,7 @@ def test_conflict_locks_editing_and_is_resolved_in_the_app(shared, data_dir: Pat
     assert "velocity: 8.5" in mine.read_text()  # "andere Änderung" gewählt
     assert "velocity: 8.5" in git(server, "show", f"main:{SPRINT.as_posix()}")
     assert git(root, "status", "--porcelain") == ""
-    assert at.metric  # Bearbeitung wieder freigegeben
+    assert at.header[0].value == "Was möchtest du tun?"  # Bearbeitung wieder freigegeben
 
 
 def test_conflict_choose_mine(shared, data_dir: Path, monkeypatch):
@@ -166,7 +166,7 @@ def test_conflict_markers_without_merge_offer_restore(shared, data_dir: Path, mo
     assert [h.value for h in at.header] == ["Konflikte lösen"]
     next(b for b in at.button if b.label == "Letzten Stand wiederherstellen").click().run()
     assert sprint.read_text() == original
-    assert at.metric
+    assert at.header[0].value == "Was möchtest du tun?"
 
 
 def test_stale_form_is_discarded_before_saving(shared, data_dir: Path, monkeypatch):
@@ -300,6 +300,6 @@ def test_tags_set_later_and_delete_in_the_app(shared, data_dir: Path, monkeypatc
     assert not at.exception
     assert "demo/2026.20" in git(root, "tag") and "demo/2026.20" in git(server, "tag")
     assert any("demo/2026.20" in str(r) for t in at.table for r in t.value.index)
-    at.checkbox(key="tag-confirm").check().run()
+    at.checkbox(key="tag-confirm-demo/2026.20").check().run()
     main_button(at, "Tag löschen").click().run()
     assert git(root, "tag") == "" and git(server, "tag") == ""

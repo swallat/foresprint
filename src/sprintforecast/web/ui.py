@@ -183,6 +183,7 @@ from sprintforecast.web.logic import (
     record_prognoses,
     resettable_sprints,
     sprints_to_save,
+    start_tasks,
     whatif_forecast,
     with_people,
     with_sprints,
@@ -201,6 +202,7 @@ else:  # erst beim ersten Zugriff laden (Kaltstart)
 PAGES: dict[str, dict[str, tuple[str, str]]] = {
     # Aufgaben im Sprint in zeitlicher Reihenfolge: vorbereiten, Planning, abschließen.
     "Aufgaben": {
+        "start": ("Start", ":material/home:"),
         "fehltage": ("Sprint vorbereiten: Fehltage", ":material/event_busy:"),
         "vorplanung": ("PO-Vorplanung", ":material/groups:"),
         "planning": ("Planning", ":material/edit_note:"),
@@ -260,8 +262,22 @@ def today() -> date:
     return date.fromisoformat(raw) if raw else date.today()
 
 
+# Der Datenordner gehört zur Browser-Sitzung (nicht zum Prozess): Wechselt eine Sitzung den
+# Ordner, speichern andere offene Fenster weiter in ihren eigenen.
+DATA_DIR_KEY = "active-data-dir"
+
+
+def data_dir() -> Path:
+    """Datenordner dieser Sitzung; beim ersten Aufruf der Vorgabe des Prozesses (Umgebung,
+    gemerkter Ordner)."""
+    raw = st.session_state.get(DATA_DIR_KEY)
+    if raw is None:
+        raw = st.session_state[DATA_DIR_KEY] = str(default_data_dir())
+    return Path(raw)
+
+
 def repository() -> Repository:
-    return Repository(default_data_dir())
+    return Repository(data_dir())
 
 
 def apply_language() -> None:
@@ -461,6 +477,49 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
         st.dataframe(pd.DataFrame(rows), hide_index=True)
 
 
+START_TASKS = {
+    "prepare": ("Sprint vorbereiten", ":material/event_busy:"),
+    "planning": ("Planning", ":material/edit_note:"),
+    "review": ("Sprint abschließen", ":material/task_alt:"),
+}
+
+
+def _start_clicked(page: str, sprint_id: str | None) -> None:
+    if sprint_id is not None:
+        st.session_state[BOARD_SPRINT] = sprint_id  # die Zielseite öffnet diesen Sprint
+    st.session_state["start-goto"] = page
+
+
+def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Einstieg über die drei Aufgaben; jede führt zur nächsten sinnvollen Seite."""
+    st.header(t("Was möchtest du tun?"))
+    if (goto := st.session_state.pop("start-goto", None)) is not None:
+        st.switch_page(page_path(goto))
+    tasks = start_tasks(
+        fc, "vorplanung" in st.session_state.get("enabled-pages", PAGE_INFO) and bool(data.products)
+    )
+    for col, task in zip(st.columns(len(tasks)), tasks, strict=True):
+        title, icon = START_TASKS[task.key]
+        with col, st.container(border=True):
+            st.subheader(f"{'✅' if task.done else '⬜'} {t(title)}")
+            st.write(task.hint)
+            st.button(
+                t("Öffnen"),
+                key=f"start-{task.key}",
+                icon=icon,
+                type="secondary" if task.done else "primary",
+                on_click=_start_clicked,
+                args=(task.page, task.sprint_id),
+            )
+    st.caption(
+        t(
+            "Danach: den **Forecast** ansehen, mit **Analyse** und **Produktverteilung** auswerten "
+            "oder unter **Team verwalten** Sprintkalender, Personen und Produkte pflegen."
+        )
+    )
+    page_link("forecast")
+
+
 def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     team = data.team
     unit = team.unit.value
@@ -598,7 +657,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "Scope Creep": st.column_config.TextColumn(help=general("scope_creep")),
         },
     )
-    _formula_expander(fc, history + [e for e in upcoming if e not in history])
+    _formula_expander(fc)
     chart = _chart(fc, history + [e for e in upcoming if e not in history], unit)
     if chart is None:
         st.info(
@@ -674,17 +733,15 @@ def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
 
 
 @st.fragment
-def _formula_expander(fc: Forecast, entries: list[TimelineEntry]) -> None:
+def _formula_expander(fc: Forecast) -> None:
     """Ausklappbarer Rechenweg mit allen Kennzahlen eines Sprints."""
-    if not entries:
+    if not sprint_options(fc, None):
         return
     with st.expander(t("Rechenweg: Formeln"), icon=":material/function:"):
-        ids = [e.sprint.id for e in entries]
-        default = fc.default_entry("planning")
-        index = ids.index(default.sprint.id) if default and default.sprint.id in ids else 0
-        chosen = st.selectbox("Sprint", ids, index=index, key="formula-sprint")
-        entry = next(e for e in entries if e.sprint.id == chosen)
-        _rechenweg(fc, entry)
+        sprint = sprint_select(fc.data, fc, "formula-sprint", "current", None)
+        entry = fc.entry(sprint.id) if sprint else None
+        if entry is not None:
+            _rechenweg(fc, entry)
 
 
 def _rechenweg(fc: Forecast, entry: TimelineEntry) -> None:
@@ -1035,38 +1092,43 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
 
 
-# Der auf einem der Boards bewusst gewählte Sprint gilt auch auf den anderen Boards.
+# Der irgendwo bewusst gewählte Sprint gilt auf allen Seiten, die einen Sprint wählen.
 BOARD_SPRINT = "board-sprint"
 
 
-def _sprint_choice(
+def sprint_options(fc: Forecast, history: int | None = 6) -> list[str]:
+    """Wählbare Sprints in fester Reihenfolge: letzte abgeschlossene, laufender, kommende."""
+    return [e.sprint.id for e in fc.history(history)] + [e.sprint.id for e in fc.upcoming()]
+
+
+def sprint_select(
     data: TeamData,
     fc: Forecast,
-    purpose: str,
-    label: str,
-    key: str | None = None,
-    shared: bool = False,
+    key: str,
+    purpose: str = "planning",
+    history: int | None = 6,
 ) -> Sprint | None:
-    options = [e.sprint.id for e in fc.history(6)] + [e.sprint.id for e in fc.upcoming()]
+    """Gemeinsame Sprintauswahl aller Seiten: gleiche Beschriftung und Reihenfolge. Vorgabe ist
+    der zuletzt gewählte Sprint, sonst der Vorschlag der Aufgabe (``purpose``, siehe
+    ``Forecast.default_entry``: planning = nächstes Planning, review = offener Rückblick),
+    ersatzweise der laufende Sprint."""
+    options = sprint_options(fc, history)
     if not options:
         return None
-    widget_key = key or f"{purpose}-sprint"
-    wanted = st.session_state.get(BOARD_SPRINT) if shared else None
+    wanted = st.session_state.get(BOARD_SPRINT)
     kwargs: dict[str, Any] = {}
     if wanted in options:
-        st.session_state[widget_key] = wanted
+        st.session_state[key] = wanted
     else:
-        default = fc.default_entry(purpose)
+        default = fc.default_entry(purpose) or fc.current
         kwargs["index"] = (
             options.index(default.sprint.id) if default and default.sprint.id in options else 0
         )
 
     def remember() -> None:
-        st.session_state[BOARD_SPRINT] = st.session_state[widget_key]
+        st.session_state[BOARD_SPRINT] = st.session_state[key]
 
-    chosen = st.selectbox(
-        label, options, key=widget_key, on_change=remember if shared else None, **kwargs
-    )
+    chosen = st.selectbox(t("Sprint"), options, key=key, on_change=remember, **kwargs)
     return copy.deepcopy(find_sprint(data, chosen))
 
 
@@ -1279,6 +1341,38 @@ def _product_editor(
     )
     st.caption(_distribution_caption(d, unit))
     return edited.to_dict("records")
+
+
+def _product_table(d: Distribution, unit: str) -> bool:
+    """Schreibgeschützte Tabelle Produkt × Standard/Vorplanung/Planning/Erledigt (Auswertung).
+    False, wenn der Sprint keine Produkte hat."""
+    if not d.rows:
+        st.info(
+            t(
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
+                "Produkte** anlegen (optional)."
+            )
+        )
+        return False
+    show_production = d.features.production and (
+        d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
+    )
+    columns = dict(MEASURES) | (PRODUCTION_MEASURES if show_production else {})
+    frame = pd.DataFrame(product_values_table(d))
+    frame = frame.drop(columns=["_id", *([] if d.features.po else ["PO"])])
+    frame = frame[["Produkt", *(["PO"] if d.features.po else []), *columns.values()]]
+    for label in columns.values():
+        frame[label] = frame[label].astype("float64").round(2)
+    st.dataframe(
+        frame,
+        hide_index=True,
+        column_config={
+            label: st.column_config.NumberColumn(f"{measure_label(m)} ({unit})", format="%.2f")
+            for m, label in columns.items()
+        },
+    )
+    st.caption(_distribution_caption(d, unit))
+    return True
 
 
 def _product_chart(d: Distribution, unit: str) -> alt.Chart | None:
@@ -1506,8 +1600,7 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
 
 def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Planning")
-    show_flash()
-    sprint = _sprint_choice(data, fc, "planning", "Sprint", shared=True)
+    sprint = sprint_select(data, fc, "planning-sprint")
     if sprint is None:
         return
     _board_nav(data, sprint, "planning")
@@ -1959,7 +2052,7 @@ def _review_prognosis_hint(sprint: Sprint, unit: str) -> None:
 
 def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header("Sprint Review")
-    sprint = _sprint_choice(data, fc, "review", "Sprint", shared=True)
+    sprint = sprint_select(data, fc, "review-sprint", "review")
     if sprint is None:
         return
     _board_nav(data, sprint, "review")
@@ -2015,10 +2108,11 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         product_rows = None
         entry = fc.entry(sprint.id)
         production_done = sprint.production_done
+        review_measures = ["done", *(["production_done"] if data.team.features.production else [])]
         if data.team.features.products and data.products and entry is not None:
             st.markdown(f"**{t('Erledigt je Produkt')}**")
             product_rows = _product_editor(
-                distribution(fc, entry), ["done"], f"review-products-{sprint.id}", unit
+                distribution(fc, entry), review_measures, f"review-products-{sprint.id}", unit
             )
         elif data.team.features.production and not data.team.features.products:
             st.markdown(f"**{t('Themen mit Produktionszugriff')}**")
@@ -2067,7 +2161,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if data.team.features.production and not data.team.features.products:
         sprint.production_done = production_done
     if product_rows is not None:
-        sprint = apply_product_values(sprint, product_rows, ["done"])
+        sprint = apply_product_values(sprint, product_rows, review_measures)
     save(
         with_sprints(data, [sprint]),
         [f"{sprint.id}.yaml"],
@@ -2319,7 +2413,6 @@ def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
 def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     """Board der POs vor dem Planning: je Produkt vorsehen, was in den Sprint soll."""
     st.header(t("PO-Vorplanung"))
-    show_flash()
     unit = data.team.unit.value
     if not data.products:
         st.info(
@@ -2330,7 +2423,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
         page_link("produktliste", t("Produkte anlegen"))
         return
-    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="vorplanung-sprint", shared=True)
+    sprint = sprint_select(data, fc, "vorplanung-sprint")
     entry = fc.entry(sprint.id) if sprint else None
     if sprint is None or entry is None:
         return
@@ -2550,7 +2643,7 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
         page_link("produktliste", t("Produkte anlegen"))
         return
-    sprint = _sprint_choice(data, fc, "planning", "Sprint", key="products-sprint")
+    sprint = sprint_select(data, fc, "products-sprint")
     if sprint is None:
         return
     entry = fc.entry(sprint.id)
@@ -2558,24 +2651,18 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
         return
     st.caption(
         t(
-            "Die **PO-Vorplanung** tragen die POs vor dem Planning ein, **Planning** wird im "
-            "Sprint Planning gefüllt, **Erledigt** im Review – jeweils auf den Seiten der "
-            "**Boards**. Alles lässt sich auch hier pflegen."
+            "Reine Auswertung: Die Werte werden nicht hier, sondern im Ablauf erfasst – die "
+            "**PO-Vorplanung** vor dem Planning, **Planning** im Sprint Planning, **Erledigt** "
+            "im Review."
         )
     )
+    links = st.columns(3)
+    for col, key in zip(links, BOARDS, strict=True):
+        with col:
+            page_link(key, t("Ändern: {page}", page=t(PAGE_INFO[key][0])))
     d = distribution(fc, entry)
-    editable = list(MEASURES.keys() - {"standard"}) + list(PRODUCTION_MEASURES)
-    rows = _product_editor(d, editable, f"products-{sprint.id}", unit)
-    if rows is not None:
-        base = _base_sprint(data, sprint)
-        after = apply_product_values(base, rows, editable)
-        preview = with_sprints(data, [after])
-        fc_preview = _preview_forecast(data, fc, base, after)
-        d = distribution(fc_preview, fc_preview.entry(after.id) or entry)
+    if _product_table(d, unit):
         _production_hint(d, data, unit)
-        changed = after.products != base.products
-        if st.button(t("Produktwerte speichern"), type="primary", disabled=not changed):
-            save(preview, [f"{after.id}.yaml"], lambda: [repo.save_sprint(data.team.key, after)])
         if chart := _product_chart(d, unit):
             st.altair_chart(chart, width="stretch")
         if po_rows := (by_po(d) if data.team.features.po else []):
@@ -3007,28 +3094,53 @@ def page_new_team(repo: Repository) -> None:
 
 
 def needs_setup(root: Path) -> bool:
-    """Kein Datenordner gefunden: weder Teams noch ein Git-Repository."""
-    return teams_dir(root) is None and git_root(root) is None
+    """Kein Datenordner gefunden: weder Teams noch ein Git-Repository (und nicht ausdrücklich
+    „ohne Git“ gewählt)."""
+    return (
+        teams_dir(root) is None
+        and git_root(root) is None
+        and str(root.resolve()) not in st.session_state.get("without-git", [])
+    )
 
 
 # Zustand, der beim Wechsel des Datenordners erhalten bleibt; alles andere (Formulareingaben,
 # Teamwahl, vorgemerkte Tags, Git-Meldungen) gehört zum alten Ordner und wird verworfen.
-_SWITCH_KEEP = {"language", "flash", "restarting", "update-started", "manual-check"}
+_SWITCH_KEEP = {
+    "language", "flash", "restarting", "update-started", "manual-check", "active-data-dir",
+    "folder-state", "without-git",
+}  # fmt: skip
+# Zustand, der zu einem Ordner gehört und beim Zurückwechseln wieder da ist.
+_PER_FOLDER = ("pending_tags", "commit_message", "use_tags")
 
 
 def _use_data_dir(path: Path) -> None:
     """Wechselt den Datenordner: merkt ihn, leert die Zwischenspeicher (Teams, Git-Stand) und
     verwirft alte Formularzustände, damit nichts vom bisherigen Ordner im neuen landet."""
+    folders = st.session_state.setdefault("folder-state", {})
+    folders[str(data_dir().resolve())] = {
+        name: copy.deepcopy(st.session_state[name])
+        for name in _PER_FOLDER
+        if name in st.session_state
+    }
     save_data_dir(path)
     clear_team_cache()
+    # Nur die Vorgabe für neue Sitzungen; diese Sitzung führt ihren Ordner selbst.
     os.environ[DATA_ENV] = str(path.resolve())
     for name in list(st.session_state.keys()):
         if name not in _SWITCH_KEEP:
             del st.session_state[name]
+    st.session_state[DATA_DIR_KEY] = str(path.resolve())
+    st.session_state.update(copy.deepcopy(folders.get(str(path.resolve()), {})))
     st.session_state["flash"] = [("success", t("Datenordner: `{path}`", path=path.resolve()))]
 
 
 def _switch_clicked(target: Path) -> None:
+    if not target.is_dir():  # inzwischen verschwunden (die Anzeige ist kurz zwischengespeichert)
+        st.session_state.setdefault("flash", []).append(
+            ("error", t("Ordner nicht gefunden: {path}", path=target))
+        )
+        _DIR_CHECKED.pop(target, None)
+        return
     _use_data_dir(target)
 
 
@@ -3036,21 +3148,52 @@ def _forget_clicked(target: Path) -> None:
     forget_data_dir(target)
 
 
+# Ob ein zuletzt benutzter Ordner noch da ist, wird kurz gemerkt: Die Liste wird bei jedem
+# Durchlauf gezeichnet, und ein toter Netzlaufwerkpfad würde sonst jedes Mal bremsen.
+_DIR_CHECK_SECONDS = 30.0
+_DIR_CHECKED: dict[Path, tuple[float, bool]] = {}
+
+
+def _dir_exists(path: Path) -> bool:
+    now = time.monotonic()
+    known = _DIR_CHECKED.get(path)
+    if known is not None and now - known[0] < _DIR_CHECK_SECONDS:
+        return known[1]
+    found = path.is_dir()
+    _DIR_CHECKED[path] = (now, found)
+    return found
+
+
 def _recent_label(path: Path) -> str:
-    return f"{path.name or path}  ({path})" + ("" if path.is_dir() else t(" – nicht gefunden"))
+    return f"{path.name or path}  ({path})" + ("" if _dir_exists(path) else t(" – nicht gefunden"))
 
 
-def _open_changes(repo: Repository) -> int:
+def _open_changes(repo: Repository) -> int | None:
+    """Zahl der offenen Änderungen; ``None``, wenn Git sie nicht liefern kann."""
     try:
         return len(cached_pending_changes(repo.root))
     except GitError:
-        return 0
+        return None
+
+
+def _switch_hint(repo: Repository) -> str:
+    count = _open_changes(repo)
+    head = t(
+        "Beim Wechsel werden nicht gespeicherte Eingaben in Formularen verworfen; vorgemerkte "
+        "Tags und die Commit-Nachricht bleiben für den Ordner erhalten."
+    )
+    tail = (
+        t("Offene Änderungen im bisherigen Ordner ({count}) bleiben dort erhalten.", count=count)
+        if count is not None
+        else t("Offene Änderungen im bisherigen Ordner bleiben dort erhalten.")
+    )
+    return f"{head} {tail}"
 
 
 def _recent_dirs(repo: Repository) -> list[Path]:
-    """Zuletzt benutzte Datenordner ohne den aktiven."""
+    """Zuletzt benutzte Datenordner ohne den aktiven (gemerkt sind aufgelöste Pfade)."""
     current = repo.root.resolve()
-    return [p for p in recent_data_dirs() if p.resolve() != current]
+    return [p for p in recent_data_dirs() if p != current]
 
 
 def _switch_panel(repo: Repository) -> None:
@@ -3062,19 +3205,13 @@ def _switch_panel(repo: Repository) -> None:
         target = st.selectbox(
             t("Zuletzt benutzt"), options, format_func=_recent_label, key="switch-target"
         )
-        st.caption(
-            t(
-                "Beim Wechsel werden nicht gespeicherte Eingaben in Formularen verworfen. "
-                "Offene Änderungen im bisherigen Ordner ({count}) bleiben dort erhalten.",
-                count=_open_changes(repo),
-            )
-        )
+        st.caption(_switch_hint(repo))
         st.button(
             t("Wechseln"),
             key="switch-go",
             on_click=_switch_clicked,
             args=(target,),
-            disabled=not target.is_dir(),
+            disabled=not _dir_exists(target),
         )
 
 
@@ -3088,9 +3225,11 @@ def _active_repo_caption(repo: Repository) -> None:
             current = None
         if current is not None:
             branch = current.branch or t("kein Branch")
+    # Mit dem übergeordneten Ordner: Im empfohlenen Aufbau heißt der Datenordner immer „teams“.
+    root = repo.root.resolve()
+    shown = "/".join(p for p in (root.parent.name, root.name) if p) or str(root)
     st.markdown(
-        f"**{t('Datenordner')}:** `{repo.root.name or repo.root}`"
-        + (f" · {t('Branch')} `{branch}`" if branch else "")
+        f"**{t('Datenordner')}:** `{shown}`" + (f" · {t('Branch')} `{branch}`" if branch else "")
     )
 
 
@@ -3129,7 +3268,6 @@ def _path_input(label: str, key: str, default: str) -> Path:
 
 def page_data_dir(repo: Repository, setup: bool = False) -> None:
     st.header(t("Datenordner"))
-    show_flash()
     if setup:
         st.warning(
             t(
@@ -3157,7 +3295,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 key=f"recent-go-{n}",
                 on_click=_switch_clicked,
                 args=(folder,),
-                disabled=not folder.is_dir(),
+                disabled=not _dir_exists(folder),
             )
             forget.button(
                 t("Entfernen"),
@@ -3166,13 +3304,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 args=(folder,),
                 help=t("Nur aus der Liste entfernen; der Ordner bleibt bestehen."),
             )
-        st.caption(
-            t(
-                "Beim Wechsel werden nicht gespeicherte Eingaben in Formularen verworfen. "
-                "Offene Änderungen im bisherigen Ordner ({count}) bleiben dort erhalten.",
-                count=_open_changes(repo),
-            )
-        )
+        st.caption(_switch_hint(repo))
     choose, create, clone = st.tabs(
         [
             t("Vorhandenen Ordner wählen"),
@@ -3203,7 +3335,11 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             t("Ohne Git verwenden"), key="data-without-git", disabled=not Path(offer).is_dir()
         ):
             st.session_state.pop("offer-init", None)
-            _use_data_dir(teams_dir(Path(offer)) or Path(offer))
+            target = teams_dir(Path(offer)) or Path(offer)
+            _use_data_dir(target)
+            # Bewusste Wahl: Ohne Teams und ohne Git nicht wieder zur Einrichtung, sondern
+            # weiter zu „Neues Team“.
+            st.session_state.setdefault("without-git", []).append(str(target.resolve()))
             st.rerun()
         if offer and st.button(
             t("Git-Repository in {path} anlegen", path=offer), key="data-init-here"
@@ -3624,7 +3760,15 @@ def _git_panel(repo: Repository) -> None:
         changes = cached_pending_changes(repo.root)
         state = cached_sync_state(repo.root)
     except GitError as e:
-        st.caption(f"Git: {e}")
+        st.warning(
+            t(
+                "Git meldet ein Problem mit dem Datenordner. Bitte im Datei-Manager prüfen, ob "
+                "der Ordner noch da und beschreibbar ist (bei Netzlaufwerken: verbunden), und "
+                "die Seite neu laden. Hilfe: Seite „Hilfe“, Reiter „Zusammenarbeit (Git)“."
+            )
+        )
+        with st.expander(t("Technische Meldung")):
+            st.code(str(e), language=None)
         return
     tags = st.session_state.get("pending_tags", [])
     st.caption(_status_text(state))
@@ -3721,6 +3865,14 @@ def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> No
     st.session_state["flash"] = [(kind, text)]
 
 
+def _tag_delete_go(root: Path, name: str) -> None:
+    st.session_state.pop(f"tag-confirm-{name}", None)  # die Bestätigung gilt nur einmal
+    _git_action(
+        lambda: delete_tag(root, name),
+        lambda _: t("Tag {name} gelöscht.", name=name),
+    )
+
+
 def _discard_request(files: list[str] | None) -> None:
     st.session_state["discard-request"] = files if files is not None else "ALL"
     st.session_state.pop("discard-confirm", None)
@@ -3749,7 +3901,7 @@ def _discard_go(root: Path, files: list[str] | None) -> None:
     )
 
 
-def _tab_changes(repo: Repository) -> None:
+def _tab_changes(repo: Repository, locked: bool = False) -> None:
     lost = discard_preview(repo.root)
     if not lost:
         st.success(t("Keine offenen Änderungen im Datenverzeichnis."))
@@ -3772,8 +3924,10 @@ def _tab_changes(repo: Repository) -> None:
             key=f"disc-{i}",
         )
     left, right = st.columns(2)
-    left.button(t("Ausgewählte verwerfen …"), on_click=_discard_selected, args=(lost,))
-    right.button(t("Alles verwerfen …"), on_click=_discard_request, args=(None,))
+    left.button(
+        t("Ausgewählte verwerfen …"), on_click=_discard_selected, args=(lost,), disabled=locked
+    )
+    right.button(t("Alles verwerfen …"), on_click=_discard_request, args=(None,), disabled=locked)
     request = st.session_state.get("discard-request")
     if request is None:
         return
@@ -3796,7 +3950,7 @@ def _tab_changes(repo: Repository) -> None:
         ok.button(
             t("Jetzt verwerfen"),
             type="primary",
-            disabled=not sure,
+            disabled=not sure or locked,
             on_click=_discard_go,
             args=(repo.root, files),
         )
@@ -3807,7 +3961,7 @@ def _entry_label(e: HistoryEntry) -> str:
     return f"{e.day} · {e.author} · {e.subject} ({e.short})"
 
 
-def _tab_history(repo: Repository) -> None:
+def _tab_history(repo: Repository, locked: bool = False) -> None:
     team = st.session_state.get("selected_team")
     scopes = [t("Datenordner")]
     if team and repo.exists(team):
@@ -3839,6 +3993,7 @@ def _tab_history(repo: Repository) -> None:
         t("Diesen Stand wiederherstellen"),
         type="primary",
         key="history-restore",
+        disabled=locked,
         on_click=_git_action,
         args=(
             lambda: restore_version(repo.root, scope, chosen.rev),
@@ -3853,7 +4008,7 @@ def _tab_history(repo: Repository) -> None:
     right.button(
         t("Diese Änderung zurücknehmen"),
         key="history-revert",
-        disabled=chosen.merge,
+        disabled=chosen.merge or locked,
         on_click=_git_action,
         args=(
             lambda: revert_commit(repo.root, chosen.rev),
@@ -3863,7 +4018,7 @@ def _tab_history(repo: Repository) -> None:
     )
 
 
-def _tab_tags(repo: Repository) -> None:
+def _tab_tags(repo: Repository, locked: bool = False) -> None:
     tags = list_tags(repo.root)
     if tags:
         st.table(
@@ -3881,7 +4036,7 @@ def _tab_tags(repo: Repository) -> None:
             t("Am Stand"), entries or [None], format_func=lambda e: _entry_label(e) if e else "HEAD"
         )
         message = st.text_input(t("Nachricht (optional)"))
-        if st.form_submit_button(t("Tag setzen")):
+        if st.form_submit_button(t("Tag setzen"), disabled=locked):
             _git_action(
                 lambda: set_tag(repo.root, name, target.rev if target else "HEAD", message or None),
                 lambda _: t("Tag {name} gesetzt und geteilt.", name=name),
@@ -3889,21 +4044,20 @@ def _tab_tags(repo: Repository) -> None:
             st.rerun()
     if tags:
         doomed = st.selectbox(t("Tag löschen"), [tag.name for tag in tags])
-        sure = st.checkbox(t("Ja, den Tag lokal und auf dem Server löschen"), key="tag-confirm")
+        # Die Bestätigung gehört zum gewählten Tag: Ein Wechsel der Auswahl verlangt eine neue.
+        sure = st.checkbox(
+            t("Ja, den Tag lokal und auf dem Server löschen"), key=f"tag-confirm-{doomed}"
+        )
         st.button(
             t("Tag löschen"),
-            disabled=not sure,
-            on_click=_git_action,
-            args=(
-                lambda: delete_tag(repo.root, doomed),
-                lambda _: t("Tag {name} gelöscht.", name=doomed),
-            ),
+            disabled=not sure or locked,
+            on_click=_tag_delete_go,
+            args=(repo.root, doomed),
         )
 
 
 def page_history(repo: Repository) -> None:
     st.header(t("Änderungen und Verlauf"))
-    show_flash()
     if problem := st.session_state.pop("commit_error", None):
         if isinstance(problem, GitError):
             _show_problem(problem)
@@ -3915,16 +4069,27 @@ def page_history(repo: Repository) -> None:
     if git_root(repo.root) is None:
         st.info(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
         return
+    locked = _merge_open(repo)
+    if locked:
+        st.warning(
+            t(
+                "Ein Zusammenführen ist noch offen. Solange es nicht abgeschlossen oder "
+                "abgebrochen ist, sind Wiederherstellen, Zurücknehmen, Verwerfen und Tags "
+                "gesperrt (Git würde sie ablehnen). Bitte zuerst den Konflikt lösen oder "
+                "„Zusammenführen abbrechen“ wählen – beides geht auf jeder Teamseite."
+            )
+        )
     changes, history_tab, tags = st.tabs([t("Offene Änderungen"), t("Verlauf"), t("Tags")])
     with changes:
-        _tab_changes(repo)
+        _tab_changes(repo, locked)
     with history_tab:
-        _tab_history(repo)
+        _tab_history(repo, locked)
     with tags:
-        _tab_tags(repo)
+        _tab_tags(repo, locked)
 
 
 TEAM_PAGES = {
+    "start": page_start,
     "forecast": page_forecast,
     "fehltage": page_absences,
     "sprints": page_calendar,
@@ -3956,6 +4121,7 @@ _KEEP_STATE = {
     "enabled-pages", "sync_result", "last_commit", "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
     "planning-goto", "planning-last-sprint", "board-sprint", "formula-sprint",
+    "active-data-dir", "folder-state", "without-git",
 }  # fmt: skip
 
 
@@ -4031,7 +4197,6 @@ def _restore_clicked(root: Path, file: Path) -> None:
 def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None:
     """Geführte Wiederherstellung: Solange Konflikte offen sind, ist die Bearbeitung gesperrt."""
     st.header(t("Konflikte lösen"))
-    show_flash()
     st.warning(
         t(
             "Zwei Personen haben dieselben Daten geändert. Bis der Konflikt gelöst ist, ist die "
@@ -4050,7 +4215,7 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
         _show_problem(e)
         return
     tags = st.session_state.get("pending_tags", [])
-    if state.unfinished == "merge" or state.conflicts:
+    if state.unfinished in ("merge", "rebase") or state.conflicts:
         pending = pending_conflicts(repo.root)
         st.markdown(
             t(
@@ -4126,13 +4291,34 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
         )
 
 
+def _merge_open(repo: Repository) -> bool:
+    """Läuft ein Zusammenführen (oder Rebase) noch bzw. gibt es Konflikte? Dann ist jede
+    schreibende Seite gesperrt."""
+    if not git_available() or git_root(repo.root) is None:
+        return False
+    try:
+        current = cached_sync_state(repo.root)
+    except GitError:
+        return False
+    return current.unfinished in ("merge", "rebase") or bool(current.conflicts)
+
+
+# Globale Seiten, die Dateien anlegen oder ändern (die übrigen lesen nur oder prüfen selbst).
+LOCKED_PAGES = {"neues_team"}
+
+
 def run_page(key: str) -> None:
     """Wird von den Seitendateien unter web/seiten aufgerufen."""
     repo = repository()
+    show_flash()  # einmal zentral: Hinweise erscheinen auf jeder Seite, nie später woanders
     if needs_setup(repo.root):
         page_data_dir(repo, setup=True)
         return
     team = st.session_state.get("selected_team")
+    # Offenes Zusammenführen: Die Bearbeitung ist gesperrt, bis es gelöst ist.
+    if (key in LOCKED_PAGES or key not in GLOBAL_PAGES) and _merge_open(repo):
+        page_conflicts(repo)
+        return
     if key in GLOBAL_PAGES:
         GLOBAL_PAGES[key](repo)
         return
@@ -4143,15 +4329,6 @@ def run_page(key: str) -> None:
         )
         page_link("neues_team")
         return
-    # Offenes Zusammenführen: Die Bearbeitung ist gesperrt, bis es gelöst ist.
-    if git_available() and git_root(repo.root) is not None:
-        try:
-            current = cached_sync_state(repo.root)
-        except GitError:
-            current = None
-        if current is not None and (current.unfinished == "merge" or current.conflicts):
-            page_conflicts(repo)
-            return
     try:
         data = repo.load_cached(team)
     except ConflictError as e:
@@ -4163,10 +4340,19 @@ def run_page(key: str) -> None:
     _discard_stale_inputs(repo, team)
     # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
     fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
-    TEAM_PAGES[key](repo, data, fc)
-    _remember_version(repo, team)
+    try:
+        TEAM_PAGES[key](repo, data, fc)
+    finally:
+        # Auch nach ``st.rerun()`` (eine Ausnahme): Der eigene Speicherstand gilt als gesehen,
+        # sonst hielte der nächste Durchlauf ihn für eine fremde Änderung.
+        _remember_version(repo, team)
 
 
 def run_plugin_page(page: WebPage) -> None:
     """Seite eines Plugins (siehe sprintforecast.plugins)."""
-    page.render(repository())
+    repo = repository()
+    show_flash()
+    if _merge_open(repo):
+        page_conflicts(repo)
+        return
+    page.render(repo)
