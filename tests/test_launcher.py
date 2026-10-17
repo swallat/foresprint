@@ -158,6 +158,75 @@ def test_app_window_closes_server(data_dir: Path, tmp_path: Path, monkeypatch: p
         s.connect(("localhost", port))  # Server ist beendet
 
 
+class _FakeServer:
+    """Stellt den Streamlit-Prozess dar, den `web` startet; endet sofort."""
+
+    def wait(self, timeout: float | None = None) -> int:
+        return 0
+
+    def poll(self) -> int:
+        return 0
+
+
+@pytest.fixture
+def web_run(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    """Ruft `sprintforecast web` ohne echten Server und Browser auf und meldet, was geschah."""
+    pytest.importorskip("streamlit")
+    from sprintforecast import cli
+
+    def run(*options: str) -> dict:
+        seen: dict = {"window": None, "env": None, "cmd": None}
+
+        def popen(cmd, env=None, **_):
+            seen["cmd"], seen["env"] = cmd, env
+            return _FakeServer()
+
+        monkeypatch.setattr(cli.subprocess, "Popen", popen)
+        monkeypatch.setattr(cli, "adopt", lambda process: None)
+        monkeypatch.setattr(cli, "terminate_tree", lambda process: None)
+        monkeypatch.setattr(
+            cli, "_open_app_window", lambda url, server, explicit: seen.update(window=url)
+        )
+        result = CliRunner().invoke(cli.app, ["--daten", str(data_dir), "web", *options])
+        assert result.exit_code == 0, result.output
+        return seen
+
+    return run
+
+
+def _headless(cmd: list[str]) -> str:
+    return cmd[cmd.index("--server.headless") + 1]
+
+
+@pytest.mark.parametrize("options", [[], ["--app"]])
+def test_web_opens_app_window_by_default(web_run, options: list[str]):
+    from sprintforecast.idle import IDLE_ENV
+
+    seen = web_run(*options)
+    assert seen["window"].startswith("http://localhost:")
+    assert IDLE_ENV in seen["env"]  # Server beendet sich selbst, wenn das Fenster zu ist
+    assert _headless(seen["cmd"]) == "true"  # Streamlit öffnet keinen zweiten Tab
+
+
+def test_web_no_app_leaves_the_browser_tab_to_streamlit(web_run):
+    from sprintforecast.idle import IDLE_ENV
+
+    seen = web_run("--no-app")
+    assert seen["window"] is None
+    assert IDLE_ENV not in seen["env"]
+    assert _headless(seen["cmd"]) == "false"
+
+
+@pytest.mark.parametrize("options", [["--no-browser"], ["--app", "--no-browser"]])
+def test_web_no_browser_opens_nothing_and_never_stops_itself(web_run, options: list[str]):
+    from sprintforecast.idle import IDLE_ENV
+
+    seen = web_run(*options)
+    assert seen["window"] is None
+    assert IDLE_ENV not in seen["env"]
+    assert _headless(seen["cmd"]) == "true"
+
+
 def test_terminate_tree_stops_children():
     import subprocess
     import sys

@@ -1323,18 +1323,23 @@ def web(
     port: Annotated[
         int, typer.Option(help=t("Port; ist er belegt, wird ein freier gewählt."))
     ] = 8501,
-    browser: Annotated[bool, typer.Option(help=t("Browser automatisch öffnen."))] = True,
+    browser: Annotated[
+        bool,
+        typer.Option(
+            help=t("Browser automatisch öffnen; --no-browser öffnet nirgends ein Fenster.")
+        ),
+    ] = True,
     app_mode: Annotated[
         bool,
         typer.Option(
-            "--app",
+            "--app/--no-app",
             help=t(
                 "Als App in eigenem Fenster öffnen (Edge, Chrome, Comet, Chromium, Brave, "
                 "Vivaldi; sonst Firefox oder Standardbrowser). Fenster schließen beendet den "
-                "Server."
+                "Server. Mit --no-app öffnet sich stattdessen ein Browser-Tab."
             ),
         ),
-    ] = False,
+    ] = True,
     browser_path: Annotated[
         str | None,
         typer.Option(
@@ -1357,6 +1362,7 @@ def web(
         )
         raise typer.Exit(1)
     c = _ctx(ctx)
+    app_mode = app_mode and browser  # --no-browser: kein Fenster, kein Selbst-Beenden
     env = os.environ | {DATA_ENV: str(c.repo.root.resolve())} | updater.web_environment(sys.argv)
     if c.stichtag:
         env[STICHTAG_ENV] = c.stichtag

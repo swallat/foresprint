@@ -131,7 +131,7 @@ Daten-Repository des Teams klonen.
 
 ```powershell
 cd "$HOME\sprint-daten"
-sprintforecast web --app
+sprintforecast web
 ```
 
 Demo ausprobieren (im Ordner dieses Repositorys):
@@ -147,8 +147,12 @@ sprintforecast web                         # im Datenverzeichnis
 sprintforecast --daten ../daten-repo web   # oder mit Pfad
 ```
 
-**Als App:** `sprintforecast web --app` öffnet die Oberfläche in einem eigenen Fenster ohne
-Adressleiste; Schließen des Fensters beendet auch den Server. Gesucht wird in dieser
+**Als App (Standard):** `sprintforecast web` öffnet die Oberfläche in einem eigenen Fenster ohne
+Adressleiste; Schließen des Fensters beendet auch den Server. `--app` ist weiterhin erlaubt
+(Starter und Verknüpfungen verwenden es). Mit `--no-app` öffnet sich stattdessen ein normaler
+Browser-Tab und der Server läuft bis Strg+C; mit `--no-browser` öffnet sich nirgends ein
+Fenster und der Server beendet sich auch nicht von selbst (z. B. für Tests oder Fernzugriff per
+Port-Weiterleitung). Gesucht wird in dieser
 Reihenfolge – im PATH (inkl. Scoop-/Chocolatey-Shims) und in den üblichen
 Installationsorten (Windows inkl. Scoop- und Chocolatey-Verzeichnissen):
 
