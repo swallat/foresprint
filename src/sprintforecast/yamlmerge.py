@@ -62,12 +62,26 @@ def merge3(
     return merged, conflicts
 
 
+def same(a: Any, b: Any) -> bool:
+    """Gleicher Wert und gleiche Art: ``True`` ist nicht ``1`` (Python setzt beide gleich, in
+    YAML sind es aber verschiedene Werte), auch nicht innerhalb von Listen und Objekten."""
+    if a is MISSING or b is MISSING:
+        return a is b
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
+    return a == b
+
+
 def _merge(base: Any, ours: Any, theirs: Any, path: Path, choices, conflicts) -> Any:
-    if ours == theirs:
+    if same(ours, theirs):
         return ours
-    if ours == base:
+    if same(ours, base):
         return theirs
-    if theirs == base:
+    if same(theirs, base):
         return ours
     # Beide haben geändert, unterschiedlich.
     if isinstance(ours, dict) and isinstance(theirs, dict):
