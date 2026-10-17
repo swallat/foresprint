@@ -62,12 +62,20 @@ from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     NO_WINDOW,
     GitError,
+    NewBranchError,
+    RemoteAddress,
     cached_pending_changes,
     classify,
     clone_repository,
     commit_directory,
+    has_credentials,
     hint_for,
     init_data_repository,
+    md_code,
+    new_branch_error,
+    parse_remote_url,
+    remote_special_error,
+    secret_in_url_error,
 )
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.git import title_for as git_title
@@ -91,9 +99,12 @@ from sprintforecast.githistory import (
 from sprintforecast.gitsync import (
     Commit,
     ConflictFile,
+    RemoteInfo,
     SyncResult,
     SyncState,
     abort_unfinished,
+    cached_remote_info,
+    check_remote,
     git_available,
     incoming,
     pending_conflicts,
@@ -101,6 +112,7 @@ from sprintforecast.gitsync import (
     resolve_conflicts,
     restore_file,
     set_identity,
+    set_remote,
     sync,
 )
 from sprintforecast.gitsync import (
@@ -3325,6 +3337,249 @@ def _path_input(label: str, key: str, default: str) -> Path:
     return Path(raw.strip()).expanduser()
 
 
+# --- Server (Remote) einrichten -------------------------------------------------------------
+# Alle Schlüssel beginnen mit ``git-remote-``: Sie überstehen veraltete Eingaben
+# (``_discard_stale_inputs``), und ein Wechsel des Datenordners verwirft sie (``_use_data_dir``).
+
+# Fehlerarten zu einer eingegebenen Adresse: Ihre Meldung nennt nur den Grund, die Überschrift
+# (``git_title``) liefert die Oberfläche.
+ADDRESS_ERRORS = {"bad_url", "secret_in_url", "insecure_url"}
+
+
+def _remote_url_changed() -> None:
+    """Callback des Adressfelds: Eine Adresse mit Zugangsdaten bleibt nie stehen. Das Feld wird
+    geleert; die Meldung folgt im nächsten Durchlauf, ohne die Eingabe zu wiederholen."""
+    if has_credentials(st.session_state.get("git-remote-url", "")):
+        st.session_state["git-remote-url"] = ""
+        st.session_state["git-remote-rejected"] = True
+
+
+def _remote_status(info: RemoteInfo, merge_open: bool) -> None:
+    """Der eingerichtete Server (ohne Zugangsdaten) und Gründe, die das Ändern sperren."""
+    # Namen und Adressen kommen aus der Konfiguration (Altbestand, fremde Hand): immer als Code.
+    if info.name is None:
+        st.info(
+            t(
+                "Zu diesem Datenordner gehört noch kein Server. Solange keiner eingetragen ist, "
+                "bleiben alle Änderungen auf diesem Rechner. Wer einem bestehenden Team "
+                "beitritt, wählt weiter unten „Repository klonen“, statt hier eine Adresse "
+                "einzutragen."
+            )
+        )
+    else:
+        st.markdown(t("Server {name}: {url}", name=md_code(info.name), url=md_code(info.url)))
+    if info.others:
+        st.caption(
+            t(
+                "Weitere Server (werden nicht verändert): {names}",
+                names=", ".join(md_code(name) for name in info.others),
+            )
+        )
+    if info.has_secret:
+        st.warning(
+            t(
+                "In der gespeicherten Adresse stehen Zugangsdaten. Sie werden hier nicht "
+                "angezeigt. Beim Speichern einer neuen Adresse werden sie ersetzt; künftig bitte "
+                "den Anmeldedienst des Rechners verwenden."
+            )
+        )
+    if info.special:
+        st.warning(str(remote_special_error()))
+    if merge_open:
+        st.warning(
+            t(
+                "Ein Zusammenführen ist unvollständig. Solange es offen ist, lässt sich der "
+                "Server nicht ändern."
+            )
+        )
+
+
+def _remote_failed(root: Path, address: RemoteAddress, error: GitError) -> None:
+    """Zeigt, warum Prüfen oder Speichern scheiterte, und bietet in zwei Fällen an, trotzdem zu
+    speichern: Server nicht erreichbar und Branch fehlt. Das Angebot (Ordner, Adresse, Art) ist
+    der einzige Zustand der Maske; es enthält nie die Eingabe, nur die geprüfte Adresse."""
+    offer = {"root": str(root), "url": address.url}
+    if isinstance(error, NewBranchError):
+        st.session_state["git-remote-offer"] = offer | {
+            "kind": "new_branch",
+            "text": error.render(md_code),  # Branch-Namen vom Server: als Code, nie als Markdown
+        }
+        return  # das Angebot zeigt die Meldung
+    _show_problem(error)
+    if error.kind == "offline":
+        st.session_state["git-remote-offer"] = offer | {"kind": "offline"}
+
+
+def _remote_check(root: Path, address: RemoteAddress, insecure: bool) -> None:
+    """„Verbindung prüfen“: fragt den Server nach seinen Branches, ändert nichts. Das Netzwerk
+    wird nur hier, auf Klick, angesprochen."""
+    try:
+        with st.spinner(
+            t("Prüfe die Verbindung … Falls ein Anmeldefenster erscheint, bitte dort anmelden.")
+        ):
+            checked = check_remote(root, address.url, allow_insecure=insecure)
+    except GitError as e:
+        _remote_failed(root, address, e)
+        return
+    st.success(t("Verbindung hergestellt."))
+    if checked.empty:
+        st.info(
+            t(
+                "Der Server ist erreichbar, enthält aber noch keine Branches (neues, leeres "
+                "Repository). Beim ersten „Speichern und teilen“ wird der Stand hochgeladen. Bei "
+                "einer Webadresse kann es auch bedeuten, dass sie nicht auf ein Git-Repository "
+                "zeigt."
+            )
+        )
+        return
+    # Die Namen kommen vom Server und können alles Mögliche enthalten (etwa eine Webadresse, die
+    # Markdown zum Link machte): als Code ausgeben. Gekürzt wird nur die Anzeige.
+    names = ", ".join(md_code(head) for head in checked.heads[:5])
+    st.caption(
+        t(
+            "Branches auf dem Server: {names}",
+            names=names + (", …" if len(checked.heads) > 5 else ""),
+        )
+    )
+    if checked.branch_missing:
+        missing = new_branch_error(checked.branch or "", checked.heads, checked.unborn)
+        st.session_state["git-remote-offer"] = {
+            "root": str(root),
+            "url": address.url,
+            "kind": "new_branch",
+            "text": missing.render(md_code),
+        }
+
+
+def _remote_save(root: Path, address: RemoteAddress, insecure: bool, **confirmed: bool) -> None:
+    """„Speichern“: das Backend prüft erneut und speichert nur nach bestandener Prüfung (oder
+    mit der ausdrücklichen Bestätigung in ``confirmed``). Bei Erfolg zeichnet der nächste
+    Durchlauf alles neu (Seitenleiste, leeres Feld)."""
+    try:
+        with st.spinner(
+            t("Prüfe die Verbindung … Falls ein Anmeldefenster erscheint, bitte dort anmelden.")
+        ):
+            saved = set_remote(root, address.url, allow_insecure=insecure, **confirmed)
+    except GitError as e:
+        _remote_failed(root, address, e)
+        return
+    st.session_state.pop("git-remote-offer", None)
+    st.session_state["git-remote-reset"] = True
+    if saved.verified:
+        flash = (
+            "success",
+            t(
+                "Server gespeichert: {url}. Mit „Speichern und teilen“ wird der Stand abgeglichen.",
+                url=md_code(saved.url),
+            ),
+        )
+    else:
+        flash = (
+            "warning",
+            t(
+                "Server gespeichert, aber nicht geprüft: {url}. Geprüft wird die Adresse beim "
+                "nächsten Teilen.",
+                url=md_code(saved.url),
+            ),
+        )
+    st.session_state["flash"] = [flash]
+    st.rerun()
+
+
+def _remote_offer(root: Path, address: RemoteAddress | None, insecure: bool, locked: bool) -> None:
+    """Das Angebot nach „Server nicht erreichbar“ bzw. „Branch fehlt“: nur mit ausdrücklicher
+    Bestätigung trotzdem speichern. Es gilt nur für denselben Ordner und dieselbe Adresse."""
+    offer = st.session_state.get("git-remote-offer")
+    if not offer:
+        return
+    if address is None or offer["root"] != str(root) or offer["url"] != address.url:
+        st.session_state.pop("git-remote-offer", None)
+        return
+    if offer["kind"] == "offline":
+        st.warning(
+            t(
+                "Der Server ist gerade nicht erreichbar. Die Adresse kann trotzdem gespeichert "
+                "werden (z. B. wenn das VPN aus ist); geprüft wird sie dann beim nächsten Teilen."
+            )
+        )
+        label, key, confirmed = t("Trotzdem speichern"), "git-remote-offline-save", "allow_offline"
+    else:
+        st.warning(f"**{git_title('new_branch')}**  \n{offer['text']}")
+        label = t("Ja, dies ist das richtige Daten-Repository")
+        key, confirmed = "git-remote-branch-save", "accept_new_branch"
+    if st.button(label, key=key, disabled=locked):
+        st.session_state.pop("git-remote-offer", None)
+        _remote_save(root, address, insecure, **{confirmed: True})
+
+
+def _remote_section(repo: Repository) -> None:
+    """Server (Remote) des Datenordners anzeigen, prüfen und ändern. Zeichnet nichts ohne Git,
+    ohne Repository oder wenn Git den Stand nicht liefert (die übrigen Hinweise genügen dann).
+    Die Wurzel wird in diesem Durchlauf gebunden; Callbacks lesen nie den Datenordner."""
+    if not git_available():
+        return
+    root = git_root(repo.root)
+    if root is None:
+        return
+    try:
+        info = cached_remote_info(root)
+    except GitError:
+        return
+    merge_open = _merge_open(repo)
+    st.subheader(t("Server (Remote)"))
+    _remote_status(info, merge_open)
+    if st.session_state.pop("git-remote-reset", False):
+        st.session_state["git-remote-url"] = ""  # vor dem Feld; danach wäre es nicht erlaubt
+    raw = st.text_input(
+        t("Neue Server-Adresse") if info.name else t("Server-Adresse"),
+        key="git-remote-url",
+        on_change=_remote_url_changed,
+        placeholder="https://git.example.com/team/sprint-daten.git",
+        help=t(
+            "Erlaubt sind https://…, ssh://…, git@server:pfad und ein vollständiger "
+            "Ordnerpfad. Benutzername, Kennwort und Token gehören nicht in die Adresse; die "
+            "Anmeldung übernimmt Git bzw. der Anmeldedienst des Rechners."
+        ),
+    )
+    if st.session_state.pop("git-remote-rejected", False):
+        _show_problem(secret_in_url_error())
+        st.caption(
+            t(
+                "Die Eingabe wurde verworfen und das Feld geleert. Bitte die Adresse ohne "
+                "Benutzernamen, Kennwort, Token und Parameter (alles ab „?“) neu eintragen."
+            )
+        )
+    insecure = False
+    if raw.strip().lower().startswith("http://"):
+        insecure = st.checkbox(
+            t("Unverschlüsselte Verbindung trotzdem verwenden"), key="git-remote-insecure"
+        )
+    address = None
+    if raw.strip():
+        try:
+            address = parse_remote_url(raw, allow_insecure=insecure)
+        except GitError as e:
+            _show_problem(e)
+    left, right = st.columns(2)
+    check_clicked = left.button(
+        t("Verbindung prüfen"), key="git-remote-check", disabled=address is None
+    )
+    locked = merge_open or bool(info.special)
+    save_clicked = right.button(
+        t("Speichern"),
+        type="primary",
+        key="git-remote-save",
+        disabled=address is None or locked,
+    )
+    if address is not None and (check_clicked or save_clicked):
+        st.session_state.pop("git-remote-offer", None)
+        if save_clicked:
+            _remote_save(root, address, insecure)
+        else:
+            _remote_check(root, address, insecure)
+    _remote_offer(root, address, insecure, locked)
+
+
 def page_data_dir(repo: Repository, setup: bool = False) -> None:
     st.header(t("Datenordner"))
     if setup:
@@ -3344,6 +3599,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             if root
             else t("Achtung: liegt in keinem Git-Repository.")
         )
+        _remote_section(repo)
     if recent := _recent_dirs(repo):
         st.subheader(t("Zuletzt benutzt"))
         for n, folder in enumerate(recent):
@@ -3465,7 +3721,9 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 try:
                     clone_repository(url.strip(), path)
                 except GitError as e:
-                    st.error(t("Klonen fehlgeschlagen: {error}", error=e))
+                    # Die Meldungen zur Adresse tragen ihre Überschrift nicht mehr selbst.
+                    detail = f"{git_title(e.kind)}: {e}" if e.kind in ADDRESS_ERRORS else str(e)
+                    st.error(t("Klonen fehlgeschlagen: {error}", error=detail))
                 else:
                     if problem := _use_data_dir(teams_dir(path) or path):
                         st.error(problem)
@@ -3731,6 +3989,7 @@ def _unrelated_dialog(root: Path, tags: list[str], error: GitError) -> None:
     with st.container(border=True):
         st.error(f"**{git_title(error.kind)}**  \n{error.hint}")
         st.markdown(str(error))  # nennt Server-Adresse und Branch
+        page_link("datenordner", t("Server-Adresse ändern"))  # meist ist die Adresse das Problem
         sure = st.checkbox(t("Ja, beide Historien zusammenführen"), key="unrelated-confirm")
         st.button(
             t("Beide Historien zusammenführen"),
@@ -3807,6 +4066,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
         if result.error.kind != "unrelated_histories":  # die Rückfrage steht darunter
             _show_problem(result.error)
+        if result.error.kind == "not_found":  # meist stimmt die Adresse nicht
+            page_link("datenordner", t("Server-Adresse ändern"))
         if result.validation:
             st.markdown("\n".join(f"- {line}" for line in result.validation))
             st.button(
@@ -3843,8 +4104,14 @@ def _status_text(state: SyncState) -> str:
         parts.append(t("{count} noch nicht geteilt", count=state.ahead))
     if state.behind:
         parts.append(t("{count} neu von anderen", count=state.behind))
-    if not parts:
-        parts.append(t("synchron mit {upstream}", upstream=state.upstream or state.remote))
+    if not parts and state.unborn:
+        parts.append(t("noch keine Daten gespeichert"))
+    elif not parts and state.upstream is None:
+        # Server eingetragen, aber der Branch ist noch nie hochgeladen (frisch gesetzter, meist
+        # leerer Server): „synchron“ wäre falsch, es liegt noch nichts dort.
+        parts.append(t("noch nicht auf dem Server – „Speichern und teilen“ lädt hoch"))
+    elif not parts:
+        parts.append(t("synchron mit {upstream}", upstream=state.upstream))
     if state.fetch_error is not None:
         parts.append(
             t("Server nicht erreichbar")
@@ -3897,6 +4164,8 @@ def _git_panel(repo: Repository) -> None:
         return
     tags = st.session_state.get("pending_tags", [])
     st.caption(_status_text(state))
+    if state.remote is None:
+        page_link("datenordner", t("Server einrichten"))
     with st.expander(
         t("Git: {count} offene Änderung(en)", count=len(changes))
         if changes

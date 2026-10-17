@@ -118,7 +118,10 @@ gehören neben „Speichern und teilen“ und der Konfliktlösung:
   Stand wiederherstellen; die Wiederherstellung ist selbst eine Änderung und rückgängig machbar.
 - **Tags** verwalten, nicht nur setzen (anzeigen, nachträglich setzen, löschen).
 - **Datenordner** wählen, neu anlegen, klonen und zwischen zuletzt benutzten Ordnern umschalten
-  (ein Teil davon gibt es bereits).
+  (ein Teil davon gibt es bereits). Dazu gehört der **Server (Remote)**: Adresse eintragen oder
+  ändern, validieren und die Verbindung prüfen (`git ls-remote`), statt im Terminal
+  `git remote` aufzurufen. Zugangsdaten gehören nie in die Adresse und werden nicht gespeichert
+  oder angezeigt; SSH-Schlüssel und globale Git-Konfiguration bleiben außerhalb der App.
 - **Anmelde-Hilfe:** fehlende Authentifizierung erkennen und verständlich erklären, was zu tun
   ist (Zugangstoken oder SSH-Schlüssel hinterlegen, Credential Manager).
 - **Fehlerzustände** mit klaren Meldungen und nächstem Schritt: offline, Push abgelehnt, Git

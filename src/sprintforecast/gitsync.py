@@ -57,13 +57,15 @@ class SyncState:
     branch: str | None  # None = detached HEAD
     upstream: str | None  # z. B. "origin/main"
     remote: str | None  # Name des Servers, None = keiner eingerichtet
-    url: str = ""
+    # Roh, kann Zugangsdaten enthalten (Altbestand): nie anzeigen, auch nicht über ``repr``.
+    url: str = field(default="", repr=False)
     ahead: int = 0
     behind: int = 0
     unfinished: str | None = None  # "merge" oder "rebase"
     conflicts: tuple[str, ...] = ()
     fetch_error: GitError | None = None  # Ergebnis des letzten Abgleichs, None = ok/unbekannt
     fetched_at: float | None = None
+    unborn: bool = False  # noch kein Commit (frisch angelegtes Repository)
 
     @property
     def detached(self) -> bool:
@@ -148,6 +150,7 @@ def state(path: Path) -> SyncState:
     )
     branch: str | None = None
     upstream: str | None = None
+    unborn = False
     ahead = behind = 0
     conflicts: list[str] = []
     entries = out.split("\0")
@@ -158,6 +161,8 @@ def state(path: Path) -> SyncState:
             continue
         if line.startswith("2 "):
             skip = 1
+        elif line.startswith("# branch.oid "):
+            unborn = line.split(" ", 2)[2] == "(initial)"  # noch kein Commit
         elif line.startswith("# branch.head "):
             head = line.split(" ", 2)[2]
             branch = None if head == "(detached)" else head
@@ -192,6 +197,7 @@ def state(path: Path) -> SyncState:
         conflicts=tuple(conflicts),
         fetch_error=fetched[1] if fetched else None,
         fetched_at=fetched[0] if fetched else None,
+        unborn=unborn,
     )
 
 
@@ -369,18 +375,13 @@ def _unrelated(root: Path, remote: str | None, upstream: str) -> bool:
     return True
 
 
-def _public_url(url: str) -> str:
-    """Adresse ohne Zugangsdaten (``https://user:token@host`` → ``https://host``)."""
-    return re.sub(r"^([a-z][a-z0-9+.-]*://)[^/@]*@", r"\1", url, flags=re.IGNORECASE)
-
-
 def _unrelated_error(current: SyncState, target: str) -> GitError:
     branch = target.split("/", 1)[-1]
     return GitError(
         t(
             "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
             "Datenordner.",
-            url=_public_url(current.url) or current.remote or "?",
+            url=gitmod.public_url(current.url) or current.remote or "?",
             branch=branch,
         ),
         "unrelated_histories",
@@ -485,7 +486,8 @@ def sync(
     Bestätigung) wird trotzdem zusammengeführt, danach gilt die übliche Konfliktbehandlung.
     Tags (``tags``) werden vor dem Commit geprüft: Ist ein Name ungültig oder lokal schon
     vergeben, bricht die Funktion ab, ohne zu committen; fehlende Tags werden auch ohne neuen
-    Commit nachgeholt."""
+    Commit nachgeholt. Hat der Datenordner nach dem Sichern noch keinen Commit (frisch angelegt,
+    keine Dateien), gibt es nichts zu teilen: Fehlerart ``nothing_to_share``."""
     result = SyncResult()
     try:
         root = _root(path)
@@ -527,6 +529,11 @@ def sync(
         current = state(path)
         if current.remote is None:
             raise GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
+        if not _ref_exists(root, "HEAD"):
+            # Frisches Repository ohne eigene Daten: Es gibt nichts hochzuladen, und ein Branch
+            # ohne Commit lässt sich weder mit dem Server verbinden noch pushen (Git meldete
+            # sonst „failed to push some refs“, was wie ein Wettlauf aussieht).
+            raise gitmod.nothing_to_share_error()
         # 2. Server-Stand holen, 3. zusammenführen, 4. prüfen, 5. hochladen (bei Wettlauf neu).
         for attempt in range(MAX_ATTEMPTS):
             current = fetch(path)
@@ -711,3 +718,173 @@ def set_identity(name: str, email: str) -> None:
         raise GitError(t("Bitte Name und eine gültige E-Mail-Adresse eintragen."))
     _git(Path.home(), "config", "--global", "user.name", name.strip())
     _git(Path.home(), "config", "--global", "user.email", email.strip())
+
+
+# --- Server (Remote) einrichten ------------------------------------------------------------
+
+# Gültiger Name eines Servers (Remote); nur dann wird er angefasst.
+_REMOTE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+
+
+@dataclass(frozen=True)
+class RemoteInfo:
+    """Der eingerichtete Server eines Datenordners (lokal ermittelt, ohne Netzwerk).
+
+    ``url`` ist die Anzeigefassung (ohne Zugangsdaten), ``has_secret`` sagt, dass in der
+    gespeicherten Adresse welche stehen. ``others`` sind weitere Server, die nie verändert
+    werden. ``special`` benennt Einstellungen, die die App nicht anfasst: ``multi_url`` (mehrere
+    Adressen), ``pushurl`` (eigene Upload-Adresse) oder ``name`` (ungewöhnlicher Name).
+    ``branch`` ist der lokale Branch (``None`` = detached HEAD), ``unborn`` sagt, dass es noch
+    keinen Commit gibt (ein frisch angelegtes Repository)."""
+
+    root: Path
+    name: str | None
+    url: str
+    has_secret: bool
+    others: tuple[str, ...]
+    special: str
+    branch: str | None
+    unborn: bool = False
+
+
+def remote_info(path: Path) -> RemoteInfo:
+    """Server des Datenordners samt Besonderheiten (siehe :class:`RemoteInfo`)."""
+    root = _root(path)
+    current = state(path)
+    name = current.remote
+    remotes = _git(root, "remote", check=False).split()
+    urls: list[str] = []
+    special = ""
+    if name is not None:
+        if not _REMOTE_NAME.fullmatch(name):
+            special = "name"
+        else:
+            urls = _git(root, "config", "--get-all", f"remote.{name}.url", check=False).splitlines()
+            if len(urls) > 1:
+                special = "multi_url"
+            elif _git(root, "config", "--get-all", f"remote.{name}.pushurl", check=False):
+                special = "pushurl"
+    return RemoteInfo(
+        root=root,
+        name=name,
+        url=gitmod.public_url(current.url) if name else "",
+        has_secret=any(gitmod.has_credentials(u) for u in urls or [current.url]),
+        others=tuple(r for r in remotes if r != name),
+        special=special,
+        branch=current.branch,
+        unborn=current.unborn,
+    )
+
+
+_INFO_CACHE: dict[Path, tuple[float, RemoteInfo]] = {}
+gitmod.on_invalidate(_INFO_CACHE.clear)
+
+
+def cached_remote_info(path: Path) -> RemoteInfo:
+    """Wie :func:`remote_info`, aber kurz zwischengespeichert (für die Oberfläche, die bei jeder
+    Eingabe neu zeichnet); wird mit :func:`sprintforecast.git.invalidate_status` ungültig."""
+    key = path.resolve()
+    cached = _INFO_CACHE.get(key)
+    if cached and time.monotonic() - cached[0] < _STATE_TTL:
+        return cached[1]
+    info = remote_info(path)
+    _INFO_CACHE[key] = (time.monotonic(), info)
+    return info
+
+
+@dataclass(frozen=True)
+class RemoteCheck:
+    """Ergebnis der Verbindungsprüfung: geprüfte Adresse, Branches des Servers (alle, soweit sie
+    ins Limit der Abfrage passen, siehe :func:`~sprintforecast.git.probe_remote`; gekürzt wird
+    erst bei der Anzeige) und lokaler Branch (``None`` = detached HEAD). ``unborn``: Der
+    Datenordner hat noch keinen Commit."""
+
+    address: gitmod.RemoteAddress
+    heads: tuple[str, ...]
+    branch: str | None
+    unborn: bool = False
+
+    @property
+    def empty(self) -> bool:
+        """Der Server ist erreichbar, hat aber noch keinen Branch."""
+        return not self.heads
+
+    @property
+    def branch_missing(self) -> bool:
+        """Der Server hat Branches, aber nicht den lokalen: Der erste Upload legt ihn neu an."""
+        return bool(self.heads) and self.branch is not None and self.branch not in self.heads
+
+
+def check_remote(
+    path: Path,
+    raw: str,
+    *,
+    allow_insecure: bool = False,
+    timeout: float = gitmod.PROBE_TIMEOUT,
+) -> RemoteCheck:
+    """Prüft eine Server-Adresse (Form und Verbindung, ``git ls-remote``) und schreibt nichts.
+    Wirft nur :class:`GitError`."""
+    root = _root(path)
+    address = gitmod.parse_remote_url(raw, allow_insecure=allow_insecure)
+    info = remote_info(root)
+    heads = gitmod.probe_remote(root, address, timeout, info.branch)
+    return RemoteCheck(address, heads, info.branch, info.unborn)
+
+
+@dataclass(frozen=True)
+class RemoteSaved:
+    """Ergebnis von :func:`set_remote`: Name des Servers, Anzeigefassung der Adresse und ob die
+    Verbindung geprüft werden konnte (``False`` = ausdrücklich ungeprüft gespeichert)."""
+
+    name: str
+    url: str
+    verified: bool
+
+
+def set_remote(
+    path: Path,
+    raw: str,
+    *,
+    allow_insecure: bool = False,
+    accept_new_branch: bool = False,
+    allow_offline: bool = False,
+    timeout: float = gitmod.PROBE_TIMEOUT,
+) -> RemoteSaved:
+    """Setzt die Adresse des Servers (Name wie bisher, sonst ``origin``) – nach erneuter
+    Prüfung im Backend, die Oberfläche gilt nicht als vertrauenswürdig. Gespeichert wird nur
+    nach bestandener Prüfung; zwei Ausnahmen gelten nur mit ausdrücklicher Bestätigung:
+    ``allow_offline`` (Server nicht erreichbar) und ``accept_new_branch`` (der Server hat
+    Branches, aber nicht den lokalen). Bei Anmeldung, nicht gefundenem Repository und anderen
+    Fehlern wird nie gespeichert. Gesperrt sind ein offenes Zusammenführen, mehrere Adressen,
+    eine eigene Upload-Adresse und ein ungewöhnlicher Servername; es wird nichts bereinigt.
+    Kein Abruf, keine Anmeldedaten, nichts Globales."""
+    root = _root(path)
+    address = gitmod.parse_remote_url(raw, allow_insecure=allow_insecure)
+    if state(path).unfinished:
+        raise GitError(
+            t("Solange ein Zusammenführen offen ist, lässt sich der Server nicht ändern."),
+            "merge_in_progress",
+        )
+    info = remote_info(root)
+    if info.special:
+        raise gitmod.remote_special_error()
+    verified = True
+    try:
+        check = check_remote(root, address.url, allow_insecure=allow_insecure, timeout=timeout)
+    except GitError as e:
+        if e.kind != "offline" or not allow_offline:
+            raise
+        verified = False
+    else:
+        if check.branch_missing and not accept_new_branch:
+            raise gitmod.new_branch_error(check.branch or "", check.heads, check.unborn)
+    name = info.name or "origin"
+    try:
+        if info.name is None:
+            _git(root, "remote", "add", "--", name, address.url)
+        else:
+            _git(root, "remote", "set-url", name, "--", address.url)
+    finally:
+        _FETCHED.pop(root, None)  # der Stand des alten Servers gilt nicht mehr
+        gitmod.invalidate_status()
+    return RemoteSaved(name, gitmod.public_url(address.url), verified)

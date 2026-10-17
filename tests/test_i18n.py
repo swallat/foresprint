@@ -64,14 +64,6 @@ def test_switch_language(monkeypatch: pytest.MonkeyPatch):
     assert i18n.language() == "en"
 
 
-@pytest.fixture
-def english(monkeypatch: pytest.MonkeyPatch):
-    i18n.set_language(None)
-    monkeypatch.setenv(i18n.LANG_ENV, "en")
-    yield
-    i18n.set_language(None)
-
-
 def test_cli_in_english(data_dir: Path, english):
     from typer.testing import CliRunner
 
