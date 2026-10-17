@@ -715,7 +715,8 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.warning(
                 t(
                     "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
-                    "geschätzt ({source}). Auf der Seite **Fehltage** eintragen.",
+                    "geschätzt ({source}). Auf der Seite **Sprint vorbereiten: Fehltage** "
+                    "eintragen.",
                     sprints=", ".join(unsure),
                     source=source_label(source),
                 )
@@ -821,7 +822,7 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
             t(
                 "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen "
                 "(Vorsicht bei langen Horizonten). Robust ist „konstant“ – einstellbar unter "
-                "**Team → Einstellungen**.",
+                "**Team verwalten → Einstellungen**.",
                 mode=fc.data.team.forecast.trend_mode.value,
             )
         )
@@ -1425,8 +1426,9 @@ def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
         if entered:
             st.info(
                 t(
-                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team → Personen) – "
-                    "ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht prüfen."
+                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team verwalten → "
+                    "Personen) – ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht "
+                    "prüfen."
                 )
             )
         return
@@ -1476,8 +1478,8 @@ def _product_editor(
     if not d.rows:
         st.info(
             t(
-                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
-                "Produkte** anlegen (optional)."
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team "
+                "verwalten → Produkte** anlegen (optional)."
             )
         )
         return None
@@ -1536,8 +1538,8 @@ def _product_table(d: Distribution, unit: str) -> bool:
     if not d.rows:
         st.info(
             t(
-                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
-                "Produkte** anlegen (optional)."
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team "
+                "verwalten → Produkte** anlegen (optional)."
             )
         )
         return False
@@ -1840,7 +1842,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         st.warning(
             t(
                 "Noch keine Personen erfasst – Kapazität nur geschätzt. Personen unter "
-                "**Team → Personen** anlegen."
+                "**Team verwalten → Personen** anlegen."
             )
         )
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
@@ -2052,7 +2054,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     elif features.products:
         st.caption(
             t(
-                "Optional: Mit Produkten unter **Team → Produkte** lässt sich hier die "
+                "Optional: Mit Produkten unter **Team verwalten → Produkte** lässt sich hier die "
                 "Verteilung auf die Produkte planen und auswerten."
             )
         )
@@ -3711,7 +3713,8 @@ def _remote_section(repo: Repository) -> None:
         help=t(
             "Erlaubt sind https://…, ssh://…, git@server:pfad und ein vollständiger "
             "Ordnerpfad. Benutzername, Kennwort und Token gehören nicht in die Adresse; die "
-            "Anmeldung übernimmt Git bzw. der Anmeldedienst des Rechners."
+            "Anmeldung übernimmt der Anmeldedienst des Rechners, fehlt sie, erklärt die App den "
+            "nächsten Schritt."
         ),
     )
     if st.session_state.pop("git-remote-rejected", False):
