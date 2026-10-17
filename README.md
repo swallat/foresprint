@@ -272,11 +272,30 @@ Datei ist. Abgeschlossene Sprints werden per Tag `TEAM/SPRINT` markiert.
 
 ## Dateiformate
 
+**Funktionsbereiche:** Nicht jedes Team braucht alles. Drei Bereiche sind unabhängig voneinander
+zuschaltbar (Einstellungen bzw. Abschnitt `features` in `team.yaml`) und bei **neuen Teams aus**:
+
+| Bereich (`features.…`) | Wirkung, wenn an | Wenn aus |
+|---|---|---|
+| `products` – Produktverteilung | Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt, Standardverteilung, Saldo | diese Seiten und Eingaben entfallen |
+| `po` – Zuordnung PO | Spalte PO je Produkt, Summen je PO (sinnvoll nur mit `products`) | keine PO-Spalte, keine Summen je PO |
+| `production` – Produktionszugriff | Personen als berechtigt markieren, Menge mit Produktionszugriff im Planning/Review (je Produkt, ohne Produktverteilung je Sprint), Engpass-Hinweis | keine Markierung, keine Eingaben, kein Hinweis |
+
+Ausgeschaltete Bereiche löschen nichts: Bereits erfasste Werte bleiben in den Dateien und
+erscheinen wieder, sobald der Bereich eingeschaltet wird. **Ältere `team.yaml` ohne `features`**
+bleiben wie bisher nutzbar: Beim Laden gilt `products` an, wenn Produkte erfasst sind, `po`, wenn
+ein Produkt einen PO hat, und `production`, wenn eine Person als berechtigt markiert ist; beim
+nächsten Speichern der Einstellungen wird der Abschnitt geschrieben.
+
 **`team.yaml`** – Einstellungen (alle optional außer `name`; geführt änderbar mit `einstellungen`):
 
 ```yaml
 name: Team A
 unit: PT                    # PT oder SP (Kapazität ist immer PT)
+features:                   # optionale Bereiche, bei neuen Teams alle false
+  products: false           # Produktverteilung
+  po: false                 # Zuordnung PO
+  production: false         # Produktionszugriff
 sprint:
   length_days: 14
   numbering: yearly         # 2026.1, 2026.2 … | sequential: 1, 2, 3 …
@@ -375,6 +394,8 @@ prognoses:                 # PO-Vorplanung: Prognosen des Teams für diesen offe
 products:                   # optional, je Produkt-ID
   webshop: {preplanned: 4, planned: 4.5, done: 4, production_planned: 1, production_done: 0.5}
                             # production_*: davon Tickets mit Produktionszugriff (optional)
+production_planned: 1       # ohne Produktverteilung (features.products aus): davon im Planning mit
+production_done: 0.5        # bzw. im Review erledigt, je Sprint mit Produktionszugriff
 ```
 
 ## Rechenlogik
