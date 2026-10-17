@@ -8,6 +8,12 @@ def test_never_stops_before_first_session():
     assert not any(watch.update(0, now) for now in range(0, 200, 2))
 
 
+def test_session_gone_before_first_count_still_stops():
+    watch = IdleWatch(grace=20, poll=2, seen=True)
+    assert not any(watch.update(0, now) for now in range(2, 22, 2))
+    assert watch.update(0, 22)
+
+
 def test_stops_after_grace_without_session():
     watch = IdleWatch(grace=20, poll=2)
     assert not watch.update(1, 0)
