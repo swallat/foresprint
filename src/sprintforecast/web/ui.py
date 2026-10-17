@@ -789,6 +789,19 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.subheader(
         t("Kapazität und Prognose") + (t(" (Vorschau, noch nicht gespeichert)") if to_save else "")
     )
+    if next_sprint := next((s for s in edited_sprints if s.start > fc.today), None):
+        next_entry = fc_preview.entry(next_sprint.id)
+        if next_entry is not None and next_entry.result.plan is not None:
+            st.markdown(
+                t(
+                    "**In den nächsten Sprint {id} passen {plan} {unit}** "
+                    "(Kapazität {capacity} PT)",
+                    id=next_sprint.id,
+                    plan=fmt(next_entry.result.plan),
+                    unit=data.team.unit.value,
+                    capacity=fmt(next_entry.result.plan_capacity),
+                )
+            )
     st.dataframe(
         pd.DataFrame(
             [
