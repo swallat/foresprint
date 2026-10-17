@@ -73,9 +73,11 @@ class ConflictError(DataError):
 
 # Konfliktmarkierungen von Git am Zeilenanfang (alle drei müssen vorkommen).
 _MARKERS = (
-    re.compile(r"^<{7}( |$)", re.M),
-    re.compile(r"^={7}$", re.M),
-    re.compile(r"^>{7}( |$)", re.M),
+    # Mit „\r?“: Unter Windows schreibt Git die Markierungen mit CRLF in die Datei; `$` träfe
+    # dann nicht (vor dem Zeilenende steht noch das „\r“).
+    re.compile(r"^<{7}( |\r?$)", re.M),
+    re.compile(r"^={7}\r?$", re.M),
+    re.compile(r"^>{7}( |\r?$)", re.M),
 )
 
 

@@ -245,11 +245,25 @@ def test_discard_preview_names_renames(repo: Path, data_dir: Path, monkeypatch):
     git(repo, "mv", "teams/demo/people.yaml", "teams/demo/leute.yaml")
     invalidate_status()
     at = goto(start(data_dir, monkeypatch), "verlauf")
-    text = "umbenannt: teams/demo/people.yaml → teams/demo/leute.yaml"
+    text = "umbenannt: `teams/demo/people.yaml` → `teams/demo/leute.yaml`"
     assert text in " ".join(c.label for c in at.checkbox)
     assert "geändert" not in " ".join(c.label for c in at.checkbox)
     main_button(at, "Alles verwerfen …").click().run()
     assert any(text in w.value for w in at.warning)
+
+
+def test_lost_status_shows_both_paths_of_a_rename_as_code():
+    from sprintforecast.githistory import Lost
+    from sprintforecast.web import ui
+
+    renamed = Lost("R", "teams/demo/leute.yaml", orig="teams/demo/people.yaml")
+    assert (
+        ui._lost_status(renamed) == "umbenannt: `teams/demo/people.yaml` → `teams/demo/leute.yaml`"
+    )
+    # Ein Pfad mit Backtick beendet den Code-Span nicht (Markdown-Zeichen werden nicht gedeutet).
+    odd = Lost("R", "neu*`x`.yaml", orig="alt _name_.yaml")
+    assert ui._lost_status(odd) == "umbenannt: `alt _name_.yaml` → ``neu*`x`.yaml``"
+    assert ui._lost_status(Lost("M", "a.yaml")) == "geändert"  # ohne Umbenennung unverändert
 
 
 @pytest.mark.parametrize(
