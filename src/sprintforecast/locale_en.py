@@ -1347,4 +1347,6 @@ EN: dict[str, str] = {
     "noch nicht auf dem Server – „Speichern und teilen“ lädt hoch": "not on the server yet – “Save and share” uploads it",
     "erfasst für Sprint {id}": "recorded for sprint {id}",
     "noch offen für Sprint {id}": "still open for sprint {id}",
+    "Datum im Format JJJJ-MM-TT erwartet": "Date in the format YYYY-MM-DD expected",
+    "Die Umgebungsvariable `{name}` enthält „{value}“ – erwartet wird ein Datum im Format JJJJ-MM-TT. Bitte die Variable korrigieren oder entfernen und die Weboberfläche neu starten.": "The environment variable `{name}` contains “{value}” – a date in the format YYYY-MM-DD is expected. Please correct or remove the variable and restart the web interface.",
 }

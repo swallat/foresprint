@@ -218,6 +218,16 @@ def test_default_data_dir_is_current_directory(data_dir: Path, monkeypatch: pyte
     assert "Demo-Team" in result.output
 
 
+@pytest.mark.parametrize("option", ["--stichtag", "--as-of"])
+def test_invalid_stichtag_is_a_usage_error(data_dir: Path, option: str):
+    args = ["--daten", str(data_dir), option, "2026-13-45", "forecast", "demo"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 2, result.output
+    assert "Datum im Format JJJJ-MM-TT erwartet" in result.output
+    assert "Traceback" not in result.output
+    assert not isinstance(result.exception, ValueError)
+
+
 def test_version_and_help_without_command():
     from sprintforecast import __version__
 
