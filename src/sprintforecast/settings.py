@@ -407,7 +407,12 @@ SETTINGS: list[Setting] = [
     Setting(
         key="forecast.rounding",
         label="Nachkommastellen Forecast PLAN",
-        help="Der Forecast PLAN wird auf diese Stellen abgerundet.",
+        help=(
+            "Der Forecast PLAN wird auf diese Stellen abgerundet: Er ist die Planungsmenge, und "
+            "Abrunden schützt vor Überplanung. Die Kapazität dagegen wird intern ungerundet "
+            "gerechnet und nur kaufmännisch gerundet angezeigt und gespeichert, damit der Nenner "
+            "der normierten Velocity nicht systematisch zu klein wird."
+        ),
         kind=Kind.INT,
         minimum=0,
         maximum=3,

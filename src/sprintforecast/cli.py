@@ -338,7 +338,7 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
 
         table.caption = fte_change_note([p.person.name for p in breakdown.approximated])
     table.add_row(
-        f"[bold]{t('Summe')}[/bold]", "", "", "", f"[bold]{fmt(breakdown.capacity)}[/bold]"
+        f"[bold]{t('Summe')}[/bold]", "", "", "", f"[bold]{fmt(breakdown.rounded)}[/bold]"
     )
     return table
 
@@ -976,7 +976,7 @@ def review(
     console.print(Panel(f"Review Sprint [bold]{s.id}[/bold] ({s.start:%d.%m.} – {s.end:%d.%m.%Y})"))
     if s.capacity is None:
         if data.people:
-            frozen = sprint_capacity(data.team, data.people, s).capacity
+            frozen = sprint_capacity(data.team, data.people, s).rounded
             console.print(
                 t(
                     "Kapazität laut Personenliste und Fehltagen: [bold]{capacity} PT[/bold]",

@@ -42,7 +42,7 @@ def test_formulas_are_symbolic_and_calculation_has_numbers(data_dir: Path):
     assert trend.formula.startswith("n. Velocity-Trend = Ø[−2] / Ø[−3]")
     assert trend.calculation == "16,84 / 17,66 × 16,02 = 15,28"
     capacity = step(f, e, "capacity").calculation
-    assert "Ben (10 − 0 − 0) × 0,5" in capacity and capacity.endswith("30,0 PT (abgerundet)")
+    assert "Ben (10 − 0 − 0) × 0,5" in capacity and capacity.endswith("30,0 PT (gerundet)")
 
 
 def test_past_sprint_steps(data_dir: Path):
