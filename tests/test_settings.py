@@ -32,6 +32,20 @@ def test_parse_rejects(key, raw, message):
         BY_KEY[key].parse(raw)
 
 
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
+@pytest.mark.parametrize(
+    "key",
+    [
+        "forecast.reference_capacity",  # Zahl ohne Obergrenze
+        "capacity.overhead_share",  # Prozent
+        "forecast.window",  # ganze Zahl
+    ],
+)
+def test_parse_rejects_non_finite(key, raw):
+    with pytest.raises(ValueError, match="endliche Zahl"):
+        BY_KEY[key].parse(raw)
+
+
 def test_display_roundtrip_for_defaults():
     team = Team(key="t", name="T")
     for s in SETTINGS:
