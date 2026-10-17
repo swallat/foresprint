@@ -2107,7 +2107,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         return
     _board_nav(data, sprint, "review")
     unit = data.team.unit.value
-    computed = sprint_capacity(data.team, data.people, sprint).capacity if data.people else None
+    computed = sprint_capacity(data.team, data.people, sprint).rounded if data.people else None
     st.caption(
         t(
             "Im Review wird festgehalten, was der Sprint geschafft hat: erledigte Menge, was "
