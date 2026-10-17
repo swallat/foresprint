@@ -374,7 +374,7 @@ forecast:
   reference_capacity: 67    # Bezug der normierten Velocity
   window: 5                 # gleitender Durchschnitt
   roadmap_share: 0.8
-  rounding: 1               # Forecast PLAN wird abgerundet
+  rounding: 1               # Forecast PLAN wird abgerundet (Kapazität: intern ungerundet)
   trend_mode: flat        # flat (Standard) | classic | linear – die beiden letzten schreiben Rauschen fort
   horizon: 3                # künftige Sprints in der Prognose
   product_basis: plan       # Standard je Produkt aus: plan (Forecast PLAN) | roadmap

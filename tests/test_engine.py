@@ -9,6 +9,7 @@ from sprintforecast.engine import (
     gaps_in_window,
     rolling_average,
     round_down,
+    round_half_up,
     trend,
 )
 from sprintforecast.model import ForecastSettings, Planning, TrendMode
@@ -22,6 +23,14 @@ def test_round_down():
     # Gleitkommafehler dürfen nicht eine Stelle zu tief abrunden.
     assert round_down(0.1 + 0.2, 1) == 0.3
     assert round_down(-1.25, 1) == -1.2
+
+
+def test_round_half_up():
+    assert round_half_up(15.75, 1) == 15.8
+    assert round_half_up(15.74, 1) == 15.7
+    assert round_half_up(0.1 + 0.2, 1) == 0.3
+    assert round_half_up(2.675, 2) == 2.68  # als Gleitkommazahl 2.67499…
+    assert round_half_up(-1.25, 1) == -1.3
 
 
 def test_rolling_average_needs_full_window_and_own_value():

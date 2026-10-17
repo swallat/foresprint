@@ -97,11 +97,11 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
         if b.overhead_share_part:
             minus += f" − {_n(b.overhead_share_part)} ({pct(team.capacity.overhead_share)})"
         calculation = t(
-            "{parts} = {gross}{minus} → {capacity} PT (abgerundet)",
+            "{parts} = {gross}{minus} → {capacity} PT (gerundet)",
             parts=parts,
             gross=_n(b.gross),
             minus=minus,
-            capacity=_n(b.capacity, 1),
+            capacity=_n(b.rounded, 1),
         )
         if b.approximated:
             calculation += " · " + fte_change_note([p.person.name for p in b.approximated])
