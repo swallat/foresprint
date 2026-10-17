@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource, Metric, PlanSource, parse_trend_mode
 from sprintforecast.forecast import Forecast, TimelineEntry
-from sprintforecast.i18n import t
+from sprintforecast.i18n import is_english, t
 from sprintforecast.model import TrendMode
-from sprintforecast.report import fmt, pct
+from sprintforecast.report import fmt, fmt_capacity, pct
 
 
 @dataclass(frozen=True)
@@ -47,6 +47,20 @@ def _g(value: float) -> str:
     """Kurz, mit dem Dezimalzeichen der Sprache: 0.5 → „0,5“, 3.0 → „3“."""
     text = f"{value:g}"
     return text if fmt(0.5) == "0.5" else text.replace(".", ",")
+
+
+def _exact(value: float | None, digits: int = 4) -> str:
+    """Bis zu ``digits`` Nachkommastellen ohne überflüssige Nullen: 30,4375 · 30 statt 30,0.
+
+    Für Gleichungen: Dort muss die Zahl stehen, mit der wirklich gerechnet wird, sonst stimmt die
+    Nachrechnung nicht (die Kapazität wird ungerundet verwendet und nur für die Anzeige gerundet,
+    siehe :func:`sprintforecast.report.fmt_capacity`; der Trend wird ebenfalls ungerundet
+    verwendet). Nullen werden nur hinter dem Dezimalzeichen entfernt: 100 bleibt 100."""
+    text = fmt(value, digits)
+    decimal = "." if is_english() else ","
+    if decimal in text:
+        text = text.rstrip("0").rstrip(decimal)
+    return "0" if text == "-0" else text
 
 
 # Allgemeine Formeln – z. B. für Spaltenköpfe (Anzeige mit general()).
@@ -82,7 +96,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             "capacity",
             name,
             t("In der Sprintdatei erfasst (beim Review eingefroren)"),
-            f"= {_n(r.plan_capacity, 1)} PT",
+            f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     if source is CapacitySource.PEOPLE:
         b = sprint_capacity(team, fc.data.people, e.sprint)
@@ -101,7 +115,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             parts=parts,
             gross=_n(b.gross),
             minus=minus,
-            capacity=_n(b.rounded, 1),
+            capacity=fmt_capacity(b.capacity, b.rounding),
         )
         if b.approximated:
             calculation += " · " + fte_change_note([p.person.name for p in b.approximated])
@@ -111,7 +125,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             "capacity",
             name,
             t("Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)"),
-            f"= {_n(r.plan_capacity, 1)} PT",
+            f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     if source is CapacitySource.CALENDAR:
         return Step(
@@ -121,7 +135,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
                 "Fehltage unbekannt und noch keine Historie → Kapazität laut Personenliste und "
                 "Kalender (Feiertage, Sprintlänge) ohne Abzug für Fehltage"
             ),
-            f"= {_n(r.plan_capacity, 1)} PT",
+            f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     if source is CapacitySource.EXPECTED:
         return Step(
@@ -131,7 +145,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
                 "Keine Fehltage bestätigt → Kapazität laut Personenliste mit den angekündigten "
                 "Fehltagen aus der PO-Vorplanung"
             ),
-            f"= {_n(r.plan_capacity, 1)} PT",
+            f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     if source is CapacitySource.ESTIMATED:
         history = fc.absences
@@ -146,7 +160,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
                 share=pct(quota),
                 sprints=", ".join(used),
             ),
-            f"= {_n(r.plan_capacity, 1)} PT",
+            f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     return Step("capacity", name, t("nicht bestimmbar"), "–")
 
@@ -266,11 +280,12 @@ def plain_explanation(fc: Forecast, e: TimelineEntry) -> str:
         ),
         t(
             "Für {id} stehen {capacity} PT zur Verfügung ({source}). Das ergibt {trend} / {ref} "
-            "× {capacity} = {raw} {unit}, abgerundet **{plan} {unit}**.",
+            "× {exact} = {raw} {unit}, abgerundet **{plan} {unit}**.",
             id=e.sprint.id,
-            capacity=_n(r.plan_capacity, 1),
+            capacity=fmt_capacity(r.plan_capacity, e.capacity_digits),
+            exact=_exact(r.plan_capacity),
             source=t(r.plan_capacity_source.value) if r.plan_capacity_source else "–",
-            trend=_n(trend),
+            trend=_exact(trend),  # Gleichung: der Trend, mit dem gerechnet wird
             ref=_n(f.reference_capacity, 0),
             raw=_n(raw, 3),
             unit=unit,
@@ -306,7 +321,7 @@ def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
                 "normalized_velocity",
                 t("n. Velocity"),
                 general("normalized_velocity"),
-                f"{_n(r.velocity.value)} / {_n(r.capacity.value, 1)} × {_n(ref, 0)} = "
+                f"{_n(r.velocity.value)} / {_exact(r.capacity.value)} × {_n(ref, 0)} = "
                 f"{_n(r.normalized_velocity.value)}",
             )
         )
@@ -323,7 +338,8 @@ def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
                     "Referenzkapazität × Kapazität)",
                     digits=f.rounding,
                 ),
-                f"{_n(r.normalized_velocity.trend)} / {_n(ref, 0)} × {_n(r.plan_capacity, 1)} = "
+                f"{_exact(r.normalized_velocity.trend)} / {_n(ref, 0)} × "
+                f"{_exact(r.plan_capacity)} = "
                 f"{_n(r.normalized_velocity.trend / ref * r.plan_capacity, 3)} → "
                 f"{fmt(r.plan, f.rounding)} {unit}",
             )

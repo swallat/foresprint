@@ -75,6 +75,7 @@ from sprintforecast.products import MEASURES, Distribution, balance, distributio
 from sprintforecast.report import (
     capacity_label,
     fmt,
+    fmt_capacity,
     pct,
     period,
     reliability_notes,
@@ -314,32 +315,35 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     )
     for i, col in enumerate(("Person", "Arbeitstage", "Feiertage", "Fehltage", "PT")):
         table.add_column(t(col), justify="left" if i == 0 else "right")
+    digits = breakdown.rounding  # alle PT-Zahlen wie die Summe: kaufmännisch gerundet
     for pc in breakdown.people:
         table.add_row(
             pc.person.name,
             str(pc.workdays),
             str(pc.holidays),
             fmt_plain(pc.absence_days),
-            fmt(pc.capacity),
+            fmt_capacity(pc.capacity, digits),
         )
     if breakdown.overhead_days_part:
         days = fmt_plain(data.team.capacity.overhead_days)
         table.add_row(
             t("Abzug Scrum-Termine ({days} PT je Person × FTE)", days=days),
-            "", "", "", f"−{fmt(breakdown.overhead_days_part)}",
+            "", "", "", f"−{fmt_capacity(breakdown.overhead_days_part, digits)}",
         )  # fmt: skip
     if breakdown.overhead_share_part:
         table.add_row(
             t("Abzug Scrum-Termine ({share})", share=pct(data.team.capacity.overhead_share)),
-            "", "", "", f"−{fmt(breakdown.overhead_share_part)}",
+            "", "", "", f"−{fmt_capacity(breakdown.overhead_share_part, digits)}",
         )  # fmt: skip
     if breakdown.approximated:
         from sprintforecast.formulas import fte_change_note
 
         table.caption = fte_change_note([p.person.name for p in breakdown.approximated])
     table.add_row(
-        f"[bold]{t('Summe')}[/bold]", "", "", "", f"[bold]{fmt(breakdown.rounded)}[/bold]"
-    )
+        f"[bold]{t('Summe')}[/bold]",
+        "", "", "",
+        f"[bold]{fmt_capacity(breakdown.capacity, digits)}[/bold]",
+    )  # fmt: skip
     return table
 
 
@@ -772,7 +776,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
         t(
             "Für den Sprint ist eine feste Kapazität ({capacity}) eingetragen. Entfernen, damit "
             "sie aus den Fehltagen berechnet wird?",
-            capacity=fmt_plain(s.capacity),
+            capacity=fmt_capacity(s.capacity, data.team.capacity.rounding),
         ),
         default=s.end > c.today,
         console=console,
@@ -980,7 +984,7 @@ def review(
             console.print(
                 t(
                     "Kapazität laut Personenliste und Fehltagen: [bold]{capacity} PT[/bold]",
-                    capacity=fmt(frozen),
+                    capacity=fmt_capacity(frozen, data.team.capacity.rounding),
                 )
             )
             if not Confirm.ask(
@@ -1060,7 +1064,7 @@ def forecast(
             e.sprint.id,
             period(e),
             status(fc, e).replace("**", ""),
-            capacity_label(e) if future else fmt(r.capacity.value),
+            capacity_label(e) if future else fmt_capacity(r.capacity.value, e.capacity_digits),
             fmt(r.velocity.value, 2),
             fmt(n_vel, 2),
             f"[bold]{fmt(r.plan)}[/bold]" if future else fmt(r.plan),
@@ -1901,7 +1905,7 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
             "[dim]"
             + t(
                 "In der Sprintdatei eingetragen/eingefroren: {capacity} PT",
-                capacity=fmt(s.capacity),
+                capacity=fmt_capacity(s.capacity, data.team.capacity.rounding),
             )
             + "[/dim]"
         )

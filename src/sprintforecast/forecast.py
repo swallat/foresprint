@@ -25,6 +25,9 @@ class TimelineEntry:
     # False für Sprints, die nur aus dem Kalender erzeugt wurden (keine Datei).
     recorded: bool
     result: SprintResult
+    # Stellen, auf die die Kapazität dieses Teams angezeigt wird (``team.capacity.rounding``, wie
+    # ``CapacityBreakdown.rounded``); siehe ``report.fmt_capacity``.
+    capacity_digits: int = 1
 
 
 @dataclass
@@ -191,7 +194,7 @@ def build_forecast(data: TeamData, today: date | None = None) -> Forecast:
         )
     results = compute(inputs, data.team.forecast)
     entries = [
-        TimelineEntry(sprint=s, recorded=r, result=res)
+        TimelineEntry(sprint=s, recorded=r, result=res, capacity_digits=data.team.capacity.rounding)
         for (s, r), res in zip(line, results, strict=True)
     ]
     return Forecast(data=data, today=today, entries=entries, absences=history)
