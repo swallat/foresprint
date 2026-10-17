@@ -56,18 +56,13 @@ def _env(network: bool) -> dict[str, str]:
     return env
 
 
-def _git(
-    cwd: Path,
-    *args: str,
-    strip: bool = True,
-    network: bool = False,
-    check: bool = True,
-    timeout: float | None = None,
-) -> str:
-    """Führt ``git`` aus. Bei Fehlern :class:`GitError` mit erkannter Art und nächstem Schritt;
-    mit ``check=False`` wird bei Fehlern statt einer Ausnahme ein leerer Text geliefert."""
+def _git_result(
+    cwd: Path, *args: str, network: bool = False, timeout: float | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
+    „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
     try:
-        proc = subprocess.run(
+        return subprocess.run(
             ["git", *args],
             cwd=cwd,
             capture_output=True,
@@ -83,6 +78,19 @@ def _git(
         raise classify("", missing=True) from e
     except subprocess.TimeoutExpired as e:
         raise classify("", timeout=True) from e
+
+
+def _git(
+    cwd: Path,
+    *args: str,
+    strip: bool = True,
+    network: bool = False,
+    check: bool = True,
+    timeout: float | None = None,
+) -> str:
+    """Führt ``git`` aus. Bei Fehlern :class:`GitError` mit erkannter Art und nächstem Schritt;
+    mit ``check=False`` wird bei Fehlern statt einer Ausnahme ein leerer Text geliefert."""
+    proc = _git_result(cwd, *args, network=network, timeout=timeout)
     if proc.returncode != 0:
         if not check:
             return ""
@@ -99,11 +107,70 @@ def split_z(out: str) -> list[str]:
 
 def check_name(name: str) -> str:
     """Prüft einen Tag-Namen, der an Git übergeben wird: er darf nicht mit ``-`` beginnen (Git
-    läse ihn sonst als Option). Gibt den bereinigten Namen zurück."""
-    name = name.strip()
-    if not name or name.startswith("-"):
+    läse ihn sonst als Option), nicht ``HEAD`` oder ``@`` heißen (für Git mehrdeutig) und keine
+    Leerzeichen am Anfang oder Ende haben (sie werden nicht still entfernt, sonst entstünde ein
+    anderer Name als der eingegebene). Gibt den Namen unverändert zurück."""
+    if not name.strip() or name != name.strip() or name.startswith("-") or name in {"HEAD", "@"}:
         raise GitError(t("Ungültiger Tag-Name: {name}", name=name))
     return name
+
+
+def valid_tag_name(root: Path, name: str) -> str:
+    """Wie :func:`check_name`, prüft aber zusätzlich mit Git, ob der Referenzname gültig ist."""
+    name = check_name(name)
+    if _git_result(root, "check-ref-format", f"refs/tags/{name}").returncode != 0:
+        raise GitError(t("Ungültiger Tag-Name: {name}", name=name))
+    return name
+
+
+def tag_commit(root: Path, name: str) -> str:
+    """Voller Hash des Commits, auf den der lokale Tag zeigt (leer = es gibt ihn nicht)."""
+    return _git(
+        root, "rev-parse", "--verify", "--quiet", f"refs/tags/{name}^{{commit}}", check=False
+    )
+
+
+def check_new_tags(root: Path, tags: list[str] | None) -> list[str]:
+    """Prüft Tag-Namen VOR einem Commit: gültig und lokal noch nicht vergeben (ein vorhandener
+    Tag zeigt nie auf den neuen Commit). Bei einem Konflikt :class:`GitError`; dann ist noch
+    nichts verändert. Gibt die Namen ohne Doppelte zurück."""
+    names = list(dict.fromkeys(valid_tag_name(root, tag) for tag in tags or []))
+    for name in names:
+        if existing := tag_commit(root, name):
+            raise GitError(
+                t(
+                    "Der Tag {name} gibt es auf diesem Rechner schon (er zeigt auf {rev}). "
+                    "Es wurde nichts committet.",
+                    name=name,
+                    rev=existing[:7],
+                ),
+                "tag_exists",
+                hint_for("tag_exists"),
+            )
+    return names
+
+
+def ensure_tags(root: Path, tags: list[str] | None, message: str) -> tuple[list[str], list[str]]:
+    """Setzt fehlende Tags auf den aktuellen Stand (HEAD), ohne neuen Commit – etwa wenn ein
+    früherer Versuch den Commit schrieb, den Tag aber nicht. Liefert (neu gesetzte Tags, Tags,
+    die schon auf einem anderen Stand liegen und unverändert bleiben)."""
+    names = list(dict.fromkeys(valid_tag_name(root, tag) for tag in tags or []))
+    head = _git(root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}", check=False)
+    created: list[str] = []
+    elsewhere: list[str] = []
+    if not head:
+        return created, elsewhere
+    try:
+        for name in names:
+            existing = tag_commit(root, name)
+            if not existing:
+                _git(root, "tag", "-a", "-m", message, "--", name)
+                created.append(name)
+            elif existing != head:
+                elsewhere.append(name)
+    finally:
+        invalidate_status()
+    return created, elsewhere
 
 
 def _git_bytes(cwd: Path, *args: str) -> bytes:
@@ -256,6 +323,8 @@ def title_for(kind: str) -> str:
         "no_upstream": t("Branch ist nicht mit dem Server verbunden"),
         "no_remote": t("Kein Server eingerichtet"),
         "not_found": t("Repository nicht gefunden"),
+        "unrelated_histories": t("Server hat eine andere Historie"),
+        "tag_exists": t("Tag-Name ist schon vergeben"),
     }
     return titles.get(kind, t("Git-Fehler"))
 
@@ -321,6 +390,17 @@ def hint_for(kind: str, url: str = "") -> str:
         "not_found": t(
             "Das Repository wurde nicht gefunden oder du hast keinen Zugriff. Adresse und "
             "Berechtigung prüfen."
+        ),
+        "unrelated_histories": t(
+            "Der Server enthält eine andere Historie als dieser Datenordner – vermutlich ist "
+            "ein falsches Repository verbunden (z. B. ein Code-Repository). Es wurde nichts "
+            "zusammengeführt und nichts hochgeladen; deine Änderungen sind lokal gesichert. "
+            "Ist das Daten-Repository auf dem Server richtig, muss das Zusammenführen "
+            "ausdrücklich bestätigt werden."
+        ),
+        "tag_exists": t(
+            "Einen anderen Namen wählen oder den vorhandenen Tag zuerst entfernen. Die "
+            "Änderungen sind unverändert und noch nicht gespeichert."
         ),
     }
     return hints.get(kind, "")
@@ -470,12 +550,15 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
                 files=", ".join(blocked),
             )
         )
+    names = check_new_tags(root, tags)  # vor dem Commit: bei einem Konflikt bleibt alles offen
     target = str(path.resolve())
-    _git(root, "add", "--all", "--", target)
-    _git(root, "commit", "-m", message, "--", target)
-    for tag in tags or []:
-        _git(root, "tag", "-a", "-m", message, "--", check_name(tag))
-    invalidate_status()
+    try:
+        _git(root, "add", "--all", "--", target)
+        _git(root, "commit", "-m", message, "--", target)
+        for name in names:
+            _git(root, "tag", "-a", "-m", message, "--", name)
+    finally:
+        invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
 
 
@@ -483,11 +566,14 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
     cwd = paths[0].resolve().parent
     root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
-    _git(root, "add", "--", *(str(p.resolve()) for p in paths))
-    _git(root, "commit", "-m", message, "--", *(str(p.resolve()) for p in paths))
-    if tag:
-        _git(root, "tag", "-a", "-m", message, "--", check_name(tag))
-    invalidate_status()
+    names = check_new_tags(root, [tag] if tag else None)
+    try:
+        _git(root, "add", "--", *(str(p.resolve()) for p in paths))
+        _git(root, "commit", "-m", message, "--", *(str(p.resolve()) for p in paths))
+        for name in names:
+            _git(root, "tag", "-a", "-m", message, "--", name)
+    finally:
+        invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
 
 
