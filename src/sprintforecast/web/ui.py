@@ -174,6 +174,7 @@ from sprintforecast.storage import (
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
+    team_key_problem,
     team_version,
     teams_dir,
 )
@@ -3240,6 +3241,9 @@ def page_new_team(repo: Repository) -> None:
         .lower()
     )
     if not key:
+        return
+    if problem := team_key_problem(key):
+        st.error(problem)
         return
     if repo.exists(key):
         st.error(t("Team {team} existiert bereits.", team=repr(key)))
