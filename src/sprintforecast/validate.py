@@ -10,6 +10,8 @@ from enum import StrEnum
 
 from sprintforecast.calendar import (
     countries,
+    expected_id_form,
+    id_fits_numbering,
     subdivisions,
     team_workdays,
     weekend_from_workweek,
@@ -119,6 +121,20 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
         error(
             "team.yaml",
             t("Ohne Sprintdateien wird sprint.first.id und sprint.first.start benötigt"),
+        )
+    # Aus der ID des letzten Sprints (ohne Sprintdatei: des ersten) wird die Folge-ID gebildet.
+    if data.sprints:
+        last_id, last_where = data.sprints[-1].id, f"sprints/{data.sprints[-1].id}.yaml"
+    else:
+        last_id, last_where = team.sprint.first_id, "team.yaml"
+    if last_id is not None and not id_fits_numbering(last_id, team.sprint.numbering):
+        error(
+            last_where,
+            t(
+                "ID passt nicht zur Nummerierung (erwartet {expected}) – die ID des "
+                "Folgesprints lässt sich nicht bilden",
+                expected=expected_id_form(team.sprint.numbering),
+            ),
         )
 
     ids: set[str] = set()
