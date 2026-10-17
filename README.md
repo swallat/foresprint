@@ -122,7 +122,7 @@ datenordner PFAD`). Teams sind Unterordner mit einer `team.yaml`; enthält ein V
 keine, aber einen Unterordner `teams` mit Teams, wird dieser genommen.
 
 Findet die Weboberfläche keinen Datenordner (keine Teams, kein Git-Repository), führt sie
-durch die Einrichtung: vorhandenen Ordner wählen (muss in einem Git-Repository liegen), neues
+durch die Einrichtung: vorhandenen Ordner wählen (Git empfohlen, aber nicht Pflicht: ohne Git gibt es keinen Commit), neues
 Daten-Repository anlegen (`git init`, `.gitignore`, Ordner `teams`) oder das gemeinsame
 Daten-Repository des Teams klonen.
 
@@ -391,6 +391,10 @@ products:                   # optional, je Produkt-ID
 | Erledigt | fertige Tickets **plus** im Sprint erledigte Teilanteile offener Tickets (Teampraxis); sollte im Team einheitlich gezählt werden, sonst sind Velocity und Erledigt über eine Umstellung hinweg nicht vergleichbar |
 | Standard je Produkt | verfügbar × `share` (fester Anteil, optional) bzw. (verfügbar − Σ feste Anteile) / Anzahl der Produkte ohne `share`; verfügbar = Forecast PLAN (beim Planning eingefroren, sonst aktuell) bzw. dessen Roadmap-Anteil |
 | Saldo je Produkt | Σ Erledigt − Σ Standard über die Sprints, in denen für das Produkt Erledigt erfasst ist (fehlt ≠ 0: Sprints ohne Wert zählen nicht); feste Anteile dürfen zusammen nicht über 100 % liegen |
+
+**Neue Teams:** Ein erster Forecast erscheint schon ab **3 Sprints mit Velocity** („Historie dünn“:
+Ø aus allen vorhandenen Sprints, konstant fortgeschrieben, mit Warnung „Wenig Daten“); das volle
+Fenster (`window`, Standard 5) und die Schwelle von 8 Sprints für belastbare Aussagen kommen später.
 
 **Kapazität eines Sprints** – in dieser Reihenfolge:
 1. `capacity` in der Sprintdatei (eingefroren oder manuell) → *erfasst*

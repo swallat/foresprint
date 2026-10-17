@@ -5,6 +5,10 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Der Ordner liegt in keinem Git-Repository. Das Programm funktioniert auch ohne Git – nur Commit und Verlauf stehen dann nicht zur Verfügung. Du kannst hier ein Repository anlegen oder den Ordner ohne Git verwenden.": "The folder is not in a Git repository. The program also works without Git – only commit and history are then unavailable. You can create a repository here or use the folder without Git.",
+    "Ohne Git verwenden": "Use without Git",
+    "Kein Datenordner gefunden. Empfohlen ist ein **Git-Repository**: So sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen vorhandenen Ordner wählen (auch ohne Git möglich), ein neues Daten-Repository anlegen oder ein bestehendes klonen.": "No data folder found. A **Git repository** is recommended: changes are traceable and shareable with the team. Please choose an existing folder (also possible without Git), create a new data repository or clone an existing one.",
+    "Noch kein Forecast: bisher {samples} Sprint(s) mit Velocity. Ab {min} Sprints entsteht ein erster Forecast (mit Hinweis „Historie dünn“); die Velocity im Review erfassen oder die Historie über ein Import-Plugin übernehmen.": "No forecast yet: so far {samples} sprint(s) with velocity. From {min} sprints on a first forecast appears (with the note “thin history”); record the velocity in the review or import the history with an import plugin.",
     "Vergangener Sprint: Es zählt das Commitment ({value} {unit}), abgerundet auf {plan}.": "Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.",
     "Für diesen Sprint ist noch keine Prognose berechenbar (zu wenig Historie).": "No forecast can be calculated for this sprint yet (too little history).",
     "Das Team hat zuletzt (Sprints {sprints}) umgerechnet auf eine Referenzkapazität von {ref} PT durchschnittlich {trend} {unit} geschafft (normierte Velocity).": "The team recently (sprints {sprints}) achieved an average of {trend} {unit}, converted to a reference capacity of {ref} PT (normalized velocity).",
