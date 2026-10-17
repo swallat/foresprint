@@ -50,7 +50,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.formulas import general, plain_explanation, steps
+from sprintforecast.formulas import fte_change_note, general, plain_explanation, steps
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     NO_WINDOW,
@@ -750,6 +750,14 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
     )
     st.caption(t("Leere Zellen: Person ist in diesem Sprint nicht im Team."))
+    approx = {
+        p.person.name
+        for s in sprints
+        for p in sprint_capacity(data.team, data.people, s).people
+        if p.fte_changes
+    }
+    if approx:
+        st.caption(fte_change_note(sorted(approx)))
     live = edit_absences(data.people, sprints, edited.to_dict("records"))
     confirmed = _absence_states(live, sprints)
     edited_sprints = edit_absences(

@@ -331,6 +331,10 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
             t("Abzug Scrum-Termine ({share})", share=pct(data.team.capacity.overhead_share)),
             "", "", "", f"−{fmt(breakdown.overhead_share_part)}",
         )  # fmt: skip
+    if breakdown.approximated:
+        from sprintforecast.formulas import fte_change_note
+
+        table.caption = fte_change_note([p.person.name for p in breakdown.approximated])
     table.add_row(
         f"[bold]{t('Summe')}[/bold]", "", "", "", f"[bold]{fmt(breakdown.capacity)}[/bold]"
     )

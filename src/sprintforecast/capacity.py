@@ -20,6 +20,8 @@ class PersonCapacity:
     # Verfügbar nach Feiertagen und Fehltagen (vor den Abzügen für Scrum-Termine).
     capacity: float
     mean_fte: float = 1.0
+    # Die FTE wechselt im Sprint: Fehltage werden mit der mittleren FTE gewichtet (Näherung).
+    fte_changes: bool = False
     # Fester Abzug für Scrum-Termine: PT je Person × FTE, höchstens die Kapazität.
     overhead: float = 0.0
 
@@ -27,6 +29,12 @@ class PersonCapacity:
 @dataclass
 class CapacityBreakdown:
     people: list[PersonCapacity] = field(default_factory=list)
+
+    @property
+    def approximated(self) -> list[PersonCapacity]:
+        """Personen mit FTE-Wechsel im Sprint (Fehltage nur näherungsweise gewichtet)."""
+        return [p for p in self.people if p.fte_changes and p.absence_days]
+
     gross: float = 0.0
     # Abzug Scrum-Termine gesamt = Anteil + feste PT
     overhead: float = 0.0
@@ -66,6 +74,7 @@ def person_capacity(
         absence_days=absence,
         capacity=capacity,
         mean_fte=mean_fte,
+        fte_changes=len({person.fte_on(d) for d in working}) > 1,
         overhead=min(capacity, team.capacity.overhead_days * mean_fte),
     )
 
