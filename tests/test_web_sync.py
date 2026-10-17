@@ -111,20 +111,84 @@ def test_offline_is_explained_and_nothing_is_lost(shared, data_dir: Path, monkey
     assert "Server nicht erreichbar" in captions(at)
 
 
-def test_conflict_is_reported_and_state_stays_clean(shared, data_dir: Path, monkeypatch):
-    root, bob, _ = shared
+def make_value_conflict(root: Path, bob: Path) -> Path:
     theirs = bob / SPRINT
-    theirs.write_text(theirs.read_text().replace("velocity: 9.75", "velocity: 8"))
+    theirs.write_text(theirs.read_text().replace("velocity: 9.75", "velocity: 8.5"))
     git(bob, "commit", "-qam", "Bob")
     git(bob, "push", "-q")
     mine = root / SPRINT
     mine.write_text(mine.read_text().replace("velocity: 9.75", "velocity: 7.0"))
     invalidate_status()
+    return mine
+
+
+def test_conflict_locks_editing_and_is_resolved_in_the_app(shared, data_dir: Path, monkeypatch):
+    root, bob, server = shared
+    mine = make_value_conflict(root, bob)
     at = start(data_dir, monkeypatch)
     press(at, "Speichern und teilen")
     assert any("Konflikt beim Zusammenführen" in e.value for e in at.sidebar.error)
-    assert "velocity: 7" in mine.read_text()
+    # Die Seite ist gesperrt und zeigt statt des Forecasts die Konfliktlösung
+    assert [h.value for h in at.header] == ["Konflikte lösen"]
+    assert not at.metric
+    apply = next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen")
+    assert apply.disabled  # erst nach einer Entscheidung je Eintrag
+    radio = at.radio(key="conf-0-0")
+    assert any("Meine Änderung: 7" in o for o in radio.options)
+    radio.set_value("theirs").run()
+    next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen").click().run()
+    assert not at.exception
+    assert any("Hochgeladen" in s.value for s in at.sidebar.success)
+    assert "velocity: 8.5" in mine.read_text()  # "andere Änderung" gewählt
+    assert "velocity: 8.5" in git(server, "show", f"main:{SPRINT.as_posix()}")
     assert git(root, "status", "--porcelain") == ""
+    assert at.metric  # Bearbeitung wieder freigegeben
+
+
+def test_conflict_choose_mine(shared, data_dir: Path, monkeypatch):
+    root, bob, server = shared
+    mine = make_value_conflict(root, bob)
+    at = start(data_dir, monkeypatch)
+    press(at, "Speichern und teilen")
+    at.radio(key="conf-0-0").set_value("ours").run()
+    next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen").click().run()
+    assert "velocity: 7" in mine.read_text()
+    assert "velocity: 7" in git(server, "show", f"main:{SPRINT.as_posix()}")
+
+
+def test_conflict_markers_without_merge_offer_restore(shared, data_dir: Path, monkeypatch):
+    root, _, _ = shared
+    sprint = root / SPRINT
+    original = sprint.read_text()
+    sprint.write_text("<<<<<<< HEAD\nvelocity: 1\n=======\nvelocity: 2\n>>>>>>> origin/main\n")
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    assert [h.value for h in at.header] == ["Konflikte lösen"]
+    next(b for b in at.button if b.label == "Letzten Stand wiederherstellen").click().run()
+    assert sprint.read_text() == original
+    assert at.metric
+
+
+def test_stale_form_is_discarded_before_saving(shared, data_dir: Path, monkeypatch):
+    """Ändert sich eine Datei, während ein Formular offen ist, wird nicht blind gespeichert."""
+    root, _, _ = shared
+    at = start(data_dir, monkeypatch)
+    at.switch_page("seiten/review.py").run()
+    assert not at.exception
+    at.selectbox(key="review-sprint").set_value("2026.21").run()
+    other = root / "teams" / "demo" / "sprints" / "2026.20.yaml"
+    other.write_text(other.read_text().replace("velocity: 9.75", "velocity: 5.0"))  # „von außen“
+    at.number_input(key="velocity-2026.21").set_value(9.0)
+    next(b for b in at.button if b.label == "Review speichern").click().run()
+    assert not at.exception
+    assert any("Daten haben sich geändert" in w.value for w in at.warning)
+    assert (
+        not (root / "teams" / "demo" / "sprints" / "2026.21.yaml").read_text().count("velocity: 9")
+    )
+    # nach dem Hinweis lässt sich normal speichern
+    at.number_input(key="velocity-2026.21").set_value(9.0)
+    next(b for b in at.button if b.label == "Review speichern").click().run()
+    assert "velocity: 9" in (root / "teams" / "demo" / "sprints" / "2026.21.yaml").read_text()
 
 
 def test_unfinished_merge_offers_abort(shared, data_dir: Path, monkeypatch):

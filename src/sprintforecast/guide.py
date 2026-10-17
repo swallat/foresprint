@@ -356,11 +356,26 @@ GIT_HELP: list[tuple[str, str]] = [
         "übernommen wurde.",
     ),
     (
-        "Konflikt",
-        "Haben zwei Personen dieselbe Stelle derselben Datei geändert, bricht die App das "
-        "Zusammenführen ab. Nichts geht verloren: Deine Änderungen bleiben als Commit "
-        "erhalten, der Server bleibt unverändert. Die Auflösung in der App folgt in einer "
-        "späteren Version.",
+        "Zusammenführen und Konflikte",
+        "Ändern zwei Personen verschiedene Werte derselben Datei (z. B. Fehltage von Anna und "
+        "von Ben im selben Sprint), werden sie automatisch vereinigt. Nur wenn beide denselben "
+        "Wert unterschiedlich geändert haben, fragt die App auf der Seite „Konflikte lösen“ "
+        "je Eintrag: „Meine Änderung“ oder „Andere Änderung“. Solange ein Konflikt offen ist, "
+        "ist die Bearbeitung gesperrt. Nichts geht verloren; „Zusammenführen abbrechen“ "
+        "verwirft das Zusammenführen und behält die eigenen Änderungen.",
+    ),
+    (
+        "Prüfung nach dem Zusammenführen",
+        "Nach jedem Zusammenführen läuft die Gesamtvalidierung: Ein Zusammenführen kann "
+        "technisch gelingen und fachlich ungültig sein (z. B. zwei feste Produktanteile von "
+        "je 60 %). Neue Fehler halten das Hochladen an, die Liste zeigt sie; nach der "
+        "Korrektur genügt „Speichern und teilen“, oder bewusst „Trotzdem teilen“.",
+    ),
+    (
+        "Veraltete Eingaben",
+        "Ändern sich die Dateien, während eine Seite offen ist (Teilen, andere Programme), "
+        "verwirft die App nicht gespeicherte Eingaben mit einem Hinweis und lädt neu, statt "
+        "fremde Änderungen zu überschreiben.",
     ),
     (
         "Server nicht erreichbar (offline)",

@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import streamlit as st
+import yaml
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
@@ -68,12 +69,16 @@ from sprintforecast.git import repo_root as git_root
 from sprintforecast.git import title_for as git_title
 from sprintforecast.gitsync import (
     Commit,
+    ConflictFile,
     SyncResult,
     SyncState,
     abort_unfinished,
     git_available,
     incoming,
+    pending_conflicts,
     reattach,
+    resolve_conflicts,
+    restore_file,
     set_identity,
     sync,
 )
@@ -126,12 +131,14 @@ from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
+    ConflictError,
     DataError,
     Repository,
     TeamData,
     clear_team_cache,
     default_data_dir,
     save_data_dir,
+    team_version,
     teams_dir,
 )
 from sprintforecast.updater import status_line
@@ -165,6 +172,7 @@ from sprintforecast.web.logic import (
     with_people,
     with_sprints,
 )
+from sprintforecast.yamlmerge import MISSING
 
 if TYPE_CHECKING:
     import altair as alt
@@ -3347,11 +3355,11 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
     st.session_state["commit_message"] = _commit_default()
 
 
-def _sync_clicked(root: Path, tags: list[str]) -> None:
+def _sync_clicked(root: Path, tags: list[str], allow_invalid: bool = False) -> None:
     """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
     message = st.session_state.get("commit_message", "").strip() or _commit_default()
     use_tags = tags and st.session_state.get("use_tags", True)
-    result = sync(root, message, tags if use_tags else None)
+    result = sync(root, message, tags if use_tags else None, today(), allow_invalid=allow_invalid)
     if result.committed:
         st.session_state["pending_tags"] = []
         st.session_state["commit_message"] = _commit_default()
@@ -3409,7 +3417,7 @@ def _show_problem(error: GitError) -> None:
         st.button(t("Speichern"), key="git-identity", on_click=_identity_clicked)
 
 
-def _show_sync_result(result: SyncResult) -> None:
+def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
     done = []
     if result.committed:
         done.append(t("Eigene Änderungen gesichert ({rev})", rev=result.committed))
@@ -3423,6 +3431,15 @@ def _show_sync_result(result: SyncResult) -> None:
         if done:
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
         _show_problem(result.error)
+        if result.validation:
+            st.markdown("\n".join(f"- {line}" for line in result.validation))
+            st.button(
+                t("Trotzdem teilen"),
+                key="git-force",
+                on_click=_sync_clicked,
+                args=(root, tags, True),
+                help=t("Lädt die Daten hoch, obwohl die Prüfung neue Fehler meldet."),
+            )
     if result.pulled:
         with st.expander(t("Neu von anderen"), expanded=True):
             _show_incoming(result.pulled, result.pulled_files)
@@ -3483,7 +3500,7 @@ def _git_panel(repo: Repository) -> None:
         else:
             st.error(error)
     if result := st.session_state.pop("sync_result", None):
-        _show_sync_result(result)
+        _show_sync_result(result, repo.root, list(st.session_state.get("pending_tags", [])))
     try:
         changes = cached_pending_changes(repo.root)
         state = cached_sync_state(repo.root)
@@ -3500,7 +3517,7 @@ def _git_panel(repo: Repository) -> None:
         icon=":material/commit:",
     ):
         if state.unfinished or state.conflicts:
-            st.warning(hint_for("merge_in_progress"))
+            st.warning(hint_for("conflict"))
             st.button(
                 t("Zusammenführen abbrechen"),
                 key="git-abort",
@@ -3586,6 +3603,184 @@ GLOBAL_PAGES = {
 }
 
 
+# --- Konflikte lösen und veraltete Eingaben -------------------------------------------------
+
+# Zustand, der bei geänderten Dateien erhalten bleibt (alles andere sind Formulareingaben).
+_KEEP_STATE = {
+    "selected_team", "flash", "pending_tags", "commit_message", "use_tags", "language",
+    "enabled-pages", "sync_result", "last_commit", "commit_error", "restarting", "update-started",
+    "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
+    "planning-goto", "planning-last-sprint", "board-sprint", "formula-sprint",
+}  # fmt: skip
+
+
+def _discard_stale_inputs(repo: Repository, team: str) -> None:
+    """Haben sich die Dateien des Teams seit dem letzten Zeichnen geändert (Teilen, andere
+    Programme), sind offene Formulare veraltet: Ein Speichern würde fremde Änderungen
+    überschreiben. Die Eingaben werden dann verworfen und neu aus den Dateien gelesen."""
+    seen = st.session_state.setdefault("seen-versions", {})
+    ident = f"{repo.root.resolve()}|{team}"
+    old = seen.get(ident)
+    if old is None or old == team_version(repo.team_dir(team)):
+        return
+    for name in list(st.session_state.keys()):
+        if name not in _KEEP_STATE and not str(name).startswith(("git-", "data-", "conf-")):
+            del st.session_state[name]
+    st.warning(
+        t(
+            "Die Daten haben sich geändert, seit diese Seite geöffnet wurde (z. B. durch Teilen "
+            "oder eine andere Person). Nicht gespeicherte Eingaben wurden verworfen und die "
+            "Seite neu geladen – bitte prüfen und noch einmal speichern."
+        )
+    )
+
+
+def _remember_version(repo: Repository, team: str) -> None:
+    seen = st.session_state.setdefault("seen-versions", {})
+    seen[f"{repo.root.resolve()}|{team}"] = team_version(repo.team_dir(team))
+
+
+def _show_value(value: object) -> str:
+    if value is MISSING:
+        return t("(entfernt)")
+    text = yaml.safe_dump(value, allow_unicode=True, default_flow_style=True, width=1000).strip()
+    return text.removesuffix("\n...").strip()[:200]
+
+
+def _conf_key(i: int, j: int | None) -> str:
+    return f"conf-{i}-{'file' if j is None else j}"
+
+
+def _resolve_clicked(root: Path, pending: list[ConflictFile], tags: list[str]) -> None:
+    """Übernimmt die Entscheidungen und setzt „Speichern und teilen“ fort."""
+    choices: dict[str, dict[tuple[str, ...], str]] = {}
+    for i, cf in enumerate(pending):
+        if cf.whole:
+            choices[cf.file] = {(): st.session_state.get(_conf_key(i, None))}
+        else:
+            choices[cf.file] = {
+                kc.path: st.session_state.get(_conf_key(i, j)) for j, kc in enumerate(cf.keys)
+            }
+    for name in [k for k in st.session_state if str(k).startswith("conf-")]:
+        del st.session_state[name]
+    try:
+        resolve_conflicts(root, choices)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+        return
+    _sync_clicked(root, tags)
+
+
+def _restore_clicked(root: Path, file: Path) -> None:
+    try:
+        restore_file(root, file)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+    else:
+        clear_team_cache()
+        st.session_state["flash"] = [
+            ("success", t("{file} auf den letzten gespeicherten Stand zurückgesetzt.", file=file))
+        ]
+
+
+def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None:
+    """Geführte Wiederherstellung: Solange Konflikte offen sind, ist die Bearbeitung gesperrt."""
+    st.header(t("Konflikte lösen"))
+    show_flash()
+    st.warning(
+        t(
+            "Zwei Personen haben dieselben Daten geändert. Bis der Konflikt gelöst ist, ist die "
+            "Bearbeitung gesperrt, damit nichts überschrieben wird. Nichts ist verloren: "
+            "Beide Fassungen sind gesichert."
+        )
+    )
+    if problem := st.session_state.pop("commit_error", None):
+        if isinstance(problem, GitError):
+            _show_problem(problem)
+        else:
+            st.error(problem)
+    try:
+        state = cached_sync_state(repo.root)
+    except GitError as e:
+        _show_problem(e)
+        return
+    tags = st.session_state.get("pending_tags", [])
+    if state.unfinished == "merge" or state.conflicts:
+        pending = pending_conflicts(repo.root)
+        st.markdown(
+            t(
+                "Pro Eintrag gilt: **Meine Änderung** behält, was du eingetragen hast, "
+                "**Andere Änderung** übernimmt, was die andere Person eingetragen hat. Danach "
+                "wird alles zusammengeführt, geprüft und geteilt."
+            )
+        )
+        ready = True
+        for i, cf in enumerate(pending):
+            if not cf.open:
+                st.caption(t("{file}: wird automatisch zusammengeführt", file=cf.file))
+                continue
+            with st.container(border=True):
+                st.markdown(f"**{cf.file}**")
+                if cf.whole:
+                    mine = t("(von mir gelöscht)") if cf.ours_deleted else t("meine Fassung")
+                    theirs = (
+                        t("(von anderen gelöscht)") if cf.theirs_deleted else t("andere Fassung")
+                    )
+                    st.caption(t("Die Datei lässt sich nur als Ganzes entscheiden."))
+                    options = {"ours": t("Meine Änderung: {v}", v=mine),
+                               "theirs": t("Andere Änderung: {v}", v=theirs)}  # fmt: skip
+                    pick = st.radio(
+                        cf.file, list(options), format_func=options.get, index=None,
+                        key=_conf_key(i, None), label_visibility="collapsed",
+                    )  # fmt: skip
+                    ready = ready and pick is not None
+                for j, kc in enumerate(cf.keys):
+                    options = {
+                        "ours": t("Meine Änderung: {v}", v=_show_value(kc.ours)),
+                        "theirs": t("Andere Änderung: {v}", v=_show_value(kc.theirs)),
+                    }
+                    pick = st.radio(
+                        f"`{kc.label}`", list(options), format_func=options.get, index=None,
+                        key=_conf_key(i, j),
+                    )  # fmt: skip
+                    ready = ready and pick is not None
+        left, right = st.columns(2)
+        left.button(
+            t("Entscheidungen übernehmen und teilen"),
+            type="primary",
+            disabled=not ready,
+            on_click=_resolve_clicked,
+            args=(repo.root, pending, list(tags)),
+            key="conf-apply",
+        )
+        right.button(
+            t("Zusammenführen abbrechen"),
+            on_click=_abort_clicked,
+            args=(repo.root,),
+            key="conf-abort",
+            help=t("Verwirft das Zusammenführen; deine eigenen Änderungen bleiben erhalten."),
+        )
+        return
+    # Konfliktmarkierungen ohne offenes Zusammenführen (z. B. von einem anderen Programm).
+    files = error.files if error else []
+    st.error(
+        t(
+            "In diesen Dateien stehen Konfliktmarkierungen (`<<<<<<<`), aber es läuft kein "
+            "Zusammenführen mehr. Die Datei kann auf den letzten gespeicherten Stand "
+            "zurückgesetzt werden; Änderungen darin, die nicht committet sind, gehen verloren."
+        )
+    )
+    for n, file in enumerate(files):
+        left, right = st.columns([4, 2], vertical_alignment="center")
+        left.code(str(file), language=None)
+        right.button(
+            t("Letzten Stand wiederherstellen"),
+            key=f"conf-restore-{n}",
+            on_click=_restore_clicked,
+            args=(repo.root, file),
+        )
+
+
 def run_page(key: str) -> None:
     """Wird von den Seitendateien unter web/seiten aufgerufen."""
     repo = repository()
@@ -3603,14 +3798,28 @@ def run_page(key: str) -> None:
         )
         page_link("neues_team")
         return
+    # Offenes Zusammenführen: Die Bearbeitung ist gesperrt, bis es gelöst ist.
+    if git_available() and git_root(repo.root) is not None:
+        try:
+            current = cached_sync_state(repo.root)
+        except GitError:
+            current = None
+        if current is not None and (current.unfinished == "merge" or current.conflicts):
+            page_conflicts(repo)
+            return
     try:
         data = repo.load_cached(team)
+    except ConflictError as e:
+        page_conflicts(repo, e)
+        return
     except DataError as e:
         st.error(str(e))
         return
+    _discard_stale_inputs(repo, team)
     # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
     fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
     TEAM_PAGES[key](repo, data, fc)
+    _remember_version(repo, team)
 
 
 def run_plugin_page(page: WebPage) -> None:

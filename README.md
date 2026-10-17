@@ -192,9 +192,24 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   optional mit Tag `TEAM/SPRINT`), holt dann den Stand der anderen, führt beides zusammen und lädt
   es hoch. Danach steht in der Seitenleiste, was von anderen übernommen wurde (wer, wann, welche
   Dateien). Bei einem Wettlauf (jemand lädt zwischendurch hoch) wird erneut geholt und
-  hochgeladen. Ein Konflikt (dieselbe Stelle von zwei Personen geändert) bricht das
-  Zusammenführen ab; nichts geht verloren, der eigene Commit bleibt erhalten. Die Auflösung in
-  der App folgt in einem eigenen Schritt.
+  hochgeladen. Verschiedene Werte derselben Datei (z. B. Fehltage von Anna und von Ben im selben
+  Sprint, zwei verschiedene Personen in `people.yaml`) werden automatisch vereinigt. Nur wenn beide
+  denselben Wert unterschiedlich geändert haben, ist die Bearbeitung gesperrt, und die Seite
+  **Konflikte lösen** fragt je Eintrag „Meine Änderung“ oder „Andere Änderung“ (Dateien, die auf
+  einer Seite gelöscht wurden, werden als Ganzes entschieden). Das Zusammenführen kann dort auch
+  abgebrochen werden; nichts geht verloren, der eigene Commit bleibt erhalten. Ein offenes
+  Zusammenführen übersteht einen Neustart der App.
+- **Gesamtvalidierung:** Nach jedem Zusammenführen läuft die Datenprüfung. Ein technisch sauberer
+  Merge kann fachlich ungültig sein (zwei Personen ändern verschiedene Produktanteile, zusammen
+  120 %): Neue Fehler halten das Hochladen an, die Liste zeigt sie; nach der Korrektur genügt
+  „Speichern und teilen“, oder bewusst **Trotzdem teilen**.
+- **Veraltete Formulare:** Ändern sich die Dateien, während eine Seite offen ist (Teilen, anderes
+  Programm), werden nicht gespeicherte Eingaben mit Hinweis verworfen und neu geladen, statt fremde
+  Änderungen zu überschreiben. Konfliktmarkierungen in einer Datei (`<<<<<<<`) werden erkannt,
+  bevor die YAML geladen wird; die Seite bietet dann die Wiederherstellung an.
+- **Stabile Dateien:** Gespeichert wird immer mit LF-Zeilenenden, nur bei geändertem Inhalt und
+  über eine Zwischendatei; Fehltage, erledigte Produkte usw. stehen alphabetisch sortiert, damit
+  gleichzeitige Ergänzungen selten kollidieren.
 - **Stand prüfen** fragt den Server, ob es Neues gibt, und ändert nichts. Der Serverstand wird
   nur dabei und beim Teilen abgefragt.
 - **Änderungen committen** sichert nur lokal, ohne zu teilen.
