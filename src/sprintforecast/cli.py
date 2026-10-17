@@ -127,6 +127,15 @@ def _ctx(ctx: typer.Context) -> Context:
     return ctx.obj
 
 
+def _check_stichtag(value: str | None) -> str | None:
+    if value:
+        try:
+            date.fromisoformat(value)
+        except ValueError as e:
+            raise typer.BadParameter(t("Datum im Format JJJJ-MM-TT erwartet")) from e
+    return value
+
+
 @app.callback(invoke_without_command=True)
 def _main(
     ctx: typer.Context,
@@ -148,6 +157,7 @@ def _main(
         typer.Option(
             "--stichtag",
             "--as-of",
+            callback=_check_stichtag,
             help=t("Datum (JJJJ-MM-TT), das als „heute“ gilt – für Rückblicke und Tests."),
         ),
     ] = None,
