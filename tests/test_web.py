@@ -252,6 +252,18 @@ def test_planning_saves(app: AppTest, data_dir: Path):
     assert any("Delta" in i.value for i in app.info)
 
 
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
+def test_planning_rejects_non_finite_corrections(app: AppTest, data_dir: Path, raw: str):
+    path = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    before = path.read_bytes()
+    planning_step(app, "2026.21", 2)
+    app.number_input(key="backlog-2026.21").set_value(8.0)
+    app.text_input[0].set_value(raw)
+    click(app, "Planning speichern")
+    assert any("endliche Zahlen" in e.value for e in app.error)
+    assert path.read_bytes() == before
+
+
 def test_review_saves_and_freezes_capacity(app: AppTest, data_dir: Path):
     goto(app, "review")
     app.selectbox(key="review-sprint").set_value("2026.21").run()

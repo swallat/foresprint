@@ -35,6 +35,21 @@ def test_forecast_and_report(data_dir: Path):
     assert "```mermaid" in report
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--rest", "nan"],
+        ["--rest", "inf"],
+        ["--rest", "1e999"],
+        ["--rest", "10", "--anteil", "nan"],
+    ],
+)
+def test_analyse_rejects_non_finite_options(data_dir: Path, args: list[str]):
+    result = run(data_dir, "analyse", "demo", *args)
+    assert result.exit_code == 2, result.output
+    assert "endliche Zahl" in result.output
+
+
 def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_list(
     data_dir: Path,
 ):
@@ -73,6 +88,15 @@ def test_fehltage_rejects_invalid_number(data_dir: Path):
     assert "Bitte eine Zahl eingeben" in result.output
 
 
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
+def test_fehltage_rejects_non_finite_number(data_dir: Path, raw: str):
+    result = run(data_dir, "fehltage", "demo", "2026.23", input=f"{raw}\n1\n0\n0\n0\n")
+    assert result.exit_code == 0, result.output
+    assert "Bitte eine endliche Zahl eingeben" in result.output
+    sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
+    assert sprint["absences"] == {"anna": 1}
+
+
 def test_review_freezes_capacity(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
     result = run(data_dir, "review", "demo", "2026.21", input="y\n9,5\n0.1\nn\n")
@@ -91,6 +115,15 @@ def test_planning_reports_delta(data_dir: Path):
     assert sprint["forecast_ist"] == 9
     assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
     assert "Delta 1,00" in result.output  # Forecast PLAN 9,5 − Planning 8,5
+
+
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999", "0.5 nan"])
+def test_planning_rejects_non_finite_corrections(data_dir: Path, raw: str):
+    result = run(data_dir, "planning", "demo", "2026.21", input=f"n\nn\ny\n1\n8\n{raw}\n0.5\n9\n")
+    assert result.exit_code == 0, result.output
+    assert "Bitte eine endliche Zahl eingeben" in result.output
+    sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
+    assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
 
 
 def test_personen_change_fte(data_dir: Path):
