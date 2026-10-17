@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from gitrepos import Person, git, make_clone
+from gitrepos import Denying, Person, git, make_clone
 
 from sprintforecast import gitsync
 from sprintforecast.git import GitError, classify, clone_repository, invalidate_status
@@ -267,18 +267,8 @@ def test_no_remote_still_saves(tmp_path: Path):
     assert result.committed and result.error and result.error.kind == "no_remote"
 
 
-class _Denying(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(401)
-        self.send_header("WWW-Authenticate", 'Basic realm="x"')
-        self.end_headers()
-
-    def log_message(self, *args):
-        pass
-
-
 def test_missing_login_is_explained(alice: Person):
-    server = http.server.HTTPServer(("127.0.0.1", 0), _Denying)
+    server = http.server.HTTPServer(("127.0.0.1", 0), Denying)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         git(
@@ -305,7 +295,7 @@ def test_auth_help_for_ssh_differs():
 
 
 def test_clone_with_missing_login_is_explained(tmp_path: Path):
-    server = http.server.HTTPServer(("127.0.0.1", 0), _Denying)
+    server = http.server.HTTPServer(("127.0.0.1", 0), Denying)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         with pytest.raises(GitError) as info:

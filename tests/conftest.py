@@ -3,10 +3,21 @@ import shutil
 from pathlib import Path
 
 import pytest
-from gitrepos import alice, bob, clean_caches, remote  # noqa: F401  (Fixtures)
+from gitrepos import alice, bob, clean_caches, no_login_prompt, remote  # noqa: F401  (Fixtures)
 from webfixtures import repo, second_folder, shared  # noqa: F401  (Fixtures)
 
+from sprintforecast import i18n
+
 EXAMPLES = Path(__file__).parent.parent / "examples" / "teams"
+
+
+@pytest.fixture
+def english(monkeypatch: pytest.MonkeyPatch):
+    """Die Oberfläche und die Meldungen sind englisch (auch in AppTest-Läufen)."""
+    i18n.set_language(None)
+    monkeypatch.setenv(i18n.LANG_ENV, "en")
+    yield
+    i18n.set_language(None)
 
 
 @pytest.fixture

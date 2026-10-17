@@ -220,8 +220,9 @@ def test_tag_name_equal_to_branch_name_is_listed_plain(alice: Person):
 
 
 def test_clone_rejects_option_like_url(tmp_path: Path):
-    with pytest.raises(GitError, match="Ungültige Adresse"):
+    with pytest.raises(GitError) as info:
         gitmod.clone_repository("--upload-pack=touch boese", tmp_path / "ziel")
+    assert info.value.kind == "bad_url"
     assert not (tmp_path / "ziel").exists()
 
 

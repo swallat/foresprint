@@ -7,22 +7,80 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
+import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import IO, NamedTuple
 
+from sprintforecast import proctree
 from sprintforecast.i18n import t
+
+_SCHEME = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*)://")
+_NAME_START = re.compile(r"[A-Za-z0-9._~-]+")
+_SCP_PASSWORD = re.compile(r"([^@/\\\s:]+):[^@/\\\s]*@")  # benutzer:kennwort@host:pfad
+# Der Rückblick statt ``\b`` ist wichtig: Ein Versuch beginnt nur am Anfang eines Wortes aus
+# Schema-Zeichen, nicht hinter jedem Punkt oder Bindestrich. Sonst läuft der Treffer bei langen
+# Zeilen wie „a.a.a.a. …“ an jeder Stelle bis zum Ende und zurück (quadratische Laufzeit).
+_URL_IN_TEXT = re.compile(r"(?i)(?<![a-z0-9+.-])[a-z][a-z0-9+.-]*://[^\s'\"<>]+")
+
+
+def public_url(url: str) -> str:
+    """Adresse ohne Zugangsdaten und ohne Zusätze nach ``?`` oder ``#`` (nur zur Anzeige).
+    Wirft nie und ist idempotent. Bei ssh bleibt der Benutzername erhalten, das Kennwort fällt
+    weg; lokale Pfade und jede von :func:`parse_remote_url` akzeptierte Adresse bleiben
+    unverändert."""
+    if scheme := _SCHEME.match(url):
+        rest = url[scheme.end() :]
+        if (at := rest.rfind("@")) >= 0:  # alles bis zum letzten „@“ (auch im Pfad) fällt weg
+            removed, rest = rest[:at], rest[at + 1 :]
+            if scheme.group(1).lower() == "ssh" and (user := _NAME_START.match(removed)):
+                rest = f"{user.group(0)}@{rest}"
+        cut = [i for i in (rest.find("?"), rest.find("#")) if i >= 0]
+        return url[: scheme.end()] + (rest[: min(cut)] if cut else rest)
+    if password := _SCP_PASSWORD.match(url):  # benutzer:kennwort@host:pfad
+        return f"{password.group(1)}@{url[password.end() :]}"
+    return url
+
+
+def has_credentials(text: str) -> bool:
+    """Steckt in der Adresse etwas, das :func:`public_url` entfernen würde?"""
+    return public_url(text.strip()) != text.strip()
+
+
+def scrub(text: str) -> str:
+    """Ersetzt jede Adresse (``schema://…``) im Text durch ihre Anzeigefassung."""
+    return _URL_IN_TEXT.sub(lambda m: public_url(m.group(0)), text)
+
+
+def md_code(text: str) -> str:
+    """Text als Code-Span für Markdown. Namen und Adressen, die von außen kommen (Server,
+    Konfiguration), gehören nie als Fließtext in die Oberfläche: Dort würden Auszeichnungen
+    wirken und Webadressen wie ``www.beispiel.de/x`` zu Links. Backticks im Text lassen den
+    Span nicht enden; Steuer- und unsichtbare Zeichen werden zu Leerzeichen."""
+    text = "".join(
+        " " if unicodedata.category(c)[0] == "C" or unicodedata.category(c) in {"Zl", "Zp"} else c
+        for c in text
+    )
+    if not text:
+        return ""
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    fence = "`" * (longest + 1)
+    pad = " " if text[0] in "` " or text[-1] in "` " else ""
+    return f"{fence}{pad}{text}{pad}{fence}"
 
 
 class GitError(Exception):
     """Fehler eines Git-Aufrufs. ``kind`` benennt die Art (siehe :func:`classify`), ``hint`` ist
-    der nächste Schritt in Alltagssprache; ``str(error)`` bleibt die kurze Meldung."""
+    der nächste Schritt in Alltagssprache; ``str(error)`` bleibt die kurze Meldung. Meldung und
+    Hinweis enthalten nie Zugangsdaten aus einer Adresse (:func:`scrub`)."""
 
     def __init__(self, message: str, kind: str = "error", hint: str = "") -> None:
-        super().__init__(message)
+        super().__init__(scrub(message))
         self.kind = kind
-        self.hint = hint
+        self.hint = scrub(hint)
 
     def full(self) -> str:
         """Meldung samt nächstem Schritt."""
@@ -45,19 +103,29 @@ _ROOT_TTL = 30.0
 NETWORK_TIMEOUT = 90.0
 
 
-def _env(network: bool) -> dict[str, str]:
+def _env(network: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
     """Umgebung für Git: englische Meldungen (damit sie sich erkennen lassen) und bei
     Netzwerkaufrufen keine Rückfrage im Terminal. Anmeldehelfer (Credential Manager) laufen
-    weiter."""
+    weiter. Ablaufprotokolle (``GIT_TRACE*``, ``GIT_CURL_VERBOSE``) werden entfernt: Sie würden
+    Anmelde-Kopfzeilen in die Fehlerausgabe schreiben. ``extra`` kommt zuletzt dazu."""
     # Pfade sind nie Suchmuster: Dateinamen mit *, ? oder [ bleiben wörtlich gemeint.
-    env = {**os.environ, "LC_ALL": "C", "LANGUAGE": "C", "GIT_LITERAL_PATHSPECS": "1"}
+    env = {
+        name: value
+        for name, value in os.environ.items()
+        if not name.upper().startswith(("GIT_TRACE", "GIT_CURL_VERBOSE"))
+    }
+    env |= {"LC_ALL": "C", "LANGUAGE": "C", "GIT_LITERAL_PATHSPECS": "1"}
     if network:
         env["GIT_TERMINAL_PROMPT"] = "0"
-    return env
+    return env | (extra or {})
 
 
 def _git_result(
-    cwd: Path, *args: str, network: bool = False, timeout: float | None = None
+    cwd: Path,
+    *args: str,
+    network: bool = False,
+    timeout: float | None = None,
+    env_extra: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
     „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
@@ -70,7 +138,7 @@ def _git_result(
             encoding="utf-8",
             errors="replace",
             stdin=subprocess.DEVNULL,
-            env=_env(network),
+            env=_env(network, env_extra),
             timeout=timeout or (NETWORK_TIMEOUT if network else 120),
             **NO_WINDOW,
         )
@@ -87,10 +155,11 @@ def _git(
     network: bool = False,
     check: bool = True,
     timeout: float | None = None,
+    env_extra: dict[str, str] | None = None,
 ) -> str:
     """Führt ``git`` aus. Bei Fehlern :class:`GitError` mit erkannter Art und nächstem Schritt;
     mit ``check=False`` wird bei Fehlern statt einer Ausnahme ein leerer Text geliefert."""
-    proc = _git_result(cwd, *args, network=network, timeout=timeout)
+    proc = _git_result(cwd, *args, network=network, timeout=timeout, env_extra=env_extra)
     if proc.returncode != 0:
         if not check:
             return ""
@@ -325,6 +394,13 @@ def title_for(kind: str) -> str:
         "not_found": t("Repository nicht gefunden"),
         "unrelated_histories": t("Server hat eine andere Historie"),
         "tag_exists": t("Tag-Name ist schon vergeben"),
+        "bad_url": t("Ungültige Adresse"),
+        "secret_in_url": t("Zugangsdaten gehören nicht in die Adresse"),
+        "insecure_url": t("Unverschlüsselte Verbindung"),
+        "new_branch": t("Branch fehlt auf dem Server"),
+        "remote_special": t("Ungewöhnliche Server-Einstellung"),
+        "certificate": t("Zertifikat des Servers nicht anerkannt"),
+        "nothing_to_share": t("Noch nichts zu teilen"),
     }
     return titles.get(kind, t("Git-Fehler"))
 
@@ -383,20 +459,23 @@ def hint_for(kind: str, url: str = "") -> str:
             "richtet das beim ersten Mal ein."
         ),
         "no_remote": t(
-            "Zu diesem Repository gibt es keinen Server (Remote). Unter „Datenordner“ ein "
-            "bestehendes Repository klonen oder einmalig im Terminal "
-            "`git remote add origin ADRESSE` ausführen."
+            "Zu diesem Datenordner gehört noch kein Server. Auf der Seite „Datenordner“ unter "
+            "„Server (Remote)“ die Adresse des gemeinsamen Daten-Repositorys eintragen; bis "
+            "dahin bleiben alle Änderungen auf diesem Rechner. Wer einem bestehenden Team "
+            "beitritt, wählt dort „Repository klonen“."
         ),
         "not_found": t(
             "Das Repository wurde nicht gefunden oder du hast keinen Zugriff. Adresse und "
-            "Berechtigung prüfen."
+            "Berechtigung prüfen; die Adresse lässt sich auf der Seite „Datenordner“ unter "
+            "„Server (Remote)“ ändern."
         ),
         "unrelated_histories": t(
             "Der Server enthält eine andere Historie als dieser Datenordner – vermutlich ist "
             "ein falsches Repository verbunden (z. B. ein Code-Repository). Es wurde nichts "
             "zusammengeführt und nichts hochgeladen; deine Änderungen sind lokal gesichert. "
-            "Ist das Daten-Repository auf dem Server richtig, muss das Zusammenführen "
-            "ausdrücklich bestätigt werden."
+            "Ist es das falsche Repository, lässt sich die Adresse auf der Seite „Datenordner“ "
+            "unter „Server (Remote)“ ändern. Ist das Daten-Repository auf dem Server richtig, "
+            "muss das Zusammenführen ausdrücklich bestätigt werden."
         ),
         "tag_exists": t(
             "Einen anderen Namen wählen oder den vorhandenen Tag zuerst entfernen. Die "
@@ -408,7 +487,7 @@ def hint_for(kind: str, url: str = "") -> str:
 
 def auth_help(url: str = "") -> str:
     """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH)."""
-    if url.startswith(("git@", "ssh://")):
+    if url.lower().startswith("ssh://") or _SCP_FORM.match(url):
         return t(
             "Die Anmeldung per SSH fehlt oder wurde abgelehnt. Einen SSH-Schlüssel anlegen "
             "(`ssh-keygen -t ed25519`), den öffentlichen Teil (Datei `.pub`) beim Server "
@@ -422,6 +501,392 @@ def auth_help(url: str = "") -> str:
         "Anmeldedienst des Rechners hinterlegen (Windows: Anmeldeinformationsverwaltung, macOS: "
         "Schlüsselbund, Linux: `git config --global credential.helper store`) bzw. beim "
         "nächsten Anmeldefenster als Kennwort eingeben; danach noch einmal versuchen."
+    )
+
+
+# --- Server-Adresse prüfen ------------------------------------------------------------------
+
+MAX_URL_LENGTH = 2048
+# Übertragungswege, die Git für Adressen der App benutzen darf (kein ext::, fd:: oder git://).
+SAFE_PROTOCOLS = "https:http:ssh:file"
+PROBE_TIMEOUT = 30.0
+# Bei http(s) bricht Git ab, wenn zehn Sekunden lang kaum etwas ankommt (Server nimmt an,
+# antwortet aber nie).
+_PROBE_ENV = {
+    "GIT_ALLOW_PROTOCOL": SAFE_PROTOCOLS,
+    "GIT_HTTP_LOW_SPEED_LIMIT": "1000",
+    "GIT_HTTP_LOW_SPEED_TIME": "10",
+}
+# Höchstens so viel Ausgabe (Zeichen) liest die Verbindungsprüfung je Strom.
+_PROBE_OUTPUT_LIMIT = 64 * 1024
+
+_HOST = r"(?:[A-Za-z0-9][A-Za-z0-9._-]*|\[[0-9A-Fa-f:.]+\])"
+_SSH_USER = r"[A-Za-z0-9_][A-Za-z0-9._~-]*"
+_HOST_PORT = re.compile(rf"({_HOST})(?::([^:]*))?")
+_SCP_FORM = re.compile(rf"{_SSH_USER}@{_HOST}:")
+_SCP_ADDRESS = re.compile(rf"({_SSH_USER})@({_HOST}):(\S+)")
+_SCP_SECRET = re.compile(r"[^@/\\\s]*:[^@/\\\s]*@")  # u:kennwort@host:pfad
+_HELPER = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*::")  # ext::, fd:: und andere Remote-Helfer
+_URL_SCHEMES = {"https", "http", "ssh"}
+_HOST_KEY = re.compile(r"Host key verification failed|REMOTE HOST IDENTIFICATION HAS CHANGED", re.I)
+# Der Server antwortet, aber es gibt das Repository unter dieser Adresse nicht (oder er
+# verschweigt es mangels Berechtigung): GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, https-404.
+_NOT_FOUND = re.compile(
+    r"does not appear to be a git repository|repository '[^']*' not found|"
+    r"returned error: 404|Repository not found|Project not found|remote: Not Found|"
+    r"project you were looking for could not be found|repository does not exist|"
+    r"TF401019|does not exist or you do not have permission",
+    re.I,
+)
+# Das Zertifikat des Servers wird vom Rechner nicht anerkannt (Firmenzertifikat, selbst
+# ausgestellt): Der Server antwortet, Internet oder VPN zu prüfen nützt nichts.
+_CERTIFICATE = re.compile(
+    r"SSL certificate problem|certificate verification failed|SEC_E_UNTRUSTED_ROOT|"
+    r"SEC_E_CERT_|CRYPT_E_|no alternative certificate subject name",
+    re.I,
+)
+# Nur diese Meldungen belegen, dass der Server nicht erreichbar ist. „Could not read from remote
+# repository“ allein tut das nicht: Git hängt es auch an, wenn der Server das Repository
+# verweigert.
+_UNREACHABLE = re.compile(
+    r"Could not resolve|Couldn't resolve|Name or service not known|No such host is known|"
+    r"Failed to connect|Couldn't connect|Connection (was )?(timed out|refused|reset|closed)|"
+    r"Network is (unreachable|down)|No route to host|timed out|Operation too slow|"
+    r"Temporary failure in name resolution|ssh: connect to host|Connection closed by|"
+    r"Empty reply from server|Recv failure|Send failure|Timeout was reached",
+    re.I,
+)
+
+
+@dataclass(frozen=True)
+class RemoteAddress:
+    """Eine geprüfte Server-Adresse. ``kind``: ``https``, ``http``, ``ssh`` (auch die Form
+    ``benutzer@host:pfad``) oder ``local`` (vollständiger Ordnerpfad)."""
+
+    url: str
+    kind: str
+
+
+def secret_in_url_error() -> GitError:
+    """Fehler für eine Adresse mit Zugangsdaten oder Zusätzen nach ``?`` bzw. ``#`` (ohne die
+    Eingabe zu wiederholen)."""
+    return GitError(
+        t(
+            "Die Adresse enthält einen Benutzernamen, ein Kennwort, einen Token oder "
+            "Parameter (alles ab „?“ oder „#“). Bitte nur die reine Adresse eintragen, z. B. "
+            "https://server/team/daten.git; die Anmeldung übernimmt Git bzw. der Anmeldedienst "
+            "des Rechners (siehe Hilfe, „Anmeldung“)."
+        ),
+        "secret_in_url",
+    )
+
+
+def remote_special_error() -> GitError:
+    """Fehler für einen Server mit mehreren Adressen oder eigener Upload-Adresse."""
+    return GitError(
+        t(
+            "Für diesen Server sind mehrere Adressen oder eine eigene Upload-Adresse "
+            "eingetragen. Das lässt sich hier nicht ändern – bitte mit einem Git-Programm "
+            "bereinigen."
+        ),
+        "remote_special",
+    )
+
+
+class NewBranchError(GitError):
+    """Der Server hat Branches, aber nicht den lokalen. ``str(error)`` ist Klartext; für die
+    Oberfläche liefert :meth:`render` mit :func:`md_code` die Namen als Code, denn sie kommen
+    vom Server bzw. aus der Konfiguration (siehe :func:`md_code`)."""
+
+    def __init__(self, branch: str, heads: tuple[str, ...], unborn: bool = False) -> None:
+        self.branch, self.heads, self.unborn = branch, heads, unborn
+        super().__init__(self.render(), "new_branch")
+
+    def __reduce__(self):  # kopier- und speicherbar trotz anderer Argumente als GitError
+        return (NewBranchError, (self.branch, self.heads, self.unborn))
+
+    def render(self, quote: Callable[[str], str] = str) -> str:
+        """Meldung (höchstens fünf Servernamen genannt); ``quote`` wird auf jeden Namen
+        angewendet."""
+        names = ", ".join(quote(h) for h in self.heads[:5]) + (", …" if len(self.heads) > 5 else "")
+        if self.unborn:
+            text = t(
+                "Dieser Datenordner enthält noch keine gespeicherten Daten, der Server aber "
+                "schon (vorhanden: {heads}). Beim ersten Teilen würde dort ein neuer Branch "
+                "„{branch}“ angelegt, ohne dass die Daten des Teams ankommen. Wer einem "
+                "bestehenden Team beitritt, wählt stattdessen „Repository klonen“ weiter unten "
+                "auf dieser Seite.",
+                branch=quote(self.branch),
+                heads=names,
+            )
+        else:
+            text = t(
+                "Auf dem Server gibt es den Branch „{branch}“ nicht (vorhanden: {heads}). Beim "
+                "ersten Teilen würde er dort neu angelegt. Das ist nur richtig, wenn dies "
+                "wirklich das Daten-Repository ist. Wer einem bestehenden Team beitritt, wählt "
+                "stattdessen „Repository klonen“ weiter unten auf dieser Seite.",
+                branch=quote(self.branch),
+                heads=names,
+            )
+        return scrub(text)
+
+
+def new_branch_error(branch: str, heads: tuple[str, ...], unborn: bool = False) -> NewBranchError:
+    """Fehler, wenn der Server den lokalen Branch nicht hat. ``unborn``: Der Datenordner hat
+    noch keinen Commit (Beitritt zu einem Team ist dann der häufige Grund)."""
+    return NewBranchError(branch, heads, unborn)
+
+
+def nothing_to_share_error() -> GitError:
+    """Fehler, wenn „Speichern und teilen“ gewählt wird, obwohl der Datenordner noch nichts
+    Gespeichertes enthält (kein Commit): Es gäbe nichts hochzuladen."""
+    return GitError(
+        t(
+            "Der Datenordner enthält noch keine gespeicherten Daten, deshalb gibt es nichts zu "
+            "teilen."
+        ),
+        "nothing_to_share",
+        t(
+            "Zuerst Daten anlegen (z. B. ein Team) und speichern. Wer einem bestehenden Team "
+            "beitritt, wählt auf der Seite „Datenordner“ „Repository klonen“."
+        ),
+    )
+
+
+def _bad_url(message: str) -> GitError:
+    return GitError(message, "bad_url")
+
+
+def _parse_url_form(text: str, scheme: str, rest: str, allow_insecure: bool) -> RemoteAddress:
+    """Adresse der Form ``schema://…`` (https, http, ssh); ``text`` hat keine Steuerzeichen."""
+    if scheme not in _URL_SCHEMES:
+        raise _bad_url(
+            t(
+                "Dieses Verfahren wird nicht unterstützt. Erlaubt sind "
+                "https://, ssh://, git@server:pfad und vollständige Ordnerpfade."
+            )
+        )
+    if "\\" in text or not all("!" <= c <= "~" for c in text):
+        raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+    if "?" in rest or "#" in rest:
+        raise secret_in_url_error()
+    authority, _, path = rest.partition("/")
+    if "@" in path:  # fängt auch https://u:12/ss@host/x
+        raise secret_in_url_error()
+    user, at, host_port = authority.rpartition("@")
+    if at:
+        if scheme != "ssh" or ":" in user:  # bei http(s) immer; bei ssh der Kennwortteil
+            raise secret_in_url_error()
+        if not re.fullmatch(_SSH_USER, user):
+            raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+    found = _HOST_PORT.fullmatch(host_port)
+    if found is None:
+        raise _bad_url(t("Der Servername ist ungültig."))
+    port = found.group(2)
+    if port is not None and not (port.isascii() and port.isdigit() and 0 < int(port) < 65536):
+        raise _bad_url(t("Die Portnummer ist ungültig."))
+    if not path.strip("/"):
+        raise _bad_url(t("Es fehlt der Pfad zum Repository, z. B. …/team/sprint-daten.git."))
+    if scheme == "http" and not allow_insecure:
+        raise GitError(
+            t(
+                "Die Adresse beginnt mit http:// – Daten und Anmeldung würden unverschlüsselt "
+                "übertragen. Besser https:// verwenden oder die unverschlüsselte Verbindung "
+                "ausdrücklich bestätigen."
+            ),
+            "insecure_url",
+        )
+    return RemoteAddress(f"{scheme}://{rest}", scheme)
+
+
+def parse_remote_url(raw: str, *, allow_insecure: bool = False) -> RemoteAddress:
+    """Prüft eine Server-Adresse, bevor sie Git übergeben wird. Erlaubt sind ``https://``,
+    ``ssh://``, ``benutzer@host:pfad``, vollständige lokale Ordnerpfade und (nur mit
+    ``allow_insecure``) ``http://``. Alles andere – ``git://``, ``file://``, relative Pfade,
+    Remote-Helfer (``ext::``), Zugangsdaten in der Adresse – wirft :class:`GitError` mit festem
+    Text, der die Eingabe nie wiederholt."""
+    text = raw.strip()
+    if not text:
+        raise _bad_url(t("Bitte eine Adresse eintragen."))
+    if len(text) > MAX_URL_LENGTH:
+        raise _bad_url(t("Sie ist zu lang."))
+    # Steuerzeichen, Zeilentrenner und unsichtbare Zeichen (Zero-Width, Bidi, BOM).
+    if any(
+        unicodedata.category(c) in {"Zl", "Zp"} or unicodedata.category(c)[0] == "C" for c in text
+    ):
+        raise _bad_url(t("Sie enthält Zeilenumbrüche oder Steuerzeichen."))
+    if text.startswith("-"):  # Git läse die Adresse sonst als Option
+        raise _bad_url(t("Sie darf nicht mit „-“ beginnen."))
+    if _HELPER.match(text):
+        raise _bad_url(t("Spezielle Übertragungswege (z. B. „ext::“) sind nicht erlaubt."))
+    if scheme := _SCHEME.match(text):
+        return _parse_url_form(text, scheme.group(1).lower(), text[scheme.end() :], allow_insecure)
+    if Path(text).is_absolute():  # die Plattform entscheidet, was „vollständig“ ist
+        return RemoteAddress(text, "local")
+    if _SCP_SECRET.match(text):
+        raise secret_in_url_error()
+    if found := _SCP_ADDRESS.fullmatch(text):
+        if found.group(3).startswith("-"):
+            raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+        return RemoteAddress(text, "ssh")
+    raise _bad_url(
+        t(
+            "Das Format wird nicht erkannt. Beispiele: "
+            "https://server/team/daten.git, git@server:team/daten.git oder ein vollständiger "
+            "Ordnerpfad."
+        )
+    )
+
+
+class _ProbeRun(NamedTuple):
+    """Ergebnis von :func:`_probe_run`. ``code``: ``None`` = Zeitüberschreitung (der
+    Prozessbaum ist dann beendet). ``truncated``: Die Ausgabe war länger als das Limit."""
+
+    code: int | None
+    out: str
+    err: str
+    truncated: bool = False
+
+
+def _read_output(file: IO[bytes]) -> tuple[str, bool]:
+    """Die ersten 64 KB der Ausgabe als Text und ob es mehr gab."""
+    file.seek(0)
+    data = file.read(_PROBE_OUTPUT_LIMIT + 1)
+    text = data[:_PROBE_OUTPUT_LIMIT].decode("utf-8", errors="replace")
+    return text, len(data) > _PROBE_OUTPUT_LIMIT
+
+
+def _probe_run(root: Path, args: tuple[str, ...], timeout: float) -> _ProbeRun:
+    """Führt ``git`` für die Verbindungsprüfung aus: Rückgabecode, Ausgabe und Fehlerausgabe
+    (je höchstens 64 KB, siehe :class:`_ProbeRun`).
+
+    Ausgabe über Zwischendateien statt Pipes: Unter Windows hält ein Hilfsprozess von Git
+    (``git-remote-http``) die Pipes offen, auch wenn der Aufruf längst beendet ist; ein Lesen
+    bis zum Ende hinge dann. Bei Zeitüberschreitung wird der ganze Baum beendet."""
+    try:
+        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+            process = subprocess.Popen(
+                ["git", *args],
+                cwd=root,
+                stdin=subprocess.DEVNULL,
+                stdout=out,
+                stderr=err,
+                env=_env(True, _PROBE_ENV),
+                **{**proctree.popen_options(), **NO_WINDOW},
+            )
+            try:
+                code: int | None = process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                proctree.terminate_tree(process)
+                code = None
+            text, truncated = _read_output(out)
+            return _ProbeRun(code, text, _read_output(err)[0], truncated)
+    except FileNotFoundError as e:
+        raise classify("", missing=True) from e
+
+
+def _heads_of(run: _ProbeRun) -> list[str]:
+    """Branch-Namen aus der Ausgabe von ``git ls-remote --heads``. Ist die Ausgabe abgeschnitten,
+    fällt die letzte (unvollständige) Zeile weg."""
+    lines = run.out.split("\n")
+    if run.truncated:
+        lines = lines[:-1]
+    prefix = "refs/heads/"
+    heads = []
+    for line in lines:
+        _, _, ref = line.partition("\t")
+        if ref.startswith(prefix):
+            heads.append(ref[len(prefix) :].strip())
+    return heads
+
+
+def probe_remote(
+    root: Path,
+    address: RemoteAddress,
+    timeout: float = PROBE_TIMEOUT,
+    branch: str | None = None,
+) -> tuple[str, ...]:
+    """Fragt den Server nach seinen Branches (``git ls-remote``, ändert nichts) und liefert
+    deren Namen. Ein leerer Server ist gültig (leere Liste). Fehler kommen als
+    :class:`GitError` mit verständlichem Hinweis (siehe :func:`_probe_error`).
+
+    Die Liste ist nicht gekürzt, solange die Ausgabe ins Limit passt (64 KB, rund 900 Branches).
+    Bei mehr Branches fragt eine zweite Anfrage gezielt nach ``branch``: Der Name steht in der
+    Liste, genau wenn der Server ihn hat. Das Kürzen für die Anzeige ist Sache der Oberfläche."""
+    run = _probe_run(root, ("ls-remote", "--heads", "--", address.url), timeout)
+    if run.code != 0:
+        raise _probe_failure(run, address)
+    heads = _heads_of(run)
+    if branch and run.truncated and branch not in heads:
+        wanted = _probe_run(
+            root, ("ls-remote", "--heads", "--", address.url, f"refs/heads/{branch}"), timeout
+        )
+        if wanted.code != 0:
+            raise _probe_failure(wanted, address)
+        if branch in _heads_of(wanted):  # das Muster passt auch auf …/refs/heads/NAME
+            heads.append(branch)
+    return tuple(heads)
+
+
+def _probe_failure(run: _ProbeRun, address: RemoteAddress) -> GitError:
+    message = (run.err.strip() or run.out.strip())[:4000]
+    return _probe_error(message, address, timed_out=run.code is None)
+
+
+def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) -> GitError:
+    """Macht aus der Fehlerausgabe der Verbindungsprüfung einen verständlichen Fehler. Die
+    Zuordnung steht nur hier (classify bleibt unverändert): Git meldet ein nicht vorhandenes
+    Repository oder eine verweigerte Berechtigung mit „Could not read from remote repository“,
+    das classify als „offline“ liest; als „Server nicht erreichbar“ (``offline``) gilt hier nur,
+    was einen Netzwerkfehler belegt (:data:`_UNREACHABLE`) oder die Zeitüberschreitung. Nur
+    dann bietet die Oberfläche an, die Adresse ungeprüft zu speichern. Der Text von Git bleibt
+    in ``str(error)`` (erscheint als „Technische Meldung“); es gibt immer einen Hinweis."""
+    err = classify(message, timeout=timed_out)
+    if timed_out:
+        err.hint = _unreachable_hint()
+    elif _HOST_KEY.search(message):
+        err.kind = "auth"
+        err.hint = t(
+            "Der Rechner kennt diesen SSH-Server noch nicht (oder sein Schlüssel hat sich "
+            "geändert). Die App kann das nicht bestätigen: Bitte einmal mit einem SSH- oder "
+            "Git-Programm zum Server verbinden und den Fingerabdruck bestätigen, oder die "
+            "https-Adresse des Repositorys verwenden. Danach hier noch einmal prüfen."
+        )
+    elif err.kind == "auth":
+        err.hint = auth_help(address.url)
+    elif _NOT_FOUND.search(message):
+        err.kind = "not_found"
+        err.hint = hint_for("not_found")
+    elif _CERTIFICATE.search(message):
+        err.kind = "certificate"
+        err.hint = t(
+            "Der Server antwortet, aber sein Sicherheitszertifikat wird von diesem Rechner nicht "
+            "anerkannt (häufig ein Firmenzertifikat oder ein selbst ausgestelltes Zertifikat). "
+            "Bitte die IT bitten, das Zertifikat auf dem Rechner zu hinterlegen. Die App ändert "
+            "keine Git-Einstellungen und speichert die Adresse so nicht."
+        )
+    elif err.kind == "offline" and _UNREACHABLE.search(message):
+        err.hint = _unreachable_hint()
+    elif err.kind == "offline":  # z. B. „Could not read from remote repository“ ohne Grund
+        err.kind = "error"
+        err.hint = t(
+            "Der Server hat die Anfrage nicht erfüllt. Bitte die Adresse (Tippfehler im "
+            "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
+            "„Technische Meldung“."
+        )
+    else:
+        err.hint = t(
+            "Die Verbindung zum Server ist fehlgeschlagen. Die Meldung von Git steht unter "
+            "„Technische Meldung“."
+        )
+    return err
+
+
+def _unreachable_hint() -> str:
+    return t(
+        "Der Server ist unter dieser Adresse nicht erreichbar. Bitte die Adresse "
+        "(Tippfehler?), die Internetverbindung und das VPN prüfen. Ein Anmeldefenster des "
+        "Rechners kann den Vorgang verzögern."
     )
 
 
@@ -605,19 +1070,29 @@ def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
 
 
 def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
-    """Klont ein bestehendes Daten-Repository nach ``path``. Fehler (Anmeldung, Server nicht
-    erreichbar, Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
-    url = url.strip()
-    if not url or url.startswith("-"):  # Git läse die Adresse sonst als Option
-        raise GitError(t("Ungültige Adresse: {url}", url=url))
+    """Klont ein bestehendes Daten-Repository nach ``path``. Die Adresse wird wie bei
+    :func:`parse_remote_url` geprüft (Zugangsdaten in der Adresse, relative Pfade, ``git://`` und
+    ``file://`` werden abgelehnt). Fehler (Adresse, Anmeldung, Server nicht erreichbar,
+    Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
+    # Beim Klonen reicht auch http:// (viele Repositories im Firmennetz haben nichts anderes).
+    address = parse_remote_url(url, allow_insecure=True)
     if path.exists() and any(path.iterdir()):
         raise GitError(t("{path} ist nicht leer", path=path))
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        _git(path.parent, "clone", "--", url, str(path), network=True, timeout=timeout)
+        _git(
+            path.parent,
+            "clone",
+            "--",
+            address.url,
+            str(path),
+            network=True,
+            timeout=timeout,
+            env_extra={"GIT_ALLOW_PROTOCOL": SAFE_PROTOCOLS},
+        )
     except GitError as e:
         if e.kind == "auth":
-            e.hint = auth_help(url)
+            e.hint = auth_help(address.url)
         raise
     finally:
         forget_roots(path)
