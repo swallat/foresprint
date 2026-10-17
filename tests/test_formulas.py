@@ -3,9 +3,30 @@ from datetime import date
 from pathlib import Path
 
 from sprintforecast.forecast import build_forecast
-from sprintforecast.formulas import plain_explanation, step, steps
+from sprintforecast.formulas import _exact, plain_explanation, step, steps
 from sprintforecast.model import TrendMode
 from sprintforecast.storage import Repository
+
+
+def test_exact_shows_up_to_four_digits_without_superfluous_zeros():
+    assert _exact(30.4375) == "30,4375"
+    assert _exact(25.25) == "25,25"
+    assert _exact(30.0) == "30"
+    assert _exact(100.0) == "100"
+    assert _exact(0.0) == "0"
+    assert _exact(30.123456) == "30,1235"  # mehr als 4 Stellen werden gerundet
+    assert _exact(None) == "–"
+    assert _exact(-0.00001) == "0"  # kein „-0“
+    assert _exact(1234.5) == "1.234,5"  # Tausenderpunkt wie fmt
+
+
+def test_exact_keeps_integer_zeros_without_decimals():
+    """Nullen werden nur hinter dem Dezimalzeichen entfernt: 100 bleibt 100, nicht 1."""
+    assert _exact(100.0, 0) == "100"
+    assert _exact(10.0, 0) == "10"
+    assert _exact(30.4, 0) == "30"
+    assert _exact(1000.0, 0) == "1.000"
+    assert _exact(100.0, 1) == "100"
 
 
 def fc(data_dir: Path):
@@ -15,7 +36,7 @@ def fc(data_dir: Path):
 def test_formulas_flat_default_calculation(data_dir: Path):
     f = fc(data_dir)  # Demo: Trend-Modus flat
     e = f.entry("2026.22")
-    assert step(f, e, "plan").calculation == "16,84 / 45 × 30,0 = 11,229 → 11,2 PT"
+    assert step(f, e, "plan").calculation == "16,8433 / 45 × 30 = 11,229 → 11,2 PT"
     assert step(f, e, "trend").formula == "n. Velocity-Trend = Wert_vorher (flat)"
 
 
@@ -37,7 +58,7 @@ def test_formulas_are_symbolic_and_calculation_has_numbers(data_dir: Path):
     plan = step(f, e, "plan")
     assert plan.formula.startswith("Forecast PLAN = ")
     assert "n. Velocity-Trend / Referenzkapazität × Kapazität" in plan.formula
-    assert plan.calculation == "15,28 / 45 × 30,0 = 10,185 → 10,1 PT"
+    assert plan.calculation == "15,2771 / 45 × 30 = 10,185 → 10,1 PT"
     trend = step(f, e, "trend")
     assert trend.formula.startswith("n. Velocity-Trend = Ø[−2] / Ø[−3]")
     assert trend.calculation == "16,84 / 17,66 × 16,02 = 15,28"
@@ -57,7 +78,7 @@ def test_plain_explanation_names_numbers_sources_and_sprints(data_dir: Path):
     f = fc(data_dir)
     text = plain_explanation(f, f.entry("2026.22"))
     assert "16,84" in text and "30,0 PT" in text and "Personenliste" in text
-    assert "11,229" in text and "**11,2 PT**" in text
+    assert "16,8433 / 45 × 30 = 11,229 PT" in text and "**11,2 PT**" in text
     assert "2026.16, 2026.17, 2026.18, 2026.19, 2026.20" in text  # Basis des Durchschnitts
     assert "schreibt Schwankungen" not in text  # flat: keine Warnung
 

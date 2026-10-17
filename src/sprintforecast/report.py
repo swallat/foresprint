@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from sprintforecast.analysis import average_focus_factor, band, buffer_hint
-from sprintforecast.engine import UNSURE_SOURCES, CapacitySource
+from sprintforecast.engine import UNSURE_SOURCES, CapacitySource, round_half_up
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import is_english, t
 from sprintforecast.model import AbsenceState, Sprint, absence_status
@@ -18,6 +18,19 @@ def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
     if not is_english():
         text = text.replace(",", "_").replace(".", ",").replace("_", ".")
     return text + suffix
+
+
+def fmt_capacity(value: float | None, digits: int = 1) -> str:
+    """Kapazität für die Anzeige, kaufmännisch gerundet (ab ,5 auf) wie ``rounded`` und der
+    eingefrorene Wert. Pythons Formatierung rundet bei exakter Hälfte zur geraden Ziffer
+    (25,25 → „25,2“) und darf für Kapazitäten nicht direkt benutzt werden. Die Prognose rechnet
+    weiter mit dem ungerundeten Wert.
+
+    ``digits`` ist die Einstellung ``capacity.rounding`` des Teams (Standard 1), dieselbe wie bei
+    ``CapacityBreakdown.rounded``: Anzeige und eingefrorener Wert stimmen so auch bei einer
+    anderen Stellenzahl überein. Aufrufer mit Team bzw. Sprint übergeben sie
+    (``TimelineEntry.capacity_digits``, ``CapacityBreakdown.rounding``)."""
+    return "–" if value is None else fmt(round_half_up(value, digits), digits)
 
 
 def pct(value: float | None) -> str:
@@ -34,7 +47,7 @@ def source_label(source: CapacitySource | None) -> str:
 
 def capacity_label(e: TimelineEntry) -> str:
     source = e.result.plan_capacity_source
-    value = fmt(e.result.plan_capacity)
+    value = fmt_capacity(e.result.plan_capacity, e.capacity_digits)
     if source in UNSURE_SOURCES:
         return f"{value} ⚠️ {source_label(source)}"
     return f"{value} ({source_label(source)})" if source else value
@@ -175,7 +188,8 @@ def render(fc: Forecast, history: int = 10) -> str:
     for e in past:
         r = e.result
         lines.append(
-            f"| {e.sprint.id} | {fmt(r.capacity.value)} | {fmt(r.forecast_ist.value, 2)} "
+            f"| {e.sprint.id} | {fmt_capacity(r.capacity.value, e.capacity_digits)} "
+            f"| {fmt(r.forecast_ist.value, 2)} "
             f"| {fmt(r.velocity.value, 2)} | {fmt(r.normalized_velocity.value, 2)} "
             f"| {fmt(r.normalized_velocity.average, 2)} | {pct(r.fulfillment.value)} "
             f"| {pct(r.scope_creep.value)} |"
