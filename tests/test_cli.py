@@ -70,7 +70,7 @@ def test_planning_reports_delta(data_dir: Path):
     sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
     assert sprint["forecast_ist"] == 9
     assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
-    assert "Delta 0,50" in result.output  # Forecast PLAN 9,0 − Planning 8,5
+    assert "Delta 1,00" in result.output  # Forecast PLAN 9,5 − Planning 8,5
 
 
 def test_personen_change_fte(data_dir: Path):
@@ -312,7 +312,7 @@ def test_forecast_rechenweg(data_dir: Path):
     result = run(data_dir, "forecast", "demo", "--rechenweg", "2026.22")
     assert result.exit_code == 0, result.output
     assert "Rechenweg Sprint 2026.22" in result.output
-    assert "10,185" in result.output
+    assert "11,229" in result.output  # 16,84 / 45 × 30,0
 
 
 def test_datenordner(tmp_path: Path, data_dir: Path):
@@ -324,3 +324,14 @@ def test_datenordner(tmp_path: Path, data_dir: Path):
     assert result.exit_code == 0, result.output
     assert "Datenordner gemerkt" in result.output
     assert "Gemerkt:" in run(data_dir, "datenordner").output
+
+
+def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
+    plain = run(data_dir, "forecast", "demo")
+    assert "schreibt Schwankungen fort" not in plain.output  # Standard flat: keine Warnung
+    team = data_dir / "demo" / "team.yaml"
+    team.write_text(team.read_text().replace("trend_mode: flat", "trend_mode: classic"))
+    result = run(data_dir, "forecast", "demo")
+    assert "Trend-Modus classic" in result.output and "schreibt Schwankungen fort" in result.output
+    report = run(data_dir, "bericht", "demo", "-o", "-")
+    assert "Trend-Modus classic" in report.output

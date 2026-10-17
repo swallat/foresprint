@@ -86,6 +86,8 @@ class Distribution:
     # die Menge, die diese Gruppe im Sprint schaffen kann (Anteil × Forecast PLAN).
     production_share: float | None = None
     production_available: float | None = None
+    # Aktuell berechneter Forecast PLAN (weicht von ``plan`` ab, wenn dieser eingefroren ist).
+    current_plan: float | None = None
 
     @property
     def production_overload(self) -> float | None:
@@ -113,6 +115,26 @@ def plan_of(entry: TimelineEntry) -> tuple[float | None, bool]:
     if entry.sprint.forecast_plan is not None:
         return entry.sprint.forecast_plan, True
     return entry.result.plan, False
+
+
+@dataclass(frozen=True)
+class PlanView:
+    """Beide Stände des Forecast PLAN eines Sprints: aktuell berechnet und beim Planning
+    eingefroren (None, solange nicht eingefroren)."""
+
+    current: float | None
+    frozen: float | None
+
+    @property
+    def difference(self) -> float | None:
+        """Aktuell − beim Planning; None ohne eingefrorenen oder aktuellen Wert."""
+        if self.current is None or self.frozen is None:
+            return None
+        return self.current - self.frozen
+
+
+def plan_view(entry: TimelineEntry) -> PlanView:
+    return PlanView(current=entry.result.plan, frozen=entry.sprint.forecast_plan)
 
 
 def standard_shares(active: list[Product], available: float | None) -> dict[str, float]:
@@ -163,6 +185,7 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
         rows=rows,
         production_share=group,
         production_available=plan * group if plan is not None and group is not None else None,
+        current_plan=entry.result.plan,
     )
 
 
@@ -172,6 +195,8 @@ class Balance:
     sprints: int
     standard: float
     done: float
+    # Sprints, in denen für das Produkt kein „Erledigt“ erfasst ist (fehlt ≠ 0): nicht gezählt.
+    missing: int = 0
 
     @property
     def difference(self) -> float:
@@ -180,7 +205,9 @@ class Balance:
 
 
 def balance(fc: Forecast, entries: list[TimelineEntry]) -> list[Balance]:
-    """Saldo je Produkt über die Sprints, in denen Erledigt erfasst wurde."""
+    """Saldo je Produkt über die Sprints, in denen Erledigt für das Produkt erfasst wurde. Ein
+    fehlender Wert zählt nicht als 0; solche Sprints werden gezählt (``missing``) und fließen
+    weder mit Erledigt noch mit dem Standard ein."""
     order = {p.id: i for i, p in enumerate(fc.data.products)}
     sums: dict[str, Balance] = {}
     for e in entries:
@@ -191,9 +218,12 @@ def balance(fc: Forecast, entries: list[TimelineEntry]) -> list[Balance]:
             if r.standard is None and r.done is None:
                 continue
             b = sums.setdefault(r.product.id, Balance(r.product, 0, 0.0, 0.0))
+            if r.done is None:  # Wert fehlt: weder als 0 noch mit dem Standard zählen
+                b.missing += 1
+                continue
             b.sprints += 1
             b.standard += r.standard or 0.0
-            b.done += r.done or 0.0
+            b.done += r.done
     return sorted(sums.values(), key=lambda b: order.get(b.product.id, len(order)))
 
 

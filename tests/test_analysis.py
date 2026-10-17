@@ -86,7 +86,12 @@ def test_completion_on_demo(data_dir: Path):
     order = result.sprints
     assert order.index(result.p50) <= order.index(result.p85)
     assert result.cumulative == sorted(result.cumulative)
-    assert "2026.23" in result.trend_capacity_sprints  # ohne Sprintdatei
+    # Mit Personenliste kommt die Kapazität immer aus Kalender und Personen, nie aus dem Trend.
+    assert result.trend_capacity_sprints == []
+    no_people = Repository(data_dir).load("demo")
+    no_people.people = []
+    trend_only = analysis.completion(no_people, TODAY, remaining=40, share=0.8)
+    assert "2026.23" in trend_only.trend_capacity_sprints  # Teams ohne Personenliste
     assert analysis.completion(data, TODAY, remaining=0, share=1) is None
 
 
@@ -94,5 +99,6 @@ def test_existing_values_are_unchanged(data_dir: Path):
     """Die Analysen ergänzen nur – Forecast PLAN, Roadmap, Kleinkram bleiben wie bisher."""
     fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
     upcoming = {e.sprint.id: (e.result.plan, e.result.roadmap) for e in fc.upcoming()}
-    assert upcoming["2026.21"] == (9.0, pytest.approx(7.2))
-    assert upcoming["2026.22"] == (10.1, pytest.approx(8.08))
+    # Demo mit Trend-Modus flat (Standard): konstanter Durchschnitt statt klassischer Trend
+    assert upcoming["2026.21"] == (9.5, pytest.approx(7.6))
+    assert upcoming["2026.22"] == (11.2, pytest.approx(8.96))

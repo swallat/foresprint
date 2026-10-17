@@ -167,7 +167,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | Bereich | Seite | Inhalt |
 |---|---|---|
 | Sprint | Forecast | Prognose für laufenden + kommende Sprints, Verlauf, Diagramm, Bericht schreiben |
-| | Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast |
+| | Fehltage | Tabelle Person × Sprint mit Live-Vorschau von Kapazität und Forecast; Stand je Sprint, „Niemand fehlt“ ausdrücklich bestätigen |
 | | Sprintkalender | kommende Sprints mit Start, letztem Tag und Arbeitstagen; anlegen, Länge anpassen |
 | | Produktverteilung | Standard, PO-Vorplanung, Planning, Erledigt je Produkt; Diagramme, Verlauf, Saldo |
 | Boards | PO-Vorplanung | je Produkt vorsehen, was in den Sprint soll – im Vergleich zum Standard, Summe je PO |
@@ -212,6 +212,11 @@ App (Editor, Terminal) erscheinen daher mit kleiner Verzögerung, eigene Speiche
   Fehltage je Person als **Prognose** eintragen. Sie wirken auf Kapazität (Quelle „voraussichtliche
   Fehltage“) und Forecast PLAN, gelten aber nicht als bestätigt. Im *Planning* (Schritt 1) sind sie
   vorbelegt; erst „Fehltage speichern“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
+- **Stand der Fehltage je Sprint** (unbekannt / voraussichtlich / bestätigt) ist überall sichtbar
+  (Forecast, Fehltage, Planning). „Weiter ohne Eintrag“ im Planning bestätigt **nichts**: Wer wirklich
+  keine Fehltage hat, bestätigt das ausdrücklich („Niemand fehlt – bestätigen und weiter“ bzw. Spalte
+  *Niemand fehlt* auf der Seite Fehltage). Das Speichern von Planning-Werten (Forecast IST, Einplanung)
+  ändert den Stand der Fehltage nicht. Das Datum, an dem ein Sprint geplant wurde, ist kein Beleg mehr.
 - **Einplanung aus der Vorplanung:** Im Planning (Schritt 2) ist die Einplanung je Produkt mit der
   letzten PO-Vorplanung vorbelegt (bitte prüfen und speichern).
 - **Einfrieren aufheben:** Der beim Planning eingefrorene Forecast PLAN lässt sich auf dem Planning-Board
@@ -279,14 +284,16 @@ forecast:
   window: 5                 # gleitender Durchschnitt
   roadmap_share: 0.8
   rounding: 1               # Forecast PLAN wird abgerundet
-  trend_mode: classic     # classic | linear | flat
+  trend_mode: flat        # flat (Standard) | classic | linear – die beiden letzten schreiben Rauschen fort
   horizon: 3                # künftige Sprints in der Prognose
   product_basis: plan       # Standard je Produkt aus: plan (Forecast PLAN) | roadmap
 capacity:
   overhead_share: 0.0       # pauschaler Abzug für Scrum-Termine
-  overhead_days: 1          # optional: zusätzlich fester Abzug in PT je Person und Sprint (× FTE)
-  absence_history: 4        # optional: Kapazität künftiger Sprints ohne Fehltage um die Ø Fehltage
-                            # der letzten 4 Sprints mindern (0 = aus, dann Trend)
+  overhead_days: 1          # optional: fester Abzug in PT je Person und Sprint (× FTE); ersetzt
+                            # overhead_share (derselbe Abzug in zwei Einheiten, nicht addiert)
+  absence_history: 4        # Standard 4: Kapazität von Sprints mit unbekannten Fehltagen um die
+                            # Ø Fehltage der letzten 4 Sprints mit bestätigten Fehltagen mindern
+                            # (0 = keine Schätzung, dann ohne Abzug)
   country: DE               # optional (Standard DE): ISO-Ländercode für Feiertage und Wochenende
   region: NW                # Region im Land (Bundesland, Staat, Provinz), z. B. NW, CA, ON
   workweek: auto            # optional: auto (wie im Land) | mon-fri | sun-thu | mon-sat
@@ -306,6 +313,17 @@ people:
   - {from: 2025-01-01, to: 2026-05-31, fte: 1}
   - {from: 2026-06-01, to: null, fte: 0.5}
 ```
+
+**FTE und Arbeitswoche:** `fte` ist der Anteil an den **Arbeitstagen der Person** (1 = alle ihre
+Arbeitstage). Die Arbeitswoche (`workweek`) legt fest, welche Wochentage das sind. Teilzeit bitte nur
+**einmal** abbilden, sonst wird doppelt abgezogen. Beispiel mit 10 Arbeitstagen (Mo–Fr) im Sprint:
+
+| Eintrag | Kapazität |
+|---|---|
+| `workweek: mon-fri` (Standard), `fte: 0.8` | 10 × 0,8 = **8 PT** |
+| `workweek: mon,tue,wed,thu`, `fte: 1` | 8 Arbeitstage × 1 = **8 PT** |
+| `workweek: mon,tue,wed,thu`, `fte: 0.8` (doppelt!) | 8 × 0,8 = 6,4 PT |
+| `workweek: mon-fri`, `fte: 0.5` (halbtags) | **5 PT** |
 
 **`products.yaml`** (optional) – Produkte nie löschen, sondern mit `to:` beenden:
 
@@ -330,8 +348,13 @@ velocity: null
 scope_creep: null           # Anteil, 0.3 = 30 %
 planning: {carryover: 0.25, backlog: 9.48, corrections: [1.5]}
 forecast_plan: 10.1         # Forecast PLAN beim Planning (eingefroren), optional
-absences_confirmed: true   # Fehltage bestätigt (Seite Fehltage); ohne Einträge und ohne Bestätigung
-                           # gilt „Fehltage unbekannt“ (Kapazität per Trend bzw. erwartete Fehltage)
+absence_state: confirmed   # Stand der Fehltage: unknown | expected | confirmed. „confirmed“ auch ohne
+                           # Einträge („niemand fehlt“, ausdrücklich bestätigt); „unknown“: Kapazität
+                           # aus Kalender und Personen, Fehltage nach der Historie geschätzt.
+                           # Ältere Dateien ohne dieses Feld bleiben lesbar (Stand wird abgeleitet:
+                           # Einträge, absences_confirmed: true oder ein schon geplanter bzw.
+                           # ausgewerteter Sprint gelten als bestätigt).
+absences_confirmed: true   # nur für ältere Programmversionen; wird zusammen mit „confirmed“ geschrieben
 expected_absences: {anna: 2}   # PO-Vorplanung: voraussichtliche Fehltage (Prognose); wirken auf
                            # Kapazität und Forecast PLAN, bis die Fehltage bestätigt sind
 not_done: 1.5              # Review, optional: Menge, die nicht fertig wurde
@@ -357,27 +380,56 @@ products:                   # optional, je Produkt-ID
 | Kennzahl | Formel |
 |---|---|
 | Normierte Velocity | Velocity / Kapazität × Referenzkapazität |
-| Ø | Mittel der letzten `window` Sprints, nur wenn der Sprint selbst einen Wert hat |
-| Trend | Fortschreibung des Ø in die Zukunft |
-| Forecast PLAN | n. Velocity-Trend / Referenz × Kapazität, auf 1 Stelle abgerundet; Vergangenheit: Forecast IST |
+| Ø | Mittel der letzten `window` Sprints **mit Wert**, nur wenn der Sprint selbst einen Wert hat; Sprints ohne Wert (Lücken) zählen nicht mit, das Fenster reicht weiter zurück |
+| Trend | Fortschreibung des Ø in die Zukunft (nie negativ) |
+| Forecast PLAN | n. Velocity-Trend / Referenz × Kapazität, auf 1 Stelle abgerundet, nie negativ; Vergangenheit: Forecast IST |
 | Roadmap / Kleinkram | Forecast PLAN × 0,8 / Rest |
 | Fulfillment | Velocity / Forecast IST |
 | Planning-Delta | Forecast PLAN − (Überkipper + Backlog − Korrekturen) |
+| Erledigt | fertige Tickets **plus** im Sprint erledigte Teilanteile offener Tickets (Teampraxis); sollte im Team einheitlich gezählt werden, sonst sind Velocity und Erledigt über eine Umstellung hinweg nicht vergleichbar |
 | Standard je Produkt | verfügbar × `share` (fester Anteil, optional) bzw. (verfügbar − Σ feste Anteile) / Anzahl der Produkte ohne `share`; verfügbar = Forecast PLAN (beim Planning eingefroren, sonst aktuell) bzw. dessen Roadmap-Anteil |
-| Saldo je Produkt | Σ Erledigt − Σ Standard über die Sprints mit erfasstem Erledigt |
+| Saldo je Produkt | Σ Erledigt − Σ Standard über die Sprints, in denen für das Produkt Erledigt erfasst ist (fehlt ≠ 0: Sprints ohne Wert zählen nicht); feste Anteile dürfen zusammen nicht über 100 % liegen |
 
 **Kapazität eines Sprints** – in dieser Reihenfolge:
 1. `capacity` in der Sprintdatei (eingefroren oder manuell) → *erfasst*
-2. Sprintdatei existiert, Personenliste vorhanden → Σ Personen
-   (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine → *Personenliste*;
-   Abzug = Summe × Anteil (%) + Σ min(Kapazität der Person, PT je Person × FTE)
-3. Keine Sprintdatei → Kapazitäts-Trend → *Trend* (im Bericht mit ⚠️ markiert)
+2. Mit Personenliste wird die Kapazität **immer aus Kalender und Personen** berechnet
+   (Feiertage, Sprintlänge, Arbeitswoche, FTE); geschätzt werden nur die *unbekannten Fehltage*.
+   Je nach **Stand der Fehltage** des Sprints (`absence_state`):
+   - *bestätigt* (Fehltage eingetragen oder ausdrücklich „niemand fehlt“) → Σ Personen
+     (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug → *Personenliste*
+   - *voraussichtlich* (PO-Vorplanung) → dasselbe mit den voraussichtlichen Fehltagen →
+     *voraussichtliche Fehltage*
+   - *unbekannt* → Kalender und Personen, gemindert um die Ø Fehltage der letzten
+     `absence_history` Sprints **mit bestätigten Fehltagen** (bestätigte Sprints ohne Fehltage
+     zählen mit 0 mit; die verwendeten Sprints zeigt die Fehltage-Seite) → *erwartete Fehltage*;
+     gibt es noch keine solche Historie, ohne Abzug → *Kalender, Fehltage unbekannt* (⚠️)
+3. Nur **ohne Personenliste**: Kapazitäts-Trend → *Trend* (⚠️)
+
+**Abzug für Scrum-Termine** (eine gemeinsame Rechnung für bestätigte, voraussichtliche und
+erwartete Fehltage): erst Feiertage und Fehltage je Person, dann der Abzug, dann die Rundung.
+Feste PT je Person (`overhead_days` × FTE, höchstens die Kapazität der Person) **ersetzen** den
+Prozentabzug (`overhead_share`); beide sind derselbe Abzug in zwei Einheiten und werden nicht
+addiert.
 
 **Trend-Modi** (`forecast.trend_mode`):
-- `classic` (Standard): 1. Zukunftssprint linear `Ø + (Ø − Ø_vorher)`,
+- `flat` (Standard): letzter Ø bleibt konstant (robust).
+- `classic`: 1. Zukunftssprint linear `Ø + (Ø − Ø_vorher)`,
   2. multiplikativ `Ø_vorletzt / Ø_vorvorletzt × Trend_vorher`, danach linear.
 - `linear`: durchgehend linear.
-- `flat`: letzter Ø bleibt konstant (robust bei langen Horizonten).
+
+⚠️ `classic` und `linear` schreiben auch Rauschen fort: Der Forecast kann steigen oder fallen und
+liegt bei längerem Horizont schnell außerhalb der Bandbreite. Sie sind nur ausdrücklich zu wählen
+(die Oberfläche warnt dann). Der Forecast ist nie negativ. Reicht die Historie nicht für den
+gewählten Modus (z. B. genau `window` Sprints), gilt `flat` mit dem Hinweis „Historie dünn“.
+
+**Unsicherheit:** Die Forecast-Kacheln zeigen die Spanne (niedrigste bis höchste n. Velocity der
+letzten Sprints) und warnen bei weniger als 8 Sprints mit Velocity. Aussagen wie „in 85 % der
+Simulationen“ sind modellabhängige Häufigkeiten aus der Historie (Stichprobe wird angezeigt),
+keine Zusagen.
+
+**Prognose aktuell / beim Planning:** „Prognose aktuell“ ist der heute berechnete Forecast PLAN,
+„Prognose beim Planning“ der beim Planning eingefrorene Stand (Basis der Verteilung je Produkt);
+wo beide vorkommen, werden sie getrennt mit Differenz gezeigt.
 
 **Rechenweg:** Jede Kennzahl lässt sich mit eingesetzten Zahlen nachvollziehen – in der
 Weboberfläche per Tooltip (ⓘ an Kennzahlen und Spaltenköpfen) und im ausklappbaren
@@ -395,10 +447,11 @@ zum Forecast, die bisherigen Werte bleiben unverändert:
   zwischen Teams vergleichbar.
 - **Puffer:** Ø Scope Creep der letzten Sprints im Vergleich zum Kleinkram-Anteil.
 - **Wann ist es fertig?** Monte-Carlo-Simulation ab dem nächsten Sprint: in welchem Sprint
-  eine Restmenge wahrscheinlich (50 %) bzw. mit 85 % Sicherheit erledigt ist – mit dem
-  Roadmap-Anteil oder (`--gesamt`) dem ganzen Forecast, optional nur mit einem
-  **Projektanteil** davon (`--anteil 50` = die Hälfte). Sprints ohne erfasste Fehltage
-  rechnen mit der Ø Kapazität.
+  eine Restmenge in 50 % bzw. 85 % der Simulationsläufe erledigt ist (modellabhängige Häufigkeit
+  aus den letzten `window` Sprints, keine Zusage; Stichprobe und Warnung bei wenig Daten werden
+  angezeigt) – mit dem Roadmap-Anteil oder (`--gesamt`) dem ganzen Forecast, optional nur mit
+  einem **Projektanteil** davon (`--anteil 50` = die Hälfte). Teams ohne Personenliste rechnen
+  mit der Ø Kapazität.
 
 Der Bericht `FORECAST.md` enthält am Ende einen Abschnitt „Ergänzend: Bandbreite“.
 

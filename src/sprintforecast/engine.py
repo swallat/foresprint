@@ -38,24 +38,43 @@ def _div(a: float | None, b: float | None) -> float | None:
 
 
 def rolling_average(values: Series, window: int) -> Series:
-    """Gleitender Durchschnitt über ``window`` Sprints.
+    """Gleitender Durchschnitt über die letzten ``window`` Sprints **mit Wert**.
 
-    Nur definiert, wenn der Wert des Sprints selbst vorhanden ist und davor genügend
-    Sprints liegen. Fehlende Werte im Fenster werden ignoriert.
+    Regel für Lücken: Sprints ohne Wert zählen nicht mit, das Fenster reicht entsprechend weiter
+    zurück (es werden immer ``window`` Werte gemittelt, nie weniger). Der Durchschnitt ist nur
+    definiert, wenn der Sprint selbst einen Wert hat und davor genug Werte vorliegen.
     """
     result: Series = []
-    for i, value in enumerate(values):
-        if value is None or i < window - 1:
+    present: list[float] = []
+    for value in values:
+        if value is None:
             result.append(None)
             continue
-        present = [v for v in values[i - window + 1 : i + 1] if v is not None]
-        result.append(sum(present) / len(present))
+        present.append(value)
+        result.append(sum(present[-window:]) / window if len(present) >= window else None)
     return result
 
 
-def trend(average: Series, mode: TrendMode) -> Series:
-    """Schreibt den gleitenden Durchschnitt dort fort, wo er fehlt (Zukunft)."""
+def gaps_in_window(values: Series, window: int) -> int:
+    """Anzahl der Sprints ohne Wert, die das Fenster des letzten Durchschnitts überspringt."""
+    last = max((i for i, v in enumerate(values) if v is not None), default=None)
+    if last is None:
+        return 0
+    seen = 0
+    for i in range(last, -1, -1):
+        if values[i] is not None:
+            seen += 1
+            if seen == window:
+                return sum(1 for v in values[i:last] if v is None)
+    return 0
+
+
+def _trend(average: Series, mode: TrendMode | str) -> tuple[Series, list[bool]]:
+    """Trend und je Position, ob statt des gewählten Modus auf ``flat`` zurückgegriffen wurde
+    (zu wenig Historie für die Fortschreibung)."""
+    mode = TrendMode(mode)
     result: Series = [None] * len(average)
+    fallback = [False] * len(average)
 
     def avg(j: int) -> float | None:
         return average[j] if j >= 0 else None
@@ -69,30 +88,52 @@ def trend(average: Series, mode: TrendMode) -> Series:
     for i in range(len(average)):
         if average[i] is not None:
             continue
+        value: float | None
         if mode is TrendMode.FLAT:
-            result[i] = known(i - 1)
-            continue
-        a1, a2 = avg(i - 1), avg(i - 2)
-        if mode is TrendMode.CLASSIC and a1 is not None:
-            # =(Ø[i-1] − Ø[i-2]) + Ø[i-1]
-            result[i] = None if a2 is None else a1 + (a1 - a2)
-        elif mode is TrendMode.CLASSIC and i >= 2 and tr(i - 2) is None:
-            # =Ø[i-2] / Ø[i-3] × Trend[i-1]
-            ratio = _div(avg(i - 2), avg(i - 3))
-            t1 = tr(i - 1)
-            result[i] = None if ratio is None or t1 is None else ratio * t1
+            value = known(i - 1)
         else:
-            k1, k2 = known(i - 1), known(i - 2)
-            result[i] = None if k1 is None or k2 is None else k1 + (k1 - k2)
-    return result
+            a1, a2 = avg(i - 1), avg(i - 2)
+            if mode is TrendMode.CLASSIC and a1 is not None:
+                # =(Ø[i-1] − Ø[i-2]) + Ø[i-1]
+                value = None if a2 is None else a1 + (a1 - a2)
+            elif mode is TrendMode.CLASSIC and i >= 2 and tr(i - 2) is None:
+                # =Ø[i-2] / Ø[i-3] × Trend[i-1]
+                ratio = _div(avg(i - 2), avg(i - 3))
+                t1 = tr(i - 1)
+                value = None if ratio is None or t1 is None else ratio * t1
+            else:
+                k1, k2 = known(i - 1), known(i - 2)
+                value = None if k1 is None or k2 is None else k1 + (k1 - k2)
+            if value is None and (value := known(i - 1)) is not None:
+                fallback[i] = True  # Historie dünn: letzten Durchschnitt fortschreiben
+            elif i > 0 and fallback[i - 1]:
+                fallback[i] = True  # baut auf einem Wert auf, der schon „flat“ war
+        # Mengen, Kapazität und Anteile sind nie negativ; eine Fortschreibung unter null
+        # (Rauschen) wird auf null begrenzt.
+        result[i] = None if value is None else max(value, 0.0)
+    return result, fallback
+
+
+def trend(average: Series, mode: TrendMode | str) -> Series:
+    """Schreibt den gleitenden Durchschnitt dort fort, wo er fehlt (Zukunft).
+
+    Reicht die Historie für ``classic``/``linear`` nicht (z. B. genau ``window`` Sprints),
+    gilt ``flat``. Das Ergebnis ist nie negativ."""
+    return _trend(average, mode)[0]
 
 
 class CapacitySource(StrEnum):
     RECORDED = "erfasst"
     PEOPLE = "Personenliste"
     TREND = "Trend"
+    # Personenliste und Kalender; Fehltage unbekannt und keine Historie, daher ohne Abzug.
+    CALENDAR = "Kalender, Fehltage unbekannt"
     ESTIMATED = "erwartete Fehltage"
     EXPECTED = "voraussichtliche Fehltage"
+
+
+# Quellen ohne bekannte Fehltage und ohne Historie: Die Kapazität ist nur geschätzt.
+UNSURE_SOURCES = (CapacitySource.TREND, CapacitySource.CALENDAR)
 
 
 class PlanSource(StrEnum):
@@ -132,6 +173,10 @@ class SprintResult:
     plan_capacity_source: CapacitySource | None
     plan: float | None
     plan_source: PlanSource | None
+    # Stichprobe hinter dem Trend der normierten Velocity: Anzahl aller bisherigen Werte; und ob
+    # wegen dünner Historie ``flat`` statt des gewählten Trend-Modus gerechnet wurde.
+    samples: int
+    trend_fallback: bool
     roadmap: float | None
     small_stuff: float | None
     planning_total: float | None
@@ -142,10 +187,11 @@ class SprintResult:
         return self.input.id
 
 
-def _metric_series(values: Series, settings: ForecastSettings) -> list[Metric]:
+def _metric_series(values: Series, settings: ForecastSettings) -> tuple[list[Metric], list[bool]]:
     averages = rolling_average(values, settings.window)
-    trends = trend(averages, settings.trend_mode)
-    return [Metric(v, a, t) for v, a, t in zip(values, averages, trends, strict=True)]
+    trends, fallback = _trend(averages, settings.trend_mode)
+    metrics = [Metric(v, a, t) for v, a, t in zip(values, averages, trends, strict=True)]
+    return metrics, fallback
 
 
 def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[SprintResult]:
@@ -159,12 +205,12 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
     ]
     fulfillment = [_div(v, f) for v, f in zip(velocity, forecast_ist, strict=True)]
 
-    m_fist = _metric_series(forecast_ist, settings)
-    m_vel = _metric_series(velocity, settings)
-    m_cap = _metric_series(capacity, settings)
-    m_norm = _metric_series(normalized, settings)
-    m_ful = _metric_series(fulfillment, settings)
-    m_scope = _metric_series([s.scope_creep for s in inputs], settings)
+    m_fist, _ = _metric_series(forecast_ist, settings)
+    m_vel, _ = _metric_series(velocity, settings)
+    m_cap, _ = _metric_series(capacity, settings)
+    m_norm, norm_fallback = _metric_series(normalized, settings)
+    m_ful, _ = _metric_series(fulfillment, settings)
+    m_scope, _ = _metric_series([s.scope_creep for s in inputs], settings)
 
     results = []
     for i, s in enumerate(inputs):
@@ -179,6 +225,7 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
         if n_trend is not None and plan_cap is not None:
             plan = round_down(n_trend / ref * plan_cap, settings.rounding)
             plan_source = PlanSource.FORECAST
+            plan = max(plan, 0.0)
         elif s.forecast_ist is not None:
             # Auch der Rückgriff auf Forecast IST wird abgerundet.
             plan = round_down(s.forecast_ist, settings.rounding)
@@ -201,6 +248,8 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
                 plan_capacity_source=plan_cap_source,
                 plan=plan,
                 plan_source=plan_source,
+                samples=sum(1 for v in normalized[:i] if v is not None),
+                trend_fallback=norm_fallback[i] and plan_source is PlanSource.FORECAST,
                 roadmap=roadmap,
                 small_stuff=None if plan is None else plan - roadmap,
                 planning_total=planning_total,

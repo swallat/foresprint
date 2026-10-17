@@ -241,10 +241,10 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="capacity.absence_history",
-        label="Erwartete Fehltage aus den letzten Sprints (Anzahl)",
-        help="Für künftige Sprints ohne eingetragene Fehltage wird die Kapazität um die "
-        "durchschnittlichen Fehltage der letzten so vielen Sprints (aus den Plannings) gemindert. "
-        "0 = aus; dann folgt die Kapazität dem Trend.",
+        label="Fehltage-Historie (Anzahl Sprints)",
+        help="Für künftige Sprints ohne bekannte Fehltage wird die Kapazität aus Kalender und "
+        "Personenliste um die durchschnittlichen Fehltage der letzten so vielen Sprints mit "
+        "bestätigten Fehltagen gemindert. 0 = keine Schätzung (ohne Abzug für Fehltage).",
         kind=Kind.INT,
         minimum=0,
         maximum=26,
@@ -317,12 +317,14 @@ SETTINGS: list[Setting] = [
     Setting(
         key="forecast.trend_mode",
         label="Trend-Modus",
-        help="Wie der Durchschnitt in die Zukunft fortgeschrieben wird.",
+        help="Wie der Durchschnitt in die Zukunft fortgeschrieben wird. „Konstant“ ist robust und "
+        "der Standard. „Linear“ und „klassisch“ schreiben auch Rauschen fort: Sie können "
+        "steigen oder fallen und sind nur bei einem belegten, stabilen Trend sinnvoll.",
         kind=Kind.CHOICE,
         choices={
-            "classic": "linear, dann multiplikativ, dann linear",
-            "linear": "durchgehend linear",
-            "flat": "letzter Durchschnitt bleibt konstant",
+            "flat": "letzter Durchschnitt bleibt konstant (Standard)",
+            "classic": "linear, dann multiplikativ, dann linear (Vorsicht: schreibt Rauschen fort)",
+            "linear": "durchgehend linear (Vorsicht: schreibt Rauschen fort)",
         },
         retroactive=True,
         get=lambda t: t.forecast.trend_mode.value,

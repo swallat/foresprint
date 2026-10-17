@@ -55,8 +55,22 @@ def git(cwd: Path, *args: str) -> str:
 
 def test_forecast_is_default_page(app: AppTest):
     values = [m.value for m in app.metric]
-    assert values[:2] == ["9,0 PT", "10,1 PT"]  # wie `sprintforecast forecast demo`
-    assert any("2026.23" in w.value and "Trend" in w.value for w in app.warning)
+    assert values[:2] == ["9,5 PT", "11,2 PT"]  # wie `sprintforecast forecast demo`
+    # Mit Personenliste kommt die Kapazität aus Kalender und Personen: keine Trend-Warnung
+    assert not any("Trend" in w.value for w in app.warning)
+
+
+def test_forecast_warns_when_absences_unknown_and_no_history(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    team = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team.read_text())
+    raw["capacity"]["absence_history"] = 0  # keine Schätzung
+    team.write_text(yaml.safe_dump(raw))
+    at = start(data_dir, monkeypatch)
+    assert any(
+        "2026.23" in w.value and "Kalender, Fehltage unbekannt" in w.value for w in at.warning
+    )
 
 
 @pytest.mark.parametrize("page", sorted(PAGE_INFO))
@@ -74,11 +88,30 @@ def test_help_shows_workflow_and_terms(app: AppTest):
     assert any("Commitment" in c.value for c in app.caption)  # Quelle Forecast IST
 
 
-def test_absences_save_creates_missing_sprint_files(app: AppTest, data_dir: Path):
+def test_absences_save_does_not_confirm_silently(app: AppTest, data_dir: Path):
+    """Speichern ohne Eintrag und ohne ausdrückliche Bestätigung legt nichts an (B2)."""
     goto(app, "fehltage")
+    assert not any("angelegt" in c.value for c in app.caption)
+    assert next(b for b in app.button if b.label == "Fehltage speichern").disabled
+    assert not (data_dir / "demo" / "sprints" / "2026.24.yaml").exists()
+
+
+def test_absences_confirm_nobody_absent_creates_sprint_files(app: AppTest, data_dir: Path):
+    goto(app, "fehltage")
+    frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
+    states = f"absence-states-{frame['Sprint'].iloc[0]}-{len(frame)}"
+    rows = {
+        i: {"Niemand fehlt": True}
+        for i, sprint in enumerate(frame["Sprint"])
+        if sprint in ("2026.23", "2026.24")
+    }
+    app.session_state[states] = {"edited_rows": rows, "added_rows": [], "deleted_rows": []}
+    app.run()
     assert any("2026.23, 2026.24 angelegt" in c.value for c in app.caption)
     click(app, "Fehltage speichern")
-    assert load(data_dir / "demo" / "sprints" / "2026.24.yaml")["absences"] == {}
+    saved = load(data_dir / "demo" / "sprints" / "2026.24.yaml")
+    assert saved["absences"] == {} and saved["absence_state"] == "confirmed"
+    assert saved["absences_confirmed"] is True  # ältere Programmversionen lesen es weiter
     goto(app, "forecast")
     assert not any("Trend" in w.value for w in app.warning)
 
@@ -104,7 +137,7 @@ def test_planning_flow_absences_then_plan(app: AppTest, data_dir: Path):
     assert any("Arbeitstage Mo–Fr" in c.value for c in app.caption)
     click(app, "Weiter")  # Fehltage unverändert, Sprintdatei existiert
     assert app.radio(key="planning-step").value == 1
-    assert any(m.label.startswith("Forecast PLAN") for m in app.metric)
+    assert any(m.label.startswith("Prognose aktuell") for m in app.metric)
     assert any("Standard = Forecast PLAN" in c.value for c in app.caption)
 
 
@@ -136,11 +169,11 @@ def test_review_saves_and_freezes_capacity(app: AppTest, data_dir: Path):
 
 def test_settings_save(app: AppTest, data_dir: Path):
     goto(app, "einstellungen")
-    app.selectbox(key="settings-demo-forecast.trend_mode").set_value("flat")
+    app.selectbox(key="settings-demo-forecast.trend_mode").set_value("classic")
     app.number_input(key="settings-demo-forecast.roadmap_share").set_value(70.0)
     click(app, "Speichern")
     team = load(data_dir / "demo" / "team.yaml")
-    assert team["forecast"]["trend_mode"] == "flat"
+    assert team["forecast"]["trend_mode"] == "classic"
     assert team["forecast"]["roadmap_share"] == pytest.approx(0.7)
     assert any("rückwirkend" in w.value for w in app.warning)
 
@@ -278,7 +311,11 @@ def test_analysis_page(app: AppTest):
     click(app, "Berechnen")
     assert any("40 % des Forecasts" in m.label for m in app.metric)
     labels = [m.label for m in app.metric]
-    assert "mit 85 % Sicherheit" in labels
+    assert "in 85 % der Simulationen" in labels
+    assert "mit 85 % Sicherheit" not in labels  # keine Zusage: modellabhängige Häufigkeit
+    # Die Simulation zieht nur aus dem Fenster (5 Sprints): Warnung und Stichprobe sichtbar
+    assert any("Wenig Daten" in w.value and "5 Sprints" in w.value for w in app.warning)
+    assert any("Stichprobe: 5 Sprints" in c.value for c in app.caption)
     assert any(m.value.startswith("2026.") or m.value.startswith("2027.") for m in app.metric)
 
 
@@ -287,7 +324,7 @@ def test_planning_freezes_forecast_plan(app: AppTest, data_dir: Path):
     app.number_input(key="fist-2026.22").set_value(10.0)
     click(app, "Planning speichern")
     sprint = load(data_dir / "demo" / "sprints" / "2026.22.yaml")
-    assert sprint["forecast_plan"] == 10.1
+    assert sprint["forecast_plan"] == 11.2
     assert any("kann starten" in s.value for s in app.success)
 
 
@@ -478,7 +515,7 @@ def test_forecast_plan_is_consistent_across_pages(app: AppTest):
 
     goto(app, "vorplanung")
     app.selectbox(key="vorplanung-sprint").set_value(sprint).run()
-    headline = next(m for m in app.metric if m.label == f"Forecast PLAN {sprint}")
+    headline = next(m for m in app.metric if m.label == f"Prognose aktuell {sprint}")
     available = next(m for m in app.metric if m.label == "Verteilbar")
     assert _pt(headline.value) == expected
     assert abs(_pt(available.value) - expected) < 0.05
@@ -491,7 +528,36 @@ def test_forecast_plan_is_consistent_across_pages(app: AppTest):
 def test_planning_absences_warns_when_nothing_entered(app: AppTest):
     goto(app, "planning")
     app.selectbox(key="planning-sprint").set_value("2026.23").run()
-    assert any("Noch keine Fehltage eingetragen" in w.value for w in app.warning)
+    assert any("Fehltage für 2026.23: unbekannt" in w.value for w in app.warning)
+
+
+def test_planning_continue_without_confirmation_keeps_absences_unknown(
+    app: AppTest, data_dir: Path
+):
+    goto(app, "planning")
+    app.selectbox(key="planning-sprint").set_value("2026.23").run()
+    click(app, "Weiter ohne Bestätigung")
+    assert app.radio(key="planning-step").value == 1
+    assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()  # nichts bestätigt
+
+
+def test_planning_nobody_absent_needs_explicit_confirmation(app: AppTest, data_dir: Path):
+    goto(app, "planning")
+    app.selectbox(key="planning-sprint").set_value("2026.23").run()
+    click(app, "Niemand fehlt – bestätigen und weiter")
+    saved = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
+    assert saved["absence_state"] == "confirmed" and saved["absences"] == {}
+    assert app.radio(key="planning-step").value == 1
+
+
+def test_saving_planning_values_keeps_unconfirmed_absences_unknown(app: AppTest, data_dir: Path):
+    """Forecast IST im Planning speichern bestätigt keine Fehltage (B2)."""
+    planning_step(app, "2026.23", 2)
+    app.number_input(key="fist-2026.23").set_value(9.0)
+    click(app, "Planning speichern")
+    saved = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
+    assert saved["forecast_ist"] == 9
+    assert saved["absence_state"] == "unknown"
 
 
 def test_formula_expander_fragment_switches_sprint(app: AppTest):
@@ -501,3 +567,14 @@ def test_formula_expander_fragment_switches_sprint(app: AppTest):
     assert not app.exception, app.exception
     assert app.selectbox(key="formula-sprint").value == ids[-1]
     assert app.metric  # Rest der Seite bleibt erhalten
+
+
+def test_forecast_shows_gaps_skipped_by_the_average(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    path = data_dir / "demo" / "sprints" / "2026.19.yaml"
+    raw = yaml.safe_load(path.read_text())
+    raw["velocity"] = None  # Lücke mitten in der Historie
+    path.write_text(yaml.safe_dump(raw))
+    at = start(data_dir, monkeypatch)
+    assert any("Lücken: 1 Sprint" in i.value for i in at.info)

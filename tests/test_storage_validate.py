@@ -65,8 +65,9 @@ def test_capacity_sources_in_forecast(data_dir: Path):
     assert sources == {
         "2026.21": CapacitySource.PEOPLE,
         "2026.22": CapacitySource.PEOPLE,
-        "2026.23": CapacitySource.TREND,
-        "2026.24": CapacitySource.TREND,
+        # Fehltage unbekannt: Kalender und Personen, Fehltage nach der Historie geschätzt
+        "2026.23": CapacitySource.ESTIMATED,
+        "2026.24": CapacitySource.ESTIMATED,
     }
     assert fc.current.sprint.id == "2026.21"
     assert all(e.result.plan_capacity_source is CapacitySource.RECORDED for e in fc.history())

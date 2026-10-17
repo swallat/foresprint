@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from sprintforecast.forecast import build_forecast
+from sprintforecast.model import AbsenceState
 from sprintforecast.storage import Repository
 from sprintforecast.web.logic import (
     absence_matrix,
@@ -29,8 +30,14 @@ def test_absence_matrix_roundtrip(data_dir: Path):
     assert rows[2]["2026.22"] == 5  # cem
     edited = edit_absences(data.people, sprints, rows)
     assert [s.absences for s in edited] == [s.absences for s in sprints]
-    # 2026.23 hat noch keine Datei → wird mit gespeichert
-    assert [s.id for s in sprints_to_save(data, sprints, edited)] == ["2026.23"]
+    # Nichts geändert und nichts bestätigt: auch 2026.23 (ohne Datei) wird nicht angelegt
+    assert sprints_to_save(data, sprints, edited) == []
+    # „Niemand fehlt“ bestätigt ausdrücklich und legt die Datei an
+    confirmed = edit_absences(data.people, sprints, rows, confirmed={"2026.23"})
+    assert [s.id for s in sprints_to_save(data, sprints, confirmed)] == ["2026.23"]
+    assert confirmed[2].absence_state is AbsenceState.CONFIRMED
+    # Bestätigung aufheben: 2026.21 hat Einträge (bleibt bestätigt), 2026.22 ebenso
+    assert [s.absences_confirmed for s in confirmed[:2]] == [True, True]
 
     rows[0]["2026.23"] = 2.5  # anna im Sprint ohne Datei
     rows[2]["2026.22"] = None  # cem: leer = keine Fehltage
@@ -289,12 +296,12 @@ def test_saving_preplanning_does_not_change_capacity_source(data_dir: Path):
     data = Repository(data_dir).load("demo")
     before = build_forecast(data, TODAY)
     target = next(e for e in before.upcoming() if not e.recorded)
-    assert target.result.plan_capacity_source is CapacitySource.TREND
+    assert target.result.plan_capacity_source is CapacitySource.ESTIMATED
 
     sprint = target.sprint
     sprint.products["webshop"] = ProductValues(preplanned=3.0)  # nur Vorplanung, keine Fehltage
     after = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
-    assert after.result.plan_capacity_source is CapacitySource.TREND
+    assert after.result.plan_capacity_source is CapacitySource.ESTIMATED
     assert after.result.plan == target.result.plan
 
     sprint.absences = {"anna": 2.0}  # eingetragene Fehltage bestätigen die Kapazität
@@ -325,7 +332,7 @@ def test_empty_sprint_file_does_not_confirm_absences(data_dir: Path):
     target = next(e for e in base.upcoming() if not e.recorded)
     sprint = Sprint(id=target.sprint.id, start=target.sprint.start, end=target.sprint.end)
     legacy = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
-    assert legacy.result.plan_capacity_source is CapacitySource.TREND  # leere Datei: unbekannt
+    assert legacy.result.plan_capacity_source is CapacitySource.ESTIMATED  # leere Datei: unbekannt
     sprint.absences_confirmed = True
     confirmed = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
     assert confirmed.result.plan_capacity_source is CapacitySource.PEOPLE

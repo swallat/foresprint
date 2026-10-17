@@ -22,11 +22,14 @@ import streamlit as st
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
+    MIN_SAMPLES,
     average_focus_factor,
     band,
     buffer_hint,
     completion,
+    few_samples,
     focus_factor,
+    sample_count,
 )
 from sprintforecast.calendar import (
     countries,
@@ -35,8 +38,8 @@ from sprintforecast.calendar import (
     subdivisions,
     team_workdays,
 )
-from sprintforecast.capacity import expected_absence_rate, sprint_capacity
-from sprintforecast.engine import CapacitySource
+from sprintforecast.capacity import sprint_capacity
+from sprintforecast.engine import UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
@@ -60,7 +63,16 @@ from sprintforecast.git import (
 from sprintforecast.git import repo_root as git_root
 from sprintforecast.guide import CAPACITY_SOURCES, COMMANDS, FIELDS, TERMS, WORKFLOW, command_text
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
-from sprintforecast.model import Numbering, Planning, ProductBasis, Sprint, Team
+from sprintforecast.model import (
+    AbsenceState,
+    Numbering,
+    Planning,
+    ProductBasis,
+    Sprint,
+    Team,
+    TrendMode,
+    absence_status,
+)
 from sprintforecast.plugins import WebPage
 from sprintforecast.products import (
     MEASURES,
@@ -70,9 +82,18 @@ from sprintforecast.products import (
     by_po,
     distribution,
     measure_label,
-    plan_of,
+    plan_view,
 )
-from sprintforecast.report import capacity_label, fmt, pct, period, render, source_label, status
+from sprintforecast.report import (
+    absence_status_label,
+    capacity_label,
+    fmt,
+    pct,
+    period,
+    render,
+    source_label,
+    status,
+)
 from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
@@ -378,9 +399,21 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     upcoming = fc.upcoming()
     cols = st.columns(min(len(upcoming), 4) or 1)
     for col, e in zip(cols, upcoming, strict=False):
+        b = band(fc, e)
         col.metric(
             f"{e.sprint.id} ({status(fc, e).replace('*', '')})",
             f"{fmt(e.result.plan)} {unit}",
+            delta=(
+                t(
+                    "Spanne {low}–{high} (letzte {samples} Sprints)",
+                    low=fmt(b.low),
+                    high=fmt(b.high),
+                    samples=b.samples,
+                )
+                if b
+                else t("Spanne nicht berechenbar")
+            ),
+            delta_color="off",
             help=_formula_help(fc, e, "plan")
             + "\n\n"
             + t(
@@ -388,28 +421,44 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 capacity=capacity_label(e),
                 roadmap=fmt(e.result.roadmap, 2),
                 small=fmt(e.result.small_stuff, 2),
+            )
+            + "\n\n"
+            + t("Fehltage: {state}", state=absence_status_label(e.sprint))
+            + (
+                "\n\n"
+                + t("Prognose beim Planning: {plan} {unit}", plan=fmt(view.frozen), unit=unit)
+                if (view := plan_view(e)).frozen is not None
+                else ""
             ),
         )
+    _forecast_notes(fc, upcoming)
 
     capacity_col, trend_col, plan_col = (
         t("Kapazität (PT)"),
         t("n. Velocity-Trend"),
-        f"Forecast PLAN ({unit})",
+        t("Prognose aktuell ({unit})", unit=unit),
     )
+    frozen_col, diff_col = t("Prognose beim Planning ({unit})", unit=unit), t("Differenz")
+    show_frozen = any(e.sprint.forecast_plan is not None for e in upcoming)
     small_col = t("Kleinkram")
-    rows = [
-        {
+    rows = []
+    for e in upcoming:
+        view = plan_view(e)
+        row = {
             "Sprint": e.sprint.id,
             t("Zeitraum"): period(e),
             "Status": status(fc, e).replace("*", ""),
+            t("Fehltage"): absence_status_label(e.sprint),
             capacity_col: capacity_label(e),
             trend_col: fmt(e.result.normalized_velocity.trend, 2),
             plan_col: fmt(e.result.plan),
-            "Roadmap": fmt(e.result.roadmap, 2),
-            small_col: fmt(e.result.small_stuff, 2),
         }
-        for e in upcoming
-    ]
+        if show_frozen:
+            row[frozen_col] = fmt(view.frozen)
+            row[diff_col] = "–" if view.difference is None else _signed(view.difference)
+        rows.append(
+            row | {"Roadmap": fmt(e.result.roadmap, 2), small_col: fmt(e.result.small_stuff, 2)}
+        )
     st.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
@@ -422,15 +471,17 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         },
     )
     _whatif_panel(fc, upcoming, unit)
-    trend = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is CapacitySource.TREND]
-    if trend:
-        st.warning(
-            t(
-                "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
-                "geschätzt (Trend). Auf der Seite **Fehltage** eintragen.",
-                sprints=", ".join(trend),
+    for source in UNSURE_SOURCES:
+        unsure = [e.sprint.id for e in upcoming if e.result.plan_capacity_source is source]
+        if unsure:
+            st.warning(
+                t(
+                    "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
+                    "geschätzt ({source}). Auf der Seite **Fehltage** eintragen.",
+                    sprints=", ".join(unsure),
+                    source=source_label(source),
+                )
             )
-        )
     current = fc.current
     if current and current.result.planning_total is not None:
         st.info(
@@ -486,6 +537,46 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = repo.team_dir(team.key) / "FORECAST.md"
         path.write_text(render(fc), encoding="utf-8")
         st.success(t("Geschrieben: {path}", path=path))
+
+
+def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
+    """Hinweise zur Belastbarkeit direkt an den Kacheln: wenig Daten, dünne Historie und ein
+    Trend-Modus, der Rauschen fortschreibt."""
+    if sample_count(fc) and few_samples(fc):
+        st.warning(
+            t(
+                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
+                "belastbarer). Plan und Spanne sind grobe Hinweise.",
+                samples=sample_count(fc),
+                min=MIN_SAMPLES,
+            )
+        )
+    series = [x.result.normalized_velocity.value for x in fc.history()]
+    if gaps := gaps_in_window(series, fc.data.team.forecast.window):
+        st.info(
+            t(
+                "Lücken: {count} Sprint(s) ohne Velocity im Fenster des Durchschnitts werden "
+                "übersprungen; das Fenster reicht entsprechend weiter zurück.",
+                count=gaps,
+            )
+        )
+    if any(e.result.trend_fallback for e in upcoming):
+        st.info(
+            t(
+                "Historie dünn: Für den Trend-Modus {mode} reicht die Historie nicht, es gilt "
+                "„konstant“ (letzter Durchschnitt).",
+                mode=fc.data.team.forecast.trend_mode.value,
+            )
+        )
+    if fc.data.team.forecast.trend_mode is not TrendMode.FLAT:
+        st.warning(
+            t(
+                "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen "
+                "(Vorsicht bei langen Horizonten). Robust ist „konstant“ – einstellbar unter "
+                "**Team → Einstellungen**.",
+                mode=fc.data.team.forecast.trend_mode.value,
+            )
+        )
 
 
 def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
@@ -634,34 +725,33 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
         key=f"absences-{data.team.key}-{sprints[0].id}-{len(sprints)}",
     )
     st.caption(t("Leere Zellen: Person ist in diesem Sprint nicht im Team."))
-    history = data.team.capacity.absence_history
-    if history:
-        past = [e.sprint for e in fc.history() if e.recorded]
-        rate = expected_absence_rate(data.team, data.people, past, history)
+    live = edit_absences(data.people, sprints, edited.to_dict("records"))
+    confirmed = _absence_states(live, sprints)
+    edited_sprints = edit_absences(
+        data.people, sprints, edited.to_dict("records"), confirmed=confirmed
+    )
+    history = fc.absences
+    if data.team.capacity.absence_history and history is not None:
         st.caption(
             t(
-                "Für Sprints ohne Eintrag werden die Fehltage aus den letzten {count} Sprints "
-                "erwartet: Ø {rate} der Kapazität.",
-                count=history,
-                rate=pct(rate),
+                "Für Sprints mit unbekannten Fehltagen werden Fehltage nach den letzten "
+                "Sprints mit bestätigten Fehltagen erwartet: Ø {rate} der Kapazität "
+                "(Sprints {sprints}).",
+                rate=pct(history.rate),
+                sprints=", ".join(history.sprints),
             )
-            if rate is not None
+            if history.rate is not None
             else t(
-                "Erwartete Fehltage: In den letzten Sprints sind noch keine Fehltage erfasst – "
-                "es gilt der Trend der Kapazität."
+                "Noch kein Sprint mit bestätigten Fehltagen in der Historie – bis dahin wird "
+                "für unbekannte Fehltage ohne Abzug gerechnet (Kalender und Personenliste)."
             )
         )
-    edited_sprints = edit_absences(data.people, sprints, edited.to_dict("records"))
     to_save = sprints_to_save(data, sprints, edited_sprints)
     preview = with_sprints(data, to_save)
     fc_preview = build_forecast(preview, fc.today)
     if new := [s.id for s in to_save if data.sprint(s.id) is None]:
         st.caption(
-            t(
-                "Beim Speichern werden die Sprintdateien {sprints} angelegt. Ab dann gilt dort "
-                "die Kapazität laut Personenliste statt des Trends.",
-                sprints=", ".join(new),
-            )
+            t("Beim Speichern werden die Sprintdateien {sprints} angelegt.", sprints=", ".join(new))
         )
     st.subheader(
         t("Kapazität und Prognose") + (t(" (Vorschau, noch nicht gespeichert)") if to_save else "")
@@ -671,12 +761,12 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             [
                 {
                     "Sprint": s.id,
-                    t("Kapazität (PT)"): fmt(sprint_capacity(data.team, data.people, s).capacity),
-                    f"Forecast PLAN ({data.team.unit.value})": fmt(e.result.plan)
-                    if (e := fc_preview.entry(s.id))
-                    else "–",
+                    t("Fehltage"): absence_status_label(s),
+                    t("Kapazität (PT)"): capacity_label(e) if e else "–",
+                    f"Forecast PLAN ({data.team.unit.value})": fmt(e.result.plan) if e else "–",
                 }
                 for s in edited_sprints
+                for e in [fc_preview.entry(s.id)]
             ]
         ),
         hide_index=True,
@@ -688,6 +778,44 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
         )
     _reset_absences(repo, data, fc.today)
+
+
+def _absence_states(live: list[Sprint], sprints: list[Sprint]) -> set[str]:
+    """Stand der Fehltage je Sprint anzeigen; „niemand fehlt“ lässt sich ausdrücklich
+    bestätigen. Liefert die Sprints, für die das (ohne Einträge) bestätigt ist."""
+    st.subheader(t("Stand der Fehltage"))
+    st.caption(
+        t(
+            "Sprints mit eingetragenen Fehltagen sind bestätigt. **Niemand fehlt** bestätigt "
+            "ausdrücklich, dass es keine Fehltage gibt; ohne Bestätigung gelten die Fehltage als "
+            "unbekannt und werden geschätzt."
+        )
+    )
+    frame = pd.DataFrame(
+        [
+            {
+                "Sprint": s.id,
+                t("Stand"): absence_status_label(s),
+                t("Niemand fehlt"): (
+                    absence_status(orig) is AbsenceState.CONFIRMED and not orig.absences
+                ),
+            }
+            for s, orig in zip(live, sprints, strict=True)
+        ]
+    )
+    edited = st.data_editor(
+        frame,
+        column_config={
+            "Sprint": st.column_config.TextColumn(disabled=True),
+            t("Stand"): st.column_config.TextColumn(disabled=True),
+            t("Niemand fehlt"): st.column_config.CheckboxColumn(
+                help=t("Bestätigt ausdrücklich: In diesem Sprint fehlt niemand.")
+            ),
+        },
+        hide_index=True,
+        key=f"absence-states-{sprints[0].id}-{len(sprints)}",
+    )
+    return {str(r["Sprint"]) for r in edited.to_dict("records") if r[t("Niemand fehlt")]}
 
 
 def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
@@ -869,7 +997,7 @@ def _others() -> str:
     return t("Weitere")
 
 
-def _distribution_caption(d: Distribution, unit: str) -> str:
+def _standard_text(d: Distribution, unit: str) -> str:
     basis = t("Roadmap-Anteil des Forecast PLAN") if d.basis.value == "roadmap" else "Forecast PLAN"
     if d.available is None or not d.active_count:
         return t(
@@ -880,7 +1008,7 @@ def _distribution_caption(d: Distribution, unit: str) -> str:
             "Standard = {basis}{frozen} {available} {unit}: Produkte mit festem Anteil "
             "bekommen diesen, der Rest verteilt sich gleichmäßig auf die übrigen.",
             basis=basis,
-            frozen=t(" (beim Planning eingefroren)") if d.plan_frozen else "",
+            frozen=t(" (Prognose beim Planning, eingefroren)") if d.plan_frozen else "",
             available=fmt(d.available, 2),
             unit=unit,
         )
@@ -888,11 +1016,31 @@ def _distribution_caption(d: Distribution, unit: str) -> str:
         "Standard = {basis}{frozen} {available} {unit} / {count} betreute Produkte = "
         "**{share} {unit}** je Produkt.",
         basis=basis,
-        frozen=t(" (beim Planning eingefroren)") if d.plan_frozen else "",
+        frozen=t(" (Prognose beim Planning, eingefroren)") if d.plan_frozen else "",
         available=fmt(d.available, 2),
         unit=unit,
         count=d.active_count,
         share=fmt(d.available / d.active_count, 2),
+    )
+
+
+def _distribution_caption(d: Distribution, unit: str) -> str:
+    return _standard_text(d, unit) + _frozen_note(d, unit)
+
+
+def _frozen_note(d: Distribution, unit: str) -> str:
+    """Hinweis, wenn die verteilbare Menge beim Planning eingefroren wurde und die aktuelle
+    Prognose davon abweicht."""
+    if not d.plan_frozen or d.plan is None or d.current_plan is None:
+        return ""
+    diff = d.current_plan - d.plan
+    if abs(diff) < 0.05:
+        return ""
+    return " " + t(
+        "Prognose aktuell: {current} {unit} (Differenz {diff} {unit}).",
+        current=fmt(d.current_plan, 2),
+        unit=unit,
+        diff=_signed(diff),
     )
 
 
@@ -1094,7 +1242,8 @@ def _history_chart(
 
 
 def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> None:
-    rows = balance(fc, entries)
+    all_rows = balance(fc, entries)
+    rows = [b for b in all_rows if b.sprints]  # nur Produkte mit mindestens einem Wert
     if not rows:
         st.info(t("Noch kein **Erledigt je Produkt** erfasst – im Review eintragen."))
         return
@@ -1110,10 +1259,12 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
                 f"Σ {t('Erledigt')} ({unit})": round(b.done, 2),
                 saldo: round(b.difference, 2),
                 direction: more if b.difference >= 0 else less,
+                t("ohne Wert"): b.missing,
             }
             for b in rows
         ]
     )
+    missing_col = t("ohne Wert")
     st.altair_chart(
         alt.Chart(frame)
         .mark_bar(cornerRadius=4)
@@ -1125,15 +1276,19 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
                 scale=alt.Scale(domain=[more, less], range=["#2a78d6", "#e34948"]),
                 legend=alt.Legend(orient="top", title=None),
             ),
-            tooltip=list(frame.columns[:-1]),
+            tooltip=[c for c in frame.columns if c not in (direction, missing_col)],
         ),
         width="stretch",
     )
-    st.dataframe(frame.drop(columns=direction), hide_index=True)
+    shown = frame.drop(columns=direction)
+    if not frame[missing_col].any():
+        shown = shown.drop(columns=missing_col)
+    st.dataframe(shown, hide_index=True)
     st.caption(
         t(
-            "Saldo = Σ Erledigt − Σ Standard über die Sprints mit erfasstem Erledigt. Positiv: "
-            "Das Produkt hat mehr bekommen als den gleichmäßigen Anteil."
+            "Saldo = Σ Erledigt − Σ Standard über die Sprints, in denen für das Produkt Erledigt "
+            "erfasst ist. Positiv: Das Produkt hat mehr bekommen als den gleichmäßigen Anteil. "
+            "Sprints ohne Wert (nicht erfasst, nicht 0) zählen nicht mit."
         )
     )
 
@@ -1176,6 +1331,10 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                 "berechnet und beim nächsten Speichern des Plannings wieder eingefroren."
             )
         )
+        # Nach dem Aufheben die Bestätigung zurücksetzen, damit sie beim nächsten Einfrieren
+        # desselben Sprints nicht noch angehakt ist.
+        if st.session_state.pop("unfreeze-reset", None) == sprint.id:
+            st.session_state[f"unfreeze-{sprint.id}"] = False
         confirmed = st.checkbox(
             t("Ja, es handelt sich um eine Fehlerkorrektur"), key=f"unfreeze-{sprint.id}"
         )
@@ -1190,6 +1349,7 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                 lambda: [repo.save_sprint(data.team.key, released)],
                 flash=True,
             ):
+                st.session_state["unfreeze-reset"] = sprint.id
                 st.rerun()
 
 
@@ -1284,24 +1444,24 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
     [after] = edit_absences(data.people, [shown_sprint], edited.to_dict("records"))
     to_save = sprints_to_save(data, [base], [after])
     preview = with_sprints(data, [after])
-    breakdown = sprint_capacity(data.team, data.people, after)
     fc_after = build_forecast(preview, fc.today)
     entry = fc_after.entry(after.id)
-    if not after.absences and (current := fc.entry(after.id)) is not None:
+    unconfirmed = absence_status(after) is not AbsenceState.CONFIRMED
+    if unconfirmed:
         st.warning(
             t(
-                "Noch keine Fehltage eingetragen: Hier wird mit voller Besetzung gerechnet "
-                "({capacity} PT). Die Forecast-Seite schätzt für diesen Sprint bisher {estimate} "
-                "PT. Bekannte Fehltage bitte eintragen; „Weiter“ ohne Eintrag heißt, dass niemand "
-                "fehlt.",
-                capacity=fmt(breakdown.capacity),
-                estimate=capacity_label(current),
+                "Fehltage für {id}: {state}. Gerechnet wird mit {capacity} PT. Bekannte Fehltage "
+                "bitte eintragen – oder ausdrücklich bestätigen, dass niemand fehlt. „Weiter ohne "
+                "Bestätigung“ lässt die Fehltage unbekannt.",
+                id=after.id,
+                state=absence_status_label(after),
+                capacity=capacity_label(entry) if entry else "–",
             )
         )
     left, right = st.columns(2)
     left.metric(
         t("Kapazität (PT)"),
-        fmt(breakdown.capacity),
+        fmt(entry.result.plan_capacity) if entry else "–",
         help=_formula_help(fc_after, entry, "capacity"),
     )
     right.metric(
@@ -1328,6 +1488,21 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
             if ok:
                 _goto(1)
                 st.rerun()
+    elif unconfirmed:
+        nobody, skip = st.columns(2)
+        if nobody.button(t("Niemand fehlt – bestätigen und weiter"), type="primary"):
+            confirmed = copy.deepcopy(after)
+            confirmed.absence_state = AbsenceState.CONFIRMED
+            ok = save(
+                with_sprints(data, [confirmed]),
+                [f"{after.id}.yaml"],
+                lambda: [repo.save_sprint(data.team.key, confirmed)],
+                flash=True,
+            )
+            if ok:
+                _goto(1)
+                st.rerun()
+        skip.button(t("Weiter ohne Bestätigung"), on_click=_goto, args=(1,))
     else:
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
 
@@ -1340,7 +1515,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.info(t("Für diesen Sprint gibt es keine Prognose."))
         return
     r = entry.result
-    cols = st.columns(4)
+    view = plan_view(entry)
+    cols = st.columns(5 if view.frozen is not None else 4)
     cols[0].metric(
         t("Kapazität (PT)"),
         fmt(r.plan_capacity),
@@ -1348,18 +1524,35 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         + "\n\n"
         + _formula_help(fc, entry, "capacity"),
     )
-    cols[1].metric(f"Forecast PLAN ({unit})", fmt(r.plan), help=_formula_help(fc, entry, "plan"))
-    cols[2].metric(
+    cols[1].metric(
+        t("Prognose aktuell ({unit})", unit=unit),
+        fmt(r.plan),
+        help=_formula_help(fc, entry, "plan"),
+    )
+    rest = cols[2:]
+    if view.frozen is not None:
+        rest[0].metric(
+            t("Prognose beim Planning ({unit})", unit=unit),
+            fmt(view.frozen),
+            delta=None if view.difference is None else _signed(view.difference),
+            delta_color="off",
+            help=t(
+                "Beim Planning eingefroren (Basis der Standardverteilung je Produkt). Die Zahl "
+                "darunter ist die Differenz der aktuellen Prognose zu diesem Stand."
+            ),
+        )
+        rest = rest[1:]
+    rest[0].metric(
         f"Roadmap ({pct(data.team.forecast.roadmap_share)})",
         fmt(r.roadmap, 2),
         help=_formula_help(fc, entry, "roadmap"),
     )
-    cols[3].metric(
+    rest[1].metric(
         t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
     )
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
-    if r.plan_capacity_source is CapacitySource.TREND:
+    if r.plan_capacity_source in UNSURE_SOURCES:
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
     if data.products:
@@ -1440,8 +1633,17 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if entry:
         st.caption(
             t(
-                "Forecast PLAN {plan} {unit} · Kapazität {capacity} PT",
+                "Prognose aktuell {plan} {unit}{frozen} · Kapazität {capacity} PT",
                 plan=fmt(entry.result.plan),
+                frozen=(
+                    t(
+                        ", beim Planning {frozen} {unit}",
+                        frozen=fmt(sprint.forecast_plan),
+                        unit=unit,
+                    )
+                    if sprint.forecast_plan is not None
+                    else ""
+                ),
                 unit=unit,
                 capacity=capacity_label(entry),
             )
@@ -1752,8 +1954,13 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 f"≈ {fmt(result.per_sprint, 1)} {unit}",
                 help=t("Median der normierten Velocity × typische Kapazität × Anteil."),
             )
-            middle.metric(t("wahrscheinlich (50 %)"), result.p50 or later)
-            right.metric(t("mit 85 % Sicherheit"), result.p85 or later)
+            frequency = t(
+                "Modellabhängige Häufigkeit in der Simulation aus {count} Sprints Historie – keine "
+                "Zusage.",
+                count=result.samples,
+            )
+            middle.metric(t("in 50 % der Simulationen"), result.p50 or later, help=frequency)
+            right.metric(t("in 85 % der Simulationen"), result.p85 or later, help=frequency)
             done_col = t("fertig bis dahin")
             chart = pd.DataFrame({"Sprint": result.sprints, done_col: result.cumulative})
             # vom ersten Sprint mit Chance bis zum ersten mit (fast) 100 %
@@ -1776,16 +1983,28 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 width="stretch",
             )
             caption = t(
-                "Monte-Carlo-Simulation ({runs} Durchläufe) ab dem nächsten Sprint: je Sprint "
-                "eine zufällige normierte Velocity der letzten Sprints × Kapazität.",
+                "Monte-Carlo-Simulation ({runs} Durchläufe, Stichprobe: {samples} Sprints) ab "
+                "dem nächsten Sprint: je Sprint eine zufällige normierte Velocity der letzten "
+                "Sprints × Kapazität. Die Prozentwerte sind modellabhängige Häufigkeiten, keine "
+                "Zusagen.",
                 runs=f"{result.runs:,}",
+                samples=result.samples,
             )
+            if result.samples < MIN_SAMPLES:
+                st.warning(
+                    t(
+                        "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
+                        "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
+                        samples=result.samples,
+                        min=MIN_SAMPLES,
+                    )
+                )
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:
                     listed += " …"
                 caption += t(
-                    " Ohne erfasste Fehltage mit Ø Kapazität gerechnet: {sprints}.", sprints=listed
+                    " Ohne Personenliste mit Ø Kapazität gerechnet: {sprints}.", sprints=listed
                 )
             if not result.p85:
                 caption += t(
@@ -1861,9 +2080,13 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
 
 def _available_text(d: Distribution, data: TeamData, unit: str) -> str:
     """Woraus sich die verteilbare Menge ergibt (Forecast PLAN bzw. dessen Roadmap-Anteil)."""
+    return _available_base(d, data, unit) + _frozen_note(d, unit)
+
+
+def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
     if d.plan is None:
         return t("Für diesen Sprint ist noch kein Forecast PLAN berechenbar.")
-    frozen = t(" (beim Planning eingefroren)") if d.plan_frozen else ""
+    frozen = t(" (Prognose beim Planning, eingefroren)") if d.plan_frozen else ""
     if d.basis is ProductBasis.ROADMAP:
         share = data.team.forecast.roadmap_share
         return t(
@@ -1987,25 +2210,38 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         entry = fc_base.entry(sprint.id) or entry
     fc_view = whatif_forecast(fc_base, assumed) if assumed else fc_base
     shown = fc_view.entry(sprint.id) or entry
-    shown_plan, frozen = plan_of(shown)
+    shown_plan = shown.result.plan  # aktuell berechnet (mit Annahme, falls eingetragen)
+    frozen_plan = sprint.forecast_plan  # beim Planning eingefroren
     with headline:
-        plan_col, capacity_col, trend_col = st.columns(3)
+        columns = st.columns(4 if frozen_plan is not None else 3)
+        plan_col, capacity_col, trend_col = columns[0], columns[-2], columns[-1]
         delta = None
-        if assumed and shown_plan is not None and plan_of(entry)[0] is not None:
+        if assumed and shown_plan is not None and entry.result.plan is not None:
             delta = t(
                 "{diff} {unit} (ohne Annahme {old} {unit})",
-                diff=_signed(shown_plan - plan_of(entry)[0]),
+                diff=_signed(shown_plan - entry.result.plan),
                 unit=unit,
-                old=fmt(plan_of(entry)[0]),
+                old=fmt(entry.result.plan),
             )
         plan_col.metric(
-            t("Forecast PLAN {id}", id=sprint.id),
+            t("Prognose aktuell {id}", id=sprint.id),
             f"{fmt(shown_plan)} {unit}",
             delta=delta,
             delta_color="off",
             help=(_formula_help(fc_view, shown, "plan") + "\n\n" if shown_plan is not None else "")
-            + (t("Beim Planning eingefroren.") if frozen else t("Aktuell berechnet.")),
+            + t("Aktuell berechnet."),
         )
+        if frozen_plan is not None:
+            columns[1].metric(
+                t("Prognose beim Planning {id}", id=sprint.id),
+                f"{fmt(frozen_plan)} {unit}",
+                delta=None if shown_plan is None else _signed(shown_plan - frozen_plan),
+                delta_color="off",
+                help=t(
+                    "Beim Planning eingefroren (Basis der verteilbaren Menge). Die Zahl darunter "
+                    "ist die Differenz der aktuellen Prognose dazu."
+                ),
+            )
         capacity_col.metric(t("Kapazität (PT)"), capacity_label(shown))
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
     if assumed:
@@ -2020,7 +2256,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if sprint.forecast_plan is not None:
             st.caption(
                 t(
-                    "Der Forecast PLAN dieses Sprints ist beim Planning eingefroren – die Annahme "
+                    "Die Prognose beim Planning dieses Sprints ist eingefroren – die Annahme "
                     "ändert ihn nicht."
                 )
             )
