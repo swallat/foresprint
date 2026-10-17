@@ -13,7 +13,7 @@ WORDS = [
     "Name", "Bundesland", "FTE heute", "Zeiträume im Team", "Kennzahl", "Formel", "Rechnung",
     "Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo", "PO", "ab", "bis", "Sprint",
     "Start", "Letzter Tag", "Status", "abgeschlossen", "laufend", "geplant", "noch ohne Datei",
-    "an", "hinweis", "aus", "Sprint-Daten aktualisiert", "Trend",
+    "an", "hinweis", "aus", "Sprint-Daten aktualisiert", "Trend", "geändert", "gelöscht",
 ]  # fmt: skip
 
 

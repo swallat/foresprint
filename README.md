@@ -179,6 +179,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | | Einstellungen | alle Team-Einstellungen; Änderungen werden vor dem Speichern angezeigt |
 | | Neues Team | Team anlegen |
 | Daten & Hilfe | Datenordner | Datenordner wählen, neu anlegen oder klonen (Git-Repository) |
+| | Änderungen und Verlauf | Offene Änderungen verwerfen, Verlauf je Team/Sprint/Datei, früheren Stand wiederherstellen, Tags verwalten |
 | | Prüfung | Befunde aller Teams |
 | | Hilfe | Ablauf, Begriffe, Eingabefelder, Einstellungen, Befehle |
 
@@ -219,6 +220,14 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   Datei, fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und
   detached HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die
   Anmeldung des Rechners (Credential Manager, SSH-Agent) wird genutzt.
+
+- **Änderungen und Verlauf** (eigene Seite): *Verwerfen* einzelner Dateien oder aller offenen
+  Änderungen mit Anzeige, was verloren geht, und Bestätigung (eine Kopie landet im Papierkorb unter
+  `.git/sprintforecast-verworfen`). *Verlauf* je Team, Sprint oder Datei (wer, wann, was);
+  *Wiederherstellen* eines früheren Stands ist selbst ein Commit und mit „Diese Änderung
+  zurücknehmen“ rückgängig zu machen (Zusammenführungen lassen sich so nicht zurücknehmen). *Tags*
+  anzeigen, nachträglich an einen beliebigen Stand setzen und löschen, jeweils auch auf dem Server
+  (scheitert das, bleibt der Tag lokal und die App sagt es).
 
 Committet wird nur das Datenverzeichnis, Tabellenkalkulationen (`*.xlsx` …) werden abgelehnt. Das
 Modell ist „ein Branch, immer synchron halten“; Branches, Rebase, Force-Push und Stash gehören

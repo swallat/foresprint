@@ -177,7 +177,8 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "dirty",
         re.compile(
-            r"would be overwritten by (merge|checkout)|Please commit your changes or stash them",
+            r"would be overwritten by (merge|checkout|revert)|"
+            r"Please commit your changes or stash them",
             re.I,
         ),
     ),
