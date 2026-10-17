@@ -7,7 +7,6 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-import yaml
 from streamlit.testing.v1 import AppTest
 from typer.testing import CliRunner
 from webfixtures import nav_done
@@ -76,9 +75,49 @@ def test_unreadable_file_is_reported_with_the_path(data_dir: Path):
     assert "nicht lesbar" in str(caught.value)
 
 
-def test_missing_file_is_still_reported_as_missing(data_dir: Path):
-    with pytest.raises(storage.DataError, match="nicht gefunden"):
-        Repository(data_dir).load("gibt-es-nicht")
+def test_missing_file_is_still_reported_as_missing(tmp_path: Path):
+    with pytest.raises(storage.DataError, match="Datei fehlt") as caught:
+        storage._read(tmp_path / "gibt-es-nicht.yaml")
+    assert not isinstance(caught.value, FileAccessError)  # fehlt ist kein Zugriffsfehler
+
+
+def test_unreadable_sprint_file_is_not_overwritten_when_pinning_the_state(
+    data_dir: Path, monkeypatch
+):
+    """Beim Speichern liest ``save_sprint`` die vorhandene Datei, um den Stand der Fehltage zu
+    übernehmen. Ist sie nicht lesbar, darf daraus kein stilles „bestätigt“ werden."""
+    repo = Repository(data_dir)
+    sprint = repo.load("demo").sprint("2026.21")
+    sprint.absence_state = None
+    path = sprint_file(data_dir, "2026.21")
+    before = path.read_bytes()
+    real = Path.read_text
+
+    def unreadable(self, *args, **kwargs):
+        if self == path:
+            raise PermissionError(13, "Permission denied")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", unreadable)
+    with pytest.raises(FileAccessError, match="nicht lesbar"):
+        repo.save_sprint("demo", sprint)
+    assert path.read_bytes() == before
+
+
+def test_import_checks_unreadable_files_with_a_message(data_dir: Path, monkeypatch):
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    team_file = data_dir / "demo" / "team.yaml"
+    real = Path.read_text
+
+    def unreadable(self, *args, **kwargs):
+        if self == team_file:
+            raise PermissionError(13, "Permission denied")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", unreadable)
+    with pytest.raises(FileAccessError, match="nicht lesbar"):
+        storage.import_sprints(repo, data.team, data.sprints[:1])
 
 
 def test_delete_failure_is_reported(data_dir: Path, monkeypatch):
@@ -100,6 +139,21 @@ def test_write_text_reports_failures(tmp_path: Path):
     target.mkdir()  # Datei lässt sich nicht schreiben (Ordner mit diesem Namen)
     with pytest.raises(FileAccessError, match=r"FORECAST\.md: nicht gespeichert"):
         storage.write_text(target, "# Bericht")
+
+
+def test_write_text_is_atomic(tmp_path: Path, monkeypatch):
+    """Der Bericht wird über eine Zwischendatei ersetzt: scheitert das, bleibt der alte erhalten
+    (die Meldung „nicht verändert“ stimmt)."""
+    target = tmp_path / "FORECAST.md"
+    target.write_text("# alt", encoding="utf-8")
+    monkeypatch.setattr(os, "replace", locked)
+    with pytest.raises(FileAccessError, match="nicht verändert"):
+        storage.write_text(target, "# neu")
+    assert target.read_text(encoding="utf-8") == "# alt"
+    assert [p.name for p in tmp_path.iterdir()] == ["FORECAST.md"]  # keine Zwischendatei
+    monkeypatch.undo()
+    storage.write_text(target, "# neu")
+    assert target.read_text(encoding="utf-8").strip() == "# neu"
 
 
 # --- Weboberfläche --------------------------------------------------------------------------
@@ -145,6 +199,31 @@ def test_web_save_shows_the_error_and_keeps_the_page(
     assert not any("Gespeichert" in s.value for s in app.success)
     assert not nav_done(app)["review"]
     assert sprint_file(data_dir, "2026.21").read_bytes() == before
+
+
+def test_web_page_keeps_rendering_after_a_failed_save(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """save() fängt den Fehler selbst: Die Seite zeichnet danach weiter (hier der Abschnitt
+    „Fehltage zurücksetzen“ unter dem Speichern-Knopf), statt in run_page abzubrechen."""
+    repo = Repository(data_dir)
+    last = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
+    repo.save_sprint("demo", Sprint(id=last.id, start=last.start, end=last.end))
+    app = start(data_dir, monkeypatch)
+    goto(app, "fehltage")
+    assert any("Fehltage zurücksetzen" in h.value for h in app.subheader)
+    frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
+    rows = {i: {"Niemand fehlt": True} for i, s in enumerate(frame["Sprint"]) if s == "2026.23"}
+    app.session_state[f"absence-states-{frame['Sprint'].iloc[0]}-{len(frame)}"] = {
+        "edited_rows": rows,
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    monkeypatch.setattr(storage, "_write_atomic", locked)
+    click(app, "Fehltage speichern")
+    assert any("nicht gespeichert" in e.value for e in app.error)
+    assert any("Fehltage zurücksetzen" in h.value for h in app.subheader)
 
 
 def test_web_report_button_shows_the_error(app: AppTest, data_dir: Path):
@@ -194,6 +273,14 @@ def test_cli_write_failure_is_a_message_with_exit_code_1(data_dir: Path, monkeyp
     assert not sprint_file(data_dir, "2026.23").exists()
 
 
+def test_every_cli_command_is_guarded():
+    """Auch Befehle von Erweiterungen (sie werden getrennt registriert) geben Zugriffsfehler als
+    Meldung aus."""
+    assert cli_app.registered_commands
+    for command in cli_app.registered_commands:
+        assert getattr(command.callback, "_guarded", False), command.name
+
+
 def test_cli_report_failure_is_a_message(data_dir: Path):
     block_report(data_dir)
     result = run(data_dir, "bericht", "demo")
@@ -206,11 +293,3 @@ def test_cli_read_failure_is_a_message(data_dir: Path):
     result = run(data_dir, "forecast", "demo")
     assert result.exit_code == 1, result.output
     assert "2026.99.yaml" in result.output and "nicht lesbar" in result.output
-
-
-def test_files_stay_readable_after_failed_save(data_dir: Path, monkeypatch):
-    monkeypatch.setattr(os, "replace", locked)
-    run(data_dir, "fehltage", "demo", "2026.22", input="1\n0\n0\n0\n")
-    monkeypatch.undo()
-    content = yaml.safe_load(sprint_file(data_dir, "2026.22").read_text(encoding="utf-8"))
-    assert content["id"] == "2026.22"

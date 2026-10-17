@@ -4955,4 +4955,7 @@ def run_plugin_page(page: WebPage) -> None:
     if _merge_open(repo):
         page_conflicts(repo)
         return
-    page.render(repo)
+    try:
+        page.render(repo)
+    except FileAccessError as e:  # Schreib- oder Lesefehler im Plugin
+        st.error(str(e))
