@@ -226,6 +226,65 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     )
 
 
+def plain_explanation(fc: Forecast, e: TimelineEntry) -> str:
+    """Kurze Erklärung in Alltagssprache, wie die Prognose eines Sprints entsteht – mit den
+    wichtigsten Zahlen und Quellen. Die ausführlichen Formeln liefert :func:`steps`."""
+    team = fc.data.team
+    f = team.forecast
+    r = e.result
+    unit = team.unit.value
+    if r.plan is None:
+        return t("Für diesen Sprint ist noch keine Prognose berechenbar (zu wenig Historie).")
+    if r.plan_source is PlanSource.ACTUAL:
+        return t(
+            "Vergangener Sprint: Es zählt das Commitment ({value} {unit}), abgerundet auf {plan}.",
+            value=_n(r.forecast_ist.value),
+            unit=unit,
+            plan=fmt(r.plan, f.rounding),
+        )
+    index = next(i for i, x in enumerate(fc.entries) if x.sprint.id == e.sprint.id)
+    basis = [
+        x.sprint.id for x in fc.entries[:index] if x.result.normalized_velocity.value is not None
+    ][-f.window :]
+    trend = r.normalized_velocity.trend
+    raw = trend / f.reference_capacity * (r.plan_capacity or 0.0) if trend is not None else 0.0
+    parts = [
+        t(
+            "Das Team hat zuletzt (Sprints {sprints}) umgerechnet auf eine Referenzkapazität von "
+            "{ref} PT durchschnittlich {trend} {unit} geschafft (normierte Velocity).",
+            sprints=", ".join(basis),
+            ref=_n(f.reference_capacity, 0),
+            trend=_n(trend),
+            unit=unit,
+        ),
+        t(
+            "Für {id} stehen {capacity} PT zur Verfügung ({source}). Das ergibt {trend} / {ref} "
+            "× {capacity} = {raw} {unit}, abgerundet **{plan} {unit}**.",
+            id=e.sprint.id,
+            capacity=_n(r.plan_capacity, 1),
+            source=t(r.plan_capacity_source.value) if r.plan_capacity_source else "–",
+            trend=_n(trend),
+            ref=_n(f.reference_capacity, 0),
+            raw=_n(raw, 3),
+            unit=unit,
+            plan=fmt(r.plan, f.rounding),
+        ),
+    ]
+    if r.trend_fallback:
+        parts.append(
+            t("Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.")
+        )
+    elif f.trend_mode is not TrendMode.FLAT:
+        parts.append(
+            t(
+                "Der Trend-Modus {mode} schreibt Schwankungen der letzten Sprints fort – "
+                "vorsichtig lesen.",
+                mode=f.trend_mode.value,
+            )
+        )
+    return " ".join(parts)
+
+
 def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
     """Alle Rechenschritte eines Sprints in Lesereihenfolge."""
     team = fc.data.team
