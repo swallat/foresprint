@@ -104,6 +104,7 @@ class SyncResult:
     merged: bool = False  # fremde Änderungen wurden zusammengeführt
     conflicts: list[ConflictFile] = field(default_factory=list)
     validation: list[str] = field(default_factory=list)  # neue Fehler nach dem Zusammenführen
+    notes: list[str] = field(default_factory=list)  # Hinweise, obwohl alles gelang
     error: GitError | None = None
 
     @property
@@ -141,13 +142,22 @@ def _git_dir(root: Path) -> Path:
 def state(path: Path) -> SyncState:
     """Stand des Datenordners (lokal ermittelt, ohne Netzwerk)."""
     root = _root(path)
-    out = _git(root, "status", "--porcelain=v2", "--branch", "--untracked-files=no", strip=False)
+    out = _git(
+        root, "status", "--porcelain=v2", "-z", "--branch", "--untracked-files=no", strip=False
+    )
     branch: str | None = None
     upstream: str | None = None
     ahead = behind = 0
     conflicts: list[str] = []
-    for line in out.splitlines():
-        if line.startswith("# branch.head "):
+    entries = out.split("\0")
+    skip = 0
+    for line in entries:
+        if skip:  # bisheriger Pfad einer Umbenennung
+            skip -= 1
+            continue
+        if line.startswith("2 "):
+            skip = 1
+        elif line.startswith("# branch.head "):
             head = line.split(" ", 2)[2]
             branch = None if head == "(detached)" else head
         elif line.startswith("# branch.upstream "):
@@ -156,7 +166,7 @@ def state(path: Path) -> SyncState:
             plus, minus = line.split(" ")[2:4]
             ahead, behind = int(plus.lstrip("+")), abs(int(minus))
         elif line.startswith("u "):  # nicht zusammengeführte Datei
-            conflicts.append(line.split(" ", 10)[-1].strip('"'))
+            conflicts.append(line.split(" ", 10)[-1])
     remote = upstream.split("/", 1)[0] if upstream else None
     if remote is None:
         remotes = _git(root, "remote", check=False).split()
@@ -235,13 +245,23 @@ def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str,
         check=False,
     )
     commits = [Commit(*line.split(_SEP, 3)) for line in log.splitlines() if _SEP in line]
+    related = bool(_git(root, "merge-base", "HEAD", current.upstream, check=False))
+    span = f"HEAD...{current.upstream}" if related else f"HEAD..{current.upstream}"
     diff = _git(
-        root, "diff", "--name-status", f"HEAD...{current.upstream}", "--", target, check=False
-    )
+        root, "diff", "--name-status", "-z", span, "--", target,
+        check=False, strip=False,
+    )  # fmt: skip
     files = []
-    for line in diff.splitlines():
-        status, _, name = line.partition("\t")
-        files.append((status[:1], name.split("\t")[-1]))
+    entries = diff.split("\0")
+    i = 0
+    while i < len(entries) and entries[i]:
+        status = entries[i]
+        i += 1
+        names = 2 if status[:1] in {"R", "C"} else 1  # bei Umbenennungen: alt, neu
+        if i + names > len(entries):
+            break
+        files.append((status[:1], entries[i + names - 1]))
+        i += names
     return commits, files
 
 
@@ -284,7 +304,7 @@ def _analyse(
         if not isinstance(ours, dict) or not isinstance(theirs, dict):
             return whole, None
         merged, conflicts = merge3(base, ours, theirs, choices)
-    except yaml.YAMLError, GitError:
+    except yaml.YAMLError, GitError, ValueError:
         return whole, None
     if conflicts:
         return ConflictFile(file, keys=tuple(conflicts)), None
@@ -331,8 +351,11 @@ def _merge(root: Path, upstream: str, path: Path) -> list[ConflictFile]:
     """Führt den Server-Stand ein. Bei Konflikten bleibt das Zusammenführen offen, alles
     automatisch Lösbare ist erledigt; zurück kommen die Konflikte für den Menschen (leer =
     fertig). Die eigenen Änderungen sind bereits committet."""
+    args = ["merge", "--no-edit"]
+    if not _git(root, "merge-base", "HEAD", upstream, check=False):
+        args.append("--allow-unrelated-histories")  # z. B. zwei getrennt begonnene Repositories
     try:
-        _git(root, "merge", "--no-edit", upstream)
+        _git(root, *args, upstream)
         return []
     except GitError as e:
         if e.kind not in {"conflict", "error"} or not (_git_dir(root) / "MERGE_HEAD").exists():
@@ -385,8 +408,14 @@ def new_errors(path: Path, baseline: str, today: date | None = None) -> list[str
     return [f"{key}: {where}: {message}" for key, where, message in sorted(found)]
 
 
+def _ref_exists(root: Path, ref: str) -> bool:
+    return bool(_git(root, "rev-parse", "--verify", "--quiet", ref, check=False))
+
+
 def _unpushed_merges(root: Path, current: SyncState) -> bool:
-    if not current.upstream:
+    # Ohne Gegenstelle (noch nie hochgeladen oder vom Server entfernt) gibt es nichts zu
+    # vergleichen.
+    if not current.upstream or not _ref_exists(root, f"refs/remotes/{current.upstream}"):
         return False
     count = _git(root, "rev-list", "--merges", "--count", f"{current.upstream}..HEAD")
     return count.isdigit() and int(count) > 0
@@ -442,6 +471,8 @@ def sync(
             current = fetch(path)
             if current.fetch_error is not None:
                 raise current.fetch_error
+            if not current.upstream and current.branch:
+                current = _adopt_remote_branch(root, current)
             commits, files = incoming(path)
             result.pulled += [c for c in commits if c not in result.pulled]
             result.pulled_files += [f for f in files if f not in result.pulled_files]
@@ -467,12 +498,60 @@ def sync(
                     continue
                 raise
             result.pushed = True
+            result.notes += _tag_notes(root, current, tags or [])
             break
     except GitError as e:
         result.error = e
     finally:
         gitmod.invalidate_status()
     return result
+
+
+def _adopt_remote_branch(root: Path, current: SyncState) -> SyncState:
+    """Hat der Server den Branch schon, dieser Rechner ihn aber noch nicht mit dem Server
+    verbunden (z. B. ein getrennt begonnenes Repository), wird er jetzt verbunden. Danach
+    wird der Server-Stand ganz normal zusammengeführt."""
+    candidate = f"{current.remote}/{current.branch}"
+    if current.remote and _ref_exists(root, f"refs/remotes/{candidate}"):
+        _git(root, "branch", f"--set-upstream-to={candidate}")
+        return state(root)
+    return current
+
+
+def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
+    """Hinweise zu Tags, die ``push --follow-tags`` nicht veröffentlicht hat: Der Name ist auf
+    dem Server schon für einen anderen Stand vergeben (zwei Personen haben denselben Sprint
+    getaggt) – der Tag bleibt dort unverändert, lokal zeigt er auf den eigenen Stand."""
+    notes: list[str] = []
+    if not tags or not current.remote:
+        return notes
+    for tag in tags:
+        local = _git(root, "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}^{{commit}}",
+                     check=False)  # fmt: skip
+        if not local:
+            continue
+        try:
+            out = _git(root, "ls-remote", "--tags", current.remote, f"refs/tags/{tag}",
+                       f"refs/tags/{tag}^{{}}", network=True)  # fmt: skip
+        except GitError:
+            continue  # ohne Antwort des Servers lässt sich nichts sagen
+        refs = {}
+        for line in out.splitlines():
+            sha, _, ref = line.partition("\t")
+            refs[ref] = sha
+        remote = refs.get(f"refs/tags/{tag}^{{}}") or refs.get(f"refs/tags/{tag}")
+        if remote and remote != local:
+            notes.append(
+                t(
+                    "Der Tag {tag} ist auf dem Server bereits für einen anderen Stand vergeben "
+                    "und wurde nicht überschrieben. Auf diesem Rechner zeigt er auf den "
+                    "eigenen Stand.",
+                    tag=tag,
+                )
+            )
+        elif not remote:
+            notes.append(t("Der Tag {tag} konnte nicht auf den Server übertragen werden.", tag=tag))
+    return notes
 
 
 def _push(root: Path, current: SyncState) -> None:
