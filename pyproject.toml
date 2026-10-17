@@ -34,6 +34,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "playwright>=1.64.0",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
 ]
@@ -47,6 +48,8 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
+# Browsertests: lange JavaScript-Texte und Erwartungstexte bleiben je Stück auf einer Zeile.
+"tests/e2e/*" = ["E501"]
 # Übersetzungskatalog: lange Texte bleiben je Eintrag auf einer Zeile.
 "src/sprintforecast/locale_en.py" = ["E501"]
 # Windows-Skript: Beispiele mit langen Befehlszeilen und PowerShell-Code in einem Text.
@@ -54,3 +57,9 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Browsertests (tests/e2e) brauchen einen installierten Browser und laufen nur auf Wunsch:
+# `uv run pytest -m e2e` (siehe tests/e2e/README.md).
+addopts = "-m 'not e2e'"
+markers = [
+    "e2e: Browsertests mit Playwright gegen die laufende App (nur mit -m e2e)",
+]
