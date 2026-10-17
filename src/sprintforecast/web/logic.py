@@ -241,7 +241,8 @@ def _only_absences(sprint: Sprint) -> bool:
 
 def resettable_sprints(data: TeamData, today: date) -> list[Sprint]:
     """Künftige Sprintdateien, die nur Fehltage enthalten und am Ende der erfassten Sprints
-    stehen: Löschen stellt „keine Informationen“ her (Kapazität wieder per Trend)."""
+    stehen: Löschen stellt „keine Informationen“ her (Fehltage wieder nach der Historie
+    geschätzt)."""
     result: list[Sprint] = []
     for sprint in reversed(sorted(data.sprints, key=lambda s: s.start)):
         if sprint.start > today and _only_absences(sprint):

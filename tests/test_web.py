@@ -2,6 +2,7 @@
 """Weboberfläche: Seiten rendern, Formulare speichern, Commit (ohne Browser via AppTest)."""
 
 import subprocess
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,9 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps, nav_titles
 
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.forecast import build_forecast
+from sprintforecast.model import Sprint
+from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -195,6 +198,22 @@ def test_absences_confirm_nobody_absent_creates_sprint_files(app: AppTest, data_
     assert not any("Trend" in w.value for w in app.warning)
 
 
+def test_reset_absences_text_names_calendar_and_people_not_trend(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Nach dem Zurücksetzen bleibt die Kapazität aus Kalender und Personen; nur die Fehltage
+    werden nach der Historie geschätzt (Trend gibt es nur ohne Personenliste)."""
+    repo = Repository(data_dir)
+    nxt = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
+    repo.save_sprint("demo", Sprint(id=nxt.id, start=nxt.start, end=nxt.end))
+    at = goto(start(data_dir, monkeypatch), "fehltage")
+    assert "Fehltage zurücksetzen" in [s.value for s in at.subheader]
+    caption = next(c.value for c in at.caption if "Zurücksetzen löscht" in c.value)
+    assert "Trend" not in caption
+    assert "nach der Historie geschätzt (ohne Historie ohne Abzug)" in caption
+    assert "Kalender und Personen" in caption
+
+
 def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
     """Planning-Seite, Sprint wählen und zum Schritt (0–2) des Ablaufs springen."""
     goto(at, "planning")
@@ -346,6 +365,30 @@ def test_commit_button(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     assert git(data_dir, "tag") == "demo/2026.21"
     assert git(data_dir, "status", "--porcelain") == ""
     assert at.session_state["pending_tags"] == []
+
+
+def test_commit_button_refuses_files_with_conflict_markers(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Markierungen ohne offenes Zusammenführen: nichts wird committet, die Meldung nennt die
+    Datei und den Weg zur Seite „Konflikte lösen“."""
+    for var in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{var}_NAME", "T")
+        monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")
+    git(data_dir, "init", "-q", "-b", "main")
+    git(data_dir, "add", "-A")
+    git(data_dir, "commit", "-qm", "init")
+    sprint = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    sprint.write_text(
+        "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n", encoding="utf-8"
+    )
+    at = start(data_dir, monkeypatch)
+    at.text_input(key="commit_message").set_value("Mit Markierungen")
+    next(b for b in at.button if b.label == "Änderungen committen").click().run()
+    assert not at.exception, at.exception
+    assert git(data_dir, "log", "-1", "--format=%s") == "init"
+    shown = " ".join(e.value for e in [*at.sidebar.error, *at.error])
+    assert "Konflikte lösen" in shown and "2026.21.yaml" in shown
 
 
 def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
