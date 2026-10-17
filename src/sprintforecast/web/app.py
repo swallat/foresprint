@@ -6,6 +6,7 @@ from functools import partial
 import streamlit as st
 
 from sprintforecast.i18n import t
+from sprintforecast.idle import start_idle_watch
 from sprintforecast.plugins import web_pages
 from sprintforecast.web.ui import (
     PAGES,
@@ -19,6 +20,7 @@ from sprintforecast.web.ui import (
 )
 
 st.set_page_config(page_title="Sprint-Forecast", page_icon="📈", layout="wide")
+start_idle_watch()
 apply_language()
 repo = repository()
 sidebar(repo)  # vor der Navigation: Die Teamwahl bestimmt, welche Seiten es gibt
