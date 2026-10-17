@@ -14,6 +14,8 @@ WORDS = [
     "Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo", "PO", "ab", "bis", "Sprint",
     "Start", "Letzter Tag", "Status", "abgeschlossen", "laufend", "geplant", "noch ohne Datei",
     "an", "hinweis", "aus", "Sprint-Daten aktualisiert", "Trend", "geändert", "gelöscht",
+    "neu, danach gelöscht", "umbenannt", "umbenannt und geändert",
+    "umbenannt, danach gelöscht", "kopiert", "kopiert und geändert",
 ]  # fmt: skip
 
 

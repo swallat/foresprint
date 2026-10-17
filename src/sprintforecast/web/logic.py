@@ -8,8 +8,10 @@ import math
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
+from sprintforecast import config
 from sprintforecast.calendar import (
     following_sprint,
     next_id,
@@ -709,3 +711,34 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
             )
         )
     return tasks
+
+
+# --- „Ohne Git verwenden“: dauerhaft je Ordner in den Benutzereinstellungen ------------------
+
+WITHOUT_GIT_KEY = "without_git_dirs"
+
+
+def _resolved(path: Path) -> str:
+    try:
+        return str(path.resolve())
+    except OSError:
+        return str(path)
+
+
+def without_git_dirs() -> list[str]:
+    """Ordner, die ausdrücklich ohne Git verwendet werden (aufgelöste Pfade)."""
+    raw = config.load().get(WITHOUT_GIT_KEY)
+    return [p for p in raw if isinstance(p, str) and p.strip()] if isinstance(raw, list) else []
+
+
+def is_without_git(path: Path) -> bool:
+    return _resolved(path) in without_git_dirs()
+
+
+def remember_without_git(path: Path) -> None:
+    """Merkt die Entscheidung dauerhaft (ohne Doppelte). Wirft ``config.SettingsError``, wenn
+    die Einstellungen nicht gespeichert werden können."""
+    here = _resolved(path)
+    known = without_git_dirs()
+    if here not in known:
+        config.update(**{WITHOUT_GIT_KEY: [*known, here]})
