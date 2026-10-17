@@ -35,6 +35,21 @@ def test_forecast_and_report(data_dir: Path):
     assert "```mermaid" in report
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--rest", "nan"],
+        ["--rest", "inf"],
+        ["--rest", "1e999"],
+        ["--rest", "10", "--anteil", "nan"],
+    ],
+)
+def test_analyse_rejects_non_finite_options(data_dir: Path, args: list[str]):
+    result = run(data_dir, "analyse", "demo", *args)
+    assert result.exit_code == 2, result.output
+    assert "endliche Zahl" in result.output
+
+
 def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
     # Sprint 2026.23 hat noch keine Datei; aktive Personen: Anna, Ben, Cem, Dana
     result = run(data_dir, "fehltage", "demo", "2026.23", input="2\n0\n1,5\n0\n")

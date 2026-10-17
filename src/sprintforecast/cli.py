@@ -1118,6 +1118,13 @@ def forecast(
         )
 
 
+def _finite_option(value: float | None) -> float | None:
+    """Typer-Prüfung: nan und inf sind keine Zahlen, mit denen sich rechnen ließe."""
+    if value is not None and not math.isfinite(value):
+        raise typer.BadParameter(t("Bitte eine endliche Zahl eingeben."))
+    return value
+
+
 @command(
     "analyse", "Ergänzende Analysen: Bandbreite, Fokusfaktor, Puffer, Fertigstellung (--rest)."
 )
@@ -1129,6 +1136,7 @@ def analyse(
         typer.Option(
             "--rest",
             "--remaining",
+            callback=_finite_option,
             help=t("Restmenge, für die der Fertigstellungs-Sprint geschätzt wird."),
         ),
     ] = None,
@@ -1147,6 +1155,7 @@ def analyse(
             "--share",
             min=1,
             max=100,
+            callback=_finite_option,
             help=t(
                 "Projektanteil in %: welcher Teil der Roadmap- bzw. Gesamtkapazität in die "
                 "Restmenge fließt (Standard 100)."
