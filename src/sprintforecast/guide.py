@@ -184,7 +184,9 @@ WORKFLOW: list[Step] = [
         when="Vor dem Planning / PO-Planung",
         title="Forecast ansehen",
         text="Zeigt den Forecast PLAN für den laufenden und die kommenden Sprints – die "
-        "empfohlene Planungsmenge, aufgeteilt in Roadmap und Kleinkram.",
+        "empfohlene Planungsmenge, aufgeteilt in Roadmap und Kleinkram. Die Startseite führt "
+        "über drei Aufgaben (Sprint vorbereiten, Planning, Sprint abschließen) zur jeweils "
+        "nächsten sinnvollen Seite.",
         page="forecast",
         cli="sprintforecast forecast TEAM",
     ),
@@ -212,7 +214,8 @@ WORKFLOW: list[Step] = [
         title="Review erfassen",
         text="Velocity, Scope Creep und optional Erledigt je Produkt eintragen. Die Kapazität "
         "des Sprints wird dabei eingefroren, damit spätere Änderungen an der Personenliste die "
-        "Historie nicht ändern.",
+        "Historie nicht ändern. Produktwerte werden nur auf den Boards (Vorplanung, Planning, "
+        "Review) erfasst; die Produktverteilung wertet sie nur aus.",
         page="review",
         cli="sprintforecast review TEAM --commit",
     ),
@@ -415,11 +418,14 @@ GIT_HELP: list[tuple[str, str]] = [
     ),
     (
         "Zwischen Datenordnern umschalten",
-        "Oben in der Seitenleiste stehen der aktive Datenordner und sein Branch. Unter "
-        "„Datenordner wechseln“ und auf der Seite „Datenordner“ lassen sich die zuletzt "
-        "benutzten Ordner umschalten. Beim Wechsel werden nicht gespeicherte Eingaben in "
-        "Formularen und alle Zwischenspeicher des alten Ordners verworfen; offene Änderungen im "
-        "alten Ordner bleiben dort erhalten und erscheinen beim Zurückwechseln wieder.",
+        "Oben in der Seitenleiste stehen der aktive Datenordner (mit dem übergeordneten "
+        "Ordner) und sein Branch. Unter „Datenordner wechseln“ und auf der Seite „Datenordner“ "
+        "lassen sich die zuletzt benutzten Ordner umschalten. Der Datenordner gilt je "
+        "Browser-Fenster: Wechselt ein Fenster, arbeiten andere offene Fenster in ihrem Ordner "
+        "weiter; neu geöffnete Fenster starten im zuletzt gewählten. Beim Wechsel werden nicht "
+        "gespeicherte Eingaben in Formularen und alle Zwischenspeicher des alten Ordners "
+        "verworfen; vorgemerkte Tags, die Commit-Nachricht und offene Änderungen im alten Ordner "
+        "bleiben dort erhalten und erscheinen beim Zurückwechseln wieder.",
     ),
     (
         "Server nicht erreichbar (offline)",

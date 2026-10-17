@@ -119,7 +119,7 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     at = AppTest.from_file(str(app_file), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
-    assert any("Upcoming events" in c.value for c in at.caption)
+    assert at.header[0].value == "What would you like to do?"
     for page in sorted(PAGE_INFO):
         at.switch_page(f"seiten/{page}.py").run()
         assert not at.exception, (page, at.exception)
