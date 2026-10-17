@@ -11,6 +11,7 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 from __future__ import annotations
 
 import io
+import os
 import re
 import shutil
 import tarfile
@@ -348,7 +349,18 @@ def resolve_conflicts(
             else:  # auf dieser Seite gelöscht
                 _git(root, "rm", "-q", "--", file)
         elif merged is not None:
-            (root / file).write_text(merged, encoding="utf-8", newline="\n")
+            try:
+                (root / file).write_text(merged, encoding="utf-8", newline="\n")
+            except OSError as e:  # gesperrt oder schreibgeschützt: das Zusammenführen bleibt offen
+                raise GitError(
+                    t(
+                        "{file} konnte nicht geschrieben werden ({reason}).",
+                        file=file,
+                        reason=e.strerror or str(e),
+                    ),
+                    "locked",
+                    hint_for("locked"),
+                ) from e
             _git(root, "add", "--", file)
     gitmod.invalidate_status()
     return pending_conflicts(path)
@@ -423,8 +435,15 @@ def _error_set(repo_dir: Path, today: date) -> set[tuple[str, str, str]]:
     from sprintforecast.storage import Repository
     from sprintforecast.validate import Level, check_all
 
+    # Ohne den Ordner im Text: Der Vergleich Arbeitsstand gegen Commit läuft in verschiedenen
+    # Ordnern, und Ladefehler nennen den Dateipfad.
+    prefix = str(repo_dir)
+
+    def relative(text: str) -> str:
+        return text.replace(prefix + os.sep, "").replace(prefix, "")
+
     return {
-        (key, i.where, i.message)
+        (key, relative(i.where), relative(i.message))
         for key, issues in check_all(Repository(repo_dir), today).items()
         for i in issues
         if i.level is Level.ERROR
