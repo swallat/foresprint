@@ -109,10 +109,34 @@ def saved_data_dir() -> Path | None:
     return path if path is not None and path.is_dir() else None
 
 
-def save_data_dir(path: Path) -> None:
+MAX_RECENT = 8
+
+
+def recent_data_dirs() -> list[Path]:
+    """Zuletzt benutzte Datenordner, der neueste zuerst (auch nicht mehr vorhandene – die
+    Oberfläche kennzeichnet sie)."""
     from sprintforecast import config
 
-    config.update(data_dir=str(path.resolve()))
+    raw = config.load().get("recent_data_dirs")
+    return [Path(p) for p in raw if isinstance(p, str)] if isinstance(raw, list) else []
+
+
+def save_data_dir(path: Path) -> None:
+    """Merkt den Datenordner als aktuellen und reiht ihn in die Liste der zuletzt benutzten ein."""
+    from sprintforecast import config
+
+    here = str(path.resolve())
+    recent = [here, *(str(p) for p in recent_data_dirs() if str(p) != here)]
+    config.update(data_dir=here, recent_data_dirs=recent[:MAX_RECENT])
+
+
+def forget_data_dir(path: Path) -> None:
+    """Entfernt einen Ordner aus der Liste der zuletzt benutzten (der Ordner bleibt bestehen)."""
+    from sprintforecast import config
+
+    config.update(
+        recent_data_dirs=[str(p) for p in recent_data_dirs() if p != path and p != path.resolve()]
+    )
 
 
 def default_data_dir() -> Path:
