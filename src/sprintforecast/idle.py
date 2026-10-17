@@ -24,10 +24,10 @@ _started = False
 class IdleWatch:
     """Entscheidet anhand der Zahl verbundener Sitzungen, ob der Server enden soll."""
 
-    def __init__(self, grace: float, poll: float = _POLL_SECONDS) -> None:
+    def __init__(self, grace: float, poll: float = _POLL_SECONDS, seen: bool = False) -> None:
         self.grace = grace
         self.poll = poll
-        self._seen = False
+        self._seen = seen
         self._idle_since: float | None = None
         self._last: float | None = None
 
@@ -76,6 +76,9 @@ def start_idle_watch() -> None:
     except ValueError:
         return
     _started = True
+    # Aufgerufen wird aus dem Skriptlauf einer Sitzung: Es war also schon ein Browser da, auch
+    # wenn er vor der ersten Zählung wieder weg ist.
+    watch = IdleWatch(grace, seen=True)
     threading.Thread(
-        target=_loop, args=(IdleWatch(grace), _active_sessions, lambda: os._exit(0)), daemon=True
+        target=_loop, args=(watch, _active_sessions, lambda: os._exit(0)), daemon=True
     ).start()
