@@ -25,6 +25,7 @@ from rich.table import Table
 from sprintforecast import LOG_ENV, __version__, updater
 from sprintforecast.calendar import day_label, holiday_name, team_workdays
 from sprintforecast.capacity import sprint_capacity
+from sprintforecast.config import SettingsError
 from sprintforecast.engine import UNSURE_SOURCES
 from sprintforecast.forecast import (
     Forecast,
@@ -1723,7 +1724,11 @@ def datenordner(
         )
         raise typer.Exit(1)
     target = teams_dir(pfad) or pfad
-    save_data_dir(target)
+    try:
+        save_data_dir(target)
+    except SettingsError as e:
+        err.print(f"[red]{e}[/red]")
+        raise typer.Exit(1) from e
     console.print(f"[green]{t('Datenordner gemerkt: {path}', path=target.resolve())}[/green]")
 
 
@@ -1738,7 +1743,11 @@ def sprache(
     if code not in LANGUAGES:
         err.print(f"[red]{t('Erlaubt: {values}', values=', '.join(LANGUAGES))}[/red]")
         raise typer.Exit(1)
-    save_language(code)
+    try:
+        save_language(code)
+    except SettingsError as e:
+        err.print(f"[red]{e}[/red]")
+        raise typer.Exit(1) from e
     from sprintforecast.i18n import set_language
 
     set_language(code)
