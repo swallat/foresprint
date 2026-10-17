@@ -612,3 +612,12 @@ def test_forecast_shows_gaps_skipped_by_the_average(
     path.write_text(yaml.safe_dump(raw))
     at = start(data_dir, monkeypatch)
     assert any("Lücken: 1 Sprint" in i.value for i in at.info)
+
+
+def test_absences_page_answers_how_much_fits_into_the_next_sprint(app: AppTest):
+    """K2-Abnahme: Wer Fehltage einträgt, sieht sofort, wie viel in den nächsten Sprint passt."""
+    goto(app, "fehltage")
+    text = " ".join(m.value for m in app.markdown)
+    assert "In den nächsten Sprint 2026.22 passen 11,2 PT" in text
+    frame = next(d.value for d in app.dataframe if "Kapazität (PT)" in d.value.columns)
+    assert frame.loc[frame["Sprint"] == "2026.22", "Forecast PLAN (PT)"].iloc[0] == "11,2"
