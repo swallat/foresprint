@@ -88,7 +88,6 @@ from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
     DataError,
-    FileAccessError,
     Repository,
     TeamData,
     default_data_dir,
@@ -106,7 +105,8 @@ err = Console(stderr=True)
 
 
 def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
-    """Gibt einen Schreib- oder Lesefehler der Datendateien als Meldung aus (Exit-Code 1)."""
+    """Gibt einen Fehler der Datendateien als Meldung aus (Exit-Code 1): Schreib- oder
+    Lesefehler, kein erster Sprint, eine ID ohne Folge-ID."""
     if getattr(fn, "_guarded", False):
         return fn
 
@@ -114,7 +114,7 @@ def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
     def guarded(*args: Any, **kwargs: Any) -> Any:
         try:
             return fn(*args, **kwargs)
-        except FileAccessError as e:  # Meldung statt Traceback (kein Schreibrecht u. Ä.)
+        except DataError as e:  # Meldung statt Traceback (kein Schreibrecht, Prognose u. Ä.)
             err.print(f"[red]{escape(str(e))}[/red]")
             raise typer.Exit(1) from e
 
