@@ -134,6 +134,7 @@ EN: dict[str, str] = {
     "{path}: kein gültiges YAML ({error})": "{path}: invalid YAML ({error})",
     "{path}: Inhalt muss ein YAML-Objekt sein": "{path}: content must be a YAML mapping",
     "{where}: Zahl erwartet, gefunden {value}": "{where}: number expected, found {value}",
+    "{where}: endliche Zahl erwartet, gefunden {value}": "{where}: finite number expected, found {value}",
     "{where}: Datum im Format JJJJ-MM-TT erwartet, gefunden {value}": (
         "{where}: date in format YYYY-MM-DD expected, found {value}"
     ),
@@ -425,6 +426,7 @@ EN: dict[str, str] = {
     "Bitte eine ganze Zahl eingeben.": "Please enter a whole number.",
     "Datum im Format JJJJ-MM-TT eingeben.": "Enter the date as YYYY-MM-DD.",
     "Bitte eine Zahl eingeben.": "Please enter a number.",
+    "Bitte eine endliche Zahl eingeben.": "Please enter a finite number.",
     "Kein freier Port gefunden": "No free port found",
     "Browser nicht gefunden: {browser}": "Browser not found: {browser}",
     "Velocity- und Kapazitäts-Forecast": "Velocity and capacity forecast",
@@ -621,7 +623,7 @@ EN: dict[str, str] = {
     "Kontrollrechnung (optional)": "Cross-check (optional)",
     "Prüft, ob die Planung in den Forecast PLAN passt: Delta = Forecast PLAN − (Überkipper + Backlog − Korrekturen). Wirkt sich auf keine andere Kennzahl aus. Ist das Commitment leer, wird es mit Überkipper + Backlog vorbelegt; weicht er davon ab, erscheint ein Hinweis.": "Checks whether the planning fits the Forecast PLAN: delta = Forecast PLAN − (carry-over + backlog − corrections). Does not affect any other metric. If the commitment is empty, it is prefilled with carry-over + backlog; if it differs, a note appears.",
     "Korrekturen Restaufwände ({unit})": "Corrections of remaining effort ({unit})",
-    "Korrekturen: bitte Zahlen mit Leerzeichen getrennt eingeben.": "Corrections: please enter numbers separated by spaces.",
+    "Korrekturen: bitte endliche Zahlen mit Leerzeichen getrennt eingeben.": "Corrections: please enter finite numbers separated by spaces.",
     "Planning-Summe {total} {unit} · Forecast PLAN {plan} {unit} · Delta {delta} {unit}": "Planning total {total} {unit} · Forecast PLAN {plan} {unit} · delta {delta} {unit}",
     "Planning {id} vollständig – der Sprint kann starten.": "Planning {id} complete – the sprint can start.",
     "Noch offene Arbeit, z. B. die Summe eines Roadmap-Themas.": "Work still open, e.g. the total of a roadmap topic.",

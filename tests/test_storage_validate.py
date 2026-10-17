@@ -31,6 +31,17 @@ def test_unquoted_sprint_id_gives_helpful_error(data_dir: Path):
         Repository(data_dir).load("demo")
 
 
+@pytest.mark.parametrize("raw", [".nan", ".inf", "-.inf", "1.0e+999", "1" + "0" * 400])
+def test_non_finite_number_in_yaml_gives_error(data_dir: Path, raw: str):
+    path = data_dir / "demo" / "sprints" / "2026.20.yaml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("velocity: 9.75", f"velocity: {raw}"),
+        encoding="utf-8",
+    )
+    with pytest.raises(DataError, match=r"2026\.20\.yaml: velocity: endliche Zahl erwartet"):
+        Repository(data_dir).load("demo")
+
+
 def test_unknown_team_lists_known_teams(data_dir: Path):
     with pytest.raises(DataError, match="demo"):
         Repository(data_dir).load("gibtsnicht")
