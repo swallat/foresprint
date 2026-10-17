@@ -47,6 +47,7 @@ from sprintforecast.guide import (
     command_text,
 )
 from sprintforecast.i18n import LANGUAGES, is_english, language, save_language, t
+from sprintforecast.idle import IDLE_ENV
 from sprintforecast.launcher import (
     BROWSER_ENV,
     browser_command,
@@ -1353,6 +1354,8 @@ def web(
     env = os.environ | {DATA_ENV: str(c.repo.root.resolve())} | updater.web_environment(sys.argv)
     if c.stichtag:
         env[STICHTAG_ENV] = c.stichtag
+    if app_mode:
+        env[IDLE_ENV] = str(_IDLE_EXIT_SECONDS)  # Server beendet sich selbst ohne Sitzung
     actual_port = free_port(port)
     if actual_port != port:
         console.print(
@@ -1392,6 +1395,8 @@ def web(
 # Endet der Browserprozess schneller, hat er vermutlich an eine laufende Instanz übergeben –
 # dann darf der Server nicht beendet werden.
 _HANDOFF_SECONDS = 5.0
+# So lange darf nach dem Besuch eines Browsers keine Sitzung mehr verbunden sein (idle.py).
+_IDLE_EXIT_SECONDS = 20
 
 
 def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -> None:
