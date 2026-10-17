@@ -294,10 +294,24 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                 ),
             )
 
-        for name in ("not_done", "additional_done"):
+        for name in ("not_done", "additional_done", "production_planned", "production_done"):
             value = getattr(s, name)
             if value is not None and value < 0:
                 error(where, t("{name} darf nicht negativ sein", name=name))
+        if (
+            s.production_planned is not None
+            and s.forecast_ist is not None
+            and s.production_planned > s.forecast_ist + 0.05
+        ):
+            warn(
+                where,
+                t(
+                    "Produktionszugriff eingeplant ({part}) ist größer als das Commitment "
+                    "({whole})",
+                    part=_g(s.production_planned),
+                    whole=_g(s.forecast_ist),
+                ),
+            )
         if (
             s.velocity is not None
             and s.forecast_ist is not None
