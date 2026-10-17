@@ -356,6 +356,42 @@ def test_without_git_does_nothing_when_settings_cannot_be_saved(
     assert [h.value for h in at.header] == ["Datenordner"]  # unverändert in der Einrichtung
 
 
+def test_without_git_choice_is_taken_back_when_the_switch_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Scheitert der Wechsel nach dem Merken, bleibt „ohne Git“ nicht halb gespeichert."""
+    from sprintforecast.web import logic
+
+    empty = tmp_path / "leer"
+    empty.mkdir()
+    at = start(empty, monkeypatch)
+    at.session_state["offer-init"] = str(empty)
+    at.run()
+    real = config.update
+
+    def only_without_git(**changes: object) -> None:
+        if logic.WITHOUT_GIT_KEY not in changes:
+            raise BROKEN
+        real(**changes)
+
+    monkeypatch.setattr(config, "update", only_without_git)
+    main_button(at, "Ohne Git verwenden").click().run()
+    assert not at.exception, at.exception
+    assert any_error(at, "Zugriff verweigert")
+    assert not logic.is_without_git(empty)
+
+
+def test_unrelated_confirmation_does_not_survive_another_sync(shared, data_dir, monkeypatch):
+    _, _, server = shared
+    foreign_history(server)
+    at = start(data_dir, monkeypatch)
+    sidebar_button(at, "Speichern und teilen").click().run()
+    at.sidebar.checkbox(key="unrelated-confirm").check().run()
+    assert not at.sidebar.button(key="unrelated-go").disabled
+    sidebar_button(at, "Speichern und teilen").click().run()
+    assert at.sidebar.button(key="unrelated-go").disabled  # neu bestätigen
+
+
 # --- U7: aktiver Ordner fehlt in der Umschaltliste, auch bei anderem Pfad ----------------
 
 

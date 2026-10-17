@@ -9,6 +9,7 @@ angezeigt werden die übersetzten Beschriftungen.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import html
 import os
@@ -177,6 +178,7 @@ from sprintforecast.web.logic import (
     calendar_to_save,
     default_forecast_ist,
     edit_absences,
+    forget_without_git,
     is_without_git,
     open_velocity_sprints,
     parse_numbers,
@@ -3386,6 +3388,9 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 st.error(_settings_problem(e, t("Der Ordner wurde nicht übernommen.")))
             else:
                 if problem := _use_data_dir(target):
+                    # Nicht halb übernehmen: Die Entscheidung gilt nur mit dem Wechsel.
+                    with contextlib.suppress(SettingsError):
+                        forget_without_git(target)
                     st.error(problem)
                 else:
                     st.session_state.pop("offer-init", None)
@@ -3684,6 +3689,7 @@ def _sync_clicked(
         st.session_state["commit_message"] = _commit_default()
     st.session_state["sync_result"] = result
     st.session_state.pop("tags-server", None)  # der Abgleich der Tags ist nicht mehr aktuell
+    st.session_state.pop("unrelated-confirm", None)  # eine Bestätigung gilt nur einmal
     # Die Rückfrage zur fremden Historie bleibt über Durchläufe stehen (Ankreuzen, Knopf).
     if result.error is not None and result.error.kind == "unrelated_histories":
         st.session_state["unrelated"] = result.error
@@ -4305,7 +4311,7 @@ _KEEP_STATE = {
     "enabled-pages", "sync_result", "last_commit", "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
     "planning-goto", "planning-last-sprint", "board-sprint", "formula-sprint",
-    "active-data-dir", "folder-state", "without-git",
+    "active-data-dir", "folder-state",
 }  # fmt: skip
 
 

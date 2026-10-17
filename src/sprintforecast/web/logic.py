@@ -742,3 +742,11 @@ def remember_without_git(path: Path) -> None:
     known = without_git_dirs()
     if here not in known:
         config.update(**{WITHOUT_GIT_KEY: [*known, here]})
+
+
+def forget_without_git(path: Path) -> None:
+    """Nimmt die Entscheidung zurück (z. B. wenn der Wechsel in den Ordner scheiterte)."""
+    here = _resolved(path)
+    known = without_git_dirs()
+    if here in known:
+        config.update(**{WITHOUT_GIT_KEY: [p for p in known if p != here]})
