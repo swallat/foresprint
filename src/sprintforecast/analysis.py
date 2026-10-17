@@ -21,7 +21,7 @@ from sprintforecast.forecast import Forecast, TimelineEntry, build_forecast
 from sprintforecast.storage import TeamData
 
 # Unter so vielen Sprints mit Velocity sind Spanne und Häufigkeiten nur grobe Hinweise.
-MIN_SAMPLES = 8
+MIN_SAMPLES = 5
 
 
 def _recent(values: list[float | None], window: int) -> list[float]:
