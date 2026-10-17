@@ -718,11 +718,16 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
 WITHOUT_GIT_KEY = "without_git_dirs"
 
 
-def _resolved(path: Path) -> str:
+def resolved_path(path: Path) -> Path:
+    """Aufgelöster Pfad; ein nicht auflösbarer (toter Netzlaufwerkpfad) bleibt, wie er ist."""
     try:
-        return str(path.resolve())
-    except OSError:
-        return str(path)
+        return path.resolve()
+    except OSError, RuntimeError:
+        return path
+
+
+def _resolved(path: Path) -> str:
+    return str(resolved_path(path))
 
 
 def without_git_dirs() -> list[str]:
