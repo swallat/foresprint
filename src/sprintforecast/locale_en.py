@@ -1343,4 +1343,6 @@ EN: dict[str, str] = {
     "Server-Adresse ändern": "Change server address",
     "noch keine Daten gespeichert": "no data saved yet",
     "noch nicht auf dem Server – „Speichern und teilen“ lädt hoch": "not on the server yet – “Save and share” uploads it",
+    "erfasst für Sprint {id}": "recorded for sprint {id}",
+    "noch offen für Sprint {id}": "still open for sprint {id}",
 }

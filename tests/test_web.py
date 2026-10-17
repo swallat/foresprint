@@ -10,10 +10,10 @@ import yaml
 pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
-from webfixtures import nav_steps
+from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps, nav_titles
 
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
-from sprintforecast.web.ui import PAGE_INFO, PAGES
+from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
@@ -870,20 +870,163 @@ def test_board_navigation_highlights_the_active_page(app: AppTest, page: str):
     goto(app, page)
     steps = nav_steps(app)
     assert [key for key, _, _ in steps] == STEP_ORDER
-    # Beschriftung = Seitenname der Seitenleiste, davor der Haken
-    assert [label[2:] for _, label, _ in steps] == [PAGE_INFO[key][0] for key in STEP_ORDER]
+    # Name = Seitenname der Seitenleiste (bei erledigten Schritten hängt das Symbol dahinter)
+    assert nav_titles(app) == [PAGE_INFO[key][0] for key in STEP_ORDER]
     assert [key for key, _, active in steps if active] == [page]
     # kein handgeschriebenes HTML mehr (früher: Markdown-Block mit eigener Höhe)
     assert not any("board-active" in m.value for m in app.markdown)
     assert not any(link.proto.disabled for link in app.main.get("page_link"))
 
 
+# Vorgabe auf der Review-Seite: offener Rückblick 2026.21 – Fehltage bestätigt, vorgeplant,
+# im Planning erfasst, nur die Velocity fehlt noch
+DONE_2026_21 = {"fehltage": True, "vorplanung": True, "planning": True, "review": False}
+
+
 def test_step_bar_state_is_taken_from_the_chosen_sprint(app: AppTest):
-    goto(app, "review")  # Vorgabe: offener Rückblick 2026.21 – geplant, Fehltage bestätigt
+    goto(app, "review")
     assert app.selectbox(key="review-sprint").value == "2026.21"
-    assert [label[:1] for _, label, _ in nav_steps(app)] == ["✅", "✅", "✅", "⬜"]
+    assert nav_done(app) == DONE_2026_21
     app.selectbox(key="review-sprint").set_value("2026.23").run()  # noch ohne Sprintdatei
-    assert [label[:1] for _, label, _ in nav_steps(app)] == ["⬜", "⬜", "⬜", "⬜"]
+    assert not any(nav_done(app).values())
+
+
+def test_step_bar_marks_only_done_steps_with_a_green_check(app: AppTest):
+    """Nur „erledigt“ trägt ein Zeichen: ein grünes Haken-Symbol (Material-Icon in Markdown-
+    Farbe) am Ende des Schrittnamens. Offene Schritte haben keins, die Emojis sind weg."""
+    goto(app, "review")
+    steps = nav_steps(app)
+    assert [key for key, _, _ in steps] == STEP_ORDER
+    for key, label, _ in steps:
+        title = PAGE_INFO[key][0]
+        assert label == (f"{title} {STEP_DONE_MARK}" if DONE_2026_21[key] else title)
+        assert "✅" not in label and "⬜" not in label
+    assert STEP_DONE_MARK == ":green[:material/check_circle:]"
+    # Der offene Schritt trägt gar kein Zeichen im Namen (sein Seiten-Icon steht in `icon`)
+    [open_label] = [label for key, label, _ in steps if not DONE_2026_21[key]]
+    assert open_label == "Sprint abschließen (Review)"
+
+
+def test_step_bar_mark_is_also_on_the_active_step(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    """Der aktive Schritt (blau, das Symbol wird per CSS weiß) trägt dasselbe Symbol wie die
+    übrigen Schritte – auf jeder Seite, wenn der Sprint ganz erfasst ist."""
+    _change_2026_22(data_dir, forecast_ist=10, velocity=9)
+    path = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    path.write_text(yaml.safe_dump({**load(path), "velocity": 9}))  # beide Sprints vollständig
+    at = start(data_dir, monkeypatch)
+    for page in STEP_ORDER:
+        goto(at, page)
+        picker = at.selectbox(key=f"{'absences' if page == 'fehltage' else page}-sprint")
+        picker.set_value("2026.21" if "2026.21" in picker.options else "2026.22").run()
+        assert all(nav_done(at).values()), page
+        [(_, label, _)] = [step for step in nav_steps(at) if step[2]]
+        assert label.endswith(f" {STEP_DONE_MARK}"), page
+
+
+def test_step_bar_tooltip_says_whether_the_sprint_is_recorded(app: AppTest):
+    goto(app, "review")
+    assert nav_help(app) == {
+        "fehltage": "erfasst für Sprint 2026.21",
+        "vorplanung": "erfasst für Sprint 2026.21",
+        "planning": "erfasst für Sprint 2026.21",
+        "review": "noch offen für Sprint 2026.21",
+    }
+    app.selectbox(key="review-sprint").set_value("2026.23").run()
+    assert set(nav_help(app).values()) == {"noch offen für Sprint 2026.23"}
+    # Gemischter Stand auf einer anderen Seite: 2026.22 ist vorbereitet (Fehltage, Vorplanung),
+    # aber noch nicht eingeplant. Zeichen und Tooltip stimmen dort Schritt für Schritt überein.
+    goto(app, "fehltage")
+    app.selectbox(key="absences-sprint").set_value("2026.22").run()
+    assert not app.exception, app.exception
+    done = nav_done(app)
+    assert done == {"fehltage": True, "vorplanung": True, "planning": False, "review": False}
+    assert nav_help(app) == {
+        "fehltage": "erfasst für Sprint 2026.22",
+        "vorplanung": "erfasst für Sprint 2026.22",
+        "planning": "noch offen für Sprint 2026.22",
+        "review": "noch offen für Sprint 2026.22",
+    }
+    for page, is_done in done.items():
+        assert nav_help(app)[page].startswith("erfasst" if is_done else "noch offen")
+
+
+def test_step_bar_in_english(data_dir: Path, monkeypatch: pytest.MonkeyPatch, english):
+    at = goto(start(data_dir, monkeypatch), "review")
+    assert nav_titles(at) == [
+        "Prepare the sprint: absences",
+        "PO pre-planning",
+        "Planning",
+        "Close the sprint (review)",
+    ]
+    assert nav_done(at) == DONE_2026_21  # dasselbe Symbol, nur der Tooltip ist übersetzt
+    assert nav_help(at) == {
+        "fehltage": "recorded for sprint 2026.21",
+        "vorplanung": "recorded for sprint 2026.21",
+        "planning": "recorded for sprint 2026.21",
+        "review": "still open for sprint 2026.21",
+    }
+
+
+# Nur das Erledigt-Symbol ist ein Haken; keines der Seiten-Icons der Schritte darf einer sein.
+CHECK_ICON_WORDS = ("check", "task_alt", "done", "verified", "approval")
+
+
+def test_step_icons_are_no_check_marks(app: AppTest):
+    """Das Seiten-Icon des Review-Schritts (früher task_alt) sah selbst wie „erledigt“ aus und
+    ließ einen offenen Sprint abgehakt wirken. Jetzt ist es eine Flagge; kein Icon doppelt."""
+    assert PAGES["Aufgaben"]["review"][1] == ":material/flag:"
+    goto(app, "review")
+    icons = {link.proto.page: link.proto.icon for link, _ in nav_links(app)}
+    assert icons == {key: PAGE_INFO[key][1] for key in STEP_ORDER}  # wie in der Seitenleiste
+    assert not [i for i in icons.values() if any(word in i for word in CHECK_ICON_WORDS)]
+    assert len(set(icons.values())) == len(icons)
+    assert all(icon != ":material/check_circle:" for icon in icons.values())
+
+
+def test_start_task_icons_are_the_page_icons_and_no_check_marks(app: AppTest):
+    """Auch die Startseite zeigt für „Sprint abschließen“ keinen Haken (früher task_alt am
+    „Öffnen“-Knopf, obwohl der Sprint offen war): Eine Aufgabe hat überall dasselbe Icon."""
+    assert START_TASKS["prepare"][1] == PAGE_INFO["fehltage"][1]
+    assert START_TASKS["planning"][1] == PAGE_INFO["planning"][1]
+    assert START_TASKS["review"][1] == PAGE_INFO["review"][1] == ":material/flag:"
+    # So steht es tatsächlich an den Knöpfen der Startseite (die Review-Aufgabe ist noch offen)
+    icons = {key: app.button(key=f"start-{key}").proto.icon for key in START_TASKS}
+    assert icons == {key: icon for key, (_, icon) in START_TASKS.items()}
+    assert [s.value for s in app.subheader][-1] == "⬜ Sprint abschließen"
+    assert not [i for i in icons.values() if any(word in i for word in CHECK_ICON_WORDS)]
+    assert len(set(icons.values())) == len(icons)
+
+
+@pytest.mark.parametrize(
+    ("fields", "done"),
+    [
+        ({}, {"fehltage": True, "vorplanung": True, "planning": False, "review": False}),
+        # Planning = Forecast-Stand (forecast_ist) erfasst
+        (
+            {"forecast_ist": 10},
+            {"fehltage": True, "vorplanung": True, "planning": True, "review": False},
+        ),
+        # Review = Velocity erfasst
+        (
+            {"velocity": 9},
+            {"fehltage": True, "vorplanung": True, "planning": False, "review": True},
+        ),
+        # Vorplanung = Produktwerte vorgeplant, Fehltage = Zustand bestätigt
+        (
+            {"products": {}, "absences": {}},
+            {"fehltage": False, "vorplanung": False, "planning": False, "review": False},
+        ),
+    ],
+)
+def test_step_bar_marks_mean_what_the_board_steps_say(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, fields: dict, done: dict
+):
+    """Was als erledigt gilt, bleibt wie in ``board_steps_done`` – das Symbol zeigt es nur an."""
+    _change_2026_22(data_dir, **fields)
+    at = goto(start(data_dir, monkeypatch), "planning")
+    at.selectbox(key="planning-sprint").set_value("2026.22").run()
+    assert not at.exception, at.exception
+    assert nav_done(at) == done
 
 
 @pytest.mark.parametrize(
@@ -903,7 +1046,7 @@ def test_step_bar_absences_check_follows_the_absence_state(
     at = goto(start(data_dir, monkeypatch), "planning")
     assert at.selectbox(key="planning-sprint").value == "2026.22"
     label = next(label for key, label, _ in nav_steps(at) if key == "fehltage")
-    assert label == ("✅" if checked else "⬜") + " Sprint vorbereiten: Fehltage"
+    assert label == "Sprint vorbereiten: Fehltage" + (f" {STEP_DONE_MARK}" if checked else "")
 
 
 @pytest.mark.parametrize(
@@ -927,8 +1070,7 @@ def test_start_task_and_step_bar_agree_on_prepared_sprint(
     assert at.subheader[0].value == ("✅" if done else "⬜") + " Sprint vorbereiten"
     goto(at, "planning")
     assert at.selectbox(key="planning-sprint").value == "2026.22"
-    fehltage = next(label for key, label, _ in nav_steps(at) if key == "fehltage")
-    assert fehltage[:1] == ("✅" if done else "⬜")
+    assert nav_done(at)["fehltage"] == done
 
 
 def test_start_prepare_says_when_absences_are_only_announced(
@@ -946,7 +1088,7 @@ def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path
     """Nach „Fehltage speichern“ zeigt die Leiste den neuen Stand sofort (kein Klick später)."""
     goto(app, "fehltage")
     app.selectbox(key="absences-sprint").set_value("2026.23").run()
-    assert nav_steps(app)[0][1].startswith("⬜")  # noch keine Sprintdatei
+    assert not nav_done(app)["fehltage"]  # noch keine Sprintdatei
     assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
     frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
     rows = {i: {"Niemand fehlt": True} for i, s in enumerate(frame["Sprint"]) if s == "2026.23"}
@@ -958,7 +1100,7 @@ def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path
     app.run()
     click(app, "Fehltage speichern")
     assert (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
-    assert nav_steps(app)[0][1].startswith("✅")
+    assert nav_done(app)["fehltage"]
     assert any("Gespeichert" in s.value for s in app.success)  # die Meldung kommt nach dem Laden
 
 
@@ -966,14 +1108,14 @@ def test_absences_page_shows_the_step_bar_and_shares_the_board_sprint(app: AppTe
     goto(app, "fehltage")
     assert app.selectbox(key="absences-sprint").value == "2026.22"
     assert [key for key, _, active in nav_steps(app) if active] == ["fehltage"]
-    assert nav_steps(app)[0][1].startswith("✅")  # 2026.22: Fehltage eingetragen
+    assert nav_done(app)["fehltage"]  # 2026.22: Fehltage eingetragen
     app.selectbox(key="absences-sprint").set_value("2026.23").run()
     assert not app.exception, app.exception
-    assert nav_steps(app)[0][1].startswith("⬜")  # 2026.23 hat keine Sprintdatei
+    assert not nav_done(app)["fehltage"]  # 2026.23 hat keine Sprintdatei
     goto(app, "planning")
     assert app.selectbox(key="planning-sprint").value == "2026.23"
     assert [key for key, _, active in nav_steps(app) if active] == ["planning"]
-    assert nav_steps(app)[0][1].startswith("⬜")
+    assert not nav_done(app)["fehltage"]
 
 
 def test_products_page_is_evaluation_only(app: AppTest):
