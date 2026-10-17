@@ -94,7 +94,7 @@ def test_planning_plausibility(data_dir: Path):
     s = data.sprint("2026.21")  # laufend; Demo: Überkipper 0.25 + Backlog 9.75 = IST 10
     s.forecast_ist = 12
     messages = [i.message for i in check_team(data, TODAY)]
-    assert any("Forecast IST 12 weicht von Überkipper + Backlog (10)" in m for m in messages)
+    assert any("Commitment 12 weicht von Überkipper + Backlog (10)" in m for m in messages)
     s.forecast_ist = 10
     s.planning.corrections = [20]
     messages = [i.message for i in check_team(data, TODAY)]

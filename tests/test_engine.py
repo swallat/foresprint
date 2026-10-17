@@ -30,7 +30,7 @@ def test_rolling_average_needs_full_window_and_own_value():
 
 def test_rolling_average_skips_gaps_and_always_uses_window_values():
     # Sprints ohne Wert zählen nicht mit; das Fenster reicht entsprechend weiter zurück.
-    assert rolling_average([2, N, 4, 6, 8], 5) == [N, N, N, N, N]  # nur vier Werte
+    assert rolling_average([2, N, 4, 6, 8, 10], 5)[-1] == 6.0  # genau fünf Werte
     assert rolling_average([2, N, 4, 6, 8, 10], 5) == [N, N, N, N, N, 6.0]
     assert rolling_average([1, 2, N, 3, N, 4, 5], 3) == [N, N, N, 2.0, N, 3.0, 4.0]
 
@@ -146,3 +146,28 @@ def test_plan_never_negative():
     settings = ForecastSettings(reference_capacity=40, window=1, trend_mode=TrendMode.LINEAR)
     inputs = [_input(0, velocity=30), _input(1, velocity=10), _input(2, velocity=1), _input(3)]
     assert compute(inputs, settings)[3].plan == 0.0
+
+
+def test_thin_history_gives_averages_from_the_third_value():
+    """B7: Neue Teams sehen schon ab drei Sprints einen Durchschnitt (Fenster noch nicht voll)."""
+    assert rolling_average([2, 4, 6, 8], 5) == [N, N, 4.0, 5.0]
+    assert rolling_average([2, 4], 5) == [N, N]  # zu wenig
+    assert rolling_average([2, 4, 6, 8, 10, 12], 5) == [N, N, N, N, 6.0, 8.0]  # volles Fenster
+
+
+def _thin(velocities, mode, future=2):
+    inputs = [_input(i, velocity=v) for i, v in enumerate(velocities)]
+    inputs += [_input(100 + i) for i in range(future)]
+    return compute(inputs, ForecastSettings(reference_capacity=40, window=5, trend_mode=mode))
+
+
+@pytest.mark.parametrize("mode", list(TrendMode))
+def test_thin_history_forecast_is_flat_and_flagged(mode):
+    r = _thin([8.0, 10.0, 12.0], mode)
+    assert [x.plan for x in r[3:]] == [10.0, 10.0]
+    assert [x.samples for x in r[3:]] == [3, 3]
+    assert all(x.trend_fallback == (mode is not TrendMode.FLAT) for x in r[3:])
+
+
+def test_two_sprints_give_no_forecast():
+    assert [x.plan for x in _thin([8.0, 10.0], TrendMode.FLAT)[2:]] == [None, None]

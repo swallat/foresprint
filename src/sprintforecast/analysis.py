@@ -95,9 +95,12 @@ def average_focus_factor(fc: Forecast) -> float | None:
 
 @dataclass(frozen=True)
 class BufferHint:
+    # Ø Scope Creep, bezogen auf das Commitment des jeweiligen Sprints (so wird er erfasst) …
     average_scope_creep: float | None
     samples: int
-    configured_small_stuff: float  # 1 − Roadmap-Anteil
+    # … und umgerechnet auf dieselbe Bezugsgröße wie der Kleinkram-Anteil: den Forecast PLAN.
+    average_late_share: float | None
+    configured_small_stuff: float  # 1 − Roadmap-Anteil, bezogen auf den Forecast PLAN
 
     @property
     def sufficient_data(self) -> bool:
@@ -107,17 +110,32 @@ class BufferHint:
     def buffer_too_small(self) -> bool:
         return (
             self.sufficient_data
-            and self.average_scope_creep is not None
-            and self.average_scope_creep > self.configured_small_stuff
+            and self.average_late_share is not None
+            and self.average_late_share > self.configured_small_stuff
         )
+
+
+def _late_share(e: TimelineEntry) -> float | None:
+    """Nachträglich hinzugekommene Menge als Anteil des Forecast PLAN des Sprints (beim Planning
+    eingefroren, sonst wie berechnet) – dieselbe Bezugsgröße wie der Kleinkram-Anteil. Scope
+    Creep selbst ist auf das Commitment bezogen."""
+    s = e.sprint
+    if s.scope_creep is None:
+        return None
+    plan = s.forecast_plan if s.forecast_plan is not None else e.result.plan
+    if s.forecast_ist is None or not plan:
+        return s.scope_creep  # ohne Commitment oder Plan nicht umrechenbar
+    return s.scope_creep * s.forecast_ist / plan
 
 
 def buffer_hint(fc: Forecast) -> BufferHint:
     window = fc.data.team.forecast.window
     values = _recent([e.sprint.scope_creep for e in fc.history()], window)
+    late = _recent([_late_share(e) for e in fc.history()], window)
     return BufferHint(
         average_scope_creep=statistics.fmean(values) if values else None,
         samples=len(values),
+        average_late_share=statistics.fmean(late) if late else None,
         configured_small_stuff=1 - fc.data.team.forecast.roadmap_share,
     )
 

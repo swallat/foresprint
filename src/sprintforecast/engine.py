@@ -2,9 +2,9 @@
 """Rechenkern: Velocity-, Kapazitäts- und Prognoseberechnung je Sprint.
 
 Kennzahlen (je Sprint):
-    Forecast IST, Velocity, Kapazität, Scope Creep   → Eingaben
+    Commitment, Velocity, Kapazität, Scope Creep   → Eingaben
     Normierte Velocity  = Velocity / Kapazität × Referenzkapazität
-    Fulfillment         = Velocity / Forecast IST
+    Fulfillment         = Velocity / Commitment
     Ø (gleitend)        = Durchschnitt über ``window`` Sprints je Kennzahl
     Trend               = Fortschreibung des Durchschnitts in die Zukunft
     Forecast PLAN       = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)
@@ -37,13 +37,29 @@ def _div(a: float | None, b: float | None) -> float | None:
     return a / b
 
 
+# Neue Teams: Schon ab so vielen Sprints mit Wert gibt es einen Durchschnitt und damit einen
+# Forecast, auch wenn das Fenster noch nicht voll ist („Historie dünn“, siehe thin_history).
+MIN_THIN_HISTORY = 3
+
+
+def thin_history(values: Series, window: int) -> bool:
+    """Zu wenige Werte für ein volles Fenster, aber genug für einen Anfangs-Forecast."""
+    count = sum(1 for v in values if v is not None)
+    return MIN_THIN_HISTORY <= count < window
+
+
 def rolling_average(values: Series, window: int) -> Series:
     """Gleitender Durchschnitt über die letzten ``window`` Sprints **mit Wert**.
 
     Regel für Lücken: Sprints ohne Wert zählen nicht mit, das Fenster reicht entsprechend weiter
     zurück (es werden immer ``window`` Werte gemittelt, nie weniger). Der Durchschnitt ist nur
     definiert, wenn der Sprint selbst einen Wert hat und davor genug Werte vorliegen.
+
+    Ausnahme für neue Teams: Gibt es insgesamt weniger als ``window``, aber mindestens
+    ``MIN_THIN_HISTORY`` Werte, mittelt jeder Sprint ab dem dritten Wert über alle bisherigen
+    (dünne Historie).
     """
+    thin = thin_history(values, window)
     result: Series = []
     present: list[float] = []
     for value in values:
@@ -51,7 +67,12 @@ def rolling_average(values: Series, window: int) -> Series:
             result.append(None)
             continue
         present.append(value)
-        result.append(sum(present[-window:]) / window if len(present) >= window else None)
+        if len(present) >= window:
+            result.append(sum(present[-window:]) / window)
+        elif thin and len(present) >= MIN_THIN_HISTORY:
+            result.append(sum(present) / len(present))
+        else:
+            result.append(None)
     return result
 
 
@@ -129,7 +150,7 @@ class CapacitySource(StrEnum):
     # Personenliste und Kalender; Fehltage unbekannt und keine Historie, daher ohne Abzug.
     CALENDAR = "Kalender, Fehltage unbekannt"
     ESTIMATED = "erwartete Fehltage"
-    EXPECTED = "voraussichtliche Fehltage"
+    EXPECTED = "angekündigte Fehltage"
 
 
 # Quellen ohne bekannte Fehltage und ohne Historie: Die Kapazität ist nur geschätzt.
@@ -189,7 +210,12 @@ class SprintResult:
 
 def _metric_series(values: Series, settings: ForecastSettings) -> tuple[list[Metric], list[bool]]:
     averages = rolling_average(values, settings.window)
-    trends, fallback = _trend(averages, settings.trend_mode)
+    if thin_history(values, settings.window):
+        # Dünne Historie: nur der Durchschnitt, keine Fortschreibung eines Anstiegs.
+        trends, _ = _trend(averages, TrendMode.FLAT)
+        fallback = [TrendMode(settings.trend_mode) is not TrendMode.FLAT] * len(values)
+    else:
+        trends, fallback = _trend(averages, settings.trend_mode)
     metrics = [Metric(v, a, t) for v, a, t in zip(values, averages, trends, strict=True)]
     return metrics, fallback
 
@@ -227,7 +253,7 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
             plan_source = PlanSource.FORECAST
             plan = max(plan, 0.0)
         elif s.forecast_ist is not None:
-            # Auch der Rückgriff auf Forecast IST wird abgerundet.
+            # Auch der Rückgriff auf Commitment wird abgerundet.
             plan = round_down(s.forecast_ist, settings.rounding)
             plan_source = PlanSource.ACTUAL
         else:

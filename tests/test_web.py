@@ -85,7 +85,7 @@ def test_help_shows_workflow_and_terms(app: AppTest):
     assert [t.label for t in app.tabs] == [
         "Ablauf", "Begriffe", "Eingabefelder", "Team-Einstellungen", "Kommandozeile",
     ]  # fmt: skip
-    assert any("Commitment" in c.value for c in app.caption)  # Quelle Forecast IST
+    assert any("Commitment" in c.value for c in app.caption)  # Quelle Commitment
 
 
 def test_absences_save_does_not_confirm_silently(app: AppTest, data_dir: Path):
@@ -127,7 +127,7 @@ def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
 
 def test_planning_defaults_to_next_planning(app: AppTest):
     goto(app, "planning")
-    # 2026.21 läuft und ist bereits geplant (Forecast IST) → als Nächstes 2026.22
+    # 2026.21 läuft und ist bereits geplant (Commitment) → als Nächstes 2026.22
     assert app.selectbox(key="planning-sprint").value == "2026.22"
     assert app.radio(key="planning-step").value == 0
 
@@ -369,7 +369,7 @@ def test_setup_when_no_data_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert not any("Kein Datenordner gefunden" in w.value for w in at.warning)
 
 
-def test_choose_folder_requires_git(
+def test_choose_folder_without_git_offers_init_or_use_without_git(
     tmp_path: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     at = start(data_dir, monkeypatch)
@@ -378,9 +378,43 @@ def test_choose_folder_requires_git(
     plain.mkdir()
     at.text_input(key="data-path").set_value(str(plain)).run()
     click(at, "Übernehmen")
-    assert any("in keinem Git-Repository" in e.value for e in at.error)
+    assert any("in keinem Git-Repository" in w.value for w in at.warning)
     click(at, f"Git-Repository in {plain} anlegen")
     assert (plain / ".git").is_dir()
+
+
+def test_choose_folder_can_be_used_without_git(
+    tmp_path: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """B7: Git ist keine Voraussetzung für den Einstieg."""
+    at = start(data_dir, monkeypatch)
+    goto(at, "datenordner")
+    plain = tmp_path / "ohne-git"
+    plain.mkdir()
+    at.text_input(key="data-path").set_value(str(plain)).run()
+    click(at, "Übernehmen")
+    click(at, "Ohne Git verwenden")
+    assert not (plain / ".git").exists()
+    from sprintforecast.storage import saved_data_dir
+
+    assert saved_data_dir() == plain.resolve()
+    assert any("liegt in keinem Git-Repository" in c.value for c in at.sidebar.caption)
+
+
+def test_new_team_with_three_sprints_gets_a_first_forecast(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """B7: Forecast schon ab 3 Sprints (Historie dünn), vorher ein Hinweis statt leerer Seite."""
+    sprints = sorted((data_dir / "demo" / "sprints").glob("*.yaml"))
+    for f in sprints[3:]:
+        f.unlink()
+    at = start(data_dir, monkeypatch)
+    assert any(m.value.endswith("PT") and m.value != "– PT" for m in at.metric)
+    assert any("Wenig Daten" in w.value for w in at.warning)
+    assert not any("Noch kein Forecast" in i.value for i in at.info)
+    sprints[2].unlink()  # nur zwei Sprints mit Velocity
+    at = start(data_dir, monkeypatch)
+    assert any("Noch kein Forecast: bisher 2 Sprint(s)" in i.value for i in at.info)
 
 
 def test_whatif_panel_on_forecast_page(app: AppTest):
@@ -470,7 +504,7 @@ def test_preplanning_saves_prognosis_with_comment(app: AppTest, data_dir: Path):
     prognosis = sprint["prognoses"][-1]
     assert prognosis["comment"] == "Prognose aus dem Daily"
     assert prognosis["not_done"] == 3
-    assert prognosis["expected_done"] == 7  # Forecast IST 10 - 3
+    assert prognosis["expected_done"] == 7  # Commitment 10 - 3
     assert prognosis["target"] == "2026.23"
     assert sprint["velocity"] is None  # die Velocity bleibt dem Review vorbehalten
 
@@ -551,7 +585,7 @@ def test_planning_nobody_absent_needs_explicit_confirmation(app: AppTest, data_d
 
 
 def test_saving_planning_values_keeps_unconfirmed_absences_unknown(app: AppTest, data_dir: Path):
-    """Forecast IST im Planning speichern bestätigt keine Fehltage (B2)."""
+    """Commitment im Planning speichern bestätigt keine Fehltage (B2)."""
     planning_step(app, "2026.23", 2)
     app.number_input(key="fist-2026.23").set_value(9.0)
     click(app, "Planning speichern")
@@ -578,3 +612,12 @@ def test_forecast_shows_gaps_skipped_by_the_average(
     path.write_text(yaml.safe_dump(raw))
     at = start(data_dir, monkeypatch)
     assert any("Lücken: 1 Sprint" in i.value for i in at.info)
+
+
+def test_absences_page_answers_how_much_fits_into_the_next_sprint(app: AppTest):
+    """K2-Abnahme: Wer Fehltage einträgt, sieht sofort, wie viel in den nächsten Sprint passt."""
+    goto(app, "fehltage")
+    text = " ".join(m.value for m in app.markdown)
+    assert "In den nächsten Sprint 2026.22 passen 11,2 PT" in text
+    frame = next(d.value for d in app.dataframe if "Kapazität (PT)" in d.value.columns)
+    assert frame.loc[frame["Sprint"] == "2026.22", "Forecast PLAN (PT)"].iloc[0] == "11,2"

@@ -41,7 +41,7 @@ class AbsenceState(StrEnum):
 
     # Nichts bekannt: Kapazität aus Kalender und Personen, Fehltage nach Historie geschätzt.
     UNKNOWN = "unknown"
-    # Voraussichtliche Fehltage aus der PO-Vorplanung (Prognose, nicht bestätigt).
+    # Angekündigte Fehltage aus der PO-Vorplanung (Prognose, nicht bestätigt).
     EXPECTED = "expected"
     # Fehltage bestätigt – auch „niemand fehlt“.
     CONFIRMED = "confirmed"
@@ -207,7 +207,7 @@ class Planning:
 
     @property
     def committed(self) -> float:
-        """Eingeplante Menge laut Board: Überkipper + Backlog (entspricht dem Forecast IST)."""
+        """Eingeplante Menge laut Board: Überkipper + Backlog (entspricht dem Commitment)."""
         return self.carryover + self.backlog
 
     @property
@@ -225,10 +225,10 @@ class Prognosis:
     # Woher die Annahme stammt (z. B. „Prognose aus dem Daily vom 16.10.“).
     comment: str | None = None
     forecast_ist: float | None = None
-    # Voraussichtlich nicht erledigt bzw. zusätzlich zum Forecast IST erledigt.
+    # Voraussichtlich nicht erledigt bzw. zusätzlich zum Commitment erledigt.
     not_done: float | None = None
     additional_done: float | None = None
-    # Forecast IST − nicht erledigt + zusätzlich erledigt.
+    # Commitment − nicht erledigt + zusätzlich erledigt.
     expected_done: float | None = None
     # Forecast PLAN des Zielsprints mit dieser Annahme und die dabei vorgesehene Vorplanung.
     target: str | None = None
@@ -254,14 +254,14 @@ class Sprint:
     # Werte je Produkt-ID.
     products: dict[str, ProductValues] = field(default_factory=dict)
     note: str | None = None
-    # Im Review erfasst: Menge, die nicht fertig wurde, bzw. zusätzlich zum Forecast IST
-    # erledigt wurde (Velocity = Forecast IST − nicht erledigt + zusätzlich erledigt).
+    # Im Review erfasst: Menge, die nicht fertig wurde, bzw. zusätzlich zum Commitment
+    # erledigt wurde (Velocity = Commitment − nicht erledigt + zusätzlich erledigt).
     not_done: float | None = None
     additional_done: float | None = None
     # Ausdrücklich gespeicherter Stand der Fehltage. ``None`` = nicht gespeichert (ältere
     # Dateien): dann wird er aus den vorhandenen Feldern abgeleitet (siehe absence_status).
     absence_state: AbsenceState | None = None
-    # Voraussichtliche Fehltage je Person aus der PO-Vorplanung (Prognose, noch nicht bestätigt):
+    # Angekündigte Fehltage je Person aus der PO-Vorplanung (Prognose, noch nicht bestätigt):
     # Sie wirken auf die Kapazität und den Forecast PLAN, solange keine Fehltage bestätigt sind.
     expected_absences: dict[str, float] = field(default_factory=dict)
     # Prognosen des Teams aus den PO-Vorplanungen, ältere zuerst.
@@ -300,10 +300,10 @@ def explicit_state_needed(sprint: Sprint) -> bool:
 
 
 def absence_status(sprint: Sprint) -> AbsenceState:
-    """Stand der Fehltage: bestätigt, voraussichtlich oder unbekannt.
+    """Stand der Fehltage: bestätigt, angekündigt oder unbekannt.
 
     Eingetragene Fehltage sind bestätigt. Sonst gilt der gespeicherte Stand; fehlt er (ältere
-    Dateien), wird er aus den vorhandenen Feldern abgeleitet. Voraussichtliche Fehltage
+    Dateien), wird er aus den vorhandenen Feldern abgeleitet. Angekündigte Fehltage
     wirken nur, solange nichts bestätigt ist."""
     if sprint.absences or sprint.absence_state is AbsenceState.CONFIRMED:
         return AbsenceState.CONFIRMED

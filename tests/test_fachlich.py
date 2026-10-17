@@ -276,7 +276,7 @@ def test_overhead_days_replace_percentage_for_confirmed_and_expected_absences():
 
 
 def test_expected_and_estimated_absences_use_the_same_overhead_rule():
-    """Bestätigte Fehltage (2 Tage), erwartete Quote (20 %) und voraussichtliche Fehltage rechnen
+    """Bestätigte Fehltage (2 Tage), erwartete Quote (20 %) und angekündigte Fehltage rechnen
     gleich: erst Fehltage, dann Overhead, dann Rundung."""
     people = [person("a")]
     team = Team(key="t", name="T")
@@ -424,3 +424,46 @@ def test_plan_of_demo_lies_in_band():
     for e in fc.upcoming():
         b = analysis.band(fc, e)
         assert b is not None and b.low <= e.result.plan <= b.high
+
+
+def test_fte_change_within_sprint_weights_absences_with_mean_fte():
+    """A7: Näherung bei FTE-Wechsel im Sprint, handgerechnet und als solche gekennzeichnet."""
+    changing = Person(
+        "a",
+        "A",
+        memberships=[
+            Membership(date(2020, 1, 1), date(2026, 3, 6), fte=1.0),
+            Membership(date(2026, 3, 9), fte=0.5),
+        ],
+    )
+    team = Team(key="t", name="T")
+    team.capacity.region = "NW"
+    sprint = sprint_at(START, absences={"a": 2})
+    breakdown = sprint_capacity(team, [changing], sprint)
+    # 5 Tage × 1 + 5 Tage × 0,5 = 7,5; mittlere FTE 0,75; 2 Fehltage × 0,75 = 1,5
+    assert breakdown.capacity == pytest.approx(6.0)
+    assert breakdown.people[0].fte_changes
+    assert [p.person.id for p in breakdown.approximated] == ["a"]
+    steady = sprint_capacity(team, [person("b", fte=0.5)], sprint_at(START, absences={"b": 2}))
+    assert not steady.people[0].fte_changes and not steady.approximated
+    # ohne Fehltage ist nichts genähert
+    assert not sprint_capacity(team, [changing], sprint_at(START)).approximated
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_reference_capacity_does_not_change_the_forecast(mode):
+    """A13: Die Referenzkapazität kürzt sich heraus – sie ist nur ein Darstellungsmaßstab.
+    Fokusfaktor und normierte Velocity sind dieselbe Größe (n. Velocity = Fokusfaktor ×
+    Referenz)."""
+    rng = random.Random(7)
+    values = [max(1.0, rng.gauss(12, 3)) for _ in range(10)]
+    plans = []
+    for ref in (20.0, 40.0, 67.0, 100.0):
+        s = ForecastSettings(reference_capacity=ref, window=5, trend_mode=mode, rounding=6)
+        results = compute(inputs_for(values, capacity=33.0, future=3), s)
+        plans.append([r.plan for r in results[10:]])
+        for r in results[:10]:
+            focus = r.velocity.value / r.capacity.value
+            assert r.normalized_velocity.value == pytest.approx(focus * ref)
+    for other in plans[1:]:
+        assert other == pytest.approx(plans[0], abs=2e-6)
