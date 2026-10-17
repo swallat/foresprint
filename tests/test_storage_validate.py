@@ -33,6 +33,53 @@ def test_unquoted_sprint_id_gives_helpful_error(data_dir: Path):
         Repository(data_dir).load("demo")
 
 
+@pytest.mark.parametrize("raw", [".nan", ".inf", "-.inf", "1.0e+999", "1" + "0" * 400])
+def test_non_finite_number_in_yaml_gives_error(data_dir: Path, raw: str):
+    path = data_dir / "demo" / "sprints" / "2026.20.yaml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("velocity: 9.75", f"velocity: {raw}"),
+        encoding="utf-8",
+    )
+    with pytest.raises(DataError, match=r"2026\.20\.yaml: velocity: endliche Zahl erwartet"):
+        Repository(data_dir).load("demo")
+
+
+@pytest.mark.parametrize("raw", [".nan", ".inf", "-.inf"])
+@pytest.mark.parametrize(
+    ("section", "key"),
+    [
+        ("forecast", "reference_capacity"),
+        ("forecast", "roadmap_share"),
+        ("forecast", "window"),
+        ("forecast", "horizon"),
+        ("forecast", "rounding"),
+        ("capacity", "overhead_share"),
+        ("capacity", "overhead_days"),
+        ("capacity", "rounding"),
+        ("capacity", "absence_history"),
+        ("sprint", "length_days"),
+    ],
+)
+def test_non_finite_setting_in_team_yaml_gives_error(
+    data_dir: Path, section: str, key: str, raw: str
+):
+    """Auch die Einstellungen in team.yaml: vorher meldete die Prüfung nichts und die Berechnung
+    stürzte ab (nan) bzw. das Laden brach mit OverflowError ab (inf bei ganzen Zahlen)."""
+    import re
+
+    path = data_dir / "demo" / "team.yaml"
+    text = path.read_text(encoding="utf-8")
+    block = re.search(rf"^{section}:\n(?:[ ]+.*\n)+", text, re.M)
+    assert block, section
+    if re.search(rf"^  {key}:", block.group(0), re.M):
+        changed = re.sub(rf"^(  {key}:).*$", rf"\1 {raw}", block.group(0), flags=re.M)
+    else:  # Standardwerte stehen nicht in der Datei: Zeile ergänzen
+        changed = block.group(0) + f"  {key}: {raw}\n"
+    path.write_text(text.replace(block.group(0), changed), encoding="utf-8")
+    with pytest.raises(DataError, match=r"team\.yaml"):
+        Repository(data_dir).load("demo")
+
+
 def test_unknown_team_lists_known_teams(data_dir: Path):
     with pytest.raises(DataError, match="demo"):
         Repository(data_dir).load("gibtsnicht")
