@@ -414,7 +414,21 @@ GIT_HELP: list[tuple[str, str]] = [
         "Tags verwalten",
         "Tags (z. B. `team/2026.21`) markieren abgeschlossene Reviews. Sie lassen sich "
         "anzeigen, nachträglich an einen beliebigen Stand setzen und löschen; die App gleicht "
-        "sie mit dem Server ab und meldet, wenn das nicht gelang (der Tag bleibt dann lokal).",
+        "sie mit dem Server ab und meldet, wenn das nicht gelang (der Tag bleibt dann lokal). "
+        "Mit „Mit dem Server abgleichen“ (fragt den Server, nur auf Klick) zeigt die Liste, "
+        "ob ein Tag nur lokal, nur auf dem Server oder an einem anderen Stand existiert. "
+        "Ein nur lokaler Tag lässt sich mit „Zum Server übertragen“ nachholen; gelöscht "
+        "werden können auch Tags, die es nur auf einer Seite gibt.",
+    ),
+    (
+        "Server mit fremder Historie",
+        "Enthält der Server eine ganz andere Historie als der Datenordner (meist ist ein "
+        "falsches Repository verbunden, z. B. ein Code-Repository), führt „Speichern und "
+        "teilen“ nichts zusammen und lädt nichts hoch; die eigenen Änderungen bleiben lokal "
+        "gesichert. Die Seitenleiste nennt Server und Branch. Nur wenn der Server wirklich das "
+        "richtige Daten-Repository ist, lässt sich das Zusammenführen mit dem Kästchen „Ja, "
+        "beide Historien zusammenführen“ und dem Knopf darunter bewusst bestätigen; "
+        "„Abbrechen“ ändert nichts.",
     ),
     (
         "Zwischen Datenordnern umschalten",

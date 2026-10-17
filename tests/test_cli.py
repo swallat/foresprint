@@ -340,3 +340,25 @@ def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
     assert "Trend-Modus classic" in result.output and "schreibt Schwankungen fort" in result.output
     report = run(data_dir, "bericht", "demo", "-o", "-")
     assert "Trend-Modus classic" in report.output
+
+
+def test_cli_reports_unwritable_settings_without_traceback(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast import cli
+    from sprintforecast.config import SettingsError
+
+    def broken(*_: object) -> None:
+        raise SettingsError(
+            "Die Einstellungen konnten nicht gespeichert werden: Zugriff verweigert"
+        )
+
+    from sprintforecast import storage
+
+    monkeypatch.setattr(storage, "save_data_dir", broken)
+    monkeypatch.setattr(cli, "save_language", broken)
+    for args in (["datenordner", str(repo)], ["sprache", "en"]):
+        result = runner.invoke(app, args)
+        assert result.exit_code == 1
+        assert "Zugriff verweigert" in result.output
+        assert result.exception is None or isinstance(result.exception, SystemExit)

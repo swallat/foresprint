@@ -534,6 +534,19 @@ def _server_tags(root: Path, remote: str) -> dict[str, str]:
     return {name: peeled.get(name, sha) for name, sha in objects.items()}
 
 
+def server_reachable(path: Path) -> bool:
+    """Ob der Server der Tags abgefragt werden kann (Netzwerk). False auch ohne Server."""
+    root = _root(path)
+    remote = _remote(root)
+    if not remote:
+        return False
+    try:
+        _server_tags(root, remote)
+    except GitError:
+        return False
+    return True
+
+
 def list_tags(path: Path, check_server: bool = False) -> list[Tag]:
     """Die Tags dieses Repositorys, neueste zuerst. Mit ``check_server`` wird der Server
     abgefragt (Netzwerk): Dann zeigen ``on_server`` und ``differs`` Unterschiede, und Tags, die
