@@ -232,7 +232,9 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "fehltage": ("Sprint vorbereiten: Fehltage", ":material/event_busy:"),
         "vorplanung": ("PO-Vorplanung", ":material/groups:"),
         "planning": ("Planning", ":material/edit_note:"),
-        "review": ("Sprint abschließen (Review)", ":material/task_alt:"),
+        # Bewusst kein Haken-Symbol (task_alt, check …): In der Schrittleiste steht ein Haken für
+        # „erledigt“ – das Seiten-Icon darf ihn nicht vortäuschen.
+        "review": ("Sprint abschließen (Review)", ":material/flag:"),
     },
     "Auswertung": {
         "forecast": ("Forecast", ":material/trending_up:"),
@@ -531,10 +533,12 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
         st.dataframe(pd.DataFrame(rows), hide_index=True)
 
 
+# Die Icons kommen aus PAGES: Eine Aufgabe hat überall dasselbe Icon (Startseite, Seitenleiste,
+# Schrittleiste), und kein Seiten-Icon täuscht einen Haken („erledigt“) vor.
 START_TASKS = {
-    "prepare": ("Sprint vorbereiten", ":material/event_busy:"),
-    "planning": ("Planning", ":material/edit_note:"),
-    "review": ("Sprint abschließen", ":material/task_alt:"),
+    "prepare": ("Sprint vorbereiten", PAGE_INFO["fehltage"][1]),
+    "planning": ("Planning", PAGE_INFO["planning"][1]),
+    "review": ("Sprint abschließen", PAGE_INFO["review"][1]),
 }
 
 
@@ -1214,10 +1218,14 @@ BOARD_STEPS = ("fehltage", *BOARDS)
 # Schrittleiste: Alle Schritte sind gleich aufgebaut – ein Link in einem Container mit Schlüssel,
 # in einem Raster gleich breiter Spalten. Gleiche Höhe, Breite und Ausrichtung; nur die Farbe
 # unterscheidet den aktiven Schritt, darum springt beim Wechsel nichts. Der Text bricht nie um
-# (Überlanges wird gekürzt, der volle Text steht im Tooltip). Je nach Breite des Bereichs stehen
+# (Überlanges würde gekürzt; bei der Mindestbreite passt aber auch der längste Titel samt
+# Erledigt-Symbol, der Tooltip nennt nur den Stand). Je nach Breite des Bereichs stehen
 # alle Schritte nebeneinander, zu zweit oder untereinander – nie überlappend (Container-Abfrage
 # statt Fensterbreite, denn die Seitenleiste verändert den Platz).
 BOARD_NAV_STEP_REM = 16  # Mindestbreite eines Schritts (der längste Titel samt Symbol passt)
+# Zustand „erledigt“: grünes Haken-Symbol am Ende des Schrittnamens (Material-Icon in Markdown-
+# Farbe). Offene Schritte tragen kein Zeichen; ihr Zustand steht nur im Tooltip.
+BOARD_STEP_DONE_MARK = ":green[:material/check_circle:]"
 BOARD_NAV_CSS = """
 <style>
 div.st-key-board-nav-box { container-type: inline-size; }
@@ -1248,6 +1256,11 @@ div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-Na
 div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-NavLink"] * {
     color: #fff;
 }
+/* Das grüne Erledigt-Symbol hat die Farbe im style-Attribut; auf dem blauen Grund des aktiven
+   Schritts ist Grün schlecht lesbar – dort wird es weiß (das Symbol bleibt dasselbe). */
+div.st-key-board-nav [class*="st-key-board-active-"] .stMarkdownColoredText {
+    color: #fff !important;
+}
 </style>
 """
 
@@ -1275,10 +1288,15 @@ def _board_nav(data: TeamData, sprint: Sprint, current: str) -> None:
     with st.container(key="board-nav-box"), st.container(key="board-nav"):
         for key in steps:
             title, icon = PAGE_INFO[key]
-            label = f"{'✅' if done[key] else '⬜'} {t(title)}"
             active = key == current
+            if done[key]:
+                label = f"{t(title)} {BOARD_STEP_DONE_MARK}"
+                hint = t("erfasst für Sprint {id}", id=sprint.id)
+            else:  # offen: kein Zeichen, nur der Tooltip sagt es
+                label = t(title)
+                hint = t("noch offen für Sprint {id}", id=sprint.id)
             with st.container(key=f"board-{'active' if active else 'step'}-{key}"):
-                st.page_link(page_path(key), label=label, icon=icon, help=label, width="stretch")
+                st.page_link(page_path(key), label=label, icon=icon, help=hint, width="stretch")
 
 
 def _number(label: str, value: float | None, key: str, help: str | None = None) -> float | None:
