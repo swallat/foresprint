@@ -418,11 +418,14 @@ GIT_HELP: list[tuple[str, str]] = [
     ),
     (
         "Zwischen Datenordnern umschalten",
-        "Oben in der Seitenleiste stehen der aktive Datenordner und sein Branch. Unter "
-        "„Datenordner wechseln“ und auf der Seite „Datenordner“ lassen sich die zuletzt "
-        "benutzten Ordner umschalten. Beim Wechsel werden nicht gespeicherte Eingaben in "
-        "Formularen und alle Zwischenspeicher des alten Ordners verworfen; offene Änderungen im "
-        "alten Ordner bleiben dort erhalten und erscheinen beim Zurückwechseln wieder.",
+        "Oben in der Seitenleiste stehen der aktive Datenordner (mit dem übergeordneten "
+        "Ordner) und sein Branch. Unter „Datenordner wechseln“ und auf der Seite „Datenordner“ "
+        "lassen sich die zuletzt benutzten Ordner umschalten. Der Datenordner gilt je "
+        "Browser-Fenster: Wechselt ein Fenster, arbeiten andere offene Fenster in ihrem Ordner "
+        "weiter; neu geöffnete Fenster starten im zuletzt gewählten. Beim Wechsel werden nicht "
+        "gespeicherte Eingaben in Formularen und alle Zwischenspeicher des alten Ordners "
+        "verworfen; vorgemerkte Tags, die Commit-Nachricht und offene Änderungen im alten Ordner "
+        "bleiben dort erhalten und erscheinen beim Zurückwechseln wieder.",
     ),
     (
         "Server nicht erreichbar (offline)",

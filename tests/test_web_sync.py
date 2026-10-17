@@ -300,6 +300,6 @@ def test_tags_set_later_and_delete_in_the_app(shared, data_dir: Path, monkeypatc
     assert not at.exception
     assert "demo/2026.20" in git(root, "tag") and "demo/2026.20" in git(server, "tag")
     assert any("demo/2026.20" in str(r) for t in at.table for r in t.value.index)
-    at.checkbox(key="tag-confirm").check().run()
+    at.checkbox(key="tag-confirm-demo/2026.20").check().run()
     main_button(at, "Tag löschen").click().run()
     assert git(root, "tag") == "" and git(server, "tag") == ""
