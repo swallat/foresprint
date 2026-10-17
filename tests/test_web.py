@@ -2,6 +2,7 @@
 """Weboberfläche: Seiten rendern, Formulare speichern, Commit (ohne Browser via AppTest)."""
 
 import subprocess
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,9 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps, nav_titles
 
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.forecast import build_forecast
+from sprintforecast.model import Sprint
+from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -193,6 +196,22 @@ def test_absences_confirm_nobody_absent_creates_sprint_files(app: AppTest, data_
     assert saved["absences_confirmed"] is True  # ältere Programmversionen lesen es weiter
     goto(app, "forecast")
     assert not any("Trend" in w.value for w in app.warning)
+
+
+def test_reset_absences_text_names_calendar_and_people_not_trend(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Nach dem Zurücksetzen bleibt die Kapazität aus Kalender und Personen; nur die Fehltage
+    werden nach der Historie geschätzt (Trend gibt es nur ohne Personenliste)."""
+    repo = Repository(data_dir)
+    nxt = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
+    repo.save_sprint("demo", Sprint(id=nxt.id, start=nxt.start, end=nxt.end))
+    at = goto(start(data_dir, monkeypatch), "fehltage")
+    assert "Fehltage zurücksetzen" in [s.value for s in at.subheader]
+    caption = next(c.value for c in at.caption if "Zurücksetzen löscht" in c.value)
+    assert "Trend" not in caption
+    assert "nach der Historie geschätzt (ohne Historie ohne Abzug)" in caption
+    assert "Kalender und Personen" in caption
 
 
 def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
@@ -404,12 +423,121 @@ def test_saved_message_in_english(english, shared, data_dir: Path, monkeypatch):
     )
 
 
+def test_saved_message_names_no_button_when_the_content_was_already_saved(
+    repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Wird derselbe Stand noch einmal gespeichert, ändert sich nichts: Die Seitenleiste bietet
+    dann keinen Knopf „Änderungen committen“ an, die Meldung nennt ihn auch nicht."""
+    from sprintforecast.git import invalidate_status
+
+    save_review(start(data_dir, monkeypatch))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Review")
+    invalidate_status()
+    message = save_review(start(data_dir, monkeypatch))
+    assert message == "Gespeichert: 2026.21.yaml."
+    assert "Änderungen committen" not in sidebar_buttons(data_dir, monkeypatch)
+
+
+def test_saved_message_with_server_names_no_button_when_nothing_changed(
+    shared, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.git import invalidate_status
+
+    save_review(start(data_dir, monkeypatch))
+    git(data_dir.parent, "add", "-A")
+    git(data_dir.parent, "commit", "-qm", "Review")
+    invalidate_status()
+    message = save_review(start(data_dir, monkeypatch))
+    assert message == "Gespeichert: 2026.21.yaml."
+
+
+def test_saving_still_works_when_git_cannot_report_its_state(
+    repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Der Hinweis darf das Speichern nie verhindern."""
+    from sprintforecast.git import GitError
+    from sprintforecast.web import ui
+
+    def broken(root: Path):
+        raise GitError("kaputt")
+
+    monkeypatch.setattr(ui, "cached_sync_state", broken)
+    message = save_review(start(data_dir, monkeypatch))
+    assert message == "Gespeichert: 2026.21.yaml."
+    saved = yaml.safe_load((data_dir / "demo" / "sprints" / "2026.21.yaml").read_text())
+    assert saved["velocity"] == 9
+
+
+@pytest.mark.parametrize(
+    ("changes", "expected"),
+    [
+        ({}, "commit"),
+        ({"remote": "origin"}, "share"),
+        ({"unfinished": "merge"}, ""),
+        ({"conflicts": ("2026.21.yaml",)}, ""),
+        ({"branch": None}, ""),
+    ],
+)
+def test_next_step_follows_what_the_sidebar_offers(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, changes: dict, expected: str
+):
+    import dataclasses
+
+    from sprintforecast.gitsync import SyncState
+    from sprintforecast.web import ui
+
+    state = SyncState(root=data_dir, branch="main", upstream=None, remote=None)
+    monkeypatch.setattr(ui, "data_dir", lambda: data_dir)
+    monkeypatch.setattr(ui, "git_available", lambda: True)
+    monkeypatch.setattr(ui, "git_root", lambda root: root)
+    monkeypatch.setattr(ui, "cached_sync_state", lambda root: dataclasses.replace(state, **changes))
+    assert ui._next_step() == expected
+
+
+def test_next_step_is_empty_without_git_or_repository(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.web import ui
+
+    monkeypatch.setattr(ui, "data_dir", lambda: data_dir)
+    monkeypatch.setattr(ui, "git_available", lambda: False)
+    assert ui._next_step() == ""
+    monkeypatch.setattr(ui, "git_available", lambda: True)
+    monkeypatch.setattr(ui, "git_root", lambda root: None)
+    assert ui._next_step() == ""
+
+
 def test_help_intro_names_both_ways_to_secure_the_changes(app: AppTest):
     goto(app, "hilfe")
     intro = app.main.markdown[0].value
     assert "**Änderungen committen**" in intro and "**Speichern und teilen**" in intro
     assert "Reiter „Zusammenarbeit (Git)“" in intro
     assert "Zusammenarbeit (Git)" in [tab.label for tab in app.tabs]
+
+
+def test_commit_button_refuses_files_with_conflict_markers(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Markierungen ohne offenes Zusammenführen: nichts wird committet, die Meldung nennt die
+    Datei und den Weg zur Seite „Konflikte lösen“."""
+    for var in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{var}_NAME", "T")
+        monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")
+    git(data_dir, "init", "-q", "-b", "main")
+    git(data_dir, "add", "-A")
+    git(data_dir, "commit", "-qm", "init")
+    sprint = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    sprint.write_text(
+        "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n", encoding="utf-8"
+    )
+    at = start(data_dir, monkeypatch)
+    at.text_input(key="commit_message").set_value("Mit Markierungen")
+    next(b for b in at.button if b.label == "Änderungen committen").click().run()
+    assert not at.exception, at.exception
+    assert git(data_dir, "log", "-1", "--format=%s") == "init"
+    shown = " ".join(e.value for e in [*at.sidebar.error, *at.error])
+    assert "Konflikte lösen" in shown and "2026.21.yaml" in shown
 
 
 def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
@@ -1224,6 +1352,85 @@ def test_start_prepare_says_when_absences_are_only_announced(
     at.button(key="start-prepare").click().run()  # führt zu den Fehltagen, sie zu bestätigen
     assert at.header[0].value == "Planbare Fehltage"
     assert at.selectbox(key="absences-sprint").value == "2026.22"
+
+
+def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    assert not nav_done(app)["vorplanung"]
+    app.session_state["vorplanung-2026.23"] = {
+        "edited_rows": {0: {"PO-Vorplanung": 2.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
+    assert nav_done(app)["vorplanung"]  # schon im selben Durchlauf, ohne weiteren Klick
+    assert any("Gespeichert" in s.value for s in app.success)  # die Meldung folgt im Neuaufbau
+
+
+def test_planning_save_updates_the_step_bar_at_once(app: AppTest):
+    planning_step(app, "2026.22", 2)
+    assert not nav_done(app)["planning"]
+    app.number_input(key="carry-2026.22").set_value(1.5)
+    app.number_input(key="backlog-2026.22").set_value(11.0)
+    click(app, "Planning speichern")
+    assert nav_done(app)["planning"]
+    assert any("Gespeichert" in s.value for s in app.success)
+    assert any("Delta" in i.value for i in app.info)  # auch die Hinweise erscheinen im Neuaufbau
+
+
+def test_review_save_updates_the_step_bar_at_once(app: AppTest):
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    assert not nav_done(app)["review"]
+    app.number_input(key="velocity-2026.21").set_value(9.25)
+    click(app, "Review speichern")
+    assert nav_done(app)["review"]
+    assert app.session_state["pending_tags"] == ["demo/2026.21"]  # der Tag-Vorschlag bleibt
+    assert any("Gespeichert" in s.value for s in app.success)  # die Meldung folgt im Neuaufbau
+
+
+def add_unknown_absence(data_dir: Path, sprint: str) -> str:
+    """Macht die Sprintdatei ungültig (Fehltage einer unbekannten Person); liefert ihren Inhalt."""
+    path = data_dir / "demo" / "sprints" / f"{sprint}.yaml"
+    content = load(path)
+    content["absences"] = {**(content.get("absences") or {}), "niemand": 1}
+    path.write_text(yaml.safe_dump(content))
+    return path.read_text()
+
+
+def test_failed_review_save_keeps_the_errors_and_does_not_rerun(app: AppTest, data_dir: Path):
+    """Schlägt das Speichern fehl, bleibt die Fehlermeldung stehen (ein Neuaufbau würde sie
+    verwerfen) und die Schrittleiste springt nicht um."""
+    before = add_unknown_absence(data_dir, "2026.21")
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    assert not nav_done(app)["review"]
+    app.number_input(key="velocity-2026.21").set_value(9.25)
+    click(app, "Review speichern")
+    assert any("unbekannte Person" in e.value for e in app.error)
+    assert any("Nicht gespeichert" in e.value for e in app.error)
+    assert not nav_done(app)["review"]
+    assert (data_dir / "demo" / "sprints" / "2026.21.yaml").read_text() == before
+    assert not any("Gespeichert" in s.value for s in app.success)
+
+
+def test_failed_preplanning_save_keeps_the_errors_and_does_not_rerun(app: AppTest, data_dir: Path):
+    before = add_unknown_absence(data_dir, "2026.22")
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    app.session_state["vorplanung-2026.22"] = {
+        "edited_rows": {0: {"PO-Vorplanung": 2.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
+    assert any("unbekannte Person" in e.value for e in app.error)
+    assert any("Nicht gespeichert" in e.value for e in app.error)
+    assert (data_dir / "demo" / "sprints" / "2026.22.yaml").read_text() == before
+    assert not any("Gespeichert" in s.value for s in app.success)
 
 
 def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path):
