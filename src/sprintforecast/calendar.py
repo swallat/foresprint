@@ -154,6 +154,26 @@ def team_workdays(team: Team, start: date, end: date) -> list[date]:
     return workdays(start, end, team_weekend(team))
 
 
+def workweek_label(team: Team) -> str:
+    """Arbeitswoche des Teams für Texte: „Mo–Fr“ bei zusammenhängenden Tagen, sonst die Liste
+    („Mo, Di, Mi, Do“)."""
+    from sprintforecast.i18n import language
+
+    names = WEEKDAYS[language()]
+    weekend = team_weekend(team)
+    worked = [i for i in range(7) if i not in weekend]
+    if not worked:
+        return "–"
+    # Zusammenhängend (auch über das Wochenende hinweg, z. B. So–Do): vom ersten Tag nach einem
+    # freien Tag bis zum letzten Arbeitstag.
+    start = next((i for i in worked if (i - 1) % 7 in weekend), None)
+    if start is not None and len(worked) > 2:
+        run = [(start + k) % 7 for k in range(len(worked))]
+        if all(i not in weekend for i in run):
+            return f"{names[run[0]]}–{names[run[-1]]}"
+    return ", ".join(names[i] for i in worked)
+
+
 @cache
 def _holiday_calendar(
     country: str, region: str | None, year: int, lang: str = "de"
