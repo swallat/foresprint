@@ -10,6 +10,7 @@ from sprintforecast.plugins import web_pages
 from sprintforecast.web.ui import (
     PAGES,
     apply_language,
+    enabled_pages,
     page_path,
     repository,
     run_plugin_page,
@@ -19,13 +20,19 @@ from sprintforecast.web.ui import (
 
 st.set_page_config(page_title="Sprint-Forecast", page_icon="📈", layout="wide")
 apply_language()
+repo = repository()
+sidebar(repo)  # vor der Navigation: Die Teamwahl bestimmt, welche Seiten es gibt
+enabled = enabled_pages(repo)
+st.session_state["enabled-pages"] = enabled
 pages = {
     t(group): [
         st.Page(page_path(key), title=t(title), icon=icon, default=key == "forecast")
         for key, (title, icon) in entries.items()
+        if key in enabled
     ]
     for group, entries in PAGES.items()
 }
+pages = {group: entries for group, entries in pages.items() if entries}
 for plugin_page in web_pages():
     pages.setdefault(plugin_page.group, []).append(
         st.Page(
@@ -36,8 +43,6 @@ for plugin_page in web_pages():
         )
     )
 navigation = st.navigation(pages)
-repo = repository()
-sidebar(repo)
 footer = st.sidebar.container()
 navigation.run()
 with footer:

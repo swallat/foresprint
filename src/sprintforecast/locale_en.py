@@ -5,6 +5,12 @@ tests/test_i18n.py prüft, dass jeder übersetzbare Text hier steht und die Plat
 """
 
 EN: dict[str, str] = {
+    "Davon mit Produktionszugriff ({unit})": "Of which with production access ({unit})",
+    "Davon mit Produktionszugriff erledigt ({unit})": "Of which done with production access ({unit})",
+    "Speichern und weiter": "Save and continue",
+    "Teilmenge der Velocity: Tickets, die nur Personen mit Produktionszugriff bearbeiten können.": "Part of the velocity: tickets that only people with production access can work on.",
+    "Teilmenge des Plannings: Tickets, die nur Personen mit Produktionszugriff bearbeiten können.": "Part of the planning: tickets that only people with production access can work on.",
+    "Themen mit Produktionszugriff": "Topics with production access",
     "Produktionszugriff eingeplant ({part}) ist größer als das Commitment ({whole})": "Planned with production access ({part}) exceeds the commitment ({whole})",
     "Nur nötig, wenn das Team mehrere Produkte betreut und die Sprint-Menge darauf verteilt wird: Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt, Standardverteilung und Saldo. Aus: Diese Seiten und Eingaben entfallen; bereits erfasste Werte bleiben in den Dateien erhalten.": "Only needed if the team looks after several products and the sprint amount is distributed over them: product list, PO pre-planning, planning and done per product, default distribution and balance. Off: these pages and inputs are omitted; values already recorded stay in the files.",
     "Zuordnung PO": "PO assignment",

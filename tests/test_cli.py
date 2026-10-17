@@ -97,7 +97,8 @@ def test_pruefen_fails_on_error(data_dir: Path):
 
 def test_init_new_team(tmp_path: Path):
     answers = [
-        "Team A", "PT", "", "", "", "", "by", "", "10", "", "", "14", "yearly", "2026-10-14", "2026.20",
+        "Team A", "PT", "", "", "", "",
+        "by", "", "10", "", "", "14", "yearly", "2026-10-14", "2026.20",
         "40", "", "", "", "", "", "",
     ]  # fmt: skip
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
