@@ -702,6 +702,8 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
                 sprint.id,
                 t("Sprint {id}: abgeschlossen.", id=sprint.id)
                 if closed
+                else t("Sprint {id} läuft noch – Review am Sprintende.", id=sprint.id)
+                if sprint.end > fc.today
                 else t("Sprint {id}: Velocity fehlt noch.", id=sprint.id),
                 closed,
             )
