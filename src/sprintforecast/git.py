@@ -10,7 +10,7 @@ import sys
 import tempfile
 import time
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, NamedTuple
@@ -92,6 +92,8 @@ class GitError(Exception):
 
 # Tabellenkalkulationen dürfen nie committet werden (können echte Team-Daten enthalten).
 FORBIDDEN = re.compile(r"\.xls[xm]?$", re.IGNORECASE)
+# Datendateien, die nie mit Konfliktmarkierungen committet werden.
+DATA_FILES = re.compile(r"\.ya?ml$", re.IGNORECASE)
 
 
 # Windows: keine Konsolenfenster für Hilfsprozesse (sonst blitzt bei jedem Aufruf eines auf).
@@ -1004,6 +1006,40 @@ def invalidate_status() -> None:
         hook()
 
 
+def refuse_conflict_markers(files: Iterable[Path]) -> None:
+    """Verweigert das Committen von Datendateien, in denen noch Konfliktmarkierungen eines
+    unvollständigen Zusammenführens stehen: Sie würden geteilt und sperrten dann die Bearbeitung
+    bei allen anderen."""
+    from sprintforecast.storage import has_conflict_markers  # storage importiert dieses Modul
+
+    marked = []
+    for file in files:
+        if not DATA_FILES.search(file.name):
+            continue
+        try:
+            text = file.read_text(encoding="utf-8", errors="replace")
+        except OSError:  # gelöscht oder nicht lesbar: nichts zu prüfen
+            continue
+        if has_conflict_markers(text):
+            marked.append(file.name)
+    if marked:
+        files = ", ".join(marked)
+        raise GitError(
+            t(
+                "In diesen Dateien stehen noch Konfliktmarkierungen (<<<<<<<, =======, "
+                ">>>>>>>), sie werden nicht committet: {files}",
+                files=files,
+            ),
+            "conflict",
+            t(
+                "Betroffen: {files}. Die Dateien stammen aus einem unvollständigen "
+                "Zusammenführen. Auf der Seite „Konflikte lösen“ den letzten Stand "
+                "wiederherstellen, oder die Markierungen in einem Editor entfernen.",
+                files=files,
+            ),
+        )
+
+
 def commit_directory(path: Path, message: str, tags: list[str] | None = None) -> str:
     """Committet alle Änderungen unterhalb von ``path`` (nur dort) und setzt optional Tags."""
     root = repo_root(path)
@@ -1020,6 +1056,7 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
                 files=", ".join(blocked),
             )
         )
+    refuse_conflict_markers(root / f for status, f in changes if "D" not in status)
     names = check_new_tags(root, tags)  # vor dem Commit: bei einem Konflikt bleibt alles offen
     target = str(path.resolve())
     try:
@@ -1036,6 +1073,7 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
     cwd = paths[0].resolve().parent
     root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
+    refuse_conflict_markers(paths)
     names = check_new_tags(root, [tag] if tag else None)
     try:
         _git(root, "add", "--", *(str(p.resolve()) for p in paths))
