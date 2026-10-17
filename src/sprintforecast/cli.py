@@ -105,23 +105,32 @@ console = Console()
 err = Console(stderr=True)
 
 
+def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Gibt einen Schreib- oder Lesefehler der Datendateien als Meldung aus (Exit-Code 1)."""
+    if getattr(fn, "_guarded", False):
+        return fn
+
+    @functools.wraps(fn)
+    def guarded(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return fn(*args, **kwargs)
+        except FileAccessError as e:  # Meldung statt Traceback (kein Schreibrecht u. Ä.)
+            err.print(f"[red]{escape(str(e))}[/red]")
+            raise typer.Exit(1) from e
+
+    guarded._guarded = True  # type: ignore[attr-defined]
+    return guarded
+
+
 def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Registriert einen Befehl unter dem deutschen und – falls vorhanden – dem englischen
     Namen; der Name der jeweils anderen Sprache bleibt in der Hilfe ausgeblendet."""
     alias = COMMAND_ALIASES.get(name)
 
     def register(fn: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(fn)
-        def guarded(*args: Any, **kwargs: Any) -> Any:
-            try:
-                return fn(*args, **kwargs)
-            except FileAccessError as e:  # Meldung statt Traceback (kein Schreibrecht u. Ä.)
-                err.print(f"[red]{escape(str(e))}[/red]")
-                raise typer.Exit(1) from e
-
-        app.command(name, help=t(help), hidden=bool(alias) and is_english())(guarded)
+        app.command(name, help=t(help), hidden=bool(alias) and is_english())(_guarded(fn))
         if alias:
-            app.command(alias, help=t(help), hidden=not is_english())(guarded)
+            app.command(alias, help=t(help), hidden=not is_english())(_guarded(fn))
         return fn
 
     return register
@@ -1939,3 +1948,6 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
 for _plugin in load_plugins():
     if _plugin.register_cli is not None:
         _plugin.register_cli(app)
+for _command in app.registered_commands:  # auch die Befehle der Erweiterungen
+    if _command.callback is not None:
+        _command.callback = _guarded(_command.callback)

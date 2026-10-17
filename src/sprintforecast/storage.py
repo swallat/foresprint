@@ -184,14 +184,7 @@ def _read(path: Path) -> dict[str, Any]:
     except FileNotFoundError as e:
         raise DataError(t("Datei fehlt: {path}", path=path)) from e
     except OSError as e:  # keine Leserechte, Ordner statt Datei, Netzlaufwerk nicht erreichbar
-        raise FileAccessError(
-            t(
-                "{path}: nicht lesbar ({reason}). Rechte prüfen oder die Datei in einem "
-                "anderen Programm schließen.",
-                path=path,
-                reason=_reason(e),
-            )
-        ) from e
+        raise _not_readable(path, e) from e
     except (yaml.YAMLError, ValueError) as e:  # z. B. ein unmögliches Datum (2026-13-45)
         raise DataError(t("{path}: kein gültiges YAML ({error})", path=path, error=e)) from e
     if content is None:
@@ -210,6 +203,17 @@ def _reason(error: OSError) -> str:
     return error.strerror or str(error)
 
 
+def _not_readable(path: Path, error: OSError) -> FileAccessError:
+    return FileAccessError(
+        t(
+            "{path}: nicht lesbar ({reason}). Rechte prüfen oder die Datei in einem "
+            "anderen Programm schließen.",
+            path=path,
+            reason=_reason(error),
+        )
+    )
+
+
 def _not_saved(path: Path, error: OSError) -> FileAccessError:
     return FileAccessError(
         t(
@@ -219,6 +223,13 @@ def _not_saved(path: Path, error: OSError) -> FileAccessError:
             reason=_reason(error),
         )
     )
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        raise _not_readable(path, e) from e
 
 
 def _write(path: Path, header: str, content: dict[str, Any]) -> None:
@@ -232,11 +243,29 @@ def _write(path: Path, header: str, content: dict[str, Any]) -> None:
 
 
 def write_text(path: Path, text: str) -> None:
-    """Schreibt eine Textdatei (z. B. den Bericht); Fehler wie bei :func:`_write`."""
+    """Schreibt eine Textdatei (z. B. den Bericht) über eine Zwischendatei; Fehler wie bei
+    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF)."""
     try:
-        path.write_text(text, encoding="utf-8")
+        _replace_with(path, text, newline=None)
     except OSError as e:
         raise _not_saved(path, e) from e
+
+
+def _replace_with(path: Path, text: str, newline: str | None) -> None:
+    """Schreibt ``text`` in eine Zwischendatei neben ``path`` und ersetzt ``path`` damit: Die
+    Datei ist danach entweder ganz neu oder unverändert, nie halb geschrieben."""
+    tmp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", newline=newline, dir=path.parent, suffix=".tmp", delete=False
+        ) as tmp:
+            tmp_name = tmp.name
+            tmp.write(text)
+        os.replace(tmp_name, path)
+        tmp_name = None
+    finally:
+        if tmp_name:  # Schreib- oder Umbenennungsfehler (z. B. gesperrt): nichts zurücklassen
+            Path(tmp_name).unlink(missing_ok=True)
 
 
 def _write_atomic(path: Path, header: str, content: dict[str, Any]) -> None:
@@ -252,18 +281,7 @@ def _write_atomic(path: Path, header: str, content: dict[str, Any]) -> None:
         if has_conflict_markers(current.decode("utf-8", errors="replace")):
             # Nie über einen unvollständigen Merge schreiben: Die Markierungen gingen verloren.
             raise ConflictError([path])
-    tmp_name: str | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            "w", encoding="utf-8", newline="\n", dir=path.parent, suffix=".tmp", delete=False
-        ) as tmp:
-            tmp_name = tmp.name
-            tmp.write(text)
-        os.replace(tmp_name, path)
-        tmp_name = None
-    finally:
-        if tmp_name:  # Schreib- oder Umbenennungsfehler (z. B. gesperrt): nichts zurücklassen
-            Path(tmp_name).unlink(missing_ok=True)
+    _replace_with(path, text, newline="\n")
     clear_team_cache()
 
 
@@ -833,8 +851,8 @@ class Repository:
         if path.is_file():
             try:
                 return absence_status(sprint_from_dict(_read(path), str(path)))
-            except ConflictError:
-                raise
+            except ConflictError, FileAccessError:
+                raise  # nicht lesbar ist kein „Datei kaputt“: nichts überschreiben
             except DataError:
                 pass
         if sprint.velocity is not None:  # bereits ausgewerteter Sprint (z. B. Import)
@@ -881,7 +899,7 @@ def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[
             repo.team_dir(team.key) / "people.yaml",
             *(repo.sprint_path(team.key, s.id) for s in sprints),
         )
-        if p.is_file() and has_conflict_markers(p.read_text(encoding="utf-8", errors="replace"))
+        if p.is_file() and has_conflict_markers(_read_text(p))
     ]
     if marked:
         raise ConflictError(marked)
