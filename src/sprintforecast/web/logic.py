@@ -633,3 +633,77 @@ def apply_product_values(sprint: Sprint, rows: list[dict[str, Any]], measures: l
 def parse_numbers(raw: str) -> list[float]:
     """„4,25 4.5“ → [4.25, 4.5]; wirft ValueError bei ungültigen Einträgen."""
     return [float(x.replace(",", ".")) for x in raw.replace(";", " ").split()]
+
+
+@dataclass
+class StartTask:
+    """Eine der drei Aufgaben der Startseite: wohin der Klick führt und warum."""
+
+    key: str  # prepare | planning | review
+    page: str  # Seitenschlüssel (siehe web.ui.PAGES)
+    sprint_id: str | None
+    hint: str
+    done: bool = False
+
+
+def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
+    """Die nächste sinnvolle Seite je Aufgabe, abgeleitet vom Stand des Sprints.
+
+    Ohne offenen Sprint (kein Planning-Kandidat) führen „Sprint vorbereiten“ und „Planning“ zum
+    Sprintkalender, damit dort Sprints angelegt werden."""
+    nxt = fc.default_entry("planning")
+    review = fc.default_entry("review")
+    tasks: list[StartTask] = []
+    if nxt is None:
+        hint = t("Kein offener Sprint – zuerst im Sprintkalender Sprints anlegen.")
+        tasks.append(StartTask("prepare", "sprints", None, hint))
+        tasks.append(StartTask("planning", "sprints", None, hint))
+    else:
+        sprint = fc.data.sprint(nxt.sprint.id) or nxt.sprint
+        sid = sprint.id
+        if absence_status(sprint) is AbsenceState.UNKNOWN:
+            tasks.append(
+                StartTask("prepare", "fehltage", sid, t("Sprint {id}: Fehltage unbekannt.", id=sid))
+            )
+        elif products and not any(v.preplanned is not None for v in sprint.products.values()):
+            tasks.append(
+                StartTask(
+                    "prepare",
+                    "vorplanung",
+                    sid,
+                    t("Sprint {id}: Fehltage bekannt, PO-Vorplanung fehlt noch.", id=sid),
+                )
+            )
+        else:
+            tasks.append(
+                StartTask("prepare", "fehltage", sid, t("Sprint {id}: vorbereitet.", id=sid), True)
+            )
+        committed = sprint.forecast_ist is not None
+        tasks.append(
+            StartTask(
+                "planning",
+                "planning",
+                sid,
+                t("Sprint {id}: Commitment eingetragen.", id=sid)
+                if committed
+                else t("Sprint {id}: Commitment fehlt noch.", id=sid),
+                committed,
+            )
+        )
+    if review is None:
+        tasks.append(StartTask("review", "review", None, t("Kein Sprint zum Abschließen.")))
+    else:
+        sprint = fc.data.sprint(review.sprint.id) or review.sprint
+        closed = sprint.velocity is not None
+        tasks.append(
+            StartTask(
+                "review",
+                "review",
+                sprint.id,
+                t("Sprint {id}: abgeschlossen.", id=sprint.id)
+                if closed
+                else t("Sprint {id}: Velocity fehlt noch.", id=sprint.id),
+                closed,
+            )
+        )
+    return tasks
