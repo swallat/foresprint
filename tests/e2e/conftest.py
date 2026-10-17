@@ -4,7 +4,8 @@
 Browser: Standard ist das mit ``playwright install chromium`` geladene Chromium. Umgebungs-
 variablen: ``E2E_CHANNEL`` (z. B. ``msedge`` oder ``chrome``: ein installierter Browser),
 ``E2E_EXECUTABLE`` (Pfad zu einem Chromium), ``E2E_HEADED=1`` (sichtbares Fenster),
-``E2E_ARTIFACTS`` (Ordner für Bilder fehlgeschlagener Tests, Standard ``test-results/e2e``).
+``E2E_ARTIFACTS`` (Ordner für Bilder und Server-Protokolle fehlgeschlagener Tests, Standard
+``test-results/e2e``).
 """
 
 from __future__ import annotations
@@ -46,10 +47,41 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             item.add_marker(pytest.mark.e2e)
 
 
+def _track(item: pytest.Item, attribute: str, value: object) -> None:
+    """Merkt sich Seiten und Apps des Tests, damit der Fehlerbericht sie noch vor dem Aufräumen
+    (die Apps laufen dann noch) sichern kann."""
+    if not hasattr(item, attribute):
+        setattr(item, attribute, [])
+    getattr(item, attribute).append(value)
+
+
+def _save_failure(item: pytest.Item) -> None:
+    folder = Path(os.environ.get("E2E_ARTIFACTS", "test-results/e2e"))
+    folder.mkdir(parents=True, exist_ok=True)
+    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", item.name)
+    pages: list[Page] = getattr(item, "e2e_pages", [])
+    for number, shown in enumerate(pages, 1):
+        suffix = f"-{number}" if len(pages) > 1 else ""
+        with contextlib.suppress(Exception):  # das Bild ist nur eine Hilfe bei der Fehlersuche
+            shown.screenshot(path=str(folder / f"{name}{suffix}.png"), full_page=True)
+    apps = {
+        id(a): a for a in [*getattr(item, "e2e_apps", []), *getattr(item, "funcargs", {}).values()]
+    }
+    for running in apps.values():
+        if isinstance(running, App):
+            with contextlib.suppress(Exception):
+                (folder / f"{name}-{running.name}.log").write_text(
+                    running.output()[-200_000:], encoding="utf-8"
+                )
+
+
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
     report = yield
     setattr(item, f"rep_{report.when}", report)
+    # Im Bericht der Testfunktion selbst: Seiten und Server leben noch (das Aufräumen folgt).
+    if report.failed and report.when in ("setup", "call"):
+        _save_failure(item)
     return report
 
 
@@ -92,20 +124,14 @@ def context(browser: Browser) -> Iterator[BrowserContext]:
 
 
 @pytest.fixture
-def page(context: BrowserContext, request: pytest.FixtureRequest) -> Iterator[Page]:
+def page(context: BrowserContext, request: pytest.FixtureRequest) -> Page:
     opened = context.new_page()
-    yield opened
-    report = getattr(request.node, "rep_call", None)
-    if report is not None and report.failed:
-        folder = Path(os.environ.get("E2E_ARTIFACTS", "test-results/e2e"))
-        folder.mkdir(parents=True, exist_ok=True)
-        name = re.sub(r"[^A-Za-z0-9_.-]+", "_", request.node.name)
-        with contextlib.suppress(Exception):  # das Bild ist nur eine Hilfe bei der Fehlersuche
-            opened.screenshot(path=str(folder / f"{name}.png"), full_page=True)
+    _track(request.node, "e2e_pages", opened)
+    return opened
 
 
 @pytest.fixture
-def new_page(browser: Browser) -> Iterator[Callable[..., Page]]:
+def new_page(browser: Browser, request: pytest.FixtureRequest) -> Iterator[Callable[..., Page]]:
     """Weitere Seiten in eigenem Kontext, z. B. für zwei Apps im selben Test."""
     contexts: list[BrowserContext] = []
 
@@ -113,7 +139,9 @@ def new_page(browser: Browser) -> Iterator[Callable[..., Page]]:
         created = browser.new_context(viewport={"width": width, "height": height}, locale="de-DE")
         created.set_default_timeout(20_000)
         contexts.append(created)
-        return created.new_page()
+        opened = created.new_page()
+        _track(request.node, "e2e_pages", opened)
+        return opened
 
     yield make
     for created in contexts:
@@ -160,7 +188,7 @@ def app_english(e2e_dir: Path) -> Iterator[App]:
 
 
 @pytest.fixture
-def make_app(tmp_path: Path) -> Iterator[Callable[..., App]]:
+def make_app(tmp_path: Path, request: pytest.FixtureRequest) -> Iterator[Callable[..., App]]:
     """Startet eine eigene App je Test (für Tests, die Daten oder Einstellungen ändern)."""
     started: list[App] = []
 
@@ -171,6 +199,7 @@ def make_app(tmp_path: Path) -> Iterator[Callable[..., App]]:
             init_repository(work)
         server = App(name, data, work, language=language).start()
         started.append(server)
+        _track(request.node, "e2e_apps", server)
         return server
 
     yield make
@@ -179,7 +208,9 @@ def make_app(tmp_path: Path) -> Iterator[Callable[..., App]]:
 
 
 @pytest.fixture
-def clones(tmp_path: Path) -> Iterator[Callable[[], tuple[App, App, Path]]]:
+def clones(
+    tmp_path: Path, request: pytest.FixtureRequest
+) -> Iterator[Callable[[], tuple[App, App, Path]]]:
     """Zwei Klone desselben Bare-Repositorys mit je einer App-Instanz (Alice und Bob)."""
     started: list[App] = []
 
@@ -193,8 +224,11 @@ def clones(tmp_path: Path) -> Iterator[Callable[[], tuple[App, App, Path]]]:
         bob_work = tmp_path / "bob"
         git(tmp_path, "clone", "-q", str(bare), str(bob_work), name="Bob")
         alice = App("alice", data, alice_work, person="Alice").start()
+        started.append(alice)  # sofort: startet Bob nicht, muss Alice trotzdem beendet werden
+        _track(request.node, "e2e_apps", alice)
         bob = App("bob", bob_work / "teams", bob_work, person="Bob").start()
-        started.extend([alice, bob])
+        started.append(bob)
+        _track(request.node, "e2e_apps", bob)
         return alice, bob, bare
 
     yield make
