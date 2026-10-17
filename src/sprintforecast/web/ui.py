@@ -40,7 +40,9 @@ from sprintforecast.calendar import (
     day_label,
     holiday_name,
     subdivisions,
+    team_weekend,
     team_workdays,
+    workweek_label,
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
@@ -393,12 +395,13 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
     last = f"{days[-1]:%d.%m.%Y}" if days else f"{s.end:%d.%m.%Y}"
     text = t(
         "**{id}**: {start} – {last} (letzter Arbeitstag; der nächste Sprint beginnt am {next}), "
-        "{days} Arbeitstage Mo–Fr",
+        "{days} Arbeitstage ({week})",
         id=s.id,
         start=f"{s.start:%d.%m.}",
         last=last,
         next=f"{s.end:%d.%m.}",
         days=len(days),
+        week=workweek_label(data.team),
     )
     if hol:
         text += t(" · davon Feiertage: {holidays}", holidays=", ".join(hol))
@@ -461,25 +464,32 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     return assumed
 
 
+def _whatif_title() -> str:
+    return t("Was-wäre-wenn: Prognose des Teams für offene Sprints")
+
+
+def _whatif_caption(note: str) -> None:
+    """Gemeinsamer Einleitungstext beider Was-wäre-wenn-Panels; ``note`` sagt, was mit der
+    Annahme geschieht."""
+    st.caption(
+        t(
+            "Prognose des Teams für einen noch nicht abgeschlossenen Sprint eintragen: "
+            "Commitment, was voraussichtlich nicht fertig wird und was zusätzlich geschafft "
+            "wird. Der Forecast PLAN der nächsten Sprints wird damit neu berechnet."
+        )
+        + " "
+        + note
+    )
+
+
 @st.fragment
 def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> None:
     """Was-wäre-wenn: erwartete erledigte Menge offener Sprints → Forecast PLAN der nächsten."""
     sprints = open_velocity_sprints(fc)
     if not sprints:
         return
-    with st.expander(
-        t("Was-wäre-wenn: mit erwarteter Velocity rechnen"), icon=":material/science:"
-    ):
-        st.caption(
-            t(
-                "Prognose des Teams für einen noch nicht abgeschlossenen Sprint eintragen: "
-                "Commitment, was voraussichtlich nicht fertig wird und was zusätzlich geschafft "
-                "wird. "
-                "Der Forecast PLAN der nächsten Sprints wird damit neu berechnet. Nichts wird "
-                "gespeichert.",
-                unit=unit,
-            )
-        )
+    with st.expander(_whatif_title(), icon=":material/science:"):
+        _whatif_caption(t("Nichts wird gespeichert."))
         assumed = _whatif_inputs(fc, unit)
         if not assumed:
             return
@@ -899,6 +909,11 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             min_value=0.0,
             max_value=float(len(team_workdays(data.team, s.start, s.end))),
             step=0.5,
+            help=t(
+                "Fehltage in Arbeitstagen der Person (0,5 = halber Tag), nicht in Personentagen: "
+                "Wer in Teilzeit arbeitet, trägt die Tage ein, an denen sonst gearbeitet würde; "
+                "die FTE rechnet die Kapazität selbst herunter."
+            ),
         )
     edited = st.data_editor(
         pd.DataFrame(rows),
@@ -1058,10 +1073,11 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "*Sprintlänge*). Eine Sprintdatei wird angelegt, sobald etwas für den Sprint "
             "gespeichert wird – oder hier mit **Sprints anlegen**.  \n"
             "Weicht ein Sprint ab (z. B. drei Wochen über Weihnachten), den **letzten Tag** "
-            "ändern; die folgenden Sprints verschieben sich mit. Arbeitstage zählen Mo–Fr vom "
-            "Start bis einschließlich zum letzten Tag, Feiertage werden erst bei der Kapazität "
-            "abgezogen.",
+            "ändern; die folgenden Sprints verschieben sich mit. Arbeitstage zählen laut "
+            "Arbeitswoche des Teams ({week}) vom Start bis einschließlich zum letzten Tag, "
+            "Feiertage werden erst bei der Kapazität abgezogen.",
             days=data.team.sprint.length_days,
+            week=workweek_label(data.team),
         )
     )
     count = st.number_input(t("Anzahl Sprints"), min_value=1, max_value=26, value=6, key="cal-n")
@@ -1088,7 +1104,11 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "Arbeitstage": st.column_config.NumberColumn(
                 t("Arbeitstage"),
                 disabled=True,
-                help=t("Mo–Fr vom Start bis einschließlich zum letzten Tag"),
+                help=t(
+                    "Arbeitstage der Arbeitswoche des Teams ({week}) vom Start bis einschließlich "
+                    "zum letzten Tag, ohne Abzug von Feiertagen.",
+                    week=workweek_label(data.team),
+                ),
             ),
             "Status": st.column_config.TextColumn(disabled=True),
         },
@@ -2390,22 +2410,29 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None:
     """Bisherige Prognosen der offenen Sprints aus früheren Vorplanungen."""
+    if not any((recorded := data.sprint(sprint.id)) and recorded.prognoses for sprint in sprints):
+        return
+    details = st.toggle(t("Alle Details der Prognosen"), key="prognosis-details")
     rows = []
     for sprint in sprints:
         recorded = data.sprint(sprint.id)
         for p in recorded.prognoses if recorded else []:
-            rows.append(
-                {
-                    t("Zeitpunkt"): f"{p.at:%d.%m.%Y %H:%M}",
-                    "Sprint": sprint.id,
-                    t("Kommentar"): p.comment or "",
+            row = {
+                t("Zeitpunkt"): f"{p.at:%d.%m.%Y %H:%M}",
+                "Sprint": sprint.id,
+                t("Kommentar"): p.comment or "",
+            }
+            if details:
+                row |= {
                     f"Commitment ({unit})": fmt(p.forecast_ist, 2),
                     t("nicht erledigt"): fmt(p.not_done, 2),
                     t("zusätzlich erledigt"): fmt(p.additional_done, 2),
-                    t("erwartet erledigt"): fmt(p.expected_done, 2),
-                    t("Forecast PLAN {id}", id=p.target or "–"): fmt(p.plan),
                 }
-            )
+            row |= {
+                t("erwartet erledigt"): fmt(p.expected_done, 2),
+                t("Forecast PLAN {id}", id=p.target or "–"): fmt(p.plan),
+            }
+            rows.append(row)
     if rows:
         st.markdown(f"**{t('Bisherige Prognosen')}**")
         st.dataframe(pd.DataFrame(rows[::-1]), hide_index=True)
@@ -2469,19 +2496,12 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     assumed: dict[str, Assumption] = {}
     comment = ""
     if open_velocity_sprints(fc):
-        with st.expander(
-            t("Was-wäre-wenn: Prognose des Teams für den letzten Sprint"),
-            icon=":material/science:",
-        ):
-            st.caption(
+        with st.expander(_whatif_title(), icon=":material/science:"):
+            _whatif_caption(
                 t(
-                    "Prognose des Teams für den letzten Sprint eintragen: Commitment, was "
-                    "voraussichtlich nicht fertig wird und was zusätzlich geschafft wird. Der "
-                    "Forecast PLAN und damit die verteilbare Menge werden neu berechnet. Das gilt "
-                    "nur für diese Ansicht; mit **Vorplanung speichern** wird die Annahme samt "
-                    "Kommentar als Prognose festgehalten. Die Velocity selbst wird erst im Review "
-                    "erfasst.",
-                    unit=unit,
+                    "Das gilt nur für diese Ansicht; mit **Vorplanung speichern** wird die "
+                    "Annahme samt Kommentar als Prognose festgehalten. Die Velocity selbst wird "
+                    "erst im Review erfasst."
                 )
             )
             assumed = _whatif_inputs(fc, unit, "vorplanung-whatif")
@@ -2973,9 +2993,10 @@ OVERHEAD_KEYS = ("capacity.overhead_share", "capacity.overhead_days")
 
 
 def _sprint_workdays(team: Team, form_key: str) -> float:
-    """Arbeitstage je Sprint (Mo–Fr aus der Sprintlänge) – Umrechnung zwischen PT und %."""
+    """Arbeitstage je Sprint (Arbeitswoche des Teams, aus der Sprintlänge) – Umrechnung
+    zwischen PT und %."""
     length = st.session_state.get(f"{form_key}-sprint.length_days", team.sprint.length_days)
-    return max(float(length) * 5 / 7, 1.0)
+    return max(float(length) * (7 - len(team_weekend(team))) / 7, 1.0)
 
 
 def _overhead_widgets(team: Team, form_key: str) -> dict[str, str]:

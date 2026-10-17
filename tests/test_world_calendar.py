@@ -15,6 +15,7 @@ from sprintforecast.calendar import (
     subdivisions,
     team_weekend,
     workdays,
+    workweek_label,
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.model import Membership, Person, Sprint, Team
@@ -59,6 +60,20 @@ def test_team_workweek_setting_overrides_the_country():
     assert team_weekend(team) == {5, 6}
     team.capacity.workweek = "mon-sat"
     assert team_weekend(team) == {6}
+
+
+def test_workweek_label_follows_the_configured_week():
+    team = Team(key="t", name="T")
+    assert workweek_label(team) == "Mo–Fr"
+    team.capacity.workweek = "mon,tue,wed,thu"
+    assert workweek_label(team) == "Mo–Do"
+    team.capacity.workweek = "mon,wed,thu"
+    assert workweek_label(team) == "Mo, Mi, Do"
+    team.capacity.workweek = "mon-sat"
+    assert workweek_label(team) == "Mo–Sa"
+    team.capacity.workweek = "auto"
+    team.capacity.country = "SA"
+    assert workweek_label(team) == "So–Do"
 
 
 def _team(country: str = "DE", region: str | None = None) -> Team:

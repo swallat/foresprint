@@ -201,7 +201,7 @@ def test_planning_defaults_to_next_planning(app: AppTest):
 
 def test_planning_flow_absences_then_plan(app: AppTest, data_dir: Path):
     goto(app, "planning")
-    assert any("Arbeitstage Mo–Fr" in c.value for c in app.caption)
+    assert any("Arbeitstage (Mo–Fr)" in c.value for c in app.caption)
     click(app, "Weiter")  # Fehltage unverändert, Sprintdatei existiert
     assert app.radio(key="planning-step").value == 1
     assert any(m.label.startswith("Prognose aktuell") for m in app.metric)
@@ -419,6 +419,46 @@ def test_calendar_page_creates_sprints(app: AppTest, data_dir: Path):
     assert any("2026.23 (neu)" in c.value for c in app.caption)
     click(app, "Sprints anlegen bzw. speichern")
     assert (data_dir / "demo" / "sprints" / "2026.26.yaml").exists()
+
+
+def test_calendar_texts_follow_the_configured_workweek(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    team_file = data_dir / "demo" / "team.yaml"
+    team = load(team_file)
+    team.setdefault("capacity", {})["workweek"] = "mon,tue,wed,thu"
+    team_file.write_text(yaml.safe_dump(team, allow_unicode=True))
+    at = goto(start(data_dir, monkeypatch), "sprints")
+    assert any("Teams (Mo–Do)" in m.value for m in at.markdown)
+    assert not any("Mo–Fr" in m.value for m in at.markdown)
+
+
+def test_whatif_panel_has_one_title_on_both_pages(app: AppTest):
+    titles = set()
+    for page in ("forecast", "vorplanung"):
+        goto(app, page)
+        titles |= {e.label for e in app.expander if "Was-wäre-wenn" in e.label}
+    assert titles == {"Was-wäre-wenn: Prognose des Teams für offene Sprints"}
+
+
+def test_prognosis_history_is_compact_until_details_are_requested(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    next(
+        n
+        for n in app.number_input
+        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-open")
+    ).set_value(3.0).run()
+    click(app, "PO-Vorplanung speichern")
+    app.run()  # die Seite liest die gespeicherte Prognose erst im nächsten Lauf
+
+    def history():
+        return next(d.value for d in app.dataframe if "Zeitpunkt" in d.value.columns)
+
+    assert "erwartet erledigt" in history().columns
+    assert "nicht erledigt" not in history().columns
+    app.toggle(key="prognosis-details").set_value(True).run()
+    assert "nicht erledigt" in history().columns
 
 
 def test_setup_when_no_data_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
