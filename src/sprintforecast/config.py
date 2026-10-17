@@ -9,11 +9,21 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
+import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
+from sprintforecast.i18n import t
+
 PACKAGE = "sprintforecast"
+
+
+class SettingsError(OSError):
+    """Die Einstellungen lassen sich nicht speichern (z. B. Ordner nicht beschreibbar). Die
+    Meldung ist für Anwender gedacht."""
 
 
 def config_dir() -> Path:
@@ -34,7 +44,52 @@ def load() -> dict[str, Any]:
     return content if isinstance(content, dict) else {}
 
 
+def _keep_damaged(path: Path) -> None:
+    """Sichert eine unlesbare Einstellungsdatei, bevor sie überschrieben wird."""
+    try:
+        content = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return
+    except OSError, ValueError:
+        pass
+    else:
+        if isinstance(content, dict):
+            return
+    target = path.with_name(path.name + ".defekt")
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    n = 0
+    while target.exists():  # eine ältere Sicherung bleibt erhalten
+        n += 1
+        target = path.with_name(f"{path.name}.defekt-{stamp}" + (f"-{n}" if n > 1 else ""))
+    shutil.copy2(path, target)
+
+
 def update(**changes: Any) -> None:
+    """Speichert Einstellungen: atomar (über eine Zwischendatei, nie halb geschrieben); eine
+    beschädigte Datei wird vorher als ``settings.json.defekt`` gesichert (eine ältere
+    Sicherung bleibt erhalten, die neue bekommt einen Zeitstempel). Schlägt das fehl, kommt
+    eine :class:`SettingsError` mit verständlicher Meldung."""
     path = _settings_file()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(load() | changes, indent=2, sort_keys=True), encoding="utf-8")
+    tmp: str | None = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _keep_damaged(path)
+        text = json.dumps(load() | changes, indent=2, sort_keys=True)
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=path.parent, suffix=".tmp", delete=False
+        ) as handle:
+            tmp = handle.name
+            handle.write(text)
+        os.replace(tmp, path)
+        tmp = None
+    except OSError as e:
+        raise SettingsError(
+            t(
+                "Die Einstellungen konnten nicht gespeichert werden ({path}): {error}",
+                path=path,
+                error=e.strerror or e,
+            )
+        ) from e
+    finally:
+        if tmp:
+            Path(tmp).unlink(missing_ok=True)
