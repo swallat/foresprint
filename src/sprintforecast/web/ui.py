@@ -191,6 +191,7 @@ from sprintforecast.web.logic import (
     record_prognoses,
     remember_without_git,
     resettable_sprints,
+    resolved_path,
     sprints_to_save,
     start_tasks,
     whatif_forecast,
@@ -3227,18 +3228,10 @@ def _switch_hint(repo: Repository) -> str:
     return f"{head} {tail}"
 
 
-def _resolved(path: Path) -> Path:
-    """Aufgelöster Pfad; ein nicht auflösbarer (toter Netzlaufwerkpfad) bleibt, wie er ist."""
-    try:
-        return path.resolve()
-    except OSError, RuntimeError:
-        return path
-
-
 def _recent_dirs(repo: Repository) -> list[Path]:
     """Zuletzt benutzte Datenordner ohne den aktiven (gemerkt sind aufgelöste Pfade)."""
-    current = _resolved(repo.root)
-    return [p for p in recent_data_dirs() if _resolved(p) != current]
+    current = resolved_path(repo.root)
+    return [p for p in recent_data_dirs() if resolved_path(p) != current]
 
 
 def _switch_panel(repo: Repository) -> None:

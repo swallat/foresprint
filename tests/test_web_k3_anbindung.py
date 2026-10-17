@@ -478,3 +478,14 @@ def test_new_tab_after_folder_switch_starts_in_new_folder(
     fresh.run()
     assert not fresh.exception, fresh.exception
     assert "zweiter-ordner" in " ".join(m.value for m in fresh.sidebar.markdown)
+
+
+@pytest.mark.parametrize("fehler", [OSError("tot"), RuntimeError("Symlink-Schleife")])
+def test_resolved_path_keeps_unresolvable_path(monkeypatch, fehler: Exception):
+    from sprintforecast.web.logic import resolved_path
+
+    def kaputt(self):
+        raise fehler
+
+    monkeypatch.setattr(Path, "resolve", kaputt)
+    assert resolved_path(Path("x") / "y") == Path("x") / "y"
