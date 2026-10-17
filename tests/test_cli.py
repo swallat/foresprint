@@ -4,8 +4,10 @@ from pathlib import Path
 
 import pytest
 import yaml
+from gitrepos import git
 from typer.testing import CliRunner
 
+from sprintforecast import cli
 from sprintforecast.cli import app
 
 runner = CliRunner(env={"COLUMNS": "200"})
@@ -353,6 +355,150 @@ def test_datenordner(tmp_path: Path, data_dir: Path):
     assert result.exit_code == 0, result.output
     assert "Datenordner gemerkt" in result.output
     assert "Gemerkt:" in run(data_dir, "datenordner").output
+
+
+def one_line(output: str) -> str:
+    """Ausgabe ohne Zeilenumbrüche der Konsole (Rich bricht lange Zeilen um)."""
+    return " ".join(output.split())
+
+
+@pytest.fixture
+def without_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Git ist auf diesem Rechner nicht installiert (nicht im PATH)."""
+    leer = tmp_path / "ohne-git"
+    leer.mkdir()
+    monkeypatch.setenv("PATH", str(leer))
+
+
+@pytest.fixture
+def data_repo(data_dir: Path, tmp_path: Path) -> Path:
+    """Das Datenverzeichnis liegt in einem Git-Repository (Wurzel ist ``tmp_path``)."""
+    git(tmp_path, "init", "-q", "-b", "main")
+    git(tmp_path, "config", "user.name", "T")
+    git(tmp_path, "config", "user.email", "t@example.org")
+    return tmp_path
+
+
+def commit_planning(data_dir: Path):
+    return run(data_dir, "planning", "demo", "2026.22", "--commit", input="n\nn\nn\n10\n")
+
+
+def test_commit_without_repository_says_so_instead_of_showing_git_output(data_dir: Path):
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Kein Git-Repository" in text
+    assert "liegt in keinem Git-Repository" in text
+    assert "`git init`" in text and "`git clone`" in text
+    assert "fatal" not in text
+    assert "Gespeichert:" in result.output  # die Daten sind geschrieben, nur nicht committet
+
+
+def test_commit_without_git_installed_says_so(data_dir: Path, without_git: None):
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Git ist nicht installiert" in text
+    assert "git ist nicht installiert oder nicht im PATH" in text
+    assert "Git installieren" in text
+    assert "Git:" not in text
+
+
+def test_commit_without_git_identity_names_the_command_line_way(
+    data_dir: Path, data_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    git(data_repo, "config", "--unset", "user.name")
+    git(data_repo, "config", "--unset", "user.email")
+    git(data_repo, "config", "user.useConfigOnly", "true")
+    for name in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "EMAIL"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.delenv("GIT_COMMITTER_EMAIL", raising=False)
+    # Keine Benutzereinstellungen des Rechners (unter Windows: USERPROFILE statt HOME): Git
+    # fände dort sonst einen Namen.
+    leer = tmp_path.parent / f"{tmp_path.name}-leer.gitconfig"
+    leer.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(leer))
+    for variable in ("HOME", "USERPROFILE"):
+        monkeypatch.setenv(variable, str(tmp_path / "leer"))
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Name und E-Mail-Adresse fehlen" in text
+    assert "git config --global user.name" in text and "git config --global user.email" in text
+    assert "Seitenleiste" not in text
+
+
+def test_commit_with_an_existing_tag_does_not_offer_the_choice_of_a_name(
+    data_dir: Path, data_repo: Path
+):
+    review = ("review", "demo", "2026.21", "--commit")
+    first = run(data_dir, *review, input="y\n9,5\n0.1\nn\n")
+    assert first.exit_code == 0, first.output
+    assert git(data_repo, "tag") == "demo/2026.21"
+    result = run(data_dir, *review, input="y\n9,5\n0.2\nn\n")
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Tag-Name ist schon vergeben" in text
+    assert "Der Tag demo/2026.21 gibt es auf diesem Rechner schon" in text
+    assert "git tag -d" in text and "--commit" in text
+    assert "anderen Namen" not in text
+
+
+def test_commit_of_a_file_with_conflict_markers_does_not_point_to_a_page(
+    data_dir: Path, data_repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    real = cli.commit
+
+    def with_markers(paths: list[Path], message: str, tag: str | None = None) -> str:
+        paths[0].write_text("<<<<<<< a\nx: 1\n=======\nx: 2\n>>>>>>> b\n", encoding="utf-8")
+        return real(paths, message, tag)
+
+    monkeypatch.setattr(cli, "commit", with_markers)
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Konflikt beim Zusammenführen" in text
+    assert "2026.22.yaml" in text
+    assert "im Editor entfernen" in text
+    assert "„Konflikte lösen“" not in text
+
+
+def test_git_problem_escapes_square_brackets_of_the_git_message(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.git import GitError
+
+    def refused(*_: object) -> str:
+        raise GitError(
+            " ! [rejected]        main -> main (fetch first)", "rejected", "Zuerst [holen]."
+        )
+
+    monkeypatch.setattr(cli, "commit", refused)
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "! [rejected] main -> main (fetch first)" in text
+    assert "Zuerst [holen]." in text
+
+
+def test_datenordner_without_git_installed_says_so(
+    tmp_path: Path, data_dir: Path, without_git: None
+):
+    result = run(data_dir, "datenordner", str(data_dir))
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Git ist nicht installiert" in text
+    assert "Git installieren" in text
+    assert "liegt in keinem Git-Repository" not in text
+    assert "Kein Datenordner gemerkt." in run(data_dir, "datenordner").output
+
+
+def test_datenordner_names_a_folder_without_repository(tmp_path: Path, data_dir: Path):
+    result = run(data_dir, "datenordner", str(tmp_path))
+    assert result.exit_code == 1
+    assert "liegt in keinem Git-Repository (git init bzw. git clone)" in one_line(result.output)
+    assert "Git ist nicht installiert" not in result.output
 
 
 def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
