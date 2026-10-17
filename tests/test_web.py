@@ -57,6 +57,18 @@ def git(cwd: Path, *args: str) -> str:
     ).stdout.strip()
 
 
+def test_invalid_stichtag_variable_shows_error(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    monkeypatch.setenv(STICHTAG_ENV, "morgen")
+    at = AppTest.from_file(str(APP), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    assert len(at.error) == 1
+    for part in (STICHTAG_ENV, "morgen", "JJJJ-MM-TT"):
+        assert part in at.error[0].value
+    assert not at.header  # die Seite wird nicht gezeichnet
+
+
 def test_start_is_default_page(app: AppTest):
     assert app.header[0].value == "Was möchtest du tun?"
     # 2026.22 ist vorbereitet (Fehltage, Vorplanung), aber noch nicht eingeplant
