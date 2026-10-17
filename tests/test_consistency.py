@@ -686,10 +686,11 @@ def test_capacity_label_is_the_value_followed_by_the_source_note():
 
     def entry(source):
         return SimpleNamespace(
-            result=SimpleNamespace(plan_capacity=50.55, plan_capacity_source=source)
+            result=SimpleNamespace(plan_capacity=50.55, plan_capacity_source=source),
+            capacity_digits=1,
         )
 
-    value = fmt(50.55)
+    value = fmt_capacity(50.55, 1)
     assert capacity_source_note(entry(None)) == ""
     assert capacity_label(entry(None)) == value
     for source in CapacitySource:
