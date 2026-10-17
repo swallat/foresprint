@@ -124,6 +124,22 @@ def test_init_rejects_invalid_key(tmp_path: Path, key: str):
     assert list(tmp_path.rglob("*")) == [data_dir]  # weder darin noch daneben etwas angelegt
 
 
+@pytest.mark.parametrize(
+    ("key", "expected"), [("Alt.Team_X", "existiert bereits."), ("alt.team_x", "(als 'Alt.Team_X'")]
+)
+def test_init_names_an_existing_team_before_complaining_about_the_key(
+    data_dir: Path, key: str, expected: str
+):
+    """Ein Altteam mit Großbuchstaben oder Punkt: „existiert bereits“ statt der Kürzelregel,
+    auch wenn nur die Schreibweise abweicht (auf Windows und macOS derselbe Ordner)."""
+    shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
+    result = run(data_dir, "init", key)
+    assert result.exit_code == 1
+    assert "existiert bereits" in result.output and expected in result.output
+    assert "Kürzel" not in result.output
+    assert sorted(p.name for p in data_dir.iterdir()) == ["Alt.Team_X", "demo"]
+
+
 def test_existing_team_with_unusual_name_still_works_in_cli(data_dir: Path):
     shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
     result = run(data_dir, "forecast", "Alt.Team_X")
