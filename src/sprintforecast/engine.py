@@ -205,7 +205,8 @@ class SprintResult:
     normalized_velocity: Metric
     fulfillment: Metric
     scope_creep: Metric
-    # Kapazität, mit der Forecast PLAN gerechnet wurde (erfasst oder Trend).
+    # Kapazität, mit der Forecast PLAN gerechnet wurde (erfasst, aus Personen und Kalender oder
+    # Trend).
     plan_capacity: float | None
     plan_capacity_source: CapacitySource | None
     plan: float | None
