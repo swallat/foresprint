@@ -23,7 +23,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-tests.ps1
 Wurde die Datei heruntergeladen und meldet Windows, sie sei blockiert, vorher einmalig
 `Unblock-File .\scripts\windows-tests.ps1`.
 
-Der Bericht entsteht im **aktuellen Ordner** als `sprintforecast-windows-bericht-JJJJMMTT-HHMM.md`.
+Der Bericht entsteht im **aktuellen Ordner von PowerShell** als `sprintforecast-windows-bericht-JJJJMMTT-HHMM.md`
+(ist der Ort nicht beschreibbar, im Temp-Ordner; das Skript sagt es gleich zu Beginn).
 Er enthält keine Zugangsdaten (Token und Zugangsdaten in Adressen werden durch `***` ersetzt, der
 Profilordner durch `%USERPROFILE%`); lies ihn trotzdem kurz durch, bevor du ihn weitergibst.
 
@@ -35,7 +36,7 @@ Nützliche Parameter:
 | `-HttpsUrl …` / `-SshUrl …` | Adressen für die Anmelde-Prüfung (sonst fragt das Skript; Enter überspringt) |
 | `-WartezeitSekunden 30` | Wartezeit nach dem Schließen des App-Fensters (Standard 20) |
 | `-OhneRueckfragen` | keine Eingaben; Rückfragen und interaktive Prüfungen entfallen |
-| `-MitAutoUpdate` | App im Test mit der eingestellten Selbstaktualisierung starten (Standard: aus, nur für diesen Start) |
+| `-MitAutoUpdate` | App und CLI-Aufrufe des Skripts mit der eingestellten Selbstaktualisierung laufen lassen (Standard: aus, nur für diese Prozesse) |
 | `-Bericht PFAD` | Berichtsdatei woanders ablegen |
 | `-PythonExe PFAD` | Python der Installation vorgeben, falls es nicht gefunden wird |
 
@@ -46,14 +47,16 @@ Dauer ohne Rückfragen etwa 2 bis 3 Minuten; die interaktiven Fragen kommen dazu
 1. **App starten und beenden.** Das Skript startet `sprintforecast-app` mit einem temporären
    Daten-Repository (nur für diesen Start über `SPRINTFORECAST_DATEN`), wartet auf Server und
    Fenster und listet alle Prozesse. Dann schließt es das Fenster wie der Schließen-Knopf
-   (`CloseMainWindow`; klappt das nicht, bittet es dich, das Fenster selbst zu schließen), wartet
+   (`CloseMainWindow`; klappt das nicht oder startet die App in Firefox bzw. dem Standardbrowser,
+   bittet es dich, das Fenster selbst zu schließen), wartet
    20 Sekunden und prüft per `Get-CimInstance Win32_Process`, dass nichts mehr läuft:
    kein `sprintforecast-app.exe`, kein `python(w).exe` mit sprintforecast/streamlit, kein Browser
    mit `--user-data-dir=…\sprintforecast\…`, keine `uv.exe`-Aktualisierung. Bleiben Prozesse, nennt
    der Bericht sie samt Zeitpunkt, zu dem sie später endeten. Zusätzlich zeigt er `app.log` und
    `update.log` aus `%APPDATA%\sprintforecast`. Übrig gebliebene Prozesse beendet das Skript am Ende.
 2. **Installation (uv tool).** `uv tool list`; auf Wunsch (Rückfrage j/N, nur bei geschlossener App)
-   `uv tool upgrade sprintforecast`.
+   `uv tool upgrade --reinstall sprintforecast` – so aktualisiert sich auch die App selbst, und die
+   Neuinstallation fasst alle Dateien an (am ehesten sperrt dann noch ein Prozess etwas).
 3. **Anmeldung (Git).** `credential.helper` samt Herkunft, Git Credential Manager, `gh auth status`,
    SSH-Agent und `git ls-remote` gegen deine https- und SSH-Adresse. Adressen mit Zugangsdaten
    werden abgelehnt. Ein Anmeldefenster des Credential Managers kann sich öffnen; Zeitlimit 90 s.
@@ -65,13 +68,16 @@ Dauer ohne Rückfragen etwa 2 bis 3 Minuten; die interaktiven Fragen kommen dazu
    Lesesperre (`FileShare.Read`) und speichert über die App-Logik. Erwartet: Datei unverändert, keine
    `*.tmp`-Reste, und eine verständliche Meldung statt eines rohen Systemfehlers
    (`PermissionError` wird als **HINWEIS** gemeldet).
-6. **Symlink-Recht.** Legt im Temp-Ordner eine symbolische Verknüpfung an und meldet Administrator
-   und Entwicklermodus. Ohne Recht ist das kein Fehler der App; nur ein Test der Entwicklung
+6. **Symlink-Recht.** Legt im Temp-Ordner eine symbolische Verknüpfung an (zuerst `mklink`, denn
+   `New-Item` verlangt in Windows PowerShell 5.1 auch im Entwicklermodus Administratorrechte) und meldet
+   Administrator und Entwicklermodus. Ohne Recht ist das kein Fehler der App; nur ein Test der Entwicklung
    (Symlink) entfällt dann.
 7. **Interaktive Prüfungen** (nur mit Eingabe): Netz getrennt, geschützter Branch und die Optik
    (Startseite, Schrittleiste, Tabellen, Server-Maske, Konfliktseite, Was-wäre-wenn/Historie,
    Kalendertexte/Rechenweg, englische Oberfläche). Je Frage `J`, `N` oder Enter (überspringen),
-   danach eine Notiz. Dafür öffnest du die App selbst (Verknüpfung) mit deinem echten Repository.
+   danach eine Notiz. Dafür öffnest du die App selbst (Verknüpfung). Bei diesen Prüfungen bleibt etwas
+   zurück, das du selbst zurücknimmst: das getrennte Netz wieder verbinden, einen Commit auf dem
+   geschützten Branch (besser ein Test-Repository nehmen), die Sprache wieder auf Deutsch stellen.
 
 ## Ergebniswerte
 
@@ -97,5 +103,8 @@ Dauer ohne Rückfragen etwa 2 bis 3 Minuten; die interaktiven Fragen kommen dazu
   ob die Oberfläche eine Meldung zeigt, sagt nur der HINWEIS-Text im Bericht.
 - Ein Browser, der das Fenster nicht schließen lässt (z. B. Firefox statt Edge/Chrome), erzwingt das
   manuelle Schließen.
-- Das Skript wurde unter Linux mit PowerShell 7 auf Syntax und die plattformunabhängigen Prüfungen
-  getestet; die Windows-Teile (Prozessliste, Sperren, Fenster schließen) laufen erstmals bei dir.
+- Das Skript wird unter Linux mit PowerShell 7 auf Syntax und die plattformunabhängigen
+  Hilfsfunktionen getestet (`tests/test_windows_script.py`, läuft in der CI); die Windows-Teile
+  (Prozessliste, Sperren, Fenster schließen) laufen erstmals bei dir.
+- Aufgeräumt wird nur, was noch derselbe Prozess ist (Startzeit verglichen): Prozessnummern können
+  inzwischen jemand anderem gehören.
