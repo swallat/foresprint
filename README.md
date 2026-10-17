@@ -122,7 +122,8 @@ datenordner PFAD`). Teams sind Unterordner mit einer `team.yaml`; enthält ein V
 keine, aber einen Unterordner `teams` mit Teams, wird dieser genommen.
 
 Findet die Weboberfläche keinen Datenordner (keine Teams, kein Git-Repository), führt sie
-durch die Einrichtung: vorhandenen Ordner wählen (Git empfohlen, aber nicht Pflicht: ohne Git gibt es keinen Commit; nach „Ohne Git verwenden“ geht es mit **Neues Team** weiter), neues
+durch die Einrichtung: vorhandenen Ordner wählen (Git empfohlen, aber nicht Pflicht: ohne Git gibt es keinen Commit; nach „Ohne Git verwenden“ geht es mit **Neues Team** weiter; die Entscheidung wird je Ordner in
+den Benutzereinstellungen gemerkt und gilt auch nach dem Neuladen oder in einem neuen Tab), neues
 Daten-Repository anlegen (`git init`, `.gitignore`, Ordner `teams`) oder das gemeinsame
 Daten-Repository des Teams klonen.
 
@@ -196,7 +197,10 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   Dateien). Bei einem Wettlauf (jemand lädt zwischendurch hoch) wird erneut geholt und
   hochgeladen. Hat der Server eine ganz andere Historie (meist das falsche Repository, z. B. ein
   Code-Repository), wird nichts zusammengeführt oder hochgeladen, sondern mit Hinweis abgebrochen;
-  nur nach ausdrücklicher Bestätigung wird trotzdem zusammengeführt. Ein Tag, den es lokal schon
+  nur nach ausdrücklicher Bestätigung in der Seitenleiste (Kästchen „Ja, beide Historien
+  zusammenführen“, Vorgabe ist Abbrechen; die Meldung nennt Server und Branch) wird trotzdem
+  zusammengeführt. Hinweise trotz Erfolg (z. B. ein Tag, der auf einen anderen Stand zeigt) stehen
+  unter dem Ergebnis. Ein Tag, den es lokal schon
   gibt, bricht das Speichern ab, bevor etwas committet wird. Verschiedene Werte derselben Datei (z. B. Fehltage von Anna und von Ben im selben
   Sprint, zwei verschiedene Personen in `people.yaml`) werden automatisch vereinigt. Nur wenn beide
   denselben Wert unterschiedlich geändert haben, ist die Bearbeitung gesperrt, und die Seite
@@ -244,7 +248,12 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   *Wiederherstellen* eines früheren Stands ist selbst ein Commit und mit „Diese Änderung
   zurücknehmen“ rückgängig zu machen (Zusammenführungen lassen sich so nicht zurücknehmen). *Tags*
   anzeigen, nachträglich an einen beliebigen Stand setzen und löschen, jeweils auch auf dem Server
-  (scheitert das, bleibt der Tag lokal und die App sagt es).
+  (scheitert das, bleibt der Tag lokal und die App sagt es). „Mit dem Server abgleichen“ (Netzwerk,
+  nur auf Klick) zeigt je Tag, ob er nur lokal, nur auf dem Server oder unterschiedlich ist; nur
+  lokale Tags lassen sich mit „Zum Server übertragen“ nachholen, auch Tags, die es nur auf dem
+  Server gibt, lassen sich löschen. Beim Verwerfen erscheinen Umbenennungen als „umbenannt: alt →
+  neu“. Lassen sich die Benutzereinstellungen nicht speichern (Ordner nicht beschreibbar), zeigt die
+  App die Meldung mit dem nächsten Schritt, und der Wechsel bzw. die Änderung unterbleibt.
 
 Committet wird nur das Datenverzeichnis, Tabellenkalkulationen (`*.xlsx` …) werden abgelehnt. Das
 Modell ist „ein Branch, immer synchron halten“; Branches, Rebase, Force-Push und Stash gehören
