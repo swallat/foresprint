@@ -10,6 +10,7 @@ angezeigt werden die übersetzten Beschriftungen.
 from __future__ import annotations
 
 import copy
+import html
 import os
 import subprocess
 import sys
@@ -1033,13 +1034,18 @@ def _board_nav(data: TeamData, sprint: Sprint, current: str) -> None:
     boards = [b for b in BOARDS if b in st.session_state.get("enabled-pages", BOARDS)]
     for col, key in zip(st.columns(len(boards)), boards, strict=True):
         title, icon = PAGE_INFO[key]
+        label = f"{'✅' if done[key] else '⬜'} {t(title)}"
         with col:
-            st.page_link(
-                page_path(key),
-                label=f"{'✅' if done[key] else '⬜'} {t(title)}",
-                icon=icon,
-                disabled=key == current,
-            )
+            if key == current:
+                # Aktive Seite deutlich hervorgehoben (kein ausgegrauter Link).
+                st.markdown(
+                    '<div class="board-active" style="background:#2a78d6;color:#fff;'
+                    "font-weight:600;padding:0.45rem 0.9rem;border-radius:0.5rem;"
+                    f'text-align:center">{html.escape(label)}</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.page_link(page_path(key), label=label, icon=icon)
 
 
 def _number(label: str, value: float | None, key: str, help: str | None = None) -> float | None:
@@ -1559,7 +1565,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         help=_formula_help(fc_after, entry, "capacity"),
     )
     right.metric(
-        f"Forecast PLAN ({data.team.unit.value})",
+        t("Prognose aktuell ({unit})", unit=data.team.unit.value),
         fmt(entry.result.plan) if entry else "–",
         help=_formula_help(fc_after, entry, "plan"),
     )
@@ -2909,16 +2915,6 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_new_team(repo: Repository) -> None:
     st.header(t("Neues Team anlegen"))
-    key = (
-        st.text_input(t("Team-Kürzel (Verzeichnisname)"), help=t("Kleinbuchstaben, z. B. team-a"))
-        .strip()
-        .lower()
-    )
-    if not key:
-        return
-    if repo.exists(key):
-        st.error(t("Team {team} existiert bereits.", team=repr(key)))
-        return
     st.markdown(
         t(
             "**Welche Bereiche braucht das Team?** Drei Bereiche sind optional und zunächst "
@@ -2933,6 +2929,16 @@ def page_new_team(repo: Repository) -> None:
             "Engpass-Hinweis."
         )
     )
+    key = (
+        st.text_input(t("Team-Kürzel (Verzeichnisname)"), help=t("Kleinbuchstaben, z. B. team-a"))
+        .strip()
+        .lower()
+    )
+    if not key:
+        return
+    if repo.exists(key):
+        st.error(t("Team {team} existiert bereits.", team=repr(key)))
+        return
     team = Team(key=key, name=key.upper())
     team.sprint.first_start = today()
     team.sprint.first_id = f"{today().year}.1"
