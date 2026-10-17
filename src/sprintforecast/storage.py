@@ -55,6 +55,11 @@ class DataError(Exception):
     """Eine Datei fehlt oder ist nicht lesbar."""
 
 
+class FileAccessError(DataError):
+    """Eine Datei lässt sich nicht lesen, schreiben oder löschen (fehlende Rechte, in einem
+    anderen Programm geöffnet, Datenträger voll). Die Meldung ist für Anwender gedacht."""
+
+
 class ConflictError(DataError):
     """Eine Datei enthält Konfliktmarkierungen eines unvollständigen Zusammenführens. Bevor
     die YAML geladen wird, wird dies erkannt: Die Bearbeitung des Teams ist gesperrt, bis der
@@ -178,6 +183,15 @@ def _read(path: Path) -> dict[str, Any]:
         content = yaml.load(text, Loader=_YAML_LOADER)
     except FileNotFoundError as e:
         raise DataError(t("Datei fehlt: {path}", path=path)) from e
+    except OSError as e:  # keine Leserechte, Ordner statt Datei, Netzlaufwerk nicht erreichbar
+        raise FileAccessError(
+            t(
+                "{path}: nicht lesbar ({reason}). Rechte prüfen oder die Datei in einem "
+                "anderen Programm schließen.",
+                path=path,
+                reason=_reason(e),
+            )
+        ) from e
     except (yaml.YAMLError, ValueError) as e:  # z. B. ein unmögliches Datum (2026-13-45)
         raise DataError(t("{path}: kein gültiges YAML ({error})", path=path, error=e)) from e
     if content is None:
@@ -192,9 +206,40 @@ def dump_yaml(content: Any) -> str:
     return yaml.safe_dump(content, allow_unicode=True, sort_keys=False, width=100)
 
 
+def _reason(error: OSError) -> str:
+    return error.strerror or str(error)
+
+
+def _not_saved(path: Path, error: OSError) -> FileAccessError:
+    return FileAccessError(
+        t(
+            "{path}: nicht gespeichert ({reason}). Die Datei wurde nicht verändert. Ist der "
+            "Ordner beschreibbar, und ist die Datei in keinem anderen Programm geöffnet?",
+            path=path,
+            reason=_reason(error),
+        )
+    )
+
+
 def _write(path: Path, header: str, content: dict[str, Any]) -> None:
     """Schreibt stabil: immer Zeilenende LF, nur bei geändertem Inhalt (keine unnötigen
-    Änderungen für Git) und über eine Zwischendatei (kein halb geschriebener Stand)."""
+    Änderungen für Git) und über eine Zwischendatei (kein halb geschriebener Stand).
+    Schreibfehler (``OSError``) kommen als :class:`FileAccessError` mit verständlicher Meldung."""
+    try:
+        _write_atomic(path, header, content)
+    except OSError as e:
+        raise _not_saved(path, e) from e
+
+
+def write_text(path: Path, text: str) -> None:
+    """Schreibt eine Textdatei (z. B. den Bericht); Fehler wie bei :func:`_write`."""
+    try:
+        path.write_text(text, encoding="utf-8")
+    except OSError as e:
+        raise _not_saved(path, e) from e
+
+
+def _write_atomic(path: Path, header: str, content: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = header + dump_yaml(content)
     try:
@@ -798,8 +843,20 @@ class Repository:
 
     def delete_sprint(self, key: str, sprint_id: str) -> None:
         """Entfernt eine Sprintdatei (der Sprint entsteht danach wieder aus dem Kalender)."""
-        self.sprint_path(key, sprint_id).unlink(missing_ok=True)
-        clear_team_cache()
+        path = self.sprint_path(key, sprint_id)
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as e:
+            raise FileAccessError(
+                t(
+                    "{path}: nicht gelöscht ({reason}). Ist die Datei schreibgeschützt oder in "
+                    "einem anderen Programm geöffnet?",
+                    path=path,
+                    reason=_reason(e),
+                )
+            ) from e
+        finally:
+            clear_team_cache()
 
     def save_sprint(self, key: str, sprint: Sprint) -> Path:
         """Schreibt den Sprint. Ist sein Stand der Fehltage noch nicht festgelegt, wird er
