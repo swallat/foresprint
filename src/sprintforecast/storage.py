@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import copy
 import os
+import re
+import tempfile
 import threading
 import time
 from dataclasses import dataclass, field
@@ -51,6 +53,34 @@ STICHTAG_ENV = "SPRINTFORECAST_STICHTAG"
 
 class DataError(Exception):
     """Eine Datei fehlt oder ist nicht lesbar."""
+
+
+class ConflictError(DataError):
+    """Eine Datei enthält Konfliktmarkierungen eines unvollständigen Zusammenführens. Bevor
+    die YAML geladen wird, wird dies erkannt: Die Bearbeitung des Teams ist gesperrt, bis der
+    Konflikt gelöst ist (siehe Seite „Konflikte lösen“)."""
+
+    def __init__(self, files: list[Path]) -> None:
+        self.files = files
+        super().__init__(
+            t(
+                "Konflikt beim Zusammenführen in: {files}. Die Bearbeitung ist gesperrt, bis der "
+                "Konflikt gelöst ist.",
+                files=", ".join(str(f) for f in files),
+            )
+        )
+
+
+# Konfliktmarkierungen von Git am Zeilenanfang (alle drei müssen vorkommen).
+_MARKERS = (
+    re.compile(r"^<{7}( |$)", re.M),
+    re.compile(r"^={7}$", re.M),
+    re.compile(r"^>{7}( |$)", re.M),
+)
+
+
+def has_conflict_markers(text: str) -> bool:
+    return all(m.search(text) for m in _MARKERS)
 
 
 # Unterordner, in dem ein Daten-Repository die Teams üblicherweise ablegt (siehe Vorlage).
@@ -113,7 +143,10 @@ _YAML_LOADER = _pick_loader()
 
 def _read(path: Path) -> dict[str, Any]:
     try:
-        content = yaml.load(path.read_text(encoding="utf-8"), Loader=_YAML_LOADER)
+        text = path.read_text(encoding="utf-8")
+        if has_conflict_markers(text):
+            raise ConflictError([path])
+        content = yaml.load(text, Loader=_YAML_LOADER)
     except FileNotFoundError as e:
         raise DataError(t("Datei fehlt: {path}", path=path)) from e
     except yaml.YAMLError as e:
@@ -125,10 +158,30 @@ def _read(path: Path) -> dict[str, Any]:
     return content
 
 
+def dump_yaml(content: Any) -> str:
+    """Einheitliches Format aller Dateien (Zusammenführen und Speichern schreiben gleich)."""
+    return yaml.safe_dump(content, allow_unicode=True, sort_keys=False, width=100)
+
+
 def _write(path: Path, header: str, content: dict[str, Any]) -> None:
+    """Schreibt stabil: immer Zeilenende LF, nur bei geändertem Inhalt (keine unnötigen
+    Änderungen für Git) und über eine Zwischendatei (kein halb geschriebener Stand)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    body = yaml.safe_dump(content, allow_unicode=True, sort_keys=False, width=100)
-    path.write_text(header + body, encoding="utf-8")
+    text = header + dump_yaml(content)
+    try:
+        if path.read_bytes() == text.encode("utf-8"):
+            return
+    except OSError:
+        pass
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", newline="\n", dir=path.parent, suffix=".tmp", delete=False
+    ) as tmp:
+        tmp.write(text)
+    try:
+        os.replace(tmp.name, path)
+    except OSError:  # z. B. von einem anderen Programm gesperrt: Temporärdatei aufräumen
+        Path(tmp.name).unlink(missing_ok=True)
+        raise
     clear_team_cache()
 
 
@@ -494,7 +547,7 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
         "id": s.id,
         "start": s.start,
         "end": s.end,
-        "absences": {k: _clean(v) for k, v in s.absences.items()},
+        "absences": {k: _clean(v) for k, v in sorted(s.absences.items())},
         **({"absence_state": s.absence_state.value} if explicit_state_needed(s) else {}),
         # Ältere Programmversionen kennen nur dieses Feld.
         **(
@@ -527,13 +580,13 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
             )
             if v is not None
         }
-        for pid, pv in s.products.items()
+        for pid, pv in sorted(s.products.items())
         if not pv.is_empty()
     }
     if products:
         d["products"] = products
     if s.expected_absences:
-        d["expected_absences"] = {k: _clean(v) for k, v in s.expected_absences.items()}
+        d["expected_absences"] = {k: _clean(v) for k, v in sorted(s.expected_absences.items())}
     if s.production_planned is not None:
         d["production_planned"] = _clean(s.production_planned)
     if s.production_done is not None:
@@ -598,6 +651,11 @@ def _file_version(base: Path) -> tuple[tuple, bool]:
         version.append((f.name, info.st_mtime_ns, info.st_size))
         fresh = fresh or now - info.st_mtime < _TEAM_CACHE_SETTLE
     return tuple(version), fresh
+
+
+def team_version(base: Path) -> tuple:
+    """Dateiversion eines Teams (ändert sich bei jeder Änderung seiner Dateien)."""
+    return _file_version(base)[0]
 
 
 class Repository:

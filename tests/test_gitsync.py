@@ -5,9 +5,11 @@ import http.server
 import subprocess
 import threading
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 import pytest
+import yaml
 
 from sprintforecast import gitsync
 from sprintforecast.git import GitError, classify, clone_repository, invalidate_status
@@ -35,8 +37,8 @@ class Person:
         invalidate_status()
         return file
 
-    def sync(self, message: str = "Änderung", tags: list[str] | None = None):
-        return gitsync.sync(self.data, message, tags)
+    def sync(self, message: str = "Änderung", tags: list[str] | None = None, **kwargs):
+        return gitsync.sync(self.data, message, tags, **kwargs)
 
 
 def make_clone(remote: Path, target: Path, name: str) -> Person:
@@ -188,18 +190,123 @@ def test_server_denies_push(alice: Person, bob: Person, remote: Path):
     assert gitsync.state(bob.data).ahead == 1  # nichts verloren
 
 
-def test_conflict_is_aborted_and_nothing_is_lost(alice: Person, bob: Person, remote: Path):
+def conflict_between_alice_and_bob(alice: Person, bob: Person):
     alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
     assert alice.sync("Alice").ok
     bob.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
-    result = bob.sync("Bob")
-    assert result.error and result.error.kind == "conflict"
-    assert "2026.1.yaml" in str(result.error)
+    return bob.sync("Bob")
+
+
+FILE = "teams/a/2026.1.yaml"
+
+
+def test_value_conflict_stays_open_and_nothing_is_lost(alice: Person, bob: Person, remote: Path):
+    result = conflict_between_alice_and_bob(alice, bob)
+    assert result.error and result.error.kind == "conflict" and not result.pushed
+    [conflict] = result.conflicts
+    assert conflict.file == FILE and not conflict.whole
+    [key] = conflict.keys
+    assert (key.path, key.ours, key.theirs) == (("velocity",), 12, 11)
     state = gitsync.state(bob.data)
-    assert state.unfinished is None and not state.conflicts  # Zustand sauber
+    assert state.unfinished == "merge" and state.conflicts == (FILE,)
+    assert git(remote, "show", f"main:{FILE}").startswith("velocity: 11")  # Server unverändert
+    assert "Bob" in git(bob.root, "log", "--format=%s")  # eigener Commit gesichert
+
+
+@pytest.mark.parametrize(("choice", "value"), [("ours", "12"), ("theirs", "11")])
+def test_resolve_mine_or_other_and_continue(
+    alice: Person, bob: Person, remote: Path, choice: str, value: str
+):
+    conflict_between_alice_and_bob(alice, bob)
+    remaining = gitsync.resolve_conflicts(bob.data, {FILE: {("velocity",): choice}})
+    assert remaining == []
+    result = bob.sync("egal")  # Wiederaufnahme: Merge abschließen, prüfen, hochladen
+    assert result.ok and result.merged and result.pushed
+    assert gitsync.state(bob.data).unfinished is None
+    assert yaml.safe_load(git(remote, "show", f"main:{FILE}"))["velocity"] == int(value)
+    assert yaml.safe_load(git(remote, "show", f"main:{FILE}"))["scope_creep"] == 1
+    log = git(remote, "log", "--format=%s", "main")
+    assert "Alice" in log and "Bob" in log  # beide Änderungen bleiben im Verlauf
+
+
+def test_resume_after_restart_and_abort(alice: Person, bob: Person):
+    conflict_between_alice_and_bob(alice, bob)
+    invalidate_status()
+    again = bob.sync("noch einmal")  # ohne Entscheidung: bleibt offen, nichts geht verloren
+    assert again.error and again.error.kind == "conflict" and again.conflicts
+    gitsync.abort_unfinished(bob.data)
     assert (bob.data / "a" / "2026.1.yaml").read_text() == "velocity: 12\nscope_creep: 1\n"
-    assert git(remote, "show", "main:teams/a/2026.1.yaml").startswith("velocity: 11")
-    assert state.ahead == 1 and state.behind == 1
+
+
+def test_different_keys_of_same_file_are_merged(alice: Person, bob: Person, remote: Path):
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Alice").ok
+    bob.write("a/2026.1.yaml", "velocity: 10\nscope_creep: 2\nnote: Bob\n")
+    result = bob.sync("Bob")
+    assert result.ok and result.merged and result.pushed and not result.conflicts
+    merged = yaml.safe_load(git(remote, "show", f"main:{FILE}"))
+    assert merged == {"velocity": 11, "scope_creep": 2, "note": "Bob"}
+
+
+def test_people_are_merged_per_entry(alice: Person, bob: Person, remote: Path):
+    people = "people:\n- id: anna\n  fte: 1\n- id: ben\n  fte: 1\n"
+    alice.write("a/people.yaml", people)
+    assert alice.sync("Personen").ok
+    assert bob.sync("holen").ok
+    alice.write("a/people.yaml", people.replace("id: ben\n  fte: 1", "id: ben\n  fte: 0.5"))
+    assert alice.sync("Ben halbtags").ok
+    bob.write("a/people.yaml", people + "- id: cem\n  fte: 1\n")
+    result = bob.sync("Cem neu")
+    assert result.ok and result.merged and not result.conflicts
+    merged = yaml.safe_load(git(remote, "show", "main:teams/a/people.yaml"))["people"]
+    assert [(p["id"], p["fte"]) for p in merged] == [("anna", 1), ("ben", 0.5), ("cem", 1)]
+
+
+def test_deleted_on_one_side_is_decided_as_whole_file(alice: Person, bob: Person, remote: Path):
+    (alice.data / "a" / "2026.1.yaml").unlink()
+    assert alice.sync("Löschen").ok
+    bob.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
+    result = bob.sync("Bob ändert")
+    [conflict] = result.conflicts
+    assert conflict.whole and conflict.theirs_deleted and not conflict.ours_deleted
+    assert gitsync.resolve_conflicts(bob.data, {FILE: {(): "ours"}}) == []
+    assert bob.sync("weiter").ok
+    assert yaml.safe_load(git(remote, "show", f"main:{FILE}"))["velocity"] == 12
+
+
+def test_invalid_merge_result_is_not_pushed(alice: Person, bob: Person, remote: Path, data_dir):
+    """Zwei Personen ändern verschiedene Produktanteile: technisch ein sauberer Merge, fachlich
+    zusammen 120 %. Die Gesamtvalidierung hält das Hochladen an."""
+    import shutil
+
+    from sprintforecast.storage import Repository
+
+    shutil.copytree(data_dir / "demo", alice.data / "demo")
+    assert alice.sync("Demo").ok
+    assert bob.sync("holen").ok
+    products = alice.data / "demo" / "products.yaml"
+    text = products.read_text()
+    assert "id: webshop\n  name: Webshop\n" in text
+    alice.write("demo/products.yaml", text.replace("id: webshop\n", "id: webshop\n  share: 0.6\n"))
+    assert alice.sync("Alice 60 %").ok
+    bob.write(
+        "demo/products.yaml",
+        (bob.data / "demo" / "products.yaml")
+        .read_text()
+        .replace("id: app\n", "id: app\n  share: 0.6\n"),
+    )
+    result = bob.sync("Bob 60 %", today=date(2026, 10, 15))
+    assert result.merged and not result.conflicts and not result.pushed
+    assert result.error and result.error.kind == "invalid"
+    assert any("120" in line for line in result.validation)
+    assert gitsync.state(bob.data).ahead >= 1  # lokal gesichert, nicht geteilt
+    assert (
+        "share: 0.6" not in git(remote, "show", "main:teams/demo/products.yaml").split("id: app")[1]
+    )
+    # bewusst trotzdem teilen
+    forced = bob.sync("egal", today=date(2026, 10, 15), allow_invalid=True)
+    assert forced.ok and forced.pushed
+    assert Repository(bob.data).load("demo").products
 
 
 def test_offline_keeps_local_work(alice: Person, tmp_path: Path):
@@ -290,7 +397,7 @@ def test_git_missing(alice: Person, monkeypatch: pytest.MonkeyPatch):
     assert not gitsync.git_available()
 
 
-def test_unfinished_merge_blocks_and_can_be_aborted(alice: Person, bob: Person):
+def test_unfinished_merge_from_outside_can_be_aborted(alice: Person, bob: Person):
     alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
     assert alice.sync("Alice").ok
     bob.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
@@ -300,9 +407,8 @@ def test_unfinished_merge_blocks_and_can_be_aborted(alice: Person, bob: Person):
     subprocess.run(["git", "merge", "origin/main"], cwd=bob.root, capture_output=True)  # Konflikt
     invalidate_status()
     state = gitsync.state(bob.data)
-    assert state.unfinished == "merge" and state.conflicts == ("teams/a/2026.1.yaml",)
-    result = bob.sync("Bob")
-    assert result.error and result.error.kind == "merge_in_progress"
+    assert state.unfinished == "merge" and state.conflicts == (FILE,)
+    assert [c.file for c in gitsync.pending_conflicts(bob.data)] == [FILE]
     gitsync.abort_unfinished(bob.data)
     state = gitsync.state(bob.data)
     assert state.unfinished is None and not state.conflicts

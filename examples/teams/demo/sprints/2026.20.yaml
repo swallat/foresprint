@@ -15,10 +15,6 @@ planning:
   corrections:
   - 0.75
 products:
-  webshop:
-    preplanned: 4
-    planned: 4.5
-    done: 4
   app:
     preplanned: 4
     planned: 4
@@ -27,3 +23,7 @@ products:
     preplanned: 4
     planned: 3.5
     done: 2.75
+  webshop:
+    preplanned: 4
+    planned: 4.5
+    done: 4
