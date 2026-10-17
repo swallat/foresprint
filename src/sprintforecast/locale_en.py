@@ -427,6 +427,7 @@ EN: dict[str, str] = {
     "Datum im Format JJJJ-MM-TT eingeben.": "Enter the date as YYYY-MM-DD.",
     "Bitte eine Zahl eingeben.": "Please enter a number.",
     "Bitte eine endliche Zahl eingeben.": "Please enter a finite number.",
+    "keine endliche Zahl: {value}": "not a finite number: {value}",
     "Kein freier Port gefunden": "No free port found",
     "Browser nicht gefunden: {browser}": "Browser not found: {browser}",
     "Velocity- und Kapazitäts-Forecast": "Velocity and capacity forecast",

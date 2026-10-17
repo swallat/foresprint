@@ -269,6 +269,14 @@ TEAM_HEADER = """\
 """
 
 
+def _finite(value: Any) -> float:
+    """``float(value)`` für Einstellungen in team.yaml; nan und inf sind keine gültigen Werte."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(t("keine endliche Zahl: {value}", value=value))
+    return number
+
+
 def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
     sprint = d.get("sprint") or {}
     forecast = d.get("forecast") or {}
@@ -296,9 +304,9 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 first_start=_date(first["start"], where) if first.get("start") else None,
             ),
             forecast=ForecastSettings(
-                reference_capacity=float(forecast.get("reference_capacity", 67)),
+                reference_capacity=_finite(forecast.get("reference_capacity", 67)),
                 window=int(forecast.get("window", 5)),
-                roadmap_share=float(forecast.get("roadmap_share", 0.8)),
+                roadmap_share=_finite(forecast.get("roadmap_share", 0.8)),
                 rounding=int(forecast.get("rounding", 1)),
                 trend_mode=TrendMode(forecast.get("trend_mode", "flat")),
                 horizon=int(forecast.get("horizon", 3)),
@@ -306,8 +314,8 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             ),
             features=features,
             capacity=CapacitySettings(
-                overhead_share=float(capacity.get("overhead_share", 0.0)),
-                overhead_days=float(capacity.get("overhead_days", 0.0)),
+                overhead_share=_finite(capacity.get("overhead_share", 0.0)),
+                overhead_days=_finite(capacity.get("overhead_days", 0.0)),
                 country=str(capacity.get("country", "DE")).upper(),
                 region=capacity.get("region"),
                 workweek=str(capacity.get("workweek", "auto")),
@@ -315,7 +323,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 absence_history=int(capacity.get("absence_history", 4)),
             ),
         )
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError, OverflowError) as e:  # OverflowError: int(inf)
         raise DataError(f"{where}: {e}") from e
 
 
