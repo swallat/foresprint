@@ -452,6 +452,25 @@ GIT_HELP: list[tuple[str, str]] = [
         "„Server (Remote)“ ändern.",
     ),
     (
+        "Repository nicht gefunden",
+        "Antwortet der Server, kennt unter der eingetragenen Adresse aber kein Repository (oder "
+        "verschweigt es, weil dir die Berechtigung fehlt), meldet die App „Repository nicht "
+        "gefunden“ statt „Server nicht erreichbar“: bei „Verbindung prüfen“, beim Abgleich, "
+        "beim Hochladen und beim Klonen. Dann hilft es nicht, Internet oder VPN zu prüfen. "
+        "Adresse (Tippfehler, umbenanntes oder verschobenes Repository) und Berechtigung "
+        "prüfen; die Adresse lässt sich auf der Seite „Datenordner“ unter „Server (Remote)“ "
+        "ändern. Liegt das Repository in einem Ordner oder auf einem Netzlaufwerk, das gerade "
+        "nicht verbunden ist, meldet die App dagegen „Server nicht erreichbar“.",
+    ),
+    (
+        "Zertifikat des Servers nicht anerkannt",
+        "Antwortet der Server, aber dieser Rechner erkennt sein Sicherheitszertifikat nicht an "
+        "(häufig ein Firmenzertifikat oder ein selbst ausgestelltes Zertifikat), meldet die App "
+        "das so. Internet oder VPN zu prüfen hilft nicht. Bitte die IT, das Zertifikat auf dem "
+        "Rechner zu hinterlegen. Die App ändert dazu keine Git-Einstellungen und speichert "
+        "eine Adresse, deren Zertifikat nicht anerkannt wird, nicht.",
+    ),
+    (
         "Server (Remote) einrichten",
         "Auf der Seite „Datenordner“ zeigt der Abschnitt „Server (Remote)“, welcher Server zum "
         "Datenordner gehört. Dort wird die Adresse eingetragen oder geändert; „Verbindung "
