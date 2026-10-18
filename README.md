@@ -304,6 +304,7 @@ Speicherungen sofort.
 | PO-Planung | `sprintforecast forecast team-a` | Prognose für laufenden + nächste Sprints. |
 | Produktauswertung | `sprintforecast produkte team-a [SPRINT]` | Verteilung je Produkt und Saldo der letzten Sprints. |
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
+| Excel | `sprintforecast excel team-a [-o datei.xlsx]` | Schreibt eine Excel-Liste (Rückweg für alle, die mit Excel weiterarbeiten): Sprintwerte als Eingaben (gelb), n. Velocity, Durchschnitt, Trend, Forecast PLAN, Roadmap und Kleinkram als echte Formeln, Aufteilung nach Produktionszugriff und je Produkt, zwei Trend-Diagramme. Braucht den Zusatz `[excel]` (`uv tool install "sprintforecast[web,excel] …"`); nicht im Datenordner ablegen (`*.xlsx` wird nicht committet). In der Weboberfläche: Seite Forecast → „Excel-Liste erstellen“. |
 | Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. |
 
 ### PO-Vorplanung und Planning
