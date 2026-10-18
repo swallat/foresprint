@@ -150,6 +150,26 @@ def test_tags_set_later_listed_and_deleted_also_on_server(alice: Person, remote:
     assert githistory.list_tags(alice.data) == [] and git(remote, "tag") == ""
 
 
+def test_tags_with_an_empty_subject_of_the_oldest_tag(
+    alice: Person, monkeypatch: pytest.MonkeyPatch
+):
+    """Die Liste der Tags kommt aus ``for-each-ref``; ``_git`` schneidet das Trennzeichen am Ende
+    der letzten Zeile ab. Ist der Betreff des ältesten Tags leer (ein Tag auf einen Commit ohne
+    Betreff), fehlt in dieser Zeile das letzte Feld."""
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "add", "-A")
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T10:00:00")
+    git(alice.root, "commit", "-q", "--allow-empty-message", "-m", "")
+    git(alice.root, "tag", "a/leer")  # leichtgewichtig: der Betreff ist der des Commits
+    alice.write("a/2026.3.yaml", "velocity: 6\n")
+    git(alice.root, "add", "-A")
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2021-01-01T10:00:00")
+    git(alice.root, "commit", "-qm", "Später")
+    git(alice.root, "tag", "-a", "a/spaeter", "-m", "Mit Text")
+    tags = githistory.list_tags(alice.data)
+    assert [(tag.name, tag.subject) for tag in tags] == [("a/spaeter", "Mit Text"), ("a/leer", "")]
+
+
 @pytest.mark.usefixtures("no_login_prompt")
 def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Person):
     """„Nur lokal erledigt“ zeigt die Warnung ohne Überschrift (``GitError.full()``): Sie nennt
