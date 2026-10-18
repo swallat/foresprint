@@ -21,7 +21,6 @@ Spalte „Stand“ nennt, was ich zuletzt festgestellt habe.
 
 | PR | Thema | Stand |
 |---|---|---|
-| [#80](https://github.com/swallat/sprint-forecast/pull/80) | Kommandozeile: Namen und Pfade aus den Daten nicht als Rich-Markup auswerten (`_plain`, `_plain_end`, Hinweis `[web]`) | Entwurf; zwei Review-Runden abgearbeitet (offen nur niedrige Testlücken, im PR-Text); CI auf dem letzten Kopf grün bzw. läuft; **bereit zum Mergen**, sobald die CI grün ist |
 | [#76](https://github.com/swallat/sprint-forecast/pull/76) | Texte anderer (Commit-Autor/-Betreff, Tags, Branches, Dateipfade, rohe Git-Ausgabe) in der Weboberfläche als Code statt Markdown; Absturz bei leerem Betreff | Entwurf; erstes Review (10 Befunde) behoben, zweites Review läuft/steht aus; CI läuft |
 | [#81](https://github.com/swallat/sprint-forecast/pull/81) | Git-Fehler richtig zuordnen (Adresse, Rechte, Ordner, Fingerabdruck), Hinweis „Zurück auf den Branch“ | Entwurf; Review hat 36 Befunde (rund 12 verschiedene) bestätigt, Behebung durch einen Teil-Agenten angestoßen, Stand im PR-Text; **nicht mergen**, bevor `not_writable` eingegrenzt ist (Regression der Fehlerzuordnung) |
 | [#82](https://github.com/swallat/sprint-forecast/pull/82) | „Speichern und teilen“: Meldung geht bei einem zweiten Durchlauf nicht mehr verloren (Ursache des flackernden e2e-Tests) | Entwurf; CI grün, aber das Review fand Fehler in der Sperre (prozessweit, unbegrenztes Warten); **nicht mergen**, Überarbeitung im PR-Text beschrieben |
@@ -48,12 +47,13 @@ abgearbeitet):**
 - [#77](https://github.com/swallat/sprint-forecast/pull/77) Analyse: Warnung bei wenig Daten auch in der Kommandozeile
 - [#78](https://github.com/swallat/sprint-forecast/pull/78) Produktbilanz in Kommandozeile und Bericht: fehlende Werte ausweisen
 - [#79](https://github.com/swallat/sprint-forecast/pull/79) Datenrepository: `*.tmp` ignorieren, `.gitattributes` (YAML und Berichte mit LF) im Datenordner neuer Repositories
+- [#80](https://github.com/swallat/sprint-forecast/pull/80) Kommandozeile: Namen und Pfade aus den Daten nicht als Rich-Markup auswerten (`_plain`, `_plain_end`, Hinweis `[web]`); zwei Review-Runden, offen nur niedrige Testlücken (im PR-Text)
 
 Früher gemergt (Aufgaben 1 bis 6 des Auftrags): [#55](https://github.com/swallat/sprint-forecast/pull/55) (UI aufräumen), [#56](https://github.com/swallat/sprint-forecast/pull/56) (`web` öffnet
 standardmäßig ein App-Fenster), [#57](https://github.com/swallat/sprint-forecast/pull/57) (Windows-Testskript), [#58](https://github.com/swallat/sprint-forecast/pull/58) (Forecast: Spanne als Zeile),
 [#59](https://github.com/swallat/sprint-forecast/pull/59) (Konfliktmarker CRLF und kleine Schuld), [#61](https://github.com/swallat/sprint-forecast/pull/61) (Schrittleiste sofort aktuell).
 
-Auf `main` nach den Merges: ruff sauber, 1492 Tests grün (lokal, ohne e2e); e2e in der CI bis auf den
+Auf `main` nach den Merges bis #79: ruff sauber, 1492 Tests grün (lokal, ohne e2e); e2e in der CI bis auf den
 bekannten Aussetzer grün.
 
 
@@ -103,7 +103,7 @@ Bekannte Fehler und offene Befunde, jeweils mit dem Ort, an dem sie behandelt we
 - **#76 offen:** `_restore_clicked` („{file} auf den letzten gespeicherten Stand zurückgesetzt“) gibt den
   Dateipfad noch als Markdown aus; eigene `GitError`-Texte ohne Hinweis mit eingesetzten Namen
   (z. B. „Den Tag {name} gibt es auf diesem Rechner nicht.“) bleiben Fließtext.
-- **#80 offen:** Emoji-Kürzel wie `:smile:` in Namen werden von Rich zu Emojis (kosmetisch). Die
+- **#80 (gemergt, Rest offen):** Emoji-Kürzel wie `:smile:` in Namen werden von Rich zu Emojis (kosmetisch). Die
   `escape(...)`-Aufrufe um ganze Meldungen aus #74/#75 behandeln genau einen abschließenden
   Backslash (kosmetisch).
 - **#79:** Die `.gitignore` liegt im Stamm des Repositories und wird von der App nie committet
@@ -170,7 +170,7 @@ Der Owner prüft nur Optik und Verständlichkeit sowie die Ergebnisse des Window
   offene Änderung
 - #62: Stand-Angaben in `docs/konzept-kern.md` stimmen mit dem Eindruck überein
 
-Noch offene Pull-Requests (nach dem Mergen prüfen):
+Pull-Requests, die erst spät in der Nacht gemergt wurden bzw. noch offen sind (nach dem Mergen prüfen):
 
 - #76: Seitenleiste „Neu von anderen“, Reiter Tags, Konfliktseite, Verwerfen-Liste: Autor, Betreff,
   Tag-Namen, Dateipfade als Code gut lesbar (auch in der schmalen Seitenleiste)?
@@ -184,7 +184,7 @@ Noch offene Pull-Requests (nach dem Mergen prüfen):
 
 ## 5. Empfohlene Reihenfolge für Review und Merge
 
-1. **[#80](https://github.com/swallat/sprint-forecast/pull/80)** zuerst: nur `cli.py` und ein Testmodul, unabhängig von allem anderen; nach grüner CI mergen.
+1. **[#80](https://github.com/swallat/sprint-forecast/pull/80)** ist gemergt (nur `cli.py` und ein Testmodul).
 2. **[#76](https://github.com/swallat/sprint-forecast/pull/76)** danach (berührt `git.py`, `gitsync.py`, `githistory.py`, `web/ui.py`): vor dem Mergen
    `main` einmergen, CI abwarten, das zweite Review auswerten.
 3. **[#81](https://github.com/swallat/sprint-forecast/pull/81)** nach [#76](https://github.com/swallat/sprint-forecast/pull/76): berührt dieselben Dateien (`git.py`, `ui.py`, `cli.py`), Konflikte beim
@@ -273,7 +273,7 @@ AUFGABEN, IN DIESER REIHENFOLGE
    `tests/test_cli_markup.py`, CRLF im `pre-push`-Hook des e2e-Tests aus #82). Windows-Befunde als eigene
    kleine Pull-Requests beheben.
 2. Offene Pull-Requests abarbeiten, Reihenfolge und Abhängigkeiten stehen in Teil 5 der Übergabe: #80
-   (bereit, wenn CI grün), #76 (zweites Review auswerten), #81 (Zuordnung `not_writable` eingrenzen,
+   (gemergt), #76 (zweites Review auswerten), #81 (Zuordnung `not_writable` eingrenzen,
    `_folder_access` anpassen), #82 (Sperre je Sitzung, Zeitgrenze, Rückmeldung für verworfene Klicks),
    zuletzt #62 (Stand-Zellen in `docs/konzept-kern.md`).
 3. Entscheidungen des Owners einholen (Teil 2 der Übergabe), nicht selbst treffen; danach je Entscheidung
