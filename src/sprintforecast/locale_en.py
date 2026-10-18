@@ -136,6 +136,7 @@ EN: dict[str, str] = {
     "{where}: Zahl außerhalb des zulässigen Bereichs (höchstens {limit}): {value}": "{where}: number outside the allowed range (at most {limit}): {value}",
     "{where}: id {id} ist nicht zulässig ({problem})": "{where}: id {id} is not allowed ({problem})",
     "Sprint-ID {new} aus der Mappe und die vorhandene Sprintdatei {old} unterscheiden sich nur durch Groß- und Kleinschreibung (auf Windows und macOS dieselbe Datei).": "Sprint ID {new} from the workbook and the existing sprint file {old} differ only in upper and lower case (the same file on Windows and macOS).",
+    "ID nicht zulässig als Dateiname ({problem}).": "ID not allowed as a file name ({problem}).",
     "Davon mit Produktionszugriff ({unit})": "Of which with production access ({unit})",
     "Davon mit Produktionszugriff erledigt ({unit})": "Of which done with production access ({unit})",
     "Speichern und weiter": "Save and continue",
