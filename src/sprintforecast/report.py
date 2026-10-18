@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from sprintforecast.analysis import average_focus_factor, band, buffer_hint
+from sprintforecast.analysis import MIN_SAMPLES, average_focus_factor, band, buffer_hint
 from sprintforecast.engine import UNSURE_SOURCES, CapacitySource, round_half_up
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import is_english, t
@@ -138,6 +138,18 @@ def reliability_notes(fc: Forecast) -> list[str]:
             )
         )
     return notes
+
+
+def completion_note(samples: int) -> str | None:
+    """Warnung der Fertigstellungs-Simulation bei wenig Daten (Kommandozeile und Weboberfläche)."""
+    if samples >= MIN_SAMPLES:
+        return None
+    return t(
+        "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
+        "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
+        samples=samples,
+        min=MIN_SAMPLES,
+    )
 
 
 def status(fc: Forecast, e: TimelineEntry) -> str:
