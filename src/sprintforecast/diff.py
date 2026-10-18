@@ -144,3 +144,37 @@ def file_changes(path: Path) -> list[FileChange]:
     """Nicht committete Änderungen unterhalb von ``path`` als Wertänderungen je Datei."""
     root = gitmod.require_root(path)
     return [_file_change(root, c) for c in changes_in(path)]
+
+
+_CACHE: dict[Path, tuple[tuple[Any, ...], list[FileChange]]] = {}
+
+
+def _signature(root: Path, pending: list[tuple[str, str]]) -> tuple[Any, ...]:
+    """Status, Datei, Änderungszeit (ns) und Größe der Arbeitsdatei (``None``, wenn sie fehlt)."""
+    parts: list[tuple[Any, ...]] = []
+    for status, file in pending:
+        try:
+            stat = (root / file).lstat()
+            parts.append((status, file, stat.st_mtime_ns, stat.st_size))
+        except OSError:
+            parts.append((status, file, None, None))
+    return tuple(parts)
+
+
+def cached_file_changes(path: Path, pending: list[tuple[str, str]]) -> list[FileChange]:
+    """Wie :func:`file_changes`, aber nur neu berechnet, wenn sich ``pending`` (die Liste aus
+    :func:`sprintforecast.git.cached_pending_changes`) oder eine Arbeitsdatei geändert hat (für
+    die Oberfläche, die bei jeder Eingabe neu zeichnet). Wird mit
+    :func:`sprintforecast.git.invalidate_status` geleert."""
+    root = gitmod.require_root(path)
+    key = path.resolve()
+    signature = _signature(root, pending)
+    cached = _CACHE.get(key)
+    if cached and cached[0] == signature:
+        return list(cached[1])
+    result = file_changes(path)
+    _CACHE[key] = (signature, result)
+    return list(result)
+
+
+gitmod.on_invalidate(_CACHE.clear)

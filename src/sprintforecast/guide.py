@@ -363,6 +363,13 @@ GIT_HELP: list[tuple[str, str]] = [
         "dazukommt. Es gilt das einfache Modell „ein Branch, immer synchron halten“.",
     ),
     (
+        "Was hat sich geändert?",
+        "Bei offenen Änderungen zeigt der Git-Bereich vor „Speichern und teilen“ und „Änderungen "
+        "committen“ je Datei, was sich geändert hat: bei YAML-Dateien jeden Wert mit Vorher und "
+        "Nachher, bei neuen, gelöschten oder umbenannten Dateien nur die Art. Dateien ohne "
+        "lesbare Werte (z. B. Excel oder Berichte) tragen den Hinweis „keine Wertansicht“.",
+    ),
+    (
         "Stand in der Seitenleiste",
         "„noch nicht geteilt“ sind eigene Commits, die der Server noch nicht kennt; „neu von "
         "anderen“ sind Commits auf dem Server, die du noch nicht hast. Der Serverstand wird "
