@@ -388,10 +388,10 @@ def mark_obsolete(
 ) -> list[Path]:
     """Benennt die gültigen Protokolle des Termins in ``…_obsolet_<Datum>-<Zeit>.md`` um (z. B.
     wenn das Einfrieren des Sprints aufgehoben wird). Liefert die neuen Dateien. Scheitert eine
-    Umbenennung, werden die schon umbenannten wieder zurückbenannt (alles oder nichts)."""
-    folder = _folder(repo, team)
-    if not folder.is_dir():
-        return []
+    Umbenennung, werden die schon umbenannten wieder zurückbenannt (alles oder nichts). Die Sperre
+    wird auch dann genommen, wenn es den Ordner noch nicht gibt (er wird angelegt; ein leerer Ordner
+    ist harmlos): Eine andere Sitzung kann ihn gleichzeitig anlegen und ein Protokoll schreiben."""
+    folder = _make_folder(repo, team)
     with _locked(folder, sprint_id, kind):
         return _mark_obsolete(repo, team, sprint_id, kind, now)
 
@@ -432,10 +432,10 @@ def obsolete_with_save(
     """Benennt die Protokolle zuerst um und schreibt dann mit ``save`` die Sprintdatei; scheitert
     das Speichern, werden die Protokolle zurückbenannt: beides gelingt oder keines. Die Sperre
     (:func:`_locked`) gilt über Umbenennen, ``save`` und Rückbenennen, damit eine andere Sitzung nie
-    einen Zwischenstand sieht (``save`` darf sie nicht selbst betreten)."""
-    folder = _folder(repo, team)
-    if not folder.is_dir():
-        return save()  # keine Protokolle: nichts umzubenennen und zu schützen
+    einen Zwischenstand sieht (``save`` darf sie nicht selbst betreten). Die Sperre gilt auch, wenn
+    es den Protokollordner noch nicht gibt (er wird angelegt): Sonst könnte eine andere Sitzung
+    gleichzeitig ein Planning samt Protokoll speichern, das danach gültig bliebe."""
+    folder = _make_folder(repo, team)
     with _locked(folder, sprint_id, kind):
         renamed = _mark_obsolete(repo, team, sprint_id, kind, now)
         try:
