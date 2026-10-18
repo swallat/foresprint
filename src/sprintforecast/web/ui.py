@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import json
 import os
 import subprocess
 import sys
@@ -47,6 +48,7 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
+from sprintforecast.diff import cached_file_changes
 from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
@@ -4834,6 +4836,60 @@ def _status_text(state: SyncState) -> str:
     return " · ".join(parts)
 
 
+_VIEW_FILES = 25
+_VIEW_ROWS = 30
+_VIEW_TEXT = 80
+
+
+def _view_value(value: object) -> str:
+    """Wert für die Änderungsansicht als kurzer Text (nur für Tabellenzellen, nie Markdown)."""
+    if value is MISSING:
+        return "–"
+    if isinstance(value, (list, dict)):
+        text = json.dumps(value, ensure_ascii=False, default=str)
+    else:
+        text = str(value)
+    text = " ".join(text.split())
+    return text if len(text) <= _VIEW_TEXT else text[: _VIEW_TEXT - 1] + "…"
+
+
+def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
+    """Dateiname relativ zum Datenordner, wenn möglich."""
+    if git_root_path is not None:
+        with contextlib.suppress(ValueError):
+            return (git_root_path / file).relative_to(root.resolve()).as_posix()
+    return file
+
+
+def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
+    """„Was hat sich geändert?“: Werte vorher und nachher je geänderter Datei. Dateinamen und
+    Werte stammen aus Dateien, die andere ins Repository legen: nur als Code oder in Tabellen."""
+    try:
+        files = cached_file_changes(root, pending)
+        top = git_root(root)
+    except GitError:
+        st.caption(t("Die Änderungsansicht ist gerade nicht verfügbar."))
+        return
+    st.markdown(f"**{t('Was hat sich geändert?')}**")
+    for fc in files[:_VIEW_FILES]:
+        name = md_code(_view_name(root, fc.file, top))
+        st.markdown(f"{name} – {status_name(fc.status)}")
+        if not fc.readable:
+            st.caption(t("keine Wertansicht"))
+        elif fc.values:
+            rows = [(v.label, _view_value(v.old), _view_value(v.new)) for v in fc.values]
+            shown = rows[:_VIEW_ROWS]
+            if len(rows) > _VIEW_ROWS:
+                shown.append((t("… und {n} weitere", n=len(rows) - _VIEW_ROWS), "", ""))
+            st.dataframe(
+                pd.DataFrame(shown, columns=[t("Wert"), t("Vorher"), t("Nachher")]),
+                hide_index=True,
+                width="stretch",
+            )
+    if len(files) > _VIEW_FILES:
+        st.caption(t("… und {n} weitere", n=len(files) - _VIEW_FILES))
+
+
 def _git_panel(repo: Repository) -> None:
     if not git_available():
         _show_problem(classify("", missing=True))
@@ -4921,6 +4977,7 @@ def _git_panel(repo: Repository) -> None:
             _show_incoming(commits, files)
         if changes:
             st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
+            _changes_view(repo.root, changes)
             st.session_state.setdefault("commit_message", _commit_default())
             st.text_input(t("Commit-Nachricht"), key="commit_message")
             if tags:
