@@ -110,8 +110,16 @@ err = Console(stderr=True)
 
 
 # Wie rich.markup.escape: ein Tag ist „[“ + Buchstabe, „#“, „/“ oder „@“ … „]“; Backslashes davor
-# zählen mit (zwei ergeben einen, ein ungerader maskiert das Tag).
-_TAG = re.compile(r"(\\*)(\[[a-z#/@][^[]*?])")
+# zählen mit (zwei ergeben einen, ein ungerader maskiert das Tag). Rich macht außerdem aus jedem
+# „\[“ ein „[“, auch wenn kein Tag folgt (`D:\Projekte\[2024]`): Dort fehlte ein Backslash.
+_BRACKET = re.compile(r"(\\*)\[([a-z#/@][^[]*?]|)")
+
+
+def _bracket(match: re.Match[str]) -> str:
+    slashes, tag = match[1], match[2]
+    if tag:
+        return f"{slashes}{slashes}\\[{tag}"
+    return f"{slashes}\\[" if slashes else "["
 
 
 def _plain(value: object) -> str:
@@ -120,7 +128,7 @@ def _plain(value: object) -> str:
     Anders als rich.markup.escape bleibt ein abschließender Backslash unverändert: Rich zeigt
     ihn nur dann richtig, wenn danach kein Tag folgt (Tabellenzelle, Prompt, Titel, Satz). Steht
     der Wert direkt vor einem Tag (`[bold]{x}[/bold]`), gilt `_plain_end`."""
-    return _TAG.sub(lambda m: f"{m[1]}{m[1]}\\{m[2]}", str(value))
+    return _BRACKET.sub(_bracket, str(value))
 
 
 def _plain_end(value: object) -> str:
