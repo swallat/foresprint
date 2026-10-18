@@ -37,6 +37,11 @@ ABLAUF EINES LAUFS
   auf den Owner warten) an den Pfad aus LAUFDATEN.
 
 REGELN (verbindlich)
+- Führe Shell-Befehle immer einzeln aus: keine Verkettung mit `;`, `&&`, `||` oder `|`, keine `$(…)` und keine
+  Umleitungen. Du läufst im Modus „dontAsk“; ein zusammengesetzter Befehl wird als Ganzes abgelehnt, auch wenn
+  jeder Teil für sich erlaubt wäre. Erlaubt sind einzeln `git`, `gh`, `uv`, `mise`, `ls`, `cat`, `grep`, `rg`,
+  `head`, `tail`, `wc`, `sort`, `diff`, `date`, `sleep`, `echo`, `cd`. Dateien liest und schreibst du mit den
+  Werkzeugen Read, Edit und Write.
 - Antworten, Kommentare, Commit- und PR-Texte auf Deutsch. Commit-E-Mail
   873008+swallat@users.noreply.github.com (steht in der globalen Git-Konfiguration).
 - KEINE Attributionszeilen in Commits und PR-Beschreibungen (kein Co-Authored-By, keine Session-Zeile, keine
