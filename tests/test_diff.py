@@ -132,6 +132,8 @@ def test_order_of_unrelated_people_does_not_count_when_one_was_added():
 
 def test_nan_is_not_a_change():
     assert diff_values({"a": float("nan")}, {"a": float("nan")}) == []
+    assert diff_values({"l": [1, float("nan")]}, {"l": [1, float("nan")]}) == []
+    assert diff_values({"o": {"x": [float("nan")]}}, {"o": {"x": [float("nan")]}}) == []
     (change,) = diff_values({"a": float("nan")}, {"a": 1.0})
     assert change.kind == CHANGED
 

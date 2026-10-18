@@ -73,6 +73,8 @@ def same(a: Any, b: Any) -> bool:
         return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
     if isinstance(a, list) and isinstance(b, list):
         return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
+    if isinstance(a, float) and isinstance(b, float) and a != a and b != b:
+        return True  # ``.nan`` ist in YAML ein Wert; nan == nan ist in Python falsch
     return a == b
 
 
