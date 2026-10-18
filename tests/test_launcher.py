@@ -54,6 +54,9 @@ def test_explicit_browser(no_browsers: dict, tmp_path: Path, monkeypatch: pytest
 
 
 def test_windows_paths_scoop_and_choco(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # Keine Browser des Rechners: sonst fände der Test ein echtes Chrome in Program Files.
+    for variable in ("ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"):
+        monkeypatch.setenv(variable, str(tmp_path / "leer"))
     monkeypatch.setenv("SCOOP", str(tmp_path / "scoop"))
     monkeypatch.setenv("ChocolateyInstall", str(tmp_path / "choco"))
     chrome = tmp_path / "scoop/apps/googlechrome/current/chrome.exe"
