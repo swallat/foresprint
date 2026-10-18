@@ -1,0 +1,10 @@
+[Unit]
+Description=sprint-forecast: planmäßige Claude-Aufgabe stündlich
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=120
+Persistent=true
+
+[Install]
+WantedBy=timers.target

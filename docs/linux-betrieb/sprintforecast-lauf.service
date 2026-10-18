@@ -1,0 +1,8 @@
+[Unit]
+Description=sprint-forecast: planmäßige Claude-Aufgabe
+
+[Service]
+Type=oneshot
+ExecStart=%h/sprintforecast-lauf/sprintforecast-lauf.sh
+TimeoutStartSec=3h
+Nice=10
