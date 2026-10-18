@@ -22,6 +22,13 @@ from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 TODAY = date(2026, 10, 15)
 
 
+def sheet_xml(z: zipfile.ZipFile, name: str) -> str:
+    """XML des Blatts ``name`` (Reihenfolge laut workbook.xml)."""
+    book = z.read("xl/workbook.xml").decode()
+    names = re.findall(r'<sheet name="([^"]+)"', book)
+    return z.read(f"xl/worksheets/sheet{names.index(name) + 1}.xml").decode()
+
+
 def workbook(data_dir: Path, mode: TrendMode = TrendMode.FLAT) -> zipfile.ZipFile:
     data = Repository(data_dir).load("demo")
     data.team.forecast.trend_mode = mode
@@ -35,7 +42,7 @@ def test_workbook_has_formulas_charts_and_the_settings_names(data_dir: Path):
     book = z.read("xl/workbook.xml").decode()
     for name in ("Referenz", "Fenster", "Roadmap_Anteil", "Rundung", "Duenn_nVelocity"):
         assert f'definedName name="{name}"' in book
-    sheet = z.read("xl/worksheets/sheet2.xml").decode()  # Forecast
+    sheet = sheet_xml(z, "Forecast")
     formulas = re.findall(r"<f>(.*?)</f>", sheet)
     assert any("ROUNDDOWN" in f and "Referenz" in f for f in formulas)  # Forecast PLAN
     assert any("AVERAGEIFS" in f and "Fenster" in f for f in formulas)  # Durchschnitt
@@ -47,7 +54,7 @@ def test_cached_values_come_from_the_engine(data_dir: Path):
     data = Repository(data_dir).load("demo")
     fc = build_forecast(data, TODAY)
     z = zipfile.ZipFile(BytesIO(build_workbook(fc)))
-    sheet = z.read("xl/worksheets/sheet2.xml").decode()
+    sheet = sheet_xml(z, "Forecast")
     entry = fc.upcoming()[0]
     assert entry.result.plan is not None
     assert f"<v>{entry.result.plan}</v>" in sheet
@@ -64,9 +71,9 @@ def test_trend_formula_exists_for_every_mode(mode: TrendMode):
 
 def test_products_sheet_and_production_split_are_included(data_dir: Path):
     z = workbook(data_dir)
-    products = z.read("xl/worksheets/sheet3.xml").decode()
+    products = sheet_xml(z, "Produktwerte")
     assert "SUMIFS" not in products and "<f>" in products  # Differenz ohne Produktion
-    forecast = z.read("xl/worksheets/sheet2.xml").decode()
+    forecast = sheet_xml(z, "Forecast")
     assert "SUMIFS" in forecast and "COUNTIFS" in forecast  # Σ Planning je Produkt
 
 
