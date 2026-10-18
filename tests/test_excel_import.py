@@ -410,11 +410,21 @@ def test_first_sprint_id_setting_cannot_become_a_path(data_dir: Path):
 
 
 def test_the_repository_refuses_unsafe_sprint_ids_as_paths(data_dir: Path):
+    import sys
+
     repo = Repository(data_dir)
-    for bad in ("../x", "a/b", "..", "nul", "a:b"):
+    # Auf jedem System ein Pfad: Trenner und Punkt am Rand. Doppelpunkt und Gerätenamen nur unter
+    # Windows (anderswo gewöhnliche Zeichen; vorhandene Daten bleiben nutzbar).
+    bad_ids = ["../x", "a/b", "..", "ende."]
+    if sys.platform == "win32":
+        bad_ids += ["nul", "a:b", "a\\b"]
+    for bad in bad_ids:
         with pytest.raises(DataError, match="nicht zulässig"):
             repo.sprint_path("demo", bad)
     assert repo.sprint_path("demo", "2026.22b").name == "2026.22b.yaml"
+    if sys.platform != "win32":  # vorhandene exotische IDs bleiben dort möglich
+        assert repo.sprint_path("demo", "[red]\\").name
+        assert repo.sprint_path("demo", "a:b").name == "a:b.yaml"
 
 
 def test_a_traversal_id_cannot_overwrite_an_existing_file_outside(data_dir: Path):
@@ -544,6 +554,26 @@ def test_existing_sprint_files_missing_in_the_workbook_are_part_of_the_check(
     if expected_error:  # nur wenn check_team die Datei tatsächlich als Fehler wertet
         with pytest.raises(DataError):
             plan_import(repo, data, TODAY)
+
+
+def test_a_workbook_id_that_differs_from_an_omitted_sprint_file_only_by_case_is_refused(
+    data_dir: Path,
+):
+    """Sonst überschriebe save_sprint auf Windows/macOS die vorhandene Datei (dieselbe Datei)."""
+    import dataclasses
+
+    from sprintforecast.model import Sprint
+
+    repo = Repository(data_dir)
+    data = read_workbook(exported(data_dir), "demo")  # vor der Datei Foo: die Mappe kennt sie nicht
+    repo.save_sprint("demo", Sprint(id="Foo", start=date(2099, 1, 1), end=date(2099, 1, 15)))
+    new = Sprint(id="foo", start=date(2099, 2, 1), end=date(2099, 2, 15))
+    colliding = dataclasses.replace(data, sprints=[*data.sprints, new])
+    with pytest.raises(DataError, match="Groß- und Kleinschreibung"):
+        plan_import(repo, colliding, TODAY)
+    # dieselbe ID in gleicher Schreibweise ist dagegen ein normaler Ersatz
+    same = Sprint(id="Foo", start=date(2099, 1, 1), end=date(2099, 1, 15))
+    plan_import(repo, dataclasses.replace(data, sprints=[*data.sprints, same]), TODAY)
 
 
 def test_a_symlinked_team_folder_is_accepted(data_dir: Path, tmp_path: Path):

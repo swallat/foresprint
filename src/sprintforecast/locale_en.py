@@ -135,6 +135,7 @@ EN: dict[str, str] = {
     "{where}: Sprint-ID {id} kommt doppelt vor (Groß- und Kleinschreibung gilt auf Windows und macOS als gleich).": "{where}: sprint ID {id} appears twice (upper and lower case count as the same on Windows and macOS).",
     "{where}: Zahl außerhalb des zulässigen Bereichs (höchstens {limit}): {value}": "{where}: number outside the allowed range (at most {limit}): {value}",
     "{where}: id {id} ist nicht zulässig ({problem})": "{where}: id {id} is not allowed ({problem})",
+    "Sprint-ID {new} aus der Mappe und die vorhandene Sprintdatei {old} unterscheiden sich nur durch Groß- und Kleinschreibung (auf Windows und macOS dieselbe Datei).": "Sprint ID {new} from the workbook and the existing sprint file {old} differ only in upper and lower case (the same file on Windows and macOS).",
     "Davon mit Produktionszugriff ({unit})": "Of which with production access ({unit})",
     "Davon mit Produktionszugriff erledigt ({unit})": "Of which done with production access ({unit})",
     "Speichern und weiter": "Save and continue",
