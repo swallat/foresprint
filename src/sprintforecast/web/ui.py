@@ -1818,7 +1818,8 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                 paths = [repo.save_sprint(data.team.key, released)]
                 # Das Planning gilt nicht mehr: sein Protokoll wird als obsolet gekennzeichnet.
                 now = datetime.now().replace(microsecond=0)
-                return paths + mark_obsolete(repo, data.team.key, released.id, PLANNING, now)
+                mark_obsolete(repo, data.team.key, released.id, PLANNING, now)
+                return paths
 
             if save(
                 with_sprints(data, [released]),
@@ -2274,7 +2275,9 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
 
     def write() -> list[Path]:
         paths = [repo.save_sprint(data.team.key, sprint)]
-        paths.append(write_protocol(repo, data.team.key, sprint.id, PLANNING, protocol, now))
+        write_protocol(
+            repo, data.team.key, sprint.id, PLANNING, protocol, now
+        )  # Protokoll: nicht in der Meldung
         return paths
 
     if save(after, [f"{sprint.id}.yaml"], write, flash=True):
@@ -2471,7 +2474,9 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
     def write() -> list[Path]:
         paths = [repo.save_sprint(data.team.key, sprint)]
-        paths.append(write_protocol(repo, data.team.key, sprint.id, REVIEW, protocol, now))
+        write_protocol(
+            repo, data.team.key, sprint.id, REVIEW, protocol, now
+        )  # Protokoll: nicht in der Meldung
         return paths
 
     if save(
@@ -3026,7 +3031,9 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
         def write() -> list[Path]:
             paths = [repo.save_sprint(data.team.key, s) for s in to_save]
-            paths.append(write_protocol(repo, data.team.key, after.id, PREPLANNING, protocol, now))
+            write_protocol(
+                repo, data.team.key, after.id, PREPLANNING, protocol, now
+            )  # Protokoll: nicht in der Meldung
             return paths
 
         if save(with_sprints(data, to_save), [f"{s.id}.yaml" for s in to_save], write, flash=True):
