@@ -13,6 +13,7 @@ EN: dict[str, str] = {
     "Neues Team [bold]{team}[/bold] anlegen. Alle Werte sind später mit [bold]{command}[/bold] änderbar.\nOptional sind die Bereiche Produktverteilung (mehrere Produkte), Zuordnung PO und Produktionszugriff; sie sind zunächst aus (Enter übernimmt „aus“).": "Create new team [bold]{team}[/bold]. All values can be changed later with [bold]{command}[/bold].\nThe areas product distribution (several products), PO assignment and production access are optional; they are off at first (Enter accepts “off”).",
     "Die Produktverteilung ist für dieses Team ausgeschaltet. Einschalten mit: {command}": "The product distribution is switched off for this team. Switch it on with: {command}",
     "Aktion: n = neues Produkt, e = Produkt abgeben, q = fertig": "Action: n = new product, e = hand over product, q = done",
+    "Kapazität: {prod_cap} PT mit Produktionszugriff ({share}), {rest_cap} PT ohne · Forecast PLAN: bis zu {prod_plan} {unit} für Tickets mit Produktionszugriff, {rest_plan} {unit} für alle übrigen.": "Capacity: {prod_cap} PD with production access ({share}), {rest_cap} PD without · Forecast PLAN: up to {prod_plan} {unit} for tickets with production access, {rest_plan} {unit} for all others.",
     "Anteil Produktionszugriff an der Kapazität": "Share of production access in the capacity",
     "Anzahl Kapazität": "Count capacity",
     "Anzahl n. Velocity": "Count n. velocity",
