@@ -122,20 +122,26 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             "team.yaml",
             t("Ohne Sprintdateien wird sprint.first.id und sprint.first.start benötigt"),
         )
-    # Aus der ID des letzten Sprints (ohne Sprintdatei: des ersten) wird die Folge-ID gebildet.
-    if data.sprints:
-        last_id, last_where = data.sprints[-1].id, f"sprints/{data.sprints[-1].id}.yaml"
-    else:
-        last_id, last_where = team.sprint.first_id, "team.yaml"
-    if last_id is not None and not id_fits_numbering(last_id, team.sprint.numbering):
-        error(
-            last_where,
-            t(
-                "ID passt nicht zur Nummerierung (erwartet {expected}) – die ID des "
-                "Folgesprints lässt sich nicht bilden",
-                expected=expected_id_form(team.sprint.numbering),
-            ),
-        )
+    # Kalender, Fehltage und Prognose bilden die Folge-IDs ab dem laufenden Sprint bis über den
+    # letzten hinaus (ohne Sprintdateien: aus dem ersten Sprint). Abgeschlossene Sprints davor
+    # spielen keine Rolle; der letzte zählt immer.
+    chain = [(f"sprints/{s.id}.yaml", s.id, s.end) for s in data.sprints if s.end > today]
+    if data.sprints and data.sprints[-1].end <= today:
+        last = data.sprints[-1]
+        chain.append((f"sprints/{last.id}.yaml", last.id, last.end))
+    if not data.sprints and team.sprint.first_id and team.sprint.first_start:
+        first_end = team.sprint.first_start + timedelta(days=max(team.sprint.length_days, 1))
+        chain.append(("team.yaml", team.sprint.first_id, first_end))
+    for where, sprint_id, next_start in chain:
+        if not id_fits_numbering(sprint_id, next_start, team.sprint.numbering):
+            error(
+                where,
+                t(
+                    "ID passt nicht zur Nummerierung (erwartet {expected}) – die ID des "
+                    "Folgesprints lässt sich nicht bilden",
+                    expected=expected_id_form(team.sprint.numbering),
+                ),
+            )
 
     ids: set[str] = set()
     for p in data.people:

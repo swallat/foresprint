@@ -38,22 +38,22 @@ def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
         raise DataError(
             t(
                 "Sprint-ID '{id}' passt nicht zur Nummerierung (erwartet {expected}); die ID des "
-                "Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: in der "
-                "Sprintdatei (Dateiname und id) bzw. unter Einstellungen als ID des ersten "
-                "Sprints.",
+                "Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: Dateiname und id "
+                "der Sprintdatei umbenennen (ohne Sprintdateien: unter Einstellungen die ID "
+                "des ersten Sprints).",
                 id=previous_id,
                 expected=expected_id_form(numbering),
             )
         ) from e
 
 
-def id_fits_numbering(sprint_id: str, numbering: Numbering) -> bool:
-    """Lässt sich aus ``sprint_id`` die ID des Folgesprints bilden? Das hängt wie in ``next_id``
-    nur von der ID ab, nicht vom Datum: Bei „JJJJ.N“ wird der Zähler im Jahr der ID geprüft. IDs
-    ohne Jahr vorn setzen die jährliche Nummerierung neu an (Wechsel der Nummerierung)."""
+def id_fits_numbering(sprint_id: str, next_start: date, numbering: Numbering) -> bool:
+    """Lässt sich aus ``sprint_id`` die ID des Folgesprints bilden, der am ``next_start`` beginnt?
+    Genau die Bedingung, unter der ``next_id`` nicht scheitert: Bei „JJJJ.N“ zählt der Zähler nur
+    im selben Jahr weiter (ein Zähler wie „22b“ ist im Jahreswechsel unschädlich), IDs ohne Jahr
+    vorn setzen die jährliche Nummerierung neu an (Wechsel der Nummerierung)."""
     try:
-        year = sprint_id.partition(".")[0]
-        _successor(sprint_id, int(year) if year.isdecimal() else 0, numbering)
+        _successor(sprint_id, next_start.year, numbering)
     except ValueError, OverflowError:
         return False
     return True
