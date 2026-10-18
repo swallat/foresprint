@@ -152,6 +152,7 @@ from sprintforecast.products import (
 )
 from sprintforecast.report import (
     absence_status_label,
+    band_note,
     capacity_label,
     capacity_source_note,
     fmt,
@@ -176,6 +177,7 @@ from sprintforecast.storage import (
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
+    team_key_problem,
     team_version,
     teams_dir,
     write_text,
@@ -293,6 +295,23 @@ def today() -> date:
     return date.fromisoformat(raw) if raw else date.today()
 
 
+def stichtag_problem() -> str | None:
+    """Meldung, wenn die Umgebung keinen gültigen Stichtag enthält (sonst scheitert ``today``)."""
+    raw = os.environ.get(STICHTAG_ENV)
+    if raw:
+        try:
+            date.fromisoformat(raw)
+        except ValueError:
+            return t(
+                "Die Umgebungsvariable `{name}` enthält „{value}“ – erwartet wird ein Datum im "
+                "Format JJJJ-MM-TT. Bitte die Variable korrigieren oder entfernen und die "
+                "Weboberfläche neu starten.",
+                name=STICHTAG_ENV,
+                value=raw,
+            )
+    return None
+
+
 # Der Datenordner gehört zur Browser-Sitzung (nicht zum Prozess): Wechselt eine Sitzung den
 # Ordner, speichern andere offene Fenster weiter in ihren eigenen.
 DATA_DIR_KEY = "active-data-dir"
@@ -355,6 +374,49 @@ def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
 # --- Speichern mit Prüfung -----------------------------------------------------------
 
 
+def _next_step() -> str:
+    """Was die Seitenleiste nach dem Speichern anbietet: ``"share"`` („Speichern und teilen“,
+    der Datenordner hat einen Server), ``"commit"`` („Änderungen committen“) oder ``""`` (nichts:
+    kein Git, ein Problem oder ein Zustand, der erst gelöst werden muss). Nutzt nur den
+    Zwischenspeicher, den die Seitenleiste ohnehin füllt; vor dem Schreiben abfragen, denn das
+    leert ihn."""
+    root = data_dir()
+    if not git_available() or git_root(root) is None:
+        return ""
+    try:
+        state = cached_sync_state(root)
+    except GitError:
+        return ""
+    if state.unfinished or state.conflicts or state.detached:
+        return ""
+    return "share" if state.remote is not None else "commit"
+
+
+def _has_open_changes() -> bool:
+    """Gibt es nach dem Speichern etwas zu committen? Dieselbe Abfrage (und derselbe
+    Zwischenspeicher) wie in der Seitenleiste. Bei einem Git-Fehler gilt „ja“."""
+    try:
+        return bool(cached_pending_changes(data_dir()))
+    except GitError:
+        return True
+
+
+def _saved_text(names: str, step: str) -> str:
+    if step == "share":
+        return t(
+            "Gespeichert: {names}. Mit **Speichern und teilen** in der Seitenleiste in Git "
+            "sichern und mit dem Team teilen (nur lokal: **Änderungen committen**).",
+            names=names,
+        )
+    if step == "commit":
+        return t(
+            "Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der "
+            "Seitenleiste.",
+            names=names,
+        )
+    return t("Gespeichert: {names}.", names=names)
+
+
 def save(
     data_after: TeamData,
     filenames: list[str],
@@ -382,11 +444,14 @@ def save(
             st.error(f"{i.where}: {i.message}")
         st.error(t("Nicht gespeichert – bitte die Fehler beheben."))
         return False
+    step = _next_step()
     try:
         paths = write()
     except FileAccessError as e:
         st.error(str(e))
         return False
+    if step and not _has_open_changes():  # der Inhalt war schon so gespeichert: nichts zu tun
+        step = ""
     for i in relevant:
         if i.level is Level.WARNING:
             notify("warning", f"{i.where}: {i.message}")
@@ -394,14 +459,7 @@ def save(
         tags = st.session_state.setdefault("pending_tags", [])
         if tag not in tags:
             tags.append(tag)
-    notify(
-        "success",
-        t(
-            "Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der "
-            "Seitenleiste.",
-            names=", ".join(p.name for p in paths),
-        ),
-    )
+    notify("success", _saved_text(", ".join(p.name for p in paths), step))
     return True
 
 
@@ -677,7 +735,8 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.warning(
                 t(
                     "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
-                    "geschätzt ({source}). Auf der Seite **Fehltage** eintragen.",
+                    "geschätzt ({source}). Auf der Seite **Sprint vorbereiten: Fehltage** "
+                    "eintragen.",
                     sprints=", ".join(unsure),
                     source=source_label(source),
                 )
@@ -783,7 +842,7 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
             t(
                 "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen "
                 "(Vorsicht bei langen Horizonten). Robust ist „konstant“ – einstellbar unter "
-                "**Team → Einstellungen**.",
+                "**Team verwalten → Einstellungen**.",
                 mode=fc.data.team.forecast.trend_mode.value,
             )
         )
@@ -1005,6 +1064,8 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     ),
                 )
             )
+            if note := band_note(fc_preview, next_entry):
+                st.caption(note)
     st.dataframe(
         pd.DataFrame(
             [
@@ -1387,8 +1448,9 @@ def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
         if entered:
             st.info(
                 t(
-                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team → Personen) – "
-                    "ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht prüfen."
+                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team verwalten → "
+                    "Personen) – ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht "
+                    "prüfen."
                 )
             )
         return
@@ -1438,8 +1500,8 @@ def _product_editor(
     if not d.rows:
         st.info(
             t(
-                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
-                "Produkte** anlegen (optional)."
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team "
+                "verwalten → Produkte** anlegen (optional)."
             )
         )
         return None
@@ -1498,8 +1560,8 @@ def _product_table(d: Distribution, unit: str) -> bool:
     if not d.rows:
         st.info(
             t(
-                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
-                "Produkte** anlegen (optional)."
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team "
+                "verwalten → Produkte** anlegen (optional)."
             )
         )
         return False
@@ -1802,7 +1864,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         st.warning(
             t(
                 "Noch keine Personen erfasst – Kapazität nur geschätzt. Personen unter "
-                "**Team → Personen** anlegen."
+                "**Team verwalten → Personen** anlegen."
             )
         )
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
@@ -1915,6 +1977,10 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     cols[0].metric(
         t("Kapazität (PT)"),
         fmt_capacity(r.plan_capacity, entry.capacity_digits),
+        # Die Quelle steht unter dem Wert (nicht im Wert): sonst wird die Zahl abgeschnitten.
+        delta=capacity_source_note(entry) or None,
+        delta_color="off",
+        delta_arrow="off",
         help=t("Quelle: {source}", source=source_label(r.plan_capacity_source) or "–")
         + "\n\n"
         + _formula_help(fc, entry, "capacity"),
@@ -1945,6 +2011,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     rest[1].metric(
         t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
     )
+    if note := band_note(fc, entry):
+        st.caption(note)
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
@@ -2014,7 +2082,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     elif features.products:
         st.caption(
             t(
-                "Optional: Mit Produkten unter **Team → Produkte** lässt sich hier die "
+                "Optional: Mit Produkten unter **Team verwalten → Produkte** lässt sich hier die "
                 "Verteilung auf die Produkte planen und auswerten."
             )
         )
@@ -2141,7 +2209,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     try:
         corrections = parse_numbers(corrections_raw)
     except ValueError:
-        st.error(t("Korrekturen: bitte Zahlen mit Leerzeichen getrennt eingeben."))
+        st.error(t("Korrekturen: bitte endliche Zahlen mit Leerzeichen getrennt eingeben."))
         return
     prefilled = apply_planning(
         sprint,
@@ -2739,6 +2807,8 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc_view, shown, "capacity"),
         )
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
+        if note := band_note(fc_view, shown, without_assumption=bool(assumed)):
+            st.caption(note)
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
             st.caption(
@@ -3272,8 +3342,21 @@ def page_new_team(repo: Repository) -> None:
     )
     if not key:
         return
-    if repo.exists(key):
-        st.error(t("Team {team} existiert bereits.", team=repr(key)))
+    if clash := repo.clashing_team(key):
+        if clash == key:
+            st.error(t("Team {team} existiert bereits.", team=repr(key)))
+        else:
+            st.error(
+                t(
+                    "Team {team} existiert bereits (als {existing}; Windows und macOS "
+                    "unterscheiden Ordner nicht nach Groß- und Kleinschreibung).",
+                    team=repr(key),
+                    existing=repr(clash),
+                )
+            )
+        return
+    if problem := team_key_problem(key):
+        st.error(problem)
         return
     team = Team(key=key, name=key.upper())
     team.sprint.first_start = today()
@@ -3673,7 +3756,8 @@ def _remote_section(repo: Repository) -> None:
         help=t(
             "Erlaubt sind https://…, ssh://…, git@server:pfad und ein vollständiger "
             "Ordnerpfad. Benutzername, Kennwort und Token gehören nicht in die Adresse; die "
-            "Anmeldung übernimmt Git bzw. der Anmeldedienst des Rechners."
+            "Anmeldung übernimmt der Anmeldedienst des Rechners, fehlt sie, erklärt die App den "
+            "nächsten Schritt."
         ),
     )
     if st.session_state.pop("git-remote-rejected", False):
@@ -3889,8 +3973,10 @@ def page_help(repo: Repository) -> None:
     st.markdown(
         t(
             "Die Weboberfläche bearbeitet dieselben Dateien wie die Kommandozeile – beides lässt "
-            "sich mischen. Gespeichert wird lokal; mit **Änderungen committen** in der "
-            "Seitenleiste landen die Änderungen im Git-Repository der Daten."
+            "sich mischen. Gespeichert wird lokal. Liegen die Daten in einem Git-Repository, "
+            "sichert **Änderungen committen** in der Seitenleiste die Änderungen dort; hat das "
+            "Team einen Server, sichert **Speichern und teilen** sie und teilt sie mit dem Team. "
+            "Mehr im Reiter „Zusammenarbeit (Git)“."
         )
     )
     ablauf, begriffe, felder, team, zusammenarbeit, befehle = st.tabs(

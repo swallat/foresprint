@@ -9,12 +9,14 @@ from sprintforecast import gitsync
 from sprintforecast.git import (
     GitError,
     changes_in,
+    commit,
     commit_directory,
     invalidate_status,
     pending_changes,
     repo_root,
     require_root,
     root_problem,
+    title_for,
 )
 
 
@@ -138,3 +140,15 @@ def test_the_reason_is_not_permanent(unsafe: Path, monkeypatch: pytest.MonkeyPat
 def test_sync_reports_an_unsafe_directory(unsafe: Path):
     result = gitsync.sync(unsafe / "teams", "Daten")
     assert result.error is not None and result.error.kind == "unsafe_directory"
+
+
+def test_commit_outside_a_repository_is_classified(tmp_path_factory: pytest.TempPathFactory):
+    folder = tmp_path_factory.mktemp("ohne-git")
+    file = folder / "team.yaml"
+    file.write_text("name: A\n", encoding="utf-8")
+    with pytest.raises(GitError) as caught:
+        commit([file], "Ohne Repository")
+    assert caught.value.kind == "not_repo"
+    assert str(folder) in str(caught.value)
+    assert "git init" in caught.value.hint
+    assert title_for("not_repo") == "Kein Git-Repository"
