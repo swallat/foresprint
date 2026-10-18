@@ -77,6 +77,7 @@ from sprintforecast.products import MEASURES, Distribution, balance, distributio
 from sprintforecast.report import (
     band_range,
     capacity_label,
+    completion_note,
     fmt,
     fmt_capacity,
     pct,
@@ -90,7 +91,6 @@ from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
     DataError,
-    FileAccessError,
     Repository,
     TeamData,
     default_data_dir,
@@ -109,7 +109,8 @@ err = Console(stderr=True)
 
 
 def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
-    """Gibt einen Schreib- oder Lesefehler der Datendateien als Meldung aus (Exit-Code 1)."""
+    """Gibt einen Fehler der Datendateien als Meldung aus (Exit-Code 1): Schreib- oder
+    Lesefehler, kein erster Sprint, eine ID ohne Folge-ID."""
     if getattr(fn, "_guarded", False):
         return fn
 
@@ -117,7 +118,7 @@ def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
     def guarded(*args: Any, **kwargs: Any) -> Any:
         try:
             return fn(*args, **kwargs)
-        except FileAccessError as e:  # Meldung statt Traceback (kein Schreibrecht u. Ä.)
+        except DataError as e:  # Meldung statt Traceback (kein Schreibrecht, Prognose u. Ä.)
             err.print(f"[red]{escape(str(e))}[/red]")
             raise typer.Exit(1) from e
 
@@ -1359,6 +1360,8 @@ def analyse(
                 + t("Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
                 + "[/dim]"
             )
+        if note := completion_note(result.samples):
+            console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
 
 
 @command("bericht", "Markdown-Bericht erzeugen (für Git-Weboberfläche / PO-Runde).")
@@ -1378,7 +1381,14 @@ def bericht(
     c = _ctx(ctx)
     teams = [team] if team else c.repo.teams()
     for key in teams:
-        text = render(build_forecast(_load(c, key), c.today))
+        data = _load(c, key)
+        try:
+            forecast_ = build_forecast(data, c.today)
+        except DataError as e:  # ohne Teamangabe läuft die Schleife über alle Teams
+            if key in str(e):
+                raise
+            raise DataError(t("Team {team}: {error}", team=key, error=e)) from e
+        text = render(forecast_)
         if ausgabe is not None and str(ausgabe) == "-":
             sys.stdout.write(text)
             continue
@@ -1709,10 +1719,12 @@ def produkte(
     if entry is not None:
         console.print(_distribution_table(distribution(fc, entry), unit))
     entries = [e for e in fc.entries if e.sprint.start <= s.start][-verlauf:]
-    rows = balance(fc, entries)
+    rows = [b for b in balance(fc, entries) if b.sprints]  # nur Produkte mit mindestens einem Wert
     if rows:
+        with_missing = any(b.missing for b in rows)
+        columns = ("Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo")
         table = Table(title=t("Saldo: Σ Erledigt − Σ Standard"))
-        for i, col in enumerate(("Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo")):
+        for i, col in enumerate((*columns, *(("ohne Wert",) if with_missing else ()))):
             table.add_column(t(col), justify="left" if i == 0 else "right")
         for b in rows:
             colour = "green" if b.difference >= 0 else "red"
@@ -1722,6 +1734,7 @@ def produkte(
                 fmt(b.standard, 2),
                 fmt(b.done, 2),
                 f"[{colour}]{fmt(b.difference, 2)}[/{colour}]",
+                *((str(b.missing),) if with_missing else ()),
             )
         console.print(table)
 
