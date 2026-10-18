@@ -30,8 +30,9 @@ FIELDS: dict[str, Field] = {
         "aus Kalender und Personenliste, die Fehltage werden nach den letzten Sprints "
         "geschätzt), „angekündigt“ (Prognose aus der PO-Vorplanung, noch nicht bestätigt) "
         "und „bestätigt“ (Fehltage eingetragen oder ausdrücklich „niemand fehlt“ bestätigt). "
-        "Weiter ohne Eintrag bestätigt nichts: Ohne Bestätigung bleibt der Sprint „unbekannt“.",
-        source="Seite Fehltage (Spalte „Niemand fehlt“) bzw. Planning, Schritt 1.",
+        "„Weiter ohne Bestätigung“ bestätigt nichts: Der Sprint bleibt „unbekannt“.",
+        source="Seite „Sprint vorbereiten: Fehltage“ (Spalte „Niemand fehlt“) bzw. Planning, "
+        "Schritt 1.",
         example="Sprint 2026.23: keine Einträge, „Niemand fehlt“ angehakt → bestätigt, volle "
         "Besetzung",
     ),
@@ -290,9 +291,9 @@ TERMS: list[tuple[str, str]] = [
         "steigen oder fallen und liegt bei längerem Horizont schnell außerhalb der Spanne. Sie "
         "passen nur bei einem belegten, stabilen Trend. Reicht die Historie nicht (weniger "
         "Sprints mit Wert als für den Modus nötig), gilt „konstant“; das steht dann als Hinweis "
-        "dabei. Die Prognose wird nie negativ. Den Modus kann man jederzeit unter Team → "
-        "Einstellungen wechseln; es gehen keine Daten verloren, nur die Prognose wird neu "
-        "berechnet.",
+        "dabei. Die Prognose wird nie negativ. Den Modus kann man jederzeit unter Team "
+        "verwalten → Einstellungen wechseln; es gehen keine Daten verloren, nur die Prognose "
+        "wird neu berechnet.",
     ),
     (
         "Prognose aktuell / beim Planning",
@@ -464,9 +465,10 @@ GIT_HELP: list[tuple[str, str]] = [
     ),
     (
         "Anmeldung",
-        "Die App nutzt die Anmeldung deines Rechners und fragt selbst nicht nach einem "
-        "Kennwort. Bei https braucht der Server meist einen Zugangstoken (GitHub: Personal "
-        "access token, GitLab: Zugriffstoken mit „write_repository“), den du einmal im "
+        "Die Anmeldung übernimmt der Anmeldedienst deines Rechners; die App richtet sie nicht "
+        "ein und fragt selbst nicht nach einem Kennwort. Fehlt sie, erklärt die App den "
+        "nächsten Schritt. Bei https braucht der Server meist einen Zugangstoken (GitHub: "
+        "Personal access token, GitLab: Zugriffstoken mit „write_repository“), den du einmal im "
         "Anmeldedienst deines Rechners hinterlegst (Windows: Anmeldeinformationsverwaltung, "
         "macOS: Schlüsselbund); mit der GitHub-CLI richtet `gh auth setup-git` die Anmeldung "
         "ein. Bei SSH muss der Schlüssel beim Server hinterlegt und im ssh-agent verfügbar "
@@ -474,8 +476,9 @@ GIT_HELP: list[tuple[str, str]] = [
     ),
     (
         "Name und E-Mail-Adresse",
-        "Git braucht beides für jeden Commit. Fehlt es, fragt die App danach und hinterlegt es "
-        "für deinen Benutzer.",
+        "Git braucht beides für jeden Commit. Fehlt es, fragt die App danach und trägt es auf "
+        "deinen Wunsch in die globale Git-Konfiguration deines Benutzers ein; sonst ändert sie "
+        "keine globale Git-Einstellung.",
     ),
     (
         "Gesperrte Datei",
@@ -522,12 +525,21 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast web --no-app", "Weboberfläche in einem Browser-Tab statt als App"),
     ("sprintforecast web --no-browser", "Server starten, ohne ein Fenster zu öffnen"),
     ("sprintforecast verknuepfung", "Starter zum Doppelklicken anlegen (Desktop/Startmenü)"),
-    ("sprintforecast forecast TEAM", "Prognose für laufenden und kommende Sprints"),
+    (
+        "sprintforecast forecast TEAM [--rechenweg SPRINT]",
+        "Prognose für laufenden und kommende Sprints",
+    ),
     ("sprintforecast fehltage TEAM [SPRINT]", "Fehltage je Person erfassen"),
-    ("sprintforecast sprints TEAM [--anlegen]", "Sprintkalender: kommende Sprints, Enddaten"),
-    ("sprintforecast planning TEAM", "Commitment und Planning-Werte erfassen"),
-    ("sprintforecast review TEAM", "Velocity und Scope Creep erfassen, Kapazität einfrieren"),
-    ("sprintforecast personen TEAM", "Personen pflegen"),
+    (
+        "sprintforecast sprints TEAM [--anlegen] [--ende SPRINT=DATUM]",
+        "Sprintkalender: kommende Sprints, Enddaten",
+    ),
+    ("sprintforecast planning TEAM [SPRINT]", "Commitment und Planning-Werte erfassen"),
+    (
+        "sprintforecast review TEAM [SPRINT] [--commit]",
+        "Velocity und Scope Creep erfassen, Kapazität einfrieren",
+    ),
+    ("sprintforecast personen TEAM [--ehemalige]", "Personen pflegen"),
     ("sprintforecast produktliste TEAM", "Produkte pflegen (PO, Zeitraum)"),
     (
         "sprintforecast produkte TEAM [SPRINT] [--vorplanung]",
@@ -536,18 +548,28 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast einstellungen TEAM", "Team-Einstellungen ändern"),
     ("sprintforecast kapazitaet TEAM [SPRINT]", "Kapazitätsberechnung im Detail"),
     (
-        "sprintforecast analyse TEAM [--rest MENGE]",
+        "sprintforecast analyse TEAM [--rest MENGE] [--gesamt] [--anteil PROZENT]",
         "Bandbreite, Fokusfaktor, Puffer, Fertigstellung",
     ),
-    ("sprintforecast bericht [TEAM]", "FORECAST.md erzeugen"),
+    ("sprintforecast bericht [TEAM] [--ausgabe PFAD]", "FORECAST.md erzeugen"),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
-    ("sprintforecast pruefen", "Alle Daten prüfen (für CI und vor dem Commit)"),
+    ("sprintforecast pruefen [--streng]", "Alle Daten prüfen (für CI und vor dem Commit)"),
     ("sprintforecast datenordner [PFAD]", "Gemerkten Datenordner anzeigen bzw. setzen"),
+    ("sprintforecast sprache [de|en]", "Sprache der Oberfläche anzeigen oder einstellen"),
     (
         "sprintforecast aktualisieren",
         "Auf die neueste Version aktualisieren (--auto an|hinweis|aus)",
     ),
     ("sprintforecast hilfe [THEMA]", "Diese Hilfe"),
+    (
+        "sprintforecast --daten PFAD …",
+        "Vor dem Befehl: Datenverzeichnis vorgeben (sonst SPRINTFORECAST_DATEN, das aktuelle "
+        "oder das gemerkte Verzeichnis)",
+    ),
+    (
+        "sprintforecast --stichtag DATUM …",
+        "Vor dem Befehl: Datum (JJJJ-MM-TT) vorgeben, das als „heute“ gilt – für Rückblicke",
+    ),
 ]
 
 TOPICS: dict[str, str] = {
@@ -601,7 +623,13 @@ OPTION_ALIASES: dict[str, str] = {
     "--pruefen": "--check",
     "--erzwingen": "--force",
 }
-_PLACEHOLDERS = {"MENGE": "AMOUNT", "THEMA": "TOPIC", "PFAD": "PATH", "DATUM": "DATE"}
+_PLACEHOLDERS = {
+    "MENGE": "AMOUNT",
+    "THEMA": "TOPIC",
+    "PFAD": "PATH",
+    "DATUM": "DATE",
+    "PROZENT": "PERCENT",
+}
 
 
 def command_text(text: str) -> str:
