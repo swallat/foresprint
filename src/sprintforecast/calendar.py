@@ -9,16 +9,54 @@ from functools import cache
 
 import holidays
 
+from sprintforecast.i18n import t
 from sprintforecast.model import AbsenceState, Numbering, Person, Sprint, Team
+from sprintforecast.storage import DataError
 
 
-def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
+def _successor(previous_id: str, start_year: int, numbering: Numbering) -> str:
     if numbering is Numbering.SEQUENTIAL:
         return str(int(float(previous_id)) + 1)
     year, sep, counter = previous_id.partition(".")
-    if sep and year.isdigit() and int(year) == next_start.year:
+    if sep and year.isdigit() and int(year) == start_year:
         return f"{year}.{int(counter) + 1}"
-    return f"{next_start.year}.1"
+    return f"{start_year}.1"
+
+
+def expected_id_form(numbering: Numbering) -> str:
+    """Form der Sprint-IDs, die ``next_id`` fortsetzen kann (für Meldungen)."""
+    if numbering is Numbering.SEQUENTIAL:
+        return t("eine Zahl, z. B. 22")
+    return t("JJJJ.N, z. B. 2026.22")
+
+
+def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
+    """ID des Folgesprints; wirft DataError, wenn ``previous_id`` nicht zur Nummerierung passt."""
+    try:
+        return _successor(previous_id, next_start.year, numbering)
+    except (ValueError, OverflowError) as e:
+        raise DataError(
+            t(
+                "Sprint-ID '{id}' passt nicht zur Nummerierung (erwartet {expected}); die ID des "
+                "Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: Dateiname und id "
+                "der Sprintdatei umbenennen (ohne Sprintdateien: unter Einstellungen die ID "
+                "des ersten Sprints).",
+                id=previous_id,
+                expected=expected_id_form(numbering),
+            )
+        ) from e
+
+
+def id_fits_numbering(sprint_id: str, next_start: date, numbering: Numbering) -> bool:
+    """Lässt sich aus ``sprint_id`` die ID des Folgesprints bilden, der am ``next_start`` beginnt?
+    Genau die Bedingung, unter der ``next_id`` nicht scheitert: Bei „JJJJ.N“ zählt der Zähler nur
+    im selben Jahr weiter (ein Zähler wie „22b“ ist im Jahreswechsel unschädlich), IDs ohne Jahr
+    vorn setzen die jährliche Nummerierung neu an (Wechsel der Nummerierung)."""
+    try:
+        _successor(sprint_id, next_start.year, numbering)
+    except ValueError, OverflowError:
+        return False
+    return True
 
 
 def following_sprint(team: Team, previous: Sprint | None) -> Sprint:
@@ -26,9 +64,13 @@ def following_sprint(team: Team, previous: Sprint | None) -> Sprint:
     length = timedelta(days=team.sprint.length_days)
     if previous is None:
         if team.sprint.first_id is None or team.sprint.first_start is None:
-            raise ValueError(
-                f"Team {team.key}: Es ist noch kein Sprint erfasst und "
-                "sprint.first_id/first_start fehlen in team.yaml."
+            raise DataError(
+                t(
+                    "Team {team}: Es ist noch kein Sprint erfasst. Bitte unter Einstellungen "
+                    "Start und ID des ersten Sprints eintragen (in team.yaml: sprint.first.id "
+                    "und sprint.first.start).",
+                    team=team.key,
+                )
             )
         start = team.sprint.first_start
         return Sprint(
