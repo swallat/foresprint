@@ -229,11 +229,13 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   nur dabei und beim Teilen abgefragt.
 - **Änderungen committen** sichert nur lokal, ohne zu teilen.
 - Fehlerfälle erklärt die App verständlich mit nächstem Schritt: Server nicht erreichbar,
-  Hochladen abgelehnt (inzwischen Neues da bzw. vom Server verboten), fehlende Anmeldung
-  (https-Zugangstoken bzw. SSH-Schlüssel, Credential Manager), Git nicht installiert, gesperrte
-  Datei, fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und
-  detached HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die
-  Anmeldung des Rechners (Credential Manager, SSH-Agent) wird genutzt.
+  Repository nicht gefunden (Adresse prüfen), nicht anerkanntes Zertifikat, Hochladen abgelehnt
+  (inzwischen Neues da bzw. vom Server verboten), fehlende Anmeldung (https-Zugangstoken bzw.
+  SSH-Schlüssel, Credential Manager; bei SSH auch der unbekannte Server-Fingerabdruck), Git nicht
+  installiert, gesperrte Datei, nicht beschreibbarer oder von Git als unsicher abgelehnter Ordner,
+  fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und detached
+  HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die Anmeldung des
+  Rechners (Credential Manager, SSH-Agent) wird genutzt.
 - **Server (Remote) eintragen:** Hat ein Datenordner noch keinen Server, verweist die Seitenleiste
   („Server einrichten“) auf die Seite **Datenordner**; dort steht der Abschnitt **Server
   (Remote)** auch zum Ändern der Adresse. Die Adresse wird sofort geprüft (erlaubt sind

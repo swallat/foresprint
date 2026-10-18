@@ -4,15 +4,16 @@ echten Git-Repositories)."""
 
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
-from gitrepos import SECRET, Denying, add_branches, make_server, serve
+from gitrepos import SECRET, Denying, add_branches, assume_foreign_owner, make_server, serve
 
 pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
-from test_web_k3_ui import git, goto, open_merge, sidebar_button, start
+from test_web_k3_ui import git, goto, main_button, open_merge, sidebar_button, start
 
 from sprintforecast import git as gitmod
 from sprintforecast import gitsync
@@ -203,6 +204,57 @@ def test_clone_tab_names_the_reason_for_a_bad_address(repo: Path, data_dir: Path
     errors = shown(at, "error")
     assert errors.count("Ungültige Adresse") == 1
     assert "Klonen fehlgeschlagen: Ungültige Adresse: Das Format wird nicht erkannt" in errors
+
+
+def clone(at: AppTest, url: str, target: Path) -> AppTest:
+    next(e for e in at.text_input if e.label == "Adresse").set_value(
+        url
+    ).run()  # schaltet „Klonen“ frei
+    at.text_input(key="data-clone").set_value(str(target))
+    return click(at, "data-clone-go")
+
+
+def test_clone_tab_shows_the_next_step_for_a_missing_repository(
+    repo: Path, data_dir: Path, tmp_path: Path, monkeypatch
+):
+    """Dort stand nur die Meldung von Git; der nächste Schritt (Adresse prüfen) fehlte."""
+    at = clone(
+        datenordner(data_dir, monkeypatch), str(tmp_path / "gibt-es-nicht.git"), tmp_path / "z"
+    )
+    errors = shown(at, "error")
+    assert "Klonen fehlgeschlagen" in errors and "does not exist" in errors
+    assert "Das Repository wurde nicht gefunden" in errors and "VPN" not in errors
+
+
+def test_clone_tab_names_the_fingerprint_for_an_unknown_ssh_server(
+    repo: Path, data_dir: Path, tmp_path: Path, monkeypatch
+):
+    real = gitmod._git_result
+
+    def host_key_failure(cwd, *args, **kwargs):
+        if args[:1] == ("clone",):
+            message = "Host key verification failed.\nfatal: Could not read from remote repository."
+            return subprocess.CompletedProcess(args, 128, "", message)
+        return real(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(gitmod, "_git_result", host_key_failure)
+    at = clone(datenordner(data_dir, monkeypatch), "git@example.org:team/daten.git", tmp_path / "z")
+    errors = shown(at, "error")
+    assert "Fingerabdruck" in errors and "ssh-keygen" not in errors
+
+
+def test_unsafe_folder_is_named_on_the_data_folder_page(repo: Path, data_dir: Path, monkeypatch):
+    """Statt „liegt in keinem Git-Repository“ (und dem Angebot, eines anzulegen)."""
+    assume_foreign_owner(monkeypatch, repo)
+    at = datenordner(data_dir, monkeypatch)
+    assert "Git hält den Ordner für unsicher" in shown(at, "error")
+    assert "keinem Git-Repository" not in shown(at, "caption")
+    at.text_input(key="data-path").set_value(str(repo))
+    main_button(at, "Übernehmen").click().run()
+    assert not at.exception, at.exception
+    assert "Git hält den Ordner für unsicher" in shown(at, "error")
+    assert "offer-init" not in at.session_state
+    assert not [w for w in at.warning if "keinem Git-Repository" in w.value]
 
 
 # --- U5-U8: Fehlerfälle und Bestätigungen -----------------------------------------------------

@@ -477,6 +477,19 @@ def test_probe_error_table(message: str, address: RemoteAddress, kind: str, hint
         assert "nicht erreichbar" not in error.hint
 
 
+def test_probe_certificate_hint_says_the_address_is_not_saved():
+    """Nur die Prüfung der Adresse sagt, dass sie nicht gespeichert wird; bei jedem anderen
+    Netzwerkaufruf steht derselbe Hinweis ohne diesen Zusatz."""
+    message = "fatal: unable to access 'https://h/r.git/': SSL certificate problem: x"
+    probe = gitmod._probe_error(message, HTTPS)
+    assert probe.kind == "certificate" and probe.hint.endswith(
+        "Die Adresse wird so nicht gespeichert."
+    )
+    general = gitmod.classify(message)
+    assert general.kind == "certificate" and "gespeichert" not in general.hint
+    assert probe.hint.startswith(general.hint)
+
+
 def test_probe_timeout_is_offline():
     error = gitmod._probe_error("", HTTPS, timed_out=True)
     assert error.kind == "offline" and "Tippfehler" in error.hint

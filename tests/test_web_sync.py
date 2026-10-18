@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from gitrepos import assume_foreign_owner
 
 pytest.importorskip("streamlit")
 
@@ -77,8 +78,8 @@ def test_own_changes_are_saved_and_shared(shared, data_dir: Path, monkeypatch):
 
 
 def test_offline_is_explained_and_nothing_is_lost(shared, data_dir: Path, monkeypatch):
-    root, _, server = shared
-    git(root, "remote", "set-url", "origin", str(server) + "-weg")
+    root, _, _server = shared
+    git(root, "remote", "set-url", "origin", "http://127.0.0.1:1/r.git")
     file = root / SPRINT
     file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
     invalidate_status()
@@ -88,6 +89,21 @@ def test_offline_is_explained_and_nothing_is_lost(shared, data_dir: Path, monkey
     assert "Server nicht erreichbar" in errors and "Internetverbindung" in errors
     assert git(root, "status", "--porcelain") == ""  # lokal gesichert
     assert "Server nicht erreichbar" in captions(at)
+
+
+def test_wrong_address_is_not_explained_as_offline(shared, data_dir: Path, monkeypatch):
+    """Das Repository gibt es unter der Adresse nicht (z. B. umbenannt): Der nächste Schritt ist
+    die Adresse, nicht Internet oder VPN."""
+    root, _, server = shared
+    git(root, "remote", "set-url", "origin", str(server) + "-weg")
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    press(at, "Speichern und teilen")
+    errors = " ".join(e.value for e in at.sidebar.error)
+    assert "Repository nicht gefunden" in errors and "Adresse" in errors
+    assert "Server nicht erreichbar" not in errors and "VPN" not in errors
+    assert "Server nicht erreichbar" not in captions(at)
+    assert "Server meldet: Repository nicht gefunden" in captions(at)
 
 
 def make_value_conflict(root: Path, bob: Path) -> Path:
@@ -189,10 +205,81 @@ def test_unfinished_merge_offers_abort(shared, data_dir: Path, monkeypatch):
     assert "velocity: 7" in mine.read_text()
 
 
+def detach_with_open_change(root: Path, orphan_commit: bool = False) -> None:
+    """Lose auf dem Stand vor der letzten Änderung von ``main``, mit offener Änderung an derselben
+    Datei (der Wechsel zurück würde sie überschreiben); optional mit einem Commit ohne Branch."""
+    sprint = root / SPRINT
+    original = sprint.read_text(encoding="utf-8")
+    sprint.write_text(original.replace("velocity: 9.75", "velocity: 8"), encoding="utf-8")
+    git(root, "commit", "-qam", "Neuer Stand")
+    git(root, "checkout", "-q", "--detach", "HEAD~1")
+    if orphan_commit:
+        (root / "teams" / "neu.yaml").write_text("x: 1\n", encoding="utf-8")
+        git(root, "add", "-A")
+        git(root, "commit", "-qm", "auf losem Stand")
+    sprint.write_text(original.replace("velocity: 9.75", "velocity: 99"), encoding="utf-8")
+    invalidate_status()
+
+
+def test_reattach_with_open_changes_explains_the_way_out(shared, data_dir: Path, monkeypatch):
+    root, _, _ = shared
+    detach_with_open_change(root)
+    at = start(data_dir, monkeypatch)
+    press(at, "Zurück auf den Branch")
+    errors = " ".join(e.value for e in at.sidebar.error)
+    assert "Kein Branch ausgewählt (detached HEAD)" in errors
+    assert "Änderungen und Verlauf" in errors and "gehen dabei verloren" in errors
+    assert "zuerst committen" not in errors and "außerhalb des Datenordners" not in errors
+    assert "velocity: 99" in (root / SPRINT).read_text(encoding="utf-8")  # nichts überschrieben
+
+
+def test_reattach_names_the_rescue_branch(shared, data_dir: Path, monkeypatch):
+    root, _, _ = shared
+    detach_with_open_change(root, orphan_commit=True)
+    git(root, "checkout", "--", ".")  # keine offene Änderung mehr
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    press(at, "Zurück auf den Branch")
+    rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    assert rescue.startswith("rettung-")
+    shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
+    assert "Zurück auf den Branch main." in shown
+    assert f"Rettungsbranch `{rescue}`" in shown
+
+
+def test_reattach_without_orphan_commits_names_no_rescue_branch(
+    shared, data_dir: Path, monkeypatch
+):
+    root, _, _ = shared
+    git(root, "checkout", "-q", "--detach")
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    press(at, "Zurück auf den Branch")
+    shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
+    assert "Zurück auf den Branch main." in shown and "Rettungsbranch" not in shown
+
+
 def test_git_missing_is_explained(data_dir: Path, monkeypatch):
     monkeypatch.setenv("PATH", "")
     at = start(data_dir, monkeypatch)
     assert any("Git ist nicht installiert" in e.value for e in at.sidebar.error)
+
+
+def test_unsafe_directory_is_named_in_the_sidebar_and_on_the_history_page(
+    shared, data_dir: Path, monkeypatch
+):
+    """Git lehnt den Ordner ab (anderer Besitzer): Die Oberfläche sagt das, statt „liegt in
+    keinem Git-Repository“."""
+    root, _, _ = shared
+    assume_foreign_owner(monkeypatch, root)
+    at = start(data_dir, monkeypatch)
+    errors = " ".join(e.value for e in at.sidebar.error)
+    assert "Git hält den Ordner für unsicher" in errors and "Betreuung des Rechners" in errors
+    assert "keinem Git-Repository" not in captions(at)
+    at.switch_page("seiten/verlauf.py").run()
+    assert not at.exception, at.exception
+    assert "Git hält den Ordner für unsicher" in " ".join(e.value for e in at.main.error)
+    assert not [i for i in at.main.info if "keinem Git-Repository" in i.value]
 
 
 def open_history(at: AppTest) -> AppTest:
