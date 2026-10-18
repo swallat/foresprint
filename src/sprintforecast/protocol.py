@@ -209,6 +209,10 @@ def _lock_dir() -> Path:
         _private_dir(root)
     except OSError:
         return _fallback_lock_dir()
+    # Ein vorhandener, nicht beschreibbarer Ordner (``exist_ok`` gelingt trotzdem) taugt nicht.
+    # Unter Windows sagt ``access`` nichts über Zugriffsrechte; dort sichert :func:`_open_lock` ab.
+    if not os.access(root, os.W_OK | os.X_OK):
+        return _fallback_lock_dir()
     return root
 
 
@@ -217,6 +221,24 @@ def _lock_file(folder: Path, sprint_id: str, kind: str) -> Path:
     Sprint und Termin eine."""
     key = hashlib.sha256(f"{folder.resolve()}|{sprint_id}|{kind}".encode()).hexdigest()[:24]
     return _lock_dir() / f"{key}.lock"
+
+
+def _open_lock(path: Path) -> IO[bytes]:
+    """Öffnet die Sperrdatei. Geht das nicht (z. B. Einstellungsordner ohne Schreibrecht), gilt
+    dieselbe Datei im benutzerspezifischen Temp-Ordner; alle Sitzungen mit denselben Rechten landen
+    so bei derselben Sperrdatei. Scheitert auch das, kommt ein :class:`FileAccessError`."""
+    try:
+        return path.open("a+b")
+    except OSError as e:
+        first = e
+    fallback_dir = _fallback_lock_dir()
+    if fallback_dir == path.parent:  # das war schon der Ausweichordner
+        raise _not_saved(path, first) from first
+    fallback = fallback_dir / path.name
+    try:
+        return fallback.open("a+b")
+    except OSError as e:
+        raise _not_saved(fallback, e) from e
 
 
 def _try_lock(handle: IO[bytes]) -> bool:
@@ -255,11 +277,7 @@ def _locked(folder: Path, sprint_id: str, kind: str) -> Iterator[None]:
     endet mit dem Prozess von selbst, braucht keine Erkennung verwaister Sperren und keine Uhr. Wer
     wartet, wartet bis ``LOCK_WAIT_SECONDS``. Zwischen Klonen auf verschiedenen Rechnern wirkt sie
     nicht; dort schützt der aus dem Inhalt abgeleitete Dateiname."""
-    path = _lock_file(folder, sprint_id, kind)
-    try:
-        handle = path.open("a+b")
-    except OSError as e:
-        raise _not_saved(path, e) from e
+    handle = _open_lock(_lock_file(folder, sprint_id, kind))
     try:
         deadline = time.monotonic() + LOCK_WAIT_SECONDS
         while not _try_lock(handle):
