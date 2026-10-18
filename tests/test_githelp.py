@@ -70,8 +70,9 @@ def test_help_explains_the_ssh_fingerprint():
 def test_help_explains_back_to_the_branch_with_open_changes():
     text = entry("Unvollständiges Zusammenführen, detached HEAD")
     assert "auf einem Rettungsbranch gesichert, dessen Namen die Meldung nennt" in text
-    assert "der Rettungsbranch bleibt bestehen" in text and "Änderungen und Verlauf" in text
+    assert "der Rettungsbranch bleibt bestehen" in text and "ebenfalls dort gesichert" in text
     assert "außerhalb" in text and "Technische Meldung" in text
+    assert "verwerfen (sie gehen" not in text
     assert "zuerst committen" not in text  # auf einem Stand ohne Branch geht das nicht
 
 
