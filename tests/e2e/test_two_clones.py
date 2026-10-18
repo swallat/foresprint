@@ -3,6 +3,7 @@
 verschiedener Personen, ein absichtlicher Wertkonflikt samt Konfliktseite, Neustart mitten im
 Konflikt und Tags. (Zwei Tabs im selben Klon gibt es in der Praxis nicht und werden nicht getestet.)"""
 
+import time
 from pathlib import Path
 
 import pytest
@@ -62,6 +63,33 @@ def test_absences_of_different_people_merge_without_conflict(clones, new_page):
     assert absence_cell(pa, "Anna", SPRINT) == "2"
     assert absence_cell(pa, "Dana", SPRINT) == "1"
     assert git(alice.data_dir.parent, "status", "--porcelain") == ""
+
+
+def test_sharing_still_reports_when_another_rerun_comes_during_the_sync(clones, new_page):
+    """Streamlit stoppt den Rückruf von „Speichern und teilen“, sobald mitten im Abgleich ein
+    weiterer Durchlauf angefordert wird (hier: eine Eingabe auf der Seite). Der Abgleich läuft
+    zu Ende; die Meldung darf trotzdem nicht fehlen und die Seitenleiste nicht den Stand
+    mittendrin zeigen. Das Hochladen dauert (Hook im Klon), damit der zweite Durchlauf sicher
+    in den Abgleich fällt; die Marke zeigt, dass der Abgleich bis dorthin gekommen ist."""
+    alice, bob, bare = clones()
+    pa, pb = new_page(), new_page()
+    change_absence(pa, alice, "Anna", "2")
+    shared(pa, "Hochgeladen")
+    change_absence(pb, bob, "Dana", "1")
+    mark = bob.data_dir.parent.parent / "push-started"
+    hook = bob.data_dir.parent / ".git" / "hooks" / "pre-push"
+    hook.write_text(f"#!/bin/sh\ntouch '{mark.as_posix()}'\nsleep 3\n", encoding="utf-8")
+    hook.chmod(0o755)
+    alerts = share(pb)
+    deadline = time.monotonic() + 20
+    while not mark.exists():
+        assert time.monotonic() < deadline, "der Abgleich kam nicht bis zum Hochladen"
+        pb.wait_for_timeout(50)
+    main_area(pb).get_by_role("button", name="Increment").first.click()  # zweiter Durchlauf
+    expect(alerts.filter(has_text="von anderen übernommen").first).to_be_visible()
+    expect(alerts.filter(has_text="Hochgeladen").first).to_be_visible()
+    on_server = server_absences(bare)
+    assert on_server["anna"] == 2 and on_server["dana"] == 1
 
 
 def make_value_conflict(clones, new_page) -> tuple[App, App, Path, Page]:

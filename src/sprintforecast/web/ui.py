@@ -14,6 +14,7 @@ import copy
 import os
 import subprocess
 import sys
+import threading
 import time
 from collections.abc import Callable
 from datetime import date
@@ -22,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 import streamlit as st
 import yaml
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
@@ -4164,20 +4166,28 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
     st.session_state["commit_message"] = _commit_default()
 
 
-def _sync_clicked(
-    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
-) -> None:
-    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
-    message = st.session_state.get("commit_message", "").strip() or _commit_default()
-    use_tags = tags and st.session_state.get("use_tags", True)
-    result = sync(
-        root,
-        message,
-        tags if use_tags else None,
-        today(),
-        allow_invalid=allow_invalid,
-        allow_unrelated=allow_unrelated,
-    )
+# „Speichern und teilen“ läuft im Rückruf des Knopfs, im Skript-Thread. Kommt währenddessen eine
+# weitere Anforderung des Browsers (zweiter Klick, Eingabe, ein nachlaufender Durchlauf nach dem
+# Speichern), startet Streamlit sofort einen neuen Durchlauf und stoppt den alten bei dessen
+# nächster Berührung von ``st.session_state``. Der alte Rückruf bricht dann nach dem Abgleich ab,
+# bevor er das Ergebnis ablegt: Der Abgleich ist gelaufen, die Meldung fehlt für immer, und der
+# neue Durchlauf zeigt die Seitenleiste mitten im Abgleich (Commit gemacht, Zusammenführen und
+# Hochladen scheinbar nicht). Darum liegt das Ergebnis zuerst in ``_SYNC_DONE`` (ein einfaches
+# Wörterbuch ohne Haltepunkt), jeder Durchlauf wartet zu Beginn auf einen noch laufenden Abgleich
+# (``_SYNC_LOCK``) und holt ein dort liegendes Ergebnis nach (``collect_sync_result``), und ein
+# zweiter Klick startet keinen zweiten Abgleich.
+_SYNC_LOCK = threading.Lock()
+_SYNC_DONE: dict[str, SyncResult] = {}
+
+
+def _session_key() -> str:
+    ctx = get_script_run_ctx()
+    return ctx.session_id if ctx is not None else ""
+
+
+def _remember_sync_result(result: SyncResult) -> None:
+    """Legt das Ergebnis eines Abgleichs im Sitzungszustand ab und bereinigt den Zustand, der
+    davon abhängt. Darf mehrfach laufen (auch nach einem abgebrochenen ersten Versuch)."""
     if result.committed:
         st.session_state["pending_tags"] = []
         st.session_state["commit_message"] = _commit_default()
@@ -4192,6 +4202,43 @@ def _sync_clicked(
         st.session_state.pop("unrelated", None)
     if result.pulled_files:
         clear_team_cache()  # Dateien haben sich geändert: neu laden
+
+
+def collect_sync_result() -> None:
+    """Am Anfang jedes Durchlaufs, vor jeder Git-Abfrage: auf einen noch laufenden Abgleich
+    warten (er gehört zu einem gestoppten, älteren Durchlauf) und sein Ergebnis übernehmen,
+    falls jener Durchlauf es nicht mehr ablegen konnte."""
+    key = _session_key()
+    with _SYNC_LOCK:
+        result = _SYNC_DONE.get(key)
+    if result is not None:
+        _remember_sync_result(result)
+        _SYNC_DONE.pop(key, None)  # erst jetzt: Bricht auch dieser Durchlauf ab, bleibt es liegen
+
+
+def _sync_clicked(
+    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
+) -> None:
+    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
+    if not _SYNC_LOCK.acquire(blocking=False):
+        return  # ein Abgleich läuft schon (zweiter Klick); er meldet sein Ergebnis selbst
+    key = _session_key()
+    try:
+        message = st.session_state.get("commit_message", "").strip() or _commit_default()
+        use_tags = tags and st.session_state.get("use_tags", True)
+        result = sync(
+            root,
+            message,
+            tags if use_tags else None,
+            today(),
+            allow_invalid=allow_invalid,
+            allow_unrelated=allow_unrelated,
+        )
+        _SYNC_DONE[key] = result
+    finally:
+        _SYNC_LOCK.release()
+    _remember_sync_result(result)
+    _SYNC_DONE.pop(key, None)
 
 
 def _unrelated_cancel() -> None:
