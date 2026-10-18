@@ -177,8 +177,9 @@ def completion(
     z. B. Roadmap-Anteil × Projektanteil (0,8 × 0,5 = 0,4).
 
     Je Sprint wird zufällig eine normierte Velocity der letzten Sprints gezogen und mit der
-    Kapazität des Sprints umgerechnet. Für Sprints ohne erfasste Fehltage wird statt des
-    (über viele Sprints instabilen) Trends die Ø Kapazität der letzten Sprints genommen.
+    Kapazität des Sprints umgerechnet. Für Sprints ohne Personenliste (Kapazität nur als Trend)
+    wird statt des (über viele Sprints instabilen) Trends die Ø Kapazität der letzten Sprints
+    genommen.
     """
     longer = copy.deepcopy(data)
     longer.team.forecast.horizon = max_sprints
