@@ -190,6 +190,7 @@ from sprintforecast.storage import (
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
+    save_sprints_together,
     team_key_problem,
     team_version,
     teams_dir,
@@ -3109,7 +3110,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 protocol,
                 now,
                 to_save,
-                lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
+                lambda: save_sprints_together(repo, data.team.key, to_save),
             )  # Protokoll: nicht in der Meldung
 
         if save(with_sprints(data, to_save), [f"{s.id}.yaml" for s in to_save], write, flash=True):

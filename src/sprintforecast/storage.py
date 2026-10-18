@@ -1069,6 +1069,35 @@ class Repository:
         return path
 
 
+def save_sprints_together(repo: Repository, key: str, sprints: list[Sprint]) -> list[Path]:
+    """Schreibt mehrere Sprintdateien ganz oder gar nicht: Scheitert eine, werden die schon
+    geschriebenen auf ihren vorherigen Stand zurückgesetzt (neue Dateien entfernt)."""
+    before: dict[Path, bytes | None] = {}
+    for s in sprints:
+        path = repo.sprint_path(key, s.id)
+        try:
+            before[path] = path.read_bytes() if path.is_file() else None
+        except OSError as e:
+            raise _not_readable(path, e) from e
+    written: list[Path] = []
+    try:
+        for s in sprints:
+            written.append(repo.save_sprint(key, s))
+    except BaseException:
+        for path in written:
+            old = before[path]
+            try:
+                if old is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(old)
+            except OSError:
+                pass  # der ursprüngliche Fehler zählt; die Meldung nennt die Datei
+        clear_team_cache()
+        raise
+    return written
+
+
 def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[Path]:
     """Übernimmt Sprints (z. B. aus einem Import-Plugin). Ein neues Team wird mit ``team``
     angelegt; bei einem vorhandenen Team bleiben Einstellungen und Personen erhalten und
