@@ -9,6 +9,7 @@ ein Termin hinfällig (z. B. beim Aufheben des Einfrierens), heißt das alte Pro
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import hashlib
 import re
 from collections.abc import Callable
@@ -213,6 +214,15 @@ def write_protocol(
     return write_protocol_new(repo, team, sprint_id, kind, text, now, state)[0]
 
 
+def _persisted(repo: Repository, team: str, sprint: Sprint) -> dict:
+    """Die Sprintdatei so, wie ``save_sprint`` sie schreibt – mit festgelegtem Stand der Fehltage
+    (``save_sprint`` legt ihn beim Speichern fest; sonst wichen Fingerabdruck und Datei ab)."""
+    copy = dataclasses.replace(sprint)
+    if copy.absence_state is None:
+        copy.absence_state = repo._pinned_absence_state(repo.sprint_path(team, sprint.id), copy)
+    return sprint_to_dict(copy)
+
+
 def save_with_protocol(
     repo: Repository,
     team: str,
@@ -226,7 +236,7 @@ def save_with_protocol(
     """Schreibt erst das Protokoll, dann ``save`` (die Sprintdateien). Ist das Protokoll nicht
     schreibbar, bleibt die Sprintdatei unverändert; scheitert ``save``, wird das eben geschriebene
     Protokoll wieder entfernt – beides gelingt oder keines."""
-    state = fingerprint(text, *(sprint_to_dict(s) for s in sprints))
+    state = fingerprint(text, *(_persisted(repo, team, s) for s in sprints))
     path, created = write_protocol_new(repo, team, sprint_id, kind, text, now, state)
     try:
         return save()

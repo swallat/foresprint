@@ -198,6 +198,30 @@ def test_a_failing_multi_sprint_save_restores_the_earlier_files(
     assert [p.name for p in paths] == ["2026.21.yaml", "2026.22.yaml"]
 
 
+def test_saving_the_same_state_twice_writes_one_protocol_even_with_a_pinned_state(tmp_path: Path):
+    """``save_sprint`` legt den Stand der Fehltage beim Speichern fest; der Fingerabdruck muss den
+    festgelegten Stand schon vorher enthalten, sonst gälte die zweite Speicherung als neu."""
+    from sprintforecast.model import ProductValues
+    from sprintforecast.storage import _read, sprint_from_dict
+
+    repo = Repository(tmp_path)
+    # Ältere Datei, die nur die PO-Vorplanung enthält: Fehltage unbekannt, nichts festgelegt.
+    repo.save_sprint("demo", sprint_stub(products={"kwg": ProductValues(preplanned=1.0)}))
+    path = repo.sprint_path("demo", "2026.21")
+
+    def save_twice() -> int:
+        for _ in range(2):
+            sprint = sprint_from_dict(_read(path), str(path))  # wie die Seite: aus der Datei
+            sprint.forecast_ist = 12.0  # das Planning trägt das Commitment ein
+            save_with_protocol(
+                repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nx\n", NOW, [sprint],
+                lambda sprint=sprint: [repo.save_sprint("demo", sprint)],
+            )  # fmt: skip
+        return len(list_protocols(repo, "demo", "2026.21"))
+
+    assert save_twice() == 1
+
+
 def test_a_protocol_with_invalid_utf8_does_not_break_writing(tmp_path: Path):
     repo = Repository(tmp_path)
     folder = tmp_path / "demo" / "protokolle"
