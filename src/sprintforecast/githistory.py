@@ -24,6 +24,7 @@ from sprintforecast.git import (
     GitError,
     _git,
     changes_in,
+    split_record,
     split_z,
 )
 from sprintforecast.gitsync import _git_dir, _root, state
@@ -579,7 +580,7 @@ def list_tags(path: Path, check_server: bool = False) -> list[Tag]:
     )
     local: list[tuple[Tag, str]] = []
     for line in out.splitlines():
-        name, deref_full, obj_full, deref, obj, day, subject = line.split(_SEP, 6)
+        name, deref_full, obj_full, deref, obj, day, subject = split_record(line, 7, _SEP)
         local.append((Tag(name, deref or obj, day, subject), deref_full or obj_full))
     server: dict[str, str] | None = None
     remote = _remote(root) if check_server else None

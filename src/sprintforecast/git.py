@@ -173,6 +173,15 @@ def _git(
     return proc.stdout.strip() if strip else proc.stdout
 
 
+def split_record(line: str, count: int, sep: str = "\x1f") -> list[str]:
+    """Zerlegt eine Zeile mit ``sep`` getrennter Felder in genau ``count`` Felder. ``_git``
+    schneidet Leerraum am Ende der Ausgabe ab, und dazu zählt auch das Trennzeichen \\x1f: Ist
+    das letzte Feld der letzten Zeile leer (etwa der Betreff eines Commits ohne Text), fehlt es
+    in der Zeile. Fehlende Felder am Ende gelten als leer."""
+    fields = line.split(sep, count - 1)
+    return fields + [""] * (count - len(fields))
+
+
 def split_z(out: str) -> list[str]:
     """Zerlegt NUL-getrennte Git-Ausgabe (``-z``) in ihre Einträge. Nur so bleiben Pfade mit
     Umlauten, Anführungszeichen oder Tabulatoren unverändert (ohne ``-z`` setzt Git sie in
