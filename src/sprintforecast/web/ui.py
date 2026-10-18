@@ -5046,11 +5046,11 @@ def run_page(key: str) -> None:
         st.error(str(e))
         return
     _discard_stale_inputs(repo, team)
-    # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
-    fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
     try:
+        # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
+        fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
         TEAM_PAGES[key](repo, data, fc)
-    except FileAccessError as e:  # Schreib- oder Löschfehler außerhalb von save()
+    except DataError as e:  # Schreib- oder Löschfehler außerhalb von save(), Sprintfolge unklar
         st.error(str(e))
     finally:
         # Auch nach ``st.rerun()`` (eine Ausnahme): Der eigene Speicherstand gilt als gesehen,
