@@ -2331,7 +2331,9 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
             (t("Überkipper ({unit})", unit=unit), fmt(carryover, 2)),
             (f"Backlog ({unit})", fmt(backlog, 2)),
         ],
-        d=distribution(fc_after, e_after) if e_after and data.products else None,
+        d=distribution(fc_after, e_after)
+        if e_after and data.products and data.team.features.products
+        else None,
         show_po=data.team.features.po,
     )
 
@@ -2833,7 +2835,7 @@ def _protocols(repo: Repository, data: TeamData, sprint_id: str, kind: str) -> N
         )
         try:
             text = chosen.read_text(encoding="utf-8")
-        except OSError as e:
+        except (OSError, UnicodeDecodeError) as e:
             st.error(t("Protokoll nicht lesbar: {reason}", reason=str(e)))
             return
         st.markdown(text)
