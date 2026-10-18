@@ -245,11 +245,12 @@ def _write(path: Path, header: str, content: dict[str, Any]) -> None:
         raise _not_saved(path, e) from e
 
 
-def write_text(path: Path, text: str) -> None:
+def write_text(path: Path, text: str, newline: str | None = None) -> None:
     """Schreibt eine Textdatei (z. B. den Bericht) über eine Zwischendatei; Fehler wie bei
-    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF)."""
+    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF), mit
+    ``newline="\\n"`` immer LF."""
     try:
-        _replace_with(path, text, newline=None)
+        _replace_with(path, text, newline=newline)
     except OSError as e:
         raise _not_saved(path, e) from e
 
