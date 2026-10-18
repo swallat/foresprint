@@ -2005,8 +2005,10 @@ def _production_split_note(fc: Forecast, entry: Any, data: TeamData, unit: str) 
     capacity = entry.result.plan_capacity
     if d.production_state != "ok" or share is None or capacity is None or d.available is None:
         return None
+    # Beide Mengen vom aktuellen Forecast PLAN: ``d.production_available`` rechnet mit dem beim
+    # Planning eingefrorenen Wert und ergäbe zusammen mit dem aktuellen keine saubere Aufteilung.
     plan = entry.result.plan
-    prod_plan = d.production_available
+    prod_plan = None if plan is None else plan * share
     return t(
         "Kapazität: {prod_cap} PT mit Produktionszugriff ({share}), {rest_cap} PT ohne · "
         "Forecast PLAN: bis zu {prod_plan} {unit} für Tickets mit Produktionszugriff, "
