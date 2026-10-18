@@ -169,7 +169,16 @@ def build_workbook(fc: Forecast) -> bytes:
     unit = team.unit.value
 
     buf = io.BytesIO()
-    wb = xw.Workbook(buf, {"in_memory": True, "nan_inf_to_errors": True})
+    wb = xw.Workbook(
+        buf,
+        {
+            "in_memory": True,
+            "nan_inf_to_errors": True,
+            # Importierte Texte (Notizen, Namen) beginnen vielleicht mit "=": als Text schreiben.
+            "strings_to_formulas": False,
+            "strings_to_urls": False,
+        },
+    )
     bold = wb.add_format({"bold": True, "text_wrap": True, "valign": "top", "bg_color": "#E8EEF7"})
     date_f = wb.add_format({"num_format": "dd.mm.yyyy"})
     n2 = wb.add_format({"num_format": "0.00"})
