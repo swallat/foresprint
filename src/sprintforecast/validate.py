@@ -7,6 +7,10 @@ import itertools
 from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import StrEnum
+from pathlib import Path
+
+import yaml
+from yaml.constructor import SafeConstructor
 
 from sprintforecast.calendar import (
     countries,
@@ -17,7 +21,7 @@ from sprintforecast.calendar import (
     weekend_from_workweek,
 )
 from sprintforecast.i18n import t
-from sprintforecast.storage import DataError, Repository, TeamData
+from sprintforecast.storage import DataError, Repository, TeamData, compose_yaml
 
 
 class Level(StrEnum):
@@ -404,11 +408,141 @@ def issues_for(data: TeamData, today: date, filenames: list[str]) -> list[Issue]
     return [i for i in check_team(data, today) if any(name in i.where for name in filenames)]
 
 
+# --- Stille Annahmen beim Laden --------------------------------------------------------
+#
+# Das Laden ändert sich dadurch nicht: Ein doppelter Schlüssel gilt weiter als „der letzte
+# gewinnt“, ein leerer Wert als 0. Die Prüfung macht das nur sichtbar. Gemeldet werden leere
+# Werte nur dort, wo eine Zahl erwartet wird und das Programm den Leerwert still als 0 liest.
+# Absichtlich leere Felder (``to:``, ``capacity:``, ``forecast_ist:``, ``region:`` …) sind
+# gültig und bleiben ohne Meldung.
+
+_EMPTY_AS_ZERO: tuple[tuple[str, ...], ...] = (
+    ("people", "*", "memberships", "*", "fte"),
+    ("planning", "carryover"),
+    ("planning", "backlog"),
+    ("planning", "corrections", "*"),
+    ("absences", "*"),
+    ("expected_absences", "*"),
+    ("prognoses", "*", "preplanned", "*"),
+)
+_NULL_TAG = "tag:yaml.org,2002:null"
+_STR_TAG = "tag:yaml.org,2002:str"
+_MERGE_TAG = "tag:yaml.org,2002:merge"
+
+
+def _format_path(path: tuple[str | int, ...]) -> str:
+    out = ""
+    for part in path:
+        out += f"[{part}]" if isinstance(part, int) else (f".{part}" if out else part)
+    return out
+
+
+def _is_empty_value(node: yaml.Node) -> bool:
+    if not isinstance(node, yaml.ScalarNode):
+        return False
+    return node.tag == _NULL_TAG or (node.tag == _STR_TAG and node.value == "")
+
+
+def _matches(path: tuple[str | int, ...], pattern: tuple[str, ...]) -> bool:
+    return len(path) == len(pattern) and all(
+        want == "*" or want == str(got) for want, got in zip(pattern, path, strict=True)
+    )
+
+
+def _key_of(node: yaml.Node) -> str:
+    """Schlüssel so, wie das Programm ihn liest (``1`` und ``"1"`` sind derselbe Schlüssel)."""
+    try:
+        return str(SafeConstructor().construct_object(node, deep=True))
+    except Exception:
+        return str(getattr(node, "value", ""))
+
+
+def check_yaml_text(text: str, name: str) -> list[Issue]:
+    """Doppelte Schlüssel und still als 0 gelesene Leerwerte in einer YAML-Datei (als Hinweis)."""
+    try:
+        root = compose_yaml(text)
+    except yaml.YAMLError:
+        return []  # ungültiges YAML meldet das Laden als Fehler
+    issues: list[Issue] = []
+    seen: set[int] = set()
+
+    def walk(node: yaml.Node, path: tuple[str | int, ...]) -> None:
+        if id(node) in seen:  # Verweis (&anker/*anker) auf einen schon besuchten Knoten
+            return
+        seen.add(id(node))
+        if isinstance(node, yaml.SequenceNode):
+            for i, item in enumerate(node.value):
+                walk(item, (*path, i))
+        elif isinstance(node, yaml.MappingNode):
+            lines: dict[str, list[int]] = {}
+            for key_node, value_node in node.value:
+                if key_node.tag == _MERGE_TAG:
+                    walk(value_node, path)
+                    continue
+                key = _key_of(key_node)
+                lines.setdefault(key, []).append(key_node.start_mark.line + 1)
+                walk(value_node, (*path, key))
+            for key, found in lines.items():
+                if len(found) > 1:
+                    where = _format_path((*path, key))
+                    issues.append(
+                        Issue(
+                            Level.WARNING,
+                            name,
+                            t(
+                                "Der Schlüssel '{where}' steht mehrfach in der Datei (Zeilen "
+                                "{lines}). Das Programm liest nur den letzten Eintrag "
+                                "(Zeile {last}), die anderen werden stillschweigend ignoriert. "
+                                "Bitte die überzähligen Zeilen löschen und den richtigen Wert "
+                                "stehen lassen.",
+                                where=where,
+                                lines=", ".join(str(n) for n in found),
+                                last=found[-1],
+                            ),
+                        )
+                    )
+        elif _is_empty_value(node) and any(_matches(path, p) for p in _EMPTY_AS_ZERO):
+            issues.append(
+                Issue(
+                    Level.WARNING,
+                    name,
+                    t(
+                        "Der Wert von '{where}' (Zeile {line}) ist leer. Das Programm rechnet "
+                        "dort stillschweigend mit 0. Bitte eine Zahl eintragen (0, wenn es "
+                        "wirklich null sein soll).",
+                        where=_format_path(path),
+                        line=node.start_mark.line + 1,
+                    ),
+                )
+            )
+
+    if root is not None:
+        walk(root, ())
+    return issues
+
+
+def check_team_files(base: Path) -> list[Issue]:
+    """Stille Annahmen in den Dateien eines Teams (Ordner ``base``): doppelte Schlüssel und
+    leere Zahlenfelder, je als Hinweis mit Dateiname, Zeile und Schlüsselpfad."""
+    files = [base / "team.yaml", base / "people.yaml", base / "products.yaml"]
+    files += sorted((base / "sprints").glob("*.yaml"))
+    issues: list[Issue] = []
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError, UnicodeDecodeError:
+            continue  # fehlende oder unlesbare Dateien meldet das Laden
+        name = path.relative_to(base).as_posix()
+        issues += check_yaml_text(text, name)
+    return issues
+
+
 def check_all(repo: Repository, today: date) -> dict[str, list[Issue]]:
     result = {}
     for key in repo.teams():
         try:
-            result[key] = check_team(repo.load(key), today)
+            data = repo.load(key)
+            result[key] = check_team(data, today) + check_team_files(repo.team_dir(key))
         except DataError as e:
             result[key] = [Issue(Level.ERROR, key, str(e))]
     return result
