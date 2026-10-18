@@ -1,12 +1,17 @@
 # SPDX-License-Identifier: EUPL-1.2
+import re
+import shutil
 from datetime import date
 from pathlib import Path
 
 import pytest
 import yaml
+from gitrepos import git
 from typer.testing import CliRunner
 
+from sprintforecast import cli
 from sprintforecast.cli import app
+from sprintforecast.guide import COMMAND_ALIASES, COMMANDS
 
 runner = CliRunner(env={"COLUMNS": "200"})
 
@@ -33,6 +38,51 @@ def test_forecast_and_report(data_dir: Path):
     assert "# Sprint-Forecast Demo-Team" in report
     assert "| 2026.21 |" in report and "**laufend**" in report
     assert "```mermaid" in report
+
+
+def test_forecast_table_has_a_range_column(data_dir: Path):
+    result = run(data_dir, "forecast", "demo")
+    assert result.exit_code == 0, result.output
+    assert "Spanne" in result.output
+    rows = {
+        line.split("│")[1].strip(): line
+        for line in result.output.splitlines()
+        if line.startswith("│ 2026.")
+    }
+    # 2026.21 läuft, 2026.22 bis .24 sind geplant; abgeschlossene Sprints haben keine Spanne
+    for sprint, expected in {
+        "2026.21": "8,5–10,5",
+        "2026.22": "10,0–12,3",
+        "2026.23": "10,2–12,5",
+        "2026.24": "10,2–12,5",
+    }.items():
+        assert expected in rows[sprint], rows[sprint]
+    assert not re.search(r"\d,\d+–\d", rows["2026.20"]), rows["2026.20"]
+
+    report = run(data_dir, "bericht", "demo", "-o", "-").output
+    assert "**Forecast PLAN** (PT) | Spanne |" in report
+    forecast_rows = {}
+    for line in report.splitlines():
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if line.startswith("| 2026.") and len(cells) == 9:  # Prognosetabelle
+            forecast_rows[cells[0]] = cells
+    assert forecast_rows["2026.22"][5:7] == ["**11,2**", "10,0–12,3"]
+    assert forecast_rows["2026.21"][5:7] == ["**9,5**", "8,5–10,5"]
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--rest", "nan"],
+        ["--rest", "inf"],
+        ["--rest", "1e999"],
+        ["--rest", "10", "--anteil", "nan"],
+    ],
+)
+def test_analyse_rejects_non_finite_options(data_dir: Path, args: list[str]):
+    result = run(data_dir, "analyse", "demo", *args)
+    assert result.exit_code == 2, result.output
+    assert "endliche Zahl" in result.output
 
 
 def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_list(
@@ -73,6 +123,15 @@ def test_fehltage_rejects_invalid_number(data_dir: Path):
     assert "Bitte eine Zahl eingeben" in result.output
 
 
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
+def test_fehltage_rejects_non_finite_number(data_dir: Path, raw: str):
+    result = run(data_dir, "fehltage", "demo", "2026.23", input=f"{raw}\n1\n0\n0\n0\n")
+    assert result.exit_code == 0, result.output
+    assert "Bitte eine endliche Zahl eingeben" in result.output
+    sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
+    assert sprint["absences"] == {"anna": 1}
+
+
 def test_review_freezes_capacity(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
     result = run(data_dir, "review", "demo", "2026.21", input="y\n9,5\n0.1\nn\n")
@@ -91,6 +150,15 @@ def test_planning_reports_delta(data_dir: Path):
     assert sprint["forecast_ist"] == 9
     assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
     assert "Delta 1,00" in result.output  # Forecast PLAN 9,5 − Planning 8,5
+
+
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999", "0.5 nan"])
+def test_planning_rejects_non_finite_corrections(data_dir: Path, raw: str):
+    result = run(data_dir, "planning", "demo", "2026.21", input=f"n\nn\ny\n1\n8\n{raw}\n0.5\n9\n")
+    assert result.exit_code == 0, result.output
+    assert "Bitte eine endliche Zahl eingeben" in result.output
+    sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
+    assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
 
 
 def test_personen_change_fte(data_dir: Path):
@@ -130,6 +198,40 @@ def test_init_new_team(tmp_path: Path):
     assert team["sprint"]["first"] == {"id": "2026.20", "start": date(2026, 10, 14)}
     assert team["forecast"]["reference_capacity"] == 40
     assert run(tmp_path, "pruefen").exit_code == 0
+
+
+@pytest.mark.parametrize("key", ["../x", "a/b", "..", " x", "Team-A", "con", "nul", "a" * 65])
+def test_init_rejects_invalid_key(tmp_path: Path, key: str):
+    data_dir = tmp_path / "teams"
+    data_dir.mkdir()
+    result = run(data_dir, "init", key)
+    assert result.exit_code == 1
+    assert "Kürzel" in result.output
+    assert "Neues Team" not in result.output  # es wird gar nicht erst gefragt
+    assert list(tmp_path.rglob("*")) == [data_dir]  # weder darin noch daneben etwas angelegt
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"), [("Alt.Team_X", "existiert bereits."), ("alt.team_x", "(als 'Alt.Team_X'")]
+)
+def test_init_names_an_existing_team_before_complaining_about_the_key(
+    data_dir: Path, key: str, expected: str
+):
+    """Ein Altteam mit Großbuchstaben oder Punkt: „existiert bereits“ statt der Kürzelregel,
+    auch wenn nur die Schreibweise abweicht (auf Windows und macOS derselbe Ordner)."""
+    shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
+    result = run(data_dir, "init", key)
+    assert result.exit_code == 1
+    assert "existiert bereits" in result.output and expected in result.output
+    assert "Kürzel" not in result.output
+    assert sorted(p.name for p in data_dir.iterdir()) == ["Alt.Team_X", "demo"]
+
+
+def test_existing_team_with_unusual_name_still_works_in_cli(data_dir: Path):
+    shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
+    result = run(data_dir, "forecast", "Alt.Team_X")
+    assert result.exit_code == 0, result.output
+    assert "Trend" in result.output
 
 
 def test_einstellungen_changes_and_validates(data_dir: Path):
@@ -236,6 +338,15 @@ def test_default_data_dir_is_current_directory(data_dir: Path, monkeypatch: pyte
     result = runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"])
     assert result.exit_code == 0, result.output
     assert "Demo-Team" in result.output
+
+
+@pytest.mark.parametrize("option", ["--stichtag", "--as-of"])
+def test_invalid_stichtag_is_a_usage_error(data_dir: Path, option: str):
+    args = ["--daten", str(data_dir), option, "2026-13-45", "forecast", "demo"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 2, result.output
+    assert "Datum im Format JJJJ-MM-TT erwartet" in result.output
+    assert isinstance(result.exception, SystemExit)  # Nutzungsfehler, kein ungefangener ValueError
 
 
 def test_version_and_help_without_command():
@@ -371,6 +482,169 @@ def test_datenordner_names_the_reason_for_an_unsafe_folder(
     assert "liegt in keinem Git-Repository" not in result.output
 
 
+def one_line(output: str) -> str:
+    """Ausgabe ohne Zeilenumbrüche der Konsole (Rich bricht lange Zeilen um)."""
+    return " ".join(output.split())
+
+
+@pytest.fixture
+def without_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Git ist auf diesem Rechner nicht installiert (nicht im PATH)."""
+    leer = tmp_path / "ohne-git"
+    leer.mkdir()
+    monkeypatch.setenv("PATH", str(leer))
+
+
+@pytest.fixture
+def data_repo(data_dir: Path, tmp_path: Path) -> Path:
+    """Das Datenverzeichnis liegt in einem Git-Repository (Wurzel ist ``tmp_path``)."""
+    git(tmp_path, "init", "-q", "-b", "main")
+    git(tmp_path, "config", "user.name", "T")
+    git(tmp_path, "config", "user.email", "t@example.org")
+    return tmp_path
+
+
+def commit_planning(data_dir: Path):
+    return run(data_dir, "planning", "demo", "2026.22", "--commit", input="n\nn\nn\n10\n")
+
+
+def test_commit_without_repository_says_so_instead_of_showing_git_output(data_dir: Path):
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Kein Git-Repository" in text
+    assert "liegt in keinem Git-Repository" in text
+    assert "`git init`" in text and "`git clone`" in text
+    assert "fatal" not in text
+    assert "Gespeichert:" in result.output  # die Daten sind geschrieben, nur nicht committet
+
+
+def test_commit_without_git_installed_says_so(data_dir: Path, without_git: None):
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Git ist nicht installiert" in text
+    assert "git ist nicht installiert oder nicht im PATH" in text
+    assert "Git installieren" in text
+    assert "Git:" not in text
+
+
+def test_commit_without_git_identity_names_the_command_line_way(
+    data_dir: Path, data_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    git(data_repo, "config", "--unset", "user.name")
+    git(data_repo, "config", "--unset", "user.email")
+    git(data_repo, "config", "user.useConfigOnly", "true")
+    for name in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "EMAIL"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.delenv("GIT_COMMITTER_EMAIL", raising=False)
+    # Keine Benutzereinstellungen des Rechners (unter Windows: USERPROFILE statt HOME): Git
+    # fände dort sonst einen Namen.
+    leer = tmp_path.parent / f"{tmp_path.name}-leer.gitconfig"
+    leer.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(leer))
+    for variable in ("HOME", "USERPROFILE"):
+        monkeypatch.setenv(variable, str(tmp_path / "leer"))
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Name und E-Mail-Adresse fehlen" in text
+    assert "git config --global user.name" in text and "git config --global user.email" in text
+    assert "Dein Name" in text  # der Hinweis der Kommandozeile, nicht nur Gits eigene Meldung
+    assert "Seitenleiste" not in text
+
+
+def test_commit_with_an_existing_tag_does_not_offer_the_choice_of_a_name(
+    data_dir: Path, data_repo: Path
+):
+    review = ("review", "demo", "2026.21", "--commit")
+    first = run(data_dir, *review, input="y\n9,5\n0.1\nn\n")
+    assert first.exit_code == 0, first.output
+    assert git(data_repo, "tag") == "demo/2026.21"
+    result = run(data_dir, *review, input="y\n9,5\n0.2\nn\n")
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Tag-Name ist schon vergeben" in text
+    assert "Der Tag demo/2026.21 gibt es auf diesem Rechner schon" in text
+    assert "git tag -d" in text and "--commit" in text
+    assert "anderen Namen" not in text
+
+
+def test_commit_of_a_file_with_conflict_markers_does_not_point_to_a_page(
+    data_dir: Path, data_repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    real = cli.commit
+
+    def with_markers(paths: list[Path], message: str, tag: str | None = None) -> str:
+        paths[0].write_text("<<<<<<< a\nx: 1\n=======\nx: 2\n>>>>>>> b\n", encoding="utf-8")
+        return real(paths, message, tag)
+
+    monkeypatch.setattr(cli, "commit", with_markers)
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Konflikt beim Zusammenführen" in text
+    assert "2026.22.yaml" in text
+    assert "im Editor entfernen" in text
+    assert "„Konflikte lösen“" not in text
+
+
+def test_git_problem_escapes_square_brackets_of_the_git_message(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.git import GitError
+
+    def refused(*_: object) -> str:
+        raise GitError(
+            " ! [rejected]        main -> main (fetch first)", "rejected", "Zuerst [holen]."
+        )
+
+    monkeypatch.setattr(cli, "commit", refused)
+    result = commit_planning(data_dir)
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "! [rejected] main -> main (fetch first)" in text
+    assert "Zuerst [holen]." in text
+
+
+def test_datenordner_without_git_installed_says_so(
+    tmp_path: Path, data_dir: Path, without_git: None
+):
+    result = run(data_dir, "datenordner", str(data_dir))
+    assert result.exit_code == 1
+    text = one_line(result.output)
+    assert "Git ist nicht installiert" in text
+    assert "Git installieren" in text
+    assert "liegt in keinem Git-Repository" not in text
+    assert "Kein Datenordner gemerkt." in run(data_dir, "datenordner").output
+
+
+def test_datenordner_names_a_folder_without_repository(tmp_path: Path, data_dir: Path):
+    result = run(data_dir, "datenordner", str(tmp_path))
+    assert result.exit_code == 1
+    assert "liegt in keinem Git-Repository (git init bzw. git clone)" in one_line(result.output)
+    assert "Git ist nicht installiert" not in result.output
+
+
+@pytest.mark.parametrize("parts", [("x[a]",), ("x[", "y]", "b")])
+def test_datenordner_messages_keep_brackets_in_the_path(
+    tmp_path: Path, data_dir: Path, parts: tuple[str, ...]
+):
+    """Rich liest eckige Klammern als Auszeichnung: Der Pfad wird maskiert und steht vollständig
+    in der Meldung (ein „[/y]“ ohne Gegenstück brach vorher den Befehl ab)."""
+    folder = tmp_path.joinpath(*parts)
+    folder.mkdir(parents=True)
+    shown = "/".join(parts)  # Rich bricht lange Pfade um: nur die Namen prüfen
+    result = run(data_dir, "datenordner", str(folder))
+    assert result.exit_code == 1
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert shown in one_line(result.output).replace("\\", "/")
+    missing = run(data_dir, "datenordner", str(folder / "fehlt"))
+    assert missing.exit_code == 1
+    assert shown in one_line(missing.output).replace("\\", "/")
+
+
 def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
     plain = run(data_dir, "forecast", "demo")
     assert "schreibt Schwankungen fort" not in plain.output  # Standard flat: keine Warnung
@@ -405,3 +679,16 @@ def test_cli_reports_unwritable_settings_without_traceback(
         assert result.exit_code == 1
         assert "Zugriff verweigert" in result.output
         assert result.exception is None or isinstance(result.exception, SystemExit)
+
+
+def test_help_command_list_covers_every_cli_command():
+    """Jeder Befehl der CLI steht in guide.COMMANDS, und dort steht kein unbekannter Befehl."""
+    english = set(COMMAND_ALIASES.values())
+    registered = {
+        info.name
+        for info in app.registered_commands
+        if info.name not in english and info.callback.__module__ == "sprintforecast.cli"
+    }
+    listed = {m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast (\w+)", left))}
+    assert not registered - listed, f"Fehlt in guide.COMMANDS: {registered - listed}"
+    assert not listed - registered, f"Kein CLI-Befehl: {listed - registered}"
