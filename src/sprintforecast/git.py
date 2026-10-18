@@ -655,6 +655,21 @@ def hint_for(kind: str, url: str = "") -> str:
     return hints.get(kind, "")
 
 
+def unwritable_file_hint() -> str:
+    """Nächster Schritt, wenn die App selbst eine Datei im Datenordner nicht schreiben kann (nicht
+    Git, wie bei ``hint_for("locked")``): Dort passt der Absatz zur verwaisten ``index.lock`` nicht.
+    Unter Windows sagt Python „Permission denied“ sowohl für eine von einem anderen Programm
+    gehaltene als auch für eine schreibgeschützte Datei; beides nennt der Hinweis."""
+    return t(
+        "Die Datei konnte nicht geschrieben werden. Entweder benutzt ein anderes Programm sie "
+        "gerade (Editor, Tabellenprogramm, Virenscanner, Synchronisationsdienst; unter Windows "
+        "meist der Grund), oder sie ist schreibgeschützt bzw. dein Benutzerkonto darf sie nicht "
+        "ändern. Andere Programme schließen, Schreibschutz und Rechte prüfen und noch einmal "
+        "„Speichern und teilen“ wählen: Das unterbrochene Zusammenführen wird dann fortgesetzt, "
+        "nichts geht verloren. Hilft das nicht, bei der Betreuung des Rechners nachfragen."
+    )
+
+
 def auth_help(url: str = "", message: str = "") -> str:
     """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH). Der Text beginnt gleich
     mit dem nächsten Schritt und wiederholt die Ursache nicht: Wo der Hinweis unter der

@@ -238,11 +238,29 @@ def test_locked_file_during_automatic_merge_is_a_message_and_the_merge_can_resum
     result = bob.sync("Bob")
     assert result.error is not None and result.error.kind == "locked"
     assert "2026.1.yaml" in str(result.error) and "Permission denied" in str(result.error)
+    # Die Datei ist keine Sperrdatei von Git: Der Absatz zur verwaisten index.lock passt hier
+    # nicht, wohl aber der Schreibschutz bzw. ein Programm, das die Datei hält.
+    hint = result.error.hint
+    assert "Sperrdatei" not in hint and "index.lock" not in hint
+    assert "Programm" in hint and "schreibgeschützt" in hint and "Speichern und teilen" in hint
+    assert hint != gitmod.hint_for("locked")
+    assert not result.error.raw  # eigener Text, keine Ausgabe von Git
     monkeypatch.undo()
     again = bob.sync("Bob")
     assert again.ok and again.pushed
     merged = yaml.safe_load(git(remote, "show", f"main:{FILE}"))
     assert merged == {"velocity": 11, "scope_creep": 2, "note": "Bob"}
+
+
+def test_unwritable_file_hint_does_not_talk_about_a_lock_file():
+    """Die Datei, die beim Zusammenführen nicht geschrieben werden kann, ist keine Sperrdatei von
+    Git: Der Hinweis nennt Programme, Schreibschutz und Rechte und wie es weitergeht."""
+    hint = gitmod.unwritable_file_hint()
+    assert "index.lock" not in hint and "Sperrdatei" not in hint
+    assert "Programm" in hint and "schreibgeschützt" in hint and "Rechte" in hint
+    assert "Speichern und teilen" in hint and "Betreuung des Rechners" in hint
+    assert gitmod.hint_for("locked") != hint  # Gits eigene Sperrdatei hat weiter ihren Text
+    assert "index.lock" in gitmod.hint_for("locked")
 
 
 def test_people_are_merged_per_entry(alice: Person, bob: Person, remote: Path):
