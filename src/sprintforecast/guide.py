@@ -452,6 +452,25 @@ GIT_HELP: list[tuple[str, str]] = [
         "„Server (Remote)“ ändern.",
     ),
     (
+        "Repository nicht gefunden",
+        "Antwortet der Server, kennt unter der eingetragenen Adresse aber kein Repository (oder "
+        "verschweigt es, weil dir die Berechtigung fehlt), meldet die App „Repository nicht "
+        "gefunden“ statt „Server nicht erreichbar“: bei „Verbindung prüfen“, beim Abgleich, "
+        "beim Hochladen und beim Klonen. Dann hilft es nicht, Internet oder VPN zu prüfen. "
+        "Adresse (Tippfehler, umbenanntes oder verschobenes Repository) und Berechtigung "
+        "prüfen; die Adresse lässt sich auf der Seite „Datenordner“ unter „Server (Remote)“ "
+        "ändern. Liegt das Repository in einem Ordner oder auf einem Netzlaufwerk, das gerade "
+        "nicht verbunden ist, meldet die App dagegen „Server nicht erreichbar“.",
+    ),
+    (
+        "Zertifikat des Servers nicht anerkannt",
+        "Antwortet der Server, aber dieser Rechner erkennt sein Sicherheitszertifikat nicht an "
+        "(häufig ein Firmenzertifikat oder ein selbst ausgestelltes Zertifikat), meldet die App "
+        "das so. Internet oder VPN zu prüfen hilft nicht. Bitte die IT, das Zertifikat auf dem "
+        "Rechner zu hinterlegen. Die App ändert dazu keine Git-Einstellungen und speichert "
+        "eine Adresse, deren Zertifikat nicht anerkannt wird, nicht.",
+    ),
+    (
         "Server (Remote) einrichten",
         "Auf der Seite „Datenordner“ zeigt der Abschnitt „Server (Remote)“, welcher Server zum "
         "Datenordner gehört. Dort wird die Adresse eingetragen oder geändert; „Verbindung "
@@ -475,6 +494,17 @@ GIT_HELP: list[tuple[str, str]] = [
         "sein.",
     ),
     (
+        "SSH-Server noch nicht bekannt (Fingerabdruck)",
+        "Verbindet sich der Rechner zum ersten Mal per SSH mit einem Server, oder hat sich "
+        "dessen Schlüssel geändert, verlangt SSH, den Fingerabdruck des Servers zu bestätigen. "
+        "Die App kann das nicht und fragt auch nicht danach (Git läuft im Hintergrund ohne "
+        "Rückfragen); sie meldet es bei „Verbindung prüfen“, beim Abgleich, beim Hochladen, "
+        "beim Klonen und bei den Tags. Bitte einmal mit einem SSH- oder Git-Programm zum Server "
+        "verbinden und den Fingerabdruck bestätigen, oder die https-Adresse des Repositorys "
+        "verwenden; danach noch einmal versuchen. Hat sich der Schlüssel eines bekannten "
+        "Servers geändert, vorher beim Betreiber des Servers nachfragen.",
+    ),
+    (
         "Name und E-Mail-Adresse",
         "Git braucht beides für jeden Commit. Fehlt es, fragt die App danach und trägt es auf "
         "deinen Wunsch in die globale Git-Konfiguration deines Benutzers ein; sonst ändert sie "
@@ -484,14 +514,49 @@ GIT_HELP: list[tuple[str, str]] = [
         "Gesperrte Datei",
         "Benutzt ein anderes Programm (Git-Client, Editor, Virenscanner, Cloud-Ordner) eine "
         "Datei im Repository, kann Git sie nicht ändern. Andere Programme schließen und "
-        "erneut versuchen.",
+        "erneut versuchen. Bleibt es dabei, ist nach einem Absturz vielleicht eine Sperrdatei "
+        "(`index.lock` im versteckten Ordner `.git`) übrig geblieben. Die App entfernt sie "
+        "nicht selbst: Bitte bei der Betreuung des Rechners oder des Repositorys nachfragen, "
+        "bevor sie gelöscht wird (läuft noch ein Git-Programm, stört das Löschen dessen "
+        "Arbeit). Lässt sich beim automatischen Zusammenführen eine Datendatei nicht "
+        "schreiben, hilft Ähnliches: Programme schließen, Schreibschutz prüfen und noch "
+        "einmal „Speichern und teilen“ wählen; das Zusammenführen bleibt offen und wird dann "
+        "fortgesetzt.",
+    ),
+    (
+        "Datei oder Ordner nicht beschreibbar",
+        "Darf Git im Datenordner (oder im versteckten Ordner `.git` darin) nichts schreiben, "
+        "meldet die App „Datei oder Ordner nicht beschreibbar“. Meist hat das Benutzerkonto "
+        "dort keine Schreibrechte, der Ordner ist schreibgeschützt, oder ein Netzlaufwerk bzw. "
+        "Cloud-Ordner ist nicht verbunden oder nur lesbar. Rechte, Schreibschutz und "
+        "Verbindung prüfen; hilft das nicht, bei der Betreuung des Rechners nachfragen. Ein "
+        "„Permission denied“ bei der Verbindung zum Server betrifft dagegen die Anmeldung "
+        "oder die Rechte auf dem Server (siehe „Anmeldung“).",
+    ),
+    (
+        "Git hält den Ordner für unsicher",
+        "Lehnt Git einen Ordner ab, weil er einem anderen Benutzerkonto gehört als dem, mit dem "
+        "die App läuft („detected dubious ownership“; häufig bei Netzlaufwerken, kopierten "
+        "Ordnern oder nach einem Kontowechsel), meldet die App diesen Grund statt „liegt in "
+        "keinem Git-Repository“: in der Seitenleiste, im Verlauf, auf der Seite „Datenordner“ "
+        "und im Befehl `sprintforecast datenordner`. In einem solchen Ordner legt die App "
+        "kein Repository an und schreibt nichts; beim Übernehmen bleibt „Ohne Git "
+        "verwenden“. Die App ändert keine Git-Einstellungen und rät auch nicht dazu. Bitte bei "
+        "der Betreuung des Rechners nachfragen: Sie kann den Ordner dem eigenen Konto "
+        "zuordnen oder ihn bewusst als sicher eintragen.",
     ),
     (
         "Unvollständiges Zusammenführen, detached HEAD",
         "Ist ein früheres Zusammenführen unterbrochen worden, bietet die Seitenleiste „Zusammen"
         "führen abbrechen“ an. Steht das Repository auf keinem Branch (detached HEAD), führt "
         "„Zurück auf den Branch“ zurück; Commits ohne Branch werden vorher auf einem "
-        "Rettungsbranch gesichert.",
+        "Rettungsbranch gesichert, dessen Namen die Meldung nennt. Würde der Wechsel offene "
+        "Änderungen überschreiben, bleibt alles, wie es ist: Auf einem Stand ohne Branch "
+        "lässt sich nichts speichern (committen). Liegen die Dateien im Datenordner, die "
+        "offenen Änderungen auf der Seite „Änderungen und Verlauf“ verwerfen (sie gehen dabei "
+        "verloren); liegen sie außerhalb, dort in Git sichern oder verwerfen (die Dateien "
+        "nennt die „Technische Meldung“). Danach noch einmal „Zurück auf den Branch“ wählen; "
+        "der Rettungsbranch bleibt bestehen und wird dann wieder genannt.",
     ),
 ]
 

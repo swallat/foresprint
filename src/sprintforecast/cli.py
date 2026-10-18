@@ -1987,7 +1987,7 @@ def datenordner(
         typer.Argument(help=t("Ordner merken (muss in einem Git-Repository liegen).")),
     ] = None,
 ) -> None:
-    from sprintforecast.git import classify, repo_root
+    from sprintforecast.git import classify, repo_root, root_problem
     from sprintforecast.gitsync import git_available
     from sprintforecast.storage import save_data_dir, saved_data_dir, teams_dir
 
@@ -2006,13 +2006,16 @@ def datenordner(
     if not git_available():
         _git_problem(classify("", missing=True))
     if repo_root(pfad) is None:
-        err.print(
-            "[red]"
-            + escape(
-                t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+        if problem := root_problem(pfad):
+            _git_problem(problem)  # Überschrift, Meldung von Git und nächster Schritt
+        else:
+            err.print(
+                "[red]"
+                + escape(
+                    t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+                )
+                + "[/red]"
             )
-            + "[/red]"
-        )
         raise typer.Exit(1)
     target = teams_dir(pfad) or pfad
     try:
