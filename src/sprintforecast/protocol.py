@@ -9,13 +9,14 @@ ein Termin hinfällig (z. B. beim Aufheben des Einfrierens), heißt das alte Pro
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
+from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
 from sprintforecast.products import Distribution, by_po, measure_label
 from sprintforecast.report import fmt
-from sprintforecast.storage import FileAccessError, Repository, write_text
+from sprintforecast.storage import FileAccessError, Repository, _not_saved, write_text
 
 PROTOCOL_DIR = "protokolle"
 STAMP = "%Y%m%d-%H%M%S"
@@ -98,13 +99,57 @@ def _folder(repo: Repository, team: str) -> Path:
     return repo.team_dir(team) / PROTOCOL_DIR
 
 
+def _body_of(text: str) -> list[str]:
+    """Der Text ohne die Zeile „Stand: …“ (dritte Zeile, mit dem Zeitpunkt)."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    return lines[:2] + lines[3:]
+
+
+def _body(path: Path) -> list[str] | None:
+    try:
+        return _body_of(path.read_text(encoding="utf-8"))
+    except OSError:
+        return None
+
+
 def write_protocol(
     repo: Repository, team: str, sprint_id: str, kind: str, text: str, now: datetime
 ) -> Path:
-    """Schreibt das Protokoll (LF-Zeilenenden, über eine Zwischendatei)."""
-    path = _folder(repo, team) / f"{sprint_id}-{kind}-{now:{STAMP}}.md"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    write_text(path, text, newline="\n")
+    """Schreibt das Protokoll (LF-Zeilenenden, über eine Zwischendatei). Gibt es den Namen schon
+    (zwei Speicherungen in derselben Sekunde), wird die Sekunde hochgezählt: nichts geht verloren.
+    Schreibfehler kommen als :class:`FileAccessError`."""
+    latest = next(
+        (
+            p
+            for _, k, obsolete, p in list_protocols(repo, team, sprint_id)
+            if k == kind and not obsolete
+        ),
+        None,
+    )
+    if latest is not None and _body(latest) == _body_of(text):
+        return latest  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
+    folder = _folder(repo, team)
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise _not_saved(folder, e) from e
+    stamp = now
+    while True:
+        path = folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}.md"
+        try:
+            with path.open("x"):  # Namen reservieren, ohne ein vorhandenes Protokoll zu ersetzen
+                pass
+            break
+        except FileExistsError:
+            stamp += timedelta(seconds=1)
+        except OSError as e:
+            raise _not_saved(path, e) from e
+    try:
+        write_text(path, text, newline="\n")
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
+    invalidate_status()  # eine neue Datei ist eine offene Änderung, auch ohne geänderte YAML
     return path
 
 
@@ -132,7 +177,11 @@ def mark_obsolete(
     for _, found_kind, obsolete, path in list_protocols(repo, team, sprint_id):
         if found_kind != kind or obsolete:
             continue
-        target = path.with_name(f"{path.stem}_obsolet_{now:{STAMP}}.md")
+        stamp = now
+        target = path.with_name(f"{path.stem}_obsolet_{stamp:{STAMP}}.md")
+        while target.exists():  # zwei Aufhebungen in derselben Sekunde
+            stamp += timedelta(seconds=1)
+            target = path.with_name(f"{path.stem}_obsolet_{stamp:{STAMP}}.md")
         try:
             path.replace(target)
         except OSError as e:
@@ -140,4 +189,6 @@ def mark_obsolete(
                 t("{path}: nicht umbenannt ({reason})", path=path, reason=str(e))
             ) from e
         renamed.append(target)
+    if renamed:
+        invalidate_status()
     return renamed
