@@ -6,6 +6,7 @@ from __future__ import annotations
 import contextlib
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -136,6 +137,66 @@ _ROOT_CACHE: dict[Path, tuple[float, Path | None, GitError | None]] = {}
 _ROOT_TTL = 30.0
 
 
+# --- Git finden -----------------------------------------------------------------------
+# Wer keine Administratorrechte hat, installiert Git oft nur für das eigene Benutzerkonto; das
+# steht unmittelbar danach noch nicht im PATH der laufenden App (oder des Starters). Darum
+# sucht die App an den üblichen Orten nach und ruft Git dann mit vollem Pfad auf. Der PATH der
+# Unterprozesse bleibt unverändert: Git findet seine Hilfsprogramme (Anmeldeverwaltung, ssh)
+# über den eigenen Programmordner.
+
+_FOUND: list[str] = []  # zuletzt gefundener Pfad außerhalb des PATH (höchstens ein Eintrag)
+
+
+def git_locations() -> list[Path]:
+    """Orte, an denen außer im PATH nach Git gesucht wird (in dieser Reihenfolge)."""
+    home = Path.home()
+    if sys.platform == "win32":
+        places: list[Path] = []
+        if local := os.environ.get("LOCALAPPDATA"):
+            places.append(Path(local) / "Programs" / "Git" / "cmd" / "git.exe")
+        places += [
+            home / "scoop" / "shims" / "git.exe",
+            home / "scoop" / "apps" / "git" / "current" / "cmd" / "git.exe",
+        ]
+        for name in ("ProgramFiles", "ProgramFiles(x86)"):
+            if base := os.environ.get(name):
+                places.append(Path(base) / "Git" / "cmd" / "git.exe")
+        return places
+    return [
+        Path("/opt/homebrew/bin/git"),
+        Path("/usr/local/bin/git"),
+        home / ".local" / "bin" / "git",
+        home / ".nix-profile" / "bin" / "git",
+    ]
+
+
+def find_git() -> str | None:
+    """Pfad zu Git: zuerst im PATH, sonst an den Orten aus :func:`git_locations`; ``None``, wenn
+    es Git nirgends gibt. Ein Fund außerhalb des PATH wird gemerkt (solange die Datei besteht);
+    ein Misserfolg nicht, damit eine frische Installation sofort gefunden wird."""
+    if found := shutil.which("git"):
+        return found
+    if _FOUND and os.path.isfile(_FOUND[0]):
+        return _FOUND[0]
+    _FOUND.clear()
+    for candidate in git_locations():
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            _FOUND.append(str(candidate))
+            return str(candidate)
+    return None
+
+
+def reset_git_cache() -> None:
+    """Vergisst den gemerkten Git-Pfad (für Tests und nach einer Neuinstallation)."""
+    _FOUND.clear()
+
+
+def git_command(*args: str) -> list[str]:
+    """Befehlszeile für einen Git-Aufruf. Fehlt Git ganz, bleibt es bei ``git``: Der Aufruf
+    scheitert dann mit ``FileNotFoundError``, den die Aufrufer als „Git fehlt“ melden."""
+    return [find_git() or "git", *args]
+
+
 # Netzwerkaufrufe (fetch, push, clone) dürfen nie ewig hängen oder im Hintergrund nach einem
 # Kennwort fragen: Es gibt kein Terminal, in dem man antworten könnte.
 NETWORK_TIMEOUT = 90.0
@@ -169,7 +230,7 @@ def _git_result(
     „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
     try:
         return subprocess.run(
-            ["git", *args],
+            git_command(*args),
             cwd=cwd,
             capture_output=True,
             text=True,
@@ -296,7 +357,7 @@ def _git_bytes(cwd: Path, *args: str) -> bytes:
     """Wie :func:`_git`, liefert aber die rohe Ausgabe (z. B. ein Archiv)."""
     try:
         proc = subprocess.run(
-            ["git", *args],
+            git_command(*args),
             cwd=cwd,
             capture_output=True,
             stdin=subprocess.DEVNULL,
@@ -476,6 +537,20 @@ def _without_safe_directory_advice(message: str) -> str:
     return "\n".join(lines).strip()
 
 
+def missing_hint() -> str:
+    """Nächster Schritt, wenn Git fehlt: wo gesucht wurde, wie es sich ohne Administratorrechte
+    installieren lässt und dass die App danach neu zu starten ist."""
+    places = ", ".join(str(place) for place in git_locations())
+    return t(
+        "Git installieren (Windows: https://git-scm.com/download/win – die Installation geht "
+        "auch ohne Administratorrechte, nur für das eigene Benutzerkonto; macOS: "
+        "`xcode-select --install`; Linux: Paketverwaltung). Danach die App und den Starter "
+        "„Sprint-Forecast“ schließen und neu öffnen, damit sie Git finden. Gesucht wurde im "
+        "PATH und an diesen Orten: {places}.",
+        places=places,
+    )
+
+
 def classify(
     message: str,
     missing: bool = False,
@@ -493,10 +568,7 @@ def classify(
         return GitError(
             t("git ist nicht installiert oder nicht im PATH"),
             "git_missing",
-            t(
-                "Git installieren (Windows: https://git-scm.com/download/win, macOS: "
-                "`xcode-select --install`, Linux: Paketverwaltung) und die App neu starten."
-            ),
+            missing_hint(),
         )
     if timeout:
         return GitError(
@@ -969,7 +1041,7 @@ def _probe_run(root: Path, args: tuple[str, ...], timeout: float) -> _ProbeRun:
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
             process = subprocess.Popen(
-                ["git", *args],
+                git_command(*args),
                 cwd=root,
                 stdin=subprocess.DEVNULL,
                 stdout=out,
