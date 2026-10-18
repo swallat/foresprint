@@ -1454,6 +1454,43 @@ def bericht(
 
 
 @command(
+    "excel",
+    "Excel-Liste eines Teams schreiben (Formeln, Trend-Diagramm, Aufteilung je Produkt).",
+)
+def excel(
+    ctx: typer.Context,
+    team: Annotated[str, typer.Argument(help=t("Team."))],
+    ausgabe: Annotated[
+        Path | None,
+        typer.Option(
+            "--ausgabe",
+            "--output",
+            "-o",
+            help=t(
+                "Datei; Standard <team>-forecast.xlsx im aktuellen Ordner (nicht im "
+                "Datenordner: Tabellenkalkulationen werden nicht committet)."
+            ),
+        ),
+    ] = None,
+) -> None:
+    from sprintforecast.excel import ExcelUnavailable, build_workbook
+
+    c = _ctx(ctx)
+    data = _load(c, team)
+    try:
+        content = build_workbook(build_forecast(data, c.today))
+    except ExcelUnavailable as e:
+        err.print(f"[red]{escape(str(e))}[/red]")
+        raise typer.Exit(1) from e
+    target = ausgabe or Path(f"{team}-forecast.xlsx")
+    try:
+        target.write_bytes(content)
+    except OSError as e:
+        raise DataError(t("{path}: nicht geschrieben ({reason})", path=target, reason=e)) from e
+    console.print(f"[green]{_plain_end(target)}[/green]")
+
+
+@command(
     "pruefen", "Alle Team-Daten auf Fehler und Plausibilität prüfen (für CI und vor dem Commit)."
 )
 def pruefen(
