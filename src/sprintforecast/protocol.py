@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import errno
 import getpass
 import hashlib
 import os
@@ -223,12 +224,13 @@ def _lock_file(folder: Path, sprint_id: str, kind: str) -> Path:
     return _lock_dir() / f"{key}.lock"
 
 
-def _open_lock(path: Path) -> IO[bytes]:
+def _open_lock(path: Path) -> tuple[IO[bytes], Path]:
     """Öffnet die Sperrdatei. Geht das nicht (z. B. Einstellungsordner ohne Schreibrecht), gilt
     dieselbe Datei im benutzerspezifischen Temp-Ordner; alle Sitzungen mit denselben Rechten landen
-    so bei derselben Sperrdatei. Scheitert auch das, kommt ein :class:`FileAccessError`."""
+    so bei derselben Sperrdatei. Liefert Handle und den Pfad, der wirklich geöffnet wurde. Scheitert
+    auch das, kommt ein :class:`FileAccessError`."""
     try:
-        return path.open("a+b")
+        return path.open("a+b"), path
     except OSError as e:
         first = e
     fallback_dir = _fallback_lock_dir()
@@ -236,13 +238,32 @@ def _open_lock(path: Path) -> IO[bytes]:
         raise _not_saved(path, first) from first
     fallback = fallback_dir / path.name
     try:
-        return fallback.open("a+b")
+        return fallback.open("a+b"), fallback
     except OSError as e:
         raise _not_saved(fallback, e) from e
 
 
+class _LockUnsupported(Exception):
+    """Das Sperren der Datei scheitert dauerhaft (nicht nur, weil eine andere Sitzung sie hält),
+    z. B. auf einem Dateisystem ohne Dateisperren."""
+
+
+# Nur echte Konkurrenz heißt „belegt“: POSIX ``EWOULDBLOCK``/``EAGAIN`` (manche ``flock``-Arten
+# melden ``EACCES``), Windows ``EACCES`` und ``EDEADLOCK`` von ``msvcrt.locking`` sowie die
+# Windows-Fehler 32 (Zugriffsverletzung) und 33 (Verletzung des Sperrbereichs).
+_BUSY_ERRNOS = frozenset(
+    getattr(errno, name)
+    for name in ("EACCES", "EAGAIN", "EWOULDBLOCK", "EDEADLK", "EDEADLOCK")
+    if hasattr(errno, name)
+)
+_BUSY_WINERRORS = frozenset({32, 33})
+
+
 def _try_lock(handle: IO[bytes]) -> bool:
-    """Versucht, die Datei ohne Warten zu sperren (Sperre des Betriebssystems)."""
+    """Versucht, die Datei ohne Warten zu sperren (Sperre des Betriebssystems). ``False`` heißt:
+    eine andere Sitzung hält sie. Jeder andere Fehler (z. B. ``ENOLCK``, ``ENOSYS``, ``EINVAL``,
+    ``EIO`` auf Netzlaufwerken ohne Dateisperren) ist dauerhaft und kommt als
+    :class:`_LockUnsupported`."""
     try:
         if sys.platform == "win32":
             import msvcrt
@@ -253,9 +274,55 @@ def _try_lock(handle: IO[bytes]) -> bool:
             import fcntl
 
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError:
-        return False  # belegt (Windows meldet das als PermissionError/EDEADLOCK)
+    except OSError as e:
+        if e.errno in _BUSY_ERRNOS or getattr(e, "winerror", None) in _BUSY_WINERRORS:
+            return False
+        raise _LockUnsupported(str(e)) from e
     return True
+
+
+def _acquire(handle: IO[bytes]) -> None:
+    """Sperrt die Datei; bei Konkurrenz wird bis ``LOCK_WAIT_SECONDS`` gewartet. Ein dauerhafter
+    Fehler (:class:`_LockUnsupported`) kommt sofort, ohne Warten."""
+    deadline = time.monotonic() + LOCK_WAIT_SECONDS
+    while not _try_lock(handle):
+        if time.monotonic() >= deadline:
+            raise FileAccessError(
+                t(
+                    "Eine andere Sitzung schreibt gerade Protokolle dieses Sprints. "
+                    "Bitte gleich noch einmal speichern."
+                )
+            )
+        time.sleep(0.05)
+
+
+def _acquire_in_fallback(used: Path) -> IO[bytes]:
+    """Einmaliger zweiter Versuch, wenn das Sperren der Datei ``used`` dauerhaft scheitert: dieselbe
+    Datei im benutzerspezifischen Temp-Ordner. Ohne Erfolg (oder war ``used`` schon dort) kommt ein
+    :class:`FileAccessError`, nie eine Wartezeit."""
+    unsupported = FileAccessError(
+        t(
+            "Auf dem Laufwerk von {path} werden Dateisperren nicht unterstützt. Bitte den "
+            "Einstellungsordner auf ein lokales Laufwerk legen.",
+            path=used.parent,
+        )
+    )
+    fallback_dir = _fallback_lock_dir()
+    if fallback_dir == used.parent:
+        raise unsupported
+    try:
+        handle = (fallback_dir / used.name).open("a+b")
+    except OSError as e:
+        raise unsupported from e
+    try:
+        _acquire(handle)
+    except _LockUnsupported as e:
+        handle.close()
+        raise unsupported from e
+    except BaseException:
+        handle.close()
+        raise
+    return handle
 
 
 def _unlock(handle: IO[bytes]) -> None:
@@ -276,19 +343,15 @@ def _locked(folder: Path, sprint_id: str, kind: str) -> Iterator[None]:
     Sperre ist eine Sperre des Betriebssystems auf einer Datei (``flock``/``msvcrt.locking``): Sie
     endet mit dem Prozess von selbst, braucht keine Erkennung verwaister Sperren und keine Uhr. Wer
     wartet, wartet bis ``LOCK_WAIT_SECONDS``. Zwischen Klonen auf verschiedenen Rechnern wirkt sie
-    nicht; dort schützt der aus dem Inhalt abgeleitete Dateiname."""
-    handle = _open_lock(_lock_file(folder, sprint_id, kind))
+    nicht; dort schützt der aus dem Inhalt abgeleitete Dateiname. Scheitert das Sperren dauerhaft
+    (Dateisystem ohne Dateisperren), gilt einmal dieselbe Datei im Temp-Ordner; sonst ein Fehler."""
+    handle, used = _open_lock(_lock_file(folder, sprint_id, kind))
     try:
-        deadline = time.monotonic() + LOCK_WAIT_SECONDS
-        while not _try_lock(handle):
-            if time.monotonic() >= deadline:
-                raise FileAccessError(
-                    t(
-                        "Eine andere Sitzung schreibt gerade Protokolle dieses Sprints. "
-                        "Bitte gleich noch einmal speichern."
-                    )
-                )
-            time.sleep(0.05)
+        try:
+            _acquire(handle)
+        except _LockUnsupported:
+            handle.close()
+            handle = _acquire_in_fallback(used)
         try:
             yield
         finally:
