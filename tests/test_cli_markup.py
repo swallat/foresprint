@@ -23,7 +23,7 @@ from sprintforecast import analysis, cli, i18n, shortcuts, updater
 from sprintforecast.cli import _plain, _plain_end, app
 from sprintforecast.storage import DATA_ENV, save_data_dir
 
-runner = CliRunner(env={"COLUMNS": "200"})
+runner = CliRunner(env={"COLUMNS": "1000"})
 
 # Backslash im Namen: nur dort möglich, wo er kein Pfadtrenner ist.
 BS = "" if sys.platform == "win32" else "\\"
@@ -132,6 +132,9 @@ VALUES = [
     "\\\\[x]",
     "\\\\\\[x]\\",
     "a[x][/x]b",
+    "a\\[1]",
+    "a\\\\[1]",
+    "D:\\Projekte\\[2024]\\teams",
     "[1] [web] [de|en]",
     "Name [/x] \\ [y",
     "",
@@ -160,6 +163,28 @@ def test_trailing_backslash_is_not_doubled_without_a_tag():
     assert _plain("\\[x]") == "\\\\\\[x]"
     assert _plain_end("Eva\\") == "Eva\\\\"
     assert _plain_end("Eva\\\\") == "Eva\\\\\\\\"
+
+
+def test_backslash_before_a_bracket_that_is_no_tag_is_kept():
+    """Rich macht aus jedem „\\[“ ein „[“; ohne Tag dahinter ging ein Backslash verloren
+    (Windows-Pfad mit Ordner „[2024]“)."""
+    assert _plain("a\\[1]") == "a\\\\[1]"
+    assert _plain("[1]") == "[1]"  # ohne Backslash bleibt alles, wie es ist
+    assert Text.from_markup(_plain("D:\\Projekte\\[2024]\\teams")).plain == (
+        "D:\\Projekte\\[2024]\\teams"
+    )
+
+
+def test_plain_is_literal_for_all_short_strings():
+    """Alle Zeichenfolgen bis Länge 5 aus den Zeichen, die Rich besonders behandelt."""
+    import itertools
+
+    alphabet = ["\\", "[", "]", "x", "/", "A", " ", "#"]
+    for size in range(6):
+        for chars in itertools.product(alphabet, repeat=size):
+            value = "".join(chars)
+            assert Text.from_markup(_plain(value)).plain == value, repr(value)
+            assert Text.from_markup(f"[red]{_plain_end(value)}[/red]").plain == value, repr(value)
 
 
 def test_translation_markup_is_kept_around_placeholders():
