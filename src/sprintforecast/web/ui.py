@@ -158,7 +158,7 @@ from sprintforecast.protocol import (
     REVIEW,
     kind_title,
     list_protocols,
-    mark_obsolete,
+    obsolete_with_save,
     render_protocol,
     save_with_protocol,
 )
@@ -1842,11 +1842,15 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
             released.forecast_plan = None
 
             def release() -> list[Path]:
-                paths = [repo.save_sprint(data.team.key, released)]
                 # Das Planning gilt nicht mehr: sein Protokoll wird als obsolet gekennzeichnet.
-                now = datetime.now().replace(microsecond=0)
-                mark_obsolete(repo, data.team.key, released.id, PLANNING, now)
-                return paths
+                return obsolete_with_save(
+                    repo,
+                    data.team.key,
+                    released.id,
+                    PLANNING,
+                    datetime.now().replace(microsecond=0),
+                    lambda: [repo.save_sprint(data.team.key, released)],
+                )
 
             if save(
                 with_sprints(data, [released]),

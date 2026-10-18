@@ -8,6 +8,7 @@ ein Termin hinfällig (z. B. beim Aufheben des Einfrierens), heißt das alte Pro
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import re
 from collections.abc import Callable
@@ -249,16 +250,30 @@ def list_protocols(
     for p in entries:
         m = _NAME.match(p.name)
         if m and m["sprint"] == sprint_id and p.is_file():
-            at = datetime.strptime(m["at"], STAMP)
+            try:
+                at = datetime.strptime(m["at"], STAMP)
+            except ValueError:  # von Hand oder per Sync umbenannt: unmöglicher Zeitpunkt
+                continue
             found.append((at, m["kind"], m["obsolete"] is not None, p))
     return sorted(found, key=lambda f: (f[0], f[3].name), reverse=True)
+
+
+def _undo(renamed: list[Path]) -> None:
+    """Macht ``mark_obsolete`` rückgängig (so gut es geht)."""
+    for target in renamed:
+        original = re.sub(r"_obsolet_\d{8}-\d{6}(?=\.md$)", "", target.name)
+        with contextlib.suppress(OSError):
+            target.replace(target.with_name(original))
+    if renamed:
+        invalidate_status()
 
 
 def mark_obsolete(
     repo: Repository, team: str, sprint_id: str, kind: str, now: datetime
 ) -> list[Path]:
     """Benennt die gültigen Protokolle des Termins in ``…_obsolet_<Datum>-<Zeit>.md`` um (z. B.
-    wenn das Einfrieren des Sprints aufgehoben wird). Liefert die neuen Dateien."""
+    wenn das Einfrieren des Sprints aufgehoben wird). Liefert die neuen Dateien. Scheitert eine
+    Umbenennung, werden die schon umbenannten wieder zurückbenannt (alles oder nichts)."""
     renamed: list[Path] = []
     for _, found_kind, obsolete, path in list_protocols(repo, team, sprint_id):
         if found_kind != kind or obsolete:
@@ -271,6 +286,7 @@ def mark_obsolete(
         try:
             path.replace(target)
         except OSError as e:
+            _undo(renamed)
             raise FileAccessError(
                 t("{path}: nicht umbenannt ({reason})", path=path, reason=str(e))
             ) from e
@@ -278,3 +294,21 @@ def mark_obsolete(
     if renamed:
         invalidate_status()
     return renamed
+
+
+def obsolete_with_save(
+    repo: Repository,
+    team: str,
+    sprint_id: str,
+    kind: str,
+    now: datetime,
+    save: Callable[[], list[Path]],
+) -> list[Path]:
+    """Benennt die Protokolle zuerst um und schreibt dann mit ``save`` die Sprintdatei; scheitert
+    das Speichern, werden die Protokolle zurückbenannt: beides gelingt oder keines."""
+    renamed = mark_obsolete(repo, team, sprint_id, kind, now)
+    try:
+        return save()
+    except BaseException:
+        _undo(renamed)
+        raise
