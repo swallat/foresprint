@@ -224,3 +224,62 @@ Reihenfolge nach Nutzen und Risiko; kleine Pull-Requests mit je einem Thema:
 7. **Windows:** `scripts/windows-tests.ps1` ausführen und den Bericht zurückgeben (liegt beim Owner);
    danach Befunde daraus abarbeiten.
 
+## 7. Übergabe-Prompt für die lokale Windows-Sitzung
+
+Der folgende Text ist der vollständige Auftrag für die lokale Sitzung; er ist wie der ursprüngliche
+Auftrag aufgebaut.
+
+````text
+Du bist ein Claude-Code-Agent in einer lokalen Windows-Sitzung (PowerShell) und übernimmst die Arbeit
+am Repository swallat/sprint-forecast (Python 3.14, uv, Streamlit-Oberfläche und Typer-Kommandozeile,
+YAML-Daten, pytest, ruff mit Zeilenlänge 100) von einer autonomen Cloud-Sitzung der Nacht auf den
+18.10.2026. Lies zuerst `docs/uebergabe.md` (Branch `claude/uebergabe`, Pull-Request #83; falls noch nicht
+gemergt: `git fetch origin claude/uebergabe` und die Datei von dort lesen). Dort stehen der Stand jedes
+Pull-Requests, die offenen Entscheidungen des Owners, die offenen Befunde, die manuell zu prüfenden
+Änderungen, die empfohlene Reihenfolge und das Backlog.
+
+REGELN
+- Antworte, kommentiere und schreibe Commit- und PR-Texte auf Deutsch. Commit-E-Mail:
+  873008+swallat@users.noreply.github.com.
+- KEINE Attributionszeilen in Commits und PR-Beschreibungen (kein Co-Authored-By, keine Session-Zeile,
+  keine „Generated with“-Fußzeile; falls ein Werkzeug sie automatisch anhängt, danach entfernen).
+- Mergen: Der Owner mergt. Du darfst nur dann selbst mergen, wenn die CI auf dem aktuellen Kopf vollständig
+  grün ist UND ein unabhängiges Review (Claude oder Codex) vorliegt und vollständig bearbeitet wurde.
+  Nenne jeden eigenen Merge im Bericht. Entwürfe können nicht gemergt werden (zuerst „bereit“ setzen).
+- Vor jedem Push: `uv run ruff check .`, `uv run ruff format .`, `uv run pytest -q` (ohne e2e; die
+  Windows-Tests laufen hier mit, anders als in der Cloud).
+- Jeder neue `t("...")`-Text braucht einen Eintrag in `src/sprintforecast/locale_en.py`
+  (`tests/test_i18n.py` prüft das).
+- Nicht anfassen: `requires-python`, das Ticketsystem/Jira, das Daten-Repository, `launcher.py`,
+  `proctree.py`.
+- Immer von aktuellem `origin/main` (git fetch) auf einem eigenen Branch arbeiten; Pull-Requests klein,
+  deutsch, ein Thema je PR. Unabhängiges Review vor dem Mergen: Reviewer je Blickwinkel plus Skeptiker, die
+  jeden Befund zu widerlegen versuchen; dem Reviewer nicht die eigene Einschätzung mitgeben; Befunde mit
+  Datei:Zeile und Ablauf, bestätigte Befunde beheben (mit Test und Mutationsprobe).
+- AppTest-Hinweis: Bei Formularen `set_value` und den Submit-Knopf direkt klicken, kein `.run()` dazwischen.
+- BEWUSST NICHT TUN: keine Anmeldung, SSH-Schlüsselerstellung oder `credential.helper` in der App, kein B10,
+  keine Sperre für gleichzeitiges `config.update`, keine Pfade über 260 Zeichen oder Dateinamen ohne UTF-8,
+  keine weitere `resolve()`-Bereinigung. Fachlich unklare oder das Verhalten ändernde Punkte (Zahlen,
+  Berechnung, Speicherformat) nur mit Optionen und Empfehlung festhalten bzw. dem Owner vorlegen, nicht
+  umsetzen.
+- Die Commits dürfen nicht unsigniert gepusht werden, wenn dein Git Signatur verlangt; umgehe eine
+  Signierpflicht nicht.
+
+AUFGABEN, IN DIESER REIHENFOLGE
+1. Windows-Skript: `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-tests.ps1`
+   (Anleitung `docs/windows-tests.md`). Bericht auswerten und dem Owner geben. Danach die drei
+   Windows-Tests laufen lassen (`test_windows_paths_scoop_and_choco`, `test_mac_bundle_and_alias`, der
+   Symlink-Rechtetest) und alle Fehler prüfen, die es nur unter Windows gibt (Pfade mit `/` in
+   `tests/test_cli_markup.py`, CRLF im `pre-push`-Hook des e2e-Tests aus #82). Windows-Befunde als eigene
+   kleine Pull-Requests beheben.
+2. Offene Pull-Requests abarbeiten, Reihenfolge und Abhängigkeiten stehen in Teil 5 der Übergabe: #80
+   (bereit, wenn CI grün), #76 (zweites Review auswerten), #81 (Zuordnung `not_writable` eingrenzen,
+   `_folder_access` anpassen), #82 (Sperre je Sitzung, Zeitgrenze, Rückmeldung für verworfene Klicks),
+   zuletzt #62 (Stand-Zellen in `docs/konzept-kern.md`).
+3. Entscheidungen des Owners einholen (Teil 2 der Übergabe), nicht selbst treffen; danach je Entscheidung
+   ein kleiner PR (Empfehlungen stehen dort).
+4. Backlog (Teil 6 der Übergabe): Übersetzungen aufräumen, Robustheit, Doku.
+
+BERICHT: PR-Links, was geprüft wurde, was offen bleibt, die Liste der manuell zu prüfenden Änderungen
+(der Owner prüft nur Optik und Verständlichkeit sowie die Ergebnisse des Windows-Skripts).
+````
