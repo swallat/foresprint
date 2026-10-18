@@ -609,6 +609,71 @@ def test_an_unwritable_temp_fallback_is_a_file_access_error(
         write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
 
 
+def test_an_unopenable_lock_file_falls_back_to_the_same_file_in_the_temp_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Der Ordner ``sperren`` im Einstellungsordner ist da, aber ein Öffnen der Sperrdatei darin
+    scheitert (hier: an ihrer Stelle liegt ein Ordner; unter POSIX wäre es ein fehlendes
+    Schreibrecht). Dann zählt dieselbe Datei im Temp-Ordner, für alle Sitzungen gleich."""
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
+    folder = protocol_folder(tmp_path)
+    primary = protocol_module._lock_file(folder, "2026.21", REVIEW)
+    primary.mkdir()  # ein Ordner statt der Sperrdatei: Öffnen scheitert mit OSError
+    path, created = write_protocol_new(
+        Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
+    )
+    assert created and path.exists()
+    (fallback_dir,) = temp.glob("sprintforecast-sperren-*")
+    assert (fallback_dir / primary.name).is_file()  # derselbe Dateiname wie im Einstellungsordner
+    # Die Datei sperrt wirklich: Wer sie hält, hält andere Sitzungen mit denselben Rechten auf.
+    with (
+        protocol_module._locked(folder, "2026.21", REVIEW),
+        pytest.raises(FileAccessError, match="andere Sitzung"),
+    ):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "andere\n", NOW)
+
+
+def test_lock_files_that_cannot_be_opened_anywhere_are_a_file_access_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    repo = Repository(tmp_path)
+    folder = protocol_folder(tmp_path)
+    primary = protocol_module._lock_file(folder, "2026.21", REVIEW)
+    primary.mkdir()
+    fallback = protocol_module._fallback_lock_dir() / primary.name
+    fallback.mkdir()  # auch im Temp-Ordner taugt die Sperrdatei nicht
+    with pytest.raises(FileAccessError, match="nicht gespeichert") as info:
+        write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    assert str(fallback) in str(info.value)  # nennt, wo es gescheitert ist
+    assert list_protocols(repo, "demo", "2026.21") == []  # nichts ohne Sperre geschrieben
+
+
+def test_a_settings_lock_folder_without_write_access_is_replaced_by_the_temp_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Der Ordner ``sperren`` gibt es schon; ``mkdir(exist_ok=True)`` gelingt, aber er ist nicht
+    beschreibbar (POSIX: ``os.access``)."""
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    root = config_dir() / "sperren"
+    root.mkdir(parents=True)
+    real_access = os.access
+
+    def access(path, mode, **kwargs) -> bool:
+        return False if Path(path) == root else real_access(path, mode, **kwargs)
+
+    monkeypatch.setattr(protocol_module.os, "access", access)
+    one = protocol_module._lock_file(protocol_folder(tmp_path), "2026.21", REVIEW)
+    assert one.parent.parent == temp and root not in one.parents
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="Eigentümer von Ordnern nur auf POSIX")
 def test_a_temp_folder_owned_by_another_user_is_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
