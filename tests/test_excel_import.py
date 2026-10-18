@@ -3,7 +3,7 @@
 
 import io
 import shutil
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -144,6 +144,7 @@ def test_roundtrip_keeps_every_field_of_a_fully_filled_team(data_dir: Path, tmp_
     person = data.people[0]
     person.production_access = True
     person.country, person.region, person.workweek = "AT", "9", "mon,tue,wed,thu"
+    person.memberships[-1].end = person.memberships[-1].end or date(2029, 12, 31)
     person.memberships.append(Membership(start=date(2030, 1, 1), end=None, fte=0.5))
     repo.save_people("demo", data.people)
     sprint = next(s for s in data.sprints if s.velocity is not None)
@@ -208,3 +209,408 @@ def test_command_previews_then_applies(
     done = runner.invoke(app, ["excel-import", "demo", str(file), "--uebernehmen"])
     assert done.exit_code == 0, done.output
     assert Repository(data_dir).load("demo").sprint(sprint.id).velocity == sprint.velocity + 1
+
+
+# --- Sicherheit und Eingabeprüfung (Codex-Befunde zu #86) ---------------------------------
+
+
+def setting_cell(wb: openpyxl.Workbook, path: str):
+    """Die Wertzelle (Spalte B) der Einstellung ``path`` auf dem Blatt Einstellungen."""
+    ws = wb["Einstellungen"]
+    for row in ws.iter_rows(min_row=3):
+        if row[2].value == path:
+            return row[1]
+    raise AssertionError(path)
+
+
+@pytest.mark.parametrize("key", ["../outside", "..", "a/b", "a\\b", "/abs", "C:evil", ".", ""])
+def test_unsafe_team_keys_are_refused_before_any_path_is_resolved(data_dir: Path, key: str):
+    from sprintforecast.excel_import import check_team_key
+
+    repo = Repository(data_dir)
+    with pytest.raises(DataError):
+        check_team_key(repo, key)
+
+
+def test_a_new_team_key_must_be_valid_and_not_clash(data_dir: Path):
+    from sprintforecast.excel_import import check_team_key
+
+    repo = Repository(data_dir)
+    check_team_key(repo, "demo")  # vorhandenes Team: in Ordnung
+    check_team_key(repo, "neues-team")
+    if not repo.exists("DEMO"):  # Linux/macOS mit Groß-/Kleinschreibung: ein anderer Ordner
+        with pytest.raises(DataError):
+            check_team_key(repo, "DEMO")
+    with pytest.raises(DataError):
+        check_team_key(repo, "con")  # unter Windows für Geräte reserviert
+    with pytest.raises(DataError):
+        check_team_key(repo, "Großes Team")
+
+
+def test_a_traversing_team_key_writes_nothing_outside_the_data_folder(
+    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from typer.testing import CliRunner
+
+    from sprintforecast.cli import app
+    from sprintforecast.storage import DATA_ENV
+
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    file = tmp_path / "in.xlsx"
+    file.write_bytes(exported(data_dir))
+    outside = data_dir.parent / "outside"
+    result = CliRunner().invoke(app, ["excel-import", "../outside", str(file), "--uebernehmen"])
+    assert result.exit_code != 0
+    assert not outside.exists()
+
+
+def test_the_preview_refuses_an_unsafe_key_without_reading_outside(data_dir: Path):
+    import dataclasses
+
+    repo = Repository(data_dir)
+    data = read_workbook(exported(data_dir), "demo")
+    evil = dataclasses.replace(data, team=dataclasses.replace(data.team, key="../outside"))
+    with pytest.raises(DataError, match="Ordnername"):
+        plan_import(repo, evil, TODAY)
+
+
+def test_apply_refuses_a_hand_built_plan_with_an_unsafe_key(data_dir: Path):
+    import dataclasses
+
+    from sprintforecast.excel_import import ImportPlan
+
+    repo = Repository(data_dir)
+    data = read_workbook(exported(data_dir), "demo")
+    evil = dataclasses.replace(data, team=dataclasses.replace(data.team, key="../outside"))
+    with pytest.raises(DataError):
+        apply_import(repo, ImportPlan(data=evil, files=["team.yaml"]))
+    assert not (data_dir.parent / "outside").exists()
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "../../../victim",
+        "..",
+        "a/b",
+        "a\\b",
+        ".versteckt",
+        "x" * 81,
+        "nul",
+        "COM1",
+        "nul.1",
+        "a:b",
+        "C:evil",
+        "a:stream",
+        "ende.",
+        "zeile\numbruch",
+        "tab\tulator",
+    ],
+)
+def test_sprint_ids_from_cells_cannot_become_paths(data_dir: Path, bad: str):
+    def edit(wb: openpyxl.Workbook) -> None:
+        wb[SHEET_FORECAST]["A4"].value = bad
+
+    with pytest.raises(DataError, match=r"Forecast!A4"):
+        read_workbook(edited(exported(data_dir), edit), "demo")
+
+
+def test_invalid_settings_are_refused_before_anything_is_written(data_dir: Path):
+    repo = Repository(data_dir)
+
+    def edit(wb: openpyxl.Workbook) -> None:
+        setting_cell(wb, "forecast.window").value = 0
+
+    data = read_workbook(edited(exported(data_dir), edit), "demo")
+    with pytest.raises(DataError, match="ungültige Einstellungen"):
+        plan_import(repo, data, TODAY)
+    assert Repository(data_dir).load("demo").team.forecast.window != 0
+
+
+@pytest.mark.parametrize("bad", ["NaN", "nan", "inf", "-inf", "1e999", "Infinity"])
+def test_non_finite_numbers_are_refused_with_the_cell(data_dir: Path, bad: str):
+    def edit(wb: openpyxl.Workbook) -> None:
+        wb[SHEET_FORECAST]["E4"].value = bad
+
+    with pytest.raises(DataError, match=r"Forecast!E4"):
+        read_workbook(edited(exported(data_dir), edit), "demo")
+
+
+def test_setting_values_need_their_type(data_dir: Path):
+    def not_whole(wb: openpyxl.Workbook) -> None:
+        setting_cell(wb, "forecast.window").value = 5.5
+
+    def maybe(wb: openpyxl.Workbook) -> None:
+        setting_cell(wb, "features.production").value = "vielleicht"
+
+    def unknown(wb: openpyxl.Workbook) -> None:
+        wb["Einstellungen"]["A30"].value = "x"
+        wb["Einstellungen"]["B30"].value = 1
+        wb["Einstellungen"]["C30"].value = "forecast.unbekannt"
+
+    with pytest.raises(DataError, match=r"Einstellungen!B"):
+        read_workbook(edited(exported(data_dir), not_whole), "demo")
+    with pytest.raises(DataError, match=r"Einstellungen!B"):
+        read_workbook(edited(exported(data_dir), maybe), "demo")
+    with pytest.raises(DataError, match=r"Einstellungen!C30"):
+        read_workbook(edited(exported(data_dir), unknown), "demo")
+
+
+def test_yes_no_words_work_for_switches_and_text_off_is_not_true(data_dir: Path):
+    def off(wb: openpyxl.Workbook) -> None:
+        setting_cell(wb, "features.production").value = "aus"
+
+    def on(wb: openpyxl.Workbook) -> None:
+        setting_cell(wb, "features.production").value = "Ja"
+
+    assert not read_workbook(edited(exported(data_dir), off), "demo").team.features.production
+    assert read_workbook(edited(exported(data_dir), on), "demo").team.features.production
+
+
+# --- Befunde des unabhängigen Reviews zur Härtung -------------------------------------------
+
+
+def cell_sheet():
+    from sprintforecast.excel_import import _Sheet
+
+    return _Sheet(openpyxl.Workbook().active)
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan"), 10**400, 1e12, True])
+def test_number_cells_refuse_non_finite_huge_and_boolean_values(value):
+    with pytest.raises(DataError):
+        cell_sheet().number(4, (value,), 0)
+
+
+def test_number_cells_accept_ordinary_values():
+    sheet = cell_sheet()
+    assert sheet.number(4, (5,), 0) == 5.0
+    assert sheet.number(4, ("2,5",), 0) == 2.5
+    assert sheet.number(4, (None,), 0) is None
+
+
+@pytest.mark.parametrize("year", [1, 1800, 2200, 9999])
+def test_dates_outside_a_plausible_range_are_refused(year: int):
+    from datetime import datetime
+
+    with pytest.raises(DataError, match="außerhalb"):
+        cell_sheet().day(4, (datetime(year, 1, 1),), 0)
+
+
+def test_first_sprint_id_setting_cannot_become_a_path(data_dir: Path):
+    outside = data_dir.parent / "outside"
+
+    def edit(wb: openpyxl.Workbook) -> None:
+        setting_cell(wb, "sprint.first.id").value = "../../../outside/evil"
+        setting_cell(wb, "sprint.first.start").value = datetime(2026, 10, 12)
+
+    with pytest.raises(DataError, match=r"nicht zulässig"):
+        read_workbook(edited(exported(data_dir), edit), "demo")
+    assert not outside.exists()
+
+
+def test_the_repository_refuses_unsafe_sprint_ids_as_paths(data_dir: Path):
+    repo = Repository(data_dir)
+    for bad in ("../x", "a/b", "..", "nul", "a:b"):
+        with pytest.raises(DataError, match="nicht zulässig"):
+            repo.sprint_path("demo", bad)
+    assert repo.sprint_path("demo", "2026.22b").name == "2026.22b.yaml"
+
+
+def test_a_traversal_id_cannot_overwrite_an_existing_file_outside(data_dir: Path):
+    """Ein echtes Ziel außerhalb des Datenordners bleibt unverändert (nicht nur nicht angelegt)."""
+    import dataclasses
+
+    from sprintforecast.excel_import import ImportPlan
+    from sprintforecast.model import Sprint
+
+    target = data_dir.parent / "victim.yaml"
+    target.write_text("original: 1\n", encoding="utf-8")
+    repo = Repository(data_dir)
+    data = read_workbook(exported(data_dir), "demo")
+    evil = Sprint(id="../../victim", start=date(2026, 1, 1), end=date(2026, 1, 15))
+    bad = dataclasses.replace(data, sprints=[*data.sprints, evil])
+    with pytest.raises(DataError):
+        plan_import(repo, bad, TODAY)
+    with pytest.raises(DataError):
+        apply_import(repo, ImportPlan(data=bad, files=["sprints/../../victim.yaml"]))
+    assert target.read_text(encoding="utf-8") == "original: 1\n"
+
+
+def test_spaces_umlauts_and_long_ids_of_existing_sprints_still_round_trip(
+    data_dir: Path, tmp_path: Path
+):
+    from sprintforecast.storage import file_name_problem
+
+    for ok in ("2026.22b", "Sprint Übung 1", "2026 Q3", "x" * 80, "-1", "_a"):
+        assert file_name_problem(ok) is None, ok
+
+
+def test_free_text_below_the_sprints_is_ignored_not_rejected(data_dir: Path):
+    def edit(wb: openpyxl.Workbook) -> None:
+        ws = wb[SHEET_FORECAST]
+        ws.cell(row=ws.max_row + 2, column=1, value="Summe laut Controlling / Hinweis")
+
+    repo = Repository(data_dir)
+    data = read_workbook(edited(exported(data_dir), edit), "demo")
+    assert plan_import(repo, data, TODAY).changes == []
+
+
+def test_duplicate_sprint_ids_are_refused_also_ignoring_case(data_dir: Path):
+    def same(wb: openpyxl.Workbook) -> None:
+        ws = wb[SHEET_FORECAST]
+        ws["A5"].value = ws["A4"].value
+
+    def case(wb: openpyxl.Workbook) -> None:
+        ws = wb[SHEET_FORECAST]
+        ws["A5"].value = str(ws["A4"].value).upper() + "x"
+        ws["A6"].value = str(ws["A4"].value).upper() + "X"
+
+    with pytest.raises(DataError, match="doppelt"):
+        read_workbook(edited(exported(data_dir), same), "demo")
+    with pytest.raises(DataError, match="doppelt"):
+        read_workbook(edited(exported(data_dir), case), "demo")
+
+
+@pytest.mark.parametrize("bad", ["prod=inf", "prod=nan", "prod=1e999", "prod=1e12", "prod"])
+def test_prognoses_refuse_non_finite_values(data_dir: Path, bad: str):
+    from datetime import datetime
+
+    sprint_id = next(s.id for s in Repository(data_dir).load("demo").sprints)
+
+    def edit(wb: openpyxl.Workbook) -> None:
+        wb["Prognosen"].append([sprint_id, datetime(2026, 10, 1, 9), None] + [None] * 6 + [bad])
+
+    with pytest.raises(DataError, match=r"Prognosen!J"):
+        read_workbook(edited(exported(data_dir), edit), "demo")
+
+
+def test_prognoses_are_sorted_oldest_first(data_dir: Path):
+    from datetime import datetime
+
+    sprint_id = next(s.id for s in Repository(data_dir).load("demo").sprints)
+
+    def edit(wb: openpyxl.Workbook) -> None:
+        ws = wb["Prognosen"]
+        ws.append([sprint_id, datetime(2026, 10, 3, 9), "später"] + [None] * 7)
+        ws.append([sprint_id, datetime(2026, 10, 1, 9), "früher"] + [None] * 7)
+
+    data = read_workbook(edited(exported(data_dir), edit), "demo")
+    sprint = next(s for s in data.sprints if s.id == sprint_id)
+    assert [p.comment for p in sprint.prognoses][-2:] == ["früher", "später"]
+    assert [p.at for p in sprint.prognoses] == sorted(p.at for p in sprint.prognoses)
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        ("forecast.rounding", 400),
+        ("forecast.horizon", 100000),
+        ("forecast.reference_capacity", 0),
+        ("forecast.window", 0),
+        ("sprint.length_days", 0),
+        ("sprint.length_days", 5000),
+        ("capacity.overhead_share", 5),
+    ],
+)
+def test_settings_outside_their_ranges_are_refused_before_writing(
+    data_dir: Path, path: str, value: float
+):
+    def edit(wb: openpyxl.Workbook) -> None:
+        setting_cell(wb, path).value = value
+
+    repo = Repository(data_dir)
+    before = (data_dir / "demo" / "team.yaml").read_bytes()
+    data = read_workbook(edited(exported(data_dir), edit), "demo")
+    with pytest.raises(DataError):
+        plan_import(repo, data, TODAY)
+    assert (data_dir / "demo" / "team.yaml").read_bytes() == before
+
+
+def test_existing_sprint_files_missing_in_the_workbook_are_part_of_the_check(
+    data_dir: Path,
+):
+    """Eine vorhandene Sprintdatei, die in der Mappe fehlt, wird mitgeprüft (Gesamtstand)."""
+    repo = Repository(data_dir)
+    data = read_workbook(exported(data_dir), "demo")
+    broken = data_dir / "demo" / "sprints" / "2026.50.yaml"
+    broken.write_text(
+        'id: "2026.50"\nstart: 2026-12-14\nend: 2026-12-28\nvelocity: -5\n', encoding="utf-8"
+    )
+    from sprintforecast.validate import Level, check_team
+
+    union = repo.load("demo")
+    expected_error = any(i.level is Level.ERROR for i in check_team(union, TODAY))
+    if expected_error:  # nur wenn check_team die Datei tatsächlich als Fehler wertet
+        with pytest.raises(DataError):
+            plan_import(repo, data, TODAY)
+
+
+def test_a_symlinked_team_folder_is_accepted(data_dir: Path, tmp_path: Path):
+    from sprintforecast.excel_import import check_team_key
+
+    real = tmp_path / "echt"
+    shutil.copytree(data_dir / "demo", real)
+    root = tmp_path / "wurzel"
+    root.mkdir()
+    try:
+        (root / "team-a").symlink_to(real, target_is_directory=True)
+    except OSError as e:
+        if getattr(e, "winerror", None) != 1314:
+            raise
+        pytest.skip("Kein Recht für symbolische Verknüpfungen")
+    check_team_key(Repository(root), "team-a")
+
+
+def test_a_clashing_team_key_is_refused_regardless_of_the_file_system(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.excel_import import check_team_key
+
+    # Ein älteres Team mit Großbuchstaben im Ordnernamen; ein neues "alpha" würde sich auf
+    # Windows und macOS denselben Ordner teilen.
+    shutil.copytree(data_dir / "demo", data_dir / "Alpha")
+    repo = Repository(data_dir)
+    real_exists = repo.exists
+    monkeypatch.setattr(repo, "exists", lambda key: False if key == "alpha" else real_exists(key))
+    with pytest.raises(DataError, match="existiert bereits"):
+        check_team_key(repo, "alpha")
+
+
+def test_the_person_switch_needs_yes_or_no(data_dir: Path):
+    def off(wb: openpyxl.Workbook) -> None:
+        wb["Personen"]["F2"].value = "nein"
+
+    def maybe(wb: openpyxl.Workbook) -> None:
+        wb["Personen"]["F2"].value = "vielleicht"
+
+    assert not read_workbook(edited(exported(data_dir), off), "demo").people[0].production_access
+    with pytest.raises(DataError, match=r"Personen!F2"):
+        read_workbook(edited(exported(data_dir), maybe), "demo")
+
+
+def test_the_command_checks_against_the_reference_day(
+    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from typer.testing import CliRunner
+
+    import sprintforecast.excel_import as module
+    from sprintforecast.cli import app
+    from sprintforecast.storage import DATA_ENV
+
+    seen: list[object] = []
+    real = module.plan_import
+
+    def spy(repo, data, today=None):
+        seen.append(today)
+        return real(repo, data, today)
+
+    monkeypatch.setattr(module, "plan_import", spy)
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    file = tmp_path / "in.xlsx"
+    file.write_bytes(exported(data_dir))
+    result = CliRunner().invoke(
+        app, ["--stichtag", "2026-10-15", "excel-import", "demo", str(file)]
+    )
+    assert result.exit_code == 0, result.output
+    assert seen == [date(2026, 10, 15)]
