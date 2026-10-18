@@ -1454,6 +1454,93 @@ def bericht(
 
 
 @command(
+    "excel",
+    "Excel-Liste eines Teams schreiben (Formeln, Trend-Diagramm, Aufteilung je Produkt).",
+)
+def excel(
+    ctx: typer.Context,
+    team: Annotated[str, typer.Argument(help=t("Team."))],
+    ausgabe: Annotated[
+        Path | None,
+        typer.Option(
+            "--ausgabe",
+            "--output",
+            "-o",
+            help=t(
+                "Datei; Standard <team>-forecast.xlsx im aktuellen Ordner (nicht im "
+                "Datenordner: Tabellenkalkulationen werden nicht committet)."
+            ),
+        ),
+    ] = None,
+) -> None:
+    from sprintforecast.excel import ExcelUnavailable, build_workbook
+
+    c = _ctx(ctx)
+    data = _load(c, team)
+    try:
+        content = build_workbook(build_forecast(data, c.today))
+    except ExcelUnavailable as e:
+        err.print(f"[red]{escape(str(e))}[/red]")
+        raise typer.Exit(1) from e
+    target = ausgabe or Path(f"{team}-forecast.xlsx")
+    try:
+        target.write_bytes(content)
+    except OSError as e:
+        raise DataError(t("{path}: nicht geschrieben ({reason})", path=target, reason=e)) from e
+    console.print(f"[green]{_plain_end(target)}[/green]")
+
+
+@command(
+    "excel-import",
+    "Excel-Liste aus der Excel-Ausgabe einlesen: Vorschau der Änderungen, mit --uebernehmen "
+    "schreiben.",
+)
+def excel_import(
+    ctx: typer.Context,
+    team: Annotated[str, typer.Argument(help=t("Team."))],
+    datei: Annotated[Path, typer.Argument(help=t("Excel-Datei aus „sprintforecast excel“."))],
+    uebernehmen: Annotated[
+        bool,
+        typer.Option(
+            "--uebernehmen", "--apply", help=t("Änderungen schreiben (sonst nur Vorschau).")
+        ),
+    ] = False,
+) -> None:
+    from sprintforecast.excel import ExcelUnavailable
+    from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+
+    c = _ctx(ctx)
+    try:
+        data = read_workbook(datei, team)
+    except ExcelUnavailable as e:
+        err.print(f"[red]{escape(str(e))}[/red]")
+        raise typer.Exit(1) from e
+    plan = plan_import(c.repo, data, c.today)
+    if not plan.changes:
+        console.print(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
+        return
+    table = Table(t("Datei"), t("Wert"), t("bisher"), t("neu"))
+    for change in plan.changes[:200]:
+        table.add_row(
+            _plain(change.file),
+            _plain(change.path),
+            _plain("–" if change.old is None else change.old),
+            _plain("–" if change.new is None else change.new),
+        )
+    console.print(table)
+    if len(plan.changes) > 200:
+        console.print(t("… und {count} weitere Änderungen", count=len(plan.changes) - 200))
+    for name in plan.untouched:
+        note = t("Nicht in der Mappe, bleibt unverändert: {file}", file=_plain(name))
+        console.print(f"[dim]{note}[/dim]")
+    if not uebernehmen:
+        console.print(t("Nur Vorschau – mit --uebernehmen schreiben."))
+        return
+    for path in apply_import(c.repo, plan):
+        console.print(f"[green]{_plain_end(path)}[/green]")
+
+
+@command(
     "pruefen", "Alle Team-Daten auf Fehler und Plausibilität prüfen (für CI und vor dem Commit)."
 )
 def pruefen(
@@ -1900,7 +1987,7 @@ def datenordner(
         typer.Argument(help=t("Ordner merken (muss in einem Git-Repository liegen).")),
     ] = None,
 ) -> None:
-    from sprintforecast.git import classify, repo_root
+    from sprintforecast.git import classify, repo_root, root_problem
     from sprintforecast.gitsync import git_available
     from sprintforecast.storage import save_data_dir, saved_data_dir, teams_dir
 
@@ -1919,13 +2006,16 @@ def datenordner(
     if not git_available():
         _git_problem(classify("", missing=True))
     if repo_root(pfad) is None:
-        err.print(
-            "[red]"
-            + escape(
-                t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+        if problem := root_problem(pfad):
+            _git_problem(problem)  # Überschrift, Meldung von Git und nächster Schritt
+        else:
+            err.print(
+                "[red]"
+                + escape(
+                    t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+                )
+                + "[/red]"
             )
-            + "[/red]"
-        )
         raise typer.Exit(1)
     target = teams_dir(pfad) or pfad
     try:

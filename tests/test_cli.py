@@ -565,6 +565,25 @@ def test_datenordner(tmp_path: Path, data_dir: Path):
     assert "Gemerkt:" in run(data_dir, "datenordner").output
 
 
+def test_datenordner_names_the_reason_for_an_unsafe_folder(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    import subprocess
+
+    from gitrepos import assume_foreign_owner
+
+    subprocess.run(["git", "init", "-q", str(data_dir)], check=True)
+    assume_foreign_owner(monkeypatch, data_dir)
+    result = run(data_dir, "datenordner", str(data_dir))
+    assert result.exit_code == 1
+    assert "dubious ownership" in result.output  # die Meldung von Git
+    assert "Git-Einstellungen" in " ".join(result.output.split())  # der Hinweis
+    assert "liegt in keinem Git-Repository" not in result.output
+    assert "Git hält den Ordner für unsicher" in result.output  # die Überschrift
+    # Die App rät nie zu einer Konfigurationsänderung, auch nicht mit Gits Wortlaut.
+    assert "safe.directory" not in result.output and "git config" not in result.output
+
+
 def one_line(output: str) -> str:
     """Ausgabe ohne Zeilenumbrüche der Konsole (Rich bricht lange Zeilen um)."""
     return " ".join(output.split())
@@ -772,6 +791,8 @@ def test_help_command_list_covers_every_cli_command():
         for info in app.registered_commands
         if info.name not in english and info.callback.__module__ == "sprintforecast.cli"
     }
-    listed = {m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast (\w+)", left))}
+    listed = {
+        m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast ([a-z][\w-]*)", left))
+    }
     assert not registered - listed, f"Fehlt in guide.COMMANDS: {registered - listed}"
     assert not listed - registered, f"Kein CLI-Befehl: {listed - registered}"

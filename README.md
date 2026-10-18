@@ -233,11 +233,13 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   nur dabei und beim Teilen abgefragt.
 - **Änderungen committen** sichert nur lokal, ohne zu teilen.
 - Fehlerfälle erklärt die App verständlich mit nächstem Schritt: Server nicht erreichbar,
-  Hochladen abgelehnt (inzwischen Neues da bzw. vom Server verboten), fehlende Anmeldung
-  (https-Zugangstoken bzw. SSH-Schlüssel, Credential Manager), Git nicht installiert, gesperrte
-  Datei, fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und
-  detached HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die
-  Anmeldung des Rechners (Credential Manager, SSH-Agent) wird genutzt.
+  Repository nicht gefunden (Adresse prüfen), nicht anerkanntes Zertifikat, Hochladen abgelehnt
+  (inzwischen Neues da bzw. vom Server verboten), fehlende Anmeldung (https-Zugangstoken bzw.
+  SSH-Schlüssel, Credential Manager; bei SSH auch der unbekannte Server-Fingerabdruck), Git nicht
+  installiert, gesperrte Datei, nicht beschreibbarer oder von Git als unsicher abgelehnter Ordner,
+  fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und detached
+  HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die Anmeldung des
+  Rechners (Credential Manager, SSH-Agent) wird genutzt.
 - **Server (Remote) eintragen:** Hat ein Datenordner noch keinen Server, verweist die Seitenleiste
   („Server einrichten“) auf die Seite **Datenordner**; dort steht der Abschnitt **Server
   (Remote)** auch zum Ändern der Adresse. Die Adresse wird sofort geprüft (erlaubt sind
@@ -304,6 +306,8 @@ Speicherungen sofort.
 | PO-Planung | `sprintforecast forecast team-a` | Prognose für laufenden + nächste Sprints. |
 | Produktauswertung | `sprintforecast produkte team-a [SPRINT]` | Verteilung je Produkt und Saldo der letzten Sprints. |
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
+| Excel | `sprintforecast excel team-a [-o datei.xlsx]` | Schreibt eine Excel-Liste (Rückweg für alle, die mit Excel weiterarbeiten): Sprintwerte als Eingaben (gelb), n. Velocity, Durchschnitt, Trend, Forecast PLAN, Roadmap und Kleinkram als echte Formeln, Aufteilung nach Produktionszugriff und je Produkt, zwei Trend-Diagramme. Braucht den Zusatz `[excel]` (`uv tool install "sprintforecast[web,excel] …"`); nicht im Datenordner ablegen (`*.xlsx` wird nicht committet). In der Weboberfläche: Seite Forecast → „Excel-Liste erstellen“. Die Mappe enthält das ganze Team (Einstellungen, Personen, Produkte, alle Sprints mit Fehltagen, Produktwerten und Prognosen). |
+| Excel-Import | `sprintforecast excel-import team-a datei.xlsx [--uebernehmen]` | Liest eine solche Mappe zurück (nur die gelben Eingabezellen, nach fester Spaltenposition) und zeigt zuerst je Datei und Wert, was sich ändert; mit `--uebernehmen` werden nur die geänderten Dateien geschrieben. Sprintdateien, die in der Mappe fehlen, bleiben unverändert. Unabhängig vom früheren Import-Plugin, das weiter die ursprüngliche Excel-Liste einliest. |
 | Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. |
 
 ### PO-Vorplanung und Planning

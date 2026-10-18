@@ -20,7 +20,8 @@ def pwsh(command: str, home: str | None = None) -> subprocess.CompletedProcess:
     if home is not None:
         import os
 
-        env = os.environ | {"HOME": home}
+        # Unter Windows gilt USERPROFILE als Profilordner, sonst HOME.
+        env = os.environ | {"HOME": home, "USERPROFILE": home}
     return subprocess.run(
         [PWSH or "pwsh", "-NoProfile", "-NonInteractive", "-Command", command],
         capture_output=True,

@@ -28,8 +28,11 @@ def solo(tmp_path: Path) -> Path:
     git(root, "config", "user.name", "Solo")
     git(root, "config", "user.email", "solo@example.org")
     (root / "a").mkdir()
-    (root / "a" / "team.yaml").write_text("name: A\n", encoding="utf-8")
-    (root / "b.yaml").write_text("v: 1\n", encoding="utf-8")
+    # Bytes mit LF: ``write_text`` schriebe unter Windows CRLF, und Git hielte die Datei je nach
+    # ``core.autocrlf`` (Systemeinstellung, in Tests abgeschaltet) für geändert oder nicht, wobei
+    # der Zeitstempel im Index entscheidet, ob es neu rechnet (Test mal grün, mal rot).
+    (root / "a" / "team.yaml").write_bytes(b"name: A\n")
+    (root / "b.yaml").write_bytes(b"v: 1\n")
     git(root, "add", "-A")
     git(root, "commit", "-qm", "Start")
     invalidate_status()
@@ -470,7 +473,9 @@ def test_discard_stops_before_changing_anything_if_backup_fails(solo: Path, monk
 
 
 def test_revert_names_missing_identity_correctly(solo: Path, monkeypatch: pytest.MonkeyPatch):
-    (solo / "b.yaml").write_text("v: 2\n", encoding="utf-8")
+    # Bytes mit LF: ``write_text`` schriebe unter Windows CRLF, und ohne die Systemeinstellung
+    # ``core.autocrlf`` (unten abgeschaltet) gälte die Datei danach als geändert.
+    (solo / "b.yaml").write_bytes(b"v: 2\n")
     rev = commit_all(solo, "Zwei")
     git(solo, "config", "--unset", "user.name")
     git(solo, "config", "--unset", "user.email")

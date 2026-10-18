@@ -196,6 +196,27 @@ def test_a_permission_error_reported_by_git_itself_becomes_a_folder_problem(
         assert "Keine Zugriffsrechte für" in str(info.value)
 
 
+def test_the_real_git_output_for_a_folder_without_rights_becomes_a_folder_problem(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Die Meldung läuft durch ``classify`` (Art ``not_writable``), nicht von Hand als ``error``
+    gebaut: Auch dann entsteht „Keine Zugriffsrechte für …“ statt des Hinweises zu ``.git``."""
+    import subprocess
+
+    def refused(cwd, *args, **kwargs):
+        message = "fatal: could not create work tree dir 'klon': Permission denied"
+        return subprocess.CompletedProcess(args, 128, "", message)
+
+    monkeypatch.setattr(gitmod, "_git_result", refused)
+    with pytest.raises(GitError) as info:
+        gitmod.clone_repository(ADDRESS, tmp_path / "klon")
+    assert info.value.kind == "folder"
+    assert "Keine Zugriffsrechte für" in str(info.value)
+    with pytest.raises(GitError) as info:
+        gitmod.init_data_repository(tmp_path / "neu")
+    assert info.value.kind == "folder"
+
+
 def test_a_path_with_a_nul_character_is_a_folder_problem(tmp_path: Path):
     bad = Path(str(tmp_path / "a") + "\0b")
     for action in (
