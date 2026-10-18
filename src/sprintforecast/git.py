@@ -56,13 +56,27 @@ def scrub(text: str) -> str:
     return _URL_IN_TEXT.sub(lambda m: public_url(m.group(0)), text)
 
 
+# Zeichen, die md_code durch ein Leerzeichen ersetzt: Steuerzeichen (Cc), Zeilen- und
+# Absatztrenner (Zl, Zp) und die Steuerzeichen der Schreibrichtung. Sie lassen Text anders
+# erscheinen, als er geschrieben ist (Umordnen, Zeilenumbruch). Die übrigen Formatzeichen (Cf)
+# bleiben: Der Zero-Width-Joiner (U+200D) hält Emoji-Folgen zusammen, der Zero-Width-Non-Joiner
+# (U+200C) gehört zur Schreibweise etwa persischer und indischer Namen.
+_BIDI_CONTROLS = frozenset(
+    "\u061c\u200e\u200f"  # Arabic Letter Mark, Left-to-Right Mark, Right-to-Left Mark
+    "\u202a\u202b\u202c\u202d\u202e"  # Embedding, Pop, Override
+    "\u2066\u2067\u2068\u2069"  # Isolate
+)
+_BLANKED_CATEGORIES = frozenset({"Cc", "Zl", "Zp"})
+
+
 def md_code(text: str) -> str:
     """Text als Code-Span für Markdown. Namen und Adressen, die von außen kommen (Server,
     Konfiguration), gehören nie als Fließtext in die Oberfläche: Dort würden Auszeichnungen
     wirken und Webadressen wie ``www.beispiel.de/x`` zu Links. Backticks im Text lassen den
-    Span nicht enden; Steuer- und unsichtbare Zeichen werden zu Leerzeichen."""
+    Span nicht enden; Steuerzeichen, Zeilenumbrüche und Zeichen der Schreibrichtung werden zu
+    Leerzeichen. Die übrigen unsichtbaren Zeichen (Emoji-Folgen, persische Namen) bleiben."""
     text = "".join(
-        " " if unicodedata.category(c)[0] == "C" or unicodedata.category(c) in {"Zl", "Zp"} else c
+        " " if c in _BIDI_CONTROLS or unicodedata.category(c) in _BLANKED_CATEGORIES else c
         for c in text
     )
     if not text:
@@ -73,22 +87,40 @@ def md_code(text: str) -> str:
     return f"{fence}{pad}{text}{pad}{fence}"
 
 
+def md_code_lines(text: str) -> str:
+    """Wie :func:`md_code`, aber Zeile für Zeile (harte Zeilenumbrüche in Markdown): Die
+    mehrzeilige Ausgabe von Git bleibt lesbar. Leere Zeilen entfallen, ebenso Leerzeichen am
+    Zeilenende (der Server füllt seine ``remote:``-Zeilen damit auf)."""
+    return "  \n".join(md_code(line.rstrip()) for line in text.splitlines() if line.strip())
+
+
 class GitError(Exception):
     """Fehler eines Git-Aufrufs. ``kind`` benennt die Art (siehe :func:`classify`), ``hint`` ist
     der nächste Schritt in Alltagssprache; ``str(error)`` bleibt die kurze Meldung. Meldung und
-    Hinweis enthalten nie Zugangsdaten aus einer Adresse (:func:`scrub`)."""
+    Hinweis enthalten nie Zugangsdaten aus einer Adresse (:func:`scrub`). ``raw`` heißt: Die
+    Meldung ist die Ausgabe von Git und vom Server (:func:`classify`), nicht ein eigener Text.
+    Darin stehen Namen und Zeilen, die andere bestimmen (``remote:``, Hooks, Tags, Branches)."""
 
-    def __init__(self, message: str, kind: str = "error", hint: str = "") -> None:
+    def __init__(
+        self, message: str, kind: str = "error", hint: str = "", raw: bool = False
+    ) -> None:
         super().__init__(scrub(message))
         self.kind = kind
         self.hint = scrub(hint)
+        self.raw = raw
 
-    def full(self) -> str:
+    def render(self, quote: Callable[[str], str] = str) -> str:
+        """Die Meldung für die Oberfläche: Die Ausgabe von Git (``raw``) geht durch ``quote``
+        (z. B. :func:`md_code_lines` für Markdown), eigene Texte bleiben, wie sie sind."""
+        return quote(str(self)) if self.raw else str(self)
+
+    def full(self, quote: Callable[[str], str] = str) -> str:
         """Meldung samt nächstem Schritt – für Stellen ohne Überschrift (``title_for``). Bei
         einem Anmeldefehler steht die Ursache voran: Der Hinweis (:func:`auth_help`) beginnt
-        gleich mit dem nächsten Schritt, weil die Überschrift sie sonst nennt."""
+        gleich mit dem nächsten Schritt, weil die Überschrift sie sonst nennt. ``quote`` wirkt
+        wie bei :meth:`render` nur auf die Meldung, nie auf Ursache und Hinweis."""
         cause = f"{title_for(self.kind)}." if self.kind == "auth" and self.hint else ""
-        return " ".join(part for part in (cause, str(self), self.hint) if part).strip()
+        return " ".join(part for part in (cause, self.render(quote), self.hint) if part).strip()
 
 
 # Tabellenkalkulationen dürfen nie committet werden (können echte Team-Daten enthalten).
@@ -385,8 +417,8 @@ def classify(message: str, missing: bool = False, timeout: bool = False) -> GitE
         )
     for kind, pattern in _PATTERNS:
         if pattern.search(message):
-            return GitError(message or kind, kind, hint_for(kind))
-    return GitError(message or t("Unbekannter Git-Fehler"), "error")
+            return GitError(message or kind, kind, hint_for(kind), raw=bool(message))
+    return GitError(message or t("Unbekannter Git-Fehler"), "error", raw=bool(message))
 
 
 def title_for(kind: str) -> str:

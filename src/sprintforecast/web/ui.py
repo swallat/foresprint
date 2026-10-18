@@ -73,6 +73,7 @@ from sprintforecast.git import (
     hint_for,
     init_data_repository,
     md_code,
+    md_code_lines,
     new_branch_error,
     parse_remote_url,
     remote_special_error,
@@ -4309,12 +4310,14 @@ def _clone_problem(error: GitError) -> GitError:
     }
     if error.kind not in hints:
         return error
-    return GitError(str(error), error.kind, hints[error.kind])
+    return GitError(str(error), error.kind, hints[error.kind], error.raw)
 
 
 def _show_problem(error: GitError) -> None:
-    """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git."""
-    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error}")
+    """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git. Ohne
+    Hinweis steht die Meldung selbst da; Ausgabe von Git und vom Server (Namen und Zeilen, die
+    andere bestimmen) als Code, nie als Markdown."""
+    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error.render(md_code_lines)}")
     if error.hint and str(error):
         with st.expander(t("Technische Meldung")):
             st.code(str(error), language=None)
@@ -4552,7 +4555,8 @@ def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> No
     clear_team_cache()
     kind = "success"
     if isinstance(result, GitError):  # Warnung, z. B. Tag nur lokal gesetzt
-        kind, text = "warning", t("Nur lokal erledigt: {error}", error=result.full())
+        # Die Meldung nennt Tags und Zeilen des Servers (Hooks): als Code, nie als Markdown.
+        kind, text = "warning", t("Nur lokal erledigt: {error}", error=result.full(md_code_lines))
     else:
         text = ok(result)
     st.session_state["flash"] = [(kind, text)]
@@ -4646,7 +4650,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
         st.checkbox(
             t(
                 "{file} – {status} (+{added} −{removed} Zeilen)",
-                file=item.file,
+                file=md_code(item.file),  # auch Labels von Widgets deuten Markdown
                 status=_lost_status(item),
                 added=item.added,
                 removed=item.removed,
@@ -4669,7 +4673,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
                 "Das geht verloren ({count} Datei(en)):  \n{list}",
                 count=len(shown),
                 list="  \n".join(
-                    f"`{i.file}` – {_lost_status(i)}, +{i.added} −{i.removed}" for i in shown
+                    f"{md_code(i.file)} – {_lost_status(i)}, +{i.added} −{i.removed}" for i in shown
                 ),
             )
         )
@@ -4994,10 +4998,10 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
         ready = True
         for i, cf in enumerate(pending):
             if not cf.open:
-                st.caption(t("{file}: wird automatisch zusammengeführt", file=cf.file))
+                st.caption(t("{file}: wird automatisch zusammengeführt", file=md_code(cf.file)))
                 continue
             with st.container(border=True):
-                st.markdown(f"**{cf.file}**")
+                st.markdown(f"**{md_code(cf.file)}**")
                 if cf.whole:
                     mine = t("(von mir gelöscht)") if cf.ours_deleted else t("meine Fassung")
                     theirs = (
@@ -5017,7 +5021,7 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
                         "theirs": t("Andere Änderung: {v}", v=_show_value(kc.theirs)),
                     }
                     pick = st.radio(
-                        f"`{kc.label}`", list(options), format_func=options.get, index=None,
+                        md_code(kc.label), list(options), format_func=options.get, index=None,
                         key=_conf_key(i, j),
                     )  # fmt: skip
                     ready = ready and pick is not None
