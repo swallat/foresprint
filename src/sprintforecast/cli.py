@@ -75,6 +75,7 @@ from sprintforecast.plugins import load_plugins
 from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
 from sprintforecast.report import (
+    band_range,
     capacity_label,
     fmt,
     fmt_capacity,
@@ -1105,11 +1106,15 @@ def forecast(
         "Velocity",
         t("n. Vel. (Ø/Trend)"),
         f"Forecast PLAN {unit}",
+        t("Spanne"),
         "Roadmap",
         t("Kleinkram"),
     ]
     for i, col in enumerate(columns):
-        table.add_column(col, justify="left" if i < 3 else "right")
+        band = col == t("Spanne")  # nie mitten in der Zahl kürzen: lieber umbrechen die anderen
+        table.add_column(
+            col, justify="left" if i < 3 else "right", no_wrap=band, min_width=9 if band else None
+        )
     for e in fc.history(verlauf) + fc.upcoming():
         r = e.result
         future = e.sprint.end > c.today
@@ -1122,6 +1127,7 @@ def forecast(
             fmt(r.velocity.value, 2),
             fmt(n_vel, 2),
             f"[bold]{fmt(r.plan)}[/bold]" if future else fmt(r.plan),
+            band_range(fc, e) if future else "",
             fmt(r.roadmap, 2) if future else "",
             fmt(r.small_stuff, 2) if future else "",
             style=None if future else "dim",

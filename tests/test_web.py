@@ -1507,6 +1507,117 @@ def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path
     assert any("Gespeichert" in s.value for s in app.success)  # die Meldung kommt nach dem Laden
 
 
+def captions(app: AppTest) -> list[str]:
+    return [c.value for c in app.caption]
+
+
+def test_range_is_shown_at_the_planning_forecast(app: AppTest):
+    """Planning Schritt 2: Spanne und Stichprobe direkt unter den Kacheln, die Kapazitätsquelle
+    unter der Kapazität."""
+    planning_step(app, "2026.22", 1)
+    assert "Spanne 10,0–12,3 aus den letzten 5 Sprints" in captions(app)
+    capacity = next(m for m in app.metric if m.label == "Kapazität (PT)")
+    assert "Personen" in capacity.delta  # Quelle: Kalender und Personenliste
+
+
+def test_range_is_shown_at_the_absences_forecast_line(app: AppTest):
+    goto(app, "fehltage")
+    assert any("In den nächsten Sprint" in m.value for m in app.markdown)
+    assert any(c.startswith("Spanne ") and "aus den letzten 5 Sprints" in c for c in captions(app))
+
+
+def test_range_is_shown_at_the_preplanning_forecast(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    assert "Spanne 10,2–12,5 aus den letzten 5 Sprints" in captions(app)
+
+
+def test_range_is_not_shown_for_finished_sprints(app: AppTest):
+    """Die Spanne gehört zur heutigen Historie; die Prognose eines abgeschlossenen Sprints wurde
+    mit der damaligen berechnet. Beide nebeneinander widersprächen sich."""
+    planning_step(app, "2026.20", 1)
+    assert not any(c.startswith("Spanne ") for c in captions(app))
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.20").run()
+    assert not app.exception, app.exception
+    assert not any(c.startswith("Spanne ") for c in captions(app))
+
+
+def test_range_at_the_preplanning_says_when_the_forecast_assumes_something(app: AppTest):
+    """Die Prognose rechnet mit der Annahme, die Spanne nicht: Das steht dran."""
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    assert "Spanne 10,0–12,3 aus den letzten 5 Sprints" in captions(app)
+    next(
+        n
+        for n in app.number_input
+        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-extra")
+    ).set_value(8.0).run()
+    assert "Spanne 10,0–12,3 aus den letzten 5 Sprints (ohne die Annahme)" in captions(app)
+
+
+def test_planning_capacity_tile_shows_no_arrow_before_the_source(app: AppTest):
+    planning_step(app, "2026.22", 1)
+    capacity = next(m for m in app.metric if m.label == "Kapazität (PT)")
+    assert capacity.proto.direction == 2  # NONE: nur die Quelle steht darunter, kein Anstieg
+
+
+def test_range_at_the_absences_forecast_follows_the_unsaved_preview(app: AppTest):
+    """Die Zeile unter „In den nächsten Sprint passen“ gehört zur Vorschau, nicht zum gespeicherten
+    Stand: Trägt jemand mehr Fehltage ein, sinkt die Kapazität und mit ihr die Spanne."""
+    goto(app, "fehltage")
+    before = next(c for c in captions(app) if c.startswith("Spanne "))
+    frame = next(d.value for d in app.dataframe if "Person" in d.value.columns)
+    sprints = [c for c in frame.columns if c.startswith("2026.")]
+    app.session_state[f"absences-demo-{sprints[0]}-{len(sprints)}"] = {
+        "edited_rows": {0: {"2026.22": 9.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    assert not app.exception, app.exception
+    after = [c for c in captions(app) if c.startswith("Spanne ")]
+    assert after and after[0] != before, (before, after)
+
+
+def test_range_helpers_are_empty_without_enough_data_or_for_finished_sprints(data_dir: Path):
+    from datetime import date
+
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.report import band_note, band_range
+    from sprintforecast.storage import Repository
+
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    assert band_range(fc, fc.entry("2026.22")) == "10,0–12,3"
+    assert band_note(fc, fc.entry("2026.22")) != ""
+    assert band_note(fc, fc.entry("2026.20")) == ""  # abgeschlossen
+    assert band_range(fc, fc.entry("2026.20")) == "–"
+
+    for file in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if file.stem != "2026.20":
+            file.unlink()
+    thin = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    assert band_note(thin, thin.entry("2026.22")) == ""  # nur ein Messwert
+    assert band_range(thin, thin.entry("2026.22")) == "–"
+
+
+def test_range_note_warns_about_little_data(data_dir: Path):
+    """Mit weniger als fünf Sprints mit Velocity steht der Hinweis gleich an der Spanne."""
+    from datetime import date
+
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.report import band_note
+    from sprintforecast.storage import Repository
+
+    for file in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if file.stem not in ("2026.17", "2026.18", "2026.19", "2026.20", "2026.21"):
+            file.unlink()
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    note = band_note(fc, fc.entry("2026.22"))
+    assert note.startswith("Spanne ") and "aus den letzten 4 Sprints" in note
+    assert note.endswith("wenig Daten, grober Hinweis")
+
+
 def test_absences_page_shows_the_step_bar_and_shares_the_board_sprint(app: AppTest):
     goto(app, "fehltage")
     assert app.selectbox(key="absences-sprint").value == "2026.22"
