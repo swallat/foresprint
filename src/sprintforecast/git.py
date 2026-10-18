@@ -1101,7 +1101,7 @@ def require_root(path: Path) -> Path:
     if root is not None:
         return root
     if problem is not None:  # neu erzeugt: der gespeicherte sammelte bei jedem Auslösen Spuren an
-        raise GitError(str(problem), problem.kind, problem.hint)
+        raise GitError(str(problem), problem.kind, problem.hint, problem.raw)
     raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
 
 
@@ -1372,7 +1372,7 @@ def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
         if (problem := root_problem(path)) is not None:
             # Git lehnt den Ordner ab, weil er einem anderen Konto gehört: nicht „git init“ dort,
             # nichts hineinschreiben, sondern den Grund nennen.
-            raise GitError(str(problem), problem.kind, problem.hint)
+            raise GitError(str(problem), problem.kind, problem.hint, problem.raw)
         path.mkdir(parents=True, exist_ok=True)
         new = repo_root(path) is None
         if new:

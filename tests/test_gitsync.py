@@ -712,6 +712,9 @@ def test_reattach_with_open_changes_names_the_way_out(alice: Person):
     assert "Änderungen und Verlauf" in hint and "verwerfen" in hint and "verloren" in hint
     assert "außerhalb des Datenordners" not in hint and "zuerst committen" not in hint
     assert "would be overwritten" in str(info.value)  # die Meldung von Git bleibt erhalten
+    # Es ist weiter die Ausgabe von Git (Namen darin bestimmen andere): Die Oberfläche setzt sie
+    # als Code, nie als Markdown.
+    assert info.value.raw and info.value.render(lambda text: f"«{text}»").startswith("«")
     assert gitsync.state(alice.data).detached  # nichts verändert
 
 
