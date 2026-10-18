@@ -7,6 +7,7 @@ import copy
 import functools
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -108,9 +109,25 @@ console = Console()
 err = Console(stderr=True)
 
 
+# Wie rich.markup.escape: ein Tag ist „[“ + Buchstabe, „#“, „/“ oder „@“ … „]“; Backslashes davor
+# zählen mit (zwei ergeben einen, ein ungerader maskiert das Tag).
+_TAG = re.compile(r"(\\*)(\[[a-z#/@][^[]*?])")
+
+
 def _plain(value: object) -> str:
-    """Freitext aus Daten oder Meldungen für die Ausgabe: eckige Klammern sind kein Markup."""
-    return escape(str(value))
+    """Freitext aus Daten oder Meldungen für die Ausgabe: eckige Klammern sind kein Markup.
+
+    Anders als rich.markup.escape bleibt ein abschließender Backslash unverändert: Rich zeigt
+    ihn nur dann richtig, wenn danach kein Tag folgt (Tabellenzelle, Prompt, Titel, Satz). Steht
+    der Wert direkt vor einem Tag (`[bold]{x}[/bold]`), gilt `_plain_end`."""
+    return _TAG.sub(lambda m: f"{m[1]}{m[1]}\\{m[2]}", str(value))
+
+
+def _plain_end(value: object) -> str:
+    """Wie `_plain` für einen Wert, auf den unmittelbar ein Tag folgt: abschließende Backslashes
+    werden verdoppelt, sonst maskierten sie das Tag (`Eva\\[/red]` zeigte „[/red]“ als Text)."""
+    text = _plain(value)
+    return text + text[len(text.rstrip("\\")) :]
 
 
 def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
@@ -210,16 +227,16 @@ def _auto_update() -> None:
     import atexit
 
     for message in updater.startup_notices():
-        err.print(f"[cyan]{_plain(message)}[/cyan]")
+        err.print(f"[cyan]{_plain_end(message)}[/cyan]")
     auto = updater.AutoUpdate().start()
-    atexit.register(auto.finish, lambda text: err.print(f"[cyan]{_plain(text)}[/cyan]"))
+    atexit.register(auto.finish, lambda text: err.print(f"[cyan]{_plain_end(text)}[/cyan]"))
 
 
 def _load(c: Context, team: str) -> TeamData:
     try:
         return c.repo.load(team)
     except DataError as e:
-        err.print(f"[red]{_plain(e)}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
 
 
@@ -454,7 +471,7 @@ def _maybe_commit(
 
 
 def _saved(path: Path) -> None:
-    console.print(f"[green]{t('Gespeichert: {path}', path=_plain(path))}[/green]")
+    console.print(f"[green]{t('Gespeichert: {path}', path=_plain_end(path))}[/green]")
 
 
 TeamArg = Annotated[str, typer.Argument(help=t("Team-Kürzel = Verzeichnisname, z. B. team-a."))]
@@ -554,7 +571,7 @@ def _ask_setting(setting: Setting, team: Team, *, required: bool = False) -> Non
         try:
             value = setting.parse(raw)
         except ValueError as e:
-            console.print(f"[red]{_plain(e)}[/red]")
+            console.print(f"[red]{_plain_end(e)}[/red]")
             continue
         if value is None and required:
             console.print(f"[red]{t('Bitte einen Wert eingeben.')}[/red]")
@@ -590,8 +607,8 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
                 "[bold]{command}[/bold] änderbar.\nOptional sind die Bereiche Produktverteilung "
                 "(mehrere Produkte), Zuordnung PO und Produktionszugriff; sie sind zunächst "
                 "aus (Enter übernimmt „aus“).",
-                team=_plain(team),
-                command=_plain(cmd(f"sprintforecast einstellungen {team}")),
+                team=_plain_end(team),
+                command=_plain_end(cmd(f"sprintforecast einstellungen {team}")),
             )
         )
     )
@@ -603,12 +620,12 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
         _ask_setting(setting, new, required=setting.only_without_sprints)
     path = c.repo.save_team(new)
     people = c.repo.save_people(team, [])
-    console.print(f"[green]{t('Angelegt: {path}', path=_plain(path))}[/green]")
+    console.print(f"[green]{t('Angelegt: {path}', path=_plain_end(path))}[/green]")
     _maybe_commit(c, team, [path, people], t("{team}: Team angelegt", team=new.name), None, commit_)
     console.print(
         t(
             "Weiter mit: [bold]{command}[/bold]",
-            command=_plain(cmd(f"sprintforecast personen {team}")),
+            command=_plain_end(cmd(f"sprintforecast personen {team}")),
         )
     )
 
@@ -625,7 +642,7 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
         Panel(
             t(
                 "Einstellungen [bold]{team}[/bold] – Enter übernimmt den aktuellen Wert.",
-                team=_plain(current.name),
+                team=_plain_end(current.name),
             ),
             border_style="cyan",
         )
@@ -697,7 +714,7 @@ def _choose_person(people: list[Person]) -> Person:
     names = [p.name for p in people]
     labels = [p.name if names.count(p.name) == 1 else f"{p.name} ({p.id})" for p in people]
     by_label = {label.lower(): p for label, p in zip(labels, people, strict=True)}
-    console.print(f"[dim]{t('Personen')}: " + ", ".join(_plain(x) for x in labels) + "[/dim]")
+    console.print(f"[dim]{t('Personen')}: " + _plain_end(", ".join(labels)) + "[/dim]")
     while True:
         raw = Prompt.ask(t("Name"), console=console).strip().lower()
         if raw in by_label:
@@ -811,7 +828,7 @@ def fehltage(
             "[red]"
             + t(
                 "Keine Personen erfasst. Zuerst: {command}",
-                command=_plain(cmd(f"sprintforecast personen {team}")),
+                command=_plain_end(cmd(f"sprintforecast personen {team}")),
             )
             + "[/red]"
         )
@@ -844,7 +861,7 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
     text = t(
         "Sprint [bold]{id}[/bold]: {start} – {last} (letzter Arbeitstag; der nächste Sprint "
         "beginnt am {next}), {days} Arbeitstage ({week})",
-        id=_plain(s.id),
+        id=_plain_end(s.id),
         start=f"{s.start:%d.%m.%Y}",
         last=f"{last:%d.%m.%Y}",
         next=f"{s.end:%d.%m.}",
@@ -895,7 +912,7 @@ def _require_products(data: TeamData, team: str) -> None:
             + t(
                 "Die Produktverteilung ist für dieses Team ausgeschaltet. Einschalten mit: "
                 "{command}",
-                command=_plain(cmd(f"sprintforecast einstellungen {team}")),
+                command=_plain_end(cmd(f"sprintforecast einstellungen {team}")),
             )
             + "[/yellow]"
         )
@@ -1081,7 +1098,9 @@ def review(
     s = _find_or_create(data, fc, sprint, "review")
     unit = data.team.unit.value
     console.print(
-        Panel(f"Review Sprint [bold]{_plain(s.id)}[/bold] ({s.start:%d.%m.} – {s.end:%d.%m.%Y})")
+        Panel(
+            f"Review Sprint [bold]{_plain_end(s.id)}[/bold] ({s.start:%d.%m.} – {s.end:%d.%m.%Y})"
+        )
     )
     if s.capacity is None:
         if data.people:
@@ -1371,19 +1390,22 @@ def analyse(
                 rest=fmt(rest, 1),
                 unit=unit,
                 basis=basis,
-                p50=_plain(result.p50) if result.p50 else later,
-                p85=_plain(result.p85) if result.p85 else later,
+                p50=_plain_end(result.p50) if result.p50 else later,
+                p85=_plain_end(result.p85) if result.p85 else later,
                 samples=result.samples,
                 per_sprint=fmt(result.per_sprint, 1),
             )
         )
         if result.trend_capacity_sprints:
-            listed = ", ".join(_plain(x) for x in result.trend_capacity_sprints[:4])
+            listed = ", ".join(result.trend_capacity_sprints[:4])
             if len(result.trend_capacity_sprints) > 4:
                 listed += " …"
             console.print(
                 "[dim]"
-                + t("Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
+                + t(
+                    "Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}",
+                    sprints=_plain_end(listed),
+                )
                 + "[/dim]"
             )
         if note := completion_note(result.samples):
@@ -1420,7 +1442,7 @@ def bericht(
             continue
         target = ausgabe if ausgabe is not None and team else c.repo.team_dir(key) / "FORECAST.md"
         write_text(target, text)
-        console.print(f"[green]{_plain(target)}[/green]")
+        console.print(f"[green]{_plain_end(target)}[/green]")
 
 
 @command(
@@ -1436,14 +1458,16 @@ def pruefen(
     c = _ctx(ctx)
     results = check_all(c.repo, c.today)
     if not results:
-        err.print(f"[red]{t('Keine Teams gefunden unter {root}', root=_plain(c.repo.root))}[/red]")
+        err.print(
+            f"[red]{t('Keine Teams gefunden unter {root}', root=_plain_end(c.repo.root))}[/red]"
+        )
         raise typer.Exit(1)
     failed = False
     for key, issues in results.items():
         if not issues:
-            console.print(f"[green]✔ {_plain(key)}[/green]")
+            console.print(f"[green]✔ {_plain_end(key)}[/green]")
             continue
-        console.print(f"[bold]{_plain(key)}[/bold]")
+        console.print(f"[bold]{_plain_end(key)}[/bold]")
         for i in issues:
             colour = "red" if i.level is Level.ERROR else "yellow"
             console.print(
@@ -1490,9 +1514,11 @@ def web(
     if importlib.util.find_spec("streamlit") is None:
         err.print(
             "[red]"
-            + t(
-                "Für die Weboberfläche wird Streamlit benötigt: "
-                'uv tool install "sprintforecast[web] @ git+…" bzw. uv sync --extra web'
+            + escape(  # „[web]“ ist das Extra im Befehl, kein Markup
+                t(
+                    "Für die Weboberfläche wird Streamlit benötigt: "
+                    'uv tool install "sprintforecast[web] @ git+…" bzw. uv sync --extra web'
+                )
             )
             + "[/red]"
         )
@@ -1658,7 +1684,7 @@ def sprints(
         row["Letzter Tag"] = last
     after, errors = apply_calendar(data, planned, rows)
     for e in errors:
-        err.print(f"[red]{_plain(e)}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
     if errors:
         raise typer.Exit(1)
     shown = calendar_table(data, after, c.today)
@@ -1687,7 +1713,7 @@ def sprints(
     ]
     if blocking:
         for i in blocking:
-            err.print(f"[red]{_plain(i.where)}: {_plain(i.message)}[/red]")
+            err.print(f"[red]{_plain(i.where)}: {_plain_end(i.message)}[/red]")
         raise typer.Exit(1)
     if not changed:
         if not anlegen:
@@ -1722,7 +1748,7 @@ def produkte(
             "[red]"
             + t(
                 "Keine Produkte erfasst. Zuerst: {command}",
-                command=_plain(cmd(f"sprintforecast produktliste {team}")),
+                command=_plain_end(cmd(f"sprintforecast produktliste {team}")),
             )
             + "[/red]"
         )
@@ -1825,7 +1851,9 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
                 continue
             names = {p.name.lower(): p for p in current}
             console.print(
-                f"[dim]{t('Produkte')}: " + ", ".join(_plain(p.name) for p in current) + "[/dim]"
+                f"[dim]{t('Produkte')}: "
+                + _plain_end(", ".join(p.name for p in current))
+                + "[/dim]"
             )
             raw = Prompt.ask(t("Name"), console=console).strip().lower()
             product = names.get(raw)
@@ -1916,7 +1944,7 @@ def sprache(
     try:
         save_language(code)
     except SettingsError as e:
-        err.print(f"[red]{_plain(e)}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
     from sprintforecast.i18n import set_language
 
@@ -1931,10 +1959,10 @@ def verknuepfung() -> None:
     try:
         paths = shortcuts.create()
     except (RuntimeError, OSError) as e:
-        err.print(f"[red]{_plain(e)}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
     for path in paths:
-        console.print(f"[green]{t('Angelegt: {path}', path=_plain(path))}[/green]")
+        console.print(f"[green]{t('Angelegt: {path}', path=_plain_end(path))}[/green]")
     console.print(
         t(
             "Doppelklick startet die Weboberfläche als App. Beim ersten Start wird der "
@@ -2000,7 +2028,9 @@ def aktualisieren(
         )
         return
     if result.error:
-        err.print(f"[red]{t('Prüfung fehlgeschlagen: {error}', error=_plain(result.error))}[/red]")
+        err.print(
+            f"[red]{t('Prüfung fehlgeschlagen: {error}', error=_plain_end(result.error))}[/red]"
+        )
         if not erzwingen:
             raise typer.Exit(1)
     console.print(
