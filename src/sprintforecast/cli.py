@@ -1831,14 +1831,16 @@ def datenordner(
         console.print(t("Verwendet (ohne --daten): {path}", path=default_data_dir().resolve()))
         return
     if not pfad.is_dir():
-        err.print(f"[red]{t('Ordner nicht gefunden: {path}', path=pfad)}[/red]")
+        err.print(f"[red]{escape(t('Ordner nicht gefunden: {path}', path=pfad))}[/red]")
         raise typer.Exit(1)
     if not git_available():
         _git_problem(classify("", missing=True))
     if repo_root(pfad) is None:
         err.print(
             "[red]"
-            + t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+            + escape(
+                t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+            )
             + "[/red]"
         )
         raise typer.Exit(1)
@@ -1846,9 +1848,11 @@ def datenordner(
     try:
         save_data_dir(target)
     except SettingsError as e:
-        err.print(f"[red]{e}[/red]")
+        err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
-    console.print(f"[green]{t('Datenordner gemerkt: {path}', path=target.resolve())}[/green]")
+    console.print(
+        f"[green]{escape(t('Datenordner gemerkt: {path}', path=target.resolve()))}[/green]"
+    )
 
 
 @command("sprache", "Sprache der Oberfläche anzeigen oder einstellen (de, en).")

@@ -535,6 +535,7 @@ def test_commit_without_git_identity_names_the_command_line_way(
     text = one_line(result.output)
     assert "Name und E-Mail-Adresse fehlen" in text
     assert "git config --global user.name" in text and "git config --global user.email" in text
+    assert "Dein Name" in text  # der Hinweis der Kommandozeile, nicht nur Gits eigene Meldung
     assert "Seitenleiste" not in text
 
 
@@ -608,6 +609,24 @@ def test_datenordner_names_a_folder_without_repository(tmp_path: Path, data_dir:
     assert result.exit_code == 1
     assert "liegt in keinem Git-Repository (git init bzw. git clone)" in one_line(result.output)
     assert "Git ist nicht installiert" not in result.output
+
+
+@pytest.mark.parametrize("parts", [("x[a]",), ("x[", "y]", "b")])
+def test_datenordner_messages_keep_brackets_in_the_path(
+    tmp_path: Path, data_dir: Path, parts: tuple[str, ...]
+):
+    """Rich liest eckige Klammern als Auszeichnung: Der Pfad wird maskiert und steht vollständig
+    in der Meldung (ein „[/y]“ ohne Gegenstück brach vorher den Befehl ab)."""
+    folder = tmp_path.joinpath(*parts)
+    folder.mkdir(parents=True)
+    shown = "/".join(parts)  # Rich bricht lange Pfade um: nur die Namen prüfen
+    result = run(data_dir, "datenordner", str(folder))
+    assert result.exit_code == 1
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert shown in one_line(result.output).replace("\\", "/")
+    missing = run(data_dir, "datenordner", str(folder / "fehlt"))
+    assert missing.exit_code == 1
+    assert shown in one_line(missing.output).replace("\\", "/")
 
 
 def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
