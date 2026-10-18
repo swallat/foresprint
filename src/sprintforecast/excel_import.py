@@ -741,6 +741,18 @@ def check_valid(data: TeamData, today: date, existing: TeamData | None = None) -
     if existing is not None:
         new_ids = {s.id for s in reloaded.sprints}
         extra = [s for s in existing.sprints if s.id not in new_ids]
+        folded = {s.id.casefold(): s.id for s in reloaded.sprints}
+        for old in extra:  # auf Windows und macOS dieselbe Datei wie eine importierte ID
+            if (clash := folded.get(old.id.casefold())) is not None:
+                raise DataError(
+                    t(
+                        "Sprint-ID {new} aus der Mappe und die vorhandene Sprintdatei {old} "
+                        "unterscheiden sich nur durch Groß- und Kleinschreibung (auf Windows und "
+                        "macOS dieselbe Datei).",
+                        new=repr(clash),
+                        old=repr(old.id),
+                    )
+                )
         union = TeamData(
             team=reloaded.team,
             people=reloaded.people,

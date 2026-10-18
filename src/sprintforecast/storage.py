@@ -14,6 +14,7 @@ import copy
 import math
 import os
 import re
+import sys
 import tempfile
 import threading
 import time
@@ -445,18 +446,26 @@ def _finite(value: Any) -> float:
     return number
 
 
-def file_name_problem(name: str) -> str | None:
+def file_name_problem(name: str, portable: bool = True) -> str | None:
     """Warum ``name`` kein sicherer Dateiname (ohne Endung) ist; ``None`` = in Ordnung. Gilt für
     Sprint-IDs, die zu Dateinamen werden: kein Pfadtrenner, kein Laufwerk oder Datenstrom
     (Doppelpunkt), keine Steuerzeichen, keine Windows-Gerätenamen, kein Punkt oder Leerzeichen am
-    Rand (``..``)."""
+    Rand (``..``).
+
+    Mit ``portable`` (Voreinstellung, für Eingaben von außen wie den Excel-Import) gilt die
+    strengste Regel, damit der Name auf jedem System ein Dateiname ist. Ohne ``portable`` gilt nur,
+    was auf DIESEM System ein Pfad wäre (unter Linux und macOS: ``/``; ein Rückwärtsschrägstrich
+    oder Doppelpunkt ist dort ein gewöhnliches Zeichen); das schützt das Schreiben, ohne
+    vorhandene Daten auszuschließen."""
+    strict = portable or sys.platform == "win32"
     if not name or len(name) > 80:
         return t("leer oder länger als 80 Zeichen")
-    if any(ord(c) < 32 or c in '<>:"/\\|?*' for c in name):
+    forbidden = '<>:"/\\|?*' if strict else "/"
+    if any(ord(c) < 32 or c in forbidden for c in name):
         return t("Pfadtrenner, Doppelpunkt, Sonder- oder Steuerzeichen")
     if name != name.strip() or name.startswith(".") or name.endswith("."):
         return t("beginnt oder endet mit Punkt oder Leerzeichen")
-    if name.partition(".")[0].strip().lower() in _WINDOWS_DEVICES:
+    if strict and name.partition(".")[0].strip().lower() in _WINDOWS_DEVICES:
         return t("unter Windows für Geräte reserviert")
     return None
 
@@ -471,7 +480,7 @@ def _first_id(value: Any, where: str) -> str | None:
             t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
         )
     text = str(value)
-    if problem := file_name_problem(text):
+    if problem := file_name_problem(text, portable=False):
         raise DataError(
             t(
                 "{where}: id {id} ist nicht zulässig ({problem})",
@@ -1052,7 +1061,7 @@ class Repository:
         return path
 
     def sprint_path(self, key: str, sprint_id: str) -> Path:
-        if problem := file_name_problem(sprint_id):  # die ID wird zum Dateinamen
+        if problem := file_name_problem(sprint_id, portable=False):  # wird zum Dateinamen
             raise DataError(
                 t(
                     "Sprint-ID {id} ist nicht zulässig ({problem})",
