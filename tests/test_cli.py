@@ -441,6 +441,8 @@ def test_produkte_balance_hides_products_without_value_and_shows_missing(data_di
     assert only.exit_code == 0, only.output
     table = balance_table(only.output)
     assert "Webshop" in table and "Mobile App" not in table
+    # Das ausgeblendete Produkt hat einen fehlenden Wert, die angezeigten haben keinen: keine Spalte
+    assert "ohne Wert" not in table
 
     # sonst bleibt das Produkt mit seinen übrigen Sprints, die fehlenden stehen daneben
     result = run(data_dir, "produkte", "demo", "2026.20", "--verlauf", "6")
@@ -470,9 +472,15 @@ def test_report_balance_hides_products_without_value_and_shows_missing(data_dir:
     assert cells[1] == "3" and cells[-1] == "1"
     assert rows["Webshop"].strip("|").split("|")[-1].strip() == "0"
 
-    # In keinem Sprint des Fensters ein Wert: das Produkt entfällt statt als Nullzeile zu stehen
-    drop_done(data_dir, "app", "2026.17", "2026.18", "2026.19")
-    assert "Mobile App" not in balance_section()
+    # Ein einziger Sprint mit Wert genügt, die Zeile bleibt
+    drop_done(data_dir, "app", "2026.17", "2026.18")
+    assert "Mobile App" in balance_section()
+
+    # In keinem Sprint des Fensters ein Wert: das Produkt entfällt statt als Nullzeile zu stehen,
+    # und das ausgeblendete Produkt schaltet die Spalte nicht ein (wie in der Weboberfläche)
+    drop_done(data_dir, "app", "2026.19")
+    section = balance_section()
+    assert "Mobile App" not in section and "ohne Wert" not in section
 
 
 def test_produktliste_add_and_end(data_dir: Path):
