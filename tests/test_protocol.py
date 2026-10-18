@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Protokolle der Sprint-Termine: schreiben, auflisten, bei Aufheben des Einfrierens obsolet."""
 
+import getpass
 import hashlib
+import os
 import re
+import sys
 import threading
 import time
 from datetime import date, datetime, timedelta
@@ -11,6 +14,7 @@ from pathlib import Path
 import pytest
 
 import sprintforecast.protocol as protocol_module
+from sprintforecast.config import config_dir
 from sprintforecast.protocol import (
     PLANNING,
     PREPLANNING,
@@ -558,6 +562,68 @@ def test_the_lock_file_lies_outside_the_data_folder_and_is_per_sprint_and_kind(t
     assert one != protocol_module._lock_file(folder, "2026.22", REVIEW)
     assert one != protocol_module._lock_file(folder, "2026.21", PLANNING)
     assert one == protocol_module._lock_file(folder, "2026.21", REVIEW)
+
+
+def test_the_lock_file_lies_in_the_users_settings_folder(tmp_path: Path):
+    """Nicht in einem festen Ordner des gemeinsamen Temp-Verzeichnisses, sondern beim Benutzer. Die
+    Fixture ``isolated_config`` (conftest) lenkt ihn für Tests in ein Wegwerfverzeichnis."""
+    one = protocol_module._lock_file(protocol_folder(tmp_path), "2026.21", REVIEW)
+    assert one.parent == config_dir() / "sperren" and one.parent.is_dir()
+    assert Path(os.environ["XDG_CONFIG_HOME"]) in one.parents  # nicht der echte Einstellungsordner
+    if sys.platform != "win32":
+        assert one.parent.stat().st_mode & 0o777 == 0o700  # nur für den Benutzer selbst
+
+
+def block(path: Path) -> Path:
+    """Ein Pfad unter einer Datei: Anlegen von Ordnern dort scheitert."""
+    path.write_text("im Weg", encoding="utf-8")
+    return path / "sprintforecast"
+
+
+def test_an_unwritable_settings_folder_falls_back_to_a_per_user_temp_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    blocked = block(tmp_path / "einstellungen")
+    monkeypatch.setattr(protocol_module, "config_dir", lambda: blocked)
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    folder = protocol_folder(tmp_path)
+    one = protocol_module._lock_file(folder, "2026.21", REVIEW)
+    user = str(os.getuid()) if sys.platform != "win32" else re.sub(r"\W", "_", getpass.getuser())
+    assert one.parent == temp / f"sprintforecast-sperren-{user}"  # je Benutzer, nicht fest
+    # Gesperrt und geschrieben wird dort ganz normal.
+    path, created = write_protocol_new(
+        Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
+    )
+    assert created and path.exists() and one.exists()
+
+
+def test_an_unwritable_temp_fallback_is_a_file_access_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    blocked = block(tmp_path / "einstellungen")
+    monkeypatch.setattr(protocol_module, "config_dir", lambda: blocked)
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(blocked))
+    with pytest.raises(FileAccessError):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Eigentümer von Ordnern nur auf POSIX")
+def test_a_temp_folder_owned_by_another_user_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    blocked = block(tmp_path / "einstellungen")
+    monkeypatch.setattr(protocol_module, "config_dir", lambda: blocked)
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    real_uid = os.getuid()
+    # Der Ordner gehört dem echten Benutzer; für den Aufrufer (anderes Konto) ist er fremd.
+    (temp / f"sprintforecast-sperren-{real_uid + 1}").mkdir()
+    monkeypatch.setattr(protocol_module.os, "getuid", lambda: real_uid + 1)
+    with pytest.raises(FileAccessError, match="anderen Benutzer"):
+        protocol_module._lock_file(protocol_folder(tmp_path), "2026.21", REVIEW)
 
 
 def test_an_existing_file_name_moves_the_new_protocol_to_the_next_second(tmp_path: Path):
