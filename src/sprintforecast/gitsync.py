@@ -761,6 +761,7 @@ def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
     neu anlegen). Scheitert das Committen (Identität, Tabellenkalkulationen,
     Konfliktmarker …), steht das Repository wieder wie vorher auf dem losen Stand."""
     start = _git(root, "rev-parse", "HEAD")
+    index = _git(root, "write-tree")  # die Vormerkung des Benutzers, für den Rückbau
     name = rescue or f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
     if rescue:
         _git(root, "switch", rescue)
@@ -770,9 +771,10 @@ def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
         gitmod.commit_directory(path, _SAVE_SUBJECT)
     except GitError, OSError:
         try:
-            # Den Index im Datenordner zurücksetzen (``git add`` hat ihn verändert) und zurück auf
-            # den losen Stand; HEAD bleibt nie auf dem neuen Rettungsbranch stehen.
-            _git(root, "reset", "-q", "--", str(path.resolve()), check=False)
+            # Den Index exakt wie vorher wiederherstellen (``git add`` hat ihn verändert; der
+            # Arbeitsbaum bleibt unberührt) und zurück auf den losen Stand; HEAD bleibt nie auf
+            # dem neuen Rettungsbranch stehen.
+            _git(root, "read-tree", index, check=False)
             _git(root, "switch", "--detach", start)
             if rescue is None:
                 _git(root, "branch", "-D", name)
