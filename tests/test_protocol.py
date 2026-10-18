@@ -222,6 +222,39 @@ def test_saving_the_same_state_twice_writes_one_protocol_even_with_a_pinned_stat
     assert save_twice() == 1
 
 
+def test_the_protocol_name_stays_invisible_until_the_file_is_complete(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Während des Schreibens (und nach einem Abbruch) gibt es keine leere Datei mit gültigem
+    Protokollnamen; nur eine ``.lock``-Datei, die nie gelistet wird."""
+    repo = Repository(tmp_path)
+    seen: list[list[Path]] = []
+    real = protocol_module.write_text
+
+    def spy(path: Path, text: str, newline=None) -> None:
+        seen.append([f[3] for f in list_protocols(repo, "demo", "2026.21")])
+        raise KeyboardInterrupt  # Abbruch mitten im Schreiben
+
+    monkeypatch.setattr(protocol_module, "write_text", spy)
+    with pytest.raises(KeyboardInterrupt):
+        write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    monkeypatch.setattr(protocol_module, "write_text", real)
+    assert seen == [[]]  # beim Schreiben noch nichts gelistet
+    assert list_protocols(repo, "demo", "2026.21") == []
+    assert not list((tmp_path / "demo" / "protokolle").glob("*.lock"))  # aufgeräumt
+    write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    assert len(list_protocols(repo, "demo", "2026.21")) == 1
+
+
+def test_a_stale_lock_makes_the_next_save_use_the_following_second(tmp_path: Path):
+    repo = Repository(tmp_path)
+    folder = tmp_path / "demo" / "protokolle"
+    folder.mkdir(parents=True)
+    (folder / "2026.21-review-20261016-144305.md.lock").write_text("", encoding="utf-8")
+    path = write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    assert path.name == "2026.21-review-20261016-144306.md"
+
+
 def test_a_protocol_with_invalid_utf8_does_not_break_writing(tmp_path: Path):
     repo = Repository(tmp_path)
     folder = tmp_path / "demo" / "protokolle"

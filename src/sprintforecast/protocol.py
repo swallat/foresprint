@@ -184,19 +184,28 @@ def write_protocol_new(
     stamp = now
     while True:
         path = folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}.md"
+        lock = path.with_name(
+            path.name + ".lock"
+        )  # keine ``.md``-Datei: nie als Protokoll gelistet
+        if path.exists():
+            stamp += timedelta(seconds=1)
+            continue
         try:
-            with path.open("x"):  # Namen reservieren, ohne ein vorhandenes Protokoll zu ersetzen
+            with lock.open("x"):  # den Namen für andere Speicherungen sperren
                 pass
-            break
         except FileExistsError:
             stamp += timedelta(seconds=1)
+            continue
         except OSError as e:
-            raise _not_saved(path, e) from e
-    try:
-        write_text(path, text, newline="\n")
-    except BaseException:
-        path.unlink(missing_ok=True)
-        raise
+            raise _not_saved(lock, e) from e
+        try:
+            if path.exists():  # eine andere Speicherung war schneller
+                stamp += timedelta(seconds=1)
+                continue
+            write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
+            break
+        finally:
+            lock.unlink(missing_ok=True)
     invalidate_status()  # eine neue Datei ist eine offene Änderung, auch ohne geänderte YAML
     return path, True
 
