@@ -454,7 +454,12 @@ def share(page: Page) -> Locator:
     """Klickt in der Seitenleiste „Speichern und teilen“ und liefert die Meldungen der
     Seitenleiste (Erfolg, Fehler, Warnung)."""
     button = sidebar(page).get_by_role("button", name="Speichern und teilen")
-    if not button.is_visible():  # ohne offene Änderungen ist der Bereich „Git“ zugeklappt
+    # Mit offenen Änderungen klappt der Bereich „Git“ nach dem Durchlauf von selbst auf (kurz
+    # nachdem die Beschriftung erscheint). Ein sofortiges ``is_visible`` sähe ihn noch zu und der
+    # Klick auf die Überschrift würde ihn gleich wieder schließen.
+    with contextlib.suppress(PlaywrightTimeoutError):
+        button.wait_for(state="visible", timeout=2_000)
+    if not button.is_visible():  # ohne offene Änderungen bleibt der Bereich „Git“ zugeklappt
         sidebar(page).locator("summary").filter(has_text="Git:").click()
     button.click()
     return sidebar(page).get_by_test_id("stAlert")

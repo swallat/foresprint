@@ -185,6 +185,63 @@ def test_po_sums_and_production_hint_follow_their_switches(
     assert "Je PO" in off and "Produktionszugriff:" not in off
 
 
+def test_planning_step_two_splits_capacity_by_production_access(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    def captions(at: AppTest) -> str:
+        goto(at, "planning")
+        at.selectbox(key="planning-sprint").set_value("2026.22").run()
+        at.radio(key="planning-step").set_value(1).run()
+        assert not at.exception, at.exception
+        return " ".join(c.value for c in at.caption)
+
+    mark_production_access(data_dir)
+    assert "PT mit Produktionszugriff" in captions(start(data_dir, monkeypatch))
+    set_features(data_dir, production=False)
+    assert "PT mit Produktionszugriff" not in captions(start(data_dir, monkeypatch))
+
+
+def test_planning_minutes_follow_the_product_distribution_switch(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Ohne Funktionsbereich Produkte bleibt das Planning-Protokoll ohne Produktabschnitt, auch
+    wenn der Produktkatalog in den Dateien erhalten ist."""
+
+    def planning_minutes(products: bool) -> str:
+        set_features(data_dir, products=products)
+        at = goto(start(data_dir, monkeypatch), "planning")
+        at.selectbox(key="planning-sprint").set_value("2026.22").run()
+        at.radio(key="planning-step").set_value(2).run()
+        at.number_input(key="fist-2026.22").set_value(10.0 + (1 if products else 0))
+        click(at, "Planning speichern")
+        files = sorted((data_dir / TEAM / "protokolle").glob("2026.22-planning-*.md"))
+        assert files
+        return files[-1].read_text(encoding="utf-8")
+
+    assert "Je Produkt" not in planning_minutes(products=False)
+    assert "Je Produkt" in planning_minutes(products=True)
+
+
+def test_production_split_uses_the_current_plan_for_both_amounts(data_dir: Path):
+    """Ist der Forecast PLAN eingefroren und weicht vom aktuellen ab, teilen beide Mengen den
+    aktuellen Plan auf (keine negative Restmenge)."""
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.storage import Repository
+    from sprintforecast.web import ui
+
+    mark_production_access(data_dir)
+    data = Repository(data_dir).load(TEAM)
+    sprint = next(s for s in data.sprints if s.end > date(2026, 10, 15))
+    sprint.forecast_plan = 500.0  # viel größer als der aktuelle Plan
+    fc = build_forecast(data, date(2026, 10, 15))
+    entry = fc.entry(sprint.id)
+    text = ui._production_split_note(fc, entry, data, "PT")
+    assert text is not None
+    plan, share = entry.result.plan, ui.distribution(fc, entry).production_share
+    assert f"bis zu {ui.fmt(plan * share, 1)} PT" in text
+    assert f"{ui.fmt(plan - plan * share, 1)} PT für" in text
+
+
 def test_new_team_form_explains_the_areas_and_saves_them_off(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
@@ -94,6 +95,15 @@ class Setting:
                     known = {c for code in countries() for c in subdivisions(code)}
                     if raw not in known:
                         raise ValueError(t("Unbekannter Regionscode: {value}", value=raw))
+                if self.key == "sprint.first_id":
+                    from sprintforecast.storage import file_name_problem
+
+                    # Die ID wird zum Dateinamen; was der Ladeweg ablehnt, darf hier nicht
+                    # speicherbar sein (sonst ließe sich das Team danach nicht mehr laden).
+                    if problem := file_name_problem(raw, portable=False):
+                        raise ValueError(
+                            t("ID nicht zulässig als Dateiname ({problem}).", problem=problem)
+                        )
                 return raw
             case Kind.CHOICE:
                 assert self.choices is not None
@@ -111,6 +121,8 @@ class Setting:
                     number = float(raw.replace(",", ".").removesuffix("%").strip())
                 except ValueError as e:
                     raise ValueError(t("Bitte eine Zahl eingeben.")) from e
+                if not math.isfinite(number):
+                    raise ValueError(t("Bitte eine endliche Zahl eingeben."))
                 if self.kind is Kind.INT and not number.is_integer():
                     raise ValueError(t("Bitte eine ganze Zahl eingeben."))
                 self.check_range(number)

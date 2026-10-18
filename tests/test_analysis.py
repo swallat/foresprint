@@ -119,3 +119,11 @@ def test_buffer_hint_compares_on_the_same_base():
     assert hint.average_scope_creep == pytest.approx(0.3)  # Eingabe unverändert
     assert hint.average_late_share == pytest.approx(0.15)  # 0,3 × 10 / 20
     assert not hint.buffer_too_small
+
+
+def test_completion_note_only_below_the_minimum_of_samples():
+    from sprintforecast.report import completion_note
+
+    assert completion_note(analysis.MIN_SAMPLES) is None
+    note = completion_note(analysis.MIN_SAMPLES - 1)
+    assert note and note.startswith("Wenig Daten: Die Simulation zieht aus nur 4 Sprints")

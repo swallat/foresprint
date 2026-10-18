@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import math
 import os
 import re
+import sys
 import tempfile
 import threading
 import time
@@ -114,7 +116,7 @@ def saved_data_dir() -> Path | None:
     from sprintforecast import config
 
     raw = config.load().get("data_dir")
-    path = Path(raw) if raw else None
+    path = Path(raw) if isinstance(raw, str) and raw else None
     return path if path is not None and path.is_dir() else None
 
 
@@ -244,11 +246,12 @@ def _write(path: Path, header: str, content: dict[str, Any]) -> None:
         raise _not_saved(path, e) from e
 
 
-def write_text(path: Path, text: str) -> None:
+def write_text(path: Path, text: str, newline: str | None = None) -> None:
     """Schreibt eine Textdatei (z. B. den Bericht) über eine Zwischendatei; Fehler wie bei
-    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF)."""
+    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF), mit
+    ``newline="\\n"`` immer LF."""
     try:
-        _replace_with(path, text, newline=None)
+        _replace_with(path, text, newline=newline)
     except OSError as e:
         raise _not_saved(path, e) from e
 
@@ -294,7 +297,15 @@ def _float(value: Any, where: str) -> float | None:
         raise DataError(
             t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value))
         )
-    return float(value)
+    try:
+        number = float(value)
+    except OverflowError:  # ganze Zahl jenseits des Bereichs von float
+        number = math.inf
+    if not math.isfinite(number):
+        raise DataError(
+            t("{where}: endliche Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+        )
+    return number
 
 
 def _lenient_float(value: Any, where: str) -> float | None:
@@ -302,11 +313,20 @@ def _lenient_float(value: Any, where: str) -> float | None:
     if value is None:
         return None
     try:
-        return float(value)
+        number = float(value)
     except (TypeError, ValueError, OverflowError) as e:  # OverflowError: ganze Zahl > 1e308
         raise DataError(
             t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value)[:60])
         ) from e
+    if not math.isfinite(number):  # auch Text wie "nan" oder "inf"
+        raise DataError(
+            t(
+                "{where}: endliche Zahl erwartet, gefunden {value}",
+                where=where,
+                value=repr(value)[:60],
+            )
+        )
+    return number
 
 
 def _mapping(value: Any, where: str, name: str) -> dict[str, Any]:
@@ -418,6 +438,38 @@ TEAM_HEADER = """\
 """
 
 
+def _finite(value: Any) -> float:
+    """``float(value)`` für Einstellungen in team.yaml; nan und inf sind keine gültigen Werte."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(t("keine endliche Zahl: {value}", value=value))
+    return number
+
+
+def file_name_problem(name: str, portable: bool = True) -> str | None:
+    """Warum ``name`` kein sicherer Dateiname (ohne Endung) ist; ``None`` = in Ordnung. Gilt für
+    Sprint-IDs, die zu Dateinamen werden: kein Pfadtrenner, kein Laufwerk oder Datenstrom
+    (Doppelpunkt), keine Steuerzeichen, keine Windows-Gerätenamen, kein Punkt oder Leerzeichen am
+    Rand (``..``).
+
+    Mit ``portable`` (Voreinstellung, für Eingaben von außen wie den Excel-Import) gilt die
+    strengste Regel, damit der Name auf jedem System ein Dateiname ist. Ohne ``portable`` gilt nur,
+    was auf DIESEM System ein Pfad wäre (unter Linux und macOS: ``/``; ein Rückwärtsschrägstrich
+    oder Doppelpunkt ist dort ein gewöhnliches Zeichen); das schützt das Schreiben, ohne
+    vorhandene Daten auszuschließen."""
+    strict = portable or sys.platform == "win32"
+    if not name or len(name) > 80:
+        return t("leer oder länger als 80 Zeichen")
+    forbidden = '<>:"/\\|?*' if strict else "/"
+    if any(ord(c) < 32 or c in forbidden for c in name):
+        return t("Pfadtrenner, Doppelpunkt, Sonder- oder Steuerzeichen")
+    if name != name.strip() or name.startswith(".") or name.endswith("."):
+        return t("beginnt oder endet mit Punkt oder Leerzeichen")
+    if strict and name.partition(".")[0].strip().lower() in _WINDOWS_DEVICES:
+        return t("unter Windows für Geräte reserviert")
+    return None
+
+
 def _first_id(value: Any, where: str) -> str | None:
     """ID des ersten Sprints; wie bei den Sprintdateien muss eine Zahl wie 2026.20 in
     Anführungszeichen stehen (sonst wird daraus 2026.2)."""
@@ -427,7 +479,17 @@ def _first_id(value: Any, where: str) -> str | None:
         raise DataError(
             t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
         )
-    return str(value)
+    text = str(value)
+    if problem := file_name_problem(text, portable=False):
+        raise DataError(
+            t(
+                "{where}: id {id} ist nicht zulässig ({problem})",
+                where=where,
+                id=repr(text),
+                problem=problem,
+            )
+        )
+    return text
 
 
 def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
@@ -457,9 +519,9 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 first_start=_date(first["start"], where) if first.get("start") else None,
             ),
             forecast=ForecastSettings(
-                reference_capacity=float(forecast.get("reference_capacity", 67)),
+                reference_capacity=_finite(forecast.get("reference_capacity", 67)),
                 window=int(forecast.get("window", 5)),
-                roadmap_share=float(forecast.get("roadmap_share", 0.8)),
+                roadmap_share=_finite(forecast.get("roadmap_share", 0.8)),
                 rounding=int(forecast.get("rounding", 1)),
                 trend_mode=TrendMode(forecast.get("trend_mode", "flat")),
                 horizon=int(forecast.get("horizon", 3)),
@@ -467,8 +529,8 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             ),
             features=features,
             capacity=CapacitySettings(
-                overhead_share=float(capacity.get("overhead_share", 0.0)),
-                overhead_days=float(capacity.get("overhead_days", 0.0)),
+                overhead_share=_finite(capacity.get("overhead_share", 0.0)),
+                overhead_days=_finite(capacity.get("overhead_days", 0.0)),
                 country=(_code(capacity.get("country"), where, "capacity.country") or "DE").upper(),
                 region=_code(capacity.get("region"), where, "capacity.region"),
                 workweek=str(capacity.get("workweek", "auto")),
@@ -876,6 +938,33 @@ def team_version(base: Path) -> tuple:
     return _file_version(base)[0]
 
 
+# Kürzel eines neuen Teams = Ordnername. Nur diese Zeichen, damit weder ein Pfadtrenner noch „..“
+# aus dem Datenordner hinausführt und der Name auf jedem Dateisystem (auch ohne Unterscheidung
+# der Groß-/Kleinschreibung) derselbe bleibt. Am Anfang ein Buchstabe oder eine Ziffer: ein
+# führender Bindestrich würde auf der Kommandozeile als Option gelesen.
+_TEAM_KEY = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
+# Unter Windows als Gerät reserviert, auch mit Endung („con.txt“).
+_WINDOWS_DEVICES = frozenset(
+    {"con", "prn", "aux", "nul", *(f"com{n}" for n in range(10)), *(f"lpt{n}" for n in range(10))}
+)
+
+
+def team_key_problem(key: str) -> str | None:
+    """Warum ``key`` nicht als Kürzel eines NEUEN Teams taugt (``None`` = in Ordnung). Bestehende
+    Teams werden beim Laden nicht geprüft, damit ältere Ordnernamen weiter funktionieren."""
+    if key.partition(".")[0].lower() in _WINDOWS_DEVICES:
+        return t(
+            "Kürzel: Diese Namen sind unter Windows für Geräte reserviert "
+            "(CON, PRN, AUX, NUL, COM0 bis COM9, LPT0 bis LPT9)."
+        )
+    if not _TEAM_KEY.fullmatch(key):
+        return t(
+            "Kürzel: Kleinbuchstaben a–z (ohne Umlaute), Ziffern, Bindestrich und Unterstrich "
+            "(höchstens 64 Zeichen; am Anfang ein Buchstabe oder eine Ziffer)"
+        )
+    return None
+
+
 class Repository:
     def __init__(self, root: Path) -> None:
         self.root = root
@@ -887,6 +976,12 @@ class Repository:
         if not self.root.is_dir():
             return []
         return sorted(p.name for p in self.root.iterdir() if (p / "team.yaml").is_file())
+
+    def clashing_team(self, key: str) -> str | None:
+        """Ein vorhandenes Team, dessen Ordnername ``key`` gleicht oder sich nur durch Groß- und
+        Kleinschreibung unterscheidet (auf Windows und macOS wären es dieselben Ordner)."""
+        wanted = key.casefold()
+        return next((name for name in self.teams() if name.casefold() == wanted), None)
 
     def exists(self, key: str) -> bool:
         return (self.team_dir(key) / "team.yaml").is_file()
@@ -966,6 +1061,14 @@ class Repository:
         return path
 
     def sprint_path(self, key: str, sprint_id: str) -> Path:
+        if problem := file_name_problem(sprint_id, portable=False):  # wird zum Dateinamen
+            raise DataError(
+                t(
+                    "Sprint-ID {id} ist nicht zulässig ({problem})",
+                    id=repr(sprint_id),
+                    problem=problem,
+                )
+            )
         return self.team_dir(key) / "sprints" / f"{sprint_id}.yaml"
 
     def _pinned_absence_state(self, path: Path, sprint: Sprint) -> AbsenceState:
@@ -1009,6 +1112,35 @@ class Repository:
         return path
 
 
+def save_sprints_together(repo: Repository, key: str, sprints: list[Sprint]) -> list[Path]:
+    """Schreibt mehrere Sprintdateien ganz oder gar nicht: Scheitert eine, werden die schon
+    geschriebenen auf ihren vorherigen Stand zurückgesetzt (neue Dateien entfernt)."""
+    before: dict[Path, bytes | None] = {}
+    for s in sprints:
+        path = repo.sprint_path(key, s.id)
+        try:
+            before[path] = path.read_bytes() if path.is_file() else None
+        except OSError as e:
+            raise _not_readable(path, e) from e
+    written: list[Path] = []
+    try:
+        for s in sprints:
+            written.append(repo.save_sprint(key, s))
+    except BaseException:
+        for path in written:
+            old = before[path]
+            try:
+                if old is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(old)
+            except OSError:
+                pass  # der ursprüngliche Fehler zählt; die Meldung nennt die Datei
+        clear_team_cache()
+        raise
+    return written
+
+
 def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[Path]:
     """Übernimmt Sprints (z. B. aus einem Import-Plugin). Ein neues Team wird mit ``team``
     angelegt; bei einem vorhandenen Team bleiben Einstellungen und Personen erhalten und
@@ -1027,6 +1159,16 @@ def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[
         raise ConflictError(marked)
     paths = []
     if not repo.exists(team.key):
+        if problem := team_key_problem(team.key):  # ein neues Team braucht ein brauchbares Kürzel
+            raise DataError(problem)
+        if clash := repo.clashing_team(team.key):
+            raise DataError(
+                t(
+                    "Team {team} existiert bereits (als {existing}).",
+                    team=repr(team.key),
+                    existing=clash,
+                )
+            )
         paths.append(repo.save_team(team))
     if not (repo.team_dir(team.key) / "people.yaml").exists():
         paths.append(repo.save_people(team.key, []))

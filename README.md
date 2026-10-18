@@ -24,7 +24,11 @@ Sprint einplanen?** – auch mitten im laufenden Sprint, für die Planung der PO
 ## Installation
 
 Ein Befehl – installiert bei Bedarf [uv](https://docs.astral.sh/uv/), lädt Python 3.14 und
-installiert sprintforecast mit Weboberfläche. Git wird nur für Plugins benötigt.
+installiert sprintforecast mit Weboberfläche. Git wird für Plugins aus Git-Repositories sowie zum
+Anlegen, Committen, Teilen, Verlauf und Klonen der Daten benötigt (auch `sprintforecast datenordner
+PFAD` verlangt ein Git-Repository). Ohne Git läuft die App mit einem Datenordner ohne Repository
+(`--daten`, `SPRINTFORECAST_DATEN` oder „Ohne Git verwenden“ auf der Seite Datenordner), aber ohne
+diese Funktionen.
 
 **Windows (PowerShell):**
 
@@ -124,7 +128,7 @@ keine, aber einen Unterordner `teams` mit Teams, wird dieser genommen.
 Findet die Weboberfläche keinen Datenordner (keine Teams, kein Git-Repository), führt sie
 durch die Einrichtung: vorhandenen Ordner wählen (Git empfohlen, aber nicht Pflicht: ohne Git gibt es keinen Commit; nach „Ohne Git verwenden“ geht es mit **Neues Team** weiter; die Entscheidung wird je Ordner in
 den Benutzereinstellungen gemerkt und gilt auch nach dem Neuladen oder in einem neuen Tab), neues
-Daten-Repository anlegen (`git init`, `.gitignore`, Ordner `teams`) oder das gemeinsame
+Daten-Repository anlegen (`git init`, `.gitignore`, Ordner `teams` mit `.gitattributes`) oder das gemeinsame
 Daten-Repository des Teams klonen.
 
 **Windows PowerShell:**
@@ -187,7 +191,7 @@ Kommandozeile und prüft vor jedem Speichern:
 | Daten & Hilfe | Datenordner | Datenordner wählen, neu anlegen oder klonen (Git-Repository); Server (Remote) eintragen, prüfen und ändern |
 | | Änderungen und Verlauf | Offene Änderungen verwerfen, Verlauf je Team/Sprint/Datei, früheren Stand wiederherstellen, Tags verwalten |
 | | Prüfung | Befunde aller Teams |
-| | Hilfe | Ablauf, Begriffe, Eingabefelder, Einstellungen, Befehle |
+| | Hilfe | Reiter Ablauf, Begriffe, Eingabefelder, Team-Einstellungen, Zusammenarbeit (Git) und Kommandozeile |
 
 Die Startseite bietet die drei Aufgaben **Sprint vorbereiten**, **Planning** und **Sprint abschließen**; der **Forecast** („Wie viel passt in den nächsten Sprint?“) steht unter **Auswertung**. Die Sprintauswahl ist auf allen Seiten gleich (Beschriftung „Sprint“, gleiche Reihenfolge, Vorgabe: laufender Sprint) und gilt seitenübergreifend. Produktwerte (PO-Vorplanung, Planning, Erledigt) werden ausschließlich auf den Boards erfasst; die Seite **Produktverteilung** ist nur Auswertung. Ohne offenen Sprint verweisen „Sprint vorbereiten“ und „Planning“ auf den Sprintkalender.
 
@@ -229,11 +233,13 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   nur dabei und beim Teilen abgefragt.
 - **Änderungen committen** sichert nur lokal, ohne zu teilen.
 - Fehlerfälle erklärt die App verständlich mit nächstem Schritt: Server nicht erreichbar,
-  Hochladen abgelehnt (inzwischen Neues da bzw. vom Server verboten), fehlende Anmeldung
-  (https-Zugangstoken bzw. SSH-Schlüssel, Credential Manager), Git nicht installiert, gesperrte
-  Datei, fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und
-  detached HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die
-  Anmeldung des Rechners (Credential Manager, SSH-Agent) wird genutzt.
+  Repository nicht gefunden (Adresse prüfen), nicht anerkanntes Zertifikat, Hochladen abgelehnt
+  (inzwischen Neues da bzw. vom Server verboten), fehlende Anmeldung (https-Zugangstoken bzw.
+  SSH-Schlüssel, Credential Manager; bei SSH auch der unbekannte Server-Fingerabdruck), Git nicht
+  installiert, gesperrte Datei, nicht beschreibbarer oder von Git als unsicher abgelehnter Ordner,
+  fehlender Name/E-Mail (wird abgefragt), unvollständiges Zusammenführen (Abbrechen) und detached
+  HEAD (zurück auf den Branch). Git fragt nie im Hintergrund nach einem Kennwort; die Anmeldung des
+  Rechners (Credential Manager, SSH-Agent) wird genutzt.
 - **Server (Remote) eintragen:** Hat ein Datenordner noch keinen Server, verweist die Seitenleiste
   („Server einrichten“) auf die Seite **Datenordner**; dort steht der Abschnitt **Server
   (Remote)** auch zum Ändern der Adresse. Die Adresse wird sofort geprüft (erlaubt sind
@@ -247,8 +253,9 @@ wann zuletzt geprüft) und die offenen Änderungen im Datenverzeichnis.
   der Server aber schon, warnt die Maske und verweist auf **Repository klonen**.
   Zugangsdaten (Benutzername, Kennwort, Token) in
   der Adresse werden abgelehnt, nie gespeichert und nie angezeigt; die Anmeldung übernimmt wie
-  immer der Anmeldedienst des Rechners. Die App legt keine SSH-Schlüssel an und ändert keine
-  globale Git-Konfiguration. Mehrere Adressen oder eine eigene Upload-Adresse (`pushurl`) sowie
+  immer der Anmeldedienst des Rechners, fehlt sie, erklärt die App den nächsten Schritt. Die App
+  legt keine SSH-Schlüssel an und ändert die globale Git-Konfiguration nur auf Wunsch und nur für
+  Name und E-Mail der Commits. Mehrere Adressen oder eine eigene Upload-Adresse (`pushurl`) sowie
   ein offenes Zusammenführen sperren das Speichern. Wer einem bestehenden Team beitritt, wählt
   besser **Repository klonen**.
 
@@ -299,6 +306,8 @@ Speicherungen sofort.
 | PO-Planung | `sprintforecast forecast team-a` | Prognose für laufenden + nächste Sprints. |
 | Produktauswertung | `sprintforecast produkte team-a [SPRINT]` | Verteilung je Produkt und Saldo der letzten Sprints. |
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
+| Excel | `sprintforecast excel team-a [-o datei.xlsx]` | Schreibt eine Excel-Liste (Rückweg für alle, die mit Excel weiterarbeiten): Sprintwerte als Eingaben (gelb), n. Velocity, Durchschnitt, Trend, Forecast PLAN, Roadmap und Kleinkram als echte Formeln, Aufteilung nach Produktionszugriff und je Produkt, zwei Trend-Diagramme. Braucht den Zusatz `[excel]` (`uv tool install "sprintforecast[web,excel] …"`); nicht im Datenordner ablegen (`*.xlsx` wird nicht committet). In der Weboberfläche: Seite Forecast → „Excel-Liste erstellen“. Die Mappe enthält das ganze Team (Einstellungen, Personen, Produkte, alle Sprints mit Fehltagen, Produktwerten und Prognosen). |
+| Excel-Import | `sprintforecast excel-import team-a datei.xlsx [--uebernehmen]` | Liest eine solche Mappe zurück (nur die gelben Eingabezellen, nach fester Spaltenposition) und zeigt zuerst je Datei und Wert, was sich ändert; mit `--uebernehmen` werden nur die geänderten Dateien geschrieben. Sprintdateien, die in der Mappe fehlen, bleiben unverändert. Unabhängig vom früheren Import-Plugin, das weiter die ursprüngliche Excel-Liste einliest. |
 | Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. |
 
 ### PO-Vorplanung und Planning
@@ -306,11 +315,11 @@ Speicherungen sofort.
 - **Angekündigte Fehltage:** Auf dem Board *PO-Vorplanung* lassen sich schon vor dem Planning
   Fehltage je Person als **Prognose** eintragen. Sie wirken auf Kapazität (Quelle „angekündigte
   Fehltage“) und Forecast PLAN, gelten aber nicht als bestätigt. Im *Planning* (Schritt 1) sind sie
-  vorbelegt; erst „Fehltage speichern“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
+  vorbelegt; erst „Fehltage speichern und weiter“ bestätigt sie. Bestätigte Fehltage haben immer Vorrang.
 - **Stand der Fehltage je Sprint** (unbekannt / angekündigt / bestätigt) ist überall sichtbar
-  (Forecast, Fehltage, Planning). „Weiter ohne Eintrag“ im Planning bestätigt **nichts**: Wer wirklich
+  (Forecast, Fehltage, Planning). „Weiter ohne Bestätigung“ im Planning bestätigt **nichts**: Wer wirklich
   keine Fehltage hat, bestätigt das ausdrücklich („Niemand fehlt – bestätigen und weiter“ bzw. Spalte
-  *Niemand fehlt* auf der Seite Fehltage). Das Speichern von Planning-Werten (Commitment, Einplanung)
+  *Niemand fehlt* auf der Seite *Sprint vorbereiten: Fehltage*). Das Speichern von Planning-Werten (Commitment, Einplanung)
   ändert den Stand der Fehltage nicht. Das Datum, an dem ein Sprint geplant wurde, ist kein Beleg mehr.
 - **Einplanung aus der Vorplanung:** Im Planning (Schritt 2) ist die Einplanung je Produkt mit der
   letzten PO-Vorplanung vorbelegt (bitte prüfen und speichern).
@@ -338,7 +347,7 @@ Einzelne Sprints lassen sich verlängern oder verkürzen, indem man ihren **letz
   Sprint ändert man das Ende nachträglich über denselben Weg; die Sprintdatei behält ihre Daten.
 
 Alle Assistenten erklären jedes Feld (was, woher, Beispiel). Nachschlagen:
-`sprintforecast hilfe begriffe`, `… hilfe sprint`, `… hilfe team`.
+`sprintforecast hilfe begriffe`, `… hilfe felder`, `… hilfe team`.
 
 ## Code- und Daten-Repository trennen
 
@@ -349,6 +358,7 @@ hier per `.gitignore` ausgeschlossen). Vorlage: [`templates/daten-repo/`](templa
 ```
 daten-repo/
 ├─ mise.toml                      # Tool-Versionen + Task `mise run sf -- …`
+├─ .gitignore, .gitattributes     # keine Tabellenkalkulationen und *.tmp; YAML und Berichte immer mit LF
 ├─ .github/workflows/forecast.yml # prüft Änderungen, aktualisiert FORECAST.md (auf GitLab analog)
 └─ teams/
    ├─ team-a/
@@ -523,7 +533,7 @@ Fenster (`window`, Standard 5) und die Schwelle von 5 Sprints für belastbare Au
      *angekündigte Fehltage*
    - *unbekannt* → Kalender und Personen, gemindert um die Ø Fehltage der letzten
      `absence_history` Sprints **mit bestätigten Fehltagen** (bestätigte Sprints ohne Fehltage
-     zählen mit 0 mit; die verwendeten Sprints zeigt die Fehltage-Seite) → *erwartete Fehltage*;
+     zählen mit 0 mit; die verwendeten Sprints zeigt die Seite *Sprint vorbereiten: Fehltage*) → *erwartete Fehltage*;
      gibt es noch keine solche Historie, ohne Abzug → *Kalender, Fehltage unbekannt* (⚠️)
 3. Nur **ohne Personenliste**: Kapazitäts-Trend → *Trend* (⚠️)
 

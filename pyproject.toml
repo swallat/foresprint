@@ -27,6 +27,10 @@ sprintforecast-app = "sprintforecast:app_main"
 web = [
     "streamlit>=1.66.0",
 ]
+excel = [
+    "openpyxl>=3.1",
+    "xlsxwriter>=3.2",
+]
 
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
@@ -34,9 +38,11 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "openpyxl>=3.1",
     "playwright>=1.64.0",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
+    "xlsxwriter>=3.2",
 ]
 
 [tool.ruff]
