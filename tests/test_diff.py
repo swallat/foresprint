@@ -240,3 +240,24 @@ def test_unmerged_file_deleted_by_them_is_read_from_the_working_tree(tmp_path: P
     (change,) = file_changes(data)
     assert change.status == "UD" and change.readable
     assert [(c.label, c.old, c.new) for c in change.values] == [("name", "B", "C")]
+
+
+def test_renamed_file_knows_its_old_path(tmp_path: Path):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    git(root, "mv", "teams/team.yaml", "teams/neu.yaml")
+    (change,) = file_changes(data)
+    assert (change.file, change.orig, change.values) == ("teams/neu.yaml", "teams/team.yaml", ())
+
+
+def test_only_the_first_files_are_evaluated(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    (data / "team.yaml").write_text("name: B\n", encoding="utf-8")
+    (data / "zweit.yaml").write_text("a: 1\n", encoding="utf-8")
+    git(root, "add", "teams/zweit.yaml")
+    git(root, "commit", "-qm", "zweit")
+    (data / "zweit.yaml").write_text("a: 2\n", encoding="utf-8")
+    monkeypatch.setattr("sprintforecast.diff._EVAL_LIMIT", 1)
+    first, second = file_changes(data)
+    assert first.values and not second.values and second.readable

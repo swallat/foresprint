@@ -11,13 +11,14 @@ from __future__ import annotations
 
 import contextlib
 import copy
-import json
 import os
 import subprocess
 import sys
 import threading
 import time
+import unicodedata
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -48,7 +49,7 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
-from sprintforecast.diff import cached_file_changes
+from sprintforecast.diff import FileChange, cached_file_changes
 from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
@@ -63,6 +64,8 @@ from sprintforecast.forecast import (
 from sprintforecast.formulas import fte_change_note, general, plain_explanation, steps
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
+    _BIDI_CONTROLS,
+    _BLANKED_CATEGORIES,
     NO_WINDOW,
     GitError,
     NewBranchError,
@@ -4841,16 +4844,56 @@ _VIEW_ROWS = 30
 _VIEW_TEXT = 80
 
 
-def _view_value(value: object) -> str:
-    """Wert für die Änderungsansicht als kurzer Text (nur für Tabellenzellen, nie Markdown)."""
+def _view_clean(text: str) -> str:
+    """Zeilenumbruch und Tabulator sichtbar machen, Steuerzeichen der Schreibrichtung entfernen,
+    übrige Steuerzeichen zu Leerzeichen (wie :func:`md_code`)."""
+    text = text.replace("\n", "⏎").replace("\t", "⇥")
+    return "".join(
+        "" if c in _BIDI_CONTROLS else " " if unicodedata.category(c) in _BLANKED_CATEGORIES else c
+        for c in text
+    )
+
+
+def _view_text(value: object) -> str:
+    """Wert in der Schreibweise der Datei (``null``, ``true``, ``'1'`` für Text); fehlend „–“."""
     if value is MISSING:
         return "–"
-    if isinstance(value, (list, dict)):
-        text = json.dumps(value, ensure_ascii=False, default=str)
-    else:
-        text = str(value)
-    text = " ".join(text.split())
+    try:
+        text = yaml.safe_dump(
+            value, allow_unicode=True, default_flow_style=True, width=1_000_000
+        ).strip()
+        text = text.removesuffix("\n...").strip()
+    except Exception:  # eine Zelle darf nie die Seite stoppen
+        text = repr(value)
+    return _view_clean(text)
+
+
+def _formula_safe(text: str, value: object = None) -> str:
+    """Tabellen-Export: Text, den Excel als Formel läse, bekommt ein Apostroph (nur Anzeige).
+    Zahlen bleiben, wie sie sind."""
+    number = isinstance(value, (int, float)) and not isinstance(value, bool)
+    if not number and text.startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
+def _view_clip(text: str, start: int) -> str:
+    text = ("…" if start else "") + text[start:]
     return text if len(text) <= _VIEW_TEXT else text[: _VIEW_TEXT - 1] + "…"
+
+
+def _view_pair(old: object, new: object) -> tuple[str, str]:
+    """Vorher und Nachher als Tabellenzellen. Sind sie zu lang, beginnen beide kurz vor der
+    ersten Abweichung, damit der Unterschied zu sehen ist."""
+    a, b = _view_text(old), _view_text(new)
+    if len(a) > _VIEW_TEXT or len(b) > _VIEW_TEXT:
+        common = next((i for i, (x, y) in enumerate(zip(a, b, strict=False)) if x != y), None)
+        common = min(len(a), len(b)) if common is None else common
+        start = max(0, common - 10)
+        a, b = _view_clip(a, start), _view_clip(b, start)
+    if a == b:
+        b += t(" (Unterschied nicht sichtbar, Datei prüfen)")
+    return _formula_safe(a, old), _formula_safe(b, new)
 
 
 def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
@@ -4872,17 +4915,26 @@ def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
         return
     st.markdown(f"**{t('Was hat sich geändert?')}**")
     for fc in files[:_VIEW_FILES]:
-        name = md_code(_view_name(root, fc.file, top))
-        st.markdown(f"{name} – {status_name(fc.status)}")
+        shown_fc = replace(
+            fc,
+            file=_view_name(root, fc.file, top),
+            orig=_view_name(root, fc.orig, top) if fc.orig else "",
+        )
+        if shown_fc.orig:
+            st.markdown(_lost_status(shown_fc))  # „umbenannt: alt → neu“, beide als Code
+        else:
+            st.markdown(f"{md_code(shown_fc.file)} – {status_name(fc.status)}")
         if not fc.readable:
             st.caption(t("keine Wertansicht"))
         elif fc.values:
-            rows = [(v.label, _view_value(v.old), _view_value(v.new)) for v in fc.values]
-            shown = rows[:_VIEW_ROWS]
-            if len(rows) > _VIEW_ROWS:
-                shown.append((t("… und {n} weitere", n=len(rows) - _VIEW_ROWS), "", ""))
+            rows = [
+                (_formula_safe(_view_clean(v.label)), *_view_pair(v.old, v.new))
+                for v in fc.values[:_VIEW_ROWS]
+            ]
+            if len(fc.values) > _VIEW_ROWS:
+                rows.append((t("… und {n} weitere", n=len(fc.values) - _VIEW_ROWS), "", ""))
             st.dataframe(
-                pd.DataFrame(shown, columns=[t("Wert"), t("Vorher"), t("Nachher")]),
+                pd.DataFrame(rows, columns=[t("Feld"), t("Vorher"), t("Nachher")]),
                 hide_index=True,
                 width="stretch",
             )
@@ -5037,7 +5089,7 @@ def status_name(status: str) -> str:
     return t(_STATUS_NAMES.get(status, "geändert"))
 
 
-def _lost_status(item: Lost) -> str:
+def _lost_status(item: Lost | FileChange) -> str:
     """Status einer verlorenen Änderung; bei Umbenennungen mit altem und neuem Pfad."""
     name = status_name(item.status)
     if item.orig:

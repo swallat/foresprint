@@ -29,6 +29,7 @@ CHANGED = "changed"
 _YAML_SUFFIXES = {".yaml", ".yml"}
 # Größere Dateien gelten als nicht lesbar: Sie kommen ggf. aus einem fremden Repository.
 _MAX_BYTES = 5 * 1024 * 1024
+_EVAL_LIMIT = 100  # so viele Dateien werden ausgewertet (die Oberfläche zeigt weniger)
 # Probleme von Git selbst (nicht der einen Datei) sehen Aufrufer, statt als „nicht lesbar“ zu
 # erscheinen.
 _GIT_PROBLEMS = {"git_missing", "unsafe_directory", "offline"}
@@ -64,6 +65,7 @@ class FileChange:
     status: str  # wie :attr:`sprintforecast.git.Change.status`
     values: tuple[ValueChange, ...] = ()
     readable: bool = True
+    orig: str = ""  # bisheriger Pfad bei Umbenennungen und Kopien, relativ zur Wurzel
 
 
 def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueChange]:
@@ -119,7 +121,8 @@ def _work_text(root: Path, file: str) -> str:
 
 def _file_change(root: Path, change: Change) -> FileChange:
     file, status = change.file, change.status
-    unreadable = FileChange(file, status, readable=False)
+    orig = change.orig
+    unreadable = FileChange(file, status, readable=False, orig=orig)
     if any(Path(f).suffix.lower() not in _YAML_SUFFIXES for f in (file, change.orig or file)):
         return unreadable
     old: Any = MISSING
@@ -130,8 +133,8 @@ def _file_change(root: Path, change: Change) -> FileChange:
         with contextlib.suppress(FileNotFoundError):  # gelöscht, auch „von ihnen gelöscht“
             new = _parse(_work_text(root, file))
         if old is MISSING or new is MISSING:
-            return FileChange(file, status)
-        return FileChange(file, status, tuple(diff_values(old, new)))
+            return FileChange(file, status, orig=orig)
+        return FileChange(file, status, tuple(diff_values(old, new)), orig=orig)
     except GitError as e:
         if e.kind in _GIT_PROBLEMS:
             raise
@@ -143,7 +146,11 @@ def _file_change(root: Path, change: Change) -> FileChange:
 def file_changes(path: Path) -> list[FileChange]:
     """Nicht committete Änderungen unterhalb von ``path`` als Wertänderungen je Datei."""
     root = gitmod.require_root(path)
-    return [_file_change(root, c) for c in changes_in(path)]
+    # Nur die ersten Dateien werden ausgewertet; die übrigen kommen ohne Werte (lesbar).
+    return [
+        _file_change(root, c) if i < _EVAL_LIMIT else FileChange(c.file, c.status, orig=c.orig)
+        for i, c in enumerate(changes_in(path))
+    ]
 
 
 _CACHE: dict[Path, tuple[tuple[Any, ...], list[FileChange]]] = {}

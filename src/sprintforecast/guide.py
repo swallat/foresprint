@@ -365,9 +365,12 @@ GIT_HELP: list[tuple[str, str]] = [
     (
         "Was hat sich geändert?",
         "Bei offenen Änderungen zeigt der Git-Bereich vor „Speichern und teilen“ und „Änderungen "
-        "committen“ je Datei, was sich geändert hat: bei YAML-Dateien jeden Wert mit Vorher und "
-        "Nachher, bei neuen, gelöschten oder umbenannten Dateien nur die Art. Dateien ohne "
-        "lesbare Werte (z. B. Excel oder Berichte) tragen den Hinweis „keine Wertansicht“.",
+        "committen“ je Datei, was sich geändert hat: bei geänderten und umbenannten "
+        "YAML-Dateien jeden Wert mit Vorher und Nachher, bei neuen und gelöschten Dateien nur "
+        "die Art. Verschachtelte Werte stehen mit Punkten, Einträge mit Kennung in eckigen "
+        "Klammern, z. B. people.[anna].fte. Lange Werte sind gekürzt. Dateien ohne lesbare "
+        "Werte (Excel, Berichte, kaputtes YAML, Dateien über 5 MB) tragen den Hinweis „keine "
+        "Wertansicht“.",
     ),
     (
         "Stand in der Seitenleiste",
