@@ -291,6 +291,20 @@ _CERTIFICATE = re.compile(
     re.I,
 )
 
+# Git konnte im eigenen Dateisystem nichts schreiben. Verlangt wird eine ganze Zeile, die mit
+# dem Vorgang beginnt und auf den Fehler endet („error: unable to create file x: Permission
+# denied“): „Permission denied“ allein steht auch bei „ssh: connect to host … Permission
+# denied“ (Verbindung gesperrt), „Load key …: Permission denied“ und „remote: Permission
+# denied“ (Hook des Servers) und gehört dort zu offline, auth bzw. denied. Meldungen des Servers
+# beginnen mit „remote:“ und passen deshalb nicht.
+_NOT_WRITABLE = re.compile(
+    r"^(?:error: |fatal: )?"
+    r"(?:unable to (?:create|open|write)\b|could not (?:lock|create|write|open)\b|"
+    r"cannot (?:lock|create|open|mkdir)\b|open\()"
+    r"[^\n]*?:\s*(?:Permission denied|Read-only file system)\.?\s*$",
+    re.I | re.M,
+)
+
 # Erkennungsmuster in der Reihenfolge der Prüfung (englische Git-Meldungen, siehe _env). Was der
 # Server über das Repository sagt (nicht gefunden, Zertifikat), steht vor „offline“: Git hängt
 # an solche Meldungen „Could not read from remote repository“ an und beginnt sie mit „unable to
@@ -310,11 +324,10 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         "locked",
         re.compile(r"unable to unlink|Device or resource busy|being used by another process", re.I),
     ),
-    # Kein Schreibrecht. „Permission denied (publickey)“ der SSH-Anmeldung gehört zu „auth“.
-    (
-        "not_writable",
-        re.compile(r"Permission denied(?! \(|, please try again)|Read-only file system", re.I),
-    ),
+    # Kein Schreibrecht im eigenen Dateisystem (siehe _NOT_WRITABLE), nicht irgendein
+    # „Permission denied“: Das steht auch bei der SSH-Anmeldung, beim Verbindungsaufbau und in
+    # Meldungen des Servers.
+    ("not_writable", _NOT_WRITABLE),
     (
         "locked",
         re.compile(r"index\.lock|\.lock'?: File exists|Unable to create '.*\.lock'", re.I),
@@ -390,10 +403,51 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
-def classify(message: str, missing: bool = False, timeout: bool = False, url: str = "") -> GitError:
+def _missing_folder(url: str) -> bool:
+    """Ist die Adresse des Servers ein vollständiger Ordnerpfad (auch Netzfreigabe), dessen
+    übergeordneter Ordner auf diesem Rechner fehlt? Dann ist das Laufwerk weg (nicht verbunden,
+    VPN aus, Stick abgezogen, Freigabe nicht erreichbar), und Git meldet trotzdem „does not
+    appear to be a git repository“: Das ist „nicht erreichbar“, keine falsche Adresse. Ist der
+    übergeordnete Ordner da, antwortet der Server und das Repository gibt es dort wirklich nicht
+    (nicht gefunden)."""
+    if not url or "://" in url:
+        return False
+    try:
+        path = Path(url)
+        return path.is_absolute() and not path.parent.exists()
+    except OSError, ValueError:
+        return True
+
+
+def remote_url(root: Path, remote: str) -> str:
+    """Gespeicherte Adresse des Servers ``remote`` (leer, wenn es keine gibt): Sie gehört zu den
+    Netzwerkaufrufen, damit :func:`classify` Anmeldehilfe und Ordnerpfad-Server unterscheidet."""
+    return _git(root, "config", "--get", f"remote.{remote}.url", check=False)
+
+
+def _without_safe_directory_advice(message: str) -> str:
+    """Gits Meldung zu einem fremden Ordner endet mit dem Rat, ihn per ``git config --global
+    --add safe.directory …`` als sicher einzutragen. Die App rät nie zu einer solchen Änderung
+    (das ist Sache der Betreuung des Rechners), auch nicht in der technischen Meldung oder der
+    Kommandozeile, wo jemand den Befehl einfach kopieren würde."""
+    kept = re.sub(r"\s*To add an exception for this directory.*", "", message, flags=re.I | re.S)
+    lines = [line for line in kept.splitlines() if "safe.directory" not in line]
+    return "\n".join(lines).strip()
+
+
+def classify(
+    message: str,
+    missing: bool = False,
+    timeout: bool = False,
+    url: str = "",
+    drive_check: bool = True,
+) -> GitError:
     """Macht aus einer Git-Fehlermeldung eine :class:`GitError` mit Art und nächstem Schritt.
     ``url`` ist die Adresse des Servers, wenn die Meldung von einem Netzwerkaufruf stammt: Sie
-    wählt bei einem Anmeldefehler die passende Hilfe (SSH oder https, siehe :func:`auth_help`)."""
+    wählt bei einem Anmeldefehler die passende Hilfe (SSH oder https, siehe :func:`auth_help`).
+    Ist ``url`` ein Ordnerpfad, den es gerade nicht gibt (getrenntes Laufwerk), gilt „Repository
+    nicht gefunden“ als ``offline``, außer mit ``drive_check=False`` (die Prüfung einer neu
+    eingegebenen Adresse: Dort ist ein fehlender Ordner ein Tippfehler)."""
     if missing:
         return GitError(
             t("git ist nicht installiert oder nicht im PATH"),
@@ -411,6 +465,10 @@ def classify(message: str, missing: bool = False, timeout: bool = False, url: st
         )
     for kind, pattern in _PATTERNS:
         if pattern.search(message):
+            if kind == "unsafe_directory":
+                message = _without_safe_directory_advice(message)
+            if kind == "not_found" and drive_check and _missing_folder(url):
+                kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
             hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
             return GitError(message or kind, kind, hint)
     return GitError(message or t("Unbekannter Git-Fehler"), "error")
@@ -909,7 +967,7 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
     das nicht (Git hängt es auch an, wenn der Server das Repository verweigert). Der Text von
     Git bleibt in ``str(error)`` (erscheint als „Technische Meldung“); es gibt immer einen
     Hinweis."""
-    err = classify(message, timeout=timed_out, url=address.url)
+    err = classify(message, timeout=timed_out, url=address.url, drive_check=False)
     if timed_out:
         err.hint = _unreachable_hint()
     elif err.kind == "certificate":
@@ -923,7 +981,7 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
             "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
             "„Technische Meldung“."
         )
-    elif err.kind not in {"auth", "not_found"}:
+    elif err.kind not in {"auth", "not_found", "unsafe_directory", "not_writable", "locked"}:
         err.hint = t(
             "Die Verbindung zum Server ist fehlgeschlagen. Die Meldung von Git steht unter "
             "„Technische Meldung“."
@@ -1232,7 +1290,7 @@ def _folder_access(path: Path) -> Iterator[None]:
     except (OSError, ValueError) as e:  # ValueError: Pfad mit NUL-Zeichen
         raise folder_problem(path, e) from e
     except GitError as e:
-        if e.kind == "error" and "Permission denied" in str(e):
+        if e.kind == "not_writable" or (e.kind == "error" and "Permission denied" in str(e)):
             raise folder_problem(path, PermissionError()) from e
         raise
 
@@ -1243,8 +1301,14 @@ def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
     ``.gitattributes`` (YAML und Berichte mit LF): Sie wird mit den Daten committet und erreicht
     so auch die Klone. Vorhandene Dateien und bestehende Repositories bleiben unverändert: Dort
     könnten CRLF-Dateien im Index liegen, die mit der Festlegung plötzlich als geändert gelten.
-    Eine Datei als Ziel und Dateisystemfehler kommen als :class:`GitError` (Art ``folder``)."""
+    Eine Datei als Ziel und Dateisystemfehler kommen als :class:`GitError` (Art ``folder``),
+    ein Ordner, den Git als unsicher ablehnt, als Art ``unsafe_directory`` (ohne etwas zu
+    schreiben)."""
     with _folder_access(path):
+        if (problem := root_problem(path)) is not None:
+            # Git lehnt den Ordner ab, weil er einem anderen Konto gehört: nicht „git init“ dort,
+            # nichts hineinschreiben, sondern den Grund nennen.
+            raise GitError(str(problem), problem.kind, problem.hint)
         path.mkdir(parents=True, exist_ok=True)
         new = repo_root(path) is None
         if new:

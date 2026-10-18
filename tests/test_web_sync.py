@@ -78,8 +78,9 @@ def test_own_changes_are_saved_and_shared(shared, data_dir: Path, monkeypatch):
 
 
 def test_offline_is_explained_and_nothing_is_lost(shared, data_dir: Path, monkeypatch):
-    root, _, _server = shared
-    git(root, "remote", "set-url", "origin", "http://127.0.0.1:1/r.git")
+    root, _, server = shared
+    # Ein Ordner auf einem Laufwerk, das gerade fehlt (ohne Netzwerk, ohne Proxy).
+    git(root, "remote", "set-url", "origin", str(server.parent / "getrennt" / "daten.git"))
     file = root / SPRINT
     file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
     invalidate_status()
@@ -104,6 +105,31 @@ def test_wrong_address_is_not_explained_as_offline(shared, data_dir: Path, monke
     assert "Server nicht erreichbar" not in errors and "VPN" not in errors
     assert "Server nicht erreichbar" not in captions(at)
     assert "Server meldet: Repository nicht gefunden" in captions(at)
+
+
+def test_status_line_does_not_blame_the_server_for_local_errors():
+    """Fehler auf diesem Rechner (nicht beschreibbar, gesperrt, fremder Ordner) stehen nicht als
+    „Server meldet: …“ in der Statuszeile."""
+    from dataclasses import replace
+
+    from sprintforecast.git import classify
+    from sprintforecast.gitsync import SyncState
+    from sprintforecast.web.ui import _status_text
+
+    base = SyncState(
+        root=Path("."), branch="main", upstream="origin/main", remote="origin", url="x"
+    )
+    server = replace(base, fetch_error=classify("fatal: Repository not found."))
+    assert "Server meldet: Repository nicht gefunden" in _status_text(server)
+    for message in (
+        "error: cannot open .git/FETCH_HEAD: Permission denied",
+        "fatal: Unable to create '/r/.git/index.lock': File exists.",
+        "fatal: detected dubious ownership in repository at '/r'",
+    ):
+        local = replace(base, fetch_error=classify(message))
+        text = _status_text(local)
+        assert "Server meldet" not in text and "Abgleich nicht möglich" in text
+        assert "Server nicht erreichbar" not in text
 
 
 def make_value_conflict(root: Path, bob: Path) -> Path:

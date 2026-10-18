@@ -94,6 +94,24 @@ def test_repo_root_names_the_reason_for_an_unsafe_directory(unsafe: Path):
     assert "dubious ownership" in str(problem)  # die Meldung von Git bleibt erhalten
     assert "ändert keine Git-Einstellungen" in problem.hint
     assert "safe.directory" not in problem.hint  # die App rät nicht zu einer Einstellung
+    # Auch die technische Meldung trägt Gits Rat („git config --global --add safe.directory …“)
+    # nicht: Wer sie liest, soll den Befehl nicht einfach kopieren.
+    assert "safe.directory" not in str(problem) and "git config" not in str(problem)
+    assert str(problem).startswith("fatal: detected dubious ownership in repository at")
+
+
+def test_init_data_repository_leaves_an_unsafe_directory_untouched(unsafe: Path):
+    """Git lehnt den Ordner ab: kein „git init“ und keine neue Datei dort, sondern der Grund."""
+    from sprintforecast.git import init_data_repository
+
+    before = sorted(p.relative_to(unsafe).as_posix() for p in unsafe.rglob("*"))
+    for teams_folder in (True, False):
+        with pytest.raises(GitError) as info:
+            init_data_repository(unsafe, teams_folder=teams_folder)
+        assert info.value.kind == "unsafe_directory"
+        assert "ändert keine Git-Einstellungen" in info.value.hint
+    assert sorted(p.relative_to(unsafe).as_posix() for p in unsafe.rglob("*")) == before
+    assert not (unsafe / ".gitignore").exists()
 
 
 def test_no_reason_for_a_folder_that_is_just_not_a_repository(

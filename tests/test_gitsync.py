@@ -277,8 +277,9 @@ def test_invalid_merge_result_is_not_pushed(alice: Person, bob: Person, remote: 
     assert Repository(bob.data).load("demo").products
 
 
-def test_offline_keeps_local_work(alice: Person):
-    git(alice.root, "remote", "set-url", "origin", "http://127.0.0.1:1/r.git")
+def test_offline_keeps_local_work(alice: Person, tmp_path: Path):
+    """Der Server ist ein Ordner auf einem Laufwerk, das gerade fehlt (ohne Netzwerk)."""
+    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "getrennt" / "daten.git"))
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     result = alice.sync("Offline")
     assert result.error and result.error.kind == "offline"
@@ -301,6 +302,45 @@ def test_missing_repository_is_not_offline(alice: Person, tmp_path: Path):
     assert state.fetch_error.kind == "not_found" and state.ahead == 1
 
 
+def test_folder_server_on_a_missing_drive_is_offline_but_a_missing_repository_is_not(
+    tmp_path: Path,
+):
+    """Ein Ordner-Server (Netzlaufwerk, Stick) ohne übergeordneten Ordner ist „nicht erreichbar“;
+    liegt der Ordner vor und fehlt nur das Repository, stimmt die Adresse nicht."""
+    gone = tmp_path / "laufwerk" / "daten.git"
+    message = f"fatal: '{gone}' does not appear to be a git repository\n{TAIL}"
+    assert classify(message, url=str(gone)).kind == "offline"
+    assert classify(message, url=str(gone)).hint == gitmod.hint_for("offline")
+    # Netzfreigabe (UNC), die nicht erreichbar ist: der übergeordnete Ordner fehlt auch hier.
+    unc = "//fileserver-gibt-es-nicht/daten/repo.git"
+    unc_message = f"fatal: '{unc}' does not appear to be a git repository\n{TAIL}"
+    assert classify(unc_message, url=unc).kind == "offline"
+    # Der Ordner ist da, das Repository nicht: nicht gefunden, wie bei jedem erreichbaren Server.
+    there = tmp_path / "gibt-es-nicht.git"
+    assert classify(message, url=str(there)).kind == "not_found"
+    # Ohne Adresse und bei einer Webadresse bleibt es bei „nicht gefunden“.
+    assert classify(message).kind == "not_found"
+    assert classify(message, url="https://h.example/r.git").kind == "not_found"
+    # Die Prüfung einer neu eingegebenen Adresse: ein fehlender Ordner ist ein Tippfehler.
+    probe = gitmod._probe_error(message, gitmod.RemoteAddress(str(gone), "local"))
+    assert probe.kind == "not_found"
+
+
+def test_git_passes_the_address_on_to_the_classification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Nicht ``classify`` allein, sondern der ganze Weg ``_git`` → ``classify``: Die Adresse wählt
+    die Anmelde-Hilfe (SSH oder https)."""
+    refused = subprocess.CompletedProcess([], 128, "", "git@x: Permission denied (publickey).")
+    monkeypatch.setattr(gitmod, "_git_result", lambda *args, **kwargs: refused)
+    with pytest.raises(GitError) as ssh:
+        gitmod._git(tmp_path, "fetch", network=True, url="git@x:r.git")
+    with pytest.raises(GitError) as https:
+        gitmod._git(tmp_path, "fetch", network=True, url="https://x/r.git")
+    assert "ssh-keygen" in ssh.value.hint and "Zugangstoken" not in ssh.value.hint
+    assert "Zugangstoken" in https.value.hint and "ssh-keygen" not in https.value.hint
+
+
 @pytest.mark.usefixtures("no_login_prompt")
 def test_http_404_is_not_found_and_not_offline(alice: Person):
     with serve(NotFound) as port:
@@ -313,6 +353,23 @@ def test_http_404_is_not_found_and_not_offline(alice: Person):
 
 def test_timeout_counts_as_offline():
     assert classify("", timeout=True).kind == "offline"
+
+
+def test_first_push_to_a_missing_drive_is_offline(tmp_path: Path):
+    """Der erste Hochlade-Versuch (``push -u``) reicht die Adresse an die Zuordnung weiter: Ein
+    Ordner-Server auf einem fehlenden Laufwerk ist „nicht erreichbar“."""
+    git(tmp_path, "init", "-q", "-b", "main")
+    git(tmp_path, "config", "user.name", "X")
+    git(tmp_path, "config", "user.email", "x@example.org")
+    person = Person("X", tmp_path)
+    person.write("a/team.yaml", "name: A\n")
+    assert person.sync("Lokal").committed
+    git(tmp_path, "remote", "add", "origin", str(tmp_path / "getrennt" / "daten.git"))
+    current = gitsync.state(tmp_path)
+    assert current.upstream is None and current.remote == "origin"
+    with pytest.raises(GitError) as info:
+        gitsync._push(tmp_path, current)
+    assert info.value.kind == "offline"
 
 
 def test_no_remote_still_saves(tmp_path: Path):
@@ -629,6 +686,29 @@ def test_reattach_with_open_changes_names_the_way_out(alice: Person):
     assert gitsync.state(alice.data).detached  # nichts verändert
 
 
+def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(alice: Person):
+    """Das Verwerfen auf der Seite „Änderungen und Verlauf“ wirkt nur im Datenordner: Liegt die
+    blockierende Datei außerhalb (hier ``README.md`` im Wurzelordner), wäre der Hinweis
+    „verwerfen“ eine Sackgasse."""
+    readme = alice.root / "README.md"
+    readme.write_text("eins\n", encoding="utf-8")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "README")
+    git(alice.root, "checkout", "-q", "--detach", "HEAD~1")
+    readme.write_text("zwei\n", encoding="utf-8")
+    invalidate_status()
+    from sprintforecast.githistory import discard_preview
+
+    assert discard_preview(alice.data) == []  # im Datenordner gibt es nichts zu verwerfen
+    with pytest.raises(GitError) as info:
+        gitsync.reattach(alice.data)
+    hint = " ".join(info.value.hint.split())
+    assert info.value.kind == "detached" and "README.md" in str(info.value)
+    assert "außerhalb des Datenordners" in hint and "in Git" in hint
+    assert "die offenen Änderungen verwerfen – sie gehen" not in hint
+    assert "git config" not in hint and "safe.directory" not in hint
+
+
 def test_reattach_names_no_rescue_branch_when_the_commit_is_on_a_branch(alice: Person):
     git(alice.root, "checkout", "-q", "--detach")
     invalidate_status()
@@ -712,7 +792,29 @@ TAIL = (
         ),
         (f"fatal: '/x/y' does not appear to be a git repository\n{TAIL}", "not_found"),
         ("fatal: repository '/x/y' does not exist", "not_found"),  # Klonen von einem Pfad
+        ("remote: Project not found.\nfatal: Could not read from remote repository.", "not_found"),
+        (
+            "remote: ERROR: The project does not exist or you do not have permission to access it.",
+            "not_found",
+        ),
+        ("error: unable to create file x.yaml: Device or resource busy", "locked"),
         # Das Zertifikat wird nicht anerkannt: VPN oder Internet zu prüfen nützt nichts.
+        (
+            "fatal: unable to access 'https://x/': server certificate verification failed. "
+            "CAfile: none CRLfile: none",
+            "certificate",
+        ),
+        ("fatal: unable to access 'https://x/': schannel: SEC_E_CERT_EXPIRED", "certificate"),
+        (
+            "fatal: unable to access 'https://x/': schannel: next InitializeSecurityContext "
+            "failed: CRYPT_E_NO_REVOCATION_CHECK (0x80092012)",
+            "certificate",
+        ),
+        (
+            "fatal: unable to access 'https://x/': no alternative certificate subject name "
+            "matches target host name 'x'",
+            "certificate",
+        ),
         (
             "fatal: unable to access 'https://x/r.git/': SSL certificate problem: unable to get "
             "local issuer certificate",
@@ -729,6 +831,73 @@ TAIL = (
         ("fatal: could not create work tree dir 'ziel': Permission denied", "not_writable"),
         ("error: unable to create file teams/a/x.yaml: Read-only file system", "not_writable"),
         ("git@x: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).", "auth"),
+        ('error: open("teams/a/x.yaml"): Permission denied', "not_writable"),
+        ("error: unable to open x.yaml: Permission denied", "not_writable"),
+        ("error: unable to write file x.yaml: Permission denied", "not_writable"),
+        ("error: could not write config file .git/config: Permission denied", "not_writable"),
+        ("fatal: could not open '.git/FETCH_HEAD' for writing: Permission denied", "not_writable"),
+        (
+            "error: cannot lock ref 'refs/heads/main': Unable to create "
+            "'/r/.git/refs/heads/main.lock': Permission denied",
+            "not_writable",
+        ),
+        ("fatal: cannot mkdir ziel: Permission denied", "not_writable"),
+        ("error: cannot create directory at 'teams/a': Permission denied", "not_writable"),
+        ("error: cannot open .git/FETCH_HEAD: Permission denied", "not_writable"),
+        # Windows beendet die Zeile mit CRLF.
+        ("error: unable to create file x.yaml: Permission denied\r\n", "not_writable"),
+        # „Permission denied“ allein macht es nicht zu „nicht beschreibbar“: Verbindung gesperrt
+        # (Firewall, Sicherheitssoftware) bleibt offline, Schlüsseldatei und Host-Key bleiben
+        # Anmeldung, die Ablehnung des Servers bleibt „denied“, wie vor dieser Änderung.
+        (
+            "git@x: Permission denied, please try again.\ngit@x: Permission denied (publickey).",
+            "auth",
+        ),
+        ("git@x: Permission denied, please try again.", "error"),
+        ("ssh: connect to host github.com port 22: Permission denied", "offline"),
+        (
+            "ssh: connect to host github.com port 22: Permission denied\n"
+            "fatal: Could not read from remote repository.",
+            "offline",
+        ),
+        (
+            "fatal: unable to access 'https://h/r.git/': Failed to connect to h port 443: "
+            "Permission denied",
+            "offline",
+        ),
+        (
+            "Could not create directory '/home/svc/.ssh' (Permission denied).\n"
+            "Failed to add the host to the list of known hosts (/home/svc/.ssh/known_hosts).\n"
+            "Host key verification failed.\n" + TAIL,
+            "auth",
+        ),
+        (
+            'Load key "/home/u/.ssh/id_ed25519": Permission denied\n'
+            "git@github.com: Permission denied (publickey).\n" + TAIL,
+            "auth",
+        ),
+        (
+            "Warning: Identity file /home/u/.ssh/id not accessible: Permission denied.\n"
+            "git@github.com: Permission denied (publickey).",
+            "auth",
+        ),
+        (
+            "warning: unable to access '/home/u/.config/git/attributes': Permission denied\n"
+            "fatal: unable to access 'https://x/r.git/': Could not resolve host: x",
+            "offline",
+        ),
+        (
+            "remote: Gitea: User permission denied for writing.\nTo h:r.git\n"
+            " ! [remote rejected] main -> main (pre-receive hook declined)",
+            "denied",
+        ),
+        (
+            "remote: Permission denied\n ! [remote rejected] main -> main (pre-receive hook "
+            "declined)",
+            "denied",
+        ),
+        # Ein Schreibfehler auf dem Server ist nicht der eigene Datenordner.
+        ("remote: error: unable to create file x: Permission denied", "error"),
         # Ein anderes Programm benutzt die Datei: gesperrt (Windows meldet oft Permission denied).
         ("error: unable to unlink old 'teams/a/x.yaml': Permission denied", "locked"),
         (

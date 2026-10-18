@@ -579,6 +579,9 @@ def test_datenordner_names_the_reason_for_an_unsafe_folder(
     assert "dubious ownership" in result.output  # die Meldung von Git
     assert "Git-Einstellungen" in " ".join(result.output.split())  # der Hinweis
     assert "liegt in keinem Git-Repository" not in result.output
+    assert "Git hält den Ordner für unsicher" in result.output  # die Überschrift
+    # Die App rät nie zu einer Konfigurationsänderung, auch nicht mit Gits Wortlaut.
+    assert "safe.directory" not in result.output and "git config" not in result.output
 
 
 def one_line(output: str) -> str:

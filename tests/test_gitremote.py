@@ -456,6 +456,51 @@ TAIL = (
             "offline",
             "Tippfehler",
         ),
+        # Eine gesperrte Verbindung (Firewall, Sicherheitssoftware) bleibt „nicht erreichbar“;
+        # „Permission denied“ beim Anlegen von ~/.ssh ändert nichts am Fingerabdruck-Hinweis.
+        (
+            "ssh: connect to host h.example port 22: Permission denied\n" + TAIL,
+            SSH,
+            "offline",
+            "Tippfehler",
+        ),
+        (
+            "fatal: unable to access 'https://h/': Failed to connect to h port 443: "
+            "Permission denied",
+            HTTPS,
+            "offline",
+            "Tippfehler",
+        ),
+        (
+            "Could not create directory '/home/svc/.ssh' (Permission denied).\n"
+            "Host key verification failed.\n" + TAIL,
+            SSH,
+            "auth",
+            "Fingerabdruck",
+        ),
+        # Die Arten für den eigenen Rechner behalten ihren Hinweis: Ein Server-Ordner eines
+        # anderen Kontos (Netzlaufwerk), Schreibrechte und eine Sperrdatei sind keine
+        # „fehlgeschlagene Verbindung“.
+        (
+            "fatal: detected dubious ownership in repository at '/srv/r.git'\n"
+            "To add an exception for this directory, call:\n\n"
+            "\tgit config --global --add safe.directory /srv/r.git",
+            RemoteAddress("/srv/r.git", "local"),
+            "unsafe_directory",
+            "ändert keine Git-Einstellungen",
+        ),
+        (
+            "error: unable to create file x.yaml: Permission denied",
+            HTTPS,
+            "not_writable",
+            "Git darf hier nichts schreiben",
+        ),
+        (
+            "fatal: Unable to create '/r/.git/index.lock': File exists.",
+            HTTPS,
+            "locked",
+            "Sperrdatei",
+        ),
         # Git sagt nur „Could not read from remote repository“ oder der Server antwortet mit
         # einem Fehler: unklar, aber nie „nicht erreichbar“ und nie zum Speichern angeboten.
         (TAIL, SSH, "error", "nicht erfüllt"),

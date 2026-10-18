@@ -3864,7 +3864,10 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 if not path.is_dir():
                     st.error(t("Ordner nicht gefunden: {path}", path=path))
                 elif problem := git_problem(path):
+                    # Git lehnt den Ordner ab, die App funktioniert aber auch ohne Git: Neben dem
+                    # Grund bleibt „Ohne Git verwenden“ (ein Repository anlegen geht dort nicht).
                     _show_problem(problem)
+                    st.session_state["offer-init"] = str(path)
                 elif git_root(path) is None:
                     st.warning(
                         t(
@@ -3905,8 +3908,10 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 else:
                     st.session_state.pop("offer-init", None)
                     st.rerun()
-        if offer and st.button(
-            t("Git-Repository in {path} anlegen", path=offer), key="data-init-here"
+        if (
+            offer
+            and not git_problem(Path(offer))
+            and st.button(t("Git-Repository in {path} anlegen", path=offer), key="data-init-here")
         ):
             try:
                 target = init_data_repository(Path(offer), teams_folder=False)
@@ -4390,11 +4395,15 @@ def _status_text(state: SyncState) -> str:
     elif not parts:
         parts.append(t("synchron mit {upstream}", upstream=state.upstream))
     if state.fetch_error is not None:
-        parts.append(
-            t("Server nicht erreichbar")
-            if state.offline
-            else t("Server meldet: {kind}", kind=git_title(state.fetch_error.kind))
-        )
+        if state.offline:
+            parts.append(t("Server nicht erreichbar"))
+        elif state.fetch_error.kind in {"not_writable", "locked", "unsafe_directory"}:
+            # Ein Fehler auf diesem Rechner, nichts, was der Server gemeldet hätte.
+            parts.append(
+                t("Abgleich nicht möglich: {kind}", kind=git_title(state.fetch_error.kind))
+            )
+        else:
+            parts.append(t("Server meldet: {kind}", kind=git_title(state.fetch_error.kind)))
     elif state.fetched_at is None:
         parts.append(t("Serverstand noch nicht geprüft"))
     else:
