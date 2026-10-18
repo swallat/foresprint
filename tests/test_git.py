@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.git import GitError, commit_directory, pending_changes, repo_root
+from sprintforecast.git import (
+    GitError,
+    commit,
+    commit_directory,
+    pending_changes,
+    repo_root,
+    title_for,
+)
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -61,3 +68,15 @@ def test_spreadsheet_is_refused(repo: Path):
 def test_nothing_to_commit(repo: Path):
     with pytest.raises(GitError, match="Keine Änderungen"):
         commit_directory(repo / "teams", "leer")
+
+
+def test_commit_outside_a_repository_is_classified(tmp_path_factory: pytest.TempPathFactory):
+    folder = tmp_path_factory.mktemp("ohne-git")
+    file = folder / "team.yaml"
+    file.write_text("name: A\n", encoding="utf-8")
+    with pytest.raises(GitError) as caught:
+        commit([file], "Ohne Repository")
+    assert caught.value.kind == "not_repo"
+    assert str(folder) in str(caught.value)
+    assert "git init" in caught.value.hint
+    assert title_for("not_repo") == "Kein Git-Repository"
