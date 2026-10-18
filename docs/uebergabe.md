@@ -21,7 +21,6 @@ Spalte „Stand“ nennt, was ich zuletzt festgestellt habe.
 
 | PR | Thema | Stand |
 |---|---|---|
-| [#76](https://github.com/swallat/sprint-forecast/pull/76) | Texte anderer (Commit-Autor/-Betreff, Tags, Branches, Dateipfade, rohe Git-Ausgabe) in der Weboberfläche als Code statt Markdown; Absturz bei leerem Betreff; `splitlines`-Geister-Tags | Entwurf; zwei Review-Runden abgearbeitet (offen nur niedrige Punkte, im PR-Text); lokal 1615 Tests grün; CI auf dem letzten Kopf läuft; **danach bereit zum Mergen** |
 | [#81](https://github.com/swallat/sprint-forecast/pull/81) | Git-Fehler richtig zuordnen (Adresse, Rechte, Ordner, Fingerabdruck), Hinweis „Zurück auf den Branch“ | Entwurf; Review hat 36 Befunde (rund 12 verschiedene) bestätigt, die Themen A bis H sind behoben (u. a. `not_writable` auf Dateisystem-Schreibfehler eingegrenzt, `_folder_access`, `safe.directory`-Rat entfernt, Laufwerksprüfung), I teilweise; lokal 1607 Tests grün, CI läuft; **ein zweites unabhängiges Review der Korrekturen fehlt noch** — erst danach mergen |
 | [#82](https://github.com/swallat/sprint-forecast/pull/82) | „Speichern und teilen“: Meldung geht bei einem zweiten Durchlauf nicht mehr verloren (Ursache des flackernden e2e-Tests) | Entwurf; CI grün, aber das Review fand Fehler in der Sperre (prozessweit, unbegrenztes Warten); **nicht mergen**, Überarbeitung im PR-Text beschrieben |
 | [#62](https://github.com/swallat/sprint-forecast/pull/62) | `docs/konzept-kern.md`: Umsetzungsstand | Entwurf; „Stand“-Zellen nach den Merges aktualisieren (A3, A10, B5, D-Abschnitte, Phasentabelle) |
@@ -48,12 +47,13 @@ abgearbeitet):**
 - [#78](https://github.com/swallat/sprint-forecast/pull/78) Produktbilanz in Kommandozeile und Bericht: fehlende Werte ausweisen
 - [#79](https://github.com/swallat/sprint-forecast/pull/79) Datenrepository: `*.tmp` ignorieren, `.gitattributes` (YAML und Berichte mit LF) im Datenordner neuer Repositories
 - [#80](https://github.com/swallat/sprint-forecast/pull/80) Kommandozeile: Namen und Pfade aus den Daten nicht als Rich-Markup auswerten (`_plain`, `_plain_end`, Hinweis `[web]`); zwei Review-Runden, offen nur niedrige Testlücken (im PR-Text)
+- [#76](https://github.com/swallat/sprint-forecast/pull/76) Texte anderer (Commit-Autor/-Betreff, Tags, Branches, Dateipfade, rohe Git-Ausgabe) in der Weboberfläche als Code statt Markdown; Absturz bei leerem Betreff; Geister-Tags durch `splitlines` — zwei Review-Runden, offen nur niedrige Punkte (Teil 3)
 
 Früher gemergt (Aufgaben 1 bis 6 des Auftrags): [#55](https://github.com/swallat/sprint-forecast/pull/55) (UI aufräumen), [#56](https://github.com/swallat/sprint-forecast/pull/56) (`web` öffnet
 standardmäßig ein App-Fenster), [#57](https://github.com/swallat/sprint-forecast/pull/57) (Windows-Testskript), [#58](https://github.com/swallat/sprint-forecast/pull/58) (Forecast: Spanne als Zeile),
 [#59](https://github.com/swallat/sprint-forecast/pull/59) (Konfliktmarker CRLF und kleine Schuld), [#61](https://github.com/swallat/sprint-forecast/pull/61) (Schrittleiste sofort aktuell).
 
-Auf `main` nach den Merges bis #79: ruff sauber, 1492 Tests grün (lokal, ohne e2e); e2e in der CI bis auf den
+Auf `main` nach den Merges bis #80 (#76 danach): ruff sauber, 1492 Tests grün (lokal, ohne e2e); e2e in der CI bis auf den
 bekannten Aussetzer grün.
 
 
@@ -100,7 +100,7 @@ Bekannte Fehler und offene Befunde, jeweils mit dem Ort, an dem sie behandelt we
   einem vollständig grünen Lauf.
 - **Nicht abfangbar** (#82): Ein Klick, der verloren geht, weil die zweite Anforderung des Browsers
   vor dem Rückruf selbst eintrifft (Millisekundenfenster).
-- **#76 offen (niedrig):** Die Hinweise zu Konfliktmarkierungen (`refuse_conflict_markers` in `git.py`) nennen
+- **#76 (gemergt, Rest offen, niedrig):** Die Hinweise zu Konfliktmarkierungen (`refuse_conflict_markers` in `git.py`) nennen
   Dateinamen aus dem Repository ungeschützt (Markdown); Tests für Tooltip und Sicherungspfad, für
   `split_record` mit `\x1f` im Betreff fehlen; der `pre-receive`-Hook im Test hat keinen Windows-Skip. Eigene
   `GitError`-Texte ohne Hinweis mit eingesetzten Namen (z. B. „Den Tag {name} gibt es auf diesem Rechner
@@ -193,9 +193,8 @@ Pull-Requests, die erst spät in der Nacht gemergt wurden bzw. noch offen sind (
 ## 5. Empfohlene Reihenfolge für Review und Merge
 
 1. **[#80](https://github.com/swallat/sprint-forecast/pull/80)** ist gemergt (nur `cli.py` und ein Testmodul).
-2. **[#76](https://github.com/swallat/sprint-forecast/pull/76)** danach (berührt `git.py`, `gitsync.py`, `githistory.py`, `web/ui.py`): beide Review-Runden
-   sind abgearbeitet; vor dem Mergen `main` einmergen und die CI abwarten.
-3. **[#81](https://github.com/swallat/sprint-forecast/pull/81)** nach [#76](https://github.com/swallat/sprint-forecast/pull/76): berührt dieselben Dateien (`git.py`, `ui.py`, `cli.py`), Konflikte beim
+2. **[#76](https://github.com/swallat/sprint-forecast/pull/76)** ist gemergt.
+3. **[#81](https://github.com/swallat/sprint-forecast/pull/81)** (nach dem Merge von [#76](https://github.com/swallat/sprint-forecast/pull/76)): berührt dieselben Dateien (`git.py`, `ui.py`, `cli.py`), Konflikte beim
    Einmergen von `main` sind zu erwarten. Die Befunde zu `not_writable` und `_folder_access` sind behoben; vor dem
    Mergen ein zweites unabhängiges Review der Korrekturen, `main` einmergen, CI abwarten.
 4. **[#82](https://github.com/swallat/sprint-forecast/pull/82)** nach der Überarbeitung der Sperre (Abschnitt 3, Befunde im PR-Text); berührt `web/ui.py` und
@@ -281,7 +280,7 @@ AUFGABEN, IN DIESER REIHENFOLGE
    `tests/test_cli_markup.py`, CRLF im `pre-push`-Hook des e2e-Tests aus #82). Windows-Befunde als eigene
    kleine Pull-Requests beheben.
 2. Offene Pull-Requests abarbeiten, Reihenfolge und Abhängigkeiten stehen in Teil 5 der Übergabe: #80
-   (gemergt), #76 (bereit, wenn CI grün), #81 (zweites Review der Korrekturen, offene Punkte aus Teil 3), #82 (Sperre je Sitzung, Zeitgrenze, Rückmeldung für verworfene Klicks),
+   (gemergt), #76 (gemergt), #81 (zweites Review der Korrekturen, offene Punkte aus Teil 3), #82 (Sperre je Sitzung, Zeitgrenze, Rückmeldung für verworfene Klicks),
    zuletzt #62 (Stand-Zellen in `docs/konzept-kern.md`).
 3. Entscheidungen des Owners einholen (Teil 2 der Übergabe), nicht selbst treffen; danach je Entscheidung
    ein kleiner PR (Empfehlungen stehen dort).
