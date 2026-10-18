@@ -243,36 +243,56 @@ def write_protocol_new(
     Speicherungen in derselben Sekunde), wird die Sekunde hochgezählt: nichts geht verloren.
     Suchen und Schreiben laufen unter einer Sperre je Sprint und Termin (:func:`_locked`).
     Schreibfehler kommen als :class:`FileAccessError`."""
+    folder = _make_folder(repo, team)
+    with _locked(folder, sprint_id, kind):
+        return _write_locked(repo, team, sprint_id, kind, text, now, state)
+
+
+def _make_folder(repo: Repository, team: str) -> Path:
+    """Legt den Protokollordner an (Fehler als :class:`FileAccessError`)."""
     folder = _folder(repo, team)
     try:
         folder.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         raise _not_saved(folder, e) from e
-    with _locked(folder, sprint_id, kind):
-        latest = next(
-            (
-                p
-                for _, k, obsolete, p in list_protocols(repo, team, sprint_id)
-                if k == kind and not obsolete
-            ),
-            None,
-        )
-        if latest is not None:
-            same = (
-                _state_of(latest) == state if state is not None else _body(latest) == _body_of(text)
-            )
-            if same:
-                return latest, False  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
-        if state is not None:
-            text = text.rstrip("\n") + f"\n\n{STATE_MARKER}{state} -->\n"
-        # Ein Bestandteil des Namens aus dem Inhalt: Zwei Klone, die in derselben Sekunde
-        # Verschiedenes speichern, erzeugen so nie denselben Dateinamen (sonst Konflikt beim
-        # Zusammenführen).
-        tag = (state or hashlib.sha256(text.encode("utf-8")).hexdigest())[:4]
-        stamp = now
-        while (path := folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}-{tag}.md").exists():
-            stamp += timedelta(seconds=1)
-        write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
+    return folder
+
+
+def _write_locked(
+    repo: Repository,
+    team: str,
+    sprint_id: str,
+    kind: str,
+    text: str,
+    now: datetime,
+    state: str | None,
+) -> tuple[Path, bool]:
+    """Rumpf von :func:`write_protocol_new`. Der Aufrufer hält die Sperre (:func:`_locked`); die
+    Sperre des Betriebssystems ist nicht wiedereintrittsfähig, hier darf sie nicht erneut betreten
+    werden."""
+    folder = _folder(repo, team)
+    latest = next(
+        (
+            p
+            for _, k, obsolete, p in list_protocols(repo, team, sprint_id)
+            if k == kind and not obsolete
+        ),
+        None,
+    )
+    if latest is not None:
+        same = _state_of(latest) == state if state is not None else _body(latest) == _body_of(text)
+        if same:
+            return latest, False  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
+    if state is not None:
+        text = text.rstrip("\n") + f"\n\n{STATE_MARKER}{state} -->\n"
+    # Ein Bestandteil des Namens aus dem Inhalt: Zwei Klone, die in derselben Sekunde
+    # Verschiedenes speichern, erzeugen so nie denselben Dateinamen (sonst Konflikt beim
+    # Zusammenführen).
+    tag = (state or hashlib.sha256(text.encode("utf-8")).hexdigest())[:4]
+    stamp = now
+    while (path := folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}-{tag}.md").exists():
+        stamp += timedelta(seconds=1)
+    write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
     invalidate_status()  # eine neue Datei ist eine offene Änderung, auch ohne geänderte YAML
     return path, True
 
@@ -311,18 +331,25 @@ def save_with_protocol(
 ) -> list[Path]:
     """Schreibt erst das Protokoll, dann ``save`` (die Sprintdateien). Ist das Protokoll nicht
     schreibbar, bleibt die Sprintdatei unverändert; scheitert ``save``, wird das eben geschriebene
-    Protokoll wieder entfernt – beides gelingt oder keines."""
+    Protokoll wieder entfernt – beides gelingt oder keines. Die Sperre (:func:`_locked`) gilt über
+    Protokoll, ``save`` und Rückbau: Eine zweite Sitzung mit demselben Stand übernimmt das
+    Protokoll erst, wenn die erste gespeichert hat, und nie eines, das die erste gleich wieder
+    löscht. ``save`` läuft also unter der Sperre und darf sie nicht selbst betreten (sie ist nicht
+    wiedereintrittsfähig)."""
     state = fingerprint(text, *(_persisted(repo, team, s) for s in sprints))
-    path, created = write_protocol_new(repo, team, sprint_id, kind, text, now, state)
-    try:
-        return save()
-    except BaseException:
-        if created:
-            # Scheitert auch der Rückbau (z. B. gesperrte Datei), zählt der ursprüngliche Fehler.
-            with contextlib.suppress(OSError):
-                path.unlink(missing_ok=True)
-            invalidate_status()
-        raise
+    folder = _make_folder(repo, team)
+    with _locked(folder, sprint_id, kind):
+        path, created = _write_locked(repo, team, sprint_id, kind, text, now, state)
+        try:
+            return save()
+        except BaseException:
+            if created:
+                # Scheitert auch der Rückbau (z. B. gesperrte Datei), zählt der ursprüngliche
+                # Fehler.
+                with contextlib.suppress(OSError):
+                    path.unlink(missing_ok=True)
+                invalidate_status()
+            raise
 
 
 def list_protocols(
@@ -403,10 +430,16 @@ def obsolete_with_save(
     save: Callable[[], list[Path]],
 ) -> list[Path]:
     """Benennt die Protokolle zuerst um und schreibt dann mit ``save`` die Sprintdatei; scheitert
-    das Speichern, werden die Protokolle zurückbenannt: beides gelingt oder keines."""
-    renamed = mark_obsolete(repo, team, sprint_id, kind, now)
-    try:
-        return save()
-    except BaseException:
-        _undo(renamed)
-        raise
+    das Speichern, werden die Protokolle zurückbenannt: beides gelingt oder keines. Die Sperre
+    (:func:`_locked`) gilt über Umbenennen, ``save`` und Rückbenennen, damit eine andere Sitzung nie
+    einen Zwischenstand sieht (``save`` darf sie nicht selbst betreten)."""
+    folder = _folder(repo, team)
+    if not folder.is_dir():
+        return save()  # keine Protokolle: nichts umzubenennen und zu schützen
+    with _locked(folder, sprint_id, kind):
+        renamed = _mark_obsolete(repo, team, sprint_id, kind, now)
+        try:
+            return save()
+        except BaseException:
+            _undo(renamed)
+            raise
