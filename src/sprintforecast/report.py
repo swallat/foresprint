@@ -105,18 +105,18 @@ def absence_status_label(sprint: Sprint) -> str:
 
 def reliability_notes(fc: Forecast) -> list[str]:
     """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht)."""
-    from sprintforecast.analysis import MIN_SAMPLES, sample_count
+    from sprintforecast.analysis import min_samples, sample_count
     from sprintforecast.model import TrendMode
 
     notes = []
     samples = sample_count(fc)
-    if samples and samples < MIN_SAMPLES:
+    if samples and samples < min_samples(fc):
         notes.append(
             t(
                 "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
                 "belastbarer). Plan und Spanne sind grobe Hinweise.",
                 samples=samples,
-                min=MIN_SAMPLES,
+                min=min_samples(fc),
             )
         )
     mode = fc.data.team.forecast.trend_mode
@@ -140,15 +140,17 @@ def reliability_notes(fc: Forecast) -> list[str]:
     return notes
 
 
-def completion_note(samples: int) -> str | None:
-    """Warnung der Fertigstellungs-Simulation bei wenig Daten (Kommandozeile und Weboberfläche)."""
-    if samples >= MIN_SAMPLES:
+def completion_note(samples: int, window: int | None = None) -> str | None:
+    """Warnung der Fertigstellungs-Simulation bei wenig Daten (Kommandozeile und Weboberfläche).
+    Die Schwelle ist höchstens ``window``: mehr Werte zieht die Simulation nie."""
+    minimum = MIN_SAMPLES if window is None else min(MIN_SAMPLES, window)
+    if samples >= minimum:
         return None
     return t(
         "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
         "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
         samples=samples,
-        min=MIN_SAMPLES,
+        min=minimum,
     )
 
 

@@ -27,13 +27,13 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
-    MIN_SAMPLES,
     average_focus_factor,
     band,
     buffer_hint,
     completion,
     few_samples,
     focus_factor,
+    min_samples,
     sample_count,
 )
 from sprintforecast.calendar import (
@@ -845,14 +845,16 @@ def _excel_download(fc: Forecast, team_key: str) -> None:
 def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
     """Hinweise zur Belastbarkeit direkt an den Kacheln: wenig Daten, dünne Historie und ein
     Trend-Modus, der Rauschen fortschreibt."""
-    if sample_count(fc) < MIN_THIN_HISTORY:
+    # Die Stichprobe ist auf das Fenster gedeckelt; ein kleineres Fenster als 3 braucht weniger.
+    first_forecast = min(MIN_THIN_HISTORY, fc.data.team.forecast.window)
+    if sample_count(fc) < first_forecast:
         st.info(
             t(
                 "Noch kein Forecast: bisher {samples} Sprint(s) mit Velocity. Ab {min} Sprints "
                 "entsteht ein erster Forecast (mit Hinweis „Historie dünn“); die Velocity "
                 "im Review erfassen oder die Historie über ein Import-Plugin übernehmen.",
                 samples=sample_count(fc),
-                min=MIN_THIN_HISTORY,
+                min=first_forecast,
             )
         )
     if sample_count(fc) and few_samples(fc):
@@ -861,7 +863,7 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
                 "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
                 "belastbarer). Plan und Spanne sind grobe Hinweise.",
                 samples=sample_count(fc),
-                min=MIN_SAMPLES,
+                min=min_samples(fc),
             )
         )
     series = [x.result.normalized_velocity.value for x in fc.history()]
@@ -2694,7 +2696,7 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 runs=f"{result.runs:,}",
                 samples=result.samples,
             )
-            if note := completion_note(result.samples):
+            if note := completion_note(result.samples, data.team.forecast.window):
                 st.warning(note)
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
@@ -2990,7 +2992,10 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc_view, shown, "capacity"),
         )
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
-        if note := band_note(fc_view, shown, without_assumption=bool(assumed)):
+        # Die Spanne rechnet ohne die Annahme (sonst ginge die angenommene Velocity des laufenden
+        # Sprints in sie ein).
+        base_shown = fc_base.entry(sprint.id) or shown
+        if note := band_note(fc_base, base_shown, without_assumption=bool(assumed)):
             st.caption(note)
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):

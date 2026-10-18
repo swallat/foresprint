@@ -29,20 +29,33 @@ def _recent(values: list[float | None], window: int) -> list[float]:
     return present[-window:]
 
 
+def _basis(fc: Forecast) -> list[TimelineEntry]:
+    """Sprints, deren Velocity die Engine für den Plan nutzt: die abgeschlossenen und der
+    laufende Sprint (sobald sein Review-Wert erfasst ist, hat er eine normierte Velocity)."""
+    return [e for e in fc.entries if e.sprint.start <= fc.today]
+
+
 def normalized_history(fc: Forecast) -> list[float]:
-    """Normierte Velocity der letzten ``window`` abgeschlossenen Sprints mit Wert."""
+    """Normierte Velocity der letzten ``window`` Sprints mit Wert – abgeschlossene Sprints und der
+    laufende, sobald dessen Review-Wert (Velocity) erfasst ist."""
     return _recent(
-        [e.result.normalized_velocity.value for e in fc.history()], fc.data.team.forecast.window
+        [e.result.normalized_velocity.value for e in _basis(fc)], fc.data.team.forecast.window
     )
 
 
 def sample_count(fc: Forecast) -> int:
-    """Anzahl aller bisherigen Sprints mit normierter Velocity (Stichprobe der Prognose)."""
-    return sum(1 for e in fc.history() if e.result.normalized_velocity.value is not None)
+    """Anzahl der Sprints mit normierter Velocity, aus denen die Prognose tatsächlich zieht:
+    höchstens ``window`` (Stichprobe von Spanne und Simulation)."""
+    return len(normalized_history(fc))
+
+
+def min_samples(fc: Forecast) -> int:
+    """Schwelle für „wenig Daten“; mehr als ``window`` Werte gibt es nie."""
+    return min(MIN_SAMPLES, fc.data.team.forecast.window)
 
 
 def few_samples(fc: Forecast) -> bool:
-    return sample_count(fc) < MIN_SAMPLES
+    return sample_count(fc) < min_samples(fc)
 
 
 # --- Bandbreite -----------------------------------------------------------------------
