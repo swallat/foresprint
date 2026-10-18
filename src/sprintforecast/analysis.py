@@ -29,9 +29,14 @@ def _recent(values: list[float | None], window: int) -> list[float]:
     return present[-window:]
 
 
-def _basis(fc: Forecast) -> list[TimelineEntry]:
+def plan_basis(fc: Forecast) -> list[TimelineEntry]:
     """Sprints, deren Velocity die Engine für den Plan nutzt: die abgeschlossenen und der
-    laufende Sprint (sobald sein Review-Wert erfasst ist, hat er eine normierte Velocity)."""
+    laufende Sprint (sobald sein Review-Wert erfasst ist, hat er eine normierte Velocity).
+
+    Die Garantie „Plan liegt in der Spanne“ gilt bis einschließlich dem laufenden Sprint. Die
+    Engine mittelt auch einen künftigen Sprint (``start > today``) mit erfasstem Wert ein (Import
+    oder Datei); der gehört hier bewusst nicht dazu, der Plan kann dann außerhalb der Spanne
+    liegen (bekannter, offener Randfall)."""
     return [e for e in fc.entries if e.sprint.start <= fc.today]
 
 
@@ -39,7 +44,7 @@ def normalized_history(fc: Forecast) -> list[float]:
     """Normierte Velocity der letzten ``window`` Sprints mit Wert – abgeschlossene Sprints und der
     laufende, sobald dessen Review-Wert (Velocity) erfasst ist."""
     return _recent(
-        [e.result.normalized_velocity.value for e in _basis(fc)], fc.data.team.forecast.window
+        [e.result.normalized_velocity.value for e in plan_basis(fc)], fc.data.team.forecast.window
     )
 
 
@@ -49,13 +54,8 @@ def sample_count(fc: Forecast) -> int:
     return len(normalized_history(fc))
 
 
-def min_samples(fc: Forecast) -> int:
-    """Schwelle für „wenig Daten“; mehr als ``window`` Werte gibt es nie."""
-    return min(MIN_SAMPLES, fc.data.team.forecast.window)
-
-
 def few_samples(fc: Forecast) -> bool:
-    return sample_count(fc) < min_samples(fc)
+    return sample_count(fc) < MIN_SAMPLES
 
 
 # --- Bandbreite -----------------------------------------------------------------------

@@ -105,18 +105,25 @@ def absence_status_label(sprint: Sprint) -> str:
 
 def reliability_notes(fc: Forecast) -> list[str]:
     """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht)."""
-    from sprintforecast.analysis import min_samples, sample_count
+    from sprintforecast.analysis import sample_count
     from sprintforecast.model import TrendMode
 
     notes = []
     samples = sample_count(fc)
-    if samples and samples < min_samples(fc):
+    if samples and samples < MIN_SAMPLES:
         notes.append(
-            t(
-                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
-                "belastbarer). Plan und Spanne sind grobe Hinweise.",
-                samples=samples,
-                min=min_samples(fc),
+            " ".join(
+                part
+                for part in (
+                    t(
+                        "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die "
+                        "Spanne belastbarer). Plan und Spanne sind grobe Hinweise.",
+                        samples=samples,
+                        min=MIN_SAMPLES,
+                    ),
+                    window_hint(fc.data.team.forecast.window),
+                )
+                if part
             )
         )
     mode = fc.data.team.forecast.trend_mode
@@ -140,17 +147,27 @@ def reliability_notes(fc: Forecast) -> list[str]:
     return notes
 
 
-def completion_note(samples: int, window: int | None = None) -> str | None:
-    """Warnung der Fertigstellungs-Simulation bei wenig Daten (Kommandozeile und Weboberfläche).
-    Die Schwelle ist höchstens ``window``: mehr Werte zieht die Simulation nie."""
-    minimum = MIN_SAMPLES if window is None else min(MIN_SAMPLES, window)
-    if samples >= minimum:
+def window_hint(window: int) -> str:
+    """Zusatz zu „Wenig Daten“ bei einem Prognosefenster unter ``MIN_SAMPLES``: Die Stichprobe
+    ist auf das Fenster gedeckelt und kann die Schwelle dann nie erreichen. Sonst leer."""
+    if window >= MIN_SAMPLES:
+        return ""
+    return t(
+        "Das Prognosefenster ist auf {window} Sprints gestellt; mit einem größeren Fenster "
+        "(Einstellungen) gehen mehr Werte in die Spanne ein.",
+        window=window,
+    )
+
+
+def completion_note(samples: int) -> str | None:
+    """Warnung der Fertigstellungs-Simulation bei wenig Daten (Kommandozeile und Weboberfläche)."""
+    if samples >= MIN_SAMPLES:
         return None
     return t(
         "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
         "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
         samples=samples,
-        min=minimum,
+        min=MIN_SAMPLES,
     )
 
 

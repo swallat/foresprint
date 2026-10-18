@@ -128,9 +128,17 @@ def test_completion_note_only_below_the_minimum_of_samples():
     assert completion_note(analysis.MIN_SAMPLES) is None
     note = completion_note(analysis.MIN_SAMPLES - 1)
     assert note and note.startswith("Wenig Daten: Die Simulation zieht aus nur 4 Sprints")
-    # Das Fenster deckelt die Schwelle: mehr als ``window`` Werte gibt es nie.
-    assert completion_note(3, window=3) is None
-    assert completion_note(2, window=3).startswith("Wenig Daten: Die Simulation zieht aus nur 2")
+
+
+def test_window_hint_only_for_windows_below_the_minimum():
+    """Bei einem Fenster unter MIN_SAMPLES kann die Stichprobe die Schwelle nie erreichen: Der
+    Hinweis sagt, warum, und nennt das Fenster."""
+    from sprintforecast.report import window_hint
+
+    assert window_hint(analysis.MIN_SAMPLES) == ""
+    assert window_hint(8) == ""
+    hint = window_hint(3)
+    assert "auf 3 Sprints gestellt" in hint and "größeren Fenster" in hint
 
 
 # --- Plan in der Bandbreite: laufender Sprint mit erfasstem Review-Wert (Velocity) -----------
@@ -141,9 +149,12 @@ def running_sprint(
     *,
     window: int = 5,
     capacities: list[float] | None = None,
+    running: int = -1,
+    days_in: int = 5,
 ):
-    """Teamdaten, deren letzter Sprint läuft (``today`` mitten darin); ``None`` = Review-Wert
-    noch nicht erfasst. Liefert ``(data, today)``."""
+    """Teamdaten, deren Sprint ``running`` (Standard: der letzte) läuft (``today`` ``days_in`` Tage
+    nach seinem Start); ``None`` = Review-Wert nicht erfasst. Sprints nach ``running`` liegen in
+    der Zukunft. Liefert ``(data, today)``."""
     data = team_with([v or 0.0 for v in velocities])
     data.team.forecast.window = window
     for i, (sprint, v) in enumerate(zip(data.sprints, velocities, strict=True)):
@@ -151,7 +162,7 @@ def running_sprint(
             sprint.velocity = sprint.forecast_ist = None
         if capacities is not None:
             sprint.capacity = capacities[i]
-    return data, data.sprints[-1].start + timedelta(days=5)
+    return data, data.sprints[running].start + timedelta(days=days_in)
 
 
 def future_entries(fc):
@@ -163,7 +174,12 @@ def future_entries(fc):
 def test_plan_lies_in_band_once_the_running_sprint_has_a_review_value(seed, window):
     """Eigenschaft: Mit erfasster Velocity des laufenden Sprints liegen Plan der Folgesprints
     (der damit rechnet) und Spanne auf derselben Wertemenge – der Plan liegt in der Spanne, auch
-    wenn der Review-Wert ein Ausreißer ist und die Kapazität schwankt."""
+    wenn der Review-Wert ein Ausreißer ist und die Kapazität schwankt.
+
+    Geprüft wird bewusst nur der Standard-Trend ``flat``: Nur er hält den Plan in der Spanne
+    (siehe ``test_classic_and_linear_can_leave_the_band``); für ``classic``/``linear`` ist das
+    ein bekannter Rest. Die Garantie reicht bis einschließlich dem laufenden Sprint (siehe
+    ``test_a_future_sprint_with_a_recorded_value_can_still_leave_the_band``)."""
     rng = random.Random(seed)
     count = rng.randint(3, 14)  # ab drei Werten gibt es einen Plan (dünne Historie)
     velocities = [round(rng.uniform(1, 40), 1) for _ in range(count)]
@@ -171,6 +187,7 @@ def test_plan_lies_in_band_once_the_running_sprint_has_a_review_value(seed, wind
     capacities = [rng.choice([20.0, 32.0, 40.0, 48.0]) for _ in range(count)]
     data, today = running_sprint(velocities, window=window, capacities=capacities)
     fc = build_forecast(data, today)
+    assert data.team.forecast.trend_mode.value == "flat"
     assert fc.current is not None and fc.current.sprint.velocity == velocities[-1]
     for entry in future_entries(fc):
         b = analysis.band(fc, entry)
@@ -244,8 +261,45 @@ def test_sample_count_is_capped_at_the_window(window):
         assert analysis.completion(data, today, 20, 1.0, runs=20).samples == window
     else:
         assert analysis.completion(data, today, 20, 1.0, runs=20) is None
-    # Die Schwelle für „wenig Daten“ passt zur Rechnung: ein volles Fenster ist nie „wenig“.
-    assert not analysis.few_samples(fc)
+    # Die Schwelle bleibt fest MIN_SAMPLES: Teams mit Fenster unter 5 sehen den Hinweis immer.
+    assert analysis.few_samples(fc) is (window < analysis.MIN_SAMPLES)
+
+
+def test_running_sprint_counts_on_its_first_day():
+    """Am Starttag (``start == today``) läuft der Sprint schon: sein Review-Wert zählt mit."""
+    data, today = running_sprint([10.0, 12.0, 8.0, 14.0], days_in=0)
+    assert today == data.sprints[-1].start
+    fc = build_forecast(data, today)
+    assert fc.current is not None and fc.current.sprint.id == data.sprints[-1].id
+    assert analysis.normalized_history(fc) == [10.0, 12.0, 8.0, 14.0]
+    assert analysis.sample_count(fc) == 4
+
+
+def test_a_future_sprint_with_a_recorded_value_can_still_leave_the_band():
+    """BEKANNTER, BEWUSST OFFENER RANDFALL (Import/Datei): Die Engine mittelt auch einen künftigen
+    Sprint mit erfasstem Wert ein, die Spanne zählt ihn nicht. Der Plan liegt dann außerhalb.
+    Dieser Test hält das Ist-Verhalten fest; die Entscheidung liegt beim Owner."""
+    data, today = running_sprint([10, 12, 8, 14, 11, None, 60], running=5)
+    fc = build_forecast(data, today)
+    assert fc.current.sprint.id == data.sprints[5].id
+    assert analysis.normalized_history(fc) == [10.0, 12.0, 8.0, 14.0, 11.0]
+    after = next(e for e in fc.entries if e.sprint.start > data.sprints[6].start)
+    b = analysis.band(fc, after)
+    assert b.samples == 5
+    assert after.result.plan > b.high  # Plan (Mittel mit der 60) über der Spanne 8–14
+
+
+def test_gap_notice_uses_the_same_sprints_as_the_average():
+    """Der Lücken-Hinweis betrachtet dieselben Sprints wie die Rechnung (inkl. laufendem Sprint):
+    Das Fenster von 5 reicht über die Lücke zurück, aber nur mit dem laufenden Sprint."""
+    from sprintforecast.engine import gaps_in_window
+
+    data, today = running_sprint([10.0, 12.0, None, 14.0, 11.0, 9.0])
+    fc = build_forecast(data, today)
+    series = [e.result.normalized_velocity.value for e in analysis.plan_basis(fc)]
+    assert gaps_in_window(series, 5) == 1
+    old = [e.result.normalized_velocity.value for e in fc.history()]
+    assert gaps_in_window(old, 5) == 0  # so sah es der alte Hinweis: die Lücke fiel heraus
 
 
 def test_few_samples_follows_what_is_drawn_from():
@@ -264,9 +318,14 @@ def test_reliability_note_counts_the_values_drawn_from():
     data, today = running_sprint([10.0, 11.0, 12.0], window=5)
     note = reliability_notes(build_forecast(data, today))[0]
     assert note.startswith("Wenig Daten: bisher nur 3 Sprints mit Velocity (ab 5 ")
+    assert "Prognosefenster" not in note  # Fenster 5: kein Zusatz
+    # Fenster 3 mit 3 Werten warnt weiter (feste Schwelle 5) und erklärt, woran es liegt.
     data, today = running_sprint([10.0, 11.0, 12.0], window=3)
-    assert not any(
-        n.startswith("Wenig Daten") for n in reliability_notes(build_forecast(data, today))
+    note = reliability_notes(build_forecast(data, today))[0]
+    assert note.startswith("Wenig Daten: bisher nur 3 Sprints mit Velocity (ab 5 ")
+    assert note.endswith(
+        "auf 3 Sprints gestellt; mit einem größeren Fenster (Einstellungen) gehen mehr Werte in "
+        "die Spanne ein."
     )
 
 
