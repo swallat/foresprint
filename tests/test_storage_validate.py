@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
+import copy
+import shutil
 from datetime import date
 from pathlib import Path
 
@@ -6,7 +8,7 @@ import pytest
 
 from sprintforecast.engine import CapacitySource
 from sprintforecast.forecast import build_forecast
-from sprintforecast.storage import DataError, Repository
+from sprintforecast.storage import DataError, Repository, import_sprints, team_key_problem
 from sprintforecast.validate import Level, check_team
 
 TODAY = date(2026, 10, 15)
@@ -149,3 +151,74 @@ def test_planning_plausibility(data_dir: Path):
     assert any("Korrekturen sind größer" in m for m in messages)
     # abgeschlossene Sprints (z. B. importierte Historie) werden nicht geprüft
     assert not any("weicht" in i.message for i in check_team(data, date(2027, 1, 1)))
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["a", "team-a", "team_a", "t1", "0", "1-team", "a-", "a" * 64, "con1", "comx", "com10", "null"],
+)
+def test_valid_team_keys(key: str):
+    assert team_key_problem(key) is None
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "",
+        "../x", "a/b", "a\\b", "/abs", "C:", "a:b", "..", ".", ".hidden", "a.b",
+        " x", "x ", "a b", "a\n", "a\tb", "a\0b",
+        "Team-A", "ä", "straße", "１",
+        "-x", "_x", "a" * 65,
+        "con", "prn", "aux", "nul", "com0", "com1", "com9", "lpt0", "lpt1", "lpt9",
+        "CON", "Nul", "con.txt", "COM1.log", "aux.",
+    ],
+)  # fmt: skip
+def test_invalid_team_keys(key: str):
+    assert team_key_problem(key)
+
+
+def test_team_key_problem_names_the_cause():
+    assert "Windows" in team_key_problem("con")
+    assert "Windows" in team_key_problem("COM1.txt")
+    assert team_key_problem("../x").startswith("Kürzel: Kleinbuchstaben a–z (ohne Umlaute)")
+    assert team_key_problem("köln") == team_key_problem("../x")  # Umlaute sind nicht erlaubt
+    assert team_key_problem("a" * 65) == team_key_problem("../x")
+
+
+def test_existing_team_with_unusual_name_still_loads(data_dir: Path):
+    """Nur neue Kürzel werden geprüft; ältere Teams (Großbuchstaben, Punkt) laufen unverändert."""
+    shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
+    repo = Repository(data_dir)
+    assert team_key_problem("Alt.Team_X")
+    assert "Alt.Team_X" in repo.teams()
+    assert repo.exists("Alt.Team_X")
+    assert repo.load("Alt.Team_X").team.key == "Alt.Team_X"
+
+
+def test_clashing_team_ignores_case(data_dir: Path):
+    repo = Repository(data_dir)
+    shutil.copytree(data_dir / "demo", data_dir / "Alpha")
+    assert repo.clashing_team("Alpha") == "Alpha"  # gleicher Name
+    assert repo.clashing_team("alpha") == "Alpha"  # nur anders geschrieben
+    assert repo.clashing_team("../demo") is None  # kein Treffer über einen Pfad
+    assert repo.clashing_team("beta") is None
+
+
+@pytest.mark.parametrize("key", ["../out", "con", "Team X", "köln"])
+def test_import_refuses_unsuitable_keys_for_new_teams(data_dir: Path, key: str):
+    """Der Einstieg für Import-Plugins legt ein neues Team an: auch dort wird das Kürzel geprüft."""
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    team = copy.deepcopy(data.team)
+    team.key = key
+    with pytest.raises(DataError, match="Kürzel"):
+        import_sprints(repo, team, data.sprints[:1])
+    assert sorted(p.name for p in data_dir.parent.iterdir()) == ["teams"]
+    assert sorted(p.name for p in data_dir.iterdir()) == ["demo"]
+
+
+def test_import_into_existing_team_with_unusual_key_still_works(data_dir: Path):
+    shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
+    repo = Repository(data_dir)
+    data = repo.load("Alt.Team_X")
+    assert import_sprints(repo, data.team, data.sprints[:1])

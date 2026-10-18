@@ -93,6 +93,7 @@ from sprintforecast.storage import (
     Repository,
     TeamData,
     default_data_dir,
+    team_key_problem,
     write_text,
 )
 from sprintforecast.updater import PACKAGE
@@ -522,11 +523,25 @@ def _ask_setting(setting: Setting, team: Team, *, required: bool = False) -> Non
         return
 
 
+def _exists_text(team: str, existing: str) -> str:
+    if existing == team:
+        return t("Team {team} existiert bereits.", team=repr(team))
+    return t(
+        "Team {team} existiert bereits (als {existing}; Windows und macOS unterscheiden Ordner "
+        "nicht nach Groß- und Kleinschreibung).",
+        team=repr(team),
+        existing=repr(existing),
+    )
+
+
 @command("init", "Neues Team geführt anlegen.")
 def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
-    if c.repo.exists(team):
-        err.print(f"[red]{t('Team {team} existiert bereits.', team=repr(team))}[/red]")
+    if clash := c.repo.clashing_team(team):
+        err.print(f"[red]{escape(_exists_text(team, clash))}[/red]")
+        raise typer.Exit(1)
+    if problem := team_key_problem(team):
+        err.print(f"[red]{escape(problem)}[/red]")
         raise typer.Exit(1)
     console.print(
         Panel(

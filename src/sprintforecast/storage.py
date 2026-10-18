@@ -902,6 +902,33 @@ def team_version(base: Path) -> tuple:
     return _file_version(base)[0]
 
 
+# Kürzel eines neuen Teams = Ordnername. Nur diese Zeichen, damit weder ein Pfadtrenner noch „..“
+# aus dem Datenordner hinausführt und der Name auf jedem Dateisystem (auch ohne Unterscheidung
+# der Groß-/Kleinschreibung) derselbe bleibt. Am Anfang ein Buchstabe oder eine Ziffer: ein
+# führender Bindestrich würde auf der Kommandozeile als Option gelesen.
+_TEAM_KEY = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
+# Unter Windows als Gerät reserviert, auch mit Endung („con.txt“).
+_WINDOWS_DEVICES = frozenset(
+    {"con", "prn", "aux", "nul", *(f"com{n}" for n in range(10)), *(f"lpt{n}" for n in range(10))}
+)
+
+
+def team_key_problem(key: str) -> str | None:
+    """Warum ``key`` nicht als Kürzel eines NEUEN Teams taugt (``None`` = in Ordnung). Bestehende
+    Teams werden beim Laden nicht geprüft, damit ältere Ordnernamen weiter funktionieren."""
+    if key.partition(".")[0].lower() in _WINDOWS_DEVICES:
+        return t(
+            "Kürzel: Diese Namen sind unter Windows für Geräte reserviert "
+            "(CON, PRN, AUX, NUL, COM0 bis COM9, LPT0 bis LPT9)."
+        )
+    if not _TEAM_KEY.fullmatch(key):
+        return t(
+            "Kürzel: Kleinbuchstaben a–z (ohne Umlaute), Ziffern, Bindestrich und Unterstrich "
+            "(höchstens 64 Zeichen; am Anfang ein Buchstabe oder eine Ziffer)"
+        )
+    return None
+
+
 class Repository:
     def __init__(self, root: Path) -> None:
         self.root = root
@@ -913,6 +940,12 @@ class Repository:
         if not self.root.is_dir():
             return []
         return sorted(p.name for p in self.root.iterdir() if (p / "team.yaml").is_file())
+
+    def clashing_team(self, key: str) -> str | None:
+        """Ein vorhandenes Team, dessen Ordnername ``key`` gleicht oder sich nur durch Groß- und
+        Kleinschreibung unterscheidet (auf Windows und macOS wären es dieselben Ordner)."""
+        wanted = key.casefold()
+        return next((name for name in self.teams() if name.casefold() == wanted), None)
 
     def exists(self, key: str) -> bool:
         return (self.team_dir(key) / "team.yaml").is_file()
@@ -1053,6 +1086,16 @@ def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[
         raise ConflictError(marked)
     paths = []
     if not repo.exists(team.key):
+        if problem := team_key_problem(team.key):  # ein neues Team braucht ein brauchbares Kürzel
+            raise DataError(problem)
+        if clash := repo.clashing_team(team.key):
+            raise DataError(
+                t(
+                    "Team {team} existiert bereits (als {existing}).",
+                    team=repr(team.key),
+                    existing=clash,
+                )
+            )
         paths.append(repo.save_team(team))
     if not (repo.team_dir(team.key) / "people.yaml").exists():
         paths.append(repo.save_people(team.key, []))
