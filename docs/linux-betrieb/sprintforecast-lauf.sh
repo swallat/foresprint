@@ -1,53 +1,106 @@
 #!/usr/bin/env bash
-# Planmäßige Aufgabe für sprint-forecast: startet Claude Code ohne Terminal (claude -p) und
-# arbeitet die Todo-Liste aus docs/uebergabe.md ab. Wird vom systemd-Timer stündlich gerufen.
+# Planmäßige Aufgabe für sprint-forecast. Startet eine interaktive Claude-Code-Sitzung mit
+# Remote Control in einem eigenen tmux-Server und wartet, bis sie fertig ist. So kann der Owner
+# den Lauf in claude.ai/code oder in der App ansehen und eingreifen.
 #
-# Anhalten:   touch ~/sprintforecast-lauf/PAUSE   (Fortsetzen: Datei löschen)
-# Protokolle: ~/sprintforecast-lauf/<Zeitstempel>.log
+# Läuft als gehärtete systemd-Benutzereinheit (siehe sprintforecast-lauf.service): ohne sudo, mit
+# schreibgeschütztem Home. Dieser Ordner (Skripte, Auftragstext) ist für die Sitzung nur lesbar;
+# beschreibbar sind nur der Klon, zustand/ und die Arbeitsordner von Claude und uv.
+#
+# Bedienung (Ordner = ~/sprintforecast-lauf):
+#   touch zustand/PAUSE                                   anhalten (Datei löschen: fortsetzen)
+#   tmux -S zustand/tmux.sock attach -t lauf              im Terminal zuschauen (lösen: Strg-b d)
+#   Protokolle: zustand/<Zeit>.log, Zusammenfassungen: zustand/berichte/
 set -u
 
-export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin"
-REPO="$HOME/devel/sprint-forecast"
-DIR="$HOME/sprintforecast-lauf"
-PROMPT="$DIR/prompt.md"
-mkdir -p "$DIR"
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
+REPO="${SPRINTFORECAST_REPO:-$HOME/devel/sprint-forecast}"
+PROMPT="${SPRINTFORECAST_PROMPT:-$DIR/prompt.md}"
+LEERLAUF="${SPRINTFORECAST_LEERLAUF:-600}"           # so lange nach der letzten Antwort warten
+HARTE_GRENZE="${SPRINTFORECAST_HARTE_GRENZE:-10200}" # 170 Minuten
+Z="$DIR/zustand"                                      # der einzige beschreibbare Ordner hier
+SOCK="$Z/tmux.sock"
+SITZUNG=lauf
 
-# Nie zwei Läufe gleichzeitig: ein früherer Lauf kann länger als eine Stunde dauern.
-exec 9>"$DIR/lauf.lock"
+mkdir -p "$Z/berichte" "$Z/lauf"
+exec 9>"$Z/lauf.lock"
 if ! flock -n 9; then
-    echo "$(date -Is) übersprungen: ein Lauf ist noch aktiv" >>"$DIR/uebersprungen.log"
+    echo "$(date -Is) übersprungen: ein Lauf ist noch aktiv" >>"$Z/uebersprungen.txt"
     exit 0
 fi
-
-if [ -e "$DIR/PAUSE" ]; then
-    echo "$(date -Is) übersprungen: PAUSE gesetzt" >>"$DIR/uebersprungen.log"
+if [ -e "$Z/PAUSE" ]; then
+    echo "$(date -Is) übersprungen: PAUSE gesetzt" >>"$Z/uebersprungen.txt"
     exit 0
 fi
 
 cd "$REPO" || exit 1
-git fetch origin --prune --quiet || {
-    echo "$(date -Is) übersprungen: git fetch fehlgeschlagen (Netz oder Anmeldung)" >>"$DIR/uebersprungen.log"
+# Nach einem Neustart ist das Netz oft noch nicht da: dreimal versuchen.
+HOLEN=1
+for _ in 1 2 3; do
+    if git fetch origin --prune --quiet; then HOLEN=0; break; fi
+    sleep 30
+done
+if [ "$HOLEN" -ne 0 ]; then
+    echo "$(date -Is) übersprungen: git fetch fehlgeschlagen (Netz oder Anmeldung)" >>"$Z/uebersprungen.txt"
+    exit 0
+fi
+if tmux -S "$SOCK" has-session -t "$SITZUNG" 2>/dev/null; then
+    echo "$(date -Is) übersprungen: die tmux-Sitzung existiert noch (vom Owner geöffnet?)" >>"$Z/uebersprungen.txt"
+    exit 0
+fi
+
+TS="$(date +%Y%m%d-%H%M%S)"
+LOG="$Z/$TS.log"
+NAME="sprint-forecast-$TS"
+BERICHT="$Z/berichte/$TS.md"
+SETTINGS="$Z/lauf/settings-$TS.json"
+rm -f "$Z/IDLE" "$SOCK"
+
+# Einstellungen nur für diese Sitzung: keine Attributionszeilen in Commits und PR-Texten (auch nicht die
+# Zeile „Claude-Session: …“ aus Remote-Control-Sitzungen: sessionUrl), und Hooks.
+# „Stop“ meldet das Ende einer Antwort (Leerlauf), „UserPromptSubmit“ eine neue Eingabe.
+cat >"$SETTINGS" <<EOF
+{"attribution":{"commit":"","pr":"","sessionUrl":false},"hooks":{"Stop":[{"hooks":[{"type":"command","command":"$DIR/hook.sh idle"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"$DIR/hook.sh aktiv"}]}]}}
+EOF
+
+echo "== Start $(date -Is), Sitzung $NAME" >"$LOG"
+tmux -S "$SOCK" -f "$DIR/tmux.conf" new-session -d -s "$SITZUNG" -x 200 -y 50 -c "$REPO" \
+    "$DIR/sitzung.sh" "$DIR" "$REPO" "$NAME" "$BERICHT" "$SETTINGS" "$PROMPT" >>"$LOG" 2>&1 || {
+    echo "== tmux-Start fehlgeschlagen" >>"$LOG"
     exit 0
 }
 
-LOG="$DIR/$(date +%Y%m%d-%H%M%S).log"
-{
-    echo "== Start $(date -Is)"
-    # Erlaubt ist, was die Arbeit an Pull-Requests braucht; sudo und Löschen außerhalb des Klons
-    # bleiben verboten. Was nicht erlaubt ist, wird im Lauf abgelehnt (kein Nachfragen).
-    timeout --signal=TERM --kill-after=60 170m claude -p "$(cat "$PROMPT")" \
-        --permission-mode acceptEdits \
-        --allowedTools "Read" "Edit" "Write" "Glob" "Grep" "Agent" \
-            "Bash(git *)" "Bash(gh *)" "Bash(uv *)" "Bash(mise *)" "Bash(ls *)" "Bash(cat *)" \
-            "Bash(grep *)" "Bash(rg *)" "Bash(sed *)" "Bash(head *)" "Bash(tail *)" "Bash(wc *)" \
-            "Bash(sort *)" "Bash(diff *)" "Bash(mkdir *)" "Bash(cp *)" "Bash(mv *)" \
-            "Bash(python *)" "Bash(python3 *)" "Bash(date *)" "Bash(sleep *)" "Bash(touch *)" \
-        --disallowedTools "Bash(sudo *)" "Bash(rm -rf /*)" "Bash(rm -rf ~*)" \
-        --max-turns 400 \
-        --output-format text
-    echo "== Ende $(date -Is) (Rückgabewert $?)"
-} >"$LOG" 2>&1
+START="$(date +%s)"
+ENDE="Sitzung beendet"
+while tmux -S "$SOCK" has-session -t "$SITZUNG" 2>/dev/null; do
+    JETZT="$(date +%s)"
+    if [ -e "$Z/IDLE" ] && [ $((JETZT - $(stat -c %Y "$Z/IDLE"))) -ge "$LEERLAUF" ]; then
+        ENDE="Leerlauf von $LEERLAUF s"
+        break
+    fi
+    if [ $((JETZT - START)) -ge "$HARTE_GRENZE" ]; then
+        ENDE="Zeitgrenze von $HARTE_GRENZE s"
+        break
+    fi
+    sleep 20
+done
 
-# Alte Protokolle nach 30 Tagen löschen.
-find "$DIR" -maxdepth 1 -name '*.log' -mtime +30 -delete 2>/dev/null
+if tmux -S "$SOCK" has-session -t "$SITZUNG" 2>/dev/null; then
+    {
+        echo "== Bildschirm am Ende ($ENDE):"
+        tmux -S "$SOCK" capture-pane -p -J -S -400 -t "$SITZUNG"
+    } >>"$LOG" 2>&1
+    tmux -S "$SOCK" send-keys -t "$SITZUNG" "/exit" Enter
+    for _ in 1 2 3 4 5 6; do
+        sleep 5
+        tmux -S "$SOCK" has-session -t "$SITZUNG" 2>/dev/null || break
+    done
+    tmux -S "$SOCK" kill-server 2>/dev/null
+fi
+echo "== Ende $(date -Is): $ENDE" >>"$LOG"
+rm -f "$Z/IDLE" "$SETTINGS" "$SOCK"
+
+# Alte Protokolle und Zusammenfassungen nach 30 Tagen löschen.
+find "$Z" -maxdepth 2 \( -name '2*.log' -o -path '*/berichte/*.md' \) -mtime +30 -delete 2>/dev/null
 exit 0

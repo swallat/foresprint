@@ -1,9 +1,20 @@
 [Unit]
 Description=sprint-forecast: planmäßige Claude-Aufgabe
-After=network-online.target
 
 [Service]
 Type=oneshot
 ExecStart=%h/sprintforecast-lauf/sprintforecast-lauf.sh
 TimeoutStartSec=3h
 Nice=10
+
+# Härtung: Die Sitzung darf kein sudo (NoNewPrivileges) und schreibt nur in die unten genannten Pfade.
+# PrivateUsers ist nötig, damit systemd im Benutzerdienst das Dateisystem ohne Root-Rechte einschränken kann.
+NoNewPrivileges=yes
+PrivateUsers=yes
+ProtectSystem=strict
+ReadOnlyPaths=%h
+ReadWritePaths=%h/devel/sprint-forecast %h/sprintforecast-lauf/zustand /tmp
+ReadWritePaths=%h/.claude %h/.claude.json %h/.cache %h/.local
+# Einstellungen von Claude bleiben auch im beschreibbaren ~/.claude schreibgeschützt (sonst könnte eine
+# Sitzung dauerhaft Hooks für alle künftigen Sitzungen eintragen).
+ReadOnlyPaths=-%h/.claude/settings.json -%h/.claude/CLAUDE.md -%h/.claude/commands -%h/.claude/skills -%h/.claude/agents -%h/.claude/hooks -%h/.claude/plugins
