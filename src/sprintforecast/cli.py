@@ -90,7 +90,6 @@ from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
     DataError,
-    FileAccessError,
     Repository,
     TeamData,
     default_data_dir,
@@ -109,7 +108,8 @@ err = Console(stderr=True)
 
 
 def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
-    """Gibt einen Schreib- oder Lesefehler der Datendateien als Meldung aus (Exit-Code 1)."""
+    """Gibt einen Fehler der Datendateien als Meldung aus (Exit-Code 1): Schreib- oder
+    Lesefehler, kein erster Sprint, eine ID ohne Folge-ID."""
     if getattr(fn, "_guarded", False):
         return fn
 
@@ -117,7 +117,7 @@ def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
     def guarded(*args: Any, **kwargs: Any) -> Any:
         try:
             return fn(*args, **kwargs)
-        except FileAccessError as e:  # Meldung statt Traceback (kein Schreibrecht u. Ä.)
+        except DataError as e:  # Meldung statt Traceback (kein Schreibrecht, Prognose u. Ä.)
             err.print(f"[red]{escape(str(e))}[/red]")
             raise typer.Exit(1) from e
 
@@ -1378,7 +1378,14 @@ def bericht(
     c = _ctx(ctx)
     teams = [team] if team else c.repo.teams()
     for key in teams:
-        text = render(build_forecast(_load(c, key), c.today))
+        data = _load(c, key)
+        try:
+            forecast_ = build_forecast(data, c.today)
+        except DataError as e:  # ohne Teamangabe läuft die Schleife über alle Teams
+            if key in str(e):
+                raise
+            raise DataError(t("Team {team}: {error}", team=key, error=e)) from e
+        text = render(forecast_)
         if ausgabe is not None and str(ausgabe) == "-":
             sys.stdout.write(text)
             continue
