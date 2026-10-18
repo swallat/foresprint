@@ -460,8 +460,10 @@ def drop_done(data_dir: Path, product: str, *sprint_ids: str) -> None:
 
 
 FOOTNOTE = (
-    "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt erfasst ist "
-    "(leer, nicht 0). Sie zählen im Saldo nicht mit; bitte den Wert im Sprint nachtragen."
+    "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt erfasst ist, obwohl es für "
+    "andere Produkte erfasst ist (leer, nicht 0). Sie zählen im Saldo nicht mit; bitte den "
+    "Wert im Sprint nachtragen. Sprints ohne jeden Erledigt-Wert (z. B. der laufende) "
+    "bleiben außen vor."
 )
 
 
@@ -524,6 +526,20 @@ def test_report_balance_hides_products_without_value_and_shows_missing(data_dir:
     section = balance_section()
     assert "Mobile App" not in section and "ohne Wert" not in section
     assert FOOTNOTE not in section
+
+
+def test_balance_missing_ignores_sprints_without_any_done_value(data_dir: Path):
+    # Sprint ganz ohne Erledigt-Wert (wie der laufende): zählt nirgends, auch nicht in „ohne Wert“
+    drop_done(data_dir, "webshop", "2026.20")
+    drop_done(data_dir, "app", "2026.20")
+    drop_done(data_dir, "portal", "2026.20")
+    drop_done(data_dir, "app", "2026.19")  # nur hier fehlt es für ein einzelnes Produkt
+    assert run(data_dir, "bericht", "demo").exit_code == 0
+    report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
+    section = report.split("**Saldo**")[1].split("\n## ")[0]
+    rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
+    assert rows["Mobile App"].strip("|").split("|")[-1].strip() == "1"
+    assert rows["Webshop"].strip("|").split("|")[-1].strip() == "0"
 
 
 def test_produktliste_add_and_end(data_dir: Path):
