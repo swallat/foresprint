@@ -12,6 +12,7 @@ from typer.testing import CliRunner
 from sprintforecast import cli
 from sprintforecast.cli import app
 from sprintforecast.guide import COMMAND_ALIASES, COMMANDS
+from sprintforecast.storage import Repository
 
 runner = CliRunner(env={"COLUMNS": "200"})
 
@@ -394,6 +395,38 @@ def test_analyse_with_project_share(data_dir: Path):
     assert "je Sprint" in half.output and full.output != half.output
 
 
+def keep_first_sprints(data_dir: Path, count: int) -> None:
+    """Nur die ersten ``count`` Sprints des Demo-Teams behalten (wenige Werte für die Analyse)."""
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > count:
+            path.unlink()
+
+
+@pytest.mark.parametrize(("count", "warned"), [(2, True), (4, True), (5, False)])
+def test_analyse_rest_warns_about_few_samples(data_dir: Path, count: int, warned: bool):
+    """Die Simulation rechnet schon ab 2 Werten; unter 5 Sprints kommt dieselbe Warnung wie in
+    der Weboberfläche."""
+    keep_first_sprints(data_dir, count)
+    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    assert result.exit_code == 0, result.output
+    assert f"Stichprobe {count} Sprints" in result.output
+    note = f"Wenig Daten: Die Simulation zieht aus nur {count} Sprints (ab 5 sind Aussagen"
+    assert (note in result.output) is warned
+
+
+def test_analyse_rest_without_few_samples_has_no_warning(data_dir: Path):
+    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    assert result.exit_code == 0, result.output
+    assert "Wenig Daten" not in result.output
+
+
+def test_analyse_without_rest_has_no_simulation_warning(data_dir: Path):
+    keep_first_sprints(data_dir, 3)
+    result = run(data_dir, "analyse", "demo")
+    assert result.exit_code == 0, result.output
+    assert "Wenig Daten" not in result.output
+
+
 def test_planning_flow_next_sprint(data_dir: Path):
     # Standard: nächstes Planning (2026.22). Fehltage: Anna 1, Ben 0, Cem 5, Dana 0;
     # Planning je Produkt: Webshop 4, App 3, Portal 3; ohne Kontrollrechnung; Commitment 10
@@ -414,6 +447,72 @@ def test_produkte_and_vorplanung(data_dir: Path):
     sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
     assert sprint["products"] == {p: {"preplanned": 2} for p in ("webshop", "app", "portal")}
     assert "Saldo" in result.output
+
+
+def drop_done(data_dir: Path, product: str, *sprint_ids: str) -> None:
+    """Entfernt „Erledigt“ des Produkts in den Sprints (nicht erfasst, nicht 0)."""
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    for sprint_id in sprint_ids:
+        sprint = data.sprint(sprint_id)
+        sprint.products[product].done = None
+        repo.save_sprint("demo", sprint)
+
+
+def balance_table(output: str) -> str:
+    return output.split("Saldo: Σ Erledigt − Σ Standard")[1]
+
+
+def test_produkte_balance_hides_products_without_value_and_shows_missing(data_dir: Path):
+    plain = run(data_dir, "produkte", "demo", "2026.20", "--verlauf", "6")
+    assert "ohne Wert" not in balance_table(plain.output)  # alles erfasst: keine Spalte
+
+    drop_done(data_dir, "app", "2026.20")
+    # Fenster nur mit dem Sprint ohne Wert: keine Zeile „0 | 0,00 | 0,00 | 0,00“
+    only = run(data_dir, "produkte", "demo", "2026.20", "--verlauf", "1")
+    assert only.exit_code == 0, only.output
+    table = balance_table(only.output)
+    assert "Webshop" in table and "Mobile App" not in table
+    # Das ausgeblendete Produkt hat einen fehlenden Wert, die angezeigten haben keinen: keine Spalte
+    assert "ohne Wert" not in table
+
+    # sonst bleibt das Produkt mit seinen übrigen Sprints, die fehlenden stehen daneben
+    result = run(data_dir, "produkte", "demo", "2026.20", "--verlauf", "6")
+    assert result.exit_code == 0, result.output
+    table = balance_table(result.output)
+    assert "ohne Wert" in table
+    app_row = next(line for line in table.splitlines() if "Mobile App" in line)
+    cells = [c.strip() for c in app_row.strip("│").split("│")]
+    assert cells[1] == "3" and cells[-1] == "1"
+    webshop_row = next(line for line in table.splitlines() if "Webshop" in line)
+    assert webshop_row.strip("│").split("│")[-1].strip() == "0"
+
+
+def test_report_balance_hides_products_without_value_and_shows_missing(data_dir: Path):
+    def balance_section() -> str:
+        assert run(data_dir, "bericht", "demo").exit_code == 0
+        report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
+        return report.split("**Saldo**")[1].split("\n## ")[0]
+
+    assert "ohne Wert" not in balance_section()
+
+    drop_done(data_dir, "app", "2026.20")
+    section = balance_section()
+    rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
+    assert "ohne Wert" in rows["Produkt"]
+    cells = [c.strip() for c in rows["Mobile App"].strip("|").split("|")]
+    assert cells[1] == "3" and cells[-1] == "1"
+    assert rows["Webshop"].strip("|").split("|")[-1].strip() == "0"
+
+    # Ein einziger Sprint mit Wert genügt, die Zeile bleibt
+    drop_done(data_dir, "app", "2026.17", "2026.18")
+    assert "Mobile App" in balance_section()
+
+    # In keinem Sprint des Fensters ein Wert: das Produkt entfällt statt als Nullzeile zu stehen,
+    # und das ausgeblendete Produkt schaltet die Spalte nicht ein (wie in der Weboberfläche)
+    drop_done(data_dir, "app", "2026.19")
+    section = balance_section()
+    assert "Mobile App" not in section and "ohne Wert" not in section
 
 
 def test_produktliste_add_and_end(data_dir: Path):

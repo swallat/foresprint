@@ -196,14 +196,14 @@ def test_invalid_address_shows_its_title_once(repo: Path, data_dir: Path, monkey
 
 
 def test_clone_tab_names_the_reason_for_a_bad_address(repo: Path, data_dir: Path, monkeypatch):
-    """Dort steht keine Überschrift über der Meldung: Der Grund gehört mit dem Titel in den Satz."""
+    """Wie beim Server: die Überschrift (genau einmal) über dem Grund."""
     at = datenordner(data_dir, monkeypatch)
     address = next(e for e in at.text_input if e.label == "Adresse")
     address.set_value("github.com/team/daten").run()
     click(at, "data-clone-go")
     errors = shown(at, "error")
     assert errors.count("Ungültige Adresse") == 1
-    assert "Klonen fehlgeschlagen: Ungültige Adresse: Das Format wird nicht erkannt" in errors
+    assert errors.startswith("**Ungültige Adresse**") and "Das Format wird nicht erkannt" in errors
 
 
 def clone(at: AppTest, url: str, target: Path) -> AppTest:
@@ -222,7 +222,9 @@ def test_clone_tab_shows_the_next_step_for_a_missing_repository(
         datenordner(data_dir, monkeypatch), str(tmp_path / "gibt-es-nicht.git"), tmp_path / "z"
     )
     errors = shown(at, "error")
-    assert "Klonen fehlgeschlagen" in errors and "does not exist" in errors
+    assert "Repository nicht gefunden" in errors and "does not exist" in "\n".join(
+        c.value for c in at.code
+    )  # die Meldung von Git steht unter „Technische Meldung“
     assert "Das Repository wurde nicht gefunden" in errors and "VPN" not in errors
 
 
