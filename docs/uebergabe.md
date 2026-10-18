@@ -22,7 +22,7 @@ Spalte „Stand“ nennt, was ich zuletzt festgestellt habe.
 | PR | Thema | Stand |
 |---|---|---|
 | [#76](https://github.com/swallat/sprint-forecast/pull/76) | Texte anderer (Commit-Autor/-Betreff, Tags, Branches, Dateipfade, rohe Git-Ausgabe) in der Weboberfläche als Code statt Markdown; Absturz bei leerem Betreff; `splitlines`-Geister-Tags | Entwurf; zwei Review-Runden abgearbeitet (offen nur niedrige Punkte, im PR-Text); lokal 1615 Tests grün; CI auf dem letzten Kopf läuft; **danach bereit zum Mergen** |
-| [#81](https://github.com/swallat/sprint-forecast/pull/81) | Git-Fehler richtig zuordnen (Adresse, Rechte, Ordner, Fingerabdruck), Hinweis „Zurück auf den Branch“ | Entwurf; Review hat 36 Befunde (rund 12 verschiedene) bestätigt, Behebung durch einen Teil-Agenten angestoßen, Stand im PR-Text; **nicht mergen**, bevor `not_writable` eingegrenzt ist (Regression der Fehlerzuordnung) |
+| [#81](https://github.com/swallat/sprint-forecast/pull/81) | Git-Fehler richtig zuordnen (Adresse, Rechte, Ordner, Fingerabdruck), Hinweis „Zurück auf den Branch“ | Entwurf; Review hat 36 Befunde (rund 12 verschiedene) bestätigt, die Themen A bis H sind behoben (u. a. `not_writable` auf Dateisystem-Schreibfehler eingegrenzt, `_folder_access`, `safe.directory`-Rat entfernt, Laufwerksprüfung), I teilweise; lokal 1607 Tests grün, CI läuft; **ein zweites unabhängiges Review der Korrekturen fehlt noch** — erst danach mergen |
 | [#82](https://github.com/swallat/sprint-forecast/pull/82) | „Speichern und teilen“: Meldung geht bei einem zweiten Durchlauf nicht mehr verloren (Ursache des flackernden e2e-Tests) | Entwurf; CI grün, aber das Review fand Fehler in der Sperre (prozessweit, unbegrenztes Warten); **nicht mergen**, Überarbeitung im PR-Text beschrieben |
 | [#62](https://github.com/swallat/sprint-forecast/pull/62) | `docs/konzept-kern.md`: Umsetzungsstand | Entwurf; „Stand“-Zellen nach den Merges aktualisieren (A3, A10, B5, D-Abschnitte, Phasentabelle) |
 | dieser PR | `docs/uebergabe.md` | Entwurf |
@@ -112,9 +112,15 @@ Bekannte Fehler und offene Befunde, jeweils mit dem Ort, an dem sie behandelt we
   (bestand schon vorher). Bestehende Daten-Repositories und Klone ohne `.gitattributes` bleiben
   ungeschützt (siehe Entscheidungen). Die Windows-Prüfung „Zeilenenden“ prüft jetzt den
   geschützten Zustand (neues Repository mit `.gitattributes`), nicht mehr den ungeschützten.
-- **#81 (nach dem Merge von #74):** `_folder_access` (Datenordner anlegen/klonen) wandelt eine
-  Git-Meldung mit „Permission denied“ nur bei der Art `error` in einen Ordnerfehler um; mit der neuen
-  Art `not_writable` aus #81 sollte sie ebenfalls gelten.
+- **#81 offen:** (1) Ein Schreibfehler beim automatischen Zusammenführen (`resolve_conflicts`, `gitsync.py`)
+  bleibt Art `locked` und bekommt den `index.lock`-Absatz, der dort nicht passt (braucht einen eigenen Hinweistext
+  für Dateien; unter Windows ist es oft wirklich eine gehaltene Datei, der Bestandstest erwartet `locked`).
+  (2) `GIT_HELP` in `guide.py` und `docs/konzept-kern.md` erwähnen die neuen Fälle (unsicherer Ordner, nicht
+  beschreibbar, Fingerabdruck, verwaiste `index.lock`, offene Änderungen beim Zurück auf den Branch) noch nicht;
+  englische Fassungen in `locale_en.py` nötig. (3) Für den Owner offen: „Zurück auf den Branch“ sichert offene
+  Änderungen nicht vorher auf dem Rettungsbranch (Option A im PR-Text); ein nacktes „Could not read from remote
+  repository“ bleibt `offline`; ein Einhängepunkt auf Linux, der bei fehlendem Laufwerk als leerer Ordner
+  bestehen bleibt, gilt weiter als „nicht gefunden“.
 - **Übersetzungen:** `tests/test_i18n.py` prüft nur fehlende, nie überzählige Schlüssel. Das Review von #77
   fand rund 47 scheinbar ungenutzte Einträge in `locale_en.py` (nicht einzeln geprüft, einige
   vermutlich falsch positiv). Zwei sicher tote Schlüssel habe ich entfernt.
@@ -190,8 +196,8 @@ Pull-Requests, die erst spät in der Nacht gemergt wurden bzw. noch offen sind (
 2. **[#76](https://github.com/swallat/sprint-forecast/pull/76)** danach (berührt `git.py`, `gitsync.py`, `githistory.py`, `web/ui.py`): beide Review-Runden
    sind abgearbeitet; vor dem Mergen `main` einmergen und die CI abwarten.
 3. **[#81](https://github.com/swallat/sprint-forecast/pull/81)** nach [#76](https://github.com/swallat/sprint-forecast/pull/76): berührt dieselben Dateien (`git.py`, `ui.py`, `cli.py`), Konflikte beim
-   Einmergen von `main` sind zu erwarten. Zuerst die Befunde zur Zuordnung `not_writable` ("Permission denied"
-   zu breit) und zu `_folder_access` (aus [#74](https://github.com/swallat/sprint-forecast/pull/74)) beheben, dann mergen.
+   Einmergen von `main` sind zu erwarten. Die Befunde zu `not_writable` und `_folder_access` sind behoben; vor dem
+   Mergen ein zweites unabhängiges Review der Korrekturen, `main` einmergen, CI abwarten.
 4. **[#82](https://github.com/swallat/sprint-forecast/pull/82)** nach der Überarbeitung der Sperre (Abschnitt 3, Befunde im PR-Text); berührt `web/ui.py` und
    `web/app.py`. Erst danach ist der e2e-Aussetzer in der CI weg.
 5. **[#62](https://github.com/swallat/sprint-forecast/pull/62)** zuletzt: die „Stand“-Zellen in `docs/konzept-kern.md` erst nach den Merges aktualisieren.
@@ -275,8 +281,7 @@ AUFGABEN, IN DIESER REIHENFOLGE
    `tests/test_cli_markup.py`, CRLF im `pre-push`-Hook des e2e-Tests aus #82). Windows-Befunde als eigene
    kleine Pull-Requests beheben.
 2. Offene Pull-Requests abarbeiten, Reihenfolge und Abhängigkeiten stehen in Teil 5 der Übergabe: #80
-   (gemergt), #76 (bereit, wenn CI grün), #81 (Zuordnung `not_writable` eingrenzen,
-   `_folder_access` anpassen), #82 (Sperre je Sitzung, Zeitgrenze, Rückmeldung für verworfene Klicks),
+   (gemergt), #76 (bereit, wenn CI grün), #81 (zweites Review der Korrekturen, offene Punkte aus Teil 3), #82 (Sperre je Sitzung, Zeitgrenze, Rückmeldung für verworfene Klicks),
    zuletzt #62 (Stand-Zellen in `docs/konzept-kern.md`).
 3. Entscheidungen des Owners einholen (Teil 2 der Übergabe), nicht selbst treffen; danach je Entscheidung
    ein kleiner PR (Empfehlungen stehen dort).
