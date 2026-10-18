@@ -445,6 +445,22 @@ def _finite(value: Any) -> float:
     return number
 
 
+def file_name_problem(name: str) -> str | None:
+    """Warum ``name`` kein sicherer Dateiname (ohne Endung) ist; ``None`` = in Ordnung. Gilt für
+    Sprint-IDs, die zu Dateinamen werden: kein Pfadtrenner, kein Laufwerk oder Datenstrom
+    (Doppelpunkt), keine Steuerzeichen, keine Windows-Gerätenamen, kein Punkt oder Leerzeichen am
+    Rand (``..``)."""
+    if not name or len(name) > 80:
+        return t("leer oder länger als 80 Zeichen")
+    if any(ord(c) < 32 or c in '<>:"/\\|?*' for c in name):
+        return t("Pfadtrenner, Doppelpunkt, Sonder- oder Steuerzeichen")
+    if name != name.strip() or name.startswith(".") or name.endswith("."):
+        return t("beginnt oder endet mit Punkt oder Leerzeichen")
+    if name.partition(".")[0].strip().lower() in _WINDOWS_DEVICES:
+        return t("unter Windows für Geräte reserviert")
+    return None
+
+
 def _first_id(value: Any, where: str) -> str | None:
     """ID des ersten Sprints; wie bei den Sprintdateien muss eine Zahl wie 2026.20 in
     Anführungszeichen stehen (sonst wird daraus 2026.2)."""
@@ -454,7 +470,17 @@ def _first_id(value: Any, where: str) -> str | None:
         raise DataError(
             t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
         )
-    return str(value)
+    text = str(value)
+    if problem := file_name_problem(text):
+        raise DataError(
+            t(
+                "{where}: id {id} ist nicht zulässig ({problem})",
+                where=where,
+                id=repr(text),
+                problem=problem,
+            )
+        )
+    return text
 
 
 def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
@@ -1026,6 +1052,14 @@ class Repository:
         return path
 
     def sprint_path(self, key: str, sprint_id: str) -> Path:
+        if problem := file_name_problem(sprint_id):  # die ID wird zum Dateinamen
+            raise DataError(
+                t(
+                    "Sprint-ID {id} ist nicht zulässig ({problem})",
+                    id=repr(sprint_id),
+                    problem=problem,
+                )
+            )
         return self.team_dir(key) / "sprints" / f"{sprint_id}.yaml"
 
     def _pinned_absence_state(self, path: Path, sprint: Sprint) -> AbsenceState:
