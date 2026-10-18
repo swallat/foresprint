@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Protokolle der Sprint-Termine: schreiben, auflisten, bei Aufheben des Einfrierens obsolet."""
 
+import hashlib
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -43,7 +45,7 @@ def test_render_escapes_table_separators_and_lists_facts():
 def test_write_list_and_lf_line_endings(tmp_path: Path):
     repo = Repository(tmp_path)
     path = write_protocol(repo, "demo", "2026.21", PREPLANNING, "a\nb\n", NOW)
-    assert path.name == "2026.21-vorplanung-20261016-144305.md"
+    assert re.fullmatch(r"2026\.21-vorplanung-20261016-144305-[0-9a-f]{4}\.md", path.name)
     assert b"\r" not in path.read_bytes()
     write_protocol(repo, "demo", "2026.21", PREPLANNING, "neu\n", LATER)
     write_protocol(repo, "demo", "2026.22", PREPLANNING, "anderer Sprint\n", LATER)
@@ -273,9 +275,23 @@ def test_a_stale_lock_makes_the_next_save_use_the_following_second(tmp_path: Pat
     repo = Repository(tmp_path)
     folder = tmp_path / "demo" / "protokolle"
     folder.mkdir(parents=True)
-    (folder / "2026.21-review-20261016-144305.md.lock").write_text("", encoding="utf-8")
-    path = write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
-    assert path.name == "2026.21-review-20261016-144306.md"
+    text = "# T\n\nStand: 1\n\nx\n"
+    tag = hashlib.sha256(text.encode("utf-8")).hexdigest()[:4]  # Namensbestandteil aus dem Inhalt
+    (folder / f"2026.21-review-20261016-144305-{tag}.md.lock").write_text("", encoding="utf-8")
+    path = write_protocol(repo, "demo", "2026.21", REVIEW, text, NOW)
+    assert path.name == f"2026.21-review-20261016-144306-{tag}.md"
+
+
+def test_different_states_saved_in_the_same_second_get_different_names(tmp_path: Path):
+    """Zwei Klone, die in derselben Sekunde Verschiedenes speichern, erzeugen nie denselben
+    Dateinamen (der Inhalt geht in den Namen ein)."""
+    first = write_protocol(
+        Repository(tmp_path / "a"), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nalice\n", NOW
+    )
+    second = write_protocol(
+        Repository(tmp_path / "b"), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nbob\n", NOW
+    )
+    assert first.name != second.name
 
 
 def test_a_protocol_with_invalid_utf8_does_not_break_writing(tmp_path: Path):
@@ -332,9 +348,8 @@ def test_unfreeze_marks_only_the_planning_protocol_obsolete(tmp_path: Path):
     plan = write_protocol(repo, "demo", "2026.21", PLANNING, "x\n", NOW)
     pre = write_protocol(repo, "demo", "2026.21", PREPLANNING, "y\n", NOW)
     renamed = mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER)
-    assert [p.name for p in renamed] == [
-        "2026.21-planning-20261016-144305_obsolet_20261020-090000.md"
-    ]
+    assert len(renamed) == 1
+    assert renamed[0].name.endswith("_obsolet_20261020-090000.md")
     assert not plan.exists() and pre.exists() and renamed[0].read_text() == "x\n"
     assert [f[2] for f in list_protocols(repo, "demo", "2026.21") if f[1] == PLANNING] == [True]
     # ein zweites Aufheben benennt Obsoletes nicht noch einmal um
