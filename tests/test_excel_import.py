@@ -409,6 +409,18 @@ def test_first_sprint_id_setting_cannot_become_a_path(data_dir: Path):
     assert not outside.exists()
 
 
+def test_the_settings_form_does_not_accept_an_id_the_loader_would_reject():
+    """Was beim Laden abgelehnt wird (unsichere erste Sprint-ID), darf nicht speicherbar sein."""
+    from sprintforecast.settings import SETTINGS
+
+    setting = next(s for s in SETTINGS if s.key == "sprint.first_id")
+    for bad in ("../x", "a/b", "ende."):
+        with pytest.raises(ValueError, match="Dateiname"):
+            setting.parse(bad)
+    assert setting.parse("2026.20") == "2026.20"
+    assert setting.parse("") is None  # optional
+
+
 def test_the_repository_refuses_unsafe_sprint_ids_as_paths(data_dir: Path):
     import sys
 
