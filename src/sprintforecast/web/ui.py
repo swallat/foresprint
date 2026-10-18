@@ -153,6 +153,7 @@ from sprintforecast.report import (
     absence_status_label,
     capacity_label,
     capacity_source_note,
+    completion_note,
     fmt,
     fmt_capacity,
     pct,
@@ -2471,15 +2472,8 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 runs=f"{result.runs:,}",
                 samples=result.samples,
             )
-            if result.samples < MIN_SAMPLES:
-                st.warning(
-                    t(
-                        "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
-                        "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
-                        samples=result.samples,
-                        min=MIN_SAMPLES,
-                    )
-                )
+            if note := completion_note(result.samples):
+                st.warning(note)
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:

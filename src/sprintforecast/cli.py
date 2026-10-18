@@ -75,6 +75,7 @@ from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
 from sprintforecast.report import (
     capacity_label,
+    completion_note,
     fmt,
     fmt_capacity,
     pct,
@@ -1281,6 +1282,8 @@ def analyse(
                 + t("Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
                 + "[/dim]"
             )
+        if note := completion_note(result.samples):
+            console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
 
 
 @command("bericht", "Markdown-Bericht erzeugen (für Git-Weboberfläche / PO-Runde).")
