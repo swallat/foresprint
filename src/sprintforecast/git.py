@@ -397,6 +397,7 @@ def title_for(kind: str) -> str:
         "detached": t("Kein Branch ausgewählt (detached HEAD)"),
         "no_upstream": t("Branch ist nicht mit dem Server verbunden"),
         "no_remote": t("Kein Server eingerichtet"),
+        "not_repo": t("Kein Git-Repository"),
         "not_found": t("Repository nicht gefunden"),
         "unrelated_histories": t("Server hat eine andere Historie"),
         "tag_exists": t("Tag-Name ist schon vergeben"),
@@ -470,6 +471,10 @@ def hint_for(kind: str, url: str = "") -> str:
             "„Server (Remote)“ die Adresse des gemeinsamen Daten-Repositorys eintragen; bis "
             "dahin bleiben alle Änderungen auf diesem Rechner. Wer einem bestehenden Team "
             "beitritt, wählt dort „Repository klonen“."
+        ),
+        "not_repo": t(
+            "Der Datenordner muss in einem Git-Repository liegen: mit `git init` ein neues "
+            "anlegen oder mit `git clone` ein bestehendes holen."
         ),
         "not_found": t(
             "Das Repository wurde nicht gefunden oder du hast keinen Zugriff. Adresse und "
@@ -1086,10 +1091,22 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
     return _git(root, "rev-parse", "--short", "HEAD")
 
 
+_NOT_A_REPOSITORY = re.compile(r"not a git repository", re.I)
+
+
 def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
     cwd = paths[0].resolve().parent
-    root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
+    try:
+        root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
+    except GitError as e:
+        if e.kind == "error" and _NOT_A_REPOSITORY.search(str(e)):
+            raise GitError(
+                t("{path} liegt in keinem Git-Repository", path=cwd),
+                "not_repo",
+                hint_for("not_repo"),
+            ) from e
+        raise
     refuse_conflict_markers(root, paths)
     names = check_new_tags(root, [tag] if tag else None)
     try:
