@@ -167,7 +167,7 @@ def tag_setup(shared) -> Path:
 
 def tag_rows(at: AppTest) -> dict[str, str]:
     frame = at.table[0].value
-    return {name: row["Server"] for name, row in frame.iterrows()}
+    return {name.strip("`"): row["Server"] for name, row in frame.iterrows()}  # Namen als Code
 
 
 def test_tag_list_shows_status_after_server_check(shared, data_dir, monkeypatch):
