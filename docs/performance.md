@@ -51,8 +51,9 @@ Lesehilfe:
 
 - `import sprintforecast.web.ui` (alles, was der Start der Oberfläche vor der ersten Seite
   importiert) sinkt, weil `pandas` und `altair` erst bei der ersten Seite mit Tabelle oder Diagramm
-  geladen werden. Die Forecast-Seite (Startseite) braucht beide; der Kaltstart bis zur ersten Seite
-  sinkt dadurch um rund 0,3 s, ein Teil verschiebt sich auf den ersten Seitenaufbau.
+  geladen werden. Die Seiten der Auswertung (z. B. Forecast) brauchen beide, die Startseite „Start“
+  nicht. Gemessen wurde das, als der Forecast noch die Startseite war: Der Kaltstart bis zur ersten
+  Seite sank um rund 0,3 s, ein Teil verschiebt sich auf den ersten Seitenaufbau.
 - Team laden: Der C-Lader von libyaml (`CSafeLoader`) senkt das Laden eines Teams ohne
   Zwischenspeicher deutlich; bei unveränderten Dateien liefert der Zwischenspeicher das Team in
   unter einer Millisekunde (Dateiversion prüfen plus Kopie).

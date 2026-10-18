@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Weboberfläche: Seiten rendern, Formulare speichern, Commit (ohne Browser via AppTest)."""
 
+import shutil
 import subprocess
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -12,7 +14,9 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps, nav_titles
 
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.forecast import build_forecast
+from sprintforecast.model import Sprint
+from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -52,6 +56,18 @@ def git(cwd: Path, *args: str) -> str:
     return subprocess.run(
         ["git", *args], cwd=cwd, check=True, capture_output=True, text=True
     ).stdout.strip()
+
+
+def test_invalid_stichtag_variable_shows_error(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    monkeypatch.setenv(STICHTAG_ENV, "morgen")
+    at = AppTest.from_file(str(APP), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    assert len(at.error) == 1
+    for part in (STICHTAG_ENV, "morgen", "JJJJ-MM-TT"):
+        assert part in at.error[0].value
+    assert not at.header  # die Seite wird nicht gezeichnet
 
 
 def test_start_is_default_page(app: AppTest):
@@ -195,6 +211,22 @@ def test_absences_confirm_nobody_absent_creates_sprint_files(app: AppTest, data_
     assert not any("Trend" in w.value for w in app.warning)
 
 
+def test_reset_absences_text_names_calendar_and_people_not_trend(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Nach dem Zurücksetzen bleibt die Kapazität aus Kalender und Personen; nur die Fehltage
+    werden nach der Historie geschätzt (Trend gibt es nur ohne Personenliste)."""
+    repo = Repository(data_dir)
+    nxt = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
+    repo.save_sprint("demo", Sprint(id=nxt.id, start=nxt.start, end=nxt.end))
+    at = goto(start(data_dir, monkeypatch), "fehltage")
+    assert "Fehltage zurücksetzen" in [s.value for s in at.subheader]
+    caption = next(c.value for c in at.caption if "Zurücksetzen löscht" in c.value)
+    assert "Trend" not in caption
+    assert "nach der Historie geschätzt (ohne Historie ohne Abzug)" in caption
+    assert "Kalender und Personen" in caption
+
+
 def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
     """Planning-Seite, Sprint wählen und zum Schritt (0–2) des Ablaufs springen."""
     goto(at, "planning")
@@ -231,6 +263,18 @@ def test_planning_saves(app: AppTest, data_dir: Path):
     assert sprint["planning"]["backlog"] == 8
     assert sprint["planning"]["corrections"] == [0.5, 1]
     assert any("Delta" in i.value for i in app.info)
+
+
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
+def test_planning_rejects_non_finite_corrections(app: AppTest, data_dir: Path, raw: str):
+    path = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    before = path.read_bytes()
+    planning_step(app, "2026.21", 2)
+    app.number_input(key="backlog-2026.21").set_value(8.0)
+    app.text_input[0].set_value(raw)
+    click(app, "Planning speichern")
+    assert any("endliche Zahlen" in e.value for e in app.error)
+    assert path.read_bytes() == before
 
 
 def test_review_saves_and_freezes_capacity(app: AppTest, data_dir: Path):
@@ -279,6 +323,35 @@ def test_new_team(app: AppTest, data_dir: Path):
     assert team["capacity"]["region"] == "BY"
     assert team["sprint"]["first"]["id"] == "2026.1"
     assert app.session_state["selected_team"] == "team-b"
+
+
+@pytest.mark.parametrize("key", ["../x", "a/b", "..", "con", "-x", "a" * 65])
+def test_new_team_rejects_invalid_key(app: AppTest, data_dir: Path, key: str):
+    goto(app, "neues_team")
+    app.text_input[0].set_value(key).run()
+    assert not app.exception, app.exception
+    assert any("Kleinbuchstaben a–z" in e.value or "Windows" in e.value for e in app.error)
+    assert not [b for b in app.button if b.label == "Team anlegen"]  # kein Formular
+    assert sorted(p.name for p in data_dir.parent.iterdir()) == ["teams"]
+    assert sorted(p.name for p in data_dir.iterdir()) == ["demo"]
+
+
+def test_new_team_refuses_a_key_that_only_differs_in_case(app: AppTest, data_dir: Path):
+    shutil.copytree(data_dir / "demo", data_dir / "Alpha")
+    goto(app, "neues_team")
+    app.text_input[0].set_value("alpha").run()
+    assert any("existiert bereits (als 'Alpha'" in e.value for e in app.error)
+    assert not [b for b in app.button if b.label == "Team anlegen"]
+    assert sorted(p.name for p in data_dir.iterdir()) == ["Alpha", "demo"]
+
+
+def test_new_team_key_is_normalized_before_the_check(app: AppTest, data_dir: Path):
+    goto(app, "neues_team")
+    app.text_input[0].set_value("  Team_C ").run()
+    assert not app.error
+    click(app, "Team anlegen")
+    assert (data_dir / "team_c" / "team.yaml").is_file()
+    assert app.session_state["selected_team"] == "team_c"
 
 
 def test_without_any_team(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -334,6 +407,191 @@ def test_commit_button(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     assert git(data_dir, "tag") == "demo/2026.21"
     assert git(data_dir, "status", "--porcelain") == ""
     assert at.session_state["pending_tags"] == []
+
+
+def save_review(at: AppTest, button: str = "Review speichern") -> str:
+    """Speichert ein Review und liefert die Erfolgsmeldung."""
+    goto(at, "review")
+    at.selectbox(key="review-sprint").set_value("2026.21").run()
+    at.number_input(key="velocity-2026.21").set_value(9.0)
+    click(at, button)
+    return next(s.value for s in at.success if s.value.startswith(("Gespeichert", "Saved")))
+
+
+def sidebar_buttons(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Knöpfe der Seitenleiste in einem neuen Durchlauf (nach dem Speichern)."""
+    return [b.label for b in start(data_dir, monkeypatch).sidebar.button]
+
+
+def test_saved_message_without_git_names_no_button(app: AppTest):
+    message = save_review(app)
+    assert message == "Gespeichert: 2026.21.yaml."
+
+
+def test_saved_message_with_git_but_no_server_points_to_commit(
+    repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    message = save_review(start(data_dir, monkeypatch))
+    assert "**Änderungen committen**" in message
+    assert "Speichern und teilen" not in message
+    buttons = sidebar_buttons(data_dir, monkeypatch)
+    assert "Änderungen committen" in buttons and "Speichern und teilen" not in buttons
+
+
+def test_saved_message_without_branch_names_no_button(
+    repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Ohne Branch bietet die Seitenleiste nur „Zurück auf den Branch“ an."""
+    git(repo, "checkout", "-q", "--detach")
+    message = save_review(start(data_dir, monkeypatch))
+    assert message == "Gespeichert: 2026.21.yaml."
+    assert "Änderungen committen" not in sidebar_buttons(data_dir, monkeypatch)
+
+
+def test_saved_message_with_server_points_to_save_and_share(
+    shared, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    message = save_review(start(data_dir, monkeypatch))
+    assert message.startswith("Gespeichert: 2026.21.yaml. Mit **Speichern und teilen**")
+    assert message.endswith(
+        "in Git sichern und mit dem Team teilen (nur lokal: **Änderungen committen**)."
+    )
+    buttons = sidebar_buttons(data_dir, monkeypatch)
+    assert "Speichern und teilen" in buttons and "Änderungen committen" in buttons
+
+
+def test_saved_message_with_server_is_also_flashed(
+    shared, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    at = goto(start(data_dir, monkeypatch), "planning")
+    at.selectbox(key="planning-sprint").set_value("2026.23").run()
+    click(at, "Niemand fehlt – bestätigen und weiter")
+    assert any("Mit **Speichern und teilen**" in s.value for s in at.success)
+
+
+def test_saved_message_in_english(english, shared, data_dir: Path, monkeypatch):
+    message = save_review(start(data_dir, monkeypatch), "Save review")
+    assert message == (
+        "Saved: 2026.21.yaml. Use **Save and share** in the sidebar to save to Git and share "
+        "with the team (local only: **Commit changes**)."
+    )
+
+
+def test_saved_message_names_no_button_when_the_content_was_already_saved(
+    repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Wird derselbe Stand noch einmal gespeichert, ändert sich nichts: Die Seitenleiste bietet
+    dann keinen Knopf „Änderungen committen“ an, die Meldung nennt ihn auch nicht."""
+    from sprintforecast.git import invalidate_status
+
+    save_review(start(data_dir, monkeypatch))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Review")
+    invalidate_status()
+    message = save_review(start(data_dir, monkeypatch))
+    assert message == "Gespeichert: 2026.21.yaml."
+    assert "Änderungen committen" not in sidebar_buttons(data_dir, monkeypatch)
+
+
+def test_saved_message_with_server_names_no_button_when_nothing_changed(
+    shared, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.git import invalidate_status
+
+    save_review(start(data_dir, monkeypatch))
+    git(data_dir.parent, "add", "-A")
+    git(data_dir.parent, "commit", "-qm", "Review")
+    invalidate_status()
+    message = save_review(start(data_dir, monkeypatch))
+    assert message == "Gespeichert: 2026.21.yaml."
+
+
+def test_saving_still_works_when_git_cannot_report_its_state(
+    repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Der Hinweis darf das Speichern nie verhindern."""
+    from sprintforecast.git import GitError
+    from sprintforecast.web import ui
+
+    def broken(root: Path):
+        raise GitError("kaputt")
+
+    monkeypatch.setattr(ui, "cached_sync_state", broken)
+    message = save_review(start(data_dir, monkeypatch))
+    assert message == "Gespeichert: 2026.21.yaml."
+    saved = yaml.safe_load((data_dir / "demo" / "sprints" / "2026.21.yaml").read_text())
+    assert saved["velocity"] == 9
+
+
+@pytest.mark.parametrize(
+    ("changes", "expected"),
+    [
+        ({}, "commit"),
+        ({"remote": "origin"}, "share"),
+        ({"unfinished": "merge"}, ""),
+        ({"conflicts": ("2026.21.yaml",)}, ""),
+        ({"branch": None}, ""),
+    ],
+)
+def test_next_step_follows_what_the_sidebar_offers(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, changes: dict, expected: str
+):
+    import dataclasses
+
+    from sprintforecast.gitsync import SyncState
+    from sprintforecast.web import ui
+
+    state = SyncState(root=data_dir, branch="main", upstream=None, remote=None)
+    monkeypatch.setattr(ui, "data_dir", lambda: data_dir)
+    monkeypatch.setattr(ui, "git_available", lambda: True)
+    monkeypatch.setattr(ui, "git_root", lambda root: root)
+    monkeypatch.setattr(ui, "cached_sync_state", lambda root: dataclasses.replace(state, **changes))
+    assert ui._next_step() == expected
+
+
+def test_next_step_is_empty_without_git_or_repository(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.web import ui
+
+    monkeypatch.setattr(ui, "data_dir", lambda: data_dir)
+    monkeypatch.setattr(ui, "git_available", lambda: False)
+    assert ui._next_step() == ""
+    monkeypatch.setattr(ui, "git_available", lambda: True)
+    monkeypatch.setattr(ui, "git_root", lambda root: None)
+    assert ui._next_step() == ""
+
+
+def test_help_intro_names_both_ways_to_secure_the_changes(app: AppTest):
+    goto(app, "hilfe")
+    intro = app.main.markdown[0].value
+    assert "**Änderungen committen**" in intro and "**Speichern und teilen**" in intro
+    assert "Reiter „Zusammenarbeit (Git)“" in intro
+    assert "Zusammenarbeit (Git)" in [tab.label for tab in app.tabs]
+
+
+def test_commit_button_refuses_files_with_conflict_markers(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Markierungen ohne offenes Zusammenführen: nichts wird committet, die Meldung nennt die
+    Datei und den Weg zur Seite „Konflikte lösen“."""
+    for var in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{var}_NAME", "T")
+        monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")
+    git(data_dir, "init", "-q", "-b", "main")
+    git(data_dir, "add", "-A")
+    git(data_dir, "commit", "-qm", "init")
+    sprint = data_dir / "demo" / "sprints" / "2026.21.yaml"
+    sprint.write_text(
+        "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n", encoding="utf-8"
+    )
+    at = start(data_dir, monkeypatch)
+    at.text_input(key="commit_message").set_value("Mit Markierungen")
+    next(b for b in at.button if b.label == "Änderungen committen").click().run()
+    assert not at.exception, at.exception
+    assert git(data_dir, "log", "-1", "--format=%s") == "init"
+    shown = " ".join(e.value for e in [*at.sidebar.error, *at.error])
+    assert "Konflikte lösen" in shown and "2026.21.yaml" in shown
 
 
 def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
@@ -1247,6 +1505,117 @@ def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path
     assert (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
     assert nav_done(app)["fehltage"]
     assert any("Gespeichert" in s.value for s in app.success)  # die Meldung kommt nach dem Laden
+
+
+def captions(app: AppTest) -> list[str]:
+    return [c.value for c in app.caption]
+
+
+def test_range_is_shown_at_the_planning_forecast(app: AppTest):
+    """Planning Schritt 2: Spanne und Stichprobe direkt unter den Kacheln, die Kapazitätsquelle
+    unter der Kapazität."""
+    planning_step(app, "2026.22", 1)
+    assert "Spanne 10,0–12,3 aus den letzten 5 Sprints" in captions(app)
+    capacity = next(m for m in app.metric if m.label == "Kapazität (PT)")
+    assert "Personen" in capacity.delta  # Quelle: Kalender und Personenliste
+
+
+def test_range_is_shown_at_the_absences_forecast_line(app: AppTest):
+    goto(app, "fehltage")
+    assert any("In den nächsten Sprint" in m.value for m in app.markdown)
+    assert any(c.startswith("Spanne ") and "aus den letzten 5 Sprints" in c for c in captions(app))
+
+
+def test_range_is_shown_at_the_preplanning_forecast(app: AppTest):
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    assert "Spanne 10,2–12,5 aus den letzten 5 Sprints" in captions(app)
+
+
+def test_range_is_not_shown_for_finished_sprints(app: AppTest):
+    """Die Spanne gehört zur heutigen Historie; die Prognose eines abgeschlossenen Sprints wurde
+    mit der damaligen berechnet. Beide nebeneinander widersprächen sich."""
+    planning_step(app, "2026.20", 1)
+    assert not any(c.startswith("Spanne ") for c in captions(app))
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.20").run()
+    assert not app.exception, app.exception
+    assert not any(c.startswith("Spanne ") for c in captions(app))
+
+
+def test_range_at_the_preplanning_says_when_the_forecast_assumes_something(app: AppTest):
+    """Die Prognose rechnet mit der Annahme, die Spanne nicht: Das steht dran."""
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    assert "Spanne 10,0–12,3 aus den letzten 5 Sprints" in captions(app)
+    next(
+        n
+        for n in app.number_input
+        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-extra")
+    ).set_value(8.0).run()
+    assert "Spanne 10,0–12,3 aus den letzten 5 Sprints (ohne die Annahme)" in captions(app)
+
+
+def test_planning_capacity_tile_shows_no_arrow_before_the_source(app: AppTest):
+    planning_step(app, "2026.22", 1)
+    capacity = next(m for m in app.metric if m.label == "Kapazität (PT)")
+    assert capacity.proto.direction == 2  # NONE: nur die Quelle steht darunter, kein Anstieg
+
+
+def test_range_at_the_absences_forecast_follows_the_unsaved_preview(app: AppTest):
+    """Die Zeile unter „In den nächsten Sprint passen“ gehört zur Vorschau, nicht zum gespeicherten
+    Stand: Trägt jemand mehr Fehltage ein, sinkt die Kapazität und mit ihr die Spanne."""
+    goto(app, "fehltage")
+    before = next(c for c in captions(app) if c.startswith("Spanne "))
+    frame = next(d.value for d in app.dataframe if "Person" in d.value.columns)
+    sprints = [c for c in frame.columns if c.startswith("2026.")]
+    app.session_state[f"absences-demo-{sprints[0]}-{len(sprints)}"] = {
+        "edited_rows": {0: {"2026.22": 9.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    assert not app.exception, app.exception
+    after = [c for c in captions(app) if c.startswith("Spanne ")]
+    assert after and after[0] != before, (before, after)
+
+
+def test_range_helpers_are_empty_without_enough_data_or_for_finished_sprints(data_dir: Path):
+    from datetime import date
+
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.report import band_note, band_range
+    from sprintforecast.storage import Repository
+
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    assert band_range(fc, fc.entry("2026.22")) == "10,0–12,3"
+    assert band_note(fc, fc.entry("2026.22")) != ""
+    assert band_note(fc, fc.entry("2026.20")) == ""  # abgeschlossen
+    assert band_range(fc, fc.entry("2026.20")) == "–"
+
+    for file in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if file.stem != "2026.20":
+            file.unlink()
+    thin = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    assert band_note(thin, thin.entry("2026.22")) == ""  # nur ein Messwert
+    assert band_range(thin, thin.entry("2026.22")) == "–"
+
+
+def test_range_note_warns_about_little_data(data_dir: Path):
+    """Mit weniger als fünf Sprints mit Velocity steht der Hinweis gleich an der Spanne."""
+    from datetime import date
+
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.report import band_note
+    from sprintforecast.storage import Repository
+
+    for file in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if file.stem not in ("2026.17", "2026.18", "2026.19", "2026.20", "2026.21"):
+            file.unlink()
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    note = band_note(fc, fc.entry("2026.22"))
+    assert note.startswith("Spanne ") and "aus den letzten 4 Sprints" in note
+    assert note.endswith("wenig Daten, grober Hinweis")
 
 
 def test_absences_page_shows_the_step_bar_and_shares_the_board_sprint(app: AppTest):
