@@ -1128,6 +1128,14 @@ GITIGNORE = """\
 *.tmp
 """
 
+GITATTRIBUTES = """\
+# Datendateien und Berichte immer mit LF, auch bei core.autocrlf (Windows): Sonst schriebe das
+# erste Speichern alle Zeilenenden um und erzeugte Rauschen im Verlauf.
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+"""
+
 
 def folder_problem(path: Path, error: Exception) -> GitError:
     """Ein Dateisystemfehler am Ordner ``path`` als :class:`GitError` der Art ``folder`` mit
@@ -1173,22 +1181,29 @@ def _folder_access(path: Path) -> Iterator[None]:
 
 
 def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
-    """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und
-    liefert den Ordner für die Teams. Eine Datei als Ziel und Dateisystemfehler kommen als
-    :class:`GitError` (Art ``folder``)."""
+    """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und liefert
+    den Ordner für die Teams. Ein neues Repository bekommt im Datenordner außerdem eine
+    ``.gitattributes`` (YAML und Berichte mit LF): Sie wird mit den Daten committet und erreicht
+    so auch die Klone. Vorhandene Dateien und bestehende Repositories bleiben unverändert: Dort
+    könnten CRLF-Dateien im Index liegen, die mit der Festlegung plötzlich als geändert gelten.
+    Eine Datei als Ziel und Dateisystemfehler kommen als :class:`GitError` (Art ``folder``)."""
     with _folder_access(path):
         path.mkdir(parents=True, exist_ok=True)
-        if repo_root(path) is None:
+        new = repo_root(path) is None
+        if new:
             _git(path, "init", "-q")
             forget_roots(path)
         ignore = path / ".gitignore"
         if not ignore.exists():
             ignore.write_text(GITIGNORE, encoding="utf-8")
-        if not teams_folder:
-            return path
-        teams = path / "teams"
-        teams.mkdir(exist_ok=True)
-        return teams
+        data = path
+        if teams_folder:
+            data = path / "teams"
+            data.mkdir(exist_ok=True)
+        attributes = data / ".gitattributes"
+        if new and not attributes.exists():
+            attributes.write_text(GITATTRIBUTES, encoding="utf-8")
+        return data
 
 
 def clone_repository(url: str, path: Path, timeout: float = 300) -> None:

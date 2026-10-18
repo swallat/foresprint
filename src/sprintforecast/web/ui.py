@@ -3925,7 +3925,9 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
         st.caption(
             t(
                 "Legt den Ordner mit `git init`, einer `.gitignore` (keine Tabellenkalkulationen) "
-                "und dem Unterordner `teams` an. Danach unter **Neues Team** ein Team anlegen."
+                "und dem Unterordner `teams` an; darin steht eine `.gitattributes` (YAML und "
+                "Berichte mit LF), die mit den Daten geteilt wird. Danach unter **Neues Team** ein "
+                "Team anlegen."
             )
         )
         path = _path_input(t("Neuer Ordner"), "data-new", str(home / "sprint-daten"))
