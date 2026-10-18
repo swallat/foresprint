@@ -14,14 +14,16 @@ import copy
 import os
 import subprocess
 import sys
+import threading
 import time
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import streamlit as st
 import yaml
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
@@ -63,20 +65,24 @@ from sprintforecast.git import (
     GitError,
     NewBranchError,
     RemoteAddress,
+    UnrelatedHistoriesError,
     cached_pending_changes,
     classify,
     clone_repository,
     commit_directory,
+    folder_problem,
     has_credentials,
     hint_for,
     init_data_repository,
     md_code,
+    md_code_lines,
     new_branch_error,
     parse_remote_url,
     remote_special_error,
     secret_in_url_error,
 )
 from sprintforecast.git import repo_root as git_root
+from sprintforecast.git import root_problem as git_problem
 from sprintforecast.git import title_for as git_title
 from sprintforecast.githistory import (
     Entry as HistoryEntry,
@@ -149,10 +155,22 @@ from sprintforecast.products import (
     measure_label,
     plan_view,
 )
+from sprintforecast.protocol import (
+    PLANNING,
+    PREPLANNING,
+    REVIEW,
+    kind_title,
+    list_protocols,
+    obsolete_with_save,
+    render_protocol,
+    save_with_protocol,
+)
 from sprintforecast.report import (
     absence_status_label,
+    band_note,
     capacity_label,
     capacity_source_note,
+    completion_note,
     fmt,
     fmt_capacity,
     pct,
@@ -175,6 +193,8 @@ from sprintforecast.storage import (
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
+    save_sprints_together,
+    team_key_problem,
     team_version,
     teams_dir,
     write_text,
@@ -292,6 +312,23 @@ def today() -> date:
     return date.fromisoformat(raw) if raw else date.today()
 
 
+def stichtag_problem() -> str | None:
+    """Meldung, wenn die Umgebung keinen gültigen Stichtag enthält (sonst scheitert ``today``)."""
+    raw = os.environ.get(STICHTAG_ENV)
+    if raw:
+        try:
+            date.fromisoformat(raw)
+        except ValueError:
+            return t(
+                "Die Umgebungsvariable `{name}` enthält „{value}“ – erwartet wird ein Datum im "
+                "Format JJJJ-MM-TT. Bitte die Variable korrigieren oder entfernen und die "
+                "Weboberfläche neu starten.",
+                name=STICHTAG_ENV,
+                value=raw,
+            )
+    return None
+
+
 # Der Datenordner gehört zur Browser-Sitzung (nicht zum Prozess): Wechselt eine Sitzung den
 # Ordner, speichern andere offene Fenster weiter in ihren eigenen.
 DATA_DIR_KEY = "active-data-dir"
@@ -354,6 +391,49 @@ def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
 # --- Speichern mit Prüfung -----------------------------------------------------------
 
 
+def _next_step() -> str:
+    """Was die Seitenleiste nach dem Speichern anbietet: ``"share"`` („Speichern und teilen“,
+    der Datenordner hat einen Server), ``"commit"`` („Änderungen committen“) oder ``""`` (nichts:
+    kein Git, ein Problem oder ein Zustand, der erst gelöst werden muss). Nutzt nur den
+    Zwischenspeicher, den die Seitenleiste ohnehin füllt; vor dem Schreiben abfragen, denn das
+    leert ihn."""
+    root = data_dir()
+    if not git_available() or git_root(root) is None:
+        return ""
+    try:
+        state = cached_sync_state(root)
+    except GitError:
+        return ""
+    if state.unfinished or state.conflicts or state.detached:
+        return ""
+    return "share" if state.remote is not None else "commit"
+
+
+def _has_open_changes() -> bool:
+    """Gibt es nach dem Speichern etwas zu committen? Dieselbe Abfrage (und derselbe
+    Zwischenspeicher) wie in der Seitenleiste. Bei einem Git-Fehler gilt „ja“."""
+    try:
+        return bool(cached_pending_changes(data_dir()))
+    except GitError:
+        return True
+
+
+def _saved_text(names: str, step: str) -> str:
+    if step == "share":
+        return t(
+            "Gespeichert: {names}. Mit **Speichern und teilen** in der Seitenleiste in Git "
+            "sichern und mit dem Team teilen (nur lokal: **Änderungen committen**).",
+            names=names,
+        )
+    if step == "commit":
+        return t(
+            "Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der "
+            "Seitenleiste.",
+            names=names,
+        )
+    return t("Gespeichert: {names}.", names=names)
+
+
 def save(
     data_after: TeamData,
     filenames: list[str],
@@ -381,11 +461,14 @@ def save(
             st.error(f"{i.where}: {i.message}")
         st.error(t("Nicht gespeichert – bitte die Fehler beheben."))
         return False
+    step = _next_step()
     try:
         paths = write()
     except FileAccessError as e:
         st.error(str(e))
         return False
+    if step and not _has_open_changes():  # der Inhalt war schon so gespeichert: nichts zu tun
+        step = ""
     for i in relevant:
         if i.level is Level.WARNING:
             notify("warning", f"{i.where}: {i.message}")
@@ -393,14 +476,7 @@ def save(
         tags = st.session_state.setdefault("pending_tags", [])
         if tag not in tags:
             tags.append(tag)
-    notify(
-        "success",
-        t(
-            "Gespeichert: {names}. In Git übernehmen mit **Änderungen committen** in der "
-            "Seitenleiste.",
-            names=", ".join(p.name for p in paths),
-        ),
-    )
+    notify("success", _saved_text(", ".join(p.name for p in paths), step))
     return True
 
 
@@ -446,7 +522,8 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
         default_ist = default_forecast_ist(fc, sprint)
-        ist_col, open_col, extra_col, result_col = st.columns(4)
+        # Unten ausrichten: Beschriftungen, die umbrechen, schieben die Felder sonst nach unten.
+        ist_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
         ist = ist_col.number_input(
             t("Commitment ({unit})", unit=unit),
             min_value=0.0,
@@ -676,7 +753,8 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.warning(
                 t(
                     "Für {sprints} sind noch keine Fehltage erfasst – die Kapazität ist nur "
-                    "geschätzt ({source}). Auf der Seite **Fehltage** eintragen.",
+                    "geschätzt ({source}). Auf der Seite **Sprint vorbereiten: Fehltage** "
+                    "eintragen.",
                     sprints=", ".join(unsure),
                     source=source_label(source),
                 )
@@ -736,6 +814,32 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = repo.team_dir(team.key) / "FORECAST.md"
         write_text(path, render(fc))
         st.success(t("Geschrieben: {path}", path=path))
+    _excel_download(fc, team.key)
+
+
+def _excel_download(fc: Forecast, team_key: str) -> None:
+    """Excel-Liste zum Herunterladen (für alle, die weiter mit einer Excel-Liste arbeiten)."""
+    from sprintforecast.excel import ExcelUnavailable, build_workbook
+
+    if not st.button(t("Excel-Liste erstellen"), icon=":material/table:"):
+        return
+    try:
+        content = build_workbook(fc)
+    except ExcelUnavailable as e:
+        st.warning(str(e))
+        return
+    st.download_button(
+        t("Excel-Liste herunterladen"),
+        content,
+        file_name=f"{team_key}-forecast.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        icon=":material/download:",
+        help=t(
+            "Enthält Sprintwerte als Eingaben und die Berechnung als Excel-Formeln (n. Velocity, "
+            "Trend, Forecast PLAN, Roadmap), Trend-Diagramme und die Aufteilung nach "
+            "Produktionszugriff und je Produkt. Wird nicht im Datenordner gespeichert."
+        ),
+    )
 
 
 def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
@@ -782,7 +886,7 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
             t(
                 "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen "
                 "(Vorsicht bei langen Horizonten). Robust ist „konstant“ – einstellbar unter "
-                "**Team → Einstellungen**.",
+                "**Team verwalten → Einstellungen**.",
                 mode=fc.data.team.forecast.trend_mode.value,
             )
         )
@@ -1004,6 +1108,8 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     ),
                 )
             )
+            if note := band_note(fc_preview, next_entry):
+                st.caption(note)
     st.dataframe(
         pd.DataFrame(
             [
@@ -1386,8 +1492,9 @@ def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
         if entered:
             st.info(
                 t(
-                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team → Personen) – "
-                    "ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht prüfen."
+                    "Produktionszugriff: Niemand ist als berechtigt markiert (Team verwalten → "
+                    "Personen) – ob die Gruppe die eingeplanten Tickets schafft, lässt sich nicht "
+                    "prüfen."
                 )
             )
         return
@@ -1437,8 +1544,8 @@ def _product_editor(
     if not d.rows:
         st.info(
             t(
-                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
-                "Produkte** anlegen (optional)."
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team "
+                "verwalten → Produkte** anlegen (optional)."
             )
         )
         return None
@@ -1497,8 +1604,8 @@ def _product_table(d: Distribution, unit: str) -> bool:
     if not d.rows:
         st.info(
             t(
-                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team → "
-                "Produkte** anlegen (optional)."
+                "Für diesen Sprint sind keine Produkte hinterlegt – Produkte unter **Team "
+                "verwalten → Produkte** anlegen (optional)."
             )
         )
         return False
@@ -1737,10 +1844,22 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
         ):
             released = copy.deepcopy(sprint)
             released.forecast_plan = None
+
+            def release() -> list[Path]:
+                # Das Planning gilt nicht mehr: sein Protokoll wird als obsolet gekennzeichnet.
+                return obsolete_with_save(
+                    repo,
+                    data.team.key,
+                    released.id,
+                    PLANNING,
+                    datetime.now().replace(microsecond=0),
+                    lambda: [repo.save_sprint(data.team.key, released)],
+                )
+
             if save(
                 with_sprints(data, [released]),
                 [f"{released.id}.yaml"],
-                lambda: [repo.save_sprint(data.team.key, released)],
+                release,
                 flash=True,
             ):
                 st.session_state["unfreeze-reset"] = sprint.id
@@ -1755,6 +1874,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     _board_nav(data, sprint, "planning")
     if sprint.forecast_plan is not None:
         _unfreeze_panel(repo, data, sprint, data.team.unit.value)
+    _protocols(repo, data, sprint.id, PLANNING)
     # Neuer Sprint gewählt → beim ersten Schritt beginnen.
     if st.session_state.get("planning-last-sprint") != sprint.id:
         st.session_state["planning-last-sprint"] = sprint.id
@@ -1801,7 +1921,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         st.warning(
             t(
                 "Noch keine Personen erfasst – Kapazität nur geschätzt. Personen unter "
-                "**Team → Personen** anlegen."
+                "**Team verwalten → Personen** anlegen."
             )
         )
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
@@ -1901,6 +2021,34 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
 
 
+def _production_split_note(fc: Forecast, entry: Any, data: TeamData, unit: str) -> str | None:
+    """Aufteilung von Kapazität und Forecast PLAN in Personen mit und ohne Produktionszugriff
+    (Näherung über den Kapazitätsanteil). None, wenn das Team das nicht nutzt oder niemand
+    als berechtigt markiert ist."""
+    if not data.team.features.production:
+        return None
+    d = distribution(fc, entry)
+    share = d.production_share
+    capacity = entry.result.plan_capacity
+    if d.production_state != "ok" or share is None or capacity is None or d.available is None:
+        return None
+    # Beide Mengen vom aktuellen Forecast PLAN: ``d.production_available`` rechnet mit dem beim
+    # Planning eingefrorenen Wert und ergäbe zusammen mit dem aktuellen keine saubere Aufteilung.
+    plan = entry.result.plan
+    prod_plan = None if plan is None else plan * share
+    return t(
+        "Kapazität: {prod_cap} PT mit Produktionszugriff ({share}), {rest_cap} PT ohne · "
+        "Forecast PLAN: bis zu {prod_plan} {unit} für Tickets mit Produktionszugriff, "
+        "{rest_plan} {unit} für alle übrigen.",
+        prod_cap=fmt(capacity * share, 1),
+        share=pct(share),
+        rest_cap=fmt(capacity * (1 - share), 1),
+        prod_plan=fmt(prod_plan, 1) if prod_plan is not None else "–",
+        rest_plan=fmt(plan - prod_plan, 1) if plan is not None and prod_plan is not None else "–",
+        unit=unit,
+    )
+
+
 def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     entry = fc.entry(sprint.id)
@@ -1914,6 +2062,10 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     cols[0].metric(
         t("Kapazität (PT)"),
         fmt_capacity(r.plan_capacity, entry.capacity_digits),
+        # Die Quelle steht unter dem Wert (nicht im Wert): sonst wird die Zahl abgeschnitten.
+        delta=capacity_source_note(entry) or None,
+        delta_color="off",
+        delta_arrow="off",
         help=t("Quelle: {source}", source=source_label(r.plan_capacity_source) or "–")
         + "\n\n"
         + _formula_help(fc, entry, "capacity"),
@@ -1944,6 +2096,10 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     rest[1].metric(
         t("Kleinkram"), fmt(r.small_stuff, 2), help=_formula_help(fc, entry, "small_stuff")
     )
+    if note := band_note(fc, entry):
+        st.caption(note)
+    if split := _production_split_note(fc, entry, data, unit):
+        st.caption(split)
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
@@ -2013,7 +2169,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     elif features.products:
         st.caption(
             t(
-                "Optional: Mit Produkten unter **Team → Produkte** lässt sich hier die "
+                "Optional: Mit Produkten unter **Team verwalten → Produkte** lässt sich hier die "
                 "Verteilung auf die Produkte planen und auswerten."
             )
         )
@@ -2140,7 +2296,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     try:
         corrections = parse_numbers(corrections_raw)
     except ValueError:
-        st.error(t("Korrekturen: bitte Zahlen mit Leerzeichen getrennt eingeben."))
+        st.error(t("Korrekturen: bitte endliche Zahlen mit Leerzeichen getrennt eingeben."))
         return
     prefilled = apply_planning(
         sprint,
@@ -2160,12 +2316,43 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if prefill_note:
         st.info(prefill_note)
     after = with_sprints(data, [sprint])
-    if save(
-        after,
-        [f"{sprint.id}.yaml"],
-        lambda: [repo.save_sprint(data.team.key, sprint)],
-        flash=True,
-    ):
+    fc_after = build_forecast(after, fc.today)
+    e_after = fc_after.entry(sprint.id)
+    now = datetime.now().replace(microsecond=0)
+    protocol = render_protocol(
+        PLANNING,
+        data.team.name or data.team.key,
+        sprint.id,
+        now=now,
+        facts=[
+            (t("Kapazität (PT)"), capacity_label(e_after) if e_after else "–"),
+            (
+                t("Prognose beim Planning ({unit})", unit=unit),
+                fmt(sprint.forecast_plan if sprint.forecast_plan is not None else None, 2),
+            ),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Überkipper ({unit})", unit=unit), fmt(carryover, 2)),
+            (f"Backlog ({unit})", fmt(backlog, 2)),
+        ],
+        d=distribution(fc_after, e_after)
+        if e_after and data.products and data.team.features.products
+        else None,
+        show_po=data.team.features.po,
+    )
+
+    def write() -> list[Path]:
+        return save_with_protocol(
+            repo,
+            data.team.key,
+            sprint.id,
+            PLANNING,
+            protocol,
+            now,
+            [sprint],
+            lambda: [repo.save_sprint(data.team.key, sprint)],
+        )  # Protokoll: nicht in der Meldung
+
+    if save(after, [f"{sprint.id}.yaml"], write, flash=True):
         # Die Hinweise erscheinen im nächsten Durchlauf; er zeichnet auch die Schrittleiste neu.
         flash = st.session_state.setdefault("flash", [])
         if (
@@ -2225,6 +2412,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if sprint is None:
         return
     _board_nav(data, sprint, "review")
+    _protocols(repo, data, sprint.id, REVIEW)
     unit = data.team.unit.value
     computed = sprint_capacity(data.team, data.people, sprint).rounded if data.people else None
     st.caption(
@@ -2334,10 +2522,44 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         sprint.production_done = production_done
     if product_rows is not None:
         sprint = apply_product_values(sprint, product_rows, review_measures)
+    after = with_sprints(data, [sprint])
+    fc_after = build_forecast(after, fc.today)
+    e_after = fc_after.entry(sprint.id)
+    now = datetime.now().replace(microsecond=0)
+    protocol = render_protocol(
+        REVIEW,
+        data.team.name or data.team.key,
+        sprint.id,
+        now=now,
+        facts=[
+            (t("Geschafft – Velocity ({unit})", unit=unit), fmt(sprint.velocity, 2)),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Davon nicht erledigt ({unit})", unit=unit), fmt(sprint.not_done, 2)),
+            (t("Zusätzlich erledigt ({unit})", unit=unit), fmt(sprint.additional_done, 2)),
+            (t("Verfügbare Personentage (PT)"), fmt(sprint.capacity, 1)),
+        ],
+        d=distribution(fc_after, e_after)
+        if e_after and data.products and product_rows is not None
+        else None,
+        show_po=data.team.features.po,
+    )
+
+    def write() -> list[Path]:
+        return save_with_protocol(
+            repo,
+            data.team.key,
+            sprint.id,
+            REVIEW,
+            protocol,
+            now,
+            [sprint],
+            lambda: [repo.save_sprint(data.team.key, sprint)],
+        )  # Protokoll: nicht in der Meldung
+
     if save(
-        with_sprints(data, [sprint]),
+        after,
         [f"{sprint.id}.yaml"],
-        lambda: [repo.save_sprint(data.team.key, sprint)],
+        write,
         tag=f"{data.team.key}/{sprint.id}" if tag else None,
         flash=True,
     ):
@@ -2472,15 +2694,8 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 runs=f"{result.runs:,}",
                 samples=result.samples,
             )
-            if result.samples < MIN_SAMPLES:
-                st.warning(
-                    t(
-                        "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
-                        "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
-                        samples=result.samples,
-                        min=MIN_SAMPLES,
-                    )
-                )
+            if note := completion_note(result.samples):
+                st.warning(note)
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:
@@ -2598,6 +2813,43 @@ def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
         plan=fmt(d.plan, 2),
         unit=unit,
     )
+
+
+def _protocols(repo: Repository, data: TeamData, sprint_id: str, kind: str) -> None:
+    """Die bei jedem Speichern geschriebenen Protokolle eines Termins dieses Sprints, auch
+    ältere und als obsolet umbenannte."""
+    found = [f for f in list_protocols(repo, data.team.key, sprint_id) if f[1] == kind]
+    with st.expander(
+        t("Protokolle: {kind} ({count})", kind=kind_title(kind), count=len(found)),
+        icon=":material/history:",
+    ):
+        if not found:
+            st.caption(
+                t(
+                    "Noch kein Protokoll: Es entsteht mit dem Schritt Commitment "
+                    "(Planning speichern)."
+                )
+                if kind == PLANNING
+                else t("Noch kein Protokoll: Es entsteht, wenn dieser Termin gespeichert wird.")
+            )
+            return
+        labels = {
+            path: f"{at:%d.%m.%Y %H:%M:%S}" + (t(" (obsolet)") if obsolete else "")
+            for at, _, obsolete, path in found
+        }
+        chosen = st.selectbox(
+            t("Stand"),
+            list(labels),
+            format_func=labels.__getitem__,
+            key=f"protokoll-{kind}-{sprint_id}",
+        )
+        try:
+            text = chosen.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as e:
+            st.error(t("Protokoll nicht lesbar: {reason}", reason=str(e)))
+            return
+        st.markdown(text)
+        st.caption(t("Datei: `{path}`", path=chosen))
 
 
 def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
@@ -2738,6 +2990,8 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc_view, shown, "capacity"),
         )
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
+        if note := band_note(fc_view, shown, without_assumption=bool(assumed)):
+            st.caption(note)
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
             st.caption(
@@ -2814,13 +3068,66 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if assumed:
             plan = fc_preview.entry(after.id).result.plan if fc_preview.entry(after.id) else None
             to_save = record_prognoses(data, after, assumed, plan, comment)
-        if save(
-            with_sprints(data, to_save),
-            [f"{s.id}.yaml" for s in to_save],
-            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
-            flash=True,
-        ):
+        now = datetime.now().replace(microsecond=0)
+        absent = {pid: days for pid, days in expected.items() if days}
+        names = {p.id: p.name for p in data.people}
+        protocol = render_protocol(
+            PREPLANNING,
+            data.team.name or data.team.key,
+            after.id,
+            now=now,
+            facts=[
+                (t("Kapazität (PT)"), fmt(shown.result.plan_capacity, 1)),
+                (t("Prognose aktuell ({unit})", unit=unit), fmt(shown_plan, 2)),
+                (t("Verteilbar"), f"{fmt(d.available, 2)} {unit}"),
+                (t("Vorgesehen (Σ)"), f"{fmt(total, 2)} {unit}"),
+            ],
+            d=d,
+            comment=comment,
+            notes=[
+                (
+                    t("Annahmen des Teams"),
+                    [
+                        t(
+                            "Sprint {id}: Commitment {ist} {unit}, voraussichtlich nicht erledigt "
+                            "{not_done}, zusätzlich erledigt {extra} → erwartet erledigt "
+                            "{done} {unit}",
+                            id=sid,
+                            ist=fmt(a.forecast_ist, 2),
+                            not_done=fmt(a.not_done, 2),
+                            extra=fmt(a.additional_done, 2),
+                            done=fmt(a.expected, 2),
+                            unit=unit,
+                        )
+                        for sid, a in assumed.items()
+                    ],
+                ),
+                (
+                    t("Angekündigte Fehltage"),
+                    [
+                        f"{names.get(pid, pid)}: {fmt(days, 1)} {t('Tage')}"
+                        for pid, days in absent.items()
+                    ],
+                ),
+            ],
+            show_po=data.team.features.po,
+        )
+
+        def write() -> list[Path]:
+            return save_with_protocol(
+                repo,
+                data.team.key,
+                after.id,
+                PREPLANNING,
+                protocol,
+                now,
+                to_save,
+                lambda: save_sprints_together(repo, data.team.key, to_save),
+            )  # Protokoll: nicht in der Meldung
+
+        if save(with_sprints(data, to_save), [f"{s.id}.yaml" for s in to_save], write, flash=True):
             st.rerun()  # die Schrittleiste oben zeigt den gespeicherten Stand
+    _protocols(repo, data, sprint.id, PREPLANNING)
     page_link("planning", t("Weiter zum Planning"))
 
 
@@ -3271,8 +3578,21 @@ def page_new_team(repo: Repository) -> None:
     )
     if not key:
         return
-    if repo.exists(key):
-        st.error(t("Team {team} existiert bereits.", team=repr(key)))
+    if clash := repo.clashing_team(key):
+        if clash == key:
+            st.error(t("Team {team} existiert bereits.", team=repr(key)))
+        else:
+            st.error(
+                t(
+                    "Team {team} existiert bereits (als {existing}; Windows und macOS "
+                    "unterscheiden Ordner nicht nach Groß- und Kleinschreibung).",
+                    team=repr(key),
+                    existing=repr(clash),
+                )
+            )
+        return
+    if problem := team_key_problem(key):
+        st.error(problem)
         return
     team = Team(key=key, name=key.upper())
     team.sprint.first_start = today()
@@ -3434,7 +3754,8 @@ def _active_repo_caption(repo: Repository) -> None:
     root = repo.root.resolve()
     shown = "/".join(p for p in (root.parent.name, root.name) if p) or str(root)
     st.markdown(
-        f"**{t('Datenordner')}:** `{shown}`" + (f" · {t('Branch')} `{branch}`" if branch else "")
+        f"**{t('Datenordner')}:** `{shown}`"
+        + (f" · {t('Branch')} {md_code(branch)}" if branch else "")
     )
 
 
@@ -3461,23 +3782,34 @@ def _browse(key: str) -> None:
         st.session_state["browse-error"] = True
 
 
-def _path_input(label: str, key: str, default: str) -> Path:
+def _path_input(label: str, key: str, default: str) -> Path | None:
+    """Pfadfeld mit „Durchsuchen“. ``None``, wenn das Feld leer ist oder ein Benutzerkürzel
+    (``~``, ``~name``) nicht aufzulösen ist, weil der Benutzerordner unbekannt ist: Die Knöpfe
+    bleiben dann gesperrt."""
     st.session_state.setdefault(key, default)
     left, right = st.columns([5, 1], vertical_alignment="bottom")
     raw = left.text_input(label, key=key)
     right.button(t("Durchsuchen …"), key=f"{key}-browse", on_click=_browse, args=(key,))
     if st.session_state.pop("browse-error", False):
         st.caption(t("Kein Ordnerdialog verfügbar – bitte den Pfad eintippen."))
-    return Path(raw.strip()).expanduser()
+    if not raw.strip():  # sonst würde „.“ (das Arbeitsverzeichnis des Servers) gemeint
+        return None
+    try:
+        return Path(raw.strip()).expanduser()
+    except RuntimeError:
+        st.error(
+            t(
+                "Benutzerordner unbekannt: {path} lässt sich nicht auflösen. Bitte den "
+                "vollständigen Pfad ohne „~“ eintippen.",
+                path=md_code(raw.strip()),
+            )
+        )
+        return None
 
 
 # --- Server (Remote) einrichten -------------------------------------------------------------
 # Alle Schlüssel beginnen mit ``git-remote-``: Sie überstehen veraltete Eingaben
 # (``_discard_stale_inputs``), und ein Wechsel des Datenordners verwirft sie (``_use_data_dir``).
-
-# Fehlerarten zu einer eingegebenen Adresse: Ihre Meldung nennt nur den Grund, die Überschrift
-# (``git_title``) liefert die Oberfläche.
-ADDRESS_ERRORS = {"bad_url", "secret_in_url", "insecure_url"}
 
 
 def _remote_url_changed() -> None:
@@ -3672,7 +4004,8 @@ def _remote_section(repo: Repository) -> None:
         help=t(
             "Erlaubt sind https://…, ssh://…, git@server:pfad und ein vollständiger "
             "Ordnerpfad. Benutzername, Kennwort und Token gehören nicht in die Adresse; die "
-            "Anmeldung übernimmt Git bzw. der Anmeldedienst des Rechners."
+            "Anmeldung übernimmt der Anmeldedienst des Rechners, fehlt sie, erklärt die App den "
+            "nächsten Schritt."
         ),
     )
     if st.session_state.pop("git-remote-rejected", False):
@@ -3729,11 +4062,14 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
     else:
         root = git_root(repo.root)
         st.markdown(t("Aktuell: `{path}`", path=repo.root.resolve()))
-        st.caption(
-            t("Git-Repository: `{path}`", path=root)
-            if root
-            else t("Achtung: liegt in keinem Git-Repository.")
-        )
+        if problem := git_problem(repo.root):
+            _show_problem(problem)
+        else:
+            st.caption(
+                t("Git-Repository: `{path}`", path=root)
+                if root
+                else t("Achtung: liegt in keinem Git-Repository.")
+            )
         _remote_section(repo)
     if recent := _recent_dirs(repo):
         st.subheader(t("Zuletzt benutzt"))
@@ -3765,27 +4101,40 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
     home = Path.home()
     with choose:
         path = _path_input(t("Ordner"), "data-path", str(repo.root.resolve()))
-        if st.button(t("Übernehmen"), type="primary", key="data-choose"):
-            if not path.is_dir():
-                st.error(t("Ordner nicht gefunden: {path}", path=path))
-            elif git_root(path) is None:
-                st.warning(
-                    t(
-                        "Der Ordner liegt in keinem Git-Repository. Das Programm funktioniert "
-                        "auch ohne Git – nur Commit und Verlauf stehen dann nicht zur Verfügung. "
-                        "Du kannst hier ein Repository anlegen oder den Ordner ohne Git verwenden."
+        if st.button(t("Übernehmen"), type="primary", key="data-choose", disabled=path is None):
+            try:
+                if not path.is_dir():
+                    st.error(t("Ordner nicht gefunden: {path}", path=path))
+                elif problem := git_problem(path):
+                    # Git lehnt den Ordner ab, die App funktioniert aber auch ohne Git: Neben dem
+                    # Grund bleibt „Ohne Git verwenden“ (ein Repository anlegen geht dort nicht).
+                    _show_problem(problem)
+                    st.session_state["offer-init"] = str(path)
+                elif git_root(path) is None:
+                    st.warning(
+                        t(
+                            "Der Ordner liegt in keinem Git-Repository. Das Programm "
+                            "funktioniert auch ohne Git – nur Commit und Verlauf stehen dann "
+                            "nicht zur Verfügung. Du kannst hier ein Repository anlegen oder "
+                            "den Ordner ohne Git verwenden."
+                        )
                     )
-                )
-                st.session_state["offer-init"] = str(path)
-            elif problem := _use_data_dir(teams_dir(path) or path):
-                st.error(problem)
-            else:
-                st.rerun()
+                    st.session_state["offer-init"] = str(path)
+                elif problem := _use_data_dir(teams_dir(path) or path):
+                    st.error(problem)
+                else:
+                    st.rerun()
+            except OSError as e:  # kein Zutritt, nicht lesbar: eine Meldung statt der Fehlerseite
+                _show_problem(folder_problem(path, e))
         offer = st.session_state.get("offer-init")
         if offer and st.button(
             t("Ohne Git verwenden"), key="data-without-git", disabled=not Path(offer).is_dir()
         ):
-            target = teams_dir(Path(offer)) or Path(offer)
+            try:
+                target = teams_dir(Path(offer)) or Path(offer)
+            except OSError as e:
+                _show_problem(folder_problem(Path(offer), e))
+                st.stop()
             # Bewusste Wahl: Ohne Teams und ohne Git nicht wieder zur Einrichtung, sondern
             # weiter zu „Neues Team“ – dauerhaft je Ordner, auch nach dem Neuladen des Tabs.
             try:
@@ -3801,15 +4150,20 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 else:
                     st.session_state.pop("offer-init", None)
                     st.rerun()
-        if offer and st.button(
-            t("Git-Repository in {path} anlegen", path=offer), key="data-init-here"
+        if (
+            offer
+            and not git_problem(Path(offer))
+            and st.button(t("Git-Repository in {path} anlegen", path=offer), key="data-init-here")
         ):
             try:
                 target = init_data_repository(Path(offer), teams_folder=False)
+                found = teams_dir(target) or target
             except GitError as e:
-                st.error(str(e))
+                _show_problem(e)
+            except OSError as e:
+                _show_problem(folder_problem(Path(offer), e))
             else:
-                if problem := _use_data_dir(teams_dir(target) or target):
+                if problem := _use_data_dir(found):
                     st.error(problem)
                 else:
                     st.session_state.pop("offer-init", None)
@@ -3818,12 +4172,19 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
         st.caption(
             t(
                 "Legt den Ordner mit `git init`, einer `.gitignore` (keine Tabellenkalkulationen) "
-                "und dem Unterordner `teams` an. Danach unter **Neues Team** ein Team anlegen."
+                "und dem Unterordner `teams` an; darin steht eine `.gitattributes` (YAML und "
+                "Berichte mit LF), die mit den Daten geteilt wird. Danach unter **Neues Team** ein "
+                "Team anlegen."
             )
         )
         path = _path_input(t("Neuer Ordner"), "data-new", str(home / "sprint-daten"))
-        if st.button(t("Anlegen"), type="primary", key="data-create"):
-            if path.exists() and any(path.iterdir()) and teams_dir(path) is None:
+        if st.button(t("Anlegen"), type="primary", key="data-create", disabled=path is None):
+            try:
+                occupied = path.is_dir() and any(path.iterdir()) and teams_dir(path) is None
+            except OSError as e:  # nicht lesbar: ob er leer ist, lässt sich nicht sagen
+                _show_problem(folder_problem(path, e))
+                st.stop()
+            if occupied:
                 st.error(
                     t(
                         "{path} ist nicht leer – bitte einen leeren oder neuen Ordner wählen.",
@@ -3834,7 +4195,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 try:
                     target = init_data_repository(path)
                 except GitError as e:
-                    st.error(str(e))
+                    _show_problem(e)
                 else:
                     if problem := _use_data_dir(target):
                         st.error(problem)
@@ -3851,14 +4212,17 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             t("Adresse"), placeholder="https://git.example.com/team/sprint-daten.git"
         )
         path = _path_input(t("Zielordner"), "data-clone", str(home / "sprint-daten"))
-        if st.button(t("Klonen"), type="primary", key="data-clone-go", disabled=not url.strip()):
+        if st.button(
+            t("Klonen"),
+            type="primary",
+            key="data-clone-go",
+            disabled=not url.strip() or path is None,
+        ):
             with st.spinner(t("Klone …")):
                 try:
                     clone_repository(url.strip(), path)
                 except GitError as e:
-                    # Die Meldungen zur Adresse tragen ihre Überschrift nicht mehr selbst.
-                    detail = f"{git_title(e.kind)}: {e}" if e.kind in ADDRESS_ERRORS else str(e)
-                    st.error(t("Klonen fehlgeschlagen: {error}", error=detail))
+                    _show_problem(_clone_problem(e))
                 else:
                     if problem := _use_data_dir(teams_dir(path) or path):
                         st.error(problem)
@@ -3882,8 +4246,10 @@ def page_help(repo: Repository) -> None:
     st.markdown(
         t(
             "Die Weboberfläche bearbeitet dieselben Dateien wie die Kommandozeile – beides lässt "
-            "sich mischen. Gespeichert wird lokal; mit **Änderungen committen** in der "
-            "Seitenleiste landen die Änderungen im Git-Repository der Daten."
+            "sich mischen. Gespeichert wird lokal. Liegen die Daten in einem Git-Repository, "
+            "sichert **Änderungen committen** in der Seitenleiste die Änderungen dort; hat das "
+            "Team einen Server, sichert **Speichern und teilen** sie und teilt sie mit dem Team. "
+            "Mehr im Reiter „Zusammenarbeit (Git)“."
         )
     )
     ablauf, begriffe, felder, team, zusammenarbeit, befehle = st.tabs(
@@ -4078,23 +4444,132 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
     st.session_state["commit_message"] = _commit_default()
 
 
-def _sync_clicked(
-    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
-) -> None:
-    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
-    message = st.session_state.get("commit_message", "").strip() or _commit_default()
-    use_tags = tags and st.session_state.get("use_tags", True)
-    result = sync(
-        root,
-        message,
-        tags if use_tags else None,
-        today(),
-        allow_invalid=allow_invalid,
-        allow_unrelated=allow_unrelated,
-    )
+# „Speichern und teilen“ läuft im Rückruf des Knopfs, im Skript-Thread. Kommt währenddessen eine
+# weitere Anforderung des Browsers (zweiter Klick, Eingabe, ein nachlaufender Durchlauf nach dem
+# Speichern), startet Streamlit sofort einen neuen Durchlauf und stoppt den alten bei dessen
+# nächster Berührung von ``st.session_state``. Der alte Rückruf bricht dann nach dem Abgleich ab,
+# bevor er das Ergebnis ablegt: Der Abgleich ist gelaufen, die Meldung fehlt für immer, und der
+# neue Durchlauf zeigt die Seitenleiste mitten im Abgleich (Commit gemacht, Zusammenführen und
+# Hochladen scheinbar nicht). Darum legt der Rückruf das Ergebnis zuerst in einem einfachen
+# Speicher ab (``_SyncSlot``, ohne Haltepunkt von Streamlit); jeder Durchlauf wartet zu Beginn
+# begrenzte Zeit auf einen noch laufenden Abgleich und holt dessen Ergebnis nach
+# (``collect_sync_result``); ein zweiter Klick startet keinen zweiten Abgleich und sagt das.
+# Alles gehört zu einer Browser-Sitzung (Schlüssel: Sitzungs-ID von Streamlit), nicht zum Prozess:
+# Ein Abgleich in einem Fenster hält die anderen nicht auf. Die Ergebnisse tragen den Datenordner:
+# Wechselt die Sitzung den Ordner, gelten sie nicht mehr.
+SYNC_WAIT_SECONDS = 10.0  # so lange wartet ein neuer Durchlauf auf einen laufenden Abgleich
+SYNC_SLOT_TTL = 3600.0  # so lange bleibt der Speicher einer ruhenden (verwaisten) Sitzung
+SYNC_RUNNING_KEY = "sync-running"  # Sitzungszustand: beim Zeichnen lief der Abgleich noch
+
+
+def _now() -> float:
+    return time.monotonic()
+
+
+class _SyncSlot:
+    """Sperre („läuft gerade ein Abgleich?“) und noch nicht übernommene Ergebnisse einer
+    Browser-Sitzung. Alle Zugriffe sind kurz und ohne Streamlit, also auch aus einem bereits
+    gestoppten Durchlauf gefahrlos."""
+
+    def __init__(self) -> None:
+        self._cond = threading.Condition()
+        self._running = False
+        self._done: dict[str, list[SyncResult]] = {}  # Datenordner → Ergebnisse, älteste zuerst
+        self.touched = _now()
+
+    @property
+    def running(self) -> bool:
+        with self._cond:
+            return self._running
+
+    def begin(self) -> bool:
+        """Nicht blockierend: ``False``, wenn schon ein Abgleich läuft."""
+        with self._cond:
+            if self._running:
+                return False
+            self._running = True
+            return True
+
+    def end(self) -> None:
+        with self._cond:
+            self._running = False
+            self._cond.notify_all()
+
+    def wait_idle(self, timeout: float) -> bool:
+        """Wartet höchstens ``timeout`` Sekunden, bis kein Abgleich mehr läuft; ``False``, wenn
+        er danach noch läuft."""
+        with self._cond:
+            return self._cond.wait_for(lambda: not self._running, timeout)
+
+    def put(self, root: Path, result: SyncResult) -> None:
+        with self._cond:
+            self._done.setdefault(str(root), []).append(result)
+
+    def pending(self, root: Path) -> list[SyncResult]:
+        """Die Ergebnisse für diesen Datenordner (älteste zuerst). Die für andere Datenordner
+        verfallen: Sie gehören zu einem Ordner, den diese Sitzung verlassen hat."""
+        with self._cond:
+            mine = str(root)
+            for other in [folder for folder in self._done if folder != mine]:
+                del self._done[other]
+            return list(self._done.get(mine, ()))
+
+    def discard(self, root: Path, result: SyncResult) -> None:
+        with self._cond:
+            results = self._done.get(str(root), [])
+            for i, candidate in enumerate(results):
+                if candidate is result:
+                    del results[i]
+                    break
+            if not results:
+                self._done.pop(str(root), None)
+
+
+_SYNC_SLOTS: dict[str, _SyncSlot] = {}  # Sitzungs-ID → Speicher
+_SYNC_SLOTS_GUARD = threading.Lock()
+
+
+def _session_key() -> str:
+    ctx = get_script_run_ctx()
+    return ctx.session_id if ctx is not None else ""
+
+
+def _find_sync_slot(create: bool) -> _SyncSlot | None:
+    """Der Speicher dieser Sitzung. Beim Zugriff werden die Speicher verwaister Sitzungen
+    entfernt: lange nicht benutzt und ohne laufenden Abgleich (die eigene Sitzung gilt als
+    gerade benutzt)."""
+    key = _session_key()
+    now = _now()
+    with _SYNC_SLOTS_GUARD:
+        slot = _SYNC_SLOTS.get(key)
+        if slot is None and create:
+            slot = _SYNC_SLOTS[key] = _SyncSlot()
+        if slot is not None:
+            slot.touched = now
+        for other, candidate in list(_SYNC_SLOTS.items()):
+            if now - candidate.touched > SYNC_SLOT_TTL and not candidate.running:
+                del _SYNC_SLOTS[other]
+        return slot
+
+
+def _sync_slot() -> _SyncSlot:
+    slot = _find_sync_slot(create=True)
+    assert slot is not None
+    return slot
+
+
+def _remember_sync_result(result: SyncResult) -> None:
+    """Legt das Ergebnis eines Abgleichs im Sitzungszustand ab und bereinigt den Zustand, der
+    davon abhängt. Darf mehrfach laufen (auch nach einem abgebrochenen ersten Versuch)."""
     if result.committed:
         st.session_state["pending_tags"] = []
         st.session_state["commit_message"] = _commit_default()
+    # Ein noch nicht gezeigtes früheres Ergebnis wird nicht überschrieben, sondern wandert in
+    # die Liste der früheren (die Seitenleiste zeigt beide). Mehrfaches Ausführen ändert nichts.
+    previous = st.session_state.get("sync_result")
+    earlier = st.session_state.get("sync_earlier", [])
+    if previous is not None and previous is not result and all(r is not previous for r in earlier):
+        st.session_state["sync_earlier"] = [*earlier, previous]
     st.session_state["sync_result"] = result
     st.session_state.pop("tags-server", None)  # der Abgleich der Tags ist nicht mehr aktuell
     st.session_state.pop("tags-server-failed", None)
@@ -4108,6 +4583,66 @@ def _sync_clicked(
         clear_team_cache()  # Dateien haben sich geändert: neu laden
 
 
+def _apply_sync_results(slot: _SyncSlot, root: Path) -> None:
+    """Übernimmt die abgelegten Ergebnisse dieses Datenordners in den Sitzungszustand, älteste
+    zuerst. Ein Ergebnis bleibt im Speicher, bis es übernommen ist: Bricht auch dieser Versuch
+    ab, holt der nächste Durchlauf es nach."""
+    for result in slot.pending(root):
+        _remember_sync_result(result)
+        slot.discard(root, result)
+
+
+def collect_sync_result() -> None:
+    """Am Anfang jedes Durchlaufs, vor jeder Git-Abfrage: begrenzte Zeit auf einen noch
+    laufenden Abgleich warten (er gehört zu einem gestoppten, älteren Durchlauf oder einem
+    früheren Klick) und sein Ergebnis übernehmen, falls jener Rückruf es nicht mehr ablegen
+    konnte. Dauert der Abgleich länger, wird weitergezeichnet; die Seitenleiste sagt, dass er
+    noch läuft."""
+    slot = _find_sync_slot(create=False)
+    if slot is None:  # in dieser Sitzung wurde nie geteilt
+        st.session_state.pop(SYNC_RUNNING_KEY, None)
+        return
+    if slot.wait_idle(SYNC_WAIT_SECONDS):
+        st.session_state.pop(SYNC_RUNNING_KEY, None)
+    else:
+        st.session_state[SYNC_RUNNING_KEY] = True
+    _apply_sync_results(slot, data_dir())
+
+
+def _sync_clicked(
+    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
+) -> None:
+    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
+    slot = _sync_slot()
+    if not slot.begin():  # ein Abgleich dieser Sitzung läuft noch: nicht noch einen starten
+        st.session_state.setdefault("flash", []).append(
+            (
+                "warning",
+                t(
+                    "Ein Abgleich lief noch: Dieser Klick wurde nicht ausgeführt. Bitte nach dem "
+                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal „Speichern und "
+                    "teilen“ wählen."
+                ),
+            )
+        )
+        return
+    try:
+        message = st.session_state.get("commit_message", "").strip() or _commit_default()
+        use_tags = tags and st.session_state.get("use_tags", True)
+        result = sync(
+            root,
+            message,
+            tags if use_tags else None,
+            today(),
+            allow_invalid=allow_invalid,
+            allow_unrelated=allow_unrelated,
+        )
+        slot.put(root, result)  # vor dem Freigeben: Wer danach aufwacht, findet es
+    finally:
+        slot.end()
+    _apply_sync_results(slot, root)
+
+
 def _unrelated_cancel() -> None:
     st.session_state.pop("unrelated", None)
     st.session_state.pop("unrelated-confirm", None)
@@ -4118,12 +4653,12 @@ def _unrelated_go(root: Path, tags: list[str]) -> None:
     _sync_clicked(root, tags, allow_unrelated=True)
 
 
-def _unrelated_dialog(root: Path, tags: list[str], error: GitError) -> None:
+def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesError) -> None:
     """Der Server hat eine fremde Historie: erklären und nur nach ausdrücklicher Bestätigung
     zusammenführen. Vorgabe ist Abbrechen (Knopf gesperrt, bis das Kästchen gesetzt ist)."""
     with st.container(border=True):
         st.error(f"**{git_title(error.kind)}**  \n{error.hint}")
-        st.markdown(str(error))  # nennt Server-Adresse und Branch
+        st.markdown(error.render(md_code))  # nennt Server-Adresse und Branch: als Code
         page_link("datenordner", t("Server-Adresse ändern"))  # meist ist die Adresse das Problem
         sure = st.checkbox(t("Ja, beide Historien zusammenführen"), key="unrelated-confirm")
         st.button(
@@ -4153,14 +4688,18 @@ def _abort_clicked(root: Path) -> None:
 
 def _reattach_clicked(root: Path) -> None:
     try:
-        branch = reattach(root)
+        done = reattach(root)
     except GitError as e:
         st.session_state["commit_error"] = e
     else:
         clear_team_cache()
-        st.session_state["flash"] = [
-            ("success", t("Zurück auf den Branch {branch}.", branch=branch))
-        ]
+        text = t("Zurück auf den Branch {branch}.", branch=md_code(done.branch))
+        if done.rescue:
+            text += " " + t(
+                "Die Commits vom Stand ohne Branch liegen auf dem Rettungsbranch {rescue}.",
+                rescue=md_code(done.rescue),
+            )
+        st.session_state["flash"] = [("success", text)]
 
 
 def _identity_clicked() -> None:
@@ -4174,19 +4713,43 @@ def _identity_clicked() -> None:
         ]
 
 
-def _show_problem(error: GitError) -> None:
-    """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git."""
-    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error}")
+def _clone_problem(error: GitError) -> GitError:
+    """Beim Klonen gibt es keine eigenen Änderungen und kein „Speichern und teilen“: Die
+    Hinweise für Server nicht erreichbar und nicht gefunden sprechen vom Klonen."""
+    hints = {
+        "offline": t(
+            "Der Server ist nicht erreichbar. Internetverbindung bzw. VPN prüfen und danach noch "
+            "einmal „Klonen“ wählen."
+        ),
+        "not_found": t(
+            "Das Repository wurde nicht gefunden. Bitte die Adresse prüfen (Schreibweise, Groß- "
+            "und Kleinschreibung) oder beim Betreiber des Servers nachfragen, ob es existiert "
+            "und du Zugriff hast."
+        ),
+    }
+    if error.kind not in hints:
+        return error
+    return GitError(str(error), error.kind, hints[error.kind], error.raw)
+
+
+def _show_problem(error: GitError, interactive: bool = True) -> None:
+    """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git. Ohne
+    Hinweis steht die Meldung selbst da; Ausgabe von Git und vom Server (Namen und Zeilen, die
+    andere bestimmen) als Code, nie als Markdown. Ohne ``interactive`` keine Eingabefelder
+    (Name, E-Mail): Die Felder gibt es nur einmal je Seite."""
+    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error.render(md_code_lines)}")
     if error.hint and str(error):
         with st.expander(t("Technische Meldung")):
             st.code(str(error), language=None)
-    if error.kind == "identity":
+    if interactive and error.kind == "identity":
         st.text_input(t("Name"), key="git-name")
         st.text_input(t("E-Mail-Adresse"), key="git-email")
         st.button(t("Speichern"), key="git-identity", on_click=_identity_clicked)
 
 
-def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
+def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: bool = True) -> None:
+    """Meldung zu einem Abgleich. Ein früherer, noch nicht gezeigter Abgleich (``latest`` ist
+    falsch) erscheint ohne Knöpfe und Eingabefelder: Die gibt es nur für den letzten."""
     done = []
     if result.committed:
         done.append(t("Eigene Änderungen gesichert ({rev})", rev=result.committed))
@@ -4200,18 +4763,19 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
         if done:
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
         if result.error.kind != "unrelated_histories":  # die Rückfrage steht darunter
-            _show_problem(result.error)
-        if result.error.kind == "not_found":  # meist stimmt die Adresse nicht
+            _show_problem(result.error, interactive=latest)
+        if latest and result.error.kind == "not_found":  # meist stimmt die Adresse nicht
             page_link("datenordner", t("Server-Adresse ändern"))
         if result.validation:
             st.markdown("\n".join(f"- {line}" for line in result.validation))
-            st.button(
-                t("Trotzdem teilen"),
-                key="git-force",
-                on_click=_sync_clicked,
-                args=(root, tags, True),
-                help=t("Lädt die Daten hoch, obwohl die Prüfung neue Fehler meldet."),
-            )
+            if latest:
+                st.button(
+                    t("Trotzdem teilen"),
+                    key="git-force",
+                    on_click=_sync_clicked,
+                    args=(root, tags, True),
+                    help=t("Lädt die Daten hoch, obwohl die Prüfung neue Fehler meldet."),
+                )
     for note in result.notes:  # Hinweise, auch wenn alles gelang
         st.warning(note)
     if result.pulled:
@@ -4221,7 +4785,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
 
 def _show_incoming(commits: list[Commit], files: list[tuple[str, str]]) -> None:
     for c in commits:
-        st.markdown(f"`{c.rev}` {c.day} **{c.author}**: {c.subject}")
+        # Autor und Betreff bestimmen andere: als Code, nie als Markdown.
+        st.markdown(f"`{c.rev}` {c.day} {md_code(c.author)}: {md_code(c.subject)}")
     if files:
         st.code("\n".join(f"{status:>2} {file}" for status, file in files), language=None)
 
@@ -4246,13 +4811,17 @@ def _status_text(state: SyncState) -> str:
         # leerer Server): „synchron“ wäre falsch, es liegt noch nichts dort.
         parts.append(t("noch nicht auf dem Server – „Speichern und teilen“ lädt hoch"))
     elif not parts:
-        parts.append(t("synchron mit {upstream}", upstream=state.upstream))
+        parts.append(t("synchron mit {upstream}", upstream=md_code(state.upstream)))
     if state.fetch_error is not None:
-        parts.append(
-            t("Server nicht erreichbar")
-            if state.offline
-            else t("Server meldet: {kind}", kind=git_title(state.fetch_error.kind))
-        )
+        if state.offline:
+            parts.append(t("Server nicht erreichbar"))
+        elif state.fetch_error.kind in {"not_writable", "locked", "unsafe_directory"}:
+            # Ein Fehler auf diesem Rechner, nichts, was der Server gemeldet hätte.
+            parts.append(
+                t("Abgleich nicht möglich: {kind}", kind=git_title(state.fetch_error.kind))
+            )
+        else:
+            parts.append(t("Server meldet: {kind}", kind=git_title(state.fetch_error.kind)))
     elif state.fetched_at is None:
         parts.append(t("Serverstand noch nicht geprüft"))
     else:
@@ -4270,7 +4839,10 @@ def _git_panel(repo: Repository) -> None:
         _show_problem(classify("", missing=True))
         return
     if git_root(repo.root) is None:
-        st.caption(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
+        if problem := git_problem(repo.root):
+            _show_problem(problem)
+        else:
+            st.caption(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
         return
     if last := st.session_state.pop("last_commit", None):
         st.success(t("Committet ({rev}). Geteilt wird erst mit „Speichern und teilen“.", rev=last))
@@ -4279,10 +4851,27 @@ def _git_panel(repo: Repository) -> None:
             _show_problem(error)
         else:
             st.error(error)
+    earlier = st.session_state.pop("sync_earlier", [])
     if result := st.session_state.pop("sync_result", None):
-        _show_sync_result(result, repo.root, list(st.session_state.get("pending_tags", [])))
+        tags_now = list(st.session_state.get("pending_tags", []))
+        for old in earlier:  # nicht gezeigte Abgleiche, die der letzte nicht überschrieben hat
+            _show_sync_result(old, repo.root, tags_now, latest=False)
+        _show_sync_result(result, repo.root, tags_now)
     if unrelated := st.session_state.get("unrelated"):
         _unrelated_dialog(repo.root, list(st.session_state.get("pending_tags", [])), unrelated)
+    if st.session_state.get(SYNC_RUNNING_KEY):
+        # Ein Abgleich dieser Sitzung läuft noch (er dauert länger, als der Durchlauf warten
+        # wollte). Keine Git-Abfragen daneben: Sie zeigten den Stand mittendrin, und ein
+        # gleichzeitiges ``git status`` kann ``git add`` des Abgleichs an der Index-Sperre
+        # scheitern lassen.
+        st.info(
+            t(
+                "Der Abgleich mit dem Server läuft noch. Mit „Aktualisieren“ erscheint sein "
+                "Ergebnis, sobald er fertig ist."
+            )
+        )
+        st.button(t("Aktualisieren"), key="git-sync-refresh", icon=":material/refresh:")
+        return
     try:
         changes = cached_pending_changes(repo.root)
         state = cached_sync_state(repo.root)
@@ -4413,7 +5002,8 @@ def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> No
     clear_team_cache()
     kind = "success"
     if isinstance(result, GitError):  # Warnung, z. B. Tag nur lokal gesetzt
-        kind, text = "warning", t("Nur lokal erledigt: {error}", error=result.full())
+        # Die Meldung nennt Tags und Zeilen des Servers (Hooks): als Code, nie als Markdown.
+        kind, text = "warning", t("Nur lokal erledigt: {error}", error=result.full(md_code_lines))
     else:
         text = ok(result)
     st.session_state["flash"] = [(kind, text)]
@@ -4440,7 +5030,7 @@ def _tag_delete_go(root: Path, name: str) -> None:
     st.session_state.pop(f"tag-confirm-{name}", None)  # die Bestätigung gilt nur einmal
     _git_action(
         lambda: delete_tag(root, name),
-        lambda _: t("Tag {name} gelöscht.", name=name),
+        lambda _: t("Tag {name} gelöscht.", name=md_code(name)),
     )
     _tags_recheck(root)
 
@@ -4448,7 +5038,7 @@ def _tag_delete_go(root: Path, name: str) -> None:
 def _tag_upload_go(root: Path, name: str) -> None:
     _git_action(
         lambda: upload_tag(root, name),
-        lambda _: t("Tag {name} zum Server übertragen.", name=name),
+        lambda _: t("Tag {name} zum Server übertragen.", name=md_code(name)),
     )
     _tags_recheck(root)
 
@@ -4485,7 +5075,7 @@ def _discard_go(root: Path, files: list[str] | None) -> None:
     _git_action(
         lambda: discard(root, files),
         lambda trash: (
-            t("Änderungen verworfen. Sicherungskopie: {path}", path=trash)
+            t("Änderungen verworfen. Sicherungskopie: {path}", path=md_code(str(trash)))
             if trash
             else t("Änderungen verworfen.")
         ),
@@ -4507,7 +5097,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
         st.checkbox(
             t(
                 "{file} – {status} (+{added} −{removed} Zeilen)",
-                file=item.file,
+                file=md_code(item.file),  # auch Labels von Widgets deuten Markdown
                 status=_lost_status(item),
                 added=item.added,
                 removed=item.removed,
@@ -4530,7 +5120,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
                 "Das geht verloren ({count} Datei(en)):  \n{list}",
                 count=len(shown),
                 list="  \n".join(
-                    f"`{i.file}` – {_lost_status(i)}, +{i.added} −{i.removed}" for i in shown
+                    f"{md_code(i.file)} – {_lost_status(i)}, +{i.added} −{i.removed}" for i in shown
                 ),
             )
         )
@@ -4591,7 +5181,7 @@ def _tab_history(repo: Repository, locked: bool = False) -> None:
         help=t(
             "Setzt {scope} auf den Stand nach dieser Änderung zurück. Das ist selbst eine "
             "Änderung und kann hier wieder zurückgenommen werden.",
-            scope=rel,
+            scope=md_code(rel),
         ),
     )
     right.button(
@@ -4632,9 +5222,14 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
             )
         )
     if tags:
+        # st.table deutet Markdown in allen Zellen; Namen und Nachrichten der Tags bestimmen
+        # andere.
         st.table(
             pd.DataFrame(
-                [(tag.name, _tag_state(tag), tag.target, tag.day, tag.subject) for tag in tags],
+                [
+                    (md_code(tag.name), _tag_state(tag), tag.target, tag.day, md_code(tag.subject))
+                    for tag in tags
+                ],
                 columns=[t("Tag"), t("Server"), t("Stand"), t("Datum"), t("Nachricht")],
             ).set_index(t("Tag"))
         )
@@ -4660,7 +5255,7 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
         if st.form_submit_button(t("Tag setzen"), disabled=locked):
             _git_action(
                 lambda: set_tag(repo.root, name, target.rev if target else "HEAD", message or None),
-                lambda _: t("Tag {name} gesetzt und geteilt.", name=name),
+                lambda _: t("Tag {name} gesetzt und geteilt.", name=md_code(name)),
             )
             _tags_recheck(repo.root)
             st.rerun()
@@ -4689,7 +5284,10 @@ def page_history(repo: Repository) -> None:
         _show_problem(classify("", missing=True))
         return
     if git_root(repo.root) is None:
-        st.info(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
+        if problem := git_problem(repo.root):
+            _show_problem(problem)
+        else:
+            st.info(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
         return
     locked = _merge_open(repo)
     if locked:
@@ -4740,7 +5338,8 @@ GLOBAL_PAGES = {
 # Zustand, der bei geänderten Dateien erhalten bleibt (alles andere sind Formulareingaben).
 _KEEP_STATE = {
     "selected_team", "flash", "pending_tags", "commit_message", "use_tags", "language",
-    "enabled-pages", "sync_result", "last_commit", "commit_error", "restarting", "update-started",
+    "enabled-pages", "sync_result", "sync_earlier", SYNC_RUNNING_KEY, "last_commit",
+    "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
     "planning-goto", "planning-last-sprint", "board-sprint", "formula-sprint",
     "active-data-dir", "folder-state",
@@ -4777,7 +5376,8 @@ def _show_value(value: object) -> str:
     if value is MISSING:
         return t("(entfernt)")
     text = yaml.safe_dump(value, allow_unicode=True, default_flow_style=True, width=1000).strip()
-    return text.removesuffix("\n...").strip()[:200]
+    # Als Code: Die Werte stammen auch von der anderen Person.
+    return md_code(text.removesuffix("\n...").strip()[:200])
 
 
 def _conf_key(i: int, j: int | None) -> str:
@@ -4812,7 +5412,13 @@ def _restore_clicked(root: Path, file: Path) -> None:
     else:
         clear_team_cache()
         st.session_state["flash"] = [
-            ("success", t("{file} auf den letzten gespeicherten Stand zurückgesetzt.", file=file))
+            (
+                "success",
+                t(
+                    "{file} auf den letzten gespeicherten Stand zurückgesetzt.",
+                    file=md_code(str(file)),
+                ),
+            )
         ]
 
 
@@ -4849,10 +5455,10 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
         ready = True
         for i, cf in enumerate(pending):
             if not cf.open:
-                st.caption(t("{file}: wird automatisch zusammengeführt", file=cf.file))
+                st.caption(t("{file}: wird automatisch zusammengeführt", file=md_code(cf.file)))
                 continue
             with st.container(border=True):
-                st.markdown(f"**{cf.file}**")
+                st.markdown(f"**{md_code(cf.file)}**")
                 if cf.whole:
                     mine = t("(von mir gelöscht)") if cf.ours_deleted else t("meine Fassung")
                     theirs = (
@@ -4872,7 +5478,7 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
                         "theirs": t("Andere Änderung: {v}", v=_show_value(kc.theirs)),
                     }
                     pick = st.radio(
-                        f"`{kc.label}`", list(options), format_func=options.get, index=None,
+                        md_code(kc.label), list(options), format_func=options.get, index=None,
                         key=_conf_key(i, j),
                     )  # fmt: skip
                     ready = ready and pick is not None
@@ -4960,11 +5566,11 @@ def run_page(key: str) -> None:
         st.error(str(e))
         return
     _discard_stale_inputs(repo, team)
-    # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
-    fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
     try:
+        # Die Seiten Personen, Produkte und Einstellungen brauchen nur den Stichtag.
+        fc = Forecast(data, today(), []) if key in NO_FORECAST else build_forecast(data, today())
         TEAM_PAGES[key](repo, data, fc)
-    except FileAccessError as e:  # Schreib- oder Löschfehler außerhalb von save()
+    except DataError as e:  # Schreib- oder Löschfehler außerhalb von save(), Sprintfolge unklar
         st.error(str(e))
     finally:
         # Auch nach ``st.rerun()`` (eine Ausnahme): Der eigene Speicherstand gilt als gesehen,

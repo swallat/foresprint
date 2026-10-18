@@ -24,6 +24,7 @@ from sprintforecast.git import (
     GitError,
     _git,
     changes_in,
+    split_record,
     split_z,
 )
 from sprintforecast.gitsync import _git_dir, _root, state
@@ -529,7 +530,9 @@ def _remote(root: Path) -> str | None:
 
 def _server_tags(root: Path, remote: str) -> dict[str, str]:
     """Tags auf dem Server: Name → Commit, auf den sie zeigen (fragt den Server ab)."""
-    out = _git(root, "ls-remote", "--tags", remote, network=True)
+    out = _git(
+        root, "ls-remote", "--tags", remote, network=True, url=gitmod.remote_url(root, remote)
+    )
     objects: dict[str, str] = {}
     peeled: dict[str, str] = {}
     for line in out.splitlines():
@@ -578,8 +581,9 @@ def list_tags(path: Path, check_server: bool = False) -> list[Tag]:
         root, "for-each-ref", "--sort=-creatordate", f"--format={fmt}", "refs/tags", check=False
     )
     local: list[tuple[Tag, str]] = []
-    for line in out.splitlines():
-        name, deref_full, obj_full, deref, obj, day, subject = line.split(_SEP, 6)
+    # nicht splitlines: U+2028, \x0c … trennten den Betreff in mehrere Einträge
+    for line in filter(None, out.split("\n")):
+        name, deref_full, obj_full, deref, obj, day, subject = split_record(line, 7, _SEP)
         local.append((Tag(name, deref or obj, day, subject), deref_full or obj_full))
     server: dict[str, str] | None = None
     remote = _remote(root) if check_server else None
@@ -672,7 +676,14 @@ def _adopt_server_tag(root: Path, name: str, target: str) -> bool:
             t("Einen anderen Namen wählen oder den Tag auf dem Server zuerst löschen."),
         )
     try:
-        _git(root, "fetch", remote, f"refs/tags/{name}:refs/tags/{name}", network=True)
+        _git(
+            root,
+            "fetch",
+            remote,
+            f"refs/tags/{name}:refs/tags/{name}",
+            network=True,
+            url=gitmod.remote_url(root, remote),
+        )
     except GitError:
         return False
     gitmod.invalidate_status()
@@ -683,7 +694,14 @@ def _push_tag(root: Path, name: str) -> GitError | None:
     if not (remote := _remote(root)):
         return None
     try:
-        _git(root, "push", remote, f"refs/tags/{name}", network=True)
+        _git(
+            root,
+            "push",
+            remote,
+            f"refs/tags/{name}",
+            network=True,
+            url=gitmod.remote_url(root, remote),
+        )
     except GitError as e:
         return e
     return None
@@ -714,7 +732,14 @@ def delete_tag(path: Path, name: str) -> GitError | None:
         gitmod.invalidate_status()
     if remote := _remote(root):
         try:
-            _git(root, "push", remote, f":refs/tags/{name}", network=True)
+            _git(
+                root,
+                "push",
+                remote,
+                f":refs/tags/{name}",
+                network=True,
+                url=gitmod.remote_url(root, remote),
+            )
         except GitError as e:
             if "remote ref does not exist" in str(e):
                 return None

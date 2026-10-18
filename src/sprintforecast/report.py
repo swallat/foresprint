@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from sprintforecast.analysis import average_focus_factor, band, buffer_hint
+from sprintforecast.analysis import MIN_SAMPLES, average_focus_factor, band, buffer_hint
 from sprintforecast.engine import UNSURE_SOURCES, CapacitySource, round_half_up
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import is_english, t
@@ -64,6 +64,36 @@ def capacity_label(e: TimelineEntry) -> str:
     return f"{value} ({capacity_source_note(e)})" if source else value
 
 
+def band_range(fc: Forecast, e: TimelineEntry) -> str:
+    """„niedrig–hoch“ der Spanne eines künftigen Sprints für Tabellen („–“, wenn nicht
+    berechenbar oder der Sprint schon abgeschlossen ist)."""
+    from sprintforecast.analysis import band
+
+    b = band(fc, e) if e.sprint.end > fc.today else None
+    return f"{fmt(b.low)}–{fmt(b.high)}" if b else "–"
+
+
+def band_note(fc: Forecast, e: TimelineEntry, without_assumption: bool = False) -> str:
+    """Spanne mit Stichprobengröße als Satz direkt an einer Prognose-Kachel; bei wenig Daten
+    mit Hinweis. Leer, wenn die Spanne nicht berechenbar ist oder der Sprint schon abgeschlossen
+    ist (die Spanne gehört zur heutigen Historie, die Prognose eines alten Sprints nicht).
+    ``without_assumption``: Die Prognose daneben rechnet mit einer Annahme, die Spanne nicht."""
+    from sprintforecast.analysis import band, few_samples
+
+    b = band(fc, e) if e.sprint.end > fc.today else None
+    if b is None:
+        return ""
+    note = t(
+        "Spanne {low}–{high} aus den letzten {samples} Sprints",
+        low=fmt(b.low),
+        high=fmt(b.high),
+        samples=b.samples,
+    )
+    if without_assumption:
+        note = f"{note} ({t('ohne die Annahme')})"
+    return f"{note} · {t('wenig Daten, grober Hinweis')}" if few_samples(fc) else note
+
+
 def absence_status_label(sprint: Sprint) -> str:
     """Stand der Fehltage eines Sprints in Worten."""
     return {
@@ -110,6 +140,18 @@ def reliability_notes(fc: Forecast) -> list[str]:
     return notes
 
 
+def completion_note(samples: int) -> str | None:
+    """Warnung der Fertigstellungs-Simulation bei wenig Daten (Kommandozeile und Weboberfläche)."""
+    if samples >= MIN_SAMPLES:
+        return None
+    return t(
+        "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
+        "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
+        samples=samples,
+        min=MIN_SAMPLES,
+    )
+
+
 def status(fc: Forecast, e: TimelineEntry) -> str:
     if e.sprint.end <= fc.today:
         return t("abgeschlossen")
@@ -142,11 +184,11 @@ def render(fc: Forecast, history: int = 10) -> str:
         "| Sprint | "
         + t(
             "Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** ({unit}) "
-            "| Roadmap ({share}) | Kleinkram |",
+            "| Spanne | Roadmap ({share}) | Kleinkram |",
             unit=unit,
             share=pct(f.roadmap_share),
         ),
-        "|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     upcoming = fc.upcoming()
     for e in upcoming:
@@ -154,7 +196,7 @@ def render(fc: Forecast, history: int = 10) -> str:
         lines.append(
             f"| {e.sprint.id} | {period(e)} | {status(fc, e)} | {capacity_label(e)} "
             f"| {fmt(r.normalized_velocity.trend, 2)} | **{fmt(r.plan)}** "
-            f"| {fmt(r.roadmap, 2)} | {fmt(r.small_stuff, 2)} |"
+            f"| {band_range(fc, e)} | {fmt(r.roadmap, 2)} | {fmt(r.small_stuff, 2)} |"
         )
     if any(e.result.plan_capacity_source in UNSURE_SOURCES for e in upcoming):
         lines += [
@@ -322,18 +364,21 @@ def _products_section(fc: Forecast, history: int = 6) -> list[str]:
             + " |"
             for r in d.rows
         ]
-    rows = balance(fc, fc.history(history))
+    # nur Produkte mit mindestens einem Wert (wie in der Weboberfläche)
+    rows = [b for b in balance(fc, fc.history(history)) if b.sprints]
     if rows:
+        with_missing = any(b.missing for b in rows)
+        header = t("| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo ({unit}) |", unit=unit)
         lines += [
             "",
             t("**Saldo** (Σ Erledigt − Σ Standard, letzte {count} Sprints)", count=history),
             "",
-            t("| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo ({unit}) |", unit=unit),
-            "|---|---|---|---|---|",
+            header + (f" {t('ohne Wert')} |" if with_missing else ""),
+            "|---|---|---|---|---|" + ("---|" if with_missing else ""),
         ]
         lines += [
             f"| {b.product.name} | {b.sprints} | {fmt(b.standard, 2)} | {fmt(b.done, 2)} "
-            f"| {fmt(b.difference, 2)} |"
+            f"| {fmt(b.difference, 2)} |" + (f" {b.missing} |" if with_missing else "")
             for b in rows
         ]
     return lines

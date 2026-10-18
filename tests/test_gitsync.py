@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from gitrepos import Denying, Person, git, make_clone
+from gitrepos import Denying, NotFound, Person, git, make_clone, serve
 
 from sprintforecast import git as gitmod
 from sprintforecast import gitsync
@@ -66,6 +66,35 @@ def test_incoming_before_pull(alice: Person, bob: Person):
     commits, files = gitsync.incoming(bob.data)
     assert [c.subject for c in commits] == ["Korrektur"]
     assert files == [("M", "teams/a/2026.1.yaml")]
+
+
+def commit_without_subject(person: Person, rel: str, text: str) -> None:
+    """Ein Commit mit leerem Betreff (Git verlangt dafür ``--allow-empty-message``)."""
+    person.write(rel, text)
+    git(person.root, "add", "-A")
+    git(person.root, "commit", "-q", "--allow-empty-message", "-m", "")
+
+
+def test_incoming_with_an_empty_subject_of_the_oldest_commit(alice: Person, bob: Person):
+    """``_git`` schneidet das Trennzeichen am Ende der letzten Zeile ab (str.strip): Die Zeile
+    des ältesten neuen Commits hat dann nur drei Felder, wenn dessen Betreff leer ist."""
+    commit_without_subject(alice, "a/2026.2.yaml", "velocity: 5\n")
+    alice.write("a/2026.3.yaml", "velocity: 6\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "Zweiter")
+    git(alice.root, "push", "-q")
+    gitsync.fetch(bob.data)
+    commits, files = gitsync.incoming(bob.data)
+    assert [(c.subject, c.author) for c in commits] == [("Zweiter", "Alice"), ("", "Alice")]
+    assert {file for _, file in files} == {"teams/a/2026.2.yaml", "teams/a/2026.3.yaml"}
+
+
+def test_sync_pulls_a_commit_without_subject(alice: Person, bob: Person):
+    commit_without_subject(alice, "a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "push", "-q")
+    result = bob.sync()
+    assert result.ok and [c.subject for c in result.pulled] == [""]
+    assert (bob.data / "a" / "2026.2.yaml").exists()
 
 
 def test_parallel_changes_in_different_files_are_merged(alice: Person, bob: Person):
@@ -209,11 +238,29 @@ def test_locked_file_during_automatic_merge_is_a_message_and_the_merge_can_resum
     result = bob.sync("Bob")
     assert result.error is not None and result.error.kind == "locked"
     assert "2026.1.yaml" in str(result.error) and "Permission denied" in str(result.error)
+    # Die Datei ist keine Sperrdatei von Git: Der Absatz zur verwaisten index.lock passt hier
+    # nicht, wohl aber der Schreibschutz bzw. ein Programm, das die Datei hält.
+    hint = result.error.hint
+    assert "Sperrdatei" not in hint and "index.lock" not in hint
+    assert "Programm" in hint and "schreibgeschützt" in hint and "Speichern und teilen" in hint
+    assert hint != gitmod.hint_for("locked")
+    assert not result.error.raw  # eigener Text, keine Ausgabe von Git
     monkeypatch.undo()
     again = bob.sync("Bob")
     assert again.ok and again.pushed
     merged = yaml.safe_load(git(remote, "show", f"main:{FILE}"))
     assert merged == {"velocity": 11, "scope_creep": 2, "note": "Bob"}
+
+
+def test_unwritable_file_hint_does_not_talk_about_a_lock_file():
+    """Die Datei, die beim Zusammenführen nicht geschrieben werden kann, ist keine Sperrdatei von
+    Git: Der Hinweis nennt Programme, Schreibschutz und Rechte und wie es weitergeht."""
+    hint = gitmod.unwritable_file_hint()
+    assert "index.lock" not in hint and "Sperrdatei" not in hint
+    assert "Programm" in hint and "schreibgeschützt" in hint and "Rechte" in hint
+    assert "Speichern und teilen" in hint and "Betreuung des Rechners" in hint
+    assert gitmod.hint_for("locked") != hint  # Gits eigene Sperrdatei hat weiter ihren Text
+    assert "index.lock" in gitmod.hint_for("locked")
 
 
 def test_people_are_merged_per_entry(alice: Person, bob: Person, remote: Path):
@@ -278,7 +325,8 @@ def test_invalid_merge_result_is_not_pushed(alice: Person, bob: Person, remote: 
 
 
 def test_offline_keeps_local_work(alice: Person, tmp_path: Path):
-    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "gibt-es-nicht.git"))
+    """Der Server ist ein Ordner auf einem Laufwerk, das gerade fehlt (ohne Netzwerk)."""
+    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "getrennt" / "daten.git"))
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     result = alice.sync("Offline")
     assert result.error and result.error.kind == "offline"
@@ -287,8 +335,88 @@ def test_offline_keeps_local_work(alice: Person, tmp_path: Path):
     assert state.offline and state.ahead == 1
 
 
+def test_missing_repository_is_not_offline(alice: Person, tmp_path: Path):
+    """Der Server (hier ein Ordner) antwortet, das Repository gibt es dort nicht: Internet oder
+    VPN zu prüfen hilft nicht, die Adresse stimmt nicht."""
+    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "gibt-es-nicht.git"))
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Falsche Adresse")
+    assert result.error and result.error.kind == "not_found"
+    assert "nicht gefunden" in result.error.hint and "VPN" not in result.error.hint
+    assert result.committed and not result.pushed  # lokal gesichert
+    state = gitsync.state(alice.data)
+    assert not state.offline and state.fetch_error is not None
+    assert state.fetch_error.kind == "not_found" and state.ahead == 1
+
+
+def test_folder_server_on_a_missing_drive_is_offline_but_a_missing_repository_is_not(
+    tmp_path: Path,
+):
+    """Ein Ordner-Server (Netzlaufwerk, Stick) ohne übergeordneten Ordner ist „nicht erreichbar“;
+    liegt der Ordner vor und fehlt nur das Repository, stimmt die Adresse nicht."""
+    gone = tmp_path / "laufwerk" / "daten.git"
+    message = f"fatal: '{gone}' does not appear to be a git repository\n{TAIL}"
+    assert classify(message, url=str(gone)).kind == "offline"
+    assert classify(message, url=str(gone)).hint == gitmod.hint_for("offline")
+    # Netzfreigabe (UNC), die nicht erreichbar ist: der übergeordnete Ordner fehlt auch hier.
+    unc = "//fileserver-gibt-es-nicht/daten/repo.git"
+    unc_message = f"fatal: '{unc}' does not appear to be a git repository\n{TAIL}"
+    assert classify(unc_message, url=unc).kind == "offline"
+    # Der Ordner ist da, das Repository nicht: nicht gefunden, wie bei jedem erreichbaren Server.
+    there = tmp_path / "gibt-es-nicht.git"
+    assert classify(message, url=str(there)).kind == "not_found"
+    # Ohne Adresse und bei einer Webadresse bleibt es bei „nicht gefunden“.
+    assert classify(message).kind == "not_found"
+    assert classify(message, url="https://h.example/r.git").kind == "not_found"
+    # Die Prüfung einer neu eingegebenen Adresse: ein fehlender Ordner ist ein Tippfehler.
+    probe = gitmod._probe_error(message, gitmod.RemoteAddress(str(gone), "local"))
+    assert probe.kind == "not_found"
+
+
+def test_git_passes_the_address_on_to_the_classification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Nicht ``classify`` allein, sondern der ganze Weg ``_git`` → ``classify``: Die Adresse wählt
+    die Anmelde-Hilfe (SSH oder https)."""
+    refused = subprocess.CompletedProcess([], 128, "", "git@x: Permission denied (publickey).")
+    monkeypatch.setattr(gitmod, "_git_result", lambda *args, **kwargs: refused)
+    with pytest.raises(GitError) as ssh:
+        gitmod._git(tmp_path, "fetch", network=True, url="git@x:r.git")
+    with pytest.raises(GitError) as https:
+        gitmod._git(tmp_path, "fetch", network=True, url="https://x/r.git")
+    assert "ssh-keygen" in ssh.value.hint and "Zugangstoken" not in ssh.value.hint
+    assert "Zugangstoken" in https.value.hint and "ssh-keygen" not in https.value.hint
+
+
+@pytest.mark.usefixtures("no_login_prompt")
+def test_http_404_is_not_found_and_not_offline(alice: Person):
+    with serve(NotFound) as port:
+        git(alice.root, "remote", "set-url", "origin", f"http://127.0.0.1:{port}/r.git")
+        error = gitsync.fetch(alice.data).fetch_error
+    assert error is not None and error.kind == "not_found"
+    assert "not found" in str(error) or "error: 404" in str(error)  # je nach Git-Version
+    assert "VPN" not in error.hint
+
+
 def test_timeout_counts_as_offline():
     assert classify("", timeout=True).kind == "offline"
+
+
+def test_first_push_to_a_missing_drive_is_offline(tmp_path: Path):
+    """Der erste Hochlade-Versuch (``push -u``) reicht die Adresse an die Zuordnung weiter: Ein
+    Ordner-Server auf einem fehlenden Laufwerk ist „nicht erreichbar“."""
+    git(tmp_path, "init", "-q", "-b", "main")
+    git(tmp_path, "config", "user.name", "X")
+    git(tmp_path, "config", "user.email", "x@example.org")
+    person = Person("X", tmp_path)
+    person.write("a/team.yaml", "name: A\n")
+    assert person.sync("Lokal").committed
+    git(tmp_path, "remote", "add", "origin", str(tmp_path / "getrennt" / "daten.git"))
+    current = gitsync.state(tmp_path)
+    assert current.upstream is None and current.remote == "origin"
+    with pytest.raises(GitError) as info:
+        gitsync._push(tmp_path, current)
+    assert info.value.kind == "offline"
 
 
 def test_no_remote_still_saves(tmp_path: Path):
@@ -383,6 +511,13 @@ LOGIN_FAILURES = [
         "ssh-keygen",
         id="https",
     ),
+    pytest.param(
+        "git@example.org:team/daten.git",
+        "Host key verification failed.\nfatal: Could not read from remote repository.",
+        "Fingerabdruck",
+        "ssh-keygen",
+        id="ssh-host-key",
+    ),
 ]
 
 
@@ -398,7 +533,7 @@ def test_fetch_login_failure_names_the_steps_for_the_address(
 
     def failing(root, *args, **kwargs):
         if args[:1] == ("fetch",):
-            raise classify(message)
+            raise classify(message, url=kwargs.get("url", ""))
         return real_git(root, *args, **kwargs)
 
     monkeypatch.setattr(gitsync, "_git", failing)
@@ -419,13 +554,37 @@ def test_clone_login_failure_names_the_steps_for_the_address(
     absent: str,
 ):  # fmt: skip
     def failing(*args, **kwargs):
-        raise classify(message)
+        raise classify(message, url=kwargs.get("url", ""))
 
     monkeypatch.setattr(gitmod, "_git", failing)
     with pytest.raises(GitError) as info:
         clone_repository(url, tmp_path / "ziel")
     assert info.value.kind == "auth"
     assert expected in info.value.hint and absent not in info.value.hint
+
+
+@pytest.mark.parametrize(("url", "message", "expected", "absent"), LOGIN_FAILURES)
+def test_push_login_failure_names_the_steps_for_the_address(
+    alice: Person, monkeypatch: pytest.MonkeyPatch, url: str, message: str, expected: str,
+    absent: str,
+):  # fmt: skip
+    """Gelingt der Abgleich und scheitert erst das Hochladen an der Anmeldung (z. B. ein anderer
+    Schlüssel), gilt für den Hinweis dasselbe wie beim Abgleich."""
+    git(alice.root, "remote", "set-url", "origin", url)
+    real_git = gitsync._git
+
+    def failing(root, *args, **kwargs):
+        if args[:1] == ("fetch",):
+            return ""
+        if args[:1] == ("push",):
+            raise classify(message, url=kwargs.get("url", ""))
+        return real_git(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitsync, "_git", failing)
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Login")
+    assert result.error is not None and result.error.kind == "auth"
+    assert expected in result.error.hint and absent not in result.error.hint
 
 
 def test_login_failure_without_a_heading_names_the_cause():
@@ -462,6 +621,36 @@ def test_locked_file(alice: Person):
     result = alice.sync("Gesperrt")
     assert result.error and result.error.kind == "locked"
     assert "Programm" in result.error.hint
+    # Nach einem Absturz kann die Sperrdatei übrig sein: nachfragen, nicht selbst löschen
+    assert "Sperrdatei" in result.error.hint and "Betreuung" in result.error.hint
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "error: unable to create file teams/a/2026.2.yaml: Permission denied",
+        "fatal: Unable to create '/r/.git/index.lock': Permission denied",
+    ],
+)
+def test_unwritable_repository_is_not_a_locked_file(
+    alice: Person, monkeypatch: pytest.MonkeyPatch, message: str
+):
+    """Rechtefehler lassen sich nicht unter Windows und Linux gleich herstellen: Git antwortet
+    hier nachgestellt."""
+    real = gitmod._git_result
+
+    def refusing(cwd, *args, **kwargs):
+        if args[:1] == ("add",):
+            return subprocess.CompletedProcess(args, 128, "", message)
+        return real(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(gitmod, "_git_result", refusing)
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    result = alice.sync("Schreibgeschützt")
+    assert result.error and result.error.kind == "not_writable"
+    assert "Schreibrechte" in result.error.hint and "Sperrdatei" not in result.error.hint
+    assert not result.committed and not result.pushed
+    assert title_for(result.error.kind) == "Datei oder Ordner nicht beschreibbar"
 
 
 def test_git_missing(alice: Person, monkeypatch: pytest.MonkeyPatch):
@@ -499,7 +688,7 @@ def test_detached_head_blocks_and_reattach(alice: Person):
     assert result.error and result.error.kind == "detached"
     assert not result.committed  # nichts auf einen namenlosen Stand schreiben
     git(alice.root, "stash", "-u", "-q")  # nur damit der Wechsel ohne offene Änderungen läuft
-    assert gitsync.reattach(alice.data) == "main"
+    assert gitsync.reattach(alice.data).branch == "main"
     assert gitsync.state(alice.data).branch == "main"
 
 
@@ -509,8 +698,87 @@ def test_reattach_rescues_orphan_commits(alice: Person):
     git(alice.root, "add", "-A")
     git(alice.root, "commit", "-qm", "auf losem Stand")
     invalidate_status()
-    assert gitsync.reattach(alice.data) == "main"
+    done = gitsync.reattach(alice.data)
+    assert done.branch == "main"
     assert "rettung-" in git(alice.root, "branch", "--list")
+    assert done.rescue is not None and done.rescue.startswith("rettung-")
+
+
+def detach_with_open_change(alice: Person, orphan_commit: bool = False) -> None:
+    """Lose auf dem Stand vor der letzten Änderung von ``main``, mit offener Änderung an derselben
+    Datei: Der Wechsel zurück würde sie überschreiben. Mit ``orphan_commit`` hängt vorher noch ein
+    Commit an keinem Branch."""
+    file = alice.data / "a" / "2026.1.yaml"
+    file.write_text("velocity: 11\nscope_creep: 1\n", encoding="utf-8")
+    git(alice.root, "commit", "-qam", "Neuer Stand")
+    git(alice.root, "checkout", "-q", "--detach", "HEAD~1")
+    if orphan_commit:
+        (alice.data / "a" / "neu.yaml").write_text("x: 1\n", encoding="utf-8")
+        git(alice.root, "add", "-A")
+        git(alice.root, "commit", "-qm", "auf losem Stand")
+    file.write_text("velocity: 99\nscope_creep: 1\n", encoding="utf-8")
+    invalidate_status()
+
+
+def test_reattach_with_open_changes_names_the_way_out(alice: Person):
+    """Auf dem losen Stand lässt sich nicht committen: Der Hinweis nennt das Verwerfen, nicht
+    „zuerst committen“."""
+    detach_with_open_change(alice)
+    with pytest.raises(GitError) as info:
+        gitsync.reattach(alice.data)
+    hint = info.value.hint
+    assert "Änderungen und Verlauf" in hint and "verwerfen" in hint and "verloren" in hint
+    assert "außerhalb des Datenordners" not in hint and "zuerst committen" not in hint
+    assert "would be overwritten" in str(info.value)  # die Meldung von Git bleibt erhalten
+    # Es ist weiter die Ausgabe von Git (Namen darin bestimmen andere): Die Oberfläche setzt sie
+    # als Code, nie als Markdown.
+    assert info.value.raw and info.value.render(lambda text: f"«{text}»").startswith("«")
+    assert gitsync.state(alice.data).detached  # nichts verändert
+
+
+def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(alice: Person):
+    """Das Verwerfen auf der Seite „Änderungen und Verlauf“ wirkt nur im Datenordner: Liegt die
+    blockierende Datei außerhalb (hier ``README.md`` im Wurzelordner), wäre der Hinweis
+    „verwerfen“ eine Sackgasse."""
+    readme = alice.root / "README.md"
+    readme.write_text("eins\n", encoding="utf-8")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "README")
+    git(alice.root, "checkout", "-q", "--detach", "HEAD~1")
+    readme.write_text("zwei\n", encoding="utf-8")
+    invalidate_status()
+    from sprintforecast.githistory import discard_preview
+
+    assert discard_preview(alice.data) == []  # im Datenordner gibt es nichts zu verwerfen
+    with pytest.raises(GitError) as info:
+        gitsync.reattach(alice.data)
+    hint = " ".join(info.value.hint.split())
+    assert info.value.kind == "detached" and "README.md" in str(info.value)
+    assert "außerhalb des Datenordners" in hint and "in Git" in hint
+    assert "die offenen Änderungen verwerfen – sie gehen" not in hint
+    assert "git config" not in hint and "safe.directory" not in hint
+
+
+def test_reattach_names_no_rescue_branch_when_the_commit_is_on_a_branch(alice: Person):
+    git(alice.root, "checkout", "-q", "--detach")
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.branch == "main" and done.rescue is None
+    assert "rettung-" not in git(alice.root, "branch", "--list")
+
+
+def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Person):
+    """Erst scheitert der Wechsel an offenen Änderungen (die Commits sind schon gesichert), nach
+    dem Verwerfen gelingt er: Die Meldung nennt den Rettungsbranch trotzdem."""
+    detach_with_open_change(alice, orphan_commit=True)
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    assert rescue.startswith("rettung-") and "\n" not in rescue
+    git(alice.root, "checkout", "--", ".")  # die offene Änderung verwerfen
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.branch == "main" and done.rescue == rescue
 
 
 def test_identity_missing_is_explained(
@@ -541,6 +809,12 @@ def test_spreadsheet_is_still_refused(alice: Person):
     assert result.error and "Tabellenkalkulationen" in str(result.error)
 
 
+TAIL = (
+    "fatal: Could not read from remote repository.\n\nPlease make sure you have the correct "
+    "access rights\nand the repository exists."
+)
+
+
 @pytest.mark.parametrize(
     ("text", "kind"),
     [
@@ -555,10 +829,226 @@ def test_spreadsheet_is_still_refused(alice: Person):
         ("CONFLICT (content): Merge conflict in a.yaml", "conflict"),
         ("fatal: Repository not found.", "not_found"),
         ("etwas ganz anderes", "error"),
+        # Der Server antwortet, es gibt das Repository dort nicht: nie „offline“.
+        (
+            "fatal: unable to access 'https://x/r.git/': The requested URL returned error: 404",
+            "not_found",
+        ),
+        (f"ERROR: Repository not found.\n{TAIL}", "not_found"),
+        ("fatal: repository 'https://x/r.git/' not found", "not_found"),
+        (
+            "remote: TF401019: The Git repository with name or identifier x does not exist",
+            "not_found",
+        ),
+        (f"fatal: '/x/y' does not appear to be a git repository\n{TAIL}", "not_found"),
+        ("fatal: repository '/x/y' does not exist", "not_found"),  # Klonen von einem Pfad
+        ("remote: Project not found.\nfatal: Could not read from remote repository.", "not_found"),
+        (
+            "remote: ERROR: The project does not exist or you do not have permission to access it.",
+            "not_found",
+        ),
+        ("error: unable to create file x.yaml: Device or resource busy", "locked"),
+        # Das Zertifikat wird nicht anerkannt: VPN oder Internet zu prüfen nützt nichts.
+        (
+            "fatal: unable to access 'https://x/': server certificate verification failed. "
+            "CAfile: none CRLfile: none",
+            "certificate",
+        ),
+        ("fatal: unable to access 'https://x/': schannel: SEC_E_CERT_EXPIRED", "certificate"),
+        (
+            "fatal: unable to access 'https://x/': schannel: next InitializeSecurityContext "
+            "failed: CRYPT_E_NO_REVOCATION_CHECK (0x80092012)",
+            "certificate",
+        ),
+        (
+            "fatal: unable to access 'https://x/': no alternative certificate subject name "
+            "matches target host name 'x'",
+            "certificate",
+        ),
+        (
+            "fatal: unable to access 'https://x/r.git/': SSL certificate problem: unable to get "
+            "local issuer certificate",
+            "certificate",
+        ),
+        (
+            "fatal: unable to access 'https://x/': schannel: SEC_E_UNTRUSTED_ROOT (0x80090325)",
+            "certificate",
+        ),
+        # Kein Schreibrecht, auch beim Anlegen der Sperrdatei; die SSH-Anmeldung bleibt „auth“.
+        ("error: unable to create file teams/a/2026.2.yaml: Permission denied", "not_writable"),
+        ("fatal: Unable to create '/r/.git/index.lock': Permission denied", "not_writable"),
+        ("error: could not lock config file .git/config: Permission denied", "not_writable"),
+        ("fatal: could not create work tree dir 'ziel': Permission denied", "not_writable"),
+        ("error: unable to create file teams/a/x.yaml: Read-only file system", "not_writable"),
+        ("git@x: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).", "auth"),
+        ('error: open("teams/a/x.yaml"): Permission denied', "not_writable"),
+        ("error: unable to open x.yaml: Permission denied", "not_writable"),
+        ("error: unable to write file x.yaml: Permission denied", "not_writable"),
+        ("error: could not write config file .git/config: Permission denied", "not_writable"),
+        ("fatal: could not open '.git/FETCH_HEAD' for writing: Permission denied", "not_writable"),
+        (
+            "error: cannot lock ref 'refs/heads/main': Unable to create "
+            "'/r/.git/refs/heads/main.lock': Permission denied",
+            "not_writable",
+        ),
+        ("fatal: cannot mkdir ziel: Permission denied", "not_writable"),
+        ("error: cannot create directory at 'teams/a': Permission denied", "not_writable"),
+        ("error: cannot open .git/FETCH_HEAD: Permission denied", "not_writable"),
+        # Windows beendet die Zeile mit CRLF.
+        ("error: unable to create file x.yaml: Permission denied\r\n", "not_writable"),
+        # „Permission denied“ allein macht es nicht zu „nicht beschreibbar“: Verbindung gesperrt
+        # (Firewall, Sicherheitssoftware) bleibt offline, Schlüsseldatei und Host-Key bleiben
+        # Anmeldung, die Ablehnung des Servers bleibt „denied“, wie vor dieser Änderung.
+        (
+            "git@x: Permission denied, please try again.\ngit@x: Permission denied (publickey).",
+            "auth",
+        ),
+        ("git@x: Permission denied, please try again.", "error"),
+        ("ssh: connect to host github.com port 22: Permission denied", "offline"),
+        (
+            "ssh: connect to host github.com port 22: Permission denied\n"
+            "fatal: Could not read from remote repository.",
+            "offline",
+        ),
+        (
+            "fatal: unable to access 'https://h/r.git/': Failed to connect to h port 443: "
+            "Permission denied",
+            "offline",
+        ),
+        (
+            "Could not create directory '/home/svc/.ssh' (Permission denied).\n"
+            "Failed to add the host to the list of known hosts (/home/svc/.ssh/known_hosts).\n"
+            "Host key verification failed.\n" + TAIL,
+            "auth",
+        ),
+        (
+            'Load key "/home/u/.ssh/id_ed25519": Permission denied\n'
+            "git@github.com: Permission denied (publickey).\n" + TAIL,
+            "auth",
+        ),
+        (
+            "Warning: Identity file /home/u/.ssh/id not accessible: Permission denied.\n"
+            "git@github.com: Permission denied (publickey).",
+            "auth",
+        ),
+        (
+            "warning: unable to access '/home/u/.config/git/attributes': Permission denied\n"
+            "fatal: unable to access 'https://x/r.git/': Could not resolve host: x",
+            "offline",
+        ),
+        (
+            "remote: Gitea: User permission denied for writing.\nTo h:r.git\n"
+            " ! [remote rejected] main -> main (pre-receive hook declined)",
+            "denied",
+        ),
+        (
+            "remote: Permission denied\n ! [remote rejected] main -> main (pre-receive hook "
+            "declined)",
+            "denied",
+        ),
+        # Ein Schreibfehler auf dem Server ist nicht der eigene Datenordner.
+        ("remote: error: unable to create file x: Permission denied", "error"),
+        # Ein anderes Programm benutzt die Datei: gesperrt (Windows meldet oft Permission denied).
+        ("error: unable to unlink old 'teams/a/x.yaml': Permission denied", "locked"),
+        (
+            "error: unable to create file x.yaml: The process cannot access the file because it "
+            "is being used by another process",
+            "locked",
+        ),
+        # Git verweigert einen fremden Ordner.
+        (
+            "fatal: detected dubious ownership in repository at '/r'\nTo add an exception for "
+            "this directory, call:\n\n\tgit config --global --add safe.directory /r",
+            "unsafe_directory",
+        ),
+        # Der Fingerabdruck des SSH-Servers ist unbekannt oder hat sich geändert.
+        (f"Host key verification failed.\n{TAIL}", "auth"),
+        ("@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @", "auth"),
     ],
 )
 def test_classify(text: str, kind: str):
     assert classify(text).kind == kind
+
+
+@pytest.mark.parametrize(
+    ("text", "url", "hint_part", "absent"),
+    [
+        (
+            "fatal: unable to access 'https://x/': The requested URL returned error: 404",
+            "",
+            "nicht gefunden",
+            "VPN",
+        ),
+        (f"ERROR: Repository not found.\n{TAIL}", "git@x:r.git", "nicht gefunden", "VPN"),
+        ("fatal: repository 'https://x/r.git/' not found", "", "Adresse", "VPN"),
+        (
+            "fatal: unable to access 'https://x/': SSL certificate problem: x",
+            "",
+            "Zertifikat",
+            "VPN",
+        ),
+        (
+            "fatal: unable to access 'https://x/': SSL certificate problem: x",
+            "",
+            "IT",
+            "gespeichert",
+        ),
+        (
+            "error: unable to create file x.yaml: Permission denied",
+            "",
+            "schreibgeschützt",
+            "anderes Programm",
+        ),
+        ("error: unable to create file x.yaml: Permission denied", "", "Cloud", "anderes Programm"),
+        (
+            "fatal: Unable to create '/r/.git/index.lock': Permission denied",
+            "",
+            "Schreibrechte",
+            "Sperrdatei",
+        ),
+        # Eine Sperrdatei nach einem Absturz: nachfragen, bevor sie entfernt wird.
+        (
+            "fatal: Unable to create '/r/.git/index.lock': File exists.",
+            "",
+            "Betreuung",
+            "schreibgeschützt",
+        ),
+        (
+            "fatal: Unable to create '/r/.git/index.lock': File exists.",
+            "",
+            "index.lock",
+            "schreibgeschützt",
+        ),
+        ("fatal: detected dubious ownership in repository at '/r'", "", "andere", "safe.directory"),
+        (
+            "fatal: detected dubious ownership in repository at '/r'",
+            "",
+            "ändert keine Git-Einstellungen",
+            "VPN",
+        ),
+        # Fingerabdruck: unabhängig von der Adresse, die Meldung belegt SSH
+        ("Host key verification failed.", "git@x:r.git", "Fingerabdruck", "ssh-keygen"),
+        ("Host key verification failed.", "", "Fingerabdruck", "Zugangstoken"),
+        ("git@x: Permission denied (publickey).", "git@x:r.git", "ssh-keygen", "Fingerabdruck"),
+        (
+            "fatal: Authentication failed for 'https://x/'",
+            "https://x/r.git",
+            "Zugangstoken",
+            "Fingerabdruck",
+        ),
+    ],
+)
+def test_classify_hints(text: str, url: str, hint_part: str, absent: str):
+    hint = classify(text, url=url).hint
+    assert hint_part in hint and absent not in hint
+
+
+@pytest.mark.parametrize(
+    "kind", ["not_writable", "unsafe_directory", "certificate", "not_found", "locked"]
+)
+def test_kinds_have_their_own_title_and_hint(kind: str):
+    assert title_for(kind) != title_for("unbekannt")
+    assert gitmod.hint_for(kind)
 
 
 MARKED = "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n"

@@ -20,12 +20,19 @@ import time
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 
 from sprintforecast import git as gitmod
-from sprintforecast.git import GitError, _git, hint_for, pending_changes, repo_root
+from sprintforecast.git import (
+    GitError,
+    _git,
+    hint_for,
+    pending_changes,
+    require_root,
+    split_record,
+)
 from sprintforecast.i18n import t
 from sprintforecast.yamlmerge import (
     MISSING,
@@ -130,10 +137,7 @@ def git_available() -> bool:
 def _root(path: Path) -> Path:
     if not git_available():
         raise gitmod.classify("", missing=True)
-    root = repo_root(path)
-    if root is None:
-        raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
-    return root
+    return require_root(path)
 
 
 def _git_dir(root: Path) -> Path:
@@ -224,11 +228,9 @@ def fetch(path: Path) -> SyncState:
         error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
     else:
         try:
-            _git(root, "fetch", "--prune", current.remote, network=True)
+            _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
         except GitError as e:
             error = e
-            if e.kind == "auth":
-                e.hint = gitmod.auth_help(current.url)
     _FETCHED[root] = (time.time(), error)
     gitmod.invalidate_status()
     return state(path)
@@ -252,7 +254,7 @@ def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str,
         target,
         check=False,
     )
-    commits = [Commit(*line.split(_SEP, 3)) for line in log.splitlines() if _SEP in line]
+    commits = [Commit(*split_record(line, 4, _SEP)) for line in log.split("\n") if _SEP in line]
     related = bool(_git(root, "merge-base", "HEAD", current.upstream, check=False))
     span = f"HEAD...{current.upstream}" if related else f"HEAD..{current.upstream}"
     diff = _git(
@@ -352,6 +354,10 @@ def resolve_conflicts(
             try:
                 (root / file).write_text(merged, encoding="utf-8", newline="\n")
             except OSError as e:  # gesperrt oder schreibgeschützt: das Zusammenführen bleibt offen
+                # Die Art bleibt ``locked`` („Eine Datei ist gesperrt“): Windows meldet eine von
+                # einem anderen Programm gehaltene Datei als „Permission denied“, wie eine
+                # schreibgeschützte, und die Fehlernummer trennt beide nicht verlässlich.
+                # Anders als bei Gits ``index.lock`` passt hier aber nur der Hinweis zur Datei.
                 raise GitError(
                     t(
                         "{file} konnte nicht geschrieben werden ({reason}).",
@@ -359,7 +365,7 @@ def resolve_conflicts(
                         reason=e.strerror or str(e),
                     ),
                     "locked",
-                    hint_for("locked"),
+                    gitmod.unwritable_file_hint(),
                 ) from e
             _git(root, "add", "--", file)
     gitmod.invalidate_status()
@@ -381,23 +387,23 @@ def _unrelated(root: Path, remote: str | None, upstream: str) -> bool:
             raise gitmod.classify(proc.stderr.strip() or proc.stdout.strip())
         shallow = _git(root, "rev-parse", "--is-shallow-repository", check=False) == "true"
         if attempt == 0 and shallow and remote:
-            _git(root, "fetch", "--unshallow", "--prune", remote, network=True)
+            _git(
+                root,
+                "fetch",
+                "--unshallow",
+                "--prune",
+                remote,
+                network=True,
+                url=gitmod.remote_url(root, remote),
+            )
             continue
         break
     return True
 
 
 def _unrelated_error(current: SyncState, target: str) -> GitError:
-    branch = target.split("/", 1)[-1]
-    return GitError(
-        t(
-            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
-            "Datenordner.",
-            url=gitmod.public_url(current.url) or current.remote or "?",
-            branch=branch,
-        ),
-        "unrelated_histories",
-        hint_for("unrelated_histories"),
+    return gitmod.UnrelatedHistoriesError(
+        gitmod.public_url(current.url) or current.remote or "?", target.split("/", 1)[-1]
     )
 
 
@@ -650,7 +656,7 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
             continue
         try:
             out = _git(root, "ls-remote", "--tags", current.remote, f"refs/tags/{tag}",
-                       f"refs/tags/{tag}^{{}}", network=True)  # fmt: skip
+                       f"refs/tags/{tag}^{{}}", network=True, url=current.url)  # fmt: skip
         except GitError:
             continue  # ohne Antwort des Servers lässt sich nichts sagen
         refs = {}
@@ -674,7 +680,7 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
 
 def _push(root: Path, current: SyncState) -> None:
     if current.upstream:
-        _git(root, "push", "--follow-tags", network=True)
+        _git(root, "push", "--follow-tags", network=True, url=current.url)
         return
     # Erster Push: Branch mit dem Server verbinden.
     _git(
@@ -685,6 +691,7 @@ def _push(root: Path, current: SyncState) -> None:
         current.remote or "origin",
         current.branch or "HEAD",
         network=True,
+        url=current.url,
     )
 
 
@@ -707,9 +714,55 @@ def abort_unfinished(path: Path) -> None:
     gitmod.invalidate_status()
 
 
-def reattach(path: Path) -> str:
+class Reattached(NamedTuple):
+    """Ergebnis von :func:`reattach`: der Branch, auf dem der Datenordner nun steht, und der
+    Rettungsbranch, auf dem die Commits des losen Stands liegen (``None`` = sie hängen an einem
+    Branch, nichts wurde gesichert)."""
+
+    branch: str
+    rescue: str | None = None
+
+
+def _reattach_hint(message: str, root: Path, path: Path) -> str:
+    """Nächster Schritt, wenn der Wechsel zurück auf den Branch an offenen Änderungen scheitert.
+    „Verwerfen“ auf der Seite „Änderungen und Verlauf“ wirkt nur im Datenordner: Nur wenn Git
+    ausschließlich Dateien dort nennt, führt der Hinweis dorthin, sonst (Datei außerhalb oder
+    keine Liste) zu Git außerhalb des Datenordners; eine Anleitung zu Einstellungen gibt es
+    nie."""
+    blocked: list[str] = []
+    listing = False
+    for line in message.splitlines():
+        if "would be overwritten by" in line:
+            listing = True
+        elif listing and line[:1] in {"\t", " "} and line.strip():
+            blocked.append(line.strip().strip('"'))
+        elif line.strip():
+            listing = False
+    folder = os.path.relpath(path.resolve(), root.resolve()).replace(os.sep, "/")
+    inside = [f for f in blocked if folder == "." or f == folder or f.startswith(folder + "/")]
+    if blocked and len(inside) == len(blocked):
+        return t(
+            "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben. Auf "
+            "einem Stand ohne Branch lässt sich nichts speichern (committen). Der Ausweg: "
+            "Auf der Seite „Änderungen und Verlauf“ die offenen Änderungen verwerfen – sie "
+            "gehen dabei verloren – und danach „Zurück auf den Branch“ noch einmal wählen."
+        )
+    return t(
+        "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben, die auch "
+        "außerhalb des Datenordners liegen können. Auf der Seite „Änderungen und Verlauf“ "
+        "lassen sich nur Änderungen im Datenordner verwerfen, und auf einem Stand ohne Branch "
+        "lässt sich nichts speichern (committen). Der Ausweg: die Änderungen in Git außerhalb "
+        "des Datenordners sichern oder verwerfen (Git-Client oder Terminal; bei Bedarf bei der "
+        "Betreuung des Rechners nachfragen) und danach „Zurück auf den Branch“ noch einmal "
+        "wählen. Die Dateien nennt die Meldung von Git unter „Technische Meldung“."
+    )
+
+
+def reattach(path: Path) -> Reattached:
     """Geht von „detached HEAD“ zurück auf den Hauptbranch. Hängen Commits an keinem Branch,
-    werden sie vorher auf einem Rettungsbranch gesichert. Gibt den Namen des Branches zurück."""
+    werden sie vorher auf einem Rettungsbranch gesichert; scheitert der Wechsel an offenen
+    Änderungen, bleibt der Rettungsbranch bestehen und wird beim nächsten Versuch wieder
+    genannt."""
     root = _root(path)
     if state(path).branch is not None:
         raise GitError(t("Das Repository steht bereits auf einem Branch."))
@@ -724,13 +777,22 @@ def reattach(path: Path) -> str:
             "detached",
             t("Bitte einen Git-Client oder ein Terminal verwenden."),
         )
-    holders = _git(root, "branch", "--contains", "HEAD", "--format=%(refname:short)", check=False)
-    if not [b for b in holders.splitlines() if not b.startswith("(")]:
+    contains = _git(root, "branch", "--contains", "HEAD", "--format=%(refname:short)", check=False)
+    holders = [b for b in contains.splitlines() if not b.startswith("(")]
+    rescue = None
+    if not holders:
         rescue = f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
         _git(root, "branch", rescue)
-    _git(root, "switch", target)
+    elif all(b.startswith("rettung-") for b in holders):  # gesichert von einem früheren Versuch
+        rescue = holders[0]
+    try:
+        _git(root, "switch", target)
+    except GitError as e:
+        if e.kind != "dirty":
+            raise
+        raise GitError(str(e), "detached", _reattach_hint(str(e), root, path), e.raw) from e
     gitmod.invalidate_status()
-    return target
+    return Reattached(target, rescue)
 
 
 def set_identity(name: str, email: str) -> None:

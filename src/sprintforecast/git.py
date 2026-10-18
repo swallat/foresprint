@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import subprocess
@@ -10,7 +11,7 @@ import sys
 import tempfile
 import time
 import unicodedata
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, NamedTuple
@@ -55,13 +56,27 @@ def scrub(text: str) -> str:
     return _URL_IN_TEXT.sub(lambda m: public_url(m.group(0)), text)
 
 
+# Zeichen, die md_code durch ein Leerzeichen ersetzt: Steuerzeichen (Cc), Zeilen- und
+# Absatztrenner (Zl, Zp) und die Steuerzeichen der Schreibrichtung. Sie lassen Text anders
+# erscheinen, als er geschrieben ist (Umordnen, Zeilenumbruch). Die übrigen Formatzeichen (Cf)
+# bleiben: Der Zero-Width-Joiner (U+200D) hält Emoji-Folgen zusammen, der Zero-Width-Non-Joiner
+# (U+200C) gehört zur Schreibweise etwa persischer und indischer Namen.
+_BIDI_CONTROLS = frozenset(
+    "\u061c\u200e\u200f"  # Arabic Letter Mark, Left-to-Right Mark, Right-to-Left Mark
+    "\u202a\u202b\u202c\u202d\u202e"  # Embedding, Pop, Override
+    "\u2066\u2067\u2068\u2069"  # Isolate
+)
+_BLANKED_CATEGORIES = frozenset({"Cc", "Zl", "Zp"})
+
+
 def md_code(text: str) -> str:
     """Text als Code-Span für Markdown. Namen und Adressen, die von außen kommen (Server,
     Konfiguration), gehören nie als Fließtext in die Oberfläche: Dort würden Auszeichnungen
     wirken und Webadressen wie ``www.beispiel.de/x`` zu Links. Backticks im Text lassen den
-    Span nicht enden; Steuer- und unsichtbare Zeichen werden zu Leerzeichen."""
+    Span nicht enden; Steuerzeichen, Zeilenumbrüche und Zeichen der Schreibrichtung werden zu
+    Leerzeichen. Die übrigen unsichtbaren Zeichen (Emoji-Folgen, persische Namen) bleiben."""
     text = "".join(
-        " " if unicodedata.category(c)[0] == "C" or unicodedata.category(c) in {"Zl", "Zp"} else c
+        " " if c in _BIDI_CONTROLS or unicodedata.category(c) in _BLANKED_CATEGORIES else c
         for c in text
     )
     if not text:
@@ -72,22 +87,40 @@ def md_code(text: str) -> str:
     return f"{fence}{pad}{text}{pad}{fence}"
 
 
+def md_code_lines(text: str) -> str:
+    """Wie :func:`md_code`, aber Zeile für Zeile (harte Zeilenumbrüche in Markdown): Die
+    mehrzeilige Ausgabe von Git bleibt lesbar. Leere Zeilen entfallen, ebenso Leerzeichen am
+    Zeilenende (der Server füllt seine ``remote:``-Zeilen damit auf)."""
+    return "  \n".join(md_code(line.rstrip()) for line in text.splitlines() if line.strip())
+
+
 class GitError(Exception):
     """Fehler eines Git-Aufrufs. ``kind`` benennt die Art (siehe :func:`classify`), ``hint`` ist
     der nächste Schritt in Alltagssprache; ``str(error)`` bleibt die kurze Meldung. Meldung und
-    Hinweis enthalten nie Zugangsdaten aus einer Adresse (:func:`scrub`)."""
+    Hinweis enthalten nie Zugangsdaten aus einer Adresse (:func:`scrub`). ``raw`` heißt: Die
+    Meldung ist die Ausgabe von Git und vom Server (:func:`classify`), nicht ein eigener Text.
+    Darin stehen Namen und Zeilen, die andere bestimmen (``remote:``, Hooks, Tags, Branches)."""
 
-    def __init__(self, message: str, kind: str = "error", hint: str = "") -> None:
+    def __init__(
+        self, message: str, kind: str = "error", hint: str = "", raw: bool = False
+    ) -> None:
         super().__init__(scrub(message))
         self.kind = kind
         self.hint = scrub(hint)
+        self.raw = raw
 
-    def full(self) -> str:
+    def render(self, quote: Callable[[str], str] = str) -> str:
+        """Die Meldung für die Oberfläche: Die Ausgabe von Git (``raw``) geht durch ``quote``
+        (z. B. :func:`md_code_lines` für Markdown), eigene Texte bleiben, wie sie sind."""
+        return quote(str(self)) if self.raw else str(self)
+
+    def full(self, quote: Callable[[str], str] = str) -> str:
         """Meldung samt nächstem Schritt – für Stellen ohne Überschrift (``title_for``). Bei
         einem Anmeldefehler steht die Ursache voran: Der Hinweis (:func:`auth_help`) beginnt
-        gleich mit dem nächsten Schritt, weil die Überschrift sie sonst nennt."""
+        gleich mit dem nächsten Schritt, weil die Überschrift sie sonst nennt. ``quote`` wirkt
+        wie bei :meth:`render` nur auf die Meldung, nie auf Ursache und Hinweis."""
         cause = f"{title_for(self.kind)}." if self.kind == "auth" and self.hint else ""
-        return " ".join(part for part in (cause, str(self), self.hint) if part).strip()
+        return " ".join(part for part in (cause, self.render(quote), self.hint) if part).strip()
 
 
 # Tabellenkalkulationen dürfen nie committet werden (können echte Team-Daten enthalten).
@@ -99,7 +132,7 @@ DATA_FILES = re.compile(r"\.ya?ml$", re.IGNORECASE)
 # Windows: keine Konsolenfenster für Hilfsprozesse (sonst blitzt bei jedem Aufruf eines auf).
 NO_WINDOW: dict = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
 
-_ROOT_CACHE: dict[Path, tuple[float, Path | None]] = {}
+_ROOT_CACHE: dict[Path, tuple[float, Path | None, GitError | None]] = {}
 _ROOT_TTL = 30.0
 
 
@@ -161,15 +194,27 @@ def _git(
     check: bool = True,
     timeout: float | None = None,
     env_extra: dict[str, str] | None = None,
+    url: str = "",
 ) -> str:
     """Führt ``git`` aus. Bei Fehlern :class:`GitError` mit erkannter Art und nächstem Schritt;
-    mit ``check=False`` wird bei Fehlern statt einer Ausnahme ein leerer Text geliefert."""
+    mit ``check=False`` wird bei Fehlern statt einer Ausnahme ein leerer Text geliefert. ``url``
+    ist bei Netzwerkaufrufen die Adresse des Servers: Sie bestimmt die Anmelde-Hilfe (SSH oder
+    https, siehe :func:`classify`)."""
     proc = _git_result(cwd, *args, network=network, timeout=timeout, env_extra=env_extra)
     if proc.returncode != 0:
         if not check:
             return ""
-        raise classify(proc.stderr.strip() or proc.stdout.strip())
+        raise classify(proc.stderr.strip() or proc.stdout.strip(), url=url)
     return proc.stdout.strip() if strip else proc.stdout
+
+
+def split_record(line: str, count: int, sep: str = "\x1f") -> list[str]:
+    """Zerlegt eine Zeile mit ``sep`` getrennter Felder in genau ``count`` Felder. ``_git``
+    schneidet Leerraum am Ende der Ausgabe ab, und dazu zählt auch das Trennzeichen \\x1f: Ist
+    das letzte Feld der letzten Zeile leer (etwa der Betreff eines Commits ohne Text), fehlt es
+    in der Zeile. Fehlende Felder am Ende gelten als leer."""
+    fields = line.split(sep, count - 1)
+    return fields + [""] * (count - len(fields))
 
 
 def split_z(out: str) -> list[str]:
@@ -268,7 +313,43 @@ def _git_bytes(cwd: Path, *args: str) -> bytes:
     return proc.stdout
 
 
-# Erkennungsmuster in der Reihenfolge der Prüfung (englische Git-Meldungen, siehe _env).
+# Der Rechner kennt den SSH-Server noch nicht oder sein Schlüssel hat sich geändert.
+_HOST_KEY = re.compile(r"Host key verification failed|REMOTE HOST IDENTIFICATION HAS CHANGED", re.I)
+# Der Server antwortet, aber es gibt das Repository unter dieser Adresse nicht (oder er
+# verschweigt es mangels Berechtigung): GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, https-404.
+_NOT_FOUND = re.compile(
+    r"does not appear to be a git repository|repository '[^']*' (not found|does not exist)|"
+    r"returned error: 404|Repository not found|Project not found|remote: Not Found|"
+    r"project you were looking for could not be found|repository does not exist|"
+    r"TF401019|does not exist or you do not have permission",
+    re.I,
+)
+# Das Zertifikat des Servers wird vom Rechner nicht anerkannt (Firmenzertifikat, selbst
+# ausgestellt): Der Server antwortet, Internet oder VPN zu prüfen nützt nichts.
+_CERTIFICATE = re.compile(
+    r"SSL certificate problem|certificate verification failed|SEC_E_UNTRUSTED_ROOT|"
+    r"SEC_E_CERT_|CRYPT_E_|no alternative certificate subject name",
+    re.I,
+)
+
+# Git konnte im eigenen Dateisystem nichts schreiben. Verlangt wird eine ganze Zeile, die mit
+# dem Vorgang beginnt und auf den Fehler endet („error: unable to create file x: Permission
+# denied“): „Permission denied“ allein steht auch bei „ssh: connect to host … Permission
+# denied“ (Verbindung gesperrt), „Load key …: Permission denied“ und „remote: Permission
+# denied“ (Hook des Servers) und gehört dort zu offline, auth bzw. denied. Meldungen des Servers
+# beginnen mit „remote:“ und passen deshalb nicht.
+_NOT_WRITABLE = re.compile(
+    r"^(?:error: |fatal: )?"
+    r"(?:unable to (?:create|open|write)\b|could not (?:lock|create|write|open)\b|"
+    r"cannot (?:lock|create|open|mkdir)\b|open\()"
+    r"[^\n]*?:\s*(?:Permission denied|Read-only file system)\.?\s*$",
+    re.I | re.M,
+)
+
+# Erkennungsmuster in der Reihenfolge der Prüfung (englische Git-Meldungen, siehe _env). Was der
+# Server über das Repository sagt (nicht gefunden, Zertifikat), steht vor „offline“: Git hängt
+# an solche Meldungen „Could not read from remote repository“ an und beginnt sie mit „unable to
+# access“.
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "identity",
@@ -278,13 +359,19 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             re.I,
         ),
     ),
+    ("unsafe_directory", re.compile(r"detected dubious ownership", re.I)),
+    # Ein anderes Programm hält die Datei; Windows meldet das oft als „Permission denied“.
     (
         "locked",
-        re.compile(
-            r"index\.lock|\.lock'?: File exists|unable to unlink|Device or resource busy|"
-            r"being used by another process|Unable to create '.*\.lock'",
-            re.I,
-        ),
+        re.compile(r"unable to unlink|Device or resource busy|being used by another process", re.I),
+    ),
+    # Kein Schreibrecht im eigenen Dateisystem (siehe _NOT_WRITABLE), nicht irgendein
+    # „Permission denied“: Das steht auch bei der SSH-Anmeldung, beim Verbindungsaufbau und in
+    # Meldungen des Servers.
+    ("not_writable", _NOT_WRITABLE),
+    (
+        "locked",
+        re.compile(r"index\.lock|\.lock'?: File exists|Unable to create '.*\.lock'", re.I),
     ),
     (
         "auth",
@@ -292,18 +379,20 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             r"Authentication failed|could not read Username|could not read Password|"
             r"terminal prompts disabled|Permission denied \(publickey|"
             r"Invalid username or password|The requested URL returned error: 40[13]|"
-            r"HTTP Basic: Access denied|Host key verification failed|"
-            r"Support for password authentication was removed",
+            r"HTTP Basic: Access denied|Support for password authentication was removed|"
+            + _HOST_KEY.pattern,
             re.I,
         ),
     ),
+    ("not_found", _NOT_FOUND),
+    ("certificate", _CERTIFICATE),
     (
         "offline",
         re.compile(
             r"Could not resolve host|Failed to connect|Connection (timed out|refused|reset)|"
             r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
             r"name resolution|Could not read from remote repository|ssh: connect to host|"
-            r"Connection closed by|SSL certificate problem",
+            r"Connection closed by",
             re.I,
         ),
     ),
@@ -352,12 +441,54 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             r"No configured push destination|No remote repository specified|No such remote", re.I
         ),
     ),
-    ("not_found", re.compile(r"Repository not found|remote: Not Found", re.I)),
 ]
 
 
-def classify(message: str, missing: bool = False, timeout: bool = False) -> GitError:
-    """Macht aus einer Git-Fehlermeldung eine :class:`GitError` mit Art und nächstem Schritt."""
+def _missing_folder(url: str) -> bool:
+    """Ist die Adresse des Servers ein vollständiger Ordnerpfad (auch Netzfreigabe), dessen
+    übergeordneter Ordner auf diesem Rechner fehlt? Dann ist das Laufwerk weg (nicht verbunden,
+    VPN aus, Stick abgezogen, Freigabe nicht erreichbar), und Git meldet trotzdem „does not
+    appear to be a git repository“: Das ist „nicht erreichbar“, keine falsche Adresse. Ist der
+    übergeordnete Ordner da, antwortet der Server und das Repository gibt es dort wirklich nicht
+    (nicht gefunden)."""
+    if not url or "://" in url:
+        return False
+    try:
+        path = Path(url)
+        return path.is_absolute() and not path.parent.exists()
+    except OSError, ValueError:
+        return True
+
+
+def remote_url(root: Path, remote: str) -> str:
+    """Gespeicherte Adresse des Servers ``remote`` (leer, wenn es keine gibt): Sie gehört zu den
+    Netzwerkaufrufen, damit :func:`classify` Anmeldehilfe und Ordnerpfad-Server unterscheidet."""
+    return _git(root, "config", "--get", f"remote.{remote}.url", check=False)
+
+
+def _without_safe_directory_advice(message: str) -> str:
+    """Gits Meldung zu einem fremden Ordner endet mit dem Rat, ihn per ``git config --global
+    --add safe.directory …`` als sicher einzutragen. Die App rät nie zu einer solchen Änderung
+    (das ist Sache der Betreuung des Rechners), auch nicht in der technischen Meldung oder der
+    Kommandozeile, wo jemand den Befehl einfach kopieren würde."""
+    kept = re.sub(r"\s*To add an exception for this directory.*", "", message, flags=re.I | re.S)
+    lines = [line for line in kept.splitlines() if "safe.directory" not in line]
+    return "\n".join(lines).strip()
+
+
+def classify(
+    message: str,
+    missing: bool = False,
+    timeout: bool = False,
+    url: str = "",
+    drive_check: bool = True,
+) -> GitError:
+    """Macht aus einer Git-Fehlermeldung eine :class:`GitError` mit Art und nächstem Schritt.
+    ``url`` ist die Adresse des Servers, wenn die Meldung von einem Netzwerkaufruf stammt: Sie
+    wählt bei einem Anmeldefehler die passende Hilfe (SSH oder https, siehe :func:`auth_help`).
+    Ist ``url`` ein Ordnerpfad, den es gerade nicht gibt (getrenntes Laufwerk), gilt „Repository
+    nicht gefunden“ als ``offline``, außer mit ``drive_check=False`` (die Prüfung einer neu
+    eingegebenen Adresse: Dort ist ein fehlender Ordner ein Tippfehler)."""
     if missing:
         return GitError(
             t("git ist nicht installiert oder nicht im PATH"),
@@ -375,8 +506,13 @@ def classify(message: str, missing: bool = False, timeout: bool = False) -> GitE
         )
     for kind, pattern in _PATTERNS:
         if pattern.search(message):
-            return GitError(message or kind, kind, hint_for(kind))
-    return GitError(message or t("Unbekannter Git-Fehler"), "error")
+            if kind == "unsafe_directory":
+                message = _without_safe_directory_advice(message)
+            if kind == "not_found" and drive_check and _missing_folder(url):
+                kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
+            hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
+            return GitError(message or kind, kind, hint, raw=bool(message))
+    return GitError(message or t("Unbekannter Git-Fehler"), "error", raw=bool(message))
 
 
 def title_for(kind: str) -> str:
@@ -385,6 +521,8 @@ def title_for(kind: str) -> str:
         "git_missing": t("Git ist nicht installiert"),
         "identity": t("Name und E-Mail-Adresse fehlen"),
         "locked": t("Eine Datei ist gesperrt"),
+        "not_writable": t("Datei oder Ordner nicht beschreibbar"),
+        "unsafe_directory": t("Git hält den Ordner für unsicher"),
         "auth": t("Anmeldung fehlt oder wurde abgelehnt"),
         "offline": t("Server nicht erreichbar"),
         "denied": t("Server lehnt das Hochladen ab"),
@@ -396,6 +534,7 @@ def title_for(kind: str) -> str:
         "detached": t("Kein Branch ausgewählt (detached HEAD)"),
         "no_upstream": t("Branch ist nicht mit dem Server verbunden"),
         "no_remote": t("Kein Server eingerichtet"),
+        "not_repo": t("Kein Git-Repository"),
         "not_found": t("Repository nicht gefunden"),
         "unrelated_histories": t("Server hat eine andere Historie"),
         "tag_exists": t("Tag-Name ist schon vergeben"),
@@ -405,6 +544,7 @@ def title_for(kind: str) -> str:
         "new_branch": t("Branch fehlt auf dem Server"),
         "remote_special": t("Ungewöhnliche Server-Einstellung"),
         "certificate": t("Zertifikat des Servers nicht anerkannt"),
+        "folder": t("Ordner nicht nutzbar"),
         "nothing_to_share": t("Noch nichts zu teilen"),
     }
     return titles.get(kind, t("Git-Fehler"))
@@ -422,7 +562,28 @@ def hint_for(kind: str, url: str = "") -> str:
         "locked": t(
             "Eine Datei ist gesperrt, weil ein anderes Programm (Git-Client, Editor, "
             "Virenscanner, Synchronisationsdienst) sie benutzt. Andere Programme schließen und "
-            "noch einmal versuchen."
+            "noch einmal versuchen. Bleibt es dabei, ist nach einem Absturz vielleicht eine "
+            "Sperrdatei (index.lock im Ordner .git) übrig geblieben: Bitte bei der Betreuung "
+            "des Rechners oder des Repositorys nachfragen, bevor sie entfernt wird."
+        ),
+        "not_writable": t(
+            "Git darf hier nichts schreiben. Bitte prüfen, ob dein Benutzerkonto im Datenordner "
+            "(samt dem versteckten Ordner .git darin) Schreibrechte hat, der Ordner nicht "
+            "schreibgeschützt ist und – bei einem Netzlaufwerk oder Cloud-Ordner – verbunden und "
+            "beschreibbar ist. Hilft das nicht, bei der Betreuung des Rechners nachfragen."
+        ),
+        "unsafe_directory": t(
+            "Git verweigert die Arbeit in diesem Ordner, weil er einem anderen Benutzerkonto "
+            "gehört als dem, mit dem die App läuft (eine Schutzmaßnahme von Git, häufig bei "
+            "Netzlaufwerken, kopierten Ordnern oder nach einem Kontowechsel). Die App ändert "
+            "keine Git-Einstellungen. Bitte bei der Betreuung des Rechners nachfragen: Sie kann "
+            "den Ordner dem eigenen Konto zuordnen oder ihn bewusst als sicher eintragen."
+        ),
+        "certificate": t(
+            "Der Server antwortet, aber sein Sicherheitszertifikat wird von diesem Rechner nicht "
+            "anerkannt (häufig ein Firmenzertifikat oder ein selbst ausgestelltes Zertifikat). "
+            "Bitte die IT bitten, das Zertifikat auf dem Rechner zu hinterlegen. Die App ändert "
+            "keine Git-Einstellungen."
         ),
         "offline": t(
             "Der Server ist nicht erreichbar. Deine Änderungen bleiben lokal gesichert; "
@@ -469,6 +630,10 @@ def hint_for(kind: str, url: str = "") -> str:
             "dahin bleiben alle Änderungen auf diesem Rechner. Wer einem bestehenden Team "
             "beitritt, wählt dort „Repository klonen“."
         ),
+        "not_repo": t(
+            "Der Datenordner muss in einem Git-Repository liegen: mit `git init` ein neues "
+            "anlegen oder mit `git clone` ein bestehendes holen."
+        ),
         "not_found": t(
             "Das Repository wurde nicht gefunden oder du hast keinen Zugriff. Adresse und "
             "Berechtigung prüfen; die Adresse lässt sich auf der Seite „Datenordner“ unter "
@@ -490,11 +655,35 @@ def hint_for(kind: str, url: str = "") -> str:
     return hints.get(kind, "")
 
 
-def auth_help(url: str = "") -> str:
+def unwritable_file_hint() -> str:
+    """Nächster Schritt, wenn die App selbst eine Datei im Datenordner nicht schreiben kann (nicht
+    Git, wie bei ``hint_for("locked")``): Dort passt der Absatz zur verwaisten ``index.lock`` nicht.
+    Unter Windows sagt Python „Permission denied“ sowohl für eine von einem anderen Programm
+    gehaltene als auch für eine schreibgeschützte Datei; beides nennt der Hinweis."""
+    return t(
+        "Die Datei konnte nicht geschrieben werden. Entweder benutzt ein anderes Programm sie "
+        "gerade (Editor, Tabellenprogramm, Virenscanner, Synchronisationsdienst; unter Windows "
+        "meist der Grund), oder sie ist schreibgeschützt bzw. dein Benutzerkonto darf sie nicht "
+        "ändern. Andere Programme schließen, Schreibschutz und Rechte prüfen und noch einmal "
+        "„Speichern und teilen“ wählen: Das unterbrochene Zusammenführen wird dann fortgesetzt, "
+        "nichts geht verloren. Hilft das nicht, bei der Betreuung des Rechners nachfragen."
+    )
+
+
+def auth_help(url: str = "", message: str = "") -> str:
     """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH). Der Text beginnt gleich
     mit dem nächsten Schritt und wiederholt die Ursache nicht: Wo der Hinweis unter der
     Überschrift (``title_for``) steht („Anmeldung fehlt oder wurde abgelehnt“), nennt sie schon
-    diese; wo es keine gibt, stellt :meth:`GitError.full` sie voran."""
+    diese; wo es keine gibt, stellt :meth:`GitError.full` sie voran. Meldet Git (``message``)
+    einen unbekannten oder geänderten Schlüssel des Servers, hilft keine Anmelde-Anleitung,
+    sondern nur der Fingerabdruck."""
+    if _HOST_KEY.search(message):
+        return t(
+            "Der Rechner kennt diesen SSH-Server noch nicht (oder sein Schlüssel hat sich "
+            "geändert). Die App kann das nicht bestätigen: Bitte einmal mit einem SSH- oder "
+            "Git-Programm zum Server verbinden und den Fingerabdruck bestätigen, oder die "
+            "https-Adresse des Repositorys verwenden. Danach noch einmal versuchen."
+        )
     if url.lower().startswith("ssh://") or _SCP_FORM.match(url):
         return t(
             "Diese Adresse nutzt die Anmeldung per SSH-Schlüssel. Dafür einen Schlüssel anlegen "
@@ -535,23 +724,6 @@ _SCP_ADDRESS = re.compile(rf"({_SSH_USER})@({_HOST}):(\S+)")
 _SCP_SECRET = re.compile(r"[^@/\\\s]*:[^@/\\\s]*@")  # u:kennwort@host:pfad
 _HELPER = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*::")  # ext::, fd:: und andere Remote-Helfer
 _URL_SCHEMES = {"https", "http", "ssh"}
-_HOST_KEY = re.compile(r"Host key verification failed|REMOTE HOST IDENTIFICATION HAS CHANGED", re.I)
-# Der Server antwortet, aber es gibt das Repository unter dieser Adresse nicht (oder er
-# verschweigt es mangels Berechtigung): GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, https-404.
-_NOT_FOUND = re.compile(
-    r"does not appear to be a git repository|repository '[^']*' not found|"
-    r"returned error: 404|Repository not found|Project not found|remote: Not Found|"
-    r"project you were looking for could not be found|repository does not exist|"
-    r"TF401019|does not exist or you do not have permission",
-    re.I,
-)
-# Das Zertifikat des Servers wird vom Rechner nicht anerkannt (Firmenzertifikat, selbst
-# ausgestellt): Der Server antwortet, Internet oder VPN zu prüfen nützt nichts.
-_CERTIFICATE = re.compile(
-    r"SSL certificate problem|certificate verification failed|SEC_E_UNTRUSTED_ROOT|"
-    r"SEC_E_CERT_|CRYPT_E_|no alternative certificate subject name",
-    re.I,
-)
 # Nur diese Meldungen belegen, dass der Server nicht erreichbar ist. „Could not read from remote
 # repository“ allein tut das nicht: Git hängt es auch an, wenn der Server das Repository
 # verweigert.
@@ -581,8 +753,9 @@ def secret_in_url_error() -> GitError:
         t(
             "Die Adresse enthält einen Benutzernamen, ein Kennwort, einen Token oder "
             "Parameter (alles ab „?“ oder „#“). Bitte nur die reine Adresse eintragen, z. B. "
-            "https://server/team/daten.git; die Anmeldung übernimmt Git bzw. der Anmeldedienst "
-            "des Rechners (siehe Hilfe, „Anmeldung“)."
+            "https://server/team/daten.git; die Anmeldung übernimmt der Anmeldedienst des "
+            "Rechners, fehlt sie, erklärt die App den nächsten Schritt (siehe Hilfe, "
+            "„Anmeldung“)."
         ),
         "secret_in_url",
     )
@@ -642,6 +815,29 @@ def new_branch_error(branch: str, heads: tuple[str, ...], unborn: bool = False) 
     """Fehler, wenn der Server den lokalen Branch nicht hat. ``unborn``: Der Datenordner hat
     noch keinen Commit (Beitritt zu einem Team ist dann der häufige Grund)."""
     return NewBranchError(branch, heads, unborn)
+
+
+class UnrelatedHistoriesError(GitError):
+    """Der Server hat eine andere Historie als der Datenordner. ``str(error)`` ist Klartext; für
+    die Oberfläche liefert :meth:`render` mit :func:`md_code` Adresse und Branch als Code, denn
+    sie kommen vom Server bzw. aus der Konfiguration. ``url`` ist die Anzeigefassung
+    (:func:`public_url`)."""
+
+    def __init__(self, url: str, branch: str) -> None:
+        self.url, self.branch = url, branch
+        super().__init__(self.render(), "unrelated_histories", hint_for("unrelated_histories"))
+
+    def __reduce__(self):  # kopier- und speicherbar trotz anderer Argumente als GitError
+        return (UnrelatedHistoriesError, (self.url, self.branch))
+
+    def render(self, quote: Callable[[str], str] = str) -> str:
+        """Meldung; ``quote`` wird auf Adresse und Branch angewendet."""
+        return t(
+            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
+            "Datenordner.",
+            url=quote(self.url),
+            branch=quote(self.branch),
+        )
 
 
 def nothing_to_share_error() -> GitError:
@@ -841,37 +1037,20 @@ def _probe_failure(run: _ProbeRun, address: RemoteAddress) -> GitError:
 
 
 def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) -> GitError:
-    """Macht aus der Fehlerausgabe der Verbindungsprüfung einen verständlichen Fehler. Die
-    Zuordnung steht nur hier (classify bleibt unverändert): Git meldet ein nicht vorhandenes
-    Repository oder eine verweigerte Berechtigung mit „Could not read from remote repository“,
-    das classify als „offline“ liest; als „Server nicht erreichbar“ (``offline``) gilt hier nur,
-    was einen Netzwerkfehler belegt (:data:`_UNREACHABLE`) oder die Zeitüberschreitung. Nur
-    dann bietet die Oberfläche an, die Adresse ungeprüft zu speichern. Der Text von Git bleibt
-    in ``str(error)`` (erscheint als „Technische Meldung“); es gibt immer einen Hinweis."""
-    err = classify(message, timeout=timed_out)
+    """Macht aus der Fehlerausgabe der Verbindungsprüfung einen verständlichen Fehler. Art und
+    Hinweis zu Anmeldung, Fingerabdruck, nicht gefundenem Repository und Zertifikat kommen von
+    :func:`classify`, wie bei jedem anderen Netzwerkaufruf. Hier kommt hinzu, was nur die Prüfung
+    weiß: Als „Server nicht erreichbar“ (``offline``) gilt nur, was einen Netzwerkfehler belegt
+    (:data:`_UNREACHABLE`) oder die Zeitüberschreitung, denn nur dann bietet die Oberfläche an,
+    die Adresse ungeprüft zu speichern. „Could not read from remote repository“ allein belegt
+    das nicht (Git hängt es auch an, wenn der Server das Repository verweigert). Der Text von
+    Git bleibt in ``str(error)`` (erscheint als „Technische Meldung“); es gibt immer einen
+    Hinweis."""
+    err = classify(message, timeout=timed_out, url=address.url, drive_check=False)
     if timed_out:
         err.hint = _unreachable_hint()
-    elif _HOST_KEY.search(message):
-        err.kind = "auth"
-        err.hint = t(
-            "Der Rechner kennt diesen SSH-Server noch nicht (oder sein Schlüssel hat sich "
-            "geändert). Die App kann das nicht bestätigen: Bitte einmal mit einem SSH- oder "
-            "Git-Programm zum Server verbinden und den Fingerabdruck bestätigen, oder die "
-            "https-Adresse des Repositorys verwenden. Danach hier noch einmal prüfen."
-        )
-    elif err.kind == "auth":
-        err.hint = auth_help(address.url)
-    elif _NOT_FOUND.search(message):
-        err.kind = "not_found"
-        err.hint = hint_for("not_found")
-    elif _CERTIFICATE.search(message):
-        err.kind = "certificate"
-        err.hint = t(
-            "Der Server antwortet, aber sein Sicherheitszertifikat wird von diesem Rechner nicht "
-            "anerkannt (häufig ein Firmenzertifikat oder ein selbst ausgestelltes Zertifikat). "
-            "Bitte die IT bitten, das Zertifikat auf dem Rechner zu hinterlegen. Die App ändert "
-            "keine Git-Einstellungen und speichert die Adresse so nicht."
-        )
+    elif err.kind == "certificate":
+        err.hint += " " + t("Die Adresse wird so nicht gespeichert.")
     elif err.kind == "offline" and _UNREACHABLE.search(message):
         err.hint = _unreachable_hint()
     elif err.kind == "offline":  # z. B. „Could not read from remote repository“ ohne Grund
@@ -881,7 +1060,7 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
             "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
             "„Technische Meldung“."
         )
-    else:
+    elif err.kind not in {"auth", "not_found", "unsafe_directory", "not_writable", "locked"}:
         err.hint = t(
             "Die Verbindung zum Server ist fehlgeschlagen. Die Meldung von Git steht unter "
             "„Technische Meldung“."
@@ -897,21 +1076,48 @@ def _unreachable_hint() -> str:
     )
 
 
-def repo_root(path: Path) -> Path | None:
-    """Wurzel des Git-Repositorys, in dem ``path`` liegt – oder None."""
+def _locate_root(path: Path) -> tuple[Path | None, GitError | None]:
+    """Wurzel des Repositorys, in dem ``path`` liegt, und – wenn es keine gibt, obwohl dort eins
+    liegt – der Grund: Git lehnt den Ordner als unsicher ab (``unsafe_directory``). Jeder andere
+    Fehler gilt als „kein Repository“."""
     path = path.resolve()
     cached = _ROOT_CACHE.get(path)
     if cached and time.monotonic() - cached[0] < _ROOT_TTL:
-        return cached[1]
+        return cached[1], cached[2]
     start = path
     while not start.exists():
         start = start.parent
+    root: Path | None = None
+    problem: GitError | None = None
     try:
         root = Path(_git(start if start.is_dir() else start.parent, "rev-parse", "--show-toplevel"))
-    except GitError:
-        root = None
-    _ROOT_CACHE[path] = (time.monotonic(), root)
-    return root
+    except GitError as e:
+        problem = e if e.kind == "unsafe_directory" else None
+    _ROOT_CACHE[path] = (time.monotonic(), root, problem)
+    return root, problem
+
+
+def repo_root(path: Path) -> Path | None:
+    """Wurzel des Git-Repositorys, in dem ``path`` liegt – oder None. None heißt auch, dass Git
+    den Ordner als unsicher ablehnt; den Grund nennt dann :func:`root_problem`."""
+    return _locate_root(path)[0]
+
+
+def root_problem(path: Path) -> GitError | None:
+    """Grund, warum :func:`repo_root` None liefert, obwohl ``path`` in einem Repository liegt
+    (Art ``unsafe_directory``); sonst None."""
+    return _locate_root(path)[1]
+
+
+def require_root(path: Path) -> Path:
+    """Wie :func:`repo_root`, wirft aber :class:`GitError`, wenn es keine Wurzel gibt: mit dem
+    Grund aus :func:`root_problem` oder als „liegt in keinem Git-Repository“."""
+    root, problem = _locate_root(path)
+    if root is not None:
+        return root
+    if problem is not None:  # neu erzeugt: der gespeicherte sammelte bei jedem Auslösen Spuren an
+        raise GitError(str(problem), problem.kind, problem.hint, problem.raw)
+    raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
 
 
 def forget_roots(path: Path) -> None:
@@ -936,9 +1142,7 @@ class Change:
 def changes_in(path: Path) -> list[Change]:
     """Nicht committete Änderungen unterhalb von ``path``, bei Umbenennungen mit dem bisherigen
     Pfad."""
-    root = repo_root(path)
-    if root is None:
-        raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
+    root = require_root(path)
     # Nicht strippen: Die Statusspalte beginnt ggf. mit einem Leerzeichen (" M datei").
     out = _git(
         root,
@@ -1000,7 +1204,7 @@ def on_invalidate(hook: Callable[[], object]) -> None:
 def invalidate_status() -> None:
     """Verwirft zwischengespeicherte Git-Stände (nach Speichern, Commit, Synchronisation)."""
     _STATUS_CACHE.clear()
-    for key in [k for k, (_, root) in _ROOT_CACHE.items() if root is None]:
+    for key in [k for k, (_, root, _) in _ROOT_CACHE.items() if root is None]:
         del _ROOT_CACHE[key]  # „kein Repository“ ist nicht von Dauer
     for hook in _INVALIDATE_HOOKS:
         hook()
@@ -1056,9 +1260,7 @@ def refuse_staged_conflict_markers(root: Path) -> None:
 
 def commit_directory(path: Path, message: str, tags: list[str] | None = None) -> str:
     """Committet alle Änderungen unterhalb von ``path`` (nur dort) und setzt optional Tags."""
-    root = repo_root(path)
-    if root is None:
-        raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
+    root = require_root(path)
     changes = pending_changes(path)
     if not changes:
         raise GitError(t("Keine Änderungen zum Committen"))
@@ -1083,10 +1285,22 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
     return _git(root, "rev-parse", "--short", "HEAD")
 
 
+_NOT_A_REPOSITORY = re.compile(r"not a git repository", re.I)
+
+
 def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
     cwd = paths[0].resolve().parent
-    root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
+    try:
+        root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
+    except GitError as e:
+        if e.kind == "error" and _NOT_A_REPOSITORY.search(str(e)):
+            raise GitError(
+                t("{path} liegt in keinem Git-Repository", path=cwd),
+                "not_repo",
+                hint_for("not_repo"),
+            ) from e
+        raise
     refuse_conflict_markers(root, paths)
     names = check_new_tags(root, [tag] if tag else None)
     try:
@@ -1108,48 +1322,119 @@ GITIGNORE = """\
 *.tmp
 """
 
+GITATTRIBUTES = """\
+# Datendateien und Berichte immer mit LF, auch bei core.autocrlf (Windows): Sonst schriebe das
+# erste Speichern alle Zeilenenden um und erzeugte Rauschen im Verlauf.
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+"""
+
+
+def folder_problem(path: Path, error: Exception) -> GitError:
+    """Ein Dateisystemfehler am Ordner ``path`` als :class:`GitError` der Art ``folder`` mit
+    Klartext (Pfade stehen als Code, denn die Meldung erscheint als Markdown)."""
+    shown = md_code(str(path))
+    if isinstance(error, PermissionError):
+        message = t(
+            "Keine Zugriffsrechte für {path} – bitte einen anderen Ordner wählen oder die "
+            "Rechte anpassen.",
+            path=shown,
+        )
+    else:
+        reason = getattr(error, "strerror", None) or str(error)
+        message = t(
+            "{path} lässt sich nicht anlegen ({reason}) – bitte den Pfad prüfen.",
+            path=shown,
+            reason=reason,
+        )
+    return GitError(message, "folder")
+
+
+@contextlib.contextmanager
+def _folder_access(path: Path) -> Iterator[None]:
+    """Der Zielordner ``path`` eines Anlegens bzw. Klonens: Eine Datei an dieser Stelle und
+    Dateisystemfehler (keine Rechte, Pfad unbrauchbar, auch die von Git gemeldeten) kommen als
+    :class:`GitError` der Art ``folder`` mit Klartext statt als rohe Ausnahme."""
+    try:
+        if path.is_file():
+            raise GitError(
+                t(
+                    "{path} ist eine Datei, kein Ordner – bitte einen Ordner angeben.",
+                    path=md_code(str(path)),
+                ),
+                "folder",
+            )
+        yield
+    except (OSError, ValueError) as e:  # ValueError: Pfad mit NUL-Zeichen
+        raise folder_problem(path, e) from e
+    except GitError as e:
+        if e.kind == "not_writable" or (e.kind == "error" and "Permission denied" in str(e)):
+            raise folder_problem(path, PermissionError()) from e
+        raise
+
 
 def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
-    """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und
-    liefert den Ordner für die Teams."""
-    path.mkdir(parents=True, exist_ok=True)
-    if repo_root(path) is None:
-        _git(path, "init", "-q")
-        forget_roots(path)
-    ignore = path / ".gitignore"
-    if not ignore.exists():
-        ignore.write_text(GITIGNORE, encoding="utf-8")
-    if not teams_folder:
-        return path
-    teams = path / "teams"
-    teams.mkdir(exist_ok=True)
-    return teams
+    """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und liefert
+    den Ordner für die Teams. Ein neues Repository bekommt im Datenordner außerdem eine
+    ``.gitattributes`` (YAML und Berichte mit LF): Sie wird mit den Daten committet und erreicht
+    so auch die Klone. Vorhandene Dateien und bestehende Repositories bleiben unverändert: Dort
+    könnten CRLF-Dateien im Index liegen, die mit der Festlegung plötzlich als geändert gelten.
+    Eine Datei als Ziel und Dateisystemfehler kommen als :class:`GitError` (Art ``folder``),
+    ein Ordner, den Git als unsicher ablehnt, als Art ``unsafe_directory`` (ohne etwas zu
+    schreiben)."""
+    with _folder_access(path):
+        if (problem := root_problem(path)) is not None:
+            # Git lehnt den Ordner ab, weil er einem anderen Konto gehört: nicht „git init“ dort,
+            # nichts hineinschreiben, sondern den Grund nennen.
+            raise GitError(str(problem), problem.kind, problem.hint, problem.raw)
+        path.mkdir(parents=True, exist_ok=True)
+        new = repo_root(path) is None
+        if new:
+            _git(path, "init", "-q")
+            forget_roots(path)
+        ignore = path / ".gitignore"
+        if not ignore.exists():
+            ignore.write_text(GITIGNORE, encoding="utf-8")
+        data = path
+        if teams_folder:
+            data = path / "teams"
+            data.mkdir(exist_ok=True)
+        attributes = data / ".gitattributes"
+        if new and not attributes.exists():
+            attributes.write_text(GITATTRIBUTES, encoding="utf-8")
+        return data
 
 
 def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
     """Klont ein bestehendes Daten-Repository nach ``path``. Die Adresse wird wie bei
     :func:`parse_remote_url` geprüft (Zugangsdaten in der Adresse, relative Pfade, ``git://`` und
-    ``file://`` werden abgelehnt). Fehler (Adresse, Anmeldung, Server nicht erreichbar,
-    Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
+    ``file://`` werden abgelehnt). Fehler (Adresse, Zielordner, Anmeldung, Server nicht
+    erreichbar, Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
     # Beim Klonen reicht auch http:// (viele Repositories im Firmennetz haben nichts anderes).
     address = parse_remote_url(url, allow_insecure=True)
-    if path.exists() and any(path.iterdir()):
-        raise GitError(t("{path} ist nicht leer", path=path))
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path = Path(os.path.abspath(path))  # ein relatives Ziel wäre sonst relativ zu path.parent
     try:
-        _git(
-            path.parent,
-            "clone",
-            "--",
-            address.url,
-            str(path),
-            network=True,
-            timeout=timeout,
-            env_extra={"GIT_ALLOW_PROTOCOL": SAFE_PROTOCOLS},
-        )
-    except GitError as e:
-        if e.kind == "auth":
-            e.hint = auth_help(address.url)
-        raise
+        with _folder_access(path):
+            if path.exists() and any(path.iterdir()):
+                raise GitError(
+                    t("{path} ist nicht leer", path=md_code(str(path))),
+                    "folder",
+                )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            _git(
+                path.parent,
+                "clone",
+                "--",
+                address.url,
+                str(path),
+                network=True,
+                timeout=timeout,
+                env_extra={"GIT_ALLOW_PROTOCOL": SAFE_PROTOCOLS},
+                url=address.url,
+            )
     finally:
-        forget_roots(path)
+        with contextlib.suppress(
+            OSError, ValueError
+        ):  # ein unbrauchbarer Pfad wurde schon gemeldet
+            forget_roots(path)

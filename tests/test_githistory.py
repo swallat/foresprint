@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from gitrepos import Denying, Person, git, serve
 
+from sprintforecast import git as gitmod
 from sprintforecast import githistory, gitsync
 from sprintforecast.git import GitError, invalidate_status
 
@@ -150,6 +151,37 @@ def test_tags_set_later_listed_and_deleted_also_on_server(alice: Person, remote:
     assert githistory.list_tags(alice.data) == [] and git(remote, "tag") == ""
 
 
+def test_tags_with_an_empty_subject_of_the_oldest_tag(
+    alice: Person, monkeypatch: pytest.MonkeyPatch
+):
+    """Die Liste der Tags kommt aus ``for-each-ref``; ``_git`` schneidet das Trennzeichen am Ende
+    der letzten Zeile ab. Ist der Betreff des ältesten Tags leer (ein Tag auf einen Commit ohne
+    Betreff), fehlt in dieser Zeile das letzte Feld."""
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "add", "-A")
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T10:00:00")
+    git(alice.root, "commit", "-q", "--allow-empty-message", "-m", "")
+    git(alice.root, "tag", "a/leer")  # leichtgewichtig: der Betreff ist der des Commits
+    alice.write("a/2026.3.yaml", "velocity: 6\n")
+    git(alice.root, "add", "-A")
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2021-01-01T10:00:00")
+    git(alice.root, "commit", "-qm", "Später")
+    git(alice.root, "tag", "-a", "a/spaeter", "-m", "Mit Text")
+    tags = githistory.list_tags(alice.data)
+    assert [(tag.name, tag.subject) for tag in tags] == [("a/spaeter", "Mit Text"), ("a/leer", "")]
+
+
+def test_a_tag_message_with_a_unicode_line_separator_stays_one_tag(alice: Person):
+    """``str.splitlines`` trennt auch an U+2028 und ähnlichen Zeichen: Der Rest eines Betreffs
+    erschiene sonst als Geister-Tag, den man sogar auf dem Server löschen könnte."""
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "Start")
+    git(alice.root, "tag", "-a", "a/trenner", "-m", "Release\u2028Notes: wichtig")
+    tags = githistory.list_tags(alice.data)
+    assert [tag.name for tag in tags] == ["a/trenner"]
+
+
 @pytest.mark.usefixtures("no_login_prompt")
 def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Person):
     """„Nur lokal erledigt“ zeigt die Warnung ohne Überschrift (``GitError.full()``): Sie nennt
@@ -166,12 +198,41 @@ def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Perso
 
 
 def test_tag_upload_failure_is_a_warning_and_tag_stays(alice: Person, tmp_path: Path):
-    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "weg.git"))
+    """Der Server ist ein Ordner auf einem Laufwerk, das gerade fehlt (ohne Netzwerk, ohne
+    Proxy): Hochladen und Löschen melden „nicht erreichbar“, der Tag bleibt lokal."""
+    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "getrennt" / "weg.git"))
     warning = githistory.set_tag(alice.data, "a/lokal")
     assert warning and warning.kind == "offline"
     assert [t.name for t in githistory.list_tags(alice.data)] == ["a/lokal"]
     assert githistory.delete_tag(alice.data, "a/lokal").kind == "offline"
     assert githistory.list_tags(alice.data) == []
+
+
+def test_tag_upload_and_delete_name_the_ssh_login_for_an_ssh_server(
+    alice: Person, monkeypatch: pytest.MonkeyPatch
+):
+    """Die Adresse des Servers erreicht auch bei Tags die Zuordnung: SSH-Anleitung statt der
+    Hilfe für https (Zugangstoken)."""
+    import subprocess
+
+    git(alice.root, "tag", "-a", "-m", "m", "a/lokal")
+    git(alice.root, "remote", "set-url", "origin", "git@example.org:team/daten.git")
+    real = gitmod._git_result
+
+    def refused(cwd, *args, **kwargs):
+        if args[:1] in {("push",), ("ls-remote",), ("fetch",)}:
+            return subprocess.CompletedProcess(
+                args, 128, "", "git@example.org: Permission denied (publickey)."
+            )
+        return real(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(gitmod, "_git_result", refused)
+    with pytest.raises(GitError) as caught:
+        githistory.upload_tag(alice.data, "a/lokal")
+    assert caught.value.kind == "auth" and "ssh-keygen" in caught.value.hint
+    assert "Zugangstoken" not in caught.value.hint
+    deleted = githistory.delete_tag(alice.data, "a/lokal")
+    assert deleted is not None and deleted.kind == "auth" and "ssh-keygen" in deleted.hint
 
 
 MARKED = "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n"

@@ -634,8 +634,11 @@ def apply_product_values(sprint: Sprint, rows: list[dict[str, Any]], measures: l
 
 
 def parse_numbers(raw: str) -> list[float]:
-    """„4,25 4.5“ → [4.25, 4.5]; wirft ValueError bei ungültigen Einträgen."""
-    return [float(x.replace(",", ".")) for x in raw.replace(";", " ").split()]
+    """„4,25 4.5“ → [4.25, 4.5]; wirft ValueError bei ungültigen oder nicht endlichen Einträgen."""
+    numbers = [float(x.replace(",", ".")) for x in raw.replace(";", " ").split()]
+    if not all(math.isfinite(n) for n in numbers):
+        raise ValueError(t("Bitte eine endliche Zahl eingeben."))
+    return numbers
 
 
 def board_steps_done(recorded: Sprint | None) -> dict[str, bool]:

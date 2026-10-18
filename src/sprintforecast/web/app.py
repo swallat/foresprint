@@ -11,17 +11,23 @@ from sprintforecast.plugins import web_pages
 from sprintforecast.web.ui import (
     PAGES,
     apply_language,
+    collect_sync_result,
     enabled_pages,
     page_path,
     repository,
     run_plugin_page,
     sidebar,
     sidebar_footer,
+    stichtag_problem,
 )
 
 st.set_page_config(page_title="Sprint-Forecast", page_icon="📈", layout="wide")
 start_idle_watch()
 apply_language()
+if problem := stichtag_problem():
+    st.error(problem)  # vor allem Weiteren: Die Seitenleiste liest den Stichtag in jedem Lauf
+    st.stop()
+collect_sync_result()  # ein Abgleich eines gestoppten Durchlaufs: abwarten, Ergebnis übernehmen
 repo = repository()
 sidebar(repo)  # vor der Navigation: Die Teamwahl bestimmt, welche Seiten es gibt
 enabled = enabled_pages(repo)
