@@ -926,6 +926,41 @@ def test_failed_save_restores_the_index(alice: Person, monkeypatch: pytest.Monke
     assert "rettung-" not in git(alice.root, "branch", "--list")
 
 
+def test_failed_save_keeps_the_staging_of_the_user(alice: Person, monkeypatch: pytest.MonkeyPatch):
+    """Eine vorhandene (auch teilweise) Vormerkung bleibt nach dem Rückbau exakt erhalten."""
+    git(alice.root, "checkout", "-q", "--detach")
+    full = alice.data / "a" / "voll.yaml"
+    full.write_text("x: 1\n", encoding="utf-8")
+    git(alice.root, "add", str(full))  # vollständig vorgemerkt
+    part = alice.data / "a" / "2026.1.yaml"
+    part.write_text("velocity: 50\n", encoding="utf-8")
+    git(alice.root, "add", str(part))
+    part.write_text("velocity: 51\n", encoding="utf-8")  # danach erneut geändert: teilweise
+    (alice.data / "a" / "lose.yaml").write_text("z: 3\n", encoding="utf-8")  # nicht vorgemerkt
+    invalidate_status()
+    before = [
+        git(alice.root, *args)
+        for args in (("diff", "--cached"), ("diff",), ("status", "--porcelain"))
+    ]
+    real = gitmod._git
+
+    def failing(root, *args, **kwargs):
+        if args and args[0] == "commit":
+            raise GitError("kein Commit")
+        return real(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitmod, "_git", failing)
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    monkeypatch.undo()
+    after = [
+        git(alice.root, *args)
+        for args in (("diff", "--cached"), ("diff",), ("status", "--porcelain"))
+    ]
+    assert after == before and before[0]  # es gab eine Vormerkung
+    assert gitsync.state(alice.data).detached
+
+
 def test_failed_save_with_a_file_error_never_stays_on_the_rescue_branch(
     alice: Person, monkeypatch: pytest.MonkeyPatch
 ):
