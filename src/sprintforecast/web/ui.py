@@ -160,7 +160,7 @@ from sprintforecast.protocol import (
     list_protocols,
     mark_obsolete,
     render_protocol,
-    write_protocol,
+    save_with_protocol,
 )
 from sprintforecast.report import (
     absence_status_label,
@@ -2331,11 +2331,16 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     )
 
     def write() -> list[Path]:
-        paths = [repo.save_sprint(data.team.key, sprint)]
-        write_protocol(
-            repo, data.team.key, sprint.id, PLANNING, protocol, now
+        return save_with_protocol(
+            repo,
+            data.team.key,
+            sprint.id,
+            PLANNING,
+            protocol,
+            now,
+            [sprint],
+            lambda: [repo.save_sprint(data.team.key, sprint)],
         )  # Protokoll: nicht in der Meldung
-        return paths
 
     if save(after, [f"{sprint.id}.yaml"], write, flash=True):
         # Die Hinweise erscheinen im nächsten Durchlauf; er zeichnet auch die Schrittleiste neu.
@@ -2530,11 +2535,16 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
 
     def write() -> list[Path]:
-        paths = [repo.save_sprint(data.team.key, sprint)]
-        write_protocol(
-            repo, data.team.key, sprint.id, REVIEW, protocol, now
+        return save_with_protocol(
+            repo,
+            data.team.key,
+            sprint.id,
+            REVIEW,
+            protocol,
+            now,
+            [sprint],
+            lambda: [repo.save_sprint(data.team.key, sprint)],
         )  # Protokoll: nicht in der Meldung
-        return paths
 
     if save(
         after,
@@ -3087,11 +3097,16 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
 
         def write() -> list[Path]:
-            paths = [repo.save_sprint(data.team.key, s) for s in to_save]
-            write_protocol(
-                repo, data.team.key, after.id, PREPLANNING, protocol, now
+            return save_with_protocol(
+                repo,
+                data.team.key,
+                after.id,
+                PREPLANNING,
+                protocol,
+                now,
+                to_save,
+                lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
             )  # Protokoll: nicht in der Meldung
-            return paths
 
         if save(with_sprints(data, to_save), [f"{s.id}.yaml" for s in to_save], write, flash=True):
             st.rerun()  # die Schrittleiste oben zeigt den gespeicherten Stand
