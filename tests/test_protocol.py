@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Protokolle der Sprint-Termine: schreiben, auflisten, bei Aufheben des Einfrierens obsolet."""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -14,6 +14,7 @@ from sprintforecast.protocol import (
     list_protocols,
     mark_obsolete,
     render_protocol,
+    save_with_protocol,
     write_protocol,
 )
 from sprintforecast.storage import FileAccessError, Repository
@@ -68,6 +69,64 @@ def test_an_unchanged_save_does_not_write_another_protocol(tmp_path: Path):
     assert again == one and len(list_protocols(repo, "demo", "2026.21")) == 1
     write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 3\n\nandere Zahl\n", LATER)
     assert len(list_protocols(repo, "demo", "2026.21")) == 2
+
+
+def sprint_stub(**fields):
+    from sprintforecast.model import Sprint
+
+    return Sprint(id="2026.21", start=date(2026, 10, 12), end=date(2026, 10, 26), **fields)
+
+
+def test_a_change_the_text_does_not_show_still_creates_a_protocol(tmp_path: Path):
+    """``scope_creep`` steht nicht im Protokolltext, ändert aber die gespeicherte Sprintdatei."""
+    repo = Repository(tmp_path)
+    text = "# T\n\nStand: 1\n\nwert\n"
+    kwargs = dict(repo=repo, team="demo", sprint_id="2026.21", kind=REVIEW, text=text)
+    first = save_with_protocol(
+        now=NOW, sprints=[sprint_stub(scope_creep=0.1)], save=lambda: [], **kwargs
+    )
+    save_with_protocol(now=LATER, sprints=[sprint_stub(scope_creep=0.1)], save=lambda: [], **kwargs)
+    assert len(list_protocols(repo, "demo", "2026.21")) == 1  # unverändert
+    save_with_protocol(now=LATER, sprints=[sprint_stub(scope_creep=0.2)], save=lambda: [], **kwargs)
+    assert first == [] and len(list_protocols(repo, "demo", "2026.21")) == 2
+
+
+def test_the_protocol_is_written_before_the_sprint_and_removed_if_saving_fails(tmp_path: Path):
+    repo = Repository(tmp_path)
+    (tmp_path / "demo").mkdir()
+    (tmp_path / "demo" / "protokolle").write_text("im Weg", encoding="utf-8")
+    saved: list[int] = []
+    with pytest.raises(FileAccessError):  # Protokoll nicht schreibbar: Sprint bleibt unberührt
+        save_with_protocol(
+            repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, [sprint_stub()],
+            lambda: saved.append(1) or [],
+        )  # fmt: skip
+    assert saved == []
+    (tmp_path / "demo" / "protokolle").unlink()
+
+    def failing() -> list[Path]:
+        raise FileAccessError("kein Schreibrecht")
+
+    with pytest.raises(FileAccessError):  # Speichern scheitert: das neue Protokoll verschwindet
+        save_with_protocol(
+            repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, [sprint_stub()],
+            failing,
+        )  # fmt: skip
+    assert list_protocols(repo, "demo", "2026.21") == []
+
+
+def test_an_unreadable_protocol_folder_is_a_file_access_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    repo = Repository(tmp_path)
+    (tmp_path / "demo" / "protokolle").mkdir(parents=True)
+
+    def broken(self):
+        raise PermissionError("verweigert")
+
+    monkeypatch.setattr(Path, "iterdir", broken)
+    with pytest.raises(FileAccessError):
+        list_protocols(repo, "demo", "2026.21")
 
 
 def test_two_unfreezes_in_the_same_second_keep_both_obsolete_files(tmp_path: Path):

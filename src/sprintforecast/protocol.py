@@ -8,15 +8,26 @@ ein Termin hinfällig (z. B. beim Aufheben des Einfrierens), heißt das alte Pro
 
 from __future__ import annotations
 
+import hashlib
 import re
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
+from sprintforecast.model import Sprint
 from sprintforecast.products import Distribution, by_po, measure_label
 from sprintforecast.report import fmt
-from sprintforecast.storage import FileAccessError, Repository, _not_saved, write_text
+from sprintforecast.storage import (
+    FileAccessError,
+    Repository,
+    _not_readable,
+    _not_saved,
+    dump_yaml,
+    sprint_to_dict,
+    write_text,
+)
 
 PROTOCOL_DIR = "protokolle"
 STAMP = "%Y%m%d-%H%M%S"
@@ -112,11 +123,42 @@ def _body(path: Path) -> list[str] | None:
         return None
 
 
-def write_protocol(
-    repo: Repository, team: str, sprint_id: str, kind: str, text: str, now: datetime
-) -> Path:
-    """Schreibt das Protokoll (LF-Zeilenenden, über eine Zwischendatei). Gibt es den Namen schon
-    (zwei Speicherungen in derselben Sekunde), wird die Sekunde hochgezählt: nichts geht verloren.
+STATE_MARKER = "<!-- sprintforecast-state: "
+
+
+def fingerprint(text: str, *documents: dict) -> str:
+    """Kurzer Fingerabdruck des gespeicherten Stands: der Text ohne die Zeile „Stand: …“ und alle
+    gespeicherten Felder der Sprintdateien (auch die, die das Protokoll nicht darstellt)."""
+    digest = hashlib.sha256("\n".join(_body_of(text)).encode("utf-8"))
+    for document in documents:
+        digest.update(dump_yaml(document).encode("utf-8"))
+    return digest.hexdigest()[:16]
+
+
+def _state_of(path: Path) -> str | None:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines):
+        if line.startswith(STATE_MARKER):
+            return line[len(STATE_MARKER) :].removesuffix(" -->").strip()
+    return None
+
+
+def write_protocol_new(
+    repo: Repository,
+    team: str,
+    sprint_id: str,
+    kind: str,
+    text: str,
+    now: datetime,
+    state: str | None = None,
+) -> tuple[Path, bool]:
+    """Schreibt das Protokoll (LF-Zeilenenden, über eine Zwischendatei) und meldet, ob es neu
+    entstand. Mit ``state`` (siehe :func:`fingerprint`) entsteht kein weiteres Protokoll, wenn der
+    Stand unverändert ist; ohne ``state`` entscheidet der Text. Gibt es den Namen schon (zwei
+    Speicherungen in derselben Sekunde), wird die Sekunde hochgezählt: nichts geht verloren.
     Schreibfehler kommen als :class:`FileAccessError`."""
     latest = next(
         (
@@ -126,8 +168,12 @@ def write_protocol(
         ),
         None,
     )
-    if latest is not None and _body(latest) == _body_of(text):
-        return latest  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
+    if latest is not None:
+        same = _state_of(latest) == state if state is not None else _body(latest) == _body_of(text)
+        if same:
+            return latest, False  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
+    if state is not None:
+        text = text.rstrip("\n") + f"\n\n{STATE_MARKER}{state} -->\n"
     folder = _folder(repo, team)
     try:
         folder.mkdir(parents=True, exist_ok=True)
@@ -150,7 +196,44 @@ def write_protocol(
         path.unlink(missing_ok=True)
         raise
     invalidate_status()  # eine neue Datei ist eine offene Änderung, auch ohne geänderte YAML
-    return path
+    return path, True
+
+
+def write_protocol(
+    repo: Repository,
+    team: str,
+    sprint_id: str,
+    kind: str,
+    text: str,
+    now: datetime,
+    state: str | None = None,
+) -> Path:
+    """Wie :func:`write_protocol_new`, liefert nur die Datei."""
+    return write_protocol_new(repo, team, sprint_id, kind, text, now, state)[0]
+
+
+def save_with_protocol(
+    repo: Repository,
+    team: str,
+    sprint_id: str,
+    kind: str,
+    text: str,
+    now: datetime,
+    sprints: list[Sprint],
+    save: Callable[[], list[Path]],
+) -> list[Path]:
+    """Schreibt erst das Protokoll, dann ``save`` (die Sprintdateien). Ist das Protokoll nicht
+    schreibbar, bleibt die Sprintdatei unverändert; scheitert ``save``, wird das eben geschriebene
+    Protokoll wieder entfernt – beides gelingt oder keines."""
+    state = fingerprint(text, *(sprint_to_dict(s) for s in sprints))
+    path, created = write_protocol_new(repo, team, sprint_id, kind, text, now, state)
+    try:
+        return save()
+    except BaseException:
+        if created:
+            path.unlink(missing_ok=True)
+            invalidate_status()
+        raise
 
 
 def list_protocols(
@@ -159,12 +242,15 @@ def list_protocols(
     """Die Protokolle eines Sprints als (Zeitpunkt, Termin, obsolet, Datei), neueste zuerst."""
     folder = _folder(repo, team)
     found: list[tuple[datetime, str, bool, Path]] = []
-    if folder.is_dir():
-        for p in folder.iterdir():
-            m = _NAME.match(p.name)
-            if m and m["sprint"] == sprint_id and p.is_file():
-                at = datetime.strptime(m["at"], STAMP)
-                found.append((at, m["kind"], m["obsolete"] is not None, p))
+    try:
+        entries = list(folder.iterdir()) if folder.is_dir() else []
+    except OSError as e:
+        raise _not_readable(folder, e) from e
+    for p in entries:
+        m = _NAME.match(p.name)
+        if m and m["sprint"] == sprint_id and p.is_file():
+            at = datetime.strptime(m["at"], STAMP)
+            found.append((at, m["kind"], m["obsolete"] is not None, p))
     return sorted(found, key=lambda f: (f[0], f[3].name), reverse=True)
 
 
