@@ -13,6 +13,7 @@ from sprintforecast.protocol import (
     REVIEW,
     list_protocols,
     mark_obsolete,
+    obsolete_with_save,
     render_protocol,
     save_with_protocol,
     write_protocol,
@@ -127,6 +128,54 @@ def test_an_unreadable_protocol_folder_is_a_file_access_error(
     monkeypatch.setattr(Path, "iterdir", broken)
     with pytest.raises(FileAccessError):
         list_protocols(repo, "demo", "2026.21")
+
+
+def test_failed_unfreeze_save_renames_the_protocols_back(tmp_path: Path):
+    repo = Repository(tmp_path)
+    plan = write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nx\n", NOW)
+
+    def failing() -> list[Path]:
+        raise FileAccessError("kein Schreibrecht")
+
+    with pytest.raises(FileAccessError):
+        obsolete_with_save(repo, "demo", "2026.21", PLANNING, LATER, failing)
+    assert plan.exists()
+    assert [f[2] for f in list_protocols(repo, "demo", "2026.21")] == [False]
+    ok = obsolete_with_save(repo, "demo", "2026.21", PLANNING, LATER, lambda: [])
+    assert ok == [] and not plan.exists()
+    assert [f[2] for f in list_protocols(repo, "demo", "2026.21")] == [True]
+
+
+def test_a_failing_rename_undoes_the_ones_already_done(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    repo = Repository(tmp_path)
+    first = write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\na\n", NOW)
+    second = write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nb\n", LATER)
+    real = Path.replace
+    calls: list[int] = []
+
+    def flaky(self: Path, target):
+        calls.append(1)
+        if len(calls) == 2:
+            raise PermissionError("gesperrt")
+        return real(self, target)
+
+    monkeypatch.setattr(Path, "replace", flaky)
+    with pytest.raises(FileAccessError):
+        mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER + timedelta(days=1))
+    monkeypatch.setattr(Path, "replace", real)
+    assert first.exists() and second.exists()
+    assert not any(f[2] for f in list_protocols(repo, "demo", "2026.21"))
+
+
+def test_a_filename_with_an_impossible_date_is_ignored(tmp_path: Path):
+    repo = Repository(tmp_path)
+    folder = tmp_path / "demo" / "protokolle"
+    folder.mkdir(parents=True)
+    (folder / "2026.21-review-20261340-250000.md").write_text("x", encoding="utf-8")
+    good = write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    assert [f[3] for f in list_protocols(repo, "demo", "2026.21")] == [good]
 
 
 def test_two_unfreezes_in_the_same_second_keep_both_obsolete_files(tmp_path: Path):
