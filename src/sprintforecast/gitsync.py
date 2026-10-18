@@ -259,7 +259,7 @@ def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str,
         target,
         check=False,
     )
-    commits = [Commit(*split_record(line, 4, _SEP)) for line in log.splitlines() if _SEP in line]
+    commits = [Commit(*split_record(line, 4, _SEP)) for line in log.split("\n") if _SEP in line]
     related = bool(_git(root, "merge-base", "HEAD", current.upstream, check=False))
     span = f"HEAD...{current.upstream}" if related else f"HEAD..{current.upstream}"
     diff = _git(

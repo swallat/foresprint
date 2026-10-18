@@ -170,6 +170,17 @@ def test_tags_with_an_empty_subject_of_the_oldest_tag(
     assert [(tag.name, tag.subject) for tag in tags] == [("a/spaeter", "Mit Text"), ("a/leer", "")]
 
 
+def test_a_tag_message_with_a_unicode_line_separator_stays_one_tag(alice: Person):
+    """``str.splitlines`` trennt auch an U+2028 und ähnlichen Zeichen: Der Rest eines Betreffs
+    erschiene sonst als Geister-Tag, den man sogar auf dem Server löschen könnte."""
+    alice.write("a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "Start")
+    git(alice.root, "tag", "-a", "a/trenner", "-m", "Release\u2028Notes: wichtig")
+    tags = githistory.list_tags(alice.data)
+    assert [tag.name for tag in tags] == ["a/trenner"]
+
+
 @pytest.mark.usefixtures("no_login_prompt")
 def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Person):
     """„Nur lokal erledigt“ zeigt die Warnung ohne Überschrift (``GitError.full()``): Sie nennt
