@@ -1416,7 +1416,7 @@ def analyse(
                 )
                 + "[/dim]"
             )
-        if note := completion_note(result.samples):
+        if note := completion_note(result.samples, data.team.forecast.window):
             console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
 
 
