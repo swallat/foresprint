@@ -1850,7 +1850,7 @@ def datenordner(
         _git_problem(classify("", missing=True))
     if repo_root(pfad) is None:
         if problem := root_problem(pfad):
-            err.print(f"[red]{escape(problem.full())}[/red]")
+            _git_problem(problem)  # Überschrift, Meldung von Git und nächster Schritt
         else:
             err.print(
                 "[red]"

@@ -376,7 +376,15 @@ def _unrelated(root: Path, remote: str | None, upstream: str) -> bool:
             raise gitmod.classify(proc.stderr.strip() or proc.stdout.strip())
         shallow = _git(root, "rev-parse", "--is-shallow-repository", check=False) == "true"
         if attempt == 0 and shallow and remote:
-            _git(root, "fetch", "--unshallow", "--prune", remote, network=True)
+            _git(
+                root,
+                "fetch",
+                "--unshallow",
+                "--prune",
+                remote,
+                network=True,
+                url=gitmod.remote_url(root, remote),
+            )
             continue
         break
     return True
@@ -645,7 +653,7 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
             continue
         try:
             out = _git(root, "ls-remote", "--tags", current.remote, f"refs/tags/{tag}",
-                       f"refs/tags/{tag}^{{}}", network=True)  # fmt: skip
+                       f"refs/tags/{tag}^{{}}", network=True, url=current.url)  # fmt: skip
         except GitError:
             continue  # ohne Antwort des Servers lässt sich nichts sagen
         refs = {}
@@ -712,6 +720,41 @@ class Reattached(NamedTuple):
     rescue: str | None = None
 
 
+def _reattach_hint(message: str, root: Path, path: Path) -> str:
+    """Nächster Schritt, wenn der Wechsel zurück auf den Branch an offenen Änderungen scheitert.
+    „Verwerfen“ auf der Seite „Änderungen und Verlauf“ wirkt nur im Datenordner: Nur wenn Git
+    ausschließlich Dateien dort nennt, führt der Hinweis dorthin, sonst (Datei außerhalb oder
+    keine Liste) zu Git außerhalb des Datenordners; eine Anleitung zu Einstellungen gibt es
+    nie."""
+    blocked: list[str] = []
+    listing = False
+    for line in message.splitlines():
+        if "would be overwritten by" in line:
+            listing = True
+        elif listing and line[:1] in {"\t", " "} and line.strip():
+            blocked.append(line.strip().strip('"'))
+        elif line.strip():
+            listing = False
+    folder = os.path.relpath(path.resolve(), root.resolve()).replace(os.sep, "/")
+    inside = [f for f in blocked if folder == "." or f == folder or f.startswith(folder + "/")]
+    if blocked and len(inside) == len(blocked):
+        return t(
+            "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben. Auf "
+            "einem Stand ohne Branch lässt sich nichts speichern (committen). Der Ausweg: "
+            "Auf der Seite „Änderungen und Verlauf“ die offenen Änderungen verwerfen – sie "
+            "gehen dabei verloren – und danach „Zurück auf den Branch“ noch einmal wählen."
+        )
+    return t(
+        "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben, die auch "
+        "außerhalb des Datenordners liegen können. Auf der Seite „Änderungen und Verlauf“ "
+        "lassen sich nur Änderungen im Datenordner verwerfen, und auf einem Stand ohne Branch "
+        "lässt sich nichts speichern (committen). Der Ausweg: die Änderungen in Git außerhalb "
+        "des Datenordners sichern oder verwerfen (Git-Client oder Terminal; bei Bedarf bei der "
+        "Betreuung des Rechners nachfragen) und danach „Zurück auf den Branch“ noch einmal "
+        "wählen. Die Dateien nennt die Meldung von Git unter „Technische Meldung“."
+    )
+
+
 def reattach(path: Path) -> Reattached:
     """Geht von „detached HEAD“ zurück auf den Hauptbranch. Hängen Commits an keinem Branch,
     werden sie vorher auf einem Rettungsbranch gesichert; scheitert der Wechsel an offenen
@@ -744,16 +787,7 @@ def reattach(path: Path) -> Reattached:
     except GitError as e:
         if e.kind != "dirty":
             raise
-        raise GitError(
-            str(e),
-            "detached",
-            t(
-                "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben. Auf "
-                "einem Stand ohne Branch lässt sich nichts speichern (committen). Der Ausweg: "
-                "Auf der Seite „Änderungen und Verlauf“ die offenen Änderungen verwerfen – sie "
-                "gehen dabei verloren – und danach „Zurück auf den Branch“ noch einmal wählen."
-            ),
-        ) from e
+        raise GitError(str(e), "detached", _reattach_hint(str(e), root, path)) from e
     gitmod.invalidate_status()
     return Reattached(target, rescue)
 

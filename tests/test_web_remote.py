@@ -255,8 +255,16 @@ def test_unsafe_folder_is_named_on_the_data_folder_page(repo: Path, data_dir: Pa
     main_button(at, "Übernehmen").click().run()
     assert not at.exception, at.exception
     assert "Git hält den Ordner für unsicher" in shown(at, "error")
-    assert "offer-init" not in at.session_state
     assert not [w for w in at.warning if "keinem Git-Repository" in w.value]
+    # Gits Rat zu „safe.directory“ steht nirgends, auch nicht unter „Technische Meldung“.
+    assert "safe.directory" not in shown(at, "error") + "\n".join(c.value for c in at.code)
+    # Die App funktioniert auch ohne Git: „Ohne Git verwenden“ bleibt, ein Repository dort
+    # anlegen (git init im fremden Ordner) wird nicht angeboten.
+    assert "offer-init" in at.session_state
+    labels = [b.label for b in at.button]
+    assert "Ohne Git verwenden" in labels
+    assert not [label for label in labels if label.startswith("Git-Repository in")]
+    assert not (repo / ".gitignore").exists()
 
 
 # --- U5-U8: Fehlerfälle und Bestätigungen -----------------------------------------------------
