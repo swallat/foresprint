@@ -17,7 +17,7 @@ import sys
 import threading
 import time
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -65,6 +65,7 @@ from sprintforecast.git import (
     GitError,
     NewBranchError,
     RemoteAddress,
+    UnrelatedHistoriesError,
     cached_pending_changes,
     classify,
     clone_repository,
@@ -74,6 +75,7 @@ from sprintforecast.git import (
     hint_for,
     init_data_repository,
     md_code,
+    md_code_lines,
     new_branch_error,
     parse_remote_url,
     remote_special_error,
@@ -152,6 +154,16 @@ from sprintforecast.products import (
     measure_label,
     plan_view,
 )
+from sprintforecast.protocol import (
+    PLANNING,
+    PREPLANNING,
+    REVIEW,
+    kind_title,
+    list_protocols,
+    obsolete_with_save,
+    render_protocol,
+    save_with_protocol,
+)
 from sprintforecast.report import (
     absence_status_label,
     band_note,
@@ -180,6 +192,7 @@ from sprintforecast.storage import (
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
+    save_sprints_together,
     team_key_problem,
     team_version,
     teams_dir,
@@ -508,7 +521,8 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
         default_ist = default_forecast_ist(fc, sprint)
-        ist_col, open_col, extra_col, result_col = st.columns(4)
+        # Unten ausrichten: Beschriftungen, die umbrechen, schieben die Felder sonst nach unten.
+        ist_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
         ist = ist_col.number_input(
             t("Commitment ({unit})", unit=unit),
             min_value=0.0,
@@ -799,6 +813,32 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = repo.team_dir(team.key) / "FORECAST.md"
         write_text(path, render(fc))
         st.success(t("Geschrieben: {path}", path=path))
+    _excel_download(fc, team.key)
+
+
+def _excel_download(fc: Forecast, team_key: str) -> None:
+    """Excel-Liste zum Herunterladen (für alle, die weiter mit einer Excel-Liste arbeiten)."""
+    from sprintforecast.excel import ExcelUnavailable, build_workbook
+
+    if not st.button(t("Excel-Liste erstellen"), icon=":material/table:"):
+        return
+    try:
+        content = build_workbook(fc)
+    except ExcelUnavailable as e:
+        st.warning(str(e))
+        return
+    st.download_button(
+        t("Excel-Liste herunterladen"),
+        content,
+        file_name=f"{team_key}-forecast.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        icon=":material/download:",
+        help=t(
+            "Enthält Sprintwerte als Eingaben und die Berechnung als Excel-Formeln (n. Velocity, "
+            "Trend, Forecast PLAN, Roadmap), Trend-Diagramme und die Aufteilung nach "
+            "Produktionszugriff und je Produkt. Wird nicht im Datenordner gespeichert."
+        ),
+    )
 
 
 def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
@@ -1803,10 +1843,22 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
         ):
             released = copy.deepcopy(sprint)
             released.forecast_plan = None
+
+            def release() -> list[Path]:
+                # Das Planning gilt nicht mehr: sein Protokoll wird als obsolet gekennzeichnet.
+                return obsolete_with_save(
+                    repo,
+                    data.team.key,
+                    released.id,
+                    PLANNING,
+                    datetime.now().replace(microsecond=0),
+                    lambda: [repo.save_sprint(data.team.key, released)],
+                )
+
             if save(
                 with_sprints(data, [released]),
                 [f"{released.id}.yaml"],
-                lambda: [repo.save_sprint(data.team.key, released)],
+                release,
                 flash=True,
             ):
                 st.session_state["unfreeze-reset"] = sprint.id
@@ -1821,6 +1873,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     _board_nav(data, sprint, "planning")
     if sprint.forecast_plan is not None:
         _unfreeze_panel(repo, data, sprint, data.team.unit.value)
+    _protocols(repo, data, sprint.id, PLANNING)
     # Neuer Sprint gewählt → beim ersten Schritt beginnen.
     if st.session_state.get("planning-last-sprint") != sprint.id:
         st.session_state["planning-last-sprint"] = sprint.id
@@ -1967,6 +2020,34 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
 
 
+def _production_split_note(fc: Forecast, entry: Any, data: TeamData, unit: str) -> str | None:
+    """Aufteilung von Kapazität und Forecast PLAN in Personen mit und ohne Produktionszugriff
+    (Näherung über den Kapazitätsanteil). None, wenn das Team das nicht nutzt oder niemand
+    als berechtigt markiert ist."""
+    if not data.team.features.production:
+        return None
+    d = distribution(fc, entry)
+    share = d.production_share
+    capacity = entry.result.plan_capacity
+    if d.production_state != "ok" or share is None or capacity is None or d.available is None:
+        return None
+    # Beide Mengen vom aktuellen Forecast PLAN: ``d.production_available`` rechnet mit dem beim
+    # Planning eingefrorenen Wert und ergäbe zusammen mit dem aktuellen keine saubere Aufteilung.
+    plan = entry.result.plan
+    prod_plan = None if plan is None else plan * share
+    return t(
+        "Kapazität: {prod_cap} PT mit Produktionszugriff ({share}), {rest_cap} PT ohne · "
+        "Forecast PLAN: bis zu {prod_plan} {unit} für Tickets mit Produktionszugriff, "
+        "{rest_plan} {unit} für alle übrigen.",
+        prod_cap=fmt(capacity * share, 1),
+        share=pct(share),
+        rest_cap=fmt(capacity * (1 - share), 1),
+        prod_plan=fmt(prod_plan, 1) if prod_plan is not None else "–",
+        rest_plan=fmt(plan - prod_plan, 1) if plan is not None and prod_plan is not None else "–",
+        unit=unit,
+    )
+
+
 def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     entry = fc.entry(sprint.id)
@@ -2016,6 +2097,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     )
     if note := band_note(fc, entry):
         st.caption(note)
+    if split := _production_split_note(fc, entry, data, unit):
+        st.caption(split)
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
@@ -2232,12 +2315,43 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if prefill_note:
         st.info(prefill_note)
     after = with_sprints(data, [sprint])
-    if save(
-        after,
-        [f"{sprint.id}.yaml"],
-        lambda: [repo.save_sprint(data.team.key, sprint)],
-        flash=True,
-    ):
+    fc_after = build_forecast(after, fc.today)
+    e_after = fc_after.entry(sprint.id)
+    now = datetime.now().replace(microsecond=0)
+    protocol = render_protocol(
+        PLANNING,
+        data.team.name or data.team.key,
+        sprint.id,
+        now=now,
+        facts=[
+            (t("Kapazität (PT)"), capacity_label(e_after) if e_after else "–"),
+            (
+                t("Prognose beim Planning ({unit})", unit=unit),
+                fmt(sprint.forecast_plan if sprint.forecast_plan is not None else None, 2),
+            ),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Überkipper ({unit})", unit=unit), fmt(carryover, 2)),
+            (f"Backlog ({unit})", fmt(backlog, 2)),
+        ],
+        d=distribution(fc_after, e_after)
+        if e_after and data.products and data.team.features.products
+        else None,
+        show_po=data.team.features.po,
+    )
+
+    def write() -> list[Path]:
+        return save_with_protocol(
+            repo,
+            data.team.key,
+            sprint.id,
+            PLANNING,
+            protocol,
+            now,
+            [sprint],
+            lambda: [repo.save_sprint(data.team.key, sprint)],
+        )  # Protokoll: nicht in der Meldung
+
+    if save(after, [f"{sprint.id}.yaml"], write, flash=True):
         # Die Hinweise erscheinen im nächsten Durchlauf; er zeichnet auch die Schrittleiste neu.
         flash = st.session_state.setdefault("flash", [])
         if (
@@ -2297,6 +2411,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if sprint is None:
         return
     _board_nav(data, sprint, "review")
+    _protocols(repo, data, sprint.id, REVIEW)
     unit = data.team.unit.value
     computed = sprint_capacity(data.team, data.people, sprint).rounded if data.people else None
     st.caption(
@@ -2406,10 +2521,44 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         sprint.production_done = production_done
     if product_rows is not None:
         sprint = apply_product_values(sprint, product_rows, review_measures)
+    after = with_sprints(data, [sprint])
+    fc_after = build_forecast(after, fc.today)
+    e_after = fc_after.entry(sprint.id)
+    now = datetime.now().replace(microsecond=0)
+    protocol = render_protocol(
+        REVIEW,
+        data.team.name or data.team.key,
+        sprint.id,
+        now=now,
+        facts=[
+            (t("Geschafft – Velocity ({unit})", unit=unit), fmt(sprint.velocity, 2)),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Davon nicht erledigt ({unit})", unit=unit), fmt(sprint.not_done, 2)),
+            (t("Zusätzlich erledigt ({unit})", unit=unit), fmt(sprint.additional_done, 2)),
+            (t("Verfügbare Personentage (PT)"), fmt(sprint.capacity, 1)),
+        ],
+        d=distribution(fc_after, e_after)
+        if e_after and data.products and product_rows is not None
+        else None,
+        show_po=data.team.features.po,
+    )
+
+    def write() -> list[Path]:
+        return save_with_protocol(
+            repo,
+            data.team.key,
+            sprint.id,
+            REVIEW,
+            protocol,
+            now,
+            [sprint],
+            lambda: [repo.save_sprint(data.team.key, sprint)],
+        )  # Protokoll: nicht in der Meldung
+
     if save(
-        with_sprints(data, [sprint]),
+        after,
         [f"{sprint.id}.yaml"],
-        lambda: [repo.save_sprint(data.team.key, sprint)],
+        write,
         tag=f"{data.team.key}/{sprint.id}" if tag else None,
         flash=True,
     ):
@@ -2665,6 +2814,43 @@ def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
     )
 
 
+def _protocols(repo: Repository, data: TeamData, sprint_id: str, kind: str) -> None:
+    """Die bei jedem Speichern geschriebenen Protokolle eines Termins dieses Sprints, auch
+    ältere und als obsolet umbenannte."""
+    found = [f for f in list_protocols(repo, data.team.key, sprint_id) if f[1] == kind]
+    with st.expander(
+        t("Protokolle: {kind} ({count})", kind=kind_title(kind), count=len(found)),
+        icon=":material/history:",
+    ):
+        if not found:
+            st.caption(
+                t(
+                    "Noch kein Protokoll: Es entsteht mit dem Schritt Commitment "
+                    "(Planning speichern)."
+                )
+                if kind == PLANNING
+                else t("Noch kein Protokoll: Es entsteht, wenn dieser Termin gespeichert wird.")
+            )
+            return
+        labels = {
+            path: f"{at:%d.%m.%Y %H:%M:%S}" + (t(" (obsolet)") if obsolete else "")
+            for at, _, obsolete, path in found
+        }
+        chosen = st.selectbox(
+            t("Stand"),
+            list(labels),
+            format_func=labels.__getitem__,
+            key=f"protokoll-{kind}-{sprint_id}",
+        )
+        try:
+            text = chosen.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as e:
+            st.error(t("Protokoll nicht lesbar: {reason}", reason=str(e)))
+            return
+        st.markdown(text)
+        st.caption(t("Datei: `{path}`", path=chosen))
+
+
 def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     """Board der POs vor dem Planning: je Produkt vorsehen, was in den Sprint soll."""
     st.header(t("PO-Vorplanung"))
@@ -2881,13 +3067,66 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if assumed:
             plan = fc_preview.entry(after.id).result.plan if fc_preview.entry(after.id) else None
             to_save = record_prognoses(data, after, assumed, plan, comment)
-        if save(
-            with_sprints(data, to_save),
-            [f"{s.id}.yaml" for s in to_save],
-            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
-            flash=True,
-        ):
+        now = datetime.now().replace(microsecond=0)
+        absent = {pid: days for pid, days in expected.items() if days}
+        names = {p.id: p.name for p in data.people}
+        protocol = render_protocol(
+            PREPLANNING,
+            data.team.name or data.team.key,
+            after.id,
+            now=now,
+            facts=[
+                (t("Kapazität (PT)"), fmt(shown.result.plan_capacity, 1)),
+                (t("Prognose aktuell ({unit})", unit=unit), fmt(shown_plan, 2)),
+                (t("Verteilbar"), f"{fmt(d.available, 2)} {unit}"),
+                (t("Vorgesehen (Σ)"), f"{fmt(total, 2)} {unit}"),
+            ],
+            d=d,
+            comment=comment,
+            notes=[
+                (
+                    t("Annahmen des Teams"),
+                    [
+                        t(
+                            "Sprint {id}: Commitment {ist} {unit}, voraussichtlich nicht erledigt "
+                            "{not_done}, zusätzlich erledigt {extra} → erwartet erledigt "
+                            "{done} {unit}",
+                            id=sid,
+                            ist=fmt(a.forecast_ist, 2),
+                            not_done=fmt(a.not_done, 2),
+                            extra=fmt(a.additional_done, 2),
+                            done=fmt(a.expected, 2),
+                            unit=unit,
+                        )
+                        for sid, a in assumed.items()
+                    ],
+                ),
+                (
+                    t("Angekündigte Fehltage"),
+                    [
+                        f"{names.get(pid, pid)}: {fmt(days, 1)} {t('Tage')}"
+                        for pid, days in absent.items()
+                    ],
+                ),
+            ],
+            show_po=data.team.features.po,
+        )
+
+        def write() -> list[Path]:
+            return save_with_protocol(
+                repo,
+                data.team.key,
+                after.id,
+                PREPLANNING,
+                protocol,
+                now,
+                to_save,
+                lambda: save_sprints_together(repo, data.team.key, to_save),
+            )  # Protokoll: nicht in der Meldung
+
+        if save(with_sprints(data, to_save), [f"{s.id}.yaml" for s in to_save], write, flash=True):
             st.rerun()  # die Schrittleiste oben zeigt den gespeicherten Stand
+    _protocols(repo, data, sprint.id, PREPLANNING)
     page_link("planning", t("Weiter zum Planning"))
 
 
@@ -3514,7 +3753,8 @@ def _active_repo_caption(repo: Repository) -> None:
     root = repo.root.resolve()
     shown = "/".join(p for p in (root.parent.name, root.name) if p) or str(root)
     st.markdown(
-        f"**{t('Datenordner')}:** `{shown}`" + (f" · {t('Branch')} `{branch}`" if branch else "")
+        f"**{t('Datenordner')}:** `{shown}`"
+        + (f" · {t('Branch')} {md_code(branch)}" if branch else "")
     )
 
 
@@ -4278,12 +4518,12 @@ def _unrelated_go(root: Path, tags: list[str]) -> None:
     _sync_clicked(root, tags, allow_unrelated=True)
 
 
-def _unrelated_dialog(root: Path, tags: list[str], error: GitError) -> None:
+def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesError) -> None:
     """Der Server hat eine fremde Historie: erklären und nur nach ausdrücklicher Bestätigung
     zusammenführen. Vorgabe ist Abbrechen (Knopf gesperrt, bis das Kästchen gesetzt ist)."""
     with st.container(border=True):
         st.error(f"**{git_title(error.kind)}**  \n{error.hint}")
-        st.markdown(str(error))  # nennt Server-Adresse und Branch
+        st.markdown(error.render(md_code))  # nennt Server-Adresse und Branch: als Code
         page_link("datenordner", t("Server-Adresse ändern"))  # meist ist die Adresse das Problem
         sure = st.checkbox(t("Ja, beide Historien zusammenführen"), key="unrelated-confirm")
         st.button(
@@ -4319,7 +4559,7 @@ def _reattach_clicked(root: Path) -> None:
     else:
         clear_team_cache()
         st.session_state["flash"] = [
-            ("success", t("Zurück auf den Branch {branch}.", branch=branch))
+            ("success", t("Zurück auf den Branch {branch}.", branch=md_code(branch)))
         ]
 
 
@@ -4350,12 +4590,14 @@ def _clone_problem(error: GitError) -> GitError:
     }
     if error.kind not in hints:
         return error
-    return GitError(str(error), error.kind, hints[error.kind])
+    return GitError(str(error), error.kind, hints[error.kind], error.raw)
 
 
 def _show_problem(error: GitError) -> None:
-    """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git."""
-    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error}")
+    """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git. Ohne
+    Hinweis steht die Meldung selbst da; Ausgabe von Git und vom Server (Namen und Zeilen, die
+    andere bestimmen) als Code, nie als Markdown."""
+    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error.render(md_code_lines)}")
     if error.hint and str(error):
         with st.expander(t("Technische Meldung")):
             st.code(str(error), language=None)
@@ -4400,7 +4642,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
 
 def _show_incoming(commits: list[Commit], files: list[tuple[str, str]]) -> None:
     for c in commits:
-        st.markdown(f"`{c.rev}` {c.day} **{c.author}**: {c.subject}")
+        # Autor und Betreff bestimmen andere: als Code, nie als Markdown.
+        st.markdown(f"`{c.rev}` {c.day} {md_code(c.author)}: {md_code(c.subject)}")
     if files:
         st.code("\n".join(f"{status:>2} {file}" for status, file in files), language=None)
 
@@ -4425,7 +4668,7 @@ def _status_text(state: SyncState) -> str:
         # leerer Server): „synchron“ wäre falsch, es liegt noch nichts dort.
         parts.append(t("noch nicht auf dem Server – „Speichern und teilen“ lädt hoch"))
     elif not parts:
-        parts.append(t("synchron mit {upstream}", upstream=state.upstream))
+        parts.append(t("synchron mit {upstream}", upstream=md_code(state.upstream)))
     if state.fetch_error is not None:
         parts.append(
             t("Server nicht erreichbar")
@@ -4592,7 +4835,8 @@ def _git_action(action: Callable[[], object], ok: Callable[[object], str]) -> No
     clear_team_cache()
     kind = "success"
     if isinstance(result, GitError):  # Warnung, z. B. Tag nur lokal gesetzt
-        kind, text = "warning", t("Nur lokal erledigt: {error}", error=result.full())
+        # Die Meldung nennt Tags und Zeilen des Servers (Hooks): als Code, nie als Markdown.
+        kind, text = "warning", t("Nur lokal erledigt: {error}", error=result.full(md_code_lines))
     else:
         text = ok(result)
     st.session_state["flash"] = [(kind, text)]
@@ -4619,7 +4863,7 @@ def _tag_delete_go(root: Path, name: str) -> None:
     st.session_state.pop(f"tag-confirm-{name}", None)  # die Bestätigung gilt nur einmal
     _git_action(
         lambda: delete_tag(root, name),
-        lambda _: t("Tag {name} gelöscht.", name=name),
+        lambda _: t("Tag {name} gelöscht.", name=md_code(name)),
     )
     _tags_recheck(root)
 
@@ -4627,7 +4871,7 @@ def _tag_delete_go(root: Path, name: str) -> None:
 def _tag_upload_go(root: Path, name: str) -> None:
     _git_action(
         lambda: upload_tag(root, name),
-        lambda _: t("Tag {name} zum Server übertragen.", name=name),
+        lambda _: t("Tag {name} zum Server übertragen.", name=md_code(name)),
     )
     _tags_recheck(root)
 
@@ -4664,7 +4908,7 @@ def _discard_go(root: Path, files: list[str] | None) -> None:
     _git_action(
         lambda: discard(root, files),
         lambda trash: (
-            t("Änderungen verworfen. Sicherungskopie: {path}", path=trash)
+            t("Änderungen verworfen. Sicherungskopie: {path}", path=md_code(str(trash)))
             if trash
             else t("Änderungen verworfen.")
         ),
@@ -4686,7 +4930,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
         st.checkbox(
             t(
                 "{file} – {status} (+{added} −{removed} Zeilen)",
-                file=item.file,
+                file=md_code(item.file),  # auch Labels von Widgets deuten Markdown
                 status=_lost_status(item),
                 added=item.added,
                 removed=item.removed,
@@ -4709,7 +4953,7 @@ def _tab_changes(repo: Repository, locked: bool = False) -> None:
                 "Das geht verloren ({count} Datei(en)):  \n{list}",
                 count=len(shown),
                 list="  \n".join(
-                    f"`{i.file}` – {_lost_status(i)}, +{i.added} −{i.removed}" for i in shown
+                    f"{md_code(i.file)} – {_lost_status(i)}, +{i.added} −{i.removed}" for i in shown
                 ),
             )
         )
@@ -4770,7 +5014,7 @@ def _tab_history(repo: Repository, locked: bool = False) -> None:
         help=t(
             "Setzt {scope} auf den Stand nach dieser Änderung zurück. Das ist selbst eine "
             "Änderung und kann hier wieder zurückgenommen werden.",
-            scope=rel,
+            scope=md_code(rel),
         ),
     )
     right.button(
@@ -4811,9 +5055,14 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
             )
         )
     if tags:
+        # st.table deutet Markdown in allen Zellen; Namen und Nachrichten der Tags bestimmen
+        # andere.
         st.table(
             pd.DataFrame(
-                [(tag.name, _tag_state(tag), tag.target, tag.day, tag.subject) for tag in tags],
+                [
+                    (md_code(tag.name), _tag_state(tag), tag.target, tag.day, md_code(tag.subject))
+                    for tag in tags
+                ],
                 columns=[t("Tag"), t("Server"), t("Stand"), t("Datum"), t("Nachricht")],
             ).set_index(t("Tag"))
         )
@@ -4839,7 +5088,7 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
         if st.form_submit_button(t("Tag setzen"), disabled=locked):
             _git_action(
                 lambda: set_tag(repo.root, name, target.rev if target else "HEAD", message or None),
-                lambda _: t("Tag {name} gesetzt und geteilt.", name=name),
+                lambda _: t("Tag {name} gesetzt und geteilt.", name=md_code(name)),
             )
             _tags_recheck(repo.root)
             st.rerun()
@@ -4956,7 +5205,8 @@ def _show_value(value: object) -> str:
     if value is MISSING:
         return t("(entfernt)")
     text = yaml.safe_dump(value, allow_unicode=True, default_flow_style=True, width=1000).strip()
-    return text.removesuffix("\n...").strip()[:200]
+    # Als Code: Die Werte stammen auch von der anderen Person.
+    return md_code(text.removesuffix("\n...").strip()[:200])
 
 
 def _conf_key(i: int, j: int | None) -> str:
@@ -4991,7 +5241,13 @@ def _restore_clicked(root: Path, file: Path) -> None:
     else:
         clear_team_cache()
         st.session_state["flash"] = [
-            ("success", t("{file} auf den letzten gespeicherten Stand zurückgesetzt.", file=file))
+            (
+                "success",
+                t(
+                    "{file} auf den letzten gespeicherten Stand zurückgesetzt.",
+                    file=md_code(str(file)),
+                ),
+            )
         ]
 
 
@@ -5028,10 +5284,10 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
         ready = True
         for i, cf in enumerate(pending):
             if not cf.open:
-                st.caption(t("{file}: wird automatisch zusammengeführt", file=cf.file))
+                st.caption(t("{file}: wird automatisch zusammengeführt", file=md_code(cf.file)))
                 continue
             with st.container(border=True):
-                st.markdown(f"**{cf.file}**")
+                st.markdown(f"**{md_code(cf.file)}**")
                 if cf.whole:
                     mine = t("(von mir gelöscht)") if cf.ours_deleted else t("meine Fassung")
                     theirs = (
@@ -5051,7 +5307,7 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
                         "theirs": t("Andere Änderung: {v}", v=_show_value(kc.theirs)),
                     }
                     pick = st.radio(
-                        f"`{kc.label}`", list(options), format_func=options.get, index=None,
+                        md_code(kc.label), list(options), format_func=options.get, index=None,
                         key=_conf_key(i, j),
                     )  # fmt: skip
                     ready = ready and pick is not None
