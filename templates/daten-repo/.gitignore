@@ -2,3 +2,5 @@
 *.xlsx
 *.xlsm
 *.xls
+# Übrig gebliebene Zwischendateien des Speicherns.
+*.tmp
