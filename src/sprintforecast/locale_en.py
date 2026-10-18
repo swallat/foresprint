@@ -784,6 +784,18 @@ EN: dict[str, str] = {
     "Achtung: liegt in keinem Git-Repository.": "Attention: not inside a Git repository.",
     "Git-Repository in {path} anlegen": "Create Git repository in {path}",
     "{team}: keine Befunde": "{team}: no findings",
+    "Der Schlüssel '{where}' steht mehrfach in der Datei (Zeilen {lines}). Das Programm "
+    "liest nur den letzten Eintrag (Zeile {last}), die anderen werden stillschweigend "
+    "ignoriert. Bitte die überzähligen Zeilen löschen und den richtigen Wert stehen lassen.": (
+        "The key '{where}' appears more than once in the file (lines {lines}). The "
+        "program reads only the last entry (line {last}); the others are silently ignored. "
+        "Please delete the extra lines and keep the correct value."
+    ),
+    "Der Wert von '{where}' (Zeile {line}) ist leer. Das Programm rechnet dort "
+    "stillschweigend mit 0. Bitte eine Zahl eintragen (0, wenn es wirklich null sein soll).": (
+        "The value of '{where}' (line {line}) is empty. The program silently counts it as 0. "
+        "Please enter a number (0 if it really is zero)."
+    ),
     "Noch kein Team vorhanden.": "No team yet.",
     "Wird beim Schließen automatisch installiert.": "Will be installed automatically on close.",
     "Git: {count} offene Änderung(en)": "Git: {count} pending change(s)",
@@ -969,7 +981,11 @@ EN: dict[str, str] = {
     "Kapazitätsberechnung im Detail": "Capacity calculation in detail",
     "Bandbreite, Fokusfaktor, Puffer, Fertigstellung": "Range, focus factor, buffer, completion",
     "FORECAST.md erzeugen": "Generate FORECAST.md",
-    "Alle Daten prüfen (für CI und vor dem Commit)": "Check all data (for CI and before committing)",
+    "Alle Daten prüfen (für CI und vor dem Commit); meldet auch doppelte Schlüssel und "
+    "leere Zahlenfelder": (
+        "Check all data (for CI and before committing); also reports duplicate keys and "
+        "empty number fields"
+    ),
     "Gemerkten Datenordner anzeigen bzw. setzen": "Show or set the saved data folder",
     "Auf die neueste Version aktualisieren (--auto an|hinweis|aus)": "Update to the latest version (--auto on|notice|off)",
     "Diese Hilfe": "This help",
