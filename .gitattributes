@@ -1,2 +1,2 @@
-# Dateien für den Linux-Host müssen LF-Zeilenenden haben (Shebang-Zeile, systemd-Einheiten)
+# Dateien fÃ¼r den Linux-Host mÃ¼ssen LF-Zeilenenden haben (Shebang-Zeile, systemd-Einheiten)
 docs/linux-betrieb/* text eol=lf

@@ -7,20 +7,23 @@ DIR="$1"; REPO="$2"; NAME="$3"; BERICHT="$4"; SETTINGS="$5"; PROMPT="$6"
 export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 export SPRINTFORECAST_LAUF_DIR="$DIR/zustand"
 cd "$REPO" || exit 1
+# Ohne Auftragstext läuft keine Sitzung: Sie hätte alle Erlaubnisse, aber keine Regeln.
+[ -r "$PROMPT" ] || { echo "Auftragstext $PROMPT nicht lesbar"; exit 1; }
 
 AUFTRAG="$(cat "$PROMPT")
 
 LAUFDATEN
 - Sitzungsname: $NAME. Der Owner kann sich über Remote Control zuschalten; seine Nachrichten haben Vorrang.
 - Schreibe am Ende die Zusammenfassung mit dem Write-Werkzeug nach $BERICHT (Deutsch, kurz: getan, offen,
-  blockiert, eigene Merges) und tu danach nichts mehr. Die Sitzung endet von selbst, wenn sie eine Weile still ist."
+  blockiert; dieser Pfad ist die einzige Ausnahme von „nichts außerhalb des Klons ändern“) und tu danach
+  nichts mehr. Die Sitzung endet von selbst, wenn sie eine Weile still ist."
 
 # Der Auftragstext steht vor den Optionen, damit ihn die Listen von --allowedTools nicht verschlucken.
 #
 # Die Listen sind Komfort und Schutz vor Versehen, KEINE Sicherheitsgrenze: Muster wie „Bash(git *)“ lassen
-# sich umgehen (z. B. git -c …, uv run python -c …). Die eigentliche Grenze setzt die systemd-Einheit
-# (kein sudo, Home schreibgeschützt, nur Klon und zustand/ beschreibbar). Im Modus „dontAsk“ wird alles, was
-# nicht ausdrücklich erlaubt ist, ohne Rückfrage abgelehnt; eine unbeantwortete Rückfrage würde sonst den
+# sich umgehen (z. B. git config alias.x '!…', uv run python -c …). Die Sitzung läuft mit den Rechten des
+# Benutzers; das angemeldete gh des Owners (volle Rechte) ist bewusst nutzbar. Im Modus „dontAsk“ wird alles,
+# was nicht ausdrücklich erlaubt ist, ohne Rückfrage abgelehnt; eine unbeantwortete Rückfrage würde sonst den
 # ganzen Lauf bis zur Zeitgrenze blockieren.
 exec claude "$AUFTRAG" \
     --remote-control="$NAME" \
@@ -33,10 +36,12 @@ exec claude "$AUFTRAG" \
         "Bash(wc *)" "Bash(sort *)" "Bash(diff *)" "Bash(date *)" "Bash(sleep *)" \
     --disallowedTools "Bash(sudo *)" "Bash(su *)" \
         "Bash(git push --force*)" "Bash(git push -f*)" "Bash(git push * --force*)" "Bash(git push * -f*)" \
-        "Bash(git push --delete*)" "Bash(git push * --delete*)" "Bash(git push * :*)" \
-        "Bash(git -c *)" "Bash(git config --global*)" "Bash(git config --system*)" \
+        "Bash(git push -d*)" "Bash(git push * -d*)" "Bash(git push --delete*)" "Bash(git push * --delete*)" \
+        "Bash(git push --mirror*)" "Bash(git push * --mirror*)" "Bash(git push * +*)" \
+        "Bash(git -c *)" "Bash(git config --global*)" "Bash(git config --system*)" "Bash(git config alias*)" \
         "Bash(git * --no-gpg-sign*)" "Bash(git * --no-verify*)" \
-        "Bash(gh auth token*)" "Bash(gh auth login*)" "Bash(gh auth logout*)" "Bash(gh auth refresh*)" \
-        "Bash(gh auth switch*)" "Bash(gh auth setup-git*)" "Bash(gh ssh-key *)" "Bash(gh gpg-key *)" "Bash(gh secret *)" \
-        "Bash(gh variable *)" "Bash(gh repo delete*)" "Bash(gh repo edit*)" "Bash(gh ruleset *)" \
-        "Bash(gh api * -X DELETE*)" "Bash(gh api -X DELETE*)" "Bash(gh api * --method DELETE*)"
+        "Bash(gh auth token*)" "Bash(gh auth login*)" "Bash(gh auth logout*)" \
+        "Bash(gh auth refresh*)" "Bash(gh auth switch*)" "Bash(gh auth setup-git*)" \
+        "Bash(gh ssh-key *)" "Bash(gh gpg-key *)" "Bash(gh secret *)" "Bash(gh variable *)" \
+        "Bash(gh repo delete*)" "Bash(gh repo edit*)" "Bash(gh ruleset *)" \
+        "Bash(gh api * -X*)" "Bash(gh api -X*)" "Bash(gh api * --method*)" "Bash(gh api --method*)"
