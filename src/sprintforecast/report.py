@@ -352,18 +352,21 @@ def _products_section(fc: Forecast, history: int = 6) -> list[str]:
             + " |"
             for r in d.rows
         ]
-    rows = balance(fc, fc.history(history))
+    # nur Produkte mit mindestens einem Wert (wie in der Weboberfläche)
+    rows = [b for b in balance(fc, fc.history(history)) if b.sprints]
     if rows:
+        with_missing = any(b.missing for b in rows)
+        header = t("| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo ({unit}) |", unit=unit)
         lines += [
             "",
             t("**Saldo** (Σ Erledigt − Σ Standard, letzte {count} Sprints)", count=history),
             "",
-            t("| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo ({unit}) |", unit=unit),
-            "|---|---|---|---|---|",
+            header + (f" {t('ohne Wert')} |" if with_missing else ""),
+            "|---|---|---|---|---|" + ("---|" if with_missing else ""),
         ]
         lines += [
             f"| {b.product.name} | {b.sprints} | {fmt(b.standard, 2)} | {fmt(b.done, 2)} "
-            f"| {fmt(b.difference, 2)} |"
+            f"| {fmt(b.difference, 2)} |" + (f" {b.missing} |" if with_missing else "")
             for b in rows
         ]
     return lines

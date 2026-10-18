@@ -1716,10 +1716,12 @@ def produkte(
     if entry is not None:
         console.print(_distribution_table(distribution(fc, entry), unit))
     entries = [e for e in fc.entries if e.sprint.start <= s.start][-verlauf:]
-    rows = balance(fc, entries)
+    rows = [b for b in balance(fc, entries) if b.sprints]  # nur Produkte mit mindestens einem Wert
     if rows:
+        with_missing = any(b.missing for b in rows)
+        columns = ("Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo")
         table = Table(title=t("Saldo: Σ Erledigt − Σ Standard"))
-        for i, col in enumerate(("Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo")):
+        for i, col in enumerate((*columns, *(("ohne Wert",) if with_missing else ()))):
             table.add_column(t(col), justify="left" if i == 0 else "right")
         for b in rows:
             colour = "green" if b.difference >= 0 else "red"
@@ -1729,6 +1731,7 @@ def produkte(
                 fmt(b.standard, 2),
                 fmt(b.done, 2),
                 f"[{colour}]{fmt(b.difference, 2)}[/{colour}]",
+                *((str(b.missing),) if with_missing else ()),
             )
         console.print(table)
 
