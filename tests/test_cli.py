@@ -460,7 +460,7 @@ def drop_done(data_dir: Path, product: str, *sprint_ids: str) -> None:
 
 
 FOOTNOTE = (
-    "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt-Wert eingetragen ist "
+    "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt erfasst ist "
     "(leer, nicht 0). Sie zählen im Saldo nicht mit; bitte den Wert im Sprint nachtragen."
 )
 
