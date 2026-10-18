@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 from collections.abc import Callable
+from datetime import date, datetime
 from typing import Any
 
 from sprintforecast.engine import MIN_THIN_HISTORY, Metric, parse_trend_mode, thin_history
@@ -21,8 +22,59 @@ from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
 from sprintforecast.model import TrendMode
 from sprintforecast.products import distribution, measure_label
+from sprintforecast.storage import team_to_dict
 
 NA = "#N/A"
+
+# Blattnamen und Aufbau sind fest (nicht übersetzt): Der Import erkennt die Mappe daran und liest
+# die Eingaben nach Spaltenposition, nicht nach Überschrift. Bei Änderungen FORMAT_VERSION erhöhen.
+FORMAT_VERSION = "1"
+FORMAT_PROPERTY = "sprintforecast-format"
+SHEET_SETTINGS = "Einstellungen"
+SHEET_FORECAST = "Forecast"
+SHEET_SPRINTS = "Sprintdaten"
+SHEET_ABSENCES = "Fehltage"
+SHEET_PEOPLE = "Personen"
+SHEET_PRODUCTS = "Produktliste"
+SHEET_VALUES = "Produktwerte"
+SHEET_PROGNOSES = "Prognosen"
+SHEET_TREND = "Trend"
+# Einstellungen: Spalte A Beschriftung, B Wert, C Schlüssel (Pfad in team.yaml, z. B.
+# forecast.window).
+SETTINGS_FIRST_ROW = 3
+# Forecast: erste Datenzeile (0-basiert); Spalten 0-6 sind die Eingaben, die der Import liest.
+FORECAST_FIRST_ROW = 3
+# Sprintdaten (je Sprintdatei eine Zeile): fester Spaltenaufbau, Zeile 1 = Überschrift.
+SPRINT_COLUMNS = (
+    "id", "absence_state", "forecast_plan", "carryover", "backlog", "corrections",
+    "not_done", "additional_done", "production_planned", "production_done", "note",
+)  # fmt: skip
+ABSENCE_COLUMNS = ("sprint", "person", "name", "days", "kind")
+ABSENCE_KINDS = ("absences", "expected_absences")
+PERSON_COLUMNS = (
+    "id", "name", "country", "region", "workweek", "production_access", "from", "to", "fte",
+)  # fmt: skip
+PRODUCT_COLUMNS = ("id", "name", "po", "from", "to", "share")
+VALUE_COLUMNS = (
+    "sprint", "product", "name", "po", "standard",
+    "preplanned", "planned", "done", "production_planned", "production_done",
+)  # fmt: skip
+PROGNOSIS_COLUMNS = (
+    "sprint", "at", "comment", "forecast_ist", "not_done", "additional_done", "expected_done",
+    "target", "plan", "preplanned",
+)  # fmt: skip
+
+
+def flatten(d: dict[str, Any], prefix: str = "") -> list[tuple[str, Any]]:
+    """Verschachtelte Einstellungen als (Pfad, Wert); fehlende Werte (None) entfallen."""
+    out: list[tuple[str, Any]] = []
+    for key, value in d.items():
+        path = f"{prefix}{key}"
+        if isinstance(value, dict):
+            out += flatten(value, path + ".")
+        elif value is not None:
+            out.append((path, value))
+    return out
 
 
 class ExcelUnavailable(RuntimeError):
@@ -113,9 +165,7 @@ def build_workbook(fc: Forecast) -> bytes:
     team = data.team
     settings = team.forecast
     mode = parse_trend_mode(settings.trend_mode)
-    entries = [*fc.history(), *(e for e in fc.upcoming() if e not in fc.history())]
-    if not entries:
-        entries = list(fc.entries)
+    entries = list(fc.entries)  # alle Sprints: die Mappe enthält die Historie vollständig
     unit = team.unit.value
 
     buf = io.BytesIO()
@@ -127,33 +177,59 @@ def build_workbook(fc: Forecast) -> bytes:
     pc = wb.add_format({"num_format": "0.0%"})
     inp = wb.add_format({"num_format": "0.00", "bg_color": "#FFF8DC"})
     inp1 = wb.add_format({"num_format": "0.0", "bg_color": "#FFF8DC"})
+    set_f = wb.add_format({"bg_color": "#FFF8DC"})
+    scope_f = wb.add_format({"num_format": "0.0%", "bg_color": "#FFF8DC"})
     grey = wb.add_format({"font_color": "#BBBBBB"})
     title = wb.add_format({"bold": True, "font_size": 14})
 
-    ws_set = wb.add_worksheet(t("Einstellungen"))
-    ws = wb.add_worksheet(t("Forecast"))
-    ws_p = wb.add_worksheet(t("Produkte"))
-    ws_t = wb.add_worksheet(t("Trend"))
-    first, last = 3, 3 + len(entries) - 1  # Datenzeilen (0-basiert) auf dem Blatt „Forecast“
+    wb.set_custom_property(FORMAT_PROPERTY, FORMAT_VERSION)
+    ws_set = wb.add_worksheet(SHEET_SETTINGS)
+    ws = wb.add_worksheet(SHEET_FORECAST)
+    ws_sp = wb.add_worksheet(SHEET_SPRINTS)
+    ws_a = wb.add_worksheet(SHEET_ABSENCES)
+    ws_pe = wb.add_worksheet(SHEET_PEOPLE)
+    ws_pr = wb.add_worksheet(SHEET_PRODUCTS)
+    ws_p = wb.add_worksheet(SHEET_VALUES)
+    ws_pg = wb.add_worksheet(SHEET_PROGNOSES)
+    ws_t = wb.add_worksheet(SHEET_TREND)
+    first, last = (
+        FORECAST_FIRST_ROW,
+        FORECAST_FIRST_ROW + len(entries) - 1,
+    )  # Datenzeilen (0-basiert) auf dem Blatt „Forecast“
 
     # --- Einstellungen ------------------------------------------------------------------
     ws_set.write(0, 0, t("Einstellungen von {team}", team=team.name or team.key), title)
-    rows = [
-        (t("Referenzkapazität (PT)"), settings.reference_capacity, "Referenz"),
-        (t("Fenster (Sprints)"), settings.window, "Fenster"),
-        (t("Roadmap-Anteil"), settings.roadmap_share, "Roadmap_Anteil"),
-        (t("Rundung (Nachkommastellen, abgerundet)"), settings.rounding, "Rundung"),
-        (t("Trend-Modus (beim Export festgelegt)"), mode.value, None),
-    ]
-    for k, (label, value, name) in enumerate(rows, start=2):
-        ws_set.write(k, 0, label)
-        ws_set.write(k, 1, value, inp)
-        if name:
-            wb.define_name(name, f"='{ws_set.get_name()}'!$B${k + 1}")
-    ws_set.write(8, 0, t("Stand"))
-    ws_set.write(8, 1, f"{fc.today:%d.%m.%Y}")
+    ws_set.write(1, 0, t("Beschriftung"), bold)
+    ws_set.write(1, 1, t("Wert"), bold)
+    ws_set.write(1, 2, t("Schlüssel (team.yaml)"), bold)
+    labels = {
+        "forecast.reference_capacity": t("Referenzkapazität (PT)"),
+        "forecast.window": t("Fenster (Sprints)"),
+        "forecast.roadmap_share": t("Roadmap-Anteil"),
+        "forecast.rounding": t("Rundung (Nachkommastellen, abgerundet)"),
+        "forecast.trend_mode": t("Trend-Modus (beim Export festgelegt)"),
+    }
+    names = {
+        "forecast.reference_capacity": "Referenz",
+        "forecast.window": "Fenster",
+        "forecast.roadmap_share": "Roadmap_Anteil",
+        "forecast.rounding": "Rundung",
+    }
+    flat = flatten(team_to_dict(team))
+    for k, (path, value) in enumerate(flat, start=SETTINGS_FIRST_ROW - 1):
+        ws_set.write(k, 0, labels.get(path, path))
+        if isinstance(value, date):
+            ws_set.write_datetime(k, 1, _dt(value), wb.add_format({"num_format": "dd.mm.yyyy"}))
+        else:
+            ws_set.write(k, 1, value, set_f)
+        ws_set.write(k, 2, path, grey)
+        if path in names:
+            wb.define_name(names[path], f"='{ws_set.get_name()}'!$B${k + 1}")
+    thin_row = SETTINGS_FIRST_ROW - 1 + len(flat) + 1
+    ws_set.write(thin_row + 3, 0, t("Stand"))
+    ws_set.write(thin_row + 3, 1, f"{fc.today:%d.%m.%Y}")
     ws_set.write(
-        13,
+        thin_row + 5,
         0,
         t(
             "Gelbe Zellen sind Eingaben (Einstellungen und Sprintwerte); alle anderen Zellen sind "
@@ -162,10 +238,11 @@ def build_workbook(fc: Forecast) -> bytes:
     )
     ws_set.set_column(0, 0, 48)
     ws_set.set_column(1, 1, 16)
+    ws_set.set_column(2, 2, 30)
 
     # --- Spalten des Blatts „Forecast“ -----------------------------------------------------
     cols = [
-        "id", "start", "end", "ist", "vel", "scope", "cap", "src",
+        "id", "start", "end", "ist", "vel", "scope", "caprec", "capcalc", "src", "cap",
         "norm", "norm_n", "norm_avg", "norm_trend", "norm_known",
         "cap_n", "cap_avg", "cap_trend", "cap_known",
         "plancap", "plan", "roadmap", "small", "ful", "focus",
@@ -179,7 +256,9 @@ def build_workbook(fc: Forecast) -> bytes:
         "ist": t("Commitment ({unit})", unit=unit),
         "vel": t("Velocity ({unit})", unit=unit),
         "scope": t("Scope Creep"),
-        "cap": t("Kapazität (PT), erfasst/berechnet"),
+        "caprec": t("Kapazität (PT), erfasst (Eingabe)"),
+        "capcalc": t("Kapazität (PT), aus Personen und Kalender berechnet"),
+        "cap": t("Kapazität (PT), erfasst oder berechnet"),
         "src": t("Quelle der Kapazität"),
         "norm": t("n. Velocity"),
         "norm_n": t("Anzahl n. Velocity"),
@@ -233,20 +312,18 @@ def build_workbook(fc: Forecast) -> bytes:
         f"COUNT({sheet}{rng('cap', first, last)})<Fenster)"
     )
     ws_set.write(
-        9, 0, t("Dünne Historie n. Velocity (weniger Werte als das Fenster, mindestens 3)")
+        thin_row, 0, t("Dünne Historie n. Velocity (weniger Werte als das Fenster, mindestens 3)")
     )
-    ws_set.write_formula(9, 1, f"={thin_n}")
-    ws_set.write(10 + 1, 0, t("Dünne Historie Kapazität"))
-    ws_set.write_formula(11, 1, f"={thin_c}")
-    wb.define_name("Duenn_nVelocity", f"='{ws_set.get_name()}'!$B$10")
-    wb.define_name("Duenn_Kapazitaet", f"='{ws_set.get_name()}'!$B$12")
+    ws_set.write(thin_row + 1, 0, t("Dünne Historie Kapazität"))
+    wb.define_name("Duenn_nVelocity", f"='{ws_set.get_name()}'!$B${thin_row + 1}")
+    wb.define_name("Duenn_Kapazitaet", f"='{ws_set.get_name()}'!$B${thin_row + 2}")
 
     # Zwischengespeicherte Werte: wie die Engine rechnet, damit Vorschauen Zahlen zeigen.
     values = [e.result for e in entries]
     norm_thin = thin_history([r.normalized_velocity.value for r in values], settings.window)
     cap_thin = thin_history([r.capacity.value for r in values], settings.window)
-    ws_set.write_formula(9, 1, f"={thin_n}", None, norm_thin)
-    ws_set.write_formula(11, 1, f"={thin_c}", None, cap_thin)
+    ws_set.write_formula(thin_row, 1, f"={thin_n}", None, norm_thin)
+    ws_set.write_formula(thin_row + 1, 1, f"={thin_c}", None, cap_thin)
 
     def series_columns(
         i: int,
@@ -309,20 +386,28 @@ def build_workbook(fc: Forecast) -> bytes:
         ws.write(row, c["id"], s.id)
         ws.write_datetime(row, c["start"], _dt(s.start), date_f)
         ws.write_datetime(row, c["end"], _dt(s.end), date_f)
+        # Eingaben (gelb): genau die Felder der Sprintdatei; fehlt ein Wert, bleibt die Zelle leer.
         for name, v, f in (
-            ("ist", res.input.forecast_ist, inp),
-            ("vel", res.input.velocity, inp),
-            (
-                "scope",
-                res.input.scope_creep,
-                wb.add_format({"num_format": "0.0%", "bg_color": "#FFF8DC"}),
-            ),
-            ("cap", res.input.capacity, inp1),
+            ("ist", s.forecast_ist, inp),
+            ("vel", s.velocity, inp),
+            ("scope", s.scope_creep, scope_f),
+            ("caprec", s.capacity, inp1),
         ):
             if v is not None:
                 ws.write_number(row, c[name], v, f)
             else:
                 ws.write_blank(row, c[name], None, f)
+        calc = res.input.capacity if s.capacity is None else None
+        if calc is not None:
+            ws.write_number(row, c["capcalc"], calc, n1)
+        ws.write_formula(
+            row,
+            c["cap"],
+            f"=IF({_num(at('caprec', row))},{at('caprec', row)},"
+            f'IF({_num(at("capcalc", row))},{at("capcalc", row)},""))',
+            n1,
+            _blank(res.input.capacity),
+        )
         ws.write(
             row, c["src"], res.input.capacity_source.value if res.input.capacity_source else ""
         )
@@ -392,6 +477,7 @@ def build_workbook(fc: Forecast) -> bytes:
         )
         _production_columns(ws, c, at, row, fc, e, res, n1, n2, pc)
 
+    _data_sheets(wb, fc, entries, (ws_sp, ws_a, ws_pe, ws_pr, ws_pg), bold, inp, date_f)
     _products_sheet(wb, ws_p, ws, c, fc, entries, first, last, bold, n2, unit)
     _trend_sheet(wb, ws_t, ws, c, entries, first, bold, grey)
     wb.close()
@@ -434,63 +520,202 @@ def _production_columns(
     )  # fmt: skip
 
 
+def _header(ws: Any, labels: list[str], bold: Any, widths: list[int] | None = None) -> None:
+    for i, label in enumerate(labels):
+        ws.write(0, i, label, bold)
+    ws.set_row(0, 45)
+    for i, width in enumerate(widths or []):
+        ws.set_column(i, i, width)
+    ws.freeze_panes(1, 0)
+
+
+def _put(ws: Any, row: int, col: int, value: Any, fmt: Any = None) -> None:
+    """Schreibt einen Wert; ``None`` bleibt eine leere Zelle (mit Format, damit sie gelb ist)."""
+    if value is None:
+        ws.write_blank(row, col, None, fmt)
+    elif isinstance(value, datetime):
+        ws.write_datetime(row, col, value.replace(tzinfo=None), fmt)
+    elif isinstance(value, date):
+        ws.write_datetime(row, col, _dt(value), fmt)
+    else:
+        ws.write(row, col, value, fmt)
+
+
+def _data_sheets(
+    wb: Any, fc: Forecast, entries: list[TimelineEntry], sheets: tuple[Any, ...],
+    bold: Any, inp: Any, date_f: Any,
+) -> None:  # fmt: skip
+    """Die übrigen Daten des Teams (Sprintdateien, Fehltage, Personen, Produkte, Prognosen) in
+    der festen Spaltenfolge, die der Import liest. Alles Eingaben (gelb) außer den Namen."""
+    ws_sp, ws_a, ws_pe, ws_pr, ws_pg = sheets
+    data = fc.data
+    unit = data.team.unit.value
+    inp_date = wb.add_format({"num_format": "dd.mm.yyyy", "bg_color": "#FFF8DC"})
+    inp_time = wb.add_format({"num_format": "dd.mm.yyyy hh:mm:ss", "bg_color": "#FFF8DC"})
+    inp_text = wb.add_format({"bg_color": "#FFF8DC"})
+    names = {p.id: p.name for p in data.people}
+    recorded = [e.sprint for e in entries if e.recorded]
+
+    _header(
+        ws_sp,
+        [
+            t("Sprint"), t("Stand der Fehltage (unknown, expected, confirmed)"),
+            t("Forecast PLAN beim Planning, eingefroren ({unit})", unit=unit),
+            t("Überkipper ({unit})", unit=unit), f"Backlog ({unit})",
+            t("Korrekturen Restaufwände (mit Leerzeichen getrennt)"),
+            t("Davon nicht erledigt ({unit})", unit=unit),
+            t("Zusätzlich erledigt ({unit})", unit=unit),
+            t("Davon mit Produktionszugriff, Planning ({unit})", unit=unit),
+            t("Davon mit Produktionszugriff, erledigt ({unit})", unit=unit),
+            t("Notiz"),
+        ],
+        bold,
+        [10, 22, 18, 14, 12, 26, 16, 16, 20, 20, 40],
+    )  # fmt: skip
+    for row, sp in enumerate(recorded, start=1):
+        pl = sp.planning
+        values = [
+            sp.id, sp.absence_state.value if sp.absence_state else None, sp.forecast_plan,
+            pl.carryover if pl else None, pl.backlog if pl else None,
+            " ".join(f"{x:g}" for x in pl.corrections) if pl and pl.corrections else None,
+            sp.not_done, sp.additional_done, sp.production_planned, sp.production_done, sp.note,
+        ]  # fmt: skip
+        for col, v in enumerate(values):
+            _put(ws_sp, row, col, v, None if col == 0 else inp_text if col in (1, 5, 10) else inp)
+
+    _header(
+        ws_a,
+        [
+            t("Sprint"), t("Person (Kennung)"), t("Name"), t("Tage"),
+            t("Art (absences = bestätigt, expected_absences = angekündigt)"),
+        ],
+        bold,
+        [10, 20, 24, 8, 30],
+    )  # fmt: skip
+    row = 1
+    for sp in recorded:
+        for kind, days in (("absences", sp.absences), ("expected_absences", sp.expected_absences)):
+            for pid, value in sorted(days.items()):
+                for col, v in enumerate([sp.id, pid, names.get(pid, ""), value, kind]):
+                    _put(ws_a, row, col, v, inp if col == 3 else None)
+                row += 1
+
+    _header(
+        ws_pe,
+        [
+            t("Kennung"), t("Name"), t("Land"), t("Region"), t("Arbeitswoche"),
+            t("Produktionszugriff"), t("Mitglied ab"), t("Mitglied bis"), "FTE",
+        ],
+        bold,
+        [16, 24, 8, 8, 18, 12, 13, 13, 8],
+    )  # fmt: skip
+    row = 1
+    for person in data.people:
+        for m in person.memberships or [None]:
+            values = [
+                person.id, person.name, person.country, person.region, person.workweek,
+                True if person.production_access else None,
+                m.start if m else None, m.end if m else None, m.fte if m else None,
+            ]  # fmt: skip
+            for col, v in enumerate(values):
+                fmt = inp_date if col in (6, 7) else inp if col == 8 else inp_text
+                _put(ws_pe, row, col, v, fmt)
+            row += 1
+
+    _header(
+        ws_pr,
+        [
+            t("Kennung"), t("Name"), "PO", t("Betreut ab"), t("Betreut bis"),
+            t("Fester Anteil (0–1)"),
+        ],
+        bold,
+        [16, 24, 18, 13, 13, 12],
+    )  # fmt: skip
+    for row, p in enumerate(data.products, start=1):
+        values = [p.id, p.name, p.po, p.start, p.end, p.share]
+        for col, v in enumerate(values):
+            _put(ws_pr, row, col, v, inp_date if col in (3, 4) else inp if col == 5 else inp_text)
+
+    _header(
+        ws_pg,
+        [
+            t("Sprint"), t("Zeitpunkt"), t("Kommentar"), t("Commitment ({unit})", unit=unit),
+            t("Voraussichtlich nicht erledigt ({unit})", unit=unit),
+            t("Zusätzlich erledigt ({unit})", unit=unit), t("Erwartet erledigt"),
+            t("Zielsprint"), t("Forecast PLAN"), t("Vorplanung je Produkt (Kennung=Wert; …)"),
+        ],
+        bold,
+        [10, 19, 40, 12, 14, 14, 12, 10, 12, 40],
+    )  # fmt: skip
+    row = 1
+    for sp in recorded:
+        for pg in sp.prognoses:
+            pre = "; ".join(f"{k}={v:g}" for k, v in pg.preplanned.items()) or None
+            values = [
+                sp.id, pg.at, pg.comment, pg.forecast_ist, pg.not_done, pg.additional_done,
+                pg.expected_done, pg.target, pg.plan, pre,
+            ]  # fmt: skip
+            for col, v in enumerate(values):
+                fmt = (
+                    None if col == 0 else inp_time if col == 1
+                    else inp if col in (3, 4, 5, 6, 8) else inp_text
+                )  # fmt: skip
+                _put(ws_pg, row, col, v, fmt)
+            row += 1
+
+
 def _products_sheet(
     wb: Any, ws_p: Any, ws: Any, c: dict[str, int], fc: Forecast, entries: list[TimelineEntry],
     first: int, last: int, bold: Any, n2: Any, unit: str,
 ) -> None:  # fmt: skip
-    """Verteilung je Produkt (lange Tabelle) und Summe je Sprint zurück auf das Blatt Forecast."""
-    team = fc.data.team
-    production = team.features.production
-    heads = [t("Sprint"), t("Produkt"), "PO", *(measure_label(m) + f" ({unit})" for m in
-             ("standard", "preplanned", "planned", "done"))]  # fmt: skip
-    if production:
-        heads += [
+    """Werte je Produkt und Sprint (lange Tabelle, feste Spalten wie ``VALUE_COLUMNS``) und die
+    Summe je Sprint zurück auf das Blatt Forecast."""
+    production = fc.data.team.features.production
+    inp = wb.add_format({"num_format": "0.00", "bg_color": "#FFF8DC"})
+    _header(
+        ws_p,
+        [
+            t("Sprint"), t("Produkt (Kennung)"), t("Produkt"), "PO",
+            *(
+                measure_label(m) + f" ({unit})"
+                for m in ("standard", "preplanned", "planned", "done")
+            ),
             measure_label("production_planned") + f" ({unit})",
             measure_label("production_done") + f" ({unit})",
             t("Planning ohne Produktionszugriff ({unit})", unit=unit),
             t("Erledigt ohne Produktionszugriff ({unit})", unit=unit),
-        ]
-    for i, h in enumerate(heads):
-        ws_p.write(0, i, h, bold)
-    ws_p.set_row(0, 45)
-    ws_p.set_column(0, 0, 10)
-    ws_p.set_column(1, 2, 20)
-    ws_p.set_column(3, len(heads), 15)
-    ws_p.freeze_panes(1, 2)
+        ],
+        bold,
+        [10, 16, 22, 16, 12, 12, 12, 12, 14, 14, 16, 16],
+    )  # fmt: skip
+    measures = ("preplanned", "planned", "done", "production_planned", "production_done")
     row = 1
     for e in entries:
         d = distribution(fc, e)
         for r in d.rows:
-            if not (r.active or any(r.value(m) is not None for m in
-                                    ("preplanned", "planned", "done"))):  # fmt: skip
+            if not (r.active or any(r.value(m) is not None for m in measures)):
                 continue
-            ws_p.write(row, 0, e.sprint.id)
-            ws_p.write(row, 1, r.product.name)
-            ws_p.write(row, 2, r.product.po or "")
-            for k, m in enumerate(("standard", "preplanned", "planned", "done"), start=3):
-                v = r.value(m)
-                if v is not None:
-                    ws_p.write_number(row, k, v, n2)
+            for col, v in enumerate([e.sprint.id, r.product.id, r.product.name, r.product.po]):
+                ws_p.write(row, col, v or "")
+            if r.standard is not None:
+                ws_p.write_number(row, 4, r.standard, n2)
+            for col, m in enumerate(measures, start=5):
+                _put(ws_p, row, col, r.value(m), inp)
             if production:
-                for k, m in ((7, "production_planned"), (8, "production_done")):
-                    v = r.value(m)
-                    if v is not None:
-                        ws_p.write_number(row, k, v, n2)
-                # F = Planning, G = Erledigt; H und I = davon mit Produktionszugriff
-                for k, whole, part, a, b in (
-                    (9, "F", "H", "planned", "production_planned"),
-                    (10, "G", "I", "done", "production_done"),
+                for col, whole, part, a, b in (
+                    (10, "G", "I", "planned", "production_planned"),
+                    (11, "H", "J", "done", "production_done"),
                 ):
                     w, p_ = f"{whole}{row + 1}", f"{part}{row + 1}"
                     va, vb = r.value(a), r.value(b)
                     ws_p.write_formula(
-                        row, k, f'=IF(AND(ISNUMBER({w}),ISNUMBER({p_})),{w}-{p_},"")', n2,
+                        row, col, f'=IF(AND(ISNUMBER({w}),ISNUMBER({p_})),{w}-{p_},"")', n2,
                         "" if va is None or vb is None else va - vb,
                     )  # fmt: skip
             row += 1
     sheet = f"'{ws_p.get_name()}'!"
     last_row = max(row, 2)
-    ids, plan_col = f"{sheet}$A$2:$A${last_row}", f"{sheet}$F$2:$F${last_row}"
+    ids, plan_col = f"{sheet}$A$2:$A${last_row}", f"{sheet}$G$2:$G${last_row}"
     for i, e in enumerate(entries):
         r_ = first + i
         d = distribution(fc, e)
