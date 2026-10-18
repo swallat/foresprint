@@ -6,18 +6,18 @@ Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Spri
 
 ## Prognose
 
-| Sprint | Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** (PT) | Roadmap (80 %) | Kleinkram |
-|---|---|---|---|---|---|---|---|
-| 2026.21 | 14.10. – 28.10.2026 | **laufend** | 25,5 (Personenliste) | 16,84 | **9,5** | 7,60 | 1,90 |
-| 2026.22 | 28.10. – 11.11.2026 | geplant | 30,0 (Personenliste) | 16,84 | **11,2** | 8,96 | 2,24 |
-| 2026.23 | 11.11. – 25.11.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 9,04 | 2,26 |
-| 2026.24 | 25.11. – 09.12.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 9,04 | 2,26 |
+| Sprint | Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** (PT) | Spanne | Roadmap (80 %) | Kleinkram |
+|---|---|---|---|---|---|---|---|---|
+| 2026.21 | 14.10. – 28.10.2026 | **laufend** | 25,5 (Personenliste) | 16,84 | **9,5** | 8,5–10,5 | 7,60 | 1,90 |
+| 2026.22 | 28.10. – 11.11.2026 | geplant | 30,0 (Personenliste) | 16,84 | **11,2** | 10,0–12,3 | 8,96 | 2,24 |
+| 2026.23 | 11.11. – 25.11.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 10,2–12,5 | 9,04 | 2,26 |
+| 2026.24 | 25.11. – 09.12.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 10,2–12,5 | 9,04 | 2,26 |
 
 **Planning 2026.21:** Summe 8,50 PT, Delta zum Forecast PLAN 1,00 PT
 
 ## Verlauf (letzte 10 Sprints)
 
-| Sprint | Kapazität (PT) | Forecast IST | Velocity | n. Velocity | Ø n. Velocity | Fulfillment | Scope Creep |
+| Sprint | Kapazität (PT) | Commitment | Velocity | n. Velocity | Ø n. Velocity | Fulfillment | Scope Creep |
 |---|---|---|---|---|---|---|---|
 | 2026.11 | 38,5 | 14,25 | 14,50 | 16,95 | 14,98 | 102 % | 20 % |
 | 2026.12 | 32,1 | 11,75 | 13,50 | 18,93 | 16,46 | 115 % | 10 % |
@@ -32,7 +32,7 @@ Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Spri
 
 ## Diagramm
 
-Linien: Forecast IST (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und normierte Velocity (Vergangenheit: Ist-Wert, Zukunft: Trend).
+Linien: Commitment (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und normierte Velocity (Vergangenheit: Ist-Wert, Zukunft: Trend).
 
 ```mermaid
 xychart-beta
@@ -82,4 +82,4 @@ Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der le
 | 2026.24 | 11,3 | 10,2 | 11,2 | 12,5 |
 
 - Ø Fokusfaktor (Velocity / Kapazität): 0,37
-- Ø Scope Creep (5 Sprints): 6 % · Kleinkram-Anteil: 20 %
+- Ø Scope Creep (5 Sprints): 6 % des Commitments = 6 % des Forecast PLAN · Kleinkram-Anteil: 20 %

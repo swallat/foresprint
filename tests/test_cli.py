@@ -38,6 +38,36 @@ def test_forecast_and_report(data_dir: Path):
     assert "```mermaid" in report
 
 
+def test_forecast_table_has_a_range_column(data_dir: Path):
+    result = run(data_dir, "forecast", "demo")
+    assert result.exit_code == 0, result.output
+    assert "Spanne" in result.output
+    rows = {
+        line.split("│")[1].strip(): line
+        for line in result.output.splitlines()
+        if line.startswith("│ 2026.")
+    }
+    # 2026.21 läuft, 2026.22 bis .24 sind geplant; abgeschlossene Sprints haben keine Spanne
+    for sprint, expected in {
+        "2026.21": "8,5–10,5",
+        "2026.22": "10,0–12,3",
+        "2026.23": "10,2–12,5",
+        "2026.24": "10,2–12,5",
+    }.items():
+        assert expected in rows[sprint], rows[sprint]
+    assert not re.search(r"\d,\d+–\d", rows["2026.20"]), rows["2026.20"]
+
+    report = run(data_dir, "bericht", "demo", "-o", "-").output
+    assert "**Forecast PLAN** (PT) | Spanne |" in report
+    forecast_rows = {}
+    for line in report.splitlines():
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if line.startswith("| 2026.") and len(cells) == 9:  # Prognosetabelle
+            forecast_rows[cells[0]] = cells
+    assert forecast_rows["2026.22"][5:7] == ["**11,2**", "10,0–12,3"]
+    assert forecast_rows["2026.21"][5:7] == ["**9,5**", "8,5–10,5"]
+
+
 @pytest.mark.parametrize(
     "args",
     [
