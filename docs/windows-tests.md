@@ -63,7 +63,9 @@ Dauer ohne Rückfragen etwa 2 bis 3 Minuten; die interaktiven Fragen kommen dazu
 4. **Zeilenenden.** Das Skript legt ein Daten-Repository mit der App-Logik an (Team `demo`, Sprints
    über `sprintforecast sprints`), committiert, klont es dreimal (deine `core.autocrlf`-Einstellung,
    `autocrlf=true`, `autocrlf=false`) und prüft: `git status`/`git diff` leer, `sprintforecast
-   pruefen` fehlerfrei, erneutes Speichern ändert nichts.
+   pruefen` fehlerfrei, erneutes Speichern ändert nichts. Das Repository trägt dabei die
+   `.gitattributes` (YAML mit LF), die die App in neuen Daten-Repositories anlegt; geprüft wird also
+   der geschützte Zustand. Ältere Repositories ohne diese Datei deckt die Prüfung nicht ab.
 5. **Gesperrte Datei.** Hält eine YAML-Datei mit exklusiver Sperre (`FileShare.None`) und mit
    Lesesperre (`FileShare.Read`) und speichert über die App-Logik. Erwartet: Datei unverändert, keine
    `*.tmp`-Reste, und eine verständliche Meldung statt eines rohen Systemfehlers

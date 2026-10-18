@@ -157,6 +157,7 @@ from sprintforecast.report import (
     band_note,
     capacity_label,
     capacity_source_note,
+    completion_note,
     fmt,
     fmt_capacity,
     pct,
@@ -2543,15 +2544,8 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 runs=f"{result.runs:,}",
                 samples=result.samples,
             )
-            if result.samples < MIN_SAMPLES:
-                st.warning(
-                    t(
-                        "Wenig Daten: Die Simulation zieht aus nur {samples} Sprints (ab {min} "
-                        "sind Aussagen belastbarer). Die Häufigkeiten sind grobe Hinweise.",
-                        samples=result.samples,
-                        min=MIN_SAMPLES,
-                    )
-                )
+            if note := completion_note(result.samples):
+                st.warning(note)
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:
@@ -3928,7 +3922,9 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
         st.caption(
             t(
                 "Legt den Ordner mit `git init`, einer `.gitignore` (keine Tabellenkalkulationen) "
-                "und dem Unterordner `teams` an. Danach unter **Neues Team** ein Team anlegen."
+                "und dem Unterordner `teams` an; darin steht eine `.gitattributes` (YAML und "
+                "Berichte mit LF), die mit den Daten geteilt wird. Danach unter **Neues Team** ein "
+                "Team anlegen."
             )
         )
         path = _path_input(t("Neuer Ordner"), "data-new", str(home / "sprint-daten"))
