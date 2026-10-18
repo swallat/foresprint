@@ -354,6 +354,10 @@ def resolve_conflicts(
             try:
                 (root / file).write_text(merged, encoding="utf-8", newline="\n")
             except OSError as e:  # gesperrt oder schreibgeschützt: das Zusammenführen bleibt offen
+                # Die Art bleibt ``locked`` („Eine Datei ist gesperrt“): Windows meldet eine von
+                # einem anderen Programm gehaltene Datei als „Permission denied“, wie eine
+                # schreibgeschützte, und die Fehlernummer trennt beide nicht verlässlich.
+                # Anders als bei Gits ``index.lock`` passt hier aber nur der Hinweis zur Datei.
                 raise GitError(
                     t(
                         "{file} konnte nicht geschrieben werden ({reason}).",
@@ -361,7 +365,7 @@ def resolve_conflicts(
                         reason=e.strerror or str(e),
                     ),
                     "locked",
-                    hint_for("locked"),
+                    gitmod.unwritable_file_hint(),
                 ) from e
             _git(root, "add", "--", file)
     gitmod.invalidate_status()
