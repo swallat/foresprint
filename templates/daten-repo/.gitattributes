@@ -1,0 +1,4 @@
+# Datendateien immer mit LF, auch bei core.autocrlf (Windows): Sonst schriebe das erste
+# Speichern alle Zeilenenden um und erzeugte Rauschen im Verlauf.
+*.yaml text eol=lf
+*.yml text eol=lf

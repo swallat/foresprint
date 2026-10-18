@@ -1056,17 +1056,24 @@ GITIGNORE = """\
 *.tmp
 """
 
+GITATTRIBUTES = """\
+# Datendateien immer mit LF, auch bei core.autocrlf (Windows): Sonst schriebe das erste
+# Speichern alle Zeilenenden um und erzeugte Rauschen im Verlauf.
+*.yaml text eol=lf
+*.yml text eol=lf
+"""
+
 
 def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
-    """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und
-    liefert den Ordner für die Teams."""
+    """Legt ein Daten-Repository an (git init, .gitignore, .gitattributes, optional Ordner
+    ``teams``) und liefert den Ordner für die Teams. Vorhandene Dateien bleiben unverändert."""
     path.mkdir(parents=True, exist_ok=True)
     if repo_root(path) is None:
         _git(path, "init", "-q")
         forget_roots(path)
-    ignore = path / ".gitignore"
-    if not ignore.exists():
-        ignore.write_text(GITIGNORE, encoding="utf-8")
+    for name, content in ((".gitignore", GITIGNORE), (".gitattributes", GITATTRIBUTES)):
+        if not (path / name).exists():
+            (path / name).write_text(content, encoding="utf-8")
     if not teams_folder:
         return path
     teams = path / "teams"

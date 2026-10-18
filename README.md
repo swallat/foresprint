@@ -349,6 +349,7 @@ hier per `.gitignore` ausgeschlossen). Vorlage: [`templates/daten-repo/`](templa
 ```
 daten-repo/
 ├─ mise.toml                      # Tool-Versionen + Task `mise run sf -- …`
+├─ .gitignore, .gitattributes     # keine Tabellenkalkulationen und *.tmp; YAML immer mit LF
 ├─ .github/workflows/forecast.yml # prüft Änderungen, aktualisiert FORECAST.md (auf GitLab analog)
 └─ teams/
    ├─ team-a/
