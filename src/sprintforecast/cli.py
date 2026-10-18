@@ -7,6 +7,7 @@ import copy
 import functools
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -108,6 +109,35 @@ console = Console()
 err = Console(stderr=True)
 
 
+# Wie rich.markup.escape: ein Tag ist „[“ + Buchstabe, „#“, „/“ oder „@“ … „]“; Backslashes davor
+# zählen mit (zwei ergeben einen, ein ungerader maskiert das Tag). Rich macht außerdem aus jedem
+# „\[“ ein „[“, auch wenn kein Tag folgt (`D:\Projekte\[2024]`): Dort fehlte ein Backslash.
+_BRACKET = re.compile(r"(\\*)\[([a-z#/@][^[]*?]|)")
+
+
+def _bracket(match: re.Match[str]) -> str:
+    slashes, tag = match[1], match[2]
+    if tag:
+        return f"{slashes}{slashes}\\[{tag}"
+    return f"{slashes}\\[" if slashes else "["
+
+
+def _plain(value: object) -> str:
+    """Freitext aus Daten oder Meldungen für die Ausgabe: eckige Klammern sind kein Markup.
+
+    Anders als rich.markup.escape bleibt ein abschließender Backslash unverändert: Rich zeigt
+    ihn nur dann richtig, wenn danach kein Tag folgt (Tabellenzelle, Prompt, Titel, Satz). Steht
+    der Wert direkt vor einem Tag (`[bold]{x}[/bold]`), gilt `_plain_end`."""
+    return _BRACKET.sub(_bracket, str(value))
+
+
+def _plain_end(value: object) -> str:
+    """Wie `_plain` für einen Wert, auf den unmittelbar ein Tag folgt: abschließende Backslashes
+    werden verdoppelt, sonst maskierten sie das Tag (`Eva\\[/red]` zeigte „[/red]“ als Text)."""
+    text = _plain(value)
+    return text + text[len(text.rstrip("\\")) :]
+
+
 def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Gibt einen Fehler der Datendateien als Meldung aus (Exit-Code 1): Schreib- oder
     Lesefehler, kein erster Sprint, eine ID ohne Folge-ID."""
@@ -205,16 +235,16 @@ def _auto_update() -> None:
     import atexit
 
     for message in updater.startup_notices():
-        err.print(f"[cyan]{message}[/cyan]")
+        err.print(f"[cyan]{_plain_end(message)}[/cyan]")
     auto = updater.AutoUpdate().start()
-    atexit.register(auto.finish, lambda text: err.print(f"[cyan]{text}[/cyan]"))
+    atexit.register(auto.finish, lambda text: err.print(f"[cyan]{_plain_end(text)}[/cyan]"))
 
 
 def _load(c: Context, team: str) -> TeamData:
     try:
         return c.repo.load(team)
     except DataError as e:
-        err.print(f"[red]{e}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
 
 
@@ -319,7 +349,9 @@ def _find_or_create(data: TeamData, fc: Forecast, sprint_id: str | None, purpose
     sprint = find_sprint(data, sprint_id)
     if sprint is None:
         err.print(
-            f"[red]{t('Sprint {id} liegt nicht in der Sprintfolge des Teams.', id=sprint_id)}[/red]"
+            "[red]"
+            + t("Sprint {id} liegt nicht in der Sprintfolge des Teams.", id=_plain(sprint_id))
+            + "[/red]"
         )
         raise typer.Exit(1)
     return sprint
@@ -338,7 +370,7 @@ def _show_sprint_forecast(c: Context, team: str, sprint_id: str) -> None:
             f"{t('n. Velocity-Trend')}: {fmt(r.normalized_velocity.trend, 2)}\n"
             f"[bold]Forecast PLAN: {fmt(r.plan)} {unit}[/bold]  "
             f"(Roadmap {fmt(r.roadmap, 2)} · {t('Kleinkram')} {fmt(r.small_stuff, 2)})",
-            title=t("Prognose Sprint {id}", id=sprint_id),
+            title=t("Prognose Sprint {id}", id=_plain(sprint_id)),
             title_align="left",
             border_style="green",
         )
@@ -350,7 +382,7 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     table = Table(
         title=t(
             "Kapazität Sprint {id} ({start} – {end})",
-            id=s.id,
+            id=_plain(s.id),
             start=f"{s.start:%d.%m.}",
             end=f"{s.end:%d.%m.%Y}",
         )
@@ -360,7 +392,7 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     digits = breakdown.rounding  # alle PT-Zahlen wie die Summe: kaufmännisch gerundet
     for pc in breakdown.people:
         table.add_row(
-            pc.person.name,
+            _plain(pc.person.name),
             str(pc.workdays),
             str(pc.holidays),
             fmt_plain(pc.absence_days),
@@ -380,7 +412,7 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     if breakdown.approximated:
         from sprintforecast.formulas import fte_change_note
 
-        table.caption = fte_change_note([p.person.name for p in breakdown.approximated])
+        table.caption = _plain(fte_change_note([p.person.name for p in breakdown.approximated]))
     table.add_row(
         f"[bold]{t('Summe')}[/bold]",
         "", "", "",
@@ -426,7 +458,9 @@ def _maybe_commit(
     issues = issues_for(_load(c, team), c.today, [p.name for p in paths])
     for i in issues:
         colour = "red" if i.level is Level.ERROR else "yellow"
-        console.print(f"[{colour}]{i.level.label}[/{colour}] {i.where}: {i.message}")
+        console.print(
+            f"[{colour}]{i.level.label}[/{colour}] {_plain(i.where)}: {_plain(i.message)}"
+        )
     has_errors = any(i.level is Level.ERROR for i in issues)
     if not do_commit:
         console.print(
@@ -440,12 +474,12 @@ def _maybe_commit(
         rev = commit(paths, message, tag)
     except GitError as e:
         _git_problem(e)
-    suffix = t(", Tag {tag}", tag=tag) if tag else ""
+    suffix = t(", Tag {tag}", tag=_plain(tag)) if tag else ""
     console.print(f"[green]{t('Committet ({rev}){suffix}.', rev=rev, suffix=suffix)}[/green]")
 
 
 def _saved(path: Path) -> None:
-    console.print(f"[green]{t('Gespeichert: {path}', path=path)}[/green]")
+    console.print(f"[green]{t('Gespeichert: {path}', path=_plain_end(path))}[/green]")
 
 
 TeamArg = Annotated[str, typer.Argument(help=t("Team-Kürzel = Verzeichnisname, z. B. team-a."))]
@@ -545,7 +579,7 @@ def _ask_setting(setting: Setting, team: Team, *, required: bool = False) -> Non
         try:
             value = setting.parse(raw)
         except ValueError as e:
-            console.print(f"[red]{e}[/red]")
+            console.print(f"[red]{_plain_end(e)}[/red]")
             continue
         if value is None and required:
             console.print(f"[red]{t('Bitte einen Wert eingeben.')}[/red]")
@@ -581,8 +615,8 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
                 "[bold]{command}[/bold] änderbar.\nOptional sind die Bereiche Produktverteilung "
                 "(mehrere Produkte), Zuordnung PO und Produktionszugriff; sie sind zunächst "
                 "aus (Enter übernimmt „aus“).",
-                team=team,
-                command=cmd(f"sprintforecast einstellungen {team}"),
+                team=_plain_end(team),
+                command=_plain_end(cmd(f"sprintforecast einstellungen {team}")),
             )
         )
     )
@@ -594,10 +628,13 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
         _ask_setting(setting, new, required=setting.only_without_sprints)
     path = c.repo.save_team(new)
     people = c.repo.save_people(team, [])
-    console.print(f"[green]{t('Angelegt: {path}', path=path)}[/green]")
+    console.print(f"[green]{t('Angelegt: {path}', path=_plain_end(path))}[/green]")
     _maybe_commit(c, team, [path, people], t("{team}: Team angelegt", team=new.name), None, commit_)
     console.print(
-        t("Weiter mit: [bold]{command}[/bold]", command=cmd(f"sprintforecast personen {team}"))
+        t(
+            "Weiter mit: [bold]{command}[/bold]",
+            command=_plain_end(cmd(f"sprintforecast personen {team}")),
+        )
     )
 
 
@@ -613,7 +650,7 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
         Panel(
             t(
                 "Einstellungen [bold]{team}[/bold] – Enter übernimmt den aktuellen Wert.",
-                team=current.name,
+                team=_plain_end(current.name),
             ),
             border_style="cyan",
         )
@@ -628,7 +665,7 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
     for col in ("Einstellung", "bisher", "neu"):
         table.add_column(t(col))
     for setting, old, new in diff:
-        table.add_row(setting.title, old or "–", new or "–")
+        table.add_row(setting.title, _plain(old) if old else "–", _plain(new) if new else "–")
     console.print(table)
     if any(setting.retroactive for setting, _, _ in diff):
         console.print(
@@ -671,7 +708,12 @@ def _people_table(people: list[Person], day: date, show_former: bool) -> Table:
             "" if not p.memberships else f" ({'/'.join(fmt_plain(m.fte) for m in p.memberships)})"
         )
         fte = p.fte_on(day)
-        table.add_row(p.name, p.region or "–", fmt_plain(fte) if fte else "–", spans)
+        table.add_row(
+            _plain(p.name),
+            _plain(p.region) if p.region else "–",
+            fmt_plain(fte) if fte else "–",
+            spans,
+        )
     return table
 
 
@@ -680,7 +722,7 @@ def _choose_person(people: list[Person]) -> Person:
     names = [p.name for p in people]
     labels = [p.name if names.count(p.name) == 1 else f"{p.name} ({p.id})" for p in people]
     by_label = {label.lower(): p for label, p in zip(labels, people, strict=True)}
-    console.print(f"[dim]{t('Personen')}: " + ", ".join(labels) + "[/dim]")
+    console.print(f"[dim]{t('Personen')}: " + _plain_end(", ".join(labels)) + "[/dim]")
     while True:
         raw = Prompt.ask(t("Name"), console=console).strip().lower()
         if raw in by_label:
@@ -794,7 +836,7 @@ def fehltage(
             "[red]"
             + t(
                 "Keine Personen erfasst. Zuerst: {command}",
-                command=cmd(f"sprintforecast personen {team}"),
+                command=_plain_end(cmd(f"sprintforecast personen {team}")),
             )
             + "[/red]"
         )
@@ -827,7 +869,7 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
     text = t(
         "Sprint [bold]{id}[/bold]: {start} – {last} (letzter Arbeitstag; der nächste Sprint "
         "beginnt am {next}), {days} Arbeitstage ({week})",
-        id=s.id,
+        id=_plain_end(s.id),
         start=f"{s.start:%d.%m.%Y}",
         last=f"{last:%d.%m.%Y}",
         next=f"{s.end:%d.%m.}",
@@ -837,7 +879,7 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
     if hol:
         text += "\n" + t(
             "davon Feiertage ({region}): {holidays}",
-            region=region or t("bundesweit"),
+            region=_plain(region) if region else t("bundesweit"),
             holidays=", ".join(hol),
         )
     return Panel(text, border_style="cyan")
@@ -851,7 +893,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
     for p in data.people:
         if not p.active_between(s.start, s.end):
             continue
-        value = _ask_number(f"{p.name}", s.absences.get(p.id, 0.0), allow_empty=False)
+        value = _ask_number(_plain(p.name), s.absences.get(p.id, 0.0), allow_empty=False)
         if value:
             s.absences[p.id] = min(value, len(days))
         else:
@@ -878,7 +920,7 @@ def _require_products(data: TeamData, team: str) -> None:
             + t(
                 "Die Produktverteilung ist für dieses Team ausgeschaltet. Einschalten mit: "
                 "{command}",
-                command=cmd(f"sprintforecast einstellungen {team}"),
+                command=_plain_end(cmd(f"sprintforecast einstellungen {team}")),
             )
             + "[/yellow]"
         )
@@ -903,7 +945,8 @@ def _ask_product_values(data: TeamData, fc: Forecast, s: Sprint, measure: str) -
             values,
             measure,
             _ask_number(
-                f"{r.product.name} – {measure_label(measure)} ({unit})", getattr(values, measure)
+                f"{_plain(r.product.name)} – {measure_label(measure)} ({unit})",
+                getattr(values, measure),
             ),
         )
         if values.is_empty():
@@ -915,7 +958,7 @@ def _ask_product_values(data: TeamData, fc: Forecast, s: Sprint, measure: str) -
 
 def _distribution_table(d: Distribution, unit: str) -> Table:
     basis = t("Roadmap-Anteil") if d.basis.value == "roadmap" else "Forecast PLAN"
-    table = Table(title=t("Produkte Sprint {id}", id=d.sprint.id))
+    table = Table(title=t("Produkte Sprint {id}", id=_plain(d.sprint.id)))
     table.add_column(t("Produkt"))
     if d.features.po:
         table.add_column("PO")
@@ -923,8 +966,8 @@ def _distribution_table(d: Distribution, unit: str) -> Table:
         table.add_column(f"{measure_label(m)} {unit}", justify="right")
     for r in d.rows:
         table.add_row(
-            r.product.name + ("" if r.active else f" [dim]({t('nicht betreut')})[/dim]"),
-            *((r.product.po or "",) if d.features.po else ()),
+            _plain(r.product.name) + ("" if r.active else f" [dim]({t('nicht betreut')})[/dim]"),
+            *((_plain(r.product.po or ""),) if d.features.po else ()),
             *(fmt(r.value(m), 2) for m in MEASURES),
         )
     table.add_row(
@@ -956,7 +999,7 @@ def planning(
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "planning")
     paths: list[Path] = []
-    console.rule(t("Planning {id} – Schritt 1: Fehltage", id=s.id))
+    console.rule(t("Planning {id} – Schritt 1: Fehltage", id=_plain(s.id)))
     if data.people and Confirm.ask(
         t("Bekannte Fehltage für den Sprint erfassen bzw. prüfen?"),
         default=data.sprint(s.id) is None,
@@ -972,7 +1015,7 @@ def planning(
     data = _load(c, team) if paths else data
     fc = build_forecast(data, c.today)
     s = copy.deepcopy(data.sprint(s.id) or s)
-    console.rule(t("Planning {id} – Schritt 2: Forecast PLAN und Einplanung", id=s.id))
+    console.rule(t("Planning {id} – Schritt 2: Forecast PLAN und Einplanung", id=_plain(s.id)))
     if data.sprint(s.id):
         _show_sprint_forecast(c, team, s.id)
     if (
@@ -981,7 +1024,7 @@ def planning(
         and Confirm.ask(t("Planning je Produkt erfassen?"), default=True, console=console)
     ):
         _ask_product_values(data, fc, s, "planned")
-    console.rule(t("Planning {id} – Schritt 3: Commitment", id=s.id))
+    console.rule(t("Planning {id} – Schritt 3: Commitment", id=_plain(s.id)))
     unit = data.team.unit.value
     plan_values = None
     if Confirm.ask(
@@ -1062,7 +1105,11 @@ def review(
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "review")
     unit = data.team.unit.value
-    console.print(Panel(f"Review Sprint [bold]{s.id}[/bold] ({s.start:%d.%m.} – {s.end:%d.%m.%Y})"))
+    console.print(
+        Panel(
+            f"Review Sprint [bold]{_plain_end(s.id)}[/bold] ({s.start:%d.%m.} – {s.end:%d.%m.%Y})"
+        )
+    )
     if s.capacity is None:
         if data.people:
             frozen = sprint_capacity(data.team, data.people, s).rounded
@@ -1126,7 +1173,11 @@ def forecast(
     team_ = fc.data.team
     unit = team_.unit.value
     table = Table(
-        title=t("Sprint-Forecast {team} (Stand {day})", team=team_.name, day=f"{c.today:%d.%m.%Y}")
+        title=t(
+            "Sprint-Forecast {team} (Stand {day})",
+            team=_plain(team_.name),
+            day=f"{c.today:%d.%m.%Y}",
+        )
     )
     columns = [
         "Sprint",
@@ -1150,7 +1201,7 @@ def forecast(
         future = e.sprint.end > c.today
         n_vel = r.normalized_velocity.trend if future else r.normalized_velocity.average
         table.add_row(
-            e.sprint.id,
+            _plain(e.sprint.id),
             period(e),
             status(fc, e).replace("**", ""),
             capacity_label(e) if future else fmt_capacity(r.capacity.value, e.capacity_digits),
@@ -1169,7 +1220,7 @@ def forecast(
             + t(
                 "⚠ Trend/Kalender = keine Fehltage bekannt, Kapazität geschätzt. "
                 "Belastbarer mit: {command}",
-                command=cmd(f"sprintforecast fehltage {team} <SPRINT>"),
+                command=_plain(cmd(f"sprintforecast fehltage {team} <SPRINT>")),
             )
             + "[/yellow]"
         )
@@ -1181,12 +1232,12 @@ def forecast(
         default = fc.default_entry("planning")
         entry = default if rechenweg == "-" else fc.entry(rechenweg)
         if entry is None:
-            err.print(f"[red]{t('Sprint {id} nicht in der Prognose.', id=rechenweg)}[/red]")
+            err.print(f"[red]{t('Sprint {id} nicht in der Prognose.', id=_plain(rechenweg))}[/red]")
             raise typer.Exit(1)
         from sprintforecast.formulas import plain_explanation
 
         console.print(escape(plain_explanation(fc, entry)).replace("**", ""))
-        table = Table(title=t("Rechenweg Sprint {id}", id=entry.sprint.id), show_lines=True)
+        table = Table(title=t("Rechenweg Sprint {id}", id=_plain(entry.sprint.id)), show_lines=True)
         for col in ("Kennzahl", "Formel", "Rechnung"):
             table.add_column(t(col))
         for step in steps(fc, entry):
@@ -1258,7 +1309,9 @@ def analyse(
     fc = build_forecast(data, c.today)
     unit = data.team.unit.value
 
-    table = Table(title=t("Bandbreite {team} – zusätzlich zum Forecast PLAN", team=data.team.name))
+    table = Table(
+        title=t("Bandbreite {team} – zusätzlich zum Forecast PLAN", team=_plain(data.team.name))
+    )
     for i, col in enumerate(
         ("Sprint", f"Forecast PLAN {unit}", t("konservativ"), t("mittel"), t("optimistisch"))
     ):
@@ -1266,7 +1319,7 @@ def analyse(
     for e in fc.upcoming():
         b = band(fc, e)
         table.add_row(
-            e.sprint.id,
+            _plain(e.sprint.id),
             fmt(e.result.plan),
             *(fmt(v) for v in ((b.low, b.mid, b.high) if b else (None, None, None))),
         )
@@ -1285,7 +1338,7 @@ def analyse(
     focus.add_column("Sprint")
     focus.add_column(t("Fokusfaktor"), justify="right")
     for e in fc.history(data.team.forecast.window):
-        focus.add_row(e.sprint.id, fmt(focus_factor(e), 2))
+        focus.add_row(_plain(e.sprint.id), fmt(focus_factor(e), 2))
     focus.add_row("[bold]Ø[/bold]", f"[bold]{fmt(average_focus_factor(fc), 2)}[/bold]")
     console.print(focus)
 
@@ -1333,7 +1386,7 @@ def analyse(
             )
         later = t(
             "später als {last} ({count} Sprints)",
-            last=result.sprints[-1] if result.sprints else "–",
+            last=_plain(result.sprints[-1]) if result.sprints else "–",
             count=len(result.sprints),
         )
         console.print(
@@ -1345,8 +1398,8 @@ def analyse(
                 rest=fmt(rest, 1),
                 unit=unit,
                 basis=basis,
-                p50=result.p50 or later,
-                p85=result.p85 or later,
+                p50=_plain_end(result.p50) if result.p50 else later,
+                p85=_plain_end(result.p85) if result.p85 else later,
                 samples=result.samples,
                 per_sprint=fmt(result.per_sprint, 1),
             )
@@ -1357,7 +1410,10 @@ def analyse(
                 listed += " …"
             console.print(
                 "[dim]"
-                + t("Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
+                + t(
+                    "Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}",
+                    sprints=_plain_end(listed),
+                )
                 + "[/dim]"
             )
         if note := completion_note(result.samples):
@@ -1394,7 +1450,7 @@ def bericht(
             continue
         target = ausgabe if ausgabe is not None and team else c.repo.team_dir(key) / "FORECAST.md"
         write_text(target, text)
-        console.print(f"[green]{target}[/green]")
+        console.print(f"[green]{_plain_end(target)}[/green]")
 
 
 @command(
@@ -1410,17 +1466,21 @@ def pruefen(
     c = _ctx(ctx)
     results = check_all(c.repo, c.today)
     if not results:
-        err.print(f"[red]{t('Keine Teams gefunden unter {root}', root=c.repo.root)}[/red]")
+        err.print(
+            f"[red]{t('Keine Teams gefunden unter {root}', root=_plain_end(c.repo.root))}[/red]"
+        )
         raise typer.Exit(1)
     failed = False
     for key, issues in results.items():
         if not issues:
-            console.print(f"[green]✔ {key}[/green]")
+            console.print(f"[green]✔ {_plain_end(key)}[/green]")
             continue
-        console.print(f"[bold]{key}[/bold]")
+        console.print(f"[bold]{_plain_end(key)}[/bold]")
         for i in issues:
             colour = "red" if i.level is Level.ERROR else "yellow"
-            console.print(f"  [{colour}]{i.level.label}[/{colour}] {i.where}: {i.message}")
+            console.print(
+                f"  [{colour}]{i.level.label}[/{colour}] {_plain(i.where)}: {_plain(i.message)}"
+            )
             failed |= i.level is Level.ERROR or streng
     raise typer.Exit(1 if failed else 0)
 
@@ -1462,9 +1522,11 @@ def web(
     if importlib.util.find_spec("streamlit") is None:
         err.print(
             "[red]"
-            + t(
-                "Für die Weboberfläche wird Streamlit benötigt: "
-                'uv tool install "sprintforecast[web] @ git+…" bzw. uv sync --extra web'
+            + escape(  # „[web]“ ist das Extra im Befehl, kein Markup
+                t(
+                    "Für die Weboberfläche wird Streamlit benötigt: "
+                    'uv tool install "sprintforecast[web] @ git+…" bzw. uv sync --extra web'
+                )
             )
             + "[/red]"
         )
@@ -1527,12 +1589,12 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
     try:
         found = find_browser(explicit)
     except FileNotFoundError as e:
-        console.print(f"[yellow]{t('{error} – suche automatisch.', error=e)}[/yellow]")
+        console.print(f"[yellow]{t('{error} – suche automatisch.', error=_plain(e))}[/yellow]")
         os.environ.pop(BROWSER_ENV, None)  # sonst läse find_browser die ungültige Vorgabe erneut
         found = find_browser(None)
     match found.kind:
         case BrowserKind.APP:
-            console.print(t("Öffne {browser} als App-Fenster …", browser=found.name))
+            console.print(t("Öffne {browser} als App-Fenster …", browser=_plain(found.name)))
             started = time.monotonic()
             window = subprocess.Popen(browser_command(found, url))
             adopt(window)
@@ -1557,7 +1619,7 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
             console.print(
                 t(
                     "Kein App-fähiger Browser gefunden – öffne {browser} (neues Fenster).",
-                    browser=found.name,
+                    browser=_plain(found.name),
                 )
             )
             subprocess.Popen(browser_command(found, url))
@@ -1622,7 +1684,7 @@ def sprints(
                 "[red]"
                 + t(
                     "--ende {value}: erwartet SPRINT=JJJJ-MM-TT eines gezeigten Sprints",
-                    value=raw,
+                    value=_plain(raw),
                 )
                 + "[/red]"
             )
@@ -1630,16 +1692,16 @@ def sprints(
         row["Letzter Tag"] = last
     after, errors = apply_calendar(data, planned, rows)
     for e in errors:
-        err.print(f"[red]{e}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
     if errors:
         raise typer.Exit(1)
     shown = calendar_table(data, after, c.today)
-    table = Table(title=t("Sprintkalender {team}", team=data.team.name))
+    table = Table(title=t("Sprintkalender {team}", team=_plain(data.team.name)))
     for col in shown[0]:
         table.add_column(t(col), justify="right" if col == "Arbeitstage" else "left")
     for r in shown:
         table.add_row(
-            r["Sprint"],
+            _plain(r["Sprint"]),
             day_label(r["Start"]),
             day_label(r["Letzter Tag"]),
             str(r["Arbeitstage"]),
@@ -1659,7 +1721,7 @@ def sprints(
     ]
     if blocking:
         for i in blocking:
-            err.print(f"[red]{i.where}: {i.message}[/red]")
+            err.print(f"[red]{_plain(i.where)}: {_plain_end(i.message)}[/red]")
         raise typer.Exit(1)
     if not changed:
         if not anlegen:
@@ -1694,7 +1756,7 @@ def produkte(
             "[red]"
             + t(
                 "Keine Produkte erfasst. Zuerst: {command}",
-                command=cmd(f"sprintforecast produktliste {team}"),
+                command=_plain_end(cmd(f"sprintforecast produktliste {team}")),
             )
             + "[/red]"
         )
@@ -1729,7 +1791,7 @@ def produkte(
         for b in rows:
             colour = "green" if b.difference >= 0 else "red"
             table.add_row(
-                b.product.name,
+                _plain(b.product.name),
                 str(b.sprints),
                 fmt(b.standard, 2),
                 fmt(b.done, 2),
@@ -1753,8 +1815,8 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
             table.add_column(t(col))
         for p in products:
             table.add_row(
-                p.name,
-                *((p.po or "",) if with_po else ()),
+                _plain(p.name),
+                *((_plain(p.po or ""),) if with_po else ()),
                 f"{p.start:%d.%m.%Y}" if p.start else "–",
                 f"{p.end:%d.%m.%Y}" if p.end else "–",
             )
@@ -1796,7 +1858,11 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
                 console.print(f"[red]{t('Keine aktiven Produkte.')}[/red]")
                 continue
             names = {p.name.lower(): p for p in current}
-            console.print(f"[dim]{t('Produkte')}: " + ", ".join(p.name for p in current) + "[/dim]")
+            console.print(
+                f"[dim]{t('Produkte')}: "
+                + _plain_end(", ".join(p.name for p in current))
+                + "[/dim]"
+            )
             raw = Prompt.ask(t("Name"), console=console).strip().lower()
             product = names.get(raw)
             if product is None:
@@ -1840,8 +1906,12 @@ def datenordner(
 
     if pfad is None:
         saved = saved_data_dir()
-        console.print(t("Gemerkt: {path}", path=saved) if saved else t("Kein Datenordner gemerkt."))
-        console.print(t("Verwendet (ohne --daten): {path}", path=default_data_dir().resolve()))
+        console.print(
+            t("Gemerkt: {path}", path=_plain(saved)) if saved else t("Kein Datenordner gemerkt.")
+        )
+        console.print(
+            t("Verwendet (ohne --daten): {path}", path=_plain(default_data_dir().resolve()))
+        )
         return
     if not pfad.is_dir():
         err.print(f"[red]{escape(t('Ordner nicht gefunden: {path}', path=pfad))}[/red]")
@@ -1882,7 +1952,7 @@ def sprache(
     try:
         save_language(code)
     except SettingsError as e:
-        err.print(f"[red]{e}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
     from sprintforecast.i18n import set_language
 
@@ -1897,10 +1967,10 @@ def verknuepfung() -> None:
     try:
         paths = shortcuts.create()
     except (RuntimeError, OSError) as e:
-        err.print(f"[red]{e}[/red]")
+        err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
     for path in paths:
-        console.print(f"[green]{t('Angelegt: {path}', path=path)}[/green]")
+        console.print(f"[green]{t('Angelegt: {path}', path=_plain_end(path))}[/green]")
     console.print(
         t(
             "Doppelklick startet die Weboberfläche als App. Beim ersten Start wird der "
@@ -1966,7 +2036,9 @@ def aktualisieren(
         )
         return
     if result.error:
-        err.print(f"[red]{t('Prüfung fehlgeschlagen: {error}', error=result.error)}[/red]")
+        err.print(
+            f"[red]{t('Prüfung fehlgeschlagen: {error}', error=_plain_end(result.error))}[/red]"
+        )
         if not erzwingen:
             raise typer.Exit(1)
     console.print(
