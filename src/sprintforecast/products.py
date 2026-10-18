@@ -209,6 +209,14 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
     )
 
 
+def missing_footnote() -> str:
+    """Fußnote zur Spalte „ohne Wert“ (Terminal und Bericht; nur Text, ohne Markup)."""
+    return t(
+        "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt-Wert eingetragen ist "
+        "(leer, nicht 0). Sie zählen im Saldo nicht mit; bitte den Wert im Sprint nachtragen."
+    )
+
+
 @dataclass
 class Balance:
     product: Product
