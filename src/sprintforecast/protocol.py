@@ -43,6 +43,7 @@ KIND_MEASURES = {
 }
 _NAME = re.compile(
     r"^(?P<sprint>.+)-(?P<kind>vorplanung|planning|review)-(?P<at>\d{8}-\d{6})"
+    r"(?:-[0-9a-f]{4})?"  # Anfang des Fingerabdrucks, siehe write_protocol_new
     r"(?:_obsolet_(?P<obsolete>\d{8}-\d{6}))?\.md$"
 )
 
@@ -176,6 +177,9 @@ def write_protocol_new(
             return latest, False  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
     if state is not None:
         text = text.rstrip("\n") + f"\n\n{STATE_MARKER}{state} -->\n"
+    # Ein Bestandteil des Namens aus dem Inhalt: Zwei Klone, die in derselben Sekunde Verschiedenes
+    # speichern, erzeugen so nie denselben Dateinamen (sonst Konflikt beim Zusammenführen).
+    tag = (state or hashlib.sha256(text.encode("utf-8")).hexdigest())[:4]
     folder = _folder(repo, team)
     try:
         folder.mkdir(parents=True, exist_ok=True)
@@ -183,7 +187,7 @@ def write_protocol_new(
         raise _not_saved(folder, e) from e
     stamp = now
     while True:
-        path = folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}.md"
+        path = folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}-{tag}.md"
         lock = path.with_name(
             path.name + ".lock"
         )  # keine ``.md``-Datei: nie als Protokoll gelistet
