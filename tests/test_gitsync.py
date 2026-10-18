@@ -68,6 +68,35 @@ def test_incoming_before_pull(alice: Person, bob: Person):
     assert files == [("M", "teams/a/2026.1.yaml")]
 
 
+def commit_without_subject(person: Person, rel: str, text: str) -> None:
+    """Ein Commit mit leerem Betreff (Git verlangt dafür ``--allow-empty-message``)."""
+    person.write(rel, text)
+    git(person.root, "add", "-A")
+    git(person.root, "commit", "-q", "--allow-empty-message", "-m", "")
+
+
+def test_incoming_with_an_empty_subject_of_the_oldest_commit(alice: Person, bob: Person):
+    """``_git`` schneidet das Trennzeichen am Ende der letzten Zeile ab (str.strip): Die Zeile
+    des ältesten neuen Commits hat dann nur drei Felder, wenn dessen Betreff leer ist."""
+    commit_without_subject(alice, "a/2026.2.yaml", "velocity: 5\n")
+    alice.write("a/2026.3.yaml", "velocity: 6\n")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "Zweiter")
+    git(alice.root, "push", "-q")
+    gitsync.fetch(bob.data)
+    commits, files = gitsync.incoming(bob.data)
+    assert [(c.subject, c.author) for c in commits] == [("Zweiter", "Alice"), ("", "Alice")]
+    assert {file for _, file in files} == {"teams/a/2026.2.yaml", "teams/a/2026.3.yaml"}
+
+
+def test_sync_pulls_a_commit_without_subject(alice: Person, bob: Person):
+    commit_without_subject(alice, "a/2026.2.yaml", "velocity: 5\n")
+    git(alice.root, "push", "-q")
+    result = bob.sync()
+    assert result.ok and [c.subject for c in result.pulled] == [""]
+    assert (bob.data / "a" / "2026.2.yaml").exists()
+
+
 def test_parallel_changes_in_different_files_are_merged(alice: Person, bob: Person):
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     bob.write("a/2026.3.yaml", "velocity: 7\n")

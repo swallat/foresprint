@@ -155,7 +155,7 @@ def test_conflict_locks_editing_and_is_resolved_in_the_app(shared, data_dir: Pat
     apply = next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen")
     assert apply.disabled  # erst nach einer Entscheidung je Eintrag
     radio = at.radio(key="conf-0-0")
-    assert any("Meine Änderung: 7" in o for o in radio.options)
+    assert any("Meine Änderung: `7.0`" in o for o in radio.options)
     radio.set_value("theirs").run()
     next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen").click().run()
     assert not at.exception
@@ -269,7 +269,7 @@ def test_reattach_names_the_rescue_branch(shared, data_dir: Path, monkeypatch):
     rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
     assert rescue.startswith("rettung-")
     shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
-    assert "Zurück auf den Branch main." in shown
+    assert "Zurück auf den Branch `main`." in shown  # Namen von Branches als Code (Fremdtexte)
     assert f"Rettungsbranch `{rescue}`" in shown
 
 
@@ -282,7 +282,7 @@ def test_reattach_without_orphan_commits_names_no_rescue_branch(
     at = start(data_dir, monkeypatch)
     press(at, "Zurück auf den Branch")
     shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
-    assert "Zurück auf den Branch main." in shown and "Rettungsbranch" not in shown
+    assert "Zurück auf den Branch `main`." in shown and "Rettungsbranch" not in shown
 
 
 def test_git_missing_is_explained(data_dir: Path, monkeypatch):

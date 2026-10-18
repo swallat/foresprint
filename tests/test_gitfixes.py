@@ -470,7 +470,9 @@ def test_discard_stops_before_changing_anything_if_backup_fails(solo: Path, monk
 
 
 def test_revert_names_missing_identity_correctly(solo: Path, monkeypatch: pytest.MonkeyPatch):
-    (solo / "b.yaml").write_text("v: 2\n", encoding="utf-8")
+    # Bytes mit LF: ``write_text`` schriebe unter Windows CRLF, und ohne die Systemeinstellung
+    # ``core.autocrlf`` (unten abgeschaltet) gälte die Datei danach als geändert.
+    (solo / "b.yaml").write_bytes(b"v: 2\n")
     rev = commit_all(solo, "Zwei")
     git(solo, "config", "--unset", "user.name")
     git(solo, "config", "--unset", "user.email")
