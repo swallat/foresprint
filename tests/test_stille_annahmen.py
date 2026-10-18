@@ -154,3 +154,94 @@ def test_kommandozeile_und_streng(data_dir: Path):
     assert "Hinweis sprints/2026.20.yaml" in result.output
     assert "'velocity' steht mehrfach" in result.output
     assert runner.invoke(cli_app, ["pruefen", "--streng"], env=env).exit_code == 1
+
+
+def messages(text: str) -> list[str]:
+    return [i.message for i in check_yaml_text(text, "x.yaml")]
+
+
+def test_leerer_wert_in_expected_absences_und_preplanned():
+    assert any("expected_absences.anna" in m for m in messages("expected_absences:\n  anna:\n"))
+    text = "prognoses:\n- at: 2026-10-01T10:00:00\n  preplanned:\n    app:\n"
+    assert any("prognoses[0].preplanned.app" in m for m in messages(text))
+
+
+def test_zwei_merge_keys_in_einem_mapping_sind_kein_duplikat():
+    text = "a: &a {x: 1}\nb: &b {y: 2}\nc:\n  <<: *a\n  <<: *b\n  z: 3\nd:\n  <<: [*a, *b]\n"
+    assert messages(text) == []
+
+
+def test_leerer_wert_ueber_anker_und_merge_wird_unter_jedem_pfad_gemeldet():
+    text = (
+        "people:\n- id: a\n  memberships:\n  - &m {from: 2025-01-01, fte: }\n  - *m\n"
+        "- id: b\n  memberships:\n  - <<: *m\n    from: 2025-02-01\n"
+    )
+    found = " ".join(messages(text))
+    for path in ("people[0].memberships[0].fte", "people[0].memberships[1].fte"):
+        assert path in found
+    assert "people[1].memberships[0].fte" in found
+
+
+def test_rekursiver_anker_bricht_nicht_ab():
+    assert messages("a: &x [*x, 1]\nb: &y {k: *y}\n") == []
+
+
+def test_anker_bombe_wird_begrenzt_und_gemeldet():
+    lines = ["l0: &l0 [x, x, x, x, x, x, x, x, x]"]
+    for n in range(1, 12):
+        lines.append(f"l{n}: &l{n} [{', '.join([f'*l{n - 1}'] * 9)}]")
+    [found] = messages("\n".join(lines) + "\n")
+    assert "nicht vollständig geprüft" in found
+
+
+def test_extreme_verschachtelung_stuerzt_nicht_ab():
+    depth = 5000
+    text = "a: " + "[" * depth + "]" * depth + "\n"
+    check_yaml_text(text, "x.yaml")  # darf keine Ausnahme werfen
+    block = "".join("  " * i + "- \n" for i in range(depth))
+    check_yaml_text("a:\n" + block, "x.yaml")
+
+
+def test_schluessel_typ_unterscheidet_ausser_bei_kuerzeln():
+    # Kürzel werden mit str() gelesen: 1 und "1" sind dort derselbe Schlüssel ...
+    assert any("absences.1" in m for m in messages('absences:\n  1: 2\n  "1": 3\n'))
+    assert any("products.1" in m for m in messages('products:\n  1: {}\n  "1": {}\n'))
+    # ... sonst behält der Lader beide Einträge
+    assert messages('1: a\n"1": b\n') == []
+    assert messages("x: 1\ntrue: a\n'True': b\n") == []
+    assert any("'True'" in m for m in messages("true: a\ntrue: b\n"))
+
+
+def test_duplikat_in_einer_zeile_nennt_die_spalten():
+    [found] = messages("absences: {anna: 1, anna: 2}\n")
+    assert "alle in Zeile 1, Spalten 12, 21" in found
+    assert "letzten Eintrag (Zeile 1, Spalte 21)" in found
+
+
+def test_kommandozeile_maskiert_markup_aus_dateien(data_dir: Path):
+    edit(data_dir, SPRINT, "  anna: 5\n", "  '[red]x[/red]': 1\n  '[red]x[/red]': 2\n  anna: 5\n")
+    env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
+    result = runner.invoke(cli_app, ["pruefen"], env=env)
+    assert "[red]x[/red]" in result.output
+
+
+def test_weboberflaeche_zeigt_schluesselnamen_nie_als_markdown(data_dir: Path, monkeypatch):
+    pytest.importorskip("streamlit")
+    from streamlit.testing.v1 import AppTest
+
+    evil = "[Klick](http://evil.example) www.evil.example **fett**"
+    edit(data_dir, SPRINT, "  anna: 5\n", f"  '{evil}': 1\n  '{evil}': 2\n  anna: 5\n")
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
+    app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+    at = AppTest.from_file(str(app_file), default_timeout=30)
+    at.run()
+    at.switch_page("seiten/pruefung.py").run()
+    assert not at.exception, at.exception
+    shown = [w.value for w in at.warning if "mehrfach" in w.value]
+    assert shown
+    text = "\n".join(shown)
+    # Jedes Satzzeichen aus der Datei trägt einen Backslash: Markdown deutet nichts davon
+    assert "\\[Klick\\]\\(http\\:\\/\\/evil\\.example\\)" in text
+    assert "\\*\\*fett\\*\\*" in text
+    assert "www.evil" not in text
