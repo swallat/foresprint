@@ -201,6 +201,26 @@ def test_planning_step_two_splits_capacity_by_production_access(
     assert "PT mit Produktionszugriff" not in captions(start(data_dir, monkeypatch))
 
 
+def test_production_split_uses_the_current_plan_for_both_amounts(data_dir: Path):
+    """Ist der Forecast PLAN eingefroren und weicht vom aktuellen ab, teilen beide Mengen den
+    aktuellen Plan auf (keine negative Restmenge)."""
+    from sprintforecast.forecast import build_forecast
+    from sprintforecast.storage import Repository
+    from sprintforecast.web import ui
+
+    mark_production_access(data_dir)
+    data = Repository(data_dir).load(TEAM)
+    sprint = next(s for s in data.sprints if s.end > date(2026, 10, 15))
+    sprint.forecast_plan = 500.0  # viel größer als der aktuelle Plan
+    fc = build_forecast(data, date(2026, 10, 15))
+    entry = fc.entry(sprint.id)
+    text = ui._production_split_note(fc, entry, data, "PT")
+    assert text is not None
+    plan, share = entry.result.plan, ui.distribution(fc, entry).production_share
+    assert f"bis zu {ui.fmt(plan * share, 1)} PT" in text
+    assert f"{ui.fmt(plan - plan * share, 1)} PT für" in text
+
+
 def test_new_team_form_explains_the_areas_and_saves_them_off(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
