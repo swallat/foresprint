@@ -2821,7 +2821,14 @@ def _protocols(repo: Repository, data: TeamData, sprint_id: str, kind: str) -> N
         icon=":material/history:",
     ):
         if not found:
-            st.caption(t("Noch kein Protokoll: Es entsteht bei jedem Speichern dieses Termins."))
+            st.caption(
+                t(
+                    "Noch kein Protokoll: Es entsteht mit dem Schritt Commitment "
+                    "(Planning speichern)."
+                )
+                if kind == PLANNING
+                else t("Noch kein Protokoll: Es entsteht, wenn dieser Termin gespeichert wird.")
+            )
             return
         labels = {
             path: f"{at:%d.%m.%Y %H:%M:%S}" + (t(" (obsolet)") if obsolete else "")

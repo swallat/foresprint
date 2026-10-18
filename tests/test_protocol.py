@@ -246,6 +246,29 @@ def test_the_protocol_name_stays_invisible_until_the_file_is_complete(
     assert len(list_protocols(repo, "demo", "2026.21")) == 1
 
 
+def test_a_failing_rollback_keeps_the_original_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    repo = Repository(tmp_path)
+
+    def failing() -> list[Path]:
+        raise FileAccessError("Sprintdatei gesperrt")
+
+    real = Path.unlink
+
+    def locked(self: Path, missing_ok: bool = False):
+        if self.suffix == ".md":
+            raise PermissionError("Protokoll gesperrt")
+        return real(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", locked)
+    with pytest.raises(FileAccessError, match="Sprintdatei gesperrt"):
+        save_with_protocol(
+            repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, [sprint_stub()],
+            failing,
+        )  # fmt: skip
+
+
 def test_a_stale_lock_makes_the_next_save_use_the_following_second(tmp_path: Path):
     repo = Repository(tmp_path)
     folder = tmp_path / "demo" / "protokolle"

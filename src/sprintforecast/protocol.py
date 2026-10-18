@@ -205,7 +205,8 @@ def write_protocol_new(
             write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
             break
         finally:
-            lock.unlink(missing_ok=True)
+            with contextlib.suppress(OSError):
+                lock.unlink(missing_ok=True)
     invalidate_status()  # eine neue Datei ist eine offene Änderung, auch ohne geänderte YAML
     return path, True
 
@@ -251,7 +252,9 @@ def save_with_protocol(
         return save()
     except BaseException:
         if created:
-            path.unlink(missing_ok=True)
+            # Scheitert auch der Rückbau (z. B. gesperrte Datei), zählt der ursprüngliche Fehler.
+            with contextlib.suppress(OSError):
+                path.unlink(missing_ok=True)
             invalidate_status()
         raise
 
