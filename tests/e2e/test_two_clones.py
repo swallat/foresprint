@@ -78,7 +78,12 @@ def test_sharing_still_reports_when_another_rerun_comes_during_the_sync(clones, 
     change_absence(pb, bob, "Dana", "1")
     mark = bob.data_dir.parent.parent / "push-started"
     hook = bob.data_dir.parent / ".git" / "hooks" / "pre-push"
-    hook.write_text(f"#!/bin/sh\ntouch '{mark.as_posix()}'\nsleep 3\n", encoding="utf-8")
+    # Zeilenvorschub, nicht CRLF: ``write_text`` schreibt unter Windows sonst CRLF, und ein
+    # Wagenrücklauf hinter der Shebang-Zeile oder hinter ``sleep 3`` macht den Hook für ``sh``
+    # fehlerhaft (je nach Shell läuft er dann nicht oder bricht ab).
+    hook.write_text(
+        f"#!/bin/sh\ntouch '{mark.as_posix()}'\nsleep 3\n", encoding="utf-8", newline="\n"
+    )
     hook.chmod(0o755)
     alerts = share(pb)
     deadline = time.monotonic() + 20
