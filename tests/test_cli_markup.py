@@ -8,6 +8,7 @@ der Datenpfad wie Markup aussehen. Jeder Lauf prüft zusätzlich, dass kein Tag 
 („[/bold]“ nach einem Wert mit Backslash) und kein Backslash doppelt erscheint."""
 
 import dataclasses
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -27,6 +28,8 @@ runner = CliRunner(env={"COLUMNS": "1000"})
 
 # Backslash im Namen: nur dort möglich, wo er kein Pfadtrenner ist.
 BS = "" if sys.platform == "win32" else "\\"
+# Pfade in der Ausgabe haben unter Windows Rückwärtsschrägstriche.
+SEP = os.sep
 # Diese Tags kommen in der Ausgabe nur als Markup vor; als Text wären sie ein Fehler (die Daten
 # enthalten „[red]“, aber nie „[bold]“ oder „[dim]“).
 CLOSERS = [f"[/{tag}]" for tag in ("red", "green", "yellow", "cyan", "bold", "dim")]
@@ -340,10 +343,14 @@ BLANK = "\n" * 60  # Enter übernimmt jeweils den Vorschlag
             id="review",
         ),
         pytest.param(
-            ["bericht", "demo"], None, [f"da[x]ten{BS}[red]/demo/FORECAST.md"], 0, id="bericht"
+            ["bericht", "demo"],
+            None,
+            [f"da[x]ten{BS}[red]{SEP}demo{SEP}FORECAST.md"],
+            0,
+            id="bericht",
         ),
         pytest.param(
-            ["bericht"], None, [f"da[x]ten{BS}[red]/demo/FORECAST.md"], 0, id="bericht-alle"
+            ["bericht"], None, [f"da[x]ten{BS}[red]{SEP}demo{SEP}FORECAST.md"], 0, id="bericht-alle"
         ),
         pytest.param(
             ["pruefen"],
@@ -536,7 +543,7 @@ def test_init_with_markup_look(klammern: Path):
         "Neues Team neu anlegen.",
         "sprintforecast einstellungen neu",
         "Unbekannter Regionscode: [/X]",
-        f"Angelegt: {klammern}/neu/team.yaml",
+        f"Angelegt: {klammern}{SEP}neu{SEP}team.yaml",
         "Weiter mit: sprintforecast personen neu",
     )
     assert yaml.safe_load((klammern / "neu" / "team.yaml").read_text())["name"] == f"Neu [/x]{BS}"
@@ -556,7 +563,7 @@ def test_einstellungen_with_markup_look(klammern: Path):
         "Änderungen",
         "[/x] Team",
         f"Neu [x]{BS}",
-        f"Gespeichert: {klammern}/demo/team.yaml",
+        f"Gespeichert: {klammern}{SEP}demo{SEP}team.yaml",
     )
 
 
@@ -567,11 +574,11 @@ def test_path_with_brackets_and_backslashes_in_messages(klammern: Path):
     """_saved, „Angelegt“ und bericht zeigen den Pfad mit „[x]“, „[red]“ und Backslash."""
     shown = f"da[x]ten{BS}[red]"
     result = run(klammern, "fehltage", "demo", "2026.23", input=ABSENCES)
-    check(result, f"Gespeichert: {klammern}/demo/sprints/2026.23.yaml", shown)
+    check(result, f"Gespeichert: {klammern}{SEP}demo{SEP}sprints{SEP}2026.23.yaml", shown)
     result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
-    check(result, f"Angelegt: {klammern}/neu/team.yaml", shown)
+    check(result, f"Angelegt: {klammern}{SEP}neu{SEP}team.yaml", shown)
     result = run(klammern, "bericht", "demo")
-    check(result, f"{klammern}/demo/FORECAST.md")
+    check(result, f"{klammern}{SEP}demo{SEP}FORECAST.md")
 
 
 def test_path_with_brackets_and_backslashes_for_datenordner(tmp_path: Path):
@@ -770,7 +777,7 @@ def test_open_app_window_messages_with_markup_look(
 def test_english_translations_keep_their_markup(klammern: Path):
     """Auch die englischen Vorlagen mit [bold] um einen Platzhalter bleiben Markup."""
     result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
-    check(result, "Create new team neu.", f"Created: {klammern}/neu/team.yaml", "Next: ")
+    check(result, "Create new team neu.", f"Created: {klammern}{SEP}neu{SEP}team.yaml", "Next: ")
     result = run(klammern, "fehltage", "demo", f"[red]{BS}", input=ABSENCES)
     check(result, f"Sprint [red]{BS}: ", "Saved: ")
     result = run(klammern, "review", "demo", f"[red]{BS}", input="\ny\n" + BLANK)
