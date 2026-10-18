@@ -175,6 +175,7 @@ from sprintforecast.storage import (
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
+    team_key_problem,
     team_version,
     teams_dir,
     write_text,
@@ -3329,8 +3330,21 @@ def page_new_team(repo: Repository) -> None:
     )
     if not key:
         return
-    if repo.exists(key):
-        st.error(t("Team {team} existiert bereits.", team=repr(key)))
+    if clash := repo.clashing_team(key):
+        if clash == key:
+            st.error(t("Team {team} existiert bereits.", team=repr(key)))
+        else:
+            st.error(
+                t(
+                    "Team {team} existiert bereits (als {existing}; Windows und macOS "
+                    "unterscheiden Ordner nicht nach Groß- und Kleinschreibung).",
+                    team=repr(key),
+                    existing=repr(clash),
+                )
+            )
+        return
+    if problem := team_key_problem(key):
+        st.error(problem)
         return
     team = Team(key=key, name=key.upper())
     team.sprint.first_start = today()
