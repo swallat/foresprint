@@ -198,6 +198,16 @@ def test_a_failing_multi_sprint_save_restores_the_earlier_files(
     assert [p.name for p in paths] == ["2026.21.yaml", "2026.22.yaml"]
 
 
+def test_a_protocol_with_invalid_utf8_does_not_break_writing(tmp_path: Path):
+    repo = Repository(tmp_path)
+    folder = tmp_path / "demo" / "protokolle"
+    folder.mkdir(parents=True)
+    (folder / "2026.21-review-20261016-144305.md").write_bytes(b"\xff\xfe kaputt \x80")
+    new = write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", LATER)
+    assert new.read_text(encoding="utf-8").startswith("# T")
+    assert len(list_protocols(repo, "demo", "2026.21")) == 2
+
+
 def test_a_filename_with_an_impossible_date_is_ignored(tmp_path: Path):
     repo = Repository(tmp_path)
     folder = tmp_path / "demo" / "protokolle"

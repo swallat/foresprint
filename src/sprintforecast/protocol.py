@@ -120,7 +120,7 @@ def _body_of(text: str) -> list[str]:
 def _body(path: Path) -> list[str] | None:
     try:
         return _body_of(path.read_text(encoding="utf-8"))
-    except OSError:
+    except OSError, UnicodeDecodeError:
         return None
 
 
@@ -139,7 +139,7 @@ def fingerprint(text: str, *documents: dict) -> str:
 def _state_of(path: Path) -> str | None:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
-    except OSError:
+    except OSError, UnicodeDecodeError:
         return None
     for line in reversed(lines):
         if line.startswith(STATE_MARKER):
