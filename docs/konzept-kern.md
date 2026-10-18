@@ -1,9 +1,11 @@
 # Konzept: Verbesserungen am Kern (ohne Ticketsystem)
 
-Status (Stand Oktober 2026): Phase P, K1 bis K3 sowie A14, A15, B8 und B9 sind umgesetzt, im
-Einzelnen siehe die Spalte „Stand“ der Tabellen und den Abschnitt G. Offen sind B10 (nur in der
-Weboberfläche), der Einrichtungs-Assistent (C) und die Reste, die in den Tabellen stehen; das Ticketsystem folgt in
-einem eigenen Konzept. Dieses Dokument sammelt alles, was **unabhängig von einem Ticketsystem**
+Status (Stand 18. Oktober 2026, nach #91): Phase P, K1 bis K3 sowie A14, A15, B8 und B9 sind
+umgesetzt, im Einzelnen siehe die Spalte „Stand“ der Tabellen und den Abschnitt G. Offen sind
+B10 (nur in der Weboberfläche), der Einrichtungs-Assistent (C) und die Reste, die in den
+Tabellen stehen. Außerhalb dieser Phasen kamen seitdem hinzu: Sprint-Protokolle je Termin mit
+Sperre gegen gleichzeitiges Schreiben (#84, #90), Excel-Export und -Import je Team (#86, #91) und
+die genauere Zuordnung von Git-Fehlern (#81); das Ticketsystem folgt in einem eigenen Konzept. Dieses Dokument sammelt alles, was **unabhängig von einem Ticketsystem**
 gilt: Berechnung, Bedienung, Einrichtung, Datenordner und Synchronisation.
 Die Ticketanbindung steht in [konzept-ticketsystem.md](konzept-ticketsystem.md); sie ist
 optional und baut auf diesen Punkten auf (insbesondere A und D).
@@ -138,9 +140,17 @@ Stand je Vorgang:
 - **Anmelde-Hilfe:** fehlende Authentifizierung erkennen und verständlich erklären, was zu tun
   ist (Zugangstoken oder SSH-Schlüssel hinterlegen, Credential Manager). Teilweise: beim Klonen
   und Anlegen eines Datenordners fehlt der Anmelde-Hinweis noch.
-- **Fehlerzustände** mit klaren Meldungen und nächstem Schritt: offline, Push abgelehnt und Git
-  nicht installiert sind umgesetzt; gesperrte Datei, unvollständiger Merge und detached HEAD nur
-  teilweise (der Hinweis passt nicht in jedem Fall zur Ursache). Schreib- und Lesefehler der
+- **Fehlerzustände** mit klaren Meldungen und nächstem Schritt: offline, Push abgelehnt, Git
+  nicht installiert, Repository nicht gefunden (404, „Repository not found“), nicht anerkanntes
+  Zertifikat, nicht beschreibbarer Ordner (`not_writable`), unsicherer Ordner („dubious
+  ownership“, `unsafe_directory`: nur Erklärung, die App ändert keine Git-Einstellungen) und der
+  unbekannte SSH-Fingerabdruck sind seit #81 einzeln zugeordnet, auch bei Abgleich, Hochladen,
+  Klonen und Tags. Gesperrte Datei, unvollständiger Merge und detached HEAD nur teilweise (der
+  Hinweis zu `locked` erwähnt bei „unable to unlink“ / „Device busy“ weiter die `index.lock`);
+  ein nacktes „Could not read from remote repository“ und „unable to access … 503“ zählen weiter
+  als „offline“. „Zurück auf den Branch“ mit offenen Änderungen zeigt einen eigenen Hinweis und
+  nennt den Rettungsbranch in der Erfolgsmeldung; das Sichern vor dem Wechsel steht als
+  Entscheidung des Owners aus. Schreib- und Lesefehler der
   Datendateien (kein Schreibrecht, Datei gesperrt) zeigen seit #63 eine Meldung mit Datei,
   Ursache und nächstem Schritt, ebenso ein falscher Aufbau der YAML-Dateien seit #64. Offen
   bleiben das Anlegen und Klonen eines Datenordners in einem nicht beschreibbaren Ordner und ein
