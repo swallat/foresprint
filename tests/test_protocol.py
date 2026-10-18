@@ -388,6 +388,90 @@ def test_obsoleting_takes_the_same_lock(tmp_path: Path, monkeypatch: pytest.Monk
     assert not any(f[2] for f in list_protocols(repo, "demo", "2026.21"))
 
 
+@pytest.mark.parametrize("session", ["mark_obsolete", "obsolete_with_save"])
+def test_obsoleting_takes_the_lock_even_if_the_protocol_folder_does_not_exist_yet(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, session: str
+):
+    """Aktualisiertes Datenverzeichnis ohne Ordner ``protokolle``: Eine andere Sitzung legt ihn
+    gerade an und schreibt ein Protokoll. Die Aufhebung darf nicht an der Sperre vorbei
+    speichern."""
+    repo = Repository(tmp_path)
+    (tmp_path / "demo").mkdir()
+    folder = tmp_path / "demo" / "protokolle"
+    assert not folder.exists()
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
+    saved: list[int] = []
+    other_session = protocol_module._locked(folder, "2026.21", PLANNING)
+    with other_session, pytest.raises(FileAccessError, match="andere Sitzung"):
+        if session == "mark_obsolete":
+            mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER)
+        else:
+            obsolete_with_save(
+                repo, "demo", "2026.21", PLANNING, LATER, lambda: saved.append(1) or []
+            )
+    assert saved == []  # nichts gespeichert, solange die andere Sitzung die Sperre hält
+
+
+def test_unfreezing_without_a_protocol_folder_still_saves_and_finds_nothing_to_rename(
+    tmp_path: Path,
+):
+    repo = Repository(tmp_path)
+    assert mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER) == []
+    saved = obsolete_with_save(
+        repo, "demo", "2026.21", PLANNING, LATER, lambda: [tmp_path / "2026.21.yaml"]
+    )
+    assert saved == [tmp_path / "2026.21.yaml"]
+    assert list_protocols(repo, "demo", "2026.21") == []
+
+
+def test_an_unfreeze_without_a_protocol_folder_excludes_a_concurrent_planning_save(tmp_path: Path):
+    """Sitzung A hebt das Einfrieren auf, es gibt noch keinen Ordner; Sitzung B speichert in der
+    Zwischenzeit das Planning samt Protokoll. B darf erst fertig werden, wenn A gespeichert hat:
+    Sonst bliebe B's Protokoll gültig, obwohl A die Prognose danach aufhebt."""
+    repo = Repository(tmp_path)
+    in_save, release = threading.Event(), threading.Event()
+    order: list[str] = []
+
+    def save_a() -> list[Path]:
+        in_save.set()
+        release.wait(5)
+        order.append("a-saved")
+        return []
+
+    def session_b() -> list[Path]:
+        assert in_save.wait(5)
+
+        def save_b() -> list[Path]:
+            order.append("b-saved")
+            return []
+
+        return save_with_protocol(
+            repo,
+            "demo",
+            "2026.21",
+            PLANNING,
+            "# T\n\nStand: 1\n\nx\n",
+            NOW,
+            [sprint_stub()],
+            save_b,
+        )
+
+    def releaser() -> None:
+        assert in_save.wait(5)
+        time.sleep(0.3)  # B hat inzwischen angefragt und wartet auf die Sperre
+        release.set()
+
+    results = run_concurrently(
+        [
+            lambda: obsolete_with_save(repo, "demo", "2026.21", PLANNING, LATER, save_a),
+            session_b,
+            releaser,
+        ]
+    )
+    assert results[:2] == [[], []], results
+    assert order == ["a-saved", "b-saved"]
+
+
 def run_with_failing_first_session(first, second, order: list[str]) -> tuple:
     """Sitzung A (``first(save)``) steckt in ihrem ``save`` und scheitert erst 0,3 s, nachdem
     Sitzung B (``second()``) losgelaufen ist; B startet erst, wenn A im ``save`` steckt. Liefert die
