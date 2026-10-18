@@ -4439,17 +4439,112 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
 # nächster Berührung von ``st.session_state``. Der alte Rückruf bricht dann nach dem Abgleich ab,
 # bevor er das Ergebnis ablegt: Der Abgleich ist gelaufen, die Meldung fehlt für immer, und der
 # neue Durchlauf zeigt die Seitenleiste mitten im Abgleich (Commit gemacht, Zusammenführen und
-# Hochladen scheinbar nicht). Darum liegt das Ergebnis zuerst in ``_SYNC_DONE`` (ein einfaches
-# Wörterbuch ohne Haltepunkt), jeder Durchlauf wartet zu Beginn auf einen noch laufenden Abgleich
-# (``_SYNC_LOCK``) und holt ein dort liegendes Ergebnis nach (``collect_sync_result``), und ein
-# zweiter Klick startet keinen zweiten Abgleich.
-_SYNC_LOCK = threading.Lock()
-_SYNC_DONE: dict[str, SyncResult] = {}
+# Hochladen scheinbar nicht). Darum legt der Rückruf das Ergebnis zuerst in einem einfachen
+# Speicher ab (``_SyncSlot``, ohne Haltepunkt von Streamlit); jeder Durchlauf wartet zu Beginn
+# begrenzte Zeit auf einen noch laufenden Abgleich und holt dessen Ergebnis nach
+# (``collect_sync_result``); ein zweiter Klick startet keinen zweiten Abgleich und sagt das.
+# Alles gehört zu einer Browser-Sitzung (Schlüssel: Sitzungs-ID von Streamlit), nicht zum Prozess:
+# Ein Abgleich in einem Fenster hält die anderen nicht auf. Die Ergebnisse tragen den Datenordner:
+# Wechselt die Sitzung den Ordner, gelten sie nicht mehr.
+SYNC_WAIT_SECONDS = 10.0  # so lange wartet ein neuer Durchlauf auf einen laufenden Abgleich
+SYNC_SLOT_TTL = 3600.0  # so lange bleibt der Speicher einer ruhenden (verwaisten) Sitzung
+SYNC_RUNNING_KEY = "sync-running"  # Sitzungszustand: beim Zeichnen lief der Abgleich noch
+
+
+def _now() -> float:
+    return time.monotonic()
+
+
+class _SyncSlot:
+    """Sperre („läuft gerade ein Abgleich?“) und noch nicht übernommene Ergebnisse einer
+    Browser-Sitzung. Alle Zugriffe sind kurz und ohne Streamlit, also auch aus einem bereits
+    gestoppten Durchlauf gefahrlos."""
+
+    def __init__(self) -> None:
+        self._cond = threading.Condition()
+        self._running = False
+        self._done: dict[str, list[SyncResult]] = {}  # Datenordner → Ergebnisse, älteste zuerst
+        self.touched = _now()
+
+    @property
+    def running(self) -> bool:
+        with self._cond:
+            return self._running
+
+    def begin(self) -> bool:
+        """Nicht blockierend: ``False``, wenn schon ein Abgleich läuft."""
+        with self._cond:
+            if self._running:
+                return False
+            self._running = True
+            return True
+
+    def end(self) -> None:
+        with self._cond:
+            self._running = False
+            self._cond.notify_all()
+
+    def wait_idle(self, timeout: float) -> bool:
+        """Wartet höchstens ``timeout`` Sekunden, bis kein Abgleich mehr läuft; ``False``, wenn
+        er danach noch läuft."""
+        with self._cond:
+            return self._cond.wait_for(lambda: not self._running, timeout)
+
+    def put(self, root: Path, result: SyncResult) -> None:
+        with self._cond:
+            self._done.setdefault(str(root), []).append(result)
+
+    def pending(self, root: Path) -> list[SyncResult]:
+        """Die Ergebnisse für diesen Datenordner (älteste zuerst). Die für andere Datenordner
+        verfallen: Sie gehören zu einem Ordner, den diese Sitzung verlassen hat."""
+        with self._cond:
+            mine = str(root)
+            for other in [folder for folder in self._done if folder != mine]:
+                del self._done[other]
+            return list(self._done.get(mine, ()))
+
+    def discard(self, root: Path, result: SyncResult) -> None:
+        with self._cond:
+            results = self._done.get(str(root), [])
+            for i, candidate in enumerate(results):
+                if candidate is result:
+                    del results[i]
+                    break
+            if not results:
+                self._done.pop(str(root), None)
+
+
+_SYNC_SLOTS: dict[str, _SyncSlot] = {}  # Sitzungs-ID → Speicher
+_SYNC_SLOTS_GUARD = threading.Lock()
 
 
 def _session_key() -> str:
     ctx = get_script_run_ctx()
     return ctx.session_id if ctx is not None else ""
+
+
+def _find_sync_slot(create: bool) -> _SyncSlot | None:
+    """Der Speicher dieser Sitzung. Beim Zugriff werden die Speicher verwaister Sitzungen
+    entfernt: lange nicht benutzt und ohne laufenden Abgleich (die eigene Sitzung gilt als
+    gerade benutzt)."""
+    key = _session_key()
+    now = _now()
+    with _SYNC_SLOTS_GUARD:
+        slot = _SYNC_SLOTS.get(key)
+        if slot is None and create:
+            slot = _SYNC_SLOTS[key] = _SyncSlot()
+        if slot is not None:
+            slot.touched = now
+        for other, candidate in list(_SYNC_SLOTS.items()):
+            if now - candidate.touched > SYNC_SLOT_TTL and not candidate.running:
+                del _SYNC_SLOTS[other]
+        return slot
+
+
+def _sync_slot() -> _SyncSlot:
+    slot = _find_sync_slot(create=True)
+    assert slot is not None
+    return slot
 
 
 def _remember_sync_result(result: SyncResult) -> None:
@@ -4458,6 +4553,12 @@ def _remember_sync_result(result: SyncResult) -> None:
     if result.committed:
         st.session_state["pending_tags"] = []
         st.session_state["commit_message"] = _commit_default()
+    # Ein noch nicht gezeigtes früheres Ergebnis wird nicht überschrieben, sondern wandert in
+    # die Liste der früheren (die Seitenleiste zeigt beide). Mehrfaches Ausführen ändert nichts.
+    previous = st.session_state.get("sync_result")
+    earlier = st.session_state.get("sync_earlier", [])
+    if previous is not None and previous is not result and all(r is not previous for r in earlier):
+        st.session_state["sync_earlier"] = [*earlier, previous]
     st.session_state["sync_result"] = result
     st.session_state.pop("tags-server", None)  # der Abgleich der Tags ist nicht mehr aktuell
     st.session_state.pop("tags-server-failed", None)
@@ -4471,25 +4572,49 @@ def _remember_sync_result(result: SyncResult) -> None:
         clear_team_cache()  # Dateien haben sich geändert: neu laden
 
 
-def collect_sync_result() -> None:
-    """Am Anfang jedes Durchlaufs, vor jeder Git-Abfrage: auf einen noch laufenden Abgleich
-    warten (er gehört zu einem gestoppten, älteren Durchlauf) und sein Ergebnis übernehmen,
-    falls jener Durchlauf es nicht mehr ablegen konnte."""
-    key = _session_key()
-    with _SYNC_LOCK:
-        result = _SYNC_DONE.get(key)
-    if result is not None:
+def _apply_sync_results(slot: _SyncSlot, root: Path) -> None:
+    """Übernimmt die abgelegten Ergebnisse dieses Datenordners in den Sitzungszustand, älteste
+    zuerst. Ein Ergebnis bleibt im Speicher, bis es übernommen ist: Bricht auch dieser Versuch
+    ab, holt der nächste Durchlauf es nach."""
+    for result in slot.pending(root):
         _remember_sync_result(result)
-        _SYNC_DONE.pop(key, None)  # erst jetzt: Bricht auch dieser Durchlauf ab, bleibt es liegen
+        slot.discard(root, result)
+
+
+def collect_sync_result() -> None:
+    """Am Anfang jedes Durchlaufs, vor jeder Git-Abfrage: begrenzte Zeit auf einen noch
+    laufenden Abgleich warten (er gehört zu einem gestoppten, älteren Durchlauf oder einem
+    früheren Klick) und sein Ergebnis übernehmen, falls jener Rückruf es nicht mehr ablegen
+    konnte. Dauert der Abgleich länger, wird weitergezeichnet; die Seitenleiste sagt, dass er
+    noch läuft."""
+    slot = _find_sync_slot(create=False)
+    if slot is None:  # in dieser Sitzung wurde nie geteilt
+        st.session_state.pop(SYNC_RUNNING_KEY, None)
+        return
+    if slot.wait_idle(SYNC_WAIT_SECONDS):
+        st.session_state.pop(SYNC_RUNNING_KEY, None)
+    else:
+        st.session_state[SYNC_RUNNING_KEY] = True
+    _apply_sync_results(slot, data_dir())
 
 
 def _sync_clicked(
     root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
 ) -> None:
     """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
-    if not _SYNC_LOCK.acquire(blocking=False):
-        return  # ein Abgleich läuft schon (zweiter Klick); er meldet sein Ergebnis selbst
-    key = _session_key()
+    slot = _sync_slot()
+    if not slot.begin():  # ein Abgleich dieser Sitzung läuft noch: nicht noch einen starten
+        st.session_state.setdefault("flash", []).append(
+            (
+                "warning",
+                t(
+                    "Ein Abgleich lief noch: Dieser Klick wurde nicht ausgeführt. Bitte nach dem "
+                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal „Speichern und "
+                    "teilen“ wählen."
+                ),
+            )
+        )
+        return
     try:
         message = st.session_state.get("commit_message", "").strip() or _commit_default()
         use_tags = tags and st.session_state.get("use_tags", True)
@@ -4501,11 +4626,10 @@ def _sync_clicked(
             allow_invalid=allow_invalid,
             allow_unrelated=allow_unrelated,
         )
-        _SYNC_DONE[key] = result
+        slot.put(root, result)  # vor dem Freigeben: Wer danach aufwacht, findet es
     finally:
-        _SYNC_LOCK.release()
-    _remember_sync_result(result)
-    _SYNC_DONE.pop(key, None)
+        slot.end()
+    _apply_sync_results(slot, root)
 
 
 def _unrelated_cancel() -> None:
@@ -4593,21 +4717,24 @@ def _clone_problem(error: GitError) -> GitError:
     return GitError(str(error), error.kind, hints[error.kind], error.raw)
 
 
-def _show_problem(error: GitError) -> None:
+def _show_problem(error: GitError, interactive: bool = True) -> None:
     """Fehler mit Überschrift, nächstem Schritt und (aufklappbar) der Meldung von Git. Ohne
     Hinweis steht die Meldung selbst da; Ausgabe von Git und vom Server (Namen und Zeilen, die
-    andere bestimmen) als Code, nie als Markdown."""
+    andere bestimmen) als Code, nie als Markdown. Ohne ``interactive`` keine Eingabefelder
+    (Name, E-Mail): Die Felder gibt es nur einmal je Seite."""
     st.error(f"**{git_title(error.kind)}**  \n{error.hint or error.render(md_code_lines)}")
     if error.hint and str(error):
         with st.expander(t("Technische Meldung")):
             st.code(str(error), language=None)
-    if error.kind == "identity":
+    if interactive and error.kind == "identity":
         st.text_input(t("Name"), key="git-name")
         st.text_input(t("E-Mail-Adresse"), key="git-email")
         st.button(t("Speichern"), key="git-identity", on_click=_identity_clicked)
 
 
-def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
+def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: bool = True) -> None:
+    """Meldung zu einem Abgleich. Ein früherer, noch nicht gezeigter Abgleich (``latest`` ist
+    falsch) erscheint ohne Knöpfe und Eingabefelder: Die gibt es nur für den letzten."""
     done = []
     if result.committed:
         done.append(t("Eigene Änderungen gesichert ({rev})", rev=result.committed))
@@ -4621,18 +4748,19 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
         if done:
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
         if result.error.kind != "unrelated_histories":  # die Rückfrage steht darunter
-            _show_problem(result.error)
-        if result.error.kind == "not_found":  # meist stimmt die Adresse nicht
+            _show_problem(result.error, interactive=latest)
+        if latest and result.error.kind == "not_found":  # meist stimmt die Adresse nicht
             page_link("datenordner", t("Server-Adresse ändern"))
         if result.validation:
             st.markdown("\n".join(f"- {line}" for line in result.validation))
-            st.button(
-                t("Trotzdem teilen"),
-                key="git-force",
-                on_click=_sync_clicked,
-                args=(root, tags, True),
-                help=t("Lädt die Daten hoch, obwohl die Prüfung neue Fehler meldet."),
-            )
+            if latest:
+                st.button(
+                    t("Trotzdem teilen"),
+                    key="git-force",
+                    on_click=_sync_clicked,
+                    args=(root, tags, True),
+                    help=t("Lädt die Daten hoch, obwohl die Prüfung neue Fehler meldet."),
+                )
     for note in result.notes:  # Hinweise, auch wenn alles gelang
         st.warning(note)
     if result.pulled:
@@ -4701,10 +4829,27 @@ def _git_panel(repo: Repository) -> None:
             _show_problem(error)
         else:
             st.error(error)
+    earlier = st.session_state.pop("sync_earlier", [])
     if result := st.session_state.pop("sync_result", None):
-        _show_sync_result(result, repo.root, list(st.session_state.get("pending_tags", [])))
+        tags_now = list(st.session_state.get("pending_tags", []))
+        for old in earlier:  # nicht gezeigte Abgleiche, die der letzte nicht überschrieben hat
+            _show_sync_result(old, repo.root, tags_now, latest=False)
+        _show_sync_result(result, repo.root, tags_now)
     if unrelated := st.session_state.get("unrelated"):
         _unrelated_dialog(repo.root, list(st.session_state.get("pending_tags", [])), unrelated)
+    if st.session_state.get(SYNC_RUNNING_KEY):
+        # Ein Abgleich dieser Sitzung läuft noch (er dauert länger, als der Durchlauf warten
+        # wollte). Keine Git-Abfragen daneben: Sie zeigten den Stand mittendrin, und ein
+        # gleichzeitiges ``git status`` kann ``git add`` des Abgleichs an der Index-Sperre
+        # scheitern lassen.
+        st.info(
+            t(
+                "Der Abgleich mit dem Server läuft noch. Mit „Aktualisieren“ erscheint sein "
+                "Ergebnis, sobald er fertig ist."
+            )
+        )
+        st.button(t("Aktualisieren"), key="git-sync-refresh", icon=":material/refresh:")
+        return
     try:
         changes = cached_pending_changes(repo.root)
         state = cached_sync_state(repo.root)
@@ -5168,7 +5313,8 @@ GLOBAL_PAGES = {
 # Zustand, der bei geänderten Dateien erhalten bleibt (alles andere sind Formulareingaben).
 _KEEP_STATE = {
     "selected_team", "flash", "pending_tags", "commit_message", "use_tags", "language",
-    "enabled-pages", "sync_result", "last_commit", "commit_error", "restarting", "update-started",
+    "enabled-pages", "sync_result", "sync_earlier", SYNC_RUNNING_KEY, "last_commit",
+    "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
     "planning-goto", "planning-last-sprint", "board-sprint", "formula-sprint",
     "active-data-dir", "folder-state",
