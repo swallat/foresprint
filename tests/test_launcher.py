@@ -58,6 +58,7 @@ def test_windows_paths_scoop_and_choco(tmp_path: Path, monkeypatch: pytest.Monke
     for variable in ("ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"):
         monkeypatch.setenv(variable, str(tmp_path / "leer"))
     monkeypatch.setenv("SCOOP", str(tmp_path / "scoop"))
+    monkeypatch.setenv("SCOOP_GLOBAL", str(tmp_path / "scoop-global"))  # sonst ProgramData
     monkeypatch.setenv("ChocolateyInstall", str(tmp_path / "choco"))
     chrome = tmp_path / "scoop/apps/googlechrome/current/chrome.exe"
     firefox = tmp_path / "choco/bin/firefox.exe"
