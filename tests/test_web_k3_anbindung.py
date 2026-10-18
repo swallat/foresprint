@@ -429,7 +429,12 @@ def test_recent_dirs_exclude_active_folder_via_symlink(data_dir: Path, tmp_path:
     from sprintforecast.web import ui
 
     link = tmp_path / "verweis"
-    link.symlink_to(data_dir, target_is_directory=True)
+    try:
+        link.symlink_to(data_dir, target_is_directory=True)
+    except OSError as e:  # Windows ohne Administrator/Entwicklermodus: keine Symlinks
+        if getattr(e, "winerror", None) != 1314:
+            raise
+        pytest.skip("Kein Recht für symbolische Verknüpfungen")
     config.update(recent_data_dirs=[str(link), str(data_dir / ".." / "teams")])
     assert ui._recent_dirs(Repository(data_dir)) == []
     assert ui._recent_dirs(Repository(link)) == []
