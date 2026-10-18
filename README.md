@@ -128,7 +128,7 @@ keine, aber einen Unterordner `teams` mit Teams, wird dieser genommen.
 Findet die Weboberfläche keinen Datenordner (keine Teams, kein Git-Repository), führt sie
 durch die Einrichtung: vorhandenen Ordner wählen (Git empfohlen, aber nicht Pflicht: ohne Git gibt es keinen Commit; nach „Ohne Git verwenden“ geht es mit **Neues Team** weiter; die Entscheidung wird je Ordner in
 den Benutzereinstellungen gemerkt und gilt auch nach dem Neuladen oder in einem neuen Tab), neues
-Daten-Repository anlegen (`git init`, `.gitignore`, Ordner `teams`) oder das gemeinsame
+Daten-Repository anlegen (`git init`, `.gitignore`, Ordner `teams` mit `.gitattributes`) oder das gemeinsame
 Daten-Repository des Teams klonen.
 
 **Windows PowerShell:**
@@ -354,6 +354,7 @@ hier per `.gitignore` ausgeschlossen). Vorlage: [`templates/daten-repo/`](templa
 ```
 daten-repo/
 ├─ mise.toml                      # Tool-Versionen + Task `mise run sf -- …`
+├─ .gitignore, .gitattributes     # keine Tabellenkalkulationen und *.tmp; YAML und Berichte immer mit LF
 ├─ .github/workflows/forecast.yml # prüft Änderungen, aktualisiert FORECAST.md (auf GitLab analog)
 └─ teams/
    ├─ team-a/
