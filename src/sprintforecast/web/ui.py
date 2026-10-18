@@ -4624,7 +4624,7 @@ def _discard_go(root: Path, files: list[str] | None) -> None:
     _git_action(
         lambda: discard(root, files),
         lambda trash: (
-            t("Änderungen verworfen. Sicherungskopie: {path}", path=trash)
+            t("Änderungen verworfen. Sicherungskopie: {path}", path=md_code(str(trash)))
             if trash
             else t("Änderungen verworfen.")
         ),
@@ -4730,7 +4730,7 @@ def _tab_history(repo: Repository, locked: bool = False) -> None:
         help=t(
             "Setzt {scope} auf den Stand nach dieser Änderung zurück. Das ist selbst eine "
             "Änderung und kann hier wieder zurückgenommen werden.",
-            scope=rel,
+            scope=md_code(rel),
         ),
     )
     right.button(
@@ -4957,7 +4957,13 @@ def _restore_clicked(root: Path, file: Path) -> None:
     else:
         clear_team_cache()
         st.session_state["flash"] = [
-            ("success", t("{file} auf den letzten gespeicherten Stand zurückgesetzt.", file=file))
+            (
+                "success",
+                t(
+                    "{file} auf den letzten gespeicherten Stand zurückgesetzt.",
+                    file=md_code(str(file)),
+                ),
+            )
         ]
 
 

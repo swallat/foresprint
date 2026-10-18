@@ -371,3 +371,22 @@ def test_a_message_of_git_without_hint_is_shown_as_code(
     at.button(key="data-clone-go").click().run()
     shown = main_errors(at)
     assert f"`{tmp_path}` ist nicht leer" in shown and "`ist nicht leer" not in shown
+
+
+def test_the_file_named_after_restoring_is_shown_as_code(shared, data_dir: Path, monkeypatch):
+    """Der Dateiname stammt von anderen (``__notiz__.yaml`` würde als Markdown fett): Die Meldung
+    nach „Letzten Stand wiederherstellen“ nennt ihn als Code."""
+    root, _bob, _server = shared
+    note = root / "teams" / "demo" / "sprints" / "__notiz__.yaml"
+    note.write_text("velocity: 1\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "Datei")
+    note.write_text(
+        "<<<<<<< HEAD\nvelocity: 1\n=======\nvelocity: 2\n>>>>>>> origin/main\n", encoding="utf-8"
+    )
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    next(b for b in at.button if b.label == "Letzten Stand wiederherstellen").click().run()
+    assert not at.exception, at.exception
+    messages = [s.value for s in at.success]
+    assert any("`" in m and "__notiz__.yaml`" in m for m in messages), messages

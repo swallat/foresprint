@@ -579,7 +579,8 @@ def list_tags(path: Path, check_server: bool = False) -> list[Tag]:
         root, "for-each-ref", "--sort=-creatordate", f"--format={fmt}", "refs/tags", check=False
     )
     local: list[tuple[Tag, str]] = []
-    for line in out.splitlines():
+    # nicht splitlines: U+2028, \x0c … trennten den Betreff in mehrere Einträge
+    for line in filter(None, out.split("\n")):
         name, deref_full, obj_full, deref, obj, day, subject = split_record(line, 7, _SEP)
         local.append((Tag(name, deref or obj, day, subject), deref_full or obj_full))
     server: dict[str, str] | None = None
