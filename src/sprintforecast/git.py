@@ -1129,36 +1129,47 @@ GITIGNORE = """\
 """
 
 
+def folder_problem(path: Path, error: Exception) -> GitError:
+    """Ein Dateisystemfehler am Ordner ``path`` als :class:`GitError` der Art ``folder`` mit
+    Klartext (Pfade stehen als Code, denn die Meldung erscheint als Markdown)."""
+    shown = md_code(str(path))
+    if isinstance(error, PermissionError):
+        message = t(
+            "Keine Zugriffsrechte für {path} – bitte einen anderen Ordner wählen oder die "
+            "Rechte anpassen.",
+            path=shown,
+        )
+    else:
+        reason = getattr(error, "strerror", None) or str(error)
+        message = t(
+            "{path} lässt sich nicht anlegen ({reason}) – bitte den Pfad prüfen.",
+            path=shown,
+            reason=reason,
+        )
+    return GitError(message, "folder")
+
+
 @contextlib.contextmanager
 def _folder_access(path: Path) -> Iterator[None]:
     """Der Zielordner ``path`` eines Anlegens bzw. Klonens: Eine Datei an dieser Stelle und
-    Dateisystemfehler (keine Rechte, Pfad unbrauchbar) kommen als :class:`GitError` der Art
-    ``folder`` mit Klartext statt als rohe Ausnahme."""
-    if path.is_file():
-        raise GitError(
-            t("{path} ist eine Datei, kein Ordner – bitte einen Ordner angeben.", path=path),
-            "folder",
-        )
+    Dateisystemfehler (keine Rechte, Pfad unbrauchbar, auch die von Git gemeldeten) kommen als
+    :class:`GitError` der Art ``folder`` mit Klartext statt als rohe Ausnahme."""
     try:
+        if path.is_file():
+            raise GitError(
+                t(
+                    "{path} ist eine Datei, kein Ordner – bitte einen Ordner angeben.",
+                    path=md_code(str(path)),
+                ),
+                "folder",
+            )
         yield
-    except PermissionError as e:
-        raise GitError(
-            t(
-                "Keine Zugriffsrechte für {path} – bitte einen anderen Ordner wählen oder die "
-                "Rechte anpassen.",
-                path=path,
-            ),
-            "folder",
-        ) from e
-    except OSError as e:
-        raise GitError(
-            t(
-                "{path} lässt sich nicht anlegen ({reason}) – bitte den Pfad prüfen.",
-                path=path,
-                reason=e.strerror or e,
-            ),
-            "folder",
-        ) from e
+    except (OSError, ValueError) as e:  # ValueError: Pfad mit NUL-Zeichen
+        raise folder_problem(path, e) from e
+    except GitError as e:
+        if e.kind == "error" and "Permission denied" in str(e):
+            raise folder_problem(path, PermissionError()) from e
+        raise
 
 
 def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
@@ -1187,24 +1198,31 @@ def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
     erreichbar, Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
     # Beim Klonen reicht auch http:// (viele Repositories im Firmennetz haben nichts anderes).
     address = parse_remote_url(url, allow_insecure=True)
-    with _folder_access(path):
-        if path.exists() and any(path.iterdir()):
-            raise GitError(t("{path} ist nicht leer", path=path))
-        path.parent.mkdir(parents=True, exist_ok=True)
+    path = Path(os.path.abspath(path))  # ein relatives Ziel wäre sonst relativ zu path.parent
     try:
-        _git(
-            path.parent,
-            "clone",
-            "--",
-            address.url,
-            str(path),
-            network=True,
-            timeout=timeout,
-            env_extra={"GIT_ALLOW_PROTOCOL": SAFE_PROTOCOLS},
-        )
+        with _folder_access(path):
+            if path.exists() and any(path.iterdir()):
+                raise GitError(
+                    t("{path} ist nicht leer", path=md_code(str(path))),
+                    "folder",
+                )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            _git(
+                path.parent,
+                "clone",
+                "--",
+                address.url,
+                str(path),
+                network=True,
+                timeout=timeout,
+                env_extra={"GIT_ALLOW_PROTOCOL": SAFE_PROTOCOLS},
+            )
     except GitError as e:
         if e.kind == "auth":
             e.hint = auth_help(address.url)
         raise
     finally:
-        forget_roots(path)
+        with contextlib.suppress(
+            OSError, ValueError
+        ):  # ein unbrauchbarer Pfad wurde schon gemeldet
+            forget_roots(path)

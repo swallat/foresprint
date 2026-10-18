@@ -598,6 +598,8 @@ EN: dict[str, str] = {
     "Datenordner: `{path}`": "Data folder: `{path}`",
     "Datenordner wählen": "Choose data folder",
     "Kein Ordnerdialog verfügbar – bitte den Pfad eintippen.": "No folder dialog available – please type the path.",
+    "Der Server ist nicht erreichbar. Internetverbindung bzw. VPN prüfen und danach noch einmal „Klonen“ wählen.": "The server is not reachable. Check the internet connection or VPN and then choose “Clone” again.",
+    "Das Repository wurde nicht gefunden. Bitte die Adresse prüfen (Schreibweise, Groß- und Kleinschreibung) oder beim Betreiber des Servers nachfragen, ob es existiert und du Zugriff hast.": "The repository was not found. Please check the address (spelling, upper and lower case) or ask whoever runs the server whether it exists and you have access.",
     "Benutzerordner unbekannt: {path} lässt sich nicht auflösen. Bitte den vollständigen Pfad ohne „~“ eintippen.": "Home folder unknown: {path} cannot be resolved. Please type the full path without “~”.",
     "Kein Datenordner gefunden. Die Team-Daten liegen in einem **Git-Repository** – so sind Änderungen nachvollziehbar und mit dem Team teilbar. Bitte einen vorhandenen Ordner wählen, ein neues Daten-Repository anlegen oder ein bestehendes klonen.": "No data folder found. The team data lives in a **Git repository** – so changes are traceable and can be shared with the team. Please choose an existing folder, create a new data repository or clone an existing one.",
     "Aktuell: `{path}`": "Current: `{path}`",

@@ -45,7 +45,7 @@ def test_init_refuses_a_file(a_file: Path):
     with pytest.raises(GitError) as info:
         gitmod.init_data_repository(a_file)
     assert info.value.kind == "folder"
-    assert f"{a_file} ist eine Datei" in str(info.value)
+    assert f"`{a_file}` ist eine Datei" in str(info.value)
     assert a_file.read_text(encoding="utf-8") == "x"
 
 
@@ -53,7 +53,7 @@ def test_clone_refuses_a_file(a_file: Path):
     with pytest.raises(GitError) as info:
         gitmod.clone_repository(ADDRESS, a_file)
     assert info.value.kind == "folder"
-    assert f"{a_file} ist eine Datei" in str(info.value)
+    assert f"`{a_file}` ist eine Datei" in str(info.value)
     assert a_file.read_text(encoding="utf-8") == "x"
 
 
@@ -81,7 +81,7 @@ def test_init_names_missing_rights(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     with pytest.raises(GitError) as info:
         gitmod.init_data_repository(target)
     assert info.value.kind == "folder"
-    assert f"Keine Zugriffsrechte für {target}" in str(info.value)
+    assert f"Keine Zugriffsrechte für `{target}`" in str(info.value)
     assert isinstance(info.value.__cause__, PermissionError)
 
 
@@ -91,7 +91,7 @@ def test_init_names_the_reason_of_other_errors(tmp_path: Path, monkeypatch: pyte
     with pytest.raises(GitError) as info:
         gitmod.init_data_repository(target)
     assert info.value.kind == "folder"
-    assert f"{target} lässt sich nicht anlegen (No space left on device)" in str(info.value)
+    assert f"`{target}` lässt sich nicht anlegen (No space left on device)" in str(info.value)
 
 
 def test_init_names_missing_rights_for_files_in_the_folder(
@@ -114,7 +114,7 @@ def test_clone_names_missing_rights_for_the_parent_folder(
     with pytest.raises(GitError) as info:
         gitmod.clone_repository(ADDRESS, target)
     assert info.value.kind == "folder"
-    assert f"Keine Zugriffsrechte für {target}" in str(info.value)
+    assert f"Keine Zugriffsrechte für `{target}`" in str(info.value)
 
 
 def test_clone_names_a_target_that_cannot_be_listed(
@@ -134,7 +134,7 @@ def test_clone_into_a_non_empty_folder_keeps_its_message(tmp_path: Path):
     (target / "da.txt").write_text("x", encoding="utf-8")
     with pytest.raises(GitError) as info:
         gitmod.clone_repository(ADDRESS, target)
-    assert str(info.value) == f"{target} ist nicht leer"
+    assert str(info.value) == f"`{target}` ist nicht leer"
 
 
 # --- Gemerkter Datenordner in den Einstellungen -----------------------------------------------
@@ -158,3 +158,73 @@ def test_default_data_dir_survives_a_damaged_setting(
     monkeypatch.chdir(tmp_path)
     config.update(data_dir=["/irgendwo"])
     assert storage.default_data_dir() == Path(".")
+
+
+# --- Rechte, die erst Git oder der Prozessstart zu spüren bekommt ------------------------------
+
+
+def test_clone_names_a_working_folder_that_cannot_be_entered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Der Elternordner ist da, aber nicht betretbar: Der Start von git (cwd) scheitert mit
+    PermissionError, noch bevor Git etwas meldet."""
+
+    def refuse(*args, **kwargs):
+        raise PermissionError(errno.EACCES, "Permission denied")
+
+    monkeypatch.setattr(gitmod, "_git", refuse)
+    with pytest.raises(GitError) as info:
+        gitmod.clone_repository(ADDRESS, tmp_path / "gesperrt" / "klon")
+    assert info.value.kind == "folder"
+    assert "Keine Zugriffsrechte für" in str(info.value)
+
+
+def test_a_permission_error_reported_by_git_itself_becomes_a_folder_problem(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    def denied(*args, **kwargs):
+        raise GitError("fatal: could not create work tree dir: Permission denied")
+
+    monkeypatch.setattr(gitmod, "_git", denied)
+    for action in (
+        lambda: gitmod.init_data_repository(tmp_path / "neu"),
+        lambda: gitmod.clone_repository(ADDRESS, tmp_path / "klon"),
+    ):
+        with pytest.raises(GitError) as info:
+            action()
+        assert info.value.kind == "folder"
+        assert "Keine Zugriffsrechte für" in str(info.value)
+
+
+def test_a_path_with_a_nul_character_is_a_folder_problem(tmp_path: Path):
+    bad = Path(str(tmp_path / "a") + "\0b")
+    for action in (
+        lambda: gitmod.init_data_repository(bad),
+        lambda: gitmod.clone_repository(ADDRESS, bad),
+    ):
+        with pytest.raises(GitError) as info:
+            action()
+        assert info.value.kind == "folder"
+
+
+def test_clone_into_a_relative_target_clones_where_the_page_looks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Git läuft im Elternordner des Ziels: Ein relatives Ziel würde dort noch einmal relativ
+    aufgelöst (sub/ziel → sub/sub/ziel)."""
+    calls = []
+    monkeypatch.setattr(gitmod, "_git", lambda *args, **kwargs: calls.append(args) or "")
+    monkeypatch.chdir(tmp_path)
+    gitmod.clone_repository(ADDRESS, Path("sub") / "ziel")
+    [args] = calls
+    assert args[-1] == str(tmp_path / "sub" / "ziel")
+    assert Path(args[0]) == tmp_path / "sub"
+
+
+def test_a_non_empty_clone_target_is_a_folder_problem(tmp_path: Path):
+    target = tmp_path / "ziel"
+    target.mkdir()
+    (target / "datei.txt").write_text("x", encoding="utf-8")
+    with pytest.raises(GitError) as info:
+        gitmod.clone_repository(ADDRESS, target)
+    assert info.value.kind == "folder"
