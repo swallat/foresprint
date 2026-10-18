@@ -552,11 +552,13 @@ GIT_HELP: list[tuple[str, str]] = [
         "„Zurück auf den Branch“ zurück; Commits ohne Branch werden vorher auf einem "
         "Rettungsbranch gesichert, dessen Namen die Meldung nennt. Offene Änderungen im "
         "Datenordner werden vor dem Wechsel ebenfalls dort gesichert (als eigener Commit "
-        "„Offene Änderungen vor dem Wechsel gesichert“). Würde der Wechsel Änderungen "
-        "außerhalb des Datenordners überschreiben, bleibt alles, wie es ist: Die App fasst "
-        "nur den Datenordner an. Diese Änderungen dort in Git sichern oder verwerfen (die "
-        "Dateien nennt die „Technische Meldung“). Danach noch einmal „Zurück auf den "
-        "Branch“ wählen; der Rettungsbranch bleibt bestehen und wird dann wieder genannt.",
+        "„Offene Änderungen vor dem Wechsel gesichert“); der Hauptbranch enthält sie nicht, sie "
+        "liegen nur auf dem Rettungsbranch (einem eigenen Zweig nur für Gesichertes). Würde "
+        "der Wechsel Änderungen außerhalb des Datenordners überschreiben, bleibt alles, wie "
+        "es ist: Die App fasst nur den Datenordner an. Diese Änderungen dort in Git sichern oder "
+        "verwerfen (die Dateien nennt die „Technische Meldung“). Danach noch einmal "
+        "„Zurück auf den Branch“ wählen; der Rettungsbranch "
+        "bleibt bestehen und wird dann wieder genannt.",
     ),
 ]
 
