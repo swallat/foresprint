@@ -119,6 +119,12 @@ def test_parse_numbers():
         parse_numbers("4,25 x")
 
 
+@pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999", "1 nan"])
+def test_parse_numbers_rejects_non_finite(raw: str):
+    with pytest.raises(ValueError, match="endliche Zahl"):
+        parse_numbers(raw)
+
+
 def _calendar(data_dir):
     from datetime import date
 

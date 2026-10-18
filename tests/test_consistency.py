@@ -96,7 +96,7 @@ def test_report_table_matches_engine(fc):
     rows = {}
     for line in render(fc).splitlines():
         cells = [c.strip() for c in line.strip("|").split("|")]
-        if line.startswith("| 20") and len(cells) == 8 and "%" not in cells[6]:  # Prognosetabelle
+        if line.startswith("| 20") and len(cells) == 9:  # Prognosetabelle
             rows[cells[0]] = cells
     assert set(rows) == set(upcoming_ids(fc))
     for e in fc.upcoming():
@@ -104,15 +104,17 @@ def test_report_table_matches_engine(fc):
         assert num(cells[3]) == pytest.approx(num(half_up(e.result.plan_capacity)))
         assert cells[4] == fmt(e.result.normalized_velocity.trend, 2)
         assert cells[5].strip("*") == fmt(e.result.plan)
-        assert cells[6] == fmt(e.result.roadmap, 2)
-        assert cells[7] == fmt(e.result.small_stuff, 2)
+        b = band(fc, e)
+        assert cells[6] == (f"{fmt(b.low)}–{fmt(b.high)}" if b else "–")
+        assert cells[7] == fmt(e.result.roadmap, 2)
+        assert cells[8] == fmt(e.result.small_stuff, 2)
 
 
 def test_report_history_matches_engine(fc):
     rows = {}
     for line in render(fc).splitlines():
         cells = [c.strip() for c in line.strip("|").split("|")]
-        if line.startswith("| 20") and len(cells) == 8 and "%" in cells[6]:
+        if line.startswith("| 20") and len(cells) == 8:
             rows[cells[0]] = cells
     assert rows
     for e in fc.history(10):
