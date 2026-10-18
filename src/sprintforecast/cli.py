@@ -1515,7 +1515,7 @@ def excel_import(
     except ExcelUnavailable as e:
         err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
-    plan = plan_import(c.repo, data)
+    plan = plan_import(c.repo, data, c.today)
     if not plan.changes:
         console.print(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
         return

@@ -95,6 +95,15 @@ class Setting:
                     known = {c for code in countries() for c in subdivisions(code)}
                     if raw not in known:
                         raise ValueError(t("Unbekannter Regionscode: {value}", value=raw))
+                if self.key == "sprint.first_id":
+                    from sprintforecast.storage import file_name_problem
+
+                    # Die ID wird zum Dateinamen; was der Ladeweg ablehnt, darf hier nicht
+                    # speicherbar sein (sonst ließe sich das Team danach nicht mehr laden).
+                    if problem := file_name_problem(raw, portable=False):
+                        raise ValueError(
+                            t("ID nicht zulässig als Dateiname ({problem}).", problem=problem)
+                        )
                 return raw
             case Kind.CHOICE:
                 assert self.choices is not None
