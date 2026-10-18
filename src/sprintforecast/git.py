@@ -144,7 +144,7 @@ _ROOT_TTL = 30.0
 # Unterprozesse bleibt unverändert: Git findet seine Hilfsprogramme (Anmeldeverwaltung, ssh)
 # über den eigenen Programmordner.
 
-_FOUND: list[str] = []  # zuletzt gefundener Pfad außerhalb des PATH (höchstens ein Eintrag)
+_FOUND: str | None = None  # zuletzt gefundener Pfad außerhalb des PATH
 
 
 def git_locations() -> list[Path]:
@@ -165,6 +165,8 @@ def git_locations() -> list[Path]:
     return [
         Path("/opt/homebrew/bin/git"),
         Path("/usr/local/bin/git"),
+        Path("/usr/local/git/bin/git"),
+        Path("/home/linuxbrew/.linuxbrew/bin/git"),
         home / ".local" / "bin" / "git",
         home / ".nix-profile" / "bin" / "git",
     ]
@@ -174,26 +176,38 @@ def find_git() -> str | None:
     """Pfad zu Git: zuerst im PATH, sonst an den Orten aus :func:`git_locations`; ``None``, wenn
     es Git nirgends gibt. Ein Fund außerhalb des PATH wird gemerkt (solange die Datei besteht);
     ein Misserfolg nicht, damit eine frische Installation sofort gefunden wird."""
+    global _FOUND
     if found := shutil.which("git"):
-        return found
-    if _FOUND and os.path.isfile(_FOUND[0]):
-        return _FOUND[0]
-    _FOUND.clear()
+        # Ein leerer oder „.“-Eintrag im PATH liefert einen relativen Treffer (Arbeitsordner).
+        return os.path.abspath(found)
+    cached = _FOUND  # in einem Schritt gelesen: ein anderer Thread darf zurücksetzen
+    if cached and os.path.isfile(cached):
+        return cached
+    _FOUND = None
     for candidate in git_locations():
         if candidate.is_file() and os.access(candidate, os.X_OK):
-            _FOUND.append(str(candidate))
-            return str(candidate)
+            _FOUND = str(candidate)
+            return _FOUND
     return None
 
 
 def reset_git_cache() -> None:
     """Vergisst den gemerkten Git-Pfad (für Tests und nach einer Neuinstallation)."""
-    _FOUND.clear()
+    global _FOUND
+    _FOUND = None
+
+
+def _not_startable(executable: str) -> GitError:
+    """Fehler für einen Git-Aufruf, der sich nicht starten ließ (fehlt, defekt, kein Zugriff,
+    falsches Format, Windows-Store-Alias). Ein gemerkter Fund wird dabei vergessen."""
+    reset_git_cache()
+    return classify("", missing=True, broken="" if executable == "git" else executable)
 
 
 def git_command(*args: str) -> list[str]:
     """Befehlszeile für einen Git-Aufruf. Fehlt Git ganz, bleibt es bei ``git``: Der Aufruf
-    scheitert dann mit ``FileNotFoundError``, den die Aufrufer als „Git fehlt“ melden."""
+    scheitert dann mit ``FileNotFoundError``; jeder ``OSError`` beim Start gilt den Aufrufern
+    als „Git fehlt oder ist unbrauchbar“ (:func:`_not_startable`)."""
     return [find_git() or "git", *args]
 
 
@@ -228,9 +242,10 @@ def _git_result(
 ) -> subprocess.CompletedProcess[str]:
     """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
     „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
+    command = git_command(*args)
     try:
         return subprocess.run(
-            git_command(*args),
+            command,
             cwd=cwd,
             capture_output=True,
             text=True,
@@ -241,10 +256,10 @@ def _git_result(
             timeout=timeout or (NETWORK_TIMEOUT if network else 120),
             **NO_WINDOW,
         )
-    except FileNotFoundError as e:
-        raise classify("", missing=True) from e
     except subprocess.TimeoutExpired as e:
         raise classify("", timeout=True) from e
+    except OSError as e:
+        raise _not_startable(command[0]) from e
 
 
 def _git(
@@ -355,9 +370,10 @@ def ensure_tags(root: Path, tags: list[str] | None, message: str) -> tuple[list[
 
 def _git_bytes(cwd: Path, *args: str) -> bytes:
     """Wie :func:`_git`, liefert aber die rohe Ausgabe (z. B. ein Archiv)."""
+    command = git_command(*args)
     try:
         proc = subprocess.run(
-            git_command(*args),
+            command,
             cwd=cwd,
             capture_output=True,
             stdin=subprocess.DEVNULL,
@@ -365,10 +381,10 @@ def _git_bytes(cwd: Path, *args: str) -> bytes:
             timeout=120,
             **NO_WINDOW,
         )
-    except FileNotFoundError as e:
-        raise classify("", missing=True) from e
     except subprocess.TimeoutExpired as e:
         raise classify("", timeout=True) from e
+    except OSError as e:
+        raise _not_startable(command[0]) from e
     if proc.returncode != 0:
         raise classify(proc.stderr.decode("utf-8", "replace").strip())
     return proc.stdout
@@ -537,18 +553,36 @@ def _without_safe_directory_advice(message: str) -> str:
     return "\n".join(lines).strip()
 
 
-def missing_hint() -> str:
-    """Nächster Schritt, wenn Git fehlt: wo gesucht wurde, wie es sich ohne Administratorrechte
-    installieren lässt und dass die App danach neu zu starten ist."""
-    places = ", ".join(str(place) for place in git_locations())
-    return t(
-        "Git installieren (Windows: https://git-scm.com/download/win – die Installation geht "
-        "auch ohne Administratorrechte, nur für das eigene Benutzerkonto; macOS: "
-        "`xcode-select --install`; Linux: Paketverwaltung). Danach die App und den Starter "
-        "„Sprint-Forecast“ schließen und neu öffnen, damit sie Git finden. Gesucht wurde im "
-        "PATH und an diesen Orten: {places}.",
-        places=places,
-    )
+def missing_hint(broken: str = "") -> str:
+    """Nächster Schritt, wenn Git fehlt: wie es sich ohne Administratorrechte installieren
+    lässt, dass die App danach neu zu öffnen ist und wo gesucht wurde (Liste). ``broken`` ist
+    der Pfad eines gefundenen Git, das sich nicht starten ließ."""
+    places = "\n".join(f"- {md_code(str(place))}" for place in git_locations())
+    parts = []
+    if broken:
+        parts.append(
+            t(
+                "Git wurde unter {path} gefunden, ließ sich aber nicht starten (defekte oder "
+                "unvollständige Installation).",
+                path=md_code(broken),
+            )
+        )
+    parts += [
+        t(
+            "Git installieren (Windows: https://git-scm.com/download/win – ohne "
+            "Administratorrechte möglich, nur für das eigene Benutzerkonto; macOS: "
+            "`xcode-select --install`; Linux: Paketverwaltung). Danach die App und den Starter "
+            "„Sprint-Forecast“ schließen und neu öffnen oder einmal ab- und wieder anmelden, "
+            "damit sie Git finden."
+        ),
+        t("Gesucht wurde im PATH und an diesen Orten:\n{places}", places=places),
+        t(
+            "Liegt Git an einem anderen Ort, den Ordner mit `git.exe` (macOS und Linux: `git`) "
+            "zum PATH des eigenen Benutzers hinzufügen – ohne Administratorrechte möglich über "
+            "„Umgebungsvariablen für dieses Konto bearbeiten“."
+        ),
+    ]
+    return "\n\n".join(parts)
 
 
 def classify(
@@ -557,6 +591,7 @@ def classify(
     timeout: bool = False,
     url: str = "",
     drive_check: bool = True,
+    broken: str = "",
 ) -> GitError:
     """Macht aus einer Git-Fehlermeldung eine :class:`GitError` mit Art und nächstem Schritt.
     ``url`` ist die Adresse des Servers, wenn die Meldung von einem Netzwerkaufruf stammt: Sie
@@ -568,7 +603,7 @@ def classify(
         return GitError(
             t("git ist nicht installiert oder nicht im PATH"),
             "git_missing",
-            missing_hint(),
+            missing_hint(broken),
         )
     if timeout:
         return GitError(
@@ -1038,10 +1073,11 @@ def _probe_run(root: Path, args: tuple[str, ...], timeout: float) -> _ProbeRun:
     Ausgabe über Zwischendateien statt Pipes: Unter Windows hält ein Hilfsprozess von Git
     (``git-remote-http``) die Pipes offen, auch wenn der Aufruf längst beendet ist; ein Lesen
     bis zum Ende hinge dann. Bei Zeitüberschreitung wird der ganze Baum beendet."""
-    try:
-        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+    command = git_command(*args)
+    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        try:
             process = subprocess.Popen(
-                git_command(*args),
+                command,
                 cwd=root,
                 stdin=subprocess.DEVNULL,
                 stdout=out,
@@ -1049,15 +1085,15 @@ def _probe_run(root: Path, args: tuple[str, ...], timeout: float) -> _ProbeRun:
                 env=_env(True, _PROBE_ENV),
                 **{**proctree.popen_options(), **NO_WINDOW},
             )
-            try:
-                code: int | None = process.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                proctree.terminate_tree(process)
-                code = None
-            text, truncated = _read_output(out)
-            return _ProbeRun(code, text, _read_output(err)[0], truncated)
-    except FileNotFoundError as e:
-        raise classify("", missing=True) from e
+        except OSError as e:
+            raise _not_startable(command[0]) from e
+        try:
+            code: int | None = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proctree.terminate_tree(process)
+            code = None
+        text, truncated = _read_output(out)
+        return _ProbeRun(code, text, _read_output(err)[0], truncated)
 
 
 def _heads_of(run: _ProbeRun) -> list[str]:

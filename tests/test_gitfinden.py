@@ -171,6 +171,105 @@ def test_default_locations_on_unix(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert REAL_LOCATIONS() == [
         Path("/opt/homebrew/bin/git"),
         Path("/usr/local/bin/git"),
+        Path("/usr/local/git/bin/git"),
+        Path("/home/linuxbrew/.linuxbrew/bin/git"),
         tmp_path / ".local" / "bin" / "git",
         tmp_path / ".nix-profile" / "bin" / "git",
     ]
+
+
+@posix
+def test_relative_path_hit_is_made_absolute(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Ein leerer oder „.“-Eintrag im PATH liefert einen relativen Treffer (Arbeitsordner)."""
+    fake_git(tmp_path / "hier")
+    monkeypatch.chdir(tmp_path / "hier")
+    monkeypatch.setattr(shutil, "which", lambda name: "git")
+    assert find_git() == str(tmp_path / "hier" / "git")
+    assert git_command("status")[0] == str(tmp_path / "hier" / "git")
+
+
+@posix
+def test_cache_read_survives_a_reset_by_another_thread(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    assert find_git() == str(fake)
+    real_isfile = gitmod.os.path.isfile
+
+    def isfile_after_reset(path):
+        reset_git_cache()  # ein anderer Thread setzt zurück, mitten in der Prüfung
+        return real_isfile(path)
+
+    monkeypatch.setattr(gitmod.os.path, "isfile", isfile_after_reset)
+    assert find_git() == str(fake)
+
+
+def broken_git(folder: Path) -> Path:
+    """Ausführbar, aber kein Programm (kein gültiges Format, keine Shebang-Zeile)."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "git"
+    path.write_bytes(b"\x00\x01\x02 kein Programm")
+    path.chmod(0o755)
+    return path
+
+
+@posix
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda cwd: gitmod._git(cwd, "--version"),
+        lambda cwd: gitmod._git_bytes(cwd, "--version"),
+        lambda cwd: gitmod._probe_run(cwd, ("--version",), 10),
+    ],
+    ids=["_git", "_git_bytes", "_probe_run"],
+)
+def test_unusable_git_is_reported_as_missing_and_forgotten(
+    call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    broken = broken_git(tmp_path / "defekt")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [broken])
+    assert find_git() == str(broken) and str(broken) == gitmod._FOUND
+    with pytest.raises(GitError) as raised:
+        call(tmp_path)
+    assert raised.value.kind == "git_missing"
+    assert str(broken) in raised.value.hint and "nicht starten" in raised.value.hint
+    assert gitmod._FOUND is None  # der gemerkte Fund ist vergessen
+
+
+@posix
+def test_permission_error_is_reported_as_missing(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+
+    def denied(*args, **kwargs):
+        raise PermissionError(13, "Zugriff verweigert", str(fake))
+
+    monkeypatch.setattr(gitmod.subprocess, "run", denied)
+    with pytest.raises(GitError) as raised:
+        gitmod._git(tmp_path, "--version")
+    assert raised.value.kind == "git_missing" and str(fake) in raised.value.hint
+
+
+def test_missing_git_hint_is_a_short_paragraph_and_a_list(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    places = [tmp_path / "eins" / "git.exe", tmp_path / "zwei" / "git.exe"]
+    monkeypatch.setattr(gitmod, "git_locations", lambda: places)
+    first, listing, advice = gitmod.missing_hint().split("\n\n")
+    assert "\n" not in first and "ab- und wieder anmelden" in first
+    assert listing.splitlines()[1:] == [f"- `{place}`" for place in places]
+    assert "PATH des eigenen Benutzers" in advice and "Umgebungsvariablen" in advice
+    assert "winget" not in first + listing + advice
+
+
+def test_missing_git_hint_in_english(tmp_path: Path, english, monkeypatch: pytest.MonkeyPatch):
+    place = tmp_path / "eins" / "git.exe"
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [place])
+    hint = gitmod.missing_hint(broken=str(tmp_path / "defekt"))
+    assert "so that they can find Git" in hint
+    assert f"Searched in PATH and in these places:\n- `{place}`" in hint
+    assert "could not be started" in hint and "your own user’s PATH" in hint
+    assert "Gesucht" not in hint and "Liegt Git" not in hint
