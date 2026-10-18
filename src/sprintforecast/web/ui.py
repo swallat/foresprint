@@ -82,6 +82,7 @@ from sprintforecast.git import (
     md_code,
     md_code_lines,
     new_branch_error,
+    on_invalidate,
     parse_remote_url,
     remote_special_error,
     secret_in_url_error,
@@ -4854,17 +4855,76 @@ def _view_clean(text: str) -> str:
     )
 
 
+_BOUND_ITEMS = 1000  # Einträge je Liste oder Objekt
+_BOUND_TEXT = 1000  # Zeichen je Text
+_BOUND_NODES = 5000  # Knoten je Wert
+_BOUND_DEPTH = 8
+_BOUND_BITS = 128  # größere Ganzzahlen zeigt die Ansicht nur gekürzt
+
+
+class _Raw(str):
+    """Bereits fertiger Text in der Ansicht (Kürzung, große Zahl)."""
+
+
+class _ViewDumper(yaml.SafeDumper):
+    pass
+
+
+_ViewDumper.add_representer(
+    _Raw, lambda dumper, data: dumper.represent_scalar("tag:yaml.org,2002:str", str(data))
+)
+
+
+def _bound(value: Any, left: list[int], depth: int = 0) -> Any:
+    """Kürzt ``value`` auf einen Ausschnitt, der für eine Zelle von 80 Zeichen reicht (Tiefe,
+    Anzahl der Einträge und Knoten, Länge der Texte). Große Ganzzahlen werden nicht gedumpt:
+    ``yaml.safe_dump`` und ``str`` scheitern ab 4300 Ziffern."""
+    left[0] -= 1
+    if left[0] < 0 or depth > _BOUND_DEPTH:
+        return _Raw("…")
+    if isinstance(value, bool) or value is None or isinstance(value, (float, date)):
+        return value
+    if isinstance(value, int):
+        if value.bit_length() <= _BOUND_BITS:
+            return value
+        return _Raw(f"{'-' if value < 0 else ''}{hex(abs(value))[:14]}… ({value.bit_length()} Bit)")
+    if isinstance(value, str):
+        return value if len(value) <= _BOUND_TEXT else _Raw(value[:_BOUND_TEXT] + "…")
+    if isinstance(value, dict):
+        out: dict[Any, Any] = {}
+        for i, (k, v) in enumerate(value.items()):
+            if i >= _BOUND_ITEMS:
+                out[_Raw("…")] = _Raw("…")
+                break
+            out[_bound(k, left, depth + 1)] = _bound(v, left, depth + 1)
+        return out
+    if isinstance(value, list):
+        items = [_bound(v, left, depth + 1) for v in value[:_BOUND_ITEMS]]
+        if len(value) > _BOUND_ITEMS:
+            items.append(_Raw("…"))
+        return items
+    return value
+
+
 def _view_text(value: object) -> str:
-    """Wert in der Schreibweise der Datei (``null``, ``true``, ``'1'`` für Text); fehlend „–“."""
+    """Wert in der Schreibweise der Datei (``null``, ``true``, ``'1'`` für Text); fehlend „–“.
+    Der Wert wird vorher gekürzt (:func:`_bound`), damit große Werte schnell gehen."""
     if value is MISSING:
         return "–"
     try:
-        text = yaml.safe_dump(
-            value, allow_unicode=True, default_flow_style=True, width=1_000_000
+        text = yaml.dump(
+            _bound(value, [_BOUND_NODES]),
+            Dumper=_ViewDumper,
+            allow_unicode=True,
+            default_flow_style=True,
+            width=1_000_000,
         ).strip()
         text = text.removesuffix("\n...").strip()
     except Exception:  # eine Zelle darf nie die Seite stoppen
-        text = repr(value)
+        try:
+            text = repr(value)[:_BOUND_TEXT]
+        except Exception:
+            text = t("(Wert nicht darstellbar)")
     return _view_clean(text)
 
 
@@ -4894,6 +4954,33 @@ def _view_pair(old: object, new: object) -> tuple[str, str]:
     if a == b:
         b += t(" (Unterschied nicht sichtbar, Datei prüfen)")
     return _formula_safe(a, old), _formula_safe(b, new)
+
+
+_VIEW_LABEL = 120
+# Fertige Tabellenzeilen je Datei: Das Ergebnis von ``cached_file_changes`` behält seine
+# Objekte, solange es gültig ist; mit ihm wird auch dieser Speicher geleert.
+_ROWS: dict[tuple[int, str], tuple[FileChange, list[tuple[str, str, str]]]] = {}
+on_invalidate(_ROWS.clear)
+
+
+def _file_rows(fc: FileChange) -> list[tuple[str, str, str]]:
+    """Zeilen (Feld, Vorher, Nachher) der ersten Werte einer Datei samt Restzeile."""
+    key = (id(fc), language())
+    cached = _ROWS.get(key)
+    if cached and cached[0] is fc:
+        return cached[1]
+    rows = []
+    for v in fc.values[:_VIEW_ROWS]:
+        label = _view_clean(v.label)
+        if len(label) > _VIEW_LABEL:
+            label = label[: _VIEW_LABEL - 1] + "…"
+        rows.append((_formula_safe(label), *_view_pair(v.old, v.new)))
+    if len(fc.values) > _VIEW_ROWS:
+        rows.append((t("… und {n} weitere", n=len(fc.values) - _VIEW_ROWS), "", ""))
+    if len(_ROWS) > 300:
+        _ROWS.clear()
+    _ROWS[key] = (fc, rows)
+    return rows
 
 
 def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
@@ -4927,17 +5014,13 @@ def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
         if not fc.readable:
             st.caption(t("keine Wertansicht"))
         elif fc.values:
-            rows = [
-                (_formula_safe(_view_clean(v.label)), *_view_pair(v.old, v.new))
-                for v in fc.values[:_VIEW_ROWS]
-            ]
-            if len(fc.values) > _VIEW_ROWS:
-                rows.append((t("… und {n} weitere", n=len(fc.values) - _VIEW_ROWS), "", ""))
             st.dataframe(
-                pd.DataFrame(rows, columns=[t("Feld"), t("Vorher"), t("Nachher")]),
+                pd.DataFrame(_file_rows(fc), columns=[t("Feld"), t("Vorher"), t("Nachher")]),
                 hide_index=True,
                 width="stretch",
             )
+        elif any(c in fc.status for c in "MT") and not any(c in fc.status for c in "A?D"):
+            st.caption(t("keine Wertänderung (nur Schreibweise oder Reihenfolge)"))
     if len(files) > _VIEW_FILES:
         st.caption(t("… und {n} weitere", n=len(files) - _VIEW_FILES))
 

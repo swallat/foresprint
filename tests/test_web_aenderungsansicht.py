@@ -264,6 +264,123 @@ def test_file_limit_at_the_exact_boundary(repo, data_dir, monkeypatch, count, ca
     invalidate_status()
     text = view(start(data_dir, monkeypatch))
     assert ("… und 1 weitere" in text) is caption
+    assert ("weitere" in text) is caption
+
+
+def test_huge_hex_integer_does_not_crash(repo, data_dir: Path, monkeypatch):
+    file = commit_extra(repo, "gross.yaml", "n: 0x" + "F" * 5000 + "\nm: 1\n")
+    file.write_text("n: 0x" + "E" + "F" * 4999 + "\nm: 2\n", encoding="utf-8")
+    invalidate_status()
+    shown = cells(start(data_dir, monkeypatch))  # keine Ausnahme
+    before, after = shown["n"]
+    assert "Bit" in before and before != after
+    assert shown["m"] == ("1", "2")
+
+
+def test_big_values_are_bounded_and_fast():
+    import time
+
+    from sprintforecast.web import ui
+
+    started = time.monotonic()
+    big = list(range(1_000_000))
+    a, b = ui._view_pair(big, big[:-1])
+    texts = {f"k{i}": "x" * 150_000 for i in range(30)}
+    ui._view_pair(texts, {**texts, "k0": "y"})
+    assert time.monotonic() - started < 2
+    assert len(a) <= 80 and b.startswith(a) and "(" in b  # gleicher Ausschnitt: Hinweis
+
+
+def test_same_excerpt_but_different_values_gets_the_hint():
+    from sprintforecast.web import ui
+
+    a, b = ui._view_pair(list(range(2000)), [*range(1999), 5])
+    assert a != b and "(" in b  # beide Ausschnitte gleich: Hinweis statt gleicher Zellen
+
+
+def test_rows_are_computed_once_until_invalidated(repo, data_dir: Path, monkeypatch):
+    from sprintforecast.web import ui
+
+    file = repo / SPRINT
+    file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
+    invalidate_status()
+    calls: list[object] = []
+    real = ui._view_pair
+
+    def counting(old, new):
+        calls.append(old)
+        return real(old, new)
+
+    monkeypatch.setattr(ui, "_view_pair", counting)
+    at = start(data_dir, monkeypatch)
+    assert len(calls) == 1
+    at.sidebar.text_input(key="commit_message").set_value("Tippen")
+    at.run()
+    assert len(calls) == 1  # Tastendruck: keine Neuberechnung
+    invalidate_status()
+    at.run()
+    assert len(calls) == 2
+
+
+def test_note_for_a_changed_file_without_value_changes(repo, data_dir: Path, monkeypatch):
+    file = commit_extra(repo, "ordnung.yaml", "a: 1\nb: 2\n")
+    file.write_text("b: 2\na: 1\n", encoding="utf-8")
+    (data_dir / "neu.yaml").write_text("a: 1\n", encoding="utf-8")
+    git(repo, "mv", "teams/ordnung.yaml", "teams/umbenannt.yaml")
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    notes = [c.value for c in at.sidebar.caption if "keine Wertänderung" in c.value]
+    assert len(notes) == 1  # nur die geänderte (und umbenannte) Datei, nicht die neue
+
+
+def test_pure_rename_and_new_file_get_no_note(repo, data_dir: Path, monkeypatch):
+    commit_extra(repo, "ruhig.yaml", "a: 1\n")
+    git(repo, "mv", "teams/ruhig.yaml", "teams/laut.yaml")
+    (data_dir / "neu.yaml").write_text("a: 1\n", encoding="utf-8")
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    assert not [c for c in at.sidebar.caption if "keine Wertänderung" in c.value]
+
+
+def test_long_field_names_are_shortened(repo, data_dir: Path, monkeypatch):
+    key = "k" * 300
+    file = commit_extra(repo, "lang.yaml", f"{key}: 1\n")
+    file.write_text(f"{key}: 2\n", encoding="utf-8")
+    invalidate_status()
+    (label,) = cells(start(data_dir, monkeypatch))
+    assert label == "k" * 119 + "…"
+
+
+def test_a_value_that_cannot_be_shown_does_not_stop_the_page():
+    from sprintforecast.web import ui
+
+    class Bad:
+        def __repr__(self) -> str:
+            raise ValueError("kaputt")
+
+    assert ui._view_text(Bad()) == ui.t("(Wert nicht darstellbar)")
+
+
+def test_every_formula_prefix_is_guarded_and_numbers_are_not():
+    from sprintforecast.web import ui
+
+    for ch in "=+-@":
+        assert ui._formula_safe(f"{ch}x") == f"'{ch}x"
+    assert ui._formula_safe("+1+2") == "'+1+2" and ui._formula_safe("+5", 5) == "+5"
+
+
+def test_clipping_offset_and_lengthening():
+    from sprintforecast.web import ui
+
+    a, b = ui._view_pair("x" * 30 + "A" * 100, "x" * 30 + "B" * 100)
+    assert a == "…" + "x" * 10 + "A" * 68 + "…" and b == "…" + "x" * 10 + "B" * 68 + "…"
+    a, b = ui._view_pair("x" * 100, "x" * 100 + "Z")
+    assert (a, b) == ("…" + "x" * 10, "…" + "x" * 10 + "Z")
+    # Genau 80 Zeichen: nicht gekürzt, auch nicht am Anfang
+    a, b = ui._view_pair("a" * 80, "a" * 79 + "b")
+    assert (a, b) == ("a" * 80, "a" * 79 + "b")
+    a, b = ui._view_pair("a" * 81, "a" * 80 + "b")
+    assert a.startswith("…") and len(a) <= 80
 
 
 def test_english_view(repo, data_dir: Path, monkeypatch):

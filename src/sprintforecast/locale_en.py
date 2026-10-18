@@ -794,6 +794,8 @@ EN: dict[str, str] = {
     "keine Wertansicht": "no value view",
     "… und {n} weitere": "… and {n} more",
     " (Unterschied nicht sichtbar, Datei prüfen)": " (difference not visible, check the file)",
+    "keine Wertänderung (nur Schreibweise oder Reihenfolge)": "no change in values (only notation or order)",
+    "(Wert nicht darstellbar)": "(value cannot be shown)",
     "Vorher": "Before",
     "Nachher": "After",
     "Tags setzen: {tags}": "Set tags: {tags}",

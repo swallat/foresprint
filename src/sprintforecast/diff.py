@@ -20,7 +20,45 @@ import yaml
 from sprintforecast import git as gitmod
 from sprintforecast.git import Change, GitError, changes_in
 from sprintforecast.gitsync import _parse
-from sprintforecast.yamlmerge import MISSING, keyed, same
+from sprintforecast.yamlmerge import MISSING, keyed
+
+# Obergrenze für verglichene Knoten je Datei: Zwei getrennt gelesene Bäume aus YAML-Aliasen
+# (kleine Datei, riesiger Baum) würden sonst beliebig lange rechnen.
+MAX_NODES = 200_000
+
+
+class TooComplex(ValueError):
+    """Die Datei ist zu verschachtelt oder zu groß, um sie zu vergleichen."""
+
+
+class _Budget:
+    def __init__(self, left: int = MAX_NODES) -> None:
+        self.left = left
+
+    def spend(self) -> None:
+        self.left -= 1
+        if self.left < 0:
+            raise TooComplex("zu viele Knoten")
+
+
+def _same(a: Any, b: Any, budget: _Budget) -> bool:
+    """Wie :func:`sprintforecast.yamlmerge.same`, aber mit Abkürzung für dasselbe Objekt und mit
+    Obergrenze (nur für diese Ansicht; das Zusammenführen bleibt unverändert)."""
+    if a is b:
+        return True
+    budget.spend()
+    if a is MISSING or b is MISSING:
+        return False
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_same(a[k], b[k], budget) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_same(x, y, budget) for x, y in zip(a, b, strict=True))
+    if isinstance(a, float) and isinstance(b, float) and a != a and b != b:
+        return True
+    return a == b
+
 
 ADDED = "added"
 REMOVED = "removed"
@@ -68,15 +106,19 @@ class FileChange:
     orig: str = ""  # bisheriger Pfad bei Umbenennungen und Kopien, relativ zur Wurzel
 
 
-def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueChange]:
+def diff_values(
+    old: Any, new: Any, path: tuple[str, ...] = (), _budget: _Budget | None = None
+) -> list[ValueChange]:
     """Alle Unterschiede zwischen ``old`` und ``new`` in der Reihenfolge der Schlüssel.
 
     Ändert sich bei Listen mit ``id`` nur die Reihenfolge der Einträge, steht dafür eine
-    Änderung unter dem Pfad der Liste mit den ``id`` davor und danach."""
-    if same(old, new):
+    Änderung unter dem Pfad der Liste mit den ``id`` davor und danach. Bäume mit mehr als
+    :data:`MAX_NODES` zu vergleichenden Knoten lösen :class:`TooComplex` aus."""
+    budget = _budget if _budget is not None else _Budget()
+    if _same(old, new, budget):
         return []
     if isinstance(old, dict) and isinstance(new, dict):
-        return _diff_mapping(old, new, path, item=False)
+        return _diff_mapping(old, new, path, False, budget)
     keyed_old, keyed_new = keyed(old), keyed(new)
     # Eine leere Liste ist die leere Abbildung, wenn die andere Seite Objekte mit id enthält
     # (erstes Objekt hinzugefügt, letztes entfernt): So bleibt der Pfad [id] erhalten.
@@ -85,7 +127,7 @@ def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueCha
     if keyed_new is None and new == [] and keyed_old is not None:
         keyed_new = {}
     if keyed_old is not None and keyed_new is not None:
-        changes = _diff_mapping(keyed_old, keyed_new, path, item=True)
+        changes = _diff_mapping(keyed_old, keyed_new, path, True, budget)
         order_old = [k for k in keyed_old if k in keyed_new]
         order_new = [k for k in keyed_new if k in keyed_old]
         if order_old != order_new:
@@ -95,12 +137,12 @@ def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueCha
 
 
 def _diff_mapping(
-    old: dict[Any, Any], new: dict[Any, Any], path: tuple[str, ...], item: bool
+    old: dict[Any, Any], new: dict[Any, Any], path: tuple[str, ...], item: bool, budget: _Budget
 ) -> list[ValueChange]:
     changes: list[ValueChange] = []
     for key in [*old, *(k for k in new if k not in old)]:
         sub = (*path, f"[{key}]" if item else str(key))
-        changes.extend(diff_values(old.get(key, MISSING), new.get(key, MISSING), sub))
+        changes.extend(diff_values(old.get(key, MISSING), new.get(key, MISSING), sub, budget))
     return changes
 
 
@@ -156,9 +198,36 @@ def file_changes(path: Path) -> list[FileChange]:
 _CACHE: dict[Path, tuple[tuple[Any, ...], list[FileChange]]] = {}
 
 
+def _head_state(root: Path) -> tuple[str | None, ...]:
+    """Stand von HEAD ohne Git-Aufruf: ``.git/HEAD`` und die Referenz, auf die es zeigt (lose
+    Datei oder ``packed-refs``). Ein neuer Commit von außen ändert ihn."""
+    try:
+        git_dir = root / ".git"
+        if git_dir.is_file():  # Arbeitsbaum oder Submodul: „gitdir: <Pfad>“
+            target = git_dir.read_text(encoding="utf-8").strip().removeprefix("gitdir:").strip()
+            git_dir = (root / target).resolve()
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        common = git_dir
+        link = git_dir / "commondir"
+        if link.is_file():
+            common = (git_dir / link.read_text(encoding="utf-8").strip()).resolve()
+        if not head.startswith("ref:"):
+            return (head, None, None)
+        ref = head.removeprefix("ref:").strip()
+        loose = common / ref
+        if loose.is_file():
+            return (head, loose.read_text(encoding="utf-8").strip(), None)
+        packed = common / "packed-refs"
+        stat = packed.stat() if packed.is_file() else None
+        return (head, None, f"{stat.st_mtime_ns}:{stat.st_size}" if stat else None)
+    except OSError, UnicodeDecodeError:
+        return ("?", None, None)
+
+
 def _signature(root: Path, pending: list[tuple[str, str]]) -> tuple[Any, ...]:
-    """Status, Datei, Änderungszeit (ns) und Größe der Arbeitsdatei (``None``, wenn sie fehlt)."""
-    parts: list[tuple[Any, ...]] = []
+    """HEAD, dazu je Datei Status, Name, Änderungszeit (ns) und Größe der Arbeitsdatei
+    (``None``, wenn sie fehlt)."""
+    parts: list[tuple[Any, ...]] = [_head_state(root)]
     for status, file in pending:
         try:
             stat = (root / file).lstat()
