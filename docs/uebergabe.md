@@ -53,7 +53,7 @@ Früher gemergt (Aufgaben 1 bis 6 des Auftrags): [#55](https://github.com/swalla
 standardmäßig ein App-Fenster), [#57](https://github.com/swallat/sprint-forecast/pull/57) (Windows-Testskript), [#58](https://github.com/swallat/sprint-forecast/pull/58) (Forecast: Spanne als Zeile),
 [#59](https://github.com/swallat/sprint-forecast/pull/59) (Konfliktmarker CRLF und kleine Schuld), [#61](https://github.com/swallat/sprint-forecast/pull/61) (Schrittleiste sofort aktuell).
 
-Auf `main` nach den Merges bis #80 (#76 danach): ruff sauber, 1492 Tests grün (lokal, ohne e2e); e2e in der CI bis auf den
+Auf `main` nach allen Merges (bis #76 und #80): ruff sauber, 1615 Tests grün (lokal, ohne e2e); e2e in der CI bis auf den
 bekannten Aussetzer grün.
 
 
