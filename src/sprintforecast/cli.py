@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import functools
+import math
 import os
 import subprocess
 import sys
@@ -74,6 +75,7 @@ from sprintforecast.plugins import load_plugins
 from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
 from sprintforecast.report import (
+    band_range,
     capacity_label,
     fmt,
     fmt_capacity,
@@ -91,6 +93,7 @@ from sprintforecast.storage import (
     Repository,
     TeamData,
     default_data_dir,
+    team_key_problem,
     write_text,
 )
 from sprintforecast.updater import PACKAGE
@@ -147,6 +150,15 @@ def _ctx(ctx: typer.Context) -> Context:
     return ctx.obj
 
 
+def _check_stichtag(value: str | None) -> str | None:
+    if value:
+        try:
+            date.fromisoformat(value)
+        except ValueError as e:
+            raise typer.BadParameter(t("Datum im Format JJJJ-MM-TT erwartet")) from e
+    return value
+
+
 @app.callback(invoke_without_command=True)
 def _main(
     ctx: typer.Context,
@@ -159,7 +171,8 @@ def _main(
             envvar=DATA_ENV,
             help=t(
                 "Verzeichnis mit den Team-Daten (je Team ein Unterordner). "
-                "Standard: aktuelles Verzeichnis."
+                "Standard: aktuelles Verzeichnis, falls es Teams enthält, sonst der gemerkte "
+                "Datenordner."
             ),
         ),
     ] = None,
@@ -168,6 +181,7 @@ def _main(
         typer.Option(
             "--stichtag",
             "--as-of",
+            callback=_check_stichtag,
             help=t("Datum (JJJJ-MM-TT), das als „heute“ gilt – für Rückblicke und Tests."),
         ),
     ] = None,
@@ -248,6 +262,9 @@ def _ask_number(
                 f"[red]{t('Bitte eine Zahl eingeben (Dezimaltrennzeichen , oder .).')}[/red]"
             )
             continue
+        if not math.isfinite(value):
+            console.print(f"[red]{t('Bitte eine endliche Zahl eingeben.')}[/red]")
+            continue
         if value < minimum:
             console.print(
                 f"[red]{t('Der Wert muss ≥ {value} sein.', value=fmt_plain(minimum))}[/red]"
@@ -261,9 +278,13 @@ def _ask_numbers(label: str, default: list[float]) -> list[float]:
     while True:
         raw = Prompt.ask(label, default=shown, show_default=bool(shown), console=console).strip()
         try:
-            return [float(x.replace(",", ".")) for x in raw.split()] if raw else []
+            values = [float(x.replace(",", ".")) for x in raw.split()] if raw else []
         except ValueError:
             console.print(f"[red]{t('Bitte Zahlen mit Leerzeichen getrennt eingeben.')}[/red]")
+            continue
+        if all(math.isfinite(v) for v in values):
+            return values
+        console.print(f"[red]{t('Bitte eine endliche Zahl eingeben.')}[/red]")
 
 
 def _ask_date(label: str, default: date | None) -> date:
@@ -503,11 +524,25 @@ def _ask_setting(setting: Setting, team: Team, *, required: bool = False) -> Non
         return
 
 
+def _exists_text(team: str, existing: str) -> str:
+    if existing == team:
+        return t("Team {team} existiert bereits.", team=repr(team))
+    return t(
+        "Team {team} existiert bereits (als {existing}; Windows und macOS unterscheiden Ordner "
+        "nicht nach Groß- und Kleinschreibung).",
+        team=repr(team),
+        existing=repr(existing),
+    )
+
+
 @command("init", "Neues Team geführt anlegen.")
 def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
-    if c.repo.exists(team):
-        err.print(f"[red]{t('Team {team} existiert bereits.', team=repr(team))}[/red]")
+    if clash := c.repo.clashing_team(team):
+        err.print(f"[red]{escape(_exists_text(team, clash))}[/red]")
+        raise typer.Exit(1)
+    if problem := team_key_problem(team):
+        err.print(f"[red]{escape(problem)}[/red]")
         raise typer.Exit(1)
     console.print(
         Panel(
@@ -1071,11 +1106,15 @@ def forecast(
         "Velocity",
         t("n. Vel. (Ø/Trend)"),
         f"Forecast PLAN {unit}",
+        t("Spanne"),
         "Roadmap",
         t("Kleinkram"),
     ]
     for i, col in enumerate(columns):
-        table.add_column(col, justify="left" if i < 3 else "right")
+        band = col == t("Spanne")  # nie mitten in der Zahl kürzen: lieber umbrechen die anderen
+        table.add_column(
+            col, justify="left" if i < 3 else "right", no_wrap=band, min_width=9 if band else None
+        )
     for e in fc.history(verlauf) + fc.upcoming():
         r = e.result
         future = e.sprint.end > c.today
@@ -1088,6 +1127,7 @@ def forecast(
             fmt(r.velocity.value, 2),
             fmt(n_vel, 2),
             f"[bold]{fmt(r.plan)}[/bold]" if future else fmt(r.plan),
+            band_range(fc, e) if future else "",
             fmt(r.roadmap, 2) if future else "",
             fmt(r.small_stuff, 2) if future else "",
             style=None if future else "dim",
@@ -1130,6 +1170,13 @@ def forecast(
         )
 
 
+def _finite_option(value: float | None) -> float | None:
+    """Typer-Prüfung: nan und inf sind keine Zahlen, mit denen sich rechnen ließe."""
+    if value is not None and not math.isfinite(value):
+        raise typer.BadParameter(t("Bitte eine endliche Zahl eingeben."))
+    return value
+
+
 @command(
     "analyse", "Ergänzende Analysen: Bandbreite, Fokusfaktor, Puffer, Fertigstellung (--rest)."
 )
@@ -1141,6 +1188,7 @@ def analyse(
         typer.Option(
             "--rest",
             "--remaining",
+            callback=_finite_option,
             help=t("Restmenge, für die der Fertigstellungs-Sprint geschätzt wird."),
         ),
     ] = None,
@@ -1159,6 +1207,7 @@ def analyse(
             "--share",
             min=1,
             max=100,
+            callback=_finite_option,
             help=t(
                 "Projektanteil in %: welcher Teil der Roadmap- bzw. Gesamtkapazität in die "
                 "Restmenge fließt (Standard 100)."
@@ -1937,11 +1986,16 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
             + "[/dim]"
         )
     if data.sprint(s.id) is None:
-        console.print(
-            "[yellow]"
-            + t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
-            + "[/yellow]"
+        hint = (
+            t(
+                "Noch keine Sprintdatei – die Prognose rechnet bis dahin mit Kalender und "
+                "Personenliste; die unbekannten Fehltage werden nach der Historie geschätzt "
+                "(ohne Historie ohne Abzug)."
+            )
+            if data.people
+            else t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
         )
+        console.print(f"[yellow]{hint}[/yellow]")
 
 
 # Erweiterungen (z. B. Import-Plugins) registrieren ihre Befehle zuletzt.
