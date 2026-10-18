@@ -21,7 +21,7 @@ Spalte „Stand“ nennt, was ich zuletzt festgestellt habe.
 
 | PR | Thema | Stand |
 |---|---|---|
-| [#76](https://github.com/swallat/sprint-forecast/pull/76) | Texte anderer (Commit-Autor/-Betreff, Tags, Branches, Dateipfade, rohe Git-Ausgabe) in der Weboberfläche als Code statt Markdown; Absturz bei leerem Betreff | Entwurf; erstes Review (10 Befunde) behoben, zweites Review läuft/steht aus; CI läuft |
+| [#76](https://github.com/swallat/sprint-forecast/pull/76) | Texte anderer (Commit-Autor/-Betreff, Tags, Branches, Dateipfade, rohe Git-Ausgabe) in der Weboberfläche als Code statt Markdown; Absturz bei leerem Betreff; `splitlines`-Geister-Tags | Entwurf; zwei Review-Runden abgearbeitet (offen nur niedrige Punkte, im PR-Text); lokal 1615 Tests grün; CI auf dem letzten Kopf läuft; **danach bereit zum Mergen** |
 | [#81](https://github.com/swallat/sprint-forecast/pull/81) | Git-Fehler richtig zuordnen (Adresse, Rechte, Ordner, Fingerabdruck), Hinweis „Zurück auf den Branch“ | Entwurf; Review hat 36 Befunde (rund 12 verschiedene) bestätigt, Behebung durch einen Teil-Agenten angestoßen, Stand im PR-Text; **nicht mergen**, bevor `not_writable` eingegrenzt ist (Regression der Fehlerzuordnung) |
 | [#82](https://github.com/swallat/sprint-forecast/pull/82) | „Speichern und teilen“: Meldung geht bei einem zweiten Durchlauf nicht mehr verloren (Ursache des flackernden e2e-Tests) | Entwurf; CI grün, aber das Review fand Fehler in der Sperre (prozessweit, unbegrenztes Warten); **nicht mergen**, Überarbeitung im PR-Text beschrieben |
 | [#62](https://github.com/swallat/sprint-forecast/pull/62) | `docs/konzept-kern.md`: Umsetzungsstand | Entwurf; „Stand“-Zellen nach den Merges aktualisieren (A3, A10, B5, D-Abschnitte, Phasentabelle) |
@@ -100,9 +100,11 @@ Bekannte Fehler und offene Befunde, jeweils mit dem Ort, an dem sie behandelt we
   einem vollständig grünen Lauf.
 - **Nicht abfangbar** (#82): Ein Klick, der verloren geht, weil die zweite Anforderung des Browsers
   vor dem Rückruf selbst eintrifft (Millisekundenfenster).
-- **#76 offen:** `_restore_clicked` („{file} auf den letzten gespeicherten Stand zurückgesetzt“) gibt den
-  Dateipfad noch als Markdown aus; eigene `GitError`-Texte ohne Hinweis mit eingesetzten Namen
-  (z. B. „Den Tag {name} gibt es auf diesem Rechner nicht.“) bleiben Fließtext.
+- **#76 offen (niedrig):** Die Hinweise zu Konfliktmarkierungen (`refuse_conflict_markers` in `git.py`) nennen
+  Dateinamen aus dem Repository ungeschützt (Markdown); Tests für Tooltip und Sicherungspfad, für
+  `split_record` mit `\x1f` im Betreff fehlen; der `pre-receive`-Hook im Test hat keinen Windows-Skip. Eigene
+  `GitError`-Texte ohne Hinweis mit eingesetzten Namen (z. B. „Den Tag {name} gibt es auf diesem Rechner
+  nicht.“) bleiben Fließtext.
 - **#80 (gemergt, Rest offen):** Emoji-Kürzel wie `:smile:` in Namen werden von Rich zu Emojis (kosmetisch). Die
   `escape(...)`-Aufrufe um ganze Meldungen aus #74/#75 behandeln genau einen abschließenden
   Backslash (kosmetisch).
@@ -185,8 +187,8 @@ Pull-Requests, die erst spät in der Nacht gemergt wurden bzw. noch offen sind (
 ## 5. Empfohlene Reihenfolge für Review und Merge
 
 1. **[#80](https://github.com/swallat/sprint-forecast/pull/80)** ist gemergt (nur `cli.py` und ein Testmodul).
-2. **[#76](https://github.com/swallat/sprint-forecast/pull/76)** danach (berührt `git.py`, `gitsync.py`, `githistory.py`, `web/ui.py`): vor dem Mergen
-   `main` einmergen, CI abwarten, das zweite Review auswerten.
+2. **[#76](https://github.com/swallat/sprint-forecast/pull/76)** danach (berührt `git.py`, `gitsync.py`, `githistory.py`, `web/ui.py`): beide Review-Runden
+   sind abgearbeitet; vor dem Mergen `main` einmergen und die CI abwarten.
 3. **[#81](https://github.com/swallat/sprint-forecast/pull/81)** nach [#76](https://github.com/swallat/sprint-forecast/pull/76): berührt dieselben Dateien (`git.py`, `ui.py`, `cli.py`), Konflikte beim
    Einmergen von `main` sind zu erwarten. Zuerst die Befunde zur Zuordnung `not_writable` ("Permission denied"
    zu breit) und zu `_folder_access` (aus [#74](https://github.com/swallat/sprint-forecast/pull/74)) beheben, dann mergen.
@@ -273,7 +275,7 @@ AUFGABEN, IN DIESER REIHENFOLGE
    `tests/test_cli_markup.py`, CRLF im `pre-push`-Hook des e2e-Tests aus #82). Windows-Befunde als eigene
    kleine Pull-Requests beheben.
 2. Offene Pull-Requests abarbeiten, Reihenfolge und Abhängigkeiten stehen in Teil 5 der Übergabe: #80
-   (gemergt), #76 (zweites Review auswerten), #81 (Zuordnung `not_writable` eingrenzen,
+   (gemergt), #76 (bereit, wenn CI grün), #81 (Zuordnung `not_writable` eingrenzen,
    `_folder_access` anpassen), #82 (Sperre je Sitzung, Zeitgrenze, Rückmeldung für verworfene Klicks),
    zuletzt #62 (Stand-Zellen in `docs/konzept-kern.md`).
 3. Entscheidungen des Owners einholen (Teil 2 der Übergabe), nicht selbst treffen; danach je Entscheidung
