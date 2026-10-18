@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import functools
+import math
 import os
 import subprocess
 import sys
@@ -14,7 +15,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, NoReturn
 
 import typer
 from rich.console import Console
@@ -36,7 +37,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.git import GitError, commit
+from sprintforecast.git import GitError, commit, title_for
 from sprintforecast.guide import (
     CAPACITY_SOURCES,
     COMMAND_ALIASES,
@@ -74,6 +75,7 @@ from sprintforecast.plugins import load_plugins
 from sprintforecast.proctree import adopt, popen_options, terminate_tree
 from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
 from sprintforecast.report import (
+    band_range,
     capacity_label,
     completion_note,
     fmt,
@@ -93,6 +95,7 @@ from sprintforecast.storage import (
     Repository,
     TeamData,
     default_data_dir,
+    team_key_problem,
     write_text,
 )
 from sprintforecast.updater import PACKAGE
@@ -148,6 +151,15 @@ def _ctx(ctx: typer.Context) -> Context:
     return ctx.obj
 
 
+def _check_stichtag(value: str | None) -> str | None:
+    if value:
+        try:
+            date.fromisoformat(value)
+        except ValueError as e:
+            raise typer.BadParameter(t("Datum im Format JJJJ-MM-TT erwartet")) from e
+    return value
+
+
 @app.callback(invoke_without_command=True)
 def _main(
     ctx: typer.Context,
@@ -160,7 +172,8 @@ def _main(
             envvar=DATA_ENV,
             help=t(
                 "Verzeichnis mit den Team-Daten (je Team ein Unterordner). "
-                "Standard: aktuelles Verzeichnis."
+                "Standard: aktuelles Verzeichnis, falls es Teams enthält, sonst der gemerkte "
+                "Datenordner."
             ),
         ),
     ] = None,
@@ -169,6 +182,7 @@ def _main(
         typer.Option(
             "--stichtag",
             "--as-of",
+            callback=_check_stichtag,
             help=t("Datum (JJJJ-MM-TT), das als „heute“ gilt – für Rückblicke und Tests."),
         ),
     ] = None,
@@ -249,6 +263,9 @@ def _ask_number(
                 f"[red]{t('Bitte eine Zahl eingeben (Dezimaltrennzeichen , oder .).')}[/red]"
             )
             continue
+        if not math.isfinite(value):
+            console.print(f"[red]{t('Bitte eine endliche Zahl eingeben.')}[/red]")
+            continue
         if value < minimum:
             console.print(
                 f"[red]{t('Der Wert muss ≥ {value} sein.', value=fmt_plain(minimum))}[/red]"
@@ -262,9 +279,13 @@ def _ask_numbers(label: str, default: list[float]) -> list[float]:
     while True:
         raw = Prompt.ask(label, default=shown, show_default=bool(shown), console=console).strip()
         try:
-            return [float(x.replace(",", ".")) for x in raw.split()] if raw else []
+            values = [float(x.replace(",", ".")) for x in raw.split()] if raw else []
         except ValueError:
             console.print(f"[red]{t('Bitte Zahlen mit Leerzeichen getrennt eingeben.')}[/red]")
+            continue
+        if all(math.isfinite(v) for v in values):
+            return values
+        console.print(f"[red]{t('Bitte eine endliche Zahl eingeben.')}[/red]")
 
 
 def _ask_date(label: str, default: date | None) -> date:
@@ -368,6 +389,36 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     return table
 
 
+def _cli_git_hints() -> dict[str, str]:
+    """Hinweise für die Kommandozeile zu Fehlerarten, deren Hinweis der Git-Schicht sich an die
+    Weboberfläche richtet (Seitenleiste, Seiten, Knöpfe)."""
+    return {
+        "identity": t(
+            "Git kennt deinen Namen noch nicht. Einrichten mit "
+            '`git config --global user.name "Dein Name"` und '
+            '`git config --global user.email "du@beispiel.de"`.'
+        ),
+        "conflict": t(
+            "Die Markierungen stammen aus einem unvollständigen Zusammenführen: im Editor "
+            "entfernen und den Befehl noch einmal mit --commit ausführen."
+        ),
+        "tag_exists": t(
+            "Den vorhandenen Tag zuerst entfernen (`git tag -d <Name>`) und den Befehl noch "
+            "einmal mit --commit ausführen. Die Daten sind gespeichert, nur nicht committet."
+        ),
+    }
+
+
+def _git_problem(e: GitError) -> NoReturn:
+    """Gibt einen Git-Fehler mit Überschrift, Meldung und nächstem Schritt aus (Exit-Code 1)."""
+    err.print(f"[bold red]{escape(title_for(e.kind))}[/bold red]")
+    if str(e):
+        err.print(f"[red]{escape(str(e))}[/red]")
+    if hint := _cli_git_hints().get(e.kind) or e.hint:
+        err.print(escape(hint))
+    raise typer.Exit(1) from e
+
+
 def _maybe_commit(
     c: Context, team: str, paths: list[Path], message: str, tag: str | None, do_commit: bool
 ) -> None:
@@ -388,8 +439,7 @@ def _maybe_commit(
     try:
         rev = commit(paths, message, tag)
     except GitError as e:
-        err.print(f"[red]Git: {e}[/red]")
-        raise typer.Exit(1) from e
+        _git_problem(e)
     suffix = t(", Tag {tag}", tag=tag) if tag else ""
     console.print(f"[green]{t('Committet ({rev}){suffix}.', rev=rev, suffix=suffix)}[/green]")
 
@@ -504,11 +554,25 @@ def _ask_setting(setting: Setting, team: Team, *, required: bool = False) -> Non
         return
 
 
+def _exists_text(team: str, existing: str) -> str:
+    if existing == team:
+        return t("Team {team} existiert bereits.", team=repr(team))
+    return t(
+        "Team {team} existiert bereits (als {existing}; Windows und macOS unterscheiden Ordner "
+        "nicht nach Groß- und Kleinschreibung).",
+        team=repr(team),
+        existing=repr(existing),
+    )
+
+
 @command("init", "Neues Team geführt anlegen.")
 def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
-    if c.repo.exists(team):
-        err.print(f"[red]{t('Team {team} existiert bereits.', team=repr(team))}[/red]")
+    if clash := c.repo.clashing_team(team):
+        err.print(f"[red]{escape(_exists_text(team, clash))}[/red]")
+        raise typer.Exit(1)
+    if problem := team_key_problem(team):
+        err.print(f"[red]{escape(problem)}[/red]")
         raise typer.Exit(1)
     console.print(
         Panel(
@@ -1072,11 +1136,15 @@ def forecast(
         "Velocity",
         t("n. Vel. (Ø/Trend)"),
         f"Forecast PLAN {unit}",
+        t("Spanne"),
         "Roadmap",
         t("Kleinkram"),
     ]
     for i, col in enumerate(columns):
-        table.add_column(col, justify="left" if i < 3 else "right")
+        band = col == t("Spanne")  # nie mitten in der Zahl kürzen: lieber umbrechen die anderen
+        table.add_column(
+            col, justify="left" if i < 3 else "right", no_wrap=band, min_width=9 if band else None
+        )
     for e in fc.history(verlauf) + fc.upcoming():
         r = e.result
         future = e.sprint.end > c.today
@@ -1089,6 +1157,7 @@ def forecast(
             fmt(r.velocity.value, 2),
             fmt(n_vel, 2),
             f"[bold]{fmt(r.plan)}[/bold]" if future else fmt(r.plan),
+            band_range(fc, e) if future else "",
             fmt(r.roadmap, 2) if future else "",
             fmt(r.small_stuff, 2) if future else "",
             style=None if future else "dim",
@@ -1131,6 +1200,13 @@ def forecast(
         )
 
 
+def _finite_option(value: float | None) -> float | None:
+    """Typer-Prüfung: nan und inf sind keine Zahlen, mit denen sich rechnen ließe."""
+    if value is not None and not math.isfinite(value):
+        raise typer.BadParameter(t("Bitte eine endliche Zahl eingeben."))
+    return value
+
+
 @command(
     "analyse", "Ergänzende Analysen: Bandbreite, Fokusfaktor, Puffer, Fertigstellung (--rest)."
 )
@@ -1142,6 +1218,7 @@ def analyse(
         typer.Option(
             "--rest",
             "--remaining",
+            callback=_finite_option,
             help=t("Restmenge, für die der Fertigstellungs-Sprint geschätzt wird."),
         ),
     ] = None,
@@ -1160,6 +1237,7 @@ def analyse(
             "--share",
             min=1,
             max=100,
+            callback=_finite_option,
             help=t(
                 "Projektanteil in %: welcher Teil der Roadmap- bzw. Gesamtkapazität in die "
                 "Restmenge fließt (Standard 100)."
@@ -1746,7 +1824,8 @@ def datenordner(
         typer.Argument(help=t("Ordner merken (muss in einem Git-Repository liegen).")),
     ] = None,
 ) -> None:
-    from sprintforecast.git import repo_root
+    from sprintforecast.git import classify, repo_root
+    from sprintforecast.gitsync import git_available
     from sprintforecast.storage import save_data_dir, saved_data_dir, teams_dir
 
     if pfad is None:
@@ -1755,12 +1834,16 @@ def datenordner(
         console.print(t("Verwendet (ohne --daten): {path}", path=default_data_dir().resolve()))
         return
     if not pfad.is_dir():
-        err.print(f"[red]{t('Ordner nicht gefunden: {path}', path=pfad)}[/red]")
+        err.print(f"[red]{escape(t('Ordner nicht gefunden: {path}', path=pfad))}[/red]")
         raise typer.Exit(1)
+    if not git_available():
+        _git_problem(classify("", missing=True))
     if repo_root(pfad) is None:
         err.print(
             "[red]"
-            + t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+            + escape(
+                t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+            )
             + "[/red]"
         )
         raise typer.Exit(1)
@@ -1768,9 +1851,11 @@ def datenordner(
     try:
         save_data_dir(target)
     except SettingsError as e:
-        err.print(f"[red]{e}[/red]")
+        err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
-    console.print(f"[green]{t('Datenordner gemerkt: {path}', path=target.resolve())}[/green]")
+    console.print(
+        f"[green]{escape(t('Datenordner gemerkt: {path}', path=target.resolve()))}[/green]"
+    )
 
 
 @command("sprache", "Sprache der Oberfläche anzeigen oder einstellen (de, en).")
@@ -1940,11 +2025,16 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
             + "[/dim]"
         )
     if data.sprint(s.id) is None:
-        console.print(
-            "[yellow]"
-            + t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
-            + "[/yellow]"
+        hint = (
+            t(
+                "Noch keine Sprintdatei – die Prognose rechnet bis dahin mit Kalender und "
+                "Personenliste; die unbekannten Fehltage werden nach der Historie geschätzt "
+                "(ohne Historie ohne Abzug)."
+            )
+            if data.people
+            else t("Noch keine Sprintdatei – die Prognose nutzt bis dahin den Kapazitäts-Trend.")
         )
+        console.print(f"[yellow]{hint}[/yellow]")
 
 
 # Erweiterungen (z. B. Import-Plugins) registrieren ihre Befehle zuletzt.

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
@@ -111,6 +112,8 @@ class Setting:
                     number = float(raw.replace(",", ".").removesuffix("%").strip())
                 except ValueError as e:
                     raise ValueError(t("Bitte eine Zahl eingeben.")) from e
+                if not math.isfinite(number):
+                    raise ValueError(t("Bitte eine endliche Zahl eingeben."))
                 if self.kind is Kind.INT and not number.is_integer():
                     raise ValueError(t("Bitte eine ganze Zahl eingeben."))
                 self.check_range(number)
