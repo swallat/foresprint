@@ -791,6 +791,8 @@ def test_help_command_list_covers_every_cli_command():
         for info in app.registered_commands
         if info.name not in english and info.callback.__module__ == "sprintforecast.cli"
     }
-    listed = {m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast (\w+)", left))}
+    listed = {
+        m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast ([a-z][\w-]*)", left))
+    }
     assert not registered - listed, f"Fehlt in guide.COMMANDS: {registered - listed}"
     assert not listed - registered, f"Kein CLI-Befehl: {listed - registered}"

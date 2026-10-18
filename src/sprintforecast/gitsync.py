@@ -25,7 +25,14 @@ from typing import Any, NamedTuple
 import yaml
 
 from sprintforecast import git as gitmod
-from sprintforecast.git import GitError, _git, hint_for, pending_changes, require_root
+from sprintforecast.git import (
+    GitError,
+    _git,
+    hint_for,
+    pending_changes,
+    require_root,
+    split_record,
+)
 from sprintforecast.i18n import t
 from sprintforecast.yamlmerge import (
     MISSING,
@@ -247,7 +254,7 @@ def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str,
         target,
         check=False,
     )
-    commits = [Commit(*line.split(_SEP, 3)) for line in log.splitlines() if _SEP in line]
+    commits = [Commit(*split_record(line, 4, _SEP)) for line in log.split("\n") if _SEP in line]
     related = bool(_git(root, "merge-base", "HEAD", current.upstream, check=False))
     span = f"HEAD...{current.upstream}" if related else f"HEAD..{current.upstream}"
     diff = _git(
@@ -391,16 +398,8 @@ def _unrelated(root: Path, remote: str | None, upstream: str) -> bool:
 
 
 def _unrelated_error(current: SyncState, target: str) -> GitError:
-    branch = target.split("/", 1)[-1]
-    return GitError(
-        t(
-            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
-            "Datenordner.",
-            url=gitmod.public_url(current.url) or current.remote or "?",
-            branch=branch,
-        ),
-        "unrelated_histories",
-        hint_for("unrelated_histories"),
+    return gitmod.UnrelatedHistoriesError(
+        gitmod.public_url(current.url) or current.remote or "?", target.split("/", 1)[-1]
     )
 
 

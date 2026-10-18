@@ -142,7 +142,7 @@ def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory
     assert not at.exception, at.exception
     assert any("Hochgeladen" in s.value for s in at.sidebar.success)
     assert git(server, "log", "-1", "--format=%s", "main") == "init"
-    assert "synchron mit origin/main" in shown(at, "caption", "sidebar")
+    assert "synchron mit `origin/main`" in shown(at, "caption", "sidebar")
 
 
 # --- U3/U4: Zugangsdaten und gefährliche Adressen ---------------------------------------------

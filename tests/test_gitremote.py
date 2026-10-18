@@ -32,6 +32,7 @@ from sprintforecast.git import (
     clone_repository,
     has_credentials,
     md_code,
+    md_code_lines,
     parse_remote_url,
     public_url,
     scrub,
@@ -333,10 +334,58 @@ def test_env_drops_trace_variables(monkeypatch: pytest.MonkeyPatch):
         ("a``b", "```a``b```"),
         ("a\nb\u202ec", "`a b c`"),
         ("", ""),
+        # Steuerzeichen, Zeilen- und Absatztrenner und die Zeichen der Schreibrichtung:
+        ("a\x00b\x85c\u2028d\u2029e", "`a b c d e`"),
+        ("a\u200eb\u200fc\u061cd", "`a b c d`"),
+        ("a\u202ab\u202bc\u202cd\u202de", "`a b c d e`"),
+        ("a\u2066b\u2067c\u2068d\u2069e", "`a b c d e`"),
+        # Formatzeichen, die zu Zeichenfolgen gehören, bleiben: Joiner in Emoji-Folgen,
+        # Non-Joiner in persischen Namen, Variantenauswahl, Flaggen.
+        (
+            "Familie \U0001f468\u200d\U0001f469\u200d\U0001f467",
+            "`Familie \U0001f468\u200d\U0001f469\u200d\U0001f467`",
+        ),
+        ("\U0001f469\u200d\U0001f4bb fix", "`\U0001f469\u200d\U0001f4bb fix`"),
+        ("\U0001f3f3\ufe0f\u200d\U0001f308", "`\U0001f3f3\ufe0f\u200d\U0001f308`"),
+        (
+            "\u0646\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645",
+            "`\u0646\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645`",
+        ),
+        ("Bj\u00f6rn \u00dcber", "`Bj\u00f6rn \u00dcber`"),
     ],
 )
 def test_md_code_keeps_foreign_text_inside_a_code_span(text: str, code: str):
     assert md_code(text) == code
+
+
+def test_md_code_lines_makes_one_code_span_per_line():
+    assert md_code_lines("remote: [Klick](http://example.org)\n ! [rejected] a`b\r\n\n") == (
+        "`remote: [Klick](http://example.org)`  \n``  ! [rejected] a`b ``"
+    )
+    assert md_code_lines("") == md_code_lines(" \n \n") == ""
+
+
+def test_git_error_text_of_git_is_quoted_and_own_text_is_not():
+    own = GitError("Eigener Text mit `Code`", "folder")
+    raw = gitmod.classify("remote: [Klick](http://example.org)\nfatal: www.evil.example/x")
+    assert not own.raw and raw.raw and raw.kind == "error" and not raw.hint
+    assert own.render(md_code_lines) == "Eigener Text mit `Code`"
+    assert raw.render(md_code_lines) == (
+        "`remote: [Klick](http://example.org)`  \n`fatal: www.evil.example/x`"
+    )
+    assert raw.render() == str(raw)  # ohne ``quote`` bleibt der Text unverändert
+    assert copy.copy(raw).raw and not copy.copy(own).raw
+    assert not gitmod.classify("", missing=True).raw and not gitmod.classify("", timeout=True).raw
+    assert not gitmod.classify("").raw  # ohne Text von Git gibt es nichts zu schützen
+
+
+def test_git_error_full_quotes_only_the_message_of_git():
+    denied = gitmod.classify("! [remote rejected] www.evil.example/x (pre-receive hook declined)")
+    assert denied.kind == "denied" and denied.hint
+    full = denied.full(md_code_lines)
+    assert full.startswith("`! [remote rejected] www.evil.example/x (pre-receive hook declined)` ")
+    assert full.endswith(denied.hint)  # der Hinweis ist ein eigener Text
+    assert denied.full() == f"{denied} {denied.hint}"
 
 
 def test_new_branch_error_is_plain_text_and_renders_names_as_code():
@@ -346,6 +395,19 @@ def test_new_branch_error_is_plain_text_and_renders_names_as_code():
     shown = error.render(md_code)
     assert "`www.evil.example/anmelden`" in shown and "``a`b``" in shown and "`main`" in shown
     assert copy.copy(error).render(md_code) == shown  # Fehler lassen sich kopieren
+
+
+def test_unrelated_histories_error_is_plain_text_and_renders_server_and_branch_as_code():
+    error = gitmod.UnrelatedHistoriesError("https://h.example/r.git", "www.evil.example/x")
+    assert error.kind == "unrelated_histories" and error.hint
+    assert str(error) == (
+        "Der Server (https://h.example/r.git, Branch www.evil.example/x) enthält eine andere "
+        "Historie als dieser Datenordner."
+    )
+    shown = error.render(md_code)
+    assert "(`https://h.example/r.git`, Branch `www.evil.example/x`)" in shown
+    clone = copy.copy(error)
+    assert clone.render(md_code) == shown and clone.hint == error.hint  # lässt sich kopieren
 
 
 # --- T4: Zuordnung der Fehler der Verbindungsprüfung -------------------------------------------
