@@ -355,6 +355,22 @@ def test_datenordner(tmp_path: Path, data_dir: Path):
     assert "Gemerkt:" in run(data_dir, "datenordner").output
 
 
+def test_datenordner_names_the_reason_for_an_unsafe_folder(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    import subprocess
+
+    from gitrepos import assume_foreign_owner
+
+    subprocess.run(["git", "init", "-q", str(data_dir)], check=True)
+    assume_foreign_owner(monkeypatch, data_dir)
+    result = run(data_dir, "datenordner", str(data_dir))
+    assert result.exit_code == 1
+    assert "dubious ownership" in result.output  # die Meldung von Git
+    assert "Git-Einstellungen" in " ".join(result.output.split())  # der Hinweis
+    assert "liegt in keinem Git-Repository" not in result.output
+
+
 def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
     plain = run(data_dir, "forecast", "demo")
     assert "schreibt Schwankungen fort" not in plain.output  # Standard flat: keine Warnung

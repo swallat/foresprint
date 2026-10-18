@@ -20,12 +20,12 @@ import time
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 
 from sprintforecast import git as gitmod
-from sprintforecast.git import GitError, _git, hint_for, pending_changes, repo_root
+from sprintforecast.git import GitError, _git, hint_for, pending_changes, require_root
 from sprintforecast.i18n import t
 from sprintforecast.yamlmerge import (
     MISSING,
@@ -130,10 +130,7 @@ def git_available() -> bool:
 def _root(path: Path) -> Path:
     if not git_available():
         raise gitmod.classify("", missing=True)
-    root = repo_root(path)
-    if root is None:
-        raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
-    return root
+    return require_root(path)
 
 
 def _git_dir(root: Path) -> Path:
@@ -224,11 +221,9 @@ def fetch(path: Path) -> SyncState:
         error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
     else:
         try:
-            _git(root, "fetch", "--prune", current.remote, network=True)
+            _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
         except GitError as e:
             error = e
-            if e.kind == "auth":
-                e.hint = gitmod.auth_help(current.url)
     _FETCHED[root] = (time.time(), error)
     gitmod.invalidate_status()
     return state(path)
@@ -674,7 +669,7 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
 
 def _push(root: Path, current: SyncState) -> None:
     if current.upstream:
-        _git(root, "push", "--follow-tags", network=True)
+        _git(root, "push", "--follow-tags", network=True, url=current.url)
         return
     # Erster Push: Branch mit dem Server verbinden.
     _git(
@@ -685,6 +680,7 @@ def _push(root: Path, current: SyncState) -> None:
         current.remote or "origin",
         current.branch or "HEAD",
         network=True,
+        url=current.url,
     )
 
 
@@ -707,9 +703,20 @@ def abort_unfinished(path: Path) -> None:
     gitmod.invalidate_status()
 
 
-def reattach(path: Path) -> str:
+class Reattached(NamedTuple):
+    """Ergebnis von :func:`reattach`: der Branch, auf dem der Datenordner nun steht, und der
+    Rettungsbranch, auf dem die Commits des losen Stands liegen (``None`` = sie hängen an einem
+    Branch, nichts wurde gesichert)."""
+
+    branch: str
+    rescue: str | None = None
+
+
+def reattach(path: Path) -> Reattached:
     """Geht von „detached HEAD“ zurück auf den Hauptbranch. Hängen Commits an keinem Branch,
-    werden sie vorher auf einem Rettungsbranch gesichert. Gibt den Namen des Branches zurück."""
+    werden sie vorher auf einem Rettungsbranch gesichert; scheitert der Wechsel an offenen
+    Änderungen, bleibt der Rettungsbranch bestehen und wird beim nächsten Versuch wieder
+    genannt."""
     root = _root(path)
     if state(path).branch is not None:
         raise GitError(t("Das Repository steht bereits auf einem Branch."))
@@ -724,13 +731,31 @@ def reattach(path: Path) -> str:
             "detached",
             t("Bitte einen Git-Client oder ein Terminal verwenden."),
         )
-    holders = _git(root, "branch", "--contains", "HEAD", "--format=%(refname:short)", check=False)
-    if not [b for b in holders.splitlines() if not b.startswith("(")]:
+    contains = _git(root, "branch", "--contains", "HEAD", "--format=%(refname:short)", check=False)
+    holders = [b for b in contains.splitlines() if not b.startswith("(")]
+    rescue = None
+    if not holders:
         rescue = f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
         _git(root, "branch", rescue)
-    _git(root, "switch", target)
+    elif all(b.startswith("rettung-") for b in holders):  # gesichert von einem früheren Versuch
+        rescue = holders[0]
+    try:
+        _git(root, "switch", target)
+    except GitError as e:
+        if e.kind != "dirty":
+            raise
+        raise GitError(
+            str(e),
+            "detached",
+            t(
+                "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben. Auf "
+                "einem Stand ohne Branch lässt sich nichts speichern (committen). Der Ausweg: "
+                "Auf der Seite „Änderungen und Verlauf“ die offenen Änderungen verwerfen – sie "
+                "gehen dabei verloren – und danach „Zurück auf den Branch“ noch einmal wählen."
+            ),
+        ) from e
     gitmod.invalidate_status()
-    return target
+    return Reattached(target, rescue)
 
 
 def set_identity(name: str, email: str) -> None:

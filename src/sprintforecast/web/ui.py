@@ -77,6 +77,7 @@ from sprintforecast.git import (
     secret_in_url_error,
 )
 from sprintforecast.git import repo_root as git_root
+from sprintforecast.git import root_problem as git_problem
 from sprintforecast.git import title_for as git_title
 from sprintforecast.githistory import (
     Entry as HistoryEntry,
@@ -3729,11 +3730,14 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
     else:
         root = git_root(repo.root)
         st.markdown(t("Aktuell: `{path}`", path=repo.root.resolve()))
-        st.caption(
-            t("Git-Repository: `{path}`", path=root)
-            if root
-            else t("Achtung: liegt in keinem Git-Repository.")
-        )
+        if problem := git_problem(repo.root):
+            _show_problem(problem)
+        else:
+            st.caption(
+                t("Git-Repository: `{path}`", path=root)
+                if root
+                else t("Achtung: liegt in keinem Git-Repository.")
+            )
         _remote_section(repo)
     if recent := _recent_dirs(repo):
         st.subheader(t("Zuletzt benutzt"))
@@ -3768,6 +3772,8 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
         if st.button(t("Übernehmen"), type="primary", key="data-choose"):
             if not path.is_dir():
                 st.error(t("Ordner nicht gefunden: {path}", path=path))
+            elif problem := git_problem(path):
+                _show_problem(problem)
             elif git_root(path) is None:
                 st.warning(
                     t(
@@ -3858,7 +3864,8 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 except GitError as e:
                     # Die Meldungen zur Adresse tragen ihre Überschrift nicht mehr selbst.
                     detail = f"{git_title(e.kind)}: {e}" if e.kind in ADDRESS_ERRORS else str(e)
-                    st.error(t("Klonen fehlgeschlagen: {error}", error=detail))
+                    failed = t("Klonen fehlgeschlagen: {error}", error=detail)
+                    st.error(f"{failed}  \n{e.hint}" if e.hint else failed)
                 else:
                     if problem := _use_data_dir(teams_dir(path) or path):
                         st.error(problem)
@@ -4153,14 +4160,18 @@ def _abort_clicked(root: Path) -> None:
 
 def _reattach_clicked(root: Path) -> None:
     try:
-        branch = reattach(root)
+        done = reattach(root)
     except GitError as e:
         st.session_state["commit_error"] = e
     else:
         clear_team_cache()
-        st.session_state["flash"] = [
-            ("success", t("Zurück auf den Branch {branch}.", branch=branch))
-        ]
+        text = t("Zurück auf den Branch {branch}.", branch=done.branch)
+        if done.rescue:
+            text += " " + t(
+                "Die Commits vom Stand ohne Branch liegen auf dem Rettungsbranch {rescue}.",
+                rescue=md_code(done.rescue),
+            )
+        st.session_state["flash"] = [("success", text)]
 
 
 def _identity_clicked() -> None:
@@ -4270,7 +4281,10 @@ def _git_panel(repo: Repository) -> None:
         _show_problem(classify("", missing=True))
         return
     if git_root(repo.root) is None:
-        st.caption(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
+        if problem := git_problem(repo.root):
+            _show_problem(problem)
+        else:
+            st.caption(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
         return
     if last := st.session_state.pop("last_commit", None):
         st.success(t("Committet ({rev}). Geteilt wird erst mit „Speichern und teilen“.", rev=last))
@@ -4689,7 +4703,10 @@ def page_history(repo: Repository) -> None:
         _show_problem(classify("", missing=True))
         return
     if git_root(repo.root) is None:
-        st.info(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
+        if problem := git_problem(repo.root):
+            _show_problem(problem)
+        else:
+            st.info(t("Datenverzeichnis liegt in keinem Git-Repository – Commit nicht möglich."))
         return
     locked = _merge_open(repo)
     if locked:

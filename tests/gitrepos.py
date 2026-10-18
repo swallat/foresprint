@@ -123,6 +123,18 @@ def no_login_prompt(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytes
     monkeypatch.setenv("GCM_INTERACTIVE", "never")
 
 
+def assume_foreign_owner(monkeypatch: pytest.MonkeyPatch, repo: Path) -> None:
+    """Ab hier hält Git ``repo`` für den Ordner eines anderen Benutzerkontos („detected dubious
+    ownership“), ohne dass Rechte oder Besitzer geändert werden (das gälte nicht unter Windows).
+    Der Aufrufer legt das Repository vorher an: Auch die Hilfen dieser Datei bekämen den Fehler.
+    Wird übersprungen, wenn die Git-Version den Besitzer nicht prüft."""
+    monkeypatch.setenv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1")
+    probe = subprocess.run(["git", "rev-parse"], cwd=repo, capture_output=True, text=True)
+    if "dubious ownership" not in probe.stderr:
+        pytest.skip("Diese Git-Version prüft den Besitzer des Ordners nicht")
+    invalidate_status()
+
+
 @dataclass
 class Person:
     name: str

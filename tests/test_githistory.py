@@ -165,8 +165,8 @@ def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Perso
     assert [t.name for t in githistory.list_tags(alice.data)] == ["a/lokal"]  # Tag bleibt lokal
 
 
-def test_tag_upload_failure_is_a_warning_and_tag_stays(alice: Person, tmp_path: Path):
-    git(alice.root, "remote", "set-url", "origin", str(tmp_path / "weg.git"))
+def test_tag_upload_failure_is_a_warning_and_tag_stays(alice: Person):
+    git(alice.root, "remote", "set-url", "origin", "http://127.0.0.1:1/r.git")
     warning = githistory.set_tag(alice.data, "a/lokal")
     assert warning and warning.kind == "offline"
     assert [t.name for t in githistory.list_tags(alice.data)] == ["a/lokal"]
