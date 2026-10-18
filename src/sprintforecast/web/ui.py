@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -151,6 +151,16 @@ from sprintforecast.products import (
     distribution,
     measure_label,
     plan_view,
+)
+from sprintforecast.protocol import (
+    PLANNING,
+    PREPLANNING,
+    REVIEW,
+    kind_title,
+    list_protocols,
+    mark_obsolete,
+    render_protocol,
+    write_protocol,
 )
 from sprintforecast.report import (
     absence_status_label,
@@ -1803,10 +1813,17 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
         ):
             released = copy.deepcopy(sprint)
             released.forecast_plan = None
+
+            def release() -> list[Path]:
+                paths = [repo.save_sprint(data.team.key, released)]
+                # Das Planning gilt nicht mehr: sein Protokoll wird als obsolet gekennzeichnet.
+                now = datetime.now().replace(microsecond=0)
+                return paths + mark_obsolete(repo, data.team.key, released.id, PLANNING, now)
+
             if save(
                 with_sprints(data, [released]),
                 [f"{released.id}.yaml"],
-                lambda: [repo.save_sprint(data.team.key, released)],
+                release,
                 flash=True,
             ):
                 st.session_state["unfreeze-reset"] = sprint.id
@@ -1821,6 +1838,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     _board_nav(data, sprint, "planning")
     if sprint.forecast_plan is not None:
         _unfreeze_panel(repo, data, sprint, data.team.unit.value)
+    _protocols(repo, data, sprint.id, PLANNING)
     # Neuer Sprint gewählt → beim ersten Schritt beginnen.
     if st.session_state.get("planning-last-sprint") != sprint.id:
         st.session_state["planning-last-sprint"] = sprint.id
@@ -2232,12 +2250,34 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if prefill_note:
         st.info(prefill_note)
     after = with_sprints(data, [sprint])
-    if save(
-        after,
-        [f"{sprint.id}.yaml"],
-        lambda: [repo.save_sprint(data.team.key, sprint)],
-        flash=True,
-    ):
+    fc_after = build_forecast(after, fc.today)
+    e_after = fc_after.entry(sprint.id)
+    now = datetime.now().replace(microsecond=0)
+    protocol = render_protocol(
+        PLANNING,
+        data.team.name or data.team.key,
+        sprint.id,
+        now=now,
+        facts=[
+            (t("Kapazität (PT)"), capacity_label(e_after) if e_after else "–"),
+            (
+                t("Prognose beim Planning ({unit})", unit=unit),
+                fmt(sprint.forecast_plan if sprint.forecast_plan is not None else None, 2),
+            ),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Überkipper ({unit})", unit=unit), fmt(carryover, 2)),
+            (f"Backlog ({unit})", fmt(backlog, 2)),
+        ],
+        d=distribution(fc_after, e_after) if e_after and data.products else None,
+        show_po=data.team.features.po,
+    )
+
+    def write() -> list[Path]:
+        paths = [repo.save_sprint(data.team.key, sprint)]
+        paths.append(write_protocol(repo, data.team.key, sprint.id, PLANNING, protocol, now))
+        return paths
+
+    if save(after, [f"{sprint.id}.yaml"], write, flash=True):
         # Die Hinweise erscheinen im nächsten Durchlauf; er zeichnet auch die Schrittleiste neu.
         flash = st.session_state.setdefault("flash", [])
         if (
@@ -2297,6 +2337,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if sprint is None:
         return
     _board_nav(data, sprint, "review")
+    _protocols(repo, data, sprint.id, REVIEW)
     unit = data.team.unit.value
     computed = sprint_capacity(data.team, data.people, sprint).rounded if data.people else None
     st.caption(
@@ -2406,10 +2447,37 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         sprint.production_done = production_done
     if product_rows is not None:
         sprint = apply_product_values(sprint, product_rows, review_measures)
+    after = with_sprints(data, [sprint])
+    fc_after = build_forecast(after, fc.today)
+    e_after = fc_after.entry(sprint.id)
+    now = datetime.now().replace(microsecond=0)
+    protocol = render_protocol(
+        REVIEW,
+        data.team.name or data.team.key,
+        sprint.id,
+        now=now,
+        facts=[
+            (t("Geschafft – Velocity ({unit})", unit=unit), fmt(sprint.velocity, 2)),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Davon nicht erledigt ({unit})", unit=unit), fmt(sprint.not_done, 2)),
+            (t("Zusätzlich erledigt ({unit})", unit=unit), fmt(sprint.additional_done, 2)),
+            (t("Verfügbare Personentage (PT)"), fmt(sprint.capacity, 1)),
+        ],
+        d=distribution(fc_after, e_after)
+        if e_after and data.products and product_rows is not None
+        else None,
+        show_po=data.team.features.po,
+    )
+
+    def write() -> list[Path]:
+        paths = [repo.save_sprint(data.team.key, sprint)]
+        paths.append(write_protocol(repo, data.team.key, sprint.id, REVIEW, protocol, now))
+        return paths
+
     if save(
-        with_sprints(data, [sprint]),
+        after,
         [f"{sprint.id}.yaml"],
-        lambda: [repo.save_sprint(data.team.key, sprint)],
+        write,
         tag=f"{data.team.key}/{sprint.id}" if tag else None,
         flash=True,
     ):
@@ -2665,6 +2733,36 @@ def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
     )
 
 
+def _protocols(repo: Repository, data: TeamData, sprint_id: str, kind: str) -> None:
+    """Die bei jedem Speichern geschriebenen Protokolle eines Termins dieses Sprints, auch
+    ältere und als obsolet umbenannte."""
+    found = [f for f in list_protocols(repo, data.team.key, sprint_id) if f[1] == kind]
+    with st.expander(
+        t("Protokolle: {kind} ({count})", kind=kind_title(kind), count=len(found)),
+        icon=":material/history:",
+    ):
+        if not found:
+            st.caption(t("Noch kein Protokoll: Es entsteht bei jedem Speichern dieses Termins."))
+            return
+        labels = {
+            path: f"{at:%d.%m.%Y %H:%M:%S}" + (t(" (obsolet)") if obsolete else "")
+            for at, _, obsolete, path in found
+        }
+        chosen = st.selectbox(
+            t("Stand"),
+            list(labels),
+            format_func=labels.__getitem__,
+            key=f"protokoll-{kind}-{sprint_id}",
+        )
+        try:
+            text = chosen.read_text(encoding="utf-8")
+        except OSError as e:
+            st.error(t("Protokoll nicht lesbar: {reason}", reason=str(e)))
+            return
+        st.markdown(text)
+        st.caption(t("Datei: `{path}`", path=chosen))
+
+
 def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     """Board der POs vor dem Planning: je Produkt vorsehen, was in den Sprint soll."""
     st.header(t("PO-Vorplanung"))
@@ -2881,13 +2979,59 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if assumed:
             plan = fc_preview.entry(after.id).result.plan if fc_preview.entry(after.id) else None
             to_save = record_prognoses(data, after, assumed, plan, comment)
-        if save(
-            with_sprints(data, to_save),
-            [f"{s.id}.yaml" for s in to_save],
-            lambda: [repo.save_sprint(data.team.key, s) for s in to_save],
-            flash=True,
-        ):
+        now = datetime.now().replace(microsecond=0)
+        absent = {pid: days for pid, days in expected.items() if days}
+        names = {p.id: p.name for p in data.people}
+        protocol = render_protocol(
+            PREPLANNING,
+            data.team.name or data.team.key,
+            after.id,
+            now=now,
+            facts=[
+                (t("Kapazität (PT)"), fmt(shown.result.plan_capacity, 1)),
+                (t("Prognose aktuell ({unit})", unit=unit), fmt(shown_plan, 2)),
+                (t("Verteilbar"), f"{fmt(d.available, 2)} {unit}"),
+                (t("Vorgesehen (Σ)"), f"{fmt(total, 2)} {unit}"),
+            ],
+            d=d,
+            comment=comment,
+            notes=[
+                (
+                    t("Annahmen des Teams"),
+                    [
+                        t(
+                            "Sprint {id}: Commitment {ist} {unit}, voraussichtlich nicht erledigt "
+                            "{not_done}, zusätzlich erledigt {extra} → erwartet erledigt "
+                            "{done} {unit}",
+                            id=sid,
+                            ist=fmt(a.forecast_ist, 2),
+                            not_done=fmt(a.not_done, 2),
+                            extra=fmt(a.additional_done, 2),
+                            done=fmt(a.expected, 2),
+                            unit=unit,
+                        )
+                        for sid, a in assumed.items()
+                    ],
+                ),
+                (
+                    t("Angekündigte Fehltage"),
+                    [
+                        f"{names.get(pid, pid)}: {fmt(days, 1)} {t('Tage')}"
+                        for pid, days in absent.items()
+                    ],
+                ),
+            ],
+            show_po=data.team.features.po,
+        )
+
+        def write() -> list[Path]:
+            paths = [repo.save_sprint(data.team.key, s) for s in to_save]
+            paths.append(write_protocol(repo, data.team.key, after.id, PREPLANNING, protocol, now))
+            return paths
+
+        if save(with_sprints(data, to_save), [f"{s.id}.yaml" for s in to_save], write, flash=True):
             st.rerun()  # die Schrittleiste oben zeigt den gespeicherten Stand
+    _protocols(repo, data, sprint.id, PREPLANNING)
     page_link("planning", t("Weiter zum Planning"))
 
 
