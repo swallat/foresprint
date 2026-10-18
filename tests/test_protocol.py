@@ -3,6 +3,7 @@
 
 import hashlib
 import re
+import threading
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from sprintforecast.protocol import (
     render_protocol,
     save_with_protocol,
     write_protocol,
+    write_protocol_new,
 )
 from sprintforecast.storage import FileAccessError, Repository
 
@@ -271,15 +273,140 @@ def test_a_failing_rollback_keeps_the_original_error(
         )  # fmt: skip
 
 
-def test_a_stale_lock_makes_the_next_save_use_the_following_second(tmp_path: Path):
+def run_concurrently(tasks: list) -> list:
+    """Startet die Aufgaben gleichzeitig (Barriere) und liefert ihre Ergebnisse."""
+    barrier = threading.Barrier(len(tasks))
+    results: list = [None] * len(tasks)
+
+    def run(i: int) -> None:
+        barrier.wait()
+        try:
+            results[i] = tasks[i]()
+        except BaseException as e:
+            results[i] = e
+
+    threads = [threading.Thread(target=run, args=(i,)) for i in range(len(tasks))]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    return results
+
+
+def test_concurrent_saves_of_the_same_state_write_one_protocol(tmp_path: Path):
     repo = Repository(tmp_path)
-    folder = tmp_path / "demo" / "protokolle"
-    folder.mkdir(parents=True)
     text = "# T\n\nStand: 1\n\nx\n"
-    tag = hashlib.sha256(text.encode("utf-8")).hexdigest()[:4]  # Namensbestandteil aus dem Inhalt
-    (folder / f"2026.21-review-20261016-144305-{tag}.md.lock").write_text("", encoding="utf-8")
+    results = run_concurrently(
+        [
+            lambda: write_protocol_new(repo, "demo", "2026.21", REVIEW, text, NOW, "abcd1234")
+            for _ in range(6)
+        ]
+    )
+    assert not [r for r in results if isinstance(r, BaseException)], results
+    assert sum(created for _, created in results) == 1  # genau eine Sitzung hat geschrieben
+    assert len({path for path, _ in results}) == 1
+    assert len(list_protocols(repo, "demo", "2026.21")) == 1
+    assert not list((tmp_path / "demo" / "protokolle").glob("*.lock"))  # Sperre freigegeben
+
+
+def test_concurrent_saves_of_different_states_keep_every_protocol(tmp_path: Path):
+    repo = Repository(tmp_path)
+    results = run_concurrently(
+        [
+            lambda i=i: write_protocol_new(
+                repo, "demo", "2026.21", REVIEW, f"# T\n\nStand: 1\n\nwert {i}\n", NOW, f"{i:04x}"
+            )
+            for i in range(6)
+        ]
+    )
+    assert not [r for r in results if isinstance(r, BaseException)], results
+    assert len(list_protocols(repo, "demo", "2026.21")) == 6
+
+
+def protocol_folder(tmp_path: Path) -> Path:
+    folder = tmp_path / "demo" / "protokolle"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+def test_a_busy_lock_is_reported_after_the_wait(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    repo = Repository(tmp_path)
+    folder = protocol_folder(tmp_path)
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
+    other_session = protocol_module._locked(folder, "2026.21", REVIEW)  # schreibt gerade
+    with other_session, pytest.raises(FileAccessError, match="andere Sitzung"):
+        write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    assert list_protocols(repo, "demo", "2026.21") == []
+    # Nach der Freigabe geht das Speichern wieder.
+    write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    assert len(list_protocols(repo, "demo", "2026.21")) == 1
+
+
+def test_a_waiting_save_proceeds_when_the_lock_is_released(tmp_path: Path):
+    repo = Repository(tmp_path)
+    folder = protocol_folder(tmp_path)
+    holding, release = threading.Event(), threading.Event()
+
+    def hold() -> None:
+        with protocol_module._locked(folder, "2026.21", REVIEW):
+            holding.set()
+            release.wait(5)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    assert holding.wait(5)
+    threading.Timer(0.3, release.set).start()  # nach 0,3 s freigeben, der Wartende wartet
+    path, created = write_protocol_new(
+        repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
+    )
+    holder.join()
+    assert created and path.exists()
+
+
+def test_the_lock_is_released_after_a_failed_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    repo = Repository(tmp_path)
+
+    def failing(path: Path, text: str, newline=None) -> None:
+        raise FileAccessError("Platte voll")
+
+    monkeypatch.setattr(protocol_module, "write_text", failing)
+    with pytest.raises(FileAccessError):
+        write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
+    with protocol_module._locked(protocol_folder(tmp_path), "2026.21", REVIEW):
+        pass  # frei: kein Warten, kein Fehler
+
+
+def test_obsoleting_takes_the_same_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    repo = Repository(tmp_path)
+    write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nx\n", NOW)
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
+    other_session = protocol_module._locked(protocol_folder(tmp_path), "2026.21", PLANNING)
+    with other_session, pytest.raises(FileAccessError, match="andere Sitzung"):
+        mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER)
+    assert not any(f[2] for f in list_protocols(repo, "demo", "2026.21"))
+
+
+def test_the_lock_file_lies_outside_the_data_folder_and_is_per_sprint_and_kind(tmp_path: Path):
+    folder = protocol_folder(tmp_path)
+    one = protocol_module._lock_file(folder, "2026.21", REVIEW)
+    assert tmp_path not in one.parents  # nie im Git-Arbeitsverzeichnis
+    assert one != protocol_module._lock_file(folder, "2026.22", REVIEW)
+    assert one != protocol_module._lock_file(folder, "2026.21", PLANNING)
+    assert one == protocol_module._lock_file(folder, "2026.21", REVIEW)
+
+
+def test_an_existing_file_name_moves_the_new_protocol_to_the_next_second(tmp_path: Path):
+    """Gleicher Name (Sekunde und Kennung), aber anderer Inhalt: nichts wird überschrieben."""
+    repo = Repository(tmp_path)
+    folder = protocol_folder(tmp_path)
+    text = "# T\n\nStand: 1\n\nx\n"
+    tag = hashlib.sha256(text.encode("utf-8")).hexdigest()[:4]
+    taken = folder / f"2026.21-review-20261016-144305-{tag}.md"
+    taken.write_text("# T\n\nStand: 1\n\nanderer Inhalt\n", encoding="utf-8")
     path = write_protocol(repo, "demo", "2026.21", REVIEW, text, NOW)
     assert path.name == f"2026.21-review-20261016-144306-{tag}.md"
+    assert "anderer Inhalt" in taken.read_text(encoding="utf-8")
 
 
 def test_different_states_saved_in_the_same_second_get_different_names(tmp_path: Path):

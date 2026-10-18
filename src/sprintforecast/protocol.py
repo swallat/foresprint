@@ -12,9 +12,13 @@ import contextlib
 import dataclasses
 import hashlib
 import re
-from collections.abc import Callable
+import sys
+import tempfile
+import time
+from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import IO
 
 from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
@@ -149,6 +153,81 @@ def _state_of(path: Path) -> str | None:
     return None
 
 
+# Sperre je Sprint und Termin: Suchen des letzten Protokolls, Prüfen auf Unverändertes und Schreiben
+# laufen am Stück, damit zwei Sitzungen mit demselben Stand nicht zwei Protokolle erzeugen.
+LOCK_WAIT_SECONDS = 10.0
+
+
+def _lock_file(folder: Path, sprint_id: str, kind: str) -> Path:
+    """Sperrdatei außerhalb des Datenordners (nie im Git-Arbeitsverzeichnis): je Protokollordner,
+    Sprint und Termin eine."""
+    key = hashlib.sha256(f"{folder.resolve()}|{sprint_id}|{kind}".encode()).hexdigest()[:24]
+    root = Path(tempfile.gettempdir()) / "sprintforecast-sperren"
+    root.mkdir(parents=True, exist_ok=True)
+    return root / f"{key}.lock"
+
+
+def _try_lock(handle: IO[bytes]) -> bool:
+    """Versucht, die Datei ohne Warten zu sperren (Sperre des Betriebssystems)."""
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False  # belegt (Windows meldet das als PermissionError/EDEADLOCK)
+    return True
+
+
+def _unlock(handle: IO[bytes]) -> None:
+    if sys.platform == "win32":
+        import msvcrt
+
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextlib.contextmanager
+def _locked(folder: Path, sprint_id: str, kind: str) -> Iterator[None]:
+    """Sperrt Protokolle eines Sprints und Termins für andere Sitzungen auf diesem Rechner. Die
+    Sperre ist eine Sperre des Betriebssystems auf einer Datei (``flock``/``msvcrt.locking``): Sie
+    endet mit dem Prozess von selbst, braucht keine Erkennung verwaister Sperren und keine Uhr. Wer
+    wartet, wartet bis ``LOCK_WAIT_SECONDS``. Zwischen Klonen auf verschiedenen Rechnern wirkt sie
+    nicht; dort schützt der aus dem Inhalt abgeleitete Dateiname."""
+    path = _lock_file(folder, sprint_id, kind)
+    try:
+        handle = path.open("a+b")
+    except OSError as e:
+        raise _not_saved(path, e) from e
+    try:
+        deadline = time.monotonic() + LOCK_WAIT_SECONDS
+        while not _try_lock(handle):
+            if time.monotonic() >= deadline:
+                raise FileAccessError(
+                    t(
+                        "Eine andere Sitzung schreibt gerade Protokolle dieses Sprints. "
+                        "Bitte gleich noch einmal speichern."
+                    )
+                )
+            time.sleep(0.05)
+        try:
+            yield
+        finally:
+            with contextlib.suppress(OSError):
+                _unlock(handle)
+    finally:
+        handle.close()
+
+
 def write_protocol_new(
     repo: Repository,
     team: str,
@@ -162,55 +241,38 @@ def write_protocol_new(
     entstand. Mit ``state`` (siehe :func:`fingerprint`) entsteht kein weiteres Protokoll, wenn der
     Stand unverändert ist; ohne ``state`` entscheidet der Text. Gibt es den Namen schon (zwei
     Speicherungen in derselben Sekunde), wird die Sekunde hochgezählt: nichts geht verloren.
+    Suchen und Schreiben laufen unter einer Sperre je Sprint und Termin (:func:`_locked`).
     Schreibfehler kommen als :class:`FileAccessError`."""
-    latest = next(
-        (
-            p
-            for _, k, obsolete, p in list_protocols(repo, team, sprint_id)
-            if k == kind and not obsolete
-        ),
-        None,
-    )
-    if latest is not None:
-        same = _state_of(latest) == state if state is not None else _body(latest) == _body_of(text)
-        if same:
-            return latest, False  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
-    if state is not None:
-        text = text.rstrip("\n") + f"\n\n{STATE_MARKER}{state} -->\n"
-    # Ein Bestandteil des Namens aus dem Inhalt: Zwei Klone, die in derselben Sekunde Verschiedenes
-    # speichern, erzeugen so nie denselben Dateinamen (sonst Konflikt beim Zusammenführen).
-    tag = (state or hashlib.sha256(text.encode("utf-8")).hexdigest())[:4]
     folder = _folder(repo, team)
     try:
         folder.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         raise _not_saved(folder, e) from e
-    stamp = now
-    while True:
-        path = folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}-{tag}.md"
-        lock = path.with_name(
-            path.name + ".lock"
-        )  # keine ``.md``-Datei: nie als Protokoll gelistet
-        if path.exists():
+    with _locked(folder, sprint_id, kind):
+        latest = next(
+            (
+                p
+                for _, k, obsolete, p in list_protocols(repo, team, sprint_id)
+                if k == kind and not obsolete
+            ),
+            None,
+        )
+        if latest is not None:
+            same = (
+                _state_of(latest) == state if state is not None else _body(latest) == _body_of(text)
+            )
+            if same:
+                return latest, False  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
+        if state is not None:
+            text = text.rstrip("\n") + f"\n\n{STATE_MARKER}{state} -->\n"
+        # Ein Bestandteil des Namens aus dem Inhalt: Zwei Klone, die in derselben Sekunde
+        # Verschiedenes speichern, erzeugen so nie denselben Dateinamen (sonst Konflikt beim
+        # Zusammenführen).
+        tag = (state or hashlib.sha256(text.encode("utf-8")).hexdigest())[:4]
+        stamp = now
+        while (path := folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}-{tag}.md").exists():
             stamp += timedelta(seconds=1)
-            continue
-        try:
-            with lock.open("x"):  # den Namen für andere Speicherungen sperren
-                pass
-        except FileExistsError:
-            stamp += timedelta(seconds=1)
-            continue
-        except OSError as e:
-            raise _not_saved(lock, e) from e
-        try:
-            if path.exists():  # eine andere Speicherung war schneller
-                stamp += timedelta(seconds=1)
-                continue
-            write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
-            break
-        finally:
-            with contextlib.suppress(OSError):
-                lock.unlink(missing_ok=True)
+        write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
     invalidate_status()  # eine neue Datei ist eine offene Änderung, auch ohne geänderte YAML
     return path, True
 
@@ -300,6 +362,16 @@ def mark_obsolete(
     """Benennt die gültigen Protokolle des Termins in ``…_obsolet_<Datum>-<Zeit>.md`` um (z. B.
     wenn das Einfrieren des Sprints aufgehoben wird). Liefert die neuen Dateien. Scheitert eine
     Umbenennung, werden die schon umbenannten wieder zurückbenannt (alles oder nichts)."""
+    folder = _folder(repo, team)
+    if not folder.is_dir():
+        return []
+    with _locked(folder, sprint_id, kind):
+        return _mark_obsolete(repo, team, sprint_id, kind, now)
+
+
+def _mark_obsolete(
+    repo: Repository, team: str, sprint_id: str, kind: str, now: datetime
+) -> list[Path]:
     renamed: list[Path] = []
     for _, found_kind, obsolete, path in list_protocols(repo, team, sprint_id):
         if found_kind != kind or obsolete:
