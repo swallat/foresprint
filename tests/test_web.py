@@ -1026,6 +1026,23 @@ def test_review_tracks_not_done_and_additional(app: AppTest, data_dir: Path):
     assert (sprint["velocity"], sprint["not_done"], sprint["additional_done"]) == (9, 2, 1)
 
 
+def test_analysis_warns_when_the_simulation_has_few_samples(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Die Simulation zieht aus 3 statt der 5 Sprints des Fensters: Warnung mit der Stichprobe."""
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > 3:
+            path.unlink()
+    at = goto(start(data_dir, monkeypatch), "analyse")
+    at.number_input(key="rest").set_value(20.0)
+    click(at, "Berechnen")
+    assert any(
+        "Wenig Daten: Die Simulation zieht aus nur 3 Sprints (ab 5 sind Aussagen" in w.value
+        for w in at.warning
+    )
+    assert any("Stichprobe: 3 Sprints" in c.value for c in at.caption)
+
+
 def test_analysis_too_large_rest_explains_horizon(app: AppTest):
     goto(app, "analyse")
     app.number_input(key="rest").set_value(100000.0)
