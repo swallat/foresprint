@@ -6,6 +6,7 @@ import pytest
 from sprintforecast.calendar import following_sprint, is_holiday, next_id, workdays
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.model import Membership, Numbering, Person, Sprint, Team
+from sprintforecast.storage import DataError
 
 
 def test_next_id_yearly_rolls_over_with_start_year():
@@ -26,7 +27,7 @@ def test_following_sprint():
 
 
 def test_following_sprint_without_start_fails():
-    with pytest.raises(ValueError, match="first_id"):
+    with pytest.raises(DataError, match="Start und ID des ersten Sprints"):
         following_sprint(Team(key="t", name="T"), None)
 
 
