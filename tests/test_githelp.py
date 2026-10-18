@@ -19,10 +19,24 @@ def test_help_titles_are_unique():
     assert len(titles) == len(set(titles))
 
 
-@pytest.mark.parametrize("kind", ["not_writable", "unsafe_directory"])
+@pytest.mark.parametrize("kind", ["not_writable", "unsafe_directory", "not_found", "certificate"])
 def test_help_entry_carries_the_title_the_app_shows(kind: str):
     """Wer die Überschrift einer Fehlermeldung in der Hilfe sucht, findet sie dort wieder."""
     assert entry(title_for(kind))
+
+
+def test_help_explains_the_missing_repository():
+    text = entry(title_for("not_found"))
+    assert "statt „Server nicht erreichbar“" in text and "VPN" in text
+    assert "umbenanntes" in text and "Server (Remote)" in text
+    # Ein getrenntes Laufwerk bleibt „Server nicht erreichbar“ (der Satz am Ende).
+    assert "Netzlaufwerk" in text and text.endswith("dagegen „Server nicht erreichbar“.")
+
+
+def test_help_explains_the_untrusted_certificate():
+    text = entry(title_for("certificate"))
+    assert "Sicherheitszertifikat" in text and "Firmenzertifikat" in text and "IT" in text
+    assert "keine Git-Einstellungen" in text and "nicht anerkannt wird, nicht" in text
 
 
 def test_help_explains_the_unsafe_folder():
