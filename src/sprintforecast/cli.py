@@ -15,7 +15,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, NoReturn
 
 import typer
 from rich.console import Console
@@ -37,7 +37,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.git import GitError, commit
+from sprintforecast.git import GitError, commit, title_for
 from sprintforecast.guide import (
     CAPACITY_SOURCES,
     COMMAND_ALIASES,
@@ -388,6 +388,36 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     return table
 
 
+def _cli_git_hints() -> dict[str, str]:
+    """Hinweise für die Kommandozeile zu Fehlerarten, deren Hinweis der Git-Schicht sich an die
+    Weboberfläche richtet (Seitenleiste, Seiten, Knöpfe)."""
+    return {
+        "identity": t(
+            "Git kennt deinen Namen noch nicht. Einrichten mit "
+            '`git config --global user.name "Dein Name"` und '
+            '`git config --global user.email "du@beispiel.de"`.'
+        ),
+        "conflict": t(
+            "Die Markierungen stammen aus einem unvollständigen Zusammenführen: im Editor "
+            "entfernen und den Befehl noch einmal mit --commit ausführen."
+        ),
+        "tag_exists": t(
+            "Den vorhandenen Tag zuerst entfernen (`git tag -d <Name>`) und den Befehl noch "
+            "einmal mit --commit ausführen. Die Daten sind gespeichert, nur nicht committet."
+        ),
+    }
+
+
+def _git_problem(e: GitError) -> NoReturn:
+    """Gibt einen Git-Fehler mit Überschrift, Meldung und nächstem Schritt aus (Exit-Code 1)."""
+    err.print(f"[bold red]{escape(title_for(e.kind))}[/bold red]")
+    if str(e):
+        err.print(f"[red]{escape(str(e))}[/red]")
+    if hint := _cli_git_hints().get(e.kind) or e.hint:
+        err.print(escape(hint))
+    raise typer.Exit(1) from e
+
+
 def _maybe_commit(
     c: Context, team: str, paths: list[Path], message: str, tag: str | None, do_commit: bool
 ) -> None:
@@ -408,8 +438,7 @@ def _maybe_commit(
     try:
         rev = commit(paths, message, tag)
     except GitError as e:
-        err.print(f"[red]Git: {e}[/red]")
-        raise typer.Exit(1) from e
+        _git_problem(e)
     suffix = t(", Tag {tag}", tag=tag) if tag else ""
     console.print(f"[green]{t('Committet ({rev}){suffix}.', rev=rev, suffix=suffix)}[/green]")
 
@@ -1792,7 +1821,8 @@ def datenordner(
         typer.Argument(help=t("Ordner merken (muss in einem Git-Repository liegen).")),
     ] = None,
 ) -> None:
-    from sprintforecast.git import repo_root
+    from sprintforecast.git import classify, repo_root
+    from sprintforecast.gitsync import git_available
     from sprintforecast.storage import save_data_dir, saved_data_dir, teams_dir
 
     if pfad is None:
@@ -1801,12 +1831,16 @@ def datenordner(
         console.print(t("Verwendet (ohne --daten): {path}", path=default_data_dir().resolve()))
         return
     if not pfad.is_dir():
-        err.print(f"[red]{t('Ordner nicht gefunden: {path}', path=pfad)}[/red]")
+        err.print(f"[red]{escape(t('Ordner nicht gefunden: {path}', path=pfad))}[/red]")
         raise typer.Exit(1)
+    if not git_available():
+        _git_problem(classify("", missing=True))
     if repo_root(pfad) is None:
         err.print(
             "[red]"
-            + t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+            + escape(
+                t("{path} liegt in keinem Git-Repository (git init bzw. git clone).", path=pfad)
+            )
             + "[/red]"
         )
         raise typer.Exit(1)
@@ -1814,9 +1848,11 @@ def datenordner(
     try:
         save_data_dir(target)
     except SettingsError as e:
-        err.print(f"[red]{e}[/red]")
+        err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
-    console.print(f"[green]{t('Datenordner gemerkt: {path}', path=target.resolve())}[/green]")
+    console.print(
+        f"[green]{escape(t('Datenordner gemerkt: {path}', path=target.resolve()))}[/green]"
+    )
 
 
 @command("sprache", "Sprache der Oberfläche anzeigen oder einstellen (de, en).")

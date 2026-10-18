@@ -1378,6 +1378,12 @@ EN: dict[str, str] = {
     "noch nicht auf dem Server – „Speichern und teilen“ lädt hoch": "not on the server yet – “Save and share” uploads it",
     "erfasst für Sprint {id}": "recorded for sprint {id}",
     "noch offen für Sprint {id}": "still open for sprint {id}",
+    # --- cli: Git-Meldungen ---
+    "Kein Git-Repository": "No Git repository",
+    "Der Datenordner muss in einem Git-Repository liegen: mit `git init` ein neues anlegen oder mit `git clone` ein bestehendes holen.": "The data folder must be inside a Git repository: create a new one with `git init` or fetch an existing one with `git clone`.",
+    'Git kennt deinen Namen noch nicht. Einrichten mit `git config --global user.name "Dein Name"` und `git config --global user.email "du@beispiel.de"`.': 'Git does not know your name yet. Set it up with `git config --global user.name "Your Name"` and `git config --global user.email "you@example.org"`.',
+    "Die Markierungen stammen aus einem unvollständigen Zusammenführen: im Editor entfernen und den Befehl noch einmal mit --commit ausführen.": "The markers come from an incomplete merge: remove them in an editor and run the command again with --commit.",
+    "Den vorhandenen Tag zuerst entfernen (`git tag -d <Name>`) und den Befehl noch einmal mit --commit ausführen. Die Daten sind gespeichert, nur nicht committet.": "Remove the existing tag first (`git tag -d <name>`) and run the command again with --commit. The data is saved, just not committed.",
     "Datum im Format JJJJ-MM-TT erwartet": "Date in the format YYYY-MM-DD expected",
     "Die Umgebungsvariable `{name}` enthält „{value}“ – erwartet wird ein Datum im Format JJJJ-MM-TT. Bitte die Variable korrigieren oder entfernen und die Weboberfläche neu starten.": "The environment variable `{name}` contains “{value}” – a date in the format YYYY-MM-DD is expected. Please correct or remove the variable and restart the web interface.",
 }
