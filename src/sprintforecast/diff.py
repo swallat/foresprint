@@ -11,7 +11,6 @@ letzten Commit.
 from __future__ import annotations
 
 import contextlib
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -74,8 +73,6 @@ def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueCha
     Änderung unter dem Pfad der Liste mit den ``id`` davor und danach."""
     if same(old, new):
         return []
-    if isinstance(old, float) and isinstance(new, float) and math.isnan(old) and math.isnan(new):
-        return []  # nan == nan ist falsch, die Werte sind aber gleich
     if isinstance(old, dict) and isinstance(new, dict):
         return _diff_mapping(old, new, path, item=False)
     keyed_old, keyed_new = keyed(old), keyed(new)
