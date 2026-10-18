@@ -552,6 +552,11 @@ COMMANDS: list[tuple[str, str]] = [
         "Bandbreite, Fokusfaktor, Puffer, Fertigstellung",
     ),
     ("sprintforecast bericht [TEAM] [--ausgabe PFAD]", "FORECAST.md erzeugen"),
+    ("sprintforecast excel TEAM [--ausgabe PFAD]", "Excel-Liste mit Formeln und Trend-Diagramm"),
+    (
+        "sprintforecast excel-import TEAM DATEI [--uebernehmen]",
+        "Excel-Liste einlesen (Vorschau, dann schreiben)",
+    ),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
     ("sprintforecast pruefen [--streng]", "Alle Daten prüfen (für CI und vor dem Commit)"),
     ("sprintforecast datenordner [PFAD]", "Gemerkten Datenordner anzeigen bzw. setzen"),
