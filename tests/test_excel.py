@@ -77,6 +77,27 @@ def test_products_sheet_and_production_split_are_included(data_dir: Path):
     assert "SUMIFS" in forecast and "COUNTIFS" in forecast  # Σ Planning je Produkt
 
 
+def test_imported_text_never_becomes_a_formula_in_the_next_export(data_dir: Path):
+    """Notizen und Namen aus einer Mappe, die mit = beginnen, werden als Text geschrieben."""
+    import openpyxl
+
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    sprint = next(s for s in data.sprints if s.velocity is not None)
+    sprint.note = '=HYPERLINK("http://boese.example","x")'
+    data.people[0].name = "=1+1"
+    repo.save_sprint("demo", sprint)
+    repo.save_people("demo", data.people)
+    content = build_workbook(build_forecast(repo.load("demo"), TODAY))
+    wb = openpyxl.load_workbook(BytesIO(content))
+    notes = [
+        c for row in wb["Sprintdaten"].iter_rows(min_row=2) for c in row if c.value == sprint.note
+    ]
+    names = [c for row in wb["Personen"].iter_rows(min_row=2) for c in row if c.value == "=1+1"]
+    assert notes and names
+    assert all(c.data_type == "s" for c in [*notes, *names])  # Text, keine Formel ("f")
+
+
 def test_command_writes_the_file(data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
