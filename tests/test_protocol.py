@@ -4,6 +4,7 @@
 import hashlib
 import re
 import threading
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -385,6 +386,85 @@ def test_obsoleting_takes_the_same_lock(tmp_path: Path, monkeypatch: pytest.Monk
     with other_session, pytest.raises(FileAccessError, match="andere Sitzung"):
         mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER)
     assert not any(f[2] for f in list_protocols(repo, "demo", "2026.21"))
+
+
+def run_with_failing_first_session(first, second, order: list[str]) -> tuple:
+    """Sitzung A (``first(save)``) steckt in ihrem ``save`` und scheitert erst 0,3 s, nachdem
+    Sitzung B (``second()``) losgelaufen ist; B startet erst, wenn A im ``save`` steckt. Liefert die
+    Ergebnisse (A, B); ``order`` bekommt „a-failed“, kurz bevor A scheitert."""
+    in_save, b_started, release = (threading.Event() for _ in range(3))
+
+    def failing_save() -> list[Path]:
+        in_save.set()
+        release.wait(5)
+        order.append("a-failed")
+        raise FileAccessError("kein Schreibrecht")
+
+    def session_b():
+        assert in_save.wait(5)
+        b_started.set()
+        return second()
+
+    def releaser() -> None:
+        assert in_save.wait(5) and b_started.wait(5)
+        time.sleep(0.3)  # B hat inzwischen angefragt und wartet auf die Sperre
+        release.set()
+
+    a, b, _ = run_concurrently([lambda: first(failing_save), session_b, releaser])
+    return a, b
+
+
+def test_a_second_save_takes_over_the_protocol_only_after_the_first_one_has_failed(tmp_path: Path):
+    """Sitzung A legt das Protokoll an, ihr Speichern scheitert; Sitzung B mit demselben Stand
+    darf das Protokoll nicht übernehmen, das A gleich wieder löscht: Das Protokoll gehört zu B's
+    erfolgreichem Speichern."""
+    repo = Repository(tmp_path)
+    text = "# T\n\nStand: 1\n\nx\n"
+    order: list[str] = []
+
+    def session(save) -> list[Path]:
+        return save_with_protocol(repo, "demo", "2026.21", REVIEW, text, NOW, [sprint_stub()], save)
+
+    def save_b() -> list[Path]:
+        order.append("b-saved")
+        return []
+
+    a, b = run_with_failing_first_session(session, lambda: session(save_b), order)
+    assert isinstance(a, FileAccessError) and b == []
+    assert order == ["a-failed", "b-saved"]  # B wartet, bis A zurückgebaut hat
+    found = list_protocols(repo, "demo", "2026.21")
+    assert len(found) == 1 and found[0][3].exists()  # B's Speichern hat sein Protokoll
+
+
+@pytest.mark.parametrize("second_session", ["mark_obsolete", "obsolete_with_save"])
+def test_a_second_unfreeze_sees_the_protocols_only_after_the_first_one_was_rolled_back(
+    tmp_path: Path, second_session: str
+):
+    """Sitzung A benennt das Protokoll um, ihr Speichern scheitert und sie benennt zurück. Sitzung B
+    darf in der Zwischenzeit nichts sehen: Sie fände sonst keine gültigen Protokolle und speichert,
+    während A das Protokoll danach wieder gültig macht."""
+    repo = Repository(tmp_path)
+    write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nx\n", NOW)
+    order: list[str] = []
+
+    def second() -> list[Path]:
+        if second_session == "mark_obsolete":
+            renamed = mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER)
+        else:
+            renamed = obsolete_with_save(repo, "demo", "2026.21", PLANNING, LATER, lambda: [])
+        order.append("b-done")
+        return renamed
+
+    a, b = run_with_failing_first_session(
+        lambda save: obsolete_with_save(repo, "demo", "2026.21", PLANNING, LATER, save),
+        second,
+        order,
+    )
+    assert isinstance(a, FileAccessError) and not isinstance(b, BaseException), (a, b)
+    assert order == ["a-failed", "b-done"]  # B sieht erst, wenn A zurückgebaut hat
+    if second_session == "mark_obsolete":
+        assert len(b) == 1  # B fand das wieder gültige Protokoll und benannte es um
+    assert [f[2] for f in list_protocols(repo, "demo", "2026.21")] == [True]  # nur obsolet
 
 
 def test_the_lock_file_lies_outside_the_data_folder_and_is_per_sprint_and_kind(tmp_path: Path):
