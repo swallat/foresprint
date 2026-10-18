@@ -4697,12 +4697,14 @@ def _reattach_clicked(root: Path) -> None:
         if done.rescue and done.commits and done.changes:
             text += " " + t(
                 "Die Commits vom Stand ohne Branch und die offenen Änderungen liegen auf dem "
-                "Rettungsbranch {rescue}.",
+                "Rettungsbranch {rescue} (ein eigener Zweig nur für Gesichertes); auf dem "
+                "Hauptbranch sind sie nicht enthalten.",
                 rescue=md_code(done.rescue),
             )
         elif done.rescue and done.changes:
             text += " " + t(
-                "Die offenen Änderungen liegen auf dem Rettungsbranch {rescue}.",
+                "Die offenen Änderungen liegen auf dem Rettungsbranch {rescue} (ein eigener "
+                "Zweig nur für Gesichertes); auf dem Hauptbranch sind sie nicht enthalten.",
                 rescue=md_code(done.rescue),
             )
         elif done.rescue:

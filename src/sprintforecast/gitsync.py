@@ -752,6 +752,9 @@ def _reattach_hint(saved: str | None = None) -> str:
     return text
 
 
+_SAVE_SUBJECT = "Offene Änderungen vor dem Wechsel gesichert"
+
+
 def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
     """Committet die offenen Änderungen im Datenordner auf einem Rettungsbranch und gibt dessen
     Namen zurück. ``rescue`` ist ein vorhandener Rettungsbranch an dieser Stelle (``None`` =
@@ -764,13 +767,31 @@ def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
     else:
         _git(root, "switch", "-c", name)
     try:
-        gitmod.commit_directory(path, "Offene Änderungen vor dem Wechsel gesichert")
-    except GitError:
-        _git(root, "switch", "--detach", start)
-        if rescue is None:
-            _git(root, "branch", "-D", name)
+        gitmod.commit_directory(path, _SAVE_SUBJECT)
+    except GitError, OSError:
+        try:
+            # Den Index im Datenordner zurücksetzen (``git add`` hat ihn verändert) und zurück auf
+            # den losen Stand; HEAD bleibt nie auf dem neuen Rettungsbranch stehen.
+            _git(root, "reset", "-q", "--", str(path.resolve()), check=False)
+            _git(root, "switch", "--detach", start)
+            if rescue is None:
+                _git(root, "branch", "-D", name)
+        finally:
+            gitmod.invalidate_status()
         raise
     return name
+
+
+def _saved_before(root: Path, holders: list[str]) -> bool | None:
+    """Steht HEAD auf der Sicherung eines früheren Versuchs von :func:`reattach` (Commit
+    „Offene Änderungen vor dem Wechsel gesichert“, nur auf Rettungsbranches)? Dann: Hingen
+    davor Commits an keinem Branch (``True``) oder nicht (``False``)? Sonst ``None``."""
+    if not holders or not all(b.startswith("rettung-") for b in holders):
+        return None
+    if _git(root, "log", "-1", "--format=%s", "HEAD", check=False) != _SAVE_SUBJECT:
+        return None
+    parent = _git(root, "branch", "--contains", "HEAD~1", "--format=%(refname:short)", check=False)
+    return all(b.startswith("rettung-") for b in parent.splitlines() if not b.startswith("("))
 
 
 def reattach(path: Path) -> Reattached:
@@ -803,17 +824,21 @@ def reattach(path: Path) -> Reattached:
     elif all(b.startswith("rettung-") for b in holders):  # gesichert von einem früheren Versuch
         commits = True
         rescue = holders[0]
-    changes = bool(gitmod.changes_in(path))
-    if changes:
+    new_changes = bool(gitmod.changes_in(path))
+    earlier = _saved_before(root, holders)  # Sicherung aus einem früheren Versuch
+    if earlier is not None:
+        commits = earlier
+    if new_changes:
         # Auf dem Rettungsbranch committen (ein vorhandener an dieser Stelle, sonst ein neuer).
-        rescue = _save_open_changes(root, path, rescue if commits and holders else None)
+        rescue = _save_open_changes(root, path, rescue if holders else None)
         saved_at = _git(root, "rev-parse", "HEAD")
     elif rescue and not holders:
         _git(root, "branch", rescue)
+    changes = new_changes or earlier is not None
     try:
         _git(root, "switch", target)
     except GitError as e:
-        if changes:  # wieder lose auf dem Stand mit der Sicherung: der nächste Versuch findet ihn
+        if new_changes:  # wieder lose auf der Sicherung: der nächste Versuch findet sie
             _git(root, "switch", "--detach", saved_at)
         gitmod.invalidate_status()
         if e.kind != "dirty":
