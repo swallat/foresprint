@@ -570,19 +570,69 @@ def test_tmp_files_in_new_data_repositories_stay_out_of_git(tmp_path: Path):
     assert ".tmp" not in status
 
 
-def test_new_data_repositories_keep_yaml_on_lf(tmp_path: Path):
-    gitmod.init_data_repository(tmp_path / "daten")
-    attributes = (tmp_path / "daten" / ".gitattributes").read_text(encoding="utf-8")
-    assert "*.yaml text eol=lf" in attributes.splitlines()
-    assert "*.yml text eol=lf" in attributes.splitlines()
+def test_new_data_repositories_keep_yaml_and_reports_on_lf(tmp_path: Path):
+    teams = gitmod.init_data_repository(tmp_path / "daten")
+    lines = (teams / ".gitattributes").read_text(encoding="utf-8").splitlines()
+    assert "*.yaml text eol=lf" in lines
+    assert "*.yml text eol=lf" in lines
+    assert "*.md text eol=lf" in lines
+    assert not (
+        tmp_path / "daten" / ".gitattributes"
+    ).exists()  # nur im Datenordner, der geteilt wird
+
+
+def test_gitattributes_lies_in_the_data_folder_without_a_teams_folder(tmp_path: Path):
+    data = gitmod.init_data_repository(tmp_path / "daten", teams_folder=False)
+    assert data == tmp_path / "daten" and (data / ".gitattributes").is_file()
 
 
 def test_existing_gitattributes_are_not_overwritten(tmp_path: Path):
     root = tmp_path / "daten"
-    root.mkdir()
-    (root / ".gitattributes").write_text("* -text\n", encoding="utf-8")
+    (root / "teams").mkdir(parents=True)
+    (root / "teams" / ".gitattributes").write_text("* -text\n", encoding="utf-8")
     gitmod.init_data_repository(root)
-    assert (root / ".gitattributes").read_text(encoding="utf-8") == "* -text\n"
+    assert (root / "teams" / ".gitattributes").read_text(encoding="utf-8") == "* -text\n"
+
+
+def test_existing_gitignore_is_not_overwritten_but_gitattributes_is_added(tmp_path: Path):
+    root = tmp_path / "daten"
+    root.mkdir()
+    (root / ".gitignore").write_text("eigene\n", encoding="utf-8")
+    teams = gitmod.init_data_repository(root)
+    assert (root / ".gitignore").read_text(encoding="utf-8") == "eigene\n"
+    assert (teams / ".gitattributes").is_file()
+
+
+def test_existing_repositories_stay_untouched(tmp_path: Path):
+    """Im Index könnten CRLF-Dateien liegen, die mit einer neuen Festlegung als geändert gälten."""
+    root = tmp_path / "daten"
+    root.mkdir()
+    git(root, "init", "-q")
+    teams = gitmod.init_data_repository(root)
+    assert not (teams / ".gitattributes").exists()
+    assert (root / ".gitignore").is_file()  # wie bisher
+
+
+def test_gitattributes_is_committed_with_the_data_and_reaches_clones(tmp_path: Path):
+    """Der Windows-Fall am Klon: Mit ``core.autocrlf`` läge die Datei dort sonst als CRLF vor,
+    und das erste Speichern schriebe alle Zeilenenden auf LF um (Phantom-Änderung)."""
+    server = tmp_path / "server.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(server))
+    root = tmp_path / "daten"
+    teams = gitmod.init_data_repository(root)
+    git(root, "config", "user.name", "T")
+    git(root, "config", "user.email", "t@example.org")
+    (teams / "team.yaml").write_bytes(b"name: A\n")
+    gitmod.commit_directory(teams, "Start")
+    assert "teams/.gitattributes" in git(root, "ls-files").splitlines()
+    git(root, "remote", "add", "origin", str(server))
+    git(root, "push", "-q", "origin", "HEAD:main")
+
+    clone = tmp_path / "klon"
+    git(tmp_path, "clone", "-q", "-c", "core.autocrlf=true", str(server), str(clone))
+    assert (clone / "teams" / "team.yaml").read_bytes() == b"name: A\n"
+    (clone / "teams" / "team.yaml").write_bytes(b"name: A\n")  # erneutes Speichern mit LF
+    assert pending_changes(clone / "teams") == []
 
 
 def test_yaml_files_stay_on_lf_in_checkout_despite_autocrlf(tmp_path: Path):
@@ -604,12 +654,14 @@ def test_yaml_files_stay_on_lf_in_checkout_despite_autocrlf(tmp_path: Path):
 
 def test_data_repository_template_matches_new_repositories(tmp_path: Path):
     root = tmp_path / "daten"
-    gitmod.init_data_repository(root)
+    teams = gitmod.init_data_repository(root)
     template = Path(__file__).resolve().parents[1] / "templates" / "daten-repo"
-    for name in (".gitignore", ".gitattributes"):
-        assert (template / name).read_text(encoding="utf-8") == (root / name).read_text(
-            encoding="utf-8"
-        )
+    assert (template / ".gitignore").read_text(encoding="utf-8") == (root / ".gitignore").read_text(
+        encoding="utf-8"
+    )
+    assert (template / ".gitattributes").read_text(encoding="utf-8") == (
+        teams / ".gitattributes"
+    ).read_text(encoding="utf-8")
 
 
 # --- M5: Speichern über Konfliktmarkierungen ------------------------------------------------

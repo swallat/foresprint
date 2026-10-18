@@ -611,7 +611,7 @@ EN: dict[str, str] = {
     "Repository klonen": "Clone repository",
     "Ordner": "Folder",
     "Übernehmen": "Apply",
-    "Legt den Ordner mit `git init`, einer `.gitignore` (keine Tabellenkalkulationen) und dem Unterordner `teams` an. Danach unter **Neues Team** ein Team anlegen.": "Creates the folder with `git init`, a `.gitignore` (no spreadsheets) and the subfolder `teams`. Then create a team under **New team**.",
+    "Legt den Ordner mit `git init`, einer `.gitignore` (keine Tabellenkalkulationen) und dem Unterordner `teams` an; darin steht eine `.gitattributes` (YAML und Berichte mit LF), die mit den Daten geteilt wird. Danach unter **Neues Team** ein Team anlegen.": "Creates the folder with `git init`, a `.gitignore` (no spreadsheets) and the subfolder `teams`; inside it is a `.gitattributes` (YAML and reports with LF) that is shared with the data. Then create a team under **New team**.",
     "Neuer Ordner": "New folder",
     "Anlegen": "Create",
     "Für Kolleginnen und Kollegen: das gemeinsame Daten-Repository des Teams klonen. Je nach Server fragt Git nach der Anmeldung.": "For colleagues: clone the team's shared data repository. Depending on the server, Git asks for your login.",
