@@ -2,14 +2,24 @@
 """Änderungsansicht: Wertänderungen zwischen zwei YAML-Ständen."""
 
 import contextlib
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
 from gitrepos import git, make_local
 
-from sprintforecast.diff import ADDED, CHANGED, REMOVED, diff_values, file_changes
-from sprintforecast.git import GitError
+from sprintforecast import diff as diff_module
+from sprintforecast.diff import (
+    ADDED,
+    CHANGED,
+    REMOVED,
+    TooComplex,
+    cached_file_changes,
+    diff_values,
+    file_changes,
+)
+from sprintforecast.git import GitError, pending_changes
 from sprintforecast.yamlmerge import MISSING
 
 
@@ -261,3 +271,120 @@ def test_only_the_first_files_are_evaluated(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("sprintforecast.diff._EVAL_LIMIT", 1)
     first, second = file_changes(data)
     assert first.values and not second.values and second.readable
+
+
+def test_the_101st_file_is_readable_without_values(tmp_path: Path):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    for i in range(101):
+        (data / f"f{i:03}.yaml").write_text("a: 1\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "viele")
+    for i in range(101):
+        (data / f"f{i:03}.yaml").write_text("a: 2\n", encoding="utf-8")
+    result = file_changes(data)
+    assert len(result) == 101
+    assert all(c.values for c in result[:100])
+    assert result[100].file.endswith("f100.yaml") and result[100].readable
+    assert result[100].values == ()
+
+
+def test_old_path_for_text_files_new_deleted_and_beyond_the_limit(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    (data / "a.txt").write_text("x", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "txt")
+    git(root, "mv", "teams/a.txt", "teams/b.txt")
+    (data / "neu.yaml").write_text("a: 1\n", encoding="utf-8")
+    (data / "team.yaml").unlink()
+    result = {c.file: c for c in file_changes(data)}
+    assert result["teams/b.txt"].orig == "teams/a.txt" and not result["teams/b.txt"].readable
+    assert result["teams/neu.yaml"].orig == "" and result["teams/team.yaml"].orig == ""
+    monkeypatch.setattr("sprintforecast.diff._EVAL_LIMIT", 0)
+    beyond = {c.file: c for c in file_changes(data)}
+    assert beyond["teams/b.txt"].orig == "teams/a.txt" and beyond["teams/b.txt"].readable
+
+
+def alias_bomb(last: str) -> str:
+    lines = ["l0: &l0 [x, x, x, x, x, x, x, x, x]"]
+    lines += [f"l{i}: &l{i} [{', '.join([f'*l{i - 1}'] * 9)}]" for i in range(1, 7)]
+    return "\n".join(lines) + f"\nz: {last}\n"
+
+
+def test_alias_bomb_is_not_evaluated(tmp_path: Path):
+    import time
+
+    import yaml
+
+    tree = yaml.safe_load(alias_bomb("1"))
+    assert diff_values(tree, tree) == []  # dasselbe Objekt: sofort gleich
+    with pytest.raises(TooComplex):
+        diff_values(tree, yaml.safe_load(alias_bomb("2")))
+    root = make_local(tmp_path)
+    data = root / "teams"
+    (data / "bombe.yaml").write_text(alias_bomb("1"), encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "bombe")
+    (data / "bombe.yaml").write_text(alias_bomb("2"), encoding="utf-8")
+    started = time.monotonic()
+    (change,) = file_changes(data)
+    assert not change.readable and time.monotonic() - started < 10
+
+
+def pending_of(path: Path):
+    return pending_changes(path)
+
+
+def counting(monkeypatch) -> list[Path]:
+    calls: list[Path] = []
+    real = diff_module.file_changes
+
+    def wrapper(path: Path):
+        calls.append(path)
+        return real(path)
+
+    monkeypatch.setattr(diff_module, "file_changes", wrapper)
+    return calls
+
+
+def test_cache_notices_a_new_head_from_outside(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    (data / "team.yaml").write_text("name: B\n", encoding="utf-8")
+    calls = counting(monkeypatch)
+    cached_file_changes(data, pending_of(data))
+    cached_file_changes(data, pending_of(data))
+    assert len(calls) == 1
+    git(root, "commit", "-q", "--allow-empty", "-m", "von außen")
+    cached_file_changes(data, pending_of(data))
+    assert len(calls) == 2
+
+
+def test_cache_notices_a_changed_size_with_the_same_time(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    file = data / "team.yaml"
+    file.write_text("name: B\n", encoding="utf-8")
+    calls = counting(monkeypatch)
+    cached_file_changes(data, pending_of(data))
+    stamp = file.stat().st_mtime_ns
+    file.write_text("name: CC\n", encoding="utf-8")
+    os.utime(file, ns=(stamp, stamp))
+    (change,) = cached_file_changes(data, pending_of(data))
+    assert len(calls) == 2 and change.values[0].new == "CC"
+
+
+def test_cache_key_is_the_resolved_path_and_the_result_is_a_copy(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    (data / "team.yaml").write_text("name: B\n", encoding="utf-8")
+    link = tmp_path / "link"
+    link.symlink_to(data)
+    calls = counting(monkeypatch)
+    first = cached_file_changes(data, pending_of(data))
+    first.clear()  # verändert nicht den Speicher
+    again = cached_file_changes(link, pending_of(data))
+    assert len(calls) == 1 and len(again) == 1
+    again.clear()  # auch das Ergebnis eines Treffers ist eine Kopie
+    assert len(cached_file_changes(data, pending_of(data))) == 1
