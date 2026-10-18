@@ -201,6 +201,27 @@ def test_planning_step_two_splits_capacity_by_production_access(
     assert "PT mit Produktionszugriff" not in captions(start(data_dir, monkeypatch))
 
 
+def test_planning_minutes_follow_the_product_distribution_switch(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Ohne Funktionsbereich Produkte bleibt das Planning-Protokoll ohne Produktabschnitt, auch
+    wenn der Produktkatalog in den Dateien erhalten ist."""
+
+    def planning_minutes(products: bool) -> str:
+        set_features(data_dir, products=products)
+        at = goto(start(data_dir, monkeypatch), "planning")
+        at.selectbox(key="planning-sprint").set_value("2026.22").run()
+        at.radio(key="planning-step").set_value(2).run()
+        at.number_input(key="fist-2026.22").set_value(10.0 + (1 if products else 0))
+        click(at, "Planning speichern")
+        files = sorted((data_dir / TEAM / "protokolle").glob("2026.22-planning-*.md"))
+        assert files
+        return files[-1].read_text(encoding="utf-8")
+
+    assert "Je Produkt" not in planning_minutes(products=False)
+    assert "Je Produkt" in planning_minutes(products=True)
+
+
 def test_production_split_uses_the_current_plan_for_both_amounts(data_dir: Path):
     """Ist der Forecast PLAN eingefroren und weicht vom aktuellen ab, teilen beide Mengen den
     aktuellen Plan auf (keine negative Restmenge)."""

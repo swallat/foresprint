@@ -245,11 +245,12 @@ def _write(path: Path, header: str, content: dict[str, Any]) -> None:
         raise _not_saved(path, e) from e
 
 
-def write_text(path: Path, text: str) -> None:
+def write_text(path: Path, text: str, newline: str | None = None) -> None:
     """Schreibt eine Textdatei (z. B. den Bericht) über eine Zwischendatei; Fehler wie bei
-    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF)."""
+    :func:`_write`. Zeilenenden wie bei ``Path.write_text`` (unter Windows CRLF), mit
+    ``newline="\\n"`` immer LF."""
     try:
-        _replace_with(path, text, newline=None)
+        _replace_with(path, text, newline=newline)
     except OSError as e:
         raise _not_saved(path, e) from e
 
@@ -1066,6 +1067,35 @@ class Repository:
             sprint.absence_state = self._pinned_absence_state(path, sprint)
         _write(path, SPRINT_HEADER.format(id=sprint.id), sprint_to_dict(sprint))
         return path
+
+
+def save_sprints_together(repo: Repository, key: str, sprints: list[Sprint]) -> list[Path]:
+    """Schreibt mehrere Sprintdateien ganz oder gar nicht: Scheitert eine, werden die schon
+    geschriebenen auf ihren vorherigen Stand zurückgesetzt (neue Dateien entfernt)."""
+    before: dict[Path, bytes | None] = {}
+    for s in sprints:
+        path = repo.sprint_path(key, s.id)
+        try:
+            before[path] = path.read_bytes() if path.is_file() else None
+        except OSError as e:
+            raise _not_readable(path, e) from e
+    written: list[Path] = []
+    try:
+        for s in sprints:
+            written.append(repo.save_sprint(key, s))
+    except BaseException:
+        for path in written:
+            old = before[path]
+            try:
+                if old is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(old)
+            except OSError:
+                pass  # der ursprüngliche Fehler zählt; die Meldung nennt die Datei
+        clear_team_cache()
+        raise
+    return written
 
 
 def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[Path]:
