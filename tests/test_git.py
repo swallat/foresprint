@@ -100,6 +100,24 @@ def test_repo_root_names_the_reason_for_an_unsafe_directory(unsafe: Path):
     assert str(problem).startswith("fatal: detected dubious ownership in repository at")
 
 
+def test_the_reason_stays_the_output_of_git_where_it_is_passed_on(unsafe: Path):
+    """Die Meldung nennt Pfade und kommt von Git: Wo der Grund weitergereicht wird
+    (``require_root``, ``init_data_repository``), bleibt sie als Ausgabe von Git gekennzeichnet,
+    damit die Oberfläche sie als Code setzt statt als Markdown."""
+    from sprintforecast.git import init_data_repository
+
+    folder = unsafe / "teams"
+    problem = root_problem(folder)
+    assert problem is not None and problem.raw
+    with pytest.raises(GitError) as via_root:
+        require_root(folder)
+    with pytest.raises(GitError) as via_init:
+        init_data_repository(unsafe)
+    for error in (via_root.value, via_init.value):
+        assert error.kind == "unsafe_directory" and error.raw
+        assert error.render(lambda text: f"«{text}»") == f"«{problem}»"
+
+
 def test_init_data_repository_leaves_an_unsafe_directory_untouched(unsafe: Path):
     """Git lehnt den Ordner ab: kein „git init“ und keine neue Datei dort, sondern der Grund."""
     from sprintforecast.git import init_data_repository

@@ -786,7 +786,7 @@ def reattach(path: Path) -> Reattached:
     except GitError as e:
         if e.kind != "dirty":
             raise
-        raise GitError(str(e), "detached", _reattach_hint(str(e), root, path)) from e
+        raise GitError(str(e), "detached", _reattach_hint(str(e), root, path), e.raw) from e
     gitmod.invalidate_status()
     return Reattached(target, rescue)
 
