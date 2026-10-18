@@ -452,6 +452,7 @@ def restore_version(path: Path, scope: Path, rev: str, message: str | None = Non
         short = _git(root, "rev-parse", "--short", rev)
         text = message or t("Stand von {rev} wiederhergestellt ({scope})", rev=short, scope=rel)
         _git(root, "add", "--all", "--", rel)
+        gitmod.refuse_staged_conflict_markers(root)  # ein früher geteilter Fehlerstand
         _git(root, "commit", "-m", text, "--", rel)
     except GitError as e:
         failed = _rollback_restore(root, rel, then - now, saved)
@@ -504,6 +505,15 @@ def revert_commit(path: Path, rev: str) -> str:
                 "error",
                 t("Es wurde nichts verändert."),
             ) from e
+        raise
+    changed = gitmod.split_z(
+        _git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "HEAD", strip=False)
+    )
+    try:  # kein Stand mit Konfliktmarkierungen (z. B. das Zurücknehmen einer Reparatur)
+        gitmod.refuse_conflict_markers(root, (root / name for name in changed))
+    except GitError:
+        _git(root, "reset", "--hard", "HEAD~1")  # eigener Commit von eben, vorher war alles sauber
+        gitmod.invalidate_status()
         raise
     gitmod.invalidate_status()
     return _git(root, "rev-parse", "--short", "HEAD")
