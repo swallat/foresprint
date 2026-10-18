@@ -508,7 +508,8 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
         default_ist = default_forecast_ist(fc, sprint)
-        ist_col, open_col, extra_col, result_col = st.columns(4)
+        # Unten ausrichten: Beschriftungen, die umbrechen, schieben die Felder sonst nach unten.
+        ist_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
         ist = ist_col.number_input(
             t("Commitment ({unit})", unit=unit),
             min_value=0.0,
@@ -1967,6 +1968,32 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         st.button(t("Weiter"), on_click=_goto, args=(1,), type="primary")
 
 
+def _production_split_note(fc: Forecast, entry: Any, data: TeamData, unit: str) -> str | None:
+    """Aufteilung von Kapazität und Forecast PLAN in Personen mit und ohne Produktionszugriff
+    (Näherung über den Kapazitätsanteil). None, wenn das Team das nicht nutzt oder niemand
+    als berechtigt markiert ist."""
+    if not data.team.features.production:
+        return None
+    d = distribution(fc, entry)
+    share = d.production_share
+    capacity = entry.result.plan_capacity
+    if d.production_state != "ok" or share is None or capacity is None or d.available is None:
+        return None
+    plan = entry.result.plan
+    prod_plan = d.production_available
+    return t(
+        "Kapazität: {prod_cap} PT mit Produktionszugriff ({share}), {rest_cap} PT ohne · "
+        "Forecast PLAN: bis zu {prod_plan} {unit} für Tickets mit Produktionszugriff, "
+        "{rest_plan} {unit} für alle übrigen.",
+        prod_cap=fmt(capacity * share, 1),
+        share=pct(share),
+        rest_cap=fmt(capacity * (1 - share), 1),
+        prod_plan=fmt(prod_plan, 1) if prod_plan is not None else "–",
+        rest_plan=fmt(plan - prod_plan, 1) if plan is not None and prod_plan is not None else "–",
+        unit=unit,
+    )
+
+
 def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     entry = fc.entry(sprint.id)
@@ -2016,6 +2043,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     )
     if note := band_note(fc, entry):
         st.caption(note)
+    if split := _production_split_note(fc, entry, data, unit):
+        st.caption(split)
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
