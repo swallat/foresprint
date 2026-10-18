@@ -10,8 +10,11 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import getpass
 import hashlib
+import os
 import re
+import stat
 import sys
 import tempfile
 import time
@@ -20,6 +23,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import IO
 
+from sprintforecast.config import config_dir
 from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
 from sprintforecast.model import Sprint
@@ -158,13 +162,61 @@ def _state_of(path: Path) -> str | None:
 LOCK_WAIT_SECONDS = 10.0
 
 
+def _private_dir(path: Path) -> None:
+    """Legt den Ordner an; auf POSIX nur für den Benutzer selbst lesbar und schreibbar."""
+    if sys.platform == "win32":
+        path.mkdir(parents=True, exist_ok=True)
+    else:
+        path.mkdir(mode=0o700, parents=True, exist_ok=True)
+
+
+def _fallback_lock_dir() -> Path:
+    """Benutzerspezifischer Ordner im Temp-Verzeichnis, wenn der Einstellungsordner nicht geht. In
+    einem gemeinsamen ``/tmp`` darf ein fester Name nicht gelten: Das Konto, das ihn zuerst
+    anlegt, sperrte sonst alle anderen aus. Auf POSIX muss der Ordner dem Benutzer gehören."""
+    if sys.platform == "win32":
+        try:
+            user = getpass.getuser()
+        except OSError:
+            user = "unbekannt"
+    else:
+        user = str(os.getuid())
+    name = re.sub(r"\W", "_", user)  # nur Zeichen, die in einem Ordnernamen gehen
+    root = Path(tempfile.gettempdir()) / f"sprintforecast-sperren-{name}"
+    try:
+        _private_dir(root)
+    except OSError as e:
+        raise _not_saved(root, e) from e
+    if sys.platform != "win32":
+        info = root.lstat()  # ein Verweis oder fremder Ordner ist kein sicherer Ort
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+            raise FileAccessError(
+                t(
+                    "Der Ordner {path} für die Sperren gehört einem anderen Benutzer. Bitte "
+                    "entfernen lassen oder den Einstellungsordner beschreibbar machen.",
+                    path=root,
+                )
+            )
+    return root
+
+
+def _lock_dir() -> Path:
+    """Ordner der Sperrdateien: ``sperren`` im Einstellungsordner des Benutzers (nie im
+    Git-Arbeitsverzeichnis); lässt er sich nicht anlegen, ein benutzerspezifischer Ordner im
+    Temp-Verzeichnis."""
+    root = config_dir() / "sperren"
+    try:
+        _private_dir(root)
+    except OSError:
+        return _fallback_lock_dir()
+    return root
+
+
 def _lock_file(folder: Path, sprint_id: str, kind: str) -> Path:
     """Sperrdatei außerhalb des Datenordners (nie im Git-Arbeitsverzeichnis): je Protokollordner,
     Sprint und Termin eine."""
     key = hashlib.sha256(f"{folder.resolve()}|{sprint_id}|{kind}".encode()).hexdigest()[:24]
-    root = Path(tempfile.gettempdir()) / "sprintforecast-sperren"
-    root.mkdir(parents=True, exist_ok=True)
-    return root / f"{key}.lock"
+    return _lock_dir() / f"{key}.lock"
 
 
 def _try_lock(handle: IO[bytes]) -> bool:

@@ -118,6 +118,7 @@ EN: dict[str, str] = {
     "… und {count} weitere Änderungen": "… and {count} more changes",
     "Excel-Liste einlesen (Vorschau, dann schreiben)": "Read Excel list (preview, then write)",
     "Eine andere Sitzung schreibt gerade Protokolle dieses Sprints. Bitte gleich noch einmal speichern.": "Another session is currently writing minutes for this sprint. Please save again in a moment.",
+    "Der Ordner {path} für die Sperren gehört einem anderen Benutzer. Bitte entfernen lassen oder den Einstellungsordner beschreibbar machen.": "The folder {path} for the locks belongs to another user. Please have it removed or make the settings folder writable.",
     "Davon mit Produktionszugriff ({unit})": "Of which with production access ({unit})",
     "Davon mit Produktionszugriff erledigt ({unit})": "Of which done with production access ({unit})",
     "Speichern und weiter": "Save and continue",
