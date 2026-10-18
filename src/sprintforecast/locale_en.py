@@ -214,6 +214,7 @@ EN: dict[str, str] = {
     "Saldo = Σ Erledigt − Σ Standard über die Sprints, in denen für das Produkt Erledigt erfasst ist. Positiv: Das Produkt hat mehr bekommen als den gleichmäßigen Anteil. Sprints ohne Wert (nicht erfasst, nicht 0) zählen nicht mit.": "Balance = Σ done − Σ default over the sprints in which done is recorded for the product. Positive: the product received more than the even share. Sprints without a value (not recorded, not 0) do not count.",
     "heute": "today",
     "ohne Wert": "no value",
+    "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt-Wert eingetragen ist (leer, nicht 0). Sie zählen im Saldo nicht mit; bitte den Wert im Sprint nachtragen.": '"no value": sprints in which no done value is entered for the product (empty, not 0). They do not count towards the balance; please add the value in the sprint.',
     " (Prognose beim Planning, eingefroren)": " (forecast at planning, frozen)",
     " Ohne Personenliste mit Ø Kapazität gerechnet: {sprints}.": " Calculated with Ø capacity because there is no people list: {sprints}.",
     ", beim Planning {frozen} {unit}": ", at planning {frozen} {unit}",
