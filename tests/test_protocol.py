@@ -169,6 +169,35 @@ def test_a_failing_rename_undoes_the_ones_already_done(
     assert not any(f[2] for f in list_protocols(repo, "demo", "2026.21"))
 
 
+def test_a_failing_multi_sprint_save_restores_the_earlier_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast.model import Sprint
+    from sprintforecast.storage import save_sprints_together
+
+    repo = Repository(tmp_path)
+    one = Sprint(id="2026.21", start=date(2026, 10, 12), end=date(2026, 10, 26), velocity=5.0)
+    two = Sprint(id="2026.22", start=date(2026, 10, 26), end=date(2026, 11, 9))
+    repo.save_sprint("demo", one)
+    before = repo.sprint_path("demo", "2026.21").read_bytes()
+    one.velocity, two.velocity = 9.0, 7.0
+    real = Repository.save_sprint
+
+    def flaky(self, key, sprint):
+        if sprint.id == "2026.22":
+            raise FileAccessError("gesperrt")
+        return real(self, key, sprint)
+
+    monkeypatch.setattr(Repository, "save_sprint", flaky)
+    with pytest.raises(FileAccessError):
+        save_sprints_together(repo, "demo", [one, two])
+    assert repo.sprint_path("demo", "2026.21").read_bytes() == before  # zurückgesetzt
+    assert not repo.sprint_path("demo", "2026.22").exists()
+    monkeypatch.setattr(Repository, "save_sprint", real)
+    paths = save_sprints_together(repo, "demo", [one, two])
+    assert [p.name for p in paths] == ["2026.21.yaml", "2026.22.yaml"]
+
+
 def test_a_filename_with_an_impossible_date_is_ignored(tmp_path: Path):
     repo = Repository(tmp_path)
     folder = tmp_path / "demo" / "protokolle"
