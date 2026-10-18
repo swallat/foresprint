@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 import yaml
 from yaml.constructor import SafeConstructor
@@ -449,12 +450,56 @@ def _matches(path: tuple[str | int, ...], pattern: tuple[str, ...]) -> bool:
     )
 
 
-def _key_of(node: yaml.Node) -> str:
-    """Schlüssel so, wie das Programm ihn liest (``1`` und ``"1"`` sind derselbe Schlüssel)."""
+# Mappings, deren Schlüssel das Programm mit str() liest (Personen- und Produktkürzel): Dort
+# sind ``1`` und ``"1"`` derselbe Schlüssel. Überall sonst behält der Lader beide Einträge.
+_STR_KEYED: tuple[tuple[str, ...], ...] = (
+    ("products",),
+    ("absences",),
+    ("expected_absences",),
+    ("prognoses", "*", "preplanned"),
+)
+# Obergrenze der besuchten Knoten je Datei: schützt vor Anker-Bomben (Verweise, die sich
+# vielfach vervielfachen). Echte Dateien liegen weit darunter.
+_MAX_VISITS = 200_000
+
+# Pfad als verkettete Liste (Elternpfad, Teil): Tiefe kostet so nichts beim Anlegen.
+type _Path = tuple[_Path | None, str | int] | None
+
+
+def _materialize(cell: _Path) -> tuple[str | int, ...]:
+    parts: list[str | int] = []
+    while cell is not None:
+        cell, part = cell
+        parts.append(part)
+    return tuple(reversed(parts))
+
+
+def _key_of(node: yaml.Node, as_text: bool) -> tuple[str, Any]:
+    """Anzeigetext und Vergleichsschlüssel. Mit ``as_text`` (Stellen, an denen das Programm
+    ``str()`` bildet) gilt der Text, sonst zusätzlich der Typ (``1`` ist nicht ``"1"``)."""
+    if not isinstance(node, yaml.ScalarNode):
+        return str(id(node)), ("node", id(node))
     try:
-        return str(SafeConstructor().construct_object(node, deep=True))
+        value = SafeConstructor().construct_object(node, deep=True)
     except Exception:
-        return str(getattr(node, "value", ""))
+        value = node.value
+    return str(value), (str(value) if as_text else (type(value).__name__, str(value)))
+
+
+def _position(found: list[tuple[int, int]]) -> tuple[str, str]:
+    """Fundstellen (Zeile, Spalte) als Text; stehen alle in einer Zeile (Flow-Schreibweise
+    ``{a: 1, a: 2}``), mit Spalten."""
+    if len({line for line, _ in found}) == 1:
+        line = found[0][0]
+        cols = ", ".join(str(c) for _, c in found)
+        return (
+            t("alle in Zeile {line}, Spalten {cols}", line=line, cols=cols),
+            t("Zeile {line}, Spalte {col}", line=line, col=found[-1][1]),
+        )
+    return (
+        t("Zeilen {lines}", lines=", ".join(str(n) for n, _ in found)),
+        t("Zeile {line}", line=found[-1][0]),
+    )
 
 
 def check_yaml_text(text: str, name: str) -> list[Issue]:
@@ -463,61 +508,93 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
         root = compose_yaml(text)
     except yaml.YAMLError:
         return []  # ungültiges YAML meldet das Laden als Fehler
+    except RecursionError:
+        return [
+            Issue(Level.WARNING, name, t("Die Datei ist zu tief verschachtelt, nicht geprüft."))
+        ]
     issues: list[Issue] = []
-    seen: set[int] = set()
+    reported: set[str] = set()
 
-    def walk(node: yaml.Node, path: tuple[str | int, ...]) -> None:
-        if id(node) in seen:  # Verweis (&anker/*anker) auf einen schon besuchten Knoten
-            return
-        seen.add(id(node))
-        if isinstance(node, yaml.SequenceNode):
-            for i, item in enumerate(node.value):
-                walk(item, (*path, i))
-        elif isinstance(node, yaml.MappingNode):
-            lines: dict[str, list[int]] = {}
-            for key_node, value_node in node.value:
-                if key_node.tag == _MERGE_TAG:
-                    walk(value_node, path)
-                    continue
-                key = _key_of(key_node)
-                lines.setdefault(key, []).append(key_node.start_mark.line + 1)
-                walk(value_node, (*path, key))
-            for key, found in lines.items():
-                if len(found) > 1:
-                    where = _format_path((*path, key))
-                    issues.append(
-                        Issue(
-                            Level.WARNING,
-                            name,
-                            t(
-                                "Der Schlüssel '{where}' steht mehrfach in der Datei (Zeilen "
-                                "{lines}). Das Programm liest nur den letzten Eintrag "
-                                "(Zeile {last}), die anderen werden stillschweigend ignoriert. "
-                                "Bitte die überzähligen Zeilen löschen und den richtigen Wert "
-                                "stehen lassen.",
-                                where=where,
-                                lines=", ".join(str(n) for n in found),
-                                last=found[-1],
-                            ),
-                        )
-                    )
-        elif _is_empty_value(node) and any(_matches(path, p) for p in _EMPTY_AS_ZERO):
-            issues.append(
-                Issue(
-                    Level.WARNING,
-                    name,
+    def report(message: str) -> None:
+        if message not in reported:  # derselbe Befund über mehrere Verweise nur einmal
+            reported.add(message)
+            issues.append(Issue(Level.WARNING, name, message))
+
+    # Schritte: (Knoten, Pfad) beim Betreten, (Knoten, None) beim Verlassen. Iterativ, damit
+    # extreme Verschachtelung nicht an der Rekursionsgrenze scheitert. Ein Knoten wird je Pfad
+    # besucht (Anker/Verweise bringen ihn unter jedem Pfad zur Geltung); ``active`` hält die
+    # Knoten auf dem Weg zur Wurzel und beendet Verweise im Kreis.
+    stack: list[tuple[yaml.Node, _Path | None, bool]] = []
+    if root is not None:
+        stack.append((root, None, True))
+    active: set[int] = set()
+    visits = 0
+    while stack:
+        node, cell, entering = stack.pop()
+        if not entering:
+            active.discard(id(node))
+            continue
+        visits += 1
+        if visits > _MAX_VISITS:
+            report(
+                t(
+                    "Die Datei verweist so oft auf dieselben Teile (Anker), dass sie nicht "
+                    "vollständig geprüft wurde."
+                )
+            )
+            break
+        if isinstance(node, yaml.ScalarNode):
+            path = _materialize(cell)
+            if _is_empty_value(node) and any(_matches(path, p) for p in _EMPTY_AS_ZERO):
+                report(
                     t(
                         "Der Wert von '{where}' (Zeile {line}) ist leer. Das Programm rechnet "
                         "dort stillschweigend mit 0. Bitte eine Zahl eintragen (0, wenn es "
                         "wirklich null sein soll).",
                         where=_format_path(path),
                         line=node.start_mark.line + 1,
-                    ),
+                    )
                 )
-            )
-
-    if root is not None:
-        walk(root, ())
+            continue
+        if id(node) in active:  # Verweis auf einen Elternknoten: nicht endlos wiederholen
+            continue
+        active.add(id(node))
+        stack.append((node, None, False))
+        children: list[tuple[yaml.Node, _Path | None, bool]] = []
+        if isinstance(node, yaml.SequenceNode):
+            children = [(item, (cell, i), True) for i, item in enumerate(node.value)]
+        else:
+            path = _materialize(cell)
+            as_text = any(_matches(path, p) for p in _STR_KEYED)
+            found: dict[Any, list[tuple[int, int]]] = {}
+            shown: dict[Any, str] = {}
+            for key_node, value_node in node.value:
+                if key_node.tag == _MERGE_TAG:  # ``<<: *a`` oder ``<<: [*a, *b]``: gleicher Pfad
+                    merged = value_node.value if isinstance(value_node, yaml.SequenceNode) else []
+                    for item in merged or [value_node]:
+                        children.append((item, cell, True))
+                    continue
+                text_of_key, compare = _key_of(key_node, as_text)
+                mark = key_node.start_mark
+                found.setdefault(compare, []).append((mark.line + 1, mark.column + 1))
+                shown[compare] = text_of_key
+                children.append((value_node, (cell, text_of_key), True))
+            for compare, places in found.items():
+                if len(places) > 1:
+                    where = _format_path((*path, shown[compare]))
+                    lines, last = _position(places)
+                    report(
+                        t(
+                            "Der Schlüssel '{where}' steht mehrfach in der Datei ({lines}). Das "
+                            "Programm liest nur den letzten Eintrag ({last}), die anderen "
+                            "werden stillschweigend ignoriert. Bitte die überzähligen Zeilen "
+                            "löschen und den richtigen Wert stehen lassen.",
+                            where=where,
+                            lines=lines,
+                            last=last,
+                        )
+                    )
+        stack.extend(reversed(children))
     return issues
 
 
