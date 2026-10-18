@@ -400,7 +400,8 @@ def test_commit_button(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.session_state["pending_tags"] = ["demo/2026.21"]
     at.run()
-    assert any("1 offene Änderung" in e.label for e in at.sidebar.expander)
+    # Sprintdatei und Protokoll des Reviews (protokolle/2026.21-review-….md).
+    assert any("2 offene Änderung" in e.label for e in at.sidebar.expander)
     at.text_input(key="commit_message").set_value("Review 2026.21")
     next(b for b in at.button if b.label == "Änderungen committen").click().run()
     assert git(data_dir, "log", "-1", "--format=%s") == "Review 2026.21"
