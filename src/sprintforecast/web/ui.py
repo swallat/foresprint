@@ -800,6 +800,32 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = repo.team_dir(team.key) / "FORECAST.md"
         write_text(path, render(fc))
         st.success(t("Geschrieben: {path}", path=path))
+    _excel_download(fc, team.key)
+
+
+def _excel_download(fc: Forecast, team_key: str) -> None:
+    """Excel-Liste zum Herunterladen (für alle, die weiter mit einer Excel-Liste arbeiten)."""
+    from sprintforecast.excel import ExcelUnavailable, build_workbook
+
+    if not st.button(t("Excel-Liste erstellen"), icon=":material/table:"):
+        return
+    try:
+        content = build_workbook(fc)
+    except ExcelUnavailable as e:
+        st.warning(str(e))
+        return
+    st.download_button(
+        t("Excel-Liste herunterladen"),
+        content,
+        file_name=f"{team_key}-forecast.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        icon=":material/download:",
+        help=t(
+            "Enthält Sprintwerte als Eingaben und die Berechnung als Excel-Formeln (n. Velocity, "
+            "Trend, Forecast PLAN, Roadmap), Trend-Diagramme und die Aufteilung nach "
+            "Produktionszugriff und je Produkt. Wird nicht im Datenordner gespeichert."
+        ),
+    )
 
 
 def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
