@@ -222,9 +222,13 @@ def test_clone_tab_shows_the_next_step_for_a_missing_repository(
         datenordner(data_dir, monkeypatch), str(tmp_path / "gibt-es-nicht.git"), tmp_path / "z"
     )
     errors = shown(at, "error")
-    assert "Repository nicht gefunden" in errors and "does not exist" in "\n".join(
-        c.value for c in at.code
-    )  # die Meldung von Git steht unter „Technische Meldung“
+    # Die Meldung von Git steht unter „Technische Meldung“. Welche es ist, hängt vom Pfad ab:
+    # „repository '…' does not exist“ bei einem Pfad ohne Doppelpunkt (Linux, macOS), unter
+    # Windows mit Laufwerksbuchstaben „'…' does not appear to be a git repository“.
+    assert "Repository nicht gefunden" in errors and re.search(
+        r"does not exist|does not appear to be a git repository",
+        "\n".join(c.value for c in at.code),
+    )
     assert "Das Repository wurde nicht gefunden" in errors and "VPN" not in errors
 
 
