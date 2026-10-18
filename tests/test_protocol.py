@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Protokolle der Sprint-Termine: schreiben, auflisten, bei Aufheben des Einfrierens obsolet."""
 
+import errno
 import getpass
 import hashlib
 import os
@@ -672,6 +673,144 @@ def test_a_settings_lock_folder_without_write_access_is_replaced_by_the_temp_fol
     monkeypatch.setattr(protocol_module.os, "access", access)
     one = protocol_module._lock_file(protocol_folder(tmp_path), "2026.21", REVIEW)
     assert one.parent.parent == temp and root not in one.parents
+
+
+def patch_os_locking(monkeypatch: pytest.MonkeyPatch, fail) -> list[int]:
+    """Lässt die Sperre des Betriebssystems (``msvcrt.locking`` bzw. ``fcntl.flock``) beim n-ten
+    Sperrversuch (ab 1) mit dem Fehler ``fail(n)`` scheitern (``None``: echt sperren). Freigeben
+    bleibt echt. Liefert die Liste der bisherigen Sperrversuche."""
+    attempts: list[int] = []
+
+    def error_of_next() -> OSError | None:
+        attempts.append(len(attempts) + 1)
+        return fail(len(attempts))
+
+    if sys.platform == "win32":
+        import msvcrt
+
+        real_locking = msvcrt.locking
+
+        def locking(fd: int, mode: int, nbytes: int) -> None:
+            if mode != msvcrt.LK_UNLCK and (error := error_of_next()):
+                raise error
+            real_locking(fd, mode, nbytes)
+
+        monkeypatch.setattr(msvcrt, "locking", locking)
+    else:
+        import fcntl
+
+        real_flock = fcntl.flock
+
+        def flock(fd: int, operation: int) -> None:
+            if not operation & fcntl.LOCK_UN and (error := error_of_next()):
+                raise error
+            real_flock(fd, operation)
+
+        monkeypatch.setattr(fcntl, "flock", flock)
+    return attempts
+
+
+def os_error(code: int) -> OSError:
+    return OSError(code, os.strerror(code))
+
+
+# Fehler, die ein Dateisystem ohne Dateisperren (z. B. mancher Netzordner) meldet.
+PERMANENT_ERRNOS = [errno.ENOLCK, errno.ENOSYS, errno.EINVAL, errno.EIO, errno.EOPNOTSUPP]
+BUSY_ERRNOS = [errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK, errno.EDEADLK]
+
+
+@pytest.mark.parametrize("code", BUSY_ERRNOS)
+def test_a_lock_held_by_another_session_is_busy_not_an_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, code: int
+):
+    patch_os_locking(monkeypatch, lambda n: os_error(code))
+    with (tmp_path / "x.lock").open("a+b") as handle:
+        assert protocol_module._try_lock(handle) is False
+
+
+@pytest.mark.parametrize("code", PERMANENT_ERRNOS)
+def test_any_other_locking_error_is_permanent(tmp_path: Path, monkeypatch, code: int):
+    patch_os_locking(monkeypatch, lambda n: os_error(code))
+    with (
+        (tmp_path / "x.lock").open("a+b") as handle,
+        pytest.raises(protocol_module._LockUnsupported),
+    ):
+        protocol_module._try_lock(handle)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-Fehlernummern")
+@pytest.mark.parametrize("winerror", [32, 33])
+def test_windows_sharing_and_lock_violations_are_busy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, winerror: int
+):
+    patch_os_locking(monkeypatch, lambda n: OSError(0, "belegt", None, winerror))
+    with (tmp_path / "x.lock").open("a+b") as handle:
+        assert protocol_module._try_lock(handle) is False
+
+
+def test_a_permanent_locking_error_falls_back_to_the_temp_folder_without_waiting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Der Einstellungsordner liegt auf einem Laufwerk ohne Dateisperren: Die Sperre läuft über
+    dieselbe Datei im Temp-Ordner, sofort."""
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 5.0)
+    attempts = patch_os_locking(monkeypatch, lambda n: os_error(errno.ENOLCK) if n == 1 else None)
+    started = time.monotonic()
+    path, created = write_protocol_new(
+        Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
+    )
+    assert created and path.exists()
+    assert time.monotonic() - started < 2.5  # keine Wartezeit
+    assert len(attempts) == 2  # erst der Einstellungsordner, dann einmal der Temp-Ordner
+    (fallback_dir,) = temp.glob("sprintforecast-sperren-*")
+    assert len(list(fallback_dir.glob("*.lock"))) == 1
+
+
+def test_a_permanent_locking_error_everywhere_is_a_file_access_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 5.0)
+    attempts = patch_os_locking(monkeypatch, lambda n: os_error(errno.ENOLCK))
+    repo = Repository(tmp_path)
+    started = time.monotonic()
+    with pytest.raises(FileAccessError, match="Dateisperren") as info:
+        write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
+    assert "andere Sitzung" not in str(info.value)
+    assert time.monotonic() - started < 2.5  # keine Wartezeit
+    assert len(attempts) == 2  # einmal Einstellungsordner, einmal Temp-Ordner, nicht mehr
+    assert list_protocols(repo, "demo", "2026.21") == []  # ohne Sperre wird nichts geschrieben
+
+
+def test_the_missing_file_lock_support_is_reported_in_english(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, english
+):
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(tmp_path))
+    patch_os_locking(monkeypatch, lambda n: os_error(errno.ENOLCK))
+    with pytest.raises(FileAccessError, match="File locks are not supported"):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+
+
+@pytest.mark.parametrize("code", [errno.EACCES, errno.EAGAIN])
+def test_real_contention_still_waits_and_reports_another_session(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, code: int
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.3)
+    attempts = patch_os_locking(monkeypatch, lambda n: os_error(code))
+    started = time.monotonic()
+    with pytest.raises(FileAccessError, match="andere Sitzung"):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+    assert time.monotonic() - started >= 0.3  # gewartet
+    assert len(attempts) > 2  # mehrfach versucht
+    assert not list(temp.glob("sprintforecast-sperren-*"))  # Temp-Ordner nicht angefasst
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Eigentümer von Ordnern nur auf POSIX")
