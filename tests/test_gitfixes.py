@@ -28,8 +28,11 @@ def solo(tmp_path: Path) -> Path:
     git(root, "config", "user.name", "Solo")
     git(root, "config", "user.email", "solo@example.org")
     (root / "a").mkdir()
-    (root / "a" / "team.yaml").write_text("name: A\n", encoding="utf-8")
-    (root / "b.yaml").write_text("v: 1\n", encoding="utf-8")
+    # Bytes mit LF: ``write_text`` schriebe unter Windows CRLF, und Git hielte die Datei je nach
+    # ``core.autocrlf`` (Systemeinstellung, in Tests abgeschaltet) für geändert oder nicht, wobei
+    # der Zeitstempel im Index entscheidet, ob es neu rechnet (Test mal grün, mal rot).
+    (root / "a" / "team.yaml").write_bytes(b"name: A\n")
+    (root / "b.yaml").write_bytes(b"v: 1\n")
     git(root, "add", "-A")
     git(root, "commit", "-qm", "Start")
     invalidate_status()
