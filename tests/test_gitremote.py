@@ -348,6 +348,19 @@ def test_new_branch_error_is_plain_text_and_renders_names_as_code():
     assert copy.copy(error).render(md_code) == shown  # Fehler lassen sich kopieren
 
 
+def test_unrelated_histories_error_is_plain_text_and_renders_server_and_branch_as_code():
+    error = gitmod.UnrelatedHistoriesError("https://h.example/r.git", "www.evil.example/x")
+    assert error.kind == "unrelated_histories" and error.hint
+    assert str(error) == (
+        "Der Server (https://h.example/r.git, Branch www.evil.example/x) enthält eine andere "
+        "Historie als dieser Datenordner."
+    )
+    shown = error.render(md_code)
+    assert "(`https://h.example/r.git`, Branch `www.evil.example/x`)" in shown
+    clone = copy.copy(error)
+    assert clone.render(md_code) == shown and clone.hint == error.hint  # lässt sich kopieren
+
+
 # --- T4: Zuordnung der Fehler der Verbindungsprüfung -------------------------------------------
 
 HTTPS = RemoteAddress("https://h.example/r.git", "https")
