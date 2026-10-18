@@ -63,6 +63,7 @@ from sprintforecast.git import (
     GitError,
     NewBranchError,
     RemoteAddress,
+    UnrelatedHistoriesError,
     cached_pending_changes,
     classify,
     clone_repository,
@@ -3433,7 +3434,8 @@ def _active_repo_caption(repo: Repository) -> None:
     root = repo.root.resolve()
     shown = "/".join(p for p in (root.parent.name, root.name) if p) or str(root)
     st.markdown(
-        f"**{t('Datenordner')}:** `{shown}`" + (f" · {t('Branch')} `{branch}`" if branch else "")
+        f"**{t('Datenordner')}:** `{shown}`"
+        + (f" · {t('Branch')} {md_code(branch)}" if branch else "")
     )
 
 
@@ -4117,12 +4119,12 @@ def _unrelated_go(root: Path, tags: list[str]) -> None:
     _sync_clicked(root, tags, allow_unrelated=True)
 
 
-def _unrelated_dialog(root: Path, tags: list[str], error: GitError) -> None:
+def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesError) -> None:
     """Der Server hat eine fremde Historie: erklären und nur nach ausdrücklicher Bestätigung
     zusammenführen. Vorgabe ist Abbrechen (Knopf gesperrt, bis das Kästchen gesetzt ist)."""
     with st.container(border=True):
         st.error(f"**{git_title(error.kind)}**  \n{error.hint}")
-        st.markdown(str(error))  # nennt Server-Adresse und Branch
+        st.markdown(error.render(md_code))  # nennt Server-Adresse und Branch: als Code
         page_link("datenordner", t("Server-Adresse ändern"))  # meist ist die Adresse das Problem
         sure = st.checkbox(t("Ja, beide Historien zusammenführen"), key="unrelated-confirm")
         st.button(
@@ -4158,7 +4160,7 @@ def _reattach_clicked(root: Path) -> None:
     else:
         clear_team_cache()
         st.session_state["flash"] = [
-            ("success", t("Zurück auf den Branch {branch}.", branch=branch))
+            ("success", t("Zurück auf den Branch {branch}.", branch=md_code(branch)))
         ]
 
 
@@ -4220,7 +4222,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str]) -> None:
 
 def _show_incoming(commits: list[Commit], files: list[tuple[str, str]]) -> None:
     for c in commits:
-        st.markdown(f"`{c.rev}` {c.day} **{c.author}**: {c.subject}")
+        # Autor und Betreff bestimmen andere: als Code, nie als Markdown.
+        st.markdown(f"`{c.rev}` {c.day} {md_code(c.author)}: {md_code(c.subject)}")
     if files:
         st.code("\n".join(f"{status:>2} {file}" for status, file in files), language=None)
 
@@ -4245,7 +4248,7 @@ def _status_text(state: SyncState) -> str:
         # leerer Server): „synchron“ wäre falsch, es liegt noch nichts dort.
         parts.append(t("noch nicht auf dem Server – „Speichern und teilen“ lädt hoch"))
     elif not parts:
-        parts.append(t("synchron mit {upstream}", upstream=state.upstream))
+        parts.append(t("synchron mit {upstream}", upstream=md_code(state.upstream)))
     if state.fetch_error is not None:
         parts.append(
             t("Server nicht erreichbar")
@@ -4439,7 +4442,7 @@ def _tag_delete_go(root: Path, name: str) -> None:
     st.session_state.pop(f"tag-confirm-{name}", None)  # die Bestätigung gilt nur einmal
     _git_action(
         lambda: delete_tag(root, name),
-        lambda _: t("Tag {name} gelöscht.", name=name),
+        lambda _: t("Tag {name} gelöscht.", name=md_code(name)),
     )
     _tags_recheck(root)
 
@@ -4447,7 +4450,7 @@ def _tag_delete_go(root: Path, name: str) -> None:
 def _tag_upload_go(root: Path, name: str) -> None:
     _git_action(
         lambda: upload_tag(root, name),
-        lambda _: t("Tag {name} zum Server übertragen.", name=name),
+        lambda _: t("Tag {name} zum Server übertragen.", name=md_code(name)),
     )
     _tags_recheck(root)
 
@@ -4631,9 +4634,14 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
             )
         )
     if tags:
+        # st.table deutet Markdown in allen Zellen; Namen und Nachrichten der Tags bestimmen
+        # andere.
         st.table(
             pd.DataFrame(
-                [(tag.name, _tag_state(tag), tag.target, tag.day, tag.subject) for tag in tags],
+                [
+                    (md_code(tag.name), _tag_state(tag), tag.target, tag.day, md_code(tag.subject))
+                    for tag in tags
+                ],
                 columns=[t("Tag"), t("Server"), t("Stand"), t("Datum"), t("Nachricht")],
             ).set_index(t("Tag"))
         )
@@ -4659,7 +4667,7 @@ def _tab_tags(repo: Repository, locked: bool = False) -> None:
         if st.form_submit_button(t("Tag setzen"), disabled=locked):
             _git_action(
                 lambda: set_tag(repo.root, name, target.rev if target else "HEAD", message or None),
-                lambda _: t("Tag {name} gesetzt und geteilt.", name=name),
+                lambda _: t("Tag {name} gesetzt und geteilt.", name=md_code(name)),
             )
             _tags_recheck(repo.root)
             st.rerun()
@@ -4776,7 +4784,8 @@ def _show_value(value: object) -> str:
     if value is MISSING:
         return t("(entfernt)")
     text = yaml.safe_dump(value, allow_unicode=True, default_flow_style=True, width=1000).strip()
-    return text.removesuffix("\n...").strip()[:200]
+    # Als Code: Die Werte stammen auch von der anderen Person.
+    return md_code(text.removesuffix("\n...").strip()[:200])
 
 
 def _conf_key(i: int, j: int | None) -> str:

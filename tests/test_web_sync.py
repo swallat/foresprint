@@ -113,7 +113,7 @@ def test_conflict_locks_editing_and_is_resolved_in_the_app(shared, data_dir: Pat
     apply = next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen")
     assert apply.disabled  # erst nach einer Entscheidung je Eintrag
     radio = at.radio(key="conf-0-0")
-    assert any("Meine Änderung: 7" in o for o in radio.options)
+    assert any("Meine Änderung: `7.0`" in o for o in radio.options)
     radio.set_value("theirs").run()
     next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen").click().run()
     assert not at.exception

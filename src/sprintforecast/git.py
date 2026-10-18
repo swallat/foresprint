@@ -642,6 +642,29 @@ def new_branch_error(branch: str, heads: tuple[str, ...], unborn: bool = False) 
     return NewBranchError(branch, heads, unborn)
 
 
+class UnrelatedHistoriesError(GitError):
+    """Der Server hat eine andere Historie als der Datenordner. ``str(error)`` ist Klartext; für
+    die Oberfläche liefert :meth:`render` mit :func:`md_code` Adresse und Branch als Code, denn
+    sie kommen vom Server bzw. aus der Konfiguration. ``url`` ist die Anzeigefassung
+    (:func:`public_url`)."""
+
+    def __init__(self, url: str, branch: str) -> None:
+        self.url, self.branch = url, branch
+        super().__init__(self.render(), "unrelated_histories", hint_for("unrelated_histories"))
+
+    def __reduce__(self):  # kopier- und speicherbar trotz anderer Argumente als GitError
+        return (UnrelatedHistoriesError, (self.url, self.branch))
+
+    def render(self, quote: Callable[[str], str] = str) -> str:
+        """Meldung; ``quote`` wird auf Adresse und Branch angewendet."""
+        return t(
+            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
+            "Datenordner.",
+            url=quote(self.url),
+            branch=quote(self.branch),
+        )
+
+
 def nothing_to_share_error() -> GitError:
     """Fehler, wenn „Speichern und teilen“ gewählt wird, obwohl der Datenordner noch nichts
     Gespeichertes enthält (kein Commit): Es gäbe nichts hochzuladen."""

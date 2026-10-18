@@ -387,16 +387,8 @@ def _unrelated(root: Path, remote: str | None, upstream: str) -> bool:
 
 
 def _unrelated_error(current: SyncState, target: str) -> GitError:
-    branch = target.split("/", 1)[-1]
-    return GitError(
-        t(
-            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
-            "Datenordner.",
-            url=gitmod.public_url(current.url) or current.remote or "?",
-            branch=branch,
-        ),
-        "unrelated_histories",
-        hint_for("unrelated_histories"),
+    return gitmod.UnrelatedHistoriesError(
+        gitmod.public_url(current.url) or current.remote or "?", target.split("/", 1)[-1]
     )
 
 
