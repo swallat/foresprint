@@ -560,6 +560,58 @@ def test_new_data_repositories_ignore_tmp_files(tmp_path: Path):
     assert "*.tmp" in (tmp_path / "daten" / ".gitignore").read_text().splitlines()
 
 
+def test_tmp_files_in_new_data_repositories_stay_out_of_git(tmp_path: Path):
+    root = tmp_path / "daten"
+    teams = gitmod.init_data_repository(root)
+    (teams / "tmpk3j2h1.tmp").write_text("halb: geschrieben\n", encoding="utf-8")
+    (teams / "team.yaml").write_text("name: A\n", encoding="utf-8")
+    status = git(root, "status", "--porcelain", "--untracked-files=all")
+    assert "teams/team.yaml" in status
+    assert ".tmp" not in status
+
+
+def test_new_data_repositories_keep_yaml_on_lf(tmp_path: Path):
+    gitmod.init_data_repository(tmp_path / "daten")
+    attributes = (tmp_path / "daten" / ".gitattributes").read_text(encoding="utf-8")
+    assert "*.yaml text eol=lf" in attributes.splitlines()
+    assert "*.yml text eol=lf" in attributes.splitlines()
+
+
+def test_existing_gitattributes_are_not_overwritten(tmp_path: Path):
+    root = tmp_path / "daten"
+    root.mkdir()
+    (root / ".gitattributes").write_text("* -text\n", encoding="utf-8")
+    gitmod.init_data_repository(root)
+    assert (root / ".gitattributes").read_text(encoding="utf-8") == "* -text\n"
+
+
+def test_yaml_files_stay_on_lf_in_checkout_despite_autocrlf(tmp_path: Path):
+    """Windows-Fall: Mit ``core.autocrlf`` läge die Datei sonst als CRLF vor, und das erste
+    Speichern schriebe alle Zeilenenden auf LF um."""
+    root = tmp_path / "daten"
+    teams = gitmod.init_data_repository(root)
+    git(root, "config", "core.autocrlf", "true")
+    git(root, "config", "user.name", "T")
+    git(root, "config", "user.email", "t@example.org")
+    datei = teams / "team.yaml"
+    datei.write_bytes(b"name: A\r\n")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "Start")
+    datei.unlink()
+    git(root, "checkout", "--", "teams/team.yaml")
+    assert datei.read_bytes() == b"name: A\n"
+
+
+def test_data_repository_template_matches_new_repositories(tmp_path: Path):
+    root = tmp_path / "daten"
+    gitmod.init_data_repository(root)
+    template = Path(__file__).resolve().parents[1] / "templates" / "daten-repo"
+    for name in (".gitignore", ".gitattributes"):
+        assert (template / name).read_text(encoding="utf-8") == (root / name).read_text(
+            encoding="utf-8"
+        )
+
+
 # --- M5: Speichern über Konfliktmarkierungen ------------------------------------------------
 
 
