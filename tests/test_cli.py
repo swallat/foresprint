@@ -414,6 +414,21 @@ def test_analyse_rest_warns_about_few_samples(data_dir: Path, count: int, warned
     assert (note in result.output) is warned
 
 
+def test_analyse_rest_with_a_small_window_caps_the_sample_and_explains_it(data_dir: Path):
+    """Die Stichprobe ist auf das Fenster gedeckelt; die Schwelle bleibt 5, der Hinweis nennt das
+    Fenster."""
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
+    raw.setdefault("forecast", {})["window"] = 3
+    team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    assert result.exit_code == 0, result.output
+    assert "Stichprobe 3 Sprints" in result.output
+    text = " ".join(result.output.split())
+    assert "Wenig Daten: Die Simulation zieht aus nur 3 Sprints (ab 5 sind Aussagen" in text
+    assert "Das Prognosefenster ist auf 3 Sprints gestellt" in text
+
+
 def test_analyse_rest_without_few_samples_has_no_warning(data_dir: Path):
     result = run(data_dir, "analyse", "demo", "--rest", "40")
     assert result.exit_code == 0, result.output
