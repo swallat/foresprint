@@ -10,7 +10,7 @@ import sys
 import tempfile
 import time
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, NamedTuple
@@ -92,6 +92,8 @@ class GitError(Exception):
 
 # Tabellenkalkulationen dürfen nie committet werden (können echte Team-Daten enthalten).
 FORBIDDEN = re.compile(r"\.xls[xm]?$", re.IGNORECASE)
+# Datendateien, die nie mit Konfliktmarkierungen committet werden.
+DATA_FILES = re.compile(r"\.ya?ml$", re.IGNORECASE)
 
 
 # Windows: keine Konsolenfenster für Hilfsprozesse (sonst blitzt bei jedem Aufruf eines auf).
@@ -579,8 +581,9 @@ def secret_in_url_error() -> GitError:
         t(
             "Die Adresse enthält einen Benutzernamen, ein Kennwort, einen Token oder "
             "Parameter (alles ab „?“ oder „#“). Bitte nur die reine Adresse eintragen, z. B. "
-            "https://server/team/daten.git; die Anmeldung übernimmt Git bzw. der Anmeldedienst "
-            "des Rechners (siehe Hilfe, „Anmeldung“)."
+            "https://server/team/daten.git; die Anmeldung übernimmt der Anmeldedienst des "
+            "Rechners, fehlt sie, erklärt die App den nächsten Schritt (siehe Hilfe, "
+            "„Anmeldung“)."
         ),
         "secret_in_url",
     )
@@ -1004,6 +1007,54 @@ def invalidate_status() -> None:
         hook()
 
 
+def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
+    """Verweigert das Committen von Datendateien, in denen noch Konfliktmarkierungen eines
+    unvollständigen Zusammenführens stehen: Sie würden geteilt und sperrten dann die Bearbeitung
+    bei allen anderen. ``files`` sind absolute Pfade; die Meldung nennt sie relativ zu ``root``
+    (Sprintdateien und team.yaml heißen in jedem Team gleich)."""
+    from sprintforecast.storage import has_conflict_markers  # storage importiert dieses Modul
+
+    marked: list[str] = []
+    for file in files:
+        if not DATA_FILES.search(file.name):
+            continue
+        try:
+            text = file.read_text(encoding="utf-8", errors="replace")
+        except OSError:  # gelöscht oder nicht lesbar: nichts zu prüfen
+            continue
+        if has_conflict_markers(text):
+            try:
+                name = file.resolve().relative_to(root.resolve()).as_posix()
+            except ValueError:
+                name = file.as_posix()
+            if name not in marked:
+                marked.append(name)
+    if marked:
+        names = ", ".join(marked)
+        raise GitError(
+            t(
+                "In diesen Dateien stehen noch Konfliktmarkierungen (<<<<<<<, =======, "
+                ">>>>>>>), sie werden nicht übernommen: {files}",
+                files=names,
+            ),
+            "conflict",
+            t(
+                "Betroffen: {files}. Die Markierungen stammen aus einem unvollständigen "
+                "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
+                "erscheint, dort den letzten Stand wiederherstellen.",
+                files=names,
+            ),
+        )
+
+
+def refuse_staged_conflict_markers(root: Path) -> None:
+    """Wie :func:`refuse_conflict_markers` für alles, was gerade vorgemerkt ist (vor einem
+    Commit, der nicht über :func:`commit_directory` läuft: Zusammenführen abschließen,
+    Wiederherstellen, Zurücknehmen)."""
+    staged = split_z(_git(root, "diff", "--cached", "--name-only", "-z", strip=False))
+    refuse_conflict_markers(root, (root / name for name in staged))
+
+
 def commit_directory(path: Path, message: str, tags: list[str] | None = None) -> str:
     """Committet alle Änderungen unterhalb von ``path`` (nur dort) und setzt optional Tags."""
     root = repo_root(path)
@@ -1020,6 +1071,7 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
                 files=", ".join(blocked),
             )
         )
+    refuse_conflict_markers(root, (root / f for status, f in changes if "D" not in status))
     names = check_new_tags(root, tags)  # vor dem Commit: bei einem Konflikt bleibt alles offen
     target = str(path.resolve())
     try:
@@ -1036,6 +1088,7 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
     cwd = paths[0].resolve().parent
     root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
+    refuse_conflict_markers(root, paths)
     names = check_new_tags(root, [tag] if tag else None)
     try:
         _git(root, "add", "--", *(str(p.resolve()) for p in paths))
