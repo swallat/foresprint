@@ -65,8 +65,9 @@ class SpyPopen:
         real = subprocess.Popen
 
         def popen(args, *a, **kw):
-            if args and args[0] == "git":
-                self.calls.append((list(args), dict(kw.get("env") or {})))
+            # Die App ruft Git mit vollem Pfad auf (find_git); verglichen wird der Name.
+            if args and Path(args[0]).stem == "git":
+                self.calls.append((["git", *args[1:]], dict(kw.get("env") or {})))
             return real(args, *a, **kw)
 
         monkeypatch.setattr(subprocess, "Popen", popen)

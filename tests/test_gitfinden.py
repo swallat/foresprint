@@ -1,0 +1,176 @@
+# SPDX-License-Identifier: EUPL-1.2
+"""Git finden, auch wenn es nicht im PATH liegt (Installation ohne Administratorrechte)."""
+
+import shutil
+import stat
+import sys
+from pathlib import Path
+
+import pytest
+
+from sprintforecast import git as gitmod
+from sprintforecast import gitsync
+from sprintforecast.git import GitError, find_git, git_command, git_locations, reset_git_cache
+
+# Die echte Funktion; die Testumgebung (conftest) ersetzt gitmod.git_locations durch eine leere.
+REAL_LOCATIONS = git_locations
+REAL_GIT = shutil.which("git")  # vor jeder PATH-Änderung der Tests
+
+posix = pytest.mark.skipif(sys.platform == "win32", reason="Shell-Skript als Fake-Git")
+
+
+def fake_git(folder: Path, name: str = "git", version: str = "9.9.9-fake") -> Path:
+    """Ein ausführbares „git“, das ``--version`` selbst beantwortet und sonst an das echte
+    Git weiterreicht."""
+    real = REAL_GIT
+    assert real
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / name
+    path.write_text(
+        f'#!/bin/sh\nif [ "$1" = "--version" ]; then echo "git version {version}"; exit 0; fi\n'
+        f'exec "{real}" "$@"\n',
+        encoding="utf-8",
+    )
+    path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    return path
+
+
+@pytest.fixture
+def no_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Git ist nicht im PATH."""
+    leer = tmp_path / "leerer-path"
+    leer.mkdir()
+    monkeypatch.setenv("PATH", str(leer))
+
+
+@posix
+def test_git_outside_path_is_found_and_used(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "benutzer" / "cmd")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [tmp_path / "gibt-es-nicht", fake])
+    assert shutil.which("git") is None
+    assert find_git() == str(fake)
+    assert gitsync.git_available()
+    assert gitmod._git(tmp_path, "--version") == "git version 9.9.9-fake"
+    assert gitmod._git_bytes(tmp_path, "--version").strip() == b"git version 9.9.9-fake"
+    assert gitmod._probe_run(tmp_path, ("--version",), 10).out.strip() == "git version 9.9.9-fake"
+    assert git_command("status")[:2] == [str(fake), "status"]
+
+
+@posix
+def test_path_wins_over_fallback_locations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    im_path = fake_git(tmp_path / "im-path", version="1.1.1-path")
+    fallback = fake_git(tmp_path / "ersatz", version="2.2.2-fallback")
+    monkeypatch.setenv("PATH", str(im_path.parent))
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
+    assert find_git() == str(im_path)
+    assert gitmod._git(tmp_path, "--version") == "git version 1.1.1-path"
+
+
+@posix
+def test_first_existing_location_wins(tmp_path: Path, no_path: None, monkeypatch):
+    first = fake_git(tmp_path / "a")
+    second = fake_git(tmp_path / "b")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [first, second])
+    assert find_git() == str(first)
+
+
+@posix
+def test_found_path_is_remembered_and_cache_can_be_reset(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    assert find_git() == str(fake)
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [])  # Orte sind nicht mehr bekannt …
+    assert find_git() == str(fake)  # … der gemerkte Pfad gilt, solange die Datei besteht
+    reset_git_cache()
+    assert find_git() is None
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    assert find_git() == str(fake)
+    fake.unlink()  # deinstalliert: der gemerkte Pfad verfällt von selbst
+    assert find_git() is None
+
+
+@posix
+def test_fresh_installation_is_found_without_restart(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    """Ein Misserfolg wird nicht gemerkt: Git, das erst nach dem ersten Suchen installiert
+    wird, findet die App beim nächsten Aufruf."""
+    later = tmp_path / "spaeter" / "git"
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [later])
+    assert find_git() is None and not gitsync.git_available()
+    fake_git(later.parent)
+    assert find_git() == str(later) and gitsync.git_available()
+
+
+@posix
+def test_a_directory_or_non_executable_file_is_no_git(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    folder = tmp_path / "ordner"
+    folder.mkdir()
+    plain = tmp_path / "text"
+    plain.write_text("kein Programm", encoding="utf-8")
+    plain.chmod(0o644)
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [folder, plain])
+    assert find_git() is None
+
+
+def test_missing_git_message_names_the_searched_places(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    places = [tmp_path / "eins" / "git", tmp_path / "zwei" / "git"]
+    monkeypatch.setattr(gitmod, "git_locations", lambda: places)
+    with pytest.raises(GitError) as raised:
+        gitmod._git(tmp_path, "--version")
+    error = raised.value
+    assert error.kind == "git_missing"
+    assert str(error) == "git ist nicht installiert oder nicht im PATH"
+    assert "PATH" in error.hint
+    assert all(str(place) in error.hint for place in places)
+    assert "neu öffnen" in error.hint and "Sprint-Forecast" in error.hint
+    assert "ohne Administratorrechte" in error.hint
+    assert "IT " not in error.hint and "Betreuung" not in error.hint
+    assert "winget" not in error.hint
+
+
+def test_default_locations_on_windows(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "lokal"))
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "pf"))
+    monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path / "pf86"))
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
+    assert REAL_LOCATIONS() == [
+        tmp_path / "lokal" / "Programs" / "Git" / "cmd" / "git.exe",
+        tmp_path / "home" / "scoop" / "shims" / "git.exe",
+        tmp_path / "home" / "scoop" / "apps" / "git" / "current" / "cmd" / "git.exe",
+        tmp_path / "pf" / "Git" / "cmd" / "git.exe",
+        tmp_path / "pf86" / "Git" / "cmd" / "git.exe",
+    ]
+
+
+def test_default_locations_on_windows_without_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(sys, "platform", "win32")
+    for name in ("LOCALAPPDATA", "ProgramFiles", "ProgramFiles(x86)"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    assert REAL_LOCATIONS() == [
+        tmp_path / "scoop" / "shims" / "git.exe",
+        tmp_path / "scoop" / "apps" / "git" / "current" / "cmd" / "git.exe",
+    ]
+
+
+def test_default_locations_on_unix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    assert REAL_LOCATIONS() == [
+        Path("/opt/homebrew/bin/git"),
+        Path("/usr/local/bin/git"),
+        tmp_path / ".local" / "bin" / "git",
+        tmp_path / ".nix-profile" / "bin" / "git",
+    ]

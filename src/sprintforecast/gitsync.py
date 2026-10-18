@@ -13,7 +13,6 @@ from __future__ import annotations
 import io
 import os
 import re
-import shutil
 import tarfile
 import tempfile
 import time
@@ -131,7 +130,7 @@ gitmod.on_invalidate(_STATE_CACHE.clear)
 
 
 def git_available() -> bool:
-    return shutil.which("git") is not None
+    return gitmod.find_git() is not None
 
 
 def _root(path: Path) -> Path:
