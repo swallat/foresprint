@@ -118,17 +118,21 @@ def test_next_id_keeps_the_ids_it_always_produced(previous, start, numbering, ex
     ],
 )
 @pytest.mark.parametrize("numbering", [YEARLY, SEQUENTIAL])
-def test_fits_numbering_agrees_with_next_id(sprint_id, numbering):
-    """Die Prüfung meldet genau die IDs, aus denen next_id keine Folge-ID bilden kann (bei
-    JJJJ.N unabhängig vom Datum: im Jahr der ID selbst)."""
-    year = sprint_id.partition(".")[0]
-    start = date(int(year), 10, 28) if year.isdigit() and year.isascii() else date(2026, 10, 28)
+@pytest.mark.parametrize("start", [date(2026, 10, 28), date(2027, 1, 6)])
+def test_fits_numbering_agrees_with_next_id(sprint_id, numbering, start):
+    """Die Prüfung meldet genau die IDs, aus denen next_id für diesen Beginn des Folgesprints
+    keine ID bilden kann (bei JJJJ.N zählt der Zähler nur im Jahr des Folgesprints weiter)."""
     try:
         next_id(sprint_id, start, numbering)
         works = True
     except DataError:
         works = False
-    assert id_fits_numbering(sprint_id, numbering) is works
+    assert id_fits_numbering(sprint_id, start, numbering) is works
+
+
+def test_fits_numbering_accepts_a_letter_suffix_when_the_year_changes():
+    assert not id_fits_numbering("2026.22b", date(2026, 12, 23), YEARLY)
+    assert id_fits_numbering("2026.22b", date(2027, 1, 6), YEARLY)  # wird zu 2027.1
 
 
 # --- Prüfung (validate) ------------------------------------------------------------------------
@@ -156,9 +160,31 @@ def test_check_accepts_the_demo_data_and_a_switch_of_the_numbering(data_dir: Pat
     assert numbering_errors(data_dir) == []
 
 
-def test_check_looks_only_at_the_last_sprint(data_dir: Path):
+def test_check_follows_the_chain_from_the_running_sprint(data_dir: Path):
+    """Kalender und Fehltage bilden die Folge-IDs ab dem laufenden Sprint (2026.21)."""
     rename_sprint(data_dir, "2026.21", "2026.21b")
+    [(where, _)] = numbering_errors(data_dir)
+    assert where == "sprints/2026.21b.yaml"
+
+
+def test_check_ignores_finished_sprints_before_the_last(data_dir: Path):
+    rename_sprint(data_dir, "2026.19", "2026.19b")
     assert numbering_errors(data_dir) == []
+
+
+def test_check_accepts_a_suffix_when_the_next_sprint_starts_in_the_next_year(data_dir: Path):
+    """2026.22b endet erst 2027: next_id bildet 2027.1, die Prognose läuft, die Prüfung schweigt."""
+    from sprintforecast.forecast import build_forecast
+
+    rename_sprint(data_dir, "2026.22", "2026.22b")
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    sprint = data.sprint("2026.22b")
+    sprint.start, sprint.end = date(2026, 12, 23), date(2027, 1, 6)
+    repo.save_sprint("demo", sprint)
+    assert numbering_errors(data_dir) == []
+    ids = [e.sprint.id for e in build_forecast(repo.load("demo"), TODAY).entries]
+    assert "2027.1" in ids
 
 
 def test_check_flags_the_first_id_while_there_are_no_sprint_files(data_dir: Path):
@@ -260,8 +286,11 @@ def test_web_unfitting_id_shows_the_message(data_dir: Path, monkeypatch: pytest.
     [error] = app.error
     assert "Sprint-ID '2026.22b' passt nicht zur Nummerierung" in error.value
     assert "JJJJ.N" in error.value
-    for page in ("forecast", "einstellungen"):
+    goto(app, "forecast")
+    assert any("passt nicht zur Nummerierung" in e.value for e in app.error)
+    for page in ("einstellungen", "personen"):  # ohne Prognose erreichbar
         goto(app, page)
+        assert not app.error, (page, [e.value for e in app.error])
 
 
 def test_web_unfitting_id_of_an_earlier_sprint_shows_the_message(
@@ -272,3 +301,18 @@ def test_web_unfitting_id_of_an_earlier_sprint_shows_the_message(
     app = goto(start(data_dir, monkeypatch), "fehltage")
     [error] = app.error
     assert "Sprint-ID '2026.21b' passt nicht zur Nummerierung" in error.value
+
+
+def test_cli_report_names_the_team_with_the_unfitting_id(data_dir: Path):
+    import shutil
+
+    shutil.copytree(data_dir / "demo", data_dir / "aaa")
+    repo = Repository(data_dir)
+    data = repo.load("aaa")
+    sprint = data.sprint("2026.22")
+    repo.delete_sprint("aaa", "2026.22")
+    sprint.id = "2026.22b"
+    repo.save_sprint("aaa", sprint)
+    result = run(data_dir, "bericht")
+    assert result.exit_code == 1, result.output
+    assert "Team aaa: Sprint-ID '2026.22b' passt nicht zur Nummerierung" in text(result)

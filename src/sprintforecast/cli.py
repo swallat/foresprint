@@ -1349,7 +1349,14 @@ def bericht(
     c = _ctx(ctx)
     teams = [team] if team else c.repo.teams()
     for key in teams:
-        text = render(build_forecast(_load(c, key), c.today))
+        data = _load(c, key)
+        try:
+            forecast_ = build_forecast(data, c.today)
+        except DataError as e:  # ohne Teamangabe läuft die Schleife über alle Teams
+            if key in str(e):
+                raise
+            raise DataError(t("Team {team}: {error}", team=key, error=e)) from e
+        text = render(forecast_)
         if ausgabe is not None and str(ausgabe) == "-":
             sys.stdout.write(text)
             continue
