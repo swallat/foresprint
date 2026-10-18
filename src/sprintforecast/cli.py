@@ -77,6 +77,7 @@ from sprintforecast.products import MEASURES, Distribution, balance, distributio
 from sprintforecast.report import (
     band_range,
     capacity_label,
+    completion_note,
     fmt,
     fmt_capacity,
     pct,
@@ -1359,6 +1360,8 @@ def analyse(
                 + t("Ohne Personenliste gerechnet mit Ø Kapazität: {sprints}", sprints=listed)
                 + "[/dim]"
             )
+        if note := completion_note(result.samples):
+            console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
 
 
 @command("bericht", "Markdown-Bericht erzeugen (für Git-Weboberfläche / PO-Runde).")

@@ -395,6 +395,38 @@ def test_analyse_with_project_share(data_dir: Path):
     assert "je Sprint" in half.output and full.output != half.output
 
 
+def keep_first_sprints(data_dir: Path, count: int) -> None:
+    """Nur die ersten ``count`` Sprints des Demo-Teams behalten (wenige Werte für die Analyse)."""
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > count:
+            path.unlink()
+
+
+@pytest.mark.parametrize(("count", "warned"), [(2, True), (4, True), (5, False)])
+def test_analyse_rest_warns_about_few_samples(data_dir: Path, count: int, warned: bool):
+    """Die Simulation rechnet schon ab 2 Werten; unter 5 Sprints kommt dieselbe Warnung wie in
+    der Weboberfläche."""
+    keep_first_sprints(data_dir, count)
+    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    assert result.exit_code == 0, result.output
+    assert f"Stichprobe {count} Sprints" in result.output
+    note = f"Wenig Daten: Die Simulation zieht aus nur {count} Sprints (ab 5 sind Aussagen"
+    assert (note in result.output) is warned
+
+
+def test_analyse_rest_without_few_samples_has_no_warning(data_dir: Path):
+    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    assert result.exit_code == 0, result.output
+    assert "Wenig Daten" not in result.output
+
+
+def test_analyse_without_rest_has_no_simulation_warning(data_dir: Path):
+    keep_first_sprints(data_dir, 3)
+    result = run(data_dir, "analyse", "demo")
+    assert result.exit_code == 0, result.output
+    assert "Wenig Daten" not in result.output
+
+
 def test_planning_flow_next_sprint(data_dir: Path):
     # Standard: nächstes Planning (2026.22). Fehltage: Anna 1, Ben 0, Cem 5, Dana 0;
     # Planning je Produkt: Webshop 4, App 3, Portal 3; ohne Kontrollrechnung; Commitment 10
