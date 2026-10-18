@@ -1,30 +1,43 @@
-# Übergabe: Stand der autonomen Nacht (18.10.2026)
+# Übergabe: Stand der Arbeit vom 18.10.2026
 
-Dieses Dokument fasst zusammen, was in der Nacht vom 17. auf den 18.10.2026 im Repository
-`swallat/sprint-forecast` geschehen ist, was bewusst nicht getan wurde, welche Befunde offen sind,
-was manuell zu prüfen ist, in welcher Reihenfolge die offenen Pull-Requests zu prüfen und zu mergen
-sind und was als Nächstes ansteht. Stand: Übergabe um 08:00 Uhr (Berlin).
+Dieses Dokument fasst zusammen, was in der Nacht vom 17. auf den 18.10.2026 und am Tag danach im
+Repository `swallat/sprint-forecast` geschehen ist, was bewusst nicht getan wurde, welche Befunde
+offen sind, was manuell zu prüfen ist, was als Nächstes ansteht (Todo-Liste in Teil 6) und wie die
+planmäßige Arbeit auf dem Linux-Host läuft (Teil 8). Stand: Abend des 18.10.2026, nach dem Merge von
+#81; die ursprüngliche Übergabe der Cloud-Nacht war um 08:00 Uhr (Berlin).
 
-Grundsätze dieser Nacht: Jeder Pull-Request hat genau ein Thema, wurde vor dem Push mit
-`ruff check`, `ruff format` und `pytest -q` geprüft und von einem unabhängigen Review
-(Reviewer je Blickwinkel, Skeptiker widerlegen jeden Befund) geprüft; bestätigte Befunde wurden mit
-Test und Mutationsprobe behoben. Gemergt wurde nur bei grüner CI und abgearbeitetem Review
-(Erlaubnis aus dem Auftrag: „autonom mergen, solange ein Review von Claude oder Codex vorliegt und
-vollständig bearbeitet wurde“). Alle von mir gemergten PRs stehen unter 1.
+Grundsätze: Jeder Pull-Request hat genau ein Thema, wurde vor dem Push mit `ruff check`,
+`ruff format` und `pytest -q` geprüft und von einem unabhängigen Review (Reviewer je Blickwinkel,
+Skeptiker widerlegen jeden Befund; später auch Codex und die `claude-review` der CI) geprüft;
+bestätigte Befunde wurden mit Test und Mutationsprobe behoben. Gemergt wurde nur bei grüner CI und
+abgearbeitetem Review (Erlaubnis aus dem Auftrag: „autonom mergen, solange ein Review von Claude oder
+Codex vorliegt und vollständig bearbeitet wurde“). Alle gemergten PRs stehen unter 1.
 
 ## 1. Pull-Requests
 
-Stand: kurz vor der Übergabe. Den genauen Stand der CI und der Entwürfe zeigt GitHub; die
-Spalte „Stand“ nennt, was ich zuletzt festgestellt habe.
+Den genauen Stand der CI und der Entwürfe zeigt GitHub; die Spalte „Stand“ nennt, was zuletzt
+festgestellt wurde.
 
-**Offene Pull-Requests (alle Entwurf, nichts davon vom Owner gemergt):**
+**Offene Pull-Requests:**
 
 | PR | Thema | Stand |
 |---|---|---|
-| [#81](https://github.com/swallat/sprint-forecast/pull/81) | Git-Fehler richtig zuordnen (Adresse, Rechte, Ordner, Fingerabdruck), Hinweis „Zurück auf den Branch“ | Entwurf; Review hat 36 Befunde (rund 12 verschiedene) bestätigt, die Themen A bis H sind behoben (u. a. `not_writable` auf Dateisystem-Schreibfehler eingegrenzt, `_folder_access`, `safe.directory`-Rat entfernt, Laufwerksprüfung), I teilweise; lokal 1607 Tests grün, CI auf dem letzten Kopf (`e0ab4de`) in beiden Läufen grün; **ein zweites unabhängiges Review der Korrekturen fehlt noch** — erst danach mergen |
-| [#82](https://github.com/swallat/sprint-forecast/pull/82) | „Speichern und teilen“: Meldung geht bei einem zweiten Durchlauf nicht mehr verloren (Ursache des flackernden e2e-Tests) | Entwurf; CI grün, aber das Review fand Fehler in der Sperre (prozessweit, unbegrenztes Warten); **nicht mergen**, Überarbeitung im PR-Text beschrieben |
-| [#62](https://github.com/swallat/sprint-forecast/pull/62) | `docs/konzept-kern.md`: Umsetzungsstand | Entwurf; „Stand“-Zellen nach den Merges aktualisieren (A3, A10, B5, D-Abschnitte, Phasentabelle) |
-| dieser PR | `docs/uebergabe.md` | Entwurf |
+| [#62](https://github.com/swallat/sprint-forecast/pull/62) | `docs/konzept-kern.md`: Umsetzungsstand | bereit; Stand-Angaben auf den 18.10.2026 (nach #91) gebracht, CI läuft |
+| [#83](https://github.com/swallat/sprint-forecast/pull/83) | `docs/uebergabe.md` (dieses Dokument) | wird mit diesem Stand gemergt; danach liegt die Todo-Liste in `main` |
+
+Alle übrigen Pull-Requests sind gemergt (die Entwürfe #81 und #82 ebenfalls, siehe unten).
+
+**Gemergt am Tag danach (von der lokalen Windows-Sitzung, ohne Review des Owners; jeweils CI grün und
+Review abgearbeitet):**
+
+- [#81](https://github.com/swallat/sprint-forecast/pull/81) Git-Fehler richtig zuordnen (Adresse, Rechte, Ordner, Fingerabdruck), Hinweis „Zurück auf den Branch“; Review mit 36 bestätigten Befunden abgearbeitet, `claude-review` der CI ohne Befund auf dem letzten Kopf. Der Nachtrag der letzten Überarbeitung (Hinweistext bei `resolve_conflicts`, Hilfeseite `GIT_HELP`, Tests) wurde nicht noch einmal unabhängig geprüft
+- [#82](https://github.com/swallat/sprint-forecast/pull/82) „Speichern und teilen“: Meldung geht bei einem zweiten Durchlauf nicht mehr verloren (Ursache des flackernden e2e-Tests), Sperre je Sitzung mit Zeitgrenze
+- [#84](https://github.com/swallat/sprint-forecast/pull/84) Protokolle der Sprint-Termine: Markdown je Speichern, frühere Stände ansehen, beim Aufheben `_obsolet_<Zeit>`; elf Review-Runden, ein Befund mit Absicht in #90
+- [#90](https://github.com/swallat/sprint-forecast/pull/90) Protokolle: Sperre des Betriebssystems je Sprint und Termin gegen doppelte Protokolle
+- [#85](https://github.com/swallat/sprint-forecast/pull/85) Was-wäre-wenn: Felder ausrichten; Planning: Kapazität nach Produktionszugriff (Prod only / nicht Prod only) aufteilen
+- [#86](https://github.com/swallat/sprint-forecast/pull/86) Excel-Rückweg für das ganze Team: Ausgabe mit Formeln und Trend-Diagrammen, Import mit Vorschau (`sprintforecast excel`, `excel-import`, extra `excel`). Wurde vor dem Codex-Review gemergt; dessen vier Sicherheitsbefunde (Pfadausbruch über Teamkürzel und Sprint-ID, Einstellungen ohne Prüfung, NaN/inf) behebt #91
+- [#91](https://github.com/swallat/sprint-forecast/pull/91) Excel-Import härten: sichere Namen, geprüfte Einstellungen und Zahlen, Rundlauf-Prüfung
+- [#87](https://github.com/swallat/sprint-forecast/pull/87), [#88](https://github.com/swallat/sprint-forecast/pull/88), [#89](https://github.com/swallat/sprint-forecast/pull/89) Windows-Befunde: Pfade der Kommandozeilen-Tests, Tests unabhängig vom Rechner (Chrome, Profilordner, Zeilenenden), Symlink-Tests ohne Recht überspringen
 
 **Gemergt in der Nacht (von mir, ohne Review des Owners; jeweils CI grün und unabhängiges Review
 abgearbeitet):**
@@ -53,8 +66,8 @@ Früher gemergt (Aufgaben 1 bis 6 des Auftrags): [#55](https://github.com/swalla
 standardmäßig ein App-Fenster), [#57](https://github.com/swallat/sprint-forecast/pull/57) (Windows-Testskript), [#58](https://github.com/swallat/sprint-forecast/pull/58) (Forecast: Spanne als Zeile),
 [#59](https://github.com/swallat/sprint-forecast/pull/59) (Konfliktmarker CRLF und kleine Schuld), [#61](https://github.com/swallat/sprint-forecast/pull/61) (Schrittleiste sofort aktuell).
 
-Auf `main` nach allen Merges (bis #76 und #80): ruff sauber, 1615 Tests grün (lokal, ohne e2e); e2e in der CI bis auf den
-bekannten Aussetzer grün.
+Auf `main` nach allen Merges (bis #81): ruff sauber, 1901 Tests grün bei 12 übersprungenen (lokal unter
+Windows mit allen Extras, ohne e2e); e2e in der CI grün, der frühere Aussetzer ist mit #82 behoben.
 
 
 ## 2. Bewusst nicht getan (und warum)
@@ -80,6 +93,8 @@ zuerst:
 | D: Git-Identität global | Die App schreibt Name und E-Mail in die globale Git-Konfiguration; Konzept und README sagen an anderer Stelle das Gegenteil | (A) nur lokal im Daten-Repository; (B) global lassen, Sätze in Konzept und README präzisieren; (C) in den App-Einstellungen speichern | (B), nur Text |
 | Robust: stille Annahmen | Leere Werte und doppelte Schlüssel werden still zu 0, `None` bzw. „letzter gewinnt“ | (A) Hinweise in der Prüfung (Warnung), Duplikat-Erkennung, Berechnung unverändert; (B) überall `DataError` (strenger); (C) nur dokumentieren | (A); bei (B) würden bisher ladbare Dateien abgelehnt |
 | Doku: Abnahme Phase P | Browser-Stoppuhr-Abnahme: Konzept F verzichtet auf weitere Messungen, `performance.md` führt sie als ausstehend | (A) Phase P als abgeschlossen mit benanntem Rest führen; (B) Messung nachholen | (A) |
+| #81: „Zurück auf den Branch“ mit offenen Änderungen | Die App wechselt auf den Branch und nennt in der Erfolgsmeldung den Rettungsbranch, sichert die offenen Änderungen aber nicht vorher dort | (A) offene Änderungen vor dem Wechsel auf dem Rettungsbranch sichern; (B) den Wechsel ablehnen und „Verwerfen“ anbieten; (C) Änderungen mitnehmen | (A) |
+| Protokolle (#84): Zwischenschritte des Plannings | Heute bekommt nur der Schritt Commitment ein Protokoll; Fehltage und Einplanung nicht | (a) so lassen; (b) auch Fehltage und Einplanung protokollieren (mehr Dateien je Sprint); (c) ein Protokoll je Planning-Sitzung | (a), bis der Owner mehr Nachvollziehbarkeit wünscht; dann (c) |
 
 Ebenfalls nicht umgesetzt, weil das Verhalten ändernd: aus dem Review von #74 die Frage, ob die
 App bei bestehenden Daten-Repositories eine `.gitattributes` im Datenordner anbieten soll (siehe
@@ -94,12 +109,24 @@ in Kommandozeile und Bericht.
 Bekannte Fehler und offene Befunde, jeweils mit dem Ort, an dem sie behandelt werden:
 
 - **Flackernder e2e-Test** (`tests/e2e/test_two_clones.py::test_absences_of_different_people_merge_without_conflict`):
-  Ursache war ein Fehler im Produktcode (Meldung nach „Speichern und teilen“ ging bei einem zweiten
-  Durchlauf verloren), Behebung in PR **#82**. Bis #82 gemergt ist, kann dieser Test in der CI
-  sporadisch rot sein (ein Lauf rot, der zweite des gleichen Commits grün). Gemergt wurde nur bei
-  einem vollständig grünen Lauf.
+  behoben mit **#82** (Ursache war ein Fehler im Produktcode: die Meldung nach „Speichern und teilen“
+  ging bei einem zweiten Durchlauf verloren). Seit dem Merge war die CI auf `main` und den PRs stabil.
 - **Nicht abfangbar** (#82): Ein Klick, der verloren geht, weil die zweite Anforderung des Browsers
   vor dem Rückruf selbst eintrifft (Millisekundenfenster).
+- **#82 (gemergt, Rest offen):** Die Sperre gilt je Sitzung, nicht je Datenordner (F5, ein zweites
+  Fenster oder ein zweiter Serverprozess können parallel abgleichen); ein Datenordnerwechsel verwirft das
+  Ergebnis eines laufenden Abgleichs, vorgemerkte Tags bleiben stehen; die Laufanzeige gilt für die ganze
+  Sitzung; das Aufräumen nach der Ruhezeit löscht noch nicht übernommene Ergebnisse. Option: eine
+  Höchstdauer der Sperre bei hängendem Abgleich.
+- **#84/#90 Protokolle (gemergt, Rest offen, niedrig):** (a) Der Zeitstempel des Protokollnamens sollte unter
+  der Sperre `max(jetzt, neuestes + 1 s)` sein; (b) das Ausweichen auf den Temp-Ordner sollte nur bei
+  dauerhaften Fehlern geschehen, bei WinError 32/EBUSY kurz wiederholen; (c) Fehler beim Bestimmen der
+  Sperrdatei als `FileAccessError`; (d) EACCES unter Linux/macOS nicht als „belegt“ werten; (e) der Sperrort
+  hängt von Benutzerkonto und Umgebung ab; (f) Fehler beim Rückbau dem Benutzer melden; (g) der
+  Windows-Test der Fehlernummern 32/33 prüft sie nicht.
+- **#86/#91 Excel (gemergt, Rest offen, niedrig):** Die Lockerung unter Linux/macOS macht neue IDs
+  unportabel (Klon unter Windows); der Rundlauf Export → Import scheitert unter Linux für IDs wie `a:b`;
+  `casefold` weicht von den Dateisystemen ab (ß, NFC/NFD).
 - **#76 (gemergt, Rest offen, niedrig):** Die Hinweise zu Konfliktmarkierungen (`refuse_conflict_markers` in `git.py`) nennen
   Dateinamen aus dem Repository ungeschützt (Markdown); Tests für Tooltip und Sicherungspfad, für
   `split_record` mit `\x1f` im Betreff fehlen; der `pre-receive`-Hook im Test hat keinen Windows-Skip. Eigene
@@ -112,15 +139,17 @@ Bekannte Fehler und offene Befunde, jeweils mit dem Ort, an dem sie behandelt we
   (bestand schon vorher). Bestehende Daten-Repositories und Klone ohne `.gitattributes` bleiben
   ungeschützt (siehe Entscheidungen). Die Windows-Prüfung „Zeilenenden“ prüft jetzt den
   geschützten Zustand (neues Repository mit `.gitattributes`), nicht mehr den ungeschützten.
-- **#81 offen:** (1) Ein Schreibfehler beim automatischen Zusammenführen (`resolve_conflicts`, `gitsync.py`)
-  bleibt Art `locked` und bekommt den `index.lock`-Absatz, der dort nicht passt (braucht einen eigenen Hinweistext
-  für Dateien; unter Windows ist es oft wirklich eine gehaltene Datei, der Bestandstest erwartet `locked`).
-  (2) `GIT_HELP` in `guide.py` und `docs/konzept-kern.md` erwähnen die neuen Fälle (unsicherer Ordner, nicht
-  beschreibbar, Fingerabdruck, verwaiste `index.lock`, offene Änderungen beim Zurück auf den Branch) noch nicht;
-  englische Fassungen in `locale_en.py` nötig. (3) Für den Owner offen: „Zurück auf den Branch“ sichert offene
-  Änderungen nicht vorher auf dem Rettungsbranch (Option A im PR-Text); ein nacktes „Could not read from remote
-  repository“ bleibt `offline`; ein Einhängepunkt auf Linux, der bei fehlendem Laufwerk als leerer Ordner
-  bestehen bleibt, gilt weiter als „nicht gefunden“.
+- **#81 (gemergt, Rest offen):** Der Schreibfehler beim automatischen Zusammenführen (`resolve_conflicts`)
+  hat jetzt einen eigenen Hinweistext, `GIT_HELP` und `docs/konzept-kern.md` nennen die neuen Fälle, die
+  englischen Fassungen stehen in `locale_en.py`. Offen: der Hinweis zu `locked` erwähnt bei „unable to
+  unlink“ / „Device busy“ weiter die `index.lock`, weil `hint_for` die Meldung nicht kennt; ein nacktes
+  „Could not read from remote repository“ und „unable to access … 503“ bleiben `offline`; ein Einhängepunkt
+  auf Linux, der bei fehlendem Laufwerk als leerer Ordner bestehen bleibt, gilt weiter als „nicht gefunden“;
+  schlägt „Zurück auf den Branch“ nach dem Anlegen des Rettungsbranchs fehl, nennt die Fehlermeldung ihn
+  nicht (nur die Erfolgsmeldung). Entscheidung des Owners: Sichern vor dem Wechsel (Teil 2).
+- **Codex-Kontingent:** Das Kontingent für Code-Reviews war am 18.10.2026 erschöpft. Bis es zurück ist,
+  prüfen eigene Agenten (vier Blickwinkel plus Skeptiker) und die `claude-review` der CI. Ein nachträglicher
+  Codex-Review (`@codex review` als PR-Kommentar) der gemergten PRs #81, #84, #86, #90 und #91 steht aus.
 - **Übersetzungen:** `tests/test_i18n.py` prüft nur fehlende, nie überzählige Schlüssel. Das Review von #77
   fand rund 47 scheinbar ungenutzte Einträge in `locale_en.py` (nicht einzeln geprüft, einige
   vermutlich falsch positiv). Zwei sicher tote Schlüssel habe ich entfernt.
@@ -149,7 +178,7 @@ Der Owner prüft nur Optik und Verständlichkeit sowie die Ergebnisse des Window
   statt `None` in Zellen, Kapazität ohne Abschneiden, Anmelde-Hinweis, Server-Maske-Schaltflächen
 - #56: `sprintforecast web` öffnet ein App-Fenster; `--no-browser` öffnet nichts
 - #57: **Windows-Skript ausführen und den Bericht zurückgeben** (`scripts/windows-tests.ps1`,
-  Anleitung in `docs/windows-tests.md`); dieses Ergebnis steht noch aus
+  Anleitung in `docs/windows-tests.md`); der Lauf gegen das aktuelle `main` steht noch aus (siehe unten)
 - #58: Forecast: Zeile „Spanne a–b“ mit Beschriftung „Spanne aus den letzten N Sprints“
 - #59: Umbenennen-Meldung mit Backticks
 - #61: Schrittleiste springt nach dem Speichern sofort auf „erledigt“ (Vorplanung, Planning, Review)
@@ -176,65 +205,94 @@ Der Owner prüft nur Optik und Verständlichkeit sowie die Ergebnisse des Window
 - #79: Seite „Datenordner“, „Neues Daten-Repository anlegen“: erweiterter Hilfetext; nach dem Anlegen
   liegt `teams/.gitattributes` neben den Teams und gilt bis zum ersten „Speichern und teilen“ als
   offene Änderung
-- #62: Stand-Angaben in `docs/konzept-kern.md` stimmen mit dem Eindruck überein
+- #62 (nach dem Merge): Stand-Angaben in `docs/konzept-kern.md` stimmen mit dem Eindruck überein
 
-Pull-Requests, die erst spät in der Nacht gemergt wurden bzw. noch offen sind (nach dem Mergen prüfen):
+Pull-Requests, die erst spät in der Nacht oder am Tag danach gemergt wurden (jetzt prüfen):
 
 - #76: Seitenleiste „Neu von anderen“, Reiter Tags, Konfliktseite, Verwerfen-Liste: Autor, Betreff,
   Tag-Namen, Dateipfade als Code gut lesbar (auch in der schmalen Seitenleiste)?
 - #80: Terminal mit Namen wie „Eva [x]“ oder Produkt `[/x]`: Ausgabe unverändert lesbar
 - #81: Boxen „Repository nicht gefunden“, „Ordner gehört einem anderen Benutzer“, Meldung zum
-  Rettungsbranch nach „Zurück auf den Branch“
-- Fix „Speichern und teilen“ (Meldung geht bei zweitem Durchlauf nicht mehr verloren): nach
-  „Fehltage speichern“ sofort „Speichern und teilen“ klicken; die Meldung („… übernommen“,
+  Rettungsbranch nach „Zurück auf den Branch“; Hilfeseite „Zusammenarbeit (Git)“: neue Abschnitte
+  verständlich?
+- #82: nach „Fehltage speichern“ sofort „Speichern und teilen“ klicken; die Meldung („… übernommen“,
   „Hochgeladen“) erscheint immer
+- #84/#90: Beim Speichern eines Sprint-Termins entsteht ein Protokoll (Markdown) im Datenordner; die
+  früheren Stände lassen sich ansehen; beim Aufheben der Sperre eines Sprints wird das alte Protokoll
+  zu `…_obsolet_<Datum>_<Zeit>.md`
+- #85: „Was-wäre-wenn“: Eingabefelder auf einer Höhe; „Forecast PLAN & Einplanung“ zeigt die Kapazität
+  getrennt nach „nur Produktion“ und „nicht nur Produktion“
+- #86/#91: Excel-Ausgabe je Team (`sprintforecast excel …`): Blätter, Formeln, Trend-Diagramm in Excel
+  öffnen; `sprintforecast excel-import …`: Vorschau der Änderungen lesbar, abgelehnte Zellen mit Grund
+- Windows-Skript (#57): `scripts/windows-tests.ps1` ist am 18.10. einmal gelaufen und hat die Befunde
+  geliefert, die #87 bis #89 beheben; ein erneuter Lauf gegen das aktuelle `main` samt den interaktiven
+  Prüfungen (Anmeldung) und der Bericht an den Owner stehen aus (kann nur lokal unter Windows laufen)
 
 
-## 5. Empfohlene Reihenfolge für Review und Merge
+## 5. Reihenfolge der Merges
 
-1. **[#80](https://github.com/swallat/sprint-forecast/pull/80)** ist gemergt (nur `cli.py` und ein Testmodul).
-2. **[#76](https://github.com/swallat/sprint-forecast/pull/76)** ist gemergt.
-3. **[#81](https://github.com/swallat/sprint-forecast/pull/81)** (nach dem Merge von [#76](https://github.com/swallat/sprint-forecast/pull/76)): berührt dieselben Dateien (`git.py`, `ui.py`, `cli.py`), Konflikte beim
-   Einmergen von `main` sind zu erwarten. Die Befunde zu `not_writable` und `_folder_access` sind behoben; vor dem
-   Mergen ein zweites unabhängiges Review der Korrekturen, `main` einmergen, CI abwarten.
-4. **[#82](https://github.com/swallat/sprint-forecast/pull/82)** nach der Überarbeitung der Sperre (Abschnitt 3, Befunde im PR-Text); berührt `web/ui.py` und
-   `web/app.py`. Erst danach ist der e2e-Aussetzer in der CI weg.
-5. **[#62](https://github.com/swallat/sprint-forecast/pull/62)** zuletzt: die „Stand“-Zellen in `docs/konzept-kern.md` erst nach den Merges aktualisieren.
-6. **Dieser PR** (Übergabe) jederzeit; er enthält nur Dokumentation.
-
-Abhängigkeiten in Kurzform: [#81](https://github.com/swallat/sprint-forecast/pull/81) baut auf [#74](https://github.com/swallat/sprint-forecast/pull/74) (gemergt) und kollidiert mit [#76](https://github.com/swallat/sprint-forecast/pull/76); [#82](https://github.com/swallat/sprint-forecast/pull/82) ist
-unabhängig, löst aber den e2e-Aussetzer, den jeder PR in der CI sehen kann; [#62](https://github.com/swallat/sprint-forecast/pull/62) hängt von allen
-anderen ab.
+Alle Pull-Requests der Nacht und des Tages danach sind gemergt (siehe Teil 1). Offen sind nur
+[#62](https://github.com/swallat/sprint-forecast/pull/62) (Konzept-Stand) und dieser PR
+([#83](https://github.com/swallat/sprint-forecast/pull/83)); beide enthalten nur Dokumentation und
+können in beliebiger Reihenfolge gemergt werden, sobald die CI grün ist. Danach beginnt die Todo-Liste
+unten. Neue Wünsche des Owners kommen immer zuerst in diese Liste; erst wenn keine Pull-Requests mehr
+offen sind, wird mit neuen Funktionen begonnen.
 
 
-## 6. Backlog der nächsten Aufgaben
+## 6. Todo-Liste
 
-Reihenfolge nach Nutzen und Risiko; kleine Pull-Requests mit je einem Thema:
+Reihenfolge nach Nutzen und Risiko; kleine Pull-Requests mit je einem Thema. Wer hier arbeitet (die
+planmäßige Aufgabe auf dem Linux-Host in Teil 8 oder eine Sitzung des Owners), nimmt den ersten Punkt, der
+nicht auf den Owner wartet, und hakt ihn nach dem Merge hier in einem kleinen PR ab.
 
-1. **Entscheidungen des Owners** (Abschnitt 2) und daraus je ein kleiner PR: A1 „Plan in der
-   Bandbreite“ (ändert Zahlen), D4b Prognosen über `at` vereinigen, A5 Quote als unsicher
-   kennzeichnen, Git-Identität (nur Text), Phase P als abgeschlossen führen.
-2. **Übersetzungen aufräumen:** Test auf verwaiste englische Schlüssel (Schlüssel, die nirgends in
-   `src/` als `t()`-Literal vorkommen) und Entfernen der ungenutzten Einträge.
-3. **#81-Nachtrag:** `_folder_access` auch für die Art `not_writable`; Hinweistexte zu Anmelde-Hilfe
-   (D6) ohne Anmeldung in der App.
-4. **Robustheit aus dem Audit der Nacht** (Stand zu Beginn der Nacht „offen“, nicht erneut geprüft):
+**A. Wünsche des Owners (Stand 18.10.2026)**
+
+1. **Änderungen als Änderungen anzeigen:** Vor dem Speichern oder Committen eine Änderungsansicht
+   (was hat sich an welchen Werten geändert), damit Änderungen nachvollziehbar sind.
+2. **Besserer Vorschlag für die Commit-Nachricht:** aus den geänderten Dateien und Werten abgeleitet statt
+   „Sprint data updated“. Punkt 1 und 2 teilen sich die Diff-Logik und gehören in einen gemeinsamen,
+   zuerst nur lesenden Baustein (`diff`-Modul), dann zwei kleine PRs.
+3. **Excel-Import in der Weboberfläche:** bisher nur in der Kommandozeile (`excel-import`); mit Vorschau
+   und Bestätigung wie dort.
+
+**B. Entscheidungen des Owners** (Teil 2): je Entscheidung ein kleiner PR, erst nach der Antwort.
+A1 „Plan in der Bandbreite“ (ändert Zahlen), D4b Prognosen über `at` vereinigen, A5 Quote als unsicher
+kennzeichnen, Git-Identität (nur Text), Phase P als abgeschlossen führen, „Zurück auf den Branch“ sichert
+die Änderungen, Protokolle für die Zwischenschritte des Plannings. Die planmäßige Aufgabe darf diese Punkte
+nicht ohne Antwort umsetzen.
+
+**C. Backlog aus den Reviews** (Teil 3): niedrige Punkte zu #76, #80, #81, #82, #84/#90, #86/#91; mittlere
+Punkte zuerst (#82: Sperre je Datenordner statt je Sitzung, Ergebnis beim Datenordnerwechsel).
+
+**D. Aufräumen und Robustheit**
+
+1. **Übersetzungen aufräumen:** Test auf verwaiste englische Schlüssel (Schlüssel, die nirgends in
+   `src/` als `t()`-Literal vorkommen) und Entfernen der ungenutzten Einträge (rund 47 Kandidaten, einzeln
+   prüfen).
+2. **Robustheit aus dem Audit der Nacht** (Stand zu Beginn der Nacht „offen“, nicht erneut geprüft):
    Updater-Status (ausdrückliches `--auto` wird als gespeichert gemeldet, obwohl das Schreiben
    scheiterte), Protokolldatei des App-Starters nicht abgesichert, Feldtypen in `settings.json`,
    Wertebereiche von CLI-Optionen, unterschiedliches Verhalten von CLI und Weboberfläche bei
-   ungültigen Eingaben (CLI schreibt und meldet nachträglich), `OSError` beim Schreiben in
-   `resolve_conflicts`, stille Annahmen (Entscheidung nötig).
-5. **Doku:** Stand-Angaben in `docs/konzept-kern.md` nach den Merges aktualisieren (PR #62),
-   README-Hinweise (FTE, Produktanteil, Einstellungen, Vorplanung, Begriffe im Rechenweg),
+   ungültigen Eingaben (CLI schreibt und meldet nachträglich), stille Annahmen (Entscheidung nötig).
+3. **Doku:** README-Hinweise (FTE, Produktanteil, Einstellungen, Vorplanung, Begriffe im Rechenweg),
    Abnahmetests zur Doku (D-Abnahme).
-6. **e2e:** Nach #82 prüfen, ob die CI stabil ist; weitere Browsertests nur gezielt.
-7. **Windows:** `scripts/windows-tests.ps1` ausführen und den Bericht zurückgeben (liegt beim Owner);
-   danach Befunde daraus abarbeiten.
+4. **Hinweistexte zur Anmelde-Hilfe** (D6) ohne Anmeldung in der App.
+
+**E. Nur mit dem Owner oder lokal unter Windows**
+
+1. **Windows-Skript:** `scripts/windows-tests.ps1` erneut gegen das aktuelle `main` laufen lassen, samt
+   den interaktiven Prüfungen (Anmeldung), und den Bericht an den Owner geben; Befunde daraus als kleine PRs.
+   Läuft nicht auf dem Linux-Host.
+2. **Nachträglicher Codex-Review** der gemergten PRs #81, #84, #86, #90, #91, sobald das Kontingent
+   zurück ist (`@codex review` als PR-Kommentar); bestätigte Befunde als Folge-PR.
+3. **Manuelle Prüfungen** des Owners (Teil 4).
 
 ## 7. Übergabe-Prompt für die lokale Windows-Sitzung
 
 Der folgende Text ist der vollständige Auftrag für die lokale Sitzung; er ist wie der ursprüngliche
-Auftrag aufgebaut.
+Auftrag aufgebaut. Stand 18.10.2026 abends: Die Aufgaben 1 (bis auf den erneuten Windows-Lauf) und 2
+sind erledigt, Aufgabe 3 und 4 sind in Teil 2 und 6 fortgeführt. Die Regeln gelten unverändert und sind
+die Grundlage des Auftragstexts für den Linux-Host (Teil 8).
 
 ````text
 Du bist ein Claude-Code-Agent in einer lokalen Windows-Sitzung (PowerShell) und übernimmst die Arbeit
@@ -289,3 +347,56 @@ AUFGABEN, IN DIESER REIHENFOLGE
 BERICHT: PR-Links, was geprüft wurde, was offen bleibt, die Liste der manuell zu prüfenden Änderungen
 (der Owner prüft nur Optik und Verständlichkeit sowie die Ergebnisse des Windows-Skripts).
 ````
+
+## 8. Betrieb auf dem Linux-Host (planmäßige Aufgabe)
+
+Damit die Arbeit auch nachts und nach dem Zurücksetzen des Kontingents weiterläuft, startet ein Timer auf
+dem Linux-Host des Owners stündlich eine Sitzung ohne Terminal (`claude -p`), die die Todo-Liste (Teil 6)
+abarbeitet. Die Regeln der Sitzung stehen im Auftragstext `docs/linux-betrieb/prompt.md` (Kopie des Texts
+auf dem Host) und entsprechen Teil 7.
+
+**Host und Werkzeuge**
+
+- Host: `sw@workstation.nova.wallat.de` (Linux, 8 Kerne, 15 GB), Klon `~/devel/sprint-forecast`.
+- Python 3.14 und uv kommen über `mise` (`mise.toml` im Repository); Abhängigkeiten mit
+  `uv sync --all-extras`. `gh` ist per https am Konto `swallat` angemeldet, die Claude-Code-Anmeldung
+  gehört dem Owner.
+- Git: globale Konfiguration mit Name und Commit-Adresse `873008+swallat@users.noreply.github.com`,
+  Commits per SSH signiert (`commit.gpgsign=true`, Schlüssel `~/.ssh/id_ed25519_signing`). Der öffentliche
+  Schlüssel muss bei GitHub als **Signaturschlüssel** (nicht nur als Anmeldeschlüssel) hinterlegt sein,
+  sonst zeigt GitHub die Commits als „Unverified“. Fingerabdruck:
+  `SHA256:drX+EJmXujvgrttwiGjAT6Fv44jQDQvjxatHmeb4d6I`. Die Signierpflicht wird nie umgangen.
+
+**Ablauf**
+
+- Der systemd-Timer des Benutzers (`sprintforecast-lauf.timer`, stündlich, bis zwei Minuten verzögert,
+  holt verpasste Läufe nach) ruft `~/sprintforecast-lauf/sprintforecast-lauf.sh`. Mit
+  `loginctl enable-linger sw` läuft er auch ohne angemeldeten Benutzer. Es ist kein cron installiert.
+- Der Läufer startet nie zwei Läufe gleichzeitig, überspringt den Lauf bei gesetzter Pausen-Datei oder wenn
+  `git fetch` scheitert, und beendet eine Sitzung nach 170 Minuten. Die Sitzung liest zuerst `docs/uebergabe.md`
+  von `origin/main` und nimmt dann die erste Aufgabe aus Teil 6, die nicht auf den Owner wartet; offene
+  Pull-Requests gehen vor. Je Lauf höchstens zwei Pull-Requests; läuft die CI noch, endet der Lauf, der
+  nächste setzt fort.
+- Ist das Kontingent leer, scheitert `claude -p`; der nächste stündliche Lauf versucht es erneut. So setzt
+  sich die Arbeit nach dem Zurücksetzen von selbst fort.
+- Erlaubt sind Lesen, Schreiben und Bearbeiten im Klon, `git`, `gh`, `uv`, `mise` und einfache
+  Textwerkzeuge. Verboten sind `sudo` und das Löschen außerhalb des Klons; ändert die Sitzung die
+  Anmeldung (gh, ssh, Claude) oder das System, ist das ein Fehler. Gemergt wird nur nach der Regel aus
+  Teil 7 (CI grün **und** unabhängiges Review abgearbeitet); jeder Merge steht in der Zusammenfassung des
+  Laufs.
+- Nicht auf dem Host möglich: das Windows-Skript, manuelle Prüfungen und alles, was eine Entscheidung des
+  Owners braucht (Teil 2 und 6 B).
+
+**Bedienung** (auf dem Host)
+
+```bash
+touch ~/sprintforecast-lauf/PAUSE                 # anhalten (löschen: fortsetzen)
+systemctl --user list-timers sprintforecast-lauf.timer
+systemctl --user start sprintforecast-lauf.service # sofort einen Lauf starten
+systemctl --user disable --now sprintforecast-lauf.timer   # ganz abschalten
+ls -t ~/sprintforecast-lauf/*.log | head           # Protokolle der Läufe (30 Tage)
+```
+
+Änderungen am Läufer, am Auftragstext oder an den Einheiten werden zuerst unter `docs/linux-betrieb/`
+nachgeführt und dann auf den Host kopiert (`~/sprintforecast-lauf/` bzw.
+`~/.config/systemd/user/`, danach `systemctl --user daemon-reload`).
