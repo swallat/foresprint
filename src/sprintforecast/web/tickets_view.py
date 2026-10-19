@@ -92,6 +92,11 @@ CARD_LIMIT = 30
 IMPORT_LIMIT = 15
 
 
+def exact(value: float | None) -> str:
+    """A value as it is written (no rounding to one decimal)."""
+    return "–" if value is None else f"{value:g}"
+
+
 def fmt(value: float | None) -> str:
     if value is None:
         return "–"
@@ -642,6 +647,13 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
     overwrite = st.checkbox(
         t("Bereits erfasste PO-Vorplanung ersetzen"), key=f"tickets-{key}-handover-overwrite"
     )
+    if dist.no_forecast:
+        st.warning(
+            t(
+                "Noch kein Budget: ohne vergangene Sprints mit Velocity gibt es keinen "
+                "Forecast, die Tickets können nicht verteilt werden."
+            )
+        )
     rows = handover_rows(data, dist, count)
     if not rows:
         st.info(t("Nichts zu übergeben: in den gezeigten Sprints ist kein Ticket verteilt."))
@@ -659,8 +671,8 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
                 {
                     t("Sprint"): r.sprint,
                     t("Produkt"): names.get(r.product, r.product),
-                    t("Bisher"): fmt(r.current),
-                    t("Vorschlag"): fmt(r.proposed),
+                    t("Bisher"): exact(r.current),
+                    t("Vorschlag"): exact(r.proposed),
                     t("Hinweis"): notes[r.action(overwrite)],
                 }
                 for r in rows
@@ -679,13 +691,13 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
         ids = [x.id for x in after.sprints]
         saved = {x.id for x in to_save}
         checked = saved | {ids[i + 1] for i, sid in enumerate(ids[:-1]) if sid in saved}
-        save(
+        if save(
             after,
             [f"{sid}.yaml" for sid in checked],
             lambda: save_sprints_together(repo, key, to_save),
             flash=True,
-        )
-        st.rerun()
+        ):
+            st.rerun()
 
 
 def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: str) -> None:

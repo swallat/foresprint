@@ -482,3 +482,36 @@ def test_handover_sprints_keep_a_different_value_unless_overwritten(data_dir: Pa
     assert written.products[product].preplanned == 5.0
     new = HandoverRow("2099.01", product, proposed=2.0)
     assert handover_sprints(data, [new], overwrite=False) == []  # unknown sprint: skipped
+
+
+def test_handover_overwrite_checkbox_replaces_the_po_value(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    data = Repository(data_dir).load("demo")
+    rows = handover_rows(data, distribute(data, TODAY), 6)
+    differing = next(r for r in rows if r.current is not None and r.current != r.proposed)
+    at = page(data_dir, monkeypatch)
+    at.checkbox(key="tickets-demo-handover-overwrite").check().run()
+    button(at, "In die PO-Vorplanung übernehmen").click().run()
+    assert not at.exception, at.exception
+    after = Repository(data_dir).load("demo")
+    assert after.sprint(differing.sprint).products[differing.product].preplanned == (
+        differing.proposed
+    )
+
+
+def test_handover_sprints_create_the_calendar_sprints_in_between(data_dir: Path):
+    from sprintforecast.preplan import HandoverRow
+    from sprintforecast.web.tickets_view import handover_sprints
+
+    data = Repository(data_dir).load("demo")
+    product = data.products[0].id
+    last = data.sprints[-1]
+    from sprintforecast.calendar import following_sprint
+
+    first = following_sprint(data.team, last)
+    third = following_sprint(data.team, following_sprint(data.team, first))
+    written = handover_sprints(data, [HandoverRow(third.id, product, 2.0)], False)
+    assert [s.id for s in written][-1] == third.id
+    assert first.id in {s.id for s in written}
+    assert written[-1].products[product].preplanned == 2.0
