@@ -398,8 +398,9 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.roadmap_share",
-        label="Roadmap-Anteil (%)",
-        help="Anteil des Forecast PLAN für Roadmap-Themen; der Rest ist „Kleinkram“.",
+        label="Verplanbarer Anteil (%)",
+        help="Anteil des Forecast PLAN, der für planbare Themen reserviert ist; der Rest ist "
+        "„Kleinkram“.",
         kind=Kind.PERCENT,
         minimum=0,
         maximum=100,
@@ -439,7 +440,7 @@ SETTINGS: list[Setting] = [
         kind=Kind.CHOICE,
         choices={
             "plan": "gesamter Forecast PLAN",
-            "roadmap": "nur Roadmap-Anteil (Kleinkram bleibt produktübergreifend)",
+            "roadmap": "nur verplanbarer Anteil (Kleinkram bleibt produktübergreifend)",
         },
         get=lambda t: t.forecast.product_basis.value,
         set=_setter("forecast.product_basis", ProductBasis),
