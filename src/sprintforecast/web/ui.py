@@ -3774,6 +3774,7 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
     if data.sprints:
         _rename_sprints_section(repo, data, fc)
+    _excel_import_section(repo, data)
     if edited is None:
         return
     diff = changes(data.team, edited)
@@ -3798,6 +3799,80 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
         ["team.yaml"],
         lambda: [repo.save_team(edited)],
     )
+
+
+MAX_IMPORT_ROWS = 200
+
+
+def _excel_import_section(repo: Repository, data: TeamData) -> None:
+    """Excel workbook from the Excel export: preview of what would change, written on confirm."""
+    from sprintforecast.excel import ExcelUnavailable
+    from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+
+    key = data.team.key
+    counter = f"excel-import-{key}-n"
+    st.subheader(t("Import aus Excel"))
+    st.markdown(
+        t(
+            "Liest eine Excel-Mappe aus der Excel-Ausgabe ein (Forecast-Seite, „Excel-Liste "
+            "erstellen“). Zuerst erscheint, was sich ändern würde; geschrieben wird erst nach "
+            "der Bestätigung."
+        )
+    )
+    upload = st.file_uploader(
+        t("Excel-Datei"),
+        type=["xlsx"],
+        key=f"excel-import-{key}-file-{st.session_state.get(counter, 0)}",
+    )
+    if upload is None:
+        return
+    try:
+        plan = plan_import(repo, read_workbook(upload.getvalue(), key), today())
+    except ExcelUnavailable as e:
+        st.warning(str(e))
+        return
+    except DataError as e:
+        st.error(str(e))
+        return
+    if not plan.changes:
+        st.info(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
+        return
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    t("Datei"): c.file,
+                    t("Wert"): c.path,
+                    t("bisher"): "–" if c.old is None else str(c.old),
+                    t("neu"): "–" if c.new is None else str(c.new),
+                }
+                for c in plan.changes[:MAX_IMPORT_ROWS]
+            ]
+        ),
+        hide_index=True,
+    )
+    if len(plan.changes) > MAX_IMPORT_ROWS:
+        st.caption(t("… und {count} weitere Änderungen", count=len(plan.changes) - MAX_IMPORT_ROWS))
+    for name in plan.untouched:
+        st.caption(t("Nicht in der Mappe, bleibt unverändert: {file}", file=name))
+    if not st.button(t("Änderungen übernehmen"), type="primary", key=f"excel-import-{key}-apply"):
+        return
+    try:
+        paths = apply_import(repo, plan)
+    except DataError as e:
+        st.error(str(e))
+        return
+    except OSError as e:  # Dateien werden nacheinander geschrieben: ein Teil kann schon stehen
+        st.error(t("Nicht vollständig gespeichert: {reason}", reason=e.strerror or e))
+        return
+    st.session_state["flash"] = [
+        ("success", _saved_text(", ".join(p.name for p in paths), _next_step()))
+    ]
+    # Das Einstellungsformular soll die importierten Werte zeigen, nicht die alten.
+    for name in [n for n in st.session_state if str(n).startswith(f"settings-{key}")]:
+        del st.session_state[name]
+    st.session_state[counter] = st.session_state.get(counter, 0) + 1  # leert die Auswahl
+    st.rerun()
 
 
 def _rename_sprints_section(repo: Repository, data: TeamData, fc: Forecast) -> None:
