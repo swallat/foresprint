@@ -403,7 +403,7 @@ def _git(
     if proc.returncode != 0:
         if not check:
             return ""
-        raise classify(proc.stderr.strip() or proc.stdout.strip(), url=url)
+        raise classify(proc.stderr.strip() or proc.stdout.strip(), url=url, cwd=cwd)
     return proc.stdout.strip() if strip else proc.stdout
 
 
@@ -728,6 +728,7 @@ def classify(
     url: str = "",
     drive_check: bool = True,
     broken: str = "",
+    cwd: Path | None = None,
 ) -> GitError:
     """Macht aus einer Git-Fehlermeldung eine :class:`GitError` mit Art und nächstem Schritt.
     ``url`` ist die Adresse des Servers, wenn die Meldung von einem Netzwerkaufruf stammt: Sie
@@ -753,7 +754,7 @@ def classify(
                 message = _without_safe_directory_advice(message)
             if kind == "not_found" and drive_check and _missing_folder(url):
                 kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
-            hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
+            hint = auth_help(url, message, cwd) if kind == "auth" else hint_for(kind)
             return GitError(message or kind, kind, hint, raw=bool(message))
     return GitError(message or t("Unbekannter Git-Fehler"), "error", raw=bool(message))
 
@@ -917,7 +918,7 @@ def unwritable_file_hint() -> str:
     )
 
 
-def auth_help(url: str = "", message: str = "") -> str:
+def auth_help(url: str = "", message: str = "", cwd: Path | None = None) -> str:
     """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH). Der Text beginnt gleich
     mit dem nächsten Schritt und wiederholt die Ursache nicht: Wo der Hinweis unter der
     Überschrift (``title_for``) steht („Anmeldung fehlt oder wurde abgelehnt“), nennt sie schon
@@ -945,7 +946,7 @@ def auth_help(url: str = "", message: str = "") -> str:
         "`gh auth setup-git` ein; sonst den Token im Anmeldedienst des Rechners hinterlegen "
         "oder beim nächsten Anmeldefenster als Kennwort eingeben."
     )
-    return f"{steps} {credential_advice()} " + t("Danach noch einmal versuchen.")
+    return f"{steps} {credential_advice(cwd)} " + t("Danach noch einmal versuchen.")
 
 
 # Anmeldedienste, die Git mitbringt oder die verbreitet sind; alles andere heißt „custom“.
@@ -963,14 +964,15 @@ _SAFE_HELPERS = {
 _PLAIN_TEXT_HELPERS = {"store"}  # legt den Token unverschlüsselt in ~/.git-credentials ab
 
 
-def credential_helpers() -> list[str]:
+def credential_helpers(cwd: Path | None = None) -> list[str]:
     """Namen der Anmeldedienste, die Git für diesen Benutzer eingetragen hat (nur lesend:
     ``git config``, keine Änderung). Eine leere Einstellung hebt die davor stehenden auf, wie
-    in Git selbst. Namen außerhalb der bekannten Liste erscheinen als ``custom``. Ist Git nicht
-    zu starten, ist die Liste leer."""
+    in Git selbst. Namen außerhalb der bekannten Liste erscheinen als ``custom``. ``cwd`` ist
+    der Ordner, in dem Git fragt (der Datenordner): So zählt auch ein Eintrag, der nur in
+    dessen Repository steht. Ist Git nicht zu starten, ist die Liste leer."""
     try:
         proc = _git_result(
-            Path.cwd(), "config", "--get-regexp", r"^credential(\..+)?\.helper$", timeout=10
+            cwd or Path.cwd(), "config", "--get-regexp", r"^credential(\..+)?\.helper$", timeout=10
         )
     except GitError, OSError:
         return []
@@ -988,11 +990,11 @@ def credential_helpers() -> list[str]:
     return names
 
 
-def credential_advice() -> str:
+def credential_advice(cwd: Path | None = None) -> str:
     """Konkreter nächster Schritt für https-Anmeldungen, passend zum Betriebssystem dieses
     Rechners und zum eingetragenen Anmeldedienst. Die App liest nur und ändert keine
     Git-Einstellung; ein Klartext-Speicher (``store``) wird nie empfohlen."""
-    helpers = credential_helpers()
+    helpers = credential_helpers(cwd)
     if any(name in _PLAIN_TEXT_HELPERS for name in helpers):
         return t(
             "Achtung: Git speichert Anmeldungen hier im Klartext (`credential.helper store`, "
