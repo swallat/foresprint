@@ -116,6 +116,8 @@ from sprintforecast.githistory import (
     upload_tag,
 )
 from sprintforecast.gitsync import (
+    SHARE_DIRECT,
+    SHARE_MERGE_REQUEST,
     Commit,
     ConflictFile,
     RemoteInfo,
@@ -133,6 +135,8 @@ from sprintforecast.gitsync import (
     restore_file,
     set_identity,
     set_remote,
+    set_share_mode,
+    share_mode,
     sync,
 )
 from sprintforecast.gitsync import (
@@ -227,6 +231,7 @@ from sprintforecast.web.logic import (
     PRODUCT_COLUMNS,
     TEAM_REGION,
     Assumption,
+    CapacityUsage,
     absence_matrix,
     absence_sprints,
     apply_calendar,
@@ -234,6 +239,7 @@ from sprintforecast.web.logic import (
     board_steps_done,
     calendar_table,
     calendar_to_save,
+    capacity_usage,
     default_forecast_ist,
     edit_absences,
     forget_without_git,
@@ -2162,6 +2168,26 @@ def _production_split_note(fc: Forecast, entry: Any, data: TeamData, unit: str) 
     )
 
 
+def _capacity_gauge(usage: CapacityUsage | None, unit: str) -> None:
+    """Verplante Menge gegenüber dem Forecast PLAN, aktualisiert sich mit jeder Eingabe."""
+    if usage is None:
+        return
+    st.progress(
+        min(usage.ratio, 1.0),
+        text=t(
+            "Eingeplant: **{planned} {unit}** von {plan} {unit} ({share})",
+            planned=fmt(usage.planned, 2),
+            plan=fmt(usage.plan),
+            unit=unit,
+            share=pct(usage.ratio) if usage.plan > 0 else "–",
+        ),
+    )
+    if usage.over:
+        st.warning(t("{rest} {unit} zu viel.", rest=fmt(-usage.rest, 2), unit=unit))
+    else:
+        st.success(t("Noch {rest} {unit} frei.", rest=fmt(usage.rest, 2), unit=unit))
+
+
 def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     entry = fc.entry(sprint.id)
@@ -2169,6 +2195,21 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     if entry is None:
         st.info(t("Für diesen Sprint gibt es keine Prognose."))
         return
+    page_intro(
+        t(
+            "Der Forecast PLAN ist die Menge, die das Team einplanen kann. Beim Eintragen zeigt "
+            "die Anzeige „Eingeplant“, wie viel davon schon verplant und wie viel noch frei ist."
+        ),
+        t(
+            "Die Anzeige rechnet live mit jedem eingetragenen Wert, noch bevor gespeichert wird. "
+            "Verglichen wird mit der aktuellen Prognose in {unit}. Bei Teams mit Produkten ist "
+            "es die Summe der Planning-Werte je Produkt; sonst die Menge, die unter „Bisher "
+            "eingeplant“ eingetragen wird (nur Hilfsrechnung, wird nicht gespeichert – das "
+            "Commitment steht im nächsten Schritt).",
+            unit=unit,
+        ),
+        t("Mehr dazu: so liest sich „Eingeplant“"),
+    )
     r = entry.result
     view = plan_view(entry)
     cols = st.columns(5 if view.frozen is not None else 4)
@@ -2220,6 +2261,16 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
     features = data.team.features
+    # Ohne Produkteditor (kein Produktbereich oder keine Produkte im Sprint) gibt es keine
+    # Summe zum Vergleichen: dann eine Hilfsrechnung, vor allen Speicherschritten.
+    if not (features.products and data.products and distribution(fc, entry).rows):
+        scratch = _number(
+            t("Bisher eingeplant ({unit})", unit=unit),
+            None,
+            f"planning-scratch-{sprint.id}",
+            t("Hilfsrechnung für das Planning: wird nicht gespeichert."),
+        )
+        _capacity_gauge(capacity_usage(r.plan, scratch), unit)
     if features.products and data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
@@ -2250,22 +2301,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             fc_preview = _preview_forecast(data, fc, base, after)
             d_preview = distribution(fc_preview, fc_preview.entry(after.id) or entry)
             _production_hint(d_preview, data, unit)
-            planned = d_preview.total("planned")
-            if planned is not None and r.plan is not None:
-                rest = r.plan - planned
-                (st.success if rest >= 0 else st.warning)(
-                    t(
-                        "Eingeplant je Produkt: **{planned} {unit}** von {plan} {unit} – ",
-                        planned=fmt(planned, 2),
-                        plan=fmt(r.plan),
-                        unit=unit,
-                    )
-                    + (
-                        t("noch {rest} frei.", rest=fmt(rest, 2))
-                        if rest >= 0
-                        else t("{rest} zu viel.", rest=fmt(-rest, 2))
-                    )
-                )
+            _capacity_gauge(capacity_usage(r.plan, d_preview.total("planned")), unit)
             if chart := _product_chart(d_preview, unit):
                 st.altair_chart(chart, width="stretch")
             if after.products != base.products or data.sprint(after.id) is None:
@@ -4173,6 +4209,38 @@ def _remote_section(repo: Repository) -> None:
         else:
             _remote_check(root, address, insecure)
     _remote_offer(root, address, insecure, locked)
+    if info.name:
+        _share_mode_setting(root)
+
+
+def _share_mode_changed(root: Path) -> None:
+    mode = SHARE_MERGE_REQUEST if st.session_state.get("git-share-mr") else SHARE_DIRECT
+    try:
+        set_share_mode(root, mode)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+
+
+def _share_mode_setting(root: Path) -> None:
+    """Teilen über Merge Request statt direkt auf den Hauptbranch (z. B. GitLab mit geschütztem
+    ``main``). Gilt für dieses Daten-Repository auf diesem Rechner."""
+    try:
+        current = share_mode(root) == SHARE_MERGE_REQUEST
+    except GitError:
+        return
+    st.session_state["git-share-mr"] = current
+    st.checkbox(
+        t("Über Merge Request teilen"),
+        key="git-share-mr",
+        on_change=_share_mode_changed,
+        args=(root,),
+        help=t(
+            "„Speichern und teilen“ lädt dann auf einen eigenen Branch hoch und legt dort einen "
+            "Merge Request an oder schreibt ihn fort (GitLab-Push-Optionen, kein Zugriffstoken "
+            "nötig). Der Hauptbranch bleibt unberührt; neue Stände anderer holt „Vom Server "
+            "holen“, sobald der Merge Request gemergt ist."
+        ),
+    )
 
 
 def page_data_dir(repo: Repository, setup: bool = False) -> None:
@@ -4911,7 +4979,16 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
         done.append(t("Eigene Änderungen gesichert ({rev})", rev=result.committed))
     if result.pulled:
         done.append(t("{count} Änderung(en) von anderen übernommen", count=len(result.pulled)))
-    if result.pushed:
+    if result.pushed and result.merge_request_branch:
+        done.append(
+            t("Auf Branch {branch} hochgeladen", branch=md_code(result.merge_request_branch))
+            + (
+                " · " + t("[Merge Request öffnen]({url})", url=result.merge_request_url)
+                if result.merge_request_url
+                else " · " + t("Merge Request auf dem Server prüfen")
+            )
+        )
+    elif result.pushed:
         done.append(t("Hochgeladen"))
     if result.error is None:
         if result.pull_only and (result.committed or result.merged):
