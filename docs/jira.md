@@ -2,7 +2,9 @@
 
 The ticket pre-planning ([design](design/ticket-planning.md), `features.tickets`) can read its
 tickets straight from **Jira Data Center** instead of from a CSV export. The import is
-**read-only**: the tool sends only `GET` requests and never changes anything in Jira.
+**read-only**: the tool sends only `GET` requests and never changes anything in Jira. The one
+exception is the optional [label write-back](#writing-earmarks-as-labels) (`write_labels: true`,
+off by default), which adds or removes `planned_for_<sprint>` labels and nothing else.
 
 ## Setup
 
@@ -73,9 +75,43 @@ unclear ...) and starts with the Jira host and the number of tickets read.
 `tickets.yaml` holds tickets, nothing is written (also with `--apply`) and the command fails with a
 hint to check the JQL and the permissions of the token.
 
+## Writing earmarks as labels
+
+With `write_labels: true` in the `tracker` section of `team.yaml`, an earmark of the tool can be
+mirrored to Jira as the label `planned_for_<sprint_id>` (for example `planned_for_2026.23`), so
+that others see the planned sprint in Jira without being able to put a not yet refined ticket into
+the sprint itself.
+
+```bash
+sprintforecast tickets TEAM --write-labels            # preview: which label is added or removed where
+sprintforecast tickets TEAM --write-labels --apply    # write the labels to Jira
+```
+
+- The command reads the tickets fresh from Jira, compares them with the earmarks and lists only
+  tickets whose labels differ. Nothing is written without `--apply`; nothing changes when the
+  preview is empty.
+- Per ticket it adds the label of the earmark and removes any other `planned_for_*` label. A
+  released earmark removes its label. Other labels of the ticket are never touched, and done
+  tickets are skipped.
+- **Precedence:** the sprint field of Jira beats the earmark of the tool, which beats the label.
+  A ticket that sits in a real sprint in Jira gets no label and loses a stale one; a deviating
+  earmark is dropped by the import as before.
+- **Reading:** with `write_labels: true` the import takes `planned_for_<sprint>` labels of tickets
+  without sprint and earmark as earmarks (shown as "earmark taken from the label"). A label of an
+  unknown or past sprint, or several labels, are reported and not adopted. With `write_labels:
+  false` labels are ignored, so a stale label cannot bring back a released earmark.
+- Jira labels cannot contain spaces: a sprint id with a space cannot be written and is reported.
+- The write needs the permission to edit labels of the ticket (403 otherwise). If a write fails
+  the run stops; what was written before stays, and the next run starts from the then current labels.
+- Afterwards `--fetch --apply` brings the new labels into `tickets.yaml`.
+
+The only write the tool can perform is `PUT /rest/api/2/issue/<KEY>` with an `update` of
+`labels` (`add`/`remove` of `planned_for_*` labels). The request function refuses every other
+method, path and body, and a test enforces it.
+
 ## What is read
 
-Only `GET` requests, to these endpoints:
+Reading uses only `GET` requests, to these endpoints:
 
 | Request | Purpose |
 |---|---|
