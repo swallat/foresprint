@@ -762,20 +762,74 @@ def detach_with_open_change(alice: Person, orphan_commit: bool = False) -> None:
     invalidate_status()
 
 
-def test_reattach_with_open_changes_names_the_way_out(alice: Person):
-    """Auf dem losen Stand lässt sich nicht committen: Der Hinweis nennt das Verwerfen, nicht
-    „zuerst committen“."""
+def test_reattach_with_open_changes_saves_them_on_a_rescue_branch(alice: Person):
+    """Offene Änderungen im Datenordner gehen nicht verloren und werden nicht mitgenommen: Sie
+    liegen als eigener Commit auf einem Rettungsbranch, danach steht der Hauptbranch sauber da."""
     detach_with_open_change(alice)
-    with pytest.raises(GitError) as info:
+    done = gitsync.reattach(alice.data)
+    assert done.branch == "main" and done.changes and not done.commits
+    assert done.rescue is not None and done.rescue.startswith("rettung-")
+    assert gitsync.state(alice.data).branch == "main"
+    assert git(alice.root, "status", "--porcelain") == ""
+    assert (alice.data / "a" / "2026.1.yaml").read_text() == "velocity: 11\nscope_creep: 1\n"
+    saved = f"{done.rescue}:teams/a/2026.1.yaml"
+    assert git(alice.root, "show", saved) == "velocity: 99\nscope_creep: 1"
+    assert git(alice.root, "log", "-1", "--format=%s", done.rescue) == (
+        "Offene Änderungen vor dem Wechsel gesichert"
+    )
+
+
+def test_reattach_saves_new_files_and_commits_together_on_one_rescue_branch(alice: Person):
+    detach_with_open_change(alice, orphan_commit=True)
+    (alice.data / "a" / "frisch.yaml").write_text("y: 2\n", encoding="utf-8")
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.commits and done.changes and done.rescue is not None
+    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    assert rescue == done.rescue  # ein einziger Rettungsbranch
+    files = git(alice.root, "ls-tree", "-r", "--name-only", done.rescue)
+    assert "teams/a/neu.yaml" in files and "teams/a/frisch.yaml" in files
+    assert "frisch.yaml" not in (git(alice.root, "ls-files"))  # auf main nicht mitgenommen
+
+
+def test_reattach_with_open_changes_and_a_commit_on_a_branch_makes_a_new_rescue_branch(
+    alice: Person,
+):
+    """Hängt der Stand an einem Branch, wird für die offenen Änderungen ein Rettungsbranch neu
+    angelegt; der Branch selbst bleibt unverändert."""
+    git(alice.root, "checkout", "-q", "--detach")
+    (alice.data / "a" / "2026.1.yaml").write_text("velocity: 50\n", encoding="utf-8")
+    invalidate_status()
+    before = git(alice.root, "rev-parse", "main")
+    done = gitsync.reattach(alice.data)
+    assert done.changes and not done.commits and done.rescue is not None
+    assert git(alice.root, "rev-parse", "main") == before
+    assert git(alice.root, "rev-parse", f"{done.rescue}~1") == before
+
+
+def test_reattach_without_open_changes_makes_no_extra_commit(alice: Person):
+    detach_with_open_change(alice, orphan_commit=True)
+    git(alice.root, "checkout", "--", ".")
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.commits and not done.changes
+    assert git(alice.root, "log", "-1", "--format=%s", done.rescue) == "auf losem Stand"
+
+
+def test_reattach_keeps_the_state_when_saving_fails(alice: Person):
+    """Eine Tabellenkalkulation im Datenordner lässt sich nicht committen: Der Wechsel bricht ab,
+    das Repository steht wie vorher auf dem losen Stand, ein neu angelegter Rettungsbranch ist
+    wieder weg."""
+    git(alice.root, "checkout", "-q", "--detach")
+    (alice.data / "a" / "plan.xlsx").write_text("x", encoding="utf-8")
+    invalidate_status()
+    head = git(alice.root, "rev-parse", "HEAD")
+    with pytest.raises(GitError):
         gitsync.reattach(alice.data)
-    hint = info.value.hint
-    assert "Änderungen und Verlauf" in hint and "verwerfen" in hint and "verloren" in hint
-    assert "außerhalb des Datenordners" not in hint and "zuerst committen" not in hint
-    assert "would be overwritten" in str(info.value)  # die Meldung von Git bleibt erhalten
-    # Es ist weiter die Ausgabe von Git (Namen darin bestimmen andere): Die Oberfläche setzt sie
-    # als Code, nie als Markdown.
-    assert info.value.raw and info.value.render(lambda text: f"«{text}»").startswith("«")
-    assert gitsync.state(alice.data).detached  # nichts verändert
+    assert gitsync.state(alice.data).detached
+    assert git(alice.root, "rev-parse", "HEAD") == head
+    assert "rettung-" not in git(alice.root, "branch", "--list")
+    assert (alice.data / "a" / "plan.xlsx").exists()
 
 
 def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(alice: Person):
@@ -811,16 +865,183 @@ def test_reattach_names_no_rescue_branch_when_the_commit_is_on_a_branch(alice: P
 
 def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Person):
     """Erst scheitert der Wechsel an offenen Änderungen (die Commits sind schon gesichert), nach
-    dem Verwerfen gelingt er: Die Meldung nennt den Rettungsbranch trotzdem."""
-    detach_with_open_change(alice, orphan_commit=True)
-    with pytest.raises(GitError):
+    dem Aufräumen außerhalb des Datenordners gelingt er: Die Meldung nennt den Rettungsbranch
+    trotzdem, und die Sicherung der Änderungen im Datenordner bleibt, ohne ein zweites Mal
+    zu committen."""
+    readme = alice.root / "README.md"
+    readme.write_text("eins\n", encoding="utf-8")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "README")
+    git(alice.root, "checkout", "-q", "--detach", "HEAD~1")
+    (alice.data / "a" / "neu.yaml").write_text("x: 1\n", encoding="utf-8")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "auf losem Stand")
+    (alice.data / "a" / "2026.1.yaml").write_text("velocity: 99\n", encoding="utf-8")
+    readme.write_text("zwei\n", encoding="utf-8")
+    invalidate_status()
+    with pytest.raises(GitError) as info:
         gitsync.reattach(alice.data)
     rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
     assert rescue.startswith("rettung-") and "\n" not in rescue
-    git(alice.root, "checkout", "--", ".")  # die offene Änderung verwerfen
+    assert rescue in info.value.hint  # die Änderungen im Datenordner liegen schon dort
+    assert gitsync.state(alice.data).detached
+    readme.unlink()  # außerhalb des Datenordners aufgeräumt
     invalidate_status()
     done = gitsync.reattach(alice.data)
-    assert done.branch == "main" and done.rescue == rescue
+    assert done.branch == "main" and done.rescue == rescue and done.commits
+    assert done.changes  # die frühere Sicherung wird erkannt: Meldung nennt auch die Änderungen
+    assert git(alice.root, "log", "--format=%s", "-2", rescue).splitlines() == [
+        "Offene Änderungen vor dem Wechsel gesichert",
+        "auf losem Stand",
+    ]
+
+
+def detach_blocked_outside(alice: Person) -> Path:
+    """Lose, mit einer offenen Änderung im Datenordner und einer blockierenden Datei außerhalb
+    (``README.md`` im Wurzelordner, auf ``main`` vorhanden)."""
+    readme = alice.root / "README.md"
+    readme.write_text("eins\n", encoding="utf-8")
+    git(alice.root, "add", "-A")
+    git(alice.root, "commit", "-qm", "README")
+    git(alice.root, "checkout", "-q", "--detach", "HEAD~1")
+    (alice.data / "a" / "eins.yaml").write_text("x: 1\n", encoding="utf-8")
+    readme.write_text("zwei\n", encoding="utf-8")
+    invalidate_status()
+    return readme
+
+
+def test_second_attempt_names_the_earlier_save_in_the_hint(alice: Person):
+    readme = detach_blocked_outside(alice)
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    with pytest.raises(GitError) as info:
+        gitsync.reattach(alice.data)  # nichts Neues im Datenordner, die Sicherung steht schon
+    assert rescue in info.value.hint
+    readme.unlink()
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.changes and not done.commits and done.rescue == rescue
+
+
+@pytest.mark.parametrize("orphan", [False, True])
+def test_commits_are_told_apart_over_a_chain_of_saves(alice: Person, orphan: bool):
+    """Zwei Sicherungen hintereinander (zwei gescheiterte Versuche): Ob der lose Stand eigene
+    Commits hatte, zeigt erst der Commit vor der ganzen Kette."""
+    readme = detach_blocked_outside(alice)
+    if orphan:
+        git(alice.root, "add", "teams/a/eins.yaml")
+        git(alice.root, "commit", "-qm", "auf losem Stand", "--", "teams/a/eins.yaml")
+        (alice.data / "a" / "drei.yaml").write_text("w: 0\n", encoding="utf-8")
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    (alice.data / "a" / "zwei.yaml").write_text("y: 2\n", encoding="utf-8")
+    invalidate_status()
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    subjects = git(alice.root, "log", "--format=%s", "-3", "HEAD").splitlines()
+    assert subjects[:2] == ["Offene Änderungen vor dem Wechsel gesichert"] * 2
+    readme.unlink()
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.changes and done.commits is orphan
+
+
+def test_new_changes_after_a_failed_attempt_go_to_the_same_rescue_branch(alice: Person):
+    readme = detach_blocked_outside(alice)
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    (alice.data / "a" / "zwei.yaml").write_text("y: 2\n", encoding="utf-8")
+    invalidate_status()
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    assert git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)") == rescue
+    readme.unlink()
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.rescue == rescue
+    files = git(alice.root, "ls-tree", "-r", "--name-only", rescue)
+    assert "teams/a/eins.yaml" in files and "teams/a/zwei.yaml" in files
+
+
+def test_failed_save_restores_the_index(alice: Person, monkeypatch: pytest.MonkeyPatch):
+    """Nach einem gescheiterten Commit (hier: fehlende Identität) ist der Index wie vorher: neue
+    Dateien nicht vorgemerkt, geänderte nicht vorgemerkt; HEAD lose auf dem alten Stand."""
+    git(alice.root, "checkout", "-q", "--detach")
+    (alice.data / "a" / "neu.yaml").write_text("x: 1\n", encoding="utf-8")
+    (alice.data / "a" / "2026.1.yaml").write_text("velocity: 50\n", encoding="utf-8")
+    invalidate_status()
+    head = git(alice.root, "rev-parse", "HEAD")
+    real = gitmod._git
+
+    def failing(root, *args, **kwargs):
+        if args and args[0] == "commit":
+            raise GitError("kein Commit")
+        return real(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitmod, "_git", failing)
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    monkeypatch.undo()
+    assert git(alice.root, "diff", "--cached", "--name-only") == ""  # nichts vorgemerkt
+    assert git(alice.root, "ls-files", "--others", "--exclude-standard") == "teams/a/neu.yaml"
+    assert git(alice.root, "diff", "--name-only") == "teams/a/2026.1.yaml"
+    assert gitsync.state(alice.data).detached and git(alice.root, "rev-parse", "HEAD") == head
+    assert "rettung-" not in git(alice.root, "branch", "--list")
+
+
+def test_failed_save_keeps_the_staging_of_the_user(alice: Person, monkeypatch: pytest.MonkeyPatch):
+    """Eine vorhandene (auch teilweise) Vormerkung bleibt nach dem Rückbau exakt erhalten."""
+    git(alice.root, "checkout", "-q", "--detach")
+    full = alice.data / "a" / "voll.yaml"
+    full.write_text("x: 1\n", encoding="utf-8")
+    git(alice.root, "add", str(full))  # vollständig vorgemerkt
+    part = alice.data / "a" / "2026.1.yaml"
+    part.write_text("velocity: 50\n", encoding="utf-8")
+    git(alice.root, "add", str(part))
+    part.write_text("velocity: 51\n", encoding="utf-8")  # danach erneut geändert: teilweise
+    (alice.data / "a" / "lose.yaml").write_text("z: 3\n", encoding="utf-8")  # nicht vorgemerkt
+    invalidate_status()
+    before = [
+        git(alice.root, *args)
+        for args in (("diff", "--cached"), ("diff",), ("status", "--porcelain"))
+    ]
+    real = gitmod._git
+
+    def failing(root, *args, **kwargs):
+        if args and args[0] == "commit":
+            raise GitError("kein Commit")
+        return real(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitmod, "_git", failing)
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    monkeypatch.undo()
+    after = [
+        git(alice.root, *args)
+        for args in (("diff", "--cached"), ("diff",), ("status", "--porcelain"))
+    ]
+    assert after == before and before[0]  # es gab eine Vormerkung
+    assert gitsync.state(alice.data).detached
+
+
+def test_failed_save_with_a_file_error_never_stays_on_the_rescue_branch(
+    alice: Person, monkeypatch: pytest.MonkeyPatch
+):
+    git(alice.root, "checkout", "-q", "--detach")
+    (alice.data / "a" / "neu.yaml").write_text("x: 1\n", encoding="utf-8")
+    invalidate_status()
+
+    def broken(path, message, tags=None):
+        raise OSError("Datei gesperrt")
+
+    monkeypatch.setattr(gitmod, "commit_directory", broken)
+    with pytest.raises(OSError):
+        gitsync.reattach(alice.data)
+    monkeypatch.undo()
+    assert gitsync.state(alice.data).detached
+    assert "rettung-" not in git(alice.root, "branch", "--list")
 
 
 def test_identity_missing_is_explained(
