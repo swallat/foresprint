@@ -73,6 +73,13 @@ $bin = (& uv tool dir --bin).Trim()
 if (-not $env:SPRINTFORECAST_NO_SHORTCUT) {
     try { & (Join-Path $bin 'sprintforecast.exe') shortcut } catch { Write-Host "Note: launcher not created." }
 }
+# Git is optional for the installation, but needed to save, share and view the history of data
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Host ""
+    Write-Host "Note: Git was not found in the PATH. The app runs without it, but committing, sharing with"
+    Write-Host "the team, the history and cloning the data repository need Git (no administrator rights"
+    Write-Host "required; see the Git section in docs/installation.md)."
+}
 Write-Host ""
 Write-Host "Done: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"
 Write-Host "Start by double-clicking 'Sprint-Forecast' (desktop/Start menu) or, in a new PowerShell window, e.g.:"
