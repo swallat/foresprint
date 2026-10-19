@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from sprintforecast.config import config_dir
+from sprintforecast.git import find_git
 from sprintforecast.i18n import t
 
 PACKAGE = "sprintforecast"
@@ -263,9 +264,29 @@ def upgrade_command(uv: str) -> list[str]:
     return [uv, "tool", "upgrade", "--reinstall", PACKAGE]
 
 
+def upgrade_environment() -> dict[str, str] | None:
+    """Umgebung für den uv-Aufruf. uv startet für Plugins aus Git-Adressen selbst ``git`` über
+    den PATH. Liegt Git nur außerhalb des PATH (siehe ``git.find_git``), kommt dessen Ordner
+    vorn an den PATH – nur in dieser Kopie der Umgebung. ``None``: nichts zu ändern (Git im PATH
+    oder nicht gefunden), uv erbt dann die Umgebung unverändert."""
+    if shutil.which("git"):
+        return None
+    found = find_git()
+    if not found:
+        return None
+    env = dict(os.environ)
+    # Windows: Variablennamen sind nicht von der Schreibweise abhängig („Path“ statt „PATH“).
+    key = "PATH"
+    if sys.platform == "win32":
+        key = next((name for name in env if name.upper() == "PATH"), key)
+    folder = os.path.dirname(found)
+    env[key] = os.pathsep.join(part for part in (folder, env.get(key)) if part)
+    return env
+
+
 def run_upgrade(uv: str) -> int:
     """Aktualisiert sofort im Vordergrund (nicht unter Windows – dort sind Dateien gesperrt)."""
-    return subprocess.run(upgrade_command(uv)).returncode
+    return subprocess.run(upgrade_command(uv), env=upgrade_environment()).returncode
 
 
 def _powershell_script(
@@ -340,10 +361,13 @@ def schedule_after_exit(
         args += ["-EncodedCommand", encoded]
         flags = subprocess.CREATE_NEW_PROCESS_GROUP
         flags |= subprocess.CREATE_NEW_CONSOLE if visible else subprocess.CREATE_NO_WINDOW
+        env = upgrade_environment()
         try:
-            subprocess.Popen(args, creationflags=flags | subprocess.CREATE_BREAKAWAY_FROM_JOB)
+            subprocess.Popen(
+                args, creationflags=flags | subprocess.CREATE_BREAKAWAY_FROM_JOB, env=env
+            )
         except OSError:
-            subprocess.Popen(args, creationflags=flags)
+            subprocess.Popen(args, creationflags=flags, env=env)
         return
     with log.open("w", encoding="utf-8") as out:
         subprocess.Popen(
@@ -351,6 +375,7 @@ def schedule_after_exit(
             stdin=subprocess.DEVNULL,
             stdout=out,
             stderr=subprocess.STDOUT,
+            env=upgrade_environment(),
             start_new_session=True,
         )
 
