@@ -212,6 +212,31 @@ def test_schluessel_typ_unterscheidet_ausser_bei_kuerzeln():
     assert any("'True'" in m for m in messages("true: a\ntrue: b\n"))
 
 
+@pytest.mark.parametrize(
+    "text",
+    ["{1: a, 1.0: b}\n", "{true: a, 1: b}\n", "{0: a, false: b}\n", "1: a\n1.0: b\n"],
+)
+def test_in_python_gleiche_schluessel_sind_ein_duplikat(text: str):
+    """PyYAML bildet 1, 1.0 und true auf denselben Dict-Schlüssel ab: der spätere Wert gewinnt."""
+    import yaml
+
+    from sprintforecast.storage import _YAML_LOADER
+
+    assert len(yaml.load(text, Loader=_YAML_LOADER)) == 1  # der Lader verwirft wirklich einen
+    [found] = messages(text)
+    assert "steht mehrfach" in found
+    assert "Zeile" in found
+
+
+def test_zeilen_beim_gleichen_schluessel_mit_anderem_typ():
+    [found] = messages("1: a\nx: 1\n1.0: b\n")
+    assert "Zeilen 1, 3" in found
+
+
+def test_unhashbare_schluessel_stuerzen_nicht_ab():
+    assert messages("? [a, b]\n: 1\n? {c: d}\n: 2\n") == []
+
+
 def test_duplikat_in_einer_zeile_nennt_die_spalten():
     [found] = messages("absences: {anna: 1, anna: 2}\n")
     assert "alle in Zeile 1, Spalten 12, 21" in found
