@@ -85,6 +85,7 @@ from sprintforecast.git import (
     init_data_repository,
     md_code,
     md_code_lines,
+    md_plain,
     new_branch_error,
     on_invalidate,
     parse_remote_url,
@@ -4258,7 +4259,10 @@ def page_check(repo: Repository) -> None:
             continue
         st.subheader(key)
         for i in issues:
-            (st.error if i.level is Level.ERROR else st.warning)(f"{i.where}: {i.message}")
+            # Ort und Text enthalten Namen aus den Dateien (Personen, Produkte, Schlüssel): nie
+            # als Markdown deuten (Links, Bilder, Formatierung).
+            show = st.error if i.level is Level.ERROR else st.warning
+            show(f"{md_code(i.where)}: {md_plain(i.message)}")
 
 
 def page_help(repo: Repository) -> None:

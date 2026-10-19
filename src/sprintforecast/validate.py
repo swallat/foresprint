@@ -4,9 +4,15 @@
 from __future__ import annotations
 
 import itertools
+import time
 from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import StrEnum
+from pathlib import Path
+from typing import Any
+
+import yaml
+from yaml.constructor import SafeConstructor
 
 from sprintforecast.calendar import (
     countries,
@@ -16,8 +22,9 @@ from sprintforecast.calendar import (
     team_workdays,
     weekend_from_workweek,
 )
+from sprintforecast.git import blank_controls
 from sprintforecast.i18n import t
-from sprintforecast.storage import DataError, Repository, TeamData
+from sprintforecast.storage import DataError, Repository, TeamData, compose_yaml
 
 
 class Level(StrEnum):
@@ -404,11 +411,296 @@ def issues_for(data: TeamData, today: date, filenames: list[str]) -> list[Issue]
     return [i for i in check_team(data, today) if any(name in i.where for name in filenames)]
 
 
+# --- Stille Annahmen beim Laden --------------------------------------------------------
+#
+# Das Laden ändert sich dadurch nicht: Ein doppelter Schlüssel gilt weiter als „der letzte
+# gewinnt“, ein leerer Wert als 0. Die Prüfung macht das nur sichtbar. Gemeldet werden leere
+# Werte nur dort, wo eine Zahl erwartet wird und das Programm den Leerwert still als 0 liest.
+# Absichtlich leere Felder (``to:``, ``capacity:``, ``forecast_ist:``, ``region:`` …) sind
+# gültig und bleiben ohne Meldung.
+
+_EMPTY_AS_ZERO: tuple[tuple[str, ...], ...] = (
+    ("people", "*", "memberships", "*", "fte"),
+    ("planning", "carryover"),
+    ("planning", "backlog"),
+    ("planning", "corrections", "*"),
+    ("absences", "*"),
+    ("expected_absences", "*"),
+    ("prognoses", "*", "preplanned", "*"),
+)
+_NULL_TAG = "tag:yaml.org,2002:null"
+_STR_TAG = "tag:yaml.org,2002:str"
+_MERGE_TAG = "tag:yaml.org,2002:merge"
+
+
+def _format_path(path: tuple[str | int, ...]) -> str:
+    out = ""
+    for part in path:
+        out += f"[{part}]" if isinstance(part, int) else (f".{part}" if out else part)
+    return out
+
+
+def _is_empty_value(node: yaml.Node) -> bool:
+    if not isinstance(node, yaml.ScalarNode):
+        return False
+    return node.tag == _NULL_TAG or (node.tag == _STR_TAG and node.value == "")
+
+
+def _matches(path: tuple[str | int, ...], pattern: tuple[str, ...]) -> bool:
+    return len(path) == len(pattern) and all(
+        want == "*" or want == str(got) for want, got in zip(pattern, path, strict=True)
+    )
+
+
+# Mappings, deren Schlüssel das Programm mit str() liest (Personen- und Produktkürzel): Dort
+# sind ``1`` und ``"1"`` derselbe Schlüssel. Überall sonst behält der Lader beide Einträge.
+_STR_KEYED: tuple[tuple[str, ...], ...] = (
+    ("products",),
+    ("absences",),
+    ("expected_absences",),
+    ("prognoses", "*", "preplanned"),
+)
+# Obergrenze der besuchten Knoten je Datei: schützt vor Anker-Bomben (Verweise, die sich
+# vielfach vervielfachen). Echte Dateien liegen weit darunter.
+_MAX_VISITS = 50_000
+# Weitere Grenzen je Datei: Rechenzeit, Zahl der Meldungen und Angaben je Zeilenliste. Die Seite
+# „Prüfung“ zeichnet jede Meldung einzeln.
+_MAX_SECONDS = 2.0
+_MAX_ISSUES = 50
+_MAX_PLACES = 10
+
+# Pfad als verkettete Liste (Elternpfad, Teil): Tiefe kostet so nichts beim Anlegen.
+type _Path = tuple[_Path | None, str | int] | None
+
+
+def _materialize(cell: _Path) -> tuple[str | int, ...]:
+    parts: list[str | int] = []
+    while cell is not None:
+        cell, part = cell
+        parts.append(part)
+    return tuple(reversed(parts))
+
+
+def _key_of(node: yaml.Node, as_text: bool) -> tuple[str, Any]:
+    """Anzeigetext und Vergleichsschlüssel. Mit ``as_text`` (Stellen, an denen das Programm
+    ``str()`` bildet) gilt der Text, sonst zusätzlich der Typ (``1`` ist nicht ``"1"``)."""
+    if not isinstance(node, yaml.ScalarNode):
+        return str(id(node)), ("node", id(node))
+    if node.tag == _STR_TAG:
+        value: Any = node.value
+    else:
+        try:
+            value = SafeConstructor().construct_object(node, deep=True)
+        except Exception:  # ungewöhnlicher Schlüssel: der Text genügt
+            value = node.value
+    # Steuerzeichen aus Dateien (Zeilenumbruch, ESC) gehören nie in eine Meldung
+    shown = blank_controls(str(value))
+    if as_text:
+        return shown, str(value)
+    try:
+        hash(value)
+    except TypeError:  # nicht hashbar: der Lader würde den Schlüssel ohnehin ablehnen
+        return shown, ("node", id(node))
+    # Wie der Lader: Python-Gleichheit (1 == 1.0 == True), aber nicht 1 == "1"
+    return shown, value
+
+
+def _inherited(
+    node: yaml.MappingNode, as_text: bool, taken: set[Any], visiting: frozenset[int]
+) -> list[tuple[yaml.Node, yaml.Node]]:
+    """Einträge, die ``node`` über ``<<`` erbt und die der Lader behält (Regeln von PyYAML:
+    ausdrückliche Schlüssel gewinnen immer, bei mehreren Quellen die frühere, in einer Quelle
+    deren eigene Schlüssel vor den von ihr geerbten). ``taken`` sind die schon vergebenen
+    Schlüssel."""
+    result: list[tuple[yaml.Node, yaml.Node]] = []
+    for key_node, value_node in node.value:
+        if key_node.tag != _MERGE_TAG:
+            continue
+        sources = value_node.value if isinstance(value_node, yaml.SequenceNode) else [value_node]
+        for source in sources:
+            if not isinstance(source, yaml.MappingNode) or id(source) in visiting:
+                continue
+            own = [
+                (kn, vn, _key_of(kn, as_text)[1]) for kn, vn in source.value if kn.tag != _MERGE_TAG
+            ]
+            fresh = [(kn, vn, c) for kn, vn, c in own if c not in taken]
+            taken.update(c for _, _, c in fresh)
+            result += [(kn, vn) for kn, vn, _ in fresh]
+            result += _inherited(source, as_text, taken, visiting | {id(source)})
+    return result
+
+
+def _position(found: list[tuple[int, int]]) -> tuple[str, str]:
+    """Fundstellen (Zeile, Spalte) als Text; stehen alle in einer Zeile (Flow-Schreibweise
+    ``{a: 1, a: 2}``), mit Spalten."""
+    if len({line for line, _ in found}) == 1:
+        line = found[0][0]
+        cols = _listed([c for _, c in found])
+        return (
+            t("alle in Zeile {line}, Spalten {cols}", line=line, cols=cols),
+            t("Zeile {line}, Spalte {col}", line=line, col=found[-1][1]),
+        )
+    return (
+        t("Zeilen {lines}", lines=_listed([n for n, _ in found])),
+        t("Zeile {line}", line=found[-1][0]),
+    )
+
+
+def _listed(numbers: list[int]) -> str:
+    """Zahlen als Liste, bei sehr vielen gekürzt (die Meldung bliebe sonst riesig)."""
+    shown = ", ".join(str(n) for n in numbers[:_MAX_PLACES])
+    if len(numbers) > _MAX_PLACES:
+        shown += t(" … und {n} weitere", n=len(numbers) - _MAX_PLACES)
+    return shown
+
+
+def check_yaml_text(text: str, name: str) -> list[Issue]:
+    """Doppelte Schlüssel und still als 0 gelesene Leerwerte in einer YAML-Datei (als Hinweis)."""
+    try:
+        root = compose_yaml(text)
+    except yaml.YAMLError:
+        return []  # ungültiges YAML meldet das Laden als Fehler
+    except RecursionError:
+        return [
+            Issue(Level.WARNING, name, t("Die Datei ist zu tief verschachtelt, nicht geprüft."))
+        ]
+    issues: list[Issue] = []
+    omitted = 0
+
+    def report(message: str) -> None:
+        nonlocal omitted
+        if len(issues) < _MAX_ISSUES:
+            issues.append(Issue(Level.WARNING, name, message))
+        else:
+            omitted += 1
+
+    # Schritte: (Knoten, Pfad) beim Betreten, (Knoten, None) beim Verlassen. Iterativ, damit
+    # extreme Verschachtelung nicht an der Rekursionsgrenze scheitert. Ein Knoten wird je Pfad
+    # besucht (Anker/Verweise bringen ihn unter jedem Pfad zur Geltung); ``active`` hält die
+    # Knoten auf dem Weg zur Wurzel und beendet Verweise im Kreis.
+    stack: list[tuple[yaml.Node, _Path | None, bool]] = []
+    if root is not None:
+        stack.append((root, None, True))
+    active: set[int] = set()
+    visited: set[int] = set()  # Knoten, die schon einmal betreten wurden (Verweise treffen sie)
+    duplicates_done: set[int] = set()  # Mappings, deren doppelte Schlüssel schon gemeldet sind
+    visits = repeats = 0
+    stopped = ""
+    deadline = time.monotonic() + _MAX_SECONDS
+    while stack:
+        node, cell, entering = stack.pop()
+        if not entering:
+            active.discard(id(node))
+            continue
+        visits += 1
+        if id(node) in visited:
+            repeats += 1
+        visited.add(id(node))
+        if visits > _MAX_VISITS or (visits % 1024 == 0 and time.monotonic() > deadline):
+            # Nur wenn Verweise die Hauptursache sind, ist „Anker“ der richtige Hinweis.
+            stopped = (
+                t(
+                    "Die Datei verweist so oft auf dieselben Teile (Anker), dass sie nicht "
+                    "vollständig geprüft wurde."
+                )
+                if repeats * 2 > visits
+                else t("Die Datei ist zu groß oder zu verschachtelt, um sie vollständig zu prüfen.")
+            )
+            break
+        if isinstance(node, yaml.ScalarNode):
+            path = _materialize(cell)
+            if _is_empty_value(node) and any(_matches(path, p) for p in _EMPTY_AS_ZERO):
+                report(
+                    t(
+                        "Der Wert von '{where}' (Zeile {line}) ist leer. Das Programm rechnet "
+                        "dort stillschweigend mit 0. Bitte eine Zahl eintragen (0, wenn es "
+                        "wirklich null sein soll).",
+                        where=_format_path(path),
+                        line=node.start_mark.line + 1,
+                    )
+                )
+            continue
+        if id(node) in active:  # Verweis auf einen Elternknoten: nicht endlos wiederholen
+            continue
+        active.add(id(node))
+        stack.append((node, None, False))
+        children: list[tuple[yaml.Node, _Path | None, bool]] = []
+        if isinstance(node, yaml.SequenceNode):
+            children = [(item, (cell, i), True) for i, item in enumerate(node.value)]
+        else:
+            path = _materialize(cell)
+            as_text = any(_matches(path, p) for p in _STR_KEYED)
+            found: dict[Any, list[tuple[int, int]]] = {}
+            shown: dict[Any, str] = {}
+            kept: dict[Any, tuple[yaml.Node, str]] = {}  # je Schlüssel der letzte Eintrag
+            for key_node, value_node in node.value:
+                if key_node.tag == _MERGE_TAG:  # geerbte Einträge: siehe _inherited
+                    continue
+                text_of_key, compare = _key_of(key_node, as_text)
+                mark = key_node.start_mark
+                found.setdefault(compare, []).append((mark.line + 1, mark.column + 1))
+                shown[compare] = text_of_key
+                kept[compare] = (value_node, text_of_key)
+            # Der Lader behält nur den letzten Eintrag: überdeckte Werte werden nicht gelesen.
+            children = [(value_node, (cell, text), True) for value_node, text in kept.values()]
+            # Geerbte Einträge (``<<``) zählen nur, wo kein ausdrücklicher Eintrag sie ersetzt.
+            for key_node, value_node in _inherited(
+                node, as_text, set(found), frozenset({id(node)})
+            ):
+                children.append((value_node, (cell, _key_of(key_node, as_text)[0]), True))
+            first_time = id(node) not in duplicates_done  # Verweise: nur einmal melden
+            duplicates_done.add(id(node))
+            for compare, places in found.items():
+                if len(places) > 1 and first_time:
+                    where = _format_path((*path, shown[compare]))
+                    lines, last = _position(places)
+                    report(
+                        t(
+                            "Der Schlüssel '{where}' steht mehrfach in der Datei ({lines}). Das "
+                            "Programm liest nur den letzten Eintrag ({last}), die anderen "
+                            "werden stillschweigend ignoriert. Bitte die überzähligen Zeilen "
+                            "löschen und den richtigen Wert stehen lassen.",
+                            where=where,
+                            lines=lines,
+                            last=last,
+                        )
+                    )
+        stack.extend(reversed(children))
+    if omitted:
+        issues.append(
+            Issue(
+                Level.WARNING,
+                name,
+                t("… und {n} weitere Hinweise in dieser Datei", n=omitted),
+            )
+        )
+    if stopped:
+        issues.append(Issue(Level.WARNING, name, stopped))
+    return issues
+
+
+def check_team_files(base: Path) -> list[Issue]:
+    """Stille Annahmen in den Dateien eines Teams (Ordner ``base``): doppelte Schlüssel und
+    leere Zahlenfelder, je als Hinweis mit Dateiname, Zeile und Schlüsselpfad."""
+    files = [base / "team.yaml", base / "people.yaml", base / "products.yaml"]
+    files += sorted((base / "sprints").glob("*.yaml"))
+    issues: list[Issue] = []
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError, UnicodeDecodeError:
+            continue  # fehlende oder unlesbare Dateien meldet das Laden
+        name = path.relative_to(base).as_posix()
+        issues += check_yaml_text(text, name)
+    return issues
+
+
 def check_all(repo: Repository, today: date) -> dict[str, list[Issue]]:
     result = {}
     for key in repo.teams():
         try:
-            result[key] = check_team(repo.load(key), today)
+            data = repo.load(key)
+            result[key] = check_team(data, today) + check_team_files(repo.team_dir(key))
         except DataError as e:
             result[key] = [Issue(Level.ERROR, key, str(e))]
     return result

@@ -637,7 +637,11 @@ COMMANDS: list[tuple[str, str]] = [
         "Excel-Liste einlesen (Vorschau, dann schreiben)",
     ),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
-    ("sprintforecast pruefen [--streng]", "Alle Daten prüfen (für CI und vor dem Commit)"),
+    (
+        "sprintforecast pruefen [--streng]",
+        "Alle Daten prüfen (für CI und vor dem Commit); meldet auch doppelte Schlüssel und "
+        "leere Zahlenfelder",
+    ),
     ("sprintforecast datenordner [PFAD]", "Gemerkten Datenordner anzeigen bzw. setzen"),
     ("sprintforecast sprache [de|en]", "Sprache der Oberfläche anzeigen oder einstellen"),
     (
