@@ -168,6 +168,7 @@ from sprintforecast.products import (
     plan_view,
 )
 from sprintforecast.protocol import (
+    KIND_MEASURES,
     PLANNING,
     PREPLANNING,
     REVIEW,
@@ -1646,10 +1647,24 @@ def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
         )
 
 
+# Produktionsspalten je Termin (Teilmengen von Planning bzw. Erledigt).
+KIND_PRODUCTION_MEASURES = {
+    PREPLANNING: (),
+    PLANNING: ("production_planned",),
+    REVIEW: ("production_done",),
+}
+
+
+def phase_measures(kind: str) -> list[str]:
+    """Spalten der Produkttabelle in einem Termin: nur, was dort eingegeben oder entschieden
+    wird (plus Standard bzw. Bezugsgröße); was erst später entsteht, bleibt weg."""
+    return [*KIND_MEASURES[kind], *KIND_PRODUCTION_MEASURES[kind]]
+
+
 def _product_editor(
-    d: Distribution, editable: list[str], key: str, unit: str
+    d: Distribution, editable: list[str], key: str, unit: str, kind: str
 ) -> list[dict[str, Any]] | None:
-    """Tabelle Produkt × Standard/Vorplanung/Planning/Erledigt; ``editable`` sind bearbeitbar."""
+    """Tabelle Produkt × Spalten des Termins ``kind``; ``editable`` sind bearbeitbar."""
     if not d.rows:
         st.info(
             t(
@@ -1663,7 +1678,10 @@ def _product_editor(
         "Produkt": st.column_config.TextColumn(t("Produkt"), disabled=True),
         "PO": st.column_config.TextColumn(disabled=True) if d.features.po else None,
     }
+    shown = phase_measures(kind)
     for m, label in MEASURES.items():
+        if m not in shown:
+            continue
         column_config[label] = st.column_config.NumberColumn(
             f"{measure_label(m)} ({unit})",
             min_value=0.0,
@@ -1678,23 +1696,27 @@ def _product_editor(
         d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
     )
     for m, label in PRODUCTION_MEASURES.items():
-        column_config[label] = (
-            st.column_config.NumberColumn(
-                f"{measure_label(m)} ({unit})",
-                min_value=0.0,
-                step=0.25,
-                format="%.2f",
-                disabled=m not in editable,
-                help=t(
-                    "Teilmenge von Planning bzw. Erledigt: Tickets, die nur Personen mit "
-                    "Produktionszugriff bearbeiten können."
-                ),
-            )
-            if show_production
-            else None
+        if m not in shown or not show_production:
+            continue
+        column_config[label] = st.column_config.NumberColumn(
+            f"{measure_label(m)} ({unit})",
+            min_value=0.0,
+            step=0.25,
+            format="%.2f",
+            disabled=m not in editable,
+            help=t(
+                "Teilmenge von Planning bzw. Erledigt: Tickets, die nur Personen mit "
+                "Produktionszugriff bearbeiten können."
+            ),
         )
     frame = pd.DataFrame(product_values_table(d))
-    for label in (*MEASURES.values(), *PRODUCTION_MEASURES.values()):
+    labels = [
+        label
+        for label in (*MEASURES.values(), *PRODUCTION_MEASURES.values())
+        if label in column_config
+    ]
+    frame = frame[["_id", "Produkt", "PO", *labels]]
+    for label in labels:
         frame[label] = frame[label].astype("float64").round(2)
     edited = st.data_editor(
         frame,
@@ -1721,7 +1743,13 @@ def _product_table(d: Distribution, unit: str) -> bool:
     show_production = d.features.production and (
         d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
     )
-    columns = dict(MEASURES) | (PRODUCTION_MEASURES if show_production else {})
+    # Nur Spalten mit Werten: Für einen Sprint vor dem Review gibt es kein „Erledigt“, vor dem
+    # Planning kein „Planning“. Standard bleibt als Bezug immer.
+    columns = {
+        m: label
+        for m, label in (MEASURES | (PRODUCTION_MEASURES if show_production else {})).items()
+        if m == "standard" or d.has(m)
+    }
     frame = pd.DataFrame(product_values_table(d))
     frame = frame.drop(columns=["_id", *([] if d.features.po else ["PO"])])
     frame = frame[["Produkt", *(["PO"] if d.features.po else []), *columns.values()]]
@@ -1740,18 +1768,23 @@ def _product_table(d: Distribution, unit: str) -> bool:
     return True
 
 
-def _product_chart(d: Distribution, unit: str) -> alt.Chart | None:
-    """Gruppierte Balken je Produkt: Standard (grau), Vorplanung, Planning, Erledigt."""
+def _product_chart(
+    d: Distribution, unit: str, measures: list[str] | None = None
+) -> alt.Chart | None:
+    """Gruppierte Balken je Produkt: Standard (grau), Vorplanung, Planning, Erledigt; mit
+    ``measures`` nur die Kennzahlen, die im jeweiligen Termin eine Rolle spielen."""
     product, metric = t("Produkt"), t("Kennzahl")
+    shown = {m: label for m, label in MEASURES.items() if measures is None or m in measures}
     records = [
         {product: r.product.name, metric: measure_label(m), unit: value}
         for r in d.rows
-        for m in MEASURES
+        for m in shown
         if (value := r.value(m)) is not None
     ]
     if not records:
         return None
-    labels = [measure_label(m) for m in MEASURES]
+    labels = [measure_label(m) for m in shown]
+    colors = dict(zip(MEASURES, [STANDARD_COLOR, *SERIES_COLORS[:3]], strict=True))
     return (
         alt.Chart(pd.DataFrame(records))
         .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
@@ -1767,7 +1800,7 @@ def _product_chart(d: Distribution, unit: str) -> alt.Chart | None:
             color=alt.Color(
                 f"{metric}:N",
                 sort=labels,
-                scale=alt.Scale(domain=labels, range=[STANDARD_COLOR, *SERIES_COLORS[:3]]),
+                scale=alt.Scale(domain=labels, range=[colors[m] for m in shown]),
                 legend=alt.Legend(orient="top", title=None),
             ),
             tooltip=[f"{product}:N", f"{metric}:N", alt.Tooltip(f"{unit}:Q", format=".2f")],
@@ -2238,6 +2271,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             ["preplanned", "planned", "production_planned"],
             f"planning-products-{sprint.id}",
             unit,
+            PLANNING,
         )
         if rows is not None:
             base = _base_sprint(data, sprint)
@@ -2264,7 +2298,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
                         else t("{rest} zu viel.", rest=fmt(-rest, 2))
                     )
                 )
-            if chart := _product_chart(d_preview, unit):
+            if chart := _product_chart(d_preview, unit, phase_measures(PLANNING)):
                 st.altair_chart(chart, width="stretch")
             if after.products != base.products or data.sprint(after.id) is None:
                 if st.button(t("Produktwerte speichern und weiter"), type="primary"):
@@ -2581,7 +2615,11 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if data.team.features.products and data.products and entry is not None:
             st.markdown(f"**{t('Erledigt je Produkt')}**")
             product_rows = _product_editor(
-                distribution(fc, entry), review_measures, f"review-products-{sprint.id}", unit
+                distribution(fc, entry),
+                review_measures,
+                f"review-products-{sprint.id}",
+                unit,
+                REVIEW,
             )
         elif data.team.features.production and not data.team.features.products:
             st.markdown(f"**{t('Themen mit Produktionszugriff')}**")
@@ -3131,7 +3169,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 )
             )
     d = distribution(fc_view, fc_view.entry(sprint.id) or entry)
-    rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit)
+    rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit, PREPLANNING)
     if rows is None:
         return
     base = _base_sprint(data, sprint)
@@ -3293,7 +3331,14 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.dataframe(
                 pd.DataFrame(
                     [
-                        {"PO": po, **{measure_label(m): fmt(v, 2) for m, v in totals.items()}}
+                        {
+                            "PO": po,
+                            **{
+                                measure_label(m): fmt(v, 2)
+                                for m, v in totals.items()
+                                if m == "standard" or d.has(m)
+                            },
+                        }
                         for po, totals in po_rows
                     ]
                 ),
