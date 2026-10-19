@@ -250,6 +250,7 @@ def test_permission_error_is_reported_as_missing(
         raise PermissionError(13, "Zugriff verweigert", str(fake))
 
     monkeypatch.setattr(gitmod.subprocess, "run", denied)
+    monkeypatch.setattr(gitmod.subprocess, "Popen", denied)
     with pytest.raises(GitError) as raised:
         gitmod._git(tmp_path, "--version")
     assert raised.value.kind == "git_missing" and str(fake) in raised.value.hint
