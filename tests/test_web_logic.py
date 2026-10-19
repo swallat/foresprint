@@ -403,6 +403,15 @@ def test_blank_product_cells_stay_none_and_zero_stays_zero():
     assert "web" not in after.products  # nichts erfasst: kein leerer Eintrag
 
 
+def test_hidden_product_columns_keep_their_stored_values():
+    """Eine Spalte, die der Editor nicht zeigt (fehlt in der Zeile), wird nicht überschrieben."""
+    base = _sprint(products={"app": ProductValues(planned=2.0, production_planned=1.0)})
+    rows = [{"_id": "app", "Planning": 3.0}]
+    after = apply_product_values(base, rows, ["planned", "production_planned"])
+    assert after.products["app"].planned == 3.0
+    assert after.products["app"].production_planned == 1.0
+
+
 def test_board_steps_done_other_steps_follow_their_values():
     sprint = _sprint(
         products={"app": ProductValues(), "web": ProductValues(preplanned=0.0)},

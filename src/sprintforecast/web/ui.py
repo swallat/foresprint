@@ -3324,7 +3324,7 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     d = distribution(fc, entry)
     if _product_table(d, unit):
         _production_hint(d, data, unit)
-        if chart := _product_chart(d, unit):
+        if chart := _product_chart(d, unit, [m for m in MEASURES if m == "standard" or d.has(m)]):
             st.altair_chart(chart, width="stretch")
         if po_rows := (by_po(d) if data.team.features.po else []):
             st.markdown(f"**{t('Je PO')}**")
