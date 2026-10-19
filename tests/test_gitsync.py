@@ -1764,3 +1764,10 @@ def test_rollback_hint_escapes_backup_path_for_markdown(tmp_path: Path):
     md = githistory._rollback_hint(["a_b.yaml"], trash, gitmod.md_plain)
     assert "a_b.yaml" in plain and "s_ich*erung" in plain
     assert "a\\_b\\.yaml" in md and "s\\_ich\\*erung" in md
+
+
+def test_hint_md_follows_a_hint_assigned_after_construction():
+    err = GitError("m", "conflict", "alt", hint_md="alt\\_md")
+    assert err.hint_md == "alt\\_md"
+    err.hint = "neu"
+    assert err.hint_md == "neu"
