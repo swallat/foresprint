@@ -149,11 +149,11 @@ def test_rechnung_mit_duplikat_und_leerwert_bleibt_gleich(data_dir: Path, tmp_pa
 def test_kommandozeile_und_streng(data_dir: Path):
     edit(data_dir, SPRINT, "velocity: 9.75\n", "velocity: 9.75\nvelocity: 8\n")
     env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
-    result = runner.invoke(cli_app, ["pruefen"], env=env)
+    result = runner.invoke(cli_app, ["check"], env=env)
     assert result.exit_code == 0
     assert "Hinweis sprints/2026.20.yaml" in result.output
     assert "'velocity' steht mehrfach" in result.output
-    assert runner.invoke(cli_app, ["pruefen", "--streng"], env=env).exit_code == 1
+    assert runner.invoke(cli_app, ["check", "--strict"], env=env).exit_code == 1
 
 
 def messages(text: str) -> list[str]:
@@ -281,7 +281,7 @@ def test_duplikat_in_einer_zeile_nennt_die_spalten():
 def test_kommandozeile_maskiert_markup_aus_dateien(data_dir: Path):
     edit(data_dir, SPRINT, "  anna: 5\n", "  '[red]x[/red]': 1\n  '[red]x[/red]': 2\n  anna: 5\n")
     env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
-    result = runner.invoke(cli_app, ["pruefen"], env=env)
+    result = runner.invoke(cli_app, ["check"], env=env)
     assert "[red]x[/red]" in result.output
 
 
@@ -388,7 +388,7 @@ def test_steuerzeichen_im_schluessel_erreichen_die_ausgabe_nicht(data_dir: Path)
     key = '"a\\nb\\e[31mc"'
     edit(data_dir, SPRINT, "  anna: 5\n", f"  {key}: 1\n  {key}: 2\n  anna: 5\n")
     env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
-    result = runner.invoke(cli_app, ["pruefen"], env=env)
+    result = runner.invoke(cli_app, ["check"], env=env)
     assert "\x1b" not in result.output
     assert "a b" in result.output.replace("\n  ", " ").replace("\n", " ")
     [found] = [m for m in messages(f"absences:\n  {key}: 1\n  {key}: 2\n")]

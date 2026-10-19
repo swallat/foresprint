@@ -64,6 +64,44 @@ def test_switch_language(monkeypatch: pytest.MonkeyPatch):
     assert i18n.language() == "en"
 
 
+def test_default_language_is_english(tmp_path: Path):
+    """Ohne Umgebungsvariable und ohne gespeicherte Einstellung ist die Oberfläche englisch.
+    (Die Testsuite selbst setzt die Vorgabe in conftest.py auf Deutsch, daher ein eigener
+    Prozess.)"""
+    import os
+    import subprocess
+    import sys
+
+    env = {k: v for k, v in os.environ.items() if not k.startswith("SPRINTFORECAST_")}
+    env |= {"XDG_CONFIG_HOME": str(tmp_path), "APPDATA": str(tmp_path)}
+    code = (
+        "from sprintforecast import i18n; "
+        "print(i18n.DEFAULT, i18n.language(), i18n.t('Datei fehlt: {path}', path='x'))"
+    )
+    done = subprocess.run(
+        [sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True
+    )
+    assert done.stdout.split() == ["en", "en", "File", "missing:", "x"]
+
+
+def test_german_texts_name_the_english_commands(data_dir: Path):
+    """Auch die deutsche Oberfläche nennt die Befehle und Optionen englisch."""
+    from typer.testing import CliRunner
+
+    from sprintforecast.cli import app
+
+    runner = CliRunner(env={"COLUMNS": "200"})
+    result = runner.invoke(
+        app, ["--data", str(data_dir), "--as-of", "2026-10-15", "help", "commands"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "sprintforecast absences TEAM [SPRINT]" in result.output
+    assert "Weitere Themen: workflow, terms, fields, team (sprintforecast help TOPIC)" in (
+        result.output
+    )
+    assert "fehltage" not in result.output
+
+
 def test_cli_in_english(data_dir: Path, english):
     from typer.testing import CliRunner
 
@@ -107,7 +145,7 @@ def test_language_command(data_dir: Path):
     from sprintforecast.cli import app
 
     i18n.set_language(None)
-    result = CliRunner().invoke(app, ["--daten", str(data_dir), "sprache", "en"])
+    result = CliRunner().invoke(app, ["--data", str(data_dir), "language", "en"])
     assert result.exit_code == 0, result.output
     assert "Language: English" in result.output
     assert i18n.language() == "en"

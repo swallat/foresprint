@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from sprintforecast import cli
 from sprintforecast.cli import app
-from sprintforecast.guide import COMMAND_ALIASES, COMMANDS
+from sprintforecast.guide import COMMANDS
 from sprintforecast.storage import Repository
 
 runner = CliRunner(env={"COLUMNS": "200"})
@@ -19,7 +19,7 @@ runner = CliRunner(env={"COLUMNS": "200"})
 
 def run(data_dir: Path, *args: str, input: str | None = None):
     result = runner.invoke(
-        app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", *args], input=input
+        app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args], input=input
     )
     return result
 
@@ -33,7 +33,7 @@ def test_forecast_and_report(data_dir: Path):
     assert result.exit_code == 0, result.output
     assert "2026.24" in result.output and "Trend" in result.output
 
-    result = run(data_dir, "bericht", "demo")
+    result = run(data_dir, "report", "demo")
     assert result.exit_code == 0, result.output
     report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     assert "# Sprint-Forecast Demo-Team" in report
@@ -60,7 +60,7 @@ def test_forecast_table_has_a_range_column(data_dir: Path):
         assert expected in rows[sprint], rows[sprint]
     assert not re.search(r"\d,\d+–\d", rows["2026.20"]), rows["2026.20"]
 
-    report = run(data_dir, "bericht", "demo", "-o", "-").output
+    report = run(data_dir, "report", "demo", "-o", "-").output
     assert "**Forecast PLAN** (PT) | Spanne |" in report
     forecast_rows = {}
     for line in report.splitlines():
@@ -74,14 +74,14 @@ def test_forecast_table_has_a_range_column(data_dir: Path):
 @pytest.mark.parametrize(
     "args",
     [
-        ["--rest", "nan"],
-        ["--rest", "inf"],
-        ["--rest", "1e999"],
-        ["--rest", "10", "--anteil", "nan"],
+        ["--remaining", "nan"],
+        ["--remaining", "inf"],
+        ["--remaining", "1e999"],
+        ["--remaining", "10", "--share", "nan"],
     ],
 )
 def test_analyse_rejects_non_finite_options(data_dir: Path, args: list[str]):
-    result = run(data_dir, "analyse", "demo", *args)
+    result = run(data_dir, "analysis", "demo", *args)
     assert result.exit_code == 2, result.output
     assert "endliche Zahl" in result.output
 
@@ -89,7 +89,7 @@ def test_analyse_rejects_non_finite_options(data_dir: Path, args: list[str]):
 def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_list(
     data_dir: Path,
 ):
-    result = run(data_dir, "kapazitaet", "demo", "2026.25")
+    result = run(data_dir, "capacity", "demo", "2026.25")
     assert result.exit_code == 0, result.output
     assert "Noch keine Sprintdatei" in result.output
     assert "Kalender und Personenliste" in result.output
@@ -100,7 +100,7 @@ def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_li
 
 def test_kapazitaet_without_sprint_file_names_trend_without_people_list(data_dir: Path):
     (data_dir / "demo" / "people.yaml").unlink()
-    result = run(data_dir, "kapazitaet", "demo", "2026.25")
+    result = run(data_dir, "capacity", "demo", "2026.25")
     assert result.exit_code == 0, result.output
     assert "Noch keine Sprintdatei" in result.output
     assert "Kapazitäts-Trend" in result.output
@@ -108,7 +108,7 @@ def test_kapazitaet_without_sprint_file_names_trend_without_people_list(data_dir
 
 def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
     # Sprint 2026.23 hat noch keine Datei; aktive Personen: Anna, Ben, Cem, Dana
-    result = run(data_dir, "fehltage", "demo", "2026.23", input="2\n0\n1,5\n0\n")
+    result = run(data_dir, "absences", "demo", "2026.23", input="2\n0\n1,5\n0\n")
     assert result.exit_code == 0, result.output
     sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
     assert sprint["absences"] == {"anna": 2, "cem": 1.5}
@@ -119,14 +119,14 @@ def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
 
 
 def test_fehltage_rejects_invalid_number(data_dir: Path):
-    result = run(data_dir, "fehltage", "demo", "2026.23", input="abc\n1\n0\n0\n0\n")
+    result = run(data_dir, "absences", "demo", "2026.23", input="abc\n1\n0\n0\n0\n")
     assert result.exit_code == 0, result.output
     assert "Bitte eine Zahl eingeben" in result.output
 
 
 @pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
 def test_fehltage_rejects_non_finite_number(data_dir: Path, raw: str):
-    result = run(data_dir, "fehltage", "demo", "2026.23", input=f"{raw}\n1\n0\n0\n0\n")
+    result = run(data_dir, "absences", "demo", "2026.23", input=f"{raw}\n1\n0\n0\n0\n")
     assert result.exit_code == 0, result.output
     assert "Bitte eine endliche Zahl eingeben" in result.output
     sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
@@ -163,7 +163,7 @@ def test_planning_rejects_non_finite_corrections(data_dir: Path, raw: str):
 
 
 def test_personen_change_fte(data_dir: Path):
-    result = run(data_dir, "personen", "demo", input="f\nanna\n2026-11-01\n0.8\nq\n")
+    result = run(data_dir, "people", "demo", input="f\nanna\n2026-11-01\n0.8\nq\n")
     assert result.exit_code == 0, result.output
     assert "n = neue Person, f = FTE ändern, a = Austritt, q = fertig" in result.output
     anna = load(data_dir / "demo" / "people.yaml")["people"][0]
@@ -176,12 +176,12 @@ def test_personen_change_fte(data_dir: Path):
 
 
 def test_pruefen_fails_on_error(data_dir: Path):
-    assert run(data_dir, "pruefen").exit_code == 0
+    assert run(data_dir, "check").exit_code == 0
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
     path.write_text(
         path.read_text(encoding="utf-8").replace("cem: 5", "unbekannt: 5"), encoding="utf-8"
     )
-    result = run(data_dir, "pruefen")
+    result = run(data_dir, "check")
     assert result.exit_code == 1
     assert "unbekannte Person" in result.output
 
@@ -198,7 +198,7 @@ def test_init_new_team(tmp_path: Path):
     assert team["capacity"] == {"overhead_share": 0.1, "region": "BY", "rounding": 1}
     assert team["sprint"]["first"] == {"id": "2026.20", "start": date(2026, 10, 14)}
     assert team["forecast"]["reference_capacity"] == 40
-    assert run(tmp_path, "pruefen").exit_code == 0
+    assert run(tmp_path, "check").exit_code == 0
 
 
 @pytest.mark.parametrize("key", ["../x", "a/b", "..", " x", "Team-A", "con", "nul", "a" * 65])
@@ -264,7 +264,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
         "",
         "y",
     ]
-    result = run(data_dir, "einstellungen", "demo", input="\n".join(answers) + "\n")
+    result = run(data_dir, "settings", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
     assert "Unbekannter Regionscode" in result.output  # Region xx
     assert "muss ≥ 1" in result.output  # Referenz -5
@@ -280,7 +280,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
 
 def test_einstellungen_without_changes(data_dir: Path):
     before = (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8")
-    result = run(data_dir, "einstellungen", "demo", input="\n" * 20)
+    result = run(data_dir, "settings", "demo", input="\n" * 20)
     assert result.exit_code == 0, result.output
     assert "Keine Änderungen" in result.output
     assert (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8") == before
@@ -322,28 +322,28 @@ def test_planning_without_control_calculation(data_dir: Path):
 
 
 def test_personen_new_person_gets_id_and_former_hidden(data_dir: Path):
-    result = run(data_dir, "personen", "demo", input="n\nJörg Müller\n\n2026-11-01\n1\nq\n")
+    result = run(data_dir, "people", "demo", input="n\nJörg Müller\n\n2026-11-01\n1\nq\n")
     assert result.exit_code == 0, result.output
     assert "Emil" not in result.output  # ausgeschieden → ausgeblendet
     assert "ehemalige Person(en) ausgeblendet" in result.output
     people = load(data_dir / "demo" / "people.yaml")["people"]
     assert people[-1]["id"] == "joerg-mueller"
     assert people[-1]["name"] == "Jörg Müller"
-    shown = run(data_dir, "personen", "demo", "--ehemalige", input="q\n")
+    shown = run(data_dir, "people", "demo", "--former", input="q\n")
     assert "Emil" in shown.output
 
 
 def test_default_data_dir_is_current_directory(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.delenv("SPRINTFORECAST_DATEN", raising=False)
+    monkeypatch.delenv("SPRINTFORECAST_DATA", raising=False)
     monkeypatch.chdir(data_dir)
-    result = runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"])
+    result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
     assert result.exit_code == 0, result.output
     assert "Demo-Team" in result.output
 
 
-@pytest.mark.parametrize("option", ["--stichtag", "--as-of"])
+@pytest.mark.parametrize("option", ["--as-of", "--as-of"])
 def test_invalid_stichtag_is_a_usage_error(data_dir: Path, option: str):
-    args = ["--daten", str(data_dir), option, "2026-13-45", "forecast", "demo"]
+    args = ["--data", str(data_dir), option, "2026-13-45", "forecast", "demo"]
     result = runner.invoke(app, args)
     assert result.exit_code == 2, result.output
     assert "Datum im Format JJJJ-MM-TT erwartet" in result.output
@@ -367,29 +367,29 @@ def test_teams_subdirectory_is_found(
 
     root = tmp_path / "sprint-daten"
     shutil.copytree(data_dir, root / "teams")
-    monkeypatch.delenv("SPRINTFORECAST_DATEN", raising=False)
+    monkeypatch.delenv("SPRINTFORECAST_DATA", raising=False)
     monkeypatch.chdir(root)
-    result = runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"])
+    result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
     assert result.exit_code == 0, result.output
     # Liegen Teams direkt im aktuellen Verzeichnis, haben diese Vorrang
     monkeypatch.chdir(root / "teams")
-    assert runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"]).exit_code == 0
+    assert runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"]).exit_code == 0
 
 
 def test_analyse(data_dir: Path):
-    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    result = run(data_dir, "analysis", "demo", "--remaining", "40")
     assert result.exit_code == 0, result.output
     for text in ("Bandbreite", "konservativ", "Fokusfaktor", "Puffer", "Fertigstellung von 40"):
         assert text in result.output
-    report = run(data_dir, "bericht", "demo")
+    report = run(data_dir, "report", "demo")
     assert report.exit_code == 0
     text = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     assert text.index("## Prognose") < text.index("## Ergänzend: Bandbreite")
 
 
 def test_analyse_with_project_share(data_dir: Path):
-    full = run(data_dir, "analyse", "demo", "--rest", "40")
-    half = run(data_dir, "analyse", "demo", "--rest", "40", "--anteil", "50")
+    full = run(data_dir, "analysis", "demo", "--remaining", "40")
+    half = run(data_dir, "analysis", "demo", "--remaining", "40", "--share", "50")
     assert half.exit_code == 0, half.output
     assert "Projektanteil 50 % = 40 % des Forecasts" in half.output
     assert "je Sprint" in half.output and full.output != half.output
@@ -407,7 +407,7 @@ def test_analyse_rest_warns_about_few_samples(data_dir: Path, count: int, warned
     """Die Simulation rechnet schon ab 2 Werten; unter 5 Sprints kommt dieselbe Warnung wie in
     der Weboberfläche."""
     keep_first_sprints(data_dir, count)
-    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    result = run(data_dir, "analysis", "demo", "--remaining", "40")
     assert result.exit_code == 0, result.output
     assert f"Stichprobe {count} Sprints" in result.output
     note = f"Wenig Daten: Die Simulation zieht aus nur {count} Sprints (ab 5 sind Aussagen"
@@ -421,7 +421,7 @@ def test_analyse_rest_with_a_small_window_caps_the_sample_and_explains_it(data_d
     raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
     raw.setdefault("forecast", {})["window"] = 3
     team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
-    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    result = run(data_dir, "analysis", "demo", "--remaining", "40")
     assert result.exit_code == 0, result.output
     assert "Stichprobe 3 Sprints" in result.output
     text = " ".join(result.output.split())
@@ -437,7 +437,7 @@ def test_analyse_rest_with_a_small_window_but_no_more_values_has_no_window_hint(
     raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
     raw.setdefault("forecast", {})["window"] = 3
     team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
-    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    result = run(data_dir, "analysis", "demo", "--remaining", "40")
     assert result.exit_code == 0, result.output
     text = " ".join(result.output.split())
     assert "Wenig Daten: Die Simulation zieht aus nur 2 Sprints (ab 5 sind Aussagen" in text
@@ -445,14 +445,14 @@ def test_analyse_rest_with_a_small_window_but_no_more_values_has_no_window_hint(
 
 
 def test_analyse_rest_without_few_samples_has_no_warning(data_dir: Path):
-    result = run(data_dir, "analyse", "demo", "--rest", "40")
+    result = run(data_dir, "analysis", "demo", "--remaining", "40")
     assert result.exit_code == 0, result.output
     assert "Wenig Daten" not in result.output
 
 
 def test_analyse_without_rest_has_no_simulation_warning(data_dir: Path):
     keep_first_sprints(data_dir, 3)
-    result = run(data_dir, "analyse", "demo")
+    result = run(data_dir, "analysis", "demo")
     assert result.exit_code == 0, result.output
     assert "Wenig Daten" not in result.output
 
@@ -472,7 +472,7 @@ def test_planning_flow_next_sprint(data_dir: Path):
 
 
 def test_produkte_and_vorplanung(data_dir: Path):
-    result = run(data_dir, "produkte", "demo", "2026.23", "--vorplanung", input="2\n2\n2\n")
+    result = run(data_dir, "products", "demo", "2026.23", "--preplanning", input="2\n2\n2\n")
     assert result.exit_code == 0, result.output
     sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
     assert sprint["products"] == {p: {"preplanned": 2} for p in ("webshop", "app", "portal")}
@@ -502,13 +502,13 @@ def balance_table(output: str) -> str:
 
 
 def test_produkte_balance_hides_products_without_value_and_shows_missing(data_dir: Path):
-    plain = run(data_dir, "produkte", "demo", "2026.20", "--verlauf", "6")
+    plain = run(data_dir, "products", "demo", "2026.20", "--history", "6")
     assert "ohne Wert" not in balance_table(plain.output)  # alles erfasst: keine Spalte
     assert FOOTNOTE not in " ".join(plain.output.split())
 
     drop_done(data_dir, "app", "2026.20")
     # Fenster nur mit dem Sprint ohne Wert: keine Zeile „0 | 0,00 | 0,00 | 0,00“
-    only = run(data_dir, "produkte", "demo", "2026.20", "--verlauf", "1")
+    only = run(data_dir, "products", "demo", "2026.20", "--history", "1")
     assert only.exit_code == 0, only.output
     table = balance_table(only.output)
     assert "Webshop" in table and "Mobile App" not in table
@@ -516,7 +516,7 @@ def test_produkte_balance_hides_products_without_value_and_shows_missing(data_di
     assert "ohne Wert" not in table and FOOTNOTE not in " ".join(table.split())
 
     # sonst bleibt das Produkt mit seinen übrigen Sprints, die fehlenden stehen daneben
-    result = run(data_dir, "produkte", "demo", "2026.20", "--verlauf", "6")
+    result = run(data_dir, "products", "demo", "2026.20", "--history", "6")
     assert result.exit_code == 0, result.output
     table = balance_table(result.output)
     assert "ohne Wert" in table
@@ -530,7 +530,7 @@ def test_produkte_balance_hides_products_without_value_and_shows_missing(data_di
 
 def test_report_balance_hides_products_without_value_and_shows_missing(data_dir: Path):
     def balance_section() -> str:
-        assert run(data_dir, "bericht", "demo").exit_code == 0
+        assert run(data_dir, "report", "demo").exit_code == 0
         report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
         return report.split("**Saldo**")[1].split("\n## ")[0]
 
@@ -564,7 +564,7 @@ def test_balance_missing_ignores_sprints_without_any_done_value(data_dir: Path):
     drop_done(data_dir, "app", "2026.20")
     drop_done(data_dir, "portal", "2026.20")
     drop_done(data_dir, "app", "2026.19")  # nur hier fehlt es für ein einzelnes Produkt
-    assert run(data_dir, "bericht", "demo").exit_code == 0
+    assert run(data_dir, "report", "demo").exit_code == 0
     report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     section = report.split("**Saldo**")[1].split("\n## ")[0]
     rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
@@ -579,7 +579,7 @@ def test_balance_missing_ignores_sprints_outside_product_period(data_dir: Path):
     next(p for p in content["products"] if p["id"] == "app")["from"] = date(2026, 9, 16)
     path.write_text(yaml.safe_dump(content, allow_unicode=True, sort_keys=False), encoding="utf-8")
     drop_done(data_dir, "app", "2026.17", "2026.18", "2026.19")
-    assert run(data_dir, "bericht", "demo").exit_code == 0
+    assert run(data_dir, "report", "demo").exit_code == 0
     report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     section = report.split("**Saldo**")[1].split("\n## ")[0]
     rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
@@ -590,7 +590,7 @@ def test_balance_missing_ignores_sprints_outside_product_period(data_dir: Path):
 
 def test_produktliste_add_and_end(data_dir: Path):
     answers = ["n", "Neues Produkt", "Cleo", "2026-11-01", "e", "mobile app", "2026-12-31", "q"]
-    result = run(data_dir, "produktliste", "demo", input="\n".join(answers) + "\n")
+    result = run(data_dir, "product-list", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
     products = load(data_dir / "demo" / "products.yaml")["products"]
     assert products[-1] == {
@@ -601,7 +601,7 @@ def test_produktliste_add_and_end(data_dir: Path):
 
 
 def test_aktualisieren_outside_uv_tool(data_dir: Path):
-    result = run(data_dir, "aktualisieren", "--pruefen")
+    result = run(data_dir, "update", "--check")
     assert result.exit_code == 1
     assert "nicht mit `uv tool install` installiert" in result.output
 
@@ -611,17 +611,17 @@ def test_sprints_calendar_and_longer_sprint(data_dir: Path):
     assert result.exit_code == 0, result.output
     assert "Di 27.10.2026" in result.output  # letzter Tag von 2026.21
     # 2026.25 drei Wochen bis Di 12.01.2027 → 2026.26 entfällt, danach 2027.1
-    result = run(data_dir, "sprints", "demo", "--ende", "2026.25=2027-01-12", "--anlegen")
+    result = run(data_dir, "sprints", "demo", "--end", "2026.25=2027-01-12", "--create")
     assert result.exit_code == 0, result.output
     s25 = load(data_dir / "demo" / "sprints" / "2026.25.yaml")
     assert s25["end"] == date(2027, 1, 13)
     nxt = load(data_dir / "demo" / "sprints" / "2027.1.yaml")
     assert nxt["start"] == date(2027, 1, 13)
-    assert run(data_dir, "pruefen").exit_code == 0
+    assert run(data_dir, "check").exit_code == 0
 
 
 def test_forecast_rechenweg(data_dir: Path):
-    result = run(data_dir, "forecast", "demo", "--rechenweg", "2026.22")
+    result = run(data_dir, "forecast", "demo", "--explain", "2026.22")
     assert result.exit_code == 0, result.output
     assert "Rechenweg Sprint 2026.22" in result.output
     assert "16,8433 / 45 × 30 = 11,229" in result.output
@@ -630,12 +630,12 @@ def test_forecast_rechenweg(data_dir: Path):
 def test_datenordner(tmp_path: Path, data_dir: Path):
     import subprocess
 
-    assert run(data_dir, "datenordner", str(tmp_path)).exit_code == 1  # kein Git
+    assert run(data_dir, "data-dir", str(tmp_path)).exit_code == 1  # kein Git
     subprocess.run(["git", "init", "-q", str(data_dir)], check=True)
-    result = run(data_dir, "datenordner", str(data_dir))
+    result = run(data_dir, "data-dir", str(data_dir))
     assert result.exit_code == 0, result.output
     assert "Datenordner gemerkt" in result.output
-    assert "Gemerkt:" in run(data_dir, "datenordner").output
+    assert "Gemerkt:" in run(data_dir, "data-dir").output
 
 
 def test_datenordner_names_the_reason_for_an_unsafe_folder(
@@ -647,7 +647,7 @@ def test_datenordner_names_the_reason_for_an_unsafe_folder(
 
     subprocess.run(["git", "init", "-q", str(data_dir)], check=True)
     assume_foreign_owner(monkeypatch, data_dir)
-    result = run(data_dir, "datenordner", str(data_dir))
+    result = run(data_dir, "data-dir", str(data_dir))
     assert result.exit_code == 1
     assert "dubious ownership" in result.output  # die Meldung von Git
     assert "Git-Einstellungen" in " ".join(result.output.split())  # der Hinweis
@@ -786,17 +786,17 @@ def test_git_problem_escapes_square_brackets_of_the_git_message(
 def test_datenordner_without_git_installed_says_so(
     tmp_path: Path, data_dir: Path, without_git: None
 ):
-    result = run(data_dir, "datenordner", str(data_dir))
+    result = run(data_dir, "data-dir", str(data_dir))
     assert result.exit_code == 1
     text = one_line(result.output)
     assert "Git ist nicht installiert" in text
     assert "Git installieren" in text
     assert "liegt in keinem Git-Repository" not in text
-    assert "Kein Datenordner gemerkt." in run(data_dir, "datenordner").output
+    assert "Kein Datenordner gemerkt." in run(data_dir, "data-dir").output
 
 
 def test_datenordner_names_a_folder_without_repository(tmp_path: Path, data_dir: Path):
-    result = run(data_dir, "datenordner", str(tmp_path))
+    result = run(data_dir, "data-dir", str(tmp_path))
     assert result.exit_code == 1
     assert "liegt in keinem Git-Repository (git init bzw. git clone)" in one_line(result.output)
     assert "Git ist nicht installiert" not in result.output
@@ -811,11 +811,11 @@ def test_datenordner_messages_keep_brackets_in_the_path(
     folder = tmp_path.joinpath(*parts)
     folder.mkdir(parents=True)
     shown = "/".join(parts)  # Rich bricht lange Pfade um: nur die Namen prüfen
-    result = run(data_dir, "datenordner", str(folder))
+    result = run(data_dir, "data-dir", str(folder))
     assert result.exit_code == 1
     assert result.exception is None or isinstance(result.exception, SystemExit)
     assert shown in one_line(result.output).replace("\\", "/")
-    missing = run(data_dir, "datenordner", str(folder / "fehlt"))
+    missing = run(data_dir, "data-dir", str(folder / "fehlt"))
     assert missing.exit_code == 1
     assert shown in one_line(missing.output).replace("\\", "/")
 
@@ -830,7 +830,7 @@ def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
     )
     result = run(data_dir, "forecast", "demo")
     assert "Trend-Modus classic" in result.output and "schreibt Schwankungen fort" in result.output
-    report = run(data_dir, "bericht", "demo", "-o", "-")
+    report = run(data_dir, "report", "demo", "-o", "-")
     assert "Trend-Modus classic" in report.output
 
 
@@ -849,7 +849,7 @@ def test_cli_reports_unwritable_settings_without_traceback(
 
     monkeypatch.setattr(storage, "save_data_dir", broken)
     monkeypatch.setattr(cli, "save_language", broken)
-    for args in (["datenordner", str(repo)], ["sprache", "en"]):
+    for args in (["data-dir", str(repo)], ["language", "en"]):
         result = runner.invoke(app, args)
         assert result.exit_code == 1
         assert "Zugriff verweigert" in result.output
@@ -858,14 +858,122 @@ def test_cli_reports_unwritable_settings_without_traceback(
 
 def test_help_command_list_covers_every_cli_command():
     """Jeder Befehl der CLI steht in guide.COMMANDS, und dort steht kein unbekannter Befehl."""
-    english = set(COMMAND_ALIASES.values())
     registered = {
         info.name
         for info in app.registered_commands
-        if info.name not in english and info.callback.__module__ == "sprintforecast.cli"
+        if info.callback.__module__ == "sprintforecast.cli"
     }
     listed = {
         m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast ([a-z][\w-]*)", left))
     }
     assert not registered - listed, f"Fehlt in guide.COMMANDS: {registered - listed}"
     assert not listed - registered, f"Kein CLI-Befehl: {listed - registered}"
+
+
+GERMAN_COMMANDS = [
+    "hilfe", "fehltage", "personen", "einstellungen", "analyse", "bericht", "pruefen",
+    "kapazitaet", "produkte", "produktliste", "aktualisieren", "verknuepfung", "datenordner",
+    "sprache",
+]  # fmt: skip
+
+
+def _no_ansi(text: str) -> str:
+    """Farbcodes entfernen: In der CI (FORCE_COLOR) färbt Rich die Hilfe ein."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
+@pytest.mark.parametrize("lang", ["de", "en"])
+def test_help_shows_only_english_names(monkeypatch: pytest.MonkeyPatch, lang: str):
+    """Befehle, Optionen und Umgebungsvariablen heißen in beiden Sprachen englisch."""
+    from sprintforecast import i18n
+
+    i18n.set_language(None)
+    monkeypatch.setenv(i18n.LANG_ENV, lang)
+    output = _no_ansi(runner.invoke(app, ["--help"]).output)
+    for english in ("help", "absences", "people", "check", "report", "data-dir", "language"):
+        assert re.search(rf"│ {english}\s", output), english
+    for german in GERMAN_COMMANDS:
+        assert not re.search(rf"│ {german}\s", output), german
+    assert "--data" in output and "--as-of" in output
+    assert "--daten" not in output and "--stichtag" not in output
+    assert "SPRINTFORECAST_DATA" in output and "SPRINTFORECAST_DATEN" not in output
+    output = _no_ansi(runner.invoke(app, ["forecast", "--help"]).output)
+    assert "--explain" in output and "--rechenweg" not in output
+    assert "--history" in output and "--verlauf" not in output
+    output = _no_ansi(runner.invoke(app, ["help", "--help"]).output)
+    assert "[TOPIC]" in output and "THEMA" not in output
+    assert "workflow, terms, fields, team, commands" in output
+
+
+@pytest.mark.parametrize("german", GERMAN_COMMANDS)
+def test_german_command_names_are_gone(data_dir: Path, german: str):
+    result = run(data_dir, german)
+    assert result.exit_code == 2, result.output
+    assert f"No such command '{german}'" in result.output
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--daten", "x", "forecast", "demo"],
+        ["--stichtag", "2026-10-15", "forecast", "demo"],
+        ["forecast", "demo", "--rechenweg", "2026.22"],
+        ["analysis", "demo", "--rest", "20"],
+        ["people", "demo", "--ehemalige"],
+        ["sprints", "demo", "--anlegen"],
+        ["check", "--streng"],
+        ["update", "--pruefen"],
+    ],
+)
+def test_german_option_names_are_gone(data_dir: Path, args: list[str]):
+    result = runner.invoke(app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args])
+    assert result.exit_code == 2, result.output
+    assert "No such option" in result.output
+
+
+def test_german_help_topics_are_gone(data_dir: Path):
+    result = run(data_dir, "help", "workflow")
+    assert result.exit_code == 0 and "sprintforecast absences TEAM [SPRINT]" in result.output
+    result = run(data_dir, "help", "commands")
+    assert "sprintforecast check [--strict]" in result.output
+    assert "sprintforecast --data PATH …" in result.output
+    assert "Weitere Themen: workflow, terms, fields, team (sprintforecast help TOPIC)" in (
+        result.output
+    )
+    for german in ("ablauf", "begriffe", "felder", "befehle"):
+        result = run(data_dir, "help", german)
+        assert result.exit_code == 1
+        assert "Verfügbar: workflow, terms, fields, team, commands" in result.output
+
+
+def test_legacy_env_names_are_ignored(
+    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast import storage
+
+    empty = tmp_path / "leer"
+    empty.mkdir()
+    monkeypatch.chdir(empty)
+    monkeypatch.delenv(storage.DATA_ENV, raising=False)
+    monkeypatch.setenv("SPRINTFORECAST_DATEN", str(data_dir))
+    assert storage.default_data_dir() == Path(".")
+    monkeypatch.setenv(storage.DATA_ENV, str(data_dir))
+    assert storage.default_data_dir() == data_dir
+    result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
+    assert result.exit_code == 0, result.output
+    assert "Demo-Team" in result.output
+
+
+def test_auto_update_takes_english_values_only(monkeypatch: pytest.MonkeyPatch):
+    from sprintforecast import updater
+
+    saved: list[str] = []
+    monkeypatch.setattr(updater, "update_state", lambda **kw: saved.append(kw["mode"]))
+    monkeypatch.delenv(updater.MODE_ENV, raising=False)
+    for value in ("on", "notice", "off"):
+        result = runner.invoke(app, ["update", "--auto", value])
+        assert result.exit_code == 0, result.output
+    assert saved == ["an", "hinweis", "aus"]
+    for value in ("hinweis", "egal"):
+        result = runner.invoke(app, ["update", "--auto", value])
+        assert result.exit_code == 1 and "--auto: on, notice oder off" in result.output

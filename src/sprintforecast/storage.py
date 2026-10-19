@@ -50,9 +50,9 @@ from sprintforecast.model import (
     explicit_state_needed,
 )
 
-DATA_ENV = "SPRINTFORECAST_DATEN"
+DATA_ENV = "SPRINTFORECAST_DATA"
 # Datum, das als „heute“ gilt (für Rückblicke und Tests).
-STICHTAG_ENV = "SPRINTFORECAST_STICHTAG"
+STICHTAG_ENV = "SPRINTFORECAST_AS_OF"
 
 
 class DataError(Exception):
@@ -112,7 +112,7 @@ def teams_dir(path: Path) -> Path | None:
 
 
 def saved_data_dir() -> Path | None:
-    """In der Weboberfläche (oder mit `sprintforecast datenordner`) gemerkter Datenordner."""
+    """In der Weboberfläche (oder mit `sprintforecast data-dir`) gemerkter Datenordner."""
     from sprintforecast import config
 
     raw = config.load().get("data_dir")
@@ -154,7 +154,7 @@ def forget_data_dir(path: Path) -> None:
 
 
 def default_data_dir() -> Path:
-    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis, falls es
+    """--data > Umgebungsvariable SPRINTFORECAST_DATA > aktuelles Verzeichnis, falls es
     Teams enthält > gemerkter Datenordner > aktuelles Verzeichnis.
 
     Enthält ein Verzeichnis selbst keine Teams, aber einen Unterordner ``teams`` mit Teams

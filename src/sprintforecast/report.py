@@ -176,7 +176,7 @@ def absence_derived_remedy(window: int) -> str:
     Einstellung ``absence_history``: Wie lange der Hinweis bleibt."""
     return t(
         "Fehlte in einem dieser Sprints jemand, die Fehltage auf der Seite „{page}“ eintragen "
-        "und mit „Fehltage speichern“ sichern (oder mit `sprintforecast fehltage`). Fehlte "
+        "und mit „Fehltage speichern“ sichern (oder mit `sprintforecast absences`). Fehlte "
         "niemand, stimmt die Quote. In der Tabelle „Stand der Fehltage“ gelten diese Sprints als "
         "bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind aber keine "
         "Fehltage gespeichert. Der Hinweis bleibt, bis die Sprints aus dem Fenster der letzten "
@@ -192,7 +192,7 @@ def absence_derived_cli_remedy(window: int, team: str) -> str:
     Bedienung der Weboberfläche, ohne Markdown."""
     return t(
         "Fehlte in einem dieser Sprints jemand, die Fehltage nachtragen mit: "
-        "sprintforecast fehltage {team} <SPRINT>. Fehlte niemand, stimmt die Quote. Der Hinweis "
+        "sprintforecast absences {team} <SPRINT>. Fehlte niemand, stimmt die Quote. Der Hinweis "
         "bleibt, bis die Sprints aus dem Fenster der letzten {window} Sprints (Einstellung "
         "absence_history) herausfallen oder Fehltage eingetragen sind.",
         team=team,
@@ -230,7 +230,7 @@ def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
             t(
                 "Trend-Modus {mode}: schreibt Schwankungen fort und kann steigen oder fallen "
                 "(Vorsicht bei langen Horizonten). Robust ist „konstant“ (flat) – einstellbar mit "
-                "`sprintforecast einstellungen`.",
+                "`sprintforecast settings`.",
                 mode=mode.value,
             )
         )
@@ -326,7 +326,7 @@ def render(fc: Forecast, history: int = 10) -> str:
             mode=f.trend_mode.value,
         ),
         "",
-        t("> Automatisch erzeugt mit `sprintforecast bericht`. Nicht von Hand bearbeiten."),
+        t("> Automatisch erzeugt mit `sprintforecast report`. Nicht von Hand bearbeiten."),
         "",
         f"## {t('Prognose')}",
         "",
@@ -352,7 +352,7 @@ def render(fc: Forecast, history: int = 10) -> str:
             "",
             t(
                 "⚠️ *Trend/Kalender*: Für diesen Sprint sind noch keine Fehltage erfasst, die "
-                "Kapazität ist geschätzt. Mit `sprintforecast fehltage {team} <SPRINT>` wird die "
+                "Kapazität ist geschätzt. Mit `sprintforecast absences {team} <SPRINT>` wird die "
                 "Prognose belastbar.",
                 team=team.key,
             ),

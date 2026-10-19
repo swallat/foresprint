@@ -38,7 +38,7 @@ OPENERS = ["[bold]", "[dim]", "[green]", "[yellow]", "[cyan]"]
 
 def run(data_dir: Path, *args: str, input: str | None = None):
     return runner.invoke(
-        app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", *args], input=input
+        app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args], input=input
     )
 
 
@@ -198,15 +198,15 @@ def test_translation_markup_is_kept_around_placeholders():
             text = Text.from_markup(
                 i18n.t(
                     "Weiter mit: [bold]{command}[/bold]",
-                    command=_plain_end("sprintforecast personen [x]\\"),
+                    command=_plain_end("sprintforecast people [x]\\"),
                 )
             )
         finally:
             i18n.set_language(None)
-        assert text.plain.endswith("sprintforecast personen [x]\\")
+        assert text.plain.endswith("sprintforecast people [x]\\")
         bold = [s for s in text.spans if str(s.style) == "bold"]
         assert len(bold) == 1
-        assert text.plain[bold[0].start : bold[0].end] == "sprintforecast personen [x]\\"
+        assert text.plain[bold[0].start : bold[0].end] == "sprintforecast people [x]\\"
 
 
 # --- Befehle auf den Daten mit Klammern ---------------------------------------------------
@@ -222,24 +222,24 @@ BLANK = "\n" * 60  # Enter übernimmt jeweils den Vorschlag
     ("args", "input", "expected", "code"),
     [
         pytest.param(
-            ["forecast", "demo", "--verlauf", "30"], None, ["[/x] Team", *SPRINTS], 0, id="forecast"
+            ["forecast", "demo", "--history", "30"], None, ["[/x] Team", *SPRINTS], 0, id="forecast"
         ),
         pytest.param(
-            ["forecast", "demo", "--rechenweg", f"[red]{BS}"],
+            ["forecast", "demo", "--explain", f"[red]{BS}"],
             None,
             [f"Rechenweg Sprint [red]{BS}"],
             0,
             id="forecast-rechenweg",
         ),
         pytest.param(
-            ["forecast", "demo", "--rechenweg", "[/x]"],
+            ["forecast", "demo", "--explain", "[/x]"],
             None,
             ["Sprint [/x] nicht in der Prognose."],
             1,
             id="forecast-rechenweg-unbekannt",
         ),
         pytest.param(
-            ["analyse", "demo"], None, ["Bandbreite [/x] Team", *SPRINTS], 0, id="analyse"
+            ["analysis", "demo"], None, ["Bandbreite [/x] Team", *SPRINTS], 0, id="analyse"
         ),
         pytest.param(
             ["sprints", "demo"],
@@ -253,54 +253,54 @@ BLANK = "\n" * 60  # Enter übernimmt jeweils den Vorschlag
             id="sprints",
         ),
         pytest.param(
-            ["sprints", "demo", "--ende", "[/x]=2026-10-29"],
+            ["sprints", "demo", "--end", "[/x]=2026-10-29"],
             None,
-            ["--ende [/x]=2026-10-29: erwartet SPRINT=JJJJ-MM-TT"],
+            ["--end [/x]=2026-10-29: erwartet SPRINT=JJJJ-MM-TT"],
             1,
             id="sprints-ende",
         ),
         pytest.param(
-            ["sprints", "demo", "--ende", f"[red]{BS}=2026-10-01"],
+            ["sprints", "demo", "--end", f"[red]{BS}=2026-10-01"],
             None,
             [f"[red]{BS}"],
             1,
             id="sprints-ende-fehler",
         ),
-        pytest.param(["personen", "demo"], "q\n", NAMES[1:], 0, id="personen"),
-        pytest.param(["kapazitaet", "demo"], None, NAMES[1:], 0, id="kapazitaet"),
+        pytest.param(["people", "demo"], "q\n", NAMES[1:], 0, id="personen"),
+        pytest.param(["capacity", "demo"], None, NAMES[1:], 0, id="kapazitaet"),
         pytest.param(
-            ["kapazitaet", "demo", "[x]"],
+            ["capacity", "demo", "[x]"],
             None,
             ["Kapazität Sprint [x]", *NAMES[1:]],
             0,
             id="kap-id",
         ),
         pytest.param(
-            ["produkte", "demo"], None, [*PRODUCTS, "Alex [x]", "Bea [/x]"], 0, id="produkte"
+            ["products", "demo"], None, [*PRODUCTS, "Alex [x]", "Bea [/x]"], 0, id="produkte"
         ),
         pytest.param(
-            ["produkte", "demo", f"[red]{BS}", "--vorplanung"],
+            ["products", "demo", f"[red]{BS}", "--preplanning"],
             BLANK,
             [f"Produkte Sprint [red]{BS}", *PRODUCTS, "App [x] – ", f"Portal [red]{BS} – "],
             0,
             id="produkte-vorplanung",
         ),
         pytest.param(
-            ["produktliste", "demo"],
+            ["product-list", "demo"],
             "q\n",
             [*PRODUCTS, "Alex [x]", "Bea [/x]"],
             0,
             id="produktliste",
         ),
         pytest.param(
-            ["produktliste", "demo"],
+            ["product-list", "demo"],
             "e\nunbekannt\nq\n",
             [f"Produkte: Shop [/x], App [x], Portal [red]{BS}", "Produkt nicht gefunden."],
             0,
             id="produktliste-abgeben",
         ),
         pytest.param(
-            ["fehltage", "demo", f"[red]{BS}"],
+            ["absences", "demo", f"[red]{BS}"],
             ABSENCES,
             [
                 f"Sprint [red]{BS}: 14.10.2026",
@@ -343,17 +343,17 @@ BLANK = "\n" * 60  # Enter übernimmt jeweils den Vorschlag
             id="review",
         ),
         pytest.param(
-            ["bericht", "demo"],
+            ["report", "demo"],
             None,
             [f"da[x]ten{BS}[red]{SEP}demo{SEP}FORECAST.md"],
             0,
             id="bericht",
         ),
         pytest.param(
-            ["bericht"], None, [f"da[x]ten{BS}[red]{SEP}demo{SEP}FORECAST.md"], 0, id="bericht-alle"
+            ["report"], None, [f"da[x]ten{BS}[red]{SEP}demo{SEP}FORECAST.md"], 0, id="bericht-alle"
         ),
         pytest.param(
-            ["pruefen"],
+            ["check"],
             None,
             [
                 "demo",
@@ -377,7 +377,7 @@ def test_personen_new_person_and_selection(klammern: Path):
     replace(people, "people:\n", "people:\n- id: '[x]'\n  name: Zoe\n")
     result = run(
         klammern,
-        "personen",
+        "people",
         "demo",
         input="f\nEva\n2026-12-01\n0.5\nn\nNeu [/x]\n[/x]\n2026-11-01\n1\nq\n",
     )
@@ -393,13 +393,13 @@ def test_personen_new_person_and_selection(klammern: Path):
 
 def test_personen_region_with_markup_look(klammern: Path):
     replace(klammern / "demo" / "people.yaml", "region: BY", "region: '[/x]'")
-    result = run(klammern, "personen", "demo", input="q\n")
+    result = run(klammern, "people", "demo", input="q\n")
     check(result, "Cem [red]", "[/x]")
 
 
 def test_commit_message_lines_with_markup_look(klammern: Path):
     """Prüfzeilen und Tag-Hinweis von _maybe_commit stehen auch mit --commit ohne Markup da."""
-    result = run(klammern, "fehltage", "demo", f"[red]{BS}", "--commit", input=ABSENCES)
+    result = run(klammern, "absences", "demo", f"[red]{BS}", "--commit", input=ABSENCES)
     check(
         result,
         f"Fehler sprints/[red]{BS}.yaml: Fehltage für unbekannte Person '[/x]'",
@@ -418,17 +418,17 @@ def test_names_in_error_lines_with_markup_look(data_dir: Path):
     }
     for key, kwargs in teams.items():
         write_team(data_dir, key, **kwargs)
-    result = run(data_dir, "produkte", "a[x]")
-    check(result, "Einschalten mit: sprintforecast einstellungen a[x]", code=1)
-    result = run(data_dir, "produkte", "c[x]")
-    check(result, "Zuerst: sprintforecast produktliste c[x]", code=1)
-    result = run(data_dir, "produktliste", "a[x]")
-    check(result, "Einschalten mit: sprintforecast einstellungen a[x]", code=1)
-    result = run(data_dir, "fehltage", f"b[red]{BS}")
-    check(result, f"Zuerst: sprintforecast personen b[red]{BS}", code=1)
+    result = run(data_dir, "products", "a[x]")
+    check(result, "Einschalten mit: sprintforecast settings a[x]", code=1)
+    result = run(data_dir, "products", "c[x]")
+    check(result, "Zuerst: sprintforecast product-list c[x]", code=1)
+    result = run(data_dir, "product-list", "a[x]")
+    check(result, "Einschalten mit: sprintforecast settings a[x]", code=1)
+    result = run(data_dir, "absences", f"b[red]{BS}")
+    check(result, f"Zuerst: sprintforecast people b[red]{BS}", code=1)
     result = run(data_dir, "forecast", "c[x]")
-    check(result, "Sprint-Forecast Klein", "sprintforecast fehltage c[x] <SPRINT>")
-    result = run(data_dir, "pruefen")
+    check(result, "Sprint-Forecast Klein", "sprintforecast absences c[x] <SPRINT>")
+    result = run(data_dir, "check")
     check(result, "a[x]", f"b[red]{BS}", "c[x]", f"✔ d[x]{BS}\n", "✔ demo\n", code=result.exit_code)
     assert f"\ne[x]{BS}\n  Hinweis people.yaml:" in result.output
 
@@ -439,7 +439,7 @@ def test_sprint_panel_names_the_region_with_markup_look(
     """Die Feiertage im Sprint-Panel nennen die Region des Teams."""
     replace(klammern / "demo" / "team.yaml", "region: NW", "region: '[x]'")
     monkeypatch.setattr(cli, "holiday_name", lambda d, region, country: "Feiertag" * (d.day == 20))
-    result = run(klammern, "fehltage", "demo", f"[red]{BS}", input=ABSENCES)
+    result = run(klammern, "absences", "demo", f"[red]{BS}", input=ABSENCES)
     check(result, "davon Feiertage ([x]): 20.10. Feiertag")
 
 
@@ -452,14 +452,14 @@ def test_init_with_a_key_that_looks_like_markup(klammern: Path, monkeypatch: pyt
     check(
         result,
         f"Neues Team {key} anlegen.",
-        f"mit sprintforecast einstellungen {key} änderbar",
-        f"Weiter mit: sprintforecast personen {key}\n",
+        f"mit sprintforecast settings {key} änderbar",
+        f"Weiter mit: sprintforecast people {key}\n",
     )
 
 
 def test_fte_change_note_names_people_with_markup_look(klammern: Path):
     """Die Näherung bei FTE-Wechsel nennt die Personen in der Tabellenunterschrift."""
-    result = run(klammern, "kapazitaet", "demo", "2026.11")
+    result = run(klammern, "capacity", "demo", "2026.11")
     check(result, "(Ben [/x]).")
 
 
@@ -473,7 +473,7 @@ def test_empty_data_dir_ending_in_a_backslash(tmp_path: Path):
     """Der Ordner steht direkt vor dem schließenden Tag der Fehlermeldung."""
     root = tmp_path / f"leer[x]{BS}"
     root.mkdir()
-    result = run(root, "pruefen")
+    result = run(root, "check")
     check(result, f"Keine Teams gefunden unter {root}", code=1)
     assert f"leer[x]{BS}\n" in result.output
 
@@ -496,10 +496,10 @@ def test_sprint_id_with_brackets(data_dir: Path):
         assert result.exit_code == 0, result.output
         assert "[x]" in result.output
 
-    result = run(data_dir, "fehltage", "neu", "[/x]")
+    result = run(data_dir, "absences", "neu", "[/x]")
     assert result.exit_code == 1
     assert "Sprint [/x] liegt nicht in der Sprintfolge des Teams." in result.output
-    result = run(data_dir, "forecast", "neu", "--rechenweg", "[/x]")
+    result = run(data_dir, "forecast", "neu", "--explain", "[/x]")
     assert result.exit_code == 1
     assert "Sprint [/x] nicht in der Prognose." in result.output
 
@@ -517,7 +517,7 @@ def test_check_messages_with_brackets(data_dir: Path):
     sprint = demo / "sprints" / "2026.21.yaml"
     replace(sprint, "absences:\n", "absences:\n  '[/x]': 1\n")
 
-    result = run(data_dir, "pruefen")
+    result = run(data_dir, "check")
     assert result.exit_code == 1
     assert "people.yaml: [x]: keine Zugehörigkeit" in result.output
     assert "Fehltage für unbekannte Person '[/x]'" in result.output
@@ -541,10 +541,10 @@ def test_init_with_markup_look(klammern: Path):
     check(
         result,
         "Neues Team neu anlegen.",
-        "sprintforecast einstellungen neu",
+        "sprintforecast settings neu",
         "Unbekannter Regionscode: [/X]",
         f"Angelegt: {klammern}{SEP}neu{SEP}team.yaml",
-        "Weiter mit: sprintforecast personen neu",
+        "Weiter mit: sprintforecast people neu",
     )
     assert yaml.safe_load((klammern / "neu" / "team.yaml").read_text())["name"] == f"Neu [/x]{BS}"
 
@@ -552,7 +552,7 @@ def test_init_with_markup_look(klammern: Path):
 def test_einstellungen_with_markup_look(klammern: Path):
     result = run(
         klammern,
-        "einstellungen",
+        "settings",
         "demo",
         input=f"Neu [x]{BS}\n" + "\n" * 5 + "[/x]\n\n" + "\n" * 20 + "y\n",
     )
@@ -573,11 +573,11 @@ def test_einstellungen_with_markup_look(klammern: Path):
 def test_path_with_brackets_and_backslashes_in_messages(klammern: Path):
     """_saved, „Angelegt“ und bericht zeigen den Pfad mit „[x]“, „[red]“ und Backslash."""
     shown = f"da[x]ten{BS}[red]"
-    result = run(klammern, "fehltage", "demo", "2026.23", input=ABSENCES)
+    result = run(klammern, "absences", "demo", "2026.23", input=ABSENCES)
     check(result, f"Gespeichert: {klammern}{SEP}demo{SEP}sprints{SEP}2026.23.yaml", shown)
     result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
     check(result, f"Angelegt: {klammern}{SEP}neu{SEP}team.yaml", shown)
-    result = run(klammern, "bericht", "demo")
+    result = run(klammern, "report", "demo")
     check(result, f"{klammern}{SEP}demo{SEP}FORECAST.md")
 
 
@@ -589,19 +589,19 @@ def test_path_with_brackets_and_backslashes_for_datenordner(tmp_path: Path):
     gemerkt.mkdir()
     verwendet.mkdir()
     save_data_dir(gemerkt)
-    result = runner.invoke(app, ["datenordner"], env={DATA_ENV: str(verwendet)})
+    result = runner.invoke(app, ["data-dir"], env={DATA_ENV: str(verwendet)})
     check(
         result,
         f"Gemerkt: {gemerkt}\n",
-        f"Verwendet (ohne --daten): {verwendet}\n",
+        f"Verwendet (ohne --data): {verwendet}\n",
     )
-    result = runner.invoke(app, ["datenordner"], env={DATA_ENV: ""})
+    result = runner.invoke(app, ["data-dir"], env={DATA_ENV: ""})
     check(result, f"Gemerkt: {gemerkt}\n")
 
 
 def test_path_with_brackets_and_backslashes_for_missing_folder(data_dir: Path):
     folder = Path(r"C:\daten\[y]")
-    result = run(data_dir, "datenordner", str(folder))
+    result = run(data_dir, "data-dir", str(folder))
     check(result, f"Ordner nicht gefunden: {folder}", code=1)
 
 
@@ -632,8 +632,8 @@ def test_web_without_streamlit_names_the_extra(
 
 
 def test_help_shows_square_brackets_of_the_commands(data_dir: Path):
-    result = run(data_dir, "hilfe", "befehle")
-    check(result, "sprintforecast sprache [de|en]")
+    result = run(data_dir, "help", "commands")
+    check(result, "sprintforecast language [de|en]")
 
 
 # --- Meldungen aus Hilfsfunktionen, die sich nur mit Attrappen erreichen lassen -----------
@@ -652,7 +652,7 @@ def test_analyse_completion_with_markup_look(klammern: Path, monkeypatch: pytest
         )
 
     monkeypatch.setattr(analysis, "completion", completion)
-    result = run(klammern, "analyse", "demo", "--rest", "20")
+    result = run(klammern, "analysis", "demo", "--remaining", "20")
     check(
         result,
         "in 50 % der Simulationen bis [x], in 85 % bis später als [red]",
@@ -665,7 +665,7 @@ def test_analyse_completion_with_markup_look(klammern: Path, monkeypatch: pytest
             real(*a, **k), p50=None, p85=f"[x]{BS}", trend_capacity_sprints=["[x]", f"[red]{BS}"]
         ),
     )
-    result = run(klammern, "analyse", "demo", "--rest", "20")
+    result = run(klammern, "analysis", "demo", "--remaining", "20")
     check(result, f"bis [x]{BS} (", f"Kapazität: [x], [red]{BS}\n")
 
 
@@ -706,21 +706,21 @@ def check_result(**fields):
 
 def test_aktualisieren_error_with_markup_look(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(updater, "check", lambda force=False: check_result(error=f"[/x]{BS}"))
-    result = run(data_dir, "aktualisieren", "--pruefen")
+    result = run(data_dir, "update", "--check")
     check(result, f"Prüfung fehlgeschlagen: [/x]{BS}\n", code=1)
 
 
 def test_verknuepfung_with_markup_look(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     paths = [tmp_path / f"a[x]{BS}", tmp_path / "b[x]"]
     monkeypatch.setattr(shortcuts, "create", lambda: paths)
-    result = runner.invoke(app, ["verknuepfung"])
+    result = runner.invoke(app, ["shortcut"])
     check(result, f"Angelegt: {paths[0]}\n", f"Angelegt: {paths[1]}\n")
 
     def failing():
         raise RuntimeError(f"Kein Programm [/x]{BS}")
 
     monkeypatch.setattr(shortcuts, "create", failing)
-    result = runner.invoke(app, ["verknuepfung"])
+    result = runner.invoke(app, ["shortcut"])
     check(result, f"Kein Programm [/x]{BS}\n", code=1)
 
 
@@ -731,7 +731,7 @@ def test_sprache_error_with_markup_look(monkeypatch: pytest.MonkeyPatch):
         raise SettingsError(f"Einstellungen [/x] [red]{BS}")
 
     monkeypatch.setattr(cli, "save_language", failing)
-    result = runner.invoke(app, ["sprache", "en"])
+    result = runner.invoke(app, ["language", "en"])
     check(result, f"Einstellungen [/x] [red]{BS}\n", code=1)
 
 
@@ -778,7 +778,7 @@ def test_english_translations_keep_their_markup(klammern: Path):
     """Auch die englischen Vorlagen mit [bold] um einen Platzhalter bleiben Markup."""
     result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
     check(result, "Create new team neu.", f"Created: {klammern}{SEP}neu{SEP}team.yaml", "Next: ")
-    result = run(klammern, "fehltage", "demo", f"[red]{BS}", input=ABSENCES)
+    result = run(klammern, "absences", "demo", f"[red]{BS}", input=ABSENCES)
     check(result, f"Sprint [red]{BS}: ", "Saved: ")
     result = run(klammern, "review", "demo", f"[red]{BS}", input="\ny\n" + BLANK)
     check(result, f"Review Sprint [red]{BS} (", "Capacity according to people list")

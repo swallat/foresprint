@@ -324,22 +324,22 @@ runner = CliRunner()
 
 def cli(data_dir: Path, *args: str, input: str | None = None):
     return runner.invoke(
-        cli_app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", *args], input=input
+        cli_app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args], input=input
     )
 
 
 def test_cli_product_commands_need_the_product_distribution(data_dir: Path):
     set_features(data_dir, products=False)
-    for command in ("produkte", "produktliste"):
+    for command in ("products", "product-list"):
         result = cli(data_dir, command, TEAM)
         assert result.exit_code == 1 and "Produktverteilung" in result.output
 
 
 def test_cli_distribution_table_hides_po_when_off(data_dir: Path):
-    out = cli(data_dir, "produkte", TEAM, "2026.20")
+    out = cli(data_dir, "products", TEAM, "2026.20")
     assert out.exit_code == 0 and "PO" in out.output
     set_features(data_dir, po=False)
-    off = cli(data_dir, "produkte", TEAM, "2026.20")
+    off = cli(data_dir, "products", TEAM, "2026.20")
     assert off.exit_code == 0
     header = next(
         line for line in off.output.splitlines() if "Produkt" in line and "Standard" in line

@@ -41,16 +41,13 @@ from sprintforecast.forecast import (
 from sprintforecast.git import GitError, blank_controls, commit, title_for
 from sprintforecast.guide import (
     CAPACITY_SOURCES,
-    COMMAND_ALIASES,
     COMMANDS,
     FIELDS,
     TERMS,
-    TOPIC_ALIASES,
     TOPICS,
     WORKFLOW,
-    command_text,
 )
-from sprintforecast.i18n import LANGUAGES, is_english, language, save_language, t
+from sprintforecast.i18n import LANGUAGES, language, save_language, t
 from sprintforecast.idle import IDLE_ENV
 from sprintforecast.launcher import (
     BROWSER_ENV,
@@ -110,7 +107,7 @@ from sprintforecast.updater import PACKAGE
 from sprintforecast.validate import Level, check_all, check_team, issues_for
 
 app = typer.Typer(
-    help=t("Velocity- und Kapazitäts-Forecast für Scrum-Teams. Einstieg: `sprintforecast hilfe`."),
+    help=t("Velocity- und Kapazitäts-Forecast für Scrum-Teams. Einstieg: `sprintforecast help`."),
     rich_markup_mode="rich",
 )
 console = Console()
@@ -165,14 +162,10 @@ def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Registriert einen Befehl unter dem deutschen und – falls vorhanden – dem englischen
-    Namen; der Name der jeweils anderen Sprache bleibt in der Hilfe ausgeblendet."""
-    alias = COMMAND_ALIASES.get(name)
+    """Registriert einen Befehl (englischer Name, übersetzte Hilfe)."""
 
     def register(fn: Callable[..., Any]) -> Callable[..., Any]:
-        app.command(name, help=t(help), hidden=bool(alias) and is_english())(_guarded(fn))
-        if alias:
-            app.command(alias, help=t(help), hidden=not is_english())(_guarded(fn))
+        app.command(name, help=t(help))(_guarded(fn))
         return fn
 
     return register
@@ -204,7 +197,6 @@ def _main(
     daten: Annotated[
         Path | None,
         typer.Option(
-            "--daten",
             "--data",
             "-d",
             envvar=DATA_ENV,
@@ -218,7 +210,6 @@ def _main(
     stichtag: Annotated[
         str | None,
         typer.Option(
-            "--stichtag",
             "--as-of",
             callback=_check_stichtag,
             help=t("Datum (JJJJ-MM-TT), das als „heute“ gilt – für Rückblicke und Tests."),
@@ -232,7 +223,7 @@ def _main(
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
         raise typer.Exit()
-    if ctx.invoked_subcommand not in {"aktualisieren", "update"}:
+    if ctx.invoked_subcommand != "update":
         _auto_update()
     today = date.fromisoformat(stichtag) if stichtag else date.today()
     ctx.obj = Context(repo=Repository(daten or default_data_dir()), today=today, stichtag=stichtag)
@@ -254,11 +245,6 @@ def _load(c: Context, team: str) -> TeamData:
     except DataError as e:
         err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
-
-
-def cmd(text: str) -> str:
-    """Befehl in der Schreibweise der eingestellten Sprache."""
-    return command_text(text)
 
 
 # --- Eingabe-Helfer -------------------------------------------------------------------
@@ -498,32 +484,25 @@ CommitOpt = Annotated[bool, typer.Option("--commit", help=t("Änderung in Git co
 # --- Befehle --------------------------------------------------------------------------
 
 
-def _topic_names() -> list[str]:
-    """Themen in der Schreibweise der eingestellten Sprache."""
-    english = {de: en for en, de in TOPIC_ALIASES.items()}
-    return [english.get(k, k) if is_english() else k for k in TOPICS]
-
-
-@command("hilfe", "Anleitung, Begriffe, Eingabefelder, Einstellungen und Befehle.")
+@command("help", "Anleitung, Begriffe, Eingabefelder, Einstellungen und Befehle.")
 def hilfe(
     thema: Annotated[
         str | None,
-        typer.Argument(help=t("Thema: {topics}", topics=", ".join(_topic_names()))),
+        typer.Argument(metavar="TOPIC", help=t("Thema: {topics}", topics=", ".join(TOPICS))),
     ] = None,
 ) -> None:
-    topic = TOPIC_ALIASES.get(thema or "", thema) if thema else "ablauf"
+    topic = thema or "workflow"
     if topic not in TOPICS:
         err.print(
-            f"[red]{t('Unbekanntes Thema. Verfügbar: {topics}', topics=', '.join(_topic_names()))}"
-            "[/red]"
+            f"[red]{t('Unbekanntes Thema. Verfügbar: {topics}', topics=', '.join(TOPICS))}[/red]"
         )
         raise typer.Exit(1)
     console.print(_help_table(topic))
-    if topic == "begriffe":
+    if topic == "terms":
         console.print(_two_columns(t("Kapazitätsquelle im Forecast"), CAPACITY_SOURCES))
-    others = ", ".join(n for k, n in zip(TOPICS, _topic_names(), strict=True) if k != topic)
+    others = ", ".join(k for k in TOPICS if k != topic)
     console.print(
-        f"[dim]{t('Weitere Themen: {others} (sprintforecast hilfe THEMA)', others=others)}[/dim]"
+        f"[dim]{t('Weitere Themen: {others} (sprintforecast help TOPIC)', others=others)}[/dim]"
     )
 
 
@@ -538,19 +517,19 @@ def _two_columns(title: str, rows: list[tuple[str, str]]) -> Table:
 
 def _help_table(topic: str) -> Table:
     title = t(TOPICS[topic])
-    if topic == "ablauf":
+    if topic == "workflow":
         table = Table(title=title, title_justify="left", show_lines=True)
         for col in ("Wann", "Was", "Befehl"):
             table.add_column(t(col))
         for step in WORKFLOW:
             table.add_row(
-                t(step.when), f"[bold]{t(step.title)}[/bold]\n{t(step.text)}", escape(cmd(step.cli))
+                t(step.when), f"[bold]{t(step.title)}[/bold]\n{t(step.text)}", escape(step.cli)
             )
         table.caption = t("Alles geht auch im Browser: sprintforecast web")
         return table
-    if topic == "begriffe":
+    if topic == "terms":
         return _two_columns(title, TERMS)
-    if topic == "felder":
+    if topic == "fields":
         table = Table(title=title, title_justify="left", show_lines=True)
         for col in ("Feld", "Bedeutung", "Quelle", "Beispiel"):
             table.add_column(t(col))
@@ -563,13 +542,13 @@ def _help_table(topic: str) -> Table:
             table.add_column(t(col))
         for setting in SETTINGS:
             table.add_row(f"[bold]{setting.title}[/bold]", setting.key, setting.text)
-        table.caption = cmd(t("Geführt ändern: sprintforecast einstellungen TEAM"))
+        table.caption = t("Geführt ändern: sprintforecast settings TEAM")
         return table
     table = Table(title=title, show_header=False, box=None, padding=(0, 2), title_justify="left")
     table.add_column(style="bold", no_wrap=True)
     table.add_column()
     for left, right in COMMANDS:
-        table.add_row(escape(cmd(left)), escape(t(right)))
+        table.add_row(escape(left), escape(t(right)))
     return table
 
 
@@ -624,7 +603,7 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
                 "(mehrere Produkte), Zuordnung PO und Produktionszugriff; sie sind zunächst "
                 "aus (Enter übernimmt „aus“).",
                 team=_plain_end(team),
-                command=_plain_end(cmd(f"sprintforecast einstellungen {team}")),
+                command=_plain_end(f"sprintforecast settings {team}"),
             )
         )
     )
@@ -641,13 +620,13 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     console.print(
         t(
             "Weiter mit: [bold]{command}[/bold]",
-            command=_plain_end(cmd(f"sprintforecast personen {team}")),
+            command=_plain_end(f"sprintforecast people {team}"),
         )
     )
 
 
 @command(
-    "einstellungen", "Team-Einstellungen geführt ändern (Einheit, Bundesland, Referenzkapazität …)."
+    "settings", "Team-Einstellungen geführt ändern (Einheit, Bundesland, Referenzkapazität …)."
 )
 def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
@@ -699,11 +678,8 @@ def _people_table(people: list[Person], day: date, show_former: bool) -> Table:
         table.add_column(t(col))
     shown = [p for p in people if show_former or p.is_current(day)]
     if hidden := len(people) - len(shown):
-        table.caption = cmd(
-            t(
-                "{count} ehemalige Person(en) ausgeblendet – anzeigen mit --ehemalige",
-                count=hidden,
-            )
+        table.caption = t(
+            "{count} ehemalige Person(en) ausgeblendet – anzeigen mit --former", count=hidden
         )
     for p in shown:
         spans = ", ".join(
@@ -743,14 +719,14 @@ def _choose_person(people: list[Person]) -> Person:
         )
 
 
-@command("personen", "Personenliste anzeigen und pflegen (Eintritt, FTE-Änderung, Austritt).")
+@command("people", "Personenliste anzeigen und pflegen (Eintritt, FTE-Änderung, Austritt).")
 def personen(
     ctx: typer.Context,
     team: TeamArg,
     commit_: CommitOpt = False,
     ehemalige: Annotated[
         bool,
-        typer.Option("--ehemalige", "--former", help=t("Ausgeschiedene Personen anzeigen.")),
+        typer.Option("--former", help=t("Ausgeschiedene Personen anzeigen.")),
     ] = False,
 ) -> None:
     c = _ctx(ctx)
@@ -832,7 +808,7 @@ def personen(
 
 
 @command(
-    "fehltage", "Planbare Fehltage je Person für einen Sprint erfassen (Standard: nächster Sprint)."
+    "absences", "Planbare Fehltage je Person für einen Sprint erfassen (Standard: nächster Sprint)."
 )
 def fehltage(
     ctx: typer.Context, team: TeamArg, sprint: SprintArg = None, commit_: CommitOpt = False
@@ -844,7 +820,7 @@ def fehltage(
             "[red]"
             + t(
                 "Keine Personen erfasst. Zuerst: {command}",
-                command=_plain_end(cmd(f"sprintforecast personen {team}")),
+                command=_plain_end(f"sprintforecast people {team}"),
             )
             + "[/red]"
         )
@@ -928,7 +904,7 @@ def _require_products(data: TeamData, team: str) -> None:
             + t(
                 "Die Produktverteilung ist für dieses Team ausgeschaltet. Einschalten mit: "
                 "{command}",
-                command=_plain_end(cmd(f"sprintforecast einstellungen {team}")),
+                command=_plain_end(f"sprintforecast settings {team}"),
             )
             + "[/yellow]"
         )
@@ -1163,14 +1139,11 @@ def forecast(
     team: TeamArg,
     verlauf: Annotated[
         int,
-        typer.Option(
-            "--verlauf", "--history", help=t("Anzahl vergangener Sprints in der Anzeige.")
-        ),
+        typer.Option("--history", help=t("Anzahl vergangener Sprints in der Anzeige.")),
     ] = 5,
     rechenweg: Annotated[
         str | None,
         typer.Option(
-            "--rechenweg",
             "--explain",
             help=t("Rechenweg (Formeln mit Zahlen) eines Sprints zeigen; „-“ = nächstes Planning."),
         ),
@@ -1228,7 +1201,7 @@ def forecast(
             + t(
                 "⚠ Trend/Kalender = keine Fehltage bekannt, Kapazität geschätzt. "
                 "Belastbarer mit: {command}",
-                command=_plain(cmd(f"sprintforecast fehltage {team} <SPRINT>")),
+                command=_plain(f"sprintforecast absences {team} <SPRINT>"),
             )
             + "[/yellow]"
         )
@@ -1254,9 +1227,7 @@ def forecast(
             )
         console.print(table)
     else:
-        console.print(
-            f"[dim]{cmd(t('Rechenweg eines Sprints: --rechenweg SPRINT (bzw. - )'))}[/dim]"
-        )
+        console.print(f"[dim]{t('Rechenweg eines Sprints: --explain SPRINT (bzw. - )')}[/dim]")
 
 
 def _finite_option(value: float | None) -> float | None:
@@ -1267,7 +1238,8 @@ def _finite_option(value: float | None) -> float | None:
 
 
 @command(
-    "analyse", "Ergänzende Analysen: Bandbreite, Fokusfaktor, Puffer, Fertigstellung (--rest)."
+    "analysis",
+    "Ergänzende Analysen: Bandbreite, Fokusfaktor, Puffer, Fertigstellung (--remaining).",
 )
 def analyse(
     ctx: typer.Context,
@@ -1275,7 +1247,6 @@ def analyse(
     rest: Annotated[
         float | None,
         typer.Option(
-            "--rest",
             "--remaining",
             callback=_finite_option,
             help=t("Restmenge, für die der Fertigstellungs-Sprint geschätzt wird."),
@@ -1284,15 +1255,15 @@ def analyse(
     gesamt: Annotated[
         bool,
         typer.Option(
-            "--gesamt",
             "--total",
-            help=t("Für --rest den ganzen Forecast nutzen statt nur des verplanbaren Anteils."),
+            help=t(
+                "Für --remaining den ganzen Forecast nutzen statt nur des verplanbaren Anteils."
+            ),
         ),
     ] = False,
     anteil: Annotated[
         float,
         typer.Option(
-            "--anteil",
             "--share",
             min=1,
             max=100,
@@ -1433,14 +1404,13 @@ def analyse(
             console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
 
 
-@command("bericht", "Markdown-Bericht erzeugen (für Git-Weboberfläche / PO-Runde).")
+@command("report", "Markdown-Bericht erzeugen (für Git-Weboberfläche / PO-Runde).")
 def bericht(
     ctx: typer.Context,
     team: Annotated[str | None, typer.Argument(help=t("Team; ohne Angabe für alle Teams."))] = None,
     ausgabe: Annotated[
         Path | None,
         typer.Option(
-            "--ausgabe",
             "--output",
             "-o",
             help=t("Datei; Standard <team>/FORECAST.md, - = stdout."),
@@ -1476,7 +1446,6 @@ def excel(
     ausgabe: Annotated[
         Path | None,
         typer.Option(
-            "--ausgabe",
             "--output",
             "-o",
             help=t(
@@ -1505,18 +1474,17 @@ def excel(
 
 @command(
     "excel-import",
-    "Excel-Liste aus der Excel-Ausgabe einlesen: Vorschau der Änderungen, mit --uebernehmen "
-    "schreiben.",
+    "Excel-Liste aus der Excel-Ausgabe einlesen: Vorschau der Änderungen, mit --apply schreiben.",
 )
 def excel_import(
     ctx: typer.Context,
     team: Annotated[str, typer.Argument(help=t("Team."))],
-    datei: Annotated[Path, typer.Argument(help=t("Excel-Datei aus „sprintforecast excel“."))],
+    datei: Annotated[
+        Path, typer.Argument(metavar="FILE", help=t("Excel-Datei aus „sprintforecast excel“."))
+    ],
     uebernehmen: Annotated[
         bool,
-        typer.Option(
-            "--uebernehmen", "--apply", help=t("Änderungen schreiben (sonst nur Vorschau).")
-        ),
+        typer.Option("--apply", help=t("Änderungen schreiben (sonst nur Vorschau).")),
     ] = False,
 ) -> None:
     from sprintforecast.excel import ExcelUnavailable
@@ -1547,20 +1515,20 @@ def excel_import(
         note = t("Nicht in der Mappe, bleibt unverändert: {file}", file=_plain(name))
         console.print(f"[dim]{note}[/dim]")
     if not uebernehmen:
-        console.print(t("Nur Vorschau – mit --uebernehmen schreiben."))
+        console.print(t("Nur Vorschau – mit --apply schreiben."))
         return
     for path in apply_import(c.repo, plan):
         console.print(f"[green]{_plain_end(path)}[/green]")
 
 
 @command(
-    "pruefen", "Alle Team-Daten auf Fehler und Plausibilität prüfen (für CI und vor dem Commit)."
+    "check", "Alle Team-Daten auf Fehler und Plausibilität prüfen (für CI und vor dem Commit)."
 )
 def pruefen(
     ctx: typer.Context,
     streng: Annotated[
         bool,
-        typer.Option("--streng", "--strict", help=t("Hinweise ebenfalls als Fehler werten.")),
+        typer.Option("--strict", help=t("Hinweise ebenfalls als Fehler werten.")),
     ] = False,
 ) -> None:
     c = _ctx(ctx)
@@ -1742,19 +1710,18 @@ def sprints(
     team: TeamArg,
     anzahl: Annotated[
         int,
-        typer.Option("--anzahl", "--count", help=t("Anzahl Sprints ab dem laufenden.")),
+        typer.Option("--count", help=t("Anzahl Sprints ab dem laufenden.")),
     ] = 6,
     anlegen: Annotated[
         bool,
-        typer.Option("--anlegen", "--create", help=t("Fehlende Sprintdateien anlegen.")),
+        typer.Option("--create", help=t("Fehlende Sprintdateien anlegen.")),
     ] = False,
     ende: Annotated[
         list[str] | None,
         typer.Option(
-            "--ende",
             "--end",
             help=t(
-                "Abweichender letzter Tag, z. B. --ende 2026.25=2027-01-12 (mehrfach möglich); "
+                "Abweichender letzter Tag, z. B. --end 2026.25=2027-01-12 (mehrfach möglich); "
                 "folgende Sprints verschieben sich."
             ),
         ),
@@ -1785,7 +1752,7 @@ def sprints(
             err.print(
                 "[red]"
                 + t(
-                    "--ende {value}: erwartet SPRINT=JJJJ-MM-TT eines gezeigten Sprints",
+                    "--end {value}: erwartet SPRINT=JJJJ-MM-TT eines gezeigten Sprints",
                     value=_plain(raw),
                 )
                 + "[/red]"
@@ -1827,7 +1794,7 @@ def sprints(
         raise typer.Exit(1)
     if not changed:
         if not anlegen:
-            console.print(f"[dim]{cmd(t('Fehlende Sprintdateien anlegen mit --anlegen.'))}[/dim]")
+            console.print(f"[dim]{t('Fehlende Sprintdateien anlegen mit --create.')}[/dim]")
         return
     paths = [c.repo.save_sprint(team, s) for s in changed]
     _saved(", ".join(p.name for p in paths))
@@ -1835,7 +1802,7 @@ def sprints(
 
 
 @command(
-    "produkte", "Verteilung auf die Produkte: Standard, PO-Vorplanung, Planning, Erledigt, Saldo."
+    "products", "Verteilung auf die Produkte: Standard, PO-Vorplanung, Planning, Erledigt, Saldo."
 )
 def produkte(
     ctx: typer.Context,
@@ -1843,11 +1810,9 @@ def produkte(
     sprint: SprintArg = None,
     vorplanung: Annotated[
         bool,
-        typer.Option("--vorplanung", "--preplanning", help=t("PO-Vorplanung je Produkt erfassen.")),
+        typer.Option("--preplanning", help=t("PO-Vorplanung je Produkt erfassen.")),
     ] = False,
-    verlauf: Annotated[
-        int, typer.Option("--verlauf", "--history", help=t("Sprints für den Saldo."))
-    ] = 6,
+    verlauf: Annotated[int, typer.Option("--history", help=t("Sprints für den Saldo."))] = 6,
     commit_: CommitOpt = False,
 ) -> None:
     c = _ctx(ctx)
@@ -1858,7 +1823,7 @@ def produkte(
             "[red]"
             + t(
                 "Keine Produkte erfasst. Zuerst: {command}",
-                command=_plain_end(cmd(f"sprintforecast produktliste {team}")),
+                command=_plain_end(f"sprintforecast product-list {team}"),
             )
             + "[/red]"
         )
@@ -1905,7 +1870,7 @@ def produkte(
             console.print(f"[dim]{missing_footnote()}[/dim]")
 
 
-@command("produktliste", "Produkte des Teams pflegen (neu, PO ändern, abgeben).")
+@command("product-list", "Produkte des Teams pflegen (neu, PO ändern, abgeben).")
 def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
@@ -1994,14 +1959,16 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
 
 
 @command(
-    "datenordner",
+    "data-dir",
     "Gemerkten Datenordner anzeigen oder setzen (gilt, wenn das aktuelle Verzeichnis keine Teams "
-    "enthält und weder --daten noch SPRINTFORECAST_DATEN gesetzt sind).",
+    "enthält und weder --data noch SPRINTFORECAST_DATA gesetzt sind).",
 )
 def datenordner(
     pfad: Annotated[
         Path | None,
-        typer.Argument(help=t("Ordner merken (muss in einem Git-Repository liegen).")),
+        typer.Argument(
+            metavar="PATH", help=t("Ordner merken (muss in einem Git-Repository liegen).")
+        ),
     ] = None,
 ) -> None:
     from sprintforecast.git import classify, repo_root, root_problem
@@ -2014,7 +1981,7 @@ def datenordner(
             t("Gemerkt: {path}", path=_plain(saved)) if saved else t("Kein Datenordner gemerkt.")
         )
         console.print(
-            t("Verwendet (ohne --daten): {path}", path=_plain(default_data_dir().resolve()))
+            t("Verwendet (ohne --data): {path}", path=_plain(default_data_dir().resolve()))
         )
         return
     if not pfad.is_dir():
@@ -2045,7 +2012,7 @@ def datenordner(
     )
 
 
-@command("sprache", "Sprache der Oberfläche anzeigen oder einstellen (de, en).")
+@command("language", "Sprache der Oberfläche anzeigen oder einstellen (de, en).")
 def sprache(
     code: Annotated[str | None, typer.Argument(help=t("de oder en"))] = None,
 ) -> None:
@@ -2067,7 +2034,7 @@ def sprache(
     console.print(f"[green]{t('Sprache: {language}', language=LANGUAGES[code])}[/green]")
 
 
-@command("verknuepfung", "Starter zum Doppelklicken anlegen (Desktop/Startmenü, macOS: Programme).")
+@command("shortcut", "Starter zum Doppelklicken anlegen (Desktop/Startmenü, macOS: Programme).")
 def verknuepfung() -> None:
     from sprintforecast import shortcuts
 
@@ -2087,34 +2054,36 @@ def verknuepfung() -> None:
 
 
 @command(
-    "aktualisieren",
+    "update",
     "sprintforecast auf die neueste Version aktualisieren (Plugins bleiben erhalten).",
 )
 def aktualisieren(
     pruefen_: Annotated[
         bool,
-        typer.Option("--pruefen", "--check", help=t("Nur prüfen, nicht installieren.")),
+        typer.Option("--check", help=t("Nur prüfen, nicht installieren.")),
     ] = False,
     erzwingen: Annotated[
         bool,
-        typer.Option("--erzwingen", "--force", help=t("Auch ohne neue Version neu installieren.")),
+        typer.Option("--force", help=t("Auch ohne neue Version neu installieren.")),
     ] = False,
     auto: Annotated[
         str | None,
         typer.Option(
-            help=t("Automatik einstellen: an (installiert selbst), hinweis (nur melden), aus."),
+            help=t("Automatik einstellen: on (installiert selbst), notice (nur melden), off."),
         ),
     ] = None,
 ) -> None:
     if auto is not None:
-        aliases = {"on": "an", "notice": "hinweis", "off": "aus"}
+        # gespeichert werden die bisherigen Werte an/hinweis/aus
+        values = {"on": "an", "notice": "hinweis", "off": "aus"}
+        word = auto.strip().lower()
         try:
-            mode = updater.Mode(aliases.get(auto.strip().lower(), auto.strip().lower()))
-        except ValueError:
-            err.print(f"[red]{t('--auto: an, hinweis oder aus')}[/red]")
+            mode = updater.Mode(values[word])
+        except KeyError:
+            err.print(f"[red]{t('--auto: on, notice oder off')}[/red]")
             raise typer.Exit(1) from None
         updater.update_state(mode=mode.value)
-        console.print(t("Automatische Aktualisierung: [bold]{mode}[/bold]", mode=t(mode.value)))
+        console.print(t("Automatische Aktualisierung: [bold]{mode}[/bold]", mode=word))
         if os.environ.get(updater.MODE_ENV):
             console.print(
                 f"[yellow]{t('Hinweis: {name} hat Vorrang.', name=updater.MODE_ENV)}[/yellow]"
@@ -2162,7 +2131,7 @@ def aktualisieren(
         console.print(f"[green]{t('sprintforecast ist aktuell.')}[/green]")
         return
     if pruefen_:
-        console.print(cmd(t("Aktualisieren mit: sprintforecast aktualisieren")))
+        console.print(t("Aktualisieren mit: sprintforecast update"))
         return
     uv = updater.find_uv()
     if uv is None:
@@ -2196,7 +2165,7 @@ def aktualisieren(
 
 
 @command(
-    "kapazitaet",
+    "capacity",
     "Kapazitätsberechnung eines Sprints im Detail anzeigen (Standard: nächster Sprint).",
 )
 def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> None:

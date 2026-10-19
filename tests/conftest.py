@@ -11,6 +11,14 @@ from sprintforecast import i18n
 EXAMPLES = Path(__file__).parent.parent / "examples" / "teams"
 
 
+@pytest.fixture(autouse=True)
+def german_by_default(monkeypatch: pytest.MonkeyPatch):
+    """Die Oberfläche ist ohne Einstellung englisch; die Testsuite erwartet in ihren Texten
+    weiter Deutsch und setzt deshalb die Vorgabe für jeden Test auf „de“ (Tests mit der
+    Fixture ``english`` oder SPRINTFORECAST_LANG=en sind davon unberührt)."""
+    monkeypatch.setattr(i18n, "DEFAULT", "de")
+
+
 @pytest.fixture
 def english(monkeypatch: pytest.MonkeyPatch):
     """Die Oberfläche und die Meldungen sind englisch (auch in AppTest-Läufen)."""

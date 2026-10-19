@@ -127,7 +127,7 @@ def test_report_history_matches_engine(fc):
 
 def test_cli_forecast_shows_engine_values(data_dir: Path, fc):
     result = CliRunner(env={"COLUMNS": "260"}).invoke(
-        cli_app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", "forecast", "demo"]
+        cli_app, ["--data", str(data_dir), "--as-of", "2026-10-15", "forecast", "demo"]
     )
     assert result.exit_code == 0, result.output
     lines = {
@@ -326,7 +326,7 @@ def with_capacity_settings(data_dir: Path, **settings: float) -> Path:
 
 def cli(data_dir: Path, *args: str, today: str = "2026-10-15", input: str | None = None) -> str:
     runner = CliRunner(env={"COLUMNS": "260"})
-    base = ["--daten", str(data_dir), "--stichtag", today]
+    base = ["--data", str(data_dir), "--as-of", today]
     result = runner.invoke(cli_app, [*base, *args], input=input)
     assert result.exit_code == 0, result.output
     return result.output
@@ -408,14 +408,14 @@ def test_border_capacity_is_displayed_alike_in_report_cli_and_steps(border_dir: 
     assert "stehen 25,3 PT zur Verfügung" in plain_explanation(border_fc, e)
 
     assert table_cells(cli(border_dir, "forecast", "demo"), BORDER)[3] == BORDER_LABEL
-    panel = cli(border_dir, "forecast", "demo", "--rechenweg", BORDER)
+    panel = cli(border_dir, "forecast", "demo", "--explain", BORDER)
     assert "→ 25,3 PT" in panel and "→ 25,2 PT" not in panel
     assert "stehen 25,3 PT zur Verfügung" in panel
 
 
 def test_capacity_table_rounds_every_row_like_the_sum(border_dir: Path):
     """Personenzeilen und Summe stehen in einer Tabelle: Ben (10 − 3,5) × 0,5 = 3,25 → 3,3."""
-    out = cli(border_dir, "kapazitaet", "demo", BORDER)
+    out = cli(border_dir, "capacity", "demo", BORDER)
     shown = {name: table_cells(out, name)[-1] for name in ("Anna", "Ben", "Cem", "Dana", "Summe")}
     assert shown == {"Anna": "10,0", "Ben": "3,3", "Cem": "5,0", "Dana": "7,0", "Summe": "25,3"}
 
@@ -424,7 +424,7 @@ def test_capacity_table_rounds_the_share_deduction_like_the_sum(data_dir: Path):
     """Brutto 22,5, Abzug 50 % = 11,25 → 11,3; Dana 4,25 → 4,3 (Python zeigte 11,2 und 4,2)."""
     with_absences(data_dir, BORDER, ben=3.5, cem=5, dana=5.75)
     with_capacity_settings(data_dir, overhead_share=0.5)
-    out = cli(data_dir, "kapazitaet", "demo", BORDER)
+    out = cli(data_dir, "capacity", "demo", BORDER)
     assert table_cells(out, "Dana")[-1] == "4,3"
     assert table_cells(out, "Abzug")[-1] == "−11,3"
     assert table_cells(out, "Summe")[-1] == "11,3"
@@ -433,7 +433,7 @@ def test_capacity_table_rounds_the_share_deduction_like_the_sum(data_dir: Path):
 def test_capacity_table_rounds_the_fixed_deduction_like_the_sum(border_dir: Path):
     """Der feste Abzug ist auf die Kapazität der Person begrenzt: Σ = 25,25 → 25,3, Rest 0."""
     with_capacity_settings(border_dir, overhead_days=100.0)
-    out = cli(border_dir, "kapazitaet", "demo", BORDER)
+    out = cli(border_dir, "capacity", "demo", BORDER)
     assert table_cells(out, "Abzug")[-1] == "−25,3"
     assert table_cells(out, "Summe")[-1] == "0,0"
 
@@ -516,7 +516,7 @@ def test_recorded_capacity_is_displayed_half_up(recorded_dir: Path):
     assert "stehen 25,3 PT zur Verfügung" in plain_explanation(fc, e)
     assert table_cells(render(fc), BORDER)[3] == "25,3 (erfasst)"
     assert table_cells(cli(recorded_dir, "forecast", "demo"), BORDER)[3] == "25,3 (erfasst)"
-    out = cli(recorded_dir, "kapazitaet", "demo", BORDER)
+    out = cli(recorded_dir, "capacity", "demo", BORDER)
     assert "In der Sprintdatei eingetragen/eingefroren: 25,3 PT" in out
 
 
@@ -539,7 +539,7 @@ def test_recorded_capacity_in_the_planning_hint(recorded_dir: Path, monkeypatch)
 
 
 def test_recorded_capacity_in_the_cli_absences_prompt(recorded_dir: Path):
-    out = cli(recorded_dir, "fehltage", "demo", BORDER, input="0\n0\n0\n0\nn\n")
+    out = cli(recorded_dir, "absences", "demo", BORDER, input="0\n0\n0\n0\nn\n")
     assert "feste Kapazität (25,3)" in out and "25.25" not in out
 
 
@@ -585,7 +585,7 @@ def test_capacity_rounding_setting_is_followed_by_display_and_frozen_value(
     )
     assert table_cells(render(fc), BORDER)[3] == f"{shown} (Personenliste)"
     assert table_cells(cli(data_dir, "forecast", "demo"), BORDER)[3] == f"{shown} (Personenliste)"
-    assert table_cells(cli(data_dir, "kapazitaet", "demo", BORDER), "Summe")[-1] == shown
+    assert table_cells(cli(data_dir, "capacity", "demo", BORDER), "Summe")[-1] == shown
 
     at = page(open_app(data_dir, monkeypatch), "review")
     at.selectbox(key="review-sprint").set_value(BORDER).run()
