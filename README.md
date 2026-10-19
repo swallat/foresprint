@@ -33,8 +33,11 @@ PATH liegen: Die App sucht es auch an den üblichen Orten (unter Windows etwa
 `%LOCALAPPDATA%\Programs\Git`, Scoop und `%ProgramFiles%\Git`; unter macOS und Linux Homebrew,
 `/usr/local/bin`, `~/.local/bin`, `~/.nix-profile/bin`). So genügt eine Installation ohne
 Administratorrechte (Git for Windows nur für das eigene Benutzerkonto); danach die App und den
-Starter „Sprint-Forecast“ einmal neu öffnen. Git-Plugins und deren Aktualisierung (über `uv`)
-brauchen dagegen Git im PATH.
+Starter „Sprint-Forecast“ einmal neu öffnen. Auch die Aktualisierung der App (über `uv`, mit
+Plugins aus Git-Adressen) funktioniert dann: Liegt Git nur außerhalb des PATH, hängt die App
+dessen Ordner für den `uv`-Aufruf vorn an den PATH (nur dort, nicht im System). Die
+Erstinstallation durch das Installationsskript bleibt davon unberührt: Plugins aus Git-Adressen
+brauchen dabei Git im PATH.
 
 **Windows (PowerShell):**
 
