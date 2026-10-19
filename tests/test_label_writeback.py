@@ -145,6 +145,25 @@ def test_the_earmark_of_the_tool_wins_over_the_label(data: TeamData, fc: Forecas
     ]
 
 
+def test_a_known_label_without_earmark_was_released_and_is_not_adopted(
+    data: TeamData, fc: Forecast
+):
+    with_labels(data, True)
+    data.tickets = [Ticket("A-1", labels=["planned_for_2026.23"])]
+    labelled = raw("A-1", labels=["planned_for_2026.23"])
+    plan = plan_import(data, fc, [labelled], TODAY)
+    assert plan.preplan.earmarks == [] and not plan.of_kind("earmark_from_label")
+    assert plan_label_writes(plan.tickets, plan.preplan).writes[0].remove == ["planned_for_2026.23"]
+
+
+def test_the_write_back_plans_against_the_earmarks_of_the_tool_only(data: TeamData, fc: Forecast):
+    with_labels(data, True)
+    labelled = raw("A-1", labels=["planned_for_2026.23"])  # label not yet known to the import
+    plan = plan_import(data, fc, [labelled], TODAY, adopt_labels=False)
+    assert plan.preplan.earmarks == []
+    assert plan_label_writes(plan.tickets, plan.preplan).writes[0].remove == ["planned_for_2026.23"]
+
+
 def test_the_jira_sprint_wins_over_the_label(data: TeamData, fc: Forecast):
     with_labels(data, True)
     plan = plan_import(
@@ -242,6 +261,31 @@ def test_write_labels_apply_puts_only_the_label_change(jira_dir: Path, board: Bo
     ]
     assert "1 Tickets in Jira geändert" in result.output
     assert not tickets_file(jira_dir).exists()
+
+
+def test_a_released_earmark_loses_its_label_through_the_command(jira_dir: Path, board: Board):
+    write_team(jira_dir, write_labels=True)
+    labelled = board.reads
+
+    def with_label(request: httpx.Request) -> httpx.Response:
+        response = labelled(request)
+        if request.url.path == "/rest/api/2/search":
+            body = json.loads(response.content)
+            for issue in body["issues"]:
+                if issue["key"] == "ABC-2":
+                    issue["fields"]["labels"] = ["planned_for_2026.23"]
+            return httpx.Response(200, json=body)
+        return response
+
+    board.reads = with_label
+    result = run(jira_dir, "tickets", "demo", "--write-labels", "--apply")  # no earmark
+    assert result.exit_code == 0, result.output
+    assert board.puts == [
+        (
+            "/rest/api/2/issue/ABC-2",
+            {"update": {"labels": [{"remove": "planned_for_2026.23"}]}},
+        )
+    ]
 
 
 def test_write_labels_without_changes_writes_nothing(jira_dir: Path, board: Board):

@@ -1982,7 +1982,7 @@ def _ticket_write_labels(c: Any, data: TeamData, apply: bool) -> None:
                 )
             )
         fc = build_forecast(data, c.today)
-        import_plan = plan_import(data, fc, raws, c.today)
+        import_plan = plan_import(data, fc, raws, c.today, adopt_labels=False)
         plan = plan_label_writes(import_plan.tickets, import_plan.preplan)
         for warning in plan.warnings:
             console.print(f"[yellow]{_plain(warning)}[/yellow]")
