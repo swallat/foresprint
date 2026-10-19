@@ -1052,3 +1052,20 @@ def test_invalid_state_is_refused_before_writing(data_dir: Path):
     cli._refuse_invalid(
         ctx, data, broken, "people.yaml"
     )  # errors in other files do not matter here
+
+
+def test_refusal_sees_errors_of_an_in_place_edit(data_dir: Path):
+    """The settings command edits ``data.team`` in place; the old state is its deep copy."""
+    import copy
+    from types import SimpleNamespace
+
+    import typer
+
+    data = Repository(data_dir).load("demo")
+    before = copy.deepcopy(data.team)
+    data.team.forecast.window = 0  # in place, like _ask_setting
+    after = copy.copy(data)
+    old = copy.copy(data)
+    old.team = before
+    with pytest.raises(typer.Exit):
+        cli._refuse_invalid(SimpleNamespace(today=date(2026, 10, 15)), old, after, "team.yaml")

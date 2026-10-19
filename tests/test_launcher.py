@@ -298,9 +298,13 @@ def test_unwritable_log_does_not_stop_the_start(web_run, tmp_path: Path, monkeyp
 
 
 def test_app_starter_survives_an_unwritable_config_dir(tmp_path: Path, monkeypatch, capsys):
+    import os
+
     import sprintforecast
     from sprintforecast import cli
+    from sprintforecast.updater import LAUNCHER_ENV
 
+    monkeypatch.setenv(LAUNCHER_ENV, "")  # app_main() sets it; the monkeypatch restores it
     blocked = tmp_path / "config"
     blocked.write_text("a file, not a folder")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(blocked))
@@ -311,4 +315,4 @@ def test_app_starter_survives_an_unwritable_config_dir(tmp_path: Path, monkeypat
     monkeypatch.setattr("sys.argv", ["sprintforecast-app"])
     sprintforecast.app_main()
     assert seen == [["web", "--app"]]
-    assert sprintforecast.LOG_ENV not in __import__("os").environ
+    assert sprintforecast.LOG_ENV not in os.environ
