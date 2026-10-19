@@ -402,3 +402,32 @@ def test_label_writeback_refuses_a_changed_state(data_dir: Path, monkeypatch):
 def test_label_writeback_needs_the_switch(data_dir: Path, monkeypatch):
     at = label_setup(data_dir, monkeypatch, LabelSource(), write_labels=False)
     assert not any(b.label == "Label-Änderungen prüfen" for b in at.button)
+
+
+def test_label_writeback_failure_drops_the_preview(data_dir: Path, monkeypatch):
+    from sprintforecast.sources import SourceError
+
+    class Failing(LabelSource):
+        def set_labels(self, key, add, remove):
+            raise SourceError("kaputt")
+
+    at = label_setup(data_dir, monkeypatch, Failing())
+    button(at, "Label-Änderungen prüfen").click().run()
+    button(at, "In Jira schreiben").click().run()
+    assert not at.exception, at.exception
+    assert any("kaputt" in e.value for e in at.error)
+    at.run()  # the next run no longer offers the out-of-date preview
+    assert not any(b.label == "In Jira schreiben" for b in at.button)
+
+
+def test_label_writeback_with_an_empty_query_writes_nothing(data_dir: Path, monkeypatch):
+    class Empty(LabelSource):
+        def fetch(self):
+            return []
+
+    source = Empty()
+    at = label_setup(data_dir, monkeypatch, source)
+    button(at, "Label-Änderungen prüfen").click().run()
+    assert not at.exception, at.exception
+    assert any("keine Tickets" in e.value for e in at.error)
+    assert source.calls == []

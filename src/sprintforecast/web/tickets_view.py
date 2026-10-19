@@ -399,6 +399,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
         _open_points(data, dist, sel)
     with tabs[4]:
         _import(repo, data, fc)
+        _label_section(data, fc)
     with tabs[5]:
         _projects_editor(repo, data)
         _estimates_editor(repo, data)
@@ -704,7 +705,6 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
             if result := _fetch_jira(data):
                 st.session_state[fetched] = result
         st.caption(t("Oder eine CSV-Datei einlesen (ohne Netzzugang):"))
-    _label_section(data, fc)
     upload = st.file_uploader(
         t("CSV-Datei"), type=["csv"], key=f"tickets-{key}-file-{st.session_state.get(counter, 0)}"
     )
@@ -799,7 +799,8 @@ def _label_section(data: TeamData, fc: Forecast) -> None:
     source = None
     try:
         source = open_source(tracker)
-        fresh = _plan_labels(data, fc, source)
+        with st.spinner(t("Jira wird gelesen …")):
+            fresh = _plan_labels(data, fc, source)
         if _label_signature(fresh) != _label_signature(plan):
             # Jira changed since the preview: show the new one instead of writing the old one.
             st.session_state[stored] = fresh
@@ -812,6 +813,8 @@ def _label_section(data: TeamData, fc: Forecast) -> None:
             st.rerun()
         written = apply_label_writes(source, fresh)
     except SourceError as e:
+        # What was written before the failure is in Jira now: the preview is out of date.
+        st.session_state.pop(stored, None)
         st.error(str(e))
         return
     finally:
