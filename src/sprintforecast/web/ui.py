@@ -50,7 +50,7 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
-from sprintforecast.diff import FileChange, cached_file_changes
+from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes
 from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
@@ -4842,7 +4842,7 @@ def _status_text(state: SyncState) -> str:
 
 
 _VIEW_FILES = 25
-_VIEW_ROWS = 30
+_VIEW_ROWS = MAX_VALUES
 _VIEW_TEXT = 80
 
 
@@ -4986,8 +4986,8 @@ def _file_rows(fc: FileChange) -> list[tuple[str, str, str]]:
         if len(label) > _VIEW_LABEL:
             label = label[: _VIEW_LABEL - 1] + "…"
         rows.append((_formula_safe(label), *_view_pair(v.old, v.new)))
-    if len(fc.values) > _VIEW_ROWS:
-        rows.append((t("… und {n} weitere", n=len(fc.values) - _VIEW_ROWS), "", ""))
+    if fc.omitted:
+        rows.append((t("… und {n} weitere", n=fc.omitted), "", ""))
     if len(_ROWS) > 300:
         _ROWS.clear()
     _ROWS[key] = (fc, rows)
