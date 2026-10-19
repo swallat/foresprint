@@ -20,6 +20,7 @@ import unicodedata
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import date, datetime
+from itertools import islice
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -4903,7 +4904,17 @@ def _bound(value: Any, left: list[int], depth: int = 0) -> Any:
         if len(value) > _BOUND_ITEMS:
             items.append(_Raw("…"))
         return items
-    return value
+    if isinstance(value, (set, frozenset)):
+        shown: set[Any] = {_bound(v, left, depth + 1) for v in islice(value, _BOUND_ITEMS)}
+        if len(value) > _BOUND_ITEMS:
+            shown.add(_Raw("…"))
+        return shown
+    if isinstance(value, (bytes, bytearray)):
+        return _Raw(f"bytes, {len(value)} Byte")
+    try:  # alle übrigen Typen: als begrenzter Text
+        return _Raw(repr(value)[:_BOUND_TEXT])
+    except Exception:
+        return _Raw(t("(Wert nicht darstellbar)"))
 
 
 def _view_text(value: object) -> str:

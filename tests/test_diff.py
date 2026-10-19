@@ -389,6 +389,29 @@ def test_cache_notices_same_size_content_with_the_old_time_restored(tmp_path: Pa
     assert len(calls) == 2 and change.values[0].new == "C"
 
 
+def test_signature_stats_only_the_evaluated_files(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    for i in range(500):
+        (data / f"n{i:03}.txt").write_text("x", encoding="utf-8")
+    pending = pending_of(data)
+    assert len(pending) == 500
+    stats: list[Path] = []
+    real = Path.lstat
+
+    def counting_lstat(self: Path, *args, **kwargs):
+        stats.append(self)
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "lstat", counting_lstat)
+    signature = diff_module._signature(root, pending)
+    assert len(stats) <= 100 and len(signature) == 501  # HEAD plus alle Einträge
+    first = diff_module._signature(root, pending)
+    assert first == signature
+    # Auch jenseits der Grenze gehört der Eintrag (Status, Datei) zur Signatur
+    assert diff_module._signature(root, [*pending, ("M", "teams/x.yaml")]) != signature
+
+
 def test_signature_carries_size_mtime_inode_and_inode_time(tmp_path: Path):
     root = make_local(tmp_path)
     file = root / "teams" / "team.yaml"
