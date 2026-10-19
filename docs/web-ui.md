@@ -87,6 +87,10 @@ Every page saves to the YAML files. The sidebar shows under **Git** the state co
 server (not yet shared, new from others, offline, when last checked) and the open changes in the
 data directory.
 
+The commit message field is pre-filled from the open changes, e.g. `Update velocity in
+demo/sprints/2026.20.yaml: 9.75 → 7.0` for one value, `Update 3 files: …` for several. It follows
+further changes until you edit the text; your own text is never overwritten.
+
 - **Save and share** first commits your own changes (after a review optionally with the tag
   `TEAM/SPRINT`), then fetches the others' state, merges both and uploads the result. The
   sidebar then lists what was taken over from others (who, when, which files). In a race

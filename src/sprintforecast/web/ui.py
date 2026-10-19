@@ -49,6 +49,7 @@ from sprintforecast.calendar import (
     workweek_label,
 )
 from sprintforecast.capacity import sprint_capacity
+from sprintforecast.commit_message import suggest_message
 from sprintforecast.config import SettingsError, config_dir
 from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes, text_diff
 from sprintforecast.engine import (
@@ -4003,7 +4004,7 @@ _SWITCH_KEEP = {
     "folder-state",
 }  # fmt: skip
 # Zustand, der zu einem Ordner gehört und beim Zurückwechseln wieder da ist.
-_PER_FOLDER = ("pending_tags", "commit_message", "use_tags")
+_PER_FOLDER = ("pending_tags", "commit_message", "commit_message_auto", "use_tags")
 
 
 def _use_data_dir(path: Path) -> str | None:
@@ -4870,6 +4871,43 @@ def _commit_default() -> str:
     return t(COMMIT_DEFAULT)
 
 
+def _load_changes(
+    root: Path, pending: list[tuple[str, str]]
+) -> tuple[list[FileChange], Path | None] | None:
+    """Changed files with values (and the Git root) once per run; ``None`` without Git access."""
+    try:
+        return cached_file_changes(root, pending), git_root(root)
+    except GitError:
+        return None
+
+
+def _reset_commit_message() -> None:
+    """Back to the default message (after a commit); the next change brings a new suggestion."""
+    st.session_state["commit_message"] = st.session_state["commit_message_auto"] = _commit_default()
+
+
+def _refresh_commit_message(
+    root: Path, loaded: tuple[list[FileChange], Path | None] | None
+) -> None:
+    """Follows the changes with the suggested message as long as the user has not edited it."""
+    suggested = _commit_default()
+    if loaded is not None:
+        files, top = loaded
+        named = [
+            replace(
+                fc,
+                file=_view_name(root, fc.file, top),
+                orig=_view_name(root, fc.orig, top) if fc.orig else "",
+            )
+            for fc in files
+        ]
+        suggested = suggest_message(named) or suggested
+    current = st.session_state.get("commit_message", "").strip()
+    if current in ("", st.session_state.get("commit_message_auto"), _commit_default()):
+        st.session_state["commit_message"] = suggested
+    st.session_state["commit_message_auto"] = suggested
+
+
 def _commit_clicked(root: Path, tags: list[str]) -> None:
     """Callback des Commit-Knopfs; läuft vor dem nächsten Durchlauf des Skripts."""
     message = st.session_state.get("commit_message", "").strip() or _commit_default()
@@ -4881,7 +4919,7 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
         return
     st.session_state["pending_tags"] = []
     st.session_state["last_commit"] = rev
-    st.session_state["commit_message"] = _commit_default()
+    _reset_commit_message()
 
 
 # „Speichern und teilen“ läuft im Rückruf des Knopfs, im Skript-Thread. Kommt währenddessen eine
@@ -5003,7 +5041,7 @@ def _remember_sync_result(result: SyncResult) -> None:
     davon abhängt. Darf mehrfach laufen (auch nach einem abgebrochenen ersten Versuch)."""
     if result.committed:
         st.session_state["pending_tags"] = []
-        st.session_state["commit_message"] = _commit_default()
+        _reset_commit_message()
     # Ein noch nicht gezeigtes früheres Ergebnis wird nicht überschrieben, sondern wandert in
     # die Liste der früheren (die Seitenleiste zeigt beide). Mehrfaches Ausführen ändert nichts.
     previous = st.session_state.get("sync_result")
@@ -5494,15 +5532,13 @@ def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
     return file
 
 
-def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
+def _changes_view(root: Path, loaded: tuple[list[FileChange], Path | None] | None) -> None:
     """„Was hat sich geändert?“: Werte vorher und nachher je geänderter Datei. Dateinamen und
     Werte stammen aus Dateien, die andere ins Repository legen: nur als Code oder in Tabellen."""
-    try:
-        files = cached_file_changes(root, pending)
-        top = git_root(root)
-    except GitError:
+    if loaded is None:
         st.caption(t("Die Änderungsansicht ist gerade nicht verfügbar."))
         return
+    files, top = loaded
     st.markdown(f"**{t('Was hat sich geändert?')}**")
     show_text = st.toggle(
         t("Zeilenweisen Unterschied zeigen"),
@@ -5637,8 +5673,9 @@ def _git_panel(repo: Repository) -> None:
             _show_incoming(commits, files)
         if changes:
             st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
-            _changes_view(repo.root, changes)
-            st.session_state.setdefault("commit_message", _commit_default())
+            loaded = _load_changes(repo.root, changes)
+            _changes_view(repo.root, loaded)
+            _refresh_commit_message(repo.root, loaded)
             st.text_input(t("Commit-Nachricht"), key="commit_message")
             if tags:
                 st.checkbox(
@@ -6066,7 +6103,8 @@ GLOBAL_PAGES = {
 
 # Zustand, der bei geänderten Dateien erhalten bleibt (alles andere sind Formulareingaben).
 _KEEP_STATE = {
-    "selected_team", "flash", "pending_tags", "commit_message", "use_tags", "language",
+    "selected_team", "flash", "pending_tags", "commit_message", "commit_message_auto", "use_tags",
+    "language",
     "enabled-pages", "sync_result", "sync_earlier", SYNC_RUNNING_KEY, "last_commit",
     "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
