@@ -116,7 +116,7 @@ Ergebnis (nur Python-Prozess, ohne Browser):
 - Einzelne Importzeiten schwanken um 10 bis 20 % (Reihenfolge, Festplattencache).
 
 Die Stoppuhr-Messung im Browser (Start bis zur ersten Seite, Ziel unter 3 s; normale Eingaben,
-Ziel unter 200 ms) steht noch aus.
+Ziel unter 200 ms) ist der einzige offene Rest, siehe „Ziele und Abnahme“.
 
 ## Umgesetzte Maßnahmen
 
@@ -146,3 +146,8 @@ Ziel unter 200 ms) steht noch aus.
 Ziele: Start unter 3 Sekunden, normale Eingaben unter 200 ms. Diese Ziele **prüft der
 Eigentümer mit der Stoppuhr auf seinem Rechner** (Browser und Frontend eingeschlossen); die
 Cloud-Messung belegt nur den Anteil im Python-Prozess.
+
+Stand: Phase P ist abgeschlossen. Alle sechs Maßnahmen sind umgesetzt, und die Messprotokolle
+(Cloud und Windows) liegen vor. Offen ist ausschließlich die Stoppuhr-Abnahme im Browser auf dem
+Rechner des Eigentümers (Start unter 3 s, normale Eingaben unter 200 ms); sie wird auf Wunsch
+nachgeholt.
