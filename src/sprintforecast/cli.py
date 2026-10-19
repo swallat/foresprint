@@ -852,7 +852,7 @@ def personen(
             person = Person(pid, name, region, [Membership(start=start, fte=fte or 1.0)])
             tentative = copy.copy(data)
             tentative.people = [*people, person]
-            if errors := _new_errors(c, before, tentative, "people.yaml"):
+            if errors := _new_errors(c, data, tentative, "people.yaml"):
                 _print_errors(errors)  # sofort melden, statt erst beim Speichern zu verwerfen
                 continue
             people.append(person)
@@ -2323,7 +2323,7 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
             product = Product(id=pid, name=name, po=po, start=start)
             tentative = copy.copy(data)
             tentative.products = [*products, product]
-            if errors := _new_errors(c, before, tentative, "products.yaml"):
+            if errors := _new_errors(c, data, tentative, "products.yaml"):
                 _print_errors(errors)
                 continue
             products.append(product)
