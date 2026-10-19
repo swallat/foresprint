@@ -481,9 +481,12 @@ def _materialize(cell: _Path) -> tuple[str | int, ...]:
     return tuple(reversed(parts))
 
 
-def _key_of(node: yaml.Node, as_text: bool) -> tuple[str, Any]:
+def _key_of(node: yaml.Node, as_text: bool, canon: dict[Any, str]) -> tuple[str, Any]:
     """Anzeigetext und Vergleichsschlüssel. Mit ``as_text`` (Stellen, an denen das Programm
-    ``str()`` bildet) gilt der Text, sonst zusätzlich der Typ (``1`` ist nicht ``"1"``)."""
+    ``str()`` bildet) gilt der Text, sonst zusätzlich der Typ (``1`` ist nicht ``"1"``).
+    ``canon`` gehört zum umgebenden Mapping: Der Lader baut erst das Dict mit Python-Gleichheit
+    (``1 == 1.0 == True``, das erste Schlüsselobjekt bleibt) und bildet erst dann ``str()``;
+    ``canon`` merkt sich je Schlüsselobjekt den Text des ersten Eintrags."""
     if not isinstance(node, yaml.ScalarNode):
         return str(id(node)), ("node", id(node))
     if node.tag == _STR_TAG:
@@ -495,38 +498,43 @@ def _key_of(node: yaml.Node, as_text: bool) -> tuple[str, Any]:
             value = node.value
     # Steuerzeichen aus Dateien (Zeilenumbruch, ESC) gehören nie in eine Meldung
     shown = blank_controls(str(value))
-    if as_text:
-        return shown, str(value)
     try:
         hash(value)
     except TypeError:  # nicht hashbar: der Lader würde den Schlüssel ohnehin ablehnen
-        return shown, ("node", id(node))
+        return shown, (str(value) if as_text else ("node", id(node)))
+    if as_text:
+        return shown, canon.setdefault(value, str(value))
     # Wie der Lader: Python-Gleichheit (1 == 1.0 == True), aber nicht 1 == "1"
     return shown, value
 
 
 def _inherited(
-    node: yaml.MappingNode, as_text: bool, taken: set[Any], visiting: frozenset[int]
+    node: yaml.MappingNode,
+    as_text: bool,
+    canon: dict[Any, str],
+    taken: set[Any],
+    visiting: frozenset[int],
 ) -> list[tuple[yaml.Node, yaml.Node]]:
     """Einträge, die ``node`` über ``<<`` erbt und die der Lader behält (Regeln von PyYAML:
-    ausdrückliche Schlüssel gewinnen immer, bei mehreren Quellen die frühere, in einer Quelle
-    deren eigene Schlüssel vor den von ihr geerbten). ``taken`` sind die schon vergebenen
-    Schlüssel."""
+    ausdrückliche Schlüssel gewinnen immer; bei mehreren ``<<`` im selben Mapping das spätere,
+    bei einer Liste ``<<: [a, b]`` die frühere Quelle; in einer Quelle deren eigene Schlüssel
+    vor den von ihr geerbten). ``taken`` sind die schon vergebenen Schlüssel."""
     result: list[tuple[yaml.Node, yaml.Node]] = []
-    for key_node, value_node in node.value:
-        if key_node.tag != _MERGE_TAG:
-            continue
+    merges = [vn for kn, vn in node.value if kn.tag == _MERGE_TAG]
+    for value_node in reversed(merges):  # das letzte ``<<`` überschreibt die früheren
         sources = value_node.value if isinstance(value_node, yaml.SequenceNode) else [value_node]
         for source in sources:
             if not isinstance(source, yaml.MappingNode) or id(source) in visiting:
                 continue
             own = [
-                (kn, vn, _key_of(kn, as_text)[1]) for kn, vn in source.value if kn.tag != _MERGE_TAG
+                (kn, vn, _key_of(kn, as_text, canon)[1])
+                for kn, vn in source.value
+                if kn.tag != _MERGE_TAG
             ]
             fresh = [(kn, vn, c) for kn, vn, c in own if c not in taken]
             taken.update(c for _, _, c in fresh)
             result += [(kn, vn) for kn, vn, _ in fresh]
-            result += _inherited(source, as_text, taken, visiting | {id(source)})
+            result += _inherited(source, as_text, canon, taken, visiting | {id(source)})
     return result
 
 
@@ -630,13 +638,14 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
         else:
             path = _materialize(cell)
             as_text = any(_matches(path, p) for p in _STR_KEYED)
+            canon: dict[Any, str] = {}  # je Schlüsselobjekt der Text des ersten Eintrags
             found: dict[Any, list[tuple[int, int]]] = {}
             shown: dict[Any, str] = {}
             kept: dict[Any, tuple[yaml.Node, str]] = {}  # je Schlüssel der letzte Eintrag
             for key_node, value_node in node.value:
                 if key_node.tag == _MERGE_TAG:  # geerbte Einträge: siehe _inherited
                     continue
-                text_of_key, compare = _key_of(key_node, as_text)
+                text_of_key, compare = _key_of(key_node, as_text, canon)
                 mark = key_node.start_mark
                 found.setdefault(compare, []).append((mark.line + 1, mark.column + 1))
                 shown[compare] = text_of_key
@@ -645,9 +654,10 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
             children = [(value_node, (cell, text), True) for value_node, text in kept.values()]
             # Geerbte Einträge (``<<``) zählen nur, wo kein ausdrücklicher Eintrag sie ersetzt.
             for key_node, value_node in _inherited(
-                node, as_text, set(found), frozenset({id(node)})
+                node, as_text, canon, set(found), frozenset({id(node)})
             ):
-                children.append((value_node, (cell, _key_of(key_node, as_text)[0]), True))
+                text_of_key = _key_of(key_node, as_text, canon)[0]
+                children.append((value_node, (cell, text_of_key), True))
             first_time = id(node) not in duplicates_done  # Verweise: nur einmal melden
             duplicates_done.add(id(node))
             for compare, places in found.items():
