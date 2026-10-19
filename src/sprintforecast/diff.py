@@ -14,6 +14,7 @@ import contextlib
 from dataclasses import dataclass
 from itertools import islice
 from pathlib import Path
+from stat import S_ISREG
 from typing import Any
 
 import yaml
@@ -70,7 +71,8 @@ CHANGED = "changed"
 
 _YAML_SUFFIXES = {".yaml", ".yml"}
 # Größere Dateien gelten als nicht lesbar: Sie kommen ggf. aus einem fremden Repository.
-_MAX_BYTES = 5 * 1024 * 1024
+_MAX_BYTES = 1024 * 1024  # je Datei (Teamdaten sind klein; Parsen kostet etwa 1 s je MiB)
+_BYTES_BUDGET = 4 * 1024 * 1024  # Summe der gelesenen Größen (HEAD und Arbeitsstand) je Berechnung
 _EVAL_LIMIT = 25  # so viele Dateien werden ausgewertet: die, die die Oberfläche zeigt
 MAX_VALUES = 30  # so viele Wertänderungen je Datei bleiben erhalten (der Rest wird gezählt)
 # Gehaltene Werte werden auf einen Ausschnitt gekürzt, der etwas über den Grenzen der Anzeige
@@ -135,6 +137,7 @@ class FileChange:
     values: tuple[ValueChange, ...] = ()
     readable: bool = True
     orig: str = ""  # bisheriger Pfad bei Umbenennungen und Kopien, relativ zur Wurzel
+    skipped: bool = False  # nicht ausgewertet: Gesamtbudget an Dateigrößen aufgebraucht
     omitted: int = 0  # weitere Wertänderungen jenseits von :data:`MAX_VALUES` (nicht gehalten)
 
 
@@ -168,32 +171,74 @@ def diff_values(
     return [ValueChange(path, old, new)]
 
 
+def _key_text(key: Any) -> str:
+    """Schlüssel in der Schreibweise der Datei (``null``, ``true``), nicht der von Python."""
+    if key is None:
+        return "null"
+    if isinstance(key, bool):
+        return "true" if key else "false"
+    return str(key)
+
+
 def _diff_mapping(
     old: dict[Any, Any], new: dict[Any, Any], path: tuple[str, ...], item: bool, budget: _Budget
 ) -> list[ValueChange]:
     changes: list[ValueChange] = []
     for key in [*old, *(k for k in new if k not in old)]:
-        sub = (*path, f"[{key}]" if item else str(key))
+        text = _key_text(key)
+        sub = (*path, f"[{text}]" if item else text)
         changes.extend(diff_values(old.get(key, MISSING), new.get(key, MISSING), sub, budget))
     return changes
 
 
-def _head_text(root: Path, file: str) -> str:
-    if int(gitmod._git(root, "cat-file", "-s", f"HEAD:{file}")) > _MAX_BYTES:
+class _Skipped(Exception):
+    """Das Gesamtbudget an Dateigrößen ist aufgebraucht: Die Datei wird nicht ausgewertet."""
+
+
+class _Sizes:
+    """Summe der gelesenen Dateigrößen einer Berechnung."""
+
+    def __init__(self, left: int) -> None:
+        self.left = left
+
+    def charge(self, size: int) -> None:
+        self.left -= size
+        if self.left < 0:
+            raise _Skipped
+
+
+def _load(text: str) -> Any:
+    """Liest YAML, nachdem eine billige Schätzung der Knoten (Zeilen, Doppelpunkte, Kommas) die
+    Obergrenze nicht überschreitet: Sonst lohnt das Parsen nicht, der Vergleich lehnt ab."""
+    if text.count("\n") + text.count(":") + text.count(",") > MAX_NODES:
+        raise TooComplex("zu groß")
+    return _parse(text)
+
+
+def _head_text(root: Path, file: str, sizes: _Sizes | None = None) -> str:
+    size = int(gitmod._git(root, "cat-file", "-s", f"HEAD:{file}"))
+    if size > _MAX_BYTES:
         raise ValueError(file)
+    if sizes:
+        sizes.charge(size)
     return gitmod._git_bytes(root, "show", f"HEAD:{file}").decode("utf-8")
 
 
-def _work_text(root: Path, file: str) -> str:
+def _work_text(root: Path, file: str, sizes: _Sizes | None = None) -> str:
     """Inhalt im Arbeitsbaum; ``FileNotFoundError``, wenn die Datei fehlt. Symlinks werden nicht
-    gefolgt: Das Ziel kann außerhalb des Repositorys liegen."""
+    gefolgt: Das Ziel kann außerhalb des Repositorys liegen. Nur gewöhnliche Dateien."""
     path = root / file
-    if path.is_symlink() or path.stat().st_size > _MAX_BYTES:
+    if path.is_symlink():
         raise ValueError(file)
+    stat = path.stat()
+    if stat.st_size > _MAX_BYTES or not S_ISREG(stat.st_mode):
+        raise ValueError(file)
+    if sizes:
+        sizes.charge(stat.st_size)
     return path.read_text(encoding="utf-8")
 
 
-def _file_change(root: Path, change: Change) -> FileChange:
+def _file_change(root: Path, change: Change, sizes: _Sizes | None = None) -> FileChange:
     file, status = change.file, change.status
     orig = change.orig
     unreadable = FileChange(file, status, readable=False, orig=orig)
@@ -203,9 +248,9 @@ def _file_change(root: Path, change: Change) -> FileChange:
     new: Any = MISSING
     try:
         if "A" not in status and status != "??":
-            old = _parse(_head_text(root, change.orig or file))
+            old = _load(_head_text(root, change.orig or file, sizes))
         with contextlib.suppress(FileNotFoundError):  # gelöscht, auch „von ihnen gelöscht“
-            new = _parse(_work_text(root, file))
+            new = _load(_work_text(root, file, sizes))
         if old is MISSING or new is MISSING:
             return FileChange(file, status, orig=orig)
         found = diff_values(old, new)
@@ -218,6 +263,8 @@ def _file_change(root: Path, change: Change) -> FileChange:
         if e.kind in _GIT_PROBLEMS:
             raise
         return unreadable
+    except _Skipped:
+        return FileChange(file, status, orig=orig, skipped=True)
     except yaml.YAMLError, ValueError, OSError, RecursionError:  # ValueError: auch Unicode
         return unreadable
 
@@ -225,9 +272,12 @@ def _file_change(root: Path, change: Change) -> FileChange:
 def file_changes(path: Path) -> list[FileChange]:
     """Nicht committete Änderungen unterhalb von ``path`` als Wertänderungen je Datei."""
     root = gitmod.require_root(path)
+    sizes = _Sizes(_BYTES_BUDGET)
     # Nur die ersten Dateien werden ausgewertet; die übrigen kommen ohne Werte (lesbar).
     return [
-        _file_change(root, c) if i < _EVAL_LIMIT else FileChange(c.file, c.status, orig=c.orig)
+        _file_change(root, c, sizes)
+        if i < _EVAL_LIMIT
+        else FileChange(c.file, c.status, orig=c.orig)
         for i, c in enumerate(changes_in(path))
     ]
 

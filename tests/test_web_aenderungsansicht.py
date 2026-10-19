@@ -387,7 +387,35 @@ def test_every_formula_prefix_is_guarded_and_numbers_are_not():
 
     for ch in "=+-@":
         assert ui._formula_safe(f"{ch}x") == f"'{ch}x"
-    assert ui._formula_safe("+1+2") == "'+1+2" and ui._formula_safe("+5", 5) == "+5"
+    assert ui._formula_safe("+1+2") == "'+1+2" and ui._formula_safe("+5", 5) == "'+5"
+    assert ui._formula_safe("-5", -5) == "-5" and ui._formula_safe("-1.5", -1.5) == "-1.5"
+    # Die Kurzform großer Zahlen und ``-.inf`` sind keine Zahlen im Zahlenformat
+    assert ui._view_pair(1, -(10**60))[1].startswith("'-0x")
+    assert ui._view_pair(1, float("-inf"))[1] == "'-.inf"
+
+
+def test_rows_memory_is_bounded():
+    from sprintforecast.diff import FileChange, ValueChange
+    from sprintforecast.web import ui
+
+    ui._ROWS.clear()
+    for _ in range(ui._ROWS_MAX * 2 + 5):
+        ui._file_rows(FileChange("f.yaml", "M", (ValueChange(("a",), 1, 2),)))
+        assert len(ui._ROWS) <= ui._ROWS_MAX
+    ui._ROWS.clear()
+
+
+def test_files_beyond_the_size_budget_are_marked(repo, data_dir: Path, monkeypatch):
+    from sprintforecast import diff as diff_module
+
+    files = [commit_extra(repo, name, "a: 1\n") for name in ("eins.yaml", "zwei.yaml")]
+    for file in files:
+        file.write_text("a: 2\n", encoding="utf-8")
+    invalidate_status()
+    monkeypatch.setattr(diff_module, "_BYTES_BUDGET", 12)  # eine Datei: HEAD und Arbeitsstand
+    at = start(data_dir, monkeypatch)
+    notes = [c.value for c in at.sidebar.caption if "nicht ausgewertet" in c.value]
+    assert len(notes) == 1 and len(at.sidebar.dataframe) == 1
 
 
 def test_clipping_offset_and_lengthening():

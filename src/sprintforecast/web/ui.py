@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import copy
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -4942,7 +4943,12 @@ def _view_text(value: object) -> str:
 def _formula_safe(text: str, value: object = None) -> str:
     """Tabellen-Export: Text, den Excel als Formel läse, bekommt ein Apostroph (nur Anzeige).
     Zahlen bleiben, wie sie sind."""
-    number = isinstance(value, (int, float)) and not isinstance(value, bool)
+    # Nur echte Zahlen im Zahlenformat bleiben; die Kurzform großer Zahlen und ``-.inf`` nicht.
+    number = (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and re.fullmatch(r"-?\d+(\.\d+)?(e[+-]?\d+)?", text) is not None
+    )
     if not number and text.startswith(("=", "+", "-", "@")):
         return "'" + text
     return text
@@ -4971,6 +4977,7 @@ _VIEW_LABEL = 120
 # Fertige Tabellenzeilen je Datei: Das Ergebnis von ``cached_file_changes`` behält seine
 # Objekte, solange es gültig ist; mit ihm wird auch dieser Speicher geleert.
 _ROWS: dict[tuple[int, str], tuple[FileChange, list[tuple[str, str, str]]]] = {}
+_ROWS_MAX = 300
 on_invalidate(_ROWS.clear)
 
 
@@ -4988,7 +4995,7 @@ def _file_rows(fc: FileChange) -> list[tuple[str, str, str]]:
         rows.append((_formula_safe(label), *_view_pair(v.old, v.new)))
     if fc.omitted:
         rows.append((t("… und {n} weitere", n=fc.omitted), "", ""))
-    if len(_ROWS) > 300:
+    if len(_ROWS) >= _ROWS_MAX:
         _ROWS.clear()
     _ROWS[key] = (fc, rows)
     return rows
@@ -5022,7 +5029,9 @@ def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
             st.markdown(_lost_status(shown_fc))  # „umbenannt: alt → neu“, beide als Code
         else:
             st.markdown(f"{md_code(shown_fc.file)} – {status_name(fc.status)}")
-        if not fc.readable:
+        if fc.skipped:
+            st.caption(t("nicht ausgewertet (zu viele oder zu große Dateien)"))
+        elif not fc.readable:
             st.caption(t("keine Wertansicht"))
         elif fc.values:
             st.dataframe(

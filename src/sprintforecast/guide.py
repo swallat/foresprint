@@ -369,8 +369,10 @@ GIT_HELP: list[tuple[str, str]] = [
         "YAML-Dateien jeden Wert mit Vorher und Nachher, bei neuen und gelöschten Dateien nur "
         "die Art. Verschachtelte Werte stehen mit Punkten, Einträge mit Kennung in eckigen "
         "Klammern, z. B. people.[anna].fte. Lange Werte sind gekürzt. Dateien ohne lesbare "
-        "Werte (Excel, Berichte, kaputtes YAML, Dateien über 5 MB) tragen den Hinweis „keine "
-        "Wertansicht“.",
+        "Werte (Excel, Berichte, kaputtes YAML, Dateien über 1 MiB oder mit über 200 000 "
+        "Einträgen) tragen den Hinweis „keine Wertansicht“. Ausgewertet werden die ersten 25 "
+        "Dateien, insgesamt höchstens 4 MiB; weitere Dateien tragen den Hinweis „nicht "
+        "ausgewertet“.",
     ),
     (
         "Stand in der Seitenleiste",
