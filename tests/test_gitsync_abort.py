@@ -135,3 +135,68 @@ def test_background_fetch_skips_while_sync_runs(repo: Path, monkeypatch: pytest.
         assert gitsync.sync_running_seconds(repo) is not None
         assert gitsync.start_background_fetch(repo) is False
     assert gitsync.sync_running_seconds(repo) is None
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="posix sleep")
+def test_abort_only_touches_the_sync_holder_not_readers(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    real = gitmod.git_command
+    monkeypatch.setattr(
+        gitmod, "git_command", lambda *a: ["sleep", "30"] if a == ("sleep",) else real(*a)
+    )
+    outcome: dict[str, str] = {}
+    release = threading.Event()
+
+    def call(name: str) -> None:
+        try:
+            gitmod._git(repo.resolve(), "sleep", timeout=3)
+            outcome[name] = "ok"
+        except gitmod.GitError as e:
+            outcome[name] = e.kind
+
+    def holder() -> None:
+        with gitsync._locked(repo):
+            call("holder")
+            release.wait(10)
+
+    threads = [threading.Thread(target=holder)]
+    threads[0].start()
+    for _ in range(100):
+        if gitmod._ACTIVE:
+            break
+        time.sleep(0.05)
+    reader = threading.Thread(target=call, args=("reader",))
+    reader.start()
+    for _ in range(100):
+        if sum(map(len, gitmod._ACTIVE.values())) == 2:
+            break
+        time.sleep(0.05)
+    assert gitsync.abort_running_sync(repo) is True
+    time.sleep(0.5)
+    assert "reader" not in outcome  # läuft weiter (bis zum eigenen Zeitlimit)
+    reader.join(10)
+    assert outcome["reader"] == "timeout" or outcome["reader"] != "aborted"
+    assert outcome["holder"] == "aborted"
+    release.set()
+    threads[0].join(10)
+    assert not gitmod._ABORTED and not gitmod._HOLDERS  # nichts überlebt den Abgleich
+    assert gitsync.abort_running_sync(repo) is False
+
+
+def test_aborted_fetch_is_not_recorded_as_server_result(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    import types
+
+    fake = types.SimpleNamespace(remote="origin", url="")
+
+    def aborted(*a, **k):
+        raise gitmod.GitError("x", "aborted")
+
+    monkeypatch.setattr(gitsync, "state", lambda p: fake)
+    monkeypatch.setattr(gitsync, "_git", aborted)
+    gitsync._FETCHED.pop(gitsync._root(repo), None)
+    with pytest.raises(gitmod.GitError):
+        gitsync._fetch_locked(repo)
+    assert gitsync._root(repo) not in gitsync._FETCHED
