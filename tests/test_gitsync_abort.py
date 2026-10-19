@@ -64,7 +64,9 @@ def test_abort_running_sync_terminates_the_child(repo: Path, monkeypatch: pytest
     def run() -> None:
         try:
             with gitsync._locked(repo):
-                gitmod._git_result(repo.resolve(), "sleep")
+                with pytest.raises(gitmod.GitError) as killed:
+                    gitmod._git_result(repo.resolve(), "sleep")
+                assert killed.value.kind == "aborted"
                 with pytest.raises(gitmod.GitError) as raised:
                     gitmod._git_result(repo.resolve(), "sleep")  # nach dem Abbruch: nichts Neues
                 assert raised.value.kind == "aborted"
@@ -85,3 +87,51 @@ def test_abort_running_sync_terminates_the_child(repo: Path, monkeypatch: pytest
     assert gitsync.abort_running_sync(repo) is False  # nichts läuft mehr
     with gitsync._locked(repo):  # der nächste Abgleich darf wieder starten
         gitmod._raise_if_aborted(repo)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="posix sleep")
+def test_killed_call_reports_aborted_and_reads_work_afterwards(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    real = gitmod.git_command
+    monkeypatch.setattr(
+        gitmod, "git_command", lambda *a: ["sleep", "30"] if a == ("sleep",) else real(*a)
+    )
+    kinds: list[str] = []
+    release = threading.Event()
+
+    def run() -> None:
+        with gitsync._locked(repo):
+            try:
+                gitmod._git(repo.resolve(), "sleep")
+            except gitmod.GitError as e:
+                kinds.append(e.kind)
+            release.wait(10)  # der Abgleich hält die Sperre noch
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    for _ in range(100):
+        if gitmod._ACTIVE:
+            break
+        time.sleep(0.05)
+    assert gitsync.abort_running_sync(repo)
+    for _ in range(100):
+        if kinds:
+            break
+        time.sleep(0.05)
+    assert kinds == ["aborted"]
+    gitsync.state(repo)  # andere Fäden lesen weiter, auch bei laufendem Abgleich
+    release.set()
+    thread.join(10)
+    gitmod.invalidate_status()
+    gitsync.state(repo)  # und nach dem Ende des Abgleichs
+    assert not gitmod._ABORTED
+
+
+def test_background_fetch_skips_while_sync_runs(repo: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(gitsync, "background_fetch_due", lambda p: True)
+    monkeypatch.delenv(gitsync.BACKGROUND_OFF_ENV, raising=False)
+    with gitsync._locked(repo):
+        assert gitsync.sync_running_seconds(repo) is not None
+        assert gitsync.start_background_fetch(repo) is False
+    assert gitsync.sync_running_seconds(repo) is None

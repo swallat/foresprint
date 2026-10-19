@@ -295,12 +295,16 @@ def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
     with _BACKGROUND_LOCK:
         since, depth = _HELD.get(key, (time.time(), 0))
         _HELD[key] = (since, depth + 1)
+    root: Path | None = None
     if depth == 0:
         with contextlib.suppress(GitError):
-            gitmod.clear_abort(_root(path))
+            root = _root(path)
+            gitmod.clear_abort(root)
     try:
         yield
     finally:
+        if root is not None:  # ein Abbruch gilt nur für diesen Abgleich
+            gitmod.clear_abort(root)
         with _BACKGROUND_LOCK:
             since, depth = _HELD[key]
             if depth <= 1:
@@ -308,6 +312,14 @@ def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
             else:
                 _HELD[key] = (since, depth - 1)
         lock.release()
+
+
+def sync_running_seconds(path: Path) -> float | None:
+    """Seit wie vielen Sekunden hält ein Abgleich die Sperre dieses Datenordners (``None``:
+    keiner)?"""
+    with _BACKGROUND_LOCK:
+        held = _HELD.get(path.resolve())
+    return None if held is None else max(0.0, time.time() - held[0])
 
 
 def abort_running_sync(path: Path) -> bool:
@@ -360,7 +372,7 @@ def fetch(path: Path) -> SyncState:
     except GitError as e:
         if e.kind != "sync_busy":
             raise
-        return state(path)  # der laufende Abgleich holt selbst; nichts verfälschen
+        return cached_state(path)  # kein Git neben dem laufenden Abgleich
 
 
 def _fetch_locked(path: Path) -> SyncState:
@@ -409,8 +421,8 @@ def start_background_fetch(path: Path) -> bool:
         return False
     key = path.resolve()
     try:
-        if not background_fetch_due(path):
-            return False
+        if not background_fetch_due(path) or sync_running_seconds(path) is not None:
+            return False  # ein Abgleich läuft: kein Git daneben
         root = _root(path)
         current = state(path)
     except GitError:
