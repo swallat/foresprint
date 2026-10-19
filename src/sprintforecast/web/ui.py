@@ -124,6 +124,7 @@ from sprintforecast.gitsync import (
     SyncResult,
     SyncState,
     abort_unfinished,
+    auto_merge,
     cached_remote_info,
     check_remote,
     conflict_text_diffs,
@@ -133,6 +134,7 @@ from sprintforecast.gitsync import (
     reattach,
     resolve_conflicts,
     restore_file,
+    set_auto_merge,
     set_identity,
     set_remote,
     set_share_mode,
@@ -4435,6 +4437,13 @@ def _share_mode_changed(root: Path) -> None:
         st.session_state["commit_error"] = e
 
 
+def _auto_merge_changed(root: Path) -> None:
+    try:
+        set_auto_merge(root, bool(st.session_state.get("git-auto-merge")))
+    except GitError as e:
+        st.session_state["commit_error"] = e
+
+
 def _share_mode_setting(root: Path) -> None:
     """Teilen über Merge Request statt direkt auf den Hauptbranch (z. B. GitLab mit geschütztem
     ``main``). Gilt für dieses Daten-Repository auf diesem Rechner."""
@@ -4455,6 +4464,24 @@ def _share_mode_setting(root: Path) -> None:
             "holen“, sobald der Merge Request gemergt ist."
         ),
     )
+    if current:
+        try:
+            st.session_state["git-auto-merge"] = auto_merge(root)
+        except GitError:
+            return
+        st.toggle(
+            t("Automatisch mergen, wenn die Pipeline grün ist"),
+            key="git-auto-merge",
+            on_change=_auto_merge_changed,
+            args=(root,),
+            help=t(
+                "Setzt die GitLab-Push-Option „Merge, wenn die Pipeline erfolgreich ist“: GitLab "
+                "mergt, sobald die Pipeline (und nötige Freigaben) durch sind; je nach Version "
+                "muss ein Projekt ohne Pipeline von Hand gemergt werden. Jedes Teilen schaltet "
+                "das Automerge wieder ein; hier ausschalten, damit Merge Requests von Hand "
+                "gemergt werden."
+            ),
+        )
 
 
 def page_data_dir(repo: Repository, setup: bool = False) -> None:
