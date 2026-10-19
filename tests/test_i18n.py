@@ -186,6 +186,12 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     from sprintforecast.web.ui import PAGE_INFO
 
     i18n.save_language("en")
+    import yaml
+
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text())
+    raw["features"]["tickets"] = True  # the page "Tickets" exists only with its feature
+    team_file.write_text(yaml.safe_dump(raw))
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
     app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"

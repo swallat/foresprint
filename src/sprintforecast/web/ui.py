@@ -305,6 +305,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "forecast": ("Forecast", ":material/trending_up:"),
         "analyse": ("Analyse", ":material/insights:"),
         "produkte": ("Produktverteilung", ":material/pie_chart:"),
+        "tickets": ("Tickets", ":material/view_kanban:"),
     },
     "Team verwalten": {
         "sprints": ("Sprintkalender", ":material/calendar_month:"),
@@ -322,7 +323,12 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
 }
 PAGE_INFO = {key: info for group in PAGES.values() for key, info in group.items()}
 # Seiten, die nur erscheinen, wenn das Team den Funktionsbereich nutzt (Team → Einstellungen).
-PAGE_FEATURES = {"vorplanung": "products", "produkte": "products", "produktliste": "products"}
+PAGE_FEATURES = {
+    "vorplanung": "products",
+    "produkte": "products",
+    "produktliste": "products",
+    "tickets": "tickets",
+}
 
 
 def enabled_pages(repo: Repository) -> set[str]:
@@ -3425,6 +3431,13 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     page_link("planning", t("Weiter zum Planning"))
 
 
+def page_tickets(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Ticket-Vorplanung (``features.tickets``); der Seitenbaustein wird erst hier geladen."""
+    from sprintforecast.web import tickets_view
+
+    tickets_view.page(repo, data, fc)
+
+
 def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Produktverteilung"))
     unit = data.team.unit.value
@@ -6167,6 +6180,7 @@ TEAM_PAGES = {
     "planning": page_planning,
     "review": page_review,
     "produkte": page_products,
+    "tickets": page_tickets,
     "analyse": page_analysis,
     "personen": page_people,
     "produktliste": page_product_list,

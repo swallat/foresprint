@@ -19,7 +19,7 @@ from sprintforecast.forecast import build_forecast
 from sprintforecast.model import Sprint
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 from sprintforecast.web import ui
-from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
+from sprintforecast.web.ui import PAGE_FEATURES, PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
@@ -170,7 +170,13 @@ def test_forecast_warns_when_absences_unknown_and_no_history(
 
 
 @pytest.mark.parametrize("page", sorted(PAGE_INFO))
-def test_pages_render(app: AppTest, page: str):
+def test_pages_render(data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str):
+    if feature := PAGE_FEATURES.get(page):  # the page only exists with its feature switched on
+        team = data_dir / "demo" / "team.yaml"
+        raw = yaml.safe_load(team.read_text())
+        raw["features"][feature] = True
+        team.write_text(yaml.safe_dump(raw))
+    app = start(data_dir, monkeypatch)
     goto(app, page)
     assert not app.error
     assert app.header[0].value
