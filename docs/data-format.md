@@ -292,7 +292,10 @@ web UI of GitHub or GitLab. The report ends with a section "Supplementary: range
 ## Minutes
 
 Every save of a planning meeting (PO pre-planning, planning, review) in the web UI writes a
-Markdown file `teams/<team>/protokolle/<sprint>-<meeting>-<date>-<time>.md`; older versions stay
-readable. If a meeting becomes void (for example when a frozen Forecast PLAN is released), its
+Markdown file `protokolle/<sprint>-<meeting>-<date>-<time>.md` in the team's folder; older versions
+stay readable. Every save of a planning step (absences, scheduling, commitment) writes a new,
+complete planning minute with the sections "Absences", "Scheduling" and "Commitment"; each
+recorded section carries its own "As of" time (unchanged sections keep the earlier one), and steps
+not yet saved read "not yet recorded". If a meeting becomes void (for example when a frozen Forecast PLAN is released), its
 previous minutes are renamed to `..._obsolet_<date>-<time>.md`. The minutes are committed with the
 data like every other file.
