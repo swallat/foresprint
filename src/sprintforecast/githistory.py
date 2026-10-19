@@ -14,7 +14,7 @@ import contextlib
 import os
 import shutil
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -245,19 +245,19 @@ def _put_back(root: Path, trash: Path, snap: _Snapshot) -> list[str]:
     return failed
 
 
-def _rollback_hint(failed: list[str], trash: Path) -> str:
+def _rollback_hint(failed: list[str], trash: Path, quote: Callable[[str], str] = str) -> str:
     if not failed:
         return t(
             "Der ursprüngliche Zustand (Dateien und Vormerkung) wurde wiederhergestellt. "
             "Sicherung der Änderungen: {trash}",
-            trash=trash,
+            trash=quote(str(trash)),
         )
     return t(
         "Der ursprüngliche Zustand konnte nicht vollständig wiederhergestellt werden. "
         "Nicht wiederhergestellt: {files}. Die Sicherung der Änderungen liegt in {trash}; "
         "bitte die Dateien von dort zurückkopieren.",
-        files=", ".join(failed),
-        trash=trash,
+        files=quote(", ".join(failed)),
+        trash=quote(str(trash)),
     )
 
 
@@ -292,6 +292,7 @@ def discard(path: Path, files: list[str] | None = None) -> Path | None:
             t("Das Verwerfen ist nicht vollständig gelungen: {error}", error=e),
             getattr(e, "kind", "error"),
             _rollback_hint(failed, trash),
+            hint_md=_rollback_hint(failed, trash, gitmod.md_plain),
         ) from e
     gitmod.invalidate_status()
     if not any(trash.iterdir()):

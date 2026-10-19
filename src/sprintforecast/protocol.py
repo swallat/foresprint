@@ -318,6 +318,20 @@ def _fallback_lock_dir() -> Path:
     return root
 
 
+# Dauerhafte Fehler beim Anlegen/Öffnen im Einstellungsordner: nur dann gilt der Temp-Ordner.
+# Vorübergehende (z. B. ``EMFILE``, ``ENOSPC``, ``EIO``, ``EINTR``) kommen als Fehler, statt
+# Sitzungen unbemerkt auf verschiedene Sperrdateien zu verteilen.
+_PERMANENT_OPEN_ERRNOS = frozenset(
+    getattr(errno, name)
+    for name in ("ENOENT", "EROFS", "EACCES", "EPERM", "EISDIR", "ENOTDIR", "EEXIST")
+    if hasattr(errno, name)
+)
+
+
+def _is_permanent(e: OSError) -> bool:
+    return e.errno in _PERMANENT_OPEN_ERRNOS
+
+
 def _lock_dir() -> Path:
     """Ordner der Sperrdateien: ``sperren`` im Einstellungsordner des Benutzers (nie im
     Git-Arbeitsverzeichnis); lässt er sich nicht anlegen, ein benutzerspezifischer Ordner im
@@ -325,7 +339,9 @@ def _lock_dir() -> Path:
     root = config_dir() / "sperren"
     try:
         _private_dir(root)
-    except OSError:
+    except OSError as e:
+        if not _is_permanent(e):
+            raise _not_saved(root, e) from e
         return _fallback_lock_dir()
     # Ein vorhandener, nicht beschreibbarer Ordner (``exist_ok`` gelingt trotzdem) taugt nicht.
     # Unter Windows sagt ``access`` nichts über Zugriffsrechte; dort sichert :func:`_open_lock` ab.
@@ -350,6 +366,8 @@ def _open_lock(path: Path) -> tuple[IO[bytes], Path]:
         return path.open("a+b"), path
     except OSError as e:
         first = e
+    if not _is_permanent(first):
+        raise _not_saved(path, first) from first
     fallback_dir = _fallback_lock_dir()
     if fallback_dir == path.parent:  # das war schon der Ausweichordner
         raise _not_saved(path, first) from first
@@ -478,13 +496,25 @@ def _locked(folder: Path, sprint_id: str, kind: str) -> Iterator[None]:
         handle.close()
 
 
+Clock = datetime | Callable[[], datetime] | None
+
+
+def _resolve_now(now: Clock) -> datetime:
+    """Der Zeitpunkt für den Dateinamen. Ein ``datetime`` gilt wie übergeben; ``None`` oder eine
+    Funktion (z. B. ``datetime.now``) wird erst hier gelesen, also nach dem Erwerb der Sperre: Wer
+    länger auf die Sperre wartet, bekommt so keinen älteren Zeitpunkt als der Vorgänger."""
+    if isinstance(now, datetime):
+        return now
+    return (now() if now is not None else datetime.now()).replace(microsecond=0)
+
+
 def write_protocol_new(
     repo: Repository,
     team: str,
     sprint_id: str,
     kind: str,
     text: str,
-    now: datetime,
+    now: Clock,
     state: str | None = None,
 ) -> tuple[Path, bool]:
     """Schreibt das Protokoll (LF-Zeilenenden, über eine Zwischendatei) und meldet, ob es neu
@@ -492,7 +522,8 @@ def write_protocol_new(
     Stand unverändert ist; ohne ``state`` entscheidet der Text. Gibt es den Namen schon (zwei
     Speicherungen in derselben Sekunde), wird die Sekunde hochgezählt: nichts geht verloren.
     Suchen und Schreiben laufen unter einer Sperre je Sprint und Termin (:func:`_locked`).
-    Schreibfehler kommen als :class:`FileAccessError`."""
+    ``now`` darf ein ``datetime``, eine Funktion oder ``None`` sein (dann wird die Uhr erst unter
+    der Sperre gelesen). Schreibfehler kommen als :class:`FileAccessError`."""
     folder = _make_folder(repo, team)
     with _locked(folder, sprint_id, kind):
         return _write_locked(repo, team, sprint_id, kind, text, now, state)
@@ -514,7 +545,7 @@ def _write_locked(
     sprint_id: str,
     kind: str,
     text: str,
-    now: datetime,
+    now: Clock,
     state: str | None,
 ) -> tuple[Path, bool]:
     """Rumpf von :func:`write_protocol_new`. Der Aufrufer hält die Sperre (:func:`_locked`); die
@@ -539,7 +570,7 @@ def _write_locked(
     # Verschiedenes speichern, erzeugen so nie denselben Dateinamen (sonst Konflikt beim
     # Zusammenführen).
     tag = (state or hashlib.sha256(text.encode("utf-8")).hexdigest())[:4]
-    stamp = now
+    stamp = _resolve_now(now)
     while (path := folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}-{tag}.md").exists():
         stamp += timedelta(seconds=1)
     write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
@@ -553,7 +584,7 @@ def write_protocol(
     sprint_id: str,
     kind: str,
     text: str,
-    now: datetime,
+    now: Clock,
     state: str | None = None,
 ) -> Path:
     """Wie :func:`write_protocol_new`, liefert nur die Datei."""
@@ -575,7 +606,7 @@ def save_with_protocol(
     sprint_id: str,
     kind: str,
     text: str,
-    now: datetime,
+    now: Clock,
     sprints: list[Sprint],
     save: Callable[[], list[Path]],
 ) -> list[Path]:
@@ -592,12 +623,14 @@ def save_with_protocol(
         path, created = _write_locked(repo, team, sprint_id, kind, text, now, state)
         try:
             return save()
-        except BaseException:
+        except BaseException as primary:
             if created:
                 # Scheitert auch der Rückbau (z. B. gesperrte Datei), zählt der ursprüngliche
-                # Fehler.
-                with contextlib.suppress(OSError):
+                # Fehler; der Rückbau-Fehler hängt als Hinweis daran.
+                try:
                     path.unlink(missing_ok=True)
+                except OSError as e:
+                    _note_rollback_failure(primary, path, e)
                 invalidate_status()
             raise
 
@@ -636,19 +669,26 @@ def protocol_renames(
     return found
 
 
-def _undo(renamed: list[Path]) -> None:
-    """Macht ``mark_obsolete`` rückgängig (so gut es geht)."""
+def _note_rollback_failure(primary: BaseException, path: Path, error: OSError) -> None:
+    """Hängt einen gescheiterten Rückbau als Hinweis an den ursprünglichen Fehler (der bleibt der
+    Hauptfehler), damit er nicht stumm bleibt."""
+    primary.add_note(t("{path}: nicht zurückgebaut ({reason})", path=path, reason=str(error)))
+
+
+def _undo(renamed: list[Path], primary: BaseException) -> None:
+    """Macht ``mark_obsolete`` rückgängig (so gut es geht); scheitert ein Zurückbenennen, steht das
+    als Hinweis am ursprünglichen Fehler ``primary``."""
     for target in renamed:
         original = re.sub(r"_obsolet_\d{8}-\d{6}(?=\.md$)", "", target.name)
-        with contextlib.suppress(OSError):
+        try:
             target.replace(target.with_name(original))
+        except OSError as e:
+            _note_rollback_failure(primary, target, e)
     if renamed:
         invalidate_status()
 
 
-def mark_obsolete(
-    repo: Repository, team: str, sprint_id: str, kind: str, now: datetime
-) -> list[Path]:
+def mark_obsolete(repo: Repository, team: str, sprint_id: str, kind: str, now: Clock) -> list[Path]:
     """Benennt die gültigen Protokolle des Termins in ``…_obsolet_<Datum>-<Zeit>.md`` um (z. B.
     wenn das Einfrieren des Sprints aufgehoben wird). Liefert die neuen Dateien. Scheitert eine
     Umbenennung, werden die schon umbenannten wieder zurückbenannt (alles oder nichts). Die Sperre
@@ -660,13 +700,14 @@ def mark_obsolete(
 
 
 def _mark_obsolete(
-    repo: Repository, team: str, sprint_id: str, kind: str, now: datetime
+    repo: Repository, team: str, sprint_id: str, kind: str, now: Clock
 ) -> list[Path]:
     renamed: list[Path] = []
+    moment = _resolve_now(now)
     for _, found_kind, obsolete, path in list_protocols(repo, team, sprint_id):
         if found_kind != kind or obsolete:
             continue
-        stamp = now
+        stamp = moment
         target = path.with_name(f"{path.stem}_obsolet_{stamp:{STAMP}}.md")
         while target.exists():  # zwei Aufhebungen in derselben Sekunde
             stamp += timedelta(seconds=1)
@@ -674,10 +715,11 @@ def _mark_obsolete(
         try:
             path.replace(target)
         except OSError as e:
-            _undo(renamed)
-            raise FileAccessError(
+            error = FileAccessError(
                 t("{path}: nicht umbenannt ({reason})", path=path, reason=str(e))
-            ) from e
+            )
+            _undo(renamed, error)
+            raise error from e
         renamed.append(target)
     if renamed:
         invalidate_status()
@@ -689,7 +731,7 @@ def obsolete_with_save(
     team: str,
     sprint_id: str,
     kind: str,
-    now: datetime,
+    now: Clock,
     save: Callable[[], list[Path]],
 ) -> list[Path]:
     """Benennt die Protokolle zuerst um und schreibt dann mit ``save`` die Sprintdatei; scheitert
@@ -703,6 +745,6 @@ def obsolete_with_save(
         renamed = _mark_obsolete(repo, team, sprint_id, kind, now)
         try:
             return save()
-        except BaseException:
-            _undo(renamed)
+        except BaseException as primary:
+            _undo(renamed, primary)
             raise
