@@ -38,7 +38,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.git import GitError, commit, title_for
+from sprintforecast.git import GitError, blank_controls, commit, title_for
 from sprintforecast.guide import (
     CAPACITY_SOURCES,
     COMMAND_ALIASES,
@@ -1565,8 +1565,10 @@ def pruefen(
         console.print(f"[bold]{_plain_end(key)}[/bold]")
         for i in issues:
             colour = "red" if i.level is Level.ERROR else "yellow"
+            # Namen aus den Dateien können Steuerzeichen enthalten (Zeilenumbruch, ESC)
+            where, message = blank_controls(i.where), blank_controls(i.message)
             console.print(
-                f"  [{colour}]{i.level.label}[/{colour}] {_plain(i.where)}: {_plain(i.message)}"
+                f"  [{colour}]{i.level.label}[/{colour}] {_plain(where)}: {_plain(message)}"
             )
             failed |= i.level is Level.ERROR or streng
     raise typer.Exit(1 if failed else 0)
