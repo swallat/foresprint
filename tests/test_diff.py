@@ -375,6 +375,53 @@ def test_cache_notices_a_changed_size_with_the_same_time(tmp_path: Path, monkeyp
     assert len(calls) == 2 and change.values[0].new == "CC"
 
 
+def test_cache_notices_same_size_content_with_the_old_time_restored(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    file = data / "team.yaml"
+    file.write_text("name: B\n", encoding="utf-8")
+    calls = counting(monkeypatch)
+    cached_file_changes(data, pending_of(data))
+    stat = file.stat()
+    file.write_text("name: C\n", encoding="utf-8")  # gleiche Größe
+    os.utime(file, ns=(stat.st_atime_ns, stat.st_mtime_ns))  # Zeitstempel wie vorher
+    (change,) = cached_file_changes(data, pending_of(data))
+    assert len(calls) == 2 and change.values[0].new == "C"
+
+
+def test_signature_carries_size_mtime_inode_and_inode_time(tmp_path: Path):
+    root = make_local(tmp_path)
+    file = root / "teams" / "team.yaml"
+    file.write_text("name: B\n", encoding="utf-8")
+    stat = file.stat()
+    entry = diff_module._signature(root, [("M", "teams/team.yaml")])[1]
+    assert entry == (
+        "M",
+        "teams/team.yaml",
+        stat.st_mtime_ns,
+        stat.st_size,
+        stat.st_ino,
+        stat.st_ctime_ns,
+    )
+
+
+def test_many_equal_singletons_still_hit_the_node_limit(tmp_path: Path):
+    lines = "".join(f"k{i}: null\n" for i in range(diff_module.MAX_NODES + 1))
+    root = make_local(tmp_path)
+    data = root / "teams"
+    (data / "viel.yaml").write_text(lines + "z: 1\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "viel")
+    (data / "viel.yaml").write_text(lines + "z: 2\n", encoding="utf-8")
+    (change,) = file_changes(data)
+    assert not change.readable
+    with pytest.raises(TooComplex):
+        diff_values(
+            {f"k{i}": None for i in range(diff_module.MAX_NODES + 1)} | {"z": 1},
+            {f"k{i}": None for i in range(diff_module.MAX_NODES + 1)} | {"z": 2},
+        )
+
+
 def test_cache_key_is_the_resolved_path_and_the_result_is_a_copy(tmp_path: Path, monkeypatch):
     root = make_local(tmp_path)
     data = root / "teams"
