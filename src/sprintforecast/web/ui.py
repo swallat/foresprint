@@ -50,7 +50,7 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
-from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes
+from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes, text_diff
 from sprintforecast.engine import (
     MIN_THIN_HISTORY,
     UNSURE_SOURCES,
@@ -73,6 +73,7 @@ from sprintforecast.git import (
     _BIDI_CONTROLS,
     _BLANKED_CATEGORIES,
     NO_WINDOW,
+    Change,
     GitError,
     NewBranchError,
     RemoteAddress,
@@ -115,6 +116,8 @@ from sprintforecast.githistory import (
     upload_tag,
 )
 from sprintforecast.gitsync import (
+    SHARE_DIRECT,
+    SHARE_MERGE_REQUEST,
     Commit,
     ConflictFile,
     RemoteInfo,
@@ -123,6 +126,7 @@ from sprintforecast.gitsync import (
     abort_unfinished,
     cached_remote_info,
     check_remote,
+    conflict_text_diffs,
     git_available,
     incoming,
     pending_conflicts,
@@ -131,6 +135,8 @@ from sprintforecast.gitsync import (
     restore_file,
     set_identity,
     set_remote,
+    set_share_mode,
+    share_mode,
     sync,
 )
 from sprintforecast.gitsync import (
@@ -168,6 +174,7 @@ from sprintforecast.products import (
     plan_view,
 )
 from sprintforecast.protocol import (
+    KIND_MEASURES,
     PLANNING,
     PREPLANNING,
     REVIEW,
@@ -1648,10 +1655,24 @@ def _production_hint(d: Distribution, data: TeamData, unit: str) -> None:
         )
 
 
+# Produktionsspalten je Termin (Teilmengen von Planning bzw. Erledigt).
+KIND_PRODUCTION_MEASURES = {
+    PREPLANNING: (),
+    PLANNING: ("production_planned",),
+    REVIEW: ("production_done",),
+}
+
+
+def phase_measures(kind: str) -> list[str]:
+    """Spalten der Produkttabelle in einem Termin: nur, was dort eingegeben oder entschieden
+    wird (plus Standard bzw. Bezugsgröße); was erst später entsteht, bleibt weg."""
+    return [*KIND_MEASURES[kind], *KIND_PRODUCTION_MEASURES[kind]]
+
+
 def _product_editor(
-    d: Distribution, editable: list[str], key: str, unit: str
+    d: Distribution, editable: list[str], key: str, unit: str, kind: str
 ) -> list[dict[str, Any]] | None:
-    """Tabelle Produkt × Standard/Vorplanung/Planning/Erledigt; ``editable`` sind bearbeitbar."""
+    """Tabelle Produkt × Spalten des Termins ``kind``; ``editable`` sind bearbeitbar."""
     if not d.rows:
         st.info(
             t(
@@ -1665,7 +1686,10 @@ def _product_editor(
         "Produkt": st.column_config.TextColumn(t("Produkt"), disabled=True),
         "PO": st.column_config.TextColumn(disabled=True) if d.features.po else None,
     }
+    shown = phase_measures(kind)
     for m, label in MEASURES.items():
+        if m not in shown:
+            continue
         column_config[label] = st.column_config.NumberColumn(
             f"{measure_label(m)} ({unit})",
             min_value=0.0,
@@ -1680,23 +1704,27 @@ def _product_editor(
         d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
     )
     for m, label in PRODUCTION_MEASURES.items():
-        column_config[label] = (
-            st.column_config.NumberColumn(
-                f"{measure_label(m)} ({unit})",
-                min_value=0.0,
-                step=0.25,
-                format="%.2f",
-                disabled=m not in editable,
-                help=t(
-                    "Teilmenge von Planning bzw. Erledigt: Tickets, die nur Personen mit "
-                    "Produktionszugriff bearbeiten können."
-                ),
-            )
-            if show_production
-            else None
+        if m not in shown or not show_production:
+            continue
+        column_config[label] = st.column_config.NumberColumn(
+            f"{measure_label(m)} ({unit})",
+            min_value=0.0,
+            step=0.25,
+            format="%.2f",
+            disabled=m not in editable,
+            help=t(
+                "Teilmenge von Planning bzw. Erledigt: Tickets, die nur Personen mit "
+                "Produktionszugriff bearbeiten können."
+            ),
         )
     frame = pd.DataFrame(product_values_table(d))
-    for label in (*MEASURES.values(), *PRODUCTION_MEASURES.values()):
+    labels = [
+        label
+        for label in (*MEASURES.values(), *PRODUCTION_MEASURES.values())
+        if label in column_config
+    ]
+    frame = frame[["_id", "Produkt", "PO", *labels]]
+    for label in labels:
         frame[label] = frame[label].astype("float64").round(2)
     edited = st.data_editor(
         frame,
@@ -1723,7 +1751,13 @@ def _product_table(d: Distribution, unit: str) -> bool:
     show_production = d.features.production and (
         d.production_share is not None or any(d.has(m) for m in PRODUCTION_MEASURES)
     )
-    columns = dict(MEASURES) | (PRODUCTION_MEASURES if show_production else {})
+    # Nur Spalten mit Werten: Für einen Sprint vor dem Review gibt es kein „Erledigt“, vor dem
+    # Planning kein „Planning“. Standard bleibt als Bezug immer.
+    columns = {
+        m: label
+        for m, label in (MEASURES | (PRODUCTION_MEASURES if show_production else {})).items()
+        if m == "standard" or d.has(m)
+    }
     frame = pd.DataFrame(product_values_table(d))
     frame = frame.drop(columns=["_id", *([] if d.features.po else ["PO"])])
     frame = frame[["Produkt", *(["PO"] if d.features.po else []), *columns.values()]]
@@ -1742,18 +1776,23 @@ def _product_table(d: Distribution, unit: str) -> bool:
     return True
 
 
-def _product_chart(d: Distribution, unit: str) -> alt.Chart | None:
-    """Gruppierte Balken je Produkt: Standard (grau), Vorplanung, Planning, Erledigt."""
+def _product_chart(
+    d: Distribution, unit: str, measures: list[str] | None = None
+) -> alt.Chart | None:
+    """Gruppierte Balken je Produkt: Standard (grau), Vorplanung, Planning, Erledigt; mit
+    ``measures`` nur die Kennzahlen, die im jeweiligen Termin eine Rolle spielen."""
     product, metric = t("Produkt"), t("Kennzahl")
+    shown = {m: label for m, label in MEASURES.items() if measures is None or m in measures}
     records = [
         {product: r.product.name, metric: measure_label(m), unit: value}
         for r in d.rows
-        for m in MEASURES
+        for m in shown
         if (value := r.value(m)) is not None
     ]
     if not records:
         return None
-    labels = [measure_label(m) for m in MEASURES]
+    labels = [measure_label(m) for m in shown]
+    colors = dict(zip(MEASURES, [STANDARD_COLOR, *SERIES_COLORS[:3]], strict=True))
     return (
         alt.Chart(pd.DataFrame(records))
         .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
@@ -1769,7 +1808,7 @@ def _product_chart(d: Distribution, unit: str) -> alt.Chart | None:
             color=alt.Color(
                 f"{metric}:N",
                 sort=labels,
-                scale=alt.Scale(domain=labels, range=[STANDARD_COLOR, *SERIES_COLORS[:3]]),
+                scale=alt.Scale(domain=labels, range=[colors[m] for m in shown]),
                 legend=alt.Legend(orient="top", title=None),
             ),
             tooltip=[f"{product}:N", f"{metric}:N", alt.Tooltip(f"{unit}:Q", format=".2f")],
@@ -2285,6 +2324,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             ["preplanned", "planned", "production_planned"],
             f"planning-products-{sprint.id}",
             unit,
+            PLANNING,
         )
         if rows is not None:
             base = _base_sprint(data, sprint)
@@ -2296,7 +2336,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             d_preview = distribution(fc_preview, fc_preview.entry(after.id) or entry)
             _production_hint(d_preview, data, unit)
             _capacity_gauge(capacity_usage(r.plan, d_preview.total("planned")), unit)
-            if chart := _product_chart(d_preview, unit):
+            if chart := _product_chart(d_preview, unit, phase_measures(PLANNING)):
                 st.altair_chart(chart, width="stretch")
             if after.products != base.products or data.sprint(after.id) is None:
                 if st.button(t("Produktwerte speichern und weiter"), type="primary"):
@@ -2613,7 +2653,11 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         if data.team.features.products and data.products and entry is not None:
             st.markdown(f"**{t('Erledigt je Produkt')}**")
             product_rows = _product_editor(
-                distribution(fc, entry), review_measures, f"review-products-{sprint.id}", unit
+                distribution(fc, entry),
+                review_measures,
+                f"review-products-{sprint.id}",
+                unit,
+                REVIEW,
             )
         elif data.team.features.production and not data.team.features.products:
             st.markdown(f"**{t('Themen mit Produktionszugriff')}**")
@@ -3163,7 +3207,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 )
             )
     d = distribution(fc_view, fc_view.entry(sprint.id) or entry)
-    rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit)
+    rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit, PREPLANNING)
     if rows is None:
         return
     base = _base_sprint(data, sprint)
@@ -3318,14 +3362,21 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     d = distribution(fc, entry)
     if _product_table(d, unit):
         _production_hint(d, data, unit)
-        if chart := _product_chart(d, unit):
+        if chart := _product_chart(d, unit, [m for m in MEASURES if m == "standard" or d.has(m)]):
             st.altair_chart(chart, width="stretch")
         if po_rows := (by_po(d) if data.team.features.po else []):
             st.markdown(f"**{t('Je PO')}**")
             st.dataframe(
                 pd.DataFrame(
                     [
-                        {"PO": po, **{measure_label(m): fmt(v, 2) for m, v in totals.items()}}
+                        {
+                            "PO": po,
+                            **{
+                                measure_label(m): fmt(v, 2)
+                                for m, v in totals.items()
+                                if m == "standard" or d.has(m)
+                            },
+                        }
                         for po, totals in po_rows
                     ]
                 ),
@@ -4203,6 +4254,38 @@ def _remote_section(repo: Repository) -> None:
         else:
             _remote_check(root, address, insecure)
     _remote_offer(root, address, insecure, locked)
+    if info.name:
+        _share_mode_setting(root)
+
+
+def _share_mode_changed(root: Path) -> None:
+    mode = SHARE_MERGE_REQUEST if st.session_state.get("git-share-mr") else SHARE_DIRECT
+    try:
+        set_share_mode(root, mode)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+
+
+def _share_mode_setting(root: Path) -> None:
+    """Teilen über Merge Request statt direkt auf den Hauptbranch (z. B. GitLab mit geschütztem
+    ``main``). Gilt für dieses Daten-Repository auf diesem Rechner."""
+    try:
+        current = share_mode(root) == SHARE_MERGE_REQUEST
+    except GitError:
+        return
+    st.session_state["git-share-mr"] = current
+    st.checkbox(
+        t("Über Merge Request teilen"),
+        key="git-share-mr",
+        on_change=_share_mode_changed,
+        args=(root,),
+        help=t(
+            "„Speichern und teilen“ lädt dann auf einen eigenen Branch hoch und legt dort einen "
+            "Merge Request an oder schreibt ihn fort (GitLab-Push-Optionen, kein Zugriffstoken "
+            "nötig). Der Hauptbranch bleibt unberührt; neue Stände anderer holt „Vom Server "
+            "holen“, sobald der Merge Request gemergt ist."
+        ),
+    )
 
 
 def page_data_dir(repo: Repository, setup: bool = False) -> None:
@@ -4941,7 +5024,16 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
         done.append(t("Eigene Änderungen gesichert ({rev})", rev=result.committed))
     if result.pulled:
         done.append(t("{count} Änderung(en) von anderen übernommen", count=len(result.pulled)))
-    if result.pushed:
+    if result.pushed and result.merge_request_branch:
+        done.append(
+            t("Auf Branch {branch} hochgeladen", branch=md_code(result.merge_request_branch))
+            + (
+                " · " + t("[Merge Request öffnen]({url})", url=result.merge_request_url)
+                if result.merge_request_url
+                else " · " + t("Merge Request auf dem Server prüfen")
+            )
+        )
+    elif result.pushed:
         done.append(t("Hochgeladen"))
     if result.error is None:
         if result.pull_only and (result.committed or result.merged):
@@ -5025,6 +5117,22 @@ def _status_text(state: SyncState) -> str:
 _VIEW_FILES = 25
 _VIEW_ROWS = MAX_VALUES
 _VIEW_TEXT = 80
+
+
+def _diff_clean(text: str) -> str:
+    """Wie :func:`_view_clean` für einen mehrzeiligen Text (Diff): Zeilenumbrüche und Tabulatoren
+    bleiben, Steuerzeichen der Schreibrichtung fallen weg, übrige Steuerzeichen werden zu
+    Leerzeichen."""
+    return "".join(
+        c
+        if c in "\n\t"
+        else ""
+        if c in _BIDI_CONTROLS
+        else " "
+        if unicodedata.category(c) in _BLANKED_CATEGORIES
+        else c
+        for c in text
+    )
 
 
 def _view_clean(text: str) -> str:
@@ -5199,6 +5307,11 @@ def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
         st.caption(t("Die Änderungsansicht ist gerade nicht verfügbar."))
         return
     st.markdown(f"**{t('Was hat sich geändert?')}**")
+    show_text = st.toggle(
+        t("Zeilenweisen Unterschied zeigen"),
+        key="git-text-diff",
+        help=t("Zeigt je Datei den Text vorher und nachher (wie `git diff`), auch für Protokolle."),
+    )
     for fc in files[:_VIEW_FILES]:
         shown_fc = replace(
             fc,
@@ -5221,6 +5334,13 @@ def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
             )
         elif any(c in fc.status for c in "MT") and not any(c in fc.status for c in "A?D"):
             st.caption(t("keine Wertänderung (nur Schreibweise oder Reihenfolge)"))
+        if show_text and not fc.skipped:
+            try:
+                text = text_diff(root, Change(fc.status, fc.file, fc.orig))
+            except GitError:
+                text = ""
+            if text:
+                st.code(_diff_clean(text), language="diff")
     if len(files) > _VIEW_FILES:
         st.caption(t("… und {n} weitere", n=len(files) - _VIEW_FILES))
 
@@ -5826,6 +5946,23 @@ def _restore_clicked(root: Path, file: Path) -> None:
         ]
 
 
+def _conflict_diffs(root: Path, file: str) -> None:
+    """Je Seite der Konflikt-Datei, was sie gegenüber dem gemeinsamen Stand geändert hat."""
+    try:
+        mine, theirs = conflict_text_diffs(root, file)
+    except GitError:
+        return
+    if not (mine or theirs):
+        return
+    with st.expander(t("Unterschied zum gemeinsamen Stand")):
+        if mine:
+            st.caption(t("Meine Änderung"))
+            st.code(_diff_clean(mine), language="diff")
+        if theirs:
+            st.caption(t("Andere Änderung"))
+            st.code(_diff_clean(theirs), language="diff")
+
+
 def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None:
     """Geführte Wiederherstellung: Solange Konflikte offen sind, ist die Bearbeitung gesperrt."""
     st.header(t("Konflikte lösen"))
@@ -5857,6 +5994,13 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
             )
         )
         ready = True
+        show_diffs = st.toggle(
+            t("Zeilenweisen Unterschied zeigen"),
+            key="git-conflict-diff",
+            help=t(
+                "Zeigt je Datei den Text vorher und nachher (wie `git diff`), auch für Protokolle."
+            ),
+        )
         for i, cf in enumerate(pending):
             if not cf.open:
                 st.caption(t("{file}: wird automatisch zusammengeführt", file=md_code(cf.file)))
@@ -5876,6 +6020,8 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
                         key=_conf_key(i, None), label_visibility="collapsed",
                     )  # fmt: skip
                     ready = ready and pick is not None
+                if show_diffs:
+                    _conflict_diffs(repo.root, cf.file)
                 for j, kc in enumerate(cf.keys):
                     options = {
                         "ours": t("Meine Änderung: {v}", v=_show_value(kc.ours)),

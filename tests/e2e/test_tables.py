@@ -39,12 +39,15 @@ def test_grids_show_no_none_cells(page, app: App, key: str, minimum: int):
     assert not [c for c in cells if c.lower() in MISSING_WORDS]
 
 
-def test_unrecorded_values_show_a_dash_in_the_product_overview(page, app: App):
-    """Nicht erfasste Werte stehen als „–“ in der Tabelle (die Daten bleiben leer)."""
+def test_unrecorded_values_show_no_none_in_the_product_overview(page, app: App):
+    """Nicht erfasste Werte erscheinen nie als „None“; Spalten ohne jeden Wert (hier Planning und
+    Erledigt) werden gar nicht gezeigt."""
     open_page(page, app, "produkte")
-    cells = [cell for table in all_tables(page, 3) for row in table for cell in row]
-    assert "–" in cells
+    tables = all_tables(page, 3)
+    cells = [cell for table in tables for row in table for cell in row]
     assert "None" not in cells
+    headers = [h for table in tables for h in table[0]]
+    assert not [h for h in headers if h.startswith(("Planning", "Erledigt"))]
 
 
 def test_grids_are_readable_through_the_accessible_table(page, app: App):
