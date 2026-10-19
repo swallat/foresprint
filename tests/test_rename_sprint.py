@@ -247,6 +247,8 @@ def test_cli_commit_records_the_move(data_dir: Path, tmp_path: Path):
 
     git = ["git", "-C", str(tmp_path)]
     subprocess.run([*git, "init", "-q", "-b", "main"], check=True)
+    subprocess.run([*git, "config", "user.name", "T"], check=True)
+    subprocess.run([*git, "config", "user.email", "t@example.org"], check=True)
     subprocess.run([*git, "-c", "user.name=t", "-c", "user.email=t@t", "add", "-A"], check=True)
     subprocess.run(
         [*git, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "start"], check=True
