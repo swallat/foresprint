@@ -80,6 +80,15 @@ def blank_controls(text: str) -> str:
     )
 
 
+def md_plain(text: str) -> str:
+    """Fließtext, der in Markdown nie als Markdown wirkt: Jedes ASCII-Satzzeichen erhält einen
+    Backslash (so verlangt es CommonMark), damit weder Auszeichnung, Links, Bilder noch
+    Webadressen wie ``www.beispiel.de`` oder ``http://…`` etwas bewirken. Steuerzeichen und
+    Zeilenumbrüche werden wie bei :func:`md_code` zu Leerzeichen. Für Meldungen, die Namen aus
+    Dateien enthalten und sich im Text nicht einzeln als Code setzen lassen."""
+    return re.sub(r"([!-/:-@\[-`{-~])", r"\\\1", blank_controls(text))
+
+
 def md_code(text: str) -> str:
     """Text als Code-Span für Markdown. Namen und Adressen, die von außen kommen (Server,
     Konfiguration), gehören nie als Fließtext in die Oberfläche: Dort würden Auszeichnungen

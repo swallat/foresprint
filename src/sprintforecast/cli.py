@@ -38,7 +38,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.git import GitError, commit, title_for
+from sprintforecast.git import GitError, blank_controls, commit, title_for
 from sprintforecast.guide import (
     CAPACITY_SOURCES,
     COMMAND_ALIASES,
@@ -377,7 +377,7 @@ def _show_sprint_forecast(c: Context, team: str, sprint_id: str) -> None:
             f"{t('Kapazität')}: {capacity_label(e)} PT\n"
             f"{t('n. Velocity-Trend')}: {fmt(r.normalized_velocity.trend, 2)}\n"
             f"[bold]Forecast PLAN: {fmt(r.plan)} {unit}[/bold]  "
-            f"(Roadmap {fmt(r.roadmap, 2)} · {t('Kleinkram')} {fmt(r.small_stuff, 2)})",
+            f"({t('Verplanbar')} {fmt(r.roadmap, 2)} · {t('Kleinkram')} {fmt(r.small_stuff, 2)})",
             title=t("Prognose Sprint {id}", id=_plain(sprint_id)),
             title_align="left",
             border_style="green",
@@ -965,7 +965,7 @@ def _ask_product_values(data: TeamData, fc: Forecast, s: Sprint, measure: str) -
 
 
 def _distribution_table(d: Distribution, unit: str) -> Table:
-    basis = t("Roadmap-Anteil") if d.basis.value == "roadmap" else "Forecast PLAN"
+    basis = t("Verplanbarer Anteil") if d.basis.value == "roadmap" else "Forecast PLAN"
     table = Table(title=t("Produkte Sprint {id}", id=_plain(d.sprint.id)))
     table.add_column(t("Produkt"))
     if d.features.po:
@@ -1196,7 +1196,7 @@ def forecast(
         t("n. Vel. (Ø/Trend)"),
         f"Forecast PLAN {unit}",
         t("Spanne"),
-        "Roadmap",
+        t("Verplanbar"),
         t("Kleinkram"),
     ]
     for i, col in enumerate(columns):
@@ -1286,7 +1286,7 @@ def analyse(
         typer.Option(
             "--gesamt",
             "--total",
-            help=t("Für --rest den ganzen Forecast nutzen statt nur des Roadmap-Anteils."),
+            help=t("Für --rest den ganzen Forecast nutzen statt nur des verplanbaren Anteils."),
         ),
     ] = False,
     anteil: Annotated[
@@ -1298,8 +1298,8 @@ def analyse(
             max=100,
             callback=_finite_option,
             help=t(
-                "Projektanteil in %: welcher Teil der Roadmap- bzw. Gesamtkapazität in die "
-                "Restmenge fließt (Standard 100)."
+                "Projektanteil in %: welcher Teil des verplanbaren Anteils bzw. der "
+                "Gesamtkapazität in die Restmenge fließt (Standard 100)."
             ),
         ),
     ] = 100.0,
@@ -1384,7 +1384,7 @@ def analyse(
         basis = (
             t("gesamter Forecast")
             if gesamt
-            else t("Roadmap-Anteil {share}", share=pct(basis_share))
+            else t("Verplanbarer Anteil {share}", share=pct(basis_share))
         )
         if anteil < 100:
             basis += t(
@@ -1574,8 +1574,10 @@ def pruefen(
         console.print(f"[bold]{_plain_end(key)}[/bold]")
         for i in issues:
             colour = "red" if i.level is Level.ERROR else "yellow"
+            # Namen aus den Dateien können Steuerzeichen enthalten (Zeilenumbruch, ESC)
+            where, message = blank_controls(i.where), blank_controls(i.message)
             console.print(
-                f"  [{colour}]{i.level.label}[/{colour}] {_plain(i.where)}: {_plain(i.message)}"
+                f"  [{colour}]{i.level.label}[/{colour}] {_plain(where)}: {_plain(message)}"
             )
             failed |= i.level is Level.ERROR or streng
     raise typer.Exit(1 if failed else 0)
