@@ -277,6 +277,48 @@ def test_people_are_merged_per_entry(alice: Person, bob: Person, remote: Path):
     assert [(p["id"], p["fte"]) for p in merged] == [("anna", 1), ("ben", 0.5), ("cem", 1)]
 
 
+def prognosis_entry(minute: int, comment: str) -> str:
+    return f"- at: 2026-10-18 09:{minute:02d}:00\n  comment: {comment}\n  forecast_ist: 20\n"
+
+
+def test_two_people_append_a_prognosis_in_parallel_and_both_stay(
+    alice: Person, bob: Person, remote: Path
+):
+    head = "velocity: 10\nprognoses:\n"
+    alice.write("a/2026.1.yaml", head + prognosis_entry(0, "Start"))
+    assert alice.sync("Start").ok
+    assert bob.sync("holen").ok
+    alice.write("a/2026.1.yaml", head + prognosis_entry(0, "Start") + prognosis_entry(10, "Alice"))
+    assert alice.sync("Prognose Alice").ok
+    bob.write("a/2026.1.yaml", head + prognosis_entry(0, "Start") + prognosis_entry(20, "Bob"))
+    result = bob.sync("Prognose Bob")
+    assert result.ok and result.merged and result.pushed and not result.conflicts
+    merged = yaml.safe_load(git(remote, "show", f"main:{FILE}"))
+    assert [p["comment"] for p in merged["prognoses"]] == ["Start", "Alice", "Bob"]
+
+
+def test_prognosis_with_same_time_but_other_content_is_decided_per_entry(
+    alice: Person, bob: Person, remote: Path
+):
+    head = "velocity: 10\nprognoses:\n"
+    alice.write("a/2026.1.yaml", head + prognosis_entry(0, "Start"))
+    assert alice.sync("Start").ok
+    assert bob.sync("holen").ok
+    alice.write("a/2026.1.yaml", head + prognosis_entry(0, "Start") + prognosis_entry(10, "Alice"))
+    assert alice.sync("Prognose Alice").ok
+    bob.write("a/2026.1.yaml", head + prognosis_entry(0, "Start") + prognosis_entry(10, "Bob"))
+    result = bob.sync("Prognose Bob")
+    assert result.error and result.error.kind == "conflict"
+    [conflict] = result.conflicts
+    [key] = conflict.keys
+    assert key.path == ("prognoses", "[2026-10-18T09:10:00]")
+    assert key.ours["comment"] == "Bob" and key.theirs["comment"] == "Alice"
+    assert gitsync.resolve_conflicts(bob.data, {FILE: {key.path: "theirs"}}) == []
+    assert bob.sync("egal").pushed
+    merged = yaml.safe_load(git(remote, "show", f"main:{FILE}"))
+    assert [p["comment"] for p in merged["prognoses"]] == ["Start", "Alice"]
+
+
 def test_deleted_on_one_side_is_decided_as_whole_file(alice: Person, bob: Person, remote: Path):
     (alice.data / "a" / "2026.1.yaml").unlink()
     assert alice.sync("Löschen").ok
