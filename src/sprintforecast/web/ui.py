@@ -4738,9 +4738,14 @@ def collect_sync_result() -> None:
 
 
 def _sync_clicked(
-    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
+    root: Path,
+    tags: list[str],
+    allow_invalid: bool = False,
+    allow_unrelated: bool = False,
+    push: bool = True,
 ) -> None:
-    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
+    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen.
+    Mit ``push=False`` („Vom Server holen“) wird nur gesichert und der Serverstand übernommen."""
     slot = _sync_slot()
     if not slot.begin():  # ein Abgleich dieser Sitzung läuft noch: nicht noch einen starten
         st.session_state.setdefault("flash", []).append(
@@ -4764,6 +4769,7 @@ def _sync_clicked(
             today(),
             allow_invalid=allow_invalid,
             allow_unrelated=allow_unrelated,
+            push=push,
         )
         slot.put(root, result)  # vor dem Freigeben: Wer danach aufwacht, findet es
     finally:
@@ -5285,6 +5291,18 @@ def _git_panel(repo: Repository) -> None:
                 help=t(
                     "Sichert deine Änderungen, holt die der anderen, führt beides zusammen und "
                     "lädt es hoch."
+                ),
+            )
+            st.button(
+                t("Vom Server holen"),
+                icon=":material/download:",
+                key="git-pull",
+                on_click=_sync_clicked,
+                args=(repo.root, list(tags), False, False, False),
+                help=t(
+                    "Holt die Änderungen der anderen in diesen Datenordner und führt sie mit "
+                    "deinen zusammen (eigene offene Änderungen werden vorher gesichert). Lädt "
+                    "nichts hoch."
                 ),
             )
             st.button(
