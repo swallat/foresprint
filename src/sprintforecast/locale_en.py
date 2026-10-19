@@ -1940,4 +1940,10 @@ EN: dict[str, str] = {
     "Die Tickets, die laut Ticket-Vorplanung in diesem Sprint liegen (Sprint laut Ticketsystem, Vormerkungen und Verteilung), summiert je Produkt. Nur ein Anhaltspunkt für die Einplanung, nichts wird übernommen.": "The tickets that the ticket pre-planning puts into this sprint (sprint according to the ticket system, earmarks and distribution), summed per product. Only a guide for the planning; nothing is adopted.",
     "Vorschlag aus der Ticket-Vorplanung: {total} {unit}": "Suggestion from the ticket pre-planning: {total} {unit}",
     "{refine} Tickets sind noch zu refinen, {open} lassen sich nicht verteilen.": "{refine} tickets still have to be refined, {open} cannot be distributed.",
+    "Vormerkungen als Label nach Jira schreiben": "Write earmarks to Jira as labels",
+    "Jeder Vormerkung entspricht das Label planned_for_<Sprint> am Ticket; ein veraltetes Label wird entfernt. Tickets in einem echten Sprint bekommen keins. Zuerst erscheint die Vorschau, geschrieben wird erst nach der Bestätigung.": "Each earmark corresponds to the label planned_for_<sprint> on the ticket; an outdated label is removed. Tickets in a real sprint get none. The preview comes first; nothing is written until you confirm.",
+    "Label-Änderungen prüfen": "Check label changes",
+    "In Jira schreiben": "Write to Jira",
+    "Der Stand in Jira hat sich seit der Vorschau geändert – bitte prüfen.": "The state in Jira changed since the preview - please check again.",
+    "{count} Tickets in Jira geändert. Danach „Tickets aus Jira lesen“, um den Stand zu übernehmen.": '{count} tickets changed in Jira. Then "Read tickets from Jira" to adopt the state.',
 }

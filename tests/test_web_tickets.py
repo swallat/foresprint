@@ -338,3 +338,96 @@ def test_every_change_kind_has_a_title():
     from sprintforecast.web.tickets_view import change_titles
 
     assert set(KINDS) <= set(change_titles())
+
+
+class LabelSource:
+    """Jira stand-in for the label write-back; ``labels`` is what Jira currently carries."""
+
+    kind, name, host = "jira", "jira.example.org", "jira.example.org"
+
+    def __init__(self, labels: list[str] | None = None):
+        self.labels = labels or []
+        self.calls: list[tuple[str, list[str], list[str]]] = []
+
+    def fetch(self):
+        from sprintforecast.sources import RawTicket
+
+        return [RawTicket(key="J-1", title="From Jira", estimate=2.0, labels=list(self.labels))]
+
+    def set_labels(self, key, add, remove):
+        self.calls.append((key, add, remove))
+
+    def close(self):
+        pass
+
+
+def label_setup(data_dir: Path, monkeypatch, source: LabelSource, write_labels: bool = True):
+    from sprintforecast.model import Earmark, Preplan
+
+    enable(data_dir)
+    team = data_dir / "demo" / "team.yaml"
+    doc = yaml.safe_load(team.read_text(encoding="utf-8"))
+    doc["tracker"]["kind"] = "jira"
+    doc["tracker"]["base_url"] = "https://jira.example.org"
+    doc["tracker"]["write_labels"] = write_labels
+    team.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    Repository(data_dir).save_preplan("demo", Preplan(earmarks=[Earmark("J-1", "2026.24")]))
+    monkeypatch.setattr("sprintforecast.web.tickets_view.open_source", lambda tracker: source)
+    return page(data_dir, monkeypatch)
+
+
+def test_label_writeback_previews_then_writes(data_dir: Path, monkeypatch):
+    source = LabelSource()
+    at = label_setup(data_dir, monkeypatch, source)
+    button(at, "Label-Änderungen prüfen").click().run()
+    assert not at.exception, at.exception
+    assert source.calls == []
+    assert any("J-1" in str(df.value.to_dict()) for df in at.dataframe)
+    button(at, "In Jira schreiben").click().run()
+    assert not at.exception, at.exception
+    assert source.calls == [("J-1", ["planned_for_2026.24"], [])]
+
+
+def test_label_writeback_refuses_a_changed_state(data_dir: Path, monkeypatch):
+    source = LabelSource()
+    at = label_setup(data_dir, monkeypatch, source)
+    button(at, "Label-Änderungen prüfen").click().run()
+    source.labels = ["planned_for_2026.23"]  # somebody else changed the ticket meanwhile
+    button(at, "In Jira schreiben").click().run()
+    assert not at.exception, at.exception
+    assert source.calls == []
+    assert any("seit der Vorschau geändert" in w.value for w in at.warning)
+
+
+def test_label_writeback_needs_the_switch(data_dir: Path, monkeypatch):
+    at = label_setup(data_dir, monkeypatch, LabelSource(), write_labels=False)
+    assert not any(b.label == "Label-Änderungen prüfen" for b in at.button)
+
+
+def test_label_writeback_failure_drops_the_preview(data_dir: Path, monkeypatch):
+    from sprintforecast.sources import SourceError
+
+    class Failing(LabelSource):
+        def set_labels(self, key, add, remove):
+            raise SourceError("kaputt")
+
+    at = label_setup(data_dir, monkeypatch, Failing())
+    button(at, "Label-Änderungen prüfen").click().run()
+    button(at, "In Jira schreiben").click().run()
+    assert not at.exception, at.exception
+    assert any("kaputt" in e.value for e in at.error)
+    at.run()  # the next run no longer offers the out-of-date preview
+    assert not any(b.label == "In Jira schreiben" for b in at.button)
+
+
+def test_label_writeback_with_an_empty_query_writes_nothing(data_dir: Path, monkeypatch):
+    class Empty(LabelSource):
+        def fetch(self):
+            return []
+
+    source = Empty()
+    at = label_setup(data_dir, monkeypatch, source)
+    button(at, "Label-Änderungen prüfen").click().run()
+    assert not at.exception, at.exception
+    assert any("keine Tickets" in e.value for e in at.error)
+    assert source.calls == []

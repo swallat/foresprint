@@ -21,6 +21,7 @@ import streamlit as st
 
 from sprintforecast.forecast import Forecast
 from sprintforecast.i18n import t
+from sprintforecast.label_writeback import LabelPlan, apply_label_writes, plan_label_writes
 from sprintforecast.model import (
     BudgetBasis,
     Earmark,
@@ -398,6 +399,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
         _open_points(data, dist, sel)
     with tabs[4]:
         _import(repo, data, fc)
+        _label_section(data, fc)
     with tabs[5]:
         _projects_editor(repo, data)
         _estimates_editor(repo, data)
@@ -723,6 +725,119 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
     _import_preview(repo, data, fc, raws, name, counter, fetched)
 
 
+def _label_signature(plan: LabelPlan) -> list[tuple[str, tuple[str, ...], tuple[str, ...]]]:
+    return [(w.key, tuple(w.add), tuple(w.remove)) for w in plan.writes]
+
+
+def _plan_labels(data: TeamData, fc: Forecast, source: Any) -> LabelPlan:
+    """Reads the tickets fresh (the labels must be current) and plans the label changes against
+    the earmarks, as the command ``tickets --write-labels`` does."""
+    raws = source.fetch()
+    if not raws:
+        raise SourceError(
+            t(
+                "Die Abfrage lieferte keine Tickets – nichts geschrieben. JQL "
+                "(tracker.query) und Berechtigungen des Tokens prüfen."
+            )
+        )
+    import_plan = plan_import(data, fc, raws, today(), adopt_labels=False)
+    return plan_label_writes(import_plan.tickets, import_plan.preplan)
+
+
+def _label_section(data: TeamData, fc: Forecast) -> None:
+    """Write-back of the earmarks as the Jira label ``planned_for_<sprint_id>``: preview first,
+    written only after a second click, and only the changes of the preview."""
+    tracker = data.team.tracker
+    if tracker.kind != "jira" or not tracker.write_labels:
+        return
+    key = data.team.key
+    stored = f"tickets-{key}-labelplan"
+    st.divider()
+    st.subheader(t("Vormerkungen als Label nach Jira schreiben"))
+    st.caption(
+        t(
+            "Jeder Vormerkung entspricht das Label planned_for_<Sprint> am Ticket; ein "
+            "veraltetes Label wird entfernt. Tickets in einem echten Sprint bekommen keins. "
+            "Zuerst erscheint die Vorschau, geschrieben wird erst nach der Bestätigung."
+        )
+    )
+    if st.button(t("Label-Änderungen prüfen"), key=f"tickets-{key}-labels-plan"):
+        st.session_state.pop(stored, None)
+        source = None
+        try:
+            source = open_source(tracker)
+            with st.spinner(t("Jira wird gelesen …")):
+                st.session_state[stored] = _plan_labels(data, fc, source)
+        except SourceError as e:
+            st.error(str(e))
+        finally:
+            _close(source)
+    plan = st.session_state.get(stored)
+    if plan is None:
+        return
+    for warning in plan.warnings:
+        st.warning(warning)
+    if not plan.writes:
+        st.info(t("Keine Label-Änderungen nötig."))
+        return
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    t("Ticket"): w.key,
+                    t("Titel"): w.title,
+                    t("Label hinzufügen"): ", ".join(w.add) or "–",
+                    t("Label entfernen"): ", ".join(w.remove) or "–",
+                }
+                for w in plan.writes
+            ]
+        ),
+        hide_index=True,
+    )
+    if not st.button(t("In Jira schreiben"), type="primary", key=f"tickets-{key}-labels-write"):
+        return
+    source = None
+    try:
+        source = open_source(tracker)
+        with st.spinner(t("Jira wird gelesen …")):
+            fresh = _plan_labels(data, fc, source)
+        if _label_signature(fresh) != _label_signature(plan):
+            # Jira changed since the preview: show the new one instead of writing the old one.
+            st.session_state[stored] = fresh
+            st.session_state["flash"] = [
+                (
+                    "warning",
+                    t("Der Stand in Jira hat sich seit der Vorschau geändert – bitte prüfen."),
+                )
+            ]
+            st.rerun()
+        written = apply_label_writes(source, fresh)
+    except SourceError as e:
+        # What was written before the failure is in Jira now: the preview is out of date.
+        st.session_state.pop(stored, None)
+        st.error(str(e))
+        return
+    finally:
+        _close(source)
+    st.session_state.pop(stored, None)
+    st.session_state["flash"] = [
+        (
+            "success",
+            t(
+                "{count} Tickets in Jira geändert. Danach „Tickets aus Jira lesen“, um den Stand "
+                "zu übernehmen.",
+                count=written,
+            ),
+        )
+    ]
+    st.rerun()
+
+
+def _close(source: Any) -> None:
+    if source is not None and hasattr(source, "close"):
+        source.close()
+
+
 def _fetch_jira(data: TeamData) -> tuple[list[RawTicket], str] | None:
     """Reads the tickets of the Jira query (token from the environment or the keychain); shows
     the error and returns None when that fails. An empty result never replaces the last import."""
@@ -735,8 +850,7 @@ def _fetch_jira(data: TeamData) -> tuple[list[RawTicket], str] | None:
         st.error(str(e))
         return None
     finally:
-        if source is not None and hasattr(source, "close"):
-            source.close()
+        _close(source)
     if not raws and data.tickets:
         st.error(
             t(
