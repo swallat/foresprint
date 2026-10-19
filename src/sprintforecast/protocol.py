@@ -323,7 +323,7 @@ def _fallback_lock_dir() -> Path:
 # Sitzungen unbemerkt auf verschiedene Sperrdateien zu verteilen.
 _PERMANENT_OPEN_ERRNOS = frozenset(
     getattr(errno, name)
-    for name in ("ENOENT", "EROFS", "EACCES", "EPERM", "EISDIR", "ENOTDIR")
+    for name in ("ENOENT", "EROFS", "EACCES", "EPERM", "EISDIR", "ENOTDIR", "EEXIST")
     if hasattr(errno, name)
 )
 
@@ -386,14 +386,9 @@ class _LockUnsupported(Exception):
 # Nur echte Konkurrenz heißt „belegt“: POSIX ``EWOULDBLOCK``/``EAGAIN`` (manche ``flock``-Arten
 # melden ``EACCES``), Windows ``EACCES`` und ``EDEADLOCK`` von ``msvcrt.locking`` sowie die
 # Windows-Fehler 32 (Zugriffsverletzung) und 33 (Verletzung des Sperrbereichs).
-# Unter POSIX ist ``EACCES`` dagegen ein dauerhafter Fehler (fehlendes Recht), nicht „belegt“.
 _BUSY_ERRNOS = frozenset(
     getattr(errno, name)
-    for name in (
-        ("EACCES", "EAGAIN", "EWOULDBLOCK", "EDEADLK", "EDEADLOCK")
-        if sys.platform == "win32"
-        else ("EAGAIN", "EWOULDBLOCK", "EDEADLK")
-    )
+    for name in ("EACCES", "EAGAIN", "EWOULDBLOCK", "EDEADLK", "EDEADLOCK")
     if hasattr(errno, name)
 )
 _BUSY_WINERRORS = frozenset({32, 33})
