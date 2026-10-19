@@ -201,7 +201,7 @@ class App:
         env |= {
             DATA_ENV: str(self.data_dir),
             STICHTAG_ENV: STICHTAG,
-            "SPRINTFORECAST_AUTOUPDATE": "aus",
+            "SPRINTFORECAST_AUTOUPDATE": "off",
             "XDG_CONFIG_HOME": str(self.config),
             "APPDATA": str(self.config),
             "PYTHONUTF8": "1",
