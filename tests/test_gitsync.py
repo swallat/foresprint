@@ -1432,3 +1432,63 @@ def test_pull_takes_over_server_state_without_pushing(alice: Person, bob: Person
     assert (bob.data / "a/protokolle/2026.1-review-20260102-100000-cd34.md").exists()
     assert git(remote, "rev-parse", "main") == before
     assert gitsync.state(bob.data).ahead >= 1
+
+
+def test_protocols_travel_with_teams_in_repository_root(alice: Person, bob: Person):
+    """Teams directly in the repository root (no ``teams`` folder): the data folder is the root."""
+    name = "a/protokolle/2026.1-review-20260103-100000-ef56.md"
+    (alice.root / "a").mkdir(exist_ok=True)
+    (alice.root / name).parent.mkdir(parents=True, exist_ok=True)
+    (alice.root / name).write_text("# Review\n", encoding="utf-8")
+    invalidate_status()
+    result = gitsync.sync(alice.root, "Protokoll im Root")
+    assert result.error is None and result.pushed
+    assert gitmod_ls(alice.root, name)
+    result = gitsync.sync(bob.root, "nichts")
+    assert result.error is None
+    assert (bob.root / name).read_text(encoding="utf-8") == "# Review\n"
+
+
+def gitmod_ls(root: Path, name: str) -> str:
+    return git(root, "ls-files", name)
+
+
+def _gitlab_like(remote: Path) -> Path:
+    """A server that accepts push options and answers like GitLab; records the options."""
+    git(remote, "config", "receive.advertisePushOptions", "true")
+    log = remote / "push-options.log"
+    hook = remote / "hooks" / "post-receive"
+    hook.write_text(
+        "#!/bin/sh\n"
+        f'echo "$GIT_PUSH_OPTION_COUNT:$GIT_PUSH_OPTION_0:$GIT_PUSH_OPTION_1:$GIT_PUSH_OPTION_2" >> "{log}"\n'
+        'echo "remote: View merge request for x:" >&2\n'
+        'echo "remote:   https://gitlab.example.org/team/data/-/merge_requests/7" >&2\n',
+        encoding="utf-8",
+    )
+    hook.chmod(0o755)
+    return log
+
+
+def test_share_via_merge_request_pushes_own_branch(alice: Person, bob: Person, remote: Path):
+    log = _gitlab_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    assert gitsync.share_mode(bob.data) == gitsync.SHARE_MERGE_REQUEST
+    main_before = git(remote, "rev-parse", "main")
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    result = bob.sync("Sprint 2 geplant")
+    assert result.error is None and result.pushed
+    assert result.merge_request_branch == "sprintforecast/bob"
+    assert result.merge_request_url == "https://gitlab.example.org/team/data/-/merge_requests/7"
+    assert git(remote, "rev-parse", "main") == main_before  # main stays untouched
+    assert git(remote, "log", "-1", "--format=%s", "sprintforecast/bob") == "Sprint 2 geplant"
+    options = log.read_text(encoding="utf-8")
+    assert "merge_request.create" in options and "merge_request.target=main" in options
+    again = bob.sync("nochmal")  # still ahead of main (not merged yet): nothing new, no error
+    assert again.error is None and git(remote, "rev-parse", "main") == main_before
+
+
+def test_share_mode_defaults_to_direct(alice: Person):
+    assert gitsync.share_mode(alice.data) == gitsync.SHARE_DIRECT
+    gitsync.set_share_mode(alice.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_share_mode(alice.data, gitsync.SHARE_DIRECT)
+    assert gitsync.share_mode(alice.data) == gitsync.SHARE_DIRECT
