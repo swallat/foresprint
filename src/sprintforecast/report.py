@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 from sprintforecast.analysis import MIN_SAMPLES, average_focus_factor, band, buffer_hint
+from sprintforecast.capacity import AbsenceHistory
 from sprintforecast.engine import UNSURE_SOURCES, CapacitySource, round_half_up
 from sprintforecast.forecast import Forecast, TimelineEntry
+from sprintforecast.git import blank_controls, md_code
 from sprintforecast.i18n import is_english, t
 from sprintforecast.model import AbsenceState, Sprint, absence_status
 
@@ -103,22 +105,117 @@ def absence_status_label(sprint: Sprint) -> str:
     }[absence_status(sprint)]
 
 
-def reliability_notes(fc: Forecast) -> list[str]:
-    """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht)."""
-    from sprintforecast.analysis import MIN_SAMPLES, sample_count
+def absence_derived_note(
+    history: AbsenceHistory | None,
+    detailed: bool = False,
+    code: bool = True,
+    window: int = 0,
+) -> str | None:
+    """Hinweis, dass die erwartete Fehltage-Quote unsicher ist: Sprints, die nur aus anderen
+    Feldern (ältere Dateien ohne gespeicherten Stand) als bestätigt gelten und keine Fehltage
+    haben, zählen mit „0 % Ausfall“ und ziehen die Quote nach unten. Die Zahlen bleiben
+    unverändert. None, wenn kein solcher Sprint in die Quote eingeht.
+
+    Die Sprint-IDs stammen aus Dateien und stehen in Code-Schreibweise (``md_code``), damit
+    sie in Markdown nichts verändern (``code=False`` für Tabellen, Klartext und die
+    Kommandozeile, dort mit ``sprint_text``). ``detailed`` ergänzt, was zu tun ist."""
+    if history is None or not history.derived:
+        return None
+    count = len(history.derived)
+    sprints = ", ".join(md_code(i) if code else sprint_text(i) for i in history.derived)
+    if count == 1:
+        note = t(
+            "Quote unsicher: {count} Sprint in der erwarteten Fehltage-Quote ({sprints}) gilt "
+            "nur als bestätigt, weil er bereits geplant oder ausgewertet wurde; es sind keine "
+            "Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte "
+            "Kapazität künftiger Sprints kann zu hoch sein.",
+            count=count,
+            sprints=sprints,
+        )
+    else:
+        note = t(
+            "Quote unsicher: {count} Sprints in der erwarteten Fehltage-Quote ({sprints}) gelten "
+            "nur als bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind keine "
+            "Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte "
+            "Kapazität künftiger Sprints kann zu hoch sein.",
+            count=count,
+            sprints=sprints,
+        )
+    return note + " " + absence_derived_remedy(window) if detailed else note
+
+
+def sprint_text(sprint_id: str) -> str:
+    """Sprint-ID für Klartext ohne Markdown (Tabelle, Kommandozeile): Steuerzeichen und
+    Zeichen der Schreibrichtung werden wie bei ``md_code`` zu Leerzeichen."""
+    return blank_controls(sprint_id)
+
+
+def absence_derived_hint(history: AbsenceHistory | None) -> str | None:
+    """Kurzer Verweis für Seiten, auf denen nur die geschätzte Kapazität steht (ohne die Liste
+    der Sprints; die steht auf der Fehltage-Seite, im Rechenweg, im Bericht)."""
+    if history is None or not history.derived:
+        return None
+    page = t("Sprint vorbereiten: Fehltage")
+    if len(history.derived) == 1:
+        return t(
+            "Quote unsicher: Für {count} Sprint der Quote sind keine Fehltage gespeichert. "
+            "Details auf der Seite „{page}“.",
+            count=1,
+            page=page,
+        )
+    return t(
+        "Quote unsicher: Für {count} Sprints der Quote sind keine Fehltage gespeichert. "
+        "Details auf der Seite „{page}“.",
+        count=len(history.derived),
+        page=page,
+    )
+
+
+def absence_derived_remedy(window: int) -> str:
+    """Was bei einer unsicheren Fehltage-Quote zu tun ist (ohne Sprint-IDs). ``window`` ist die
+    Einstellung ``absence_history``: Wie lange der Hinweis bleibt."""
+    return t(
+        "Fehlte in einem dieser Sprints jemand, die Fehltage auf der Seite „{page}“ eintragen "
+        "und mit „Fehltage speichern“ sichern (oder mit `sprintforecast fehltage`). Fehlte "
+        "niemand, stimmt die Quote. In der Tabelle „Stand der Fehltage“ gelten diese Sprints als "
+        "bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind aber keine "
+        "Fehltage gespeichert. Der Hinweis bleibt, bis die Sprints aus dem Fenster der letzten "
+        "{window} Sprints (Einstellung `absence_history`) herausfallen oder Fehltage "
+        "eingetragen sind.",
+        page=t("Sprint vorbereiten: Fehltage"),
+        window=window,
+    )
+
+
+def absence_derived_cli_remedy(window: int, team: str) -> str:
+    """Wie :func:`absence_derived_remedy`, für die Kommandozeile: der Befehl statt der
+    Bedienung der Weboberfläche, ohne Markdown."""
+    return t(
+        "Fehlte in einem dieser Sprints jemand, die Fehltage nachtragen mit: "
+        "sprintforecast fehltage {team} <SPRINT>. Fehlte niemand, stimmt die Quote. Der Hinweis "
+        "bleibt, bis die Sprints aus dem Fenster der letzten {window} Sprints (Einstellung "
+        "absence_history) herausfallen oder Fehltage eingetragen sind.",
+        team=team,
+        window=window,
+    )
+
+
+def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
+    """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht). ``code=False``
+    für die Kommandozeile: Sprint-IDs ohne Markdown-Backticks, dazu der Befehl zum Nachtragen."""
     from sprintforecast.model import TrendMode
 
     notes = []
-    samples = sample_count(fc)
-    if samples and samples < MIN_SAMPLES:
-        notes.append(
-            t(
-                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
-                "belastbarer). Plan und Spanne sind grobe Hinweise.",
-                samples=samples,
-                min=MIN_SAMPLES,
-            )
-        )
+    estimated = any(
+        e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in fc.upcoming()
+    )
+    if estimated and (note := absence_derived_note(fc.absences, code=code)):
+        if not code:
+            team = fc.data.team
+            note += " " + absence_derived_cli_remedy(team.capacity.absence_history, team.key)
+        notes.append(note)
+    if note := few_samples_note(fc):
+        notes.append(note)
     mode = fc.data.team.forecast.trend_mode
     if any(e.result.trend_fallback for e in fc.upcoming()):
         notes.append(
@@ -138,6 +235,58 @@ def reliability_notes(fc: Forecast) -> list[str]:
             )
         )
     return notes
+
+
+def few_samples_note(fc: Forecast) -> str | None:
+    """Warnung „Wenig Daten“ der Prognose (Kommandozeile, Bericht und Weboberfläche): Die
+    Stichprobe von Spanne und Simulation (``sample_count``, auf das Fenster gedeckelt) liegt
+    unter ``MIN_SAMPLES``. Deckelt das Fenster, nennt der Satz beide Zahlen (Stichprobe und alle
+    erfassten Werte) und erklärt das Fenster. ``None`` ohne Werte oder ab der Schwelle."""
+    from sprintforecast.analysis import available_count, sample_count
+
+    samples = sample_count(fc)
+    if not samples or samples >= MIN_SAMPLES:
+        return None
+    available = available_count(fc)
+    if available > samples:
+        note = t(
+            "Wenig Daten: Die Spanne zieht aus nur {samples} der {available} erfassten Sprints "
+            "mit Velocity (ab {min} ist die Spanne belastbarer). Plan und Spanne sind grobe "
+            "Hinweise.",
+            samples=samples,
+            available=available,
+            min=MIN_SAMPLES,
+        )
+    else:
+        note = t(
+            "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die "
+            "Spanne belastbarer). Plan und Spanne sind grobe Hinweise.",
+            samples=samples,
+            min=MIN_SAMPLES,
+        )
+    hint = window_hint(fc.data.team.forecast.window, samples, available)
+    return f"{note} {hint}" if hint else note
+
+
+def window_hint(window: int, samples: int, available: int, simulation: bool = False) -> str:
+    """Zusatz zu „Wenig Daten“, wenn das Prognosefenster unter ``MIN_SAMPLES`` die Stichprobe
+    tatsächlich deckelt (``available`` erfasste Werte, ``samples`` davon in der Rechnung): Die
+    Stichprobe kann die Schwelle dann nie erreichen. Sonst leer, auch wenn es schlicht nicht
+    mehr Werte gibt. ``simulation``: Der Hinweis hängt an der Warnung der
+    Fertigstellungs-Simulation."""
+    if window >= MIN_SAMPLES or available <= samples:
+        return ""
+    if simulation:
+        return t(
+            "Das Prognosefenster ist auf {window} Sprints gestellt; mit einem größeren Fenster "
+            "(Einstellungen) gehen mehr Werte in Spanne und Simulation ein.",
+            window=window,
+        )
+    return t(
+        "Das Prognosefenster ist auf {window} Sprints gestellt; mit einem größeren Fenster "
+        "(Einstellungen) gehen mehr Werte in die Spanne ein.",
+        window=window,
+    )
 
 
 def completion_note(samples: int) -> str | None:
@@ -184,7 +333,7 @@ def render(fc: Forecast, history: int = 10) -> str:
         "| Sprint | "
         + t(
             "Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** ({unit}) "
-            "| Spanne | Roadmap ({share}) | Kleinkram |",
+            "| Spanne | Verplanbar ({share}) | Kleinkram |",
             unit=unit,
             share=pct(f.roadmap_share),
         ),

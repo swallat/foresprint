@@ -316,9 +316,9 @@ Speicherungen sofort.
 | PO-Planung | `sprintforecast forecast team-a` | Prognose für laufenden + nächste Sprints. |
 | Produktauswertung | `sprintforecast produkte team-a [SPRINT]` | Verteilung je Produkt und Saldo der letzten Sprints. |
 | Bericht | `sprintforecast bericht [team-a]` | Schreibt `teams/team-a/FORECAST.md` (Tabelle + Mermaid-Diagramm). |
-| Excel | `sprintforecast excel team-a [-o datei.xlsx]` | Schreibt eine Excel-Liste (Rückweg für alle, die mit Excel weiterarbeiten): Sprintwerte als Eingaben (gelb), n. Velocity, Durchschnitt, Trend, Forecast PLAN, Roadmap und Kleinkram als echte Formeln, Aufteilung nach Produktionszugriff und je Produkt, zwei Trend-Diagramme. Braucht den Zusatz `[excel]` (`uv tool install "sprintforecast[web,excel] …"`); nicht im Datenordner ablegen (`*.xlsx` wird nicht committet). In der Weboberfläche: Seite Forecast → „Excel-Liste erstellen“. Die Mappe enthält das ganze Team (Einstellungen, Personen, Produkte, alle Sprints mit Fehltagen, Produktwerten und Prognosen). |
+| Excel | `sprintforecast excel team-a [-o datei.xlsx]` | Schreibt eine Excel-Liste (Rückweg für alle, die mit Excel weiterarbeiten): Sprintwerte als Eingaben (gelb), n. Velocity, Durchschnitt, Trend, Forecast PLAN, Verplanbar und Kleinkram als echte Formeln, Aufteilung nach Produktionszugriff und je Produkt, zwei Trend-Diagramme. Braucht den Zusatz `[excel]` (`uv tool install "sprintforecast[web,excel] …"`); nicht im Datenordner ablegen (`*.xlsx` wird nicht committet). In der Weboberfläche: Seite Forecast → „Excel-Liste erstellen“. Die Mappe enthält das ganze Team (Einstellungen, Personen, Produkte, alle Sprints mit Fehltagen, Produktwerten und Prognosen). |
 | Excel-Import | `sprintforecast excel-import team-a datei.xlsx [--uebernehmen]` | Liest eine solche Mappe zurück (nur die gelben Eingabezellen, nach fester Spaltenposition) und zeigt zuerst je Datei und Wert, was sich ändert; mit `--uebernehmen` werden nur die geänderten Dateien geschrieben. Sprintdateien, die in der Mappe fehlen, bleiben unverändert. Unabhängig vom früheren Import-Plugin, das weiter die ursprüngliche Excel-Liste einliest. |
-| Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. |
+| Vor dem Commit / CI | `sprintforecast pruefen` | Fehler und Plausibilität aller Teams prüfen. Meldet auch stille Annahmen beim Laden als Hinweis mit Datei, Zeile und Schlüsselpfad: doppelte Schlüssel in einer Datei (es zählt nur der letzte Eintrag) und leere Zahlenfelder, die als 0 gelesen werden (z. B. `fte:` ohne Zahl, leere Fehltage). Geladen und gerechnet wird unverändert. Achtung: Mit `--streng` ergibt das den Exit-Code 1; ein Datenordner mit altem Duplikat oder leerem `fte:` fällt dort nun durch (ohne `--streng` bleibt es bei Exit-Code 0). Grenze: Ein ganz fehlender Eintrag (z. B. `planning:` ohne `carryover`) ist kein leeres Feld und wird nicht gemeldet; dort gilt weiter still 0. Pro Datei erscheinen höchstens 50 solcher Hinweise. Gleiches zeigt die Seite „Prüfung“ der Weboberfläche. |
 
 ### PO-Vorplanung und Planning
 
@@ -416,7 +416,7 @@ sprint:
 forecast:
   reference_capacity: 67    # Bezug der normierten Velocity
   window: 5                 # gleitender Durchschnitt
-  roadmap_share: 0.8
+  roadmap_share: 0.8        # Verplanbarer Anteil des Forecast PLAN (Rest: Kleinkram)
   rounding: 1               # Forecast PLAN wird abgerundet (Kapazität: intern ungerundet)
   trend_mode: flat        # flat (Standard) | classic | linear – die beiden letzten schreiben Rauschen fort
   horizon: 3                # künftige Sprints in der Prognose
@@ -521,11 +521,11 @@ production_done: 0.5        # bzw. im Review erledigt, je Sprint mit Produktions
 | Ø | Mittel der letzten `window` Sprints **mit Wert**, nur wenn der Sprint selbst einen Wert hat; Sprints ohne Wert (Lücken) zählen nicht mit, das Fenster reicht weiter zurück |
 | Trend | Fortschreibung des Ø in die Zukunft (nie negativ) |
 | Forecast PLAN | n. Velocity-Trend / Referenz × Kapazität, auf 1 Stelle abgerundet, nie negativ; Vergangenheit: Commitment |
-| Roadmap / Kleinkram | Forecast PLAN × 0,8 / Rest |
+| Verplanbar / Kleinkram | Forecast PLAN × verplanbarer Anteil (Standard 0,8, Schlüssel `roadmap_share`) / Rest |
 | Fulfillment | Velocity / Commitment |
 | Planning-Delta | Forecast PLAN − (Überkipper + Backlog − Korrekturen) |
 | Erledigt | fertige Tickets **plus** im Sprint erledigte Teilanteile offener Tickets (Teampraxis); sollte im Team einheitlich gezählt werden, sonst sind Velocity und Erledigt über eine Umstellung hinweg nicht vergleichbar |
-| Standard je Produkt | verfügbar × `share` (fester Anteil, optional) bzw. (verfügbar − Σ feste Anteile) / Anzahl der Produkte ohne `share`; verfügbar = Forecast PLAN (beim Planning eingefroren, sonst aktuell) bzw. dessen Roadmap-Anteil |
+| Standard je Produkt | verfügbar × `share` (fester Anteil, optional) bzw. (verfügbar − Σ feste Anteile) / Anzahl der Produkte ohne `share`; verfügbar = Forecast PLAN (beim Planning eingefroren, sonst aktuell) bzw. dessen verplanbarer Anteil |
 | Saldo je Produkt | Σ Erledigt − Σ Standard über die Sprints, in denen für das Produkt Erledigt erfasst ist (fehlt ≠ 0: Sprints ohne Wert zählen nicht); feste Anteile dürfen zusammen nicht über 100 % liegen |
 
 **Neue Teams:** Ein erster Forecast erscheint schon ab **3 Sprints mit Velocity** („Historie dünn“:
@@ -601,7 +601,7 @@ zum Forecast, die bisherigen Werte bleiben unverändert:
 - **Wann ist es fertig?** Monte-Carlo-Simulation ab dem nächsten Sprint: in welchem Sprint
   eine Restmenge in 50 % bzw. 85 % der Simulationsläufe erledigt ist (modellabhängige Häufigkeit
   aus den letzten `window` Sprints, keine Zusage; Stichprobe und Warnung bei wenig Daten werden
-  angezeigt) – mit dem Roadmap-Anteil oder (`--gesamt`) dem ganzen Forecast, optional nur mit
+  angezeigt) – mit dem verplanbaren Anteil oder (`--gesamt`) dem ganzen Forecast, optional nur mit
   einem **Projektanteil** davon (`--anteil 50` = die Hälfte). Teams ohne Personenliste rechnen
   mit der Ø Kapazität.
 

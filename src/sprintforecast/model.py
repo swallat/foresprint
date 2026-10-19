@@ -32,7 +32,7 @@ class TrendMode(StrEnum):
 class ProductBasis(StrEnum):
     # Standardverteilung je Produkt aus dem gesamten Forecast PLAN …
     PLAN = "plan"
-    # … oder nur aus dem Roadmap-Anteil (Kleinkram wird nicht auf Produkte verteilt).
+    # … oder nur aus dem verplanbaren Anteil (Kleinkram wird nicht auf Produkte verteilt).
     ROADMAP = "roadmap"
 
 

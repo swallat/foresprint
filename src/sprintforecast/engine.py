@@ -8,7 +8,7 @@ Kennzahlen (je Sprint):
     Ø (gleitend)        = Durchschnitt über ``window`` Sprints je Kennzahl
     Trend               = Fortschreibung des Durchschnitts in die Zukunft
     Forecast PLAN       = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)
-    Roadmap / Kleinkram = Forecast PLAN × Roadmap-Anteil / Rest
+    Verplanbar / Kleinkram = Forecast PLAN × Verplanbarer Anteil (``roadmap_share``) / Rest
     Planning-Delta      = Forecast PLAN − (Überkipper + Backlog − Korrekturen)
 """
 
