@@ -555,6 +555,23 @@ _NOT_WRITABLE = re.compile(
 # Server über das Repository sagt (nicht gefunden, Zertifikat), steht vor „offline“: Git hängt
 # an solche Meldungen „Could not read from remote repository“ an und beginnt sie mit „unable to
 # access“.
+_OFFLINE_REST = (
+    r"Could not resolve host|Failed to connect|Connection (timed out|refused|reset)|"
+    r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
+    r"name resolution|ssh: connect to host|Connection closed by"
+)
+_OFFLINE = re.compile(_OFFLINE_REST + r"|Could not read from remote repository", re.I)
+_OFFLINE_OTHER = re.compile(_OFFLINE_REST, re.I)
+
+
+def _refused_hint() -> str:
+    return t(
+        "Der Server hat die Anfrage nicht erfüllt. Bitte die Adresse (Tippfehler im "
+        "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
+        "„Technische Meldung“."
+    )
+
+
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "identity",
@@ -591,16 +608,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
     ("not_found", _NOT_FOUND),
     ("certificate", _CERTIFICATE),
-    (
-        "offline",
-        re.compile(
-            r"Could not resolve host|Failed to connect|Connection (timed out|refused|reset)|"
-            r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
-            r"name resolution|Could not read from remote repository|ssh: connect to host|"
-            r"Connection closed by",
-            re.I,
-        ),
-    ),
+    ("offline", _OFFLINE),
     (
         "denied",
         re.compile(
@@ -751,6 +759,10 @@ def classify(
         if pattern.search(message):
             if kind == "unsafe_directory":
                 message = _without_safe_directory_advice(message)
+            if kind == "offline" and not _OFFLINE_OTHER.search(message):
+                # Nur „Could not read from remote repository“: Git hängt das auch an, wenn der
+                # Server das Repository verweigert; das belegt keine fehlende Verbindung.
+                return GitError(message, "error", _refused_hint(), raw=True)
             if kind == "not_found" and drive_check and _missing_folder(url):
                 kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
             hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
@@ -1390,13 +1402,11 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
         err.hint += " " + t("Die Adresse wird so nicht gespeichert.")
     elif err.kind == "offline" and _UNREACHABLE.search(message):
         err.hint = _unreachable_hint()
-    elif err.kind == "offline":  # z. B. „Could not read from remote repository“ ohne Grund
+    elif err.kind == "offline":  # Netzwerkfehler ohne belegte Unerreichbarkeit
         err.kind = "error"
-        err.hint = t(
-            "Der Server hat die Anfrage nicht erfüllt. Bitte die Adresse (Tippfehler im "
-            "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
-            "„Technische Meldung“."
-        )
+        err.hint = _refused_hint()
+    elif err.kind == "error" and err.hint == _refused_hint():
+        pass  # classify hat „Could not read from remote repository“ ohne Grund schon erklärt
     elif err.kind not in {"auth", "not_found", "unsafe_directory", "not_writable", "locked"}:
         err.hint = t(
             "Die Verbindung zum Server ist fehlgeschlagen. Die Meldung von Git steht unter "
