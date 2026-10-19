@@ -4436,7 +4436,7 @@ def _remote_section(repo: Repository) -> None:
 def _attributes_applied(data: Path) -> None:
     try:
         apply_attributes(data)
-    except (GitError, OSError) as e:
+    except (GitError, OSError, ValueError) as e:  # ValueError: keine UTF-8-Datei
         st.session_state["commit_error"] = e if isinstance(e, GitError) else folder_problem(data, e)
         return
     st.session_state["flash"] = [

@@ -1663,13 +1663,22 @@ def apply_attributes(data: Path) -> AttributesOffer | None:
     if offer is None:
         return None
     root = require_root(data)
+    previous = offer.file.read_bytes() if offer.file.exists() else None
     try:
-        existing = offer.file.read_text(encoding="utf-8") if offer.file.exists() else ""
+        existing = previous.decode("utf-8") if previous is not None else ""
         head = existing if not existing or existing.endswith("\n") else existing + "\n"
         offer.file.write_text(head + "\n".join(offer.rules) + "\n", encoding="utf-8", newline="\n")
-        if offer.affected:
-            names = (str((data / f).resolve()) for f in offer.affected)
+        # Eine noch nicht gespeicherte Löschung kennt nur der Index: ``git add`` bräche dort ab.
+        names = [str((data / f).resolve()) for f in offer.affected if (data / f).exists()]
+        if names:
             _git(root, "add", "--renormalize", "--", *names)
+    except BaseException:
+        # Nichts halb anbieten: Ohne die Datei gälte das Angebot weiter.
+        if previous is None:
+            offer.file.unlink(missing_ok=True)
+        else:
+            offer.file.write_bytes(previous)
+        raise
     finally:
         invalidate_status()
     return offer
