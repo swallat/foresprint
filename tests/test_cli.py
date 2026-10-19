@@ -187,18 +187,41 @@ def test_pruefen_fails_on_error(data_dir: Path):
 
 
 def test_init_new_team(tmp_path: Path):
+    # Reihenfolge: Name, dann der erste Sprint (Nummerierung, Start, ID), dann alles Weitere.
     answers = [
-        "Team A", "PT", "", "", "", "", "",
-        "by", "", "10", "", "", "14", "yearly", "2026-10-14", "2026.20",
+        "Team A", "yearly", "2026-10-14", "2026.20",
+        "PT", "", "", "", "", "", "by", "", "10", "", "", "14",
         "40", "", "", "", "", "", "",
     ]  # fmt: skip
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
+    assert result.output.index("Erster Sprint") < result.output.index("Schätzeinheit")
     team = load(tmp_path / "team-a" / "team.yaml")
     assert team["capacity"] == {"overhead_share": 0.1, "region": "BY", "rounding": 1}
     assert team["sprint"]["first"] == {"id": "2026.20", "start": date(2026, 10, 14)}
     assert team["forecast"]["reference_capacity"] == 40
     assert run(tmp_path, "check").exit_code == 0
+
+
+def test_init_has_no_default_for_the_first_sprint_id(tmp_path: Path):
+    """Enter übernimmt keine ID: Das Team kennt seinen laufenden Sprint, das Programm nicht."""
+    answers = ["Team A", "", "2026-10-14", "", "", "2026.15"] + [""] * 19
+    result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
+    assert result.exit_code == 0, result.output
+    assert result.output.count("Bitte einen Wert eingeben.") == 2
+    assert "2026.1" not in result.output.split("ID des ersten Sprints")[1].split("\n")[0]
+    team = load(tmp_path / "team-a" / "team.yaml")
+    assert team["sprint"]["first"] == {"id": "2026.15", "start": date(2026, 10, 14)}
+
+
+def test_init_asks_again_for_an_id_that_does_not_fit_the_numbering(tmp_path: Path):
+    answers = ["Team A", "sequential", "2026-10-14", "abc", "15"] + [""] * 19
+    result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
+    assert result.exit_code == 0, result.output
+    assert "'abc' passt nicht zur Nummerierung (erwartet eine Zahl" in result.output
+    team = load(tmp_path / "team-a" / "team.yaml")
+    assert team["sprint"] == {"first": {"id": "15", "start": date(2026, 10, 14)},
+                              "length_days": 14, "numbering": "sequential"}  # fmt: skip
 
 
 @pytest.mark.parametrize("key", ["../x", "a/b", "..", " x", "Team-A", "con", "nul", "a" * 65])

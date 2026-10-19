@@ -613,6 +613,10 @@ COMMANDS: list[tuple[str, str]] = [
         "sprintforecast sprints TEAM [--create] [--end SPRINT=DATE]",
         "Sprintkalender: kommende Sprints, Enddaten",
     ),
+    (
+        "sprintforecast rename-sprint TEAM SPRINT NEW",
+        "Sprint-ID ändern; die Sprints danach zählen weiter",
+    ),
     ("sprintforecast planning TEAM [SPRINT]", "Commitment und Planning-Werte erfassen"),
     (
         "sprintforecast review TEAM [SPRINT] [--commit]",

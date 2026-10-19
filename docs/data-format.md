@@ -50,7 +50,7 @@ features:                   # optional features, all false for new teams
 sprint:
   length_days: 14
   numbering: yearly         # 2026.1, 2026.2 ... | sequential: 1, 2, 3 ...
-  first: {id: '2026.20', start: 2026-10-14}   # only needed while no sprint file exists
+  first: {id: '2026.20', start: 2026-10-14}   # sprint running now or starting next; only needed while no sprint file exists
 forecast:
   reference_capacity: 67    # reference for the normalized velocity
   window: 5                 # moving average
