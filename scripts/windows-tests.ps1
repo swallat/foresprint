@@ -1,55 +1,55 @@
 ﻿<#
 .SYNOPSIS
-    Windows-Prüfungen für sprintforecast mit Markdown-Bericht.
+    Windows checks for sprintforecast with a Markdown report.
 
 .DESCRIPTION
-    Prüft, was sich nur auf einem echten Windows-Rechner zeigt, und schreibt das Ergebnis als
-    Markdown-Bericht in den aktuellen Ordner (oder -Bericht).
+    Checks what only shows up on a real Windows machine and writes the result as a Markdown
+    report to the current folder (or -Bericht).
 
-    Automatisch:
-      App       App starten, Fenster schließen, warten, danach dürfen keine Prozesse bleiben
-      Uv        Installation laut "uv tool list"; auf Wunsch "uv tool upgrade sprintforecast"
-      Anmeldung Git-Anmeldung (credential.helper, gh) und "git ls-remote" gegen Ihre Adressen
-      Zeilenenden  Daten-Repository anlegen, speichern, committen, klonen; "git diff" muss leer sein
-      Sperre    YAML-Datei mit exklusiver Sperre: Meldung statt Absturz?
-      Symlink   Darf dieses Konto symbolische Verknüpfungen anlegen?
-    Interaktiv (Antwort J, N oder Enter zum Überspringen, dazu eine Notiz):
-      Interaktiv  Netz getrennt, geschützter Branch, Optik
+    Automatic:
+      App       start the app, close the window, wait; no processes may remain afterwards
+      Uv        installation according to "uv tool list"; on request "uv tool upgrade sprintforecast"
+      Anmeldung Git login (credential.helper, gh) and "git ls-remote" against your addresses
+      Zeilenenden  create a data repository, save, commit, clone; "git diff" must be empty
+      Sperre    YAML file with an exclusive lock: message instead of a crash?
+      Symlink   may this account create symbolic links?
+    Interactive (answer J, N or Enter to skip, plus a note):
+      Interaktiv  network disconnected, protected branch, visuals
 
-    Das Skript ändert keine Benutzer-Einstellungen (kein "git config", keine dauerhaften
-    Umgebungsvariablen, keine Registry). Alle Testdaten liegen in einem Temp-Ordner, der am Ende
-    gelöscht wird. Die App selbst legt beim Start ihre üblichen Dateien unter
-    %APPDATA%\sprintforecast an (app.log, ggf. settings.json); das ist ihr normales Verhalten.
+    The script changes no user settings (no "git config", no persistent environment
+    variables, no registry). All test data lives in a temp folder that is deleted at the end.
+    The app itself creates its usual files under %APPDATA%\sprintforecast on start-up
+    (app.log, possibly settings.json); that is its normal behaviour.
 
 .PARAMETER Bericht
-    Pfad der Berichtsdatei. Standard: sprintforecast-windows-bericht-JJJJMMTT-HHMM.md im
-    aktuellen Ordner.
+    Path of the report file. Default: sprintforecast-windows-bericht-YYYYMMDD-HHMM.md in the
+    current folder.
 
 .PARAMETER Nur
-    Nur diese Prüfungen ausführen, durch Komma getrennt (App, Uv, Anmeldung, Zeilenenden,
-    Sperre, Symlink, Interaktiv). Mit -File wird eine Liste als ein Text übergeben; darum ein Text.
+    Run only these checks, comma-separated (App, Uv, Anmeldung, Zeilenenden, Sperre, Symlink,
+    Interaktiv). With -File a list is passed as a single string; hence a string.
 
 .PARAMETER HttpsUrl
-    https-Adresse Ihres Daten-Repositorys für die Anmelde-Prüfung (ohne Zugangsdaten in der
-    Adresse). Ohne Angabe wird gefragt.
+    https address of your data repository for the login check (without credentials in the
+    address). Asked for if not given.
 
 .PARAMETER SshUrl
-    SSH-Adresse Ihres Daten-Repositorys (git@host:Organisation/Repository.git). Ohne Angabe
-    wird gefragt.
+    SSH address of your data repository (git@host:organisation/repository.git). Asked for if
+    not given.
 
 .PARAMETER WartezeitSekunden
-    So lange wird nach dem Schließen des App-Fensters gewartet, bevor geprüft wird (Standard 20).
+    How long to wait after closing the app window before checking (default 20).
 
 .PARAMETER OhneRueckfragen
-    Keine Eingaben verlangen: Rückfragen und interaktive Prüfungen werden übersprungen.
+    Require no input: prompts and interactive checks are skipped.
 
 .PARAMETER MitAutoUpdate
-    Die App im Test mit der eingestellten Selbstaktualisierung starten. Standard: aus
-    (SPRINTFORECAST_AUTOUPDATE=aus nur für den gestarteten Prozess), damit die Prüfung der
-    Prozesse nicht durch eine Aktualisierung gestört wird.
+    Start the app under test with the configured self-update. Default: off
+    (SPRINTFORECAST_AUTOUPDATE=aus only for the started process) so that the process check is
+    not disturbed by an update.
 
 .PARAMETER PythonExe
-    Python der sprintforecast-Installation. Standard: das der uv-Tool-Installation.
+    Python of the sprintforecast installation. Default: the one of the uv tool installation.
 
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-tests.ps1
@@ -57,7 +57,7 @@
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-tests.ps1 -Nur Zeilenenden,Symlink
 #>
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interaktives Skript mit Konsolenausgabe')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive script with console output')]
 [CmdletBinding()]
 param(
     [string]$Bericht = '',
