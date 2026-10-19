@@ -113,6 +113,10 @@ data directory.
 - **Stable files:** files are always written with LF line endings, only when the content changed
   and through a temporary file; absences, done products and so on are sorted alphabetically so
   that simultaneous additions rarely collide.
+- **Pull from server** takes over what others uploaded without uploading anything: it commits
+  your open changes, fetches the server state and merges it. Conflicts and the confirmation for a
+  foreign history work as for "Save and share" and also stay local. Use it to refresh the
+  checkout before looking at the data; "Save and share" uploads the result later.
 - **Check status** asks the server whether there is anything new and changes nothing. The server
   state is queried only then and when sharing.
 - **Commit changes** commits locally only, without sharing.
@@ -173,7 +177,9 @@ the switch or change does not happen.
 
 Only the data directory is committed; spreadsheets (`*.xlsx` and so on) are rejected. The model is
 "one branch, always in sync"; branches, rebase, force push and stash are deliberately not part of
-the app. The Git state is cached briefly (5 seconds); changes made outside the app (editor,
+the app. Sharing pushes straight to the branch, so there are no merge requests; on the server,
+protect `main` of the data repository against force push and deletion (but do not require
+reviews, or sharing is rejected). The Git state is cached briefly (5 seconds); changes made outside the app (editor,
 terminal) therefore appear with a small delay, your own saves immediately.
 
 ## Updates in the web UI
