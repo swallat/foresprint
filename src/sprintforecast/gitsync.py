@@ -111,6 +111,7 @@ class SyncResult:
     pulled: list[Commit] = field(default_factory=list)  # neu von anderen
     pulled_files: list[tuple[str, str]] = field(default_factory=list)
     pushed: bool = False
+    pull_only: bool = False  # „Vom Server holen“: nichts hochladen, auch nicht beim Fortsetzen
     merged: bool = False  # fremde Änderungen wurden zusammengeführt
     conflicts: list[ConflictFile] = field(default_factory=list)
     validation: list[str] = field(default_factory=list)  # neue Fehler nach dem Zusammenführen
@@ -516,7 +517,7 @@ def sync(
     keine Dateien), gibt es nichts zu teilen: Fehlerart ``nothing_to_share``. Mit
     ``push=False`` („Vom Server holen“) endet der Ablauf nach dem Zusammenführen: Eigenes wird
     gesichert und der Server-Stand übernommen, aber nichts hochgeladen und nicht geprüft."""
-    result = SyncResult()
+    result = SyncResult(pull_only=not push)
     try:
         root = _root(path)
         current = state(path)
