@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Git finden, auch wenn es nicht im PATH liegt (Installation ohne Administratorrechte)."""
 
+import errno
 import os
 import shutil
 import stat
@@ -328,3 +329,49 @@ def test_everything_unusable_stays_git_missing_and_names_the_path(
     with pytest.raises(GitError) as raised:
         gitsync._root(tmp_path)
     assert "nicht starten" in raised.value.hint
+
+
+CALLS = [
+    lambda cwd: gitmod._git(cwd, "--version"),
+    lambda cwd: gitmod._git_bytes(cwd, "--version"),
+    lambda cwd: gitmod._probe_run(cwd, ("--version",), 10),
+]
+CALL_IDS = ["_git", "_git_bytes", "_probe_run"]
+
+
+@posix
+@pytest.mark.parametrize("call", CALLS, ids=CALL_IDS)
+def test_missing_working_folder_does_not_block_git(
+    call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    """Ein gelöschter oder getrennter Datenordner betrifft nicht das Programm: Git bleibt
+    verfügbar; gemeldet wird es wie bisher als „Git fehlt“."""
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    with pytest.raises(GitError) as raised:
+        call(tmp_path / "gibt-es-nicht")
+    assert raised.value.kind == "git_missing"
+    assert not gitmod._BROKEN and gitmod.broken_git() == ""
+    assert find_git() == str(fake)
+    assert call(tmp_path) is not None  # und es läuft weiter
+
+
+@posix
+@pytest.mark.parametrize("call", CALLS, ids=CALL_IDS)
+@pytest.mark.parametrize("code", [errno.EMFILE, errno.ENOMEM, errno.E2BIG])
+def test_resource_errors_do_not_block_git_and_are_passed_on(
+    call, code: int, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+
+    def failing(*args, **kwargs):
+        raise OSError(code, os.strerror(code))
+
+    monkeypatch.setattr(gitmod.subprocess, "run", failing)
+    monkeypatch.setattr(gitmod.subprocess, "Popen", failing)
+    with pytest.raises(OSError) as raised:
+        call(tmp_path)
+    assert not isinstance(raised.value, GitError) and raised.value.errno == code
+    assert not gitmod._BROKEN
+    assert find_git() == str(fake)
