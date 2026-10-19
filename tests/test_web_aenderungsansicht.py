@@ -13,6 +13,7 @@ from streamlit.testing.v1 import AppTest
 from sprintforecast import diff
 from sprintforecast.git import GitError, invalidate_status
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.yamlmerge import MISSING
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 SPRINT = Path("teams") / "demo" / "sprints" / "2026.20.yaml"
@@ -289,6 +290,26 @@ def test_big_values_are_bounded_and_fast():
     ui._view_pair(texts, {**texts, "k0": "y"})
     assert time.monotonic() - started < 2
     assert len(a) <= 80 and b.startswith(a) and "(" in b  # gleicher Ausschnitt: Hinweis
+
+
+def test_sets_binary_and_unknown_types_are_bounded():
+    import base64
+    import time
+
+    import yaml
+
+    from sprintforecast.web import ui
+
+    members = ", ".join(f"m{i}" for i in range(100_000))
+    data = base64.b64encode(bytes(3_000_000)).decode()
+    loaded = yaml.safe_load(f"s: !!set {{{members}}}\nb: !!binary {data}\n")
+    started = time.monotonic()
+    for value in (loaded["s"], loaded["b"], object()):
+        a, b = ui._view_pair(value, MISSING)
+        assert len(a) <= 80 and b == "–"
+    assert ui._view_text(loaded["b"]) == "bytes, 3000000 Byte"
+    assert len(ui._view_text(loaded["s"])) < 20_000
+    assert time.monotonic() - started < 2
 
 
 def test_same_excerpt_but_different_values_gets_the_hint():

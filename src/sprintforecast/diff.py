@@ -234,7 +234,10 @@ def _signature(root: Path, pending: list[tuple[str, str]]) -> tuple[Any, ...]:
     erhalten). Unter Windows ist ``st_ctime`` die Erstellzeit: Dort tragen Änderungszeit und
     Größe weiter die Hauptlast; Inhalt wird der Leistung wegen nicht geprüft."""
     parts: list[tuple[Any, ...]] = [_head_state(root)]
-    for status, file in pending:
+    for i, (status, file) in enumerate(pending):
+        if i >= _EVAL_LIMIT:  # nur die ausgewerteten Dateien prüfen (Netzlaufwerke sind langsam)
+            parts.append((status, file))
+            continue
         try:
             stat = (root / file).lstat()
             parts.append(
