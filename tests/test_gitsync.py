@@ -1825,6 +1825,10 @@ def test_compare_url_for_github():
         == "https://github.com/o/r/compare/main...sprintforecast/bob-1?expand=1"
     )
     assert gitsync.compare_url("/srv/git/data.git", "main", "x") is None
+    assert gitsync.compare_url("C:\\data\\repo", "main", "x") is None
+    assert gitsync.compare_url("github.com:o/r.git", "main", "b") == (
+        "https://github.com/o/r/compare/main...b?expand=1"
+    )
 
 
 def test_host_setting_overrides_detection(bob: Person):

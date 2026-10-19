@@ -133,6 +133,7 @@ from sprintforecast.gitsync import (
     cached_remote_info,
     check_remote,
     conflict_text_diffs,
+    detected_host,
     git_available,
     host_kind,
     host_setting,
@@ -4593,6 +4594,7 @@ def _share_mode_setting(root: Path) -> None:
     try:
         chosen = host_setting(root)
         host = host_kind(root)
+        detected = detected_host(root)
         st.session_state["git-auto-merge"] = auto_merge(root)
     except GitError:
         return
@@ -4602,7 +4604,7 @@ def _share_mode_setting(root: Path) -> None:
         t("Art des Servers"),
         list(labels),
         format_func=lambda key: (
-            labels[key] if key else t("Automatisch erkennen ({host})", host=labels[host])
+            labels[key] if key else t("Automatisch erkennen ({host})", host=labels[detected])
         ),
         key="git-host",
         on_change=_host_changed,

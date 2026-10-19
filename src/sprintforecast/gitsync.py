@@ -50,7 +50,9 @@ from sprintforecast.yamlmerge import (
 SHARE_KEY = "sprintforecast.share"
 AUTO_MERGE_KEY = "sprintforecast.mrautomerge"  # "false" schaltet das Automerge ab (Standard: an)
 SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
-_PR_URL = re.compile(r"https?://\S+/(?:pulls?/(?:\d+|new/\S+)|merge_requests/\d+)")
+_PR_URL = re.compile(
+    r"https?://\S+/(?:pulls?/(?:\d+|new/\S+)|merge_requests/(?:\d+|new\b\S*)|compare/\S+)"
+)
 # Auf welchem Server liegt das Daten-Repository? Das bestimmt, wie ein Merge/Pull Request
 # entsteht. ``HOST_KEY`` überschreibt die Erkennung aus der Adresse (Standard: automatisch).
 HOST_KEY = "sprintforecast.host"
@@ -1008,9 +1010,11 @@ def set_host(path: Path, host: str | None) -> None:
 
 def host_kind(path: Path) -> str:
     """Die Art des Servers: die gewählte oder, solange nichts gewählt ist, die erkannte."""
-    chosen = host_setting(path)
-    if chosen:
-        return chosen
+    return host_setting(path) or detected_host(path)
+
+
+def detected_host(path: Path) -> str:
+    """Die aus der Adresse des Servers erkannte Art, unabhängig von einer Wahl."""
     root = _root(path)
     return detect_host(gitmod.remote_url(root, state(root).remote or "origin"))
 
@@ -1018,7 +1022,7 @@ def host_kind(path: Path) -> str:
 def compare_url(url: str, target: str, branch: str) -> str | None:
     """Die Webadresse, unter der man bei GitHub aus dem Branch einen Pull Request öffnet."""
     where = _web_location(url)
-    if not where or not url.lower().startswith(("http", "git@", "ssh")):
+    if not where or len(where[0]) == 1:  # Laufwerksbuchstabe wie ``C:\\x``, kein Rechner
         return None
     host, repo = where
     return f"https://{host}/{repo}/compare/{target}...{branch}?expand=1"
@@ -1061,7 +1065,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
             "push",
             "-o", f"topic={branch}",
             "-o", f"title={subject}",
-            "-o", "force-push",
+            "-o", "force-push=true",
             remote,
             f"HEAD:refs/for/{target}",
             network=True,
