@@ -273,20 +273,20 @@ def test_only_the_first_files_are_evaluated(tmp_path: Path, monkeypatch):
     assert first.values and not second.values and second.readable
 
 
-def test_the_101st_file_is_readable_without_values(tmp_path: Path):
+def test_the_26th_file_is_readable_without_values(tmp_path: Path):
     root = make_local(tmp_path)
     data = root / "teams"
-    for i in range(101):
+    for i in range(26):
         (data / f"f{i:03}.yaml").write_text("a: 1\n", encoding="utf-8")
     git(root, "add", "-A")
     git(root, "commit", "-qm", "viele")
-    for i in range(101):
+    for i in range(26):
         (data / f"f{i:03}.yaml").write_text("a: 2\n", encoding="utf-8")
     result = file_changes(data)
-    assert len(result) == 101
-    assert all(c.values for c in result[:100])
-    assert result[100].file.endswith("f100.yaml") and result[100].readable
-    assert result[100].values == ()
+    assert len(result) == 26
+    assert all(c.values for c in result[:25])
+    assert result[25].file.endswith("f025.yaml") and result[25].readable
+    assert result[25].values == ()
 
 
 def test_old_path_for_text_files_new_deleted_and_beyond_the_limit(tmp_path: Path, monkeypatch):
@@ -389,6 +389,34 @@ def test_cache_notices_same_size_content_with_the_old_time_restored(tmp_path: Pa
     assert len(calls) == 2 and change.values[0].new == "C"
 
 
+def test_at_most_25_files_are_parsed_and_results_stay_small(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    for i in range(40):
+        (data / f"f{i:02}.yaml").write_text("l: [0]\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "viele")
+    big = list(range(5000))
+    for i in range(40):
+        (data / f"f{i:02}.yaml").write_text(
+            f"l: {big}\n" + "".join(f"k{j}: {j}\n" for j in range(45)), encoding="utf-8"
+        )
+    parsed: list[str] = []
+    real = diff_module._parse
+
+    def counting_parse(text: str):
+        parsed.append(text)
+        return real(text)
+
+    monkeypatch.setattr(diff_module, "_parse", counting_parse)
+    result = file_changes(data)
+    assert len(result) == 40 and len(parsed) == 2 * 25  # HEAD und Arbeitsstand je Datei
+    assert all(c.readable and not c.values for c in result[25:])
+    first = result[0]
+    assert len(first.values) == diff_module.MAX_VALUES and first.omitted == 46 - 30
+    assert len(first.values[0].new) <= diff_module._SLIM_ITEMS  # kein ganzer Teilbaum
+
+
 def test_signature_stats_only_the_evaluated_files(tmp_path: Path, monkeypatch):
     root = make_local(tmp_path)
     data = root / "teams"
@@ -405,7 +433,7 @@ def test_signature_stats_only_the_evaluated_files(tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(Path, "lstat", counting_lstat)
     signature = diff_module._signature(root, pending)
-    assert len(stats) <= 100 and len(signature) == 501  # HEAD plus alle Einträge
+    assert len(stats) <= 25 and len(signature) == 501  # HEAD plus alle Einträge
     first = diff_module._signature(root, pending)
     assert first == signature
     # Auch jenseits der Grenze gehört der Eintrag (Status, Datei) zur Signatur

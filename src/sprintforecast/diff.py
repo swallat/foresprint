@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path
 from typing import Any
 
@@ -70,7 +71,34 @@ CHANGED = "changed"
 _YAML_SUFFIXES = {".yaml", ".yml"}
 # Größere Dateien gelten als nicht lesbar: Sie kommen ggf. aus einem fremden Repository.
 _MAX_BYTES = 5 * 1024 * 1024
-_EVAL_LIMIT = 100  # so viele Dateien werden ausgewertet (die Oberfläche zeigt weniger)
+_EVAL_LIMIT = 25  # so viele Dateien werden ausgewertet: die, die die Oberfläche zeigt
+MAX_VALUES = 30  # so viele Wertänderungen je Datei bleiben erhalten (der Rest wird gezählt)
+# Gehaltene Werte werden auf einen Ausschnitt gekürzt, der etwas über den Grenzen der Anzeige
+# (``web.ui``: 1000 Einträge und Zeichen, 5000 Knoten, Tiefe 8) liegt: Sie zeigt dann dasselbe
+# wie beim ganzen Wert, und der Zwischenspeicher hält keine großen Teilbäume der Dokumente.
+_SLIM_ITEMS = 1001
+_SLIM_NODES = 6000
+_SLIM_DEPTH = 9
+
+
+def _slim(value: Any, left: list[int], depth: int = 0) -> Any:
+    left[0] -= 1
+    if left[0] < 0 or depth > _SLIM_DEPTH:
+        return "…"
+    if isinstance(value, str):
+        return value[:_SLIM_ITEMS]
+    if isinstance(value, dict):
+        return {
+            (k[:_SLIM_ITEMS] if isinstance(k, str) else k): _slim(v, left, depth + 1)
+            for k, v in islice(value.items(), _SLIM_ITEMS)
+        }
+    if isinstance(value, list):
+        return [_slim(v, left, depth + 1) for v in value[:_SLIM_ITEMS]]
+    if isinstance(value, (set, frozenset)):
+        return set(islice(value, _SLIM_ITEMS))
+    return value
+
+
 # Probleme von Git selbst (nicht der einen Datei) sehen Aufrufer, statt als „nicht lesbar“ zu
 # erscheinen.
 _GIT_PROBLEMS = {"git_missing", "unsafe_directory", "offline"}
@@ -107,6 +135,7 @@ class FileChange:
     values: tuple[ValueChange, ...] = ()
     readable: bool = True
     orig: str = ""  # bisheriger Pfad bei Umbenennungen und Kopien, relativ zur Wurzel
+    omitted: int = 0  # weitere Wertänderungen jenseits von :data:`MAX_VALUES` (nicht gehalten)
 
 
 def diff_values(
@@ -179,7 +208,12 @@ def _file_change(root: Path, change: Change) -> FileChange:
             new = _parse(_work_text(root, file))
         if old is MISSING or new is MISSING:
             return FileChange(file, status, orig=orig)
-        return FileChange(file, status, tuple(diff_values(old, new)), orig=orig)
+        found = diff_values(old, new)
+        kept = tuple(
+            ValueChange(v.path, _slim(v.old, [_SLIM_NODES]), _slim(v.new, [_SLIM_NODES]))
+            for v in found[:MAX_VALUES]
+        )
+        return FileChange(file, status, kept, orig=orig, omitted=max(0, len(found) - MAX_VALUES))
     except GitError as e:
         if e.kind in _GIT_PROBLEMS:
             raise
