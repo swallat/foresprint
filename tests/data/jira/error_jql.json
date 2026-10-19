@@ -1,0 +1,6 @@
+{
+  "errorMessages": [
+    "Error in the JQL Query: The field 'projekt' does not exist or you do not have permission to view it. (line 1, character 1)"
+  ],
+  "errors": {}
+}
