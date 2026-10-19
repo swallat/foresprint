@@ -31,7 +31,7 @@ def all_static_texts() -> list[str]:
         TOPICS,
         WORKFLOW,
     )
-    from sprintforecast.preplan import LIGHTS, REASONS, SOURCES
+    from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, VARIANT_NAMES
     from sprintforecast.products import MEASURES, PRODUCTION_MEASURES
     from sprintforecast.settings import _COUNTRY, SETTINGS
     from sprintforecast.validate import Level
@@ -53,7 +53,7 @@ def all_static_texts() -> list[str]:
             texts += list(s.choices.values())
     texts += list(MEASURES.values())
     texts += list(PRODUCTION_MEASURES.values())
-    texts += [*LIGHTS.values(), *REASONS.values(), *SOURCES.values()]
+    texts += [*LIGHTS.values(), *REASONS.values(), *SOURCES.values(), *VARIANT_NAMES.values()]
     texts += list(GENERAL.values())
     texts += [level.value for level in Level]
     texts += [source.value for source in CapacitySource]

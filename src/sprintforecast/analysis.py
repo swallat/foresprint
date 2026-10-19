@@ -18,7 +18,7 @@ from datetime import date
 
 from sprintforecast.engine import CapacitySource, round_down
 from sprintforecast.forecast import Forecast, TimelineEntry, build_forecast
-from sprintforecast.model import Sprint
+from sprintforecast.model import ForecastSettings, Sprint
 from sprintforecast.storage import TeamData
 
 # Unter so vielen Sprints mit Velocity sind Spanne und Häufigkeiten nur grobe Hinweise.
@@ -69,6 +69,12 @@ def few_samples(fc: Forecast) -> bool:
 # --- Bandbreite -----------------------------------------------------------------------
 
 
+def plan_at(settings: ForecastSettings, nvel: float, capacity: float) -> float:
+    """Forecast PLAN for a normalized velocity and a capacity: scaled to the capacity and
+    rounded down to the team's precision (the calculation behind ``band``)."""
+    return round_down(nvel / settings.reference_capacity * capacity, settings.rounding)
+
+
 @dataclass(frozen=True)
 class Band:
     low: float
@@ -86,7 +92,7 @@ def band(fc: Forecast, entry: TimelineEntry) -> Band | None:
     settings = fc.data.team.forecast
 
     def plan(nvel: float) -> float:
-        return round_down(nvel / settings.reference_capacity * capacity, settings.rounding)
+        return plan_at(settings, nvel, capacity)
 
     return Band(
         low=plan(min(values)),
