@@ -1001,3 +1001,72 @@ def test_auto_update_takes_english_values_only(monkeypatch: pytest.MonkeyPatch):
     for value in ("hinweis", "egal"):
         result = runner.invoke(app, ["update", "--auto", value])
         assert result.exit_code == 1 and "--auto: on, notice oder off" in result.output
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["forecast", "demo", "--history", "-1"],
+        ["sprints", "demo", "--count", "0"],
+        ["sprints", "demo", "--count", "100000", "--create"],
+        ["web", "--port", "0"],
+        ["web", "--port", "70000"],
+        ["products", "demo", "--history", "0"],
+    ],
+)
+def test_option_ranges_are_checked_before_anything_runs(args: list[str]):
+    result = runner.invoke(app, args)
+    assert result.exit_code == 2, result.output
+
+
+def test_zero_history_is_empty_not_everything():
+    from datetime import date
+
+    from sprintforecast.forecast import Forecast
+
+    class Entry:
+        class sprint:
+            end = date(2026, 1, 1)
+
+    fc = Forecast.__new__(Forecast)
+    fc.entries = [Entry(), Entry(), Entry()]
+    fc.today = date(2026, 6, 1)
+    assert fc.history(0) == []
+    assert len(fc.history(2)) == 2
+    assert len(fc.history()) == 3
+
+
+def test_invalid_state_is_refused_before_writing(data_dir: Path):
+    import copy
+    from types import SimpleNamespace
+
+    import typer
+
+    data = Repository(data_dir).load("demo")
+    ctx = SimpleNamespace(today=date(2026, 10, 15))
+    cli._refuse_invalid(ctx, data, data, "team.yaml")  # a valid state passes
+    broken = copy.copy(data)
+    broken.team = copy.deepcopy(data.team)
+    broken.team.forecast.window = 0
+    with pytest.raises(typer.Exit):
+        cli._refuse_invalid(ctx, data, broken, "team.yaml")
+    cli._refuse_invalid(
+        ctx, data, broken, "people.yaml"
+    )  # errors in other files do not matter here
+
+
+def test_refusal_sees_errors_of_an_in_place_edit(data_dir: Path):
+    """The settings command edits ``data.team`` in place; the old state is its deep copy."""
+    import copy
+    from types import SimpleNamespace
+
+    import typer
+
+    data = Repository(data_dir).load("demo")
+    before = copy.deepcopy(data.team)
+    data.team.forecast.window = 0  # in place, like _ask_setting
+    after = copy.copy(data)
+    old = copy.copy(data)
+    old.team = before
+    with pytest.raises(typer.Exit):
+        cli._refuse_invalid(SimpleNamespace(today=date(2026, 10, 15)), old, after, "team.yaml")
