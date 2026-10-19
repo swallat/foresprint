@@ -119,12 +119,19 @@ class GitError(Exception):
     Darin stehen Namen und Zeilen, die andere bestimmen (``remote:``, Hooks, Tags, Branches)."""
 
     def __init__(
-        self, message: str, kind: str = "error", hint: str = "", raw: bool = False
+        self,
+        message: str,
+        kind: str = "error",
+        hint: str = "",
+        raw: bool = False,
+        hint_md: str = "",
     ) -> None:
         super().__init__(scrub(message))
         self.kind = kind
         self.hint = scrub(hint)
         self.raw = raw
+        # Der Hinweis für Markdown, wenn er Namen von außen enthält (sonst ``hint`` selbst).
+        self.hint_md = scrub(hint_md) if hint_md else self.hint
 
     def render(self, quote: Callable[[str], str] = str) -> str:
         """Die Meldung für die Oberfläche: Die Ausgabe von Git (``raw``) geht durch ``quote``
@@ -1585,6 +1592,12 @@ def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
                 "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
                 "erscheint, dort den letzten Stand wiederherstellen.",
                 files=names,
+            ),
+            hint_md=t(
+                "Betroffen: {files}. Die Markierungen stammen aus einem unvollständigen "
+                "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
+                "erscheint, dort den letzten Stand wiederherstellen.",
+                files=md_plain(names),
             ),
         )
 
