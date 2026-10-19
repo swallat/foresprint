@@ -562,6 +562,23 @@ def _distribute(
     return result
 
 
+def sprint_sums(dist: Distribution, sprint: str, data: TeamData) -> dict[str | None, float]:
+    """Amount per product that the tickets take up in ``sprint`` (tickets of the tracker, earmarks
+    and distributed tickets). A sprint outside the horizon (e.g. the one starting today) has no
+    budget; there only the tickets that sit in it according to the tracker or an earmark count."""
+    cells = {b.product: b.fixed + b.placed for b in dist.budgets if b.sprint == sprint}
+    if cells:
+        return cells
+    products = {p.id: p.product for p in data.projects}
+    sums: dict[str | None, float] = {}
+    for p in dist.placements:
+        if p.sprint != sprint or p.size is None or p.project not in products:
+            continue
+        product = products[p.project] if data.team.features.products else None
+        sums[product] = sums.get(product, 0.0) + p.size
+    return sums
+
+
 # --- Traffic light and refinement list ------------------------------------------------------
 
 
