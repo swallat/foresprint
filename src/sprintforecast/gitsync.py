@@ -10,6 +10,7 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 
 from __future__ import annotations
 
+import contextlib
 import difflib
 import hashlib
 import io
@@ -19,6 +20,7 @@ import tarfile
 import tempfile
 import threading
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -258,6 +260,78 @@ def _lock_for(path: Path) -> threading.RLock:
         return _SYNC_LOCKS.setdefault(key, threading.RLock())
 
 
+LOCK_WARN_SECONDS = 60.0  # so lange wartet ein Aufruf auf einen laufenden Abgleich, dann Hinweis
+_LOCK_POLL_SECONDS = 1.0
+_HELD: dict[Path, tuple[float, int]] = {}  # Datenordner → (Beginn, Tiefe) des laufenden Abgleichs
+
+
+def _busy_error(since: float) -> GitError:
+    seconds = int(max(0.0, time.time() - since))
+    return GitError(
+        t(
+            "Ein anderer Abgleich dieses Datenordners läuft noch seit {seconds} Sekunden.",
+            seconds=seconds,
+        ),
+        "sync_busy",
+        hint_for("sync_busy"),
+    )
+
+
+@contextlib.contextmanager
+def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
+    """Hält die Sperre des Datenordners. Wer länger als ``wait`` (Vorgabe: ``LOCK_WARN_SECONDS``)
+    warten müsste, bekommt einen :class:`GitError` der Art ``sync_busy`` statt ewigen Wartens.
+    Der laufende Abgleich wird dadurch nie beendet; das geschieht nur mit
+    :func:`abort_running_sync`."""
+    lock = _lock_for(path)
+    key = path.resolve()
+    limit = LOCK_WARN_SECONDS if wait is None else wait
+    deadline = time.monotonic() + limit
+    while not lock.acquire(timeout=min(_LOCK_POLL_SECONDS, max(0.0, limit))):
+        if time.monotonic() >= deadline:
+            with _BACKGROUND_LOCK:
+                since = _HELD.get(key, (time.time(), 0))[0]
+            raise _busy_error(since)
+    with _BACKGROUND_LOCK:
+        since, depth = _HELD.get(key, (time.time(), 0))
+        _HELD[key] = (since, depth + 1)
+    root: Path | None = None
+    if depth == 0:
+        with contextlib.suppress(GitError):
+            root = _root(path)
+            gitmod.begin_sync(root)
+    try:
+        yield
+    finally:
+        if root is not None:  # ein Abbruch gilt nur für diesen Abgleich
+            gitmod.end_sync(root)
+        with _BACKGROUND_LOCK:
+            since, depth = _HELD[key]
+            if depth <= 1:
+                del _HELD[key]
+            else:
+                _HELD[key] = (since, depth - 1)
+        lock.release()
+
+
+def sync_running_seconds(path: Path) -> float | None:
+    """Seit wie vielen Sekunden hält ein Abgleich die Sperre dieses Datenordners (``None``:
+    keiner)?"""
+    with _BACKGROUND_LOCK:
+        held = _HELD.get(path.resolve())
+    return None if held is None else max(0.0, time.time() - held[0])
+
+
+def abort_running_sync(path: Path) -> bool:
+    """Beendet die laufenden Git-Aufrufe des Abgleichs dieses Datenordners (ausdrücklicher
+    Wunsch). Der Abgleich endet dann mit einem Fehler; vorher gesicherte Änderungen bleiben,
+    Sperrdateien wie ``index.lock`` werden nicht angefasst. ``True``, wenn etwas lief."""
+    try:
+        return gitmod.abort_running(_root(path))
+    except GitError:
+        return False
+
+
 def _quiet_env(root: Path) -> dict[str, str]:
     """Umgebung für den Abruf im Hintergrund; SSH läuft ohne Rückfrage (``BatchMode``), wenn
     niemand einen eigenen SSH-Befehl festgelegt hat (Umgebung oder ``core.sshCommand``)."""
@@ -292,20 +366,32 @@ def _fetch_in_background(root: Path, current: SyncState) -> None:
 def fetch(path: Path) -> SyncState:
     """Holt den Stand vom Server (nur herunterladen, nichts ändern) und merkt sich, ob der
     Server erreichbar war. Fehler werden nicht ausgelöst, sondern im Stand vermerkt."""
-    with _lock_for(path):
-        root = _root(path)
-        current = state(path)
-        error: GitError | None = None
-        if current.remote is None:
-            error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
-        else:
-            try:
-                _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
-            except GitError as e:
-                error = e
-        _FETCHED[root] = (time.time(), error)
-        gitmod.invalidate_status()
-        return state(path)
+    try:
+        with _locked(path):
+            return _fetch_locked(path)
+    except GitError as e:
+        if e.kind not in {"sync_busy", "aborted"}:
+            raise
+        cached = _STATE_CACHE.get(path.resolve())  # kein Git neben dem laufenden Abgleich
+        return cached[1] if cached else state(path)
+
+
+def _fetch_locked(path: Path) -> SyncState:
+    root = _root(path)
+    current = state(path)
+    error: GitError | None = None
+    if current.remote is None:
+        error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
+    else:
+        try:
+            _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
+        except GitError as e:
+            if e.kind == "aborted":  # kein Befund über den Server: nichts vermerken
+                raise
+            error = e
+    _FETCHED[root] = (time.time(), error)
+    gitmod.invalidate_status()
+    return state(path)
 
 
 def background_fetch_due(path: Path, now: float | None = None) -> bool:
@@ -338,13 +424,12 @@ def start_background_fetch(path: Path) -> bool:
         return False
     key = path.resolve()
     try:
-        if not background_fetch_due(path):
-            return False
+        if not background_fetch_due(path) or sync_running_seconds(path) is not None:
+            return False  # ein Abgleich läuft: kein Git daneben
         root = _root(path)
         current = state(path)
     except GitError:
         return False
-    lock = _lock_for(path)
     with _BACKGROUND_LOCK:
         if key in _BACKGROUND_ACTIVE:
             return False
@@ -353,11 +438,11 @@ def start_background_fetch(path: Path) -> bool:
 
     def run() -> None:
         try:
-            if lock.acquire(blocking=False):  # ein Abgleich läuft: beim nächsten Mal wieder
-                try:
+            try:
+                with _locked(path, wait=0):  # ein Abgleich läuft: beim nächsten Mal wieder
                     _fetch_in_background(root, current)
-                finally:
-                    lock.release()
+            except GitError:
+                pass
         except Exception:  # ein Hintergrundabruf darf nie etwas beenden
             pass
         finally:
@@ -811,8 +896,13 @@ def _sync(
 
 def sync(path: Path, *args: Any, **kwargs: Any) -> SyncResult:
     """„Speichern und teilen“ (siehe :func:`_sync`); läuft nie gleichzeitig mit einem Abruf."""
-    with _lock_for(path):
-        return _sync(path, *args, **kwargs)
+    try:
+        with _locked(path):
+            return _sync(path, *args, **kwargs)
+    except GitError as e:
+        if e.kind != "sync_busy":
+            raise
+        return SyncResult(error=e)
 
 
 def _server_branch(root: Path, current: SyncState) -> str | None:
