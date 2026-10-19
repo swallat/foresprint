@@ -857,6 +857,30 @@ def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(a
     assert "git config" not in hint and "safe.directory" not in hint
 
 
+def test_reattach_names_the_rescue_branch_for_a_failure_that_is_not_dirty(
+    alice: Person, monkeypatch: pytest.MonkeyPatch
+):
+    """Scheitert der Wechsel aus einem anderen Grund als offenen Änderungen (hier eine gesperrte
+    Datei), liegen die Änderungen im Datenordner trotzdem schon auf dem Rettungsbranch: Die
+    Meldung nennt ihn, die Art des Fehlers bleibt."""
+    git(alice.root, "checkout", "-q", "--detach")
+    (alice.data / "a" / "2026.1.yaml").write_text("velocity: 99\n", encoding="utf-8")
+    invalidate_status()
+    real = gitsync._git
+
+    def locked_switch(root, *args, **kwargs):
+        if args == ("switch", "main"):
+            raise GitError("error: unable to unlink 'x': Device or resource busy", "locked")
+        return real(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitsync, "_git", locked_switch)
+    with pytest.raises(GitError) as info:
+        gitsync.reattach(alice.data)
+    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    assert rescue.startswith("rettung-")
+    assert info.value.kind == "locked" and rescue in info.value.hint
+
+
 def test_reattach_names_no_rescue_branch_when_the_commit_is_on_a_branch(alice: Person):
     git(alice.root, "checkout", "-q", "--detach")
     invalidate_status()
