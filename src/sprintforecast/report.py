@@ -203,7 +203,7 @@ def absence_derived_cli_remedy(window: int, team: str) -> str:
 def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
     """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht). ``code=False``
     für die Kommandozeile: Sprint-IDs ohne Markdown-Backticks, dazu der Befehl zum Nachtragen."""
-    from sprintforecast.analysis import MIN_SAMPLES, sample_count
+    from sprintforecast.analysis import sample_count
     from sprintforecast.model import TrendMode
 
     notes = []
@@ -218,11 +218,18 @@ def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
     samples = sample_count(fc)
     if samples and samples < MIN_SAMPLES:
         notes.append(
-            t(
-                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
-                "belastbarer). Plan und Spanne sind grobe Hinweise.",
-                samples=samples,
-                min=MIN_SAMPLES,
+            " ".join(
+                part
+                for part in (
+                    t(
+                        "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die "
+                        "Spanne belastbarer). Plan und Spanne sind grobe Hinweise.",
+                        samples=samples,
+                        min=MIN_SAMPLES,
+                    ),
+                    window_hint(fc.data.team.forecast.window),
+                )
+                if part
             )
         )
     mode = fc.data.team.forecast.trend_mode
@@ -244,6 +251,25 @@ def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
             )
         )
     return notes
+
+
+def window_hint(window: int, simulation: bool = False) -> str:
+    """Zusatz zu „Wenig Daten“ bei einem Prognosefenster unter ``MIN_SAMPLES``: Die Stichprobe
+    ist auf das Fenster gedeckelt und kann die Schwelle dann nie erreichen. Sonst leer.
+    ``simulation``: Der Hinweis hängt an der Warnung der Fertigstellungs-Simulation."""
+    if window >= MIN_SAMPLES:
+        return ""
+    if simulation:
+        return t(
+            "Das Prognosefenster ist auf {window} Sprints gestellt; mit einem größeren Fenster "
+            "(Einstellungen) gehen mehr Werte in Spanne und Simulation ein.",
+            window=window,
+        )
+    return t(
+        "Das Prognosefenster ist auf {window} Sprints gestellt; mit einem größeren Fenster "
+        "(Einstellungen) gehen mehr Werte in die Spanne ein.",
+        window=window,
+    )
 
 
 def completion_note(samples: int) -> str | None:

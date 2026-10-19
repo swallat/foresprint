@@ -93,6 +93,7 @@ from sprintforecast.report import (
     reliability_notes,
     render,
     status,
+    window_hint,
 )
 from sprintforecast.settings import SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
@@ -1424,6 +1425,7 @@ def analyse(
                 + "[/dim]"
             )
         if note := completion_note(result.samples):
+            note = f"{note} {window_hint(data.team.forecast.window, simulation=True)}".strip()
             console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
 
 
