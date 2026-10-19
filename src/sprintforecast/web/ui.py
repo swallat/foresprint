@@ -4259,9 +4259,11 @@ def _share_mode_setting(root: Path) -> None:
             on_change=_auto_merge_changed,
             args=(root,),
             help=t(
-                "Setzt die GitLab-Push-Option „Merge, wenn die Pipeline erfolgreich ist“. Ohne "
-                "Pipeline im Projekt mergt GitLab sofort; ohne diese Einstellung mergt jemand den "
-                "Merge Request von Hand."
+                "Setzt die GitLab-Push-Option „Merge, wenn die Pipeline erfolgreich ist“: GitLab "
+                "mergt, sobald die Pipeline (und nötige Freigaben) durch sind; je nach Version "
+                "muss ein Projekt ohne Pipeline von Hand gemergt werden. Jedes Teilen schaltet "
+                "das Automerge wieder ein; hier ausschalten, damit Merge Requests von Hand "
+                "gemergt werden."
             ),
         )
 
