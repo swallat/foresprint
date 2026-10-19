@@ -117,6 +117,10 @@ from sprintforecast.githistory import (
     upload_tag,
 )
 from sprintforecast.gitsync import (
+    HOST_FORGEJO,
+    HOST_GENERIC,
+    HOST_GITHUB,
+    HOST_GITLAB,
     LOCK_WARN_SECONDS,
     SHARE_DIRECT,
     SHARE_MERGE_REQUEST,
@@ -131,13 +135,17 @@ from sprintforecast.gitsync import (
     cached_remote_info,
     check_remote,
     conflict_text_diffs,
+    detected_host,
     git_available,
+    host_kind,
+    host_setting,
     incoming,
     pending_conflicts,
     reattach,
     resolve_conflicts,
     restore_file,
     set_auto_merge,
+    set_host,
     set_identity,
     set_remote,
     set_share_mode,
@@ -4591,6 +4599,23 @@ def _share_mode_changed(root: Path) -> None:
         st.session_state["commit_error"] = e
 
 
+def _HOST_LABELS() -> dict[str, str]:
+    return {
+        "": t("Automatisch erkennen"),
+        HOST_GITLAB: "GitLab",
+        HOST_GITHUB: "GitHub",
+        HOST_FORGEJO: "Forgejo / Gitea / Codeberg",
+        HOST_GENERIC: t("Anderer Server"),
+    }
+
+
+def _host_changed(root: Path) -> None:
+    try:
+        set_host(root, st.session_state.get("git-host") or None)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+
+
 def _auto_merge_changed(root: Path) -> None:
     try:
         set_auto_merge(root, bool(st.session_state.get("git-auto-merge")))
@@ -4613,16 +4638,40 @@ def _share_mode_setting(root: Path) -> None:
         args=(root,),
         help=t(
             "„Speichern und teilen“ lädt dann auf einen eigenen Branch hoch und legt dort einen "
-            "Merge Request an oder schreibt ihn fort (GitLab-Push-Optionen, kein Zugriffstoken "
+            "Merge/Pull Request an oder schreibt ihn fort (je nach Server, kein Zugriffstoken "
             "nötig). Der Hauptbranch bleibt unberührt; neue Stände anderer holt „Vom Server "
             "holen“, sobald der Merge Request gemergt ist."
         ),
     )
-    if current:
-        try:
-            st.session_state["git-auto-merge"] = auto_merge(root)
-        except GitError:
-            return
+    if not current:
+        return
+    try:
+        chosen = host_setting(root)
+        host = host_kind(root)
+        detected = detected_host(root)
+        st.session_state["git-auto-merge"] = auto_merge(root)
+    except GitError:
+        return
+    labels = _HOST_LABELS()
+    st.session_state["git-host"] = chosen or ""
+    st.selectbox(
+        t("Art des Servers"),
+        list(labels),
+        format_func=lambda key: (
+            labels[key] if key else t("Automatisch erkennen ({host})", host=labels[detected])
+        ),
+        key="git-host",
+        on_change=_host_changed,
+        args=(root,),
+        help=t(
+            "Bestimmt, wie der Merge/Pull Request entsteht. GitLab: Push-Optionen, auch "
+            "Automerge. Forgejo/Gitea/Codeberg: AGit-Ablauf (Push auf „refs/for“). GitHub: Die "
+            "App hat kein Zugriffstoken; sie lädt den Branch hoch und zeigt den Link, unter "
+            "dem man den Pull Request öffnet. Andere Server: der Branch wird hochgeladen, den "
+            "Merge Request öffnet man dort."
+        ),
+    )
+    if host in (HOST_GITLAB, HOST_GENERIC):
         st.toggle(
             t("Automatisch mergen, wenn die Pipeline grün ist"),
             key="git-auto-merge",
@@ -5427,9 +5476,9 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
         done.append(
             t("Auf Branch {branch} hochgeladen", branch=md_code(result.merge_request_branch))
             + (
-                " · " + t("[Merge Request öffnen]({url})", url=result.merge_request_url)
+                " · " + t("[Merge/Pull Request öffnen]({url})", url=result.merge_request_url)
                 if result.merge_request_url
-                else " · " + t("Merge Request auf dem Server prüfen")
+                else " · " + t("Merge/Pull Request auf dem Server öffnen oder prüfen")
             )
         )
     elif result.pushed:

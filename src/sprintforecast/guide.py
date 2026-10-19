@@ -644,10 +644,12 @@ COMMANDS: list[tuple[str, str]] = [
         "Excel-Liste einlesen (Vorschau, dann schreiben)",
     ),
     (
-        "sprintforecast tickets TEAM [--fetch | --import FILE] [--apply] [--commit] [--sprints N]"
+        "sprintforecast tickets TEAM [--fetch | --import FILE | --handover [--overwrite]] "
+        "[--apply] [--commit] [--sprints N] [--variant median|conservative|optimistic]"
         " | --test-connection | --set-token",
         "Tickets aus Jira oder einer CSV-Datei einlesen, auf künftige Sprints verteilen "
-        "(Ticket-Vorplanung)",
+        "(Ticket-Vorplanung, mit Bandbreite); --handover schlägt die Summen je Sprint und "
+        "Produkt als PO-Vorplanung vor",
     ),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
     (
