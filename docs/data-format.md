@@ -147,8 +147,9 @@ tracker:
   project_match_order: [epic, component, label]   # which match wins between two projects
   dependency_gap: 1              # 1 = a dependent ticket goes at least one sprint later, 0 = same
   budget_basis: roadmap_share    # roadmap_share (PLAN × roadmap_share) | plan (whole PLAN)
-  rough_factor: 1.5              # for the conservative variant (step 4, not yet used); the
-                                 # distribution of step 1 counts rough estimates as they are
+  rough_factor: 1.5              # only the conservative variant multiplies rough estimates (and
+                                 # those of tickets with unclear refined status) by it; the
+                                 # median and optimistic variants count them as they are
   sprint_names:                  # optional: tracker sprint name → sprint id of the tool, only when
     Sprint 42: '2026.21'         # the names differ
 ```
@@ -267,6 +268,36 @@ An earmark is dropped by the next import when the tracker puts the ticket into a
 future sprint, or when the ticket is done; it stays (with a warning) when the ticket is missing
 from the import. An earmark for a sprint that is over is ignored by the distribution, reported by
 the check and dropped by the next import.
+
+### Variants, range and handover to the PO pre-planning
+
+`sprintforecast tickets TEAM` distributes the tickets three times; the variants differ only in the
+plan per future sprint (the budget is its share, see the design):
+
+| Variant | Plan per sprint | Tickets |
+|---|---|---|
+| `median` (shown) | the **Forecast PLAN** exactly as the forecast shows it (not a separately computed median) | sizes as they are |
+| `conservative` | lowest normalized velocity of the history (like the range in `analysis`) × capacity of the sprint | rough estimates, and estimates of tickets with unclear refined status, × `rough_factor`; refined and manual estimates are not inflated |
+| `optimistic` | highest normalized velocity of the history × capacity of the sprint | sizes as they are |
+
+The project table shows the last sprint of every variant and the traffic light of the median
+variant; when the lights differ, the best and the worst one follow in brackets
+(`tight (on track – missed)`). A project counts as on track in the range sense only when all three
+variants are on track. Greedy placement is not monotone across variants, so earliest and latest
+are the minimum and maximum over the variants. With fewer than two sprints with velocity there is
+no range: only the median is shown, with a hint. `--variant median|conservative|optimistic` shows
+the sprint table, the refinement list and the not-distributable list of that variant instead of
+the median.
+
+`sprintforecast tickets TEAM --handover` proposes the sums of the tickets per future sprint and
+product (median variant: distributed tickets, earmarks and tickets in a tracker sprint, with the
+sizes the distribution used) as `preplanned` of the sprint (`products:` below), rounded to the
+team's `forecast.rounding`. It needs `features.products` and shows sprint, product, current value
+and proposal without writing. With `--apply` it writes only where nothing is entered yet (a value
+that equals the proposal stays untouched); a value the PO entered is never replaced unless
+`--overwrite` is given. A sprint that exists only in the calendar gets its file when there is
+something to write. `--sprints N` limits the future sprints (default 6), `--commit` commits the
+changed sprint files.
 
 ## `sprints/<id>.yaml`
 
