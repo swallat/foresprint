@@ -171,6 +171,7 @@ from sprintforecast.protocol import (
     save_with_protocol,
 )
 from sprintforecast.report import (
+    absence_derived_hint,
     absence_derived_note,
     absence_derived_remedy,
     absence_status_label,
@@ -905,9 +906,9 @@ def _quote_note(fc: Forecast, entries: list[TimelineEntry]) -> None:
     geschätzt ist (Sprints, die nur abgeleitet als „niemand fehlte“ zählen). Ausführlich auf
     der Seite Fehltage und im Rechenweg."""
     if any(e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in entries) and (
-        note := absence_derived_note(fc.absences)
+        note := absence_derived_hint(fc.absences)
     ):
-        st.caption(note)
+        st.caption(f":material/info: {note}")
 
 
 def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
@@ -1102,9 +1103,9 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
             )
         )
         if short := absence_derived_note(history):
-            st.warning(short, icon=":material/help:")
+            st.info(short, icon=":material/info:")
             with st.expander(t("Was tun bei unsicherer Quote?")):
-                st.markdown(absence_derived_remedy())
+                st.markdown(absence_derived_remedy(data.team.capacity.absence_history))
     to_save = sprints_to_save(data, sprints, edited_sprints)
     preview = with_sprints(data, to_save)
     fc_preview = build_forecast(preview, fc.today)

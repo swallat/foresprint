@@ -19,8 +19,14 @@ from sprintforecast.forecast import build_forecast
 from sprintforecast.formulas import plain_explanation, steps
 from sprintforecast.i18n import t
 from sprintforecast.model import AbsenceState, absence_status
-from sprintforecast.report import absence_derived_note, reliability_notes, render
+from sprintforecast.report import (
+    absence_derived_hint,
+    absence_derived_note,
+    reliability_notes,
+    render,
+)
 from sprintforecast.storage import Repository
+from sprintforecast.web.logic import absence_matrix, edit_absences, sprints_to_save
 
 TODAY = date(2026, 10, 15)
 NOTE = "Quote unsicher"
@@ -72,10 +78,41 @@ def test_legacy_sprint_without_absences_is_named(data_dir: Path):
     assert set(history.derived) <= set(history.sprints)
     note = absence_derived_note(history)
     assert note and NOTE in note and "`2026.19`, `2026.20`" in note
-    assert "2 der Sprints" in note and "0 % Ausfall" in note
-    detailed = absence_derived_note(history, detailed=True)
+    assert "2 Sprints" in note and "gelten nur als bestätigt" in note and "0 % Ausfall" in note
+    detailed = absence_derived_note(history, detailed=True, window=4)
     assert detailed and detailed.startswith(note)
-    assert "„Fehltage“" in detailed and "„Fehltage speichern“" in detailed
+    assert "„Sprint vorbereiten: Fehltage“" in detailed and "„Fehltage speichern“" in detailed
+    assert "Fenster der letzten 4 Sprints (Einstellung `absence_history`)" in detailed
+    assert (
+        "In der Tabelle „Stand der Fehltage“ gelten diese Sprints als bestätigt, weil sie "
+        "bereits geplant oder ausgewertet wurden; es sind aber keine Fehltage gespeichert."
+    ) in detailed
+    hint = absence_derived_hint(history)
+    assert hint and NOTE in hint and "2 Sprints" in hint and "2026.19" not in hint
+    assert "„Sprint vorbereiten: Fehltage“" in hint
+
+
+def test_singular_and_plural(data_dir: Path):
+    edit(data_dir, "2026.19", absences={})
+    _, _, history = history_of(data_dir)
+    note = absence_derived_note(history)
+    assert note and "1 Sprint in der" in note and "gilt nur als bestätigt" in note
+    assert "bereits geplant oder ausgewertet wurde" in note and "Sprints" not in note.split("(")[0]
+    hint = absence_derived_hint(history)
+    assert hint and "1 Sprint der Quote" in hint
+    edit(data_dir, "2026.20", absences={})
+    _, _, history = history_of(data_dir)
+    hint = absence_derived_hint(history)
+    assert hint and "2 Sprints der Quote" in hint
+
+
+def test_note_in_the_command_line_has_no_backticks(data_dir: Path):
+    edit(data_dir, "2026.19", absences={})
+    _, fc, history = history_of(data_dir)
+    assert "`2026.19`" in (absence_derived_note(history) or "")
+    note = absence_derived_note(history, code=False)
+    assert note and "2026.19" in note and "`" not in note
+    assert any("2026.19" in n and "`" not in n for n in reliability_notes(fc, code=False))
 
 
 def test_explicitly_confirmed_sprint_without_absences_is_not_flagged(data_dir: Path):
@@ -202,6 +239,17 @@ def test_rechenweg_names_the_uncertainty(data_dir: Path):
     assert (
         NOTE in explanation and "`2026.19`" in explanation and "„Fehltage speichern“" in explanation
     )
+    assert "Fenster der letzten 4 Sprints" in explanation  # Einstellung des Teams
+    assert "`2026.19`" not in plain_explanation(fc, entry, code=False)  # Kommandozeile
+
+    # Nicht geschätzt (z. B. aufgezeichnete Kapazität): kein Hinweis, obwohl derived gefüllt ist
+    assert fc.absences is not None and fc.absences.derived == ["2026.19"]
+    recorded = dataclasses.replace(
+        entry,
+        result=dataclasses.replace(entry.result, plan_capacity_source=CapacitySource.RECORDED),
+    )
+    assert NOTE not in plain_explanation(fc, recorded)
+    assert NOTE not in next(s for s in steps(fc, recorded) if s.key == "capacity").formula
 
     data = Repository(data_dir).load("demo")
     data.sprint("2026.19").absence_state = AbsenceState.CONFIRMED
@@ -225,6 +273,10 @@ def test_command_line_and_report_file(data_dir: Path):
     result = run_cli(data_dir, "forecast", "demo")
     assert result.exit_code == 0, result.output
     assert NOTE in result.output and "2026.19" in result.output
+    assert "`2026.19`" not in result.output  # Kommandozeile: keine Markdown-Backticks
+    explained = run_cli(data_dir, "forecast", "demo", "--rechenweg", "2026.23")
+    assert explained.exit_code == 0, explained.output
+    assert NOTE in explained.output and "`2026.19`" not in explained.output
     report = run_cli(data_dir, "bericht", "demo")
     assert report.exit_code == 0, report.output
     text = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
@@ -250,19 +302,55 @@ def web_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str):
 
 
 def shown(at) -> list[str]:
-    return [w.value for w in at.warning] + [c.value for c in at.caption]
+    return (
+        [w.value for w in at.warning] + [c.value for c in at.caption] + [i.value for i in at.info]
+    )
 
 
-@pytest.mark.parametrize("page", ["fehltage", "forecast"])
+def hints(at) -> list[str]:
+    return [v for v in shown(at) if NOTE in v]
+
+
+@pytest.mark.parametrize("page", ["fehltage", "forecast", "vorplanung", "planning"])
 def test_web_pages_show_the_note_only_when_needed(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
 ):
-    assert not any(NOTE in v for v in shown(web_page(data_dir, monkeypatch, page)))
+    edit(data_dir, "2026.22", absences={}, expected_absences={})
+    assert not hints(web_page(data_dir, monkeypatch, page))
     edit(data_dir, "2026.19", absences={})
     at = web_page(data_dir, monkeypatch, page)
-    assert any(NOTE in v and "`2026.19`" in v for v in shown(at))
+    found = hints(at)
+    assert found, page
+    if page == "fehltage":  # ausführlich, mit den Sprints, als Information (keine Warnung)
+        assert any("`2026.19`" in v for v in found)
+        assert not any(NOTE in w.value for w in at.warning)
+        assert any(NOTE in i.value for i in at.info)
+    else:  # kurz, ohne Liste, mit Verweis auf die Seite
+        assert all("2026.19" not in v and "Sprint vorbereiten: Fehltage" in v for v in found)
     edit(data_dir, "2026.19", absences={}, absence_state="confirmed")
-    assert not any(NOTE in v for v in shown(web_page(data_dir, monkeypatch, page)))
+    assert not hints(web_page(data_dir, monkeypatch, page))
+
+
+def confirm_all_upcoming(data_dir: Path) -> None:
+    """Alle künftigen Sprints bekommen bestätigte Fehltage: Nichts wird mehr geschätzt."""
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    for e in build_forecast(data, TODAY).upcoming():
+        sprint = data.sprint(e.sprint.id) or e.sprint
+        sprint.absence_state = AbsenceState.CONFIRMED
+        repo.save_sprint("demo", sprint)
+
+
+@pytest.mark.parametrize("page", ["forecast", "vorplanung", "planning"])
+def test_web_pages_without_estimated_sprints_show_no_hint(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
+):
+    edit(data_dir, "2026.19", absences={})
+    confirm_all_upcoming(data_dir)
+    fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
+    assert fc.absences is not None and fc.absences.derived == ["2026.19"]
+    assert not any(e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in fc.upcoming())
+    assert not hints(web_page(data_dir, monkeypatch, page))
 
 
 def test_absence_page_explains_what_to_do(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
@@ -270,7 +358,9 @@ def test_absence_page_explains_what_to_do(data_dir: Path, monkeypatch: pytest.Mo
     at = web_page(data_dir, monkeypatch, "fehltage")
     expander = next(e for e in at.expander if e.label == "Was tun bei unsicherer Quote?")
     text = " ".join(m.value for m in expander.markdown)
-    assert "„Fehltage speichern“" in text and "Niemand fehlt" in text
+    assert "„Sprint vorbereiten: Fehltage“" in text and "„Fehltage speichern“" in text
+    assert "Fenster der letzten 4 Sprints (Einstellung `absence_history`)" in text
+    assert "bereits geplant oder ausgewertet" in text
 
 
 def test_planning_page_shows_the_note(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
@@ -278,7 +368,7 @@ def test_planning_page_shows_the_note(data_dir: Path, monkeypatch: pytest.Monkey
     edit(data_dir, "2026.22", absences={}, expected_absences={})
     at = web_page(data_dir, monkeypatch, "planning")
     assert any("Gerechnet wird mit" in w.value for w in at.warning)  # Kapazität ist geschätzt
-    assert any(NOTE in v and "`2026.19`" in v for v in shown(at))
+    assert hints(at)
 
 
 def test_explicit_confirmation_of_a_legacy_sprint_is_not_stored(data_dir: Path):
@@ -297,10 +387,73 @@ def test_explicit_confirmation_of_a_legacy_sprint_is_not_stored(data_dir: Path):
     assert history.derived == ["2026.19"]
 
 
+def test_confirming_a_legacy_sprint_on_the_absence_page_saves_nothing(data_dir: Path):
+    """UI-Weg: „Niemand fehlt“ ist für den abgeleiteten Sprint schon angehakt; es gibt nichts zu
+    speichern, der Hinweis bleibt (eigene, offene Entscheidung des Owners)."""
+    edit(data_dir, "2026.19", absences={})
+    data = Repository(data_dir).load("demo")
+    originals = [data.sprint("2026.19")]
+    rows = absence_matrix(data.people, originals)
+    edited = edit_absences(data.people, originals, rows, confirmed={"2026.19"})
+    assert sprints_to_save(data, originals, edited) == []
+
+
+def sprint_like(data, sprint_id: str, **fields):
+    return dataclasses.replace(data.sprint("2026.19"), id=sprint_id, **fields)
+
+
+def test_expected_only_sprint_is_neither_counted_nor_flagged(data_dir: Path):
+    data = Repository(data_dir).load("demo")
+    past = [e.sprint for e in build_forecast(data, TODAY).history() if e.recorded]
+    before = absence_history(data.team, data.people, past, 4)
+    expected = sprint_like(
+        data,
+        "x.expected",
+        absences={},
+        absence_state=None,
+        expected_absences={data.people[0].id: 2.0},
+        velocity=None,
+        forecast_ist=None,
+        forecast_plan=None,
+        planning=None,
+    )
+    assert absence_status(expected) is AbsenceState.EXPECTED
+    after = absence_history(data.team, data.people, [*past, expected], 4)
+    assert after == before  # Quote, Quoten, Sprints und derived unverändert
+    assert "x.expected" not in after.sprints and "x.expected" not in after.derived
+
+
+def test_sprint_without_capacity_is_neither_counted_nor_flagged(data_dir: Path):
+    data = Repository(data_dir).load("demo")
+    past = [e.sprint for e in build_forecast(data, TODAY).history() if e.recorded]
+    before = absence_history(data.team, data.people, past, 4)
+    # Vor dem Eintritt aller Personen: Bruttokapazität 0, aber „abgeleitet bestätigt“
+    empty = sprint_like(
+        data,
+        "x.empty",
+        start=date(2000, 1, 3),
+        end=date(2000, 1, 17),
+        absences={},
+        absence_state=None,
+        velocity=1.0,
+    )
+    assert absence_status(empty) is AbsenceState.CONFIRMED
+    after = absence_history(data.team, data.people, [*past, empty], 4)
+    assert after == before
+    assert "x.empty" not in after.sprints and "x.empty" not in after.derived
+
+
 def test_note_is_translated(data_dir: Path, english):
     edit(data_dir, "2026.19", absences={})
     _, _, history = history_of(data_dir)
-    note = absence_derived_note(history, detailed=True)
+    note = absence_derived_note(history, detailed=True, window=4)
     assert note and "Rate uncertain" in note and NOTE not in note
-    assert "Save absences" in note
+    assert "1 sprint in the" in note and "only counts as confirmed" in note
+    assert '"Prepare the sprint: absences" page' in note and "Save absences" in note
+    assert "last 4 sprints" in note
+    hint = absence_derived_hint(history)
+    assert hint and "1 sprint in the rate" in hint and "Prepare the sprint: absences" in hint
+    edit(data_dir, "2026.20", absences={})
+    _, _, history = history_of(data_dir)
+    assert "2 sprints in the" in (absence_derived_note(history) or "")
     assert t("Was tun bei unsicherer Quote?") == "What to do about an uncertain rate?"
