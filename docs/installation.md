@@ -29,10 +29,10 @@ Remove: `uv tool uninstall sprintforecast`.
 Manually, without the script:
 
 ```bash
-uv tool install "sprintforecast[web] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
+uv tool install "sprintforecast[web,excel] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
 ```
 
-The Excel export needs the extra `[excel]`: `uv tool install "sprintforecast[web,excel] ..."`.
+The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. An installation without the extra is upgraded with `uv tool install --force "sprintforecast[web,excel] @ ..."` (the updater keeps the extras it was installed with).
 
 ## Git
 
