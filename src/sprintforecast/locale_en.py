@@ -17,7 +17,7 @@ EN: dict[str, str] = {
     "Annahmen des Teams": "Team assumptions",
     "Datei: `{path}`": "File: `{path}`",
     "Je Produkt": "Per product",
-    "Noch kein Protokoll: Es entsteht mit dem Schritt Commitment (Planning speichern).": "No minutes yet: they are written with the Commitment step (save planning).",
+    "Noch kein Protokoll: Es entsteht, sobald ein Planning-Schritt gespeichert wird.": "No minutes yet: they are written as soon as a planning step is saved.",
     "Noch kein Protokoll: Es entsteht, wenn dieser Termin gespeichert wird.": "No minutes yet: they are written when this meeting is saved.",
     "Protokoll nicht lesbar: {reason}": "Minutes not readable: {reason}",
     "Protokolle: {kind} ({count})": "Minutes: {kind} ({count})",
