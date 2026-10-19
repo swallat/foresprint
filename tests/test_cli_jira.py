@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 import pytest
 import yaml
-from test_jira_source import CANARY, FakeKeyring, Server, fixed
+from test_jira_source import CANARY, FakeKeyring, Server, fixed, on_search
 from typer.testing import CliRunner
 
 from sprintforecast import sources
@@ -168,7 +168,9 @@ def test_test_connection_reports_an_unknown_field(data_dir: Path, jira: Mock):
 
 
 def test_fetch_error_is_shown_without_traceback(jira_dir: Path, jira: Mock):
-    jira.handler = fixed(httpx.Response(400, json={"errorMessages": ["Error in the JQL Query: x"]}))
+    jira.handler = on_search(
+        httpx.Response(400, json={"errorMessages": ["Error in the JQL Query: x"]})
+    )
     result = run(jira_dir, "tickets", "demo", "--fetch", "--apply")
     assert result.exit_code == 1
     assert "Error in the JQL Query: x" in result.output and "Traceback" not in result.output
@@ -371,3 +373,63 @@ def test_check_rejects_a_token_in_team_yaml(jira_dir: Path):
     assert result.exit_code == 1
     assert "token" in result.output and "Schlüsselbund" in result.output
     assert CANARY not in result.output
+
+
+# --- Review fixes ----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("action", ["--test-connection", "--set-token"])
+@pytest.mark.parametrize("extra", [["--apply"], ["--commit"], ["--sprints", "3"], ["--sprints=6"]])
+def test_options_that_do_not_belong_to_test_connection_and_set_token_are_refused(
+    jira_dir: Path, jira: Mock, action, extra
+):
+    result = run(jira_dir, "tickets", "demo", action, *extra)
+    assert result.exit_code == 1, result.output
+    assert "gehören nicht zu" in result.output and extra[0].split("=")[0] in result.output
+    assert jira.handler.requests == []
+
+
+def test_sprints_alone_still_works_with_the_report(jira_dir: Path, jira: Mock):
+    assert run(jira_dir, "tickets", "demo", "--sprints", "3").exit_code == 0
+
+
+def test_set_token_warns_when_the_environment_variable_wins(
+    jira_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setitem(sys.modules, "keyring", FakeKeyring())
+    quiet = run(jira_dir, "tickets", "demo", "--set-token", input=f"{CANARY}\n")
+    assert "Vorrang" not in quiet.output
+    monkeypatch.setenv(jira_module.TOKEN_ENV, "from-env")
+    loud = run(jira_dir, "tickets", "demo", "--set-token", input=f"{CANARY}\n")
+    assert loud.exit_code == 0, loud.output
+    assert loud.output.count("Vorrang") == 1 and "SPRINTFORECAST_JIRA_TOKEN" in loud.output
+    assert CANARY not in loud.output and "from-env" not in loud.output
+
+
+def test_set_token_with_an_unusable_address_fails_before_the_prompt(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    write_team(data_dir, base_url="https://[jira.example.org/jira")
+    monkeypatch.setitem(sys.modules, "keyring", FakeKeyring())
+    result = run(data_dir, "tickets", "demo", "--set-token", input=f"{CANARY}\n")
+    assert result.exit_code == 1 and "base_url" in result.output
+    assert "Traceback" not in result.output and CANARY not in result.output
+
+
+def test_check_reports_a_malformed_base_url_without_a_crash(data_dir: Path):
+    write_team(data_dir, base_url="https://[jira.example.org/jira")
+    result = run(data_dir, "check")
+    assert result.exit_code == 1
+    assert "http- oder https-Adresse" in result.output and "Traceback" not in result.output
+
+
+def test_fetch_with_credentials_in_the_address_is_refused(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    write_team(data_dir, base_url="https://anna:s3cret@jira.example.org")
+    monkeypatch.setenv(jira_module.TOKEN_ENV, CANARY)
+    result = run(data_dir, "tickets", "demo", "--fetch")
+    assert result.exit_code == 1 and "Zugangsdaten" in result.output
+    assert "s3cret" not in result.output
+    check = run(data_dir, "check")
+    assert "Zugangsdaten" in check.output and "s3cret" not in check.output

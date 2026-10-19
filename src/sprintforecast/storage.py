@@ -674,8 +674,28 @@ def team_to_dict(team: Team) -> dict[str, Any]:
 
 # --- Tracker (ticket pre-planning, section ``tracker`` in team.yaml) ----------------------
 
-# Parts of a key name that mark a secret; such a key in the tracker section is an error.
-SECRET_WORDS = ("token", "password", "passwort", "secret")
+# Parts of a key name that mark a secret; such a key in the tracker section is an error ...
+SECRET_WORDS = ("token", "password", "passwort", "secret", "credential")
+# ... and so are these names when they are the whole key (a part of a longer name is no hint).
+SECRET_NAMES = ("key", "api_key", "apikey", "pat", "auth", "authorization", "bearer")
+# Sections whose keys are free text of the user (sprint names), not setting names.
+_FREE_KEYS = ("sprint_names",)
+
+
+def secret_key(section: Any) -> str | None:
+    """The first key anywhere in the (nested) tracker section whose name marks a secret, else
+    None. Only names are looked at, values are never read."""
+    if isinstance(section, list):
+        return next((k for item in section if (k := secret_key(item))), None)
+    if not isinstance(section, dict):
+        return None
+    for name, value in section.items():
+        plain = str(name).strip().casefold().replace("-", "_")
+        if plain in SECRET_NAMES or any(word in plain for word in SECRET_WORDS):
+            return str(name)
+        if plain not in _FREE_KEYS and (found := secret_key(value)):
+            return found
+    return None
 
 
 def _text_value(value: Any, where: str, name: str) -> str:
@@ -785,17 +805,16 @@ def _choice(value: Any, kind: type[Any], default: str, where: str, name: str) ->
 
 def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
     at = f"{where}: tracker"
-    for name in d:
-        # The value is never read, let alone shown: it would end up in the data repository.
-        if any(word in str(name).casefold() for word in SECRET_WORDS):
-            raise DataError(
-                t(
-                    "{where}: '{name}' gehört nicht in die Datei – Tokens und Passwörter stehen "
-                    "in der Umgebungsvariable SPRINTFORECAST_JIRA_TOKEN oder im Schlüsselbund",
-                    where=at,
-                    name=name,
-                )
+    # The value is never read, let alone shown: it would end up in the data repository.
+    if (name := secret_key(d)) is not None:
+        raise DataError(
+            t(
+                "{where}: '{name}' gehört nicht in die Datei – Tokens und Passwörter stehen "
+                "in der Umgebungsvariable SPRINTFORECAST_JIRA_TOKEN oder im Schlüsselbund",
+                where=at,
+                name=name,
             )
+        )
     fields = _mapping(d.get("fields"), at, "fields")
     order = _texts(d.get("project_match_order"), at, "project_match_order")
     rough = _float(d.get("rough_factor"), f"{at}: rough_factor")

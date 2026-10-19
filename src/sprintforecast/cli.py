@@ -1744,6 +1744,12 @@ def _ticket_report(
         console.print(f"[red]{t('Abhängigkeiten im Kreis')}: {_plain(' → '.join(cycle))}[/red]")
 
 
+def _given(ctx: typer.Context, name: str) -> bool:
+    """Was this option given on the command line (rather than left at its default)?"""
+    source = ctx.get_parameter_source(name)
+    return source is not None and source.name == "COMMANDLINE"
+
+
 def _source_failed(error: Exception) -> typer.Exit:
     """Prints a source error (no markup interpretation) and returns the exit to raise."""
     err.print(f"[red]{_plain_end(error)}[/red]")
@@ -1777,6 +1783,7 @@ def _ticket_set_token(data: TeamData) -> None:
     """Asks for the token (hidden input) and stores it in the keychain."""
     from sprintforecast.sources import SourceError
     from sprintforecast.sources.jira import (
+        TOKEN_ENV,
         keychain_user,
         keyring_available,
         keyring_missing_error,
@@ -1787,8 +1794,21 @@ def _ticket_set_token(data: TeamData) -> None:
     if not tracker.base_url:
         err.print(f"[red]{t('tracker.base_url fehlt (team.yaml)')}[/red]")
         raise typer.Exit(1)
+    try:
+        user = keychain_user(tracker.base_url)  # an unusable address fails before the prompt
+    except SourceError as e:
+        raise _source_failed(e) from e
     if not keyring_available():
         raise _source_failed(keyring_missing_error())
+    if os.environ.get(TOKEN_ENV, "").strip():
+        console.print(
+            "[yellow]"
+            + t(
+                "Hinweis: {variable} ist gesetzt und hat Vorrang vor dem Schlüsselbund.",
+                variable=TOKEN_ENV,
+            )
+            + "[/yellow]"
+        )
     token = typer.prompt(t("Jira-Token (die Eingabe bleibt unsichtbar)"), hide_input=True)
     try:
         store_token(tracker.base_url, token.strip())
@@ -1798,14 +1818,14 @@ def _ticket_set_token(data: TeamData) -> None:
         "[green]"
         + t(
             "Token für {host} im Schlüsselbund gespeichert. Prüfen mit: {command}",
-            host=_plain(keychain_user(tracker.base_url)),
+            host=_plain(user),
             command=_plain_end(f"sprintforecast tickets {data.team.key} --test-connection"),
         )
         + "[/green]"
     )
 
 
-def _ticket_test_connection(data: TeamData, team: str) -> None:
+def _ticket_test_connection(data: TeamData) -> None:
     """Connects to Jira, shows the account and the resolved fields; writes nothing."""
     from sprintforecast import sources
     from sprintforecast.sources import SourceError
@@ -1952,14 +1972,31 @@ def tickets(
             "[red]" + t("{options} schließen einander aus.", options=" / ".join(actions)) + "[/red]"
         )
         raise typer.Exit(1)
-    if (test_connection or set_token) and (uebernehmen or commit_):
-        err.print(f"[red]{t('--apply und --commit gehören zu --import und --fetch.')}[/red]")
-        raise typer.Exit(1)
+    if test_connection or set_token:
+        refused = [
+            name
+            for name, given in (
+                ("--apply", uebernehmen),
+                ("--commit", commit_),
+                ("--sprints", _given(ctx, "sprints")),
+            )
+            if given
+        ]
+        if refused:
+            err.print(
+                "[red]"
+                + t(
+                    "{options} gehören nicht zu --test-connection und --set-token.",
+                    options=" / ".join(refused),
+                )
+                + "[/red]"
+            )
+            raise typer.Exit(1)
     if set_token:
         _ticket_set_token(data)
         return
     if test_connection:
-        _ticket_test_connection(data, team)
+        _ticket_test_connection(data)
         return
     importing = datei is not None or fetch
     if importing and commit_ and not uebernehmen:

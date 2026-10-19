@@ -32,7 +32,7 @@ Manually, without the script:
 uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
 ```
 
-The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. Storing the Jira token in the operating system keychain additionally needs the package `keyring` (`--with keyring`); the environment variable `SPRINTFORECAST_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
+The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. Storing the Jira token in the operating system keychain additionally needs the package `keyring` (add `--with keyring` to the command above); the environment variable `SPRINTFORECAST_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
 
 ## Git
 

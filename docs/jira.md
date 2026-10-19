@@ -6,9 +6,11 @@ tickets straight from **Jira Data Center** instead of from a CSV export. The imp
 
 ## Setup
 
-1. **Install the extra `[jira]`.** The installer does it; otherwise
-   `uv tool install --force "sprintforecast[web,excel,jira]"` (see
-   [installation.md](installation.md)). Without it the CSV import still works.
+1. **Install the extra `[jira]`.** The installer does it; run it again on an older installation
+   (it keeps your plugins). By hand:
+   `uv tool install --force "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"`
+   (give plugins again with `--with`; see [installation.md](installation.md)). Without the extra
+   the CSV import still works.
 2. **Configure the tracker** in `team.yaml` (details: [data-format.md](data-format.md)):
 
    ```yaml
@@ -17,12 +19,15 @@ tickets straight from **Jira Data Center** instead of from a CSV export. The imp
    tracker:
      kind: jira
      base_url: https://jira.example.org
-     query: 'project = ABC AND resolution = Unresolved ORDER BY Rank'
+     query: 'project = ABC AND resolution = Unresolved AND issuetype not in subTaskIssueTypes() ORDER BY Rank'
      fields:
        estimate: Story Points
        remaining: Remaining Points
        epic: Epic Link
    ```
+
+   Exclude sub-tasks in the query (`issuetype not in subTaskIssueTypes()`): a sub-task is read as
+   a ticket of its own, so it would be counted twice next to its parent's estimate.
 
 3. **Create a personal access token** in Jira: profile > *Personal Access Tokens* > *Create
    token*. The token carries your own permissions (it sees what you see) and expires when Jira
@@ -40,9 +45,10 @@ tickets straight from **Jira Data Center** instead of from a CSV export. The imp
    ```
 
    The keychain needs the optional package `keyring`
-   (`uv tool install --force "sprintforecast[web,excel,jira]" --with keyring`); it is looked up
-   under the service `sprintforecast-jira` and the host of `base_url`. The environment variable
-   comes first when both exist.
+   (the install command above with `--with keyring` added); the entry is stored under the
+   service `sprintforecast-jira` and the **host** of `base_url` only: one token per Jira host,
+   shared by all teams and paths on it. The environment variable comes first when both exist
+   (`--set-token` warns about that).
 5. **Test the connection.** Shows the account the token belongs to and the fields found in the
    instance; writes nothing:
 
@@ -99,10 +105,14 @@ and every request has a 30 second timeout. Proxy settings of the environment (`H
 | Jira denies access (403) | The account may not read this data; after repeated failed logins Jira can also block the account for a while. |
 | Jira not found at ... (404) | Check `base_url`; a context path such as `/jira` belongs to it. |
 | ... redirects | `base_url` is not the final address (e.g. `http` instead of `https`): use the address it redirects to. |
+| The CA file in `SSL_CERT_FILE` / `SSL_CERT_DIR` cannot be read | The variable points to a missing or invalid file; fix or unset it. |
+| The TLS handshake failed | `http` instead of `https`, wrong port, or a proxy that interferes with TLS; not a certificate problem. |
 | The TLS check of the certificate failed | The check is **never** switched off. If your company CA signs the certificate, point the environment variable `SSL_CERT_FILE` (or `SSL_CERT_DIR`) to the CA bundle, then retry. |
 | Not reachable / no answer within 30 seconds | VPN, proxy or firewall; the host must be reachable from this computer on the HTTPS port. |
 | Jira rejects the query (400) | The text after it is Jira's own message about the JQL. |
 | The field "..." does not exist / is ambiguous | Use the display name exactly as in Jira, or the field id (`customfield_10016`) if two fields share a name; the message lists the ids. |
+| The result changed while reading | Tickets were edited while the pages were read, or Jira returned fewer than announced: nothing is written, just run the command again. |
+| The proxy requires authentication (407) | Check `HTTPS_PROXY` and its credentials. |
 | No Jira token found | Set `SPRINTFORECAST_JIRA_TOKEN` or run `--set-token`. |
 
 ## Manual test against a real instance

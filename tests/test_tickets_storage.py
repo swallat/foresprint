@@ -644,3 +644,41 @@ def test_a_secret_while_the_feature_is_off_is_kept_unread_and_reported_when_swit
     path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
     data = Repository(data_dir).load(TEAM)  # feature off: does not break the team
     assert data.team.tracker == TrackerSettings() and data.team.tracker_raw == doc["tracker"]
+
+
+@pytest.mark.parametrize(
+    "tracker_section",
+    [
+        {"kind": "jira", "auth": {"token": "tok-CANARY"}},  # nested
+        {"kind": "jira", "fields": {"estimate": "Story Points", "api_token": "tok-CANARY"}},
+        {"kind": "jira", "refined_also_if": [{"credentials": "tok-CANARY"}]},  # inside a list
+        {"kind": "jira", "key": "tok-CANARY"},
+        {"kind": "jira", "API-Key": "tok-CANARY"},
+        {"kind": "jira", "apikey": "tok-CANARY"},
+        {"kind": "jira", "PAT": "tok-CANARY"},
+        {"kind": "jira", "credential": "tok-CANARY"},
+        {"kind": "jira", "authorization": "Bearer tok-CANARY"},
+        {"kind": "jira", "my_credentials_file": "tok-CANARY"},
+    ],
+)
+def test_secret_like_keys_anywhere_in_the_tracker_section_are_refused(tracker_section):
+    raw = {"name": "T", "features": {"tickets": True}, "tracker": tracker_section}
+    with pytest.raises(DataError) as e:
+        team_from_dict("t", raw, "team.yaml")
+    assert "tok-CANARY" not in str(e.value) and "Schlüsselbund" in str(e.value)
+
+
+def test_ordinary_keys_and_sprint_names_are_not_taken_for_secrets():
+    """Only whole names like `key`/`pat` count; `package`, `patch_level` or a sprint called
+    "Secret Santa" are fine (sprint_names holds free text as keys)."""
+    raw = {
+        "name": "T",
+        "features": {"tickets": True},
+        "tracker": {
+            "kind": "csv",
+            "refined_label": "Key",  # a value, not a key
+            "sprint_names": {"Secret Santa": "2026.20", "Token Sprint": "2026.21"},
+        },
+    }
+    tr = team_from_dict("t", raw, "team.yaml").tracker
+    assert tr.sprint_names == {"Secret Santa": "2026.20", "Token Sprint": "2026.21"}
