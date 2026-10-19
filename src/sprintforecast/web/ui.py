@@ -121,6 +121,7 @@ from sprintforecast.gitsync import (
     HOST_GENERIC,
     HOST_GITHUB,
     HOST_GITLAB,
+    LOCK_WARN_SECONDS,
     SHARE_DIRECT,
     SHARE_MERGE_REQUEST,
     Commit,
@@ -128,6 +129,7 @@ from sprintforecast.gitsync import (
     RemoteInfo,
     SyncResult,
     SyncState,
+    abort_running_sync,
     abort_unfinished,
     auto_merge,
     cached_remote_info,
@@ -150,6 +152,7 @@ from sprintforecast.gitsync import (
     share_mode,
     start_background_fetch,
     sync,
+    sync_running_seconds,
 )
 from sprintforecast.gitsync import (
     cached_state as cached_sync_state,
@@ -5277,6 +5280,14 @@ def _sync_clicked(
     _apply_sync_results(slot, root)
 
 
+def _abort_sync_clicked(root: Path) -> None:
+    """Ausdrücklicher Abbruch eines hängenden Abgleichs (nie automatisch)."""
+    if not abort_running_sync(root):
+        st.session_state.setdefault("flash", []).append(
+            ("info", t("Läuft nichts mehr: Der Abgleich war schon beendet."))
+        )
+
+
 def _unrelated_cancel() -> None:
     st.session_state.pop("unrelated", None)
     st.session_state.pop("unrelated-confirm", None)
@@ -5430,6 +5441,13 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
         if result.error.kind != "unrelated_histories":  # die Rückfrage steht darunter
             _show_problem(result.error, interactive=latest)
+        if latest and result.error.kind == "sync_busy":
+            st.button(
+                t("Abgleich abbrechen"),
+                key="sync-abort",
+                on_click=_abort_sync_clicked,
+                args=(root,),
+            )
         if latest and result.error.kind == "not_found":  # meist stimmt die Adresse nicht
             page_link("datenordner", t("Server-Adresse ändern"))
         if result.validation:
@@ -5773,6 +5791,13 @@ def _git_panel(repo: Repository) -> None:
             )
         )
         st.button(t("Aktualisieren"), key="git-sync-refresh", icon=":material/refresh:")
+        if (held := sync_running_seconds(repo.root)) is not None and held >= LOCK_WARN_SECONDS:
+            st.button(
+                t("Abgleich abbrechen"),
+                key="sync-abort-running",
+                on_click=_abort_sync_clicked,
+                args=(repo.root,),
+            )
         return
     _background_fetch(str(repo.root))
     try:
