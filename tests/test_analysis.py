@@ -138,7 +138,11 @@ def test_window_hint_only_for_windows_below_the_minimum():
     assert window_hint(analysis.MIN_SAMPLES) == ""
     assert window_hint(8) == ""
     hint = window_hint(3)
-    assert "auf 3 Sprints gestellt" in hint and "größeren Fenster" in hint
+    assert "auf 3 Sprints gestellt" in hint and hint.endswith("mehr Werte in die Spanne ein.")
+    simulation = window_hint(3, simulation=True)
+    assert "auf 3 Sprints gestellt" in simulation
+    assert simulation.endswith("mehr Werte in Spanne und Simulation ein.")
+    assert window_hint(5, simulation=True) == ""
 
 
 # --- Plan in der Bandbreite: laufender Sprint mit erfasstem Review-Wert (Velocity) -----------

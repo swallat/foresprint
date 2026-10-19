@@ -427,6 +427,7 @@ def test_analyse_rest_with_a_small_window_caps_the_sample_and_explains_it(data_d
     text = " ".join(result.output.split())
     assert "Wenig Daten: Die Simulation zieht aus nur 3 Sprints (ab 5 sind Aussagen" in text
     assert "Das Prognosefenster ist auf 3 Sprints gestellt" in text
+    assert "mehr Werte in Spanne und Simulation ein" in text
 
 
 def test_analyse_rest_without_few_samples_has_no_warning(data_dir: Path):

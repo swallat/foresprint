@@ -2702,7 +2702,9 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 samples=result.samples,
             )
             if note := completion_note(result.samples):
-                st.warning(f"{note} {window_hint(data.team.forecast.window)}".strip())
+                st.warning(
+                    f"{note} {window_hint(data.team.forecast.window, simulation=True)}".strip()
+                )
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:

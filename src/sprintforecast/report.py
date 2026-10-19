@@ -147,11 +147,18 @@ def reliability_notes(fc: Forecast) -> list[str]:
     return notes
 
 
-def window_hint(window: int) -> str:
+def window_hint(window: int, simulation: bool = False) -> str:
     """Zusatz zu „Wenig Daten“ bei einem Prognosefenster unter ``MIN_SAMPLES``: Die Stichprobe
-    ist auf das Fenster gedeckelt und kann die Schwelle dann nie erreichen. Sonst leer."""
+    ist auf das Fenster gedeckelt und kann die Schwelle dann nie erreichen. Sonst leer.
+    ``simulation``: Der Hinweis hängt an der Warnung der Fertigstellungs-Simulation."""
     if window >= MIN_SAMPLES:
         return ""
+    if simulation:
+        return t(
+            "Das Prognosefenster ist auf {window} Sprints gestellt; mit einem größeren Fenster "
+            "(Einstellungen) gehen mehr Werte in Spanne und Simulation ein.",
+            window=window,
+        )
     return t(
         "Das Prognosefenster ist auf {window} Sprints gestellt; mit einem größeren Fenster "
         "(Einstellungen) gehen mehr Werte in die Spanne ein.",
