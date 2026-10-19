@@ -29,6 +29,18 @@ def data_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture(autouse=True)
+def no_git_outside_path(monkeypatch: pytest.MonkeyPatch):
+    """Git wird nur im PATH gesucht, nicht an den Ersatzorten dieses Rechners (Homebrew, Scoop
+    …): Tests, die Git „entfernen“ (PATH leeren), bleiben so auf jedem Rechner gleich."""
+    from sprintforecast import git
+
+    git.reset_git_cache()
+    monkeypatch.setattr(git, "git_locations", lambda: [])
+    yield
+    git.reset_git_cache()
+
+
+@pytest.fixture(autouse=True)
 def isolated_config(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch):
     """Keine echten Benutzereinstellungen (gemerkter Datenordner, Update-Stand) verwenden."""
     config = tmp_path_factory.mktemp("config")
