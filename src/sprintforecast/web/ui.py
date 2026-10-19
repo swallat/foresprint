@@ -117,6 +117,7 @@ from sprintforecast.githistory import (
     upload_tag,
 )
 from sprintforecast.gitsync import (
+    LOCK_WARN_SECONDS,
     SHARE_DIRECT,
     SHARE_MERGE_REQUEST,
     Commit,
@@ -143,6 +144,7 @@ from sprintforecast.gitsync import (
     share_mode,
     start_background_fetch,
     sync,
+    sync_running_seconds,
 )
 from sprintforecast.gitsync import (
     cached_state as cached_sync_state,
@@ -5726,6 +5728,13 @@ def _git_panel(repo: Repository) -> None:
             )
         )
         st.button(t("Aktualisieren"), key="git-sync-refresh", icon=":material/refresh:")
+        if (held := sync_running_seconds(repo.root)) is not None and held >= LOCK_WARN_SECONDS:
+            st.button(
+                t("Abgleich abbrechen"),
+                key="sync-abort-running",
+                on_click=_abort_sync_clicked,
+                args=(repo.root,),
+            )
         return
     _background_fetch(str(repo.root))
     try:

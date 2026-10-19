@@ -374,36 +374,42 @@ def _env(network: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
 # Laufende Git-Aufrufe je Ordner, damit ein hängender Abgleich von außen beendet werden kann
 # (:func:`abort_running`). Der Schlüssel ist der aufgelöste Arbeitsordner des Aufrufs.
 _ACTIVE_LOCK = threading.Lock()
-_ACTIVE: dict[Path, set[subprocess.Popen]] = {}
-_ABORTED: set[Path] = set()  # Ordner, deren Abgleich abgebrochen wurde: kein neuer Git-Aufruf
+_ACTIVE: dict[Path, dict[subprocess.Popen, int]] = {}  # Prozess → Faden, der ihn gestartet hat
+# Ordner → Fäden, deren Git-Aufruf abgebrochen wurde. Nur sie bekommen den Abbruch zu spüren; er
+# endet mit dem Abgleich (:func:`clear_abort`), andere Fäden (Anzeige) lesen weiter.
+_ABORTED: dict[Path, set[int]] = {}
 
 
 def _key(cwd: Path) -> Path:
     return Path(cwd).resolve()
 
 
-def _raise_if_aborted(cwd: Path) -> None:
+def _aborted_here(cwd: Path) -> bool:
     with _ACTIVE_LOCK:
-        aborted = _key(cwd) in _ABORTED
-    if aborted:
+        return threading.get_ident() in _ABORTED.get(_key(cwd), ())
+
+
+def _raise_if_aborted(cwd: Path) -> None:
+    if _aborted_here(cwd):
         raise GitError(t("Der Abgleich wurde abgebrochen."), "aborted", hint_for("aborted"))
 
 
 def clear_abort(cwd: Path) -> None:
-    """Hebt einen früheren Abbruch für diesen Ordner auf (vor dem Start eines Abgleichs)."""
+    """Hebt einen früheren Abbruch für diesen Ordner auf (am Ende eines Abgleichs)."""
     with _ACTIVE_LOCK:
-        _ABORTED.discard(_key(cwd))
+        _ABORTED.pop(_key(cwd), None)
 
 
 def abort_running(cwd: Path) -> bool:
-    """Beendet die laufenden Git-Aufrufe in diesem Ordner (samt Kindprozessen) und lässt bis
-    :func:`clear_abort` keinen neuen starten. ``True``, wenn ein Aufruf lief. Dateien wie
-    ``index.lock`` werden nie entfernt; ein abgebrochenes Git meldet sie als ``locked``."""
+    """Beendet die laufenden Git-Aufrufe in diesem Ordner (samt Kindprozessen). Deren Fäden
+    starten bis :func:`clear_abort` keinen neuen Aufruf. ``True``, wenn ein Aufruf lief. Dateien
+    wie ``index.lock`` werden nie entfernt; ein abgebrochenes Git meldet sie als ``locked``."""
     key = _key(cwd)
     with _ACTIVE_LOCK:
-        running = [p for p in _ACTIVE.get(key, ()) if p.poll() is None]
+        running = [p for p in _ACTIVE.get(key, {}) if p.poll() is None]
         if running:
-            _ABORTED.add(key)
+            threads = _ABORTED.setdefault(key, set())
+            threads.update(_ACTIVE[key][p] for p in running)
     for process in running:
         proctree.terminate_tree(process, timeout=5)
     return bool(running)
@@ -427,19 +433,29 @@ def _run_tracked(
         env=env,
         **{**proctree.popen_options(), **NO_WINDOW},
     )
+    ident = threading.get_ident()
     with _ACTIVE_LOCK:
-        _ACTIVE.setdefault(key, set()).add(process)
+        _ACTIVE.setdefault(key, {})[process] = ident
+        late = ident in _ABORTED.get(key, ())  # Abbruch, während der Prozess startete
     try:
+        if late:
+            proctree.terminate_tree(process, timeout=5)
         try:
             out, err = process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             proctree.terminate_tree(process)
-            process.communicate()
+            # Pipes können von Enkeln (ssh) offen gehalten werden: nicht ewig warten
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                process.communicate(timeout=5)
             raise
         return subprocess.CompletedProcess(command, process.returncode, out, err)
+    except BaseException:
+        if process.poll() is None:
+            proctree.terminate_tree(process)
+        raise
     finally:
         with _ACTIVE_LOCK:
-            _ACTIVE.get(key, set()).discard(process)
+            _ACTIVE.get(key, {}).pop(process, None)
             if not _ACTIVE.get(key):
                 _ACTIVE.pop(key, None)
 
@@ -470,6 +486,7 @@ def _git_result(
                 continue
             _start_failed(e, command[0])
         _started(command[0])
+        _raise_if_aborted(cwd)  # ein beendetes Git meldet nichts Brauchbares (Code -15)
         return result
     raise AssertionError("unreachable")
 
@@ -904,10 +921,10 @@ def hint_for(kind: str, url: str = "") -> str:
         "sync_busy": t(
             "Ein Abgleich dieses Datenordners läuft schon sehr lange und hängt vielleicht "
             "(z. B. wegen einer schlechten Netzwerkverbindung). Warten oder den laufenden "
-            "Abgleich abbrechen: Deine Änderungen bleiben lokal gesichert."
+            "Abgleich abbrechen: Deine Dateien bleiben lokal gespeichert."
         ),
         "aborted": t(
-            "Der Abgleich wurde von Hand beendet. Deine Änderungen sind lokal gesichert; "
+            "Der Abgleich wurde von Hand beendet. Deine Dateien sind lokal gespeichert; "
             "bitte noch einmal teilen. Meldet Git danach eine gesperrte Datei, ist der Hinweis "
             "dazu zu beachten."
         ),
