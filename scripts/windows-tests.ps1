@@ -679,12 +679,12 @@ function Test-AppEnde {
         return
     }
 
-    Save-ProcessEnv @('SPRINTFORECAST_DATEN', 'SPRINTFORECAST_AUTOUPDATE')
+    Save-ProcessEnv @('SPRINTFORECAST_DATA', 'SPRINTFORECAST_AUTOUPDATE')
     $dataNote = 'Datenordner der App: ihr gemerkter Ordner (kein Python gefunden, keine Testdaten).'
     if ($script:Py) {
         $teams = Initialize-DemoRepository (Join-Path (Get-TempRoot) 'app-daten')
-        $env:SPRINTFORECAST_DATEN = $teams
-        $dataNote = 'Datenordner der App: temporäres Daten-Repository mit dem Team "demo" (SPRINTFORECAST_DATEN nur für diesen Start).'
+        $env:SPRINTFORECAST_DATA = $teams
+        $dataNote = 'Datenordner der App: temporäres Daten-Repository mit dem Team "demo" (SPRINTFORECAST_DATA nur für diesen Start).'
     }
     if (-not $MitAutoUpdate) { $env:SPRINTFORECAST_AUTOUPDATE = 'aus' }
     Add-Text $Section ('Start mit: `' + (Split-Path -Leaf $launcher) + ' ' + ($launchArgs -join ' ') + '`. ' + $dataNote + $(if (-not $MitAutoUpdate) { ' Selbstaktualisierung nur für diesen Start aus.' } else { '' }))
@@ -972,7 +972,7 @@ function Test-Zeilenenden {
     $base = Join-Path (Get-TempRoot) 'zeilenenden'
     $origin = Join-Path $base 'daten'
     $teams = Initialize-DemoRepository $origin
-    $sprints = Invoke-Sf @('--daten', $teams, '--stichtag', '2026-03-02', 'sprints', 'demo', '--anlegen') 120
+    $sprints = Invoke-Sf @('--data', $teams, '--as-of', '2026-03-02', 'sprints', 'demo', '--create') 120
     Add-Block $Section 'sprintforecast sprints demo --anlegen' (Format-Native $sprints)
     $identity = @{
         GIT_AUTHOR_NAME = 'sprintforecast Windows-Test'; GIT_AUTHOR_EMAIL = 'test@example.invalid'
@@ -1015,7 +1015,7 @@ function Test-Zeilenenden {
 
         $status1 = Invoke-Git -Directory $clone -Arguments @('status', '--porcelain')
         $diff1 = Invoke-Git -Directory $clone -Arguments @('diff', '--exit-code', '--stat')
-        $check = Invoke-Sf @('--daten', $cloneTeams, 'pruefen') 120
+        $check = Invoke-Sf @('--data', $cloneTeams, 'check') 120
         $resave = Invoke-Python -Code $script:CodeResave -Arguments @($cloneTeams, 'demo')
         $status2 = Invoke-Git -Directory $clone -Arguments @('status', '--porcelain')
         $diff2 = Invoke-Git -Directory $clone -Arguments @('diff', '--exit-code', '--stat')
@@ -1024,7 +1024,7 @@ function Test-Zeilenenden {
         $lines = @()
         $lines += ('team.yaml im Arbeitsordner: {0} Zeilen mit CRLF' -f $crlf)
         $lines += ('Nach dem Klonen: git status --porcelain: {0}; git diff Exitcode {1}' -f $(if ($status1.Output.Trim()) { 'NICHT LEER' } else { 'leer' }), $diff1.ExitCode)
-        $lines += ('sprintforecast pruefen: Exitcode {0}' -f $check.ExitCode)
+        $lines += ('sprintforecast check: Exitcode {0}' -f $check.ExitCode)
         $lines += ('Erneut speichern: Exitcode {0}' -f $resave.ExitCode)
         $lines += ('Danach: git status --porcelain: {0}; git diff Exitcode {1}' -f $(if ($status2.Output.Trim()) { 'NICHT LEER' } else { 'leer' }), $diff2.ExitCode)
         $lines += ''

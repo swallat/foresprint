@@ -334,6 +334,7 @@ def test_personen_new_person_gets_id_and_former_hidden(data_dir: Path):
 
 
 def test_default_data_dir_is_current_directory(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("SPRINTFORECAST_DATA", raising=False)
     monkeypatch.delenv("SPRINTFORECAST_DATEN", raising=False)
     monkeypatch.chdir(data_dir)
     result = runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"])
@@ -367,6 +368,7 @@ def test_teams_subdirectory_is_found(
 
     root = tmp_path / "sprint-daten"
     shutil.copytree(data_dir, root / "teams")
+    monkeypatch.delenv("SPRINTFORECAST_DATA", raising=False)
     monkeypatch.delenv("SPRINTFORECAST_DATEN", raising=False)
     monkeypatch.chdir(root)
     result = runner.invoke(app, ["--stichtag", "2026-10-15", "forecast", "demo"])
@@ -858,14 +860,133 @@ def test_cli_reports_unwritable_settings_without_traceback(
 
 def test_help_command_list_covers_every_cli_command():
     """Jeder Befehl der CLI steht in guide.COMMANDS, und dort steht kein unbekannter Befehl."""
-    english = set(COMMAND_ALIASES.values())
+    german = set(COMMAND_ALIASES.values())
     registered = {
         info.name
         for info in app.registered_commands
-        if info.name not in english and info.callback.__module__ == "sprintforecast.cli"
+        if info.name not in german and info.callback.__module__ == "sprintforecast.cli"
     }
     listed = {
         m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast ([a-z][\w-]*)", left))
     }
     assert not registered - listed, f"Fehlt in guide.COMMANDS: {registered - listed}"
     assert not listed - registered, f"Kein CLI-Befehl: {listed - registered}"
+
+
+@pytest.mark.parametrize("lang", ["de", "en"])
+def test_help_shows_english_names_and_hides_german_aliases(
+    monkeypatch: pytest.MonkeyPatch, lang: str
+):
+    """Befehle, Optionen und Umgebungsvariablen heißen in beiden Sprachen englisch; die früheren
+    deutschen Namen bleiben als Aliasse erhalten, stehen aber nicht in der Hilfe."""
+    from sprintforecast import i18n
+
+    i18n.set_language(None)
+    monkeypatch.setenv(i18n.LANG_ENV, lang)
+    output = runner.invoke(app, ["--help"]).output
+    for english, german in COMMAND_ALIASES.items():
+        assert re.search(rf"│ {re.escape(english)}\s", output), english
+        assert not re.search(rf"│ {re.escape(german)}\s", output), german
+    assert "--data" in output and "--as-of" in output
+    assert "--daten" not in output and "--stichtag" not in output
+    assert "SPRINTFORECAST_DATA" in output and "SPRINTFORECAST_DATEN" not in output
+    output = runner.invoke(app, ["forecast", "--help"]).output
+    assert "--explain" in output and "--rechenweg" not in output
+    assert "--history" in output and "--verlauf" not in output
+    output = runner.invoke(app, ["help", "--help"]).output
+    assert "[TOPIC]" in output and "THEMA" not in output
+    assert "workflow, terms, fields, team, commands" in output
+
+
+def test_german_command_and_option_aliases_still_work(data_dir: Path):
+    base = ["--daten", str(data_dir), "--stichtag", "2026-10-15"]
+    result = runner.invoke(app, [*base, "kapazitaet", "demo", "2026.22"])
+    assert result.exit_code == 0, result.output
+    assert "Kapazität Sprint 2026.22" in result.output
+    english = ["--data", str(data_dir), "--as-of", "2026-10-15", "capacity", "demo", "2026.22"]
+    assert runner.invoke(app, english).output == result.output
+    result = runner.invoke(
+        app,
+        [
+            f"--daten={data_dir}",
+            "--as-of",
+            "2026-10-15",
+            "forecast",
+            "demo",
+            "--rechenweg",
+            "2026.22",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Rechenweg Sprint 2026.22" in result.output
+    result = runner.invoke(app, [*base, "personen", "demo", "--ehemalige"], input="q\n")
+    assert result.exit_code == 0 and "Emil" in result.output
+    # Hinter „--“ wird nichts ersetzt
+    result = runner.invoke(app, [*base, "data-dir", "--", "--daten"])
+    assert result.exit_code == 1 and "Ordner nicht gefunden: --daten" in result.output
+
+
+def test_help_topics_accept_english_and_german_names(data_dir: Path):
+    for topic in ("workflow", "ablauf"):
+        result = run(data_dir, "help", topic)
+        assert result.exit_code == 0, result.output
+        assert "sprintforecast absences TEAM [SPRINT]" in result.output
+    result = run(data_dir, "hilfe", "befehle")
+    assert "sprintforecast check [--strict]" in result.output
+    assert "sprintforecast --data PATH …" in result.output
+    assert "Weitere Themen: workflow, terms, fields, team (sprintforecast help TOPIC)" in (
+        result.output
+    )
+    result = run(data_dir, "help", "unbekannt")
+    assert result.exit_code == 1
+    assert "Verfügbar: workflow, terms, fields, team, commands" in result.output
+
+
+def test_data_env_prefers_the_new_name(
+    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from sprintforecast import storage
+
+    empty = tmp_path / "leer"
+    empty.mkdir()
+    monkeypatch.chdir(empty)
+    monkeypatch.delenv(storage.DATA_ENV, raising=False)
+    monkeypatch.setenv(storage.DATA_ENV_LEGACY, str(tmp_path / "alt"))
+    assert storage.default_data_dir() == tmp_path / "alt"
+    result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
+    assert result.exit_code == 1  # der alte Name gilt weiter: der Ordner „alt“ fehlt
+    monkeypatch.setenv(storage.DATA_ENV, str(data_dir))
+    assert storage.default_data_dir() == data_dir
+    result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
+    assert result.exit_code == 0, result.output
+    assert "Demo-Team" in result.output
+
+
+def test_as_of_env_prefers_the_new_name(monkeypatch: pytest.MonkeyPatch):
+    from sprintforecast import storage
+
+    monkeypatch.delenv(storage.STICHTAG_ENV, raising=False)
+    monkeypatch.delenv(storage.STICHTAG_ENV_LEGACY, raising=False)
+    assert storage.as_of_env() is None
+    monkeypatch.setenv(storage.STICHTAG_ENV_LEGACY, "2026-01-01")
+    assert storage.as_of_env() == "2026-01-01"
+    monkeypatch.setenv(storage.STICHTAG_ENV, "2026-02-02")
+    assert storage.as_of_env() == "2026-02-02"
+    assert storage.env_setting(storage.STICHTAG_ENV, storage.STICHTAG_ENV_LEGACY) == (
+        storage.STICHTAG_ENV,
+        "2026-02-02",
+    )
+
+
+def test_auto_update_accepts_english_and_german_values(monkeypatch: pytest.MonkeyPatch):
+    from sprintforecast import updater
+
+    saved: list[str] = []
+    monkeypatch.setattr(updater, "update_state", lambda **kw: saved.append(kw["mode"]))
+    monkeypatch.delenv(updater.MODE_ENV, raising=False)
+    for value in ("notice", "hinweis"):
+        result = runner.invoke(app, ["update", "--auto", value])
+        assert result.exit_code == 0, result.output
+    assert saved == ["hinweis", "hinweis"]
+    result = runner.invoke(app, ["aktualisieren", "--auto", "egal"])
+    assert result.exit_code == 1 and "--auto: on, notice oder off" in result.output

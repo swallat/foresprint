@@ -283,11 +283,11 @@ def test_command_line_and_report_file(data_dir: Path):
     assert explained.exit_code == 0, explained.output
     out = " ".join(explained.output.split())  # Zeilenumbrüche der Konsole ignorieren
     assert out.count(NOTE) == 1  # nur die ⚠-Zeile, nicht noch Erklärtext und Tabellenzelle
-    for web_only in ("`2026.19`", "`absence_history`", "`sprintforecast fehltage`"):
+    for web_only in ("`2026.19`", "`absence_history`", "`sprintforecast absences`"):
         assert web_only not in out  # keine Markdown-Backticks in der Konsole
     for web_text in ("Fehltage speichern", "Stand der Fehltage", "Sprint vorbereiten: Fehltage"):
         assert web_text not in out  # keine Bedienung der Weboberfläche
-    assert "sprintforecast fehltage demo <SPRINT>" in out  # stattdessen der Befehl
+    assert "sprintforecast absences demo <SPRINT>" in out  # stattdessen der Befehl
     assert "Fenster der letzten 4 Sprints" in out
     report = run_cli(data_dir, "bericht", "demo")
     assert report.exit_code == 0, report.output

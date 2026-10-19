@@ -111,7 +111,7 @@ def test_notice_mode_only_reports(env: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: pytest.fail("kein Start"))
     said: list[str] = []
     updater.AutoUpdate().start().finish(said.append)
-    assert "sprintforecast aktualisieren" in said[0]
+    assert "sprintforecast update" in said[0]
 
 
 def test_off_mode_and_ci_skip(env: Path, monkeypatch: pytest.MonkeyPatch):

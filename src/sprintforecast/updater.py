@@ -7,7 +7,7 @@
   ``uv tool upgrade --reinstall sprintforecast``; der nächste Start nutzt die neue Version.
   ``uv`` übernimmt dabei Quelle, Plugins (``--with``) und Python-Version der Installation.
 - Modus ``hinweis``: nur ein Hinweis. Modus ``aus``: keine Prüfung.
-- Manuell: ``sprintforecast aktualisieren``.
+- Manuell: ``sprintforecast update``.
 
 Aktiv nur bei einer Installation mit ``uv tool install`` (erkennbar an ``uv-receipt.toml``),
 also nicht in der Entwicklung (``uv run``) und nicht in CI. Gewartet wird auf das Ende des
@@ -490,7 +490,7 @@ def startup_notices(now: datetime | None = None) -> list[str]:
         messages.append(
             t(
                 "Die automatische Aktualisierung auf {version} hat nicht geklappt – "
-                "Protokoll: {log}. Manuell: sprintforecast aktualisieren",
+                "Protokoll: {log}. Manuell: sprintforecast update",
                 version=attempted,
                 log=log_file(),
             )
@@ -542,7 +542,7 @@ class AutoUpdate:
             say(
                 t(
                     "Neue Version {latest} verfügbar (installiert: {current}) – "
-                    "aktualisieren mit: sprintforecast aktualisieren",
+                    "aktualisieren mit: sprintforecast update",
                     latest=latest,
                     current=result.current,
                 )
@@ -602,7 +602,7 @@ def status_line() -> str:
             "{text} · Version {latest} wird nach dem Beenden installiert", text=text, latest=latest
         )
     return t(
-        "{text} · Version {latest} verfügbar (`sprintforecast aktualisieren`)",
+        "{text} · Version {latest} verfügbar (`sprintforecast update`)",
         text=text,
         latest=latest,
     )
