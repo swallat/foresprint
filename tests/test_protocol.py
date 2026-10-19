@@ -749,11 +749,7 @@ def os_error(code: int) -> OSError:
 
 # Fehler, die ein Dateisystem ohne Dateisperren (z. B. mancher Netzordner) meldet.
 PERMANENT_ERRNOS = [errno.ENOLCK, errno.ENOSYS, errno.EINVAL, errno.EIO, errno.EOPNOTSUPP]
-BUSY_ERRNOS = [errno.EAGAIN, errno.EWOULDBLOCK, errno.EDEADLK]
-if sys.platform == "win32":
-    BUSY_ERRNOS.append(errno.EACCES)  # nur unter Windows heißt EACCES „belegt“
-else:
-    PERMANENT_ERRNOS.append(errno.EACCES)  # unter POSIX: fehlendes Recht, dauerhaft
+BUSY_ERRNOS = [errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK, errno.EDEADLK]
 
 
 @pytest.mark.parametrize("code", BUSY_ERRNOS)
@@ -833,9 +829,7 @@ def test_the_missing_file_lock_support_is_reported_in_english(
         write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
 
 
-@pytest.mark.parametrize(
-    "code", [errno.EAGAIN, *([errno.EACCES] if sys.platform == "win32" else [])]
-)
+@pytest.mark.parametrize("code", [errno.EACCES, errno.EAGAIN])
 def test_real_contention_still_waits_and_reports_another_session(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, code: int
 ):
@@ -1049,3 +1043,18 @@ def test_a_transient_error_opening_the_lock_file_is_not_a_fallback(
     with pytest.raises(FileAccessError, match="nicht gespeichert"):
         write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
     assert not list(temp.glob("sprintforecast-sperren-*"))
+
+
+def test_a_file_where_the_lock_folder_belongs_falls_back_to_the_temp_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    settings = tmp_path / "einstellungen"
+    settings.mkdir()
+    (settings / "sperren").write_text("keine Ordner")
+    monkeypatch.setattr(protocol_module, "config_dir", lambda: settings)
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    path = write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+    assert path.exists()
+    assert list(temp.glob("sprintforecast-sperren-*"))
