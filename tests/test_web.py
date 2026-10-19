@@ -1071,6 +1071,29 @@ def test_small_window_caps_the_sample_and_explains_the_warning(
     assert any("Stichprobe: 3 Sprints" in c.value for c in at.caption)
 
 
+@pytest.mark.parametrize("count", [3, 5])
+@pytest.mark.parametrize("window", [1, 2])
+def test_small_window_does_not_claim_there_is_no_forecast(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, window: int, count: int
+):
+    """Die Stichprobe ist auf das Fenster gedeckelt (1 oder 2), die Verfügbarkeit des Forecasts
+    hängt aber an allen Werten: Bei drei oder mehr Werten gibt es keine Meldung „Noch kein
+    Forecast“."""
+    from sprintforecast.analysis import available_count, sample_count
+
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > count:
+            path.unlink()
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
+    raw.setdefault("forecast", {})["window"] = window
+    team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    assert sample_count(fc) == window and available_count(fc) == count
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert not any("Noch kein Forecast" in i.value for i in at.info)
+
+
 def test_analysis_too_large_rest_explains_horizon(app: AppTest):
     goto(app, "analyse")
     app.number_input(key="rest").set_value(100000.0)
