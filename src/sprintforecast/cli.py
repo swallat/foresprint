@@ -729,7 +729,9 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
         raise typer.Exit()
     after = copy.copy(data)
     after.team = current
-    _refuse_invalid(c, data, after, "team.yaml")
+    old = copy.copy(data)
+    old.team = before  # ``current`` wurde an Ort und Stelle geändert, ``before`` ist die Kopie
+    _refuse_invalid(c, old, after, "team.yaml")
     path = c.repo.save_team(current)
     _saved(path)
     _maybe_commit(
