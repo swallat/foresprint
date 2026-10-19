@@ -1070,3 +1070,14 @@ def test_refusal_sees_errors_of_an_in_place_edit(data_dir: Path):
     old.team = before
     with pytest.raises(typer.Exit):
         cli._refuse_invalid(SimpleNamespace(today=date(2026, 10, 15)), old, after, "team.yaml")
+
+
+def test_new_person_with_invalid_region_is_refused_at_once(data_dir: Path):
+    # An unknown person region is refused right at the input and the session goes on.
+    people = data_dir / "demo" / "people.yaml"
+    before = people.read_text(encoding="utf-8")
+    result = run(data_dir, "people", "demo", input="n\nNeu Person\nZZ\n2026-11-01\n1\nq\n")
+    assert result.exit_code == 0, result.output
+    assert "Neu Person" not in people.read_text(encoding="utf-8")
+    assert people.read_text(encoding="utf-8") == before
+    assert "Region 'ZZ'" in result.output
