@@ -1078,6 +1078,19 @@ def test_new_person_with_invalid_region_is_refused_at_once(data_dir: Path):
     before = people.read_text(encoding="utf-8")
     result = run(data_dir, "people", "demo", input="n\nNeu Person\nZZ\n2026-11-01\n1\nq\n")
     assert result.exit_code == 0, result.output
-    assert "Neu Person" not in people.read_text(encoding="utf-8")
     assert people.read_text(encoding="utf-8") == before
     assert "Region 'ZZ'" in result.output
+
+
+def test_new_person_is_not_blamed_for_an_earlier_edit_of_the_session(data_dir: Path):
+    # The FTE 1.5 of Anna is invalid, but that belongs to the earlier step: the valid new
+    # person must not be refused for it (the final check at the end still refuses the save).
+    result = run(
+        data_dir,
+        "people",
+        "demo",
+        input="f\nAnna\n2026-11-01\n1.5\nn\nNeu Person\n\n2026-11-01\n1\nq\n",
+    )
+    assert result.exit_code == 1, result.output
+    assert "fte 1.5" in result.output
+    assert result.output.count("fte 1.5") == 1  # reported once, at the save
