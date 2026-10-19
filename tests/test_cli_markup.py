@@ -385,9 +385,10 @@ def test_personen_new_person_and_selection(klammern: Path):
         result,
         f"Personen: Eva [x], Ben [/x], Cem [red], Dana{BS}\n",
         "Neu [/x]",
-        "Gespeichert: ",
-        "Hinweis people.yaml: [x]: keine Zugehörigkeit",
-        "Fehler people.yaml: neu-x: Region '[/X]' gehört nicht zum Land DE",
+        "people.yaml: neu-x: Region '[/X]' gehört nicht zum Land DE",
+        "Nicht gespeichert – bitte die Fehler beheben.",
+        code=1,  # the invalid region is refused before anything is written
+        absent=("Gespeichert: ",),
     )
 
 

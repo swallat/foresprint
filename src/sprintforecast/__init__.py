@@ -22,12 +22,18 @@ def app_main() -> None:
     from sprintforecast.config import config_dir
 
     log = config_dir() / "app.log"
-    log.parent.mkdir(parents=True, exist_ok=True)
-    out = open(log, "w", encoding="utf-8", buffering=1)  # noqa: SIM115 – lebt bis zum Ende
+    # Das Protokoll ist Komfort: Lässt es sich nicht anlegen (Ordner nicht beschreibbar,
+    # Datei gesperrt), startet die App trotzdem, nur ohne Protokoll.
+    try:
+        log.parent.mkdir(parents=True, exist_ok=True)
+        out = open(log, "w", encoding="utf-8", buffering=1)  # noqa: SIM115 – lebt bis zum Ende
+    except OSError:
+        out = open(os.devnull, "w", encoding="utf-8")  # noqa: SIM115 – lebt bis zum Ende
+    else:
+        os.environ[LOG_ENV] = str(log)
     # Ohne Konsole (pythonw) gibt es kein stdout/stderr; ausgaben ins Protokoll.
     sys.stdout = out if sys.stdout is None else sys.stdout
     sys.stderr = out if sys.stderr is None else sys.stderr
-    os.environ[LOG_ENV] = str(log)
     import json
 
     from sprintforecast.updater import LAUNCHER_ENV

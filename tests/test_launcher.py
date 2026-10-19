@@ -289,3 +289,26 @@ def test_terminate_tree_stops_children():
         if alive:
             time.sleep(0.2)
     assert not alive
+
+
+def test_unwritable_log_does_not_stop_the_start(web_run, tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("SPRINTFORECAST_LOG", str(tmp_path / "nothing" / "app.log"))
+    seen = web_run("--no-browser")
+    assert seen["cmd"] is not None  # the server was started anyway
+
+
+def test_app_starter_survives_an_unwritable_config_dir(tmp_path: Path, monkeypatch, capsys):
+    import sprintforecast
+    from sprintforecast import cli
+
+    blocked = tmp_path / "config"
+    blocked.write_text("a file, not a folder")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(blocked))
+    monkeypatch.setenv("APPDATA", str(blocked))
+    monkeypatch.delenv(sprintforecast.LOG_ENV, raising=False)
+    seen: list[list[str]] = []
+    monkeypatch.setattr(cli, "app", lambda args, prog_name: seen.append(args))
+    monkeypatch.setattr("sys.argv", ["sprintforecast-app"])
+    sprintforecast.app_main()
+    assert seen == [["web", "--app"]]
+    assert sprintforecast.LOG_ENV not in __import__("os").environ
