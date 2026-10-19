@@ -1742,3 +1742,25 @@ def test_not_repo_hint_explains_unpacked_zip():
 
     hint = hint_for("not_repo")
     assert "ZIP" in hint and "Repository klonen" in hint
+
+
+def test_conflict_hint_for_markdown_keeps_file_names_literal(tmp_path: Path):
+    """Der Hinweis geht als Markdown in die Oberfläche: Zeichen in Dateinamen wirken nicht."""
+    name = "a*_[x](www.e.de)\x1f.yaml"
+    (tmp_path / name).write_text(MARKED, encoding="utf-8")
+    with pytest.raises(GitError) as caught:
+        gitmod.refuse_conflict_markers(tmp_path, [tmp_path / name])
+    err = caught.value
+    assert "a*_[x](www.e.de)" in err.hint  # Kommandozeile: unverändert
+    assert "a\\*\\_\\[x\\]\\(www\\.e\\.de\\)" in err.hint_md
+    assert "\x1f" not in err.hint_md and "*_[" not in err.hint_md
+
+
+def test_rollback_hint_escapes_backup_path_for_markdown(tmp_path: Path):
+    from sprintforecast import githistory
+
+    trash = tmp_path / "s_ich*erung"
+    plain = githistory._rollback_hint(["a_b.yaml"], trash)
+    md = githistory._rollback_hint(["a_b.yaml"], trash, gitmod.md_plain)
+    assert "a_b.yaml" in plain and "s_ich*erung" in plain
+    assert "a\\_b\\.yaml" in md and "s\\_ich\\*erung" in md
