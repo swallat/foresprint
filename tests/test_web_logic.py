@@ -421,3 +421,18 @@ def test_board_steps_done_other_steps_follow_their_values():
     done = board_steps_done(sprint)
     assert done["vorplanung"] and done["planning"] and done["review"]
     assert not board_steps_done(_sprint(products={"app": ProductValues(planned=2.0)}))["vorplanung"]
+
+
+def test_capacity_usage():
+    from sprintforecast.web.logic import capacity_usage
+
+    usage = capacity_usage(20.0, 15.0)
+    assert usage is not None
+    assert (usage.rest, usage.ratio, usage.over) == (5.0, 0.75, False)
+    over = capacity_usage(20.0, 24.0)
+    assert over is not None
+    assert (over.rest, over.over) == (-4.0, True)
+    assert capacity_usage(None, 3.0) is None
+    assert capacity_usage(20.0, None) is None
+    zero = capacity_usage(0.0, 2.0)
+    assert zero is not None and zero.ratio == 0.0 and zero.over

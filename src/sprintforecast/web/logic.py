@@ -644,6 +644,34 @@ def parse_numbers(raw: str) -> list[float]:
     return numbers
 
 
+@dataclass(frozen=True)
+class CapacityUsage:
+    """Verplante Menge gegenüber dem Forecast PLAN: Rest (negativ = zu viel) und Auslastung."""
+
+    planned: float
+    plan: float
+
+    @property
+    def rest(self) -> float:
+        return self.plan - self.planned
+
+    @property
+    def ratio(self) -> float:
+        """Anteil des Forecast PLAN, der verplant ist (über 1 = überplant; 0 ohne PLAN)."""
+        return self.planned / self.plan if self.plan > 0 else 0.0
+
+    @property
+    def over(self) -> bool:
+        return self.rest < 0
+
+
+def capacity_usage(plan: float | None, planned: float | None) -> CapacityUsage | None:
+    """None, solange PLAN oder verplante Menge fehlt (dann gibt es nichts zu vergleichen)."""
+    if plan is None or planned is None:
+        return None
+    return CapacityUsage(planned=planned, plan=plan)
+
+
 def board_steps_done(recorded: Sprint | None) -> dict[str, bool]:
     """Erledigt-Haken der Schrittleiste (Fehltage, PO-Vorplanung, Planning, Review) für einen
     Sprint – aus den gespeicherten Daten, ``recorded`` ist der Sprint ohne Sprintdatei ``None``.
