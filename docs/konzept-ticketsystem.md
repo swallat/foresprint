@@ -2,7 +2,7 @@
 
 Status: Entwurf, Version 6 (19. Oktober 2026), noch nichts umgesetzt. Diese Version **ersetzt
 Version 5 vollständig**; sie ist das einzige gültige Konzept zur Jira-Anbindung. Die Umsetzung
-beginnt nach dem Merge der offenen PR-Welle (#98 bis #106; #96 und #97 sind gemergt), siehe Abschnitt 10. Alles, was ohne
+beginnt auf Release 0.6.0 (die PR-Welle vom Oktober 2026 ist gemergt), siehe Abschnitt 10. Alles, was ohne
 Ticketsystem gilt (Berechnung, Bedienung, Datenordner, Synchronisation), steht in
 [konzept-kern.md](konzept-kern.md).
 
@@ -381,13 +381,12 @@ sprintforecast/
 - Mit `features.tickets: false` wird nichts davon geladen.
 - Der Jira-Adapter ist ein optionales Extra im selben Repo, kein Plugin: der Code enthält nichts
   Instanzspezifisches, ein eigenes Registrierungsverfahren ist nicht nötig.
-- Begriff: Der Forecast-Kern nennt den Anteil für Vorplanung heute „Roadmap-Anteil“
-  (`roadmap_share`). PR #106 benennt die Anzeige in „Verplanbarer Anteil“ um; der Schlüssel
-  bleibt. Dieses Dokument nutzt „verplanbarer Anteil“.
+- Begriff: Der Anteil für Vorplanung heißt in der Anzeige „Verplanbarer Anteil“ (seit #106,
+  früher „Roadmap-Anteil“); der YAML-Schlüssel bleibt `roadmap_share`.
 
 ## 10. Umsetzungsschritte
 
-Erst nach dem Merge der offenen PR-Welle #98 bis #106, dann von frischem `main`. Je Schritt ein
+Start auf Release 0.6.0, immer von frischem `main`. Je Schritt ein
 kleiner Pull Request (oder ein Stapel), deutsch, mit Tests und `locale_en.py`-Einträgen.
 
 | Schritt | Inhalt | Berührte Module |
