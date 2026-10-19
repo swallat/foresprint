@@ -31,16 +31,13 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
-    MIN_SAMPLES,
     available_count,
     average_focus_factor,
     band,
     buffer_hint,
     completion,
-    few_samples,
     focus_factor,
     plan_basis,
-    sample_count,
 )
 from sprintforecast.calendar import (
     countries,
@@ -190,6 +187,7 @@ from sprintforecast.report import (
     capacity_label,
     capacity_source_note,
     completion_note,
+    few_samples_note,
     fmt,
     fmt_capacity,
     pct,
@@ -932,16 +930,8 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
                 min=MIN_THIN_HISTORY,
             )
         )
-    if sample_count(fc) and few_samples(fc):
-        st.warning(
-            t(
-                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
-                "belastbarer). Plan und Spanne sind grobe Hinweise.",
-                samples=sample_count(fc),
-                min=MIN_SAMPLES,
-            )
-            + (" " + hint if (hint := window_hint(fc.data.team.forecast.window)) else "")
-        )
+    if note := few_samples_note(fc):
+        st.warning(note)
     # Dieselben Sprints wie die Rechnung (abgeschlossene und laufender), ohne Zukunftssprints.
     series = [x.result.normalized_velocity.value for x in plan_basis(fc)]
     if gaps := gaps_in_window(series, fc.data.team.forecast.window):
@@ -2818,9 +2808,13 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 samples=result.samples,
             )
             if note := completion_note(result.samples):
-                st.warning(
-                    f"{note} {window_hint(data.team.forecast.window, simulation=True)}".strip()
+                hint = window_hint(
+                    data.team.forecast.window,
+                    result.samples,
+                    available_count(fc),
+                    simulation=True,
                 )
+                st.warning(f"{note} {hint}".strip())
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:
