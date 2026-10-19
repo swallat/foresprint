@@ -363,6 +363,18 @@ GIT_HELP: list[tuple[str, str]] = [
         "dazukommt. Es gilt das einfache Modell „ein Branch, immer synchron halten“.",
     ),
     (
+        "Was hat sich geändert?",
+        "Bei offenen Änderungen zeigt der Git-Bereich vor „Speichern und teilen“ und „Änderungen "
+        "committen“ je Datei, was sich geändert hat: bei geänderten und umbenannten "
+        "YAML-Dateien jeden Wert mit Vorher und Nachher, bei neuen und gelöschten Dateien nur "
+        "die Art. Verschachtelte Werte stehen mit Punkten, Einträge mit Kennung in eckigen "
+        "Klammern, z. B. people.[anna].fte. Lange Werte sind gekürzt. Dateien ohne lesbare "
+        "Werte (Excel, Berichte, kaputtes YAML, Dateien über 1 MiB oder mit über 200 000 "
+        "Einträgen) tragen den Hinweis „keine Wertansicht“. Ausgewertet werden die ersten 25 "
+        "Dateien, insgesamt höchstens 4 MiB; weitere Dateien tragen den Hinweis „nicht "
+        "ausgewertet“.",
+    ),
+    (
         "Stand in der Seitenleiste",
         "„noch nicht geteilt“ sind eigene Commits, die der Server noch nicht kennt; „neu von "
         "anderen“ sind Commits auf dem Server, die du noch nicht hast. Der Serverstand wird "

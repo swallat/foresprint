@@ -12,12 +12,16 @@ from __future__ import annotations
 import contextlib
 import copy
 import os
+import re
 import subprocess
 import sys
 import threading
 import time
+import unicodedata
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import date, datetime
+from itertools import islice
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -49,6 +53,7 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
+from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes
 from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
 from sprintforecast.forecast import (
     Forecast,
@@ -63,6 +68,8 @@ from sprintforecast.forecast import (
 from sprintforecast.formulas import fte_change_note, general, plain_explanation, steps
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
+    _BIDI_CONTROLS,
+    _BLANKED_CATEGORIES,
     NO_WINDOW,
     GitError,
     NewBranchError,
@@ -79,6 +86,7 @@ from sprintforecast.git import (
     md_code,
     md_code_lines,
     new_branch_error,
+    on_invalidate,
     parse_remote_url,
     remote_special_error,
     secret_in_url_error,
@@ -4859,6 +4867,209 @@ def _status_text(state: SyncState) -> str:
     return " · ".join(parts)
 
 
+_VIEW_FILES = 25
+_VIEW_ROWS = MAX_VALUES
+_VIEW_TEXT = 80
+
+
+def _view_clean(text: str) -> str:
+    """Zeilenumbruch und Tabulator sichtbar machen, Steuerzeichen der Schreibrichtung entfernen,
+    übrige Steuerzeichen zu Leerzeichen (wie :func:`md_code`)."""
+    text = text.replace("\n", "⏎").replace("\t", "⇥")
+    return "".join(
+        "" if c in _BIDI_CONTROLS else " " if unicodedata.category(c) in _BLANKED_CATEGORIES else c
+        for c in text
+    )
+
+
+_BOUND_ITEMS = 1000  # Einträge je Liste oder Objekt
+_BOUND_TEXT = 1000  # Zeichen je Text
+_BOUND_NODES = 5000  # Knoten je Wert
+_BOUND_DEPTH = 8
+_BOUND_BITS = 128  # größere Ganzzahlen zeigt die Ansicht nur gekürzt
+
+
+class _Raw(str):
+    """Bereits fertiger Text in der Ansicht (Kürzung, große Zahl)."""
+
+
+class _ViewDumper(yaml.SafeDumper):
+    pass
+
+
+_ViewDumper.add_representer(
+    _Raw, lambda dumper, data: dumper.represent_scalar("tag:yaml.org,2002:str", str(data))
+)
+
+
+def _bound(value: Any, left: list[int], depth: int = 0) -> Any:
+    """Kürzt ``value`` auf einen Ausschnitt, der für eine Zelle von 80 Zeichen reicht (Tiefe,
+    Anzahl der Einträge und Knoten, Länge der Texte). Große Ganzzahlen werden nicht gedumpt:
+    ``yaml.safe_dump`` und ``str`` scheitern ab 4300 Ziffern."""
+    left[0] -= 1
+    if left[0] < 0 or depth > _BOUND_DEPTH:
+        return _Raw("…")
+    if isinstance(value, bool) or value is None or isinstance(value, (float, date)):
+        return value
+    if isinstance(value, int):
+        if value.bit_length() <= _BOUND_BITS:
+            return value
+        return _Raw(f"{'-' if value < 0 else ''}{hex(abs(value))[:14]}… ({value.bit_length()} Bit)")
+    if isinstance(value, str):
+        return value if len(value) <= _BOUND_TEXT else _Raw(value[:_BOUND_TEXT] + "…")
+    if isinstance(value, dict):
+        out: dict[Any, Any] = {}
+        for i, (k, v) in enumerate(value.items()):
+            if i >= _BOUND_ITEMS:
+                out[_Raw("…")] = _Raw("…")
+                break
+            out[_bound(k, left, depth + 1)] = _bound(v, left, depth + 1)
+        return out
+    if isinstance(value, list):
+        items = [_bound(v, left, depth + 1) for v in value[:_BOUND_ITEMS]]
+        if len(value) > _BOUND_ITEMS:
+            items.append(_Raw("…"))
+        return items
+    if isinstance(value, (set, frozenset)):
+        shown: set[Any] = {_bound(v, left, depth + 1) for v in islice(value, _BOUND_ITEMS)}
+        if len(value) > _BOUND_ITEMS:
+            shown.add(_Raw("…"))
+        return shown
+    if isinstance(value, (bytes, bytearray)):
+        return _Raw(f"bytes, {len(value)} Byte")
+    try:  # alle übrigen Typen: als begrenzter Text
+        return _Raw(repr(value)[:_BOUND_TEXT])
+    except Exception:
+        return _Raw(t("(Wert nicht darstellbar)"))
+
+
+def _view_text(value: object) -> str:
+    """Wert in der Schreibweise der Datei (``null``, ``true``, ``'1'`` für Text); fehlend „–“.
+    Der Wert wird vorher gekürzt (:func:`_bound`), damit große Werte schnell gehen."""
+    if value is MISSING:
+        return "–"
+    try:
+        text = yaml.dump(
+            _bound(value, [_BOUND_NODES]),
+            Dumper=_ViewDumper,
+            allow_unicode=True,
+            default_flow_style=True,
+            width=1_000_000,
+        ).strip()
+        text = text.removesuffix("\n...").strip()
+    except Exception:  # eine Zelle darf nie die Seite stoppen
+        try:
+            text = repr(value)[:_BOUND_TEXT]
+        except Exception:
+            text = t("(Wert nicht darstellbar)")
+    return _view_clean(text)
+
+
+def _formula_safe(text: str, value: object = None) -> str:
+    """Tabellen-Export: Text, den Excel als Formel läse, bekommt ein Apostroph (nur Anzeige).
+    Zahlen bleiben, wie sie sind."""
+    # Nur echte Zahlen im Zahlenformat bleiben; die Kurzform großer Zahlen und ``-.inf`` nicht.
+    number = (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and re.fullmatch(r"-?\d+(\.\d+)?(e[+-]?\d+)?", text) is not None
+    )
+    if not number and text.startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
+def _view_clip(text: str, start: int) -> str:
+    text = ("…" if start else "") + text[start:]
+    return text if len(text) <= _VIEW_TEXT else text[: _VIEW_TEXT - 1] + "…"
+
+
+def _view_pair(old: object, new: object) -> tuple[str, str]:
+    """Vorher und Nachher als Tabellenzellen. Sind sie zu lang, beginnen beide kurz vor der
+    ersten Abweichung, damit der Unterschied zu sehen ist."""
+    a, b = _view_text(old), _view_text(new)
+    if len(a) > _VIEW_TEXT or len(b) > _VIEW_TEXT:
+        common = next((i for i, (x, y) in enumerate(zip(a, b, strict=False)) if x != y), None)
+        common = min(len(a), len(b)) if common is None else common
+        start = max(0, common - 10)
+        a, b = _view_clip(a, start), _view_clip(b, start)
+    if a == b:
+        b += t(" (Unterschied nicht sichtbar, Datei prüfen)")
+    return _formula_safe(a, old), _formula_safe(b, new)
+
+
+_VIEW_LABEL = 120
+# Fertige Tabellenzeilen je Datei: Das Ergebnis von ``cached_file_changes`` behält seine
+# Objekte, solange es gültig ist; mit ihm wird auch dieser Speicher geleert.
+_ROWS: dict[tuple[int, str], tuple[FileChange, list[tuple[str, str, str]]]] = {}
+_ROWS_MAX = 300
+on_invalidate(_ROWS.clear)
+
+
+def _file_rows(fc: FileChange) -> list[tuple[str, str, str]]:
+    """Zeilen (Feld, Vorher, Nachher) der ersten Werte einer Datei samt Restzeile."""
+    key = (id(fc), language())
+    cached = _ROWS.get(key)
+    if cached and cached[0] is fc:
+        return cached[1]
+    rows = []
+    for v in fc.values[:_VIEW_ROWS]:
+        label = _view_clean(v.label)
+        if len(label) > _VIEW_LABEL:
+            label = label[: _VIEW_LABEL - 1] + "…"
+        rows.append((_formula_safe(label), *_view_pair(v.old, v.new)))
+    if fc.omitted:
+        rows.append((t("… und {n} weitere", n=fc.omitted), "", ""))
+    if len(_ROWS) >= _ROWS_MAX:
+        _ROWS.clear()
+    _ROWS[key] = (fc, rows)
+    return rows
+
+
+def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
+    """Dateiname relativ zum Datenordner, wenn möglich."""
+    if git_root_path is not None:
+        with contextlib.suppress(ValueError):
+            return (git_root_path / file).relative_to(root.resolve()).as_posix()
+    return file
+
+
+def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
+    """„Was hat sich geändert?“: Werte vorher und nachher je geänderter Datei. Dateinamen und
+    Werte stammen aus Dateien, die andere ins Repository legen: nur als Code oder in Tabellen."""
+    try:
+        files = cached_file_changes(root, pending)
+        top = git_root(root)
+    except GitError:
+        st.caption(t("Die Änderungsansicht ist gerade nicht verfügbar."))
+        return
+    st.markdown(f"**{t('Was hat sich geändert?')}**")
+    for fc in files[:_VIEW_FILES]:
+        shown_fc = replace(
+            fc,
+            file=_view_name(root, fc.file, top),
+            orig=_view_name(root, fc.orig, top) if fc.orig else "",
+        )
+        if shown_fc.orig:
+            st.markdown(_lost_status(shown_fc))  # „umbenannt: alt → neu“, beide als Code
+        else:
+            st.markdown(f"{md_code(shown_fc.file)} – {status_name(fc.status)}")
+        if fc.skipped:
+            st.caption(t("nicht ausgewertet (zu viele oder zu große Dateien)"))
+        elif not fc.readable:
+            st.caption(t("keine Wertansicht"))
+        elif fc.values:
+            st.dataframe(
+                pd.DataFrame(_file_rows(fc), columns=[t("Feld"), t("Vorher"), t("Nachher")]),
+                hide_index=True,
+                width="stretch",
+            )
+        elif any(c in fc.status for c in "MT") and not any(c in fc.status for c in "A?D"):
+            st.caption(t("keine Wertänderung (nur Schreibweise oder Reihenfolge)"))
+    if len(files) > _VIEW_FILES:
+        st.caption(t("… und {n} weitere", n=len(files) - _VIEW_FILES))
+
+
 def _git_panel(repo: Repository) -> None:
     if not git_available():
         _show_problem(classify("", missing=True))
@@ -4946,6 +5157,7 @@ def _git_panel(repo: Repository) -> None:
             _show_incoming(commits, files)
         if changes:
             st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
+            _changes_view(repo.root, changes)
             st.session_state.setdefault("commit_message", _commit_default())
             st.text_input(t("Commit-Nachricht"), key="commit_message")
             if tags:
@@ -5005,7 +5217,7 @@ def status_name(status: str) -> str:
     return t(_STATUS_NAMES.get(status, "geändert"))
 
 
-def _lost_status(item: Lost) -> str:
+def _lost_status(item: Lost | FileChange) -> str:
     """Status einer verlorenen Änderung; bei Umbenennungen mit altem und neuem Pfad."""
     name = status_name(item.status)
     if item.orig:
