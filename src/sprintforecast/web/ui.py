@@ -4738,9 +4738,14 @@ def collect_sync_result() -> None:
 
 
 def _sync_clicked(
-    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
+    root: Path,
+    tags: list[str],
+    allow_invalid: bool = False,
+    allow_unrelated: bool = False,
+    push: bool = True,
 ) -> None:
-    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
+    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen.
+    Mit ``push=False`` („Vom Server holen“) wird nur gesichert und der Serverstand übernommen."""
     slot = _sync_slot()
     if not slot.begin():  # ein Abgleich dieser Sitzung läuft noch: nicht noch einen starten
         st.session_state.setdefault("flash", []).append(
@@ -4748,8 +4753,7 @@ def _sync_clicked(
                 "warning",
                 t(
                     "Ein Abgleich lief noch: Dieser Klick wurde nicht ausgeführt. Bitte nach dem "
-                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal „Speichern und "
-                    "teilen“ wählen."
+                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal klicken."
                 ),
             )
         )
@@ -4764,6 +4768,7 @@ def _sync_clicked(
             today(),
             allow_invalid=allow_invalid,
             allow_unrelated=allow_unrelated,
+            push=push,
         )
         slot.put(root, result)  # vor dem Freigeben: Wer danach aufwacht, findet es
     finally:
@@ -4776,9 +4781,17 @@ def _unrelated_cancel() -> None:
     st.session_state.pop("unrelated-confirm", None)
 
 
+def _continues_pull_only() -> bool:
+    """Gehört der Abgleich, der gerade fortgesetzt wird (nach Konflikten, nach der Rückfrage zur
+    fremden Historie), zu „Vom Server holen“? Dann lädt auch das Fortsetzen nichts hoch."""
+    last = st.session_state.get("sync_result")
+    return bool(last is not None and last.pull_only)
+
+
 def _unrelated_go(root: Path, tags: list[str]) -> None:
+    push = not _continues_pull_only()
     _unrelated_cancel()
-    _sync_clicked(root, tags, allow_unrelated=True)
+    _sync_clicked(root, tags, allow_unrelated=True, push=push)
 
 
 def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesError) -> None:
@@ -4899,6 +4912,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
     if result.pushed:
         done.append(t("Hochgeladen"))
     if result.error is None:
+        if result.pull_only and (result.committed or result.merged):
+            done.append(t("Noch nicht hochgeladen: „Speichern und teilen“ lädt es hoch"))
         st.success(" · ".join(done) if done else t("Alles ist auf dem aktuellen Stand."))
     else:
         if done:
@@ -5285,6 +5300,18 @@ def _git_panel(repo: Repository) -> None:
                 help=t(
                     "Sichert deine Änderungen, holt die der anderen, führt beides zusammen und "
                     "lädt es hoch."
+                ),
+            )
+            st.button(
+                t("Vom Server holen"),
+                icon=":material/download:",
+                key="git-pull",
+                on_click=_sync_clicked,
+                args=(repo.root, list(tags), False, False, False),
+                help=t(
+                    "Holt die Änderungen der anderen in diesen Datenordner und führt sie mit "
+                    "deinen zusammen (eigene offene Änderungen werden vorher gesichert). Lädt "
+                    "nichts hoch."
                 ),
             )
             st.button(
@@ -5746,7 +5773,7 @@ def _resolve_clicked(root: Path, pending: list[ConflictFile], tags: list[str]) -
     except GitError as e:
         st.session_state["commit_error"] = e
         return
-    _sync_clicked(root, tags)
+    _sync_clicked(root, tags, push=not _continues_pull_only())
 
 
 def _restore_clicked(root: Path, file: Path) -> None:
