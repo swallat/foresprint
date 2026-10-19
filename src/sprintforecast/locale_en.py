@@ -1649,4 +1649,15 @@ EN: dict[str, str] = {
     '{where}: {name} bitte in Anführungszeichen setzen, z. B. {name}: "2026.20"': '{where}: please put {name} in quotation marks, e.g. {name}: "2026.20"',
     "Ticket-Vorplanung": "Ticket pre-planning",
     "Tickets aus dem Ticketsystem (CSV-Export) werden Projekten zugeordnet und auf künftige Sprints verteilt: Projektliste mit Zieldatum, Vormerkungen je Sprint, Projektampel und Refinement-Liste (Dateien projects.yaml, tickets.yaml, preplan.yaml; Abschnitt tracker in team.yaml). Aus: Die Dateien werden nicht gelesen, es gibt keine Seite und keinen Befehl dafür.": "Tickets from the issue tracker (CSV export) are assigned to projects and distributed over future sprints: project list with target date, earmarks per sprint, project traffic light and refinement list (files projects.yaml, tickets.yaml, preplan.yaml; section tracker in team.yaml). Off: the files are not read, and there is no page and no command for it.",
+    # --- Ticket pre-planning (step 1: CSV source and import) ---
+    "{path}: Die Datei ist leer": "{path}: The file is empty",
+    "{path}: Die Datei ist nicht UTF-8-kodiert ({error})": "{path}: The file is not UTF-8 encoded ({error})",
+    "{path}: Datei nicht lesbar: {error}": "{path}: file not readable: {error}",
+    "{path}: Der Feldname der Schätzung ist nicht eingestellt (tracker.fields.estimate in team.yaml)": "{path}: The field name of the estimate is not configured (tracker.fields.estimate in team.yaml)",
+    "{path}: Spalte fehlt – erwartet {names}": "{path}: column missing – expected {names}",
+    "{path}, Zeile {line}: '{value}' in Spalte „{column}“ ist keine Zahl": "{path}, line {line}: '{value}' in column “{column}” is not a number",
+    "{path}, Zeile {line}: Schlüssel fehlt": "{path}, line {line}: key is missing",
+    "Ticket {key} kommt mehrfach vor; der letzte Eintrag gilt": "Ticket {key} occurs more than once; the last entry counts",
+    "Ticket {key} ist nicht mehr im Import; die Vormerkung für Sprint {sprint} bleibt bestehen": "Ticket {key} is no longer in the import; the earmark for sprint {sprint} stays",
+    "Ticket {key} ist nicht mehr im Import; die eigene Schätzung bleibt bestehen": "Ticket {key} is no longer in the import; the own estimate stays",
 }
