@@ -792,7 +792,14 @@ def _saved_before(root: Path, holders: list[str]) -> bool | None:
         return None
     if _git(root, "log", "-1", "--format=%s", "HEAD", check=False) != _SAVE_SUBJECT:
         return None
-    parent = _git(root, "branch", "--contains", "HEAD~1", "--format=%(refname:short)", check=False)
+    # Über die ganze Kette der Sicherungen zurück (mehrere Versuche): erst der erste andere
+    # Commit zeigt, ob der lose Stand eigene Commits hatte.
+    depth = 1
+    while _git(root, "log", "-1", "--format=%s", f"HEAD~{depth}", check=False) == _SAVE_SUBJECT:
+        depth += 1
+    parent = _git(
+        root, "branch", "--contains", f"HEAD~{depth}", "--format=%(refname:short)", check=False
+    )
     return all(b.startswith("rettung-") for b in parent.splitlines() if not b.startswith("("))
 
 
