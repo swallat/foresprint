@@ -13,6 +13,7 @@ Bewusst weiter „roadmap“ genannt (und deshalb hier nicht geprüft):
   anzeigt (kleingeschrieben; geprüft wird nur das großgeschriebene Wort „Roadmap“).
 """
 
+import re
 from datetime import date
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from typer.testing import CliRunner
 
 from sprintforecast.cli import app
 from sprintforecast.forecast import build_forecast
+from sprintforecast.model import ProductBasis
 from sprintforecast.report import render
 from sprintforecast.settings import SETTINGS
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
@@ -107,14 +109,114 @@ def test_report_shows_no_roadmap_label(data_dir: Path):
 
 
 @pytest.mark.parametrize("lang", ["de", "en"])
-@pytest.mark.parametrize(
-    "page", ["forecast", "analyse", "einstellungen", "planning", "produkte", "hilfe", "start"]
-)
+def test_formula_steps_name_the_plannable_share(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, lang: str
+):
+    from sprintforecast import i18n
+    from sprintforecast.formulas import GENERAL, general, steps
+
+    i18n.set_language(None)
+    monkeypatch.setenv(i18n.LANG_ENV, lang)
+    try:
+        fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+        entry = fc.upcoming()[0]
+        step_texts = [(s.name, s.formula, s.calculation) for s in steps(fc, entry)]
+        explained = [general(key) for key in GENERAL]
+    finally:
+        i18n.set_language(None)
+    flat = " ".join(" ".join(row) for row in step_texts) + " ".join(explained)
+    assert "oadmap" not in flat
+    titles = [title for title, _, _ in step_texts]
+    assert ("Verplanbar" if lang == "de" else "Plannable") in titles
+
+
+def use_roadmap_basis(data_dir: Path) -> None:
+    """Standardverteilung je Produkt aus dem verplanbaren Anteil (Wert ``roadmap``)."""
+    repo = Repository(data_dir)
+    data = repo.load("demo")
+    data.team.forecast.product_basis = ProductBasis.ROADMAP
+    repo.save_team(data.team)
+
+
+def test_planning_panel_keeps_its_separators(data_dir: Path):
+    # Die Kennzahlenzeile nach „planning“ (gleiche Funktion wie bei „fehltage“).
+    result = runner.invoke(
+        app,
+        ["--daten", str(data_dir), "--stichtag", "2026-10-15", "planning", "demo", "2026.20"],
+        input="n\nn\nn\nn\n",
+    )
+    assert re.search(r"\(Verplanbar [\d.,]+ · Kleinkram [\d.,]+\)", result.output), result.output
+
+
+def test_planning_panel_in_english(data_dir: Path, english):
+    result = runner.invoke(
+        app,
+        ["--daten", str(data_dir), "--stichtag", "2026-10-15", "planning", "demo", "2026.20"],
+        input="n\nn\nn\nn\n",
+    )
+    assert re.search(r"\(Plannable [\d.,]+ · \S.* [\d.,]+\)", result.output), result.output
+
+
+@pytest.mark.parametrize("lang", ["de", "en"])
+def test_product_distribution_names_the_plannable_share(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, lang: str
+):
+    from sprintforecast import i18n
+
+    use_roadmap_basis(data_dir)
+    i18n.set_language(None)
+    monkeypatch.setenv(i18n.LANG_ENV, lang)
+    try:
+        output = run(data_dir, "produkte", "demo", "2026.20")
+    finally:
+        i18n.set_language(None)
+    assert ("Verplanbarer Anteil" if lang == "de" else "Plannable share") in output
+    assert "oadmap" not in output
+
+
+@pytest.mark.parametrize("lang", ["de", "en"])
+def test_excel_labels_are_renamed_but_keys_stay(data_dir: Path, lang: str, monkeypatch):
+    openpyxl = pytest.importorskip("openpyxl")
+    pytest.importorskip("xlsxwriter")
+    from io import BytesIO
+
+    from sprintforecast import i18n
+    from sprintforecast.excel import build_workbook
+
+    i18n.set_language(None)
+    monkeypatch.setenv(i18n.LANG_ENV, lang)
+    try:
+        fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+        book = openpyxl.load_workbook(BytesIO(build_workbook(fc)))
+    finally:
+        i18n.set_language(None)
+    texts: list[str] = []
+    for sheet in book.worksheets:
+        for row in sheet.iter_rows():
+            for cell in row:
+                value = cell.value
+                if isinstance(value, str) and not value.startswith("="):
+                    texts.append(value)
+    # Schlüssel (Import liest ihn) und benannter Bereich (Formeln) bleiben unverändert.
+    assert "forecast.roadmap_share" in texts
+    assert "Roadmap_Anteil" in book.defined_names
+    labels = [x for x in texts if x != "forecast.roadmap_share"]
+    assert not [x for x in labels if "oadmap" in x]
+    assert ("Verplanbarer Anteil" if lang == "de" else "Plannable share") in labels
+    assert ("Verplanbar (PT)" if lang == "de" else "Plannable (PT)") in labels
+
+
+WEB_PAGES = ["forecast", "analyse", "einstellungen", "planning", "produkte", "hilfe", "start"]
+
+
+@pytest.mark.parametrize("lang", ["de", "en"])
+@pytest.mark.parametrize("page", [*WEB_PAGES, "vorplanung"])
 def test_web_pages_show_no_roadmap_label(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str, lang: str
 ):
     from sprintforecast import i18n
 
+    use_roadmap_basis(data_dir)
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
     i18n.set_language(None)
@@ -123,10 +225,21 @@ def test_web_pages_show_no_roadmap_label(
         at = AppTest.from_file(str(APP), default_timeout=30)
         at.run()
         at.switch_page(f"seiten/{page}.py").run()
+        if page == "planning":  # Schritt „Forecast PLAN & Einplanung“ zeigt die Kennzahlen
+            at.radio(key="planning-step").set_value(1).run()
         assert not at.exception, at.exception
         shown = repr(at.main) + repr(at.sidebar)
+        # Kennzahl-Beschriftungen und Spaltenköpfe stehen nicht in ``repr(at.main)``.
+        shown += " ".join(m.label for m in at.metric)
+        for frame in at.dataframe:
+            shown += " ".join(str(c) for c in frame.value.columns)
     finally:
         i18n.set_language(None)
+    if page == "forecast":
+        plannable = "Verplanbar" if lang == "de" else "Plannable"
+        assert any(plannable in frame.value.columns for frame in at.dataframe)
+    if page == "planning":
+        assert any(m.label.startswith(("Verplanbar", "Plannable")) for m in at.metric)
     # Widget-Schlüssel (settings-demo-forecast.roadmap_share) sind kleingeschrieben und bleiben.
     assert WORD not in shown
     # Die Auswahl „Standardverteilung je Produkt“ zeigt den Speicherwert vor dem Text

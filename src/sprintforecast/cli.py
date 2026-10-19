@@ -376,7 +376,7 @@ def _show_sprint_forecast(c: Context, team: str, sprint_id: str) -> None:
             f"{t('Kapazität')}: {capacity_label(e)} PT\n"
             f"{t('n. Velocity-Trend')}: {fmt(r.normalized_velocity.trend, 2)}\n"
             f"[bold]Forecast PLAN: {fmt(r.plan)} {unit}[/bold]  "
-            f"({t('Verplanbar')} {fmt(r.roadmap, 2)} ·{t('Kleinkram')} {fmt(r.small_stuff, 2)})",
+            f"({t('Verplanbar')} {fmt(r.roadmap, 2)} · {t('Kleinkram')} {fmt(r.small_stuff, 2)})",
             title=t("Prognose Sprint {id}", id=_plain(sprint_id)),
             title_align="left",
             border_style="green",

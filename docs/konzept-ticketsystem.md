@@ -234,7 +234,7 @@ Version; später nur als gekennzeichneter Indikator.
 - **Speicherung:** eine Datei je Vormerkung, `vormerkungen/<TICKET>.yaml`, mit Ziel-Sprint,
   optionalem Platzhalter und Notiz. Titel und Umfang kommen immer live aus dem Ticketsystem. Der
   Name „Vormerkung“ (statt „Roadmap“) vermeidet die Verwechslung mit dem bestehenden
-  Roadmap-Anteil im Forecast.
+  verplanbaren Anteil (früher „Roadmap-Anteil“) im Forecast.
 - **Zuordnung gewinnt das Ticketsystem:** Ein eindeutig bestimmter aktueller oder künftiger
   Sprint gilt für die tatsächliche Zuordnung. Die Last zählt **immer beim Sprint des
   Ticketsystems**, nie beim vorgemerkten Zielsprint. Eine abweichende Absicht bleibt als
