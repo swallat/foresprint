@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Import der Excel-Ausgabe: Rundlauf ohne Verlust, Vorschau der Änderungen, Fehlermeldungen."""
 
+import dataclasses
 import io
 import shutil
+import sys
 from datetime import date, datetime
 from pathlib import Path
 
@@ -654,3 +656,18 @@ def test_the_command_checks_against_the_reference_day(
     result = CliRunner().invoke(app, ["--as-of", "2026-10-15", "excel-import", "demo", str(file)])
     assert result.exit_code == 0, result.output
     assert seen == [date(2026, 10, 15)]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="a:b is not a file name on Windows")
+def test_export_warns_about_a_sprint_id_the_import_refuses(data_dir: Path):
+    from sprintforecast.excel import import_unsafe_sprint_ids
+
+    data = Repository(data_dir).load("demo")
+    assert import_unsafe_sprint_ids(data) == []
+    odd = dataclasses.replace(data, sprints=[dataclasses.replace(data.sprints[0], id="a:b")])
+    (warning,) = import_unsafe_sprint_ids(odd)
+    assert "'a:b'" in warning
+    with pytest.raises(
+        DataError, match=r"Sprint ID 'a:b' is not allowed|Sprint-ID 'a:b' ist nicht"
+    ):
+        read_workbook(build_workbook(build_forecast(odd, TODAY)), "demo")
