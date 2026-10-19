@@ -188,7 +188,7 @@ def test_pruefen_fails_on_error(data_dir: Path):
 
 def test_init_new_team(tmp_path: Path):
     answers = [
-        "Team A", "PT", "", "", "", "",
+        "Team A", "PT", "", "", "", "", "",
         "by", "", "10", "", "", "14", "yearly", "2026-10-14", "2026.20",
         "40", "", "", "", "", "", "",
     ]  # fmt: skip
@@ -236,12 +236,13 @@ def test_existing_team_with_unusual_name_still_works_in_cli(data_dir: Path):
 
 
 def test_einstellungen_changes_and_validates(data_dir: Path):
-    # Reihenfolge: Name, Einheit, Produktverteilung, PO, Produktionszugriff, Land, Bundesland,
-    # Overhead, Länge, Nummerierung, Referenz, Fenster, Trend, Roadmap, Horizont, Rundung,
-    # Produktbasis, Speichern?
+    # Reihenfolge: Name, Einheit, Produktverteilung, PO, Produktionszugriff, Ticket-Vorplanung,
+    # Land, Bundesland, Overhead, Länge, Nummerierung, Referenz, Fenster, Trend, Roadmap,
+    # Horizont, Rundung, Produktbasis, Speichern?
     answers = [
         "",
         "SP",
+        "",
         "",
         "",
         "",
@@ -280,7 +281,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
 
 def test_einstellungen_without_changes(data_dir: Path):
     before = (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8")
-    result = run(data_dir, "settings", "demo", input="\n" * 20)
+    result = run(data_dir, "settings", "demo", input="\n" * 21)
     assert result.exit_code == 0, result.output
     assert "Keine Änderungen" in result.output
     assert (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8") == before

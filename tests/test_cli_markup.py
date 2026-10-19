@@ -528,7 +528,7 @@ def test_check_messages_with_brackets(data_dir: Path):
 # Eingaben von „init“ nach dem Namen: Einheit … Land, Region (ungültig, dann leer) …, erster Sprint
 INIT_ANSWERS = (
     "Neu [/x]{bs}\n"  # Anzeigename
-    + "\n" * 5  # Einheit, Produkte, PO, Produktion, Land
+    + "\n" * 6  # Einheit, Produkte, PO, Produktion, Tickets, Land
     + "[/x]\n\n"  # Region: Meldung „Unbekannter Regionscode“, dann leer
     + "\n" * 10  # Arbeitswoche … Sprint-Nummerierung
     + "2026-10-07\n"  # Start des ersten Sprints
@@ -554,7 +554,7 @@ def test_einstellungen_with_markup_look(klammern: Path):
         klammern,
         "settings",
         "demo",
-        input=f"Neu [x]{BS}\n" + "\n" * 5 + "[/x]\n\n" + "\n" * 20 + "y\n",
+        input=f"Neu [x]{BS}\n" + "\n" * 6 + "[/x]\n\n" + "\n" * 20 + "y\n",
     )
     check(
         result,
