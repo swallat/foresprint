@@ -684,7 +684,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc, e, "plan")
             + "\n\n"
             + t(
-                "Kapazität {capacity} PT · Roadmap {roadmap} · Kleinkram {small}",
+                "Kapazität {capacity} PT · Verplanbar {roadmap} · Kleinkram {small}",
                 capacity=capacity_label(e),
                 roadmap=fmt(e.result.roadmap, 2),
                 small=fmt(e.result.small_stuff, 2),
@@ -716,6 +716,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
     frozen_col, diff_col = t("Prognose beim Planning ({unit})", unit=unit), t("Differenz")
     show_frozen = any(e.sprint.forecast_plan is not None for e in upcoming)
+    plannable_col = t("Verplanbar")
     small_col = t("Kleinkram")
     rows = []
     for e in upcoming:
@@ -733,7 +734,11 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             row[frozen_col] = fmt(view.frozen)
             row[diff_col] = "–" if view.difference is None else _signed(view.difference)
         rows.append(
-            row | {"Roadmap": fmt(e.result.roadmap, 2), small_col: fmt(e.result.small_stuff, 2)}
+            row
+            | {
+                plannable_col: fmt(e.result.roadmap, 2),
+                small_col: fmt(e.result.small_stuff, 2),
+            }
         )
     st.dataframe(
         pd.DataFrame(rows),
@@ -742,7 +747,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             capacity_col: st.column_config.TextColumn(help=general("capacity")),
             trend_col: st.column_config.TextColumn(help=general("trend")),
             plan_col: st.column_config.TextColumn(help=general("plan")),
-            "Roadmap": st.column_config.TextColumn(help=general("roadmap")),
+            plannable_col: st.column_config.TextColumn(help=general("roadmap")),
             small_col: st.column_config.TextColumn(help=general("small_stuff")),
         },
     )
@@ -836,7 +841,7 @@ def _excel_download(fc: Forecast, team_key: str) -> None:
         icon=":material/download:",
         help=t(
             "Enthält Sprintwerte als Eingaben und die Berechnung als Excel-Formeln (n. Velocity, "
-            "Trend, Forecast PLAN, Roadmap), Trend-Diagramme und die Aufteilung nach "
+            "Trend, Forecast PLAN, Verplanbar), Trend-Diagramme und die Aufteilung nach "
             "Produktionszugriff und je Produkt. Wird nicht im Datenordner gespeichert."
         ),
     )
@@ -1435,7 +1440,11 @@ def _others() -> str:
 
 
 def _standard_text(d: Distribution, unit: str) -> str:
-    basis = t("Roadmap-Anteil des Forecast PLAN") if d.basis.value == "roadmap" else "Forecast PLAN"
+    basis = (
+        t("Verplanbarer Anteil des Forecast PLAN")
+        if d.basis.value == "roadmap"
+        else "Forecast PLAN"
+    )
     if d.available is None or not d.active_count:
         return t(
             "Standard: {basis} / Anzahl betreuter Produkte – noch nicht berechenbar.", basis=basis
@@ -2089,7 +2098,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         )
         rest = rest[1:]
     rest[0].metric(
-        f"Roadmap ({pct(data.team.forecast.roadmap_share)})",
+        t("Verplanbar ({share})", share=pct(data.team.forecast.roadmap_share)),
         fmt(r.roadmap, 2),
         help=_formula_help(fc, entry, "roadmap"),
     )
@@ -2570,8 +2579,8 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Analyse"))
     st.caption(
         t(
-            "Ergänzt den Forecast. Die Werte auf der Seite **Forecast** (Forecast PLAN, Roadmap, "
-            "Kleinkram) bleiben unverändert."
+            "Ergänzt den Forecast. Die Werte auf der Seite **Forecast** (Forecast PLAN, "
+            "Verplanbar, Kleinkram) bleiben unverändert."
         )
     )
     unit = data.team.unit.value
@@ -2605,13 +2614,13 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
     with st.form("completion"):
         rest = st.number_input(
             t("Restmenge ({unit})", unit=unit), min_value=0.0, value=None, step=1.0, key="rest",
-            help=t("Noch offene Arbeit, z. B. die Summe eines Roadmap-Themas."),
+            help=t("Noch offene Arbeit, z. B. die Summe eines Themas."),
         )  # fmt: skip
         basis = st.radio(
             t("Verfügbar je Sprint"),
             ["roadmap", "total"],
             format_func=lambda k: (
-                t("Roadmap-Anteil ({share})", share=pct(share))
+                t("Verplanbarer Anteil ({share})", share=pct(share))
                 if k == "roadmap"
                 else t("gesamter Forecast")
             ),
@@ -2627,7 +2636,7 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
             key="project_share",
             help=t(
                 "Welcher Teil der oben gewählten Kapazität in dieses Projekt fließt – z. B. 50, "
-                "wenn parallel ein zweites Roadmap-Thema gleich stark bearbeitet wird."
+                "wenn parallel ein zweites Thema gleich stark bearbeitet wird."
             ),
         )
         submitted = st.form_submit_button(t("Berechnen"), type="primary")
@@ -2787,7 +2796,7 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
 
 
 def _available_text(d: Distribution, data: TeamData, unit: str) -> str:
-    """Woraus sich die verteilbare Menge ergibt (Forecast PLAN bzw. dessen Roadmap-Anteil)."""
+    """Woraus sich die verteilbare Menge ergibt (Forecast PLAN bzw. dessen verplanbarer Anteil)."""
     return _available_base(d, data, unit) + _frozen_note(d, unit)
 
 
@@ -2798,7 +2807,7 @@ def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
     if d.basis is ProductBasis.ROADMAP:
         share = data.team.forecast.roadmap_share
         return t(
-            "Verteilbar = Roadmap-Anteil des Forecast PLAN{frozen}: {plan} {unit} × {share} = "
+            "Verteilbar = Verplanbarer Anteil des Forecast PLAN{frozen}: {plan} {unit} × {share} = "
             "{available} {unit}. Der Kleinkram-Anteil wird nicht auf Produkte verteilt "
             "(Einstellung „Standardverteilung je Produkt aus“).",
             frozen=frozen,

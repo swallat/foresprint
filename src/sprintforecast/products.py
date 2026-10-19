@@ -5,7 +5,7 @@ Je Produkt und Sprint:
     Standard     = verfügbare Menge × vereinbarter Anteil des Produkts (share) bzw.
                    (verfügbare Menge − Σ feste Anteile) / Anzahl Produkte ohne festen Anteil
                    verfügbar = Forecast PLAN (eingefroren beim Planning, sonst aktuell)
-                   bzw. nur dessen Roadmap-Anteil (Einstellung forecast.product_basis)
+                   bzw. nur dessen verplanbarer Anteil (Einstellung forecast.product_basis)
     Vorplanung   = PO-seitig vorgesehen (vor dem Planning)
     Planning     = im Sprint Planning eingeplant
     Erledigt     = im Review tatsächlich erledigt
@@ -79,7 +79,7 @@ class Distribution:
     plan: float | None
     plan_frozen: bool
     basis: ProductBasis
-    # Verteilbare Menge (Forecast PLAN oder dessen Roadmap-Anteil).
+    # Verteilbare Menge (Forecast PLAN oder dessen verplanbarer Anteil).
     available: float | None
     rows: list[ProductRow] = field(default_factory=list)
     # Anteil der Personen mit Produktionszugriff an der Kapazität (None = keine Gruppe) und
