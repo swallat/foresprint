@@ -148,9 +148,10 @@ Stand je Vorgang:
   Klonen und Tags. Gesperrte Datei, unvollständiger Merge und detached HEAD nur teilweise (der
   Hinweis zu `locked` erwähnt bei „unable to unlink“ / „Device busy“ weiter die `index.lock`);
   ein nacktes „Could not read from remote repository“ und „unable to access … 503“ zählen weiter
-  als „offline“. „Zurück auf den Branch“ mit offenen Änderungen zeigt einen eigenen Hinweis und
-  nennt den Rettungsbranch in der Erfolgsmeldung; das Sichern vor dem Wechsel steht als
-  Entscheidung des Owners aus. Schreib- und Lesefehler der
+  als „offline“. „Zurück auf den Branch“ sichert offene Änderungen im Datenordner vor dem
+  Wechsel als eigenen Commit auf dem Rettungsbranch (`rettung-<Datum>`) und nennt ihn in der
+  Erfolgsmeldung; Änderungen außerhalb des Datenordners fasst die App nicht an (eigener
+  Hinweis, die Sicherung bleibt bestehen). Schreib- und Lesefehler der
   Datendateien (kein Schreibrecht, Datei gesperrt) zeigen seit #63 eine Meldung mit Datei,
   Ursache und nächstem Schritt, ebenso ein falscher Aufbau der YAML-Dateien seit #64. Offen
   bleiben das Anlegen und Klonen eines Datenordners in einem nicht beschreibbaren Ordner und ein
