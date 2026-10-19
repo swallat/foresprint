@@ -74,7 +74,7 @@ Windows mit allen Extras, ohne e2e); e2e in der CI grün, der frühere Aussetzer
 ## 2. Bewusst nicht getan (und warum)
 
 Aus dem Auftrag („BEWUSST NICHT TUN“): keine Anmeldung/SSH-Schlüsselerstellung/`credential.helper`
-in der App, kein B10, kein Ticketsystem/Jira, keine Änderungen an `launcher.py` und `proctree.py`,
+in der App, kein B10, keine Änderungen an `launcher.py` und `proctree.py`,
 keine Sperre für gleichzeitiges `config.update`, keine Pfade über 260 Zeichen und keine
 Dateinamen ohne UTF-8, keine weitere `resolve()`-Bereinigung, `requires-python` unverändert.
 
@@ -319,6 +319,14 @@ Punkte zuerst (#82: Sperre je Datenordner statt je Sitzung, Ergebnis beim Dateno
    anstoßen); bestätigte Befunde als Folge-PR.
 3. **Manuelle Prüfungen** des Owners (Teil 4).
 
+**F. Ticket-Vorplanung und Jira** (erst nach dem Merge der Welle #96 bis #106, dann von frischem `main`)
+
+Gültig ist allein `docs/konzept-ticketsystem.md` in Version 6 (Ticket-Vorplanung mit automatischer
+Verteilung, Projekte mit Zieldatum, Jira lesend per PAT). Schritte, je ein PR: 1 Modell und Verteilung
+mit CSV-Import, 2 Jira-Import, 3 Seite „Tickets“, 4 Varianten und Übernahme in die PO-Vorplanung,
+5 Label `planned_for_<sprint_id>` nach Jira. Vorher vom Owner zu bestätigen: Standard-Rangfolge der
+Projektzuordnung (Epic vor Komponente vor Label).
+
 ## 7. Übergabe-Prompt für die lokale Windows-Sitzung
 
 Der folgende Text ist der vollständige Auftrag für die lokale Sitzung; er ist wie der ursprüngliche
@@ -347,8 +355,9 @@ REGELN
   Windows-Tests laufen hier mit, anders als in der Cloud).
 - Jeder neue `t("...")`-Text braucht einen Eintrag in `src/sprintforecast/locale_en.py`
   (`tests/test_i18n.py` prüft das).
-- Nicht anfassen: `requires-python`, das Ticketsystem/Jira, das Daten-Repository, `launcher.py`,
-  `proctree.py`.
+- Nicht anfassen: `requires-python`, das Daten-Repository, `launcher.py`, `proctree.py`. Die
+  Ticket-Vorplanung (Jira) folgt `docs/konzept-ticketsystem.md` (Version 6) und beginnt erst nach der
+  Welle #96 bis #106.
 - Immer von aktuellem `origin/main` (git fetch) auf einem eigenen Branch arbeiten; Pull-Requests klein,
   deutsch, ein Thema je PR. Unabhängiges Review vor dem Mergen: Reviewer je Blickwinkel plus Skeptiker, die
   jeden Befund zu widerlegen versuchen; dem Reviewer nicht die eigene Einschätzung mitgeben; Befunde mit
