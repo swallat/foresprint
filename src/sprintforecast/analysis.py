@@ -29,16 +29,36 @@ def _recent(values: list[float | None], window: int) -> list[float]:
     return present[-window:]
 
 
+def plan_basis(fc: Forecast) -> list[TimelineEntry]:
+    """Sprints, deren Velocity die Engine für den Plan nutzt: die abgeschlossenen und der
+    laufende Sprint (sobald sein Review-Wert erfasst ist, hat er eine normierte Velocity).
+
+    Die Garantie „Plan liegt in der Spanne“ gilt bis einschließlich dem laufenden Sprint. Die
+    Engine mittelt auch einen künftigen Sprint (``start > today``) mit erfasstem Wert ein (Import
+    oder Datei); der gehört hier bewusst nicht dazu, der Plan kann dann außerhalb der Spanne
+    liegen (bekannter, offener Randfall)."""
+    return [e for e in fc.entries if e.sprint.start <= fc.today]
+
+
 def normalized_history(fc: Forecast) -> list[float]:
-    """Normierte Velocity der letzten ``window`` abgeschlossenen Sprints mit Wert."""
+    """Normierte Velocity der letzten ``window`` Sprints mit Wert – abgeschlossene Sprints und der
+    laufende, sobald dessen Review-Wert (Velocity) erfasst ist."""
     return _recent(
-        [e.result.normalized_velocity.value for e in fc.history()], fc.data.team.forecast.window
+        [e.result.normalized_velocity.value for e in plan_basis(fc)], fc.data.team.forecast.window
     )
 
 
 def sample_count(fc: Forecast) -> int:
-    """Anzahl aller bisherigen Sprints mit normierter Velocity (Stichprobe der Prognose)."""
-    return sum(1 for e in fc.history() if e.result.normalized_velocity.value is not None)
+    """Anzahl der Sprints mit normierter Velocity, aus denen die Prognose tatsächlich zieht:
+    höchstens ``window`` (Stichprobe von Spanne und Simulation)."""
+    return len(normalized_history(fc))
+
+
+def available_count(fc: Forecast) -> int:
+    """Anzahl aller verfügbaren Sprints mit normierter Velocity (ungedeckelt, gleiche Wertemenge
+    wie ``plan_basis``). Sie entscheidet, ob es schon einen Forecast gibt (``MIN_THIN_HISTORY``);
+    ``sample_count`` dagegen ist die auf ``window`` gedeckelte Stichprobe der Rechnung."""
+    return sum(1 for e in plan_basis(fc) if e.result.normalized_velocity.value is not None)
 
 
 def few_samples(fc: Forecast) -> bool:

@@ -28,7 +28,13 @@ installiert sprintforecast mit Weboberfläche. Git wird für Plugins aus Git-Rep
 Anlegen, Committen, Teilen, Verlauf und Klonen der Daten benötigt (auch `sprintforecast datenordner
 PFAD` verlangt ein Git-Repository). Ohne Git läuft die App mit einem Datenordner ohne Repository
 (`--daten`, `SPRINTFORECAST_DATEN` oder „Ohne Git verwenden“ auf der Seite Datenordner), aber ohne
-diese Funktionen.
+diese Funktionen. Für Anlegen, Committen, Teilen, Verlauf und Klonen der Daten muss Git nicht im
+PATH liegen: Die App sucht es auch an den üblichen Orten (unter Windows etwa
+`%LOCALAPPDATA%\Programs\Git`, Scoop und `%ProgramFiles%\Git`; unter macOS und Linux Homebrew,
+`/usr/local/bin`, `~/.local/bin`, `~/.nix-profile/bin`). So genügt eine Installation ohne
+Administratorrechte (Git for Windows nur für das eigene Benutzerkonto); danach die App und den
+Starter „Sprint-Forecast“ einmal neu öffnen. Git-Plugins und deren Aktualisierung (über `uv`)
+brauchen dagegen Git im PATH.
 
 **Windows (PowerShell):**
 
