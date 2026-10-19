@@ -299,12 +299,12 @@ def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
     if depth == 0:
         with contextlib.suppress(GitError):
             root = _root(path)
-            gitmod.clear_abort(root)
+            gitmod.begin_sync(root)
     try:
         yield
     finally:
         if root is not None:  # ein Abbruch gilt nur für diesen Abgleich
-            gitmod.clear_abort(root)
+            gitmod.end_sync(root)
         with _BACKGROUND_LOCK:
             since, depth = _HELD[key]
             if depth <= 1:
@@ -370,9 +370,10 @@ def fetch(path: Path) -> SyncState:
         with _locked(path):
             return _fetch_locked(path)
     except GitError as e:
-        if e.kind != "sync_busy":
+        if e.kind not in {"sync_busy", "aborted"}:
             raise
-        return cached_state(path)  # kein Git neben dem laufenden Abgleich
+        cached = _STATE_CACHE.get(path.resolve())  # kein Git neben dem laufenden Abgleich
+        return cached[1] if cached else state(path)
 
 
 def _fetch_locked(path: Path) -> SyncState:
@@ -385,6 +386,8 @@ def _fetch_locked(path: Path) -> SyncState:
         try:
             _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
         except GitError as e:
+            if e.kind == "aborted":  # kein Befund über den Server: nichts vermerken
+                raise
             error = e
     _FETCHED[root] = (time.time(), error)
     gitmod.invalidate_status()

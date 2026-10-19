@@ -376,8 +376,9 @@ def _env(network: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
 _ACTIVE_LOCK = threading.Lock()
 _ACTIVE: dict[Path, dict[subprocess.Popen, int]] = {}  # Prozess → Faden, der ihn gestartet hat
 # Ordner → Fäden, deren Git-Aufruf abgebrochen wurde. Nur sie bekommen den Abbruch zu spüren; er
-# endet mit dem Abgleich (:func:`clear_abort`), andere Fäden (Anzeige) lesen weiter.
+# endet mit dem Abgleich (:func:`end_sync`), andere Fäden (Anzeige) lesen weiter.
 _ABORTED: dict[Path, set[int]] = {}
+_HOLDERS: dict[Path, int] = {}  # Ordner → Faden, der gerade dessen Abgleich ausführt
 
 
 def _key(cwd: Path) -> Path:
@@ -394,22 +395,34 @@ def _raise_if_aborted(cwd: Path) -> None:
         raise GitError(t("Der Abgleich wurde abgebrochen."), "aborted", hint_for("aborted"))
 
 
-def clear_abort(cwd: Path) -> None:
-    """Hebt einen früheren Abbruch für diesen Ordner auf (am Ende eines Abgleichs)."""
+def begin_sync(cwd: Path) -> None:
+    """Der aufrufende Faden führt jetzt den Abgleich dieses Ordners aus: Nur seine Git-Aufrufe
+    kann :func:`abort_running` beenden."""
     with _ACTIVE_LOCK:
+        _HOLDERS[_key(cwd)] = threading.get_ident()
+        _ABORTED.pop(_key(cwd), None)
+
+
+def end_sync(cwd: Path) -> None:
+    """Der Abgleich ist zu Ende: Halter und Abbruchmarke verfallen (Fadennummern werden
+    wiederverwendet und dürfen nichts erben)."""
+    with _ACTIVE_LOCK:
+        _HOLDERS.pop(_key(cwd), None)
         _ABORTED.pop(_key(cwd), None)
 
 
 def abort_running(cwd: Path) -> bool:
-    """Beendet die laufenden Git-Aufrufe in diesem Ordner (samt Kindprozessen). Deren Fäden
-    starten bis :func:`clear_abort` keinen neuen Aufruf. ``True``, wenn ein Aufruf lief. Dateien
+    """Beendet die laufenden Git-Aufrufe des Abgleichs dieses Ordners (samt Kindprozessen). Sein
+    Faden startet bis :func:`end_sync` keinen neuen Aufruf. ``True``, wenn ein Aufruf lief. Dateien
     wie ``index.lock`` werden nie entfernt; ein abgebrochenes Git meldet sie als ``locked``."""
     key = _key(cwd)
     with _ACTIVE_LOCK:
-        running = [p for p in _ACTIVE.get(key, {}) if p.poll() is None]
+        holder = _HOLDERS.get(key)  # Leser anderer Fäden (status, log, diff) bleiben unberührt
+        running = [
+            p for p, ident in _ACTIVE.get(key, {}).items() if ident == holder and p.poll() is None
+        ]
         if running:
-            threads = _ABORTED.setdefault(key, set())
-            threads.update(_ACTIVE[key][p] for p in running)
+            _ABORTED.setdefault(key, set()).add(holder)
     for process in running:
         proctree.terminate_tree(process, timeout=5)
     return bool(running)
