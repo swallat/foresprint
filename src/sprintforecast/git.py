@@ -72,6 +72,8 @@ _BLANKED_CATEGORIES = frozenset({"Cc", "Zl", "Zp"})
 
 
 def blank_controls(text: str) -> str:
+    """Steuerzeichen, Zeilenumbrüche und Zeichen der Schreibrichtung werden zu Leerzeichen
+    (Text von außen für Ausgaben ohne Markdown, z. B. die Kommandozeile)."""
     return "".join(
         " " if c in _BIDI_CONTROLS or unicodedata.category(c) in _BLANKED_CATEGORIES else c
         for c in text
