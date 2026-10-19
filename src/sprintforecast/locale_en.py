@@ -36,6 +36,7 @@ EN: dict[str, str] = {
     "noch nicht erfasst": "not yet recorded",
     "Verfügbare Personentage (PT)": "Available person days (PD)",
     "{path}: nicht umbenannt ({reason})": "{path}: not renamed ({reason})",
+    "{path}: nicht zurückgebaut ({reason})": "{path}: not rolled back ({reason})",
     "Anteil Produktionszugriff an der Kapazität": "Share of production access in the capacity",
     "Anzahl Kapazität": "Count capacity",
     "Anzahl n. Velocity": "Count n. velocity",
