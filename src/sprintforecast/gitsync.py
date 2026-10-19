@@ -41,6 +41,13 @@ from sprintforecast.yamlmerge import (
     merge3,
 )
 
+# Wie die eigenen Änderungen auf den Server kommen: direkt auf den Branch oder (Server mit
+# geschütztem Hauptbranch, z. B. GitLab) über einen Merge Request. Die Wahl gilt je
+# Daten-Repository und steht in dessen lokaler Git-Konfiguration.
+SHARE_KEY = "sprintforecast.share"
+SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
+_MR_URL = re.compile(r"https?://\S+/merge_requests/(?:\d+|new\b\S*)")
+
 # Wie oft ein Push nach "inzwischen hat jemand anderes hochgeladen" neu versucht wird.
 MAX_ATTEMPTS = 3
 
@@ -111,6 +118,8 @@ class SyncResult:
     pulled: list[Commit] = field(default_factory=list)  # neu von anderen
     pulled_files: list[tuple[str, str]] = field(default_factory=list)
     pushed: bool = False
+    merge_request_url: str | None = None  # Teilen über Merge Request: Adresse, falls gemeldet
+    merge_request_branch: str | None = None  # Branch, der hochgeladen wurde
     pull_only: bool = False  # „Vom Server holen“: nichts hochladen, auch nicht beim Fortsetzen
     merged: bool = False  # fremde Änderungen wurden zusammengeführt
     conflicts: list[ConflictFile] = field(default_factory=list)
@@ -596,8 +605,16 @@ def sync(
                         "invalid",
                         hint_for("invalid"),
                     )
+            via_mr = share_mode(root) == SHARE_MERGE_REQUEST
+            if via_mr and current.upstream and not current.ahead:
+                break  # nichts Eigenes, das einen Merge Request bräuchte
             try:
-                _push(root, current)
+                if via_mr:
+                    result.merge_request_branch, result.merge_request_url = _push_merge_request(
+                        root, current, message
+                    )
+                else:
+                    _push(root, current)
             except GitError as e:
                 if e.kind == "rejected" and attempt + 1 < MAX_ATTEMPTS:
                     continue
@@ -681,6 +698,55 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
         elif not remote:
             notes.append(t("Der Tag {tag} konnte nicht auf den Server übertragen werden.", tag=tag))
     return notes
+
+
+def share_mode(path: Path) -> str:
+    """``"direct"`` (Standard) oder ``"merge_request"``: wohin „Speichern und teilen“ hochlädt."""
+    root = _root(path)
+    value = _git(root, "config", "--local", "--get", SHARE_KEY, check=False)
+    return value if value == SHARE_MERGE_REQUEST else SHARE_DIRECT
+
+
+def set_share_mode(path: Path, mode: str) -> None:
+    root = _root(path)
+    if mode == SHARE_MERGE_REQUEST:
+        _git(root, "config", "--local", SHARE_KEY, mode)
+    else:
+        _git(root, "config", "--local", "--unset-all", SHARE_KEY, check=False)
+
+
+def merge_request_branch(root: Path) -> str:
+    """Der Branch, auf den diese Person für Merge Requests hochlädt: je Person ein fester Name
+    (``sprintforecast/<name>``), damit ein weiteres Teilen denselben Merge Request fortschreibt."""
+    who = _git(root, "config", "--get", "user.email", check=False).partition("@")[0]
+    who = who or _git(root, "config", "--get", "user.name", check=False) or "user"
+    slug = re.sub(r"[^a-z0-9._-]+", "-", who.lower()).strip("-._") or "user"
+    return f"sprintforecast/{slug}"
+
+
+def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str, str | None]:
+    """Lädt den Stand auf den eigenen Branch und bittet den Server (GitLab-Push-Optionen), einen
+    Merge Request nach dem Hauptbranch anzulegen; gibt es ihn schon, schreibt der Push ihn fort.
+    Liefert Branch und, falls der Server sie meldet, die Adresse des Merge Requests."""
+    branch = merge_request_branch(root)
+    target = (current.upstream or "").partition("/")[2] or current.branch or "main"
+    subject = (title.strip().splitlines() or ["Änderungen"])[0]
+    proc = gitmod._git_result(
+        root,
+        "push",
+        "--follow-tags",
+        "-o", "merge_request.create",
+        "-o", f"merge_request.target={target}",
+        "-o", f"merge_request.title={subject}",
+        "-o", "merge_request.remove_source_branch",
+        current.remote or "origin",
+        f"HEAD:refs/heads/{branch}",
+        network=True,
+    )  # fmt: skip
+    if proc.returncode != 0:
+        raise gitmod.classify(proc.stderr.strip() or proc.stdout.strip(), url=current.url)
+    found = _MR_URL.search(proc.stderr + proc.stdout)
+    return branch, found.group(0).rstrip(".,)") if found else None
 
 
 def _push(root: Path, current: SyncState) -> None:

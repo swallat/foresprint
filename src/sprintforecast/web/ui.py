@@ -115,6 +115,8 @@ from sprintforecast.githistory import (
     upload_tag,
 )
 from sprintforecast.gitsync import (
+    SHARE_DIRECT,
+    SHARE_MERGE_REQUEST,
     Commit,
     ConflictFile,
     RemoteInfo,
@@ -131,6 +133,8 @@ from sprintforecast.gitsync import (
     restore_file,
     set_identity,
     set_remote,
+    set_share_mode,
+    share_mode,
     sync,
 )
 from sprintforecast.gitsync import (
@@ -4171,6 +4175,38 @@ def _remote_section(repo: Repository) -> None:
         else:
             _remote_check(root, address, insecure)
     _remote_offer(root, address, insecure, locked)
+    if info.name:
+        _share_mode_setting(root)
+
+
+def _share_mode_changed(root: Path) -> None:
+    mode = SHARE_MERGE_REQUEST if st.session_state.get("git-share-mr") else SHARE_DIRECT
+    try:
+        set_share_mode(root, mode)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+
+
+def _share_mode_setting(root: Path) -> None:
+    """Teilen über Merge Request statt direkt auf den Hauptbranch (z. B. GitLab mit geschütztem
+    ``main``). Gilt für dieses Daten-Repository auf diesem Rechner."""
+    try:
+        current = share_mode(root) == SHARE_MERGE_REQUEST
+    except GitError:
+        return
+    st.session_state["git-share-mr"] = current
+    st.checkbox(
+        t("Über Merge Request teilen"),
+        key="git-share-mr",
+        on_change=_share_mode_changed,
+        args=(root,),
+        help=t(
+            "„Speichern und teilen“ lädt dann auf einen eigenen Branch hoch und legt dort einen "
+            "Merge Request an oder schreibt ihn fort (GitLab-Push-Optionen, kein Zugriffstoken "
+            "nötig). Der Hauptbranch bleibt unberührt; neue Stände anderer holt „Vom Server "
+            "holen“, sobald der Merge Request gemergt ist."
+        ),
+    )
 
 
 def page_data_dir(repo: Repository, setup: bool = False) -> None:
@@ -4909,7 +4945,16 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
         done.append(t("Eigene Änderungen gesichert ({rev})", rev=result.committed))
     if result.pulled:
         done.append(t("{count} Änderung(en) von anderen übernommen", count=len(result.pulled)))
-    if result.pushed:
+    if result.pushed and result.merge_request_branch:
+        done.append(
+            t("Auf Branch {branch} hochgeladen", branch=md_code(result.merge_request_branch))
+            + (
+                " · " + t("[Merge Request öffnen]({url})", url=result.merge_request_url)
+                if result.merge_request_url
+                else " · " + t("Merge Request auf dem Server prüfen")
+            )
+        )
+    elif result.pushed:
         done.append(t("Hochgeladen"))
     if result.error is None:
         if result.pull_only and (result.committed or result.merged):
