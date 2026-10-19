@@ -383,7 +383,7 @@ Punkte zuerst (#82: Sperre je Datenordner statt je Sitzung, Ergebnis beim Dateno
    anstoßen); bestätigte Befunde als Folge-PR.
 3. **Manuelle Prüfungen** des Owners (Teil 4).
 
-**F. Ticket-Vorplanung und Jira** (erst nach dem Merge der Welle #98 bis #106, dann von frischem `main`)
+**F. Ticket-Vorplanung und Jira** (ab Release 0.6.0, immer von frischem `main`)
 
 Gültig ist allein `docs/konzept-ticketsystem.md` in Version 6 (Ticket-Vorplanung mit automatischer
 Verteilung, Projekte mit Zieldatum, Jira lesend per PAT). Schritte, je ein PR: 1 Modell und Verteilung
@@ -420,8 +420,7 @@ REGELN
 - Jeder neue `t("...")`-Text braucht einen Eintrag in `src/sprintforecast/locale_en.py`
   (`tests/test_i18n.py` prüft das).
 - Nicht anfassen: `requires-python`, das Daten-Repository, `launcher.py`, `proctree.py`. Die
-  Ticket-Vorplanung (Jira) folgt `docs/konzept-ticketsystem.md` (Version 6) und beginnt erst nach der
-  Welle #98 bis #106.
+  Ticket-Vorplanung (Jira) folgt `docs/konzept-ticketsystem.md` (Version 6) und beginnt ab Release 0.6.0.
 - Immer von aktuellem `origin/main` (git fetch) auf einem eigenen Branch arbeiten; Pull-Requests klein,
   deutsch, ein Thema je PR. Unabhängiges Review vor dem Mergen: Reviewer je Blickwinkel plus Skeptiker, die
   jeden Befund zu widerlegen versuchen; dem Reviewer nicht die eigene Einschätzung mitgeben; Befunde mit
