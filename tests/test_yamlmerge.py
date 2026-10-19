@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Zusammenführen auf Schlüsselebene und stabiles Schreiben."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -212,6 +212,28 @@ def test_zone_aware_and_naive_times_can_be_sorted_together():
     aware = {**prog(10, "mit Zone"), "at": datetime(2026, 10, 18, 9, 10, tzinfo=UTC)}
     merged, conflicts = merge3(sprint(), sprint(aware), sprint(prog(5)))
     assert conflicts == [] and len(merged["prognoses"]) == 2
+
+
+def test_zone_aware_times_are_sorted_by_the_instant_not_the_wall_clock():
+    plus2 = {
+        **prog(0, "07:05 UTC"),
+        "at": datetime(2026, 10, 18, 9, 5, tzinfo=timezone(timedelta(hours=2))),
+    }
+    utc = {**prog(0, "09:03 UTC"), "at": datetime(2026, 10, 18, 9, 3, tzinfo=UTC)}
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(plus2))
+    assert conflicts == [] and merged["prognoses"] == [plus2, utc]
+
+
+def test_microseconds_do_not_make_a_different_time():
+    """Wie beim Speichern (``replace(microsecond=0)``) zählt ``at`` auf die Sekunde genau."""
+    precise = {**prog(10, "gleich"), "at": datetime(2026, 10, 18, 9, 10, 0, 123456)}
+    merged, conflicts = merge3(sprint(), sprint(prog(10, "gleich")), sprint(precise))
+    assert conflicts == [] and len(merged["prognoses"]) == 1
+    other = {**precise, "comment": "anders"}
+    merged, conflicts = merge3(sprint(), sprint(prog(10, "gleich")), sprint(other))
+    [conflict] = conflicts
+    assert conflict.path == ("prognoses", "[2026-10-18T09:10:00]")
+    assert len(merged["prognoses"]) == 1
 
 
 @pytest.mark.parametrize(
