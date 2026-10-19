@@ -1667,4 +1667,15 @@ EN: dict[str, str] = {
     "grob geschätzt": "rough estimate",
     "eigene Schätzung": "own estimate",
     "ohne Schätzung": "no estimate",
+    # --- Ticket pre-planning (step 1: CSV source and import) ---
+    "{path}: Die Datei ist leer": "{path}: The file is empty",
+    "{path}: Die Datei ist nicht UTF-8-kodiert ({error})": "{path}: The file is not UTF-8 encoded ({error})",
+    "{path}: Datei nicht lesbar: {error}": "{path}: file not readable: {error}",
+    "{path}: Der Feldname der Schätzung ist nicht eingestellt (tracker.fields.estimate in team.yaml)": "{path}: The field name of the estimate is not configured (tracker.fields.estimate in team.yaml)",
+    "{path}: Spalte fehlt – erwartet {names}": "{path}: column missing – expected {names}",
+    "{path}, Zeile {line}: '{value}' in Spalte „{column}“ ist keine Zahl": "{path}, line {line}: '{value}' in column “{column}” is not a number",
+    "{path}, Zeile {line}: Schlüssel fehlt": "{path}, line {line}: key is missing",
+    "Ticket {key} kommt mehrfach vor; der letzte Eintrag gilt": "Ticket {key} occurs more than once; the last entry counts",
+    "Ticket {key} ist nicht mehr im Import; die Vormerkung für Sprint {sprint} bleibt bestehen": "Ticket {key} is no longer in the import; the earmark for sprint {sprint} stays",
+    "Ticket {key} ist nicht mehr im Import; die eigene Schätzung bleibt bestehen": "Ticket {key} is no longer in the import; the own estimate stays",
 }
