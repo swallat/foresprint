@@ -74,7 +74,14 @@ from sprintforecast.model import (
 )
 from sprintforecast.plugins import load_plugins
 from sprintforecast.proctree import adopt, popen_options, terminate_tree
-from sprintforecast.products import MEASURES, Distribution, balance, distribution, measure_label
+from sprintforecast.products import (
+    MEASURES,
+    Distribution,
+    balance,
+    distribution,
+    measure_label,
+    missing_footnote,
+)
 from sprintforecast.report import (
     band_range,
     capacity_label,
@@ -1886,6 +1893,8 @@ def produkte(
                 *((str(b.missing),) if with_missing else ()),
             )
         console.print(table)
+        if with_missing:
+            console.print(f"[dim]{missing_footnote()}[/dim]")
 
 
 @command("produktliste", "Produkte des Teams pflegen (neu, PO ändern, abgeben).")
