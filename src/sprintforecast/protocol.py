@@ -2,7 +2,8 @@
 """Protokolle der Sprint-Termine (PO-Vorplanung, Planning, Review).
 
 Bei jedem Speichern entsteht eine Markdown-Datei
-``<team>/protokolle/<sprint>-<termin>-<Datum>-<Zeit>.md``; ältere Stände bleiben lesbar. Wird
+``protokolle/<sprint>-<termin>-<Datum>-<Zeit>.md`` im Ordner des Teams (das kann auch die Wurzel des
+Datenordners sein); ältere Stände bleiben lesbar. Wird
 ein Termin hinfällig (z. B. beim Aufheben des Einfrierens), heißt das alte Protokoll danach
 ``…_obsolet_<Datum>-<Zeit>.md``."""
 
@@ -70,6 +71,33 @@ def kind_title(kind: str) -> str:
     }[kind]
 
 
+def _distribution_lines(
+    d: Distribution, measures: tuple[str, ...], show_po: bool, heading: str = "##"
+) -> list[str]:
+    """Tabellen „Je Produkt“ (und „Je PO“) als Markdown-Zeilen; leer ohne Produktzeilen."""
+    lines: list[str] = []
+    if not d.rows:
+        return lines
+    header = [t("Produkt"), *(["PO"] if show_po else [])]
+    header += [measure_label(m) for m in measures]
+    lines += ["", f"{heading} {t('Je Produkt')}", ""]
+    lines += ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    for r in d.rows:
+        if not (r.active or any(r.value(m) is not None for m in measures)):
+            continue
+        cells = [_cell(r.product.name), *([_cell(r.product.po)] if show_po else [])]
+        cells += [fmt(r.value(m), 2) for m in measures]
+        lines.append("| " + " | ".join(cells) + " |")
+    if show_po and (po_rows := by_po(d)):
+        header = ["PO", *(measure_label(m) for m in measures)]
+        lines += ["", f"{heading} {t('Je PO')}", "", "| " + " | ".join(header) + " |"]
+        lines.append("|" + "---|" * len(header))
+        for po, totals in po_rows:
+            cells = [_cell(po), *(fmt(totals[m], 2) for m in measures)]
+            lines.append("| " + " | ".join(cells) + " |")
+    return lines
+
+
 def render_protocol(
     kind: str,
     team: str,
@@ -96,26 +124,115 @@ def render_protocol(
     for title, items in notes or []:
         if items:
             lines += ["", f"## {title}", ""] + [f"- {_cell(i)}" for i in items]
-    measures = KIND_MEASURES[kind]
-    if d is not None and d.rows:
-        header = [t("Produkt"), *(["PO"] if show_po else [])]
-        header += [measure_label(m) for m in measures]
-        lines += ["", f"## {t('Je Produkt')}", ""]
-        lines += ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
-        for r in d.rows:
-            if not (r.active or any(r.value(m) is not None for m in measures)):
-                continue
-            cells = [_cell(r.product.name), *([_cell(r.product.po)] if show_po else [])]
-            cells += [fmt(r.value(m), 2) for m in measures]
-            lines.append("| " + " | ".join(cells) + " |")
-        if show_po and (po_rows := by_po(d)):
-            header = ["PO", *(measure_label(m) for m in measures)]
-            lines += ["", f"## {t('Je PO')}", "", "| " + " | ".join(header) + " |"]
-            lines.append("|" + "---|" * len(header))
-            for po, totals in po_rows:
-                cells = [_cell(po), *(fmt(totals[m], 2) for m in measures)]
-                lines.append("| " + " | ".join(cells) + " |")
+    if d is not None:
+        lines += _distribution_lines(d, KIND_MEASURES[kind], show_po)
     return "\n".join(lines) + "\n"
+
+
+SECTION_MARKER = "<!-- sprintforecast-section: "
+
+
+@dataclasses.dataclass
+class PlanningSection:
+    """Ein Abschnitt des Planning-Protokolls (Fehltage, Einplanung, Commitment). ``lines`` sind
+    die Markdown-Zeilen darunter; ohne ``recorded`` steht „noch nicht erfasst“."""
+
+    key: str
+    title: str
+    lines: list[str]
+    recorded: bool = True
+
+
+def _section_parts(text: str) -> dict[str, tuple[str, list[str]]]:
+    """Abschnitte eines Planning-Protokolls: Schlüssel → (Stand-Text, Zeilen ohne Stand)."""
+    parts: dict[str, tuple[str, list[str]]] = {}
+    key: str | None = None
+    body: list[str] = []
+
+    def close() -> None:
+        if key is None:
+            return
+        stand = ""
+        if body and body[0].startswith("_") and body[0].endswith("_"):
+            stand, rest = body[0][1:-1], body[1:]
+        else:
+            rest = body
+        parts[key] = (stand, [ln for ln in rest if ln.strip()])
+
+    for line in text.replace("\r\n", "\n").split("\n"):
+        if line.startswith(SECTION_MARKER):
+            close()
+            key = line[len(SECTION_MARKER) :].removesuffix(" -->").strip()
+            body = []
+        elif line.startswith(STATE_MARKER):
+            close()
+            key = None
+        elif key is not None and line.strip() and not line.startswith("## "):
+            body.append(line)  # die Überschrift des nächsten Abschnitts gehört nicht dazu
+    close()
+    return parts
+
+
+def latest_planning_sections(
+    repo: Repository, team: str, sprint_id: str
+) -> dict[str, tuple[str, list[str]]]:
+    """Die Abschnitte des jüngsten gültigen Planning-Protokolls (leer, wenn es keines gibt oder
+    es nicht lesbar ist)."""
+    for _, kind, obsolete, path in list_protocols(repo, team, sprint_id):
+        if kind == PLANNING and not obsolete:
+            try:
+                return _section_parts(path.read_text(encoding="utf-8"))
+            except OSError, UnicodeDecodeError:
+                return {}
+    return {}
+
+
+def render_planning_protocol(
+    team: str,
+    sprint_id: str,
+    *,
+    now: datetime,
+    facts: list[tuple[str, str]],
+    sections: list[PlanningSection],
+    previous: dict[str, tuple[str, list[str]]],
+) -> str:
+    """Vollständiges Planning-Protokoll mit allen Abschnitten. Jeder erfasste Abschnitt trägt
+    seinen eigenen Stand: unverändert gegenüber ``previous`` (dem jüngsten Protokoll) bleibt der
+    alte Stand, sonst gilt ``now``. So zeigt jedes Protokoll, wann welcher Schritt zuletzt
+    geändert wurde, und ein unveränderter Stand erzeugt weiter kein weiteres Protokoll."""
+    lines = [
+        f"# {kind_title(PLANNING)} {_cell(team)} – {t('Sprint {id}', id=sprint_id)}",
+        "",
+        t("Stand: {at}", at=f"{now:%d.%m.%Y %H:%M}"),
+        "",
+    ]
+    lines += [f"- {label}: {_cell(value)}" for label, value in facts]
+    for section in sections:
+        lines += ["", f"## {section.title}", f"{SECTION_MARKER}{section.key} -->", ""]
+        if not section.recorded:
+            lines.append(f"_{t('noch nicht erfasst')}_")
+            continue
+        old_stand, old_lines = previous.get(section.key, ("", []))
+        if old_stand == t("noch nicht erfasst"):  # der Platzhalter ist kein Stand
+            old_stand = ""
+        body = [ln for ln in section.lines if ln.strip()]
+        stand = (
+            old_stand
+            if old_stand and old_lines == body
+            else t("Stand: {at}", at=f"{now:%d.%m.%Y %H:%M}")
+        )
+        lines += [f"_{stand}_", "", *section.lines]
+    return "\n".join(lines) + "\n"
+
+
+def planning_distribution_lines(d: Distribution, show_po: bool) -> list[str]:
+    """Produkttabellen des Planning-Protokolls (Überschriften eine Ebene unter dem Abschnitt)."""
+    return _distribution_lines(d, KIND_MEASURES[PLANNING], show_po, heading="###")
+
+
+def md_item(text: str) -> str:
+    """Eine Aufzählungszeile mit neutralisierten Trennstrichen und Zeilenwechseln."""
+    return f"- {_cell(text)}"
 
 
 def _folder(repo: Repository, team: str) -> Path:
