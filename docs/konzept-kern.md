@@ -67,7 +67,7 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
 | B2 | „Weiter ohne Eintrag“ im Planning setzt Fehltage stillschweigend auf „niemand fehlt“; unbekannt und 0 sind zu leicht verwechselbar. | kritisch | expliziter Zustand je Sprint (unbekannt / voraussichtlich / bestätigt) statt der Dateiheuristik; ausdrückliche Bestätigung „niemand fehlt“ | teilweise: Zustand je Sprint umgesetzt; das Review friert bei „unbekannt“ die volle Besetzung ohne Hinweis ein |
 | B3 | „Forecast IST“ ist die Zusage zu Sprintbeginn, kein Ergebnis. „Roadmap“ bezeichnet einen reservierten Anteil. „erwartete“ und „voraussichtliche“ Fehltage sind zwei Mechanismen mit fast gleichem Namen. | wichtig | z. B. „Zusage“; „Roadmap“-Anteil umbenennen; die beiden Fehltage-Begriffe unterscheidbar machen | teilweise: „Forecast IST“ heißt „Commitment“; „Roadmap“ ist nicht umbenannt (Name offen) |
 | B4 | 15 bis 16 Seiten mit konkurrierenden Wegen (Produktwerte auf „Produktverteilung“ und auf allen Boards; Sprintauswahl uneinheitlich). | wichtig | Einstieg über Aufgaben („Sprint vorbereiten“, „Planning“, „Sprint abschließen“); Produktverteilung als Auswertung; Stammdaten unter „Team verwalten“ | umgesetzt (#43) |
-| B5 | Unsicherheit steht abseits der Entscheidung (Seite „Analyse“). | wichtig | Spanne, Stichprobengröße und Kapazitätsquelle direkt an der Kachel | umgesetzt (Spanne und Stichprobengröße): Forecast-Seite; seit #66 auch Planning, Fehltage, Vorplanung, Kommandozeile und Bericht. Rest: die Kapazitätsquelle steht nur dort an der Kachel, wo sie schon vorher stand bzw. in #66 ergänzt wurde (Planning, Vorplanung); für Fehltage, Kommandozeile und Bericht nicht geprüft |
+| B5 | Unsicherheit steht abseits der Entscheidung (Seite „Analyse“). | wichtig | Spanne, Stichprobengröße und Kapazitätsquelle direkt an der Kachel | umgesetzt (Spanne und Stichprobengröße): Forecast-Seite; seit #66 auch Planning, Fehltage, Vorplanung, Kommandozeile und Bericht. Die Kapazitätsquelle steht an den Kacheln von Forecast, Planning (seit #66) und Vorplanung sowie in Kommandozeile und Bericht (mit Warnzeile bei unsicherer Quelle). Rest: Auf der Fehltage-Seite (Zeile „In den nächsten Sprint passen …“) fehlt die Quellenangabe |
 | B6 | Die Formelansicht zeigt nicht die eingesetzten Zahlen; die Formeln der Trend-Modi sind für Nichtfachleute schwer lesbar. | wichtig | kurze Erklärung in Alltagssprache, ausklappbar die eingesetzten Werte und Quellen | teilweise: Erklärung in Alltagssprache da; die eingesetzten Zahlen fehlen im Popover |
 | B7 | Der Einstieg verlangt ein Git-Repository und 6+ Reviews, bevor ein Forecast erscheint. | wichtig | Forecast schon ab 2 bis 3 Sprints (`flat`) mit Hinweis „Historie dünn“ | umgesetzt |
 | B8 | Das Was-wäre-wenn-Panel gibt es zweimal mit leicht anderem Text; die Prognosen-Historie ist ein Audit-Log mit 8 Spalten. | nice-to-have | eine Stelle; letzte Prognose und Abweichung im Review genügen | umgesetzt (#51) |
@@ -105,10 +105,12 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
      vereinigt); nur echte Wertkonflikte gehen an den Menschen, in der App mit „meine/andere
      Änderung“, danach läuft die Datenprüfung.
   5. Dateien stabil formatiert und sortiert schreiben, damit Konflikte selten werden. Seit #79
-     enthalten die Vorlage und neu angelegte Daten-Repositories `*.tmp` in der `.gitignore` und
-     eine `.gitattributes` im Datenordner (`*.yaml`, `*.yml`, `*.md` mit `text eol=lf`). Rest:
-     Bestehende Repositories und Klone ohne die Datei bleiben ungeschützt (die App legt sie dort
-     bewusst nicht an; ob sie es anbieten soll, ist offen).
+     enthalten die Vorlage und das Anlegen `*.tmp` in der `.gitignore` (die App legt sie auch in
+     einem bestehenden Ordner an, aber nur, wenn sie fehlt) und eine `.gitattributes` im
+     Datenordner (`*.yaml`, `*.yml`, `*.md` mit `text eol=lf`), die nur beim Neuanlegen eines
+     Repositories entsteht. Rest: Eine vorhandene `.gitignore` ohne `*.tmp` bleibt unverändert,
+     und bestehende Repositories und Klone ohne `.gitattributes` bleiben ungeschützt (die App
+     legt sie dort bewusst nicht an; ob sie es anbieten soll, ist offen).
   6. Die Git-Anmeldung eigens einrichten (Credential Manager, SSH-Rückfragen, Dateisperren,
      Zeilenenden unter Windows). Teilweise: die App erkennt fehlende Anmeldung und erklärt den
      nächsten Schritt; eine eigene Anmeldung in der App gibt es bewusst nicht.
@@ -140,7 +142,7 @@ Stand je Vorgang:
   die Verbindung prüfen (`git ls-remote`), statt im Terminal `git remote` aufzurufen
   (umgesetzt). Zugangsdaten gehören nie in die Adresse und werden nicht gespeichert oder
   angezeigt. SSH-Schlüssel erzeugt die App nicht; die globale Git-Konfiguration ändert sie nur
-  auf Klick, und nur für Name und E-Mail der Commits (wenn Git keinen Namen kennt).
+  auf Klick, und nur für Name und E-Mail der Commits (wenn Git Name oder E-Mail nicht kennt).
 - **Anmelde-Hilfe:** fehlende Authentifizierung erkennen und verständlich erklären, was zu tun
   ist (Zugangstoken oder SSH-Schlüssel hinterlegen, Credential Manager). Teilweise: beim Klonen
   und Anlegen eines Datenordners fehlt der Anmelde-Hinweis noch.
