@@ -14,7 +14,7 @@ from sprintforecast.engine import CapacitySource, Metric, PlanSource, parse_tren
 from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import is_english, t
 from sprintforecast.model import TrendMode
-from sprintforecast.report import fmt, fmt_capacity, pct
+from sprintforecast.report import absence_derived_note, fmt, fmt_capacity, pct
 
 
 @dataclass(frozen=True)
@@ -152,15 +152,18 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
         history = fc.absences
         used = history.sprints if history else []
         quota = history.rate if history and history.rate is not None else 0.0
+        formula = t(
+            "Fehltage unbekannt → Kapazität laut Personenliste und Kalender, gemindert um "
+            "die durchschnittlichen Fehltage ({share}) der Sprints {sprints}",
+            share=pct(quota),
+            sprints=", ".join(used),
+        )
+        if unsure := absence_derived_note(history, code=False):
+            formula += ". " + unsure
         return Step(
             "capacity",
             name,
-            t(
-                "Fehltage unbekannt → Kapazität laut Personenliste und Kalender, gemindert um "
-                "die durchschnittlichen Fehltage ({share}) der Sprints {sprints}",
-                share=pct(quota),
-                sprints=", ".join(used),
-            ),
+            formula,
             f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     return Step("capacity", name, t("nicht bestimmbar"), "–")
@@ -293,6 +296,10 @@ def plain_explanation(fc: Forecast, e: TimelineEntry) -> str:
             plan=fmt(r.plan, f.rounding),
         ),
     ]
+    if r.plan_capacity_source is CapacitySource.ESTIMATED and (
+        unsure := absence_derived_note(fc.absences, detailed=True)
+    ):
+        parts.append(unsure)
     if r.trend_fallback:
         parts.append(
             t("Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.")
