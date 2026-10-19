@@ -5236,7 +5236,7 @@ def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesErro
     """Der Server hat eine fremde Historie: erklären und nur nach ausdrücklicher Bestätigung
     zusammenführen. Vorgabe ist Abbrechen (Knopf gesperrt, bis das Kästchen gesetzt ist)."""
     with st.container(border=True):
-        st.error(f"**{git_title(error.kind)}**  \n{error.hint}")
+        st.error(f"**{git_title(error.kind)}**  \n{error.hint_md}")
         st.markdown(error.render(md_code))  # nennt Server-Adresse und Branch: als Code
         page_link("datenordner", t("Server-Adresse ändern"))  # meist ist die Adresse das Problem
         sure = st.checkbox(t("Ja, beide Historien zusammenführen"), key="unrelated-confirm")
@@ -5329,7 +5329,7 @@ def _show_problem(error: GitError, interactive: bool = True) -> None:
     Hinweis steht die Meldung selbst da; Ausgabe von Git und vom Server (Namen und Zeilen, die
     andere bestimmen) als Code, nie als Markdown. Ohne ``interactive`` keine Eingabefelder
     (Name, E-Mail): Die Felder gibt es nur einmal je Seite."""
-    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error.render(md_code_lines)}")
+    st.error(f"**{git_title(error.kind)}**  \n{error.hint_md or error.render(md_code_lines)}")
     if error.hint and str(error):
         with st.expander(t("Technische Meldung")):
             st.code(str(error), language=None)
