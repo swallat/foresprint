@@ -53,6 +53,7 @@ shared data repository. The rules for finding the data directory are in the
 | Evaluation | Forecast | forecast for the current and upcoming sprints (with range), history, chart, write report |
 | | Analysis | supplementary: range, focus factor, buffer recommendation, "When will it be done?" |
 | | Product distribution | evaluation only: default, PO pre-planning, planning and done per product; charts, history, balance; values are changed only on the boards (links on the page) |
+| | Tickets | only with the feature "Ticket pre-planning": filter over products and projects, project traffic light, timeline, sprint columns with earmarks (reserve and release a ticket by selection), refinement list, open points (not distributable), CSV import with preview and maintenance of projects and own estimates |
 | Manage team | Sprint calendar | upcoming sprints with start, last day and working days; create, adjust length |
 | | People | one table (one row per membership period, FTE); IDs are assigned automatically; former members can be hidden |
 | | Products | product list with PO and period (from/to); former products can be hidden |
@@ -186,16 +187,23 @@ the switch or change does not happen.
 Only the data directory is committed; spreadsheets (`*.xlsx` and so on) are rejected. The model is
 "one branch, always in sync"; branches, rebase, force push and stash are deliberately not part of
 the app. By default sharing pushes straight to the branch. For servers that protect `main` and
-require merge requests (for example GitLab), switch on **Share via merge request** on the **Data
-folder** page (per data repository, stored in its local Git configuration as
-`sprintforecast.share`): "Save and share" then merges the server state, uploads to your own
-branch `sprintforecast/<name>` and asks the server through GitLab push options
-(`merge_request.create`, `.target`, `.title`, `.remove_source_branch`, and by default
-`.merge_when_pipeline_succeeds`, switchable on the Data folder page) to create the merge
-request; a further share updates the same one. No access token or API is needed beyond the push
-itself, but the server must accept push options. `main` stays untouched until the merge request
-is merged; then **Pull from server** brings it in (and tells you while your merge request is
-still open). Without merge requests, protect `main` against
+require merge or pull requests, switch on **Share via merge request** on the **Data folder** page
+(per data repository, stored in its local Git configuration as `sprintforecast.share`). "Save and
+share" then merges the server state and uploads to your own branch `sprintforecast/<name>`; a
+further share updates the same request. `main` stays untouched until the request is merged; then
+**Pull from server** brings it in (and tells you while your request is still open). The app never
+holds an access token and never signs in to a web API; what happens after the push depends on the
+**Kind of server** (detected from the remote address, or chosen on the Data folder page and stored
+as `sprintforecast.host`):
+
+| Server | What the app does |
+| --- | --- |
+| GitLab | Asks the server through push options (`merge_request.create`, `.target`, `.title`, `.remove_source_branch`, and by default `.merge_when_pipeline_succeeds`, switchable on the Data folder page) to create or update the merge request. The server must accept push options. |
+| Forgejo / Gitea / Codeberg | AGit flow: pushes to `refs/for/<target>` with `topic` (your branch name) and `title`; the pull request is created or updated by the push. If the server does not support it, the branch is uploaded instead. |
+| GitHub | Uploads the branch and shows the link `compare/<target>...<branch>` where you open the pull request. Auto-merge is up to the repository (GitHub's "auto-merge" button or a rule). |
+| Other / unknown | Uploads the branch. If the server happens to understand GitLab push options, the merge request is created; otherwise you open it on the server. |
+
+Without merge requests, protect `main` against
 force push and deletion only (no required reviews, or sharing is rejected). The Git state is cached briefly (5 seconds); changes made outside the app (editor,
 terminal) therefore appear with a small delay, your own saves immediately.
 

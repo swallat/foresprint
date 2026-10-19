@@ -429,8 +429,64 @@ def render(fc: Forecast, history: int = 10) -> str:
             "```",
         ]
     lines += _products_section(fc)
+    lines += _tickets_section(fc)
     lines += _analysis_section(fc)
     return "\n".join(lines) + "\n"
+
+
+def _tickets_section(fc: Forecast, sprints: int = 6) -> list[str]:
+    """Ticket pre-planning: project traffic light and the next sprints (only with
+    ``features.tickets`` and imported tickets)."""
+    data = fc.data
+    if not data.team.features.tickets or not data.tickets:
+        return []
+    from sprintforecast.preplan import LIGHTS, distribute
+
+    dist = distribute(data, fc.today)
+    lines = ["", f"## {t('Tickets')}"]
+    if dist.projects:
+        lines += [
+            "",
+            f"| {t('Projekt')} | {t('Ziel')} | {t('Zielsprint')} | {t('Letzter Sprint')} "
+            f"| {t('Ampel')} | {t('Offen')} | {t('Nicht verteilbar')} |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for status in dist.projects:
+            project = data.project(status.project)
+            name = project.name if project else status.project
+            target = f"{project.target:%d.%m.%Y}" if project and project.target else "–"
+            lines.append(
+                f"| {name} | {target} | {status.target_sprint or '–'} "
+                f"| {status.last_sprint or '–'} | {t(LIGHTS[status.light])} "
+                f"| {status.open_tickets} | {status.not_distributable} |"
+            )
+    if dist.sprints[:sprints]:
+        unit = data.team.unit.value
+        lines += [
+            "",
+            f"| Sprint | {t('Budget')} ({unit}) | {t('Belegt')} | {t('Frei')} | {t('Tickets')} |",
+            "|---|---|---|---|---|",
+        ]
+        for sprint_id in dist.sprints[:sprints]:
+            cells = [b for b in dist.budgets if b.sprint == sprint_id]
+            base = sum(b.base for b in cells)
+            used = sum(b.fixed + b.placed for b in cells)
+            count = len(dist.in_sprint(sprint_id))
+            lines.append(
+                f"| {sprint_id} | {fmt(base)} | {fmt(used)} | {fmt(base - used)} | {count} |"
+            )
+    refine = len(dist.refinement)
+    open_points = len(dist.not_distributable())
+    if refine or open_points:
+        lines += [
+            "",
+            t(
+                "{refine} Tickets sind noch zu refinen, {open} lassen sich nicht verteilen.",
+                refine=refine,
+                open=open_points,
+            ),
+        ]
+    return lines
 
 
 def _analysis_section(fc: Forecast) -> list[str]:

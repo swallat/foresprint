@@ -22,7 +22,7 @@ from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
 from sprintforecast.model import TrendMode
 from sprintforecast.products import distribution, measure_label
-from sprintforecast.storage import team_to_dict
+from sprintforecast.storage import TeamData, file_name_problem, team_to_dict
 
 NA = "#N/A"
 
@@ -30,6 +30,7 @@ NA = "#N/A"
 # die Eingaben nach Spaltenposition, nicht nach Überschrift. Bei Änderungen FORMAT_VERSION erhöhen.
 FORMAT_VERSION = "1"
 FORMAT_PROPERTY = "sprintforecast-format"
+TEAM_PROPERTY = "sprintforecast-team"
 SHEET_SETTINGS = "Einstellungen"
 SHEET_FORECAST = "Forecast"
 SHEET_SPRINTS = "Sprintdaten"
@@ -92,6 +93,39 @@ def _xlsxwriter() -> Any:
             )
         ) from e
     return xlsxwriter
+
+
+def import_unsafe_sprint_ids(data: TeamData) -> list[str]:
+    """Warnings for sprint ids the Excel import would refuse (it requires portable file names).
+    On Linux and macOS such an id (for example ``a:b``) can exist and be exported, but the
+    workbook could not be imported again."""
+    warnings = []
+    seen: set[str] = set()
+    ids = [s.id for s in data.sprints]
+    if data.team.sprint.first_id is not None:
+        ids.append(data.team.sprint.first_id)
+    for index, sprint_id in enumerate(ids):
+        is_first_id = index >= len(data.sprints)
+        if problem := file_name_problem(sprint_id):
+            warnings.append(
+                t(
+                    "Sprint-ID {id} ({problem}): Der Excel-Import lehnt sie ab; "
+                    "die Datei lässt sich nicht wieder importieren.",
+                    id=repr(sprint_id),
+                    problem=problem,
+                )
+            )
+        elif not is_first_id and sprint_id.casefold() in seen:
+            warnings.append(
+                t(
+                    "Sprint-ID {id} kommt zweimal vor (Groß- und Kleinschreibung zählt "
+                    "gleich): Der Excel-Import lehnt das ab.",
+                    id=repr(sprint_id),
+                )
+            )
+        if not is_first_id:
+            seen.add(sprint_id.casefold())
+    return warnings
 
 
 def _blank(value: float | None) -> float | str:
@@ -192,6 +226,7 @@ def build_workbook(fc: Forecast) -> bytes:
     title = wb.add_format({"bold": True, "font_size": 14})
 
     wb.set_custom_property(FORMAT_PROPERTY, FORMAT_VERSION)
+    wb.set_custom_property(TEAM_PROPERTY, team.key)
     ws_set = wb.add_worksheet(SHEET_SETTINGS)
     ws = wb.add_worksheet(SHEET_FORECAST)
     ws_sp = wb.add_worksheet(SHEET_SPRINTS)
