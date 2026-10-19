@@ -6,13 +6,13 @@ command line and pages to the web UI, for example an import of the history from 
 They are installed next to the tool:
 
 ```bash
-uv tool install "sprintforecast[web,excel] @ git+https://github.com/swallat/sprint-forecast" \
+uv tool install "sprintforecast[web,excel,jira] @ git+https://github.com/swallat/sprint-forecast" \
   --with "my-plugin @ git+https://..."
 ```
 
 If the plugin pins the source of the core itself (`[tool.uv.sources]`), give the core without an
 address, otherwise uv reports "conflicting URLs":
-`uv tool install "sprintforecast[web,excel]" --with "my-plugin @ git+https://..."`.
+`uv tool install "sprintforecast[web,excel,jira]" --with "my-plugin @ git+https://..."`.
 
 A format-neutral helper for imports: `sprintforecast.storage.import_sprints`.
 

@@ -128,7 +128,8 @@ def test_the_core_does_not_import_the_ticket_modules(data_dir: Path, tmp_path: P
         "'forecast', 'demo'])\n"
         "assert r.exit_code == 0, r.output\n"
         "bad = [m for m in ('sprintforecast.preplan', 'sprintforecast.ticket_import', "
-        "'sprintforecast.sources') if m in sys.modules]\n"
+        "'sprintforecast.sources', 'sprintforecast.sources.jira', 'httpx', 'keyring') "
+        "if m in sys.modules]\n"
         "print('LOADED', bad)\n"
     )
     out = subprocess.run(
