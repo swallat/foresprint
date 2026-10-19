@@ -857,6 +857,30 @@ def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(a
     assert "git config" not in hint and "safe.directory" not in hint
 
 
+def test_reattach_names_the_rescue_branch_for_a_failure_that_is_not_dirty(
+    alice: Person, monkeypatch: pytest.MonkeyPatch
+):
+    """Scheitert der Wechsel aus einem anderen Grund als offenen Änderungen (hier eine gesperrte
+    Datei), liegen die Änderungen im Datenordner trotzdem schon auf dem Rettungsbranch: Die
+    Meldung nennt ihn, die Art des Fehlers bleibt."""
+    git(alice.root, "checkout", "-q", "--detach")
+    (alice.data / "a" / "2026.1.yaml").write_text("velocity: 99\n", encoding="utf-8")
+    invalidate_status()
+    real = gitsync._git
+
+    def locked_switch(root, *args, **kwargs):
+        if args == ("switch", "main"):
+            raise GitError("error: unable to unlink 'x': Device or resource busy", "locked")
+        return real(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitsync, "_git", locked_switch)
+    with pytest.raises(GitError) as info:
+        gitsync.reattach(alice.data)
+    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    assert rescue.startswith("rettung-")
+    assert info.value.kind == "locked" and rescue in info.value.hint
+
+
 def test_reattach_names_no_rescue_branch_when_the_commit_is_on_a_branch(alice: Person):
     git(alice.root, "checkout", "-q", "--detach")
     invalidate_status()
@@ -1742,3 +1766,32 @@ def test_not_repo_hint_explains_unpacked_zip():
 
     hint = hint_for("not_repo")
     assert "ZIP" in hint and "Repository klonen" in hint
+
+
+def test_conflict_hint_for_markdown_keeps_file_names_literal(tmp_path: Path):
+    """Der Hinweis geht als Markdown in die Oberfläche: Zeichen in Dateinamen wirken nicht."""
+    name = "a*_[x](www.e.de)\x1f.yaml"
+    (tmp_path / name).write_text(MARKED, encoding="utf-8")
+    with pytest.raises(GitError) as caught:
+        gitmod.refuse_conflict_markers(tmp_path, [tmp_path / name])
+    err = caught.value
+    assert "a*_[x](www.e.de)" in err.hint  # Kommandozeile: unverändert
+    assert "a\\*\\_\\[x\\]\\(www\\.e\\.de\\)" in err.hint_md
+    assert "\x1f" not in err.hint_md and "*_[" not in err.hint_md
+
+
+def test_rollback_hint_escapes_backup_path_for_markdown(tmp_path: Path):
+    from sprintforecast import githistory
+
+    trash = tmp_path / "s_ich*erung"
+    plain = githistory._rollback_hint(["a_b.yaml"], trash)
+    md = githistory._rollback_hint(["a_b.yaml"], trash, gitmod.md_plain)
+    assert "a_b.yaml" in plain and "s_ich*erung" in plain
+    assert "a\\_b\\.yaml" in md and "s\\_ich\\*erung" in md
+
+
+def test_hint_md_follows_a_hint_assigned_after_construction():
+    err = GitError("m", "conflict", "alt", hint_md="alt\\_md")
+    assert err.hint_md == "alt\\_md"
+    err.hint = "neu"
+    assert err.hint_md == "neu"
