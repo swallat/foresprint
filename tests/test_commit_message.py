@@ -49,3 +49,12 @@ def test_long_values_and_names_are_shortened(english):
     fc = FileChange("x.yaml", " M", (ValueChange(("note",), "a" * 200, "b\nc" * 50),))
     message = suggest_message([fc])
     assert message is not None and len(message) <= MAX_LENGTH and "\n" not in message
+
+
+def test_german_is_the_source_language():
+    fc = FileChange("a.yaml", " M", (ValueChange(("x",), 1, 2),))
+    assert suggest_message([fc]) == "x in a.yaml geändert: 1 → 2"
+
+
+def test_copy_is_not_called_a_rename(english):
+    assert suggest_message([FileChange("b.yaml", "C ", orig="a.yaml")]) == "Copy a.yaml to b.yaml"

@@ -8,6 +8,7 @@ value. The result is one line; the user can edit it before committing.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import PurePosixPath
 from typing import Any
@@ -39,11 +40,11 @@ def _value(v: Any) -> str:
 def _value_change(file: str, v: ValueChange) -> str:
     label = _short(v.label, MAX_LENGTH)
     if v.kind == ADDED:
-        return t("Add {label} in {file}: {new}", label=label, file=file, new=_value(v.new))
+        return t("{label} in {file} ergänzt: {new}", label=label, file=file, new=_value(v.new))
     if v.kind == REMOVED:
-        return t("Remove {label} from {file}", label=label, file=file)
+        return t("{label} aus {file} entfernt", label=label, file=file)
     return t(
-        "Update {label} in {file}: {old} → {new}",
+        "{label} in {file} geändert: {old} → {new}",
         label=label,
         file=file,
         old=_value(v.old),
@@ -53,24 +54,28 @@ def _value_change(file: str, v: ValueChange) -> str:
 
 def _single(fc: FileChange) -> str:
     file = fc.file
+    if fc.orig and "C" in fc.status:
+        return t("{orig} nach {file} kopiert", orig=fc.orig, file=file)
     if fc.orig:
-        return t("Rename {orig} to {file}", orig=fc.orig, file=file)
+        return t("{orig} nach {file} umbenannt", orig=fc.orig, file=file)
     if "D" in fc.status:
-        return t("Remove {file}", file=file)
+        return t("{file} entfernt", file=file)
     if "A" in fc.status or fc.status == "??":
-        return t("Add {file}", file=file)
+        return t("{file} hinzugefügt", file=file)
     if len(fc.values) == 1 and not fc.omitted:
         return _value_change(file, fc.values[0])
     if fc.values:
-        return t("Update {file}: {n} values", file=file, n=len(fc.values) + fc.omitted)
-    return t("Update {file}", file=file)
+        return t("{file} geändert: {n} Werte", file=file, n=len(fc.values) + fc.omitted)
+    return t("{file} geändert", file=file)
 
 
 def _names(files: Sequence[FileChange]) -> list[str]:
-    """File names without the folder where that stays unambiguous."""
-    base = [PurePosixPath(fc.file).name for fc in files]
+    """The first file names, without the folder where that stays unambiguous."""
+    count = Counter(PurePosixPath(fc.file).name for fc in files)
+    shown = files[:_MAX_NAMES]
     return [
-        name if base.count(name) == 1 else fc.file for name, fc in zip(base, files, strict=True)
+        name if count[name] == 1 else fc.file
+        for name, fc in ((PurePosixPath(fc.file).name, fc) for fc in shown)
     ]
 
 
@@ -81,12 +86,16 @@ def suggest_message(files: Sequence[FileChange]) -> str | None:
     if len(files) == 1:
         message = _single(files[0])
     else:
-        names = _names(files)
-        shown = ", ".join(names[:_MAX_NAMES])
-        more = len(names) - _MAX_NAMES
+        shown = ", ".join(_names(files))
+        more = len(files) - _MAX_NAMES
         message = (
-            t("Update {n} files: {names} and {more} more", n=len(files), names=shown, more=more)
+            t(
+                "{n} Dateien geändert: {names} und {more} weitere",
+                n=len(files),
+                names=shown,
+                more=more,
+            )
             if more > 0
-            else t("Update {n} files: {names}", n=len(files), names=shown)
+            else t("{n} Dateien geändert: {names}", n=len(files), names=shown)
         )
     return _short(message, MAX_LENGTH)

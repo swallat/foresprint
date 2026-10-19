@@ -4795,20 +4795,37 @@ def _commit_default() -> str:
     return t(COMMIT_DEFAULT)
 
 
-def _suggested_message(root: Path, pending: list[tuple[str, str]]) -> str:
-    """Commit message derived from the changed files and values; the default if not possible."""
+def _load_changes(
+    root: Path, pending: list[tuple[str, str]]
+) -> tuple[list[FileChange], Path | None] | None:
+    """Changed files with values (and the Git root) once per run; ``None`` without Git access."""
     try:
-        files = cached_file_changes(root, pending)
-        top = git_root(root)
+        return cached_file_changes(root, pending), git_root(root)
     except GitError:
-        return _commit_default()
-    named = [replace(fc, file=_view_name(root, fc.file, top)) for fc in files]
-    return suggest_message(named) or _commit_default()
+        return None
 
 
-def _refresh_commit_message(root: Path, pending: list[tuple[str, str]]) -> None:
+def _reset_commit_message() -> None:
+    """Back to the default message (after a commit); the next change brings a new suggestion."""
+    st.session_state["commit_message"] = st.session_state["commit_message_auto"] = _commit_default()
+
+
+def _refresh_commit_message(
+    root: Path, loaded: tuple[list[FileChange], Path | None] | None
+) -> None:
     """Follows the changes with the suggested message as long as the user has not edited it."""
-    suggested = _suggested_message(root, pending)
+    suggested = _commit_default()
+    if loaded is not None:
+        files, top = loaded
+        named = [
+            replace(
+                fc,
+                file=_view_name(root, fc.file, top),
+                orig=_view_name(root, fc.orig, top) if fc.orig else "",
+            )
+            for fc in files
+        ]
+        suggested = suggest_message(named) or suggested
     current = st.session_state.get("commit_message", "").strip()
     if current in ("", st.session_state.get("commit_message_auto"), _commit_default()):
         st.session_state["commit_message"] = suggested
@@ -4826,7 +4843,7 @@ def _commit_clicked(root: Path, tags: list[str]) -> None:
         return
     st.session_state["pending_tags"] = []
     st.session_state["last_commit"] = rev
-    st.session_state["commit_message"] = _commit_default()
+    _reset_commit_message()
 
 
 # „Speichern und teilen“ läuft im Rückruf des Knopfs, im Skript-Thread. Kommt währenddessen eine
@@ -4948,7 +4965,7 @@ def _remember_sync_result(result: SyncResult) -> None:
     davon abhängt. Darf mehrfach laufen (auch nach einem abgebrochenen ersten Versuch)."""
     if result.committed:
         st.session_state["pending_tags"] = []
-        st.session_state["commit_message"] = _commit_default()
+        _reset_commit_message()
     # Ein noch nicht gezeigtes früheres Ergebnis wird nicht überschrieben, sondern wandert in
     # die Liste der früheren (die Seitenleiste zeigt beide). Mehrfaches Ausführen ändert nichts.
     previous = st.session_state.get("sync_result")
@@ -5439,15 +5456,13 @@ def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
     return file
 
 
-def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
+def _changes_view(root: Path, loaded: tuple[list[FileChange], Path | None] | None) -> None:
     """„Was hat sich geändert?“: Werte vorher und nachher je geänderter Datei. Dateinamen und
     Werte stammen aus Dateien, die andere ins Repository legen: nur als Code oder in Tabellen."""
-    try:
-        files = cached_file_changes(root, pending)
-        top = git_root(root)
-    except GitError:
+    if loaded is None:
         st.caption(t("Die Änderungsansicht ist gerade nicht verfügbar."))
         return
+    files, top = loaded
     st.markdown(f"**{t('Was hat sich geändert?')}**")
     show_text = st.toggle(
         t("Zeilenweisen Unterschied zeigen"),
@@ -5574,8 +5589,9 @@ def _git_panel(repo: Repository) -> None:
             _show_incoming(commits, files)
         if changes:
             st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
-            _changes_view(repo.root, changes)
-            _refresh_commit_message(repo.root, changes)
+            loaded = _load_changes(repo.root, changes)
+            _changes_view(repo.root, loaded)
+            _refresh_commit_message(repo.root, loaded)
             st.text_input(t("Commit-Nachricht"), key="commit_message")
             if tags:
                 st.checkbox(
