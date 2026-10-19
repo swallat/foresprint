@@ -460,10 +460,10 @@ def drop_done(data_dir: Path, product: str, *sprint_ids: str) -> None:
 
 
 FOOTNOTE = (
-    "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt erfasst ist, obwohl es für "
-    "andere Produkte erfasst ist (leer, nicht 0). Sie zählen im Saldo nicht mit; bitte den "
-    "Wert im Sprint nachtragen. Sprints ohne jeden Erledigt-Wert (z. B. der laufende) "
-    "bleiben außen vor."
+    "„ohne Wert“: Sprints, in denen das Produkt betreut wurde, aber kein Erledigt erfasst "
+    "ist, obwohl es für andere Produkte erfasst ist (leer, nicht 0). Sie zählen im Saldo "
+    "nicht mit; bitte den Wert im Sprint nachtragen. Sprints ohne jeden Erledigt-Wert "
+    "(z. B. der laufende) und Sprints außerhalb der Laufzeit des Produkts bleiben außen vor."
 )
 
 
@@ -540,6 +540,22 @@ def test_balance_missing_ignores_sprints_without_any_done_value(data_dir: Path):
     rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
     assert rows["Mobile App"].strip("|").split("|")[-1].strip() == "1"
     assert rows["Webshop"].strip("|").split("|")[-1].strip() == "0"
+
+
+def test_balance_missing_ignores_sprints_outside_product_period(data_dir: Path):
+    # „Mobile App“ wird erst ab 2026.19 betreut; davor ist sie weder aktiv noch erfasst
+    path = data_dir / "demo" / "products.yaml"
+    content = load(path)
+    next(p for p in content["products"] if p["id"] == "app")["from"] = date(2026, 9, 16)
+    path.write_text(yaml.safe_dump(content, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    drop_done(data_dir, "app", "2026.17", "2026.18", "2026.19")
+    assert run(data_dir, "bericht", "demo").exit_code == 0
+    report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
+    section = report.split("**Saldo**")[1].split("\n## ")[0]
+    rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
+    cells = [c.strip() for c in rows["Mobile App"].strip("|").split("|")]
+    # nur 2026.19 (betreut, ohne Wert) zählt als fehlend, 2026.17/.18 liegen vor der Laufzeit
+    assert cells[1] == "1" and cells[-1] == "1"
 
 
 def test_produktliste_add_and_end(data_dir: Path):

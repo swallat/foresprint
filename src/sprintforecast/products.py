@@ -212,10 +212,10 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
 def missing_footnote() -> str:
     """Fußnote zur Spalte „ohne Wert“ (Terminal und Bericht; nur Text, ohne Markup)."""
     return t(
-        "„ohne Wert“: Sprints, in denen für das Produkt kein Erledigt erfasst ist, obwohl es für "
-        "andere Produkte erfasst ist (leer, nicht 0). Sie zählen im Saldo nicht mit; bitte den "
-        "Wert im Sprint nachtragen. Sprints ohne jeden Erledigt-Wert (z. B. der laufende) "
-        "bleiben außen vor."
+        "„ohne Wert“: Sprints, in denen das Produkt betreut wurde, aber kein Erledigt erfasst "
+        "ist, obwohl es für andere Produkte erfasst ist (leer, nicht 0). Sie zählen im Saldo "
+        "nicht mit; bitte den Wert im Sprint nachtragen. Sprints ohne jeden Erledigt-Wert "
+        "(z. B. der laufende) und Sprints außerhalb der Laufzeit des Produkts bleiben außen vor."
     )
 
 
