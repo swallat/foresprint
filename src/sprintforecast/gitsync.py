@@ -328,7 +328,7 @@ def conflict_text_diffs(path: Path, file: str) -> tuple[str, str]:
         size = _git(root, "cat-file", "-s", f":{stage}:{file}", check=False)
         if not size.isdigit() or int(size) > 1_000_000:
             raise ValueError(file)
-        return _stage_text(root, stage, file)
+        return gitmod._git_bytes(root, "show", f":{stage}:{file}").decode("utf-8")
 
     try:
         base, mine, theirs = text(1), text(2), text(3)
@@ -337,9 +337,11 @@ def conflict_text_diffs(path: Path, file: str) -> tuple[str, str]:
     shown = base or ""
 
     def one(side: str | None, label: str) -> str:
-        return unified_diff(shown, side or "", f"{file} (gemeinsamer Stand)", f"{file} ({label})")
+        return unified_diff(
+            shown, side or "", f"{file} ({t('gemeinsamer Stand')})", f"{file} ({label})"
+        )
 
-    return one(mine, "mine"), one(theirs, "theirs")
+    return one(mine, t("meine Änderung")), one(theirs, t("andere Änderung"))
 
 
 def _analyse(
