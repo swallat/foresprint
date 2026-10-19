@@ -3,7 +3,8 @@
 
 import shutil
 import subprocess
-from datetime import date
+from dataclasses import replace
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps
 from sprintforecast.forecast import build_forecast
 from sprintforecast.model import Sprint
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.web import ui
 from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -1782,3 +1784,48 @@ def test_sprint_selection_is_the_same_on_all_pages(app: AppTest):
     for page, key in pages.items():
         goto(app, page)
         assert app.selectbox(key=key).value == "2026.23"
+
+
+# --- Seiteneinleitungen: ein Leitsatz sichtbar, alles Weitere aufklappbar --------------------
+
+
+def test_absences_intro_is_short_and_details_are_in_an_expander(app: AppTest):
+    goto(app, "fehltage")
+    lead = next(m.value for m in app.markdown if m.value.startswith("Fehltage je Person"))
+    assert "Urlaubskalender" not in lead  # Quelle und Beispiel stehen im Expander
+    details = next(e for e in app.expander if e.label.startswith("Mehr dazu"))
+    assert "Urlaubskalender" in details.markdown[0].value
+    assert "2 Tage Urlaub" in details.markdown[0].value
+    assert "Teilzeit" in details.markdown[0].value
+    # Zeitraum und Arbeitstage je Sprint stehen nicht mehr als Zeilen über der Tabelle, sondern
+    # zusammengefasst in einer Zeile.
+    summary = next(c.value for c in app.caption if "Arbeitstage" in c.value)
+    assert summary.startswith("alle Sprints 10 Arbeitstage (Mo–Fr)")
+    assert "noch ohne Sprintdatei" in summary
+    assert not any(c.value.startswith("**2026.") for c in app.caption)
+
+
+def test_sprints_summary_names_holidays_and_differing_workdays(data_dir: Path):
+    data = Repository(data_dir).load("demo")
+    fc = build_forecast(data, date(2026, 10, 15))
+    sprints = ui.absence_sprints(data, fc, 6)
+    text = ui.sprints_summary(data, sprints, fc.today)
+    assert "2026.26: Feiertage 25.12., 01.01." in text
+    assert "abgeschlossen" not in text
+    shorter = [replace(sprints[0], end=sprints[0].end - timedelta(days=1)), *sprints[1:]]
+    text = ui.sprints_summary(data, shorter, sprints[0].end)
+    assert f"9 Arbeitstage (Mo–Fr) im Sprint {sprints[0].id}" in text
+    assert f"10 Arbeitstage (Mo–Fr) im Sprint {sprints[1].id}" in text
+    assert f"abgeschlossen: {sprints[0].id}" in text
+
+
+def test_calendar_people_and_products_have_a_lead_and_an_expander(app: AppTest):
+    goto(app, "sprints")
+    assert any(m.value.startswith("Sprints folgen automatisch") for m in app.markdown)
+    assert any(e.label.startswith("Abweichende Sprints") for e in app.expander)
+    goto(app, "personen")
+    assert any(m.value.startswith("Eine Zeile je Person") for m in app.markdown)
+    assert any(e.label.startswith("Austritt oder FTE") for e in app.expander)
+    goto(app, "produktliste")
+    assert any(m.value.startswith("Eine Zeile je Produkt") for m in app.markdown)
+    assert any(e.label.startswith("Produkt abgeben") for e in app.expander)

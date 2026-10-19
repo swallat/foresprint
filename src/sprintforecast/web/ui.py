@@ -396,6 +396,31 @@ def help_text(key: str) -> str:
     return f"{t(f.what)}\n\n{t('Quelle')}: {t(f.source)}\n\n{t('Beispiel')}: {t(f.example)}"
 
 
+# Einleitung einer Seite: ein Leitsatz bleibt sichtbar (höchstens zwei Zeilen), alles Weitere
+# steht aufklappbar. Die Breite des Leitsatzes ist begrenzt, damit er lesbar bleibt.
+_INTRO_CSS = "<style>div.st-key-page-intro { max-width: 72ch; }</style>"
+
+
+def page_intro(lead: str, details: str | None = None, title: str | None = None) -> None:
+    """Leitsatz der Seite; ``details`` erscheinen in einem Expander „Mehr dazu“."""
+    st.html(_INTRO_CSS)
+    with st.container(key="page-intro"):
+        st.markdown(lead)
+    if details:
+        with st.expander(title or t("Mehr dazu"), icon=":material/info:"):
+            st.markdown(details)
+
+
+def field_help(key: str) -> str:
+    """Hilfetext eines Feldes aus guide.py als drei beschriftete Zeilen (für den Expander)."""
+    f = FIELDS[key]
+    return (
+        f"**{t('Was')}** · {t(f.what)}  \n"
+        f"**{t('Quelle')}** · {t(f.source)}  \n"
+        f"**{t('Beispiel')}** · {t(f.example)}"
+    )
+
+
 def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
     return pd.DataFrame([{t("Kennzahl"): s.name, t("Formel"): s.formula} for s in steps(fc, entry)])
 
@@ -518,6 +543,30 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
     if not data.sprint(s.id):
         text += t(" · noch keine Sprintdatei")
     return text
+
+
+def sprints_summary(data: TeamData, sprints: list[Sprint], today: date) -> str:
+    """Eine Zeile für mehrere Sprints: Arbeitstage (gemeinsam oder je Sprint), Sprints mit
+    Feiertagen, abgeschlossene Sprints und die Zahl der Sprints ohne Sprintdatei."""
+    region, country = data.team.capacity.region, data.team.capacity.country
+    workdays = {s.id: team_workdays(data.team, s.start, s.end) for s in sprints}
+    counts = {len(days) for days in workdays.values()}
+    week = workweek_label(data.team)
+    if len(counts) == 1:
+        parts = [t("alle Sprints {days} Arbeitstage ({week})", days=counts.pop(), week=week)]
+    else:
+        parts = [
+            t("{days} Arbeitstage ({week}) im Sprint {id}", days=len(days), week=week, id=sid)
+            for sid, days in workdays.items()
+        ]
+    for sid, days in workdays.items():
+        if hol := [f"{d:%d.%m.}" for d in days if holiday_name(d, region, country)]:
+            parts.append(t("{id}: Feiertage {dates}", id=sid, dates=", ".join(hol)))
+    if done := [s.id for s in sprints if s.end <= today]:
+        parts.append(t("abgeschlossen: {ids}", ids=", ".join(done)))
+    if missing := sum(1 for s in sprints if not data.sprint(s.id)):
+        parts.append(t("{count} Sprint(s) noch ohne Sprintdatei", count=missing))
+    return " · ".join(parts)
 
 
 # --- Seiten ---------------------------------------------------------------------------
@@ -1024,14 +1073,29 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     # mehrere Sprints.
     if (board_sprint := sprint_select(data, fc, "absences-sprint")) is not None:
         _board_nav(data, board_sprint, "fehltage")
-    st.markdown(help_text("absences").replace("\n\n", "  \n"))
+    page_intro(
+        t(
+            "Fehltage je Person und Sprint eintragen: Urlaub, Gleitzeit, Schulung, andere "
+            "Projekte. Halbe Tage als 0,5. Feiertage nicht eintragen, die kennt das Tool über "
+            "Land und Bundesland."
+        ),
+        field_help("absences")
+        + "  \n"
+        + t(
+            "Fehltage in Arbeitstagen der Person (0,5 = halber Tag), nicht in Personentagen: "
+            "Wer in Teilzeit arbeitet, trägt die Tage ein, an denen sonst gearbeitet würde; "
+            "die FTE rechnet die Kapazität selbst herunter."
+        ),
+        t("Mehr dazu: was zählt, woher die Zahlen kommen"),
+    )
     if not data.people:
         st.warning(t("Noch keine Personen erfasst – zuerst auf der Seite **Personen** anlegen."))
         return
-    count = st.number_input(
+    left, right = st.columns(2)
+    count = left.number_input(
         t("Anzahl Sprints"), min_value=1, max_value=26, value=data.team.forecast.horizon + 1
     )
-    past = st.number_input(
+    past = right.number_input(
         t("Vergangene Sprints"),
         min_value=0,
         max_value=26,
@@ -1047,25 +1111,23 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if not sprints:
         st.info(t("Keine Sprints gefunden."))
         return
-    for s in sprints:
-        caption = sprint_caption(data, s)
-        st.caption(caption + (f" · {t('abgeschlossen')}" if s.end <= fc.today else ""))
+    # Zeitraum, Arbeitstage und Feiertage je Sprint stehen als Tooltip am Spaltenkopf; sichtbar
+    # bleibt eine Zeile mit dem, was alle Sprints gemeinsam haben und was abweicht.
+    st.caption(sprints_summary(data, sprints, fc.today))
+    page_link("sprints", t("Zeiträume im Sprintkalender"))
     rows = absence_matrix(data.people, sprints)
     column_config: dict[str, Any] = {
         "id": None,
         "Person": st.column_config.TextColumn(t("Person"), disabled=True),
     }
     for s in sprints:
+        caption = sprint_caption(data, s)
         column_config[s.id] = st.column_config.NumberColumn(
             s.id,
             min_value=0.0,
             max_value=float(len(team_workdays(data.team, s.start, s.end))),
             step=0.5,
-            help=t(
-                "Fehltage in Arbeitstagen der Person (0,5 = halber Tag), nicht in Personentagen: "
-                "Wer in Teilzeit arbeitet, trägt die Tage ein, an denen sonst gearbeitet würde; "
-                "die FTE rechnet die Kapazität selbst herunter."
-            ),
+            help=caption + (f" · {t('abgeschlossen')}" if s.end <= fc.today else ""),
         )
     edited = st.data_editor(
         pd.DataFrame(rows),
@@ -1227,19 +1289,25 @@ def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
 
 def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Sprintkalender"))
-    st.markdown(
+    page_intro(
         t(
-            "Künftige Sprints entstehen automatisch aus dem Kalender: Jeder Sprint beginnt am Tag "
-            "nach dem letzten Tag des vorherigen und dauert {days} Kalendertage (Einstellung "
-            "*Sprintlänge*). Eine Sprintdatei wird angelegt, sobald etwas für den Sprint "
-            "gespeichert wird – oder hier mit **Sprints anlegen**.  \n"
-            "Weicht ein Sprint ab (z. B. drei Wochen über Weihnachten), den **letzten Tag** "
-            "ändern; die folgenden Sprints verschieben sich mit. Arbeitstage zählen laut "
-            "Arbeitswoche des Teams ({week}) vom Start bis einschließlich zum letzten Tag, "
-            "Feiertage werden erst bei der Kapazität abgezogen.",
+            "Sprints folgen automatisch aufeinander, je {days} Kalendertage. Hier lassen sie "
+            "sich vorab anlegen und einzelne verlängern oder verkürzen.",
+            days=data.team.sprint.length_days,
+        ),
+        t(
+            "**Reihenfolge:** Jeder Sprint beginnt am Tag nach dem letzten Tag des vorherigen "
+            "und dauert {days} Kalendertage (Einstellung *Sprintlänge*).  \n"
+            "**Abweichender Sprint:** z. B. drei Wochen über Weihnachten: den **letzten Tag** "
+            "ändern; die folgenden Sprints verschieben sich mit.  \n"
+            "**Arbeitstage:** laut Arbeitswoche des Teams ({week}) vom Start bis einschließlich "
+            "zum letzten Tag; Feiertage werden erst bei der Kapazität abgezogen.  \n"
+            "**Sprintdatei:** wird angelegt, sobald etwas für den Sprint gespeichert wird, oder "
+            "hier mit **Sprints anlegen**.",
             days=data.team.sprint.length_days,
             week=workweek_label(data.team),
-        )
+        ),
+        t("Abweichende Sprints, Arbeitstage, Sprintdateien"),
     )
     count = st.number_input(t("Anzahl Sprints"), min_value=1, max_value=26, value=6, key="cal-n")
     sprints = absence_sprints(data, fc, int(count))
@@ -1260,7 +1328,11 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "Letzter Tag": st.column_config.DateColumn(
                 t("Letzter Tag"),
                 format="DD.MM.YYYY",
-                help=t("Der nächste Sprint beginnt am Tag danach."),
+                help=t(
+                    "Der nächste Sprint beginnt am Tag danach. Weicht ein Sprint ab (z. B. drei "
+                    "Wochen über Weihnachten), hier den letzten Tag ändern; die folgenden "
+                    "Sprints verschieben sich mit."
+                ),
             ),
             "Arbeitstage": st.column_config.NumberColumn(
                 t("Arbeitstage"),
@@ -3236,14 +3308,18 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Produkte"))
-    st.markdown(
+    page_intro(
         t(
-            "Produkte, die das Team betreut – mit verantwortlichem PO (optional) und Zeitraum.  \n"
-            "**Produkt abgegeben:** **bis** setzen statt löschen – sonst fehlen die Werte "
+            "Eine Zeile je Produkt, das das Team betreut, mit Zeitraum und optional PO. Zeilen "
+            "nie löschen, sondern mit **bis** beenden."
+        ),
+        t(
+            "**Produkt abgegeben:** **bis** setzen statt löschen, sonst fehlen die Werte "
             "vergangener Sprints in der Auswertung.  \n"
             "**Neues Produkt:** Zeile ergänzen, **ab** = erster betreuter Tag (leer = schon "
             "immer)."
-        )
+        ),
+        t("Produkt abgeben oder neu aufnehmen"),
     )
     show_former = st.toggle(t("Ehemalige anzeigen"), value=False, key="show_former_products")
     rows, hidden = product_table(data.products, fc.today, show_former)
@@ -3315,14 +3391,20 @@ def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Personen"))
-    st.markdown(
+    page_intro(
         t(
-            "Eine Zeile je Zeitraum im Team.  \n"
-            "**Austritt:** in der Zeile **bis** setzen – nicht löschen, sonst ändern sich "
-            "Kapazitäten und Fehltage vergangener Sprints.  \n"
-            "**FTE-Änderung:** in der bisherigen Zeile **bis** setzen und eine neue Zeile mit "
-            "**gleichem Namen** und neuem FTE-Anteil anlegen."
-        )
+            "Eine Zeile je Person und Zeitraum im Team. Zeilen nie löschen, sondern mit "
+            "**bis** beenden."
+        ),
+        t(
+            "**Austritt:** in der Zeile **bis** setzen. Löschen würde Kapazität und Fehltage "
+            "vergangener Sprints verändern.  \n"
+            "**FTE-Änderung:** bisherige Zeile mit **bis** beenden, neue Zeile mit **gleichem "
+            "Namen** und neuem FTE-Anteil anlegen.  \n"
+            "**Teilzeit:** nur einmal abbilden: volle Arbeitswoche mit FTE 0,8 *oder* "
+            "Vier-Tage-Woche mit FTE 1."
+        ),
+        t("Austritt oder FTE-Änderung eintragen"),
     )
     show_former = st.toggle(t("Ehemalige anzeigen"), value=False, key="show_former")
     rows, hidden = people_table(data.people, fc.today, show_former)
@@ -3587,18 +3669,11 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_new_team(repo: Repository) -> None:
     st.header(t("Neues Team anlegen"))
-    st.markdown(
+    page_intro(
         t(
-            "**Welche Bereiche braucht das Team?** Drei Bereiche sind optional und zunächst "
-            "**aus**; sie lassen sich unten jetzt oder später unter **Einstellungen** "
-            "zuschalten:  \n"
-            "• **Produktverteilung** – das Team betreut mehrere Produkte, die Sprint-Menge wird "
-            "darauf verteilt (Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt).  \n"
-            "• **Zuordnung PO** – jedes Produkt hat einen Product Owner, Summen je PO "
-            "(nur zusammen mit der Produktverteilung sinnvoll).  \n"
-            "• **Produktionszugriff** – nur ein Teil der Personen darf bestimmte Tickets "
-            "bearbeiten; es wird erfasst, wie viel Menge davon betroffen ist, mit "
-            "Engpass-Hinweis."
+            "Ein Kürzel genügt. Die Bereiche **Produktverteilung**, **Zuordnung PO** und "
+            "**Produktionszugriff** sind optional und zunächst aus; was sie tun, steht am "
+            "jeweiligen Feld, und sie lassen sich jederzeit unter **Einstellungen** ändern."
         )
     )
     key = (
