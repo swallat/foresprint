@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import json
 import os
 import shutil
 import signal
@@ -26,6 +27,7 @@ import yaml
 from playwright.sync_api import Locator, Page, expect
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
+from sprintforecast.config import PACKAGE
 from sprintforecast.i18n import LANG_ENV
 from sprintforecast.launcher import free_port
 from sprintforecast.proctree import popen_options, terminate_tree
@@ -206,12 +208,19 @@ class App:
             "APPDATA": str(self.config),
             "PYTHONUTF8": "1",
         }
-        # Ohne Einstellung ist die Oberfläche englisch; die Browsertests erwarten Deutsch.
-        env[LANG_ENV] = self.language or "de"
+        if self.language:
+            env[LANG_ENV] = self.language
         return env
 
     def start(self) -> App:
         self.config.mkdir(parents=True, exist_ok=True)
+        if not self.language:
+            # Ohne Einstellung ist die Oberfläche englisch; die Browsertests erwarten Deutsch.
+            # Als gespeicherte Einstellung statt per Umgebung, damit der Wechsel in der
+            # Seitenleiste weiterhin greift (die Umgebungsvariable hätte Vorrang).
+            settings = self.config / PACKAGE / "settings.json"
+            settings.parent.mkdir(parents=True, exist_ok=True)
+            settings.write_text(json.dumps({"language": "de"}), encoding="utf-8")
         self.port = free_port(0)
         self._log_file = open(self.log, "ab")  # noqa: SIM115 – lebt, bis der Server endet
         self._process = subprocess.Popen(
