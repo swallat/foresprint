@@ -225,6 +225,7 @@ from sprintforecast.web.logic import (
     PRODUCT_COLUMNS,
     TEAM_REGION,
     Assumption,
+    CapacityUsage,
     absence_matrix,
     absence_sprints,
     apply_calendar,
@@ -232,6 +233,7 @@ from sprintforecast.web.logic import (
     board_steps_done,
     calendar_table,
     calendar_to_save,
+    capacity_usage,
     default_forecast_ist,
     edit_absences,
     forget_without_git,
@@ -2160,6 +2162,26 @@ def _production_split_note(fc: Forecast, entry: Any, data: TeamData, unit: str) 
     )
 
 
+def _capacity_gauge(usage: CapacityUsage | None, unit: str) -> None:
+    """Verplante Menge gegenüber dem Forecast PLAN, aktualisiert sich mit jeder Eingabe."""
+    if usage is None:
+        return
+    st.progress(
+        min(usage.ratio, 1.0),
+        text=t(
+            "Eingeplant: **{planned} {unit}** von {plan} {unit} ({share})",
+            planned=fmt(usage.planned, 2),
+            plan=fmt(usage.plan),
+            unit=unit,
+            share=pct(usage.ratio) if usage.plan > 0 else "–",
+        ),
+    )
+    if usage.over:
+        st.warning(t("{rest} {unit} zu viel.", rest=fmt(-usage.rest, 2), unit=unit))
+    else:
+        st.success(t("Noch {rest} {unit} frei.", rest=fmt(usage.rest, 2), unit=unit))
+
+
 def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     entry = fc.entry(sprint.id)
@@ -2167,6 +2189,21 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     if entry is None:
         st.info(t("Für diesen Sprint gibt es keine Prognose."))
         return
+    page_intro(
+        t(
+            "Der Forecast PLAN ist die Menge, die das Team einplanen kann. Beim Eintragen zeigt "
+            "die Anzeige „Eingeplant“, wie viel davon schon verplant und wie viel noch frei ist."
+        ),
+        t(
+            "Die Anzeige rechnet live mit jedem eingetragenen Wert, noch bevor gespeichert wird. "
+            "Verglichen wird mit der aktuellen Prognose in {unit}. Bei Teams mit Produkten ist "
+            "es die Summe der Planning-Werte je Produkt; sonst die Menge, die unter „Bisher "
+            "eingeplant“ eingetragen wird (nur Hilfsrechnung, wird nicht gespeichert – das "
+            "Commitment steht im nächsten Schritt).",
+            unit=unit,
+        ),
+        t("Mehr dazu: so liest sich „Eingeplant“"),
+    )
     r = entry.result
     view = plan_view(entry)
     cols = st.columns(5 if view.frozen is not None else 4)
@@ -2218,6 +2255,16 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
     features = data.team.features
+    # Ohne Produkteditor (kein Produktbereich oder keine Produkte im Sprint) gibt es keine
+    # Summe zum Vergleichen: dann eine Hilfsrechnung, vor allen Speicherschritten.
+    if not (features.products and data.products and distribution(fc, entry).rows):
+        scratch = _number(
+            t("Bisher eingeplant ({unit})", unit=unit),
+            None,
+            f"planning-scratch-{sprint.id}",
+            t("Hilfsrechnung für das Planning: wird nicht gespeichert."),
+        )
+        _capacity_gauge(capacity_usage(r.plan, scratch), unit)
     if features.products and data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
@@ -2248,22 +2295,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             fc_preview = _preview_forecast(data, fc, base, after)
             d_preview = distribution(fc_preview, fc_preview.entry(after.id) or entry)
             _production_hint(d_preview, data, unit)
-            planned = d_preview.total("planned")
-            if planned is not None and r.plan is not None:
-                rest = r.plan - planned
-                (st.success if rest >= 0 else st.warning)(
-                    t(
-                        "Eingeplant je Produkt: **{planned} {unit}** von {plan} {unit} – ",
-                        planned=fmt(planned, 2),
-                        plan=fmt(r.plan),
-                        unit=unit,
-                    )
-                    + (
-                        t("noch {rest} frei.", rest=fmt(rest, 2))
-                        if rest >= 0
-                        else t("{rest} zu viel.", rest=fmt(-rest, 2))
-                    )
-                )
+            _capacity_gauge(capacity_usage(r.plan, d_preview.total("planned")), unit)
             if chart := _product_chart(d_preview, unit):
                 st.altair_chart(chart, width="stretch")
             if after.products != base.products or data.sprint(after.id) is None:
@@ -4738,9 +4770,14 @@ def collect_sync_result() -> None:
 
 
 def _sync_clicked(
-    root: Path, tags: list[str], allow_invalid: bool = False, allow_unrelated: bool = False
+    root: Path,
+    tags: list[str],
+    allow_invalid: bool = False,
+    allow_unrelated: bool = False,
+    push: bool = True,
 ) -> None:
-    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen."""
+    """„Speichern und teilen“: eigene Änderungen sichern, die der anderen holen, hochladen.
+    Mit ``push=False`` („Vom Server holen“) wird nur gesichert und der Serverstand übernommen."""
     slot = _sync_slot()
     if not slot.begin():  # ein Abgleich dieser Sitzung läuft noch: nicht noch einen starten
         st.session_state.setdefault("flash", []).append(
@@ -4748,8 +4785,7 @@ def _sync_clicked(
                 "warning",
                 t(
                     "Ein Abgleich lief noch: Dieser Klick wurde nicht ausgeführt. Bitte nach dem "
-                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal „Speichern und "
-                    "teilen“ wählen."
+                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal klicken."
                 ),
             )
         )
@@ -4764,6 +4800,7 @@ def _sync_clicked(
             today(),
             allow_invalid=allow_invalid,
             allow_unrelated=allow_unrelated,
+            push=push,
         )
         slot.put(root, result)  # vor dem Freigeben: Wer danach aufwacht, findet es
     finally:
@@ -4776,9 +4813,17 @@ def _unrelated_cancel() -> None:
     st.session_state.pop("unrelated-confirm", None)
 
 
+def _continues_pull_only() -> bool:
+    """Gehört der Abgleich, der gerade fortgesetzt wird (nach Konflikten, nach der Rückfrage zur
+    fremden Historie), zu „Vom Server holen“? Dann lädt auch das Fortsetzen nichts hoch."""
+    last = st.session_state.get("sync_result")
+    return bool(last is not None and last.pull_only)
+
+
 def _unrelated_go(root: Path, tags: list[str]) -> None:
+    push = not _continues_pull_only()
     _unrelated_cancel()
-    _sync_clicked(root, tags, allow_unrelated=True)
+    _sync_clicked(root, tags, allow_unrelated=True, push=push)
 
 
 def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesError) -> None:
@@ -4899,6 +4944,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
     if result.pushed:
         done.append(t("Hochgeladen"))
     if result.error is None:
+        if result.pull_only and (result.committed or result.merged):
+            done.append(t("Noch nicht hochgeladen: „Speichern und teilen“ lädt es hoch"))
         st.success(" · ".join(done) if done else t("Alles ist auf dem aktuellen Stand."))
     else:
         if done:
@@ -5285,6 +5332,18 @@ def _git_panel(repo: Repository) -> None:
                 help=t(
                     "Sichert deine Änderungen, holt die der anderen, führt beides zusammen und "
                     "lädt es hoch."
+                ),
+            )
+            st.button(
+                t("Vom Server holen"),
+                icon=":material/download:",
+                key="git-pull",
+                on_click=_sync_clicked,
+                args=(repo.root, list(tags), False, False, False),
+                help=t(
+                    "Holt die Änderungen der anderen in diesen Datenordner und führt sie mit "
+                    "deinen zusammen (eigene offene Änderungen werden vorher gesichert). Lädt "
+                    "nichts hoch."
                 ),
             )
             st.button(
@@ -5746,7 +5805,7 @@ def _resolve_clicked(root: Path, pending: list[ConflictFile], tags: list[str]) -
     except GitError as e:
         st.session_state["commit_error"] = e
         return
-    _sync_clicked(root, tags)
+    _sync_clicked(root, tags, push=not _continues_pull_only())
 
 
 def _restore_clicked(root: Path, file: Path) -> None:
