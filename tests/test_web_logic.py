@@ -403,6 +403,15 @@ def test_blank_product_cells_stay_none_and_zero_stays_zero():
     assert "web" not in after.products  # nichts erfasst: kein leerer Eintrag
 
 
+def test_hidden_product_columns_keep_their_stored_values():
+    """Eine Spalte, die der Editor nicht zeigt (fehlt in der Zeile), wird nicht überschrieben."""
+    base = _sprint(products={"app": ProductValues(planned=2.0, production_planned=1.0)})
+    rows = [{"_id": "app", "Planning": 3.0}]
+    after = apply_product_values(base, rows, ["planned", "production_planned"])
+    assert after.products["app"].planned == 3.0
+    assert after.products["app"].production_planned == 1.0
+
+
 def test_board_steps_done_other_steps_follow_their_values():
     sprint = _sprint(
         products={"app": ProductValues(), "web": ProductValues(preplanned=0.0)},
@@ -412,3 +421,18 @@ def test_board_steps_done_other_steps_follow_their_values():
     done = board_steps_done(sprint)
     assert done["vorplanung"] and done["planning"] and done["review"]
     assert not board_steps_done(_sprint(products={"app": ProductValues(planned=2.0)}))["vorplanung"]
+
+
+def test_capacity_usage():
+    from sprintforecast.web.logic import capacity_usage
+
+    usage = capacity_usage(20.0, 15.0)
+    assert usage is not None
+    assert (usage.rest, usage.ratio, usage.over) == (5.0, 0.75, False)
+    over = capacity_usage(20.0, 24.0)
+    assert over is not None
+    assert (over.rest, over.over) == (-4.0, True)
+    assert capacity_usage(None, 3.0) is None
+    assert capacity_usage(20.0, None) is None
+    zero = capacity_usage(0.0, 2.0)
+    assert zero is not None and zero.ratio == 0.0 and zero.over
