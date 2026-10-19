@@ -1600,14 +1600,21 @@ def excel_import(
     ] = False,
 ) -> None:
     from sprintforecast.excel import ExcelUnavailable
-    from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+    from sprintforecast.excel_import import apply_import, plan_import, read_workbook_keyed
 
     c = _ctx(ctx)
     try:
-        data = read_workbook(datei, team)
+        data, file_team = read_workbook_keyed(datei, team)
     except ExcelUnavailable as e:
         err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
+    if file_team is None:
+        warning = t(
+            "Die Mappe nennt kein Team (ältere Excel-Ausgabe); es wird nicht geprüft, ob sie "
+            "zu {team} gehört.",
+            team=repr(team),
+        )
+        err.print(f"[yellow]{escape(warning)}[/yellow]")
     plan = plan_import(c.repo, data, c.today)
     if not plan.changes:
         console.print(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
@@ -1669,6 +1676,7 @@ def _ticket_preview(plan: Any, limit: int = 15) -> None:
         "unknown_epic": t("Unbekannte Epics (Kandidaten für ein neues Projekt)"),
         "refined_unclear": t("Refined-Status unklar"),
         "earmark_dropped": t("Vormerkung verworfen"),
+        "earmark_from_label": t("Vormerkung aus dem Label planned_for_… übernommen"),
         "sprint_unresolved": t("Sprint nicht erkannt (in team.yaml unter tracker.sprint_names)"),
     }
     for kind in KINDS:
@@ -2118,6 +2126,65 @@ def _ticket_handover(
     )  # fmt: skip
 
 
+def _ticket_write_labels(c: Any, data: TeamData, apply: bool) -> None:
+    """Preview, and with ``apply`` the write, of the ``planned_for_<sprint_id>`` labels
+    (spec section 6.6). Reads the tickets fresh so that the labels are current; changes only
+    labels of the tickets listed in the preview."""
+    from sprintforecast import sources
+    from sprintforecast.label_writeback import apply_label_writes, plan_label_writes
+    from sprintforecast.sources import SourceError
+    from sprintforecast.ticket_import import plan_import
+
+    tracker = _jira_settings(data, "--write-labels")
+    if not tracker.write_labels:
+        err.print(
+            "[red]"
+            + t("--write-labels braucht tracker.write_labels: true in team.yaml.")
+            + "[/red]"
+        )
+        raise typer.Exit(1)
+    source = None
+    try:
+        source = sources.open_source(tracker)
+        raws = source.fetch()
+        if not raws:
+            raise SourceError(
+                t(
+                    "Die Abfrage lieferte keine Tickets – nichts geschrieben. JQL "
+                    "(tracker.query) und Berechtigungen des Tokens prüfen."
+                )
+            )
+        fc = build_forecast(data, c.today)
+        import_plan = plan_import(data, fc, raws, c.today, adopt_labels=False)
+        plan = plan_label_writes(import_plan.tickets, import_plan.preplan)
+        for warning in plan.warnings:
+            console.print(f"[yellow]{_plain(warning)}[/yellow]")
+        if not plan.writes:
+            console.print(t("Keine Label-Änderungen nötig."))
+            return
+        table = Table(t("Ticket"), t("Titel"), t("Label hinzufügen"), t("Label entfernen"))
+        for write in plan.writes:
+            table.add_row(
+                _plain(write.key),
+                _plain(write.title),
+                _plain(", ".join(write.add) or "–"),
+                _plain(", ".join(write.remove) or "–"),
+            )
+        console.print(table)
+        if not apply:
+            console.print(t("Nur Vorschau – mit --apply nach Jira schreiben."))
+            return
+        written = apply_label_writes(source, plan)
+    except SourceError as e:
+        raise _source_failed(e) from e
+    finally:
+        _close_source(source)
+    console.print(
+        t("{count} Tickets in Jira geändert. Danach --fetch --apply, um den Stand zu lesen.",
+          count=written)
+    )  # fmt: skip
+
+
 @command(
     "tickets",
     "Ticket-Vorplanung: Tickets aus Jira oder einer CSV-Datei einlesen, auf künftige Sprints "
@@ -2183,6 +2250,16 @@ def tickets(
             ),
         ),
     ] = "median",
+    write_labels: Annotated[
+        bool,
+        typer.Option(
+            "--write-labels",
+            help=t(
+                "Vormerkungen als Label planned_for_<Sprint> nach Jira schreiben "
+                "(tracker.write_labels; Vorschau, mit --apply schreiben)."
+            ),
+        ),
+    ] = False,
     uebernehmen: Annotated[
         bool,
         typer.Option("--apply", help=t("Import bzw. Übergabe schreiben (sonst nur Vorschau).")),
@@ -2203,6 +2280,7 @@ def tickets(
             ("--test-connection", test_connection),
             ("--set-token", set_token),
             ("--handover", handover),
+            ("--write-labels", write_labels),
         )
         if given
     ]
@@ -2239,6 +2317,23 @@ def tickets(
     if handover and _given(ctx, "variant"):
         err.print("[red]" + t("--variant gehört nicht zu --handover (Median-Variante).") + "[/red]")
         raise typer.Exit(1)
+    if write_labels:
+        if commit_ or _given(ctx, "sprints"):
+            err.print(
+                "[red]"
+                + t(
+                    "{options} gehören nicht zu --write-labels.",
+                    options=" / ".join(
+                        n
+                        for n, g in (("--commit", commit_), ("--sprints", _given(ctx, "sprints")))
+                        if g
+                    ),
+                )
+                + "[/red]"
+            )
+            raise typer.Exit(1)
+        _ticket_write_labels(c, data, uebernehmen)
+        return
     if set_token:
         _ticket_set_token(data)
         return
