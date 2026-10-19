@@ -87,6 +87,10 @@ Every page saves to the YAML files. The sidebar shows under **Git** the state co
 server (not yet shared, new from others, offline, when last checked) and the open changes in the
 data directory.
 
+The commit message field is pre-filled from the open changes, e.g. `Update velocity in
+demo/sprints/2026.20.yaml: 9.75 → 7.0` for one value, `Update 3 files: …` for several. It follows
+further changes until you edit the text; your own text is never overwritten.
+
 - **Save and share** first commits your own changes (after a review optionally with the tag
   `TEAM/SPRINT`), then fetches the others' state, merges both and uploads the result. The
   sidebar then lists what was taken over from others (who, when, which files). In a race
@@ -117,8 +121,12 @@ data directory.
   your open changes, fetches the server state and merges it. Conflicts and the confirmation for a
   foreign history work as for "Save and share" and also stay local. Use it to refresh the
   checkout before looking at the data; "Save and share" uploads the result later.
-- **Check status** asks the server whether there is anything new and changes nothing. The server
-  state is queried only then and when sharing.
+- **Check status** asks the server whether there is anything new and changes nothing. Besides,
+  the app fetches the server state in the background (`git fetch --prune`) when the sidebar is
+  first drawn and every 30 minutes while a browser window is connected, with a 20 second limit
+  and without any login prompt (a missing login simply leaves the state unchanged; **Check
+  status** then explains what to do). Set `SPRINTFORECAST_NO_BACKGROUND_FETCH=1` to switch this
+  off. The background fetch only runs in connected sessions and never keeps the server alive.
 - **Commit changes** commits locally only, without sharing.
 - Error cases are explained in plain language with the next step: server unreachable, repository
   not found (check the address), certificate not trusted, upload rejected (new changes in the

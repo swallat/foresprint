@@ -110,7 +110,7 @@ from sprintforecast.storage import (
     write_text,
 )
 from sprintforecast.updater import PACKAGE
-from sprintforecast.validate import Level, check_all, check_team, issues_for
+from sprintforecast.validate import Issue, Level, check_all, check_team, issues_for
 
 app = typer.Typer(
     help=t("Velocity- und Kapazitäts-Forecast für Scrum-Teams. Einstieg: `sprintforecast help`."),
@@ -453,8 +453,9 @@ def _git_problem(e: GitError) -> NoReturn:
 
 def _maybe_commit(
     c: Context, team: str, paths: list[Path], message: str, tag: str | None, do_commit: bool
-) -> None:
-    """Zeigt Prüfergebnisse zu den geänderten Dateien und committet, falls gewünscht."""
+) -> list[Issue]:
+    """Zeigt Prüfergebnisse zu den geänderten Dateien und committet, falls gewünscht.
+    Liefert die gezeigten Prüfergebnisse."""
     issues = issues_for(_load(c, team), c.today, [p.name for p in paths])
     for i in issues:
         colour = "red" if i.level is Level.ERROR else "yellow"
@@ -466,7 +467,7 @@ def _maybe_commit(
         console.print(
             f"[dim]{t('Tipp: mit --commit wird die Änderung direkt in Git übernommen.')}[/dim]"
         )
-        return
+        return issues
     if has_errors:
         err.print(f"[red]{t('Nicht committet – bitte zuerst die Fehler beheben.')}[/red]")
         raise typer.Exit(1)
@@ -476,6 +477,7 @@ def _maybe_commit(
         _git_problem(e)
     suffix = t(", Tag {tag}", tag=_plain(tag)) if tag else ""
     console.print(f"[green]{t('Committet ({rev}){suffix}.', rev=rev, suffix=suffix)}[/green]")
+    return issues
 
 
 def _refuse_invalid(c: Context, before: TeamData, after: TeamData, where: str) -> None:
@@ -976,6 +978,21 @@ def _require_products(data: TeamData, team: str) -> None:
             "[yellow]"
             + t(
                 "Die Produktverteilung ist für dieses Team ausgeschaltet. Einschalten mit: "
+                "{command}",
+                command=_plain_end(f"sprintforecast settings {team}"),
+            )
+            + "[/yellow]"
+        )
+        raise typer.Exit(1)
+
+
+def _require_tickets(data: TeamData, team: str) -> None:
+    """Ends the command when the team does not use the ticket pre-planning."""
+    if not data.team.features.tickets:
+        err.print(
+            "[yellow]"
+            + t(
+                "Die Ticket-Vorplanung ist für dieses Team ausgeschaltet. Einschalten mit: "
                 "{command}",
                 command=_plain_end(f"sprintforecast settings {team}"),
             )
@@ -1596,6 +1613,226 @@ def excel_import(
         return
     for path in apply_import(c.repo, plan):
         console.print(f"[green]{_plain_end(path)}[/green]")
+
+
+def _ticket_note(change: Any) -> str:
+    """Readable text for the ``note`` of a change of the import preview."""
+    from sprintforecast.ticket_import import DROPPED_ENDED, UNCLEAR_NO_ESTIMATE, UNCLEAR_RULE
+
+    note = change.note
+    if not note:
+        return ""
+    if change.kind == "sprint_unresolved":
+        return t("Sprintname „{name}“", name=_plain(note))
+    if change.kind == "changed":
+        return {"estimate": t("Schätzung"), "remaining": t("Restaufwand")}.get(note, _plain(note))
+    if change.kind == "refined_unclear":
+        if note == UNCLEAR_RULE:
+            return t("nur über refined_also_if, Label fehlt")
+        if note == UNCLEAR_NO_ESTIMATE:
+            return t("Label ohne Schätzung")
+    if change.kind == "earmark_dropped" and note == DROPPED_ENDED:
+        return t("Sprint beendet")
+    if change.kind == "missing":
+        return t("Vormerkung für Sprint {sprint} bleibt", sprint=_plain(note))
+    return _plain(note)
+
+
+def _ticket_preview(plan: Any, limit: int = 15) -> None:
+    """Shows what an import would change, grouped by kind (spec section 6.5)."""
+    from sprintforecast.ticket_import import KINDS
+
+    titles = {
+        "new": t("Neue Tickets"),
+        "changed": t("Geänderte Zahlen"),
+        "done": t("Erledigt"),
+        "missing": t("Nicht mehr im Import"),
+        "unassigned": t("Noch keinem Projekt zugeordnet"),
+        "unknown_epic": t("Unbekannte Epics (Kandidaten für ein neues Projekt)"),
+        "refined_unclear": t("Refined-Status unklar"),
+        "earmark_dropped": t("Vormerkung verworfen"),
+        "sprint_unresolved": t("Sprint nicht erkannt (in team.yaml unter tracker.sprint_names)"),
+    }
+    for kind in KINDS:
+        rows = plan.of_kind(kind)
+        if not rows:
+            continue
+        table = Table(
+            t("Ticket"), t("Titel"), t("bisher"), t("neu"), t("Hinweis"),
+            title=f"{titles[kind]} ({len(rows)})",
+        )  # fmt: skip
+        for row in rows[:limit]:
+            old = _plain(row.old if row.old not in (None, [], "") else "–")
+            new = _plain(row.new if row.new not in (None, [], "") else "–")
+            table.add_row(_plain(row.key), _plain(row.title), old, new, _ticket_note(row))
+        console.print(table)
+        if len(rows) > limit:
+            console.print(t("… und {count} weitere", count=len(rows) - limit))
+    for warning in plan.warnings:
+        console.print(f"[yellow]{_plain(warning)}[/yellow]")
+
+
+def _ticket_report(
+    data: TeamData, today: date, sprint_count: int, printed: list[Issue] | None = None
+) -> None:
+    """Distribution of the tickets: project traffic light, sprints, refinement list. ``printed``
+    are check results already printed (they are not printed twice)."""
+    from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, distribute
+
+    if not data.tickets:
+        console.print(
+            t(
+                "Keine Tickets vorhanden – zuerst importieren: sprintforecast tickets "
+                "TEAM --import DATEI"
+            )
+        )
+        return
+    for issue in issues_for(data, today, ["projects.yaml", "tickets.yaml", "preplan.yaml"]):
+        if printed and issue in printed:
+            continue
+        colour = "red" if issue.level is Level.ERROR else "yellow"
+        console.print(
+            f"[{colour}]{issue.level.label}[/{colour}] {_plain(issue.where)}: "
+            f"{_plain(issue.message)}"
+        )
+    dist = distribute(data, today)
+    if dist.no_forecast:
+        console.print(
+            "[yellow]"
+            + t(
+                "Noch kein Budget: ohne vergangene Sprints mit Velocity gibt es keinen "
+                "Forecast, die Tickets können nicht verteilt werden."
+            )
+            + "[/yellow]"
+        )
+    colours = {"on_track": "green", "tight": "yellow", "missed": "red", "empty": "dim"}
+    projects = Table(
+        t("Projekt"), t("Ziel"), t("Zielsprint"), t("Letzter Sprint"), t("Ampel"), t("Offen"),
+        t("Nicht verteilbar"),
+        title=t("Projekte"),
+    )  # fmt: skip
+    for row in dist.projects:
+        project = data.project(row.project)
+        name = project.name if project else row.project
+        target = f"{project.target:%d.%m.%Y}" if project and project.target else "–"
+        light = f"[{colours[row.light]}]{t(LIGHTS[row.light])}[/{colours[row.light]}]"
+        projects.add_row(
+            _plain(name), target, _plain(row.target_sprint or "–"),
+            _plain(row.last_sprint or "–"), light, str(row.open_tickets),
+            str(row.not_distributable),
+        )  # fmt: skip
+    console.print(projects)
+
+    names = {tk.key: tk for tk in data.tickets}
+    sprints = Table(
+        t("Sprint"), t("Budget"), t("Belegt"), t("Frei"), t("Tickets"), title=t("Sprints")
+    )
+    for sprint_id in dist.sprints[:sprint_count]:
+        cells = [b for b in dist.budgets if b.sprint == sprint_id]
+        base = sum(b.base for b in cells)
+        used = sum(b.fixed + b.placed for b in cells)
+        keys = ", ".join(
+            f"{p.ticket} ({fmt_plain(p.size)})" if p.size is not None else p.ticket
+            for p in dist.in_sprint(sprint_id)
+        )
+        sprints.add_row(
+            _plain(sprint_id), fmt_plain(base), fmt_plain(used), fmt_plain(base - used),
+            _plain(keys or "–"),
+        )  # fmt: skip
+    console.print(sprints)
+
+    refine = Table(t("Sprint"), t("Spätestens bis"), t("Ticket"), t("Schätzung"),
+                   title=t("Zu refinen"))  # fmt: skip
+    shown = [r for r in dist.refinement if r.sprint in dist.sprints[:sprint_count]]
+    for item in shown:
+        ticket = names.get(item.ticket)
+        title = ticket.title if ticket else ""
+        refine.add_row(
+            _plain(item.sprint), f"{item.deadline:%d.%m.%Y}",
+            _plain(f"{item.ticket} {title}".strip()), t(SOURCES[item.source.value]),
+        )  # fmt: skip
+    if shown:
+        console.print(refine)
+
+    open_ = dist.not_distributable()
+    if open_:
+        table = Table(t("Ticket"), t("Grund"), title=t("Nicht verteilbar"))
+        for p in open_:
+            table.add_row(_plain(p.ticket), t(REASONS[p.reason]))
+        console.print(table)
+    if dist.unclear:
+        console.print(
+            t(
+                "Refined-Status unklar (zählt als grob): {keys}",
+                keys=_plain(", ".join(dist.unclear)),
+            )
+        )
+    for cycle in dist.cycles:
+        console.print(f"[red]{t('Abhängigkeiten im Kreis')}: {_plain(' → '.join(cycle))}[/red]")
+
+
+@command(
+    "tickets",
+    "Ticket-Vorplanung: Ticket-CSV importieren, Tickets auf künftige Sprints verteilen, "
+    "Projektampel und Refinement-Liste.",
+)
+def tickets(
+    ctx: typer.Context,
+    team: TeamArg,
+    datei: Annotated[
+        Path | None,
+        typer.Option(
+            "--import", metavar="FILE", help=t("CSV-Export des Ticketsystems einlesen (Vorschau).")
+        ),
+    ] = None,
+    uebernehmen: Annotated[
+        bool, typer.Option("--apply", help=t("Import schreiben (sonst nur Vorschau)."))
+    ] = False,
+    commit_: CommitOpt = False,
+    sprints: Annotated[
+        int, typer.Option("--sprints", min=1, help=t("Anzahl der angezeigten künftigen Sprints."))
+    ] = 6,
+) -> None:
+    c = _ctx(ctx)
+    data = _load(c, team)
+    _require_tickets(data, team)
+    if datei is not None and commit_ and not uebernehmen:
+        err.print(f"[red]{t('--commit braucht --apply.')}[/red]")
+        raise typer.Exit(1)
+    printed: list[Issue] = []
+    if datei is not None:
+        from sprintforecast.sources import SourceError
+        from sprintforecast.sources.csv import CsvSource
+        from sprintforecast.ticket_import import apply_import, plan_import
+
+        try:
+            raws = CsvSource(datei, data.team.tracker.fields).fetch()
+        except SourceError as e:
+            err.print(f"[red]{_plain_end(e)}[/red]")
+            raise typer.Exit(1) from e
+        fc = build_forecast(data, c.today)
+        plan = plan_import(data, fc, raws, c.today, source=datei.name)
+        _ticket_preview(plan)
+        if plan.unchanged(data):
+            # Nothing to write: no time-stamp-only rewrite of tickets.yaml.
+            console.print(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
+        elif not uebernehmen:
+            console.print(t("Nur Vorschau – mit --apply schreiben."))
+        else:
+            paths = apply_import(c.repo, team, plan)
+            for path in paths:
+                console.print(f"[green]{_plain_end(path)}[/green]")
+            printed = _maybe_commit(
+                c, team, paths, t("{team}: Tickets importiert", team=_plain(data.team.name)),
+                None, commit_,
+            )  # fmt: skip
+            data = _load(c, team)
+        if not uebernehmen:
+            return
+    elif uebernehmen or commit_:
+        err.print(f"[red]{t('--apply und --commit gehören zu --import.')}[/red]")
+        raise typer.Exit(1)
+    _ticket_report(data, c.today, sprints, printed)
 
 
 @command(

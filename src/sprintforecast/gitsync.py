@@ -17,6 +17,7 @@ import os
 import re
 import tarfile
 import tempfile
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import date
@@ -230,22 +231,141 @@ def cached_state(path: Path) -> SyncState:
     return current
 
 
+# Im Hintergrund: kurzes Zeitlimit (der ganze Prozessbaum wird beendet) und nie ein Anmeldefenster
+# oder eine Rückfrage (Credential Manager, GIT_ASKPASS/SSH_ASKPASS, SSH-Passphrase). Fehlt die
+# Anmeldung oder ist der Server nicht erreichbar, bleibt der Stand unverändert; der Knopf „Stand
+# prüfen“ erklärt dann den nächsten Schritt.
+BACKGROUND_FETCH_SECONDS = 30 * 60
+BACKGROUND_TIMEOUT = 20.0
+BACKGROUND_OFF_ENV = "SPRINTFORECAST_NO_BACKGROUND_FETCH"  # gesetzt: kein Abruf im Hintergrund
+_QUIET_ENV = {
+    "GCM_INTERACTIVE": "never",
+    "SSH_ASKPASS_REQUIRE": "never",
+    "GIT_ASKPASS": "",  # leer (nicht fehlend): Git fragt weder core.askPass noch SSH_ASKPASS
+}
+_BACKGROUND_LOCK = threading.Lock()
+_BACKGROUND_ACTIVE: set[Path] = set()
+_BACKGROUND_LAST: dict[Path, float] = {}  # letzter Versuch je Datenordner (ohne Git-Aufruf)
+_SYNC_LOCKS: dict[Path, threading.RLock] = {}
+
+
+def _lock_for(path: Path) -> threading.RLock:
+    """Eine Sperre je Datenordner: Abgleich und Abruf laufen nie gleichzeitig (Git sperrt sonst
+    ``packed-refs`` und Index, und „Speichern und teilen“ scheiterte an einem Abruf im
+    Hintergrund). Wiedereintrittsfähig, denn der Abgleich ruft :func:`fetch` selbst auf."""
+    key = path.resolve()
+    with _BACKGROUND_LOCK:
+        return _SYNC_LOCKS.setdefault(key, threading.RLock())
+
+
+def _quiet_env(root: Path) -> dict[str, str]:
+    """Umgebung für den Abruf im Hintergrund; SSH läuft ohne Rückfrage (``BatchMode``), wenn
+    niemand einen eigenen SSH-Befehl festgelegt hat (Umgebung oder ``core.sshCommand``)."""
+    env = dict(_QUIET_ENV)
+    if not (
+        os.environ.get("GIT_SSH_COMMAND")
+        or os.environ.get("GIT_SSH")
+        or _git(root, "config", "--get", "core.sshCommand", check=False)
+    ):
+        env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes"
+    return env
+
+
+def _fetch_in_background(root: Path, current: SyncState) -> None:
+    """Ein ``git fetch --prune`` mit Zeitlimit; gespeichert wird nur ein Erfolg (ein Misserfolg
+    ohne Rückfrage sagt nichts über den Server und soll den letzten guten Stand nicht
+    überschreiben). Ist der Server inzwischen ein anderer, gilt das Ergebnis nicht."""
+    run = gitmod._probe_run(
+        root,
+        ("fetch", "--prune", "--no-tags", current.remote or "origin"),
+        BACKGROUND_TIMEOUT,
+        _quiet_env(root),
+    )
+    if run.code != 0:
+        return
+    if gitmod.remote_url(root, current.remote or "origin") != current.url:
+        return
+    _FETCHED[root] = (time.time(), None)
+    gitmod.invalidate_status()
+
+
 def fetch(path: Path) -> SyncState:
     """Holt den Stand vom Server (nur herunterladen, nichts ändern) und merkt sich, ob der
     Server erreichbar war. Fehler werden nicht ausgelöst, sondern im Stand vermerkt."""
-    root = _root(path)
-    current = state(path)
-    error: GitError | None = None
-    if current.remote is None:
-        error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
-    else:
+    with _lock_for(path):
+        root = _root(path)
+        current = state(path)
+        error: GitError | None = None
+        if current.remote is None:
+            error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
+        else:
+            try:
+                _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
+            except GitError as e:
+                error = e
+        _FETCHED[root] = (time.time(), error)
+        gitmod.invalidate_status()
+        return state(path)
+
+
+def background_fetch_due(path: Path, now: float | None = None) -> bool:
+    """Ist der letzte Abruf (Versuch im Hintergrund oder Abruf von Hand) länger als 30 Minuten
+    her oder gab es noch keinen in diesem Programmlauf, und hat der Datenordner einen Server?
+    Die Prüfung der Zeit kommt zuerst und braucht keinen Git-Aufruf: Die Seitenleiste fragt bei
+    jedem Neuzeichnen."""
+    now = now or time.time()
+    key = path.resolve()
+    # Etwas Spielraum: Die Oberfläche ruft genau alle 30 Minuten, der letzte Abruf endete aber
+    # einige Sekunden nach seinem Beginn.
+    due_after = BACKGROUND_FETCH_SECONDS - 60
+    last = _BACKGROUND_LAST.get(key)
+    if last is not None and now - last < due_after:
+        return False
+    if cached_state(path).remote is None:
+        _BACKGROUND_LAST[key] = now  # ohne Server nicht bei jedem Neuzeichnen neu fragen
+        return False
+    fetched = _FETCHED.get(_root(path))
+    return fetched is None or now - fetched[0] >= due_after
+
+
+def start_background_fetch(path: Path) -> bool:
+    """Startet bei Bedarf einen Abruf des Serverstands im Hintergrund (``git fetch --prune``)
+    und liefert, ob einer gestartet wurde. Es läuft nie mehr als einer je Datenordner, nie
+    gleichzeitig mit einem Abgleich, und keine Dauerschleife: Aufgerufen wird nur aus einer
+    verbundenen Sitzung (beim Start und alle 30 Minuten), der Faden ist ein Nebenfaden und hält
+    ``idle.py`` nicht auf."""
+    if os.environ.get(BACKGROUND_OFF_ENV):
+        return False
+    key = path.resolve()
+    try:
+        if not background_fetch_due(path):
+            return False
+        root = _root(path)
+        current = state(path)
+    except GitError:
+        return False
+    lock = _lock_for(path)
+    with _BACKGROUND_LOCK:
+        if key in _BACKGROUND_ACTIVE:
+            return False
+        _BACKGROUND_ACTIVE.add(key)
+        _BACKGROUND_LAST[key] = time.time()
+
+    def run() -> None:
         try:
-            _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
-        except GitError as e:
-            error = e
-    _FETCHED[root] = (time.time(), error)
-    gitmod.invalidate_status()
-    return state(path)
+            if lock.acquire(blocking=False):  # ein Abgleich läuft: beim nächsten Mal wieder
+                try:
+                    _fetch_in_background(root, current)
+                finally:
+                    lock.release()
+        except Exception:  # ein Hintergrundabruf darf nie etwas beenden
+            pass
+        finally:
+            with _BACKGROUND_LOCK:
+                _BACKGROUND_ACTIVE.discard(key)
+
+    threading.Thread(target=run, name="sprintforecast-fetch", daemon=True).start()
+    return True
 
 
 def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str, str]]]:
@@ -550,7 +670,7 @@ def _unpushed_merges(root: Path, current: SyncState) -> bool:
     return count.isdigit() and int(count) > 0
 
 
-def sync(
+def _sync(
     path: Path,
     message: str,
     tags: list[str] | None = None,
@@ -687,6 +807,12 @@ def sync(
     finally:
         gitmod.invalidate_status()
     return result
+
+
+def sync(path: Path, *args: Any, **kwargs: Any) -> SyncResult:
+    """„Speichern und teilen“ (siehe :func:`_sync`); läuft nie gleichzeitig mit einem Abruf."""
+    with _lock_for(path):
+        return _sync(path, *args, **kwargs)
 
 
 def _server_branch(root: Path, current: SyncState) -> str | None:
