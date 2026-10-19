@@ -279,12 +279,76 @@ nicht auf den Owner wartet, und hakt ihn nach dem Merge hier in einem kleinen PR
    zuerst nur lesenden Baustein (`diff`-Modul), dann zwei kleine PRs.
 3. **Excel-Import in der Weboberfläche:** bisher nur in der Kommandozeile (`excel-import`); mit Vorschau
    und Bestätigung wie dort.
+4. **Einrichtung für Product Owner ohne Admin-Rechte** (Annahme: die Rechner haben keine Admin-Rechte; „an
+   die IT wenden“ ist kein guter Hinweis). Je ein kleiner PR:
+   1. Die App findet Git auch außerhalb des `PATH` an Benutzerpfaden (Windows:
+      `%LOCALAPPDATA%\Programs\Git\cmd\git.exe`, `~\scoop\shims\git.exe`).
+   2. Hinweistexte (D4): Ein entpacktes ZIP aus GitLab ist kein Repository; die Warnung führt zu
+      „Repository klonen“, und „Git-Repository anlegen“ nennt, dass es nicht zum Server passt.
+   3. Anmelde-Hilfe konkreter: Schritte je Betriebssystem, lesende Prüfung von `credential.helper`, keine
+      Klartext-Speicher.
+   4. **Anmeldung Stufe 1:** geführte Seite „Anmeldung einrichten“ für https. Die PO trägt ihr Zugriffstoken
+      ein (mit Anleitung, GitLab: Recht `write_repository`); die App übergibt es mit `git credential approve`
+      an den Anmeldehelfer von Git, speichert es nie selbst, zeigt es nie wieder an und prüft danach mit
+      `git ls-remote`. Fehlt ein Helfer, bietet sie nach Zustimmung `credential.helper` für den Benutzer an
+      (Windows `manager`, macOS `osxkeychain`; unter Linux nichts, was Kennwörter im Klartext ablegt). Dafür
+      ändert der **Owner** die Regel „keine Anmeldung / kein `credential.helper` in der App“ (Teil 2 und
+      `docs/linux-betrieb/prompt.md`); die planmäßige Aufgabe setzt diesen Punkt erst nach dieser
+      Regeländerung um. README und Konzept („Zugangsdaten nie gespeichert“) präzisieren. SSH-Schlüssel
+      erzeugt die App weiter nicht.
+   5. **Einrichtungs-Checkliste** auf der Startseite (Git vorhanden, Datenordner, Server, Anmeldung,
+      Identität, Team) mit Haken und Verweisen; führt nichts selbst aus und verschwindet, wenn alles erledigt
+      ist. Nach Punkt 4.
+   6. **Installationsskripte** (`install.ps1`, `install.sh`, README): Hinweis, dass Git für Speichern und
+      Teilen nötig ist (Installation ohne Admin, Firmenzertifikate), die Plugin-Installation ist optional; als
+      Option eine Git-Installation über **Scoop** (kein winget; ist Scoop nicht da, wird dessen Einrichtung
+      angeboten), nur nach Rückfrage. Der Owner mergt (Skripte werden ausgeliefert); der Scoop-Teil braucht
+      einen Test unter Windows ohne Admin.
+5. **Serverstand im Hintergrund:** beim Start einer Sitzung einmal `git fetch --prune` (kurzes Zeitlimit,
+   keine Terminalabfrage, kein Anmeldefenster, nur ein Hinweis bei fehlender Anmeldung) und danach alle 30
+   Minuten. Die Ruhe-Abschaltung (`idle.py`) darf dadurch nicht ausgehebelt werden; ohne Aktivität kein
+   Dauer-Polling.
+6. **Ein Protokoll je Planning-Termin** mit allen Schritten: Jedes Speichern eines Schritts schreibt ein neues,
+   vollständiges Planning-Protokoll mit Abschnitten Fehltage, Einplanung und Commitment (je mit Stand); ältere
+   Dateien bleiben. Beim Bau prüfen, ob die Daten genug Angaben für die Abschnitte tragen.
+7. **`.gitattributes`-Angebot** für bestehende Daten-Repositories (Vorschau der betroffenen Dateien, weil
+   CRLF-Dateien im Index danach als geändert gelten).
+8. **Dokumentation ins Englische:** alles unter `docs/` und die README (nur Englisch, keine deutsche
+   README daneben), die README ansprechender mit Screenshots in hell und dunkel (`docs/img/`). Reihenfolge:
+   erst die Screenshots (Claude), dann die Übersetzung durch Codex (der Owner richtet Codex auf seiner
+   Workstation ein), und zwar nach den technischen Blöcken, damit die Bilder nicht veralten. Die Übersetzung
+   von `docs/uebergabe.md` und `docs/linux-betrieb/` betrifft den geplanten Läufer: der Owner mergt.
 
-**B. Entscheidungen des Owners** (Teil 2): je Entscheidung ein kleiner PR, erst nach der Antwort.
-A1 „Plan in der Bandbreite“ (ändert Zahlen), D4b Prognosen über `at` vereinigen, A5 Quote als unsicher
-kennzeichnen, Git-Identität (nur Text), Phase P als abgeschlossen führen, „Zurück auf den Branch“ sichert
-die Änderungen, Protokolle für die Zwischenschritte des Plannings. Die planmäßige Aufgabe darf diese Punkte
-nicht ohne Antwort umsetzen. Zum Betrieb auf dem Host (Teil 3 und 8) hat der Owner entschieden: `main` wird
+**B. Entscheidungen des Owners** (Teil 2), **am 18.10.2026 getroffen**; je Entscheidung ein kleiner PR:
+
+1. **A1 Plan in der Bandbreite:** (b) umstellen. `normalized_history` und `sample_count` zählen den erfassten
+   Review-Wert des laufenden Sprints mit; zusätzlich `sample_count` auf `window` deckeln (Hinweise und
+   Schwelle passen dann zur Rechnung). Der Mindestwert der Simulation (zwei Werte) bleibt. Eigenschaftstest
+   „laufender Sprint mit Velocity, Plan in Spanne“.
+2. **Bestandsteams mit `trend_mode: classic`:** (a) lassen, nur die vorhandene Warnung.
+3. **A5 Altdateien ohne erfasste Fehltage:** (b) Quote als unsicher kennzeichnen, keine Zahlenänderung. Der
+   Hinweis nennt genau die Ursache (welche Sprints nur abgeleitet als bestätigt gelten, ohne erfasste
+   Fehltage) mit Sprint-Namen und was konkret bestätigt bzw. eingetragen werden muss.
+4. **D4b Prognosen:** (B) über `at` vereinigen (nur anhängen) in `yamlmerge`; gleiches `at` und gleicher
+   Inhalt werden zusammengelegt, gleiches `at` mit anderem Inhalt ist ein Konflikt dieses Eintrags; kein
+   neues Speicherformat.
+5. **Git-Identität:** (B) global lassen; nur den Satz in `docs/konzept-kern.md` („globale Git-Konfiguration
+   bleiben außerhalb der App“) präzisieren, das README stimmt.
+6. **Phase P:** (A) als abgeschlossen führen; offener Rest: die Stoppuhr-Abnahme im Browser (Start unter 3 s,
+   Eingaben unter 200 ms). Nur Text (`docs/performance.md`, `docs/konzept-kern.md`).
+7. **„Zurück auf den Branch“:** (A) offene Änderungen vor dem Wechsel auf dem Rettungsbranch sichern.
+8. **Protokolle des Plannings:** (c) siehe A 6.
+9. **B3 Name „Roadmap“:** (2) nur der Anzeigename wird **„Verplanbarer Anteil“** (Gegenpart „Kleinkram“); der
+   YAML-Schlüssel `roadmap_share` bleibt; alle Texte in Oberfläche, Bericht, Kommandozeile, Hilfe und
+   `locale_en.py` anpassen.
+10. **Einrichtungsassistent:** (b) leichte Checkliste, siehe A 4.5.
+11. **D1b Serverstand:** (B) im Hintergrund, alle 30 Minuten wiederholen, siehe A 5.
+12. **Stille Annahmen:** (A) Warnungen in der Prüfung (`validate`) für leere Werte und doppelte Schlüssel mit
+    Datei und Stelle; die Berechnung bleibt unverändert.
+13. **Kleinere Fragen:** `.gitattributes` anbieten (A 7); Fußnote zur Spalte „ohne Wert“ in Kommandozeile und
+    Bericht (erledigt, wenn #95 gemergt ist).
+
+Zum Betrieb auf dem Host (Teil 3 und 8) hat der Owner entschieden: `main` wird
 geschützt (erledigt, Ruleset „Main“); `sudo` und das volle `gh` bleiben bewusst, die Umgebung wird nicht
 eingeschränkt, der Job wird nur gestartet. Offen (nur auf Wunsch): ein beschränktes Token, eine
 Einschränkung der Einheit oder ein eigener Benutzer für die Sitzung (Teil 8, Sicherheit).

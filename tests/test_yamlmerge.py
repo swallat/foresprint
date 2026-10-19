@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from sprintforecast.storage import ConflictError, DataError, Repository, has_conflict_markers
-from sprintforecast.yamlmerge import MISSING, merge3
+from sprintforecast.yamlmerge import MISSING, merge3, same
 
 BASE = {"velocity": 10, "absences": {"anna": 1}, "note": "x", "list": [1, 2]}
 
@@ -17,6 +17,16 @@ def test_different_keys_are_united():
     merged, conflicts = merge3(BASE, ours, theirs)
     assert conflicts == []
     assert merged["velocity"] == 11 and merged["absences"] == {"anna": 1, "ben": 2}
+
+
+def test_nan_values_are_the_same_value():
+    assert same(float("nan"), float("nan"))
+    assert same([1, float("nan")], [1, float("nan")])
+    assert not same(float("nan"), 1.0)
+    merged, conflicts = merge3(
+        {"v": float("nan")}, {"v": float("nan"), "a": 1}, {"v": float("nan"), "b": 2}
+    )
+    assert conflicts == [] and merged["a"] == 1 and merged["b"] == 2
 
 
 def test_same_change_on_both_sides_is_no_conflict():

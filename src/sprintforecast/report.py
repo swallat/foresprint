@@ -335,7 +335,13 @@ def _analysis_section(fc: Forecast) -> list[str]:
 
 def _products_section(fc: Forecast, history: int = 6) -> list[str]:
     """Verteilung je Produkt: laufender und nächster Sprint, Saldo der letzten Sprints."""
-    from sprintforecast.products import MEASURES, balance, distribution, measure_label
+    from sprintforecast.products import (
+        MEASURES,
+        balance,
+        distribution,
+        measure_label,
+        missing_footnote,
+    )
 
     if not fc.data.products:
         return []
@@ -381,4 +387,6 @@ def _products_section(fc: Forecast, history: int = 6) -> list[str]:
             f"| {fmt(b.difference, 2)} |" + (f" {b.missing} |" if with_missing else "")
             for b in rows
         ]
+        if with_missing:
+            lines += ["", f"*{missing_footnote()}*"]
     return lines
