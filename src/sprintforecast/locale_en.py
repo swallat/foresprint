@@ -1750,4 +1750,6 @@ EN: dict[str, str] = {
     "{path}, Zeile {line}: Die Datei ist keine gültige CSV-Datei ({error})": "{path}, line {line}: The file is not valid CSV ({error})",
     "{path}, Zeile {line}: '{value}' in Spalte „{column}“ ist negativ": "{path}, line {line}: '{value}' in column “{column}” is negative",
     '{where}: {name}: {value} bitte in Anführungszeichen setzen (sonst gehen Stellen verloren, z. B. "2026.20")': '{where}: {name}: please put {value} in quotes (otherwise digits are lost, e.g. "2026.20")',
+    "Sprint beendet": "sprint ended",
+    "Vormerkung für den vergangenen Sprint '{id}' (wird ignoriert; der nächste Import verwirft sie)": "Earmark for the past sprint '{id}' (ignored; the next import drops it)",
 }

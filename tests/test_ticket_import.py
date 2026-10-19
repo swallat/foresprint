@@ -508,3 +508,50 @@ def test_unchanged_import_is_detected(data_dir: Path, data: TeamData, fc: Foreca
     moved = plan_import(loaded, fc, [raw("A-1", epic="ABC-100", rank="0|b")], TODAY, "x.csv")
     assert moved.changes == [] and not moved.unchanged(loaded)
     assert not plan_import(loaded, fc, [], TODAY, "x.csv").unchanged(loaded)
+
+
+def test_earmark_of_a_sprint_that_is_over_is_dropped(data: TeamData, fc: Forecast):
+    data.preplan = Preplan(
+        earmarks=[Earmark("A-1", "2026.20"), Earmark("A-2", "2026.21"), Earmark("GONE", "2026.20")]
+    )
+    data.tickets = [Ticket(key="GONE", title="g", estimate=1)]
+    raws = [raw("A-1", epic="ABC-100"), raw("A-2", epic="ABC-100", sprint_name="2026.21")]
+    plan = plan_import(data, fc, raws, TODAY)
+    dropped = plan.of_kind("earmark_dropped")
+    assert [(c.key, c.old, c.note) for c in dropped] == [
+        ("A-1", "2026.20", "ended"),
+        ("GONE", "2026.20", "ended"),
+    ]
+    # Equal to the ticket's current sprint: kept as it is.
+    assert [e.ticket for e in plan.preplan.earmarks] == ["A-2"] and plan.preplan_changed
+    assert [w for w in plan.warnings if "GONE" in w] == []
+
+    # The sprint ends while the ticket stays open: the next import drops the earmark.
+    later = date(2026, 10, 29)
+    data.preplan = plan.preplan
+    plan = plan_import(data, build_forecast(data, later), raws[1:], later)
+    assert plan.tickets[0].in_sprint is None
+    assert [(c.key, c.note) for c in plan.of_kind("earmark_dropped")] == [("A-2", "ended")]
+    assert plan.preplan.earmarks == []
+
+
+def test_refined_unclear_note_follows_the_label_not_the_size(data: TeamData, fc: Forecast):
+    raws = [
+        raw("A-1", epic="ABC-100", status="Ready", estimate=None),  # rule only, no size
+        raw("A-2", epic="ABC-100", labels=["Refined"], estimate=None),
+    ]
+    plan = plan_import(data, fc, raws, TODAY)
+    assert [(c.key, c.note) for c in plan.of_kind("refined_unclear")] == [
+        ("A-1", UNCLEAR_RULE),
+        ("A-2", UNCLEAR_NO_ESTIMATE),
+    ]
+
+
+def test_new_source_name_is_a_change(data_dir: Path, data: TeamData, fc: Forecast):
+    repo = Repository(data_dir)
+    repo.save_projects(TEAM, data.projects)
+    raws = [raw("A-1", epic="ABC-100")]
+    apply_import(repo, TEAM, plan_import(data, fc, raws, TODAY, "old.csv"))
+    loaded = repo.load(TEAM)
+    assert plan_import(loaded, fc, raws, TODAY, "old.csv").unchanged(loaded)
+    assert not plan_import(loaded, fc, raws, TODAY, "new.csv").unchanged(loaded)

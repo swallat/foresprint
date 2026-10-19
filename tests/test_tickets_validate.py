@@ -177,3 +177,22 @@ def test_cli_check_passes_with_the_feature_on(data_dir: Path):
     result = CliRunner().invoke(app, ["--data", str(data_dir), "--as-of", "2026-10-15", "check"])
     assert result.exit_code != 0
     assert "unbekanntes Projekt 'nope'" in result.output
+
+
+def test_earmark_for_a_past_sprint_is_a_warning(data: TeamData):
+    data.tickets = [Ticket(key="A-1", title="x", project="p")]
+    data.projects = [project("p")]
+    data.preplan.earmarks = [Earmark("A-1", "2026.20")]  # ended on 14 October
+    found = [w for w in warnings(data) if w[0] == "preplan.yaml: A-1"]
+    assert found and "vergangenen Sprint '2026.20'" in found[0][1]
+    data.preplan.earmarks = [Earmark("A-1", "2026.21")]  # the current sprint
+    assert not [w for w in warnings(data) if w[0] == "preplan.yaml: A-1"]
+
+
+def test_unreadable_tracker_section_blocks_switching_the_feature_on(data_dir: Path):
+    loaded = Repository(data_dir).load("demo")
+    loaded.team.tracker_raw = {"planning_uses": "bogus"}
+    assert errors(loaded) == []  # feature off: not checked
+    loaded.team.features.tickets = True
+    found = errors(loaded)
+    assert found and found[0][0] == "team.yaml" and "planning_uses" in found[0][1]

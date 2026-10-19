@@ -213,6 +213,10 @@ tickets:
   project: payment-v2
 ```
 
+A ticket carried over from a closed sprint counts as not being in a sprint (`in_sprint` is
+empty, `sprint_name` keeps the name): the `in_sprint` rule source sees only a current or future
+tracker sprint.
+
 ### `preplan.yaml`
 
 Manual earmarks of the PO (ticket → future sprint) and own estimates for tickets without a
@@ -228,7 +232,8 @@ estimates:
 
 An earmark is dropped by the next import when the tracker puts the ticket into a current or
 future sprint, or when the ticket is done; it stays (with a warning) when the ticket is missing
-from the import.
+from the import. An earmark for a sprint that is over is ignored by the distribution, reported by
+the check and dropped by the next import.
 
 ## `sprints/<id>.yaml`
 

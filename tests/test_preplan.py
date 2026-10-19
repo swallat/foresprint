@@ -642,7 +642,7 @@ def test_project_with_target_inside_the_current_sprint():
     assert distribute(data, TODAY).status("now").light == "on_track"
 
 
-@pytest.mark.parametrize("sprint", ["2099.1", "2027.20"])
+@pytest.mark.parametrize("sprint", ["2099.1", "2028.3"])
 def test_dependency_beyond_the_horizon_blocks_its_dependents(sprint: str):
     """An earmark after the horizon (or in an unknown sprint) is later than everything: the
     dependent ticket cannot be placed before it."""
@@ -703,3 +703,41 @@ def test_too_large_only_above_a_positive_budget():
     dist = distribute(data, TODAY)
     assert reason_of(dist, "big") == "too_large" and not dist.no_forecast
     assert reason_of(dist, "ok") == "placed"
+
+
+def test_earmark_of_a_sprint_that_is_over_is_ignored():
+    """An open ticket cannot be put into the past: the normal distribution applies."""
+    data = team_data()
+    data.projects = [project("p", date(2026, 12, 31))]
+    data.tickets = [ticket("A", 5)]
+    data.preplan = Preplan(earmarks=[Earmark(ticket="A", sprint="2026.5")])
+    dist = distribute(data, TODAY)
+    assert (sprint_of(dist, "A"), reason_of(dist, "A")) == (dist.sprints[0], "placed")
+    assert dist.budget(dist.sprints[0], None).placed == 5
+    # An earmark of the current sprint still counts.
+    data.preplan = Preplan(earmarks=[Earmark(ticket="A", sprint="2026.6")])
+    assert reason_of(distribute(data, TODAY), "A") == "earmark"
+
+
+def test_sprint_after_the_horizon_is_compared_with_the_target_date():
+    from sprintforecast.forecast import find_sprint
+
+    data = team_data()
+    data.projects = [project("p")]
+    data.tickets = [ticket("far", 2)]
+    data.preplan = Preplan(earmarks=[Earmark(ticket="far", sprint="2028.3")])
+    sprint = find_sprint(data, "2028.3", 52)
+    assert sprint is not None
+    last_day = sprint.end - timedelta(days=1)
+    assert distribute(data, TODAY).later == {"2028.3": last_day}
+
+    def light(target: date) -> str:
+        data.projects = [project("p", target)]
+        return distribute(data, TODAY).status("p").light
+
+    assert light(last_day - timedelta(days=1)) == "missed"  # the sprint ends after the target
+    assert light(last_day) == "tight"  # it is the target sprint
+    assert light(last_day + timedelta(days=100)) == "on_track"  # the target is later still
+    # A sprint the calendar does not know stays missed.
+    data.preplan = Preplan(earmarks=[Earmark(ticket="far", sprint="2099.1")])
+    assert light(date(2099, 12, 31)) == "missed"

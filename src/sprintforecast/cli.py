@@ -667,6 +667,21 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
         )
     if not Confirm.ask(t("Speichern?"), default=True, console=console):
         raise typer.Exit()
+    after = copy.deepcopy(data)
+    after.team = current
+    earlier = copy.deepcopy(data)
+    earlier.team = before
+    known = {(i.where, i.message) for i in check_team(earlier, c.today)}
+    if blocking := [  # new errors in team.yaml only: old ones must not block the way out
+        i
+        for i in check_team(after, c.today)
+        if i.level is Level.ERROR and i.where == "team.yaml" and (i.where, i.message) not in known
+    ]:
+        # e.g. an unreadable tracker section that was kept while the feature was off
+        for i in blocking:
+            err.print(f"[red]{_plain(i.where)}: {_plain(i.message)}[/red]")
+        err.print(f"[red]{t('Nicht gespeichert – bitte die Fehler beheben.')}[/red]")
+        raise typer.Exit(1)
     path = c.repo.save_team(current)
     _saved(path)
     _maybe_commit(
@@ -1554,6 +1569,8 @@ def _ticket_note(change: Any) -> str:
             return t("nur über refined_also_if, Label fehlt")
         if note == UNCLEAR_NO_ESTIMATE:
             return t("Label ohne Schätzung")
+    if change.kind == "earmark_dropped" and note == "ended":
+        return t("Sprint beendet")
     if change.kind == "missing":
         return t("Vormerkung für Sprint {sprint} bleibt", sprint=_plain(note))
     return _plain(note)
@@ -1594,9 +1611,9 @@ def _ticket_preview(plan: Any, limit: int = 15) -> None:
 
 
 def _ticket_report(
-    data: TeamData, today: date, sprint_count: int, shown: list[Issue] | None = None
+    data: TeamData, today: date, sprint_count: int, printed: list[Issue] | None = None
 ) -> None:
-    """Distribution of the tickets: project traffic light, sprints, refinement list. ``shown``
+    """Distribution of the tickets: project traffic light, sprints, refinement list. ``printed``
     are check results already printed (they are not printed twice)."""
     from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, distribute
 
@@ -1609,7 +1626,7 @@ def _ticket_report(
         )
         return
     for issue in issues_for(data, today, ["projects.yaml", "tickets.yaml", "preplan.yaml"]):
-        if shown and issue in shown:
+        if printed and issue in printed:
             continue
         colour = "red" if issue.level is Level.ERROR else "yellow"
         console.print(
@@ -1720,7 +1737,7 @@ def tickets(
     if datei is not None and commit_ and not uebernehmen:
         err.print(f"[red]{t('--commit braucht --apply.')}[/red]")
         raise typer.Exit(1)
-    shown: list[Issue] = []
+    printed: list[Issue] = []
     if datei is not None:
         from sprintforecast.sources import SourceError
         from sprintforecast.sources.csv import CsvSource
@@ -1743,7 +1760,7 @@ def tickets(
             paths = apply_import(c.repo, team, plan)
             for path in paths:
                 console.print(f"[green]{_plain_end(path)}[/green]")
-            shown = _maybe_commit(
+            printed = _maybe_commit(
                 c, team, paths, t("{team}: Tickets importiert", team=_plain(data.team.name)),
                 None, commit_,
             )  # fmt: skip
@@ -1753,7 +1770,7 @@ def tickets(
     elif uebernehmen or commit_:
         err.print(f"[red]{t('--apply und --commit gehören zu --import.')}[/red]")
         raise typer.Exit(1)
-    _ticket_report(data, c.today, sprints, shown)
+    _ticket_report(data, c.today, sprints, printed)
 
 
 @command(

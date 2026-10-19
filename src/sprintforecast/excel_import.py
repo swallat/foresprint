@@ -779,6 +779,7 @@ def plan_import(repo: Repository, data: TeamData, today: date | None = None) -> 
     if existing is not None:
         # The workbook never contains the tracker section: the existing one is carried over.
         data.team.tracker = copy.deepcopy(existing.team.tracker)
+        data.team.tracker_raw = copy.deepcopy(existing.team.tracker_raw)
     check_valid(data, today or date.today(), existing)
     team_dir = repo.team_dir(data.team.key)
     new_docs = _documents(data)
