@@ -2022,7 +2022,7 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                     data.team.key,
                     released.id,
                     PLANNING,
-                    datetime.now().replace(microsecond=0),
+                    datetime.now,
                     lambda: [repo.save_sprint(data.team.key, released)],
                 )
 
@@ -2193,7 +2193,7 @@ def _planning_writer(
         sprint.id,
         PLANNING,
         protocol,
-        now,
+        datetime.now,
         [sprint],
         lambda: [repo.save_sprint(team.key, sprint)],
     )  # Protokoll: nicht in der Meldung
@@ -2841,7 +2841,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             sprint.id,
             REVIEW,
             protocol,
-            now,
+            datetime.now,
             [sprint],
             lambda: [repo.save_sprint(data.team.key, sprint)],
         )  # Protokoll: nicht in der Meldung
@@ -3417,7 +3417,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 after.id,
                 PREPLANNING,
                 protocol,
-                now,
+                datetime.now,
                 to_save,
                 lambda: save_sprints_together(repo, data.team.key, to_save),
             )  # Protokoll: nicht in der Meldung
@@ -3896,7 +3896,7 @@ MAX_IMPORT_ROWS = 200
 def _excel_import_section(repo: Repository, data: TeamData) -> None:
     """Excel workbook from the Excel export: preview of what would change, written on confirm."""
     from sprintforecast.excel import ExcelUnavailable
-    from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+    from sprintforecast.excel_import import apply_import, plan_import, read_workbook_keyed
 
     key = data.team.key
     counter = f"excel-import-{key}-n"
@@ -3915,14 +3915,28 @@ def _excel_import_section(repo: Repository, data: TeamData) -> None:
     )
     if upload is None:
         return
+    # The upload is parsed once per file, not on every rerun (each click reruns the page).
+    parsed_key = f"excel-import-{key}-parsed"
+    cached = st.session_state.get(parsed_key)
     try:
-        plan = plan_import(repo, read_workbook(upload.getvalue(), key), today())
+        if cached is None or cached[0] != upload.file_id:
+            cached = (upload.file_id, *read_workbook_keyed(upload.getvalue(), key))
+            st.session_state[parsed_key] = cached
+        plan = plan_import(repo, cached[1], today())
     except ExcelUnavailable as e:
         st.warning(str(e))
         return
     except DataError as e:
         st.error(str(e))
         return
+    if cached[2] is None:
+        st.warning(
+            t(
+                "Die Mappe nennt kein Team (ältere Excel-Ausgabe); es wird nicht geprüft, ob sie "
+                "zu {team} gehört.",
+                team=repr(key),
+            )
+        )
     if not plan.changes:
         st.info(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
         return

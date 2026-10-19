@@ -86,6 +86,8 @@ EN: dict[str, str] = {
     "Davon mit Produktionszugriff, erledigt ({unit})": "Of which with production access, done ({unit})",
     "Der Excel-Import braucht openpyxl: sprintforecast mit dem Zusatz [excel] installieren.": "The Excel import needs openpyxl: install sprintforecast with the [excel] extra.",
     "Die Datei ist keine lesbare Excel-Mappe: {error}": "The file is not a readable Excel workbook: {error}",
+    "Die Mappe stammt von Team {found}, importiert wird aber in Team {expected}.": "The workbook is from team {found}, but it is being imported into team {expected}.",
+    "Die Mappe nennt kein Team (ältere Excel-Ausgabe); es wird nicht geprüft, ob sie zu {team} gehört.": "The workbook names no team (older Excel export); it is not checked whether it belongs to {team}.",
     "Die Mappe hat das Format {found}, dieses Programm liest Format {expected}.": "The workbook has format {found}; this program reads format {expected}.",
     "Excel-Datei aus „sprintforecast excel“.": "Excel file from “sprintforecast excel”.",
     "Fester Anteil (0–1)": "Fixed share (0–1)",

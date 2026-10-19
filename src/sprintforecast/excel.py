@@ -30,6 +30,7 @@ NA = "#N/A"
 # die Eingaben nach Spaltenposition, nicht nach Überschrift. Bei Änderungen FORMAT_VERSION erhöhen.
 FORMAT_VERSION = "1"
 FORMAT_PROPERTY = "sprintforecast-format"
+TEAM_PROPERTY = "sprintforecast-team"
 SHEET_SETTINGS = "Einstellungen"
 SHEET_FORECAST = "Forecast"
 SHEET_SPRINTS = "Sprintdaten"
@@ -225,6 +226,7 @@ def build_workbook(fc: Forecast) -> bytes:
     title = wb.add_format({"bold": True, "font_size": 14})
 
     wb.set_custom_property(FORMAT_PROPERTY, FORMAT_VERSION)
+    wb.set_custom_property(TEAM_PROPERTY, team.key)
     ws_set = wb.add_worksheet(SHEET_SETTINGS)
     ws = wb.add_worksheet(SHEET_FORECAST)
     ws_sp = wb.add_worksheet(SHEET_SPRINTS)
