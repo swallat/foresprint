@@ -470,6 +470,12 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
     return result
 
 
+def sprint_sums(dist: Distribution, sprint: str) -> dict[str | None, float]:
+    """Amount per product that the tickets take up in ``sprint`` (tickets of the tracker, earmarks
+    and distributed tickets). Empty when the sprint is not in the horizon."""
+    return {b.product: b.fixed + b.placed for b in dist.budgets if b.sprint == sprint}
+
+
 # --- Traffic light and refinement list ------------------------------------------------------
 
 

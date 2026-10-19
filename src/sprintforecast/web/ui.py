@@ -2446,6 +2446,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             t("Hilfsrechnung für das Planning: wird nicht gespeichert."),
         )
         _capacity_gauge(capacity_usage(r.plan, scratch), unit)
+    if features.tickets and data.tickets:
+        _planning_ticket_hint(data, fc, sprint)
     if features.products and data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
@@ -2502,6 +2504,41 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     elif features.production and _planning_production(repo, data, fc, sprint, entry):
         return
     st.button(t("Weiter"), on_click=_goto, args=(2,), type="primary")
+
+
+def _planning_ticket_hint(data: TeamData, fc: Forecast, sprint: Sprint) -> None:
+    """Suggestion from the ticket pre-planning: what the tickets take up in the sprint, per
+    product. Only shown; the values are not adopted automatically."""
+    from sprintforecast.preplan import distribute, sprint_sums
+
+    dist = distribute(data, fc.today)
+    sums = {k: v for k, v in sprint_sums(dist, sprint.id).items() if v > 0}
+    if not sums:
+        return
+    unit = data.team.unit.value
+    names = {p.id: p.name for p in data.products}
+    total = sum(sums.values())
+    with st.expander(
+        t("Vorschlag aus der Ticket-Vorplanung: {total} {unit}", total=fmt(total), unit=unit),
+        icon=":material/view_kanban:",
+    ):
+        st.caption(
+            t(
+                "Die Tickets, die laut Ticket-Vorplanung in diesem Sprint liegen (Sprint laut "
+                "Ticketsystem, Vormerkungen und Verteilung), summiert je Produkt. Nur ein "
+                "Anhaltspunkt für die Einplanung, nichts wird übernommen."
+            )
+        )
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {t("Produkt"): names.get(k, k) or "–", f"{t('Tickets')} ({unit})": fmt(v)}
+                    for k, v in sums.items()
+                ]
+            ),
+            hide_index=True,
+        )
+        page_link("tickets")
 
 
 def _planning_production(

@@ -1907,4 +1907,7 @@ EN: dict[str, str] = {
     "Jira wird gelesen …": "Reading Jira …",
     "Sprint-ID {id} ({problem}): Der Excel-Import lehnt sie ab; die Datei lässt sich nicht wieder importieren.": "Sprint ID {id} ({problem}): the Excel import refuses it, so the workbook cannot be imported again.",
     "Sprint-ID {id} kommt zweimal vor (Groß- und Kleinschreibung zählt gleich): Der Excel-Import lehnt das ab.": "Sprint ID {id} appears twice (upper and lower case count as the same): the Excel import refuses it.",
+    "Die Tickets, die laut Ticket-Vorplanung in diesem Sprint liegen (Sprint laut Ticketsystem, Vormerkungen und Verteilung), summiert je Produkt. Nur ein Anhaltspunkt für die Einplanung, nichts wird übernommen.": "The tickets that the ticket pre-planning puts into this sprint (sprint according to the ticket system, earmarks and distribution), summed per product. Only a guide for the planning; nothing is adopted.",
+    "Vorschlag aus der Ticket-Vorplanung: {total} {unit}": "Suggestion from the ticket pre-planning: {total} {unit}",
+    "{refine} Tickets sind noch zu refinen, {open} lassen sich nicht verteilen.": "{refine} tickets still have to be refined, {open} cannot be distributed.",
 }
