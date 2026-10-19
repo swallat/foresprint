@@ -417,6 +417,59 @@ def test_at_most_25_files_are_parsed_and_results_stay_small(tmp_path: Path, monk
     assert len(first.values[0].new) <= diff_module._SLIM_ITEMS  # kein ganzer Teilbaum
 
 
+def test_big_files_are_rejected_cheaply_without_parsing(tmp_path: Path, monkeypatch):
+    import time
+
+    root = make_local(tmp_path)
+    data = root / "teams"
+    small = "".join(f"k{i}: 1\n" for i in range(5))
+    for i in range(25):
+        (data / f"g{i:02}.yaml").write_text(small, encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "g")
+    big = "".join(f"k{i}: 1\n" for i in range(100_001))  # rund 1 MB, über 200 000 Knoten
+    assert len(big) < 1024 * 1024
+    for i in range(25):
+        (data / f"g{i:02}.yaml").write_text(big, encoding="utf-8")
+    parsed: list[str] = []
+    real = diff_module._parse
+    monkeypatch.setattr(diff_module, "_parse", lambda text: parsed.append(text) or real(text))
+    started = time.monotonic()
+    result = file_changes(data)
+    assert time.monotonic() - started < 2
+    assert len(result) == 25 and all(not c.values for c in result)
+    assert not result[0].readable  # zu groß; später: Gesamtbudget aufgebraucht (übersprungen)
+    assert len(parsed) <= 25  # nur die kleinen HEAD-Fassungen, höchstens einmal je Datei
+
+
+def test_files_over_one_mebibyte_have_no_value_view(tmp_path: Path):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    (data / "team.yaml").write_text("a: " + "x" * (1024 * 1024) + "\n", encoding="utf-8")
+    (change,) = file_changes(data)
+    assert not change.readable
+
+
+def test_total_size_budget_marks_the_remaining_files_as_skipped(tmp_path: Path, monkeypatch):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    for name in ("a.yaml", "b.yaml", "c.yaml"):
+        (data / name).write_text("a: 1\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "abc")
+    for name in ("a.yaml", "b.yaml", "c.yaml"):
+        (data / name).write_text("a: 2\n", encoding="utf-8")
+    monkeypatch.setattr(diff_module, "_BYTES_BUDGET", 20)  # HEAD und Arbeitsstand: 10 je Datei
+    a, b, c = file_changes(data)
+    assert a.values and b.values and not b.skipped
+    assert c.skipped and c.readable and not c.values
+
+
+def test_null_and_bool_keys_use_the_notation_of_the_file():
+    changes = diff_values({None: 1, True: 1, False: 1}, {None: 2, True: 2, False: 2})
+    assert [c.label for c in changes] == ["null", "true", "false"]
+
+
 def test_signature_stats_only_the_evaluated_files(tmp_path: Path, monkeypatch):
     root = make_local(tmp_path)
     data = root / "teams"
