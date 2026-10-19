@@ -261,7 +261,7 @@ def test_fixed_ticket_cannot_be_moved(data_dir: Path, monkeypatch):
 
 
 def test_add_edit_and_remove_project(data_dir: Path, monkeypatch):
-    enable(data_dir, projects=False)
+    enable(data_dir)
     seed(data_dir)
     at = page(data_dir, monkeypatch)
     for label, value in {
@@ -276,14 +276,14 @@ def test_add_edit_and_remove_project(data_dir: Path, monkeypatch):
     assert not at.exception, at.exception
     assert not at.error, [e.value for e in at.error]
     data = Repository(data_dir).load("demo")
-    assert [p.id for p in data.projects] == ["reporting"]
-    assert editable_columns(data.projects[0].match) == {"epic": ["ABC-300", "ABC-301"]}
-    assert data.projects[0].target == date(2027, 2, 1)
+    assert [p.id for p in data.projects] == ["payment", "migration", "reporting"]
+    assert editable_columns(data.projects[-1].match) == {"epic": ["ABC-300", "ABC-301"]}
+    assert data.projects[-1].target == date(2027, 2, 1)
     at = page(data_dir, monkeypatch)
     at.selectbox(key="tickets-demo-rm").set_value("reporting").run()
     button(at, "Projekt entfernen").click().run()
     assert not at.exception, at.exception
-    assert not Repository(data_dir).load("demo").projects
+    assert [p.id for p in Repository(data_dir).load("demo").projects] == ["payment", "migration"]
 
 
 def test_project_rows_update_everything_but_the_id_and_nested_rules():
@@ -326,3 +326,28 @@ def test_unestimated_ticket_is_listed_on_the_open_points(data_dir: Path, monkeyp
     at = page(data_dir, monkeypatch)
     rows = [df.value for df in at.dataframe if "Grund" in df.value.columns]
     assert rows and "T-6" in set(rows[0]["Ticket"])
+
+
+def test_removing_a_project_releases_its_tickets(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    at = page(data_dir, monkeypatch)
+    at.selectbox(key="tickets-demo-rm").set_value("payment").run()
+    button(at, "Projekt entfernen").click().run()
+    assert not at.exception, at.exception
+    assert not at.error, [e.value for e in at.error]
+    data = Repository(data_dir).load("demo")
+    assert [p.id for p in data.projects] == ["migration"]
+    assert all(tk.project != "payment" for tk in data.tickets)
+    assert data.ticket("T-1").project is None
+    # the released tickets stay visible under "open points"
+    at = page(data_dir, monkeypatch)
+    rows = [df.value for df in at.dataframe if "Grund" in df.value.columns]
+    assert "T-1" in set(rows[0]["Ticket"])
+
+
+def test_unknown_project_counts_as_without_project():
+    sel = Selection(frozenset({"a"}), no_project=True, known=frozenset({"a", "b"}))
+    assert sel.shows("a") and sel.shows(None) and sel.shows("gone")
+    assert not sel.shows("b")
+    assert not Selection(frozenset({"a"}), no_project=False).shows("gone")

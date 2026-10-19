@@ -92,9 +92,14 @@ class Selection:
 
     projects: frozenset[str]
     no_project: bool = True
+    # All project ids; a ticket of an id outside it counts as "without project" (as in the
+    # distribution). None = the chosen projects are all there are.
+    known: frozenset[str] | None = None
 
     def shows(self, project: str | None) -> bool:
-        return self.no_project if project is None else project in self.projects
+        if project is None or project not in (self.known or self.projects):
+            return self.no_project
+        return project in self.projects
 
 
 def project_options(data: TeamData, products: set[str] | None) -> list[Project]:
@@ -305,11 +310,11 @@ def apply_project_rows(projects: list[Project], rows: list[tuple[Any, ...]]) -> 
         result.append(
             replace(
                 project,
-                name=str(name).strip(),
-                product=str(product or "").strip() or None,
+                name=project.name if _missing(name) else str(name).strip(),
+                product=None if _missing(product) else str(product).strip() or None,
                 target=_date(target),
                 priority=0 if _missing(priority) else int(priority),
-                budget_basis=BudgetBasis(basis) if basis else None,
+                budget_basis=None if _missing(basis) or not basis else BudgetBasis(basis),
                 match=match,
             )
         )
@@ -422,7 +427,7 @@ def _filter(data: TeamData, key: str) -> Selection:
         key=f"tickets-{key}-projects-{'-'.join(sorted(names))}",
     )
     without = st.checkbox(t("Tickets ohne Projekt zeigen"), value=True, key=f"tickets-{key}-none")
-    return Selection(frozenset(shown), without)
+    return Selection(frozenset(shown), without, frozenset(p.id for p in data.projects))
 
 
 def _overview(data: TeamData, fc: Forecast, dist: Distribution, sel: Selection) -> None:
@@ -698,7 +703,7 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         try:
             raws = CsvSource(path, data.team.tracker.fields).fetch()
         except SourceError as e:
-            st.error(str(e))
+            st.error(str(e).replace(str(path), name))  # not the temporary path
             return
     _import_preview(repo, data, fc, raws, name, counter)
 
@@ -875,7 +880,23 @@ def _remove_project_form(repo: Repository, data: TeamData) -> None:
         if st.button(t("Projekt entfernen"), key=f"tickets-{key}-rm-go"):
             after = copy.deepcopy(data)
             after.projects = [p for p in after.projects if p.id != chosen]
-            _save_projects(repo, data, after)
+            for tk in after.tickets:  # tickets.yaml must not name a project that is gone
+                if tk.project == chosen:
+                    tk.project = None
+                tk.project_candidates = [c for c in tk.project_candidates if c != chosen]
+            key_ = data.team.key
+            if save(
+                after,
+                ["projects.yaml", "tickets.yaml"],
+                lambda: [
+                    repo.save_projects(key_, after.projects),
+                    repo.save_tickets(
+                        key_, after.tickets, data.tickets_imported, data.tickets_source
+                    ),
+                ],
+                flash=True,
+            ):
+                st.rerun()
 
 
 def _estimates_editor(repo: Repository, data: TeamData) -> None:
