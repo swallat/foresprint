@@ -615,12 +615,31 @@ def test_new_error_kinds_have_their_own_titles():
 
 def test_classify_is_unchanged_for_the_old_patterns():
     for message, kind in [
-        ("fatal: Could not read from remote repository.", "offline"),
+        ("fatal: Could not read from remote repository.", "error"),
         ("fatal: repository not found, Repository not found", "not_found"),
         ("remote: Not Found", "not_found"),
         ("fatal: unable to access 'x': Could not resolve host", "offline"),
     ]:
         assert gitmod.classify(message).kind == kind
+
+
+def test_bare_could_not_read_is_an_error_with_the_probe_hint():
+    error = gitmod.classify("fatal: Could not read from remote repository.")
+    assert error.kind == "error" and "Berechtigung" in error.hint
+    assert (
+        gitmod.classify("ssh: connect to host x\nCould not read from remote repository.").kind
+        == "offline"
+    )
+
+
+def test_could_not_read_does_not_hide_more_specific_kinds():
+    tail = "\nfatal: Could not read from remote repository."
+    denied = "ERROR: Permission to o/r.git denied to u." + tail
+    assert gitmod.classify(denied).kind == "denied"
+    assert gitmod.classify("remote: pre-receive hook declined" + tail).kind == "denied"
+    assert gitmod.classify(" ! [rejected] main -> main (fetch first)" + tail).kind == "rejected"
+    bare = gitmod.classify("fatal: Could not read from remote repository.")
+    assert bare.kind == "error" and bare.hint == gitmod._refused_hint()
 
 
 def test_not_found_hint_says_where_to_change_the_address():
