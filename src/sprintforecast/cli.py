@@ -116,8 +116,8 @@ app = typer.Typer(
     help=t("Velocity- und Kapazitäts-Forecast für Scrum-Teams. Einstieg: `sprintforecast help`."),
     rich_markup_mode="rich",
 )
-console = Console()
-err = Console(stderr=True)
+console = Console(emoji=False)  # Namen wie „:smile:“ bleiben Text
+err = Console(stderr=True, emoji=False)
 
 
 # Wie rich.markup.escape: ein Tag ist „[“ + Buchstabe, „#“, „/“ oder „@“ … „]“; Backslashes davor
@@ -480,6 +480,43 @@ def _maybe_commit(
     return issues
 
 
+def _new_errors(c: Context, before: TeamData, after: TeamData, where: str) -> list[Issue]:
+    """Fehler im neuen Stand (nur in den Dateien, deren Name mit ``where`` beginnt), die im
+    alten noch nicht standen."""
+    known = {(i.where, i.message) for i in check_team(before, c.today)}
+    return [
+        i
+        for i in check_team(after, c.today)
+        if i.level is Level.ERROR
+        and i.where.startswith(where)
+        and (i.where, i.message) not in known
+    ]
+
+
+def _print_errors(errors: list[Issue]) -> None:
+    for i in errors:
+        err.print(f"[red]{_plain(i.where)}: {_plain_end(i.message)}[/red]")
+
+
+def _refuse_invalid(c: Context, before: TeamData, after: TeamData, where: str) -> None:
+    """Wie die Weboberfläche: Fehler im neuen Stand (nur in den betroffenen Dateien, ``where``
+    ist der Anfang des Dateinamens) verhindern das Schreiben, statt nachträglich gemeldet zu
+    werden. Fehler, die schon vorher bestanden, blockieren die Änderung nicht."""
+    if errors := _new_errors(c, before, after, where):
+        _print_errors(errors)
+        err.print(f"[red]{t('Nicht gespeichert – bitte die Fehler beheben.')}[/red]")
+        raise typer.Exit(1)
+
+
+def _with_sprint(data: TeamData, sprint: Sprint) -> TeamData:
+    """Kopie von ``data`` mit dem (neuen oder geänderten) Sprint."""
+    after = copy.copy(data)
+    after.sprints = sorted(
+        [x for x in data.sprints if x.id != sprint.id] + [sprint], key=lambda x: x.start
+    )
+    return after
+
+
 def _saved(path: Path) -> None:
     console.print(f"[green]{t('Gespeichert: {path}', path=_plain_end(path))}[/green]")
 
@@ -701,21 +738,11 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
         )
     if not Confirm.ask(t("Speichern?"), default=True, console=console):
         raise typer.Exit()
-    after = copy.deepcopy(data)
+    after = copy.copy(data)
     after.team = current
-    earlier = copy.deepcopy(data)
-    earlier.team = before
-    known = {(i.where, i.message) for i in check_team(earlier, c.today)}
-    if blocking := [  # new errors in team.yaml only: old ones must not block the way out
-        i
-        for i in check_team(after, c.today)
-        if i.level is Level.ERROR and i.where == "team.yaml" and (i.where, i.message) not in known
-    ]:
-        # e.g. an unreadable tracker section that was kept while the feature was off
-        for i in blocking:
-            err.print(f"[red]{_plain(i.where)}: {_plain(i.message)}[/red]")
-        err.print(f"[red]{t('Nicht gespeichert – bitte die Fehler beheben.')}[/red]")
-        raise typer.Exit(1)
+    old = copy.copy(data)
+    old.team = before  # ``current`` wurde an Ort und Stelle geändert, ``before`` ist die Kopie
+    _refuse_invalid(c, old, after, "team.yaml")
     path = c.repo.save_team(current)
     _saved(path)
     _maybe_commit(
@@ -783,6 +810,7 @@ def personen(
     c = _ctx(ctx)
     data = _load(c, team)
     people = data.people
+    before = copy.deepcopy(data)  # die Liste wird unten an Ort und Stelle geändert
     changed = False
     while True:
         console.print(_people_table(people, c.today, ehemalige))
@@ -821,7 +849,13 @@ def personen(
             fte = _ask_number(
                 t("FTE-Anteil im Team (1 = Vollzeit, 0.5 = halbe Stelle)"), 1, allow_empty=False
             )
-            people.append(Person(pid, name, region, [Membership(start=start, fte=fte or 1.0)]))
+            person = Person(pid, name, region, [Membership(start=start, fte=fte or 1.0)])
+            tentative = copy.copy(data)
+            tentative.people = [*people, person]
+            if errors := _new_errors(c, data, tentative, "people.yaml"):
+                _print_errors(errors)  # sofort melden, statt erst beim Speichern zu verwerfen
+                continue
+            people.append(person)
         else:
             candidates = [p for p in people if p.is_current(c.today)]
             if not candidates:
@@ -846,6 +880,9 @@ def personen(
                 active.end = when
         changed = True
     if changed:
+        after = copy.copy(data)
+        after.people = people
+        _refuse_invalid(c, before, after, "people.yaml")
         path = c.repo.save_people(team, people)
         _saved(path)
         _maybe_commit(
@@ -922,6 +959,7 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
 
 def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
     """Fragt die Fehltage je aktiver Person ab und speichert den Sprint."""
+    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
     days = team_workdays(data.team, s.start, s.end)
     console.print(_sprint_panel(data, s))
     _explain("absences")
@@ -944,6 +982,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
         console=console,
     ):
         s.capacity = None
+    _refuse_invalid(c, before, _with_sprint(data, s), "sprints/")
     return c.repo.save_sprint(data.team.key, s)
 
 
@@ -1048,6 +1087,7 @@ def planning(
     data = _load(c, team)
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "planning")
+    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
     paths: list[Path] = []
     console.rule(t("Planning {id} – Schritt 1: Fehltage", id=_plain(s.id)))
     if data.people and Confirm.ask(
@@ -1114,6 +1154,7 @@ def planning(
             console=console,
         )
     freeze_plan(s, fc.entry(s.id), c.today, refreeze=refreeze)
+    _refuse_invalid(c, before, _with_sprint(data, s), "sprints/")
     path = c.repo.save_sprint(team, s)
     _saved(path)
     fc = build_forecast(_load(c, team), c.today)
@@ -1154,6 +1195,7 @@ def review(
     data = _load(c, team)
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "review")
+    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
     unit = data.team.unit.value
     console.print(
         Panel(
@@ -1187,6 +1229,7 @@ def review(
         and Confirm.ask(t("Erledigt je Produkt erfassen?"), default=True, console=console)
     ):
         _ask_product_values(data, fc, s, "done")
+    _refuse_invalid(c, before, _with_sprint(data, s), "sprints/")
     path = c.repo.save_sprint(team, s)
     _saved(path)
     _maybe_commit(
@@ -1205,7 +1248,7 @@ def forecast(
     team: TeamArg,
     verlauf: Annotated[
         int,
-        typer.Option("--history", help=t("Anzahl vergangener Sprints in der Anzeige.")),
+        typer.Option("--history", min=0, help=t("Anzahl vergangener Sprints in der Anzeige.")),
     ] = 5,
     rechenweg: Annotated[
         str | None,
@@ -1652,10 +1695,11 @@ def _ticket_report(
     from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, distribute
 
     if not data.tickets:
+        how = "--fetch" if data.team.tracker.kind == "jira" else "--import DATEI"
         console.print(
             t(
-                "Keine Tickets vorhanden – zuerst importieren: sprintforecast tickets "
-                "TEAM --import DATEI"
+                "Keine Tickets vorhanden – zuerst importieren: sprintforecast tickets TEAM {how}",
+                how=how,
             )
         )
         return
@@ -1743,10 +1787,175 @@ def _ticket_report(
         console.print(f"[red]{t('Abhängigkeiten im Kreis')}: {_plain(' → '.join(cycle))}[/red]")
 
 
+def _given(ctx: typer.Context, name: str) -> bool:
+    """Was this option given on the command line (rather than left at its default)?"""
+    source = ctx.get_parameter_source(name)
+    return source is not None and source.name == "COMMANDLINE"
+
+
+def _source_failed(error: Exception) -> typer.Exit:
+    """Prints a source error (no markup interpretation) and returns the exit to raise."""
+    err.print(f"[red]{_plain_end(error)}[/red]")
+    return typer.Exit(1)
+
+
+def _close_source(source: Any) -> None:
+    close = getattr(source, "close", None)
+    if close is not None:
+        close()
+
+
+def _jira_settings(data: TeamData, option: str) -> Any:
+    """The tracker settings of a team that uses Jira; ends the command otherwise."""
+    tracker = data.team.tracker
+    if tracker.kind != "jira":
+        err.print(
+            "[red]"
+            + t(
+                "{option} braucht tracker.kind: jira in team.yaml (aktuell: {kind}).",
+                option=option,
+                kind=_plain(tracker.kind),
+            )
+            + "[/red]"
+        )
+        raise typer.Exit(1)
+    return tracker
+
+
+def _ticket_set_token(data: TeamData) -> None:
+    """Asks for the token (hidden input) and stores it in the keychain."""
+    from sprintforecast.sources import SourceError
+    from sprintforecast.sources.jira import (
+        TOKEN_ENV,
+        keychain_user,
+        keyring_available,
+        keyring_missing_error,
+        store_token,
+    )
+
+    tracker = _jira_settings(data, "--set-token")
+    if not tracker.base_url:
+        err.print(f"[red]{t('tracker.base_url fehlt (team.yaml)')}[/red]")
+        raise typer.Exit(1)
+    try:
+        user = keychain_user(tracker.base_url)  # an unusable address fails before the prompt
+    except SourceError as e:
+        raise _source_failed(e) from e
+    if not keyring_available():
+        raise _source_failed(keyring_missing_error())
+    if os.environ.get(TOKEN_ENV, "").strip():
+        console.print(
+            "[yellow]"
+            + t(
+                "Hinweis: {variable} ist gesetzt und hat Vorrang vor dem Schlüsselbund.",
+                variable=TOKEN_ENV,
+            )
+            + "[/yellow]"
+        )
+    token = typer.prompt(t("Jira-Token (die Eingabe bleibt unsichtbar)"), hide_input=True)
+    try:
+        store_token(tracker.base_url, token.strip())
+    except SourceError as e:
+        raise _source_failed(e) from e
+    console.print(
+        "[green]"
+        + t(
+            "Token für {host} im Schlüsselbund gespeichert. Prüfen mit: {command}",
+            host=_plain(user),
+            command=_plain_end(f"sprintforecast tickets {data.team.key} --test-connection"),
+        )
+        + "[/green]"
+    )
+
+
+def _ticket_test_connection(data: TeamData) -> None:
+    """Connects to Jira, shows the account and the resolved fields; writes nothing."""
+    from sprintforecast import sources
+    from sprintforecast.sources import SourceError
+
+    tracker = _jira_settings(data, "--test-connection")
+    source = None
+    try:
+        source = sources.open_source(tracker)
+        name = source.test_connection()  # type: ignore[attr-defined]
+        resolved = source.resolve_fields()  # type: ignore[attr-defined]
+    except SourceError as e:
+        raise _source_failed(e) from e
+    finally:
+        _close_source(source)
+    console.print(
+        "[green]"
+        + t(
+            "Verbunden mit {host} als {name}.",
+            host=_plain(getattr(source, "host", "")),
+            name=_plain(name),
+        )
+        + "[/green]"
+    )
+    for setting, field_id in (
+        ("estimate", resolved.estimate),
+        ("remaining", resolved.remaining),
+        ("epic", resolved.epic),
+    ):
+        label = getattr(tracker.fields, setting)
+        if label:
+            console.print(
+                t("Feld {setting}: „{name}“ ist {id}", setting=setting, name=_plain(label),
+                  id=_plain(field_id))
+            )  # fmt: skip
+    console.print(
+        t(
+            "Sprint-Feld: {sprint} · Rang-Feld: {rank}",
+            sprint=_plain(", ".join(resolved.sprint) or "–"),
+            rank=_plain(", ".join(resolved.rank) or "–"),
+        )
+    )
+
+
+def _ticket_read(data: TeamData, datei: Path | None, fetch: bool) -> tuple[list[Any], str]:
+    """Reads the tickets from the CSV file or the tracker: ``(raw tickets, source name)``.
+    Ends the command on a source error."""
+    from sprintforecast import sources
+    from sprintforecast.sources import SourceError
+
+    tracker = data.team.tracker
+    if fetch:
+        _jira_settings(data, "--fetch")
+    source = None
+    try:
+        source = sources.open_source(tracker, datei)
+        raws = source.fetch()
+    except SourceError as e:
+        raise _source_failed(e) from e
+    finally:
+        _close_source(source)
+    name = str(source.name)  # type: ignore[union-attr]
+    if fetch:
+        console.print(
+            t(
+                "Jira {host}: {count} Tickets gelesen",
+                host=_plain(getattr(source, "host", "")),
+                count=len(raws),
+            )
+        )
+        if not raws and data.tickets:
+            # "No result" never counts as "no work": do not wipe the last import.
+            err.print(
+                "[red]"
+                + t(
+                    "Die Abfrage lieferte keine Tickets – nichts geschrieben. JQL "
+                    "(tracker.query) und Berechtigungen des Tokens prüfen."
+                )
+                + "[/red]"
+            )
+            raise typer.Exit(1)
+    return raws, name
+
+
 @command(
     "tickets",
-    "Ticket-Vorplanung: Ticket-CSV importieren, Tickets auf künftige Sprints verteilen, "
-    "Projektampel und Refinement-Liste.",
+    "Ticket-Vorplanung: Tickets aus Jira oder einer CSV-Datei einlesen, auf künftige Sprints "
+    "verteilen, Projektampel und Refinement-Liste.",
 )
 def tickets(
     ctx: typer.Context,
@@ -1754,9 +1963,32 @@ def tickets(
     datei: Annotated[
         Path | None,
         typer.Option(
-            "--import", metavar="FILE", help=t("CSV-Export des Ticketsystems einlesen (Vorschau).")
+            "--import",
+            metavar="FILE",
+            help=t("CSV-Export des Ticketsystems einlesen (Vorschau); auch bei Jira möglich."),
         ),
     ] = None,
+    fetch: Annotated[
+        bool,
+        typer.Option(
+            "--fetch",
+            help=t("Tickets aus Jira lesen (tracker.kind: jira, nur lesend; Vorschau)."),
+        ),
+    ] = False,
+    test_connection: Annotated[
+        bool,
+        typer.Option(
+            "--test-connection",
+            help=t("Verbindung zu Jira prüfen und das Konto des Tokens zeigen (schreibt nichts)."),
+        ),
+    ] = False,
+    set_token: Annotated[
+        bool,
+        typer.Option(
+            "--set-token",
+            help=t("Jira-Token (verdeckte Eingabe) im Schlüsselbund ablegen."),
+        ),
+    ] = False,
     uebernehmen: Annotated[
         bool, typer.Option("--apply", help=t("Import schreiben (sonst nur Vorschau)."))
     ] = False,
@@ -1768,22 +2000,58 @@ def tickets(
     c = _ctx(ctx)
     data = _load(c, team)
     _require_tickets(data, team)
-    if datei is not None and commit_ and not uebernehmen:
+    actions = [
+        name
+        for name, given in (
+            ("--import", datei is not None),
+            ("--fetch", fetch),
+            ("--test-connection", test_connection),
+            ("--set-token", set_token),
+        )
+        if given
+    ]
+    if len(actions) > 1:
+        err.print(
+            "[red]" + t("{options} schließen einander aus.", options=" / ".join(actions)) + "[/red]"
+        )
+        raise typer.Exit(1)
+    if test_connection or set_token:
+        refused = [
+            name
+            for name, given in (
+                ("--apply", uebernehmen),
+                ("--commit", commit_),
+                ("--sprints", _given(ctx, "sprints")),
+            )
+            if given
+        ]
+        if refused:
+            err.print(
+                "[red]"
+                + t(
+                    "{options} gehören nicht zu --test-connection und --set-token.",
+                    options=" / ".join(refused),
+                )
+                + "[/red]"
+            )
+            raise typer.Exit(1)
+    if set_token:
+        _ticket_set_token(data)
+        return
+    if test_connection:
+        _ticket_test_connection(data)
+        return
+    importing = datei is not None or fetch
+    if importing and commit_ and not uebernehmen:
         err.print(f"[red]{t('--commit braucht --apply.')}[/red]")
         raise typer.Exit(1)
     printed: list[Issue] = []
-    if datei is not None:
-        from sprintforecast.sources import SourceError
-        from sprintforecast.sources.csv import CsvSource
+    if importing:
         from sprintforecast.ticket_import import apply_import, plan_import
 
-        try:
-            raws = CsvSource(datei, data.team.tracker.fields).fetch()
-        except SourceError as e:
-            err.print(f"[red]{_plain_end(e)}[/red]")
-            raise typer.Exit(1) from e
+        raws, source_name = _ticket_read(data, datei, fetch)
         fc = build_forecast(data, c.today)
-        plan = plan_import(data, fc, raws, c.today, source=datei.name)
+        plan = plan_import(data, fc, raws, c.today, source=source_name)
         _ticket_preview(plan)
         if plan.unchanged(data):
             # Nothing to write: no time-stamp-only rewrite of tickets.yaml.
@@ -1802,7 +2070,7 @@ def tickets(
         if not uebernehmen:
             return
     elif uebernehmen or commit_:
-        err.print(f"[red]{t('--apply und --commit gehören zu --import.')}[/red]")
+        err.print(f"[red]{t('--apply und --commit gehören zu --import und --fetch.')}[/red]")
         raise typer.Exit(1)
     _ticket_report(data, c.today, sprints, printed)
 
@@ -1845,7 +2113,7 @@ def pruefen(
 def web(
     ctx: typer.Context,
     port: Annotated[
-        int, typer.Option(help=t("Port; ist er belegt, wird ein freier gewählt."))
+        int, typer.Option(min=1, max=65535, help=t("Port; ist er belegt, wird ein freier gewählt."))
     ] = 8501,
     browser: Annotated[
         bool,
@@ -1913,12 +2181,35 @@ def web(
     ]  # fmt: skip
     console.print(t("Weboberfläche: [bold]{url}[/bold] (Beenden mit Strg+C)", url=url))
     popen: dict = popen_options()
+    log_handle = None
     if log := os.environ.get(LOG_ENV):
         # Doppelklick-Start: kein Konsolenfenster, Ausgaben des Servers ins Protokoll
-        popen["stdout"] = popen["stderr"] = open(log, "a", encoding="utf-8")  # noqa: SIM115
+        try:
+            log_handle = open(log, "a", encoding="utf-8")  # noqa: SIM115
+        except OSError as e:
+            # Der Start darf nicht am Protokoll scheitern; ohne Konsole gehen die Ausgaben
+            # dann verloren, aber die Oberfläche läuft.
+            err.print(
+                "[yellow]"
+                + escape(
+                    t(
+                        "Protokolldatei nicht beschreibbar ({path}): {error}",
+                        path=log,
+                        error=e.strerror or e,
+                    )
+                )
+                + "[/yellow]"
+            )
+            popen["stdout"] = popen["stderr"] = subprocess.DEVNULL
+        else:
+            popen["stdout"] = popen["stderr"] = log_handle
         if sys.platform == "win32":
             popen["creationflags"] = subprocess.CREATE_NO_WINDOW
-    server = subprocess.Popen(cmd_line, env=env, **popen)
+    try:
+        server = subprocess.Popen(cmd_line, env=env, **popen)
+    finally:
+        if log_handle is not None:
+            log_handle.close()  # das Kind hat seine eigene Kopie des Handles
     adopt(server)  # alles, was der Server später startet, endet mit ihm
     try:
         if app_mode:
@@ -1996,7 +2287,7 @@ def sprints(
     team: TeamArg,
     anzahl: Annotated[
         int,
-        typer.Option("--count", help=t("Anzahl Sprints ab dem laufenden.")),
+        typer.Option("--count", min=1, max=60, help=t("Anzahl Sprints ab dem laufenden.")),
     ] = 6,
     anlegen: Annotated[
         bool,
@@ -2145,7 +2436,7 @@ def produkte(
         bool,
         typer.Option("--preplanning", help=t("PO-Vorplanung je Produkt erfassen.")),
     ] = False,
-    verlauf: Annotated[int, typer.Option("--history", help=t("Sprints für den Saldo."))] = 6,
+    verlauf: Annotated[int, typer.Option("--history", min=1, help=t("Sprints für den Saldo."))] = 6,
     commit_: CommitOpt = False,
 ) -> None:
     c = _ctx(ctx)
@@ -2209,6 +2500,7 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
     data = _load(c, team)
     _require_products(data, team)
     products = data.products
+    before = copy.deepcopy(data)  # die Liste wird unten an Ort und Stelle geändert
     with_po = data.team.features.po
     changed = False
     while True:
@@ -2253,7 +2545,13 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
             )
             start = _ask_date(t("Betreut ab"), c.today)
             pid = new_person_id(name, {p.id for p in products}, fallback="produkt")
-            products.append(Product(id=pid, name=name, po=po, start=start))
+            product = Product(id=pid, name=name, po=po, start=start)
+            tentative = copy.copy(data)
+            tentative.products = [*products, product]
+            if errors := _new_errors(c, data, tentative, "products.yaml"):
+                _print_errors(errors)
+                continue
+            products.append(product)
         else:
             current = [p for p in products if p.end is None or p.end >= c.today]
             if not current:
@@ -2279,6 +2577,9 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
                 product.end = _ask_date(t("Letzter betreuter Tag"), c.today)
         changed = True
     if changed:
+        after = copy.copy(data)
+        after.products = products
+        _refuse_invalid(c, before, after, "products.yaml")
         path = c.repo.save_products(team, products)
         _saved(path)
         _maybe_commit(
@@ -2415,7 +2716,21 @@ def aktualisieren(
         except KeyError:
             err.print(f"[red]{t('--auto: on, notice oder off')}[/red]")
             raise typer.Exit(1) from None
-        updater.update_state(mode=mode.value)
+        try:
+            updater.update_state(strict=True, mode=mode.value)
+        except OSError as e:
+            err.print(
+                "[red]"
+                + escape(
+                    t(
+                        "Die Einstellungen konnten nicht gespeichert werden ({path}): {error}",
+                        path=updater.state_file(),
+                        error=e.strerror or e,
+                    )
+                )
+                + "[/red]"
+            )
+            raise typer.Exit(1) from e
         console.print(t("Automatische Aktualisierung: [bold]{mode}[/bold]", mode=word))
         if os.environ.get(updater.MODE_ENV):
             console.print(

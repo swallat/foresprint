@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Any
+from urllib.parse import urlsplit
 
 
 class Unit(StrEnum):
@@ -450,6 +451,29 @@ class TrackerFields:
     epic: str | None = None
 
 
+def base_url_problem(url: str) -> str | None:
+    """Why ``tracker.base_url`` is unusable, or None: ``invalid`` (no http/https address, not
+    parseable), ``credentials`` (user or password in the address) or ``extra`` (query or
+    fragment). Never returns or raises with the address itself."""
+    try:
+        parts = urlsplit(url.strip())
+        host = parts.hostname
+        parts.port  # noqa: B018 - raises ValueError for a bad port
+    except ValueError:
+        return "invalid"
+    if parts.scheme not in ("http", "https") or not host:
+        return "invalid"
+    if "@" in parts.netloc:
+        return "credentials"
+    if parts.query or parts.fragment or "?" in url or "#" in url:
+        return "extra"
+    return None
+
+
+# Kinds of ticket sources (``tracker.kind``).
+TRACKER_KINDS: tuple[str, ...] = ("csv", "jira")
+
+
 @dataclass
 class TrackerSettings:
     """Section ``tracker`` of team.yaml (spec section 6.1)."""
@@ -473,6 +497,8 @@ class TrackerSettings:
     write_labels: bool = False
     # Sprint names of the tracker → sprint ids of the tool, when they differ.
     sprint_names: dict[str, str] = field(default_factory=dict)
+    # Jira: name of the issue link type whose inward side means "is blocked by".
+    link_type: str = "Blocks"
 
 
 @dataclass

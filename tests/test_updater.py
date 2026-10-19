@@ -209,3 +209,29 @@ def test_forced_check_bypasses_http_cache(env: Path, monkeypatch: pytest.MonkeyP
     assert "?nocache=" not in calls[0]
     updater.check(force=True)
     assert "pyproject.toml?nocache=" in calls[1]
+
+
+def test_auto_setting_that_cannot_be_written_is_an_error(
+    env: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from typer.testing import CliRunner
+
+    from sprintforecast.cli import app
+
+    (env.parent / "config").write_text("a file, not a folder")  # config dir cannot be created
+    result = CliRunner().invoke(app, ["update", "--auto", "off"])
+    assert result.exit_code == 1
+    assert "konnten nicht gespeichert werden" in result.output
+    assert "Automatische Aktualisierung" not in result.output
+    assert updater.save_state({"mode": "aus"}) is False  # the quiet path stays quiet
+
+
+@pytest.mark.parametrize("junk", [3, 3.5, True, ["0.9"], {"v": 1}])
+def test_wrongly_typed_state_values_do_not_break_the_start(env: Path, junk):
+    updater.update_state(
+        latest=junk, seen_version=junk, attempted=junk, attempted_at=junk, mode=junk
+    )
+    assert updater.startup_notices() == []
+    assert updater.status_line().startswith("Version")
+    assert updater.mode() is updater.Mode.ON
+    assert not updater.is_newer(junk, "0.1.0")
