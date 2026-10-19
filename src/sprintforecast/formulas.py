@@ -251,7 +251,7 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     )
 
 
-def plain_explanation(fc: Forecast, e: TimelineEntry) -> str:
+def plain_explanation(fc: Forecast, e: TimelineEntry, code: bool = True) -> str:
     """Kurze Erklärung in Alltagssprache, wie die Prognose eines Sprints entsteht – mit den
     wichtigsten Zahlen und Quellen. Die ausführlichen Formeln liefert :func:`steps`."""
     team = fc.data.team
@@ -297,7 +297,9 @@ def plain_explanation(fc: Forecast, e: TimelineEntry) -> str:
         ),
     ]
     if r.plan_capacity_source is CapacitySource.ESTIMATED and (
-        unsure := absence_derived_note(fc.absences, detailed=True)
+        unsure := absence_derived_note(
+            fc.absences, detailed=True, code=code, window=team.capacity.absence_history
+        )
     ):
         parts.append(unsure)
     if r.trend_fallback:

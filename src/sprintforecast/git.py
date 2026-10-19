@@ -69,16 +69,22 @@ _BIDI_CONTROLS = frozenset(
 _BLANKED_CATEGORIES = frozenset({"Cc", "Zl", "Zp"})
 
 
+def blank_controls(text: str) -> str:
+    """Steuerzeichen, Zeilenumbrüche und Zeichen der Schreibrichtung werden zu Leerzeichen
+    (Text von außen für Ausgaben ohne Markdown, z. B. die Kommandozeile)."""
+    return "".join(
+        " " if c in _BIDI_CONTROLS or unicodedata.category(c) in _BLANKED_CATEGORIES else c
+        for c in text
+    )
+
+
 def md_code(text: str) -> str:
     """Text als Code-Span für Markdown. Namen und Adressen, die von außen kommen (Server,
     Konfiguration), gehören nie als Fließtext in die Oberfläche: Dort würden Auszeichnungen
     wirken und Webadressen wie ``www.beispiel.de/x`` zu Links. Backticks im Text lassen den
     Span nicht enden; Steuerzeichen, Zeilenumbrüche und Zeichen der Schreibrichtung werden zu
     Leerzeichen. Die übrigen unsichtbaren Zeichen (Emoji-Folgen, persische Namen) bleiben."""
-    text = "".join(
-        " " if c in _BIDI_CONTROLS or unicodedata.category(c) in _BLANKED_CATEGORIES else c
-        for c in text
-    )
+    text = blank_controls(text)
     if not text:
         return ""
     longest = max((len(run) for run in re.findall(r"`+", text)), default=0)

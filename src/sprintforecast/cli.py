@@ -1224,7 +1224,7 @@ def forecast(
             )
             + "[/yellow]"
         )
-    for note in reliability_notes(fc):
+    for note in reliability_notes(fc, code=False):
         console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
     if rechenweg is not None:
         from sprintforecast.formulas import steps
@@ -1236,7 +1236,7 @@ def forecast(
             raise typer.Exit(1)
         from sprintforecast.formulas import plain_explanation
 
-        console.print(escape(plain_explanation(fc, entry)).replace("**", ""))
+        console.print(escape(plain_explanation(fc, entry, code=False)).replace("**", ""))
         table = Table(title=t("Rechenweg Sprint {id}", id=_plain(entry.sprint.id)), show_lines=True)
         for col in ("Kennzahl", "Formel", "Rechnung"):
             table.add_column(t(col))
