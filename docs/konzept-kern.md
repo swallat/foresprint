@@ -1,6 +1,7 @@
 # Konzept: Verbesserungen am Kern (ohne Ticketsystem)
 
-Status (Stand 18. Oktober 2026, nach #91): Phase P, K1 bis K3 sowie A14, A15, B8 und B9 sind
+Status (Stand 19. Oktober 2026, nach #95): Phase P (bis auf die Stoppuhr-Abnahme im Browser auf
+dem Rechner des Eigentümers), K1 bis K3 sowie A14, A15, B8 und B9 sind
 umgesetzt, im Einzelnen siehe die Spalte „Stand“ der Tabellen und den Abschnitt G. Offen sind
 B10 (nur in der Weboberfläche), der Einrichtungs-Assistent (C) und die Reste, die in den
 Tabellen stehen. Außerhalb dieser Phasen kamen seitdem hinzu: Sprint-Protokolle je Termin mit
@@ -26,14 +27,14 @@ davon unberührt.
 |---|---|---|---|---|
 | A1 | Standard-Trend (`classic`/`linear`) extrapoliert Rauschen, kann sinken oder negativ werden, und liegt ab dem dritten Zukunftssprint unter der eigenen Bandbreite. | kritisch | `flat` (oder Median) als Standard; `classic`/`linear` nur ausdrücklich gewählt, mit Warnhinweis; negative Ergebnisse abfangen | umgesetzt. Rest: Teams mit gespeichertem `classic` bleiben darauf (nur Warnhinweis); im laufenden Sprint rechnen Plan und Spanne mit unterschiedlichen Sprints (ändert Zahlen, Entscheidung offen) |
 | A2 | Ohne bestätigte Fehltage und ohne `absence_history` wird die **Kapazität** per Trend fortgeschrieben, obwohl Personen, Feiertage und Sprintlänge bekannt sind. | kritisch | Kapazität immer aus Kalender und Personen; nur die unbekannten Fehltage schätzen (`absence_history` mit sinnvollem Standard); Trend nur für Teams ohne Personenliste | umgesetzt (Rechnung; die drei Hilfetexte Tooltip „Kapazität“, Hinweis bei `kapazitaet` und „Fehltage zurücksetzen“ nennen seit #67 Kalender und Personen). Rest: die Tabelle von `kapazitaet` zeigt bei Sprints ohne Datei Fehltage 0 ohne den geschätzten Abzug (Anzeige, Entscheidung offen) |
-| A3 | Der Punktwert steht ohne Unsicherheit auf der Hauptseite; „85 % Sicherheit“ ist bei wenigen Werten zu stark; Monte Carlo läuft schon mit zwei Messwerten. | kritisch | Bandbreite und Stichprobengröße direkt an der Forecast-Kachel; Warnung bei wenig Daten; Formulierung „modellabhängige Häufigkeit“ | teilweise: Forecast-Seite umgesetzt; CLI (`forecast`) und Bericht warnen bei wenig Daten (K1) und zeigen die Spanne im Abschnitt „Ergänzend“ bzw. in `analyse`, aber nicht in der Forecast-Tabelle; die Kacheln auf Planning, Fehltage und Vorplanung ohne Spanne und Warnung; `analyse --rest` ohne Warnung bei wenig Daten |
+| A3 | Der Punktwert steht ohne Unsicherheit auf der Hauptseite; „85 % Sicherheit“ ist bei wenigen Werten zu stark; Monte Carlo läuft schon mit zwei Messwerten. | kritisch | Bandbreite und Stichprobengröße direkt an der Forecast-Kachel; Warnung bei wenig Daten; Formulierung „modellabhängige Häufigkeit“ | weitgehend umgesetzt: Forecast-Seite; seit #66 zeigen auch Planning (Schritt 2), die Zeile „In den nächsten Sprint passen …“ auf der Fehltage-Seite und die Kacheln der Vorplanung die Spanne mit Stichprobengröße (bei weniger als fünf Sprints mit dem Zusatz „wenig Daten, grober Hinweis“), die Kommandozeile (`forecast`) und der Bericht eine Spalte „Spanne“ für künftige Sprints; CLI und Bericht warnen zudem bei wenig Daten (K1); seit #77 warnt `analyse --rest` bei weniger als fünf Stichproben. Rest: die Formulierung „modellabhängige Häufigkeit“ und die Frage, ob der Mindestwert der Simulation (rechnet ab zwei Werten) angehoben wird, sind nicht geprüft bzw. offen; die Warnung von `analyse --rest` zählt die auf `window` gedeckelte Stichprobe (bei `window` unter 5 immer, Entscheidung offen) |
 | A4 | Bei genau `window` Sprints Historie liefern `classic`/`linear` keinen Forecast; `rolling_average` zählt Positionen statt Werte, Lücken werden still übergangen. | wichtig | Fallback auf `flat` mit Hinweis „Historie dünn“; einheitliche Regel für Lücken, sichtbar gemacht | umgesetzt. Rest: der Lücken-Hinweis erscheint nur in der Weboberfläche |
 | A5 | Die Fehltage-Historie überspringt bestätigte Null-Sprints und verzerrt so die Quote; sie nutzt nicht dieselbe Definition wie `absences_known`. | wichtig | dieselbe Definition verwenden; die tatsächlich verwendeten Sprints anzeigen | umgesetzt. Rest: ältere Sprintdateien mit Velocity, aber ohne erfasste Fehltage, zählen als „niemand fehlte“ (Entscheidung offen) |
 | A6 | Teilzeit und Arbeitswoche: Wer eine 80-%-Stelle mit vier vollen Tagen als `workweek=mon,tue,wed,thu` und `fte=0.8` einträgt, wird doppelt abgezogen (8 × 0,8). | wichtig | Bedeutung von FTE festlegen und mit Beispielen erklären (FTE = Anteil an den Arbeitstagen der Person oder des Teams) | teilweise: Bedeutung festgelegt und in der Hilfe erklärt; die Spaltenhilfe der FTE und der CLI-Text widersprechen noch |
 | A7 | Bei FTE-Wechseln im Sprint werden Fehltage mit der mittleren FTE gewichtet (Näherung). | wichtig | Näherung sichtbar machen | umgesetzt |
 | A8 | Overhead: feste Overhead-Tage ersetzen den Prozentabzug (README beschreibt sie als zusätzlich); bei erwarteten Fehltagen wird die Reihenfolge anders gerechnet. | wichtig | eine gemeinsame Berechnung für bestätigte und erwartete Fehltage; README angleichen | umgesetzt |
 | A9 | Die Puffer-Empfehlung vergleicht unterschiedliche Bezugsgrößen (Scope Creep bezogen auf Eingeplantes, Kleinkram bezogen auf den Gesamtforecast). | wichtig | gleiche Bezugsgröße verwenden | umgesetzt |
-| A10 | Produktanteile: zwei feste Anteile von je 60 % werden nicht abgelehnt; fehlende Erledigt-Werte zählen im Saldo wie 0. | wichtig | Summenprüfung; „fehlt“ von „0“ unterscheiden | teilweise: Weboberfläche umgesetzt; CLI und Bericht zeigen fehlende Erledigt-Werte noch als 0 |
+| A10 | Produktanteile: zwei feste Anteile von je 60 % werden nicht abgelehnt; fehlende Erledigt-Werte zählen im Saldo wie 0. | wichtig | Summenprüfung; „fehlt“ von „0“ unterscheiden | umgesetzt: Weboberfläche; seit #78 blenden Kommandozeile (`produkte`) und Bericht Produkte ohne Wert im Zeitraum aus und zeigen bei fehlenden Werten die Spalte „ohne Wert“, seit #95 mit Fußnote. Rest: Ein ausgeblendetes Produkt (kein Sprint mit Wert) trägt seinen Hinweis nicht mehr, wie in der Weboberfläche |
 | A11 | Produktionszugriff: „niemand markiert“ ist `None`, nicht 0; die Übersetzung in Liefermenge ist grob. | wichtig | unbekannte Konfiguration und fehlende Berechtigte unterscheiden; als Engpasshinweis kennzeichnen | umgesetzt |
 | A12 | Die Aussage „Fokusfaktor ist zwischen Teams vergleichbar“ ist bei Story Points falsch. | wichtig | Aussage entfernen | umgesetzt |
 | A13 | Die Referenzkapazität kürzt sich in der Rechnung heraus und ist nur ein Darstellungsmaßstab; Fokusfaktor und normierte Velocity sind dieselbe Größe unter zwei Namen. | wichtig | Referenzkapazität entfernen oder erklären; eine normierte Größe | teilweise: Hilfe erklärt die Referenzkapazität; README sagt noch nicht, dass sie sich herauskürzt; zwei Namen für dieselbe Größe bleiben |
@@ -66,7 +67,7 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
 | B2 | „Weiter ohne Eintrag“ im Planning setzt Fehltage stillschweigend auf „niemand fehlt“; unbekannt und 0 sind zu leicht verwechselbar. | kritisch | expliziter Zustand je Sprint (unbekannt / voraussichtlich / bestätigt) statt der Dateiheuristik; ausdrückliche Bestätigung „niemand fehlt“ | teilweise: Zustand je Sprint umgesetzt; das Review friert bei „unbekannt“ die volle Besetzung ohne Hinweis ein |
 | B3 | „Forecast IST“ ist die Zusage zu Sprintbeginn, kein Ergebnis. „Roadmap“ bezeichnet einen reservierten Anteil. „erwartete“ und „voraussichtliche“ Fehltage sind zwei Mechanismen mit fast gleichem Namen. | wichtig | z. B. „Zusage“; „Roadmap“-Anteil umbenennen; die beiden Fehltage-Begriffe unterscheidbar machen | teilweise: „Forecast IST“ heißt „Commitment“; „Roadmap“ ist nicht umbenannt (Name offen) |
 | B4 | 15 bis 16 Seiten mit konkurrierenden Wegen (Produktwerte auf „Produktverteilung“ und auf allen Boards; Sprintauswahl uneinheitlich). | wichtig | Einstieg über Aufgaben („Sprint vorbereiten“, „Planning“, „Sprint abschließen“); Produktverteilung als Auswertung; Stammdaten unter „Team verwalten“ | umgesetzt (#43) |
-| B5 | Unsicherheit steht abseits der Entscheidung (Seite „Analyse“). | wichtig | Spanne, Stichprobengröße und Kapazitätsquelle direkt an der Kachel | teilweise: Forecast-Seite umgesetzt; Planning, Fehltage, Vorplanung und CLI ohne Spanne |
+| B5 | Unsicherheit steht abseits der Entscheidung (Seite „Analyse“). | wichtig | Spanne, Stichprobengröße und Kapazitätsquelle direkt an der Kachel | umgesetzt (Spanne und Stichprobengröße): Forecast-Seite; seit #66 auch Planning, Fehltage, Vorplanung, Kommandozeile und Bericht. Rest: die Kapazitätsquelle steht nur dort an der Kachel, wo sie schon vorher stand bzw. in #66 ergänzt wurde (Planning, Vorplanung); für Fehltage, Kommandozeile und Bericht nicht geprüft |
 | B6 | Die Formelansicht zeigt nicht die eingesetzten Zahlen; die Formeln der Trend-Modi sind für Nichtfachleute schwer lesbar. | wichtig | kurze Erklärung in Alltagssprache, ausklappbar die eingesetzten Werte und Quellen | teilweise: Erklärung in Alltagssprache da; die eingesetzten Zahlen fehlen im Popover |
 | B7 | Der Einstieg verlangt ein Git-Repository und 6+ Reviews, bevor ein Forecast erscheint. | wichtig | Forecast schon ab 2 bis 3 Sprints (`flat`) mit Hinweis „Historie dünn“ | umgesetzt |
 | B8 | Das Was-wäre-wenn-Panel gibt es zweimal mit leicht anderem Text; die Prognosen-Historie ist ein Audit-Log mit 8 Spalten. | nice-to-have | eine Stelle; letzte Prognose und Abweichung im Review genügen | umgesetzt (#51) |
@@ -103,9 +104,11 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
   4. Zusammenführen auf Schlüsselebene (verschiedene Schlüssel derselben Datei werden
      vereinigt); nur echte Wertkonflikte gehen an den Menschen, in der App mit „meine/andere
      Änderung“, danach läuft die Datenprüfung.
-  5. Dateien stabil formatiert und sortiert schreiben, damit Konflikte selten werden. Rest:
-     Die Vorlage für neue Daten-Repos ignoriert Zwischendateien (`*.tmp`) nur bei neu angelegten
-     Repositories und legt keine `.gitattributes` mit LF-Zeilenenden an.
+  5. Dateien stabil formatiert und sortiert schreiben, damit Konflikte selten werden. Seit #79
+     enthalten die Vorlage und neu angelegte Daten-Repositories `*.tmp` in der `.gitignore` und
+     eine `.gitattributes` im Datenordner (`*.yaml`, `*.yml`, `*.md` mit `text eol=lf`). Rest:
+     Bestehende Repositories und Klone ohne die Datei bleiben ungeschützt (die App legt sie dort
+     bewusst nicht an; ob sie es anbieten soll, ist offen).
   6. Die Git-Anmeldung eigens einrichten (Credential Manager, SSH-Rückfragen, Dateisperren,
      Zeilenenden unter Windows). Teilweise: die App erkennt fehlende Anmeldung und erklärt den
      nächsten Schritt; eine eigene Anmeldung in der App gibt es bewusst nicht.
@@ -136,7 +139,8 @@ Stand je Vorgang:
   (umgesetzt). Dazu gehört der **Server (Remote)**: Adresse eintragen oder ändern, validieren und
   die Verbindung prüfen (`git ls-remote`), statt im Terminal `git remote` aufzurufen
   (umgesetzt). Zugangsdaten gehören nie in die Adresse und werden nicht gespeichert oder
-  angezeigt; SSH-Schlüssel und globale Git-Konfiguration bleiben außerhalb der App.
+  angezeigt. SSH-Schlüssel erzeugt die App nicht; die globale Git-Konfiguration ändert sie nur
+  auf Klick, und nur für Name und E-Mail der Commits (wenn Git keinen Namen kennt).
 - **Anmelde-Hilfe:** fehlende Authentifizierung erkennen und verständlich erklären, was zu tun
   ist (Zugangstoken oder SSH-Schlüssel hinterlegen, Credential Manager). Teilweise: beim Klonen
   und Anlegen eines Datenordners fehlt der Anmelde-Hinweis noch.
@@ -196,6 +200,15 @@ Maßnahmen (in dieser Reihenfolge):
 Ziele: Start unter 3 Sekunden, normale Eingaben unter 200 ms. Vorher und nachher wird mit
 Stoppuhr auf einem normalen Arbeitsrechner gemessen; das Messprotokoll gehört zum PR.
 
+Stand: Alle sechs Maßnahmen sind umgesetzt (Einzelheiten und Messprotokolle für Cloud und
+Windows in [performance.md](performance.md)). Im Python-Prozess liegen Seitenaufbau und erneute
+Läufe auf dem Rechner des Eigentümers bei 16 bis 47 ms. Offen ist nur die Stoppuhr-Abnahme im
+Browser auf dem Rechner des Eigentümers (Start unter 3 s, normale Eingaben unter 200 ms); sie
+wird auf Wunsch nachgeholt. Abweichungen von der Planung: Der Forecast wird nicht
+zwischengespeichert (die Berechnung braucht 0,3 ms, eine Kopie wäre langsamer), und als
+Fragmente laufen nur der Rechenweg und das Was-wäre-wenn-Panel der Forecast-Seite; bei den
+übrigen Bereichen würde ein Formular die Live-Vorschau entfernen.
+
 ## F. Technologie
 
 Bewertung durch zwei unabhängige Prüfungen:
@@ -231,7 +244,7 @@ der Kern vollständig umgesetzt und gut getestet ist.
 
 | Phase | Inhalt | Abnahmekriterium | Stand |
 |---|---|---|---|
-| **P Performance** | Abschnitt E | Messprotokoll vorher/nachher; Ziele aus E erreicht oder Rest benannt | umgesetzt (#34); Rest: die Stoppuhr-Messung im Browser steht aus (`docs/performance.md`), auf weitere Messungen wird laut Entscheidung in F verzichtet |
+| **P Performance** | Abschnitt E | Messprotokoll vorher/nachher; Ziele aus E erreicht oder Rest benannt | abgeschlossen (#34); Rest: nur die Stoppuhr-Abnahme im Browser auf dem Rechner des Eigentümers (`docs/performance.md`), auf Wunsch nachgeholt; auf weitere Messungen wird laut Entscheidung in F verzichtet |
 | **K1 Berechnung und Zustände** | A1 bis A6, A8, A10, A16, B1, B2 samt fachlichen Tests (Eigenschaftstests, Backtest) | Alle fachlichen Tests grün; der Plan liegt in der Bandbreite; unbekannte und bestätigte Fehltage sind unterscheidbar | gemergt (#35); Reste siehe Tabellen A und B |
 | **Gate Technologie** | Abschnitt F | Messung auf einem Arbeitsrechner; Entscheidung bleiben/migrieren dokumentiert | entschieden: Streamlit bleibt, der Spike entfällt (Abschnitt F) |
 | **K2 Begriffe und Anzeige** | B3 bis B7, A7, A9, A11 bis A13 | Eine Person ohne Einweisung trägt Fehltage ein und sieht, wie viel in den nächsten Sprint passt | gemergt (#36); Reste siehe Tabellen A und B |
