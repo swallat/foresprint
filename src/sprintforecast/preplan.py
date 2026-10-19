@@ -22,6 +22,7 @@ from datetime import date, timedelta
 from sprintforecast.analysis import HorizonEntry, horizon_entries, horizon_forecast
 from sprintforecast.capacity import production_share
 from sprintforecast.engine import round_down
+from sprintforecast.forecast import lookup_sprint
 from sprintforecast.model import (
     BudgetBasis,
     EstimateSource,
@@ -49,6 +50,7 @@ REASONS: dict[str, str] = {
     "earmark": "Vormerkung",
     "unestimated": "ungeschätzt",
     "too_large": "zu groß, bitte teilen",
+    "no_budget": "kein Budget",
     "no_project": "ohne Projekt",
     "cycle": "Abhängigkeiten im Kreis",
     "blocked": "Abhängigkeit nicht verteilbar",
@@ -117,7 +119,7 @@ class Placement:
     # None = not distributable (see ``reason``).
     sprint: str | None
     reason: str
-    # Number the distribution calculated with (after rough factor); None = unestimated.
+    # Number the distribution calculated with; None = unestimated.
     size: float | None = None
     source: EstimateSource = EstimateSource.NONE
     project: str | None = None
@@ -133,8 +135,8 @@ class ProjectStatus:
 
     project: str
     light: str
-    # Last sprint ending on or before the target date; None without target date or when it
-    # lies outside the horizon.
+    # Last sprint ending on or before the target date (the current sprint when the target lies
+    # inside it); None without target date or when it lies outside the horizon.
     target_sprint: str | None
     # Sprint of the project's last ticket; None without placed tickets.
     last_sprint: str | None
@@ -169,6 +171,11 @@ class Distribution:
     unclear: list[str] = field(default_factory=list)
     # Dependency cycles (keys in dependency order), each once.
     cycles: list[list[str]] = field(default_factory=list)
+    # Sprints of fixed tickets or earmarks that lie after the horizon or are unknown (later
+    # than everything the distribution knows).
+    later: set[str] = field(default_factory=set)
+    # True when no sprint of the horizon has any budget at all (no past sprints, no forecast).
+    no_forecast: bool = False
 
     def placement(self, key: str) -> Placement | None:
         return next((p for p in self.placements if p.ticket == key), None)
@@ -305,19 +312,16 @@ def order_tickets(data: TeamData) -> tuple[list[Ticket], list[Ticket]]:
 
 def ticket_size(ticket: Ticket, data: TeamData) -> tuple[float | None, EstimateSource]:
     """The number the distribution calculates with and where it comes from: the ticket's
-    size by ``tracker.planning_uses``, a rough value multiplied by ``rough_factor``; a manual
-    estimate of the PO replaces a missing size."""
-    tracker = data.team.tracker
-    size = ticket.size(tracker.planning_uses)
-    source = ticket.estimate_source
+    size by ``tracker.planning_uses``; a manual estimate of the PO replaces a missing size.
+    Rough values count as they are: ``tracker.rough_factor`` belongs to the conservative
+    variant (step 4), not to this distribution."""
+    size = ticket.size(data.team.tracker.planning_uses)
     if size is None:
         manual = data.preplan.estimate_for(ticket.key)
         if manual is not None and manual.estimate is not None:
             return manual.estimate, EstimateSource.MANUAL
         return None, EstimateSource.NONE
-    if source is EstimateSource.ROUGH:
-        size *= tracker.rough_factor
-    return size, source
+    return size, ticket.estimate_source
 
 
 # --- Distribution ---------------------------------------------------------------------------
@@ -334,6 +338,29 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
     products = {p.id: p.product for p in data.projects}
     basis_of = {p.id: p.budget_basis or data.team.tracker.budget_basis for p in data.projects}
     gap = data.team.tracker.dependency_gap
+    current = fc.current.sprint if fc.current is not None else None
+    known_sprints: dict[str, Sprint | None] = {}
+
+    def sprint_of_id(sprint_id: str) -> Sprint | None:
+        if sprint_id not in known_sprints:
+            known_sprints[sprint_id] = lookup_sprint(fc, sprint_id)
+        return known_sprints[sprint_id]
+
+    def ended(sprint_id: str) -> bool:
+        """A sprint that is already over (the tracker keeps closed sprints on carried-over
+        tickets, and tickets.yaml outlives the import by days)."""
+        sprint = sprint_of_id(sprint_id)
+        return sprint is not None and sprint.end <= today
+
+    def position(sprint_id: str) -> int:
+        """Position of a sprint relative to the horizon: its index; -1 = before it (current
+        or past sprint); ``len(sprints)`` = after it or unknown."""
+        if sprint_id in index:
+            return index[sprint_id]
+        sprint = sprint_of_id(sprint_id)
+        if sprint is not None and (not sprints or sprint.start < sprints[0].start):
+            return -1
+        return len(sprints)
 
     def product_of(project_id: str | None) -> str | None:
         """Product whose budget a ticket of the project consumes. Without the products
@@ -352,8 +379,10 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
     # Fixed points: real sprint according to the tracker, then earmarks of the PO.
     for tk in open_tickets:
         earmark = data.preplan.earmark_for(tk.key)
-        if tk.in_sprint is not None:
-            sprint, reason = tk.in_sprint, "fixed_sprint"
+        # A sprint of the tracker that is over does not count: earmark or distribution apply.
+        tracker_sprint = tk.in_sprint if tk.in_sprint and not ended(tk.in_sprint) else None
+        if tracker_sprint is not None:
+            sprint, reason = tracker_sprint, "fixed_sprint"
         elif earmark is not None:
             sprint, reason = earmark.sprint, "earmark"
         else:
@@ -365,12 +394,11 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
             cell.fixed += size
 
     def sprint_index(key: str) -> int | None:
-        """Position of a placed ticket in the horizon; -1 = before it (current or past
-        sprint); None = not placed."""
+        """Position of a placed ticket (see ``position``); None = not placed."""
         p = placements.get(key)
         if p is None or p.sprint is None:
             return None
-        return index.get(p.sprint, -1)
+        return position(p.sprint)
 
     for tk in ordered:
         if tk.key in placements:
@@ -397,8 +425,11 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
             continue
         product, basis = products[tk.project], basis_of[tk.project]
         cells = [c for s in sprints if (c := by_cell.get((s.id, product))) is not None]
-        if not cells or size > max(c.limit(basis) for c in cells) + _EPS:
-            placement.reason = "too_large"
+        best = max((c.limit(basis) for c in cells), default=0.0)
+        if size > best + _EPS:
+            # No budget at all (no forecast, or no budget cell of the product) is not the
+            # ticket's fault; only a ticket above every positive budget is too large.
+            placement.reason = "no_budget" if best <= _EPS else "too_large"
             continue
         for s in sprints[first:]:
             cell = by_cell.get((s.id, product))
@@ -421,10 +452,17 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
         budgets=budget_list,
         placements=[placements[tk.key] for tk in data.tickets if tk.key in placements],
         cycles=find_cycles(open_tickets),
+        later={
+            p.sprint
+            for p in placements.values()
+            if p.sprint is not None and position(p.sprint) >= len(sprints)
+        },
+        no_forecast=not any(b.plan > _EPS for b in budget_list),
     )
     length = data.team.sprint.length_days
     result.projects = [
-        traffic_light(p, result, sprints, length) for p in project_order(data.projects)
+        traffic_light(p, result, sprints, length, current, today)
+        for p in project_order(data.projects)
     ]
     result.refinement = refinement_list(data, result, sprints)
     result.unclear = [tk.key for tk in open_tickets if tk.refined_unclear]
@@ -434,36 +472,61 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
 # --- Traffic light and refinement list ------------------------------------------------------
 
 
-def target_sprint(target: date | None, sprints: list[Sprint], length_days: int) -> int | None:
-    """Index of the last horizon sprint whose last day lies on or before ``target`` (the
-    sprint end is exclusive); None without target date or when no horizon sprint ends by
-    then. ``len(sprints)`` = the target sprint lies beyond the horizon (the sprint after the
-    last one would end by the target as well)."""
-    if not sprints or target is None:
+def target_sprint(
+    target: date | None,
+    sprints: list[Sprint],
+    length_days: int,
+    current: Sprint | None = None,
+    today: date | None = None,
+) -> int | None:
+    """Index of the last sprint of the timeline whose last day lies on or before ``target``
+    (the sprint end is exclusive); None without target date or when no sprint ends by then.
+    The timeline is the current sprint (when given) followed by the horizon sprints. A target
+    inside the current sprint (and not yet over) is the current sprint itself. ``len(timeline)``
+    = the target sprint lies beyond the horizon (the sprint after the last one would end by the
+    target as well)."""
+    timeline = ([current] if current is not None else []) + sprints
+    if not timeline or target is None:
         return None
-    if sprints[-1].end + timedelta(days=length_days - 1) <= target:
-        return len(sprints)
-    ending = [i for i, s in enumerate(sprints) if s.end - timedelta(days=1) <= target]
+    if (
+        current is not None
+        and current.start <= target < current.end - timedelta(days=1)
+        and (today is None or target >= today)
+    ):
+        return 0
+    if timeline[-1].end + timedelta(days=length_days - 1) <= target:
+        return len(timeline)
+    ending = [i for i, s in enumerate(timeline) if s.end - timedelta(days=1) <= target]
     return ending[-1] if ending else None
 
 
 def traffic_light(
-    project: Project, dist: Distribution, sprints: list[Sprint], length_days: int = 14
+    project: Project,
+    dist: Distribution,
+    sprints: list[Sprint],
+    length_days: int = 14,
+    current: Sprint | None = None,
+    today: date | None = None,
 ) -> ProjectStatus:
     """Traffic light of a project from the placements of its tickets (spec section 5.3).
     ``length_days`` (sprint length of the team) tells whether a target date lies beyond the
-    horizon."""
+    horizon; ``current`` is the running sprint: work placed in it counts as on time for a
+    target date inside it. Tickets fixed or earmarked after the horizon (``dist.later``) are
+    later than any target."""
     own = [p for p in dist.placements if p.project == project.id]
-    index = {s.id: i for i, s in enumerate(sprints)}
-    target = target_sprint(project.target, sprints, length_days)
-    target_id = sprints[target].id if target is not None and target < len(sprints) else None
+    timeline = ([current] if current is not None else []) + sprints
+    index = {s.id: i for i, s in enumerate(timeline)}
+    target = target_sprint(project.target, sprints, length_days, current, today)
+    target_id = timeline[target].id if target is not None and target < len(timeline) else None
     undistributed = [p for p in own if not p.distributable]
     last: int | None = None
     last_id = None
     for p in own:
         if p.sprint is None:
             continue
-        i = index.get(p.sprint, -1)
+        # Not in the timeline: a sprint after the horizon (or unknown) is later than
+        # everything, anything else lies in the past.
+        i = index.get(p.sprint, len(timeline) + 1 if p.sprint in dist.later else -1)
         if last is None or i > last:
             last, last_id = i, p.sprint
     if not own:
@@ -473,7 +536,7 @@ def traffic_light(
     elif project.target is None:
         light = "on_track"
     elif target is None:
-        light = "missed"  # the target date lies before the first future sprint
+        light = "missed"  # the target date lies before the first sprint of the timeline
     elif last is None or last < target:
         light = "on_track"
     elif last == target:

@@ -26,7 +26,14 @@ from sprintforecast.calendar import (
 from sprintforecast.git import blank_controls
 from sprintforecast.i18n import t
 from sprintforecast.model import RULE_SOURCES, Rule, Ticket
-from sprintforecast.storage import TEAM_FILES, DataError, Repository, TeamData, compose_yaml
+from sprintforecast.storage import (
+    TEAM_FILES,
+    TICKET_FILES,
+    DataError,
+    Repository,
+    TeamData,
+    compose_yaml,
+)
 
 
 class Level(StrEnum):
@@ -875,10 +882,22 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
     return issues
 
 
-def check_team_files(base: Path) -> list[Issue]:
+def _tickets_enabled(base: Path) -> bool:
+    """``features.tickets`` according to team.yaml in ``base`` (unreadable = off)."""
+    try:
+        raw = yaml.safe_load((base / "team.yaml").read_text(encoding="utf-8"))
+        return bool(raw["features"]["tickets"])
+    except OSError, UnicodeDecodeError, KeyError, TypeError, yaml.YAMLError:
+        return False  # the loader reports problems with the file
+
+
+def check_team_files(base: Path, tickets: bool | None = None) -> list[Issue]:
     """Stille Annahmen in den Dateien eines Teams (Ordner ``base``): doppelte Schlüssel und
-    leere Zahlenfelder, je als Hinweis mit Dateiname, Zeile und Schlüsselpfad."""
-    files = [base / name for name in TEAM_FILES]
+    leere Zahlenfelder, je als Hinweis mit Dateiname, Zeile und Schlüsselpfad. Die Dateien der
+    Ticket-Vorplanung nur mit ``features.tickets`` (``tickets``; ohne Angabe nach team.yaml)."""
+    if tickets is None:
+        tickets = _tickets_enabled(base)
+    files = [base / name for name in TEAM_FILES if tickets or name not in TICKET_FILES]
     files += sorted((base / "sprints").glob("*.yaml"))
     issues: list[Issue] = []
     for path in files:
@@ -896,7 +915,9 @@ def check_all(repo: Repository, today: date) -> dict[str, list[Issue]]:
     for key in repo.teams():
         try:
             data = repo.load(key)
-            result[key] = check_team(data, today) + check_team_files(repo.team_dir(key))
+            result[key] = check_team(data, today) + check_team_files(
+                repo.team_dir(key), data.team.features.tickets
+            )
         except DataError as e:
             result[key] = [Issue(Level.ERROR, key, str(e))]
     return result

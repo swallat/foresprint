@@ -160,3 +160,47 @@ def test_number_parsing_and_delimiter_sniffing():
         ";"
     )
     assert sniff_delimiter('"a, b";c;d') == ";"
+
+
+# --- Review fixes ----------------------------------------------------------------------------
+
+HEADER = "Summary,Issue key,Custom field (Story Points)\n"
+
+
+def write(tmp_path: Path, text: str) -> Path:
+    path = tmp_path / "export.csv"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_unterminated_quote_is_an_error_with_the_line(tmp_path: Path):
+    path = write(tmp_path, HEADER + "ok,A-1,1\n" + '"never closed,A-2,2\nmore,A-3,3\n')
+    with pytest.raises(SourceError, match="Zeile 3"):
+        CsvSource(path, FIELDS).fetch()
+
+
+def test_text_after_a_closing_quote_is_an_error(tmp_path: Path):
+    path = write(tmp_path, HEADER + '"quoted" word,A-1,1\n')
+    with pytest.raises(SourceError, match="Zeile 2"):
+        CsvSource(path, FIELDS).fetch()
+
+
+@pytest.mark.parametrize("value", ["-1", "-0.5", "-2,5"])
+def test_negative_numbers_are_refused_with_the_line(tmp_path: Path, value: str):
+    path = write(tmp_path, HEADER + 'ok,A-1,1\n"neg",A-2,"' + value + '"\n')
+    with pytest.raises(SourceError, match=r"Zeile 3.*negativ"):
+        CsvSource(path, FIELDS).fetch()
+
+
+def test_negative_remaining_is_refused_too(tmp_path: Path):
+    path = write(
+        tmp_path,
+        "Summary,Issue key,Custom field (Story Points),Custom field (Remaining)\nx,A-1,1,-3\n",
+    )
+    with pytest.raises(SourceError, match="negativ"):
+        CsvSource(path, FIELDS).fetch()
+    ok = write(
+        tmp_path,
+        "Summary,Issue key,Custom field (Story Points),Custom field (Remaining)\nx,A-1,0,0\n",
+    )
+    assert [(tk.estimate, tk.remaining) for tk in CsvSource(ok, FIELDS).fetch()] == [(0, 0)]

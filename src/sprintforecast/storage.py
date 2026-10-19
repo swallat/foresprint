@@ -570,7 +570,17 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
         if "features" in d
         else Features(explicit=False)  # ältere Datei: Repository.load leitet die Werte ab
     )
-    tracker = _tracker_from(_mapping(d.get("tracker"), where, "tracker"), where)
+    tracker = TrackerSettings()
+    tracker_raw: Any = None
+    if features.tickets:
+        tracker = _tracker_from(_mapping(d.get("tracker"), where, "tracker"), where)
+    elif d.get("tracker"):
+        # Feature off: the section must not break the rest of the app. A valid one is still
+        # read (switching the feature on again keeps it); an invalid one is kept as it is.
+        try:
+            tracker = _tracker_from(_mapping(d.get("tracker"), where, "tracker"), where)
+        except DataError, ValueError, TypeError:
+            tracker_raw = d["tracker"]
     try:
         return Team(
             key=key,
@@ -593,6 +603,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             ),
             features=features,
             tracker=tracker,
+            tracker_raw=tracker_raw,
             capacity=CapacitySettings(
                 overhead_share=_finite(capacity.get("overhead_share", 0.0)),
                 overhead_days=_finite(capacity.get("overhead_days", 0.0)),
@@ -651,7 +662,9 @@ def team_to_dict(team: Team) -> dict[str, Any]:
     }
     # The tracker section is kept while the feature is on and whenever it holds settings, so
     # switching the feature off and on again does not lose the configuration.
-    if team.features.tickets or team.tracker != TrackerSettings():
+    if team.tracker_raw is not None:  # unreadable while the feature was off: written as it was
+        out["tracker"] = team.tracker_raw
+    elif team.features.tickets or team.tracker != TrackerSettings():
         out["tracker"] = _tracker_to(team.tracker)
     return out
 
@@ -659,12 +672,28 @@ def team_to_dict(team: Team) -> dict[str, Any]:
 # --- Tracker (ticket pre-planning, section ``tracker`` in team.yaml) ----------------------
 
 
-def _rule_value(value: Any) -> str:
+def _text_value(value: Any, where: str, name: str) -> str:
+    """A value compared as text. An unquoted ``2026.20`` is read by YAML as the number 2026.2
+    and would silently match the wrong sprint: floats must be quoted."""
+    if isinstance(value, float):
+        raise DataError(
+            t(
+                "{where}: {name}: {value} bitte in Anführungszeichen setzen "
+                '(sonst gehen Stellen verloren, z. B. "2026.20")',
+                where=where,
+                name=name,
+                value=value,
+            )
+        )
+    return str(value)
+
+
+def _rule_value(value: Any, where: str, name: str) -> str:
     """Leaf values are compared as text; YAML booleans (``in_sprint: [true]``) become
     ``true``/``false``."""
     if isinstance(value, bool):
         return "true" if value else "false"
-    return str(value)
+    return _text_value(value, where, name)
 
 
 def _rule_node(mapping: dict[str, Any], where: str) -> Rule:
@@ -692,9 +721,9 @@ def _rule_node(mapping: dict[str, Any], where: str) -> Rule:
         if value is None or value == "":
             values: list[str] = []
         elif isinstance(value, list):
-            values = [_rule_value(v) for v in value]
+            values = [_rule_value(v, where, name) for v in value]
         else:
-            values = [_rule_value(value)]
+            values = [_rule_value(value, where, name)]
         entries.append(Rule(source=name, values=values))
     if len(entries) == 1:
         return entries[0]  # a single leaf, or the long form: exactly one of any/all/none
@@ -775,7 +804,8 @@ def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
         rough_factor=1.5 if rough is None else rough,
         write_labels=bool(d.get("write_labels", False)),
         sprint_names={
-            str(k): str(v) for k, v in _mapping(d.get("sprint_names"), at, "sprint_names").items()
+            _text_value(k, at, "sprint_names"): _text_value(v, at, "sprint_names")
+            for k, v in _mapping(d.get("sprint_names"), at, "sprint_names").items()
         },
     )
 
@@ -1410,6 +1440,8 @@ TEAM_FILES = (
     "tickets.yaml",
     "preplan.yaml",
 )
+# The files of the ticket pre-planning; only read while ``features.tickets`` is on.
+TICKET_FILES = ("projects.yaml", "tickets.yaml", "preplan.yaml")
 
 
 def _file_version(base: Path) -> tuple[tuple, bool]:

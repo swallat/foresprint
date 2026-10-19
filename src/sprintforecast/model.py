@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Any
 
 
 class Unit(StrEnum):
@@ -125,6 +126,9 @@ class Team:
     # Settings of the ticket pre-planning (section ``tracker`` in team.yaml); only used with
     # ``features.tickets``.
     tracker: TrackerSettings = field(default_factory=lambda: TrackerSettings())
+    # Raw ``tracker`` section of team.yaml that could not be read while ``features.tickets`` is
+    # off (not validated then); kept so that writing team.yaml does not drop it.
+    tracker_raw: Any = field(default=None, compare=False, repr=False)
 
 
 @dataclass
@@ -352,7 +356,8 @@ class EstimateSource(StrEnum):
 
     # Refinement: the ticket carries the refined label or fulfils ``tracker.refined_also_if``.
     REFINED = "refined"
-    # A rough value (not refined, or refined status unclear); multiplied by ``rough_factor``.
+    # A rough value (not refined, or refined status unclear); the conservative variant (step 4)
+    # multiplies it by ``rough_factor``.
     ROUGH = "rough"
     # Entered by the PO in preplan.yaml.
     MANUAL = "manual"
@@ -461,7 +466,8 @@ class TrackerSettings:
     # 1 = a dependent ticket goes at least one sprint after its dependency, 0 = same sprint allowed.
     dependency_gap: int = 1
     budget_basis: BudgetBasis = BudgetBasis.ROADMAP_SHARE
-    # Factor applied to rough estimates in the distribution.
+    # Factor for rough estimates in the conservative variant (step 4); the distribution of
+    # step 1 does not apply it.
     rough_factor: float = 1.5
     # Step 5: write ``planned_for_<sprint_id>`` labels to the tracker.
     write_labels: bool = False

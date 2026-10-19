@@ -12,6 +12,7 @@ from sprintforecast.model import (
     Earmark,
     EstimateSource,
     ManualEstimate,
+    PlanningUses,
     Preplan,
     Project,
     Rule,
@@ -452,3 +453,58 @@ def test_apply_writes_tickets_and_preplan_only_when_changed(data_dir: Path, data
     paths = apply_import(repo, TEAM, plan, now)
     assert [p.name for p in paths] == ["tickets.yaml", "preplan.yaml"]
     assert repo.load(TEAM).preplan == Preplan()
+
+
+# --- Review fixes ----------------------------------------------------------------------------
+
+
+def test_closed_sprint_of_an_open_ticket_is_not_its_sprint(data: TeamData, fc: Forecast):
+    """Jira keeps closed sprints in the Sprint field of carried-over tickets."""
+    data.team.tracker.sprint_names["Sprint 20"] = "2026.20"
+    raws = [
+        raw("A-1", epic="ABC-100", sprint_name="2026.20"),
+        raw("A-2", epic="ABC-100", sprint_name="Sprint 20"),
+        raw("A-3", epic="ABC-100", sprint_name="2026.21"),  # the current sprint still counts
+    ]
+    plan = plan_import(data, fc, raws, TODAY)
+    closed, mapped, current = plan.tickets
+    for tk in (closed, mapped):
+        assert tk.in_sprint is None
+        assert tk.facts()["in_sprint"] == ["false"]
+        # not refined via ``in_sprint: [true]``
+        assert (tk.estimate_source, tk.refined_unclear) == (EstimateSource.ROUGH, False)
+    assert closed.sprint_name == "2026.20" and mapped.sprint_name == "Sprint 20"
+    assert current.in_sprint == "2026.21" and current.refined_unclear
+    # The name is known, so it is not reported as unrecognised.
+    assert plan.of_kind("sprint_unresolved") == []
+
+
+def test_estimate_source_follows_the_size_by_planning_uses(data: TeamData, fc: Forecast):
+    def source(planning: PlanningUses, **overrides) -> tuple[EstimateSource, bool]:
+        data.team.tracker.planning_uses = planning
+        tk = convert(raw(estimate=None, remaining=3, **overrides), data, fc, data.projects)
+        return tk.estimate_source, tk.refined_unclear
+
+    # Only ``remaining`` is filled: that is the size the distribution calculates with.
+    assert source(PlanningUses.REMAINING) == (EstimateSource.ROUGH, False)
+    assert source(PlanningUses.REMAINING, labels=["Refined"]) == (EstimateSource.REFINED, False)
+    # By estimate there is nothing to calculate with: the label alone is unclear.
+    assert source(PlanningUses.ESTIMATE) == (EstimateSource.NONE, False)
+    assert source(PlanningUses.ESTIMATE, labels=["Refined"]) == (EstimateSource.NONE, True)
+    # The reason shown in the preview follows the size as well.
+    data.team.tracker.planning_uses = PlanningUses.REMAINING
+    plan = plan_import(data, fc, [raw("A-1", estimate=None, remaining=2, status="Ready")], TODAY)
+    assert plan.of_kind("refined_unclear")[0].note == UNCLEAR_RULE
+
+
+def test_unchanged_import_is_detected(data_dir: Path, data: TeamData, fc: Forecast):
+    repo = Repository(data_dir)
+    repo.save_projects(TEAM, data.projects)
+    raws = [raw("A-1", epic="ABC-100", rank="0|a")]
+    apply_import(repo, TEAM, plan_import(data, fc, raws, TODAY, "x.csv"))
+    loaded = repo.load(TEAM)
+    assert plan_import(loaded, fc, raws, TODAY, "x.csv").unchanged(loaded)
+    # A change the preview does not list (rank) still counts as a change.
+    moved = plan_import(loaded, fc, [raw("A-1", epic="ABC-100", rank="0|b")], TODAY, "x.csv")
+    assert moved.changes == [] and not moved.unchanged(loaded)
+    assert not plan_import(loaded, fc, [], TODAY, "x.csv").unchanged(loaded)

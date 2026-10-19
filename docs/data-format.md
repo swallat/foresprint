@@ -147,7 +147,8 @@ tracker:
   project_match_order: [epic, component, label]   # which match wins between two projects
   dependency_gap: 1              # 1 = a dependent ticket goes at least one sprint later, 0 = same
   budget_basis: roadmap_share    # roadmap_share (PLAN × roadmap_share) | plan (whole PLAN)
-  rough_factor: 1.5              # factor applied to rough (unrefined) estimates
+  rough_factor: 1.5              # for the conservative variant (step 4, not yet used); the
+                                 # distribution of step 1 counts rough estimates as they are
   sprint_names:                  # optional: tracker sprint name → sprint id of the tool, only when
     Sprint 42: '2026.21'         # the names differ
 ```
@@ -202,8 +203,9 @@ tickets:
   estimate: 5.0
   remaining: 3.0
   estimate_source: refined       # refined | rough | none (manual comes from preplan.yaml)
-  in_sprint: '2026.21'           # real sprint according to the tracker, as sprint id
-  rank: 0|i000kf:
+  in_sprint: '2026.21'           # real sprint according to the tracker, as sprint id; only a
+                                 # current or future sprint (a closed one is not the ticket's sprint)
+  rank: '0|i000kf:'              # rank of the tracker, compared as text (quote it: ends in a colon)
   epic: ABC-100
   labels: [payment, Refined]
   components: [Checkout]

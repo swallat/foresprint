@@ -102,18 +102,39 @@ class CsvSource:
     def fetch(self) -> list[RawTicket]:
         text = self._read()
         first_line = text.split("\n", 1)[0]
-        reader = csv.reader(io.StringIO(text), delimiter=sniff_delimiter(first_line))
+        # strict: a quote that never closes is an error instead of swallowing the rest of the
+        # file into one cell.
+        reader = csv.reader(io.StringIO(text), delimiter=sniff_delimiter(first_line), strict=True)
         try:
             header = next(reader)
         except StopIteration:
             raise SourceError(t("{path}: Die Datei ist leer", path=self.path)) from None
+        except csv.Error as e:
+            raise self._csv_error(e, 1) from e
         columns = self._columns(header)
         tickets = []
-        for row in reader:
+        while True:
+            start = reader.line_num + 1
+            try:
+                row = next(reader)
+            except StopIteration:
+                break
+            except csv.Error as e:
+                raise self._csv_error(e, start) from e
             if not any(cell.strip() for cell in row):
                 continue
             tickets.append(self._ticket(row, columns, reader.line_num))
         return tickets
+
+    def _csv_error(self, error: csv.Error, line: int) -> SourceError:
+        return SourceError(
+            t(
+                "{path}, Zeile {line}: Die Datei ist keine gültige CSV-Datei ({error})",
+                path=self.path,
+                line=line,
+                error=error,
+            )
+        )
 
     def _read(self) -> str:
         try:
@@ -172,8 +193,9 @@ class CsvSource:
             found = values(name)
             if not found:
                 return None
+            column = self.headers()[name][0]
             try:
-                return parse_number(found[0])
+                value = parse_number(found[0])
             except ValueError:
                 raise SourceError(
                     t(
@@ -181,9 +203,20 @@ class CsvSource:
                         path=self.path,
                         line=line,
                         value=found[0],
-                        column=self.headers()[name][0],
+                        column=column,
                     )
                 ) from None
+            if value is not None and value < 0:
+                raise SourceError(
+                    t(
+                        "{path}, Zeile {line}: '{value}' in Spalte „{column}“ ist negativ",
+                        path=self.path,
+                        line=line,
+                        value=found[0],
+                        column=column,
+                    )
+                )
+            return value
 
         key = single("key")
         if key is None:
