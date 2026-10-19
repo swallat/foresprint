@@ -206,8 +206,8 @@ class App:
             "APPDATA": str(self.config),
             "PYTHONUTF8": "1",
         }
-        if self.language:
-            env[LANG_ENV] = self.language
+        # Ohne Einstellung ist die Oberfläche englisch; die Browsertests erwarten Deutsch.
+        env[LANG_ENV] = self.language or "de"
         return env
 
     def start(self) -> App:

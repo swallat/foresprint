@@ -3,8 +3,8 @@
 
 Quelltexte sind deutsch; ``t("Gespeichert: {names}", names=...)`` liefert je nach Sprache den
 deutschen Text oder die Übersetzung aus ``locale_en.EN``. Sprache: Umgebungsvariable
-SPRINTFORECAST_LANG > Benutzereinstellung (``sprintforecast sprache`` bzw. Seitenleiste der
-Weboberfläche) > Deutsch. Dateiinhalte (YAML) sind unabhängig davon englisch.
+SPRINTFORECAST_LANG > Benutzereinstellung (``sprintforecast language`` bzw. Seitenleiste der
+Weboberfläche) > Englisch. Dateiinhalte (YAML) sind unabhängig davon englisch.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import os
 
 LANG_ENV = "SPRINTFORECAST_LANG"
 LANGUAGES: dict[str, str] = {"de": "Deutsch", "en": "English"}
-DEFAULT = "de"
+DEFAULT = "en"
 
 _override: str | None = None
 
