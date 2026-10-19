@@ -213,6 +213,8 @@ def render_planning_protocol(
             lines.append(f"_{t('noch nicht erfasst')}_")
             continue
         old_stand, old_lines = previous.get(section.key, ("", []))
+        if old_stand == t("noch nicht erfasst"):  # der Platzhalter ist kein Stand
+            old_stand = ""
         body = [ln for ln in section.lines if ln.strip()]
         stand = (
             old_stand

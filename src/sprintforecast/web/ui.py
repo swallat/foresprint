@@ -2094,7 +2094,7 @@ def _planning_writer(
 
     absences = [
         md_item(f"{names.get(pid, pid)}: {fmt(days, 1)} {t('Tage')}")
-        for pid, days in sprint.absences.items()
+        for pid, days in sorted(sprint.absences.items())  # feste Reihenfolge: stabiler Stand
         if days
     ]
     sections = [
@@ -2110,8 +2110,11 @@ def _planning_writer(
     d = distribution(fc, entry) if entry else None
     products = d is not None and team.features.products and bool(data_after.products)
     planned_lines: list[str] = []
-    if result is not None:
-        planned_lines.append(md_item(f"{t('Forecast PLAN')}: {fmt(result.plan, 2)} {unit}"))
+    # Der eingefrorene Wert, wenn es ihn gibt: der aktuelle ändert sich auch durch andere Schritte
+    # und ließe den Stand der Abschnitte ohne eigene Änderung wandern.
+    plan = sprint.forecast_plan if sprint.forecast_plan is not None else (result and result.plan)
+    if plan is not None:
+        planned_lines.append(md_item(f"{t('Forecast PLAN')}: {fmt(plan, 2)} {unit}"))
     if products and d is not None and d.rows:
         planned_lines.append(md_item(f"{t('Eingeplant (Σ)')}: {fmt(d.total('planned'), 2)} {unit}"))
     if sprint.production_planned is not None:
@@ -2151,10 +2154,12 @@ def _planning_writer(
             md_item(f"Backlog ({unit}): {fmt(p.backlog, 2)}"),
         ]
     if result is not None and result.planning_total is not None:
-        commitment_lines += [
-            md_item(f"{t('Planning-Summe')}: {fmt(result.planning_total, 2)} {unit}"),
-            md_item(f"{t('Delta zum Forecast PLAN')}: {fmt(result.planning_delta, 2)} {unit}"),
-        ]
+        commitment_lines.append(
+            md_item(f"{t('Planning-Summe')}: {fmt(result.planning_total, 2)} {unit}")
+        )
+        if plan is not None:
+            delta = fmt(plan - result.planning_total, 2)
+            commitment_lines.append(md_item(f"{t('Delta zum Forecast PLAN')}: {delta} {unit}"))
     sections.append(
         PlanningSection(
             "commitment",
@@ -3109,10 +3114,7 @@ def _protocols(repo: Repository, data: TeamData, sprint_id: str, kind: str) -> N
     ):
         if not found:
             st.caption(
-                t(
-                    "Noch kein Protokoll: Es entsteht mit dem Schritt Commitment "
-                    "(Planning speichern)."
-                )
+                t("Noch kein Protokoll: Es entsteht, sobald ein Planning-Schritt gespeichert wird.")
                 if kind == PLANNING
                 else t("Noch kein Protokoll: Es entsteht, wenn dieser Termin gespeichert wird.")
             )
