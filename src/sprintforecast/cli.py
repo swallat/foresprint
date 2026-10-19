@@ -1564,10 +1564,12 @@ def excel(
         ),
     ] = None,
 ) -> None:
-    from sprintforecast.excel import ExcelUnavailable, build_workbook
+    from sprintforecast.excel import ExcelUnavailable, build_workbook, import_unsafe_sprint_ids
 
     c = _ctx(ctx)
     data = _load(c, team)
+    for warning in import_unsafe_sprint_ids(data):
+        err.print(f"[yellow]{escape(warning)}[/yellow]")
     try:
         content = build_workbook(build_forecast(data, c.today))
     except ExcelUnavailable as e:
