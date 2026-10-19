@@ -331,3 +331,10 @@ def test_planning_assistant_suggests_the_ticket_sums(data_dir: Path, monkeypatch
     radio.set_value(radio.options[1]).run()
     assert not at.exception, at.exception
     assert any("Vorschlag aus der Ticket-Vorplanung" in e.label for e in at.expander)
+
+
+def test_every_change_kind_has_a_title():
+    from sprintforecast.ticket_import import KINDS
+    from sprintforecast.web.tickets_view import change_titles
+
+    assert set(KINDS) <= set(change_titles())
