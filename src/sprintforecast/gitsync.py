@@ -1074,16 +1074,17 @@ def _reattach_hint(saved: str | None = None) -> str:
         "Meldung von Git unter „Technische Meldung“."
     )
     if saved:
-        text = (
-            t(
-                "Die offenen Änderungen im Datenordner sind bereits auf dem Rettungsbranch "
-                "{rescue} gesichert.",
-                rescue=saved,
-            )
-            + " "
-            + text
-        )
+        text = _saved_note(saved) + " " + text
     return text
+
+
+def _saved_note(rescue: str) -> str:
+    """Satz, der den Rettungsbranch nennt, auf dem die Änderungen im Datenordner liegen."""
+    return t(
+        "Die offenen Änderungen im Datenordner sind bereits auf dem Rettungsbranch "
+        "{rescue} gesichert.",
+        rescue=rescue,
+    )
 
 
 _SAVE_SUBJECT = "Offene Änderungen vor dem Wechsel gesichert"
@@ -1184,11 +1185,12 @@ def reattach(path: Path) -> Reattached:
         if new_changes:  # wieder lose auf der Sicherung: der nächste Versuch findet sie
             _git(root, "switch", "--detach", saved_at)
         gitmod.invalidate_status()
+        saved = rescue if changes else None
         if e.kind != "dirty":
+            if saved:  # nicht verschweigen, wohin die Änderungen gesichert wurden
+                e.hint = _saved_note(saved) + (" " + e.hint if e.hint else "")
             raise
-        raise GitError(
-            str(e), "detached", _reattach_hint(rescue if changes else None), e.raw
-        ) from e
+        raise GitError(str(e), "detached", _reattach_hint(saved), e.raw) from e
     gitmod.invalidate_status()
     return Reattached(target, rescue, commits, changes)
 
