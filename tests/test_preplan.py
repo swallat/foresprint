@@ -112,7 +112,7 @@ def test_budget_is_share_of_the_forecast_plan():
 def test_horizon_beyond_the_people_list_uses_the_average_capacity():
     """Without a people list the capacity of future sprints is only a trend; like
     analysis.completion, the average capacity of the last sprints counts instead."""
-    # normalised velocity constant 10 (velocity = capacity / 4), average capacity 36 -> PLAN 9
+    # normalized velocity constant 10 (velocity = capacity / 4), average capacity 36 -> PLAN 9
     data = team_data(velocities=(5, 10, 10, 10, 10), capacities=(20, 40, 40, 40, 40))
     dist = distribute(data, TODAY)
     assert all(b.plan == pytest.approx(9.0) for b in dist.budgets)
