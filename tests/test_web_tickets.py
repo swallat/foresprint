@@ -13,7 +13,7 @@ from streamlit.testing.v1 import AppTest
 from ticketfixtures import enable, seed
 
 from sprintforecast.model import BudgetBasis, ManualEstimate, Project, Rule
-from sprintforecast.preplan import distribute
+from sprintforecast.preplan import distribute, handover_rows
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 from sprintforecast.web.tickets_view import (
     Selection,
@@ -431,3 +431,87 @@ def test_label_writeback_with_an_empty_query_writes_nothing(data_dir: Path, monk
     assert not at.exception, at.exception
     assert any("keine Tickets" in e.value for e in at.error)
     assert source.calls == []
+
+
+def test_overview_shows_the_range_or_says_why_not(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    at = page(data_dir, monkeypatch)
+    assert not at.exception, at.exception
+    data = Repository(data_dir).load("demo")
+    from sprintforecast.preplan import distribute_variants
+
+    variants = distribute_variants(data, TODAY)
+    columns = {c for df in at.dataframe for c in df.value.columns}
+    if variants.available:
+        assert "Letzter Sprint optimistisch" in columns
+    else:
+        assert "Letzter Sprint" in columns
+        assert any("Keine Bandbreite" in c.value for c in at.caption)
+
+
+def test_handover_previews_then_writes_only_empty_values(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    data = Repository(data_dir).load("demo")
+    rows = handover_rows(data, distribute(data, TODAY), 6)
+    assert rows
+    at = page(data_dir, monkeypatch)
+    assert any("Übergabe an die PO-Vorplanung" in s.value for s in at.subheader)
+    button(at, "In die PO-Vorplanung übernehmen").click().run()
+    assert not at.exception, at.exception
+    after = Repository(data_dir).load("demo")
+    for row in rows:
+        values = after.sprint(row.sprint).products[row.product]
+        assert values.preplanned == (row.current if row.current is not None else row.proposed)
+
+
+def test_handover_sprints_keep_a_different_value_unless_overwritten(data_dir: Path):
+    from sprintforecast.preplan import HandoverRow
+    from sprintforecast.web.tickets_view import handover_sprints
+
+    data = Repository(data_dir).load("demo")
+    sprint = data.sprints[-1]
+    product = data.products[0].id
+    rows = [
+        HandoverRow(sprint.id, product, proposed=5.0, current=3.0),
+        HandoverRow(sprint.id, product, proposed=4.0, current=4.0),
+    ]
+    assert handover_sprints(data, rows, overwrite=False) == []
+    (written,) = handover_sprints(data, rows[:1], overwrite=True)
+    assert written.products[product].preplanned == 5.0
+    new = HandoverRow("2099.01", product, proposed=2.0)
+    assert handover_sprints(data, [new], overwrite=False) == []  # unknown sprint: skipped
+
+
+def test_handover_overwrite_checkbox_replaces_the_po_value(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    data = Repository(data_dir).load("demo")
+    rows = handover_rows(data, distribute(data, TODAY), 6)
+    differing = next(r for r in rows if r.current is not None and r.current != r.proposed)
+    at = page(data_dir, monkeypatch)
+    at.checkbox(key="tickets-demo-handover-overwrite").check().run()
+    button(at, "In die PO-Vorplanung übernehmen").click().run()
+    assert not at.exception, at.exception
+    after = Repository(data_dir).load("demo")
+    assert after.sprint(differing.sprint).products[differing.product].preplanned == (
+        differing.proposed
+    )
+
+
+def test_handover_sprints_create_the_calendar_sprints_in_between(data_dir: Path):
+    from sprintforecast.preplan import HandoverRow
+    from sprintforecast.web.tickets_view import handover_sprints
+
+    data = Repository(data_dir).load("demo")
+    product = data.products[0].id
+    last = data.sprints[-1]
+    from sprintforecast.calendar import following_sprint
+
+    first = following_sprint(data.team, last)
+    third = following_sprint(data.team, following_sprint(data.team, first))
+    written = handover_sprints(data, [HandoverRow(third.id, product, 2.0)], False)
+    assert [s.id for s in written][-1] == third.id
+    assert first.id in {s.id for s in written}
+    assert written[-1].products[product].preplanned == 2.0
