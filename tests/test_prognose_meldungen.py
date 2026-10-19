@@ -202,7 +202,7 @@ def test_check_flags_the_first_id_while_there_are_no_sprint_files(data_dir: Path
 
 
 def run(data_dir: Path, *args: str):
-    return runner.invoke(cli_app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", *args])
+    return runner.invoke(cli_app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args])
 
 
 def text(result) -> str:
@@ -231,7 +231,7 @@ def test_cli_forecast_with_unfitting_id_is_a_message(data_dir: Path):
 
 def test_cli_check_reports_the_unfitting_id(data_dir: Path):
     rename_sprint(data_dir, "2026.22", "S12", SEQUENTIAL)
-    result = run(data_dir, "pruefen")
+    result = run(data_dir, "check")
     assert result.exit_code == 1, result.output
     assert "sprints/S12.yaml: ID passt nicht zur Nummerierung" in text(result)
 
@@ -313,6 +313,6 @@ def test_cli_report_names_the_team_with_the_unfitting_id(data_dir: Path):
     repo.delete_sprint("aaa", "2026.22")
     sprint.id = "2026.22b"
     repo.save_sprint("aaa", sprint)
-    result = run(data_dir, "bericht")
+    result = run(data_dir, "report")
     assert result.exit_code == 1, result.output
     assert "Team aaa: Sprint-ID '2026.22b' passt nicht zur Nummerierung" in text(result)

@@ -45,7 +45,7 @@
 
 .PARAMETER MitAutoUpdate
     Start the app under test with the configured self-update. Default: off
-    (SPRINTFORECAST_AUTOUPDATE=aus only for the started process) so that the process check is
+    (SPRINTFORECAST_AUTOUPDATE=off only for the started process) so that the process check is
     not disturbed by an update.
 
 .PARAMETER PythonExe
@@ -287,7 +287,7 @@ function Invoke-Native {
     if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
     $psi.EnvironmentVariables['PYTHONUTF8'] = '1'
     # Jeder Aufruf der CLI könnte sonst nach seinem Ende die echte Installation aktualisieren.
-    if (-not $MitAutoUpdate) { $psi.EnvironmentVariables['SPRINTFORECAST_AUTOUPDATE'] = 'aus' }
+    if (-not $MitAutoUpdate) { $psi.EnvironmentVariables['SPRINTFORECAST_AUTOUPDATE'] = 'off' }
     foreach ($key in $Environment.Keys) { $psi.EnvironmentVariables[[string]$key] = [string]$Environment[$key] }
 
     $result = [pscustomobject]@{ ExitCode = -1; Output = ''; Error = ''; TimedOut = $false; Seconds = 0.0 }
@@ -686,7 +686,7 @@ function Test-AppEnde {
         $env:SPRINTFORECAST_DATA = $teams
         $dataNote = 'Datenordner der App: temporäres Daten-Repository mit dem Team "demo" (SPRINTFORECAST_DATA nur für diesen Start).'
     }
-    if (-not $MitAutoUpdate) { $env:SPRINTFORECAST_AUTOUPDATE = 'aus' }
+    if (-not $MitAutoUpdate) { $env:SPRINTFORECAST_AUTOUPDATE = 'off' }
     Add-Text $Section ('Start mit: `' + (Split-Path -Leaf $launcher) + ' ' + ($launchArgs -join ' ') + '`. ' + $dataNote + $(if (-not $MitAutoUpdate) { ' Selbstaktualisierung nur für diesen Start aus.' } else { '' }))
 
     $sp = @{ FilePath = $launcher; PassThru = $true }
@@ -973,7 +973,7 @@ function Test-Zeilenenden {
     $origin = Join-Path $base 'daten'
     $teams = Initialize-DemoRepository $origin
     $sprints = Invoke-Sf @('--data', $teams, '--as-of', '2026-03-02', 'sprints', 'demo', '--create') 120
-    Add-Block $Section 'sprintforecast sprints demo --anlegen' (Format-Native $sprints)
+    Add-Block $Section 'sprintforecast sprints demo --create' (Format-Native $sprints)
     $identity = @{
         GIT_AUTHOR_NAME = 'sprintforecast Windows-Test'; GIT_AUTHOR_EMAIL = 'test@example.invalid'
         GIT_COMMITTER_NAME = 'sprintforecast Windows-Test'; GIT_COMMITTER_EMAIL = 'test@example.invalid'

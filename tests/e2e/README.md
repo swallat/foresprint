@@ -38,7 +38,7 @@ Environment variables:
 
 ## Troubleshooting
 
-If a test fails, the folder `test-results/e2e/` (in CI the artifact `e2e-bilder`) holds a
+If a test fails, the folder `test-results/e2e/` (in CI the artifact `e2e-screenshots`) holds a
 screenshot per opened page (`<Test>.png`, with several `<Test>-1.png` …) and the log of every
 app involved (`<Test>-<App>.log`). Both are captured while pages and servers are still running.
 An app that does not start is stopped again immediately; its log is in the error message.

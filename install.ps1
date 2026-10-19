@@ -71,7 +71,7 @@ if ($items.Count -gt 0) {
 $bin = (& uv tool dir --bin).Trim()
 # Double-click launcher (disable with $env:SPRINTFORECAST_NO_SHORTCUT = "1")
 if (-not $env:SPRINTFORECAST_NO_SHORTCUT) {
-    try { & (Join-Path $bin 'sprintforecast.exe') verknuepfung } catch { Write-Host "Note: launcher not created." }
+    try { & (Join-Path $bin 'sprintforecast.exe') shortcut } catch { Write-Host "Note: launcher not created." }
 }
 Write-Host ""
 Write-Host "Done: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"

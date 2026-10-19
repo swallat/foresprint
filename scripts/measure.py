@@ -2,7 +2,7 @@
 """Measurement script for phase P (performance): import times, team loading, build_forecast,
 Git status and the build of several pages via the Streamlit AppTest.
 
-    uv run python scripts/measure.py [--daten examples/teams] [--team demo] [--runs 15] [--md]
+    uv run python scripts/measure.py [--data examples/teams] [--team demo] [--runs 15] [--md]
 
 All values are medians in milliseconds (imports: median over fresh processes). The script only
 measures the machine it runs on; browser start-up, frontend rendering and round trips are
@@ -112,16 +112,16 @@ def apptest(data: Path, today: date, runs: int) -> dict[str, float]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--daten", type=Path, default=ROOT / "examples" / "teams")
+    parser.add_argument("--data", type=Path, default=ROOT / "examples" / "teams")
     parser.add_argument("--team", default="demo")
     parser.add_argument("--runs", type=int, default=15)
-    parser.add_argument("--stichtag", default="2026-10-15")
+    parser.add_argument("--as-of", default="2026-10-15")
     parser.add_argument("--md", action="store_true", help="print as a Markdown table")
     args = parser.parse_args()
     with tempfile.TemporaryDirectory() as config:  # no real user settings
         os.environ["XDG_CONFIG_HOME"] = config
         os.environ["APPDATA"] = config
-        values = measure(args.daten, args.team, args.runs, date.fromisoformat(args.stichtag))
+        values = measure(args.data, args.team, args.runs, date.fromisoformat(args.as_of))
     print(f"Python {sys.version.split()[0]}, {sys.platform}, runs: {args.runs}")
     if args.md:
         print("\n| Measurement | ms |\n|---|---:|")
