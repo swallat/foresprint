@@ -1652,10 +1652,11 @@ def _ticket_report(
     from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, distribute
 
     if not data.tickets:
+        how = "--fetch" if data.team.tracker.kind == "jira" else "--import DATEI"
         console.print(
             t(
-                "Keine Tickets vorhanden – zuerst importieren: sprintforecast tickets "
-                "TEAM --import DATEI"
+                "Keine Tickets vorhanden – zuerst importieren: sprintforecast tickets TEAM {how}",
+                how=how,
             )
         )
         return
@@ -1743,10 +1744,155 @@ def _ticket_report(
         console.print(f"[red]{t('Abhängigkeiten im Kreis')}: {_plain(' → '.join(cycle))}[/red]")
 
 
+def _source_failed(error: Exception) -> typer.Exit:
+    """Prints a source error (no markup interpretation) and returns the exit to raise."""
+    err.print(f"[red]{_plain_end(error)}[/red]")
+    return typer.Exit(1)
+
+
+def _close_source(source: Any) -> None:
+    close = getattr(source, "close", None)
+    if close is not None:
+        close()
+
+
+def _jira_settings(data: TeamData, option: str) -> Any:
+    """The tracker settings of a team that uses Jira; ends the command otherwise."""
+    tracker = data.team.tracker
+    if tracker.kind != "jira":
+        err.print(
+            "[red]"
+            + t(
+                "{option} braucht tracker.kind: jira in team.yaml (aktuell: {kind}).",
+                option=option,
+                kind=_plain(tracker.kind),
+            )
+            + "[/red]"
+        )
+        raise typer.Exit(1)
+    return tracker
+
+
+def _ticket_set_token(data: TeamData) -> None:
+    """Asks for the token (hidden input) and stores it in the keychain."""
+    from sprintforecast.sources import SourceError
+    from sprintforecast.sources.jira import (
+        keychain_user,
+        keyring_available,
+        keyring_missing_error,
+        store_token,
+    )
+
+    tracker = _jira_settings(data, "--set-token")
+    if not tracker.base_url:
+        err.print(f"[red]{t('tracker.base_url fehlt (team.yaml)')}[/red]")
+        raise typer.Exit(1)
+    if not keyring_available():
+        raise _source_failed(keyring_missing_error())
+    token = typer.prompt(t("Jira-Token (die Eingabe bleibt unsichtbar)"), hide_input=True)
+    try:
+        store_token(tracker.base_url, token.strip())
+    except SourceError as e:
+        raise _source_failed(e) from e
+    console.print(
+        "[green]"
+        + t(
+            "Token für {host} im Schlüsselbund gespeichert. Prüfen mit: {command}",
+            host=_plain(keychain_user(tracker.base_url)),
+            command=_plain_end(f"sprintforecast tickets {data.team.key} --test-connection"),
+        )
+        + "[/green]"
+    )
+
+
+def _ticket_test_connection(data: TeamData, team: str) -> None:
+    """Connects to Jira, shows the account and the resolved fields; writes nothing."""
+    from sprintforecast import sources
+    from sprintforecast.sources import SourceError
+
+    tracker = _jira_settings(data, "--test-connection")
+    source = None
+    try:
+        source = sources.open_source(tracker)
+        name = source.test_connection()  # type: ignore[attr-defined]
+        resolved = source.resolve_fields()  # type: ignore[attr-defined]
+    except SourceError as e:
+        raise _source_failed(e) from e
+    finally:
+        _close_source(source)
+    console.print(
+        "[green]"
+        + t(
+            "Verbunden mit {host} als {name}.",
+            host=_plain(getattr(source, "host", "")),
+            name=_plain(name),
+        )
+        + "[/green]"
+    )
+    for setting, field_id in (
+        ("estimate", resolved.estimate),
+        ("remaining", resolved.remaining),
+        ("epic", resolved.epic),
+    ):
+        label = getattr(tracker.fields, setting)
+        if label:
+            console.print(
+                t("Feld {setting}: „{name}“ ist {id}", setting=setting, name=_plain(label),
+                  id=_plain(field_id))
+            )  # fmt: skip
+    console.print(
+        t(
+            "Sprint-Feld: {sprint} · Rang-Feld: {rank}",
+            sprint=_plain(", ".join(resolved.sprint) or "–"),
+            rank=_plain(", ".join(resolved.rank) or "–"),
+        )
+    )
+
+
+def _ticket_read(data: TeamData, datei: Path | None, fetch: bool) -> tuple[list[Any], str]:
+    """Reads the tickets from the CSV file or the tracker: ``(raw tickets, source name)``.
+    Ends the command on a source error."""
+    from sprintforecast import sources
+    from sprintforecast.sources import SourceError
+
+    tracker = data.team.tracker
+    if fetch:
+        _jira_settings(data, "--fetch")
+    source = None
+    try:
+        source = sources.open_source(tracker, datei)
+        raws = source.fetch()
+    except SourceError as e:
+        raise _source_failed(e) from e
+    finally:
+        _close_source(source)
+    name = str(source.name)  # type: ignore[union-attr]
+    if fetch:
+        console.print(
+            t(
+                "Jira {host}: {count} Tickets gelesen",
+                host=_plain(getattr(source, "host", "")),
+                count=len(raws),
+            )
+        )
+        if not raws and data.tickets:
+            # "No result" never counts as "no work": do not wipe the last import.
+            err.print(
+                "[red]"
+                + t(
+                    "Die Abfrage lieferte keine Tickets – nichts geschrieben. JQL "
+                    "(tracker.query) und Berechtigungen des Tokens prüfen."
+                )
+                + "[/red]"
+            )
+            raise typer.Exit(1)
+    return raws, name
+
+
 @command(
     "tickets",
-    "Ticket-Vorplanung: Ticket-CSV importieren, Tickets auf künftige Sprints verteilen, "
-    "Projektampel und Refinement-Liste.",
+    "Ticket-Vorplanung: Tickets aus Jira oder einer CSV-Datei einlesen, auf künftige Sprints "
+    "verteilen, Projektampel und Refinement-Liste.",
 )
 def tickets(
     ctx: typer.Context,
@@ -1754,9 +1900,32 @@ def tickets(
     datei: Annotated[
         Path | None,
         typer.Option(
-            "--import", metavar="FILE", help=t("CSV-Export des Ticketsystems einlesen (Vorschau).")
+            "--import",
+            metavar="FILE",
+            help=t("CSV-Export des Ticketsystems einlesen (Vorschau); auch bei Jira möglich."),
         ),
     ] = None,
+    fetch: Annotated[
+        bool,
+        typer.Option(
+            "--fetch",
+            help=t("Tickets aus Jira lesen (tracker.kind: jira, nur lesend; Vorschau)."),
+        ),
+    ] = False,
+    test_connection: Annotated[
+        bool,
+        typer.Option(
+            "--test-connection",
+            help=t("Verbindung zu Jira prüfen und das Konto des Tokens zeigen (schreibt nichts)."),
+        ),
+    ] = False,
+    set_token: Annotated[
+        bool,
+        typer.Option(
+            "--set-token",
+            help=t("Jira-Token (verdeckte Eingabe) im Schlüsselbund ablegen."),
+        ),
+    ] = False,
     uebernehmen: Annotated[
         bool, typer.Option("--apply", help=t("Import schreiben (sonst nur Vorschau)."))
     ] = False,
@@ -1768,22 +1937,41 @@ def tickets(
     c = _ctx(ctx)
     data = _load(c, team)
     _require_tickets(data, team)
-    if datei is not None and commit_ and not uebernehmen:
+    actions = [
+        name
+        for name, given in (
+            ("--import", datei is not None),
+            ("--fetch", fetch),
+            ("--test-connection", test_connection),
+            ("--set-token", set_token),
+        )
+        if given
+    ]
+    if len(actions) > 1:
+        err.print(
+            "[red]" + t("{options} schließen einander aus.", options=" / ".join(actions)) + "[/red]"
+        )
+        raise typer.Exit(1)
+    if (test_connection or set_token) and (uebernehmen or commit_):
+        err.print(f"[red]{t('--apply und --commit gehören zu --import und --fetch.')}[/red]")
+        raise typer.Exit(1)
+    if set_token:
+        _ticket_set_token(data)
+        return
+    if test_connection:
+        _ticket_test_connection(data, team)
+        return
+    importing = datei is not None or fetch
+    if importing and commit_ and not uebernehmen:
         err.print(f"[red]{t('--commit braucht --apply.')}[/red]")
         raise typer.Exit(1)
     printed: list[Issue] = []
-    if datei is not None:
-        from sprintforecast.sources import SourceError
-        from sprintforecast.sources.csv import CsvSource
+    if importing:
         from sprintforecast.ticket_import import apply_import, plan_import
 
-        try:
-            raws = CsvSource(datei, data.team.tracker.fields).fetch()
-        except SourceError as e:
-            err.print(f"[red]{_plain_end(e)}[/red]")
-            raise typer.Exit(1) from e
+        raws, source_name = _ticket_read(data, datei, fetch)
         fc = build_forecast(data, c.today)
-        plan = plan_import(data, fc, raws, c.today, source=datei.name)
+        plan = plan_import(data, fc, raws, c.today, source=source_name)
         _ticket_preview(plan)
         if plan.unchanged(data):
             # Nothing to write: no time-stamp-only rewrite of tickets.yaml.
@@ -1802,7 +1990,7 @@ def tickets(
         if not uebernehmen:
             return
     elif uebernehmen or commit_:
-        err.print(f"[red]{t('--apply und --commit gehören zu --import.')}[/red]")
+        err.print(f"[red]{t('--apply und --commit gehören zu --import und --fetch.')}[/red]")
         raise typer.Exit(1)
     _ticket_report(data, c.today, sprints, printed)
 
