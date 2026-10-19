@@ -2,7 +2,7 @@
 
 Status: Entwurf, Version 6 (19. Oktober 2026), noch nichts umgesetzt. Diese Version **ersetzt
 Version 5 vollständig**; sie ist das einzige gültige Konzept zur Jira-Anbindung. Die Umsetzung
-beginnt nach dem Merge der offenen PR-Welle (#96 bis #106), siehe Abschnitt 10. Alles, was ohne
+beginnt nach dem Merge der offenen PR-Welle (#98 bis #106; #96 und #97 sind gemergt), siehe Abschnitt 10. Alles, was ohne
 Ticketsystem gilt (Berechnung, Bedienung, Datenordner, Synchronisation), steht in
 [konzept-kern.md](konzept-kern.md).
 
@@ -387,7 +387,7 @@ sprintforecast/
 
 ## 10. Umsetzungsschritte
 
-Erst nach dem Merge der offenen PR-Welle #96 bis #106, dann von frischem `main`. Je Schritt ein
+Erst nach dem Merge der offenen PR-Welle #98 bis #106, dann von frischem `main`. Je Schritt ein
 kleiner Pull Request (oder ein Stapel), deutsch, mit Tests und `locale_en.py`-Einträgen.
 
 | Schritt | Inhalt | Berührte Module |

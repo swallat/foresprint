@@ -227,7 +227,7 @@ Bewertung durch zwei unabhängige Prüfungen:
 ## G. Phasen und Reihenfolge
 
 Die Ticket-Vorplanung (siehe [konzept-ticketsystem.md](konzept-ticketsystem.md), Version 6) beginnt
-nach dem Merge der PR-Welle vom Oktober 2026 (#96 bis #106). Sie baut nur auf Forecast PLAN, der
+nach dem Merge der PR-Welle vom Oktober 2026 (#98 bis #106). Sie baut nur auf Forecast PLAN, der
 Standardverteilung je Produkt und dem Produktionszugriff auf, die alle vorhanden sind; der Kern bleibt
 ohne Ticketsystem vollständig nutzbar.
 
