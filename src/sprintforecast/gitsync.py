@@ -314,14 +314,18 @@ def background_fetch_due(path: Path, now: float | None = None) -> bool:
     Die Prüfung der Zeit kommt zuerst und braucht keinen Git-Aufruf: Die Seitenleiste fragt bei
     jedem Neuzeichnen."""
     now = now or time.time()
-    last = _BACKGROUND_LAST.get(path.resolve())
-    if last is not None and now - last < BACKGROUND_FETCH_SECONDS:
+    key = path.resolve()
+    # Etwas Spielraum: Die Oberfläche ruft genau alle 30 Minuten, der letzte Abruf endete aber
+    # einige Sekunden nach seinem Beginn.
+    due_after = BACKGROUND_FETCH_SECONDS - 60
+    last = _BACKGROUND_LAST.get(key)
+    if last is not None and now - last < due_after:
         return False
-    root = _root(path)
-    if state(path).remote is None:
+    if cached_state(path).remote is None:
+        _BACKGROUND_LAST[key] = now  # ohne Server nicht bei jedem Neuzeichnen neu fragen
         return False
-    fetched = _FETCHED.get(root)
-    return fetched is None or now - fetched[0] >= BACKGROUND_FETCH_SECONDS
+    fetched = _FETCHED.get(_root(path))
+    return fetched is None or now - fetched[0] >= due_after
 
 
 def start_background_fetch(path: Path) -> bool:

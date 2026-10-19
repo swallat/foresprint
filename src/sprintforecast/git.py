@@ -1376,8 +1376,10 @@ def forget_roots(path: Path) -> None:
     """Vergisst zwischengespeicherte Wurzeln für ``path``, darunter und darüber (nach
     ``git init`` oder ``git clone`` – sonst gälte „kein Repository“ noch bis zu 30 Sekunden)."""
     path = path.resolve()
-    for key in [k for k in _ROOT_CACHE if k == path or path in k.parents or k in path.parents]:
-        del _ROOT_CACHE[key]
+    for key in [
+        k for k in list(_ROOT_CACHE) if k == path or path in k.parents or k in path.parents
+    ]:
+        _ROOT_CACHE.pop(key, None)
 
 
 @dataclass(frozen=True)
@@ -1457,7 +1459,7 @@ def invalidate_status() -> None:
     """Verwirft zwischengespeicherte Git-Stände (nach Speichern, Commit, Synchronisation)."""
     _STATUS_CACHE.clear()
     for key in [k for k, (_, root, _) in list(_ROOT_CACHE.items()) if root is None]:
-        del _ROOT_CACHE[key]  # „kein Repository“ ist nicht von Dauer
+        _ROOT_CACHE.pop(key, None)  # „kein Repository“ ist nicht von Dauer
     for hook in _INVALIDATE_HOOKS:
         hook()
 

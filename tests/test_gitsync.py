@@ -1612,7 +1612,8 @@ def test_background_fetch_is_due_once_and_runs_as_daemon(alice: Person, bob: Per
 
     class Recorder(real):
         def __init__(self, *args, **kwargs):
-            started.append(kwargs.get("daemon"))
+            if kwargs.get("name") == "sprintforecast-fetch":
+                started.append(kwargs.get("daemon"))
             super().__init__(*args, **kwargs)
 
     monkeypatch.setattr(gitsync.threading, "Thread", Recorder)
@@ -1626,7 +1627,7 @@ def test_background_fetch_is_due_once_and_runs_as_daemon(alice: Person, bob: Per
         time.sleep(0.1)
     assert gitsync.state(bob.data).behind == 1  # the server state arrived
     assert not gitsync.background_fetch_due(bob.data)  # fresh: next one in 30 minutes
-    assert gitsync.background_fetch_due(bob.data, now=time.time() + 31 * 60)
+    assert gitsync.background_fetch_due(bob.data, now=time.time() + 30 * 60)
     assert not gitsync.start_background_fetch(bob.data)
 
 
