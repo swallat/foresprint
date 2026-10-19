@@ -4,6 +4,8 @@
 import http.server
 import subprocess
 import threading
+import time
+import types
 from datetime import date
 from pathlib import Path
 
@@ -1600,3 +1602,82 @@ def test_pull_note_not_shown_after_squash_merge_or_without_merge_request(
     git(squash, "commit", "-qm", "Squash")
     git(squash, "push", "-q", "origin", "main")
     assert bob.sync("holen", push=False).notes == []
+
+
+def test_background_fetch_is_due_once_and_runs_as_daemon(alice: Person, bob: Person, monkeypatch):
+    monkeypatch.delenv(gitsync.BACKGROUND_OFF_ENV)
+    assert gitsync.background_fetch_due(bob.data)  # never fetched in this run
+    started: list[bool] = []
+    real = gitsync.threading.Thread
+
+    class Recorder(real):
+        def __init__(self, *args, **kwargs):
+            if kwargs.get("name") == "sprintforecast-fetch":
+                started.append(kwargs.get("daemon"))
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(gitsync.threading, "Thread", Recorder)
+    alice.write("a/2026.2.yaml", "velocity: 4\n")
+    assert alice.sync("neu").ok
+    assert gitsync.start_background_fetch(bob.data)
+    assert started == [True]  # a daemon thread: never keeps the server (idle.py) alive
+    for _ in range(100):  # wait for the worker
+        if not gitsync._BACKGROUND_ACTIVE:
+            break
+        time.sleep(0.1)
+    assert gitsync.state(bob.data).behind == 1  # the server state arrived
+    assert not gitsync.background_fetch_due(bob.data)  # fresh: next one in 30 minutes
+    assert gitsync.background_fetch_due(bob.data, now=time.time() + 30 * 60)
+    assert not gitsync.start_background_fetch(bob.data)
+
+
+def test_background_fetch_asks_for_nothing_and_has_a_short_timeout(bob: Person, monkeypatch):
+    seen: dict = {}
+    real = gitsync.gitmod._probe_run
+
+    def spy(root, args, timeout, env_extra=None):
+        seen.update(args=args, timeout=timeout, env=env_extra)
+        return real(root, args, timeout, env_extra)
+
+    monkeypatch.setattr(gitsync.gitmod, "_probe_run", spy)
+    gitsync._fetch_in_background(bob.data, gitsync.state(bob.data))
+    assert seen["args"][:2] == ("fetch", "--prune")
+    assert seen["timeout"] == gitsync.BACKGROUND_TIMEOUT
+    assert seen["env"]["GCM_INTERACTIVE"] == "never"
+    assert seen["env"]["GIT_ASKPASS"] == ""
+
+
+def test_failed_background_fetch_leaves_the_state_alone(bob: Person, monkeypatch):
+    gitsync.fetch(bob.data)
+    before = gitsync._FETCHED[gitsync._root(bob.data)]
+    monkeypatch.setattr(
+        gitsync.gitmod, "_probe_run", lambda *a, **k: types.SimpleNamespace(code=128)
+    )
+    gitsync._fetch_in_background(bob.data, gitsync.state(bob.data))
+    assert gitsync._FETCHED[gitsync._root(bob.data)] == before
+
+
+def test_the_data_folder_lock_is_reentrant_and_shared(bob: Person):
+    lock = gitsync._lock_for(bob.data)
+    assert lock is gitsync._lock_for(bob.data)
+    with lock, lock:
+        assert gitsync.fetch(bob.data).remote is not None  # fetch takes the lock again
+
+
+def test_no_background_fetch_without_server(tmp_path: Path):
+    git(tmp_path, "init", "-q", "-b", "main")
+    assert not gitsync.background_fetch_due(tmp_path)
+    assert not gitsync.start_background_fetch(tmp_path)
+
+
+def test_background_fetch_can_be_switched_off(bob: Person):
+    assert not gitsync.start_background_fetch(bob.data)  # the test suite sets the variable
+    assert not gitsync._BACKGROUND_ACTIVE
+
+
+def test_background_fetch_does_not_bring_tags_along(alice: Person, bob: Person):
+    # Tags are shown as "only on the server" until the person fetches them on purpose.
+    git(alice.root, "tag", "team/2026.21")
+    git(alice.root, "push", "-q", "origin", "team/2026.21")
+    gitsync._fetch_in_background(bob.data, gitsync.state(bob.data))
+    assert git(bob.root, "tag", "-l") == ""

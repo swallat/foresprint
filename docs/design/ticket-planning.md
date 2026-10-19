@@ -255,7 +255,7 @@ Rule language:
 |---|---|
 | Ticket in current or future real sprint | counts as planned; counts against the budget of that sprint; a deviating earmark is discarded and the deviation is shown |
 | Ticket done | earmark is dropped, hint |
-| Ticket no longer in the query | earmark stays, warning |
+| Ticket no longer in the query | earmark stays with a warning until its sprint is over; the next import then drops it |
 | Ticket deleted or not readable | warning "not verifiable", earmark stays visible |
 | Estimate or remaining changed | new number, distribution recalculates |
 | Ticket without project or with two projects | list "to be assigned" in the preview |

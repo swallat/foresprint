@@ -17,6 +17,7 @@ from yaml.constructor import SafeConstructor
 from sprintforecast.calendar import (
     countries,
     expected_id_form,
+    following_sprint,
     id_fits_numbering,
     subdivisions,
     team_workdays,
@@ -24,7 +25,16 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.git import blank_controls
 from sprintforecast.i18n import t
-from sprintforecast.storage import DataError, Repository, TeamData, compose_yaml
+from sprintforecast.model import RULE_SOURCES, Rule, Sprint, Ticket
+from sprintforecast.storage import (
+    TEAM_FILES,
+    TICKET_FILES,
+    DataError,
+    Repository,
+    TeamData,
+    compose_yaml,
+    tracker_from_raw,
+)
 
 
 class Level(StrEnum):
@@ -81,6 +91,202 @@ def _check_product_shares(data: TeamData, today: date, error, warning) -> None:
                     period=label,
                 ),
             )
+
+
+# --- Ticket pre-planning ---------------------------------------------------------------
+
+
+def rule_problems(rule: Rule) -> list[str]:
+    """Why an assignment rule is invalid (spec section 6.4): unknown sources, leaves without
+    values, operators without conditions, short and long form mixed. Empty = valid."""
+    problems: list[str] = []
+
+    def walk(node: Rule) -> None:
+        if node.op == "leaf":
+            if node.source not in RULE_SOURCES:
+                problems.append(
+                    t(
+                        "unbekannte Quelle '{source}' (erlaubt: {allowed})",
+                        source=node.source,
+                        allowed=", ".join(RULE_SOURCES),
+                    )
+                )
+            if not node.values:
+                problems.append(t("'{source}' ohne Werte (leere Liste)", source=node.source))
+            return
+        if node.short and any(child.op != "leaf" for child in node.children):
+            problems.append(
+                t(
+                    "Kurz- und Langform gemischt: any, all und none stehen je allein, nicht "
+                    "neben Quellen oder nebeneinander"
+                )
+            )
+        if not node.children:
+            problems.append(
+                t("keine Bedingung") if node.short else t("'{op}' ohne Bedingungen", op=node.op)
+            )
+        for child in node.children:
+            walk(child)
+
+    walk(rule)
+    return problems
+
+
+def find_cycles(tickets: list[Ticket]) -> list[list[str]]:
+    """Cycles in ``depends_on`` (keys in dependency order), each reported once. Dependencies on
+    keys outside the list are ignored."""
+    graph = {tk.key: [] for tk in tickets}
+    for tk in tickets:
+        graph[tk.key] = [d for d in tk.depends_on if d in graph]
+    state: dict[str, int] = {}  # 1 = on the current path, 2 = finished
+    cycles: list[list[str]] = []
+    seen: set[tuple[str, ...]] = set()
+    for start in graph:
+        if state.get(start):
+            continue
+        state[start] = 1
+        path = [start]
+        stack = [iter(graph[start])]
+        while stack:
+            for nxt in stack[-1]:
+                if state.get(nxt, 0) == 1:  # back edge: the path from nxt onwards is a cycle
+                    cycle = path[path.index(nxt) :]
+                    first = cycle.index(min(cycle))
+                    canon = cycle[first:] + cycle[:first]
+                    if tuple(canon) not in seen:
+                        seen.add(tuple(canon))
+                        cycles.append(canon)
+                elif not state.get(nxt):
+                    state[nxt] = 1
+                    path.append(nxt)
+                    stack.append(iter(graph[nxt]))
+                    break
+            else:
+                state[path.pop()] = 2
+                stack.pop()
+    return cycles
+
+
+def _known_sprints(data: TeamData, ahead: int = 52) -> dict[str, Sprint]:
+    """The sprint files plus the following sprints from the calendar (earmarks name
+    sprints that have no file yet), by id."""
+    ids = {s.id: s for s in data.sprints}
+    last = data.sprints[-1] if data.sprints else None
+    try:
+        for _ in range(ahead):
+            last = following_sprint(data.team, last)
+            ids[last.id] = last
+    except DataError:
+        pass  # no first sprint: reported above
+    return ids
+
+
+def _check_tickets(data: TeamData, today: date, error, warn) -> None:
+    """Projects, tickets and pre-planning (only with ``features.tickets``)."""
+    team = data.team
+    tr = team.tracker
+    if team.tracker_raw is not None:
+        # An unreadable section kept while the feature was off: switching it on must not
+        # produce a team that does not load.
+        try:
+            tracker_from_raw(team.tracker_raw, "team.yaml")
+        except (DataError, ValueError, TypeError) as e:
+            error("team.yaml", str(e).removeprefix("team.yaml: "))
+    if tr.dependency_gap not in (0, 1):
+        error("team.yaml", t("tracker.dependency_gap muss 0 oder 1 sein"))
+    order = tr.project_match_order
+    if any(s not in RULE_SOURCES for s in order) or len(set(order)) != len(order):
+        error(
+            "team.yaml",
+            t(
+                "tracker.project_match_order: nur Quellen aus {allowed}, jede höchstens einmal",
+                allowed=", ".join(RULE_SOURCES),
+            ),
+        )
+    if tr.rough_factor <= 0:
+        error("team.yaml", t("tracker.rough_factor muss > 0 sein"))
+    if tr.refined_also_if is not None:
+        for problem in rule_problems(tr.refined_also_if):
+            error("team.yaml", t("tracker.refined_also_if: {problem}", problem=problem))
+
+    products = {p.id: p for p in data.products}
+    project_ids: set[str] = set()
+    for pr in data.projects:
+        where = f"projects.yaml: {pr.id}"
+        if pr.id in project_ids:
+            error(where, t("id ist doppelt"))
+        project_ids.add(pr.id)
+        if team.features.products:
+            if not pr.product:
+                error(where, t("product fehlt (die Produktverteilung ist an)"))
+            elif pr.product not in products:
+                error(where, t("unbekanntes Produkt '{id}'", id=pr.product))
+            elif (end := products[pr.product].end) is not None and end < today:
+                warn(where, t("Produkt '{id}' ist seit {end} beendet", id=pr.product, end=end))
+        elif pr.product:
+            error(where, t("product muss leer sein (die Produktverteilung ist aus)"))
+        if pr.target is None:
+            error(where, t("target fehlt"))
+        elif pr.target < today:
+            warn(where, t("target {date} liegt in der Vergangenheit", date=pr.target))
+        if pr.match is not None:
+            for problem in rule_problems(pr.match):
+                error(where, t("match: {problem}", problem=problem))
+        elif not any(tk.project == pr.id for tk in data.tickets):
+            warn(where, t("weder eine match-Regel noch zugeordnete Tickets"))
+
+    known_sprints = _known_sprints(data)
+    keys: set[str] = set()
+    for tk in data.tickets:
+        where = f"tickets.yaml: {tk.key}"
+        if tk.key in keys:
+            error(where, t("key ist doppelt"))
+        keys.add(tk.key)
+        for name in ("estimate", "remaining"):
+            value = getattr(tk, name)
+            if value is not None and value < 0:
+                error(where, t("{name} darf nicht negativ sein", name=name))
+        if tk.project is not None and tk.project not in project_ids:
+            error(where, t("unbekanntes Projekt '{id}'", id=tk.project))
+        if tk.in_sprint is not None and tk.in_sprint not in known_sprints:
+            warn(where, t("in_sprint '{id}' ist kein bekannter Sprint", id=tk.in_sprint))
+    for cycle in find_cycles(data.tickets):
+        error(
+            "tickets.yaml",
+            t("Abhängigkeiten im Kreis: {cycle}", cycle=" → ".join([*cycle, cycle[0]])),
+        )
+
+    earmarked: set[str] = set()
+    for e in data.preplan.earmarks:
+        where = f"preplan.yaml: {e.ticket}"
+        if e.ticket in earmarked:
+            error(where, t("mehrere Vormerkungen für dasselbe Ticket"))
+        earmarked.add(e.ticket)
+        if e.ticket not in keys:
+            warn(where, t("Vormerkung für ein unbekanntes Ticket (nicht im letzten Import)"))
+        if e.sprint not in known_sprints:
+            warn(where, t("Sprint '{id}' ist nicht bekannt", id=e.sprint))
+        elif known_sprints[e.sprint].end <= today:
+            warn(
+                where,
+                t(
+                    "Vormerkung für den vergangenen Sprint '{id}' (wird ignoriert; der nächste "
+                    "Import verwirft sie)",
+                    id=e.sprint,
+                ),
+            )
+    estimated: set[str] = set()
+    for m in data.preplan.estimates:
+        where = f"preplan.yaml: {m.ticket}"
+        if m.ticket in estimated:
+            error(where, t("mehrere Schätzungen für dasselbe Ticket"))
+        estimated.add(m.ticket)
+        if m.ticket not in keys:
+            warn(where, t("Schätzung für ein unbekanntes Ticket (nicht im letzten Import)"))
+        if m.estimate is None:
+            error(where, t("estimate fehlt"))
+        elif m.estimate < 0:
+            error(where, t("{name} darf nicht negativ sein", name="estimate"))
 
 
 def check_team(data: TeamData, today: date) -> list[Issue]:
@@ -403,6 +609,8 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                         "(wird sonst aus der aktuellen Personenliste berechnet)"
                     ),
                 )
+    if team.features.tickets:
+        _check_tickets(data, today, error, warn)
     return issues
 
 
@@ -427,6 +635,7 @@ _EMPTY_AS_ZERO: tuple[tuple[str, ...], ...] = (
     ("absences", "*"),
     ("expected_absences", "*"),
     ("prognoses", "*", "preplanned", "*"),
+    ("projects", "*", "priority"),
 )
 _NULL_TAG = "tag:yaml.org,2002:null"
 _STR_TAG = "tag:yaml.org,2002:str"
@@ -459,6 +668,7 @@ _STR_KEYED: tuple[tuple[str, ...], ...] = (
     ("absences",),
     ("expected_absences",),
     ("prognoses", "*", "preplanned"),
+    ("tracker", "sprint_names"),
 )
 # Obergrenze der besuchten Knoten je Datei: schützt vor Anker-Bomben (Verweise, die sich
 # vielfach vervielfachen). Echte Dateien liegen weit darunter.
@@ -689,10 +899,22 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
     return issues
 
 
-def check_team_files(base: Path) -> list[Issue]:
+def _tickets_enabled(base: Path) -> bool:
+    """``features.tickets`` according to team.yaml in ``base`` (unreadable = off)."""
+    try:
+        raw = yaml.safe_load((base / "team.yaml").read_text(encoding="utf-8"))
+        return bool(raw["features"]["tickets"])
+    except OSError, UnicodeDecodeError, KeyError, TypeError, yaml.YAMLError:
+        return False  # the loader reports problems with the file
+
+
+def check_team_files(base: Path, tickets: bool | None = None) -> list[Issue]:
     """Stille Annahmen in den Dateien eines Teams (Ordner ``base``): doppelte Schlüssel und
-    leere Zahlenfelder, je als Hinweis mit Dateiname, Zeile und Schlüsselpfad."""
-    files = [base / "team.yaml", base / "people.yaml", base / "products.yaml"]
+    leere Zahlenfelder, je als Hinweis mit Dateiname, Zeile und Schlüsselpfad. Die Dateien der
+    Ticket-Vorplanung nur mit ``features.tickets`` (``tickets``; ohne Angabe nach team.yaml)."""
+    if tickets is None:
+        tickets = _tickets_enabled(base)
+    files = [base / name for name in TEAM_FILES if tickets or name not in TICKET_FILES]
     files += sorted((base / "sprints").glob("*.yaml"))
     issues: list[Issue] = []
     for path in files:
@@ -710,7 +932,9 @@ def check_all(repo: Repository, today: date) -> dict[str, list[Issue]]:
     for key in repo.teams():
         try:
             data = repo.load(key)
-            result[key] = check_team(data, today) + check_team_files(repo.team_dir(key))
+            result[key] = check_team(data, today) + check_team_files(
+                repo.team_dir(key), data.team.features.tickets
+            )
         except DataError as e:
             result[key] = [Issue(Level.ERROR, key, str(e))]
     return result
