@@ -271,18 +271,27 @@ def _path_key(env: dict[str, str] | os._Environ[str]) -> str:
     return "PATH"
 
 
+def _same_file(a: str, b: str) -> bool:
+    return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+
+
 def upgrade_path() -> str | None:
     """PATH für den uv-Aufruf. uv startet für Plugins aus Git-Adressen selbst ``git`` über den
     PATH. Liegt Git nur außerhalb des PATH (siehe ``git.find_git``), kommt dessen Ordner HINTEN
     an den PATH: Vorn würde er gleichnamige Programme (python, uv, …) im selben Ordner
     überdecken, etwa bei ``~/.local/bin`` oder ``scoop\\shims``. Ist der PATH nicht gesetzt,
     bleibt die Standardsuche des Systems (``os.defpath``) erhalten. ``None``: nichts zu ändern
-    (Git im PATH oder nicht gefunden)."""
-    if shutil.which("git"):
-        return None
+    (Git im PATH oder nicht gefunden). Maßgeblich ist der Fund von ``find_git``: Liegt im PATH
+    nur ein unbrauchbares ``git`` (etwa der Windows-Store-Alias, inzwischen gesperrt) und das
+    brauchbare an einem Ersatzort, wird dessen Ordner angehängt."""
     found = find_git()
     if not found:
         return None
+    if (in_path := shutil.which("git")) and _same_file(in_path, found):
+        return None
+    folder = os.path.normcase(os.path.dirname(found))
+    if any(folder == os.path.normcase(os.path.abspath(f)) for f in os.get_exec_path() if f):
+        return None  # ein späterer PATH-Eintrag: Anhängen würde nichts ändern
     current = os.environ.get(_path_key(os.environ)) or os.defpath
     return os.pathsep.join([current, os.path.dirname(found)])
 
