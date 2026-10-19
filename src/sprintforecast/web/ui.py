@@ -124,6 +124,7 @@ from sprintforecast.gitsync import (
     RemoteInfo,
     SyncResult,
     SyncState,
+    abort_running_sync,
     abort_unfinished,
     auto_merge,
     cached_remote_info,
@@ -5214,6 +5215,14 @@ def _sync_clicked(
     _apply_sync_results(slot, root)
 
 
+def _abort_sync_clicked(root: Path) -> None:
+    """Ausdrücklicher Abbruch eines hängenden Abgleichs (nie automatisch)."""
+    if not abort_running_sync(root):
+        st.session_state.setdefault("flash", []).append(
+            ("info", t("Läuft nichts mehr: Der Abgleich war schon beendet."))
+        )
+
+
 def _unrelated_cancel() -> None:
     st.session_state.pop("unrelated", None)
     st.session_state.pop("unrelated-confirm", None)
@@ -5367,6 +5376,13 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
         if result.error.kind != "unrelated_histories":  # die Rückfrage steht darunter
             _show_problem(result.error, interactive=latest)
+        if latest and result.error.kind == "sync_busy":
+            st.button(
+                t("Abgleich abbrechen"),
+                key="sync-abort",
+                on_click=_abort_sync_clicked,
+                args=(root,),
+            )
         if latest and result.error.kind == "not_found":  # meist stimmt die Adresse nicht
             page_link("datenordner", t("Server-Adresse ändern"))
         if result.validation:
