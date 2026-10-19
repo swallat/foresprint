@@ -120,7 +120,7 @@ class BufferHint:
     samples: int
     # … und umgerechnet auf dieselbe Bezugsgröße wie der Kleinkram-Anteil: den Forecast PLAN.
     average_late_share: float | None
-    configured_small_stuff: float  # 1 − Roadmap-Anteil, bezogen auf den Forecast PLAN
+    configured_small_stuff: float  # 1 − verplanbarer Anteil, bezogen auf den Forecast PLAN
 
     @property
     def sufficient_data(self) -> bool:
@@ -194,7 +194,7 @@ def completion(
     """Simuliert ab dem nächsten Sprint, wann ``remaining`` erledigt ist.
 
     ``share`` ist der Anteil des Forecasts, der der Restmenge je Sprint zur Verfügung steht,
-    z. B. Roadmap-Anteil × Projektanteil (0,8 × 0,5 = 0,4).
+    z. B. verplanbarer Anteil × Projektanteil (0,8 × 0,5 = 0,4).
 
     Je Sprint wird zufällig eine normierte Velocity der letzten Sprints gezogen und mit der
     Kapazität des Sprints umgerechnet. Für Sprints ohne Personenliste (Kapazität nur als Trend)

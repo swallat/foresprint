@@ -6,7 +6,7 @@ Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Spri
 
 ## Prognose
 
-| Sprint | Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** (PT) | Spanne | Roadmap (80 %) | Kleinkram |
+| Sprint | Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** (PT) | Spanne | Verplanbar (80 %) | Kleinkram |
 |---|---|---|---|---|---|---|---|---|
 | 2026.21 | 14.10. – 28.10.2026 | **laufend** | 25,5 (Personenliste) | 16,84 | **9,5** | 8,5–10,5 | 7,60 | 1,90 |
 | 2026.22 | 28.10. – 11.11.2026 | geplant | 30,0 (Personenliste) | 16,84 | **11,2** | 10,0–12,3 | 8,96 | 2,24 |

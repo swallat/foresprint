@@ -80,8 +80,8 @@ GENERAL: dict[str, str] = {
     "average": "Ø n. Velocity = Mittel(n. Velocity der letzten Sprints im Fenster)",
     "trend": "n. Velocity-Trend = Fortschreibung(Ø n. Velocity) gemäß Trend-Modus",
     "plan": "Forecast PLAN = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)",
-    "roadmap": "Roadmap = Forecast PLAN × Roadmap-Anteil",
-    "small_stuff": "Kleinkram = Forecast PLAN − Roadmap",
+    "roadmap": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+    "small_stuff": "Kleinkram = Forecast PLAN − Verplanbar",
     "fulfillment": "Fulfillment = Velocity / Commitment",
     "scope_creep": "Scope Creep = nachträglich hinzugekommen / Commitment",
     "focus_factor": "Fokusfaktor = Velocity / Kapazität",
@@ -386,7 +386,7 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
         result += [
             Step(
                 "roadmap",
-                "Roadmap",
+                t("Verplanbar"),
                 general("roadmap"),
                 f"{fmt(r.plan, f.rounding)} × {pct(f.roadmap_share)} = {_n(r.roadmap)}",
             ),
