@@ -3860,12 +3860,15 @@ def _excel_import_section(repo: Repository, data: TeamData) -> None:
     except DataError as e:
         st.error(str(e))
         return
-    except OSError as e:  # Grund nennen statt Traceback
-        st.error(t("Nicht gespeichert: {reason}", reason=e.strerror or e))
+    except OSError as e:  # Dateien werden nacheinander geschrieben: ein Teil kann schon stehen
+        st.error(t("Nicht vollständig gespeichert: {reason}", reason=e.strerror or e))
         return
     st.session_state["flash"] = [
         ("success", _saved_text(", ".join(p.name for p in paths), _next_step()))
     ]
+    # Das Einstellungsformular soll die importierten Werte zeigen, nicht die alten.
+    for name in [n for n in st.session_state if str(n).startswith(f"settings-{key}")]:
+        del st.session_state[name]
     st.session_state[counter] = st.session_state.get(counter, 0) + 1  # leert die Auswahl
     st.rerun()
 
