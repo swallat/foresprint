@@ -1050,14 +1050,17 @@ def test_small_window_caps_the_sample_and_explains_the_warning(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """Fenster 3: Die Stichprobe (Forecast-Seite und Simulation) ist auf 3 gedeckelt, die Schwelle
-    bleibt 5; der Hinweis nennt das Fenster."""
+    bleibt 5; der Satz nennt Stichprobe und alle 20 erfassten Werte (nicht „nur 3“), der Hinweis
+    das Fenster."""
     team_file = data_dir / "demo" / "team.yaml"
     raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
     raw.setdefault("forecast", {})["window"] = 3
     team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
     at = goto(start(data_dir, monkeypatch), "forecast")
+    assert not any("bisher nur 3 Sprints" in w.value for w in at.warning)
     assert any(
-        "Wenig Daten: bisher nur 3 Sprints mit Velocity (ab 5 " in w.value
+        "Wenig Daten: Die Spanne zieht aus nur 3 der 20 erfassten Sprints mit Velocity (ab 5 "
+        in w.value
         and "Das Prognosefenster ist auf 3 Sprints gestellt" in w.value
         and "mehr Werte in die Spanne ein." in w.value
         for w in at.warning
@@ -1073,6 +1076,33 @@ def test_small_window_caps_the_sample_and_explains_the_warning(
         for w in at.warning
     )
     assert any("Stichprobe: 3 Sprints" in c.value for c in at.caption)
+
+
+def test_small_window_without_more_values_does_not_blame_the_window(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Fenster 3, aber nur 2 Werte erfasst: Das Fenster schneidet nichts ab, ein größeres brächte
+    nichts. Forecast-Seite und Simulation warnen wegen der Stichprobe, ohne den Fensterhinweis."""
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > 2:
+            path.unlink()
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
+    raw.setdefault("forecast", {})["window"] = 3
+    team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert any(
+        "Wenig Daten: bisher nur 2 Sprints mit Velocity (ab 5 " in w.value for w in at.warning
+    )
+    assert not any("Prognosefenster" in w.value for w in at.warning)
+    at = goto(at, "analyse")
+    at.number_input(key="rest").set_value(20.0)
+    click(at, "Berechnen")
+    assert any(
+        "Wenig Daten: Die Simulation zieht aus nur 2 Sprints (ab 5 sind Aussagen" in w.value
+        for w in at.warning
+    )
+    assert not any("Prognosefenster" in w.value for w in at.warning)
 
 
 @pytest.mark.parametrize("count", [3, 5])

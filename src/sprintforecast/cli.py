@@ -1305,6 +1305,7 @@ def analyse(
     ] = 100.0,
 ) -> None:
     from sprintforecast.analysis import (
+        available_count,
         average_focus_factor,
         band,
         buffer_hint,
@@ -1425,7 +1426,10 @@ def analyse(
                 + "[/dim]"
             )
         if note := completion_note(result.samples):
-            note = f"{note} {window_hint(data.team.forecast.window, simulation=True)}".strip()
+            hint = window_hint(
+                data.team.forecast.window, result.samples, available_count(fc), simulation=True
+            )
+            note = f"{note} {hint}".strip()
             console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
 
 
