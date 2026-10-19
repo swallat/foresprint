@@ -1946,4 +1946,10 @@ EN: dict[str, str] = {
     "In Jira schreiben": "Write to Jira",
     "Der Stand in Jira hat sich seit der Vorschau geändert – bitte prüfen.": "The state in Jira changed since the preview - please check again.",
     "{count} Tickets in Jira geändert. Danach „Tickets aus Jira lesen“, um den Stand zu übernehmen.": '{count} tickets changed in Jira. Then "Read tickets from Jira" to adopt the state.',
+    "Bereits erfasste PO-Vorplanung ersetzen": "Replace pre-planning the PO already entered",
+    "Bisher": "So far",
+    "Die Summen der verteilten Tickets je Sprint und Produkt (Median-Variante) als Vorplanung des POs. Geschrieben wird nur, wo noch nichts erfasst ist; bereits erfasste Werte bleiben, solange das Ersetzen nicht gewählt ist.": "The sums of the distributed tickets per sprint and product (median variant) as the PO's pre-planning. Only values that are not entered yet are written; values already entered stay unless replacing is chosen.",
+    "In die PO-Vorplanung übernehmen": "Adopt into the PO pre-planning",
+    "PO-Wert bleibt": "PO value stays",
+    "Übergabe an die PO-Vorplanung": "Handover to the PO pre-planning",
 }
