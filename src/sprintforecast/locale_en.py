@@ -1795,4 +1795,10 @@ EN: dict[str, str] = {
     "Sprint-ID ändern; die Sprints danach zählen weiter": "Change a sprint ID; the sprints after it count on",
     "Sprint-ID ändern; die gespeicherten Sprints danach zählen von der neuen ID aus weiter.": "Change a sprint ID; the saved sprints after it count on from the new ID.",
     "Nicht gespeichert: {reason}": "Not saved: {reason}",
+    "Zeilenenden festlegen": "Set line endings",
+    "In diesem Datenordner fehlt die Festlegung, dass YAML-Dateien und Berichte immer mit LF gespeichert werden. Ohne sie schreibt das erste Speichern auf einem Rechner mit `core.autocrlf` (Windows) womöglich alle Zeilenenden um und erzeugt Rauschen im Verlauf. Angelegt wird die Datei {file} mit diesen Zeilen:": "This data folder does not say that YAML files and reports are always stored with LF. Without it, the first save on a machine with `core.autocrlf` (Windows) may rewrite every line ending and add noise to the history. This creates the file {file} with these lines:",
+    "Betroffen (Anzahl: {count}): Diese versionierten Dateien liegen mit CRLF im Repository und werden beim nächsten Speichern auf LF umgestellt (eine einmalige, rein technische Änderung der Zeilenenden):": "Affected ({count}): these versioned files are stored with CRLF in the repository and are converted to LF on the next save (a one-time, purely technical change of the line endings):",
+    "Keine vorhandene Datei ändert sich dadurch.": "No existing file changes because of this.",
+    "`.gitattributes` anlegen": "Create `.gitattributes`",
+    "`.gitattributes` angelegt. Die Änderung steht unter den offenen Änderungen; mit „Speichern und teilen“ geht sie den gewohnten Weg.": '`.gitattributes` created. The change is listed among the open changes; "Save and share" takes it the usual way (as a merge request if configured).',
 }

@@ -44,6 +44,13 @@ data-repo/
 - `.gitattributes` forces LF line endings for `*.yaml`, `*.yml` and `*.md` even with
   `core.autocrlf` on Windows; otherwise the first save would rewrite every line ending and add
   noise to the history.
+  An existing repository without it gets an offer: on the "Data folder" page (Settings), the
+  section "Set line endings" shows the lines to be added (an existing `.gitattributes` is
+  extended, never rewritten) and the tracked files that are stored with CRLF and would be
+  converted to LF. Nothing is written before you click "Create `.gitattributes`", and the
+  button does not commit: the change appears among the open changes and is saved and shared
+  like any other, as a merge request if the repository is set up that way. The offer disappears
+  once Git applies `eol=lf` to those files, also through a `.gitattributes` elsewhere.
 - `.gitignore` keeps spreadsheets out of the repository: they can contain real team data, and
   the app refuses to commit them anyway.
 - `forecast.yml` runs `check` on every change under `teams/`, and on pushes to `main` and on a

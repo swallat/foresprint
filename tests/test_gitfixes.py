@@ -999,3 +999,59 @@ def test_restore_version_rollback_puts_ignored_files_back(solo: Path, monkeypatc
     monkeypatch.setattr(githistory, "_git", real)
     assert (solo / "x.tmp").read_text(encoding="utf-8") == "lokal wichtig\n"
     assert git(solo, "status", "--porcelain") == ""
+
+
+def test_attributes_offer_lists_crlf_files_and_writes_nothing(solo: Path):
+    (solo / "a" / "crlf.yaml").write_bytes(b"x: 1\r\ny: 2\r\n")
+    (solo / "a" / "bericht.md").write_bytes(b"# ok\n")
+    git(solo, "add", "-A")
+    git(solo, "commit", "-qm", "Mit CRLF")
+    offer = gitmod.attributes_offer(solo)
+    assert offer is not None
+    assert offer.affected == ("a/crlf.yaml",)
+    assert len(offer.rules) == 3
+    assert not (solo / ".gitattributes").exists()
+
+
+def test_apply_attributes_goes_through_the_normal_commit(solo: Path):
+    (solo / "a" / "crlf.yaml").write_bytes(b"x: 1\r\ny: 2\r\n")
+    git(solo, "add", "-A")
+    git(solo, "commit", "-qm", "Mit CRLF")
+    assert gitmod.apply_attributes(solo) is not None
+    assert gitmod.attributes_offer(solo) is None  # nichts mehr anzubieten
+    changed = {f for _, f in pending_changes(solo)}
+    assert changed == {".gitattributes", "a/crlf.yaml"}
+    gitmod.commit_directory(solo, "Zeilenenden")
+    assert git(solo, "show", "HEAD:a/crlf.yaml", "--") == "x: 1\ny: 2"
+    assert pending_changes(solo) == []
+
+
+def test_apply_attributes_extends_an_existing_file(solo: Path):
+    (solo / ".gitattributes").write_bytes(b"*.yaml text eol=lf\n*.png binary")
+    git(solo, "add", "-A")
+    git(solo, "commit", "-qm", "Attribute")
+    offer = gitmod.attributes_offer(solo)
+    assert offer is not None and offer.rules == ("*.yml text eol=lf", "*.md text eol=lf")
+    gitmod.apply_attributes(solo)
+    lines = (solo / ".gitattributes").read_text(encoding="utf-8").splitlines()
+    assert lines == ["*.yaml text eol=lf", "*.png binary", "*.yml text eol=lf", "*.md text eol=lf"]
+
+
+def test_no_attributes_offer_when_the_repository_already_covers_it(solo: Path):
+    (solo / ".gitattributes").write_bytes(
+        b"*.yaml text eol=lf\n*.yml text eol=lf\n*.md text eol=lf\n"
+    )
+    git(solo, "add", "-A")
+    git(solo, "commit", "-qm", "Attribute")
+    assert gitmod.attributes_offer(solo) is None
+    assert gitmod.apply_attributes(solo) is None
+
+
+def test_attributes_offer_for_a_data_folder_inside_the_repository(solo: Path):
+    """Der Datenordner liegt tiefer: Die Datei kommt dorthin, nicht in die Repository-Wurzel."""
+    data = solo / "a"
+    offer = gitmod.attributes_offer(data)
+    assert offer is not None and offer.file == data / ".gitattributes"
+    gitmod.apply_attributes(data)
+    assert not (solo / ".gitattributes").exists()
+    assert (data / ".gitattributes").is_file()
