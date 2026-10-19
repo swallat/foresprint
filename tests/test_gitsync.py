@@ -1672,3 +1672,11 @@ def test_no_background_fetch_without_server(tmp_path: Path):
 def test_background_fetch_can_be_switched_off(bob: Person):
     assert not gitsync.start_background_fetch(bob.data)  # the test suite sets the variable
     assert not gitsync._BACKGROUND_ACTIVE
+
+
+def test_background_fetch_does_not_bring_tags_along(alice: Person, bob: Person):
+    # Tags are shown as "only on the server" until the person fetches them on purpose.
+    git(alice.root, "tag", "team/2026.21")
+    git(alice.root, "push", "-q", "origin", "team/2026.21")
+    gitsync._fetch_in_background(bob.data, gitsync.state(bob.data))
+    assert git(bob.root, "tag", "-l") == ""

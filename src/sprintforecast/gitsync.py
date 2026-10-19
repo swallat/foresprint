@@ -276,7 +276,10 @@ def _fetch_in_background(root: Path, current: SyncState) -> None:
     ohne Rückfrage sagt nichts über den Server und soll den letzten guten Stand nicht
     überschreiben). Ist der Server inzwischen ein anderer, gilt das Ergebnis nicht."""
     run = gitmod._probe_run(
-        root, ("fetch", "--prune", current.remote or "origin"), BACKGROUND_TIMEOUT, _quiet_env(root)
+        root,
+        ("fetch", "--prune", "--no-tags", current.remote or "origin"),
+        BACKGROUND_TIMEOUT,
+        _quiet_env(root),
     )
     if run.code != 0:
         return
