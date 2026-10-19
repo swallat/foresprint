@@ -5491,7 +5491,6 @@ def _git_panel(repo: Repository) -> None:
             _show_problem(error)
         else:
             st.error(error)
-    _background_fetch(str(repo.root))
     earlier = st.session_state.pop("sync_earlier", [])
     if result := st.session_state.pop("sync_result", None):
         tags_now = list(st.session_state.get("pending_tags", []))
@@ -5513,6 +5512,7 @@ def _git_panel(repo: Repository) -> None:
         )
         st.button(t("Aktualisieren"), key="git-sync-refresh", icon=":material/refresh:")
         return
+    _background_fetch(str(repo.root))
     try:
         changes = cached_pending_changes(repo.root)
         state = cached_sync_state(repo.root)

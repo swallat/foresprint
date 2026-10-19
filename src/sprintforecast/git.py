@@ -1203,7 +1203,9 @@ def _read_output(file: IO[bytes]) -> tuple[str, bool]:
     return text, len(data) > _PROBE_OUTPUT_LIMIT
 
 
-def _probe_run(root: Path, args: tuple[str, ...], timeout: float) -> _ProbeRun:
+def _probe_run(
+    root: Path, args: tuple[str, ...], timeout: float, env_extra: dict[str, str] | None = None
+) -> _ProbeRun:
     """Führt ``git`` für die Verbindungsprüfung aus: Rückgabecode, Ausgabe und Fehlerausgabe
     (je höchstens 64 KB, siehe :class:`_ProbeRun`).
 
@@ -1220,7 +1222,7 @@ def _probe_run(root: Path, args: tuple[str, ...], timeout: float) -> _ProbeRun:
                     stdin=subprocess.DEVNULL,
                     stdout=out,
                     stderr=err,
-                    env=_env(True, _PROBE_ENV),
+                    env=_env(True, _PROBE_ENV | (env_extra or {})),
                     **{**proctree.popen_options(), **NO_WINDOW},
                 )
             except OSError as e:
@@ -1454,7 +1456,7 @@ def on_invalidate(hook: Callable[[], object]) -> None:
 def invalidate_status() -> None:
     """Verwirft zwischengespeicherte Git-Stände (nach Speichern, Commit, Synchronisation)."""
     _STATUS_CACHE.clear()
-    for key in [k for k, (_, root, _) in _ROOT_CACHE.items() if root is None]:
+    for key in [k for k, (_, root, _) in list(_ROOT_CACHE.items()) if root is None]:
         del _ROOT_CACHE[key]  # „kein Repository“ ist nicht von Dauer
     for hook in _INVALIDATE_HOOKS:
         hook()

@@ -5,6 +5,7 @@ import http.server
 import subprocess
 import threading
 import time
+import types
 from datetime import date
 from pathlib import Path
 
@@ -1631,21 +1632,35 @@ def test_background_fetch_is_due_once_and_runs_as_daemon(alice: Person, bob: Per
 
 def test_background_fetch_asks_for_nothing_and_has_a_short_timeout(bob: Person, monkeypatch):
     seen: dict = {}
-    real = gitsync._git
+    real = gitsync.gitmod._probe_run
 
-    def spy(root, *args, **kwargs):
-        if args[:1] == ("fetch",):
-            seen.update(kwargs)
-        return real(root, *args, **kwargs)
+    def spy(root, args, timeout, env_extra=None):
+        seen.update(args=args, timeout=timeout, env=env_extra)
+        return real(root, args, timeout, env_extra)
 
-    monkeypatch.setattr(gitsync, "_git", spy)
-    gitsync.fetch(bob.data, background=True)
+    monkeypatch.setattr(gitsync.gitmod, "_probe_run", spy)
+    gitsync._fetch_in_background(bob.data, gitsync.state(bob.data))
+    assert seen["args"][:2] == ("fetch", "--prune")
     assert seen["timeout"] == gitsync.BACKGROUND_TIMEOUT
-    assert seen["env_extra"]["GCM_INTERACTIVE"] == "never"
-    assert seen["network"] is True
-    seen.clear()
+    assert seen["env"]["GCM_INTERACTIVE"] == "never"
+    assert seen["env"]["GIT_ASKPASS"] == ""
+
+
+def test_failed_background_fetch_leaves_the_state_alone(bob: Person, monkeypatch):
     gitsync.fetch(bob.data)
-    assert seen["timeout"] is None and seen["env_extra"] is None
+    before = gitsync._FETCHED[gitsync._root(bob.data)]
+    monkeypatch.setattr(
+        gitsync.gitmod, "_probe_run", lambda *a, **k: types.SimpleNamespace(code=128)
+    )
+    gitsync._fetch_in_background(bob.data, gitsync.state(bob.data))
+    assert gitsync._FETCHED[gitsync._root(bob.data)] == before
+
+
+def test_the_data_folder_lock_is_reentrant_and_shared(bob: Person):
+    lock = gitsync._lock_for(bob.data)
+    assert lock is gitsync._lock_for(bob.data)
+    with lock, lock:
+        assert gitsync.fetch(bob.data).remote is not None  # fetch takes the lock again
 
 
 def test_no_background_fetch_without_server(tmp_path: Path):
