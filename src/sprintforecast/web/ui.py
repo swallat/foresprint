@@ -4698,7 +4698,20 @@ def _reattach_clicked(root: Path) -> None:
     else:
         clear_team_cache()
         text = t("Zurück auf den Branch {branch}.", branch=md_code(done.branch))
-        if done.rescue:
+        if done.rescue and done.commits and done.changes:
+            text += " " + t(
+                "Die Commits vom Stand ohne Branch und die offenen Änderungen liegen auf dem "
+                "Rettungsbranch {rescue} (ein eigener Zweig nur für Gesichertes); auf dem "
+                "Hauptbranch sind sie nicht enthalten.",
+                rescue=md_code(done.rescue),
+            )
+        elif done.rescue and done.changes:
+            text += " " + t(
+                "Die offenen Änderungen liegen auf dem Rettungsbranch {rescue} (ein eigener "
+                "Zweig nur für Gesichertes); auf dem Hauptbranch sind sie nicht enthalten.",
+                rescue=md_code(done.rescue),
+            )
+        elif done.rescue:
             text += " " + t(
                 "Die Commits vom Stand ohne Branch liegen auf dem Rettungsbranch {rescue}.",
                 rescue=md_code(done.rescue),
