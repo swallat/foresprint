@@ -29,6 +29,7 @@ from sprintforecast import LOG_ENV, __version__, updater
 from sprintforecast.calendar import (
     day_label,
     expected_id_form,
+    following_sprint,
     holiday_name,
     id_fits_numbering,
     team_workdays,
@@ -2097,6 +2098,14 @@ def _ticket_handover(
         values.preplanned = row.proposed
         sprint.products[row.product] = values
         changed[row.sprint] = sprint
+    # The sprint sequence must stay gapless: also create the calendar-only sprints in between.
+    pending = {sid for sid in changed if data.sprint(sid) is None}
+    last = data.sprints[-1] if data.sprints else None
+    while pending:
+        last = following_sprint(data.team, last)
+        pending.discard(last.id)
+        if data.sprint(last.id) is None:
+            changed.setdefault(last.id, last)
     after = data
     for sprint in changed.values():
         after = _with_sprint(after, sprint)
