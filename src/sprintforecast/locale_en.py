@@ -1436,6 +1436,7 @@ EN: dict[str, str] = {
     "Dieser Commit ändert nichts (mehr); es gibt nichts zurückzunehmen.": "This commit changes nothing (any more); there is nothing to take back.",
     "Es wurde nichts verändert.": "Nothing was changed.",
     "Den Tag {name} gibt es auf diesem Rechner nicht.": "The tag {name} does not exist on this computer.",
+    "Protokolldatei nicht beschreibbar ({path}): {error}": "Log file not writable ({path}): {error}",
     "Die Einstellungen konnten nicht gespeichert werden ({path}): {error}": "The settings could not be saved ({path}): {error}",
     "Der Tag {tag} ist auf dem Server bereits für einen anderen Stand vergeben und wurde nicht überschrieben. Auf diesem Rechner zeigt er auf den eigenen Stand.": "The tag {tag} is already used on the server for a different version and was not overwritten. On this computer it points to your own version.",
     "Der Tag {tag} konnte nicht auf den Server übertragen werden.": "The tag {tag} could not be transferred to the server.",
