@@ -15,7 +15,7 @@ import unicodedata
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import IO, NamedTuple
+from typing import IO, NamedTuple, NoReturn
 
 from sprintforecast import proctree
 from sprintforecast.i18n import t
@@ -224,6 +224,26 @@ def _not_startable(executable: str) -> GitError:
     return classify("", missing=True, broken="" if executable == "git" else executable)
 
 
+# Windows-Fehler beim Start des Programms: nicht gefunden, Zugriff verweigert, kein gültiges
+# Programm (193), Erhöhung nötig (740), Anwendung nicht ausführbar (1260).
+_PROGRAM_WINERRORS = frozenset({2, 5, 193, 740, 1260})
+
+
+def _start_failed(error: OSError, executable: str) -> NoReturn:
+    """Deutet einen ``OSError`` beim Start von Git. Betrifft er eindeutig das Programm (der
+    Dateiname ist sein Pfad, unter Windows ein passender Fehlercode), gilt es als unbrauchbar
+    (:func:`_not_startable`). Sonstige Fehler – Arbeitsordner fehlt oder ist kein Ordner, zu
+    viele offene Dateien, kein Speicher – sperren Git nicht: Ein fehlender Ordner gilt wie bisher
+    als „Git fehlt“, alles andere wird unverändert weitergereicht."""
+    name = None if error.filename is None else os.fspath(error.filename)
+    winerror = getattr(error, "winerror", None)
+    if name == executable or (name is None and winerror in _PROGRAM_WINERRORS):
+        raise _not_startable(executable) from error
+    if isinstance(error, FileNotFoundError):
+        raise classify("", missing=True) from error
+    raise error
+
+
 def git_command(*args: str) -> list[str]:
     """Befehlszeile für einen Git-Aufruf. Fehlt Git ganz, bleibt es bei ``git``: Der Aufruf
     scheitert dann mit ``FileNotFoundError``; jeder ``OSError`` beim Start gilt den Aufrufern
@@ -280,7 +300,7 @@ def _git_result(
     except subprocess.TimeoutExpired as e:
         raise classify("", timeout=True) from e
     except OSError as e:
-        raise _not_startable(command[0]) from e
+        _start_failed(e, command[0])
 
 
 def _git(
@@ -405,7 +425,7 @@ def _git_bytes(cwd: Path, *args: str) -> bytes:
     except subprocess.TimeoutExpired as e:
         raise classify("", timeout=True) from e
     except OSError as e:
-        raise _not_startable(command[0]) from e
+        _start_failed(e, command[0])
     if proc.returncode != 0:
         raise classify(proc.stderr.decode("utf-8", "replace").strip())
     return proc.stdout
@@ -1107,7 +1127,7 @@ def _probe_run(root: Path, args: tuple[str, ...], timeout: float) -> _ProbeRun:
                 **{**proctree.popen_options(), **NO_WINDOW},
             )
         except OSError as e:
-            raise _not_startable(command[0]) from e
+            _start_failed(e, command[0])
         try:
             code: int | None = process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
