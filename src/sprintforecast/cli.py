@@ -480,21 +480,30 @@ def _maybe_commit(
     return issues
 
 
-def _refuse_invalid(c: Context, before: TeamData, after: TeamData, where: str) -> None:
-    """Wie die Weboberfläche: Fehler im neuen Stand (nur in den betroffenen Dateien, ``where``
-    ist der Anfang des Dateinamens) verhindern das Schreiben, statt nachträglich gemeldet zu
-    werden. Fehler, die schon vorher bestanden, blockieren die Änderung nicht."""
+def _new_errors(c: Context, before: TeamData, after: TeamData, where: str) -> list[Issue]:
+    """Fehler im neuen Stand (nur in den Dateien, deren Name mit ``where`` beginnt), die im
+    alten noch nicht standen."""
     known = {(i.where, i.message) for i in check_team(before, c.today)}
-    errors = [
+    return [
         i
         for i in check_team(after, c.today)
         if i.level is Level.ERROR
         and i.where.startswith(where)
         and (i.where, i.message) not in known
     ]
-    if errors:
-        for i in errors:
-            err.print(f"[red]{_plain(i.where)}: {_plain_end(i.message)}[/red]")
+
+
+def _print_errors(errors: list[Issue]) -> None:
+    for i in errors:
+        err.print(f"[red]{_plain(i.where)}: {_plain_end(i.message)}[/red]")
+
+
+def _refuse_invalid(c: Context, before: TeamData, after: TeamData, where: str) -> None:
+    """Wie die Weboberfläche: Fehler im neuen Stand (nur in den betroffenen Dateien, ``where``
+    ist der Anfang des Dateinamens) verhindern das Schreiben, statt nachträglich gemeldet zu
+    werden. Fehler, die schon vorher bestanden, blockieren die Änderung nicht."""
+    if errors := _new_errors(c, before, after, where):
+        _print_errors(errors)
         err.print(f"[red]{t('Nicht gespeichert – bitte die Fehler beheben.')}[/red]")
         raise typer.Exit(1)
 
@@ -840,7 +849,13 @@ def personen(
             fte = _ask_number(
                 t("FTE-Anteil im Team (1 = Vollzeit, 0.5 = halbe Stelle)"), 1, allow_empty=False
             )
-            people.append(Person(pid, name, region, [Membership(start=start, fte=fte or 1.0)]))
+            person = Person(pid, name, region, [Membership(start=start, fte=fte or 1.0)])
+            tentative = copy.copy(data)
+            tentative.people = [*people, person]
+            if errors := _new_errors(c, before, tentative, "people.yaml"):
+                _print_errors(errors)  # sofort melden, statt erst beim Speichern zu verwerfen
+                continue
+            people.append(person)
         else:
             candidates = [p for p in people if p.is_current(c.today)]
             if not candidates:
@@ -2305,7 +2320,13 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
             )
             start = _ask_date(t("Betreut ab"), c.today)
             pid = new_person_id(name, {p.id for p in products}, fallback="produkt")
-            products.append(Product(id=pid, name=name, po=po, start=start))
+            product = Product(id=pid, name=name, po=po, start=start)
+            tentative = copy.copy(data)
+            tentative.products = [*products, product]
+            if errors := _new_errors(c, before, tentative, "products.yaml"):
+                _print_errors(errors)
+                continue
+            products.append(product)
         else:
             current = [p for p in products if p.end is None or p.end >= c.today]
             if not current:
