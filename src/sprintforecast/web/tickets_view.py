@@ -19,7 +19,8 @@ from typing import Any
 
 import streamlit as st
 
-from sprintforecast.forecast import Forecast
+from sprintforecast.calendar import following_sprint
+from sprintforecast.forecast import Forecast, find_sprint
 from sprintforecast.i18n import t
 from sprintforecast.label_writeback import LabelPlan, apply_label_writes, plan_label_writes
 from sprintforecast.model import (
@@ -27,13 +28,26 @@ from sprintforecast.model import (
     Earmark,
     EstimateSource,
     ManualEstimate,
+    ProductValues,
     Project,
     Rule,
+    Sprint,
 )
-from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, Distribution, distribute
+from sprintforecast.preplan import (
+    LIGHTS,
+    REASONS,
+    SOURCES,
+    Distribution,
+    HandoverRow,
+    Variant,
+    Variants,
+    distribute_variants,
+    handover_rows,
+    project_range,
+)
 from sprintforecast.sources import RawTicket, SourceError, open_source
 from sprintforecast.sources.csv import CsvSource
-from sprintforecast.storage import DataError, Repository, TeamData
+from sprintforecast.storage import DataError, Repository, TeamData, save_sprints_together
 from sprintforecast.ticket_import import (
     DROPPED_ENDED,
     KINDS,
@@ -44,6 +58,7 @@ from sprintforecast.ticket_import import (
     apply_import,
     plan_import,
 )
+from sprintforecast.web.logic import with_sprints
 from sprintforecast.web.ui import (
     _next_step,
     _saved_text,
@@ -111,21 +126,38 @@ def project_options(data: TeamData, products: set[str] | None) -> list[Project]:
 # --- Tables (pure) ----------------------------------------------------------------------------
 
 
-def project_rows(data: TeamData, dist: Distribution, sel: Selection) -> list[dict[str, Any]]:
-    """One row per shown project: target, sprints, traffic light and open points."""
+def project_rows(
+    data: TeamData, dist: Distribution, sel: Selection, variants: Variants | None = None
+) -> list[dict[str, Any]]:
+    """One row per shown project: target, sprints, traffic light and open points. With the
+    range of ``variants`` the last sprint is shown per variant and the light as a range."""
+    ranged = variants is not None and variants.available
     rows = []
     for status in dist.projects:
         project = data.project(status.project)
         if project is None or not sel.shows(project.id):
             continue
+        light = f"{LIGHT_SYMBOLS[status.light]} {t(LIGHTS[status.light])}"
+        last: dict[str, Any] = {t("Letzter Sprint"): status.last_sprint or "–"}
+        if ranged:
+            assert variants is not None
+            span = project_range(variants, status.project)
+            if not span.uniform:
+                best, worst = (t(LIGHTS[x]) for x in span.light_range)
+                light += f" ({best} – {worst})"
+            last = {
+                t("Letzter Sprint optimistisch"): span.last_sprint[Variant.OPTIMISTIC] or "–",
+                t("Letzter Sprint Median"): span.last_sprint[Variant.MEDIAN] or "–",
+                t("Letzter Sprint konservativ"): span.last_sprint[Variant.CONSERVATIVE] or "–",
+            }
         rows.append(
             {
                 t("Projekt"): project.name,
                 t("Produkt"): project.product or "–",
                 t("Ziel"): project.target,
                 t("Zielsprint"): status.target_sprint or "–",
-                t("Letzter Sprint"): status.last_sprint or "–",
-                t("Ampel"): f"{LIGHT_SYMBOLS[status.light]} {t(LIGHTS[status.light])}",
+                **last,
+                t("Ampel"): light,
                 t("Offen"): status.open_tickets,
                 t("Nicht verteilbar"): status.not_distributable,
             }
@@ -272,6 +304,35 @@ def change_rows(plan: TicketImportPlan, kind: str) -> list[dict[str, str]]:
 # --- Project rules in the maintenance table ---------------------------------------------------
 
 
+def handover_sprints(data: TeamData, rows: list[HandoverRow], overwrite: bool) -> list[Sprint]:
+    """The sprints to write for a handover to the PO pre-planning (``preplanned``): only the
+    rows that write, a sprint that exists only in the calendar gets its file, and the sprint
+    sequence stays gapless (the calendar-only sprints in between are created too), as the
+    command ``tickets --handover`` does."""
+    changed: dict[str, Sprint] = {}
+    for row in rows:
+        if not row.writes(overwrite):
+            continue
+        sprint = changed.get(row.sprint)
+        if sprint is None:
+            found = find_sprint(data, row.sprint)
+            if found is None:
+                continue
+            sprint = copy.deepcopy(found)
+        values = sprint.products.get(row.product, ProductValues())
+        values.preplanned = row.proposed
+        sprint.products[row.product] = values
+        changed[row.sprint] = sprint
+    pending = {sid for sid in changed if data.sprint(sid) is None}
+    last = data.sprints[-1] if data.sprints else None
+    while pending:
+        last = following_sprint(data.team, last)
+        pending.discard(last.id)
+        if data.sprint(last.id) is None:
+            changed.setdefault(last.id, last)
+    return sorted(changed.values(), key=lambda x: x.start)
+
+
 def editable_columns(rule: Rule | None) -> dict[str, list[str]] | None:
     """The values per source of a rule the table can show: no rule, one leaf or the short form
     of epic, component and label. None = the rule is more complex (stays untouched)."""
@@ -377,7 +438,8 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
         ),
     )
     key = data.team.key
-    dist = distribute(data, today())
+    variants = distribute_variants(data, today())
+    dist = variants.median
     sel = _filter(data, key)
     tabs = st.tabs(
         [
@@ -390,9 +452,10 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
         ]
     )
     with tabs[0]:
-        _overview(data, fc, dist, sel)
+        _overview(data, fc, dist, sel, variants)
     with tabs[1]:
         _sprint_columns(repo, data, dist, sel)
+        _handover(repo, data, dist)
     with tabs[2]:
         _refinement(data, dist, sel)
     with tabs[3]:
@@ -433,7 +496,9 @@ def _filter(data: TeamData, key: str) -> Selection:
     return Selection(frozenset(shown), without, frozenset(p.id for p in data.projects))
 
 
-def _overview(data: TeamData, fc: Forecast, dist: Distribution, sel: Selection) -> None:
+def _overview(
+    data: TeamData, fc: Forecast, dist: Distribution, sel: Selection, variants: Variants
+) -> None:
     if not data.tickets:
         st.info(
             t(
@@ -451,10 +516,17 @@ def _overview(data: TeamData, fc: Forecast, dist: Distribution, sel: Selection) 
         )
     for cycle in dist.cycles:
         st.error(f"{t('Abhängigkeiten im Kreis')}: {' → '.join([*cycle, cycle[0]])}")
-    rows = project_rows(data, dist, sel)
+    rows = project_rows(data, dist, sel, variants)
     if not rows:
         st.info(t("Kein Projekt ausgewählt oder angelegt."))
         return
+    if not variants.available:
+        st.caption(
+            t(
+                "Keine Bandbreite: weniger als zwei Sprints mit Velocity. Gezeigt wird nur die "
+                "Median-Variante."
+            )
+        )
     st.subheader(t("Projekte"))
     st.dataframe(
         pd.DataFrame(rows),
@@ -540,6 +612,80 @@ def _sprint_columns(repo: Repository, data: TeamData, dist: Distribution, sel: S
         )
     )
     _earmark_form(repo, data, dist, sel)
+
+
+def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
+    """Hands the sums of the placed tickets per sprint and product (median variant) over to the
+    PO pre-planning: preview first, written after the confirmation; a value already entered
+    stays unless the box to replace it is ticked."""
+    if not data.team.features.products or not data.products:
+        return
+    key = data.team.key
+    st.divider()
+    st.subheader(t("Übergabe an die PO-Vorplanung"))
+    st.caption(
+        t(
+            "Die Summen der verteilten Tickets je Sprint und Produkt (Median-Variante) als "
+            "Vorplanung des POs. Geschrieben wird nur, wo noch nichts erfasst ist; bereits "
+            "erfasste Werte bleiben, solange das Ersetzen nicht gewählt ist."
+        )
+    )
+    count = int(
+        st.number_input(
+            t("Anzahl Sprints"),
+            min_value=1,
+            max_value=max(len(dist.sprints), 1),
+            value=min(6, max(len(dist.sprints), 1)),
+            key=f"tickets-{key}-handover-count",
+        )
+    )
+    overwrite = st.checkbox(
+        t("Bereits erfasste PO-Vorplanung ersetzen"), key=f"tickets-{key}-handover-overwrite"
+    )
+    rows = handover_rows(data, dist, count)
+    if not rows:
+        st.info(t("Nichts zu übergeben: in den gezeigten Sprints ist kein Ticket verteilt."))
+        return
+    names = {p.id: p.name for p in data.products}
+    notes = {
+        "write": t("neu"),
+        "same": t("unverändert"),
+        "keep": t("PO-Wert bleibt"),
+        "overwrite": t("wird ersetzt"),
+    }
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    t("Sprint"): r.sprint,
+                    t("Produkt"): names.get(r.product, r.product),
+                    t("Bisher"): fmt(r.current),
+                    t("Vorschlag"): fmt(r.proposed),
+                    t("Hinweis"): notes[r.action(overwrite)],
+                }
+                for r in rows
+            ]
+        ),
+        hide_index=True,
+    )
+    to_save = handover_sprints(data, rows, overwrite)
+    if not any(r.writes(overwrite) for r in rows):
+        st.caption(t("Nichts zu schreiben: die PO-Vorplanung steht schon."))
+        return
+    if st.button(
+        t("In die PO-Vorplanung übernehmen"), type="primary", key=f"tickets-{key}-handover"
+    ):
+        after = with_sprints(data, to_save)
+        ids = [x.id for x in after.sprints]
+        saved = {x.id for x in to_save}
+        checked = saved | {ids[i + 1] for i, sid in enumerate(ids[:-1]) if sid in saved}
+        save(
+            after,
+            [f"{sid}.yaml" for sid in checked],
+            lambda: save_sprints_together(repo, key, to_save),
+            flash=True,
+        )
+        st.rerun()
 
 
 def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: str) -> None:
