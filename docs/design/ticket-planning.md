@@ -149,7 +149,7 @@ refined status (section 6.3) are listed separately above.
 ### 5.5 Uncertainty (step 4)
 
 The distribution is calculated three times: with the lowest, the median and the highest
-normalised velocity from `analysis.band` (conservative, median, optimistic). In the conservative
+normalized velocity from `analysis.band` (conservative, median, optimistic). In the conservative
 variant, rough estimates are multiplied by `rough_factor` (team setting, default 1.5).
 The median variant is shown; traffic light and timeline show the range.
 
@@ -255,7 +255,7 @@ Rule language:
 |---|---|
 | Ticket in current or future real sprint | counts as planned; counts against the budget of that sprint; a deviating earmark is discarded and the deviation is shown |
 | Ticket done | earmark is dropped, hint |
-| Ticket no longer in the query | earmark stays, warning |
+| Ticket no longer in the query | earmark stays with a warning until its sprint is over; the next import then drops it |
 | Ticket deleted or not readable | warning "not verifiable", earmark stays visible |
 | Estimate or remaining changed | new number, distribution recalculates |
 | Ticket without project or with two projects | list "to be assigned" in the preview |

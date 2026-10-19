@@ -48,6 +48,31 @@ def test_every_text_is_translated():
     assert not missing, "Ohne Übersetzung:\n" + "\n".join(missing)
 
 
+def source_strings() -> set[str]:
+    """Alle Textkonstanten im Quelltext (außer locale_en) samt der Texte aus Datenstrukturen."""
+    found = set(static_texts())
+    for path in SRC.rglob("*.py"):
+        if path.name == "locale_en.py":
+            continue
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                found.add(node.value)
+    return found
+
+
+def test_no_orphaned_translations():
+    """Ein Eintrag in locale_en.EN, dessen deutscher Text nirgends mehr im Quelltext steht, ist
+    verwaist (der Text wurde geändert oder entfernt) und gehört gelöscht."""
+    used = source_strings()
+    orphaned = [de for de in EN if de not in used]
+    assert not orphaned, "Verwaiste Übersetzungen:\n" + "\n".join(orphaned)
+
+
+def test_english_uses_american_spelling():
+    """Die englischen Texte schreiben wie die Doku amerikanisch (normalized, nicht normalised)."""
+    assert not [en for en in EN.values() if "ormalis" in en]
+
+
 def test_placeholders_match():
     wrong = [de for de, en in EN.items() if fields(de) != fields(en)]
     assert not wrong, wrong

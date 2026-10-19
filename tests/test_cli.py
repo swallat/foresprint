@@ -190,7 +190,7 @@ def test_init_new_team(tmp_path: Path):
     # Reihenfolge: Name, dann der erste Sprint (Nummerierung, Start, ID), dann alles Weitere.
     answers = [
         "Team A", "yearly", "2026-10-14", "2026.20",
-        "PT", "", "", "", "", "by", "", "10", "", "", "14",
+        "PT", "", "", "", "", "", "by", "", "10", "", "", "14",
         "40", "", "", "", "", "", "",
     ]  # fmt: skip
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
@@ -205,7 +205,7 @@ def test_init_new_team(tmp_path: Path):
 
 def test_init_has_no_default_for_the_first_sprint_id(tmp_path: Path):
     """Enter übernimmt keine ID: Das Team kennt seinen laufenden Sprint, das Programm nicht."""
-    answers = ["Team A", "", "2026-10-14", "", "", "2026.15"] + [""] * 18
+    answers = ["Team A", "", "2026-10-14", "", "", "2026.15"] + [""] * 19
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
     assert result.output.count("Bitte einen Wert eingeben.") == 2
@@ -215,7 +215,7 @@ def test_init_has_no_default_for_the_first_sprint_id(tmp_path: Path):
 
 
 def test_init_asks_again_for_an_id_that_does_not_fit_the_numbering(tmp_path: Path):
-    answers = ["Team A", "sequential", "2026-10-14", "abc", "15"] + [""] * 18
+    answers = ["Team A", "sequential", "2026-10-14", "abc", "15"] + [""] * 19
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
     assert "'abc' passt nicht zur Nummerierung (erwartet eine Zahl" in result.output
@@ -259,12 +259,13 @@ def test_existing_team_with_unusual_name_still_works_in_cli(data_dir: Path):
 
 
 def test_einstellungen_changes_and_validates(data_dir: Path):
-    # Reihenfolge: Name, Einheit, Produktverteilung, PO, Produktionszugriff, Land, Bundesland,
-    # Overhead, Länge, Nummerierung, Referenz, Fenster, Trend, Roadmap, Horizont, Rundung,
-    # Produktbasis, Speichern?
+    # Reihenfolge: Name, Einheit, Produktverteilung, PO, Produktionszugriff, Ticket-Vorplanung,
+    # Land, Bundesland, Overhead, Länge, Nummerierung, Referenz, Fenster, Trend, Roadmap,
+    # Horizont, Rundung, Produktbasis, Speichern?
     answers = [
         "",
         "SP",
+        "",
         "",
         "",
         "",
@@ -303,7 +304,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
 
 def test_einstellungen_without_changes(data_dir: Path):
     before = (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8")
-    result = run(data_dir, "settings", "demo", input="\n" * 20)
+    result = run(data_dir, "settings", "demo", input="\n" * 21)
     assert result.exit_code == 0, result.output
     assert "Keine Änderungen" in result.output
     assert (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8") == before

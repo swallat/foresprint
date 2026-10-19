@@ -224,7 +224,9 @@ def build_workbook(fc: Forecast) -> bytes:
         "forecast.roadmap_share": "Roadmap_Anteil",
         "forecast.rounding": "Rundung",
     }
-    flat = flatten(team_to_dict(team))
+    # The tracker section (ticket pre-planning) is not a spreadsheet setting: the import keeps
+    # the existing section of team.yaml.
+    flat = [(p, v) for p, v in flatten(team_to_dict(team)) if not p.startswith("tracker.")]
     for k, (path, value) in enumerate(flat, start=SETTINGS_FIRST_ROW - 1):
         ws_set.write(k, 0, labels.get(path, path))
         if isinstance(value, date):
