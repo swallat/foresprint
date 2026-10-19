@@ -1687,21 +1687,64 @@ def _ticket_preview(plan: Any, limit: int = 15) -> None:
         console.print(f"[yellow]{_plain(warning)}[/yellow]")
 
 
-def _ticket_report(
-    data: TeamData, today: date, sprint_count: int, printed: list[Issue] | None = None
-) -> None:
-    """Distribution of the tickets: project traffic light, sprints, refinement list. ``printed``
-    are check results already printed (they are not printed twice)."""
-    from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, distribute
+# The variants of the distribution (spec section 5.5), for the option --variant (not imported
+# from preplan: the module loads only when the feature is used).
+VARIANT_CHOICES = ("median", "conservative", "optimistic")
 
-    if not data.tickets:
-        how = "--fetch" if data.team.tracker.kind == "jira" else "--import DATEI"
-        console.print(
-            t(
-                "Keine Tickets vorhanden – zuerst importieren: sprintforecast tickets TEAM {how}",
-                how=how,
-            )
+
+def _check_variant(value: str) -> str:
+    if value not in VARIANT_CHOICES:
+        raise typer.BadParameter(t("Variante erwartet: median, conservative oder optimistic"))
+    return value
+
+
+def _no_tickets(data: TeamData) -> bool:
+    """Says how to import when there are no tickets; True = there are none."""
+    if data.tickets:
+        return False
+    how = "--fetch" if data.team.tracker.kind == "jira" else "--import DATEI"
+    console.print(
+        t(
+            "Keine Tickets vorhanden – zuerst importieren: sprintforecast tickets TEAM {how}",
+            how=how,
         )
+    )
+    return True
+
+
+def _no_budget_warning() -> None:
+    console.print(
+        "[yellow]"
+        + t(
+            "Noch kein Budget: ohne vergangene Sprints mit Velocity gibt es keinen "
+            "Forecast, die Tickets können nicht verteilt werden."
+        )
+        + "[/yellow]"
+    )
+
+
+def _ticket_report(
+    data: TeamData,
+    today: date,
+    sprint_count: int,
+    printed: list[Issue] | None = None,
+    variant: str = "median",
+) -> None:
+    """Distribution of the tickets: project traffic light with the range of the variants,
+    sprints, refinement list. ``variant`` selects the distribution of the sprint table and the
+    refinement list; the project table shows the median variant and the range. ``printed`` are
+    check results already printed (they are not printed twice)."""
+    from sprintforecast.preplan import (
+        LIGHTS,
+        REASONS,
+        SOURCES,
+        VARIANT_NAMES,
+        Variant,
+        distribute_variants,
+        project_range,
+    )
+
+    if _no_tickets(data):
         return
     for issue in issues_for(data, today, ["projects.yaml", "tickets.yaml", "preplan.yaml"]):
         if printed and issue in printed:
@@ -1711,19 +1754,30 @@ def _ticket_report(
             f"[{colour}]{issue.level.label}[/{colour}] {_plain(issue.where)}: "
             f"{_plain(issue.message)}"
         )
-    dist = distribute(data, today)
+    variants = distribute_variants(data, today)
+    dist = variants.median
     if dist.no_forecast:
+        _no_budget_warning()
+    if not variants.available:
         console.print(
             "[yellow]"
             + t(
-                "Noch kein Budget: ohne vergangene Sprints mit Velocity gibt es keinen "
-                "Forecast, die Tickets können nicht verteilt werden."
+                "Keine Bandbreite: weniger als zwei Sprints mit Velocity. Gezeigt wird nur die "
+                "Median-Variante."
             )
             + "[/yellow]"
         )
+    # Sprint table, refinement list and open points follow the chosen variant.
+    shown = variants.get(variant) or dist
     colours = {"on_track": "green", "tight": "yellow", "missed": "red", "empty": "dim"}
+    last = (
+        [t("Letzter Sprint optimistisch"), t("Letzter Sprint Median"),
+         t("Letzter Sprint konservativ")]
+        if variants.available
+        else [t("Letzter Sprint")]
+    )  # fmt: skip
     projects = Table(
-        t("Projekt"), t("Ziel"), t("Zielsprint"), t("Letzter Sprint"), t("Ampel"), t("Offen"),
+        t("Projekt"), t("Ziel"), t("Zielsprint"), *last, t("Ampel"), t("Offen"),
         t("Nicht verteilbar"),
         title=t("Projekte"),
     )  # fmt: skip
@@ -1732,12 +1786,31 @@ def _ticket_report(
         name = project.name if project else row.project
         target = f"{project.target:%d.%m.%Y}" if project and project.target else "–"
         light = f"[{colours[row.light]}]{t(LIGHTS[row.light])}[/{colours[row.light]}]"
+        if variants.available:
+            span = project_range(variants, row.project)
+            if not span.uniform:
+                best, worst = (t(LIGHTS[x]) for x in span.light_range)
+                light += f" [dim]({best} – {worst})[/dim]"
+            sprints_ = [span.last_sprint[v] for v in (Variant.OPTIMISTIC, Variant.MEDIAN,
+                                                      Variant.CONSERVATIVE)]  # fmt: skip
+        else:
+            sprints_ = [row.last_sprint]
         projects.add_row(
             _plain(name), target, _plain(row.target_sprint or "–"),
-            _plain(row.last_sprint or "–"), light, str(row.open_tickets),
+            *(_plain(sprint or "–") for sprint in sprints_), light, str(row.open_tickets),
             str(row.not_distributable),
         )  # fmt: skip
     console.print(projects)
+    if shown is not dist:
+        console.print(
+            "[dim]"
+            + t(
+                "Sprints, Refinement-Liste und nicht verteilbare Tickets: Variante {variant}",
+                variant=t(VARIANT_NAMES[shown.variant.value]),
+            )
+            + "[/dim]"
+        )
+    dist = shown
 
     names = {tk.key: tk for tk in data.tickets}
     sprints = Table(
@@ -1952,10 +2025,93 @@ def _ticket_read(data: TeamData, datei: Path | None, fetch: bool) -> tuple[list[
     return raws, name
 
 
+def _ticket_handover(
+    c: Context,
+    data: TeamData,
+    team: str,
+    sprint_count: int,
+    apply: bool,
+    overwrite: bool,
+    commit_: bool,
+) -> None:
+    """Proposes the sums of the placed tickets per sprint and product (median variant) as the
+    PO pre-planning (``preplanned``); with ``apply`` writes where nothing is entered yet (or the
+    same is), with ``overwrite`` everywhere."""
+    from sprintforecast.preplan import distribute, handover_rows
+
+    _require_products(data, team)
+    if not data.products:
+        err.print(
+            "[red]"
+            + t(
+                "Keine Produkte erfasst. Zuerst: {command}",
+                command=_plain_end(f"sprintforecast product-list {team}"),
+            )
+            + "[/red]"
+        )
+        raise typer.Exit(1)
+    if _no_tickets(data):
+        return
+    dist = distribute(data, c.today)
+    if dist.no_forecast:
+        _no_budget_warning()
+    rows = handover_rows(data, dist, sprint_count)
+    if not rows:
+        console.print(t("Nichts zu übergeben: in den gezeigten Sprints ist kein Ticket verteilt."))
+        return
+    names = {p.id: p.name for p in data.products}
+    notes = {
+        "write": t("wird geschrieben") if apply else t("neu"),
+        "same": t("unverändert"),
+        "keep": t("PO-Wert bleibt (--overwrite ersetzt ihn)"),
+        "overwrite": t("wird ersetzt") if apply else t("würde ersetzt (--overwrite)"),
+    }
+    table = Table(
+        t("Sprint"), t("Produkt"), measure_label("preplanned"), t("Vorschlag"), t("Hinweis"),
+        title=t("Übergabe an die PO-Vorplanung (Median-Variante)"),
+    )  # fmt: skip
+    for row in rows:
+        table.add_row(
+            _plain(row.sprint), _plain(names.get(row.product, row.product)),
+            fmt_plain(row.current) if row.current is not None else "–", fmt_plain(row.proposed),
+            notes[row.action(overwrite)],
+        )  # fmt: skip
+    console.print(table)
+    writable = [r for r in rows if r.writes(overwrite)]
+    if not apply:
+        console.print(t("Nur Vorschau – mit --apply schreiben."))
+        return
+    if not writable:
+        console.print(t("Nichts zu schreiben: die PO-Vorplanung steht schon."))
+        return
+    fc = build_forecast(data, c.today)
+    changed: dict[str, Sprint] = {}
+    for row in writable:
+        # A sprint that exists only in the calendar gets its file here, like `products`.
+        sprint = changed.get(row.sprint) or copy.deepcopy(
+            _find_or_create(data, fc, row.sprint, "planning")
+        )
+        values = sprint.products.get(row.product, ProductValues())
+        values.preplanned = row.proposed
+        sprint.products[row.product] = values
+        changed[row.sprint] = sprint
+    after = data
+    for sprint in changed.values():
+        after = _with_sprint(after, sprint)
+    _refuse_invalid(c, data, after, "sprints/")
+    paths = [c.repo.save_sprint(team, sprint) for sprint in changed.values()]
+    _saved(", ".join(p.name for p in paths))
+    _maybe_commit(
+        c, team, paths, t("{team}: PO-Vorplanung aus den Tickets", team=data.team.name),
+        None, commit_,
+    )  # fmt: skip
+
+
 @command(
     "tickets",
     "Ticket-Vorplanung: Tickets aus Jira oder einer CSV-Datei einlesen, auf künftige Sprints "
-    "verteilen, Projektampel und Refinement-Liste.",
+    "verteilen, Projektampel mit Bandbreite und Refinement-Liste; Übergabe an die "
+    "PO-Vorplanung.",
 )
 def tickets(
     ctx: typer.Context,
@@ -1989,8 +2145,36 @@ def tickets(
             help=t("Jira-Token (verdeckte Eingabe) im Schlüsselbund ablegen."),
         ),
     ] = False,
+    handover: Annotated[
+        bool,
+        typer.Option(
+            "--handover",
+            help=t(
+                "Summen der verteilten Tickets je Sprint und Produkt als PO-Vorplanung "
+                "vorschlagen (Median-Variante; mit --apply schreiben)."
+            ),
+        ),
+    ] = False,
+    overwrite: Annotated[
+        bool,
+        typer.Option(
+            "--overwrite", help=t("Mit --handover auch bereits erfasste PO-Vorplanung ersetzen.")
+        ),
+    ] = False,
+    variant: Annotated[
+        str,
+        typer.Option(
+            "--variant",
+            callback=_check_variant,
+            help=t(
+                "Variante für Sprint-Tabelle und Refinement-Liste: median (Forecast PLAN), "
+                "conservative oder optimistic."
+            ),
+        ),
+    ] = "median",
     uebernehmen: Annotated[
-        bool, typer.Option("--apply", help=t("Import schreiben (sonst nur Vorschau)."))
+        bool,
+        typer.Option("--apply", help=t("Import bzw. Übergabe schreiben (sonst nur Vorschau).")),
     ] = False,
     commit_: CommitOpt = False,
     sprints: Annotated[
@@ -2007,6 +2191,7 @@ def tickets(
             ("--fetch", fetch),
             ("--test-connection", test_connection),
             ("--set-token", set_token),
+            ("--handover", handover),
         )
         if given
     ]
@@ -2022,6 +2207,8 @@ def tickets(
                 ("--apply", uebernehmen),
                 ("--commit", commit_),
                 ("--sprints", _given(ctx, "sprints")),
+                ("--variant", _given(ctx, "variant")),
+                ("--overwrite", overwrite),
             )
             if given
         ]
@@ -2035,11 +2222,23 @@ def tickets(
                 + "[/red]"
             )
             raise typer.Exit(1)
+    if overwrite and not handover:
+        err.print(f"[red]{t('--overwrite gehört zu --handover.')}[/red]")
+        raise typer.Exit(1)
+    if handover and _given(ctx, "variant"):
+        err.print("[red]" + t("--variant gehört nicht zu --handover (Median-Variante).") + "[/red]")
+        raise typer.Exit(1)
     if set_token:
         _ticket_set_token(data)
         return
     if test_connection:
         _ticket_test_connection(data)
+        return
+    if handover:
+        if commit_ and not uebernehmen:
+            err.print(f"[red]{t('--commit braucht --apply.')}[/red]")
+            raise typer.Exit(1)
+        _ticket_handover(c, data, team, sprints, uebernehmen, overwrite, commit_)
         return
     importing = datei is not None or fetch
     if importing and commit_ and not uebernehmen:
@@ -2070,9 +2269,13 @@ def tickets(
         if not uebernehmen:
             return
     elif uebernehmen or commit_:
-        err.print(f"[red]{t('--apply und --commit gehören zu --import und --fetch.')}[/red]")
+        err.print(
+            "[red]"
+            + t("--apply und --commit gehören zu --import, --fetch und --handover.")
+            + "[/red]"
+        )
         raise typer.Exit(1)
-    _ticket_report(data, c.today, sprints, printed)
+    _ticket_report(data, c.today, sprints, printed, variant)
 
 
 @command(
