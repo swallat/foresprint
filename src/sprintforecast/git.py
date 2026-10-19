@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unicodedata
 from collections.abc import Callable, Iterable, Iterator
@@ -350,6 +351,79 @@ def _env(network: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
     return env | (extra or {})
 
 
+# Laufende Git-Aufrufe je Ordner, damit ein hängender Abgleich von außen beendet werden kann
+# (:func:`abort_running`). Der Schlüssel ist der aufgelöste Arbeitsordner des Aufrufs.
+_ACTIVE_LOCK = threading.Lock()
+_ACTIVE: dict[Path, set[subprocess.Popen]] = {}
+_ABORTED: set[Path] = set()  # Ordner, deren Abgleich abgebrochen wurde: kein neuer Git-Aufruf
+
+
+def _key(cwd: Path) -> Path:
+    return Path(cwd).resolve()
+
+
+def _raise_if_aborted(cwd: Path) -> None:
+    with _ACTIVE_LOCK:
+        aborted = _key(cwd) in _ABORTED
+    if aborted:
+        raise GitError(t("Der Abgleich wurde abgebrochen."), "aborted", hint_for("aborted"))
+
+
+def clear_abort(cwd: Path) -> None:
+    """Hebt einen früheren Abbruch für diesen Ordner auf (vor dem Start eines Abgleichs)."""
+    with _ACTIVE_LOCK:
+        _ABORTED.discard(_key(cwd))
+
+
+def abort_running(cwd: Path) -> bool:
+    """Beendet die laufenden Git-Aufrufe in diesem Ordner (samt Kindprozessen) und lässt bis
+    :func:`clear_abort` keinen neuen starten. ``True``, wenn ein Aufruf lief. Dateien wie
+    ``index.lock`` werden nie entfernt; ein abgebrochenes Git meldet sie als ``locked``."""
+    key = _key(cwd)
+    with _ACTIVE_LOCK:
+        running = [p for p in _ACTIVE.get(key, ()) if p.poll() is None]
+        if running:
+            _ABORTED.add(key)
+    for process in running:
+        proctree.terminate_tree(process, timeout=5)
+    return bool(running)
+
+
+def _run_tracked(
+    command: list[str], cwd: Path, *, timeout: float, env: dict[str, str]
+) -> subprocess.CompletedProcess[str]:
+    """Wie ``subprocess.run`` mit Zeitlimit, aber der Prozess ist für :func:`abort_running`
+    auffindbar und läuft in eigener Prozessgruppe, damit sich der ganze Baum beenden lässt."""
+    key = _key(cwd)
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdin=subprocess.DEVNULL,
+        env=env,
+        **{**proctree.popen_options(), **NO_WINDOW},
+    )
+    with _ACTIVE_LOCK:
+        _ACTIVE.setdefault(key, set()).add(process)
+    try:
+        try:
+            out, err = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proctree.terminate_tree(process)
+            process.communicate()
+            raise
+        return subprocess.CompletedProcess(command, process.returncode, out, err)
+    finally:
+        with _ACTIVE_LOCK:
+            _ACTIVE.get(key, set()).discard(process)
+            if not _ACTIVE.get(key):
+                _ACTIVE.pop(key, None)
+
+
 def _git_result(
     cwd: Path,
     *args: str,
@@ -359,20 +433,15 @@ def _git_result(
 ) -> subprocess.CompletedProcess[str]:
     """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
     „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
+    _raise_if_aborted(cwd)
     for attempt in range(_START_ATTEMPTS):
         command = git_command(*args)
         try:
-            result = subprocess.run(
+            result = _run_tracked(
                 command,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                stdin=subprocess.DEVNULL,
-                env=_env(network, env_extra),
+                cwd,
                 timeout=timeout or (NETWORK_TIMEOUT if network else 120),
-                **NO_WINDOW,
+                env=_env(network, env_extra),
             )
         except subprocess.TimeoutExpired as e:
             raise classify("", timeout=True) from e
@@ -789,6 +858,8 @@ def title_for(kind: str) -> str:
         "certificate": t("Zertifikat des Servers nicht anerkannt"),
         "folder": t("Ordner nicht nutzbar"),
         "nothing_to_share": t("Noch nichts zu teilen"),
+        "sync_busy": t("Ein anderer Abgleich läuft noch"),
+        "aborted": t("Abgleich abgebrochen"),
     }
     return titles.get(kind, t("Git-Fehler"))
 
@@ -798,6 +869,16 @@ def hint_for(kind: str, url: str = "") -> str:
     if kind == "auth":
         return auth_help(url)
     hints = {
+        "sync_busy": t(
+            "Ein Abgleich dieses Datenordners läuft schon sehr lange und hängt vielleicht "
+            "(z. B. wegen einer schlechten Netzwerkverbindung). Warten oder den laufenden "
+            "Abgleich abbrechen: Deine Änderungen bleiben lokal gesichert."
+        ),
+        "aborted": t(
+            "Der Abgleich wurde von Hand beendet. Deine Änderungen sind lokal gesichert; "
+            "bitte noch einmal teilen. Meldet Git danach eine gesperrte Datei, ist der Hinweis "
+            "dazu zu beachten."
+        ),
         "identity": t(
             "Git kennt deinen Namen noch nicht. Bitte in der Seitenleiste Name und "
             "E-Mail-Adresse eintragen."
