@@ -247,16 +247,34 @@ def detach_with_open_change(root: Path, orphan_commit: bool = False) -> None:
     invalidate_status()
 
 
-def test_reattach_with_open_changes_explains_the_way_out(shared, data_dir: Path, monkeypatch):
+def test_reattach_with_open_changes_saves_them_on_the_rescue_branch(
+    shared, data_dir: Path, monkeypatch
+):
     root, _, _ = shared
     detach_with_open_change(root)
     at = start(data_dir, monkeypatch)
     press(at, "Zurück auf den Branch")
-    errors = " ".join(e.value for e in at.sidebar.error)
-    assert "Kein Branch ausgewählt (detached HEAD)" in errors
-    assert "Änderungen und Verlauf" in errors and "gehen dabei verloren" in errors
-    assert "zuerst committen" not in errors and "außerhalb des Datenordners" not in errors
-    assert "velocity: 99" in (root / SPRINT).read_text(encoding="utf-8")  # nichts überschrieben
+    rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    assert rescue.startswith("rettung-")
+    assert "velocity: 99" in git(root, "show", f"{rescue}:{SPRINT}")  # die Änderung liegt dort
+    assert not at.sidebar.error
+    shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
+    assert "Zurück auf den Branch `main`." in shown
+    assert f"Die offenen Änderungen liegen auf dem Rettungsbranch `{rescue}`" in shown
+    assert "velocity: 99" not in (root / SPRINT).read_text(encoding="utf-8")
+
+
+def test_reattach_names_commits_and_open_changes_on_the_rescue_branch(
+    shared, data_dir: Path, monkeypatch
+):
+    root, _, _ = shared
+    detach_with_open_change(root, orphan_commit=True)
+    at = start(data_dir, monkeypatch)
+    press(at, "Zurück auf den Branch")
+    rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
+    assert "Commits vom Stand ohne Branch und die offenen Änderungen liegen auf dem " in shown
+    assert f"Rettungsbranch `{rescue}`" in shown
 
 
 def test_reattach_names_the_rescue_branch(shared, data_dir: Path, monkeypatch):
