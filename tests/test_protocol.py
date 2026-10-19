@@ -275,11 +275,41 @@ def test_a_failing_rollback_keeps_the_original_error(
         return real(self, missing_ok=missing_ok)
 
     monkeypatch.setattr(Path, "unlink", locked)
-    with pytest.raises(FileAccessError, match="Sprintdatei gesperrt"):
+    with pytest.raises(FileAccessError, match="Sprintdatei gesperrt") as info:
         save_with_protocol(
             repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, [sprint_stub()],
             failing,
         )  # fmt: skip
+    # Der Rückbau-Fehler ist nicht stumm: Er hängt als Hinweis am ursprünglichen Fehler.
+    assert any(
+        "nicht zurückgebaut" in n and "Protokoll gesperrt" in n for n in info.value.__notes__
+    )
+
+
+def test_a_clock_function_is_read_only_after_the_lock_is_held(tmp_path: Path):
+    repo = Repository(tmp_path)
+    reads: list[str] = []
+
+    def clock() -> datetime:
+        reads.append("clock")
+        return NOW
+
+    real = protocol_module._write_locked
+
+    def spy(*args, **kwargs):
+        reads.append("locked")
+        return real(*args, **kwargs)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(protocol_module, "_write_locked", spy)
+        path = write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nx\n", clock)
+    assert reads == ["locked", "clock"]
+    assert f"{NOW:%Y%m%d-%H%M%S}" in path.name
+
+
+def test_a_missing_clock_uses_the_current_time(tmp_path: Path):
+    path = write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nx\n", None)
+    assert path.exists()
 
 
 def run_concurrently(tasks: list) -> list:
@@ -719,7 +749,11 @@ def os_error(code: int) -> OSError:
 
 # Fehler, die ein Dateisystem ohne Dateisperren (z. B. mancher Netzordner) meldet.
 PERMANENT_ERRNOS = [errno.ENOLCK, errno.ENOSYS, errno.EINVAL, errno.EIO, errno.EOPNOTSUPP]
-BUSY_ERRNOS = [errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK, errno.EDEADLK]
+BUSY_ERRNOS = [errno.EAGAIN, errno.EWOULDBLOCK, errno.EDEADLK]
+if sys.platform == "win32":
+    BUSY_ERRNOS.append(errno.EACCES)  # nur unter Windows heißt EACCES „belegt“
+else:
+    PERMANENT_ERRNOS.append(errno.EACCES)  # unter POSIX: fehlendes Recht, dauerhaft
 
 
 @pytest.mark.parametrize("code", BUSY_ERRNOS)
@@ -799,7 +833,9 @@ def test_the_missing_file_lock_support_is_reported_in_english(
         write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
 
 
-@pytest.mark.parametrize("code", [errno.EACCES, errno.EAGAIN])
+@pytest.mark.parametrize(
+    "code", [errno.EAGAIN, *([errno.EACCES] if sys.platform == "win32" else [])]
+)
 def test_real_contention_still_waits_and_reports_another_session(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, code: int
 ):
@@ -978,3 +1014,38 @@ def test_a_missing_or_unreadable_planning_protocol_yields_no_sections(tmp_path: 
     path = write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n", NOW)
     path.write_bytes(b"\xff\xfe")
     assert latest_planning_sections(repo, "demo", "2026.21") == {}
+
+
+def test_a_transient_error_creating_the_lock_folder_is_not_a_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+
+    def flaky(path):
+        raise OSError(errno.EMFILE, "Zu viele offene Dateien")
+
+    monkeypatch.setattr(protocol_module, "_private_dir", flaky)
+    with pytest.raises(FileAccessError, match="nicht gespeichert"):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+    assert not list(temp.glob("sprintforecast-sperren-*"))
+
+
+def test_a_transient_error_opening_the_lock_file_is_not_a_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    real = Path.open
+
+    def flaky(self, mode="r", *args, **kwargs):
+        if self.suffix == ".lock":
+            raise OSError(errno.EMFILE, "Zu viele offene Dateien")
+        return real(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", flaky)
+    with pytest.raises(FileAccessError, match="nicht gespeichert"):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+    assert not list(temp.glob("sprintforecast-sperren-*"))
