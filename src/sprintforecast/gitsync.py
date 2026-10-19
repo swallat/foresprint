@@ -10,6 +10,7 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import re
@@ -606,6 +607,15 @@ def sync(
                         hint_for("invalid"),
                     )
             via_mr = share_mode(root) == SHARE_MERGE_REQUEST
+            if via_mr and current.upstream and current.ahead:
+                current = _drop_merged_commits(root, current)  # z. B. nach „Squash“ im Merge
+            if via_mr and tags:
+                result.notes.append(
+                    t(
+                        "Tags werden bei Merge Requests nicht hochgeladen; sie lassen sich nach "
+                        "dem Merge im Bereich „Tags“ teilen."
+                    )
+                )
             if via_mr and current.upstream and not current.ahead:
                 break  # nichts Eigenes, das einen Merge Request bräuchte
             try:
@@ -616,7 +626,7 @@ def sync(
                 else:
                     _push(root, current)
             except GitError as e:
-                if e.kind == "rejected" and attempt + 1 < MAX_ATTEMPTS:
+                if e.kind == "rejected" and not via_mr and attempt + 1 < MAX_ATTEMPTS:
                     continue
                 raise
             result.pushed = True
@@ -700,6 +710,19 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
     return notes
 
 
+def _drop_merged_commits(root: Path, current: SyncState) -> SyncState:
+    """Hat der eigene Stand denselben Inhalt wie der Server (der Merge Request ist gemergt, etwa
+    als „Squash“ mit neuem Commit), setzt dies den Branch auf den Server-Stand: Sonst bliebe er
+    für immer „voraus“ und jedes Teilen legte einen leeren Merge Request an. ``--keep`` bricht ab,
+    wo etwas verloren ginge."""
+    if _git_ok(root, "diff", "--quiet", current.upstream or "HEAD", "HEAD", "--") and _git_ok(
+        root, "diff", "--quiet", "--cached"
+    ):
+        _git(root, "reset", "--keep", current.upstream or "HEAD", check=False)
+        return state(root)
+    return current
+
+
 def share_mode(path: Path) -> str:
     """``"direct"`` (Standard) oder ``"merge_request"``: wohin „Speichern und teilen“ hochlädt."""
     root = _root(path)
@@ -717,34 +740,53 @@ def set_share_mode(path: Path, mode: str) -> None:
 
 def merge_request_branch(root: Path) -> str:
     """Der Branch, auf den diese Person für Merge Requests hochlädt: je Person ein fester Name
-    (``sprintforecast/<name>``), damit ein weiteres Teilen denselben Merge Request fortschreibt."""
-    who = _git(root, "config", "--get", "user.email", check=False).partition("@")[0]
-    who = who or _git(root, "config", "--get", "user.name", check=False) or "user"
-    slug = re.sub(r"[^a-z0-9._-]+", "-", who.lower()).strip("-._") or "user"
-    return f"sprintforecast/{slug}"
+    (``sprintforecast/<name>-<Kürzel der Adresse>``), damit ein weiteres Teilen denselben Merge
+    Request fortschreibt und zwei Personen mit gleichem Namensanfang nicht kollidieren."""
+    email = _git(root, "config", "--get", "user.email", check=False).strip().lower()
+    who = email.partition("@")[0] or _git(root, "config", "--get", "user.name", check=False)
+    slug = re.sub(r"[^a-z0-9_-]+", "-", who.lower()).strip("-_") or "user"
+    tag = hashlib.sha1((email or who).encode("utf-8")).hexdigest()[:6]
+    return f"sprintforecast/{slug}-{tag}"
 
 
 def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str, str | None]:
     """Lädt den Stand auf den eigenen Branch und bittet den Server (GitLab-Push-Optionen), einen
     Merge Request nach dem Hauptbranch anzulegen; gibt es ihn schon, schreibt der Push ihn fort.
+    Der Branch gehört dieser Person: Ist er nach einem Rebase im Merge Request oder einem
+    gemergten Stand anders weitergelaufen, wird er mit ``--force-with-lease`` überschrieben.
+    Tags gehen nicht mit (sie zeigen sonst auf Commits, die nie in den Hauptbranch kommen).
     Liefert Branch und, falls der Server sie meldet, die Adresse des Merge Requests."""
     branch = merge_request_branch(root)
+    ref = f"refs/heads/{branch}"
+    remote = current.remote or "origin"
     target = (current.upstream or "").partition("/")[2] or current.branch or "main"
     subject = (title.strip().splitlines() or ["Änderungen"])[0]
+    listed = _git(root, "ls-remote", remote, ref, network=True, url=current.url, check=False)
+    lease = (
+        f"--force-with-lease={ref}:{listed.split()[0]}" if listed else f"--force-with-lease={ref}:"
+    )
     proc = gitmod._git_result(
         root,
         "push",
-        "--follow-tags",
+        lease,
         "-o", "merge_request.create",
         "-o", f"merge_request.target={target}",
         "-o", f"merge_request.title={subject}",
         "-o", "merge_request.remove_source_branch",
-        current.remote or "origin",
-        f"HEAD:refs/heads/{branch}",
+        remote,
+        f"HEAD:{ref}",
         network=True,
     )  # fmt: skip
     if proc.returncode != 0:
-        raise gitmod.classify(proc.stderr.strip() or proc.stdout.strip(), url=current.url)
+        message = proc.stderr.strip() or proc.stdout.strip()
+        if "does not support push options" in message:
+            raise GitError(
+                t(
+                    "Der Server unterstützt keine Push-Optionen, daher kein Teilen über Merge "
+                    "Request. Bitte die Einstellung auf der Seite „Datenordner“ ausschalten."
+                )
+            )
+        raise gitmod.classify(message, url=current.url)
     found = _MR_URL.search(proc.stderr + proc.stdout)
     return branch, found.group(0).rstrip(".,)") if found else None
 

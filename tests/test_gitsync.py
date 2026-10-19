@@ -1460,7 +1460,8 @@ def _gitlab_like(remote: Path) -> Path:
     hook = remote / "hooks" / "post-receive"
     hook.write_text(
         "#!/bin/sh\n"
-        f'echo "$GIT_PUSH_OPTION_COUNT:$GIT_PUSH_OPTION_0:$GIT_PUSH_OPTION_1:$GIT_PUSH_OPTION_2" >> "{log}"\n'
+        'echo "$GIT_PUSH_OPTION_COUNT:$GIT_PUSH_OPTION_0:$GIT_PUSH_OPTION_1:'
+        f'$GIT_PUSH_OPTION_2" >> "{log}"\n'
         'echo "remote: View merge request for x:" >&2\n'
         'echo "remote:   https://gitlab.example.org/team/data/-/merge_requests/7" >&2\n',
         encoding="utf-8",
@@ -1477,10 +1478,11 @@ def test_share_via_merge_request_pushes_own_branch(alice: Person, bob: Person, r
     bob.write("a/2026.2.yaml", "velocity: 7\n")
     result = bob.sync("Sprint 2 geplant")
     assert result.error is None and result.pushed
-    assert result.merge_request_branch == "sprintforecast/bob"
+    branch = result.merge_request_branch
+    assert branch and branch.startswith("sprintforecast/bob-")
     assert result.merge_request_url == "https://gitlab.example.org/team/data/-/merge_requests/7"
     assert git(remote, "rev-parse", "main") == main_before  # main stays untouched
-    assert git(remote, "log", "-1", "--format=%s", "sprintforecast/bob") == "Sprint 2 geplant"
+    assert git(remote, "log", "-1", "--format=%s", branch) == "Sprint 2 geplant"
     options = log.read_text(encoding="utf-8")
     assert "merge_request.create" in options and "merge_request.target=main" in options
     again = bob.sync("nochmal")  # still ahead of main (not merged yet): nothing new, no error
@@ -1492,3 +1494,40 @@ def test_share_mode_defaults_to_direct(alice: Person):
     gitsync.set_share_mode(alice.data, gitsync.SHARE_MERGE_REQUEST)
     gitsync.set_share_mode(alice.data, gitsync.SHARE_DIRECT)
     assert gitsync.share_mode(alice.data) == gitsync.SHARE_DIRECT
+
+
+def test_merge_request_squash_merge_does_not_stay_ahead(alice: Person, bob: Person, remote: Path):
+    """After the server squashes Bob's merge request (new commit, same content) his main is reset
+    to the server state instead of sharing an empty merge request again and again."""
+    _gitlab_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    first = bob.sync("Sprint 2")
+    assert first.error is None
+    # The server squashes: main gets the same content as one new commit.
+    squash = alice.root.parent / "squasher"
+    git(alice.root.parent, "clone", "-q", str(remote), str(squash))
+    git(squash, "config", "user.name", "S")
+    git(squash, "config", "user.email", "s@example.org")
+    (squash / "teams/a/2026.2.yaml").write_text("velocity: 7\n", encoding="utf-8")
+    git(squash, "add", "-A")
+    git(squash, "commit", "-qm", "Squash")
+    git(squash, "push", "-q", "origin", "main")
+    again = bob.sync("nochmal")
+    assert again.error is None and again.merge_request_url is None
+    assert (gitsync.state(bob.data).ahead, gitsync.state(bob.data).behind) == (0, 0)
+
+
+def test_merge_request_branch_is_overwritten_when_it_diverged(
+    alice: Person, bob: Person, remote: Path
+):
+    _gitlab_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    branch = bob.sync("eins").merge_request_branch
+    # Somebody rewrites the merge request branch on the server (rebase button).
+    git(remote, "update-ref", f"refs/heads/{branch}", git(remote, "rev-parse", "main"))
+    bob.write("a/2026.3.yaml", "velocity: 8\n")
+    result = bob.sync("zwei")
+    assert result.error is None and result.pushed
+    assert git(remote, "log", "-1", "--format=%s", branch) == "zwei"
