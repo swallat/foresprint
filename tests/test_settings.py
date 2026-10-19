@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
+from pathlib import Path
+
 import pytest
 
 from sprintforecast.model import Team, TrendMode
@@ -65,3 +67,20 @@ def test_applicable_and_changes():
     a, b = Team(key="t", name="T"), Team(key="t", name="T")
     b.forecast.window = 3
     assert [(s.key, old, new) for s, old, new in changes(a, b)] == [("forecast.window", "5", "3")]
+
+
+@pytest.mark.parametrize("junk", [3, ["de"], {"a": 1}, True, ""])
+def test_wrongly_typed_language_in_settings_json_falls_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, junk
+):
+    import json
+
+    from sprintforecast import i18n
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    for var in ("SPRINTFORECAST_LANG", "LANG", "LC_ALL", "LANGUAGE"):
+        monkeypatch.delenv(var, raising=False)
+    (tmp_path / "sprintforecast").mkdir()
+    (tmp_path / "sprintforecast" / "settings.json").write_text(json.dumps({"language": junk}))
+    assert i18n._saved() is None

@@ -478,6 +478,34 @@ def _maybe_commit(
     console.print(f"[green]{t('Committet ({rev}){suffix}.', rev=rev, suffix=suffix)}[/green]")
 
 
+def _refuse_invalid(c: Context, before: TeamData, after: TeamData, where: str) -> None:
+    """Wie die Weboberfläche: Fehler im neuen Stand (nur in den betroffenen Dateien, ``where``
+    ist der Anfang des Dateinamens) verhindern das Schreiben, statt nachträglich gemeldet zu
+    werden. Fehler, die schon vorher bestanden, blockieren die Änderung nicht."""
+    known = {(i.where, i.message) for i in check_team(before, c.today)}
+    errors = [
+        i
+        for i in check_team(after, c.today)
+        if i.level is Level.ERROR
+        and i.where.startswith(where)
+        and (i.where, i.message) not in known
+    ]
+    if errors:
+        for i in errors:
+            err.print(f"[red]{_plain(i.where)}: {_plain_end(i.message)}[/red]")
+        err.print(f"[red]{t('Nicht gespeichert – bitte die Fehler beheben.')}[/red]")
+        raise typer.Exit(1)
+
+
+def _with_sprint(data: TeamData, sprint: Sprint) -> TeamData:
+    """Kopie von ``data`` mit dem (neuen oder geänderten) Sprint."""
+    after = copy.copy(data)
+    after.sprints = sorted(
+        [x for x in data.sprints if x.id != sprint.id] + [sprint], key=lambda x: x.start
+    )
+    return after
+
+
 def _saved(path: Path) -> None:
     console.print(f"[green]{t('Gespeichert: {path}', path=_plain_end(path))}[/green]")
 
@@ -699,6 +727,9 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
         )
     if not Confirm.ask(t("Speichern?"), default=True, console=console):
         raise typer.Exit()
+    after = copy.copy(data)
+    after.team = current
+    _refuse_invalid(c, data, after, "team.yaml")
     path = c.repo.save_team(current)
     _saved(path)
     _maybe_commit(
@@ -766,6 +797,7 @@ def personen(
     c = _ctx(ctx)
     data = _load(c, team)
     people = data.people
+    before = copy.deepcopy(data)  # die Liste wird unten an Ort und Stelle geändert
     changed = False
     while True:
         console.print(_people_table(people, c.today, ehemalige))
@@ -829,6 +861,9 @@ def personen(
                 active.end = when
         changed = True
     if changed:
+        after = copy.copy(data)
+        after.people = people
+        _refuse_invalid(c, before, after, "people.yaml")
         path = c.repo.save_people(team, people)
         _saved(path)
         _maybe_commit(
@@ -905,6 +940,7 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
 
 def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
     """Fragt die Fehltage je aktiver Person ab und speichert den Sprint."""
+    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
     days = team_workdays(data.team, s.start, s.end)
     console.print(_sprint_panel(data, s))
     _explain("absences")
@@ -927,6 +963,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
         console=console,
     ):
         s.capacity = None
+    _refuse_invalid(c, before, _with_sprint(data, s), "sprints/")
     return c.repo.save_sprint(data.team.key, s)
 
 
@@ -1016,6 +1053,7 @@ def planning(
     data = _load(c, team)
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "planning")
+    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
     paths: list[Path] = []
     console.rule(t("Planning {id} – Schritt 1: Fehltage", id=_plain(s.id)))
     if data.people and Confirm.ask(
@@ -1082,6 +1120,7 @@ def planning(
             console=console,
         )
     freeze_plan(s, fc.entry(s.id), c.today, refreeze=refreeze)
+    _refuse_invalid(c, before, _with_sprint(data, s), "sprints/")
     path = c.repo.save_sprint(team, s)
     _saved(path)
     fc = build_forecast(_load(c, team), c.today)
@@ -1122,6 +1161,7 @@ def review(
     data = _load(c, team)
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "review")
+    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
     unit = data.team.unit.value
     console.print(
         Panel(
@@ -1155,6 +1195,7 @@ def review(
         and Confirm.ask(t("Erledigt je Produkt erfassen?"), default=True, console=console)
     ):
         _ask_product_values(data, fc, s, "done")
+    _refuse_invalid(c, before, _with_sprint(data, s), "sprints/")
     path = c.repo.save_sprint(team, s)
     _saved(path)
     _maybe_commit(
@@ -1173,7 +1214,7 @@ def forecast(
     team: TeamArg,
     verlauf: Annotated[
         int,
-        typer.Option("--history", help=t("Anzahl vergangener Sprints in der Anzeige.")),
+        typer.Option("--history", min=0, help=t("Anzahl vergangener Sprints in der Anzeige.")),
     ] = 5,
     rechenweg: Annotated[
         str | None,
@@ -1593,7 +1634,7 @@ def pruefen(
 def web(
     ctx: typer.Context,
     port: Annotated[
-        int, typer.Option(help=t("Port; ist er belegt, wird ein freier gewählt."))
+        int, typer.Option(min=1, max=65535, help=t("Port; ist er belegt, wird ein freier gewählt."))
     ] = 8501,
     browser: Annotated[
         bool,
@@ -1661,12 +1702,35 @@ def web(
     ]  # fmt: skip
     console.print(t("Weboberfläche: [bold]{url}[/bold] (Beenden mit Strg+C)", url=url))
     popen: dict = popen_options()
+    log_handle = None
     if log := os.environ.get(LOG_ENV):
         # Doppelklick-Start: kein Konsolenfenster, Ausgaben des Servers ins Protokoll
-        popen["stdout"] = popen["stderr"] = open(log, "a", encoding="utf-8")  # noqa: SIM115
+        try:
+            log_handle = open(log, "a", encoding="utf-8")  # noqa: SIM115
+        except OSError as e:
+            # Der Start darf nicht am Protokoll scheitern; ohne Konsole gehen die Ausgaben
+            # dann verloren, aber die Oberfläche läuft.
+            err.print(
+                "[yellow]"
+                + escape(
+                    t(
+                        "Protokolldatei nicht beschreibbar ({path}): {error}",
+                        path=log,
+                        error=e.strerror or e,
+                    )
+                )
+                + "[/yellow]"
+            )
+            popen["stdout"] = popen["stderr"] = subprocess.DEVNULL
+        else:
+            popen["stdout"] = popen["stderr"] = log_handle
         if sys.platform == "win32":
             popen["creationflags"] = subprocess.CREATE_NO_WINDOW
-    server = subprocess.Popen(cmd_line, env=env, **popen)
+    try:
+        server = subprocess.Popen(cmd_line, env=env, **popen)
+    finally:
+        if log_handle is not None:
+            log_handle.close()  # das Kind hat seine eigene Kopie des Handles
     adopt(server)  # alles, was der Server später startet, endet mit ihm
     try:
         if app_mode:
@@ -1744,7 +1808,7 @@ def sprints(
     team: TeamArg,
     anzahl: Annotated[
         int,
-        typer.Option("--count", help=t("Anzahl Sprints ab dem laufenden.")),
+        typer.Option("--count", min=1, max=60, help=t("Anzahl Sprints ab dem laufenden.")),
     ] = 6,
     anlegen: Annotated[
         bool,
@@ -1893,7 +1957,7 @@ def produkte(
         bool,
         typer.Option("--preplanning", help=t("PO-Vorplanung je Produkt erfassen.")),
     ] = False,
-    verlauf: Annotated[int, typer.Option("--history", help=t("Sprints für den Saldo."))] = 6,
+    verlauf: Annotated[int, typer.Option("--history", min=1, help=t("Sprints für den Saldo."))] = 6,
     commit_: CommitOpt = False,
 ) -> None:
     c = _ctx(ctx)
@@ -1957,6 +2021,7 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
     data = _load(c, team)
     _require_products(data, team)
     products = data.products
+    before = copy.deepcopy(data)  # die Liste wird unten an Ort und Stelle geändert
     with_po = data.team.features.po
     changed = False
     while True:
@@ -2027,6 +2092,9 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
                 product.end = _ask_date(t("Letzter betreuter Tag"), c.today)
         changed = True
     if changed:
+        after = copy.copy(data)
+        after.products = products
+        _refuse_invalid(c, before, after, "products.yaml")
         path = c.repo.save_products(team, products)
         _saved(path)
         _maybe_commit(
@@ -2163,7 +2231,21 @@ def aktualisieren(
         except KeyError:
             err.print(f"[red]{t('--auto: on, notice oder off')}[/red]")
             raise typer.Exit(1) from None
-        updater.update_state(mode=mode.value)
+        try:
+            updater.update_state(strict=True, mode=mode.value)
+        except OSError as e:
+            err.print(
+                "[red]"
+                + escape(
+                    t(
+                        "Die Einstellungen konnten nicht gespeichert werden ({path}): {error}",
+                        path=updater.state_file(),
+                        error=e.strerror or e,
+                    )
+                )
+                + "[/red]"
+            )
+            raise typer.Exit(1) from e
         console.print(t("Automatische Aktualisierung: [bold]{mode}[/bold]", mode=word))
         if os.environ.get(updater.MODE_ENV):
             console.print(

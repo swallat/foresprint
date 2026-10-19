@@ -50,7 +50,7 @@ class Forecast:
 
     def history(self, count: int | None = None) -> list[TimelineEntry]:
         past = [e for e in self.entries if e.sprint.end <= self.today]
-        return past if count is None else past[-count:]
+        return past if count is None else past[-count:] if count > 0 else []
 
     def entry(self, sprint_id: str) -> TimelineEntry | None:
         return next((e for e in self.entries if e.sprint.id == sprint_id), None)

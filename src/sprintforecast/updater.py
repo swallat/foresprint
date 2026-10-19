@@ -74,18 +74,24 @@ def load_state() -> dict[str, Any]:
     return content if isinstance(content, dict) else {}
 
 
-def save_state(state: dict[str, Any]) -> None:
+def save_state(state: dict[str, Any], strict: bool = False) -> bool:
+    """Schreibt den Zustand; ``True``, wenn das gelang. Ohne ``strict`` bleibt ein Fehler
+    stumm (die Aktualisierung ist Komfort und stört nie den eigentlichen Befehl), mit
+    ``strict`` wird der ``OSError`` weitergereicht."""
     try:
         path = state_file()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
     except OSError:
-        pass  # Aktualisierung ist Komfort – nie den eigentlichen Befehl stören
+        if strict:
+            raise
+        return False
+    return True
 
 
-def update_state(**changes: Any) -> dict[str, Any]:
+def update_state(strict: bool = False, **changes: Any) -> dict[str, Any]:
     state = load_state() | changes
-    save_state(state)
+    save_state(state, strict=strict)
     return state
 
 
@@ -133,8 +139,12 @@ def parse_version(text: str) -> tuple[int, ...]:
     return tuple(parts)
 
 
-def is_newer(candidate: str | None, current: str) -> bool:
-    return candidate is not None and parse_version(candidate) > parse_version(current)
+def is_newer(candidate: Any, current: Any) -> bool:
+    """Nur Texte sind Versionen; was sonst in der Zustandsdatei steht (von Hand bearbeitet,
+    beschädigt), zählt als „nicht neuer“, statt den Start zu stören."""
+    if not isinstance(candidate, str) or not isinstance(current, str):
+        return False
+    return parse_version(candidate) > parse_version(current)
 
 
 # --- Installation ---------------------------------------------------------------------
