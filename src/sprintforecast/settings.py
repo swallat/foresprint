@@ -361,7 +361,8 @@ SETTINGS: list[Setting] = [
     Setting(
         key="sprint.first_id",
         label="ID des ersten Sprints",
-        help="Z. B. 2026.20 oder 1. Nur nötig, solange noch keine Sprintdatei existiert.",
+        help="Der Sprint, der gerade läuft oder als Nächstes beginnt, z. B. 2026.15 oder 15. "
+        "Nur nötig, solange noch keine Sprintdatei existiert; danach: Sprint-IDs ändern.",
         kind=Kind.TEXT,
         optional=True,
         only_without_sprints=True,
@@ -461,6 +462,8 @@ SETTINGS: list[Setting] = [
 ]
 
 BY_KEY = {s.key: s for s in SETTINGS}
+# Der erste Sprint wird beim Anlegen eines Teams zuerst gefragt (in dieser Reihenfolge).
+FIRST_SPRINT_KEYS = ("sprint.numbering", "sprint.first_start", "sprint.first_id")
 # Ländernamen bleiben unübersetzt (Eigennamen).
 _COUNTRY = BY_KEY["capacity.country"]
 

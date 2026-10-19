@@ -38,9 +38,9 @@ def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
         raise DataError(
             t(
                 "Sprint-ID '{id}' passt nicht zur Nummerierung (erwartet {expected}); die ID des "
-                "Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: Dateiname und id "
-                "der Sprintdatei umbenennen (ohne Sprintdateien: unter Einstellungen die ID "
-                "des ersten Sprints).",
+                "Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: mit "
+                "sprintforecast rename-sprint bzw. unter Einstellungen (ohne Sprintdateien: "
+                "dort die ID des ersten Sprints).",
                 id=previous_id,
                 expected=expected_id_form(numbering),
             )

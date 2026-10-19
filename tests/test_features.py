@@ -253,9 +253,10 @@ def test_new_team_form_explains_the_areas_and_saves_them_off(
     at = start(data_dir, monkeypatch)
     goto(at, "neues_team")
     at.text_input[0].set_value("team-b").run()
-    assert any("Ein Kürzel genügt." in m.value for m in at.markdown)
+    assert any("**Optionale Bereiche:**" in m.value for m in at.markdown)
     for key in ("features.products", "features.po", "features.production"):
         assert at.selectbox(key=f"new-team-b-{key}").value == "aus"
+    at.text_input(key="new-team-b-sprint.first_id").set_value("2026.15")
     click(at, "Team anlegen")
     saved = yaml.safe_load((data_dir / "team-b" / "team.yaml").read_text())
     assert saved["features"] == {"products": False, "po": False, "production": False}

@@ -1538,6 +1538,17 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
 _NOT_A_REPOSITORY = re.compile(r"not a git repository", re.I)
 
 
+def _committable(root: Path, paths: list[Path]) -> list[Path]:
+    """Ohne gelöschte Dateien, die Git nie kannte (z. B. eine nie committete, inzwischen
+    umbenannte Sprintdatei): ``git add`` bräche bei ihnen mit „pathspec did not match“ ab."""
+    gone = [p for p in paths if not p.exists()]
+    if not gone:
+        return paths
+    listed = _git(root, "ls-files", "--", *(str(p.resolve()) for p in gone))
+    tracked = {(root / line).resolve() for line in listed.splitlines() if line}
+    return [p for p in paths if p.exists() or p.resolve() in tracked]
+
+
 def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
     cwd = paths[0].resolve().parent
@@ -1552,6 +1563,7 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
             ) from e
         raise
     refuse_conflict_markers(root, paths)
+    paths = _committable(root, paths)
     names = check_new_tags(root, [tag] if tag else None)
     try:
         _git(root, "add", "--", *(str(p.resolve()) for p in paths))

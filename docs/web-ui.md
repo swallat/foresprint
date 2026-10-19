@@ -56,8 +56,8 @@ shared data repository. The rules for finding the data directory are in the
 | Manage team | Sprint calendar | upcoming sprints with start, last day and working days; create, adjust length |
 | | People | one table (one row per membership period, FTE); IDs are assigned automatically; former members can be hidden |
 | | Products | product list with PO and period (from/to); former products can be hidden |
-| | Settings | all team settings; changes are shown before saving |
-| | New team | create a team |
+| | Settings | all team settings; changes are shown before saving; **Change sprint IDs** renames a sprint and counts the following sprints on |
+| | New team | create a team; asks for the first sprint (the one running now or starting next) before anything else |
 | Data & help | Data folder | choose, create or clone a data folder (Git repository); enter, test and change the server (remote) |
 | | Changes and history | discard open changes, history per team/sprint/file, restore an earlier state, manage tags |
 | | Check | findings of all teams |
@@ -182,10 +182,12 @@ require merge requests (for example GitLab), switch on **Share via merge request
 folder** page (per data repository, stored in its local Git configuration as
 `sprintforecast.share`): "Save and share" then merges the server state, uploads to your own
 branch `sprintforecast/<name>` and asks the server through GitLab push options
-(`merge_request.create`, `.target`, `.title`, `.remove_source_branch`) to create the merge
+(`merge_request.create`, `.target`, `.title`, `.remove_source_branch`, and by default
+`.merge_when_pipeline_succeeds`, switchable on the Data folder page) to create the merge
 request; a further share updates the same one. No access token or API is needed beyond the push
 itself, but the server must accept push options. `main` stays untouched until the merge request
-is merged; then **Pull from server** brings it in. Without merge requests, protect `main` against
+is merged; then **Pull from server** brings it in (and tells you while your merge request is
+still open). Without merge requests, protect `main` against
 force push and deletion only (no required reviews, or sharing is rejected). The Git state is cached briefly (5 seconds); changes made outside the app (editor,
 terminal) therefore appear with a small delay, your own saves immediately.
 
