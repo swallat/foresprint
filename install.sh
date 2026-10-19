@@ -13,7 +13,7 @@ set -eu
 REF="${SPRINTFORECAST_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
-CORE="sprintforecast[web] @ https://github.com/swallat/sprint-forecast/archive/refs/${KIND}/${REF}.zip"
+CORE="sprintforecast[web,excel] @ https://github.com/swallat/sprint-forecast/archive/refs/${KIND}/${REF}.zip"
 PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"
 
 say() { printf '%s\n' "$*"; }
@@ -85,7 +85,7 @@ if [ -n "$specs" ]; then
     fi
     say "==> with plugins: $specs"
     # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
-    set -- "$@" "sprintforecast[web]"
+    set -- "$@" "sprintforecast[web,excel]"
 else
     set -- "$@" "$CORE"
 fi
