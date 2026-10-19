@@ -521,3 +521,20 @@ def test_handover_in_english(handover_dir: Path, english):
     assert "Handover to the PO pre-planning (median variant)" in result.output
     assert "Proposal" in result.output and "PO value stays" in result.output
     assert "Preview only" in result.output
+
+
+def test_handover_keeps_the_sprint_sequence_gapless(ticket_dir: Path):
+    """Tickets fixed in 2026.24 while nothing is placed in 2026.23: writing 2026.24 alone would
+    make the calendar sprint 2026.23 disappear from the forecast, so it is created as well."""
+    write_tickets(
+        ticket_dir,
+        [{"key": f"F-{i}", "project": "migration", "in_sprint": "2026.24"} for i in range(2)],
+    )
+    assert not sprint_file(ticket_dir, "2026.23").exists()
+    result = run(ticket_dir, "tickets", "demo", "--handover", "--sprints", "4", "--apply")
+    assert result.exit_code == 0, result.output
+    assert sprint_file(ticket_dir, "2026.24").exists()
+    assert sprint_file(ticket_dir, "2026.23").exists()
+    forecast = run(ticket_dir, "forecast", "demo")
+    assert forecast.exit_code == 0, forecast.output
+    assert "2026.23" in forecast.output
