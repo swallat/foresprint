@@ -1,4 +1,4 @@
-# Vorlage für ein Daten-Repository: prüft jede Änderung und aktualisiert FORECAST.md.
+# Template for a data repository: checks every change and updates FORECAST.md.
 name: Forecast
 
 on:
@@ -8,7 +8,7 @@ on:
   pull_request:
     paths: ["teams/**"]
   schedule:
-    # Werktags 06:00 UTC, damit „laufender Sprint“ und Prognose aktuell bleiben.
+    # Weekdays at 06:00 UTC so that "current sprint" and the forecast stay up to date.
     - cron: "0 6 * * 1-5"
   workflow_dispatch:
 
@@ -21,16 +21,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
-      - name: Daten prüfen
-        run: mise run sf -- pruefen
-      - name: Berichte erzeugen
+      - name: Check data
+        run: mise run sf -- check
+      - name: Generate reports
         if: github.event_name != 'pull_request'
-        run: mise run sf -- bericht
-      - name: Berichte committen
+        run: mise run sf -- report
+      - name: Commit reports
         if: github.event_name != 'pull_request'
         run: |
           git config user.name "sprintforecast"
           git config user.email "sprintforecast@users.noreply.github.com"
           git add teams/*/FORECAST.md
-          git diff --cached --quiet || git commit -m "Forecast aktualisiert [skip ci]"
+          git diff --cached --quiet || git commit -m "Update forecast [skip ci]"
           git push

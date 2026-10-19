@@ -3,7 +3,7 @@ python = "3.14"
 uv = "0.13.1"
 
 [env]
-SPRINTFORECAST_DATEN = "teams"
+SPRINTFORECAST_DATA = "teams"
 
 [tasks.sf]
 description = "sprintforecast aufrufen, z. B. `mise run sf -- forecast team-a`"
