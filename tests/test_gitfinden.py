@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Git finden, auch wenn es nicht im PATH liegt (Installation ohne Administratorrechte)."""
 
+import os
 import shutil
 import stat
 import sys
@@ -273,3 +274,57 @@ def test_missing_git_hint_in_english(tmp_path: Path, english, monkeypatch: pytes
     assert f"Searched in PATH and in these places:\n- `{place}`" in hint
     assert "could not be started" in hint and "your own user’s PATH" in hint
     assert "Gesucht" not in hint and "Liegt Git" not in hint
+
+
+@posix
+def test_broken_git_in_path_gives_way_to_a_fallback_location(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Veraltetes oder defektes ``git`` im PATH (Store-Alias): Nach dem ersten fehlgeschlagenen
+    Start wählt der nächste Aufruf den Ersatzort."""
+    in_path = broken_git(tmp_path / "pfad")
+    fallback = fake_git(tmp_path / "ersatz", version="2.2.2-fallback")
+    monkeypatch.setenv("PATH", str(in_path.parent))
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
+    assert find_git() == str(in_path)  # PATH hat Vorrang, solange der Treffer taugt
+    with pytest.raises(GitError) as raised:
+        gitmod._git(tmp_path, "--version")
+    assert raised.value.kind == "git_missing" and str(in_path) in raised.value.hint
+    assert find_git() == str(fallback)
+    assert gitmod._git(tmp_path, "--version") == "git version 2.2.2-fallback"
+    assert gitsync.git_available()
+    reset_git_cache()  # nach dem Zurücksetzen gilt der PATH-Treffer wieder zuerst
+    assert find_git() == str(in_path)
+
+
+@posix
+def test_broken_git_in_path_gives_way_to_a_later_path_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    first = broken_git(tmp_path / "eins")
+    second = fake_git(tmp_path / "zwei", version="3.3.3-later")
+    monkeypatch.setenv("PATH", f"{first.parent}{os.pathsep}{second.parent}")
+    with pytest.raises(GitError):
+        gitmod._git(tmp_path, "--version")
+    assert find_git() == str(second)
+    assert gitmod._git(tmp_path, "--version") == "git version 3.3.3-later"
+
+
+@posix
+def test_everything_unusable_stays_git_missing_and_names_the_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    in_path = broken_git(tmp_path / "pfad")
+    fallback = broken_git(tmp_path / "ersatz")
+    monkeypatch.setenv("PATH", str(in_path.parent))
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
+    for _ in range(3):  # jeder Versuch scheitert gleich, es gibt keine Endlosschleife
+        with pytest.raises(GitError) as raised:
+            gitmod._git(tmp_path, "--version")
+        assert raised.value.kind == "git_missing"
+        assert "nicht starten" in raised.value.hint
+        assert str(fallback) in raised.value.hint or str(in_path) in raised.value.hint
+    assert find_git() is None and not gitsync.git_available()
+    with pytest.raises(GitError) as raised:
+        gitsync._root(tmp_path)
+    assert "nicht starten" in raised.value.hint
