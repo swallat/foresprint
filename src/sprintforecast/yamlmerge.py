@@ -39,7 +39,7 @@ class KeyConflict:
         return ".".join(self.path) or "."
 
 
-def _keyed(items: Any) -> dict[str, dict] | None:
+def keyed(items: Any) -> dict[str, dict] | None:
     """Liste von Objekten mit eindeutiger ``id`` als Abbildung, sonst None."""
     if not isinstance(items, list) or not items:
         return None
@@ -73,6 +73,8 @@ def same(a: Any, b: Any) -> bool:
         return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
     if isinstance(a, list) and isinstance(b, list):
         return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
+    if isinstance(a, float) and isinstance(b, float) and a != a and b != b:
+        return True  # ``.nan`` ist in YAML ein Wert; nan == nan ist in Python falsch
     return a == b
 
 
@@ -88,9 +90,9 @@ def _merge(base: Any, ours: Any, theirs: Any, path: Path, choices, conflicts) ->
         return _merge_dicts(
             base if isinstance(base, dict) else {}, ours, theirs, path, choices, conflicts
         )
-    keyed_o, keyed_t = _keyed(ours), _keyed(theirs)
+    keyed_o, keyed_t = keyed(ours), keyed(theirs)
     if keyed_o is not None and keyed_t is not None and (base is MISSING or isinstance(base, list)):
-        keyed_b = {} if base is MISSING or base == [] else _keyed(base)
+        keyed_b = {} if base is MISSING or base == [] else keyed(base)
         if keyed_b is not None:
             merged = _merge_dicts(keyed_b, keyed_o, keyed_t, path, choices, conflicts, item=True)
             return list(merged.values())

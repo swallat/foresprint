@@ -715,52 +715,98 @@ def abort_unfinished(path: Path) -> None:
 
 class Reattached(NamedTuple):
     """Ergebnis von :func:`reattach`: der Branch, auf dem der Datenordner nun steht, und der
-    Rettungsbranch, auf dem die Commits des losen Stands liegen (``None`` = sie hängen an einem
-    Branch, nichts wurde gesichert)."""
+    Rettungsbranch, auf dem Gesichertes liegt (``None`` = nichts wurde gesichert). ``commits``:
+    Dort liegen die Commits des losen Stands; ``changes``: Dort liegen auch die offenen
+    Änderungen im Datenordner (als eigener Commit)."""
 
     branch: str
     rescue: str | None = None
+    commits: bool = False
+    changes: bool = False
 
 
-def _reattach_hint(message: str, root: Path, path: Path) -> str:
+def _reattach_hint(saved: str | None = None) -> str:
     """Nächster Schritt, wenn der Wechsel zurück auf den Branch an offenen Änderungen scheitert.
-    „Verwerfen“ auf der Seite „Änderungen und Verlauf“ wirkt nur im Datenordner: Nur wenn Git
-    ausschließlich Dateien dort nennt, führt der Hinweis dorthin, sonst (Datei außerhalb oder
-    keine Liste) zu Git außerhalb des Datenordners; eine Anleitung zu Einstellungen gibt es
-    nie."""
-    blocked: list[str] = []
-    listing = False
-    for line in message.splitlines():
-        if "would be overwritten by" in line:
-            listing = True
-        elif listing and line[:1] in {"\t", " "} and line.strip():
-            blocked.append(line.strip().strip('"'))
-        elif line.strip():
-            listing = False
-    folder = os.path.relpath(path.resolve(), root.resolve()).replace(os.sep, "/")
-    inside = [f for f in blocked if folder == "." or f == folder or f.startswith(folder + "/")]
-    if blocked and len(inside) == len(blocked):
-        return t(
-            "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben. Auf "
-            "einem Stand ohne Branch lässt sich nichts speichern (committen). Der Ausweg: "
-            "Auf der Seite „Änderungen und Verlauf“ die offenen Änderungen verwerfen – sie "
-            "gehen dabei verloren – und danach „Zurück auf den Branch“ noch einmal wählen."
-        )
-    return t(
-        "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben, die auch "
-        "außerhalb des Datenordners liegen können. Auf der Seite „Änderungen und Verlauf“ "
-        "lassen sich nur Änderungen im Datenordner verwerfen, und auf einem Stand ohne Branch "
-        "lässt sich nichts speichern (committen). Der Ausweg: die Änderungen in Git außerhalb "
-        "des Datenordners sichern oder verwerfen (Git-Client oder Terminal; bei Bedarf bei der "
-        "Betreuung des Rechners nachfragen) und danach „Zurück auf den Branch“ noch einmal "
-        "wählen. Die Dateien nennt die Meldung von Git unter „Technische Meldung“."
+    Die im Datenordner sichert :func:`reattach` selbst; es bleiben Änderungen außerhalb davon,
+    die die App nicht anfasst. Eine Anleitung zu Einstellungen gibt es nie. ``saved`` ist der
+    Rettungsbranch, auf dem die Änderungen im Datenordner schon liegen."""
+    text = t(
+        "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben, die "
+        "außerhalb des Datenordners liegen. Die App fasst nur den Datenordner an. Der "
+        "Ausweg: die Änderungen in Git außerhalb des Datenordners sichern oder verwerfen "
+        "(Git-Client oder Terminal; bei Bedarf bei der Betreuung des Rechners nachfragen) "
+        "und danach „Zurück auf den Branch“ noch einmal wählen. Die Dateien nennt die "
+        "Meldung von Git unter „Technische Meldung“."
     )
+    if saved:
+        text = (
+            t(
+                "Die offenen Änderungen im Datenordner sind bereits auf dem Rettungsbranch "
+                "{rescue} gesichert.",
+                rescue=saved,
+            )
+            + " "
+            + text
+        )
+    return text
+
+
+_SAVE_SUBJECT = "Offene Änderungen vor dem Wechsel gesichert"
+
+
+def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
+    """Committet die offenen Änderungen im Datenordner auf einem Rettungsbranch und gibt dessen
+    Namen zurück. ``rescue`` ist ein vorhandener Rettungsbranch an dieser Stelle (``None`` =
+    neu anlegen). Scheitert das Committen (Identität, Tabellenkalkulationen,
+    Konfliktmarker …), steht das Repository wieder wie vorher auf dem losen Stand."""
+    start = _git(root, "rev-parse", "HEAD")
+    index = _git(root, "write-tree")  # die Vormerkung des Benutzers, für den Rückbau
+    name = rescue or f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
+    if rescue:
+        _git(root, "switch", rescue)
+    else:
+        _git(root, "switch", "-c", name)
+    try:
+        gitmod.commit_directory(path, _SAVE_SUBJECT)
+    except GitError, OSError:
+        try:
+            # Den Index exakt wie vorher wiederherstellen (``git add`` hat ihn verändert; der
+            # Arbeitsbaum bleibt unberührt) und zurück auf den losen Stand; HEAD bleibt nie auf
+            # dem neuen Rettungsbranch stehen.
+            _git(root, "read-tree", index, check=False)
+            _git(root, "switch", "--detach", start)
+            if rescue is None:
+                _git(root, "branch", "-D", name)
+        finally:
+            gitmod.invalidate_status()
+        raise
+    return name
+
+
+def _saved_before(root: Path, holders: list[str]) -> bool | None:
+    """Steht HEAD auf der Sicherung eines früheren Versuchs von :func:`reattach` (Commit
+    „Offene Änderungen vor dem Wechsel gesichert“, nur auf Rettungsbranches)? Dann: Hingen
+    davor Commits an keinem Branch (``True``) oder nicht (``False``)? Sonst ``None``."""
+    if not holders or not all(b.startswith("rettung-") for b in holders):
+        return None
+    if _git(root, "log", "-1", "--format=%s", "HEAD", check=False) != _SAVE_SUBJECT:
+        return None
+    # Über die ganze Kette der Sicherungen zurück (mehrere Versuche): erst der erste andere
+    # Commit zeigt, ob der lose Stand eigene Commits hatte.
+    depth = 1
+    while _git(root, "log", "-1", "--format=%s", f"HEAD~{depth}", check=False) == _SAVE_SUBJECT:
+        depth += 1
+    parent = _git(
+        root, "branch", "--contains", f"HEAD~{depth}", "--format=%(refname:short)", check=False
+    )
+    return all(b.startswith("rettung-") for b in parent.splitlines() if not b.startswith("("))
 
 
 def reattach(path: Path) -> Reattached:
     """Geht von „detached HEAD“ zurück auf den Hauptbranch. Hängen Commits an keinem Branch,
-    werden sie vorher auf einem Rettungsbranch gesichert; scheitert der Wechsel an offenen
-    Änderungen, bleibt der Rettungsbranch bestehen und wird beim nächsten Versuch wieder
+    werden sie vorher auf einem Rettungsbranch gesichert, ebenso die offenen Änderungen im
+    Datenordner (als eigener Commit dort). Scheitert der Wechsel an Änderungen außerhalb des
+    Datenordners, bleibt der Rettungsbranch bestehen und wird beim nächsten Versuch wieder
     genannt."""
     root = _root(path)
     if state(path).branch is not None:
@@ -779,19 +825,37 @@ def reattach(path: Path) -> Reattached:
     contains = _git(root, "branch", "--contains", "HEAD", "--format=%(refname:short)", check=False)
     holders = [b for b in contains.splitlines() if not b.startswith("(")]
     rescue = None
+    commits = False
     if not holders:
+        commits = True
         rescue = f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
-        _git(root, "branch", rescue)
     elif all(b.startswith("rettung-") for b in holders):  # gesichert von einem früheren Versuch
+        commits = True
         rescue = holders[0]
+    new_changes = bool(gitmod.changes_in(path))
+    earlier = _saved_before(root, holders)  # Sicherung aus einem früheren Versuch
+    if earlier is not None:
+        commits = earlier
+    if new_changes:
+        # Auf dem Rettungsbranch committen (ein vorhandener an dieser Stelle, sonst ein neuer).
+        rescue = _save_open_changes(root, path, rescue if holders else None)
+        saved_at = _git(root, "rev-parse", "HEAD")
+    elif rescue and not holders:
+        _git(root, "branch", rescue)
+    changes = new_changes or earlier is not None
     try:
         _git(root, "switch", target)
     except GitError as e:
+        if new_changes:  # wieder lose auf der Sicherung: der nächste Versuch findet sie
+            _git(root, "switch", "--detach", saved_at)
+        gitmod.invalidate_status()
         if e.kind != "dirty":
             raise
-        raise GitError(str(e), "detached", _reattach_hint(str(e), root, path), e.raw) from e
+        raise GitError(
+            str(e), "detached", _reattach_hint(rescue if changes else None), e.raw
+        ) from e
     gitmod.invalidate_status()
-    return Reattached(target, rescue)
+    return Reattached(target, rescue, commits, changes)
 
 
 def set_identity(name: str, email: str) -> None:
