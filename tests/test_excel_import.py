@@ -16,7 +16,12 @@ pytest.importorskip("xlsxwriter")
 import openpyxl
 
 from sprintforecast.excel import SHEET_FORECAST, SHEET_SPRINTS, build_workbook
-from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+from sprintforecast.excel_import import (
+    apply_import,
+    plan_import,
+    read_workbook,
+    read_workbook_keyed,
+)
 from sprintforecast.forecast import build_forecast
 from sprintforecast.storage import DataError, Repository
 
@@ -656,6 +661,26 @@ def test_the_command_checks_against_the_reference_day(
     result = CliRunner().invoke(app, ["--as-of", "2026-10-15", "excel-import", "demo", str(file)])
     assert result.exit_code == 0, result.output
     assert seen == [date(2026, 10, 15)]
+
+
+def test_workbook_carries_its_team_key(data_dir: Path):
+    _, file_team = read_workbook_keyed(exported(data_dir), "demo")
+    assert file_team == "demo"
+
+
+def test_workbook_of_another_team_is_refused(data_dir: Path):
+    with pytest.raises(DataError, match=r"Team 'demo'.*Team 'other'"):
+        read_workbook(exported(data_dir), "other")
+
+
+def test_workbook_without_team_key_is_still_read(data_dir: Path):
+    def drop(wb) -> None:
+        props = wb.custom_doc_props.props
+        wb.custom_doc_props.props[:] = [p for p in props if p.name != "sprintforecast-team"]
+
+    data, file_team = read_workbook_keyed(edited(exported(data_dir), drop), "other")
+    assert file_team is None
+    assert data.team.key == "other"
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="a:b is not a file name on Windows")
