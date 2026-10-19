@@ -636,6 +636,10 @@ COMMANDS: list[tuple[str, str]] = [
         "sprintforecast excel-import TEAM FILE [--apply]",
         "Excel-Liste einlesen (Vorschau, dann schreiben)",
     ),
+    (
+        "sprintforecast tickets TEAM [--import FILE [--apply] [--commit]] [--sprints N]",
+        "Ticket-CSV einlesen, Tickets auf künftige Sprints verteilen (Ticket-Vorplanung)",
+    ),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
     (
         "sprintforecast check [--strict]",
