@@ -1,8 +1,8 @@
 name: Release
 
-# Baut Wheel und Quellpaket und schreibt die Release-Seite, sobald ein Versions-Tag (v0.4.2 …)
-# gepusht wird. Mit „Run workflow“ lässt sich das Release für einen vorhandenen Tag nachholen
-# oder – bei bestehender Release-Seite – die Dateien ersetzen.
+# Builds the wheel and the source distribution and writes the release page as soon as a version
+# tag (v0.4.2 …) is pushed. "Run workflow" creates the release for an existing tag after the
+# fact or, if the release page already exists, replaces its files.
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Vorhandener Tag, z. B. v0.4.1"
+        description: "Existing tag, e.g. v0.4.1"
         required: true
 
 permissions:
@@ -36,11 +36,11 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run pytest
-      - name: Tag und Version vergleichen
+      - name: Compare tag and version
         run: |
           version=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           if [ "v$version" != "$TAG" ]; then
-            echo "::error::Tag $TAG passt nicht zur Version $version in pyproject.toml"
+            echo "::error::Tag $TAG does not match version $version in pyproject.toml"
             exit 1
           fi
       - run: uv build
@@ -50,7 +50,7 @@ jobs:
           path: |
             dist/*.whl
             dist/*.tar.gz
-      - name: Release-Seite schreiben
+      - name: Write release page
         run: |
           files=(dist/*.whl dist/*.tar.gz)
           if gh release view "$TAG" > /dev/null 2>&1; then

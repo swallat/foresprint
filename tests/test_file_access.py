@@ -260,13 +260,13 @@ def test_web_reset_absences_shows_the_error(data_dir: Path, monkeypatch: pytest.
 
 def run(data_dir: Path, *args: str, input: str | None = None):
     return runner.invoke(
-        cli_app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", *args], input=input
+        cli_app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args], input=input
     )
 
 
 def test_cli_write_failure_is_a_message_with_exit_code_1(data_dir: Path, monkeypatch):
     monkeypatch.setattr(storage, "_write_atomic", locked)
-    result = run(data_dir, "fehltage", "demo", "2026.23", input="2\n0\n1,5\n0\n")
+    result = run(data_dir, "absences", "demo", "2026.23", input="2\n0\n1,5\n0\n")
     assert result.exit_code == 1, result.output
     assert "nicht gespeichert" in result.output and "Permission denied" in result.output
     assert "Traceback" not in result.output
@@ -283,7 +283,7 @@ def test_every_cli_command_is_guarded():
 
 def test_cli_report_failure_is_a_message(data_dir: Path):
     block_report(data_dir)
-    result = run(data_dir, "bericht", "demo")
+    result = run(data_dir, "report", "demo")
     assert result.exit_code == 1, result.output
     assert "FORECAST.md: nicht gespeichert" in result.output
 

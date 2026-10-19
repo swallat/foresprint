@@ -2,7 +2,7 @@
 """Seiten und Seitenleiste der Weboberfläche. Einstieg: web/app.py, Seiten: web/seiten/*.py.
 
 Liest und schreibt dieselben YAML-Dateien wie die Kommandozeile. Konfiguration über
-Umgebungsvariablen: SPRINTFORECAST_DATEN (Datenverzeichnis), SPRINTFORECAST_STICHTAG.
+Umgebungsvariablen: SPRINTFORECAST_DATA (Datenverzeichnis), SPRINTFORECAST_AS_OF (Stichtag).
 Texte sind über i18n.t übersetzbar; interne Spaltenschlüssel der Tabellen bleiben deutsch,
 angezeigt werden die übersetzten Beschriftungen.
 """
@@ -144,7 +144,6 @@ from sprintforecast.guide import (
     GIT_HELP,
     TERMS,
     WORKFLOW,
-    command_text,
 )
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
 from sprintforecast.model import (
@@ -4431,9 +4430,9 @@ def page_help(repo: Repository) -> None:
     with befehle:
         command, purpose = t("Befehl"), t("Zweck")
         st.table(
-            pd.DataFrame(
-                [(command_text(a), t(b)) for a, b in COMMANDS], columns=[command, purpose]
-            ).set_index(command)
+            pd.DataFrame([(a, t(b)) for a, b in COMMANDS], columns=[command, purpose]).set_index(
+                command
+            )
         )
         st.caption(t("Ausführen mit `uv run …` im Ordner des Tools."))
 

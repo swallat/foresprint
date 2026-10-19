@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Messskript für Phase P (Performance): Importzeiten, Teamladen, build_forecast, Git-Status
-und der Aufbau mehrerer Seiten per Streamlit AppTest.
+"""Measurement script for phase P (performance): import times, team loading, build_forecast,
+Git status and the build of several pages via the Streamlit AppTest.
 
-    uv run python scripts/measure.py [--daten examples/teams] [--team demo] [--runs 15] [--md]
+    uv run python scripts/measure.py [--data examples/teams] [--team demo] [--runs 15] [--md]
 
-Alle Werte sind Mediane in Millisekunden (Importe: Median aus frischen Prozessen). Das Skript
-misst nur auf dem Rechner, auf dem es läuft – Browserstart, Frontend-Rendering und Roundtrip
-fehlen bewusst (siehe docs/performance.md).
+All values are medians in milliseconds (imports: median over fresh processes). The script only
+measures the machine it runs on; browser start-up, frontend rendering and round trips are
+deliberately left out (see docs/performance.md).
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ IMPORTS = [
 
 
 def median_ms(fn, runs: int) -> float:
-    """Median der Laufzeit von ``fn`` in Millisekunden (ein Aufwärmlauf zählt nicht)."""
+    """Median run time of ``fn`` in milliseconds (one warm-up run does not count)."""
     fn()
     times = []
     for _ in range(runs):
@@ -50,7 +50,7 @@ def median_ms(fn, runs: int) -> float:
 
 
 def import_ms(module: str, runs: int) -> float:
-    """Importzeit in einem frischen Prozess (Median); fehlt das Modul, ``nan``."""
+    """Import time in a fresh process (median); ``nan`` if the module is missing."""
     code = (
         "import time; t = time.perf_counter(); "
         f"import {module}; print((time.perf_counter() - t) * 1000)"
@@ -73,9 +73,9 @@ def measure(data: Path, team: str, runs: int, today: date) -> dict[str, float]:
     for module in IMPORTS:
         result[f"import {module}"] = import_ms(module, max(3, runs // 3))
     repo = Repository(data)
-    result["Team laden (ohne Cache)"] = median_ms(lambda: repo.load(team), runs)
-    cached = getattr(repo, "load_cached", None)  # erst ab Phase P vorhanden
-    result["Team laden (Cache-Treffer)"] = (
+    result["Load team (no cache)"] = median_ms(lambda: repo.load(team), runs)
+    cached = getattr(repo, "load_cached", None)  # only present from phase P on
+    result["Load team (cache hit)"] = (
         median_ms(lambda: cached(team), runs) if cached else float("nan")
     )
     loaded = repo.load(team)
@@ -89,22 +89,22 @@ def measure(data: Path, team: str, runs: int, today: date) -> dict[str, float]:
 
 
 def apptest(data: Path, today: date, runs: int) -> dict[str, float]:
-    """Startlauf (kalt) und Seitenaufbau je Seite per AppTest (ohne Browser)."""
+    """Cold start and per-page build via AppTest (no browser)."""
     from streamlit.testing.v1 import AppTest
 
-    os.environ["SPRINTFORECAST_DATEN"] = str(data)
-    os.environ["SPRINTFORECAST_STICHTAG"] = today.isoformat()
+    os.environ["SPRINTFORECAST_DATA"] = str(data)
+    os.environ["SPRINTFORECAST_AS_OF"] = today.isoformat()
     start = time.perf_counter()
     at = AppTest.from_file(str(APP), default_timeout=60)
     at.run()
-    out = {"AppTest Start (kalt, erster Lauf)": (time.perf_counter() - start) * 1000}
-    out["AppTest erneuter Lauf (gleiche Seite)"] = median_ms(lambda: at.run(), runs)
+    out = {"AppTest start (cold, first run)": (time.perf_counter() - start) * 1000}
+    out["AppTest rerun (same page)"] = median_ms(lambda: at.run(), runs)
     for page in PAGES:
 
         def switch(page=page) -> None:
             at.switch_page(f"seiten/{page}.py").run()
 
-        out[f"AppTest Seite {page}"] = median_ms(switch, runs)
+        out[f"AppTest page {page}"] = median_ms(switch, runs)
     at.switch_page("seiten/forecast.py").run()
     assert not at.exception, at.exception
     return out
@@ -112,21 +112,21 @@ def apptest(data: Path, today: date, runs: int) -> dict[str, float]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--daten", type=Path, default=ROOT / "examples" / "teams")
+    parser.add_argument("--data", type=Path, default=ROOT / "examples" / "teams")
     parser.add_argument("--team", default="demo")
     parser.add_argument("--runs", type=int, default=15)
-    parser.add_argument("--stichtag", default="2026-10-15")
-    parser.add_argument("--md", action="store_true", help="als Markdown-Tabelle ausgeben")
+    parser.add_argument("--as-of", default="2026-10-15")
+    parser.add_argument("--md", action="store_true", help="print as a Markdown table")
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory() as config:  # keine echten Benutzereinstellungen
+    with tempfile.TemporaryDirectory() as config:  # no real user settings
         os.environ["XDG_CONFIG_HOME"] = config
         os.environ["APPDATA"] = config
-        values = measure(args.daten, args.team, args.runs, date.fromisoformat(args.stichtag))
-    print(f"Python {sys.version.split()[0]}, {sys.platform}, Läufe: {args.runs}")
+        values = measure(args.data, args.team, args.runs, date.fromisoformat(args.as_of))
+    print(f"Python {sys.version.split()[0]}, {sys.platform}, runs: {args.runs}")
     if args.md:
-        print("\n| Messung | ms |\n|---|---:|")
+        print("\n| Measurement | ms |\n|---|---:|")
     for name, ms in values.items():
-        shown = "–" if ms != ms else f"{ms:.1f}"  # nan: nicht vorhanden
+        shown = "–" if ms != ms else f"{ms:.1f}"  # nan: not available
         print(f"| {name} | {shown} |" if args.md else f"{name:<45} {shown:>9} ms")
 
 
