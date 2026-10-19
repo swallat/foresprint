@@ -1357,25 +1357,27 @@ def probe_remote(
     Liste, genau wenn der Server ihn hat. Das Kürzen für die Anzeige ist Sache der Oberfläche."""
     run = _probe_run(root, ("ls-remote", "--heads", "--", address.url), timeout)
     if run.code != 0:
-        raise _probe_failure(run, address)
+        raise _probe_failure(run, address, root)
     heads = _heads_of(run)
     if branch and run.truncated and branch not in heads:
         wanted = _probe_run(
             root, ("ls-remote", "--heads", "--", address.url, f"refs/heads/{branch}"), timeout
         )
         if wanted.code != 0:
-            raise _probe_failure(wanted, address)
+            raise _probe_failure(wanted, address, root)
         if branch in _heads_of(wanted):  # das Muster passt auch auf …/refs/heads/NAME
             heads.append(branch)
     return tuple(heads)
 
 
-def _probe_failure(run: _ProbeRun, address: RemoteAddress) -> GitError:
+def _probe_failure(run: _ProbeRun, address: RemoteAddress, root: Path) -> GitError:
     message = (run.err.strip() or run.out.strip())[:4000]
-    return _probe_error(message, address, timed_out=run.code is None)
+    return _probe_error(message, address, timed_out=run.code is None, cwd=root)
 
 
-def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) -> GitError:
+def _probe_error(
+    message: str, address: RemoteAddress, timed_out: bool = False, cwd: Path | None = None
+) -> GitError:
     """Macht aus der Fehlerausgabe der Verbindungsprüfung einen verständlichen Fehler. Art und
     Hinweis zu Anmeldung, Fingerabdruck, nicht gefundenem Repository und Zertifikat kommen von
     :func:`classify`, wie bei jedem anderen Netzwerkaufruf. Hier kommt hinzu, was nur die Prüfung
@@ -1385,7 +1387,7 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
     das nicht (Git hängt es auch an, wenn der Server das Repository verweigert). Der Text von
     Git bleibt in ``str(error)`` (erscheint als „Technische Meldung“); es gibt immer einen
     Hinweis."""
-    err = classify(message, timeout=timed_out, url=address.url, drive_check=False)
+    err = classify(message, timeout=timed_out, url=address.url, drive_check=False, cwd=cwd)
     if timed_out:
         err.hint = _unreachable_hint()
     elif err.kind == "certificate":
