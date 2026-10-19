@@ -30,7 +30,7 @@ from sprintforecast.model import (
     Rule,
 )
 from sprintforecast.preplan import LIGHTS, REASONS, SOURCES, Distribution, distribute
-from sprintforecast.sources import RawTicket, SourceError
+from sprintforecast.sources import RawTicket, SourceError, open_source
 from sprintforecast.sources.csv import CsvSource
 from sprintforecast.storage import DataError, Repository, TeamData
 from sprintforecast.ticket_import import (
@@ -687,14 +687,28 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
     counter = f"tickets-{key}-import-n"
     st.markdown(
         t(
-            "Liest den CSV-Export der erweiterten Jira-Suche ein. Zuerst erscheint, was sich "
-            "ändern würde; geschrieben wird erst nach der Bestätigung."
+            "Liest die Tickets aus Jira oder aus dem CSV-Export der erweiterten Jira-Suche ein. "
+            "Zuerst erscheint, was sich ändern würde; geschrieben wird erst nach der Bestätigung."
         )
     )
+    fetched = f"tickets-{key}-fetched"
+    if data.team.tracker.kind == "jira":
+        if st.button(
+            t("Tickets aus Jira lesen"),
+            icon=":material/cloud_download:",
+            key=f"tickets-{key}-fetch",
+        ):
+            st.session_state.pop(fetched, None)
+            if result := _fetch_jira(data):
+                st.session_state[fetched] = result
+        st.caption(t("Oder eine CSV-Datei einlesen (ohne Netzzugang):"))
     upload = st.file_uploader(
         t("CSV-Datei"), type=["csv"], key=f"tickets-{key}-file-{st.session_state.get(counter, 0)}"
     )
     if upload is None:
+        if fetched in st.session_state:
+            raws, name = st.session_state[fetched]
+            _import_preview(repo, data, fc, raws, name, counter, fetched)
         return
     name = Path(upload.name).name
     with tempfile.TemporaryDirectory() as tmp:
@@ -705,13 +719,44 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         except SourceError as e:
             st.error(str(e).replace(str(path), name))  # not the temporary path
             return
-    _import_preview(repo, data, fc, raws, name, counter)
+    _import_preview(repo, data, fc, raws, name, counter, fetched)
+
+
+def _fetch_jira(data: TeamData) -> tuple[list[RawTicket], str] | None:
+    """Reads the tickets of the Jira query (token from the environment or the keychain); shows
+    the error and returns None when that fails. An empty result never replaces the last import."""
+    source = None
+    try:
+        source = open_source(data.team.tracker)
+        with st.spinner(t("Jira wird gelesen …")):
+            raws = source.fetch()
+    except SourceError as e:
+        st.error(str(e))
+        return None
+    finally:
+        if source is not None and hasattr(source, "close"):
+            source.close()
+    if not raws and data.tickets:
+        st.error(
+            t(
+                "Die Abfrage lieferte keine Tickets – nichts geschrieben. JQL "
+                "(tracker.query) und Berechtigungen des Tokens prüfen."
+            )
+        )
+        return None
+    return raws, str(source.name)
 
 
 def _import_preview(
-    repo: Repository, data: TeamData, fc: Forecast, raws: list[RawTicket], source: str, counter: str
+    repo: Repository,
+    data: TeamData,
+    fc: Forecast,
+    raws: list[RawTicket],
+    source: str,
+    counter: str,
+    fetched: str | None = None,
 ) -> None:
-    """Preview and apply for tickets of any source (CSV today, the tracker client later)."""
+    """Preview and apply for tickets of any source (a CSV upload or the tracker)."""
     key = data.team.key
     plan = plan_import(data, fc, raws, today(), source=source)
     titles = change_titles()
@@ -738,6 +783,8 @@ def _import_preview(
         return
     st.session_state["flash"] = [("success", _saved_text(", ".join(p.name for p in paths), step))]
     st.session_state[counter] = st.session_state.get(counter, 0) + 1  # empties the upload
+    if fetched:
+        st.session_state.pop(fetched, None)
     st.rerun()
 
 

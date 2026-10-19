@@ -43,7 +43,7 @@ def _saved() -> str | None:
     cached = _cache.get(str(path))
     if cached is None or cached[0] != stamp:
         value = config.load().get("language")
-        cached = _cache[str(path)] = (stamp, str(value) if value else None)
+        cached = _cache[str(path)] = (stamp, value if isinstance(value, str) and value else None)
     return cached[1]
 
 

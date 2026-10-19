@@ -351,3 +351,33 @@ def test_unknown_project_counts_as_without_project():
     assert sel.shows("a") and sel.shows(None) and sel.shows("gone")
     assert not sel.shows("b")
     assert not Selection(frozenset({"a"}), no_project=False).shows("gone")
+
+
+def test_jira_fetch_previews_then_writes(data_dir: Path, monkeypatch):
+    from sprintforecast.sources import RawTicket
+
+    class Fake:
+        kind, name, host = "jira", "jira.example.org", "jira.example.org"
+
+        def fetch(self):
+            return [RawTicket(key="J-1", title="From Jira", estimate=2.0, epic="ABC-100")]
+
+        def close(self):
+            pass
+
+    enable(data_dir)
+    team = data_dir / "demo" / "team.yaml"
+    doc = yaml.safe_load(team.read_text(encoding="utf-8"))
+    doc["tracker"]["kind"] = "jira"
+    doc["tracker"]["base_url"] = "https://jira.example.org"
+    team.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    monkeypatch.setattr("sprintforecast.web.tickets_view.open_source", lambda tracker: Fake())
+    at = page(data_dir, monkeypatch)
+    button(at, "Tickets aus Jira lesen").click().run()
+    assert not at.exception, at.exception
+    assert not (data_dir / "demo" / "tickets.yaml").exists()
+    button(at, "Änderungen übernehmen").click().run()
+    assert not at.exception, at.exception
+    written = yaml.safe_load((data_dir / "demo" / "tickets.yaml").read_text(encoding="utf-8"))
+    assert [tk["key"] for tk in written["tickets"]] == ["J-1"]
+    assert written["source"] == "jira.example.org"
