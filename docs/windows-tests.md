@@ -1,112 +1,118 @@
-# Windows-Prüfung (`scripts/windows-tests.ps1`)
+# Windows checks (`scripts/windows-tests.ps1`)
 
-Das Skript prüft, was sich nur auf einem echten Windows-Rechner zeigt, und schreibt einen
-Markdown-Bericht, den du an die Entwicklung zurückgibst. Es ändert keine Benutzer-Einstellungen
-(kein `git config`, keine dauerhaften Umgebungsvariablen, keine Registry-Schreibzugriffe). Alle
-Testdaten liegen in einem Temp-Ordner, der am Ende gelöscht wird.
+The script checks what only shows up on a real Windows machine and writes a Markdown report
+that you hand back to development. It changes no user settings (no `git config`, no
+persistent environment variables, no registry writes). All test data lives in a temp folder
+that is deleted at the end.
 
-## Voraussetzungen
+## Prerequisites
 
-- Windows 10 oder 11, Windows PowerShell 5.1 oder PowerShell 7
-- `sprintforecast` als uv-Tool installiert (`uv tool install …`), `git` und `uv` im PATH
-- für die Anmelde-Prüfung: die https- und/oder SSH-Adresse deines Daten-Repositorys
-- **alle sprintforecast-Fenster vorher schließen** (sonst überspringt das Skript die App-Prüfung)
+- Windows 10 or 11, Windows PowerShell 5.1 or PowerShell 7
+- `sprintforecast` installed as a uv tool (`uv tool install …`), `git` and `uv` in the PATH
+- for the login check: the https and/or SSH address of your data repository
+- **close all sprintforecast windows first** (otherwise the script skips the app check)
 
-## Starten
+## Running
 
-Im Ordner dieses Repositorys (nach `git pull`), ohne die Ausführungsrichtlinie dauerhaft zu ändern:
+In the folder of this repository (after `git pull`), without changing the execution policy
+permanently:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-tests.ps1
 ```
 
-Wurde die Datei heruntergeladen und meldet Windows, sie sei blockiert, vorher einmalig
-`Unblock-File .\scripts\windows-tests.ps1`.
+If the file was downloaded and Windows reports it as blocked, run
+`Unblock-File .\scripts\windows-tests.ps1` once beforehand.
 
-Der Bericht entsteht im **aktuellen Ordner von PowerShell** als `sprintforecast-windows-bericht-JJJJMMTT-HHMM.md`
-(ist der Ort nicht beschreibbar, im Temp-Ordner; das Skript sagt es gleich zu Beginn).
-Er enthält keine Zugangsdaten (Token und Zugangsdaten in Adressen werden durch `***` ersetzt, der
-Profilordner durch `%USERPROFILE%`); lies ihn trotzdem kurz durch, bevor du ihn weitergibst.
+The report is written to the **current PowerShell folder** as
+`sprintforecast-windows-bericht-YYYYMMDD-HHMM.md` (if that location is not writable, to the temp
+folder; the script says so right at the start). It contains no credentials (tokens and
+credentials in addresses are replaced by `***`, the profile folder by `%USERPROFILE%`); still,
+skim it before passing it on.
 
-Nützliche Parameter:
+Useful parameters:
 
-| Parameter | Wirkung |
+| Parameter | Effect |
 |---|---|
-| `-Nur Zeilenenden,Symlink` | nur diese Prüfungen (`App`, `Uv`, `Anmeldung`, `Zeilenenden`, `Sperre`, `Symlink`, `Interaktiv`), durch Komma getrennt, ohne Leerzeichen |
-| `-HttpsUrl …` / `-SshUrl …` | Adressen für die Anmelde-Prüfung (sonst fragt das Skript; Enter überspringt) |
-| `-WartezeitSekunden 30` | Wartezeit nach dem Schließen des App-Fensters (Standard 20) |
-| `-OhneRueckfragen` | keine Eingaben; Rückfragen und interaktive Prüfungen entfallen |
-| `-MitAutoUpdate` | App und CLI-Aufrufe des Skripts mit der eingestellten Selbstaktualisierung laufen lassen (Standard: aus, nur für diese Prozesse) |
-| `-Bericht PFAD` | Berichtsdatei woanders ablegen |
-| `-PythonExe PFAD` | Python der Installation vorgeben, falls es nicht gefunden wird |
+| `-Nur Zeilenenden,Symlink` | only these checks (`App`, `Uv`, `Anmeldung`, `Zeilenenden`, `Sperre`, `Symlink`, `Interaktiv`), comma-separated, no spaces |
+| `-HttpsUrl …` / `-SshUrl …` | addresses for the login check (otherwise the script asks; Enter skips) |
+| `-WartezeitSekunden 30` | wait time after closing the app window (default 20) |
+| `-OhneRueckfragen` | no input; prompts and interactive checks are skipped |
+| `-MitAutoUpdate` | run the app and the script's CLI calls with the configured self-update (default: off, only for these processes) |
+| `-Bericht PATH` | write the report file somewhere else |
+| `-PythonExe PATH` | the installation's Python, in case it is not found |
 
-## Was geprüft wird
+## What is checked
 
-Dauer ohne Rückfragen etwa 2 bis 3 Minuten; die interaktiven Fragen kommen dazu.
+Duration without prompts about 2 to 3 minutes; the interactive questions come on top.
 
-1. **App starten und beenden.** Das Skript startet `sprintforecast-app` mit einem temporären
-   Daten-Repository (nur für diesen Start über `SPRINTFORECAST_DATEN`), wartet auf Server und
-   Fenster und listet alle Prozesse. Dann schließt es das Fenster wie der Schließen-Knopf
-   (`CloseMainWindow`; klappt das nicht oder startet die App in Firefox bzw. dem Standardbrowser,
-   bittet es dich, das Fenster selbst zu schließen), wartet
-   20 Sekunden und prüft per `Get-CimInstance Win32_Process`, dass nichts mehr läuft:
-   kein `sprintforecast-app.exe`, kein `python(w).exe` mit sprintforecast/streamlit, kein Browser
-   mit `--user-data-dir=…\sprintforecast\…`, keine `uv.exe`-Aktualisierung. Bleiben Prozesse, nennt
-   der Bericht sie samt Zeitpunkt, zu dem sie später endeten. Zusätzlich zeigt er `app.log` und
-   `update.log` aus `%APPDATA%\sprintforecast`. Übrig gebliebene Prozesse beendet das Skript am Ende.
-2. **Installation (uv tool).** `uv tool list`; auf Wunsch (Rückfrage j/N, nur bei geschlossener App)
-   `uv tool upgrade --reinstall sprintforecast` – so aktualisiert sich auch die App selbst, und die
-   Neuinstallation fasst alle Dateien an (am ehesten sperrt dann noch ein Prozess etwas).
-3. **Anmeldung (Git).** `credential.helper` samt Herkunft, Git Credential Manager, `gh auth status`,
-   SSH-Agent und `git ls-remote` gegen deine https- und SSH-Adresse. Adressen mit Zugangsdaten
-   werden abgelehnt. Ein Anmeldefenster des Credential Managers kann sich öffnen; Zeitlimit 90 s.
-4. **Zeilenenden.** Das Skript legt ein Daten-Repository mit der App-Logik an (Team `demo`, Sprints
-   über `sprintforecast sprints`), committiert, klont es dreimal (deine `core.autocrlf`-Einstellung,
-   `autocrlf=true`, `autocrlf=false`) und prüft: `git status`/`git diff` leer, `sprintforecast
-   pruefen` fehlerfrei, erneutes Speichern ändert nichts. Das Repository trägt dabei die
-   `.gitattributes` (YAML mit LF), die die App in neuen Daten-Repositories anlegt; geprüft wird also
-   der geschützte Zustand. Ältere Repositories ohne diese Datei deckt die Prüfung nicht ab.
-5. **Gesperrte Datei.** Hält eine YAML-Datei mit exklusiver Sperre (`FileShare.None`) und mit
-   Lesesperre (`FileShare.Read`) und speichert über die App-Logik. Erwartet: Datei unverändert, keine
-   `*.tmp`-Reste, und eine verständliche Meldung statt eines rohen Systemfehlers
-   (`PermissionError` wird als **HINWEIS** gemeldet).
-6. **Symlink-Recht.** Legt im Temp-Ordner eine symbolische Verknüpfung an (zuerst `mklink`, denn
-   `New-Item` verlangt in Windows PowerShell 5.1 auch im Entwicklermodus Administratorrechte) und meldet
-   Administrator und Entwicklermodus. Ohne Recht ist das kein Fehler der App; nur ein Test der Entwicklung
-   (Symlink) entfällt dann.
-7. **Interaktive Prüfungen** (nur mit Eingabe): Netz getrennt, geschützter Branch und die Optik
-   (Startseite, Schrittleiste, Tabellen, Server-Maske, Konfliktseite, Was-wäre-wenn/Historie,
-   Kalendertexte/Rechenweg, englische Oberfläche). Je Frage `J`, `N` oder Enter (überspringen),
-   danach eine Notiz. Dafür öffnest du die App selbst (Verknüpfung). Bei diesen Prüfungen bleibt etwas
-   zurück, das du selbst zurücknimmst: das getrennte Netz wieder verbinden, einen Commit auf dem
-   geschützten Branch (besser ein Test-Repository nehmen), die Sprache wieder auf Deutsch stellen.
+1. **Start and quit the app.** The script starts `sprintforecast-app` with a temporary data
+   repository (only for this start, via `SPRINTFORECAST_DATA`), waits for server and window,
+   and lists all processes. Then it closes the window like the close button would
+   (`CloseMainWindow`; if that does not work, or the app starts in Firefox or the default
+   browser, it asks you to close the window yourself), waits 20 seconds and checks via
+   `Get-CimInstance Win32_Process` that nothing is still running: no `sprintforecast-app.exe`,
+   no `python(w).exe` with sprintforecast/streamlit, no browser with
+   `--user-data-dir=…\sprintforecast\…`, no `uv.exe` update. If processes remain, the report
+   names them together with the time at which they ended later. It also shows `app.log` and
+   `update.log` from `%APPDATA%\sprintforecast`. Leftover processes are terminated by the
+   script at the end.
+2. **Installation (uv tool).** `uv tool list`; on request (prompt y/N, only with the app
+   closed) `uv tool upgrade --reinstall sprintforecast`, which is also how the app updates
+   itself, and the reinstall touches every file (if a process still locks something, this is
+   where it shows).
+3. **Login (Git).** `credential.helper` with its origin, Git Credential Manager,
+   `gh auth status`, SSH agent and `git ls-remote` against your https and SSH address.
+   Addresses with credentials are rejected. A Credential Manager login window may open; time
+   limit 90 s.
+4. **Line endings.** The script creates a data repository through the app logic (team `demo`,
+   sprints via `sprintforecast sprints`), commits, clones it three times (your `core.autocrlf`
+   setting, `autocrlf=true`, `autocrlf=false`) and checks: `git status`/`git diff` empty,
+   `sprintforecast check` without errors, saving again changes nothing. The repository
+   carries the `.gitattributes` (YAML with LF) that the app creates in new data repositories,
+   so the protected state is what gets checked. Older repositories without that file are not
+   covered.
+5. **Locked file.** Holds a YAML file with an exclusive lock (`FileShare.None`) and with a read
+   lock (`FileShare.Read`) and saves through the app logic. Expected: file unchanged, no
+   `*.tmp` leftovers, and an understandable message instead of a raw system error
+   (`PermissionError` is reported as **HINWEIS**).
+6. **Symlink permission.** Creates a symbolic link in the temp folder (`mklink` first, because
+   `New-Item` in Windows PowerShell 5.1 requires administrator rights even in developer mode)
+   and reports administrator and developer mode. Lacking the permission is not an app error;
+   only one development test (symlink) is skipped then.
+7. **Interactive checks** (only with input): network disconnected, protected branch, and the
+   visuals (landing page, step bar, tables, server mask, conflict page, what-if/history,
+   calendar texts/calculation path, English UI). Per question `J`, `N` or Enter (skip), then a
+   note. For these you open the app yourself (shortcut). These checks leave things behind that
+   you undo yourself: reconnect the network, a commit on the protected branch (better use a
+   test repository), set the language back to German.
 
-## Ergebniswerte
+## Result values
 
-| Wert | Bedeutung |
+| Value | Meaning |
 |---|---|
-| OK | Erwartung erfüllt |
-| FEHLER | Erwartung verletzt (Details im Bericht) |
-| HINWEIS | Auffällig oder nicht vollständig prüfbar, aber kein harter Fehler |
-| ÜBERSPRUNGEN | nicht ausgeführt (Voraussetzung fehlt, ohne Rückfragen, nicht Windows) |
+| OK | expectation met |
+| FEHLER | expectation violated (details in the report) |
+| HINWEIS | noteworthy or not fully checkable, but no hard error |
+| ÜBERSPRUNGEN | not run (prerequisite missing, no prompts, not Windows) |
 
-## Was das Skript auf deinem Rechner anlegt oder ändert
+## What the script creates or changes on your machine
 
-- Temp-Ordner `%TEMP%\sprintforecast-wintest-…` (wird am Ende gelöscht; bleibt er stehen, nennt das
-  Skript den Pfad)
-- die Berichtsdatei im aktuellen Ordner
-- durch den Start der App (Prüfung 1): deren übliche Dateien unter `%APPDATA%\sprintforecast`
-  (`app.log` wird dabei überschrieben) und das Browserprofil unter `%LOCALAPPDATA%\sprintforecast`
-- nur gelesen, nicht geändert: Git-Konfiguration, SSH-Agent, Registry (Entwicklermodus)
+- temp folder `%TEMP%\sprintforecast-wintest-…` (deleted at the end; if it remains, the script
+  names the path)
+- the report file in the current folder
+- by starting the app (check 1): its usual files under `%APPDATA%\sprintforecast` (`app.log`
+  is overwritten) and the browser profile under `%LOCALAPPDATA%\sprintforecast`
+- read only, never changed: Git configuration, SSH agent, registry (developer mode)
 
-## Bekannte Grenzen
+## Known limits
 
-- Der Test der gesperrten Datei prüft die Speicherfunktion der App, nicht die Oberfläche darüber;
-  ob die Oberfläche eine Meldung zeigt, sagt nur der HINWEIS-Text im Bericht.
-- Ein Browser, der das Fenster nicht schließen lässt (z. B. Firefox statt Edge/Chrome), erzwingt das
-  manuelle Schließen.
-- Das Skript wird unter Linux mit PowerShell 7 auf Syntax und die plattformunabhängigen
-  Hilfsfunktionen getestet (`tests/test_windows_script.py`, läuft in der CI); die Windows-Teile
-  (Prozessliste, Sperren, Fenster schließen) laufen erstmals bei dir.
-- Aufgeräumt wird nur, was noch derselbe Prozess ist (Startzeit verglichen): Prozessnummern können
-  inzwischen jemand anderem gehören.
+- The locked-file test checks the app's save function, not the UI on top of it; whether the UI
+  shows a message is only stated by the HINWEIS text in the report.
+- A browser that does not let the window be closed (e.g. Firefox instead of Edge/Chrome)
+  forces manual closing.
+- The script is tested on Linux with PowerShell 7 for syntax and the platform-independent
+  helper functions (`tests/test_windows_script.py`, runs in CI); the Windows parts (process
+  list, locks, closing the window) run for the first time on your machine.
+- Only what is still the same process is cleaned up (start time compared): process IDs may
+  belong to someone else by then.
