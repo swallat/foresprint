@@ -177,9 +177,16 @@ the switch or change does not happen.
 
 Only the data directory is committed; spreadsheets (`*.xlsx` and so on) are rejected. The model is
 "one branch, always in sync"; branches, rebase, force push and stash are deliberately not part of
-the app. Sharing pushes straight to the branch, so there are no merge requests; on the server,
-protect `main` of the data repository against force push and deletion (but do not require
-reviews, or sharing is rejected). The Git state is cached briefly (5 seconds); changes made outside the app (editor,
+the app. By default sharing pushes straight to the branch. For servers that protect `main` and
+require merge requests (for example GitLab), switch on **Share via merge request** on the **Data
+folder** page (per data repository, stored in its local Git configuration as
+`sprintforecast.share`): "Save and share" then merges the server state, uploads to your own
+branch `sprintforecast/<name>` and asks the server through GitLab push options
+(`merge_request.create`, `.target`, `.title`, `.remove_source_branch`) to create the merge
+request; a further share updates the same one. No access token or API is needed beyond the push
+itself, but the server must accept push options. `main` stays untouched until the merge request
+is merged; then **Pull from server** brings it in. Without merge requests, protect `main` against
+force push and deletion only (no required reviews, or sharing is rejected). The Git state is cached briefly (5 seconds); changes made outside the app (editor,
 terminal) therefore appear with a small delay, your own saves immediately.
 
 ## Updates in the web UI

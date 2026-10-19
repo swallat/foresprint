@@ -861,7 +861,7 @@ def test_product_tables_show_empty_cells_as_dash_not_none(app: AppTest):
     goto(app, "vorplanung")
     editors = [d for d in product_frames() if "_id" in d.value.columns]
     assert [d.proto.placeholder for d in editors] == ["–"]
-    assert editors[0].value["Planning"].isna().all()  # nicht erfasst ist nicht 0
+    assert "Planning" not in editors[0].value.columns  # erst im Planning
 
     planning_step(app, "2026.22", 1)
     editors = [d for d in product_frames() if "_id" in d.value.columns]
@@ -875,6 +875,25 @@ def test_product_tables_show_empty_cells_as_dash_not_none(app: AppTest):
     goto(app, "produkte")
     tables = [d for d in product_frames() if "Standard" in d.value.columns]
     assert tables and tables[0].proto.placeholder == "–"
+
+
+def test_product_editor_shows_only_columns_of_the_phase(app: AppTest):
+    """Jeder Termin zeigt nur Spalten, die dort eingegeben oder entschieden werden."""
+
+    def editor_columns() -> list[str]:
+        [editor] = [d for d in app.dataframe if {"_id", "Produkt"} <= set(d.value.columns)]
+        return [c for c in editor.value.columns if c not in ("_id", "Produkt", "PO")]
+
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    assert editor_columns() == ["Standard", "PO-Vorplanung"]
+
+    planning_step(app, "2026.22", 1)
+    assert editor_columns() == ["Standard", "PO-Vorplanung", "Planning"]
+
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    assert editor_columns() == ["Planning", "Erledigt"]
 
 
 def test_absences_matrix_leaves_cells_of_inactive_people_empty(app: AppTest):
@@ -1884,3 +1903,29 @@ def test_calendar_people_and_products_have_a_lead_and_an_expander(app: AppTest):
     goto(app, "produktliste")
     assert any(m.value.startswith("Eine Zeile je Produkt") for m in app.markdown)
     assert any(e.label.startswith("Produkt abgeben") for e in app.expander)
+
+
+def test_planning_plan_live_capacity_without_products(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    shutil.rmtree(data_dir / "demo" / "products", ignore_errors=True)
+    (data_dir / "demo" / "products.yaml").unlink(missing_ok=True)
+    _change_2026_22(data_dir, products={})
+    at = start(data_dir, monkeypatch)
+    planning_step(at, "2026.22", 1)
+    plan = next(m.value for m in at.metric if m.label.startswith("Prognose aktuell"))
+    plan = float(plan.replace(".", "").replace(",", "."))
+    key = "planning-scratch-2026.22"
+    assert not any("Eingeplant:" in str(p.proto.text) for p in at.get("progress"))
+    at.number_input(key=key).set_value(plan + 1).run()
+    assert any("zu viel" in w.value for w in at.warning)
+    at.number_input(key=key).set_value(0.25).run()
+    assert any("frei" in s.value for s in at.success)
+    assert any("Eingeplant:" in str(p.proto.text) for p in at.get("progress"))
+
+
+def test_planning_plan_gauge_with_products(app: AppTest):
+    planning_step(app, "2026.22", 1)
+    assert not any(n.key == "planning-scratch-2026.22" for n in app.number_input)
+    texts = [str(p.proto.text) for p in app.get("progress")]
+    assert any(x.startswith("Eingeplant:") for x in texts), texts

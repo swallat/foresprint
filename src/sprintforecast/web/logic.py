@@ -624,7 +624,10 @@ def apply_product_values(sprint: Sprint, rows: list[dict[str, Any]], measures: l
         pid = str(row["_id"])
         values = result.products.get(pid, ProductValues())
         for m in measures:
-            raw = row.get((MEASURES | PRODUCTION_MEASURES)[m])
+            label = (MEASURES | PRODUCTION_MEASURES)[m]
+            if label not in row:
+                continue  # Spalte war nicht zu sehen: gespeicherten Wert nicht überschreiben
+            raw = row[label]
             setattr(values, m, None if is_blank(raw) else float(raw))
         if values.is_empty():
             result.products.pop(pid, None)
@@ -639,6 +642,34 @@ def parse_numbers(raw: str) -> list[float]:
     if not all(math.isfinite(n) for n in numbers):
         raise ValueError(t("Bitte eine endliche Zahl eingeben."))
     return numbers
+
+
+@dataclass(frozen=True)
+class CapacityUsage:
+    """Verplante Menge gegenüber dem Forecast PLAN: Rest (negativ = zu viel) und Auslastung."""
+
+    planned: float
+    plan: float
+
+    @property
+    def rest(self) -> float:
+        return self.plan - self.planned
+
+    @property
+    def ratio(self) -> float:
+        """Anteil des Forecast PLAN, der verplant ist (über 1 = überplant; 0 ohne PLAN)."""
+        return self.planned / self.plan if self.plan > 0 else 0.0
+
+    @property
+    def over(self) -> bool:
+        return self.rest < 0
+
+
+def capacity_usage(plan: float | None, planned: float | None) -> CapacityUsage | None:
+    """None, solange PLAN oder verplante Menge fehlt (dann gibt es nichts zu vergleichen)."""
+    if plan is None or planned is None:
+        return None
+    return CapacityUsage(planned=planned, plan=plan)
 
 
 def board_steps_done(recorded: Sprint | None) -> dict[str, bool]:
