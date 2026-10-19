@@ -17,6 +17,7 @@ import os
 import re
 import tarfile
 import tempfile
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import date
@@ -230,9 +231,21 @@ def cached_state(path: Path) -> SyncState:
     return current
 
 
-def fetch(path: Path) -> SyncState:
+# Im Hintergrund: kurzes Zeitlimit und nie ein Anmeldefenster oder eine Rückfrage (Credential
+# Manager, SSH-Passphrase). Fehlt die Anmeldung, bleibt der Abruf ohne Ergebnis; der Knopf
+# „Stand prüfen“ erklärt dann den nächsten Schritt.
+BACKGROUND_FETCH_SECONDS = 30 * 60
+BACKGROUND_TIMEOUT = 20.0
+BACKGROUND_OFF_ENV = "SPRINTFORECAST_NO_BACKGROUND_FETCH"  # gesetzt: kein Abruf im Hintergrund
+_QUIET_ENV = {"GCM_INTERACTIVE": "never", "SSH_ASKPASS_REQUIRE": "never"}
+_BACKGROUND_LOCK = threading.Lock()
+_BACKGROUND_ACTIVE: set[Path] = set()
+
+
+def fetch(path: Path, background: bool = False) -> SyncState:
     """Holt den Stand vom Server (nur herunterladen, nichts ändern) und merkt sich, ob der
-    Server erreichbar war. Fehler werden nicht ausgelöst, sondern im Stand vermerkt."""
+    Server erreichbar war. Fehler werden nicht ausgelöst, sondern im Stand vermerkt. Mit
+    ``background`` gilt ein kurzes Zeitlimit und es erscheint keine Anmelderückfrage."""
     root = _root(path)
     current = state(path)
     error: GitError | None = None
@@ -240,12 +253,57 @@ def fetch(path: Path) -> SyncState:
         error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
     else:
         try:
-            _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
+            _git(
+                root, "fetch", "--prune", current.remote, network=True, url=current.url,
+                timeout=BACKGROUND_TIMEOUT if background else None,
+                env_extra=_QUIET_ENV if background else None,
+            )  # fmt: skip
         except GitError as e:
             error = e
     _FETCHED[root] = (time.time(), error)
     gitmod.invalidate_status()
     return state(path)
+
+
+def background_fetch_due(path: Path, now: float | None = None) -> bool:
+    """Ist der letzte Abruf (von Hand oder im Hintergrund) länger als 30 Minuten her oder gab es
+    noch keinen in diesem Programmlauf, und hat der Datenordner einen Server?"""
+    root = _root(path)
+    if state(path).remote is None:
+        return False
+    fetched = _FETCHED.get(root)
+    return fetched is None or (now or time.time()) - fetched[0] >= BACKGROUND_FETCH_SECONDS
+
+
+def start_background_fetch(path: Path) -> bool:
+    """Startet bei Bedarf einen Abruf des Serverstands im Hintergrund (``git fetch --prune``)
+    und liefert, ob einer gestartet wurde. Es läuft nie mehr als einer je Datenordner, und
+    keine Dauerschleife: Aufgerufen wird nur aus einer verbundenen Sitzung (beim Start und
+    alle 30 Minuten), der Faden ist ein Nebenfaden und hält ``idle.py`` nicht auf."""
+    if os.environ.get(BACKGROUND_OFF_ENV):
+        return False
+    try:
+        root = _root(path)
+        if not background_fetch_due(path):
+            return False
+    except GitError:
+        return False
+    with _BACKGROUND_LOCK:
+        if root in _BACKGROUND_ACTIVE:
+            return False
+        _BACKGROUND_ACTIVE.add(root)
+
+    def run() -> None:
+        try:
+            fetch(root, background=True)
+        except Exception:
+            pass
+        finally:
+            with _BACKGROUND_LOCK:
+                _BACKGROUND_ACTIVE.discard(root)
+
+    threading.Thread(target=run, name="sprintforecast-fetch", daemon=True).start()
+    return True
 
 
 def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str, str]]]:

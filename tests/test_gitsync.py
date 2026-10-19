@@ -4,6 +4,7 @@
 import http.server
 import subprocess
 import threading
+import time
 from datetime import date
 from pathlib import Path
 
@@ -1600,3 +1601,59 @@ def test_pull_note_not_shown_after_squash_merge_or_without_merge_request(
     git(squash, "commit", "-qm", "Squash")
     git(squash, "push", "-q", "origin", "main")
     assert bob.sync("holen", push=False).notes == []
+
+
+def test_background_fetch_is_due_once_and_runs_as_daemon(alice: Person, bob: Person, monkeypatch):
+    monkeypatch.delenv(gitsync.BACKGROUND_OFF_ENV)
+    assert gitsync.background_fetch_due(bob.data)  # never fetched in this run
+    started: list[bool] = []
+    real = gitsync.threading.Thread
+
+    class Recorder(real):
+        def __init__(self, *args, **kwargs):
+            started.append(kwargs.get("daemon"))
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(gitsync.threading, "Thread", Recorder)
+    alice.write("a/2026.2.yaml", "velocity: 4\n")
+    assert alice.sync("neu").ok
+    assert gitsync.start_background_fetch(bob.data)
+    assert started == [True]  # a daemon thread: never keeps the server (idle.py) alive
+    for _ in range(100):  # wait for the worker
+        if not gitsync._BACKGROUND_ACTIVE:
+            break
+        time.sleep(0.1)
+    assert gitsync.state(bob.data).behind == 1  # the server state arrived
+    assert not gitsync.background_fetch_due(bob.data)  # fresh: next one in 30 minutes
+    assert gitsync.background_fetch_due(bob.data, now=time.time() + 31 * 60)
+    assert not gitsync.start_background_fetch(bob.data)
+
+
+def test_background_fetch_asks_for_nothing_and_has_a_short_timeout(bob: Person, monkeypatch):
+    seen: dict = {}
+    real = gitsync._git
+
+    def spy(root, *args, **kwargs):
+        if args[:1] == ("fetch",):
+            seen.update(kwargs)
+        return real(root, *args, **kwargs)
+
+    monkeypatch.setattr(gitsync, "_git", spy)
+    gitsync.fetch(bob.data, background=True)
+    assert seen["timeout"] == gitsync.BACKGROUND_TIMEOUT
+    assert seen["env_extra"]["GCM_INTERACTIVE"] == "never"
+    assert seen["network"] is True
+    seen.clear()
+    gitsync.fetch(bob.data)
+    assert seen["timeout"] is None and seen["env_extra"] is None
+
+
+def test_no_background_fetch_without_server(tmp_path: Path):
+    git(tmp_path, "init", "-q", "-b", "main")
+    assert not gitsync.background_fetch_due(tmp_path)
+    assert not gitsync.start_background_fetch(tmp_path)
+
+
+def test_background_fetch_can_be_switched_off(bob: Person):
+    assert not gitsync.start_background_fetch(bob.data)  # the test suite sets the variable
+    assert not gitsync._BACKGROUND_ACTIVE
