@@ -471,3 +471,30 @@ def test_view_name_for_data_folder_equal_to_repository_root(tmp_path: Path):
     assert ui._view_name(root / "teams", "teams/a/x.yaml", root) == "a/x.yaml"
     assert ui._view_name(root / "teams", "anders/x.yaml", root) == "anders/x.yaml"
     assert ui._view_name(root, "x.yaml", None) == "x.yaml"
+
+
+def test_commit_message_is_suggested_from_the_change(repo, data_dir: Path, monkeypatch):
+    file = repo / SPRINT
+    file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    message = at.sidebar.text_input(key="commit_message").value
+    assert "2026.20.yaml" in message and "9.75 → 7.0" in message
+    # An own text is kept when the changes move on ...
+    at.sidebar.text_input(key="commit_message").set_value("Mein Text")
+    at.run()
+    file.write_text(file.read_text().replace("velocity: 7.0", "velocity: 8.0"))
+    invalidate_status()
+    at.run()
+    assert at.sidebar.text_input(key="commit_message").value == "Mein Text"
+
+
+def test_suggested_message_follows_the_changes(repo, data_dir: Path, monkeypatch):
+    file = repo / SPRINT
+    file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    file.write_text(file.read_text().replace("velocity: 7.0", "velocity: 8.25"))
+    invalidate_status()
+    at.run()
+    assert "9.75 → 8.25" in at.sidebar.text_input(key="commit_message").value
