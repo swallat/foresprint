@@ -248,6 +248,7 @@ def change_titles() -> dict[str, str]:
         "refined_unclear": t("Refined-Status unklar"),
         "earmark_dropped": t("Vormerkung verworfen"),
         "sprint_unresolved": t("Sprint nicht erkannt (in team.yaml unter tracker.sprint_names)"),
+        "earmark_from_label": t("Vormerkung aus dem Label planned_for_… übernommen"),
     }
 
 
