@@ -26,7 +26,7 @@ or the `features` section in `team.yaml`) and are **off for new teams**:
 | `products`: product distribution | product list, PO pre-planning, planning and done per product, default distribution, balance | these pages and inputs are omitted |
 | `po`: PO assignment | PO column per product, totals per PO (useful only together with `products`) | no PO column, no totals per PO |
 | `production`: production access | mark people as authorized, amount with production access in planning/review (per product, or per sprint without product distribution), bottleneck note | no marking, no inputs, no note |
-| `tickets`: ticket pre-planning | tickets from the tracker (CSV export) are assigned to projects and distributed over future sprints: project list with target dates, earmarks, project traffic light, refinement list (`projects.yaml`, `tickets.yaml`, `preplan.yaml`, section `tracker` in `team.yaml`) | the three files are not read, there is no page and no command for it |
+| `tickets`: ticket pre-planning | tickets from the tracker (Jira or CSV export) are assigned to projects and distributed over future sprints: project list with target dates, earmarks, project traffic light, refinement list (`projects.yaml`, `tickets.yaml`, `preplan.yaml`, section `tracker` in `team.yaml`) | the three files are not read, there is no page and no command for it |
 
 Switching a feature off deletes nothing: values already recorded stay in the files and reappear
 as soon as the feature is switched on again. **Older `team.yaml` files without `features`**
@@ -132,7 +132,7 @@ are the **display names** of the tracker (as in the header of a Jira CSV export)
 
 ```yaml
 tracker:
-  kind: csv                      # csv (step 1) | jira (later)
+  kind: csv                      # csv | jira (see below)
   fields:
     estimate: Story Points       # column "Custom field (Story Points)" in the export
     remaining: Remaining Points  # optional; without it the estimate is used
@@ -152,6 +152,38 @@ tracker:
   sprint_names:                  # optional: tracker sprint name → sprint id of the tool, only when
     Sprint 42: '2026.21'         # the names differ
 ```
+
+**Jira (`kind: jira`).** `sprintforecast tickets TEAM --fetch` reads the tickets straight from
+Jira Data Center (setup: [jira.md](jira.md)); the CSV import stays available as an offline
+fallback. Additional keys:
+
+```yaml
+tracker:
+  kind: jira
+  base_url: https://jira.example.org    # http or https; with a context path: https://host/jira
+  query: 'project = ABC AND resolution = Unresolved ORDER BY Rank'   # JQL
+  fields:
+    estimate: Story Points       # display names of the instance, as in the Jira UI; the tool
+    remaining: Remaining Points  # resolves them to customfield_… ids (GET /rest/api/2/field)
+    epic: Epic Link              # "Parent" (or "Übergeordnet") takes the parent issue as epic
+  link_type: Blocks              # optional, default Blocks: issue link type whose inward side
+                                 # ("is blocked by") becomes depends_on
+```
+
+- `base_url` and `query` are required (error otherwise); a missing `fields.estimate` is a warning.
+  Plain `http` is accepted with a warning (the token would travel unencrypted); credentials in the
+  address are an error.
+- A field name that does not exist or exists twice in the instance stops the import with a
+  message that names the candidates' ids; write the id (`customfield_10016`) instead of the name
+  to disambiguate. The sprint, rank and epic link fields are found by their schema, not by their
+  (localized) name.
+- Which sprint counts for a ticket in several sprints: the active one, else the first future one,
+  else the last one listed. It is mapped to a sprint id like a CSV sprint name (`sprint_names`).
+- `link_type` is the only Jira-specific setting besides address and query. It is written only
+  when it differs from `Blocks`.
+- **No secrets in this file.** A key such as `token`, `password` or `secret` in the `tracker`
+  section is an error (`check` reports it; the value is never shown). The token lives in the
+  environment variable `SPRINTFORECAST_JIRA_TOKEN` or in the operating system keychain.
 
 ### `projects.yaml`
 
@@ -188,13 +220,14 @@ in the same `match:`.
 
 ### `tickets.yaml`
 
-The state of the last import, written by `sprintforecast tickets TEAM --import FILE --apply`;
+The state of the last import, written by `sprintforecast tickets TEAM --import FILE --apply` or
+`--fetch --apply`;
 not meant to be edited by hand:
 
 ```yaml
 schema: 1
 imported: 2026-10-19 14:00:00
-source: export.csv
+source: export.csv             # file name of the CSV, or "jira <host>" after --fetch
 tickets:
 - key: ABC-123
   title: Checkout form

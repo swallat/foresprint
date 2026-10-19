@@ -1,5 +1,6 @@
 #!/bin/sh
-# Installs sprintforecast (including the web UI) on Linux and macOS.
+# Installs sprintforecast (including the web UI and the extras excel and jira) on Linux and
+# macOS.
 #
 #   curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
 #
@@ -13,7 +14,7 @@ set -eu
 REF="${SPRINTFORECAST_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
-CORE="sprintforecast[web,excel] @ https://github.com/swallat/sprint-forecast/archive/refs/${KIND}/${REF}.zip"
+CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/${KIND}/${REF}.zip"
 PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"
 
 say() { printf '%s\n' "$*"; }
@@ -85,12 +86,12 @@ if [ -n "$specs" ]; then
     fi
     say "==> with plugins: $specs"
     # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
-    set -- "$@" "sprintforecast[web,excel]"
+    set -- "$@" "sprintforecast[web,excel,jira]"
 else
     set -- "$@" "$CORE"
 fi
 
-say "==> installing sprintforecast (Python 3.14 is downloaded if needed)"
+say "==> installing sprintforecast with the extras web, excel and jira (Python 3.14 is downloaded if needed)"
 uv tool install "$@"
 uv tool update-shell >/dev/null 2>&1 || true
 
