@@ -4,12 +4,15 @@
 Verschiedene Schlüssel derselben Datei werden vereinigt; nur wenn beide Seiten denselben Wert
 unterschiedlich geändert haben, entsteht ein :class:`KeyConflict`, den ein Mensch entscheidet
 („meine“ oder „andere“ Änderung). Listen von Objekten mit ``id`` (Personen, Produkte) werden
-je Eintrag zusammengeführt, alle anderen Listen als ein Wert.
+je Eintrag zusammengeführt. Die Prognosen eines Sprints (Liste ``prognoses``, ohne ``id``) werden
+über ihren Zeitpunkt ``at`` vereinigt und danach aufsteigend nach ``at`` sortiert: Hängen zwei
+Personen je eine Prognose an, bleiben beide. Alle anderen Listen gelten als ein Wert.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -24,6 +27,8 @@ OURS = "ours"
 THEIRS = "theirs"
 
 Path = tuple[str, ...]
+
+PROGNOSES = "prognoses"  # Liste ohne ``id``, die über den Zeitpunkt ``at`` vereinigt wird
 
 
 @dataclass(frozen=True)
@@ -90,6 +95,10 @@ def _merge(base: Any, ours: Any, theirs: Any, path: Path, choices, conflicts) ->
         return _merge_dicts(
             base if isinstance(base, dict) else {}, ours, theirs, path, choices, conflicts
         )
+    if path and path[-1] == PROGNOSES:
+        union = _merge_prognoses(base, ours, theirs, path, choices, conflicts)
+        if union is not None:
+            return union
     keyed_o, keyed_t = keyed(ours), keyed(theirs)
     if keyed_o is not None and keyed_t is not None and (base is MISSING or isinstance(base, list)):
         keyed_b = {} if base is MISSING or base == [] else keyed(base)
@@ -103,6 +112,80 @@ def _merge(base: Any, ours: Any, theirs: Any, path: Path, choices, conflicts) ->
         return ours
     conflicts.append(KeyConflict(path, ours, theirs))
     return ours
+
+
+def _stamp(value: Any) -> datetime | None:
+    """Zeitpunkt eines Prognose-Eintrags (``datetime`` oder ISO-Text) auf Sekunden genau."""
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            return None
+    return value.replace(microsecond=0) if isinstance(value, datetime) else None
+
+
+def _by_stamp(items: Any) -> dict[str, tuple[datetime, dict]] | None:
+    """Prognosen als Abbildung Zeitpunkt (normiert) → (Zeitpunkt, Eintrag); ``None``, wenn ein
+    Eintrag keinen lesbaren ``at`` hat oder ein ``at`` doppelt vorkommt."""
+    if not isinstance(items, list):
+        return None
+    out: dict[str, tuple[datetime, dict]] = {}
+    for item in items:
+        stamp = _stamp(item.get("at")) if isinstance(item, dict) else None
+        if stamp is None or stamp.isoformat() in out:
+            return None
+        out[stamp.isoformat()] = (stamp, item)
+    return out
+
+
+def _order(stamp: datetime) -> datetime:
+    """Sortierschlüssel; Zeitpunkte mit Zeitzone werden nach UTC gerechnet, damit sie sich mit
+    solchen ohne vergleichen lassen."""
+    if stamp.tzinfo is None:
+        return stamp
+    return stamp.astimezone(UTC).replace(tzinfo=None)
+
+
+def _merge_prognoses(base, ours, theirs, path, choices, conflicts) -> list | None:
+    """Vereinigt Prognosen über ihren Zeitpunkt ``at`` (Einträge tragen keine ``id``): Beide
+    Seiten dürfen anhängen, ohne dass eine verloren geht. Ein Eintrag gilt als Ganzes; nur bei
+    gleichem ``at`` mit verschiedenem Inhalt entsteht ein Konflikt (Pfad ``…[<at>]``). Das
+    Ergebnis ist nach ``at`` aufsteigend sortiert. ``None`` = nicht anwendbar (kein ``at``,
+    doppeltes ``at``, keine Liste): dann gilt die Liste wie sonst als ein Wert."""
+    if not isinstance(ours, list) or not isinstance(theirs, list):
+        return None
+    if not (base is MISSING or isinstance(base, list)):
+        return None
+    keyed_b = {} if base is MISSING else _by_stamp(base)
+    keyed_o, keyed_t = _by_stamp(ours), _by_stamp(theirs)
+    if keyed_b is None or keyed_o is None or keyed_t is None:
+        return None
+
+    def content(entry: tuple[datetime, dict] | None) -> Any:
+        # ``at`` normiert, damit datetime und Text mit gleichem Zeitpunkt gleich sind
+        if entry is None:
+            return MISSING
+        return {**entry[1], "at": entry[0].isoformat()}
+
+    merged: list[tuple[datetime, dict]] = []
+    for key in [*keyed_o, *(k for k in keyed_t if k not in keyed_o)]:
+        b, o, t = keyed_b.get(key), keyed_o.get(key), keyed_t.get(key)
+        sub = (*path, f"[{key}]")
+        if same(content(o), content(t)):
+            chosen = o
+        elif same(content(o), content(b)):
+            chosen = t
+        elif same(content(t), content(b)):
+            chosen = o
+        else:
+            choice = choices.get(sub)
+            if choice is None:
+                conflicts.append(KeyConflict(sub, o[1] if o else MISSING, t[1] if t else MISSING))
+            chosen = t if choice == THEIRS else o
+        if chosen is not None:
+            merged.append(chosen)
+    merged.sort(key=lambda entry: _order(entry[0]))  # stabil: gleiche Zeitpunkte bleiben
+    return [entry for _, entry in merged]
 
 
 def _merge_dicts(base, ours, theirs, path, choices, conflicts, item: bool = False) -> dict:
