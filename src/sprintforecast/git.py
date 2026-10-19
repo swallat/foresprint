@@ -145,6 +145,7 @@ _ROOT_TTL = 30.0
 # über den eigenen Programmordner.
 
 _FOUND: str | None = None  # zuletzt gefundener Pfad außerhalb des PATH
+_BROKEN: dict[str, None] = {}  # Pfade, die sich nicht starten ließen (geordnete Menge)
 
 
 def git_locations() -> list[Path]:
@@ -177,14 +178,22 @@ def find_git() -> str | None:
     es Git nirgends gibt. Ein Fund außerhalb des PATH wird gemerkt (solange die Datei besteht);
     ein Misserfolg nicht, damit eine frische Installation sofort gefunden wird."""
     global _FOUND
-    if found := shutil.which("git"):
-        # Ein leerer oder „.“-Eintrag im PATH liefert einen relativen Treffer (Arbeitsordner).
+    broken = set(_BROKEN)  # Kopie: ein anderer Thread darf gleichzeitig ergänzen
+    # Ein leerer oder „.“-Eintrag im PATH liefert einen relativen Treffer (Arbeitsordner).
+    if (found := shutil.which("git")) and os.path.abspath(found) not in broken:
         return os.path.abspath(found)
+    if found:  # der erste Treffer ist unbrauchbar: weitere Einträge des PATH prüfen
+        for folder in os.get_exec_path():
+            hit = shutil.which("git", path=folder) if folder else None
+            if hit and os.path.abspath(hit) not in broken:
+                return os.path.abspath(hit)
     cached = _FOUND  # in einem Schritt gelesen: ein anderer Thread darf zurücksetzen
-    if cached and os.path.isfile(cached):
+    if cached and cached not in broken and os.path.isfile(cached):
         return cached
     _FOUND = None
     for candidate in git_locations():
+        if str(candidate) in broken:
+            continue
         if candidate.is_file() and os.access(candidate, os.X_OK):
             _FOUND = str(candidate)
             return _FOUND
@@ -192,23 +201,35 @@ def find_git() -> str | None:
 
 
 def reset_git_cache() -> None:
-    """Vergisst den gemerkten Git-Pfad (für Tests und nach einer Neuinstallation)."""
+    """Vergisst den gemerkten Git-Pfad und die als unbrauchbar erkannten (für Tests und nach
+    einer Neuinstallation)."""
     global _FOUND
     _FOUND = None
+    _BROKEN.clear()
+
+
+def broken_git() -> str:
+    """Pfad des zuletzt als unbrauchbar erkannten Git (leer, wenn es keines gibt)."""
+    return next(reversed(_BROKEN), "")
 
 
 def _not_startable(executable: str) -> GitError:
     """Fehler für einen Git-Aufruf, der sich nicht starten ließ (fehlt, defekt, kein Zugriff,
-    falsches Format, Windows-Store-Alias). Ein gemerkter Fund wird dabei vergessen."""
-    reset_git_cache()
+    falsches Format, Windows-Store-Alias). Der Pfad gilt fortan als unbrauchbar: Die Suche
+    wählt beim nächsten Aufruf den nächsten Kandidaten (weiterer PATH-Eintrag, Ersatzort)."""
+    global _FOUND
+    _FOUND = None
+    if executable != "git":
+        _BROKEN[os.path.abspath(executable)] = None
     return classify("", missing=True, broken="" if executable == "git" else executable)
 
 
 def git_command(*args: str) -> list[str]:
     """Befehlszeile für einen Git-Aufruf. Fehlt Git ganz, bleibt es bei ``git``: Der Aufruf
     scheitert dann mit ``FileNotFoundError``; jeder ``OSError`` beim Start gilt den Aufrufern
-    als „Git fehlt oder ist unbrauchbar“ (:func:`_not_startable`)."""
-    return [find_git() or "git", *args]
+    als „Git fehlt oder ist unbrauchbar“ (:func:`_not_startable`). Ist nur Unbrauchbares da,
+    wird dessen Pfad noch einmal versucht: So nennt die Meldung ihn."""
+    return [find_git() or broken_git() or "git", *args]
 
 
 # Netzwerkaufrufe (fetch, push, clone) dürfen nie ewig hängen oder im Hintergrund nach einem

@@ -135,7 +135,7 @@ def git_available() -> bool:
 
 def _root(path: Path) -> Path:
     if not git_available():
-        raise gitmod.classify("", missing=True)
+        raise gitmod.classify("", missing=True, broken=gitmod.broken_git())
     return require_root(path)
 
 
