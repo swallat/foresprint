@@ -181,14 +181,14 @@ def test_fixed_share_distribution_adds_up(data_dir: Path):
 def test_forecast_page_matches_engine(web: AppTest, fc):
     page(web, "forecast")
     tiles = {m.label.split(" ")[0]: m.value for m in web.metric if m.label[:4] == "2026"}
-    table = next(d.value for d in web.dataframe if "Roadmap" in d.value.columns)
+    table = next(d.value for d in web.dataframe if "Verplanbar" in d.value.columns)
     for e in fc.upcoming():
         r = e.result
         sid = e.sprint.id
         assert num(tiles[sid]) == pytest.approx(num(fmt(r.plan)))
         row = table[table["Sprint"] == sid].iloc[0]
         assert row["Prognose aktuell (PT)"] == fmt(r.plan)
-        assert row["Roadmap"] == fmt(r.roadmap, 2)
+        assert row["Verplanbar"] == fmt(r.roadmap, 2)
         assert row["Kleinkram"] == fmt(r.small_stuff, 2)
         assert row["n. Velocity-Trend"] == fmt(r.normalized_velocity.trend, 2)
         assert row["Fehltage"] == absence_status_label(e.sprint)
@@ -448,7 +448,7 @@ def test_border_capacity_in_web_pages_and_frozen_value(
     border_web: AppTest, border_dir: Path, border_fc
 ):
     page(border_web, "forecast")
-    table = next(d.value for d in border_web.dataframe if "Roadmap" in d.value.columns)
+    table = next(d.value for d in border_web.dataframe if "Verplanbar" in d.value.columns)
     assert table[table["Sprint"] == BORDER].iloc[0]["Kapazität (PT)"] == BORDER_LABEL
     assert any(f"Kapazität {BORDER_LABEL} PT" in c.value for c in border_web.caption)
 

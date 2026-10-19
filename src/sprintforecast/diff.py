@@ -4,15 +4,18 @@
 :func:`diff_values` vergleicht zwei geladene YAML-Werte und liefert je geänderten Wert einen
 :class:`ValueChange` mit Pfad, altem und neuem Wert. Listen von Objekten mit ``id`` (Personen,
 Produkte) werden je Eintrag verglichen, alle anderen Listen als ein Wert – wie beim Zusammenführen
-(:mod:`sprintforecast.yamlmerge`). :func:`file_changes` vergleicht den Arbeitsstand mit dem
-letzten Commit.
+(:mod:`sprintforecast.yamlmerge`); anders als dort, wo die ``prognoses`` über ``at`` vereinigt
+werden, zählt hier auch diese Liste als ein Wert. :func:`file_changes` vergleicht den
+Arbeitsstand mit dem letzten Commit.
 """
 
 from __future__ import annotations
 
 import contextlib
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path
+from stat import S_ISREG
 from typing import Any
 
 import yaml
@@ -20,7 +23,48 @@ import yaml
 from sprintforecast import git as gitmod
 from sprintforecast.git import Change, GitError, changes_in
 from sprintforecast.gitsync import _parse
-from sprintforecast.yamlmerge import MISSING, keyed, same
+from sprintforecast.yamlmerge import MISSING, keyed
+
+# Obergrenze für verglichene Knoten je Datei: Zwei getrennt gelesene Bäume aus YAML-Aliasen
+# (kleine Datei, riesiger Baum) würden sonst beliebig lange rechnen.
+MAX_NODES = 200_000
+
+
+class TooComplex(ValueError):
+    """Die Datei ist zu verschachtelt oder zu groß, um sie zu vergleichen."""
+
+
+class _Budget:
+    def __init__(self, left: int = MAX_NODES) -> None:
+        self.left = left
+
+    def spend(self) -> None:
+        self.left -= 1
+        if self.left < 0:
+            raise TooComplex("zu viele Knoten")
+
+
+def _same(a: Any, b: Any, budget: _Budget) -> bool:
+    """Wie :func:`sprintforecast.yamlmerge.same`, aber mit Abkürzung für dasselbe Objekt und mit
+    Obergrenze (nur für diese Ansicht; das Zusammenführen bleibt unverändert)."""
+    # Erst zählen, dann abkürzen: Singletons (null, true, kleine Zahlen) sind in getrennt
+    # gelesenen Bäumen oft dasselbe Objekt, und sonst umginge eine Datei mit sehr vielen
+    # Einträgen die Obergrenze.
+    budget.spend()
+    if a is b:
+        return True
+    if a is MISSING or b is MISSING:
+        return False
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_same(a[k], b[k], budget) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_same(x, y, budget) for x, y in zip(a, b, strict=True))
+    if isinstance(a, float) and isinstance(b, float) and a != a and b != b:
+        return True
+    return a == b
+
 
 ADDED = "added"
 REMOVED = "removed"
@@ -28,7 +72,36 @@ CHANGED = "changed"
 
 _YAML_SUFFIXES = {".yaml", ".yml"}
 # Größere Dateien gelten als nicht lesbar: Sie kommen ggf. aus einem fremden Repository.
-_MAX_BYTES = 5 * 1024 * 1024
+_MAX_BYTES = 1024 * 1024  # je Datei (Teamdaten sind klein; Parsen kostet etwa 1 s je MiB)
+_BYTES_BUDGET = 4 * 1024 * 1024  # Summe der gelesenen Größen (HEAD und Arbeitsstand) je Berechnung
+_EVAL_LIMIT = 25  # so viele Dateien werden ausgewertet: die, die die Oberfläche zeigt
+MAX_VALUES = 30  # so viele Wertänderungen je Datei bleiben erhalten (der Rest wird gezählt)
+# Gehaltene Werte werden auf einen Ausschnitt gekürzt, der etwas über den Grenzen der Anzeige
+# (``web.ui``: 1000 Einträge und Zeichen, 5000 Knoten, Tiefe 8) liegt: Sie zeigt dann dasselbe
+# wie beim ganzen Wert, und der Zwischenspeicher hält keine großen Teilbäume der Dokumente.
+_SLIM_ITEMS = 1001
+_SLIM_NODES = 6000
+_SLIM_DEPTH = 9
+
+
+def _slim(value: Any, left: list[int], depth: int = 0) -> Any:
+    left[0] -= 1
+    if left[0] < 0 or depth > _SLIM_DEPTH:
+        return "…"
+    if isinstance(value, str):
+        return value[:_SLIM_ITEMS]
+    if isinstance(value, dict):
+        return {
+            (k[:_SLIM_ITEMS] if isinstance(k, str) else k): _slim(v, left, depth + 1)
+            for k, v in islice(value.items(), _SLIM_ITEMS)
+        }
+    if isinstance(value, list):
+        return [_slim(v, left, depth + 1) for v in value[:_SLIM_ITEMS]]
+    if isinstance(value, (set, frozenset)):
+        return set(islice(value, _SLIM_ITEMS))
+    return value
+
+
 # Probleme von Git selbst (nicht der einen Datei) sehen Aufrufer, statt als „nicht lesbar“ zu
 # erscheinen.
 _GIT_PROBLEMS = {"git_missing", "unsafe_directory", "offline"}
@@ -64,17 +137,24 @@ class FileChange:
     status: str  # wie :attr:`sprintforecast.git.Change.status`
     values: tuple[ValueChange, ...] = ()
     readable: bool = True
+    orig: str = ""  # bisheriger Pfad bei Umbenennungen und Kopien, relativ zur Wurzel
+    skipped: bool = False  # nicht ausgewertet: Gesamtbudget an Dateigrößen aufgebraucht
+    omitted: int = 0  # weitere Wertänderungen jenseits von :data:`MAX_VALUES` (nicht gehalten)
 
 
-def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueChange]:
+def diff_values(
+    old: Any, new: Any, path: tuple[str, ...] = (), _budget: _Budget | None = None
+) -> list[ValueChange]:
     """Alle Unterschiede zwischen ``old`` und ``new`` in der Reihenfolge der Schlüssel.
 
     Ändert sich bei Listen mit ``id`` nur die Reihenfolge der Einträge, steht dafür eine
-    Änderung unter dem Pfad der Liste mit den ``id`` davor und danach."""
-    if same(old, new):
+    Änderung unter dem Pfad der Liste mit den ``id`` davor und danach. Bäume mit mehr als
+    :data:`MAX_NODES` zu vergleichenden Knoten lösen :class:`TooComplex` aus."""
+    budget = _budget if _budget is not None else _Budget()
+    if _same(old, new, budget):
         return []
     if isinstance(old, dict) and isinstance(new, dict):
-        return _diff_mapping(old, new, path, item=False)
+        return _diff_mapping(old, new, path, False, budget)
     keyed_old, keyed_new = keyed(old), keyed(new)
     # Eine leere Liste ist die leere Abbildung, wenn die andere Seite Objekte mit id enthält
     # (erstes Objekt hinzugefügt, letztes entfernt): So bleibt der Pfad [id] erhalten.
@@ -83,7 +163,7 @@ def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueCha
     if keyed_new is None and new == [] and keyed_old is not None:
         keyed_new = {}
     if keyed_old is not None and keyed_new is not None:
-        changes = _diff_mapping(keyed_old, keyed_new, path, item=True)
+        changes = _diff_mapping(keyed_old, keyed_new, path, True, budget)
         order_old = [k for k in keyed_old if k in keyed_new]
         order_new = [k for k in keyed_new if k in keyed_old]
         if order_old != order_new:
@@ -92,50 +172,100 @@ def diff_values(old: Any, new: Any, path: tuple[str, ...] = ()) -> list[ValueCha
     return [ValueChange(path, old, new)]
 
 
+def _key_text(key: Any) -> str:
+    """Schlüssel in der Schreibweise der Datei (``null``, ``true``), nicht der von Python."""
+    if key is None:
+        return "null"
+    if isinstance(key, bool):
+        return "true" if key else "false"
+    return str(key)
+
+
 def _diff_mapping(
-    old: dict[Any, Any], new: dict[Any, Any], path: tuple[str, ...], item: bool
+    old: dict[Any, Any], new: dict[Any, Any], path: tuple[str, ...], item: bool, budget: _Budget
 ) -> list[ValueChange]:
     changes: list[ValueChange] = []
     for key in [*old, *(k for k in new if k not in old)]:
-        sub = (*path, f"[{key}]" if item else str(key))
-        changes.extend(diff_values(old.get(key, MISSING), new.get(key, MISSING), sub))
+        text = _key_text(key)
+        sub = (*path, f"[{text}]" if item else text)
+        changes.extend(diff_values(old.get(key, MISSING), new.get(key, MISSING), sub, budget))
     return changes
 
 
-def _head_text(root: Path, file: str) -> str:
-    if int(gitmod._git(root, "cat-file", "-s", f"HEAD:{file}")) > _MAX_BYTES:
+class _Skipped(Exception):
+    """Das Gesamtbudget an Dateigrößen ist aufgebraucht: Die Datei wird nicht ausgewertet."""
+
+
+class _Sizes:
+    """Summe der gelesenen Dateigrößen einer Berechnung."""
+
+    def __init__(self, left: int) -> None:
+        self.left = left
+
+    def charge(self, size: int) -> None:
+        self.left -= size
+        if self.left < 0:
+            raise _Skipped
+
+
+def _load(text: str) -> Any:
+    """Liest YAML, nachdem eine billige Schätzung der Knoten (Zeilen, Doppelpunkte, Kommas) die
+    Obergrenze nicht überschreitet: Sonst lohnt das Parsen nicht, der Vergleich lehnt ab."""
+    if text.count("\n") + text.count(":") + text.count(",") > MAX_NODES:
+        raise TooComplex("zu groß")
+    return _parse(text)
+
+
+def _head_text(root: Path, file: str, sizes: _Sizes | None = None) -> str:
+    size = int(gitmod._git(root, "cat-file", "-s", f"HEAD:{file}"))
+    if size > _MAX_BYTES:
         raise ValueError(file)
+    if sizes:
+        sizes.charge(size)
     return gitmod._git_bytes(root, "show", f"HEAD:{file}").decode("utf-8")
 
 
-def _work_text(root: Path, file: str) -> str:
+def _work_text(root: Path, file: str, sizes: _Sizes | None = None) -> str:
     """Inhalt im Arbeitsbaum; ``FileNotFoundError``, wenn die Datei fehlt. Symlinks werden nicht
-    gefolgt: Das Ziel kann außerhalb des Repositorys liegen."""
+    gefolgt: Das Ziel kann außerhalb des Repositorys liegen. Nur gewöhnliche Dateien."""
     path = root / file
-    if path.is_symlink() or path.stat().st_size > _MAX_BYTES:
+    if path.is_symlink():
         raise ValueError(file)
+    stat = path.stat()
+    if stat.st_size > _MAX_BYTES or not S_ISREG(stat.st_mode):
+        raise ValueError(file)
+    if sizes:
+        sizes.charge(stat.st_size)
     return path.read_text(encoding="utf-8")
 
 
-def _file_change(root: Path, change: Change) -> FileChange:
+def _file_change(root: Path, change: Change, sizes: _Sizes | None = None) -> FileChange:
     file, status = change.file, change.status
-    unreadable = FileChange(file, status, readable=False)
+    orig = change.orig
+    unreadable = FileChange(file, status, readable=False, orig=orig)
     if any(Path(f).suffix.lower() not in _YAML_SUFFIXES for f in (file, change.orig or file)):
         return unreadable
     old: Any = MISSING
     new: Any = MISSING
     try:
         if "A" not in status and status != "??":
-            old = _parse(_head_text(root, change.orig or file))
+            old = _load(_head_text(root, change.orig or file, sizes))
         with contextlib.suppress(FileNotFoundError):  # gelöscht, auch „von ihnen gelöscht“
-            new = _parse(_work_text(root, file))
+            new = _load(_work_text(root, file, sizes))
         if old is MISSING or new is MISSING:
-            return FileChange(file, status)
-        return FileChange(file, status, tuple(diff_values(old, new)))
+            return FileChange(file, status, orig=orig)
+        found = diff_values(old, new)
+        kept = tuple(
+            ValueChange(v.path, _slim(v.old, [_SLIM_NODES]), _slim(v.new, [_SLIM_NODES]))
+            for v in found[:MAX_VALUES]
+        )
+        return FileChange(file, status, kept, orig=orig, omitted=max(0, len(found) - MAX_VALUES))
     except GitError as e:
         if e.kind in _GIT_PROBLEMS:
             raise
         return unreadable
+    except _Skipped:
+        return FileChange(file, status, orig=orig, skipped=True)
     except yaml.YAMLError, ValueError, OSError, RecursionError:  # ValueError: auch Unicode
         return unreadable
 
@@ -143,4 +273,80 @@ def _file_change(root: Path, change: Change) -> FileChange:
 def file_changes(path: Path) -> list[FileChange]:
     """Nicht committete Änderungen unterhalb von ``path`` als Wertänderungen je Datei."""
     root = gitmod.require_root(path)
-    return [_file_change(root, c) for c in changes_in(path)]
+    sizes = _Sizes(_BYTES_BUDGET)
+    # Nur die ersten Dateien werden ausgewertet; die übrigen kommen ohne Werte (lesbar).
+    return [
+        _file_change(root, c, sizes)
+        if i < _EVAL_LIMIT
+        else FileChange(c.file, c.status, orig=c.orig)
+        for i, c in enumerate(changes_in(path))
+    ]
+
+
+_CACHE: dict[Path, tuple[tuple[Any, ...], list[FileChange]]] = {}
+
+
+def _head_state(root: Path) -> tuple[str | None, ...]:
+    """Stand von HEAD ohne Git-Aufruf: ``.git/HEAD`` und die Referenz, auf die es zeigt (lose
+    Datei oder ``packed-refs``). Ein neuer Commit von außen ändert ihn."""
+    try:
+        git_dir = root / ".git"
+        if git_dir.is_file():  # Arbeitsbaum oder Submodul: „gitdir: <Pfad>“
+            target = git_dir.read_text(encoding="utf-8").strip().removeprefix("gitdir:").strip()
+            git_dir = (root / target).resolve()
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        common = git_dir
+        link = git_dir / "commondir"
+        if link.is_file():
+            common = (git_dir / link.read_text(encoding="utf-8").strip()).resolve()
+        if not head.startswith("ref:"):
+            return (head, None, None)
+        ref = head.removeprefix("ref:").strip()
+        loose = common / ref
+        if loose.is_file():
+            return (head, loose.read_text(encoding="utf-8").strip(), None)
+        packed = common / "packed-refs"
+        stat = packed.stat() if packed.is_file() else None
+        return (head, None, f"{stat.st_mtime_ns}:{stat.st_size}" if stat else None)
+    except OSError, UnicodeDecodeError:
+        return ("?", None, None)
+
+
+def _signature(root: Path, pending: list[tuple[str, str]]) -> tuple[Any, ...]:
+    """HEAD, dazu je Datei Status, Name, Änderungszeit (ns), Größe, Inode-Nummer und Inode-Zeit
+    der Arbeitsdatei (``None``, wenn sie fehlt). Die Inode-Zeit (``st_ctime_ns``) lässt sich
+    nicht zurücksetzen, anders als die Änderungszeit (grobe Zeitstempel, Werkzeuge, die sie
+    erhalten). Unter Windows ist ``st_ctime`` die Erstellzeit: Dort tragen Änderungszeit und
+    Größe weiter die Hauptlast; Inhalt wird der Leistung wegen nicht geprüft."""
+    parts: list[tuple[Any, ...]] = [_head_state(root)]
+    for i, (status, file) in enumerate(pending):
+        if i >= _EVAL_LIMIT:  # nur die ausgewerteten Dateien prüfen (Netzlaufwerke sind langsam)
+            parts.append((status, file))
+            continue
+        try:
+            stat = (root / file).lstat()
+            parts.append(
+                (status, file, stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns)
+            )
+        except OSError:
+            parts.append((status, file, None, None, None, None))
+    return tuple(parts)
+
+
+def cached_file_changes(path: Path, pending: list[tuple[str, str]]) -> list[FileChange]:
+    """Wie :func:`file_changes`, aber nur neu berechnet, wenn sich ``pending`` (die Liste aus
+    :func:`sprintforecast.git.cached_pending_changes`) oder eine Arbeitsdatei geändert hat (für
+    die Oberfläche, die bei jeder Eingabe neu zeichnet). Wird mit
+    :func:`sprintforecast.git.invalidate_status` geleert."""
+    root = gitmod.require_root(path)
+    key = path.resolve()
+    signature = _signature(root, pending)
+    cached = _CACHE.get(key)
+    if cached and cached[0] == signature:
+        return list(cached[1])
+    result = file_changes(path)
+    _CACHE[key] = (signature, result)
+    return list(result)
+
+
+gitmod.on_invalidate(_CACHE.clear)

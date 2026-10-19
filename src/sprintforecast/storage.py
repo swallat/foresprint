@@ -179,6 +179,13 @@ def _pick_loader() -> type:
 _YAML_LOADER = _pick_loader()
 
 
+def compose_yaml(text: str) -> yaml.Node | None:
+    """Knotenbaum einer YAML-Datei (mit Zeilennummern), gelesen mit demselben Lader wie beim
+    Laden der Daten; ``None`` bei leerer Datei. Nur für die Prüfung: Der Standardlader meldet
+    doppelte Schlüssel nicht und verliert den Unterschied zwischen leer und fehlend."""
+    return yaml.compose(text, Loader=_YAML_LOADER)
+
+
 def _read(path: Path) -> dict[str, Any]:
     try:
         text = path.read_text(encoding="utf-8")

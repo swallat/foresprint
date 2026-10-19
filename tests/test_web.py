@@ -3,7 +3,8 @@
 
 import shutil
 import subprocess
-from datetime import date
+from dataclasses import replace
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps
 from sprintforecast.forecast import build_forecast
 from sprintforecast.model import Sprint
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.web import ui
 from sprintforecast.web.ui import PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -1044,6 +1046,108 @@ def test_analysis_warns_when_the_simulation_has_few_samples(
     assert any("Stichprobe: 3 Sprints" in c.value for c in at.caption)
 
 
+def test_small_window_caps_the_sample_and_explains_the_warning(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Fenster 3: Die Stichprobe (Forecast-Seite und Simulation) ist auf 3 gedeckelt, die Schwelle
+    bleibt 5; der Satz nennt Stichprobe und alle 20 erfassten Werte (nicht „nur 3“), der Hinweis
+    das Fenster."""
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
+    raw.setdefault("forecast", {})["window"] = 3
+    team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert not any("bisher nur 3 Sprints" in w.value for w in at.warning)
+    assert any(
+        "Wenig Daten: Die Spanne zieht aus nur 3 der 20 erfassten Sprints mit Velocity (ab 5 "
+        in w.value
+        and "Das Prognosefenster ist auf 3 Sprints gestellt" in w.value
+        and "mehr Werte in die Spanne ein." in w.value
+        for w in at.warning
+    )
+    assert any("Spanne aus den letzten 3 Sprints" in c.value for c in at.caption)
+    at = goto(at, "analyse")
+    at.number_input(key="rest").set_value(20.0)
+    click(at, "Berechnen")
+    assert any(
+        "Wenig Daten: Die Simulation zieht aus nur 3 Sprints (ab 5 sind Aussagen" in w.value
+        and "Das Prognosefenster ist auf 3 Sprints gestellt" in w.value
+        and "mehr Werte in Spanne und Simulation ein." in w.value
+        for w in at.warning
+    )
+    assert any("Stichprobe: 3 Sprints" in c.value for c in at.caption)
+
+
+def test_small_window_without_more_values_does_not_blame_the_window(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Fenster 3, aber nur 2 Werte erfasst: Das Fenster schneidet nichts ab, ein größeres brächte
+    nichts. Forecast-Seite und Simulation warnen wegen der Stichprobe, ohne den Fensterhinweis."""
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > 2:
+            path.unlink()
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
+    raw.setdefault("forecast", {})["window"] = 3
+    team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert any(
+        "Wenig Daten: bisher nur 2 Sprints mit Velocity (ab 5 " in w.value for w in at.warning
+    )
+    assert not any("Prognosefenster" in w.value for w in at.warning)
+    at = goto(at, "analyse")
+    at.number_input(key="rest").set_value(20.0)
+    click(at, "Berechnen")
+    assert any(
+        "Wenig Daten: Die Simulation zieht aus nur 2 Sprints (ab 5 sind Aussagen" in w.value
+        for w in at.warning
+    )
+    assert not any("Prognosefenster" in w.value for w in at.warning)
+
+
+@pytest.mark.parametrize("count", [3, 5])
+@pytest.mark.parametrize("window", [1, 2])
+def test_small_window_does_not_claim_there_is_no_forecast(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, window: int, count: int
+):
+    """Die Stichprobe ist auf das Fenster gedeckelt (1 oder 2), die Verfügbarkeit des Forecasts
+    hängt aber an allen Werten: Bei drei oder mehr Werten gibt es keine Meldung „Noch kein
+    Forecast“."""
+    from sprintforecast.analysis import available_count, sample_count
+
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > count:
+            path.unlink()
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
+    raw.setdefault("forecast", {})["window"] = window
+    team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
+    assert sample_count(fc) == window and available_count(fc) == count
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert not any("Noch kein Forecast" in i.value for i in at.info)
+
+
+@pytest.mark.parametrize("window", [1, 2])
+def test_no_forecast_notice_counts_all_values_with_only_two_values(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, window: int
+):
+    """BEKANNT, nicht Teil dieses PR: Die feste Schwelle ``MIN_THIN_HISTORY`` (3) gilt für alle
+    Fenster. Mit genau zwei Werten und Fenster 1 oder 2 rechnet die Engine schon einen Plan, die
+    Meldung „Noch kein Forecast“ erscheint trotzdem (schon vorher so). Der Text nennt die Zahl
+    aller verfügbaren Werte (2), nicht die gedeckelte Stichprobe."""
+    for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
+        if int(path.stem.rsplit(".", 1)[1]) > 2:
+            path.unlink()
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
+    raw.setdefault("forecast", {})["window"] = window
+    team_file.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert any("Noch kein Forecast: bisher 2 Sprint(s)" in i.value for i in at.info)
+    assert any(m.value.endswith("PT") and m.value != "– PT" for m in at.metric)
+
+
 def test_analysis_too_large_rest_explains_horizon(app: AppTest):
     goto(app, "analyse")
     app.number_input(key="rest").set_value(100000.0)
@@ -1152,6 +1256,25 @@ def test_forecast_shows_gaps_skipped_by_the_average(
     path.write_text(yaml.safe_dump(raw))
     at = goto(start(data_dir, monkeypatch), "forecast")
     assert any("Lücken: 1 Sprint" in i.value for i in at.info)
+
+
+def test_gap_notice_follows_the_running_sprints_review_value(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Der Lücken-Hinweis betrachtet dieselben Sprints wie der Durchschnitt: Mit erfasstem
+    Review-Wert des laufenden Sprints (2026.21) liegt die Lücke in 2026.16 außerhalb des Fensters
+    von 5 Werten; ohne ihn (nur abgeschlossene Sprints) läge sie noch darin."""
+    sprints = data_dir / "demo" / "sprints"
+    gap = yaml.safe_load((sprints / "2026.16.yaml").read_text())
+    gap["velocity"] = None
+    (sprints / "2026.16.yaml").write_text(yaml.safe_dump(gap))
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert any("Lücken: 1 Sprint" in i.value for i in at.info)  # Review-Wert fehlt noch
+    running = yaml.safe_load((sprints / "2026.21.yaml").read_text())
+    running["velocity"] = 10.0
+    (sprints / "2026.21.yaml").write_text(yaml.safe_dump(running))
+    at = goto(start(data_dir, monkeypatch), "forecast")
+    assert not any("Lücken" in i.value for i in at.info)
 
 
 def test_absences_page_answers_how_much_fits_into_the_next_sprint(app: AppTest):
@@ -1691,3 +1814,48 @@ def test_sprint_selection_is_the_same_on_all_pages(app: AppTest):
     for page, key in pages.items():
         goto(app, page)
         assert app.selectbox(key=key).value == "2026.23"
+
+
+# --- Seiteneinleitungen: ein Leitsatz sichtbar, alles Weitere aufklappbar --------------------
+
+
+def test_absences_intro_is_short_and_details_are_in_an_expander(app: AppTest):
+    goto(app, "fehltage")
+    lead = next(m.value for m in app.markdown if m.value.startswith("Fehltage je Person"))
+    assert "Urlaubskalender" not in lead  # Quelle und Beispiel stehen im Expander
+    details = next(e for e in app.expander if e.label.startswith("Mehr dazu"))
+    assert "Urlaubskalender" in details.markdown[0].value
+    assert "2 Tage Urlaub" in details.markdown[0].value
+    assert "Teilzeit" in details.markdown[0].value
+    # Zeitraum und Arbeitstage je Sprint stehen nicht mehr als Zeilen über der Tabelle, sondern
+    # zusammengefasst in einer Zeile.
+    summary = next(c.value for c in app.caption if "Arbeitstage" in c.value)
+    assert summary.startswith("alle Sprints 10 Arbeitstage (Mo–Fr)")
+    assert "noch ohne Sprintdatei" in summary
+    assert not any(c.value.startswith("**2026.") for c in app.caption)
+
+
+def test_sprints_summary_names_holidays_and_differing_workdays(data_dir: Path):
+    data = Repository(data_dir).load("demo")
+    fc = build_forecast(data, date(2026, 10, 15))
+    sprints = ui.absence_sprints(data, fc, 6)
+    text = ui.sprints_summary(data, sprints, fc.today)
+    assert "2026.26: Feiertage 25.12., 01.01." in text
+    assert "abgeschlossen" not in text
+    shorter = [replace(sprints[0], end=sprints[0].end - timedelta(days=1)), *sprints[1:]]
+    text = ui.sprints_summary(data, shorter, sprints[0].end)
+    assert f"9 Arbeitstage (Mo–Fr) im Sprint {sprints[0].id}" in text
+    assert f"10 Arbeitstage (Mo–Fr) im Sprint {sprints[1].id}" in text
+    assert f"abgeschlossen: {sprints[0].id}" in text
+
+
+def test_calendar_people_and_products_have_a_lead_and_an_expander(app: AppTest):
+    goto(app, "sprints")
+    assert any(m.value.startswith("Sprints folgen automatisch") for m in app.markdown)
+    assert any(e.label.startswith("Abweichende Sprints") for e in app.expander)
+    goto(app, "personen")
+    assert any(m.value.startswith("Eine Zeile je Person") for m in app.markdown)
+    assert any(e.label.startswith("Austritt oder FTE") for e in app.expander)
+    goto(app, "produktliste")
+    assert any(m.value.startswith("Eine Zeile je Produkt") for m in app.markdown)
+    assert any(e.label.startswith("Produkt abgeben") for e in app.expander)
