@@ -4468,9 +4468,9 @@ def _remote_section(repo: Repository) -> None:
         placeholder="https://git.example.com/team/sprint-daten.git",
         help=t(
             "Erlaubt sind https://…, ssh://…, git@server:pfad und ein vollständiger "
-            "Ordnerpfad. Benutzername, Kennwort und Token gehören nicht in die Adresse; die "
-            "Anmeldung übernimmt der Anmeldedienst des Rechners, fehlt sie, erklärt die App den "
-            "nächsten Schritt."
+            "Ordnerpfad. Benutzername, Kennwort und Token gehören nicht in die Adresse. Die App "
+            "meldet sich nicht selbst an: Die Anmeldung übernimmt der Anmeldedienst des "
+            "Rechners; fehlt sie, erklärt die App den nächsten Schritt (je nach Betriebssystem)."
         ),
     )
     if st.session_state.pop("git-remote-rejected", False):
@@ -4638,7 +4638,9 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                             "Der Ordner liegt in keinem Git-Repository. Das Programm "
                             "funktioniert auch ohne Git – nur Commit und Verlauf stehen dann "
                             "nicht zur Verfügung. Du kannst hier ein Repository anlegen oder "
-                            "den Ordner ohne Git verwenden."
+                            "den Ordner ohne Git verwenden. Ein entpacktes ZIP-Archiv ist "
+                            "kein Repository; für die Daten eines bestehenden Teams stattdessen "
+                            "weiter unten „Repository klonen“ wählen."
                         )
                     )
                     st.session_state["offer-init"] = str(path)
@@ -4727,7 +4729,9 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
         st.caption(
             t(
                 "Für Kolleginnen und Kollegen: das gemeinsame Daten-Repository des Teams klonen. "
-                "Je nach Server fragt Git nach der Anmeldung."
+                "Die App meldet sich nicht selbst an und fragt nie nach einem Kennwort. Verlangt "
+                "der Server eine Anmeldung, übernimmt sie der Anmeldedienst deines Rechners; "
+                "fehlt sie, erklärt die App danach den nächsten Schritt."
             )
         )
         url = st.text_input(

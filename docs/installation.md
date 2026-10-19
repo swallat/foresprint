@@ -53,6 +53,20 @@ the PATH for the `uv` call (only there, not system-wide and not for the subseque
 the app). The first installation through the install script is not affected by this: plugins
 from Git addresses need Git in the PATH there.
 
+If Git is not found, the install script says so at the end (the installation itself still
+succeeds). A ZIP download of the data (GitHub/GitLab "Download source code") is not a repository
+because it lacks the hidden `.git` folder; use "Clone repository" on the Data folder page
+instead.
+
+### Login to the server
+
+The app never signs in itself and never asks for a password; the credential service of the
+computer does. When a login fails, the app explains the next step for the operating system it
+runs on and reads (read-only, nothing is changed) the Git setting `credential.helper`:
+on Windows the Git Credential Manager that comes with Git for Windows, on macOS the Keychain
+(`osxkeychain`), on Linux `libsecret` or `gh auth setup-git`. A plain-text store
+(`credential.helper store`) is reported as a warning and never recommended.
+
 ## Desktop launcher
 
 The script creates a launcher **"Sprint-Forecast"**: on Windows on the desktop and in the Start

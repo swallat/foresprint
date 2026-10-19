@@ -108,6 +108,14 @@ if [ -z "${SPRINTFORECAST_NO_SHORTCUT:-}" ]; then
     "$(uv tool dir --bin)/sprintforecast" shortcut || say "Note: launcher not created."
 fi
 
+# Git is optional for the installation, but needed to save, share and view the history of data
+if ! command -v git >/dev/null 2>&1; then
+    say ""
+    say "Note: Git was not found. The app runs without it, but committing, sharing with the team,"
+    say "the history and cloning the data repository need Git (no administrator rights required;"
+    say "see the Git section in docs/installation.md)."
+fi
+
 say ""
 say "Done: sprintforecast $("$(uv tool dir --bin)/sprintforecast" --version)"
 say "Start by double-clicking \"Sprint-Forecast\" or, in a new terminal, e.g.:"

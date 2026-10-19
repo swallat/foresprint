@@ -496,14 +496,17 @@ GIT_HELP: list[tuple[str, str]] = [
     ),
     (
         "Anmeldung",
-        "Die Anmeldung übernimmt der Anmeldedienst deines Rechners; die App richtet sie nicht "
-        "ein und fragt selbst nicht nach einem Kennwort. Fehlt sie, erklärt die App den "
-        "nächsten Schritt. Bei https braucht der Server meist einen Zugangstoken (GitHub: "
-        "Personal access token, GitLab: Zugriffstoken mit „write_repository“), den du einmal im "
-        "Anmeldedienst deines Rechners hinterlegst (Windows: Anmeldeinformationsverwaltung, "
-        "macOS: Schlüsselbund); mit der GitHub-CLI richtet `gh auth setup-git` die Anmeldung "
-        "ein. Bei SSH muss der Schlüssel beim Server hinterlegt und im ssh-agent verfügbar "
-        "sein.",
+        "Die App meldet sich nicht selbst an, richtet keine Anmeldung ein und fragt nie nach einem "
+        "Kennwort; die Anmeldung übernimmt der Anmeldedienst deines Rechners. Fehlt sie, erklärt "
+        "die App den nächsten Schritt für dein Betriebssystem und schaut dafür (nur lesend) in "
+        "die Git-Einstellung `credential.helper`, ohne sie zu ändern. Bei https braucht der "
+        "Server meist einen Zugangstoken (GitHub: Personal access token, GitLab: Zugriffstoken "
+        "mit „write_repository“), den du einmal im Anmeldedienst deines Rechners hinterlegst "
+        "(Windows: Git Credential Manager bzw. Anmeldeinformationsverwaltung, macOS: "
+        "Schlüsselbund, Linux: `libsecret`); mit der GitHub-CLI richtet `gh auth setup-git` die "
+        "Anmeldung ein. Ein Klartext-Speicher (`credential.helper store`) wird nicht "
+        "empfohlen. Bei SSH muss der Schlüssel beim Server hinterlegt und im ssh-agent "
+        "verfügbar sein.",
     ),
     (
         "SSH-Server noch nicht bekannt (Fingerabdruck)",
