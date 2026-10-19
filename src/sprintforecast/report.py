@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 from sprintforecast.analysis import MIN_SAMPLES, average_focus_factor, band, buffer_hint
+from sprintforecast.capacity import AbsenceHistory
 from sprintforecast.engine import UNSURE_SOURCES, CapacitySource, round_half_up
 from sprintforecast.forecast import Forecast, TimelineEntry
+from sprintforecast.git import blank_controls, md_code
 from sprintforecast.i18n import is_english, t
 from sprintforecast.model import AbsenceState, Sprint, absence_status
 
@@ -103,12 +105,116 @@ def absence_status_label(sprint: Sprint) -> str:
     }[absence_status(sprint)]
 
 
-def reliability_notes(fc: Forecast) -> list[str]:
-    """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht)."""
+def absence_derived_note(
+    history: AbsenceHistory | None,
+    detailed: bool = False,
+    code: bool = True,
+    window: int = 0,
+) -> str | None:
+    """Hinweis, dass die erwartete Fehltage-Quote unsicher ist: Sprints, die nur aus anderen
+    Feldern (ältere Dateien ohne gespeicherten Stand) als bestätigt gelten und keine Fehltage
+    haben, zählen mit „0 % Ausfall“ und ziehen die Quote nach unten. Die Zahlen bleiben
+    unverändert. None, wenn kein solcher Sprint in die Quote eingeht.
+
+    Die Sprint-IDs stammen aus Dateien und stehen in Code-Schreibweise (``md_code``), damit
+    sie in Markdown nichts verändern (``code=False`` für Tabellen, Klartext und die
+    Kommandozeile, dort mit ``sprint_text``). ``detailed`` ergänzt, was zu tun ist."""
+    if history is None or not history.derived:
+        return None
+    count = len(history.derived)
+    sprints = ", ".join(md_code(i) if code else sprint_text(i) for i in history.derived)
+    if count == 1:
+        note = t(
+            "Quote unsicher: {count} Sprint in der erwarteten Fehltage-Quote ({sprints}) gilt "
+            "nur als bestätigt, weil er bereits geplant oder ausgewertet wurde; es sind keine "
+            "Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte "
+            "Kapazität künftiger Sprints kann zu hoch sein.",
+            count=count,
+            sprints=sprints,
+        )
+    else:
+        note = t(
+            "Quote unsicher: {count} Sprints in der erwarteten Fehltage-Quote ({sprints}) gelten "
+            "nur als bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind keine "
+            "Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte "
+            "Kapazität künftiger Sprints kann zu hoch sein.",
+            count=count,
+            sprints=sprints,
+        )
+    return note + " " + absence_derived_remedy(window) if detailed else note
+
+
+def sprint_text(sprint_id: str) -> str:
+    """Sprint-ID für Klartext ohne Markdown (Tabelle, Kommandozeile): Steuerzeichen und
+    Zeichen der Schreibrichtung werden wie bei ``md_code`` zu Leerzeichen."""
+    return blank_controls(sprint_id)
+
+
+def absence_derived_hint(history: AbsenceHistory | None) -> str | None:
+    """Kurzer Verweis für Seiten, auf denen nur die geschätzte Kapazität steht (ohne die Liste
+    der Sprints; die steht auf der Fehltage-Seite, im Rechenweg, im Bericht)."""
+    if history is None or not history.derived:
+        return None
+    page = t("Sprint vorbereiten: Fehltage")
+    if len(history.derived) == 1:
+        return t(
+            "Quote unsicher: Für {count} Sprint der Quote sind keine Fehltage gespeichert. "
+            "Details auf der Seite „{page}“.",
+            count=1,
+            page=page,
+        )
+    return t(
+        "Quote unsicher: Für {count} Sprints der Quote sind keine Fehltage gespeichert. "
+        "Details auf der Seite „{page}“.",
+        count=len(history.derived),
+        page=page,
+    )
+
+
+def absence_derived_remedy(window: int) -> str:
+    """Was bei einer unsicheren Fehltage-Quote zu tun ist (ohne Sprint-IDs). ``window`` ist die
+    Einstellung ``absence_history``: Wie lange der Hinweis bleibt."""
+    return t(
+        "Fehlte in einem dieser Sprints jemand, die Fehltage auf der Seite „{page}“ eintragen "
+        "und mit „Fehltage speichern“ sichern (oder mit `sprintforecast fehltage`). Fehlte "
+        "niemand, stimmt die Quote. In der Tabelle „Stand der Fehltage“ gelten diese Sprints als "
+        "bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind aber keine "
+        "Fehltage gespeichert. Der Hinweis bleibt, bis die Sprints aus dem Fenster der letzten "
+        "{window} Sprints (Einstellung `absence_history`) herausfallen oder Fehltage "
+        "eingetragen sind.",
+        page=t("Sprint vorbereiten: Fehltage"),
+        window=window,
+    )
+
+
+def absence_derived_cli_remedy(window: int, team: str) -> str:
+    """Wie :func:`absence_derived_remedy`, für die Kommandozeile: der Befehl statt der
+    Bedienung der Weboberfläche, ohne Markdown."""
+    return t(
+        "Fehlte in einem dieser Sprints jemand, die Fehltage nachtragen mit: "
+        "sprintforecast fehltage {team} <SPRINT>. Fehlte niemand, stimmt die Quote. Der Hinweis "
+        "bleibt, bis die Sprints aus dem Fenster der letzten {window} Sprints (Einstellung "
+        "absence_history) herausfallen oder Fehltage eingetragen sind.",
+        team=team,
+        window=window,
+    )
+
+
+def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
+    """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht). ``code=False``
+    für die Kommandozeile: Sprint-IDs ohne Markdown-Backticks, dazu der Befehl zum Nachtragen."""
     from sprintforecast.analysis import sample_count
     from sprintforecast.model import TrendMode
 
     notes = []
+    estimated = any(
+        e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in fc.upcoming()
+    )
+    if estimated and (note := absence_derived_note(fc.absences, code=code)):
+        if not code:
+            team = fc.data.team
+            note += " " + absence_derived_cli_remedy(team.capacity.absence_history, team.key)
+        notes.append(note)
     samples = sample_count(fc)
     if samples and samples < MIN_SAMPLES:
         notes.append(
