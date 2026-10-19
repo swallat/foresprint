@@ -100,6 +100,17 @@ def find_sprint(data: TeamData, sprint_id: str, max_ahead: int = 200) -> Sprint 
     return None
 
 
+def lookup_sprint(fc: Forecast, sprint_id: str, max_ahead: int = 52) -> Sprint | None:
+    """Sprint by id: recorded, in the forecast, or generated from the calendar up to
+    ``max_ahead`` sprints beyond the last recorded one; None = unknown."""
+    if (existing := fc.data.sprint(sprint_id)) is not None:
+        return existing
+    entry = fc.entry(sprint_id)
+    if entry is not None:
+        return entry.sprint
+    return find_sprint(fc.data, sprint_id, max_ahead)
+
+
 def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Planning | None) -> bool:
     """Übernimmt die Planning-Eingaben in ``sprint``.
 
