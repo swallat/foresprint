@@ -71,7 +71,12 @@ def test_new_team_has_all_areas_off_and_writes_them():
 
 def test_settings_offer_the_three_areas_with_explanations():
     settings = {s.key: s for s in SETTINGS if s.key.startswith("features.")}
-    assert set(settings) == {"features.products", "features.po", "features.production"}
+    assert set(settings) == {
+        "features.products",
+        "features.po",
+        "features.production",
+        "features.tickets",
+    }
     team = Team(key="t", name="T")
     for setting in settings.values():
         assert setting.display(team) == "aus" and len(setting.help) > 60

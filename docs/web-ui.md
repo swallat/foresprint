@@ -56,7 +56,7 @@ shared data repository. The rules for finding the data directory are in the
 | Manage team | Sprint calendar | upcoming sprints with start, last day and working days; create, adjust length |
 | | People | one table (one row per membership period, FTE); IDs are assigned automatically; former members can be hidden |
 | | Products | product list with PO and period (from/to); former products can be hidden |
-| | Settings | all team settings; changes are shown before saving; **Change sprint IDs** renames a sprint and counts the following sprints on |
+| | Settings | all team settings; changes are shown before saving; **Change sprint IDs** renames a sprint and counts the following sprints on; **Import from Excel** uploads a workbook from the Excel export, shows what would change and writes only after "Apply changes" |
 | | New team | create a team; asks for the first sprint (the one running now or starting next) before anything else |
 | Data & help | Data folder | choose, create or clone a data folder (Git repository); enter, test and change the server (remote) |
 | | Changes and history | discard open changes, history per team/sprint/file, restore an earlier state, manage tags |
@@ -117,8 +117,12 @@ data directory.
   your open changes, fetches the server state and merges it. Conflicts and the confirmation for a
   foreign history work as for "Save and share" and also stay local. Use it to refresh the
   checkout before looking at the data; "Save and share" uploads the result later.
-- **Check status** asks the server whether there is anything new and changes nothing. The server
-  state is queried only then and when sharing.
+- **Check status** asks the server whether there is anything new and changes nothing. Besides,
+  the app fetches the server state in the background (`git fetch --prune`) when the sidebar is
+  first drawn and every 30 minutes while a browser window is connected, with a 20 second limit
+  and without any login prompt (a missing login simply leaves the state unchanged; **Check
+  status** then explains what to do). Set `SPRINTFORECAST_NO_BACKGROUND_FETCH=1` to switch this
+  off. The background fetch only runs in connected sessions and never keeps the server alive.
 - **Commit changes** commits locally only, without sharing.
 - Error cases are explained in plain language with the next step: server unreachable, repository
   not found (check the address), certificate not trusted, upload rejected (new changes in the
