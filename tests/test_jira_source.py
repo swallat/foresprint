@@ -646,10 +646,14 @@ def test_the_module_contains_no_other_http_verb():
         for n in ast.walk(tree)
         if isinstance(n, ast.Constant) and isinstance(n.value, str)
     }
-    assert not strings & {v.upper() for v in verbs}, strings & {v.upper() for v in verbs}
-    assert {"GET"} == jira_module.ALLOWED_METHODS
+    # step 5 adds exactly one write: the PUT that changes planned_for_* labels
+    others = {v.upper() for v in verbs} - {"PUT"}
+    assert not strings & others, strings & others
+    assert {"GET", "PUT"} == jira_module.ALLOWED_METHODS
     text = SRC.read_text(encoding="utf-8")
     assert not re.search(r"\.(post|put|delete|patch)\(", text)
+    puts = [m for m in re.findall(r"\"PUT\"", text)]
+    assert len(puts) == 5, "a new use of PUT needs a look at the guard in _request"
 
 
 def test_exactly_one_function_performs_http():
@@ -669,7 +673,7 @@ def test_exactly_one_function_performs_http():
     assert calls == {"_new_client": ["Client"], "_request": ["request"]}, calls
 
 
-@pytest.mark.parametrize("method", ["POST", "PUT", "DELETE", "PATCH", "HEAD", "get", "OPTIONS"])
+@pytest.mark.parametrize("method", ["POST", "DELETE", "PATCH", "HEAD", "get", "put", "OPTIONS"])
 def test_a_request_with_another_method_is_refused_before_the_network(method):
     source, server = make()
     with pytest.raises(ValueError, match="not allowed"):
@@ -677,7 +681,78 @@ def test_a_request_with_another_method_is_refused_before_the_network(method):
     assert server.requests == []
 
 
-def test_every_operation_only_sends_get():
+LABEL = {"update": {"labels": [{"add": "planned_for_2026.22"}]}}
+
+
+@pytest.mark.parametrize(
+    ("path", "body"),
+    [
+        ("/rest/api/2/issue/ABC-1", None),  # PUT without body
+        ("/rest/api/2/issue/ABC-1", {}),
+        ("/rest/api/2/issue/ABC-1", {"fields": {"summary": "x"}}),  # not labels
+        ("/rest/api/2/issue/ABC-1", {"update": {"summary": [{"set": "x"}]}}),
+        ("/rest/api/2/issue/ABC-1", {"update": {"labels": [{"set": ["x"]}]}}),
+        ("/rest/api/2/issue/ABC-1", {"update": {"labels": [{"add": "Refined"}]}}),  # foreign label
+        ("/rest/api/2/issue/ABC-1", {"update": {"labels": [{"add": "planned_for_"}]}}),
+        ("/rest/api/2/issue/ABC-1", {"update": {"labels": [{"add": "planned_for_a b"}]}}),
+        ("/rest/api/2/issue/ABC-1", {"update": {"labels": []}}),
+        ("/rest/api/2/issue/ABC-1", {**LABEL, "fields": {"summary": "x"}}),
+        ("/rest/api/2/issue/ABC-1/comment", LABEL),
+        ("/rest/api/2/issue/ABC-1?x=1", LABEL),
+        ("/rest/api/2/issue/../project", LABEL),
+        ("/rest/api/2/issue", LABEL),
+        ("/rest/api/2/myself", LABEL),
+    ],
+)
+def test_a_put_that_is_not_a_label_change_is_refused_before_the_network(path, body):
+    source, server = make()
+    with pytest.raises(ValueError, match="label change"):
+        source._request("PUT", path, body=body)
+    assert server.requests == []
+
+
+def test_a_get_with_a_body_is_refused():
+    source, server = make()
+    with pytest.raises(ValueError, match="label change"):
+        source._request("GET", "/rest/api/2/myself", body=LABEL)
+    assert server.requests == []
+
+
+def label_server(response: httpx.Response | None = None):
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return response or httpx.Response(204)
+
+    return handler, seen
+
+
+def test_set_labels_sends_one_update_put_with_only_the_named_labels():
+    handler, seen = label_server()
+    source, _ = make(handler)
+    source.set_labels("ABC-7", ["planned_for_2026.23"], ["planned_for_2026.22"])
+    (request,) = seen
+    assert (request.method, request.url.path) == ("PUT", "/rest/api/2/issue/ABC-7")
+    assert json.loads(request.content) == {
+        "update": {"labels": [{"remove": "planned_for_2026.22"}, {"add": "planned_for_2026.23"}]}
+    }
+    assert request.headers["authorization"] == f"Bearer {CANARY}"
+
+
+@pytest.mark.parametrize(
+    ("status", "text"),
+    [(403, "Labels ändern"), (404, "existiert nicht"), (401, "Token"), (500, "Serverfehler")],
+)
+def test_a_failed_label_write_is_an_understandable_message(status, text):
+    handler, _ = label_server(httpx.Response(status, json={"errorMessages": [CANARY]}))
+    source, _ = make(handler)
+    with pytest.raises(SourceError) as e:
+        source.set_labels("ABC-7", ["planned_for_2026.23"], [])
+    assert text in str(e.value) and CANARY not in str(e.value)
+
+
+def test_every_read_operation_only_sends_get():
     source, server = make()
     source.test_connection()
     source.resolve_fields()
