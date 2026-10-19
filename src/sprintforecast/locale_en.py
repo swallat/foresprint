@@ -795,6 +795,11 @@ EN: dict[str, str] = {
     "Zeile {line}, Spalte {col}": "line {line}, column {col}",
     "Zeilen {lines}": "lines {lines}",
     "Zeile {line}": "line {line}",
+    " … und {n} weitere": " … and {n} more",
+    "… und {n} weitere Hinweise in dieser Datei": "… and {n} more notes in this file",
+    "Die Datei ist zu groß oder zu verschachtelt, um sie vollständig zu prüfen.": (
+        "The file is too large or too deeply nested to be checked completely."
+    ),
     "Die Datei ist zu tief verschachtelt, nicht geprüft.": (
         "The file is nested too deeply and was not checked."
     ),

@@ -305,3 +305,91 @@ def test_weboberflaeche_zeigt_schluesselnamen_nie_als_markdown(data_dir: Path, m
     assert "\\[Klick\\]\\(http\\:\\/\\/evil\\.example\\)" in text
     assert "\\*\\*fett\\*\\*" in text
     assert "www.evil" not in text
+
+
+def test_ueberdeckter_leerwert_wird_nicht_gemeldet():
+    # Der Lader liest a = 5; Zeile 2 wird nie benutzt, das Duplikat selbst bleibt gemeldet
+    found = messages("absences:\n  a:\n  a: 5\n")
+    assert len(found) == 1 and "steht mehrfach" in found[0]
+    found = messages("absences:\n  1:\n  '1': 5\n")
+    assert len(found) == 1 and "steht mehrfach" in found[0]
+    # Steht der Leerwert zuletzt, gilt er und wird gemeldet
+    found = messages("absences:\n  a: 5\n  a:\n")
+    assert any("ist leer" in m for m in found)
+
+
+def test_alias_duplikat_wird_nur_einmal_gemeldet():
+    text = "d: &d {k: 1, k: 2}\nx: *d\ny: *d\nz: [*d, *d]\n"
+    found = messages(text)
+    assert len(found) == 1 and "'d.k'" in found[0]
+
+
+def test_aliasbombe_mit_duplikat_im_blatt_bleibt_begrenzt():
+    import time
+
+    lines = ["l0: &l0 {k: 1, k: 2}"]
+    for n in range(1, 9):
+        lines.append(f"l{n}: &l{n} [{', '.join([f'*l{n - 1}'] * 9)}]")
+    start = time.monotonic()
+    found = messages("\n".join(lines) + "\n")
+    assert time.monotonic() - start < 2.5
+    assert len(found) <= 52
+
+
+def test_viele_doppelte_schluessel_werden_gekuerzt():
+    text = "".join(f"k{i}: 1\nk{i}: 2\n" for i in range(5000))
+    found = messages(text)
+    assert len(found) == 51
+    assert "… und 4950 weitere Hinweise" in found[-1]
+
+
+def test_zeilenliste_wird_gekuerzt():
+    [found] = messages("{" + ", ".join(["k: 1"] * 200) + "}\n")
+    assert "… und 190 weitere" in found
+    assert len(found) < 600
+
+
+def test_grosse_gueltige_datei_nennt_keine_anker():
+    text = "".join(f"k{i}: {{a: 1, b: 2}}\n" for i in range(30_000))
+    [found] = messages(text)
+    assert "zu groß oder zu verschachtelt" in found
+    assert "Anker" not in found
+
+
+def test_zu_tief_fuer_den_lader(monkeypatch):
+    from sprintforecast import validate
+
+    def deep(_text):
+        raise RecursionError
+
+    monkeypatch.setattr(validate, "compose_yaml", deep)
+    [found] = messages("a: 1\n")
+    assert "zu tief verschachtelt" in found
+
+
+def test_rekursive_merge_quelle_bricht_nicht_ab():
+    found = messages("a: &a\n  <<: *a\n  x: \n")
+    assert isinstance(found, list)
+
+
+def test_nicht_hashbarer_schluessel_wird_uebergangen(monkeypatch):
+    from yaml.constructor import SafeConstructor
+
+    monkeypatch.setattr(SafeConstructor, "construct_object", lambda self, node, deep=False: [1])
+    assert messages("{1: a, 2: b, 3: c}\n") == []
+
+
+def test_anzeige_des_schluessels_ist_der_letzte_eintrag():
+    [found] = messages("{1: a, 1.0: b}\n")
+    assert "'1.0'" in found
+
+
+def test_steuerzeichen_im_schluessel_erreichen_die_ausgabe_nicht(data_dir: Path):
+    key = '"a\\nb\\e[31mc"'
+    edit(data_dir, SPRINT, "  anna: 5\n", f"  {key}: 1\n  {key}: 2\n  anna: 5\n")
+    env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
+    result = runner.invoke(cli_app, ["pruefen"], env=env)
+    assert "\x1b" not in result.output
+    assert "a b" in result.output.replace("\n  ", " ").replace("\n", " ")
+    [found] = [m for m in messages(f"absences:\n  {key}: 1\n  {key}: 2\n")]
+    assert "\n" not in found and "\x1b" not in found
