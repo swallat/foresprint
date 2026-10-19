@@ -47,7 +47,12 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
-from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
+from sprintforecast.engine import (
+    MIN_THIN_HISTORY,
+    UNSURE_SOURCES,
+    CapacitySource,
+    gaps_in_window,
+)
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
@@ -166,6 +171,8 @@ from sprintforecast.protocol import (
     save_with_protocol,
 )
 from sprintforecast.report import (
+    absence_derived_note,
+    absence_derived_remedy,
     absence_status_label,
     band_note,
     capacity_label,
@@ -759,6 +766,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     source=source_label(source),
                 )
             )
+    _quote_note(fc, upcoming)
     current = fc.current
     if current and current.result.planning_total is not None:
         st.info(
@@ -890,6 +898,16 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
                 mode=fc.data.team.forecast.trend_mode.value,
             )
         )
+
+
+def _quote_note(fc: Forecast, entries: list[TimelineEntry]) -> None:
+    """Kompakter Hinweis, wenn die Kapazität dieser Sprints aus einer unsicheren Fehltage-Quote
+    geschätzt ist (Sprints, die nur abgeleitet als „niemand fehlte“ zählen). Ausführlich auf
+    der Seite Fehltage und im Rechenweg."""
+    if any(e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in entries) and (
+        note := absence_derived_note(fc.absences)
+    ):
+        st.caption(note)
 
 
 def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
@@ -1083,6 +1101,10 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 "für unbekannte Fehltage ohne Abzug gerechnet (Kalender und Personenliste)."
             )
         )
+        if short := absence_derived_note(history):
+            st.warning(short, icon=":material/help:")
+            with st.expander(t("Was tun bei unsicherer Quote?")):
+                st.markdown(absence_derived_remedy())
     to_save = sprints_to_save(data, sprints, edited_sprints)
     preview = with_sprints(data, to_save)
     fc_preview = build_forecast(preview, fc.today)
@@ -1983,6 +2005,8 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         fmt(entry.result.plan) if entry else "–",
         help=_formula_help(fc_after, entry, "plan"),
     )
+    if entry is not None:
+        _quote_note(fc_after, [entry])
     if after.capacity is not None:
         st.info(
             t(
@@ -2100,6 +2124,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.caption(note)
     if split := _production_split_note(fc, entry, data, unit):
         st.caption(split)
+    _quote_note(fc, [entry])
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
@@ -2992,6 +3017,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
         if note := band_note(fc_view, shown, without_assumption=bool(assumed)):
             st.caption(note)
+        _quote_note(fc_view, [shown])
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
             st.caption(

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from sprintforecast.calendar import is_holiday, person_weekend, workdays
 from sprintforecast.engine import round_half_up
-from sprintforecast.model import AbsenceState, Person, Sprint, Team, absence_status
+from sprintforecast.model import AbsenceState, Person, Sprint, Team, _legacy_known, absence_status
 
 
 @dataclass
@@ -134,6 +134,10 @@ class AbsenceHistory:
     # Die tatsächlich verwendeten Sprints (IDs, ältere zuerst) und ihre Quoten.
     sprints: list[str]
     rates: list[float]
+    # Davon die Sprints, die nur aus anderen Feldern als bestätigt abgeleitet sind (ältere
+    # Dateien ohne gespeicherten Stand) und keine Fehltage haben: Sie zählen mit „0 % Ausfall“,
+    # die Quote ist dadurch unsicher. Ändert keine Zahl.
+    derived: list[str] = field(default_factory=list)
 
 
 def absence_history(
@@ -148,9 +152,12 @@ def absence_history(
     if count <= 0:
         return AbsenceHistory(None, [], [])
     used: list[tuple[str, float]] = []
+    derived: set[str] = set()
     for sprint in past:
         if absence_status(sprint) is not AbsenceState.CONFIRMED:
             continue
+        if not sprint.absences and sprint.absence_state is None and _legacy_known(sprint):
+            derived.add(sprint.id)
         without = copy.deepcopy(sprint)
         without.absences = {}
         full = sprint_capacity(team, people, without).gross
@@ -163,6 +170,7 @@ def absence_history(
         rate=sum(rates) / len(rates) if rates else None,
         sprints=[i for i, _ in used],
         rates=rates,
+        derived=[i for i, _ in used if i in derived],
     )
 
 

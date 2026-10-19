@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 from sprintforecast.analysis import MIN_SAMPLES, average_focus_factor, band, buffer_hint
+from sprintforecast.capacity import AbsenceHistory
 from sprintforecast.engine import UNSURE_SOURCES, CapacitySource, round_half_up
 from sprintforecast.forecast import Forecast, TimelineEntry
+from sprintforecast.git import md_code
 from sprintforecast.i18n import is_english, t
 from sprintforecast.model import AbsenceState, Sprint, absence_status
 
@@ -103,12 +105,54 @@ def absence_status_label(sprint: Sprint) -> str:
     }[absence_status(sprint)]
 
 
+def absence_derived_note(
+    history: AbsenceHistory | None, detailed: bool = False, code: bool = True
+) -> str | None:
+    """Hinweis, dass die erwartete Fehltage-Quote unsicher ist: Sprints, die nur aus anderen
+    Feldern (ältere Dateien ohne gespeicherten Stand) als bestätigt gelten und keine Fehltage
+    haben, zählen mit „0 % Ausfall“ und ziehen die Quote nach unten. Die Zahlen bleiben
+    unverändert. None, wenn kein solcher Sprint in die Quote eingeht.
+
+    Die Sprint-IDs stammen aus Dateien und stehen in Code-Schreibweise (``md_code``), damit
+    sie in Markdown nichts verändern (``code=False`` für Tabellen und Klartext). ``detailed``
+    ergänzt, was zu tun ist."""
+    if history is None or not history.derived:
+        return None
+    sprints = ", ".join(md_code(i) if code else i for i in history.derived)
+    note = t(
+        "Quote unsicher: {count} der Sprints in der erwarteten Fehltage-Quote ({sprints}) gelten "
+        "nur als bestätigt (abgeleitet aus Planning, Forecast oder Velocity) und haben keine "
+        "erfassten Fehltage; die Quote nimmt dort „0 % Ausfall“ an, die geschätzte Kapazität "
+        "künftiger Sprints kann zu hoch sein.",
+        count=len(history.derived),
+        sprints=sprints,
+    )
+    return note + " " + absence_derived_remedy() if detailed else note
+
+
+def absence_derived_remedy() -> str:
+    """Was bei einer unsicheren Fehltage-Quote zu tun ist (ohne Sprint-IDs)."""
+    return t(
+        "Fehlte in einem dieser Sprints jemand, die Fehltage auf der Seite „Fehltage“ eintragen "
+        "und mit „Fehltage speichern“ sichern (oder in der Kommandozeile mit "
+        "`sprintforecast fehltage`); der Sprint gilt dann als ausdrücklich bestätigt und zählt "
+        "mit seiner tatsächlichen Quote. Fehlte niemand, stimmt die Quote; die Spalte „Niemand "
+        "fehlt“ ist dort bereits angehakt, ein ausdrückliches Bestätigen wird für solche "
+        "Sprints derzeit nicht gespeichert, der Hinweis bleibt daher bestehen."
+    )
+
+
 def reliability_notes(fc: Forecast) -> list[str]:
     """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht)."""
     from sprintforecast.analysis import MIN_SAMPLES, sample_count
     from sprintforecast.model import TrendMode
 
     notes = []
+    estimated = any(
+        e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in fc.upcoming()
+    )
+    if estimated and (note := absence_derived_note(fc.absences)):
+        notes.append(note)
     samples = sample_count(fc)
     if samples and samples < MIN_SAMPLES:
         notes.append(
