@@ -46,6 +46,7 @@ from sprintforecast.yamlmerge import (
 # geschütztem Hauptbranch, z. B. GitLab) über einen Merge Request. Die Wahl gilt je
 # Daten-Repository und steht in dessen lokaler Git-Konfiguration.
 SHARE_KEY = "sprintforecast.share"
+AUTO_MERGE_KEY = "sprintforecast.mrautomerge"  # "false" schaltet das Automerge ab (Standard: an)
 SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
 _MR_URL = re.compile(r"https?://\S+/merge_requests/(?:\d+|new\b\S*)")
 
@@ -596,6 +597,15 @@ def sync(
                 result.merged = True
                 current = state(path)
             if not push:
+                if share_mode(root) == SHARE_MERGE_REQUEST and state(path).ahead:
+                    result.notes.append(
+                        t(
+                            "Dein Merge Request ist noch offen: Deine Änderungen stehen auf dem "
+                            "Server noch nicht in {branch}."
+                            " Hole sie nach dem Merge erneut.",
+                            branch=(current.upstream or "main").partition("/")[2] or "main",
+                        )
+                    )
                 break
             if not allow_invalid and _unpushed_merges(root, current):
                 found = new_errors(path, current.upstream or "HEAD", today)
@@ -730,6 +740,20 @@ def share_mode(path: Path) -> str:
     return value if value == SHARE_MERGE_REQUEST else SHARE_DIRECT
 
 
+def auto_merge(path: Path) -> bool:
+    """Soll der Merge Request automatisch mergen, sobald die Pipeline grün ist? Standard: ja."""
+    root = _root(path)
+    return _git(root, "config", "--local", "--get", AUTO_MERGE_KEY, check=False) != "false"
+
+
+def set_auto_merge(path: Path, enabled: bool) -> None:
+    root = _root(path)
+    if enabled:
+        _git(root, "config", "--local", "--unset-all", AUTO_MERGE_KEY, check=False)
+    else:
+        _git(root, "config", "--local", AUTO_MERGE_KEY, "false")
+
+
 def set_share_mode(path: Path, mode: str) -> None:
     root = _root(path)
     if mode == SHARE_MERGE_REQUEST:
@@ -757,6 +781,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
     Tags gehen nicht mit (sie zeigen sonst auf Commits, die nie in den Hauptbranch kommen).
     Liefert Branch und, falls der Server sie meldet, die Adresse des Merge Requests."""
     branch = merge_request_branch(root)
+    auto = auto_merge(root)
     ref = f"refs/heads/{branch}"
     remote = current.remote or "origin"
     target = (current.upstream or "").partition("/")[2] or current.branch or "main"
@@ -773,6 +798,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
         "-o", f"merge_request.target={target}",
         "-o", f"merge_request.title={subject}",
         "-o", "merge_request.remove_source_branch",
+        *(["-o", "merge_request.merge_when_pipeline_succeeds"] if auto else []),
         remote,
         f"HEAD:{ref}",
         network=True,

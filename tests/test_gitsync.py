@@ -1460,8 +1460,11 @@ def _gitlab_like(remote: Path) -> Path:
     hook = remote / "hooks" / "post-receive"
     hook.write_text(
         "#!/bin/sh\n"
-        'echo "$GIT_PUSH_OPTION_COUNT:$GIT_PUSH_OPTION_0:$GIT_PUSH_OPTION_1:'
-        f'$GIT_PUSH_OPTION_2" >> "{log}"\n'
+        'i=0; line="$GIT_PUSH_OPTION_COUNT"\n'
+        'while [ "$i" -lt "$GIT_PUSH_OPTION_COUNT" ]; do\n'
+        '  eval "line=\\"\\$line:\\$GIT_PUSH_OPTION_$i\\""; i=$((i+1))\n'
+        "done\n"
+        f'echo "$line" >> "{log}"\n'
         'echo "remote: View merge request for x:" >&2\n'
         'echo "remote:   https://gitlab.example.org/team/data/-/merge_requests/7" >&2\n',
         encoding="utf-8",
@@ -1531,3 +1534,20 @@ def test_merge_request_branch_is_overwritten_when_it_diverged(
     result = bob.sync("zwei")
     assert result.error is None and result.pushed
     assert git(remote, "log", "-1", "--format=%s", branch) == "zwei"
+
+
+def test_merge_request_auto_merge_option_and_pull_hint(alice: Person, bob: Person, remote: Path):
+    log = _gitlab_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    assert gitsync.auto_merge(bob.data)  # default: on
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    assert bob.sync("mit Automerge").error is None
+    assert "merge_request.merge_when_pipeline_succeeds" in log.read_text(encoding="utf-8")
+    pulled = bob.sync("holen", push=False)  # his merge request is still open
+    assert pulled.error is None and any("Merge Request" in note for note in pulled.notes)
+    gitsync.set_auto_merge(bob.data, False)
+    assert not gitsync.auto_merge(bob.data)
+    log.write_text("", encoding="utf-8")
+    bob.write("a/2026.3.yaml", "velocity: 8\n")
+    assert bob.sync("ohne").error is None
+    assert "merge_when_pipeline_succeeds" not in log.read_text(encoding="utf-8")
