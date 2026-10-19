@@ -1408,3 +1408,27 @@ def test_finishing_an_open_merge_does_not_commit_leftover_markers(
     assert not result.pushed
     assert (bob.root / ".git" / "MERGE_HEAD").exists()  # das Zusammenführen bleibt offen
     assert git(remote, "show", f"main:{FILE}").startswith("velocity: 11")  # Server unverändert
+
+
+def test_protocols_travel_through_the_server(alice: Person, bob: Person):
+    """Planning and review minutes are plain Markdown files below ``<team>/protokolle`` and must
+    be shared like the sprint files."""
+    name = "a/protokolle/2026.1-planning-20260101-100000-ab12.md"
+    alice.write(name, "# Planning\n\nBody\n")
+    assert alice.sync("Protokoll").ok
+    assert git(alice.root, "ls-files", f"teams/{name}")
+    result = bob.sync("nichts")
+    assert result.error is None
+    assert (bob.data / name).read_text(encoding="utf-8") == "# Planning\n\nBody\n"
+
+
+def test_pull_takes_over_server_state_without_pushing(alice: Person, bob: Person, remote: Path):
+    alice.write("a/protokolle/2026.1-review-20260102-100000-cd34.md", "# Review\n")
+    assert alice.sync("Protokoll").ok
+    bob.write("a/2026.2.yaml", "velocity: 7\n")  # open change of Bob: saved, never uploaded
+    before = git(remote, "rev-parse", "main")
+    result = bob.sync("lokal", push=False)
+    assert result.error is None and not result.pushed and result.committed
+    assert (bob.data / "a/protokolle/2026.1-review-20260102-100000-cd34.md").exists()
+    assert git(remote, "rev-parse", "main") == before
+    assert gitsync.state(bob.data).ahead >= 1
