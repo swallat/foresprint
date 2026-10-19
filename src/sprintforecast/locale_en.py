@@ -1301,6 +1301,8 @@ EN: dict[str, str] = {
     "**Neu von anderen** (noch nicht übernommen)": "**New from others** (not taken over yet)",
     "Speichern und teilen": "Save and share",
     "Stand prüfen": "Check state",
+    "Vom Server holen": "Pull from server",
+    "Holt die Änderungen der anderen in diesen Datenordner und führt sie mit deinen zusammen (eigene offene Änderungen werden vorher gesichert). Lädt nichts hoch.": "Fetches the changes of the others into this data folder and merges them with yours (your open changes are saved first). Uploads nothing.",
     "Serverstand geprüft vor {minutes} Min.": "Server state checked {minutes} min ago",
     "Serverstand gerade geprüft": "Server state just checked",
     "Sichert deine Änderungen, holt die der anderen, führt beides zusammen und lädt es hoch.": "Saves your changes, fetches those of the others, merges both and uploads the result.",

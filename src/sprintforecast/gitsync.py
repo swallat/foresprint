@@ -498,6 +498,7 @@ def sync(
     today: date | None = None,
     allow_invalid: bool = False,
     allow_unrelated: bool = False,
+    push: bool = True,
 ) -> SyncResult:
     """„Speichern und teilen“: eigene Änderungen committen, die der anderen holen und
     zusammenführen, prüfen, hochladen. Erwartbare Fehler (offline, abgelehnt, Anmeldung,
@@ -512,7 +513,9 @@ def sync(
     Tags (``tags``) werden vor dem Commit geprüft: Ist ein Name ungültig oder lokal schon
     vergeben, bricht die Funktion ab, ohne zu committen; fehlende Tags werden auch ohne neuen
     Commit nachgeholt. Hat der Datenordner nach dem Sichern noch keinen Commit (frisch angelegt,
-    keine Dateien), gibt es nichts zu teilen: Fehlerart ``nothing_to_share``."""
+    keine Dateien), gibt es nichts zu teilen: Fehlerart ``nothing_to_share``. Mit
+    ``push=False`` („Vom Server holen“) endet der Ablauf nach dem Zusammenführen: Eigenes wird
+    gesichert und der Server-Stand übernommen, aber nichts hochgeladen und nicht geprüft."""
     result = SyncResult()
     try:
         root = _root(path)
@@ -581,6 +584,8 @@ def sync(
                     raise _conflict_error()
                 result.merged = True
                 current = state(path)
+            if not push:
+                break
             if not allow_invalid and _unpushed_merges(root, current):
                 found = new_errors(path, current.upstream or "HEAD", today)
                 if found:
