@@ -203,7 +203,15 @@ from sprintforecast.report import (
     status,
     window_hint,
 )
-from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
+from sprintforecast.settings import (
+    BY_KEY,
+    FIRST_SPRINT_KEYS,
+    SETTINGS,
+    Kind,
+    Setting,
+    applicable,
+    changes,
+)
 from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
@@ -3710,16 +3718,34 @@ def _overhead_widgets(team: Team, form_key: str) -> dict[str, str]:
     return {OVERHEAD_KEYS[0]: str(share_value), OVERHEAD_KEYS[1]: str(days_value)}
 
 
-def _settings_form(team: Team, has_sprints: bool, form_key: str, submit: str) -> Team | None:
-    """Formular für alle Einstellungen; liefert das geänderte Team nach dem Absenden."""
+def _settings_form(
+    team: Team, has_sprints: bool, form_key: str, submit: str, first_sprint: bool = False
+) -> Team | None:
+    """Formular für alle Einstellungen; liefert das geänderte Team nach dem Absenden. Mit
+    ``first_sprint`` steht der erste Sprint als eigener Abschnitt vorn (neues Team)."""
     edited = copy.deepcopy(team)
     # Die beiden Scrum-Abzüge sind derselbe Wert: außerhalb des Formulars, damit sie sich
     # sofort abgleichen können (Formularfelder reagieren erst beim Absenden).
     raw = _overhead_widgets(team, form_key)
+    settings = applicable(has_sprints)
     with st.form(form_key):
+        if first_sprint:
+            st.subheader(t("Erster Sprint"))
+            st.markdown(
+                t(
+                    "Der Sprint, der **gerade läuft oder als Nächstes beginnt**. Mit seiner ID "
+                    "und seinem Start beginnt die Zählung; die folgenden Sprints ergeben sich "
+                    "daraus. Läuft das Team schon länger, also z. B. **2026.15** statt 2026.1."
+                )
+            )
+            raw |= {
+                k: _setting_widget(BY_KEY[k], team, f"{form_key}-{k}") for k in FIRST_SPRINT_KEYS
+            }
+            st.subheader(t("Weitere Einstellungen"))
+            settings = [s for s in settings if s.key not in FIRST_SPRINT_KEYS]
         raw |= {
             s.key: _setting_widget(s, team, f"{form_key}-{s.key}")
-            for s in applicable(has_sprints)
+            for s in settings
             if s.key not in OVERHEAD_KEYS
         }
         submitted = st.form_submit_button(submit, type="primary")
@@ -3744,6 +3770,8 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
     edited = _settings_form(
         data.team, bool(data.sprints), f"settings-{data.team.key}", t("Speichern")
     )
+    if data.sprints:
+        _rename_sprints_section(repo, data, fc)
     if edited is None:
         return
     diff = changes(data.team, edited)
@@ -3770,14 +3798,80 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
 
 
+def _rename_sprints_section(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Sprint-IDs nachträglich ändern (sobald Sprintdateien existieren, ersetzt das die
+    Einstellung „ID des ersten Sprints“)."""
+    from sprintforecast.renaming import apply_renames, plan_renames
+
+    st.subheader(t("Sprint-IDs ändern"))
+    st.markdown(
+        t(
+            "Ein Sprint bekommt eine neue ID, z. B. **2026.15** statt 2026.1; die gespeicherten "
+            "Sprints danach zählen von ihr aus weiter. Umbenannt werden Sprintdateien und "
+            "Protokolle, die Inhalte bleiben."
+        )
+    )
+    ids = [s.id for s in data.sprints]
+    # Vorauswahl: der laufende Sprint, sonst der nächste gespeicherte (zuletzt: der letzte).
+    current = next((s.id for s in data.sprints if s.end > fc.today), ids[-1])
+    left, right = st.columns(2)
+    with left:
+        chosen = st.selectbox(
+            t("Sprint"), ids, index=ids.index(current), key=f"rename-{data.team.key}-sprint"
+        )
+    with right:
+        new_id = st.text_input(
+            t("Neue ID"),
+            help=t("Z. B. 2026.15 bei Nummerierung pro Jahr, 15 bei fortlaufender Nummerierung."),
+            key=f"rename-{data.team.key}-new",
+        ).strip()
+    renames: list[Any] = []
+    if new_id:
+        try:
+            renames = plan_renames(data, chosen, new_id)
+        except DataError as e:
+            st.error(str(e))
+            return
+        if not renames:
+            st.info(t("Nichts zu ändern: Sprint {id} heißt schon so.", id=chosen))
+            return
+        st.dataframe(
+            pd.DataFrame([{t("bisher"): r.old, t("neu"): r.new} for r in renames]),
+            hide_index=True,
+        )
+    if st.button(t("Sprint-IDs ändern"), type="primary", disabled=not renames):
+        try:
+            applied = apply_renames(repo, data, renames)
+        except DataError as e:
+            st.error(str(e))
+            return
+        except OSError as e:  # alles zurückgesetzt; Grund nennen statt Traceback
+            st.error(t("Nicht gespeichert: {reason}", reason=e.strerror or e))
+            return
+        st.session_state["flash"] = [
+            ("success", _saved_text(", ".join(p.name for p in applied.files), _next_step()))
+        ]
+        for suffix in ("new", "sprint"):
+            st.session_state.pop(f"rename-{data.team.key}-{suffix}", None)
+        st.rerun()
+
+
 def page_new_team(repo: Repository) -> None:
     st.header(t("Neues Team anlegen"))
     page_intro(
         t(
-            "Ein Kürzel genügt. Die Bereiche **Produktverteilung**, **Zuordnung PO** und "
-            "**Produktionszugriff** sind optional und zunächst aus; was sie tun, steht am "
-            "jeweiligen Feld, und sie lassen sich jederzeit unter **Einstellungen** ändern."
-        )
+            "Kürzel eingeben, dann den **ersten Sprint** angeben: den, der gerade läuft oder als "
+            "Nächstes beginnt. Alles Weitere lässt sich jederzeit unter **Einstellungen** ändern."
+        ),
+        t(
+            "**Erster Sprint:** Start und ID des Sprints, der gerade läuft oder als Nächstes "
+            "beginnt (z. B. 2026.15, nicht 2026.1, wenn das Team schon länger arbeitet). Die "
+            "folgenden Sprints zählen von dort aus weiter. Eine falsche ID lässt sich später "
+            "unter **Einstellungen** (Sprint-IDs ändern) korrigieren.  \n"
+            "**Optionale Bereiche:** **Produktverteilung**, **Zuordnung PO** und "
+            "**Produktionszugriff** sind zunächst aus; was sie tun, steht am jeweiligen Feld."
+        ),
+        t("Erster Sprint, optionale Bereiche"),
     )
     key = (
         st.text_input(t("Team-Kürzel (Verzeichnisname)"), help=t("Kleinbuchstaben, z. B. team-a"))
@@ -3804,9 +3898,9 @@ def page_new_team(repo: Repository) -> None:
         return
     team = Team(key=key, name=key.upper())
     team.sprint.first_start = today()
-    team.sprint.first_id = f"{today().year}.1"
+    team.sprint.first_id = None  # keine Vorgabe: die ID des laufenden Sprints kennt nur das Team
     team.sprint.numbering = Numbering.YEARLY
-    edited = _settings_form(team, False, f"new-{key}", t("Team anlegen"))
+    edited = _settings_form(team, False, f"new-{key}", t("Team anlegen"), first_sprint=True)
     if edited is None:
         return
     if save(

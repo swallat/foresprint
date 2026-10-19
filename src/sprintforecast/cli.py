@@ -26,7 +26,14 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from sprintforecast import LOG_ENV, __version__, updater
-from sprintforecast.calendar import day_label, holiday_name, team_workdays, workweek_label
+from sprintforecast.calendar import (
+    day_label,
+    expected_id_form,
+    holiday_name,
+    id_fits_numbering,
+    team_workdays,
+    workweek_label,
+)
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError
 from sprintforecast.engine import UNSURE_SOURCES
@@ -60,7 +67,6 @@ from sprintforecast.launcher import Kind as BrowserKind
 from sprintforecast.model import (
     AbsenceState,
     Membership,
-    Numbering,
     Person,
     Planning,
     Product,
@@ -92,7 +98,7 @@ from sprintforecast.report import (
     status,
     window_hint,
 )
-from sprintforecast.settings import SETTINGS, Setting, applicable, changes
+from sprintforecast.settings import FIRST_SPRINT_KEYS, SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
@@ -608,11 +614,39 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
         )
     )
     new = Team(key=team, name=team.upper())
-    for setting in applicable(has_sprints=False):
-        if setting.key == "sprint.first_id":
-            year = new.sprint.first_start.year if new.sprint.first_start else date.today().year
-            new.sprint.first_id = f"{year}.1" if new.sprint.numbering is Numbering.YEARLY else "1"
-        _ask_setting(setting, new, required=setting.only_without_sprints)
+    settings = applicable(has_sprints=False)
+    by_key = {s.key: s for s in settings}
+    _ask_setting(by_key["name"], new)
+    console.print(
+        Panel(
+            t(
+                "[bold]Erster Sprint:[/bold] der Sprint, der gerade läuft oder als Nächstes "
+                "beginnt. Mit seiner ID und seinem Start beginnt die Zählung; die folgenden "
+                "Sprints ergeben sich daraus. Läuft das Team schon länger, also z. B. "
+                "[bold]2026.15[/bold] statt 2026.1."
+            )
+        )
+    )
+    for key in FIRST_SPRINT_KEYS:
+        _ask_setting(by_key[key], new, required=True)
+    while not id_fits_numbering(
+        new.sprint.first_id or "",
+        (new.sprint.first_start or c.today) + timedelta(days=new.sprint.length_days),
+        new.sprint.numbering,
+    ):
+        console.print(
+            "[red]"
+            + t(
+                "Sprint-ID {id} passt nicht zur Nummerierung (erwartet {expected}).",
+                id=repr(new.sprint.first_id),
+                expected=expected_id_form(new.sprint.numbering),
+            )
+            + "[/red]"
+        )
+        _ask_setting(by_key["sprint.first_id"], new, required=True)
+    for setting in settings:
+        if setting.key != "name" and setting.key not in FIRST_SPRINT_KEYS:
+            _ask_setting(setting, new, required=setting.only_without_sprints)
     path = c.repo.save_team(new)
     people = c.repo.save_people(team, [])
     console.print(f"[green]{t('Angelegt: {path}', path=_plain_end(path))}[/green]")
@@ -1799,6 +1833,53 @@ def sprints(
     paths = [c.repo.save_sprint(team, s) for s in changed]
     _saved(", ".join(p.name for p in paths))
     _maybe_commit(c, team, paths, t("{team}: Sprintkalender", team=data.team.name), None, commit_)
+
+
+@command(
+    "rename-sprint",
+    "Sprint-ID ändern; die gespeicherten Sprints danach zählen von der neuen ID aus weiter.",
+)
+def rename_sprint(
+    ctx: typer.Context,
+    team: TeamArg,
+    sprint: Annotated[str, typer.Argument(help=t("Bisherige Sprint-ID, z. B. 2026.1."))],
+    new: Annotated[str, typer.Argument(help=t("Neue Sprint-ID, z. B. 2026.15."))],
+    commit_: CommitOpt = False,
+) -> None:
+    from sprintforecast.renaming import apply_renames, plan_renames
+
+    c = _ctx(ctx)
+    data = _load(c, team)
+    try:
+        renames = plan_renames(data, sprint, new)
+    except DataError as e:
+        err.print(f"[red]{_plain_end(e)}[/red]")
+        raise typer.Exit(1) from e
+    if not renames:
+        console.print(t("Nichts zu ändern: Sprint {id} heißt schon so.", id=_plain(sprint)))
+        return
+    table = Table(title=t("Sprint-IDs {team}", team=_plain(data.team.name)))
+    for col in ("bisher", "neu", "Start"):
+        table.add_column(t(col))
+    for r in renames:
+        s = data.sprint(r.old)
+        assert s is not None
+        table.add_row(_plain(r.old), f"[bold]{_plain_end(r.new)}[/bold]", day_label(s.start))
+    console.print(table)
+    try:
+        applied = apply_renames(c.repo, data, renames)
+    except DataError as e:
+        err.print(f"[red]{_plain_end(e)}[/red]")
+        raise typer.Exit(1) from e
+    _saved(", ".join(p.name for p in applied.files))
+    _maybe_commit(
+        c,
+        team,
+        applied.touched,
+        t("{team}: Sprint {old} heißt jetzt {new}", team=data.team.name, old=sprint, new=new),
+        None,
+        commit_,
+    )
 
 
 @command(
