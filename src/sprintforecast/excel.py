@@ -22,7 +22,7 @@ from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
 from sprintforecast.model import TrendMode
 from sprintforecast.products import distribution, measure_label
-from sprintforecast.storage import team_to_dict
+from sprintforecast.storage import TeamData, file_name_problem, team_to_dict
 
 NA = "#N/A"
 
@@ -92,6 +92,24 @@ def _xlsxwriter() -> Any:
             )
         ) from e
     return xlsxwriter
+
+
+def import_unsafe_sprint_ids(data: TeamData) -> list[str]:
+    """Warnings for sprint ids the Excel import would refuse (it requires portable file names).
+    On Linux and macOS such an id (for example ``a:b``) can exist and be exported, but the
+    workbook could not be imported again."""
+    warnings = []
+    for sprint in data.sprints:
+        if problem := file_name_problem(sprint.id):
+            warnings.append(
+                t(
+                    "Sprint-ID {id} ({problem}): Der Excel-Import lehnt sie ab; "
+                    "die Datei lässt sich nicht wieder importieren.",
+                    id=repr(sprint.id),
+                    problem=problem,
+                )
+            )
+    return warnings
 
 
 def _blank(value: float | None) -> float | str:
