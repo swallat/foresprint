@@ -882,6 +882,29 @@ def test_second_attempt_names_the_earlier_save_in_the_hint(alice: Person):
     assert done.changes and not done.commits and done.rescue == rescue
 
 
+@pytest.mark.parametrize("orphan", [False, True])
+def test_commits_are_told_apart_over_a_chain_of_saves(alice: Person, orphan: bool):
+    """Zwei Sicherungen hintereinander (zwei gescheiterte Versuche): Ob der lose Stand eigene
+    Commits hatte, zeigt erst der Commit vor der ganzen Kette."""
+    readme = detach_blocked_outside(alice)
+    if orphan:
+        git(alice.root, "add", "teams/a/eins.yaml")
+        git(alice.root, "commit", "-qm", "auf losem Stand", "--", "teams/a/eins.yaml")
+        (alice.data / "a" / "drei.yaml").write_text("w: 0\n", encoding="utf-8")
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    (alice.data / "a" / "zwei.yaml").write_text("y: 2\n", encoding="utf-8")
+    invalidate_status()
+    with pytest.raises(GitError):
+        gitsync.reattach(alice.data)
+    subjects = git(alice.root, "log", "--format=%s", "-3", "HEAD").splitlines()
+    assert subjects[:2] == ["Offene Änderungen vor dem Wechsel gesichert"] * 2
+    readme.unlink()
+    invalidate_status()
+    done = gitsync.reattach(alice.data)
+    assert done.changes and done.commits is orphan
+
+
 def test_new_changes_after_a_failed_attempt_go_to_the_same_rescue_branch(alice: Person):
     readme = detach_blocked_outside(alice)
     with pytest.raises(GitError):
