@@ -240,7 +240,12 @@ def test_rechenweg_names_the_uncertainty(data_dir: Path):
         NOTE in explanation and "`2026.19`" in explanation and "„Fehltage speichern“" in explanation
     )
     assert "Fenster der letzten 4 Sprints" in explanation  # Einstellung des Teams
-    assert "`2026.19`" not in plain_explanation(fc, entry, code=False)  # Kommandozeile
+    assert NOTE not in plain_explanation(fc, entry, note=False)  # Kommandozeile: gesondert
+    assert NOTE not in next(s for s in steps(fc, entry, note=False) if s.key == "capacity").formula
+    # Tooltip (Markdown): Sprint-IDs als Code, der Hinweis kurz und ohne IDs
+    tip = next(s for s in steps(fc, entry, code=True) if s.key == "capacity").formula
+    assert "`2026.19`" in tip and NOTE in tip and "Details auf der Seite" in tip
+    assert tip.count("2026.19") == 1  # nur in der Liste der Quote, nicht im Hinweis
 
     # Nicht geschätzt (z. B. aufgezeichnete Kapazität): kein Hinweis, obwohl derived gefüllt ist
     assert fc.absences is not None and fc.absences.derived == ["2026.19"]
@@ -276,7 +281,14 @@ def test_command_line_and_report_file(data_dir: Path):
     assert "`2026.19`" not in result.output  # Kommandozeile: keine Markdown-Backticks
     explained = run_cli(data_dir, "forecast", "demo", "--rechenweg", "2026.23")
     assert explained.exit_code == 0, explained.output
-    assert NOTE in explained.output and "`2026.19`" not in explained.output
+    out = " ".join(explained.output.split())  # Zeilenumbrüche der Konsole ignorieren
+    assert out.count(NOTE) == 1  # nur die ⚠-Zeile, nicht noch Erklärtext und Tabellenzelle
+    for web_only in ("`2026.19`", "`absence_history`", "`sprintforecast fehltage`"):
+        assert web_only not in out  # keine Markdown-Backticks in der Konsole
+    for web_text in ("Fehltage speichern", "Stand der Fehltage", "Sprint vorbereiten: Fehltage"):
+        assert web_text not in out  # keine Bedienung der Weboberfläche
+    assert "sprintforecast fehltage demo <SPRINT>" in out  # stattdessen der Befehl
+    assert "Fenster der letzten 4 Sprints" in out
     report = run_cli(data_dir, "bericht", "demo")
     assert report.exit_code == 0, report.output
     text = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
@@ -351,6 +363,30 @@ def test_web_pages_without_estimated_sprints_show_no_hint(
     assert fc.absences is not None and fc.absences.derived == ["2026.19"]
     assert not any(e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in fc.upcoming())
     assert not hints(web_page(data_dir, monkeypatch, page))
+
+
+@pytest.mark.parametrize("page", ["planning", "vorplanung"])
+def test_tooltips_show_foreign_sprint_ids_only_as_code(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
+):
+    """Sprint-IDs stammen aus Dateien; die Tooltips sind Markdown (Fettdruck, Links)."""
+    evil = "2026.19 **fett** www.e.de"
+    sprints = data_dir / "demo" / "sprints"
+    raw = yaml.safe_load((sprints / "2026.19.yaml").read_text(encoding="utf-8"))
+    raw.update(id=evil, absences={})
+    (sprints / "2026.19.yaml").unlink()
+    (sprints / f"{evil}.yaml").write_text(yaml.safe_dump(raw), encoding="utf-8")
+    edit(data_dir, "2026.22", absences={}, expected_absences={})  # der gewählte Sprint: geschätzt
+    fc = estimated_forecast(data_dir)
+    assert fc.absences is not None and fc.absences.derived == [evil]
+
+    at = web_page(data_dir, monkeypatch, page)
+    tips = [m.help for m in at.metric if m.label == "Kapazität (PT)"]
+    assert tips and all("Fehltage unbekannt" in tip for tip in tips), page
+    for tip in tips:
+        assert f"`{evil}`" in tip  # als Code-Span
+        assert evil not in tip.replace(f"`{evil}`", "")  # sonst nirgends roh
+        assert "Quote unsicher" in tip and tip.count("Quote unsicher") == 1
 
 
 def test_absence_page_explains_what_to_do(data_dir: Path, monkeypatch: pytest.MonkeyPatch):

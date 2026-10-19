@@ -187,9 +187,22 @@ def absence_derived_remedy(window: int) -> str:
     )
 
 
+def absence_derived_cli_remedy(window: int, team: str) -> str:
+    """Wie :func:`absence_derived_remedy`, für die Kommandozeile: der Befehl statt der
+    Bedienung der Weboberfläche, ohne Markdown."""
+    return t(
+        "Fehlte in einem dieser Sprints jemand, die Fehltage nachtragen mit: "
+        "sprintforecast fehltage {team} <SPRINT>. Fehlte niemand, stimmt die Quote. Der Hinweis "
+        "bleibt, bis die Sprints aus dem Fenster der letzten {window} Sprints (Einstellung "
+        "absence_history) herausfallen oder Fehltage eingetragen sind.",
+        team=team,
+        window=window,
+    )
+
+
 def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
     """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht). ``code=False``
-    für die Kommandozeile (Sprint-IDs ohne Markdown-Backticks)."""
+    für die Kommandozeile: Sprint-IDs ohne Markdown-Backticks, dazu der Befehl zum Nachtragen."""
     from sprintforecast.analysis import MIN_SAMPLES, sample_count
     from sprintforecast.model import TrendMode
 
@@ -198,6 +211,9 @@ def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
         e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in fc.upcoming()
     )
     if estimated and (note := absence_derived_note(fc.absences, code=code)):
+        if not code:
+            team = fc.data.team
+            note += " " + absence_derived_cli_remedy(team.capacity.absence_history, team.key)
         notes.append(note)
     samples = sample_count(fc)
     if samples and samples < MIN_SAMPLES:
