@@ -140,6 +140,7 @@ from sprintforecast.gitsync import (
     set_remote,
     set_share_mode,
     share_mode,
+    start_background_fetch,
     sync,
 )
 from sprintforecast.gitsync import (
@@ -5577,6 +5578,13 @@ def _changes_view(root: Path, loaded: tuple[list[FileChange], Path | None] | Non
         st.caption(t("… und {n} weitere", n=len(files) - _VIEW_FILES))
 
 
+@st.fragment(run_every="30m")
+def _background_fetch(root: str) -> None:
+    """Holt den Serverstand beim ersten Zeichnen der Seitenleiste und danach alle 30 Minuten im
+    Hintergrund (nur solange eine Sitzung verbunden ist; ``idle.py`` bleibt maßgebend)."""
+    start_background_fetch(Path(root))
+
+
 def _git_panel(repo: Repository) -> None:
     if not git_available():
         _show_problem(classify("", missing=True))
@@ -5615,6 +5623,7 @@ def _git_panel(repo: Repository) -> None:
         )
         st.button(t("Aktualisieren"), key="git-sync-refresh", icon=":material/refresh:")
         return
+    _background_fetch(str(repo.root))
     try:
         changes = cached_pending_changes(repo.root)
         state = cached_sync_state(repo.root)

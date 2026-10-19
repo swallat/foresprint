@@ -18,6 +18,7 @@ from datetime import date
 
 from sprintforecast.engine import CapacitySource, round_down
 from sprintforecast.forecast import Forecast, TimelineEntry, build_forecast
+from sprintforecast.model import Sprint
 from sprintforecast.storage import TeamData
 
 # Unter so vielen Sprints mit Velocity sind Spanne und Häufigkeiten nur grobe Hinweise.
@@ -182,6 +183,53 @@ class Completion:
     per_sprint: float
 
 
+@dataclass(frozen=True)
+class HorizonEntry:
+    """A future sprint of a long forecast with the capacity to calculate with."""
+
+    entry: TimelineEntry
+    capacity: float
+    # True: the sprint lies beyond the people list (capacity source trend or none); it counts
+    # with the average capacity of the last sprints instead of the (over many sprints unstable)
+    # capacity trend.
+    trend: bool
+
+    @property
+    def sprint(self) -> Sprint:
+        return self.entry.sprint
+
+
+def horizon_forecast(data: TeamData, today: date, max_sprints: int = 26) -> Forecast:
+    """Forecast with ``max_sprints`` sprints after today (the team's horizon is usually much
+    shorter); ``data`` stays unchanged."""
+    longer = copy.deepcopy(data)
+    longer.team.forecast.horizon = max_sprints
+    return build_forecast(longer, today)
+
+
+def horizon_entries(fc: Forecast, max_sprints: int = 26) -> list[HorizonEntry]:
+    """The future sprints of ``fc`` (start after today) with the capacity to calculate with:
+    as forecast while the people list reaches, beyond it the average capacity of the last
+    ``window`` sprints."""
+    window = fc.data.team.forecast.window
+    avg_capacity = statistics.fmean(
+        _recent([e.result.capacity.value for e in fc.history()], window) or [0.0]
+    )
+    result = []
+    for e in [e for e in fc.entries if e.sprint.start > fc.today][:max_sprints]:
+        if e.result.plan_capacity_source in (
+            CapacitySource.RECORDED,
+            CapacitySource.PEOPLE,
+            CapacitySource.ESTIMATED,
+            CapacitySource.CALENDAR,
+            CapacitySource.EXPECTED,
+        ):
+            result.append(HorizonEntry(e, e.result.plan_capacity or 0.0, trend=False))
+        else:
+            result.append(HorizonEntry(e, avg_capacity, trend=True))
+    return result
+
+
 def completion(
     data: TeamData,
     today: date,
@@ -201,30 +249,14 @@ def completion(
     wird statt des (über viele Sprints instabilen) Trends die Ø Kapazität der letzten Sprints
     genommen.
     """
-    longer = copy.deepcopy(data)
-    longer.team.forecast.horizon = max_sprints
-    fc = build_forecast(longer, today)
+    fc = horizon_forecast(data, today, max_sprints)
     history = normalized_history(fc)
     if len(history) < 2 or remaining <= 0 or share <= 0:
         return None
-    window = data.team.forecast.window
-    avg_capacity = statistics.fmean(
-        _recent([e.result.capacity.value for e in fc.history()], window) or [0.0]
-    )
-    future = [e for e in fc.entries if e.sprint.start > today][:max_sprints]
-    capacities, trend_ids = [], []
-    for e in future:
-        if e.result.plan_capacity_source in (
-            CapacitySource.RECORDED,
-            CapacitySource.PEOPLE,
-            CapacitySource.ESTIMATED,
-            CapacitySource.CALENDAR,
-            CapacitySource.EXPECTED,
-        ):
-            capacities.append(e.result.plan_capacity or 0.0)
-        else:
-            capacities.append(avg_capacity)
-            trend_ids.append(e.sprint.id)
+    horizon = horizon_entries(fc, max_sprints)
+    future = [h.entry for h in horizon]
+    capacities = [h.capacity for h in horizon]
+    trend_ids = [h.sprint.id for h in horizon if h.trend]
 
     ref = data.team.forecast.reference_capacity
     rng = random.Random(seed)

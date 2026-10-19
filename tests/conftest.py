@@ -19,6 +19,13 @@ def german_by_default(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(i18n, "DEFAULT", "de")
 
 
+@pytest.fixture(autouse=True)
+def no_background_fetch(monkeypatch: pytest.MonkeyPatch):
+    """Kein Abruf des Serverstands im Hintergrund: Ein Faden, der mitten im Test den Git-Stand
+    ändert, machte die Läufe unbeständig (Tests dazu setzen die Variable zurück)."""
+    monkeypatch.setenv("SPRINTFORECAST_NO_BACKGROUND_FETCH", "1")
+
+
 @pytest.fixture
 def english(monkeypatch: pytest.MonkeyPatch):
     """Die Oberfläche und die Meldungen sind englisch (auch in AppTest-Läufen)."""

@@ -11,6 +11,7 @@ unberührt. Erfordert ``openpyxl`` (``sprintforecast[excel]``)."""
 
 from __future__ import annotations
 
+import copy
 import io
 import math
 from dataclasses import dataclass, field
@@ -266,7 +267,7 @@ _SETTING_FLOATS = {
     "capacity.overhead_share",
     "capacity.overhead_days",
 }
-_SETTING_FLAGS = {"features.products", "features.po", "features.production"}
+_SETTING_FLAGS = {"features.products", "features.po", "features.production", "features.tickets"}
 _SETTING_DATES = {"sprint.first.start"}
 _SETTING_TEXTS = {
     "name",
@@ -775,6 +776,10 @@ def plan_import(repo: Repository, data: TeamData, today: date | None = None) -> 
     vorab ab; es wird nichts geschrieben."""
     check_team_key(repo, data.team.key)
     existing = repo.load(data.team.key) if repo.exists(data.team.key) else None
+    if existing is not None:
+        # The workbook never contains the tracker section: the existing one is carried over.
+        data.team.tracker = copy.deepcopy(existing.team.tracker)
+        data.team.tracker_raw = copy.deepcopy(existing.team.tracker_raw)
     check_valid(data, today or date.today(), existing)
     team_dir = repo.team_dir(data.team.key)
     new_docs = _documents(data)
