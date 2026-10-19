@@ -520,8 +520,8 @@ def test_auth_help_is_cut_to_the_address():
     https = auth_help("https://example.org/team/daten.git")
     assert "Zugangstoken" in https and "`gh auth setup-git`" in https
     assert "Anmeldedienst des Rechners" in https
-    # nicht mehr alle Betriebssysteme in einem Satz, keine SSH-Schritte
-    for other in ("Windows", "macOS", "Linux", "credential.helper", "ssh-keygen", "SSH"):
+    # nur die Schritte des eigenen Betriebssystems, keine SSH-Schritte
+    for other in ("ssh-keygen", "SSH"):
         assert other not in https, other
 
     ssh = auth_help("git@example.org:team/daten.git")
@@ -1681,3 +1681,64 @@ def test_background_fetch_does_not_bring_tags_along(alice: Person, bob: Person):
     git(alice.root, "push", "-q", "origin", "team/2026.21")
     gitsync._fetch_in_background(bob.data, gitsync.state(bob.data))
     assert git(bob.root, "tag", "-l") == ""
+
+
+def _helpers(monkeypatch, *values: str):
+    """Ersetzt die Ausgabe von ``git config --get-regexp`` für die Anmelde-Hilfe."""
+    import subprocess
+
+    from sprintforecast import git as gitmod
+
+    out = "".join(f"credential.helper {v}\n" for v in values)
+    monkeypatch.setattr(
+        gitmod, "_git_result", lambda *a, **k: subprocess.CompletedProcess(a, 0, out, "")
+    )
+
+
+def test_credential_helpers_names_only(monkeypatch):
+    from sprintforecast.git import credential_helpers
+
+    _helpers(monkeypatch, "manager", "!f() { echo secret; }; f", "git-credential-store --file x")
+    assert credential_helpers() == ["manager", "custom", "store"]
+
+
+def test_credential_helpers_empty_value_resets(monkeypatch):
+    from sprintforecast.git import credential_helpers
+
+    _helpers(monkeypatch, "store", "", "osxkeychain")
+    assert credential_helpers() == ["osxkeychain"]
+
+
+def test_auth_help_warns_about_plain_text_store(monkeypatch):
+    from sprintforecast.git import auth_help
+
+    _helpers(monkeypatch, "store")
+    hint = auth_help("https://example.org/team/daten.git")
+    assert "im Klartext" in hint and hint.endswith("Danach noch einmal versuchen.")
+
+
+def test_auth_help_with_service_set_up_suggests_new_token(monkeypatch):
+    from sprintforecast.git import auth_help
+
+    _helpers(monkeypatch, "manager")
+    assert "abgelaufen oder widerrufen" in auth_help("https://example.org/t/d.git")
+
+
+@pytest.mark.parametrize(
+    ("platform", "needle"),
+    [("win32", "credential.helper manager"), ("darwin", "osxkeychain"), ("linux", "libsecret")],
+)
+def test_auth_help_names_the_steps_of_this_operating_system(monkeypatch, platform, needle):
+    from sprintforecast.git import auth_help
+
+    _helpers(monkeypatch)
+    monkeypatch.setattr("sprintforecast.git.sys.platform", platform)
+    hint = auth_help("https://example.org/t/d.git")
+    assert needle in hint
+
+
+def test_not_repo_hint_explains_unpacked_zip():
+    from sprintforecast.git import hint_for
+
+    hint = hint_for("not_repo")
+    assert "ZIP" in hint and "Repository klonen" in hint
