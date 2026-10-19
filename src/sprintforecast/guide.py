@@ -185,7 +185,7 @@ WORKFLOW: list[Step] = [
         when="Vor dem Planning / PO-Planung",
         title="Forecast ansehen",
         text="Zeigt den Forecast PLAN für den laufenden und die kommenden Sprints – die "
-        "empfohlene Planungsmenge, aufgeteilt in Roadmap und Kleinkram. Die Startseite führt "
+        "empfohlene Planungsmenge, aufgeteilt in Verplanbar und Kleinkram. Die Startseite führt "
         "über drei Aufgaben (Sprint vorbereiten, Planning, Sprint abschließen) zur jeweils "
         "nächsten sinnvollen Seite.",
         page="forecast",
@@ -221,7 +221,7 @@ WORKFLOW: list[Step] = [
         cli="sprintforecast review TEAM --commit",
     ),
     Step(
-        when="Bei Roadmap-Fragen",
+        when="Bei Fragen zur Fertigstellung",
         title="Analyse",
         text="Ergänzend zum Forecast: Bandbreite (konservativ/optimistisch), Fokusfaktor, "
         "Puffer-Empfehlung und „Wann ist es fertig?“ für eine Restmenge.",
@@ -316,9 +316,10 @@ TERMS: list[tuple[str, str]] = [
         "Nie negativ.",
     ),
     (
-        "Roadmap",
-        "Reservierter Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %). Es ist eine "
-        "Aufteilung der Prognose, kein weiterer Wert: Roadmap + Kleinkram = Forecast PLAN.",
+        "Verplanbarer Anteil",
+        "Reservierter Anteil des Forecast PLAN für planbare Themen (Standard 80 %); der Rest "
+        "heißt „Kleinkram“. Es ist eine Aufteilung der Prognose, kein weiterer Wert: "
+        "Verplanbar + Kleinkram = Forecast PLAN.",
     ),
     (
         "Funktionsbereiche",
@@ -343,7 +344,7 @@ TERMS: list[tuple[str, str]] = [
     (
         "Standard je Produkt",
         "Verfügbare Menge / Anzahl betreuter Produkte. Verfügbar = Forecast PLAN (beim "
-        "Planning eingefroren) oder nur dessen Roadmap-Anteil (Einstellung).",
+        "Planning eingefroren) oder nur dessen verplanbarer Anteil (Einstellung).",
     ),
     ("Saldo je Produkt", "Σ Erledigt − Σ Standard über mehrere Sprints."),
     (

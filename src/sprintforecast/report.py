@@ -210,7 +210,7 @@ def render(fc: Forecast, history: int = 10) -> str:
         "| Sprint | "
         + t(
             "Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** ({unit}) "
-            "| Spanne | Roadmap ({share}) | Kleinkram |",
+            "| Spanne | Verplanbar ({share}) | Kleinkram |",
             unit=unit,
             share=pct(f.roadmap_share),
         ),
