@@ -11,7 +11,7 @@ example). Look things up with `sprintforecast help terms`, `sprintforecast help 
 | Vacation or similar becomes known | `sprintforecast absences team-a [SPRINT]` | Record absences per person (default: next sprint). Shows capacity and forecast. |
 | The team changes | `sprintforecast people team-a` | Add a person, change FTE, record a departure. |
 | Settings change | `sprintforecast settings team-a` | Change region, reference capacity, trend mode and so on with guidance; shows the changes before saving. |
-| Products change | `sprintforecast product-list team-a` | Create a product, change its PO, hand a product over (with an end date). |
+| Products change | `sprintforecast product-list team-a` | Create a product, change its PO, end a product (with an end date). |
 | PO pre-planning | `sprintforecast products team-a --preplanning` | POs enter per product what they intend to bring in; compared with the default. |
 | Sprint planning | `sprintforecast planning team-a` | Guided: 1. absences, 2. Forecast PLAN and planned amount per product, 3. commitment (plus an optional cross-check). Freezes the Forecast PLAN. Default: the next sprint that has not been planned yet. |
 | Sprint review | `sprintforecast review team-a --commit` | Records velocity, scope creep and done per product, freezes the available person days, commits and sets the tag `team-a/<sprint>`. |

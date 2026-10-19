@@ -23,7 +23,7 @@ local web UI and a command line read and write the same files.
 - **Self-updating:** checks daily for a new version and installs it after exit (can be turned
   off).
 - **Extensible:** plugins add commands and pages, for example imports.
-- **Unit-neutral:** story points (SP) or person days (PD) are a team setting.
+- **Unit-neutral:** the estimation unit, story points (SP) or person days (PD), is a team setting.
 - **English and German:** UI, command line and report in both languages; the YAML files are
   always English (keys and comments).
 

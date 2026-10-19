@@ -46,7 +46,7 @@ For creating, committing, sharing, history and cloning, Git does not have to be 
 app also looks in the usual places (on Windows `%LOCALAPPDATA%\Programs\Git`, Scoop and
 `%ProgramFiles%\Git`; on macOS and Linux Homebrew, `/usr/local/bin`, `~/.local/bin`,
 `~/.nix-profile/bin`). An installation without administrator rights is therefore enough (Git for
-Windows for the own user account only); afterwards reopen the app and the "Sprint-Forecast"
+Windows installed for your own user account only); afterwards reopen the app and the "Sprint-Forecast"
 launcher once. Updating the app (through `uv`, with plugins from Git addresses) works then as
 well: if Git is only outside the PATH, the app appends its folder to the PATH for the `uv` call
 (only there, not system-wide and not for the subsequent restart of the app). The first

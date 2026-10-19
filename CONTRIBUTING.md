@@ -45,7 +45,8 @@ Line length is 100. CI runs both checks, so run them before pushing.
 
 ## Translations
 
-Every user-facing text is written once, in the source language, and wrapped in `t("...")`.
+Every user-facing text is written once, in German (the source language), and wrapped in
+`t("...")`.
 Every new `t("...")` text needs an entry in `src/sprintforecast/locale_en.py` with the same
 placeholders. `tests/test_i18n.py` walks the source tree, collects every literal `t("...")`
 call and the static texts, and fails when an entry is missing or the placeholders differ, so a

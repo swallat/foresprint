@@ -25,8 +25,8 @@ locations (on Windows including the Scoop and Chocolatey directories):
 4. Nothing found: the address is shown and the server keeps running
 
 `--browser PATH` or the environment variable `SPRINTFORECAST_BROWSER` forces a particular
-browser. If port 8501 is taken, a free one is chosen automatically (`--port` sets a different
-default).
+browser. If port 8501 is taken, a free one is chosen automatically (`--port N` chooses another
+port).
 
 The UI runs at <http://localhost:8501>. It is reachable only on your own machine and needs no
 hosting; the data stays in the local Git clone.
@@ -87,8 +87,8 @@ Every page saves to the YAML files. The sidebar shows under **Git** the state co
 server (not yet shared, new from others, offline, when last checked) and the open changes in the
 data directory.
 
-- **Save and share** first secures your own changes (commit, after a review optionally with the
-  tag `TEAM/SPRINT`), then fetches the others' state, merges both and uploads the result. The
+- **Save and share** first commits your own changes (after a review optionally with the tag
+  `TEAM/SPRINT`), then fetches the others' state, merges both and uploads the result. The
   sidebar then lists what was taken over from others (who, when, which files). In a race
   (someone uploads in between) it fetches and uploads again. If the server has a completely
   different history (usually the wrong repository, such as a code repository), nothing is merged
@@ -115,7 +115,7 @@ data directory.
   that simultaneous additions rarely collide.
 - **Check status** asks the server whether there is anything new and changes nothing. The server
   state is queried only then and when sharing.
-- **Commit changes** secures locally only, without sharing.
+- **Commit changes** commits locally only, without sharing.
 - Error cases are explained in plain language with the next step: server unreachable, repository
   not found (check the address), certificate not trusted, upload rejected (new changes in the
   meantime or forbidden by the server), missing login (https access token or SSH key, credential
