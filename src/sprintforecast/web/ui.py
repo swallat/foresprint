@@ -225,6 +225,7 @@ from sprintforecast.web.logic import (
     PRODUCT_COLUMNS,
     TEAM_REGION,
     Assumption,
+    CapacityUsage,
     absence_matrix,
     absence_sprints,
     apply_calendar,
@@ -232,6 +233,7 @@ from sprintforecast.web.logic import (
     board_steps_done,
     calendar_table,
     calendar_to_save,
+    capacity_usage,
     default_forecast_ist,
     edit_absences,
     forget_without_git,
@@ -2160,6 +2162,26 @@ def _production_split_note(fc: Forecast, entry: Any, data: TeamData, unit: str) 
     )
 
 
+def _capacity_gauge(usage: CapacityUsage | None, unit: str) -> None:
+    """Verplante Menge gegenüber dem Forecast PLAN, aktualisiert sich mit jeder Eingabe."""
+    if usage is None:
+        return
+    st.progress(
+        min(usage.ratio, 1.0),
+        text=t(
+            "Eingeplant: **{planned} {unit}** von {plan} {unit} ({share})",
+            planned=fmt(usage.planned, 2),
+            plan=fmt(usage.plan),
+            unit=unit,
+            share=pct(usage.ratio),
+        ),
+    )
+    if usage.over:
+        st.warning(t("{rest} {unit} zu viel.", rest=fmt(-usage.rest, 2), unit=unit))
+    else:
+        st.success(t("Noch {rest} {unit} frei.", rest=fmt(usage.rest, 2), unit=unit))
+
+
 def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     entry = fc.entry(sprint.id)
@@ -2167,6 +2189,21 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     if entry is None:
         st.info(t("Für diesen Sprint gibt es keine Prognose."))
         return
+    page_intro(
+        t(
+            "Der Forecast PLAN ist die Menge, die das Team einplanen kann. Beim Eintragen zeigt "
+            "die Anzeige „Eingeplant“, wie viel davon schon verplant und wie viel noch frei ist."
+        ),
+        t(
+            "Die Anzeige rechnet live mit jedem eingetragenen Wert, noch bevor gespeichert wird. "
+            "Verglichen wird mit der aktuellen Prognose in {unit}. Bei Teams mit Produkten ist "
+            "es die Summe der Planning-Werte je Produkt; sonst die Menge, die unter „Bisher "
+            "eingeplant“ eingetragen wird (nur Hilfsrechnung, wird nicht gespeichert – das "
+            "Commitment steht im nächsten Schritt).",
+            unit=unit,
+        ),
+        t("Mehr dazu: so liest sich „Eingeplant“"),
+    )
     r = entry.result
     view = plan_view(entry)
     cols = st.columns(5 if view.frozen is not None else 4)
@@ -2248,22 +2285,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             fc_preview = _preview_forecast(data, fc, base, after)
             d_preview = distribution(fc_preview, fc_preview.entry(after.id) or entry)
             _production_hint(d_preview, data, unit)
-            planned = d_preview.total("planned")
-            if planned is not None and r.plan is not None:
-                rest = r.plan - planned
-                (st.success if rest >= 0 else st.warning)(
-                    t(
-                        "Eingeplant je Produkt: **{planned} {unit}** von {plan} {unit} – ",
-                        planned=fmt(planned, 2),
-                        plan=fmt(r.plan),
-                        unit=unit,
-                    )
-                    + (
-                        t("noch {rest} frei.", rest=fmt(rest, 2))
-                        if rest >= 0
-                        else t("{rest} zu viel.", rest=fmt(-rest, 2))
-                    )
-                )
+            _capacity_gauge(capacity_usage(r.plan, d_preview.total("planned")), unit)
             if chart := _product_chart(d_preview, unit):
                 st.altair_chart(chart, width="stretch")
             if after.products != base.products or data.sprint(after.id) is None:
@@ -2287,6 +2309,14 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         )
     elif features.production and _planning_production(repo, data, fc, sprint, entry):
         return
+    if not (features.products and data.products):
+        scratch = _number(
+            t("Bisher eingeplant ({unit})", unit=unit),
+            None,
+            f"planning-scratch-{sprint.id}",
+            t("Hilfsrechnung für das Planning: wird nicht gespeichert."),
+        )
+        _capacity_gauge(capacity_usage(r.plan, scratch), unit)
     st.button(t("Weiter"), on_click=_goto, args=(2,), type="primary")
 
 

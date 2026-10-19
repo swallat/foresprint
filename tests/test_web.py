@@ -1859,3 +1859,24 @@ def test_calendar_people_and_products_have_a_lead_and_an_expander(app: AppTest):
     goto(app, "produktliste")
     assert any(m.value.startswith("Eine Zeile je Produkt") for m in app.markdown)
     assert any(e.label.startswith("Produkt abgeben") for e in app.expander)
+
+
+def test_planning_plan_live_capacity_without_products(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    import shutil
+
+    shutil.rmtree(data_dir / "demo" / "products", ignore_errors=True)
+    (data_dir / "demo" / "products.yaml").unlink(missing_ok=True)
+    _change_2026_22(data_dir, products={})
+    at = start(data_dir, monkeypatch)
+    planning_step(at, "2026.22", 1)
+    plan = next(m.value for m in at.metric if m.label.startswith("Prognose aktuell"))
+    plan = float(plan.replace(",", "."))
+    key = "planning-scratch-2026.22"
+    assert not any("Eingeplant:" in str(p.proto.text) for p in at.get("progress"))
+    at.number_input(key=key).set_value(plan + 1).run()
+    assert any("zu viel" in w.value for w in at.warning)
+    at.number_input(key=key).set_value(0.25).run()
+    assert any("frei" in s.value for s in at.success)
+    assert any("Eingeplant:" in str(p.proto.text) for p in at.get("progress"))
