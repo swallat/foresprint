@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unicodedata
 from collections.abc import Callable, Iterable, Iterator
@@ -119,12 +120,32 @@ class GitError(Exception):
     Darin stehen Namen und Zeilen, die andere bestimmen (``remote:``, Hooks, Tags, Branches)."""
 
     def __init__(
-        self, message: str, kind: str = "error", hint: str = "", raw: bool = False
+        self,
+        message: str,
+        kind: str = "error",
+        hint: str = "",
+        raw: bool = False,
+        hint_md: str = "",
     ) -> None:
         super().__init__(scrub(message))
         self.kind = kind
-        self.hint = scrub(hint)
+        self._hint = scrub(hint)
         self.raw = raw
+        # Der Hinweis für Markdown, wenn er Namen von außen enthält (sonst ``hint`` selbst).
+        self._hint_md = scrub(hint_md)
+
+    @property
+    def hint(self) -> str:
+        return self._hint
+
+    @hint.setter
+    def hint(self, value: str) -> None:
+        self._hint = value
+        self._hint_md = ""  # ein später gesetzter Hinweis gilt auch für Markdown
+
+    @property
+    def hint_md(self) -> str:
+        return self._hint_md or self._hint
 
     def render(self, quote: Callable[[str], str] = str) -> str:
         """Die Meldung für die Oberfläche: Die Ausgabe von Git (``raw``) geht durch ``quote``
@@ -350,6 +371,108 @@ def _env(network: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
     return env | (extra or {})
 
 
+# Laufende Git-Aufrufe je Ordner, damit ein hängender Abgleich von außen beendet werden kann
+# (:func:`abort_running`). Der Schlüssel ist der aufgelöste Arbeitsordner des Aufrufs.
+_ACTIVE_LOCK = threading.Lock()
+_ACTIVE: dict[Path, dict[subprocess.Popen, int]] = {}  # Prozess → Faden, der ihn gestartet hat
+# Ordner → Fäden, deren Git-Aufruf abgebrochen wurde. Nur sie bekommen den Abbruch zu spüren; er
+# endet mit dem Abgleich (:func:`end_sync`), andere Fäden (Anzeige) lesen weiter.
+_ABORTED: dict[Path, set[int]] = {}
+_HOLDERS: dict[Path, int] = {}  # Ordner → Faden, der gerade dessen Abgleich ausführt
+
+
+def _key(cwd: Path) -> Path:
+    return Path(cwd).resolve()
+
+
+def _aborted_here(cwd: Path) -> bool:
+    with _ACTIVE_LOCK:
+        return threading.get_ident() in _ABORTED.get(_key(cwd), ())
+
+
+def _raise_if_aborted(cwd: Path) -> None:
+    if _aborted_here(cwd):
+        raise GitError(t("Der Abgleich wurde abgebrochen."), "aborted", hint_for("aborted"))
+
+
+def begin_sync(cwd: Path) -> None:
+    """Der aufrufende Faden führt jetzt den Abgleich dieses Ordners aus: Nur seine Git-Aufrufe
+    kann :func:`abort_running` beenden."""
+    with _ACTIVE_LOCK:
+        _HOLDERS[_key(cwd)] = threading.get_ident()
+        _ABORTED.pop(_key(cwd), None)
+
+
+def end_sync(cwd: Path) -> None:
+    """Der Abgleich ist zu Ende: Halter und Abbruchmarke verfallen (Fadennummern werden
+    wiederverwendet und dürfen nichts erben)."""
+    with _ACTIVE_LOCK:
+        _HOLDERS.pop(_key(cwd), None)
+        _ABORTED.pop(_key(cwd), None)
+
+
+def abort_running(cwd: Path) -> bool:
+    """Beendet die laufenden Git-Aufrufe des Abgleichs dieses Ordners (samt Kindprozessen). Sein
+    Faden startet bis :func:`end_sync` keinen neuen Aufruf. ``True``, wenn ein Aufruf lief. Dateien
+    wie ``index.lock`` werden nie entfernt; ein abgebrochenes Git meldet sie als ``locked``."""
+    key = _key(cwd)
+    with _ACTIVE_LOCK:
+        holder = _HOLDERS.get(key)  # Leser anderer Fäden (status, log, diff) bleiben unberührt
+        running = [
+            p for p, ident in _ACTIVE.get(key, {}).items() if ident == holder and p.poll() is None
+        ]
+        if running:
+            _ABORTED.setdefault(key, set()).add(holder)
+    for process in running:
+        proctree.terminate_tree(process, timeout=5)
+    return bool(running)
+
+
+def _run_tracked(
+    command: list[str], cwd: Path, *, timeout: float, env: dict[str, str]
+) -> subprocess.CompletedProcess[str]:
+    """Wie ``subprocess.run`` mit Zeitlimit, aber der Prozess ist für :func:`abort_running`
+    auffindbar und läuft in eigener Prozessgruppe, damit sich der ganze Baum beenden lässt."""
+    key = _key(cwd)
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdin=subprocess.DEVNULL,
+        env=env,
+        **{**proctree.popen_options(), **NO_WINDOW},
+    )
+    ident = threading.get_ident()
+    with _ACTIVE_LOCK:
+        _ACTIVE.setdefault(key, {})[process] = ident
+        late = ident in _ABORTED.get(key, ())  # Abbruch, während der Prozess startete
+    try:
+        if late:
+            proctree.terminate_tree(process, timeout=5)
+        try:
+            out, err = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proctree.terminate_tree(process)
+            # Pipes können von Enkeln (ssh) offen gehalten werden: nicht ewig warten
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                process.communicate(timeout=5)
+            raise
+        return subprocess.CompletedProcess(command, process.returncode, out, err)
+    except BaseException:
+        if process.poll() is None:
+            proctree.terminate_tree(process)
+        raise
+    finally:
+        with _ACTIVE_LOCK:
+            _ACTIVE.get(key, {}).pop(process, None)
+            if not _ACTIVE.get(key):
+                _ACTIVE.pop(key, None)
+
+
 def _git_result(
     cwd: Path,
     *args: str,
@@ -359,20 +482,15 @@ def _git_result(
 ) -> subprocess.CompletedProcess[str]:
     """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
     „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
+    _raise_if_aborted(cwd)
     for attempt in range(_START_ATTEMPTS):
         command = git_command(*args)
         try:
-            result = subprocess.run(
+            result = _run_tracked(
                 command,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                stdin=subprocess.DEVNULL,
-                env=_env(network, env_extra),
+                cwd,
                 timeout=timeout or (NETWORK_TIMEOUT if network else 120),
-                **NO_WINDOW,
+                env=_env(network, env_extra),
             )
         except subprocess.TimeoutExpired as e:
             raise classify("", timeout=True) from e
@@ -381,6 +499,7 @@ def _git_result(
                 continue
             _start_failed(e, command[0])
         _started(command[0])
+        _raise_if_aborted(cwd)  # ein beendetes Git meldet nichts Brauchbares (Code -15)
         return result
     raise AssertionError("unreachable")
 
@@ -555,6 +674,23 @@ _NOT_WRITABLE = re.compile(
 # Server über das Repository sagt (nicht gefunden, Zertifikat), steht vor „offline“: Git hängt
 # an solche Meldungen „Could not read from remote repository“ an und beginnt sie mit „unable to
 # access“.
+_OFFLINE_REST = (
+    r"Could not resolve host|Failed to connect|Connection (timed out|refused|reset)|"
+    r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
+    r"name resolution|ssh: connect to host|Connection closed by"
+)
+_OFFLINE = re.compile(_OFFLINE_REST, re.I)
+_BARE_READ = re.compile(r"Could not read from remote repository", re.I)
+
+
+def _refused_hint() -> str:
+    return t(
+        "Der Server hat die Anfrage nicht erfüllt. Bitte die Adresse (Tippfehler im "
+        "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
+        "„Technische Meldung“."
+    )
+
+
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "identity",
@@ -591,16 +727,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
     ("not_found", _NOT_FOUND),
     ("certificate", _CERTIFICATE),
-    (
-        "offline",
-        re.compile(
-            r"Could not resolve host|Failed to connect|Connection (timed out|refused|reset)|"
-            r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
-            r"name resolution|Could not read from remote repository|ssh: connect to host|"
-            r"Connection closed by",
-            re.I,
-        ),
-    ),
+    ("offline", _OFFLINE),
     (
         "denied",
         re.compile(
@@ -755,6 +882,10 @@ def classify(
                 kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
             hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
             return GitError(message or kind, kind, hint, raw=bool(message))
+    if _BARE_READ.search(message):
+        # Git hängt das auch an, wenn der Server das Repository verweigert; allein belegt es keine
+        # fehlende Verbindung. Alle anderen Muster haben Vorrang.
+        return GitError(message, "error", _refused_hint(), raw=True)
     return GitError(message or t("Unbekannter Git-Fehler"), "error", raw=bool(message))
 
 
@@ -789,6 +920,8 @@ def title_for(kind: str) -> str:
         "certificate": t("Zertifikat des Servers nicht anerkannt"),
         "folder": t("Ordner nicht nutzbar"),
         "nothing_to_share": t("Noch nichts zu teilen"),
+        "sync_busy": t("Ein anderer Abgleich läuft noch"),
+        "aborted": t("Abgleich abgebrochen"),
     }
     return titles.get(kind, t("Git-Fehler"))
 
@@ -798,6 +931,16 @@ def hint_for(kind: str, url: str = "") -> str:
     if kind == "auth":
         return auth_help(url)
     hints = {
+        "sync_busy": t(
+            "Ein Abgleich dieses Datenordners läuft schon sehr lange und hängt vielleicht "
+            "(z. B. wegen einer schlechten Netzwerkverbindung). Warten oder den laufenden "
+            "Abgleich abbrechen: Deine Dateien bleiben lokal gespeichert."
+        ),
+        "aborted": t(
+            "Der Abgleich wurde von Hand beendet. Deine Dateien sind lokal gespeichert; "
+            "bitte noch einmal teilen. Meldet Git danach eine gesperrte Datei, ist der Hinweis "
+            "dazu zu beachten."
+        ),
         "identity": t(
             "Git kennt deinen Namen noch nicht. Bitte in der Seitenleiste Name und "
             "E-Mail-Adresse eintragen."
@@ -1390,13 +1533,11 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
         err.hint += " " + t("Die Adresse wird so nicht gespeichert.")
     elif err.kind == "offline" and _UNREACHABLE.search(message):
         err.hint = _unreachable_hint()
-    elif err.kind == "offline":  # z. B. „Could not read from remote repository“ ohne Grund
+    elif err.kind == "offline":  # Netzwerkfehler ohne belegte Unerreichbarkeit
         err.kind = "error"
-        err.hint = t(
-            "Der Server hat die Anfrage nicht erfüllt. Bitte die Adresse (Tippfehler im "
-            "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
-            "„Technische Meldung“."
-        )
+        err.hint = _refused_hint()
+    elif err.kind == "error" and _BARE_READ.search(message):
+        pass  # classify hat „Could not read from remote repository“ ohne Grund schon erklärt
     elif err.kind not in {"auth", "not_found", "unsafe_directory", "not_writable", "locked"}:
         err.hint = t(
             "Die Verbindung zum Server ist fehlgeschlagen. Die Meldung von Git steht unter "
@@ -1585,6 +1726,12 @@ def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
                 "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
                 "erscheint, dort den letzten Stand wiederherstellen.",
                 files=names,
+            ),
+            hint_md=t(
+                "Betroffen: {files}. Die Markierungen stammen aus einem unvollständigen "
+                "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
+                "erscheint, dort den letzten Stand wiederherstellen.",
+                files=md_plain(names),
             ),
         )
 

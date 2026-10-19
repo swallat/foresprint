@@ -117,6 +117,11 @@ from sprintforecast.githistory import (
     upload_tag,
 )
 from sprintforecast.gitsync import (
+    HOST_FORGEJO,
+    HOST_GENERIC,
+    HOST_GITHUB,
+    HOST_GITLAB,
+    LOCK_WARN_SECONDS,
     SHARE_DIRECT,
     SHARE_MERGE_REQUEST,
     Commit,
@@ -124,24 +129,30 @@ from sprintforecast.gitsync import (
     RemoteInfo,
     SyncResult,
     SyncState,
+    abort_running_sync,
     abort_unfinished,
     auto_merge,
     cached_remote_info,
     check_remote,
     conflict_text_diffs,
+    detected_host,
     git_available,
+    host_kind,
+    host_setting,
     incoming,
     pending_conflicts,
     reattach,
     resolve_conflicts,
     restore_file,
     set_auto_merge,
+    set_host,
     set_identity,
     set_remote,
     set_share_mode,
     share_mode,
     start_background_fetch,
     sync,
+    sync_running_seconds,
 )
 from sprintforecast.gitsync import (
     cached_state as cached_sync_state,
@@ -305,6 +316,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "forecast": ("Forecast", ":material/trending_up:"),
         "analyse": ("Analyse", ":material/insights:"),
         "produkte": ("Produktverteilung", ":material/pie_chart:"),
+        "tickets": ("Tickets", ":material/view_kanban:"),
     },
     "Team verwalten": {
         "sprints": ("Sprintkalender", ":material/calendar_month:"),
@@ -322,7 +334,12 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
 }
 PAGE_INFO = {key: info for group in PAGES.values() for key, info in group.items()}
 # Seiten, die nur erscheinen, wenn das Team den Funktionsbereich nutzt (Team → Einstellungen).
-PAGE_FEATURES = {"vorplanung": "products", "produkte": "products", "produktliste": "products"}
+PAGE_FEATURES = {
+    "vorplanung": "products",
+    "produkte": "products",
+    "produktliste": "products",
+    "tickets": "tickets",
+}
 
 
 def enabled_pages(repo: Repository) -> set[str]:
@@ -2019,7 +2036,7 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                     data.team.key,
                     released.id,
                     PLANNING,
-                    datetime.now().replace(microsecond=0),
+                    datetime.now,
                     lambda: [repo.save_sprint(data.team.key, released)],
                 )
 
@@ -2190,7 +2207,7 @@ def _planning_writer(
         sprint.id,
         PLANNING,
         protocol,
-        now,
+        datetime.now,
         [sprint],
         lambda: [repo.save_sprint(team.key, sprint)],
     )  # Protokoll: nicht in der Meldung
@@ -2437,6 +2454,8 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
             t("Hilfsrechnung für das Planning: wird nicht gespeichert."),
         )
         _capacity_gauge(capacity_usage(r.plan, scratch), unit)
+    if features.tickets and data.tickets:
+        _planning_ticket_hint(data, fc, sprint)
     if features.products and data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
@@ -2493,6 +2512,42 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
     elif features.production and _planning_production(repo, data, fc, sprint, entry):
         return
     st.button(t("Weiter"), on_click=_goto, args=(2,), type="primary")
+
+
+def _planning_ticket_hint(data: TeamData, fc: Forecast, sprint: Sprint) -> None:
+    """Suggestion from the ticket pre-planning: what the tickets take up in the sprint, per
+    product. Only shown; the values are not adopted automatically."""
+    from sprintforecast.preplan import distribute, sprint_sums
+
+    dist = distribute(data, fc.today)
+    sums = {k: v for k, v in sprint_sums(dist, sprint.id, data).items() if v > 0}
+    if not sums:
+        return
+    unit = data.team.unit.value
+    names = {p.id: p.name for p in data.products}
+    total = sum(sums.values())
+    with st.expander(
+        t("Vorschlag aus der Ticket-Vorplanung: {total} {unit}", total=fmt(total), unit=unit),
+        icon=":material/view_kanban:",
+    ):
+        st.caption(
+            t(
+                "Die Tickets, die laut Ticket-Vorplanung in diesem Sprint liegen (Sprint laut "
+                "Ticketsystem, Vormerkungen und Verteilung), summiert je Produkt. Nur ein "
+                "Anhaltspunkt für die Einplanung, nichts wird übernommen."
+            )
+        )
+        if data.team.features.products:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {t("Produkt"): names.get(k, k) or "–", f"{t('Tickets')} ({unit})": fmt(v)}
+                        for k, v in sums.items()
+                    ]
+                ),
+                hide_index=True,
+            )
+        page_link("tickets")
 
 
 def _planning_production(
@@ -2838,7 +2893,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             sprint.id,
             REVIEW,
             protocol,
-            now,
+            datetime.now,
             [sprint],
             lambda: [repo.save_sprint(data.team.key, sprint)],
         )  # Protokoll: nicht in der Meldung
@@ -3414,7 +3469,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 after.id,
                 PREPLANNING,
                 protocol,
-                now,
+                datetime.now,
                 to_save,
                 lambda: save_sprints_together(repo, data.team.key, to_save),
             )  # Protokoll: nicht in der Meldung
@@ -3423,6 +3478,13 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.rerun()  # die Schrittleiste oben zeigt den gespeicherten Stand
     _protocols(repo, data, sprint.id, PREPLANNING)
     page_link("planning", t("Weiter zum Planning"))
+
+
+def page_tickets(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Ticket-Vorplanung (``features.tickets``); der Seitenbaustein wird erst hier geladen."""
+    from sprintforecast.web import tickets_view
+
+    tickets_view.page(repo, data, fc)
 
 
 def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
@@ -3893,7 +3955,7 @@ MAX_IMPORT_ROWS = 200
 def _excel_import_section(repo: Repository, data: TeamData) -> None:
     """Excel workbook from the Excel export: preview of what would change, written on confirm."""
     from sprintforecast.excel import ExcelUnavailable
-    from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+    from sprintforecast.excel_import import apply_import, plan_import, read_workbook_keyed
 
     key = data.team.key
     counter = f"excel-import-{key}-n"
@@ -3912,14 +3974,28 @@ def _excel_import_section(repo: Repository, data: TeamData) -> None:
     )
     if upload is None:
         return
+    # The upload is parsed once per file, not on every rerun (each click reruns the page).
+    parsed_key = f"excel-import-{key}-parsed"
+    cached = st.session_state.get(parsed_key)
     try:
-        plan = plan_import(repo, read_workbook(upload.getvalue(), key), today())
+        if cached is None or cached[0] != upload.file_id:
+            cached = (upload.file_id, *read_workbook_keyed(upload.getvalue(), key))
+            st.session_state[parsed_key] = cached
+        plan = plan_import(repo, cached[1], today())
     except ExcelUnavailable as e:
         st.warning(str(e))
         return
     except DataError as e:
         st.error(str(e))
         return
+    if cached[2] is None:
+        st.warning(
+            t(
+                "Die Mappe nennt kein Team (ältere Excel-Ausgabe); es wird nicht geprüft, ob sie "
+                "zu {team} gehört.",
+                team=repr(key),
+            )
+        )
     if not plan.changes:
         st.info(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
         return
@@ -4523,6 +4599,23 @@ def _share_mode_changed(root: Path) -> None:
         st.session_state["commit_error"] = e
 
 
+def _HOST_LABELS() -> dict[str, str]:
+    return {
+        "": t("Automatisch erkennen"),
+        HOST_GITLAB: "GitLab",
+        HOST_GITHUB: "GitHub",
+        HOST_FORGEJO: "Forgejo / Gitea / Codeberg",
+        HOST_GENERIC: t("Anderer Server"),
+    }
+
+
+def _host_changed(root: Path) -> None:
+    try:
+        set_host(root, st.session_state.get("git-host") or None)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+
+
 def _auto_merge_changed(root: Path) -> None:
     try:
         set_auto_merge(root, bool(st.session_state.get("git-auto-merge")))
@@ -4545,16 +4638,40 @@ def _share_mode_setting(root: Path) -> None:
         args=(root,),
         help=t(
             "„Speichern und teilen“ lädt dann auf einen eigenen Branch hoch und legt dort einen "
-            "Merge Request an oder schreibt ihn fort (GitLab-Push-Optionen, kein Zugriffstoken "
+            "Merge/Pull Request an oder schreibt ihn fort (je nach Server, kein Zugriffstoken "
             "nötig). Der Hauptbranch bleibt unberührt; neue Stände anderer holt „Vom Server "
             "holen“, sobald der Merge Request gemergt ist."
         ),
     )
-    if current:
-        try:
-            st.session_state["git-auto-merge"] = auto_merge(root)
-        except GitError:
-            return
+    if not current:
+        return
+    try:
+        chosen = host_setting(root)
+        host = host_kind(root)
+        detected = detected_host(root)
+        st.session_state["git-auto-merge"] = auto_merge(root)
+    except GitError:
+        return
+    labels = _HOST_LABELS()
+    st.session_state["git-host"] = chosen or ""
+    st.selectbox(
+        t("Art des Servers"),
+        list(labels),
+        format_func=lambda key: (
+            labels[key] if key else t("Automatisch erkennen ({host})", host=labels[detected])
+        ),
+        key="git-host",
+        on_change=_host_changed,
+        args=(root,),
+        help=t(
+            "Bestimmt, wie der Merge/Pull Request entsteht. GitLab: Push-Optionen, auch "
+            "Automerge. Forgejo/Gitea/Codeberg: AGit-Ablauf (Push auf „refs/for“). GitHub: Die "
+            "App hat kein Zugriffstoken; sie lädt den Branch hoch und zeigt den Link, unter "
+            "dem man den Pull Request öffnet. Andere Server: der Branch wird hochgeladen, den "
+            "Merge Request öffnet man dort."
+        ),
+    )
+    if host in (HOST_GITLAB, HOST_GENERIC):
         st.toggle(
             t("Automatisch mergen, wenn die Pipeline grün ist"),
             key="git-auto-merge",
@@ -5214,6 +5331,14 @@ def _sync_clicked(
     _apply_sync_results(slot, root)
 
 
+def _abort_sync_clicked(root: Path) -> None:
+    """Ausdrücklicher Abbruch eines hängenden Abgleichs (nie automatisch)."""
+    if not abort_running_sync(root):
+        st.session_state.setdefault("flash", []).append(
+            ("info", t("Läuft nichts mehr: Der Abgleich war schon beendet."))
+        )
+
+
 def _unrelated_cancel() -> None:
     st.session_state.pop("unrelated", None)
     st.session_state.pop("unrelated-confirm", None)
@@ -5236,7 +5361,7 @@ def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesErro
     """Der Server hat eine fremde Historie: erklären und nur nach ausdrücklicher Bestätigung
     zusammenführen. Vorgabe ist Abbrechen (Knopf gesperrt, bis das Kästchen gesetzt ist)."""
     with st.container(border=True):
-        st.error(f"**{git_title(error.kind)}**  \n{error.hint}")
+        st.error(f"**{git_title(error.kind)}**  \n{error.hint_md}")
         st.markdown(error.render(md_code))  # nennt Server-Adresse und Branch: als Code
         page_link("datenordner", t("Server-Adresse ändern"))  # meist ist die Adresse das Problem
         sure = st.checkbox(t("Ja, beide Historien zusammenführen"), key="unrelated-confirm")
@@ -5329,7 +5454,7 @@ def _show_problem(error: GitError, interactive: bool = True) -> None:
     Hinweis steht die Meldung selbst da; Ausgabe von Git und vom Server (Namen und Zeilen, die
     andere bestimmen) als Code, nie als Markdown. Ohne ``interactive`` keine Eingabefelder
     (Name, E-Mail): Die Felder gibt es nur einmal je Seite."""
-    st.error(f"**{git_title(error.kind)}**  \n{error.hint or error.render(md_code_lines)}")
+    st.error(f"**{git_title(error.kind)}**  \n{error.hint_md or error.render(md_code_lines)}")
     if error.hint and str(error):
         with st.expander(t("Technische Meldung")):
             st.code(str(error), language=None)
@@ -5351,9 +5476,9 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
         done.append(
             t("Auf Branch {branch} hochgeladen", branch=md_code(result.merge_request_branch))
             + (
-                " · " + t("[Merge Request öffnen]({url})", url=result.merge_request_url)
+                " · " + t("[Merge/Pull Request öffnen]({url})", url=result.merge_request_url)
                 if result.merge_request_url
-                else " · " + t("Merge Request auf dem Server prüfen")
+                else " · " + t("Merge/Pull Request auf dem Server öffnen oder prüfen")
             )
         )
     elif result.pushed:
@@ -5367,6 +5492,13 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
             st.info(t("Bis hierhin erledigt:") + " " + " · ".join(done))
         if result.error.kind != "unrelated_histories":  # die Rückfrage steht darunter
             _show_problem(result.error, interactive=latest)
+        if latest and result.error.kind == "sync_busy":
+            st.button(
+                t("Abgleich abbrechen"),
+                key="sync-abort",
+                on_click=_abort_sync_clicked,
+                args=(root,),
+            )
         if latest and result.error.kind == "not_found":  # meist stimmt die Adresse nicht
             page_link("datenordner", t("Server-Adresse ändern"))
         if result.validation:
@@ -5710,6 +5842,13 @@ def _git_panel(repo: Repository) -> None:
             )
         )
         st.button(t("Aktualisieren"), key="git-sync-refresh", icon=":material/refresh:")
+        if (held := sync_running_seconds(repo.root)) is not None and held >= LOCK_WARN_SECONDS:
+            st.button(
+                t("Abgleich abbrechen"),
+                key="sync-abort-running",
+                on_click=_abort_sync_clicked,
+                args=(repo.root,),
+            )
         return
     _background_fetch(str(repo.root))
     try:
@@ -6171,6 +6310,7 @@ TEAM_PAGES = {
     "planning": page_planning,
     "review": page_review,
     "produkte": page_products,
+    "tickets": page_tickets,
     "analyse": page_analysis,
     "personen": page_people,
     "produktliste": page_product_list,
