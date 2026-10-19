@@ -100,6 +100,7 @@ for retrospectives and tests.
 | `sprintforecast analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` | range, focus factor, buffer, completion |
 | `sprintforecast report [TEAM] [--output PATH]` | write `FORECAST.md` |
 | `sprintforecast excel TEAM [--output PATH]` / `excel-import TEAM FILE [--apply]` | Excel export and import |
+| `sprintforecast tickets TEAM [--import FILE [--apply]] [--sprints N]` | ticket pre-planning: import a tracker CSV export, distribute tickets over future sprints, project traffic light, refinement list (feature `tickets`) |
 | `sprintforecast check [--strict]` | validate all data (CI, before a commit) |
 | `sprintforecast settings TEAM` | change team settings |
 | `sprintforecast data-dir [PATH]`, `language [de\|en]`, `shortcut`, `update` | remembered data folder, UI language, desktop launcher, update |

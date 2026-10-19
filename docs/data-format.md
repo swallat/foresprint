@@ -18,7 +18,7 @@ teams/
 
 ## Features
 
-Not every team needs everything. Three features can be switched on independently (Settings page
+Not every team needs everything. Four features can be switched on independently (Settings page
 or the `features` section in `team.yaml`) and are **off for new teams**:
 
 | Feature (`features.<name>`) | Effect when on | When off |
@@ -26,6 +26,7 @@ or the `features` section in `team.yaml`) and are **off for new teams**:
 | `products`: product distribution | product list, PO pre-planning, planning and done per product, default distribution, balance | these pages and inputs are omitted |
 | `po`: PO assignment | PO column per product, totals per PO (useful only together with `products`) | no PO column, no totals per PO |
 | `production`: production access | mark people as authorized, amount with production access in planning/review (per product, or per sprint without product distribution), bottleneck note | no marking, no inputs, no note |
+| `tickets`: ticket pre-planning | tickets from the tracker (CSV export) are assigned to projects and distributed over future sprints: project list with target dates, earmarks, project traffic light, refinement list (`projects.yaml`, `tickets.yaml`, `preplan.yaml`, section `tracker` in `team.yaml`) | the three files are not read, there is no page and no command for it |
 
 Switching a feature off deletes nothing: values already recorded stay in the files and reappear
 as soon as the feature is switched on again. **Older `team.yaml` files without `features`**
@@ -45,6 +46,7 @@ features:                   # optional features, all false for new teams
   products: false           # product distribution
   po: false                 # PO assignment
   production: false         # production access
+  tickets: false            # ticket pre-planning (see below)
 sprint:
   length_days: 14
   numbering: yearly         # 2026.1, 2026.2 ... | sequential: 1, 2, 3 ...
@@ -69,6 +71,8 @@ capacity:
   workweek: auto            # optional: auto (as in the country) | mon-fri | sun-thu | mon-sat
   rounding: 1               # optional: decimals of the displayed capacity and of the capacity
                             # frozen in the review (rounded half up); the forecast is unrounded
+tracker:                    # only with features.tickets, see "Ticket pre-planning" below
+  kind: csv
 ```
 
 `PT` is the German abbreviation for person days (PD) and is the value stored in the files.
@@ -113,6 +117,116 @@ products:
 - {id: portal, name: Customer portal, po: Bea, from: 2026-09-02, to: null}
 - {id: legacy, name: Legacy system, po: Bea, from: null, to: 2026-09-15}
 ```
+
+## Ticket pre-planning (optional)
+
+With `features.tickets` on, three more files per team describe the tickets of the tracker and
+the PO's plan for them (design: [ticket-planning.md](design/ticket-planning.md)). The
+distribution over future sprints is never stored; it is recalculated from these files and the
+forecast on every load.
+
+### `team.yaml`, section `tracker:`
+
+Where the tickets come from and how they are interpreted. All values are examples; field names
+are the **display names** of the tracker (as in the header of a Jira CSV export):
+
+```yaml
+tracker:
+  kind: csv                      # csv (step 1) | jira (later)
+  fields:
+    estimate: Story Points       # column "Custom field (Story Points)" in the export
+    remaining: Remaining Points  # optional; without it the estimate is used
+    epic: Epic Link              # optional; without it the "Parent" column is used
+  planning_uses: remaining       # remaining (if filled, otherwise estimate) | estimate
+  refined_label: Refined         # label that marks a refined ticket
+  refined_also_if:               # counts as refined even without the label (same rule language
+    any:                         # as match: below)
+      - in_sprint: [true]
+      - none:
+          - status: [To Do]
+  project_match_order: [epic, component, label]   # which match wins between two projects
+  dependency_gap: 1              # 1 = a dependent ticket goes at least one sprint later, 0 = same
+  budget_basis: roadmap_share    # roadmap_share (PLAN × roadmap_share) | plan (whole PLAN)
+  rough_factor: 1.5              # factor applied to rough (unrefined) estimates
+  sprint_names:                  # optional: tracker sprint name → sprint id of the tool, only when
+    Sprint 42: '2026.21'         # the names differ
+```
+
+### `projects.yaml`
+
+The PO's projects (not Jira projects): each one has a target date, a product (only with
+`features.products`), a priority and an assignment rule under `match:`. A ticket belongs to the
+project whose rule it fulfils; when two projects match, `project_match_order` decides by the
+source of the match, and two matches via the same source leave the ticket unassigned.
+
+```yaml
+schema: 1
+projects:
+- id: payment-v2
+  name: Payment processing v2
+  product: shop
+  target: 2027-03-31
+  priority: 1                    # lower = more important when target dates are equal
+  budget_basis: plan             # optional, overrides tracker.budget_basis
+  match:                         # short form: the leaves are OR-combined
+    epic: [ABC-100, ABC-101]
+    label: [payment]
+- id: migration
+  name: Database migration
+  target: 2027-01-15
+  match:                         # long form: any (OR), all (AND), none (exclusion), nestable
+    all:
+    - component: [Database]
+    - none:
+      - label: [maintenance, hotfix]
+```
+
+Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `in_sprint` (`true`,
+`false` or a sprint id). Validation rejects empty lists, unknown sources and short and long form
+in the same `match:`.
+
+### `tickets.yaml`
+
+The state of the last import, written by `sprintforecast tickets TEAM --import FILE --apply`;
+not meant to be edited by hand:
+
+```yaml
+schema: 1
+imported: 2026-10-19 14:00:00
+source: export.csv
+tickets:
+- key: ABC-123
+  title: Checkout form
+  status: In Progress
+  issue_type: Story
+  estimate: 5.0
+  remaining: 3.0
+  estimate_source: refined       # refined | rough | none (manual comes from preplan.yaml)
+  in_sprint: '2026.21'           # real sprint according to the tracker, as sprint id
+  rank: 0|i000kf:
+  epic: ABC-100
+  labels: [payment, Refined]
+  components: [Checkout]
+  depends_on: [ABC-120]          # must be finished first ("is blocked by")
+  project: payment-v2
+```
+
+### `preplan.yaml`
+
+Manual earmarks of the PO (ticket → future sprint) and own estimates for tickets without a
+usable estimate; each ticket at most once per list:
+
+```yaml
+schema: 1
+earmarks:
+- {ticket: ABC-130, sprint: '2026.23', note: agreed with marketing}
+estimates:
+- {ticket: ABC-140, estimate: 8, note: rough guess until refinement}
+```
+
+An earmark is dropped by the next import when the tracker puts the ticket into a current or
+future sprint, or when the ticket is done; it stays (with a warning) when the ticket is missing
+from the import.
 
 ## `sprints/<id>.yaml`
 
