@@ -483,7 +483,14 @@ def _key_of(node: yaml.Node, as_text: bool) -> tuple[str, Any]:
         value = SafeConstructor().construct_object(node, deep=True)
     except Exception:
         value = node.value
-    return str(value), (str(value) if as_text else (type(value).__name__, str(value)))
+    if as_text:
+        return str(value), str(value)
+    try:
+        hash(value)
+    except TypeError:  # nicht hashbar: der Lader würde den Schlüssel ohnehin ablehnen
+        return str(value), ("node", id(node))
+    # Wie der Lader: Python-Gleichheit (1 == 1.0 == True), aber nicht 1 == "1"
+    return str(value), value
 
 
 def _position(found: list[tuple[int, int]]) -> tuple[str, str]:
