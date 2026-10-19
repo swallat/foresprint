@@ -124,6 +124,20 @@ def _stamp(value: Any) -> datetime | None:
     return value.replace(microsecond=0) if isinstance(value, datetime) else None
 
 
+def _order(stamp: datetime) -> datetime:
+    """Zeitpunkt als Instant: mit Zeitzone nach UTC gerechnet und ohne Zone, damit sich
+    verschiedene Schreibweisen (``+00:00`` und ``+01:00``) und Zeitpunkte ohne Zone vergleichen
+    und sortieren lassen."""
+    if stamp.tzinfo is None:
+        return stamp
+    return stamp.astimezone(UTC).replace(tzinfo=None)
+
+
+def _key(stamp: datetime) -> str:
+    """Schlüssel eines Zeitpunkts: der Instant, nicht die Schreibweise."""
+    return _order(stamp).isoformat()
+
+
 def _by_stamp(items: Any) -> dict[str, tuple[datetime, dict]] | None:
     """Prognosen als Abbildung Zeitpunkt (normiert) → (Zeitpunkt, Eintrag); ``None``, wenn ein
     Eintrag keinen lesbaren ``at`` hat oder ein ``at`` doppelt vorkommt."""
@@ -132,40 +146,36 @@ def _by_stamp(items: Any) -> dict[str, tuple[datetime, dict]] | None:
     out: dict[str, tuple[datetime, dict]] = {}
     for item in items:
         stamp = _stamp(item.get("at")) if isinstance(item, dict) else None
-        if stamp is None or stamp.isoformat() in out:
+        if stamp is None or _key(stamp) in out:
             return None
-        out[stamp.isoformat()] = (stamp, item)
+        out[_key(stamp)] = (stamp, item)
     return out
-
-
-def _order(stamp: datetime) -> datetime:
-    """Sortierschlüssel; Zeitpunkte mit Zeitzone werden nach UTC gerechnet, damit sie sich mit
-    solchen ohne vergleichen lassen."""
-    if stamp.tzinfo is None:
-        return stamp
-    return stamp.astimezone(UTC).replace(tzinfo=None)
 
 
 def _merge_prognoses(base, ours, theirs, path, choices, conflicts) -> list | None:
     """Vereinigt Prognosen über ihren Zeitpunkt ``at`` (Einträge tragen keine ``id``): Beide
     Seiten dürfen anhängen, ohne dass eine verloren geht. Ein Eintrag gilt als Ganzes; nur bei
     gleichem ``at`` mit verschiedenem Inhalt entsteht ein Konflikt (Pfad ``…[<at>]``). Das
-    Ergebnis ist nach ``at`` aufsteigend sortiert. ``None`` = nicht anwendbar (kein ``at``,
-    doppeltes ``at``, keine Liste): dann gilt die Liste wie sonst als ein Wert."""
+    Ergebnis ist nach ``at`` aufsteigend sortiert. Eine Basis ohne Prognosen (fehlender oder
+    leerer Schlüssel ``prognoses:``, also ``None``) zählt als leere Liste. ``None`` = nicht
+    anwendbar (kein ``at``, doppeltes ``at``, keine Liste): dann gilt die Liste wie sonst als
+    ein Wert."""
     if not isinstance(ours, list) or not isinstance(theirs, list):
         return None
-    if not (base is MISSING or isinstance(base, list)):
+    empty_base = base is MISSING or base is None
+    if not (empty_base or isinstance(base, list)):
         return None
-    keyed_b = {} if base is MISSING else _by_stamp(base)
+    keyed_b = {} if empty_base else _by_stamp(base)
     keyed_o, keyed_t = _by_stamp(ours), _by_stamp(theirs)
     if keyed_b is None or keyed_o is None or keyed_t is None:
         return None
 
     def content(entry: tuple[datetime, dict] | None) -> Any:
-        # ``at`` normiert, damit datetime und Text mit gleichem Zeitpunkt gleich sind
+        # ``at`` normiert, damit datetime und Text sowie verschiedene Zeitzonen-Schreibweisen
+        # mit gleichem Zeitpunkt gleich sind
         if entry is None:
             return MISSING
-        return {**entry[1], "at": entry[0].isoformat()}
+        return {**entry[1], "at": _key(entry[0])}
 
     merged: list[tuple[datetime, dict]] = []
     for key in [*keyed_o, *(k for k in keyed_t if k not in keyed_o)]:
