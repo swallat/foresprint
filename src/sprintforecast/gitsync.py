@@ -10,6 +10,7 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 
 from __future__ import annotations
 
+import difflib
 import hashlib
 import io
 import os
@@ -306,6 +307,52 @@ def _stages(root: Path) -> dict[str, set[int]]:
 
 def _stage_text(root: Path, stage: int, file: str) -> str:
     return _git(root, "show", f":{stage}:{file}", strip=False)
+
+
+# Obergrenzen der Textansicht (Zeilen und Zeichen je Zeile), damit eine große Datei die Seite
+# nicht sprengt.
+MAX_DIFF_LINES = 300
+MAX_DIFF_COLUMNS = 400
+
+
+def unified_diff(old: str, new: str, old_name: str, new_name: str) -> str:
+    """Zeilenweiser Unterschied (``diff -u``) zweier Texte, gekürzt; leer, wenn gleich."""
+    lines = difflib.unified_diff(
+        old.splitlines(), new.splitlines(), old_name, new_name, lineterm="", n=2
+    )
+    kept = [line[:MAX_DIFF_COLUMNS] for line in lines]
+    if len(kept) > MAX_DIFF_LINES:
+        kept = [*kept[:MAX_DIFF_LINES], f"… (+{len(kept) - MAX_DIFF_LINES})"]
+    return "\n".join(kept)
+
+
+def conflict_text_diffs(path: Path, file: str) -> tuple[str, str]:
+    """Wie sich die Datei bei einem offenen Zusammenführen auf beiden Seiten gegenüber dem
+    gemeinsamen Stand geändert hat, als Text (``diff -u``): (meine Seite, andere Seite). Leer,
+    wenn es den Stand nicht gibt, die Datei zu groß ist oder kein Text."""
+    root = _root(path)
+    stages = _stages(root).get(file, set())
+
+    def text(stage: int) -> str | None:
+        if stage not in stages:
+            return None
+        size = _git(root, "cat-file", "-s", f":{stage}:{file}", check=False)
+        if not size.isdigit() or int(size) > 1_000_000:
+            raise ValueError(file)
+        return gitmod._git_bytes(root, "show", f":{stage}:{file}").decode("utf-8")
+
+    try:
+        base, mine, theirs = text(1), text(2), text(3)
+    except ValueError, GitError:
+        return "", ""
+    shown = base or ""
+
+    def one(side: str | None, label: str) -> str:
+        return unified_diff(
+            shown, side or "", f"{file} ({t('gemeinsamer Stand')})", f"{file} ({label})"
+        )
+
+    return one(mine, t("meine Änderung")), one(theirs, t("andere Änderung"))
 
 
 def _analyse(
