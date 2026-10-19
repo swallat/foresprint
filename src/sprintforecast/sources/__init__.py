@@ -20,6 +20,25 @@ if TYPE_CHECKING:  # pragma: no cover
     from sprintforecast.model import TrackerSettings
 
 
+# The label that marks a ticket as earmarked for a sprint (spec section 6.6).
+LABEL_PREFIX = "planned_for_"
+
+
+def planned_label(sprint_id: str) -> str:
+    return LABEL_PREFIX + sprint_id
+
+
+def label_sprints(labels: list[str]) -> list[str]:
+    """Sprint ids of the ``planned_for_<sprint_id>`` labels, in order, without duplicates."""
+    return list(
+        dict.fromkeys(
+            x.removeprefix(LABEL_PREFIX)
+            for x in labels
+            if x.startswith(LABEL_PREFIX) and len(x) > len(LABEL_PREFIX)
+        )
+    )
+
+
 class SourceError(DataError):
     """A source cannot be read (file missing, column missing, value not a number …)."""
 
@@ -81,4 +100,12 @@ def open_source(
     raise SourceError(t("Unbekannte Ticketquelle „{kind}“ (tracker.kind)", kind=settings.kind))
 
 
-__all__ = ["RawTicket", "SourceError", "TicketSource", "open_source"]
+__all__ = [
+    "LABEL_PREFIX",
+    "RawTicket",
+    "SourceError",
+    "TicketSource",
+    "label_sprints",
+    "open_source",
+    "planned_label",
+]

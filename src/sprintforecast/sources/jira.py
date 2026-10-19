@@ -2,8 +2,9 @@
 """Jira Data Center as a ticket source (docs/design/ticket-planning.md, section 7.1).
 
 REST API v2, authenticated by a personal access token (``Authorization: Bearer``). Only reads
-happen: every request goes through :meth:`JiraSource._request`, the one function that talks to
-the network, and that function refuses anything but ``GET``. The token and the content of
+happen, with one exception (step 5): every request goes through :meth:`JiraSource._request`, the
+one function that talks to the network. It refuses anything but ``GET`` and the single ``PUT``
+that adds or removes a ``planned_for_<sprint_id>`` label of one ticket. The token and the content of
 responses never end up in messages, exceptions or logs; error texts say only what went wrong
 and what to do.
 
@@ -25,7 +26,7 @@ from urllib.parse import urlsplit
 from sprintforecast import __version__
 from sprintforecast.i18n import t
 from sprintforecast.model import TrackerSettings, base_url_problem
-from sprintforecast.sources import RawTicket, SourceError
+from sprintforecast.sources import LABEL_PREFIX, RawTicket, SourceError
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, httpx stays an optional import
     import httpx
@@ -36,8 +37,10 @@ USER_AGENT = f"sprintforecast/{__version__} (read-only Jira import)"
 TIMEOUT = 30.0  # seconds, per request
 PAGE_SIZE = 100
 
-# The only HTTP method this module uses (spec section 7.1; step 5 adds one PUT for the label).
-ALLOWED_METHODS = frozenset({"GET"})
+# The only HTTP methods this module uses (spec section 7.1): reads, and the one label PUT.
+ALLOWED_METHODS = frozenset({"GET", "PUT"})
+# The one thing PUT may do: change labels of one ticket (``_is_label_write`` checks the body).
+ISSUE_PATH = re.compile(r"/rest/api/2/issue/[A-Za-z][A-Za-z0-9_]*-[0-9]+")
 
 # The fields Jira Software adds are found by their schema, not by their (localized) name.
 SPRINT_SCHEMA = "com.pyxis.greenhopper.jira:gh-sprint"
@@ -63,6 +66,29 @@ SEARCH_PATH = "/rest/api/2/search"
 # The command that installs the extra: sprintforecast is not on PyPI, so it needs its address.
 INSTALL_URL = "https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
 INSTALL_COMMAND = f'uv tool install --force "sprintforecast[web,excel,jira] @ {INSTALL_URL}"'
+
+
+def _is_label_write(path: str, body: Any) -> bool:
+    """Is this PUT exactly a change of ``planned_for_*`` labels of one ticket, nothing else?"""
+    if not ISSUE_PATH.fullmatch(path) or not isinstance(body, dict) or set(body) != {"update"}:
+        return False
+    update = body["update"]
+    if not isinstance(update, dict) or set(update) != {"labels"}:
+        return False
+    operations = update["labels"]
+    if not isinstance(operations, list) or not operations:
+        return False
+    for op in operations:
+        if not isinstance(op, dict) or len(op) != 1:
+            return False
+        ((verb, label),) = op.items()
+        if verb not in ("add", "remove") or not isinstance(label, str):
+            return False
+        if not label.startswith(LABEL_PREFIX) or len(label) == len(LABEL_PREFIX):
+            return False
+        if any(c.isspace() for c in label):
+            return False
+    return True
 
 
 # --- httpx, token ----------------------------------------------------------------------------
@@ -403,11 +429,22 @@ class JiraSource:
 
     # --- The one function that talks to the network ---
 
-    def _request(self, method: str, path: str, params: dict[str, Any] | None = None) -> Any:
-        """Sends one request and returns the decoded JSON. Only ``GET`` is allowed; every
-        failure becomes a SourceError whose text contains neither the token nor the response."""
+    def _request(
+        self,
+        method: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+        body: dict[str, Any] | None = None,
+    ) -> Any:
+        """Sends one request and returns the decoded JSON. Only ``GET`` and the label ``PUT``
+        are allowed; every failure becomes a SourceError whose text contains neither the token
+        nor the response."""
         if method not in ALLOWED_METHODS:
             raise ValueError(f"HTTP method {method!r} is not allowed: this source only reads")
+        if (method == "PUT") != (body is not None) or (
+            method == "PUT" and not _is_label_write(path, body)
+        ):
+            raise ValueError("Only a label change of one ticket may be written")
         httpx = self._httpx
         failure: str | None = None
         response = None
@@ -421,7 +458,9 @@ class JiraSource:
                 )
         if failure is None and self._client is not None:
             try:
-                response = self._client.request(method, self.base_url + path, params=params)
+                response = self._client.request(
+                    method, self.base_url + path, params=params, json=body
+                )
             except httpx.TimeoutException:
                 failure = self._timeout_text()
             except httpx.InvalidURL, httpx.UnsupportedProtocol:
@@ -440,7 +479,26 @@ class JiraSource:
             # Raised outside the except blocks: the transport error (and the request headers
             # with the token that it may reference) is neither __cause__ nor __context__.
             raise SourceError(failure or "")
+        if method == "PUT":
+            return self._decode_write(response)
         return self._decode(response, path)
+
+    def _decode_write(self, response: httpx.Response) -> None:
+        """The answer to the label PUT: 204 is success; 403/404 get texts that fit a write."""
+        if response.status_code == 204:
+            return None
+        if response.status_code == 403:
+            raise SourceError(
+                t(
+                    "Jira verweigert das Schreiben (403): Das Konto darf an diesem Ticket keine "
+                    "Labels ändern."
+                )
+            )
+        if response.status_code == 404:
+            raise SourceError(
+                t("Das Ticket existiert nicht oder ist für das Konto nicht sichtbar (404)")
+            )
+        return self._decode(response)
 
     def _new_client(self) -> httpx.Client:
         return self._httpx.Client(
@@ -592,6 +650,14 @@ class JiraSource:
         return t("Jira weist die Abfrage ab (400): {detail}", detail=detail)
 
     # --- Operations ---
+
+    def set_labels(self, key: str, add: list[str], remove: list[str]) -> None:
+        """Adds and removes ``planned_for_*`` labels of one ticket (PUT /rest/api/2/issue/KEY).
+        The update operations touch only the named labels, never the other labels of the
+        ticket."""
+        operations: list[dict[str, str]] = [{"remove": x} for x in remove]
+        operations += [{"add": x} for x in add]
+        self._request("PUT", f"/rest/api/2/issue/{key}", body={"update": {"labels": operations}})
 
     def test_connection(self) -> str:
         """Display name of the account the token belongs to (GET /rest/api/2/myself)."""
