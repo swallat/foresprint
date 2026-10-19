@@ -836,7 +836,7 @@ def test_product_tables_show_empty_cells_as_dash_not_none(app: AppTest):
     goto(app, "vorplanung")
     editors = [d for d in product_frames() if "_id" in d.value.columns]
     assert [d.proto.placeholder for d in editors] == ["–"]
-    assert editors[0].value["Planning"].isna().all()  # nicht erfasst ist nicht 0
+    assert "Planning" not in editors[0].value.columns  # erst im Planning
 
     planning_step(app, "2026.22", 1)
     editors = [d for d in product_frames() if "_id" in d.value.columns]
@@ -850,6 +850,25 @@ def test_product_tables_show_empty_cells_as_dash_not_none(app: AppTest):
     goto(app, "produkte")
     tables = [d for d in product_frames() if "Standard" in d.value.columns]
     assert tables and tables[0].proto.placeholder == "–"
+
+
+def test_product_editor_shows_only_columns_of_the_phase(app: AppTest):
+    """Jeder Termin zeigt nur Spalten, die dort eingegeben oder entschieden werden."""
+
+    def editor_columns() -> list[str]:
+        [editor] = [d for d in app.dataframe if {"_id", "Produkt"} <= set(d.value.columns)]
+        return [c for c in editor.value.columns if c not in ("_id", "Produkt", "PO")]
+
+    goto(app, "vorplanung")
+    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    assert editor_columns() == ["Standard", "PO-Vorplanung"]
+
+    planning_step(app, "2026.22", 1)
+    assert editor_columns() == ["Standard", "PO-Vorplanung", "Planning"]
+
+    goto(app, "review")
+    app.selectbox(key="review-sprint").set_value("2026.21").run()
+    assert editor_columns() == ["Planning", "Erledigt"]
 
 
 def test_absences_matrix_leaves_cells_of_inactive_people_empty(app: AppTest):
