@@ -182,6 +182,41 @@ def test_leerer_wert_ueber_anker_und_merge_wird_unter_jedem_pfad_gemeldet():
     assert "people[1].memberships[0].fte" in found
 
 
+MEMBER = "people:\n- id: a\n  memberships:\n  - {from: 2025-01-01, fte: 1}\n"
+BASE = "x: &x {fte: null}\ny: &y {fte: 0.5}\n"
+
+
+def member(spec: str) -> list[str]:
+    """Meldungen für ein Mitglied, das ``spec`` (z. B. ``<<: *x``) in seiner Zugehörigkeit hat."""
+    return messages(BASE + f"people:\n- id: a\n  memberships:\n  - {{from: 2025-01-01, {spec}}}\n")
+
+
+def test_geerbter_leerwert_wird_vom_ausdruecklichen_wert_ersetzt():
+    assert member("<<: *x, fte: 1") == []
+
+
+def test_geerbter_leerwert_wird_unter_dem_pfad_des_empfaengers_gemeldet():
+    [found] = member("<<: *x")
+    assert "people[0].memberships[0].fte" in found
+
+
+def test_merge_liste_die_erste_quelle_gewinnt():
+    assert member("<<: [*y, *x]") == []  # fte kommt aus y (0.5), der Leerwert in x entfällt
+    [found] = member("<<: [*x, *y]")  # fte kommt aus x: leer
+    assert "memberships[0].fte" in found
+
+
+def test_ueberschriebener_geerbter_schluessel_ist_kein_duplikat():
+    assert member("<<: *x, fte: 1") == [] and member("<<: [*x, *y], fte: 2") == []
+
+
+def test_geerbt_ueber_zwei_stufen():
+    text = "a: &a {fte: }\nb: &b {<<: *a}\nc: &c {<<: *b, fte: 1}\n"
+    assert messages(text) == []  # nicht unter people: keine Zahlenstelle, aber kein Absturz
+    nested = "a: &a {fte: }\nb: &b {<<: *a}\n" + MEMBER.replace("fte: 1", "<<: *b")
+    assert any("memberships[0].fte" in m for m in messages(nested))
+
+
 def test_rekursiver_anker_bricht_nicht_ab():
     assert messages("a: &x [*x, 1]\nb: &y {k: *y}\n") == []
 

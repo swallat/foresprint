@@ -493,6 +493,31 @@ def _key_of(node: yaml.Node, as_text: bool) -> tuple[str, Any]:
     return str(value), value
 
 
+def _inherited(
+    node: yaml.MappingNode, as_text: bool, taken: set[Any], visiting: frozenset[int]
+) -> list[tuple[yaml.Node, yaml.Node]]:
+    """Einträge, die ``node`` über ``<<`` erbt und die der Lader behält (Regeln von PyYAML:
+    ausdrückliche Schlüssel gewinnen immer, bei mehreren Quellen die frühere, in einer Quelle
+    deren eigene Schlüssel vor den von ihr geerbten). ``taken`` sind die schon vergebenen
+    Schlüssel."""
+    result: list[tuple[yaml.Node, yaml.Node]] = []
+    for key_node, value_node in node.value:
+        if key_node.tag != _MERGE_TAG:
+            continue
+        sources = value_node.value if isinstance(value_node, yaml.SequenceNode) else [value_node]
+        for source in sources:
+            if not isinstance(source, yaml.MappingNode) or id(source) in visiting:
+                continue
+            own = [
+                (kn, vn, _key_of(kn, as_text)[1]) for kn, vn in source.value if kn.tag != _MERGE_TAG
+            ]
+            fresh = [(kn, vn, c) for kn, vn, c in own if c not in taken]
+            taken.update(c for _, _, c in fresh)
+            result += [(kn, vn) for kn, vn, _ in fresh]
+            result += _inherited(source, as_text, taken, visiting | {id(source)})
+    return result
+
+
 def _position(found: list[tuple[int, int]]) -> tuple[str, str]:
     """Fundstellen (Zeile, Spalte) als Text; stehen alle in einer Zeile (Flow-Schreibweise
     ``{a: 1, a: 2}``), mit Spalten."""
@@ -576,16 +601,18 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
             found: dict[Any, list[tuple[int, int]]] = {}
             shown: dict[Any, str] = {}
             for key_node, value_node in node.value:
-                if key_node.tag == _MERGE_TAG:  # ``<<: *a`` oder ``<<: [*a, *b]``: gleicher Pfad
-                    merged = value_node.value if isinstance(value_node, yaml.SequenceNode) else []
-                    for item in merged or [value_node]:
-                        children.append((item, cell, True))
+                if key_node.tag == _MERGE_TAG:  # geerbte Einträge: siehe _inherited
                     continue
                 text_of_key, compare = _key_of(key_node, as_text)
                 mark = key_node.start_mark
                 found.setdefault(compare, []).append((mark.line + 1, mark.column + 1))
                 shown[compare] = text_of_key
                 children.append((value_node, (cell, text_of_key), True))
+            # Geerbte Einträge (``<<``) zählen nur, wo kein ausdrücklicher Eintrag sie ersetzt.
+            for key_node, value_node in _inherited(
+                node, as_text, set(found), frozenset({id(node)})
+            ):
+                children.append((value_node, (cell, _key_of(key_node, as_text)[0]), True))
             for compare, places in found.items():
                 if len(places) > 1:
                     where = _format_path((*path, shown[compare]))
