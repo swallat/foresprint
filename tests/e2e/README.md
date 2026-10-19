@@ -1,56 +1,54 @@
-# Browsertests (Playwright)
+# Browser tests (Playwright)
 
-Diese Tests starten die Weboberfläche wirklich (`sprintforecast web --no-browser`, eigener Port,
-Kopie der Demo-Daten, fester Stichtag 2026-10-15, eigener Einstellungsordner) und bedienen sie in
-einem Browser. Sie prüfen, was `AppTest` nicht sieht: gemessene Höhen und Breiten, Text im
-Datenraster, echtes Klicken und Tippen, zwei Apps gegen ein gemeinsames Git-Repository.
+These tests really start the web UI (`sprintforecast web --no-browser`, own port, copy of the
+demo data, fixed as-of date 2026-10-15, own settings folder) and drive it in a browser. They
+check what `AppTest` cannot see: measured heights and widths, text in the data grid, real
+clicking and typing, two apps against one shared Git repository.
 
-Die normale Suite (`uv run pytest`) führt sie **nicht** aus (Marker `e2e`, in `pyproject.toml`
-ausgeschlossen). Aufruf:
+The normal suite (`uv run pytest`) does **not** run them (marker `e2e`, excluded in
+`pyproject.toml`). To run them:
 
 ```bash
 uv sync --all-extras
-uv run playwright install chromium          # einmalig; unter Linux zusätzlich --with-deps
-uv run pytest -m e2e                        # alle Browsertests
+uv run playwright install chromium          # once; on Linux add --with-deps
+uv run pytest -m e2e                        # all browser tests
 uv run pytest -m e2e tests/e2e/test_stepbar.py -k 1400
 ```
 
-Umgebungsvariablen:
+Environment variables:
 
-| Variable | Wirkung |
+| Variable | Effect |
 |---|---|
-| `E2E_CHANNEL` | einen installierten Browser nehmen, z. B. `msedge` oder `chrome` (Windows) |
-| `E2E_EXECUTABLE` | Pfad zu einem Chromium (statt des von Playwright geladenen) |
-| `E2E_HEADED=1` | sichtbares Fenster, zum Zusehen |
-| `E2E_ARTIFACTS` | Ordner für Bilder und Server-Protokolle fehlgeschlagener Tests (Standard `test-results/e2e`) |
+| `E2E_CHANNEL` | use an installed browser, e.g. `msedge` or `chrome` (Windows) |
+| `E2E_EXECUTABLE` | path to a Chromium (instead of the one downloaded by Playwright) |
+| `E2E_HEADED=1` | visible window, to watch |
+| `E2E_ARTIFACTS` | folder for screenshots and server logs of failed tests (default `test-results/e2e`) |
 
-## Aufbau
+## Layout
 
-- `harness.py`: App-Instanzen starten/beenden (Prozessbaum wird sauber beendet), Git-Repositories
-  vorbereiten, Hilfen zum Auslesen von Streamlit-Seiten (Datenraster über ihre barrierefreie
-  Tabelle, Eingabe in das Raster per Tastatur, „Speichern und teilen“).
-- `conftest.py`: Browser, Seiten, Apps (`app` und `app_without_products` nur zum Lesen,
-  `make_app` und `clones` je Test).
-- Tests: `test_smoke` (jede Seite ohne Fehler, auch Team ohne Produkte), `test_start`,
-  `test_sprint_choice`, `test_language`, `test_stepbar` (gleiche Höhe bei jeder Breite),
-  `test_tables` (keine „None“-Zellen, nichts abgeschnitten), `test_server_mask`,
-  `test_two_clones` (Alice und Bob: Änderungen, Wertkonflikt, Neustart im Konflikt, Tags).
+- `harness.py`: start/stop app instances (the process tree is terminated cleanly), prepare Git
+  repositories, helpers for reading Streamlit pages (data grids through their accessible
+  table, keyboard input into the grid, "Save and share").
+- `conftest.py`: browser, pages, apps (`app` and `app_without_products` read-only, `make_app`
+  and `clones` per test).
+- Tests: `test_smoke` (every page without errors, also a team without products), `test_start`,
+  `test_sprint_choice`, `test_language`, `test_stepbar` (same height at every width),
+  `test_tables` (no "None" cells, nothing cut off), `test_server_mask`, `test_two_clones`
+  (Alice and Bob: changes, value conflict, restart in conflict, tags).
 
-## Fehlersuche
+## Troubleshooting
 
-Schlägt ein Test fehl, liegen im Ordner `test-results/e2e/` (in der CI als Artefakt `e2e-bilder`)
-ein Bild je geöffneter Seite (`<Test>.png`, bei mehreren `<Test>-1.png` …) und das Protokoll
-jeder beteiligten App (`<Test>-<App>.log`). Beides wird gesichert, solange Seiten und Server noch
-laufen. Eine App, die nicht startet, wird sofort wieder beendet; ihr Protokoll steht in der
-Fehlermeldung.
+If a test fails, the folder `test-results/e2e/` (in CI the artifact `e2e-screenshots`) holds a
+screenshot per opened page (`<Test>.png`, with several `<Test>-1.png` …) and the log of every
+app involved (`<Test>-<App>.log`). Both are captured while pages and servers are still running.
+An app that does not start is stopped again immediately; its log is in the error message.
 
-## Nicht flackern
+## No flakiness
 
-Keine festen Wartezeiten. Gewartet wird auf Zustände: `expect(...)` mit automatischem Warten
-(Zeitlimit 20 s, siehe `conftest.py`), die Gesundheitsprüfung des Servers und – nach Eingaben –
-das Ergebnis im Seiteninhalt. `settle()` gilt nur nach dem Laden einer Seite; nach einem Klick
-sieht es womöglich noch den Zustand *vor* dem Lauf (siehe `rerun_finished`). Streamlit lädt
-Datenraster und Diagramme erst nach dem Ende des Skripts nach: darauf wartet
-`wait_until_stable`.
+No fixed waits. We wait for states: `expect(...)` with automatic waiting (time limit 20 s, see
+`conftest.py`), the server's health check and, after input, the result in the page content.
+`settle()` is only valid after loading a page; after a click it may still see the state
+*before* the run (see `rerun_finished`). Streamlit loads data grids and charts only after the
+script has finished: `wait_until_stable` waits for that.
 
-Nicht getestet wird bewusst: zwei Tabs oder Nutzer im selben Checkout (kommt in der Praxis nie vor).
+Deliberately not tested: two tabs or users in the same checkout (never happens in practice).

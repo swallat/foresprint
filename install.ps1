@@ -1,12 +1,12 @@
-# Installiert sprintforecast (inkl. Weboberfläche) unter Windows.
+# Installs sprintforecast (including the web UI) on Windows.
 #
 #   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.ps1 | iex"
 #
-# Erneut ausführen = aktualisieren. Das Skript fragt nach Plugins und merkt sich die Auswahl.
-# Ohne Rückfrage (vorher setzen):
-#   $env:SPRINTFORECAST_WITH = "besitzer/repo; name @ git+https://…"   Plugins ("" = keine)
-#   $env:SPRINTFORECAST_REF = "…"                                      Branch oder Tag statt main
-#   $env:SPRINTFORECAST_NO_SHORTCUT = "1"                              keinen Starter anlegen
+# Running it again updates. The script asks for plugins and remembers the choice.
+# Without prompting (set beforehand):
+#   $env:SPRINTFORECAST_WITH = "owner/repo; name @ git+https://…"   plugins ("" = none)
+#   $env:SPRINTFORECAST_REF = "…"                                      branch or tag instead of main
+#   $env:SPRINTFORECAST_NO_SHORTCUT = "1"                              do not create a launcher
 $ErrorActionPreference = "Stop"
 
 $ref = if ($env:SPRINTFORECAST_REF) { $env:SPRINTFORECAST_REF } else { "main" }
@@ -15,13 +15,13 @@ $core = "sprintforecast[web] @ https://github.com/swallat/sprint-forecast/archiv
 $pluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"
 
 function Expand-Plugin([string]$item) {
-    # „besitzer/repo“ → git+https://github.com/besitzer/repo; alles andere unverändert
+    # "owner/repo" -> git+https://github.com/owner/repo; everything else unchanged
     if ($item -match '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') { return "git+https://github.com/$item" }
     return $item
 }
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    Write-Host "==> uv wird installiert (https://docs.astral.sh/uv/)"
+    Write-Host "==> installing uv (https://docs.astral.sh/uv/)"
     Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
     $env:Path = "$HOME\.local\bin;$env:Path"
 }
@@ -31,9 +31,9 @@ if (Test-Path Env:SPRINTFORECAST_WITH) {
     $plugins = $env:SPRINTFORECAST_WITH
 } elseif ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
     Write-Host ""
-    Write-Host "Plugins installieren? Mehrere mit ';' trennen, z. B.:"
-    Write-Host "  besitzer/repo   oder   name @ git+https://…"
-    $prompt = if ($saved) { "Plugins [Enter = beibehalten: $saved | - = keine]" } else { "Plugins [Enter = keine]" }
+    Write-Host "Install plugins? Separate several with ';', e.g.:"
+    Write-Host "  owner/repo   or   name @ git+https://…"
+    $prompt = if ($saved) { "Plugins [Enter = keep: $saved | - = none]" } else { "Plugins [Enter = none]" }
     $answer = (Read-Host $prompt).Trim()
     $plugins = switch ($answer) { "" { $saved } "-" { "" } default { $answer } }
 } else {
@@ -44,23 +44,23 @@ $items = @($plugins.Split(";") | ForEach-Object { $_.Trim() } | Where-Object { $
 $arguments = @("tool", "install", "--force", "--reinstall", "--python", "3.14")
 if ($items.Count -gt 0) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        throw "Für Plugins aus Git-Repositories wird Git benötigt: winget install Git.Git"
+        throw "Plugins from Git repositories require Git: winget install Git.Git"
     }
-    Write-Host "==> mit Plugins: $($items -join '; ')"
+    Write-Host "==> with plugins: $($items -join '; ')"
     foreach ($item in $items) { $arguments += @("--with", (Expand-Plugin $item)) }
-    # Die Quelle des Kerns kommt aus dem Plugin ([tool.uv.sources]) – sonst „conflicting URLs“.
+    # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
     $arguments += "sprintforecast[web]"
 } else {
     $arguments += $core
 }
 
-Write-Host "==> sprintforecast wird installiert (Python 3.14 wird bei Bedarf geladen)"
+Write-Host "==> installing sprintforecast (Python 3.14 is downloaded if needed)"
 & uv @arguments
-if ($LASTEXITCODE -ne 0) { throw "Installation fehlgeschlagen (Exit-Code $LASTEXITCODE)" }
-# Kein Umleiten von stderr: in Windows PowerShell 5.1 würde das mit "Stop" zum Abbruch führen.
+if ($LASTEXITCODE -ne 0) { throw "Installation failed (exit code $LASTEXITCODE)" }
+# No stderr redirection: in Windows PowerShell 5.1 that would abort under "Stop".
 try { & uv tool update-shell | Out-Null } catch { }
 
-# Auswahl für das nächste Aktualisieren merken
+# Remember the choice for the next update
 if ($items.Count -gt 0) {
     New-Item -ItemType Directory -Force -Path (Split-Path $pluginFile) | Out-Null
     Set-Content -Path $pluginFile -Value ($items -join "; ") -Encoding UTF8
@@ -69,11 +69,11 @@ if ($items.Count -gt 0) {
 }
 
 $bin = (& uv tool dir --bin).Trim()
-# Starter zum Doppelklicken (abschaltbar mit $env:SPRINTFORECAST_NO_SHORTCUT = "1")
+# Double-click launcher (disable with $env:SPRINTFORECAST_NO_SHORTCUT = "1")
 if (-not $env:SPRINTFORECAST_NO_SHORTCUT) {
-    try { & (Join-Path $bin 'sprintforecast.exe') verknuepfung } catch { Write-Host "Hinweis: Starter nicht angelegt." }
+    try { & (Join-Path $bin 'sprintforecast.exe') shortcut } catch { Write-Host "Note: launcher not created." }
 }
 Write-Host ""
-Write-Host "Fertig: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"
-Write-Host "Start per Doppelklick auf „Sprint-Forecast“ (Desktop/Startmenü) – oder im neuen PowerShell-Fenster z. B.:"
+Write-Host "Done: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"
+Write-Host "Start by double-clicking 'Sprint-Forecast' (desktop/Start menu) or, in a new PowerShell window, e.g.:"
 Write-Host "  cd `"$HOME\sprint-daten`"; sprintforecast web"

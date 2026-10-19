@@ -1,28 +1,27 @@
 name: CI
 
 on:
-  # Branches mit offenem PR laufen nur über pull_request (sonst liefe jeder Push doppelt).
+  # Branches with an open PR run only via pull_request (otherwise every push would run twice).
   push:
     branches: [main]
   pull_request:
 
-# Ein neuer Push auf denselben Branch oder PR bricht den überholten Lauf ab; auf main läuft
-# jeder Lauf zu Ende.
+# A new push to the same branch or PR cancels the superseded run; on main every run finishes.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# Optional auf dem eigenen Runner: Repository-Variable SELF_HOSTED=true. Fork-PRs laufen
-# immer in der Cloud (öffentliches Repository); SELF_HOSTED=false schaltet sofort zurück.
+# Optionally on the self-hosted runner: repository variable SELF_HOSTED=true. Fork PRs always
+# run in the cloud (public repository); SELF_HOSTED=false switches back immediately.
 jobs:
   test:
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
-      - name: Keine Tabellenkalkulationen im Repository
+      - name: No spreadsheets in the repository
         run: |
           if git ls-files | grep -iE '\.(xlsx|xlsm|xls)$'; then
-            echo "::error::Tabellenkalkulationen dürfen nicht ins Repository (echte Team-Daten)."
+            echo "::error::Spreadsheets must not be committed (real team data)."
             exit 1
           fi
       - uses: jdx/mise-action@v3
@@ -30,7 +29,7 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run pytest
-      - run: uv run sprintforecast --daten examples/teams pruefen
+      - run: uv run sprintforecast --data examples/teams check
 
   build:
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
@@ -46,18 +45,18 @@ jobs:
             dist/*.tar.gz
           retention-days: 14
 
-  # Browsertests (Playwright, Chromium) gegen die laufende Weboberfläche; getrennt von den
-  # schnellen Tests, damit ein fehlender Browser oder ein langsamer Lauf sie nicht aufhält.
+  # Browser tests (Playwright, Chromium) against the running web UI; separate from the fast
+  # tests so that a missing browser or a slow run does not hold them up.
   e2e:
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      # Ein PR, der nur Dokumentation (docs/ und *.md) ändert, braucht keinen Browserlauf. Der
-      # Job läuft trotzdem und meldet Erfolg, damit die Pflichtprüfung „e2e“ erfüllt ist; auf
-      # main und bei jeder anderen Änderung laufen die Tests wie bisher.
-      - name: Betroffene Dateien prüfen
+      # A PR that only changes documentation (docs/ and *.md) needs no browser run. The job
+      # still runs and reports success so that the required check "e2e" is satisfied; on main
+      # and for every other change the tests run as before.
+      - name: Check affected files
         id: scope
         env:
           EVENT: ${{ github.event_name }}
@@ -69,17 +68,17 @@ jobs:
             if [ -z "$other" ]; then run=false; fi
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
-          echo "E2E-Tests: $run"
+          echo "E2E tests: $run"
       - if: steps.scope.outputs.run == 'true'
         uses: jdx/mise-action@v3
       - if: steps.scope.outputs.run == 'true'
         run: uv sync --locked --all-extras
-      # Auf dem selbstgehosteten Runner fehlt sudo; die Systempakete für Chromium sind dort
-      # bereits installiert, daher nur der Browser selbst.
-      - name: Chromium installieren (GitHub-gehostet, mit Systempaketen)
+      # The self-hosted runner has no sudo; the system packages for Chromium are already
+      # installed there, so only the browser itself.
+      - name: Install Chromium (GitHub-hosted, with system packages)
         if: steps.scope.outputs.run == 'true' && runner.environment == 'github-hosted'
         run: uv run playwright install --with-deps chromium
-      - name: Chromium installieren (selbstgehostet, ohne Systempakete)
+      - name: Install Chromium (self-hosted, without system packages)
         if: steps.scope.outputs.run == 'true' && runner.environment == 'self-hosted'
         run: uv run playwright install chromium
       - if: steps.scope.outputs.run == 'true'
@@ -87,6 +86,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: e2e-bilder
+          name: e2e-screenshots
           path: test-results/e2e/
           retention-days: 7

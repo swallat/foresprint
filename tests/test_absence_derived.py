@@ -267,7 +267,7 @@ def test_rechenweg_names_the_uncertainty(data_dir: Path):
 
 
 def run_cli(data_dir: Path, *args: str):
-    return runner.invoke(cli_app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", *args])
+    return runner.invoke(cli_app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args])
 
 
 def test_command_line_and_report_file(data_dir: Path):
@@ -279,17 +279,17 @@ def test_command_line_and_report_file(data_dir: Path):
     assert result.exit_code == 0, result.output
     assert NOTE in result.output and "2026.19" in result.output
     assert "`2026.19`" not in result.output  # Kommandozeile: keine Markdown-Backticks
-    explained = run_cli(data_dir, "forecast", "demo", "--rechenweg", "2026.23")
+    explained = run_cli(data_dir, "forecast", "demo", "--explain", "2026.23")
     assert explained.exit_code == 0, explained.output
     out = " ".join(explained.output.split())  # Zeilenumbrüche der Konsole ignorieren
     assert out.count(NOTE) == 1  # nur die ⚠-Zeile, nicht noch Erklärtext und Tabellenzelle
-    for web_only in ("`2026.19`", "`absence_history`", "`sprintforecast fehltage`"):
+    for web_only in ("`2026.19`", "`absence_history`", "`sprintforecast absences`"):
         assert web_only not in out  # keine Markdown-Backticks in der Konsole
     for web_text in ("Fehltage speichern", "Stand der Fehltage", "Sprint vorbereiten: Fehltage"):
         assert web_text not in out  # keine Bedienung der Weboberfläche
-    assert "sprintforecast fehltage demo <SPRINT>" in out  # stattdessen der Befehl
+    assert "sprintforecast absences demo <SPRINT>" in out  # stattdessen der Befehl
     assert "Fenster der letzten 4 Sprints" in out
-    report = run_cli(data_dir, "bericht", "demo")
+    report = run_cli(data_dir, "report", "demo")
     assert report.exit_code == 0, report.output
     text = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     assert f"⚠️ {NOTE}" in text and "`2026.19`" in text
