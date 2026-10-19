@@ -12,9 +12,17 @@ from dataclasses import dataclass
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.engine import CapacitySource, Metric, PlanSource, parse_trend_mode
 from sprintforecast.forecast import Forecast, TimelineEntry
+from sprintforecast.git import md_code
 from sprintforecast.i18n import is_english, t
 from sprintforecast.model import TrendMode
-from sprintforecast.report import absence_derived_note, fmt, fmt_capacity, pct
+from sprintforecast.report import (
+    absence_derived_hint,
+    absence_derived_note,
+    fmt,
+    fmt_capacity,
+    pct,
+    sprint_text,
+)
 
 
 @dataclass(frozen=True)
@@ -87,7 +95,9 @@ def general(key: str) -> str:
     return t(GENERAL[key])
 
 
-def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
+def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True) -> Step:
+    """``code=True`` setzt Sprint-IDs als Code (Markdown, z. B. Tooltips); ``note=False``
+    lässt den Hinweis zur unsicheren Fehltage-Quote weg (Kommandozeile zeigt ihn gesondert)."""
     r = e.result
     source = r.plan_capacity_source
     team = fc.data.team
@@ -156,9 +166,11 @@ def capacity_step(fc: Forecast, e: TimelineEntry) -> Step:
             "Fehltage unbekannt → Kapazität laut Personenliste und Kalender, gemindert um "
             "die durchschnittlichen Fehltage ({share}) der Sprints {sprints}",
             share=pct(quota),
-            sprints=", ".join(used),
+            sprints=", ".join(md_code(i) if code else sprint_text(i) for i in used),
         )
-        if unsure := absence_derived_note(history, code=False):
+        # Kurz und ohne Sprint-IDs (die Formel dient auch als Tooltip); die Liste steht auf der
+        # Fehltage-Seite, in der Erklärung und im Bericht.
+        if note and (unsure := absence_derived_hint(history)):
             formula += ". " + unsure
         return Step(
             "capacity",
@@ -251,9 +263,11 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     )
 
 
-def plain_explanation(fc: Forecast, e: TimelineEntry, code: bool = True) -> str:
+def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
     """Kurze Erklärung in Alltagssprache, wie die Prognose eines Sprints entsteht – mit den
-    wichtigsten Zahlen und Quellen. Die ausführlichen Formeln liefert :func:`steps`."""
+    wichtigsten Zahlen und Quellen. Die ausführlichen Formeln liefert :func:`steps`. ``note=False``
+    lässt den Hinweis zur unsicheren Fehltage-Quote weg (die Kommandozeile zeigt ihn einmal
+    gesondert, mit dem Befehl statt der Bedienung der Weboberfläche)."""
     team = fc.data.team
     f = team.forecast
     r = e.result
@@ -296,9 +310,13 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, code: bool = True) -> str:
             plan=fmt(r.plan, f.rounding),
         ),
     ]
-    if r.plan_capacity_source is CapacitySource.ESTIMATED and (
-        unsure := absence_derived_note(
-            fc.absences, detailed=True, code=code, window=team.capacity.absence_history
+    if (
+        note
+        and r.plan_capacity_source is CapacitySource.ESTIMATED
+        and (
+            unsure := absence_derived_note(
+                fc.absences, detailed=True, window=team.capacity.absence_history
+            )
         )
     ):
         parts.append(unsure)
@@ -317,14 +335,15 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, code: bool = True) -> str:
     return " ".join(parts)
 
 
-def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
-    """Alle Rechenschritte eines Sprints in Lesereihenfolge."""
+def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True) -> list[Step]:
+    """Alle Rechenschritte eines Sprints in Lesereihenfolge (``code`` und ``note`` wie bei
+    :func:`capacity_step`)."""
     team = fc.data.team
     f = team.forecast
     r = e.result
     unit = team.unit.value
     ref = f.reference_capacity
-    result = [capacity_step(fc, e)]
+    result = [capacity_step(fc, e, code, note)]
     if r.velocity.value is not None:
         result.append(
             Step(
@@ -402,6 +421,6 @@ def steps(fc: Forecast, e: TimelineEntry) -> list[Step]:
     return result
 
 
-def step(fc: Forecast, e: TimelineEntry, key: str) -> Step | None:
+def step(fc: Forecast, e: TimelineEntry, key: str, code: bool = False) -> Step | None:
     """Ein Rechenschritt nach Schlüssel (capacity, trend, plan, roadmap, small_stuff …)."""
-    return next((s for s in steps(fc, e) if s.key == key), None)
+    return next((s for s in steps(fc, e, code) if s.key == key), None)

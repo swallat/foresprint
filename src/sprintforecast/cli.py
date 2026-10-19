@@ -1236,11 +1236,11 @@ def forecast(
             raise typer.Exit(1)
         from sprintforecast.formulas import plain_explanation
 
-        console.print(escape(plain_explanation(fc, entry, code=False)).replace("**", ""))
+        console.print(escape(plain_explanation(fc, entry, note=False)).replace("**", ""))
         table = Table(title=t("Rechenweg Sprint {id}", id=_plain(entry.sprint.id)), show_lines=True)
         for col in ("Kennzahl", "Formel", "Rechnung"):
             table.add_column(t(col))
-        for step in steps(fc, entry):
+        for step in steps(fc, entry, note=False):
             table.add_row(
                 f"[bold]{step.name}[/bold]", escape(step.formula), escape(step.calculation)
             )

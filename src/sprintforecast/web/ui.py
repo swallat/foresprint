@@ -913,7 +913,7 @@ def _quote_note(fc: Forecast, entries: list[TimelineEntry]) -> None:
 
 def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
     """Tooltip-Text: symbolische Formel einer Kennzahl."""
-    if e is None or (s := formula_step(fc, e, key)) is None:
+    if e is None or (s := formula_step(fc, e, key, code=True)) is None:
         return ""
     return s.formula
 
