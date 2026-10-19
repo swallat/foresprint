@@ -1696,6 +1696,8 @@ EN: dict[str, str] = {
     "Letzter Sprint konservativ": "Last sprint conservative",
     "Median": "median",
     "Keine Bandbreite: weniger als zwei Sprints mit Velocity. Gezeigt wird nur die Median-Variante.": "No range: fewer than two sprints with velocity. Only the median variant is shown.",
+    "Variante {variant} nicht verfügbar (keine Bandbreite) – gezeigt wird Median.": "The {variant} variant is not available (no range) – showing the median.",
+    "--variant wirkt erst nach dem Schreiben (mit --apply).": "--variant takes effect only after writing (with --apply).",
     "Sprints, Refinement-Liste und nicht verteilbare Tickets: Variante {variant}": "Sprints, refinement list and tickets that cannot be distributed: {variant} variant",
     "Variante für Sprint-Tabelle und Refinement-Liste: median (Forecast PLAN), conservative oder optimistic.": "Variant for the sprint table and the refinement list: median (Forecast PLAN), conservative or optimistic.",
     "Summen der verteilten Tickets je Sprint und Produkt als PO-Vorplanung vorschlagen (Median-Variante; mit --apply schreiben).": "Propose the sums of the distributed tickets per sprint and product as the PO pre-planning (median variant; write with --apply).",
