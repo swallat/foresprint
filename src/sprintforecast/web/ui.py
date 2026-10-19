@@ -2,7 +2,8 @@
 """Seiten und Seitenleiste der Weboberfläche. Einstieg: web/app.py, Seiten: web/seiten/*.py.
 
 Liest und schreibt dieselben YAML-Dateien wie die Kommandozeile. Konfiguration über
-Umgebungsvariablen: SPRINTFORECAST_DATEN (Datenverzeichnis), SPRINTFORECAST_STICHTAG.
+Umgebungsvariablen: SPRINTFORECAST_DATA (Datenverzeichnis), SPRINTFORECAST_AS_OF (Stichtag);
+die früheren Namen SPRINTFORECAST_DATEN und SPRINTFORECAST_STICHTAG gelten weiter.
 Texte sind über i18n.t übersetzbar; interne Spaltenschlüssel der Tabellen bleiben deutsch,
 angezeigt werden die übersetzten Beschriftungen.
 """
@@ -144,7 +145,6 @@ from sprintforecast.guide import (
     GIT_HELP,
     TERMS,
     WORKFLOW,
-    command_text,
 )
 from sprintforecast.i18n import LANGUAGES, language, save_language, set_language, t
 from sprintforecast.model import (
@@ -201,13 +201,16 @@ from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
+    STICHTAG_ENV_LEGACY,
     ConflictError,
     DataError,
     FileAccessError,
     Repository,
     TeamData,
+    as_of_env,
     clear_team_cache,
     default_data_dir,
+    env_setting,
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
@@ -326,13 +329,13 @@ def page_link(key: str, label: str | None = None) -> None:
 
 
 def today() -> date:
-    raw = os.environ.get(STICHTAG_ENV)
+    raw = as_of_env()
     return date.fromisoformat(raw) if raw else date.today()
 
 
 def stichtag_problem() -> str | None:
     """Meldung, wenn die Umgebung keinen gültigen Stichtag enthält (sonst scheitert ``today``)."""
-    raw = os.environ.get(STICHTAG_ENV)
+    name, raw = env_setting(STICHTAG_ENV, STICHTAG_ENV_LEGACY)
     if raw:
         try:
             date.fromisoformat(raw)
@@ -341,7 +344,7 @@ def stichtag_problem() -> str | None:
                 "Die Umgebungsvariable `{name}` enthält „{value}“ – erwartet wird ein Datum im "
                 "Format JJJJ-MM-TT. Bitte die Variable korrigieren oder entfernen und die "
                 "Weboberfläche neu starten.",
-                name=STICHTAG_ENV,
+                name=name,
                 value=raw,
             )
     return None
@@ -4431,9 +4434,9 @@ def page_help(repo: Repository) -> None:
     with befehle:
         command, purpose = t("Befehl"), t("Zweck")
         st.table(
-            pd.DataFrame(
-                [(command_text(a), t(b)) for a, b in COMMANDS], columns=[command, purpose]
-            ).set_index(command)
+            pd.DataFrame([(a, t(b)) for a, b in COMMANDS], columns=[command, purpose]).set_index(
+                command
+            )
         )
         st.caption(t("Ausführen mit `uv run …` im Ordner des Tools."))
 

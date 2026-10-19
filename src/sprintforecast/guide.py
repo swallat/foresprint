@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Hilfetexte als strukturierte Daten – dargestellt von CLI (`hilfe`) und Weboberfläche."""
+"""Hilfetexte als strukturierte Daten – dargestellt von CLI (`help`) und Weboberfläche."""
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 
@@ -169,7 +168,7 @@ WORKFLOW: list[Step] = [
         "mit. Die Kapazität zählt die Arbeitstage des Sprints, der Forecast PLAN skaliert daher "
         "mit der Länge. Brückentage als Fehltage eintragen.",
         page="sprints",
-        cli="sprintforecast sprints TEAM [--anlegen] [--ende SPRINT=DATUM]",
+        cli="sprintforecast sprints TEAM [--create] [--end SPRINT=DATE]",
     ),
     Step(
         when="Jederzeit",
@@ -179,7 +178,7 @@ WORKFLOW: list[Step] = [
         "Ohne Bestätigung bleiben die Fehltage „unbekannt“ und werden nach den letzten "
         "Sprints geschätzt.",
         page="fehltage",
-        cli="sprintforecast fehltage TEAM [SPRINT]",
+        cli="sprintforecast absences TEAM [SPRINT]",
     ),
     Step(
         when="Vor dem Planning / PO-Planung",
@@ -198,7 +197,7 @@ WORKFLOW: list[Step] = [
         "mehrere Produkte, tragen die POs ein, wie viel sie je Produkt vorsehen – im "
         "Vergleich zum Standard (verfügbare Menge / Anzahl Produkte).",
         page="vorplanung",
-        cli="sprintforecast produkte TEAM --vorplanung",
+        cli="sprintforecast products TEAM --preplanning",
     ),
     Step(
         when="Sprint Planning (Sprintstart)",
@@ -226,7 +225,7 @@ WORKFLOW: list[Step] = [
         text="Ergänzend zum Forecast: Bandbreite (konservativ/optimistisch), Fokusfaktor, "
         "Puffer-Empfehlung und „Wann ist es fertig?“ für eine Restmenge.",
         page="analyse",
-        cli="sprintforecast analyse TEAM [--rest MENGE]",
+        cli="sprintforecast analysis TEAM [--remaining AMOUNT]",
     ),
     Step(
         when="Bei Teamänderungen",
@@ -234,7 +233,7 @@ WORKFLOW: list[Step] = [
         text="Eintritt, Austritt und FTE-Änderungen erfassen; Team-Einstellungen wie "
         "Bundesland oder Referenzkapazität anpassen.",
         page="personen",
-        cli="sprintforecast personen TEAM · sprintforecast einstellungen TEAM",
+        cli="sprintforecast people TEAM · sprintforecast settings TEAM",
     ),
     Step(
         when="Wenn sich die Produkte ändern",
@@ -243,7 +242,7 @@ WORKFLOW: list[Step] = [
         "„Zuordnung PO“ an ist) und Beginn anlegen, abgegebene mit „bis“ beenden statt "
         "löschen – so bleiben vergangene Auswertungen erhalten.",
         page="produktliste",
-        cli="sprintforecast produktliste TEAM",
+        cli="sprintforecast product-list TEAM",
     ),
 ]
 
@@ -552,7 +551,7 @@ GIT_HELP: list[tuple[str, str]] = [
         "die App läuft („detected dubious ownership“; häufig bei Netzlaufwerken, kopierten "
         "Ordnern oder nach einem Kontowechsel), meldet die App diesen Grund statt „liegt in "
         "keinem Git-Repository“: in der Seitenleiste, im Verlauf, auf der Seite „Datenordner“ "
-        "und im Befehl `sprintforecast datenordner`. In einem solchen Ordner legt die App "
+        "und im Befehl `sprintforecast data-dir`. In einem solchen Ordner legt die App "
         "kein Repository an und schreibt nichts; beim Übernehmen bleibt „Ohne Git "
         "verwenden“. Die App ändert keine Git-Einstellungen und rät auch nicht dazu. Bitte bei "
         "der Betreuung des Rechners nachfragen: Sie kann den Ordner dem eigenen Konto "
@@ -604,14 +603,14 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast web", "Weboberfläche als App in eigenem Fenster starten"),
     ("sprintforecast web --no-app", "Weboberfläche in einem Browser-Tab statt als App"),
     ("sprintforecast web --no-browser", "Server starten, ohne ein Fenster zu öffnen"),
-    ("sprintforecast verknuepfung", "Starter zum Doppelklicken anlegen (Desktop/Startmenü)"),
+    ("sprintforecast shortcut", "Starter zum Doppelklicken anlegen (Desktop/Startmenü)"),
     (
-        "sprintforecast forecast TEAM [--rechenweg SPRINT]",
+        "sprintforecast forecast TEAM [--explain SPRINT]",
         "Prognose für laufenden und kommende Sprints",
     ),
-    ("sprintforecast fehltage TEAM [SPRINT]", "Fehltage je Person erfassen"),
+    ("sprintforecast absences TEAM [SPRINT]", "Fehltage je Person erfassen"),
     (
-        "sprintforecast sprints TEAM [--anlegen] [--ende SPRINT=DATUM]",
+        "sprintforecast sprints TEAM [--create] [--end SPRINT=DATE]",
         "Sprintkalender: kommende Sprints, Enddaten",
     ),
     ("sprintforecast planning TEAM [SPRINT]", "Commitment und Planning-Werte erfassen"),
@@ -619,81 +618,85 @@ COMMANDS: list[tuple[str, str]] = [
         "sprintforecast review TEAM [SPRINT] [--commit]",
         "Velocity und Scope Creep erfassen, Kapazität einfrieren",
     ),
-    ("sprintforecast personen TEAM [--ehemalige]", "Personen pflegen"),
-    ("sprintforecast produktliste TEAM", "Produkte pflegen (PO, Zeitraum)"),
+    ("sprintforecast people TEAM [--former]", "Personen pflegen"),
+    ("sprintforecast product-list TEAM", "Produkte pflegen (PO, Zeitraum)"),
     (
-        "sprintforecast produkte TEAM [SPRINT] [--vorplanung]",
+        "sprintforecast products TEAM [SPRINT] [--preplanning]",
         "Verteilung je Produkt anzeigen, PO-Vorplanung erfassen, Saldo",
     ),
-    ("sprintforecast einstellungen TEAM", "Team-Einstellungen ändern"),
-    ("sprintforecast kapazitaet TEAM [SPRINT]", "Kapazitätsberechnung im Detail"),
+    ("sprintforecast settings TEAM", "Team-Einstellungen ändern"),
+    ("sprintforecast capacity TEAM [SPRINT]", "Kapazitätsberechnung im Detail"),
     (
-        "sprintforecast analyse TEAM [--rest MENGE] [--gesamt] [--anteil PROZENT]",
+        "sprintforecast analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]",
         "Bandbreite, Fokusfaktor, Puffer, Fertigstellung",
     ),
-    ("sprintforecast bericht [TEAM] [--ausgabe PFAD]", "FORECAST.md erzeugen"),
-    ("sprintforecast excel TEAM [--ausgabe PFAD]", "Excel-Liste mit Formeln und Trend-Diagramm"),
+    ("sprintforecast report [TEAM] [--output PATH]", "FORECAST.md erzeugen"),
+    ("sprintforecast excel TEAM [--output PATH]", "Excel-Liste mit Formeln und Trend-Diagramm"),
     (
-        "sprintforecast excel-import TEAM DATEI [--uebernehmen]",
+        "sprintforecast excel-import TEAM FILE [--apply]",
         "Excel-Liste einlesen (Vorschau, dann schreiben)",
     ),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
     (
-        "sprintforecast pruefen [--streng]",
+        "sprintforecast check [--strict]",
         "Alle Daten prüfen (für CI und vor dem Commit); meldet auch doppelte Schlüssel und "
         "leere Zahlenfelder",
     ),
-    ("sprintforecast datenordner [PFAD]", "Gemerkten Datenordner anzeigen bzw. setzen"),
-    ("sprintforecast sprache [de|en]", "Sprache der Oberfläche anzeigen oder einstellen"),
+    ("sprintforecast data-dir [PATH]", "Gemerkten Datenordner anzeigen bzw. setzen"),
+    ("sprintforecast language [de|en]", "Sprache der Oberfläche anzeigen oder einstellen"),
     (
-        "sprintforecast aktualisieren",
-        "Auf die neueste Version aktualisieren (--auto an|hinweis|aus)",
+        "sprintforecast update",
+        "Auf die neueste Version aktualisieren (--auto on|notice|off)",
     ),
-    ("sprintforecast hilfe [THEMA]", "Diese Hilfe"),
+    ("sprintforecast help [TOPIC]", "Diese Hilfe"),
     (
-        "sprintforecast --daten PFAD …",
-        "Vor dem Befehl: Datenverzeichnis vorgeben (sonst SPRINTFORECAST_DATEN, das aktuelle "
+        "sprintforecast --data PATH …",
+        "Vor dem Befehl: Datenverzeichnis vorgeben (sonst SPRINTFORECAST_DATA, das aktuelle "
         "oder das gemerkte Verzeichnis)",
     ),
     (
-        "sprintforecast --stichtag DATUM …",
+        "sprintforecast --as-of DATE …",
         "Vor dem Befehl: Datum (JJJJ-MM-TT) vorgeben, das als „heute“ gilt – für Rückblicke",
     ),
 ]
 
 TOPICS: dict[str, str] = {
-    "ablauf": "Was ist wann zu tun?",
-    "begriffe": "Begriffe und Kapazitätsquellen",
-    "felder": "Eingabefelder: Bedeutung, Quelle, Beispiel",
+    "workflow": "Was ist wann zu tun?",
+    "terms": "Begriffe und Kapazitätsquellen",
+    "fields": "Eingabefelder: Bedeutung, Quelle, Beispiel",
     "team": "Team-Einstellungen",
-    "befehle": "Alle Befehle",
+    "commands": "Alle Befehle",
 }
 
 
-# Englische Namen der Befehle (deutsch → englisch); beide funktionieren immer.
+# Die Befehle heißen englisch; die früheren deutschen Namen (englisch → deutsch) bleiben als
+# ausgeblendete Aliasse erhalten, damit Skripte, der Starter und die Daten-Repo-Vorlage weiter
+# funktionieren.
 COMMAND_ALIASES: dict[str, str] = {
-    "hilfe": "help",
-    "fehltage": "absences",
-    "personen": "people",
-    "einstellungen": "settings",
-    "analyse": "analysis",
-    "bericht": "report",
-    "pruefen": "check",
-    "kapazitaet": "capacity",
-    "produkte": "products",
-    "produktliste": "product-list",
-    "aktualisieren": "update",
-    "verknuepfung": "shortcut",
-    "datenordner": "data-dir",
-    "sprache": "language",
+    "help": "hilfe",
+    "absences": "fehltage",
+    "people": "personen",
+    "settings": "einstellungen",
+    "analysis": "analyse",
+    "report": "bericht",
+    "check": "pruefen",
+    "capacity": "kapazitaet",
+    "products": "produkte",
+    "product-list": "produktliste",
+    "update": "aktualisieren",
+    "shortcut": "verknuepfung",
+    "data-dir": "datenordner",
+    "language": "sprache",
 }
-# Englische Themen der Hilfe (englisch → deutsch).
+# Frühere deutsche Themen der Hilfe (deutsch → englisch); beide werden angenommen.
 TOPIC_ALIASES: dict[str, str] = {
-    "workflow": "ablauf",
-    "terms": "begriffe",
-    "fields": "felder",
-    "commands": "befehle",
+    "ablauf": "workflow",
+    "begriffe": "terms",
+    "felder": "fields",
+    "befehle": "commands",
 }
+# Frühere deutsche Optionen (deutsch → englisch): werden vor dem Parsen ersetzt, stehen nicht in
+# der Hilfe und gelten in allen Befehlen.
 OPTION_ALIASES: dict[str, str] = {
     "--daten": "--data",
     "--stichtag": "--as-of",
@@ -711,38 +714,17 @@ OPTION_ALIASES: dict[str, str] = {
     "--vorplanung": "--preplanning",
     "--pruefen": "--check",
     "--erzwingen": "--force",
-}
-_PLACEHOLDERS = {
-    "MENGE": "AMOUNT",
-    "THEMA": "TOPIC",
-    "PFAD": "PATH",
-    "DATUM": "DATE",
-    "PROZENT": "PERCENT",
+    "--uebernehmen": "--apply",
 }
 
 
-def command_text(text: str) -> str:
-    """Befehle und Optionen in der Schreibweise der eingestellten Sprache."""
-    from sprintforecast.i18n import is_english
-
-    if not is_english():
-        return text
-    text = re.sub(
-        r"sprintforecast (\w+)",
-        lambda m: f"sprintforecast {COMMAND_ALIASES.get(m.group(1), m.group(1))}",
-        text,
-    )
-    text = re.sub(r"--[a-z]+", lambda m: OPTION_ALIASES.get(m.group(0), m.group(0)), text)
-    text = re.sub(
-        r"\b(" + "|".join(_PLACEHOLDERS) + r")\b", lambda m: _PLACEHOLDERS[m.group(1)], text
-    )
-    return re.sub(
-        r"(sprintforecast help) (\w+)",
-        lambda m: f"{m.group(1)} {_topic_en(m.group(2))}",
-        text,
-    )
-
-
-def _topic_en(topic: str) -> str:
-    english = {de: en for en, de in TOPIC_ALIASES.items()}
-    return english.get(topic, topic)
+def english_args(args: list[str]) -> list[str]:
+    """Ersetzt deutsche Optionsnamen (`--daten`, `--daten=PFAD`) durch die englischen; nach
+    einem `--` bleibt alles unverändert."""
+    result: list[str] = []
+    for i, arg in enumerate(args):
+        if arg == "--":
+            return result + args[i:]
+        name, sep, value = arg.partition("=")
+        result.append(OPTION_ALIASES.get(name, name) + sep + value if arg.startswith("--") else arg)
+    return result

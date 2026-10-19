@@ -50,9 +50,26 @@ from sprintforecast.model import (
     explicit_state_needed,
 )
 
-DATA_ENV = "SPRINTFORECAST_DATEN"
+DATA_ENV = "SPRINTFORECAST_DATA"
 # Datum, das als „heute“ gilt (für Rückblicke und Tests).
-STICHTAG_ENV = "SPRINTFORECAST_STICHTAG"
+STICHTAG_ENV = "SPRINTFORECAST_AS_OF"
+# Frühere Namen der beiden Variablen: gelten weiter, die neuen haben Vorrang.
+DATA_ENV_LEGACY = "SPRINTFORECAST_DATEN"
+STICHTAG_ENV_LEGACY = "SPRINTFORECAST_STICHTAG"
+
+
+def env_setting(name: str, legacy: str) -> tuple[str, str | None]:
+    """Wert einer Umgebungsvariablen unter dem neuen oder dem früheren Namen: (Name, Wert) –
+    der Name sagt, welche Variable gilt; (``name``, None), wenn keine gesetzt ist."""
+    for key in (name, legacy):
+        if value := os.environ.get(key):
+            return key, value
+    return name, None
+
+
+def as_of_env() -> str | None:
+    """Stichtag aus SPRINTFORECAST_AS_OF (bzw. früher SPRINTFORECAST_STICHTAG)."""
+    return env_setting(STICHTAG_ENV, STICHTAG_ENV_LEGACY)[1]
 
 
 class DataError(Exception):
@@ -112,7 +129,7 @@ def teams_dir(path: Path) -> Path | None:
 
 
 def saved_data_dir() -> Path | None:
-    """In der Weboberfläche (oder mit `sprintforecast datenordner`) gemerkter Datenordner."""
+    """In der Weboberfläche (oder mit `sprintforecast data-dir`) gemerkter Datenordner."""
     from sprintforecast import config
 
     raw = config.load().get("data_dir")
@@ -154,13 +171,13 @@ def forget_data_dir(path: Path) -> None:
 
 
 def default_data_dir() -> Path:
-    """--daten > Umgebungsvariable SPRINTFORECAST_DATEN > aktuelles Verzeichnis, falls es
-    Teams enthält > gemerkter Datenordner > aktuelles Verzeichnis.
+    """--data > Umgebungsvariable SPRINTFORECAST_DATA (früher SPRINTFORECAST_DATEN) >
+    aktuelles Verzeichnis, falls es Teams enthält > gemerkter Datenordner > aktuelles Verzeichnis.
 
     Enthält ein Verzeichnis selbst keine Teams, aber einen Unterordner ``teams`` mit Teams
     (Aufbau eines Daten-Repositorys), wird dieser verwendet.
     """
-    if configured := os.environ.get(DATA_ENV):
+    if configured := env_setting(DATA_ENV, DATA_ENV_LEGACY)[1]:
         return Path(configured)
     here = Path(".")
     if found := teams_dir(here):

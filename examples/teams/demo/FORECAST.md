@@ -2,7 +2,7 @@
 
 Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Sprints · Trend: `flat`
 
-> Automatisch erzeugt mit `sprintforecast bericht`. Nicht von Hand bearbeiten.
+> Automatisch erzeugt mit `sprintforecast report`. Nicht von Hand bearbeiten.
 
 ## Prognose
 

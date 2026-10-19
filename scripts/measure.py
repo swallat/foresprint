@@ -92,8 +92,8 @@ def apptest(data: Path, today: date, runs: int) -> dict[str, float]:
     """Startlauf (kalt) und Seitenaufbau je Seite per AppTest (ohne Browser)."""
     from streamlit.testing.v1 import AppTest
 
-    os.environ["SPRINTFORECAST_DATEN"] = str(data)
-    os.environ["SPRINTFORECAST_STICHTAG"] = today.isoformat()
+    os.environ["SPRINTFORECAST_DATA"] = str(data)
+    os.environ["SPRINTFORECAST_AS_OF"] = today.isoformat()
     start = time.perf_counter()
     at = AppTest.from_file(str(APP), default_timeout=60)
     at.run()

@@ -198,15 +198,15 @@ def test_translation_markup_is_kept_around_placeholders():
             text = Text.from_markup(
                 i18n.t(
                     "Weiter mit: [bold]{command}[/bold]",
-                    command=_plain_end("sprintforecast personen [x]\\"),
+                    command=_plain_end("sprintforecast people [x]\\"),
                 )
             )
         finally:
             i18n.set_language(None)
-        assert text.plain.endswith("sprintforecast personen [x]\\")
+        assert text.plain.endswith("sprintforecast people [x]\\")
         bold = [s for s in text.spans if str(s.style) == "bold"]
         assert len(bold) == 1
-        assert text.plain[bold[0].start : bold[0].end] == "sprintforecast personen [x]\\"
+        assert text.plain[bold[0].start : bold[0].end] == "sprintforecast people [x]\\"
 
 
 # --- Befehle auf den Daten mit Klammern ---------------------------------------------------
@@ -255,7 +255,7 @@ BLANK = "\n" * 60  # Enter übernimmt jeweils den Vorschlag
         pytest.param(
             ["sprints", "demo", "--ende", "[/x]=2026-10-29"],
             None,
-            ["--ende [/x]=2026-10-29: erwartet SPRINT=JJJJ-MM-TT"],
+            ["--end [/x]=2026-10-29: erwartet SPRINT=JJJJ-MM-TT"],
             1,
             id="sprints-ende",
         ),
@@ -419,15 +419,15 @@ def test_names_in_error_lines_with_markup_look(data_dir: Path):
     for key, kwargs in teams.items():
         write_team(data_dir, key, **kwargs)
     result = run(data_dir, "produkte", "a[x]")
-    check(result, "Einschalten mit: sprintforecast einstellungen a[x]", code=1)
+    check(result, "Einschalten mit: sprintforecast settings a[x]", code=1)
     result = run(data_dir, "produkte", "c[x]")
-    check(result, "Zuerst: sprintforecast produktliste c[x]", code=1)
+    check(result, "Zuerst: sprintforecast product-list c[x]", code=1)
     result = run(data_dir, "produktliste", "a[x]")
-    check(result, "Einschalten mit: sprintforecast einstellungen a[x]", code=1)
+    check(result, "Einschalten mit: sprintforecast settings a[x]", code=1)
     result = run(data_dir, "fehltage", f"b[red]{BS}")
-    check(result, f"Zuerst: sprintforecast personen b[red]{BS}", code=1)
+    check(result, f"Zuerst: sprintforecast people b[red]{BS}", code=1)
     result = run(data_dir, "forecast", "c[x]")
-    check(result, "Sprint-Forecast Klein", "sprintforecast fehltage c[x] <SPRINT>")
+    check(result, "Sprint-Forecast Klein", "sprintforecast absences c[x] <SPRINT>")
     result = run(data_dir, "pruefen")
     check(result, "a[x]", f"b[red]{BS}", "c[x]", f"✔ d[x]{BS}\n", "✔ demo\n", code=result.exit_code)
     assert f"\ne[x]{BS}\n  Hinweis people.yaml:" in result.output
@@ -452,8 +452,8 @@ def test_init_with_a_key_that_looks_like_markup(klammern: Path, monkeypatch: pyt
     check(
         result,
         f"Neues Team {key} anlegen.",
-        f"mit sprintforecast einstellungen {key} änderbar",
-        f"Weiter mit: sprintforecast personen {key}\n",
+        f"mit sprintforecast settings {key} änderbar",
+        f"Weiter mit: sprintforecast people {key}\n",
     )
 
 
@@ -541,10 +541,10 @@ def test_init_with_markup_look(klammern: Path):
     check(
         result,
         "Neues Team neu anlegen.",
-        "sprintforecast einstellungen neu",
+        "sprintforecast settings neu",
         "Unbekannter Regionscode: [/X]",
         f"Angelegt: {klammern}{SEP}neu{SEP}team.yaml",
-        "Weiter mit: sprintforecast personen neu",
+        "Weiter mit: sprintforecast people neu",
     )
     assert yaml.safe_load((klammern / "neu" / "team.yaml").read_text())["name"] == f"Neu [/x]{BS}"
 
@@ -593,7 +593,7 @@ def test_path_with_brackets_and_backslashes_for_datenordner(tmp_path: Path):
     check(
         result,
         f"Gemerkt: {gemerkt}\n",
-        f"Verwendet (ohne --daten): {verwendet}\n",
+        f"Verwendet (ohne --data): {verwendet}\n",
     )
     result = runner.invoke(app, ["datenordner"], env={DATA_ENV: ""})
     check(result, f"Gemerkt: {gemerkt}\n")
@@ -633,7 +633,7 @@ def test_web_without_streamlit_names_the_extra(
 
 def test_help_shows_square_brackets_of_the_commands(data_dir: Path):
     result = run(data_dir, "hilfe", "befehle")
-    check(result, "sprintforecast sprache [de|en]")
+    check(result, "sprintforecast language [de|en]")
 
 
 # --- Meldungen aus Hilfsfunktionen, die sich nur mit Attrappen erreichen lassen -----------
