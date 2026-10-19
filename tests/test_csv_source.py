@@ -41,7 +41,7 @@ def test_english_export_with_repeated_columns():
     assert second.blocked_by == [] and second.epic == "ABC-200"
     done = tickets[2]
     assert done.resolved and done.sprint_name == "Sprint 20" and done.remaining == 0
-    assert tickets[3].estimate is None and tickets[3].title == "Line one\nline two"
+    assert tickets[3].estimate is None and tickets[3].title == "Line one line two"
 
 
 def test_german_export_with_semicolon_bom_decimal_comma_and_parent_as_epic():

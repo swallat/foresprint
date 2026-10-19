@@ -191,7 +191,7 @@ class CsvSource:
         sprints = values("sprint")
         return RawTicket(
             key=key,
-            title=single("title") or "",
+            title=" ".join((single("title") or "").split()),
             status=single("status"),
             issue_type=single("issue_type"),
             estimate=number("estimate"),
