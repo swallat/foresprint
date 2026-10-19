@@ -52,7 +52,14 @@ from sprintforecast.yamlmerge import (
 SHARE_KEY = "sprintforecast.share"
 AUTO_MERGE_KEY = "sprintforecast.mrautomerge"  # "false" schaltet das Automerge ab (Standard: an)
 SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
-_MR_URL = re.compile(r"https?://\S+/merge_requests/(?:\d+|new\b\S*)")
+_PR_URL = re.compile(
+    r"https?://\S+/(?:pulls?/(?:\d+|new/\S+)|merge_requests/(?:\d+|new\b\S*)|compare/\S+)"
+)
+# Auf welchem Server liegt das Daten-Repository? Das bestimmt, wie ein Merge/Pull Request
+# entsteht. ``HOST_KEY`` überschreibt die Erkennung aus der Adresse (Standard: automatisch).
+HOST_KEY = "sprintforecast.host"
+HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC = "gitlab", "github", "forgejo", "generic"
+HOSTS = (HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC)
 
 # Wie oft ein Push nach "inzwischen hat jemand anderes hochgeladen" neu versucht wird.
 MAX_ATTEMPTS = 3
@@ -1015,6 +1022,15 @@ def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list
                 branch=branch,
             )
         ]
+    if host_kind(root) == HOST_FORGEJO:
+        # Der Pull Request liegt nicht auf einem eigenen Branch, den man hier sehen könnte.
+        return [
+            t(
+                "Deine Änderungen stehen auf dem Server noch nicht in {branch}. Liegen sie in "
+                "einem offenen Pull Request, hole sie nach dem Merge erneut.",
+                branch=branch,
+            )
+        ]
     return [
         t(
             "Deine Änderungen sind noch nicht geteilt (nicht in {branch}, kein Merge Request "
@@ -1046,6 +1062,62 @@ def set_share_mode(path: Path, mode: str) -> None:
         _git(root, "config", "--local", "--unset-all", SHARE_KEY, check=False)
 
 
+def detect_host(url: str) -> str:
+    """Welche Art Server hinter der Adresse steckt, soweit der Name es verrät (GitHub, GitLab,
+    Forgejo/Gitea/Codeberg); alles andere ist ``generic``."""
+    name = (_web_location(url) or ("", ""))[0].lower()
+    if name == "github.com" or name.startswith("github."):
+        return HOST_GITHUB
+    if "gitlab" in name:
+        return HOST_GITLAB
+    if name == "codeberg.org" or any(word in name for word in ("forgejo", "gitea")):
+        return HOST_FORGEJO
+    return HOST_GENERIC
+
+
+def _web_location(url: str) -> tuple[str, str] | None:
+    """Rechnername und Pfad ohne ``.git`` aus einer Server-Adresse (https, ssh oder scp-Form);
+    ``None`` bei einem Ordnerpfad."""
+    found = re.match(r"^[a-z][a-z0-9+.-]*://(?:[^@/]*@)?([^/:]+)(?::\d+)?/(.+?)(?:\.git)?/?$", url)
+    if not found:
+        found = re.match(r"^(?:[^@/\s]+@)?([^/:\s]+):(?!//)(.+?)(?:\.git)?/?$", url)
+    return (found.group(1), found.group(2)) if found else None
+
+
+def host_setting(path: Path) -> str | None:
+    """Die ausdrücklich gewählte Server-Art (``None``: automatisch aus der Adresse erkennen)."""
+    value = _git(_root(path), "config", "--local", "--get", HOST_KEY, check=False)
+    return value if value in HOSTS else None
+
+
+def set_host(path: Path, host: str | None) -> None:
+    root = _root(path)
+    if host in HOSTS:
+        _git(root, "config", "--local", HOST_KEY, host)
+    else:
+        _git(root, "config", "--local", "--unset-all", HOST_KEY, check=False)
+
+
+def host_kind(path: Path) -> str:
+    """Die Art des Servers: die gewählte oder, solange nichts gewählt ist, die erkannte."""
+    return host_setting(path) or detected_host(path)
+
+
+def detected_host(path: Path) -> str:
+    """Die aus der Adresse des Servers erkannte Art, unabhängig von einer Wahl."""
+    root = _root(path)
+    return detect_host(gitmod.remote_url(root, state(root).remote or "origin"))
+
+
+def compare_url(url: str, target: str, branch: str) -> str | None:
+    """Die Webadresse, unter der man bei GitHub aus dem Branch einen Pull Request öffnet."""
+    where = _web_location(url)
+    if not where or len(where[0]) == 1:  # Laufwerksbuchstabe wie ``C:\\x``, kein Rechner
+        return None
+    host, repo = where
+    return f"https://{host}/{repo}/compare/{target}...{branch}?expand=1"
+
+
 def merge_request_branch(root: Path) -> str:
     """Der Branch, auf den diese Person für Merge Requests hochlädt: je Person ein fester Name
     (``sprintforecast/<name>-<Kürzel der Adresse>``), damit ein weiteres Teilen denselben Merge
@@ -1058,48 +1130,74 @@ def merge_request_branch(root: Path) -> str:
 
 
 def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str, str | None]:
-    """Lädt den Stand auf den eigenen Branch und bittet den Server (GitLab-Push-Optionen), einen
-    Merge Request nach dem Hauptbranch anzulegen; gibt es ihn schon, schreibt der Push ihn fort.
+    """Lädt den Stand für eine Prüfung durch andere hoch, je nach Server:
+
+    - GitLab (und unbekannte Server): auf den eigenen Branch, mit Push-Optionen, damit der Server
+      den Merge Request anlegt oder fortschreibt (und auf Wunsch von selbst mergt).
+    - Forgejo/Gitea/Codeberg: AGit-Ablauf (``refs/for/<Ziel>``), der Pull Request entsteht beim
+      Push; klappt das nicht, bleibt der Branch.
+    - GitHub: der eigene Branch; die App hat kein Zugriffstoken, sie nennt die Adresse, unter der
+      man den Pull Request öffnet.
+
     Der Branch gehört dieser Person: Ist er nach einem Rebase im Merge Request oder einem
     gemergten Stand anders weitergelaufen, wird er mit ``--force-with-lease`` überschrieben.
     Tags gehen nicht mit (sie zeigen sonst auf Commits, die nie in den Hauptbranch kommen).
-    Liefert Branch und, falls der Server sie meldet, die Adresse des Merge Requests."""
+    Liefert Branch und, falls bekannt, die Adresse des Merge/Pull Requests."""
     branch = merge_request_branch(root)
-    auto = auto_merge(root)
+    host = host_kind(root)
     ref = f"refs/heads/{branch}"
     remote = current.remote or "origin"
     target = (current.upstream or "").partition("/")[2] or current.branch or "main"
     subject = (title.strip().splitlines() or ["Änderungen"])[0]
+    if host == HOST_FORGEJO:
+        proc = gitmod._git_result(
+            root,
+            "push",
+            "-o", f"topic={branch}",
+            "-o", f"title={subject}",
+            "-o", "force-push=true",
+            remote,
+            f"HEAD:refs/for/{target}",
+            network=True,
+        )  # fmt: skip
+        if proc.returncode == 0:
+            found = _PR_URL.search(proc.stderr + proc.stdout)
+            return branch, found.group(0).rstrip(".,)") if found else None
     listed = _git(root, "ls-remote", remote, ref, network=True, url=current.url, check=False)
     lease = (
         f"--force-with-lease={ref}:{listed.split()[0]}" if listed else f"--force-with-lease={ref}:"
     )
-    proc = gitmod._git_result(
-        root,
-        "push",
-        lease,
-        "-o", "merge_request.create",
-        "-o", f"merge_request.target={target}",
-        "-o", f"merge_request.title={subject}",
-        "-o", "merge_request.remove_source_branch",
-        # Neuere GitLab-Versionen kennen auch ``merge_request.auto_merge`` (gleiche Wirkung).
-        *(["-o", "merge_request.merge_when_pipeline_succeeds"] if auto else []),
-        remote,
-        f"HEAD:{ref}",
-        network=True,
-    )  # fmt: skip
-    if proc.returncode != 0:
-        message = proc.stderr.strip() or proc.stdout.strip()
-        if "does not support push options" in message:
+    options: list[str] = []
+    if host in (HOST_GITLAB, HOST_GENERIC):
+        options = [
+            "-o", "merge_request.create",
+            "-o", f"merge_request.target={target}",
+            "-o", f"merge_request.title={subject}",
+            "-o", "merge_request.remove_source_branch",
+            # Neuere GitLab-Versionen kennen auch ``merge_request.auto_merge`` (gleiche Wirkung).
+            *(["-o", "merge_request.merge_when_pipeline_succeeds"] if auto_merge(root) else []),
+        ]  # fmt: skip
+    proc = gitmod._git_result(root, "push", lease, *options, remote, f"HEAD:{ref}", network=True)
+    message = proc.stderr.strip() or proc.stdout.strip()
+    if proc.returncode != 0 and options and "does not support push options" in message:
+        if host == HOST_GITLAB:
             raise GitError(
                 t(
                     "Der Server unterstützt keine Push-Optionen, daher kein Teilen über Merge "
                     "Request. Bitte die Einstellung auf der Seite „Datenordner“ ausschalten."
                 )
             )
+        # Kein GitLab: nur den Branch hochladen, den Pull Request öffnet man auf dem Server.
+        proc = gitmod._git_result(root, "push", lease, remote, f"HEAD:{ref}", network=True)
+        message = proc.stderr.strip() or proc.stdout.strip()
+    if proc.returncode != 0:
         raise gitmod.classify(message, url=current.url)
-    found = _MR_URL.search(proc.stderr + proc.stdout)
-    return branch, found.group(0).rstrip(".,)") if found else None
+    found = _PR_URL.search(proc.stderr + proc.stdout)
+    if found:
+        return branch, found.group(0).rstrip(".,)")
+    if host == HOST_GITHUB:
+        return branch, compare_url(current.url, target, branch)
+    return branch, None
 
 
 def _push(root: Path, current: SyncState) -> None:
