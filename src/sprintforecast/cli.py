@@ -1597,14 +1597,21 @@ def excel_import(
     ] = False,
 ) -> None:
     from sprintforecast.excel import ExcelUnavailable
-    from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+    from sprintforecast.excel_import import apply_import, plan_import, read_workbook_keyed
 
     c = _ctx(ctx)
     try:
-        data = read_workbook(datei, team)
+        data, file_team = read_workbook_keyed(datei, team)
     except ExcelUnavailable as e:
         err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
+    if file_team is None:
+        warning = t(
+            "Die Mappe nennt kein Team (ältere Excel-Ausgabe); es wird nicht geprüft, ob sie "
+            "zu {team} gehört.",
+            team=repr(team),
+        )
+        err.print(f"[yellow]{escape(warning)}[/yellow]")
     plan = plan_import(c.repo, data, c.today)
     if not plan.changes:
         console.print(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
