@@ -1,38 +1,38 @@
 # Sprint-Forecast Demo-Team
 
-Stand: 15.10.2026 · Einheit: PT · Referenzkapazität: 45 PT · Ø über 5 Sprints · Trend: `flat`
+As of: 15.10.2026 · unit: PT · reference capacity: 45 PT · Ø over 5 sprints · trend: `flat`
 
-> Automatisch erzeugt mit `sprintforecast bericht`. Nicht von Hand bearbeiten.
+> Generated automatically with `sprintforecast report`. Do not edit by hand.
 
-## Prognose
+## Forecast
 
-| Sprint | Zeitraum | Status | Kapazität (PT) | n. Velocity-Trend | **Forecast PLAN** (PT) | Spanne | Verplanbar (80 %) | Kleinkram |
+| Sprint | Period | Status | Capacity (PT) | norm. velocity trend | **Forecast PLAN** (PT) | Range | Plannable (80 %) | Small items |
 |---|---|---|---|---|---|---|---|---|
-| 2026.21 | 14.10. – 28.10.2026 | **laufend** | 25,5 (Personenliste) | 16,84 | **9,5** | 8,5–10,5 | 7,60 | 1,90 |
-| 2026.22 | 28.10. – 11.11.2026 | geplant | 30,0 (Personenliste) | 16,84 | **11,2** | 10,0–12,3 | 8,96 | 2,24 |
-| 2026.23 | 11.11. – 25.11.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 10,2–12,5 | 9,04 | 2,26 |
-| 2026.24 | 25.11. – 09.12.2026 | geplant | 30,4 (erwartete Fehltage) | 16,84 | **11,3** | 10,2–12,5 | 9,04 | 2,26 |
+| 2026.21 | 14.10. – 28.10.2026 | **running** | 25.5 (people list) | 16.84 | **9.5** | 8.5–10.5 | 7.60 | 1.90 |
+| 2026.22 | 28.10. – 11.11.2026 | planned | 30.0 (people list) | 16.84 | **11.2** | 10.0–12.3 | 8.96 | 2.24 |
+| 2026.23 | 11.11. – 25.11.2026 | planned | 30.4 (expected absences) | 16.84 | **11.3** | 10.2–12.5 | 9.04 | 2.26 |
+| 2026.24 | 25.11. – 09.12.2026 | planned | 30.4 (expected absences) | 16.84 | **11.3** | 10.2–12.5 | 9.04 | 2.26 |
 
-**Planning 2026.21:** Summe 8,50 PT, Delta zum Forecast PLAN 1,00 PT
+**Planning 2026.21:** total 8.50 PT, delta to the Forecast PLAN 1.00 PT
 
-## Verlauf (letzte 10 Sprints)
+## History (last 10 sprints)
 
-| Sprint | Kapazität (PT) | Commitment | Velocity | n. Velocity | Ø n. Velocity | Fulfillment | Scope Creep |
+| Sprint | Capacity (PT) | Commitment | Velocity | norm. velocity | Ø norm. velocity | Fulfillment | Scope creep |
 |---|---|---|---|---|---|---|---|
-| 2026.11 | 38,5 | 14,25 | 14,50 | 16,95 | 14,98 | 102 % | 20 % |
-| 2026.12 | 32,1 | 11,75 | 13,50 | 18,93 | 16,46 | 115 % | 10 % |
-| 2026.13 | 41,0 | 13,50 | 10,25 | 11,25 | 15,61 | 76 % | 0 % |
-| 2026.14 | 35,4 | 13,25 | 12,50 | 15,89 | 15,55 | 94 % | 5 % |
-| 2026.15 | 38,6 | 14,50 | 16,50 | 19,24 | 16,45 | 114 % | 5 % |
-| 2026.16 | 34,0 | 13,25 | 14,00 | 18,53 | 16,77 | 106 % | 20 % |
-| 2026.17 | 31,7 | 12,75 | 11,50 | 16,32 | 16,25 | 90 % | 0 % |
-| 2026.18 | 28,5 | 10,00 | 10,50 | 16,58 | 17,31 | 105 % | 5 % |
-| 2026.19 | 32,5 | 11,50 | 12,75 | 17,65 | 17,66 | 111 % | 0 % |
-| 2026.20 | 29,0 | 12,00 | 9,75 | 15,13 | 16,84 | 81 % | 5 % |
+| 2026.11 | 38.5 | 14.25 | 14.50 | 16.95 | 14.98 | 102 % | 20 % |
+| 2026.12 | 32.1 | 11.75 | 13.50 | 18.93 | 16.46 | 115 % | 10 % |
+| 2026.13 | 41.0 | 13.50 | 10.25 | 11.25 | 15.61 | 76 % | 0 % |
+| 2026.14 | 35.4 | 13.25 | 12.50 | 15.89 | 15.55 | 94 % | 5 % |
+| 2026.15 | 38.6 | 14.50 | 16.50 | 19.24 | 16.45 | 114 % | 5 % |
+| 2026.16 | 34.0 | 13.25 | 14.00 | 18.53 | 16.77 | 106 % | 20 % |
+| 2026.17 | 31.7 | 12.75 | 11.50 | 16.32 | 16.25 | 90 % | 0 % |
+| 2026.18 | 28.5 | 10.00 | 10.50 | 16.58 | 17.31 | 105 % | 5 % |
+| 2026.19 | 32.5 | 11.50 | 12.75 | 17.65 | 17.66 | 111 % | 0 % |
+| 2026.20 | 29.0 | 12.00 | 9.75 | 15.13 | 16.84 | 81 % | 5 % |
 
-## Diagramm
+## Chart
 
-Linien: Commitment (Vergangenheit) bzw. Forecast PLAN (Zukunft), Velocity und normierte Velocity (Vergangenheit: Ist-Wert, Zukunft: Trend).
+Lines: commitment (past) or Forecast PLAN (future), velocity and normalised velocity (past: actual value, future: trend).
 
 ```mermaid
 xychart-beta
@@ -43,43 +43,43 @@ xychart-beta
     line [16.95, 18.93, 11.25, 15.89, 19.24, 18.53, 16.32, 16.58, 17.65, 15.13, 16.84, 16.84, 16.84, 16.84]
 ```
 
-## Produkte
+## Products
 
-**Sprint 2026.21** (laufend)
+**Sprint 2026.21** (running)
 
-| Produkt | PO | Standard (PT) | PO-Vorplanung (PT) | Planning (PT) | Erledigt (PT) |
+| Product | PO | Standard (PT) | PO pre-planning (PT) | Planning (PT) | Done (PT) |
 |---|---|---|---|---|---|
-| Webshop | Alex | 3,17 | 3,50 | 4,00 | – |
-| Mobile App | Alex | 3,17 | 3,00 | 3,00 | – |
-| Kundenportal | Bea | 3,17 | 3,00 | 3,00 | – |
+| Webshop | Alex | 3.17 | 3.50 | 4.00 | – |
+| Mobile App | Alex | 3.17 | 3.00 | 3.00 | – |
+| Kundenportal | Bea | 3.17 | 3.00 | 3.00 | – |
 
-**Sprint 2026.22** (geplant)
+**Sprint 2026.22** (planned)
 
-| Produkt | PO | Standard (PT) | PO-Vorplanung (PT) | Planning (PT) | Erledigt (PT) |
+| Product | PO | Standard (PT) | PO pre-planning (PT) | Planning (PT) | Done (PT) |
 |---|---|---|---|---|---|
-| Webshop | Alex | 3,73 | 3,00 | – | – |
-| Mobile App | Alex | 3,73 | 3,00 | – | – |
-| Kundenportal | Bea | 3,73 | 4,00 | – | – |
+| Webshop | Alex | 3.73 | 3.00 | – | – |
+| Mobile App | Alex | 3.73 | 3.00 | – | – |
+| Kundenportal | Bea | 3.73 | 4.00 | – | – |
 
-**Saldo** (Σ Erledigt − Σ Standard, letzte 6 Sprints)
+**Balance** (Σ done − Σ standard, last 6 sprints)
 
-| Produkt | Sprints | Σ Standard | Σ Erledigt | Saldo (PT) |
+| Product | Sprints | Σ standard | Σ done | Balance (PT) |
 |---|---|---|---|---|
-| Webshop | 4 | 14,57 | 16,50 | 1,93 |
-| Mobile App | 4 | 14,57 | 14,75 | 0,18 |
-| Kundenportal | 3 | 10,33 | 8,75 | -1,58 |
-| Altsystem | 2 | 6,73 | 4,50 | -2,23 |
+| Webshop | 4 | 14.57 | 16.50 | 1.93 |
+| Mobile App | 4 | 14.57 | 14.75 | 0.18 |
+| Kundenportal | 3 | 10.33 | 8.75 | -1.58 |
+| Altsystem | 2 | 6.73 | 4.50 | -2.23 |
 
-## Ergänzend: Bandbreite
+## Additionally: range
 
-Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der letzten 5 Sprints (statt des Trends).
+Forecast with the lowest, median and highest normalised velocity of the last 5 sprints (instead of the trend).
 
-| Sprint | Forecast PLAN (PT) | konservativ | mittel | optimistisch |
+| Sprint | Forecast PLAN (PT) | conservative | median | optimistic |
 |---|---|---|---|---|
-| 2026.21 | 9,5 | 8,5 | 9,3 | 10,5 |
-| 2026.22 | 11,2 | 10,0 | 11,0 | 12,3 |
-| 2026.23 | 11,3 | 10,2 | 11,2 | 12,5 |
-| 2026.24 | 11,3 | 10,2 | 11,2 | 12,5 |
+| 2026.21 | 9.5 | 8.5 | 9.3 | 10.5 |
+| 2026.22 | 11.2 | 10.0 | 11.0 | 12.3 |
+| 2026.23 | 11.3 | 10.2 | 11.2 | 12.5 |
+| 2026.24 | 11.3 | 10.2 | 11.2 | 12.5 |
 
-- Ø Fokusfaktor (Velocity / Kapazität): 0,37
-- Ø Scope Creep (5 Sprints): 6 % des Commitments = 6 % des Forecast PLAN · Kleinkram-Anteil: 20 %
+- Ø focus factor (velocity / capacity): 0.37
+- Ø scope creep (5 sprints): 6 % of the commitment = 6 % of the Forecast PLAN · small-items share: 20 %
