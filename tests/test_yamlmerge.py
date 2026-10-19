@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Zusammenführen auf Schlüsselebene und stabiles Schreiben."""
 
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -118,3 +119,177 @@ def test_write_is_stable(data_dir: Path):
     text = repo.save_sprint("demo", sprint).read_text()
     assert text.index("anna:") < text.index("zoe:")
     assert not list(path.parent.glob("*.tmp"))
+
+
+# --- Prognosen: Vereinigung über ``at`` ---------------------------------------------------------
+
+
+def prog(minute: int, comment: str = "", **more) -> dict:
+    entry = {"at": datetime(2026, 10, 18, 9, minute, 0), "forecast_ist": 20.0, **more}
+    if comment:
+        entry["comment"] = comment
+    return entry
+
+
+def sprint(*progs: dict, **more) -> dict:
+    return {"velocity": 10, "prognoses": list(progs), **more}
+
+
+def test_both_sides_append_a_prognosis_and_both_stay():
+    a, b, c = prog(0, "Start"), prog(10, "Alice"), prog(20, "Bob")
+    merged, conflicts = merge3(sprint(a), sprint(a, b), sprint(a, c))
+    assert conflicts == []
+    assert merged["prognoses"] == [a, b, c]
+
+
+def test_base_without_prognoses():
+    b, c = prog(10, "Alice"), prog(20, "Bob")
+    merged, conflicts = merge3({"velocity": 10}, sprint(b), sprint(c))
+    assert conflicts == [] and merged["prognoses"] == [b, c]
+    merged, conflicts = merge3({"velocity": 10}, sprint(b), {"velocity": 10, "prognoses": [c]})
+    assert conflicts == [] and merged["prognoses"] == [b, c]
+
+
+def test_same_at_and_same_content_is_one_entry():
+    a = prog(10, "gleich")
+    merged, conflicts = merge3(sprint(), sprint(a, prog(30, "x")), sprint(dict(a)))
+    assert conflicts == [] and merged["prognoses"] == [a, prog(30, "x")]
+
+
+def test_same_at_with_other_content_conflicts_only_on_that_entry():
+    start, mine, other = prog(0, "Start"), prog(10, "meine"), prog(10, "andere")
+    extra = prog(20, "nur Bob")
+    ours, theirs = sprint(start, mine), sprint(start, other, extra)
+    merged, conflicts = merge3(sprint(start), ours, theirs)
+    [conflict] = conflicts
+    at = "2026-10-18T09:10:00"
+    assert conflict.path == ("prognoses", f"[{at}]")
+    assert conflict.label == f"prognoses.[{at}]"
+    assert (conflict.ours, conflict.theirs) == (mine, other)
+    assert merged["prognoses"] == [start, mine, extra]  # ohne Wahl bleibt meine Seite
+    for choice, expected in (("ours", mine), ("theirs", other)):
+        merged, conflicts = merge3(sprint(start), ours, theirs, {conflict.path: choice})
+        assert conflicts == [] and merged["prognoses"] == [start, expected, extra]
+
+
+def test_one_side_deletes_or_changes_an_existing_prognosis():
+    a, b = prog(0, "a"), prog(10, "b")
+    c = prog(20, "neu")
+    base = sprint(a, b)
+    merged, conflicts = merge3(base, sprint(b), sprint(a, b, c))  # ich lösche a, andere hängen an
+    assert conflicts == [] and merged["prognoses"] == [b, c]
+    changed = prog(10, "geändert")
+    merged, conflicts = merge3(base, sprint(a, changed), sprint(a, b, c))
+    assert conflicts == [] and merged["prognoses"] == [a, changed, c]
+    # eine Seite löscht, die andere ändert denselben Eintrag: Konflikt nur dieses Eintrags
+    merged, conflicts = merge3(base, sprint(a), sprint(a, changed))
+    [conflict] = conflicts
+    assert conflict.ours is MISSING and conflict.theirs == changed
+    assert merged["prognoses"] == [a]
+    merged, _ = merge3(base, sprint(a), sprint(a, changed), {conflict.path: "theirs"})
+    assert merged["prognoses"] == [a, changed]
+
+
+def test_result_is_sorted_by_at_and_stable():
+    early, mid, late = prog(0), prog(10), prog(50)
+    merged, _ = merge3(sprint(), sprint(late, early), sprint(mid))
+    assert merged["prognoses"] == [early, mid, late]
+
+
+def test_at_as_datetime_and_as_text_is_the_same_time():
+    as_text = {**prog(10, "gleich"), "at": "2026-10-18T09:10:00"}
+    as_space = {**prog(10, "gleich"), "at": "2026-10-18 09:10:00"}
+    merged, conflicts = merge3(sprint(), sprint(prog(10, "gleich")), sprint(as_text))
+    assert conflicts == [] and len(merged["prognoses"]) == 1
+    other = prog(5, "früher")
+    merged, conflicts = merge3(sprint(), sprint(as_space, prog(20)), sprint(other))
+    assert conflicts == []
+    assert [p["at"] for p in merged["prognoses"]] == [other["at"], "2026-10-18 09:10:00",
+                                                       prog(20)["at"]]  # fmt: skip
+
+
+def test_zone_aware_and_naive_times_can_be_sorted_together():
+    aware = {**prog(10, "mit Zone"), "at": datetime(2026, 10, 18, 9, 10, tzinfo=UTC)}
+    merged, conflicts = merge3(sprint(), sprint(aware), sprint(prog(5)))
+    assert conflicts == [] and len(merged["prognoses"]) == 2
+
+
+def test_zone_aware_times_are_sorted_by_the_instant_not_the_wall_clock():
+    plus2 = {
+        **prog(0, "07:05 UTC"),
+        "at": datetime(2026, 10, 18, 9, 5, tzinfo=timezone(timedelta(hours=2))),
+    }
+    utc = {**prog(0, "09:03 UTC"), "at": datetime(2026, 10, 18, 9, 3, tzinfo=UTC)}
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(plus2))
+    assert conflicts == [] and merged["prognoses"] == [plus2, utc]
+
+
+def test_same_instant_in_different_offsets_is_the_same_time():
+    """``09:00+00:00`` und ``10:00+01:00`` sind derselbe Zeitpunkt, nur anders geschrieben."""
+    utc = {**prog(0, "gleich"), "at": datetime(2026, 10, 18, 9, 0, tzinfo=UTC)}
+    plus1 = {**utc, "at": datetime(2026, 10, 18, 10, 0, tzinfo=timezone(timedelta(hours=1)))}
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(plus1))
+    assert conflicts == [] and merged["prognoses"] == [utc]  # ein Eintrag, meine Schreibweise
+    other = {**plus1, "comment": "anders"}
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(other))
+    [conflict] = conflicts
+    assert conflict.path == ("prognoses", "[2026-10-18T09:00:00]")
+    assert (conflict.ours, conflict.theirs) == (utc, other)
+    assert merged["prognoses"] == [utc]
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(other), {conflict.path: "theirs"})
+    assert conflicts == [] and merged["prognoses"] == [other]
+    # als Text geschrieben ebenso
+    as_text = {**utc, "at": "2026-10-18T09:00:00+00:00"}
+    as_text_plus1 = {**utc, "at": "2026-10-18T10:00:00+01:00"}
+    merged, conflicts = merge3(sprint(), sprint(as_text), sprint(as_text_plus1))
+    assert conflicts == [] and merged["prognoses"] == [as_text]
+
+
+def test_base_with_empty_prognoses_key_counts_as_no_prognoses():
+    """``prognoses:`` ohne Wert (von Hand geschrieben) liest YAML als ``None``."""
+    b, c = prog(10, "Alice"), prog(20, "Bob")
+    merged, conflicts = merge3({"velocity": 10, "prognoses": None}, sprint(b), sprint(c))
+    assert conflicts == [] and merged["prognoses"] == [b, c]
+
+
+def test_microseconds_do_not_make_a_different_time():
+    """Wie beim Speichern (``replace(microsecond=0)``) zählt ``at`` auf die Sekunde genau."""
+    precise = {**prog(10, "gleich"), "at": datetime(2026, 10, 18, 9, 10, 0, 123456)}
+    merged, conflicts = merge3(sprint(), sprint(prog(10, "gleich")), sprint(precise))
+    assert conflicts == [] and len(merged["prognoses"]) == 1
+    other = {**precise, "comment": "anders"}
+    merged, conflicts = merge3(sprint(), sprint(prog(10, "gleich")), sprint(other))
+    [conflict] = conflicts
+    assert conflict.path == ("prognoses", "[2026-10-18T09:10:00]")
+    assert len(merged["prognoses"]) == 1
+
+
+@pytest.mark.parametrize(
+    "broken",
+    [
+        [{"comment": "ohne at"}],
+        [prog(10), prog(10, "doppelt")],
+        [{"at": "kein Zeitpunkt"}],
+    ],
+)
+@pytest.mark.parametrize("side", ["ours", "theirs", "base"])
+def test_missing_or_duplicate_at_falls_back_to_one_value(broken, side):
+    base, ours, theirs = sprint(prog(0)), sprint(prog(0), prog(20)), sprint(prog(0), prog(30))
+    if side == "base":
+        base = sprint(*broken)
+    elif side == "ours":
+        ours = sprint(*broken)
+    else:
+        theirs = sprint(*broken)
+    merged, conflicts = merge3(base, ours, theirs)
+    [conflict] = conflicts
+    assert conflict.path == ("prognoses",)  # die ganze Liste als ein Wert
+    assert merged["prognoses"] == ours["prognoses"]
+
+
+def test_other_lists_without_id_stay_one_value():
+    entry = prog(10)
+    _, conflicts = merge3({"notes": [entry]}, {"notes": [entry, prog(20)]},
+                               {"notes": [entry, prog(30)]})  # fmt: skip
+    [conflict] = conflicts
+    assert conflict.path == ("notes",)

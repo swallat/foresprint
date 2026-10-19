@@ -248,7 +248,7 @@ def test_new_team_form_explains_the_areas_and_saves_them_off(
     at = start(data_dir, monkeypatch)
     goto(at, "neues_team")
     at.text_input[0].set_value("team-b").run()
-    assert any("Welche Bereiche braucht das Team?" in m.value for m in at.markdown)
+    assert any("Ein Kürzel genügt." in m.value for m in at.markdown)
     for key in ("features.products", "features.po", "features.production"):
         assert at.selectbox(key=f"new-team-b-{key}").value == "aus"
     click(at, "Team anlegen")

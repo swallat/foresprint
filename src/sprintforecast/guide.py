@@ -185,7 +185,7 @@ WORKFLOW: list[Step] = [
         when="Vor dem Planning / PO-Planung",
         title="Forecast ansehen",
         text="Zeigt den Forecast PLAN für den laufenden und die kommenden Sprints – die "
-        "empfohlene Planungsmenge, aufgeteilt in Roadmap und Kleinkram. Die Startseite führt "
+        "empfohlene Planungsmenge, aufgeteilt in Verplanbar und Kleinkram. Die Startseite führt "
         "über drei Aufgaben (Sprint vorbereiten, Planning, Sprint abschließen) zur jeweils "
         "nächsten sinnvollen Seite.",
         page="forecast",
@@ -221,7 +221,7 @@ WORKFLOW: list[Step] = [
         cli="sprintforecast review TEAM --commit",
     ),
     Step(
-        when="Bei Roadmap-Fragen",
+        when="Bei Fragen zur Fertigstellung",
         title="Analyse",
         text="Ergänzend zum Forecast: Bandbreite (konservativ/optimistisch), Fokusfaktor, "
         "Puffer-Empfehlung und „Wann ist es fertig?“ für eine Restmenge.",
@@ -316,9 +316,10 @@ TERMS: list[tuple[str, str]] = [
         "Nie negativ.",
     ),
     (
-        "Roadmap",
-        "Reservierter Anteil des Forecast PLAN für Roadmap-Themen (Standard 80 %). Es ist eine "
-        "Aufteilung der Prognose, kein weiterer Wert: Roadmap + Kleinkram = Forecast PLAN.",
+        "Verplanbarer Anteil",
+        "Reservierter Anteil des Forecast PLAN für planbare Themen (Standard 80 %); der Rest "
+        "heißt „Kleinkram“. Es ist eine Aufteilung der Prognose, kein weiterer Wert: "
+        "Verplanbar + Kleinkram = Forecast PLAN.",
     ),
     (
         "Funktionsbereiche",
@@ -343,7 +344,7 @@ TERMS: list[tuple[str, str]] = [
     (
         "Standard je Produkt",
         "Verfügbare Menge / Anzahl betreuter Produkte. Verfügbar = Forecast PLAN (beim "
-        "Planning eingefroren) oder nur dessen Roadmap-Anteil (Einstellung).",
+        "Planning eingefroren) oder nur dessen verplanbarer Anteil (Einstellung).",
     ),
     ("Saldo je Produkt", "Σ Erledigt − Σ Standard über mehrere Sprints."),
     (
@@ -361,6 +362,18 @@ GIT_HELP: list[tuple[str, str]] = [
         "die Änderungen der anderen vom Server, führt beides zusammen und lädt das Ergebnis "
         "hoch. Deine eigenen Änderungen sind dadurch immer gesichert, bevor etwas Fremdes "
         "dazukommt. Es gilt das einfache Modell „ein Branch, immer synchron halten“.",
+    ),
+    (
+        "Was hat sich geändert?",
+        "Bei offenen Änderungen zeigt der Git-Bereich vor „Speichern und teilen“ und „Änderungen "
+        "committen“ je Datei, was sich geändert hat: bei geänderten und umbenannten "
+        "YAML-Dateien jeden Wert mit Vorher und Nachher, bei neuen und gelöschten Dateien nur "
+        "die Art. Verschachtelte Werte stehen mit Punkten, Einträge mit Kennung in eckigen "
+        "Klammern, z. B. people.[anna].fte. Lange Werte sind gekürzt. Dateien ohne lesbare "
+        "Werte (Excel, Berichte, kaputtes YAML, Dateien über 1 MiB oder mit über 200 000 "
+        "Einträgen) tragen den Hinweis „keine Wertansicht“. Ausgewertet werden die ersten 25 "
+        "Dateien, insgesamt höchstens 4 MiB; weitere Dateien tragen den Hinweis „nicht "
+        "ausgewertet“.",
     ),
     (
         "Stand in der Seitenleiste",
@@ -625,7 +638,11 @@ COMMANDS: list[tuple[str, str]] = [
         "Excel-Liste einlesen (Vorschau, dann schreiben)",
     ),
     ("sprintforecast init TEAM", "Neues Team anlegen"),
-    ("sprintforecast pruefen [--streng]", "Alle Daten prüfen (für CI und vor dem Commit)"),
+    (
+        "sprintforecast pruefen [--streng]",
+        "Alle Daten prüfen (für CI und vor dem Commit); meldet auch doppelte Schlüssel und "
+        "leere Zahlenfelder",
+    ),
     ("sprintforecast datenordner [PFAD]", "Gemerkten Datenordner anzeigen bzw. setzen"),
     ("sprintforecast sprache [de|en]", "Sprache der Oberfläche anzeigen oder einstellen"),
     (

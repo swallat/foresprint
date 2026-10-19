@@ -12,12 +12,16 @@ from __future__ import annotations
 import contextlib
 import copy
 import os
+import re
 import subprocess
 import sys
 import threading
 import time
+import unicodedata
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import date, datetime
+from itertools import islice
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -27,14 +31,13 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from sprintforecast import updater
 from sprintforecast.analysis import (
-    MIN_SAMPLES,
+    available_count,
     average_focus_factor,
     band,
     buffer_hint,
     completion,
-    few_samples,
     focus_factor,
-    sample_count,
+    plan_basis,
 )
 from sprintforecast.calendar import (
     countries,
@@ -47,7 +50,13 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
-from sprintforecast.engine import MIN_THIN_HISTORY, UNSURE_SOURCES, gaps_in_window
+from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes
+from sprintforecast.engine import (
+    MIN_THIN_HISTORY,
+    UNSURE_SOURCES,
+    CapacitySource,
+    gaps_in_window,
+)
 from sprintforecast.forecast import (
     Forecast,
     TimelineEntry,
@@ -61,6 +70,8 @@ from sprintforecast.forecast import (
 from sprintforecast.formulas import fte_change_note, general, plain_explanation, steps
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
+    _BIDI_CONTROLS,
+    _BLANKED_CATEGORIES,
     NO_WINDOW,
     GitError,
     NewBranchError,
@@ -76,7 +87,9 @@ from sprintforecast.git import (
     init_data_repository,
     md_code,
     md_code_lines,
+    md_plain,
     new_branch_error,
+    on_invalidate,
     parse_remote_url,
     remote_special_error,
     secret_in_url_error,
@@ -166,11 +179,15 @@ from sprintforecast.protocol import (
     save_with_protocol,
 )
 from sprintforecast.report import (
+    absence_derived_hint,
+    absence_derived_note,
+    absence_derived_remedy,
     absence_status_label,
     band_note,
     capacity_label,
     capacity_source_note,
     completion_note,
+    few_samples_note,
     fmt,
     fmt_capacity,
     pct,
@@ -178,6 +195,7 @@ from sprintforecast.report import (
     render,
     source_label,
     status,
+    window_hint,
 )
 from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
@@ -384,6 +402,31 @@ def help_text(key: str) -> str:
     return f"{t(f.what)}\n\n{t('Quelle')}: {t(f.source)}\n\n{t('Beispiel')}: {t(f.example)}"
 
 
+# Einleitung einer Seite: ein Leitsatz bleibt sichtbar (höchstens zwei Zeilen), alles Weitere
+# steht aufklappbar. Die Breite des Leitsatzes ist begrenzt, damit er lesbar bleibt.
+_INTRO_CSS = "<style>div.st-key-page-intro { max-width: 72ch; }</style>"
+
+
+def page_intro(lead: str, details: str | None = None, title: str | None = None) -> None:
+    """Leitsatz der Seite; ``details`` erscheinen in einem Expander „Mehr dazu“."""
+    st.html(_INTRO_CSS)
+    with st.container(key="page-intro"):
+        st.markdown(lead)
+    if details:
+        with st.expander(title or t("Mehr dazu"), icon=":material/info:"):
+            st.markdown(details)
+
+
+def field_help(key: str) -> str:
+    """Hilfetext eines Feldes aus guide.py als drei beschriftete Zeilen (für den Expander)."""
+    f = FIELDS[key]
+    return (
+        f"**{t('Was')}** · {t(f.what)}  \n"
+        f"**{t('Quelle')}** · {t(f.source)}  \n"
+        f"**{t('Beispiel')}** · {t(f.example)}"
+    )
+
+
 def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
     return pd.DataFrame([{t("Kennzahl"): s.name, t("Formel"): s.formula} for s in steps(fc, entry)])
 
@@ -506,6 +549,30 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
     if not data.sprint(s.id):
         text += t(" · noch keine Sprintdatei")
     return text
+
+
+def sprints_summary(data: TeamData, sprints: list[Sprint], today: date) -> str:
+    """Eine Zeile für mehrere Sprints: Arbeitstage (gemeinsam oder je Sprint), Sprints mit
+    Feiertagen, abgeschlossene Sprints und die Zahl der Sprints ohne Sprintdatei."""
+    region, country = data.team.capacity.region, data.team.capacity.country
+    workdays = {s.id: team_workdays(data.team, s.start, s.end) for s in sprints}
+    counts = {len(days) for days in workdays.values()}
+    week = workweek_label(data.team)
+    if len(counts) == 1:
+        parts = [t("alle Sprints {days} Arbeitstage ({week})", days=counts.pop(), week=week)]
+    else:
+        parts = [
+            t("{days} Arbeitstage ({week}) im Sprint {id}", days=len(days), week=week, id=sid)
+            for sid, days in workdays.items()
+        ]
+    for sid, days in workdays.items():
+        if hol := [f"{d:%d.%m.}" for d in days if holiday_name(d, region, country)]:
+            parts.append(t("{id}: Feiertage {dates}", id=sid, dates=", ".join(hol)))
+    if done := [s.id for s in sprints if s.end <= today]:
+        parts.append(t("abgeschlossen: {ids}", ids=", ".join(done)))
+    if missing := sum(1 for s in sprints if not data.sprint(s.id)):
+        parts.append(t("{count} Sprint(s) noch ohne Sprintdatei", count=missing))
+    return " · ".join(parts)
 
 
 # --- Seiten ---------------------------------------------------------------------------
@@ -684,7 +751,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc, e, "plan")
             + "\n\n"
             + t(
-                "Kapazität {capacity} PT · Roadmap {roadmap} · Kleinkram {small}",
+                "Kapazität {capacity} PT · Verplanbar {roadmap} · Kleinkram {small}",
                 capacity=capacity_label(e),
                 roadmap=fmt(e.result.roadmap, 2),
                 small=fmt(e.result.small_stuff, 2),
@@ -716,6 +783,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
     frozen_col, diff_col = t("Prognose beim Planning ({unit})", unit=unit), t("Differenz")
     show_frozen = any(e.sprint.forecast_plan is not None for e in upcoming)
+    plannable_col = t("Verplanbar")
     small_col = t("Kleinkram")
     rows = []
     for e in upcoming:
@@ -733,7 +801,11 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             row[frozen_col] = fmt(view.frozen)
             row[diff_col] = "–" if view.difference is None else _signed(view.difference)
         rows.append(
-            row | {"Roadmap": fmt(e.result.roadmap, 2), small_col: fmt(e.result.small_stuff, 2)}
+            row
+            | {
+                plannable_col: fmt(e.result.roadmap, 2),
+                small_col: fmt(e.result.small_stuff, 2),
+            }
         )
     st.dataframe(
         pd.DataFrame(rows),
@@ -742,7 +814,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
             capacity_col: st.column_config.TextColumn(help=general("capacity")),
             trend_col: st.column_config.TextColumn(help=general("trend")),
             plan_col: st.column_config.TextColumn(help=general("plan")),
-            "Roadmap": st.column_config.TextColumn(help=general("roadmap")),
+            plannable_col: st.column_config.TextColumn(help=general("roadmap")),
             small_col: st.column_config.TextColumn(help=general("small_stuff")),
         },
     )
@@ -759,6 +831,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     source=source_label(source),
                 )
             )
+    _quote_note(fc, upcoming)
     current = fc.current
     if current and current.result.planning_total is not None:
         st.info(
@@ -836,7 +909,7 @@ def _excel_download(fc: Forecast, team_key: str) -> None:
         icon=":material/download:",
         help=t(
             "Enthält Sprintwerte als Eingaben und die Berechnung als Excel-Formeln (n. Velocity, "
-            "Trend, Forecast PLAN, Roadmap), Trend-Diagramme und die Aufteilung nach "
+            "Trend, Forecast PLAN, Verplanbar), Trend-Diagramme und die Aufteilung nach "
             "Produktionszugriff und je Produkt. Wird nicht im Datenordner gespeichert."
         ),
     )
@@ -845,26 +918,22 @@ def _excel_download(fc: Forecast, team_key: str) -> None:
 def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
     """Hinweise zur Belastbarkeit direkt an den Kacheln: wenig Daten, dünne Historie und ein
     Trend-Modus, der Rauschen fortschreibt."""
-    if sample_count(fc) < MIN_THIN_HISTORY:
+    # Ob es schon einen Forecast gibt, hängt an allen verfügbaren Werten, nicht an der auf das
+    # Fenster gedeckelten Stichprobe (die gehört zur Rechnung: Spanne, „Wenig Daten“).
+    if available_count(fc) < MIN_THIN_HISTORY:
         st.info(
             t(
                 "Noch kein Forecast: bisher {samples} Sprint(s) mit Velocity. Ab {min} Sprints "
                 "entsteht ein erster Forecast (mit Hinweis „Historie dünn“); die Velocity "
                 "im Review erfassen oder die Historie über ein Import-Plugin übernehmen.",
-                samples=sample_count(fc),
+                samples=available_count(fc),
                 min=MIN_THIN_HISTORY,
             )
         )
-    if sample_count(fc) and few_samples(fc):
-        st.warning(
-            t(
-                "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die Spanne "
-                "belastbarer). Plan und Spanne sind grobe Hinweise.",
-                samples=sample_count(fc),
-                min=MIN_SAMPLES,
-            )
-        )
-    series = [x.result.normalized_velocity.value for x in fc.history()]
+    if note := few_samples_note(fc):
+        st.warning(note)
+    # Dieselben Sprints wie die Rechnung (abgeschlossene und laufender), ohne Zukunftssprints.
+    series = [x.result.normalized_velocity.value for x in plan_basis(fc)]
     if gaps := gaps_in_window(series, fc.data.team.forecast.window):
         st.info(
             t(
@@ -892,9 +961,19 @@ def _forecast_notes(fc: Forecast, upcoming: list[TimelineEntry]) -> None:
         )
 
 
+def _quote_note(fc: Forecast, entries: list[TimelineEntry]) -> None:
+    """Kompakter Hinweis, wenn die Kapazität dieser Sprints aus einer unsicheren Fehltage-Quote
+    geschätzt ist (Sprints, die nur abgeleitet als „niemand fehlte“ zählen). Ausführlich auf
+    der Seite Fehltage und im Rechenweg."""
+    if any(e.result.plan_capacity_source is CapacitySource.ESTIMATED for e in entries) and (
+        note := absence_derived_hint(fc.absences)
+    ):
+        st.caption(f":material/info: {note}")
+
+
 def _formula_help(fc: Forecast, e: TimelineEntry | None, key: str) -> str:
     """Tooltip-Text: symbolische Formel einer Kennzahl."""
-    if e is None or (s := formula_step(fc, e, key)) is None:
+    if e is None or (s := formula_step(fc, e, key, code=True)) is None:
         return ""
     return s.formula
 
@@ -1003,14 +1082,29 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     # mehrere Sprints.
     if (board_sprint := sprint_select(data, fc, "absences-sprint")) is not None:
         _board_nav(data, board_sprint, "fehltage")
-    st.markdown(help_text("absences").replace("\n\n", "  \n"))
+    page_intro(
+        t(
+            "Fehltage je Person und Sprint eintragen: Urlaub, Gleitzeit, Schulung, andere "
+            "Projekte. Halbe Tage als 0,5. Feiertage nicht eintragen, die kennt das Tool über "
+            "Land und Bundesland."
+        ),
+        field_help("absences")
+        + "  \n"
+        + t(
+            "Fehltage in Arbeitstagen der Person (0,5 = halber Tag), nicht in Personentagen: "
+            "Wer in Teilzeit arbeitet, trägt die Tage ein, an denen sonst gearbeitet würde; "
+            "die FTE rechnet die Kapazität selbst herunter."
+        ),
+        t("Mehr dazu: was zählt, woher die Zahlen kommen"),
+    )
     if not data.people:
         st.warning(t("Noch keine Personen erfasst – zuerst auf der Seite **Personen** anlegen."))
         return
-    count = st.number_input(
+    left, right = st.columns(2)
+    count = left.number_input(
         t("Anzahl Sprints"), min_value=1, max_value=26, value=data.team.forecast.horizon + 1
     )
-    past = st.number_input(
+    past = right.number_input(
         t("Vergangene Sprints"),
         min_value=0,
         max_value=26,
@@ -1026,25 +1120,23 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if not sprints:
         st.info(t("Keine Sprints gefunden."))
         return
-    for s in sprints:
-        caption = sprint_caption(data, s)
-        st.caption(caption + (f" · {t('abgeschlossen')}" if s.end <= fc.today else ""))
+    # Zeitraum, Arbeitstage und Feiertage je Sprint stehen als Tooltip am Spaltenkopf; sichtbar
+    # bleibt eine Zeile mit dem, was alle Sprints gemeinsam haben und was abweicht.
+    st.caption(sprints_summary(data, sprints, fc.today))
+    page_link("sprints", t("Zeiträume im Sprintkalender"))
     rows = absence_matrix(data.people, sprints)
     column_config: dict[str, Any] = {
         "id": None,
         "Person": st.column_config.TextColumn(t("Person"), disabled=True),
     }
     for s in sprints:
+        caption = sprint_caption(data, s)
         column_config[s.id] = st.column_config.NumberColumn(
             s.id,
             min_value=0.0,
             max_value=float(len(team_workdays(data.team, s.start, s.end))),
             step=0.5,
-            help=t(
-                "Fehltage in Arbeitstagen der Person (0,5 = halber Tag), nicht in Personentagen: "
-                "Wer in Teilzeit arbeitet, trägt die Tage ein, an denen sonst gearbeitet würde; "
-                "die FTE rechnet die Kapazität selbst herunter."
-            ),
+            help=caption + (f" · {t('abgeschlossen')}" if s.end <= fc.today else ""),
         )
     edited = st.data_editor(
         pd.DataFrame(rows),
@@ -1083,6 +1175,10 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 "für unbekannte Fehltage ohne Abzug gerechnet (Kalender und Personenliste)."
             )
         )
+        if short := absence_derived_note(history):
+            st.info(short, icon=":material/info:")
+            with st.expander(t("Was tun bei unsicherer Quote?")):
+                st.markdown(absence_derived_remedy(data.team.capacity.absence_history))
     to_save = sprints_to_save(data, sprints, edited_sprints)
     preview = with_sprints(data, to_save)
     fc_preview = build_forecast(preview, fc.today)
@@ -1206,19 +1302,25 @@ def _reset_absences(repo: Repository, data: TeamData, today: date) -> None:
 
 def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Sprintkalender"))
-    st.markdown(
+    page_intro(
         t(
-            "Künftige Sprints entstehen automatisch aus dem Kalender: Jeder Sprint beginnt am Tag "
-            "nach dem letzten Tag des vorherigen und dauert {days} Kalendertage (Einstellung "
-            "*Sprintlänge*). Eine Sprintdatei wird angelegt, sobald etwas für den Sprint "
-            "gespeichert wird – oder hier mit **Sprints anlegen**.  \n"
-            "Weicht ein Sprint ab (z. B. drei Wochen über Weihnachten), den **letzten Tag** "
-            "ändern; die folgenden Sprints verschieben sich mit. Arbeitstage zählen laut "
-            "Arbeitswoche des Teams ({week}) vom Start bis einschließlich zum letzten Tag, "
-            "Feiertage werden erst bei der Kapazität abgezogen.",
+            "Sprints folgen automatisch aufeinander, je {days} Kalendertage. Hier lassen sie "
+            "sich vorab anlegen und einzelne verlängern oder verkürzen.",
+            days=data.team.sprint.length_days,
+        ),
+        t(
+            "**Reihenfolge:** Jeder Sprint beginnt am Tag nach dem letzten Tag des vorherigen "
+            "und dauert {days} Kalendertage (Einstellung *Sprintlänge*).  \n"
+            "**Abweichender Sprint:** z. B. drei Wochen über Weihnachten: den **letzten Tag** "
+            "ändern; die folgenden Sprints verschieben sich mit.  \n"
+            "**Arbeitstage:** laut Arbeitswoche des Teams ({week}) vom Start bis einschließlich "
+            "zum letzten Tag; Feiertage werden erst bei der Kapazität abgezogen.  \n"
+            "**Sprintdatei:** wird angelegt, sobald etwas für den Sprint gespeichert wird, oder "
+            "hier mit **Sprints anlegen**.",
             days=data.team.sprint.length_days,
             week=workweek_label(data.team),
-        )
+        ),
+        t("Abweichende Sprints, Arbeitstage, Sprintdateien"),
     )
     count = st.number_input(t("Anzahl Sprints"), min_value=1, max_value=26, value=6, key="cal-n")
     sprints = absence_sprints(data, fc, int(count))
@@ -1239,7 +1341,11 @@ def page_calendar(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "Letzter Tag": st.column_config.DateColumn(
                 t("Letzter Tag"),
                 format="DD.MM.YYYY",
-                help=t("Der nächste Sprint beginnt am Tag danach."),
+                help=t(
+                    "Der nächste Sprint beginnt am Tag danach. Weicht ein Sprint ab (z. B. drei "
+                    "Wochen über Weihnachten), hier den letzten Tag ändern; die folgenden "
+                    "Sprints verschieben sich mit."
+                ),
             ),
             "Arbeitstage": st.column_config.NumberColumn(
                 t("Arbeitstage"),
@@ -1435,7 +1541,11 @@ def _others() -> str:
 
 
 def _standard_text(d: Distribution, unit: str) -> str:
-    basis = t("Roadmap-Anteil des Forecast PLAN") if d.basis.value == "roadmap" else "Forecast PLAN"
+    basis = (
+        t("Verplanbarer Anteil des Forecast PLAN")
+        if d.basis.value == "roadmap"
+        else "Forecast PLAN"
+    )
     if d.available is None or not d.active_count:
         return t(
             "Standard: {basis} / Anzahl betreuter Produkte – noch nicht berechenbar.", basis=basis
@@ -1983,6 +2093,8 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         fmt(entry.result.plan) if entry else "–",
         help=_formula_help(fc_after, entry, "plan"),
     )
+    if entry is not None:
+        _quote_note(fc_after, [entry])
     if after.capacity is not None:
         st.info(
             t(
@@ -2089,7 +2201,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         )
         rest = rest[1:]
     rest[0].metric(
-        f"Roadmap ({pct(data.team.forecast.roadmap_share)})",
+        t("Verplanbar ({share})", share=pct(data.team.forecast.roadmap_share)),
         fmt(r.roadmap, 2),
         help=_formula_help(fc, entry, "roadmap"),
     )
@@ -2100,6 +2212,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.caption(note)
     if split := _production_split_note(fc, entry, data, unit):
         st.caption(split)
+    _quote_note(fc, [entry])
     with st.expander(t("Rechenweg"), icon=":material/function:"):
         _rechenweg(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
@@ -2570,8 +2683,8 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Analyse"))
     st.caption(
         t(
-            "Ergänzt den Forecast. Die Werte auf der Seite **Forecast** (Forecast PLAN, Roadmap, "
-            "Kleinkram) bleiben unverändert."
+            "Ergänzt den Forecast. Die Werte auf der Seite **Forecast** (Forecast PLAN, "
+            "Verplanbar, Kleinkram) bleiben unverändert."
         )
     )
     unit = data.team.unit.value
@@ -2605,13 +2718,13 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
     with st.form("completion"):
         rest = st.number_input(
             t("Restmenge ({unit})", unit=unit), min_value=0.0, value=None, step=1.0, key="rest",
-            help=t("Noch offene Arbeit, z. B. die Summe eines Roadmap-Themas."),
+            help=t("Noch offene Arbeit, z. B. die Summe eines Themas."),
         )  # fmt: skip
         basis = st.radio(
             t("Verfügbar je Sprint"),
             ["roadmap", "total"],
             format_func=lambda k: (
-                t("Roadmap-Anteil ({share})", share=pct(share))
+                t("Verplanbarer Anteil ({share})", share=pct(share))
                 if k == "roadmap"
                 else t("gesamter Forecast")
             ),
@@ -2627,7 +2740,7 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
             key="project_share",
             help=t(
                 "Welcher Teil der oben gewählten Kapazität in dieses Projekt fließt – z. B. 50, "
-                "wenn parallel ein zweites Roadmap-Thema gleich stark bearbeitet wird."
+                "wenn parallel ein zweites Thema gleich stark bearbeitet wird."
             ),
         )
         submitted = st.form_submit_button(t("Berechnen"), type="primary")
@@ -2695,7 +2808,13 @@ def page_analysis(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 samples=result.samples,
             )
             if note := completion_note(result.samples):
-                st.warning(note)
+                hint = window_hint(
+                    data.team.forecast.window,
+                    result.samples,
+                    available_count(fc),
+                    simulation=True,
+                )
+                st.warning(f"{note} {hint}".strip())
             if result.trend_capacity_sprints:
                 listed = ", ".join(result.trend_capacity_sprints[:4])
                 if len(result.trend_capacity_sprints) > 4:
@@ -2787,7 +2906,7 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
 
 
 def _available_text(d: Distribution, data: TeamData, unit: str) -> str:
-    """Woraus sich die verteilbare Menge ergibt (Forecast PLAN bzw. dessen Roadmap-Anteil)."""
+    """Woraus sich die verteilbare Menge ergibt (Forecast PLAN bzw. dessen verplanbarer Anteil)."""
     return _available_base(d, data, unit) + _frozen_note(d, unit)
 
 
@@ -2798,7 +2917,7 @@ def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
     if d.basis is ProductBasis.ROADMAP:
         share = data.team.forecast.roadmap_share
         return t(
-            "Verteilbar = Roadmap-Anteil des Forecast PLAN{frozen}: {plan} {unit} × {share} = "
+            "Verteilbar = Verplanbarer Anteil des Forecast PLAN{frozen}: {plan} {unit} × {share} = "
             "{available} {unit}. Der Kleinkram-Anteil wird nicht auf Produkte verteilt "
             "(Einstellung „Standardverteilung je Produkt aus“).",
             frozen=frozen,
@@ -2990,8 +3109,12 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             help=_formula_help(fc_view, shown, "capacity"),
         )
         trend_col.metric(t("n. Velocity-Trend"), fmt(shown.result.normalized_velocity.trend, 2))
-        if note := band_note(fc_view, shown, without_assumption=bool(assumed)):
+        # Die Spanne rechnet ohne die Annahme (sonst ginge die angenommene Velocity des laufenden
+        # Sprints in sie ein).
+        base_shown = fc_base.entry(sprint.id) or shown
+        if note := band_note(fc_base, base_shown, without_assumption=bool(assumed)):
             st.caption(note)
+        _quote_note(fc_view, [shown])
     if assumed:
         if shown is not None and (plan_step := formula_step(fc_view, shown, "plan")):
             st.caption(
@@ -3206,14 +3329,18 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Produkte"))
-    st.markdown(
+    page_intro(
         t(
-            "Produkte, die das Team betreut – mit verantwortlichem PO (optional) und Zeitraum.  \n"
-            "**Produkt abgegeben:** **bis** setzen statt löschen – sonst fehlen die Werte "
+            "Eine Zeile je Produkt, das das Team betreut, mit Zeitraum und optional PO. Zeilen "
+            "nie löschen, sondern mit **bis** beenden."
+        ),
+        t(
+            "**Produkt abgegeben:** **bis** setzen statt löschen, sonst fehlen die Werte "
             "vergangener Sprints in der Auswertung.  \n"
             "**Neues Produkt:** Zeile ergänzen, **ab** = erster betreuter Tag (leer = schon "
             "immer)."
-        )
+        ),
+        t("Produkt abgeben oder neu aufnehmen"),
     )
     show_former = st.toggle(t("Ehemalige anzeigen"), value=False, key="show_former_products")
     rows, hidden = product_table(data.products, fc.today, show_former)
@@ -3285,14 +3412,20 @@ def page_product_list(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_people(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Personen"))
-    st.markdown(
+    page_intro(
         t(
-            "Eine Zeile je Zeitraum im Team.  \n"
-            "**Austritt:** in der Zeile **bis** setzen – nicht löschen, sonst ändern sich "
-            "Kapazitäten und Fehltage vergangener Sprints.  \n"
-            "**FTE-Änderung:** in der bisherigen Zeile **bis** setzen und eine neue Zeile mit "
-            "**gleichem Namen** und neuem FTE-Anteil anlegen."
-        )
+            "Eine Zeile je Person und Zeitraum im Team. Zeilen nie löschen, sondern mit "
+            "**bis** beenden."
+        ),
+        t(
+            "**Austritt:** in der Zeile **bis** setzen. Löschen würde Kapazität und Fehltage "
+            "vergangener Sprints verändern.  \n"
+            "**FTE-Änderung:** bisherige Zeile mit **bis** beenden, neue Zeile mit **gleichem "
+            "Namen** und neuem FTE-Anteil anlegen.  \n"
+            "**Teilzeit:** nur einmal abbilden: volle Arbeitswoche mit FTE 0,8 *oder* "
+            "Vier-Tage-Woche mit FTE 1."
+        ),
+        t("Austritt oder FTE-Änderung eintragen"),
     )
     show_former = st.toggle(t("Ehemalige anzeigen"), value=False, key="show_former")
     rows, hidden = people_table(data.people, fc.today, show_former)
@@ -3557,18 +3690,11 @@ def page_settings(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 def page_new_team(repo: Repository) -> None:
     st.header(t("Neues Team anlegen"))
-    st.markdown(
+    page_intro(
         t(
-            "**Welche Bereiche braucht das Team?** Drei Bereiche sind optional und zunächst "
-            "**aus**; sie lassen sich unten jetzt oder später unter **Einstellungen** "
-            "zuschalten:  \n"
-            "• **Produktverteilung** – das Team betreut mehrere Produkte, die Sprint-Menge wird "
-            "darauf verteilt (Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt).  \n"
-            "• **Zuordnung PO** – jedes Produkt hat einen Product Owner, Summen je PO "
-            "(nur zusammen mit der Produktverteilung sinnvoll).  \n"
-            "• **Produktionszugriff** – nur ein Teil der Personen darf bestimmte Tickets "
-            "bearbeiten; es wird erfasst, wie viel Menge davon betroffen ist, mit "
-            "Engpass-Hinweis."
+            "Ein Kürzel genügt. Die Bereiche **Produktverteilung**, **Zuordnung PO** und "
+            "**Produktionszugriff** sind optional und zunächst aus; was sie tun, steht am "
+            "jeweiligen Feld, und sie lassen sich jederzeit unter **Einstellungen** ändern."
         )
     )
     key = (
@@ -4238,7 +4364,10 @@ def page_check(repo: Repository) -> None:
             continue
         st.subheader(key)
         for i in issues:
-            (st.error if i.level is Level.ERROR else st.warning)(f"{i.where}: {i.message}")
+            # Ort und Text enthalten Namen aus den Dateien (Personen, Produkte, Schlüssel): nie
+            # als Markdown deuten (Links, Bilder, Formatierung).
+            show = st.error if i.level is Level.ERROR else st.warning
+            show(f"{md_code(i.where)}: {md_plain(i.message)}")
 
 
 def page_help(repo: Repository) -> None:
@@ -4847,6 +4976,209 @@ def _status_text(state: SyncState) -> str:
     return " · ".join(parts)
 
 
+_VIEW_FILES = 25
+_VIEW_ROWS = MAX_VALUES
+_VIEW_TEXT = 80
+
+
+def _view_clean(text: str) -> str:
+    """Zeilenumbruch und Tabulator sichtbar machen, Steuerzeichen der Schreibrichtung entfernen,
+    übrige Steuerzeichen zu Leerzeichen (wie :func:`md_code`)."""
+    text = text.replace("\n", "⏎").replace("\t", "⇥")
+    return "".join(
+        "" if c in _BIDI_CONTROLS else " " if unicodedata.category(c) in _BLANKED_CATEGORIES else c
+        for c in text
+    )
+
+
+_BOUND_ITEMS = 1000  # Einträge je Liste oder Objekt
+_BOUND_TEXT = 1000  # Zeichen je Text
+_BOUND_NODES = 5000  # Knoten je Wert
+_BOUND_DEPTH = 8
+_BOUND_BITS = 128  # größere Ganzzahlen zeigt die Ansicht nur gekürzt
+
+
+class _Raw(str):
+    """Bereits fertiger Text in der Ansicht (Kürzung, große Zahl)."""
+
+
+class _ViewDumper(yaml.SafeDumper):
+    pass
+
+
+_ViewDumper.add_representer(
+    _Raw, lambda dumper, data: dumper.represent_scalar("tag:yaml.org,2002:str", str(data))
+)
+
+
+def _bound(value: Any, left: list[int], depth: int = 0) -> Any:
+    """Kürzt ``value`` auf einen Ausschnitt, der für eine Zelle von 80 Zeichen reicht (Tiefe,
+    Anzahl der Einträge und Knoten, Länge der Texte). Große Ganzzahlen werden nicht gedumpt:
+    ``yaml.safe_dump`` und ``str`` scheitern ab 4300 Ziffern."""
+    left[0] -= 1
+    if left[0] < 0 or depth > _BOUND_DEPTH:
+        return _Raw("…")
+    if isinstance(value, bool) or value is None or isinstance(value, (float, date)):
+        return value
+    if isinstance(value, int):
+        if value.bit_length() <= _BOUND_BITS:
+            return value
+        return _Raw(f"{'-' if value < 0 else ''}{hex(abs(value))[:14]}… ({value.bit_length()} Bit)")
+    if isinstance(value, str):
+        return value if len(value) <= _BOUND_TEXT else _Raw(value[:_BOUND_TEXT] + "…")
+    if isinstance(value, dict):
+        out: dict[Any, Any] = {}
+        for i, (k, v) in enumerate(value.items()):
+            if i >= _BOUND_ITEMS:
+                out[_Raw("…")] = _Raw("…")
+                break
+            out[_bound(k, left, depth + 1)] = _bound(v, left, depth + 1)
+        return out
+    if isinstance(value, list):
+        items = [_bound(v, left, depth + 1) for v in value[:_BOUND_ITEMS]]
+        if len(value) > _BOUND_ITEMS:
+            items.append(_Raw("…"))
+        return items
+    if isinstance(value, (set, frozenset)):
+        shown: set[Any] = {_bound(v, left, depth + 1) for v in islice(value, _BOUND_ITEMS)}
+        if len(value) > _BOUND_ITEMS:
+            shown.add(_Raw("…"))
+        return shown
+    if isinstance(value, (bytes, bytearray)):
+        return _Raw(f"bytes, {len(value)} Byte")
+    try:  # alle übrigen Typen: als begrenzter Text
+        return _Raw(repr(value)[:_BOUND_TEXT])
+    except Exception:
+        return _Raw(t("(Wert nicht darstellbar)"))
+
+
+def _view_text(value: object) -> str:
+    """Wert in der Schreibweise der Datei (``null``, ``true``, ``'1'`` für Text); fehlend „–“.
+    Der Wert wird vorher gekürzt (:func:`_bound`), damit große Werte schnell gehen."""
+    if value is MISSING:
+        return "–"
+    try:
+        text = yaml.dump(
+            _bound(value, [_BOUND_NODES]),
+            Dumper=_ViewDumper,
+            allow_unicode=True,
+            default_flow_style=True,
+            width=1_000_000,
+        ).strip()
+        text = text.removesuffix("\n...").strip()
+    except Exception:  # eine Zelle darf nie die Seite stoppen
+        try:
+            text = repr(value)[:_BOUND_TEXT]
+        except Exception:
+            text = t("(Wert nicht darstellbar)")
+    return _view_clean(text)
+
+
+def _formula_safe(text: str, value: object = None) -> str:
+    """Tabellen-Export: Text, den Excel als Formel läse, bekommt ein Apostroph (nur Anzeige).
+    Zahlen bleiben, wie sie sind."""
+    # Nur echte Zahlen im Zahlenformat bleiben; die Kurzform großer Zahlen und ``-.inf`` nicht.
+    number = (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and re.fullmatch(r"-?\d+(\.\d+)?(e[+-]?\d+)?", text) is not None
+    )
+    if not number and text.startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
+def _view_clip(text: str, start: int) -> str:
+    text = ("…" if start else "") + text[start:]
+    return text if len(text) <= _VIEW_TEXT else text[: _VIEW_TEXT - 1] + "…"
+
+
+def _view_pair(old: object, new: object) -> tuple[str, str]:
+    """Vorher und Nachher als Tabellenzellen. Sind sie zu lang, beginnen beide kurz vor der
+    ersten Abweichung, damit der Unterschied zu sehen ist."""
+    a, b = _view_text(old), _view_text(new)
+    if len(a) > _VIEW_TEXT or len(b) > _VIEW_TEXT:
+        common = next((i for i, (x, y) in enumerate(zip(a, b, strict=False)) if x != y), None)
+        common = min(len(a), len(b)) if common is None else common
+        start = max(0, common - 10)
+        a, b = _view_clip(a, start), _view_clip(b, start)
+    if a == b:
+        b += t(" (Unterschied nicht sichtbar, Datei prüfen)")
+    return _formula_safe(a, old), _formula_safe(b, new)
+
+
+_VIEW_LABEL = 120
+# Fertige Tabellenzeilen je Datei: Das Ergebnis von ``cached_file_changes`` behält seine
+# Objekte, solange es gültig ist; mit ihm wird auch dieser Speicher geleert.
+_ROWS: dict[tuple[int, str], tuple[FileChange, list[tuple[str, str, str]]]] = {}
+_ROWS_MAX = 300
+on_invalidate(_ROWS.clear)
+
+
+def _file_rows(fc: FileChange) -> list[tuple[str, str, str]]:
+    """Zeilen (Feld, Vorher, Nachher) der ersten Werte einer Datei samt Restzeile."""
+    key = (id(fc), language())
+    cached = _ROWS.get(key)
+    if cached and cached[0] is fc:
+        return cached[1]
+    rows = []
+    for v in fc.values[:_VIEW_ROWS]:
+        label = _view_clean(v.label)
+        if len(label) > _VIEW_LABEL:
+            label = label[: _VIEW_LABEL - 1] + "…"
+        rows.append((_formula_safe(label), *_view_pair(v.old, v.new)))
+    if fc.omitted:
+        rows.append((t("… und {n} weitere", n=fc.omitted), "", ""))
+    if len(_ROWS) >= _ROWS_MAX:
+        _ROWS.clear()
+    _ROWS[key] = (fc, rows)
+    return rows
+
+
+def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
+    """Dateiname relativ zum Datenordner, wenn möglich."""
+    if git_root_path is not None:
+        with contextlib.suppress(ValueError):
+            return (git_root_path / file).relative_to(root.resolve()).as_posix()
+    return file
+
+
+def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
+    """„Was hat sich geändert?“: Werte vorher und nachher je geänderter Datei. Dateinamen und
+    Werte stammen aus Dateien, die andere ins Repository legen: nur als Code oder in Tabellen."""
+    try:
+        files = cached_file_changes(root, pending)
+        top = git_root(root)
+    except GitError:
+        st.caption(t("Die Änderungsansicht ist gerade nicht verfügbar."))
+        return
+    st.markdown(f"**{t('Was hat sich geändert?')}**")
+    for fc in files[:_VIEW_FILES]:
+        shown_fc = replace(
+            fc,
+            file=_view_name(root, fc.file, top),
+            orig=_view_name(root, fc.orig, top) if fc.orig else "",
+        )
+        if shown_fc.orig:
+            st.markdown(_lost_status(shown_fc))  # „umbenannt: alt → neu“, beide als Code
+        else:
+            st.markdown(f"{md_code(shown_fc.file)} – {status_name(fc.status)}")
+        if fc.skipped:
+            st.caption(t("nicht ausgewertet (zu viele oder zu große Dateien)"))
+        elif not fc.readable:
+            st.caption(t("keine Wertansicht"))
+        elif fc.values:
+            st.dataframe(
+                pd.DataFrame(_file_rows(fc), columns=[t("Feld"), t("Vorher"), t("Nachher")]),
+                hide_index=True,
+                width="stretch",
+            )
+        elif any(c in fc.status for c in "MT") and not any(c in fc.status for c in "A?D"):
+            st.caption(t("keine Wertänderung (nur Schreibweise oder Reihenfolge)"))
+    if len(files) > _VIEW_FILES:
+        st.caption(t("… und {n} weitere", n=len(files) - _VIEW_FILES))
+
+
 def _git_panel(repo: Repository) -> None:
     if not git_available():
         _show_problem(classify("", missing=True))
@@ -4934,6 +5266,7 @@ def _git_panel(repo: Repository) -> None:
             _show_incoming(commits, files)
         if changes:
             st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
+            _changes_view(repo.root, changes)
             st.session_state.setdefault("commit_message", _commit_default())
             st.text_input(t("Commit-Nachricht"), key="commit_message")
             if tags:
@@ -4993,7 +5326,7 @@ def status_name(status: str) -> str:
     return t(_STATUS_NAMES.get(status, "geändert"))
 
 
-def _lost_status(item: Lost) -> str:
+def _lost_status(item: Lost | FileChange) -> str:
     """Status einer verlorenen Änderung; bei Umbenennungen mit altem und neuem Pfad."""
     name = status_name(item.status)
     if item.orig:
