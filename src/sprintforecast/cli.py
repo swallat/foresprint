@@ -116,8 +116,8 @@ app = typer.Typer(
     help=t("Velocity- und Kapazitäts-Forecast für Scrum-Teams. Einstieg: `sprintforecast help`."),
     rich_markup_mode="rich",
 )
-console = Console()
-err = Console(stderr=True)
+console = Console(emoji=False)  # Namen wie „:smile:“ bleiben Text
+err = Console(stderr=True, emoji=False)
 
 
 # Wie rich.markup.escape: ein Tag ist „[“ + Buchstabe, „#“, „/“ oder „@“ … „]“; Backslashes davor
