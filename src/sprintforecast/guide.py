@@ -562,13 +562,15 @@ GIT_HELP: list[tuple[str, str]] = [
         "Ist ein früheres Zusammenführen unterbrochen worden, bietet die Seitenleiste „Zusammen"
         "führen abbrechen“ an. Steht das Repository auf keinem Branch (detached HEAD), führt "
         "„Zurück auf den Branch“ zurück; Commits ohne Branch werden vorher auf einem "
-        "Rettungsbranch gesichert, dessen Namen die Meldung nennt. Würde der Wechsel offene "
-        "Änderungen überschreiben, bleibt alles, wie es ist: Auf einem Stand ohne Branch "
-        "lässt sich nichts speichern (committen). Liegen die Dateien im Datenordner, die "
-        "offenen Änderungen auf der Seite „Änderungen und Verlauf“ verwerfen (sie gehen dabei "
-        "verloren); liegen sie außerhalb, dort in Git sichern oder verwerfen (die Dateien "
-        "nennt die „Technische Meldung“). Danach noch einmal „Zurück auf den Branch“ wählen; "
-        "der Rettungsbranch bleibt bestehen und wird dann wieder genannt.",
+        "Rettungsbranch gesichert, dessen Namen die Meldung nennt. Offene Änderungen im "
+        "Datenordner werden vor dem Wechsel ebenfalls dort gesichert (als eigener Commit "
+        "„Offene Änderungen vor dem Wechsel gesichert“); der Hauptbranch enthält sie nicht, sie "
+        "liegen nur auf dem Rettungsbranch (einem eigenen Zweig nur für Gesichertes). Würde "
+        "der Wechsel Änderungen außerhalb des Datenordners überschreiben, bleibt alles, wie "
+        "es ist: Die App fasst nur den Datenordner an. Diese Änderungen dort in Git sichern oder "
+        "verwerfen (die Dateien nennt die „Technische Meldung“). Danach noch einmal "
+        "„Zurück auf den Branch“ wählen; der Rettungsbranch "
+        "bleibt bestehen und wird dann wieder genannt.",
     ),
 ]
 

@@ -1,8 +1,16 @@
 name: CI
 
 on:
+  # Branches mit offenem PR laufen nur über pull_request (sonst liefe jeder Push doppelt).
   push:
+    branches: [main]
   pull_request:
+
+# Ein neuer Push auf denselben Branch oder PR bricht den überholten Lauf ab; auf main läuft
+# jeder Lauf zu Ende.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Optional auf dem eigenen Runner: Repository-Variable SELF_HOSTED=true. Fork-PRs laufen
 # immer in der Cloud (öffentliches Repository); SELF_HOSTED=false schaltet sofort zurück.
@@ -44,17 +52,38 @@ jobs:
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
-      - run: uv sync --locked --all-extras
+        with:
+          fetch-depth: 0
+      # Ein PR, der nur Dokumentation (docs/ und *.md) ändert, braucht keinen Browserlauf. Der
+      # Job läuft trotzdem und meldet Erfolg, damit die Pflichtprüfung „e2e“ erfüllt ist; auf
+      # main und bei jeder anderen Änderung laufen die Tests wie bisher.
+      - name: Betroffene Dateien prüfen
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          run=true
+          if [ "$EVENT" = "pull_request" ]; then
+            other=$(git diff --name-only "$BASE" HEAD | grep -vE '^(docs/|[^/]+\.md$)' || true)
+            if [ -z "$other" ]; then run=false; fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "E2E-Tests: $run"
+      - if: steps.scope.outputs.run == 'true'
+        uses: jdx/mise-action@v3
+      - if: steps.scope.outputs.run == 'true'
+        run: uv sync --locked --all-extras
       # Auf dem selbstgehosteten Runner fehlt sudo; die Systempakete für Chromium sind dort
       # bereits installiert, daher nur der Browser selbst.
       - name: Chromium installieren (GitHub-gehostet, mit Systempaketen)
-        if: runner.environment == 'github-hosted'
+        if: steps.scope.outputs.run == 'true' && runner.environment == 'github-hosted'
         run: uv run playwright install --with-deps chromium
       - name: Chromium installieren (selbstgehostet, ohne Systempakete)
-        if: runner.environment == 'self-hosted'
+        if: steps.scope.outputs.run == 'true' && runner.environment == 'self-hosted'
         run: uv run playwright install chromium
-      - run: uv run pytest -m e2e -v
+      - if: steps.scope.outputs.run == 'true'
+        run: uv run pytest -m e2e -v
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
