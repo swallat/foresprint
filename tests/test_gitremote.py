@@ -632,6 +632,16 @@ def test_bare_could_not_read_is_an_error_with_the_probe_hint():
     )
 
 
+def test_could_not_read_does_not_hide_more_specific_kinds():
+    tail = "\nfatal: Could not read from remote repository."
+    denied = "ERROR: Permission to o/r.git denied to u." + tail
+    assert gitmod.classify(denied).kind == "denied"
+    assert gitmod.classify("remote: pre-receive hook declined" + tail).kind == "denied"
+    assert gitmod.classify(" ! [rejected] main -> main (fetch first)" + tail).kind == "rejected"
+    bare = gitmod.classify("fatal: Could not read from remote repository.")
+    assert bare.kind == "error" and bare.hint == gitmod._refused_hint()
+
+
 def test_not_found_hint_says_where_to_change_the_address():
     for hint in (gitmod.hint_for("not_found"), gitmod.hint_for("unrelated_histories")):
         assert "Datenordner" in hint and "Server (Remote)" in hint

@@ -560,8 +560,8 @@ _OFFLINE_REST = (
     r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
     r"name resolution|ssh: connect to host|Connection closed by"
 )
-_OFFLINE = re.compile(_OFFLINE_REST + r"|Could not read from remote repository", re.I)
-_OFFLINE_OTHER = re.compile(_OFFLINE_REST, re.I)
+_OFFLINE = re.compile(_OFFLINE_REST, re.I)
+_BARE_READ = re.compile(r"Could not read from remote repository", re.I)
 
 
 def _refused_hint() -> str:
@@ -759,14 +759,14 @@ def classify(
         if pattern.search(message):
             if kind == "unsafe_directory":
                 message = _without_safe_directory_advice(message)
-            if kind == "offline" and not _OFFLINE_OTHER.search(message):
-                # Nur „Could not read from remote repository“: Git hängt das auch an, wenn der
-                # Server das Repository verweigert; das belegt keine fehlende Verbindung.
-                return GitError(message, "error", _refused_hint(), raw=True)
             if kind == "not_found" and drive_check and _missing_folder(url):
                 kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
             hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
             return GitError(message or kind, kind, hint, raw=bool(message))
+    if _BARE_READ.search(message):
+        # Git hängt das auch an, wenn der Server das Repository verweigert; allein belegt es keine
+        # fehlende Verbindung. Alle anderen Muster haben Vorrang.
+        return GitError(message, "error", _refused_hint(), raw=True)
     return GitError(message or t("Unbekannter Git-Fehler"), "error", raw=bool(message))
 
 
@@ -1405,7 +1405,7 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
     elif err.kind == "offline":  # Netzwerkfehler ohne belegte Unerreichbarkeit
         err.kind = "error"
         err.hint = _refused_hint()
-    elif err.kind == "error" and err.hint == _refused_hint():
+    elif err.kind == "error" and _BARE_READ.search(message):
         pass  # classify hat „Could not read from remote repository“ ohne Grund schon erklärt
     elif err.kind not in {"auth", "not_found", "unsafe_directory", "not_writable", "locked"}:
         err.hint = t(
