@@ -10,6 +10,8 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 
 from __future__ import annotations
 
+import difflib
+import hashlib
 import io
 import os
 import re
@@ -40,6 +42,13 @@ from sprintforecast.yamlmerge import (
     header_of,
     merge3,
 )
+
+# Wie die eigenen Änderungen auf den Server kommen: direkt auf den Branch oder (Server mit
+# geschütztem Hauptbranch, z. B. GitLab) über einen Merge Request. Die Wahl gilt je
+# Daten-Repository und steht in dessen lokaler Git-Konfiguration.
+SHARE_KEY = "sprintforecast.share"
+SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
+_MR_URL = re.compile(r"https?://\S+/merge_requests/(?:\d+|new\b\S*)")
 
 # Wie oft ein Push nach "inzwischen hat jemand anderes hochgeladen" neu versucht wird.
 MAX_ATTEMPTS = 3
@@ -111,6 +120,8 @@ class SyncResult:
     pulled: list[Commit] = field(default_factory=list)  # neu von anderen
     pulled_files: list[tuple[str, str]] = field(default_factory=list)
     pushed: bool = False
+    merge_request_url: str | None = None  # Teilen über Merge Request: Adresse, falls gemeldet
+    merge_request_branch: str | None = None  # Branch, der hochgeladen wurde
     pull_only: bool = False  # „Vom Server holen“: nichts hochladen, auch nicht beim Fortsetzen
     merged: bool = False  # fremde Änderungen wurden zusammengeführt
     conflicts: list[ConflictFile] = field(default_factory=list)
@@ -295,6 +306,52 @@ def _stages(root: Path) -> dict[str, set[int]]:
 
 def _stage_text(root: Path, stage: int, file: str) -> str:
     return _git(root, "show", f":{stage}:{file}", strip=False)
+
+
+# Obergrenzen der Textansicht (Zeilen und Zeichen je Zeile), damit eine große Datei die Seite
+# nicht sprengt.
+MAX_DIFF_LINES = 300
+MAX_DIFF_COLUMNS = 400
+
+
+def unified_diff(old: str, new: str, old_name: str, new_name: str) -> str:
+    """Zeilenweiser Unterschied (``diff -u``) zweier Texte, gekürzt; leer, wenn gleich."""
+    lines = difflib.unified_diff(
+        old.splitlines(), new.splitlines(), old_name, new_name, lineterm="", n=2
+    )
+    kept = [line[:MAX_DIFF_COLUMNS] for line in lines]
+    if len(kept) > MAX_DIFF_LINES:
+        kept = [*kept[:MAX_DIFF_LINES], f"… (+{len(kept) - MAX_DIFF_LINES})"]
+    return "\n".join(kept)
+
+
+def conflict_text_diffs(path: Path, file: str) -> tuple[str, str]:
+    """Wie sich die Datei bei einem offenen Zusammenführen auf beiden Seiten gegenüber dem
+    gemeinsamen Stand geändert hat, als Text (``diff -u``): (meine Seite, andere Seite). Leer,
+    wenn es den Stand nicht gibt, die Datei zu groß ist oder kein Text."""
+    root = _root(path)
+    stages = _stages(root).get(file, set())
+
+    def text(stage: int) -> str | None:
+        if stage not in stages:
+            return None
+        size = _git(root, "cat-file", "-s", f":{stage}:{file}", check=False)
+        if not size.isdigit() or int(size) > 1_000_000:
+            raise ValueError(file)
+        return gitmod._git_bytes(root, "show", f":{stage}:{file}").decode("utf-8")
+
+    try:
+        base, mine, theirs = text(1), text(2), text(3)
+    except ValueError, GitError:
+        return "", ""
+    shown = base or ""
+
+    def one(side: str | None, label: str) -> str:
+        return unified_diff(
+            shown, side or "", f"{file} ({t('gemeinsamer Stand')})", f"{file} ({label})"
+        )
+
+    return one(mine, t("meine Änderung")), one(theirs, t("andere Änderung"))
 
 
 def _analyse(
@@ -596,10 +653,27 @@ def sync(
                         "invalid",
                         hint_for("invalid"),
                     )
+            via_mr = share_mode(root) == SHARE_MERGE_REQUEST
+            if via_mr and current.upstream and current.ahead:
+                current = _drop_merged_commits(root, current)  # z. B. nach „Squash“ im Merge
+            if via_mr and tags:
+                result.notes.append(
+                    t(
+                        "Tags werden bei Merge Requests nicht hochgeladen; sie lassen sich nach "
+                        "dem Merge im Bereich „Tags“ teilen."
+                    )
+                )
+            if via_mr and current.upstream and not current.ahead:
+                break  # nichts Eigenes, das einen Merge Request bräuchte
             try:
-                _push(root, current)
+                if via_mr:
+                    result.merge_request_branch, result.merge_request_url = _push_merge_request(
+                        root, current, message
+                    )
+                else:
+                    _push(root, current)
             except GitError as e:
-                if e.kind == "rejected" and attempt + 1 < MAX_ATTEMPTS:
+                if e.kind == "rejected" and not via_mr and attempt + 1 < MAX_ATTEMPTS:
                     continue
                 raise
             result.pushed = True
@@ -681,6 +755,87 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
         elif not remote:
             notes.append(t("Der Tag {tag} konnte nicht auf den Server übertragen werden.", tag=tag))
     return notes
+
+
+def _drop_merged_commits(root: Path, current: SyncState) -> SyncState:
+    """Hat der eigene Stand denselben Inhalt wie der Server (der Merge Request ist gemergt, etwa
+    als „Squash“ mit neuem Commit), setzt dies den Branch auf den Server-Stand: Sonst bliebe er
+    für immer „voraus“ und jedes Teilen legte einen leeren Merge Request an. ``--keep`` bricht ab,
+    wo etwas verloren ginge."""
+    if _git_ok(root, "diff", "--quiet", current.upstream or "HEAD", "HEAD", "--") and _git_ok(
+        root, "diff", "--quiet", "--cached"
+    ):
+        _git(root, "reset", "--keep", current.upstream or "HEAD", check=False)
+        return state(root)
+    return current
+
+
+def share_mode(path: Path) -> str:
+    """``"direct"`` (Standard) oder ``"merge_request"``: wohin „Speichern und teilen“ hochlädt."""
+    root = _root(path)
+    value = _git(root, "config", "--local", "--get", SHARE_KEY, check=False)
+    return value if value == SHARE_MERGE_REQUEST else SHARE_DIRECT
+
+
+def set_share_mode(path: Path, mode: str) -> None:
+    root = _root(path)
+    if mode == SHARE_MERGE_REQUEST:
+        _git(root, "config", "--local", SHARE_KEY, mode)
+    else:
+        _git(root, "config", "--local", "--unset-all", SHARE_KEY, check=False)
+
+
+def merge_request_branch(root: Path) -> str:
+    """Der Branch, auf den diese Person für Merge Requests hochlädt: je Person ein fester Name
+    (``sprintforecast/<name>-<Kürzel der Adresse>``), damit ein weiteres Teilen denselben Merge
+    Request fortschreibt und zwei Personen mit gleichem Namensanfang nicht kollidieren."""
+    email = _git(root, "config", "--get", "user.email", check=False).strip().lower()
+    who = email.partition("@")[0] or _git(root, "config", "--get", "user.name", check=False)
+    slug = re.sub(r"[^a-z0-9_-]+", "-", who.lower()).strip("-_") or "user"
+    tag = hashlib.sha1((email or who).encode("utf-8")).hexdigest()[:6]
+    return f"sprintforecast/{slug}-{tag}"
+
+
+def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str, str | None]:
+    """Lädt den Stand auf den eigenen Branch und bittet den Server (GitLab-Push-Optionen), einen
+    Merge Request nach dem Hauptbranch anzulegen; gibt es ihn schon, schreibt der Push ihn fort.
+    Der Branch gehört dieser Person: Ist er nach einem Rebase im Merge Request oder einem
+    gemergten Stand anders weitergelaufen, wird er mit ``--force-with-lease`` überschrieben.
+    Tags gehen nicht mit (sie zeigen sonst auf Commits, die nie in den Hauptbranch kommen).
+    Liefert Branch und, falls der Server sie meldet, die Adresse des Merge Requests."""
+    branch = merge_request_branch(root)
+    ref = f"refs/heads/{branch}"
+    remote = current.remote or "origin"
+    target = (current.upstream or "").partition("/")[2] or current.branch or "main"
+    subject = (title.strip().splitlines() or ["Änderungen"])[0]
+    listed = _git(root, "ls-remote", remote, ref, network=True, url=current.url, check=False)
+    lease = (
+        f"--force-with-lease={ref}:{listed.split()[0]}" if listed else f"--force-with-lease={ref}:"
+    )
+    proc = gitmod._git_result(
+        root,
+        "push",
+        lease,
+        "-o", "merge_request.create",
+        "-o", f"merge_request.target={target}",
+        "-o", f"merge_request.title={subject}",
+        "-o", "merge_request.remove_source_branch",
+        remote,
+        f"HEAD:{ref}",
+        network=True,
+    )  # fmt: skip
+    if proc.returncode != 0:
+        message = proc.stderr.strip() or proc.stdout.strip()
+        if "does not support push options" in message:
+            raise GitError(
+                t(
+                    "Der Server unterstützt keine Push-Optionen, daher kein Teilen über Merge "
+                    "Request. Bitte die Einstellung auf der Seite „Datenordner“ ausschalten."
+                )
+            )
+        raise gitmod.classify(message, url=current.url)
+    found = _MR_URL.search(proc.stderr + proc.stdout)
+    return branch, found.group(0).rstrip(".,)") if found else None
 
 
 def _push(root: Path, current: SyncState) -> None:
