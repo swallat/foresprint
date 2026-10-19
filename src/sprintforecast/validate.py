@@ -191,7 +191,7 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
         try:
             tracker_from_raw(team.tracker_raw, "team.yaml")
         except (DataError, ValueError, TypeError) as e:
-            error("team.yaml", str(e))
+            error("team.yaml", str(e).removeprefix("team.yaml: "))
     if tr.dependency_gap not in (0, 1):
         error("team.yaml", t("tracker.dependency_gap muss 0 oder 1 sein"))
     order = tr.project_match_order

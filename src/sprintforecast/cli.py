@@ -1555,7 +1555,7 @@ def excel_import(
 
 def _ticket_note(change: Any) -> str:
     """Readable text for the ``note`` of a change of the import preview."""
-    from sprintforecast.ticket_import import UNCLEAR_NO_ESTIMATE, UNCLEAR_RULE
+    from sprintforecast.ticket_import import DROPPED_ENDED, UNCLEAR_NO_ESTIMATE, UNCLEAR_RULE
 
     note = change.note
     if not note:
@@ -1569,7 +1569,7 @@ def _ticket_note(change: Any) -> str:
             return t("nur über refined_also_if, Label fehlt")
         if note == UNCLEAR_NO_ESTIMATE:
             return t("Label ohne Schätzung")
-    if change.kind == "earmark_dropped" and note == "ended":
+    if change.kind == "earmark_dropped" and note == DROPPED_ENDED:
         return t("Sprint beendet")
     if change.kind == "missing":
         return t("Vormerkung für Sprint {sprint} bleibt", sprint=_plain(note))

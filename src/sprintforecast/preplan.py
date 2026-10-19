@@ -527,7 +527,8 @@ def traffic_light(
     ``length_days`` (sprint length of the team) tells whether a target date lies beyond the
     horizon; ``current`` is the running sprint: work placed in it counts as on time for a
     target date inside it. Tickets fixed or earmarked after the horizon (``dist.later``) are
-    later than any target."""
+    compared with the target date by the last day of their sprint (an unknown sprint counts as
+    later than the target)."""
     own = [p for p in dist.placements if p.project == project.id]
     timeline = ([current] if current is not None else []) + sprints
     index = {s.id: i for i, s in enumerate(timeline)}

@@ -196,3 +196,4 @@ def test_unreadable_tracker_section_blocks_switching_the_feature_on(data_dir: Pa
     loaded.team.features.tickets = True
     found = errors(loaded)
     assert found and found[0][0] == "team.yaml" and "planning_uses" in found[0][1]
+    assert not found[0][1].startswith("team.yaml")  # no doubled location
