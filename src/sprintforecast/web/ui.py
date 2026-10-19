@@ -2019,7 +2019,7 @@ def _unfreeze_panel(repo: Repository, data: TeamData, sprint: Sprint, unit: str)
                     data.team.key,
                     released.id,
                     PLANNING,
-                    datetime.now().replace(microsecond=0),
+                    datetime.now,
                     lambda: [repo.save_sprint(data.team.key, released)],
                 )
 
@@ -2190,7 +2190,7 @@ def _planning_writer(
         sprint.id,
         PLANNING,
         protocol,
-        now,
+        datetime.now,
         [sprint],
         lambda: [repo.save_sprint(team.key, sprint)],
     )  # Protokoll: nicht in der Meldung
@@ -2838,7 +2838,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             sprint.id,
             REVIEW,
             protocol,
-            now,
+            datetime.now,
             [sprint],
             lambda: [repo.save_sprint(data.team.key, sprint)],
         )  # Protokoll: nicht in der Meldung
@@ -3414,7 +3414,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 after.id,
                 PREPLANNING,
                 protocol,
-                now,
+                datetime.now,
                 to_save,
                 lambda: save_sprints_together(repo, data.team.key, to_save),
             )  # Protokoll: nicht in der Meldung
