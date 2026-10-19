@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 
 $ref = if ($env:SPRINTFORECAST_REF) { $env:SPRINTFORECAST_REF } else { "main" }
 $kind = if ($ref -match '^v\d') { "tags" } else { "heads" }
-$core = "sprintforecast[web] @ https://github.com/swallat/sprint-forecast/archive/refs/$kind/$ref.zip"
+$core = "sprintforecast[web,excel] @ https://github.com/swallat/sprint-forecast/archive/refs/$kind/$ref.zip"
 $pluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"
 
 function Expand-Plugin([string]$item) {
@@ -49,7 +49,7 @@ if ($items.Count -gt 0) {
     Write-Host "==> with plugins: $($items -join '; ')"
     foreach ($item in $items) { $arguments += @("--with", (Expand-Plugin $item)) }
     # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
-    $arguments += "sprintforecast[web]"
+    $arguments += "sprintforecast[web,excel]"
 } else {
     $arguments += $core
 }
