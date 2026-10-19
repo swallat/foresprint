@@ -384,12 +384,10 @@ def test_personen_new_person_and_selection(klammern: Path):
     check(
         result,
         f"Personen: Eva [x], Ben [/x], Cem [red], Dana{BS}\n",
-        "Neu [/x]",
         "people.yaml: neu-x: Region '[/X]' gehört nicht zum Land DE",
-        "Nicht gespeichert – bitte die Fehler beheben.",
-        code=1,  # the invalid region is refused before anything is written
-        absent=("Gespeichert: ",),
+        "Gespeichert: ",  # the rest is saved; the invalid new person is refused at once
     )
+    assert "Neu [/x]" not in people.read_text(encoding="utf-8")
 
 
 def test_personen_region_with_markup_look(klammern: Path):
