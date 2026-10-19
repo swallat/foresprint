@@ -454,3 +454,77 @@ def test_excel_export_omits_the_tracker_and_the_import_keeps_it(data_dir: Path):
     plan = plan_import(repo, data, TODAY)
     assert plan.changes == [] and plan.files == []
     assert plan.data.team.tracker == tracker()
+
+
+# --- Review fixes ----------------------------------------------------------------------------
+
+
+def test_invalid_tracker_section_is_ignored_while_the_feature_is_off(data_dir: Path):
+    """A bad value must not break forecast and check of a team that does not use the area;
+    writing team.yaml keeps the section as it was."""
+    import yaml
+
+    repo = Repository(data_dir)
+    path = data_dir / TEAM / "team.yaml"
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc["tracker"] = {"kind": "csv", "planning_uses": "bogus", "dependency_gap": "one"}
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+
+    data = repo.load(TEAM)
+    assert not data.team.features.tickets and data.team.tracker == TrackerSettings()
+    for _ in range(2):  # the saved file reads (and saves) the same again
+        repo.save_team(data.team)
+        written = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert written["tracker"] == doc["tracker"]
+        data = repo.load(TEAM)
+    # Switched on, the problem is reported instead of being hidden.
+    doc["features"]["tickets"] = True
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    with pytest.raises(DataError, match="planning_uses"):
+        repo.load(TEAM)
+
+
+def test_cli_works_with_an_invalid_tracker_section_while_off(data_dir: Path):
+    import yaml
+    from typer.testing import CliRunner
+
+    from sprintforecast.cli import app
+
+    path = data_dir / TEAM / "team.yaml"
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc["tracker"] = {"planning_uses": "bogus"}
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    (data_dir / TEAM / "tickets.yaml").write_text("schema: [unclosed\n", encoding="utf-8")
+    for command in (["forecast", TEAM], ["check"]):
+        result = CliRunner().invoke(
+            app, ["--data", str(data_dir), "--as-of", "2026-10-15", *command]
+        )
+        assert result.exit_code == 0, result.output
+
+
+def test_check_team_files_skips_the_ticket_files_while_the_feature_is_off(data_dir: Path):
+    repo = Repository(data_dir)
+    write_all(repo)
+    base = data_dir / TEAM
+    for name in ("projects.yaml", "tickets.yaml", "preplan.yaml"):
+        (base / name).write_text("schema: 1\nitems:\n  a: 1\n  a: 2\n", encoding="utf-8")
+    assert any(i.where == "tickets.yaml" for i in check_team_files(base))
+    text = (base / "team.yaml").read_text(encoding="utf-8")
+    (base / "team.yaml").write_text(text.replace("tickets: true", "tickets: false"), "utf-8")
+    assert not [i for i in check_team_files(base) if i.where.endswith("s.yaml")]
+    assert not [i for i in check_team_files(base, tickets=False) if i.where == "preplan.yaml"]
+
+
+def test_unquoted_float_in_rule_values_and_sprint_names_is_refused():
+    from sprintforecast.storage import _rule_from, _tracker_from
+
+    with pytest.raises(DataError, match="Anführungszeichen"):
+        _rule_from({"in_sprint": [2026.20]}, "projects.yaml")
+    with pytest.raises(DataError, match="Anführungszeichen"):
+        _rule_from({"any": [{"in_sprint": 2026.2}]}, "projects.yaml")
+    with pytest.raises(DataError, match="Anführungszeichen"):
+        _tracker_from({"sprint_names": {"Sprint 20": 2026.20}}, "team.yaml")
+    assert _rule_from({"in_sprint": [True], "epic": ["2026.20"]}, "x") is not None
+    assert _tracker_from({"sprint_names": {"Sprint 20": "2026.20"}}, "t").sprint_names == {
+        "Sprint 20": "2026.20"
+    }

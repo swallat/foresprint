@@ -16,7 +16,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from sprintforecast.forecast import Forecast, find_sprint
+from sprintforecast.forecast import Forecast, find_sprint, lookup_sprint
 from sprintforecast.i18n import t
 from sprintforecast.model import EstimateSource, Preplan, Project, Ticket, TrackerSettings
 from sprintforecast.sources import RawTicket
@@ -66,6 +66,12 @@ class TicketImportPlan:
 
     def of_kind(self, kind: str) -> list[TicketChange]:
         return [c for c in self.changes if c.kind == kind]
+
+    def unchanged(self, data: TeamData) -> bool:
+        """Would applying the plan leave the stored files as they are (apart from the time
+        stamp)? Then nothing is written. ``changes`` is not the measure: it also lists hints
+        that stay as long as the data does (unassigned tickets, unknown epics ...)."""
+        return not self.preplan_changed and self.tickets == data.tickets
 
 
 # --- Single ticket ---------------------------------------------------------------------------
@@ -128,8 +134,15 @@ def resolve_sprint(name: str | None, data: TeamData, fc: Forecast) -> str | None
 
 
 def convert(raw: RawTicket, data: TeamData, fc: Forecast, projects: list[Project]) -> Ticket:
-    """A raw ticket as the tool stores it: sprint resolved, refined state and project derived."""
+    """A raw ticket as the tool stores it: sprint resolved, refined state and project derived.
+
+    Jira keeps closed sprints in the Sprint field of an open ticket (carried over): such a
+    sprint is resolved but does not count as the ticket's sprint (``in_sprint`` stays None,
+    ``sprint_name`` keeps the name for display)."""
     tracker = data.team.tracker
+    in_sprint = resolve_sprint(raw.sprint_name, data, fc)
+    if in_sprint is not None and sprint_ended(in_sprint, fc):
+        in_sprint = None
     ticket = Ticket(
         key=raw.key,
         title=raw.title,
@@ -137,7 +150,7 @@ def convert(raw: RawTicket, data: TeamData, fc: Forecast, projects: list[Project
         issue_type=raw.issue_type,
         estimate=raw.estimate,
         remaining=raw.remaining,
-        in_sprint=resolve_sprint(raw.sprint_name, data, fc),
+        in_sprint=in_sprint,
         sprint_name=raw.sprint_name,
         rank=raw.rank,
         epic=raw.epic,
@@ -147,9 +160,11 @@ def convert(raw: RawTicket, data: TeamData, fc: Forecast, projects: list[Project
         done=raw.resolved,
     )
     facts = ticket.facts()
-    refined, unclear = is_refined(facts, raw.estimate, tracker)
+    # The size the distribution calculates with (remaining if filled, else the estimate).
+    size = ticket.size(tracker.planning_uses)
+    refined, unclear = is_refined(facts, size, tracker)
     ticket.refined_unclear = unclear
-    if raw.estimate is None:
+    if size is None:
         ticket.estimate_source = EstimateSource.NONE
     elif refined and not unclear:
         ticket.estimate_source = EstimateSource.REFINED
@@ -175,12 +190,15 @@ def known_epics(projects: list[Project]) -> set[str]:
     return found
 
 
+def sprint_ended(sprint_id: str, fc: Forecast) -> bool:
+    """Is the sprint known and already over (its end is not after today)?"""
+    sprint = lookup_sprint(fc, sprint_id)
+    return sprint is not None and sprint.end <= fc.today
+
+
 def _sprint_open(sprint_id: str, data: TeamData, fc: Forecast, today: date) -> bool:
-    """Is the sprint current or in the future (its end after today)?"""
-    sprint = data.sprint(sprint_id)
-    if sprint is None:
-        entry = fc.entry(sprint_id)
-        sprint = entry.sprint if entry is not None else find_sprint(data, sprint_id, 52)
+    """Is the sprint known and current or in the future (its end after today)?"""
+    sprint = lookup_sprint(fc, sprint_id)
     return sprint is not None and sprint.end > today
 
 
@@ -230,7 +248,9 @@ def plan_import(
                 )
             continue
         if tk.in_sprint is None:
-            if tk.sprint_name:
+            # A closed sprint is resolved but not the ticket's sprint; only names the tool
+            # cannot resolve are reported.
+            if tk.sprint_name and resolve_sprint(tk.sprint_name, data, fc) is None:
                 plan.changes.append(
                     TicketChange("sprint_unresolved", tk.key, tk.title, note=tk.sprint_name)
                 )
@@ -251,7 +271,8 @@ def plan_import(
         if tk.epic and tk.epic not in epics_known:
             unknown.setdefault(tk.epic, []).append(tk.key)
         if tk.refined_unclear:
-            note = UNCLEAR_NO_ESTIMATE if tk.estimate is None else UNCLEAR_RULE
+            size = tk.size(data.team.tracker.planning_uses)
+            note = UNCLEAR_NO_ESTIMATE if size is None else UNCLEAR_RULE
             plan.changes.append(TicketChange("refined_unclear", tk.key, tk.title, note=note))
 
     for epic, keys in unknown.items():

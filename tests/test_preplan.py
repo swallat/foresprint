@@ -286,10 +286,10 @@ def test_fixed_points_consume_the_budget():
 def test_fixed_point_outside_the_horizon_consumes_nothing():
     data = team_data()
     data.projects = [project("p")]
-    data.tickets = [ticket("old", 6, in_sprint="2026.3"), ticket("far", 6)]
+    data.tickets = [ticket("old", 6, in_sprint="2026.6"), ticket("far", 6)]
     data.preplan = Preplan(earmarks=[Earmark(ticket="far", sprint="2099.1")])
     dist = distribute(data, TODAY)
-    assert sprint_of(dist, "old") == "2026.3" and sprint_of(dist, "far") == "2099.1"
+    assert sprint_of(dist, "old") == "2026.6" and sprint_of(dist, "far") == "2099.1"
     assert all(b.fixed == 0 for b in dist.budgets)
 
 
@@ -306,7 +306,9 @@ def test_planning_uses_remaining_or_estimate():
     assert sprint_of(dist, "B") == dist.sprints[1]
 
 
-def test_rough_estimates_are_multiplied_by_the_rough_factor():
+def test_rough_estimates_are_not_inflated_by_the_rough_factor():
+    """``tracker.rough_factor`` belongs to the conservative variant (step 4); the distribution
+    of step 1 calculates with the numbers as they are."""
     data = team_data(rough_factor=1.5)
     data.projects = [project("p")]
     data.tickets = [
@@ -314,11 +316,10 @@ def test_rough_estimates_are_multiplied_by_the_rough_factor():
         ticket("fine", 4, rank="0|b"),
     ]
     dist = distribute(data, TODAY)
-    assert dist.placement("rough").size == pytest.approx(6)
-    assert dist.placement("fine").size == 4
-    assert sprint_of(dist, "rough") == dist.sprints[0]
-    assert sprint_of(dist, "fine") == dist.sprints[1]
-    data.team.tracker.rough_factor = 1.0
+    assert dist.placement("rough").size == 4 and dist.placement("fine").size == 4
+    # 4 + 4 fit into the budget of 8 together (with the factor 1.5 they would not).
+    assert sprint_of(dist, "rough") == sprint_of(dist, "fine") == dist.sprints[0]
+    data.team.tracker.rough_factor = 3.0
     assert distribute(data, TODAY).placement("rough").size == 4
 
 
@@ -336,7 +337,7 @@ def test_traffic_lights():
         project("not-dist", last_day[5]),  # one ticket unestimated
         project("empty", last_day[5]),  # no open tickets
         project("no-target", None),
-        project("past", TODAY),  # no target sprint in the horizon
+        project("past", TODAY - timedelta(days=3)),  # no target sprint in the horizon
         project("far", last_day[-1] + timedelta(days=400)),  # target date beyond the horizon
     ]
     data.tickets = [
@@ -397,8 +398,8 @@ def test_refinement_list_per_sprint_with_deadline():
         ticket("fixed", 2, source=EstimateSource.ROUGH, in_sprint="2026.9"),
         ticket("none", None, source=EstimateSource.NONE),
     ]
-    # Rough 2 * 1.5 = 3 twice and the manual 4 do not fit into one budget of 8 together.
-    data.preplan = Preplan(estimates=[ManualEstimate(ticket="manual", estimate=4)])
+    # Rough 2 + 2 and the manual 5 do not fit into one budget of 8 together.
+    data.preplan = Preplan(estimates=[ManualEstimate(ticket="manual", estimate=5)])
     dist = distribute(data, TODAY)
     sprints = {s.id: s for s in future(dist, data)}
     assert [(r.ticket, r.sprint, r.source, r.unclear) for r in dist.refinement] == [
@@ -581,3 +582,124 @@ def test_random_distributions_respect_dependencies_and_budgets(seed: int):
 def test_budget_dataclass_defaults():
     b = Budget(sprint="s", product=None, base=8, plan=10, roadmap=8)
     assert (b.fixed, b.placed, b.free, b.production_available) == (0, 0, 8, None)
+
+
+# --- Review fixes ----------------------------------------------------------------------------
+
+
+def test_stored_sprint_that_is_over_does_not_count_as_fixed():
+    """tickets.yaml outlives the import: a sprint that has ended since is ignored, so the
+    earmark or the normal distribution applies and the ticket consumes budget."""
+    data = team_data()
+    data.projects = [project("p")]
+    data.tickets = [
+        ticket("A", 6, in_sprint="2026.3", rank="0|a"),
+        ticket("B", 6, in_sprint="2026.3", rank="0|b"),
+        ticket("C", 6, in_sprint="2026.3", rank="0|c"),
+    ]
+    data.preplan = Preplan(earmarks=[Earmark(ticket="C", sprint="2026.9")])
+    dist = distribute(data, TODAY)
+    s = dist.sprints
+    assert [reason_of(dist, k) for k in "ABC"] == ["placed", "placed", "earmark"]
+    # Budget 8 per sprint: 6 + 6 do not share a sprint.
+    assert [sprint_of(dist, k) for k in "ABC"] == [s[0], s[1], "2026.9"]
+    assert dist.budget(s[0], None).placed == 6 and dist.budget("2026.9", None).fixed == 6
+
+
+def test_a_ticket_in_the_current_sprint_is_still_fixed():
+    data = team_data()
+    data.projects = [project("p")]
+    data.tickets = [ticket("A", 6, in_sprint="2026.6")]
+    dist = distribute(data, TODAY)
+    assert (sprint_of(dist, "A"), reason_of(dist, "A")) == ("2026.6", "fixed_sprint")
+
+
+def test_project_with_target_inside_the_current_sprint():
+    data = team_data()
+    current = Sprint("2026.6", CURRENT_START, CURRENT_START + timedelta(days=LENGTH))
+    inside = TODAY + timedelta(days=2)
+    assert current.start <= inside < current.end - timedelta(days=1)
+    data.projects = [
+        project("now", inside),
+        project("later", inside, priority=1),
+        project("over", TODAY - timedelta(days=3), priority=2),
+    ]
+    data.tickets = [
+        ticket("A", 3, project="now", in_sprint="2026.6"),
+        ticket("B", 3, project="later"),
+        ticket("C", 3, project="over", in_sprint="2026.6"),
+    ]
+    status = {st.project: st for st in distribute(data, TODAY).projects}
+    # All work in the current sprint: tight, with the current sprint as target sprint.
+    assert (status["now"].light, status["now"].target_sprint) == ("tight", "2026.6")
+    # Something lands after the current sprint: missed.
+    assert (status["later"].light, status["later"].target_sprint) == ("missed", "2026.6")
+    # A target date that is already over stays missed, without target sprint.
+    assert (status["over"].light, status["over"].target_sprint) == ("missed", None)
+    # Target after the current sprint: work in it is on track.
+    data.projects = [project("now", date(2026, 12, 31))]
+    data.tickets = [ticket("A", 3, project="now", in_sprint="2026.6")]
+    assert distribute(data, TODAY).status("now").light == "on_track"
+
+
+@pytest.mark.parametrize("sprint", ["2099.1", "2027.20"])
+def test_dependency_beyond_the_horizon_blocks_its_dependents(sprint: str):
+    """An earmark after the horizon (or in an unknown sprint) is later than everything: the
+    dependent ticket cannot be placed before it."""
+    data = team_data()
+    data.projects = [project("p")]
+    data.tickets = [
+        ticket("dep", 2, rank="0|a"),
+        ticket("after", 2, rank="0|b", depends_on=["dep"]),
+    ]
+    data.preplan = Preplan(earmarks=[Earmark(ticket="dep", sprint=sprint)])
+    dist = distribute(data, TODAY)
+    assert sprint_of(dist, "dep") == sprint
+    assert sprint_of(dist, "after") is None and reason_of(dist, "after") == "beyond_horizon"
+    assert dist.status("p").light == "missed"
+
+
+def test_ticket_earmarked_after_the_horizon_is_later_than_the_target():
+    data = team_data()
+    data.projects = [project("p", date(2027, 1, 31))]
+    data.tickets = [ticket("far", 2)]
+    data.preplan = Preplan(earmarks=[Earmark(ticket="far", sprint="2099.1")])
+    dist = distribute(data, TODAY)
+    assert "2099.1" in dist.later and dist.status("p").light == "missed"
+    # A dependency before the horizon (current sprint) does not hold anything back.
+    data.tickets = [ticket("dep", 2, in_sprint="2026.6"), ticket("A", 2, depends_on=["dep"])]
+    data.preplan = Preplan()
+    assert sprint_of(distribute(data, TODAY), "A") == "2026.7"
+
+
+def test_no_forecast_is_no_budget_not_too_large():
+    data = team_data(velocities=())
+    data.projects = [project("p")]
+    data.tickets = [ticket("A", 3), ticket("Z", 0)]
+    dist = distribute(data, TODAY)
+    assert dist.no_forecast
+    assert reason_of(dist, "A") == "no_budget"
+    assert preplan.REASONS["no_budget"] == "kein Budget"
+
+
+def test_project_without_budget_cell_is_no_budget():
+    # Products on, project without product: no budget cell at all.
+    data = team_data(products=[Product(id="shop", name="Shop")])
+    data.projects = [project("a", product="unknown")]
+    data.tickets = [ticket("A", 3, project="a")]
+    dist = distribute(data, TODAY)
+    assert not dist.no_forecast and reason_of(dist, "A") == "no_budget"
+    # Products off but the project names one: the implicit product has the budget.
+    data = team_data()
+    data.projects = [project("a", product="shop")]
+    data.tickets = [ticket("A", 3, project="a")]
+    assert reason_of(distribute(data, TODAY), "A") == "no_budget"
+
+
+def test_too_large_only_above_a_positive_budget():
+    data = team_data()
+    data.projects = [project("p")]
+    data.tickets = [ticket("big", 50), ticket("ok", 5)]
+    dist = distribute(data, TODAY)
+    assert reason_of(dist, "big") == "too_large" and not dist.no_forecast
+    assert reason_of(dist, "ok") == "placed"

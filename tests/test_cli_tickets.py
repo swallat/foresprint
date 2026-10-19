@@ -135,3 +135,100 @@ def test_the_core_does_not_import_the_ticket_modules(data_dir: Path, tmp_path: P
         [sys.executable, "-c", code, str(data_dir)], capture_output=True, text=True, check=True
     )
     assert "LOADED []" in out.stdout, out.stdout + out.stderr
+
+
+# --- Review fixes ----------------------------------------------------------------------------
+
+
+def changed_csv(tmp_path: Path, *replacements: tuple[str, str]) -> Path:
+    text = (DATA / "jira_en.csv").read_text(encoding="utf-8")
+    for old, new in replacements:
+        assert old in text, old
+        text = text.replace(old, new)
+    path = tmp_path / "changed.csv"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_preview_explains_every_change(ticket_dir: Path, tmp_path: Path):
+    team = ticket_dir / "demo" / "team.yaml"
+    doc = yaml.safe_load(team.read_text(encoding="utf-8"))
+    doc["tracker"]["refined_also_if"] = {"status": ["Ready"]}
+    team.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    first_csv = changed_csv(tmp_path, ("To Do,,,,,,,0|i0004", "To Do,,Refined,,,,,0|i0004"))
+    first = run(ticket_dir, "tickets", "demo", "--import", str(first_csv))
+    # sprint name the tool does not know: the name is what the user has to map
+    assert "Sprintname „Sprint 22“" in first.output
+    assert "Label ohne Schätzung" in first.output  # ABC-4
+    assert "nur über refined_also_if, Label fehlt" in first.output  # ABC-2
+    run(ticket_dir, "tickets", "demo", "--import", str(DATA / "jira_en.csv"), "--apply")
+    # ABC-1: estimate 5 -> 6; ABC-2 removed from the export; its earmark is kept
+    (ticket_dir / "demo" / "preplan.yaml").write_text(
+        yaml.safe_dump({"schema": 1, "earmarks": [{"ticket": "ABC-2", "sprint": "2026.23"}]}),
+        encoding="utf-8",
+    )
+    lines = (DATA / "jira_en.csv").read_text(encoding="utf-8").splitlines(keepends=True)
+    kept = "".join(line for line in lines if not line.startswith('"Schema change'))
+    path = tmp_path / "second.csv"
+    path.write_text(kept.replace("Sprint 22,0|i0001:,5,3.5", "Sprint 22,0|i0001:,6,3.5"), "utf-8")
+    result = run(ticket_dir, "tickets", "demo", "--import", str(path))
+    assert result.exit_code == 0, result.output
+    assert "Schätzung" in result.output  # the changed field
+    assert "Vormerkung für Sprint 2026.23 bleibt" in result.output  # missing ticket
+
+
+def test_preview_notes_in_english(ticket_dir: Path, tmp_path: Path, english):
+    path = changed_csv(tmp_path, ("To Do,,,,,,,0|i0004", "To Do,,Refined,,,,,0|i0004"))
+    result = run(ticket_dir, "tickets", "demo", "--import", str(path))
+    assert 'Sprint name "Sprint 22"' in result.output
+    assert "label without estimate" in result.output
+
+
+def test_commit_without_apply_is_refused(ticket_dir: Path):
+    result = run(ticket_dir, "tickets", "demo", "--import", str(DATA / "jira_en.csv"), "--commit")
+    assert result.exit_code == 1 and "--apply" in result.output
+    assert not (ticket_dir / "demo" / "tickets.yaml").exists()
+
+
+def test_import_without_changes_writes_nothing(ticket_dir: Path):
+    path = str(DATA / "jira_en.csv")
+    run(ticket_dir, "tickets", "demo", "--import", path, "--apply")
+    file = ticket_dir / "demo" / "tickets.yaml"
+    before = file.read_text(encoding="utf-8")
+    file.write_text(before.replace("imported:", "imported: 2020-01-01 00:00:00\n#", 1), "utf-8")
+    stamped = file.read_text(encoding="utf-8")
+    result = run(ticket_dir, "tickets", "demo", "--import", path, "--apply")
+    assert result.exit_code == 0, result.output
+    assert "Keine Änderungen" in result.output
+    assert file.read_text(encoding="utf-8") == stamped  # not rewritten, no new time stamp
+    assert "Payment" in result.output  # the report still follows
+
+
+def test_validation_issues_are_printed_once_after_apply(ticket_dir: Path):
+    (ticket_dir / "demo" / "projects.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "schema": 1,
+                "projects": [
+                    {"id": "payment", "name": "Payment", "product": "no-such-product",
+                     "target": "2027-03-31", "match": {"epic": ["ABC-100"]}},
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )  # fmt: skip
+    result = run(ticket_dir, "tickets", "demo", "--import", str(DATA / "jira_en.csv"), "--apply")
+    assert result.exit_code == 0, result.output
+    problems = [line for line in result.output.splitlines() if "no-such-product" in line]
+    assert problems and len(problems) == len(set(problems)), result.output
+
+
+def test_report_says_when_there_is_no_budget(ticket_dir: Path):
+    for number in range(1, 21):
+        (ticket_dir / "demo" / "sprints" / f"2026.{number}.yaml").unlink()
+    path = str(DATA / "jira_en.csv")
+    result = run(ticket_dir, "tickets", "demo", "--import", path, "--apply")
+    assert result.exit_code == 0, result.output
+    assert "Noch kein Budget" in result.output
+    assert "kein Budget" in result.output and "zu groß" not in result.output
