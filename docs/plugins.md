@@ -1,0 +1,39 @@
+# Plugins
+
+Plugins are separate Python packages that hook in through the entry point
+`sprintforecast.plugins` (see `src/sprintforecast/plugins.py`). They can add commands to the
+command line and pages to the web UI, for example an import of the history from a previous tool.
+They are installed next to the tool:
+
+```bash
+uv tool install "sprintforecast[web] @ git+https://github.com/swallat/sprint-forecast" \
+  --with "my-plugin @ git+https://..."
+```
+
+If the plugin pins the source of the core itself (`[tool.uv.sources]`), give the core without an
+address, otherwise uv reports "conflicting URLs":
+`uv tool install "sprintforecast[web]" --with "my-plugin @ git+https://..."`.
+
+A format-neutral helper for imports: `sprintforecast.storage.import_sprints`.
+
+## Plugins with the installer
+
+The [install scripts](installation.md) ask whether plugins should be installed as well: several
+separated by `;`, as the short form `owner/repo` (expands to `git+https://github.com/owner/repo`)
+or in full as `name @ git+https://...`. The selection is remembered (Windows:
+`%APPDATA%\sprintforecast\plugins.txt`, otherwise `~/.config/sprintforecast/plugins`); when
+updating, Enter keeps it and `-` removes all plugins. Plugins from Git repositories need Git,
+private ones additionally a login. A plugin must pin the source of the core in
+`[tool.uv.sources]`.
+
+Without the prompt (set the environment variables before the call):
+
+| Variable | Effect |
+|---|---|
+| `SPRINTFORECAST_WITH="owner/repo; ..."` | install these plugins (empty = none) |
+| `SPRINTFORECAST_REF=v1.0` | install a particular tag or branch instead of `main` |
+| `SPRINTFORECAST_NO_SHORTCUT=1` | do not create a desktop launcher |
+
+Plugins and the Python version are kept across [automatic updates](installation.md#updating).
+While a merge is open in the data repository, plugin pages are replaced by the conflict
+resolution like every other team page (see [Web UI](web-ui.md)).
