@@ -1,27 +1,27 @@
-# Performance (Phase P)
+# Performance (phase P)
 
-Dieses Dokument hält die Maßnahmen aus [konzept-kern.md](konzept-kern.md), Abschnitt E, und
-ihre Messung fest.
+This document records the measures from [konzept-kern.md](konzept-kern.md), section E, and how
+they were measured.
 
-## Messen
+## Measuring
 
 ```bash
-uv run python scripts/measure.py --md          # Demo-Team aus examples/teams
-uv run python scripts/measure.py --daten PFAD --team NAME --runs 30
+uv run python scripts/measure.py --md          # demo team from examples/teams
+uv run python scripts/measure.py --daten PATH --team NAME --runs 30
 ```
 
-Das Skript gibt Mediane in Millisekunden aus: Importzeiten (je in einem frischen Prozess),
-Team laden (ohne und mit Zwischenspeicher), `build_forecast`, Git-Status und den Aufbau von
-Seiten mit dem Streamlit-AppTest (ohne Browser). Gemessen wird nur, was im Python-Prozess
-passiert. **Nicht gemessen** sind Browserstart, Frontend-Rendering und die Wege zwischen Browser
-und Server.
+The script prints medians in milliseconds: import times (each in a fresh process), loading a
+team (without and with the cache), `build_forecast`, Git status, and building pages with the
+Streamlit AppTest (no browser). Only what happens inside the Python process is measured.
+**Not measured** are browser start-up, frontend rendering, and the round trips between browser
+and server.
 
-## Messprotokoll Cloud-Umgebung (Linux, x86_64, 4 Kerne, Python 3.14.6, Demo-Team mit 22 Sprints)
+## Measurement log, cloud environment (Linux, x86_64, 4 cores, Python 3.14.6, demo team with 22 sprints)
 
-Vorher = `main` (78010e5 plus Messskript), nachher = dieser Stand. Einzelne Zeilen
-schwanken von Lauf zu Lauf um etwa 10 bis 20 %.
+Before = `main` (78010e5 plus the measurement script), after = this state. Individual rows
+vary by about 10 to 20 % from run to run.
 
-| Messung | vorher (ms) | nachher (ms) |
+| Measurement | before (ms) | after (ms) |
 |---|---:|---:|
 | import yaml | 14.9 | 14.0 |
 | import pandas | 308.9 | 356.8 |
@@ -33,121 +33,118 @@ schwanken von Lauf zu Lauf um etwa 10 bis 20 %.
 | import sprintforecast.forecast | 79.9 | 80.2 |
 | import sprintforecast.web.ui | 982.8 | 387.1 |
 | import sprintforecast.cli | 258.0 | 232.7 |
-| Team laden (ohne Cache) | 19.5 | 4.7 |
-| Team laden (Cache-Treffer) | – | 0.7 |
+| Load team (no cache) | 19.5 | 4.7 |
+| Load team (cache hit) | – | 0.7 |
 | build_forecast | 0.3 | 0.3 |
 | git status (pending_changes) | 2.5 | 3.0 |
-| AppTest Start (kalt, erster Lauf) | 1083.4 | 792.1 |
-| AppTest erneuter Lauf (gleiche Seite) | 71.2 | 32.8 |
-| AppTest Seite forecast | 63.4 | 32.0 |
-| AppTest Seite fehltage | 52.8 | 23.6 |
-| AppTest Seite planning | 48.3 | 20.5 |
-| AppTest Seite analyse | 42.8 | 19.1 |
-| AppTest Seite produkte | 118.8 | 74.6 |
-| AppTest Seite personen | 63.4 | 18.1 |
-| AppTest Seite hilfe | 33.5 | 29.3 |
+| AppTest start (cold, first run) | 1083.4 | 792.1 |
+| AppTest rerun (same page) | 71.2 | 32.8 |
+| AppTest page forecast | 63.4 | 32.0 |
+| AppTest page fehltage | 52.8 | 23.6 |
+| AppTest page planning | 48.3 | 20.5 |
+| AppTest page analyse | 42.8 | 19.1 |
+| AppTest page produkte | 118.8 | 74.6 |
+| AppTest page personen | 63.4 | 18.1 |
+| AppTest page hilfe | 33.5 | 29.3 |
 
-Lesehilfe:
+How to read this:
 
-- `import sprintforecast.web.ui` (alles, was der Start der Oberfläche vor der ersten Seite
-  importiert) sinkt, weil `pandas` und `altair` erst bei der ersten Seite mit Tabelle oder Diagramm
-  geladen werden. Die Seiten der Auswertung (z. B. Forecast) brauchen beide, die Startseite „Start“
-  nicht. Gemessen wurde das, als der Forecast noch die Startseite war: Der Kaltstart bis zur ersten
-  Seite sank um rund 0,3 s, ein Teil verschiebt sich auf den ersten Seitenaufbau.
-- Team laden: Der C-Lader von libyaml (`CSafeLoader`) senkt das Laden eines Teams ohne
-  Zwischenspeicher deutlich; bei unveränderten Dateien liefert der Zwischenspeicher das Team in
-  unter einer Millisekunde (Dateiversion prüfen plus Kopie).
-- Seitenwechsel und erneute Läufe im AppTest sinken auf etwa die Hälfte (Team-Cache, C-Lader,
-  kein Warten auf die Update-Anzeige).
-- Git-Status ist in der Cloud mit ca. 3 ms schnell (kleiner Klon, Linux). Unter Windows
-  gemessen waren es im Median etwa 61 ms; dort bringt der Zwischenspeicher am meisten.
-- `build_forecast` braucht 0,3 ms. Er wird **nicht** zwischengespeichert: Eine Kopie des
-  Ergebnisses (das Ergebnis muss unabhängig bleiben, weil Seiten Vorschauen daraus rechnen) wäre
-  langsamer als die Berechnung. Ein Zwischenspeicher lohnt erst, wenn die Berechnung spürbar
-  wird; gemessen wurde nur mit dem Demo-Team (22 Sprints), größere Teams sind nicht gemessen.
+- `import sprintforecast.web.ui` (everything the UI start-up imports before the first page)
+  drops because `pandas` and `altair` are now loaded only by the first page that shows a table
+  or a chart. The analysis pages (e.g. the forecast) need both, the "Start" landing page does
+  not. This was measured while the forecast was still the landing page: the cold start up to
+  the first page dropped by roughly 0.3 s, part of which moves into the first page build.
+- Loading a team: libyaml's C loader (`CSafeLoader`) cuts loading a team without the cache
+  considerably; with unchanged files the cache returns the team in under a millisecond
+  (check the file version, then copy).
+- Page switches and reruns in the AppTest drop to about half (team cache, C loader, no waiting
+  for the update indicator).
+- Git status is fast in the cloud at about 3 ms (small clone, Linux). Measured on Windows the
+  median was about 61 ms; that is where the cache helps most.
+- `build_forecast` takes 0.3 ms. It is **not** cached: copying the result (the result has to
+  stay independent because pages compute previews from it) would be slower than the
+  computation. A cache only pays off once the computation becomes noticeable; only the demo
+  team (22 sprints) was measured, larger teams were not.
 
-Referenz des Eigentümers (Windows, vorher): Team laden ca. 18 ms (PyYAML `safe_load` ca. 46 ms
-im Planning-Rerun), `build_forecast` 0,25 bis 1,3 ms, Seitenwechsel im AppTest 35 bis 45 ms,
-`import pandas` 0,4 bis 1,0 s, `import streamlit` ca. 0,5 s, `git status` Median ca. 61 ms.
+Owner's reference (Windows, before): loading a team about 18 ms (PyYAML `safe_load` about
+46 ms in the planning rerun), `build_forecast` 0.25 to 1.3 ms, page switch in the AppTest 35 to
+45 ms, `import pandas` 0.4 to 1.0 s, `import streamlit` about 0.5 s, `git status` median about
+61 ms.
 
-## Messprotokoll Windows (Eigentümer, Python 3.14.8, Demo-Team)
+## Measurement log, Windows (owner, Python 3.14.8, demo team)
 
-Gemessen am 17.10.2026 mit `scripts\measure.py --md` auf dem Arbeitsrechner. Vorher = Commit
-`78010e5` (vor PR 1), nachher = `main` nach dem Merge von PR 1. Mediane in ms.
+Measured on 17 October 2026 with `scripts\measure.py --md` on the owner's workstation.
+Before = commit `78010e5` (before PR 1), after = `main` after merging PR 1. Medians in ms.
 
-| Messung | vorher | nachher |
+| Measurement | before | after |
 |---|---:|---:|
-| import yaml | 23,8 | 24,2 |
-| import pandas | 475,1 | 488,8 |
-| import altair | 331,6 | 321,3 |
-| import streamlit | 480,2 | 433,3 |
-| import rich.console | 53,3 | 49,6 |
-| import typer | 74,9 | 74,3 |
-| import sprintforecast.storage | 46,5 | 50,1 |
-| import sprintforecast.forecast | 124,9 | 124,4 |
-| import sprintforecast.web.ui | 1364,8 | 730,9 |
-| import sprintforecast.cli | 409,6 | 394,9 |
-| Team laden (ohne Cache) | 18,4 | 5,0 |
-| Team laden (Cache-Treffer) | – | 1,1 |
-| build_forecast | 0,3 | 0,3 |
-| git status (pending_changes) | 60,0 | 52,9 |
-| AppTest Start (kalt, erster Lauf) | 1165,7 | 1175,4 |
-| AppTest erneuter Lauf (gleiche Seite) | 99,4 | 23,6 |
-| AppTest Seite forecast | 101,4 | 24,0 |
-| AppTest Seite fehltage | 94,1 | 18,5 |
-| AppTest Seite planning | 96,5 | 18,8 |
-| AppTest Seite analyse | 90,2 | 17,4 |
-| AppTest Seite produkte | 122,1 | 46,4 |
-| AppTest Seite personen | 91,4 | 16,2 |
-| AppTest Seite hilfe | 80,5 | 23,6 |
+| import yaml | 23.8 | 24.2 |
+| import pandas | 475.1 | 488.8 |
+| import altair | 331.6 | 321.3 |
+| import streamlit | 480.2 | 433.3 |
+| import rich.console | 53.3 | 49.6 |
+| import typer | 74.9 | 74.3 |
+| import sprintforecast.storage | 46.5 | 50.1 |
+| import sprintforecast.forecast | 124.9 | 124.4 |
+| import sprintforecast.web.ui | 1364.8 | 730.9 |
+| import sprintforecast.cli | 409.6 | 394.9 |
+| Load team (no cache) | 18.4 | 5.0 |
+| Load team (cache hit) | – | 1.1 |
+| build_forecast | 0.3 | 0.3 |
+| git status (pending_changes) | 60.0 | 52.9 |
+| AppTest start (cold, first run) | 1165.7 | 1175.4 |
+| AppTest rerun (same page) | 99.4 | 23.6 |
+| AppTest page forecast | 101.4 | 24.0 |
+| AppTest page fehltage | 94.1 | 18.5 |
+| AppTest page planning | 96.5 | 18.8 |
+| AppTest page analyse | 90.2 | 17.4 |
+| AppTest page produkte | 122.1 | 46.4 |
+| AppTest page personen | 91.4 | 16.2 |
+| AppTest page hilfe | 80.5 | 23.6 |
 
-Ergebnis (nur Python-Prozess, ohne Browser):
+Result (Python process only, no browser):
 
-- **Seitenaufbau und erneuter Lauf** sinken von 80 bis 120 ms auf 16 bis 46 ms (Seite
-  `produkte` 122 → 46 ms, alle anderen unter 25 ms). Normale Eingaben liegen damit im
-  Python-Teil weit unter dem Ziel von 200 ms.
-- **Team laden** 18 → 5 ms (C-Lader), bei unverändertem Stand 1,1 ms (Cache).
-- **Import der Oberfläche** 1365 → 731 ms (ohne `pandas`/`altair`).
-- **Kalter Start** im AppTest bleibt bei etwa 1,2 s: Die Startseite (Forecast) braucht
-  `pandas` und `altair`, was sich vom Import in den ersten Seitenaufbau verschiebt. Hier bringt
-  PR 1 auf diesem Rechner nichts.
-- **Git-Status** 60 → 53 ms pro Abfrage; der Zwischenspeicher spart ihn bei Eingaben innerhalb von
-  5 Sekunden.
-- Einzelne Importzeiten schwanken um 10 bis 20 % (Reihenfolge, Festplattencache).
+- **Page build and rerun** drop from 80 to 120 ms to 16 to 46 ms (page `produkte`
+  122 → 46 ms, all others below 25 ms). Normal input is therefore far below the 200 ms goal in
+  the Python part.
+- **Loading a team** 18 → 5 ms (C loader), 1.1 ms with unchanged files (cache).
+- **Importing the UI** 1365 → 731 ms (without `pandas`/`altair`).
+- **Cold start** in the AppTest stays at about 1.2 s: the landing page (forecast) needs
+  `pandas` and `altair`, which moves from the import into the first page build. PR 1 gains
+  nothing here on this machine.
+- **Git status** 60 → 53 ms per query; the cache skips it for inputs within 5 seconds.
+- Individual import times vary by 10 to 20 % (ordering, disk cache).
 
-Die Stoppuhr-Messung im Browser (Start bis zur ersten Seite, Ziel unter 3 s; normale Eingaben,
-Ziel unter 200 ms) ist der einzige offene Rest, siehe „Ziele und Abnahme“.
+The stopwatch measurement in the browser (start-up to the first page, goal under 3 s; normal
+input, goal under 200 ms) is the only open item, see "Goals and acceptance".
 
-## Umgesetzte Maßnahmen
+## Implemented measures
 
-1. **Update-Anzeige** wartet nicht mehr auf den Hintergrundthread (`result()` ohne `wait`); das
-   Ergebnis erscheint im nächsten Durchlauf.
-2. **Git-Status** wird höchstens alle 5 Sekunden abgefragt (`git.cached_pending_changes`). Jedes
-   Schreiben über `Repository`, jeder Commit und der Wechsel des Datenordners machen ihn
-   ungültig. Änderungen außerhalb der App (Editor, Terminal) erscheinen nach höchstens 5 Sekunden.
-3. **Team-Zwischenspeicher** (`Repository.load_cached`): Schlüssel ist Datenordner und Team,
-   Gültigkeit die Dateiversion (Name, Änderungszeit in ns, Größe von `team.yaml`, `people.yaml`,
-   `products.yaml` und allen Sprintdateien – neue und gelöschte Dateien ändern sie).
-   Jeder Aufrufer erhält eine eigene Kopie. Dateien, die in den letzten 2 Sekunden geändert
-   wurden, werden nicht zwischengespeichert (grobe Zeitauflösung von Dateisystemen). Speichern
-   und Ordnerwechsel leeren den Zwischenspeicher zusätzlich.
-   Seiten ohne Prognose (Personen, Produkte, Einstellungen) berechnen keinen Forecast.
-4. **YAML** mit `CSafeLoader`, falls PyYAML mit libyaml gebaut ist; sonst `SafeLoader`.
-5. **Lazy Imports:** `pandas` und `altair` werden beim ersten Zugriff geladen
-   (`web/lazy.py`). `rich`, `typer` und die Kommandozeile werden von der Oberfläche nicht
-   importiert (durch einen Test abgesichert).
-6. **Fragmente:** Der Rechenweg (Auswahl des Sprints) und das Was-wäre-wenn-Panel der
-   Forecast-Seite zeichnen bei Eingaben nur sich selbst neu. Weitere Bereiche (Produkt-Editor,
-   Fehltage-Matrix, Planning) speisen Ergebnisse in den Rest der Seite und sind daher bewusst
-   keine Fragmente; ein Formular würde dort die Live-Vorschau entfernen.
+1. **Update indicator** no longer waits for the background thread (`result()` without `wait`);
+   the result appears on the next run.
+2. **Git status** is queried at most every 5 seconds (`git.cached_pending_changes`). Every
+   write through `Repository`, every commit and switching the data folder invalidate it.
+   Changes made outside the app (editor, terminal) show up after at most 5 seconds.
+3. **Team cache** (`Repository.load_cached`): the key is data folder and team, the validity is
+   the file version (name, modification time in ns and size of `team.yaml`, `people.yaml`,
+   `products.yaml` and all sprint files; new and deleted files change it).
+   Every caller receives its own copy. Files modified within the last 2 seconds are not cached
+   (coarse time resolution of file systems). Saving and switching folders also clear the cache.
+   Pages without a forecast (people, products, settings) do not compute one.
+4. **YAML** with `CSafeLoader` if PyYAML was built with libyaml; otherwise `SafeLoader`.
+5. **Lazy imports:** `pandas` and `altair` are loaded on first access (`web/lazy.py`).
+   `rich`, `typer` and the command line are not imported by the UI (guarded by a test).
+6. **Fragments:** the calculation path (sprint selection) and the what-if panel of the
+   forecast page redraw only themselves on input. Other areas (product editor, absence
+   matrix, planning) feed results into the rest of the page and are therefore deliberately not
+   fragments; a form would remove the live preview there.
 
-## Ziele und Abnahme
+## Goals and acceptance
 
-Ziele: Start unter 3 Sekunden, normale Eingaben unter 200 ms. Diese Ziele **prüft der
-Eigentümer mit der Stoppuhr auf seinem Rechner** (Browser und Frontend eingeschlossen); die
-Cloud-Messung belegt nur den Anteil im Python-Prozess.
+Goals: start-up under 3 seconds, normal input under 200 ms. These goals are **checked by the
+owner with a stopwatch on his machine** (browser and frontend included); the cloud measurement
+only covers the share inside the Python process.
 
-Stand: Phase P ist abgeschlossen. Alle sechs Maßnahmen sind umgesetzt, und die Messprotokolle
-(Cloud und Windows) liegen vor. Offen ist ausschließlich die Stoppuhr-Abnahme im Browser auf dem
-Rechner des Eigentümers (Start unter 3 s, normale Eingaben unter 200 ms); sie wird auf Wunsch
-nachgeholt.
+Status: phase P is complete. All six measures are implemented and the measurement logs (cloud
+and Windows) are in place. The only open item is the stopwatch acceptance in the browser on the
+owner's machine (start-up under 3 s, normal input under 200 ms); it will be done on request.
