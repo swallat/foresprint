@@ -50,7 +50,7 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.capacity import sprint_capacity
 from sprintforecast.config import SettingsError, config_dir
-from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes
+from sprintforecast.diff import MAX_VALUES, FileChange, cached_file_changes, text_diff
 from sprintforecast.engine import (
     MIN_THIN_HISTORY,
     UNSURE_SOURCES,
@@ -73,6 +73,7 @@ from sprintforecast.git import (
     _BIDI_CONTROLS,
     _BLANKED_CATEGORIES,
     NO_WINDOW,
+    Change,
     GitError,
     NewBranchError,
     RemoteAddress,
@@ -123,6 +124,7 @@ from sprintforecast.gitsync import (
     abort_unfinished,
     cached_remote_info,
     check_remote,
+    conflict_text_diffs,
     git_available,
     incoming,
     pending_conflicts,
@@ -5167,6 +5169,11 @@ def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
         st.caption(t("Die Änderungsansicht ist gerade nicht verfügbar."))
         return
     st.markdown(f"**{t('Was hat sich geändert?')}**")
+    show_text = st.checkbox(
+        t("Zeilenweisen Unterschied zeigen"),
+        key="git-text-diff",
+        help=t("Zeigt je Datei den Text vorher und nachher (wie `git diff`), auch für Protokolle."),
+    )
     for fc in files[:_VIEW_FILES]:
         shown_fc = replace(
             fc,
@@ -5189,6 +5196,13 @@ def _changes_view(root: Path, pending: list[tuple[str, str]]) -> None:
             )
         elif any(c in fc.status for c in "MT") and not any(c in fc.status for c in "A?D"):
             st.caption(t("keine Wertänderung (nur Schreibweise oder Reihenfolge)"))
+        if show_text and not fc.skipped:
+            try:
+                text = text_diff(root, Change(fc.status, fc.file, fc.orig))
+            except GitError:
+                text = ""
+            if text:
+                st.code(text, language="diff")
     if len(files) > _VIEW_FILES:
         st.caption(t("… und {n} weitere", n=len(files) - _VIEW_FILES))
 
@@ -5794,6 +5808,20 @@ def _restore_clicked(root: Path, file: Path) -> None:
         ]
 
 
+def _conflict_diffs(root: Path, file: str) -> None:
+    """Je Seite der Konflikt-Datei, was sie gegenüber dem gemeinsamen Stand geändert hat."""
+    mine, theirs = conflict_text_diffs(root, file)
+    if not (mine or theirs):
+        return
+    with st.expander(t("Unterschied zum gemeinsamen Stand")):
+        if mine:
+            st.caption(t("Meine Änderung"))
+            st.code(mine, language="diff")
+        if theirs:
+            st.caption(t("Andere Änderung"))
+            st.code(theirs, language="diff")
+
+
 def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None:
     """Geführte Wiederherstellung: Solange Konflikte offen sind, ist die Bearbeitung gesperrt."""
     st.header(t("Konflikte lösen"))
@@ -5844,6 +5872,7 @@ def page_conflicts(repo: Repository, error: ConflictError | None = None) -> None
                         key=_conf_key(i, None), label_visibility="collapsed",
                     )  # fmt: skip
                     ready = ready and pick is not None
+                _conflict_diffs(repo.root, cf.file)
                 for j, kc in enumerate(cf.keys):
                     options = {
                         "ours": t("Meine Änderung: {v}", v=_show_value(kc.ours)),

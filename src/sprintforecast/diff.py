@@ -22,7 +22,7 @@ import yaml
 
 from sprintforecast import git as gitmod
 from sprintforecast.git import Change, GitError, changes_in
-from sprintforecast.gitsync import _parse
+from sprintforecast.gitsync import _parse, unified_diff
 from sprintforecast.yamlmerge import MISSING, keyed
 
 # Obergrenze für verglichene Knoten je Datei: Zwei getrennt gelesene Bäume aus YAML-Aliasen
@@ -268,6 +268,27 @@ def _file_change(root: Path, change: Change, sizes: _Sizes | None = None) -> Fil
         return FileChange(file, status, orig=orig, skipped=True)
     except yaml.YAMLError, ValueError, OSError, RecursionError:  # ValueError: auch Unicode
         return unreadable
+
+
+def text_diff(path: Path, change: Change) -> str:
+    """Unterschied einer nicht committeten Datei zum letzten Commit als Text (``diff -u``), auch
+    für Dateien ohne Wertansicht wie die Protokolle. Leer, wenn die Datei zu groß, kein Text oder
+    nicht lesbar ist."""
+    root = gitmod.require_root(path)
+    file, status = change.file, change.status
+    old = new = ""
+    try:
+        if "A" not in status and status != "??":
+            old = _head_text(root, change.orig or file)
+        with contextlib.suppress(FileNotFoundError):  # gelöscht
+            new = _work_text(root, file)
+    except GitError as e:
+        if e.kind in _GIT_PROBLEMS:
+            raise
+        return ""
+    except ValueError, OSError:  # zu groß, kein Text, Symlink
+        return ""
+    return unified_diff(old, new, f"a/{change.orig or file}", f"b/{file}")
 
 
 def file_changes(path: Path) -> list[FileChange]:

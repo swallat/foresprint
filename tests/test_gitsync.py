@@ -1432,3 +1432,26 @@ def test_pull_takes_over_server_state_without_pushing(alice: Person, bob: Person
     assert (bob.data / "a/protokolle/2026.1-review-20260102-100000-cd34.md").exists()
     assert git(remote, "rev-parse", "main") == before
     assert gitsync.state(bob.data).ahead >= 1
+
+
+def test_text_diff_of_open_changes_includes_protocols(alice: Person):
+    from sprintforecast.diff import text_diff
+    from sprintforecast.git import changes_in
+
+    alice.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
+    alice.write("a/protokolle/2026.1-planning-20260104-100000-aa11.md", "# Planning\nneu\n")
+    found = {c.file: text_diff(alice.data, c) for c in changes_in(alice.data)}
+    sprint = found["teams/a/2026.1.yaml"]
+    assert "-velocity: 10" in sprint and "+velocity: 12" in sprint
+    assert "+neu" in found["teams/a/protokolle/2026.1-planning-20260104-100000-aa11.md"]
+
+
+def test_conflict_diffs_show_both_sides_against_the_common_state(alice: Person, bob: Person):
+    alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
+    assert alice.sync("Alice").ok
+    bob.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
+    result = bob.sync("Bob")
+    assert result.conflicts
+    mine, theirs = gitsync.conflict_text_diffs(bob.data, "teams/a/2026.1.yaml")
+    assert "-velocity: 10" in mine and "+velocity: 12" in mine
+    assert "-velocity: 10" in theirs and "+velocity: 11" in theirs
