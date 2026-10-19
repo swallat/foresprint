@@ -2512,7 +2512,7 @@ def _planning_ticket_hint(data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     from sprintforecast.preplan import distribute, sprint_sums
 
     dist = distribute(data, fc.today)
-    sums = {k: v for k, v in sprint_sums(dist, sprint.id).items() if v > 0}
+    sums = {k: v for k, v in sprint_sums(dist, sprint.id, data).items() if v > 0}
     if not sums:
         return
     unit = data.team.unit.value
@@ -2529,15 +2529,16 @@ def _planning_ticket_hint(data: TeamData, fc: Forecast, sprint: Sprint) -> None:
                 "Anhaltspunkt für die Einplanung, nichts wird übernommen."
             )
         )
-        st.dataframe(
-            pd.DataFrame(
-                [
-                    {t("Produkt"): names.get(k, k) or "–", f"{t('Tickets')} ({unit})": fmt(v)}
-                    for k, v in sums.items()
-                ]
-            ),
-            hide_index=True,
-        )
+        if data.team.features.products:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {t("Produkt"): names.get(k, k) or "–", f"{t('Tickets')} ({unit})": fmt(v)}
+                        for k, v in sums.items()
+                    ]
+                ),
+                hide_index=True,
+            )
         page_link("tickets")
 
 

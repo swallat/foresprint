@@ -47,8 +47,21 @@ def test_report_in_english(data_dir: Path, english):
 def test_sprint_sums_are_the_used_budget_per_product(data_dir: Path):
     enable(data_dir)
     seed(data_dir)
-    dist = distribute(Repository(data_dir).load("demo"), TODAY)
-    sums = sprint_sums(dist, dist.sprints[0])
+    data = Repository(data_dir).load("demo")
+    dist = distribute(data, TODAY)
+    sums = sprint_sums(dist, dist.sprints[0], data)
     assert sums["webshop"] > 0  # T-7 is fixed in 2026.22, other tickets follow
     assert set(sums) <= {b.product for b in dist.budgets}
-    assert sprint_sums(dist, "2099.1") == {}
+    assert sprint_sums(dist, "2099.1", data) == {}
+
+
+def test_sprint_starting_today_counts_its_fixed_tickets(data_dir: Path):
+    """The planning sprint may start today and is then outside the horizon (no budget)."""
+    enable(data_dir)
+    seed(data_dir)
+    data = Repository(data_dir).load("demo")
+    fc = build_forecast(data, TODAY)
+    start = fc.entry("2026.22").sprint.start
+    dist = distribute(data, start)
+    assert "2026.22" not in dist.sprints
+    assert sprint_sums(dist, "2026.22", data) == {"webshop": 1.0}  # T-7 is fixed there
