@@ -5,6 +5,9 @@
 <daten>/<team>/people.yaml        Personenliste mit Zugehörigkeiten
 <daten>/<team>/products.yaml      Produktliste (optional)
 <daten>/<team>/sprints/<id>.yaml  ein Sprint pro Datei
+<daten>/<team>/projects.yaml      Projekte der Ticket-Vorplanung (nur mit features.tickets)
+<daten>/<team>/tickets.yaml       letzter Ticket-Import (nur mit features.tickets)
+<daten>/<team>/preplan.yaml       Vormerkungen und eigene Schätzungen (nur mit features.tickets)
 """
 
 from __future__ import annotations
@@ -29,21 +32,34 @@ import yaml
 from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
 from sprintforecast.model import (
+    DEFAULT_MATCH_ORDER,
+    RULE_OPERATORS,
     AbsenceState,
+    BudgetBasis,
     CapacitySettings,
+    Earmark,
+    EstimateSource,
     Features,
     ForecastSettings,
+    ManualEstimate,
     Membership,
     Numbering,
     Person,
     Planning,
+    PlanningUses,
+    Preplan,
     Product,
     ProductBasis,
     ProductValues,
     Prognosis,
+    Project,
+    Rule,
     Sprint,
     SprintSettings,
     Team,
+    Ticket,
+    TrackerFields,
+    TrackerSettings,
     TrendMode,
     Unit,
     absence_status,
@@ -438,6 +454,45 @@ def _clean(value: float | None) -> float | int | None:
     return int(value) if float(value).is_integer() else round(value, 6)
 
 
+def _int(value: Any, where: str, name: str, default: int = 0) -> int:
+    """A whole number; missing or empty = ``default``. Booleans and fractions are rejected."""
+    if value is None or value == "":
+        return default
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or not math.isfinite(value)
+        or not float(value).is_integer()
+    ):
+        raise DataError(
+            t(
+                "{where}: '{name}' muss eine ganze Zahl sein, gefunden {value}",
+                where=where,
+                name=name,
+                value=repr(value)[:60],
+            )
+        )
+    return int(value)
+
+
+def _text(value: Any) -> str | None:
+    """A free text; missing or empty = ``None``."""
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
+def _texts(value: Any, where: str, name: str) -> list[str]:
+    """A list of texts (labels, keys); a single scalar counts as a list of one."""
+    if value is None or value == "":
+        return []
+    if isinstance(value, dict):
+        _sequence(value, where, name)  # raises: an object is not a list
+    if not isinstance(value, list):
+        value = [value]
+    return [str(v) for v in value]
+
+
 # --- Team -----------------------------------------------------------------------------
 
 TEAM_HEADER = """\
@@ -510,10 +565,12 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
             products=bool(raw_features.get("products", False)),
             po=bool(raw_features.get("po", False)),
             production=bool(raw_features.get("production", False)),
+            tickets=bool(raw_features.get("tickets", False)),
         )
         if "features" in d
         else Features(explicit=False)  # ältere Datei: Repository.load leitet die Werte ab
     )
+    tracker = _tracker_from(_mapping(d.get("tracker"), where, "tracker"), where)
     try:
         return Team(
             key=key,
@@ -535,6 +592,7 @@ def team_from_dict(key: str, d: dict[str, Any], where: str) -> Team:
                 product_basis=ProductBasis(forecast.get("product_basis", "plan")),
             ),
             features=features,
+            tracker=tracker,
             capacity=CapacitySettings(
                 overhead_share=_finite(capacity.get("overhead_share", 0.0)),
                 overhead_days=_finite(capacity.get("overhead_days", 0.0)),
@@ -576,18 +634,182 @@ def team_to_dict(team: Team) -> dict[str, Any]:
         capacity["workweek"] = team.capacity.workweek
     if team.capacity.absence_history != CapacitySettings().absence_history:  # auch 0 = aus
         capacity["absence_history"] = team.capacity.absence_history
-    return {
+    features: dict[str, Any] = {
+        "products": team.features.products,
+        "po": team.features.po,
+        "production": team.features.production,
+    }
+    if team.features.tickets:  # only when on: files of teams without it stay unchanged
+        features["tickets"] = True
+    out: dict[str, Any] = {
         "name": team.name,
         "unit": team.unit.value,
-        "features": {
-            "products": team.features.products,
-            "po": team.features.po,
-            "production": team.features.production,
-        },
+        "features": features,
         "sprint": sprint,
         "forecast": forecast,
         "capacity": capacity,
     }
+    # The tracker section is kept while the feature is on and whenever it holds settings, so
+    # switching the feature off and on again does not lose the configuration.
+    if team.features.tickets or team.tracker != TrackerSettings():
+        out["tracker"] = _tracker_to(team.tracker)
+    return out
+
+
+# --- Tracker (ticket pre-planning, section ``tracker`` in team.yaml) ----------------------
+
+
+def _rule_value(value: Any) -> str:
+    """Leaf values are compared as text; YAML booleans (``in_sprint: [true]``) become
+    ``true``/``false``."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def _rule_node(mapping: dict[str, Any], where: str) -> Rule:
+    entries: list[Rule] = []
+    for raw_key, value in mapping.items():
+        name = str(raw_key)
+        if name in RULE_OPERATORS:
+            items = _sequence(value, where, name)
+            children = [
+                _rule_node(_mapping(item, where, f"{name}[{i}]"), where)
+                for i, item in enumerate(items)
+            ]
+            entries.append(Rule(op=name, children=children))
+            continue
+        if isinstance(value, dict):
+            raise DataError(
+                t(
+                    "{where}: '{name}' muss eine Liste von Werten sein (Einträge mit '- '), "
+                    "gefunden {value}",
+                    where=where,
+                    name=name,
+                    value=repr(value)[:60],
+                )
+            )
+        if value is None or value == "":
+            values: list[str] = []
+        elif isinstance(value, list):
+            values = [_rule_value(v) for v in value]
+        else:
+            values = [_rule_value(value)]
+        entries.append(Rule(source=name, values=values))
+    if len(entries) == 1:
+        return entries[0]  # a single leaf, or the long form: exactly one of any/all/none
+    # Short form (several sources directly in the mapping, OR-combined). Mixed forms and
+    # several operators in one mapping land here too; the validation reports them.
+    return Rule(op="any", children=entries, short=True)
+
+
+def _rule_from(raw: Any, where: str) -> Rule | None:
+    """Reads an assignment rule (spec section 6.4); missing or empty = ``None``. Unknown
+    sources are kept as leaves so that the validation can name them."""
+    mapping = _mapping(raw, where, "match")
+    if not mapping:
+        return None
+    return _rule_node(mapping, where)
+
+
+def _rule_values_to(leaf: Rule) -> list[Any]:
+    if leaf.source == "in_sprint":  # written back as YAML booleans
+        return [{"true": True, "false": False}.get(v, v) for v in leaf.values]
+    return list(leaf.values)
+
+
+def _rule_to(rule: Rule) -> dict[str, Any]:
+    if rule.short:
+        out: dict[str, Any] = {}
+        for child in rule.children:
+            if child.op == "leaf":
+                out[child.source or ""] = _rule_values_to(child)
+            else:
+                out[child.op] = [_rule_to(c) for c in child.children]
+        return out
+    if rule.op == "leaf":
+        return {rule.source or "": _rule_values_to(rule)}
+    return {rule.op: [_rule_to(c) for c in rule.children]}
+
+
+def _choice(value: Any, kind: type[Any], default: str, where: str, name: str) -> Any:
+    """A value of a StrEnum; missing = ``default``."""
+    try:
+        return kind(value if value not in (None, "") else default)
+    except ValueError as e:
+        raise DataError(
+            t(
+                "{where}: {name} '{value}' unbekannt (erlaubt: {allowed})",
+                where=where,
+                name=name,
+                value=value,
+                allowed=", ".join(k.value for k in kind),
+            )
+        ) from e
+
+
+def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
+    at = f"{where}: tracker"
+    fields = _mapping(d.get("fields"), at, "fields")
+    order = _texts(d.get("project_match_order"), at, "project_match_order")
+    rough = _float(d.get("rough_factor"), f"{at}: rough_factor")
+    return TrackerSettings(
+        kind=str(d.get("kind") or "csv"),
+        base_url=_text(d.get("base_url")),
+        query=_text(d.get("query")),
+        fields=TrackerFields(
+            estimate=_text(fields.get("estimate")),
+            remaining=_text(fields.get("remaining")),
+            epic=_text(fields.get("epic")),
+        ),
+        planning_uses=_choice(
+            d.get("planning_uses"), PlanningUses, "remaining", at, "planning_uses"
+        ),
+        refined_label=_text(d.get("refined_label")),
+        refined_also_if=_rule_from(d.get("refined_also_if"), f"{at}.refined_also_if"),
+        project_match_order=order or list(DEFAULT_MATCH_ORDER),
+        dependency_gap=_int(d.get("dependency_gap"), at, "dependency_gap", 1),
+        budget_basis=_choice(
+            d.get("budget_basis"), BudgetBasis, "roadmap_share", at, "budget_basis"
+        ),
+        rough_factor=1.5 if rough is None else rough,
+        write_labels=bool(d.get("write_labels", False)),
+        sprint_names={
+            str(k): str(v) for k, v in _mapping(d.get("sprint_names"), at, "sprint_names").items()
+        },
+    )
+
+
+def _tracker_to(tr: TrackerSettings) -> dict[str, Any]:
+    out: dict[str, Any] = {"kind": tr.kind}
+    if tr.base_url:
+        out["base_url"] = tr.base_url
+    if tr.query:
+        out["query"] = tr.query
+    fields = {
+        name: value
+        for name, value in (
+            ("estimate", tr.fields.estimate),
+            ("remaining", tr.fields.remaining),
+            ("epic", tr.fields.epic),
+        )
+        if value
+    }
+    if fields:
+        out["fields"] = fields
+    out["planning_uses"] = tr.planning_uses.value
+    if tr.refined_label:
+        out["refined_label"] = tr.refined_label
+    if tr.refined_also_if is not None:
+        out["refined_also_if"] = _rule_to(tr.refined_also_if)
+    out["project_match_order"] = list(tr.project_match_order)
+    out["dependency_gap"] = tr.dependency_gap
+    out["budget_basis"] = tr.budget_basis.value
+    out["rough_factor"] = _clean(tr.rough_factor)
+    out["write_labels"] = tr.write_labels
+    if tr.sprint_names:
+        out["sprint_names"] = dict(tr.sprint_names)
+    return out
 
 
 # --- Personen -------------------------------------------------------------------------
@@ -889,6 +1111,250 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
     return d
 
 
+# --- Ticket pre-planning: projects.yaml, tickets.yaml, preplan.yaml ----------------------
+
+# Schema version of the three files. Missing = 1; a greater version was written by a newer
+# program version and is refused instead of being read half.
+SCHEMA = 1
+
+PROJECTS_HEADER = """\
+# Projects of the ticket pre-planning: target date, product, priority and assignment rule.
+# A ticket belongs to the project whose `match` rule it fulfils (docs/design/ticket-planning.md).
+"""
+
+TICKETS_HEADER = """\
+# Tickets as last imported from the tracker. Written by the import – do not edit by hand.
+"""
+
+PREPLAN_HEADER = """\
+# Pre-planning of the PO: earmarks (ticket → future sprint) and own estimates for tickets.
+"""
+
+
+def _schema(d: dict[str, Any], where: str) -> int:
+    raw = d.get("schema")
+    if raw is None or raw == "":
+        return SCHEMA
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        raise DataError(
+            t(
+                "{where}: schema muss eine ganze Zahl sein, gefunden {value}",
+                where=where,
+                value=repr(raw)[:60],
+            )
+        )
+    if raw > SCHEMA:
+        raise DataError(
+            t(
+                "{where}: Die Datei wurde von einer neueren Programmversion geschrieben "
+                "(schema {found}, diese Version kennt bis {known}). Bitte sprintforecast "
+                "aktualisieren.",
+                where=where,
+                found=raw,
+                known=SCHEMA,
+            )
+        )
+    return raw
+
+
+def _sprint_ref(value: Any, where: str, name: str) -> str | None:
+    """A sprint id as text; like sprint files, ``2026.20`` must be quoted (else 2026.2)."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, float):
+        raise DataError(
+            t(
+                '{where}: {name} bitte in Anführungszeichen setzen, z. B. {name}: "2026.20"',
+                where=where,
+                name=name,
+            )
+        )
+    return str(value)
+
+
+def projects_from_dict(d: dict[str, Any], where: str) -> list[Project]:
+    _schema(d, where)
+    projects = []
+    for i, p in enumerate(_sequence(d.get("projects"), where, "projects")):
+        at = f"{where}: projects[{i}]"
+        if not isinstance(p, dict) or "id" not in p:
+            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
+        basis = p.get("budget_basis")
+        projects.append(
+            Project(
+                id=str(p["id"]),
+                name=str(p.get("name") or p["id"]),
+                product=_text(p.get("product")),
+                target=_date(p["target"], at) if p.get("target") else None,
+                priority=_int(p.get("priority"), at, "priority", 0),
+                budget_basis=(
+                    _choice(basis, BudgetBasis, "plan", at, "budget_basis") if basis else None
+                ),
+                match=_rule_from(p.get("match"), f"{at}: match"),
+                note=_text(p.get("note")),
+            )
+        )
+    return projects
+
+
+def projects_to_dict(projects: list[Project]) -> dict[str, Any]:
+    out = []
+    for p in projects:
+        entry: dict[str, Any] = {"id": p.id, "name": p.name}
+        if p.product:
+            entry["product"] = p.product
+        entry["target"] = p.target
+        entry["priority"] = p.priority
+        if p.budget_basis is not None:
+            entry["budget_basis"] = p.budget_basis.value
+        if p.match is not None:
+            entry["match"] = _rule_to(p.match)
+        if p.note:
+            entry["note"] = p.note
+        out.append(entry)
+    return {"schema": SCHEMA, "projects": out}
+
+
+def _timestamp(value: Any, where: str, name: str) -> datetime | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime(value.year, value.month, value.day)
+    try:
+        return datetime.fromisoformat(str(value))
+    except ValueError as e:
+        raise DataError(
+            t("{where}: ungültiger Zeitpunkt '{value}'", where=f"{where}: {name}", value=value)
+        ) from e
+
+
+def tickets_from_dict(
+    d: dict[str, Any], where: str
+) -> tuple[list[Ticket], datetime | None, str | None]:
+    """Tickets of the last import plus its time stamp and source (both optional)."""
+    _schema(d, where)
+    imported = _timestamp(d.get("imported"), where, "imported")
+    source = _text(d.get("source"))
+    tickets = []
+    for i, raw in enumerate(_sequence(d.get("tickets"), where, "tickets")):
+        at = f"{where}: tickets[{i}]"
+        if not isinstance(raw, dict) or not raw.get("key"):
+            raise DataError(t("{where}: Feld 'key' fehlt", where=at))
+        tickets.append(
+            Ticket(
+                key=str(raw["key"]),
+                title=str(raw.get("title") or ""),
+                status=_text(raw.get("status")),
+                issue_type=_text(raw.get("issue_type")),
+                estimate=_float(raw.get("estimate"), f"{at}: estimate"),
+                remaining=_float(raw.get("remaining"), f"{at}: remaining"),
+                estimate_source=_choice(
+                    raw.get("estimate_source"), EstimateSource, "none", at, "estimate_source"
+                ),
+                refined_unclear=bool(raw.get("refined_unclear", False)),
+                in_sprint=_sprint_ref(raw.get("in_sprint"), at, "in_sprint"),
+                sprint_name=_text(raw.get("sprint_name")),
+                rank=_text(raw.get("rank")),
+                epic=_text(raw.get("epic")),
+                labels=_texts(raw.get("labels"), at, "labels"),
+                components=_texts(raw.get("components"), at, "components"),
+                depends_on=_texts(raw.get("depends_on"), at, "depends_on"),
+                project=_text(raw.get("project")),
+                project_candidates=_texts(raw.get("project_candidates"), at, "project_candidates"),
+                done=bool(raw.get("done", False)),
+            )
+        )
+    return tickets, imported, source
+
+
+def tickets_to_dict(
+    tickets: list[Ticket], imported: datetime | None = None, source: str | None = None
+) -> dict[str, Any]:
+    out: dict[str, Any] = {"schema": SCHEMA}
+    if imported is not None:
+        out["imported"] = imported.replace(microsecond=0)
+    if source:
+        out["source"] = source
+    entries = []
+    for tk in tickets:
+        entry: dict[str, Any] = {
+            "key": tk.key,
+            "title": tk.title,
+            "status": tk.status,
+            "issue_type": tk.issue_type,
+            "estimate": _clean(tk.estimate),
+        }
+        if tk.remaining is not None:
+            entry["remaining"] = _clean(tk.remaining)
+        entry["estimate_source"] = tk.estimate_source.value
+        if tk.refined_unclear:
+            entry["refined_unclear"] = True
+        if tk.in_sprint is not None:
+            entry["in_sprint"] = tk.in_sprint
+        if tk.sprint_name is not None:
+            entry["sprint_name"] = tk.sprint_name
+        entry["rank"] = tk.rank
+        entry["epic"] = tk.epic
+        entry["labels"] = list(tk.labels)
+        entry["components"] = list(tk.components)
+        entry["depends_on"] = list(tk.depends_on)
+        if tk.project is not None:
+            entry["project"] = tk.project
+        if tk.project_candidates:
+            entry["project_candidates"] = list(tk.project_candidates)
+        if tk.done:
+            entry["done"] = True
+        entries.append(entry)
+    out["tickets"] = entries
+    return out
+
+
+def preplan_from_dict(d: dict[str, Any], where: str) -> Preplan:
+    _schema(d, where)
+    earmarks = []
+    for i, raw in enumerate(_sequence(d.get("earmarks"), where, "earmarks")):
+        at = f"{where}: earmarks[{i}]"
+        if not isinstance(raw, dict) or not raw.get("ticket"):
+            raise DataError(t("{where}: Feld 'ticket' fehlt", where=at))
+        sprint = _sprint_ref(raw.get("sprint"), at, "sprint")
+        if sprint is None:
+            raise DataError(t("{where}: Feld 'sprint' fehlt", where=at))
+        earmarks.append(
+            Earmark(ticket=str(raw["ticket"]), sprint=sprint, note=_text(raw.get("note")))
+        )
+    estimates = []
+    for i, raw in enumerate(_sequence(d.get("estimates"), where, "estimates")):
+        at = f"{where}: estimates[{i}]"
+        if not isinstance(raw, dict) or not raw.get("ticket"):
+            raise DataError(t("{where}: Feld 'ticket' fehlt", where=at))
+        estimates.append(
+            ManualEstimate(
+                ticket=str(raw["ticket"]),
+                estimate=_float(raw.get("estimate"), f"{at}: estimate"),
+                note=_text(raw.get("note")),
+            )
+        )
+    return Preplan(earmarks=earmarks, estimates=estimates)
+
+
+def preplan_to_dict(preplan: Preplan) -> dict[str, Any]:
+    earmarks = []
+    for e in preplan.earmarks:
+        entry: dict[str, Any] = {"ticket": e.ticket, "sprint": e.sprint}
+        if e.note:
+            entry["note"] = e.note
+        earmarks.append(entry)
+    estimates = []
+    for m in preplan.estimates:
+        entry = {"ticket": m.ticket, "estimate": _clean(m.estimate)}
+        if m.note:
+            entry["note"] = m.note
+        estimates.append(entry)
+    return {"schema": SCHEMA, "earmarks": earmarks, "estimates": estimates}
+
+
 # --- Repository -----------------------------------------------------------------------
 
 
@@ -898,9 +1364,22 @@ class TeamData:
     people: list[Person] = field(default_factory=list)
     sprints: list[Sprint] = field(default_factory=list)
     products: list[Product] = field(default_factory=list)
+    # Ticket pre-planning; empty unless ``features.tickets`` is on.
+    projects: list[Project] = field(default_factory=list)
+    tickets: list[Ticket] = field(default_factory=list)
+    preplan: Preplan = field(default_factory=Preplan)
+    # Time stamp and source (file name or query) of the last ticket import.
+    tickets_imported: datetime | None = None
+    tickets_source: str | None = None
 
     def sprint(self, sprint_id: str) -> Sprint | None:
         return next((s for s in self.sprints if s.id == sprint_id), None)
+
+    def ticket(self, key: str) -> Ticket | None:
+        return next((tk for tk in self.tickets if tk.key == key), None)
+
+    def project(self, project_id: str) -> Project | None:
+        return next((p for p in self.projects if p.id == project_id), None)
 
 
 # Zwischenspeicher für geladene Teams (Oberfläche: bei jeder Eingabe läuft die Seite neu).
@@ -922,9 +1401,20 @@ def clear_team_cache() -> None:
     invalidate_status()
 
 
+# Files of a team besides the sprint files (cache key, check of the files).
+TEAM_FILES = (
+    "team.yaml",
+    "people.yaml",
+    "products.yaml",
+    "projects.yaml",
+    "tickets.yaml",
+    "preplan.yaml",
+)
+
+
 def _file_version(base: Path) -> tuple[tuple, bool]:
     """Dateiversion eines Teams und ob eine Datei so frisch ist, dass sie noch unsicher ist."""
-    files = [base / "team.yaml", base / "people.yaml", base / "products.yaml"]
+    files = [base / name for name in TEAM_FILES]
     files += sorted((base / "sprints").glob("*.yaml"))
     now = time.time()
     version: list[tuple] = []
@@ -1035,7 +1525,23 @@ class Repository:
                 production=any(p.production_access for p in people),
                 explicit=False,
             )
-        return TeamData(team=team, people=people, sprints=sprints, products=products)
+        data = TeamData(team=team, people=people, sprints=sprints, products=products)
+        if team.features.tickets:  # off: the three files are not even read
+            projects_file = base / "projects.yaml"
+            if projects_file.is_file():
+                with _well_formed(str(projects_file)):
+                    data.projects = projects_from_dict(_read(projects_file), str(projects_file))
+            tickets_file = base / "tickets.yaml"
+            if tickets_file.is_file():
+                with _well_formed(str(tickets_file)):
+                    data.tickets, data.tickets_imported, data.tickets_source = tickets_from_dict(
+                        _read(tickets_file), str(tickets_file)
+                    )
+            preplan_file = base / "preplan.yaml"
+            if preplan_file.is_file():
+                with _well_formed(str(preplan_file)):
+                    data.preplan = preplan_from_dict(_read(preplan_file), str(preplan_file))
+        return data
 
     def load_cached(self, key: str) -> TeamData:
         """Wie :meth:`load`, aber nur bei geänderten Dateien neu gelesen. Der Aufrufer erhält
@@ -1065,6 +1571,27 @@ class Repository:
     def save_products(self, key: str, products: list[Product]) -> Path:
         path = self.team_dir(key) / "products.yaml"
         _write(path, PRODUCTS_HEADER, products_to_dict(products))
+        return path
+
+    def save_projects(self, key: str, projects: list[Project]) -> Path:
+        path = self.team_dir(key) / "projects.yaml"
+        _write(path, PROJECTS_HEADER, projects_to_dict(projects))
+        return path
+
+    def save_tickets(
+        self,
+        key: str,
+        tickets: list[Ticket],
+        imported: datetime | None = None,
+        source: str | None = None,
+    ) -> Path:
+        path = self.team_dir(key) / "tickets.yaml"
+        _write(path, TICKETS_HEADER, tickets_to_dict(tickets, imported, source))
+        return path
+
+    def save_preplan(self, key: str, preplan: Preplan) -> Path:
+        path = self.team_dir(key) / "preplan.yaml"
+        _write(path, PREPLAN_HEADER, preplan_to_dict(preplan))
         return path
 
     def sprint_path(self, key: str, sprint_id: str) -> Path:
