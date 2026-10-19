@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from sprintforecast.config import config_dir
+from sprintforecast.git import find_git
 from sprintforecast.i18n import t
 
 PACKAGE = "sprintforecast"
@@ -263,9 +264,52 @@ def upgrade_command(uv: str) -> list[str]:
     return [uv, "tool", "upgrade", "--reinstall", PACKAGE]
 
 
+def _path_key(env: dict[str, str] | os._Environ[str]) -> str:
+    # Windows: Variablennamen sind nicht von der Schreibweise abhängig („Path“ statt „PATH“).
+    if sys.platform == "win32":
+        return next((name for name in env if name.upper() == "PATH"), "PATH")
+    return "PATH"
+
+
+def _same_file(a: str, b: str) -> bool:
+    return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+
+
+def upgrade_path() -> str | None:
+    """PATH für den uv-Aufruf. uv startet für Plugins aus Git-Adressen selbst ``git`` über den
+    PATH. Liegt Git nur außerhalb des PATH (siehe ``git.find_git``), kommt dessen Ordner HINTEN
+    an den PATH: Vorn würde er gleichnamige Programme (python, uv, …) im selben Ordner
+    überdecken, etwa bei ``~/.local/bin`` oder ``scoop\\shims``. Ist der PATH nicht gesetzt,
+    bleibt die Standardsuche des Systems (``os.defpath``) erhalten. ``None``: nichts zu ändern
+    (Git im PATH oder nicht gefunden). Maßgeblich ist der Fund von ``find_git``: Liegt im PATH
+    nur ein unbrauchbares ``git`` (etwa der Windows-Store-Alias, inzwischen gesperrt) und das
+    brauchbare an einem Ersatzort, wird dessen Ordner angehängt."""
+    found = find_git()
+    if not found:
+        return None
+    if (in_path := shutil.which("git")) and _same_file(in_path, found):
+        return None
+    folder = os.path.normcase(os.path.dirname(found))
+    if any(folder == os.path.normcase(os.path.abspath(f)) for f in os.get_exec_path() if f):
+        return None  # ein späterer PATH-Eintrag: Anhängen würde nichts ändern
+    current = os.environ.get(_path_key(os.environ)) or os.defpath
+    return os.pathsep.join([current, os.path.dirname(found)])
+
+
+def upgrade_environment() -> dict[str, str] | None:
+    """Umgebung für den uv-Aufruf (Kopie mit angepasstem PATH, siehe :func:`upgrade_path`);
+    ``None``: uv erbt die Umgebung unverändert."""
+    path = upgrade_path()
+    if path is None:
+        return None
+    env = dict(os.environ)
+    env[_path_key(env)] = path
+    return env
+
+
 def run_upgrade(uv: str) -> int:
     """Aktualisiert sofort im Vordergrund (nicht unter Windows – dort sind Dateien gesperrt)."""
-    return subprocess.run(upgrade_command(uv)).returncode
+    return subprocess.run(upgrade_command(uv), env=upgrade_environment()).returncode
 
 
 def _powershell_script(
@@ -275,6 +319,7 @@ def _powershell_script(
     visible: bool,
     then: list[str] | None = None,
     cwd: str | None = None,
+    path: str | None = None,
 ) -> str:
     def quote(text: str) -> str:
         return "'" + text.replace("'", "''") + "'"
@@ -285,6 +330,9 @@ def _powershell_script(
         f"Wait-Process -Id {','.join(map(str, pids))} -ErrorAction SilentlyContinue",
         "Start-Sleep -Seconds 1",
     ]
+    if path is not None:
+        # Nur für den uv-Aufruf; ``then`` (der Neustart) läuft mit dem ursprünglichen PATH.
+        lines += ["$sfPath = $env:PATH", f"$env:PATH = {quote(path)}"]
     if visible:
         lines += [
             "Write-Host 'sprintforecast wird aktualisiert …'",
@@ -292,6 +340,8 @@ def _powershell_script(
         ]
     else:
         lines.append(f"{call} *> {quote(str(log))}")
+    if path is not None:
+        lines.append("$env:PATH = $sfPath")
     if then:
         # Eine einzige, nach Windows-Regeln gequotete Befehlszeile: Start-Process verbindet
         # Array-Elemente nur mit Leerzeichen, Pfade mit Leerzeichen würden sonst zerfallen.
@@ -308,10 +358,16 @@ def _powershell_script(
 
 
 def _posix_script(
-    pids: list[int], command: list[str], then: list[str] | None, cwd: str | None
+    pids: list[int],
+    command: list[str],
+    then: list[str] | None,
+    cwd: str | None,
+    path: str | None = None,
 ) -> str:
     waits = "; ".join(f"while kill -0 {p} 2>/dev/null; do sleep 1; done" for p in pids)
-    script = f"{waits}; {shlex.join(command)}"
+    # Der PATH gilt nur für den uv-Aufruf (Zuweisung vor dem Befehl), nicht für ``then``.
+    prefix = f"PATH={shlex.quote(path)} " if path is not None else ""
+    script = f"{waits}; {prefix}{shlex.join(command)}"
     if then:
         script += f"; cd {shlex.quote(cwd or '.')} && exec {shlex.join(then)} >/dev/null 2>&1"
     return script
@@ -329,12 +385,13 @@ def schedule_after_exit(
     log = log_file()
     log.parent.mkdir(parents=True, exist_ok=True)
     command = upgrade_command(uv)
+    path = upgrade_path()
     pids = list(pids or [os.getpid()])
     if sys.platform == "win32":
         # Der uv-Starter (sprintforecast.exe) ist der Elternprozess und ebenfalls gesperrt.
         if os.getppid() not in pids:
             pids.append(os.getppid())
-        script = _powershell_script(pids, command, log, visible, then, cwd)
+        script = _powershell_script(pids, command, log, visible, then, cwd, path)
         encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass"]
         args += ["-EncodedCommand", encoded]
@@ -347,7 +404,7 @@ def schedule_after_exit(
         return
     with log.open("w", encoding="utf-8") as out:
         subprocess.Popen(
-            ["/bin/sh", "-c", _posix_script(pids, command, then, cwd)],
+            ["/bin/sh", "-c", _posix_script(pids, command, then, cwd, path)],
             stdin=subprocess.DEVNULL,
             stdout=out,
             stderr=subprocess.STDOUT,
