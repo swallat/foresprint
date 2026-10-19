@@ -225,6 +225,9 @@ def _not_readable(path: Path, error: OSError) -> FileAccessError:
     )
 
 
+not_readable = _not_readable
+
+
 def _not_saved(path: Path, error: OSError) -> FileAccessError:
     return FileAccessError(
         t(

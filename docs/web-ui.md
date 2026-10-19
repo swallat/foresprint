@@ -56,8 +56,8 @@ shared data repository. The rules for finding the data directory are in the
 | Manage team | Sprint calendar | upcoming sprints with start, last day and working days; create, adjust length |
 | | People | one table (one row per membership period, FTE); IDs are assigned automatically; former members can be hidden |
 | | Products | product list with PO and period (from/to); former products can be hidden |
-| | Settings | all team settings; changes are shown before saving |
-| | New team | create a team |
+| | Settings | all team settings; changes are shown before saving; **Change sprint IDs** renames a sprint and counts the following sprints on |
+| | New team | create a team; asks for the first sprint (the one running now or starting next) before anything else |
 | Data & help | Data folder | choose, create or clone a data folder (Git repository); enter, test and change the server (remote) |
 | | Changes and history | discard open changes, history per team/sprint/file, restore an earlier state, manage tags |
 | | Check | findings of all teams |

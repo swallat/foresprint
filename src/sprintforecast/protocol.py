@@ -506,6 +506,19 @@ def list_protocols(
     return sorted(found, key=lambda f: (f[0], f[3].name), reverse=True)
 
 
+def protocol_renames(
+    repo: Repository, team: str, pairs: list[tuple[str, str]]
+) -> list[tuple[Path, Path]]:
+    """Dateiumbenennungen, mit denen die Protokolle der Sprints ``alt`` künftig unter ``neu``
+    geführt werden (auch obsolete); nur der Sprint im Dateinamen ändert sich, der Inhalt nicht.
+    Es wird nichts umbenannt; die Liste ist vollständig, bevor ein Aufrufer sie abarbeitet."""
+    found: list[tuple[Path, Path]] = []
+    for old, new in pairs:
+        for _, _, _, path in list_protocols(repo, team, old):
+            found.append((path, path.with_name(new + path.name.removeprefix(old))))
+    return found
+
+
 def _undo(renamed: list[Path]) -> None:
     """Macht ``mark_obsolete`` rückgängig (so gut es geht)."""
     for target in renamed:

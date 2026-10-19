@@ -319,12 +319,36 @@ def test_overhead_fields_stay_in_sync(app: AppTest, data_dir: Path):
 def test_new_team(app: AppTest, data_dir: Path):
     goto(app, "neues_team")
     app.text_input[0].set_value("team-b").run()
+    app.text_input(key="new-team-b-sprint.first_id").set_value("2026.15")
     app.text_input(key="new-team-b-capacity.region").set_value("BY")
     click(app, "Team anlegen")
     team = load(data_dir / "team-b" / "team.yaml")
     assert team["capacity"]["region"] == "BY"
-    assert team["sprint"]["first"]["id"] == "2026.1"
+    assert team["sprint"]["first"] == {"id": "2026.15", "start": date(2026, 10, 15)}
     assert app.session_state["selected_team"] == "team-b"
+
+
+def test_new_team_asks_for_the_first_sprint_first(app: AppTest):
+    """Der erste Sprint steht als eigener Abschnitt vor allen anderen Einstellungen, die ID
+    ohne Vorgabe (ein vorbelegtes 2026.1 wurde übersehen und war dann schwer zu ändern)."""
+    goto(app, "neues_team")
+    app.text_input[0].set_value("team-b").run()
+    assert [h.value for h in app.subheader] == ["Erster Sprint", "Weitere Einstellungen"]
+    # Je Feldart in Reihenfolge der Seite: der erste Sprint kommt vor Name, Einheit usw.
+    assert app.text_input[1].key == "new-team-b-sprint.first_id"  # direkt nach dem Kürzel
+    assert app.text_input[2].key == "new-team-b-name"
+    assert app.selectbox[0].key == "new-team-b-sprint.numbering"
+    assert app.date_input[0].key == "new-team-b-sprint.first_start"
+    assert app.text_input(key="new-team-b-sprint.first_id").value == ""
+
+
+def test_new_team_requires_the_first_sprint_id(app: AppTest, data_dir: Path):
+    goto(app, "neues_team")
+    app.text_input[0].set_value("team-b").run()
+    click(app, "Team anlegen")
+    assert any("ID des ersten Sprints: Bitte einen Wert eingeben." in e.value for e in app.error)
+    assert not (data_dir / "team-b").exists()
+    assert app.session_state.get("selected_team") != "team-b"
 
 
 @pytest.mark.parametrize("key", ["../x", "a/b", "..", "con", "-x", "a" * 65])
@@ -351,6 +375,7 @@ def test_new_team_key_is_normalized_before_the_check(app: AppTest, data_dir: Pat
     goto(app, "neues_team")
     app.text_input[0].set_value("  Team_C ").run()
     assert not app.error
+    app.text_input(key="new-team_c-sprint.first_id").set_value("2026.15")
     click(app, "Team anlegen")
     assert (data_dir / "team_c" / "team.yaml").is_file()
     assert app.session_state["selected_team"] == "team_c"

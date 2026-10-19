@@ -525,13 +525,12 @@ def test_check_messages_with_brackets(data_dir: Path):
 
 # --- init und einstellungen: geführte Eingabe ---------------------------------------------
 
-# Eingaben von „init“ nach dem Namen: Einheit … Land, Region (ungültig, dann leer) …, erster Sprint
+# Eingaben von „init“ nach dem Namen: erster Sprint, Einheit … Land, Region (ungültig, dann leer) …
 INIT_ANSWERS = (
     "Neu [/x]{bs}\n"  # Anzeigename
+    + "\n2026-10-07\n2026.20\n"  # erster Sprint: Nummerierung, Start, ID
     + "\n" * 5  # Einheit, Produkte, PO, Produktion, Land
     + "[/x]\n\n"  # Region: Meldung „Unbekannter Regionscode“, dann leer
-    + "\n" * 10  # Arbeitswoche … Sprint-Nummerierung
-    + "2026-10-07\n"  # Start des ersten Sprints
     + "\n" * 20
 )
 

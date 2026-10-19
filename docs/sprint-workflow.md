@@ -8,6 +8,7 @@ example). Look things up with `sprintforecast help terms`, `sprintforecast help 
 | When | Command | What happens |
 |---|---|---|
 | Create sprints in advance | `sprintforecast sprints team-a --create` | Show upcoming sprints (start, last day, working days) and create their files; `--end 2026.25=2027-01-12` extends a sprint, the following sprints shift. |
+| A sprint ID is wrong (e.g. the team is in 2026.15, not 2026.1) | `sprintforecast rename-sprint team-a 2026.1 2026.15` | Gives the sprint a new ID; the saved sprints after it count on from there (2026.2 becomes 2026.16 and so on). Sprint files and minutes are renamed, their contents stay. Also on the *Settings* page under **Change sprint IDs**. |
 | Vacation or similar becomes known | `sprintforecast absences team-a [SPRINT]` | Record absences per person (default: next sprint). Shows capacity and forecast. |
 | The team changes | `sprintforecast people team-a` | Add a person, change FTE, record a departure. |
 | Settings change | `sprintforecast settings team-a` | Change region, reference capacity, trend mode and so on with guidance; shows the changes before saving. |
