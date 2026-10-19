@@ -4,7 +4,7 @@ Excel-Liste arbeiten).
 
 Die Mappe ist nicht mit einer früheren Liste identisch, rechnet aber dieselbe Logik wie
 ``engine.py`` mit echten Excel-Formeln: n. Velocity, gleitender Durchschnitt, Trend (nach dem
-beim Export gültigen Trend-Modus), Kapazität, Forecast PLAN, Roadmap, Kleinkram, Fulfillment und
+beim Export gültigen Trend-Modus), Kapazität, Forecast PLAN, Verplanbar, Kleinkram, Fulfillment und
 Fokusfaktor – dazu die Aufteilung nach Produktionszugriff und je Produkt und ein Liniendiagramm
 des Trends. Die Formeln tragen den von der Engine berechneten Wert als Zwischenspeicher, damit
 auch Vorschauprogramme Zahlen zeigen. Erfordert ``xlsxwriter`` (``sprintforecast[excel]``).
@@ -214,7 +214,7 @@ def build_workbook(fc: Forecast) -> bytes:
     labels = {
         "forecast.reference_capacity": t("Referenzkapazität (PT)"),
         "forecast.window": t("Fenster (Sprints)"),
-        "forecast.roadmap_share": t("Roadmap-Anteil"),
+        "forecast.roadmap_share": t("Verplanbarer Anteil"),
         "forecast.rounding": t("Rundung (Nachkommastellen, abgerundet)"),
         "forecast.trend_mode": t("Trend-Modus (beim Export festgelegt)"),
     }
@@ -280,7 +280,7 @@ def build_workbook(fc: Forecast) -> bytes:
         "cap_known": t("Kapazität bekannt (Ø oder Trend)"),
         "plancap": t("Kapazität für den Forecast PLAN (PT)"),
         "plan": t("Forecast PLAN ({unit})", unit=unit),
-        "roadmap": t("Roadmap ({unit})", unit=unit),
+        "roadmap": t("Verplanbar ({unit})", unit=unit),
         "small": t("Kleinkram ({unit})", unit=unit),
         "ful": t("Fulfillment"),
         "focus": t("Fokusfaktor"),
