@@ -20,9 +20,12 @@ from sprintforecast.protocol import (
     PLANNING,
     PREPLANNING,
     REVIEW,
+    PlanningSection,
+    latest_planning_sections,
     list_protocols,
     mark_obsolete,
     obsolete_with_save,
+    render_planning_protocol,
     render_protocol,
     save_with_protocol,
     write_protocol,
@@ -915,3 +918,63 @@ def test_unfreeze_marks_only_the_planning_protocol_obsolete(tmp_path: Path):
     assert [f[2] for f in list_protocols(repo, "demo", "2026.21") if f[1] == PLANNING] == [True]
     # ein zweites Aufheben benennt Obsoletes nicht noch einmal um
     assert mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER) == []
+
+
+def planning_text(repo: Repository, now: datetime, *, plan: bool, commitment: bool) -> str:
+    return render_planning_protocol(
+        "Team",
+        "2026.21",
+        now=now,
+        facts=[("Kapazität (PT)", "50")],
+        sections=[
+            PlanningSection("absences", "Fehltage", ["- Anna: 2 Tage"]),
+            PlanningSection("plan", "Einplanung", ["- Eingeplant: 8"], recorded=plan),
+            PlanningSection("commitment", "Commitment", ["- Commitment: 9"], recorded=commitment),
+        ],
+        previous=latest_planning_sections(repo, "demo", "2026.21"),
+    )
+
+
+def test_planning_protocol_lists_every_section_and_marks_missing_ones(tmp_path: Path):
+    repo = Repository(tmp_path)
+    text = planning_text(repo, NOW, plan=False, commitment=False)
+    assert text.index("## Fehltage") < text.index("## Einplanung") < text.index("## Commitment")
+    assert "- Anna: 2 Tage" in text and "_noch nicht erfasst_" in text
+    assert text.count("_Stand: 16.10.2026 14:43_") == 1  # nur der erfasste Abschnitt
+
+
+def test_each_section_keeps_its_own_stand_while_unchanged(tmp_path: Path):
+    repo = Repository(tmp_path)
+    write_protocol(
+        repo,
+        "demo",
+        "2026.21",
+        PLANNING,
+        planning_text(repo, NOW, plan=False, commitment=False),
+        NOW,
+    )
+    second = planning_text(repo, LATER, plan=True, commitment=False)
+    assert "_Stand: 16.10.2026 14:43_\n\n- Anna: 2 Tage" in second  # Fehltage: alter Stand
+    assert "_Stand: 20.10.2026 09:00_\n\n- Eingeplant: 8" in second  # Einplanung: neu
+    write_protocol(repo, "demo", "2026.21", PLANNING, second, LATER)
+    sections = latest_planning_sections(repo, "demo", "2026.21")
+    assert sections["absences"] == ("Stand: 16.10.2026 14:43", ["- Anna: 2 Tage"])
+    assert sections["plan"][0] == "Stand: 20.10.2026 09:00"
+
+
+def test_an_unchanged_planning_state_gives_the_same_text_and_no_new_protocol(tmp_path: Path):
+    repo = Repository(tmp_path)
+    one = write_protocol(
+        repo, "demo", "2026.21", PLANNING, planning_text(repo, NOW, plan=True, commitment=True), NOW
+    )
+    again_text = planning_text(repo, LATER, plan=True, commitment=True)
+    assert write_protocol(repo, "demo", "2026.21", PLANNING, again_text, LATER) == one
+    assert len(list_protocols(repo, "demo", "2026.21")) == 1
+
+
+def test_a_missing_or_unreadable_planning_protocol_yields_no_sections(tmp_path: Path):
+    repo = Repository(tmp_path)
+    assert latest_planning_sections(repo, "demo", "2026.21") == {}
+    path = write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n", NOW)
+    path.write_bytes(b"\xff\xfe")
+    assert latest_planning_sections(repo, "demo", "2026.21") == {}

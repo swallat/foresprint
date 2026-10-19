@@ -219,9 +219,10 @@ def test_planning_minutes_follow_the_product_distribution_switch(
         at.radio(key="planning-step").set_value(2).run()
         at.number_input(key="fist-2026.22").set_value(10.0 + (1 if products else 0))
         click(at, "Planning speichern")
-        files = sorted((data_dir / TEAM / "protokolle").glob("2026.22-planning-*.md"))
-        assert files
-        return files[-1].read_text(encoding="utf-8")
+        # Zwei Speicherungen in derselben Sekunde: die Namen ordnen dann nach dem Fingerabdruck,
+        # also nach dem Schreibzeitpunkt wählen.
+        files = (data_dir / TEAM / "protokolle").glob("2026.22-planning-*.md")
+        return max(files, key=lambda p: p.stat().st_mtime_ns).read_text(encoding="utf-8")
 
     assert "Je Produkt" not in planning_minutes(products=False)
     assert "Je Produkt" in planning_minutes(products=True)
