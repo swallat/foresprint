@@ -2076,13 +2076,14 @@ def aktualisieren(
     if auto is not None:
         # gespeichert werden die bisherigen Werte an/hinweis/aus
         values = {"on": "an", "notice": "hinweis", "off": "aus"}
+        word = auto.strip().lower()
         try:
-            mode = updater.Mode(values[auto.strip().lower()])
+            mode = updater.Mode(values[word])
         except KeyError:
             err.print(f"[red]{t('--auto: on, notice oder off')}[/red]")
             raise typer.Exit(1) from None
         updater.update_state(mode=mode.value)
-        console.print(t("Automatische Aktualisierung: [bold]{mode}[/bold]", mode=t(mode.value)))
+        console.print(t("Automatische Aktualisierung: [bold]{mode}[/bold]", mode=word))
         if os.environ.get(updater.MODE_ENV):
             console.print(
                 f"[yellow]{t('Hinweis: {name} hat Vorrang.', name=updater.MODE_ENV)}[/yellow]"
