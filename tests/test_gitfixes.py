@@ -1055,3 +1055,17 @@ def test_attributes_offer_for_a_data_folder_inside_the_repository(solo: Path):
     gitmod.apply_attributes(data)
     assert not (solo / ".gitattributes").exists()
     assert (data / ".gitattributes").is_file()
+
+
+def test_apply_attributes_survives_an_unsaved_deletion_and_rolls_back_on_error(solo: Path):
+    (solo / "b.yaml").write_bytes(b"v: 1\r\n")
+    git(solo, "add", "-A")
+    git(solo, "commit", "-qm", "CRLF")
+    (solo / "b.yaml").unlink()
+    gitmod.apply_attributes(solo)
+    assert (solo / ".gitattributes").is_file()
+    (solo / ".gitattributes").unlink()
+    (solo / ".gitattributes").write_bytes(b"# caf\xe9\n")
+    with pytest.raises(ValueError):
+        gitmod.apply_attributes(solo)
+    assert (solo / ".gitattributes").read_bytes() == b"# caf\xe9\n"
