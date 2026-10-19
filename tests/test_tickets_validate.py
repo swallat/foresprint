@@ -284,3 +284,29 @@ def test_a_secret_kept_while_the_feature_was_off_is_an_error_when_switched_on(da
     assert len(found) == 1 and found[0][0] == "team.yaml"
     assert "token" in found[0][1] and "tok-CANARY" not in found[0][1]
     assert "Schlüsselbund" in found[0][1]
+
+
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [
+        (
+            "https://jira.example.org/jira?x=1",
+            "darf keine Parameter (?…) und kein Fragment (#…) enthalten",
+        ),
+        (
+            "https://jira.example.org/jira#top",
+            "darf keine Parameter (?…) und kein Fragment (#…) enthalten",
+        ),
+        ("https://jira.example.org?", "darf keine Parameter (?…) und kein Fragment (#…) enthalten"),
+        ("https://:pw@jira.example.org", "darf keine Zugangsdaten enthalten"),
+        ("https://[jira.example.org/jira", "muss eine http- oder https-Adresse sein"),
+        ("https://jira.example.org:notaport", "muss eine http- oder https-Adresse sein"),
+    ],
+)
+def test_jira_address_problems_are_errors_without_echoing_the_address(
+    data: TeamData, url: str, message: str
+):
+    jira(data, base_url=url)
+    found = errors(data)
+    assert found == [("team.yaml", f"tracker.base_url {message}")]
+    assert "pw" not in found[0][1]

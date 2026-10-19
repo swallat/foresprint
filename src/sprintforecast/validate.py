@@ -10,7 +10,6 @@ from datetime import date, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
 import yaml
 from yaml.constructor import SafeConstructor
@@ -33,6 +32,7 @@ from sprintforecast.model import (
     Sprint,
     Ticket,
     TrackerSettings,
+    base_url_problem,
 )
 from sprintforecast.storage import (
     TEAM_FILES,
@@ -202,12 +202,17 @@ def _check_tracker_source(tr: TrackerSettings, error, warn) -> None:
     if not tr.base_url:
         error("team.yaml", t("tracker.base_url fehlt (Adresse des Jira-Servers, http oder https)"))
     else:
-        parts = urlsplit(tr.base_url)
-        if parts.scheme not in ("http", "https") or not parts.hostname:
+        problem = base_url_problem(tr.base_url)
+        if problem == "invalid":
             error("team.yaml", t("tracker.base_url muss eine http- oder https-Adresse sein"))
-        elif parts.username or parts.password:
+        elif problem == "credentials":
             error("team.yaml", t("tracker.base_url darf keine Zugangsdaten enthalten"))
-        elif parts.scheme == "http":
+        elif problem == "extra":
+            error(
+                "team.yaml",
+                t("tracker.base_url darf keine Parameter (?…) und kein Fragment (#…) enthalten"),
+            )
+        elif tr.base_url.strip().lower().startswith("http://"):
             warn(
                 "team.yaml",
                 t("tracker.base_url ist unverschlüsselt (http): das Token wäre mitlesbar"),

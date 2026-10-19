@@ -99,6 +99,20 @@ def fixed(response: httpx.Response | Exception) -> Handler:
     return handler
 
 
+def on_search(response: httpx.Response | Exception) -> Handler:
+    """Jira answers the field list normally and the search with this response."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        if request.url.path == "/rest/api/2/field":
+            return httpx.Response(200, json=fixture("fields.json"))
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    return handler
+
+
 # --- Connection and field resolution ---------------------------------------------------------
 
 
@@ -283,12 +297,42 @@ def test_more_than_one_page_of_one_hundred(monkeypatch: pytest.MonkeyPatch):
     assert found[7].estimate == 7.0
 
 
-def test_issues_that_move_between_pages_are_read_once():
+def test_an_issue_that_moves_between_pages_is_an_error_not_a_short_result():
+    """One ticket read twice means another one was missed: nothing may be written."""
     server = Server()
     server.pages[1]["issues"].insert(0, server.pages[0]["issues"][-1])  # ABC-3 again
     server.pages[1]["total"] = server.pages[0]["total"] = 6
-    keys = [tk.key for tk in make(server)[0].fetch()]
-    assert keys == ["ABC-1", "ABC-2", "ABC-3", "ABC-4", "ABC-5"]
+    with pytest.raises(SourceError, match="erneut versuchen"):
+        make(server)[0].fetch()
+
+
+def test_a_changing_total_is_an_error():
+    server = Server()
+    server.pages[1]["total"] = 4
+    with pytest.raises(SourceError, match="geändert"):
+        make(server)[0].fetch()
+
+
+def test_an_empty_page_before_the_total_is_an_error():
+    server = Server()
+    server.pages[1]["issues"] = []
+    with pytest.raises(SourceError, match="geändert"):
+        make(server)[0].fetch()
+
+
+def test_fewer_issues_than_the_total_at_the_end_is_an_error():
+    server = Server()
+    server.pages[0]["total"] = server.pages[1]["total"] = 7
+    with pytest.raises(SourceError, match="geändert"):
+        make(server)[0].fetch()
+
+
+def test_a_server_that_ignores_start_at_does_not_loop_forever():
+    page = fixture("search_page1.json")
+    page["total"] = 9
+    source, _ = make(on_search(httpx.Response(200, json=page)))
+    with pytest.raises(SourceError, match="geändert"):
+        source.fetch()
 
 
 def test_empty_result_is_valid():
@@ -471,9 +515,9 @@ def test_400_shows_only_the_error_messages():
         "errors": {"customfield_1": "SECRET-TICKET-DATA"},
         "issues": [{"key": "SECRET-1"}],
     }
-    source, _ = make(fixed(httpx.Response(400, json=body)))
+    source, _ = make(on_search(httpx.Response(400, json=body)))
     with pytest.raises(SourceError) as e:
-        source.test_connection()
+        source.fetch()
     text = str(e.value)
     assert "Error in the JQL Query: The field 'projekt' does not exist. A second message" in text
     assert "SECRET" not in text and "customfield_1" not in text
@@ -482,19 +526,42 @@ def test_400_shows_only_the_error_messages():
 def test_400_message_is_cut_at_300_characters():
     body = {"errorMessages": ["x" * 1000]}
     with pytest.raises(SourceError) as e:
-        make(fixed(httpx.Response(400, json=body)))[0].test_connection()
+        make(on_search(httpx.Response(400, json=body)))[0].fetch()
     detail = str(e.value).split("(400): ", 1)[1]
     assert len(detail) == 300 and detail.endswith("…")
 
 
 def test_400_without_messages_still_points_at_the_jql():
     with pytest.raises(SourceError, match=r"tracker\.query"):
-        make(fixed(httpx.Response(400, text="<html>SECRET</html>")))[0].test_connection()
+        make(on_search(httpx.Response(400, text="<html>SECRET</html>")))[0].fetch()
 
 
 def test_fixture_jql_error_is_shown():
     with pytest.raises(SourceError, match="field 'projekt' does not exist"):
-        make(fixed(httpx.Response(400, json=fixture("error_jql.json"))))[0].fetch()
+        make(on_search(httpx.Response(400, json=fixture("error_jql.json"))))[0].fetch()
+
+
+@pytest.mark.parametrize("call", ["test_connection", "resolve_fields"])
+def test_a_400_on_myself_or_field_is_not_reported_as_a_jql_problem(call):
+    response = httpx.Response(400, json={"errorMessages": ["Something about the JQL query"]})
+    with pytest.raises(SourceError) as e:
+        getattr(make(fixed(response))[0], call)()
+    assert "JQL" not in str(e.value) and "tracker.query" not in str(e.value)
+    assert "(400)" in str(e.value) and "base_url" in str(e.value)
+
+
+def test_429_names_the_wait_when_jira_says_so():
+    with pytest.raises(SourceError, match="in 120 Sekunden"):
+        make(fixed(httpx.Response(429, headers={"Retry-After": "120"})))[0].test_connection()
+    for header in ({}, {"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, {"Retry-After": "-5"}):
+        with pytest.raises(SourceError, match="später erneut"):
+            make(fixed(httpx.Response(429, headers=header)))[0].test_connection()
+
+
+def test_407_says_the_proxy_needs_authentication():
+    with pytest.raises(SourceError) as e:
+        make(fixed(httpx.Response(407)))[0].test_connection()
+    assert "Proxy" in str(e.value) and "407" in str(e.value) and "Unerwartete" not in str(e.value)
 
 
 @pytest.mark.parametrize("body", [[], {"x": 1}, "text", 5])
@@ -598,7 +665,8 @@ def test_exactly_one_function_performs_http():
                     and node.func.attr in network
                 ):
                     calls.setdefault(function.name, []).append(node.func.attr)
-    assert calls == {"_request": ["Client", "request"]}, calls
+    # the client is built in one place and used in one place; nothing else touches the network
+    assert calls == {"_new_client": ["Client"], "_request": ["request"]}, calls
 
 
 @pytest.mark.parametrize("method", ["POST", "PUT", "DELETE", "PATCH", "HEAD", "get", "OPTIONS"])
@@ -811,3 +879,134 @@ def test_csv_import_works_without_httpx(data_dir: Path):
     out = run_python(code, str(data_dir), str(DATA.parent / "jira_en.csv"))
     assert "EXIT 0" in out, out
     assert "ABC-1" in out
+
+
+# --- Review fixes ----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://anna:s3cret@jira.example.org", "Zugangsdaten"),
+        ("https://anna@jira.example.org", "Zugangsdaten"),
+        ("https://:s3cret@jira.example.org", "Zugangsdaten"),
+        ("https://jira.example.org/jira?token=s3cret", "Parameter"),
+        ("https://jira.example.org/jira#s3cret", "Fragment"),
+        ("https://[jira.example.org/jira", "http- oder https-Adresse"),
+        ("https://jira.example.org:notaport", "http- oder https-Adresse"),
+    ],
+)
+def test_a_base_url_with_credentials_query_or_fragment_is_refused_without_echo(url, expected):
+    with pytest.raises(SourceError) as e:
+        JiraSource(settings(base_url=url), CANARY, httpx.MockTransport(Server()))
+    assert expected in str(e.value)
+    assert "s3cret" not in str(e.value) and "s3cret" not in repr(e.value)
+
+
+def test_keychain_user_survives_a_malformed_address():
+    for url in ("https://[jira.example.org/jira", "", "no-scheme-at-all"):
+        with pytest.raises(SourceError, match="base_url"):
+            jira_module.keychain_user(url)
+    assert jira_token("https://[jira.example.org/jira") is None  # no crash, just no token
+
+
+def test_the_install_hints_carry_the_full_address(monkeypatch: pytest.MonkeyPatch):
+    """sprintforecast is not on PyPI: a bare `sprintforecast[jira]` does not install."""
+    monkeypatch.setitem(sys.modules, "httpx", None)
+    with pytest.raises(SourceError) as missing_httpx:
+        JiraSource(settings(), CANARY)
+    monkeypatch.setitem(sys.modules, "keyring", None)
+    with pytest.raises(SourceError) as missing_keyring:
+        store_token(BASE, CANARY)
+    for error in (missing_httpx.value, missing_keyring.value):
+        text = str(error)
+        assert '"sprintforecast[web,excel,jira] @ https://' in text
+        assert "pip install" not in text and "Installer erneut" in text
+    assert jira_module.INSTALL_URL.startswith("https://github.com/swallat/sprint-forecast/")
+
+
+def test_an_unreadable_ca_bundle_is_a_clear_error(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """No transport: httpx builds its own TLS context from SSL_CERT_FILE and fails right there."""
+    monkeypatch.setenv("SSL_CERT_FILE", str(tmp_path / "missing-ca.pem"))
+    source = JiraSource(settings(), CANARY)
+    with pytest.raises(SourceError) as e:
+        source.test_connection()
+    text = str(e.value)
+    assert "SSL_CERT_FILE" in text and "SSL_CERT_DIR" in text and "missing-ca.pem" not in text
+    assert e.value.__context__ is None and e.value.__cause__ is None
+    bad = tmp_path / "bad.pem"
+    bad.write_text("this is no certificate\n", encoding="utf-8")
+    monkeypatch.setenv("SSL_CERT_FILE", str(bad))  # an ssl.SSLError (an OSError) while loading
+    with pytest.raises(SourceError, match="SSL_CERT_FILE"):
+        JiraSource(settings(), CANARY).test_connection()
+
+
+def test_a_client_that_cannot_be_built_is_reported_not_raised(monkeypatch: pytest.MonkeyPatch):
+    import ssl
+
+    for error in (FileNotFoundError("/etc/x.pem"), ssl.SSLError("bad pem"), PermissionError("x")):
+
+        def broken(*args, error=error, **kwargs):
+            raise error
+
+        monkeypatch.setattr(httpx, "Client", broken)
+        with pytest.raises(SourceError, match="SSL_CERT_FILE"):
+            make()[0].test_connection()
+
+
+@pytest.mark.parametrize(("response", "expected"), error_cases())
+def test_no_original_exception_is_reachable_from_the_error(response, expected):
+    """The transport error references the request and its headers (the token): it must be neither
+    __cause__ nor __context__ of what the caller sees."""
+    source, _ = make(fixed(response))
+    with pytest.raises(SourceError) as e:
+        source.test_connection()
+    assert e.value.__cause__ is None and e.value.__context__ is None
+
+
+def test_store_token_error_hides_the_backend_error(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setitem(sys.modules, "keyring", FakeKeyring(fail=True))
+    with pytest.raises(SourceError) as e:
+        store_token(BASE, CANARY)
+    assert e.value.__cause__ is None and e.value.__context__ is None
+
+
+def test_a_body_that_is_no_json_is_not_kept_in_the_error_chain():
+    with pytest.raises(SourceError) as e:
+        make(fixed(httpx.Response(200, text="<html>SECRET-TICKET-DATA</html>")))[
+            0
+        ].test_connection()
+    assert e.value.__cause__ is None and e.value.__context__ is None
+
+
+def test_other_tls_errors_do_not_claim_a_certificate_problem():
+    import ssl
+
+    handshake = httpx.ConnectError("[SSL: WRONG_VERSION_NUMBER] wrong version number")
+    handshake.__cause__ = ssl.SSLError(1, "[SSL: WRONG_VERSION_NUMBER] wrong version number")
+    with pytest.raises(SourceError) as e:
+        make(fixed(handshake))[0].test_connection()
+    text = str(e.value)
+    assert "TLS-Verbindungsaufbau" in text and "http statt https" in text
+    assert "Zertifikat" not in text and "SSL_CERT_FILE" not in text
+
+    cert = httpx.ConnectError("boom")
+    cert.__cause__ = ssl.SSLCertVerificationError(1, "certificate verify failed")
+    with pytest.raises(SourceError, match="Zertifikats"):
+        make(fixed(cert))[0].test_connection()
+
+
+def test_repr_works_when_init_failed_early():
+    half_built = JiraSource.__new__(JiraSource)  # what a traceback may hold after a failed init
+    assert "JiraSource(" in repr(half_built) and str(half_built) == repr(half_built)
+
+
+def test_english_texts_of_the_review_fixes(english):
+    with pytest.raises(SourceError, match="changed while reading"):
+        server = Server()
+        server.pages[1]["total"] = 4
+        make(server)[0].fetch()
+    with pytest.raises(SourceError, match="requires authentication"):
+        make(fixed(httpx.Response(407)))[0].test_connection()
+    with pytest.raises(SourceError, match="credentials"):
+        JiraSource(settings(base_url="https://a:b@x.org"), CANARY, httpx.MockTransport(Server()))

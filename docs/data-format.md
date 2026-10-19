@@ -161,7 +161,7 @@ fallback. Additional keys:
 tracker:
   kind: jira
   base_url: https://jira.example.org    # http or https; with a context path: https://host/jira
-  query: 'project = ABC AND resolution = Unresolved ORDER BY Rank'   # JQL
+  query: 'project = ABC AND resolution = Unresolved AND issuetype not in subTaskIssueTypes() ORDER BY Rank'   # JQL; sub-tasks would be counted twice
   fields:
     estimate: Story Points       # display names of the instance, as in the Jira UI; the tool
     remaining: Remaining Points  # resolves them to customfield_… ids (GET /rest/api/2/field)
@@ -170,7 +170,7 @@ tracker:
                                  # ("is blocked by") becomes depends_on
 ```
 
-- `base_url` and `query` are required (error otherwise); a missing `fields.estimate` is a warning.
+- `base_url` and `query` are required (error otherwise); the address must not contain credentials, parameters (`?…`) or a fragment (`#…`); a missing `fields.estimate` is a warning.
   Plain `http` is accepted with a warning (the token would travel unencrypted); credentials in the
   address are an error.
 - A field name that does not exist or exists twice in the instance stops the import with a

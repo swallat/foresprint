@@ -24,7 +24,7 @@ from urllib.parse import urlsplit
 
 from sprintforecast import __version__
 from sprintforecast.i18n import t
-from sprintforecast.model import TrackerSettings
+from sprintforecast.model import TrackerSettings, base_url_problem
 from sprintforecast.sources import RawTicket, SourceError
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, httpx stays an optional import
@@ -58,6 +58,11 @@ BASE_FIELDS = (
 )
 # The system field "parent" as value of ``tracker.fields.epic``: the parent issue is the epic.
 PARENT_FIELD = "parent"
+SEARCH_PATH = "/rest/api/2/search"
+
+# The command that installs the extra: sprintforecast is not on PyPI, so it needs its address.
+INSTALL_URL = "https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
+INSTALL_COMMAND = f'uv tool install --force "sprintforecast[web,excel,jira] @ {INSTALL_URL}"'
 
 
 # --- httpx, token ----------------------------------------------------------------------------
@@ -68,19 +73,35 @@ def _load_httpx() -> Any:
     try:
         import httpx
     except ImportError:
+        httpx = None
+    if httpx is None:
         raise SourceError(
             t(
-                "Für Jira fehlt das Paket httpx. Installieren Sie das Extra [jira]: "
-                'uv tool install --force "sprintforecast[web,excel,jira]" '
-                '(bzw. pip install "sprintforecast[jira]")'
+                "Für Jira fehlt das Paket httpx. Installieren Sie das Extra [jira]: den "
+                "Installer erneut ausführen oder {command} (Plugins dabei mit --with erneut "
+                "angeben)",
+                command=INSTALL_COMMAND,
             )
-        ) from None
+        )
     return httpx
 
 
+def invalid_base_url_error() -> SourceError:
+    return SourceError(
+        t("tracker.base_url fehlt oder ist keine http- oder https-Adresse (team.yaml)")
+    )
+
+
 def keychain_user(base_url: str) -> str:
-    """User name of the keychain entry: the host of the Jira address."""
-    return (urlsplit(base_url).hostname or base_url).lower()
+    """User name of the keychain entry: the host of the Jira address (the entry is per host,
+    not per path or account)."""
+    try:
+        host = urlsplit(base_url.strip()).hostname
+    except ValueError:
+        host = None
+    if not host:
+        raise invalid_base_url_error()
+    return host.lower()
 
 
 def _keyring() -> Any | None:
@@ -115,9 +136,10 @@ def jira_token(base_url: str | None = None) -> str | None:
 def keyring_missing_error() -> SourceError:
     return SourceError(
         t(
-            "Der Schlüsselbund ist nicht verfügbar: das Paket keyring fehlt "
-            '(uv tool install --force "sprintforecast[web,excel,jira]" --with keyring, '
-            "bzw. pip install keyring). Alternativ die Umgebungsvariable {variable} setzen.",
+            "Der Schlüsselbund ist nicht verfügbar: das Paket keyring fehlt (den Installer "
+            "erneut ausführen oder {command} --with keyring; Plugins dabei mit --with erneut "
+            "angeben). Alternativ die Umgebungsvariable {variable} setzen.",
+            command=INSTALL_COMMAND,
             variable=TOKEN_ENV,
         )
     )
@@ -129,16 +151,21 @@ def store_token(base_url: str, token: str) -> None:
     if keyring is None:
         raise keyring_missing_error()
     _check_token(token)
+    user = keychain_user(base_url)
+    stored = False
     try:
-        keyring.set_password(KEYRING_SERVICE, keychain_user(base_url), token)
+        keyring.set_password(KEYRING_SERVICE, user, token)
+        stored = True
     except Exception:  # the backend's message could contain anything: not shown
+        pass
+    if not stored:  # raised outside the except block: the backend's error is not reachable
         raise SourceError(
             t(
                 "Der Schlüsselbund hat das Token nicht angenommen (kein Schlüsselbund-Dienst "
                 "verfügbar?). Alternativ die Umgebungsvariable {variable} setzen.",
                 variable=TOKEN_ENV,
             )
-        ) from None
+        )
 
 
 def missing_token_error() -> SourceError:
@@ -333,21 +360,30 @@ class JiraSource:
     ) -> None:
         self._httpx = _load_httpx()
         base = (settings.base_url or "").strip()
-        parts = urlsplit(base)
-        if parts.scheme not in ("http", "https") or not parts.hostname:
+        problem = base_url_problem(base)
+        if problem == "credentials":
+            raise SourceError(t("tracker.base_url darf keine Zugangsdaten enthalten (team.yaml)"))
+        if problem == "extra":
             raise SourceError(
-                t("tracker.base_url fehlt oder ist keine http- oder https-Adresse (team.yaml)")
+                t("tracker.base_url darf keine Parameter (?…) und kein Fragment (#…) enthalten")
             )
+        if problem is not None:
+            raise invalid_base_url_error()
         self.settings = settings
         self.base_url = base.rstrip("/")
-        self.host = parts.hostname
+        self.host = urlsplit(base).hostname or ""
         self._token = _Secret(_check_token(token))
         self._transport = transport
         self._client: httpx.Client | None = None
         self._fields: ResolvedFields | None = None
 
     def __repr__(self) -> str:
-        return f"JiraSource(host={self.host!r}, query={self.settings.query!r})"
+        # also usable when __init__ failed early (a traceback may show the half-built object)
+        settings = getattr(self, "settings", None)
+        return (
+            f"JiraSource(host={getattr(self, 'host', None)!r}, "
+            f"query={getattr(settings, 'query', None)!r})"
+        )
 
     @property
     def name(self) -> str:
@@ -373,35 +409,50 @@ class JiraSource:
         if method not in ALLOWED_METHODS:
             raise ValueError(f"HTTP method {method!r} is not allowed: this source only reads")
         httpx = self._httpx
+        failure: str | None = None
+        response = None
         if self._client is None:
-            self._client = httpx.Client(
-                headers={
-                    "Authorization": f"Bearer {self._token.reveal()}",
-                    "Accept": "application/json",
-                    "User-Agent": USER_AGENT,
-                },
-                timeout=TIMEOUT,
-                transport=self._transport,
-                follow_redirects=False,
-            )
-        try:
-            response = self._client.request(method, self.base_url + path, params=params)
-        except httpx.TimeoutException:
-            raise SourceError(self._timeout_text()) from None
-        except httpx.InvalidURL, httpx.UnsupportedProtocol:
-            raise SourceError(
-                t("Die Adresse {host} ist ungültig (tracker.base_url in team.yaml)", host=self.host)
-            ) from None
-        except httpx.ConnectError as e:
-            raise SourceError(self._connect_text(e)) from None
-        except httpx.HTTPError:
-            raise SourceError(
-                t(
+            try:
+                self._client = self._new_client()
+            except OSError:  # includes ssl.SSLError: the CA bundle could not be loaded
+                failure = t(
+                    "Die Zertifikatsdatei aus SSL_CERT_FILE bzw. SSL_CERT_DIR kann nicht gelesen "
+                    "werden – Umgebungsvariable und Datei prüfen."
+                )
+        if failure is None and self._client is not None:
+            try:
+                response = self._client.request(method, self.base_url + path, params=params)
+            except httpx.TimeoutException:
+                failure = self._timeout_text()
+            except httpx.InvalidURL, httpx.UnsupportedProtocol:
+                failure = t(
+                    "Die Adresse {host} ist ungültig (tracker.base_url in team.yaml)",
+                    host=self.host,
+                )
+            except httpx.ConnectError as e:
+                failure = self._connect_text(e)
+            except httpx.HTTPError:
+                failure = t(
                     "Die Verbindung zu {host} ist fehlgeschlagen (Netzwerk, Proxy oder Firewall?)",
                     host=self.host,
                 )
-            ) from None
-        return self._decode(response)
+        if failure is not None or response is None:
+            # Raised outside the except blocks: the transport error (and the request headers
+            # with the token that it may reference) is neither __cause__ nor __context__.
+            raise SourceError(failure or "")
+        return self._decode(response, path)
+
+    def _new_client(self) -> httpx.Client:
+        return self._httpx.Client(
+            headers={
+                "Authorization": f"Bearer {self._token.reveal()}",
+                "Accept": "application/json",
+                "User-Agent": USER_AGENT,
+            },
+            timeout=TIMEOUT,
+            transport=self._transport,
+            follow_redirects=False,
+        )
 
     def _timeout_text(self) -> str:
         return t(
@@ -419,8 +470,8 @@ class JiraSource:
             chain.append(current)
             current = current.__cause__ or current.__context__
         text = " ".join(str(e) for e in chain).upper()
-        if any(isinstance(e, ssl.SSLError) for e in chain) or any(
-            marker in text for marker in ("CERTIFICATE_VERIFY", "SSL:", "[SSL")
+        if any(isinstance(e, ssl.SSLCertVerificationError) for e in chain) or (
+            "CERTIFICATE_VERIFY" in text
         ):
             return t(
                 "Die TLS-Prüfung des Zertifikats von {host} ist fehlgeschlagen. Die Prüfung wird "
@@ -429,24 +480,32 @@ class JiraSource:
                 "angeben.",
                 host=self.host,
             )
+        if any(isinstance(e, ssl.SSLError) for e in chain) or "SSL:" in text or "[SSL" in text:
+            return t(
+                "Der TLS-Verbindungsaufbau zu {host} ist fehlgeschlagen (http statt https, "
+                "falscher Port oder ein Proxy, der TLS stört?). Die Prüfung wird nie "
+                "abgeschaltet.",
+                host=self.host,
+            )
         return t(
             "{host} ist nicht erreichbar (Adresse, Netzwerk, VPN, Proxy oder Firewall prüfen)",
             host=self.host,
         )
 
-    def _decode(self, response: httpx.Response) -> Any:
+    def _decode(self, response: httpx.Response, path: str = "") -> Any:
         status = response.status_code
         if status == 200:
             try:
                 return response.json()
             except ValueError:
-                raise SourceError(
-                    t(
-                        "{host} antwortet nicht mit JSON – ist tracker.base_url die Adresse von "
-                        "Jira (ohne Anmeldeseite davor)?",
-                        host=self.host,
-                    )
-                ) from None
+                pass  # the error object holds the whole body: raise outside the except block
+            raise SourceError(
+                t(
+                    "{host} antwortet nicht mit JSON – ist tracker.base_url die Adresse von "
+                    "Jira (ohne Anmeldeseite davor)?",
+                    host=self.host,
+                )
+            )
         if status == 401:
             raise SourceError(
                 t(
@@ -469,9 +528,29 @@ class JiraSource:
                     host=self.host,
                 )
             )
-        if status == 400:
+        if status == 400 and path == SEARCH_PATH:
             raise SourceError(self._bad_request_text(response))
+        if status == 400:
+            raise SourceError(
+                t("Jira weist die Anfrage ab (400) – Jira-Version und tracker.base_url prüfen")
+            )
+        if status == 407:
+            raise SourceError(
+                t(
+                    "Der Proxy verlangt eine Anmeldung (407) – Proxy und seine Zugangsdaten "
+                    "(HTTPS_PROXY) prüfen."
+                )
+            )
         if status == 429:
+            wait = response.headers.get("retry-after", "").strip()
+            if wait.isascii() and wait.isdigit() and len(wait) <= 6:
+                raise SourceError(
+                    t(
+                        "Jira meldet zu viele Anfragen (429) – bitte in {seconds} Sekunden "
+                        "erneut versuchen",
+                        seconds=int(wait),
+                    )
+                )
             raise SourceError(
                 t("Jira meldet zu viele Anfragen (429) – bitte später erneut versuchen")
             )
@@ -500,11 +579,11 @@ class JiraSource:
         messages: list[str] = []
         try:
             body = response.json()
-            raw = body.get("errorMessages") if isinstance(body, dict) else None
-            if isinstance(raw, list):
-                messages = [m.strip() for m in raw if isinstance(m, str) and m.strip()]
         except ValueError:
-            pass
+            body = None
+        raw = body.get("errorMessages") if isinstance(body, dict) else None
+        if isinstance(raw, list):
+            messages = [m.strip() for m in raw if isinstance(m, str) and m.strip()]
         detail = " ".join(messages)
         if len(detail) > 300:
             detail = detail[:299] + "…"
@@ -563,24 +642,45 @@ class JiraSource:
         wanted = ",".join(resolved.requested())
         tickets: dict[str, RawTicket] = {}
         start = 0
+        expected: int | None = None
         while True:
             page = self._request(
                 "GET",
-                "/rest/api/2/search",
+                SEARCH_PATH,
                 {"jql": jql, "fields": wanted, "startAt": start, "maxResults": PAGE_SIZE},
             )
             if not isinstance(page, dict) or not isinstance(page.get("issues"), list):
                 raise self._shape_error()
             total = page.get("total")
-            if not isinstance(total, int) or isinstance(total, bool):
+            if not isinstance(total, int) or isinstance(total, bool) or total < 0:
                 raise self._shape_error()
+            if expected is None:
+                expected = total
+            elif total != expected:
+                raise self._changed_error()
             issues = page["issues"]
+            added = 0
             for issue in issues:
                 ticket = self._ticket(issue, resolved)
-                tickets.setdefault(ticket.key, ticket)
+                if ticket.key not in tickets:
+                    tickets[ticket.key] = ticket
+                    added += 1
             start += len(issues)
-            if not issues or start >= total:
-                return list(tickets.values())
+            if start >= expected:
+                break
+            if not issues or not added:  # short read, or the server ignores startAt
+                raise self._changed_error()
+        if len(tickets) != expected:  # a ticket moved between pages: one read twice, one missed
+            raise self._changed_error()
+        return list(tickets.values())
+
+    def _changed_error(self) -> SourceError:
+        return SourceError(
+            t(
+                "Das Ergebnis der Abfrage hat sich beim Lesen geändert oder war unvollständig – "
+                "bitte erneut versuchen. Es wurde nichts geschrieben."
+            )
+        )
 
     # --- Mapping ---
 

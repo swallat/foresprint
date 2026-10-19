@@ -13,38 +13,45 @@ import os
 
 import pytest
 
-from sprintforecast.model import TrackerFields, TrackerSettings
-from sprintforecast.sources.jira import TOKEN_ENV, JiraSource
+from sprintforecast.model import TrackerFields, TrackerSettings, base_url_problem
+from sprintforecast.sources import SourceError
+from sprintforecast.sources.jira import JiraSource, jira_token
 
 pytestmark = pytest.mark.jira_live
 
-URL = os.environ.get("SPRINTFORECAST_JIRA_URL")
-JQL = os.environ.get("SPRINTFORECAST_JIRA_JQL")
-TOKEN = os.environ.get(TOKEN_ENV)
 
-
-@pytest.mark.skipif(
-    not (URL and JQL and TOKEN),
-    reason="set SPRINTFORECAST_JIRA_URL, SPRINTFORECAST_JIRA_TOKEN and SPRINTFORECAST_JIRA_JQL",
-)
 def test_live_connection_fields_and_fetch():
+    url = (os.environ.get("SPRINTFORECAST_JIRA_URL") or "").strip()
+    jql = (os.environ.get("SPRINTFORECAST_JIRA_JQL") or "").strip()
+    if not (url and jql):
+        pytest.skip("set SPRINTFORECAST_JIRA_URL, SPRINTFORECAST_JIRA_TOKEN and ..._JQL")
+    if base_url_problem(url) is not None:  # checked before the token becomes an argument
+        pytest.fail("SPRINTFORECAST_JIRA_URL is not a plain http(s) address", pytrace=False)
+    token = jira_token(url)  # environment variable (stripped), else the keychain
+    if not token:
+        pytest.skip("no token: set SPRINTFORECAST_JIRA_TOKEN or store one with --set-token")
     settings = TrackerSettings(
         kind="jira",
-        base_url=URL,
-        query=JQL,
+        base_url=url,
+        query=jql,
         fields=TrackerFields(
             estimate=os.environ.get("SPRINTFORECAST_JIRA_ESTIMATE"),
             remaining=os.environ.get("SPRINTFORECAST_JIRA_REMAINING"),
             epic=os.environ.get("SPRINTFORECAST_JIRA_EPIC"),
         ),
     )
-    assert TOKEN is not None
-    with JiraSource(settings, TOKEN) as source:
-        assert source.test_connection()
-        fields = source.resolve_fields()
-        assert fields.sprint, "no Sprint field found by its schema (Jira Software missing?)"
-        tickets = source.fetch()
+    # No local variable holds anything that pytest could print on a failure but the settings
+    # and the source (whose repr hides the token); a SourceError carries no token or ticket data.
+    try:
+        with JiraSource(settings, token) as source:
+            del token
+            assert source.test_connection()
+            fields = source.resolve_fields()
+            if not fields.sprint:
+                pytest.fail("no Sprint field found by its schema (Jira Software?)", pytrace=False)
+            tickets = source.fetch()
+    except SourceError as e:
+        pytest.fail(str(e), pytrace=False)
     keys = [tk.key for tk in tickets]
     assert len(keys) == len(set(keys))
-    assert all(tk.key and tk.title is not None for tk in tickets)
     print(f"live: {len(tickets)} tickets read")
