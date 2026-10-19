@@ -113,9 +113,8 @@ commits the change to Git. The full sprint workflow is in
 
 English is the default. Switch in the sidebar of the web UI (**Sprache / Language**) or with
 `sprintforecast language de` (back with `sprintforecast language en`); the choice is remembered.
-`SPRINTFORECAST_LANG=de` takes precedence. All commands and options have English names; the
-original German names (for example `sprintforecast fehltage`, `--daten`) remain as hidden
-aliases and keep working. The YAML files are English regardless of the language; only the report
+`SPRINTFORECAST_LANG=de` takes precedence. Command, option and environment variable names are
+English in both languages. The YAML files are English regardless of the language; only the report
 `FORECAST.md` and the minutes follow the configured language.
 
 ## Data folder and Git
