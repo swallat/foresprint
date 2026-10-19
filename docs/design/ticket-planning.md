@@ -149,7 +149,7 @@ refined status (section 6.3) are listed separately above.
 ### 5.5 Uncertainty (step 4)
 
 The distribution is calculated three times: with the lowest, the median and the highest
-normalised velocity from `analysis.band` (conservative, median, optimistic). In the conservative
+normalized velocity from `analysis.band` (conservative, median, optimistic). In the conservative
 variant, rough estimates are multiplied by `rough_factor` (team setting, default 1.5).
 The median variant is shown; traffic light and timeline show the range.
 
