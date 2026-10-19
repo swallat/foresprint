@@ -175,12 +175,12 @@ def test_powershell_restart_command(tmp_path: Path):
         ["uv", "tool"],
         tmp_path / "log",
         False,
-        ["C:\\sf.exe", "--daten", "C:\\Team Data", "web", "--app"],
+        ["C:\\sf.exe", "--data", "C:\\Team Data", "web", "--app"],
         "C:\\d",
     )
     assert (
         "Start-Process -FilePath 'C:\\sf.exe' "
-        """-ArgumentList '--daten "C:\\Team Data" web --app'"""
+        """-ArgumentList '--data "C:\\Team Data" web --app'"""
     ) in script
     assert "-WorkingDirectory 'C:\\d'" in script
     bare = updater._powershell_script([1], ["uv"], tmp_path / "log", False, ["C:\\sf.exe"], None)

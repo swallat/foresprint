@@ -2,8 +2,7 @@
 """Seiten und Seitenleiste der Weboberfläche. Einstieg: web/app.py, Seiten: web/seiten/*.py.
 
 Liest und schreibt dieselben YAML-Dateien wie die Kommandozeile. Konfiguration über
-Umgebungsvariablen: SPRINTFORECAST_DATA (Datenverzeichnis), SPRINTFORECAST_AS_OF (Stichtag);
-die früheren Namen SPRINTFORECAST_DATEN und SPRINTFORECAST_STICHTAG gelten weiter.
+Umgebungsvariablen: SPRINTFORECAST_DATA (Datenverzeichnis), SPRINTFORECAST_AS_OF (Stichtag).
 Texte sind über i18n.t übersetzbar; interne Spaltenschlüssel der Tabellen bleiben deutsch,
 angezeigt werden die übersetzten Beschriftungen.
 """
@@ -201,16 +200,13 @@ from sprintforecast.settings import SETTINGS, Kind, Setting, applicable, changes
 from sprintforecast.storage import (
     DATA_ENV,
     STICHTAG_ENV,
-    STICHTAG_ENV_LEGACY,
     ConflictError,
     DataError,
     FileAccessError,
     Repository,
     TeamData,
-    as_of_env,
     clear_team_cache,
     default_data_dir,
-    env_setting,
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
@@ -329,13 +325,13 @@ def page_link(key: str, label: str | None = None) -> None:
 
 
 def today() -> date:
-    raw = as_of_env()
+    raw = os.environ.get(STICHTAG_ENV)
     return date.fromisoformat(raw) if raw else date.today()
 
 
 def stichtag_problem() -> str | None:
     """Meldung, wenn die Umgebung keinen gültigen Stichtag enthält (sonst scheitert ``today``)."""
-    name, raw = env_setting(STICHTAG_ENV, STICHTAG_ENV_LEGACY)
+    raw = os.environ.get(STICHTAG_ENV)
     if raw:
         try:
             date.fromisoformat(raw)
@@ -344,7 +340,7 @@ def stichtag_problem() -> str | None:
                 "Die Umgebungsvariable `{name}` enthält „{value}“ – erwartet wird ein Datum im "
                 "Format JJJJ-MM-TT. Bitte die Variable korrigieren oder entfernen und die "
                 "Weboberfläche neu starten.",
-                name=name,
+                name=STICHTAG_ENV,
                 value=raw,
             )
     return None

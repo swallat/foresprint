@@ -145,7 +145,7 @@ def test_language_command(data_dir: Path):
     from sprintforecast.cli import app
 
     i18n.set_language(None)
-    result = CliRunner().invoke(app, ["--daten", str(data_dir), "sprache", "en"])
+    result = CliRunner().invoke(app, ["--data", str(data_dir), "language", "en"])
     assert result.exit_code == 0, result.output
     assert "Language: English" in result.output
     assert i18n.language() == "en"

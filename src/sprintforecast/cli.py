@@ -24,7 +24,6 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
-from typer.core import TyperGroup
 
 from sprintforecast import LOG_ENV, __version__, updater
 from sprintforecast.calendar import day_label, holiday_name, team_workdays, workweek_label
@@ -42,14 +41,11 @@ from sprintforecast.forecast import (
 from sprintforecast.git import GitError, blank_controls, commit, title_for
 from sprintforecast.guide import (
     CAPACITY_SOURCES,
-    COMMAND_ALIASES,
     COMMANDS,
     FIELDS,
     TERMS,
-    TOPIC_ALIASES,
     TOPICS,
     WORKFLOW,
-    english_args,
 )
 from sprintforecast.i18n import LANGUAGES, language, save_language, t
 from sprintforecast.idle import IDLE_ENV
@@ -110,17 +106,7 @@ from sprintforecast.storage import (
 from sprintforecast.updater import PACKAGE
 from sprintforecast.validate import Level, check_all, check_team, issues_for
 
-
-class _Group(TyperGroup):
-    """Nimmt die früheren deutschen Optionsnamen weiter an (`--daten` → `--data`), ohne sie in
-    der Hilfe zu zeigen; die Ersetzung gilt für den Hauptbefehl und alle Unterbefehle."""
-
-    def parse_args(self, ctx: typer.Context, args: list[str]) -> list[str]:
-        return super().parse_args(ctx, english_args(args))
-
-
 app = typer.Typer(
-    cls=_Group,
     help=t("Velocity- und Kapazitäts-Forecast für Scrum-Teams. Einstieg: `sprintforecast help`."),
     rich_markup_mode="rich",
 )
@@ -176,14 +162,10 @@ def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Registriert einen Befehl unter seinem englischen Namen; der frühere deutsche Name bleibt
-    als ausgeblendeter Alias erhalten."""
-    alias = COMMAND_ALIASES.get(name)
+    """Registriert einen Befehl (englischer Name, übersetzte Hilfe)."""
 
     def register(fn: Callable[..., Any]) -> Callable[..., Any]:
         app.command(name, help=t(help))(_guarded(fn))
-        if alias:
-            app.command(alias, help=t(help), hidden=True)(_guarded(fn))
         return fn
 
     return register
@@ -241,7 +223,7 @@ def _main(
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
         raise typer.Exit()
-    if ctx.invoked_subcommand not in {"aktualisieren", "update"}:
+    if ctx.invoked_subcommand != "update":
         _auto_update()
     today = date.fromisoformat(stichtag) if stichtag else date.today()
     ctx.obj = Context(repo=Repository(daten or default_data_dir()), today=today, stichtag=stichtag)
@@ -509,7 +491,7 @@ def hilfe(
         typer.Argument(metavar="TOPIC", help=t("Thema: {topics}", topics=", ".join(TOPICS))),
     ] = None,
 ) -> None:
-    topic = TOPIC_ALIASES.get(thema, thema) if thema else "workflow"
+    topic = thema or "workflow"
     if topic not in TOPICS:
         err.print(
             f"[red]{t('Unbekanntes Thema. Verfügbar: {topics}', topics=', '.join(TOPICS))}[/red]"
@@ -2092,11 +2074,11 @@ def aktualisieren(
     ] = None,
 ) -> None:
     if auto is not None:
-        # gespeichert bleiben die bisherigen Werte an/hinweis/aus; angenommen wird beides
-        aliases = {"on": "an", "notice": "hinweis", "off": "aus"}
+        # gespeichert werden die bisherigen Werte an/hinweis/aus
+        values = {"on": "an", "notice": "hinweis", "off": "aus"}
         try:
-            mode = updater.Mode(aliases.get(auto.strip().lower(), auto.strip().lower()))
-        except ValueError:
+            mode = updater.Mode(values[auto.strip().lower()])
+        except KeyError:
             err.print(f"[red]{t('--auto: on, notice oder off')}[/red]")
             raise typer.Exit(1) from None
         updater.update_state(mode=mode.value)

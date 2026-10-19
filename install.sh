@@ -104,7 +104,7 @@ fi
 
 # Double-click launcher (disable with SPRINTFORECAST_NO_SHORTCUT=1)
 if [ -z "${SPRINTFORECAST_NO_SHORTCUT:-}" ]; then
-    "$(uv tool dir --bin)/sprintforecast" verknuepfung || say "Note: launcher not created."
+    "$(uv tool dir --bin)/sprintforecast" shortcut || say "Note: launcher not created."
 fi
 
 say ""

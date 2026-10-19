@@ -206,7 +206,7 @@ def test_command_previews_then_applies(
     assert preview.exit_code == 0, preview.output
     assert "velocity" in preview.output
     assert Repository(data_dir).load("demo").sprint(sprint.id).velocity == sprint.velocity
-    done = runner.invoke(app, ["excel-import", "demo", str(file), "--uebernehmen"])
+    done = runner.invoke(app, ["excel-import", "demo", str(file), "--apply"])
     assert done.exit_code == 0, done.output
     assert Repository(data_dir).load("demo").sprint(sprint.id).velocity == sprint.velocity + 1
 
@@ -259,7 +259,7 @@ def test_a_traversing_team_key_writes_nothing_outside_the_data_folder(
     file = tmp_path / "in.xlsx"
     file.write_bytes(exported(data_dir))
     outside = data_dir.parent / "outside"
-    result = CliRunner().invoke(app, ["excel-import", "../outside", str(file), "--uebernehmen"])
+    result = CliRunner().invoke(app, ["excel-import", "../outside", str(file), "--apply"])
     assert result.exit_code != 0
     assert not outside.exists()
 
@@ -651,8 +651,6 @@ def test_the_command_checks_against_the_reference_day(
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     file = tmp_path / "in.xlsx"
     file.write_bytes(exported(data_dir))
-    result = CliRunner().invoke(
-        app, ["--stichtag", "2026-10-15", "excel-import", "demo", str(file)]
-    )
+    result = CliRunner().invoke(app, ["--as-of", "2026-10-15", "excel-import", "demo", str(file)])
     assert result.exit_code == 0, result.output
     assert seen == [date(2026, 10, 15)]

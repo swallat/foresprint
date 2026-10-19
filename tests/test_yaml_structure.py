@@ -133,7 +133,7 @@ def test_check_reports_the_file_instead_of_failing(
 def test_cli_shows_a_message_with_exit_code_1(data_dir: Path):
     path = edit(data_dir, TEAM, setting("sprint", "foo"))
     result = runner.invoke(
-        cli_app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", "forecast", "demo"]
+        cli_app, ["--data", str(data_dir), "--as-of", "2026-10-15", "forecast", "demo"]
     )
     assert result.exit_code == 1, result.output
     assert "Traceback" not in result.output
