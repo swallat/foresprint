@@ -79,6 +79,8 @@ from sprintforecast.git import (
     NewBranchError,
     RemoteAddress,
     UnrelatedHistoriesError,
+    apply_attributes,
+    attributes_offer,
     cached_pending_changes,
     classify,
     clone_repository,
@@ -4431,6 +4433,65 @@ def _remote_section(repo: Repository) -> None:
         _share_mode_setting(root)
 
 
+def _attributes_applied(data: Path) -> None:
+    try:
+        apply_attributes(data)
+    except (GitError, OSError) as e:
+        st.session_state["commit_error"] = e if isinstance(e, GitError) else folder_problem(data, e)
+        return
+    st.session_state["flash"] = [
+        (
+            "success",
+            t(
+                "`.gitattributes` angelegt. Die Änderung steht unter den offenen Änderungen; "
+                "mit „Speichern und teilen“ geht sie den gewohnten Weg."
+            ),
+        )
+    ]
+
+
+def _attributes_section(repo: Repository) -> None:
+    """Angebot einer ``.gitattributes`` (YAML und Berichte mit LF) für ein bestehendes
+    Daten-Repository, mit Vorschau der Dateien, die sich dadurch ändern. Geschrieben wird erst
+    auf Knopfdruck, und auch dann nur in den Arbeitsordner: Committet und geteilt wird wie
+    immer über „Speichern und teilen“ (bei Bedarf als Merge Request)."""
+    try:
+        offer = attributes_offer(repo.root)
+    except GitError, OSError:
+        return
+    if offer is None:
+        return
+    st.subheader(t("Zeilenenden festlegen"))
+    st.markdown(
+        t(
+            "In diesem Datenordner fehlt die Festlegung, dass YAML-Dateien und Berichte immer mit "
+            "LF gespeichert werden. Ohne sie schreibt das erste Speichern auf einem Rechner mit "
+            "`core.autocrlf` (Windows) womöglich alle Zeilenenden um und erzeugt Rauschen im "
+            "Verlauf. Angelegt wird die Datei {file} mit diesen Zeilen:",
+            file=md_code(offer.file.name),
+        )
+    )
+    st.code("\n".join(offer.rules), language=None)
+    if offer.affected:
+        st.warning(
+            t(
+                "Betroffen (Anzahl: {count}): Diese versionierten Dateien liegen mit CRLF im "
+                "Repository und werden beim nächsten Speichern auf LF umgestellt (eine "
+                "einmalige, rein technische Änderung der Zeilenenden):",
+                count=len(offer.affected),
+            )
+        )
+        st.dataframe(pd.DataFrame({t("Datei"): list(offer.affected)}), hide_index=True)
+    else:
+        st.caption(t("Keine vorhandene Datei ändert sich dadurch."))
+    st.button(
+        t("`.gitattributes` anlegen"),
+        key="attributes-apply",
+        on_click=_attributes_applied,
+        args=(repo.root,),
+    )
+
+
 def _share_mode_changed(root: Path) -> None:
     mode = SHARE_MERGE_REQUEST if st.session_state.get("git-share-mr") else SHARE_DIRECT
     try:
@@ -4509,6 +4570,8 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 else t("Achtung: liegt in keinem Git-Repository.")
             )
         _remote_section(repo)
+        if root:
+            _attributes_section(repo)
     if recent := _recent_dirs(repo):
         st.subheader(t("Zuletzt benutzt"))
         for n, folder in enumerate(recent):
