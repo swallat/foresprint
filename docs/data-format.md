@@ -21,7 +21,7 @@ teams/
 Not every team needs everything. Three features can be switched on independently (Settings page
 or the `features` section in `team.yaml`) and are **off for new teams**:
 
-| Feature (`features....`) | Effect when on | When off |
+| Feature (`features.<name>`) | Effect when on | When off |
 |---|---|---|
 | `products`: product distribution | product list, PO pre-planning, planning and done per product, default distribution, balance | these pages and inputs are omitted |
 | `po`: PO assignment | PO column per product, totals per PO (useful only together with `products`) | no PO column, no totals per PO |

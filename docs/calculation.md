@@ -93,7 +93,7 @@ distribution per product); where both appear, they are shown separately with the
 - **Focus factor:** velocity / capacity, the same quantity as the normalized velocity, only
   without the reference capacity (normalized velocity = focus factor x reference capacity). It
   depends on the estimation unit (with story points on the team's estimation scale) and is
-  therefore **not** comparable between teams; it shows the trend within one team.
+  therefore **not** comparable between teams; it shows the development over time within one team.
 - **Buffer:** average scope creep of the last sprints compared with the small-items share.
 - **When will it be done?** Monte Carlo simulation starting with the next sprint: in which sprint
   a remaining amount is finished in 50 % and in 85 % of the simulation runs (model-dependent
