@@ -267,6 +267,17 @@ def test_planning_saves(app: AppTest, data_dir: Path):
     assert any("Delta" in i.value for i in app.info)
 
 
+def test_planning_commitment_writes_a_protocol_with_all_sections(app: AppTest, data_dir: Path):
+    planning_step(app, "2026.21", 2)
+    app.number_input(key="fist-2026.21").set_value(9.5)
+    click(app, "Planning speichern")
+    [path] = (data_dir / "demo" / "protokolle").glob("2026.21-planning-*.md")
+    text = path.read_text(encoding="utf-8")
+    assert text.index("## Fehltage") < text.index("## Einplanung") < text.index("## Commitment")
+    assert "- Commitment (PT): 9,5" in text
+    assert text.count("_Stand: ") >= 1
+
+
 @pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
 def test_planning_rejects_non_finite_corrections(app: AppTest, data_dir: Path, raw: str):
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"

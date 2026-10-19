@@ -178,9 +178,14 @@ from sprintforecast.protocol import (
     PLANNING,
     PREPLANNING,
     REVIEW,
+    PlanningSection,
     kind_title,
+    latest_planning_sections,
     list_protocols,
+    md_item,
     obsolete_with_save,
+    planning_distribution_lines,
+    render_planning_protocol,
     render_protocol,
     save_with_protocol,
 )
@@ -2072,6 +2077,116 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         _planning_ist(repo, data, fc, sprint)
 
 
+def _planning_writer(
+    repo: Repository, data_after: TeamData, today: date, sprint: Sprint
+) -> Callable[[], list[Path]]:
+    """Schreibt beim Speichern eines Planning-Schritts ein vollständiges Planning-Protokoll mit
+    den Abschnitten Fehltage, Einplanung und Commitment (je mit eigenem Stand) und danach die
+    Sprintdatei. ``data_after`` ist der Stand mit dem zu speichernden ``sprint``; Abschnitte
+    späterer Schritte, die noch nicht gespeichert sind, stehen als „noch nicht erfasst“ darin."""
+    unit = data_after.team.unit.value
+    team = data_after.team
+    fc = build_forecast(data_after, today)
+    entry = fc.entry(sprint.id)
+    now = datetime.now().replace(microsecond=0)
+    names = {p.id: p.name for p in data_after.people}
+    result = entry.result if entry else None
+
+    absences = [
+        md_item(f"{names.get(pid, pid)}: {fmt(days, 1)} {t('Tage')}")
+        for pid, days in sprint.absences.items()
+        if days
+    ]
+    sections = [
+        PlanningSection(
+            "absences",
+            t("Fehltage"),
+            [md_item(t("Stand der Fehltage: {state}", state=absence_status_label(sprint)))]
+            + (absences or [md_item(t("Niemand fehlt."))]),
+            recorded=absence_status(sprint) is AbsenceState.CONFIRMED,
+        )
+    ]
+
+    d = distribution(fc, entry) if entry else None
+    products = d is not None and team.features.products and bool(data_after.products)
+    planned_lines: list[str] = []
+    if result is not None:
+        planned_lines.append(md_item(f"{t('Forecast PLAN')}: {fmt(result.plan, 2)} {unit}"))
+    if products and d is not None and d.rows:
+        planned_lines.append(md_item(f"{t('Eingeplant (Σ)')}: {fmt(d.total('planned'), 2)} {unit}"))
+    if sprint.production_planned is not None:
+        planned_lines.append(
+            md_item(
+                f"{t('Davon mit Produktionszugriff')}: {fmt(sprint.production_planned, 2)} {unit}"
+            )
+        )
+    if products and d is not None:
+        planned_lines += planning_distribution_lines(d, team.features.po)
+    sections.append(
+        PlanningSection(
+            "plan",
+            t("Einplanung"),
+            planned_lines,
+            # Mit gespeichertem Commitment ist die Einplanung abgeschlossen, auch wenn nur der
+            # Standard der Verteilung gilt.
+            recorded=any(v.planned is not None for v in sprint.products.values())
+            or sprint.production_planned is not None
+            or sprint.forecast_ist is not None,
+        )
+    )
+
+    p = sprint.planning
+    commitment_lines = [
+        md_item(f"{t('Commitment ({unit})', unit=unit)}: {fmt(sprint.forecast_ist, 2)}")
+    ]
+    if sprint.forecast_plan is not None:
+        commitment_lines.append(
+            md_item(
+                f"{t('Prognose beim Planning ({unit})', unit=unit)}: {fmt(sprint.forecast_plan, 2)}"
+            )
+        )
+    if p is not None:
+        commitment_lines += [
+            md_item(f"{t('Überkipper ({unit})', unit=unit)}: {fmt(p.carryover, 2)}"),
+            md_item(f"Backlog ({unit}): {fmt(p.backlog, 2)}"),
+        ]
+    if result is not None and result.planning_total is not None:
+        commitment_lines += [
+            md_item(f"{t('Planning-Summe')}: {fmt(result.planning_total, 2)} {unit}"),
+            md_item(f"{t('Delta zum Forecast PLAN')}: {fmt(result.planning_delta, 2)} {unit}"),
+        ]
+    sections.append(
+        PlanningSection(
+            "commitment",
+            t("Commitment"),
+            commitment_lines,
+            recorded=sprint.forecast_ist is not None,
+        )
+    )
+
+    protocol = render_planning_protocol(
+        team.name or team.key,
+        sprint.id,
+        now=now,
+        facts=[
+            (t("Kapazität (PT)"), capacity_label(entry) if entry else "–"),
+            (t("Prognose aktuell ({unit})", unit=unit), fmt(result.plan, 2) if result else "–"),
+        ],
+        sections=sections,
+        previous=latest_planning_sections(repo, team.key, sprint.id),
+    )
+    return lambda: save_with_protocol(
+        repo,
+        team.key,
+        sprint.id,
+        PLANNING,
+        protocol,
+        now,
+        [sprint],
+        lambda: [repo.save_sprint(team.key, sprint)],
+    )  # Protokoll: nicht in der Meldung
+
+
 def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     st.subheader(t("Bekannte Fehltage"))
     st.caption(sprint_caption(data, sprint))
@@ -2156,7 +2271,7 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
             ok = save(
                 preview,
                 [f"{after.id}.yaml"],
-                lambda: [repo.save_sprint(data.team.key, after)],
+                _planning_writer(repo, preview, fc.today, after),
                 flash=True,
             )
             if ok:
@@ -2167,10 +2282,11 @@ def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: S
         if nobody.button(t("Niemand fehlt – bestätigen und weiter"), type="primary"):
             confirmed = copy.deepcopy(after)
             confirmed.absence_state = AbsenceState.CONFIRMED
+            confirmed_data = with_sprints(data, [confirmed])
             ok = save(
-                with_sprints(data, [confirmed]),
+                confirmed_data,
                 [f"{after.id}.yaml"],
-                lambda: [repo.save_sprint(data.team.key, confirmed)],
+                _planning_writer(repo, confirmed_data, fc.today, confirmed),
                 flash=True,
             )
             if ok:
@@ -2351,7 +2467,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
                     ok = save(
                         preview,
                         [f"{after.id}.yaml"],
-                        lambda: [repo.save_sprint(data.team.key, after)],
+                        _planning_writer(repo, preview, fc.today, after),
                         flash=True,
                     )
                     if ok:
@@ -2398,7 +2514,7 @@ def _planning_production(
         ok = save(
             preview,
             [f"{after.id}.yaml"],
-            lambda: [repo.save_sprint(data.team.key, after)],
+            _planning_writer(repo, preview, fc.today, after),
             flash=True,
         )
         if ok:
@@ -2508,43 +2624,9 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
     if prefill_note:
         st.info(prefill_note)
     after = with_sprints(data, [sprint])
-    fc_after = build_forecast(after, fc.today)
-    e_after = fc_after.entry(sprint.id)
-    now = datetime.now().replace(microsecond=0)
-    protocol = render_protocol(
-        PLANNING,
-        data.team.name or data.team.key,
-        sprint.id,
-        now=now,
-        facts=[
-            (t("Kapazität (PT)"), capacity_label(e_after) if e_after else "–"),
-            (
-                t("Prognose beim Planning ({unit})", unit=unit),
-                fmt(sprint.forecast_plan if sprint.forecast_plan is not None else None, 2),
-            ),
-            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
-            (t("Überkipper ({unit})", unit=unit), fmt(carryover, 2)),
-            (f"Backlog ({unit})", fmt(backlog, 2)),
-        ],
-        d=distribution(fc_after, e_after)
-        if e_after and data.products and data.team.features.products
-        else None,
-        show_po=data.team.features.po,
-    )
-
-    def write() -> list[Path]:
-        return save_with_protocol(
-            repo,
-            data.team.key,
-            sprint.id,
-            PLANNING,
-            protocol,
-            now,
-            [sprint],
-            lambda: [repo.save_sprint(data.team.key, sprint)],
-        )  # Protokoll: nicht in der Meldung
-
-    if save(after, [f"{sprint.id}.yaml"], write, flash=True):
+    if save(
+        after, [f"{sprint.id}.yaml"], _planning_writer(repo, after, fc.today, sprint), flash=True
+    ):
         # Die Hinweise erscheinen im nächsten Durchlauf; er zeichnet auch die Schrittleiste neu.
         flash = st.session_state.setdefault("flash", [])
         if (
