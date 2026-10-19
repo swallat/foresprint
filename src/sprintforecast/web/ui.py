@@ -2173,7 +2173,7 @@ def _capacity_gauge(usage: CapacityUsage | None, unit: str) -> None:
             planned=fmt(usage.planned, 2),
             plan=fmt(usage.plan),
             unit=unit,
-            share=pct(usage.ratio),
+            share=pct(usage.ratio) if usage.plan > 0 else "–",
         ),
     )
     if usage.over:
@@ -2255,6 +2255,16 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.warning(t("Noch keine Fehltage erfasst – die Kapazität ist nur geschätzt."))
         st.button(t("Zurück zu den Fehltagen"), on_click=_goto, args=(0,))
     features = data.team.features
+    # Ohne Produkteditor (kein Produktbereich oder keine Produkte im Sprint) gibt es keine
+    # Summe zum Vergleichen: dann eine Hilfsrechnung, vor allen Speicherschritten.
+    if not (features.products and data.products and distribution(fc, entry).rows):
+        scratch = _number(
+            t("Bisher eingeplant ({unit})", unit=unit),
+            None,
+            f"planning-scratch-{sprint.id}",
+            t("Hilfsrechnung für das Planning: wird nicht gespeichert."),
+        )
+        _capacity_gauge(capacity_usage(r.plan, scratch), unit)
     if features.products and data.products:
         st.subheader(t("Einplanung je Produkt"))
         d = distribution(fc, entry)
@@ -2309,14 +2319,6 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         )
     elif features.production and _planning_production(repo, data, fc, sprint, entry):
         return
-    if not (features.products and data.products):
-        scratch = _number(
-            t("Bisher eingeplant ({unit})", unit=unit),
-            None,
-            f"planning-scratch-{sprint.id}",
-            t("Hilfsrechnung für das Planning: wird nicht gespeichert."),
-        )
-        _capacity_gauge(capacity_usage(r.plan, scratch), unit)
     st.button(t("Weiter"), on_click=_goto, args=(2,), type="primary")
 
 
