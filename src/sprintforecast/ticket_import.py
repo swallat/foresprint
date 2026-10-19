@@ -32,7 +32,9 @@ KINDS: tuple[str, ...] = (
     "unassigned",  # no project, or several via the same source (``new`` = candidates)
     "unknown_epic",  # epic no project rule refers to (``key`` = epic, ``new`` = ticket keys)
     "refined_unclear",  # refined only via refined_also_if (note "rule") or label without estimate
-    "earmark_dropped",  # earmark discarded: real sprint wins (old/new = sprints) or ticket done
+    # earmark discarded: real sprint wins (old/new = sprints), ticket done, or its sprint is
+    # over (note ``DROPPED_ENDED``)
+    "earmark_dropped",
     "sprint_unresolved",  # sprint name of the tracker unknown to the tool (``note`` = name)
 )
 # ``note`` of a refined_unclear change.
@@ -325,6 +327,19 @@ def plan_import(
                 t(
                     "Ticket {key} ist nicht mehr im Import; die eigene Schätzung bleibt bestehen",
                     key=key,
+                )
+            )
+
+    # Earmarks of tickets that left an earlier import: nothing else drops them, so they go
+    # once their sprint is over.
+    for earmark in list(preplan.earmarks):
+        if earmark.ticket in seen or earmark.ticket in old:
+            continue
+        if sprint_ended(earmark.sprint, fc):
+            preplan.earmarks.remove(earmark)
+            plan.changes.append(
+                TicketChange(
+                    "earmark_dropped", earmark.ticket, old=earmark.sprint, note=DROPPED_ENDED
                 )
             )
 

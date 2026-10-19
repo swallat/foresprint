@@ -555,3 +555,24 @@ def test_new_source_name_is_a_change(data_dir: Path, data: TeamData, fc: Forecas
     loaded = repo.load(TEAM)
     assert plan_import(loaded, fc, raws, TODAY, "old.csv").unchanged(loaded)
     assert not plan_import(loaded, fc, raws, TODAY, "new.csv").unchanged(loaded)
+
+
+def test_orphaned_earmark_is_dropped_once_its_sprint_is_over(
+    data_dir: Path, data: TeamData, fc: Forecast
+):
+    """The ticket left an earlier import: only the sprint ending can release the earmark."""
+    repo = Repository(data_dir)
+    repo.save_projects(TEAM, data.projects)
+    apply_import(repo, TEAM, plan_import(data, fc, [raw("A-1", epic="ABC-100")], TODAY, "x.csv"))
+    data = repo.load(TEAM)
+    data.preplan = Preplan(earmarks=[Earmark("A-2", "2026.22"), Earmark("A-3", "2026.20")])
+    # A-2 and A-3 are in no import at all; 2026.22 is still ahead, 2026.20 is over.
+    plan = plan_import(data, fc, [raw("A-1", epic="ABC-100")], TODAY, "x.csv")
+    assert [(c.key, c.old, c.note) for c in plan.of_kind("earmark_dropped")] == [
+        ("A-3", "2026.20", "ended")
+    ]
+    assert [e.ticket for e in plan.preplan.earmarks] == ["A-2"] and plan.preplan_changed
+    # After its sprint the remaining one goes as well.
+    later = date(2026, 11, 20)
+    plan = plan_import(data, build_forecast(data, later), [raw("A-1", epic="ABC-100")], later)
+    assert plan.preplan.earmarks == [] and plan.preplan_changed
