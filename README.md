@@ -89,6 +89,7 @@ for retrospectives and tests.
 | `sprintforecast web` | start the web UI as an app window |
 | `sprintforecast init TEAM` | create a team with guidance |
 | `sprintforecast sprints TEAM [--create] [--end SPRINT=DATE]` | sprint calendar: upcoming sprints, end dates |
+| `sprintforecast rename-sprint TEAM SPRINT NEW` | change a sprint ID; the saved sprints after it count on |
 | `sprintforecast absences TEAM [SPRINT]` | record absences per person |
 | `sprintforecast people TEAM [--former]` | maintain the people list |
 | `sprintforecast products TEAM [SPRINT] [--preplanning]` | distribution per product, PO pre-planning, balance |
