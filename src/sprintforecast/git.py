@@ -976,10 +976,11 @@ def credential_helpers() -> list[str]:
         return []
     names: list[str] = []
     for line in proc.stdout.splitlines():
-        _, _, value = line.partition(" ")
+        key, _, value = line.partition(" ")
         value = value.strip()
         if not value:
-            names.clear()
+            if key == "credential.helper":  # nur der allgemeine Eintrag hebt alle auf
+                names.clear()
             continue
         first = "custom" if value.startswith("!") else value.split()[0]
         first = first.removeprefix("git-credential-")
@@ -1004,26 +1005,28 @@ def credential_advice() -> str:
             "gespeicherte Token vermutlich abgelaufen oder widerrufen: den alten Eintrag im "
             "Anmeldedienst löschen und beim nächsten Versuch den neuen Token eingeben."
         )
+    prefix = t("In der Git-Einstellung ist noch kein Anmeldedienst eingetragen.")
     if sys.platform == "win32":
-        return t(
-            "Unter Windows bringt Git for Windows den Git Credential Manager mit: Beim nächsten "
-            "Versuch erscheint ein Anmeldefenster, dort den Token als Kennwort eingeben. "
-            "Fehlt er (etwa bei einem portablen Git), den Token in der "
-            "Windows-Anmeldeinformationsverwaltung unter „Windows-Anmeldeinformationen“ als "
-            "Eintrag `git:https://…` hinterlegen."
+        step = t(
+            "Git for Windows bringt den Git Credential Manager mit; `git config --global "
+            "credential.helper manager` im Terminal schaltet ihn ein. Beim nächsten Versuch den "
+            "Token im Anmeldefenster als Kennwort eingeben."
         )
-    if sys.platform == "darwin":
-        return t(
-            "Unter macOS speichert der Schlüsselbund den Token, wenn Git den Helfer "
-            "`osxkeychain` mitbringt (Git von Xcode oder Homebrew): Beim nächsten Versuch den "
-            "Token als Kennwort eingeben."
+    elif sys.platform == "darwin":
+        step = t(
+            "Der Schlüsselbund wird mit `git config --global credential.helper osxkeychain` im "
+            "Terminal eingeschaltet (der Helfer gehört zu Git von Xcode oder Homebrew). Beim "
+            "nächsten Versuch den Token als Kennwort eingeben."
         )
-    return t(
-        "Unter Linux den Token im Schlüsselbund des Desktops ablegen (Helfer `libsecret`, im "
-        "Git-Paket der Distribution oder als `git-credential-libsecret` enthalten) oder mit "
-        "`gh auth setup-git` die GitHub-CLI nutzen. Die Ablage im Klartext (`store`) ist keine "
-        "gute Wahl."
-    )
+    else:
+        step = t(
+            "Entweder `git config --global credential.helper libsecret` im Terminal eingeben "
+            "(Schlüsselbund des Desktops; der Helfer `git-credential-libsecret` kommt mit dem "
+            "Git-Paket der Distribution) oder mit `gh auth setup-git` die GitHub-CLI nutzen. "
+            "Die Ablage im Klartext (`store`) ist keine gute Wahl."
+        )
+    note = t("Die App ändert keine Git-Einstellung selbst.")
+    return f"{prefix} {step} {note}"
 
 
 # --- Server-Adresse prüfen ------------------------------------------------------------------
