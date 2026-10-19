@@ -130,19 +130,24 @@ def test_completion_note_only_below_the_minimum_of_samples():
     assert note and note.startswith("Wenig Daten: Die Simulation zieht aus nur 4 Sprints")
 
 
-def test_window_hint_only_for_windows_below_the_minimum():
-    """Bei einem Fenster unter MIN_SAMPLES kann die Stichprobe die Schwelle nie erreichen: Der
-    Hinweis sagt, warum, und nennt das Fenster."""
+def test_window_hint_only_when_the_window_really_caps_the_sample():
+    """Der Hinweis kommt nur, wenn ein Fenster unter MIN_SAMPLES tatsächlich Werte abschneidet
+    (mehr Werte vorhanden als in der Stichprobe): Er sagt, warum, und nennt das Fenster. Gibt es
+    schlicht nicht mehr Werte, hilft ein größeres Fenster nicht, also kein Hinweis."""
     from sprintforecast.report import window_hint
 
-    assert window_hint(analysis.MIN_SAMPLES) == ""
-    assert window_hint(8) == ""
-    hint = window_hint(3)
+    assert window_hint(analysis.MIN_SAMPLES, 5, 12) == ""
+    assert window_hint(8, 8, 12) == ""
+    hint = window_hint(3, 3, 12)
     assert "auf 3 Sprints gestellt" in hint and hint.endswith("mehr Werte in die Spanne ein.")
-    simulation = window_hint(3, simulation=True)
+    simulation = window_hint(3, 3, 12, simulation=True)
     assert "auf 3 Sprints gestellt" in simulation
     assert simulation.endswith("mehr Werte in Spanne und Simulation ein.")
-    assert window_hint(5, simulation=True) == ""
+    assert window_hint(5, 5, 12, simulation=True) == ""
+    # Fenster 3, aber nur 2 bzw. genau 3 Werte: Das Fenster deckelt nichts.
+    assert window_hint(3, 2, 2) == ""
+    assert window_hint(3, 3, 3) == ""
+    assert window_hint(3, 2, 2, simulation=True) == ""
 
 
 # --- Plan in der Bandbreite: laufender Sprint mit erfasstem Review-Wert (Velocity) -----------
@@ -323,14 +328,32 @@ def test_reliability_note_counts_the_values_drawn_from():
     note = reliability_notes(build_forecast(data, today))[0]
     assert note.startswith("Wenig Daten: bisher nur 3 Sprints mit Velocity (ab 5 ")
     assert "Prognosefenster" not in note  # Fenster 5: kein Zusatz
-    # Fenster 3 mit 3 Werten warnt weiter (feste Schwelle 5) und erklärt, woran es liegt.
-    data, today = running_sprint([10.0, 11.0, 12.0], window=3)
+    # Fenster 3 mit 12 Werten warnt weiter (feste Schwelle 5), nennt beide Zahlen (nicht „nur 3“
+    # bei 12 erfassten Werten) und erklärt, woran es liegt.
+    data, today = running_sprint(
+        [10.0, 11.0, 12.0, 9.0, 10.0, 12.0, 11.0, 10.0, 13.0, 9.0, 11.0, 10.0], window=3
+    )
     note = reliability_notes(build_forecast(data, today))[0]
-    assert note.startswith("Wenig Daten: bisher nur 3 Sprints mit Velocity (ab 5 ")
+    assert note.startswith(
+        "Wenig Daten: Die Spanne zieht aus nur 3 der 12 erfassten Sprints mit Velocity (ab 5 "
+    )
+    assert "bisher nur 3" not in note
     assert note.endswith(
         "auf 3 Sprints gestellt; mit einem größeren Fenster (Einstellungen) gehen mehr Werte in "
         "die Spanne ein."
     )
+
+
+def test_reliability_note_without_window_hint_when_the_window_cuts_nothing():
+    """Fenster 3, aber nur 2 (oder genau 3) Werte: Ein größeres Fenster brächte nichts, der Satz
+    nennt die Werte wie bisher und schweigt über das Fenster."""
+    from sprintforecast.report import reliability_notes
+
+    for velocities in ([10.0, 11.0], [10.0, 11.0, 12.0]):
+        data, today = running_sprint(velocities, window=3)
+        note = reliability_notes(build_forecast(data, today))[0]
+        assert note.startswith(f"Wenig Daten: bisher nur {len(velocities)} Sprints mit Velocity")
+        assert "Prognosefenster" not in note
 
 
 def test_simulation_draws_from_the_running_sprints_review_value():

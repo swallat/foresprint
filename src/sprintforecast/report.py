@@ -203,7 +203,6 @@ def absence_derived_cli_remedy(window: int, team: str) -> str:
 def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
     """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht). ``code=False``
     für die Kommandozeile: Sprint-IDs ohne Markdown-Backticks, dazu der Befehl zum Nachtragen."""
-    from sprintforecast.analysis import sample_count
     from sprintforecast.model import TrendMode
 
     notes = []
@@ -215,23 +214,8 @@ def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
             team = fc.data.team
             note += " " + absence_derived_cli_remedy(team.capacity.absence_history, team.key)
         notes.append(note)
-    samples = sample_count(fc)
-    if samples and samples < MIN_SAMPLES:
-        notes.append(
-            " ".join(
-                part
-                for part in (
-                    t(
-                        "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die "
-                        "Spanne belastbarer). Plan und Spanne sind grobe Hinweise.",
-                        samples=samples,
-                        min=MIN_SAMPLES,
-                    ),
-                    window_hint(fc.data.team.forecast.window),
-                )
-                if part
-            )
-        )
+    if note := few_samples_note(fc):
+        notes.append(note)
     mode = fc.data.team.forecast.trend_mode
     if any(e.result.trend_fallback for e in fc.upcoming()):
         notes.append(
@@ -253,11 +237,44 @@ def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
     return notes
 
 
-def window_hint(window: int, simulation: bool = False) -> str:
-    """Zusatz zu „Wenig Daten“ bei einem Prognosefenster unter ``MIN_SAMPLES``: Die Stichprobe
-    ist auf das Fenster gedeckelt und kann die Schwelle dann nie erreichen. Sonst leer.
-    ``simulation``: Der Hinweis hängt an der Warnung der Fertigstellungs-Simulation."""
-    if window >= MIN_SAMPLES:
+def few_samples_note(fc: Forecast) -> str | None:
+    """Warnung „Wenig Daten“ der Prognose (Kommandozeile, Bericht und Weboberfläche): Die
+    Stichprobe von Spanne und Simulation (``sample_count``, auf das Fenster gedeckelt) liegt
+    unter ``MIN_SAMPLES``. Deckelt das Fenster, nennt der Satz beide Zahlen (Stichprobe und alle
+    erfassten Werte) und erklärt das Fenster. ``None`` ohne Werte oder ab der Schwelle."""
+    from sprintforecast.analysis import available_count, sample_count
+
+    samples = sample_count(fc)
+    if not samples or samples >= MIN_SAMPLES:
+        return None
+    available = available_count(fc)
+    if available > samples:
+        note = t(
+            "Wenig Daten: Die Spanne zieht aus nur {samples} der {available} erfassten Sprints "
+            "mit Velocity (ab {min} ist die Spanne belastbarer). Plan und Spanne sind grobe "
+            "Hinweise.",
+            samples=samples,
+            available=available,
+            min=MIN_SAMPLES,
+        )
+    else:
+        note = t(
+            "Wenig Daten: bisher nur {samples} Sprints mit Velocity (ab {min} ist die "
+            "Spanne belastbarer). Plan und Spanne sind grobe Hinweise.",
+            samples=samples,
+            min=MIN_SAMPLES,
+        )
+    hint = window_hint(fc.data.team.forecast.window, samples, available)
+    return f"{note} {hint}" if hint else note
+
+
+def window_hint(window: int, samples: int, available: int, simulation: bool = False) -> str:
+    """Zusatz zu „Wenig Daten“, wenn das Prognosefenster unter ``MIN_SAMPLES`` die Stichprobe
+    tatsächlich deckelt (``available`` erfasste Werte, ``samples`` davon in der Rechnung): Die
+    Stichprobe kann die Schwelle dann nie erreichen. Sonst leer, auch wenn es schlicht nicht
+    mehr Werte gibt. ``simulation``: Der Hinweis hängt an der Warnung der
+    Fertigstellungs-Simulation."""
+    if window >= MIN_SAMPLES or available <= samples:
         return ""
     if simulation:
         return t(
