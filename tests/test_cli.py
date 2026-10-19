@@ -877,6 +877,11 @@ GERMAN_COMMANDS = [
 ]  # fmt: skip
 
 
+def _no_ansi(text: str) -> str:
+    """Farbcodes entfernen: In der CI (FORCE_COLOR) färbt Rich die Hilfe ein."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
 @pytest.mark.parametrize("lang", ["de", "en"])
 def test_help_shows_only_english_names(monkeypatch: pytest.MonkeyPatch, lang: str):
     """Befehle, Optionen und Umgebungsvariablen heißen in beiden Sprachen englisch."""
@@ -884,7 +889,7 @@ def test_help_shows_only_english_names(monkeypatch: pytest.MonkeyPatch, lang: st
 
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, lang)
-    output = runner.invoke(app, ["--help"]).output
+    output = _no_ansi(runner.invoke(app, ["--help"]).output)
     for english in ("help", "absences", "people", "check", "report", "data-dir", "language"):
         assert re.search(rf"│ {english}\s", output), english
     for german in GERMAN_COMMANDS:
@@ -892,10 +897,10 @@ def test_help_shows_only_english_names(monkeypatch: pytest.MonkeyPatch, lang: st
     assert "--data" in output and "--as-of" in output
     assert "--daten" not in output and "--stichtag" not in output
     assert "SPRINTFORECAST_DATA" in output and "SPRINTFORECAST_DATEN" not in output
-    output = runner.invoke(app, ["forecast", "--help"]).output
+    output = _no_ansi(runner.invoke(app, ["forecast", "--help"]).output)
     assert "--explain" in output and "--rechenweg" not in output
     assert "--history" in output and "--verlauf" not in output
-    output = runner.invoke(app, ["help", "--help"]).output
+    output = _no_ansi(runner.invoke(app, ["help", "--help"]).output)
     assert "[TOPIC]" in output and "THEMA" not in output
     assert "workflow, terms, fields, team, commands" in output
 
