@@ -99,16 +99,31 @@ def import_unsafe_sprint_ids(data: TeamData) -> list[str]:
     On Linux and macOS such an id (for example ``a:b``) can exist and be exported, but the
     workbook could not be imported again."""
     warnings = []
-    for sprint in data.sprints:
-        if problem := file_name_problem(sprint.id):
+    seen: set[str] = set()
+    ids = [s.id for s in data.sprints]
+    if data.team.sprint.first_id is not None:
+        ids.append(data.team.sprint.first_id)
+    for index, sprint_id in enumerate(ids):
+        is_first_id = index >= len(data.sprints)
+        if problem := file_name_problem(sprint_id):
             warnings.append(
                 t(
                     "Sprint-ID {id} ({problem}): Der Excel-Import lehnt sie ab; "
                     "die Datei lässt sich nicht wieder importieren.",
-                    id=repr(sprint.id),
+                    id=repr(sprint_id),
                     problem=problem,
                 )
             )
+        elif not is_first_id and sprint_id.casefold() in seen:
+            warnings.append(
+                t(
+                    "Sprint-ID {id} kommt zweimal vor (Groß- und Kleinschreibung zählt "
+                    "gleich): Der Excel-Import lehnt das ab.",
+                    id=repr(sprint_id),
+                )
+            )
+        if not is_first_id:
+            seen.add(sprint_id.casefold())
     return warnings
 
 

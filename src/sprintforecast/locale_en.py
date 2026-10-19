@@ -1765,4 +1765,5 @@ EN: dict[str, str] = {
     "Entweder `git config --global credential.helper libsecret` im Terminal eingeben (Schlüsselbund des Desktops; der Helfer `git-credential-libsecret` kommt mit dem Git-Paket der Distribution) oder mit `gh auth setup-git` die GitHub-CLI nutzen. Die Ablage im Klartext (`store`) ist keine gute Wahl.": "Either enter `git config --global credential.helper libsecret` in a terminal (desktop keyring; the helper `git-credential-libsecret` comes with the distribution's Git package) or use the GitHub CLI with `gh auth setup-git`. Plain-text storage (`store`) is not a good choice.",
     "Die App ändert keine Git-Einstellung selbst.": "The app does not change any Git setting itself.",
     "Sprint-ID {id} ({problem}): Der Excel-Import lehnt sie ab; die Datei lässt sich nicht wieder importieren.": "Sprint ID {id} ({problem}): the Excel import refuses it, so the workbook cannot be imported again.",
+    "Sprint-ID {id} kommt zweimal vor (Groß- und Kleinschreibung zählt gleich): Der Excel-Import lehnt das ab.": "Sprint ID {id} appears twice (upper and lower case count as the same): the Excel import refuses it.",
 }
