@@ -876,7 +876,10 @@ def hint_for(kind: str, url: str = "") -> str:
         ),
         "not_repo": t(
             "Der Datenordner muss in einem Git-Repository liegen: mit `git init` ein neues "
-            "anlegen oder mit `git clone` ein bestehendes holen."
+            "anlegen oder mit `git clone` ein bestehendes holen. Ein entpacktes ZIP-Archiv "
+            "(„Download source code“ bei GitHub oder GitLab) ist kein Repository, denn ihm "
+            "fehlt der versteckte Ordner `.git`. Für ein bestehendes Team-Repository stattdessen "
+            "auf der Seite „Datenordner“ „Repository klonen“ wählen."
         ),
         "not_found": t(
             "Das Repository wurde nicht gefunden oder du hast keinen Zugriff. Adresse und "
@@ -935,12 +938,91 @@ def auth_help(url: str = "", message: str = "") -> str:
             "(GitHub, GitLab …) unter „SSH-Schlüssel“ hinterlegen und den Schlüssel im "
             "ssh-agent ohne Kennwortabfrage verfügbar machen. Danach noch einmal versuchen."
         )
-    return t(
+    steps = t(
         "Bei https braucht der Server meist einen Zugangstoken statt des Kennworts (GitHub: "
         "Settings › Developer settings › Personal access tokens; GitLab: Zugriffstoken mit dem "
         "Recht „write_repository“). Wer die GitHub-CLI nutzt, richtet die Anmeldung mit "
         "`gh auth setup-git` ein; sonst den Token im Anmeldedienst des Rechners hinterlegen "
-        "oder beim nächsten Anmeldefenster als Kennwort eingeben. Danach noch einmal versuchen."
+        "oder beim nächsten Anmeldefenster als Kennwort eingeben."
+    )
+    return f"{steps} {credential_advice()} " + t("Danach noch einmal versuchen.")
+
+
+# Anmeldedienste, die Git mitbringt oder die verbreitet sind; alles andere heißt „custom“.
+# Nur diese Namen werden ausgewertet, nie der Wortlaut der Einstellung (kann Pfade enthalten).
+_SAFE_HELPERS = {
+    "manager",
+    "manager-core",
+    "wincred",
+    "osxkeychain",
+    "libsecret",
+    "gnome-keyring",
+    "cache",
+    "oauth",
+}
+_PLAIN_TEXT_HELPERS = {"store"}  # legt den Token unverschlüsselt in ~/.git-credentials ab
+
+
+def credential_helpers() -> list[str]:
+    """Namen der Anmeldedienste, die Git für diesen Benutzer eingetragen hat (nur lesend:
+    ``git config``, keine Änderung). Eine leere Einstellung hebt die davor stehenden auf, wie
+    in Git selbst. Namen außerhalb der bekannten Liste erscheinen als ``custom``. Ist Git nicht
+    zu starten, ist die Liste leer."""
+    try:
+        proc = _git_result(
+            Path.cwd(), "config", "--get-regexp", r"^credential(\..+)?\.helper$", timeout=10
+        )
+    except GitError, OSError:
+        return []
+    names: list[str] = []
+    for line in proc.stdout.splitlines():
+        _, _, value = line.partition(" ")
+        value = value.strip()
+        if not value:
+            names.clear()
+            continue
+        first = "custom" if value.startswith("!") else value.split()[0]
+        first = first.removeprefix("git-credential-")
+        names.append(first if first in _SAFE_HELPERS | _PLAIN_TEXT_HELPERS else "custom")
+    return names
+
+
+def credential_advice() -> str:
+    """Konkreter nächster Schritt für https-Anmeldungen, passend zum Betriebssystem dieses
+    Rechners und zum eingetragenen Anmeldedienst. Die App liest nur und ändert keine
+    Git-Einstellung; ein Klartext-Speicher (``store``) wird nie empfohlen."""
+    helpers = credential_helpers()
+    if any(name in _PLAIN_TEXT_HELPERS for name in helpers):
+        return t(
+            "Achtung: Git speichert Anmeldungen hier im Klartext (`credential.helper store`, "
+            "Datei `.git-credentials` im Benutzerordner). Besser einen Anmeldedienst des "
+            "Rechners verwenden; die App ändert diese Einstellung nicht."
+        )
+    if helpers:
+        return t(
+            "Ein Anmeldedienst ist eingetragen. Scheitert die Anmeldung trotzdem, ist der "
+            "gespeicherte Token vermutlich abgelaufen oder widerrufen: den alten Eintrag im "
+            "Anmeldedienst löschen und beim nächsten Versuch den neuen Token eingeben."
+        )
+    if sys.platform == "win32":
+        return t(
+            "Unter Windows bringt Git for Windows den Git Credential Manager mit: Beim nächsten "
+            "Versuch erscheint ein Anmeldefenster, dort den Token als Kennwort eingeben. "
+            "Fehlt er (etwa bei einem portablen Git), den Token in der "
+            "Windows-Anmeldeinformationsverwaltung unter „Windows-Anmeldeinformationen“ als "
+            "Eintrag `git:https://…` hinterlegen."
+        )
+    if sys.platform == "darwin":
+        return t(
+            "Unter macOS speichert der Schlüsselbund den Token, wenn Git den Helfer "
+            "`osxkeychain` mitbringt (Git von Xcode oder Homebrew): Beim nächsten Versuch den "
+            "Token als Kennwort eingeben."
+        )
+    return t(
+        "Unter Linux den Token im Schlüsselbund des Desktops ablegen (Helfer `libsecret`, im "
+        "Git-Paket der Distribution oder als `git-credential-libsecret` enthalten) oder mit "
+        "`gh auth setup-git` die GitHub-CLI nutzen. Die Ablage im Klartext (`store`) ist keine "
+        "gute Wahl."
     )
 
 
