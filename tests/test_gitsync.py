@@ -1551,3 +1551,29 @@ def test_merge_request_auto_merge_option_and_pull_hint(alice: Person, bob: Perso
     bob.write("a/2026.3.yaml", "velocity: 8\n")
     assert bob.sync("ohne").error is None
     assert "merge_when_pipeline_succeeds" not in log.read_text(encoding="utf-8")
+
+
+def test_pull_note_not_shown_after_squash_merge_or_without_merge_request(
+    alice: Person, bob: Person, remote: Path
+):
+    _gitlab_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    bob.sync("Sprint 2")  # merge request is open
+    # Committed locally but never shared: a different note, not "open merge request".
+    bob.write("a/2026.3.yaml", "velocity: 8\n")
+    git(bob.root, "add", "-A")
+    git(bob.root, "commit", "-qm", "lokal")
+    notes = bob.sync("holen", push=False).notes
+    assert notes and all("noch nicht geteilt" in n or "not shared" in n for n in notes)
+    # The server squashes the first change into main: nothing from that is "open" any more.
+    squash = alice.root.parent / "squasher2"
+    git(alice.root.parent, "clone", "-q", str(remote), str(squash))
+    git(squash, "config", "user.name", "S")
+    git(squash, "config", "user.email", "s@example.org")
+    (squash / "teams/a/2026.2.yaml").write_text("velocity: 7\n", encoding="utf-8")
+    (squash / "teams/a/2026.3.yaml").write_text("velocity: 8\n", encoding="utf-8")
+    git(squash, "add", "-A")
+    git(squash, "commit", "-qm", "Squash")
+    git(squash, "push", "-q", "origin", "main")
+    assert bob.sync("holen", push=False).notes == []

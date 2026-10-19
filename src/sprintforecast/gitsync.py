@@ -597,15 +597,8 @@ def sync(
                 result.merged = True
                 current = state(path)
             if not push:
-                if share_mode(root) == SHARE_MERGE_REQUEST and state(path).ahead:
-                    result.notes.append(
-                        t(
-                            "Dein Merge Request ist noch offen: Deine Änderungen stehen auf dem "
-                            "Server noch nicht in {branch}."
-                            " Hole sie nach dem Merge erneut.",
-                            branch=(current.upstream or "main").partition("/")[2] or "main",
-                        )
-                    )
+                if share_mode(root) == SHARE_MERGE_REQUEST:
+                    result.notes += _open_merge_request_note(root, path, current)
                 break
             if not allow_invalid and _unpushed_merges(root, current):
                 found = new_errors(path, current.upstream or "HEAD", today)
@@ -740,6 +733,34 @@ def share_mode(path: Path) -> str:
     return value if value == SHARE_MERGE_REQUEST else SHARE_DIRECT
 
 
+def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list[str]:
+    """Hinweis für „Vom Server holen“ im Merge-Request-Modus: Stehen eigene Änderungen noch nicht
+    im Hauptbranch, sagt er, ob sie in einem offenen Merge Request liegen (der eigene Branch ist
+    auf dem Server und enthält den Stand) oder noch gar nicht geteilt wurden. Inhalt, der schon
+    im Hauptbranch steht (gemergt, etwa als „Squash“), zählt nicht."""
+    if current.upstream and current.ahead:
+        current = _drop_merged_commits(root, current)
+    if not (current.upstream and current.ahead):
+        return []
+    branch = (current.upstream).partition("/")[2] or "main"
+    mr_ref = f"refs/remotes/{current.remote or 'origin'}/{merge_request_branch(root)}"
+    if _ref_exists(root, mr_ref) and _git_ok(root, "merge-base", "--is-ancestor", "HEAD", mr_ref):
+        return [
+            t(
+                "Dein Merge Request ist noch offen: Deine Änderungen stehen auf dem Server noch "
+                "nicht in {branch}. Hole sie nach dem Merge erneut.",
+                branch=branch,
+            )
+        ]
+    return [
+        t(
+            "Deine Änderungen sind noch nicht geteilt (nicht in {branch}, kein Merge Request "
+            "auf dem Server). „Speichern und teilen“ legt ihn an.",
+            branch=branch,
+        )
+    ]
+
+
 def auto_merge(path: Path) -> bool:
     """Soll der Merge Request automatisch mergen, sobald die Pipeline grün ist? Standard: ja."""
     root = _root(path)
@@ -798,6 +819,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
         "-o", f"merge_request.target={target}",
         "-o", f"merge_request.title={subject}",
         "-o", "merge_request.remove_source_branch",
+        # Neuere GitLab-Versionen kennen auch ``merge_request.auto_merge`` (gleiche Wirkung).
         *(["-o", "merge_request.merge_when_pipeline_succeeds"] if auto else []),
         remote,
         f"HEAD:{ref}",
