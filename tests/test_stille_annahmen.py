@@ -393,3 +393,69 @@ def test_steuerzeichen_im_schluessel_erreichen_die_ausgabe_nicht(data_dir: Path)
     assert "a b" in result.output.replace("\n  ", " ").replace("\n", " ")
     [found] = [m for m in messages(f"absences:\n  {key}: 1\n  {key}: 2\n")]
     assert "\n" not in found and "\x1b" not in found
+
+
+def loaded_keys(text: str, field: str) -> set[str]:
+    """Kürzel von ``field`` so, wie das Programm sie liest (Dict des Laders, dann ``str()``)."""
+    import yaml
+
+    from sprintforecast.storage import _YAML_LOADER
+
+    return {str(k) for k in yaml.load(text, Loader=_YAML_LOADER)[field]}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "absences:\n  1: 2\n  1.0: 3\n",
+        "absences: {1: a, 1.0: b, '1': c}\n",
+        "absences: {true: a, 1: b}\n",
+        "products: {1: {}, 1.0: {}}\n",
+        "expected_absences: {1: 2, 1.0: 3}\n",
+    ],
+)
+def test_kuerzel_in_python_gleich_sind_ein_duplikat(text: str):
+    """Der Lader baut das Dict mit Python-Gleichheit (1 == 1.0 == True), erst das Programm
+    bildet str(): das erste Schlüsselobjekt bleibt, der letzte Wert gewinnt."""
+    assert len(loaded_keys(text, text.split(":")[0])) == 1  # das Programm liest ein Kürzel
+    [found] = messages(text)
+    assert "steht mehrfach" in found
+
+
+def test_kuerzel_erstes_schluesselobjekt_bestimmt_den_text():
+    # Der Lader behält 1.0 als Schlüsselobjekt: "1.0" und "1" bleiben getrennte Kürzel
+    text = "absences: {1.0: a, 1: b, '1': c}\n"
+    assert loaded_keys(text, "absences") == {"1", "1.0"}
+    [found] = messages(text)
+    assert "Spalten 12, 20" in found  # nur 1.0 und 1, nicht '1'
+
+
+def merged(spec: str) -> dict:
+    import yaml
+
+    from sprintforecast.storage import _YAML_LOADER
+
+    return yaml.load(BASE + f"m: {{{spec}}}\n", Loader=_YAML_LOADER)["m"]
+
+
+def test_bei_mehreren_merge_keys_gewinnt_der_letzte():
+    """PyYAML hängt die Quellen mehrerer ``<<`` in Reihenfolge an; beim Dict-Aufbau überschreibt
+    der spätere Eintrag den früheren."""
+    assert merged("<<: *y, <<: *x") == {"fte": None}  # x (leer) ist das letzte <<
+    [found] = member("<<: *y, <<: *x")
+    assert "memberships[0].fte" in found
+    assert merged("<<: *x, <<: *y") == {"fte": 0.5}
+    assert member("<<: *x, <<: *y") == []
+
+
+def test_drei_merge_keys_und_listen_gemischt():
+    assert merged("<<: *x, <<: *y, <<: *x") == {"fte": None}
+    assert len(member("<<: *x, <<: *y, <<: *x")) == 1
+    # in einer Liste gewinnt weiterhin die erste Quelle, über die << hinweg die letzte
+    assert merged("<<: *y, <<: [*x, *y]") == {"fte": None}
+    assert len(member("<<: *y, <<: [*x, *y]")) == 1
+    assert merged("<<: [*x, *y], <<: *y") == {"fte": 0.5}
+    assert member("<<: [*x, *y], <<: *y") == []
+    # eigene Schlüssel schlagen jedes <<
+    assert merged("<<: *y, fte: 1, <<: *x") == {"fte": 1}
+    assert member("<<: *y, fte: 1, <<: *x") == []
