@@ -244,8 +244,8 @@ SETTINGS: list[Setting] = [
     Setting(
         key="features.tickets",
         label="Ticket-Vorplanung",
-        help="Tickets aus dem Ticketsystem (CSV-Export) werden Projekten zugeordnet und auf "
-        "künftige Sprints verteilt: Projektliste mit Zieldatum, Vormerkungen je Sprint, "
+        help="Tickets aus dem Ticketsystem (Jira oder CSV-Export) werden Projekten zugeordnet und "
+        "auf künftige Sprints verteilt: Projektliste mit Zieldatum, Vormerkungen je Sprint, "
         "Projektampel und Refinement-Liste (Dateien projects.yaml, tickets.yaml, preplan.yaml; "
         "Abschnitt tracker in team.yaml). Aus: Die Dateien werden nicht gelesen, es gibt keine "
         "Seite und keinen Befehl dafür.",
