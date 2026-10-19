@@ -810,6 +810,12 @@ def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
     )
 
 
+def tracker_from_raw(raw: Any, where: str) -> TrackerSettings:
+    """Reads a raw ``tracker`` section (as kept in ``Team.tracker_raw``); raises ``DataError``
+    (or ValueError/TypeError) for an unusable one."""
+    return _tracker_from(_mapping(raw, where, "tracker"), where)
+
+
 def _tracker_to(tr: TrackerSettings) -> dict[str, Any]:
     out: dict[str, Any] = {"kind": tr.kind}
     if tr.base_url:

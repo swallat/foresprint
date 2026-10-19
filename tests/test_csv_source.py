@@ -204,3 +204,9 @@ def test_negative_remaining_is_refused_too(tmp_path: Path):
         "Summary,Issue key,Custom field (Story Points),Custom field (Remaining)\nx,A-1,0,0\n",
     )
     assert [(tk.estimate, tk.remaining) for tk in CsvSource(ok, FIELDS).fetch()] == [(0, 0)]
+
+
+def test_negative_zero_is_stored_as_zero(tmp_path: Path):
+    path = write(tmp_path, HEADER + "x,A-1,-0\n")
+    value = CsvSource(path, FIELDS).fetch()[0].estimate
+    assert value == 0 and str(value) == "0.0"

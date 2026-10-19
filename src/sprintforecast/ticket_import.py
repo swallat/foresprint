@@ -38,6 +38,9 @@ KINDS: tuple[str, ...] = (
 # ``note`` of a refined_unclear change.
 UNCLEAR_RULE = "rule"
 UNCLEAR_NO_ESTIMATE = "no_estimate"
+# ``note`` of an earmark_dropped change whose sprint is over (an open ticket cannot be put into
+# the past).
+DROPPED_ENDED = "ended"
 
 
 @dataclass
@@ -69,9 +72,14 @@ class TicketImportPlan:
 
     def unchanged(self, data: TeamData) -> bool:
         """Would applying the plan leave the stored files as they are (apart from the time
-        stamp)? Then nothing is written. ``changes`` is not the measure: it also lists hints
-        that stay as long as the data does (unassigned tickets, unknown epics ...)."""
-        return not self.preplan_changed and self.tickets == data.tickets
+        stamp)? Then nothing is written (a new source name counts as a change). ``changes`` is
+        not the measure: it also lists hints that stay as long as the data does (unassigned
+        tickets, unknown epics ...)."""
+        return (
+            not self.preplan_changed
+            and self.tickets == data.tickets
+            and self.source == data.tickets_source
+        )
 
 
 # --- Single ticket ---------------------------------------------------------------------------
@@ -247,6 +255,14 @@ def plan_import(
                     TicketChange("earmark_dropped", tk.key, tk.title, old=earmark.sprint)
                 )
             continue
+        if earmark is not None and sprint_ended(earmark.sprint, fc):
+            preplan.earmarks.remove(earmark)
+            plan.changes.append(
+                TicketChange(
+                    "earmark_dropped", tk.key, tk.title, old=earmark.sprint, note=DROPPED_ENDED
+                )
+            )
+            earmark = None
         if tk.in_sprint is None:
             # A closed sprint is resolved but not the ticket's sprint; only names the tool
             # cannot resolve are reported.
@@ -271,8 +287,10 @@ def plan_import(
         if tk.epic and tk.epic not in epics_known:
             unknown.setdefault(tk.epic, []).append(tk.key)
         if tk.refined_unclear:
-            size = tk.size(data.team.tracker.planning_uses)
-            note = UNCLEAR_NO_ESTIMATE if size is None else UNCLEAR_RULE
+            # With the label the only way to be unclear is a missing size; without it the
+            # ticket counts as refined only via ``refined_also_if``.
+            label = data.team.tracker.refined_label
+            note = UNCLEAR_NO_ESTIMATE if label and label in tk.labels else UNCLEAR_RULE
             plan.changes.append(TicketChange("refined_unclear", tk.key, tk.title, note=note))
 
     for epic, keys in unknown.items():
@@ -282,6 +300,14 @@ def plan_import(
         if key in seen:
             continue
         earmark = preplan.earmark_for(key)
+        if earmark is not None and sprint_ended(earmark.sprint, fc):
+            preplan.earmarks.remove(earmark)
+            plan.changes.append(
+                TicketChange(
+                    "earmark_dropped", key, prev.title, old=earmark.sprint, note=DROPPED_ENDED
+                )
+            )
+            earmark = None
         plan.changes.append(
             TicketChange("missing", key, prev.title, note=earmark.sprint if earmark else None)
         )

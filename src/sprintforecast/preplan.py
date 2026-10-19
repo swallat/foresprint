@@ -172,8 +172,8 @@ class Distribution:
     # Dependency cycles (keys in dependency order), each once.
     cycles: list[list[str]] = field(default_factory=list)
     # Sprints of fixed tickets or earmarks that lie after the horizon or are unknown (later
-    # than everything the distribution knows).
-    later: set[str] = field(default_factory=set)
+    # than everything the distribution knows) -> their last day; None = unknown sprint.
+    later: dict[str, date | None] = field(default_factory=dict)
     # True when no sprint of the horizon has any budget at all (no past sprints, no forecast).
     no_forecast: bool = False
 
@@ -383,7 +383,8 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
         tracker_sprint = tk.in_sprint if tk.in_sprint and not ended(tk.in_sprint) else None
         if tracker_sprint is not None:
             sprint, reason = tracker_sprint, "fixed_sprint"
-        elif earmark is not None:
+        elif earmark is not None and not ended(earmark.sprint):
+            # An earmark of a sprint that is over would put an open ticket into the past.
             sprint, reason = earmark.sprint, "earmark"
         else:
             continue
@@ -453,7 +454,7 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
         placements=[placements[tk.key] for tk in data.tickets if tk.key in placements],
         cycles=find_cycles(open_tickets),
         later={
-            p.sprint
+            p.sprint: _last_day(sprint_of_id(p.sprint))
             for p in placements.values()
             if p.sprint is not None and position(p.sprint) >= len(sprints)
         },
@@ -470,6 +471,20 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
 
 
 # --- Traffic light and refinement list ------------------------------------------------------
+
+
+def _last_day(sprint: Sprint | None) -> date | None:
+    return None if sprint is None else sprint.end - timedelta(days=1)
+
+
+def _later_position(last_day: date | None, target: date | None, size: int, length_days: int) -> int:
+    """Position in the timeline of a sprint after the horizon (``size`` = length of the
+    timeline = the target sprint when the target lies beyond the horizon): later than the
+    target unless the sprint is known and ends by the target date."""
+    if last_day is None or target is None or last_day > target:
+        return size + 1
+    # The target sprint is the last one ending on or before the target date.
+    return size if target < last_day + timedelta(days=length_days) else size - 1
 
 
 def target_sprint(
@@ -524,9 +539,10 @@ def traffic_light(
     for p in own:
         if p.sprint is None:
             continue
-        # Not in the timeline: a sprint after the horizon (or unknown) is later than
-        # everything, anything else lies in the past.
-        i = index.get(p.sprint, len(timeline) + 1 if p.sprint in dist.later else -1)
+        # Not in the timeline: a sprint after the horizon (or unknown) or a past one.
+        i = index.get(p.sprint, -1)
+        if p.sprint not in index and p.sprint in dist.later:
+            i = _later_position(dist.later[p.sprint], project.target, len(timeline), length_days)
         if last is None or i > last:
             last, last_id = i, p.sprint
     if not own:

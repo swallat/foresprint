@@ -21,6 +21,7 @@ from sprintforecast.model import (
     TrackerFields,
     TrackerSettings,
 )
+from sprintforecast.settings import SETTINGS
 from sprintforecast.storage import (
     DataError,
     Repository,
@@ -528,3 +529,59 @@ def test_unquoted_float_in_rule_values_and_sprint_names_is_refused():
     assert _tracker_from({"sprint_names": {"Sprint 20": "2026.20"}}, "t").sprint_names == {
         "Sprint 20": "2026.20"
     }
+
+
+def bad_tracker_dir(data_dir: Path) -> Repository:
+    import yaml
+
+    path = data_dir / TEAM / "team.yaml"
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc["tracker"] = {"kind": "csv", "planning_uses": "bogus"}
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    return Repository(data_dir)
+
+
+def test_excel_import_keeps_an_unreadable_tracker_section(data_dir: Path):
+    pytest.importorskip("xlsxwriter")
+    pytest.importorskip("openpyxl")
+    from sprintforecast.excel import build_workbook
+    from sprintforecast.excel_import import plan_import, read_workbook
+    from sprintforecast.forecast import build_forecast
+
+    repo = bad_tracker_dir(data_dir)
+    existing = repo.load(TEAM)
+    assert existing.team.tracker_raw == {"kind": "csv", "planning_uses": "bogus"}
+    data = read_workbook(build_workbook(build_forecast(existing, TODAY)), TEAM)
+    plan = plan_import(repo, data, TODAY)
+    assert plan.data.team.tracker_raw == existing.team.tracker_raw
+    assert plan.files == []  # team.yaml would not change
+
+
+def test_cli_settings_refuse_to_switch_on_with_an_unreadable_tracker(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    import yaml
+    from typer.testing import CliRunner
+
+    import sprintforecast.cli as cli
+
+    bad_tracker_dir(data_dir)
+    real = cli._ask_setting
+
+    def ask(setting, team, **kw):
+        if setting.key == "features.tickets":
+            team.features.tickets = True
+        else:
+            real(setting, team, **kw)
+
+    monkeypatch.setattr(cli, "_ask_setting", ask)
+    monkeypatch.setattr(
+        cli, "applicable", lambda **kw: [s for s in SETTINGS if s.key == "features.tickets"]
+    )
+    result = CliRunner().invoke(
+        cli.app, ["--data", str(data_dir), "--as-of", "2026-10-15", "settings", TEAM], input="y\n"
+    )
+    assert result.exit_code == 1 and "Nicht gespeichert" in result.output, result.output
+    doc = yaml.safe_load((data_dir / TEAM / "team.yaml").read_text(encoding="utf-8"))
+    assert not doc["features"].get("tickets")
+    Repository(data_dir).load(TEAM)  # still loads

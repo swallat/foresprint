@@ -25,7 +25,7 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.git import blank_controls
 from sprintforecast.i18n import t
-from sprintforecast.model import RULE_SOURCES, Rule, Ticket
+from sprintforecast.model import RULE_SOURCES, Rule, Sprint, Ticket
 from sprintforecast.storage import (
     TEAM_FILES,
     TICKET_FILES,
@@ -33,6 +33,7 @@ from sprintforecast.storage import (
     Repository,
     TeamData,
     compose_yaml,
+    tracker_from_raw,
 )
 
 
@@ -166,15 +167,15 @@ def find_cycles(tickets: list[Ticket]) -> list[list[str]]:
     return cycles
 
 
-def _known_sprint_ids(data: TeamData, ahead: int = 52) -> set[str]:
-    """Ids of the sprint files plus the following sprints from the calendar (earmarks name
-    sprints that have no file yet)."""
-    ids = {s.id for s in data.sprints}
+def _known_sprints(data: TeamData, ahead: int = 52) -> dict[str, Sprint]:
+    """The sprint files plus the following sprints from the calendar (earmarks name
+    sprints that have no file yet), by id."""
+    ids = {s.id: s for s in data.sprints}
     last = data.sprints[-1] if data.sprints else None
     try:
         for _ in range(ahead):
             last = following_sprint(data.team, last)
-            ids.add(last.id)
+            ids[last.id] = last
     except DataError:
         pass  # no first sprint: reported above
     return ids
@@ -184,6 +185,13 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
     """Projects, tickets and pre-planning (only with ``features.tickets``)."""
     team = data.team
     tr = team.tracker
+    if team.tracker_raw is not None:
+        # An unreadable section kept while the feature was off: switching it on must not
+        # produce a team that does not load.
+        try:
+            tracker_from_raw(team.tracker_raw, "team.yaml")
+        except (DataError, ValueError, TypeError) as e:
+            error("team.yaml", str(e))
     if tr.dependency_gap not in (0, 1):
         error("team.yaml", t("tracker.dependency_gap muss 0 oder 1 sein"))
     order = tr.project_match_order
@@ -227,7 +235,7 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
         elif not any(tk.project == pr.id for tk in data.tickets):
             warn(where, t("weder eine match-Regel noch zugeordnete Tickets"))
 
-    known_sprints = _known_sprint_ids(data)
+    known_sprints = _known_sprints(data)
     keys: set[str] = set()
     for tk in data.tickets:
         where = f"tickets.yaml: {tk.key}"
@@ -258,6 +266,15 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
             warn(where, t("Vormerkung für ein unbekanntes Ticket (nicht im letzten Import)"))
         if e.sprint not in known_sprints:
             warn(where, t("Sprint '{id}' ist nicht bekannt", id=e.sprint))
+        elif known_sprints[e.sprint].end <= today:
+            warn(
+                where,
+                t(
+                    "Vormerkung für den vergangenen Sprint '{id}' (wird ignoriert; der nächste "
+                    "Import verwirft sie)",
+                    id=e.sprint,
+                ),
+            )
     estimated: set[str] = set()
     for m in data.preplan.estimates:
         where = f"preplan.yaml: {m.ticket}"

@@ -206,6 +206,8 @@ class CsvSource:
                         column=column,
                     )
                 ) from None
+            if value == 0:
+                value = 0.0  # "-0" is stored as 0
             if value is not None and value < 0:
                 raise SourceError(
                     t(
