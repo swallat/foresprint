@@ -151,7 +151,7 @@ def test_app_window_closes_server(data_dir: Path, tmp_path: Path, monkeypatch: p
     fake.chmod(0o755)
     monkeypatch.setattr("sprintforecast.cli._HANDOFF_SECONDS", 5.0)
     result = CliRunner().invoke(
-        app, ["--daten", str(data_dir), "web", "--app", "--browser", str(fake), "--port", "8590"]
+        app, ["--data", str(data_dir), "web", "--app", "--browser", str(fake), "--port", "8590"]
     )
     assert result.exit_code == 0, result.output
     assert "App-Fenster geschlossen" in result.output
@@ -194,7 +194,7 @@ def web_run(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
             cli, "_open_app_window", lambda url, server, explicit: seen.update(window=url)
         )
-        result = CliRunner().invoke(cli.app, ["--daten", str(data_dir), "web", *options])
+        result = CliRunner().invoke(cli.app, ["--data", str(data_dir), "web", *options])
         assert result.exit_code == 0, result.output
         return seen
 

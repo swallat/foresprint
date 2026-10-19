@@ -60,7 +60,7 @@ def test_setting_is_called_verplanbarer_anteil():
 
 
 def run(data_dir: Path, *args: str) -> str:
-    result = runner.invoke(app, ["--daten", str(data_dir), "--stichtag", "2026-10-15", *args])
+    result = runner.invoke(app, ["--data", str(data_dir), "--as-of", "2026-10-15", *args])
     assert result.exit_code == 0, result.output
     return result.output
 
@@ -69,14 +69,14 @@ def run(data_dir: Path, *args: str) -> str:
     "args",
     [
         ("forecast", "demo"),
-        ("analyse", "demo", "--rest", "20"),
-        ("analyse", "demo", "--rest", "20", "--gesamt"),
-        ("hilfe",),
-        ("hilfe", "begriffe"),
-        ("hilfe", "felder"),
-        ("hilfe", "team"),
-        ("hilfe", "befehle"),
-        ("analyse", "--help"),
+        ("analysis", "demo", "--remaining", "20"),
+        ("analysis", "demo", "--remaining", "20", "--total"),
+        ("help",),
+        ("help", "terms"),
+        ("help", "fields"),
+        ("help", "team"),
+        ("help", "commands"),
+        ("analysis", "--help"),
     ],
 )
 @pytest.mark.parametrize("lang", ["de", "en"])
@@ -142,7 +142,7 @@ def test_planning_panel_keeps_its_separators(data_dir: Path):
     # Die Kennzahlenzeile nach „planning“ (gleiche Funktion wie bei „fehltage“).
     result = runner.invoke(
         app,
-        ["--daten", str(data_dir), "--stichtag", "2026-10-15", "planning", "demo", "2026.20"],
+        ["--data", str(data_dir), "--as-of", "2026-10-15", "planning", "demo", "2026.20"],
         input="n\nn\nn\nn\n",
     )
     assert re.search(r"\(Verplanbar [\d.,]+ · Kleinkram [\d.,]+\)", result.output), result.output
@@ -151,7 +151,7 @@ def test_planning_panel_keeps_its_separators(data_dir: Path):
 def test_planning_panel_in_english(data_dir: Path, english):
     result = runner.invoke(
         app,
-        ["--daten", str(data_dir), "--stichtag", "2026-10-15", "planning", "demo", "2026.20"],
+        ["--data", str(data_dir), "--as-of", "2026-10-15", "planning", "demo", "2026.20"],
         input="n\nn\nn\nn\n",
     )
     assert re.search(r"\(Plannable [\d.,]+ · \S.* [\d.,]+\)", result.output), result.output
@@ -167,7 +167,7 @@ def test_product_distribution_names_the_plannable_share(
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, lang)
     try:
-        output = run(data_dir, "produkte", "demo", "2026.20")
+        output = run(data_dir, "products", "demo", "2026.20")
     finally:
         i18n.set_language(None)
     assert ("Verplanbarer Anteil" if lang == "de" else "Plannable share") in output

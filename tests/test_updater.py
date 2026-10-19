@@ -111,7 +111,7 @@ def test_notice_mode_only_reports(env: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: pytest.fail("kein Start"))
     said: list[str] = []
     updater.AutoUpdate().start().finish(said.append)
-    assert "sprintforecast aktualisieren" in said[0]
+    assert "sprintforecast update" in said[0]
 
 
 def test_off_mode_and_ci_skip(env: Path, monkeypatch: pytest.MonkeyPatch):
@@ -175,12 +175,12 @@ def test_powershell_restart_command(tmp_path: Path):
         ["uv", "tool"],
         tmp_path / "log",
         False,
-        ["C:\\sf.exe", "--daten", "C:\\Team Data", "web", "--app"],
+        ["C:\\sf.exe", "--data", "C:\\Team Data", "web", "--app"],
         "C:\\d",
     )
     assert (
         "Start-Process -FilePath 'C:\\sf.exe' "
-        """-ArgumentList '--daten "C:\\Team Data" web --app'"""
+        """-ArgumentList '--data "C:\\Team Data" web --app'"""
     ) in script
     assert "-WorkingDirectory 'C:\\d'" in script
     bare = updater._powershell_script([1], ["uv"], tmp_path / "log", False, ["C:\\sf.exe"], None)

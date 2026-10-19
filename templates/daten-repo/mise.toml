@@ -3,9 +3,11 @@ python = "3.14"
 uv = "0.13.1"
 
 [env]
-SPRINTFORECAST_DATEN = "teams"
+SPRINTFORECAST_DATA = "teams"
+# Language of the generated reports (FORECAST.md): "en" or "de".
+SPRINTFORECAST_LANG = "en"
 
 [tasks.sf]
-description = "sprintforecast aufrufen, z. B. `mise run sf -- forecast team-a`"
-# Version des Tools festnageln; bei Updates hier anheben.
+description = "run sprintforecast, e.g. `mise run sf -- forecast team-a`"
+# Pin the tool version here; raise it when you update.
 run = "uvx --from git+https://github.com/swallat/sprint-forecast@main sprintforecast"
