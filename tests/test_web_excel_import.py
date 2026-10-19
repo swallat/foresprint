@@ -93,3 +93,24 @@ def test_foreign_file_is_refused_without_writing(data_dir: Path, monkeypatch):
     assert at.error
     assert not [b for b in at.button if b.label == APPLY]
     assert {p: p.read_bytes() for p in data_dir.rglob("*.yaml")} == before
+
+
+def test_settings_form_shows_imported_values_after_apply(data_dir: Path, monkeypatch):
+    team = Repository(data_dir).load("demo").team
+    window = team.forecast.window
+
+    def edit(wb: openpyxl.Workbook) -> None:
+        for row in wb["Einstellungen"].iter_rows(min_row=3):
+            if row[2].value == "forecast.window":
+                row[1].value = window + 1
+                return
+        raise AssertionError("setting not found")
+
+    at = settings_page(data_dir, monkeypatch)
+    assert at.number_input(key="settings-demo-forecast.window").value == window
+    upload(at, edited(exported(data_dir), edit))
+    next(b for b in at.button if b.label == APPLY).click().run()
+    assert not at.exception, at.exception
+    assert Repository(data_dir).load("demo").team.forecast.window == window + 1
+    assert at.number_input(key="settings-demo-forecast.window").value == window + 1
+    assert at.file_uploader(key="excel-import-demo-file-1").value is None
