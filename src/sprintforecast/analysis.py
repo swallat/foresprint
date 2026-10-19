@@ -54,6 +54,13 @@ def sample_count(fc: Forecast) -> int:
     return len(normalized_history(fc))
 
 
+def available_count(fc: Forecast) -> int:
+    """Anzahl aller verfügbaren Sprints mit normierter Velocity (ungedeckelt, gleiche Wertemenge
+    wie ``plan_basis``). Sie entscheidet, ob es schon einen Forecast gibt (``MIN_THIN_HISTORY``);
+    ``sample_count`` dagegen ist die auf ``window`` gedeckelte Stichprobe der Rechnung."""
+    return sum(1 for e in plan_basis(fc) if e.result.normalized_velocity.value is not None)
+
+
 def few_samples(fc: Forecast) -> bool:
     return sample_count(fc) < MIN_SAMPLES
 
