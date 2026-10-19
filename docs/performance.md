@@ -1,6 +1,6 @@
 # Performance (phase P)
 
-This document records the measures from [konzept-kern.md](konzept-kern.md), section E, and how
+This document records the measures from [design/core.md](design/core.md), section E, and how
 they were measured.
 
 ## Measuring
