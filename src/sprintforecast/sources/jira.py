@@ -442,7 +442,7 @@ class JiraSource:
         if method not in ALLOWED_METHODS:
             raise ValueError(f"HTTP method {method!r} is not allowed: this source only reads")
         if (method == "PUT") != (body is not None) or (
-            method == "PUT" and not _is_label_write(path, body)
+            method == "PUT" and (params or not _is_label_write(path, body))
         ):
             raise ValueError("Only a label change of one ticket may be written")
         httpx = self._httpx

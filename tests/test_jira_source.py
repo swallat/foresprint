@@ -711,6 +711,13 @@ def test_a_put_that_is_not_a_label_change_is_refused_before_the_network(path, bo
     assert server.requests == []
 
 
+def test_a_put_with_query_parameters_is_refused():
+    source, server = make()
+    with pytest.raises(ValueError, match="label change"):
+        source._request("PUT", "/rest/api/2/issue/ABC-1", {"notifyUsers": "false"}, LABEL)
+    assert server.requests == []
+
+
 def test_a_get_with_a_body_is_refused():
     source, server = make()
     with pytest.raises(ValueError, match="label change"):

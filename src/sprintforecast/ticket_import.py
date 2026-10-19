@@ -221,9 +221,12 @@ def plan_import(
     raws: list[RawTicket],
     today: date,
     source: str | None = None,
+    adopt_labels: bool = True,
 ) -> TicketImportPlan:
     """Converts the raw tickets and reconciles them with the last import and the earmarks
-    (spec section 6.5); nothing is written."""
+    (spec section 6.5); nothing is written. ``adopt_labels=False`` leaves the
+    ``planned_for_*`` labels unread (the label write-back plans against the earmarks of the
+    tool only)."""
     old = {tk.key: tk for tk in data.tickets}
     preplan = copy.deepcopy(data.preplan)
     plan = TicketImportPlan(tickets=[], preplan=preplan, source=source)
@@ -285,8 +288,14 @@ def plan_import(
             plan.changes.append(
                 TicketChange("earmark_dropped", tk.key, tk.title, earmark.sprint, tk.in_sprint)
             )
-        if data.team.tracker.write_labels and tk.in_sprint is None and earmark is None:
-            _earmark_from_label(plan, tk, data, fc, today)
+        if (
+            adopt_labels
+            and data.team.tracker.write_labels
+            and tk.in_sprint is None
+            and earmark is None
+        ):
+            known = prev.labels if prev is not None else []
+            _earmark_from_label(plan, tk, data, fc, today, known)
         if tk.project is None:
             plan.changes.append(
                 TicketChange("unassigned", tk.key, tk.title, new=list(tk.project_candidates))
@@ -358,12 +367,18 @@ def plan_import(
 
 
 def _earmark_from_label(
-    plan: TicketImportPlan, tk: Ticket, data: TeamData, fc: Forecast, today: date
+    plan: TicketImportPlan,
+    tk: Ticket,
+    data: TeamData,
+    fc: Forecast,
+    today: date,
+    known: list[str],
 ) -> None:
     """Takes the earmark of a ticket without sprint and earmark from its ``planned_for_*``
     label (spec section 6.6, the weakest source). A label of a sprint that is unknown or over,
-    or several labels, are reported; the next label write removes them."""
-    sprints = label_sprints(tk.labels)
+    or several labels, are reported; the next label write removes them. A label the last
+    import already knew is no news: without an earmark it was released in the tool."""
+    sprints = [s for s in label_sprints(tk.labels) if s not in label_sprints(known)]
     if not sprints:
         return
     sprint = sprints[0]
