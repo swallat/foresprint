@@ -630,6 +630,7 @@ def test_commit_button_refuses_files_with_conflict_markers(
     assert not at.exception, at.exception
     assert git(data_dir, "log", "-1", "--format=%s") == "init"
     shown = " ".join(e.value for e in [*at.sidebar.error, *at.error])
+    shown = shown.replace("\\", "")  # Markdown-Maskierung (md_plain)
     assert "Konflikte lösen" in shown and "2026.21.yaml" in shown
 
 
