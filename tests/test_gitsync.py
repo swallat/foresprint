@@ -520,7 +520,6 @@ def test_auth_help_is_cut_to_the_address():
     https = auth_help("https://example.org/team/daten.git")
     assert "Zugangstoken" in https and "`gh auth setup-git`" in https
     assert "Anmeldedienst des Rechners" in https
-    # nicht mehr alle Betriebssysteme in einem Satz, keine SSH-Schritte
     # nur die Schritte des eigenen Betriebssystems, keine SSH-Schritte
     for other in ("ssh-keygen", "SSH"):
         assert other not in https, other
@@ -1727,7 +1726,7 @@ def test_auth_help_with_service_set_up_suggests_new_token(monkeypatch):
 
 @pytest.mark.parametrize(
     ("platform", "needle"),
-    [("win32", "Credential Manager"), ("darwin", "osxkeychain"), ("linux", "libsecret")],
+    [("win32", "credential.helper manager"), ("darwin", "osxkeychain"), ("linux", "libsecret")],
 )
 def test_auth_help_names_the_steps_of_this_operating_system(monkeypatch, platform, needle):
     from sprintforecast.git import auth_help
