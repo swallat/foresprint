@@ -624,7 +624,10 @@ def apply_product_values(sprint: Sprint, rows: list[dict[str, Any]], measures: l
         pid = str(row["_id"])
         values = result.products.get(pid, ProductValues())
         for m in measures:
-            raw = row.get((MEASURES | PRODUCTION_MEASURES)[m])
+            label = (MEASURES | PRODUCTION_MEASURES)[m]
+            if label not in row:
+                continue  # Spalte war nicht zu sehen: gespeicherten Wert nicht überschreiben
+            raw = row[label]
             setattr(values, m, None if is_blank(raw) else float(raw))
         if values.is_empty():
             result.products.pop(pid, None)
