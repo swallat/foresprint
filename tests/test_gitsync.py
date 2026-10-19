@@ -1525,6 +1525,7 @@ def _gitlab_like(remote: Path) -> Path:
 def test_share_via_merge_request_pushes_own_branch(alice: Person, bob: Person, remote: Path):
     log = _gitlab_like(remote)
     gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "gitlab")
     assert gitsync.share_mode(bob.data) == gitsync.SHARE_MERGE_REQUEST
     main_before = git(remote, "rev-parse", "main")
     bob.write("a/2026.2.yaml", "velocity: 7\n")
@@ -1553,6 +1554,7 @@ def test_merge_request_squash_merge_does_not_stay_ahead(alice: Person, bob: Pers
     to the server state instead of sharing an empty merge request again and again."""
     _gitlab_like(remote)
     gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "gitlab")
     bob.write("a/2026.2.yaml", "velocity: 7\n")
     first = bob.sync("Sprint 2")
     assert first.error is None
@@ -1575,6 +1577,7 @@ def test_merge_request_branch_is_overwritten_when_it_diverged(
 ):
     _gitlab_like(remote)
     gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "gitlab")
     bob.write("a/2026.2.yaml", "velocity: 7\n")
     branch = bob.sync("eins").merge_request_branch
     # Somebody rewrites the merge request branch on the server (rebase button).
@@ -1588,6 +1591,7 @@ def test_merge_request_branch_is_overwritten_when_it_diverged(
 def test_merge_request_auto_merge_option_and_pull_hint(alice: Person, bob: Person, remote: Path):
     log = _gitlab_like(remote)
     gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "gitlab")
     assert gitsync.auto_merge(bob.data)  # default: on
     bob.write("a/2026.2.yaml", "velocity: 7\n")
     assert bob.sync("mit Automerge").error is None
@@ -1607,6 +1611,7 @@ def test_pull_note_not_shown_after_squash_merge_or_without_merge_request(
 ):
     _gitlab_like(remote)
     gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "gitlab")
     bob.write("a/2026.2.yaml", "velocity: 7\n")
     bob.sync("Sprint 2")  # merge request is open
     # Committed locally but never shared: a different note, not "open merge request".
@@ -1795,3 +1800,117 @@ def test_hint_md_follows_a_hint_assigned_after_construction():
     assert err.hint_md == "alt\\_md"
     err.hint = "neu"
     assert err.hint_md == "neu"
+
+
+@pytest.mark.parametrize(
+    ("url", "host"),
+    [
+        ("https://github.com/o/r.git", "github"),
+        ("git@github.com:o/r.git", "github"),
+        ("https://gitlab.example.org/team/data.git", "gitlab"),
+        ("ssh://git@gitlab.firma.de:2222/team/data.git", "gitlab"),
+        ("https://codeberg.org/o/r", "forgejo"),
+        ("https://gitea.example.org/o/r.git", "forgejo"),
+        ("https://git.firma.de/team/data.git", "generic"),
+        ("/srv/git/data.git", "generic"),
+    ],
+)
+def test_host_is_detected_from_the_address(url: str, host: str):
+    assert gitsync.detect_host(url) == host
+
+
+def test_compare_url_for_github():
+    assert (
+        gitsync.compare_url("git@github.com:o/r.git", "main", "sprintforecast/bob-1")
+        == "https://github.com/o/r/compare/main...sprintforecast/bob-1?expand=1"
+    )
+    assert gitsync.compare_url("/srv/git/data.git", "main", "x") is None
+
+
+def test_host_setting_overrides_detection(bob: Person):
+    assert gitsync.host_setting(bob.data) is None and gitsync.host_kind(bob.data) == "generic"
+    gitsync.set_host(bob.data, "github")
+    assert gitsync.host_kind(bob.data) == "github"
+    gitsync.set_host(bob.data, None)
+    assert gitsync.host_setting(bob.data) is None
+
+
+def test_github_flow_pushes_only_the_branch_without_push_options(
+    alice: Person, bob: Person, remote: Path
+):
+    log = _gitlab_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "github")
+    main_before = git(remote, "rev-parse", "main")
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    result = bob.sync("Sprint 2")
+    assert result.error is None and result.merge_request_branch
+    assert git(remote, "rev-parse", "main") == main_before
+    assert git(remote, "rev-parse", "--verify", f"refs/heads/{result.merge_request_branch}")
+    assert not log.exists() or "merge_request" not in log.read_text(encoding="utf-8")
+
+
+def test_unknown_server_without_push_options_still_gets_the_branch(
+    alice: Person, bob: Person, remote: Path
+):
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)  # host stays "generic"
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    result = bob.sync("Sprint 2")
+    assert result.error is None and result.merge_request_url is None
+    assert git(remote, "rev-parse", "--verify", f"refs/heads/{result.merge_request_branch}")
+
+
+def test_unknown_server_with_push_options_gets_a_merge_request(
+    alice: Person, bob: Person, remote: Path
+):
+    log = _gitlab_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    result = bob.sync("Sprint 2")
+    assert result.error is None and result.merge_request_url
+    assert "merge_request.create" in log.read_text(encoding="utf-8")
+
+
+def _forgejo_like(remote: Path) -> Path:
+    git(remote, "config", "receive.advertisePushOptions", "true")
+    log = remote / "agit.log"
+    hook = remote / "hooks" / "post-receive"
+    hook.write_text(
+        "#!/bin/sh\n"
+        f'echo "$GIT_PUSH_OPTION_0|$GIT_PUSH_OPTION_1" >> "{log}"\n'
+        'echo "remote: Visit the new pull request:" >&2\n'
+        'echo "remote:   https://forgejo.example.org/team/data/pulls/4" >&2\n',
+        encoding="utf-8",
+    )
+    hook.chmod(0o755)
+    return log
+
+
+def test_forgejo_uses_the_agit_flow(alice: Person, bob: Person, remote: Path):
+    log = _forgejo_like(remote)
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "forgejo")
+    main_before = git(remote, "rev-parse", "main")
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    result = bob.sync("Sprint 2")
+    assert result.error is None
+    assert result.merge_request_url == "https://forgejo.example.org/team/data/pulls/4"
+    assert git(remote, "rev-parse", "main") == main_before
+    assert git(remote, "rev-parse", "--verify", "refs/for/main")  # the AGit ref
+    assert f"topic={result.merge_request_branch}" in log.read_text(encoding="utf-8")
+
+
+def test_forgejo_without_agit_falls_back_to_the_branch(alice: Person, bob: Person, remote: Path):
+    hook = remote / "hooks" / "pre-receive"
+    hook.write_text(
+        '#!/bin/sh\nwhile read old new ref; do case "$ref" in refs/for/*) exit 1;; esac; done\n',
+        encoding="utf-8",
+    )
+    hook.chmod(0o755)
+    git(remote, "config", "receive.advertisePushOptions", "true")
+    gitsync.set_share_mode(bob.data, gitsync.SHARE_MERGE_REQUEST)
+    gitsync.set_host(bob.data, "forgejo")
+    bob.write("a/2026.2.yaml", "velocity: 7\n")
+    result = bob.sync("Sprint 2")
+    assert result.error is None
+    assert git(remote, "rev-parse", "--verify", f"refs/heads/{result.merge_request_branch}")
