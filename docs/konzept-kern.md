@@ -241,8 +241,10 @@ Bewertung durch zwei unabhängige Prüfungen:
 
 ## G. Phasen und Reihenfolge
 
-Das Ticketsystem (siehe [konzept-ticketsystem.md](konzept-ticketsystem.md)) beginnt erst, wenn
-der Kern vollständig umgesetzt und gut getestet ist.
+Die Ticket-Vorplanung (siehe [konzept-ticketsystem.md](konzept-ticketsystem.md), Version 6) beginnt
+nach Release 0.6.0 (die PR-Welle vom Oktober 2026 ist gemergt). Sie baut nur auf Forecast PLAN, der
+Standardverteilung je Produkt und dem Produktionszugriff auf, die alle vorhanden sind; der Kern bleibt
+ohne Ticketsystem vollständig nutzbar.
 
 | Phase | Inhalt | Abnahmekriterium | Stand |
 |---|---|---|---|
