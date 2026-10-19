@@ -64,7 +64,7 @@ Lesehilfe:
 - `build_forecast` braucht 0,3 ms. Er wird **nicht** zwischengespeichert: Eine Kopie des
   Ergebnisses (das Ergebnis muss unabhängig bleiben, weil Seiten Vorschauen daraus rechnen) wäre
   langsamer als die Berechnung. Ein Zwischenspeicher lohnt erst, wenn die Berechnung spürbar
-  wird (Messung mit größeren Teams siehe offene Punkte).
+  wird; gemessen wurde nur mit dem Demo-Team (22 Sprints), größere Teams sind nicht gemessen.
 
 Referenz des Eigentümers (Windows, vorher): Team laden ca. 18 ms (PyYAML `safe_load` ca. 46 ms
 im Planning-Rerun), `build_forecast` 0,25 bis 1,3 ms, Seitenwechsel im AppTest 35 bis 45 ms,
@@ -103,7 +103,7 @@ Gemessen am 17.10.2026 mit `scripts\measure.py --md` auf dem Arbeitsrechner. Vor
 
 Ergebnis (nur Python-Prozess, ohne Browser):
 
-- **Seitenaufbau und erneuter Lauf** sinken von 80 bis 120 ms auf 16 bis 47 ms (Seite
+- **Seitenaufbau und erneuter Lauf** sinken von 80 bis 120 ms auf 16 bis 46 ms (Seite
   `produkte` 122 → 46 ms, alle anderen unter 25 ms). Normale Eingaben liegen damit im
   Python-Teil weit unter dem Ziel von 200 ms.
 - **Team laden** 18 → 5 ms (C-Lader), bei unverändertem Stand 1,1 ms (Cache).

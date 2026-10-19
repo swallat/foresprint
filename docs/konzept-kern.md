@@ -1,6 +1,6 @@
 # Konzept: Verbesserungen am Kern (ohne Ticketsystem)
 
-Status (Stand 19. Oktober 2026, nach #95): Phase P (bis auf die Stoppuhr-Abnahme im Browser auf
+Status (Stand 19. Oktober 2026, nach #97): Phase P (bis auf die Stoppuhr-Abnahme im Browser auf
 dem Rechner des Eigentümers), K1 bis K3 sowie A14, A15, B8 und B9 sind
 umgesetzt, im Einzelnen siehe die Spalte „Stand“ der Tabellen und den Abschnitt G. Offen sind
 B10 (nur in der Weboberfläche), der Einrichtungs-Assistent (C) und die Reste, die in den
@@ -67,7 +67,7 @@ nur, ob die Implementierung mit sich selbst übereinstimmt. Dazu kommen **fachli
 | B2 | „Weiter ohne Eintrag“ im Planning setzt Fehltage stillschweigend auf „niemand fehlt“; unbekannt und 0 sind zu leicht verwechselbar. | kritisch | expliziter Zustand je Sprint (unbekannt / voraussichtlich / bestätigt) statt der Dateiheuristik; ausdrückliche Bestätigung „niemand fehlt“ | teilweise: Zustand je Sprint umgesetzt; das Review friert bei „unbekannt“ die volle Besetzung ohne Hinweis ein |
 | B3 | „Forecast IST“ ist die Zusage zu Sprintbeginn, kein Ergebnis. „Roadmap“ bezeichnet einen reservierten Anteil. „erwartete“ und „voraussichtliche“ Fehltage sind zwei Mechanismen mit fast gleichem Namen. | wichtig | z. B. „Zusage“; „Roadmap“-Anteil umbenennen; die beiden Fehltage-Begriffe unterscheidbar machen | teilweise: „Forecast IST“ heißt „Commitment“; „Roadmap“ ist nicht umbenannt (Name offen) |
 | B4 | 15 bis 16 Seiten mit konkurrierenden Wegen (Produktwerte auf „Produktverteilung“ und auf allen Boards; Sprintauswahl uneinheitlich). | wichtig | Einstieg über Aufgaben („Sprint vorbereiten“, „Planning“, „Sprint abschließen“); Produktverteilung als Auswertung; Stammdaten unter „Team verwalten“ | umgesetzt (#43) |
-| B5 | Unsicherheit steht abseits der Entscheidung (Seite „Analyse“). | wichtig | Spanne, Stichprobengröße und Kapazitätsquelle direkt an der Kachel | umgesetzt (Spanne und Stichprobengröße): Forecast-Seite; seit #66 auch Planning, Fehltage, Vorplanung, Kommandozeile und Bericht. Die Kapazitätsquelle steht an den Kacheln von Forecast, Planning (seit #66) und Vorplanung sowie in Kommandozeile und Bericht (mit Warnzeile bei unsicherer Quelle). Rest: Auf der Fehltage-Seite (Zeile „In den nächsten Sprint passen …“) fehlt die Quellenangabe |
+| B5 | Unsicherheit steht abseits der Entscheidung (Seite „Analyse“). | wichtig | Spanne, Stichprobengröße und Kapazitätsquelle direkt an der Kachel | umgesetzt (Spanne und Stichprobengröße): Forecast-Seite; seit #66 auch Planning Schritt 2, Fehltage, Vorplanung, Kommandozeile und Bericht. Die Kapazitätsquelle steht an den Kacheln von Forecast, Planning Schritt 2 (seit #66) und Vorplanung sowie in Kommandozeile und Bericht (mit Warnzeile bei unsicherer Quelle). Rest: Auf der Fehltage-Seite (Zeile „In den nächsten Sprint passen …“) fehlt die Quellenangabe, und Planning Schritt 1 (Bekannte Fehltage) zeigt weder Spanne noch Quelle an den Kacheln |
 | B6 | Die Formelansicht zeigt nicht die eingesetzten Zahlen; die Formeln der Trend-Modi sind für Nichtfachleute schwer lesbar. | wichtig | kurze Erklärung in Alltagssprache, ausklappbar die eingesetzten Werte und Quellen | teilweise: Erklärung in Alltagssprache da; die eingesetzten Zahlen fehlen im Popover |
 | B7 | Der Einstieg verlangt ein Git-Repository und 6+ Reviews, bevor ein Forecast erscheint. | wichtig | Forecast schon ab 2 bis 3 Sprints (`flat`) mit Hinweis „Historie dünn“ | umgesetzt |
 | B8 | Das Was-wäre-wenn-Panel gibt es zweimal mit leicht anderem Text; die Prognosen-Historie ist ein Audit-Log mit 8 Spalten. | nice-to-have | eine Stelle; letzte Prognose und Abweichung im Review genügen | umgesetzt (#51) |
@@ -204,7 +204,7 @@ Stoppuhr auf einem normalen Arbeitsrechner gemessen; das Messprotokoll gehört z
 
 Stand: Alle sechs Maßnahmen sind umgesetzt (Einzelheiten und Messprotokolle für Cloud und
 Windows in [performance.md](performance.md)). Im Python-Prozess liegen Seitenaufbau und erneute
-Läufe auf dem Rechner des Eigentümers bei 16 bis 47 ms. Offen ist nur die Stoppuhr-Abnahme im
+Läufe auf dem Rechner des Eigentümers bei 16 bis 46 ms. Offen ist nur die Stoppuhr-Abnahme im
 Browser auf dem Rechner des Eigentümers (Start unter 3 s, normale Eingaben unter 200 ms); sie
 wird auf Wunsch nachgeholt. Abweichungen von der Planung: Der Forecast wird nicht
 zwischengespeichert (die Berechnung braucht 0,3 ms, eine Kopie wäre langsamer), und als
