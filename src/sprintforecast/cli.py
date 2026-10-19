@@ -1734,6 +1734,19 @@ def _no_budget_warning() -> None:
     )
 
 
+def _print_ticket_issues(data: TeamData, today: date, printed: list[Issue] | None = None) -> None:
+    """Check results of the ticket files (e.g. an earmark that exceeds its sprint); ``printed``
+    are check results already shown (they are not printed twice)."""
+    for issue in issues_for(data, today, ["projects.yaml", "tickets.yaml", "preplan.yaml"]):
+        if printed and issue in printed:
+            continue
+        colour = "red" if issue.level is Level.ERROR else "yellow"
+        console.print(
+            f"[{colour}]{issue.level.label}[/{colour}] {_plain(issue.where)}: "
+            f"{_plain(issue.message)}"
+        )
+
+
 def _ticket_report(
     data: TeamData,
     today: date,
@@ -1757,14 +1770,7 @@ def _ticket_report(
 
     if _no_tickets(data):
         return
-    for issue in issues_for(data, today, ["projects.yaml", "tickets.yaml", "preplan.yaml"]):
-        if printed and issue in printed:
-            continue
-        colour = "red" if issue.level is Level.ERROR else "yellow"
-        console.print(
-            f"[{colour}]{issue.level.label}[/{colour}] {_plain(issue.where)}: "
-            f"{_plain(issue.message)}"
-        )
+    _print_ticket_issues(data, today, printed)
     variants = distribute_variants(data, today)
     dist = variants.median
     if dist.no_forecast:
@@ -1780,6 +1786,15 @@ def _ticket_report(
         )
     # Sprint table, refinement list and open points follow the chosen variant.
     shown = variants.get(variant) or dist
+    if shown is dist and variant != "median":
+        console.print(
+            "[yellow]"
+            + t(
+                "Variante {variant} nicht verfügbar (keine Bandbreite) – gezeigt wird Median.",
+                variant=t(VARIANT_NAMES[variant]),
+            )
+            + "[/yellow]"
+        )
     colours = {"on_track": "green", "tight": "yellow", "missed": "red", "empty": "dim"}
     last = (
         [t("Letzter Sprint optimistisch"), t("Letzter Sprint Median"),
@@ -2063,6 +2078,7 @@ def _ticket_handover(
         raise typer.Exit(1)
     if _no_tickets(data):
         return
+    _print_ticket_issues(data, c.today)
     dist = distribute(data, c.today)
     if dist.no_forecast:
         _no_budget_warning()
@@ -2373,6 +2389,12 @@ def tickets(
             )  # fmt: skip
             data = _load(c, team)
         if not uebernehmen:
+            if _given(ctx, "variant"):
+                console.print(
+                    "[yellow]"
+                    + t("--variant wirkt erst nach dem Schreiben (mit --apply).")
+                    + "[/yellow]"
+                )
             return
     elif uebernehmen or commit_:
         err.print(

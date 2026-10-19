@@ -538,3 +538,31 @@ def test_handover_keeps_the_sprint_sequence_gapless(ticket_dir: Path):
     forecast = run(ticket_dir, "forecast", "demo")
     assert forecast.exit_code == 0, forecast.output
     assert "2026.23" in forecast.output
+
+
+def test_variant_without_range_says_that_the_median_is_shown(ticket_dir: Path):
+    for number in range(1, 21):  # too little history for a range
+        (ticket_dir / "demo" / "sprints" / f"2026.{number}.yaml").unlink()
+    write_tickets(ticket_dir, migration_tickets(2))
+    result = run(ticket_dir, "tickets", "demo", "--variant", "conservative")
+    assert result.exit_code == 0, result.output
+    assert "nicht verfügbar" in result.output and "gezeigt wird Median" in result.output
+    assert "nicht verfügbar" not in run(ticket_dir, "tickets", "demo").output
+
+
+def test_variant_in_an_import_preview_is_not_silently_ignored(ticket_dir: Path):
+    args = ("tickets", "demo", "--import", str(DATA / "jira_en.csv"))
+    preview = run(ticket_dir, *args, "--variant", "optimistic")
+    assert preview.exit_code == 0, preview.output
+    assert "--variant wirkt erst nach dem Schreiben" in preview.output
+    assert "--variant wirkt" not in run(ticket_dir, *args).output
+
+
+def test_handover_prints_the_check_results_of_the_ticket_files(handover_dir: Path):
+    (handover_dir / "demo" / "preplan.yaml").write_text(
+        yaml.safe_dump({"schema": 1, "earmarks": [{"ticket": "NOPE-1", "sprint": "2026.23"}]}),
+        encoding="utf-8",
+    )
+    result = run(handover_dir, "tickets", "demo", "--handover")
+    assert result.exit_code == 0, result.output
+    assert "Vormerkung für ein unbekanntes Ticket" in result.output
