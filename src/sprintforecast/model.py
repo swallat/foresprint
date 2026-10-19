@@ -450,6 +450,10 @@ class TrackerFields:
     epic: str | None = None
 
 
+# Kinds of ticket sources (``tracker.kind``).
+TRACKER_KINDS: tuple[str, ...] = ("csv", "jira")
+
+
 @dataclass
 class TrackerSettings:
     """Section ``tracker`` of team.yaml (spec section 6.1)."""
@@ -473,6 +477,8 @@ class TrackerSettings:
     write_labels: bool = False
     # Sprint names of the tracker → sprint ids of the tool, when they differ.
     sprint_names: dict[str, str] = field(default_factory=dict)
+    # Jira: name of the issue link type whose inward side means "is blocked by".
+    link_type: str = "Blocks"
 
 
 @dataclass

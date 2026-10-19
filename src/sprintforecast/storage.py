@@ -674,6 +674,9 @@ def team_to_dict(team: Team) -> dict[str, Any]:
 
 # --- Tracker (ticket pre-planning, section ``tracker`` in team.yaml) ----------------------
 
+# Parts of a key name that mark a secret; such a key in the tracker section is an error.
+SECRET_WORDS = ("token", "password", "passwort", "secret")
+
 
 def _text_value(value: Any, where: str, name: str) -> str:
     """A value compared as text. An unquoted ``2026.20`` is read by YAML as the number 2026.2
@@ -782,6 +785,17 @@ def _choice(value: Any, kind: type[Any], default: str, where: str, name: str) ->
 
 def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
     at = f"{where}: tracker"
+    for name in d:
+        # The value is never read, let alone shown: it would end up in the data repository.
+        if any(word in str(name).casefold() for word in SECRET_WORDS):
+            raise DataError(
+                t(
+                    "{where}: '{name}' gehört nicht in die Datei – Tokens und Passwörter stehen "
+                    "in der Umgebungsvariable SPRINTFORECAST_JIRA_TOKEN oder im Schlüsselbund",
+                    where=at,
+                    name=name,
+                )
+            )
     fields = _mapping(d.get("fields"), at, "fields")
     order = _texts(d.get("project_match_order"), at, "project_match_order")
     rough = _float(d.get("rough_factor"), f"{at}: rough_factor")
@@ -810,6 +824,8 @@ def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
             _text_value(k, at, "sprint_names"): _text_value(v, at, "sprint_names")
             for k, v in _mapping(d.get("sprint_names"), at, "sprint_names").items()
         },
+        # Absent = default; an explicitly empty value stays empty so that the check reports it.
+        link_type=(_text(d.get("link_type")) or "") if "link_type" in d else "Blocks",
     )
 
 
@@ -848,6 +864,8 @@ def _tracker_to(tr: TrackerSettings) -> dict[str, Any]:
     out["write_labels"] = tr.write_labels
     if tr.sprint_names:
         out["sprint_names"] = dict(tr.sprint_names)
+    if tr.link_type != TrackerSettings().link_type:
+        out["link_type"] = tr.link_type
     return out
 
 

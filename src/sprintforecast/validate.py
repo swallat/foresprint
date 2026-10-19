@@ -10,6 +10,7 @@ from datetime import date, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import yaml
 from yaml.constructor import SafeConstructor
@@ -25,7 +26,14 @@ from sprintforecast.calendar import (
 )
 from sprintforecast.git import blank_controls
 from sprintforecast.i18n import t
-from sprintforecast.model import RULE_SOURCES, Rule, Sprint, Ticket
+from sprintforecast.model import (
+    RULE_SOURCES,
+    TRACKER_KINDS,
+    Rule,
+    Sprint,
+    Ticket,
+    TrackerSettings,
+)
 from sprintforecast.storage import (
     TEAM_FILES,
     TICKET_FILES,
@@ -181,6 +189,38 @@ def _known_sprints(data: TeamData, ahead: int = 52) -> dict[str, Sprint]:
     return ids
 
 
+def _check_tracker_source(tr: TrackerSettings, error, warn) -> None:
+    """Kind-specific rules of the ``tracker`` section (``kind: jira`` needs address and JQL)."""
+    if tr.kind not in TRACKER_KINDS:
+        error(
+            "team.yaml",
+            t("tracker.kind: nur {allowed}", allowed=", ".join(TRACKER_KINDS)),
+        )
+        return
+    if tr.kind != "jira":
+        return
+    if not tr.base_url:
+        error("team.yaml", t("tracker.base_url fehlt (Adresse des Jira-Servers, http oder https)"))
+    else:
+        parts = urlsplit(tr.base_url)
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            error("team.yaml", t("tracker.base_url muss eine http- oder https-Adresse sein"))
+        elif parts.username or parts.password:
+            error("team.yaml", t("tracker.base_url darf keine Zugangsdaten enthalten"))
+        elif parts.scheme == "http":
+            warn(
+                "team.yaml",
+                t("tracker.base_url ist unverschlüsselt (http): das Token wäre mitlesbar"),
+            )
+    if not tr.query:
+        error("team.yaml", t("tracker.query fehlt (JQL-Abfrage der Tickets)"))
+    if not tr.fields.estimate:
+        warn(
+            "team.yaml",
+            t("tracker.fields.estimate fehlt: ohne Schätzung lässt sich nichts verteilen"),
+        )
+
+
 def _check_tickets(data: TeamData, today: date, error, warn) -> None:
     """Projects, tickets and pre-planning (only with ``features.tickets``)."""
     team = data.team
@@ -208,6 +248,9 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
     if tr.refined_also_if is not None:
         for problem in rule_problems(tr.refined_also_if):
             error("team.yaml", t("tracker.refined_also_if: {problem}", problem=problem))
+    if not tr.link_type.strip():
+        error("team.yaml", t("tracker.link_type darf nicht leer sein"))
+    _check_tracker_source(tr, error, warn)
 
     products = {p.id: p for p in data.products}
     project_ids: set[str] = set()

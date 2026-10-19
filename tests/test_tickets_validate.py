@@ -197,3 +197,90 @@ def test_unreadable_tracker_section_blocks_switching_the_feature_on(data_dir: Pa
     found = errors(loaded)
     assert found and found[0][0] == "team.yaml" and "planning_uses" in found[0][1]
     assert not found[0][1].startswith("team.yaml")  # no doubled location
+
+
+# --- Jira (step 2) ---------------------------------------------------------------------------
+
+
+def jira(data: TeamData, **overrides) -> None:
+    tr = data.team.tracker
+    tr.kind, tr.base_url, tr.query = "jira", "https://jira.example.org", "project = ABC"
+    tr.fields.estimate = "Story Points"
+    for name, value in overrides.items():
+        setattr(tr, name, value)
+
+
+def test_a_complete_jira_tracker_is_clean(data: TeamData):
+    jira(data)
+    assert errors(data) == [] and warnings(data) == []
+
+
+def test_jira_needs_an_address_and_a_query(data: TeamData):
+    jira(data, base_url=None, query=None)
+    assert errors(data) == [
+        ("team.yaml", "tracker.base_url fehlt (Adresse des Jira-Servers, http oder https)"),
+        ("team.yaml", "tracker.query fehlt (JQL-Abfrage der Tickets)"),
+    ]
+    jira(data, query="   ")  # blank is not a query either
+    data.team.tracker.query = ""
+    assert ("team.yaml", "tracker.query fehlt (JQL-Abfrage der Tickets)") in errors(data)
+
+
+@pytest.mark.parametrize(
+    "url", ["jira.example.org", "ftp://jira.example.org", "https://", "//jira.example.org"]
+)
+def test_jira_address_must_be_http_or_https(data: TeamData, url: str):
+    jira(data, base_url=url)
+    assert errors(data) == [
+        ("team.yaml", "tracker.base_url muss eine http- oder https-Adresse sein")
+    ]
+
+
+def test_jira_address_must_not_carry_credentials_and_http_is_a_hint(data: TeamData):
+    jira(data, base_url="https://anna:secret@jira.example.org")
+    assert errors(data) == [("team.yaml", "tracker.base_url darf keine Zugangsdaten enthalten")]
+    jira(data, base_url="http://jira.example.org")
+    assert errors(data) == []
+    assert warnings(data) == [
+        ("team.yaml", "tracker.base_url ist unverschlüsselt (http): das Token wäre mitlesbar")
+    ]
+
+
+def test_a_missing_estimate_field_is_a_warning(data: TeamData):
+    jira(data)
+    data.team.tracker.fields.estimate = None
+    assert errors(data) == []
+    assert warnings(data) == [
+        ("team.yaml", "tracker.fields.estimate fehlt: ohne Schätzung lässt sich nichts verteilen")
+    ]
+
+
+def test_csv_needs_no_address_or_query(data: TeamData):
+    data.team.tracker.kind = "csv"
+    assert errors(data) == []
+
+
+def test_unknown_tracker_kind_is_an_error(data: TeamData):
+    data.team.tracker.kind = "github"
+    assert errors(data) == [("team.yaml", "tracker.kind: nur csv, jira")]
+
+
+def test_link_type_must_not_be_empty(data: TeamData):
+    data.team.tracker.link_type = "  "
+    assert errors(data) == [("team.yaml", "tracker.link_type darf nicht leer sein")]
+    data.team.tracker.link_type = "Depends"
+    assert errors(data) == []
+
+
+def test_jira_rules_apply_only_with_the_feature(data: TeamData):
+    jira(data, base_url=None, query=None)
+    data.team.features.tickets = False
+    assert check_team(data, TODAY) == []
+
+
+def test_a_secret_kept_while_the_feature_was_off_is_an_error_when_switched_on(data: TeamData):
+    data.team.tracker_raw = {"kind": "jira", "token": "tok-CANARY-123456"}
+    found = errors(data)
+    assert len(found) == 1 and found[0][0] == "team.yaml"
+    assert "token" in found[0][1] and "tok-CANARY" not in found[0][1]
+    assert "Schlüsselbund" in found[0][1]

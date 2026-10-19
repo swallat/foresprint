@@ -585,3 +585,62 @@ def test_cli_settings_refuse_to_switch_on_with_an_unreadable_tracker(
     doc = yaml.safe_load((data_dir / TEAM / "team.yaml").read_text(encoding="utf-8"))
     assert not doc["features"].get("tickets")
     Repository(data_dir).load(TEAM)  # still loads
+
+
+# --- Jira (step 2): link_type and secrets ----------------------------------------------------
+
+
+def test_link_type_defaults_to_blocks_and_is_written_only_when_different(data_dir: Path):
+    import yaml
+
+    assert TrackerSettings().link_type == "Blocks"
+    assert "link_type" not in team_to_dict(Team(key="t", name="T", tracker=tracker()))["tracker"]
+    repo = Repository(data_dir)
+    switch_on(repo)
+    assert "link_type" not in (data_dir / TEAM / "team.yaml").read_text(encoding="utf-8")
+    custom = tracker()
+    custom.kind, custom.base_url, custom.query = "jira", "https://jira.example.org", "project = A"
+    custom.link_type = "Depends"
+    team = repo.load(TEAM).team
+    team.tracker = custom
+    repo.save_team(team)
+    path = data_dir / TEAM / "team.yaml"
+    written = yaml.safe_load(path.read_text(encoding="utf-8"))["tracker"]
+    assert written["link_type"] == "Depends" and written["base_url"] == "https://jira.example.org"
+    assert repo.load(TEAM).team.tracker == custom
+    before = path.read_bytes()  # byte-stable roundtrip
+    repo.save_team(repo.load(TEAM).team)
+    assert path.read_bytes() == before
+
+
+def test_an_empty_link_type_is_read_as_empty_so_that_the_check_reports_it():
+    raw = {"name": "T", "features": {"tickets": True}, "tracker": {"kind": "csv", "link_type": ""}}
+    assert team_from_dict("t", raw, "t").tracker.link_type == ""
+    raw["tracker"] = {"kind": "csv"}
+    assert team_from_dict("t", raw, "t").tracker.link_type == "Blocks"
+
+
+@pytest.mark.parametrize("key", ["token", "api_token", "Password", "client_secret", "TOKEN_FILE"])
+def test_a_secret_in_the_tracker_section_is_refused_without_showing_it(key: str):
+    raw = {
+        "name": "T",
+        "features": {"tickets": True},
+        "tracker": {"kind": "jira", key: "tok-CANARY-123456"},
+    }
+    with pytest.raises(DataError) as e:
+        team_from_dict("t", raw, "team.yaml")
+    assert "tok-CANARY" not in str(e.value) and "Schlüsselbund" in str(e.value)
+    assert key in str(e.value)
+
+
+def test_a_secret_while_the_feature_is_off_is_kept_unread_and_reported_when_switched_on(
+    data_dir: Path,
+):
+    import yaml
+
+    path = data_dir / TEAM / "team.yaml"
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    doc["tracker"] = {"kind": "jira", "token": "tok-CANARY-123456"}
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    data = Repository(data_dir).load(TEAM)  # feature off: does not break the team
+    assert data.team.tracker == TrackerSettings() and data.team.tracker_raw == doc["tracker"]
