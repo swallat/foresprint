@@ -133,6 +133,36 @@ def test_unchanged_when_git_is_in_path(tmp_path: Path, monkeypatch: pytest.Monke
 
 
 @posix
+def test_unusable_git_in_path_gives_way_to_the_fallback_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Im PATH liegt nur ein gesperrtes ``git`` (Store-Alias), das brauchbare an einem Ersatzort:
+    uv bekommt den Ersatzordner hinten im PATH, sonst würde es das kaputte starten."""
+    im_path = fake_git(tmp_path / "im-path")
+    ersatz = fake_git(tmp_path / "ersatz")
+    monkeypatch.setenv("PATH", str(im_path.parent))
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [ersatz])
+    gitmod._mark_broken(str(im_path))
+    assert gitmod.find_git() == str(ersatz)
+    assert updater.upgrade_path() == os.pathsep.join([str(im_path.parent), str(ersatz.parent)])
+    env = updater.upgrade_environment()
+    assert env is not None and env["PATH"].split(os.pathsep)[-1] == str(ersatz.parent)
+
+
+@posix
+def test_unchanged_when_the_usable_git_is_a_later_path_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Das brauchbare Git liegt schon im PATH (hinter dem gesperrten): Anhängen änderte nichts."""
+    erstes = fake_git(tmp_path / "eins")
+    zweites = fake_git(tmp_path / "zwei")
+    monkeypatch.setenv("PATH", os.pathsep.join([str(erstes.parent), str(zweites.parent)]))
+    gitmod._mark_broken(str(erstes))
+    assert gitmod.find_git() == str(zweites)
+    assert updater.upgrade_path() is None
+
+
+@posix
 def test_unchanged_when_git_is_missing(
     tmp_path: Path,
     no_path: None,
