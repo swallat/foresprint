@@ -7,7 +7,7 @@ they were measured.
 
 ```bash
 uv run python scripts/measure.py --md          # demo team from examples/teams
-uv run python scripts/measure.py --daten PATH --team NAME --runs 30
+uv run python scripts/measure.py --data PATH --team NAME --runs 30
 ```
 
 The script prints medians in milliseconds: import times (each in a fresh process), loading a
