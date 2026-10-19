@@ -224,6 +224,34 @@ def test_zone_aware_times_are_sorted_by_the_instant_not_the_wall_clock():
     assert conflicts == [] and merged["prognoses"] == [plus2, utc]
 
 
+def test_same_instant_in_different_offsets_is_the_same_time():
+    """``09:00+00:00`` und ``10:00+01:00`` sind derselbe Zeitpunkt, nur anders geschrieben."""
+    utc = {**prog(0, "gleich"), "at": datetime(2026, 10, 18, 9, 0, tzinfo=UTC)}
+    plus1 = {**utc, "at": datetime(2026, 10, 18, 10, 0, tzinfo=timezone(timedelta(hours=1)))}
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(plus1))
+    assert conflicts == [] and merged["prognoses"] == [utc]  # ein Eintrag, meine Schreibweise
+    other = {**plus1, "comment": "anders"}
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(other))
+    [conflict] = conflicts
+    assert conflict.path == ("prognoses", "[2026-10-18T09:00:00]")
+    assert (conflict.ours, conflict.theirs) == (utc, other)
+    assert merged["prognoses"] == [utc]
+    merged, conflicts = merge3(sprint(), sprint(utc), sprint(other), {conflict.path: "theirs"})
+    assert conflicts == [] and merged["prognoses"] == [other]
+    # als Text geschrieben ebenso
+    as_text = {**utc, "at": "2026-10-18T09:00:00+00:00"}
+    as_text_plus1 = {**utc, "at": "2026-10-18T10:00:00+01:00"}
+    merged, conflicts = merge3(sprint(), sprint(as_text), sprint(as_text_plus1))
+    assert conflicts == [] and merged["prognoses"] == [as_text]
+
+
+def test_base_with_empty_prognoses_key_counts_as_no_prognoses():
+    """``prognoses:`` ohne Wert (von Hand geschrieben) liest YAML als ``None``."""
+    b, c = prog(10, "Alice"), prog(20, "Bob")
+    merged, conflicts = merge3({"velocity": 10, "prognoses": None}, sprint(b), sprint(c))
+    assert conflicts == [] and merged["prognoses"] == [b, c]
+
+
 def test_microseconds_do_not_make_a_different_time():
     """Wie beim Speichern (``replace(microsecond=0)``) zählt ``at`` auf die Sekunde genau."""
     precise = {**prog(10, "gleich"), "at": datetime(2026, 10, 18, 9, 10, 0, 123456)}
