@@ -1,7 +1,7 @@
 # Windows checks (`scripts/windows-tests.ps1`)
 
 The script checks what only shows up on a real Windows machine and writes a Markdown report
-that you hand back to development. It changes no user settings (no `git config`, no
+that you send back to the developers. It changes no user settings (no `git config`, no
 persistent environment variables, no registry writes). All test data lives in a temp folder
 that is deleted at the end.
 
@@ -57,7 +57,7 @@ Duration without prompts about 2 to 3 minutes; the interactive questions come on
    names them together with the time at which they ended later. It also shows `app.log` and
    `update.log` from `%APPDATA%\sprintforecast`. Leftover processes are terminated by the
    script at the end.
-2. **Installation (uv tool).** `uv tool list`; on request (prompt y/N, only with the app
+2. **Installation (uv tool).** `uv tool list`; on request (prompt j/N, only with the app
    closed) `uv tool upgrade --reinstall sprintforecast`, which is also how the app updates
    itself, and the reinstall touches every file (if a process still locks something, this is
    where it shows).

@@ -16,7 +16,7 @@ Streamlit AppTest (no browser). Only what happens inside the Python process is m
 **Not measured** are browser start-up, frontend rendering, and the round trips between browser
 and server.
 
-## Measurement log, cloud environment (Linux, x86_64, 4 cores, Python 3.14.6, demo team with 22 sprints)
+## Measurement log: cloud (Linux x86_64, 4 cores, Python 3.14.6, demo team, 22 sprints)
 
 Before = `main` (78010e5 plus the measurement script), after = this state. Individual rows
 vary by about 10 to 20 % from run to run.
