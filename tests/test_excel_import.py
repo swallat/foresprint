@@ -671,3 +671,46 @@ def test_export_warns_about_a_sprint_id_the_import_refuses(data_dir: Path):
         DataError, match=r"Sprint ID 'a:b' is not allowed|Sprint-ID 'a:b' ist nicht"
     ):
         read_workbook(build_workbook(build_forecast(odd, TODAY)), "demo")
+
+
+def test_export_warns_about_case_only_duplicates_and_an_unsafe_first_id(data_dir: Path):
+    from sprintforecast.excel import import_unsafe_sprint_ids
+
+    data = Repository(data_dir).load("demo")
+    first = data.sprints[0]
+    dup = dataclasses.replace(
+        data,
+        sprints=[
+            dataclasses.replace(first, id="Foo"),
+            dataclasses.replace(first, id="foo"),
+        ],
+    )
+    (warning,) = import_unsafe_sprint_ids(dup)
+    assert "'foo'" in warning
+    team = dataclasses.replace(
+        data.team, sprint=dataclasses.replace(data.team.sprint, first_id="a/b")
+    )
+    (warning,) = import_unsafe_sprint_ids(dataclasses.replace(data, team=team))
+    assert "'a/b'" in warning
+
+
+def test_excel_command_prints_the_import_warning_to_stderr(
+    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from typer.testing import CliRunner
+
+    from sprintforecast.cli import app
+    from sprintforecast.storage import DATA_ENV
+
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    sprints = data_dir / "demo" / "sprints"
+    src = sorted(sprints.glob("*.yaml"))[0]
+    text = src.read_text(encoding="utf-8")
+    sid = src.stem
+    for name in ("Zed", "zed"):
+        (sprints / f"{name}.yaml").write_text(text.replace(sid, name), encoding="utf-8")
+    out = tmp_path / "x.xlsx"
+    result = CliRunner().invoke(app, ["excel", "demo", "-o", str(out)])
+    assert result.exit_code == 0, result.output
+    assert "'zed'" in result.stderr
+    assert out.exists()
