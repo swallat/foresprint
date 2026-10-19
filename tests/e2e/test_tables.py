@@ -23,9 +23,11 @@ GRIDS = {
 PAGE_KEYS = [key for entries in PAGES.values() for key in entries]
 MISSING_WORDS = {"none", "nan", "<na>", "nat", "null"}
 
-# Elemente mit „…“ am Ende, deren Text breiter ist als der Platz (abgeschnitten).
+# Elemente mit „…“ am Ende, deren Text breiter ist als der Platz (abgeschnitten). Ohne Breite
+# (clientWidth 0) ist nichts zu sehen: das verborgene Dateifeld des Uploads gehört dazu.
 TRUNCATED = """() => [...document.querySelectorAll('[data-testid=stMain] *')]
-    .filter(el => getComputedStyle(el).textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth)
+    .filter(el => getComputedStyle(el).textOverflow === 'ellipsis' && el.clientWidth > 0
+        && el.scrollWidth > el.clientWidth)
     .map(el => el.innerText.trim().slice(0, 80))"""
 
 
