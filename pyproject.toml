@@ -1,7 +1,7 @@
 [project]
 name = "sprintforecast"
 version = "0.6.0"
-description = "Velocity- und Kapazitäts-Forecast für Scrum-Teams mit Git als Datenablage"
+description = "Velocity and capacity forecast for Scrum teams with Git as the data store"
 readme = "README.md"
 license = "EUPL-1.2"
 license-files = ["LICENSE"]
