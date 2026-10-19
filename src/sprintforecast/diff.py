@@ -44,9 +44,12 @@ class _Budget:
 def _same(a: Any, b: Any, budget: _Budget) -> bool:
     """Wie :func:`sprintforecast.yamlmerge.same`, aber mit Abkürzung für dasselbe Objekt und mit
     Obergrenze (nur für diese Ansicht; das Zusammenführen bleibt unverändert)."""
+    # Erst zählen, dann abkürzen: Singletons (null, true, kleine Zahlen) sind in getrennt
+    # gelesenen Bäumen oft dasselbe Objekt, und sonst umginge eine Datei mit sehr vielen
+    # Einträgen die Obergrenze.
+    budget.spend()
     if a is b:
         return True
-    budget.spend()
     if a is MISSING or b is MISSING:
         return False
     if isinstance(a, bool) or isinstance(b, bool):
@@ -225,15 +228,20 @@ def _head_state(root: Path) -> tuple[str | None, ...]:
 
 
 def _signature(root: Path, pending: list[tuple[str, str]]) -> tuple[Any, ...]:
-    """HEAD, dazu je Datei Status, Name, Änderungszeit (ns) und Größe der Arbeitsdatei
-    (``None``, wenn sie fehlt)."""
+    """HEAD, dazu je Datei Status, Name, Änderungszeit (ns), Größe, Inode-Nummer und Inode-Zeit
+    der Arbeitsdatei (``None``, wenn sie fehlt). Die Inode-Zeit (``st_ctime_ns``) lässt sich
+    nicht zurücksetzen, anders als die Änderungszeit (grobe Zeitstempel, Werkzeuge, die sie
+    erhalten). Unter Windows ist ``st_ctime`` die Erstellzeit: Dort tragen Änderungszeit und
+    Größe weiter die Hauptlast; Inhalt wird der Leistung wegen nicht geprüft."""
     parts: list[tuple[Any, ...]] = [_head_state(root)]
     for status, file in pending:
         try:
             stat = (root / file).lstat()
-            parts.append((status, file, stat.st_mtime_ns, stat.st_size))
+            parts.append(
+                (status, file, stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns)
+            )
         except OSError:
-            parts.append((status, file, None, None))
+            parts.append((status, file, None, None, None, None))
     return tuple(parts)
 
 
