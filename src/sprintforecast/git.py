@@ -631,7 +631,8 @@ def hint_for(kind: str, url: str = "") -> str:
         ),
         "detached": t(
             "Das Repository steht auf keinem Branch (detached HEAD). In der Seitenleiste "
-            "„Zurück auf den Branch“ wählen."
+            "„Zurück auf den Branch“ wählen; offene Änderungen werden vorher auf einem "
+            "Rettungsbranch gesichert."
         ),
         "no_upstream": t(
             "Der Branch ist noch nicht mit dem Server verbunden. „Speichern und teilen“ "
