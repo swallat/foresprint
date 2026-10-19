@@ -35,7 +35,8 @@ PATH liegen: Die App sucht es auch an den üblichen Orten (unter Windows etwa
 Administratorrechte (Git for Windows nur für das eigene Benutzerkonto); danach die App und den
 Starter „Sprint-Forecast“ einmal neu öffnen. Auch die Aktualisierung der App (über `uv`, mit
 Plugins aus Git-Adressen) funktioniert dann: Liegt Git nur außerhalb des PATH, hängt die App
-dessen Ordner für den `uv`-Aufruf vorn an den PATH (nur dort, nicht im System). Die
+dessen Ordner für den `uv`-Aufruf hinten an den PATH (nur dort, nicht im System und nicht für
+den anschließenden Neustart der App). Die
 Erstinstallation durch das Installationsskript bleibt davon unberührt: Plugins aus Git-Adressen
 brauchen dabei Git im PATH.
 
