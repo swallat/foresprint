@@ -1007,7 +1007,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
                     "Request. Bitte die Einstellung auf der Seite „Datenordner“ ausschalten."
                 )
             )
-        raise gitmod.classify(message, url=current.url)
+        raise gitmod.classify(message, url=current.url, cwd=root)
     found = _MR_URL.search(proc.stderr + proc.stdout)
     return branch, found.group(0).rstrip(".,)") if found else None
 

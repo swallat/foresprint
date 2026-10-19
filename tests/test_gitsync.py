@@ -1742,3 +1742,16 @@ def test_not_repo_hint_explains_unpacked_zip():
 
     hint = hint_for("not_repo")
     assert "ZIP" in hint and "Repository klonen" in hint
+
+
+def test_credential_helpers_reads_the_repository_of_the_data_folder(tmp_path):
+    """Ein Anmeldedienst, der nur in der Konfiguration des Datenordners steht, zählt mit."""
+    import subprocess
+
+    from sprintforecast.git import credential_helpers
+
+    repo = tmp_path / "daten"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "credential.helper", "store"], check=True)
+    assert "store" in credential_helpers(repo)
