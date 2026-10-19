@@ -1,4 +1,4 @@
-# Installs sprintforecast (including the web UI) on Windows.
+# Installs sprintforecast (including the web UI and the extras excel and jira) on Windows.
 #
 #   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.ps1 | iex"
 #
@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 
 $ref = if ($env:SPRINTFORECAST_REF) { $env:SPRINTFORECAST_REF } else { "main" }
 $kind = if ($ref -match '^v\d') { "tags" } else { "heads" }
-$core = "sprintforecast[web,excel] @ https://github.com/swallat/sprint-forecast/archive/refs/$kind/$ref.zip"
+$core = "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/$kind/$ref.zip"
 $pluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"
 
 function Expand-Plugin([string]$item) {
@@ -49,12 +49,12 @@ if ($items.Count -gt 0) {
     Write-Host "==> with plugins: $($items -join '; ')"
     foreach ($item in $items) { $arguments += @("--with", (Expand-Plugin $item)) }
     # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
-    $arguments += "sprintforecast[web,excel]"
+    $arguments += "sprintforecast[web,excel,jira]"
 } else {
     $arguments += $core
 }
 
-Write-Host "==> installing sprintforecast (Python 3.14 is downloaded if needed)"
+Write-Host "==> installing sprintforecast with the extras web, excel and jira (Python 3.14 is downloaded if needed)"
 & uv @arguments
 if ($LASTEXITCODE -ne 0) { throw "Installation failed (exit code $LASTEXITCODE)" }
 # No stderr redirection: in Windows PowerShell 5.1 that would abort under "Stop".
