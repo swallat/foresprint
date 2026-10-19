@@ -4,8 +4,9 @@
 :func:`diff_values` vergleicht zwei geladene YAML-Werte und liefert je geänderten Wert einen
 :class:`ValueChange` mit Pfad, altem und neuem Wert. Listen von Objekten mit ``id`` (Personen,
 Produkte) werden je Eintrag verglichen, alle anderen Listen als ein Wert – wie beim Zusammenführen
-(:mod:`sprintforecast.yamlmerge`). :func:`file_changes` vergleicht den Arbeitsstand mit dem
-letzten Commit.
+(:mod:`sprintforecast.yamlmerge`); anders als dort, wo die ``prognoses`` über ``at`` vereinigt
+werden, zählt hier auch diese Liste als ein Wert. :func:`file_changes` vergleicht den
+Arbeitsstand mit dem letzten Commit.
 """
 
 from __future__ import annotations
