@@ -1,0 +1,7 @@
+Summary,Issue key,Issue id,Issue Type,Status,Resolution,Labels,Labels,Component/s,Sprint,Sprint,Custom field (Rank),Custom field (Story Points),Custom field (Remaining),Custom field (Epic Link),Inward issue link (Blocks),Inward issue link (Blocks),Outward issue link (Blocks)
+Checkout: new payment provider,ABC-1,10001,Story,To Do,,payment,Refined,Checkout,Sprint 21,Sprint 22,0|i0001:,5,3.5,ABC-100,ABC-2,ABC-3,
+"Schema change, part 1",ABC-2,10002,Task,Ready,,,,Database,,,0|i0002:,8,,ABC-200,,,ABC-1
+Done already,ABC-3,10003,Bug,Done,Done,,,,Sprint 20,,0|i0003:,2,0,,,,ABC-1
+"Line one
+line two",ABC-4,10004,Story,To Do,,,,,,,0|i0004:,,,,,,
+,,,,,,,,,,,,,,,,,
