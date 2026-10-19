@@ -4753,8 +4753,7 @@ def _sync_clicked(
                 "warning",
                 t(
                     "Ein Abgleich lief noch: Dieser Klick wurde nicht ausgeführt. Bitte nach dem "
-                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal „Speichern und "
-                    "teilen“ wählen."
+                    "Ergebnis des laufenden Abgleichs bei Bedarf noch einmal klicken."
                 ),
             )
         )
@@ -4782,9 +4781,17 @@ def _unrelated_cancel() -> None:
     st.session_state.pop("unrelated-confirm", None)
 
 
+def _continues_pull_only() -> bool:
+    """Gehört der Abgleich, der gerade fortgesetzt wird (nach Konflikten, nach der Rückfrage zur
+    fremden Historie), zu „Vom Server holen“? Dann lädt auch das Fortsetzen nichts hoch."""
+    last = st.session_state.get("sync_result")
+    return bool(last is not None and last.pull_only)
+
+
 def _unrelated_go(root: Path, tags: list[str]) -> None:
+    push = not _continues_pull_only()
     _unrelated_cancel()
-    _sync_clicked(root, tags, allow_unrelated=True)
+    _sync_clicked(root, tags, allow_unrelated=True, push=push)
 
 
 def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesError) -> None:
@@ -4905,6 +4912,8 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
     if result.pushed:
         done.append(t("Hochgeladen"))
     if result.error is None:
+        if result.pull_only and (result.committed or result.merged):
+            done.append(t("Noch nicht hochgeladen: „Speichern und teilen“ lädt es hoch"))
         st.success(" · ".join(done) if done else t("Alles ist auf dem aktuellen Stand."))
     else:
         if done:
@@ -5764,7 +5773,7 @@ def _resolve_clicked(root: Path, pending: list[ConflictFile], tags: list[str]) -
     except GitError as e:
         st.session_state["commit_error"] = e
         return
-    _sync_clicked(root, tags)
+    _sync_clicked(root, tags, push=not _continues_pull_only())
 
 
 def _restore_clicked(root: Path, file: Path) -> None:
