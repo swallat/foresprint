@@ -10,7 +10,7 @@ from typer.testing import CliRunner
 
 from sprintforecast.cli import app
 from sprintforecast.model import Numbering
-from sprintforecast.renaming import Rename, apply_renames, old_paths, plan_renames
+from sprintforecast.renaming import Rename, apply_renames, plan_renames
 from sprintforecast.storage import DataError, Repository
 
 runner = CliRunner()
@@ -117,8 +117,14 @@ def test_apply_moves_sprint_files_and_minutes(data_dir: Path):
     data = repo.load("demo")
     before = (data_dir / "demo" / "sprints" / "2026.21.yaml").read_text(encoding="utf-8")
     renames = plan_renames(data, "2026.21", "2026.41")
-    assert [p.name for p in old_paths(repo, data, renames)] == ["2026.21.yaml", "2026.22.yaml"]
-    paths = apply_renames(repo, data, renames)
+    applied = apply_renames(repo, data, renames)
+    paths = applied.files
+    assert {p.name for p in applied.touched} == {
+        "2026.21.yaml", "2026.22.yaml", "2026.41.yaml", "2026.42.yaml",
+        moved.name, obsolete.name,
+        "2026.41-planning-20261013-090000-ab12.md",
+        "2026.41-planning-20261012-090000_obsolet_20261013-090000.md",
+    }  # fmt: skip
     assert [p.name for p in paths] == ["2026.41.yaml", "2026.42.yaml"]
     assert ids(data_dir) == [f"2026.{n}" for n in range(1, 21)] + ["2026.41", "2026.42"]
     renamed = load(paths[0])
@@ -146,6 +152,38 @@ def test_apply_with_a_chain_that_overlaps_itself(data_dir: Path):
     assert [s.id for s in after.sprints][-3:] == ["2026.21", "2026.22", "2026.23"]
     assert after.sprint("2026.21").forecast_ist == velocity["2026.20"]
     assert after.sprint("2026.22").forecast_ist == velocity["2026.21"]
+
+
+def test_overlapping_chain_keeps_every_minutes_file(data_dir: Path):
+    """2026.20 → 2026.21 → 2026.22: gleich benannte Protokolle (Termin, Zeitpunkt) dürfen sich
+    beim Weiterreichen nicht überschreiben."""
+    repo = Repository(data_dir)
+    minutes = data_dir / "demo" / "protokolle"
+    minutes.mkdir()
+    name = "{}-review-20261001-120000.md"
+    for sid in ("2026.20", "2026.21", "2026.22"):
+        (minutes / name.format(sid)).write_text(f"minutes of {sid}\n", encoding="utf-8")
+    data = repo.load("demo")
+    apply_renames(repo, data, plan_renames(data, "2026.20", "2026.21"))
+    found = {p.name: p.read_text(encoding="utf-8") for p in minutes.iterdir()}
+    assert found == {
+        name.format("2026.21"): "minutes of 2026.20\n",
+        name.format("2026.22"): "minutes of 2026.21\n",
+        name.format("2026.23"): "minutes of 2026.22\n",
+    }
+
+
+def test_apply_refuses_a_stray_minutes_file(data_dir: Path):
+    repo = Repository(data_dir)
+    minutes = data_dir / "demo" / "protokolle"
+    minutes.mkdir()
+    (minutes / "2026.22-review-20261001-120000.md").write_text("a", encoding="utf-8")
+    (minutes / "2026.42-review-20261001-120000.md").write_text("stray", encoding="utf-8")
+    data = repo.load("demo")
+    with pytest.raises(DataError, match="existiert bereits"):
+        apply_renames(repo, data, plan_renames(data, "2026.21", "2026.41"))
+    assert ids(data_dir) == [f"2026.{n}" for n in range(1, 23)]
+    assert (minutes / "2026.42-review-20261001-120000.md").read_text(encoding="utf-8") == "stray"
 
 
 def test_apply_refuses_a_stray_file_and_changes_nothing(data_dir: Path):
@@ -213,11 +251,25 @@ def test_cli_commit_records_the_move(data_dir: Path, tmp_path: Path):
     subprocess.run(
         [*git, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "start"], check=True
     )
+    minutes = data_dir / "demo" / "protokolle"
+    minutes.mkdir()
+    (minutes / "2026.22-review-20261028-120000.md").write_text("x", encoding="utf-8")
+    subprocess.run([*git, "add", "-A"], check=True)
+    subprocess.run(
+        [*git, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "minutes"], check=True
+    )
+    # Eine Sprintdatei, die nie committet wurde (z. B. mit „sprints --create“ angelegt).
+    assert run(data_dir, "sprints", "demo", "--create").exit_code == 0
+    assert (data_dir / "demo" / "sprints" / "2026.23.yaml").is_file()
     result = run(data_dir, "rename-sprint", "demo", "2026.22", "2026.30", "--commit")
     assert result.exit_code == 0, result.output
     assert "Committet" in result.output
+    assert (minutes / "2026.30-review-20261028-120000.md").is_file()
     status = subprocess.run([*git, "status", "--porcelain"], capture_output=True, text=True)
-    assert status.stdout == ""  # alte Datei entfernt und neue hinzugefügt, nichts offen
+    # Sprintdateien und Protokolle umbenannt committet; offen sind nur die übrigen mit
+    # „--create“ angelegten (nie committeten) Sprintdateien unter ihrem neuen Namen nicht.
+    assert "protokolle" not in status.stdout
+    assert " 2026.22.yaml" not in status.stdout and "2026.30.yaml" not in status.stdout
     log = subprocess.run([*git, "log", "-1", "--format=%s"], capture_output=True, text=True)
     assert log.stdout.strip() == "Demo-Team: Sprint 2026.22 heißt jetzt 2026.30"
 

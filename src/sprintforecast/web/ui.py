@@ -3758,14 +3758,18 @@ def _rename_sprints_section(repo: Repository, data: TeamData, fc: Forecast) -> N
         )
     if st.button(t("Sprint-IDs ändern"), type="primary", disabled=not renames):
         try:
-            paths = apply_renames(repo, data, renames)
+            applied = apply_renames(repo, data, renames)
         except DataError as e:
             st.error(str(e))
             return
+        except OSError as e:  # alles zurückgesetzt; Grund nennen statt Traceback
+            st.error(t("Nicht gespeichert: {reason}", reason=e.strerror or e))
+            return
         st.session_state["flash"] = [
-            ("success", _saved_text(", ".join(p.name for p in paths), _next_step()))
+            ("success", _saved_text(", ".join(p.name for p in applied.files), _next_step()))
         ]
-        st.session_state.pop(f"rename-{data.team.key}-new", None)
+        for suffix in ("new", "sprint"):
+            st.session_state.pop(f"rename-{data.team.key}-{suffix}", None)
         st.rerun()
 
 

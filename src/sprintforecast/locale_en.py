@@ -1632,4 +1632,5 @@ EN: dict[str, str] = {
     "Der Sprint, der gerade läuft oder als Nächstes beginnt, z. B. 2026.15 oder 15. Nur nötig, solange noch keine Sprintdatei existiert; danach: Sprint-IDs ändern.": "The sprint that is running now or starts next, e.g. 2026.15 or 15. Only needed as long as no sprint file exists; after that: Change sprint IDs.",
     "Sprint-ID ändern; die Sprints danach zählen weiter": "Change a sprint ID; the sprints after it count on",
     "Sprint-ID ändern; die gespeicherten Sprints danach zählen von der neuen ID aus weiter.": "Change a sprint ID; the saved sprints after it count on from the new ID.",
+    "Nicht gespeichert: {reason}": "Not saved: {reason}",
 }

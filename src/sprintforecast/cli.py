@@ -1846,7 +1846,7 @@ def rename_sprint(
     new: Annotated[str, typer.Argument(help=t("Neue Sprint-ID, z. B. 2026.15."))],
     commit_: CommitOpt = False,
 ) -> None:
-    from sprintforecast.renaming import apply_renames, old_paths, plan_renames
+    from sprintforecast.renaming import apply_renames, plan_renames
 
     c = _ctx(ctx)
     data = _load(c, team)
@@ -1866,17 +1866,16 @@ def rename_sprint(
         assert s is not None
         table.add_row(_plain(r.old), f"[bold]{_plain_end(r.new)}[/bold]", day_label(s.start))
     console.print(table)
-    before = old_paths(c.repo, data, renames)
     try:
-        paths = apply_renames(c.repo, data, renames)
+        applied = apply_renames(c.repo, data, renames)
     except DataError as e:
         err.print(f"[red]{_plain_end(e)}[/red]")
         raise typer.Exit(1) from e
-    _saved(", ".join(p.name for p in paths))
+    _saved(", ".join(p.name for p in applied.files))
     _maybe_commit(
         c,
         team,
-        before + paths,
+        applied.touched,
         t("{team}: Sprint {old} heißt jetzt {new}", team=data.team.name, old=sprint, new=new),
         None,
         commit_,
