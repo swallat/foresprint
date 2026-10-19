@@ -258,6 +258,7 @@ def test_permission_error_is_reported_as_missing(
 def test_missing_git_hint_is_a_short_paragraph_and_a_list(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
+    monkeypatch.setattr(sys, "platform", "win32")
     places = [tmp_path / "eins" / "git.exe", tmp_path / "zwei" / "git.exe"]
     monkeypatch.setattr(gitmod, "git_locations", lambda: places)
     first, listing, advice = gitmod.missing_hint().split("\n\n")
@@ -267,7 +268,18 @@ def test_missing_git_hint_is_a_short_paragraph_and_a_list(
     assert "winget" not in first + listing + advice
 
 
+def test_missing_git_hint_on_macos_and_linux_has_no_windows_advice(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [tmp_path / "git"])
+    advice = gitmod.missing_hint().split("\n\n")[-1]
+    assert "~/.profile" in advice and "Homebrew" in advice
+    assert "Umgebungsvariablen" not in advice and "git.exe" not in advice
+
+
 def test_missing_git_hint_in_english(tmp_path: Path, english, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(sys, "platform", "win32")
     place = tmp_path / "eins" / "git.exe"
     monkeypatch.setattr(gitmod, "git_locations", lambda: [place])
     hint = gitmod.missing_hint(broken=str(tmp_path / "defekt"))
@@ -275,24 +287,23 @@ def test_missing_git_hint_in_english(tmp_path: Path, english, monkeypatch: pytes
     assert f"Searched in PATH and in these places:\n- `{place}`" in hint
     assert "could not be started" in hint and "your own user’s PATH" in hint
     assert "Gesucht" not in hint and "Liegt Git" not in hint
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert "~/.profile" in gitmod.missing_hint() and "Liegt Git" not in gitmod.missing_hint()
 
 
 @posix
 def test_broken_git_in_path_gives_way_to_a_fallback_location(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Veraltetes oder defektes ``git`` im PATH (Store-Alias): Nach dem ersten fehlgeschlagenen
-    Start wählt der nächste Aufruf den Ersatzort."""
+    """Veraltetes oder defektes ``git`` im PATH (Store-Alias): Schon der erste Aufruf wiederholt
+    den Start mit dem Ersatzort; danach ist das defekte gesperrt."""
     in_path = broken_git(tmp_path / "pfad")
     fallback = fake_git(tmp_path / "ersatz", version="2.2.2-fallback")
     monkeypatch.setenv("PATH", str(in_path.parent))
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
     assert find_git() == str(in_path)  # PATH hat Vorrang, solange der Treffer taugt
-    with pytest.raises(GitError) as raised:
-        gitmod._git(tmp_path, "--version")
-    assert raised.value.kind == "git_missing" and str(in_path) in raised.value.hint
-    assert find_git() == str(fallback)
     assert gitmod._git(tmp_path, "--version") == "git version 2.2.2-fallback"
+    assert find_git() == str(fallback)
     assert gitsync.git_available()
     reset_git_cache()  # nach dem Zurücksetzen gilt der PATH-Treffer wieder zuerst
     assert find_git() == str(in_path)
@@ -305,10 +316,8 @@ def test_broken_git_in_path_gives_way_to_a_later_path_entry(
     first = broken_git(tmp_path / "eins")
     second = fake_git(tmp_path / "zwei", version="3.3.3-later")
     monkeypatch.setenv("PATH", f"{first.parent}{os.pathsep}{second.parent}")
-    with pytest.raises(GitError):
-        gitmod._git(tmp_path, "--version")
-    assert find_git() == str(second)
     assert gitmod._git(tmp_path, "--version") == "git version 3.3.3-later"
+    assert find_git() == str(second)
 
 
 @posix
@@ -375,3 +384,151 @@ def test_resource_errors_do_not_block_git_and_are_passed_on(
     assert not isinstance(raised.value, GitError) and raised.value.errno == code
     assert not gitmod._BROKEN
     assert find_git() == str(fake)
+
+
+@posix
+@pytest.mark.parametrize("call", CALLS, ids=CALL_IDS)
+def test_too_long_arguments_do_not_block_git(
+    call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    """Auf POSIX trägt jeder execve-Fehler den Programmpfad als Dateinamen, auch E2BIG (sehr
+    lange Commit-Nachricht): Das Programm ist deshalb nicht unbrauchbar."""
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    long_text = "x" * 300_000
+    calls = {
+        "_git": lambda: gitmod._git(tmp_path, "--version", long_text),
+        "_git_bytes": lambda: gitmod._git_bytes(tmp_path, "--version", long_text),
+        "_probe_run": lambda: gitmod._probe_run(tmp_path, ("--version", long_text), 10),
+    }
+    with pytest.raises(OSError) as raised:
+        calls[CALL_IDS[CALLS.index(call)]]()
+    assert not isinstance(raised.value, GitError) and raised.value.errno == errno.E2BIG
+    assert not gitmod._BROKEN and find_git() == str(fake) and gitsync.git_available()
+
+
+@posix
+@pytest.mark.parametrize("call", CALLS, ids=CALL_IDS)
+def test_text_file_busy_does_not_block_git(
+    call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    """ETXTBSY (Datei wird gerade geschrieben, etwa bei einem Update) geht vorüber."""
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+
+    def busy(*args, **kwargs):
+        raise OSError(errno.ETXTBSY, os.strerror(errno.ETXTBSY), str(fake))
+
+    monkeypatch.setattr(gitmod.subprocess, "run", busy)
+    monkeypatch.setattr(gitmod.subprocess, "Popen", busy)
+    with pytest.raises(OSError) as raised:
+        call(tmp_path)
+    assert raised.value.errno == errno.ETXTBSY
+    assert not gitmod._BROKEN and find_git() == str(fake)
+
+
+@posix
+def test_block_expires_after_the_time_limit(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    clock = [1000.0]
+    monkeypatch.setattr(gitmod, "_now", lambda: clock[0])
+    gitmod._mark_broken(str(fake))
+    assert find_git() is None and gitmod.broken_git() == str(fake)
+    clock[0] += gitmod._BROKEN_TTL - 1
+    assert find_git() is None
+    clock[0] += 2  # die Frist ist um: der Pfad wird erneut versucht
+    assert find_git() == str(fake) and gitmod.broken_git() == ""
+
+
+@posix
+@pytest.mark.parametrize("call", CALLS, ids=CALL_IDS)
+def test_block_is_lifted_by_a_successful_start(
+    call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    gitmod._mark_broken(str(fake))
+    assert find_git() is None
+    call(tmp_path)  # letzter Versuch mit dem gesperrten Pfad gelingt
+    assert not gitmod._BROKEN and find_git() == str(fake)
+
+
+@posix
+@pytest.mark.parametrize("call", CALLS, ids=CALL_IDS)
+def test_first_call_already_uses_the_fallback_when_path_git_is_broken(
+    call, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    in_path = broken_git(tmp_path / "pfad")
+    fallback = fake_git(tmp_path / "ersatz")
+    monkeypatch.setenv("PATH", str(in_path.parent))
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
+    assert find_git() == str(in_path) and gitsync.git_available()
+    call(tmp_path)  # kein git_missing beim ersten Aufruf
+    assert find_git() == str(fallback)
+
+
+@posix
+def test_retry_is_limited_to_one_more_candidate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    first = broken_git(tmp_path / "eins")
+    second = broken_git(tmp_path / "zwei")
+    third = fake_git(tmp_path / "drei")
+    monkeypatch.setenv("PATH", f"{first.parent}{os.pathsep}{second.parent}")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [third])
+    with pytest.raises(GitError) as raised:
+        gitmod._git(tmp_path, "--version")
+    assert raised.value.kind == "git_missing" and str(second) in raised.value.hint
+    assert gitmod._git(tmp_path, "--version") == "git version 9.9.9-fake"  # nächster Aufruf
+
+
+@posix
+def test_blocked_cached_location_is_not_used(
+    tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
+):
+    fake = fake_git(tmp_path / "a")
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
+    assert find_git() == str(fake)  # gemerkt
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [])
+    gitmod._BROKEN[str(fake)] = gitmod._now()
+    assert find_git() is None
+
+
+@posix
+def test_relative_location_is_made_absolute(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    fake_git(tmp_path / "hier")
+    monkeypatch.chdir(tmp_path / "hier")
+    monkeypatch.setenv("PATH", str(tmp_path))
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [Path("git")])
+    assert find_git() == str(tmp_path / "hier" / "git")
+
+
+@pytest.mark.parametrize("winerror", [2, 5, 193, 740, 1260])
+@pytest.mark.parametrize("filename", [None, "C:\\Programme\\Git\\cmd\\git.exe"])
+def test_windows_program_errors_block_the_path(winerror: int, filename: str | None):
+    error = OSError(errno.EINVAL, "Fehler", filename)  # unter Windows ohne passenden errno
+    error.winerror = winerror
+    with pytest.raises(GitError) as raised:
+        gitmod._start_failed(error, "C:\\Programme\\Git\\cmd\\git.exe")
+    assert raised.value.kind == "git_missing"
+    assert os.path.abspath("C:\\Programme\\Git\\cmd\\git.exe") in gitmod._BROKEN
+
+
+@pytest.mark.parametrize("winerror", [87, 206, 267])
+def test_other_windows_errors_do_not_block_the_path(winerror: int):
+    error = OSError(errno.EINVAL, "Fehler", None)
+    error.winerror = winerror
+    with pytest.raises(OSError) as raised:
+        gitmod._start_failed(error, "C:\\Git\\git.exe")
+    assert raised.value is error and not gitmod._BROKEN
+
+
+def test_windows_error_about_another_file_does_not_block_the_path(tmp_path: Path):
+    """Ein Fehler mit gesetztem Dateinamen (etwa der Arbeitsordner) sperrt nicht über den
+    Windows-Fehlercode."""
+    error = OSError(errno.EINVAL, "Fehler", str(tmp_path / "ordner"))
+    error.winerror = 193
+    with pytest.raises(OSError) as raised:
+        gitmod._start_failed(error, "C:\\Git\\git.exe")
+    assert raised.value is error and not gitmod._BROKEN
