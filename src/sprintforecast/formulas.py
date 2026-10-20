@@ -352,6 +352,83 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
     return " ".join(parts)
 
 
+@dataclass(frozen=True)
+class Explanation:
+    """:func:`plain_explanation` split for display: inputs, calculation, result, notes."""
+
+    # Without values: only this sentence (past sprint, or no forecast possible yet).
+    message: str = ""
+    inputs: tuple[tuple[str, str], ...] = ()
+    calculation: str = ""
+    result_label: str = ""
+    result: str = ""
+    notes: tuple[str, ...] = ()
+
+
+def structured_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> Explanation:
+    """The same facts as :func:`plain_explanation`, but as a short sequence (inputs →
+    calculation → result, notes apart) instead of one paragraph."""
+    team = fc.data.team
+    f = team.forecast
+    r = e.result
+    unit = team.unit.value
+    if r.plan is None or r.plan_source is PlanSource.ACTUAL:
+        return Explanation(message=plain_explanation(fc, e, note=note))
+    index = next(i for i, x in enumerate(fc.entries) if x.sprint.id == e.sprint.id)
+    basis = [
+        x.sprint.id for x in fc.entries[:index] if x.result.normalized_velocity.value is not None
+    ][-f.window :]
+    trend = r.normalized_velocity.trend
+    raw = trend / f.reference_capacity * (r.plan_capacity or 0.0) if trend is not None else 0.0
+    source = t(r.plan_capacity_source.value) if r.plan_capacity_source else "–"
+    notes: list[str] = []
+    if (
+        note
+        and r.plan_capacity_source is CapacitySource.ESTIMATED
+        and (
+            unsure := absence_derived_note(
+                fc.absences, detailed=True, window=team.capacity.absence_history
+            )
+        )
+    ):
+        notes.append(unsure)
+    if r.trend_fallback:
+        notes.append(t("The history is thin: the last average applies, without extrapolation."))
+    elif f.trend_mode is not TrendMode.FLAT:
+        notes.append(
+            t(
+                (
+                    "Trend mode {mode} extrapolates fluctuations of the last sprints – read "
+                    "with caution."
+                ),
+                mode=f.trend_mode.value,
+            )
+        )
+    return Explanation(
+        inputs=(
+            (t("Basis sprints"), ", ".join(basis)),
+            (
+                t(
+                    "Normalized velocity (reference capacity {ref} PT)",
+                    ref=_n(f.reference_capacity, 0),
+                ),
+                f"{_n(trend)} {unit}",
+            ),
+            (
+                t("Available in {id}", id=e.sprint.id),
+                f"{fmt_capacity(r.plan_capacity, e.capacity_digits)} PT ({source})",
+            ),
+        ),
+        calculation=(
+            f"{_exact(trend)} / {_n(f.reference_capacity, 0)} × {_exact(r.plan_capacity)} "
+            f"= {_n(raw, 3)} {unit}"
+        ),
+        result_label=t("Forecast PLAN (rounded down)"),
+        result=f"{fmt(r.plan, f.rounding)} {unit}",
+        notes=tuple(notes),
+    )
+
+
 def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True) -> list[Step]:
     """All calculation steps of a sprint in reading order (``code`` and ``note`` as in
     :func:`capacity_step`)."""
