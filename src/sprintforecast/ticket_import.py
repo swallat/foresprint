@@ -11,6 +11,7 @@ the PO are not applied here; the distribution (preplan.py) does that."""
 from __future__ import annotations
 
 import copy
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -18,7 +19,15 @@ from typing import Any
 
 from sprintforecast.forecast import Forecast, find_sprint, lookup_sprint
 from sprintforecast.i18n import t
-from sprintforecast.model import Earmark, EstimateSource, Preplan, Project, Ticket, TrackerSettings
+from sprintforecast.model import (
+    Earmark,
+    EstimateSource,
+    Preplan,
+    Product,
+    Project,
+    Ticket,
+    TrackerSettings,
+)
 from sprintforecast.sources import RawTicket, label_sprints, planned_label
 from sprintforecast.storage import Repository, TeamData
 from sprintforecast.validate import find_cycles
@@ -107,9 +116,12 @@ def is_refined(
 
 
 def assign_project(
-    facts: dict[str, list[str]], projects: list[Project], order: list[str] | tuple[str, ...]
+    facts: dict[str, list[str]],
+    projects: Sequence[Project | Product],
+    order: list[str] | tuple[str, ...],
 ) -> tuple[str | None, list[str]]:
-    """``(project id, candidates)`` of a ticket with these facts (spec section 6.4).
+    """``(project id, candidates)`` of a ticket with these facts (spec section 6.4). Products
+    with a ``match`` rule are assigned the same way (``projects`` then holds products).
 
     Of all projects whose rule matches, the one matching via the source earliest in ``order``
     wins; sources outside the order rank last. Several projects matching via the same best

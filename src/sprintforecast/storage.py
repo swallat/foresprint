@@ -34,6 +34,7 @@ from sprintforecast.i18n import t
 from sprintforecast.model import (
     CONTAINS_SUFFIX,
     DEFAULT_MATCH_ORDER,
+    DEFAULT_PRIORITY_ORDER,
     RULE_OPERATORS,
     AbsenceState,
     BudgetBasis,
@@ -853,6 +854,11 @@ def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
         refined_label=_text(d.get("refined_label")),
         refined_also_if=_rule_from(d.get("refined_also_if"), f"{at}.refined_also_if"),
         project_match_order=order or list(DEFAULT_MATCH_ORDER),
+        priority_order=(
+            _texts(d.get("priority_order"), at, "priority_order")
+            if "priority_order" in d
+            else list(DEFAULT_PRIORITY_ORDER)
+        ),
         dependency_gap=_int(d.get("dependency_gap"), at, "dependency_gap", 1),
         budget_basis=_choice(
             d.get("budget_basis"), BudgetBasis, "roadmap_share", at, "budget_basis"
@@ -901,6 +907,8 @@ def _tracker_to(tr: TrackerSettings) -> dict[str, Any]:
     if tr.refined_also_if is not None:
         out["refined_also_if"] = _rule_to(tr.refined_also_if)
     out["project_match_order"] = list(tr.project_match_order)
+    if tr.priority_order != list(DEFAULT_PRIORITY_ORDER):
+        out["priority_order"] = list(tr.priority_order)
     out["dependency_gap"] = tr.dependency_gap
     out["budget_basis"] = tr.budget_basis.value
     out["rough_factor"] = _clean(tr.rough_factor)
@@ -979,6 +987,8 @@ def people_to_dict(people: list[Person]) -> dict[str, Any]:
 PRODUCTS_HEADER = """\
 # Products of the team. Period (from/to) = when the team works on the product; po optional.
 # Never delete products; end them with `to:` instead – otherwise past evaluations change.
+# match (optional): rule for tickets of the product without a project (same language as the
+# projects' match).
 """
 
 
@@ -996,6 +1006,7 @@ def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
                 start=_date(p["from"], at) if p.get("from") else None,
                 end=_date(p["to"], at) if p.get("to") else None,
                 share=_lenient_float(p.get("share"), f"{at}: share"),
+                match=_rule_from(p.get("match"), f"{at}: match"),
             )
         )
     return products
@@ -1009,6 +1020,8 @@ def products_to_dict(products: list[Product]) -> dict[str, Any]:
             entry["po"] = p.po
         if p.share is not None:
             entry["share"] = _clean(p.share)
+        if p.match is not None:
+            entry["match"] = _rule_to(p.match)
         entry["from"] = p.start
         entry["to"] = p.end
         out.append(entry)

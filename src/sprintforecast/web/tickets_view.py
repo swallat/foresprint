@@ -293,6 +293,12 @@ def open_rows(data: TeamData, dist: Distribution, sel: Selection) -> list[dict[s
     return rows
 
 
+def product_label(data: TeamData, product_id: str | None) -> str:
+    """Where a ticket without project belongs: its product's name (or "without product")."""
+    product = next((p for p in data.products if p.id == product_id), None)
+    return product.name if product else t(REASONS["no_product"])
+
+
 def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
     """One row per open ticket the filter shows: its project, the product of that project and the
     criterion (epic, component or label) that put it there; a contradiction or the lack of a
@@ -816,7 +822,7 @@ def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: s
             st.markdown(f"{name} {title}")
             st.caption(
                 f"{fmt(p.size)} {SOURCE_LETTERS[p.source]}{mark} · "
-                f"{project.name if project else t(REASONS['no_project'])}"
+                f"{project.name if project else product_label(data, p.product)}"
             )
     if len(shown) > CARD_LIMIT:
         st.caption(t("… and {count} more", count=len(shown) - CARD_LIMIT))
