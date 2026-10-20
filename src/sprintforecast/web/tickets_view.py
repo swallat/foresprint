@@ -16,6 +16,7 @@ from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import streamlit as st
 
@@ -832,11 +833,12 @@ def _sprint_columns(repo: Repository, data: TeamData, dist: Distribution, sel: S
         chunk = dist.sprints[start : min(start + 4, count)]
         for column, sprint in zip(st.columns(len(chunk)), chunk, strict=True):
             with column:
-                _sprint_column(data, dist, sel, sprint)
+                _sprint_column(repo, data, dist, sel, sprint)
     st.caption(
         t(
             "R = refined · U = rough estimate (unrefined) · M = own estimate · **bold** = "
-            "sprint according to the ticket system (fixed) · ✎ = earmark"
+            "sprint according to the ticket system (fixed) · ✎ = earmark · the buttons on a card "
+            "earmark the ticket for the previous or next sprint, pin it, or release the earmark"
         )
     )
     _earmark_form(repo, data, dist, sel)
@@ -923,7 +925,68 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
             st.rerun()
 
 
-def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: str) -> None:
+def moved_earmark(dist: Distribution, placement: Placement, step: int) -> str | None:
+    """The sprint one step before (-1) or after (+1) the ticket's sprint on the horizon; None =
+    the ticket is at the edge or its sprint is not on the horizon."""
+    if placement.sprint not in dist.sprints:
+        return None
+    target = dist.sprints.index(placement.sprint) + step
+    return dist.sprints[target] if 0 <= target < len(dist.sprints) else None
+
+
+def set_earmark(repo: Repository, data: TeamData, ticket: str, sprint: str | None) -> None:
+    """Earmark a ticket for ``sprint`` (keeping an existing note) or release it (None)."""
+    key = data.team.key
+    after = copy.deepcopy(data)
+    old = after.preplan.earmark_for(ticket)
+    after.preplan.earmarks = [e for e in after.preplan.earmarks if e.ticket != ticket]
+    if sprint is not None:
+        after.preplan.earmarks.append(Earmark(ticket, sprint, old.note if old else None))
+    if save(after, ["preplan.yaml"], lambda: [repo.save_preplan(key, after.preplan)], flash=True):
+        st.rerun()
+
+
+def _card_buttons(
+    repo: Repository, data: TeamData, dist: Distribution, placement: Placement
+) -> None:
+    """Buttons of a ticket card: one sprint earlier or later (earmarks it there), pin it where it
+    is, or release the earmark. Tickets in a sprint according to the tracker cannot be moved."""
+    if placement.reason == "fixed_sprint":
+        return
+    key = f"tickets-{data.team.key}-card-{placement.ticket}"
+    earlier = moved_earmark(dist, placement, -1)
+    later = moved_earmark(dist, placement, 1)
+    left, middle, right = st.columns(3)
+    if left.button(
+        "", icon=":material/chevron_left:", key=f"{key}-earlier", disabled=earlier is None,
+        help=t("Earmark for the previous sprint"), width="stretch",
+    ):  # fmt: skip
+        set_earmark(repo, data, placement.ticket, earlier)
+    if middle.button(
+        "",
+        icon=":material/close:" if placement.reason == "earmark" else ":material/push_pin:",
+        key=f"{key}-pin",
+        help=t("Release the earmark (distribute automatically)")
+        if placement.reason == "earmark"
+        else t("Earmark for this sprint"),
+        width="stretch",
+    ):
+        set_earmark(
+            repo,
+            data,
+            placement.ticket,
+            None if placement.reason == "earmark" else placement.sprint,
+        )
+    if right.button(
+        "", icon=":material/chevron_right:", key=f"{key}-later", disabled=later is None,
+        help=t("Earmark for the next sprint"), width="stretch",
+    ):  # fmt: skip
+        set_earmark(repo, data, placement.ticket, later)
+
+
+def _sprint_column(
+    repo: Repository, data: TeamData, dist: Distribution, sel: Selection, sprint: str
+) -> None:
     st.markdown(f"**{sprint}**")
     for product, budget, used in sprint_fill(dist, sprint):
         name = next((p.name for p in data.products if p.id == product), None)
@@ -951,6 +1014,7 @@ def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: s
                 f"{fmt(p.size)} {SOURCE_LETTERS[p.source]}{mark} · "
                 f"{project.name if project else product_label(data, p.product)}"
             )
+            _card_buttons(repo, data, dist, p)
     if len(shown) > CARD_LIMIT:
         st.caption(t("… and {count} more", count=len(shown) - CARD_LIMIT))
 
@@ -1092,6 +1156,10 @@ def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
 # --- Import -----------------------------------------------------------------------------------
 
 
+def _tracker_host(data: TeamData) -> str:
+    return urlsplit(data.team.tracker.base_url or "").hostname or "?"
+
+
 def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
     key = data.team.key
     counter = f"tickets-{key}-import-n"
@@ -1103,6 +1171,15 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
     )
     fetched = f"tickets-{key}-fetched"
+    if data.team.tracker.kind == "jira":
+        st.caption(t("Active ticket source: **Jira** ({host}).", host=_tracker_host(data)))
+    else:
+        st.caption(
+            t(
+                "Active ticket source: **CSV export**. To read from Jira, switch the source "
+                "on the Jira connection page."
+            )
+        )
     page_link("jira", t("Set up the Jira connection"))
     if data.team.tracker.kind == "jira":
         if st.button(
