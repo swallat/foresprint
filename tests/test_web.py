@@ -249,7 +249,7 @@ def planning_step(at: AppTest, sprint: str, step: int) -> AppTest:
     """Planning page: pick a sprint and jump to step (0-2) of the flow."""
     goto(at, "planning")
     at.selectbox(key="planning-sprint").set_value(sprint).run()
-    at.radio(key="planning-step").set_value(step).run()
+    at.button(key=f"planning-step-{step}").click().run()
     assert not at.exception, at.exception
     return at
 
@@ -258,14 +258,14 @@ def test_planning_defaults_to_next_planning(app: AppTest):
     goto(app, "planning")
     # 2026.21 is running and already planned (Commitment) -> next is 2026.22
     assert app.selectbox(key="planning-sprint").value == "2026.22"
-    assert app.radio(key="planning-step").value == 0
+    assert app.session_state["planning-step"] == 0
 
 
 def test_planning_flow_absences_then_plan(app: AppTest, data_dir: Path):
     goto(app, "planning")
     assert any("Arbeitstage (Mo–Fr)" in c.value for c in app.caption)
     click(app, "Weiter")  # absences unchanged, sprint file exists
-    assert app.radio(key="planning-step").value == 1
+    assert app.session_state["planning-step"] == 1
     assert any(m.label.startswith("Prognose aktuell") for m in app.metric)
     assert any("Standard = Forecast PLAN" in c.value for c in app.caption)
 
@@ -1286,7 +1286,7 @@ def test_planning_continue_without_confirmation_keeps_absences_unknown(
     goto(app, "planning")
     app.selectbox(key="planning-sprint").set_value("2026.23").run()
     click(app, "Weiter ohne Bestätigung")
-    assert app.radio(key="planning-step").value == 1
+    assert app.session_state["planning-step"] == 1
     assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()  # nothing confirmed
 
 
@@ -1296,7 +1296,7 @@ def test_planning_nobody_absent_needs_explicit_confirmation(app: AppTest, data_d
     click(app, "Niemand fehlt – bestätigen und weiter")
     saved = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
     assert saved["absence_state"] == "confirmed" and saved["absences"] == {}
-    assert app.radio(key="planning-step").value == 1
+    assert app.session_state["planning-step"] == 1
 
 
 def test_saving_planning_values_keeps_unconfirmed_absences_unknown(app: AppTest, data_dir: Path):
@@ -1594,8 +1594,9 @@ def test_planning_progress_line_agrees_with_the_step_bar(
     _change_2026_22(data_dir, **fields)
     at = goto(start(data_dir, monkeypatch), "planning")
     assert at.selectbox(key="planning-sprint").value == "2026.22"
-    line = next(c.value for c in at.caption if c.value.endswith(" Commitment"))
-    assert line.startswith(f"{mark} Fehltage")
+    label = at.button(key="planning-step-0").label
+    assert label.startswith("1 · Fehltage")
+    assert label.endswith(DONE_ICON) == (mark == DONE_ICON)
     assert nav_done(at)["absences"] == (mark == DONE_ICON)
 
 

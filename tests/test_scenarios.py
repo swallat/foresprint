@@ -616,7 +616,7 @@ def test_planning_prefills_absences_and_products_from_preplanning(
     assert not at.exception, at.exception
     saved = load(data_dir).sprint(TARGET)
     assert saved.absences == {"anna": 2.0} and saved.absences_confirmed
-    assert at.radio(key="planning-step").value == 1
+    assert at.session_state["planning-step"] == 1
     assert any("mit der letzten PO-Vorplanung vorbelegt" in c.value for c in at.caption)
 
 

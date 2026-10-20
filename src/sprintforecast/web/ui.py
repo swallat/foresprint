@@ -2095,6 +2095,38 @@ def _base_sprint(data: TeamData, sprint: Sprint) -> Sprint:
 
 PLANNING_STEPS = ["1 · Absences", "2 · Forecast PLAN & planning", "3 · Commitment"]
 STEP_KEY = "planning-step"
+PLANNING_STEPPER_CSS = """
+<style>
+div.st-key-planning-stepper { gap: 0.5rem; flex-direction: row; flex-wrap: wrap; }
+div.st-key-planning-stepper > div { flex: 1 1 12rem; min-width: 0; }
+div.st-key-planning-stepper button { height: 2.75rem; white-space: nowrap; }
+div.st-key-planning-stepper button[kind="primary"] { background: #5b5bf0; border-color: #5b5bf0; }
+/* The green check mark is hard to read on the filled (active) button. */
+div.st-key-planning-stepper button[kind="primary"] .stMarkdownColoredText {
+    color: #fff !important;
+}
+</style>
+"""
+
+
+def _planning_stepper(done: list[bool]) -> int:
+    """Numbered step navigation of the Planning: the active step is highlighted, finished
+    steps carry the check mark. The chosen step lives in ``STEP_KEY``."""
+    step = st.session_state.setdefault(STEP_KEY, 0)
+    st.html(PLANNING_STEPPER_CSS)
+    with st.container(key="planning-stepper"):
+        for i, (title, ok) in enumerate(zip(PLANNING_STEPS, done, strict=True)):
+            label = f"{t(title)} {DONE_ICON}" if ok else t(title)
+            if st.button(
+                label,
+                key=f"{STEP_KEY}-{i}",
+                type="primary" if i == step else "secondary",
+                width="stretch",
+                help=t("Done") if ok else None,
+            ):
+                st.session_state[STEP_KEY] = step = i
+                st.rerun()
+    return step
 
 
 def _goto(step: int) -> None:
@@ -2172,22 +2204,13 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
             day=day_label(sprint.start),
         )
     )
-    step = st.radio(
-        t("Step"),
-        range(len(PLANNING_STEPS)),
-        format_func=lambda i: t(PLANNING_STEPS[i]),
-        horizontal=True,
-        key=STEP_KEY,
-        label_visibility="collapsed",
-    )
     recorded = data.sprint(sprint.id)
     done = [
         board_steps_done(recorded)["absences"],  # like the check mark of the step bar above
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
         recorded is not None and recorded.commitment is not None,
     ]
-    marks = [f"{status_icon(ok)} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)]
-    st.caption(" · ".join(marks))
+    step = _planning_stepper(done)
     if step == 0:
         _planning_absences(repo, data, fc, sprint)
     elif step == 1:
