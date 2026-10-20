@@ -210,3 +210,13 @@ def test_negative_zero_is_stored_as_zero(tmp_path: Path):
     path = write(tmp_path, HEADER + "x,A-1,-0\n")
     value = CsvSource(path, FIELDS).fetch()[0].estimate
     assert value == 0 and str(value) == "0.0"
+
+
+def test_rule_fields_are_read_from_their_columns(tmp_path: Path):
+    path = tmp_path / "x.csv"
+    path.write_text(
+        "Issue key,Summary,Story Points,Custom field (Customer),Customer\n"
+        "K-1,T,3,Acme,Beta\nK-2,T,1,,\n"
+    )
+    a, b = CsvSource(path, FIELDS, {"customer": "Customer"}).fetch()
+    assert a.extra == {"customer": ["Acme", "Beta"]} and b.extra == {}

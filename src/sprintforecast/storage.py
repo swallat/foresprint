@@ -35,7 +35,6 @@ from sprintforecast.model import (
     CONTAINS_SUFFIX,
     DEFAULT_MATCH_ORDER,
     RULE_OPERATORS,
-    RULE_SOURCES,
     AbsenceState,
     BudgetBasis,
     CapacitySettings,
@@ -763,13 +762,8 @@ def _rule_node(mapping: dict[str, Any], where: str) -> Rule:
         else:
             values = [_rule_value(value, where, name)]
         base = name.removesuffix(CONTAINS_SUFFIX)
-        entries.append(
-            Rule(
-                source=base if base in RULE_SOURCES else name,
-                values=values,
-                contains=base != name and base in RULE_SOURCES,
-            )
-        )
+        contains = bool(base) and base != name  # rule fields may be configured: names stay open
+        entries.append(Rule(source=base if contains else name, values=values, contains=contains))
     if len(entries) == 1:
         return entries[0]  # a single leaf, or the long form: exactly one of any/all/none
     # Short form (several sources directly in the mapping, OR-combined). Mixed forms and
@@ -871,6 +865,10 @@ def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
         },
         # Absent = default; an explicitly empty value stays empty so that the check reports it.
         link_type=(_text(d.get("link_type")) or "") if "link_type" in d else "Blocks",
+        rule_fields={
+            _text_value(k, at, "rule_fields"): _text_value(v, at, "rule_fields")
+            for k, v in _mapping(d.get("rule_fields"), at, "rule_fields").items()
+        },
     )
 
 
@@ -911,6 +909,8 @@ def _tracker_to(tr: TrackerSettings) -> dict[str, Any]:
         out["sprint_names"] = dict(tr.sprint_names)
     if tr.link_type != TrackerSettings().link_type:
         out["link_type"] = tr.link_type
+    if tr.rule_fields:
+        out["rule_fields"] = dict(tr.rule_fields)
     return out
 
 
@@ -1354,6 +1354,10 @@ def tickets_from_dict(
                 status=_text(raw.get("status")),
                 issue_type=_text(raw.get("issue_type")),
                 priority=_text(raw.get("priority")),
+                extra={
+                    str(k): _texts(v, at, f"fields.{k}")
+                    for k, v in _mapping(raw.get("fields"), at, "fields").items()
+                },
                 estimate=_float(raw.get("estimate"), f"{at}: estimate"),
                 remaining=_float(raw.get("remaining"), f"{at}: remaining"),
                 estimate_source=_choice(
@@ -1407,6 +1411,8 @@ def tickets_to_dict(
         entry["epic"] = tk.epic
         entry["labels"] = list(tk.labels)
         entry["components"] = list(tk.components)
+        if tk.extra:
+            entry["fields"] = {k: list(v) for k, v in tk.extra.items()}
         entry["depends_on"] = list(tk.depends_on)
         if tk.project is not None:
             entry["project"] = tk.project

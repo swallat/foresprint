@@ -74,7 +74,8 @@ def _tokenize(text: str) -> list[_Token]:
 
 
 class _Parser:
-    def __init__(self, text: str) -> None:
+    def __init__(self, text: str, sources: tuple[str, ...]) -> None:
+        self.sources = sources
         self.tokens = _tokenize(text)
         self.i = 0
 
@@ -138,13 +139,13 @@ class _Parser:
             raise self._error(
                 t(
                     "Expected a field ({fields}), found '{found}'",
-                    fields=", ".join(RULE_SOURCES),
+                    fields=", ".join(self.sources),
                     found=tok.text or t("end"),
                 )
             )
         source = tok.text.lower()
-        if source not in RULE_SOURCES:
-            close = difflib.get_close_matches(source, RULE_SOURCES, n=1)
+        if source not in self.sources:
+            close = difflib.get_close_matches(source, self.sources, n=1)
             if close:
                 raise self._error(
                     t(
@@ -157,7 +158,7 @@ class _Parser:
                 t(
                     "Unknown field '{source}' (allowed: {allowed})",
                     source=tok.text,
-                    allowed=", ".join(RULE_SOURCES),
+                    allowed=", ".join(self.sources),
                 )
             )
         self._next()
@@ -215,9 +216,10 @@ def _combine(op: str, parts: list[Rule]) -> Rule:
     return Rule(op=op, children=flat)
 
 
-def parse_rule(text: str) -> Rule:
-    """The rule of an expression. Raises :class:`RuleSyntaxError` with a readable message."""
-    return _Parser(text).parse()
+def parse_rule(text: str, sources: tuple[str, ...] = RULE_SOURCES) -> Rule:
+    """The rule of an expression; ``sources`` are the fields it may name (the fixed ones and the
+    configured rule fields). Raises :class:`RuleSyntaxError` with a readable message."""
+    return _Parser(text, sources).parse()
 
 
 # --- Formatting --------------------------------------------------------------------------------
