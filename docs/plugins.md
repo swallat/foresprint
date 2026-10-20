@@ -1,27 +1,27 @@
 # Plugins
 
 Plugins are separate Python packages that hook in through the entry point
-`foresprint.plugins` (the former group `sprintforecast.plugins` is still loaded) (see `src/sprintforecast/plugins.py`). They can add commands to the
+`foresprint.plugins` (the former group `sprintforecast.plugins` is still loaded) (see `src/foresprint/plugins.py`). They can add commands to the
 command line and pages to the web UI, for example an import of the history from a previous tool.
 They are installed next to the tool:
 
 ```bash
-uv tool install "sprintforecast[web,excel,jira] @ git+https://github.com/swallat/foresprint" \
+uv tool install "foresprint[web,excel,jira] @ git+https://github.com/swallat/foresprint" \
   --with "my-plugin @ git+https://..."
 ```
 
 If the plugin pins the source of the core itself (`[tool.uv.sources]`), give the core without an
 address, otherwise uv reports "conflicting URLs":
-`uv tool install "sprintforecast[web,excel,jira]" --with "my-plugin @ git+https://..."`.
+`uv tool install "foresprint[web,excel,jira]" --with "my-plugin @ git+https://..."`.
 
-A format-neutral helper for imports: `sprintforecast.storage.import_sprints`.
+A format-neutral helper for imports: `foresprint.storage.import_sprints`.
 
 ## Plugins with the installer
 
 The [install scripts](installation.md) ask whether plugins should be installed as well: several
 separated by `;`, as the short form `owner/repo` (expands to `git+https://github.com/owner/repo`)
 or in full as `name @ git+https://...`. The selection is remembered (Windows:
-`%APPDATA%\sprintforecast\plugins.txt`, otherwise `~/.config/sprintforecast/plugins`); when
+`%APPDATA%\foresprint\plugins.txt`, otherwise `~/.config/foresprint/plugins`); when
 updating, Enter keeps it and `-` removes all plugins. Plugins from Git repositories need Git,
 private ones additionally a login. A plugin must pin the source of the core in
 `[tool.uv.sources]`.

@@ -382,13 +382,13 @@ planning surface (drag-and-drop) is not a goal.
 ## 9. Architecture
 
 ```
-sprintforecast/
+foresprint/
   core: capacity, forecast, analysis, calendar   (knows neither sources nor pre-planning)
   model.py      + Ticket, Project
   storage.py    + projects.yaml, tickets.yaml, preplan.yaml
   preplan.py    budgets, order, placement, project traffic light, refinement list, variants
   sources/      neutral ticket model, interface TicketSource, csv.py, jira.py
-                (jira as an optional extra: sprintforecast[jira])
+                (jira as an optional extra: foresprint[jira])
   web/page_scripts/tickets.py, report, cli tickets
 ```
 

@@ -3,7 +3,7 @@
 import re
 from pathlib import Path
 
-import sprintforecast.web as web_pkg
+import foresprint.web as web_pkg
 
 # Emoji blocks and the emoji-like status symbols (check/cross marks, squares, circles, warning)
 EMOJI = re.compile("[✅❌⚠⬜⬛⚪⚫⭕✔❓-❗\U0001f000-\U0001faff️]")

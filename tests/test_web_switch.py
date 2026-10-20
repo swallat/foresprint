@@ -11,8 +11,8 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast import gitsync
-from sprintforecast.storage import (
+from foresprint import gitsync
+from foresprint.storage import (
     AS_OF_ENV,
     DATA_ENV,
     MAX_RECENT,
@@ -21,7 +21,7 @@ from sprintforecast.storage import (
     save_data_dir,
 )
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 
 
 def git(cwd: Path, *args: str) -> str:

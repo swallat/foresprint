@@ -9,7 +9,7 @@ the forecast, on an indigo square with a violet diagonal.
 | `docs/assets/logo-wordmark-light.svg` | Logo with name for light backgrounds |
 | `docs/assets/logo-wordmark-dark.svg` | Logo with name for dark backgrounds |
 
-The app icon (browser tab, launchers) is drawn in `src/sprintforecast/icon.py` with the same
+The app icon (browser tab, launchers) is drawn in `src/foresprint/icon.py` with the same
 shapes and colors.
 
 | Role | Color |

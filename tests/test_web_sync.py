@@ -11,10 +11,10 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast.git import invalidate_status
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV
+from foresprint.git import invalidate_status
+from foresprint.storage import AS_OF_ENV, DATA_ENV
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 SPRINT = Path("teams") / "demo" / "sprints" / "2026.20.yaml"
 
 
@@ -112,9 +112,9 @@ def test_status_line_does_not_blame_the_server_for_local_errors():
     reports: ..." in the status line."""
     from dataclasses import replace
 
-    from sprintforecast.git import classify
-    from sprintforecast.gitsync import SyncState
-    from sprintforecast.web.ui import _status_text
+    from foresprint.git import classify
+    from foresprint.gitsync import SyncState
+    from foresprint.web.ui import _status_text
 
     base = SyncState(
         root=Path("."), branch="main", upstream="origin/main", remote="origin", url="x"

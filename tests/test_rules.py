@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.model import RULE_SOURCES, Project, Rule, Ticket
-from sprintforecast.storage import Repository, _rule_from, _rule_to
-from sprintforecast.validate import Level, check_team, rule_problems
+from foresprint.model import RULE_SOURCES, Project, Rule, Ticket
+from foresprint.storage import Repository, _rule_from, _rule_to
+from foresprint.validate import Level, check_team, rule_problems
 
 TODAY = date(2026, 10, 15)
 
@@ -197,7 +197,7 @@ def test_invalid_rules_are_reported_by_the_check(data_dir: Path):
 
 
 def test_contains_leaf_round_trips_through_yaml():
-    from sprintforecast.storage import _rule_from, _rule_to
+    from foresprint.storage import _rule_from, _rule_to
 
     rule = _rule_from({"label_contains": ["pay"]}, "x")
     assert rule is not None and rule.contains and rule.source == "label"
@@ -206,7 +206,7 @@ def test_contains_leaf_round_trips_through_yaml():
 
 
 def test_insert_helper_conditions():
-    from sprintforecast.web.rule_editor import append_condition, condition_text
+    from foresprint.web.rule_editor import append_condition, condition_text
 
     assert condition_text("label", "=", ["a", "b"]) == "label IN (a, b)"
     assert condition_text("label", "!=", ["a"]) == "label != a"
@@ -218,7 +218,7 @@ def test_insert_helper_conditions():
 
 
 def test_insert_helper_brackets_any_or_expression():
-    from sprintforecast.web.rule_editor import append_condition
+    from foresprint.web.rule_editor import append_condition
 
     for text in ("epic = A or epic = B", "epic = A\nOR epic = B", "epic IN (A) OR(label = b)"):
         assert append_condition(text, "label = x", "AND") == f"({text}) AND label = x"

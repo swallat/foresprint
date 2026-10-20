@@ -9,10 +9,10 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from sprintforecast.cli import app as cli_app
-from sprintforecast.forecast import build_forecast
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
-from sprintforecast.validate import Level, check_all, check_team_files, check_yaml_text
+from foresprint.cli import app as cli_app
+from foresprint.forecast import build_forecast
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.validate import Level, check_all, check_team_files, check_yaml_text
 
 TODAY = date(2026, 10, 15)
 runner = CliRunner(env={"COLUMNS": "250"})
@@ -255,7 +255,7 @@ def test_keys_equal_in_python_are_a_duplicate(text: str):
     """PyYAML maps 1, 1.0 and true to the same dict key: the later value wins."""
     import yaml
 
-    from sprintforecast.storage import _YAML_LOADER
+    from foresprint.storage import _YAML_LOADER
 
     assert len(yaml.load(text, Loader=_YAML_LOADER)) == 1  # the loader really discards one
     [found] = messages(text)
@@ -293,7 +293,7 @@ def test_web_ui_never_shows_key_names_as_markdown(data_dir: Path, monkeypatch):
     edit(data_dir, SPRINT, "  anna: 5\n", f"  '{evil}': 1\n  '{evil}': 2\n  anna: 5\n")
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
-    app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+    app_file = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
     at = AppTest.from_file(str(app_file), default_timeout=30)
     at.run()
     at.switch_page("page_scripts/check.py").run()
@@ -357,7 +357,7 @@ def test_large_valid_file_names_no_anchors():
 
 
 def test_too_deep_for_the_loader(monkeypatch):
-    from sprintforecast import validate
+    from foresprint import validate
 
     def deep(_text):
         raise RecursionError
@@ -399,7 +399,7 @@ def loaded_keys(text: str, field: str) -> set[str]:
     """Short keys of ``field`` as the program reads them (the loader's dict, then ``str()``)."""
     import yaml
 
-    from sprintforecast.storage import _YAML_LOADER
+    from foresprint.storage import _YAML_LOADER
 
     return {str(k) for k in yaml.load(text, Loader=_YAML_LOADER)[field]}
 
@@ -433,7 +433,7 @@ def test_abbreviation_first_key_object_determines_the_text():
 def merged(spec: str) -> dict:
     import yaml
 
-    from sprintforecast.storage import _YAML_LOADER
+    from foresprint.storage import _YAML_LOADER
 
     return yaml.load(BASE + f"m: {{{spec}}}\n", Loader=_YAML_LOADER)["m"]
 

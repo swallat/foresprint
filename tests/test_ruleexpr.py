@@ -1,7 +1,7 @@
 import pytest
 
-from sprintforecast.model import Rule
-from sprintforecast.ruleexpr import RuleSyntaxError, format_rule, parse_rule
+from foresprint.model import Rule
+from foresprint.ruleexpr import RuleSyntaxError, format_rule, parse_rule
 
 
 def facts(**kw):
@@ -105,7 +105,7 @@ def test_field_typo_suggests_the_field():
 
 
 def test_priority_is_a_field():
-    from sprintforecast.model import Ticket
+    from foresprint.model import Ticket
 
     ticket = Ticket(key="T-1", priority="High")
     assert parse_rule("priority IN (High, Highest)").matches(ticket.facts())

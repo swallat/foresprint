@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Windows checks for sprintforecast with a Markdown report.
+    Windows checks for foresprint with a Markdown report.
 
 .DESCRIPTION
     Checks what only shows up on a real Windows machine and writes the result as a Markdown
@@ -8,7 +8,7 @@
 
     Automatic:
       App       start the app, close the window, wait; no processes may remain afterwards
-      Uv        installation according to "uv tool list"; on request "uv tool upgrade sprintforecast"
+      Uv        installation according to "uv tool list"; on request "uv tool upgrade foresprint"
       Anmeldung Git login (credential.helper, gh) and "git ls-remote" against your addresses
       Zeilenenden  create a data repository, save, commit, clone; "git diff" must be empty
       Sperre    YAML file with an exclusive lock: message instead of a crash?
@@ -18,11 +18,11 @@
 
     The script changes no user settings (no "git config", no persistent environment
     variables, no registry). All test data lives in a temp folder that is deleted at the end.
-    The app itself creates its usual files under %APPDATA%\sprintforecast on start-up
+    The app itself creates its usual files under %APPDATA%\foresprint on start-up
     (app.log, possibly settings.json); that is its normal behaviour.
 
 .PARAMETER Bericht
-    Path of the report file. Default: sprintforecast-windows-bericht-YYYYMMDD-HHMM.md in the
+    Path of the report file. Default: foresprint-windows-bericht-YYYYMMDD-HHMM.md in the
     current folder.
 
 .PARAMETER Nur
@@ -49,7 +49,7 @@
     not disturbed by an update.
 
 .PARAMETER PythonExe
-    Python of the sprintforecast installation. Default: the one of the uv tool installation.
+    Python of the foresprint installation. Default: the one of the uv tool installation.
 
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows-tests.ps1
@@ -190,7 +190,7 @@ function Invoke-Check {
 function Write-Report {
     param([string]$Path)
     $sb = New-Object System.Text.StringBuilder
-    [void]$sb.AppendLine('# sprintforecast – Windows-Prüfbericht')
+    [void]$sb.AppendLine('# foresprint – Windows-Prüfbericht')
     [void]$sb.AppendLine()
     [void]$sb.AppendLine('| | |')
     [void]$sb.AppendLine('|---|---|')
@@ -362,7 +362,7 @@ function Invoke-Python {
 
 function Get-TempRoot {
     if (-not $script:TempRoot) {
-        $name = 'sprintforecast-wintest-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+        $name = 'foresprint-wintest-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
         $script:TempRoot = Join-Path ([IO.Path]::GetTempPath()) $name
         [void][IO.Directory]::CreateDirectory($script:TempRoot)
     }
@@ -416,21 +416,21 @@ function Test-Interactive {
 }
 
 # ------------------------------------------------------------------------------------------
-# Prozesse von sprintforecast (nur Windows)
+# Prozesse von foresprint (nur Windows)
 # ------------------------------------------------------------------------------------------
 
 function Get-SfKind {
     # Ordnet einen Prozess der App zu (leer = gehört nicht dazu): Starter, Python, Browser mit dem
-    # eigenen Profil (unter ...\sprintforecast\browser-profil), uv-Aktualisierung.
+    # eigenen Profil (unter ...\foresprint\browser-profil), uv-Aktualisierung.
     param([string]$Name, [string]$CommandLine)
-    if ($Name -ieq 'sprintforecast-app.exe') { return 'Starter' }
-    if ($Name -ieq 'sprintforecast.exe') { return 'Befehlszeile' }
-    if ($Name -match '^pythonw?\.exe$' -and $CommandLine -match 'sprintforecast') {
+    if ($Name -ieq 'foresprint-app.exe') { return 'Starter' }
+    if ($Name -ieq 'foresprint.exe') { return 'Befehlszeile' }
+    if ($Name -match '^pythonw?\.exe$' -and $CommandLine -match 'foresprint') {
         return $(if ($CommandLine -match 'streamlit') { 'Server (Streamlit)' } else { 'Python' })
     }
     # Der Pfad kann Leerzeichen enthalten; dann steht das Anführungszeichen vor "--user-data-dir".
-    if ($CommandLine -match 'user-data-dir="?[^"]*sprintforecast') { return 'Browser (App-Fenster)' }
-    if ($Name -ieq 'uv.exe' -and $CommandLine -match 'sprintforecast') { return 'Aktualisierung (uv)' }
+    if ($CommandLine -match 'user-data-dir="?[^"]*foresprint') { return 'Browser (App-Fenster)' }
+    if ($Name -ieq 'uv.exe' -and $CommandLine -match 'foresprint') { return 'Aktualisierung (uv)' }
     return ''
 }
 
@@ -495,9 +495,9 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from sprintforecast.git import init_data_repository
-from sprintforecast.model import Membership, Person, Team
-from sprintforecast.storage import Repository
+from foresprint.git import init_data_repository
+from foresprint.model import Membership, Person, Team
+from foresprint.storage import Repository
 
 teams = init_data_repository(Path(sys.argv[1]))
 repo = Repository(teams)
@@ -516,7 +516,7 @@ $script:CodeResave = @'
 import sys
 from pathlib import Path
 
-from sprintforecast.storage import Repository
+from foresprint.storage import Repository
 
 repo = Repository(Path(sys.argv[1]))
 data = repo.load(sys.argv[2])
@@ -530,8 +530,8 @@ import json
 import sys
 from pathlib import Path
 
-from sprintforecast.model import Team
-from sprintforecast.storage import Repository
+from foresprint.model import Team
+from foresprint.storage import Repository
 
 repo = Repository(Path(sys.argv[1]))
 try:
@@ -557,8 +557,8 @@ function Initialize-Context {
     $script:Git = Find-Tool 'git'
     $script:Uv = Find-Tool 'uv'
     $script:Gh = Find-Tool 'gh'
-    $script:Sf = Find-Tool 'sprintforecast'
-    $script:SfApp = Find-Tool 'sprintforecast-app'
+    $script:Sf = Find-Tool 'foresprint'
+    $script:SfApp = Find-Tool 'foresprint-app'
 
     $script:Context['Datum'] = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz')
     if ($script:OnWindows) {
@@ -587,7 +587,7 @@ function Initialize-Context {
         if (-not $PythonExe) {
             $d = Invoke-Native -FilePath $script:Uv -Arguments @('tool', 'dir') -TimeoutSeconds 20
             if ($d.ExitCode -eq 0) {
-                $toolDir = Join-Path $d.Output.Trim() 'sprintforecast'
+                $toolDir = Join-Path $d.Output.Trim() 'foresprint'
                 foreach ($rel in @('Scripts\python.exe', 'bin/python')) {
                     $candidate = Join-Path $toolDir $rel
                     if (Test-Path -LiteralPath $candidate) { $script:Py = $candidate; break }
@@ -602,12 +602,12 @@ function Initialize-Context {
 
     if ($script:Sf) {
         $r = Invoke-Sf @('--version') 60
-        $script:Context['sprintforecast'] = $(if ($r.ExitCode -eq 0) { $r.Output.Trim() } else { 'Fehler: ' + (Format-Native $r) })
+        $script:Context['foresprint'] = $(if ($r.ExitCode -eq 0) { $r.Output.Trim() } else { 'Fehler: ' + (Format-Native $r) })
         $script:Context['Befehl'] = $script:Sf
     } else {
-        $script:Context['sprintforecast'] = 'NICHT GEFUNDEN (Befehl sprintforecast fehlt im PATH)'
+        $script:Context['foresprint'] = 'NICHT GEFUNDEN (Befehl foresprint fehlt im PATH)'
     }
-    $script:Context['Starter'] = $(if ($script:SfApp) { $script:SfApp } else { 'sprintforecast-app nicht gefunden' })
+    $script:Context['Starter'] = $(if ($script:SfApp) { $script:SfApp } else { 'foresprint-app nicht gefunden' })
     $script:Context['Aufruf'] = ('Nur={0}; HttpsUrl={1}; SshUrl={2}; Wartezeit={3} s; OhneRueckfragen={4}' -f (
             $(if ($Selected.Count) { $Selected -join ',' } else { 'alle' }),
             $(if ($HttpsUrl) { 'angegeben' } else { '-' }),
@@ -634,9 +634,9 @@ function Get-LogTail {
 }
 
 function Get-ConfigDir {
-    if ($script:OnWindows -and $env:APPDATA) { return (Join-Path $env:APPDATA 'sprintforecast') }
+    if ($script:OnWindows -and $env:APPDATA) { return (Join-Path $env:APPDATA 'foresprint') }
     $base = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { Join-Path $env:HOME '.config' }
-    return (Join-Path $base 'sprintforecast')
+    return (Join-Path $base 'foresprint')
 }
 
 # ------------------------------------------------------------------------------------------
@@ -656,7 +656,7 @@ function Test-AppEnde {
         $launchArgs = @('web', '--app')
     }
     if (-not $launcher) {
-        Complete-Section $Section 'ÜBERSPRUNGEN' 'Weder sprintforecast-app noch sprintforecast im PATH.'
+        Complete-Section $Section 'ÜBERSPRUNGEN' 'Weder foresprint-app noch foresprint im PATH.'
         return
     }
 
@@ -666,16 +666,16 @@ function Test-AppEnde {
     while ($baseline.Count -gt 0 -and $attempt -lt 3) {
         Add-Block $Section 'Schon vor dem Start laufende Prozesse' (Format-ProcessTable $baseline)
         if (-not (Test-Interactive)) {
-            Complete-Section $Section 'ÜBERSPRUNGEN' 'sprintforecast läuft bereits; bitte alle Fenster schließen und neu starten.'
+            Complete-Section $Section 'ÜBERSPRUNGEN' 'foresprint läuft bereits; bitte alle Fenster schließen und neu starten.'
             return
         }
-        Write-Line 'sprintforecast läuft bereits. Bitte alle App-Fenster schließen.' 'Yellow'
+        Write-Line 'foresprint läuft bereits. Bitte alle App-Fenster schließen.' 'Yellow'
         [void](Read-Host 'Danach Enter drücken (Strg+C bricht ab)')
         $baseline = @(Get-SfProcess)
         $attempt++
     }
     if ($baseline.Count -gt 0) {
-        Complete-Section $Section 'ÜBERSPRUNGEN' 'sprintforecast lief weiter; Prüfung nicht aussagekräftig.'
+        Complete-Section $Section 'ÜBERSPRUNGEN' 'foresprint lief weiter; Prüfung nicht aussagekräftig.'
         return
     }
 
@@ -840,32 +840,32 @@ function Test-UvTool {
     if ($paths.ExitCode -eq 0) { Add-Block $Section 'uv tool list --show-paths' (Format-Native $paths) }
 
     $installed = ''
-    $match = [regex]::Match($list.Output, '(?m)^sprintforecast\s+v?(\S+)')
+    $match = [regex]::Match($list.Output, '(?m)^foresprint\s+v?(\S+)')
     if ($match.Success) { $installed = $match.Groups[1].Value }
     if (-not $installed) {
-        Complete-Section $Section 'HINWEIS' 'sprintforecast ist nicht als uv-Tool installiert (Selbstaktualisierung wirkt dann nicht).'
+        Complete-Section $Section 'HINWEIS' 'foresprint ist nicht als uv-Tool installiert (Selbstaktualisierung wirkt dann nicht).'
         return
     }
 
     if (-not (Test-Interactive)) {
-        Complete-Section $Section 'OK' ('uv-Tool sprintforecast v{0} installiert; Aktualisierung nicht ausgeführt.' -f $installed)
+        Complete-Section $Section 'OK' ('uv-Tool foresprint v{0} installiert; Aktualisierung nicht ausgeführt.' -f $installed)
         return
     }
-    $answer = Read-Host 'uv tool upgrade --reinstall sprintforecast jetzt ausführen (so aktualisiert die App)? Sie muss geschlossen sein. [j/N]'
+    $answer = Read-Host 'uv tool upgrade --reinstall foresprint jetzt ausführen (so aktualisiert die App)? Sie muss geschlossen sein. [j/N]'
     if (([string]$answer).Trim().ToLowerInvariant() -notin @('j', 'ja', 'y', 'yes')) {
-        Complete-Section $Section 'OK' ('uv-Tool sprintforecast v{0} installiert; Aktualisierung auf Wunsch nicht ausgeführt.' -f $installed)
+        Complete-Section $Section 'OK' ('uv-Tool foresprint v{0} installiert; Aktualisierung auf Wunsch nicht ausgeführt.' -f $installed)
         return
     }
     if ($script:OnWindows) {
         $busy = @(Get-SfProcess)
         if ($busy.Count -gt 0) {
             Add-Block $Section 'Laufende Prozesse' (Format-ProcessTable $busy)
-            Complete-Section $Section 'HINWEIS' 'Aktualisierung nicht ausgeführt: sprintforecast läuft noch (Windows sperrt die Dateien).'
+            Complete-Section $Section 'HINWEIS' 'Aktualisierung nicht ausgeführt: foresprint läuft noch (Windows sperrt die Dateien).'
             return
         }
     }
-    $up = Invoke-Native -FilePath $script:Uv -Arguments @('tool', 'upgrade', '--reinstall', 'sprintforecast') -TimeoutSeconds 600
-    Add-Block $Section 'uv tool upgrade --reinstall sprintforecast' (Format-Native $up)
+    $up = Invoke-Native -FilePath $script:Uv -Arguments @('tool', 'upgrade', '--reinstall', 'foresprint') -TimeoutSeconds 600
+    Add-Block $Section 'uv tool upgrade --reinstall foresprint' (Format-Native $up)
     $after = Invoke-Native -FilePath $script:Uv -Arguments @('tool', 'list') -TimeoutSeconds 60
     Add-Block $Section 'uv tool list (danach)' (Format-Native $after)
     Add-Block $Section 'update.log (letzte Zeilen)' (Get-LogTail (Join-Path (Get-ConfigDir) 'update.log') 30)
@@ -966,17 +966,17 @@ function Test-Anmeldung {
 function Test-Zeilenenden {
     param($Section)
     if (-not $script:Git -or -not $script:Py -or -not $script:Sf) {
-        Complete-Section $Section 'ÜBERSPRUNGEN' 'git, sprintforecast oder das Python der Installation fehlt.'
+        Complete-Section $Section 'ÜBERSPRUNGEN' 'git, foresprint oder das Python der Installation fehlt.'
         return
     }
     $base = Join-Path (Get-TempRoot) 'zeilenenden'
     $origin = Join-Path $base 'daten'
     $teams = Initialize-DemoRepository $origin
     $sprints = Invoke-Sf @('--data', $teams, '--as-of', '2026-03-02', 'sprints', 'demo', '--create') 120
-    Add-Block $Section 'sprintforecast sprints demo --create' (Format-Native $sprints)
+    Add-Block $Section 'foresprint sprints demo --create' (Format-Native $sprints)
     $identity = @{
-        GIT_AUTHOR_NAME = 'sprintforecast Windows-Test'; GIT_AUTHOR_EMAIL = 'test@example.invalid'
-        GIT_COMMITTER_NAME = 'sprintforecast Windows-Test'; GIT_COMMITTER_EMAIL = 'test@example.invalid'
+        GIT_AUTHOR_NAME = 'foresprint Windows-Test'; GIT_AUTHOR_EMAIL = 'test@example.invalid'
+        GIT_COMMITTER_NAME = 'foresprint Windows-Test'; GIT_COMMITTER_EMAIL = 'test@example.invalid'
     }
     [void](Invoke-Git -Directory $origin -Arguments @('add', '-A'))
     $commit = Invoke-Git -Directory $origin -Arguments @('-c', 'commit.gpgsign=false', 'commit', '-q', '--no-verify', '-m', 'Testdaten') -Environment $identity
@@ -1024,7 +1024,7 @@ function Test-Zeilenenden {
         $lines = @()
         $lines += ('team.yaml im Arbeitsordner: {0} Zeilen mit CRLF' -f $crlf)
         $lines += ('Nach dem Klonen: git status --porcelain: {0}; git diff Exitcode {1}' -f $(if ($status1.Output.Trim()) { 'NICHT LEER' } else { 'leer' }), $diff1.ExitCode)
-        $lines += ('sprintforecast check: Exitcode {0}' -f $check.ExitCode)
+        $lines += ('foresprint check: Exitcode {0}' -f $check.ExitCode)
         $lines += ('Erneut speichern: Exitcode {0}' -f $resave.ExitCode)
         $lines += ('Danach: git status --porcelain: {0}; git diff Exitcode {1}' -f $(if ($status2.Output.Trim()) { 'NICHT LEER' } else { 'leer' }), $diff2.ExitCode)
         $lines += ''
@@ -1269,7 +1269,7 @@ function Resolve-ReportPath {
     # erst danach den Bericht kosten. Ist der Ort nicht beschreibbar, dient der Temp-Ordner.
     param([string]$Path)
     $here = (Get-Location).ProviderPath
-    if (-not $Path) { $Path = 'sprintforecast-windows-bericht-{0}.md' -f (Get-Date -Format 'yyyyMMdd-HHmm') }
+    if (-not $Path) { $Path = 'foresprint-windows-bericht-{0}.md' -f (Get-Date -Format 'yyyyMMdd-HHmm') }
     if (-not [IO.Path]::IsPathRooted($Path)) { $Path = Join-Path $here $Path }
     $Path = [IO.Path]::GetFullPath($Path)
     try {
@@ -1285,7 +1285,7 @@ function Resolve-ReportPath {
 $Bericht = Resolve-ReportPath -Path $Bericht
 
 try {
-    Write-Line 'sprintforecast – Windows-Prüfung' 'Cyan'
+    Write-Line 'foresprint – Windows-Prüfung' 'Cyan'
     Write-Line 'Testdaten liegen in einem Temp-Ordner und werden am Ende gelöscht.'
     Initialize-Context
     foreach ($key in $script:Context.Keys) { Write-Line ('{0,-16} {1}' -f $key, (Protect-Text ([string]$script:Context[$key]))) }

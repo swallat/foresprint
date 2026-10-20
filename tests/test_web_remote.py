@@ -15,10 +15,10 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from test_web_k3_ui import git, goto, main_button, open_merge, sidebar_button, start
 
-from sprintforecast import git as gitmod
-from sprintforecast import gitsync
-from sprintforecast.git import classify, invalidate_status
-from sprintforecast.storage import save_data_dir
+from foresprint import git as gitmod
+from foresprint import gitsync
+from foresprint.git import classify, invalidate_status
+from foresprint.storage import save_data_dir
 
 FIELD = "git-remote-url"
 OFFERS = {"git-remote-offline-save", "git-remote-branch-save"}

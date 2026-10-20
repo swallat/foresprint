@@ -13,11 +13,11 @@ pytest.importorskip("xlsxwriter")
 
 from typer.testing import CliRunner
 
-from sprintforecast.cli import app
-from sprintforecast.excel import ExcelUnavailable, build_workbook, trend_formula
-from sprintforecast.forecast import build_forecast
-from sprintforecast.model import TrendMode
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.cli import app
+from foresprint.excel import ExcelUnavailable, build_workbook, trend_formula
+from foresprint.forecast import build_forecast
+from foresprint.model import TrendMode
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
 
 TODAY = date(2026, 10, 15)
 
@@ -110,7 +110,7 @@ def test_command_writes_the_file(data_dir: Path, tmp_path: Path, monkeypatch: py
 def test_missing_xlsxwriter_is_reported(
     data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    import sprintforecast.excel as excel
+    import foresprint.excel as excel
 
     def missing() -> None:
         raise ExcelUnavailable("fehlt")

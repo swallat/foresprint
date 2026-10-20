@@ -36,7 +36,7 @@ written the next time the settings are saved.
 
 ## `team.yaml`
 
-Settings; everything is optional except `name`, and `sprintforecast settings TEAM` changes them
+Settings; everything is optional except `name`, and `foresprint settings TEAM` changes them
 with guidance:
 
 ```yaml
@@ -154,7 +154,7 @@ tracker:
     Sprint 42: '2026.21'         # the names differ
 ```
 
-**Jira (`kind: jira`).** `sprintforecast tickets TEAM --fetch` reads the tickets straight from
+**Jira (`kind: jira`).** `foresprint tickets TEAM --fetch` reads the tickets straight from
 Jira Data Center (setup: [jira.md](jira.md)); the CSV import stays available as an offline
 fallback. Additional keys:
 
@@ -221,7 +221,7 @@ in the same `match:`.
 
 ### `tickets.yaml`
 
-The state of the last import, written by `sprintforecast tickets TEAM --import FILE --apply` or
+The state of the last import, written by `foresprint tickets TEAM --import FILE --apply` or
 `--fetch --apply`;
 not meant to be edited by hand:
 
@@ -271,7 +271,7 @@ the check and dropped by the next import.
 
 ### Variants, range and handover to the PO pre-planning
 
-`sprintforecast tickets TEAM` distributes the tickets three times; the variants differ only in the
+`foresprint tickets TEAM` distributes the tickets three times; the variants differ only in the
 plan per future sprint (the budget is its share, see the design):
 
 | Variant | Plan per sprint | Tickets |
@@ -289,7 +289,7 @@ no range: only the median is shown, with a hint. `--variant median|conservative|
 the sprint table, the refinement list and the not-distributable list of that variant instead of
 the median.
 
-`sprintforecast tickets TEAM --handover` proposes the sums of the tickets per future sprint and
+`foresprint tickets TEAM --handover` proposes the sums of the tickets per future sprint and
 product (median variant: distributed tickets, earmarks and tickets in a tracker sprint, with the
 sizes the distribution used) as `preplanned` of the sprint (`products:` below), rounded to the
 team's `forecast.rounding`. It needs `features.products` and shows sprint, product, current value
@@ -347,7 +347,7 @@ The state "expected" in the file is shown as "announced" in the UI.
 
 ## `FORECAST.md`
 
-`sprintforecast report [TEAM]` writes `teams/<team>/FORECAST.md`: a table of the last and the
+`foresprint report [TEAM]` writes `teams/<team>/FORECAST.md`: a table of the last and the
 upcoming sprints plus a Mermaid chart, in the configured UI language, so that it renders in the
 web UI of GitHub or GitLab. The report ends with a section "Supplementary: range" from the
 [analyses](calculation.md#supplementary-analyses). The template's workflow

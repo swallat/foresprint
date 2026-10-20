@@ -29,7 +29,7 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run pytest
-      - run: uv run sprintforecast --data examples/teams check
+      - run: uv run foresprint --data examples/teams check
 
   build:
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}

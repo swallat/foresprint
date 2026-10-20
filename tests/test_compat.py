@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from gitrepos import make_local
 
-from sprintforecast import compat, config, gitsync
-from sprintforecast.sources import jira as jira_module
+from foresprint import compat, config, gitsync
+from foresprint.sources import jira as jira_module
 
 
 def test_legacy_environment_variables_are_adopted():
@@ -131,3 +131,57 @@ def test_config_migration_skips_lock_files_and_leaves_no_temporary_files(
     folder = tmp_path / "foresprint"
     assert not (folder / "sperren" / "x.lock").exists()
     assert not list(folder.rglob("*.tmp"))
+
+
+def test_old_package_name_leads_to_the_same_modules():
+    code = (
+        "import sprintforecast, foresprint;"
+        "import sprintforecast.storage as old, foresprint.storage as new;"
+        "from sprintforecast.plugins import Plugin as OldPlugin;"
+        "from foresprint.plugins import Plugin;"
+        "assert sprintforecast is foresprint and old is new and OldPlugin is Plugin"
+    )
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_update_of_an_installation_from_before_the_rename_installs_the_new_package(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from foresprint import updater
+
+    receipt = tmp_path / "uv-receipt.toml"
+    receipt.write_text(
+        "[tool]\nrequirements = [\n"
+        '  { name = "sprintforecast", extras = ["web", "jira"], url = "https://github.com/swallat/'
+        'sprint-forecast/archive/refs/heads/main.zip" },\n'
+        '  { name = "mein-paket", git = "https://example.org/x/y", rev = "abc" },\n'
+        "]\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(updater, "receipt_path", lambda: receipt)
+    inst = updater.installation()
+    assert inst is not None and inst.legacy and inst.ref == "main" and not inst.pinned
+    assert updater.upgrade_command("/bin/uv") == [
+        "/bin/uv",
+        "tool",
+        "install",
+        "--force",
+        "foresprint[web,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip",
+        "--with",
+        "mein-paket @ git+https://example.org/x/y@abc",
+    ]
+
+
+def test_old_tool_environment_is_removed_once_the_new_tool_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from foresprint import updater
+
+    tools = tmp_path / "tools"
+    (tools / "foresprint").mkdir(parents=True)
+    (tools / "sprintforecast").mkdir()
+    (tools / "sprintforecast" / "uv-receipt.toml").write_text("", encoding="utf-8")
+    monkeypatch.setattr(updater.sys, "prefix", str(tools / "foresprint"))
+    updater.remove_legacy_tool()
+    assert not (tools / "sprintforecast").exists() and (tools / "foresprint").exists()

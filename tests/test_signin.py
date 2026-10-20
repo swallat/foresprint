@@ -15,9 +15,9 @@ from streamlit.testing.v1 import AppTest
 from test_web_k3_ui import git, goto, start
 from test_web_remote import all_text, shown
 
-from sprintforecast import signin
-from sprintforecast.git import GitError, invalidate_status
-from sprintforecast.web import ui
+from foresprint import signin
+from foresprint.git import GitError, invalidate_status
+from foresprint.web import ui
 
 pytestmark = pytest.mark.skipif(
     sys.platform == "win32", reason="Ersatz-Dienst ist ein Shell-Skript"

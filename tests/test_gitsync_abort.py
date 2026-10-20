@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import git as gitmod
-from sprintforecast import gitsync
+from foresprint import git as gitmod
+from foresprint import gitsync
 
 
 @pytest.fixture

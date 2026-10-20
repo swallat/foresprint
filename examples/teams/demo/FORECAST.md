@@ -2,7 +2,7 @@
 
 As of: 15.10.2026 · unit: PT · reference capacity: 45 PT · Ø over 5 sprints · trend: `flat`
 
-> Generated automatically with `sprintforecast report`. Do not edit by hand.
+> Generated automatically with `foresprint report`. Do not edit by hand.
 
 ## Forecast
 

@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import appsettings, config
+from foresprint import appsettings, config
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 
 
 def test_theme_defaults_to_system():
@@ -40,7 +40,7 @@ def test_page_saves_theme_and_applies_it(data_dir, monkeypatch):
     from streamlit import config as st_config
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV
+    from foresprint.storage import DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     app = AppTest.from_file(str(APP), default_timeout=30)

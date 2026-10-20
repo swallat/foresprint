@@ -10,7 +10,7 @@ import yaml
 from gitrepos import git
 from typer.testing import CliRunner
 
-from sprintforecast.cli import app
+from foresprint.cli import app
 
 runner = CliRunner(env={"COLUMNS": "200"})
 DATA = Path(__file__).parent / "data"
@@ -124,12 +124,12 @@ def test_the_core_does_not_import_the_ticket_modules(data_dir: Path, tmp_path: P
     code = (
         "import sys\n"
         "from typer.testing import CliRunner\n"
-        "from sprintforecast.cli import app\n"
+        "from foresprint.cli import app\n"
         "r = CliRunner().invoke(app, ['--data', sys.argv[1], '--as-of', '2026-10-15', "
         "'forecast', 'demo'])\n"
         "assert r.exit_code == 0, r.output\n"
-        "bad = [m for m in ('sprintforecast.preplan', 'sprintforecast.ticket_import', "
-        "'sprintforecast.sources', 'sprintforecast.sources.jira', 'httpx', 'keyring') "
+        "bad = [m for m in ('foresprint.preplan', 'foresprint.ticket_import', "
+        "'foresprint.sources', 'foresprint.sources.jira', 'httpx', 'keyring') "
         "if m in sys.modules]\n"
         "print('LOADED', bad)\n"
     )

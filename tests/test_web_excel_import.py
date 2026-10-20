@@ -13,11 +13,11 @@ pytest.importorskip("xlsxwriter")
 
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
-from sprintforecast.excel import SHEET_FORECAST, build_workbook  # noqa: E402
-from sprintforecast.forecast import build_forecast  # noqa: E402
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository  # noqa: E402
+from foresprint.excel import SHEET_FORECAST, build_workbook  # noqa: E402
+from foresprint.forecast import build_forecast  # noqa: E402
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository  # noqa: E402
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 UPLOADER = "excel-import-demo-file-0"
 APPLY = "Änderungen übernehmen"
 
@@ -132,7 +132,7 @@ def test_workbook_of_another_team_is_refused_without_writing(data_dir: Path, mon
 
 
 def test_workbook_parsed_once_per_upload(data_dir: Path, monkeypatch):
-    import sprintforecast.excel_import as mod
+    import foresprint.excel_import as mod
 
     calls = []
     real = mod.read_workbook_keyed

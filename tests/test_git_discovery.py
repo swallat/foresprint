@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import git as gitmod
-from sprintforecast import gitsync
-from sprintforecast.git import GitError, find_git, git_command, git_locations, reset_git_cache
+from foresprint import git as gitmod
+from foresprint import gitsync
+from foresprint.git import GitError, find_git, git_command, git_locations, reset_git_cache
 
 # The real function; the test environment (conftest) replaces gitmod.git_locations with an
 # empty one.

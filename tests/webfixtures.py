@@ -8,8 +8,8 @@ from typing import Any
 
 import pytest
 
-from sprintforecast.git import invalidate_status
-from sprintforecast.storage import save_data_dir
+from foresprint.git import invalidate_status
+from foresprint.storage import save_data_dir
 
 # State "done" in the step bar: green check icon at the end of the label (open steps
 # carry no mark). Deliberately spelled out here, not taken from ui.py: the tests record what

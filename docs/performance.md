@@ -29,10 +29,10 @@ vary by about 10 to 20 % from run to run.
 | import streamlit | 258.3 | 246.8 |
 | import rich.console | 39.4 | 33.5 |
 | import typer | 48.2 | 45.9 |
-| import sprintforecast.storage | 32.4 | 36.2 |
-| import sprintforecast.forecast | 79.9 | 80.2 |
-| import sprintforecast.web.ui | 982.8 | 387.1 |
-| import sprintforecast.cli | 258.0 | 232.7 |
+| import foresprint.storage | 32.4 | 36.2 |
+| import foresprint.forecast | 79.9 | 80.2 |
+| import foresprint.web.ui | 982.8 | 387.1 |
+| import foresprint.cli | 258.0 | 232.7 |
 | Load team (no cache) | 19.5 | 4.7 |
 | Load team (cache hit) | – | 0.7 |
 | build_forecast | 0.3 | 0.3 |
@@ -49,7 +49,7 @@ vary by about 10 to 20 % from run to run.
 
 How to read this:
 
-- `import sprintforecast.web.ui` (everything the UI start-up imports before the first page)
+- `import foresprint.web.ui` (everything the UI start-up imports before the first page)
   drops because `pandas` and `altair` are now loaded only by the first page that shows a table
   or a chart. The analysis pages (e.g. the forecast) need both, the "Start" landing page does
   not. This was measured while the forecast was still the landing page: the cold start up to
@@ -84,10 +84,10 @@ Before = commit `78010e5` (before PR 1), after = `main` after merging PR 1. Medi
 | import streamlit | 480.2 | 433.3 |
 | import rich.console | 53.3 | 49.6 |
 | import typer | 74.9 | 74.3 |
-| import sprintforecast.storage | 46.5 | 50.1 |
-| import sprintforecast.forecast | 124.9 | 124.4 |
-| import sprintforecast.web.ui | 1364.8 | 730.9 |
-| import sprintforecast.cli | 409.6 | 394.9 |
+| import foresprint.storage | 46.5 | 50.1 |
+| import foresprint.forecast | 124.9 | 124.4 |
+| import foresprint.web.ui | 1364.8 | 730.9 |
+| import foresprint.cli | 409.6 | 394.9 |
 | Load team (no cache) | 18.4 | 5.0 |
 | Load team (cache hit) | – | 1.1 |
 | build_forecast | 0.3 | 0.3 |

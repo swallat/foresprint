@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.model import (
+from foresprint.model import (
     BudgetBasis,
     Earmark,
     EstimateSource,
@@ -21,8 +21,8 @@ from sprintforecast.model import (
     TrackerFields,
     TrackerSettings,
 )
-from sprintforecast.settings import SETTINGS
-from sprintforecast.storage import (
+from foresprint.settings import SETTINGS
+from foresprint.storage import (
     DataError,
     Repository,
     TeamData,
@@ -30,7 +30,7 @@ from sprintforecast.storage import (
     team_to_dict,
     team_version,
 )
-from sprintforecast.validate import check_team_files
+from foresprint.validate import check_team_files
 
 TEAM = "demo"
 TODAY = date(2026, 10, 15)
@@ -440,9 +440,9 @@ def test_excel_export_omits_the_tracker_and_the_import_keeps_it(data_dir: Path):
 
     import openpyxl
 
-    from sprintforecast.excel import SHEET_SETTINGS, build_workbook
-    from sprintforecast.excel_import import plan_import, read_workbook
-    from sprintforecast.forecast import build_forecast
+    from foresprint.excel import SHEET_SETTINGS, build_workbook
+    from foresprint.excel_import import plan_import, read_workbook
+    from foresprint.forecast import build_forecast
 
     repo = Repository(data_dir)
     write_all(repo)
@@ -490,7 +490,7 @@ def test_cli_works_with_an_invalid_tracker_section_while_off(data_dir: Path):
     import yaml
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
+    from foresprint.cli import app
 
     path = data_dir / TEAM / "team.yaml"
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -518,7 +518,7 @@ def test_check_team_files_skips_the_ticket_files_while_the_feature_is_off(data_d
 
 
 def test_unquoted_float_in_rule_values_and_sprint_names_is_refused():
-    from sprintforecast.storage import _rule_from, _tracker_from
+    from foresprint.storage import _rule_from, _tracker_from
 
     with pytest.raises(DataError, match="Anführungszeichen"):
         _rule_from({"in_sprint": [2026.20]}, "projects.yaml")
@@ -545,9 +545,9 @@ def bad_tracker_dir(data_dir: Path) -> Repository:
 def test_excel_import_keeps_an_unreadable_tracker_section(data_dir: Path):
     pytest.importorskip("xlsxwriter")
     pytest.importorskip("openpyxl")
-    from sprintforecast.excel import build_workbook
-    from sprintforecast.excel_import import plan_import, read_workbook
-    from sprintforecast.forecast import build_forecast
+    from foresprint.excel import build_workbook
+    from foresprint.excel_import import plan_import, read_workbook
+    from foresprint.forecast import build_forecast
 
     repo = bad_tracker_dir(data_dir)
     existing = repo.load(TEAM)
@@ -564,7 +564,7 @@ def test_cli_settings_refuse_to_switch_on_with_an_unreadable_tracker(
     import yaml
     from typer.testing import CliRunner
 
-    import sprintforecast.cli as cli
+    import foresprint.cli as cli
 
     bad_tracker_dir(data_dir)
     real = cli._ask_setting

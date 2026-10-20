@@ -17,11 +17,11 @@ from pathlib import Path
 import httpx
 import pytest
 
-from sprintforecast import sources
-from sprintforecast.model import TrackerFields, TrackerSettings
-from sprintforecast.sources import SourceError
-from sprintforecast.sources import jira as jira_module
-from sprintforecast.sources.jira import (
+from foresprint import sources
+from foresprint.model import TrackerFields, TrackerSettings
+from foresprint.sources import SourceError
+from foresprint.sources import jira as jira_module
+from foresprint.sources.jira import (
     JiraSource,
     choose_sprint,
     jira_token,
@@ -122,7 +122,7 @@ def test_test_connection_returns_only_the_display_name():
     request = server.requests[0]
     assert request.url == f"{BASE}/rest/api/2/myself"
     assert request.headers["Authorization"] == f"Bearer {CANARY}"
-    assert request.headers["User-Agent"].startswith("sprintforecast/")
+    assert request.headers["User-Agent"].startswith("foresprint/")
     assert request.headers["Accept"] == "application/json"
 
 
@@ -828,7 +828,7 @@ def clean_token_env(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_token_environment_variable_comes_first(monkeypatch: pytest.MonkeyPatch):
-    fake = FakeKeyring({("sprintforecast-jira", "jira.example.org"): "from-keychain"})
+    fake = FakeKeyring({("foresprint-jira", "jira.example.org"): "from-keychain"})
     monkeypatch.setitem(sys.modules, "keyring", fake)
     monkeypatch.setenv(jira_module.TOKEN_ENV, "  from-env \n")
     assert jira_token(BASE) == "from-env"
@@ -850,7 +850,7 @@ def test_empty_environment_variable_falls_through_to_the_keychain(monkeypatch: p
     monkeypatch.setitem(
         sys.modules,
         "keyring",
-        FakeKeyring({("sprintforecast-jira", "jira.example.org"): "from-keychain"}),
+        FakeKeyring({("foresprint-jira", "jira.example.org"): "from-keychain"}),
     )
     monkeypatch.setenv(jira_module.TOKEN_ENV, "   ")
     assert jira_token(BASE) == "from-keychain"
@@ -912,7 +912,7 @@ def test_missing_httpx_names_the_extra(monkeypatch: pytest.MonkeyPatch):
     with pytest.raises(SourceError) as e:
         JiraSource(settings(), CANARY)
     text = str(e.value)
-    assert "Extra [jira]" in text and "sprintforecast[web,excel,jira]" in text
+    assert "Extra [jira]" in text and "foresprint[web,excel,jira]" in text
     assert CANARY not in text
 
 
@@ -929,8 +929,8 @@ def run_python(code: str, *args: str) -> str:
 def test_importing_the_sources_loads_neither_httpx_nor_keyring():
     code = (
         "import sys\n"
-        "import sprintforecast.sources, sprintforecast.sources.csv, sprintforecast.ticket_import\n"
-        "import sprintforecast.sources.jira\n"
+        "import foresprint.sources, foresprint.sources.csv, foresprint.ticket_import\n"
+        "import foresprint.sources.jira\n"
         "bad = [m for m in ('httpx', 'keyring') if m in sys.modules]\n"
         "print('LOADED', bad)\n"
     )
@@ -943,7 +943,7 @@ def test_csv_import_works_without_httpx(data_dir: Path):
         "import sys\n"
         "sys.modules['httpx'] = None\n"
         "from typer.testing import CliRunner\n"
-        "from sprintforecast.cli import app\n"
+        "from foresprint.cli import app\n"
         "csv = sys.argv[2]\n"
         "r = CliRunner().invoke(app, ['--data', sys.argv[1], '--as-of', '2026-10-15', "
         "'tickets', 'demo', '--import', csv])\n"
@@ -997,7 +997,7 @@ def test_keychain_user_survives_a_malformed_address():
 
 
 def test_the_install_hints_carry_the_full_address(monkeypatch: pytest.MonkeyPatch):
-    """sprintforecast is not on PyPI: a bare `sprintforecast[jira]` does not install."""
+    """foresprint is not on PyPI: a bare `foresprint[jira]` does not install."""
     monkeypatch.setitem(sys.modules, "httpx", None)
     with pytest.raises(SourceError) as missing_httpx:
         JiraSource(settings(), CANARY)
@@ -1006,7 +1006,7 @@ def test_the_install_hints_carry_the_full_address(monkeypatch: pytest.MonkeyPatc
         store_token(BASE, CANARY)
     for error in (missing_httpx.value, missing_keyring.value):
         text = str(error)
-        assert '"sprintforecast[web,excel,jira] @ https://' in text
+        assert '"foresprint[web,excel,jira] @ https://' in text
         assert "pip install" not in text and "Installer erneut" in text
     assert jira_module.INSTALL_URL.startswith("https://github.com/swallat/foresprint/")
 

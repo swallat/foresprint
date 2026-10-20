@@ -3,9 +3,9 @@
 
 import pytest
 
-from sprintforecast.git import classify, title_for
-from sprintforecast.guide import GIT_HELP
-from sprintforecast.i18n import t
+from foresprint.git import classify, title_for
+from foresprint.guide import GIT_HELP
+from foresprint.i18n import t
 
 
 def entry(title: str) -> str:

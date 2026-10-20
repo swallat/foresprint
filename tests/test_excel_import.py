@@ -15,15 +15,15 @@ pytest.importorskip("xlsxwriter")
 
 import openpyxl
 
-from sprintforecast.excel import LEGACY_SHEETS, SHEET_FORECAST, SHEET_SPRINTS, build_workbook
-from sprintforecast.excel_import import (
+from foresprint.excel import LEGACY_SHEETS, SHEET_FORECAST, SHEET_SPRINTS, build_workbook
+from foresprint.excel_import import (
     apply_import,
     plan_import,
     read_workbook,
     read_workbook_keyed,
 )
-from sprintforecast.forecast import build_forecast
-from sprintforecast.storage import DataError, Repository
+from foresprint.forecast import build_forecast
+from foresprint.storage import DataError, Repository
 
 TODAY = date(2026, 10, 15)
 
@@ -146,7 +146,7 @@ def test_roundtrip_keeps_every_field_of_a_fully_filled_team(data_dir: Path, tmp_
     """All fields of the sprint file, several memberships, product values with production."""
     from datetime import datetime
 
-    from sprintforecast.model import (
+    from foresprint.model import (
         AbsenceState,
         Membership,
         Planning,
@@ -206,8 +206,8 @@ def test_command_previews_then_applies(
 ):
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
-    from sprintforecast.storage import DATA_ENV
+    from foresprint.cli import app
+    from foresprint.storage import DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     sprint = next(s for s in Repository(data_dir).load("demo").sprints if s.velocity is not None)
@@ -243,7 +243,7 @@ def setting_cell(wb: openpyxl.Workbook, path: str):
 
 @pytest.mark.parametrize("key", ["../outside", "..", "a/b", "a\\b", "/abs", "C:evil", ".", ""])
 def test_unsafe_team_keys_are_refused_before_any_path_is_resolved(data_dir: Path, key: str):
-    from sprintforecast.excel_import import check_team_key
+    from foresprint.excel_import import check_team_key
 
     repo = Repository(data_dir)
     with pytest.raises(DataError):
@@ -251,7 +251,7 @@ def test_unsafe_team_keys_are_refused_before_any_path_is_resolved(data_dir: Path
 
 
 def test_a_new_team_key_must_be_valid_and_not_clash(data_dir: Path):
-    from sprintforecast.excel_import import check_team_key
+    from foresprint.excel_import import check_team_key
 
     repo = Repository(data_dir)
     check_team_key(repo, "demo")  # existing team: fine
@@ -270,8 +270,8 @@ def test_a_traversing_team_key_writes_nothing_outside_the_data_folder(
 ):
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
-    from sprintforecast.storage import DATA_ENV
+    from foresprint.cli import app
+    from foresprint.storage import DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     file = tmp_path / "in.xlsx"
@@ -295,7 +295,7 @@ def test_the_preview_refuses_an_unsafe_key_without_reading_outside(data_dir: Pat
 def test_apply_refuses_a_hand_built_plan_with_an_unsafe_key(data_dir: Path):
     import dataclasses
 
-    from sprintforecast.excel_import import ImportPlan
+    from foresprint.excel_import import ImportPlan
 
     repo = Repository(data_dir)
     data = read_workbook(exported(data_dir), "demo")
@@ -389,7 +389,7 @@ def test_yes_no_words_work_for_switches_and_text_off_is_not_true(data_dir: Path)
 
 
 def cell_sheet():
-    from sprintforecast.excel_import import _Sheet
+    from foresprint.excel_import import _Sheet
 
     return _Sheet(openpyxl.Workbook().active)
 
@@ -429,7 +429,7 @@ def test_first_sprint_id_setting_cannot_become_a_path(data_dir: Path):
 
 def test_the_settings_form_does_not_accept_an_id_the_loader_would_reject():
     """What is rejected on load (unsafe first sprint ID) must not be saveable."""
-    from sprintforecast.settings import SETTINGS
+    from foresprint.settings import SETTINGS
 
     setting = next(s for s in SETTINGS if s.key == "sprint.first_id")
     for bad in ("../x", "a/b", "ende."):
@@ -461,8 +461,8 @@ def test_a_traversal_id_cannot_overwrite_an_existing_file_outside(data_dir: Path
     """A real target outside the data folder stays unchanged (not just not created)."""
     import dataclasses
 
-    from sprintforecast.excel_import import ImportPlan
-    from sprintforecast.model import Sprint
+    from foresprint.excel_import import ImportPlan
+    from foresprint.model import Sprint
 
     target = data_dir.parent / "victim.yaml"
     target.write_text("original: 1\n", encoding="utf-8")
@@ -480,7 +480,7 @@ def test_a_traversal_id_cannot_overwrite_an_existing_file_outside(data_dir: Path
 def test_spaces_umlauts_and_long_ids_of_existing_sprints_still_round_trip(
     data_dir: Path, tmp_path: Path
 ):
-    from sprintforecast.storage import file_name_problem
+    from foresprint.storage import file_name_problem
 
     for ok in ("2026.22b", "Sprint Übung 1", "2026 Q3", "x" * 80, "-1", "_a"):
         assert file_name_problem(ok) is None, ok
@@ -577,7 +577,7 @@ def test_existing_sprint_files_missing_in_the_workbook_are_part_of_the_check(
     broken.write_text(
         'id: "2026.50"\nstart: 2026-12-14\nend: 2026-12-28\nvelocity: -5\n', encoding="utf-8"
     )
-    from sprintforecast.validate import Level, check_team
+    from foresprint.validate import Level, check_team
 
     union = repo.load("demo")
     expected_error = any(i.level is Level.ERROR for i in check_team(union, TODAY))
@@ -592,7 +592,7 @@ def test_a_workbook_id_that_differs_from_an_omitted_sprint_file_only_by_case_is_
     """Otherwise save_sprint would overwrite the existing file on Windows/macOS (same file)."""
     import dataclasses
 
-    from sprintforecast.model import Sprint
+    from foresprint.model import Sprint
 
     repo = Repository(data_dir)
     # before the file Foo: the workbook does not know it
@@ -608,7 +608,7 @@ def test_a_workbook_id_that_differs_from_an_omitted_sprint_file_only_by_case_is_
 
 
 def test_a_symlinked_team_folder_is_accepted(data_dir: Path, tmp_path: Path):
-    from sprintforecast.excel_import import check_team_key
+    from foresprint.excel_import import check_team_key
 
     real = tmp_path / "echt"
     shutil.copytree(data_dir / "demo", real)
@@ -626,7 +626,7 @@ def test_a_symlinked_team_folder_is_accepted(data_dir: Path, tmp_path: Path):
 def test_a_clashing_team_key_is_refused_regardless_of_the_file_system(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from sprintforecast.excel_import import check_team_key
+    from foresprint.excel_import import check_team_key
 
     # An older team with capital letters in the folder name; a new "alpha" would share the
     # same folder on Windows and macOS.
@@ -655,9 +655,9 @@ def test_the_command_checks_against_the_reference_day(
 ):
     from typer.testing import CliRunner
 
-    import sprintforecast.excel_import as module
-    from sprintforecast.cli import app
-    from sprintforecast.storage import DATA_ENV
+    import foresprint.excel_import as module
+    from foresprint.cli import app
+    from foresprint.storage import DATA_ENV
 
     seen: list[object] = []
     real = module.plan_import
@@ -697,7 +697,7 @@ def test_workbook_without_team_key_is_still_read(data_dir: Path):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="a:b is not a file name on Windows")
 def test_export_warns_about_a_sprint_id_the_import_refuses(data_dir: Path):
-    from sprintforecast.excel import import_unsafe_sprint_ids
+    from foresprint.excel import import_unsafe_sprint_ids
 
     data = Repository(data_dir).load("demo")
     assert import_unsafe_sprint_ids(data) == []
@@ -711,7 +711,7 @@ def test_export_warns_about_a_sprint_id_the_import_refuses(data_dir: Path):
 
 
 def test_export_warns_about_case_only_duplicates_and_an_unsafe_first_id(data_dir: Path):
-    from sprintforecast.excel import import_unsafe_sprint_ids
+    from foresprint.excel import import_unsafe_sprint_ids
 
     data = Repository(data_dir).load("demo")
     first = data.sprints[0]
@@ -736,8 +736,8 @@ def test_excel_command_prints_the_import_warning_to_stderr(
 ):
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
-    from sprintforecast.storage import DATA_ENV
+    from foresprint.cli import app
+    from foresprint.storage import DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     sprints = data_dir / "demo" / "sprints"

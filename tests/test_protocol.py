@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-import sprintforecast.protocol as protocol_module
-from sprintforecast.config import config_dir
-from sprintforecast.protocol import (
+import foresprint.protocol as protocol_module
+from foresprint.config import config_dir
+from foresprint.protocol import (
     PLANNING,
     PREPLANNING,
     REVIEW,
@@ -31,7 +31,7 @@ from sprintforecast.protocol import (
     write_protocol,
     write_protocol_new,
 )
-from sprintforecast.storage import FileAccessError, Repository
+from foresprint.storage import FileAccessError, Repository
 
 NOW = datetime(2026, 10, 16, 14, 43, 5)
 LATER = datetime(2026, 10, 20, 9, 0, 0)
@@ -86,7 +86,7 @@ def test_an_unchanged_save_does_not_write_another_protocol(tmp_path: Path):
 
 
 def sprint_stub(**fields):
-    from sprintforecast.model import Sprint
+    from foresprint.model import Sprint
 
     return Sprint(id="2026.21", start=date(2026, 10, 12), end=date(2026, 10, 26), **fields)
 
@@ -185,8 +185,8 @@ def test_a_failing_rename_undoes_the_ones_already_done(
 def test_a_failing_multi_sprint_save_restores_the_earlier_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from sprintforecast.model import Sprint
-    from sprintforecast.storage import save_sprints_together
+    from foresprint.model import Sprint
+    from foresprint.storage import save_sprints_together
 
     repo = Repository(tmp_path)
     one = Sprint(id="2026.21", start=date(2026, 10, 12), end=date(2026, 10, 26), velocity=5.0)
@@ -214,8 +214,8 @@ def test_a_failing_multi_sprint_save_restores_the_earlier_files(
 def test_saving_the_same_state_twice_writes_one_protocol_even_with_a_pinned_state(tmp_path: Path):
     """``save_sprint`` fixes the state of the absences when saving; the fingerprint must already
     contain the fixed state beforehand, otherwise the second save would count as new."""
-    from sprintforecast.model import ProductValues
-    from sprintforecast.storage import _read, sprint_from_dict
+    from foresprint.model import ProductValues
+    from foresprint.storage import _read, sprint_from_dict
 
     repo = Repository(tmp_path)
     # Older file that contains only the PO pre-planning: absences unknown, nothing fixed.
@@ -609,7 +609,7 @@ def test_the_lock_file_lies_in_the_users_settings_folder(tmp_path: Path):
 def block(path: Path) -> Path:
     """A path below a file: creating folders there fails."""
     path.write_text("im Weg", encoding="utf-8")
-    return path / "sprintforecast"
+    return path / "foresprint"
 
 
 def test_an_unwritable_settings_folder_falls_back_to_a_per_user_temp_folder(

@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 from test_git_discovery import fake_git
 
-from sprintforecast import git as gitmod
-from sprintforecast import updater
+from foresprint import git as gitmod
+from foresprint import updater
 
 posix = pytest.mark.skipif(sys.platform == "win32", reason="Shell-Skript als Fake-Git")
 
