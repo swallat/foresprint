@@ -1810,7 +1810,7 @@ DE: dict[str, str] = {
     "{key} is in sprint {sprint} according to the ticket system and cannot be moved here.": "{key} liegt laut Ticketsystem in Sprint {sprint} und lässt sich hier nicht verschieben.",
     "{prefix}Budget {budget} · used {used} · free {free}": "{prefix}Budget {budget} · belegt {used} · frei {free}",
     "Overview": "Übersicht",
-    "◆ Target sprint of the project. Colour and text show the traffic light.": "◆ Zielsprint des Projekts. Farbe und Text zeigen die Ampel.",
+    "◆ Target sprint of the project. Colour and text show the traffic light; the lighter area is the range of the optimistic to conservative variant.": "◆ Zielsprint des Projekts. Farbe und Text zeigen die Ampel; die hellere Fläche ist die Spanne von der optimistischen bis zur konservativen Variante.",
     "--apply and --commit belong to --import, --fetch and --handover.": "--apply und --commit gehören zu --import, --fetch und --handover.",
     "Read a CSV export of the ticket system (preview); also possible with Jira.": "CSV-Export des Ticketsystems einlesen (Vorschau); auch bei Jira möglich.",
     "Read the tickets from Jira (tracker.kind: jira, read-only; preview).": "Tickets aus Jira lesen (tracker.kind: jira, nur lesend; Vorschau).",
