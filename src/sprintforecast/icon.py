@@ -7,6 +7,7 @@ a cone (the spread of the forecast) and a mint dot where the forecast starts.
 
 from __future__ import annotations
 
+import functools
 import math
 import struct
 import zlib
@@ -66,6 +67,7 @@ def _color(x: float, y: float, s: float) -> tuple[int, int, int, int]:
     return (*INDIGO, 255)
 
 
+@functools.cache
 def png(size: int = SIZE) -> bytes:
     """The logo as PNG (RGBA, 2×2 supersampling for smooth edges)."""
     rows = bytearray()

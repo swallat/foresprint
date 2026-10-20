@@ -1635,7 +1635,7 @@ NO_VALUE = "–"
 
 # Categorical colors in a fixed order (product = catalog position); default is neutral.
 SERIES_COLORS = [
-    "#5b5bf0", "#eb6834", "#17c3a0", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948",
+    "#5b5bf0", "#eb6834", "#17c3a0", "#eda100", "#e87ba4", "#008300", "#2a9df4", "#e34948",
 ]  # fmt: skip
 STANDARD_COLOR = "#9a9a94"
 MAX_PRODUCT_COLORS = len(SERIES_COLORS)
