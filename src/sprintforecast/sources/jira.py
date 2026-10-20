@@ -158,6 +158,50 @@ def jira_token(base_url: str | None = None) -> str | None:
     return (stored or "").strip() or None
 
 
+def keychain_usable() -> bool:
+    """Is there a keychain that can hold a token: ``keyring`` is installed and its backend is a
+    real one (not the "fail" backend that headless Linux without Secret Service ends up with)?"""
+    keyring = _keyring()
+    if keyring is None:
+        return False
+    try:
+        from keyring.backends import chainer, fail
+
+        backend = keyring.get_keyring()
+        if isinstance(backend, chainer.ChainerBackend):
+            return any(not isinstance(b, fail.Keyring) for b in backend.backends)
+        return not isinstance(backend, fail.Keyring) and getattr(backend, "priority", 1) > 0
+    except Exception:  # any backend problem simply means "not usable"
+        return False
+
+
+def stored_token_exists(base_url: str | None) -> bool:
+    """Is there a keychain entry for the host of ``base_url``? Never returns the token."""
+    keyring = _keyring()
+    if keyring is None or not base_url:
+        return False
+    try:
+        return bool(keyring.get_password(KEYRING_SERVICE, keychain_user(base_url)))
+    except Exception:
+        return False
+
+
+def delete_token(base_url: str) -> None:
+    """Removes the keychain entry of the host of ``base_url`` (no error if there is none)."""
+    keyring = _keyring()
+    if keyring is None:
+        raise keyring_missing_error()
+    user = keychain_user(base_url)
+    failed = False
+    try:
+        keyring.delete_password(KEYRING_SERVICE, user)
+    except Exception as e:
+        # no entry is fine; the backend's message could contain anything: not shown
+        failed = type(e).__name__ != "PasswordDeleteError"
+    if failed:
+        raise SourceError(t("The keychain did not remove the token."))
+
+
 def keyring_missing_error() -> SourceError:
     return SourceError(
         t(
@@ -965,9 +1009,12 @@ __all__ = [
     "ResolvedFields",
     "SprintValue",
     "choose_sprint",
+    "delete_token",
     "jira_token",
+    "keychain_usable",
     "keyring_available",
     "keyring_missing_error",
     "parse_sprint",
     "store_token",
+    "stored_token_exists",
 ]
