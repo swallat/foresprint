@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Erweiterungen über Python-Entry-Points (Gruppe ``sprintforecast.plugins``).
+"""Extensions via Python entry points (group ``sprintforecast.plugins``).
 
-Ein Plugin ist ein separat installiertes Paket, das in seiner ``pyproject.toml`` z. B.
+A plugin is a separately installed package that, e.g., in its ``pyproject.toml`` declares
 
     [project.entry-points."sprintforecast.plugins"]
     mein_import = "mein_paket.plugin:plugin"
 
-einträgt. ``plugin`` ist ein :class:`Plugin`; es kann Befehle für die Kommandozeile und
-Seiten für die Weboberfläche beisteuern. Installiert wird es neben dem Tool, z. B.
+as an entry point. ``plugin`` is a :class:`Plugin`; it can contribute commands for the command
+line and pages for the web UI. It is installed next to the tool, e.g.
 
     uv tool install "sprintforecast[web] @ git+…" --with "mein-paket @ git+…"
 """
@@ -29,9 +29,9 @@ ENTRY_POINT_GROUP = "sprintforecast.plugins"
 
 @dataclass(frozen=True)
 class WebPage:
-    key: str  # URL-Pfad, z. B. "mein_import"
+    key: str  # URL path, e.g. "mein_import"
     title: str
-    icon: str  # z. B. ":material/upload_file:"
+    icon: str  # e.g. ":material/upload_file:"
     render: Callable[[Repository], None]
     group: str = "Data & help"
 
@@ -39,19 +39,19 @@ class WebPage:
 @dataclass(frozen=True)
 class Plugin:
     name: str
-    # Erhält die Typer-App und registriert eigene Befehle.
+    # Receives the Typer app and registers its own commands.
     register_cli: Callable[[Any], None] | None = None
     web_pages: list[WebPage] = field(default_factory=list)
 
 
 @cache
 def load_plugins() -> tuple[Plugin, ...]:
-    """Installierte Plugins; fehlerhafte werden mit Hinweis übersprungen."""
+    """Installed plugins; faulty ones are skipped with a warning."""
     plugins = []
     for ep in entry_points(group=ENTRY_POINT_GROUP):
         try:
             plugin = ep.load()
-        except Exception as e:  # ein defektes Plugin darf das Tool nicht blockieren
+        except Exception as e:  # a broken plugin must not block the tool
             print(f"Plugin {ep.name!r} konnte nicht geladen werden: {e}", file=sys.stderr)
             continue
         if isinstance(plugin, Plugin):

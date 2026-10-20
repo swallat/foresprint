@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Stand und „Speichern und teilen“ für gemeinsam genutzte Daten-Repositories.
+"""State and "Save and share" for shared data repositories.
 
-Das Modell ist bewusst einfach: ein Branch, immer synchron halten. Die Funktionen rufen das
-Programm ``git`` auf (siehe :mod:`sprintforecast.git`) und liefern Fehler als
-:class:`~sprintforecast.git.GitError` mit Art und nächstem Schritt. Eigene Änderungen werden vor
-jedem Abgleich committet, damit sie nie verloren gehen können; scheitert das Zusammenführen,
-wird es abgebrochen und der Stand bleibt wie zuvor.
+The model is deliberately simple: one branch, always kept in sync. The functions call the
+``git`` program (see :mod:`sprintforecast.git`) and report errors as
+:class:`~sprintforecast.git.GitError` with a kind and the next step. Own changes are committed
+before every sync so that they can never get lost; if merging fails, it is aborted and the
+state stays as it was.
 """
 
 from __future__ import annotations
@@ -46,22 +46,22 @@ from sprintforecast.yamlmerge import (
     merge3,
 )
 
-# Wie die eigenen Änderungen auf den Server kommen: direkt auf den Branch oder (Server mit
-# geschütztem Hauptbranch, z. B. GitLab) über einen Merge Request. Die Wahl gilt je
-# Daten-Repository und steht in dessen lokaler Git-Konfiguration.
+# How own changes reach the server: directly onto the branch or (server with a protected
+# main branch, e.g. GitLab) via a merge request. The choice applies per data repository and
+# is stored in its local Git configuration.
 SHARE_KEY = "sprintforecast.share"
-AUTO_MERGE_KEY = "sprintforecast.mrautomerge"  # "false" schaltet das Automerge ab (Standard: an)
+AUTO_MERGE_KEY = "sprintforecast.mrautomerge"  # "false" turns auto-merge off (default: on)
 SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
 _PR_URL = re.compile(
     r"https?://\S+/(?:pulls?/(?:\d+|new/\S+)|merge_requests/(?:\d+|new\b\S*)|compare/\S+)"
 )
-# Auf welchem Server liegt das Daten-Repository? Das bestimmt, wie ein Merge/Pull Request
-# entsteht. ``HOST_KEY`` überschreibt die Erkennung aus der Adresse (Standard: automatisch).
+# Which server hosts the data repository? That determines how a merge/pull request is
+# created. ``HOST_KEY`` overrides the detection from the address (default: automatic).
 HOST_KEY = "sprintforecast.host"
 HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC = "gitlab", "github", "forgejo", "generic"
 HOSTS = (HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC)
 
-# Wie oft ein Push nach "inzwischen hat jemand anderes hochgeladen" neu versucht wird.
+# How often a push is retried after "someone else has uploaded in the meantime".
 MAX_ATTEMPTS = 3
 
 _SEP = "\x1f"
@@ -77,22 +77,22 @@ class Commit:
 
 @dataclass(frozen=True)
 class SyncState:
-    """Stand des Datenordners gegenüber dem Server (ohne Netzwerkzugriff ermittelt; ``behind``
-    gilt für den Stand beim letzten Abgleich, siehe :func:`fetch`)."""
+    """State of the data folder relative to the server (determined without network access;
+    ``behind`` applies to the state at the last fetch, see :func:`fetch`)."""
 
     root: Path
     branch: str | None  # None = detached HEAD
-    upstream: str | None  # z. B. "origin/main"
-    remote: str | None  # Name des Servers, None = keiner eingerichtet
-    # Roh, kann Zugangsdaten enthalten (Altbestand): nie anzeigen, auch nicht über ``repr``.
+    upstream: str | None  # e.g. "origin/main"
+    remote: str | None  # name of the server, None = none set up
+    # Raw, may contain credentials (legacy data): never display, not even via ``repr``.
     url: str = field(default="", repr=False)
     ahead: int = 0
     behind: int = 0
-    unfinished: str | None = None  # "merge" oder "rebase"
+    unfinished: str | None = None  # "merge" or "rebase"
     conflicts: tuple[str, ...] = ()
-    fetch_error: GitError | None = None  # Ergebnis des letzten Abgleichs, None = ok/unbekannt
+    fetch_error: GitError | None = None  # result of the last fetch, None = ok/unknown
     fetched_at: float | None = None
-    unborn: bool = False  # noch kein Commit (frisch angelegtes Repository)
+    unborn: bool = False  # no commit yet (freshly created repository)
 
     @property
     def detached(self) -> bool:
@@ -109,35 +109,35 @@ class SyncState:
 
 @dataclass(frozen=True)
 class ConflictFile:
-    """Eine Datei, die beim Zusammenführen nicht von selbst zusammenpasst."""
+    """A file that does not merge on its own."""
 
-    file: str  # relativ zur Repository-Wurzel
-    keys: tuple[KeyConflict, ...] = ()  # echte Wertkonflikte (nur bei Zusammenführen je Schlüssel)
-    whole: bool = False  # nur als Ganzes entscheidbar (kein YAML, gelöscht auf einer Seite)
+    file: str  # relative to the repository root
+    keys: tuple[KeyConflict, ...] = ()  # real value conflicts (only when merging per key)
+    whole: bool = False  # can only be decided as a whole (not YAML, deleted on one side)
     ours_deleted: bool = False
     theirs_deleted: bool = False
 
     @property
     def open(self) -> bool:
-        """Braucht eine Entscheidung (sonst wird die Datei automatisch zusammengeführt)."""
+        """Needs a decision (otherwise the file is merged automatically)."""
         return self.whole or bool(self.keys)
 
 
 @dataclass
 class SyncResult:
-    """Ergebnis von :func:`sync`: was getan wurde, was von anderen kam und woran es ggf. hakt."""
+    """Result of :func:`sync`: what was done, what came from others and what got stuck."""
 
-    committed: str | None = None  # Kurz-Hash des eigenen Commits
-    pulled: list[Commit] = field(default_factory=list)  # neu von anderen
+    committed: str | None = None  # short hash of the own commit
+    pulled: list[Commit] = field(default_factory=list)  # new from others
     pulled_files: list[tuple[str, str]] = field(default_factory=list)
     pushed: bool = False
-    merge_request_url: str | None = None  # Teilen über Merge Request: Adresse, falls gemeldet
-    merge_request_branch: str | None = None  # Branch, der hochgeladen wurde
-    pull_only: bool = False  # „Vom Server holen“: nichts hochladen, auch nicht beim Fortsetzen
-    merged: bool = False  # fremde Änderungen wurden zusammengeführt
+    merge_request_url: str | None = None  # sharing via merge request: address, if reported
+    merge_request_branch: str | None = None  # branch that was uploaded
+    pull_only: bool = False  # "Pull from server": upload nothing, not even when resuming
+    merged: bool = False  # changes from others were merged
     conflicts: list[ConflictFile] = field(default_factory=list)
-    validation: list[str] = field(default_factory=list)  # neue Fehler nach dem Zusammenführen
-    notes: list[str] = field(default_factory=list)  # Hinweise, obwohl alles gelang
+    validation: list[str] = field(default_factory=list)  # new errors after merging
+    notes: list[str] = field(default_factory=list)  # notes even though everything worked
     error: GitError | None = None
 
     @property
@@ -145,7 +145,7 @@ class SyncResult:
         return self.error is None
 
 
-# Zuletzt bekannter Abgleich je Repository: (Zeit, Fehler oder None).
+# Last known fetch per repository: (time, error or None).
 _FETCHED: dict[Path, tuple[float, GitError | None]] = {}
 _STATE_CACHE: dict[Path, tuple[float, SyncState]] = {}
 _STATE_TTL = 5.0
@@ -170,7 +170,7 @@ def _git_dir(root: Path) -> Path:
 
 
 def state(path: Path) -> SyncState:
-    """Stand des Datenordners (lokal ermittelt, ohne Netzwerk)."""
+    """State of the data folder (determined locally, without network)."""
     root = _root(path)
     out = _git(
         root, "status", "--porcelain=v2", "-z", "--branch", "--untracked-files=no", strip=False
@@ -183,13 +183,13 @@ def state(path: Path) -> SyncState:
     entries = out.split("\0")
     skip = 0
     for line in entries:
-        if skip:  # bisheriger Pfad einer Umbenennung
+        if skip:  # previous path of a rename
             skip -= 1
             continue
         if line.startswith("2 "):
             skip = 1
         elif line.startswith("# branch.oid "):
-            unborn = line.split(" ", 2)[2] == "(initial)"  # noch kein Commit
+            unborn = line.split(" ", 2)[2] == "(initial)"  # no commit yet
         elif line.startswith("# branch.head "):
             head = line.split(" ", 2)[2]
             branch = None if head == "(detached)" else head
@@ -198,7 +198,7 @@ def state(path: Path) -> SyncState:
         elif line.startswith("# branch.ab "):
             plus, minus = line.split(" ")[2:4]
             ahead, behind = int(plus.lstrip("+")), abs(int(minus))
-        elif line.startswith("u "):  # nicht zusammengeführte Datei
+        elif line.startswith("u "):  # unmerged file
             conflicts.append(line.split(" ", 10)[-1])
     remote = upstream.split("/", 1)[0] if upstream else None
     if remote is None:
@@ -229,8 +229,8 @@ def state(path: Path) -> SyncState:
 
 
 def cached_state(path: Path) -> SyncState:
-    """Wie :func:`state`, aber kurz zwischengespeichert (für die Oberfläche); wird mit
-    :func:`sprintforecast.git.invalidate_status` ungültig."""
+    """Like :func:`state`, but cached briefly (for the UI); invalidated by
+    :func:`sprintforecast.git.invalidate_status`."""
     key = path.resolve()
     cached = _STATE_CACHE.get(key)
     if cached and time.monotonic() - cached[0] < _STATE_TTL:
@@ -240,36 +240,36 @@ def cached_state(path: Path) -> SyncState:
     return current
 
 
-# Im Hintergrund: kurzes Zeitlimit (der ganze Prozessbaum wird beendet) und nie ein Anmeldefenster
-# oder eine Rückfrage (Credential Manager, GIT_ASKPASS/SSH_ASKPASS, SSH-Passphrase). Fehlt die
-# Anmeldung oder ist der Server nicht erreichbar, bleibt der Stand unverändert; der Knopf „Stand
-# prüfen“ erklärt dann den nächsten Schritt.
+# In the background: short timeout (the whole process tree is terminated) and never a login
+# window or prompt (Credential Manager, GIT_ASKPASS/SSH_ASKPASS, SSH passphrase). If the login
+# is missing or the server is unreachable, the state stays unchanged; the "Check state"
+# button then explains the next step.
 BACKGROUND_FETCH_SECONDS = 30 * 60
 BACKGROUND_TIMEOUT = 20.0
-BACKGROUND_OFF_ENV = "SPRINTFORECAST_NO_BACKGROUND_FETCH"  # gesetzt: kein Abruf im Hintergrund
+BACKGROUND_OFF_ENV = "SPRINTFORECAST_NO_BACKGROUND_FETCH"  # set: no background fetch
 _QUIET_ENV = {
     "GCM_INTERACTIVE": "never",
     "SSH_ASKPASS_REQUIRE": "never",
-    "GIT_ASKPASS": "",  # leer (nicht fehlend): Git fragt weder core.askPass noch SSH_ASKPASS
+    "GIT_ASKPASS": "",  # empty (not missing): Git asks neither core.askPass nor SSH_ASKPASS
 }
 _BACKGROUND_LOCK = threading.Lock()
 _BACKGROUND_ACTIVE: set[Path] = set()
-_BACKGROUND_LAST: dict[Path, float] = {}  # letzter Versuch je Datenordner (ohne Git-Aufruf)
+_BACKGROUND_LAST: dict[Path, float] = {}  # last attempt per data folder (without a Git call)
 _SYNC_LOCKS: dict[Path, threading.RLock] = {}
 
 
 def _lock_for(path: Path) -> threading.RLock:
-    """Eine Sperre je Datenordner: Abgleich und Abruf laufen nie gleichzeitig (Git sperrt sonst
-    ``packed-refs`` und Index, und „Speichern und teilen“ scheiterte an einem Abruf im
-    Hintergrund). Wiedereintrittsfähig, denn der Abgleich ruft :func:`fetch` selbst auf."""
+    """One lock per data folder: sync and fetch never run at the same time (otherwise Git locks
+    ``packed-refs`` and the index, and "Save and share" would fail because of a background
+    fetch). Reentrant, because the sync calls :func:`fetch` itself."""
     key = path.resolve()
     with _BACKGROUND_LOCK:
         return _SYNC_LOCKS.setdefault(key, threading.RLock())
 
 
-LOCK_WARN_SECONDS = 60.0  # so lange wartet ein Aufruf auf einen laufenden Abgleich, dann Hinweis
+LOCK_WARN_SECONDS = 60.0  # a call waits this long for a running sync, then a notice
 _LOCK_POLL_SECONDS = 1.0
-_HELD: dict[Path, tuple[float, int]] = {}  # Datenordner → (Beginn, Tiefe) des laufenden Abgleichs
+_HELD: dict[Path, tuple[float, int]] = {}  # data folder → (start, depth) of the running sync
 
 
 def _busy_error(since: float) -> GitError:
@@ -286,9 +286,9 @@ def _busy_error(since: float) -> GitError:
 
 @contextlib.contextmanager
 def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
-    """Hält die Sperre des Datenordners. Wer länger als ``wait`` (Vorgabe: ``LOCK_WARN_SECONDS``)
-    warten müsste, bekommt einen :class:`GitError` der Art ``sync_busy`` statt ewigen Wartens.
-    Der laufende Abgleich wird dadurch nie beendet; das geschieht nur mit
+    """Holds the lock of the data folder. Whoever would have to wait longer than ``wait``
+    (default: ``LOCK_WARN_SECONDS``) gets a :class:`GitError` of kind ``sync_busy`` instead of
+    waiting forever. The running sync is never ended by this; that only happens with
     :func:`abort_running_sync`."""
     lock = _lock_for(path)
     key = path.resolve()
@@ -310,7 +310,7 @@ def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
     try:
         yield
     finally:
-        if root is not None:  # ein Abbruch gilt nur für diesen Abgleich
+        if root is not None:  # an abort applies only to this sync
             gitmod.end_sync(root)
         with _BACKGROUND_LOCK:
             since, depth = _HELD[key]
@@ -322,17 +322,16 @@ def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
 
 
 def sync_running_seconds(path: Path) -> float | None:
-    """Seit wie vielen Sekunden hält ein Abgleich die Sperre dieses Datenordners (``None``:
-    keiner)?"""
+    """For how many seconds has a sync held the lock of this data folder (``None``: none)?"""
     with _BACKGROUND_LOCK:
         held = _HELD.get(path.resolve())
     return None if held is None else max(0.0, time.time() - held[0])
 
 
 def abort_running_sync(path: Path) -> bool:
-    """Beendet die laufenden Git-Aufrufe des Abgleichs dieses Datenordners (ausdrücklicher
-    Wunsch). Der Abgleich endet dann mit einem Fehler; vorher gesicherte Änderungen bleiben,
-    Sperrdateien wie ``index.lock`` werden nicht angefasst. ``True``, wenn etwas lief."""
+    """Terminates the running Git calls of the sync of this data folder (explicit request).
+    The sync then ends with an error; changes saved before stay, lock files such as
+    ``index.lock`` are not touched. ``True`` if something was running."""
     try:
         return gitmod.abort_running(_root(path))
     except GitError:
@@ -340,8 +339,8 @@ def abort_running_sync(path: Path) -> bool:
 
 
 def _quiet_env(root: Path) -> dict[str, str]:
-    """Umgebung für den Abruf im Hintergrund; SSH läuft ohne Rückfrage (``BatchMode``), wenn
-    niemand einen eigenen SSH-Befehl festgelegt hat (Umgebung oder ``core.sshCommand``)."""
+    """Environment for the background fetch; SSH runs without prompts (``BatchMode``) unless
+    someone set their own SSH command (environment or ``core.sshCommand``)."""
     env = dict(_QUIET_ENV)
     if not (
         os.environ.get("GIT_SSH_COMMAND")
@@ -353,9 +352,9 @@ def _quiet_env(root: Path) -> dict[str, str]:
 
 
 def _fetch_in_background(root: Path, current: SyncState) -> None:
-    """Ein ``git fetch --prune`` mit Zeitlimit; gespeichert wird nur ein Erfolg (ein Misserfolg
-    ohne Rückfrage sagt nichts über den Server und soll den letzten guten Stand nicht
-    überschreiben). Ist der Server inzwischen ein anderer, gilt das Ergebnis nicht."""
+    """A ``git fetch --prune`` with a timeout; only a success is stored (a failure without
+    prompting says nothing about the server and must not overwrite the last good state). If
+    the server has changed in the meantime, the result is discarded."""
     run = gitmod._probe_run(
         root,
         ("fetch", "--prune", "--no-tags", current.remote or "origin"),
@@ -371,15 +370,15 @@ def _fetch_in_background(root: Path, current: SyncState) -> None:
 
 
 def fetch(path: Path) -> SyncState:
-    """Holt den Stand vom Server (nur herunterladen, nichts ändern) und merkt sich, ob der
-    Server erreichbar war. Fehler werden nicht ausgelöst, sondern im Stand vermerkt."""
+    """Fetches the state from the server (download only, change nothing) and remembers whether
+    the server was reachable. Errors are not raised but recorded in the state."""
     try:
         with _locked(path):
             return _fetch_locked(path)
     except GitError as e:
         if e.kind not in {"sync_busy", "aborted"}:
             raise
-        cached = _STATE_CACHE.get(path.resolve())  # kein Git neben dem laufenden Abgleich
+        cached = _STATE_CACHE.get(path.resolve())  # no Git call alongside the running sync
         return cached[1] if cached else state(path)
 
 
@@ -393,7 +392,7 @@ def _fetch_locked(path: Path) -> SyncState:
         try:
             _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
         except GitError as e:
-            if e.kind == "aborted":  # kein Befund über den Server: nichts vermerken
+            if e.kind == "aborted":  # no finding about the server: record nothing
                 raise
             error = e
     _FETCHED[root] = (time.time(), error)
@@ -402,37 +401,36 @@ def _fetch_locked(path: Path) -> SyncState:
 
 
 def background_fetch_due(path: Path, now: float | None = None) -> bool:
-    """Ist der letzte Abruf (Versuch im Hintergrund oder Abruf von Hand) länger als 30 Minuten
-    her oder gab es noch keinen in diesem Programmlauf, und hat der Datenordner einen Server?
-    Die Prüfung der Zeit kommt zuerst und braucht keinen Git-Aufruf: Die Seitenleiste fragt bei
-    jedem Neuzeichnen."""
+    """Is the last fetch (background attempt or manual fetch) more than 30 minutes ago, or has
+    there been none in this program run, and does the data folder have a server? The time
+    check comes first and needs no Git call: the sidebar asks on every redraw."""
     now = now or time.time()
     key = path.resolve()
-    # Etwas Spielraum: Die Oberfläche ruft genau alle 30 Minuten, der letzte Abruf endete aber
-    # einige Sekunden nach seinem Beginn.
+    # Some leeway: the UI calls exactly every 30 minutes, but the last fetch ended a few
+    # seconds after it started.
     due_after = BACKGROUND_FETCH_SECONDS - 60
     last = _BACKGROUND_LAST.get(key)
     if last is not None and now - last < due_after:
         return False
     if cached_state(path).remote is None:
-        _BACKGROUND_LAST[key] = now  # ohne Server nicht bei jedem Neuzeichnen neu fragen
+        _BACKGROUND_LAST[key] = now  # without a server, do not ask again on every redraw
         return False
     fetched = _FETCHED.get(_root(path))
     return fetched is None or now - fetched[0] >= due_after
 
 
 def start_background_fetch(path: Path) -> bool:
-    """Startet bei Bedarf einen Abruf des Serverstands im Hintergrund (``git fetch --prune``)
-    und liefert, ob einer gestartet wurde. Es läuft nie mehr als einer je Datenordner, nie
-    gleichzeitig mit einem Abgleich, und keine Dauerschleife: Aufgerufen wird nur aus einer
-    verbundenen Sitzung (beim Start und alle 30 Minuten), der Faden ist ein Nebenfaden und hält
-    ``idle.py`` nicht auf."""
+    """Starts a background fetch of the server state (``git fetch --prune``) if needed and
+    returns whether one was started. Never more than one runs per data folder, never at the
+    same time as a sync, and there is no endless loop: it is only called from a connected
+    session (at startup and every 30 minutes), the thread is a daemon thread and does not
+    hold up ``idle.py``."""
     if os.environ.get(BACKGROUND_OFF_ENV):
         return False
     key = path.resolve()
     try:
         if not background_fetch_due(path) or sync_running_seconds(path) is not None:
-            return False  # ein Abgleich läuft: kein Git daneben
+            return False  # a sync is running: no Git call alongside it
         root = _root(path)
         current = state(path)
     except GitError:
@@ -446,11 +444,11 @@ def start_background_fetch(path: Path) -> bool:
     def run() -> None:
         try:
             try:
-                with _locked(path, wait=0):  # ein Abgleich läuft: beim nächsten Mal wieder
+                with _locked(path, wait=0):  # a sync is running: try again next time
                     _fetch_in_background(root, current)
             except GitError:
                 pass
-        except Exception:  # ein Hintergrundabruf darf nie etwas beenden
+        except Exception:  # a background fetch must never end anything
             pass
         finally:
             with _BACKGROUND_LOCK:
@@ -461,8 +459,8 @@ def start_background_fetch(path: Path) -> bool:
 
 
 def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str, str]]]:
-    """Was andere seit dem eigenen Stand geändert haben (nach dem letzten Abgleich): Commits
-    und geänderte Dateien (Status, Pfad) unterhalb von ``path``."""
+    """What others have changed since the own state (as of the last fetch): commits and
+    changed files (status, path) below ``path``."""
     root = _root(path)
     current = state(path)
     if not current.upstream or current.behind == 0:
@@ -491,7 +489,7 @@ def incoming(path: Path, limit: int = 50) -> tuple[list[Commit], list[tuple[str,
     while i < len(entries) and entries[i]:
         status = entries[i]
         i += 1
-        names = 2 if status[:1] in {"R", "C"} else 1  # bei Umbenennungen: alt, neu
+        names = 2 if status[:1] in {"R", "C"} else 1  # for renames: old, new
         if i + names > len(entries):
             break
         files.append((status[:1], entries[i + names - 1]))
@@ -507,8 +505,7 @@ def _parse(text: str) -> Any:
 
 
 def _stages(root: Path) -> dict[str, set[int]]:
-    """Nicht zusammengeführte Dateien mit den vorhandenen Ständen (1 = Basis, 2 = meine,
-    3 = andere)."""
+    """Unmerged files with the stages present (1 = base, 2 = mine, 3 = theirs)."""
     out = _git(root, "ls-files", "-u", "-z", strip=False, check=False)
     stages: dict[str, set[int]] = {}
     for entry in filter(None, out.split("\0")):
@@ -521,14 +518,14 @@ def _stage_text(root: Path, stage: int, file: str) -> str:
     return _git(root, "show", f":{stage}:{file}", strip=False)
 
 
-# Obergrenzen der Textansicht (Zeilen und Zeichen je Zeile), damit eine große Datei die Seite
-# nicht sprengt.
+# Upper limits of the text view (lines and characters per line), so that a large file does
+# not blow up the page.
 MAX_DIFF_LINES = 300
 MAX_DIFF_COLUMNS = 400
 
 
 def unified_diff(old: str, new: str, old_name: str, new_name: str) -> str:
-    """Zeilenweiser Unterschied (``diff -u``) zweier Texte, gekürzt; leer, wenn gleich."""
+    """Line-by-line difference (``diff -u``) of two texts, truncated; empty if equal."""
     lines = difflib.unified_diff(
         old.splitlines(), new.splitlines(), old_name, new_name, lineterm="", n=2
     )
@@ -539,9 +536,9 @@ def unified_diff(old: str, new: str, old_name: str, new_name: str) -> str:
 
 
 def conflict_text_diffs(path: Path, file: str) -> tuple[str, str]:
-    """Wie sich die Datei bei einem offenen Zusammenführen auf beiden Seiten gegenüber dem
-    gemeinsamen Stand geändert hat, als Text (``diff -u``): (meine Seite, andere Seite). Leer,
-    wenn es den Stand nicht gibt, die Datei zu groß ist oder kein Text."""
+    """How the file changed on both sides compared to the common state during an open merge,
+    as text (``diff -u``): (my side, other side). Empty if that stage does not exist, the
+    file is too large or not text."""
     root = _root(path)
     stages = _stages(root).get(file, set())
 
@@ -568,8 +565,8 @@ def conflict_text_diffs(path: Path, file: str) -> tuple[str, str]:
 def _analyse(
     root: Path, file: str, stages: set[int], choices: dict[tuple[str, ...], str]
 ) -> tuple[ConflictFile, str | None]:
-    """Prüft eine Datei: lässt sie sich auf Schlüsselebene zusammenführen? Liefert die offenen
-    Wertkonflikte und – wenn keine bleiben – den zusammengeführten Text."""
+    """Checks a file: can it be merged at key level? Returns the open value conflicts and,
+    if none remain, the merged text."""
     whole = ConflictFile(
         file, whole=True, ours_deleted=2 not in stages, theirs_deleted=3 not in stages
     )
@@ -592,8 +589,8 @@ def _analyse(
 
 
 def pending_conflicts(path: Path) -> list[ConflictFile]:
-    """Dateien eines unvollständigen Zusammenführens: mit ihren echten Wertkonflikten (leer =
-    lässt sich automatisch zusammenführen) bzw. als Ganzes zu entscheiden."""
+    """Files of an unfinished merge: with their real value conflicts (empty = can be merged
+    automatically) or to be decided as a whole."""
     root = _root(path)
     return [_analyse(root, f, st, {})[0] for f, st in sorted(_stages(root).items())]
 
@@ -601,9 +598,9 @@ def pending_conflicts(path: Path) -> list[ConflictFile]:
 def resolve_conflicts(
     path: Path, choices: dict[str, dict[tuple[str, ...], str]] | None = None
 ) -> list[ConflictFile]:
-    """Löst alles, was sich lösen lässt: Dateien ohne Wertkonflikt automatisch, die übrigen
-    nach ``choices`` (Datei → Pfad → "ours"/"theirs"; Pfad ``()`` = ganze Datei). Liefert die
-    verbleibenden Konflikte. Das Zusammenführen wird erst von :func:`sync` abgeschlossen."""
+    """Resolves everything that can be resolved: files without a value conflict automatically,
+    the rest according to ``choices`` (file → path → "ours"/"theirs"; path ``()`` = whole
+    file). Returns the remaining conflicts. The merge is only completed by :func:`sync`."""
     root = _root(path)
     for file, stages in sorted(_stages(root).items()):
         wanted = (choices or {}).get(file, {})
@@ -616,16 +613,16 @@ def resolve_conflicts(
             if keep in stages:
                 _git(root, "checkout", "--ours" if choice == OURS else "--theirs", "--", file)
                 _git(root, "add", "--", file)
-            else:  # auf dieser Seite gelöscht
+            else:  # deleted on this side
                 _git(root, "rm", "-q", "--", file)
         elif merged is not None:
             try:
                 (root / file).write_text(merged, encoding="utf-8", newline="\n")
-            except OSError as e:  # gesperrt oder schreibgeschützt: das Zusammenführen bleibt offen
-                # Die Art bleibt ``locked`` („Eine Datei ist gesperrt“): Windows meldet eine von
-                # einem anderen Programm gehaltene Datei als „Permission denied“, wie eine
-                # schreibgeschützte, und die Fehlernummer trennt beide nicht verlässlich.
-                # Anders als bei Gits ``index.lock`` passt hier aber nur der Hinweis zur Datei.
+            except OSError as e:  # locked or read-only: the merge stays open
+                # The kind stays ``locked`` ("A file is locked"): Windows reports a file held
+                # by another program as "Permission denied", like a read-only one, and the
+                # error number does not reliably tell them apart. Unlike with Git's
+                # ``index.lock``, only the hint about the file fits here.
                 raise GitError(
                     t(
                         "{file} could not be written ({reason}).",
@@ -641,10 +638,10 @@ def resolve_conflicts(
 
 
 def _unrelated(root: Path, remote: str | None, upstream: str) -> bool:
-    """Haben der eigene Stand und ``upstream`` keinen gemeinsamen Ursprung? Unterscheidet
-    „kein gemeinsamer Vorfahr“ (Rückgabecode 1) von echten Fehlern (werden ausgelöst) und
-    von einem flachen Klon, dessen abgeschnittene Historie nur so aussieht: Dort wird erst
-    die volle Historie geholt. Ohne eigenen Commit gibt es nichts, was sich vermischen ließe."""
+    """Do the own state and ``upstream`` lack a common origin? Distinguishes "no common
+    ancestor" (return code 1) from real errors (which are raised) and from a shallow clone
+    whose truncated history only looks that way: there the full history is fetched first.
+    Without an own commit there is nothing that could get mixed up."""
     if not _ref_exists(root, "HEAD"):
         return False
     for attempt in range(2):
@@ -678,10 +675,10 @@ def _unrelated_error(current: SyncState, target: str) -> GitError:
 def _merge(
     root: Path, upstream: str, path: Path, allow_unrelated: bool = False
 ) -> list[ConflictFile]:
-    """Führt den Server-Stand ein. Bei Konflikten bleibt das Zusammenführen offen, alles
-    automatisch Lösbare ist erledigt; zurück kommen die Konflikte für den Menschen (leer =
-    fertig). Die eigenen Änderungen sind bereits committet. Unverwandte Historien werden nur
-    mit ``allow_unrelated`` zusammengeführt (der Aufrufer hat sie vorher geprüft)."""
+    """Brings in the server state. On conflicts the merge stays open, everything that can be
+    resolved automatically is done; the conflicts for the human are returned (empty = done).
+    The own changes are already committed. Unrelated histories are only merged with
+    ``allow_unrelated`` (the caller has checked them beforehand)."""
     args = ["merge", "--no-edit"]
     if allow_unrelated:
         args.append("--allow-unrelated-histories")
@@ -710,8 +707,8 @@ def _error_set(repo_dir: Path, today: date) -> set[tuple[str, str, str]]:
     from sprintforecast.storage import Repository
     from sprintforecast.validate import Level, check_all
 
-    # Ohne den Ordner im Text: Der Vergleich Arbeitsstand gegen Commit läuft in verschiedenen
-    # Ordnern, und Ladefehler nennen den Dateipfad.
+    # Without the folder in the text: the comparison of working state against commit runs in
+    # different folders, and load errors name the file path.
     prefix = str(repo_dir)
 
     def relative(text: str) -> str:
@@ -726,7 +723,7 @@ def _error_set(repo_dir: Path, today: date) -> set[tuple[str, str, str]]:
 
 
 def _errors_at(root: Path, path: Path, rev: str, today: date) -> set[tuple[str, str, str]]:
-    """Fehler der Gesamtvalidierung für den Stand eines Commits (ohne ihn auszuchecken)."""
+    """Errors of the full validation for the state of a commit (without checking it out)."""
     rel = path.resolve().relative_to(root).as_posix()
     tree = rev if rel == "." else f"{rev}:{rel}"
     try:
@@ -739,8 +736,8 @@ def _errors_at(root: Path, path: Path, rev: str, today: date) -> set[tuple[str, 
 
 
 def new_errors(path: Path, baseline: str, today: date | None = None) -> list[str]:
-    """Fehler der Gesamtvalidierung im Arbeitsstand, die im Stand ``baseline`` (Commit) noch
-    nicht vorhanden waren – als lesbare Zeilen."""
+    """Errors of the full validation in the working state that were not yet present in the
+    state ``baseline`` (commit), as readable lines."""
     root = _root(path)
     today = today or date.today()
     found = _error_set(path, today) - _errors_at(root, path, baseline, today)
@@ -752,8 +749,8 @@ def _ref_exists(root: Path, ref: str) -> bool:
 
 
 def _unpushed_merges(root: Path, current: SyncState) -> bool:
-    # Ohne Gegenstelle (noch nie hochgeladen oder vom Server entfernt) gibt es nichts zu
-    # vergleichen.
+    # Without a counterpart (never uploaded or removed from the server) there is nothing to
+    # compare.
     if not current.upstream or not _ref_exists(root, f"refs/remotes/{current.upstream}"):
         return False
     count = _git(root, "rev-list", "--merges", "--count", f"{current.upstream}..HEAD")
@@ -769,22 +766,21 @@ def _sync(
     allow_unrelated: bool = False,
     push: bool = True,
 ) -> SyncResult:
-    """„Speichern und teilen“: eigene Änderungen committen, die der anderen holen und
-    zusammenführen, prüfen, hochladen. Erwartbare Fehler (offline, abgelehnt, Anmeldung,
-    Konflikt …) stehen in ``result.error``; was bis dahin gelang (z. B. der eigene Commit),
-    bleibt erhalten. Bei Konflikten bleibt das Zusammenführen offen (``result.conflicts``);
-    nach der Entscheidung (:func:`resolve_conflicts`) setzt ein erneuter Aufruf fort. Nach
-    einem Zusammenführen läuft die Gesamtvalidierung: Neue Fehler verhindern das Hochladen,
-    außer mit ``allow_invalid``. Hat der Server eine fremde Historie ohne gemeinsamen Ursprung
-    (meist das falsche Repository), bricht die Funktion vor dem Zusammenführen mit der
-    Fehlerart ``unrelated_histories`` ab; nur mit ``allow_unrelated`` (ausdrückliche
-    Bestätigung) wird trotzdem zusammengeführt, danach gilt die übliche Konfliktbehandlung.
-    Tags (``tags``) werden vor dem Commit geprüft: Ist ein Name ungültig oder lokal schon
-    vergeben, bricht die Funktion ab, ohne zu committen; fehlende Tags werden auch ohne neuen
-    Commit nachgeholt. Hat der Datenordner nach dem Sichern noch keinen Commit (frisch angelegt,
-    keine Dateien), gibt es nichts zu teilen: Fehlerart ``nothing_to_share``. Mit
-    ``push=False`` („Vom Server holen“) endet der Ablauf nach dem Zusammenführen: Eigenes wird
-    gesichert und der Server-Stand übernommen, aber nichts hochgeladen und nicht geprüft."""
+    """Save and share: commit own changes, fetch and merge those of others, validate,
+    upload. Expected errors (offline, rejected, login, conflict …) are in ``result.error``;
+    whatever succeeded up to then (e.g. the own commit) is kept. On conflicts the merge stays
+    open (``result.conflicts``); after the decision (:func:`resolve_conflicts`) a new call
+    resumes. After a merge the full validation runs: new errors prevent the upload, unless
+    ``allow_invalid`` is set. If the server has a foreign history without a common origin
+    (usually the wrong repository), the function aborts before merging with the error kind
+    ``unrelated_histories``; only with ``allow_unrelated`` (explicit confirmation) is it
+    merged anyway, after which the usual conflict handling applies. Tags (``tags``) are
+    checked before the commit: if a name is invalid or already taken locally, the function
+    aborts without committing; missing tags are also created without a new commit. If the
+    data folder still has no commit after saving (freshly created, no files), there is
+    nothing to share: error kind ``nothing_to_share``. With ``push=False`` ("Pull from
+    server") the process ends after the merge: own changes are saved and the server state is
+    taken over, but nothing is uploaded or validated."""
     result = SyncResult(pull_only=not push)
     try:
         root = _root(path)
@@ -797,7 +793,7 @@ def _sync(
             )
         if current.detached:
             raise GitError(t("No branch selected."), "detached", hint_for("detached"))
-        # 0. Wiederaufnahme: ein offenes Zusammenführen zuerst abschließen.
+        # 0. Resumption: finish an open merge first.
         if current.unfinished == "merge":
             result.conflicts = resolve_conflicts(path)
             if result.conflicts:
@@ -811,7 +807,7 @@ def _sync(
                 "merge_in_progress",
                 hint_for("merge_in_progress"),
             )
-        # 1. Eigenes sichern: erst als Commit, dann ist nichts mehr in Gefahr.
+        # 1. Secure own changes: first as a commit, then nothing is in danger anymore.
         if pending_changes(path):
             result.committed = gitmod.commit_directory(path, message, tags)
         elif tags:
@@ -830,11 +826,11 @@ def _sync(
         if current.remote is None:
             raise GitError(t("No server set up."), "no_remote", hint_for("no_remote"))
         if not _ref_exists(root, "HEAD"):
-            # Frisches Repository ohne eigene Daten: Es gibt nichts hochzuladen, und ein Branch
-            # ohne Commit lässt sich weder mit dem Server verbinden noch pushen (Git meldete
-            # sonst „failed to push some refs“, was wie ein Wettlauf aussieht).
+            # Fresh repository without own data: there is nothing to upload, and a branch
+            # without a commit can neither be connected to the server nor pushed (Git would
+            # otherwise report "failed to push some refs", which looks like a race).
             raise gitmod.nothing_to_share_error()
-        # 2. Server-Stand holen, 3. zusammenführen, 4. prüfen, 5. hochladen (bei Wettlauf neu).
+        # 2. Fetch server state, 3. merge, 4. validate, 5. upload (retry on a race).
         for attempt in range(MAX_ATTEMPTS):
             current = fetch(path)
             if current.fetch_error is not None:
@@ -870,7 +866,7 @@ def _sync(
                     )
             via_mr = share_mode(root) == SHARE_MERGE_REQUEST
             if via_mr and current.upstream and current.ahead:
-                current = _drop_merged_commits(root, current)  # z. B. nach „Squash“ im Merge
+                current = _drop_merged_commits(root, current)  # e.g. after "squash" in the merge
             if via_mr and tags:
                 result.notes.append(
                     t(
@@ -879,7 +875,7 @@ def _sync(
                     )
                 )
             if via_mr and current.upstream and not current.ahead:
-                break  # nichts Eigenes, das einen Merge Request bräuchte
+                break  # nothing of our own that would need a merge request
             try:
                 if via_mr:
                     result.merge_request_branch, result.merge_request_url = _push_merge_request(
@@ -902,7 +898,7 @@ def _sync(
 
 
 def sync(path: Path, *args: Any, **kwargs: Any) -> SyncResult:
-    """„Speichern und teilen“ (siehe :func:`_sync`); läuft nie gleichzeitig mit einem Abruf."""
+    """Save and share (see :func:`_sync`); never runs at the same time as a fetch."""
     try:
         with _locked(path):
             return _sync(path, *args, **kwargs)
@@ -913,8 +909,8 @@ def sync(path: Path, *args: Any, **kwargs: Any) -> SyncResult:
 
 
 def _server_branch(root: Path, current: SyncState) -> str | None:
-    """Der Stand des Servers zum aktuellen Branch (z. B. ``origin/main``), soweit es ihn gibt:
-    der verbundene Upstream oder, vor der ersten Verbindung, der gleichnamige Branch."""
+    """The server state for the current branch (e.g. ``origin/main``), if there is one: the
+    connected upstream or, before the first connection, the branch of the same name."""
     candidate = current.upstream or (
         f"{current.remote}/{current.branch}" if current.remote and current.branch else None
     )
@@ -924,9 +920,9 @@ def _server_branch(root: Path, current: SyncState) -> str | None:
 
 
 def _adopt_remote_branch(root: Path, current: SyncState) -> SyncState:
-    """Hat der Server den Branch schon, dieser Rechner ihn aber noch nicht mit dem Server
-    verbunden (z. B. ein getrennt begonnenes Repository), wird er jetzt verbunden. Danach
-    wird der Server-Stand ganz normal zusammengeführt."""
+    """If the server already has the branch but this computer has not yet connected it to the
+    server (e.g. a repository started separately), it is connected now. Afterwards the server
+    state is merged as usual."""
     candidate = f"{current.remote}/{current.branch}"
     if current.remote and _ref_exists(root, f"refs/remotes/{candidate}"):
         _git(root, "branch", f"--set-upstream-to={candidate}")
@@ -939,9 +935,9 @@ def _git_ok(root: Path, *args: str) -> bool:
 
 
 def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
-    """Hinweise zu Tags, die ``push --follow-tags`` nicht veröffentlicht hat: Der Name ist auf
-    dem Server schon für einen anderen Stand vergeben (zwei Personen haben denselben Sprint
-    getaggt) – der Tag bleibt dort unverändert, lokal zeigt er auf den eigenen Stand."""
+    """Notes on tags that ``push --follow-tags`` did not publish: the name is already used on
+    the server for a different state (two people tagged the same sprint); the tag stays
+    unchanged there, locally it points to the own state."""
     notes: list[str] = []
     if not tags or not current.remote:
         return notes
@@ -965,7 +961,7 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
             out = _git(root, "ls-remote", "--tags", current.remote, f"refs/tags/{tag}",
                        f"refs/tags/{tag}^{{}}", network=True, url=current.url)  # fmt: skip
         except GitError:
-            continue  # ohne Antwort des Servers lässt sich nichts sagen
+            continue  # without an answer from the server nothing can be said
         refs = {}
         for line in out.splitlines():
             sha, _, ref = line.partition("\t")
@@ -988,10 +984,10 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
 
 
 def _drop_merged_commits(root: Path, current: SyncState) -> SyncState:
-    """Hat der eigene Stand denselben Inhalt wie der Server (der Merge Request ist gemergt, etwa
-    als „Squash“ mit neuem Commit), setzt dies den Branch auf den Server-Stand: Sonst bliebe er
-    für immer „voraus“ und jedes Teilen legte einen leeren Merge Request an. ``--keep`` bricht ab,
-    wo etwas verloren ginge."""
+    """If the own state has the same content as the server (the merge request is merged, e.g.
+    as a "squash" with a new commit), this resets the branch to the server state: otherwise it
+    would stay "ahead" forever and every share would create an empty merge request. ``--keep``
+    aborts where something would be lost."""
     if _git_ok(root, "diff", "--quiet", current.upstream or "HEAD", "HEAD", "--") and _git_ok(
         root, "diff", "--quiet", "--cached"
     ):
@@ -1001,17 +997,17 @@ def _drop_merged_commits(root: Path, current: SyncState) -> SyncState:
 
 
 def share_mode(path: Path) -> str:
-    """``"direct"`` (Standard) oder ``"merge_request"``: wohin „Speichern und teilen“ hochlädt."""
+    """``"direct"`` (default) or ``"merge_request"``: where "Save and share" uploads to."""
     root = _root(path)
     value = _git(root, "config", "--local", "--get", SHARE_KEY, check=False)
     return value if value == SHARE_MERGE_REQUEST else SHARE_DIRECT
 
 
 def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list[str]:
-    """Hinweis für „Vom Server holen“ im Merge-Request-Modus: Stehen eigene Änderungen noch nicht
-    im Hauptbranch, sagt er, ob sie in einem offenen Merge Request liegen (der eigene Branch ist
-    auf dem Server und enthält den Stand) oder noch gar nicht geteilt wurden. Inhalt, der schon
-    im Hauptbranch steht (gemergt, etwa als „Squash“), zählt nicht."""
+    """Note for "Pull from server" in merge request mode: if own changes are not yet in the
+    main branch, it says whether they are in an open merge request (the own branch is on the
+    server and contains the state) or have not been shared at all. Content that is already in
+    the main branch (merged, e.g. as a "squash") does not count."""
     if current.upstream and current.ahead:
         current = _drop_merged_commits(root, current)
     if not (current.upstream and current.ahead):
@@ -1029,7 +1025,7 @@ def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list
             )
         ]
     if host_kind(root) == HOST_FORGEJO:
-        # Der Pull Request liegt nicht auf einem eigenen Branch, den man hier sehen könnte.
+        # The pull request is not on a branch of its own that could be seen here.
         return [
             t(
                 (
@@ -1051,7 +1047,7 @@ def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list
 
 
 def auto_merge(path: Path) -> bool:
-    """Soll der Merge Request automatisch mergen, sobald die Pipeline grün ist? Standard: ja."""
+    """Should the merge request merge automatically once the pipeline is green? Default: yes."""
     root = _root(path)
     return _git(root, "config", "--local", "--get", AUTO_MERGE_KEY, check=False) != "false"
 
@@ -1073,8 +1069,8 @@ def set_share_mode(path: Path, mode: str) -> None:
 
 
 def detect_host(url: str) -> str:
-    """Welche Art Server hinter der Adresse steckt, soweit der Name es verrät (GitHub, GitLab,
-    Forgejo/Gitea/Codeberg); alles andere ist ``generic``."""
+    """Which kind of server is behind the address, as far as the name reveals it (GitHub,
+    GitLab, Forgejo/Gitea/Codeberg); everything else is ``generic``."""
     name = (_web_location(url) or ("", ""))[0].lower()
     if name == "github.com" or name.startswith("github."):
         return HOST_GITHUB
@@ -1086,8 +1082,8 @@ def detect_host(url: str) -> str:
 
 
 def _web_location(url: str) -> tuple[str, str] | None:
-    """Rechnername und Pfad ohne ``.git`` aus einer Server-Adresse (https, ssh oder scp-Form);
-    ``None`` bei einem Ordnerpfad."""
+    """Host name and path without ``.git`` from a server address (https, ssh or scp form);
+    ``None`` for a folder path."""
     found = re.match(r"^[a-z][a-z0-9+.-]*://(?:[^@/]*@)?([^/:]+)(?::\d+)?/(.+?)(?:\.git)?/?$", url)
     if not found:
         found = re.match(r"^(?:[^@/\s]+@)?([^/:\s]+):(?!//)(.+?)(?:\.git)?/?$", url)
@@ -1095,7 +1091,7 @@ def _web_location(url: str) -> tuple[str, str] | None:
 
 
 def host_setting(path: Path) -> str | None:
-    """Die ausdrücklich gewählte Server-Art (``None``: automatisch aus der Adresse erkennen)."""
+    """The explicitly chosen server kind (``None``: detect automatically from the address)."""
     value = _git(_root(path), "config", "--local", "--get", HOST_KEY, check=False)
     return value if value in HOSTS else None
 
@@ -1109,29 +1105,29 @@ def set_host(path: Path, host: str | None) -> None:
 
 
 def host_kind(path: Path) -> str:
-    """Die Art des Servers: die gewählte oder, solange nichts gewählt ist, die erkannte."""
+    """The kind of server: the chosen one or, as long as none is chosen, the detected one."""
     return host_setting(path) or detected_host(path)
 
 
 def detected_host(path: Path) -> str:
-    """Die aus der Adresse des Servers erkannte Art, unabhängig von einer Wahl."""
+    """The kind detected from the server's address, regardless of any choice."""
     root = _root(path)
     return detect_host(gitmod.remote_url(root, state(root).remote or "origin"))
 
 
 def compare_url(url: str, target: str, branch: str) -> str | None:
-    """Die Webadresse, unter der man bei GitHub aus dem Branch einen Pull Request öffnet."""
+    """The web address where a pull request is opened from the branch on GitHub."""
     where = _web_location(url)
-    if not where or len(where[0]) == 1:  # Laufwerksbuchstabe wie ``C:\\x``, kein Rechner
+    if not where or len(where[0]) == 1:  # drive letter like ``C:\\x``, not a host
         return None
     host, repo = where
     return f"https://{host}/{repo}/compare/{target}...{branch}?expand=1"
 
 
 def merge_request_branch(root: Path) -> str:
-    """Der Branch, auf den diese Person für Merge Requests hochlädt: je Person ein fester Name
-    (``sprintforecast/<name>-<Kürzel der Adresse>``), damit ein weiteres Teilen denselben Merge
-    Request fortschreibt und zwei Personen mit gleichem Namensanfang nicht kollidieren."""
+    """The branch this person uploads to for merge requests: a fixed name per person
+    (``sprintforecast/<name>-<short hash of the address>``), so that another share updates the
+    same merge request and two people with the same name prefix do not collide."""
     email = _git(root, "config", "--get", "user.email", check=False).strip().lower()
     who = email.partition("@")[0] or _git(root, "config", "--get", "user.name", check=False)
     slug = re.sub(r"[^a-z0-9_-]+", "-", who.lower()).strip("-_") or "user"
@@ -1140,19 +1136,19 @@ def merge_request_branch(root: Path) -> str:
 
 
 def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str, str | None]:
-    """Lädt den Stand für eine Prüfung durch andere hoch, je nach Server:
+    """Uploads the state for review by others, depending on the server:
 
-    - GitLab (und unbekannte Server): auf den eigenen Branch, mit Push-Optionen, damit der Server
-      den Merge Request anlegt oder fortschreibt (und auf Wunsch von selbst mergt).
-    - Forgejo/Gitea/Codeberg: AGit-Ablauf (``refs/for/<Ziel>``), der Pull Request entsteht beim
-      Push; klappt das nicht, bleibt der Branch.
-    - GitHub: der eigene Branch; die App hat kein Zugriffstoken, sie nennt die Adresse, unter der
-      man den Pull Request öffnet.
+    - GitLab (and unknown servers): to the own branch, with push options so that the server
+      creates or updates the merge request (and merges by itself on request).
+    - Forgejo/Gitea/Codeberg: AGit flow (``refs/for/<target>``), the pull request is created
+      on push; if that does not work, the branch stays.
+    - GitHub: the own branch; the app has no access token, it names the address where the
+      pull request can be opened.
 
-    Der Branch gehört dieser Person: Ist er nach einem Rebase im Merge Request oder einem
-    gemergten Stand anders weitergelaufen, wird er mit ``--force-with-lease`` überschrieben.
-    Tags gehen nicht mit (sie zeigen sonst auf Commits, die nie in den Hauptbranch kommen).
-    Liefert Branch und, falls bekannt, die Adresse des Merge/Pull Requests."""
+    The branch belongs to this person: if it has diverged after a rebase in the merge request
+    or a merged state, it is overwritten with ``--force-with-lease``. Tags are not pushed
+    (otherwise they would point to commits that never reach the main branch).
+    Returns the branch and, if known, the address of the merge/pull request."""
     branch = merge_request_branch(root)
     host = host_kind(root)
     ref = f"refs/heads/{branch}"
@@ -1184,7 +1180,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
             "-o", f"merge_request.target={target}",
             "-o", f"merge_request.title={subject}",
             "-o", "merge_request.remove_source_branch",
-            # Neuere GitLab-Versionen kennen auch ``merge_request.auto_merge`` (gleiche Wirkung).
+            # Newer GitLab versions also know ``merge_request.auto_merge`` (same effect).
             *(["-o", "merge_request.merge_when_pipeline_succeeds"] if auto_merge(root) else []),
         ]  # fmt: skip
     proc = gitmod._git_result(root, "push", lease, *options, remote, f"HEAD:{ref}", network=True)
@@ -1198,7 +1194,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
                     "folder” page."
                 )
             )
-        # Kein GitLab: nur den Branch hochladen, den Pull Request öffnet man auf dem Server.
+        # Not GitLab: only upload the branch, the pull request is opened on the server.
         proc = gitmod._git_result(root, "push", lease, remote, f"HEAD:{ref}", network=True)
         message = proc.stderr.strip() or proc.stdout.strip()
     if proc.returncode != 0:
@@ -1215,7 +1211,7 @@ def _push(root: Path, current: SyncState) -> None:
     if current.upstream:
         _git(root, "push", "--follow-tags", network=True, url=current.url)
         return
-    # Erster Push: Branch mit dem Server verbinden.
+    # First push: connect the branch to the server.
     _git(
         root,
         "push",
@@ -1229,15 +1225,14 @@ def _push(root: Path, current: SyncState) -> None:
 
 
 def restore_file(path: Path, file: Path) -> None:
-    """Stellt eine Datei auf den letzten gespeicherten (committeten) Stand zurück."""
+    """Restores a file to the last saved (committed) state."""
     root = _root(path)
     _git(root, "checkout", "HEAD", "--", str(file.resolve()))
     gitmod.invalidate_status()
 
 
 def abort_unfinished(path: Path) -> None:
-    """Bricht ein unvollständiges Zusammenführen (oder einen Rebase) ab; eigene committete
-    Änderungen bleiben unverändert."""
+    """Aborts an unfinished merge (or rebase); own committed changes stay unchanged."""
     root = _root(path)
     current = state(path)
     if current.unfinished == "merge" or (current.conflicts and current.unfinished is None):
@@ -1248,10 +1243,10 @@ def abort_unfinished(path: Path) -> None:
 
 
 class Reattached(NamedTuple):
-    """Ergebnis von :func:`reattach`: der Branch, auf dem der Datenordner nun steht, und der
-    Rettungsbranch, auf dem Gesichertes liegt (``None`` = nichts wurde gesichert). ``commits``:
-    Dort liegen die Commits des losen Stands; ``changes``: Dort liegen auch die offenen
-    Änderungen im Datenordner (als eigener Commit)."""
+    """Result of :func:`reattach`: the branch the data folder is now on, and the rescue branch
+    holding saved work (``None`` = nothing was saved). ``commits``: the commits of the
+    detached state are there; ``changes``: the open changes in the data folder are there too
+    (as a commit of their own)."""
 
     branch: str
     rescue: str | None = None
@@ -1260,10 +1255,10 @@ class Reattached(NamedTuple):
 
 
 def _reattach_hint(saved: str | None = None) -> str:
-    """Nächster Schritt, wenn der Wechsel zurück auf den Branch an offenen Änderungen scheitert.
-    Die im Datenordner sichert :func:`reattach` selbst; es bleiben Änderungen außerhalb davon,
-    die die App nicht anfasst. Eine Anleitung zu Einstellungen gibt es nie. ``saved`` ist der
-    Rettungsbranch, auf dem die Änderungen im Datenordner schon liegen."""
+    """Next step when switching back to the branch fails because of open changes. Those in
+    the data folder are saved by :func:`reattach` itself; what remains are changes outside it,
+    which the app does not touch. Never gives instructions on settings. ``saved`` is the
+    rescue branch that already holds the changes in the data folder."""
     text = t(
         "Switching back to the branch would overwrite open changes that lie outside the "
         "data folder. The app only touches the data folder. The way out: save or discard "
@@ -1277,7 +1272,7 @@ def _reattach_hint(saved: str | None = None) -> str:
 
 
 def _saved_note(rescue: str) -> str:
-    """Satz, der den Rettungsbranch nennt, auf dem die Änderungen im Datenordner liegen."""
+    """Sentence naming the rescue branch that holds the changes in the data folder."""
     return t(
         "The open changes in the data folder are already saved on the rescue branch {rescue}.",
         rescue=rescue,
@@ -1288,12 +1283,12 @@ _SAVE_SUBJECT = "Offene Änderungen vor dem Wechsel gesichert"
 
 
 def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
-    """Committet die offenen Änderungen im Datenordner auf einem Rettungsbranch und gibt dessen
-    Namen zurück. ``rescue`` ist ein vorhandener Rettungsbranch an dieser Stelle (``None`` =
-    neu anlegen). Scheitert das Committen (Identität, Tabellenkalkulationen,
-    Konfliktmarker …), steht das Repository wieder wie vorher auf dem losen Stand."""
+    """Commits the open changes in the data folder on a rescue branch and returns its name.
+    ``rescue`` is an existing rescue branch at this point (``None`` = create a new one). If
+    committing fails (identity, spreadsheets, conflict markers …), the repository is back in
+    the detached state as before."""
     start = _git(root, "rev-parse", "HEAD")
-    index = _git(root, "write-tree")  # die Vormerkung des Benutzers, für den Rückbau
+    index = _git(root, "write-tree")  # the user's staged state, for the rollback
     name = rescue or f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
     if rescue:
         _git(root, "switch", rescue)
@@ -1303,9 +1298,9 @@ def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
         gitmod.commit_directory(path, _SAVE_SUBJECT)
     except GitError, OSError:
         try:
-            # Den Index exakt wie vorher wiederherstellen (``git add`` hat ihn verändert; der
-            # Arbeitsbaum bleibt unberührt) und zurück auf den losen Stand; HEAD bleibt nie auf
-            # dem neuen Rettungsbranch stehen.
+            # Restore the index exactly as before (``git add`` changed it; the working tree
+            # stays untouched) and go back to the detached state; HEAD never stays on the new
+            # rescue branch.
             _git(root, "read-tree", index, check=False)
             _git(root, "switch", "--detach", start)
             if rescue is None:
@@ -1317,15 +1312,15 @@ def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
 
 
 def _saved_before(root: Path, holders: list[str]) -> bool | None:
-    """Steht HEAD auf der Sicherung eines früheren Versuchs von :func:`reattach` (Commit
-    „Offene Änderungen vor dem Wechsel gesichert“, nur auf Rettungsbranches)? Dann: Hingen
-    davor Commits an keinem Branch (``True``) oder nicht (``False``)? Sonst ``None``."""
+    """Is HEAD on the backup of an earlier attempt of :func:`reattach` (commit
+    ``Offene Änderungen vor dem Wechsel gesichert``, only on rescue branches)? If so: were
+    there commits on no branch before it (``True``) or not (``False``)? Otherwise ``None``."""
     if not holders or not all(b.startswith("rettung-") for b in holders):
         return None
     if _git(root, "log", "-1", "--format=%s", "HEAD", check=False) != _SAVE_SUBJECT:
         return None
-    # Über die ganze Kette der Sicherungen zurück (mehrere Versuche): erst der erste andere
-    # Commit zeigt, ob der lose Stand eigene Commits hatte.
+    # Go back through the whole chain of backups (several attempts): only the first other
+    # commit shows whether the detached state had commits of its own.
     depth = 1
     while _git(root, "log", "-1", "--format=%s", f"HEAD~{depth}", check=False) == _SAVE_SUBJECT:
         depth += 1
@@ -1336,11 +1331,10 @@ def _saved_before(root: Path, holders: list[str]) -> bool | None:
 
 
 def reattach(path: Path) -> Reattached:
-    """Geht von „detached HEAD“ zurück auf den Hauptbranch. Hängen Commits an keinem Branch,
-    werden sie vorher auf einem Rettungsbranch gesichert, ebenso die offenen Änderungen im
-    Datenordner (als eigener Commit dort). Scheitert der Wechsel an Änderungen außerhalb des
-    Datenordners, bleibt der Rettungsbranch bestehen und wird beim nächsten Versuch wieder
-    genannt."""
+    """Goes from "detached HEAD" back to the main branch. If commits are on no branch, they
+    are saved on a rescue branch first, as are the open changes in the data folder (as a
+    commit of their own there). If the switch fails because of changes outside the data
+    folder, the rescue branch remains and is named again on the next attempt."""
     root = _root(path)
     if state(path).branch is not None:
         raise GitError(t("The repository is already on a branch."))
@@ -1362,15 +1356,15 @@ def reattach(path: Path) -> Reattached:
     if not holders:
         commits = True
         rescue = f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
-    elif all(b.startswith("rettung-") for b in holders):  # gesichert von einem früheren Versuch
+    elif all(b.startswith("rettung-") for b in holders):  # saved by an earlier attempt
         commits = True
         rescue = holders[0]
     new_changes = bool(gitmod.changes_in(path))
-    earlier = _saved_before(root, holders)  # Sicherung aus einem früheren Versuch
+    earlier = _saved_before(root, holders)  # backup from an earlier attempt
     if earlier is not None:
         commits = earlier
     if new_changes:
-        # Auf dem Rettungsbranch committen (ein vorhandener an dieser Stelle, sonst ein neuer).
+        # Commit on the rescue branch (an existing one at this point, otherwise a new one).
         rescue = _save_open_changes(root, path, rescue if holders else None)
         saved_at = _git(root, "rev-parse", "HEAD")
     elif rescue and not holders:
@@ -1379,12 +1373,12 @@ def reattach(path: Path) -> Reattached:
     try:
         _git(root, "switch", target)
     except GitError as e:
-        if new_changes:  # wieder lose auf der Sicherung: der nächste Versuch findet sie
+        if new_changes:  # detached again on the backup: the next attempt finds it
             _git(root, "switch", "--detach", saved_at)
         gitmod.invalidate_status()
         saved = rescue if changes else None
         if e.kind != "dirty":
-            if saved:  # nicht verschweigen, wohin die Änderungen gesichert wurden
+            if saved:  # do not hide where the changes were saved
                 e.hint = _saved_note(saved) + (" " + e.hint if e.hint else "")
             raise
         raise GitError(str(e), "detached", _reattach_hint(saved), e.raw) from e
@@ -1393,29 +1387,29 @@ def reattach(path: Path) -> Reattached:
 
 
 def set_identity(name: str, email: str) -> None:
-    """Hinterlegt Name und E-Mail-Adresse für Commits (global für den Benutzer)."""
+    """Stores name and email address for commits (global for the user)."""
     if not name.strip() or "@" not in email:
         raise GitError(t("Please enter a name and a valid email address."))
     _git(Path.home(), "config", "--global", "user.name", name.strip())
     _git(Path.home(), "config", "--global", "user.email", email.strip())
 
 
-# --- Server (Remote) einrichten ------------------------------------------------------------
+# --- Set up the server (remote) ------------------------------------------------------------
 
-# Gültiger Name eines Servers (Remote); nur dann wird er angefasst.
+# Valid name of a server (remote); only then is it touched.
 _REMOTE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 
 @dataclass(frozen=True)
 class RemoteInfo:
-    """Der eingerichtete Server eines Datenordners (lokal ermittelt, ohne Netzwerk).
+    """The server set up for a data folder (determined locally, without network).
 
-    ``url`` ist die Anzeigefassung (ohne Zugangsdaten), ``has_secret`` sagt, dass in der
-    gespeicherten Adresse welche stehen. ``others`` sind weitere Server, die nie verändert
-    werden. ``special`` benennt Einstellungen, die die App nicht anfasst: ``multi_url`` (mehrere
-    Adressen), ``pushurl`` (eigene Upload-Adresse) oder ``name`` (ungewöhnlicher Name).
-    ``branch`` ist der lokale Branch (``None`` = detached HEAD), ``unborn`` sagt, dass es noch
-    keinen Commit gibt (ein frisch angelegtes Repository)."""
+    ``url`` is the display version (without credentials), ``has_secret`` says that the stored
+    address contains some. ``others`` are further servers, which are never changed.
+    ``special`` names settings the app does not touch: ``multi_url`` (several addresses),
+    ``pushurl`` (own upload address) or ``name`` (unusual name). ``branch`` is the local
+    branch (``None`` = detached HEAD), ``unborn`` says that there is no commit yet (a freshly
+    created repository)."""
 
     root: Path
     name: str | None
@@ -1428,7 +1422,7 @@ class RemoteInfo:
 
 
 def remote_info(path: Path) -> RemoteInfo:
-    """Server des Datenordners samt Besonderheiten (siehe :class:`RemoteInfo`)."""
+    """Server of the data folder including special cases (see :class:`RemoteInfo`)."""
     root = _root(path)
     current = state(path)
     name = current.remote
@@ -1461,8 +1455,8 @@ gitmod.on_invalidate(_INFO_CACHE.clear)
 
 
 def cached_remote_info(path: Path) -> RemoteInfo:
-    """Wie :func:`remote_info`, aber kurz zwischengespeichert (für die Oberfläche, die bei jeder
-    Eingabe neu zeichnet); wird mit :func:`sprintforecast.git.invalidate_status` ungültig."""
+    """Like :func:`remote_info`, but cached briefly (for the UI, which redraws on every
+    input); invalidated by :func:`sprintforecast.git.invalidate_status`."""
     key = path.resolve()
     cached = _INFO_CACHE.get(key)
     if cached and time.monotonic() - cached[0] < _STATE_TTL:
@@ -1474,10 +1468,10 @@ def cached_remote_info(path: Path) -> RemoteInfo:
 
 @dataclass(frozen=True)
 class RemoteCheck:
-    """Ergebnis der Verbindungsprüfung: geprüfte Adresse, Branches des Servers (alle, soweit sie
-    ins Limit der Abfrage passen, siehe :func:`~sprintforecast.git.probe_remote`; gekürzt wird
-    erst bei der Anzeige) und lokaler Branch (``None`` = detached HEAD). ``unborn``: Der
-    Datenordner hat noch keinen Commit."""
+    """Result of the connection check: checked address, branches of the server (all that fit
+    the query limit, see :func:`~sprintforecast.git.probe_remote`; truncated only when
+    displayed) and local branch (``None`` = detached HEAD). ``unborn``: the data folder has
+    no commit yet."""
 
     address: gitmod.RemoteAddress
     heads: tuple[str, ...]
@@ -1486,12 +1480,12 @@ class RemoteCheck:
 
     @property
     def empty(self) -> bool:
-        """Der Server ist erreichbar, hat aber noch keinen Branch."""
+        """The server is reachable but has no branch yet."""
         return not self.heads
 
     @property
     def branch_missing(self) -> bool:
-        """Der Server hat Branches, aber nicht den lokalen: Der erste Upload legt ihn neu an."""
+        """The server has branches, but not the local one: the first upload creates it."""
         return bool(self.heads) and self.branch is not None and self.branch not in self.heads
 
 
@@ -1502,8 +1496,8 @@ def check_remote(
     allow_insecure: bool = False,
     timeout: float = gitmod.PROBE_TIMEOUT,
 ) -> RemoteCheck:
-    """Prüft eine Server-Adresse (Form und Verbindung, ``git ls-remote``) und schreibt nichts.
-    Wirft nur :class:`GitError`."""
+    """Checks a server address (format and connection, ``git ls-remote``) and writes nothing.
+    Raises only :class:`GitError`."""
     root = _root(path)
     address = gitmod.parse_remote_url(raw, allow_insecure=allow_insecure)
     info = remote_info(root)
@@ -1513,8 +1507,8 @@ def check_remote(
 
 @dataclass(frozen=True)
 class RemoteSaved:
-    """Ergebnis von :func:`set_remote`: Name des Servers, Anzeigefassung der Adresse und ob die
-    Verbindung geprüft werden konnte (``False`` = ausdrücklich ungeprüft gespeichert)."""
+    """Result of :func:`set_remote`: name of the server, display version of the address and
+    whether the connection could be checked (``False`` = explicitly saved unchecked)."""
 
     name: str
     url: str
@@ -1530,14 +1524,13 @@ def set_remote(
     allow_offline: bool = False,
     timeout: float = gitmod.PROBE_TIMEOUT,
 ) -> RemoteSaved:
-    """Setzt die Adresse des Servers (Name wie bisher, sonst ``origin``) – nach erneuter
-    Prüfung im Backend, die Oberfläche gilt nicht als vertrauenswürdig. Gespeichert wird nur
-    nach bestandener Prüfung; zwei Ausnahmen gelten nur mit ausdrücklicher Bestätigung:
-    ``allow_offline`` (Server nicht erreichbar) und ``accept_new_branch`` (der Server hat
-    Branches, aber nicht den lokalen). Bei Anmeldung, nicht gefundenem Repository und anderen
-    Fehlern wird nie gespeichert. Gesperrt sind ein offenes Zusammenführen, mehrere Adressen,
-    eine eigene Upload-Adresse und ein ungewöhnlicher Servername; es wird nichts bereinigt.
-    Kein Abruf, keine Anmeldedaten, nichts Globales."""
+    """Sets the address of the server (name as before, otherwise ``origin``), after a renewed
+    check in the backend, since the UI is not considered trustworthy. It is saved only after
+    a passed check; two exceptions apply only with explicit confirmation: ``allow_offline``
+    (server unreachable) and ``accept_new_branch`` (the server has branches, but not the
+    local one). On login problems, repository not found and other errors nothing is ever
+    saved. Blocked are an open merge, several addresses, an own upload address and an unusual
+    server name; nothing is cleaned up. No fetch, no credentials, nothing global."""
     root = _root(path)
     address = gitmod.parse_remote_url(raw, allow_insecure=allow_insecure)
     if state(path).unfinished:
@@ -1565,6 +1558,6 @@ def set_remote(
         else:
             _git(root, "remote", "set-url", name, "--", address.url)
     finally:
-        _FETCHED.pop(root, None)  # der Stand des alten Servers gilt nicht mehr
+        _FETCHED.pop(root, None)  # the state of the old server no longer applies
         gitmod.invalidate_status()
     return RemoteSaved(name, gitmod.public_url(address.url), verified)
