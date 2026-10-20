@@ -60,8 +60,17 @@ instead.
 
 ### Login to the server
 
-The app never signs in itself and never asks for a password; the credential service of the
-computer does. When a login fails, the app explains the next step for the operating system it
+The app never keeps credentials itself; the credential service of the computer does. For https
+servers the Data folder page has **Set up sign-in**: you paste an access token (the page names
+the permission to give it, for GitLab `write_repository`), and the app hands it once to Git's
+credential service with `git credential approve`. It does not store the token, write it to a
+file or log, or show it again, and it checks the result with `git ls-remote`; a rejected token is
+removed again. If no credential helper is configured, the app offers (on click, for your user only,
+never in the repository) the one that fits the computer: `manager` on Windows, `osxkeychain` on
+macOS, `libsecret` on Linux if its helper is installed. It never sets `store` and hands no token
+to it; on Linux without a secure helper it only explains the options. SSH keys are not created.
+The start page shows a **Setup** checklist (Git, data folder, server, sign-in, name and email)
+until everything is done; it only reads and can be hidden. When a login fails, the app explains the next step for the operating system it
 runs on and reads (read-only, nothing is changed) the Git setting `credential.helper`:
 on Windows the Git Credential Manager that comes with Git for Windows, on macOS the Keychain
 (`osxkeychain`), on Linux `libsecret` or `gh auth setup-git`. A plain-text store

@@ -149,9 +149,11 @@ be saved only with explicit confirmation; a repository that is not found (typo i
 name), a rejected login or an untrusted certificate are never saved. If the new folder has no
 data yet but the server does, the form warns and points to **Clone repository**. Credentials
 (user name, password, token) in the address are rejected, never stored and never shown; the
-login is handled as always by the machine's credential service, and if it is missing the app
-explains the next step. The app creates no SSH keys and changes the global Git configuration
-only on request and only for the name and e-mail of the commits. Several addresses or a separate
+login is handled by the machine's credential service. For https servers, **Set up sign-in**
+below hands an access token once to that service (`git credential approve`) and checks it; the
+app never stores or shows the token, never uses a plain-text store, and enables a credential
+helper only on click and only for the user. The app creates no SSH keys and otherwise changes the
+global Git configuration only on request and only for the name and e-mail of the commits. Several addresses or a separate
 upload address (`pushurl`) as well as an open merge block saving. Whoever joins an existing team
 is better off choosing **Clone repository**.
 
