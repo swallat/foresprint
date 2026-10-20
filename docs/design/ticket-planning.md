@@ -386,8 +386,11 @@ S44  Budget 21 · used 18 · free 3       S45  Budget 21 · used 20 · free 1
 R = refined, U = rough (unrefined), M = own estimate      bold = fixed Jira sprint
 ```
 
-Streamlit suffices for filter, tables, select boxes and the two charts; an interactive
-planning surface (drag-and-drop) is not a goal.
+Streamlit suffices for filter, tables, select boxes and the two charts. The sprint columns are
+also a board: buttons on each card earmark the ticket for the previous or next sprint, pin it or
+release it, and a view switch shows the columns as a drag-and-drop board (a small component in
+`web/sprint_board.py`; a card dropped on another sprint is earmarked there, a card dropped on the
+release bar goes back to the automatic distribution). Both write the same earmarks.
 
 ## 9. Architecture
 
@@ -428,7 +431,7 @@ the sums per sprint and product as `preplanned`). The page (step 3) and the rang
 variants in the timeline (the lighter area) are done; step 5 follows.
 
 Step 3 starts only when nothing big is open on `web/ui.py`. Later candidates: GitHub
-and GitLab adapters, epic roadmap from the projects, export of the distribution (CSV), drag-and-drop.
+and GitLab adapters, epic roadmap from the projects, export of the distribution (CSV).
 
 ## 11. Tests
 
