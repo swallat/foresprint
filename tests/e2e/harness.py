@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Hilfen der Browsertests: App-Instanzen starten und beenden, Git-Repositories vorbereiten und
-Streamlit-Seiten auslesen.
+"""Helpers for the browser tests: start and stop app instances, prepare Git repositories and
+read Streamlit pages.
 
-Nichts hier hängt an festen Wartezeiten: Gewartet wird auf Zustände (Gesundheitsprüfung des
-Servers, Playwright-Locatoren mit automatischem Warten).
+Nothing here relies on fixed waits: we wait for states (server health check, Playwright
+locators with automatic waiting).
 """
 
 from __future__ import annotations
@@ -35,9 +35,9 @@ from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples" / "teams"
-# „Heute“ in den Tests: Sprint 2026.21 läuft, 2026.22 ist der nächste (Demo-Daten).
+# "Today" in the tests: sprint 2026.21 is running, 2026.22 is the next one (demo data).
 STICHTAG = "2026-10-15"
-START_TIMEOUT = 90  # Sekunden bis zum ersten Lebenszeichen des Servers
+START_TIMEOUT = 90  # seconds until the server first shows signs of life
 
 
 # --- Git -----------------------------------------------------------------------------------
@@ -52,10 +52,10 @@ def _empty_gitconfig() -> Path:
 
 
 def git_env(name: str = "Test", config: Path | None = None) -> dict[str, str]:
-    """Umgebung für Git: feste Person, keine Benutzer- und Systemeinstellungen des Rechners.
-    Die „globale“ Konfiguration ist eine eigene, leere Datei und nicht ``/dev/null``: Die App
-    schreibt Name und E-Mail mit ``git config --global``, und Git ersetzt die Datei dabei durch
-    eine neue (unter root wäre das Gerät ``/dev/null`` selbst zerstört)."""
+    """Environment for Git: fixed person, none of the machine's user and system settings.
+    The "global" config is a separate, empty file and not ``/dev/null``: the app writes name and
+    email with ``git config --global``, and Git replaces the file with a new one in the process
+    (as root that would destroy the ``/dev/null`` device itself)."""
     return {
         "GIT_AUTHOR_NAME": name,
         "GIT_AUTHOR_EMAIL": f"{name.lower()}@example.invalid",
@@ -84,7 +84,7 @@ def git(cwd: Path, *args: str, check: bool = True, name: str = "Test") -> str:
 
 
 def copy_demo(target: Path, name: str = "demo") -> Path:
-    """Kopie der Demo-Daten als ``target/teams/<name>``; liefert den Ordner ``teams``."""
+    """Copy of the demo data as ``target/teams/<name>``; returns the ``teams`` folder."""
     teams = target / "teams"
     teams.mkdir(parents=True, exist_ok=True)
     shutil.copytree(EXAMPLES / "demo", teams / name)
@@ -92,7 +92,7 @@ def copy_demo(target: Path, name: str = "demo") -> Path:
 
 
 def make_team_without_products(teams: Path, key: str = "ohne-produkte") -> None:
-    """Legt ein Team ohne die Bereiche Produkte, PO und Produktionszugriff an (Kopie der Demo)."""
+    """Creates a team without the products, PO and production access sections (copy of the demo)."""
     folder = teams / key
     shutil.copytree(EXAMPLES / "demo", folder)
     (folder / "products.yaml").unlink()
@@ -117,8 +117,8 @@ def make_team_without_products(teams: Path, key: str = "ohne-produkte") -> None:
 
 
 def init_repository(root: Path, remote: Path | None = None, name: str = "Test") -> None:
-    """Git-Repository mit allen Dateien als erstem Commit auf ``main``; mit ``remote``
-    (Bare-Repository) als ``origin`` und hochgeladen."""
+    """Git repository with all files as the first commit on ``main``; with ``remote``
+    (bare repository) as ``origin`` and pushed."""
     git(root, "init", "-q", "-b", "main", name=name)
     if remote is not None:
         git(root, "remote", "add", "origin", str(remote), name=name)
@@ -138,8 +138,8 @@ def make_bare(path: Path) -> Path:
 
 
 def _child_processes(pid: int) -> list[int]:
-    """Kindprozesse (nur Linux/macOS; unter Windows beendet ``taskkill /T`` den ganzen Baum).
-    Ohne ``pgrep`` (schlanke Container ohne procps) liest es ``/proc``."""
+    """Child processes (Linux/macOS only; on Windows ``taskkill /T`` ends the whole tree).
+    Without ``pgrep`` (slim containers without procps) it reads ``/proc``."""
     if sys.platform == "win32":
         return []
     try:
@@ -153,7 +153,7 @@ def _children_from_proc(pid: int) -> list[int]:
     found = []
     for entry in Path("/proc").glob("[0-9]*"):
         try:
-            # „PID (Name) Zustand PPID …“: der Name darf Leerzeichen und Klammern enthalten.
+            # "PID (name) state PPID ...": the name may contain spaces and parentheses.
             fields = (entry / "stat").read_text().rpartition(")")[2].split()
             if int(fields[1]) == pid:
                 found.append(int(entry.name))
@@ -163,7 +163,7 @@ def _children_from_proc(pid: int) -> list[int]:
 
 
 class App:
-    """Eine laufende Weboberfläche (eigener Prozess, eigener Einstellungsordner, freier Port)."""
+    """A running web UI (own process, own settings folder, free port)."""
 
     def __init__(
         self,
@@ -176,7 +176,7 @@ class App:
     ) -> None:
         self.name = name
         self.data_dir = data_dir
-        # Einstellungen und Protokoll liegen neben dem Datenordner, nie im Git-Repository darin.
+        # Settings and log live next to the data folder, never inside its Git repository.
         home = work.parent / f"{name}-app"
         home.mkdir(parents=True, exist_ok=True)
         self.config = home / "einstellungen"
@@ -215,14 +215,14 @@ class App:
     def start(self) -> App:
         self.config.mkdir(parents=True, exist_ok=True)
         if not self.language:
-            # Ohne Einstellung ist die Oberfläche englisch; die Browsertests erwarten Deutsch.
-            # Als gespeicherte Einstellung statt per Umgebung, damit der Wechsel in der
-            # Seitenleiste weiterhin greift (die Umgebungsvariable hätte Vorrang).
+            # Without a setting the UI is English; the browser tests expect German.
+            # Stored as a setting instead of via the environment so that switching language in the
+            # sidebar still works (the environment variable would take precedence).
             settings = self.config / PACKAGE / "settings.json"
             settings.parent.mkdir(parents=True, exist_ok=True)
             settings.write_text(json.dumps({"language": "de"}), encoding="utf-8")
         self.port = free_port(0)
-        self._log_file = open(self.log, "ab")  # noqa: SIM115 – lebt, bis der Server endet
+        self._log_file = open(self.log, "ab")  # noqa: SIM115 – lives until the server ends
         self._process = subprocess.Popen(
             [
                 sys.executable,
@@ -242,13 +242,13 @@ class App:
         try:
             self._wait_until_healthy()
         except BaseException:
-            self.stop()  # sonst läuft der halb gestartete Server nach dem Testlauf weiter
+            self.stop()  # else the half-started server keeps running after the test
             raise
         return self
 
     def _wait_until_healthy(self) -> None:
-        # Ohne Proxy: eine Proxy-Vorgabe der Umgebung (http_proxy) würde den lokalen Server nie
-        # erreichen und den Start 90 Sekunden lang scheitern lassen.
+        # Without a proxy: a proxy setting from the environment (http_proxy) would never reach the
+        # local server and make the start fail for 90 seconds.
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         deadline = time.monotonic() + START_TIMEOUT
         while time.monotonic() < deadline:
@@ -267,20 +267,20 @@ class App:
         return self.log.read_text(encoding="utf-8", errors="replace") if self.log.exists() else ""
 
     def stop(self) -> None:
-        """Beendet den Server samt allem, was er gestartet hat. `web` setzt den Streamlit-Server in
-        eine eigene Sitzung: Wer nur den Startprozess abschießt, lässt ihn laufen."""
+        """Stops the server together with everything it started. `web` puts the Streamlit server in
+        its own session: killing only the start process leaves it running."""
         process = self._process
         self._process = None
         try:
             if process is not None:
                 servers: list[int] = []
-                with contextlib.suppress(OSError):  # ohne Liste bleibt immer noch terminate_tree
+                with contextlib.suppress(OSError):  # without the list, terminate_tree still runs
                     servers = _child_processes(process.pid)
                 try:
                     terminate_tree(process, timeout=10)
                 finally:
                     for server in servers:
-                        # Uvicorn wartet nach SIGTERM auf offene Verbindungen: endgültig beenden.
+                        # Uvicorn waits for open connections after SIGTERM: kill it for good.
                         with contextlib.suppress(OSError):
                             os.killpg(server, signal.SIGKILL)
         finally:
@@ -289,7 +289,7 @@ class App:
                 self._log_file = None
 
     def restart(self) -> App:
-        """Beendet den Server und startet ihn neu (gleiche Daten und Einstellungen)."""
+        """Stops the server and starts it again (same data and settings)."""
         self.stop()
         return self.start()
 
@@ -300,14 +300,14 @@ APP_STATE = "[data-testid=stApp]"
 
 
 def settle(page: Page) -> None:
-    """Wartet, bis das Skript durchgelaufen ist (Streamlit meldet ``notRunning``)."""
+    """Waits until the script has finished (Streamlit reports ``notRunning``)."""
     expect(page.locator(APP_STATE)).to_have_attribute("data-test-script-state", "notRunning")
 
 
 def rerun_finished(page: Page) -> None:
-    """Wartet nach einer Eingabe (Klick, Enter), bis Streamlit den Lauf begonnen *und* beendet hat.
-    Ein bloßes ``settle`` könnte noch den Zustand *vor* dem Lauf sehen. Verlässlich bleibt am Ende
-    nur die Erwartung an das Ergebnis (``expect`` auf Text oder Zustand eines Elements)."""
+    """Waits after an input (click, Enter) until Streamlit has started *and* finished the run.
+    A plain ``settle`` might still see the state *before* the run. In the end only the
+    expectation on the result is reliable (``expect`` on text or element state)."""
     with contextlib.suppress(PlaywrightTimeoutError):
         page.wait_for_function(
             "() => document.querySelector('[data-testid=stApp]')"
@@ -324,21 +324,21 @@ def open_page(page: Page, app: App, path: str = "") -> None:
 
 
 def navigate(page: Page, path: str) -> None:
-    """Wechselt über die Seitenleiste (der Sitzungsstand bleibt erhalten)."""
+    """Switches via the sidebar (the session state is kept)."""
     page.get_by_test_id("stSidebarNav").locator(f'a[href$="/{path}"]').click()
     expect(page).to_have_url(f"{page.url.rsplit('/', 1)[0]}/{path}")
     settle(page)
 
 
 def choose(page: Page, key: str, option: str) -> None:
-    """Wählt in der Auswahlliste mit dem Schlüssel ``key`` den Eintrag ``option``."""
+    """Selects the entry ``option`` in the select box with the key ``key``."""
     page.locator(f".st-key-{key}").get_by_role("combobox").click()
     page.get_by_role("option", name=option, exact=True).click()
 
 
 def selected(page: Page, key: str) -> Locator:
-    """Das Eingabefeld der Auswahlliste mit dem Schlüssel ``key`` (Wert = gewählter Eintrag);
-    prüfen mit ``expect(...).to_have_value(...)``."""
+    """The input field of the select box with the key ``key`` (value = selected entry);
+    check with ``expect(...).to_have_value(...)``."""
     return page.locator(f".st-key-{key}").get_by_role("combobox")
 
 
@@ -351,8 +351,8 @@ def sidebar(page: Page) -> Locator:
 
 
 def table_rows(table: Locator) -> list[list[str]]:
-    """Zeilen eines Datenrasters über dessen barrierefreie Tabelle (das Raster selbst ist eine
-    Zeichenfläche). Die Tabelle ist für das Auge unsichtbar, aber im DOM."""
+    """Rows of a data grid through its accessible table (the grid itself is a canvas).
+    The table is invisible to the eye but present in the DOM."""
     expect(table).to_be_attached()
     rows = table.locator("tr")
     return [[cell.inner_text() for cell in row.locator("th, td").all()] for row in rows.all()]
@@ -371,22 +371,22 @@ STABLE_COUNT = """([selector, quietMs]) => {
 
 
 def wait_until_stable(page: Page, selector: str, quiet_ms: int = 600) -> None:
-    """Wartet, bis sich die Zahl der Elemente zu ``selector`` ``quiet_ms`` lang nicht mehr ändert.
-    Nötig für Elemente, die Streamlit nach dem Ende des Skripts nachlädt (Datenraster, Diagramme)."""
+    """Waits until the number of elements for ``selector`` has not changed for ``quiet_ms``.
+    Needed for elements Streamlit loads after the script has ended (data grids, charts)."""
     page.wait_for_function(STABLE_COUNT, arg=[selector, quiet_ms])
 
 
 def data_frames(page: Page, minimum: int = 0) -> list[Locator]:
-    """Alle Datenraster des Hauptbereichs, sobald sie geladen sind (mindestens ``minimum``)."""
+    """All data grids of the main area once they are loaded (at least ``minimum``)."""
     selector = '[data-testid="stMain"] [data-testid="stDataFrame"]'
     frames = main_area(page).get_by_test_id("stDataFrame")
     if minimum:
         expect(frames.nth(minimum - 1)).to_be_attached()
     wait_until_stable(page, selector)
-    # Raster in geschlossenen Bereichen (Expander) sind nicht gezeichnet und bleiben außen vor.
+    # Grids in closed sections (expanders) are not drawn and are left out.
     found = [frame for frame in frames.all() if frame.is_visible()]
     for frame in found:
-        frame.scroll_into_view_if_needed()  # Raster außerhalb des Bildes laden erst beim Scrollen
+        frame.scroll_into_view_if_needed()  # off-screen grids load only on scrolling
         expect(frame.locator("table")).to_be_attached()
     return found
 
@@ -396,7 +396,7 @@ def all_tables(page: Page, minimum: int = 0) -> list[list[list[str]]]:
 
 
 def no_exception(page: Page) -> None:
-    """Die Seite zeigt keine Python-Fehlermeldung von Streamlit."""
+    """The page shows no Python error message from Streamlit."""
     expect(page.get_by_test_id("stException")).to_have_count(0)
 
 
@@ -404,35 +404,35 @@ def texts(locators: Iterable[Locator]) -> list[str]:
     return [loc.inner_text() for loc in locators]
 
 
-# --- Fehltage-Raster und Teilen ------------------------------------------------------------
+# --- Absences grid and sharing -------------------------------------------------------------
 
-HEADER_HEIGHT = 36  # px: Kopfzeile des Datenrasters (Streamlit-Vorgabe)
-ROW_HEIGHT = 35  # px: Zeilenhöhe des Datenrasters
+HEADER_HEIGHT = 36  # px: header row of the data grid (Streamlit default)
+ROW_HEIGHT = 35  # px: row height of the data grid
 
 
 def absence_grid(page: Page) -> Locator:
-    """Das erste Datenraster der Seite Fehltage (Person × Sprint)."""
+    """The first data grid of the Absences page (person x sprint)."""
     return main_area(page).get_by_test_id("stDataFrame").first
 
 
 def edit_absence(page: Page, person: str, sprint: str, value: str) -> None:
-    """Trägt in das Fehltage-Raster einen Wert ein. Das Raster ist eine Zeichenfläche: Die Zelle
-    wird über die Tastatur angesteuert (Klick in die letzte Spalte der ersten Zeile, dann mit den
-    Pfeiltasten zur Zielzelle) und der Wert getippt; Enter übernimmt ihn."""
+    """Enters a value in the absences grid. The grid is a canvas: the cell is reached by keyboard
+    (click in the last column of the first row, then arrow keys to the target cell) and the
+    value is typed; Enter commits it."""
     frame = absence_grid(page)
     frame.scroll_into_view_if_needed()
     rows = table_rows(frame.locator("table"))
     column = rows[0].index(sprint)
     row = [r[0] for r in rows[1:]].index(person)
-    # Über der Zeichenfläche liegt eine Fläche, die die Mausereignisse annimmt. Der Klick darauf
-    # wartet, bis sie ruhig steht (kein Scrollen, kein Nachladen darüber).
+    # Above the canvas lies a surface that receives the mouse events. The click on it waits
+    # until it is stable (no scrolling, no reloading above it).
     surface = frame.locator(".dvn-scroller").first
     box = surface.bounding_box()
     assert box is not None
     surface.click(position={"x": box["width"] - 20, "y": HEADER_HEIGHT + ROW_HEIGHT / 2})
-    # Jede Taste erst senden, wenn die vorige angekommen ist: Die barrierefreie Tabelle markiert
-    # die gewählte Zelle mit aria-selected.
-    here = [len(rows[0]) - 1, 0]  # Spalte, Zeile (die Personenspalte hat die Spalte 0)
+    # Send each key only after the previous one has arrived: the accessible table marks the
+    # selected cell with aria-selected.
+    here = [len(rows[0]) - 1, 0]  # column, row (the person column is column 0)
     selected_cell = lambda: frame.locator(  # noqa: E731
         f"[data-testid=glide-cell-{here[0]}-{here[1]}]"
     )
@@ -442,7 +442,7 @@ def edit_absence(page: Page, person: str, sprint: str, value: str) -> None:
         here[0] += step[0]
         here[1] += step[1]
         expect(selected_cell()).to_have_attribute("aria-selected", "true")
-    # Das erste Zeichen öffnet den Eingabeeditor; ein zu früh gesendetes Enter ginge verloren.
+    # The first character opens the input editor; an Enter sent too early would be lost.
     editor = page.locator("input.gdg-input")
     page.keyboard.press(value[0])
     expect(editor).to_have_value(value[0])
@@ -450,7 +450,7 @@ def edit_absence(page: Page, person: str, sprint: str, value: str) -> None:
         page.keyboard.type(value[1:])
         expect(editor).to_have_value(value)
     page.keyboard.press("Enter")
-    # Erst wenn die Zelle den Wert zeigt, ist die Eingabe angekommen.
+    # The input has arrived only once the cell shows the value.
     expect(frame.locator(f"[data-testid=glide-cell-{column}-{row}]")).to_have_text(value)
 
 
@@ -460,15 +460,15 @@ def absence_cell(page: Page, person: str, sprint: str) -> str:
 
 
 def share(page: Page) -> Locator:
-    """Klickt in der Seitenleiste „Speichern und teilen“ und liefert die Meldungen der
-    Seitenleiste (Erfolg, Fehler, Warnung)."""
+    """Clicks "Save and share" in the sidebar and returns the sidebar messages
+    (success, error, warning)."""
     button = sidebar(page).get_by_role("button", name="Speichern und teilen")
-    # Mit offenen Änderungen klappt der Bereich „Git“ nach dem Durchlauf von selbst auf (kurz
-    # nachdem die Beschriftung erscheint). Ein sofortiges ``is_visible`` sähe ihn noch zu und der
-    # Klick auf die Überschrift würde ihn gleich wieder schließen.
+    # With pending changes the "Git" section opens by itself after the run (shortly after the
+    # label appears). An immediate ``is_visible`` would still see it closed, and the click on the
+    # heading would close it again right away.
     with contextlib.suppress(PlaywrightTimeoutError):
         button.wait_for(state="visible", timeout=2_000)
-    if not button.is_visible():  # ohne offene Änderungen bleibt der Bereich „Git“ zugeklappt
+    if not button.is_visible():  # no pending changes: "Git" stays closed
         sidebar(page).locator("summary").filter(has_text="Git:").click()
     button.click()
     return sidebar(page).get_by_test_id("stAlert")

@@ -17,7 +17,7 @@ MAIN = "https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
 
 @pytest.fixture
 def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Isolierte Konfiguration und eine uv-Tool-Installation von main."""
+    """Isolated configuration and a uv tool installation of main."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setenv("APPDATA", str(tmp_path / "config"))
     monkeypatch.delenv(updater.MODE_ENV, raising=False)
@@ -57,7 +57,7 @@ def test_versions():
             ("me/fork", "v1.0", True),
         ),
         ('git = "https://github.com/me/fork", branch = "dev"', ("me/fork", "dev", False)),
-        ("", ("swallat/sprint-forecast", "main", False)),  # Quelle aus einem Plugin
+        ("", ("swallat/sprint-forecast", "main", False)),  # source from a plugin
     ],
 )
 def test_installation_from_receipt(env: Path, requirement: str, expected):
@@ -89,7 +89,7 @@ def test_check_caches_for_a_day(env: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def test_auto_update_schedules_once(env: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(sys, "platform", "linux")  # Shell-Variante, auch unter Windows
+    monkeypatch.setattr(sys, "platform", "linux")  # shell variant, also on Windows
     remote(monkeypatch, "0.3.0")
     monkeypatch.setattr(updater, "find_uv", lambda: "/bin/uv")
     started: list[list[str]] = []
@@ -99,7 +99,7 @@ def test_auto_update_schedules_once(env: Path, monkeypatch: pytest.MonkeyPatch):
     assert started and "/bin/uv tool upgrade --reinstall sprintforecast" in started[0][-1]
     assert "0.3.0 wird im Hintergrund installiert" in said[0]
     assert updater.load_state()["attempted"] == "0.3.0"
-    # Zweiter Start: nicht erneut anstoßen
+    # Second start: do not trigger again
     updater.AutoUpdate().start().finish(said.append)
     assert len(started) == 1
     assert "wird nach dem Beenden installiert" in updater.status_line()
@@ -131,7 +131,7 @@ def test_startup_notices(env: Path):
     updater.update_state(attempted="0.3.0", attempted_at=past.isoformat())
     [message] = updater.startup_notices()
     assert "nicht geklappt" in message
-    assert updater.startup_notices() == []  # nur einmal
+    assert updater.startup_notices() == []  # only once
 
 
 def test_powershell_script_waits_and_quotes(tmp_path: Path):
@@ -209,3 +209,29 @@ def test_forced_check_bypasses_http_cache(env: Path, monkeypatch: pytest.MonkeyP
     assert "?nocache=" not in calls[0]
     updater.check(force=True)
     assert "pyproject.toml?nocache=" in calls[1]
+
+
+def test_auto_setting_that_cannot_be_written_is_an_error(
+    env: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from typer.testing import CliRunner
+
+    from sprintforecast.cli import app
+
+    (env.parent / "config").write_text("a file, not a folder")  # config dir cannot be created
+    result = CliRunner().invoke(app, ["update", "--auto", "off"])
+    assert result.exit_code == 1
+    assert "konnten nicht gespeichert werden" in result.output
+    assert "Automatische Aktualisierung" not in result.output
+    assert updater.save_state({"mode": "aus"}) is False  # the quiet path stays quiet
+
+
+@pytest.mark.parametrize("junk", [3, 3.5, True, ["0.9"], {"v": 1}])
+def test_wrongly_typed_state_values_do_not_break_the_start(env: Path, junk):
+    updater.update_state(
+        latest=junk, seen_version=junk, attempted=junk, attempted_at=junk, mode=junk
+    )
+    assert updater.startup_notices() == []
+    assert updater.status_line().startswith("Version")
+    assert updater.mode() is updater.Mode.ON
+    assert not updater.is_newer(junk, "0.1.0")

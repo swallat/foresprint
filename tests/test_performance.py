@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Phase P: Zwischenspeicher liefern nie veraltete Daten; schwere Importe bleiben aus dem Start."""
+"""Phase P: caches never deliver stale data; heavy imports stay out of startup."""
 
 import os
 import shutil
@@ -31,7 +31,7 @@ def _clean_caches():
 
 
 def age(root: Path) -> None:
-    """Alle Dateien als „alt“ markieren, sonst werden frische Dateien nicht zwischengespeichert."""
+    """Mark all files as "old", otherwise fresh files are not cached."""
     old = time.time() - 60
     for f in root.rglob("*.yaml"):
         os.utime(f, (old, old))
@@ -44,7 +44,7 @@ def test_cache_returns_equal_independent_copy(data_dir: Path):
     second = repo.load_cached(TEAM)
     assert second is not first
     assert second.sprints == repo.load(TEAM).sprints
-    second.sprints.clear()  # Änderungen am Ergebnis dürfen den Zwischenspeicher nicht verändern
+    second.sprints.clear()  # changes to the result must not alter the cache
     assert len(repo.load_cached(TEAM).sprints) == len(first.sprints)
 
 
@@ -67,7 +67,7 @@ def test_cache_sees_save_through_repository(data_dir: Path):
 
 
 def write_raw(path: Path, **changes) -> None:
-    """Sprintdatei außerhalb von Repository schreiben (Editor, git pull)."""
+    """Write a sprint file outside the repository (editor, git pull)."""
     raw = yaml.safe_load(path.read_text())
     raw.update(changes)
     path.write_text(yaml.safe_dump(raw))
@@ -85,13 +85,13 @@ def test_cache_sees_external_edit_added_and_deleted_files(data_dir: Path):
     other.write_text(path.read_text())
     write_raw(other, id="9999.1", start="2099-01-01", end="2099-01-15")
     assert repo.load_cached(TEAM).sprint("9999.1") is not None
-    other.unlink()  # gelöschte Datei
+    other.unlink()  # deleted file
     assert repo.load_cached(TEAM).sprint("9999.1") is None
 
 
 def test_cache_does_not_trust_fresh_files(data_dir: Path):
-    """Zwei Änderungen in derselben Zeiteinheit (gleiche Größe, gleiche Änderungszeit) dürfen
-    nicht unbemerkt bleiben: Frische Dateien werden nicht zwischengespeichert."""
+    """Two changes within the same time unit (same size, same modification time) must not go
+    unnoticed: fresh files are not cached."""
     repo = Repository(data_dir)
     path = repo.sprint_path(TEAM, repo.load_cached(TEAM).sprints[-1].id)
     sprint_id = path.stem
@@ -155,7 +155,7 @@ def test_git_status_invalidated_by_save(git_dir: Path):
     assert cached_pending_changes(git_dir) == []
     sprint = repo.load(TEAM).sprints[-1]
     sprint.forecast_ist = 99.0
-    repo.save_sprint(TEAM, sprint)  # Schreiben macht den Git-Stand ungültig
+    repo.save_sprint(TEAM, sprint)  # writing invalidates the Git state
     assert [f.rsplit("/", 1)[-1] for _, f in cached_pending_changes(git_dir)] == [
         f"{sprint.id}.yaml"
     ]
@@ -179,7 +179,7 @@ def test_git_status_invalidated_by_commit(git_dir: Path):
 
 
 def test_gui_import_loads_no_heavy_modules():
-    """Kein pandas/altair/rich/typer/CLI beim Import der Oberfläche (Kaltstart)."""
+    """No pandas/altair/rich/typer/CLI when importing the UI (cold start)."""
     code = (
         "import sys, sprintforecast.web.ui\n"
         "bad = [m for m in ('pandas', 'altair', 'rich', 'typer', 'sprintforecast.cli')"

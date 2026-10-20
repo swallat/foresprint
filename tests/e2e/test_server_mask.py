@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Server-Maske der Seite „Datenordner“ gegen lokale Bare-Repositorys: Erfolg, falsche Adresse,
-nicht gefunden, nicht erreichbar, Branch fehlt, Ordner ohne Commit, Sperre bei offenem Merge."""
+"""Server mask of the "Data folder" page against local bare repositories: success, wrong
+address, not found, unreachable, branch missing, folder without commit, lock during an open merge."""
 
 from pathlib import Path
 
@@ -8,12 +8,12 @@ import pytest
 from harness import App, copy_demo, git, init_repository, main_area, make_bare, open_page
 from playwright.sync_api import Locator, Page, expect
 
-UNREACHABLE = "https://127.0.0.1:1/daten.git"  # Port 1: nichts hört zu
+UNREACHABLE = "https://127.0.0.1:1/daten.git"  # port 1: nothing is listening
 
 
 @pytest.fixture
 def servers(tmp_path: Path) -> dict[str, Path]:
-    """Drei lokale Gegenstellen: mit Branch ``main``, mit anderem Branch, leer."""
+    """Three local remotes: with branch ``main``, with another branch, empty."""
     good = make_bare(tmp_path / "gut.git")
     seed = tmp_path / "seed"
     copy_demo(seed)
@@ -26,7 +26,7 @@ def servers(tmp_path: Path) -> dict[str, Path]:
 
 @pytest.fixture
 def mask(page: Page, make_app) -> tuple[Page, App]:
-    """Die Seite Datenordner einer App mit Git-Repository (ein Commit, noch kein Server)."""
+    """The Data folder page of an app with a Git repository (one commit, no server yet)."""
     app = make_app("maske", git=True)
     open_page(page, app, "datenordner")
     expect(main_area(page).get_by_role("heading", name="Server (Remote)")).to_be_visible()
@@ -38,7 +38,7 @@ def alert(page: Page, text: str) -> Locator:
 
 
 def enter(page: Page, address: str) -> None:
-    """Trägt die Adresse ein (Enter übernimmt sie, erst dann reagieren die Knöpfe)."""
+    """Enters the address (Enter commits it, only then do the buttons react)."""
     field = page.locator(".st-key-git-remote-url input")
     field.fill(address)
     field.press("Enter")
@@ -60,18 +60,18 @@ def test_check_and_save_a_reachable_server(mask, servers):
     button(page, "Verbindung prüfen").click()
     expect(alert(page, "Verbindung hergestellt.")).to_be_visible()
     expect(main_area(page).get_by_text("Branches auf dem Server: main")).to_be_visible()
-    assert remote_of(app) != str(servers["good"])  # Prüfen ändert nichts
+    assert remote_of(app) != str(servers["good"])  # checking changes nothing
     button(page, "Speichern").click()
     expect(alert(page, "Server gespeichert:")).to_be_visible()
     expect(main_area(page).get_by_text(f"Server origin: {servers['good']}")).to_be_visible()
     assert remote_of(app) == str(servers["good"])
-    expect(page.locator(".st-key-git-remote-url input")).to_have_value("")  # Feld geleert
+    expect(page.locator(".st-key-git-remote-url input")).to_have_value("")  # field cleared
 
 
 @pytest.mark.parametrize(
     ("address", "message"),
     [
-        ("daten.git", "Das Format wird nicht erkannt"),  # relativer Pfad
+        ("daten.git", "Das Format wird nicht erkannt"),  # relative path
         ("git://server/daten.git", "Dieses Verfahren wird nicht unterstützt"),
         ("file:///tmp/daten.git", "Dieses Verfahren wird nicht unterstützt"),
         ("http://127.0.0.1:1/daten.git", "Unverschlüsselte Verbindung"),
@@ -144,9 +144,9 @@ def test_empty_server_is_reachable_but_says_so(mask, servers):
 
 
 def test_folder_without_any_commit_can_still_get_a_server(page: Page, make_app, servers):
-    """Ein frisch angelegtes Repository ohne Commit: die Maske prüft und speichert trotzdem."""
+    """A freshly created repository without a commit: the mask still checks and saves."""
     app = make_app("ohne-commit")
-    git(app.data_dir.parent, "init", "-q", "-b", "main")  # Git-Repository, aber kein Commit
+    git(app.data_dir.parent, "init", "-q", "-b", "main")  # Git repository, but no commit
     open_page(page, app, "datenordner")
     enter(page, str(servers["good"]))
     expect(button(page, "Verbindung prüfen")).to_be_enabled()
@@ -167,7 +167,7 @@ def test_open_merge_locks_saving_but_not_checking(page: Page, make_app, servers)
     git(root, "checkout", "-q", "main")
     sprint.write_text(sprint.read_text(encoding="utf-8").replace("velocity: 9.75", "velocity: 2"))
     git(root, "commit", "-qam", "eigene")
-    git(root, "merge", "andere", check=False)  # Konflikt: das Zusammenführen bleibt offen
+    git(root, "merge", "andere", check=False)  # conflict: the merge stays open
     open_page(page, app, "datenordner")
     expect(alert(page, "Ein Zusammenführen ist unvollständig")).to_be_visible()
     enter(page, str(servers["good"]))

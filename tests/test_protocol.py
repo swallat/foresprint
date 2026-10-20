@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Protokolle der Sprint-Termine: schreiben, auflisten, bei Aufheben des Einfrierens obsolet."""
+"""Sprint meeting minutes: write, list, obsolete when the freeze is lifted."""
 
 import errno
 import getpass
@@ -20,9 +20,12 @@ from sprintforecast.protocol import (
     PLANNING,
     PREPLANNING,
     REVIEW,
+    PlanningSection,
+    latest_planning_sections,
     list_protocols,
     mark_obsolete,
     obsolete_with_save,
+    render_planning_protocol,
     render_protocol,
     save_with_protocol,
     write_protocol,
@@ -89,7 +92,7 @@ def sprint_stub(**fields):
 
 
 def test_a_change_the_text_does_not_show_still_creates_a_protocol(tmp_path: Path):
-    """``scope_creep`` steht nicht im Protokolltext, ändert aber die gespeicherte Sprintdatei."""
+    """``scope_creep`` is not in the minutes text but changes the saved sprint file."""
     repo = Repository(tmp_path)
     text = "# T\n\nStand: 1\n\nwert\n"
     kwargs = dict(repo=repo, team="demo", sprint_id="2026.21", kind=REVIEW, text=text)
@@ -97,7 +100,7 @@ def test_a_change_the_text_does_not_show_still_creates_a_protocol(tmp_path: Path
         now=NOW, sprints=[sprint_stub(scope_creep=0.1)], save=lambda: [], **kwargs
     )
     save_with_protocol(now=LATER, sprints=[sprint_stub(scope_creep=0.1)], save=lambda: [], **kwargs)
-    assert len(list_protocols(repo, "demo", "2026.21")) == 1  # unverändert
+    assert len(list_protocols(repo, "demo", "2026.21")) == 1  # unchanged
     save_with_protocol(now=LATER, sprints=[sprint_stub(scope_creep=0.2)], save=lambda: [], **kwargs)
     assert first == [] and len(list_protocols(repo, "demo", "2026.21")) == 2
 
@@ -107,7 +110,7 @@ def test_the_protocol_is_written_before_the_sprint_and_removed_if_saving_fails(t
     (tmp_path / "demo").mkdir()
     (tmp_path / "demo" / "protokolle").write_text("im Weg", encoding="utf-8")
     saved: list[int] = []
-    with pytest.raises(FileAccessError):  # Protokoll nicht schreibbar: Sprint bleibt unberührt
+    with pytest.raises(FileAccessError):  # minutes not writable: sprint stays untouched
         save_with_protocol(
             repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, [sprint_stub()],
             lambda: saved.append(1) or [],
@@ -118,7 +121,7 @@ def test_the_protocol_is_written_before_the_sprint_and_removed_if_saving_fails(t
     def failing() -> list[Path]:
         raise FileAccessError("kein Schreibrecht")
 
-    with pytest.raises(FileAccessError):  # Speichern scheitert: das neue Protokoll verschwindet
+    with pytest.raises(FileAccessError):  # saving fails: the new minutes disappear
         save_with_protocol(
             repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, [sprint_stub()],
             failing,
@@ -201,7 +204,7 @@ def test_a_failing_multi_sprint_save_restores_the_earlier_files(
     monkeypatch.setattr(Repository, "save_sprint", flaky)
     with pytest.raises(FileAccessError):
         save_sprints_together(repo, "demo", [one, two])
-    assert repo.sprint_path("demo", "2026.21").read_bytes() == before  # zurückgesetzt
+    assert repo.sprint_path("demo", "2026.21").read_bytes() == before  # reset
     assert not repo.sprint_path("demo", "2026.22").exists()
     monkeypatch.setattr(Repository, "save_sprint", real)
     paths = save_sprints_together(repo, "demo", [one, two])
@@ -209,20 +212,20 @@ def test_a_failing_multi_sprint_save_restores_the_earlier_files(
 
 
 def test_saving_the_same_state_twice_writes_one_protocol_even_with_a_pinned_state(tmp_path: Path):
-    """``save_sprint`` legt den Stand der Fehltage beim Speichern fest; der Fingerabdruck muss den
-    festgelegten Stand schon vorher enthalten, sonst gälte die zweite Speicherung als neu."""
+    """``save_sprint`` fixes the state of the absences when saving; the fingerprint must already
+    contain the fixed state beforehand, otherwise the second save would count as new."""
     from sprintforecast.model import ProductValues
     from sprintforecast.storage import _read, sprint_from_dict
 
     repo = Repository(tmp_path)
-    # Ältere Datei, die nur die PO-Vorplanung enthält: Fehltage unbekannt, nichts festgelegt.
+    # Older file that contains only the PO pre-planning: absences unknown, nothing fixed.
     repo.save_sprint("demo", sprint_stub(products={"kwg": ProductValues(preplanned=1.0)}))
     path = repo.sprint_path("demo", "2026.21")
 
     def save_twice() -> int:
         for _ in range(2):
-            sprint = sprint_from_dict(_read(path), str(path))  # wie die Seite: aus der Datei
-            sprint.forecast_ist = 12.0  # das Planning trägt das Commitment ein
+            sprint = sprint_from_dict(_read(path), str(path))  # like the page: from the file
+            sprint.forecast_ist = 12.0  # the Planning enters the commitment
             save_with_protocol(
                 repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nx\n", NOW, [sprint],
                 lambda sprint=sprint: [repo.save_sprint("demo", sprint)],
@@ -235,23 +238,23 @@ def test_saving_the_same_state_twice_writes_one_protocol_even_with_a_pinned_stat
 def test_the_protocol_name_stays_invisible_until_the_file_is_complete(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Während des Schreibens (und nach einem Abbruch) gibt es keine leere Datei mit gültigem
-    Protokollnamen; nur eine ``.lock``-Datei, die nie gelistet wird."""
+    """While writing (and after an abort) there is no empty file with a valid minutes name; only
+    a ``.lock`` file, which is never listed."""
     repo = Repository(tmp_path)
     seen: list[list[Path]] = []
     real = protocol_module.write_text
 
     def spy(path: Path, text: str, newline=None) -> None:
         seen.append([f[3] for f in list_protocols(repo, "demo", "2026.21")])
-        raise KeyboardInterrupt  # Abbruch mitten im Schreiben
+        raise KeyboardInterrupt  # abort in the middle of writing
 
     monkeypatch.setattr(protocol_module, "write_text", spy)
     with pytest.raises(KeyboardInterrupt):
         write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
     monkeypatch.setattr(protocol_module, "write_text", real)
-    assert seen == [[]]  # beim Schreiben noch nichts gelistet
+    assert seen == [[]]  # nothing listed yet while writing
     assert list_protocols(repo, "demo", "2026.21") == []
-    assert not list((tmp_path / "demo" / "protokolle").glob("*.lock"))  # aufgeräumt
+    assert not list((tmp_path / "demo" / "protokolle").glob("*.lock"))  # cleaned up
     write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
     assert len(list_protocols(repo, "demo", "2026.21")) == 1
 
@@ -272,15 +275,45 @@ def test_a_failing_rollback_keeps_the_original_error(
         return real(self, missing_ok=missing_ok)
 
     monkeypatch.setattr(Path, "unlink", locked)
-    with pytest.raises(FileAccessError, match="Sprintdatei gesperrt"):
+    with pytest.raises(FileAccessError, match="Sprintdatei gesperrt") as info:
         save_with_protocol(
             repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, [sprint_stub()],
             failing,
         )  # fmt: skip
+    # The rollback error is not silent: it is attached as a note to the original error.
+    assert any(
+        "nicht zurückgebaut" in n and "Protokoll gesperrt" in n for n in info.value.__notes__
+    )
+
+
+def test_a_clock_function_is_read_only_after_the_lock_is_held(tmp_path: Path):
+    repo = Repository(tmp_path)
+    reads: list[str] = []
+
+    def clock() -> datetime:
+        reads.append("clock")
+        return NOW
+
+    real = protocol_module._write_locked
+
+    def spy(*args, **kwargs):
+        reads.append("locked")
+        return real(*args, **kwargs)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(protocol_module, "_write_locked", spy)
+        path = write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nx\n", clock)
+    assert reads == ["locked", "clock"]
+    assert f"{NOW:%Y%m%d-%H%M%S}" in path.name
+
+
+def test_a_missing_clock_uses_the_current_time(tmp_path: Path):
+    path = write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nx\n", None)
+    assert path.exists()
 
 
 def run_concurrently(tasks: list) -> list:
-    """Startet die Aufgaben gleichzeitig (Barriere) und liefert ihre Ergebnisse."""
+    """Starts the tasks at the same time (barrier) and returns their results."""
     barrier = threading.Barrier(len(tasks))
     results: list = [None] * len(tasks)
 
@@ -309,10 +342,10 @@ def test_concurrent_saves_of_the_same_state_write_one_protocol(tmp_path: Path):
         ]
     )
     assert not [r for r in results if isinstance(r, BaseException)], results
-    assert sum(created for _, created in results) == 1  # genau eine Sitzung hat geschrieben
+    assert sum(created for _, created in results) == 1  # exactly one session wrote
     assert len({path for path, _ in results}) == 1
     assert len(list_protocols(repo, "demo", "2026.21")) == 1
-    assert not list((tmp_path / "demo" / "protokolle").glob("*.lock"))  # Sperre freigegeben
+    assert not list((tmp_path / "demo" / "protokolle").glob("*.lock"))  # lock released
 
 
 def test_concurrent_saves_of_different_states_keep_every_protocol(tmp_path: Path):
@@ -339,11 +372,11 @@ def test_a_busy_lock_is_reported_after_the_wait(tmp_path: Path, monkeypatch: pyt
     repo = Repository(tmp_path)
     folder = protocol_folder(tmp_path)
     monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
-    other_session = protocol_module._locked(folder, "2026.21", REVIEW)  # schreibt gerade
+    other_session = protocol_module._locked(folder, "2026.21", REVIEW)  # is writing right now
     with other_session, pytest.raises(FileAccessError, match="andere Sitzung"):
         write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
     assert list_protocols(repo, "demo", "2026.21") == []
-    # Nach der Freigabe geht das Speichern wieder.
+    # After the release, saving works again.
     write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
     assert len(list_protocols(repo, "demo", "2026.21")) == 1
 
@@ -361,7 +394,7 @@ def test_a_waiting_save_proceeds_when_the_lock_is_released(tmp_path: Path):
     holder = threading.Thread(target=hold)
     holder.start()
     assert holding.wait(5)
-    threading.Timer(0.3, release.set).start()  # nach 0,3 s freigeben, der Wartende wartet
+    threading.Timer(0.3, release.set).start()  # release after 0.3 s, the waiting one waits
     path, created = write_protocol_new(
         repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
     )
@@ -380,7 +413,7 @@ def test_the_lock_is_released_after_a_failed_write(tmp_path: Path, monkeypatch: 
         write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
     monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
     with protocol_module._locked(protocol_folder(tmp_path), "2026.21", REVIEW):
-        pass  # frei: kein Warten, kein Fehler
+        pass  # free: no waiting, no error
 
 
 def test_obsoleting_takes_the_same_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -397,9 +430,8 @@ def test_obsoleting_takes_the_same_lock(tmp_path: Path, monkeypatch: pytest.Monk
 def test_obsoleting_takes_the_lock_even_if_the_protocol_folder_does_not_exist_yet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, session: str
 ):
-    """Aktualisiertes Datenverzeichnis ohne Ordner ``protokolle``: Eine andere Sitzung legt ihn
-    gerade an und schreibt ein Protokoll. Die Aufhebung darf nicht an der Sperre vorbei
-    speichern."""
+    """Updated data folder without a ``protokolle`` folder: another session is creating it right
+    now and writing minutes. Lifting the freeze must not save past the lock."""
     repo = Repository(tmp_path)
     (tmp_path / "demo").mkdir()
     folder = tmp_path / "demo" / "protokolle"
@@ -414,7 +446,7 @@ def test_obsoleting_takes_the_lock_even_if_the_protocol_folder_does_not_exist_ye
             obsolete_with_save(
                 repo, "demo", "2026.21", PLANNING, LATER, lambda: saved.append(1) or []
             )
-    assert saved == []  # nichts gespeichert, solange die andere Sitzung die Sperre hält
+    assert saved == []  # nothing saved as long as the other session holds the lock
 
 
 def test_unfreezing_without_a_protocol_folder_still_saves_and_finds_nothing_to_rename(
@@ -430,9 +462,9 @@ def test_unfreezing_without_a_protocol_folder_still_saves_and_finds_nothing_to_r
 
 
 def test_an_unfreeze_without_a_protocol_folder_excludes_a_concurrent_planning_save(tmp_path: Path):
-    """Sitzung A hebt das Einfrieren auf, es gibt noch keinen Ordner; Sitzung B speichert in der
-    Zwischenzeit das Planning samt Protokoll. B darf erst fertig werden, wenn A gespeichert hat:
-    Sonst bliebe B's Protokoll gültig, obwohl A die Prognose danach aufhebt."""
+    """Session A lifts the freeze and there is no folder yet; session B meanwhile saves the Planning
+    including minutes. B may only finish once A has saved: otherwise B's minutes would stay valid
+    although A unfreezes the forecast afterwards."""
     repo = Repository(tmp_path)
     in_save, release = threading.Event(), threading.Event()
     order: list[str] = []
@@ -463,7 +495,7 @@ def test_an_unfreeze_without_a_protocol_folder_excludes_a_concurrent_planning_sa
 
     def releaser() -> None:
         assert in_save.wait(5)
-        time.sleep(0.3)  # B hat inzwischen angefragt und wartet auf die Sperre
+        time.sleep(0.3)  # B has asked meanwhile and waits for the lock
         release.set()
 
     results = run_concurrently(
@@ -478,9 +510,9 @@ def test_an_unfreeze_without_a_protocol_folder_excludes_a_concurrent_planning_sa
 
 
 def run_with_failing_first_session(first, second, order: list[str]) -> tuple:
-    """Sitzung A (``first(save)``) steckt in ihrem ``save`` und scheitert erst 0,3 s, nachdem
-    Sitzung B (``second()``) losgelaufen ist; B startet erst, wenn A im ``save`` steckt. Liefert die
-    Ergebnisse (A, B); ``order`` bekommt „a-failed“, kurz bevor A scheitert."""
+    """Session A (``first(save)``) is stuck in its ``save`` and fails only 0.3 s after session B
+    (``second()``) has started; B starts only once A is stuck in ``save``. Returns the results
+    (A, B); ``order`` receives "a-failed" shortly before A fails."""
     in_save, b_started, release = (threading.Event() for _ in range(3))
 
     def failing_save() -> list[Path]:
@@ -496,7 +528,7 @@ def run_with_failing_first_session(first, second, order: list[str]) -> tuple:
 
     def releaser() -> None:
         assert in_save.wait(5) and b_started.wait(5)
-        time.sleep(0.3)  # B hat inzwischen angefragt und wartet auf die Sperre
+        time.sleep(0.3)  # B has asked meanwhile and waits for the lock
         release.set()
 
     a, b, _ = run_concurrently([lambda: first(failing_save), session_b, releaser])
@@ -504,9 +536,8 @@ def run_with_failing_first_session(first, second, order: list[str]) -> tuple:
 
 
 def test_a_second_save_takes_over_the_protocol_only_after_the_first_one_has_failed(tmp_path: Path):
-    """Sitzung A legt das Protokoll an, ihr Speichern scheitert; Sitzung B mit demselben Stand
-    darf das Protokoll nicht übernehmen, das A gleich wieder löscht: Das Protokoll gehört zu B's
-    erfolgreichem Speichern."""
+    """Session A creates the minutes, its save fails; session B with the same state must not adopt
+    the minutes that A deletes again right away: the minutes belong to B's successful save."""
     repo = Repository(tmp_path)
     text = "# T\n\nStand: 1\n\nx\n"
     order: list[str] = []
@@ -520,18 +551,18 @@ def test_a_second_save_takes_over_the_protocol_only_after_the_first_one_has_fail
 
     a, b = run_with_failing_first_session(session, lambda: session(save_b), order)
     assert isinstance(a, FileAccessError) and b == []
-    assert order == ["a-failed", "b-saved"]  # B wartet, bis A zurückgebaut hat
+    assert order == ["a-failed", "b-saved"]  # B waits until A has rolled back
     found = list_protocols(repo, "demo", "2026.21")
-    assert len(found) == 1 and found[0][3].exists()  # B's Speichern hat sein Protokoll
+    assert len(found) == 1 and found[0][3].exists()  # B's save has its minutes
 
 
 @pytest.mark.parametrize("second_session", ["mark_obsolete", "obsolete_with_save"])
 def test_a_second_unfreeze_sees_the_protocols_only_after_the_first_one_was_rolled_back(
     tmp_path: Path, second_session: str
 ):
-    """Sitzung A benennt das Protokoll um, ihr Speichern scheitert und sie benennt zurück. Sitzung B
-    darf in der Zwischenzeit nichts sehen: Sie fände sonst keine gültigen Protokolle und speichert,
-    während A das Protokoll danach wieder gültig macht."""
+    """Session A renames the minutes, its save fails and it renames them back. Session B must not
+    see anything in the meantime: it would otherwise find no valid minutes and save, while A makes
+    the minutes valid again afterwards."""
     repo = Repository(tmp_path)
     write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nx\n", NOW)
     order: list[str] = []
@@ -550,33 +581,33 @@ def test_a_second_unfreeze_sees_the_protocols_only_after_the_first_one_was_rolle
         order,
     )
     assert isinstance(a, FileAccessError) and not isinstance(b, BaseException), (a, b)
-    assert order == ["a-failed", "b-done"]  # B sieht erst, wenn A zurückgebaut hat
+    assert order == ["a-failed", "b-done"]  # B only sees them once A has rolled back
     if second_session == "mark_obsolete":
-        assert len(b) == 1  # B fand das wieder gültige Protokoll und benannte es um
-    assert [f[2] for f in list_protocols(repo, "demo", "2026.21")] == [True]  # nur obsolet
+        assert len(b) == 1  # B found the minutes that became valid again and renamed them
+    assert [f[2] for f in list_protocols(repo, "demo", "2026.21")] == [True]  # only obsolete
 
 
 def test_the_lock_file_lies_outside_the_data_folder_and_is_per_sprint_and_kind(tmp_path: Path):
     folder = protocol_folder(tmp_path)
     one = protocol_module._lock_file(folder, "2026.21", REVIEW)
-    assert tmp_path not in one.parents  # nie im Git-Arbeitsverzeichnis
+    assert tmp_path not in one.parents  # never in the Git working directory
     assert one != protocol_module._lock_file(folder, "2026.22", REVIEW)
     assert one != protocol_module._lock_file(folder, "2026.21", PLANNING)
     assert one == protocol_module._lock_file(folder, "2026.21", REVIEW)
 
 
 def test_the_lock_file_lies_in_the_users_settings_folder(tmp_path: Path):
-    """Nicht in einem festen Ordner des gemeinsamen Temp-Verzeichnisses, sondern beim Benutzer. Die
-    Fixture ``isolated_config`` (conftest) lenkt ihn für Tests in ein Wegwerfverzeichnis."""
+    """Not in a fixed folder of the shared temp directory but with the user. The fixture
+    ``isolated_config`` (conftest) redirects it to a throwaway directory for tests."""
     one = protocol_module._lock_file(protocol_folder(tmp_path), "2026.21", REVIEW)
     assert one.parent == config_dir() / "sperren" and one.parent.is_dir()
-    assert Path(os.environ["XDG_CONFIG_HOME"]) in one.parents  # nicht der echte Einstellungsordner
+    assert Path(os.environ["XDG_CONFIG_HOME"]) in one.parents  # not the real settings folder
     if sys.platform != "win32":
-        assert one.parent.stat().st_mode & 0o777 == 0o700  # nur für den Benutzer selbst
+        assert one.parent.stat().st_mode & 0o777 == 0o700  # only for the user themselves
 
 
 def block(path: Path) -> Path:
-    """Ein Pfad unter einer Datei: Anlegen von Ordnern dort scheitert."""
+    """A path below a file: creating folders there fails."""
     path.write_text("im Weg", encoding="utf-8")
     return path / "sprintforecast"
 
@@ -592,8 +623,8 @@ def test_an_unwritable_settings_folder_falls_back_to_a_per_user_temp_folder(
     folder = protocol_folder(tmp_path)
     one = protocol_module._lock_file(folder, "2026.21", REVIEW)
     user = str(os.getuid()) if sys.platform != "win32" else re.sub(r"\W", "_", getpass.getuser())
-    assert one.parent == temp / f"sprintforecast-sperren-{user}"  # je Benutzer, nicht fest
-    # Gesperrt und geschrieben wird dort ganz normal.
+    assert one.parent == temp / f"sprintforecast-sperren-{user}"  # per user, not fixed
+    # Locking and writing work as usual there.
     path, created = write_protocol_new(
         Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
     )
@@ -613,23 +644,23 @@ def test_an_unwritable_temp_fallback_is_a_file_access_error(
 def test_an_unopenable_lock_file_falls_back_to_the_same_file_in_the_temp_folder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Der Ordner ``sperren`` im Einstellungsordner ist da, aber ein Öffnen der Sperrdatei darin
-    scheitert (hier: an ihrer Stelle liegt ein Ordner; unter POSIX wäre es ein fehlendes
-    Schreibrecht). Dann zählt dieselbe Datei im Temp-Ordner, für alle Sitzungen gleich."""
+    """The ``sperren`` folder in the settings folder exists, but opening the lock file in it fails
+    (here: a folder lies in its place; under POSIX it would be a missing write permission). Then
+    the same file in the temp folder counts, the same for all sessions."""
     temp = tmp_path / "temp"
     temp.mkdir()
     monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
     monkeypatch.setattr(protocol_module, "LOCK_WAIT_SECONDS", 0.2)
     folder = protocol_folder(tmp_path)
     primary = protocol_module._lock_file(folder, "2026.21", REVIEW)
-    primary.mkdir()  # ein Ordner statt der Sperrdatei: Öffnen scheitert mit OSError
+    primary.mkdir()  # a folder instead of the lock file: opening fails with OSError
     path, created = write_protocol_new(
         Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
     )
     assert created and path.exists()
     (fallback_dir,) = temp.glob("sprintforecast-sperren-*")
-    assert (fallback_dir / primary.name).is_file()  # derselbe Dateiname wie im Einstellungsordner
-    # Die Datei sperrt wirklich: Wer sie hält, hält andere Sitzungen mit denselben Rechten auf.
+    assert (fallback_dir / primary.name).is_file()  # same file name as in the settings folder
+    # The file really locks: whoever holds it holds up other sessions with the same permissions.
     with (
         protocol_module._locked(folder, "2026.21", REVIEW),
         pytest.raises(FileAccessError, match="andere Sitzung"),
@@ -648,18 +679,18 @@ def test_lock_files_that_cannot_be_opened_anywhere_are_a_file_access_error(
     primary = protocol_module._lock_file(folder, "2026.21", REVIEW)
     primary.mkdir()
     fallback = protocol_module._fallback_lock_dir() / primary.name
-    fallback.mkdir()  # auch im Temp-Ordner taugt die Sperrdatei nicht
+    fallback.mkdir()  # the lock file is no good in the temp folder either
     with pytest.raises(FileAccessError, match="nicht gespeichert") as info:
         write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
-    assert str(fallback) in str(info.value)  # nennt, wo es gescheitert ist
-    assert list_protocols(repo, "demo", "2026.21") == []  # nichts ohne Sperre geschrieben
+    assert str(fallback) in str(info.value)  # names where it failed
+    assert list_protocols(repo, "demo", "2026.21") == []  # nothing written without a lock
 
 
 def test_a_settings_lock_folder_without_write_access_is_replaced_by_the_temp_folder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Der Ordner ``sperren`` gibt es schon; ``mkdir(exist_ok=True)`` gelingt, aber er ist nicht
-    beschreibbar (POSIX: ``os.access``)."""
+    """The ``sperren`` folder already exists; ``mkdir(exist_ok=True)`` succeeds, but it is not
+    writable (POSIX: ``os.access``)."""
     temp = tmp_path / "temp"
     temp.mkdir()
     monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
@@ -676,9 +707,9 @@ def test_a_settings_lock_folder_without_write_access_is_replaced_by_the_temp_fol
 
 
 def patch_os_locking(monkeypatch: pytest.MonkeyPatch, fail) -> list[int]:
-    """Lässt die Sperre des Betriebssystems (``msvcrt.locking`` bzw. ``fcntl.flock``) beim n-ten
-    Sperrversuch (ab 1) mit dem Fehler ``fail(n)`` scheitern (``None``: echt sperren). Freigeben
-    bleibt echt. Liefert die Liste der bisherigen Sperrversuche."""
+    """Makes the operating system's lock (``msvcrt.locking`` or ``fcntl.flock``) fail with the error
+    ``fail(n)`` on the nth lock attempt (from 1) (``None``: really lock). Releasing stays real.
+    Returns the list of lock attempts so far."""
     attempts: list[int] = []
 
     def error_of_next() -> OSError | None:
@@ -714,7 +745,7 @@ def os_error(code: int) -> OSError:
     return OSError(code, os.strerror(code))
 
 
-# Fehler, die ein Dateisystem ohne Dateisperren (z. B. mancher Netzordner) meldet.
+# Errors reported by a file system without file locks (e.g. some network folders).
 PERMANENT_ERRNOS = [errno.ENOLCK, errno.ENOSYS, errno.EINVAL, errno.EIO, errno.EOPNOTSUPP]
 BUSY_ERRNOS = [errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK, errno.EDEADLK]
 
@@ -751,8 +782,8 @@ def test_windows_sharing_and_lock_violations_are_busy(
 def test_a_permanent_locking_error_falls_back_to_the_temp_folder_without_waiting(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Der Einstellungsordner liegt auf einem Laufwerk ohne Dateisperren: Die Sperre läuft über
-    dieselbe Datei im Temp-Ordner, sofort."""
+    """The settings folder is on a drive without file locks: the lock goes through the same file in
+    the temp folder, immediately."""
     temp = tmp_path / "temp"
     temp.mkdir()
     monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
@@ -763,8 +794,8 @@ def test_a_permanent_locking_error_falls_back_to_the_temp_folder_without_waiting
         Repository(tmp_path), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW, "abcd1234"
     )
     assert created and path.exists()
-    assert time.monotonic() - started < 2.5  # keine Wartezeit
-    assert len(attempts) == 2  # erst der Einstellungsordner, dann einmal der Temp-Ordner
+    assert time.monotonic() - started < 2.5  # no waiting time
+    assert len(attempts) == 2  # first the settings folder, then the temp folder once
     (fallback_dir,) = temp.glob("sprintforecast-sperren-*")
     assert len(list(fallback_dir.glob("*.lock"))) == 1
 
@@ -782,9 +813,9 @@ def test_a_permanent_locking_error_everywhere_is_a_file_access_error(
     with pytest.raises(FileAccessError, match="Dateisperren") as info:
         write_protocol(repo, "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nx\n", NOW)
     assert "andere Sitzung" not in str(info.value)
-    assert time.monotonic() - started < 2.5  # keine Wartezeit
-    assert len(attempts) == 2  # einmal Einstellungsordner, einmal Temp-Ordner, nicht mehr
-    assert list_protocols(repo, "demo", "2026.21") == []  # ohne Sperre wird nichts geschrieben
+    assert time.monotonic() - started < 2.5  # no waiting time
+    assert len(attempts) == 2  # once the settings folder, once the temp folder, no more
+    assert list_protocols(repo, "demo", "2026.21") == []  # nothing is written without a lock
 
 
 def test_the_missing_file_lock_support_is_reported_in_english(
@@ -808,9 +839,9 @@ def test_real_contention_still_waits_and_reports_another_session(
     started = time.monotonic()
     with pytest.raises(FileAccessError, match="andere Sitzung"):
         write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
-    assert time.monotonic() - started >= 0.3  # gewartet
-    assert len(attempts) > 2  # mehrfach versucht
-    assert not list(temp.glob("sprintforecast-sperren-*"))  # Temp-Ordner nicht angefasst
+    assert time.monotonic() - started >= 0.3  # waited
+    assert len(attempts) > 2  # tried several times
+    assert not list(temp.glob("sprintforecast-sperren-*"))  # temp folder untouched
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Eigentümer von Ordnern nur auf POSIX")
@@ -823,7 +854,7 @@ def test_a_temp_folder_owned_by_another_user_is_rejected(
     monkeypatch.setattr(protocol_module, "config_dir", lambda: blocked)
     monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
     real_uid = os.getuid()
-    # Der Ordner gehört dem echten Benutzer; für den Aufrufer (anderes Konto) ist er fremd.
+    # The folder belongs to the real user; for the caller (another account) it is foreign.
     (temp / f"sprintforecast-sperren-{real_uid + 1}").mkdir()
     monkeypatch.setattr(protocol_module.os, "getuid", lambda: real_uid + 1)
     with pytest.raises(FileAccessError, match="anderen Benutzer"):
@@ -831,7 +862,7 @@ def test_a_temp_folder_owned_by_another_user_is_rejected(
 
 
 def test_an_existing_file_name_moves_the_new_protocol_to_the_next_second(tmp_path: Path):
-    """Gleicher Name (Sekunde und Kennung), aber anderer Inhalt: nichts wird überschrieben."""
+    """Same name (second and identifier), but different content: nothing is overwritten."""
     repo = Repository(tmp_path)
     folder = protocol_folder(tmp_path)
     text = "# T\n\nStand: 1\n\nx\n"
@@ -844,8 +875,8 @@ def test_an_existing_file_name_moves_the_new_protocol_to_the_next_second(tmp_pat
 
 
 def test_different_states_saved_in_the_same_second_get_different_names(tmp_path: Path):
-    """Zwei Klone, die in derselben Sekunde Verschiedenes speichern, erzeugen nie denselben
-    Dateinamen (der Inhalt geht in den Namen ein)."""
+    """Two clones that save different things in the same second never produce the same file name
+    (the content goes into the name)."""
     first = write_protocol(
         Repository(tmp_path / "a"), "demo", "2026.21", REVIEW, "# T\n\nStand: 1\n\nalice\n", NOW
     )
@@ -913,5 +944,115 @@ def test_unfreeze_marks_only_the_planning_protocol_obsolete(tmp_path: Path):
     assert renamed[0].name.endswith("_obsolet_20261020-090000.md")
     assert not plan.exists() and pre.exists() and renamed[0].read_text() == "x\n"
     assert [f[2] for f in list_protocols(repo, "demo", "2026.21") if f[1] == PLANNING] == [True]
-    # ein zweites Aufheben benennt Obsoletes nicht noch einmal um
+    # a second unfreeze does not rename obsolete minutes again
     assert mark_obsolete(repo, "demo", "2026.21", PLANNING, LATER) == []
+
+
+def planning_text(repo: Repository, now: datetime, *, plan: bool, commitment: bool) -> str:
+    return render_planning_protocol(
+        "Team",
+        "2026.21",
+        now=now,
+        facts=[("Kapazität (PT)", "50")],
+        sections=[
+            PlanningSection("absences", "Fehltage", ["- Anna: 2 Tage"]),
+            PlanningSection("plan", "Einplanung", ["- Eingeplant: 8"], recorded=plan),
+            PlanningSection("commitment", "Commitment", ["- Commitment: 9"], recorded=commitment),
+        ],
+        previous=latest_planning_sections(repo, "demo", "2026.21"),
+    )
+
+
+def test_planning_protocol_lists_every_section_and_marks_missing_ones(tmp_path: Path):
+    repo = Repository(tmp_path)
+    text = planning_text(repo, NOW, plan=False, commitment=False)
+    assert text.index("## Fehltage") < text.index("## Einplanung") < text.index("## Commitment")
+    assert "- Anna: 2 Tage" in text and "_noch nicht erfasst_" in text
+    assert text.count("_Stand: 16.10.2026 14:43_") == 1  # only the recorded section
+
+
+def test_each_section_keeps_its_own_stand_while_unchanged(tmp_path: Path):
+    repo = Repository(tmp_path)
+    write_protocol(
+        repo,
+        "demo",
+        "2026.21",
+        PLANNING,
+        planning_text(repo, NOW, plan=False, commitment=False),
+        NOW,
+    )
+    second = planning_text(repo, LATER, plan=True, commitment=False)
+    assert "_Stand: 16.10.2026 14:43_\n\n- Anna: 2 Tage" in second  # absences: old state
+    assert "_Stand: 20.10.2026 09:00_\n\n- Eingeplant: 8" in second  # scheduling: new
+    write_protocol(repo, "demo", "2026.21", PLANNING, second, LATER)
+    sections = latest_planning_sections(repo, "demo", "2026.21")
+    assert sections["absences"] == ("Stand: 16.10.2026 14:43", ["- Anna: 2 Tage"])
+    assert sections["plan"][0] == "Stand: 20.10.2026 09:00"
+
+
+def test_an_unchanged_planning_state_gives_the_same_text_and_no_new_protocol(tmp_path: Path):
+    repo = Repository(tmp_path)
+    one = write_protocol(
+        repo, "demo", "2026.21", PLANNING, planning_text(repo, NOW, plan=True, commitment=True), NOW
+    )
+    again_text = planning_text(repo, LATER, plan=True, commitment=True)
+    assert write_protocol(repo, "demo", "2026.21", PLANNING, again_text, LATER) == one
+    assert len(list_protocols(repo, "demo", "2026.21")) == 1
+
+
+def test_a_missing_or_unreadable_planning_protocol_yields_no_sections(tmp_path: Path):
+    repo = Repository(tmp_path)
+    assert latest_planning_sections(repo, "demo", "2026.21") == {}
+    path = write_protocol(repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n", NOW)
+    path.write_bytes(b"\xff\xfe")
+    assert latest_planning_sections(repo, "demo", "2026.21") == {}
+
+
+def test_a_transient_error_creating_the_lock_folder_is_not_a_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+
+    def flaky(path):
+        raise OSError(errno.EMFILE, "Zu viele offene Dateien")
+
+    monkeypatch.setattr(protocol_module, "_private_dir", flaky)
+    with pytest.raises(FileAccessError, match="nicht gespeichert"):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+    assert not list(temp.glob("sprintforecast-sperren-*"))
+
+
+def test_a_transient_error_opening_the_lock_file_is_not_a_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    real = Path.open
+
+    def flaky(self, mode="r", *args, **kwargs):
+        if self.suffix == ".lock":
+            raise OSError(errno.EMFILE, "Zu viele offene Dateien")
+        return real(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", flaky)
+    with pytest.raises(FileAccessError, match="nicht gespeichert"):
+        write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+    assert not list(temp.glob("sprintforecast-sperren-*"))
+
+
+def test_a_file_where_the_lock_folder_belongs_falls_back_to_the_temp_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    settings = tmp_path / "einstellungen"
+    settings.mkdir()
+    (settings / "sperren").write_text("keine Ordner")
+    monkeypatch.setattr(protocol_module, "config_dir", lambda: settings)
+    monkeypatch.setattr(protocol_module.tempfile, "gettempdir", lambda: str(temp))
+    path = write_protocol(Repository(tmp_path), "demo", "2026.21", REVIEW, "x\n", NOW)
+    assert path.exists()
+    assert list(temp.glob("sprintforecast-sperren-*"))

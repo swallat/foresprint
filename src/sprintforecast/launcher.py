@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Start der Weboberfläche als „App“: Browserfenster im App-Modus mit Rückfallkette.
+"""Start the web UI as an "app": browser window in app mode with a fallback chain.
 
-1. Chromium-Browser (Edge, Chrome, Comet, Chromium, Brave, Vivaldi) mit ``--app``: eigenes
-   Fenster ohne Adressleiste; wird es geschlossen, endet auch der Server.
-2. Firefox (kein App-Modus mehr) in einem neuen Fenster.
-3. Standardbrowser des Systems.
-4. Nichts gefunden: nur die Adresse ausgeben.
+1. Chromium browser (Edge, Chrome, Comet, Chromium, Brave, Vivaldi) with ``--app``: own
+   window without an address bar; when it is closed, the server ends too.
+2. Firefox (no app mode anymore) in a new window.
+3. The system's default browser.
+4. Nothing found: just print the address.
 
-Gesucht wird im PATH (dort liegen auch die Shims von Scoop und Chocolatey) sowie in den
-üblichen Installationsorten, unter Windows inklusive Scoop- und Chocolatey-Verzeichnissen.
+The search covers the PATH (which also holds the Scoop and Chocolatey shims) and the
+usual install locations, on Windows including the Scoop and Chocolatey directories.
 """
 
 from __future__ import annotations
@@ -31,9 +31,9 @@ BROWSER_ENV = "SPRINTFORECAST_BROWSER"
 
 
 class Kind(StrEnum):
-    APP = "app"  # Chromium mit --app
-    WINDOW = "window"  # Firefox o. Ä. mit neuem Fenster
-    DEFAULT = "default"  # Standardbrowser über das webbrowser-Modul
+    APP = "app"  # Chromium with --app
+    WINDOW = "window"  # Firefox or similar with a new window
+    DEFAULT = "default"  # default browser via the webbrowser module
     NONE = "none"
 
 
@@ -44,7 +44,7 @@ class Browser:
     path: str | None = None
 
 
-# Programmnamen im PATH (Linux, teils macOS/Windows)
+# Program names on the PATH (Linux, partly macOS/Windows)
 _CHROMIUM_COMMANDS = [
     ("Microsoft Edge", ["msedge", "microsoft-edge", "microsoft-edge-stable"]),
     ("Google Chrome", ["chrome", "google-chrome", "google-chrome-stable"]),
@@ -64,13 +64,13 @@ def _windows_paths() -> dict[str, list[Path]]:
         for p in (env.get("ProgramFiles(x86)"), env.get("ProgramFiles"), env.get("LOCALAPPDATA"))
         if p
     ]
-    # Scoop: <scoop>/apps/<app>/current/…, benutzerweit und global
+    # Scoop: <scoop>/apps/<app>/current/…, per user and global
     scoop_apps = [
         Path(env.get("SCOOP") or home / "scoop") / "apps",
         Path(env.get("SCOOP_GLOBAL") or Path(env.get("ProgramData", "C:/ProgramData")) / "scoop")
         / "apps",
     ]
-    # Chocolatey: Programme meist in Program Files, portable Pakete als Shim in <choco>/bin
+    # Chocolatey: programs mostly in Program Files, portable packages as a shim in <choco>/bin
     choco_bin = Path(env.get("ChocolateyInstall") or "C:/ProgramData/chocolatey") / "bin"
 
     def scoop(app: str, *exes: str) -> list[Path]:
@@ -134,12 +134,12 @@ def _first_existing(paths: list[Path]) -> str | None:
 
 
 def find_browser(explicit: str | None = None) -> Browser:
-    """Sucht den besten verfügbaren Browser gemäß der Rückfallkette."""
+    """Find the best available browser according to the fallback chain."""
     explicit = explicit or os.environ.get(BROWSER_ENV)
     if explicit:
         path = shutil.which(explicit) or (explicit if Path(explicit).is_file() else None)
         if path is None:
-            raise FileNotFoundError(t("Browser nicht gefunden: {browser}", browser=explicit))
+            raise FileNotFoundError(t("Browser not found: {browser}", browser=explicit))
         kind = Kind.WINDOW if "firefox" in Path(path).name.lower() else Kind.APP
         return Browser(kind, Path(path).stem, path)
 
@@ -161,8 +161,8 @@ def find_browser(explicit: str | None = None) -> Browser:
 
 
 def profile_dir() -> Path:
-    """Eigenes Browserprofil: Nur so blockiert der Browserprozess, bis das Fenster zu ist
-    (sonst übergibt er an eine laufende Instanz und endet sofort)."""
+    """Dedicated browser profile: only then does the browser process block until the window is
+    closed (otherwise it hands over to a running instance and exits immediately)."""
     if sys.platform == "win32" and os.environ.get("LOCALAPPDATA"):
         base = Path(os.environ["LOCALAPPDATA"])
     elif sys.platform == "darwin":
@@ -187,7 +187,7 @@ def browser_command(browser: Browser, url: str) -> list[str]:
 
 
 def free_port(preferred: int) -> int:
-    """``preferred``, falls frei – sonst ein freier Port des Systems."""
+    """``preferred`` if free, otherwise a free port chosen by the system."""
     for port in (preferred, 0):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
@@ -195,7 +195,7 @@ def free_port(preferred: int) -> int:
             except OSError:
                 continue
             return s.getsockname()[1]
-    raise OSError(t("Kein freier Port gefunden"))
+    raise OSError(t("No free port found"))
 
 
 def wait_until_ready(url: str, server: subprocess.Popen, timeout: float = 60) -> bool:

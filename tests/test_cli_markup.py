@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Freitext aus den Daten (Namen, Sprint-IDs, Pfade) wird in der Kommandozeile nicht als
-Rich-Markup ausgewertet: „[x]“ bleibt stehen, „[/x]“ bricht die Ausgabe nicht ab, ein
-abschließender Backslash erscheint genau einmal.
+"""Free text from the data (names, sprint IDs, paths) is not evaluated as Rich markup on the
+command line: "[x]" stays, "[/x]" does not abort the output, a trailing backslash appears exactly
+once.
 
-Die Befehle laufen auf einer Kopie der Demo-Daten, in der Team, Personen, Produkte, Sprint-IDs und
-der Datenpfad wie Markup aussehen. Jeder Lauf prüft zusätzlich, dass kein Tag als Text übrig bleibt
-(„[/bold]“ nach einem Wert mit Backslash) und kein Backslash doppelt erscheint."""
+The commands run on a copy of the demo data in which team, people, products, sprint IDs and the
+data path look like markup. Each run also checks that no tag is left over as text
+("[/bold]" after a value with a backslash) and that no backslash appears twice."""
 
 import dataclasses
 import os
@@ -26,12 +26,12 @@ from sprintforecast.storage import DATA_ENV, save_data_dir
 
 runner = CliRunner(env={"COLUMNS": "1000"})
 
-# Backslash im Namen: nur dort möglich, wo er kein Pfadtrenner ist.
+# Backslash in the name: only possible where it is not a path separator.
 BS = "" if sys.platform == "win32" else "\\"
-# Pfade in der Ausgabe haben unter Windows Rückwärtsschrägstriche.
+# Paths in the output have backslashes on Windows.
 SEP = os.sep
-# Diese Tags kommen in der Ausgabe nur als Markup vor; als Text wären sie ein Fehler (die Daten
-# enthalten „[red]“, aber nie „[bold]“ oder „[dim]“).
+# These tags appear in the output only as markup; as text they would be an error (the data
+# contains "[red]", but never "[bold]" or "[dim]").
 CLOSERS = [f"[/{tag}]" for tag in ("red", "green", "yellow", "cyan", "bold", "dim")]
 OPENERS = ["[bold]", "[dim]", "[green]", "[yellow]", "[cyan]"]
 
@@ -49,7 +49,7 @@ def replace(path: Path, old: str, new: str) -> None:
 
 
 def check(result, *expected: str, code: int = 0, absent: tuple[str, ...] = ()) -> str:
-    """Exit-Code wie im Normalfall, kein MarkupError, die Werte stehen wörtlich da."""
+    """Exit code as in the normal case, no MarkupError, the values appear literally."""
     output = result.output
     assert result.exit_code == code, output
     assert not isinstance(result.exception, MarkupError), result.exception
@@ -73,7 +73,7 @@ def write_team(
     unit: str = "PT",
     issue: bool = False,
 ) -> Path:
-    """Kleines Team ohne Sprintdateien in einem Ordner, dessen Name wie Markup aussieht."""
+    """Small team without sprint files in a folder whose name looks like markup."""
     team = root / key
     team.mkdir()
     data = {
@@ -84,7 +84,7 @@ def write_team(
     }
     (team / "team.yaml").write_text(yaml.safe_dump(data), encoding="utf-8")
     persons = [{"id": "eva", "name": "Eva", "memberships": [{"from": date(2025, 1, 1)}]}]
-    if issue:  # eine Person ohne Zugehörigkeit: „Hinweis“ in der Prüfung
+    if issue:  # a person without affiliation: "Notice" in the check
         persons.append({"id": "zoe", "name": "Zoe"})
     (team / "people.yaml").write_text(
         yaml.safe_dump({"people": persons if people else []}), encoding="utf-8"
@@ -94,7 +94,7 @@ def write_team(
 
 @pytest.fixture
 def klammern(data_dir: Path, tmp_path: Path) -> Path:
-    """Demo-Daten, deren Pfad, Namen und Sprint-IDs wie Rich-Markup aussehen."""
+    """Demo data whose path, names and sprint IDs look like Rich markup."""
     root = tmp_path / f"da[x]ten{BS}[red]"
     data_dir.rename(root)
     team = root / "demo"
@@ -103,7 +103,7 @@ def klammern(data_dir: Path, tmp_path: Path) -> Path:
     replace(people, "name: Anna", "name: 'Eva [x]'")
     replace(people, "name: Ben", "name: 'Ben [/x]'")
     replace(people, "name: Cem", "name: 'Cem [red]'")
-    replace(people, "name: Dana", f"name: 'Dana{BS}'")  # zuletzt: steht vor dem Schluss-Tag
+    replace(people, "name: Dana", f"name: 'Dana{BS}'")  # last: stands before the closing tag
     products = team / "products.yaml"
     replace(products, "name: Webshop", "name: 'Shop [/x]'")
     replace(products, "name: Mobile App", "name: 'App [x]'")
@@ -115,12 +115,12 @@ def klammern(data_dir: Path, tmp_path: Path) -> Path:
         file = sprints / f"{old}.yaml"
         replace(file, f"id: '{old}'", f"id: '{new}'")
         file.rename(sprints / f"{new}.yaml")
-    # Ein Befund in der Sprintdatei: Prüfmeldungen zeigen Dateinamen und Text mit Klammern.
+    # A finding in the sprint file: check messages show file names and text with brackets.
     replace(sprints / f"[red]{BS}.yaml", "absences:\n", "absences:\n  '[/x]': 1\n")
     return root
 
 
-# --- _plain und _plain_end ----------------------------------------------------------------
+# --- _plain and _plain_end ---------------------------------------------------------------
 
 VALUES = [
     "Eva",
@@ -154,7 +154,7 @@ def test_plain_is_shown_literally_without_a_following_tag(value: str):
 def test_plain_end_keeps_the_closing_tag_a_tag(value: str):
     text = Text.from_markup(f"[red]{_plain_end(value)}[/red]")
     assert text.plain == value
-    # Das schließende Tag wirkte: der Stil deckt genau den Wert ab.
+    # The closing tag took effect: the style covers exactly the value.
     assert [(s.start, s.end, str(s.style)) for s in text.spans] == [(0, len(value), "red")]
 
 
@@ -162,24 +162,24 @@ def test_trailing_backslash_is_not_doubled_without_a_tag():
     assert _plain("Eva\\") == "Eva\\"
     assert _plain("C:\\") == "C:\\"
     assert _plain("[x]\\") == "\\[x]\\"
-    # Backslashes vor einem Tag werden wie in Rich verdoppelt (+ eines, das das Tag maskiert).
+    # Backslashes before a tag are doubled as in Rich (+ one that escapes the tag).
     assert _plain("\\[x]") == "\\\\\\[x]"
     assert _plain_end("Eva\\") == "Eva\\\\"
     assert _plain_end("Eva\\\\") == "Eva\\\\\\\\"
 
 
 def test_backslash_before_a_bracket_that_is_no_tag_is_kept():
-    """Rich macht aus jedem „\\[“ ein „[“; ohne Tag dahinter ging ein Backslash verloren
-    (Windows-Pfad mit Ordner „[2024]“)."""
+    """Rich turns every "\\[" into a "[": without a tag behind it a backslash was lost
+    (Windows path with the folder "[2024]")."""
     assert _plain("a\\[1]") == "a\\\\[1]"
-    assert _plain("[1]") == "[1]"  # ohne Backslash bleibt alles, wie es ist
+    assert _plain("[1]") == "[1]"  # without a backslash everything stays as it is
     assert Text.from_markup(_plain("D:\\Projekte\\[2024]\\teams")).plain == (
         "D:\\Projekte\\[2024]\\teams"
     )
 
 
 def test_plain_is_literal_for_all_short_strings():
-    """Alle Zeichenfolgen bis Länge 5 aus den Zeichen, die Rich besonders behandelt."""
+    """All strings up to length 5 from the characters Rich treats specially."""
     import itertools
 
     alphabet = ["\\", "[", "]", "x", "/", "A", " ", "#"]
@@ -191,13 +191,13 @@ def test_plain_is_literal_for_all_short_strings():
 
 
 def test_translation_markup_is_kept_around_placeholders():
-    """[bold], [red] und [dim] der Übersetzung bleiben Markup, die Werte darin sind Text."""
+    """[bold], [red] and [dim] of the translation stay markup, the values in them are text."""
     for language in ("de", "en"):
         i18n.set_language(language)
         try:
             text = Text.from_markup(
                 i18n.t(
-                    "Weiter mit: [bold]{command}[/bold]",
+                    "Next: [bold]{command}[/bold]",
                     command=_plain_end("sprintforecast people [x]\\"),
                 )
             )
@@ -209,13 +209,13 @@ def test_translation_markup_is_kept_around_placeholders():
         assert text.plain[bold[0].start : bold[0].end] == "sprintforecast people [x]\\"
 
 
-# --- Befehle auf den Daten mit Klammern ---------------------------------------------------
+# --- Commands on the data with brackets ------------------------------------------------
 
 NAMES = ["[/x] Team", "Eva [x]", "Ben [/x]", "Cem [red]", f"Dana{BS}"]
 PRODUCTS = ["Shop [/x]", "App [x]", f"Portal [red]{BS}"]
 SPRINTS = ["[x]", f"[red]{BS}"]
 ABSENCES = "0\n" * 4
-BLANK = "\n" * 60  # Enter übernimmt jeweils den Vorschlag
+BLANK = "\n" * 60  # Enter accepts the suggestion each time
 
 
 @pytest.mark.parametrize(
@@ -372,7 +372,7 @@ def test_values_with_markup_look_are_shown_literally(
 
 
 def test_personen_new_person_and_selection(klammern: Path):
-    """Auswahlliste, neue Person und Prüfzeilen nach dem Speichern mit Namen wie Markup."""
+    """Select box, new person and check lines after saving with names that look like markup."""
     people = klammern / "demo" / "people.yaml"
     replace(people, "people:\n", "people:\n- id: '[x]'\n  name: Zoe\n")
     result = run(
@@ -384,11 +384,10 @@ def test_personen_new_person_and_selection(klammern: Path):
     check(
         result,
         f"Personen: Eva [x], Ben [/x], Cem [red], Dana{BS}\n",
-        "Neu [/x]",
-        "Gespeichert: ",
-        "Hinweis people.yaml: [x]: keine Zugehörigkeit",
-        "Fehler people.yaml: neu-x: Region '[/X]' gehört nicht zum Land DE",
+        "people.yaml: neu-x: Region '[/X]' gehört nicht zum Land DE",
+        "Gespeichert: ",  # the rest is saved; the invalid new person is refused at once
     )
+    assert "Neu [/x]" not in people.read_text(encoding="utf-8")
 
 
 def test_personen_region_with_markup_look(klammern: Path):
@@ -398,7 +397,7 @@ def test_personen_region_with_markup_look(klammern: Path):
 
 
 def test_commit_message_lines_with_markup_look(klammern: Path):
-    """Prüfzeilen und Tag-Hinweis von _maybe_commit stehen auch mit --commit ohne Markup da."""
+    """Check lines and tag hint of _maybe_commit also appear without markup with --commit."""
     result = run(klammern, "absences", "demo", f"[red]{BS}", "--commit", input=ABSENCES)
     check(
         result,
@@ -436,7 +435,7 @@ def test_names_in_error_lines_with_markup_look(data_dir: Path):
 def test_sprint_panel_names_the_region_with_markup_look(
     klammern: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Die Feiertage im Sprint-Panel nennen die Region des Teams."""
+    """The holidays in the sprint panel name the team's region."""
     replace(klammern / "demo" / "team.yaml", "region: NW", "region: '[x]'")
     monkeypatch.setattr(cli, "holiday_name", lambda d, region, country: "Feiertag" * (d.day == 20))
     result = run(klammern, "absences", "demo", f"[red]{BS}", input=ABSENCES)
@@ -444,8 +443,8 @@ def test_sprint_panel_names_the_region_with_markup_look(
 
 
 def test_init_with_a_key_that_looks_like_markup(klammern: Path, monkeypatch: pytest.MonkeyPatch):
-    """Neue Kürzel sind auf a–z, Ziffern, „-“ und „_“ beschränkt; die Meldungen sind trotzdem
-    nicht auf diese Prüfung angewiesen."""
+    """New keys are limited to a–z, digits, "-" and "_"; the messages do not depend on this check
+    anyway."""
     monkeypatch.setattr(cli, "team_key_problem", lambda key: None)
     key = f"neu[x]{BS}"
     result = run(klammern, "init", key, input=INIT_ANSWERS.format(bs=BS))
@@ -458,7 +457,7 @@ def test_init_with_a_key_that_looks_like_markup(klammern: Path, monkeypatch: pyt
 
 
 def test_fte_change_note_names_people_with_markup_look(klammern: Path):
-    """Die Näherung bei FTE-Wechsel nennt die Personen in der Tabellenunterschrift."""
+    """The approximation for an FTE change names the people in the table caption."""
     result = run(klammern, "capacity", "demo", "2026.11")
     check(result, "(Ben [/x]).")
 
@@ -470,7 +469,7 @@ def test_commit_line_with_tag_with_markup_look(klammern: Path, monkeypatch: pyte
 
 
 def test_empty_data_dir_ending_in_a_backslash(tmp_path: Path):
-    """Der Ordner steht direkt vor dem schließenden Tag der Fehlermeldung."""
+    """The folder is right before the closing tag of the error message."""
     root = tmp_path / f"leer[x]{BS}"
     root.mkdir()
     result = run(root, "check")
@@ -523,14 +522,14 @@ def test_check_messages_with_brackets(data_dir: Path):
     assert "Fehltage für unbekannte Person '[/x]'" in result.output
 
 
-# --- init und einstellungen: geführte Eingabe ---------------------------------------------
+# --- init and settings: guided input ---------------------------------------------------
 
-# Eingaben von „init“ nach dem Namen: erster Sprint, Einheit … Land, Region (ungültig, dann leer) …
+# Inputs of "init" after the name: first sprint, unit … country, region (invalid, then empty) …
 INIT_ANSWERS = (
-    "Neu [/x]{bs}\n"  # Anzeigename
-    + "\n2026-10-07\n2026.20\n"  # erster Sprint: Nummerierung, Start, ID
-    + "\n" * 6  # Einheit, Produkte, PO, Produktion, Tickets, Land
-    + "[/x]\n\n"  # Region: Meldung „Unbekannter Regionscode“, dann leer
+    "Neu [/x]{bs}\n"  # display name
+    + "\n2026-10-07\n2026.20\n"  # first sprint: numbering, start, ID
+    + "\n" * 6  # unit, products, PO, production, tickets, country
+    + "[/x]\n\n"  # region: message "Unknown region code", then empty
     + "\n" * 20
 )
 
@@ -566,11 +565,11 @@ def test_einstellungen_with_markup_look(klammern: Path):
     )
 
 
-# --- Pfade --------------------------------------------------------------------------------
+# --- Paths ---------------------------------------------------------------------------
 
 
 def test_path_with_brackets_and_backslashes_in_messages(klammern: Path):
-    """_saved, „Angelegt“ und bericht zeigen den Pfad mit „[x]“, „[red]“ und Backslash."""
+    """_saved, "Created" and report show the path with "[x]", "[red]" and a backslash."""
     shown = f"da[x]ten{BS}[red]"
     result = run(klammern, "absences", "demo", "2026.23", input=ABSENCES)
     check(result, f"Gespeichert: {klammern}{SEP}demo{SEP}sprints{SEP}2026.23.yaml", shown)
@@ -581,8 +580,8 @@ def test_path_with_brackets_and_backslashes_in_messages(klammern: Path):
 
 
 def test_path_with_brackets_and_backslashes_for_datenordner(tmp_path: Path):
-    """Ohne Argument zeigt „datenordner“ den gemerkten und den verwendeten Ordner. Endet er auf
-    einen Backslash (Laufwerkswurzel „C:\\“), erscheint er einmal."""
+    """Without an argument ``data-dir`` shows the remembered and the used folder. If it ends in a
+    backslash (drive root "C:\\"), it appears once."""
     gemerkt = tmp_path / f"alt[x]{BS}"
     verwendet = tmp_path / f"neu[red]{BS}"
     gemerkt.mkdir()
@@ -604,14 +603,14 @@ def test_path_with_brackets_and_backslashes_for_missing_folder(data_dir: Path):
     check(result, f"Ordner nicht gefunden: {folder}", code=1)
 
 
-# --- feste Meldungen mit eckigen Klammern -------------------------------------------------
+# --- fixed messages with square brackets -----------------------------------------------
 
 
 @pytest.mark.parametrize("language", ["de", "en"])
 def test_web_without_streamlit_names_the_extra(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, language: str
 ):
-    """„[web]“ ist das Extra im Installationsbefehl und kein Markup."""
+    """The extra "[web]" in the install command is not markup."""
     import importlib.util
 
     real = importlib.util.find_spec
@@ -635,7 +634,7 @@ def test_help_shows_square_brackets_of_the_commands(data_dir: Path):
     check(result, "sprintforecast language [de|en]")
 
 
-# --- Meldungen aus Hilfsfunktionen, die sich nur mit Attrappen erreichen lassen -----------
+# --- Messages from helper functions that can only be reached with mocks -----------------
 
 
 def test_analyse_completion_with_markup_look(klammern: Path, monkeypatch: pytest.MonkeyPatch):
@@ -774,10 +773,17 @@ def test_open_app_window_messages_with_markup_look(
 
 @pytest.mark.usefixtures("english")
 def test_english_translations_keep_their_markup(klammern: Path):
-    """Auch die englischen Vorlagen mit [bold] um einen Platzhalter bleiben Markup."""
+    """The English templates with [bold] around a placeholder also stay markup."""
     result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
     check(result, "Create new team neu.", f"Created: {klammern}{SEP}neu{SEP}team.yaml", "Next: ")
     result = run(klammern, "absences", "demo", f"[red]{BS}", input=ABSENCES)
     check(result, f"Sprint [red]{BS}: ", "Saved: ")
     result = run(klammern, "review", "demo", f"[red]{BS}", input="\ny\n" + BLANK)
     check(result, f"Review Sprint [red]{BS} (", "Capacity according to people list")
+
+
+def test_emoji_shortcodes_in_names_stay_text(data_dir: Path):
+    replace(data_dir / "demo" / "people.yaml", "name: Cem", "name: ':smile: Cem'")
+    result = run(data_dir, "people", "demo", input="q\n")
+    check(result, ":smile: Cem")
+    assert "😄" not in result.output

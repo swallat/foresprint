@@ -1,17 +1,17 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Selbstaktualisierung – ähnlich wie bei Claude Code.
+"""Self-update, similar to Claude Code.
 
-- Beim Start eines Befehls wird höchstens einmal am Tag im Hintergrund geprüft, ob es eine
-  neuere Version gibt (``version`` in ``pyproject.toml`` des installierten Branches).
-- Modus ``an`` (Standard): Nach dem Ende des Befehls aktualisiert ein eigener Prozess mit
-  ``uv tool upgrade --reinstall sprintforecast``; der nächste Start nutzt die neue Version.
-  ``uv`` übernimmt dabei Quelle, Plugins (``--with``) und Python-Version der Installation.
-- Modus ``hinweis``: nur ein Hinweis. Modus ``aus``: keine Prüfung.
-- Manuell: ``sprintforecast update``.
+- When a command starts, a background check runs at most once a day to see whether a newer
+  version exists (``version`` in ``pyproject.toml`` of the installed branch).
+- Mode ``on`` (default): after the command ends, a separate process updates with
+  ``uv tool upgrade --reinstall sprintforecast``; the next start uses the new version.
+  ``uv`` keeps the source, plugins (``--with``) and Python version of the installation.
+- Mode ``notice``: only a notice. Mode ``off``: no check.
+- Manually: ``sprintforecast update``.
 
-Aktiv nur bei einer Installation mit ``uv tool install`` (erkennbar an ``uv-receipt.toml``),
-also nicht in der Entwicklung (``uv run``) und nicht in CI. Gewartet wird auf das Ende des
-eigenen Prozesses, weil Windows laufende Programme und geladene Bibliotheken sperrt.
+Active only for an installation with ``uv tool install`` (recognizable by ``uv-receipt.toml``),
+so not in development (``uv run``) and not in CI. The update waits for the end of the own
+process, because Windows locks running programs and loaded libraries.
 """
 
 from __future__ import annotations
@@ -45,17 +45,17 @@ DEFAULT_REPO = "swallat/sprint-forecast"
 DEFAULT_REF = "main"
 MODE_ENV = "SPRINTFORECAST_AUTOUPDATE"
 CHECK_INTERVAL = timedelta(hours=24)
-# Erst nach dieser Zeit gilt eine nicht wirksame Aktualisierung als fehlgeschlagen.
+# Only after this time does an update that had no effect count as failed.
 FAILURE_GRACE = timedelta(minutes=15)
 
 
 class Mode(StrEnum):
-    ON = "an"
-    NOTICE = "hinweis"
-    OFF = "aus"
+    ON = "on"
+    NOTICE = "notice"
+    OFF = "off"
 
 
-# --- Ablage ---------------------------------------------------------------------------
+# --- Storage --------------------------------------------------------------------------
 
 
 def state_file() -> Path:
@@ -74,34 +74,44 @@ def load_state() -> dict[str, Any]:
     return content if isinstance(content, dict) else {}
 
 
-def save_state(state: dict[str, Any]) -> None:
+def save_state(state: dict[str, Any], strict: bool = False) -> bool:
+    """Writes the state; ``True`` if that worked. Without ``strict`` an error stays silent
+    (the update is a convenience and never disturbs the actual command), with ``strict`` the
+    ``OSError`` is passed on."""
     try:
         path = state_file()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
     except OSError:
-        pass  # Aktualisierung ist Komfort – nie den eigentlichen Befehl stören
+        if strict:
+            raise
+        return False
+    return True
 
 
-def update_state(**changes: Any) -> dict[str, Any]:
+def update_state(strict: bool = False, **changes: Any) -> dict[str, Any]:
     state = load_state() | changes
-    save_state(state)
+    save_state(state, strict=strict)
     return state
 
 
 def mode() -> Mode:
-    """Umgebungsvariable vor gespeicherter Einstellung; Standard: an."""
+    """Environment variable before stored setting; default: on."""
     for raw in (os.environ.get(MODE_ENV), load_state().get("mode")):
         if raw:
             value = str(raw).strip().lower()
             aliases = {
-                "1": "an",
-                "true": "an",
-                "on": "an",
-                "notice": "hinweis",
-                "0": "aus",
-                "false": "aus",
-                "off": "aus",
+                "1": "on",
+                "true": "on",
+                "on": "on",
+                "notice": "notice",
+                "0": "off",
+                "false": "off",
+                "off": "off",
+                # Values written by older versions.
+                "an": "on",
+                "hinweis": "notice",
+                "aus": "off",
             }
             try:
                 return Mode(aliases.get(value, value))
@@ -110,7 +120,7 @@ def mode() -> Mode:
     return Mode.ON
 
 
-# --- Versionen ------------------------------------------------------------------------
+# --- Versions -------------------------------------------------------------------------
 
 
 def installed_version() -> str:
@@ -123,7 +133,7 @@ def installed_version() -> str:
 
 
 def parse_version(text: str) -> tuple[int, ...]:
-    """„0.10.2“ → (0, 10, 2); Zusätze wie „rc1“ werden ignoriert."""
+    """Parses "0.10.2" to (0, 10, 2); suffixes like "rc1" are ignored."""
     parts = []
     for piece in text.strip().lstrip("v").split("."):
         match = re.match(r"\d+", piece)
@@ -133,8 +143,12 @@ def parse_version(text: str) -> tuple[int, ...]:
     return tuple(parts)
 
 
-def is_newer(candidate: str | None, current: str) -> bool:
-    return candidate is not None and parse_version(candidate) > parse_version(current)
+def is_newer(candidate: Any, current: Any) -> bool:
+    """Only strings are versions; anything else in the state file (edited by hand, corrupted)
+    counts as "not newer" instead of disturbing the start."""
+    if not isinstance(candidate, str) or not isinstance(current, str):
+        return False
+    return parse_version(candidate) > parse_version(current)
 
 
 # --- Installation ---------------------------------------------------------------------
@@ -142,13 +156,13 @@ def is_newer(candidate: str | None, current: str) -> bool:
 
 @dataclass(frozen=True)
 class Installation:
-    """Woher die laufende Installation stammt (aus der uv-Quittung)."""
+    """Where the running installation comes from (from the uv receipt)."""
 
     repo: str
     ref: str
-    # Auf einen Tag festgelegt – wird nicht automatisch aktualisiert.
+    # Pinned to a tag: not updated automatically.
     pinned: bool
-    # Kern ohne eigene Adresse, die Quelle kommt aus einem Plugin.
+    # Core without its own address, the source comes from a plugin.
     via_plugin: bool = False
 
 
@@ -161,7 +175,7 @@ def receipt_path() -> Path:
 
 
 def installation() -> Installation | None:
-    """None, wenn nicht mit ``uv tool install`` installiert (z. B. Entwicklung, CI)."""
+    """None if not installed with ``uv tool install`` (e.g. development, CI)."""
     try:
         receipt = tomllib.loads(receipt_path().read_text(encoding="utf-8"))
     except OSError, tomllib.TOMLDecodeError:
@@ -193,16 +207,16 @@ def _fetch(url: str, timeout: float) -> str:
 
 
 def remote_version(inst: Installation, timeout: float = 5.0, fresh: bool = False) -> str:
-    """Version im ``pyproject.toml`` des installierten Branches; wirft OSError/ValueError.
+    """Version in ``pyproject.toml`` of the installed branch; raises OSError/ValueError.
 
-    raw.githubusercontent.com hält Antworten einige Minuten vor; mit ``fresh`` (manuelle Suche)
-    wird der Zwischenspeicher durch einen wechselnden Parameter umgangen."""
+    raw.githubusercontent.com caches responses for a few minutes; with ``fresh`` (manual
+    check) the cache is bypassed by a changing parameter."""
     url = f"https://raw.githubusercontent.com/{inst.repo}/{inst.ref}/pyproject.toml"
     request_url = f"{url}?nocache={int(time.time())}" if fresh else url
     project = tomllib.loads(_fetch(request_url, timeout)).get("project", {})
     version = project.get("version")
     if not isinstance(version, str):
-        raise ValueError(t("Keine Version in {url}", url=url))
+        raise ValueError(t("No version in {url}", url=url))
     return version
 
 
@@ -219,7 +233,7 @@ class Check:
 
 
 def check(force: bool = False, timeout: float = 5.0, now: datetime | None = None) -> Check:
-    """Prüft auf eine neue Version; ohne ``force`` höchstens einmal je CHECK_INTERVAL."""
+    """Checks for a new version; without ``force`` at most once per CHECK_INTERVAL."""
     now = now or datetime.now(UTC)
     current = installed_version()
     inst = installation()
@@ -232,7 +246,7 @@ def check(force: bool = False, timeout: float = 5.0, now: datetime | None = None
     try:
         latest = remote_version(inst, timeout, fresh=force)
     except (OSError, ValueError, tomllib.TOMLDecodeError) as e:
-        update_state(last_check=now.isoformat())  # nicht bei jedem Start erneut warten
+        update_state(last_check=now.isoformat())  # do not wait again on every start
         return Check(current, state.get("latest"), inst, str(e))
     update_state(last_check=now.isoformat(), latest=latest)
     return Check(current, latest, inst)
@@ -245,7 +259,7 @@ def _parse_time(raw: Any) -> datetime | None:
         return None
 
 
-# --- Aktualisieren --------------------------------------------------------------------
+# --- Updating -------------------------------------------------------------------------
 
 
 def find_uv() -> str | None:
@@ -260,12 +274,12 @@ def find_uv() -> str | None:
 
 
 def upgrade_command(uv: str) -> list[str]:
-    # --reinstall lädt die Quelle neu (gleiche Adresse, neuer Inhalt) und behält --with-Plugins.
+    # --reinstall reloads the source (same address, new content) and keeps --with plugins.
     return [uv, "tool", "upgrade", "--reinstall", PACKAGE]
 
 
 def _path_key(env: dict[str, str] | os._Environ[str]) -> str:
-    # Windows: Variablennamen sind nicht von der Schreibweise abhängig („Path“ statt „PATH“).
+    # Windows: variable names are case-insensitive ("Path" instead of "PATH").
     if sys.platform == "win32":
         return next((name for name in env if name.upper() == "PATH"), "PATH")
     return "PATH"
@@ -276,14 +290,14 @@ def _same_file(a: str, b: str) -> bool:
 
 
 def upgrade_path() -> str | None:
-    """PATH für den uv-Aufruf. uv startet für Plugins aus Git-Adressen selbst ``git`` über den
-    PATH. Liegt Git nur außerhalb des PATH (siehe ``git.find_git``), kommt dessen Ordner HINTEN
-    an den PATH: Vorn würde er gleichnamige Programme (python, uv, …) im selben Ordner
-    überdecken, etwa bei ``~/.local/bin`` oder ``scoop\\shims``. Ist der PATH nicht gesetzt,
-    bleibt die Standardsuche des Systems (``os.defpath``) erhalten. ``None``: nichts zu ändern
-    (Git im PATH oder nicht gefunden). Maßgeblich ist der Fund von ``find_git``: Liegt im PATH
-    nur ein unbrauchbares ``git`` (etwa der Windows-Store-Alias, inzwischen gesperrt) und das
-    brauchbare an einem Ersatzort, wird dessen Ordner angehängt."""
+    """PATH for the uv call. For plugins from Git addresses, uv itself starts ``git`` via the
+    PATH. If Git is only outside the PATH (see ``git.find_git``), its folder goes at the END
+    of the PATH: at the front it would shadow programs of the same name (python, uv, …) in
+    the same folder, e.g. for ``~/.local/bin`` or ``scoop\\shims``. If the PATH is not set,
+    the system's default search (``os.defpath``) is kept. ``None``: nothing to change (Git
+    is on the PATH or not found). What counts is the result of ``find_git``: if the PATH only
+    holds an unusable ``git`` (e.g. the Windows Store alias, now blocked) and the usable one
+    is at a fallback location, that folder is appended."""
     found = find_git()
     if not found:
         return None
@@ -291,14 +305,14 @@ def upgrade_path() -> str | None:
         return None
     folder = os.path.normcase(os.path.dirname(found))
     if any(folder == os.path.normcase(os.path.abspath(f)) for f in os.get_exec_path() if f):
-        return None  # ein späterer PATH-Eintrag: Anhängen würde nichts ändern
+        return None  # a later PATH entry: appending would change nothing
     current = os.environ.get(_path_key(os.environ)) or os.defpath
     return os.pathsep.join([current, os.path.dirname(found)])
 
 
 def upgrade_environment() -> dict[str, str] | None:
-    """Umgebung für den uv-Aufruf (Kopie mit angepasstem PATH, siehe :func:`upgrade_path`);
-    ``None``: uv erbt die Umgebung unverändert."""
+    """Environment for the uv call (copy with adjusted PATH, see :func:`upgrade_path`);
+    ``None``: uv inherits the environment unchanged."""
     path = upgrade_path()
     if path is None:
         return None
@@ -308,7 +322,7 @@ def upgrade_environment() -> dict[str, str] | None:
 
 
 def run_upgrade(uv: str) -> int:
-    """Aktualisiert sofort im Vordergrund (nicht unter Windows – dort sind Dateien gesperrt)."""
+    """Updates immediately in the foreground (not on Windows, where files are locked)."""
     return subprocess.run(upgrade_command(uv), env=upgrade_environment()).returncode
 
 
@@ -331,7 +345,7 @@ def _powershell_script(
         "Start-Sleep -Seconds 1",
     ]
     if path is not None:
-        # Nur für den uv-Aufruf; ``then`` (der Neustart) läuft mit dem ursprünglichen PATH.
+        # Only for the uv call; ``then`` (the restart) runs with the original PATH.
         lines += ["$sfPath = $env:PATH", f"$env:PATH = {quote(path)}"]
     if visible:
         lines += [
@@ -343,8 +357,8 @@ def _powershell_script(
     if path is not None:
         lines.append("$env:PATH = $sfPath")
     if then:
-        # Eine einzige, nach Windows-Regeln gequotete Befehlszeile: Start-Process verbindet
-        # Array-Elemente nur mit Leerzeichen, Pfade mit Leerzeichen würden sonst zerfallen.
+        # A single command line quoted by Windows rules: Start-Process joins array elements
+        # with spaces only, so paths containing spaces would otherwise fall apart.
         args = f" -ArgumentList {quote(subprocess.list2cmdline(then[1:]))}" if then[1:] else ""
         location = f" -WorkingDirectory {quote(cwd)}" if cwd else ""
         lines.append(f"Start-Process -FilePath {quote(then[0])}{args}{location}")
@@ -365,7 +379,7 @@ def _posix_script(
     path: str | None = None,
 ) -> str:
     waits = "; ".join(f"while kill -0 {p} 2>/dev/null; do sleep 1; done" for p in pids)
-    # Der PATH gilt nur für den uv-Aufruf (Zuweisung vor dem Befehl), nicht für ``then``.
+    # The PATH applies only to the uv call (assignment before the command), not to ``then``.
     prefix = f"PATH={shlex.quote(path)} " if path is not None else ""
     script = f"{waits}; {prefix}{shlex.join(command)}"
     if then:
@@ -380,15 +394,15 @@ def schedule_after_exit(
     then: list[str] | None = None,
     cwd: str | None = None,
 ) -> None:
-    """Startet einen eigenständigen Prozess, der nach dem Ende dieses Prozesses (bzw. der
-    Prozesse ``pids``) aktualisiert und danach optional ``then`` startet (Neustart)."""
+    """Starts a standalone process that updates after this process (or the processes
+    ``pids``) has ended and then optionally starts ``then`` (restart)."""
     log = log_file()
     log.parent.mkdir(parents=True, exist_ok=True)
     command = upgrade_command(uv)
     path = upgrade_path()
     pids = list(pids or [os.getpid()])
     if sys.platform == "win32":
-        # Der uv-Starter (sprintforecast.exe) ist der Elternprozess und ebenfalls gesperrt.
+        # The uv launcher (sprintforecast.exe) is the parent process and is locked as well.
         if os.getppid() not in pids:
             pids.append(os.getppid())
         script = _powershell_script(pids, command, log, visible, then, cwd, path)
@@ -412,23 +426,23 @@ def schedule_after_exit(
         )
 
 
-# --- Weboberfläche --------------------------------------------------------------------
+# --- Web UI ---------------------------------------------------------------------------
 
-# Von `sprintforecast web` an die Weboberfläche übergeben: Prozesse, auf deren Ende die
-# Aktualisierung warten muss, und der Befehl für den Neustart (JSON-Liste).
+# Passed from `sprintforecast web` to the web UI: processes whose end the update has to wait
+# for, and the command for the restart (JSON list).
 PIDS_ENV = "SPRINTFORECAST_PARENT_PIDS"
 RESTART_ENV = "SPRINTFORECAST_RESTART"
-# Von sprintforecast-app gesetzt: ursprünglicher Starter samt Argumenten (JSON-Liste).
+# Set by sprintforecast-app: original launcher including arguments (JSON list).
 LAUNCHER_ENV = "SPRINTFORECAST_LAUNCHER"
 
 
 def web_environment(argv: list[str]) -> dict[str, str]:
-    """Umgebung für den Server der Weboberfläche (aufgerufen von `sprintforecast web`)."""
+    """Environment for the web UI server (called by `sprintforecast web`)."""
     pids = [os.getpid()]
     if sys.platform == "win32":
         pids.append(os.getppid())
     if launcher := os.environ.get(LAUNCHER_ENV):
-        # Doppelklick-Start: denselben Starter (ohne Konsolenfenster) wieder aufrufen.
+        # Started by double-click: call the same launcher (without console window) again.
         cmd = json.loads(launcher)
     else:
         cmd = [shutil.which(PACKAGE) or argv[0], *argv[1:]]
@@ -439,11 +453,11 @@ def web_environment(argv: list[str]) -> dict[str, str]:
 
 
 def restart_with_update() -> str | None:
-    """Plant Aktualisierung und Neustart nach dem Ende der Weboberfläche.
-    Liefert eine Fehlermeldung oder None. Der Aufrufer beendet danach den Server."""
+    """Schedules the update and restart for after the web UI has ended.
+    Returns an error message or None. The caller then shuts down the server."""
     uv = find_uv()
     if uv is None:
-        return t("uv nicht gefunden – bitte das Installationsskript erneut ausführen.")
+        return t("uv not found – please run the install script again.")
     try:
         restart = json.loads(os.environ.get(RESTART_ENV, "null")) or {}
         extra = [int(p) for p in os.environ.get(PIDS_ENV, "").split(",") if p.strip()]
@@ -454,7 +468,7 @@ def restart_with_update() -> str | None:
             uv, pids=[os.getpid(), *extra], then=restart.get("cmd"), cwd=restart.get("cwd")
         )
     except OSError as e:
-        return t("Aktualisierung nicht startbar: {error}", error=e)
+        return t("Update cannot be started: {error}", error=e)
     latest = load_state().get("latest")
     update_state(
         attempted=latest, attempted_at=datetime.now(UTC).isoformat(), failure_reported=False
@@ -462,11 +476,11 @@ def restart_with_update() -> str | None:
     return None
 
 
-# --- Einbindung in die Kommandozeile --------------------------------------------------
+# --- Command line integration ---------------------------------------------------------
 
 
 def startup_notices(now: datetime | None = None) -> list[str]:
-    """Hinweise beim Start: erfolgte bzw. fehlgeschlagene automatische Aktualisierung."""
+    """Notices at startup: automatic update that succeeded or failed."""
     if installation() is None:
         return []
     now = now or datetime.now(UTC)
@@ -475,9 +489,7 @@ def startup_notices(now: datetime | None = None) -> list[str]:
     messages = []
     seen = state.get("seen_version")
     if seen and is_newer(current, seen):
-        messages.append(
-            t("sprintforecast wurde auf Version {version} aktualisiert.", version=current)
-        )
+        messages.append(t("sprintforecast was updated to version {version}.", version=current))
     changes: dict[str, Any] = {"seen_version": current}
     attempted = state.get("attempted")
     attempted_at = _parse_time(state.get("attempted_at"))
@@ -489,8 +501,10 @@ def startup_notices(now: datetime | None = None) -> list[str]:
     ):
         messages.append(
             t(
-                "Die automatische Aktualisierung auf {version} hat nicht geklappt – "
-                "Protokoll: {log}. Manuell: sprintforecast update",
+                (
+                    "The automatic update to {version} did not work – log: {log}. Manually: "
+                    "sprintforecast update"
+                ),
                 version=attempted,
                 log=log_file(),
             )
@@ -501,7 +515,7 @@ def startup_notices(now: datetime | None = None) -> list[str]:
 
 
 class AutoUpdate:
-    """Prüft im Hintergrund und plant die Aktualisierung für das Programmende ein."""
+    """Checks in the background and schedules the update for the end of the program."""
 
     def __init__(self) -> None:
         self._result: Check | None = None
@@ -518,7 +532,7 @@ class AutoUpdate:
         return self
 
     def result(self, wait: float = 0.0) -> Check | None:
-        """Ergebnis der Prüfung; wartet höchstens ``wait`` Sekunden darauf."""
+        """Result of the check; waits at most ``wait`` seconds for it."""
         if self._thread is not None and wait:
             self._thread.join(timeout=wait)
         return self._result
@@ -526,11 +540,11 @@ class AutoUpdate:
     def _run(self) -> None:
         try:
             self._result = check(timeout=3.0)
-        except Exception:  # Komfortfunktion – nie den Befehl stören
+        except Exception:  # convenience feature: never disturb the command
             self._result = None
 
     def finish(self, say: Callable[[str], None]) -> None:
-        """Am Programmende: Ergebnis abwarten (kurz) und ggf. Aktualisierung starten."""
+        """At program end: wait (briefly) for the result and start the update if needed."""
         if self._thread is None:
             return
         self._thread.join(timeout=2.0)
@@ -541,8 +555,10 @@ class AutoUpdate:
         if mode() is Mode.NOTICE:
             say(
                 t(
-                    "Neue Version {latest} verfügbar (installiert: {current}) – "
-                    "aktualisieren mit: sprintforecast update",
+                    (
+                        "New version {latest} available (installed: {current}) – update with: "
+                        "sprintforecast update"
+                    ),
                     latest=latest,
                     current=result.current,
                 )
@@ -550,12 +566,12 @@ class AutoUpdate:
             return
         state = load_state()
         if state.get("attempted") == latest:
-            return  # schon versucht; Fehlschlag meldet startup_notices
+            return  # already tried; startup_notices reports a failure
         uv = find_uv()
         if uv is None:
             say(
                 t(
-                    "Neue Version {latest} verfügbar – uv nicht gefunden, bitte neu installieren.",
+                    "New version {latest} available – uv not found, please reinstall.",
                     latest=latest,
                 )
             )
@@ -565,7 +581,7 @@ class AutoUpdate:
         except OSError as e:
             say(
                 t(
-                    "Neue Version {latest} verfügbar – Aktualisierung nicht startbar: {error}",
+                    "New version {latest} available – update cannot be started: {error}",
                     latest=latest,
                     error=e,
                 )
@@ -578,31 +594,31 @@ class AutoUpdate:
         )
         say(
             t(
-                "Neue Version {latest} wird im Hintergrund installiert (gilt ab dem nächsten "
-                "Start).",
+                (
+                    "New version {latest} is being installed in the background (effective from "
+                    "the next start)."
+                ),
                 latest=latest,
             )
         )
 
 
 def status_line() -> str:
-    """Kurzer Stand für die Weboberfläche – ohne Netzzugriff."""
+    """Short status for the web UI, without network access."""
     current = installed_version()
     inst = installation()
     text = f"Version {current}"
     if inst is None:
         return text
     if inst.pinned:
-        return t("{text} (fest: {ref})", text=text, ref=inst.ref)
+        return t("{text} (pinned: {ref})", text=text, ref=inst.ref)
     latest = load_state().get("latest")
     if not is_newer(latest, current):
         return text
     if mode() is Mode.ON:
-        return t(
-            "{text} · Version {latest} wird nach dem Beenden installiert", text=text, latest=latest
-        )
+        return t("{text} · version {latest} will be installed on exit", text=text, latest=latest)
     return t(
-        "{text} · Version {latest} verfügbar (`sprintforecast update`)",
+        "{text} · version {latest} available (`sprintforecast update`)",
         text=text,
         latest=latest,
     )

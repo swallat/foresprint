@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Jede Seite lässt sich öffnen, ohne dass Streamlit einen Python-Fehler anzeigt."""
+"""Every page can be opened without Streamlit showing a Python error."""
 
 import pytest
 from harness import App, main_area, no_exception, open_page, settle

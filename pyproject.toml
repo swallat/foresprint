@@ -1,6 +1,6 @@
 [project]
 name = "sprintforecast"
-version = "0.6.0"
+version = "0.7.0"
 description = "Velocity and capacity forecast for Scrum teams with Git as the data store"
 readme = "README.md"
 license = "EUPL-1.2"
@@ -31,6 +31,10 @@ excel = [
     "openpyxl>=3.1",
     "xlsxwriter>=3.2",
 ]
+# Jira import (sprintforecast tickets --fetch); the OS keychain needs "keyring" in addition.
+jira = [
+    "httpx>=0.28",
+]
 
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
@@ -38,6 +42,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28",
     "openpyxl>=3.1",
     "playwright>=1.64.0",
     "pytest>=9.1.1",
@@ -56,8 +61,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.ruff.lint.per-file-ignores]
 # Browsertests: lange JavaScript-Texte und Erwartungstexte bleiben je Stück auf einer Zeile.
 "tests/e2e/*" = ["E501"]
-# Übersetzungskatalog: lange Texte bleiben je Eintrag auf einer Zeile.
-"src/sprintforecast/locale_en.py" = ["E501"]
+# Translation catalog: long texts bleiben je Eintrag auf einer Zeile.
+"src/sprintforecast/locale_de.py" = ["E501"]
 # Windows-Skript: Beispiele mit langen Befehlszeilen und PowerShell-Code in einem Text.
 "tests/test_windows_script.py" = ["E501"]
 
@@ -65,7 +70,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 testpaths = ["tests"]
 # Browsertests (tests/e2e) brauchen einen installierten Browser und laufen nur auf Wunsch:
 # `uv run pytest -m e2e` (siehe tests/e2e/README.md).
-addopts = "-m 'not e2e'"
+addopts = "-m 'not e2e and not jira_live'"
 markers = [
     "e2e: Browsertests mit Playwright gegen die laufende App (nur mit -m e2e)",
+    "jira_live: Test gegen eine echte Jira-Instanz (nur mit -m jira_live und SPRINTFORECAST_JIRA_*)",
 ]

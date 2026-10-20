@@ -50,7 +50,9 @@ Then open a new terminal. The script also creates a desktop launcher **"Sprint-F
 (desktop and Start menu on Windows, `~/Applications` on macOS, application entry on Linux) that
 opens the web UI as an app window; the first start guides you through setting up the data
 folder. Running the script again updates the installation; it asks about
-[plugins](docs/plugins.md#plugins-with-the-installer) and remembers the answer.
+[plugins](docs/plugins.md#plugins-with-the-installer) and remembers the answer. The script
+installs the extras `web`, `excel` (Excel export and import) and `jira` (Jira import of the ticket
+pre-planning, read-only apart from the optional label write-back; see [docs/jira.md](docs/jira.md)).
 
 ## Quick start
 
@@ -101,7 +103,7 @@ for retrospectives and tests.
 | `sprintforecast analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` | range, focus factor, buffer, completion |
 | `sprintforecast report [TEAM] [--output PATH]` | write `FORECAST.md` |
 | `sprintforecast excel TEAM [--output PATH]` / `excel-import TEAM FILE [--apply]` | Excel export and import |
-| `sprintforecast tickets TEAM [--import FILE [--apply]] [--sprints N]` | ticket pre-planning: import a tracker CSV export, distribute tickets over future sprints, project traffic light, refinement list (feature `tickets`) |
+| `sprintforecast tickets TEAM [--fetch \| --import FILE \| --handover [--overwrite]] [--apply] [--commit] [--sprints N] [--variant median\|conservative\|optimistic]` | ticket pre-planning: read tickets from Jira (`--fetch`, extra `[jira]`, read-only) or a tracker CSV export, distribute them over future sprints, project traffic light with the range of the conservative, median (Forecast PLAN) and optimistic variants, refinement list (feature `tickets`); `--handover` proposes the sums per sprint and product as the PO pre-planning (`--apply` writes where nothing is entered, `--overwrite` also replaces entered values); `--test-connection`, `--set-token` and `--write-labels` (earmarks as `planned_for_<sprint>` labels) for Jira, see [docs/jira.md](docs/jira.md) |
 | `sprintforecast check [--strict]` | validate all data (CI, before a commit) |
 | `sprintforecast settings TEAM` | change team settings |
 | `sprintforecast data-dir [PATH]`, `language [de\|en]`, `shortcut`, `update` | remembered data folder, UI language, desktop launcher, update |
@@ -165,6 +167,8 @@ not updated automatically. Details in [Installation](docs/installation.md#updati
   files, `FORECAST.md`, minutes
 - [Calculation](docs/calculation.md): formulas, capacity sources, trend modes, uncertainty,
   supplementary analyses
+- [Jira import](docs/jira.md): ticket pre-planning from Jira Data Center with a personal access
+  token (read-only; optional label write-back)
 - [Plugins](docs/plugins.md): writing and installing plugins
 - [Data repository](docs/data-repository.md): why Git, the template, separating code and data
 - `sprintforecast help [workflow|terms|fields|team|commands]` and the *Help* page of the web UI

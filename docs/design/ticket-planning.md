@@ -1,8 +1,8 @@
 # Design: Ticket pre-planning and tracker integration (optional)
 
-Status: draft, version 6 (19 October 2026), nothing implemented yet. This version **replaces
-version 5 completely**; it is the only valid design for the Jira integration. Implementation
-starts on release 0.6.0 (the PR wave of October 2026 is merged), see section 10. Everything that
+Status: draft, version 6 (19 October 2026); implementation progress in section 10. This version
+**replaces version 5 completely**; it is the only valid design for the Jira integration.
+Implementation starts on release 0.6.0 (the PR wave of October 2026 is merged), see section 10. Everything that
 applies without a ticket system (calculation, operation, data folder, synchronisation) is in
 [core.md](core.md).
 
@@ -149,9 +149,17 @@ refined status (section 6.3) are listed separately above.
 ### 5.5 Uncertainty (step 4)
 
 The distribution is calculated three times: with the lowest, the median and the highest
-normalised velocity from `analysis.band` (conservative, median, optimistic). In the conservative
+normalized velocity from `analysis.band` (conservative, median, optimistic). In the conservative
 variant, rough estimates are multiplied by `rough_factor` (team setting, default 1.5).
 The median variant is shown; traffic light and timeline show the range.
+
+The shown median variant is the **Forecast PLAN** of the sprint as the forecast calculates it,
+not a separately computed median; only the conservative and optimistic variants recalculate the
+plan of every horizon sprint from the lowest and highest normalized velocity (`analysis.band`).
+The variants differ in nothing else, except that `rough_factor` is applied in the conservative
+variant only (to rough estimates and to tickets with unclear refined status, not to refined or
+manual estimates). With fewer than two sprints with velocity there is no range. Greedy placement
+is not monotone across variants: earliest and latest are the minimum and maximum over the three.
 
 ## 6. Input data and configuration
 
@@ -393,9 +401,14 @@ per step, in English, with tests and `locale_en.py` entries.
 |---|---|---|
 | **1 Model and distribution** | `Ticket`, `Project` in `model.py`; `projects.yaml`, `tickets.yaml`, `preplan.yaml` in `storage.py`; `features.tickets`; validation (rule language, cycles, target dates); `preplan.py`; CLI `tickets` with CSV import (preview, apply) and output of distribution, traffic light and refinement list | model, storage, validate, cli, settings, locale_en, docs |
 | **2 Jira import** | `sources/jira.py` as an extra: read JQL, resolve field names, refined rule, assignment rules, preview, write to `tickets.yaml`; token from environment or keychain; GET only | sources/, settings, cli |
-| **3 Page** | page "Tickets" (section 8) without variants; report section | web/ui, web/seiten, report, i18n |
+| **3 Page** | page "Tickets" (section 8) without variants (done in `web/tickets_view.py`); report section and planning-assistant proposal follow | web/ui, web/seiten, report, i18n |
 | **4 Variants and apply** | three variants with `rough_factor`; range in the timeline; apply the sums per product as `preplanned` into the PO pre-planning | preplan, analysis, web/ui |
 | **5 Label to Jira** | set `planned_for_<sprint_id>` and remove the old one, only on change, with preview; read labels on import; precedence from 6.6 | sources/jira, preplan, web/ui |
+
+Implemented so far: steps 1 and 2 (model, distribution, CSV and Jira import) and the command-line
+part of step 4 (`tickets` with the range of the three variants, `--variant`, and `--handover` for
+the sums per sprint and product as `preplanned`). The page and the timeline range (step 3 and the
+rest of step 4) and step 5 follow.
 
 Step 3 starts only when nothing big is open on `web/ui.py`. Later candidates: GitHub
 and GitLab adapters, epic roadmap from the projects, export of the distribution (CSV), drag-and-drop.

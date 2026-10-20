@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Änderungsansicht: Wertänderungen zwischen zwei YAML-Ständen."""
+"""Change view: value changes between two YAML states."""
 
 import contextlib
 import os
@@ -164,7 +164,7 @@ def test_staged_new_file_is_readable_without_values(tmp_path: Path):
     data = root / "teams"
     (data / "neu.yaml").write_text("a: 1\n", encoding="utf-8")
     git(root, "add", "teams/neu.yaml")
-    (data / "neu.yaml").write_text("a: 2\n", encoding="utf-8")  # Status AM
+    (data / "neu.yaml").write_text("a: 2\n", encoding="utf-8")  # status AM
     (change,) = [c for c in file_changes(data) if c.file == "teams/neu.yaml"]
     assert change.status == "AM" and change.readable and change.values == ()
 
@@ -318,7 +318,7 @@ def test_alias_bomb_is_not_evaluated(tmp_path: Path):
     import yaml
 
     tree = yaml.safe_load(alias_bomb("1"))
-    assert diff_values(tree, tree) == []  # dasselbe Objekt: sofort gleich
+    assert diff_values(tree, tree) == []  # same object: equal immediately
     with pytest.raises(TooComplex):
         diff_values(tree, yaml.safe_load(alias_bomb("2")))
     root = make_local(tmp_path)
@@ -383,8 +383,8 @@ def test_cache_notices_same_size_content_with_the_old_time_restored(tmp_path: Pa
     calls = counting(monkeypatch)
     cached_file_changes(data, pending_of(data))
     stat = file.stat()
-    file.write_text("name: C\n", encoding="utf-8")  # gleiche Größe
-    os.utime(file, ns=(stat.st_atime_ns, stat.st_mtime_ns))  # Zeitstempel wie vorher
+    file.write_text("name: C\n", encoding="utf-8")  # same size
+    os.utime(file, ns=(stat.st_atime_ns, stat.st_mtime_ns))  # timestamp as before
     (change,) = cached_file_changes(data, pending_of(data))
     assert len(calls) == 2 and change.values[0].new == "C"
 
@@ -410,11 +410,11 @@ def test_at_most_25_files_are_parsed_and_results_stay_small(tmp_path: Path, monk
 
     monkeypatch.setattr(diff_module, "_parse", counting_parse)
     result = file_changes(data)
-    assert len(result) == 40 and len(parsed) == 2 * 25  # HEAD und Arbeitsstand je Datei
+    assert len(result) == 40 and len(parsed) == 2 * 25  # HEAD and working state per file
     assert all(c.readable and not c.values for c in result[25:])
     first = result[0]
     assert len(first.values) == diff_module.MAX_VALUES and first.omitted == 46 - 30
-    assert len(first.values[0].new) <= diff_module._SLIM_ITEMS  # kein ganzer Teilbaum
+    assert len(first.values[0].new) <= diff_module._SLIM_ITEMS  # not a whole subtree
 
 
 def test_big_files_are_rejected_cheaply_without_parsing(tmp_path: Path, monkeypatch):
@@ -427,7 +427,7 @@ def test_big_files_are_rejected_cheaply_without_parsing(tmp_path: Path, monkeypa
         (data / f"g{i:02}.yaml").write_text(small, encoding="utf-8")
     git(root, "add", "-A")
     git(root, "commit", "-qm", "g")
-    big = "".join(f"k{i}: 1\n" for i in range(100_001))  # rund 1 MB, über 200 000 Knoten
+    big = "".join(f"k{i}: 1\n" for i in range(100_001))  # about 1 MB, over 200,000 nodes
     assert len(big) < 1024 * 1024
     for i in range(25):
         (data / f"g{i:02}.yaml").write_text(big, encoding="utf-8")
@@ -438,8 +438,8 @@ def test_big_files_are_rejected_cheaply_without_parsing(tmp_path: Path, monkeypa
     result = file_changes(data)
     assert time.monotonic() - started < 2
     assert len(result) == 25 and all(not c.values for c in result)
-    assert not result[0].readable  # zu groß; später: Gesamtbudget aufgebraucht (übersprungen)
-    assert len(parsed) <= 25  # nur die kleinen HEAD-Fassungen, höchstens einmal je Datei
+    assert not result[0].readable  # too large; later: total budget used up (skipped)
+    assert len(parsed) <= 25  # only the small HEAD versions, at most once per file
 
 
 def test_files_over_one_mebibyte_have_no_value_view(tmp_path: Path):
@@ -459,7 +459,7 @@ def test_total_size_budget_marks_the_remaining_files_as_skipped(tmp_path: Path, 
     git(root, "commit", "-qm", "abc")
     for name in ("a.yaml", "b.yaml", "c.yaml"):
         (data / name).write_text("a: 2\n", encoding="utf-8")
-    monkeypatch.setattr(diff_module, "_BYTES_BUDGET", 20)  # HEAD und Arbeitsstand: 10 je Datei
+    monkeypatch.setattr(diff_module, "_BYTES_BUDGET", 20)  # HEAD and working state: 10 per file
     a, b, c = file_changes(data)
     assert a.values and b.values and not b.skipped
     assert c.skipped and c.readable and not c.values
@@ -486,10 +486,10 @@ def test_signature_stats_only_the_evaluated_files(tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(Path, "lstat", counting_lstat)
     signature = diff_module._signature(root, pending)
-    assert len(stats) <= 25 and len(signature) == 501  # HEAD plus alle Einträge
+    assert len(stats) <= 25 and len(signature) == 501  # HEAD plus all entries
     first = diff_module._signature(root, pending)
     assert first == signature
-    # Auch jenseits der Grenze gehört der Eintrag (Status, Datei) zur Signatur
+    # Even beyond the limit the entry (status, file) belongs to the signature
     assert diff_module._signature(root, [*pending, ("M", "teams/x.yaml")]) != signature
 
 
@@ -534,8 +534,8 @@ def test_cache_key_is_the_resolved_path_and_the_result_is_a_copy(tmp_path: Path,
     link.symlink_to(data)
     calls = counting(monkeypatch)
     first = cached_file_changes(data, pending_of(data))
-    first.clear()  # verändert nicht den Speicher
+    first.clear()  # does not change the cache
     again = cached_file_changes(link, pending_of(data))
     assert len(calls) == 1 and len(again) == 1
-    again.clear()  # auch das Ergebnis eines Treffers ist eine Kopie
+    again.clear()  # the result of a hit is a copy as well
     assert len(cached_file_changes(data, pending_of(data))) == 1

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Jeder übersetzbare Text hat eine englische Fassung mit denselben Platzhaltern."""
+"""Every translatable text has a German version with the same placeholders."""
 
 import ast
 import string
@@ -8,13 +8,13 @@ from pathlib import Path
 import pytest
 
 from sprintforecast import i18n
-from sprintforecast.locale_en import EN
+from sprintforecast.locale_de import DE
 
 SRC = Path(__file__).parent.parent / "src" / "sprintforecast"
 
 
 def literal_calls() -> list[tuple[str, int, str]]:
-    """Alle t("…")-Aufrufe mit konstantem Text: (Datei, Zeile, Text)."""
+    """All t("…") calls with a constant text: (file, line, text)."""
     found = []
     for path in SRC.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -32,7 +32,7 @@ def literal_calls() -> list[tuple[str, int, str]]:
 
 
 def static_texts() -> list[str]:
-    """Texte aus Datenstrukturen, die erst bei der Anzeige übersetzt werden."""
+    """Texts from data structures that are only translated on display."""
     from sprintforecast.i18n_texts import all_static_texts
 
     return all_static_texts()
@@ -43,31 +43,56 @@ def fields(text: str) -> set[str]:
 
 
 def test_every_text_is_translated():
-    missing = sorted({text for _, _, text in literal_calls() if text not in EN})
-    missing += sorted(text for text in static_texts() if text not in EN)
-    assert not missing, "Ohne Übersetzung:\n" + "\n".join(missing)
+    missing = sorted({text for _, _, text in literal_calls() if text not in DE})
+    missing += sorted(text for text in static_texts() if text not in DE)
+    assert not missing, "Without translation:\n" + "\n".join(missing)
+
+
+def source_strings() -> set[str]:
+    """All text constants in the source (except locale_de) plus the texts from data structures."""
+    found = set(static_texts())
+    for path in SRC.rglob("*.py"):
+        if path.name == "locale_de.py":
+            continue
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                found.add(node.value)
+    return found
+
+
+def test_no_orphaned_translations():
+    """An entry in locale_de.DE whose English text no longer appears anywhere in the source is
+    orphaned (the text was changed or removed) and must be deleted."""
+    used = source_strings()
+    orphaned = [en for en in DE if en not in used]
+    assert not orphaned, "Orphaned translations:\n" + "\n".join(orphaned)
+
+
+def test_english_uses_american_spelling():
+    """The English texts use American spelling like the docs (normalized, not normalised)."""
+    assert not [en for en in DE if "ormalis" in en]
 
 
 def test_placeholders_match():
-    wrong = [de for de, en in EN.items() if fields(de) != fields(en)]
+    wrong = [en for en, de in DE.items() if fields(de) != fields(en)]
     assert not wrong, wrong
 
 
 def test_switch_language(monkeypatch: pytest.MonkeyPatch):
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, "en")
-    assert i18n.t("Datei fehlt: {path}", path="x") == "File missing: x"
+    assert i18n.t("File missing: {path}", path="x") == "File missing: x"
     monkeypatch.setenv(i18n.LANG_ENV, "de")
-    assert i18n.t("Datei fehlt: {path}", path="x") == "Datei fehlt: x"
+    assert i18n.t("File missing: {path}", path="x") == "Datei fehlt: x"
     monkeypatch.delenv(i18n.LANG_ENV)
     i18n.save_language("en")
     assert i18n.language() == "en"
 
 
 def test_default_language_is_english(tmp_path: Path):
-    """Ohne Umgebungsvariable und ohne gespeicherte Einstellung ist die Oberfläche englisch.
-    (Die Testsuite selbst setzt die Vorgabe in conftest.py auf Deutsch, daher ein eigener
-    Prozess.)"""
+    """Without an environment variable and without a saved setting the UI is in English.
+    (The test suite itself sets the default to German in conftest.py, hence a separate
+    process.)"""
     import os
     import subprocess
     import sys
@@ -76,7 +101,7 @@ def test_default_language_is_english(tmp_path: Path):
     env |= {"XDG_CONFIG_HOME": str(tmp_path), "APPDATA": str(tmp_path)}
     code = (
         "from sprintforecast import i18n; "
-        "print(i18n.DEFAULT, i18n.language(), i18n.t('Datei fehlt: {path}', path='x'))"
+        "print(i18n.DEFAULT, i18n.language(), i18n.t('File missing: {path}', path='x'))"
     )
     done = subprocess.run(
         [sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True
@@ -85,7 +110,7 @@ def test_default_language_is_english(tmp_path: Path):
 
 
 def test_german_texts_name_the_english_commands(data_dir: Path):
-    """Auch die deutsche Oberfläche nennt die Befehle und Optionen englisch."""
+    """The German UI also names the commands and options in English."""
     from typer.testing import CliRunner
 
     from sprintforecast.cli import app
@@ -129,10 +154,10 @@ def test_capacity_in_english(data_dir: Path, english):
     from sprintforecast.report import fmt_capacity
     from sprintforecast.storage import Repository
 
-    assert fmt_capacity(25.25) == "25.3"  # kaufmännisch gerundet, Dezimalpunkt
+    assert fmt_capacity(25.25) == "25.3"  # commercially rounded, decimal point
     assert fmt_capacity(1234.25) == "1,234.3"
     fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
-    e = fc.entry("2026.23")  # Kapazität 30,4375 (erwartete Fehltage: aus der Historie geschätzt)
+    e = fc.entry("2026.23")  # capacity 30.4375 (expected absences: estimated from the history)
     assert "30.4 PT are available" in plain_explanation(fc, e)
     assert "16.8433 / 45 × 30.4375 = 11.393" in plain_explanation(fc, e)
     assert step(fc, e, "plan").calculation == "16.8433 / 45 × 30.4375 = 11.393 → 11.3 PT"
@@ -161,6 +186,12 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     from sprintforecast.web.ui import PAGE_INFO
 
     i18n.save_language("en")
+    import yaml
+
+    team_file = data_dir / "demo" / "team.yaml"
+    raw = yaml.safe_load(team_file.read_text())
+    raw["features"]["tickets"] = True  # the page "Tickets" exists only with its feature
+    team_file.write_text(yaml.safe_dump(raw))
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
     app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"

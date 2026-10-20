@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Prüfung meldet stille Annahmen beim Laden (doppelte Schlüssel, leere Zahlenfelder) als
-Hinweis mit Datei, Zeile und Schlüsselpfad. Laden und Rechnen bleiben unverändert."""
+"""The check reports silent assumptions on load (duplicate keys, empty number fields) as a note
+with file, line and key path. Loading and calculating stay unchanged."""
 
 import shutil
 from datetime import date
@@ -28,7 +28,7 @@ def edit(data_dir: Path, name: str, old: str, new: str) -> Path:
 
 
 def issues(data_dir: Path):
-    """Nur die Befunde zu stillen Annahmen (andere Plausibilitätshinweise bleiben außen vor)."""
+    """Only the findings about silent assumptions (other plausibility notes are left out)."""
     return check_team_files(data_dir / "demo")
 
 
@@ -102,7 +102,7 @@ def test_leere_planungswerte(data_dir: Path, old: str, field: str):
 
 
 def test_legitime_leerwerte_ohne_meldung(data_dir: Path):
-    # to: null (Mitgliedschaft ohne Ende), unerfasste Sprintwerte und Region sind gewollt leer
+    # to: null (membership without an end), unrecorded sprint values and region: meant to be empty
     edit(data_dir, SPRINT, "forecast_ist: 12\n", "forecast_ist:\n")
     edit(data_dir, SPRINT, "capacity: 29\n", "capacity: null\n")
     edit(data_dir, SPRINT, "    done: 3\n", "    done:\n")
@@ -118,7 +118,7 @@ def test_leere_dateien_ohne_meldung(data_dir: Path):
 
 def test_ungueltiges_yaml_bleibt_ein_fehler(data_dir: Path):
     edit(data_dir, SPRINT, "velocity: 9.75\n", "velocity: [\n")
-    assert issues(data_dir) == []  # keine Folgemeldungen aus der kaputten Datei
+    assert issues(data_dir) == []  # no follow-up messages from the broken file
     [issue] = check_all(Repository(data_dir), TODAY)["demo"]
     assert issue.level is Level.ERROR
 
@@ -131,7 +131,7 @@ def test_ankerverweise_und_merge_keys_sind_keine_duplikate():
 def test_rechnung_mit_duplikat_und_leerwert_bleibt_gleich(data_dir: Path, tmp_path: Path):
     clean = tmp_path / "clean"
     shutil.copytree(data_dir, clean)
-    # Duplikat: der letzte Wert gewinnt (wie bisher); Leerwert: gilt als 0
+    # Duplicate: the last value wins (as before); empty value: counts as 0
     edit(data_dir, SPRINT, "velocity: 9.75\n", "velocity: 5\nvelocity: 9.75\n")
     edit(data_dir, SPRINT, "  anna: 5\n", "  anna:\n")
     edit(clean, SPRINT, "  anna: 5\n", "  anna: 0\n")
@@ -143,7 +143,7 @@ def test_rechnung_mit_duplikat_und_leerwert_bleibt_gleich(data_dir: Path, tmp_pa
     assert [(e.sprint.id, e.result) for e in fc.upcoming()] == [
         (e.sprint.id, e.result) for e in fc_ref.upcoming()
     ]
-    assert len(issues(data_dir)) == 2  # beides wird gemeldet, nichts bricht ab
+    assert len(issues(data_dir)) == 2  # both are reported, nothing aborts
 
 
 def test_kommandozeile_und_streng(data_dir: Path):
@@ -187,7 +187,7 @@ BASE = "x: &x {fte: null}\ny: &y {fte: 0.5}\n"
 
 
 def member(spec: str) -> list[str]:
-    """Meldungen für ein Mitglied, das ``spec`` (z. B. ``<<: *x``) in seiner Zugehörigkeit hat."""
+    """Messages for a member that has ``spec`` (e.g. ``<<: *x``) in its membership."""
     return messages(BASE + f"people:\n- id: a\n  memberships:\n  - {{from: 2025-01-01, {spec}}}\n")
 
 
@@ -201,8 +201,8 @@ def test_geerbter_leerwert_wird_unter_dem_pfad_des_empfaengers_gemeldet():
 
 
 def test_merge_liste_die_erste_quelle_gewinnt():
-    assert member("<<: [*y, *x]") == []  # fte kommt aus y (0.5), der Leerwert in x entfällt
-    [found] = member("<<: [*x, *y]")  # fte kommt aus x: leer
+    assert member("<<: [*y, *x]") == []  # fte comes from y (0.5), the empty value in x is dropped
+    [found] = member("<<: [*x, *y]")  # fte comes from x: empty
     assert "memberships[0].fte" in found
 
 
@@ -212,7 +212,7 @@ def test_ueberschriebener_geerbter_schluessel_ist_kein_duplikat():
 
 def test_geerbt_ueber_zwei_stufen():
     text = "a: &a {fte: }\nb: &b {<<: *a}\nc: &c {<<: *b, fte: 1}\n"
-    assert messages(text) == []  # nicht unter people: keine Zahlenstelle, aber kein Absturz
+    assert messages(text) == []  # not under people: no number field, but no crash
     nested = "a: &a {fte: }\nb: &b {<<: *a}\n" + MEMBER.replace("fte: 1", "<<: *b")
     assert any("memberships[0].fte" in m for m in messages(nested))
 
@@ -232,16 +232,16 @@ def test_anker_bombe_wird_begrenzt_und_gemeldet():
 def test_extreme_verschachtelung_stuerzt_nicht_ab():
     depth = 5000
     text = "a: " + "[" * depth + "]" * depth + "\n"
-    check_yaml_text(text, "x.yaml")  # darf keine Ausnahme werfen
+    check_yaml_text(text, "x.yaml")  # must not raise an exception
     block = "".join("  " * i + "- \n" for i in range(depth))
     check_yaml_text("a:\n" + block, "x.yaml")
 
 
 def test_schluessel_typ_unterscheidet_ausser_bei_kuerzeln():
-    # Kürzel werden mit str() gelesen: 1 und "1" sind dort derselbe Schlüssel ...
+    # Short keys are read with str(): 1 and "1" are the same key there ...
     assert any("absences.1" in m for m in messages('absences:\n  1: 2\n  "1": 3\n'))
     assert any("products.1" in m for m in messages('products:\n  1: {}\n  "1": {}\n'))
-    # ... sonst behält der Lader beide Einträge
+    # ... otherwise the loader keeps both entries
     assert messages('1: a\n"1": b\n') == []
     assert messages("x: 1\ntrue: a\n'True': b\n") == []
     assert any("'True'" in m for m in messages("true: a\ntrue: b\n"))
@@ -252,12 +252,12 @@ def test_schluessel_typ_unterscheidet_ausser_bei_kuerzeln():
     ["{1: a, 1.0: b}\n", "{true: a, 1: b}\n", "{0: a, false: b}\n", "1: a\n1.0: b\n"],
 )
 def test_in_python_gleiche_schluessel_sind_ein_duplikat(text: str):
-    """PyYAML bildet 1, 1.0 und true auf denselben Dict-Schlüssel ab: der spätere Wert gewinnt."""
+    """PyYAML maps 1, 1.0 and true to the same dict key: the later value wins."""
     import yaml
 
     from sprintforecast.storage import _YAML_LOADER
 
-    assert len(yaml.load(text, Loader=_YAML_LOADER)) == 1  # der Lader verwirft wirklich einen
+    assert len(yaml.load(text, Loader=_YAML_LOADER)) == 1  # the loader really discards one
     [found] = messages(text)
     assert "steht mehrfach" in found
     assert "Zeile" in found
@@ -301,19 +301,19 @@ def test_weboberflaeche_zeigt_schluesselnamen_nie_als_markdown(data_dir: Path, m
     shown = [w.value for w in at.warning if "mehrfach" in w.value]
     assert shown
     text = "\n".join(shown)
-    # Jedes Satzzeichen aus der Datei trägt einen Backslash: Markdown deutet nichts davon
+    # Every punctuation character from the file carries a backslash: Markdown interprets none of it
     assert "\\[Klick\\]\\(http\\:\\/\\/evil\\.example\\)" in text
     assert "\\*\\*fett\\*\\*" in text
     assert "www.evil" not in text
 
 
 def test_ueberdeckter_leerwert_wird_nicht_gemeldet():
-    # Der Lader liest a = 5; Zeile 2 wird nie benutzt, das Duplikat selbst bleibt gemeldet
+    # The loader reads a = 5; line 2 is never used, the duplicate itself is still reported
     found = messages("absences:\n  a:\n  a: 5\n")
     assert len(found) == 1 and "steht mehrfach" in found[0]
     found = messages("absences:\n  1:\n  '1': 5\n")
     assert len(found) == 1 and "steht mehrfach" in found[0]
-    # Steht der Leerwert zuletzt, gilt er und wird gemeldet
+    # If the empty value comes last, it applies and is reported
     found = messages("absences:\n  a: 5\n  a:\n")
     assert any("ist leer" in m for m in found)
 
@@ -396,7 +396,7 @@ def test_steuerzeichen_im_schluessel_erreichen_die_ausgabe_nicht(data_dir: Path)
 
 
 def loaded_keys(text: str, field: str) -> set[str]:
-    """Kürzel von ``field`` so, wie das Programm sie liest (Dict des Laders, dann ``str()``)."""
+    """Short keys of ``field`` as the program reads them (the loader's dict, then ``str()``)."""
     import yaml
 
     from sprintforecast.storage import _YAML_LOADER
@@ -415,19 +415,19 @@ def loaded_keys(text: str, field: str) -> set[str]:
     ],
 )
 def test_kuerzel_in_python_gleich_sind_ein_duplikat(text: str):
-    """Der Lader baut das Dict mit Python-Gleichheit (1 == 1.0 == True), erst das Programm
-    bildet str(): das erste Schlüsselobjekt bleibt, der letzte Wert gewinnt."""
-    assert len(loaded_keys(text, text.split(":")[0])) == 1  # das Programm liest ein Kürzel
+    """The loader builds the dict with Python equality (1 == 1.0 == True), only the program forms
+    str(): the first key object stays, the last value wins."""
+    assert len(loaded_keys(text, text.split(":")[0])) == 1  # the program reads one short key
     [found] = messages(text)
     assert "steht mehrfach" in found
 
 
 def test_kuerzel_erstes_schluesselobjekt_bestimmt_den_text():
-    # Der Lader behält 1.0 als Schlüsselobjekt: "1.0" und "1" bleiben getrennte Kürzel
+    # The loader keeps 1.0 as the key object: "1.0" and "1" remain separate short keys
     text = "absences: {1.0: a, 1: b, '1': c}\n"
     assert loaded_keys(text, "absences") == {"1", "1.0"}
     [found] = messages(text)
-    assert "Spalten 12, 20" in found  # nur 1.0 und 1, nicht '1'
+    assert "Spalten 12, 20" in found  # only 1.0 and 1, not '1'
 
 
 def merged(spec: str) -> dict:
@@ -439,9 +439,9 @@ def merged(spec: str) -> dict:
 
 
 def test_bei_mehreren_merge_keys_gewinnt_der_letzte():
-    """PyYAML hängt die Quellen mehrerer ``<<`` in Reihenfolge an; beim Dict-Aufbau überschreibt
-    der spätere Eintrag den früheren."""
-    assert merged("<<: *y, <<: *x") == {"fte": None}  # x (leer) ist das letzte <<
+    """PyYAML appends the sources of several ``<<`` in order; when building the dict, the later
+    entry overwrites the earlier one."""
+    assert merged("<<: *y, <<: *x") == {"fte": None}  # x (empty) is the last <<
     [found] = member("<<: *y, <<: *x")
     assert "memberships[0].fte" in found
     assert merged("<<: *x, <<: *y") == {"fte": 0.5}
@@ -451,11 +451,11 @@ def test_bei_mehreren_merge_keys_gewinnt_der_letzte():
 def test_drei_merge_keys_und_listen_gemischt():
     assert merged("<<: *x, <<: *y, <<: *x") == {"fte": None}
     assert len(member("<<: *x, <<: *y, <<: *x")) == 1
-    # in einer Liste gewinnt weiterhin die erste Quelle, über die << hinweg die letzte
+    # in a list the first source still wins, across << the last one
     assert merged("<<: *y, <<: [*x, *y]") == {"fte": None}
     assert len(member("<<: *y, <<: [*x, *y]")) == 1
     assert merged("<<: [*x, *y], <<: *y") == {"fte": 0.5}
     assert member("<<: [*x, *y], <<: *y") == []
-    # eigene Schlüssel schlagen jedes <<
+    # own keys beat every <<
     assert merged("<<: *y, fte: 1, <<: *x") == {"fte": 1}
     assert member("<<: *y, fte: 1, <<: *x") == []

@@ -37,7 +37,7 @@ unaffected by that.
 | A10 | Product shares: two fixed shares of 60 % each are not rejected; missing done values count as 0 in the balance. | important | sum check; distinguish “missing” from “0” | implemented: web interface; since #78, command line (`products`) and report hide products without a value in the period and show the “no value” column when values are missing, since #95 with a footnote. Remainder: a hidden product (no sprint with a value) no longer carries its note, as in the web interface |
 | A11 | Production access: “nobody marked” is `None`, not 0; the translation into delivery quantity is rough. | important | distinguish unknown configuration from missing authorised people; mark as a bottleneck hint | implemented |
 | A12 | The statement “focus factor is comparable between teams” is wrong for story points. | important | remove the statement | implemented |
-| A13 | The reference capacity cancels out in the calculation and is only a display scale; focus factor and normalised velocity are the same quantity under two names. | important | remove or explain the reference capacity; one normalised quantity | partially: the help explains the reference capacity; README does not yet say that it cancels out; two names for the same quantity remain |
+| A13 | The reference capacity cancels out in the calculation and is only a display scale; focus factor and normalized velocity are the same quantity under two names. | important | remove or explain the reference capacity; one normalized quantity | partially: the help explains the reference capacity; README does not yet say that it cancels out; two names for the same quantity remain |
 | A14 | Rounding: `round_down` everywhere is a systematic bias; the capacity is rounded down and then used as a denominator. | nice-to-have | round only at output; justify the deliberate choice in the help text | implemented (#52, #54) |
 | A15 | `trend()` compares with `is TrendMode.X`; a string ends up in the `linear` branch. | nice-to-have | convert the value to `TrendMode` at the start | implemented (#50) |
 | A16 | Definition of “done”: partial shares of open tickets count (team practice). Without documentation the number is not comparable between teams. | important | Record the definition in help and README. A cut-off date for a change of the counting method (like `unit_since`) is only needed for teams that change their counting method, and is therefore later and optional | implemented |
@@ -113,7 +113,9 @@ whether the implementation agrees with itself. In addition there are **domain te
      deliberately does not create it there; whether it should offer to is open).
   6. Set up the Git sign-in separately (credential manager, SSH prompts, file locks,
      line endings under Windows). Partially: the app detects a missing sign-in and explains the
-     next step; a sign-in of its own in the app deliberately does not exist.
+     next step; for https the guided token sign-in (Data folder page) passes the token to Git's
+     credential helper only (never stored by the app), and a read-only setup checklist is on the
+     start page.
 - A reachable Git contact person is helpful, but does not replace the terminal-free
   acceptance test: it is carried out with two people working at the same time and deliberately created
   conflicts.
@@ -141,8 +143,10 @@ Status per operation:
   (implemented). This includes the **server (remote)**: enter or change the address, validate it and
   check the connection (`git ls-remote`) instead of calling `git remote` in the terminal
   (implemented). Credentials never belong in the address and are not stored or
-  displayed. The app does not generate SSH keys; it changes the global Git configuration only
-  on click, and only for the name and e-mail of the commits (when Git does not know the name or e-mail).
+  displayed. The app does not generate SSH keys. It passes an access token only to Git's
+  credential helper (`git credential approve/reject`), never uses `credential.helper store`, and
+  changes the global Git configuration only on click: the name and e-mail of the commits and a
+  secure credential helper for the user.
 - **Sign-in help:** detect missing authentication and explain comprehensibly what to
   do (store an access token or SSH key, credential manager). Partially: when cloning
   and creating a data folder the sign-in note is still missing.

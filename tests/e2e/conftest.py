@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Fixtures der Browsertests.
+"""Fixtures of the browser tests.
 
-Browser: Standard ist das mit ``playwright install chromium`` geladene Chromium. Umgebungs-
-variablen: ``E2E_CHANNEL`` (z. B. ``msedge`` oder ``chrome``: ein installierter Browser),
-``E2E_EXECUTABLE`` (Pfad zu einem Chromium), ``E2E_HEADED=1`` (sichtbares Fenster),
-``E2E_ARTIFACTS`` (Ordner für Bilder und Server-Protokolle fehlgeschlagener Tests, Standard
+Browser: the default is the Chromium installed with ``playwright install chromium``. Environment
+variables: ``E2E_CHANNEL`` (e.g. ``msedge`` or ``chrome``: an installed browser),
+``E2E_EXECUTABLE`` (path to a Chromium), ``E2E_HEADED=1`` (visible window),
+``E2E_ARTIFACTS`` (folder for screenshots and server logs of failed tests, default
 ``test-results/e2e``).
 """
 
@@ -34,22 +34,22 @@ from playwright.sync_api import (
 )
 
 HERE = Path(__file__).parent
-# Der erste Seitenaufruf einer frisch gestarteten App lädt noch Bibliotheken nach (einige
-# Sekunden); alle Erwartungen warten darum länger als die 5 Sekunden der Vorgabe.
+# The first page load of a freshly started app still loads libraries (a few seconds), so all
+# expectations wait longer than the default 5 seconds.
 expect.set_options(timeout=20_000)
 
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """Alles in tests/e2e ist ein Browsertest – auch ohne Marker im Modul."""
+    """Everything in tests/e2e is a browser test, even without a marker in the module."""
     for item in items:
         if Path(str(item.fspath)).is_relative_to(HERE):
             item.add_marker(pytest.mark.e2e)
 
 
 def _track(item: pytest.Item, attribute: str, value: object) -> None:
-    """Merkt sich Seiten und Apps des Tests, damit der Fehlerbericht sie noch vor dem Aufräumen
-    (die Apps laufen dann noch) sichern kann."""
+    """Remembers the pages and apps of the test so the failure report can still capture them
+    before cleanup (the apps are still running then)."""
     if not hasattr(item, attribute):
         setattr(item, attribute, [])
     getattr(item, attribute).append(value)
@@ -62,7 +62,7 @@ def _save_failure(item: pytest.Item) -> None:
     pages: list[Page] = getattr(item, "e2e_pages", [])
     for number, shown in enumerate(pages, 1):
         suffix = f"-{number}" if len(pages) > 1 else ""
-        with contextlib.suppress(Exception):  # das Bild ist nur eine Hilfe bei der Fehlersuche
+        with contextlib.suppress(Exception):  # the screenshot is only a debugging aid
             shown.screenshot(path=str(folder / f"{name}{suffix}.png"), full_page=True)
     apps = {
         id(a): a for a in [*getattr(item, "e2e_apps", []), *getattr(item, "funcargs", {}).values()]
@@ -79,7 +79,7 @@ def _save_failure(item: pytest.Item) -> None:
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
     report = yield
     setattr(item, f"rep_{report.when}", report)
-    # Im Bericht der Testfunktion selbst: Seiten und Server leben noch (das Aufräumen folgt).
+    # In the report of the test function itself: pages and servers still run (cleanup follows).
     if report.failed and report.when in ("setup", "call"):
         _save_failure(item)
     return report
@@ -103,7 +103,7 @@ def browser(playwright_driver: Playwright) -> Iterator[Browser]:
         options["executable_path"] = executable
     try:
         instance = playwright_driver.chromium.launch(**options)
-    except Exception as e:  # fehlender Browser: Hinweis statt langer Fehlerausgabe
+    except Exception as e:  # missing browser: a hint instead of a long error output
         pytest.fail(
             "Der Browser startet nicht. Einmalig `uv run playwright install chromium` ausführen "
             "(unter Linux mit --with-deps) oder E2E_CHANNEL=msedge bzw. E2E_EXECUTABLE=… setzen."
@@ -132,7 +132,7 @@ def page(context: BrowserContext, request: pytest.FixtureRequest) -> Page:
 
 @pytest.fixture
 def new_page(browser: Browser, request: pytest.FixtureRequest) -> Iterator[Callable[..., Page]]:
-    """Weitere Seiten in eigenem Kontext, z. B. für zwei Apps im selben Test."""
+    """Additional pages in their own context, e.g. for two apps in the same test."""
     contexts: list[BrowserContext] = []
 
     def make(width: int = 1400, height: int = 900) -> Page:
@@ -158,7 +158,7 @@ def e2e_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 @pytest.fixture(scope="session")
 def app(e2e_dir: Path) -> Iterator[App]:
-    """Die Demo-Daten mit einem Team; nur zum Lesen (Tests ändern hier nichts)."""
+    """The demo data with one team; read-only (tests change nothing here)."""
     work = e2e_dir / "demo"
     data = copy_demo(work)
     server = App("demo", data, work).start()
@@ -168,7 +168,7 @@ def app(e2e_dir: Path) -> Iterator[App]:
 
 @pytest.fixture(scope="session")
 def app_without_products(e2e_dir: Path) -> Iterator[App]:
-    """Ein Team ohne die Bereiche Produkte, PO und Produktionszugriff; nur zum Lesen."""
+    """A team without the products, PO and production access sections; read-only."""
     work = e2e_dir / "ohne-produkte"
     teams = work / "teams"
     make_team_without_products(teams)
@@ -179,7 +179,7 @@ def app_without_products(e2e_dir: Path) -> Iterator[App]:
 
 @pytest.fixture(scope="session")
 def app_english(e2e_dir: Path) -> Iterator[App]:
-    """Die Demo-Daten mit englischer Oberfläche (Umgebungsvariable); nur zum Lesen."""
+    """The demo data with an English UI (environment variable); read-only."""
     work = e2e_dir / "english"
     data = copy_demo(work)
     server = App("english", data, work, language="en").start()
@@ -189,7 +189,7 @@ def app_english(e2e_dir: Path) -> Iterator[App]:
 
 @pytest.fixture
 def make_app(tmp_path: Path, request: pytest.FixtureRequest) -> Iterator[Callable[..., App]]:
-    """Startet eine eigene App je Test (für Tests, die Daten oder Einstellungen ändern)."""
+    """Starts a separate app per test (for tests that change data or settings)."""
     started: list[App] = []
 
     def make(name: str = "app", *, language: str | None = None, git: bool = False) -> App:
@@ -211,7 +211,7 @@ def make_app(tmp_path: Path, request: pytest.FixtureRequest) -> Iterator[Callabl
 def clones(
     tmp_path: Path, request: pytest.FixtureRequest
 ) -> Iterator[Callable[[], tuple[App, App, Path]]]:
-    """Zwei Klone desselben Bare-Repositorys mit je einer App-Instanz (Alice und Bob)."""
+    """Two clones of the same bare repository, one app instance each (Alice and Bob)."""
     started: list[App] = []
 
     def make() -> tuple[App, App, Path]:
@@ -224,7 +224,7 @@ def clones(
         bob_work = tmp_path / "bob"
         git(tmp_path, "clone", "-q", str(bare), str(bob_work), name="Bob")
         alice = App("alice", data, alice_work, person="Alice").start()
-        started.append(alice)  # sofort: startet Bob nicht, muss Alice trotzdem beendet werden
+        started.append(alice)  # immediately: if Bob fails to start, Alice must still be stopped
         _track(request.node, "e2e_apps", alice)
         bob = App("bob", bob_work / "teams", bob_work, person="Bob").start()
         started.append(bob)

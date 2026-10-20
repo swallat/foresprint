@@ -18,8 +18,8 @@ from typing import Any
 
 from sprintforecast.forecast import Forecast, find_sprint, lookup_sprint
 from sprintforecast.i18n import t
-from sprintforecast.model import EstimateSource, Preplan, Project, Ticket, TrackerSettings
-from sprintforecast.sources import RawTicket
+from sprintforecast.model import Earmark, EstimateSource, Preplan, Project, Ticket, TrackerSettings
+from sprintforecast.sources import RawTicket, label_sprints, planned_label
 from sprintforecast.storage import Repository, TeamData
 from sprintforecast.validate import find_cycles
 
@@ -36,6 +36,9 @@ KINDS: tuple[str, ...] = (
     # over (note ``DROPPED_ENDED``)
     "earmark_dropped",
     "sprint_unresolved",  # sprint name of the tracker unknown to the tool (``note`` = name)
+    # earmark taken from the label ``planned_for_<sprint_id>`` (``new`` = sprint); only with
+    # ``tracker.write_labels``
+    "earmark_from_label",
 )
 # ``note`` of a refined_unclear change.
 UNCLEAR_RULE = "rule"
@@ -218,9 +221,12 @@ def plan_import(
     raws: list[RawTicket],
     today: date,
     source: str | None = None,
+    adopt_labels: bool = True,
 ) -> TicketImportPlan:
     """Converts the raw tickets and reconciles them with the last import and the earmarks
-    (spec section 6.5); nothing is written."""
+    (spec section 6.5); nothing is written. ``adopt_labels=False`` leaves the
+    ``planned_for_*`` labels unread (the label write-back plans against the earmarks of the
+    tool only)."""
     old = {tk.key: tk for tk in data.tickets}
     preplan = copy.deepcopy(data.preplan)
     plan = TicketImportPlan(tickets=[], preplan=preplan, source=source)
@@ -231,7 +237,7 @@ def plan_import(
     for raw in raws:
         if raw.key in seen:
             plan.warnings.append(
-                t("Ticket {key} kommt mehrfach vor; der letzte Eintrag gilt", key=raw.key)
+                t("Ticket {key} occurs more than once; the last entry counts", key=raw.key)
             )
         seen[raw.key] = convert(raw, data, fc, data.projects)
     plan.tickets = list(seen.values())
@@ -282,6 +288,14 @@ def plan_import(
             plan.changes.append(
                 TicketChange("earmark_dropped", tk.key, tk.title, earmark.sprint, tk.in_sprint)
             )
+        if (
+            adopt_labels
+            and data.team.tracker.write_labels
+            and tk.in_sprint is None
+            and earmark is None
+        ):
+            known = prev.labels if prev is not None else []
+            _earmark_from_label(plan, tk, data, fc, today, known)
         if tk.project is None:
             plan.changes.append(
                 TicketChange("unassigned", tk.key, tk.title, new=list(tk.project_candidates))
@@ -316,8 +330,10 @@ def plan_import(
         if earmark is not None:
             plan.warnings.append(
                 t(
-                    "Ticket {key} ist nicht mehr im Import; die Vormerkung für Sprint {sprint} "
-                    "bleibt bestehen",
+                    (
+                        "Ticket {key} is no longer in the import; the earmark for sprint "
+                        "{sprint} stays"
+                    ),
                     key=key,
                     sprint=earmark.sprint,
                 )
@@ -325,7 +341,7 @@ def plan_import(
         elif preplan.estimate_for(key) is not None:
             plan.warnings.append(
                 t(
-                    "Ticket {key} ist nicht mehr im Import; die eigene Schätzung bleibt bestehen",
+                    "Ticket {key} is no longer in the import; the own estimate stays",
                     key=key,
                 )
             )
@@ -345,11 +361,43 @@ def plan_import(
 
     for cycle in find_cycles(plan.tickets):
         plan.warnings.append(
-            t("Abhängigkeiten im Kreis: {cycle}", cycle=" → ".join([*cycle, cycle[0]]))
+            t("Circular dependencies: {cycle}", cycle=" → ".join([*cycle, cycle[0]]))
         )
     plan.changes.sort(key=lambda c: KINDS.index(c.kind))
     plan.preplan_changed = preplan != data.preplan
     return plan
+
+
+def _earmark_from_label(
+    plan: TicketImportPlan,
+    tk: Ticket,
+    data: TeamData,
+    fc: Forecast,
+    today: date,
+    known: list[str],
+) -> None:
+    """Takes the earmark of a ticket without sprint and earmark from its ``planned_for_*``
+    label (spec section 6.6, the weakest source). A label of a sprint that is unknown or over,
+    or several labels, are reported; the next label write removes them. A label the last
+    import already knew is no news: without an earmark it was released in the tool."""
+    sprints = [s for s in label_sprints(tk.labels) if s not in label_sprints(known)]
+    if not sprints:
+        return
+    sprint = sprints[0]
+    if len(sprints) == 1 and _sprint_open(sprint, data, fc, today):
+        plan.preplan.earmarks.append(Earmark(tk.key, sprint))
+        plan.changes.append(TicketChange("earmark_from_label", tk.key, tk.title, new=sprint))
+        return
+    plan.warnings.append(
+        t(
+            (
+                "Ticket {key}: the label {labels} does not point to exactly one future sprint "
+                "and is not taken as an earmark"
+            ),
+            key=tk.key,
+            labels=", ".join(planned_label(s) for s in sprints),
+        )
+    )
 
 
 def apply_import(

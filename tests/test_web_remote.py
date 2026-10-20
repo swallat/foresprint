@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Server (Remote) auf der Seite „Datenordner“ eintragen, prüfen und speichern (AppTest mit
-echten Git-Repositories)."""
+"""Enter, check and save the server (remote) on the "Data folder" page (AppTest with real Git
+repositories)."""
 
 import re
 import shutil
@@ -33,8 +33,8 @@ def walk(node, found: list | None = None) -> list:
 
 
 def all_text(at: AppTest) -> str:
-    """Alles, was die Seite zeigt oder im Sitzungszustand hält (Elemente samt Beschriftungen,
-    Eingabewerte, Zustand)."""
+    """Everything the page shows or holds in the session state (elements with labels, input values,
+    state)."""
     parts = [str(e.proto) for root in (at.main, at.sidebar) for e in walk(root)]
     parts += [str(e.value) for e in at.text_input]
     parts += [f"{key}={value!r}" for key, value in at.session_state.items()]
@@ -50,7 +50,7 @@ def page_links(at: AppTest) -> list[str]:
 
 
 def offers(at: AppTest) -> set[str]:
-    """Die Knöpfe „Trotzdem speichern“ bzw. „Ja, dies ist das richtige Daten-Repository“."""
+    """The buttons "Save anyway" and "Yes, this is the right data repository"."""
     return {b.key for b in at.button if b.key in OFFERS}
 
 
@@ -78,7 +78,7 @@ def servers(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return tmp_path_factory.mktemp("server")
 
 
-# --- U1/U2: von „kein Server“ bis „Speichern und teilen“ --------------------------------------
+# --- U1/U2: from "no server" to "Save and share" ----------------------------------------------
 
 
 def test_sidebar_offers_the_setup_and_the_page_shows_the_section(
@@ -91,15 +91,15 @@ def test_sidebar_offers_the_setup_and_the_page_shows_the_section(
     goto(at, "datenordner")
     assert [s.value for s in at.main.subheader] == ["Server (Remote)", "Zeilenenden festlegen"]
     assert "noch kein Server" in shown(at, "info")
-    assert "Repository klonen" in shown(at, "info")  # der Weg für den Beitritt zu einem Team
+    assert "Repository klonen" in shown(at, "info")  # the way to join a team
     assert at.button(key="git-remote-check").disabled and at.button(key="git-remote-save").disabled
     assert at.text_input(key=FIELD).value == ""
 
 
 def test_check_and_save_buttons_sit_next_to_each_other(repo: Path, data_dir: Path, monkeypatch):
-    """„Verbindung prüfen“ und „Speichern“ gehören zusammen: ein waagerechter Container, in dem
-    die Knöpfe links beginnen und nur so breit wie ihr Text sind (früher zwei gleich breite
-    Spalten, die Knöpfe weit auseinander)."""
+    """The "Check connection" and "Save" buttons belong together: one horizontal container in
+    which the buttons start on the left and are only as wide as their text (formerly two
+    equally wide columns, the buttons far apart)."""
     from streamlit.proto.Block_pb2 import Block
 
     at = datenordner(data_dir, monkeypatch)
@@ -112,7 +112,7 @@ def test_check_and_save_buttons_sit_next_to_each_other(repo: Path, data_dir: Pat
     assert group.type == "flex_container"
     assert group.proto.flex_container.direction == Block.FlexContainer.Direction.HORIZONTAL
     assert [c.key for c in group.children.values()] == ["git-remote-check", "git-remote-save"]
-    # linksbündig (nicht auseinandergezogen)
+    # left-aligned (not spread apart)
     assert group.proto.flex_container.justify == Block.FlexContainer.Justify.JUSTIFY_START
 
 
@@ -125,7 +125,7 @@ def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory
     click(at, "git-remote-check")
     assert any("Verbindung hergestellt" in s.value for s in at.success)
     assert "noch keine Branches" in shown(at, "info")
-    assert remotes(repo) == ""  # prüfen ändert nichts
+    assert remotes(repo) == ""  # checking changes nothing
 
     click(at, "git-remote-save")
     assert git(repo, "remote", "get-url", "origin") == str(server)
@@ -133,7 +133,7 @@ def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory
     assert at.text_input(key=FIELD).value == ""
     status = shown(at, "caption", "sidebar")
     assert "Serverstand noch nicht geprüft" in status
-    # Auf dem leeren Server liegt noch nichts: „synchron“ wäre falsch.
+    # Nothing is on the empty server yet: "in sync" would be wrong.
     assert "noch nicht auf dem Server" in status and "synchron" not in status
     assert page_links(at) == []
     assert sidebar_button(at, "Speichern und teilen")
@@ -145,7 +145,7 @@ def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory
     assert "synchron mit `origin/main`" in shown(at, "caption", "sidebar")
 
 
-# --- U3/U4: Zugangsdaten und gefährliche Adressen ---------------------------------------------
+# --- U3/U4: credentials and dangerous addresses -----------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -155,7 +155,7 @@ def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory
         f"https://{SECRET}@git.example.com/t/d.git",
         f"https://git.example.com/t/d.git?token={SECRET}",
         f"ssh://nutzer:{SECRET}@git.example.com/t/d.git",
-        "https://anna@bitbucket.org/team/daten.git",  # so zeigen Bitbucket und Azure DevOps sie an
+        "https://anna@bitbucket.org/team/daten.git",  # how Bitbucket and Azure DevOps show them
     ],
 )
 def test_credentials_in_the_address_are_rejected_and_never_shown(
@@ -164,15 +164,15 @@ def test_credentials_in_the_address_are_rejected_and_never_shown(
     at = datenordner(data_dir, monkeypatch)
     enter(at, raw)
     errors = shown(at, "error")
-    assert errors.count("Zugangsdaten gehören nicht in die Adresse") == 1  # nur als Überschrift
+    assert errors.count("Zugangsdaten gehören nicht in die Adresse") == 1  # only as a heading
     assert "Benutzernamen" in errors
-    # Die Meldung sagt, dass die Eingabe verworfen wurde und was zu tun ist.
+    # The message says that the input was discarded and what to do.
     assert "Feld geleert" in shown(at, "caption") and "neu eintragen" in shown(at, "caption")
     assert at.text_input(key=FIELD).value == ""
     assert at.button(key="git-remote-check").disabled and at.button(key="git-remote-save").disabled
     assert SECRET not in all_text(at)
     assert remotes(repo) == "" and SECRET not in (repo / ".git" / "config").read_text()
-    enter(at, "")  # der Hinweis erscheint nur einmal
+    enter(at, "")  # the notice appears only once
     assert "Zugangsdaten gehören nicht in die Adresse" not in shown(at, "error")
     assert "Feld geleert" not in shown(at, "caption")
 
@@ -196,7 +196,7 @@ def test_invalid_address_shows_its_title_once(repo: Path, data_dir: Path, monkey
 
 
 def test_clone_tab_names_the_reason_for_a_bad_address(repo: Path, data_dir: Path, monkeypatch):
-    """Wie beim Server: die Überschrift (genau einmal) über dem Grund."""
+    """As with the server: the heading (exactly once) above the reason."""
     at = datenordner(data_dir, monkeypatch)
     address = next(e for e in at.text_input if e.label == "Adresse")
     address.set_value("github.com/team/daten").run()
@@ -207,9 +207,7 @@ def test_clone_tab_names_the_reason_for_a_bad_address(repo: Path, data_dir: Path
 
 
 def clone(at: AppTest, url: str, target: Path) -> AppTest:
-    next(e for e in at.text_input if e.label == "Adresse").set_value(
-        url
-    ).run()  # schaltet „Klonen“ frei
+    next(e for e in at.text_input if e.label == "Adresse").set_value(url).run()  # enables "Clone"
     at.text_input(key="data-clone").set_value(str(target))
     return click(at, "data-clone-go")
 
@@ -217,14 +215,14 @@ def clone(at: AppTest, url: str, target: Path) -> AppTest:
 def test_clone_tab_shows_the_next_step_for_a_missing_repository(
     repo: Path, data_dir: Path, tmp_path: Path, monkeypatch
 ):
-    """Dort stand nur die Meldung von Git; der nächste Schritt (Adresse prüfen) fehlte."""
+    """Only Git's message was there; the next step (check the address) was missing."""
     at = clone(
         datenordner(data_dir, monkeypatch), str(tmp_path / "gibt-es-nicht.git"), tmp_path / "z"
     )
     errors = shown(at, "error")
-    # Die Meldung von Git steht unter „Technische Meldung“. Welche es ist, hängt vom Pfad ab:
-    # „repository '…' does not exist“ bei einem Pfad ohne Doppelpunkt (Linux, macOS), unter
-    # Windows mit Laufwerksbuchstaben „'…' does not appear to be a git repository“.
+    # Git's message is under "Technical message". Which one it is depends on the path:
+    # "repository '...' does not exist" for a path without a colon (Linux, macOS), on Windows
+    # with a drive letter "'...' does not appear to be a git repository".
     assert "Repository nicht gefunden" in errors and re.search(
         r"does not exist|does not appear to be a git repository",
         "\n".join(c.value for c in at.code),
@@ -250,7 +248,7 @@ def test_clone_tab_names_the_fingerprint_for_an_unknown_ssh_server(
 
 
 def test_unsafe_folder_is_named_on_the_data_folder_page(repo: Path, data_dir: Path, monkeypatch):
-    """Statt „liegt in keinem Git-Repository“ (und dem Angebot, eines anzulegen)."""
+    """Instead of "is not inside a Git repository" (and the offer to create one)."""
     assume_foreign_owner(monkeypatch, repo)
     at = datenordner(data_dir, monkeypatch)
     assert "Git hält den Ordner für unsicher" in shown(at, "error")
@@ -260,10 +258,10 @@ def test_unsafe_folder_is_named_on_the_data_folder_page(repo: Path, data_dir: Pa
     assert not at.exception, at.exception
     assert "Git hält den Ordner für unsicher" in shown(at, "error")
     assert not [w for w in at.warning if "keinem Git-Repository" in w.value]
-    # Gits Rat zu „safe.directory“ steht nirgends, auch nicht unter „Technische Meldung“.
+    # Git's advice about "safe.directory" appears nowhere, not even under "Technical message".
     assert "safe.directory" not in shown(at, "error") + "\n".join(c.value for c in at.code)
-    # Die App funktioniert auch ohne Git: „Ohne Git verwenden“ bleibt, ein Repository dort
-    # anlegen (git init im fremden Ordner) wird nicht angeboten.
+    # The app also works without Git: "Use without Git" remains, creating a repository there
+    # (git init in a foreign folder) is not offered.
     assert "offer-init" in at.session_state
     labels = [b.label for b in at.button]
     assert "Ohne Git verwenden" in labels
@@ -271,7 +269,7 @@ def test_unsafe_folder_is_named_on_the_data_folder_page(repo: Path, data_dir: Pa
     assert not (repo / ".gitignore").exists()
 
 
-# --- U5-U8: Fehlerfälle und Bestätigungen -----------------------------------------------------
+# --- U5-U8: error cases and confirmations -----------------------------------------------------
 
 
 def test_missing_repository_is_not_found_and_not_offered(
@@ -291,7 +289,7 @@ def test_missing_repository_is_not_found_and_not_offered(
 @pytest.mark.parametrize(
     ("stderr", "title"),
     [
-        # GitLab über SSH, Tippfehler im Projektnamen: Der Server antwortet.
+        # GitLab over SSH, typo in the project name: the server responds.
         (
             "remote: ERROR: The project you were looking for could not be found or you don't "
             "have permission to view it.\nfatal: Could not read from remote repository.",
@@ -315,7 +313,7 @@ def test_answers_that_are_not_unreachability_are_never_offered_for_saving(
         click(at, key)
         assert title in shown(at, "error")
         assert "Server nicht erreichbar" not in shown(at, "error")
-        assert "Internet" not in shown(at, "error")  # kein Hinweis auf Internet oder VPN
+        assert "Internet" not in shown(at, "error")  # no hint about internet or VPN
         assert not offers(at)
     assert remotes(repo) == ""
 
@@ -364,8 +362,8 @@ def test_missing_login_is_explained_and_nothing_is_saved(repo: Path, data_dir: P
         click(at, "git-remote-save")
     assert "Anmeldung fehlt oder wurde abgelehnt" in shown(at, "error")
     assert "Zugangstoken" in shown(at, "error")
-    assert shown(at, "error").count("fehlt oder wurde abgelehnt") == 1  # Überschrift nur einmal
-    assert "gh auth setup-git" in shown(at, "error")  # https: die Schritte für https
+    assert shown(at, "error").count("fehlt oder wurde abgelehnt") == 1  # heading only once
+    assert "gh auth setup-git" in shown(at, "error")  # https: the steps for https
     assert "ssh-keygen" not in shown(at, "error")
     assert not offers(at)
     assert remotes(repo) == ""
@@ -391,7 +389,7 @@ def test_missing_branch_needs_confirmation(
 def test_check_with_a_missing_branch_leads_to_the_confirmation(
     repo: Path, data_dir: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch
 ):
-    """Erst prüfen, dann den Branch bestätigen: Das Angebot kommt schon vom Prüfen."""
+    """First check, then confirm the branch: the offer already comes from the check."""
     server = make_server(servers(tmp_path_factory), branch="master")
     at = datenordner(data_dir, monkeypatch)
     enter(at, str(server))
@@ -401,7 +399,7 @@ def test_check_with_a_missing_branch_leads_to_the_confirmation(
     warning = shown(at, "warning")
     assert "Branch fehlt auf dem Server" in warning
     assert "„`main`“" in warning and "(vorhanden: `master`)" in warning
-    assert "Repository klonen" in warning  # der Weg für den Beitritt zu einem Team
+    assert "Repository klonen" in warning  # the way to join a team
     assert offers(at) == {"git-remote-branch-save"}
     assert remotes(repo) == ""
 
@@ -419,7 +417,7 @@ def test_check_lists_the_branches_and_offers_nothing_when_the_branch_exists(
     enter(at, str(server))
     click(at, "git-remote-check")
     names = ", ".join(f"`feature/{n}`" for n in range(5))
-    assert f"Branches auf dem Server: {names}, …" in shown(at, "caption")  # gekürzt auf fünf
+    assert f"Branches auf dem Server: {names}, …" in shown(at, "caption")  # shortened to five
     assert not offers(at) and "git-remote-offer" not in at.session_state
     assert "Branch fehlt auf dem Server" not in shown(at, "warning")
 
@@ -427,7 +425,7 @@ def test_check_lists_the_branches_and_offers_nothing_when_the_branch_exists(
 def test_names_from_the_server_are_shown_as_code_not_as_links(
     repo: Path, data_dir: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch
 ):
-    """Ein Branch heißt wie eine Webadresse: Als Markdown würde daraus ein Link."""
+    """A branch is named like a web address: as Markdown it would become a link."""
     server = make_server(servers(tmp_path_factory), branch="master")
     add_branches(server, ["www.evil.example/anmelden", "a`b"])
     at = datenordner(data_dir, monkeypatch)
@@ -435,10 +433,10 @@ def test_names_from_the_server_are_shown_as_code_not_as_links(
     click(at, "git-remote-check")
     text = shown(at, "caption") + "\n" + shown(at, "warning")
     assert "`www.evil.example/anmelden`" in text and "``a`b``" in text
-    outside = re.sub(r"(`+).+?\1", "", text)  # alles außerhalb von Code-Spans
+    outside = re.sub(r"(`+).+?\1", "", text)  # everything outside of code spans
     assert "evil" not in outside and "anmelden" not in outside
 
-    click(at, "git-remote-save")  # dieselbe Warnung beim Speichern
+    click(at, "git-remote-save")  # the same warning when saving
     outside = re.sub(r"(`+).+?\1", "", shown(at, "warning"))
     assert "Branch fehlt auf dem Server" in outside and "evil" not in outside
 
@@ -459,13 +457,13 @@ def test_a_saved_address_with_a_backtick_is_shown_as_code(repo: Path, data_dir: 
     assert any("``http://127.0.0.1:1/a`b.git``" in w.value for w in at.warning)
 
 
-# --- Frisch angelegter Ordner: Beitritt zu einem Team -------------------------------------------
+# --- Freshly created folder: joining a team -----------------------------------------------------
 
 
 def test_a_new_folder_with_the_address_of_a_team_server_warns_and_names_cloning(
     data_dir: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch
 ):
-    git(data_dir.parent, "init", "-q", "-b", "main")  # ein Repository, noch ohne Commit
+    git(data_dir.parent, "init", "-q", "-b", "main")  # a repository, still without a commit
     invalidate_status()
     server = make_server(servers(tmp_path_factory), branch="master")
     at = datenordner(data_dir, monkeypatch)
@@ -484,12 +482,12 @@ def test_a_new_folder_with_the_address_of_a_team_server_warns_and_names_cloning(
     assert "noch keine Daten gespeichert" in shown(at, "caption", "sidebar")
 
 
-# --- Hinweise verweisen auf die Maske -----------------------------------------------------------
+# --- Notices point to the form ------------------------------------------------------------------
 
 
 def test_a_wrong_address_error_links_to_the_server_section(shared, data_dir: Path, monkeypatch):
     at = start(data_dir, monkeypatch)
-    assert page_links(at) == []  # es gibt einen Server: kein „Server einrichten“
+    assert page_links(at) == []  # there is a server: no "Set up server"
     at.session_state["sync_result"] = gitsync.SyncResult(
         error=classify("remote: Repository not found.")
     )
@@ -500,7 +498,7 @@ def test_a_wrong_address_error_links_to_the_server_section(shared, data_dir: Pat
     assert "Server (Remote)" in shown(at, "error", "sidebar")
 
 
-# --- U9: Altbestand mit Zugangsdaten ----------------------------------------------------------
+# --- U9: legacy data with credentials ---------------------------------------------------------
 
 
 def test_stored_credentials_are_neither_shown_nor_prefilled(
@@ -525,7 +523,7 @@ def test_stored_credentials_are_neither_shown_nor_prefilled(
     assert SECRET not in all_text(at)
 
 
-# --- U10: offenes Zusammenführen, ungewöhnliche Server-Einstellungen --------------------------
+# --- U10: open merge, unusual server settings -------------------------------------------------
 
 
 def test_open_merge_blocks_saving_but_not_checking(
@@ -561,7 +559,7 @@ def test_unusual_server_settings_block_saving_but_not_checking(
     invalidate_status()
     config = (repo / ".git" / "config").read_bytes()
     at = datenordner(data_dir, monkeypatch)
-    assert "mehrere Adressen" in shown(at, "warning")  # die Erklärung, warum nichts geht
+    assert "mehrere Adressen" in shown(at, "warning")  # the explanation of why nothing works
     enter(at, str(make_server(work, "neu.git")))
     assert at.button(key="git-remote-save").disabled
     assert not at.button(key="git-remote-check").disabled
@@ -589,7 +587,7 @@ def test_other_servers_are_listed_and_stay_untouched(
     assert git(repo, "remote", "get-url", "zweit") == str(second)
 
 
-# --- U11: Ordnerwechsel -----------------------------------------------------------------------
+# --- U11: folder switch -----------------------------------------------------------------------
 
 
 def test_folder_switch_drops_input_and_never_writes_to_the_wrong_folder(
@@ -616,16 +614,16 @@ def test_folder_switch_drops_input_and_never_writes_to_the_wrong_folder(
     enter(at, str(typed))
     sidebar_button(at, "Wechseln").click().run()
     assert not at.exception, at.exception
-    assert at.text_input(key=FIELD).value == ""  # die Eingabe gehörte zum alten Ordner
+    assert at.text_input(key=FIELD).value == ""  # the input belonged to the old folder
     assert "git-remote-offer" not in at.session_state
     assert git(other, "remote", "get-url", "origin") == str(other_server)
 
-    # In Ordner B muss die Adresse neu getippt werden; gespeichert wird nur dort.
+    # In folder B the address must be typed again; it is saved only there.
     assert at.button(key="git-remote-save").disabled
     enter(at, str(typed))
     click(at, "git-remote-save")
     assert git(other, "remote", "get-url", "origin") == str(typed)
-    assert git(repo, "remote", "get-url", "origin") == str(first_server)  # Ordner A unverändert
+    assert git(repo, "remote", "get-url", "origin") == str(first_server)  # folder A unchanged
 
 
 def test_folder_switch_drops_a_pending_offer(repo: Path, data_dir: Path, monkeypatch):
@@ -645,7 +643,7 @@ def test_folder_switch_drops_a_pending_offer(repo: Path, data_dir: Path, monkeyp
     assert remotes(repo) == ""
 
 
-# --- U12: ohne Repository, Einrichtung, Englisch ----------------------------------------------
+# --- U12: without repository, setup, English --------------------------------------------------
 
 
 def test_no_section_without_a_git_repository(data_dir: Path, monkeypatch):
@@ -675,7 +673,7 @@ def test_section_in_english(repo: Path, data_dir: Path, monkeypatch, english):
     assert "Ungültig" not in errors and "Das Format" not in errors
 
 
-# --- U13: Hinweis „kein Server“ ---------------------------------------------------------------
+# --- U13: "no server" notice ------------------------------------------------------------------
 
 
 def test_no_server_hint_names_the_page_and_link_and_problem_can_share_a_run(
@@ -689,7 +687,7 @@ def test_no_server_hint_names_the_page_and_link_and_problem_can_share_a_run(
     assert "Kein Server eingerichtet" in errors and "Datenordner" in errors
     assert "remote add" not in all_text(at) and "Terminal" not in errors
     assert page_links(at) == ["Server einrichten"]
-    # Auch auf der Seite „Datenordner“ selbst (Link, Problem und Maske im selben Lauf).
+    # Also on the "Data folder" page itself (link, problem and form in the same run).
     at.session_state["sync_result"] = gitsync.sync(data_dir, "egal")
     goto(at, "datenordner")
     assert at.text_input(key=FIELD) is not None
