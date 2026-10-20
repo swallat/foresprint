@@ -264,6 +264,15 @@ class Prognosis:
     plan: float | None = None
     preplanned: dict[str, float] = field(default_factory=dict)
 
+    @property
+    def forecast_ist(self) -> float | None:
+        """Former name of ``commitment``, kept for plugins written against it."""
+        return self.commitment
+
+    @forecast_ist.setter
+    def forecast_ist(self, value: float | None) -> None:
+        self.commitment = value
+
 
 @dataclass
 class Sprint:
@@ -298,6 +307,16 @@ class Sprint:
     # Announced absences per person from the PO pre-planning (forecast, not yet confirmed):
     # they affect the capacity and the Forecast PLAN as long as no absences are confirmed.
     expected_absences: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def forecast_ist(self) -> float | None:
+        """Former name of ``commitment``, kept for plugins written against it."""
+        return self.commitment
+
+    @forecast_ist.setter
+    def forecast_ist(self, value: float | None) -> None:
+        self.commitment = value
+
     # Team forecasts from the PO pre-plannings, older first.
     prognoses: list[Prognosis] = field(default_factory=list)
 

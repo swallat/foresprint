@@ -689,7 +689,7 @@ def issues_for(data: TeamData, today: date, filenames: list[str]) -> list[Issue]
 # Loading does not change because of this: a duplicate key still counts as "the last one
 # wins", an empty value as 0. The check only makes this visible. Empty values are reported
 # only where a number is expected and the program silently reads the empty value as 0.
-# Intentionally empty fields (``to:``, ``capacity:``, ``commitment:``, ``region:`` ...) are
+# Intentionally empty fields (``to:``, ``capacity:``, ``forecast_ist:``, ``region:`` ...) are
 # valid and produce no message.
 
 _EMPTY_AS_ZERO: tuple[tuple[str, ...], ...] = (
