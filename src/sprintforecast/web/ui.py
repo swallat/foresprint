@@ -2098,9 +2098,8 @@ STEP_KEY = "planning-step"
 PLANNING_STEPPER_CSS = """
 <style>
 div.st-key-planning-stepper { gap: 0.5rem; flex-direction: row; flex-wrap: wrap; }
-div.st-key-planning-stepper > div { flex: 1 1 12rem; min-width: 0; }
+div.st-key-planning-stepper > div { flex: 1 1 16rem; min-width: 0; }
 div.st-key-planning-stepper button { height: 2.75rem; white-space: nowrap; }
-div.st-key-planning-stepper button[kind="primary"] { background: #5b5bf0; border-color: #5b5bf0; }
 /* The green check mark is hard to read on the filled (active) button. */
 div.st-key-planning-stepper button[kind="primary"] .stMarkdownColoredText {
     color: #fff !important;
