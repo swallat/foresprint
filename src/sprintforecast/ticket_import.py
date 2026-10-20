@@ -162,6 +162,7 @@ def convert(raw: RawTicket, data: TeamData, fc: Forecast, projects: list[Project
         status=raw.status,
         issue_type=raw.issue_type,
         priority=raw.priority,
+        extra={k: list(v) for k, v in raw.extra.items()},
         estimate=raw.estimate,
         remaining=raw.remaining,
         in_sprint=in_sprint,
