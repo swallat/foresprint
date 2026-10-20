@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
@@ -45,6 +45,23 @@ class Kind(StrEnum):
     DATE = "date"
 
 
+class _LazyCountries(Mapping[str, str]):
+    """Country choices, read from the holidays library on first use (importing it takes ~80 ms,
+    which every command line start and every Tab completion would otherwise pay)."""
+
+    def _all(self) -> dict[str, str]:
+        return countries()
+
+    def __getitem__(self, key: str) -> str:
+        return self._all()[key]
+
+    def __iter__(self):
+        return iter(self._all())
+
+    def __len__(self) -> int:
+        return len(self._all())
+
+
 @dataclass(frozen=True)
 class Setting:
     key: str
@@ -53,7 +70,7 @@ class Setting:
     kind: Kind
     get: Callable[[Team], Any]
     set: Callable[[Team, Any], None]
-    choices: dict[str, str] | None = None
+    choices: Mapping[str, str] | None = None
     minimum: float | None = None
     maximum: float | None = None
     optional: bool = False
@@ -275,7 +292,7 @@ SETTINGS: list[Setting] = [
             "GB, SA). Individual people can have a different country in the people list."
         ),
         kind=Kind.CHOICE,
-        choices=countries(),
+        choices=_LazyCountries(),
         get=_getter("capacity.country"),
         set=_setter("capacity.country"),
         retroactive=True,

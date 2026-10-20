@@ -108,6 +108,9 @@ if [ -z "${SPRINTFORECAST_NO_SHORTCUT:-}" ]; then
     "$(uv tool dir --bin)/sprintforecast" shortcut || say "Note: launcher not created."
 fi
 
+# Tab completion has to detect the user's shell, which fails when piped to sh: only a hint
+say "Tab completion (optional, in your own shell): sprintforecast --install-completion"
+
 # Git is optional for the installation, but needed to save, share and view the history of data
 if ! command -v git >/dev/null 2>&1; then
     say ""

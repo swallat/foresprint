@@ -7,6 +7,7 @@
 #   $env:SPRINTFORECAST_WITH = "owner/repo; name @ git+https://…"   plugins ("" = none)
 #   $env:SPRINTFORECAST_REF = "…"                                      branch or tag instead of main
 #   $env:SPRINTFORECAST_NO_SHORTCUT = "1"                              do not create a launcher
+#   $env:SPRINTFORECAST_COMPLETION = "1"                               set up Tab completion
 $ErrorActionPreference = "Stop"
 
 $ref = if ($env:SPRINTFORECAST_REF) { $env:SPRINTFORECAST_REF } else { "main" }
@@ -72,6 +73,12 @@ $bin = (& uv tool dir --bin).Trim()
 # Double-click launcher (disable with $env:SPRINTFORECAST_NO_SHORTCUT = "1")
 if (-not $env:SPRINTFORECAST_NO_SHORTCUT) {
     try { & (Join-Path $bin 'sprintforecast.exe') shortcut } catch { Write-Host "Note: launcher not created." }
+}
+# Tab completion in PowerShell (opt in with $env:SPRINTFORECAST_COMPLETION = "1")
+if ($env:SPRINTFORECAST_COMPLETION) {
+    try { & (Join-Path $bin 'sprintforecast.exe') --install-completion } catch { Write-Host "Note: Tab completion not set up." }
+} else {
+    Write-Host "Tab completion (optional): sprintforecast --install-completion"
 }
 # Git is optional for the installation, but needed to save, share and view the history of data
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
