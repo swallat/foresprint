@@ -10,6 +10,7 @@ wird es abgebrochen und der Stand bleibt wie zuvor.
 
 from __future__ import annotations
 
+import contextlib
 import difflib
 import hashlib
 import io
@@ -19,6 +20,7 @@ import tarfile
 import tempfile
 import threading
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -50,7 +52,14 @@ from sprintforecast.yamlmerge import (
 SHARE_KEY = "sprintforecast.share"
 AUTO_MERGE_KEY = "sprintforecast.mrautomerge"  # "false" schaltet das Automerge ab (Standard: an)
 SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
-_MR_URL = re.compile(r"https?://\S+/merge_requests/(?:\d+|new\b\S*)")
+_PR_URL = re.compile(
+    r"https?://\S+/(?:pulls?/(?:\d+|new/\S+)|merge_requests/(?:\d+|new\b\S*)|compare/\S+)"
+)
+# Auf welchem Server liegt das Daten-Repository? Das bestimmt, wie ein Merge/Pull Request
+# entsteht. ``HOST_KEY`` überschreibt die Erkennung aus der Adresse (Standard: automatisch).
+HOST_KEY = "sprintforecast.host"
+HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC = "gitlab", "github", "forgejo", "generic"
+HOSTS = (HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC)
 
 # Wie oft ein Push nach "inzwischen hat jemand anderes hochgeladen" neu versucht wird.
 MAX_ATTEMPTS = 3
@@ -258,6 +267,78 @@ def _lock_for(path: Path) -> threading.RLock:
         return _SYNC_LOCKS.setdefault(key, threading.RLock())
 
 
+LOCK_WARN_SECONDS = 60.0  # so lange wartet ein Aufruf auf einen laufenden Abgleich, dann Hinweis
+_LOCK_POLL_SECONDS = 1.0
+_HELD: dict[Path, tuple[float, int]] = {}  # Datenordner → (Beginn, Tiefe) des laufenden Abgleichs
+
+
+def _busy_error(since: float) -> GitError:
+    seconds = int(max(0.0, time.time() - since))
+    return GitError(
+        t(
+            "Ein anderer Abgleich dieses Datenordners läuft noch seit {seconds} Sekunden.",
+            seconds=seconds,
+        ),
+        "sync_busy",
+        hint_for("sync_busy"),
+    )
+
+
+@contextlib.contextmanager
+def _locked(path: Path, wait: float | None = None) -> Iterator[None]:
+    """Hält die Sperre des Datenordners. Wer länger als ``wait`` (Vorgabe: ``LOCK_WARN_SECONDS``)
+    warten müsste, bekommt einen :class:`GitError` der Art ``sync_busy`` statt ewigen Wartens.
+    Der laufende Abgleich wird dadurch nie beendet; das geschieht nur mit
+    :func:`abort_running_sync`."""
+    lock = _lock_for(path)
+    key = path.resolve()
+    limit = LOCK_WARN_SECONDS if wait is None else wait
+    deadline = time.monotonic() + limit
+    while not lock.acquire(timeout=min(_LOCK_POLL_SECONDS, max(0.0, limit))):
+        if time.monotonic() >= deadline:
+            with _BACKGROUND_LOCK:
+                since = _HELD.get(key, (time.time(), 0))[0]
+            raise _busy_error(since)
+    with _BACKGROUND_LOCK:
+        since, depth = _HELD.get(key, (time.time(), 0))
+        _HELD[key] = (since, depth + 1)
+    root: Path | None = None
+    if depth == 0:
+        with contextlib.suppress(GitError):
+            root = _root(path)
+            gitmod.begin_sync(root)
+    try:
+        yield
+    finally:
+        if root is not None:  # ein Abbruch gilt nur für diesen Abgleich
+            gitmod.end_sync(root)
+        with _BACKGROUND_LOCK:
+            since, depth = _HELD[key]
+            if depth <= 1:
+                del _HELD[key]
+            else:
+                _HELD[key] = (since, depth - 1)
+        lock.release()
+
+
+def sync_running_seconds(path: Path) -> float | None:
+    """Seit wie vielen Sekunden hält ein Abgleich die Sperre dieses Datenordners (``None``:
+    keiner)?"""
+    with _BACKGROUND_LOCK:
+        held = _HELD.get(path.resolve())
+    return None if held is None else max(0.0, time.time() - held[0])
+
+
+def abort_running_sync(path: Path) -> bool:
+    """Beendet die laufenden Git-Aufrufe des Abgleichs dieses Datenordners (ausdrücklicher
+    Wunsch). Der Abgleich endet dann mit einem Fehler; vorher gesicherte Änderungen bleiben,
+    Sperrdateien wie ``index.lock`` werden nicht angefasst. ``True``, wenn etwas lief."""
+    try:
+        return gitmod.abort_running(_root(path))
+    except GitError:
+        return False
+
+
 def _quiet_env(root: Path) -> dict[str, str]:
     """Umgebung für den Abruf im Hintergrund; SSH läuft ohne Rückfrage (``BatchMode``), wenn
     niemand einen eigenen SSH-Befehl festgelegt hat (Umgebung oder ``core.sshCommand``)."""
@@ -292,20 +373,32 @@ def _fetch_in_background(root: Path, current: SyncState) -> None:
 def fetch(path: Path) -> SyncState:
     """Holt den Stand vom Server (nur herunterladen, nichts ändern) und merkt sich, ob der
     Server erreichbar war. Fehler werden nicht ausgelöst, sondern im Stand vermerkt."""
-    with _lock_for(path):
-        root = _root(path)
-        current = state(path)
-        error: GitError | None = None
-        if current.remote is None:
-            error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
-        else:
-            try:
-                _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
-            except GitError as e:
-                error = e
-        _FETCHED[root] = (time.time(), error)
-        gitmod.invalidate_status()
-        return state(path)
+    try:
+        with _locked(path):
+            return _fetch_locked(path)
+    except GitError as e:
+        if e.kind not in {"sync_busy", "aborted"}:
+            raise
+        cached = _STATE_CACHE.get(path.resolve())  # kein Git neben dem laufenden Abgleich
+        return cached[1] if cached else state(path)
+
+
+def _fetch_locked(path: Path) -> SyncState:
+    root = _root(path)
+    current = state(path)
+    error: GitError | None = None
+    if current.remote is None:
+        error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
+    else:
+        try:
+            _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
+        except GitError as e:
+            if e.kind == "aborted":  # kein Befund über den Server: nichts vermerken
+                raise
+            error = e
+    _FETCHED[root] = (time.time(), error)
+    gitmod.invalidate_status()
+    return state(path)
 
 
 def background_fetch_due(path: Path, now: float | None = None) -> bool:
@@ -338,13 +431,12 @@ def start_background_fetch(path: Path) -> bool:
         return False
     key = path.resolve()
     try:
-        if not background_fetch_due(path):
-            return False
+        if not background_fetch_due(path) or sync_running_seconds(path) is not None:
+            return False  # ein Abgleich läuft: kein Git daneben
         root = _root(path)
         current = state(path)
     except GitError:
         return False
-    lock = _lock_for(path)
     with _BACKGROUND_LOCK:
         if key in _BACKGROUND_ACTIVE:
             return False
@@ -353,11 +445,11 @@ def start_background_fetch(path: Path) -> bool:
 
     def run() -> None:
         try:
-            if lock.acquire(blocking=False):  # ein Abgleich läuft: beim nächsten Mal wieder
-                try:
+            try:
+                with _locked(path, wait=0):  # ein Abgleich läuft: beim nächsten Mal wieder
                     _fetch_in_background(root, current)
-                finally:
-                    lock.release()
+            except GitError:
+                pass
         except Exception:  # ein Hintergrundabruf darf nie etwas beenden
             pass
         finally:
@@ -811,8 +903,13 @@ def _sync(
 
 def sync(path: Path, *args: Any, **kwargs: Any) -> SyncResult:
     """„Speichern und teilen“ (siehe :func:`_sync`); läuft nie gleichzeitig mit einem Abruf."""
-    with _lock_for(path):
-        return _sync(path, *args, **kwargs)
+    try:
+        with _locked(path):
+            return _sync(path, *args, **kwargs)
+    except GitError as e:
+        if e.kind != "sync_busy":
+            raise
+        return SyncResult(error=e)
 
 
 def _server_branch(root: Path, current: SyncState) -> str | None:
@@ -925,6 +1022,15 @@ def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list
                 branch=branch,
             )
         ]
+    if host_kind(root) == HOST_FORGEJO:
+        # Der Pull Request liegt nicht auf einem eigenen Branch, den man hier sehen könnte.
+        return [
+            t(
+                "Deine Änderungen stehen auf dem Server noch nicht in {branch}. Liegen sie in "
+                "einem offenen Pull Request, hole sie nach dem Merge erneut.",
+                branch=branch,
+            )
+        ]
     return [
         t(
             "Deine Änderungen sind noch nicht geteilt (nicht in {branch}, kein Merge Request "
@@ -956,6 +1062,62 @@ def set_share_mode(path: Path, mode: str) -> None:
         _git(root, "config", "--local", "--unset-all", SHARE_KEY, check=False)
 
 
+def detect_host(url: str) -> str:
+    """Welche Art Server hinter der Adresse steckt, soweit der Name es verrät (GitHub, GitLab,
+    Forgejo/Gitea/Codeberg); alles andere ist ``generic``."""
+    name = (_web_location(url) or ("", ""))[0].lower()
+    if name == "github.com" or name.startswith("github."):
+        return HOST_GITHUB
+    if "gitlab" in name:
+        return HOST_GITLAB
+    if name == "codeberg.org" or any(word in name for word in ("forgejo", "gitea")):
+        return HOST_FORGEJO
+    return HOST_GENERIC
+
+
+def _web_location(url: str) -> tuple[str, str] | None:
+    """Rechnername und Pfad ohne ``.git`` aus einer Server-Adresse (https, ssh oder scp-Form);
+    ``None`` bei einem Ordnerpfad."""
+    found = re.match(r"^[a-z][a-z0-9+.-]*://(?:[^@/]*@)?([^/:]+)(?::\d+)?/(.+?)(?:\.git)?/?$", url)
+    if not found:
+        found = re.match(r"^(?:[^@/\s]+@)?([^/:\s]+):(?!//)(.+?)(?:\.git)?/?$", url)
+    return (found.group(1), found.group(2)) if found else None
+
+
+def host_setting(path: Path) -> str | None:
+    """Die ausdrücklich gewählte Server-Art (``None``: automatisch aus der Adresse erkennen)."""
+    value = _git(_root(path), "config", "--local", "--get", HOST_KEY, check=False)
+    return value if value in HOSTS else None
+
+
+def set_host(path: Path, host: str | None) -> None:
+    root = _root(path)
+    if host in HOSTS:
+        _git(root, "config", "--local", HOST_KEY, host)
+    else:
+        _git(root, "config", "--local", "--unset-all", HOST_KEY, check=False)
+
+
+def host_kind(path: Path) -> str:
+    """Die Art des Servers: die gewählte oder, solange nichts gewählt ist, die erkannte."""
+    return host_setting(path) or detected_host(path)
+
+
+def detected_host(path: Path) -> str:
+    """Die aus der Adresse des Servers erkannte Art, unabhängig von einer Wahl."""
+    root = _root(path)
+    return detect_host(gitmod.remote_url(root, state(root).remote or "origin"))
+
+
+def compare_url(url: str, target: str, branch: str) -> str | None:
+    """Die Webadresse, unter der man bei GitHub aus dem Branch einen Pull Request öffnet."""
+    where = _web_location(url)
+    if not where or len(where[0]) == 1:  # Laufwerksbuchstabe wie ``C:\\x``, kein Rechner
+        return None
+    host, repo = where
+    return f"https://{host}/{repo}/compare/{target}...{branch}?expand=1"
+
+
 def merge_request_branch(root: Path) -> str:
     """Der Branch, auf den diese Person für Merge Requests hochlädt: je Person ein fester Name
     (``sprintforecast/<name>-<Kürzel der Adresse>``), damit ein weiteres Teilen denselben Merge
@@ -968,48 +1130,74 @@ def merge_request_branch(root: Path) -> str:
 
 
 def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str, str | None]:
-    """Lädt den Stand auf den eigenen Branch und bittet den Server (GitLab-Push-Optionen), einen
-    Merge Request nach dem Hauptbranch anzulegen; gibt es ihn schon, schreibt der Push ihn fort.
+    """Lädt den Stand für eine Prüfung durch andere hoch, je nach Server:
+
+    - GitLab (und unbekannte Server): auf den eigenen Branch, mit Push-Optionen, damit der Server
+      den Merge Request anlegt oder fortschreibt (und auf Wunsch von selbst mergt).
+    - Forgejo/Gitea/Codeberg: AGit-Ablauf (``refs/for/<Ziel>``), der Pull Request entsteht beim
+      Push; klappt das nicht, bleibt der Branch.
+    - GitHub: der eigene Branch; die App hat kein Zugriffstoken, sie nennt die Adresse, unter der
+      man den Pull Request öffnet.
+
     Der Branch gehört dieser Person: Ist er nach einem Rebase im Merge Request oder einem
     gemergten Stand anders weitergelaufen, wird er mit ``--force-with-lease`` überschrieben.
     Tags gehen nicht mit (sie zeigen sonst auf Commits, die nie in den Hauptbranch kommen).
-    Liefert Branch und, falls der Server sie meldet, die Adresse des Merge Requests."""
+    Liefert Branch und, falls bekannt, die Adresse des Merge/Pull Requests."""
     branch = merge_request_branch(root)
-    auto = auto_merge(root)
+    host = host_kind(root)
     ref = f"refs/heads/{branch}"
     remote = current.remote or "origin"
     target = (current.upstream or "").partition("/")[2] or current.branch or "main"
     subject = (title.strip().splitlines() or ["Änderungen"])[0]
+    if host == HOST_FORGEJO:
+        proc = gitmod._git_result(
+            root,
+            "push",
+            "-o", f"topic={branch}",
+            "-o", f"title={subject}",
+            "-o", "force-push=true",
+            remote,
+            f"HEAD:refs/for/{target}",
+            network=True,
+        )  # fmt: skip
+        if proc.returncode == 0:
+            found = _PR_URL.search(proc.stderr + proc.stdout)
+            return branch, found.group(0).rstrip(".,)") if found else None
     listed = _git(root, "ls-remote", remote, ref, network=True, url=current.url, check=False)
     lease = (
         f"--force-with-lease={ref}:{listed.split()[0]}" if listed else f"--force-with-lease={ref}:"
     )
-    proc = gitmod._git_result(
-        root,
-        "push",
-        lease,
-        "-o", "merge_request.create",
-        "-o", f"merge_request.target={target}",
-        "-o", f"merge_request.title={subject}",
-        "-o", "merge_request.remove_source_branch",
-        # Neuere GitLab-Versionen kennen auch ``merge_request.auto_merge`` (gleiche Wirkung).
-        *(["-o", "merge_request.merge_when_pipeline_succeeds"] if auto else []),
-        remote,
-        f"HEAD:{ref}",
-        network=True,
-    )  # fmt: skip
-    if proc.returncode != 0:
-        message = proc.stderr.strip() or proc.stdout.strip()
-        if "does not support push options" in message:
+    options: list[str] = []
+    if host in (HOST_GITLAB, HOST_GENERIC):
+        options = [
+            "-o", "merge_request.create",
+            "-o", f"merge_request.target={target}",
+            "-o", f"merge_request.title={subject}",
+            "-o", "merge_request.remove_source_branch",
+            # Neuere GitLab-Versionen kennen auch ``merge_request.auto_merge`` (gleiche Wirkung).
+            *(["-o", "merge_request.merge_when_pipeline_succeeds"] if auto_merge(root) else []),
+        ]  # fmt: skip
+    proc = gitmod._git_result(root, "push", lease, *options, remote, f"HEAD:{ref}", network=True)
+    message = proc.stderr.strip() or proc.stdout.strip()
+    if proc.returncode != 0 and options and "does not support push options" in message:
+        if host == HOST_GITLAB:
             raise GitError(
                 t(
                     "Der Server unterstützt keine Push-Optionen, daher kein Teilen über Merge "
                     "Request. Bitte die Einstellung auf der Seite „Datenordner“ ausschalten."
                 )
             )
+        # Kein GitLab: nur den Branch hochladen, den Pull Request öffnet man auf dem Server.
+        proc = gitmod._git_result(root, "push", lease, remote, f"HEAD:{ref}", network=True)
+        message = proc.stderr.strip() or proc.stdout.strip()
+    if proc.returncode != 0:
         raise gitmod.classify(message, url=current.url, cwd=root)
-    found = _MR_URL.search(proc.stderr + proc.stdout)
-    return branch, found.group(0).rstrip(".,)") if found else None
+    found = _PR_URL.search(proc.stderr + proc.stdout)
+    if found:
+        return branch, found.group(0).rstrip(".,)")
+    if host == HOST_GITHUB:
+        return branch, compare_url(current.url, target, branch)
+    return branch, None
 
 
 def _push(root: Path, current: SyncState) -> None:
@@ -1074,16 +1262,17 @@ def _reattach_hint(saved: str | None = None) -> str:
         "Meldung von Git unter „Technische Meldung“."
     )
     if saved:
-        text = (
-            t(
-                "Die offenen Änderungen im Datenordner sind bereits auf dem Rettungsbranch "
-                "{rescue} gesichert.",
-                rescue=saved,
-            )
-            + " "
-            + text
-        )
+        text = _saved_note(saved) + " " + text
     return text
+
+
+def _saved_note(rescue: str) -> str:
+    """Satz, der den Rettungsbranch nennt, auf dem die Änderungen im Datenordner liegen."""
+    return t(
+        "Die offenen Änderungen im Datenordner sind bereits auf dem Rettungsbranch "
+        "{rescue} gesichert.",
+        rescue=rescue,
+    )
 
 
 _SAVE_SUBJECT = "Offene Änderungen vor dem Wechsel gesichert"
@@ -1184,11 +1373,12 @@ def reattach(path: Path) -> Reattached:
         if new_changes:  # wieder lose auf der Sicherung: der nächste Versuch findet sie
             _git(root, "switch", "--detach", saved_at)
         gitmod.invalidate_status()
+        saved = rescue if changes else None
         if e.kind != "dirty":
+            if saved:  # nicht verschweigen, wohin die Änderungen gesichert wurden
+                e.hint = _saved_note(saved) + (" " + e.hint if e.hint else "")
             raise
-        raise GitError(
-            str(e), "detached", _reattach_hint(rescue if changes else None), e.raw
-        ) from e
+        raise GitError(str(e), "detached", _reattach_hint(saved), e.raw) from e
     gitmod.invalidate_status()
     return Reattached(target, rescue, commits, changes)
 

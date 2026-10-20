@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Import der Excel-Ausgabe: Rundlauf ohne Verlust, Vorschau der Änderungen, Fehlermeldungen."""
 
+import dataclasses
 import io
 import shutil
+import sys
 from datetime import date, datetime
 from pathlib import Path
 
@@ -14,7 +16,12 @@ pytest.importorskip("xlsxwriter")
 import openpyxl
 
 from sprintforecast.excel import SHEET_FORECAST, SHEET_SPRINTS, build_workbook
-from sprintforecast.excel_import import apply_import, plan_import, read_workbook
+from sprintforecast.excel_import import (
+    apply_import,
+    plan_import,
+    read_workbook,
+    read_workbook_keyed,
+)
 from sprintforecast.forecast import build_forecast
 from sprintforecast.storage import DataError, Repository
 
@@ -654,3 +661,81 @@ def test_the_command_checks_against_the_reference_day(
     result = CliRunner().invoke(app, ["--as-of", "2026-10-15", "excel-import", "demo", str(file)])
     assert result.exit_code == 0, result.output
     assert seen == [date(2026, 10, 15)]
+
+
+def test_workbook_carries_its_team_key(data_dir: Path):
+    _, file_team = read_workbook_keyed(exported(data_dir), "demo")
+    assert file_team == "demo"
+
+
+def test_workbook_of_another_team_is_refused(data_dir: Path):
+    with pytest.raises(DataError, match=r"Team 'demo'.*Team 'other'"):
+        read_workbook(exported(data_dir), "other")
+
+
+def test_workbook_without_team_key_is_still_read(data_dir: Path):
+    def drop(wb) -> None:
+        props = wb.custom_doc_props.props
+        wb.custom_doc_props.props[:] = [p for p in props if p.name != "sprintforecast-team"]
+
+    data, file_team = read_workbook_keyed(edited(exported(data_dir), drop), "other")
+    assert file_team is None
+    assert data.team.key == "other"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="a:b is not a file name on Windows")
+def test_export_warns_about_a_sprint_id_the_import_refuses(data_dir: Path):
+    from sprintforecast.excel import import_unsafe_sprint_ids
+
+    data = Repository(data_dir).load("demo")
+    assert import_unsafe_sprint_ids(data) == []
+    odd = dataclasses.replace(data, sprints=[dataclasses.replace(data.sprints[0], id="a:b")])
+    (warning,) = import_unsafe_sprint_ids(odd)
+    assert "'a:b'" in warning
+    with pytest.raises(
+        DataError, match=r"Sprint ID 'a:b' is not allowed|Sprint-ID 'a:b' ist nicht"
+    ):
+        read_workbook(build_workbook(build_forecast(odd, TODAY)), "demo")
+
+
+def test_export_warns_about_case_only_duplicates_and_an_unsafe_first_id(data_dir: Path):
+    from sprintforecast.excel import import_unsafe_sprint_ids
+
+    data = Repository(data_dir).load("demo")
+    first = data.sprints[0]
+    dup = dataclasses.replace(
+        data,
+        sprints=[
+            dataclasses.replace(first, id="Foo"),
+            dataclasses.replace(first, id="foo"),
+        ],
+    )
+    (warning,) = import_unsafe_sprint_ids(dup)
+    assert "'foo'" in warning
+    team = dataclasses.replace(
+        data.team, sprint=dataclasses.replace(data.team.sprint, first_id="a/b")
+    )
+    (warning,) = import_unsafe_sprint_ids(dataclasses.replace(data, team=team))
+    assert "'a/b'" in warning
+
+
+def test_excel_command_prints_the_import_warning_to_stderr(
+    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from typer.testing import CliRunner
+
+    from sprintforecast.cli import app
+    from sprintforecast.storage import DATA_ENV
+
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    sprints = data_dir / "demo" / "sprints"
+    src = sorted(sprints.glob("*.yaml"))[0]
+    text = src.read_text(encoding="utf-8")
+    sid = src.stem
+    for name in ("Zed", "zed"):
+        (sprints / f"{name}.yaml").write_text(text.replace(sid, name), encoding="utf-8")
+    out = tmp_path / "x.xlsx"
+    result = CliRunner().invoke(app, ["excel", "demo", "-o", str(out)])
+    assert result.exit_code == 0, result.output
+    assert "'zed'" in result.stderr
+    assert out.exists()
