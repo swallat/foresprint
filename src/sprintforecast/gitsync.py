@@ -1390,6 +1390,51 @@ def reattach(path: Path) -> Reattached:
     return Reattached(target, rescue, commits, changes)
 
 
+class Branch(NamedTuple):
+    """A branch that can be switched to: ``local`` = exists in the data folder, ``remote`` =
+    the server has it too (a remote-only branch is created as a local one when switching)."""
+
+    name: str
+    local: bool
+    remote: bool
+    current: bool = False
+
+
+def branches(path: Path) -> list[Branch]:
+    """Local and remote branches (as known since the last fetch), the current one first,
+    then alphabetically."""
+    root = _root(path)
+    current = state(path)
+    local = set(_git(root, "branch", "--format=%(refname:short)").split())
+    remote: set[str] = set()
+    if current.remote:
+        prefix = f"{current.remote}/"
+        refs = _git(root, "branch", "-r", "--format=%(refname:short)", check=False).split()
+        remote = {r[len(prefix) :] for r in refs if r.startswith(prefix)} - {"HEAD"}
+    found = [Branch(n, n in local, n in remote, n == current.branch) for n in local | remote]
+    return sorted(found, key=lambda b: (not b.current, b.name))
+
+
+def switch_branch(path: Path, name: str) -> str:
+    """Switches the data folder to branch ``name`` (a remote-only one is created locally and
+    follows the server). Refuses while the data folder has open changes: nothing is saved or
+    discarded implicitly. Returns the name of the branch."""
+    root = _root(path)
+    current = state(path)
+    if current.unfinished or current.conflicts:
+        raise GitError(hint_for("conflict"), "conflict")
+    if gitmod.changes_in(path):
+        raise GitError(
+            t("There are open changes. Commit or discard them before switching the branch.")
+        )
+    if name not in {b.name for b in branches(path)}:
+        raise GitError(t("Branch {name} not found.", name=name))
+    with _locked(path):
+        _git(root, "switch", name)
+    gitmod.invalidate_status()
+    return name
+
+
 def set_identity(name: str, email: str) -> None:
     """Stores name and email address for commits (global for the user)."""
     if not name.strip() or "@" not in email:

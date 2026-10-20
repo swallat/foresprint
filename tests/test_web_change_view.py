@@ -163,6 +163,16 @@ def test_git_error_hides_only_the_view(repo, data_dir: Path, monkeypatch):
     assert any(i.key == "commit_message" for i in at.sidebar.text_input)
 
 
+def test_git_buttons_stay_outside_the_expander(repo, data_dir: Path, monkeypatch):
+    file = repo / SPRINT
+    file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
+    invalidate_status()
+    at = start(data_dir, monkeypatch)
+    git_box = next(e for e in at.sidebar.expander if "offene Änderung" in e.label)
+    assert not git_box.button and not git_box.text_input
+    assert any(b.label == "Änderungen committen" for b in at.sidebar.button)
+
+
 def cells(at: AppTest) -> dict[str, tuple[str, str]]:
     """Field -> (before, after) from all tables of the view."""
     out: dict[str, tuple[str, str]] = {}
