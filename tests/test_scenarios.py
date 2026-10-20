@@ -33,7 +33,7 @@ from sprintforecast.model import (
 )
 from sprintforecast.products import distribution
 from sprintforecast.report import fmt, render
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.validate import check_team
 from sprintforecast.web.logic import apply_calendar, calendar_table, with_sprints
 
@@ -54,7 +54,7 @@ def load(data_dir: Path):
 
 def web(data_dir: Path, monkeypatch: pytest.MonkeyPatch, today: str = "2026-10-15") -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, today)
+    monkeypatch.setenv(AS_OF_ENV, today)
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -62,7 +62,7 @@ def web(data_dir: Path, monkeypatch: pytest.MonkeyPatch, today: str = "2026-10-1
 
 
 def goto(at: AppTest, page: str) -> AppTest:
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -88,10 +88,10 @@ STATES = {
     ),
     "Fehltage eingetragen": (lambda s: s.absences.update({"anna": 2.0}), "PEOPLE"),
     # New: the Planning alone does not confirm absences (B2); the state stays "unknown".
-    "Commitment gesetzt": (lambda s: setattr(s, "forecast_ist", 9.0), None),
+    "Commitment gesetzt": (lambda s: setattr(s, "commitment", 9.0), None),
     # Older files without a saved state: a planned sprint counts as confirmed.
     "Commitment gesetzt (altes Format)": (
-        lambda s: (setattr(s, "forecast_ist", 9.0), setattr(s, "absence_state", None)),
+        lambda s: (setattr(s, "commitment", 9.0), setattr(s, "absence_state", None)),
         "PEOPLE",
     ),
     "angekündigte Fehltage": (lambda s: s.expected_absences.update({"anna": 3.0}), "EXPECTED"),
@@ -139,8 +139,8 @@ def test_file_state_decides_capacity_source_and_pages_agree(
     tile = next(m for m in at.metric if m.label.startswith(TARGET))
     assert num(tile.value) == pytest.approx(plan)
 
-    goto(at, "vorplanung")
-    at.selectbox(key="vorplanung-sprint").set_value(TARGET).run()
+    goto(at, "preplanning")
+    at.selectbox(key="preplanning-sprint").set_value(TARGET).run()
     assert not at.exception, at.exception
     headline = next(m for m in at.metric if m.label == f"Prognose aktuell {TARGET}")
     available = next(m for m in at.metric if m.label == "Verteilbar")
@@ -155,10 +155,10 @@ def test_absences_known_rules():
     assert not absences_known(Sprint(**base, expected_absences={"anna": 1.0}))
     assert absences_known(Sprint(**base, absences={"anna": 1.0}))
     assert absences_known(Sprint(**base, absence_state=AbsenceState.CONFIRMED))
-    assert absences_known(Sprint(**base, forecast_ist=5.0))  # older file without a state
+    assert absences_known(Sprint(**base, commitment=5.0))  # older file without a state
     # Explicitly saved as "unknown": Planning values confirm nothing
     unknown = AbsenceState.UNKNOWN
-    assert not absences_known(Sprint(**base, forecast_ist=5.0, absence_state=unknown))
+    assert not absences_known(Sprint(**base, commitment=5.0, absence_state=unknown))
     assert absences_known(Sprint(**base, absences={"anna": 1.0}, absence_state=unknown))
 
 
@@ -210,8 +210,8 @@ def test_frozen_plan_drives_distribution_but_not_forecast_page(
     goto(at, "forecast")
     tile = next(m for m in at.metric if m.label.startswith("2026.22"))
     assert num(tile.value) == pytest.approx(live)  # Forecast page: calculated live
-    goto(at, "vorplanung")
-    at.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    goto(at, "preplanning")
+    at.selectbox(key="preplanning-sprint").set_value("2026.22").run()
     # Board: both states separately, currently calculated and frozen at Planning (B1)
     headline = next(m for m in at.metric if m.label == "Prognose aktuell 2026.22")
     assert num(headline.value) == pytest.approx(live)
@@ -280,8 +280,8 @@ def test_whatif_with_two_open_sprints_and_frozen_target(data_dir: Path):
 
 def test_whatif_target_is_the_open_sprint_itself(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     at = web(data_dir, monkeypatch)
-    goto(at, "vorplanung")
-    at.selectbox(key="vorplanung-sprint").set_value("2026.21").run()
+    goto(at, "preplanning")
+    at.selectbox(key="preplanning-sprint").set_value("2026.21").run()
     box = next(n for n in at.number_input if n.key and n.key.endswith("-open"))
     box.set_value(3.0).run()
     assert not at.exception, at.exception
@@ -438,8 +438,8 @@ def test_unit_sp_changes_labels_but_not_numbers(data_dir: Path, monkeypatch: pyt
     goto(at, "forecast")
     tile = next(m for m in at.metric if m.label.startswith("2026.22"))
     assert tile.value.endswith(" SP") and num(tile.value) == pytest.approx(reference)
-    goto(at, "vorplanung")
-    at.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    goto(at, "preplanning")
+    at.selectbox(key="preplanning-sprint").set_value("2026.22").run()
     headline = next(m for m in at.metric if m.label == "Prognose aktuell 2026.22")
     assert headline.value.endswith(" SP")
     capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
@@ -487,7 +487,15 @@ def test_thin_history_does_not_break_any_page(
     for path in sprints[: len(sprints) - keep - 2]:  # keep only the most recent files
         path.unlink()
     at = web(data_dir, monkeypatch)
-    for page in ("forecast", "vorplanung", "planning", "review", "produkte", "analyse", "fehltage"):
+    for page in (
+        "forecast",
+        "preplanning",
+        "planning",
+        "review",
+        "products",
+        "analysis",
+        "absences",
+    ):
         goto(at, page)
 
 
@@ -535,8 +543,8 @@ def test_english_ui_shows_same_numbers(data_dir: Path, monkeypatch: pytest.Monke
         goto(at, "forecast")
         tile = next(m for m in at.metric if m.label.startswith("2026.22"))
         assert num(tile.value) == pytest.approx(plan)
-        goto(at, "vorplanung")
-        at.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+        goto(at, "preplanning")
+        at.selectbox(key="preplanning-sprint").set_value("2026.22").run()
         assert not at.exception, at.exception
         headline = next(m for m in at.metric if m.label == "Current forecast 2026.22")
         assert num(headline.value) == pytest.approx(plan)
@@ -565,11 +573,11 @@ def test_preplanning_saves_expected_absences_and_changes_plan(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     at = web(data_dir, monkeypatch)
-    goto(at, "vorplanung")
-    at.selectbox(key="vorplanung-sprint").set_value(TARGET).run()
+    goto(at, "preplanning")
+    at.selectbox(key="preplanning-sprint").set_value(TARGET).run()
 
     def plan_with(days: float) -> float:
-        at.session_state[f"vorplanung-expected-{TARGET}"] = {
+        at.session_state[f"preplanning-expected-{TARGET}"] = {
             "edited_rows": {0: {TARGET: days}},
             "added_rows": [],
             "deleted_rows": [],

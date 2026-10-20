@@ -37,7 +37,7 @@ from sprintforecast.report import (
     fmt_capacity,
     render,
 )
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 
 TODAY = date(2026, 10, 15)
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -57,7 +57,7 @@ def fc(data_dir: Path):
 
 def open_app(data_dir: Path, monkeypatch: pytest.MonkeyPatch, today: str = "2026-10-15") -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, today)
+    monkeypatch.setenv(AS_OF_ENV, today)
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -70,7 +70,7 @@ def web(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def page(at: AppTest, key: str) -> AppTest:
-    at.switch_page(f"seiten/{key}.py").run()
+    at.switch_page(f"page_scripts/{key}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -197,11 +197,11 @@ def test_forecast_page_matches_engine(web: AppTest, fc):
 
 
 @pytest.mark.parametrize("sprint", ["2026.21", "2026.22", "2026.23", "2026.24"])
-def test_planning_vorplanung_products_and_analysis_agree(web: AppTest, fc, sprint: str):
+def test_planning_preplanning_products_and_analysis_agree(web: AppTest, fc, sprint: str):
     expected = fc.entry(sprint).result.plan
 
-    page(web, "vorplanung")
-    web.selectbox(key="vorplanung-sprint").set_value(sprint).run()
+    page(web, "preplanning")
+    web.selectbox(key="preplanning-sprint").set_value(sprint).run()
     assert not web.exception, web.exception
     headline = next(m for m in web.metric if m.label == f"Prognose aktuell {sprint}")
     available = next(m for m in web.metric if m.label == "Verteilbar")
@@ -215,7 +215,7 @@ def test_planning_vorplanung_products_and_analysis_agree(web: AppTest, fc, sprin
     ]
     assert sum(standard) == pytest.approx(expected, abs=0.1)
 
-    page(web, "produkte")
+    page(web, "products")
     web.selectbox(key="products-sprint").set_value(sprint).run()
     assert not web.exception, web.exception
     assert any(fmt(expected, 2) in c.value for c in web.caption), [c.value for c in web.caption]
@@ -234,7 +234,7 @@ def test_planning_page_shows_engine_plan(web: AppTest, fc):
 
 
 def test_analysis_band_uses_the_same_plan(web: AppTest, fc):
-    page(web, "analyse")
+    page(web, "analysis")
     table = next(d.value for d in web.dataframe if "konservativ" in d.value.columns)
     for e in fc.upcoming():
         row = table[table["Sprint"] == e.sprint.id].iloc[0]
@@ -249,7 +249,7 @@ def test_absences_page_preview_matches_engine(web: AppTest, fc):
     core, for all Sprints, including Sprints with unknown absences."""
     from sprintforecast.report import absence_status_label, capacity_label
 
-    page(web, "fehltage")
+    page(web, "absences")
     table = next(d.value for d in web.dataframe if "Kapazität (PT)" in d.value.columns)
     assert len(table) >= 4
     for _, row in table.iterrows():
@@ -454,7 +454,7 @@ def test_border_capacity_in_web_pages_and_frozen_value(
     assert table[table["Sprint"] == BORDER].iloc[0]["Kapazität (PT)"] == BORDER_LABEL
     assert any(f"Kapazität {BORDER_LABEL} PT" in c.value for c in border_web.caption)
 
-    page(border_web, "fehltage")
+    page(border_web, "absences")
     absences = next(d.value for d in border_web.dataframe if "Kapazität (PT)" in d.value.columns)
     assert absences[absences["Sprint"] == BORDER].iloc[0]["Kapazität (PT)"] == BORDER_LABEL
 
@@ -482,7 +482,7 @@ def test_border_capacity_in_the_announcement_for_the_next_sprint(
 ):
     """Absences page: "fit into the next sprint … (capacity …)". 2026.22 with Ben 3.5: 28.25."""
     with_absences(data_dir, "2026.22", ben=3.5)
-    at = page(open_app(data_dir, monkeypatch), "fehltage")
+    at = page(open_app(data_dir, monkeypatch), "absences")
     assert any("(Kapazität 28,3 PT)" in m.value for m in at.markdown), [
         m.value for m in at.markdown
     ]

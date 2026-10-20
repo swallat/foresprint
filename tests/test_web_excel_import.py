@@ -15,7 +15,7 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 
 from sprintforecast.excel import SHEET_FORECAST, build_workbook  # noqa: E402
 from sprintforecast.forecast import build_forecast  # noqa: E402
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository  # noqa: E402
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository  # noqa: E402
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 UPLOADER = "excel-import-demo-file-0"
@@ -36,10 +36,10 @@ def edited(content: bytes, edit) -> bytes:
 
 def settings_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
-    at.switch_page("seiten/einstellungen.py").run()
+    at.switch_page("page_scripts/settings.py").run()
     assert not at.exception, at.exception
     return at
 

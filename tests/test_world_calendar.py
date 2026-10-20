@@ -160,14 +160,14 @@ def test_settings_page_changes_country(data_dir: Path, monkeypatch: pytest.Monke
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     app = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app), default_timeout=30)
     at.run()
-    at.switch_page("seiten/einstellungen.py").run()
+    at.switch_page("page_scripts/settings.py").run()
     assert not at.exception, at.exception
     at.selectbox(key="settings-demo-capacity.country").set_value("US")
     at.text_input(key="settings-demo-capacity.region").set_value("CA")
@@ -176,7 +176,7 @@ def test_settings_page_changes_country(data_dir: Path, monkeypatch: pytest.Monke
     saved = yaml.safe_load((data_dir / "demo" / "team.yaml").read_text())["capacity"]
     assert saved["country"] == "US" and saved["region"] == "CA"
     # The pages then calculate with US holidays
-    at.switch_page("seiten/forecast.py").run()
+    at.switch_page("page_scripts/forecast.py").run()
     assert not at.exception, at.exception  # also with Cem's (no longer fitting) region BY
 
 

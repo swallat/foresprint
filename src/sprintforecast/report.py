@@ -427,7 +427,7 @@ def render(fc: Forecast, history: int = 10) -> str:
         r = e.result
         lines.append(
             f"| {e.sprint.id} | {fmt_capacity(r.capacity.value, e.capacity_digits)} "
-            f"| {fmt(r.forecast_ist.value, 2)} "
+            f"| {fmt(r.commitment.value, 2)} "
             f"| {fmt(r.velocity.value, 2)} | {fmt(r.normalized_velocity.value, 2)} "
             f"| {fmt(r.normalized_velocity.average, 2)} | {pct(r.fulfillment.value)} "
             f"| {pct(r.scope_creep.value)} |"
@@ -452,7 +452,7 @@ def render(fc: Forecast, history: int = 10) -> str:
             "xychart-beta",
             f"    x-axis [{', '.join(f'"{e.sprint.id}"' for e in chart)}]",
             f'    y-axis "{unit}"',
-            "    line " + series([e.result.forecast_ist.value or e.result.plan for e in chart]),
+            "    line " + series([e.result.commitment.value or e.result.plan for e in chart]),
             "    line "
             + series([e.result.velocity.value or e.result.velocity.trend for e in chart]),
             "    line "

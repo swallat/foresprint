@@ -17,7 +17,7 @@ from sprintforecast.cli import app
 from sprintforecast.excel import ExcelUnavailable, build_workbook, trend_formula
 from sprintforecast.forecast import build_forecast
 from sprintforecast.model import TrendMode
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 
 TODAY = date(2026, 10, 15)
 
@@ -100,7 +100,7 @@ def test_imported_text_never_becomes_a_formula_in_the_next_export(data_dir: Path
 
 def test_command_writes_the_file(data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
+    monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
     target = tmp_path / "out.xlsx"
     result = CliRunner().invoke(app, ["excel", "demo", "-o", str(target)])
     assert result.exit_code == 0, result.output

@@ -382,7 +382,7 @@ sprintforecast/
   preplan.py    budgets, order, placement, project traffic light, refinement list, variants
   sources/      neutral ticket model, interface TicketSource, csv.py, jira.py
                 (jira as an optional extra: sprintforecast[jira])
-  web/seiten/tickets.py, report, cli tickets
+  web/page_scripts/tickets.py, report, cli tickets
 ```
 
 - The core never imports from `sources/` or `preplan.py` (enforced by a test).
@@ -401,7 +401,7 @@ per step, in English, with tests and `locale_en.py` entries.
 |---|---|---|
 | **1 Model and distribution** | `Ticket`, `Project` in `model.py`; `projects.yaml`, `tickets.yaml`, `preplan.yaml` in `storage.py`; `features.tickets`; validation (rule language, cycles, target dates); `preplan.py`; CLI `tickets` with CSV import (preview, apply) and output of distribution, traffic light and refinement list | model, storage, validate, cli, settings, locale_en, docs |
 | **2 Jira import** | `sources/jira.py` as an extra: read JQL, resolve field names, refined rule, assignment rules, preview, write to `tickets.yaml`; token from environment or keychain; GET only | sources/, settings, cli |
-| **3 Page** | page "Tickets" (section 8) without variants (done in `web/tickets_view.py`); report section and planning-assistant proposal follow | web/ui, web/seiten, report, i18n |
+| **3 Page** | page "Tickets" (section 8) without variants (done in `web/tickets_view.py`); report section and planning-assistant proposal follow | web/ui, web/page_scripts, report, i18n |
 | **4 Variants and apply** | three variants with `rough_factor`; range in the timeline; apply the sums per product as `preplanned` into the PO pre-planning | preplan, analysis, web/ui |
 | **5 Label to Jira** | set `planned_for_<sprint_id>` and remove the old one, only on change, with preview; read labels on import; precedence from 6.6 | sources/jira, preplan, web/ui |
 

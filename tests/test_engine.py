@@ -69,12 +69,12 @@ def test_trend_flat():
     assert trend(AVG, TrendMode.FLAT)[6:] == [12.0, 12.0, 12.0]
 
 
-def _input(i, capacity=40.0, velocity=None, forecast_ist=None, planning=None):
+def _input(i, capacity=40.0, velocity=None, commitment=None, planning=None):
     return SprintInput(
         id=str(i),
         capacity=capacity,
         capacity_source=CapacitySource.RECORDED if capacity is not None else None,
-        forecast_ist=forecast_ist,
+        commitment=commitment,
         velocity=velocity,
         scope_creep=None,
         planning=planning,
@@ -84,9 +84,9 @@ def _input(i, capacity=40.0, velocity=None, forecast_ist=None, planning=None):
 def test_compute_forecast_plan():
     settings = ForecastSettings(reference_capacity=40, window=2, trend_mode=TrendMode.CLASSIC)
     inputs = [
-        _input(0, velocity=10, forecast_ist=12.34),
-        _input(1, velocity=12, forecast_ist=11),
-        _input(2, velocity=14, forecast_ist=13),
+        _input(0, velocity=10, commitment=12.34),
+        _input(1, velocity=12, commitment=11),
+        _input(2, velocity=14, commitment=13),
         # current Sprint: capacity known, velocity open
         _input(3, capacity=20, planning=Planning(carryover=1, backlog=8, corrections=[0.5])),
         # future Sprint without capacity → capacity trend

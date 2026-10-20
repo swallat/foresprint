@@ -253,7 +253,7 @@ class Prognosis:
     at: datetime
     # Where the assumption comes from (e.g. "forecast from the Daily of 16.10.").
     comment: str | None = None
-    forecast_ist: float | None = None
+    commitment: float | None = None
     # Expected not done, or done in addition to the Commitment.
     not_done: float | None = None
     additional_done: float | None = None
@@ -263,6 +263,15 @@ class Prognosis:
     target: str | None = None
     plan: float | None = None
     preplanned: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def forecast_ist(self) -> float | None:
+        """Former name of ``commitment``, kept for plugins written against it."""
+        return self.commitment
+
+    @forecast_ist.setter
+    def forecast_ist(self, value: float | None) -> None:
+        self.commitment = value
 
 
 @dataclass
@@ -274,7 +283,7 @@ class Sprint:
     absences: dict[str, float] = field(default_factory=dict)
     # Capacity in PD, recorded or frozen at the Review.
     capacity: float | None = None
-    forecast_ist: float | None = None
+    commitment: float | None = None
     velocity: float | None = None
     scope_creep: float | None = None
     planning: Planning | None = None
@@ -298,6 +307,16 @@ class Sprint:
     # Announced absences per person from the PO pre-planning (forecast, not yet confirmed):
     # they affect the capacity and the Forecast PLAN as long as no absences are confirmed.
     expected_absences: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def forecast_ist(self) -> float | None:
+        """Former name of ``commitment``, kept for plugins written against it."""
+        return self.commitment
+
+    @forecast_ist.setter
+    def forecast_ist(self, value: float | None) -> None:
+        self.commitment = value
+
     # Team forecasts from the PO pre-plannings, older first.
     prognoses: list[Prognosis] = field(default_factory=list)
 
@@ -320,7 +339,7 @@ def _legacy_known(sprint: Sprint) -> bool:
     planned or evaluated. A file that contains only, e.g., the PO pre-planning or was created
     empty by accident does not confirm them."""
     return sprint.planning is not None or any(
-        v is not None for v in (sprint.forecast_ist, sprint.velocity, sprint.forecast_plan)
+        v is not None for v in (sprint.commitment, sprint.velocity, sprint.forecast_plan)
     )
 
 

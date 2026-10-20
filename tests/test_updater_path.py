@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 import pytest
-from test_gitfinden import fake_git
+from test_git_discovery import fake_git
 
 from sprintforecast import git as gitmod
 from sprintforecast import updater
@@ -20,9 +20,9 @@ posix = pytest.mark.skipif(sys.platform == "win32", reason="Shell-Skript als Fak
 @pytest.fixture
 def no_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Git is not in the PATH."""
-    leer = tmp_path / "leerer-path"
-    leer.mkdir()
-    monkeypatch.setenv("PATH", str(leer))
+    empty = tmp_path / "leerer-path"
+    empty.mkdir()
+    monkeypatch.setenv("PATH", str(empty))
 
 
 @pytest.fixture
@@ -44,15 +44,15 @@ class Recorder:
 
 @posix
 def test_git_outside_path_is_appended_for_uv(outside: Path):
-    leer = os.environ["PATH"]
+    empty = os.environ["PATH"]
     before = dict(os.environ)
     env = updater.upgrade_environment()
     assert env is not None
     # at the end: a program of the same name (python, uv ...) in the Git folder shadows nothing
-    assert env["PATH"] == os.pathsep.join([leer, str(outside.parent)])
+    assert env["PATH"] == os.pathsep.join([empty, str(outside.parent)])
     # only the copy changes: neither the global one nor the environment for Git
     assert dict(os.environ) == before
-    assert gitmod._env(False)["PATH"] == leer
+    assert gitmod._env(False)["PATH"] == empty
 
 
 @posix
@@ -81,7 +81,7 @@ def test_scheduled_upgrade_changes_the_path_only_for_uv(
 ):
     """The restart (``then``) runs with the original PATH, uv with the extended one."""
     monkeypatch.setattr(updater, "log_file", lambda: tmp_path / "log" / "update.log")
-    leer = os.environ["PATH"]
+    empty = os.environ["PATH"]
     uv_out, then_out = tmp_path / "uv.txt", tmp_path / "then.txt"
     uv = tmp_path / "uv"
     uv.write_text(f'#!/bin/sh\necho "$PATH" > {uv_out}\n', encoding="utf-8")
@@ -98,8 +98,8 @@ def test_scheduled_upgrade_changes_the_path_only_for_uv(
     while not then_out.exists() and time.monotonic() < deadline:
         time.sleep(0.05)
     time.sleep(0.2)
-    assert uv_out.read_text(encoding="utf-8").strip() == f"{leer}{os.pathsep}{outside.parent}"
-    assert then_out.read_text(encoding="utf-8").strip() == leer
+    assert uv_out.read_text(encoding="utf-8").strip() == f"{empty}{os.pathsep}{outside.parent}"
+    assert then_out.read_text(encoding="utf-8").strip() == empty
 
 
 @posix
@@ -118,9 +118,9 @@ def test_scheduled_upgrade_does_not_touch_the_environment_of_the_script(
 @posix
 def test_unchanged_when_git_is_in_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     im_path = fake_git(tmp_path / "im-path")
-    ersatz = fake_git(tmp_path / "ersatz")
+    replacement = fake_git(tmp_path / "ersatz")
     monkeypatch.setenv("PATH", str(im_path.parent))
-    monkeypatch.setattr(gitmod, "git_locations", lambda: [ersatz])
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [replacement])
     assert updater.upgrade_environment() is None
     run = Recorder()
     monkeypatch.setattr(updater.subprocess, "run", run)
@@ -141,14 +141,14 @@ def test_unusable_git_in_path_gives_way_to_the_fallback_folder(
     location: uv gets the replacement folder at the end of the PATH, otherwise it would start the
     broken one."""
     im_path = fake_git(tmp_path / "im-path")
-    ersatz = fake_git(tmp_path / "ersatz")
+    replacement = fake_git(tmp_path / "ersatz")
     monkeypatch.setenv("PATH", str(im_path.parent))
-    monkeypatch.setattr(gitmod, "git_locations", lambda: [ersatz])
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [replacement])
     gitmod._mark_broken(str(im_path))
-    assert gitmod.find_git() == str(ersatz)
-    assert updater.upgrade_path() == os.pathsep.join([str(im_path.parent), str(ersatz.parent)])
+    assert gitmod.find_git() == str(replacement)
+    assert updater.upgrade_path() == os.pathsep.join([str(im_path.parent), str(replacement.parent)])
     env = updater.upgrade_environment()
-    assert env is not None and env["PATH"].split(os.pathsep)[-1] == str(ersatz.parent)
+    assert env is not None and env["PATH"].split(os.pathsep)[-1] == str(replacement.parent)
 
 
 @posix
@@ -156,11 +156,11 @@ def test_unchanged_when_the_usable_git_is_a_later_path_entry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """The usable Git is already in the PATH (behind the blocked one): appending changes nothing."""
-    erstes = fake_git(tmp_path / "eins")
-    zweites = fake_git(tmp_path / "zwei")
-    monkeypatch.setenv("PATH", os.pathsep.join([str(erstes.parent), str(zweites.parent)]))
-    gitmod._mark_broken(str(erstes))
-    assert gitmod.find_git() == str(zweites)
+    first = fake_git(tmp_path / "eins")
+    second = fake_git(tmp_path / "zwei")
+    monkeypatch.setenv("PATH", os.pathsep.join([str(first.parent), str(second.parent)]))
+    gitmod._mark_broken(str(first))
+    assert gitmod.find_git() == str(second)
     assert updater.upgrade_path() is None
 
 

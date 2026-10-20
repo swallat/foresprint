@@ -66,8 +66,8 @@ def click(at: AppTest, key: str) -> AppTest:
     return at
 
 
-def datenordner(data_dir: Path, monkeypatch) -> AppTest:
-    return goto(start(data_dir, monkeypatch), "datenordner")
+def data_folder_page(data_dir: Path, monkeypatch) -> AppTest:
+    return goto(start(data_dir, monkeypatch), "data_dir")
 
 
 def remotes(root: Path) -> str:
@@ -88,7 +88,7 @@ def test_sidebar_offers_the_setup_and_the_page_shows_the_section(
     assert "Kein Server eingerichtet" in shown(at, "caption", "sidebar")
     assert page_links(at) == ["Server einrichten"]
     assert not [b for b in at.sidebar.button if b.label == "Speichern und teilen"]
-    goto(at, "datenordner")
+    goto(at, "data_dir")
     assert [s.value for s in at.main.subheader] == ["Server (Remote)", "Zeilenenden festlegen"]
     assert "noch kein Server" in shown(at, "info")
     assert "Repository klonen" in shown(at, "info")  # the way to join a team
@@ -102,7 +102,7 @@ def test_check_and_save_buttons_sit_next_to_each_other(repo: Path, data_dir: Pat
     equally wide columns, the buttons far apart)."""
     from streamlit.proto.Block_pb2 import Block
 
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     group = next(
         node
         for node in walk(at.main)
@@ -118,7 +118,7 @@ def test_check_and_save_buttons_sit_next_to_each_other(repo: Path, data_dir: Pat
 
 def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory, monkeypatch):
     server = make_server(servers(tmp_path_factory))
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(server))
     assert not at.button(key="git-remote-check").disabled
 
@@ -161,7 +161,7 @@ def test_check_then_save_then_share(repo: Path, data_dir: Path, tmp_path_factory
 def test_credentials_in_the_address_are_rejected_and_never_shown(
     repo: Path, data_dir: Path, monkeypatch, raw: str
 ):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, raw)
     errors = shown(at, "error")
     assert errors.count("Zugangsdaten gehören nicht in die Adresse") == 1  # only as a heading
@@ -179,7 +179,7 @@ def test_credentials_in_the_address_are_rejected_and_never_shown(
 
 @pytest.mark.parametrize("raw", ['ext::sh -c "touch marker"', "-oProxyCommand=x", "git://h/x"])
 def test_dangerous_addresses_are_rejected(repo: Path, data_dir: Path, monkeypatch, raw: str):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, raw)
     assert "Ungültige Adresse" in shown(at, "error")
     assert at.button(key="git-remote-check").disabled and at.button(key="git-remote-save").disabled
@@ -188,7 +188,7 @@ def test_dangerous_addresses_are_rejected(repo: Path, data_dir: Path, monkeypatc
 
 
 def test_invalid_address_shows_its_title_once(repo: Path, data_dir: Path, monkeypatch):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, "github.com/team/daten")
     errors = shown(at, "error")
     assert errors.count("Ungültige Adresse") == 1
@@ -197,7 +197,7 @@ def test_invalid_address_shows_its_title_once(repo: Path, data_dir: Path, monkey
 
 def test_clone_tab_names_the_reason_for_a_bad_address(repo: Path, data_dir: Path, monkeypatch):
     """As with the server: the heading (exactly once) above the reason."""
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     address = next(e for e in at.text_input if e.label == "Adresse")
     address.set_value("github.com/team/daten").run()
     click(at, "data-clone-go")
@@ -217,7 +217,7 @@ def test_clone_tab_shows_the_next_step_for_a_missing_repository(
 ):
     """Only Git's message was there; the next step (check the address) was missing."""
     at = clone(
-        datenordner(data_dir, monkeypatch), str(tmp_path / "gibt-es-nicht.git"), tmp_path / "z"
+        data_folder_page(data_dir, monkeypatch), str(tmp_path / "gibt-es-nicht.git"), tmp_path / "z"
     )
     errors = shown(at, "error")
     # Git's message is under "Technical message". Which one it is depends on the path:
@@ -242,7 +242,9 @@ def test_clone_tab_names_the_fingerprint_for_an_unknown_ssh_server(
         return real(cwd, *args, **kwargs)
 
     monkeypatch.setattr(gitmod, "_git_result", host_key_failure)
-    at = clone(datenordner(data_dir, monkeypatch), "git@example.org:team/daten.git", tmp_path / "z")
+    at = clone(
+        data_folder_page(data_dir, monkeypatch), "git@example.org:team/daten.git", tmp_path / "z"
+    )
     errors = shown(at, "error")
     assert "Fingerabdruck" in errors and "ssh-keygen" not in errors
 
@@ -250,7 +252,7 @@ def test_clone_tab_names_the_fingerprint_for_an_unknown_ssh_server(
 def test_unsafe_folder_is_named_on_the_data_folder_page(repo: Path, data_dir: Path, monkeypatch):
     """Instead of "is not inside a Git repository" (and the offer to create one)."""
     assume_foreign_owner(monkeypatch, repo)
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert "Git hält den Ordner für unsicher" in shown(at, "error")
     assert "keinem Git-Repository" not in shown(at, "caption")
     at.text_input(key="data-path").set_value(str(repo))
@@ -276,7 +278,7 @@ def test_missing_repository_is_not_found_and_not_offered(
     repo: Path, data_dir: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch
 ):
     missing = servers(tmp_path_factory) / "gibt-es-nicht.git"
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(missing))
     for key in ("git-remote-check", "git-remote-save"):
         click(at, key)
@@ -307,7 +309,7 @@ def test_answers_that_are_not_unreachability_are_never_offered_for_saving(
     repo: Path, data_dir: Path, monkeypatch, stderr: str, title: str
 ):
     monkeypatch.setattr(gitmod, "_probe_run", lambda *a: gitmod._ProbeRun(128, "", stderr))
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, "git@gitlab.example:team/tippfehler.git")
     for key in ("git-remote-check", "git-remote-save"):
         click(at, key)
@@ -322,7 +324,7 @@ def test_http_needs_confirmation_and_unreachable_server_can_be_saved_anyway(
     repo: Path, data_dir: Path, monkeypatch
 ):
     url = "http://127.0.0.1:1/r.git"
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, url)
     assert "Unverschlüsselte Verbindung" in shown(at, "error")
     assert at.button(key="git-remote-check").disabled and at.button(key="git-remote-save").disabled
@@ -342,7 +344,7 @@ def test_http_needs_confirmation_and_unreachable_server_can_be_saved_anyway(
 
 
 def test_the_offer_disappears_when_the_address_changes(repo: Path, data_dir: Path, monkeypatch):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, "http://127.0.0.1:1/r.git")
     at.checkbox(key="git-remote-insecure").check().run()
     click(at, "git-remote-save")
@@ -356,7 +358,7 @@ def test_the_offer_disappears_when_the_address_changes(repo: Path, data_dir: Pat
 @pytest.mark.usefixtures("no_login_prompt")
 def test_missing_login_is_explained_and_nothing_is_saved(repo: Path, data_dir: Path, monkeypatch):
     with serve(Denying) as port:
-        at = datenordner(data_dir, monkeypatch)
+        at = data_folder_page(data_dir, monkeypatch)
         enter(at, f"http://127.0.0.1:{port}/r.git")
         at.checkbox(key="git-remote-insecure").check().run()
         click(at, "git-remote-save")
@@ -373,7 +375,7 @@ def test_missing_branch_needs_confirmation(
     repo: Path, data_dir: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch
 ):
     server = make_server(servers(tmp_path_factory), branch="master")
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(server))
     click(at, "git-remote-save")
     warning = shown(at, "warning")
@@ -391,7 +393,7 @@ def test_check_with_a_missing_branch_leads_to_the_confirmation(
 ):
     """First check, then confirm the branch: the offer already comes from the check."""
     server = make_server(servers(tmp_path_factory), branch="master")
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(server))
     click(at, "git-remote-check")
     assert any("Verbindung hergestellt" in s.value for s in at.success)
@@ -413,7 +415,7 @@ def test_check_lists_the_branches_and_offers_nothing_when_the_branch_exists(
 ):
     server = make_server(servers(tmp_path_factory), branch="main")
     add_branches(server, [f"feature/{n}" for n in range(8)])
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(server))
     click(at, "git-remote-check")
     names = ", ".join(f"`feature/{n}`" for n in range(5))
@@ -428,7 +430,7 @@ def test_names_from_the_server_are_shown_as_code_not_as_links(
     """A branch is named like a web address: as Markdown it would become a link."""
     server = make_server(servers(tmp_path_factory), branch="master")
     add_branches(server, ["www.evil.example/anmelden", "a`b"])
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(server))
     click(at, "git-remote-check")
     text = shown(at, "caption") + "\n" + shown(at, "warning")
@@ -444,12 +446,12 @@ def test_names_from_the_server_are_shown_as_code_not_as_links(
 def test_a_stored_address_with_a_backtick_is_shown_as_code(repo: Path, data_dir: Path, monkeypatch):
     git(repo, "remote", "add", "origin", "https://h.example/a`b.git")
     invalidate_status()
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert "Server `origin`: ``https://h.example/a`b.git``" in shown(at, "markdown")
 
 
 def test_a_saved_address_with_a_backtick_is_shown_as_code(repo: Path, data_dir: Path, monkeypatch):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, "http://127.0.0.1:1/a`b.git")
     at.checkbox(key="git-remote-insecure").check().run()
     click(at, "git-remote-save")
@@ -466,7 +468,7 @@ def test_a_new_folder_with_the_address_of_a_team_server_warns_and_names_cloning(
     git(data_dir.parent, "init", "-q", "-b", "main")  # a repository, still without a commit
     invalidate_status()
     server = make_server(servers(tmp_path_factory), branch="master")
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(server))
     click(at, "git-remote-check")
     warning = shown(at, "warning")
@@ -507,7 +509,7 @@ def test_stored_credentials_are_neither_shown_nor_prefilled(
     root, _bob, _server = shared
     git(root, "remote", "set-url", "origin", f"https://nutzer:{SECRET}@h.example/x.git")
     invalidate_status()
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert SECRET not in all_text(at)
     assert "`https://h.example/x.git`" in shown(at, "markdown")
     assert "Zugangsdaten" in shown(at, "warning")
@@ -532,7 +534,7 @@ def test_open_merge_blocks_saving_but_not_checking(
     open_merge(repo)
     config = (repo / ".git" / "config").read_bytes()
     server = make_server(servers(tmp_path_factory))
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert "Zusammenführen ist unvollständig" in shown(at, "warning")
     enter(at, str(server))
     assert at.button(key="git-remote-save").disabled
@@ -558,7 +560,7 @@ def test_unusual_server_settings_block_saving_but_not_checking(
         git(repo, "config", "--add", "remote.origin.url", str(work / "zweite.git"))
     invalidate_status()
     config = (repo / ".git" / "config").read_bytes()
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert "mehrere Adressen" in shown(at, "warning")  # the explanation of why nothing works
     enter(at, str(make_server(work, "neu.git")))
     assert at.button(key="git-remote-save").disabled
@@ -577,7 +579,7 @@ def test_other_servers_are_listed_and_stay_untouched(
     git(repo, "push", "-q", "-u", "origin", "main")
     git(repo, "remote", "add", "zweit", str(second))
     invalidate_status()
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert "Weitere Server (werden nicht verändert): `zweit`" in shown(at, "caption")
 
     new = make_server(work, "neu.git")
@@ -610,7 +612,7 @@ def test_folder_switch_drops_input_and_never_writes_to_the_wrong_folder(
     save_data_dir(data_dir)
     typed = make_server(servers(tmp_path_factory), "getippt.git")
 
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, str(typed))
     sidebar_button(at, "Wechseln").click().run()
     assert not at.exception, at.exception
@@ -631,7 +633,7 @@ def test_folder_switch_drops_a_pending_offer(repo: Path, data_dir: Path, monkeyp
     shutil.copytree(data_dir / "demo", other / "zweit")
     save_data_dir(other)
     save_data_dir(data_dir)
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter(at, "http://127.0.0.1:1/r.git")
     at.checkbox(key="git-remote-insecure").check().run()
     click(at, "git-remote-save")
@@ -647,7 +649,7 @@ def test_folder_switch_drops_a_pending_offer(repo: Path, data_dir: Path, monkeyp
 
 
 def test_no_section_without_a_git_repository(data_dir: Path, monkeypatch):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert [e for e in at.text_input if e.key == FIELD] == []
     assert "Server (Remote)" not in [s.value for s in at.subheader]
     assert "liegt in keinem Git-Repository" in shown(at, "caption")
@@ -662,7 +664,7 @@ def test_no_section_in_the_setup(tmp_path: Path, monkeypatch):
 
 
 def test_section_in_english(repo: Path, data_dir: Path, monkeypatch, english):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert [s.value for s in at.subheader] == ["Server (remote)", "Set line endings"]
     assert at.text_input(key=FIELD).label == "Server address"
     assert page_links(at) == ["Set up server"]
@@ -689,7 +691,7 @@ def test_no_server_hint_names_the_page_and_link_and_problem_can_share_a_run(
     assert page_links(at) == ["Server einrichten"]
     # Also on the "Data folder" page itself (link, problem and form in the same run).
     at.session_state["sync_result"] = gitsync.sync(data_dir, "egal")
-    goto(at, "datenordner")
+    goto(at, "data_dir")
     assert at.text_input(key=FIELD) is not None
     assert "Datenordner" in shown(at, "error", "sidebar")
 
@@ -700,7 +702,7 @@ def test_attributes_offer_is_written_only_on_click_and_shows_as_a_change(
     (data_dir / "crlf.yaml").write_bytes(b"x: 1\r\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "CRLF")
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     assert not (data_dir / ".gitattributes").exists()
     assert "crlf.yaml" in [row for df in at.main.dataframe for row in df.value["Datei"]]
     click(at, "attributes-apply")
