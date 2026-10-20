@@ -238,7 +238,7 @@ def check(force: bool = False, timeout: float = 5.0, now: datetime | None = None
     current = installed_version()
     inst = installation()
     if inst is None:
-        return Check(current, None, None, "nicht mit uv tool install installiert")
+        return Check(current, None, None, t("not installed with uv tool install"))
     state = load_state()
     last = _parse_time(state.get("last_check"))
     if not force and last is not None and now - last < CHECK_INTERVAL:
@@ -349,7 +349,7 @@ def _powershell_script(
         lines += ["$sfPath = $env:PATH", f"$env:PATH = {quote(path)}"]
     if visible:
         lines += [
-            "Write-Host 'sprintforecast wird aktualisiert …'",
+            f"Write-Host {quote(t('Updating sprintforecast …'))}",
             f"{call} 2>&1 | Tee-Object -FilePath {quote(str(log))}",
         ]
     else:
@@ -365,7 +365,7 @@ def _powershell_script(
     elif visible:
         lines += [
             "Write-Host ''",
-            "Write-Host 'Fertig. Dieses Fenster schließt sich in 15 Sekunden.'",
+            f"Write-Host {quote(t('Done. This window closes in 15 seconds.'))}",
             "Start-Sleep -Seconds 15",
         ]
     return "\n".join(lines)

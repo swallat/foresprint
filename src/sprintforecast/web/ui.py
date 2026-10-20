@@ -337,6 +337,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "personen": ("People", ":material/group:"),
         "produktliste": ("Products", ":material/category:"),
         "einstellungen": ("Settings", ":material/tune:"),
+        "jira": ("Jira connection", ":material/cable:"),
         "neues_team": ("New team", ":material/group_add:"),
     },
     "Data & help": {
@@ -353,6 +354,7 @@ PAGE_FEATURES = {
     "produkte": "products",
     "produktliste": "products",
     "tickets": "tickets",
+    "jira": "tickets",
 }
 
 
@@ -792,8 +794,8 @@ def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
 
 
 def _setup_checklist(repo: Repository) -> None:
-    """Einrichtungs-Checkliste (Git, Datenordner, Server, Anmeldung, Identität): nur lesende
-    Prüfungen ohne Netzwerk, führt nichts aus und verschwindet, wenn alles erledigt ist."""
+    """Setup checklist (Git, data folder, server, sign-in, identity): read-only checks without
+    network; runs nothing and disappears once everything is done."""
     if st.session_state.get("setup-hidden"):
         return
     try:
@@ -3580,6 +3582,13 @@ def page_tickets(repo: Repository, data: TeamData, fc: Forecast) -> None:
     tickets_view.page(repo, data, fc)
 
 
+def page_jira(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Set up the Jira connection (``features.tickets``); the page component is only loaded here."""
+    from sprintforecast.web import jira_setup
+
+    jira_setup.page(repo, data, fc)
+
+
 def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Product distribution"))
     unit = data.team.unit.value
@@ -4682,12 +4691,13 @@ def _remote_section(repo: Repository) -> None:
 
 
 def _signin_section(root: Path, info: RemoteInfo) -> None:
-    """Geführte Token-Anmeldung für https-Server. Die App reicht den Token nur an den
-    Anmeldedienst von Git weiter (``git credential approve``), speichert und zeigt ihn nie."""
+    """Guided token sign-in for https servers. The app only hands the token to Git's
+    credential helper (``git credential approve``); it never stores or shows it."""
     if not is_https(info.url):
         return
     if st.session_state.pop("signin-reset", False):
-        st.session_state["signin-token"] = ""  # vor dem Feld; danach wäre es nicht erlaubt
+        # Before the field; afterwards it would not be allowed.
+        st.session_state["signin-token"] = ""
     st.subheader(t("Set up sign-in"))
     shown = st.session_state.pop("signin-result", None)
     if shown is not None:
@@ -4768,7 +4778,7 @@ def _signin_section(root: Path, info: RemoteInfo) -> None:
                 with st.spinner(t("Checking the sign-in …")):
                     verify(root, info.url)
             except GitError as e:
-                if e.kind == "auth":  # nur ein abgelehnter Token wird entfernt (genau dieser)
+                if e.kind == "auth":  # only a rejected token is removed (exactly this one)
                     with contextlib.suppress(GitError):
                         forget_token(root, info.url, user, token)
                 raise
@@ -6588,9 +6598,10 @@ TEAM_PAGES = {
     "personen": page_people,
     "produktliste": page_product_list,
     "einstellungen": page_settings,
+    "jira": page_jira,
 }
 # Pages that show no forecast and therefore only read the reference date from ``fc``.
-NO_FORECAST = {"personen", "produktliste", "einstellungen"}
+NO_FORECAST = {"personen", "produktliste", "einstellungen", "jira"}
 GLOBAL_PAGES = {
     "datenordner": page_data_dir,
     "verlauf": page_history,

@@ -58,6 +58,7 @@ shared data repository. The rules for finding the data directory are in the
 | | People | one table (one row per membership period, FTE); IDs are assigned automatically; former members can be hidden |
 | | Products | product list with PO and period (from/to); former products can be hidden |
 | | Settings | all team settings; changes are shown before saving; **Change sprint IDs** renames a sprint and counts the following sprints on; **Import from Excel** uploads a workbook from the Excel export, shows what would change and writes only after "Apply changes" |
+| | Jira connection | only with the feature "Ticket pre-planning": address, query (JQL) and field names of the Jira connection in the `tracker` section of `team.yaml`; "Test connection" shows the account of the token, offers the number fields and epic links of the instance as suggestions and counts the tickets of the query. The page never takes or stores the token (environment variable, see [jira.md](jira.md)) |
 | | New team | create a team; asks for the first sprint (the one running now or starting next) before anything else |
 | Data & help | Data folder | choose, create or clone a data folder (Git repository); enter, test and change the server (remote) |
 | | Changes and history | discard open changes, history per team/sprint/file, restore an earlier state, manage tags |

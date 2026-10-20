@@ -742,8 +742,8 @@ def test_reattach_rescues_orphan_commits(alice: Person):
     invalidate_status()
     done = gitsync.reattach(alice.data)
     assert done.branch == "main"
-    assert "rettung-" in git(alice.root, "branch", "--list")
-    assert done.rescue is not None and done.rescue.startswith("rettung-")
+    assert "rescue-" in git(alice.root, "branch", "--list")
+    assert done.rescue is not None and done.rescue.startswith("rescue-")
 
 
 def detach_with_open_change(alice: Person, orphan_commit: bool = False) -> None:
@@ -768,14 +768,14 @@ def test_reattach_with_open_changes_saves_them_on_a_rescue_branch(alice: Person)
     detach_with_open_change(alice)
     done = gitsync.reattach(alice.data)
     assert done.branch == "main" and done.changes and not done.commits
-    assert done.rescue is not None and done.rescue.startswith("rettung-")
+    assert done.rescue is not None and done.rescue.startswith("rescue-")
     assert gitsync.state(alice.data).branch == "main"
     assert git(alice.root, "status", "--porcelain") == ""
     assert (alice.data / "a" / "2026.1.yaml").read_text() == "velocity: 11\nscope_creep: 1\n"
     saved = f"{done.rescue}:teams/a/2026.1.yaml"
     assert git(alice.root, "show", saved) == "velocity: 99\nscope_creep: 1"
     assert git(alice.root, "log", "-1", "--format=%s", done.rescue) == (
-        "Offene Änderungen vor dem Wechsel gesichert"
+        "Open changes saved before the switch"
     )
 
 
@@ -785,7 +785,7 @@ def test_reattach_saves_new_files_and_commits_together_on_one_rescue_branch(alic
     invalidate_status()
     done = gitsync.reattach(alice.data)
     assert done.commits and done.changes and done.rescue is not None
-    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    rescue = git(alice.root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
     assert rescue == done.rescue  # a single rescue branch
     files = git(alice.root, "ls-tree", "-r", "--name-only", done.rescue)
     assert "teams/a/neu.yaml" in files and "teams/a/frisch.yaml" in files
@@ -827,7 +827,7 @@ def test_reattach_keeps_the_state_when_saving_fails(alice: Person):
         gitsync.reattach(alice.data)
     assert gitsync.state(alice.data).detached
     assert git(alice.root, "rev-parse", "HEAD") == head
-    assert "rettung-" not in git(alice.root, "branch", "--list")
+    assert "rescue-" not in git(alice.root, "branch", "--list")
     assert (alice.data / "a" / "plan.xlsx").exists()
 
 
@@ -873,8 +873,8 @@ def test_reattach_names_the_rescue_branch_for_a_failure_that_is_not_dirty(
     monkeypatch.setattr(gitsync, "_git", locked_switch)
     with pytest.raises(GitError) as info:
         gitsync.reattach(alice.data)
-    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
-    assert rescue.startswith("rettung-")
+    rescue = git(alice.root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
+    assert rescue.startswith("rescue-")
     assert info.value.kind == "locked" and rescue in info.value.hint
 
 
@@ -883,7 +883,7 @@ def test_reattach_names_no_rescue_branch_when_the_commit_is_on_a_branch(alice: P
     invalidate_status()
     done = gitsync.reattach(alice.data)
     assert done.branch == "main" and done.rescue is None
-    assert "rettung-" not in git(alice.root, "branch", "--list")
+    assert "rescue-" not in git(alice.root, "branch", "--list")
 
 
 def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Person):
@@ -903,8 +903,8 @@ def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Pe
     invalidate_status()
     with pytest.raises(GitError) as info:
         gitsync.reattach(alice.data)
-    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
-    assert rescue.startswith("rettung-") and "\n" not in rescue
+    rescue = git(alice.root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
+    assert rescue.startswith("rescue-") and "\n" not in rescue
     assert rescue in info.value.hint  # the changes in the data folder are already there
     assert gitsync.state(alice.data).detached
     readme.unlink()  # cleaned up outside the data folder
@@ -913,7 +913,7 @@ def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Pe
     assert done.branch == "main" and done.rescue == rescue and done.commits
     assert done.changes  # the earlier backup is recognized: the message also names the changes
     assert git(alice.root, "log", "--format=%s", "-2", rescue).splitlines() == [
-        "Offene Änderungen vor dem Wechsel gesichert",
+        "Open changes saved before the switch",
         "auf losem Stand",
     ]
 
@@ -936,7 +936,7 @@ def test_second_attempt_names_the_earlier_save_in_the_hint(alice: Person):
     readme = detach_blocked_outside(alice)
     with pytest.raises(GitError):
         gitsync.reattach(alice.data)
-    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    rescue = git(alice.root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
     with pytest.raises(GitError) as info:
         gitsync.reattach(alice.data)  # nothing new in the data folder, the backup is already there
     assert rescue in info.value.hint
@@ -962,7 +962,7 @@ def test_commits_are_told_apart_over_a_chain_of_saves(alice: Person, orphan: boo
     with pytest.raises(GitError):
         gitsync.reattach(alice.data)
     subjects = git(alice.root, "log", "--format=%s", "-3", "HEAD").splitlines()
-    assert subjects[:2] == ["Offene Änderungen vor dem Wechsel gesichert"] * 2
+    assert subjects[:2] == ["Open changes saved before the switch"] * 2
     readme.unlink()
     invalidate_status()
     done = gitsync.reattach(alice.data)
@@ -973,12 +973,12 @@ def test_new_changes_after_a_failed_attempt_go_to_the_same_rescue_branch(alice: 
     readme = detach_blocked_outside(alice)
     with pytest.raises(GitError):
         gitsync.reattach(alice.data)
-    rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    rescue = git(alice.root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
     (alice.data / "a" / "zwei.yaml").write_text("y: 2\n", encoding="utf-8")
     invalidate_status()
     with pytest.raises(GitError):
         gitsync.reattach(alice.data)
-    assert git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)") == rescue
+    assert git(alice.root, "branch", "--list", "rescue-*", "--format=%(refname:short)") == rescue
     readme.unlink()
     invalidate_status()
     done = gitsync.reattach(alice.data)
@@ -1010,7 +1010,7 @@ def test_failed_save_restores_the_index(alice: Person, monkeypatch: pytest.Monke
     assert git(alice.root, "ls-files", "--others", "--exclude-standard") == "teams/a/neu.yaml"
     assert git(alice.root, "diff", "--name-only") == "teams/a/2026.1.yaml"
     assert gitsync.state(alice.data).detached and git(alice.root, "rev-parse", "HEAD") == head
-    assert "rettung-" not in git(alice.root, "branch", "--list")
+    assert "rescue-" not in git(alice.root, "branch", "--list")
 
 
 def test_failed_save_keeps_the_staging_of_the_user(alice: Person, monkeypatch: pytest.MonkeyPatch):
@@ -1063,7 +1063,7 @@ def test_failed_save_with_a_file_error_never_stays_on_the_rescue_branch(
         gitsync.reattach(alice.data)
     monkeypatch.undo()
     assert gitsync.state(alice.data).detached
-    assert "rettung-" not in git(alice.root, "branch", "--list")
+    assert "rescue-" not in git(alice.root, "branch", "--list")
 
 
 def test_identity_missing_is_explained(
@@ -1770,7 +1770,7 @@ def test_not_repo_hint_explains_unpacked_zip():
 
 
 def test_credential_helpers_reads_the_repository_of_the_data_folder(tmp_path):
-    """Ein Anmeldedienst, der nur in der Konfiguration des Datenordners steht, zählt mit."""
+    """A credential helper that appears only in the data folder's configuration counts too."""
     import subprocess
 
     from sprintforecast.git import credential_helpers
@@ -1927,3 +1927,10 @@ def test_forgejo_without_agit_falls_back_to_the_branch(alice: Person, bob: Perso
     result = bob.sync("Sprint 2")
     assert result.error is None
     assert git(remote, "rev-parse", "--verify", f"refs/heads/{result.merge_request_branch}")
+
+
+def test_older_rescue_names_are_still_recognised():
+    assert gitsync._LEGACY_SAVE_SUBJECT == "Offene Änderungen vor dem Wechsel gesichert"
+    assert gitsync._LEGACY_SAVE_SUBJECT in gitsync._SAVE_SUBJECTS
+    assert "rettung-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
+    assert "rescue-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
