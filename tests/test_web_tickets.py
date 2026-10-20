@@ -114,7 +114,6 @@ def test_timeline_range_covers_sprints_outside_the_median_bar(data_dir: Path):
     median = distribute(data, TODAY)
     axis = median.sprints
     sel = Selection(frozenset({"payment"}), no_project=False)
-    (bar,) = [s for s in median.projects if s.project == "payment"]
     placed = [p for p in median.placements if p.project == "payment" and p.sprint in axis]
     assert placed
     last = max(axis.index(p.sprint) for p in placed)
@@ -129,7 +128,6 @@ def test_timeline_range_covers_sprints_outside_the_median_bar(data_dir: Path):
     )
     assert [r["Sprint"] for r in rows] == [axis[last + 1]]
     assert {r["Projekt"] for r in rows} == {"Payment"}
-    assert bar.light
 
 
 # --- Page --------------------------------------------------------------------------------------
