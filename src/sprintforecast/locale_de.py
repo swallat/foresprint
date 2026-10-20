@@ -2026,4 +2026,5 @@ DE: dict[str, str] = {
     "suggestion": "Vorschlag",
     "{name} (current setting)": "{name} (aktuelle Einstellung)",
     "– not set –": "– nicht gesetzt –",
+    "Unknown trend mode {mode} (allowed: {allowed})": "Unbekannter Trend-Modus {mode} (erlaubt: {allowed})",
 }
