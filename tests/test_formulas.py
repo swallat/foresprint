@@ -4,13 +4,15 @@ from pathlib import Path
 
 from sprintforecast.forecast import build_forecast
 from sprintforecast.formulas import GENERAL, _exact, general, plain_explanation, step, steps
+from sprintforecast.locale_de import DE
 from sprintforecast.model import TrendMode
 from sprintforecast.storage import Repository
 
 
 def test_general_capacity_formula_names_trend_only_without_people_list(english):
-    """Mit Personenliste kommt die Kapazität aus Kalender und Personen; der Trend gilt nur ohne."""
-    de = GENERAL["capacity"]
+    """With a people list, capacity comes from the calendar and people; the trend only applies
+    without one."""
+    de = DE[GENERAL["capacity"]]
     assert de.count("Trend") == 1 and de.endswith("Trend nur ohne Personenliste")
     assert "unbekannte Fehltage nach der Historie geschätzt (ohne Historie ohne Abzug)" in de
     assert "ohne Fehltage: Trend" not in de
@@ -23,14 +25,14 @@ def test_exact_shows_up_to_four_digits_without_superfluous_zeros():
     assert _exact(30.0) == "30"
     assert _exact(100.0) == "100"
     assert _exact(0.0) == "0"
-    assert _exact(30.123456) == "30,1235"  # mehr als 4 Stellen werden gerundet
+    assert _exact(30.123456) == "30,1235"  # more than 4 digits are rounded
     assert _exact(None) == "–"
-    assert _exact(-0.00001) == "0"  # kein „-0“
-    assert _exact(1234.5) == "1.234,5"  # Tausenderpunkt wie fmt
+    assert _exact(-0.00001) == "0"  # no “-0”
+    assert _exact(1234.5) == "1.234,5"  # thousands separator like fmt
 
 
 def test_exact_keeps_integer_zeros_without_decimals():
-    """Nullen werden nur hinter dem Dezimalzeichen entfernt: 100 bleibt 100, nicht 1."""
+    """Zeros are only removed after the decimal separator: 100 stays 100, not 1."""
     assert _exact(100.0, 0) == "100"
     assert _exact(10.0, 0) == "10"
     assert _exact(30.4, 0) == "30"
@@ -43,7 +45,7 @@ def fc(data_dir: Path):
 
 
 def test_formulas_flat_default_calculation(data_dir: Path):
-    f = fc(data_dir)  # Demo: Trend-Modus flat
+    f = fc(data_dir)  # demo: trend mode flat
     e = f.entry("2026.22")
     assert step(f, e, "plan").calculation == "16,8433 / 45 × 30 = 11,229 → 11,2 PT"
     assert step(f, e, "trend").formula == "n. Velocity-Trend = Wert_vorher (flat)"
@@ -52,7 +54,7 @@ def test_formulas_flat_default_calculation(data_dir: Path):
 def test_formulas_thin_history_note(data_dir: Path):
     data = Repository(data_dir).load("demo")
     data.team.forecast.trend_mode = TrendMode.LINEAR
-    data.team.forecast.window = 20  # genau so viele Sprints mit Velocity wie das Fenster
+    data.team.forecast.window = 20  # exactly as many Sprints with velocity as the window
     f = build_forecast(data, date(2026, 10, 15))
     e = f.entry("2026.22")
     assert e.result.trend_fallback
@@ -61,7 +63,7 @@ def test_formulas_thin_history_note(data_dir: Path):
 
 def test_formulas_are_symbolic_and_calculation_has_numbers(data_dir: Path):
     data = Repository(data_dir).load("demo")
-    data.team.forecast.trend_mode = TrendMode.CLASSIC  # klassische Formel prüfen
+    data.team.forecast.trend_mode = TrendMode.CLASSIC  # check the classic formula
     f = build_forecast(data, date(2026, 10, 15))
     e = f.entry("2026.22")
     plan = step(f, e, "plan")
@@ -88,8 +90,8 @@ def test_plain_explanation_names_numbers_sources_and_sprints(data_dir: Path):
     text = plain_explanation(f, f.entry("2026.22"))
     assert "16,84" in text and "30,0 PT" in text and "Personenliste" in text
     assert "16,8433 / 45 × 30 = 11,229 PT" in text and "**11,2 PT**" in text
-    assert "2026.16, 2026.17, 2026.18, 2026.19, 2026.20" in text  # Basis des Durchschnitts
-    assert "schreibt Schwankungen" not in text  # flat: keine Warnung
+    assert "2026.16, 2026.17, 2026.18, 2026.19, 2026.20" in text  # basis of the average
+    assert "schreibt Schwankungen" not in text  # flat: no warning
 
 
 def test_plain_explanation_warns_for_extrapolating_modes_and_thin_history(data_dir: Path):

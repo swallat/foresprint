@@ -33,7 +33,7 @@ def test_mac_bundle_and_alias(tmp_path: Path, program: str):
     (tmp_path / "Desktop").mkdir()
     try:
         bundle, alias = shortcuts.create(home=tmp_path, platform="darwin")
-    except OSError as e:  # Windows ohne Administrator/Entwicklermodus: keine Symlinks
+    except OSError as e:  # Windows without administrator/developer mode: no symlinks
         if getattr(e, "winerror", None) != 1314:
             raise
         pytest.skip("Kein Recht für symbolische Verknüpfungen")
@@ -41,7 +41,7 @@ def test_mac_bundle_and_alias(tmp_path: Path, program: str):
     assert f'exec "{program}"' in starter.read_text()
     assert os.access(starter, os.X_OK)
     assert alias.is_symlink() and alias.resolve() == bundle.resolve()
-    shortcuts.create(home=tmp_path, platform="darwin")  # erneut: ersetzt den Alias
+    shortcuts.create(home=tmp_path, platform="darwin")  # again: replaces the alias
 
 
 def test_windows_script():

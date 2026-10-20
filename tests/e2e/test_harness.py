@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Der Prüfstand selbst: aufräumen, auch wenn der Start scheitert."""
+"""The test harness itself: clean up even if the start fails."""
 
 import os
 import signal
@@ -12,14 +12,14 @@ from harness import App, copy_demo
 
 
 def test_failed_start_stops_the_half_started_server(tmp_path, monkeypatch):
-    """Antwortet der Server nicht rechtzeitig, bleibt kein Prozess zurück (er liefe in eigener
-    Sitzung über das Testende hinaus weiter und hielte Port und Speicher)."""
+    """If the server does not answer in time, no process is left behind (it would keep running in
+    its own session beyond the end of the test and hold port and memory)."""
     started: list[subprocess.Popen] = []
     real_popen = subprocess.Popen
 
     def recording_popen(*args, **kwargs):
         process = real_popen(*args, **kwargs)
-        if args[0][0] == sys.executable:  # der Start der App, nicht etwa pgrep
+        if args[0][0] == sys.executable:  # the app start, not pgrep
             started.append(process)
         return process
 
@@ -30,7 +30,7 @@ def test_failed_start_stops_the_half_started_server(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="startete nicht"):
         server.start()
     assert len(started) == 1
-    assert started[0].poll() is not None  # beendet, nicht mehr laufend
+    assert started[0].poll() is not None  # terminated, no longer running
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="/proc und pgrep gibt es nur unter Unix")
@@ -44,13 +44,13 @@ def test_children_are_found_without_pgrep(monkeypatch):
         ]
     )
     try:
-        # pgrep fehlt: die Suche weicht auf /proc aus und findet das Kind trotzdem
+        # pgrep is missing: the search falls back to /proc and still finds the child
         def without_pgrep(*args, **kwargs):
             raise FileNotFoundError("pgrep")
 
         monkeypatch.setattr(harness.subprocess, "run", without_pgrep)
         found: list[int] = []
-        for _ in range(100):  # das Kind entsteht kurz nach dem Start des Elternprozesses
+        for _ in range(100):  # the child appears shortly after the parent process starts
             found = harness._child_processes(parent.pid)
             if found:
                 break

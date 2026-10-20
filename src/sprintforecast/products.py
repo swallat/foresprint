@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Verteilung der Sprint-Menge auf die Produkte des Teams.
+"""Distribution of the sprint quantity across the team's products.
 
-Je Produkt und Sprint:
-    Standard     = verfügbare Menge × vereinbarter Anteil des Produkts (share) bzw.
-                   (verfügbare Menge − Σ feste Anteile) / Anzahl Produkte ohne festen Anteil
-                   verfügbar = Forecast PLAN (eingefroren beim Planning, sonst aktuell)
-                   bzw. nur dessen verplanbarer Anteil (Einstellung forecast.product_basis)
-    Vorplanung   = PO-seitig vorgesehen (vor dem Planning)
-    Planning     = im Sprint Planning eingeplant
-    Erledigt     = im Review tatsächlich erledigt
-    Saldo        = Σ Erledigt − Σ Standard über mehrere Sprints
+Per product and sprint:
+    Standard     = available quantity × the product's agreed share (share), or
+                   (available quantity − Σ fixed shares) / number of products without a fixed share
+                   available = Forecast PLAN (frozen at Planning, otherwise current)
+                   or only its plannable part (setting forecast.product_basis)
+    Pre-planning = intended on the PO side (before Planning)
+    Planning     = scheduled in Sprint Planning
+    Done         = actually completed, as recorded in Review
+    Balance      = Σ Done − Σ Standard over several sprints
 """
 
 from __future__ import annotations
@@ -21,30 +21,30 @@ from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
 from sprintforecast.model import Features, Product, ProductBasis, ProductValues, Sprint
 
-# Spalten der Auswertung: Attribut → Anzeigename
+# Columns of the report: attribute → display name
 MEASURES: dict[str, str] = {
     "standard": "Standard",
-    "preplanned": "PO-Vorplanung",
+    "preplanned": "PO pre-planning",
     "planned": "Planning",
-    "done": "Erledigt",
+    "done": "Done",
 }
 
 
-# Davon-Werte für Tickets, die Produktionszugriff erfordern (Teilmenge von Planning/Erledigt)
+# "Of which" values for tickets that require production access (subset of Planning/Done)
 PRODUCTION_MEASURES: dict[str, str] = {
-    "production_planned": "davon Produktionszugriff (Planning)",
-    "production_done": "davon Produktionszugriff (Erledigt)",
+    "production_planned": "of which production access (planning)",
+    "production_done": "of which production access (done)",
 }
 
 
 def measure_label(measure: str) -> str:
-    """Anzeigename einer Kennzahl in der eingestellten Sprache."""
+    """Display name of a measure in the configured language."""
     return t((MEASURES | PRODUCTION_MEASURES)[measure])
 
 
 def sprint_products(products: list[Product], sprint: Sprint) -> list[Product]:
-    """Im Sprint betreute Produkte plus solche, für die Werte erfasst sind (Katalogreihenfolge).
-    Unbekannte IDs erscheinen mit der ID als Namen, damit keine Werte verschwinden."""
+    """Products handled in the sprint plus those with recorded values (catalog order).
+    Unknown IDs appear with the ID as their name so that no values disappear."""
     known = {p.id for p in products}
     result = [
         p
@@ -59,7 +59,7 @@ def sprint_products(products: list[Product], sprint: Sprint) -> list[Product]:
 @dataclass
 class ProductRow:
     product: Product
-    # Im Sprint betreut – nur diese Produkte bekommen einen Standardanteil.
+    # Handled in the sprint: only these products get a standard share.
     active: bool
     standard: float | None
     preplanned: float | None
@@ -75,29 +75,29 @@ class ProductRow:
 @dataclass
 class Distribution:
     sprint: Sprint
-    # Forecast PLAN des Sprints und ob er beim Planning eingefroren wurde.
+    # Forecast PLAN of the sprint and whether it was frozen at Planning.
     plan: float | None
     plan_frozen: bool
     basis: ProductBasis
-    # Verteilbare Menge (Forecast PLAN oder dessen verplanbarer Anteil).
+    # Distributable quantity (Forecast PLAN or its plannable part).
     available: float | None
     rows: list[ProductRow] = field(default_factory=list)
-    # Anteil der Personen mit Produktionszugriff an der Kapazität (None = keine Gruppe) und
-    # die Menge, die diese Gruppe im Sprint schaffen kann (Anteil × Forecast PLAN).
+    # Share of capacity held by people with production access (None = no group) and the
+    # quantity this group can handle in the sprint (share × Forecast PLAN).
     production_share: float | None = None
     production_available: float | None = None
-    # Ist überhaupt jemand als berechtigt markiert? Ohne Markierung ist die Konfiguration
-    # unbekannt – das ist etwas anderes als „Berechtigte sind in diesem Sprint nicht da“.
+    # Is anybody marked as authorized at all? Without any mark the configuration is unknown,
+    # which is different from "authorized people are not available in this sprint".
     production_configured: bool = False
-    # Welche Bereiche das Team nutzt (steuert Spalten und Hinweise in der Oberfläche).
+    # Which areas the team uses (controls columns and hints in the UI).
     features: Features = field(default_factory=Features)
-    # Aktuell berechneter Forecast PLAN (weicht von ``plan`` ab, wenn dieser eingefroren ist).
+    # Currently calculated Forecast PLAN (differs from ``plan`` if that one is frozen).
     current_plan: float | None = None
 
     @property
     def production_state(self) -> str:
-        """``unconfigured`` (niemand markiert), ``unavailable`` (Berechtigte markiert, aber im
-        Sprint ohne Kapazität) oder ``ok``."""
+        """``unconfigured`` (nobody marked), ``unavailable`` (authorized people marked, but
+        without capacity in the sprint) or ``ok``."""
         if not self.production_configured:
             return "unconfigured"
         if not self.production_share:
@@ -106,7 +106,7 @@ class Distribution:
 
     @property
     def production_overload(self) -> float | None:
-        """Um wie viel das Planning mit Produktionszugriff die Gruppe übersteigt (sonst None)."""
+        """By how much the Planning with production access exceeds the group (else None)."""
         planned = self.total("production_planned")
         if planned is None or self.production_available is None:
             return None
@@ -120,7 +120,8 @@ class Distribution:
     def total(self, measure: str) -> float | None:
         values = [v for r in self.rows if (v := r.value(measure)) is not None]
         if not values and measure in PRODUCTION_MEASURES:
-            # Teams ohne Produktverteilung erfassen die Mengen mit Produktionszugriff je Sprint.
+            # Teams without a product distribution record the production-access quantities per
+            # sprint.
             return getattr(self.sprint, measure)
         return sum(values) if values else None
 
@@ -129,7 +130,7 @@ class Distribution:
 
 
 def plan_of(entry: TimelineEntry) -> tuple[float | None, bool]:
-    """Forecast PLAN eines Sprints: beim Planning eingefroren, sonst wie aktuell berechnet."""
+    """Forecast PLAN of a sprint: frozen at Planning, otherwise as currently calculated."""
     if entry.sprint.forecast_plan is not None:
         return entry.sprint.forecast_plan, True
     return entry.result.plan, False
@@ -137,15 +138,15 @@ def plan_of(entry: TimelineEntry) -> tuple[float | None, bool]:
 
 @dataclass(frozen=True)
 class PlanView:
-    """Beide Stände des Forecast PLAN eines Sprints: aktuell berechnet und beim Planning
-    eingefroren (None, solange nicht eingefroren)."""
+    """Both states of a sprint's Forecast PLAN: currently calculated and frozen at Planning
+    (None until frozen)."""
 
     current: float | None
     frozen: float | None
 
     @property
     def difference(self) -> float | None:
-        """Aktuell − beim Planning; None ohne eingefrorenen oder aktuellen Wert."""
+        """Current − at Planning; None without a frozen or current value."""
         if self.current is None or self.frozen is None:
             return None
         return self.current - self.frozen
@@ -156,7 +157,7 @@ def plan_view(entry: TimelineEntry) -> PlanView:
 
 
 def standard_shares(active: list[Product], available: float | None) -> dict[str, float]:
-    """Standardmenge je betreutem Produkt: feste Anteile zuerst, der Rest gleichmäßig."""
+    """Standard quantity per handled product: fixed shares first, the rest evenly."""
     if available is None or not active:
         return {}
     fixed = {p.id: available * p.share for p in active if p.share is not None}
@@ -210,12 +211,13 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
 
 
 def missing_footnote() -> str:
-    """Fußnote zur Spalte „ohne Wert“ (Terminal und Bericht; nur Text, ohne Markup)."""
+    """Footnote for the "no value" column (terminal and report; plain text, no markup)."""
     return t(
-        "„ohne Wert“: Sprints, in denen das Produkt betreut wurde, aber kein Erledigt erfasst "
-        "ist, obwohl es für andere Produkte erfasst ist (leer, nicht 0). Sie zählen im Saldo "
-        "nicht mit; bitte den Wert im Sprint nachtragen. Sprints ohne jeden Erledigt-Wert "
-        "(z. B. der laufende) und Sprints außerhalb der Laufzeit des Produkts bleiben außen vor."
+        '"no value": sprints in which the product was worked on but no done value is '
+        "entered, although it is entered for other products (empty, not 0). They do not "
+        "count towards the balance; please add the value in the sprint. Sprints without "
+        "any done value (e.g. the current one) and sprints outside the product's period "
+        "are left out."
     )
 
 
@@ -225,19 +227,19 @@ class Balance:
     sprints: int
     standard: float
     done: float
-    # Sprints, in denen für das Produkt kein „Erledigt“ erfasst ist (fehlt ≠ 0): nicht gezählt.
+    # Sprints in which no "Done" is recorded for the product (missing ≠ 0): not counted.
     missing: int = 0
 
     @property
     def difference(self) -> float:
-        """Positiv = mehr erledigt als der Standardanteil."""
+        """Positive = more done than the standard share."""
         return self.done - self.standard
 
 
 def balance(fc: Forecast, entries: list[TimelineEntry]) -> list[Balance]:
-    """Saldo je Produkt über die Sprints, in denen Erledigt für das Produkt erfasst wurde. Ein
-    fehlender Wert zählt nicht als 0; solche Sprints werden gezählt (``missing``) und fließen
-    weder mit Erledigt noch mit dem Standard ein."""
+    """Balance per product over the sprints in which Done was recorded for the product. A
+    missing value does not count as 0; such sprints are counted (``missing``) and contribute
+    neither to Done nor to the standard."""
     order = {p.id: i for i, p in enumerate(fc.data.products)}
     sums: dict[str, Balance] = {}
     for e in entries:
@@ -248,7 +250,7 @@ def balance(fc: Forecast, entries: list[TimelineEntry]) -> list[Balance]:
             if r.standard is None and r.done is None:
                 continue
             b = sums.setdefault(r.product.id, Balance(r.product, 0, 0.0, 0.0))
-            if r.done is None:  # Wert fehlt: weder als 0 noch mit dem Standard zählen
+            if r.done is None:  # value missing: count neither as 0 nor with the standard
                 b.missing += 1
                 continue
             b.sprints += 1
@@ -258,12 +260,12 @@ def balance(fc: Forecast, entries: list[TimelineEntry]) -> list[Balance]:
 
 
 def by_po(d: Distribution) -> list[tuple[str, dict[str, float | None]]]:
-    """Summen je PO (nur wenn mindestens ein Produkt einen PO hat)."""
+    """Totals per PO (only if at least one product has a PO)."""
     if not any(r.product.po for r in d.rows):
         return []
     groups: dict[str, list[ProductRow]] = {}
     for r in d.rows:
-        groups.setdefault(r.product.po or t("(ohne PO)"), []).append(r)
+        groups.setdefault(r.product.po or t("(no PO)"), []).append(r)
     result = []
     for po, rows in groups.items():
         totals: dict[str, float | None] = {}

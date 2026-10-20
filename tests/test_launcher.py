@@ -13,7 +13,7 @@ from sprintforecast.launcher import Browser, Kind, browser_command, find_browser
 
 @pytest.fixture
 def no_browsers(monkeypatch: pytest.MonkeyPatch):
-    """Simuliert ein System ohne bekannte Browser; einzelne Tests fügen welche hinzu."""
+    """Simulates a system without known browsers; individual tests add some."""
     available: dict[str, str] = {}
     monkeypatch.setattr(launcher.shutil, "which", lambda cmd: available.get(cmd))
     monkeypatch.setattr(launcher, "_known_paths", lambda: {})
@@ -54,11 +54,11 @@ def test_explicit_browser(no_browsers: dict, tmp_path: Path, monkeypatch: pytest
 
 
 def test_windows_paths_scoop_and_choco(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    # Keine Browser des Rechners: sonst fände der Test ein echtes Chrome in Program Files.
+    # No browsers on the machine: otherwise the test would find a real Chrome in Program Files.
     for variable in ("ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"):
         monkeypatch.setenv(variable, str(tmp_path / "leer"))
     monkeypatch.setenv("SCOOP", str(tmp_path / "scoop"))
-    monkeypatch.setenv("SCOOP_GLOBAL", str(tmp_path / "scoop-global"))  # sonst ProgramData
+    monkeypatch.setenv("SCOOP_GLOBAL", str(tmp_path / "scoop-global"))  # otherwise ProgramData
     monkeypatch.setenv("ChocolateyInstall", str(tmp_path / "choco"))
     chrome = tmp_path / "scoop/apps/googlechrome/current/chrome.exe"
     firefox = tmp_path / "choco/bin/firefox.exe"
@@ -107,13 +107,13 @@ def test_free_port_skips_busy_port():
 
 
 def test_handoff_keeps_server_running(monkeypatch: pytest.MonkeyPatch):
-    """Endet der Browserprozess sofort (laufende Instanz), darf der Server nicht stoppen."""
+    """If the browser process ends immediately (running instance), the server must not stop."""
     from sprintforecast import cli
 
     monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)
     monkeypatch.setattr(cli, "find_browser", lambda explicit: Browser(Kind.APP, "Edge", "/e"))
     monkeypatch.setattr(cli.subprocess, "Popen", lambda cmd: FakeProcess(done=True))
-    cli._open_app_window("http://localhost:1", server=FakeProcess(), explicit=None)  # kein Abbruch
+    cli._open_app_window("http://localhost:1", server=FakeProcess(), explicit=None)  # no abort
 
 
 class FakeProcess:
@@ -129,7 +129,7 @@ class FakeProcess:
 
 
 def test_window_closes_when_server_ends(monkeypatch: pytest.MonkeyPatch):
-    """Beendet sich der Server (Neustart für eine Aktualisierung), schließt das Fenster."""
+    """If the server ends (restart for an update), the window closes."""
     from sprintforecast import cli
 
     window = FakeProcess()
@@ -159,11 +159,11 @@ def test_app_window_closes_server(data_dir: Path, tmp_path: Path, monkeypatch: p
     assert "--app=http://localhost:" in args
     port = int(args.split("--app=http://localhost:")[1].split()[0])
     with socket.socket() as s, pytest.raises(ConnectionRefusedError):
-        s.connect(("localhost", port))  # Server ist beendet
+        s.connect(("localhost", port))  # server has ended
 
 
 class _FakeServer:
-    """Stellt den Streamlit-Prozess dar, den `web` startet; endet sofort."""
+    """Stands in for the Streamlit process that `web` starts; ends immediately."""
 
     def wait(self, timeout: float | None = None) -> int:
         return 0
@@ -174,12 +174,12 @@ class _FakeServer:
 
 @pytest.fixture
 def web_run(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
-    """Ruft `sprintforecast web` ohne echten Server und Browser auf und meldet, was geschah."""
+    """Calls `sprintforecast web` without a real server and browser and reports what happened."""
     pytest.importorskip("streamlit")
     from sprintforecast import cli
     from sprintforecast.idle import IDLE_ENV
 
-    monkeypatch.delenv(IDLE_ENV, raising=False)  # sonst gälte der Wert des Aufrufers
+    monkeypatch.delenv(IDLE_ENV, raising=False)  # otherwise the caller's value would apply
 
     def run(*options: str) -> dict:
         seen: dict = {"window": None, "env": None, "cmd": None}
@@ -211,8 +211,8 @@ def test_web_opens_app_window_by_default(web_run, options: list[str]):
 
     seen = web_run(*options)
     assert seen["window"].startswith("http://localhost:")
-    assert IDLE_ENV in seen["env"]  # Server beendet sich selbst, wenn das Fenster zu ist
-    assert _headless(seen["cmd"]) == "true"  # Streamlit öffnet keinen zweiten Tab
+    assert IDLE_ENV in seen["env"]  # server ends itself when the window is closed
+    assert _headless(seen["cmd"]) == "true"  # Streamlit does not open a second tab
 
 
 def test_web_no_app_leaves_the_browser_tab_to_streamlit(web_run):
@@ -237,8 +237,8 @@ def test_web_no_browser_opens_nothing_and_never_stops_itself(web_run, options: l
 def test_invalid_browser_variable_falls_back_to_automatic_search(
     no_browsers: dict, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Zeigt SPRINTFORECAST_BROWSER auf einen nicht vorhandenen Pfad, sucht `web` selbst weiter
-    (kein Traceback), obwohl der App-Modus jetzt der Standard ist."""
+    """If SPRINTFORECAST_BROWSER points to a nonexistent path, `web` keeps searching on its own
+    (no traceback), although app mode is now the default."""
     from sprintforecast import cli
 
     missing = str(tmp_path / "gibt-es-nicht")
@@ -247,7 +247,7 @@ def test_invalid_browser_variable_falls_back_to_automatic_search(
     monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)
     monkeypatch.setattr(cli.webbrowser, "open", opened.append)
     cli._open_app_window("http://localhost:1", server=FakeProcess(), explicit=missing)
-    assert opened == ["http://localhost:1"]  # kein App-fähiger Browser: der Standardbrowser
+    assert opened == ["http://localhost:1"]  # no app-capable browser: the default browser
 
 
 def test_terminate_tree_stops_children():
@@ -257,7 +257,7 @@ def test_terminate_tree_stops_children():
 
     from sprintforecast.proctree import adopt, popen_options, terminate_tree
 
-    # Elternprozess startet ein Kind und wartet – beides muss enden.
+    # Parent process starts a child and waits: both must end.
     code = (
         "import subprocess, sys, time\n"
         "c = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
@@ -289,3 +289,30 @@ def test_terminate_tree_stops_children():
         if alive:
             time.sleep(0.2)
     assert not alive
+
+
+def test_unwritable_log_does_not_stop_the_start(web_run, tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("SPRINTFORECAST_LOG", str(tmp_path / "nothing" / "app.log"))
+    seen = web_run("--no-browser")
+    assert seen["cmd"] is not None  # the server was started anyway
+
+
+def test_app_starter_survives_an_unwritable_config_dir(tmp_path: Path, monkeypatch, capsys):
+    import os
+
+    import sprintforecast
+    from sprintforecast import cli
+    from sprintforecast.updater import LAUNCHER_ENV
+
+    monkeypatch.setenv(LAUNCHER_ENV, "")  # app_main() sets it; the monkeypatch restores it
+    blocked = tmp_path / "config"
+    blocked.write_text("a file, not a folder")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(blocked))
+    monkeypatch.setenv("APPDATA", str(blocked))
+    monkeypatch.delenv(sprintforecast.LOG_ENV, raising=False)
+    seen: list[list[str]] = []
+    monkeypatch.setattr(cli, "app", lambda args, prog_name: seen.append(args))
+    monkeypatch.setattr("sys.argv", ["sprintforecast-app"])
+    sprintforecast.app_main()
+    assert seen == [["web", "--app"]]
+    assert sprintforecast.LOG_ENV not in os.environ

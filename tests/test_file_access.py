@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Schreib- und Lesefehler der Datendateien: verständliche Meldung statt Traceback."""
+"""Write and read errors of the data files: understandable message instead of a traceback."""
 
 import os
 import shutil
@@ -26,7 +26,7 @@ def locked(*args, **kwargs):
 
 
 def block_report(data_dir: Path) -> None:
-    """Ein Ordner mit dem Namen des Berichts: die Datei lässt sich nicht schreiben."""
+    """A folder with the report's name: the file cannot be written."""
     report = data_dir / "demo" / "FORECAST.md"
     report.unlink(missing_ok=True)
     report.mkdir()
@@ -36,7 +36,7 @@ def sprint_file(data_dir: Path, sprint: str) -> Path:
     return data_dir / "demo" / "sprints" / f"{sprint}.yaml"
 
 
-# --- Speicherebene --------------------------------------------------------------------------
+# --- Storage layer --------------------------------------------------------------------------
 
 
 def test_save_failure_names_file_and_reason_and_changes_nothing(data_dir: Path, monkeypatch):
@@ -52,7 +52,7 @@ def test_save_failure_names_file_and_reason_and_changes_nothing(data_dir: Path, 
     assert "Permission denied" in str(caught.value)
     assert "nicht gespeichert" in str(caught.value)
     assert path.read_bytes() == before
-    assert [p.name for p in path.parent.glob("*.tmp")] == []  # keine Zwischendatei zurückgelassen
+    assert [p.name for p in path.parent.glob("*.tmp")] == []  # no temporary file left behind
 
 
 def test_save_failure_when_the_folder_cannot_be_created(data_dir: Path):
@@ -60,14 +60,14 @@ def test_save_failure_when_the_folder_cannot_be_created(data_dir: Path):
     sprint = repo.load("demo").sprints[-1]
     blocker = data_dir / "demo" / "sprints"
     shutil.rmtree(blocker)
-    blocker.write_text("keine Ordner", encoding="utf-8")  # eine Datei statt des Ordners
+    blocker.write_text("keine Ordner", encoding="utf-8")  # a file instead of the folder
     with pytest.raises(FileAccessError, match="nicht gespeichert"):
         repo.save_sprint("demo", sprint)
 
 
 def test_unreadable_file_is_reported_with_the_path(data_dir: Path):
-    # Ein Ordner mit dem Namen einer Sprintdatei: Lesen scheitert (Linux: IsADirectoryError,
-    # Windows: PermissionError) – beides ist ein OSError.
+    # A folder with the name of a sprint file: reading fails (Linux: IsADirectoryError,
+    # Windows: PermissionError), both are an OSError.
     (data_dir / "demo" / "sprints" / "2026.99.yaml").mkdir()
     with pytest.raises(FileAccessError) as caught:
         Repository(data_dir).load("demo")
@@ -78,14 +78,14 @@ def test_unreadable_file_is_reported_with_the_path(data_dir: Path):
 def test_missing_file_is_still_reported_as_missing(tmp_path: Path):
     with pytest.raises(storage.DataError, match="Datei fehlt") as caught:
         storage._read(tmp_path / "gibt-es-nicht.yaml")
-    assert not isinstance(caught.value, FileAccessError)  # fehlt ist kein Zugriffsfehler
+    assert not isinstance(caught.value, FileAccessError)  # missing is not an access error
 
 
 def test_unreadable_sprint_file_is_not_overwritten_when_pinning_the_state(
     data_dir: Path, monkeypatch
 ):
-    """Beim Speichern liest ``save_sprint`` die vorhandene Datei, um den Stand der Fehltage zu
-    übernehmen. Ist sie nicht lesbar, darf daraus kein stilles „bestätigt“ werden."""
+    """When saving, ``save_sprint`` reads the existing file to take over the absences status.
+    If it is not readable, this must not silently turn into "confirmed"."""
     repo = Repository(data_dir)
     sprint = repo.load("demo").sprint("2026.21")
     sprint.absence_state = None
@@ -136,27 +136,27 @@ def test_delete_failure_is_reported(data_dir: Path, monkeypatch):
 
 def test_write_text_reports_failures(tmp_path: Path):
     target = tmp_path / "FORECAST.md"
-    target.mkdir()  # Datei lässt sich nicht schreiben (Ordner mit diesem Namen)
+    target.mkdir()  # file cannot be written (folder with this name)
     with pytest.raises(FileAccessError, match=r"FORECAST\.md: nicht gespeichert"):
         storage.write_text(target, "# Bericht")
 
 
 def test_write_text_is_atomic(tmp_path: Path, monkeypatch):
-    """Der Bericht wird über eine Zwischendatei ersetzt: scheitert das, bleibt der alte erhalten
-    (die Meldung „nicht verändert“ stimmt)."""
+    """The report is replaced via a temporary file: if that fails, the old one is kept
+    (the message "not changed" is true)."""
     target = tmp_path / "FORECAST.md"
     target.write_text("# alt", encoding="utf-8")
     monkeypatch.setattr(os, "replace", locked)
     with pytest.raises(FileAccessError, match="nicht verändert"):
         storage.write_text(target, "# neu")
     assert target.read_text(encoding="utf-8") == "# alt"
-    assert [p.name for p in tmp_path.iterdir()] == ["FORECAST.md"]  # keine Zwischendatei
+    assert [p.name for p in tmp_path.iterdir()] == ["FORECAST.md"]  # no temporary file
     monkeypatch.undo()
     storage.write_text(target, "# neu")
     assert target.read_text(encoding="utf-8").strip() == "# neu"
 
 
-# --- Weboberfläche --------------------------------------------------------------------------
+# --- Web UI --------------------------------------------------------------------------
 
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
@@ -204,8 +204,8 @@ def test_web_save_shows_the_error_and_keeps_the_page(
 def test_web_page_keeps_rendering_after_a_failed_save(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """save() fängt den Fehler selbst: Die Seite zeichnet danach weiter (hier der Abschnitt
-    „Fehltage zurücksetzen“ unter dem Speichern-Knopf), statt in run_page abzubrechen."""
+    """save() catches the error itself: the page keeps rendering afterwards (here the
+    "Reset absences" section below the save button) instead of aborting in run_page."""
     repo = Repository(data_dir)
     last = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
     repo.save_sprint("demo", Sprint(id=last.id, start=last.start, end=last.end))
@@ -255,7 +255,7 @@ def test_web_reset_absences_shows_the_error(data_dir: Path, monkeypatch: pytest.
     assert sprint_file(data_dir, following.id).exists()
 
 
-# --- Kommandozeile --------------------------------------------------------------------------
+# --- Command line --------------------------------------------------------------------------
 
 
 def run(data_dir: Path, *args: str, input: str | None = None):
@@ -274,8 +274,8 @@ def test_cli_write_failure_is_a_message_with_exit_code_1(data_dir: Path, monkeyp
 
 
 def test_every_cli_command_is_guarded():
-    """Auch Befehle von Erweiterungen (sie werden getrennt registriert) geben Zugriffsfehler als
-    Meldung aus."""
+    """Commands from extensions (registered separately) also report access errors as a
+    message."""
     assert cli_app.registered_commands
     for command in cli_app.registered_commands:
         assert getattr(command.callback, "_guarded", False), command.name

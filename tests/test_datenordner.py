@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Datenordner anlegen, klonen und merken: Dateien, fehlende Rechte und kaputte Einstellungen
-kommen als Klartext statt als rohe Ausnahme (ohne Oberfläche; die Seite: test_web_datenordner)."""
+"""Create, clone and remember the data folder: files, missing permissions and broken settings
+come as plain text instead of a raw exception (no UI; the page: test_web_datenordner)."""
 
 import errno
 from pathlib import Path
@@ -15,8 +15,8 @@ ADDRESS = "https://example.org/team/daten.git"
 
 
 def fail_on(monkeypatch: pytest.MonkeyPatch, method: str, target: Path, error: OSError) -> None:
-    """``Path.<method>`` scheitert für ``target`` mit ``error``. Kein echtes Rechte-Tricksen:
-    Das lässt sich unter Windows genauso nachstellen."""
+    """``Path.<method>`` fails for ``target`` with ``error``. No real permission tricks:
+    this can be reproduced on Windows just the same."""
     real = getattr(Path, method)
 
     def failing(self, *args, **kwargs):
@@ -38,7 +38,7 @@ def test_folder_problems_have_their_own_title():
     assert gitmod.title_for("folder") != gitmod.title_for("unbekannt")
 
 
-# --- Pfad zeigt auf eine Datei ----------------------------------------------------------------
+# --- Path points to a file --------------------------------------------------------------------
 
 
 def test_init_refuses_a_file(a_file: Path):
@@ -72,7 +72,7 @@ def test_a_file_in_the_way_of_the_path_is_a_problem_not_an_exception(a_file: Pat
     assert isinstance(info.value.__cause__, OSError)
 
 
-# --- Keine Rechte, Pfad unbrauchbar -----------------------------------------------------------
+# --- No permissions, path unusable ----------------------------------------------------------------
 
 
 def test_init_names_missing_rights(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -137,7 +137,7 @@ def test_clone_into_a_non_empty_folder_keeps_its_message(tmp_path: Path):
     assert str(info.value) == f"`{target}` ist nicht leer"
 
 
-# --- Gemerkter Datenordner in den Einstellungen -----------------------------------------------
+# --- Remembered data folder in the settings ------------------------------------------------
 
 
 @pytest.mark.parametrize("value", [5, 1.5, True, ["/irgendwo"], {"a": 1}, None, ""])
@@ -160,14 +160,14 @@ def test_default_data_dir_survives_a_damaged_setting(
     assert storage.default_data_dir() == Path(".")
 
 
-# --- Rechte, die erst Git oder der Prozessstart zu spüren bekommt ------------------------------
+# --- Permissions that only Git or the process start notices ------------------------------
 
 
 def test_clone_names_a_working_folder_that_cannot_be_entered(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Der Elternordner ist da, aber nicht betretbar: Der Start von git (cwd) scheitert mit
-    PermissionError, noch bevor Git etwas meldet."""
+    """The parent folder exists but cannot be entered: starting git (cwd) fails with
+    PermissionError, before Git reports anything."""
 
     def refuse(*args, **kwargs):
         raise PermissionError(errno.EACCES, "Permission denied")
@@ -199,8 +199,8 @@ def test_a_permission_error_reported_by_git_itself_becomes_a_folder_problem(
 def test_the_real_git_output_for_a_folder_without_rights_becomes_a_folder_problem(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Die Meldung läuft durch ``classify`` (Art ``not_writable``), nicht von Hand als ``error``
-    gebaut: Auch dann entsteht „Keine Zugriffsrechte für …“ statt des Hinweises zu ``.git``."""
+    """The message goes through ``classify`` (kind ``not_writable``), not built by hand as
+    ``error``: this also yields "No access rights for …" instead of the hint about ``.git``."""
     import subprocess
 
     def refused(cwd, *args, **kwargs):
@@ -231,8 +231,8 @@ def test_a_path_with_a_nul_character_is_a_folder_problem(tmp_path: Path):
 def test_clone_into_a_relative_target_clones_where_the_page_looks(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Git läuft im Elternordner des Ziels: Ein relatives Ziel würde dort noch einmal relativ
-    aufgelöst (sub/ziel → sub/sub/ziel)."""
+    """Git runs in the parent folder of the target: a relative target would be resolved
+    relative to it once more (sub/ziel → sub/sub/ziel)."""
     calls = []
     monkeypatch.setattr(gitmod, "_git", lambda *args, **kwargs: calls.append(args) or "")
     monkeypatch.chdir(tmp_path)

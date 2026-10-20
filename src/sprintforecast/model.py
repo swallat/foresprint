@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Datenmodell: Team-Konfiguration, Personen und Sprints."""
+"""Data model: team configuration, people and sprints."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Any
+from urllib.parse import urlsplit
 
 
 class Unit(StrEnum):
@@ -16,40 +17,40 @@ class Unit(StrEnum):
 
 
 class TrendMode(StrEnum):
-    # Klassisch: 1. Zukunftssprint linear, 2. multiplikativ, danach linear. Schreibt Rauschen
-    # fort – nur ausdrücklich wählen.
+    # Classic: 1st future sprint linear, 2nd multiplicative, then linear. Carries noise
+    # forward, so only choose it explicitly.
     CLASSIC = "classic"
-    # Durchgehend lineare Fortschreibung des gleitenden Durchschnitts (wie ``classic``).
+    # Linear projection of the rolling average throughout (like ``classic``).
     LINEAR = "linear"
-    # Letzten bekannten Durchschnitt unverändert fortschreiben (Standard, robust).
+    # Carry the last known average forward unchanged (default, robust).
     FLAT = "flat"
 
     @classmethod
     def _missing_(cls, value: object) -> TrendMode | None:
-        # Ältere Dateien nennen den Modus noch deutsch.
+        # Older files still name the mode in German.
         return cls.CLASSIC if value == "klassisch" else None
 
 
 class ProductBasis(StrEnum):
-    # Standardverteilung je Produkt aus dem gesamten Forecast PLAN …
+    # Default distribution per product from the whole Forecast PLAN ...
     PLAN = "plan"
-    # … oder nur aus dem verplanbaren Anteil (Kleinkram wird nicht auf Produkte verteilt).
+    # ... or only from the plannable share (small items are not distributed over products).
     ROADMAP = "roadmap"
 
 
 class AbsenceState(StrEnum):
-    """Stand der Fehltage eines Sprints – bestimmt, womit die Kapazität gerechnet wird."""
+    """State of a sprint's absences, which determines what the capacity is calculated with."""
 
-    # Nichts bekannt: Kapazität aus Kalender und Personen, Fehltage nach Historie geschätzt.
+    # Nothing known: capacity from calendar and people, absences estimated from history.
     UNKNOWN = "unknown"
-    # Angekündigte Fehltage aus der PO-Vorplanung (Prognose, nicht bestätigt).
+    # Announced absences from the PO pre-planning (forecast, not confirmed).
     EXPECTED = "expected"
-    # Fehltage bestätigt – auch „niemand fehlt“.
+    # Absences confirmed, including "nobody is absent".
     CONFIRMED = "confirmed"
 
 
 class Numbering(StrEnum):
-    # 2026.1, 2026.2, …; Zähler beginnt mit dem Startjahr eines Sprints neu.
+    # 2026.1, 2026.2, ...; the counter restarts with the start year of a sprint.
     YEARLY = "yearly"
     # 1, 2, 3, …
     SEQUENTIAL = "sequential"
@@ -59,7 +60,7 @@ class Numbering(StrEnum):
 class SprintSettings:
     length_days: int = 14
     numbering: Numbering = Numbering.YEARLY
-    # Nur nötig, solange noch kein Sprint erfasst ist.
+    # Only needed as long as no sprint is recorded yet.
     first_id: str | None = None
     first_start: date | None = None
 
@@ -77,40 +78,40 @@ class ForecastSettings:
 
 @dataclass
 class CapacitySettings:
-    # Anteil der Kapazität für Scrum-Termine u. Ä., der pauschal abgezogen wird.
+    # Share of the capacity for Scrum events and the like, deducted as a flat amount.
     overhead_share: float = 0.0
-    # Derselbe Abzug in PT je Vollzeitperson und Sprint (× FTE), z. B. 1 für Planning, Review
-    # und Retro. Ist er gesetzt, gilt er statt des Anteils (nicht zusätzlich).
+    # The same deduction in PD per full-time person and sprint (× FTE), e.g. 1 for Planning,
+    # Review and Retro. If set, it applies instead of the share (not in addition).
     overhead_days: float = 0.0
-    # Land (ISO 3166-1, z. B. "DE", "US") und Region darin (z. B. "NW", "CA") für die Feiertage;
-    # Personen können abweichen. Die Arbeitswoche folgt dem Land ("auto") oder ist festgelegt
+    # Country (ISO 3166-1, e.g. "DE", "US") and region within it (e.g. "NW", "CA") for holidays;
+    # people can differ. The workweek follows the country ("auto") or is fixed
     # ("mon-fri", "sun-thu", "mon-sat").
     country: str = "DE"
     region: str | None = None
     workweek: str = "auto"
     rounding: int = 1
-    # Für künftige Sprints ohne bekannte Fehltage: die durchschnittlichen Fehltage der letzten so
-    # vielen Sprints mit bestätigten Fehltagen erwarten. 0 = keine Schätzung (ohne Abzug).
+    # For future sprints without known absences: expect the average absences of the last this
+    # many sprints with confirmed absences. 0 = no estimate (no deduction).
     absence_history: int = 4
 
 
 @dataclass
 class Features:
-    """Optionale Bereiche, die nicht jedes Team braucht – unabhängig voneinander zuschaltbar.
-    Bei einem neuen Team sind alle aus."""
+    """Optional areas that not every team needs, each switchable independently.
+    For a new team all are off."""
 
-    # Verteilung des Sprints auf mehrere Produkte (Produktliste, PO-Vorplanung, Planning und
-    # Erledigt je Produkt, Standardverteilung, Saldo).
+    # Distribution of the sprint over several products (product list, PO pre-planning, Planning
+    # and done per product, default distribution, balance).
     products: bool = False
-    # Zuordnung eines PO zu jedem Produkt (Spalte PO, Summen je PO).
+    # Assignment of a PO to each product (PO column, totals per PO).
     po: bool = False
-    # Themen mit Produktionszugriff: Personen mit Berechtigung, Engpass-Hinweis, davon-Mengen.
+    # Topics with production access: people with permission, bottleneck hint, "of which" amounts.
     production: bool = False
     # Ticket pre-planning: projects, tickets from the tracker (CSV import), earmarks and the
     # distribution of tickets over future sprints (projects.yaml, tickets.yaml, preplan.yaml).
     tickets: bool = False
-    # False: Die Datei hat keinen Abschnitt ``features`` (ältere Dateien) – die Werte wurden
-    # aus den vorhandenen Daten abgeleitet, damit nichts verschwindet.
+    # False: the file has no ``features`` section (older files); the values were derived from
+    # the existing data so that nothing disappears.
     explicit: bool = True
 
 
@@ -147,12 +148,12 @@ class Person:
     name: str
     region: str | None = None
     memberships: list[Membership] = field(default_factory=list)
-    # Darf Tickets bearbeiten, die Produktionszugriff erfordern (kleine Personengruppe).
+    # May work on tickets that require production access (small group of people).
     production_access: bool = False
-    # Abweichendes Land der Person (Feiertage und Wochenende); sonst das des Teams.
+    # The person's own country if different (holidays and weekend); otherwise the team's.
     country: str | None = None
-    # Eigene Arbeitswoche der Person (z. B. "mon,tue,wed,thu" bei einer 4-Tage-Woche); sonst die
-    # des Landes bzw. des Teams.
+    # The person's own workweek (e.g. "mon,tue,wed,thu" for a 4-day week); otherwise that of
+    # the country or the team.
     workweek: str | None = None
 
     def fte_on(self, day: date) -> float:
@@ -165,7 +166,7 @@ class Person:
         return any(m.start < end and (m.end is None or m.end >= start) for m in self.memberships)
 
     def is_current(self, day: date) -> bool:
-        """Heute oder künftig im Team (also nicht ausgeschieden)."""
+        """In the team today or in the future (i.e. has not left)."""
         return any(m.end is None or m.end >= day for m in self.memberships)
 
 
@@ -173,7 +174,7 @@ _UMLAUTS = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
 
 
 def new_person_id(name: str, existing: set[str], fallback: str = "person") -> str:
-    """Interne ID aus dem Namen, z. B. „Jörg Müller“ → „joerg-mueller“; eindeutig gemacht."""
+    """Internal ID from the name, e.g. "Jörg Müller" → "joerg-mueller"; made unique."""
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower().translate(_UMLAUTS)).strip("-") or fallback
     candidate, n = slug, 2
     while candidate in existing:
@@ -183,34 +184,34 @@ def new_person_id(name: str, existing: set[str], fallback: str = "person") -> st
 
 @dataclass
 class Product:
-    """Produkt, das das Team betreut. Wie Personen nie löschen, sondern mit ``end`` beenden."""
+    """Product the team looks after. Like people, never delete, end with ``end`` instead."""
 
     id: str
     name: str
-    # Verantwortlicher PO (optional, nur zur Gruppierung).
+    # Responsible PO (optional, only for grouping).
     po: str | None = None
     start: date | None = None
     end: date | None = None
-    # Vereinbarter fester Anteil an der verteilbaren Menge (0–1), z. B. 0.1 = 10 %. Ohne Angabe
-    # teilen sich die Produkte ohne festen Anteil den Rest gleichmäßig.
+    # Agreed fixed share of the distributable amount (0-1), e.g. 0.1 = 10 %. If not given, the
+    # products without a fixed share split the remainder evenly.
     share: float | None = None
 
     def active_between(self, start: date, end: date) -> bool:
-        """Betreut im Sprint [start, end) – mindestens an einem Tag."""
+        """Looked after in the sprint [start, end), on at least one day."""
         return (self.start is None or self.start < end) and (self.end is None or self.end >= start)
 
 
 @dataclass
 class ProductValues:
-    """Werte eines Produkts in einem Sprint (Schätzeinheit des Teams); None = keine Angabe."""
+    """Values of a product in a sprint (the team's estimation unit); None = not specified."""
 
-    # In der PO-seitigen Vorplanung vorgesehen (vor dem Planning).
+    # Provided for in the PO-side pre-planning (before Planning).
     preplanned: float | None = None
-    # Im Sprint Planning eingeplant.
+    # Scheduled in the sprint Planning.
     planned: float | None = None
-    # Im Sprint tatsächlich erledigt (Review).
+    # Actually done in the sprint (Review).
     done: float | None = None
-    # Davon Tickets, die Produktionszugriff erfordern (Teilmenge von planned bzw. done).
+    # Of which tickets that require production access (subset of planned or done).
     production_planned: float | None = None
     production_done: float | None = None
 
@@ -235,30 +236,30 @@ class Planning:
 
     @property
     def committed(self) -> float:
-        """Eingeplante Menge laut Board: Überkipper + Backlog (entspricht dem Commitment)."""
+        """Scheduled amount according to the board: carryover + backlog (equals the Commitment)."""
         return self.carryover + self.backlog
 
     @property
     def total(self) -> float:
-        """Planning-Summe für das Delta: eingeplant abzüglich bereits erledigter Anteile."""
+        """Planning total for the delta: scheduled minus the parts already done."""
         return self.committed - sum(self.corrections)
 
 
 @dataclass
 class Prognosis:
-    """Prognose des Teams für einen noch offenen Sprint, festgehalten bei einer PO-Vorplanung.
-    Die Vorplanung wird mehrfach durchgeführt – jede Annahme bleibt nachvollziehbar."""
+    """Team forecast for a still open sprint, recorded at a PO pre-planning.
+    The pre-planning is done several times; every assumption stays traceable."""
 
     at: datetime
-    # Woher die Annahme stammt (z. B. „Prognose aus dem Daily vom 16.10.“).
+    # Where the assumption comes from (e.g. "forecast from the Daily of 16.10.").
     comment: str | None = None
     forecast_ist: float | None = None
-    # Voraussichtlich nicht erledigt bzw. zusätzlich zum Commitment erledigt.
+    # Expected not done, or done in addition to the Commitment.
     not_done: float | None = None
     additional_done: float | None = None
-    # Commitment − nicht erledigt + zusätzlich erledigt.
+    # Commitment − not done + additionally done.
     expected_done: float | None = None
-    # Forecast PLAN des Zielsprints mit dieser Annahme und die dabei vorgesehene Vorplanung.
+    # Forecast PLAN of the target sprint with this assumption and the pre-planning provided for it.
     target: str | None = None
     plan: float | None = None
     preplanned: dict[str, float] = field(default_factory=dict)
@@ -269,40 +270,41 @@ class Sprint:
     id: str
     start: date
     end: date
-    # Planbare Fehltage je Person (Arbeitstage).
+    # Plannable absences per person (working days).
     absences: dict[str, float] = field(default_factory=dict)
-    # Erfasste bzw. beim Review eingefrorene Kapazität in PT.
+    # Capacity in PD, recorded or frozen at the Review.
     capacity: float | None = None
     forecast_ist: float | None = None
     velocity: float | None = None
     scope_creep: float | None = None
     planning: Planning | None = None
-    # Forecast PLAN zum Zeitpunkt des Plannings (eingefroren) – Basis der Standardverteilung.
+    # Forecast PLAN at the time of Planning (frozen), the basis of the default distribution.
     forecast_plan: float | None = None
-    # Werte je Produkt-ID.
+    # Values per product ID.
     products: dict[str, ProductValues] = field(default_factory=dict)
     note: str | None = None
-    # Davon Menge mit Produktionszugriff, wenn das Team keine Produktverteilung nutzt (sonst
-    # stehen die Werte je Produkt in ``products``): im Planning eingeplant, im Review erledigt.
+    # Of which the amount with production access, if the team does not use a product
+    # distribution (otherwise the values are per product in ``products``): scheduled in
+    # Planning, done in Review.
     production_planned: float | None = None
     production_done: float | None = None
-    # Im Review erfasst: Menge, die nicht fertig wurde, bzw. zusätzlich zum Commitment
-    # erledigt wurde (Velocity = Commitment − nicht erledigt + zusätzlich erledigt).
+    # Recorded in the Review: amount that was not finished, or done in addition to the
+    # Commitment (Velocity = Commitment − not done + additionally done).
     not_done: float | None = None
     additional_done: float | None = None
-    # Ausdrücklich gespeicherter Stand der Fehltage. ``None`` = nicht gespeichert (ältere
-    # Dateien): dann wird er aus den vorhandenen Feldern abgeleitet (siehe absence_status).
+    # Explicitly stored state of the absences. ``None`` = not stored (older files): then it is
+    # derived from the existing fields (see absence_status).
     absence_state: AbsenceState | None = None
-    # Angekündigte Fehltage je Person aus der PO-Vorplanung (Prognose, noch nicht bestätigt):
-    # Sie wirken auf die Kapazität und den Forecast PLAN, solange keine Fehltage bestätigt sind.
+    # Announced absences per person from the PO pre-planning (forecast, not yet confirmed):
+    # they affect the capacity and the Forecast PLAN as long as no absences are confirmed.
     expected_absences: dict[str, float] = field(default_factory=dict)
-    # Prognosen des Teams aus den PO-Vorplanungen, ältere zuerst.
+    # Team forecasts from the PO pre-plannings, older first.
     prognoses: list[Prognosis] = field(default_factory=list)
 
     @property
     def absences_confirmed(self) -> bool:
-        """Fehltage bestätigt: eingetragen, ausdrücklich „niemand fehlt“ oder (ältere Dateien)
-        aus den vorhandenen Feldern abgeleitet."""
+        """Absences confirmed: entered, explicitly "nobody is absent", or (older files)
+        derived from the existing fields."""
         return absence_status(self) is AbsenceState.CONFIRMED
 
     @absences_confirmed.setter
@@ -314,17 +316,17 @@ class Sprint:
 
 
 def _legacy_known(sprint: Sprint) -> bool:
-    """Ältere Dateien ohne gespeicherten Stand: Fehltage galten als bekannt, wenn der Sprint
-    schon geplant bzw. ausgewertet wurde. Eine Datei, die nur z. B. die PO-Vorplanung enthält
-    oder versehentlich leer entstanden ist, bestätigt sie nicht."""
+    """Older files without a stored state: absences counted as known if the sprint was already
+    planned or evaluated. A file that contains only, e.g., the PO pre-planning or was created
+    empty by accident does not confirm them."""
     return sprint.planning is not None or any(
         v is not None for v in (sprint.forecast_ist, sprint.velocity, sprint.forecast_plan)
     )
 
 
 def explicit_state_needed(sprint: Sprint) -> bool:
-    """Muss der Stand gespeichert werden? Nicht nötig, wenn die ältere Ableitung aus den Feldern
-    dasselbe ergäbe – so bleiben vorhandene Dateien beim Speichern unverändert."""
+    """Does the state need to be stored? Not needed if the older derivation from the fields would
+    give the same result, so existing files stay unchanged when saving."""
     if sprint.absence_state is None:
         return False
     derived = replace(sprint, absence_state=None)
@@ -332,11 +334,11 @@ def explicit_state_needed(sprint: Sprint) -> bool:
 
 
 def absence_status(sprint: Sprint) -> AbsenceState:
-    """Stand der Fehltage: bestätigt, angekündigt oder unbekannt.
+    """State of the absences: confirmed, announced or unknown.
 
-    Eingetragene Fehltage sind bestätigt. Sonst gilt der gespeicherte Stand; fehlt er (ältere
-    Dateien), wird er aus den vorhandenen Feldern abgeleitet. Angekündigte Fehltage
-    wirken nur, solange nichts bestätigt ist."""
+    Entered absences are confirmed. Otherwise the stored state applies; if it is missing (older
+    files), it is derived from the existing fields. Announced absences only take effect as long
+    as nothing is confirmed."""
     if sprint.absences or sprint.absence_state is AbsenceState.CONFIRMED:
         return AbsenceState.CONFIRMED
     if sprint.absence_state is None and _legacy_known(sprint):
@@ -450,6 +452,29 @@ class TrackerFields:
     epic: str | None = None
 
 
+def base_url_problem(url: str) -> str | None:
+    """Why ``tracker.base_url`` is unusable, or None: ``invalid`` (no http/https address, not
+    parseable), ``credentials`` (user or password in the address) or ``extra`` (query or
+    fragment). Never returns or raises with the address itself."""
+    try:
+        parts = urlsplit(url.strip())
+        host = parts.hostname
+        parts.port  # noqa: B018 - raises ValueError for a bad port
+    except ValueError:
+        return "invalid"
+    if parts.scheme not in ("http", "https") or not host:
+        return "invalid"
+    if "@" in parts.netloc:
+        return "credentials"
+    if parts.query or parts.fragment or "?" in url or "#" in url:
+        return "extra"
+    return None
+
+
+# Kinds of ticket sources (``tracker.kind``).
+TRACKER_KINDS: tuple[str, ...] = ("csv", "jira")
+
+
 @dataclass
 class TrackerSettings:
     """Section ``tracker`` of team.yaml (spec section 6.1)."""
@@ -473,6 +498,8 @@ class TrackerSettings:
     write_labels: bool = False
     # Sprint names of the tracker → sprint ids of the tool, when they differ.
     sprint_names: dict[str, str] = field(default_factory=dict)
+    # Jira: name of the issue link type whose inward side means "is blocked by".
+    link_type: str = "Blocks"
 
 
 @dataclass

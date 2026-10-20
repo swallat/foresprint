@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Sprint-Kalender: Folgesprints, Arbeitstage und Feiertage."""
+"""Sprint calendar: following sprints, workdays and holidays."""
 
 from __future__ import annotations
 
@@ -24,23 +24,25 @@ def _successor(previous_id: str, start_year: int, numbering: Numbering) -> str:
 
 
 def expected_id_form(numbering: Numbering) -> str:
-    """Form der Sprint-IDs, die ``next_id`` fortsetzen kann (für Meldungen)."""
+    """Form of the sprint IDs that ``next_id`` can continue (for messages)."""
     if numbering is Numbering.SEQUENTIAL:
-        return t("eine Zahl, z. B. 22")
-    return t("JJJJ.N, z. B. 2026.22")
+        return t("a number, e.g. 22")
+    return t("YYYY.N, e.g. 2026.22")
 
 
 def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
-    """ID des Folgesprints; wirft DataError, wenn ``previous_id`` nicht zur Nummerierung passt."""
+    """ID of the following sprint; raises DataError if ``previous_id`` does not fit numbering."""
     try:
         return _successor(previous_id, next_start.year, numbering)
     except (ValueError, OverflowError) as e:
         raise DataError(
             t(
-                "Sprint-ID '{id}' passt nicht zur Nummerierung (erwartet {expected}); die ID des "
-                "Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: mit "
-                "sprintforecast rename-sprint bzw. unter Einstellungen (ohne Sprintdateien: "
-                "dort die ID des ersten Sprints).",
+                (
+                    "Sprint ID '{id}' does not match the numbering (expected {expected}); the "
+                    "ID of the following sprint cannot be formed. Please correct the ID: with "
+                    "sprintforecast rename-sprint or under Settings (without sprint files: the "
+                    "ID of the first sprint there)."
+                ),
                 id=previous_id,
                 expected=expected_id_form(numbering),
             )
@@ -48,10 +50,10 @@ def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
 
 
 def id_fits_numbering(sprint_id: str, next_start: date, numbering: Numbering) -> bool:
-    """Lässt sich aus ``sprint_id`` die ID des Folgesprints bilden, der am ``next_start`` beginnt?
-    Genau die Bedingung, unter der ``next_id`` nicht scheitert: Bei „JJJJ.N“ zählt der Zähler nur
-    im selben Jahr weiter (ein Zähler wie „22b“ ist im Jahreswechsel unschädlich), IDs ohne Jahr
-    vorn setzen die jährliche Nummerierung neu an (Wechsel der Nummerierung)."""
+    """Can the ID of the following sprint starting at ``next_start`` be derived from ``sprint_id``?
+    Exactly the condition under which ``next_id`` does not fail: with "YYYY.N" the counter only
+    continues within the same year (a counter like "22b" is harmless at a year change), IDs
+    without a leading year restart the yearly numbering (numbering change)."""
     try:
         _successor(sprint_id, next_start.year, numbering)
     except ValueError, OverflowError:
@@ -60,15 +62,17 @@ def id_fits_numbering(sprint_id: str, next_start: date, numbering: Numbering) ->
 
 
 def following_sprint(team: Team, previous: Sprint | None) -> Sprint:
-    """Erzeugt den Sprint, der auf ``previous`` folgt (oder den ersten Sprint des Teams)."""
+    """Create the sprint that follows ``previous`` (or the team's first sprint)."""
     length = timedelta(days=team.sprint.length_days)
     if previous is None:
         if team.sprint.first_id is None or team.sprint.first_start is None:
             raise DataError(
                 t(
-                    "Team {team}: Es ist noch kein Sprint erfasst. Bitte unter Einstellungen "
-                    "Start und ID des ersten Sprints eintragen (in team.yaml: sprint.first.id "
-                    "und sprint.first.start).",
+                    (
+                        "Team {team}: No sprint has been recorded yet. Please enter the start "
+                        "and ID of the first sprint under Settings (in team.yaml: "
+                        "sprint.first.id and sprint.first.start)."
+                    ),
                     team=team.key,
                 )
             )
@@ -95,16 +99,16 @@ WEEKDAYS = {
 
 
 def day_label(d: date) -> str:
-    """„Mi 28.10.2026“ bzw. „Wed 28.10.2026“."""
+    """German "Mi 28.10.2026", English "Wed 28.10.2026"."""
     from sprintforecast.i18n import language
 
     return f"{WEEKDAYS[language()][d.weekday()]} {d:%d.%m.%Y}"
 
 
-# Wochenende als Wochentagsnummern (Montag = 0): Sa/So.
+# Weekend as weekday numbers (Monday = 0): Sat/Sun.
 DEFAULT_WEEKEND: frozenset[int] = frozenset({5, 6})
 DEFAULT_COUNTRY = "DE"
-# Arbeitswochen, die sich unabhängig vom Land einstellen lassen (Wert = Wochenende).
+# Workweeks that can be set independently of the country (value = weekend).
 WORKWEEKS: dict[str, frozenset[int]] = {
     "mon-fri": frozenset({5, 6}),
     "sun-thu": frozenset({4, 5}),
@@ -114,7 +118,7 @@ WORKWEEKS: dict[str, frozenset[int]] = {
 
 @cache
 def countries() -> dict[str, str]:
-    """Unterstützte Länder: ISO-Code → Name (aus der holidays-Bibliothek)."""
+    """Supported countries: ISO code → name (from the holidays library)."""
     from holidays import registry
 
     supported = set(holidays.list_supported_countries())
@@ -128,13 +132,13 @@ def countries() -> dict[str, str]:
 
 @cache
 def subdivisions(country: str) -> list[str]:
-    """Gültige Regionscodes (Bundesland, Staat, Provinz …) eines Landes."""
+    """Valid region codes (federal state, state, province …) of a country."""
     return list(holidays.list_supported_countries().get(country.upper(), []))
 
 
 @cache
 def country_weekend(country: str) -> frozenset[int]:
-    """Wochenende des Landes laut holidays-Bibliothek (z. B. Fr/Sa in Saudi-Arabien)."""
+    """Weekend of the country according to the holidays library (e.g. Fri/Sat in Saudi Arabia)."""
     try:
         return frozenset(holidays.country_holidays(country.upper()).weekend)
     except NotImplementedError:
@@ -145,9 +149,9 @@ WEEKDAY_CODES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
 
 def weekend_from_workweek(value: str | None) -> frozenset[int] | None:
-    """Freie Wochentage zu einer Arbeitswoche: ein Name (``mon-fri``, ``sun-thu``,
-    ``mon-sat``) oder eine Liste der Arbeitstage wie ``mon,tue,wed,thu`` (4-Tage-Woche).
-    None für ``auto``/leer; wirft ValueError bei unbekannten Angaben."""
+    """Days off for a workweek: a name (``mon-fri``, ``sun-thu``, ``mon-sat``) or a list of
+    the workdays like ``mon,tue,wed,thu`` (4-day week).
+    None for ``auto``/empty; raises ValueError for unknown values."""
     if value is None or value.strip().lower() in {"", "auto"}:
         return None
     value = value.strip().lower()
@@ -161,7 +165,7 @@ def weekend_from_workweek(value: str | None) -> frozenset[int] | None:
 
 
 def team_weekend(team: Team) -> frozenset[int]:
-    """Wochenende des Teams: eingestellte Arbeitswoche, sonst das des Landes."""
+    """Weekend of the team: the configured workweek, otherwise that of the country."""
     try:
         explicit = weekend_from_workweek(team.capacity.workweek)
     except ValueError:
@@ -170,8 +174,8 @@ def team_weekend(team: Team) -> frozenset[int]:
 
 
 def person_weekend(team: Team, person: Person) -> frozenset[int]:
-    """Freie Tage einer Person: eigene Arbeitswoche, sonst das Wochenende ihres Landes, sonst
-    das des Teams."""
+    """Days off of a person: own workweek, otherwise the weekend of their country, otherwise
+    that of the team."""
     try:
         own = weekend_from_workweek(person.workweek)
     except ValueError:
@@ -182,7 +186,7 @@ def person_weekend(team: Team, person: Person) -> frozenset[int]:
 
 
 def workdays(start: date, end: date, weekend: frozenset[int] = DEFAULT_WEEKEND) -> list[date]:
-    """Werktage im halboffenen Intervall [start, end); ``weekend`` = freie Wochentage."""
+    """Workdays in the half-open interval [start, end); ``weekend`` = days off."""
     days = []
     day = start
     while day < end:
@@ -197,8 +201,8 @@ def team_workdays(team: Team, start: date, end: date) -> list[date]:
 
 
 def workweek_label(team: Team) -> str:
-    """Arbeitswoche des Teams für Texte: „Mo–Fr“ bei zusammenhängenden Tagen, sonst die Liste
-    („Mo, Di, Mi, Do“)."""
+    """Workweek of the team for texts: "Mon–Fri" for consecutive days, otherwise the list
+    ("Mon, Tue, Wed, Thu")."""
     from sprintforecast.i18n import language
 
     names = WEEKDAYS[language()]
@@ -206,8 +210,8 @@ def workweek_label(team: Team) -> str:
     worked = [i for i in range(7) if i not in weekend]
     if not worked:
         return "–"
-    # Zusammenhängend (auch über das Wochenende hinweg, z. B. So–Do): vom ersten Tag nach einem
-    # freien Tag bis zum letzten Arbeitstag.
+    # Consecutive (also across the weekend, e.g. Sun–Thu): from the first day after a
+    # day off to the last workday.
     start = next((i for i in worked if (i - 1) % 7 in weekend), None)
     if start is not None and len(worked) > 2:
         run = [(start + k) % 7 for k in range(len(worked))]
@@ -220,9 +224,9 @@ def workweek_label(team: Team) -> str:
 def _holiday_calendar(
     country: str, region: str | None, year: int, lang: str = "de"
 ) -> holidays.HolidayBase:
-    # Nicht jede Sprache gibt es für jedes Land – die Bibliothek fällt dann auf die Landessprache.
-    # Unbekanntes Land oder unpassende Region lässt die Rechnung nicht abstürzen (die Prüfung
-    # meldet den Fehler); es gelten dann nur die landesweiten bzw. keine Feiertage.
+    # Not every language exists for every country, so the library falls back to the local language.
+    # An unknown country or mismatched region does not crash the calculation (the check
+    # reports the error); then only the nationwide holidays apply, or none.
     language = "en_US" if lang == "en" else "de"
     for subdiv in (region or None, None):
         try:
@@ -239,7 +243,7 @@ def is_holiday(day: date, region: str | None, country: str = DEFAULT_COUNTRY) ->
 
 
 def holiday_name(day: date, region: str | None, country: str = DEFAULT_COUNTRY) -> str | None:
-    """Name des Feiertags in der eingestellten Sprache – oder None."""
+    """Name of the holiday in the configured language, or None."""
     from sprintforecast.i18n import language
 
     return _holiday_calendar(country, region, day.year, language()).get(day)

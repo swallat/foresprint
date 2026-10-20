@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Starter zum Doppelklicken: Verknüpfung auf `sprintforecast-app` (= `web --app`).
+"""Double-click launcher: shortcut to `sprintforecast-app` (= `web --app`).
 
-- Windows: Desktop und Startmenü (.lnk über PowerShell/WScript.Shell)
-- macOS: ~/Applications/Sprint-Forecast.app plus Alias auf dem Schreibtisch
-- Linux: ~/.local/share/applications/sprintforecast.desktop plus Kopie auf dem Desktop
+- Windows: desktop and Start menu (.lnk via PowerShell/WScript.Shell)
+- macOS: ~/Applications/Sprint-Forecast.app plus an alias on the desktop
+- Linux: ~/.local/share/applications/sprintforecast.desktop plus a copy on the desktop
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ APP_SCRIPT = "sprintforecast-app"
 
 
 def app_program() -> str | None:
-    """Pfad von `sprintforecast-app` (liegt neben `sprintforecast` im bin-Ordner von uv)."""
+    """Path of `sprintforecast-app` (located next to `sprintforecast` in uv's bin folder)."""
     exe = f"{APP_SCRIPT}.exe" if sys.platform == "win32" else APP_SCRIPT
     if found := shutil.which(APP_SCRIPT):
         return found
@@ -38,12 +38,12 @@ def _ps_quote(text: str) -> str:
 
 
 def icon_dir() -> Path:
-    """Ordner für das Logo (neben dem Browserprofil der App)."""
+    """Folder for the logo (next to the app's browser profile)."""
     return profile_dir().parent
 
 
 def windows_script(program: str, workdir: str, icon: str | None = None) -> str:
-    """PowerShell: Verknüpfungen auf dem Desktop und im Startmenü anlegen; gibt die Pfade aus."""
+    """PowerShell: create shortcuts on the desktop and in the Start menu; prints the paths."""
     lines = ["$shell = New-Object -ComObject WScript.Shell"]
     for folder in ("Desktop", "Programs"):
         lines += [
@@ -64,7 +64,7 @@ def desktop_entry(program: str, icon: str = "office-calendar") -> str:
         "[Desktop Entry]\n"
         "Type=Application\n"
         f"Name={APP_NAME}\n"
-        f"Comment={t('Velocity- und Kapazitäts-Forecast')}\n"
+        f"Comment={t('Velocity and capacity forecast')}\n"
         f'Exec="{program}"\n'
         f"Icon={icon}\n"
         "Terminal=false\n"
@@ -73,7 +73,7 @@ def desktop_entry(program: str, icon: str = "office-calendar") -> str:
 
 
 def mac_bundle(app_dir: Path, program: str, icon: Path | None = None) -> Path:
-    """Minimales App-Bundle, das `sprintforecast-app` startet."""
+    """Minimal app bundle that starts `sprintforecast-app`."""
     contents = app_dir / f"{APP_NAME}.app" / "Contents"
     (contents / "MacOS").mkdir(parents=True, exist_ok=True)
     (contents / "Info.plist").write_text(
@@ -93,20 +93,22 @@ def mac_bundle(app_dir: Path, program: str, icon: Path | None = None) -> Path:
         (contents / "Resources").mkdir(exist_ok=True)
         shutil.copyfile(icon, contents / "Resources" / icon.name)
     starter = contents / "MacOS" / APP_NAME
-    # GUI-Apps erben keinen Shell-PATH – daher absoluter Pfad; Ausgabe ins Protokoll.
+    # GUI apps do not inherit the shell PATH, hence the absolute path; output goes to the log.
     starter.write_text(f'#!/bin/sh\ncd "$HOME"\nexec "{program}"\n', encoding="utf-8")
     starter.chmod(0o755)
     return contents.parent
 
 
 def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]:
-    """Legt die Verknüpfungen an und liefert ihre Pfade. Wirft RuntimeError mit Hinweis."""
+    """Create the shortcuts and return their paths. Raises RuntimeError with a hint."""
     program = app_program()
     if program is None:
         raise RuntimeError(
             t(
-                "{program} nicht gefunden – bitte sprintforecast mit dem Installationsskript "
-                "installieren bzw. aktualisieren.",
+                (
+                    "{program} not found – please install or update sprintforecast with the "
+                    "install script."
+                ),
                 program=APP_SCRIPT,
             )
         )
@@ -124,7 +126,7 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or t("Verknüpfung nicht angelegt"))
+            raise RuntimeError(proc.stderr.strip() or t("Shortcut not created"))
         return [Path(line) for line in proc.stdout.splitlines() if line.strip()]
     if platform == "darwin":
         bundle = mac_bundle(home / "Applications", program, write_icon(icon_dir(), "icns"))

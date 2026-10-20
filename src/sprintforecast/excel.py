@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Excel-Ausgabe eines Teams (Rückweg für Kolleginnen und Kollegen, die weiter mit einer
-Excel-Liste arbeiten).
+"""Excel output of a team (the way back for colleagues who keep working with an Excel list).
 
-Die Mappe ist nicht mit einer früheren Liste identisch, rechnet aber dieselbe Logik wie
-``engine.py`` mit echten Excel-Formeln: n. Velocity, gleitender Durchschnitt, Trend (nach dem
-beim Export gültigen Trend-Modus), Kapazität, Forecast PLAN, Verplanbar, Kleinkram, Fulfillment und
-Fokusfaktor – dazu die Aufteilung nach Produktionszugriff und je Produkt und ein Liniendiagramm
-des Trends. Die Formeln tragen den von der Engine berechneten Wert als Zwischenspeicher, damit
-auch Vorschauprogramme Zahlen zeigen. Erfordert ``xlsxwriter`` (``sprintforecast[excel]``).
+The workbook is not identical to an earlier list, but calculates the same logic as
+``engine.py`` with real Excel formulas: normalized velocity, moving average, trend (using the
+trend mode valid at export), capacity, Forecast PLAN, plannable, small items, fulfillment and
+focus factor, plus the split by production access and by product and a line chart of the
+trend. The formulas carry the value calculated by the engine as a cached result so that
+preview programs also show numbers. Requires ``xlsxwriter`` (``sprintforecast[excel]``).
 """
 
 from __future__ import annotations
@@ -22,29 +21,39 @@ from sprintforecast.forecast import Forecast, TimelineEntry
 from sprintforecast.i18n import t
 from sprintforecast.model import TrendMode
 from sprintforecast.products import distribution, measure_label
-from sprintforecast.storage import team_to_dict
+from sprintforecast.storage import TeamData, file_name_problem, team_to_dict
 
 NA = "#N/A"
 
-# Blattnamen und Aufbau sind fest (nicht übersetzt): Der Import erkennt die Mappe daran und liest
-# die Eingaben nach Spaltenposition, nicht nach Überschrift. Bei Änderungen FORMAT_VERSION erhöhen.
+# Sheet names and layout are fixed (not translated): the import recognizes the workbook by them
+# and reads the inputs by column position, not by heading. Bump FORMAT_VERSION on changes.
 FORMAT_VERSION = "1"
 FORMAT_PROPERTY = "sprintforecast-format"
-SHEET_SETTINGS = "Einstellungen"
+TEAM_PROPERTY = "sprintforecast-team"
+SHEET_SETTINGS = "Settings"
 SHEET_FORECAST = "Forecast"
-SHEET_SPRINTS = "Sprintdaten"
-SHEET_ABSENCES = "Fehltage"
-SHEET_PEOPLE = "Personen"
-SHEET_PRODUCTS = "Produktliste"
-SHEET_VALUES = "Produktwerte"
-SHEET_PROGNOSES = "Prognosen"
+SHEET_SPRINTS = "Sprint data"
+SHEET_ABSENCES = "Absences"
+SHEET_PEOPLE = "People"
+SHEET_PRODUCTS = "Product list"
+SHEET_VALUES = "Product values"
+SHEET_PROGNOSES = "Prognoses"
 SHEET_TREND = "Trend"
-# Einstellungen: Spalte A Beschriftung, B Wert, C Schlüssel (Pfad in team.yaml, z. B.
-# forecast.window).
+# Sheet names written by older versions (German); the import renames them to the current ones.
+LEGACY_SHEETS = {
+    "Einstellungen": SHEET_SETTINGS,
+    "Fehltage": SHEET_ABSENCES,
+    "Personen": SHEET_PEOPLE,
+    "Sprintdaten": SHEET_SPRINTS,
+    "Produktliste": SHEET_PRODUCTS,
+    "Produktwerte": SHEET_VALUES,
+    "Prognosen": SHEET_PROGNOSES,
+}
+# Settings: column A label, B value, C key (path in team.yaml, e.g. forecast.window).
 SETTINGS_FIRST_ROW = 3
-# Forecast: erste Datenzeile (0-basiert); Spalten 0-6 sind die Eingaben, die der Import liest.
+# Forecast: first data row (0-based); columns 0-6 are the inputs the import reads.
 FORECAST_FIRST_ROW = 3
-# Sprintdaten (je Sprintdatei eine Zeile): fester Spaltenaufbau, Zeile 1 = Überschrift.
+# Sprint data (one row per sprint file): fixed column layout, row 1 = heading.
 SPRINT_COLUMNS = (
     "id", "absence_state", "forecast_plan", "carryover", "backlog", "corrections",
     "not_done", "additional_done", "production_planned", "production_done", "note",
@@ -66,7 +75,7 @@ PROGNOSIS_COLUMNS = (
 
 
 def flatten(d: dict[str, Any], prefix: str = "") -> list[tuple[str, Any]]:
-    """Verschachtelte Einstellungen als (Pfad, Wert); fehlende Werte (None) entfallen."""
+    """Nested settings as (path, value); missing values (None) are omitted."""
     out: list[tuple[str, Any]] = []
     for key, value in d.items():
         path = f"{prefix}{key}"
@@ -78,7 +87,7 @@ def flatten(d: dict[str, Any], prefix: str = "") -> list[tuple[str, Any]]:
 
 
 class ExcelUnavailable(RuntimeError):
-    """``xlsxwriter`` ist nicht installiert."""
+    """``xlsxwriter`` is not installed."""
 
 
 def _xlsxwriter() -> Any:
@@ -86,12 +95,46 @@ def _xlsxwriter() -> Any:
         import xlsxwriter
     except ImportError as e:
         raise ExcelUnavailable(
-            t(
-                "Die Excel-Ausgabe braucht xlsxwriter: sprintforecast mit dem Zusatz [excel] "
-                "installieren."
-            )
+            t("The Excel output needs xlsxwriter: install sprintforecast with the [excel] extra.")
         ) from e
     return xlsxwriter
+
+
+def import_unsafe_sprint_ids(data: TeamData) -> list[str]:
+    """Warnings for sprint ids the Excel import would refuse (it requires portable file names).
+    On Linux and macOS such an id (for example ``a:b``) can exist and be exported, but the
+    workbook could not be imported again."""
+    warnings = []
+    seen: set[str] = set()
+    ids = [s.id for s in data.sprints]
+    if data.team.sprint.first_id is not None:
+        ids.append(data.team.sprint.first_id)
+    for index, sprint_id in enumerate(ids):
+        is_first_id = index >= len(data.sprints)
+        if problem := file_name_problem(sprint_id):
+            warnings.append(
+                t(
+                    (
+                        "Sprint ID {id} ({problem}): the Excel import refuses it, so the "
+                        "workbook cannot be imported again."
+                    ),
+                    id=repr(sprint_id),
+                    problem=problem,
+                )
+            )
+        elif not is_first_id and sprint_id.casefold() in seen:
+            warnings.append(
+                t(
+                    (
+                        "Sprint ID {id} appears twice (upper and lower case count as the "
+                        "same): the Excel import refuses it."
+                    ),
+                    id=repr(sprint_id),
+                )
+            )
+        if not is_first_id:
+            seen.add(sprint_id.casefold())
+    return warnings
 
 
 def _blank(value: float | None) -> float | str:
@@ -113,9 +156,9 @@ def _known(ref_avg: str, ref_trend: str) -> str:
 
 
 def trend_formula(mode: TrendMode, thin_ref: str, r: Callable[[str, int], str], i: int) -> str:
-    """Excel-Formel der Fortschreibung für Zeile ``i`` (0 = erster Sprint); spiegelt
-    ``engine._trend``. ``r(spalte, offset)`` liefert den Zellbezug ``spalte`` in Zeile ``i-offset``
-    (``''`` vor dem ersten Sprint). Nur wo der Durchschnitt fehlt."""
+    """Excel formula of the extrapolation for row ``i`` (0 = first sprint); mirrors
+    ``engine._trend``. ``r(col, offset)`` returns the cell reference of column ``col`` in row
+    ``i-offset`` (``''`` before the first sprint). Only where the average is missing."""
 
     def has(col: str, off: int) -> bool:
         return i - off >= 0
@@ -159,13 +202,13 @@ def trend_formula(mode: TrendMode, thin_ref: str, r: Callable[[str, int], str], 
 
 
 def build_workbook(fc: Forecast) -> bytes:
-    """Die Excel-Mappe des Teams als Bytes (``.xlsx``)."""
+    """The team's Excel workbook as bytes (``.xlsx``)."""
     xw = _xlsxwriter()
     data = fc.data
     team = data.team
     settings = team.forecast
     mode = parse_trend_mode(settings.trend_mode)
-    entries = list(fc.entries)  # alle Sprints: die Mappe enthält die Historie vollständig
+    entries = list(fc.entries)  # all sprints: the workbook contains the full history
     unit = team.unit.value
 
     buf = io.BytesIO()
@@ -174,7 +217,7 @@ def build_workbook(fc: Forecast) -> bytes:
         {
             "in_memory": True,
             "nan_inf_to_errors": True,
-            # Importierte Texte (Notizen, Namen) beginnen vielleicht mit "=": als Text schreiben.
+            # Imported texts (notes, names) may start with "=": write them as text.
             "strings_to_formulas": False,
             "strings_to_urls": False,
         },
@@ -192,6 +235,7 @@ def build_workbook(fc: Forecast) -> bytes:
     title = wb.add_format({"bold": True, "font_size": 14})
 
     wb.set_custom_property(FORMAT_PROPERTY, FORMAT_VERSION)
+    wb.set_custom_property(TEAM_PROPERTY, team.key)
     ws_set = wb.add_worksheet(SHEET_SETTINGS)
     ws = wb.add_worksheet(SHEET_FORECAST)
     ws_sp = wb.add_worksheet(SHEET_SPRINTS)
@@ -204,19 +248,19 @@ def build_workbook(fc: Forecast) -> bytes:
     first, last = (
         FORECAST_FIRST_ROW,
         FORECAST_FIRST_ROW + len(entries) - 1,
-    )  # Datenzeilen (0-basiert) auf dem Blatt „Forecast“
+    )  # data rows (0-based) on the "Forecast" sheet
 
-    # --- Einstellungen ------------------------------------------------------------------
-    ws_set.write(0, 0, t("Einstellungen von {team}", team=team.name or team.key), title)
-    ws_set.write(1, 0, t("Beschriftung"), bold)
-    ws_set.write(1, 1, t("Wert"), bold)
-    ws_set.write(1, 2, t("Schlüssel (team.yaml)"), bold)
+    # --- Settings -----------------------------------------------------------------------
+    ws_set.write(0, 0, t("Settings of {team}", team=team.name or team.key), title)
+    ws_set.write(1, 0, t("Label"), bold)
+    ws_set.write(1, 1, t("Value"), bold)
+    ws_set.write(1, 2, t("Key (team.yaml)"), bold)
     labels = {
-        "forecast.reference_capacity": t("Referenzkapazität (PT)"),
-        "forecast.window": t("Fenster (Sprints)"),
-        "forecast.roadmap_share": t("Verplanbarer Anteil"),
-        "forecast.rounding": t("Rundung (Nachkommastellen, abgerundet)"),
-        "forecast.trend_mode": t("Trend-Modus (beim Export festgelegt)"),
+        "forecast.reference_capacity": t("Reference capacity (PT)"),
+        "forecast.window": t("Window (sprints)"),
+        "forecast.roadmap_share": t("Plannable share"),
+        "forecast.rounding": t("Rounding (decimal places, rounded down)"),
+        "forecast.trend_mode": t("Trend mode (fixed at export)"),
     }
     names = {
         "forecast.reference_capacity": "Referenz",
@@ -237,21 +281,21 @@ def build_workbook(fc: Forecast) -> bytes:
         if path in names:
             wb.define_name(names[path], f"='{ws_set.get_name()}'!$B${k + 1}")
     thin_row = SETTINGS_FIRST_ROW - 1 + len(flat) + 1
-    ws_set.write(thin_row + 3, 0, t("Stand"))
+    ws_set.write(thin_row + 3, 0, t("Current status"))
     ws_set.write(thin_row + 3, 1, f"{fc.today:%d.%m.%Y}")
     ws_set.write(
         thin_row + 5,
         0,
         t(
-            "Gelbe Zellen sind Eingaben (Einstellungen und Sprintwerte); alle anderen Zellen sind "
-            "Formeln. Der Trend-Modus ist in den Formeln fest gesetzt."
+            "Yellow cells are inputs (settings and sprint values); all other cells are "
+            "formulas. The trend mode is fixed in the formulas."
         ),
     )
     ws_set.set_column(0, 0, 48)
     ws_set.set_column(1, 1, 16)
     ws_set.set_column(2, 2, 30)
 
-    # --- Spalten des Blatts „Forecast“ -----------------------------------------------------
+    # --- Columns of the "Forecast" sheet ---------------------------------------------------
     cols = [
         "id", "start", "end", "ist", "vel", "scope", "caprec", "capcalc", "src", "cap",
         "norm", "norm_n", "norm_avg", "norm_trend", "norm_known",
@@ -263,42 +307,45 @@ def build_workbook(fc: Forecast) -> bytes:
     headers = {
         "id": t("Sprint"),
         "start": t("Start"),
-        "end": t("Ende"),
+        "end": t("End"),
         "ist": t("Commitment ({unit})", unit=unit),
         "vel": t("Velocity ({unit})", unit=unit),
-        "scope": t("Scope Creep"),
-        "caprec": t("Kapazität (PT), erfasst (Eingabe)"),
-        "capcalc": t("Kapazität (PT), aus Personen und Kalender berechnet"),
-        "cap": t("Kapazität (PT), erfasst oder berechnet"),
-        "src": t("Quelle der Kapazität"),
-        "norm": t("n. Velocity"),
-        "norm_n": t("Anzahl n. Velocity"),
-        "norm_avg": t("Ø n. Velocity"),
-        "norm_trend": t("n. Velocity-Trend"),
-        "norm_known": t("n. Velocity bekannt (Ø oder Trend)"),
-        "cap_n": t("Anzahl Kapazität"),
-        "cap_avg": t("Ø Kapazität"),
-        "cap_trend": t("Kapazität-Trend"),
-        "cap_known": t("Kapazität bekannt (Ø oder Trend)"),
-        "plancap": t("Kapazität für den Forecast PLAN (PT)"),
+        "scope": t("Scope creep"),
+        "caprec": t("Capacity (PD), recorded (input)"),
+        "capcalc": t("Capacity (PD), calculated from people and calendar"),
+        "cap": t("Capacity (PD), recorded or calculated"),
+        "src": t("Source of the capacity"),
+        "norm": t("norm. velocity"),
+        "norm_n": t("Count n. velocity"),
+        "norm_avg": t("Ø norm. velocity"),
+        "norm_trend": t("norm. velocity trend"),
+        "norm_known": t("n. velocity known (avg or trend)"),
+        "cap_n": t("Count capacity"),
+        "cap_avg": t("Avg capacity"),
+        "cap_trend": t("Capacity trend"),
+        "cap_known": t("Capacity known (avg or trend)"),
+        "plancap": t("Capacity for the Forecast PLAN (PD)"),
         "plan": t("Forecast PLAN ({unit})", unit=unit),
-        "roadmap": t("Verplanbar ({unit})", unit=unit),
-        "small": t("Kleinkram ({unit})", unit=unit),
+        "roadmap": t("Plannable ({unit})", unit=unit),
+        "small": t("Small stuff ({unit})", unit=unit),
         "ful": t("Fulfillment"),
-        "focus": t("Fokusfaktor"),
-        "share": t("Anteil Produktionszugriff an der Kapazität"),
-        "capprod": t("Kapazität mit Produktionszugriff (PT)"),
-        "capnon": t("Kapazität ohne Produktionszugriff (PT)"),
-        "planprod": t("Forecast PLAN: bis zu mit Produktionszugriff ({unit})", unit=unit),
-        "plannon": t("Forecast PLAN: für alle übrigen ({unit})", unit=unit),
-        "sumprod": t("Σ Planning je Produkt ({unit})", unit=unit),
-        "delta": t("Forecast PLAN − Σ Planning ({unit})", unit=unit),
+        "focus": t("Focus factor"),
+        "share": t("Share of production access in the capacity"),
+        "capprod": t("Capacity with production access (PD)"),
+        "capnon": t("Capacity without production access (PD)"),
+        "planprod": t("Forecast PLAN: up to with production access ({unit})", unit=unit),
+        "plannon": t("Forecast PLAN: for all others ({unit})", unit=unit),
+        "sumprod": t("Σ planning per product ({unit})", unit=unit),
+        "delta": t("Forecast PLAN − Σ planning ({unit})", unit=unit),
     }
     ws.write(0, 0, t("Forecast {team}", team=team.name or team.key), title)
     ws.write(
         1,
         0,
-        t("Eingaben gelb; die Spalten rechts davon rechnen wie die Weboberfläche (Rechenweg)."),
+        t(
+            "Inputs are yellow; the columns to the right calculate like the web interface "
+            "(calculation)."
+        ),
     )
     for name, i in c.items():
         ws.write(2, i, headers[name], bold)
@@ -315,7 +362,7 @@ def build_workbook(fc: Forecast) -> bytes:
         return f"{at(name, a, True, True)}:{at(name, b, True, True)}"
 
     norm_all = rng("norm", first, last)
-    # Dünne Historie je Reihe (zu wenige Werte für ein volles Fenster, aber ≥ 3).
+    # Thin history per series (too few values for a full window, but ≥ 3).
     sheet = f"'{ws.get_name()}'!"
     thin_n = f"AND(COUNT({sheet}{norm_all})>={MIN_THIN_HISTORY},COUNT({sheet}{norm_all})<Fenster)"
     thin_c = (
@@ -323,13 +370,13 @@ def build_workbook(fc: Forecast) -> bytes:
         f"COUNT({sheet}{rng('cap', first, last)})<Fenster)"
     )
     ws_set.write(
-        thin_row, 0, t("Dünne Historie n. Velocity (weniger Werte als das Fenster, mindestens 3)")
+        thin_row, 0, t("Thin history n. velocity (fewer values than the window, at least 3)")
     )
-    ws_set.write(thin_row + 1, 0, t("Dünne Historie Kapazität"))
+    ws_set.write(thin_row + 1, 0, t("Thin history capacity"))
     wb.define_name("Duenn_nVelocity", f"='{ws_set.get_name()}'!$B${thin_row + 1}")
     wb.define_name("Duenn_Kapazitaet", f"='{ws_set.get_name()}'!$B${thin_row + 2}")
 
-    # Zwischengespeicherte Werte: wie die Engine rechnet, damit Vorschauen Zahlen zeigen.
+    # Cached values: calculated as the engine does, so that previews show numbers.
     values = [e.result for e in entries]
     norm_thin = thin_history([r.normalized_velocity.value for r in values], settings.window)
     cap_thin = thin_history([r.capacity.value for r in values], settings.window)
@@ -397,7 +444,8 @@ def build_workbook(fc: Forecast) -> bytes:
         ws.write(row, c["id"], s.id)
         ws.write_datetime(row, c["start"], _dt(s.start), date_f)
         ws.write_datetime(row, c["end"], _dt(s.end), date_f)
-        # Eingaben (gelb): genau die Felder der Sprintdatei; fehlt ein Wert, bleibt die Zelle leer.
+        # Inputs (yellow): exactly the fields of the sprint file; a missing value leaves the
+        # cell empty.
         for name, v, f in (
             ("ist", s.forecast_ist, inp),
             ("vel", s.velocity, inp),
@@ -505,7 +553,7 @@ def _production_columns(
     ws: Any, c: dict[str, int], at: Callable[..., str], row: int, fc: Forecast,
     e: TimelineEntry, res: Any, n1: Any, n2: Any, pc: Any,
 ) -> None:  # fmt: skip
-    """Aufteilung nach Produktionszugriff (Näherung über den Kapazitätsanteil)."""
+    """Split by production access (approximation via the capacity share)."""
     d = distribution(fc, e) if fc.data.team.features.production else None
     share = d.production_share if d is not None and d.production_state == "ok" else None
     if share is None:
@@ -541,7 +589,7 @@ def _header(ws: Any, labels: list[str], bold: Any, widths: list[int] | None = No
 
 
 def _put(ws: Any, row: int, col: int, value: Any, fmt: Any = None) -> None:
-    """Schreibt einen Wert; ``None`` bleibt eine leere Zelle (mit Format, damit sie gelb ist)."""
+    """Writes a value; ``None`` stays an empty cell (with a format so that it is yellow)."""
     if value is None:
         ws.write_blank(row, col, None, fmt)
     elif isinstance(value, datetime):
@@ -556,8 +604,8 @@ def _data_sheets(
     wb: Any, fc: Forecast, entries: list[TimelineEntry], sheets: tuple[Any, ...],
     bold: Any, inp: Any, date_f: Any,
 ) -> None:  # fmt: skip
-    """Die übrigen Daten des Teams (Sprintdateien, Fehltage, Personen, Produkte, Prognosen) in
-    der festen Spaltenfolge, die der Import liest. Alles Eingaben (gelb) außer den Namen."""
+    """The remaining data of the team (sprint files, absences, people, products, prognoses) in
+    the fixed column order the import reads. All inputs (yellow) except the names."""
     ws_sp, ws_a, ws_pe, ws_pr, ws_pg = sheets
     data = fc.data
     unit = data.team.unit.value
@@ -570,15 +618,15 @@ def _data_sheets(
     _header(
         ws_sp,
         [
-            t("Sprint"), t("Stand der Fehltage (unknown, expected, confirmed)"),
-            t("Forecast PLAN beim Planning, eingefroren ({unit})", unit=unit),
-            t("Überkipper ({unit})", unit=unit), f"Backlog ({unit})",
-            t("Korrekturen Restaufwände (mit Leerzeichen getrennt)"),
-            t("Davon nicht erledigt ({unit})", unit=unit),
-            t("Zusätzlich erledigt ({unit})", unit=unit),
-            t("Davon mit Produktionszugriff, Planning ({unit})", unit=unit),
-            t("Davon mit Produktionszugriff, erledigt ({unit})", unit=unit),
-            t("Notiz"),
+            t("Sprint"), t("State of the absences (unknown, expected, confirmed)"),
+            t("Forecast PLAN at planning, frozen ({unit})", unit=unit),
+            t("Carry-over ({unit})", unit=unit), f"Backlog ({unit})",
+            t("Corrections of remaining effort (separated by spaces)"),
+            t("Of which not finished ({unit})", unit=unit),
+            t("Additionally done ({unit})", unit=unit),
+            t("Of which with production access, planning ({unit})", unit=unit),
+            t("Of which with production access, done ({unit})", unit=unit),
+            t("Note"),
         ],
         bold,
         [10, 22, 18, 14, 12, 26, 16, 16, 20, 20, 40],
@@ -597,8 +645,8 @@ def _data_sheets(
     _header(
         ws_a,
         [
-            t("Sprint"), t("Person (Kennung)"), t("Name"), t("Tage"),
-            t("Art (absences = bestätigt, expected_absences = angekündigt)"),
+            t("Sprint"), t("Person (ID)"), t("Name"), t("days"),
+            t("Kind (absences = confirmed, expected_absences = announced)"),
         ],
         bold,
         [10, 20, 24, 8, 30],
@@ -614,8 +662,8 @@ def _data_sheets(
     _header(
         ws_pe,
         [
-            t("Kennung"), t("Name"), t("Land"), t("Region"), t("Arbeitswoche"),
-            t("Produktionszugriff"), t("Mitglied ab"), t("Mitglied bis"), "FTE",
+            t("ID"), t("Name"), t("Country"), t("Region"), t("Work week"),
+            t("Production access"), t("Member from"), t("Member until"), "FTE",
         ],
         bold,
         [16, 24, 8, 8, 18, 12, 13, 13, 8],
@@ -636,8 +684,8 @@ def _data_sheets(
     _header(
         ws_pr,
         [
-            t("Kennung"), t("Name"), "PO", t("Betreut ab"), t("Betreut bis"),
-            t("Fester Anteil (0–1)"),
+            t("ID"), t("Name"), "PO", t("Handled from"), t("Handled until"),
+            t("Fixed share (0–1)"),
         ],
         bold,
         [16, 24, 18, 13, 13, 12],
@@ -650,10 +698,10 @@ def _data_sheets(
     _header(
         ws_pg,
         [
-            t("Sprint"), t("Zeitpunkt"), t("Kommentar"), t("Commitment ({unit})", unit=unit),
-            t("Voraussichtlich nicht erledigt ({unit})", unit=unit),
-            t("Zusätzlich erledigt ({unit})", unit=unit), t("Erwartet erledigt"),
-            t("Zielsprint"), t("Forecast PLAN"), t("Vorplanung je Produkt (Kennung=Wert; …)"),
+            t("Sprint"), t("Time"), t("Comment"), t("Commitment ({unit})", unit=unit),
+            t("Expected not finished ({unit})", unit=unit),
+            t("Additionally done ({unit})", unit=unit), t("Expected done"),
+            t("Target sprint"), t("Forecast PLAN"), t("Pre-planning per product (ID=value; …)"),
         ],
         bold,
         [10, 19, 40, 12, 14, 14, 12, 10, 12, 40],
@@ -679,22 +727,22 @@ def _products_sheet(
     wb: Any, ws_p: Any, ws: Any, c: dict[str, int], fc: Forecast, entries: list[TimelineEntry],
     first: int, last: int, bold: Any, n2: Any, unit: str,
 ) -> None:  # fmt: skip
-    """Werte je Produkt und Sprint (lange Tabelle, feste Spalten wie ``VALUE_COLUMNS``) und die
-    Summe je Sprint zurück auf das Blatt Forecast."""
+    """Values per product and sprint (long table, fixed columns as in ``VALUE_COLUMNS``) and the
+    sum per sprint written back to the Forecast sheet."""
     production = fc.data.team.features.production
     inp = wb.add_format({"num_format": "0.00", "bg_color": "#FFF8DC"})
     _header(
         ws_p,
         [
-            t("Sprint"), t("Produkt (Kennung)"), t("Produkt"), "PO",
+            t("Sprint"), t("Product (ID)"), t("Product"), "PO",
             *(
                 measure_label(m) + f" ({unit})"
                 for m in ("standard", "preplanned", "planned", "done")
             ),
             measure_label("production_planned") + f" ({unit})",
             measure_label("production_done") + f" ({unit})",
-            t("Planning ohne Produktionszugriff ({unit})", unit=unit),
-            t("Erledigt ohne Produktionszugriff ({unit})", unit=unit),
+            t("Planning without production access ({unit})", unit=unit),
+            t("Done without production access ({unit})", unit=unit),
         ],
         bold,
         [10, 16, 22, 16, 12, 12, 12, 12, 14, 14, 16, 16],
@@ -749,11 +797,11 @@ def _trend_sheet(
     wb: Any, ws_t: Any, ws: Any, c: dict[str, int], entries: list[TimelineEntry], first: int,
     bold: Any, grey: Any,
 ) -> None:  # fmt: skip
-    """Diagrammdaten (``#NV`` = Lücke) und zwei Liniendiagramme: Trend der normierten Velocity,
-    Forecast PLAN gegen Velocity und Commitment."""
+    """Chart data (``#N/A`` = gap) and two line charts: trend of the normalized velocity,
+    Forecast PLAN against velocity and commitment."""
     sheet = f"'{ws.get_name()}'!"
     heads = [
-        t("Sprint"), t("n. Velocity"), t("Ø n. Velocity"), t("n. Velocity-Trend"),
+        t("Sprint"), t("norm. velocity"), t("Ø norm. velocity"), t("norm. velocity trend"),
         t("Forecast PLAN"), t("Velocity"), t("Commitment"),
     ]  # fmt: skip
     for i, h in enumerate(heads):
@@ -804,5 +852,5 @@ def _trend_sheet(
         ch.set_size({"width": 760, "height": 340})
         ws_t.insert_chart(anchor, ch)
 
-    chart(t("Trend der normierten Velocity"), [1, 2, 3], "I2", t("n. Velocity"))
-    chart(t("Forecast PLAN, Velocity und Commitment"), [4, 5, 6], "I20", t("Menge"))
+    chart(t("Trend of the normalized velocity"), [1, 2, 3], "I2", t("norm. velocity"))
+    chart(t("Forecast PLAN, velocity and commitment"), [4, 5, 6], "I20", t("Amount"))

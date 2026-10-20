@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Nachbesserungen an der Git-Synchronisation (Befunde K1–K2, W1–W7, M1–M6): jeweils mit
-echten Git-Repositories."""
+"""Fixes to the Git synchronization (findings K1-K2, W1-W7, M1-M6): each with real Git
+repositories."""
 
 import os
 import shutil
@@ -22,15 +22,16 @@ posix = pytest.mark.skipif(sys.platform == "win32", reason="Dateinamen mit Anfü
 
 @pytest.fixture
 def solo(tmp_path: Path) -> Path:
-    """Repository, dessen Wurzel selbst der Datenordner ist (der Normalfall)."""
+    """Repository whose root is the data folder itself (the normal case)."""
     root = tmp_path / "solo"
     git(tmp_path, "init", "-q", "-b", "main", str(root))
     git(root, "config", "user.name", "Solo")
     git(root, "config", "user.email", "solo@example.org")
     (root / "a").mkdir()
-    # Bytes mit LF: ``write_text`` schriebe unter Windows CRLF, und Git hielte die Datei je nach
-    # ``core.autocrlf`` (Systemeinstellung, in Tests abgeschaltet) für geändert oder nicht, wobei
-    # der Zeitstempel im Index entscheidet, ob es neu rechnet (Test mal grün, mal rot).
+    # Bytes with LF: ``write_text`` would write CRLF on Windows, and Git would consider the
+    # file changed or not depending on ``core.autocrlf`` (system setting, disabled in tests),
+    # with the timestamp in the index deciding whether it recomputes (test sometimes green,
+    # sometimes red).
     (root / "a" / "team.yaml").write_bytes(b"name: A\n")
     (root / "b.yaml").write_bytes(b"v: 1\n")
     git(root, "add", "-A")
@@ -46,7 +47,7 @@ def commit_all(root: Path, message: str) -> str:
     return git(root, "rev-parse", "HEAD")
 
 
-# --- K1: Wiederherstellen darf nichts Ungespeichertes überschreiben --------------------------
+# --- K1: Restoring must not overwrite anything unsaved --------------------------
 
 
 @pytest.mark.parametrize("scope", ["", "a"])
@@ -78,7 +79,7 @@ def test_restore_does_not_commit_untracked_files(solo: Path):
     assert (solo / "neu.yaml").exists()
 
 
-# --- K2: Pfade mit Sonderzeichen -------------------------------------------------------------
+# --- K2: Paths with special characters ------------------------------------------------------------
 
 NAMES = ["ä.yaml", 'q"uote.yaml', "tab\there.yaml", "ünï cödé/ß.yaml"]
 
@@ -127,7 +128,7 @@ def test_restore_removes_files_with_special_names_that_did_not_exist_then(solo: 
     assert not (solo / "späte Datei.yaml").exists()
 
 
-# --- W1: Umbenennungen und gemischte Zustände beim Verwerfen ---------------------------------
+# --- W1: Renames and mixed states when discarding ---------------------------------
 
 
 def test_discard_staged_rename_restores_the_old_name(solo: Path):
@@ -176,13 +177,13 @@ def test_set_tag_is_idempotent_after_failed_upload(alice: Person, remote: Path, 
     git(alice.root, "remote", "set-url", "origin", str(tmp_path / "weg.git"))
     assert githistory.set_tag(alice.data, "a/x") is not None
     git(alice.root, "remote", "set-url", "origin", str(remote))
-    assert githistory.set_tag(alice.data, "a/x") is None  # gleicher Stand: nur hochladen
+    assert githistory.set_tag(alice.data, "a/x") is None  # same state: just upload
     assert "a/x" in git(remote, "tag")
     assert githistory.set_tag(alice.data, "a/x") is None
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     assert alice.sync("Weiter").ok
     with pytest.raises(GitError, match="existiert bereits"):
-        githistory.set_tag(alice.data, "a/x")  # anderer Stand: weiterhin abgelehnt
+        githistory.set_tag(alice.data, "a/x")  # different state: still rejected
 
 
 def test_server_only_tag_is_listed_and_can_be_deleted(alice: Person, remote: Path):
@@ -192,13 +193,13 @@ def test_server_only_tag_is_listed_and_can_be_deleted(alice: Person, remote: Pat
     assert [(t.name, t.local, t.on_server) for t in tags] == [("a/server", False, True)]
     assert githistory.delete_tag(alice.data, "a/server") is None
     assert git(remote, "tag") == ""
-    assert githistory.delete_tag(alice.data, "a/server") is None  # gibt es nirgends mehr
+    assert githistory.delete_tag(alice.data, "a/server") is None  # exists nowhere anymore
 
 
 def test_delete_tag_heals_after_partial_failure(alice: Person, remote: Path, tmp_path: Path):
     assert githistory.set_tag(alice.data, "a/y") is None
     git(alice.root, "remote", "set-url", "origin", str(tmp_path / "weg.git"))
-    assert githistory.delete_tag(alice.data, "a/y") is not None  # lokal weg, Server behält
+    assert githistory.delete_tag(alice.data, "a/y") is not None  # gone locally, server keeps it
     git(alice.root, "remote", "set-url", "origin", str(remote))
     assert "a/y" in git(remote, "tag")
     assert githistory.delete_tag(alice.data, "a/y") is None
@@ -234,7 +235,7 @@ def test_clone_with_double_dash_still_works(alice: Person, remote: Path, tmp_pat
     assert (tmp_path / "geklont" / "teams" / "a" / "team.yaml").exists()
 
 
-# --- W4: Upstream-Ref fehlt -------------------------------------------------------------------
+# --- W4: Upstream ref missing -------------------------------------------------------------------
 
 
 def test_sync_against_a_new_empty_server(alice: Person, tmp_path: Path):
@@ -248,7 +249,7 @@ def test_sync_against_a_new_empty_server(alice: Person, tmp_path: Path):
     assert git(empty, "log", "-1", "--format=%s", "main") == "Umzug"
 
 
-# --- W5: erster Push gegen einen Server mit demselben Branch ---------------------------------
+# --- W5: first push against a server with the same branch ---------------------------------
 
 
 def make_stranger(tmp_path: Path, remote: Path, files: dict[str, str]) -> Person:
@@ -272,11 +273,11 @@ def test_first_share_against_server_with_unrelated_history_is_refused(
     assert result.error is not None and result.error.kind == "unrelated_histories"
     assert str(remote) in str(result.error) and "main" in str(result.error)
     assert "ausdrücklich" in result.error.hint
-    assert result.committed  # die eigenen Änderungen sind gesichert
+    assert result.committed  # the own changes are saved
     assert not result.pushed and not result.merged
     assert git(remote, "rev-parse", "main") == server_head
     assert not (carol.data / "a" / "team.yaml").exists()
-    assert gitsync.state(carol.data).upstream is None  # auch nicht verbunden
+    assert gitsync.state(carol.data).upstream is None  # not connected either
 
 
 def test_first_share_against_server_with_unrelated_history_when_confirmed(
@@ -367,10 +368,11 @@ def test_shallow_clone_is_not_mistaken_for_unrelated_histories(
     for i in (1, 2):
         alice.write("a/x.yaml", f"v: {i}\n")
         assert alice.sync(f"Stand {i}").ok
-    git(shallow, "fetch", "-q", "--depth", "1", "origin")  # abgeschnittene, getrennte Spitze
+    git(shallow, "fetch", "-q", "--depth", "1", "origin")  # truncated, detached tip
     person = Person("Flach", shallow)
     person.write("b/team.yaml", "name: B\n")
-    result = person.sync("Flach", allow_invalid=True)  # die Testdaten sind fachlich unvollständig
+    # the test data is incomplete in terms of the domain
+    result = person.sync("Flach", allow_invalid=True)
     assert result.ok, result.error
     assert result.pushed
     assert git(shallow, "rev-parse", "HEAD") == git(remote, "rev-parse", "main")
@@ -386,7 +388,7 @@ def test_first_share_with_unrelated_history_and_conflict(
     assert gitsync.state(carol.data).unfinished == "merge"
 
 
-# --- W6: Einstellungen -----------------------------------------------------------------------
+# --- W6: Settings -----------------------------------------------------------------------
 
 
 def test_config_update_reports_unwritable_settings(tmp_path: Path, monkeypatch):
@@ -411,7 +413,7 @@ def test_config_update_is_atomic(monkeypatch):
         config.update(a=2)
     monkeypatch.setattr(os, "replace", real)
     assert config.load() == {"a": 1}
-    assert [p.name for p in file.parent.iterdir()] == ["settings.json"]  # keine Reste
+    assert [p.name for p in file.parent.iterdir()] == ["settings.json"]  # no leftovers
 
 
 def test_config_update_keeps_a_damaged_file():
@@ -428,13 +430,13 @@ def test_recent_data_dirs_ignore_empty_entries():
     assert storage.recent_data_dirs() == [Path("/irgendwo")]
 
 
-# --- W7: Wurzel-Cache --------------------------------------------------------------------------
+# --- W7: Root cache --------------------------------------------------------------------------
 
 
 def test_init_data_repository_is_seen_immediately(tmp_path: Path):
     folder = tmp_path / "neu"
     folder.mkdir()
-    assert repo_root(folder) is None  # wird zwischengespeichert
+    assert repo_root(folder) is None  # is cached
     gitmod.init_data_repository(folder)
     assert repo_root(folder) == folder.resolve()
 
@@ -446,7 +448,7 @@ def test_clone_is_seen_immediately(alice: Person, remote: Path, tmp_path: Path):
     assert repo_root(target) == target.resolve()
 
 
-# --- M1: Papierkorb und Zurücknehmen -----------------------------------------------------------
+# --- M1: Trash and undo -----------------------------------------------------------
 
 
 def test_trash_folders_never_collide(solo: Path, monkeypatch):
@@ -473,8 +475,8 @@ def test_discard_stops_before_changing_anything_if_backup_fails(solo: Path, monk
 
 
 def test_revert_names_missing_identity_correctly(solo: Path, monkeypatch: pytest.MonkeyPatch):
-    # Bytes mit LF: ``write_text`` schriebe unter Windows CRLF, und ohne die Systemeinstellung
-    # ``core.autocrlf`` (unten abgeschaltet) gälte die Datei danach als geändert.
+    # Bytes with LF: ``write_text`` would write CRLF on Windows, and without the system
+    # setting ``core.autocrlf`` (disabled below) the file would count as changed afterwards.
     (solo / "b.yaml").write_bytes(b"v: 2\n")
     rev = commit_all(solo, "Zwei")
     git(solo, "config", "--unset", "user.name")
@@ -484,8 +486,8 @@ def test_revert_names_missing_identity_correctly(solo: Path, monkeypatch: pytest
         monkeypatch.delenv(key, raising=False)
     monkeypatch.delenv("EMAIL", raising=False)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
-    # Keine Benutzereinstellungen des Rechners (unter Windows: USERPROFILE statt HOME): sonst
-    # fände Git dort einen Namen und der Test sähe nie „keine Identität“.
+    # No user settings of the machine (on Windows: USERPROFILE instead of HOME): otherwise
+    # Git would find a name there and the test would never see "no identity".
     empty_config = solo.parent / "leer.gitconfig"
     empty_config.write_text("", encoding="utf-8")
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty_config))
@@ -510,7 +512,7 @@ def test_revert_checks_the_whole_repository_for_open_changes(alice: Person):
     assert info.value.kind == "dirty"
 
 
-# --- M2: Sprint-Tag-Wettlauf -----------------------------------------------------------------
+# --- M2: Sprint tag race -----------------------------------------------------------------
 
 
 def test_sync_reports_a_sprint_tag_already_taken_on_the_server(alice: Person, bob: Person):
@@ -528,7 +530,7 @@ def test_sync_has_no_note_when_tags_arrive(alice: Person):
     assert result.ok and result.notes == []
 
 
-# --- M3: ungültige Datumswerte -------------------------------------------------------------
+# --- M3: Invalid date values -------------------------------------------------------------
 
 
 def test_invalid_date_in_a_file_is_a_data_error(tmp_path: Path):
@@ -547,7 +549,7 @@ def test_invalid_date_in_a_conflicting_file_is_decided_as_a_whole(alice: Person,
     assert result.conflicts[0].whole
 
 
-# --- M4: übrig gebliebene Zwischendateien -------------------------------------------------------
+# --- M4: Leftover temporary files -------------------------------------------------------
 
 
 def test_write_leaves_no_tmp_file_after_unexpected_error(tmp_path: Path, monkeypatch):
@@ -583,7 +585,7 @@ def test_new_data_repositories_keep_yaml_and_reports_on_lf(tmp_path: Path):
     assert "*.md text eol=lf" in lines
     assert not (
         tmp_path / "daten" / ".gitattributes"
-    ).exists()  # nur im Datenordner, der geteilt wird
+    ).exists()  # only in the data folder, which is shared
 
 
 def test_gitattributes_lies_in_the_data_folder_without_a_teams_folder(tmp_path: Path):
@@ -609,18 +611,18 @@ def test_existing_gitignore_is_not_overwritten_but_gitattributes_is_added(tmp_pa
 
 
 def test_existing_repositories_stay_untouched(tmp_path: Path):
-    """Im Index könnten CRLF-Dateien liegen, die mit einer neuen Festlegung als geändert gälten."""
+    """The index could hold CRLF files that would count as changed with a new setting."""
     root = tmp_path / "daten"
     root.mkdir()
     git(root, "init", "-q")
     teams = gitmod.init_data_repository(root)
     assert not (teams / ".gitattributes").exists()
-    assert (root / ".gitignore").is_file()  # wie bisher
+    assert (root / ".gitignore").is_file()  # as before
 
 
 def test_gitattributes_is_committed_with_the_data_and_reaches_clones(tmp_path: Path):
-    """Der Windows-Fall am Klon: Mit ``core.autocrlf`` läge die Datei dort sonst als CRLF vor,
-    und das erste Speichern schriebe alle Zeilenenden auf LF um (Phantom-Änderung)."""
+    """The Windows case on the clone: with ``core.autocrlf`` the file would otherwise be CRLF
+    there, and the first save would rewrite all line endings to LF (phantom change)."""
     server = tmp_path / "server.git"
     git(tmp_path, "init", "-q", "--bare", "-b", "main", str(server))
     root = tmp_path / "daten"
@@ -636,13 +638,13 @@ def test_gitattributes_is_committed_with_the_data_and_reaches_clones(tmp_path: P
     clone = tmp_path / "klon"
     git(tmp_path, "clone", "-q", "-c", "core.autocrlf=true", str(server), str(clone))
     assert (clone / "teams" / "team.yaml").read_bytes() == b"name: A\n"
-    (clone / "teams" / "team.yaml").write_bytes(b"name: A\n")  # erneutes Speichern mit LF
+    (clone / "teams" / "team.yaml").write_bytes(b"name: A\n")  # saving again with LF
     assert pending_changes(clone / "teams") == []
 
 
 def test_yaml_files_stay_on_lf_in_checkout_despite_autocrlf(tmp_path: Path):
-    """Windows-Fall: Mit ``core.autocrlf`` läge die Datei sonst als CRLF vor, und das erste
-    Speichern schriebe alle Zeilenenden auf LF um."""
+    """Windows case: with ``core.autocrlf`` the file would otherwise be CRLF, and the first
+    save would rewrite all line endings to LF."""
     root = tmp_path / "daten"
     teams = gitmod.init_data_repository(root)
     git(root, "config", "core.autocrlf", "true")
@@ -669,7 +671,7 @@ def test_data_repository_template_matches_new_repositories(tmp_path: Path):
     ).read_text(encoding="utf-8")
 
 
-# --- M5: Speichern über Konfliktmarkierungen ------------------------------------------------
+# --- M5: Saving over conflict markers ------------------------------------------------
 
 
 MARKED = "<<<<<<< HEAD\nvelocity: 1\n=======\nvelocity: 2\n>>>>>>> origin/main\n"
@@ -692,8 +694,8 @@ def test_saving_over_conflict_markers_is_refused(data_dir: Path):
 
 
 def test_conflict_markers_with_windows_line_endings_are_detected(data_dir: Path):
-    """Unter Windows schreibt Git die Markierungen mit CRLF; auch dann darf nichts darüber
-    gespeichert werden."""
+    """On Windows Git writes the markers with CRLF; even then nothing may be saved over
+    them."""
     crlf = MARKED.replace("\n", "\r\n")
     assert storage.has_conflict_markers(crlf)
     assert not storage.has_conflict_markers("velocity: 1\r\nnote: =======\r\n")
@@ -704,7 +706,7 @@ def test_conflict_markers_with_windows_line_endings_are_detected(data_dir: Path)
     path.write_bytes(crlf.encode("utf-8"))
     with pytest.raises(ConflictError):
         repo.save_sprint("demo", sprint)
-    assert path.read_bytes() == crlf.encode("utf-8")  # unverändert
+    assert path.read_bytes() == crlf.encode("utf-8")  # unchanged
 
 
 def test_import_over_conflict_markers_is_refused(data_dir: Path):
@@ -716,7 +718,7 @@ def test_import_over_conflict_markers_is_refused(data_dir: Path):
         storage.import_sprints(repo, data.team, [sprint])
 
 
-# --- M6: yamlmerge unterscheidet Wahrheitswerte von Zahlen --------------------------------------
+# --- M6: yamlmerge distinguishes booleans from numbers --------------------------------------
 
 
 def test_merge_does_not_treat_true_as_one():
@@ -728,7 +730,7 @@ def test_merge_does_not_treat_true_as_one():
     assert [c.path for c in conflicts] == [("a",)]
 
 
-# --- Review-Nachbesserungen: Tags vor dem Commit prüfen ----------------------------------------
+# --- Review fixes: check tags before the commit ----------------------------------------
 
 
 def head_of(person: Person) -> str:
@@ -743,8 +745,8 @@ def test_sync_with_an_existing_tag_aborts_before_committing(alice: Person, remot
     assert result.error is not None and result.error.kind == "tag_exists"
     assert result.committed is None and not result.pushed
     assert head_of(alice) == before
-    assert pending_changes(alice.data)  # die Änderungen sind unverändert offen
-    again = alice.sync("Neu", ["a/t"])  # kein stilles Gelingen beim zweiten Mal
+    assert pending_changes(alice.data)  # the changes are still open, unchanged
+    again = alice.sync("Neu", ["a/t"])  # no silent success the second time
     assert again.error is not None and again.error.kind == "tag_exists"
     assert "a/t" not in git(remote, "tag").split()
 
@@ -793,7 +795,7 @@ def test_tag_notes_report_a_tag_on_a_foreign_commit(alice: Person):
 
 def test_commit_invalidates_the_status_cache_even_if_tagging_fails(alice: Person, monkeypatch):
     alice.write("a/2026.2.yaml", "velocity: 5\n")
-    assert gitmod.cached_pending_changes(alice.data)  # füllt den Zwischenspeicher
+    assert gitmod.cached_pending_changes(alice.data)  # fills the cache
     real = gitmod._git
 
     def flaky(cwd, *args, **kwargs):
@@ -805,10 +807,10 @@ def test_commit_invalidates_the_status_cache_even_if_tagging_fails(alice: Person
     with pytest.raises(GitError, match="Tag kaputt"):
         gitmod.commit_directory(alice.data, "Neu", ["a/neu"])
     monkeypatch.setattr(gitmod, "_git", real)
-    assert gitmod.cached_pending_changes(alice.data) == []  # der Commit ist erfolgt
+    assert gitmod.cached_pending_changes(alice.data) == []  # the commit has happened
 
 
-# --- Tag-Namen -------------------------------------------------------------------------------
+# --- Tag names -------------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("name", ["HEAD", "@", " a/x", "a/x ", "\ta/x", "  "])
@@ -826,11 +828,11 @@ def test_set_tag_refuses_a_name_the_server_has_for_another_version(
     alice: Person, bob: Person, remote: Path
 ):
     alice.write("a/2026.2.yaml", "velocity: 5\n")
-    assert alice.sync("Weiter", ["a/s"]).ok  # bob kennt den Tag und den Stand noch nicht
+    assert alice.sync("Weiter", ["a/s"]).ok  # bob does not know the tag and the state yet
     with pytest.raises(GitError) as info:
         githistory.set_tag(bob.data, "a/s")
     assert info.value.kind == "tag_exists" and "a/s" in str(info.value)
-    assert githistory.list_tags(bob.data) == []  # nichts abweichend angelegt
+    assert githistory.list_tags(bob.data) == []  # nothing created differently
 
 
 def test_set_tag_adopts_a_server_tag_for_the_same_version(alice: Person, bob: Person):
@@ -840,7 +842,7 @@ def test_set_tag_adopts_a_server_tag_for_the_same_version(alice: Person, bob: Pe
     assert githistory.list_tags(bob.data, check_server=True)[0].differs is False
 
 
-# --- Einstellungen: ältere Sicherung bleibt ------------------------------------------------------
+# --- Settings: older backup is kept ------------------------------------------------------
 
 
 def test_config_update_keeps_every_damaged_file():
@@ -860,11 +862,11 @@ def test_config_update_keeps_every_damaged_file():
     ]
 
 
-# --- Verwerfen: Rollback bei Teilfehler ----------------------------------------------------------
+# --- Discarding: rollback on partial failure ------------------------------------------------------
 
 
 def mixed_state(solo: Path) -> str:
-    """Umbenennung (vorgemerkt), gelöschte und geänderte Datei; liefert den Status davor."""
+    """Rename (staged), deleted and changed file; returns the status beforehand."""
     (solo / "c.yaml").write_text("w: 1\n", encoding="utf-8")
     commit_all(solo, "c")
     git(solo, "mv", "b.yaml", "d.yaml")
@@ -899,7 +901,7 @@ def test_discard_partial_failure_restores_files_deletions_and_index(
     with pytest.raises(GitError) as info:
         githistory.discard(solo)
     monkeypatch.setattr(githistory, "_git", real)
-    assert git(solo, "status", "--porcelain") == before  # auch die Umbenennung ist vorgemerkt
+    assert git(solo, "status", "--porcelain") == before  # the rename is staged as well
     assert_mixed_state(solo)
     assert "wiederhergestellt" in info.value.hint
     assert "nicht vollständig" not in info.value.hint
@@ -919,7 +921,7 @@ def test_discard_partial_failure_reports_honestly_what_could_not_be_restored(
         return real(cwd, *args, **kwargs)
 
     def copy(src, dst, *args, **kwargs):
-        if ".git" not in Path(dst).parts:  # nur das Zurücklegen scheitert, nicht die Sicherung
+        if ".git" not in Path(dst).parts:  # only putting back fails, not the backup
             raise OSError("gesperrt")
         return real_copy(src, dst, *args, **kwargs)
 
@@ -933,7 +935,7 @@ def test_discard_partial_failure_reports_honestly_what_could_not_be_restored(
     assert "Zustand (Dateien und Vormerkung) wurde wiederhergestellt" not in hint
 
 
-# --- Wiederherstellen: Rollback und ignorierte Dateien -----------------------------------------
+# --- Restoring: rollback and ignored files -----------------------------------------
 
 
 def test_restore_version_failed_commit_rolls_back_completely(solo: Path, monkeypatch):
@@ -962,7 +964,7 @@ def test_restore_version_failed_commit_rolls_back_completely(solo: Path, monkeyp
 
 
 def ignored_setup(solo: Path) -> str:
-    """Ein früherer Stand verfolgt ``x.tmp``; jetzt ist die Datei ignoriert und lokal anders."""
+    """An earlier state tracks ``x.tmp``; now the file is ignored and differs locally."""
     (solo / ".gitignore").write_text("*.tmp\n", encoding="utf-8")
     (solo / "x.tmp").write_text("alt\n", encoding="utf-8")
     git(solo, "add", "-f", "-A")
@@ -1005,7 +1007,7 @@ def test_attributes_offer_lists_crlf_files_and_writes_nothing(solo: Path):
     (solo / "a" / "crlf.yaml").write_bytes(b"x: 1\r\ny: 2\r\n")
     (solo / "a" / "bericht.md").write_bytes(b"# ok\n")
     git(solo, "add", "-A")
-    git(solo, "commit", "-qm", "Mit CRLF")
+    git(solo, "commit", "-qm", "With CRLF")
     offer = gitmod.attributes_offer(solo)
     assert offer is not None
     assert offer.affected == ("a/crlf.yaml",)
@@ -1016,12 +1018,12 @@ def test_attributes_offer_lists_crlf_files_and_writes_nothing(solo: Path):
 def test_apply_attributes_goes_through_the_normal_commit(solo: Path):
     (solo / "a" / "crlf.yaml").write_bytes(b"x: 1\r\ny: 2\r\n")
     git(solo, "add", "-A")
-    git(solo, "commit", "-qm", "Mit CRLF")
+    git(solo, "commit", "-qm", "With CRLF")
     assert gitmod.apply_attributes(solo) is not None
-    assert gitmod.attributes_offer(solo) is None  # nichts mehr anzubieten
+    assert gitmod.attributes_offer(solo) is None  # nothing left to offer
     changed = {f for _, f in pending_changes(solo)}
     assert changed == {".gitattributes", "a/crlf.yaml"}
-    gitmod.commit_directory(solo, "Zeilenenden")
+    gitmod.commit_directory(solo, "Line endings")
     assert git(solo, "show", "HEAD:a/crlf.yaml", "--") == "x: 1\ny: 2"
     assert pending_changes(solo) == []
 
@@ -1029,7 +1031,7 @@ def test_apply_attributes_goes_through_the_normal_commit(solo: Path):
 def test_apply_attributes_extends_an_existing_file(solo: Path):
     (solo / ".gitattributes").write_bytes(b"*.yaml text eol=lf\n*.png binary")
     git(solo, "add", "-A")
-    git(solo, "commit", "-qm", "Attribute")
+    git(solo, "commit", "-qm", "Attributes")
     offer = gitmod.attributes_offer(solo)
     assert offer is not None and offer.rules == ("*.yml text eol=lf", "*.md text eol=lf")
     gitmod.apply_attributes(solo)
@@ -1042,13 +1044,13 @@ def test_no_attributes_offer_when_the_repository_already_covers_it(solo: Path):
         b"*.yaml text eol=lf\n*.yml text eol=lf\n*.md text eol=lf\n"
     )
     git(solo, "add", "-A")
-    git(solo, "commit", "-qm", "Attribute")
+    git(solo, "commit", "-qm", "Attributes")
     assert gitmod.attributes_offer(solo) is None
     assert gitmod.apply_attributes(solo) is None
 
 
 def test_attributes_offer_for_a_data_folder_inside_the_repository(solo: Path):
-    """Der Datenordner liegt tiefer: Die Datei kommt dorthin, nicht in die Repository-Wurzel."""
+    """The data folder lies deeper: the file goes there, not into the repository root."""
     data = solo / "a"
     offer = gitmod.attributes_offer(data)
     assert offer is not None and offer.file == data / ".gitattributes"

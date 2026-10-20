@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Verwerfen, Verlauf, Wiederherstellen und Tags mit echten Repositories."""
+"""Discard, history, restore and tags with real repositories."""
 
 from pathlib import Path
 
@@ -25,15 +25,15 @@ def test_discard_preview_and_single_file(alice: Person):
 
     trash = githistory.discard(alice.data, [A1])
     assert (alice.data / "a" / "2026.1.yaml").read_text() == "velocity: 10\nscope_creep: 1\n"
-    assert (alice.data / "a" / "neu.yaml").exists()  # andere Dateien unberührt
-    assert trash and (trash / A1).read_text().startswith("velocity: 99")  # Papierkorb
+    assert (alice.data / "a" / "neu.yaml").exists()  # other files untouched
+    assert trash and (trash / A1).read_text().startswith("velocity: 99")  # trash
 
 
 def test_discard_everything_including_new_and_deleted_files(alice: Person):
     alice.write("a/2026.1.yaml", "velocity: 99\n")
     alice.write("a/neu.yaml", "x: 1\n")
     (alice.data / "a" / "team.yaml").unlink()
-    git(alice.root, "add", "teams/a/neu.yaml")  # auch bereits vorgemerkte neue Datei
+    git(alice.root, "add", "teams/a/neu.yaml")  # also a new file that is already staged
     invalidate_status()
     githistory.discard(alice.data)
     assert git(alice.root, "status", "--porcelain") == ""
@@ -75,14 +75,14 @@ def test_restore_earlier_state_is_a_change_that_can_be_undone(alice: Person):
     start = githistory.history(alice.data, alice.data / "a")[-1]
     new = githistory.restore_version(alice.data, alice.data / "a", start.rev)
     assert (alice.data / "a" / "2026.1.yaml").read_text() == "velocity: 10\nscope_creep: 1\n"
-    assert not (alice.data / "a" / "2026.9.yaml").exists()  # gab es damals noch nicht
+    assert not (alice.data / "a" / "2026.9.yaml").exists()  # did not exist back then
     assert git(alice.root, "log", "-1", "--format=%s").startswith("Stand von")
     assert git(alice.root, "status", "--porcelain") == ""
-    # rückgängig machen
+    # undo
     githistory.revert_commit(alice.data, new)
     assert (alice.data / "a" / "2026.1.yaml").read_text() == "velocity: 11\nscope_creep: 1\n"
     assert (alice.data / "a" / "2026.9.yaml").exists()
-    # und die Wiederherstellung lässt sich teilen
+    # and the restore can be shared
     assert alice.sync("teilen").ok
 
 
@@ -94,7 +94,7 @@ def test_restore_single_file(alice: Person):
     old = githistory.history(alice.data, alice.data / "a" / "2026.1.yaml")[-1]
     githistory.restore_version(alice.data, alice.data / "a" / "2026.1.yaml", old.rev)
     assert (alice.data / "a" / "2026.1.yaml").read_text().startswith("velocity: 10")
-    assert (alice.data / "a" / "team.yaml").read_text() == "name: B\n"  # nur diese Datei
+    assert (alice.data / "a" / "team.yaml").read_text() == "name: B\n"  # only this file
 
 
 def test_restore_refuses_with_open_changes_or_no_difference(alice: Person):
@@ -134,7 +134,7 @@ def test_merges_cannot_be_reverted(alice: Person, bob: Person):
 
 def test_tags_set_later_listed_and_deleted_also_on_server(alice: Person, remote: Path):
     alice.write("a/2026.2.yaml", "velocity: 5\n")
-    assert alice.sync("Review 2026.2").ok  # ohne Tag
+    assert alice.sync("Review 2026.2").ok  # without tag
     first = githistory.history(alice.data)[-1]
     assert githistory.list_tags(alice.data) == []
     assert githistory.set_tag(alice.data, "a/2026.1", first.rev, "Review 2026.1") is None
@@ -142,7 +142,7 @@ def test_tags_set_later_listed_and_deleted_also_on_server(alice: Person, remote:
     assert [(t.name, t.target, t.subject) for t in tags] == [
         ("a/2026.1", first.short, "Review 2026.1")
     ]
-    assert "a/2026.1" in git(remote, "tag")  # nachträglich gesetzt und hochgeladen
+    assert "a/2026.1" in git(remote, "tag")  # set afterwards and uploaded
     with pytest.raises(GitError, match="existiert bereits"):
         githistory.set_tag(alice.data, "a/2026.1")
     with pytest.raises(GitError, match="Ungültiger"):
@@ -154,14 +154,14 @@ def test_tags_set_later_listed_and_deleted_also_on_server(alice: Person, remote:
 def test_tags_with_an_empty_subject_of_the_oldest_tag(
     alice: Person, monkeypatch: pytest.MonkeyPatch
 ):
-    """Die Liste der Tags kommt aus ``for-each-ref``; ``_git`` schneidet das Trennzeichen am Ende
-    der letzten Zeile ab. Ist der Betreff des ältesten Tags leer (ein Tag auf einen Commit ohne
-    Betreff), fehlt in dieser Zeile das letzte Feld."""
+    """The list of tags comes from ``for-each-ref``; ``_git`` strips the separator at the end
+    of the last line. If the subject of the oldest tag is empty (a tag on a commit without
+    a subject), the last field is missing in that line."""
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     git(alice.root, "add", "-A")
     monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T10:00:00")
     git(alice.root, "commit", "-q", "--allow-empty-message", "-m", "")
-    git(alice.root, "tag", "a/leer")  # leichtgewichtig: der Betreff ist der des Commits
+    git(alice.root, "tag", "a/leer")  # lightweight: the subject is the commit's
     alice.write("a/2026.3.yaml", "velocity: 6\n")
     git(alice.root, "add", "-A")
     monkeypatch.setenv("GIT_COMMITTER_DATE", "2021-01-01T10:00:00")
@@ -172,8 +172,8 @@ def test_tags_with_an_empty_subject_of_the_oldest_tag(
 
 
 def test_a_tag_message_with_a_unicode_line_separator_stays_one_tag(alice: Person):
-    """``str.splitlines`` trennt auch an U+2028 und ähnlichen Zeichen: Der Rest eines Betreffs
-    erschiene sonst als Geister-Tag, den man sogar auf dem Server löschen könnte."""
+    """``str.splitlines`` also splits at U+2028 and similar characters: the rest of a subject
+    would otherwise show up as a ghost tag that could even be deleted on the server."""
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     git(alice.root, "add", "-A")
     git(alice.root, "commit", "-qm", "Start")
@@ -184,8 +184,8 @@ def test_a_tag_message_with_a_unicode_line_separator_stays_one_tag(alice: Person
 
 @pytest.mark.usefixtures("no_login_prompt")
 def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Person):
-    """„Nur lokal erledigt“ zeigt die Warnung ohne Überschrift (``GitError.full()``): Sie nennt
-    die Ursache selbst, denn der Hinweis beginnt gleich mit dem nächsten Schritt."""
+    """The "Done locally only" warning shows without a heading (``GitError.full()``): it names
+    the cause itself, because the hint starts right away with the next step."""
     with serve(Denying) as port:
         git(alice.root, "remote", "set-url", "origin", f"http://127.0.0.1:{port}/r.git")
         warning = githistory.set_tag(alice.data, "a/lokal")
@@ -194,12 +194,12 @@ def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Perso
     assert text.startswith("Anmeldung fehlt oder wurde abgelehnt. ")
     assert text.count("fehlt oder wurde abgelehnt") == 1
     assert "Zugangstoken" in text and text.endswith("Danach noch einmal versuchen.")
-    assert [t.name for t in githistory.list_tags(alice.data)] == ["a/lokal"]  # Tag bleibt lokal
+    assert [t.name for t in githistory.list_tags(alice.data)] == ["a/lokal"]  # tag stays local
 
 
 def test_tag_upload_failure_is_a_warning_and_tag_stays(alice: Person, tmp_path: Path):
-    """Der Server ist ein Ordner auf einem Laufwerk, das gerade fehlt (ohne Netzwerk, ohne
-    Proxy): Hochladen und Löschen melden „nicht erreichbar“, der Tag bleibt lokal."""
+    """The server is a folder on a drive that is currently missing (no network, no proxy):
+    uploading and deleting report "not reachable", the tag stays local."""
     git(alice.root, "remote", "set-url", "origin", str(tmp_path / "getrennt" / "weg.git"))
     warning = githistory.set_tag(alice.data, "a/lokal")
     assert warning and warning.kind == "offline"
@@ -211,8 +211,8 @@ def test_tag_upload_failure_is_a_warning_and_tag_stays(alice: Person, tmp_path: 
 def test_tag_upload_and_delete_name_the_ssh_login_for_an_ssh_server(
     alice: Person, monkeypatch: pytest.MonkeyPatch
 ):
-    """Die Adresse des Servers erreicht auch bei Tags die Zuordnung: SSH-Anleitung statt der
-    Hilfe für https (Zugangstoken)."""
+    """The server address also drives the classification for tags: SSH instructions instead of
+    the help for https (access token)."""
     import subprocess
 
     git(alice.root, "tag", "-a", "-m", "m", "a/lokal")
@@ -239,8 +239,8 @@ MARKED = "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n
 
 
 def test_restore_refuses_a_state_with_conflict_markers_and_changes_nothing(alice: Person):
-    """Ein früher geteilter Fehlerstand (vor der Prüfung beim Committen) lässt sich nicht
-    wiederherstellen; der aktuelle Stand bleibt unverändert."""
+    """An earlier shared faulty state (before the check on commit) cannot be restored;
+    the current state stays unchanged."""
     alice.write("a/2026.1.yaml", MARKED)
     git(alice.root, "add", "-A")
     git(alice.root, "-c", "core.hooksPath=/dev/null", "commit", "-qm", "kaputt")
@@ -265,7 +265,7 @@ def test_revert_refuses_a_state_with_conflict_markers_and_changes_nothing(alice:
     repair = git(alice.root, "rev-parse", "--short", "HEAD")
     before = git(alice.root, "rev-parse", "HEAD")
     with pytest.raises(GitError) as caught:
-        githistory.revert_commit(alice.data, repair)  # würde die Markierungen zurückbringen
+        githistory.revert_commit(alice.data, repair)  # would bring the markers back
     assert caught.value.kind == "conflict"
     assert git(alice.root, "rev-parse", "HEAD") == before
     assert git(alice.root, "status", "--porcelain") == ""

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Kleine Git-Helfer für Commit und Sprint-Tag."""
+"""Small Git helpers for commits and sprint tags."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unicodedata
 from collections.abc import Callable, Iterable, Iterator
@@ -23,46 +24,45 @@ from sprintforecast.i18n import t
 
 _SCHEME = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*)://")
 _NAME_START = re.compile(r"[A-Za-z0-9._~-]+")
-_SCP_PASSWORD = re.compile(r"([^@/\\\s:]+):[^@/\\\s]*@")  # benutzer:kennwort@host:pfad
-# Der Rückblick statt ``\b`` ist wichtig: Ein Versuch beginnt nur am Anfang eines Wortes aus
-# Schema-Zeichen, nicht hinter jedem Punkt oder Bindestrich. Sonst läuft der Treffer bei langen
-# Zeilen wie „a.a.a.a. …“ an jeder Stelle bis zum Ende und zurück (quadratische Laufzeit).
+_SCP_PASSWORD = re.compile(r"([^@/\\\s:]+):[^@/\\\s]*@")  # user:password@host:path
+# The lookbehind instead of ``\b`` is important: an attempt only starts at the beginning of a word
+# of scheme characters, not after every dot or hyphen. Otherwise the match runs to the end and back
+# from every position on long lines such as "a.a.a.a. …" (quadratic running time).
 _URL_IN_TEXT = re.compile(r"(?i)(?<![a-z0-9+.-])[a-z][a-z0-9+.-]*://[^\s'\"<>]+")
 
 
 def public_url(url: str) -> str:
-    """Adresse ohne Zugangsdaten und ohne Zusätze nach ``?`` oder ``#`` (nur zur Anzeige).
-    Wirft nie und ist idempotent. Bei ssh bleibt der Benutzername erhalten, das Kennwort fällt
-    weg; lokale Pfade und jede von :func:`parse_remote_url` akzeptierte Adresse bleiben
-    unverändert."""
+    """Address without credentials and without anything after ``?`` or ``#`` (for display only).
+    Never raises and is idempotent. For ssh the user name is kept and the password dropped; local
+    paths and every address accepted by :func:`parse_remote_url` stay unchanged."""
     if scheme := _SCHEME.match(url):
         rest = url[scheme.end() :]
-        if (at := rest.rfind("@")) >= 0:  # alles bis zum letzten „@“ (auch im Pfad) fällt weg
+        if (at := rest.rfind("@")) >= 0:  # drop everything up to the last “@” (even in the path)
             removed, rest = rest[:at], rest[at + 1 :]
             if scheme.group(1).lower() == "ssh" and (user := _NAME_START.match(removed)):
                 rest = f"{user.group(0)}@{rest}"
         cut = [i for i in (rest.find("?"), rest.find("#")) if i >= 0]
         return url[: scheme.end()] + (rest[: min(cut)] if cut else rest)
-    if password := _SCP_PASSWORD.match(url):  # benutzer:kennwort@host:pfad
+    if password := _SCP_PASSWORD.match(url):  # user:password@host:path
         return f"{password.group(1)}@{url[password.end() :]}"
     return url
 
 
 def has_credentials(text: str) -> bool:
-    """Steckt in der Adresse etwas, das :func:`public_url` entfernen würde?"""
+    """Does the address contain anything that :func:`public_url` would remove?"""
     return public_url(text.strip()) != text.strip()
 
 
 def scrub(text: str) -> str:
-    """Ersetzt jede Adresse (``schema://…``) im Text durch ihre Anzeigefassung."""
+    """Replaces every address (``scheme://…``) in the text with its display form."""
     return _URL_IN_TEXT.sub(lambda m: public_url(m.group(0)), text)
 
 
-# Zeichen, die md_code durch ein Leerzeichen ersetzt: Steuerzeichen (Cc), Zeilen- und
-# Absatztrenner (Zl, Zp) und die Steuerzeichen der Schreibrichtung. Sie lassen Text anders
-# erscheinen, als er geschrieben ist (Umordnen, Zeilenumbruch). Die übrigen Formatzeichen (Cf)
-# bleiben: Der Zero-Width-Joiner (U+200D) hält Emoji-Folgen zusammen, der Zero-Width-Non-Joiner
-# (U+200C) gehört zur Schreibweise etwa persischer und indischer Namen.
+# Characters that md_code replaces with a space: control characters (Cc), line and paragraph
+# separators (Zl, Zp) and the writing-direction control characters. They make text appear
+# different from how it is written (reordering, line break). The remaining format characters (Cf)
+# stay: the zero-width joiner (U+200D) holds emoji sequences together, the zero-width non-joiner
+# (U+200C) is part of the spelling of, for example, Persian and Indian names.
 _BIDI_CONTROLS = frozenset(
     "\u061c\u200e\u200f"  # Arabic Letter Mark, Left-to-Right Mark, Right-to-Left Mark
     "\u202a\u202b\u202c\u202d\u202e"  # Embedding, Pop, Override
@@ -72,8 +72,8 @@ _BLANKED_CATEGORIES = frozenset({"Cc", "Zl", "Zp"})
 
 
 def blank_controls(text: str) -> str:
-    """Steuerzeichen, Zeilenumbrüche und Zeichen der Schreibrichtung werden zu Leerzeichen
-    (Text von außen für Ausgaben ohne Markdown, z. B. die Kommandozeile)."""
+    """Control characters, line breaks and writing-direction characters become spaces
+    (external text for output without Markdown, e.g. the command line)."""
     return "".join(
         " " if c in _BIDI_CONTROLS or unicodedata.category(c) in _BLANKED_CATEGORIES else c
         for c in text
@@ -81,20 +81,20 @@ def blank_controls(text: str) -> str:
 
 
 def md_plain(text: str) -> str:
-    """Fließtext, der in Markdown nie als Markdown wirkt: Jedes ASCII-Satzzeichen erhält einen
-    Backslash (so verlangt es CommonMark), damit weder Auszeichnung, Links, Bilder noch
-    Webadressen wie ``www.beispiel.de`` oder ``http://…`` etwas bewirken. Steuerzeichen und
-    Zeilenumbrüche werden wie bei :func:`md_code` zu Leerzeichen. Für Meldungen, die Namen aus
-    Dateien enthalten und sich im Text nicht einzeln als Code setzen lassen."""
+    """Plain text that never acts as Markdown: every ASCII punctuation character gets a
+    backslash (as CommonMark requires), so that neither emphasis, links, images nor web
+    addresses such as ``www.example.com`` or ``http://…`` have any effect. Control characters
+    and line breaks become spaces, as with :func:`md_code`. For messages that contain names
+    from files and cannot have each name set as code individually."""
     return re.sub(r"([!-/:-@\[-`{-~])", r"\\\1", blank_controls(text))
 
 
 def md_code(text: str) -> str:
-    """Text als Code-Span für Markdown. Namen und Adressen, die von außen kommen (Server,
-    Konfiguration), gehören nie als Fließtext in die Oberfläche: Dort würden Auszeichnungen
-    wirken und Webadressen wie ``www.beispiel.de/x`` zu Links. Backticks im Text lassen den
-    Span nicht enden; Steuerzeichen, Zeilenumbrüche und Zeichen der Schreibrichtung werden zu
-    Leerzeichen. Die übrigen unsichtbaren Zeichen (Emoji-Folgen, persische Namen) bleiben."""
+    """Text as a code span for Markdown. Names and addresses that come from outside (server,
+    configuration) never belong in the interface as plain text: emphasis would take effect there
+    and web addresses such as ``www.example.com/x`` would become links. Backticks in the text do
+    not end the span; control characters, line breaks and writing-direction characters become
+    spaces. The remaining invisible characters (emoji sequences, Persian names) stay."""
     text = blank_controls(text)
     if not text:
         return ""
@@ -105,67 +105,87 @@ def md_code(text: str) -> str:
 
 
 def md_code_lines(text: str) -> str:
-    """Wie :func:`md_code`, aber Zeile für Zeile (harte Zeilenumbrüche in Markdown): Die
-    mehrzeilige Ausgabe von Git bleibt lesbar. Leere Zeilen entfallen, ebenso Leerzeichen am
-    Zeilenende (der Server füllt seine ``remote:``-Zeilen damit auf)."""
+    """Like :func:`md_code`, but line by line (hard line breaks in Markdown): the multi-line
+    output of Git stays readable. Empty lines are dropped, as is whitespace at the end of a
+    line (the server pads its ``remote:`` lines with it)."""
     return "  \n".join(md_code(line.rstrip()) for line in text.splitlines() if line.strip())
 
 
 class GitError(Exception):
-    """Fehler eines Git-Aufrufs. ``kind`` benennt die Art (siehe :func:`classify`), ``hint`` ist
-    der nächste Schritt in Alltagssprache; ``str(error)`` bleibt die kurze Meldung. Meldung und
-    Hinweis enthalten nie Zugangsdaten aus einer Adresse (:func:`scrub`). ``raw`` heißt: Die
-    Meldung ist die Ausgabe von Git und vom Server (:func:`classify`), nicht ein eigener Text.
-    Darin stehen Namen und Zeilen, die andere bestimmen (``remote:``, Hooks, Tags, Branches)."""
+    """Error from a Git call. ``kind`` names the type (see :func:`classify`), ``hint`` is the
+    next step in everyday language; ``str(error)`` stays the short message. Message and hint
+    never contain credentials from an address (:func:`scrub`). ``raw`` means: the message is
+    the output of Git and the server (:func:`classify`), not a text of our own. It contains
+    names and lines that others determine (``remote:``, hooks, tags, branches)."""
 
     def __init__(
-        self, message: str, kind: str = "error", hint: str = "", raw: bool = False
+        self,
+        message: str,
+        kind: str = "error",
+        hint: str = "",
+        raw: bool = False,
+        hint_md: str = "",
     ) -> None:
         super().__init__(scrub(message))
         self.kind = kind
-        self.hint = scrub(hint)
+        self._hint = scrub(hint)
         self.raw = raw
+        # The hint for Markdown if it contains names from outside (otherwise ``hint`` itself).
+        self._hint_md = scrub(hint_md)
+
+    @property
+    def hint(self) -> str:
+        return self._hint
+
+    @hint.setter
+    def hint(self, value: str) -> None:
+        self._hint = value
+        self._hint_md = ""  # a hint set later also applies to Markdown
+
+    @property
+    def hint_md(self) -> str:
+        return self._hint_md or self._hint
 
     def render(self, quote: Callable[[str], str] = str) -> str:
-        """Die Meldung für die Oberfläche: Die Ausgabe von Git (``raw``) geht durch ``quote``
-        (z. B. :func:`md_code_lines` für Markdown), eigene Texte bleiben, wie sie sind."""
+        """The message for the interface: the output of Git (``raw``) goes through ``quote``
+        (e.g. :func:`md_code_lines` for Markdown), our own texts stay as they are."""
         return quote(str(self)) if self.raw else str(self)
 
     def full(self, quote: Callable[[str], str] = str) -> str:
-        """Meldung samt nächstem Schritt – für Stellen ohne Überschrift (``title_for``). Bei
-        einem Anmeldefehler steht die Ursache voran: Der Hinweis (:func:`auth_help`) beginnt
-        gleich mit dem nächsten Schritt, weil die Überschrift sie sonst nennt. ``quote`` wirkt
-        wie bei :meth:`render` nur auf die Meldung, nie auf Ursache und Hinweis."""
+        """Message including the next step – for places without a heading (``title_for``). For a
+        login error the cause comes first: the hint (:func:`auth_help`) starts right with the
+        next step, because the heading would otherwise name it. As with :meth:`render`, ``quote``
+        applies only to the message, never to cause and hint."""
         cause = f"{title_for(self.kind)}." if self.kind == "auth" and self.hint else ""
         return " ".join(part for part in (cause, self.render(quote), self.hint) if part).strip()
 
 
-# Tabellenkalkulationen dürfen nie committet werden (können echte Team-Daten enthalten).
+# Spreadsheets must never be committed (they may contain real team data).
 FORBIDDEN = re.compile(r"\.xls[xm]?$", re.IGNORECASE)
-# Datendateien, die nie mit Konfliktmarkierungen committet werden.
+# Data files that are never committed with conflict markers.
 DATA_FILES = re.compile(r"\.ya?ml$", re.IGNORECASE)
 
 
-# Windows: keine Konsolenfenster für Hilfsprozesse (sonst blitzt bei jedem Aufruf eines auf).
+# Windows: no console windows for helper processes (otherwise one flashes up on every call).
 NO_WINDOW: dict = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
 
 _ROOT_CACHE: dict[Path, tuple[float, Path | None, GitError | None]] = {}
 _ROOT_TTL = 30.0
 
 
-# --- Git finden -----------------------------------------------------------------------
-# Wer keine Administratorrechte hat, installiert Git oft nur für das eigene Benutzerkonto; das
-# steht unmittelbar danach noch nicht im PATH der laufenden App (oder des Starters). Darum
-# sucht die App an den üblichen Orten nach und ruft Git dann mit vollem Pfad auf. Der PATH der
-# Unterprozesse bleibt unverändert: Git findet seine Hilfsprogramme (Anmeldeverwaltung, ssh)
-# über den eigenen Programmordner.
+# --- Finding Git -----------------------------------------------------------------------
+# Without administrator rights, people often install Git only for their own user account; right
+# afterwards it is not yet in the PATH of the running app (or of the launcher). That is why the
+# app searches the usual places and then calls Git with its full path. The PATH of the
+# subprocesses stays unchanged: Git finds its helper programs (credential manager, ssh)
+# through its own program folder.
 
-_FOUND: str | None = None  # zuletzt gefundener Pfad außerhalb des PATH
-_BROKEN: dict[str, float] = {}  # Pfade, die sich nicht starten ließen (seit wann, monotonic)
+_FOUND: str | None = None  # most recently found path outside the PATH
+_BROKEN: dict[str, float] = {}  # paths that could not be started (since when, monotonic)
 
 
 def git_locations() -> list[Path]:
-    """Orte, an denen außer im PATH nach Git gesucht wird (in dieser Reihenfolge)."""
+    """Places where Git is searched for besides the PATH (in this order)."""
     home = Path.home()
     if sys.platform == "win32":
         places: list[Path] = []
@@ -190,20 +210,20 @@ def git_locations() -> list[Path]:
 
 
 def find_git() -> str | None:
-    """Pfad zu Git: zuerst im PATH, sonst an den Orten aus :func:`git_locations`; ``None``, wenn
-    es Git nirgends gibt. Ein Fund außerhalb des PATH wird gemerkt (solange die Datei besteht);
-    ein Misserfolg nicht, damit eine frische Installation sofort gefunden wird."""
+    """Path to Git: first in the PATH, otherwise in the places from :func:`git_locations`;
+    ``None`` if Git is nowhere to be found. A find outside the PATH is remembered (as long as the
+    file exists); a failure is not, so that a fresh installation is found immediately."""
     global _FOUND
     broken = _active_broken()
-    # Ein leerer oder „.“-Eintrag im PATH liefert einen relativen Treffer (Arbeitsordner).
+    # An empty or "." entry in the PATH yields a relative hit (the working folder).
     if (found := shutil.which("git")) and os.path.abspath(found) not in broken:
         return os.path.abspath(found)
-    if found:  # der erste Treffer ist unbrauchbar: weitere Einträge des PATH prüfen
+    if found:  # the first hit is unusable: check further PATH entries
         for folder in os.get_exec_path():
             hit = shutil.which("git", path=folder) if folder else None
             if hit and os.path.abspath(hit) not in broken:
                 return os.path.abspath(hit)
-    cached = _FOUND  # in einem Schritt gelesen: ein anderer Thread darf zurücksetzen
+    cached = _FOUND  # read in one step: another thread may reset it
     if cached and cached not in broken and os.path.isfile(cached):
         return cached
     _FOUND = None
@@ -218,15 +238,15 @@ def find_git() -> str | None:
 
 
 def reset_git_cache() -> None:
-    """Vergisst den gemerkten Git-Pfad und die als unbrauchbar erkannten (für Tests und nach
-    einer Neuinstallation)."""
+    """Forgets the remembered Git path and those recognised as unusable (for tests and after
+    a reinstallation)."""
     global _FOUND
     _FOUND = None
     _BROKEN.clear()
 
 
 def broken_git() -> str:
-    """Pfad des zuletzt als unbrauchbar erkannten Git (leer, wenn es keines gibt)."""
+    """Path of the Git most recently recognised as unusable (empty if there is none)."""
     return next(reversed(_active_broken()), "")
 
 
@@ -235,8 +255,8 @@ def _now() -> float:
 
 
 def _active_broken() -> dict[str, float]:
-    """Die Pfade, die noch als unbrauchbar gelten (Kopie in Einfügereihenfolge): Eine Sperre
-    verfällt nach ``_BROKEN_TTL`` Sekunden, dann wird der Pfad erneut versucht."""
+    """The paths that still count as unusable (copy in insertion order): a block expires
+    after ``_BROKEN_TTL`` seconds, then the path is tried again."""
     now = _now()
     return {path: since for path, since in list(_BROKEN.items()) if now - since < _BROKEN_TTL}
 
@@ -246,27 +266,27 @@ def _mark_broken(executable: str) -> None:
     _FOUND = None
     if executable != "git":
         path = os.path.abspath(executable)
-        _BROKEN.pop(path, None)  # ans Ende der Reihenfolge, mit neuer Frist
+        _BROKEN.pop(path, None)  # to the end of the order, with a new deadline
         _BROKEN[path] = _now()
 
 
 def _started(executable: str) -> None:
-    """Git ließ sich starten: eine frühere Sperre dieses Pfads entfällt."""
+    """Git could be started: an earlier block on this path is lifted."""
     if _BROKEN:
         _BROKEN.pop(os.path.abspath(executable), None)
 
 
 def _not_startable(executable: str) -> GitError:
-    """Fehler für einen Git-Aufruf, der sich nicht starten ließ (fehlt, defekt, kein Zugriff,
-    falsches Format, Windows-Store-Alias). Der Pfad gilt vorübergehend als unbrauchbar: Die Suche
-    wählt dann den nächsten Kandidaten (weiterer PATH-Eintrag, Ersatzort)."""
+    """Error for a Git call that could not be started (missing, damaged, no access, wrong
+    format, Windows Store alias). The path temporarily counts as unusable: the search then
+    picks the next candidate (further PATH entry, fallback location)."""
     _mark_broken(executable)
     return classify("", missing=True, broken="" if executable == "git" else executable)
 
 
-# Fehler beim Start, die das Programm dauerhaft unbrauchbar machen: nicht gefunden, kein Zugriff,
-# kein gültiges Programm. Andere (E2BIG: zu lange Argumente, ETXTBSY: Datei gerade geschrieben,
-# EMFILE, ENOMEM, EAGAIN …) sind vorübergehend oder betreffen nicht das Programm.
+# Errors at startup that make the program permanently unusable: not found, no access, not a
+# valid program. Others (E2BIG: arguments too long, ETXTBSY: file currently being written,
+# EMFILE, ENOMEM, EAGAIN …) are temporary or do not concern the program.
 _PROGRAM_ERRNOS = frozenset(
     code
     for code in (
@@ -278,18 +298,18 @@ _PROGRAM_ERRNOS = frozenset(
     )
     if code is not None
 )
-# Windows: nicht gefunden (2), Zugriff verweigert (5), kein gültiges Programm (193), Erhöhung
-# nötig (740), Anwendung nicht ausführbar (1260).
+# Windows: not found (2), access denied (5), not a valid program (193), elevation required
+# (740), application cannot be run (1260).
 _PROGRAM_WINERRORS = frozenset({2, 5, 193, 740, 1260})
 _BROKEN_TTL = 60.0
-# Ein Aufruf versucht es nach einem Startfehler am Programm höchstens einmal mit dem nächsten
-# Kandidaten (kein Endlosversuch).
+# After a startup failure of the program, a call tries the next candidate at most once
+# (no endless retrying).
 _START_ATTEMPTS = 2
 
 
 def _program_failed(error: OSError, executable: str) -> bool:
-    """Macht der Fehler beim Start das Programm selbst dauerhaft unbrauchbar? Auf POSIX trägt
-    jeder ``execve``-Fehler den Programmpfad als Dateinamen; entscheidend ist daher die Art."""
+    """Does the startup error make the program itself permanently unusable? On POSIX every
+    ``execve`` error carries the program path as its file name; the kind is therefore decisive."""
     name = None if error.filename is None else os.fspath(error.filename)
     winerror = getattr(error, "winerror", None)
     if winerror in _PROGRAM_WINERRORS and name in (None, executable):
@@ -298,8 +318,8 @@ def _program_failed(error: OSError, executable: str) -> bool:
 
 
 def _retry_with_next(error: OSError, executable: str) -> bool:
-    """Sperrt den Pfad, wenn der Fehler das Programm betrifft, und sagt, ob ein anderer
-    Kandidat zur Verfügung steht, mit dem der Aufruf noch einmal versucht werden kann."""
+    """Blocks the path if the error concerns the program, and says whether another candidate
+    is available with which the call can be tried once more."""
     if not _program_failed(error, executable):
         return False
     _mark_broken(executable)
@@ -308,11 +328,11 @@ def _retry_with_next(error: OSError, executable: str) -> bool:
 
 
 def _start_failed(error: OSError, executable: str) -> NoReturn:
-    """Deutet einen ``OSError`` beim Start von Git. Betrifft er das Programm
-    (:func:`_program_failed`), gilt es als unbrauchbar (:func:`_not_startable`). Sonstige
-    Fehler – Arbeitsordner fehlt oder ist kein Ordner, zu lange Argumente, zu viele offene
-    Dateien, kein Speicher – sperren Git nicht: Ein fehlender Ordner gilt wie bisher als „Git
-    fehlt“, alles andere wird unverändert weitergereicht."""
+    """Interprets an ``OSError`` when starting Git. If it concerns the program
+    (:func:`_program_failed`), the program counts as unusable (:func:`_not_startable`). Other
+    errors – working folder missing or not a folder, arguments too long, too many open files,
+    out of memory – do not block Git: a missing folder counts as “Git is missing”, as before,
+    everything else is passed on unchanged."""
     if _program_failed(error, executable):
         raise _not_startable(executable) from error
     if isinstance(error, FileNotFoundError):
@@ -321,24 +341,24 @@ def _start_failed(error: OSError, executable: str) -> NoReturn:
 
 
 def git_command(*args: str) -> list[str]:
-    """Befehlszeile für einen Git-Aufruf. Fehlt Git ganz, bleibt es bei ``git``: Der Aufruf
-    scheitert dann mit ``FileNotFoundError``; jeder ``OSError`` beim Start gilt den Aufrufern
-    als „Git fehlt oder ist unbrauchbar“ (:func:`_not_startable`). Ist nur Unbrauchbares da,
-    wird dessen Pfad noch einmal versucht: So nennt die Meldung ihn."""
+    """Command line for a Git call. If Git is missing entirely, it stays at ``git``: the call
+    then fails with ``FileNotFoundError``; any ``OSError`` at startup counts for the callers
+    as “Git is missing or unusable” (:func:`_not_startable`). If only unusable ones exist,
+    their path is tried once more: that way the message names it."""
     return [find_git() or broken_git() or "git", *args]
 
 
-# Netzwerkaufrufe (fetch, push, clone) dürfen nie ewig hängen oder im Hintergrund nach einem
-# Kennwort fragen: Es gibt kein Terminal, in dem man antworten könnte.
+# Network calls (fetch, push, clone) must never hang forever or ask for a password in the
+# background: there is no terminal in which anyone could answer.
 NETWORK_TIMEOUT = 90.0
 
 
 def _env(network: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
-    """Umgebung für Git: englische Meldungen (damit sie sich erkennen lassen) und bei
-    Netzwerkaufrufen keine Rückfrage im Terminal. Anmeldehelfer (Credential Manager) laufen
-    weiter. Ablaufprotokolle (``GIT_TRACE*``, ``GIT_CURL_VERBOSE``) werden entfernt: Sie würden
-    Anmelde-Kopfzeilen in die Fehlerausgabe schreiben. ``extra`` kommt zuletzt dazu."""
-    # Pfade sind nie Suchmuster: Dateinamen mit *, ? oder [ bleiben wörtlich gemeint.
+    """Environment for Git: English messages (so that they can be recognised) and, for
+    network calls, no prompt in the terminal. Credential helpers (credential manager) keep
+    running. Trace logs (``GIT_TRACE*``, ``GIT_CURL_VERBOSE``) are removed: they would write
+    login headers into the error output. ``extra`` is added last."""
+    # Paths are never search patterns: file names with *, ? or [ are meant literally.
     env = {
         name: value
         for name, value in os.environ.items()
@@ -350,29 +370,133 @@ def _env(network: bool, extra: dict[str, str] | None = None) -> dict[str, str]:
     return env | (extra or {})
 
 
+# Running Git calls per folder, so that a hanging sync can be ended from outside
+# (:func:`abort_running`). The key is the resolved working folder of the call.
+_ACTIVE_LOCK = threading.Lock()
+_ACTIVE: dict[Path, dict[subprocess.Popen, int]] = {}  # process → thread that started it
+# Folder → threads whose Git call was aborted. Only they feel the abort; it ends with the
+# sync (:func:`end_sync`), other threads (display) keep reading.
+_ABORTED: dict[Path, set[int]] = {}
+_HOLDERS: dict[Path, int] = {}  # folder → thread currently running its sync
+
+
+def _key(cwd: Path) -> Path:
+    return Path(cwd).resolve()
+
+
+def _aborted_here(cwd: Path) -> bool:
+    with _ACTIVE_LOCK:
+        return threading.get_ident() in _ABORTED.get(_key(cwd), ())
+
+
+def _raise_if_aborted(cwd: Path) -> None:
+    if _aborted_here(cwd):
+        raise GitError(t("The sync was aborted."), "aborted", hint_for("aborted"))
+
+
+def begin_sync(cwd: Path) -> None:
+    """The calling thread now runs the sync of this folder: only its Git calls can be ended
+    by :func:`abort_running`."""
+    with _ACTIVE_LOCK:
+        _HOLDERS[_key(cwd)] = threading.get_ident()
+        _ABORTED.pop(_key(cwd), None)
+
+
+def end_sync(cwd: Path) -> None:
+    """The sync is over: holder and abort mark expire (thread numbers are reused and must
+    not inherit anything)."""
+    with _ACTIVE_LOCK:
+        _HOLDERS.pop(_key(cwd), None)
+        _ABORTED.pop(_key(cwd), None)
+
+
+def abort_running(cwd: Path) -> bool:
+    """Ends the running Git calls of this folder's sync (including child processes). Its
+    thread starts no new call until :func:`end_sync`. ``True`` if a call was running. Files
+    such as ``index.lock`` are never removed; an aborted Git reports them as ``locked``."""
+    key = _key(cwd)
+    with _ACTIVE_LOCK:
+        holder = _HOLDERS.get(key)  # readers in other threads (status, log, diff) are left alone
+        running = [
+            p for p, ident in _ACTIVE.get(key, {}).items() if ident == holder and p.poll() is None
+        ]
+        if running:
+            _ABORTED.setdefault(key, set()).add(holder)
+    for process in running:
+        proctree.terminate_tree(process, timeout=5)
+    return bool(running)
+
+
+def _run_tracked(
+    command: list[str],
+    cwd: Path,
+    *,
+    timeout: float,
+    env: dict[str, str],
+    stdin_text: str | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Like ``subprocess.run`` with a time limit, but the process can be found by
+    :func:`abort_running` and runs in its own process group, so that the whole tree can be ended."""
+    key = _key(cwd)
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdin=subprocess.DEVNULL if stdin_text is None else subprocess.PIPE,
+        env=env,
+        **{**proctree.popen_options(), **NO_WINDOW},
+    )
+    ident = threading.get_ident()
+    with _ACTIVE_LOCK:
+        _ACTIVE.setdefault(key, {})[process] = ident
+        late = ident in _ABORTED.get(key, ())  # aborted while the process was starting
+    try:
+        if late:
+            proctree.terminate_tree(process, timeout=5)
+        try:
+            out, err = process.communicate(stdin_text, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proctree.terminate_tree(process)
+            # Pipes can be kept open by grandchildren (ssh): do not wait forever
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                process.communicate(timeout=5)
+            raise
+        return subprocess.CompletedProcess(command, process.returncode, out, err)
+    except BaseException:
+        if process.poll() is None:
+            proctree.terminate_tree(process)
+        raise
+    finally:
+        with _ACTIVE_LOCK:
+            _ACTIVE.get(key, {}).pop(process, None)
+            if not _ACTIVE.get(key):
+                _ACTIVE.pop(key, None)
+
+
 def _git_result(
     cwd: Path,
     *args: str,
     network: bool = False,
     timeout: float | None = None,
     env_extra: dict[str, str] | None = None,
+    stdin_text: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
-    „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
+    """Runs ``git`` and returns the result including the return code (no error check); only
+    “git is missing” and timeouts come as :class:`GitError`."""
+    _raise_if_aborted(cwd)
     for attempt in range(_START_ATTEMPTS):
         command = git_command(*args)
         try:
-            result = subprocess.run(
+            result = _run_tracked(
                 command,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                stdin=subprocess.DEVNULL,
-                env=_env(network, env_extra),
+                cwd,
                 timeout=timeout or (NETWORK_TIMEOUT if network else 120),
-                **NO_WINDOW,
+                env=_env(network, env_extra),
+                stdin_text=stdin_text,
             )
         except subprocess.TimeoutExpired as e:
             raise classify("", timeout=True) from e
@@ -381,6 +505,7 @@ def _git_result(
                 continue
             _start_failed(e, command[0])
         _started(command[0])
+        _raise_if_aborted(cwd)  # an ended Git reports nothing useful (code -15)
         return result
     raise AssertionError("unreachable")
 
@@ -395,70 +520,72 @@ def _git(
     env_extra: dict[str, str] | None = None,
     url: str = "",
 ) -> str:
-    """Führt ``git`` aus. Bei Fehlern :class:`GitError` mit erkannter Art und nächstem Schritt;
-    mit ``check=False`` wird bei Fehlern statt einer Ausnahme ein leerer Text geliefert. ``url``
-    ist bei Netzwerkaufrufen die Adresse des Servers: Sie bestimmt die Anmelde-Hilfe (SSH oder
-    https, siehe :func:`classify`)."""
+    """Runs ``git``. On errors a :class:`GitError` with the recognised kind and next step;
+    with ``check=False`` an empty text is returned instead of an exception. For network calls
+    ``url`` is the address of the server: it determines the login help (SSH or https, see
+    :func:`classify`)."""
     proc = _git_result(cwd, *args, network=network, timeout=timeout, env_extra=env_extra)
     if proc.returncode != 0:
         if not check:
             return ""
-        raise classify(proc.stderr.strip() or proc.stdout.strip(), url=url)
+        raise classify(proc.stderr.strip() or proc.stdout.strip(), url=url, cwd=cwd)
     return proc.stdout.strip() if strip else proc.stdout
 
 
 def split_record(line: str, count: int, sep: str = "\x1f") -> list[str]:
-    """Zerlegt eine Zeile mit ``sep`` getrennter Felder in genau ``count`` Felder. ``_git``
-    schneidet Leerraum am Ende der Ausgabe ab, und dazu zählt auch das Trennzeichen \\x1f: Ist
-    das letzte Feld der letzten Zeile leer (etwa der Betreff eines Commits ohne Text), fehlt es
-    in der Zeile. Fehlende Felder am Ende gelten als leer."""
+    """Splits a line of ``sep``-separated fields into exactly ``count`` fields. ``_git``
+    strips whitespace at the end of the output, and that includes the separator \\x1f: if the
+    last field of the last line is empty (e.g. the subject of a commit without text), it is
+    missing from the line. Missing fields at the end count as empty."""
     fields = line.split(sep, count - 1)
     return fields + [""] * (count - len(fields))
 
 
 def split_z(out: str) -> list[str]:
-    """Zerlegt NUL-getrennte Git-Ausgabe (``-z``) in ihre Einträge. Nur so bleiben Pfade mit
-    Umlauten, Anführungszeichen oder Tabulatoren unverändert (ohne ``-z`` setzt Git sie in
-    Anführungszeichen und maskiert Sonderzeichen)."""
+    """Splits NUL-separated Git output (``-z``) into its entries. Only this way do paths with
+    umlauts, quotation marks or tabs stay unchanged (without ``-z`` Git puts them in
+    quotation marks and escapes special characters)."""
     return [item for item in out.split("\0") if item]
 
 
 def check_name(name: str) -> str:
-    """Prüft einen Tag-Namen, der an Git übergeben wird: er darf nicht mit ``-`` beginnen (Git
-    läse ihn sonst als Option), nicht ``HEAD`` oder ``@`` heißen (für Git mehrdeutig) und keine
-    Leerzeichen am Anfang oder Ende haben (sie werden nicht still entfernt, sonst entstünde ein
-    anderer Name als der eingegebene). Gibt den Namen unverändert zurück."""
+    """Checks a tag name that is passed to Git: it must not start with ``-`` (Git would
+    otherwise read it as an option), must not be called ``HEAD`` or ``@`` (ambiguous for Git)
+    and must not have whitespace at the beginning or end (it is not silently removed, otherwise
+    a different name than the one entered would result). Returns the name unchanged."""
     if not name.strip() or name != name.strip() or name.startswith("-") or name in {"HEAD", "@"}:
-        raise GitError(t("Ungültiger Tag-Name: {name}", name=name))
+        raise GitError(t("Invalid tag name: {name}", name=name))
     return name
 
 
 def valid_tag_name(root: Path, name: str) -> str:
-    """Wie :func:`check_name`, prüft aber zusätzlich mit Git, ob der Referenzname gültig ist."""
+    """Like :func:`check_name`, but additionally asks Git whether the ref name is valid."""
     name = check_name(name)
     if _git_result(root, "check-ref-format", f"refs/tags/{name}").returncode != 0:
-        raise GitError(t("Ungültiger Tag-Name: {name}", name=name))
+        raise GitError(t("Invalid tag name: {name}", name=name))
     return name
 
 
 def tag_commit(root: Path, name: str) -> str:
-    """Voller Hash des Commits, auf den der lokale Tag zeigt (leer = es gibt ihn nicht)."""
+    """Full hash of the commit the local tag points to (empty = it does not exist)."""
     return _git(
         root, "rev-parse", "--verify", "--quiet", f"refs/tags/{name}^{{commit}}", check=False
     )
 
 
 def check_new_tags(root: Path, tags: list[str] | None) -> list[str]:
-    """Prüft Tag-Namen VOR einem Commit: gültig und lokal noch nicht vergeben (ein vorhandener
-    Tag zeigt nie auf den neuen Commit). Bei einem Konflikt :class:`GitError`; dann ist noch
-    nichts verändert. Gibt die Namen ohne Doppelte zurück."""
+    """Checks tag names BEFORE a commit: valid and not yet taken locally (an existing tag
+    never points to the new commit). On a conflict :class:`GitError`; nothing has been changed
+    then. Returns the names without duplicates."""
     names = list(dict.fromkeys(valid_tag_name(root, tag) for tag in tags or []))
     for name in names:
         if existing := tag_commit(root, name):
             raise GitError(
                 t(
-                    "Der Tag {name} gibt es auf diesem Rechner schon (er zeigt auf {rev}). "
-                    "Es wurde nichts committet.",
+                    (
+                        "The tag {name} already exists on this computer (it points to {rev}). "
+                        "Nothing was committed."
+                    ),
                     name=name,
                     rev=existing[:7],
                 ),
@@ -469,9 +596,9 @@ def check_new_tags(root: Path, tags: list[str] | None) -> list[str]:
 
 
 def ensure_tags(root: Path, tags: list[str] | None, message: str) -> tuple[list[str], list[str]]:
-    """Setzt fehlende Tags auf den aktuellen Stand (HEAD), ohne neuen Commit – etwa wenn ein
-    früherer Versuch den Commit schrieb, den Tag aber nicht. Liefert (neu gesetzte Tags, Tags,
-    die schon auf einem anderen Stand liegen und unverändert bleiben)."""
+    """Sets missing tags on the current state (HEAD), without a new commit – e.g. when an
+    earlier attempt wrote the commit but not the tag. Returns (newly set tags, tags that
+    already sit on a different state and stay unchanged)."""
     names = list(dict.fromkeys(valid_tag_name(root, tag) for tag in tags or []))
     head = _git(root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}", check=False)
     created: list[str] = []
@@ -492,7 +619,7 @@ def ensure_tags(root: Path, tags: list[str] | None, message: str) -> tuple[list[
 
 
 def _git_bytes(cwd: Path, *args: str) -> bytes:
-    """Wie :func:`_git`, liefert aber die rohe Ausgabe (z. B. ein Archiv)."""
+    """Like :func:`_git`, but returns the raw output (e.g. an archive)."""
     for attempt in range(_START_ATTEMPTS):
         command = git_command(*args)
         try:
@@ -518,10 +645,10 @@ def _git_bytes(cwd: Path, *args: str) -> bytes:
     return proc.stdout
 
 
-# Der Rechner kennt den SSH-Server noch nicht oder sein Schlüssel hat sich geändert.
+# The computer does not know the SSH server yet or its key has changed.
 _HOST_KEY = re.compile(r"Host key verification failed|REMOTE HOST IDENTIFICATION HAS CHANGED", re.I)
-# Der Server antwortet, aber es gibt das Repository unter dieser Adresse nicht (oder er
-# verschweigt es mangels Berechtigung): GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, https-404.
+# The server answers, but the repository does not exist at this address (or it conceals it
+# for lack of permission): GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, https 404.
 _NOT_FOUND = re.compile(
     r"does not appear to be a git repository|repository '[^']*' (not found|does not exist)|"
     r"returned error: 404|Repository not found|Project not found|remote: Not Found|"
@@ -529,20 +656,20 @@ _NOT_FOUND = re.compile(
     r"TF401019|does not exist or you do not have permission",
     re.I,
 )
-# Das Zertifikat des Servers wird vom Rechner nicht anerkannt (Firmenzertifikat, selbst
-# ausgestellt): Der Server antwortet, Internet oder VPN zu prüfen nützt nichts.
+# The computer does not accept the server's certificate (company certificate, self-issued):
+# the server answers, so checking the internet or VPN is of no use.
 _CERTIFICATE = re.compile(
     r"SSL certificate problem|certificate verification failed|SEC_E_UNTRUSTED_ROOT|"
     r"SEC_E_CERT_|CRYPT_E_|no alternative certificate subject name",
     re.I,
 )
 
-# Git konnte im eigenen Dateisystem nichts schreiben. Verlangt wird eine ganze Zeile, die mit
-# dem Vorgang beginnt und auf den Fehler endet („error: unable to create file x: Permission
-# denied“): „Permission denied“ allein steht auch bei „ssh: connect to host … Permission
-# denied“ (Verbindung gesperrt), „Load key …: Permission denied“ und „remote: Permission
-# denied“ (Hook des Servers) und gehört dort zu offline, auth bzw. denied. Meldungen des Servers
-# beginnen mit „remote:“ und passen deshalb nicht.
+# Git could not write anything in its own file system. A whole line is required that starts
+# with the operation and ends with the error (“error: unable to create file x: Permission
+# denied”): “Permission denied” alone also appears in “ssh: connect to host … Permission
+# denied” (connection blocked), “Load key …: Permission denied” and “remote: Permission
+# denied” (server hook) and belongs to offline, auth or denied there. Messages from the
+# server start with “remote:” and therefore do not match.
 _NOT_WRITABLE = re.compile(
     r"^(?:error: |fatal: )?"
     r"(?:unable to (?:create|open|write)\b|could not (?:lock|create|write|open)\b|"
@@ -551,10 +678,27 @@ _NOT_WRITABLE = re.compile(
     re.I | re.M,
 )
 
-# Erkennungsmuster in der Reihenfolge der Prüfung (englische Git-Meldungen, siehe _env). Was der
-# Server über das Repository sagt (nicht gefunden, Zertifikat), steht vor „offline“: Git hängt
-# an solche Meldungen „Could not read from remote repository“ an und beginnt sie mit „unable to
-# access“.
+# Detection patterns in the order they are checked (English Git messages, see _env). What the
+# server says about the repository (not found, certificate) comes before “offline”: Git appends
+# “Could not read from remote repository” to such messages and starts them with “unable to
+# access”.
+_OFFLINE_REST = (
+    r"Could not resolve host|Failed to connect|Connection (timed out|refused|reset)|"
+    r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
+    r"name resolution|ssh: connect to host|Connection closed by"
+)
+_OFFLINE = re.compile(_OFFLINE_REST, re.I)
+_BARE_READ = re.compile(r"Could not read from remote repository", re.I)
+
+
+def _refused_hint() -> str:
+    return t(
+        "The server did not fulfil the request. Please check the address (typo in the "
+        "project name?) and the permission. The message from Git is under “Technical "
+        "message”."
+    )
+
+
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "identity",
@@ -565,14 +709,14 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
     ("unsafe_directory", re.compile(r"detected dubious ownership", re.I)),
-    # Ein anderes Programm hält die Datei; Windows meldet das oft als „Permission denied“.
+    # Another program holds the file; Windows often reports this as “Permission denied”.
     (
         "locked",
         re.compile(r"unable to unlink|Device or resource busy|being used by another process", re.I),
     ),
-    # Kein Schreibrecht im eigenen Dateisystem (siehe _NOT_WRITABLE), nicht irgendein
-    # „Permission denied“: Das steht auch bei der SSH-Anmeldung, beim Verbindungsaufbau und in
-    # Meldungen des Servers.
+    # No write permission in its own file system (see _NOT_WRITABLE), not just any
+    # “Permission denied”: that also appears at SSH login, when connecting and in messages
+    # from the server.
     ("not_writable", _NOT_WRITABLE),
     (
         "locked",
@@ -591,16 +735,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
     ("not_found", _NOT_FOUND),
     ("certificate", _CERTIFICATE),
-    (
-        "offline",
-        re.compile(
-            r"Could not resolve host|Failed to connect|Connection (timed out|refused|reset)|"
-            r"Network is unreachable|unable to access|Operation timed out|Temporary failure in "
-            r"name resolution|Could not read from remote repository|ssh: connect to host|"
-            r"Connection closed by",
-            re.I,
-        ),
-    ),
+    ("offline", _OFFLINE),
     (
         "denied",
         re.compile(
@@ -650,12 +785,11 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 
 def _missing_folder(url: str) -> bool:
-    """Ist die Adresse des Servers ein vollständiger Ordnerpfad (auch Netzfreigabe), dessen
-    übergeordneter Ordner auf diesem Rechner fehlt? Dann ist das Laufwerk weg (nicht verbunden,
-    VPN aus, Stick abgezogen, Freigabe nicht erreichbar), und Git meldet trotzdem „does not
-    appear to be a git repository“: Das ist „nicht erreichbar“, keine falsche Adresse. Ist der
-    übergeordnete Ordner da, antwortet der Server und das Repository gibt es dort wirklich nicht
-    (nicht gefunden)."""
+    """Is the server address a complete folder path (including a network share) whose parent
+    folder is missing on this computer? Then the drive is gone (not connected, VPN off, stick
+    removed, share unreachable), and Git still reports “does not appear to be a git
+    repository”: that is “not reachable”, not a wrong address. If the parent folder is there,
+    the server answers and the repository really does not exist there (not found)."""
     if not url or "://" in url:
         return False
     try:
@@ -666,56 +800,58 @@ def _missing_folder(url: str) -> bool:
 
 
 def remote_url(root: Path, remote: str) -> str:
-    """Gespeicherte Adresse des Servers ``remote`` (leer, wenn es keine gibt): Sie gehört zu den
-    Netzwerkaufrufen, damit :func:`classify` Anmeldehilfe und Ordnerpfad-Server unterscheidet."""
+    """Stored address of the server ``remote`` (empty if there is none): it belongs with the
+    network calls, so that :func:`classify` can tell login help and folder-path servers apart."""
     return _git(root, "config", "--get", f"remote.{remote}.url", check=False)
 
 
 def _without_safe_directory_advice(message: str) -> str:
-    """Gits Meldung zu einem fremden Ordner endet mit dem Rat, ihn per ``git config --global
-    --add safe.directory …`` als sicher einzutragen. Die App rät nie zu einer solchen Änderung
-    (das ist Sache der Betreuung des Rechners), auch nicht in der technischen Meldung oder der
-    Kommandozeile, wo jemand den Befehl einfach kopieren würde."""
+    """Git's message about a foreign folder ends with the advice to register it as safe with
+    ``git config --global --add safe.directory …``. The app never advises such a change (that
+    is a matter for whoever looks after the computer), not even in the technical message or the
+    command line, where someone would simply copy the command."""
     kept = re.sub(r"\s*To add an exception for this directory.*", "", message, flags=re.I | re.S)
     lines = [line for line in kept.splitlines() if "safe.directory" not in line]
     return "\n".join(lines).strip()
 
 
 def missing_hint(broken: str = "") -> str:
-    """Nächster Schritt, wenn Git fehlt: wie es sich ohne Administratorrechte installieren
-    lässt, dass die App danach neu zu öffnen ist und wo gesucht wurde (Liste). ``broken`` ist
-    der Pfad eines gefundenen Git, das sich nicht starten ließ."""
+    """Next step when Git is missing: how it can be installed without administrator rights,
+    that the app has to be reopened afterwards and where it searched (list). ``broken`` is
+    the path of a Git that was found but could not be started."""
     places = "\n".join(f"- {md_code(str(place))}" for place in git_locations())
     if sys.platform == "win32":
         advice = t(
-            "Liegt Git an einem anderen Ort, den Ordner mit `git.exe` zum PATH des eigenen "
-            "Benutzers hinzufügen – ohne Administratorrechte möglich über „Umgebungsvariablen "
-            "für dieses Konto bearbeiten“."
+            "If Git is somewhere else, add the folder containing `git.exe` to your own "
+            "user’s PATH – possible without administrator rights via “Edit environment "
+            "variables for your account”."
         )
     else:
         advice = t(
-            "Liegt Git an einem anderen Ort, am besten eine Installation im eigenen "
-            "Benutzerordner nutzen (etwa Homebrew oder Nix) oder den Ordner mit `git` in der "
-            "Datei `~/.profile` zum PATH hinzufügen."
+            "If Git is somewhere else, it is best to use an installation in your own home "
+            "folder (such as Homebrew or Nix) or add the folder containing `git` to your "
+            "PATH in the file `~/.profile`."
         )
     parts = []
     if broken:
         parts.append(
             t(
-                "Git wurde unter {path} gefunden, ließ sich aber nicht starten (defekte oder "
-                "unvollständige Installation).",
+                (
+                    "Git was found at {path} but could not be started (damaged or incomplete "
+                    "installation)."
+                ),
                 path=md_code(broken),
             )
         )
     parts += [
         t(
-            "Git installieren (Windows: https://git-scm.com/download/win – ohne "
-            "Administratorrechte möglich, nur für das eigene Benutzerkonto; macOS: "
-            "`xcode-select --install`; Linux: Paketverwaltung). Danach die App und den Starter "
-            "„Sprint-Forecast“ schließen und neu öffnen oder einmal ab- und wieder anmelden, "
-            "damit sie Git finden."
+            "Install Git (Windows: https://git-scm.com/download/win – possible without "
+            "administrator rights, for your own user account only; macOS: `xcode-select "
+            "--install`; Linux: package manager). Then close and reopen the app and the "
+            "“Sprint-Forecast” launcher, or sign out and back in once, so that they can "
+            "find Git."
         ),
-        t("Gesucht wurde im PATH und an diesen Orten:\n{places}", places=places),
+        t("Searched in PATH and in these places:\n{places}", places=places),
         advice,
     ]
     return "\n\n".join(parts)
@@ -728,236 +864,339 @@ def classify(
     url: str = "",
     drive_check: bool = True,
     broken: str = "",
+    cwd: Path | None = None,
 ) -> GitError:
-    """Macht aus einer Git-Fehlermeldung eine :class:`GitError` mit Art und nächstem Schritt.
-    ``url`` ist die Adresse des Servers, wenn die Meldung von einem Netzwerkaufruf stammt: Sie
-    wählt bei einem Anmeldefehler die passende Hilfe (SSH oder https, siehe :func:`auth_help`).
-    Ist ``url`` ein Ordnerpfad, den es gerade nicht gibt (getrenntes Laufwerk), gilt „Repository
-    nicht gefunden“ als ``offline``, außer mit ``drive_check=False`` (die Prüfung einer neu
-    eingegebenen Adresse: Dort ist ein fehlender Ordner ein Tippfehler)."""
+    """Turns a Git error message into a :class:`GitError` with kind and next step.
+    ``url`` is the address of the server if the message comes from a network call: for a login
+    error it selects the matching help (SSH or https, see :func:`auth_help`). If ``url`` is a
+    folder path that currently does not exist (disconnected drive), “repository not found”
+    counts as ``offline``, except with ``drive_check=False`` (checking a newly entered
+    address: there a missing folder is a typo)."""
     if missing:
         return GitError(
-            t("git ist nicht installiert oder nicht im PATH"),
+            t("git is not installed or not in PATH"),
             "git_missing",
             missing_hint(broken),
         )
     if timeout:
         return GitError(
-            t("Der Server antwortet nicht rechtzeitig."),
+            t("The server does not answer in time."),
             "offline",
-            t("Internetverbindung und VPN prüfen und später noch einmal versuchen."),
+            t("Check the internet connection and VPN and try again later."),
         )
     for kind, pattern in _PATTERNS:
         if pattern.search(message):
             if kind == "unsafe_directory":
                 message = _without_safe_directory_advice(message)
             if kind == "not_found" and drive_check and _missing_folder(url):
-                kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
-            hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
+                kind = "offline"  # network drive disconnected, stick removed: not the address
+            hint = auth_help(url, message, cwd) if kind == "auth" else hint_for(kind)
             return GitError(message or kind, kind, hint, raw=bool(message))
-    return GitError(message or t("Unbekannter Git-Fehler"), "error", raw=bool(message))
+    if _BARE_READ.search(message):
+        # Git appends this even when the server refuses the repository; on its own it does not
+        # prove a missing connection. All other patterns take precedence.
+        return GitError(message, "error", _refused_hint(), raw=True)
+    return GitError(message or t("Unknown Git error"), "error", raw=bool(message))
 
 
 def title_for(kind: str) -> str:
-    """Kurze Überschrift zu einer Fehlerart."""
+    """Short heading for an error kind."""
     titles = {
-        "git_missing": t("Git ist nicht installiert"),
-        "identity": t("Name und E-Mail-Adresse fehlen"),
-        "locked": t("Eine Datei ist gesperrt"),
-        "not_writable": t("Datei oder Ordner nicht beschreibbar"),
-        "unsafe_directory": t("Git hält den Ordner für unsicher"),
-        "auth": t("Anmeldung fehlt oder wurde abgelehnt"),
-        "offline": t("Server nicht erreichbar"),
-        "denied": t("Server lehnt das Hochladen ab"),
-        "rejected": t("Hochladen abgelehnt, weil inzwischen etwas Neues da ist"),
-        "merge_in_progress": t("Zusammenführen ist unvollständig"),
-        "conflict": t("Konflikt beim Zusammenführen"),
-        "invalid": t("Zusammengeführte Daten sind nicht gültig"),
-        "dirty": t("Offene Änderungen außerhalb des Datenordners"),
-        "detached": t("Kein Branch ausgewählt (detached HEAD)"),
-        "no_upstream": t("Branch ist nicht mit dem Server verbunden"),
-        "no_remote": t("Kein Server eingerichtet"),
-        "not_repo": t("Kein Git-Repository"),
-        "not_found": t("Repository nicht gefunden"),
-        "unrelated_histories": t("Server hat eine andere Historie"),
-        "tag_exists": t("Tag-Name ist schon vergeben"),
-        "bad_url": t("Ungültige Adresse"),
-        "secret_in_url": t("Zugangsdaten gehören nicht in die Adresse"),
-        "insecure_url": t("Unverschlüsselte Verbindung"),
-        "new_branch": t("Branch fehlt auf dem Server"),
-        "remote_special": t("Ungewöhnliche Server-Einstellung"),
-        "certificate": t("Zertifikat des Servers nicht anerkannt"),
-        "folder": t("Ordner nicht nutzbar"),
-        "nothing_to_share": t("Noch nichts zu teilen"),
+        "git_missing": t("Git is not installed"),
+        "identity": t("Name and email address are missing"),
+        "locked": t("A file is locked"),
+        "not_writable": t("File or folder not writable"),
+        "unsafe_directory": t("Git considers the folder unsafe"),
+        "auth": t("Login is missing or was rejected"),
+        "offline": t("Server not reachable"),
+        "denied": t("Server refuses the upload"),
+        "rejected": t("Upload rejected because something new arrived in the meantime"),
+        "merge_in_progress": t("Merge is incomplete"),
+        "conflict": t("Conflict while merging"),
+        "invalid": t("Merged data is not valid"),
+        "dirty": t("Open changes outside the data folder"),
+        "detached": t("No branch selected (detached HEAD)"),
+        "no_upstream": t("Branch is not connected to the server"),
+        "no_remote": t("No server set up"),
+        "not_repo": t("No Git repository"),
+        "not_found": t("Repository not found"),
+        "unrelated_histories": t("Server has a different history"),
+        "tag_exists": t("Tag name is already taken"),
+        "bad_url": t("Invalid address"),
+        "secret_in_url": t("Credentials do not belong in the address"),
+        "insecure_url": t("Unencrypted connection"),
+        "new_branch": t("Branch missing on the server"),
+        "remote_special": t("Unusual server setting"),
+        "certificate": t("Server certificate not accepted"),
+        "folder": t("Folder cannot be used"),
+        "nothing_to_share": t("Nothing to share yet"),
+        "sync_busy": t("Another sync is still running"),
+        "aborted": t("Sync aborted"),
     }
-    return titles.get(kind, t("Git-Fehler"))
+    return titles.get(kind, t("Git error"))
 
 
 def hint_for(kind: str, url: str = "") -> str:
-    """Nächster Schritt in Alltagssprache zu einer Fehlerart (leer, wenn es keinen gibt)."""
+    """Next step in everyday language for an error kind (empty if there is none)."""
     if kind == "auth":
         return auth_help(url)
     hints = {
+        "sync_busy": t(
+            "A sync of this data folder has been running for a very long time and may be "
+            "stuck (e.g. because of a bad network connection). Wait, or abort the running "
+            "sync: your files stay saved locally."
+        ),
+        "aborted": t(
+            "The sync was ended by hand. Your files are saved locally; please share again. "
+            "If Git then reports a locked file, follow the hint for it."
+        ),
         "identity": t(
-            "Git kennt deinen Namen noch nicht. Bitte in der Seitenleiste Name und "
-            "E-Mail-Adresse eintragen."
+            "Git does not know your name yet. Please enter name and email address in the sidebar."
         ),
         "locked": t(
-            "Eine Datei ist gesperrt, weil ein anderes Programm (Git-Client, Editor, "
-            "Virenscanner, Synchronisationsdienst) sie benutzt. Andere Programme schließen und "
-            "noch einmal versuchen. Bleibt es dabei, ist nach einem Absturz vielleicht eine "
-            "Sperrdatei (index.lock im Ordner .git) übrig geblieben: Bitte bei der Betreuung "
-            "des Rechners oder des Repositorys nachfragen, bevor sie entfernt wird."
+            "A file is locked because another program (Git client, editor, virus scanner, "
+            "sync service) is using it. Close other programs and try again. If it stays "
+            "that way, a lock file (index.lock in the .git folder) may have been left "
+            "behind after a crash: please ask whoever looks after the computer or the "
+            "repository before it is removed."
         ),
         "not_writable": t(
-            "Git darf hier nichts schreiben. Bitte prüfen, ob dein Benutzerkonto im Datenordner "
-            "(samt dem versteckten Ordner .git darin) Schreibrechte hat, der Ordner nicht "
-            "schreibgeschützt ist und – bei einem Netzlaufwerk oder Cloud-Ordner – verbunden und "
-            "beschreibbar ist. Hilft das nicht, bei der Betreuung des Rechners nachfragen."
+            "Git may not write here. Please check that your user account has write "
+            "permission in the data folder (including the hidden .git folder inside it), "
+            "that the folder is not write-protected and – for a network drive or cloud "
+            "folder – is connected and writable. If that does not help, ask whoever looks "
+            "after the computer."
         ),
         "unsafe_directory": t(
-            "Git verweigert die Arbeit in diesem Ordner, weil er einem anderen Benutzerkonto "
-            "gehört als dem, mit dem die App läuft (eine Schutzmaßnahme von Git, häufig bei "
-            "Netzlaufwerken, kopierten Ordnern oder nach einem Kontowechsel). Die App ändert "
-            "keine Git-Einstellungen. Bitte bei der Betreuung des Rechners nachfragen: Sie kann "
-            "den Ordner dem eigenen Konto zuordnen oder ihn bewusst als sicher eintragen."
+            "Git refuses to work in this folder because it belongs to a different user "
+            "account than the one the app runs under (a protection by Git, common with "
+            "network drives, copied folders or after an account change). The app changes "
+            "no Git settings. Please ask whoever looks after the computer: they can assign "
+            "the folder to your own account or deliberately mark it as safe."
         ),
         "certificate": t(
-            "Der Server antwortet, aber sein Sicherheitszertifikat wird von diesem Rechner nicht "
-            "anerkannt (häufig ein Firmenzertifikat oder ein selbst ausgestelltes Zertifikat). "
-            "Bitte die IT bitten, das Zertifikat auf dem Rechner zu hinterlegen. Die App ändert "
-            "keine Git-Einstellungen."
+            "The server responds, but this computer does not accept its security "
+            "certificate (often a company certificate or a self-issued one). Please ask IT "
+            "to install the certificate on the computer. The app changes no Git settings."
         ),
         "offline": t(
-            "Der Server ist nicht erreichbar. Deine Änderungen bleiben lokal gesichert; "
-            "Internetverbindung bzw. VPN prüfen und später erneut „Speichern und teilen“ wählen."
+            "The server is not reachable. Your changes stay safely stored locally; check "
+            "the internet connection or VPN and choose “Save and share” again later."
         ),
         "denied": t(
-            "Der Server hat das Hochladen abgelehnt, etwa wegen eines geschützten Branches "
-            "oder fehlender Schreibrechte. Deine Änderungen sind lokal gesichert; bitte "
-            "bei der Betreuung des Repositorys nachfragen."
+            "The server refused the upload, for example because of a protected branch or "
+            "missing write permission. Your changes are stored locally; please ask whoever "
+            "looks after the repository."
         ),
         "rejected": t(
-            "Jemand anderes hat inzwischen Änderungen hochgeladen. Noch einmal "
-            "„Speichern und teilen“ wählen, dann werden sie zuerst übernommen."
+            "Someone else has uploaded changes in the meantime. Choose “Save and share” "
+            "once more; they will be taken over first."
         ),
         "merge_in_progress": t(
-            "Ein Zusammenführen ist unvollständig. Es kann abgebrochen werden; die eigenen "
-            "Änderungen bleiben dabei erhalten."
+            "A merge is incomplete. It can be aborted; your own changes are kept."
         ),
         "conflict": t(
-            "Dieselbe Stelle wurde von zwei Personen geändert. Auf der Seite „Konflikte "
-            "lösen“ je Eintrag „meine“ oder „andere“ Änderung wählen, oder das "
-            "Zusammenführen abbrechen. Es ist nichts verloren."
+            "Two people changed the same place. On the “Resolve conflicts” page choose "
+            "“my” or “other” change for each entry, or abort the merge. Nothing is lost."
         ),
         "invalid": t(
-            "Die Zusammenführung war technisch möglich, aber die Daten sind nun fachlich "
-            "ungültig (siehe Liste). Nichts wurde hochgeladen. Bitte die Werte korrigieren und "
-            "erneut „Speichern und teilen“ wählen – oder bewusst „Trotzdem teilen“."
+            "The merge was technically possible, but the data is now invalid in content "
+            "(see list). Nothing was uploaded. Please correct the values and choose “Save "
+            "and share” again – or deliberately “Share anyway”."
         ),
         "dirty": t(
-            "Es gibt nicht gesicherte Änderungen außerhalb des Datenordners, die mit den "
-            "neuen Änderungen kollidieren. Diese bitte zuerst committen oder verwerfen."
+            "There are unsaved changes outside the data folder that collide with the new "
+            "changes. Please commit or discard them first."
         ),
         "detached": t(
-            "Das Repository steht auf keinem Branch (detached HEAD). In der Seitenleiste "
-            "„Zurück auf den Branch“ wählen; offene Änderungen werden vorher auf einem "
-            "Rettungsbranch gesichert."
+            "The repository is not on a branch (detached HEAD). Choose “Back to the "
+            "branch” in the sidebar; open changes are saved on a rescue branch first."
         ),
         "no_upstream": t(
-            "Der Branch ist noch nicht mit dem Server verbunden. „Speichern und teilen“ "
-            "richtet das beim ersten Mal ein."
+            "The branch is not connected to the server yet. “Save and share” sets that up "
+            "the first time."
         ),
         "no_remote": t(
-            "Zu diesem Datenordner gehört noch kein Server. Auf der Seite „Datenordner“ unter "
-            "„Server (Remote)“ die Adresse des gemeinsamen Daten-Repositorys eintragen; bis "
-            "dahin bleiben alle Änderungen auf diesem Rechner. Wer einem bestehenden Team "
-            "beitritt, wählt dort „Repository klonen“."
+            "This data folder has no server yet. On the “Data folder” page, under “Server "
+            "(remote)”, enter the address of the shared data repository; until then all "
+            "changes stay on this computer. Anyone joining an existing team chooses “Clone "
+            "repository” there."
         ),
         "not_repo": t(
-            "Der Datenordner muss in einem Git-Repository liegen: mit `git init` ein neues "
-            "anlegen oder mit `git clone` ein bestehendes holen."
+            "The data folder must be inside a Git repository: create a new one with `git "
+            "init` or fetch an existing one with `git clone`. An unpacked ZIP archive "
+            "(“Download source code” on GitHub or GitLab) is not a repository because it "
+            "lacks the hidden `.git` folder. For an existing team repository, choose "
+            "“Clone repository” on the “Data folder” page instead."
         ),
         "not_found": t(
-            "Das Repository wurde nicht gefunden oder du hast keinen Zugriff. Adresse und "
-            "Berechtigung prüfen; die Adresse lässt sich auf der Seite „Datenordner“ unter "
-            "„Server (Remote)“ ändern."
+            "The repository was not found or you have no access. Check address and "
+            "permission; the address can be changed on the “Data folder” page under "
+            "“Server (remote)”."
         ),
         "unrelated_histories": t(
-            "Der Server enthält eine andere Historie als dieser Datenordner – vermutlich ist "
-            "ein falsches Repository verbunden (z. B. ein Code-Repository). Es wurde nichts "
-            "zusammengeführt und nichts hochgeladen; deine Änderungen sind lokal gesichert. "
-            "Ist es das falsche Repository, lässt sich die Adresse auf der Seite „Datenordner“ "
-            "unter „Server (Remote)“ ändern. Ist das Daten-Repository auf dem Server richtig, "
-            "muss das Zusammenführen ausdrücklich bestätigt werden."
+            "The server contains a different history than this data folder – probably the "
+            "wrong repository is connected (e.g. a code repository). Nothing was merged "
+            "and nothing was uploaded; your changes are safe locally. If it is the wrong "
+            "repository, the address can be changed on the “Data folder” page under "
+            "“Server (remote)”. If the data repository on the server is the right one, "
+            "merging must be confirmed explicitly."
         ),
         "tag_exists": t(
-            "Einen anderen Namen wählen oder den vorhandenen Tag zuerst entfernen. Die "
-            "Änderungen sind unverändert und noch nicht gespeichert."
+            "Choose a different name or remove the existing tag first. The changes are "
+            "unchanged and not yet saved."
         ),
     }
     return hints.get(kind, "")
 
 
 def unwritable_file_hint() -> str:
-    """Nächster Schritt, wenn die App selbst eine Datei im Datenordner nicht schreiben kann (nicht
-    Git, wie bei ``hint_for("locked")``): Dort passt der Absatz zur verwaisten ``index.lock`` nicht.
-    Unter Windows sagt Python „Permission denied“ sowohl für eine von einem anderen Programm
-    gehaltene als auch für eine schreibgeschützte Datei; beides nennt der Hinweis."""
+    """Next step when the app itself cannot write a file in the data folder (not Git, as with
+    ``hint_for("locked")``): the paragraph about the orphaned ``index.lock`` does not fit there.
+    On Windows Python says “Permission denied” both for a file held by another program and for
+    a write-protected file; the hint names both."""
     return t(
-        "Die Datei konnte nicht geschrieben werden. Entweder benutzt ein anderes Programm sie "
-        "gerade (Editor, Tabellenprogramm, Virenscanner, Synchronisationsdienst; unter Windows "
-        "meist der Grund), oder sie ist schreibgeschützt bzw. dein Benutzerkonto darf sie nicht "
-        "ändern. Andere Programme schließen, Schreibschutz und Rechte prüfen und noch einmal "
-        "„Speichern und teilen“ wählen: Das unterbrochene Zusammenführen wird dann fortgesetzt, "
-        "nichts geht verloren. Hilft das nicht, bei der Betreuung des Rechners nachfragen."
+        "The file could not be written. Either another program is using it right now "
+        "(editor, spreadsheet program, virus scanner, sync service; on Windows usually the "
+        "reason), or it is write-protected or your user account may not change it. Close "
+        "other programs, check the write protection and permissions, and choose “Save and "
+        "share” again: the interrupted merge is then continued and nothing is lost. If "
+        "that does not help, ask whoever looks after the computer."
     )
 
 
-def auth_help(url: str = "", message: str = "") -> str:
-    """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH). Der Text beginnt gleich
-    mit dem nächsten Schritt und wiederholt die Ursache nicht: Wo der Hinweis unter der
-    Überschrift (``title_for``) steht („Anmeldung fehlt oder wurde abgelehnt“), nennt sie schon
-    diese; wo es keine gibt, stellt :meth:`GitError.full` sie voran. Meldet Git (``message``)
-    einen unbekannten oder geänderten Schlüssel des Servers, hilft keine Anmelde-Anleitung,
-    sondern nur der Fingerabdruck."""
+def auth_help(url: str = "", message: str = "", cwd: Path | None = None) -> str:
+    """Login help matching the server address (https or SSH). The text starts right with the
+    next step and does not repeat the cause: where the hint sits under the heading
+    (``title_for``) (“Login is missing or was rejected”), that already names it; where there is
+    none, :meth:`GitError.full` puts it first. If Git (``message``) reports an unknown or
+    changed key of the server, no login instructions help, only the fingerprint does."""
     if _HOST_KEY.search(message):
         return t(
-            "Der Rechner kennt diesen SSH-Server noch nicht (oder sein Schlüssel hat sich "
-            "geändert). Die App kann das nicht bestätigen: Bitte einmal mit einem SSH- oder "
-            "Git-Programm zum Server verbinden und den Fingerabdruck bestätigen, oder die "
-            "https-Adresse des Repositorys verwenden. Danach noch einmal versuchen."
+            "This computer does not know this SSH server yet (or its key has changed). The "
+            "app cannot confirm this: please connect to the server once with an SSH or Git "
+            "program and confirm the fingerprint, or use the https address of the "
+            "repository. Then try again."
         )
     if url.lower().startswith("ssh://") or _SCP_FORM.match(url):
         return t(
-            "Diese Adresse nutzt die Anmeldung per SSH-Schlüssel. Dafür einen Schlüssel anlegen "
-            "(`ssh-keygen -t ed25519`), den öffentlichen Teil (Datei `.pub`) beim Server "
-            "(GitHub, GitLab …) unter „SSH-Schlüssel“ hinterlegen und den Schlüssel im "
-            "ssh-agent ohne Kennwortabfrage verfügbar machen. Danach noch einmal versuchen."
+            "This address uses login with an SSH key. To set it up, create a key "
+            "(`ssh-keygen -t ed25519`), register the public part (`.pub` file) with the "
+            "server (GitHub, GitLab …) under “SSH keys” and make the key available in the "
+            "ssh-agent without a passphrase prompt. Then try again."
         )
-    return t(
-        "Bei https braucht der Server meist einen Zugangstoken statt des Kennworts (GitHub: "
-        "Settings › Developer settings › Personal access tokens; GitLab: Zugriffstoken mit dem "
-        "Recht „write_repository“). Wer die GitHub-CLI nutzt, richtet die Anmeldung mit "
-        "`gh auth setup-git` ein; sonst den Token im Anmeldedienst des Rechners hinterlegen "
-        "oder beim nächsten Anmeldefenster als Kennwort eingeben. Danach noch einmal versuchen."
+    steps = t(
+        "With https the server usually needs an access token instead of the password "
+        "(GitHub: Settings › Developer settings › Personal access tokens; GitLab: access "
+        "token with the “write_repository” scope). If you use the GitHub CLI, set up the "
+        "login with `gh auth setup-git`; otherwise store the token in the computer's "
+        "credential service or enter it as the password in the next login window."
     )
+    return f"{steps} {credential_advice(cwd)} " + t("Then try again.")
 
 
-# --- Server-Adresse prüfen ------------------------------------------------------------------
+# Credential services that Git ships or that are widespread; everything else is “custom”.
+# Only these names are evaluated, never the wording of the setting (may contain paths).
+_SAFE_HELPERS = {
+    "manager",
+    "manager-core",
+    "wincred",
+    "osxkeychain",
+    "libsecret",
+    "gnome-keyring",
+    "cache",
+    "oauth",
+}
+_STORE_HELPER = re.compile(r"(?:^|[/\\ ])(?:git-credential-)?store(?:\.exe|\.cmd)?(?:\s|$)")
+_PLAIN_TEXT_HELPERS = {"store"}  # stores the token unencrypted in ~/.git-credentials
+
+
+def credential_helpers(cwd: Path | None = None) -> list[str]:
+    """Names of the credential services that Git has set up for this user (read only:
+    ``git config``, no change). An empty setting cancels the ones before it, as in Git itself.
+    Names outside the known list appear as ``custom``. ``cwd`` is the folder in which Git asks
+    (the data folder): that way an entry that exists only in its repository counts too. If
+    Git cannot be started, the list is empty."""
+    try:
+        proc = _git_result(
+            cwd or Path.cwd(), "config", "--get-regexp", r"^credential(\..+)?\.helper$", timeout=10
+        )
+    except GitError, OSError:
+        return []
+    names: list[str] = []
+    for line in proc.stdout.splitlines():
+        key, _, value = line.partition(" ")
+        value = value.strip()
+        if not value:
+            if key == "credential.helper":  # only the general entry cancels all
+                names.clear()
+            continue
+        if _STORE_HELPER.search(value):  # also with path, extension or options
+            names.append("store")
+            continue
+        first = "custom" if value.startswith("!") else value.split()[0]
+        # A helper with a full path (…/git-credential-store.exe) is recognised by its name too.
+        first = first.replace("\\", "/").rsplit("/", 1)[-1]
+        first = first.removesuffix(".exe").removesuffix(".cmd").removeprefix("git-credential-")
+        names.append(first if first in _SAFE_HELPERS | _PLAIN_TEXT_HELPERS else "custom")
+    return names
+
+
+def credential_advice(cwd: Path | None = None) -> str:
+    """Concrete next step for https logins, matching this computer's operating system and
+    the configured credential service. The app only reads and changes no Git setting; a
+    plain-text store (``store``) is never recommended."""
+    helpers = credential_helpers(cwd)
+    if any(name in _PLAIN_TEXT_HELPERS for name in helpers):
+        return t(
+            "Attention: Git stores logins here in plain text (`credential.helper store`, "
+            "file `.git-credentials` in the user folder). Better use the computer's "
+            "credential service; the app does not change this setting."
+        )
+    if helpers:
+        return t(
+            "A credential service is set up. If the login still fails, the stored token "
+            "has probably expired or been revoked: delete the old entry in the credential "
+            "service and enter the new token on the next attempt."
+        )
+    prefix = t("No credential service is set up in the Git settings yet.")
+    if sys.platform == "win32":
+        step = t(
+            "Git for Windows ships the Git Credential Manager; `git config --global "
+            "credential.helper manager` in a terminal turns it on. On the next attempt, "
+            "enter the token as the password in the login window."
+        )
+    elif sys.platform == "darwin":
+        step = t(
+            "The Keychain is turned on with `git config --global credential.helper "
+            "osxkeychain` in a terminal (the helper belongs to Git from Xcode or "
+            "Homebrew). On the next attempt, enter the token as the password."
+        )
+    else:
+        step = t(
+            "Either enter `git config --global credential.helper libsecret` in a terminal "
+            "(desktop keyring; the helper `git-credential-libsecret` comes with the "
+            "distribution's Git package) or use the GitHub CLI with `gh auth setup-git`. "
+            "Plain-text storage (`store`) is not a good choice."
+        )
+    note = t("The app does not change any Git setting itself.")
+    return f"{prefix} {step} {note}"
+
+
+# --- Checking the server address ------------------------------------------------------------------
 
 MAX_URL_LENGTH = 2048
-# Übertragungswege, die Git für Adressen der App benutzen darf (kein ext::, fd:: oder git://).
+# Transports that Git may use for addresses from the app (no ext::, fd:: or git://).
 SAFE_PROTOCOLS = "https:http:ssh:file"
 PROBE_TIMEOUT = 30.0
-# Bei http(s) bricht Git ab, wenn zehn Sekunden lang kaum etwas ankommt (Server nimmt an,
-# antwortet aber nie).
+# With http(s), Git aborts if hardly anything arrives for ten seconds (server accepts the
+# connection but never answers).
 _PROBE_ENV = {
     "GIT_ALLOW_PROTOCOL": SAFE_PROTOCOLS,
     "GIT_HTTP_LOW_SPEED_LIMIT": "1000",
     "GIT_HTTP_LOW_SPEED_TIME": "10",
 }
-# Höchstens so viel Ausgabe (Zeichen) liest die Verbindungsprüfung je Strom.
+# The connection check reads at most this much output (characters) per stream.
 _PROBE_OUTPUT_LIMIT = 64 * 1024
 
 _HOST = r"(?:[A-Za-z0-9][A-Za-z0-9._-]*|\[[0-9A-Fa-f:.]+\])"
@@ -965,12 +1204,11 @@ _SSH_USER = r"[A-Za-z0-9_][A-Za-z0-9._~-]*"
 _HOST_PORT = re.compile(rf"({_HOST})(?::([^:]*))?")
 _SCP_FORM = re.compile(rf"{_SSH_USER}@{_HOST}:")
 _SCP_ADDRESS = re.compile(rf"({_SSH_USER})@({_HOST}):(\S+)")
-_SCP_SECRET = re.compile(r"[^@/\\\s]*:[^@/\\\s]*@")  # u:kennwort@host:pfad
-_HELPER = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*::")  # ext::, fd:: und andere Remote-Helfer
+_SCP_SECRET = re.compile(r"[^@/\\\s]*:[^@/\\\s]*@")  # u:password@host:path
+_HELPER = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*::")  # ext::, fd:: and other remote helpers
 _URL_SCHEMES = {"https", "http", "ssh"}
-# Nur diese Meldungen belegen, dass der Server nicht erreichbar ist. „Could not read from remote
-# repository“ allein tut das nicht: Git hängt es auch an, wenn der Server das Repository
-# verweigert.
+# Only these messages prove that the server is not reachable. “Could not read from remote
+# repository” alone does not: Git also appends it when the server refuses the repository.
 _UNREACHABLE = re.compile(
     r"Could not resolve|Couldn't resolve|Name or service not known|No such host is known|"
     r"Failed to connect|Couldn't connect|Connection (was )?(timed out|refused|reset|closed)|"
@@ -983,72 +1221,73 @@ _UNREACHABLE = re.compile(
 
 @dataclass(frozen=True)
 class RemoteAddress:
-    """Eine geprüfte Server-Adresse. ``kind``: ``https``, ``http``, ``ssh`` (auch die Form
-    ``benutzer@host:pfad``) oder ``local`` (vollständiger Ordnerpfad)."""
+    """A checked server address. ``kind``: ``https``, ``http``, ``ssh`` (also the form
+    ``user@host:path``) or ``local`` (complete folder path)."""
 
     url: str
     kind: str
 
 
 def secret_in_url_error() -> GitError:
-    """Fehler für eine Adresse mit Zugangsdaten oder Zusätzen nach ``?`` bzw. ``#`` (ohne die
-    Eingabe zu wiederholen)."""
+    """Error for an address with credentials or additions after ``?`` or ``#`` (without
+    repeating the input)."""
     return GitError(
         t(
-            "Die Adresse enthält einen Benutzernamen, ein Kennwort, einen Token oder "
-            "Parameter (alles ab „?“ oder „#“). Bitte nur die reine Adresse eintragen, z. B. "
-            "https://server/team/daten.git; die Anmeldung übernimmt der Anmeldedienst des "
-            "Rechners, fehlt sie, erklärt die App den nächsten Schritt (siehe Hilfe, "
-            "„Anmeldung“)."
+            "The address contains a user name, a password, a token or parameters "
+            "(everything from “?” or “#”). Please enter the plain address only, e.g. "
+            "https://server/team/data.git; the login service of the computer handles the "
+            "login, and if it is missing the app explains the next step (see Help, "
+            "“Login”)."
         ),
         "secret_in_url",
     )
 
 
 def remote_special_error() -> GitError:
-    """Fehler für einen Server mit mehreren Adressen oder eigener Upload-Adresse."""
+    """Error for a server with several addresses or its own upload address."""
     return GitError(
         t(
-            "Für diesen Server sind mehrere Adressen oder eine eigene Upload-Adresse "
-            "eingetragen. Das lässt sich hier nicht ändern – bitte mit einem Git-Programm "
-            "bereinigen."
+            "Several addresses or a separate upload address are set for this server. This "
+            "cannot be changed here – please clean it up with a Git program."
         ),
         "remote_special",
     )
 
 
 class NewBranchError(GitError):
-    """Der Server hat Branches, aber nicht den lokalen. ``str(error)`` ist Klartext; für die
-    Oberfläche liefert :meth:`render` mit :func:`md_code` die Namen als Code, denn sie kommen
-    vom Server bzw. aus der Konfiguration (siehe :func:`md_code`)."""
+    """The server has branches, but not the local one. ``str(error)`` is plain text; for the
+    interface :meth:`render` with :func:`md_code` gives the names as code, because they come
+    from the server or from the configuration (see :func:`md_code`)."""
 
     def __init__(self, branch: str, heads: tuple[str, ...], unborn: bool = False) -> None:
         self.branch, self.heads, self.unborn = branch, heads, unborn
         super().__init__(self.render(), "new_branch")
 
-    def __reduce__(self):  # kopier- und speicherbar trotz anderer Argumente als GitError
+    def __reduce__(self):  # copyable and picklable despite arguments different from GitError
         return (NewBranchError, (self.branch, self.heads, self.unborn))
 
     def render(self, quote: Callable[[str], str] = str) -> str:
-        """Meldung (höchstens fünf Servernamen genannt); ``quote`` wird auf jeden Namen
-        angewendet."""
+        """Message (at most five server names mentioned); ``quote`` is applied to each name."""
         names = ", ".join(quote(h) for h in self.heads[:5]) + (", …" if len(self.heads) > 5 else "")
         if self.unborn:
             text = t(
-                "Dieser Datenordner enthält noch keine gespeicherten Daten, der Server aber "
-                "schon (vorhanden: {heads}). Beim ersten Teilen würde dort ein neuer Branch "
-                "„{branch}“ angelegt, ohne dass die Daten des Teams ankommen. Wer einem "
-                "bestehenden Team beitritt, wählt stattdessen „Repository klonen“ weiter unten "
-                "auf dieser Seite.",
+                (
+                    "This data folder has no saved data yet, but the server does (available: "
+                    "{heads}). The first share would create a new branch “{branch}” there "
+                    "without the data of the team arriving. Anyone joining an existing team "
+                    "should choose “Clone repository” further down on this page instead."
+                ),
                 branch=quote(self.branch),
                 heads=names,
             )
         else:
             text = t(
-                "Auf dem Server gibt es den Branch „{branch}“ nicht (vorhanden: {heads}). Beim "
-                "ersten Teilen würde er dort neu angelegt. Das ist nur richtig, wenn dies "
-                "wirklich das Daten-Repository ist. Wer einem bestehenden Team beitritt, wählt "
-                "stattdessen „Repository klonen“ weiter unten auf dieser Seite.",
+                (
+                    "The server has no branch “{branch}” (available: {heads}). The first share "
+                    "would create it there. That is only right if this really is the data "
+                    "repository. Anyone joining an existing team should choose “Clone "
+                    "repository” further down on this page instead."
+                ),
                 branch=quote(self.branch),
                 heads=names,
             )
@@ -1056,46 +1295,45 @@ class NewBranchError(GitError):
 
 
 def new_branch_error(branch: str, heads: tuple[str, ...], unborn: bool = False) -> NewBranchError:
-    """Fehler, wenn der Server den lokalen Branch nicht hat. ``unborn``: Der Datenordner hat
-    noch keinen Commit (Beitritt zu einem Team ist dann der häufige Grund)."""
+    """Error when the server does not have the local branch. ``unborn``: the data folder has
+    no commit yet (joining a team is then the common reason)."""
     return NewBranchError(branch, heads, unborn)
 
 
 class UnrelatedHistoriesError(GitError):
-    """Der Server hat eine andere Historie als der Datenordner. ``str(error)`` ist Klartext; für
-    die Oberfläche liefert :meth:`render` mit :func:`md_code` Adresse und Branch als Code, denn
-    sie kommen vom Server bzw. aus der Konfiguration. ``url`` ist die Anzeigefassung
+    """The server has a different history than the data folder. ``str(error)`` is plain text;
+    for the interface :meth:`render` with :func:`md_code` gives address and branch as code,
+    because they come from the server or from the configuration. ``url`` is the display form
     (:func:`public_url`)."""
 
     def __init__(self, url: str, branch: str) -> None:
         self.url, self.branch = url, branch
         super().__init__(self.render(), "unrelated_histories", hint_for("unrelated_histories"))
 
-    def __reduce__(self):  # kopier- und speicherbar trotz anderer Argumente als GitError
+    def __reduce__(self):  # copyable and picklable despite arguments different from GitError
         return (UnrelatedHistoriesError, (self.url, self.branch))
 
     def render(self, quote: Callable[[str], str] = str) -> str:
-        """Meldung; ``quote`` wird auf Adresse und Branch angewendet."""
+        """Message; ``quote`` is applied to address and branch."""
         return t(
-            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
-            "Datenordner.",
+            (
+                "The server ({url}, branch {branch}) contains a different history than this "
+                "data folder."
+            ),
             url=quote(self.url),
             branch=quote(self.branch),
         )
 
 
 def nothing_to_share_error() -> GitError:
-    """Fehler, wenn „Speichern und teilen“ gewählt wird, obwohl der Datenordner noch nichts
-    Gespeichertes enthält (kein Commit): Es gäbe nichts hochzuladen."""
+    """Error when “Save and share” is chosen although the data folder contains nothing saved
+    yet (no commit): there would be nothing to upload."""
     return GitError(
-        t(
-            "Der Datenordner enthält noch keine gespeicherten Daten, deshalb gibt es nichts zu "
-            "teilen."
-        ),
+        t("The data folder holds no saved data yet, so there is nothing to share."),
         "nothing_to_share",
         t(
-            "Zuerst Daten anlegen (z. B. ein Team) und speichern. Wer einem bestehenden Team "
-            "beitritt, wählt auf der Seite „Datenordner“ „Repository klonen“."
+            "Create data first (e.g. a team) and save it. Anyone joining an existing team "
+            "chooses “Clone repository” on the “Data folder” page."
         ),
     )
 
@@ -1105,41 +1343,41 @@ def _bad_url(message: str) -> GitError:
 
 
 def _parse_url_form(text: str, scheme: str, rest: str, allow_insecure: bool) -> RemoteAddress:
-    """Adresse der Form ``schema://…`` (https, http, ssh); ``text`` hat keine Steuerzeichen."""
+    """Address of the form ``scheme://…`` (https, http, ssh); ``text`` has no control characters."""
     if scheme not in _URL_SCHEMES:
         raise _bad_url(
             t(
-                "Dieses Verfahren wird nicht unterstützt. Erlaubt sind "
-                "https://, ssh://, git@server:pfad und vollständige Ordnerpfade."
+                "This protocol is not supported. Allowed are https://, ssh://, "
+                "git@server:path and complete folder paths."
             )
         )
     if "\\" in text or not all("!" <= c <= "~" for c in text):
-        raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+        raise _bad_url(t("It contains spaces or invalid characters."))
     if "?" in rest or "#" in rest:
         raise secret_in_url_error()
     authority, _, path = rest.partition("/")
-    if "@" in path:  # fängt auch https://u:12/ss@host/x
+    if "@" in path:  # also catches https://u:12/ss@host/x
         raise secret_in_url_error()
     user, at, host_port = authority.rpartition("@")
     if at:
-        if scheme != "ssh" or ":" in user:  # bei http(s) immer; bei ssh der Kennwortteil
+        if scheme != "ssh" or ":" in user:  # always for http(s); for ssh the password part
             raise secret_in_url_error()
         if not re.fullmatch(_SSH_USER, user):
-            raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+            raise _bad_url(t("It contains spaces or invalid characters."))
     found = _HOST_PORT.fullmatch(host_port)
     if found is None:
-        raise _bad_url(t("Der Servername ist ungültig."))
+        raise _bad_url(t("The server name is invalid."))
     port = found.group(2)
     if port is not None and not (port.isascii() and port.isdigit() and 0 < int(port) < 65536):
-        raise _bad_url(t("Die Portnummer ist ungültig."))
+        raise _bad_url(t("The port number is invalid."))
     if not path.strip("/"):
-        raise _bad_url(t("Es fehlt der Pfad zum Repository, z. B. …/team/sprint-daten.git."))
+        raise _bad_url(t("The path to the repository is missing, e.g. …/team/sprint-data.git."))
     if scheme == "http" and not allow_insecure:
         raise GitError(
             t(
-                "Die Adresse beginnt mit http:// – Daten und Anmeldung würden unverschlüsselt "
-                "übertragen. Besser https:// verwenden oder die unverschlüsselte Verbindung "
-                "ausdrücklich bestätigen."
+                "The address starts with http:// – data and login would be sent "
+                "unencrypted. Better use https:// or explicitly confirm the unencrypted "
+                "connection."
             ),
             "insecure_url",
         )
@@ -1147,47 +1385,46 @@ def _parse_url_form(text: str, scheme: str, rest: str, allow_insecure: bool) -> 
 
 
 def parse_remote_url(raw: str, *, allow_insecure: bool = False) -> RemoteAddress:
-    """Prüft eine Server-Adresse, bevor sie Git übergeben wird. Erlaubt sind ``https://``,
-    ``ssh://``, ``benutzer@host:pfad``, vollständige lokale Ordnerpfade und (nur mit
-    ``allow_insecure``) ``http://``. Alles andere – ``git://``, ``file://``, relative Pfade,
-    Remote-Helfer (``ext::``), Zugangsdaten in der Adresse – wirft :class:`GitError` mit festem
-    Text, der die Eingabe nie wiederholt."""
+    """Checks a server address before it is passed to Git. Allowed are ``https://``,
+    ``ssh://``, ``user@host:path``, complete local folder paths and (only with
+    ``allow_insecure``) ``http://``. Everything else – ``git://``, ``file://``, relative paths,
+    remote helpers (``ext::``), credentials in the address – raises :class:`GitError` with a
+    fixed text that never repeats the input."""
     text = raw.strip()
     if not text:
-        raise _bad_url(t("Bitte eine Adresse eintragen."))
+        raise _bad_url(t("Please enter an address."))
     if len(text) > MAX_URL_LENGTH:
-        raise _bad_url(t("Sie ist zu lang."))
-    # Steuerzeichen, Zeilentrenner und unsichtbare Zeichen (Zero-Width, Bidi, BOM).
+        raise _bad_url(t("It is too long."))
+    # Control characters, line separators and invisible characters (zero-width, bidi, BOM).
     if any(
         unicodedata.category(c) in {"Zl", "Zp"} or unicodedata.category(c)[0] == "C" for c in text
     ):
-        raise _bad_url(t("Sie enthält Zeilenumbrüche oder Steuerzeichen."))
-    if text.startswith("-"):  # Git läse die Adresse sonst als Option
-        raise _bad_url(t("Sie darf nicht mit „-“ beginnen."))
+        raise _bad_url(t("It contains line breaks or control characters."))
+    if text.startswith("-"):  # Git would otherwise read the address as an option
+        raise _bad_url(t("It must not start with “-”."))
     if _HELPER.match(text):
-        raise _bad_url(t("Spezielle Übertragungswege (z. B. „ext::“) sind nicht erlaubt."))
+        raise _bad_url(t("Special transports (e.g. “ext::”) are not allowed."))
     if scheme := _SCHEME.match(text):
         return _parse_url_form(text, scheme.group(1).lower(), text[scheme.end() :], allow_insecure)
-    if Path(text).is_absolute():  # die Plattform entscheidet, was „vollständig“ ist
+    if Path(text).is_absolute():  # the platform decides what “complete” is
         return RemoteAddress(text, "local")
     if _SCP_SECRET.match(text):
         raise secret_in_url_error()
     if found := _SCP_ADDRESS.fullmatch(text):
         if found.group(3).startswith("-"):
-            raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+            raise _bad_url(t("It contains spaces or invalid characters."))
         return RemoteAddress(text, "ssh")
     raise _bad_url(
         t(
-            "Das Format wird nicht erkannt. Beispiele: "
-            "https://server/team/daten.git, git@server:team/daten.git oder ein vollständiger "
-            "Ordnerpfad."
+            "The format is not recognised. Examples: https://server/team/data.git, "
+            "git@server:team/data.git or a complete folder path."
         )
     )
 
 
 class _ProbeRun(NamedTuple):
-    """Ergebnis von :func:`_probe_run`. ``code``: ``None`` = Zeitüberschreitung (der
-    Prozessbaum ist dann beendet). ``truncated``: Die Ausgabe war länger als das Limit."""
+    """Result of :func:`_probe_run`. ``code``: ``None`` = timeout (the process tree has been
+    ended then). ``truncated``: the output was longer than the limit."""
 
     code: int | None
     out: str
@@ -1196,7 +1433,7 @@ class _ProbeRun(NamedTuple):
 
 
 def _read_output(file: IO[bytes]) -> tuple[str, bool]:
-    """Die ersten 64 KB der Ausgabe als Text und ob es mehr gab."""
+    """The first 64 KB of the output as text and whether there was more."""
     file.seek(0)
     data = file.read(_PROBE_OUTPUT_LIMIT + 1)
     text = data[:_PROBE_OUTPUT_LIMIT].decode("utf-8", errors="replace")
@@ -1206,12 +1443,12 @@ def _read_output(file: IO[bytes]) -> tuple[str, bool]:
 def _probe_run(
     root: Path, args: tuple[str, ...], timeout: float, env_extra: dict[str, str] | None = None
 ) -> _ProbeRun:
-    """Führt ``git`` für die Verbindungsprüfung aus: Rückgabecode, Ausgabe und Fehlerausgabe
-    (je höchstens 64 KB, siehe :class:`_ProbeRun`).
+    """Runs ``git`` for the connection check: return code, output and error output
+    (each at most 64 KB, see :class:`_ProbeRun`).
 
-    Ausgabe über Zwischendateien statt Pipes: Unter Windows hält ein Hilfsprozess von Git
-    (``git-remote-http``) die Pipes offen, auch wenn der Aufruf längst beendet ist; ein Lesen
-    bis zum Ende hinge dann. Bei Zeitüberschreitung wird der ganze Baum beendet."""
+    Output goes through temporary files instead of pipes: on Windows a helper process of Git
+    (``git-remote-http``) keeps the pipes open even long after the call has ended; reading
+    to the end would then hang. On a timeout the whole tree is ended."""
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
         for attempt in range(_START_ATTEMPTS):
             command = git_command(*args)
@@ -1241,8 +1478,8 @@ def _probe_run(
 
 
 def _heads_of(run: _ProbeRun) -> list[str]:
-    """Branch-Namen aus der Ausgabe von ``git ls-remote --heads``. Ist die Ausgabe abgeschnitten,
-    fällt die letzte (unvollständige) Zeile weg."""
+    """Branch names from the output of ``git ls-remote --heads``. If the output is truncated,
+    the last (incomplete) line is dropped."""
     lines = run.out.split("\n")
     if run.truncated:
         lines = lines[:-1]
@@ -1261,77 +1498,75 @@ def probe_remote(
     timeout: float = PROBE_TIMEOUT,
     branch: str | None = None,
 ) -> tuple[str, ...]:
-    """Fragt den Server nach seinen Branches (``git ls-remote``, ändert nichts) und liefert
-    deren Namen. Ein leerer Server ist gültig (leere Liste). Fehler kommen als
-    :class:`GitError` mit verständlichem Hinweis (siehe :func:`_probe_error`).
+    """Asks the server for its branches (``git ls-remote``, changes nothing) and returns
+    their names. An empty server is valid (empty list). Errors come as
+    :class:`GitError` with an understandable hint (see :func:`_probe_error`).
 
-    Die Liste ist nicht gekürzt, solange die Ausgabe ins Limit passt (64 KB, rund 900 Branches).
-    Bei mehr Branches fragt eine zweite Anfrage gezielt nach ``branch``: Der Name steht in der
-    Liste, genau wenn der Server ihn hat. Das Kürzen für die Anzeige ist Sache der Oberfläche."""
+    The list is not shortened as long as the output fits the limit (64 KB, around 900 branches).
+    With more branches a second request asks specifically for ``branch``: the name is in the
+    list exactly when the server has it. Shortening for display is a matter for the interface."""
     run = _probe_run(root, ("ls-remote", "--heads", "--", address.url), timeout)
     if run.code != 0:
-        raise _probe_failure(run, address)
+        raise _probe_failure(run, address, root)
     heads = _heads_of(run)
     if branch and run.truncated and branch not in heads:
         wanted = _probe_run(
             root, ("ls-remote", "--heads", "--", address.url, f"refs/heads/{branch}"), timeout
         )
         if wanted.code != 0:
-            raise _probe_failure(wanted, address)
-        if branch in _heads_of(wanted):  # das Muster passt auch auf …/refs/heads/NAME
+            raise _probe_failure(wanted, address, root)
+        if branch in _heads_of(wanted):  # the pattern also matches …/refs/heads/NAME
             heads.append(branch)
     return tuple(heads)
 
 
-def _probe_failure(run: _ProbeRun, address: RemoteAddress) -> GitError:
+def _probe_failure(run: _ProbeRun, address: RemoteAddress, root: Path) -> GitError:
     message = (run.err.strip() or run.out.strip())[:4000]
-    return _probe_error(message, address, timed_out=run.code is None)
+    return _probe_error(message, address, timed_out=run.code is None, cwd=root)
 
 
-def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) -> GitError:
-    """Macht aus der Fehlerausgabe der Verbindungsprüfung einen verständlichen Fehler. Art und
-    Hinweis zu Anmeldung, Fingerabdruck, nicht gefundenem Repository und Zertifikat kommen von
-    :func:`classify`, wie bei jedem anderen Netzwerkaufruf. Hier kommt hinzu, was nur die Prüfung
-    weiß: Als „Server nicht erreichbar“ (``offline``) gilt nur, was einen Netzwerkfehler belegt
-    (:data:`_UNREACHABLE`) oder die Zeitüberschreitung, denn nur dann bietet die Oberfläche an,
-    die Adresse ungeprüft zu speichern. „Could not read from remote repository“ allein belegt
-    das nicht (Git hängt es auch an, wenn der Server das Repository verweigert). Der Text von
-    Git bleibt in ``str(error)`` (erscheint als „Technische Meldung“); es gibt immer einen
-    Hinweis."""
-    err = classify(message, timeout=timed_out, url=address.url, drive_check=False)
+def _probe_error(
+    message: str, address: RemoteAddress, timed_out: bool = False, cwd: Path | None = None
+) -> GitError:
+    """Turns the error output of the connection check into an understandable error. Kind and
+    hint for login, fingerprint, repository not found and certificate come from
+    :func:`classify`, as with any other network call. What only the check knows is added here:
+    only what proves a network error (:data:`_UNREACHABLE`) or the timeout counts as “server
+    not reachable” (``offline``), because only then does the interface offer to save the
+    address unchecked. “Could not read from remote repository” alone does not prove that
+    (Git also appends it when the server refuses the repository). The text from Git stays in
+    ``str(error)`` (appears as “Technical message”); there is always a hint."""
+    err = classify(message, timeout=timed_out, url=address.url, drive_check=False, cwd=cwd)
     if timed_out:
         err.hint = _unreachable_hint()
     elif err.kind == "certificate":
-        err.hint += " " + t("Die Adresse wird so nicht gespeichert.")
+        err.hint += " " + t("The address is not saved this way.")
     elif err.kind == "offline" and _UNREACHABLE.search(message):
         err.hint = _unreachable_hint()
-    elif err.kind == "offline":  # z. B. „Could not read from remote repository“ ohne Grund
+    elif err.kind == "offline":  # network error without proven unreachability
         err.kind = "error"
-        err.hint = t(
-            "Der Server hat die Anfrage nicht erfüllt. Bitte die Adresse (Tippfehler im "
-            "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
-            "„Technische Meldung“."
-        )
+        err.hint = _refused_hint()
+    elif err.kind == "error" and _BARE_READ.search(message):
+        pass  # classify already explained “Could not read from remote repository” without a reason
     elif err.kind not in {"auth", "not_found", "unsafe_directory", "not_writable", "locked"}:
         err.hint = t(
-            "Die Verbindung zum Server ist fehlgeschlagen. Die Meldung von Git steht unter "
-            "„Technische Meldung“."
+            "The connection to the server failed. Git’s message is under “Technical message”."
         )
     return err
 
 
 def _unreachable_hint() -> str:
     return t(
-        "Der Server ist unter dieser Adresse nicht erreichbar. Bitte die Adresse "
-        "(Tippfehler?), die Internetverbindung und das VPN prüfen. Ein Anmeldefenster des "
-        "Rechners kann den Vorgang verzögern."
+        "The server cannot be reached at this address. Please check the address (typo?), "
+        "the internet connection and the VPN. A login window of the computer can delay the "
+        "process."
     )
 
 
 def _locate_root(path: Path) -> tuple[Path | None, GitError | None]:
-    """Wurzel des Repositorys, in dem ``path`` liegt, und – wenn es keine gibt, obwohl dort eins
-    liegt – der Grund: Git lehnt den Ordner als unsicher ab (``unsafe_directory``). Jeder andere
-    Fehler gilt als „kein Repository“."""
+    """Root of the repository that contains ``path`` and – if there is none although there is
+    one – the reason: Git rejects the folder as unsafe (``unsafe_directory``). Any other
+    error counts as “no repository”."""
     path = path.resolve()
     cached = _ROOT_CACHE.get(path)
     if cached and time.monotonic() - cached[0] < _ROOT_TTL:
@@ -1350,31 +1585,31 @@ def _locate_root(path: Path) -> tuple[Path | None, GitError | None]:
 
 
 def repo_root(path: Path) -> Path | None:
-    """Wurzel des Git-Repositorys, in dem ``path`` liegt – oder None. None heißt auch, dass Git
-    den Ordner als unsicher ablehnt; den Grund nennt dann :func:`root_problem`."""
+    """Root of the Git repository that contains ``path`` – or None. None also means that Git
+    rejects the folder as unsafe; :func:`root_problem` then names the reason."""
     return _locate_root(path)[0]
 
 
 def root_problem(path: Path) -> GitError | None:
-    """Grund, warum :func:`repo_root` None liefert, obwohl ``path`` in einem Repository liegt
-    (Art ``unsafe_directory``); sonst None."""
+    """Reason why :func:`repo_root` returns None although ``path`` is inside a repository
+    (kind ``unsafe_directory``); otherwise None."""
     return _locate_root(path)[1]
 
 
 def require_root(path: Path) -> Path:
-    """Wie :func:`repo_root`, wirft aber :class:`GitError`, wenn es keine Wurzel gibt: mit dem
-    Grund aus :func:`root_problem` oder als „liegt in keinem Git-Repository“."""
+    """Like :func:`repo_root`, but raises :class:`GitError` if there is no root: with the
+    reason from :func:`root_problem` or as “is not inside a Git repository”."""
     root, problem = _locate_root(path)
     if root is not None:
         return root
-    if problem is not None:  # neu erzeugt: der gespeicherte sammelte bei jedem Auslösen Spuren an
+    if problem is not None:  # created anew: the stored one accumulated traces on every raise
         raise GitError(str(problem), problem.kind, problem.hint, problem.raw)
-    raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
+    raise GitError(t("{path} is not inside a Git repository", path=path))
 
 
 def forget_roots(path: Path) -> None:
-    """Vergisst zwischengespeicherte Wurzeln für ``path``, darunter und darüber (nach
-    ``git init`` oder ``git clone`` – sonst gälte „kein Repository“ noch bis zu 30 Sekunden)."""
+    """Forgets cached roots for ``path``, below it and above it (after ``git init`` or
+    ``git clone`` – otherwise “no repository” would still apply for up to 30 seconds)."""
     path = path.resolve()
     for key in [
         k for k in list(_ROOT_CACHE) if k == path or path in k.parents or k in path.parents
@@ -1384,20 +1619,19 @@ def forget_roots(path: Path) -> None:
 
 @dataclass(frozen=True)
 class Change:
-    """Eine nicht committete Änderung. ``status``: M geändert, D gelöscht, A neu (vorgemerkt),
-    R umbenannt, ?? neu (nicht vorgemerkt) – auch kombiniert (AM, RM, AD …). ``orig`` ist bei
-    Umbenennungen und Kopien der bisherige Pfad."""
+    """An uncommitted change. ``status``: M modified, D deleted, A new (staged),
+    R renamed, ?? new (not staged) – also combined (AM, RM, AD …). For renames and copies
+    ``orig`` is the previous path."""
 
     status: str
-    file: str  # relativ zur Repository-Wurzel
+    file: str  # relative to the repository root
     orig: str = ""
 
 
 def changes_in(path: Path) -> list[Change]:
-    """Nicht committete Änderungen unterhalb von ``path``, bei Umbenennungen mit dem bisherigen
-    Pfad."""
+    """Uncommitted changes below ``path``, with the previous path for renames."""
     root = require_root(path)
-    # Nicht strippen: Die Statusspalte beginnt ggf. mit einem Leerzeichen (" M datei").
+    # Do not strip: the status column may start with a space (" M file").
     out = _git(
         root,
         "status",
@@ -1417,7 +1651,7 @@ def changes_in(path: Path) -> list[Change]:
         if len(entry) < 4:
             continue
         xy, file, orig = entry[:2], entry[3:], ""
-        if ("R" in xy or "C" in xy) and i < len(entries):  # der bisherige Pfad folgt
+        if ("R" in xy or "C" in xy) and i < len(entries):  # the previous path follows
             orig = entries[i]
             i += 1
         changes.append(Change(xy.strip(), file, orig))
@@ -1425,8 +1659,8 @@ def changes_in(path: Path) -> list[Change]:
 
 
 def pending_changes(path: Path) -> list[tuple[str, str]]:
-    """Nicht committete Änderungen unterhalb von ``path`` als (Status, Pfad relativ zur Wurzel);
-    bei Umbenennungen der neue Pfad (den bisherigen liefert :func:`changes_in`)."""
+    """Uncommitted changes below ``path`` as (status, path relative to the root); for
+    renames the new path (:func:`changes_in` returns the previous one)."""
     return [(c.status, c.file) for c in changes_in(path)]
 
 
@@ -1435,9 +1669,9 @@ _STATUS_TTL = 5.0
 
 
 def cached_pending_changes(path: Path) -> list[tuple[str, str]]:
-    """Wie :func:`pending_changes`, aber höchstens alle paar Sekunden neu abgefragt (für die
-    Oberfläche, die bei jeder Eingabe neu zeichnet). Nach Speichern, Commit und Wechsel des
-    Datenordners mit :func:`invalidate_status` ungültig machen."""
+    """Like :func:`pending_changes`, but queried anew only every few seconds (for the
+    interface, which redraws on every input). Invalidate with :func:`invalidate_status` after
+    saving, committing and switching the data folder."""
     key = path.resolve()
     cached = _STATUS_CACHE.get(key)
     if cached and time.monotonic() - cached[0] < _STATUS_TTL:
@@ -1451,25 +1685,25 @@ _INVALIDATE_HOOKS: list[Callable[[], object]] = []
 
 
 def on_invalidate(hook: Callable[[], object]) -> None:
-    """Meldet einen weiteren Zwischenspeicher an, der mit :func:`invalidate_status` geleert wird."""
+    """Registers a further cache that is cleared by :func:`invalidate_status`."""
     _INVALIDATE_HOOKS.append(hook)
 
 
 def invalidate_status() -> None:
-    """Verwirft zwischengespeicherte Git-Stände (nach Speichern, Commit, Synchronisation)."""
+    """Discards cached Git states (after saving, commit, sync)."""
     _STATUS_CACHE.clear()
     for key in [k for k, (_, root, _) in list(_ROOT_CACHE.items()) if root is None]:
-        _ROOT_CACHE.pop(key, None)  # „kein Repository“ ist nicht von Dauer
+        _ROOT_CACHE.pop(key, None)  # “no repository” is not permanent
     for hook in _INVALIDATE_HOOKS:
         hook()
 
 
 def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
-    """Verweigert das Committen von Datendateien, in denen noch Konfliktmarkierungen eines
-    unvollständigen Zusammenführens stehen: Sie würden geteilt und sperrten dann die Bearbeitung
-    bei allen anderen. ``files`` sind absolute Pfade; die Meldung nennt sie relativ zu ``root``
-    (Sprintdateien und team.yaml heißen in jedem Team gleich)."""
-    from sprintforecast.storage import has_conflict_markers  # storage importiert dieses Modul
+    """Refuses to commit data files that still contain conflict markers of an incomplete
+    merge: they would be shared and then block editing for everyone else. ``files`` are
+    absolute paths; the message names them relative to ``root`` (sprint files and team.yaml are
+    called the same in every team)."""
+    from sprintforecast.storage import has_conflict_markers  # storage imports this module
 
     marked: list[str] = []
     for file in files:
@@ -1477,7 +1711,7 @@ def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
             continue
         try:
             text = file.read_text(encoding="utf-8", errors="replace")
-        except OSError:  # gelöscht oder nicht lesbar: nichts zu prüfen
+        except OSError:  # deleted or unreadable: nothing to check
             continue
         if has_conflict_markers(text):
             try:
@@ -1490,44 +1724,58 @@ def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
         names = ", ".join(marked)
         raise GitError(
             t(
-                "In diesen Dateien stehen noch Konfliktmarkierungen (<<<<<<<, =======, "
-                ">>>>>>>), sie werden nicht übernommen: {files}",
+                (
+                    "These files still contain conflict markers (<<<<<<<, =======, >>>>>>>); "
+                    "they are not taken over: {files}"
+                ),
                 files=names,
             ),
             "conflict",
             t(
-                "Betroffen: {files}. Die Markierungen stammen aus einem unvollständigen "
-                "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
-                "erscheint, dort den letzten Stand wiederherstellen.",
+                (
+                    "Affected: {files}. The markers come from an incomplete merge: remove them "
+                    "in an editor or, if the page “Resolve conflicts” appears, restore the "
+                    "last saved state there."
+                ),
                 files=names,
+            ),
+            hint_md=t(
+                (
+                    "Affected: {files}. The markers come from an incomplete merge: remove them "
+                    "in an editor or, if the page “Resolve conflicts” appears, restore the "
+                    "last saved state there."
+                ),
+                files=md_plain(names),
             ),
         )
 
 
 def refuse_staged_conflict_markers(root: Path) -> None:
-    """Wie :func:`refuse_conflict_markers` für alles, was gerade vorgemerkt ist (vor einem
-    Commit, der nicht über :func:`commit_directory` läuft: Zusammenführen abschließen,
-    Wiederherstellen, Zurücknehmen)."""
+    """Like :func:`refuse_conflict_markers` for everything that is currently staged (before a
+    commit that does not go through :func:`commit_directory`: completing a merge,
+    restoring, reverting)."""
     staged = split_z(_git(root, "diff", "--cached", "--name-only", "-z", strip=False))
     refuse_conflict_markers(root, (root / name for name in staged))
 
 
 def commit_directory(path: Path, message: str, tags: list[str] | None = None) -> str:
-    """Committet alle Änderungen unterhalb von ``path`` (nur dort) und setzt optional Tags."""
+    """Commits all changes below ``path`` (only there) and optionally sets tags."""
     root = require_root(path)
     changes = pending_changes(path)
     if not changes:
-        raise GitError(t("Keine Änderungen zum Committen"))
+        raise GitError(t("No changes to commit"))
     if blocked := [f for _, f in changes if FORBIDDEN.search(f)]:
         raise GitError(
             t(
-                "Tabellenkalkulationen werden nicht committet – bitte entfernen oder in "
-                ".gitignore aufnehmen: {files}",
+                (
+                    "Spreadsheets are not committed – please remove them or add them to "
+                    ".gitignore: {files}"
+                ),
                 files=", ".join(blocked),
             )
         )
     refuse_conflict_markers(root, (root / f for status, f in changes if "D" not in status))
-    names = check_new_tags(root, tags)  # vor dem Commit: bei einem Konflikt bleibt alles offen
+    names = check_new_tags(root, tags)  # before the commit: on a conflict everything stays open
     target = str(path.resolve())
     try:
         _git(root, "add", "--all", "--", target)
@@ -1543,8 +1791,8 @@ _NOT_A_REPOSITORY = re.compile(r"not a git repository", re.I)
 
 
 def _committable(root: Path, paths: list[Path]) -> list[Path]:
-    """Ohne gelöschte Dateien, die Git nie kannte (z. B. eine nie committete, inzwischen
-    umbenannte Sprintdatei): ``git add`` bräche bei ihnen mit „pathspec did not match“ ab."""
+    """Without deleted files that Git never knew (e.g. a sprint file that was never committed
+    and has since been renamed): ``git add`` would abort on them with “pathspec did not match”."""
     gone = [p for p in paths if not p.exists()]
     if not gone:
         return paths
@@ -1554,14 +1802,14 @@ def _committable(root: Path, paths: list[Path]) -> list[Path]:
 
 
 def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
-    """Committet ``paths`` und setzt optional einen Tag. Gibt den Commit-Hash zurück."""
+    """Commits ``paths`` and optionally sets a tag. Returns the commit hash."""
     cwd = paths[0].resolve().parent
     try:
         root = Path(_git(cwd, "rev-parse", "--show-toplevel"))
     except GitError as e:
         if e.kind == "error" and _NOT_A_REPOSITORY.search(str(e)):
             raise GitError(
-                t("{path} liegt in keinem Git-Repository", path=cwd),
+                t("{path} is not inside a Git repository", path=cwd),
                 "not_repo",
                 hint_for("not_repo"),
             ) from e
@@ -1597,8 +1845,8 @@ GITATTRIBUTES = """\
 """
 
 
-# Die Regeln aus GITATTRIBUTES, einzeln: Zeile und eine Beispieldatei, an der sich mit
-# ``git check-attr`` prüfen lässt, ob schon etwas (auch anderswo) dieselbe Festlegung trifft.
+# The rules of GITATTRIBUTES, one by one: the line and a sample file for which ``git check-attr``
+# shows whether something (possibly elsewhere) already makes the same setting.
 ATTRIBUTE_RULES = (
     ("*.yaml text eol=lf", "x.yaml"),
     ("*.yml text eol=lf", "x.yml"),
@@ -1608,10 +1856,10 @@ ATTRIBUTE_RULES = (
 
 @dataclass(frozen=True)
 class AttributesOffer:
-    """Das Angebot einer ``.gitattributes`` für ein bestehendes Daten-Repository: ``file`` ist
-    die Datei im Datenordner, ``rules`` die fehlenden Zeilen, ``affected`` die versionierten
-    Dateien (relativ zum Datenordner), deren Zeilenenden im Index CRLF (oder gemischt) sind und
-    mit der Festlegung beim nächsten Commit auf LF umgestellt würden."""
+    """The offer of a ``.gitattributes`` for an existing data repository: ``file`` is the file in
+    the data folder, ``rules`` the missing lines, ``affected`` the tracked files (relative to the
+    data folder) whose line endings are CRLF (or mixed) in the index and would be converted to LF
+    by the next commit once the rules apply."""
 
     file: Path
     rules: tuple[str, ...]
@@ -1619,29 +1867,28 @@ class AttributesOffer:
 
 
 def _lf_covered(data: Path) -> set[str]:
-    """Die Beispieldateien, für die Git im Datenordner bereits ``eol=lf`` anwendet."""
+    """The sample files for which Git already applies ``eol=lf`` in the data folder."""
     samples = [sample for _, sample in ATTRIBUTE_RULES]
     out = _git(data, "check-attr", "-z", "eol", "--", *samples, strip=False)
     fields = out.split("\0")
     covered = set()
-    for i in range(0, len(fields) - 2, 3):  # Pfad, Attribut, Wert
+    for i in range(0, len(fields) - 2, 3):  # path, attribute, value
         if fields[i + 2] == "lf":
             covered.add(fields[i])
     return covered
 
 
 def attributes_offer(data: Path) -> AttributesOffer | None:
-    """Prüft, ob dem Datenordner ``data`` (in einem Git-Repository) die Festlegung „YAML und
-    Berichte mit LF“ fehlt. ``None``, wenn schon alles abgedeckt ist, auch durch eine
-    ``.gitattributes`` an anderer Stelle des Repositories, oder kein Repository besteht. Es wird
-    nichts geschrieben."""
+    """Checks whether the data folder ``data`` (in a Git repository) lacks the setting "YAML and
+    reports with LF". ``None`` if everything is already covered, also by a ``.gitattributes``
+    elsewhere in the repository, or if there is no repository. Nothing is written."""
     if repo_root(data) is None:
         return None
     covered = _lf_covered(data)
     missing = tuple(rule for rule, sample in ATTRIBUTE_RULES if sample not in covered)
     if not missing:
         return None
-    # Die Muster filtert Python: Git läuft hier mit wörtlichen Pfadangaben (keine Platzhalter).
+    # Python filters the patterns: Git runs with literal pathspecs here (no wildcards).
     suffixes = tuple(rule.split()[0][1:] for rule, _ in ATTRIBUTE_RULES)
     out = _git(data, "ls-files", "--eol", "-z", strip=False)
     affected = []
@@ -1653,12 +1900,11 @@ def attributes_offer(data: Path) -> AttributesOffer | None:
 
 
 def apply_attributes(data: Path) -> AttributesOffer | None:
-    """Schreibt die fehlenden Regeln in die ``.gitattributes`` des Datenordners (eine
-    vorhandene Datei wird ergänzt, nichts darin geändert) und merkt die betroffenen Dateien zur
-    Umstellung vor (``git add --renormalize``). Committet wird nicht: Die Änderung erscheint wie
-    jede andere unter den offenen Änderungen und geht denselben Weg (Speichern und teilen, bei
-    Bedarf als Merge Request). Liefert das Angebot, das angewendet wurde, ``None`` ohne
-    Bedarf."""
+    """Writes the missing rules into the ``.gitattributes`` of the data folder (an existing file
+    is extended, nothing in it is changed) and stages the affected files for conversion
+    (``git add --renormalize``). Nothing is committed: the change shows up among the open changes
+    like any other and takes the same way (save and share, as a merge request if configured).
+    Returns the offer that was applied, ``None`` if there was nothing to do."""
     offer = attributes_offer(data)
     if offer is None:
         return None
@@ -1668,12 +1914,12 @@ def apply_attributes(data: Path) -> AttributesOffer | None:
         existing = previous.decode("utf-8") if previous is not None else ""
         head = existing if not existing or existing.endswith("\n") else existing + "\n"
         offer.file.write_text(head + "\n".join(offer.rules) + "\n", encoding="utf-8", newline="\n")
-        # Eine noch nicht gespeicherte Löschung kennt nur der Index: ``git add`` bräche dort ab.
+        # Only the index knows a deletion that is not saved yet: ``git add`` would fail there.
         names = [str((data / f).resolve()) for f in offer.affected if (data / f).exists()]
         if names:
             _git(root, "add", "--renormalize", "--", *names)
     except BaseException:
-        # Nichts halb anbieten: Ohne die Datei gälte das Angebot weiter.
+        # Leave nothing half done: without the file the offer stays valid.
         if previous is None:
             offer.file.unlink(missing_ok=True)
         else:
@@ -1685,19 +1931,21 @@ def apply_attributes(data: Path) -> AttributesOffer | None:
 
 
 def folder_problem(path: Path, error: Exception) -> GitError:
-    """Ein Dateisystemfehler am Ordner ``path`` als :class:`GitError` der Art ``folder`` mit
-    Klartext (Pfade stehen als Code, denn die Meldung erscheint als Markdown)."""
+    """A file system error on the folder ``path`` as a :class:`GitError` of kind ``folder`` with
+    plain text (paths appear as code, because the message is shown as Markdown)."""
     shown = md_code(str(path))
     if isinstance(error, PermissionError):
         message = t(
-            "Keine Zugriffsrechte für {path} – bitte einen anderen Ordner wählen oder die "
-            "Rechte anpassen.",
+            (
+                "No access rights for {path} – please choose another folder or adjust the "
+                "permissions."
+            ),
             path=shown,
         )
     else:
         reason = getattr(error, "strerror", None) or str(error)
         message = t(
-            "{path} lässt sich nicht anlegen ({reason}) – bitte den Pfad prüfen.",
+            "{path} cannot be created ({reason}) – please check the path.",
             path=shown,
             reason=reason,
         )
@@ -1706,20 +1954,20 @@ def folder_problem(path: Path, error: Exception) -> GitError:
 
 @contextlib.contextmanager
 def _folder_access(path: Path) -> Iterator[None]:
-    """Der Zielordner ``path`` eines Anlegens bzw. Klonens: Eine Datei an dieser Stelle und
-    Dateisystemfehler (keine Rechte, Pfad unbrauchbar, auch die von Git gemeldeten) kommen als
-    :class:`GitError` der Art ``folder`` mit Klartext statt als rohe Ausnahme."""
+    """The target folder ``path`` of a create or clone: a file at this location and
+    file system errors (no permission, unusable path, including those reported by Git) come as
+    a :class:`GitError` of kind ``folder`` with plain text instead of a raw exception."""
     try:
         if path.is_file():
             raise GitError(
                 t(
-                    "{path} ist eine Datei, kein Ordner – bitte einen Ordner angeben.",
+                    "{path} is a file, not a folder – please specify a folder.",
                     path=md_code(str(path)),
                 ),
                 "folder",
             )
         yield
-    except (OSError, ValueError) as e:  # ValueError: Pfad mit NUL-Zeichen
+    except (OSError, ValueError) as e:  # ValueError: path with NUL character
         raise folder_problem(path, e) from e
     except GitError as e:
         if e.kind == "not_writable" or (e.kind == "error" and "Permission denied" in str(e)):
@@ -1728,18 +1976,17 @@ def _folder_access(path: Path) -> Iterator[None]:
 
 
 def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
-    """Legt ein Daten-Repository an (git init, .gitignore, optional Ordner ``teams``) und liefert
-    den Ordner für die Teams. Ein neues Repository bekommt im Datenordner außerdem eine
-    ``.gitattributes`` (YAML und Berichte mit LF): Sie wird mit den Daten committet und erreicht
-    so auch die Klone. Vorhandene Dateien und bestehende Repositories bleiben unverändert: Dort
-    könnten CRLF-Dateien im Index liegen, die mit der Festlegung plötzlich als geändert gelten.
-    Eine Datei als Ziel und Dateisystemfehler kommen als :class:`GitError` (Art ``folder``),
-    ein Ordner, den Git als unsicher ablehnt, als Art ``unsafe_directory`` (ohne etwas zu
-    schreiben)."""
+    """Creates a data repository (git init, .gitignore, optionally a ``teams`` folder) and
+    returns the folder for the teams. A new repository also gets a ``.gitattributes`` in the
+    data folder (YAML and reports with LF): it is committed with the data and thus reaches the
+    clones too. Existing files and existing repositories stay unchanged: CRLF files might be
+    in the index there, which would suddenly count as modified with the setting. A file as the
+    target and file system errors come as :class:`GitError` (kind ``folder``), a folder that
+    Git rejects as unsafe as kind ``unsafe_directory`` (without writing anything)."""
     with _folder_access(path):
         if (problem := root_problem(path)) is not None:
-            # Git lehnt den Ordner ab, weil er einem anderen Konto gehört: nicht „git init“ dort,
-            # nichts hineinschreiben, sondern den Grund nennen.
+            # Git rejects the folder because it belongs to a different account: no “git init”
+            # there, write nothing into it, but name the reason.
             raise GitError(str(problem), problem.kind, problem.hint, problem.raw)
         path.mkdir(parents=True, exist_ok=True)
         new = repo_root(path) is None
@@ -1760,18 +2007,18 @@ def init_data_repository(path: Path, teams_folder: bool = True) -> Path:
 
 
 def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
-    """Klont ein bestehendes Daten-Repository nach ``path``. Die Adresse wird wie bei
-    :func:`parse_remote_url` geprüft (Zugangsdaten in der Adresse, relative Pfade, ``git://`` und
-    ``file://`` werden abgelehnt). Fehler (Adresse, Zielordner, Anmeldung, Server nicht
-    erreichbar, Zeitüberschreitung) kommen als :class:`GitError` mit nächstem Schritt."""
-    # Beim Klonen reicht auch http:// (viele Repositories im Firmennetz haben nichts anderes).
+    """Clones an existing data repository to ``path``. The address is checked as with
+    :func:`parse_remote_url` (credentials in the address, relative paths, ``git://`` and
+    ``file://`` are rejected). Errors (address, target folder, login, server not
+    reachable, timeout) come as :class:`GitError` with the next step."""
+    # When cloning, http:// is also enough (many company-network repositories offer nothing else).
     address = parse_remote_url(url, allow_insecure=True)
-    path = Path(os.path.abspath(path))  # ein relatives Ziel wäre sonst relativ zu path.parent
+    path = Path(os.path.abspath(path))  # else a relative target would be relative to path.parent
     try:
         with _folder_access(path):
             if path.exists() and any(path.iterdir()):
                 raise GitError(
-                    t("{path} ist nicht leer", path=md_code(str(path))),
+                    t("{path} is not empty", path=md_code(str(path))),
                     "folder",
                 )
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -1787,7 +2034,5 @@ def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
                 url=address.url,
             )
     finally:
-        with contextlib.suppress(
-            OSError, ValueError
-        ):  # ein unbrauchbarer Pfad wurde schon gemeldet
+        with contextlib.suppress(OSError, ValueError):  # an unusable path has already been reported
             forget_roots(path)

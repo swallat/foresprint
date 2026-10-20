@@ -100,7 +100,7 @@ def test_settings_form_shows_imported_values_after_apply(data_dir: Path, monkeyp
     window = team.forecast.window
 
     def edit(wb: openpyxl.Workbook) -> None:
-        for row in wb["Einstellungen"].iter_rows(min_row=3):
+        for row in wb["Settings"].iter_rows(min_row=3):
             if row[2].value == "forecast.window":
                 row[1].value = window + 1
                 return
@@ -114,3 +114,32 @@ def test_settings_form_shows_imported_values_after_apply(data_dir: Path, monkeyp
     assert Repository(data_dir).load("demo").team.forecast.window == window + 1
     assert at.number_input(key="settings-demo-forecast.window").value == window + 1
     assert at.file_uploader(key="excel-import-demo-file-1").value is None
+
+
+def test_workbook_of_another_team_is_refused_without_writing(data_dir: Path, monkeypatch):
+    def other_team(wb: openpyxl.Workbook) -> None:
+        for prop in wb.custom_doc_props.props:
+            if prop.name == "sprintforecast-team":
+                prop.value = "other"
+
+    before = {p: p.read_bytes() for p in data_dir.rglob("*.yaml")}
+    at = settings_page(data_dir, monkeypatch)
+    upload(at, edited(exported(data_dir), other_team))
+    assert not at.exception, at.exception
+    assert any("'other'" in e.value for e in at.error)
+    assert not [b for b in at.button if b.label == APPLY]
+    assert {p: p.read_bytes() for p in data_dir.rglob("*.yaml")} == before
+
+
+def test_workbook_parsed_once_per_upload(data_dir: Path, monkeypatch):
+    import sprintforecast.excel_import as mod
+
+    calls = []
+    real = mod.read_workbook_keyed
+    monkeypatch.setattr(mod, "read_workbook_keyed", lambda *a: calls.append(1) or real(*a))
+    content, _, _ = bump_velocity(data_dir)
+    at = settings_page(data_dir, monkeypatch)
+    upload(at, content)
+    at.run()
+    at.run()
+    assert len(calls) == 1

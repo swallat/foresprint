@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Benutzereinstellungen außerhalb der Team-Daten (z. B. gemerkter Datenordner).
+"""User settings outside the team data (e.g. the remembered data folder).
 
-Ablage neben der Plugin-Auswahl der Installationsskripte:
-Windows %APPDATA%\\sprintforecast, sonst ~/.config/sprintforecast.
+Stored next to the plugin selection of the install scripts:
+Windows %APPDATA%\\sprintforecast, otherwise ~/.config/sprintforecast.
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ PACKAGE = "sprintforecast"
 
 
 class SettingsError(OSError):
-    """Die Einstellungen lassen sich nicht speichern (z. B. Ordner nicht beschreibbar). Die
-    Meldung ist für Anwender gedacht."""
+    """The settings cannot be saved (e.g. folder not writable). The message is meant for
+    users."""
 
 
 def config_dir() -> Path:
@@ -45,7 +45,7 @@ def load() -> dict[str, Any]:
 
 
 def _keep_damaged(path: Path) -> None:
-    """Sichert eine unlesbare Einstellungsdatei, bevor sie überschrieben wird."""
+    """Back up an unreadable settings file before it is overwritten."""
     try:
         content = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -58,17 +58,16 @@ def _keep_damaged(path: Path) -> None:
     target = path.with_name(path.name + ".defekt")
     stamp = time.strftime("%Y%m%d-%H%M%S")
     n = 0
-    while target.exists():  # eine ältere Sicherung bleibt erhalten
+    while target.exists():  # an older backup is kept
         n += 1
         target = path.with_name(f"{path.name}.defekt-{stamp}" + (f"-{n}" if n > 1 else ""))
     shutil.copy2(path, target)
 
 
 def update(**changes: Any) -> None:
-    """Speichert Einstellungen: atomar (über eine Zwischendatei, nie halb geschrieben); eine
-    beschädigte Datei wird vorher als ``settings.json.defekt`` gesichert (eine ältere
-    Sicherung bleibt erhalten, die neue bekommt einen Zeitstempel). Schlägt das fehl, kommt
-    eine :class:`SettingsError` mit verständlicher Meldung."""
+    """Save settings atomically (via a temporary file, never half-written); a corrupted file is
+    backed up first as ``settings.json.defekt`` (an older backup is kept, the new one gets a
+    timestamp). If that fails, a :class:`SettingsError` with an understandable message is raised."""
     path = _settings_file()
     tmp: str | None = None
     try:
@@ -85,7 +84,7 @@ def update(**changes: Any) -> None:
     except OSError as e:
         raise SettingsError(
             t(
-                "Die Einstellungen konnten nicht gespeichert werden ({path}): {error}",
+                "The settings could not be saved ({path}): {error}",
                 path=path,
                 error=e.strerror or e,
             )

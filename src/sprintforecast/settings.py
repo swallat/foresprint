@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Beschreibung der Team-Einstellungen – gemeinsame Grundlage für CLI und Weboberfläche."""
+"""Description of the team settings, shared basis for the CLI and the web UI."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from sprintforecast.calendar import countries, subdivisions
 from sprintforecast.i18n import t
 from sprintforecast.model import Numbering, ProductBasis, Team, TrendMode, Unit
 
-# Bundesländer in der Schreibweise der holidays-Bibliothek.
+# Federal states as spelled by the holidays library.
 REGIONS: dict[str, str] = {
     "BW": "Baden-Württemberg",
     "BY": "Bayern",
@@ -40,7 +40,7 @@ class Kind(StrEnum):
     CHOICE = "choice"
     INT = "int"
     NUMBER = "number"
-    # Anteil 0–1, wird in Prozent abgefragt und angezeigt.
+    # Share 0-1, prompted for and displayed as a percentage.
     PERCENT = "percent"
     DATE = "date"
 
@@ -57,74 +57,76 @@ class Setting:
     minimum: float | None = None
     maximum: float | None = None
     optional: bool = False
-    # Nur relevant, solange noch keine Sprintdatei existiert.
+    # Only relevant as long as no sprint file exists yet.
     only_without_sprints: bool = False
-    # Ändert rückwirkend die Berechnung aller Sprints.
+    # Retroactively changes the calculation of all sprints.
     retroactive: bool = False
-    # Schrittweite im Eingabefeld der Weboberfläche (sonst je Art).
+    # Step size in the web UI input field (otherwise by kind).
     step: float | None = None
 
     @property
     def title(self) -> str:
-        """Bezeichnung in der eingestellten Sprache."""
+        """Label in the configured language."""
         return t(self.label)
 
     @property
     def text(self) -> str:
-        """Erklärung in der eingestellten Sprache."""
+        """Explanation in the configured language."""
         return t(self.help)
 
     @property
     def options(self) -> dict[str, str] | None:
-        """Auswahlmöglichkeiten mit übersetzten Beschreibungen."""
+        """Choices with translated descriptions."""
         if self.choices is None:
             return None
         return {k: v if self is _COUNTRY else t(v) for k, v in self.choices.items()}
 
     def parse(self, raw: str) -> Any:
-        """Wandelt eine Texteingabe in den Wert um; wirft ValueError mit deutscher Meldung."""
+        """Convert a text input into the value; raise ValueError with a translated message."""
         raw = raw.strip()
         if raw == "":
             if self.optional:
                 return None
-            raise ValueError(t("Bitte einen Wert eingeben."))
+            raise ValueError(t("Please enter a value."))
         match self.kind:
             case Kind.TEXT:
                 if self.key == "capacity.region":
                     raw = raw.upper()
                     known = {c for code in countries() for c in subdivisions(code)}
                     if raw not in known:
-                        raise ValueError(t("Unbekannter Regionscode: {value}", value=raw))
+                        raise ValueError(t("Unknown region code: {value}", value=raw))
                 if self.key == "sprint.first_id":
                     from sprintforecast.storage import file_name_problem
 
-                    # Die ID wird zum Dateinamen; was der Ladeweg ablehnt, darf hier nicht
-                    # speicherbar sein (sonst ließe sich das Team danach nicht mehr laden).
+                    # The ID becomes the file name; whatever the load path rejects must not
+                    # be savable here (or the team could no longer be loaded afterwards).
                     if problem := file_name_problem(raw, portable=False):
                         raise ValueError(
-                            t("ID nicht zulässig als Dateiname ({problem}).", problem=problem)
+                            t("ID not allowed as a file name ({problem}).", problem=problem)
                         )
                 return raw
             case Kind.CHOICE:
                 assert self.choices is not None
                 value = raw.upper() if raw.upper() in self.choices else raw
+                if self.choices is SWITCH:
+                    value = _SWITCH_ALIASES.get(value.lower(), value)  # an/aus: German UI
                 if value not in self.choices:
-                    raise ValueError(t("Erlaubt: {values}", values=", ".join(self.choices)))
+                    raise ValueError(t("Allowed: {values}", values=", ".join(self.choices)))
                 return value
             case Kind.DATE:
                 try:
                     return date.fromisoformat(raw)
                 except ValueError as e:
-                    raise ValueError(t("Datum im Format JJJJ-MM-TT eingeben.")) from e
+                    raise ValueError(t("Enter the date as YYYY-MM-DD.")) from e
             case Kind.INT | Kind.NUMBER | Kind.PERCENT:
                 try:
                     number = float(raw.replace(",", ".").removesuffix("%").strip())
                 except ValueError as e:
-                    raise ValueError(t("Bitte eine Zahl eingeben.")) from e
+                    raise ValueError(t("Please enter a number.")) from e
                 if not math.isfinite(number):
-                    raise ValueError(t("Bitte eine endliche Zahl eingeben."))
+                    raise ValueError(t("Please enter a finite number."))
                 if self.kind is Kind.INT and not number.is_integer():
-                    raise ValueError(t("Bitte eine ganze Zahl eingeben."))
+                    raise ValueError(t("Please enter a whole number."))
                 self.check_range(number)
                 if self.kind is Kind.INT:
                     return int(number)
@@ -133,12 +135,12 @@ class Setting:
 
     def check_range(self, shown: float) -> None:
         if self.minimum is not None and shown < self.minimum:
-            raise ValueError(t("Der Wert muss ≥ {value} sein.", value=_plain(self.minimum)))
+            raise ValueError(t("The value must be ≥ {value}.", value=_plain(self.minimum)))
         if self.maximum is not None and shown > self.maximum:
-            raise ValueError(t("Der Wert muss ≤ {value} sein.", value=_plain(self.maximum)))
+            raise ValueError(t("The value must be ≤ {value}.", value=_plain(self.maximum)))
 
     def display(self, team: Team) -> str:
-        """Aktueller Wert als Text, so wie er auch eingegeben würde."""
+        """Current value as text, the way it would be entered."""
         value = self.get(team)
         if value is None:
             return ""
@@ -172,47 +174,52 @@ def _getter(path: str) -> Callable[[Team], Any]:
 
 def _switch(path: str) -> Callable[[Team], str]:
     get = _getter(path)
-    return lambda team: "an" if get(team) else "aus"
+    return lambda team: "on" if get(team) else "off"
 
 
 def _switch_setter(path: str) -> Callable[[Team, Any], None]:
     section, _, attr = path.rpartition(".")
 
     def apply(team: Team, value: Any) -> None:
-        setattr(getattr(team, section), attr, value == "an")
+        setattr(getattr(team, section), attr, value == "on")
         getattr(team, section).explicit = True
 
     return apply
 
 
-SWITCH = {"aus": "aus", "an": "an"}
+SWITCH = {"off": "off", "on": "on"}
+_SWITCH_ALIASES = {"an": "on", "aus": "off"}
 
 SETTINGS: list[Setting] = [
     Setting(
         key="name",
-        label="Anzeigename",
-        help="Name des Teams in Berichten und Überschriften.",
+        label="Display name",
+        help="Team name in reports and headings.",
         kind=Kind.TEXT,
         get=_getter("name"),
         set=_setter("name"),
     ),
     Setting(
         key="unit",
-        label="Schätzeinheit",
-        help="PT (Personentage) oder SP (Story Points). Wirkt nur auf die Anzeige; "
-        "die Kapazität ist immer in PT.",
+        label="Estimation unit",
+        help=(
+            "PT (person days) or SP (story points). Only affects the display; the "
+            "capacity is always in PT."
+        ),
         kind=Kind.CHOICE,
-        choices={"PT": "Personentage", "SP": "Story Points"},
+        choices={"PT": "person days", "SP": "story points"},
         get=lambda t: t.unit.value,
         set=_setter("unit", Unit),
     ),
     Setting(
         key="features.products",
-        label="Produktverteilung",
-        help="Nur nötig, wenn das Team mehrere Produkte betreut und die Sprint-Menge darauf "
-        "verteilt wird: Produktliste, PO-Vorplanung, Planning und Erledigt je Produkt, "
-        "Standardverteilung und Saldo. Aus: Diese Seiten und Eingaben entfallen; bereits "
-        "erfasste Werte bleiben in den Dateien erhalten.",
+        label="Product distribution",
+        help=(
+            "Only needed if the team looks after several products and the sprint amount "
+            "is distributed over them: product list, PO pre-planning, planning and done "
+            "per product, default distribution and balance. Off: these pages and inputs "
+            "are omitted; values already recorded stay in the files."
+        ),
         kind=Kind.CHOICE,
         choices=SWITCH,
         get=_switch("features.products"),
@@ -220,10 +227,12 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="features.po",
-        label="Zuordnung PO",
-        help="Jedes Produkt hat einen verantwortlichen Product Owner; die Vorplanung zeigt "
-        "Summen je PO. Sinnvoll nur zusammen mit der Produktverteilung. Aus: Es gibt keine "
-        "Spalte PO und keine Summen je PO.",
+        label="PO assignment",
+        help=(
+            "Each product has a responsible product owner; the pre-planning shows sums "
+            "per PO. Only useful together with the product distribution. Off: there is no "
+            "PO column and no sums per PO."
+        ),
         kind=Kind.CHOICE,
         choices=SWITCH,
         get=_switch("features.po"),
@@ -231,11 +240,13 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="features.production",
-        label="Produktionszugriff",
-        help="Nur ein Teil der Personen darf Tickets mit Produktionszugriff bearbeiten. An: "
-        "Personen werden als berechtigt markiert, im Planning und Review wird erfasst, wie "
-        "viel Menge davon Produktionszugriff braucht, und ein Engpass-Hinweis zeigt, ob die "
-        "berechtigte Gruppe das schafft. Aus: keine Markierung, keine Eingaben, kein Hinweis.",
+        label="Production access",
+        help=(
+            "Only some of the people may work on tickets that need production access. On: "
+            "people are marked as authorized, planning and review record how much of the "
+            "amount needs production access, and a bottleneck hint shows whether the "
+            "authorized group can handle it. Off: no marking, no inputs, no hint."
+        ),
         kind=Kind.CHOICE,
         choices=SWITCH,
         get=_switch("features.production"),
@@ -243,12 +254,14 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="features.tickets",
-        label="Ticket-Vorplanung",
-        help="Tickets aus dem Ticketsystem (CSV-Export) werden Projekten zugeordnet und auf "
-        "künftige Sprints verteilt: Projektliste mit Zieldatum, Vormerkungen je Sprint, "
-        "Projektampel und Refinement-Liste (Dateien projects.yaml, tickets.yaml, preplan.yaml; "
-        "Abschnitt tracker in team.yaml). Aus: Die Dateien werden nicht gelesen, es gibt keine "
-        "Seite und keinen Befehl dafür.",
+        label="Ticket pre-planning",
+        help=(
+            "Tickets from the issue tracker (Jira or CSV export) are assigned to projects "
+            "and distributed over future sprints: project list with target date, earmarks "
+            "per sprint, project traffic light and refinement list (files projects.yaml, "
+            "tickets.yaml, preplan.yaml; section tracker in team.yaml). Off: the files "
+            "are not read, and there is no page and no command for it."
+        ),
         kind=Kind.CHOICE,
         choices=SWITCH,
         get=_switch("features.tickets"),
@@ -256,9 +269,11 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="capacity.country",
-        label="Land",
-        help="Für die Feiertage und das Wochenende (ISO-Ländercode, z. B. DE, AT, CH, US, GB, "
-        "SA). Einzelne Personen können in der Personenliste ein anderes Land haben.",
+        label="Country",
+        help=(
+            "For public holidays and the weekend (ISO country code, e.g. DE, AT, CH, US, "
+            "GB, SA). Individual people can have a different country in the people list."
+        ),
         kind=Kind.CHOICE,
         choices=countries(),
         get=_getter("capacity.country"),
@@ -267,9 +282,12 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="capacity.region",
-        label="Region (Bundesland, Staat, Provinz)",
-        help="Für regionale Feiertage, z. B. NW (Deutschland), CA (USA), ON (Kanada). Leer = nur "
-        "landesweite Feiertage. Muss zum Land passen; einzelne Personen können abweichen.",
+        label="Region (state, province)",
+        help=(
+            "For regional public holidays, e.g. NW (Germany), CA (USA), ON (Canada). "
+            "Empty = nationwide holidays only. Must match the country; individual people "
+            "can differ."
+        ),
         kind=Kind.TEXT,
         optional=True,
         get=_getter("capacity.region"),
@@ -278,15 +296,17 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="capacity.workweek",
-        label="Arbeitswoche",
-        help="Welche Tage als Arbeitstage zählen. „auto“ folgt dem Land (z. B. Sonntag bis "
-        "Donnerstag in Saudi-Arabien).",
+        label="Work week",
+        help=(
+            'Which days count as working days. "auto" follows the country (e.g. Sunday '
+            "to Thursday in Saudi Arabia)."
+        ),
         kind=Kind.CHOICE,
         choices={
-            "auto": "wie im Land",
-            "mon-fri": "Montag bis Freitag",
-            "sun-thu": "Sonntag bis Donnerstag",
-            "mon-sat": "Montag bis Samstag",
+            "auto": "as in the country",
+            "mon-fri": "Monday to Friday",
+            "sun-thu": "Sunday to Thursday",
+            "mon-sat": "Monday to Saturday",
         },
         get=_getter("capacity.workweek"),
         set=_setter("capacity.workweek"),
@@ -294,9 +314,11 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="capacity.overhead_share",
-        label="Abzug für Scrum-Termine (%)",
-        help="Pauschaler Anteil der Kapazität für Dailys, Planning, Review, Retro, Refinement. "
-        "0, wenn die Fehltage das bereits abdecken.",
+        label="Scrum events deduction (%)",
+        help=(
+            "Flat share of the capacity for dailies, planning, review, retro, refinement. "
+            "0 if the absences already cover this."
+        ),
         kind=Kind.PERCENT,
         minimum=0,
         maximum=90,
@@ -305,10 +327,12 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="capacity.overhead_days",
-        label="Abzug für Scrum-Termine (PT je Person)",
-        help="Fester Abzug je Sprint und Vollzeitperson (Teilzeit anteilig), z. B. 1 für "
-        "Planning, Review und Retro. Entspricht dem Abzug in % (beide Felder gleichen sich ab); "
-        "0 = der Abzug in % gilt.",
+        label="Scrum events deduction (PT per person)",
+        help=(
+            "Fixed deduction per sprint and full-time person (part time pro rata), e.g. 1 "
+            "for planning, review and retro. Equals the deduction in % (both fields stay "
+            "in sync); 0 = the deduction in % applies."
+        ),
         kind=Kind.NUMBER,
         minimum=0,
         maximum=20,
@@ -318,10 +342,12 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="capacity.absence_history",
-        label="Fehltage-Historie (Anzahl Sprints)",
-        help="Für künftige Sprints ohne bekannte Fehltage wird die Kapazität aus Kalender und "
-        "Personenliste um die durchschnittlichen Fehltage der letzten so vielen Sprints mit "
-        "bestätigten Fehltagen gemindert. 0 = keine Schätzung (ohne Abzug für Fehltage).",
+        label="Absence history (number of sprints)",
+        help=(
+            "For future sprints without known absences the capacity from calendar and "
+            "people list is reduced by the average absences of the last that many sprints "
+            "with confirmed absences. 0 = no estimate (no deduction for absences)."
+        ),
         kind=Kind.INT,
         minimum=0,
         maximum=26,
@@ -331,8 +357,8 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="sprint.length_days",
-        label="Sprintlänge (Kalendertage)",
-        help="Gilt für neu erzeugte Sprints; bereits erfasste Sprints behalten ihre Daten.",
+        label="Sprint length (calendar days)",
+        help="Applies to newly created sprints; recorded sprints keep their dates.",
         kind=Kind.INT,
         minimum=1,
         maximum=56,
@@ -341,17 +367,17 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="sprint.numbering",
-        label="Sprint-Nummerierung",
-        help="Schema für neu erzeugte Sprint-IDs.",
+        label="Sprint numbering",
+        help="Scheme for newly created sprint IDs.",
         kind=Kind.CHOICE,
-        choices={"yearly": "pro Jahr (2026.1, 2026.2 …)", "sequential": "fortlaufend (1, 2, 3 …)"},
+        choices={"yearly": "per year (2026.1, 2026.2 …)", "sequential": ("sequential (1, 2, 3 …)")},
         get=lambda t: t.sprint.numbering.value,
         set=_setter("sprint.numbering", Numbering),
     ),
     Setting(
         key="sprint.first_start",
-        label="Start des ersten Sprints",
-        help="Nur nötig, solange noch keine Sprintdatei existiert.",
+        label="Start of the first sprint",
+        help="Only needed as long as no sprint file exists.",
         kind=Kind.DATE,
         optional=True,
         only_without_sprints=True,
@@ -360,9 +386,11 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="sprint.first_id",
-        label="ID des ersten Sprints",
-        help="Der Sprint, der gerade läuft oder als Nächstes beginnt, z. B. 2026.15 oder 15. "
-        "Nur nötig, solange noch keine Sprintdatei existiert; danach: Sprint-IDs ändern.",
+        label="ID of the first sprint",
+        help=(
+            "The sprint that is running now or starts next, e.g. 2026.15 or 15. Only "
+            "needed as long as no sprint file exists; after that: Change sprint IDs."
+        ),
         kind=Kind.TEXT,
         optional=True,
         only_without_sprints=True,
@@ -371,11 +399,13 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.reference_capacity",
-        label="Referenzkapazität (PT)",
-        help="Darstellungsmaßstab der normierten Velocity (n. Velocity = Fokusfaktor × "
-        "Referenzkapazität). Am besten die Kapazität eines voll besetzten Sprints. Sie kürzt "
-        "sich in der Rechnung heraus: Ändert alle normierten Werte, aber nicht den Forecast "
-        "PLAN.",
+        label="Reference capacity (PT)",
+        help=(
+            "Display scale of the normalized velocity (norm. velocity = focus factor × "
+            "reference capacity). Best the capacity of a fully staffed sprint. It cancels "
+            "out in the calculation: changes all normalized values but not the Forecast "
+            "PLAN."
+        ),
         kind=Kind.NUMBER,
         minimum=1,
         retroactive=True,
@@ -384,9 +414,10 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.window",
-        label="Ø über Sprints",
-        help="Anzahl Sprints im gleitenden Durchschnitt. Kleiner = reagiert schneller, "
-        "größer = ruhiger.",
+        label="Ø over sprints",
+        help=(
+            "Number of sprints in the moving average. Smaller = reacts faster, larger = smoother."
+        ),
         kind=Kind.INT,
         minimum=1,
         maximum=20,
@@ -396,15 +427,17 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.trend_mode",
-        label="Trend-Modus",
-        help="Wie der Durchschnitt in die Zukunft fortgeschrieben wird. „Konstant“ ist robust und "
-        "der Standard. „Linear“ und „klassisch“ schreiben auch Rauschen fort: Sie können "
-        "steigen oder fallen und sind nur bei einem belegten, stabilen Trend sinnvoll.",
+        label="Trend mode",
+        help=(
+            "How the average is extrapolated into the future. “Constant” is robust and "
+            "the default. “Linear” and “classic” also extrapolate noise: they can rise or "
+            "fall and only make sense for a proven, stable trend."
+        ),
         kind=Kind.CHOICE,
         choices={
-            "flat": "letzter Durchschnitt bleibt konstant (Standard)",
-            "classic": "linear, dann multiplikativ, dann linear (Vorsicht: schreibt Rauschen fort)",
-            "linear": "durchgehend linear (Vorsicht: schreibt Rauschen fort)",
+            "flat": "last average stays constant (default)",
+            "classic": "linear, then multiplicative, then linear (caution: extrapolates noise)",
+            "linear": "linear throughout (caution: extrapolates noise)",
         },
         retroactive=True,
         get=lambda t: t.forecast.trend_mode.value,
@@ -412,9 +445,10 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.roadmap_share",
-        label="Verplanbarer Anteil (%)",
-        help="Anteil des Forecast PLAN, der für planbare Themen reserviert ist; der Rest ist "
-        "„Kleinkram“.",
+        label="Plannable share (%)",
+        help=(
+            'Share of the Forecast PLAN reserved for plannable topics; the rest is "small items".'
+        ),
         kind=Kind.PERCENT,
         minimum=0,
         maximum=100,
@@ -423,8 +457,8 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.horizon",
-        label="Prognose-Horizont (Sprints)",
-        help="Wie viele künftige Sprints in Prognose und Bericht erscheinen.",
+        label="Forecast horizon (sprints)",
+        help="How many future sprints appear in the forecast and report.",
         kind=Kind.INT,
         minimum=1,
         maximum=26,
@@ -433,12 +467,13 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.rounding",
-        label="Nachkommastellen Forecast PLAN",
+        label="Decimal places Forecast PLAN",
         help=(
-            "Der Forecast PLAN wird auf diese Stellen abgerundet: Er ist die Planungsmenge, und "
-            "Abrunden schützt vor Überplanung. Die Kapazität dagegen wird intern ungerundet "
-            "gerechnet und nur kaufmännisch gerundet angezeigt und gespeichert, damit der Nenner "
-            "der normierten Velocity nicht systematisch zu klein wird."
+            "The Forecast PLAN is rounded down to this many digits: it is the planning "
+            "quantity, and rounding down guards against over-planning. Capacity, by "
+            "contrast, is calculated unrounded internally and only rounded half-up when "
+            "shown and stored, so the denominator of the normalized velocity is not "
+            "systematically too small."
         ),
         kind=Kind.INT,
         minimum=0,
@@ -448,13 +483,15 @@ SETTINGS: list[Setting] = [
     ),
     Setting(
         key="forecast.product_basis",
-        label="Standardverteilung je Produkt aus",
-        help="Welche Menge gleichmäßig auf die betreuten Produkte verteilt wird "
-        "(Standard = Menge / Anzahl Produkte).",
+        label="Standard distribution per product based on",
+        help=(
+            "Which amount is distributed equally across the products handled (standard = "
+            "amount / number of products)."
+        ),
         kind=Kind.CHOICE,
         choices={
-            "plan": "gesamter Forecast PLAN",
-            "roadmap": "nur verplanbarer Anteil (Kleinkram bleibt produktübergreifend)",
+            "plan": "entire Forecast PLAN",
+            "roadmap": "plannable share only (small items stay across products)",
         },
         get=lambda t: t.forecast.product_basis.value,
         set=_setter("forecast.product_basis", ProductBasis),
@@ -462,9 +499,9 @@ SETTINGS: list[Setting] = [
 ]
 
 BY_KEY = {s.key: s for s in SETTINGS}
-# Der erste Sprint wird beim Anlegen eines Teams zuerst gefragt (in dieser Reihenfolge).
+# The first sprint is asked for first when creating a team (in this order).
 FIRST_SPRINT_KEYS = ("sprint.numbering", "sprint.first_start", "sprint.first_id")
-# Ländernamen bleiben unübersetzt (Eigennamen).
+# Country names stay untranslated (proper names).
 _COUNTRY = BY_KEY["capacity.country"]
 
 
@@ -473,7 +510,7 @@ def applicable(has_sprints: bool) -> list[Setting]:
 
 
 def changes(before: Team, after: Team) -> list[tuple[Setting, str, str]]:
-    """Geänderte Einstellungen als (Einstellung, alt, neu)."""
+    """Changed settings as (setting, old, new)."""
     return [
         (s, s.display(before), s.display(after))
         for s in SETTINGS

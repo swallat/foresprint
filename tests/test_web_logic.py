@@ -28,21 +28,21 @@ def test_absence_matrix_roundtrip(data_dir: Path):
     sprints = absence_sprints(data, build_forecast(data, TODAY), 3)
     assert [s.id for s in sprints] == ["2026.21", "2026.22", "2026.23"]
     rows = absence_matrix(data.people, sprints)
-    assert [r["id"] for r in rows] == ["anna", "ben", "cem", "dana"]  # emil ausgetreten
+    assert [r["id"] for r in rows] == ["anna", "ben", "cem", "dana"]  # emil left
     assert rows[2]["2026.22"] == 5  # cem
     edited = edit_absences(data.people, sprints, rows)
     assert [s.absences for s in edited] == [s.absences for s in sprints]
-    # Nichts geändert und nichts bestätigt: auch 2026.23 (ohne Datei) wird nicht angelegt
+    # Nothing changed and nothing confirmed: even 2026.23 (without a file) is not created
     assert sprints_to_save(data, sprints, edited) == []
-    # „Niemand fehlt“ bestätigt ausdrücklich und legt die Datei an
+    # "Nobody is absent" confirms explicitly and creates the file
     confirmed = edit_absences(data.people, sprints, rows, confirmed={"2026.23"})
     assert [s.id for s in sprints_to_save(data, sprints, confirmed)] == ["2026.23"]
     assert confirmed[2].absence_state is AbsenceState.CONFIRMED
-    # Bestätigung aufheben: 2026.21 hat Einträge (bleibt bestätigt), 2026.22 ebenso
+    # Revoke confirmation: 2026.21 has entries (stays confirmed), 2026.22 likewise
     assert [s.absences_confirmed for s in confirmed[:2]] == [True, True]
 
-    rows[0]["2026.23"] = 2.5  # anna im Sprint ohne Datei
-    rows[2]["2026.22"] = None  # cem: leer = keine Fehltage
+    rows[0]["2026.23"] = 2.5  # anna in the sprint without a file
+    rows[2]["2026.22"] = None  # cem: empty = no absences
     edited = edit_absences(data.people, sprints, rows)
     to_save = {s.id: s for s in sprints_to_save(data, sprints, edited)}
     assert set(to_save) == {"2026.22", "2026.23"}
@@ -54,7 +54,7 @@ def test_people_table_roundtrip(data_dir: Path):
     people = Repository(data_dir).load("demo").people
     rows, hidden = people_table(people, TODAY, show_former=True)
     assert hidden == []
-    assert len(rows) == 6  # Ben hat zwei Zeiträume
+    assert len(rows) == 6  # Ben has two periods
     result = people_from_table(rows, people, hidden)
     assert (result.errors, result.deleted) == ([], [])
     assert result.people == people
@@ -63,7 +63,7 @@ def test_people_table_roundtrip(data_dir: Path):
 def test_former_people_hidden_and_preserved(data_dir: Path):
     people = Repository(data_dir).load("demo").people
     rows, hidden = people_table(people, TODAY, show_former=False)
-    assert [p.name for p in hidden] == ["Emil"]  # bis 31.07.2026
+    assert [p.name for p in hidden] == ["Emil"]  # until 31.07.2026
     assert "Emil" not in {r["Name"] for r in rows}
     result = people_from_table(rows, people, hidden)
     assert result.deleted == []
@@ -74,13 +74,13 @@ def test_new_rows_get_ids_and_join_existing_person(data_dir: Path):
     people = Repository(data_dir).load("demo").people
     rows, hidden = people_table(people, TODAY, show_former=False)
     anna = next(r for r in rows if r["Name"] == "Anna")
-    anna["bis"] = date(2026, 10, 31)
+    anna["until"] = date(2026, 10, 31)
     rows += [
-        # FTE-Änderung: neue Zeile, gleicher Name, keine ID
-        {"_id": None, "Name": "Anna", "Bundesland": "(Team)", "ab": "2026-11-01", "bis": None,
+        # FTE change: new row, same name, no ID
+        {"_id": None, "Name": "Anna", "State": "(Team)", "from": "2026-11-01", "until": None,
          "FTE": 0.5},
-        {"_id": float("nan"), "Name": "Jörg Müller", "Bundesland": "BY",
-         "ab": pd.Timestamp("2026-11-01"), "bis": pd.NaT, "FTE": float("nan")},
+        {"_id": float("nan"), "Name": "Jörg Müller", "State": "BY",
+         "from": pd.Timestamp("2026-11-01"), "until": pd.NaT, "FTE": float("nan")},
     ]  # fmt: skip
     result = people_from_table(rows, people, hidden)
     assert result.errors == []
@@ -104,9 +104,9 @@ def test_people_table_errors(data_dir: Path):
     people = Repository(data_dir).load("demo").people
     rows, hidden = people_table(people, TODAY, show_former=False)
     ben = [r for r in rows if r["Name"] == "Ben"]
-    ben[1]["Bundesland"] = "HE"  # zweiter Zeitraum mit anderem Bundesland
-    rows.append({"_id": None, "Name": "", "Bundesland": None, "ab": None, "bis": None, "FTE": 1})
-    rows.append({"_id": None, "Name": "Neu", "Bundesland": None, "ab": None, "bis": None})
+    ben[1]["State"] = "HE"  # second period with a different German state
+    rows.append({"_id": None, "Name": "", "State": None, "from": None, "until": None, "FTE": 1})
+    rows.append({"_id": None, "Name": "Neu", "State": None, "from": None, "until": None})
     errors = people_from_table(rows, people, hidden).errors
     assert any("unterschiedliche Namen oder Bundesländer" in e for e in errors)
     assert any("Name fehlt" in e for e in errors)
@@ -144,9 +144,9 @@ def test_calendar_shifts_persisted_sprints_outside_window(data_dir):
     from sprintforecast.web.logic import apply_calendar, calendar_to_save, with_sprints
 
     data, fc, absence_sprints, calendar_table = _calendar(data_dir)
-    shown = absence_sprints(data, fc, 1)  # nur 2026.21; 2026.22 liegt gespeichert dahinter
+    shown = absence_sprints(data, fc, 1)  # only 2026.21; 2026.22 is saved behind it
     rows = calendar_table(data, shown, fc.today)
-    rows[0]["Letzter Tag"] = date(2026, 11, 3)
+    rows[0]["Last day"] = date(2026, 11, 3)
     after, errors = apply_calendar(data, shown, rows)
     assert not errors
     to_save = calendar_to_save(data, shown, after, create_missing=False)
@@ -164,7 +164,7 @@ def test_calendar_rejects_id_collision(data_dir):
 
     data, fc, absence_sprints, calendar_table = _calendar(data_dir)
     repo = Repository(data_dir)
-    # gespeicherte 2026.25 und 2027.1, dazwischen erzeugte 2026.26
+    # saved 2026.25 and 2027.1, generated 2026.26 in between
     for s in absence_sprints(data, fc, 7):
         if s.id in ("2026.25", "2027.1"):
             repo.save_sprint("demo", s)
@@ -172,7 +172,7 @@ def test_calendar_rejects_id_collision(data_dir):
     shown = absence_sprints(data, fc, 7)
     assert [s.id for s in shown][-3:] == ["2026.25", "2026.26", "2027.1"]
     rows = calendar_table(data, shown, fc.today)
-    rows[-3]["Letzter Tag"] = date(2027, 1, 12)
+    rows[-3]["Last day"] = date(2027, 1, 12)
     _, errors = apply_calendar(data, shown, rows)
     assert any("2027.1" in e and "doppelt" in e for e in errors)
 
@@ -190,7 +190,7 @@ def test_fte_zero_is_allowed_and_out_of_range_is_reported(data_dir: Path):
     assert result.errors == []
     assert result.people[0].memberships[-1].fte == 0.0
     data.people = result.people
-    assert [i for i in check_team(data, TODAY) if i.level.value == "Fehler"] == []
+    assert [i for i in check_team(data, TODAY) if i.level.value == "Error"] == []
     assert sprint_capacity(data.team, data.people, data.sprint("2026.22")).capacity < before
     for bad in (1.5, -0.5, "abc"):
         rows[0]["FTE"] = bad
@@ -209,7 +209,7 @@ def test_whatif_velocity_changes_next_plan(data_dir: Path):
     high = whatif_forecast(fc, {current: 14.0})
     nxt = fc.upcoming()[-1].sprint.id
     assert high.entry(nxt).result.plan > low.entry(nxt).result.plan
-    assert fc.entry(current).sprint.velocity is None  # nichts verändert
+    assert fc.entry(current).sprint.velocity is None  # nothing changed
 
 
 def test_reset_future_absences_to_unknown(data_dir: Path):
@@ -251,14 +251,14 @@ def test_prognosis_roundtrip_and_validation(data_dir: Path):
     p = repo.load("demo").sprint("2026.21").prognoses[-1]
     assert (p.comment, p.expected_done, p.plan, p.target) == ("Daily", 8.5, 9.9, "2026.22")
     assert p.at == datetime(2026, 10, 16, 9, 30, 12)
-    # Review-Werte, die nicht zur Velocity passen, werden gewarnt
+    # Review values that do not match the velocity trigger a warning
     s = repo.load("demo")
     sprint = s.sprint("2026.21")
     sprint.velocity, sprint.not_done, sprint.additional_done = 9.0, 2.0, 0.0
     messages = [i.message for i in check_team(s, TODAY)]
     assert any("ergibt 8" in m for m in messages)
     sprint.not_done = -1.0
-    assert any(i.level.value == "Fehler" for i in check_team(s, TODAY))
+    assert any(i.level.value == "Error" for i in check_team(s, TODAY))
 
 
 def build_target(data):
@@ -307,12 +307,12 @@ def test_saving_preplanning_does_not_change_capacity_source(data_dir: Path):
     assert target.result.plan_capacity_source is CapacitySource.ESTIMATED
 
     sprint = target.sprint
-    sprint.products["webshop"] = ProductValues(preplanned=3.0)  # nur Vorplanung, keine Fehltage
+    sprint.products["webshop"] = ProductValues(preplanned=3.0)  # pre-planning only, no absences
     after = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
     assert after.result.plan_capacity_source is CapacitySource.ESTIMATED
     assert after.result.plan == target.result.plan
 
-    sprint.absences = {"anna": 2.0}  # eingetragene Fehltage bestätigen die Kapazität
+    sprint.absences = {"anna": 2.0}  # entered absences confirm the capacity
     confirmed = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
     assert confirmed.result.plan_capacity_source is CapacitySource.PEOPLE
 
@@ -340,7 +340,7 @@ def test_empty_sprint_file_does_not_confirm_absences(data_dir: Path):
     target = next(e for e in base.upcoming() if not e.recorded)
     sprint = Sprint(id=target.sprint.id, start=target.sprint.start, end=target.sprint.end)
     legacy = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
-    assert legacy.result.plan_capacity_source is CapacitySource.ESTIMATED  # leere Datei: unbekannt
+    assert legacy.result.plan_capacity_source is CapacitySource.ESTIMATED  # empty file: unknown
     sprint.absences_confirmed = True
     confirmed = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
     assert confirmed.result.plan_capacity_source is CapacitySource.PEOPLE
@@ -363,24 +363,24 @@ def test_board_steps_done_without_a_sprint_file_nothing_is_done():
         "planning": False,
         "review": False,
     }
-    # Eine leere Datei bestätigt auch nichts (Stand unbekannt)
+    # An empty file confirms nothing either (state unknown)
     assert not any(board_steps_done(_sprint()).values())
 
 
 def test_board_steps_done_absences_only_when_confirmed():
-    """Haken bei den Fehltagen nur für den Stand „bestätigt“ (Zustand je Sprint), nicht für
-    „angekündigt“ oder „unbekannt“ und nicht, weil eine Datei existiert."""
+    """Check mark for absences only for the state "confirmed" (state per sprint), not for
+    "announced" or "unknown" and not because a file exists."""
     entered = _sprint(absences={"anna": 1.0})
     assert board_steps_done(entered)["fehltage"]
     nobody = _sprint(absence_state=AbsenceState.CONFIRMED)
-    assert board_steps_done(nobody)["fehltage"]  # ausdrücklich „niemand fehlt“
+    assert board_steps_done(nobody)["fehltage"]  # explicitly "nobody is absent"
     unknown = _sprint(absence_state=AbsenceState.UNKNOWN)
     assert not board_steps_done(unknown)["fehltage"]
     expected = _sprint(expected_absences={"anna": 2.0})
-    assert not board_steps_done(expected)["fehltage"]  # angekündigt bestätigt nichts
+    assert not board_steps_done(expected)["fehltage"]  # announced confirms nothing
     only_preplanned = _sprint(products={"app": ProductValues(preplanned=3.0)})
     assert not board_steps_done(only_preplanned)["fehltage"]
-    # Nur die Fehltage sind erfasst: die anderen Schritte bleiben offen
+    # Only the absences are recorded: the other steps stay open
     assert board_steps_done(entered) == {
         "fehltage": True,
         "vorplanung": False,
@@ -390,21 +390,21 @@ def test_board_steps_done_absences_only_when_confirmed():
 
 
 def test_blank_product_cells_stay_none_and_zero_stays_zero():
-    """Die Tabellen zeigen leere Zellen als „–“ (nur Anzeige): Zurück kommt weiter NaN bzw.
-    None = nicht erfasst, und 0 bleibt eine erfasste Null."""
+    """The tables show empty cells as "-" (display only): NaN or None = not recorded still comes
+    back, and 0 stays a recorded zero."""
     base = _sprint(products={"app": ProductValues(preplanned=2.0)})
     rows = [
-        {"_id": "app", "PO-Vorplanung": float("nan"), "Planning": 0.0},
-        {"_id": "web", "PO-Vorplanung": None, "Planning": float("nan")},
+        {"_id": "app", "PO pre-planning": float("nan"), "Planning": 0.0},
+        {"_id": "web", "PO pre-planning": None, "Planning": float("nan")},
     ]
     after = apply_product_values(base, rows, ["preplanned", "planned"])
     assert after.products["app"].preplanned is None
     assert after.products["app"].planned == 0.0
-    assert "web" not in after.products  # nichts erfasst: kein leerer Eintrag
+    assert "web" not in after.products  # nothing recorded: no empty entry
 
 
 def test_hidden_product_columns_keep_their_stored_values():
-    """Eine Spalte, die der Editor nicht zeigt (fehlt in der Zeile), wird nicht überschrieben."""
+    """A column the editor does not show (missing in the row) is not overwritten."""
     base = _sprint(products={"app": ProductValues(planned=2.0, production_planned=1.0)})
     rows = [{"_id": "app", "Planning": 3.0}]
     after = apply_product_values(base, rows, ["planned", "production_planned"])
@@ -415,7 +415,7 @@ def test_hidden_product_columns_keep_their_stored_values():
 def test_board_steps_done_other_steps_follow_their_values():
     sprint = _sprint(
         products={"app": ProductValues(), "web": ProductValues(preplanned=0.0)},
-        forecast_ist=0.0,  # 0 ist erfasst (nicht „fehlt“)
+        forecast_ist=0.0,  # 0 is recorded (not "missing")
         velocity=7.5,
     )
     done = board_steps_done(sprint)
@@ -436,3 +436,26 @@ def test_capacity_usage():
     assert capacity_usage(20.0, None) is None
     zero = capacity_usage(0.0, 2.0)
     assert zero is not None and zero.ratio == 0.0 and zero.over
+
+
+def test_board_steps_done_vorplanung_needs_every_active_product():
+    from sprintforecast.model import Product, ProductValues
+
+    shop, app, old = (
+        Product("shop", "Shop"),
+        Product("app", "App"),
+        Product("old", "Old", end=date(2026, 11, 1)),  # no longer active in the sprint
+    )
+    products = [shop, app, old]
+
+    def preplanned(**values) -> Sprint:
+        return _sprint(products={k: ProductValues(preplanned=v) for k, v in values.items()})
+
+    assert not board_steps_done(preplanned(shop=3.0), products)["vorplanung"]
+    assert not board_steps_done(_sprint(), products)["vorplanung"]
+    assert board_steps_done(preplanned(shop=3.0, app=2.0), products)["vorplanung"]
+    # A product without a value (only an entry without preplanned) does not count
+    partial = _sprint(products={"shop": ProductValues(preplanned=1.0), "app": ProductValues()})
+    assert not board_steps_done(partial, products)["vorplanung"]
+    # Without known products any value suffices (as before)
+    assert board_steps_done(preplanned(shop=3.0))["vorplanung"]
