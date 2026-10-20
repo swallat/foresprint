@@ -19,7 +19,12 @@ from sprintforecast.sources import jira as jira_module
 from sprintforecast.sources.jira import FieldCandidate, FieldSuggestions
 from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 from sprintforecast.web import jira_setup
-from sprintforecast.web.jira_setup import Probe, field_options, tracker_from_inputs
+from sprintforecast.web.jira_setup import (
+    Probe,
+    field_options,
+    rule_fields_from_rows,
+    tracker_from_inputs,
+)
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 TODAY = date(2026, 10, 15)
@@ -109,6 +114,18 @@ def test_tracker_from_inputs_keeps_the_rest():
     assert edited.query == "project = A"
     assert edited.fields == TrackerFields(estimate="SP", remaining=None, epic=None)
     assert edited.write_labels and edited.refined_label == "Refined"
+
+
+def test_rule_fields_from_rows():
+    fields, problems = rule_fields_from_rows([(" Customer ", " Kunde "), (None, None), ("", "")])
+    assert fields == {"customer": "Kunde"} and problems == []
+    _, problems = rule_fields_from_rows(
+        [("status", "X"), ("Bad Name", "Y"), ("a", "Y"), ("a", "Z"), ("b", ""), ("none", "Q")]
+    )
+    assert len(problems) == 5
+    base = TrackerSettings(rule_fields={"old": "Old"})
+    assert tracker_from_inputs(base, "jira", "", "", {}).rule_fields == {"old": "Old"}
+    assert tracker_from_inputs(base, "jira", "", "", {}, rule_fields={}).rule_fields == {}
 
 
 def test_field_options_keeps_the_current_value_and_marks_the_suggestion():
