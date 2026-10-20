@@ -453,7 +453,7 @@ def editable_columns(rule: Rule | None) -> dict[str, list[str]] | None:
         return {}
     leaves = [rule] if rule.op == "leaf" else rule.children if rule.short else None
     if leaves is None or any(
-        leaf.op != "leaf" or leaf.source not in EDITABLE_SOURCES for leaf in leaves
+        leaf.op != "leaf" or leaf.contains or leaf.source not in EDITABLE_SOURCES for leaf in leaves
     ):
         return None
     return {leaf.source or "": list(leaf.values) for leaf in leaves}

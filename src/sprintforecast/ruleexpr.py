@@ -170,6 +170,8 @@ class _Parser:
             raise self._error(
                 t("Expected =, !=, ~, !~, IN or NOT IN after '{source}'", source=tok.text)
             )
+        if source == "in_sprint":  # the facts carry "true"/"false" in lower case
+            values = [v.lower() if v.lower() in ("true", "false") else v for v in values]
         leaf = Rule(source=source, values=values, contains=contains)
         return Rule(op="none", children=[leaf]) if negate else leaf
 
@@ -212,7 +214,11 @@ def parse_rule(text: str) -> Rule:
 
 
 def _quote(value: str) -> str:
-    if value and not any(c in value for c in ' \t=!~(),"') and value.lower() not in _KEYWORDS:
+    if (
+        value
+        and not any(c.isspace() or c in '=!~(),"' for c in value)
+        and value.lower() not in _KEYWORDS
+    ):
         return value
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
@@ -248,7 +254,7 @@ def _format(rule: Rule, top: bool = False) -> str:
                 return f"{leaf.source} != {_quote(leaf.values[0])}"
             if not leaf.contains:
                 return f"{leaf.source} NOT IN ({', '.join(_quote(v) for v in leaf.values)})"
-        body = " OR ".join(_format(c) for c in inner)
+        body = _format(inner[0], top=True) if len(inner) == 1 else " OR ".join(map(_format, inner))
         return f"NOT ({body})"
     joiner = " AND " if rule.op == "all" else " OR "
     parts = [_format(c) for c in rule.children]
