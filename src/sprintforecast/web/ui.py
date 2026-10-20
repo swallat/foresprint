@@ -68,7 +68,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.formulas import fte_change_note, general, plain_explanation, steps
+from sprintforecast.formulas import fte_change_note, general, steps, structured_explanation
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     _BIDI_CONTROLS,
@@ -489,7 +489,12 @@ def field_help(key: str) -> str:
 
 
 def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
-    return pd.DataFrame([{t("Metric"): s.name, t("Formula"): s.formula} for s in steps(fc, entry)])
+    return pd.DataFrame(
+        [
+            {t("Metric"): s.name, t("Formula"): s.formula, t("Calculation"): s.calculation}
+            for s in steps(fc, entry)
+        ]
+    )
 
 
 # --- Saving with validation ----------------------------------------------------------
@@ -1098,11 +1103,23 @@ def _formula_expander(fc: Forecast) -> None:
 
 
 def _derivation(fc: Forecast, entry: TimelineEntry) -> None:
-    """First an explanation in plain language, with the values used and their sources below
-    on request."""
-    st.markdown(plain_explanation(fc, entry))
-    with st.popover(t("Values used and sources"), icon=":material/table:"):
-        st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
+    """Inputs, calculation and result as a short sequence; the formulas with all values used
+    and their sources below on request."""
+    ex = structured_explanation(fc, entry)
+    if ex.message:
+        st.markdown(ex.message)
+    else:
+        st.table(pd.DataFrame(ex.inputs, columns=[t("Input"), t("Value")]).set_index(t("Input")))
+        calc, result = st.columns([3, 1], vertical_alignment="center")
+        calc.caption(t("Calculation"))
+        calc.code(ex.calculation, language=None)
+        result.metric(ex.result_label, ex.result)
+        for line in ex.notes:
+            st.caption(f":material/info: {line}")
+    # Not an expander (the calculation path itself sits in one) and not a popover (too narrow
+    # for the formulas); a table wraps long formulas.
+    st.caption(t("Values used and sources"))
+    st.table(_steps_frame(fc, entry).set_index(t("Metric")))
 
 
 def _next_dates(fc: Forecast) -> None:
