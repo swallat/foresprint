@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Module erst beim ersten Zugriff importieren.
+"""Import modules only on first access.
 
-``pandas`` und ``altair`` kosten beim Kaltstart zusammen rund eine halbe bis eine Sekunde und
-werden nur von Seiten mit Tabellen und Diagrammen gebraucht."""
+``pandas`` and ``altair`` together cost roughly half a second to a second on a cold start and
+are only needed by pages with tables and charts."""
 
 from __future__ import annotations
 
