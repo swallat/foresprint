@@ -214,22 +214,22 @@ def _token_form(key: str, base_url: str) -> None:
         )
     if not (save_it or remove):
         return
-    # a new widget key drops the typed secret from the session state, not only from the browser
-    st.session_state[counter] = st.session_state.get(counter, 0) + 1
+    kind, note = "success", ""
     try:
         if remove:
             delete_token(base_url)
             note = t("The token was removed from the keychain.")
         elif not token.strip():
-            st.error(t("Please paste the token."))
-            return
+            kind, note = "error", t("Please paste the token.")
         else:
             store_token(base_url, token.strip())
             note = t("The token was stored in the keychain.")
     except SourceError as e:
-        st.error(str(e))
-        return
-    st.session_state.setdefault("flash", []).append(("success", note))
+        kind, note = "error", str(e)
+    # A new widget key (and a rerun, also after an error) drops the typed secret from the session
+    # state, not only from the browser; the message is shown in the next run.
+    st.session_state[counter] = st.session_state.get(counter, 0) + 1
+    st.session_state.setdefault("flash", []).append((kind, note))
     st.rerun()
 
 
