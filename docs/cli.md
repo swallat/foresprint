@@ -1,6 +1,7 @@
 # Command line and configuration
 
-The web UI and the command line read and write the same files. This page lists every command, how the data directory is found, the settings and the environment variables.
+The web UI and the command line read and write the same files. This page lists every command,
+how the data directory is found, the settings and the environment variables.
 
 ## Data directory and reference date
 
@@ -31,7 +32,7 @@ for retrospectives and tests.
 | `sprintforecast analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` | range, focus factor, buffer, completion |
 | `sprintforecast report [TEAM] [--output PATH]` | write `FORECAST.md` |
 | `sprintforecast excel TEAM [--output PATH]` / `excel-import TEAM FILE [--apply]` | Excel export and import |
-| `sprintforecast tickets TEAM [--fetch \| --import FILE \| --handover [--overwrite]] [--apply] [--commit] [--sprints N] [--variant median\|conservative\|optimistic]` | ticket pre-planning: read tickets from Jira (`--fetch`, extra `[jira]`, read-only) or a tracker CSV export, distribute them over future sprints, project traffic light with the range of the conservative, median (Forecast PLAN) and optimistic variants, refinement list (feature `tickets`); `--handover` proposes the sums per sprint and product as the PO pre-planning (`--apply` writes where nothing is entered, `--overwrite` also replaces entered values); `--test-connection`, `--set-token` and `--write-labels` (earmarks as `planned_for_<sprint>` labels) for Jira, see [docs/jira.md](jira.md) |
+| `sprintforecast tickets TEAM [--fetch \| --import FILE \| --handover [--overwrite]] [--apply] [--commit] [--sprints N] [--variant median\|conservative\|optimistic]` | ticket pre-planning: read tickets from Jira (`--fetch`, extra `[jira]`, read-only) or a tracker CSV export, distribute them over future sprints, project traffic light with the range of the conservative, median (Forecast PLAN) and optimistic variants, refinement list (feature `tickets`); `--handover` proposes the sums per sprint and product as the PO pre-planning (`--apply` writes where nothing is entered, `--overwrite` also replaces entered values); `--test-connection`, `--set-token` and `--write-labels` (earmarks as `planned_for_<sprint>` labels) for Jira, see [Jira import](jira.md) |
 | `sprintforecast check [--strict]` | validate all data (CI, before a commit) |
 | `sprintforecast settings TEAM` | change team settings |
 | `sprintforecast data-dir [PATH]`, `language [de\|en]`, `shortcut`, `update` | remembered data folder, UI language, desktop launcher, update |
@@ -39,7 +40,7 @@ for retrospectives and tests.
 
 `--data PATH` and `--as-of DATE` go before the command; `--commit` on the editing commands
 commits the change to Git. The full sprint workflow is in
-[docs/sprint-workflow.md](sprint-workflow.md).
+[Sprint workflow](sprint-workflow.md).
 
 ## Language
 
@@ -65,7 +66,7 @@ English in both languages. The YAML files are English regardless of the language
 
 ## Updating
 
-sprintforecast checks at most once a day for a newer version and installs it after the command
+`sprintforecast` checks at most once a day for a newer version and installs it after the command
 or the app exits; plugins and the Python version are kept. `sprintforecast update` updates now
 (`--check` only checks, `--force` reinstalls); `sprintforecast update --auto on|notice|off` or
 `SPRINTFORECAST_AUTOUPDATE` controls the automatic behaviour. Installations pinned to a tag are
