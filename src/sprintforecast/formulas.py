@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Rechenweg je Sprint: Formel und eingesetzte Zahlen für jede berechnete Kennzahl.
+"""Calculation path per sprint: formula and plugged-in numbers for every computed figure.
 
-Spiegelt die Logik aus engine.py und capacity.py, damit jede Zahl in Oberfläche und
-Bericht nachvollziehbar ist. Ohne Streamlit, damit testbar.
+Mirrors the logic of engine.py and capacity.py so that every number in the UI and the
+report can be traced. Without Streamlit, so it is testable.
 """
 
 from __future__ import annotations
@@ -27,19 +27,19 @@ from sprintforecast.report import (
 
 @dataclass(frozen=True)
 class Step:
-    # Fester Schlüssel (z. B. "plan"), unabhängig von der Sprache.
+    # Fixed key (e.g. "plan"), independent of the language.
     key: str
     name: str
     formula: str
     calculation: str
 
     def text(self) -> str:
-        """Für Tooltips: Formel und Rechnung in zwei Zeilen."""
+        """For tooltips: formula and calculation on two lines."""
         return f"{self.formula}\n\n{self.calculation}"
 
 
 def fte_change_note(names: list[str]) -> str:
-    """Hinweis auf die Näherung bei FTE-Wechsel im Sprint (A7)."""
+    """Note on the approximation for an FTE change within the sprint (A7)."""
     return t(
         (
             "≈ Approximation: with an FTE change within the sprint, absences are weighted with "
@@ -54,18 +54,18 @@ def _n(value: float | None, digits: int = 2) -> str:
 
 
 def _g(value: float) -> str:
-    """Kurz, mit dem Dezimalzeichen der Sprache: 0.5 → „0,5“, 3.0 → „3“."""
+    """Short, with the decimal separator of the language: 0.5 → "0,5" (German), 3.0 → "3"."""
     text = f"{value:g}"
     return text if fmt(0.5) == "0.5" else text.replace(".", ",")
 
 
 def _exact(value: float | None, digits: int = 4) -> str:
-    """Bis zu ``digits`` Nachkommastellen ohne überflüssige Nullen: 30,4375 · 30 statt 30,0.
+    """Up to ``digits`` decimal places without superfluous zeros: 30,4375 · 30 instead of 30,0.
 
-    Für Gleichungen: Dort muss die Zahl stehen, mit der wirklich gerechnet wird, sonst stimmt die
-    Nachrechnung nicht (die Kapazität wird ungerundet verwendet und nur für die Anzeige gerundet,
-    siehe :func:`sprintforecast.report.fmt_capacity`; der Trend wird ebenfalls ungerundet
-    verwendet). Nullen werden nur hinter dem Dezimalzeichen entfernt: 100 bleibt 100."""
+    For equations: they must show the number actually used in the calculation, otherwise the
+    recalculation does not add up (the capacity is used unrounded and only rounded for display,
+    see :func:`sprintforecast.report.fmt_capacity`; the trend is likewise used unrounded).
+    Zeros are only removed after the decimal separator: 100 stays 100."""
     text = fmt(value, digits)
     decimal = "." if is_english() else ","
     if decimal in text:
@@ -73,7 +73,7 @@ def _exact(value: float | None, digits: int = 4) -> str:
     return "0" if text == "-0" else text
 
 
-# Allgemeine Formeln – z. B. für Spaltenköpfe (Anzeige mit general()).
+# General formulas, e.g. for column headers (displayed with general()).
 GENERAL: dict[str, str] = {
     "capacity": (
         "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum "
@@ -104,8 +104,8 @@ def general(key: str) -> str:
 
 
 def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True) -> Step:
-    """``code=True`` setzt Sprint-IDs als Code (Markdown, z. B. Tooltips); ``note=False``
-    lässt den Hinweis zur unsicheren Fehltage-Quote weg (Kommandozeile zeigt ihn gesondert)."""
+    """``code=True`` sets sprint IDs as code (Markdown, e.g. tooltips); ``note=False``
+    omits the note on the uncertain absence rate (the command line shows it separately)."""
     r = e.result
     source = r.plan_capacity_source
     team = fc.data.team
@@ -178,8 +178,8 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
             share=pct(quota),
             sprints=", ".join(md_code(i) if code else sprint_text(i) for i in used),
         )
-        # Kurz und ohne Sprint-IDs (die Formel dient auch als Tooltip); die Liste steht auf der
-        # Fehltage-Seite, in der Erklärung und im Bericht.
+        # Short and without sprint IDs (the formula also serves as a tooltip); the list is on the
+        # absences page, in the explanation and in the report.
         if note and (unsure := absence_derived_hint(history)):
             formula += ". " + unsure
         return Step(
@@ -199,7 +199,7 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
     i = _index(fc, e)
     window = fc.data.team.forecast.window
     values = [x.result.normalized_velocity.value for x in fc.entries[: i + 1]]
-    present = [v for v in values if v is not None][-window:]  # Sprints ohne Wert zählen nicht
+    present = [v for v in values if v is not None][-window:]  # sprints without a value do not count
     avg = e.result.normalized_velocity.average
     name = t("Ø norm. velocity")
     if avg is None:
@@ -219,7 +219,7 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
 
 
 def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
-    """Rechenweg des n. Velocity-Trends – wie engine.trend."""
+    """Calculation path of the n-th velocity trend, same as engine.trend."""
     i = _index(fc, e)
     mode = parse_trend_mode(fc.data.team.forecast.trend_mode)
     m: list[Metric] = [x.result.normalized_velocity for x in fc.entries]
@@ -277,10 +277,10 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
 
 
 def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
-    """Kurze Erklärung in Alltagssprache, wie die Prognose eines Sprints entsteht – mit den
-    wichtigsten Zahlen und Quellen. Die ausführlichen Formeln liefert :func:`steps`. ``note=False``
-    lässt den Hinweis zur unsicheren Fehltage-Quote weg (die Kommandozeile zeigt ihn einmal
-    gesondert, mit dem Befehl statt der Bedienung der Weboberfläche)."""
+    """Short plain-language explanation of how a sprint's forecast comes about, with the
+    key numbers and sources. :func:`steps` provides the detailed formulas. ``note=False``
+    omits the note on the uncertain absence rate (the command line shows it once separately,
+    with the command instead of the web UI operation)."""
     team = fc.data.team
     f = team.forecast
     r = e.result
@@ -320,7 +320,7 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
             capacity=fmt_capacity(r.plan_capacity, e.capacity_digits),
             exact=_exact(r.plan_capacity),
             source=t(r.plan_capacity_source.value) if r.plan_capacity_source else "–",
-            trend=_exact(trend),  # Gleichung: der Trend, mit dem gerechnet wird
+            trend=_exact(trend),  # equation: the trend that is actually used in the calculation
             ref=_n(f.reference_capacity, 0),
             raw=_n(raw, 3),
             unit=unit,
@@ -353,7 +353,7 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
 
 
 def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True) -> list[Step]:
-    """Alle Rechenschritte eines Sprints in Lesereihenfolge (``code`` und ``note`` wie bei
+    """All calculation steps of a sprint in reading order (``code`` and ``note`` as in
     :func:`capacity_step`)."""
     team = fc.data.team
     f = team.forecast
@@ -441,5 +441,5 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
 
 
 def step(fc: Forecast, e: TimelineEntry, key: str, code: bool = False) -> Step | None:
-    """Ein Rechenschritt nach Schlüssel (capacity, trend, plan, roadmap, small_stuff …)."""
+    """One calculation step by key (capacity, trend, plan, roadmap, small_stuff …)."""
     return next((s for s in steps(fc, e, code) if s.key == key), None)

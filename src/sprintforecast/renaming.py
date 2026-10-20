@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Sprint-IDs nachträglich ändern.
+"""Change sprint IDs after the fact.
 
-Ein Sprint bekommt eine neue ID; alle gespeicherten Sprints danach zählen von ihr aus weiter
-(Nummerierung des Teams), damit die Folge-IDs weiterhin bildbar bleiben. Umbenannt werden die
-Sprintdateien und die Protokolle des Sprints; die Inhalte bleiben unverändert.
+A sprint gets a new ID; all saved sprints after it continue counting from it
+(the team's numbering) so that the following IDs can still be derived. The sprint files
+and the sprint's protocols are renamed; their contents stay unchanged.
 """
 
 from __future__ import annotations
@@ -36,10 +36,10 @@ class Rename:
 
 
 def plan_renames(data: TeamData, sprint_id: str, new_id: str) -> list[Rename]:
-    """Umbenennungen, die aus „``sprint_id`` heißt künftig ``new_id``“ folgen: der Sprint selbst
-    und alle gespeicherten Sprints danach, fortgezählt nach der Nummerierung des Teams. Sprints,
-    deren ID dabei gleich bleibt, fehlen in der Liste. Wirft DataError bei unbekanntem Sprint,
-    unzulässiger ID oder wenn eine neue ID mit einem früheren Sprint zusammenfiele."""
+    """Renames that follow from "``sprint_id`` is now called ``new_id``": the sprint itself
+    and all saved sprints after it, counted on by the team's numbering. Sprints whose ID stays
+    the same are missing from the list. Raises DataError for an unknown sprint, an invalid ID,
+    or if a new ID would collide with an earlier sprint."""
     new_id = new_id.strip()
     sprint = data.sprint(sprint_id)
     if sprint is None:
@@ -84,15 +84,15 @@ def plan_renames(data: TeamData, sprint_id: str, new_id: str) -> list[Rename]:
 
 @dataclass(frozen=True)
 class Applied:
-    """Ergebnis von ``apply_renames``: die neuen Sprintdateien und alle berührten Pfade (alte
-    und neue Namen von Sprintdateien und Protokollen, zum Committen)."""
+    """Result of ``apply_renames``: the new sprint files and all touched paths (old
+    and new names of sprint files and protocols, for committing)."""
 
     files: list[Path]
     touched: list[Path]
 
 
 def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Applied:
-    """Benennt Sprintdateien und Protokolle um; ganz oder gar nicht."""
+    """Rename sprint files and protocols; all or nothing."""
     from sprintforecast.protocol import protocol_renames
 
     if not renames:
@@ -105,8 +105,8 @@ def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Ap
         renamed = copy.deepcopy(sprint)
         renamed.id = r.new
         moves.append((repo.sprint_path(key, r.old), repo.sprint_path(key, r.new), renamed))
-    # Protokolle vor dem ersten Umbenennen sammeln: Sonst fände ein späterer Sprint die gerade
-    # umbenannten Dateien seines Vorgängers.
+    # Collect protocols before the first rename: otherwise a later sprint would find the
+    # just-renamed files of its predecessor.
     protocols = protocol_renames(repo, key, [(r.old, r.new) for r in renames])
     sources = {old for old, _, _ in moves} | {src for src, _ in protocols}
     for new in [new for _, new, _ in moves] + [dst for _, dst in protocols]:
@@ -119,12 +119,12 @@ def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Ap
         except OSError as e:
             raise not_readable(old, e) from e
     written: list[Path] = []
-    # Protokolle in zwei Schritten: erst alle auf einen Zwischennamen, dann auf den neuen Namen.
-    # Überlappt die Kette (2026.20 → 2026.21, 2026.21 → 2026.22), überschriebe ein direktes
-    # Umbenennen sonst das Protokoll des Nachfolgers.
+    # Protocols in two steps: first all to an intermediate name, then to the new name.
+    # If the chain overlaps (2026.20 → 2026.21, 2026.21 → 2026.22), a direct rename would
+    # otherwise overwrite the successor's protocol.
     stamp = uuid.uuid4().hex[:8]
     staged = [(src, src.with_name(f"{src.name}.renaming-{stamp}"), dst) for src, dst in protocols]
-    done: list[tuple[Path, Path]] = []  # (von, nach) in Ausführungsreihenfolge
+    done: list[tuple[Path, Path]] = []  # (from, to) in execution order
     try:
         for old, _, _ in moves:
             _unlink(old)
@@ -138,7 +138,7 @@ def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Ap
             done.append((tmp, dst))
     except BaseException:
         for path in written:
-            with contextlib.suppress(OSError):  # der ursprüngliche Fehler zählt
+            with contextlib.suppress(OSError):  # the original error is what matters
                 path.unlink(missing_ok=True)
         for old, text in backup.items():
             with contextlib.suppress(OSError):

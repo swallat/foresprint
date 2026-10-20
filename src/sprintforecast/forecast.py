@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Verbindet Ablage, Kapazitätsrechner und Rechenkern."""
+"""Connects storage, capacity calculator and calculation engine."""
 
 from __future__ import annotations
 
@@ -22,11 +22,11 @@ from sprintforecast.storage import TeamData
 @dataclass
 class TimelineEntry:
     sprint: Sprint
-    # False für Sprints, die nur aus dem Kalender erzeugt wurden (keine Datei).
+    # False for sprints generated from the calendar only (no file).
     recorded: bool
     result: SprintResult
-    # Stellen, auf die die Kapazität dieses Teams angezeigt wird (``team.capacity.rounding``, wie
-    # ``CapacityBreakdown.rounded``); siehe ``report.fmt_capacity``.
+    # Digits to which this team's capacity is displayed (``team.capacity.rounding``, like
+    # ``CapacityBreakdown.rounded``); see ``report.fmt_capacity``.
     capacity_digits: int = 1
 
 
@@ -35,7 +35,7 @@ class Forecast:
     data: TeamData
     today: date
     entries: list[TimelineEntry]
-    # Fehltage-Historie, nach der unbekannte Fehltage geschätzt werden (None = ohne Personenliste).
+    # Absence history used to estimate unknown absences (None = without a people list).
     absences: AbsenceHistory | None = None
 
     @property
@@ -43,7 +43,7 @@ class Forecast:
         return next((e for e in self.entries if e.sprint.start <= self.today < e.sprint.end), None)
 
     def upcoming(self) -> list[TimelineEntry]:
-        """Laufender Sprint und die folgenden ``horizon`` Sprints."""
+        """Current sprint and the following ``horizon`` sprints."""
         horizon = self.data.team.forecast.horizon
         future = [e for e in self.entries if e.sprint.end > self.today]
         return future[: horizon + 1]
@@ -56,12 +56,12 @@ class Forecast:
         return next((e for e in self.entries if e.sprint.id == sprint_id), None)
 
     def default_entry(self, purpose: str) -> TimelineEntry | None:
-        """Vorschlag je Zweck: current (laufend), planning (nächstes Planning), next (Fehltage),
+        """Suggestion per purpose: current (running), planning (next Planning), next (absences),
         review (Review)."""
         if purpose == "current":
             return self.current
         if purpose == "planning":
-            # Der früheste laufende oder künftige Sprint ohne Commitment.
+            # The earliest running or future sprint without a Commitment.
             open_ = [
                 e
                 for e in self.entries
@@ -78,7 +78,7 @@ class Forecast:
 
 
 def timeline(data: TeamData, today: date) -> list[tuple[Sprint, bool]]:
-    """Erfasste Sprints plus erzeugte Folgesprints bis ``horizon`` Sprints nach heute."""
+    """Recorded sprints plus generated follow-up sprints up to ``horizon`` sprints after today."""
     entries = [(s, True) for s in data.sprints]
     horizon = data.team.forecast.horizon
     last = data.sprints[-1] if data.sprints else None
@@ -89,7 +89,7 @@ def timeline(data: TeamData, today: date) -> list[tuple[Sprint, bool]]:
 
 
 def find_sprint(data: TeamData, sprint_id: str, max_ahead: int = 200) -> Sprint | None:
-    """Sprint aus der Ablage oder – falls noch ohne Datei – aus dem Kalender erzeugt."""
+    """Sprint from storage or, if it has no file yet, generated from the calendar."""
     if (existing := data.sprint(sprint_id)) is not None:
         return existing
     last = data.sprints[-1] if data.sprints else None
@@ -112,11 +112,11 @@ def lookup_sprint(fc: Forecast, sprint_id: str, max_ahead: int = 52) -> Sprint |
 
 
 def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Planning | None) -> bool:
-    """Übernimmt die Planning-Eingaben in ``sprint``.
+    """Applies the Planning inputs to ``sprint``.
 
-    Die Kontrollrechnung (Überkipper, Backlog, Korrekturen) ist optional; leer bzw. 0 heißt
-    „nicht erfasst“. Ein leeres Commitment wird mit Überkipper + Backlog vorbelegt.
-    Liefert True, wenn vorbelegt wurde.
+    The control calculation (carryover, backlog, corrections) is optional; empty or 0 means
+    "not recorded". An empty Commitment is prefilled with carryover + backlog.
+    Returns True if it was prefilled.
     """
     if planning is not None and not (
         planning.carryover or planning.backlog or planning.corrections
@@ -132,9 +132,9 @@ def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Plannin
 def freeze_plan(
     sprint: Sprint, entry: TimelineEntry | None, today: date, refreeze: bool = False
 ) -> None:
-    """Merkt den Forecast PLAN zum Planning – Basis der Standardverteilung je Produkt.
-    Ein bereits eingefrorener Wert bleibt, außer ``refreeze``; abgeschlossene Sprints bleiben
-    unverändert."""
+    """Remembers the Forecast PLAN at Planning time, the basis of the default distribution per
+    product. An already frozen value is kept unless ``refreeze``; completed sprints stay
+    unchanged."""
     if entry is None or sprint.end <= today or entry.result.plan is None:
         return
     if sprint.forecast_plan is not None and not refreeze:
@@ -143,7 +143,7 @@ def freeze_plan(
 
 
 def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, float] | None:
-    """(eingefroren, aktuell), wenn sich der Forecast PLAN seit dem Einfrieren geändert hat."""
+    """(frozen, current) if the Forecast PLAN has changed since freezing."""
     if entry is None or sprint.forecast_plan is None or entry.result.plan is None:
         return None
     if abs(sprint.forecast_plan - entry.result.plan) < 1e-9:
@@ -152,21 +152,21 @@ def refreeze_offer(sprint: Sprint, entry: TimelineEntry | None) -> tuple[float, 
 
 
 def absences_known(sprint: Sprint) -> bool:
-    """Fehltage gelten als bestätigt, wenn welche eingetragen sind, ausdrücklich „niemand
-    fehlt“ bestätigt wurde (Seite Fehltage) oder – bei älteren Dateien ohne gespeicherten
-    Stand – der Sprint schon geplant bzw. ausgewertet wurde. Angekündigte Fehltage aus der
-    PO-Vorplanung bestätigen nichts."""
+    """Absences count as confirmed if some are entered, if "nobody is absent" was explicitly
+    confirmed (Absences page), or, for older files without a stored state, if the sprint was
+    already planned or evaluated. Announced absences from the PO pre-planning confirm
+    nothing."""
     return absence_status(sprint) is AbsenceState.CONFIRMED
 
 
 def resolve_capacity(
     data: TeamData, sprint: Sprint, history: AbsenceHistory | None = None
 ) -> tuple[float | None, CapacitySource | None]:
-    """Kapazität eines Sprints und ihre Quelle.
+    """Capacity of a sprint and its source.
 
-    Mit Personenliste wird sie immer aus Kalender und Personen berechnet (Feiertage,
-    Sprintlänge, FTE); geschätzt werden nur unbekannte Fehltage. Der Trend der Kapazität gilt
-    nur für Teams ohne Personenliste."""
+    With a people list it is always calculated from calendar and people (holidays, sprint
+    length, FTE); only unknown absences are estimated. The capacity trend applies only to teams
+    without a people list."""
     if sprint.capacity is not None:
         return sprint.capacity, CapacitySource.RECORDED
     if not data.people:

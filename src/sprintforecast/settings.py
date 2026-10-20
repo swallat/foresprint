@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Beschreibung der Team-Einstellungen – gemeinsame Grundlage für CLI und Weboberfläche."""
+"""Description of the team settings, shared basis for the CLI and the web UI."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from sprintforecast.calendar import countries, subdivisions
 from sprintforecast.i18n import t
 from sprintforecast.model import Numbering, ProductBasis, Team, TrendMode, Unit
 
-# Bundesländer in der Schreibweise der holidays-Bibliothek.
+# Federal states as spelled by the holidays library.
 REGIONS: dict[str, str] = {
     "BW": "Baden-Württemberg",
     "BY": "Bayern",
@@ -40,7 +40,7 @@ class Kind(StrEnum):
     CHOICE = "choice"
     INT = "int"
     NUMBER = "number"
-    # Anteil 0–1, wird in Prozent abgefragt und angezeigt.
+    # Share 0-1, prompted for and displayed as a percentage.
     PERCENT = "percent"
     DATE = "date"
 
@@ -57,32 +57,32 @@ class Setting:
     minimum: float | None = None
     maximum: float | None = None
     optional: bool = False
-    # Nur relevant, solange noch keine Sprintdatei existiert.
+    # Only relevant as long as no sprint file exists yet.
     only_without_sprints: bool = False
-    # Ändert rückwirkend die Berechnung aller Sprints.
+    # Retroactively changes the calculation of all sprints.
     retroactive: bool = False
-    # Schrittweite im Eingabefeld der Weboberfläche (sonst je Art).
+    # Step size in the web UI input field (otherwise by kind).
     step: float | None = None
 
     @property
     def title(self) -> str:
-        """Bezeichnung in der eingestellten Sprache."""
+        """Label in the configured language."""
         return t(self.label)
 
     @property
     def text(self) -> str:
-        """Erklärung in der eingestellten Sprache."""
+        """Explanation in the configured language."""
         return t(self.help)
 
     @property
     def options(self) -> dict[str, str] | None:
-        """Auswahlmöglichkeiten mit übersetzten Beschreibungen."""
+        """Choices with translated descriptions."""
         if self.choices is None:
             return None
         return {k: v if self is _COUNTRY else t(v) for k, v in self.choices.items()}
 
     def parse(self, raw: str) -> Any:
-        """Wandelt eine Texteingabe in den Wert um; wirft ValueError mit deutscher Meldung."""
+        """Convert a text input into the value; raise ValueError with a translated message."""
         raw = raw.strip()
         if raw == "":
             if self.optional:
@@ -98,8 +98,8 @@ class Setting:
                 if self.key == "sprint.first_id":
                     from sprintforecast.storage import file_name_problem
 
-                    # Die ID wird zum Dateinamen; was der Ladeweg ablehnt, darf hier nicht
-                    # speicherbar sein (sonst ließe sich das Team danach nicht mehr laden).
+                    # The ID becomes the file name; whatever the load path rejects must not
+                    # be savable here (or the team could no longer be loaded afterwards).
                     if problem := file_name_problem(raw, portable=False):
                         raise ValueError(
                             t("ID not allowed as a file name ({problem}).", problem=problem)
@@ -140,7 +140,7 @@ class Setting:
             raise ValueError(t("The value must be ≤ {value}.", value=_plain(self.maximum)))
 
     def display(self, team: Team) -> str:
-        """Aktueller Wert als Text, so wie er auch eingegeben würde."""
+        """Current value as text, the way it would be entered."""
         value = self.get(team)
         if value is None:
             return ""
@@ -499,9 +499,9 @@ SETTINGS: list[Setting] = [
 ]
 
 BY_KEY = {s.key: s for s in SETTINGS}
-# Der erste Sprint wird beim Anlegen eines Teams zuerst gefragt (in dieser Reihenfolge).
+# The first sprint is asked for first when creating a team (in this order).
 FIRST_SPRINT_KEYS = ("sprint.numbering", "sprint.first_start", "sprint.first_id")
-# Ländernamen bleiben unübersetzt (Eigennamen).
+# Country names stay untranslated (proper names).
 _COUNTRY = BY_KEY["capacity.country"]
 
 
@@ -510,7 +510,7 @@ def applicable(has_sprints: bool) -> list[Setting]:
 
 
 def changes(before: Team, after: Team) -> list[tuple[Setting, str, str]]:
-    """Geänderte Einstellungen als (Einstellung, alt, neu)."""
+    """Changed settings as (setting, old, new)."""
     return [
         (s, s.display(before), s.display(after))
         for s in SETTINGS

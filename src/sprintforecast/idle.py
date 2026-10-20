@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Selbstbeendigung des Servers im App-Modus, sobald niemand mehr verbunden ist.
+"""Self-termination of the server in app mode once nobody is connected anymore.
 
-Der Starter erkennt das Ende des App-Fensters nur über den Browserprozess. Übergibt der Browser
-an eine laufende Instanz und endet sofort (z. B. zweiter Doppelklick), bliebe der Server nach
-dem Schließen des Fensters ewig stehen und sperrte Dateien (``uv tool upgrade``, os error 32).
-Darum prüft der Server selbst: War einmal ein Browser verbunden und ist danach länger als die
-Karenzzeit keiner mehr da, beendet er sich – unabhängig vom Verhalten des Browserprozesses.
+The launcher only detects the end of the app window via the browser process. If the browser
+hands over to a running instance and exits immediately (e.g. second double-click), the server
+would keep running forever after the window closes and lock files (``uv tool upgrade``, os error
+32). So the server checks itself: once a browser has been connected and none has been there for
+longer than the grace period, it terminates, regardless of what the browser process does.
 """
 
 from __future__ import annotations
@@ -15,14 +15,16 @@ import threading
 import time
 from collections.abc import Callable
 
-IDLE_ENV = "SPRINTFORECAST_IDLE_EXIT"  # Karenzzeit in Sekunden; ohne Wert bleibt der Server an
+IDLE_ENV = (
+    "SPRINTFORECAST_IDLE_EXIT"  # grace period in seconds; without a value the server stays up
+)
 _POLL_SECONDS = 2.0
 
 _started = False
 
 
 class IdleWatch:
-    """Entscheidet anhand der Zahl verbundener Sitzungen, ob der Server enden soll."""
+    """Decide from the number of connected sessions whether the server should exit."""
 
     def __init__(self, grace: float, poll: float = _POLL_SECONDS, seen: bool = False) -> None:
         self.grace = grace
@@ -32,8 +34,8 @@ class IdleWatch:
         self._last: float | None = None
 
     def update(self, sessions: int, now: float) -> bool:
-        # Große Lücke zwischen zwei Prüfungen = Rechner schlief; der Browser braucht Zeit zum
-        # Wiederverbinden, die Wartezeit beginnt dann neu.
+        # Large gap between two checks = the machine was asleep; the browser needs time to
+        # reconnect, so the wait starts over.
         if self._last is not None and now - self._last > 5 * self.poll:
             self._idle_since = None
         self._last = now
@@ -67,7 +69,7 @@ def _loop(watch: IdleWatch, count: Callable[[], int | None], stop: Callable[[], 
 
 
 def start_idle_watch() -> None:
-    """Startet die Überwachung einmal je Serverprozess, wenn der Starter sie angefordert hat."""
+    """Start the monitoring once per server process if the launcher requested it."""
     global _started
     if _started:
         return
@@ -76,8 +78,8 @@ def start_idle_watch() -> None:
     except ValueError:
         return
     _started = True
-    # Aufgerufen wird aus dem Skriptlauf einer Sitzung: Es war also schon ein Browser da, auch
-    # wenn er vor der ersten Zählung wieder weg ist.
+    # Called from a session's script run, so a browser was already there, even if it is
+    # gone again before the first count.
     watch = IdleWatch(grace, seen=True)
     threading.Thread(
         target=_loop, args=(watch, _active_sessions, lambda: os._exit(0)), daemon=True

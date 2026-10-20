@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Ergänzende Analysen zum Forecast – ändern keine bestehenden Werte.
+"""Supplementary analyses for the forecast. They do not change any existing values.
 
-- Bandbreite: Forecast mit der niedrigsten, mittleren und höchsten normierten Velocity der
-  letzten Sprints statt mit dem Trend.
-- Fokusfaktor: Velocity / Kapazität (unabhängig von der Referenzkapazität).
-- Puffer-Empfehlung: Ø Scope Creep der letzten Sprints im Vergleich zum Kleinkram-Anteil.
-- Fertigstellung: Monte-Carlo-Simulation, in welchem Sprint eine Restmenge erledigt ist.
+- Range: forecast with the lowest, middle and highest normalized velocity of the last
+  sprints instead of the trend.
+- Focus factor: velocity / capacity (independent of the reference capacity).
+- Buffer recommendation: average scope creep of the last sprints compared to the small-items
+  share.
+- Completion: Monte Carlo simulation of the sprint in which a remaining quantity is done.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from sprintforecast.forecast import Forecast, TimelineEntry, build_forecast
 from sprintforecast.model import ForecastSettings, Sprint
 from sprintforecast.storage import TeamData
 
-# Unter so vielen Sprints mit Velocity sind Spanne und Häufigkeiten nur grobe Hinweise.
+# With fewer sprints with a velocity than this, the range and frequencies are only rough hints.
 MIN_SAMPLES = 5
 
 
@@ -31,34 +32,34 @@ def _recent(values: list[float | None], window: int) -> list[float]:
 
 
 def plan_basis(fc: Forecast) -> list[TimelineEntry]:
-    """Sprints, deren Velocity die Engine für den Plan nutzt: die abgeschlossenen und der
-    laufende Sprint (sobald sein Review-Wert erfasst ist, hat er eine normierte Velocity).
+    """Sprints whose velocity the engine uses for the plan: the completed ones and the current
+    sprint (once its review value is recorded, it has a normalized velocity).
 
-    Die Garantie „Plan liegt in der Spanne“ gilt bis einschließlich dem laufenden Sprint. Die
-    Engine mittelt auch einen künftigen Sprint (``start > today``) mit erfasstem Wert ein (Import
-    oder Datei); der gehört hier bewusst nicht dazu, der Plan kann dann außerhalb der Spanne
-    liegen (bekannter, offener Randfall)."""
+    The guarantee "the plan lies within the range" holds up to and including the current sprint.
+    The engine also averages in a future sprint (``start > today``) with a recorded value (import
+    or file); that one deliberately does not belong here, so the plan can then lie outside the
+    range (known, open edge case)."""
     return [e for e in fc.entries if e.sprint.start <= fc.today]
 
 
 def normalized_history(fc: Forecast) -> list[float]:
-    """Normierte Velocity der letzten ``window`` Sprints mit Wert – abgeschlossene Sprints und der
-    laufende, sobald dessen Review-Wert (Velocity) erfasst ist."""
+    """Normalized velocity of the last ``window`` sprints with a value: completed sprints and the
+    current one, once its review value (velocity) is recorded."""
     return _recent(
         [e.result.normalized_velocity.value for e in plan_basis(fc)], fc.data.team.forecast.window
     )
 
 
 def sample_count(fc: Forecast) -> int:
-    """Anzahl der Sprints mit normierter Velocity, aus denen die Prognose tatsächlich zieht:
-    höchstens ``window`` (Stichprobe von Spanne und Simulation)."""
+    """Number of sprints with a normalized velocity that the forecast actually draws from:
+    at most ``window`` (sample for the range and the simulation)."""
     return len(normalized_history(fc))
 
 
 def available_count(fc: Forecast) -> int:
-    """Anzahl aller verfügbaren Sprints mit normierter Velocity (ungedeckelt, gleiche Wertemenge
-    wie ``plan_basis``). Sie entscheidet, ob es schon einen Forecast gibt (``MIN_THIN_HISTORY``);
-    ``sample_count`` dagegen ist die auf ``window`` gedeckelte Stichprobe der Rechnung."""
+    """Number of all available sprints with a normalized velocity (uncapped, same set of values
+    as ``plan_basis``). It decides whether a forecast exists yet (``MIN_THIN_HISTORY``);
+    ``sample_count``, in contrast, is the sample of the calculation capped at ``window``."""
     return sum(1 for e in plan_basis(fc) if e.result.normalized_velocity.value is not None)
 
 
@@ -66,7 +67,7 @@ def few_samples(fc: Forecast) -> bool:
     return sample_count(fc) < MIN_SAMPLES
 
 
-# --- Bandbreite -----------------------------------------------------------------------
+# --- Range ----------------------------------------------------------------------------
 
 
 def plan_at(settings: ForecastSettings, nvel: float, capacity: float) -> float:
@@ -84,7 +85,7 @@ class Band:
 
 
 def band(fc: Forecast, entry: TimelineEntry) -> Band | None:
-    """Forecast-Spanne für einen künftigen Sprint aus der Streuung der letzten Sprints."""
+    """Forecast range for a future sprint, from the spread of the last sprints."""
     values = normalized_history(fc)
     capacity = entry.result.plan_capacity
     if len(values) < 2 or capacity is None:
@@ -102,7 +103,7 @@ def band(fc: Forecast, entry: TimelineEntry) -> Band | None:
     )
 
 
-# --- Fokusfaktor ----------------------------------------------------------------------
+# --- Focus factor ---------------------------------------------------------------------
 
 
 def focus_factor(entry: TimelineEntry) -> float | None:
@@ -117,17 +118,17 @@ def average_focus_factor(fc: Forecast) -> float | None:
     return statistics.fmean(values) if values else None
 
 
-# --- Puffer ---------------------------------------------------------------------------
+# --- Buffer ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class BufferHint:
-    # Ø Scope Creep, bezogen auf das Commitment des jeweiligen Sprints (so wird er erfasst) …
+    # Average scope creep, relative to the commitment of the respective sprint (as recorded) ...
     average_scope_creep: float | None
     samples: int
-    # … und umgerechnet auf dieselbe Bezugsgröße wie der Kleinkram-Anteil: den Forecast PLAN.
+    # ... and converted to the same base as the small-items share: the Forecast PLAN.
     average_late_share: float | None
-    configured_small_stuff: float  # 1 − verplanbarer Anteil, bezogen auf den Forecast PLAN
+    configured_small_stuff: float  # 1 − plannable share, relative to the Forecast PLAN
 
     @property
     def sufficient_data(self) -> bool:
@@ -143,15 +144,15 @@ class BufferHint:
 
 
 def _late_share(e: TimelineEntry) -> float | None:
-    """Nachträglich hinzugekommene Menge als Anteil des Forecast PLAN des Sprints (beim Planning
-    eingefroren, sonst wie berechnet) – dieselbe Bezugsgröße wie der Kleinkram-Anteil. Scope
-    Creep selbst ist auf das Commitment bezogen."""
+    """Quantity added later, as a share of the sprint's Forecast PLAN (frozen at Planning,
+    otherwise as calculated), the same base as the small-items share. Scope creep itself is
+    relative to the commitment."""
     s = e.sprint
     if s.scope_creep is None:
         return None
     plan = s.forecast_plan if s.forecast_plan is not None else e.result.plan
     if s.forecast_ist is None or not plan:
-        return s.scope_creep  # ohne Commitment oder Plan nicht umrechenbar
+        return s.scope_creep  # cannot be converted without a commitment or plan
     return s.scope_creep * s.forecast_ist / plan
 
 
@@ -167,25 +168,26 @@ def buffer_hint(fc: Forecast) -> BufferHint:
     )
 
 
-# --- Fertigstellung (Monte Carlo) -----------------------------------------------------
+# --- Completion (Monte Carlo) ---------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class Completion:
     remaining: float
-    share: float  # Anteil des Forecasts, der für die Restmenge zur Verfügung steht
+    share: float  # share of the forecast available for the remaining quantity
     runs: int
-    # Sprint-IDs, in denen die Restmenge in 50 % bzw. 85 % der Simulationsläufe erledigt ist
-    # (modellabhängige Häufigkeit, keine Zusage); None = nicht innerhalb des Zeitraums.
+    # Sprint IDs in which the remaining quantity is done in 50 % or 85 % of the simulation runs
+    # (model-dependent frequency, not a commitment); None = not within the period.
     p50: str | None
     p85: str | None
     sprints: list[str]
-    # Stichprobe: Anzahl der Sprints, aus denen die Simulation zieht.
+    # Sample: number of sprints the simulation draws from.
     samples: int
-    # Wahrscheinlichkeit, bis einschließlich Sprint i fertig zu sein
+    # Probability of being done by the end of sprint i
     cumulative: list[float]
     trend_capacity_sprints: list[str]
-    # Erwartete Menge je Sprint für die Restmenge (Median Velocity × Ø Kapazität × Anteil)
+    # Expected quantity per sprint for the remaining quantity (median velocity × average
+    # capacity × share)
     per_sprint: float
 
 
@@ -245,15 +247,15 @@ def completion(
     runs: int = 10_000,
     seed: int = 1,
 ) -> Completion | None:
-    """Simuliert ab dem nächsten Sprint, wann ``remaining`` erledigt ist.
+    """Simulates, starting with the next sprint, when ``remaining`` is done.
 
-    ``share`` ist der Anteil des Forecasts, der der Restmenge je Sprint zur Verfügung steht,
-    z. B. verplanbarer Anteil × Projektanteil (0,8 × 0,5 = 0,4).
+    ``share`` is the share of the forecast available for the remaining quantity per sprint,
+    e.g. plannable share × project share (0.8 × 0.5 = 0.4).
 
-    Je Sprint wird zufällig eine normierte Velocity der letzten Sprints gezogen und mit der
-    Kapazität des Sprints umgerechnet. Für Sprints ohne Personenliste (Kapazität nur als Trend)
-    wird statt des (über viele Sprints instabilen) Trends die Ø Kapazität der letzten Sprints
-    genommen.
+    For each sprint a normalized velocity of the last sprints is drawn at random and converted
+    with the sprint's capacity. For sprints without a people list (capacity only as a trend),
+    the average capacity of the last sprints is used instead of the trend (which is unstable
+    over many sprints).
     """
     fc = horizon_forecast(data, today, max_sprints)
     history = normalized_history(fc)

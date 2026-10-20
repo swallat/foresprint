@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Hilfetexte als strukturierte Daten – dargestellt von CLI (`help`) und Weboberfläche."""
+"""Help texts as structured data, rendered by the CLI (`help`) and the web UI."""
 
 from __future__ import annotations
 
@@ -186,7 +186,7 @@ class Step:
     when: str
     title: str
     text: str
-    # Seite der Weboberfläche (Dateiname unter web/seiten ohne .py)
+    # Web UI page (file name under web/seiten without .py)
     page: str
     cli: str
 
@@ -446,7 +446,7 @@ TERMS: list[tuple[str, str]] = [
     ),
 ]
 
-# Zusammenarbeit über Git: Erklärungen für die Hilfeseite (Titel, Text).
+# Collaboration via Git: explanations for the help page (title, text).
 GIT_HELP: list[tuple[str, str]] = [
     (
         "Save and share",
