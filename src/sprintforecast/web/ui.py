@@ -492,7 +492,7 @@ def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {t("Metric"): s.name, t("Formula"): s.formula, t("Calculation"): s.calculation}
-            for s in steps(fc, entry)
+            for s in steps(fc, entry, code=True)
         ]
     )
 
