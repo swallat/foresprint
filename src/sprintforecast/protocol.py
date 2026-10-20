@@ -65,7 +65,7 @@ def _cell(text: str | None) -> str:
 
 def kind_title(kind: str) -> str:
     return {
-        PREPLANNING: t("PO-Vorplanung"),
+        PREPLANNING: t("PO pre-planning"),
         PLANNING: t("Sprint Planning"),
         REVIEW: t("Sprint Review"),
     }[kind]
@@ -78,9 +78,9 @@ def _distribution_lines(
     lines: list[str] = []
     if not d.rows:
         return lines
-    header = [t("Produkt"), *(["PO"] if show_po else [])]
+    header = [t("Product"), *(["PO"] if show_po else [])]
     header += [measure_label(m) for m in measures]
-    lines += ["", f"{heading} {t('Je Produkt')}", ""]
+    lines += ["", f"{heading} {t('Per product')}", ""]
     lines += ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
     for r in d.rows:
         if not (r.active or any(r.value(m) is not None for m in measures)):
@@ -90,7 +90,7 @@ def _distribution_lines(
         lines.append("| " + " | ".join(cells) + " |")
     if show_po and (po_rows := by_po(d)):
         header = ["PO", *(measure_label(m) for m in measures)]
-        lines += ["", f"{heading} {t('Je PO')}", "", "| " + " | ".join(header) + " |"]
+        lines += ["", f"{heading} {t('Per PO')}", "", "| " + " | ".join(header) + " |"]
         lines.append("|" + "---|" * len(header))
         for po, totals in po_rows:
             cells = [_cell(po), *(fmt(totals[m], 2) for m in measures)]
@@ -115,12 +115,12 @@ def render_protocol(
     lines = [
         f"# {kind_title(kind)} {_cell(team)} – {t('Sprint {id}', id=sprint_id)}",
         "",
-        t("Stand: {at}", at=f"{now:%d.%m.%Y %H:%M}"),
+        t("As of: {at}", at=f"{now:%d.%m.%Y %H:%M}"),
         "",
     ]
     lines += [f"- {label}: {_cell(value)}" for label, value in facts]
     if comment.strip():
-        lines += ["", f"**{t('Kommentar')}:** {_cell(comment)}"]
+        lines += ["", f"**{t('Comment')}:** {_cell(comment)}"]
     for title, items in notes or []:
         if items:
             lines += ["", f"## {title}", ""] + [f"- {_cell(i)}" for i in items]
@@ -203,23 +203,23 @@ def render_planning_protocol(
     lines = [
         f"# {kind_title(PLANNING)} {_cell(team)} – {t('Sprint {id}', id=sprint_id)}",
         "",
-        t("Stand: {at}", at=f"{now:%d.%m.%Y %H:%M}"),
+        t("As of: {at}", at=f"{now:%d.%m.%Y %H:%M}"),
         "",
     ]
     lines += [f"- {label}: {_cell(value)}" for label, value in facts]
     for section in sections:
         lines += ["", f"## {section.title}", f"{SECTION_MARKER}{section.key} -->", ""]
         if not section.recorded:
-            lines.append(f"_{t('noch nicht erfasst')}_")
+            lines.append(f"_{t('not yet recorded')}_")
             continue
         old_stand, old_lines = previous.get(section.key, ("", []))
-        if old_stand == t("noch nicht erfasst"):  # der Platzhalter ist kein Stand
+        if old_stand == t("not yet recorded"):  # der Platzhalter ist kein Stand
             old_stand = ""
         body = [ln for ln in section.lines if ln.strip()]
         stand = (
             old_stand
             if old_stand and old_lines == body
-            else t("Stand: {at}", at=f"{now:%d.%m.%Y %H:%M}")
+            else t("As of: {at}", at=f"{now:%d.%m.%Y %H:%M}")
         )
         lines += [f"_{stand}_", "", *section.lines]
     return "\n".join(lines) + "\n"
@@ -296,7 +296,7 @@ def _fallback_lock_dir() -> Path:
         try:
             user = getpass.getuser()
         except OSError:
-            user = "unbekannt"
+            user = "unknown"
     else:
         user = str(os.getuid())
     name = re.sub(r"\W", "_", user)  # nur Zeichen, die in einem Ordnernamen gehen
@@ -310,8 +310,10 @@ def _fallback_lock_dir() -> Path:
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
             raise FileAccessError(
                 t(
-                    "Der Ordner {path} für die Sperren gehört einem anderen Benutzer. Bitte "
-                    "entfernen lassen oder den Einstellungsordner beschreibbar machen.",
+                    (
+                        "The folder {path} for the locks belongs to another user. Please have "
+                        "it removed or make the settings folder writable."
+                    ),
                     path=root,
                 )
             )
@@ -424,8 +426,8 @@ def _acquire(handle: IO[bytes]) -> None:
         if time.monotonic() >= deadline:
             raise FileAccessError(
                 t(
-                    "Eine andere Sitzung schreibt gerade Protokolle dieses Sprints. "
-                    "Bitte gleich noch einmal speichern."
+                    "Another session is currently writing minutes for this sprint. Please "
+                    "save again in a moment."
                 )
             )
         time.sleep(0.05)
@@ -437,8 +439,10 @@ def _acquire_in_fallback(used: Path) -> IO[bytes]:
     :class:`FileAccessError`, nie eine Wartezeit."""
     unsupported = FileAccessError(
         t(
-            "Auf dem Laufwerk von {path} werden Dateisperren nicht unterstützt. Bitte den "
-            "Einstellungsordner auf ein lokales Laufwerk legen.",
+            (
+                "File locks are not supported on the drive of {path}. Please move the settings "
+                "folder to a local drive."
+            ),
             path=used.parent,
         )
     )
@@ -672,7 +676,7 @@ def protocol_renames(
 def _note_rollback_failure(primary: BaseException, path: Path, error: OSError) -> None:
     """Hängt einen gescheiterten Rückbau als Hinweis an den ursprünglichen Fehler (der bleibt der
     Hauptfehler), damit er nicht stumm bleibt."""
-    primary.add_note(t("{path}: nicht zurückgebaut ({reason})", path=path, reason=str(error)))
+    primary.add_note(t("{path}: not rolled back ({reason})", path=path, reason=str(error)))
 
 
 def _undo(renamed: list[Path], primary: BaseException) -> None:
@@ -715,9 +719,7 @@ def _mark_obsolete(
         try:
             path.replace(target)
         except OSError as e:
-            error = FileAccessError(
-                t("{path}: nicht umbenannt ({reason})", path=path, reason=str(e))
-            )
+            error = FileAccessError(t("{path}: not renamed ({reason})", path=path, reason=str(e)))
             _undo(renamed, error)
             raise error from e
         renamed.append(target)

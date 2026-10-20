@@ -5,17 +5,18 @@ import pytest
 
 from sprintforecast.git import classify, title_for
 from sprintforecast.guide import GIT_HELP
+from sprintforecast.i18n import t
 
 
 def entry(title: str) -> str:
     """Text des Hilfeeintrags mit dieser Überschrift (genau einer)."""
-    texts = [text for head, text in GIT_HELP if head == title]
+    texts = [t(text) for head, text in GIT_HELP if t(head) == title]
     assert len(texts) == 1, title
     return " ".join(texts[0].split())
 
 
 def test_help_titles_are_unique():
-    titles = [title for title, _ in GIT_HELP]
+    titles = [t(title) for title, _ in GIT_HELP]
     assert len(titles) == len(set(titles))
 
 

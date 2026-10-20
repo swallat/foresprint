@@ -679,7 +679,7 @@ def test_no_forecast_is_no_budget_not_too_large():
     dist = distribute(data, TODAY)
     assert dist.no_forecast
     assert reason_of(dist, "A") == "no_budget"
-    assert preplan.REASONS["no_budget"] == "kein Budget"
+    assert preplan.REASONS["no_budget"] == "no budget"
 
 
 def test_project_without_budget_cell_is_no_budget():

@@ -140,7 +140,7 @@ def test_validation_of_country_region_and_workweek(data_dir: Path):
     today = date(2026, 10, 15)
 
     def errors() -> list[str]:
-        return [i.message for i in check_team(data, today) if i.level.value == "Fehler"]
+        return [i.message for i in check_team(data, today) if i.level.value == "Error"]
 
     assert errors() == []
     data.team.capacity.country = "XX"
@@ -212,7 +212,7 @@ def test_workweek_parsing_and_validation(data_dir: Path):
             weekend_from_workweek(bad)
     data = Repository(data_dir).load("demo")
     data.people[0].workweek = "mon,xyz"
-    errors = [i for i in check_team(data, date(2026, 10, 15)) if i.level.value == "Fehler"]
+    errors = [i for i in check_team(data, date(2026, 10, 15)) if i.level.value == "Error"]
     assert any("xyz" in i.message for i in errors)
     # Roundtrip
     repo = Repository(data_dir)
@@ -227,7 +227,7 @@ def test_people_table_keeps_workweek(data_dir: Path):
     data = Repository(data_dir).load("demo")
     data.people[0].workweek = "mon,tue,wed,thu"
     rows, hidden = people_table(data.people, date(2026, 10, 15), show_former=True)
-    assert rows[0]["Arbeitswoche"] == "mon,tue,wed,thu"
+    assert rows[0]["Work week"] == "mon,tue,wed,thu"
     assert people_from_table(rows, data.people, hidden).people[0].workweek == "mon,tue,wed,thu"
-    rows[0]["Arbeitswoche"] = "kaputt"
+    rows[0]["Work week"] = "kaputt"
     assert people_from_table(rows, data.people, hidden).errors

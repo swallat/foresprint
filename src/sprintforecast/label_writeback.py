@@ -51,8 +51,10 @@ def plan_label_writes(tickets: list[Ticket], preplan: Preplan) -> LabelPlan:
         if wanted is not None and any(c.isspace() for c in wanted):
             plan.warnings.append(
                 t(
-                    "Ticket {key}: Das Label „{label}“ enthält Leerzeichen, Jira erlaubt das "
-                    "nicht – die Sprint-ID ändern oder ohne Label planen",
+                    (
+                        'Ticket {key}: the label "{label}" contains spaces, which Jira does '
+                        "not allow – change the sprint id or plan without a label"
+                    ),
                     key=ticket.key,
                     label=wanted,
                 )
@@ -77,7 +79,7 @@ def apply_label_writes(source: Any, plan: LabelPlan) -> int:
         except SourceError as e:
             raise SourceError(
                 t(
-                    "Ticket {key}: {error} – {done} von {total} Änderungen geschrieben",
+                    "Ticket {key}: {error} – {done} of {total} changes written",
                     key=write.key,
                     error=str(e),
                     done=done,

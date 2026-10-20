@@ -27,6 +27,7 @@ from sprintforecast.cli import app as cli_app
 from sprintforecast.engine import CapacitySource, round_down
 from sprintforecast.forecast import build_forecast
 from sprintforecast.formulas import capacity_step, plain_explanation, step, steps
+from sprintforecast.i18n import t
 from sprintforecast.model import AbsenceState
 from sprintforecast.products import distribution
 from sprintforecast.report import (
@@ -697,7 +698,7 @@ def test_capacity_label_is_the_value_followed_by_the_source_note():
     assert capacity_label(entry(None)) == value
     for source in CapacitySource:
         note = capacity_source_note(entry(source))
-        assert note.endswith(source.value)
+        assert note.endswith(t(source.value))
         if source in UNSURE_SOURCES:
             assert note.startswith("⚠️ ")
             assert capacity_label(entry(source)) == f"{value} {note}"

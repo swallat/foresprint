@@ -26,8 +26,8 @@ def _successor(previous_id: str, start_year: int, numbering: Numbering) -> str:
 def expected_id_form(numbering: Numbering) -> str:
     """Form der Sprint-IDs, die ``next_id`` fortsetzen kann (für Meldungen)."""
     if numbering is Numbering.SEQUENTIAL:
-        return t("eine Zahl, z. B. 22")
-    return t("JJJJ.N, z. B. 2026.22")
+        return t("a number, e.g. 22")
+    return t("YYYY.N, e.g. 2026.22")
 
 
 def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
@@ -37,10 +37,12 @@ def next_id(previous_id: str, next_start: date, numbering: Numbering) -> str:
     except (ValueError, OverflowError) as e:
         raise DataError(
             t(
-                "Sprint-ID '{id}' passt nicht zur Nummerierung (erwartet {expected}); die ID des "
-                "Folgesprints lässt sich nicht bilden. Bitte die ID korrigieren: mit "
-                "sprintforecast rename-sprint bzw. unter Einstellungen (ohne Sprintdateien: "
-                "dort die ID des ersten Sprints).",
+                (
+                    "Sprint ID '{id}' does not match the numbering (expected {expected}); the "
+                    "ID of the following sprint cannot be formed. Please correct the ID: with "
+                    "sprintforecast rename-sprint or under Settings (without sprint files: the "
+                    "ID of the first sprint there)."
+                ),
                 id=previous_id,
                 expected=expected_id_form(numbering),
             )
@@ -66,9 +68,11 @@ def following_sprint(team: Team, previous: Sprint | None) -> Sprint:
         if team.sprint.first_id is None or team.sprint.first_start is None:
             raise DataError(
                 t(
-                    "Team {team}: Es ist noch kein Sprint erfasst. Bitte unter Einstellungen "
-                    "Start und ID des ersten Sprints eintragen (in team.yaml: sprint.first.id "
-                    "und sprint.first.start).",
+                    (
+                        "Team {team}: No sprint has been recorded yet. Please enter the start "
+                        "and ID of the first sprint under Settings (in team.yaml: "
+                        "sprint.first.id and sprint.first.start)."
+                    ),
                     team=team.key,
                 )
             )

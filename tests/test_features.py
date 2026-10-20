@@ -79,8 +79,8 @@ def test_settings_offer_the_three_areas_with_explanations():
     }
     team = Team(key="t", name="T")
     for setting in settings.values():
-        assert setting.display(team) == "aus" and len(setting.help) > 60
-    settings["features.po"].set(team, "an")
+        assert setting.display(team) == "off" and len(setting.help) > 60
+    settings["features.po"].set(team, "on")
     assert team.features.po and not team.features.products and not team.features.production
 
 
@@ -256,7 +256,7 @@ def test_new_team_form_explains_the_areas_and_saves_them_off(
     at.text_input[0].set_value("team-b").run()
     assert any("**Optionale Bereiche:**" in m.value for m in at.markdown)
     for key in ("features.products", "features.po", "features.production"):
-        assert at.selectbox(key=f"new-team-b-{key}").value == "aus"
+        assert at.selectbox(key=f"new-team-b-{key}").value == "off"
     at.text_input(key="new-team-b-sprint.first_id").set_value("2026.15")
     click(at, "Team anlegen")
     saved = yaml.safe_load((data_dir / "team-b" / "team.yaml").read_text())
@@ -269,7 +269,7 @@ def test_settings_page_switches_areas_independently(
     set_features(data_dir, products=False, po=False, production=False)
     at = start(data_dir, monkeypatch)
     goto(at, "einstellungen")
-    at.selectbox(key=f"settings-{TEAM}-features.production").set_value("an")
+    at.selectbox(key=f"settings-{TEAM}-features.production").set_value("on")
     click(at, "Speichern")
     saved = yaml.safe_load((data_dir / TEAM / "team.yaml").read_text())
     assert saved["features"] == {"products": False, "po": False, "production": True}
@@ -352,3 +352,8 @@ def test_cli_distribution_table_hides_po_when_off(data_dir: Path):
         line for line in off.output.splitlines() if "Produkt" in line and "Standard" in line
     )
     assert " PO " not in header
+
+
+def test_switch_settings_accept_the_german_words():
+    setting = next(s for s in SETTINGS if s.key == "features.po")
+    assert setting.parse("an") == "on" and setting.parse("aus") == "off"

@@ -71,7 +71,7 @@ def test_trend_formula_exists_for_every_mode(mode: TrendMode):
 
 def test_products_sheet_and_production_split_are_included(data_dir: Path):
     z = workbook(data_dir)
-    products = sheet_xml(z, "Produktwerte")
+    products = sheet_xml(z, "Product values")
     assert "SUMIFS" not in products and "<f>" in products  # Differenz ohne Produktion
     forecast = sheet_xml(z, "Forecast")
     assert "SUMIFS" in forecast and "COUNTIFS" in forecast  # Σ Planning je Produkt
@@ -91,9 +91,9 @@ def test_imported_text_never_becomes_a_formula_in_the_next_export(data_dir: Path
     content = build_workbook(build_forecast(repo.load("demo"), TODAY))
     wb = openpyxl.load_workbook(BytesIO(content))
     notes = [
-        c for row in wb["Sprintdaten"].iter_rows(min_row=2) for c in row if c.value == sprint.note
+        c for row in wb["Sprint data"].iter_rows(min_row=2) for c in row if c.value == sprint.note
     ]
-    names = [c for row in wb["Personen"].iter_rows(min_row=2) for c in row if c.value == "=1+1"]
+    names = [c for row in wb["People"].iter_rows(min_row=2) for c in row if c.value == "=1+1"]
     assert notes and names
     assert all(c.data_type == "s" for c in [*notes, *names])  # Text, keine Formel ("f")
 

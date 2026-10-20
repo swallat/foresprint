@@ -27,6 +27,7 @@ from typer.testing import CliRunner
 
 from sprintforecast.cli import app
 from sprintforecast.forecast import build_forecast
+from sprintforecast.i18n import t
 from sprintforecast.model import ProductBasis
 from sprintforecast.report import render
 from sprintforecast.settings import SETTINGS
@@ -54,8 +55,8 @@ def test_roadmap_share_key_is_still_read_and_written(data_dir: Path):
 
 def test_setting_is_called_verplanbarer_anteil():
     setting = next(s for s in SETTINGS if s.key == "forecast.roadmap_share")
-    assert setting.label == "Verplanbarer Anteil (%)"
-    assert "Kleinkram" in setting.help
+    assert t(setting.label) == "Verplanbarer Anteil (%)"
+    assert "Kleinkram" in t(setting.help)
     assert WORD not in setting.label + setting.help
 
 

@@ -997,7 +997,7 @@ def test_auto_update_takes_english_values_only(monkeypatch: pytest.MonkeyPatch):
     for value in ("on", "notice", "off"):
         result = runner.invoke(app, ["update", "--auto", value])
         assert result.exit_code == 0, result.output
-    assert saved == ["an", "hinweis", "aus"]
+    assert saved == ["on", "notice", "off"]
     for value in ("hinweis", "egal"):
         result = runner.invoke(app, ["update", "--auto", value])
         assert result.exit_code == 1 and "--auto: on, notice oder off" in result.output

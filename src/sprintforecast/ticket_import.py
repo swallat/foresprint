@@ -237,7 +237,7 @@ def plan_import(
     for raw in raws:
         if raw.key in seen:
             plan.warnings.append(
-                t("Ticket {key} kommt mehrfach vor; der letzte Eintrag gilt", key=raw.key)
+                t("Ticket {key} occurs more than once; the last entry counts", key=raw.key)
             )
         seen[raw.key] = convert(raw, data, fc, data.projects)
     plan.tickets = list(seen.values())
@@ -330,8 +330,10 @@ def plan_import(
         if earmark is not None:
             plan.warnings.append(
                 t(
-                    "Ticket {key} ist nicht mehr im Import; die Vormerkung für Sprint {sprint} "
-                    "bleibt bestehen",
+                    (
+                        "Ticket {key} is no longer in the import; the earmark for sprint "
+                        "{sprint} stays"
+                    ),
                     key=key,
                     sprint=earmark.sprint,
                 )
@@ -339,7 +341,7 @@ def plan_import(
         elif preplan.estimate_for(key) is not None:
             plan.warnings.append(
                 t(
-                    "Ticket {key} ist nicht mehr im Import; die eigene Schätzung bleibt bestehen",
+                    "Ticket {key} is no longer in the import; the own estimate stays",
                     key=key,
                 )
             )
@@ -359,7 +361,7 @@ def plan_import(
 
     for cycle in find_cycles(plan.tickets):
         plan.warnings.append(
-            t("Abhängigkeiten im Kreis: {cycle}", cycle=" → ".join([*cycle, cycle[0]]))
+            t("Circular dependencies: {cycle}", cycle=" → ".join([*cycle, cycle[0]]))
         )
     plan.changes.sort(key=lambda c: KINDS.index(c.kind))
     plan.preplan_changed = preplan != data.preplan
@@ -388,8 +390,10 @@ def _earmark_from_label(
         return
     plan.warnings.append(
         t(
-            "Ticket {key}: Das Label {labels} verweist auf keinen eindeutigen künftigen Sprint "
-            "und wird nicht als Vormerkung übernommen",
+            (
+                "Ticket {key}: the label {labels} does not point to exactly one future sprint "
+                "and is not taken as an earmark"
+            ),
             key=tk.key,
             labels=", ".join(planned_label(s) for s in sprints),
         )

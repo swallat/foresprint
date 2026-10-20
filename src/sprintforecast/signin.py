@@ -44,9 +44,9 @@ def host_guide(kind: str) -> HostGuide:
             kind,
             "oauth2",
             t(
-                "GitLab: Im Projekt (oder in den eigenen Einstellungen) unter „Zugriffstoken“ "
-                "einen Token anlegen, Rolle „Developer“ oder höher und das Recht "
-                "„write_repository“. Den Token einmal kopieren."
+                "GitLab: in the project (or in your own settings) under “Access tokens” "
+                "create a token with the role “Developer” or higher and the permission "
+                "“write_repository”. Copy the token once."
             ),
         )
     if kind == "github":
@@ -54,9 +54,9 @@ def host_guide(kind: str) -> HostGuide:
             kind,
             "x-access-token",
             t(
-                "GitHub: Unter Settings › Developer settings › Personal access tokens einen "
-                "fine-grained Token für dieses Repository anlegen, Recht „Contents: Read and "
-                "write“. Den Token einmal kopieren."
+                "GitHub: under Settings › Developer settings › Personal access tokens "
+                "create a fine-grained token for this repository with the permission "
+                "“Contents: Read and write”. Copy the token once."
             ),
         )
     if kind == "forgejo":
@@ -64,18 +64,18 @@ def host_guide(kind: str) -> HostGuide:
             kind,
             "",
             t(
-                "Forgejo/Gitea/Codeberg: Unter Einstellungen › Anwendungen einen Zugangstoken "
-                "mit dem Recht „write:repository“ anlegen. Benutzername ist der eigene "
-                "Kontoname."
+                "Forgejo/Gitea/Codeberg: under Settings › Applications create an access "
+                "token with the permission “write:repository”. The user name is your own "
+                "account name."
             ),
         )
     return HostGuide(
         kind,
         "",
         t(
-            "Beim Server einen Zugangstoken (Personal Access Token) mit Lese- und "
-            "Schreibrecht auf das Repository anlegen und den Benutzernamen eintragen, den der "
-            "Server dafür vorsieht."
+            "Create an access token (personal access token) with read and write permission "
+            "on the repository at the server and enter the user name the server expects "
+            "for it."
         ),
     )
 
@@ -84,7 +84,7 @@ def https_parts(url: str) -> tuple[str, str]:
     """``(host, pfad)`` einer https-Adresse für den Anmeldedienst. Andere Adressen (SSH, Ordner,
     http) sind hier nicht gemeint: :class:`GitError`."""
     problem = GitError(
-        t("Die Token-Anmeldung gilt nur für https-Adressen ohne Zugangsdaten in der Adresse.")
+        t("Token sign-in applies only to https addresses without credentials in the address.")
     )
     try:
         parts = urlsplit(url)
@@ -120,7 +120,7 @@ def _credential_input(url: str, username: str = "", token: str = "") -> str:
 def _clean(value: str, what: str) -> str:
     value = value.strip()
     if not value or any(ch in value for ch in "\r\n\0"):
-        raise GitError(t("Bitte {what} eintragen (ohne Zeilenumbruch).", what=what))
+        raise GitError(t("Please enter {what} (without a line break).", what=what))
     return value
 
 
@@ -157,7 +157,7 @@ def enable_helper(name: str) -> None:
     """Trägt den Anmeldedienst für den Benutzer ein (``git config --global``, nie im
     Repository). Nur die Namen aus :func:`suggested_helper`; ``store`` ist ausgeschlossen."""
     if name != suggested_helper():
-        raise GitError(t("Dieser Anmeldedienst wird von der App nicht eingerichtet."))
+        raise GitError(t("The app does not set up this credential helper."))
     _git(Path.home(), "config", "--global", "credential.helper", name)
 
 
@@ -176,25 +176,25 @@ def store_token(root: Path, url: str, username: str, token: str) -> None:
     """Reicht den Token an den Anmeldedienst weiter (``git credential approve``). Fehlt ein
     Dienst oder ist es ein Klartext-Speicher, passiert nichts und es kommt eine
     :class:`GitError`. Der Token erscheint in keiner Meldung."""
-    username = _clean(username, t("den Benutzernamen"))
-    token = _clean(token, t("den Token"))
+    username = _clean(username, t("the user name"))
+    token = _clean(token, t("the token"))
     if len(token) > MAX_TOKEN_LENGTH:
-        raise GitError(t("Der Token ist zu lang."))
+        raise GitError(t("The token is too long."))
     state = helper_state(root)
     if state == "plain":
         raise GitError(
-            t("Git legt Anmeldungen hier im Klartext ab (`credential.helper store`)."),
+            t("Git stores sign-ins here in plain text (`credential.helper store`)."),
             "auth",
             t(
-                "Das benutzt die App nicht für Token. Bitte einen Anmeldedienst des Rechners "
-                "einrichten (siehe oben) und `store` entfernen."
+                "The app does not use that for tokens. Please set up a credential helper "
+                "of the computer (see above) and remove `store`."
             ),
         )
     if state == "none":
         raise GitError(
-            t("Auf diesem Rechner ist noch kein Anmeldedienst von Git eingetragen."),
+            t("No Git credential helper is configured on this computer yet."),
             "auth",
-            t("Bitte zuerst den Anmeldedienst einschalten (siehe oben)."),
+            t("Please switch on the credential helper first (see above)."),
         )
     proc = _git_result(
         root,
@@ -206,9 +206,12 @@ def store_token(root: Path, url: str, username: str, token: str) -> None:
     if proc.returncode != 0:
         # Die Ausgabe des Dienstes kann den Token nennen: nur der Rückgabecode zählt.
         raise GitError(
-            t("Der Anmeldedienst von Git hat den Token nicht angenommen."),
+            t("The Git credential helper did not accept the token."),
             "auth",
-            t("Anmeldedienst und Rechte des Benutzerkontos prüfen und noch einmal versuchen."),
+            t(
+                "Check the credential helper and the permissions of the user account, then "
+                "try again."
+            ),
         )
 
 
@@ -223,9 +226,9 @@ def forget_token(root: Path, url: str, username: str = "", token: str = "") -> N
     Mit ``username`` und ``token`` trifft es genau diesen Eintrag; ohne beides alle Anmeldungen
     dieses Servers (der Pfad der Adresse zählt bei den meisten Diensten nicht)."""
     if username:
-        username = _clean(username, t("den Benutzernamen"))
+        username = _clean(username, t("the user name"))
     if token:
-        token = _clean(token, t("den Token"))
+        token = _clean(token, t("the token"))
     proc = _git_result(
         root,
         "credential",
@@ -234,7 +237,7 @@ def forget_token(root: Path, url: str, username: str = "", token: str = "") -> N
         stdin_text=_credential_input(url, username, token),
     )
     if proc.returncode != 0:
-        raise GitError(t("Der Anmeldedienst von Git hat die Anmeldung nicht gelöscht."))
+        raise GitError(t("The Git credential helper did not delete the sign-in."))
 
 
 # --- Einrichtungs-Checkliste ---------------------------------------------------------------
@@ -254,16 +257,18 @@ def setup_items(root: Path | None) -> list[SetupItem]:
     items: list[SetupItem] = []
     git_ok = git_available()
     items.append(
-        SetupItem("git", git_ok, t("Git ist installiert.") if git_ok else t("Git fehlt."), "hilfe")
+        SetupItem(
+            "git", git_ok, t("Git is installed.") if git_ok else t("Git is missing."), "hilfe"
+        )
     )
     top = gitmod.repo_root(root) if git_ok and root is not None else None
     items.append(
         SetupItem(
             "folder",
             top is not None,
-            t("Der Datenordner ist ein Git-Repository.")
+            t("The data folder is a Git repository.")
             if top
-            else t("Der Datenordner ist noch kein Git-Repository."),
+            else t("The data folder is not a Git repository yet."),
             "datenordner",
         )
     )
@@ -277,9 +282,7 @@ def setup_items(root: Path | None) -> list[SetupItem]:
         SetupItem(
             "server",
             info.name is not None,
-            t("Ein Server ist eingetragen.")
-            if info.name
-            else t("Es ist noch kein Server eingetragen."),
+            t("A server is configured.") if info.name else t("No server is configured yet."),
             "datenordner",
         )
     )
@@ -288,12 +291,12 @@ def setup_items(root: Path | None) -> list[SetupItem]:
             state = helper_state(top)
             ok = state == "ok"
             detail = (
-                t("Ein Anmeldedienst ist eingetragen.")
+                t("A credential helper is configured.")
                 if ok
-                else t("Für den Server fehlt noch die Anmeldung per Token.")
+                else t("Token sign-in for the server is still missing.")
             )
         else:
-            ok, detail = True, t("Die Adresse braucht keine Token-Anmeldung.")
+            ok, detail = True, t("The address needs no token sign-in.")
         items.append(SetupItem("login", ok, detail, "datenordner"))
     name = _git(top, "config", "--get", "user.name", check=False)
     email = _git(top, "config", "--get", "user.email", check=False)
@@ -301,9 +304,9 @@ def setup_items(root: Path | None) -> list[SetupItem]:
         SetupItem(
             "identity",
             bool(name and email),
-            t("Name und E-Mail-Adresse für Änderungen sind eingetragen.")
+            t("Name and email address for changes are set.")
             if name and email
-            else t("Name und E-Mail-Adresse für Änderungen fehlen."),
+            else t("Name and email address for changes are missing."),
             "datenordner",
         )
     )

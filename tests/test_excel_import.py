@@ -15,7 +15,7 @@ pytest.importorskip("xlsxwriter")
 
 import openpyxl
 
-from sprintforecast.excel import SHEET_FORECAST, SHEET_SPRINTS, build_workbook
+from sprintforecast.excel import LEGACY_SHEETS, SHEET_FORECAST, SHEET_SPRINTS, build_workbook
 from sprintforecast.excel_import import (
     apply_import,
     plan_import,
@@ -50,6 +50,17 @@ def test_roundtrip_has_no_changes(data_dir: Path):
     original = repo.load("demo")
     assert [s.id for s in data.sprints] == [s.id for s in original.sprints]
     assert [p.id for p in data.people] == [p.id for p in original.people]
+
+
+def test_workbooks_with_the_german_sheet_names_of_older_versions_are_read(data_dir: Path):
+    def rename(wb):
+        for old, new in LEGACY_SHEETS.items():
+            if new in wb.sheetnames:
+                wb[new].title = old
+
+    repo = Repository(data_dir)
+    plan = plan_import(repo, read_workbook(edited(exported(data_dir), rename), "demo"))
+    assert plan.changes == [] and plan.files == []
 
 
 def test_roundtrip_into_an_empty_data_folder_restores_every_file(data_dir: Path, tmp_path: Path):
@@ -115,7 +126,7 @@ def test_unknown_absence_state_is_reported(data_dir: Path):
     def edit(wb: openpyxl.Workbook) -> None:
         wb[SHEET_SPRINTS]["B2"].value = "vielleicht"
 
-    with pytest.raises(DataError, match=r"Sprintdaten!B2"):
+    with pytest.raises(DataError, match=r"Sprint data!B2"):
         read_workbook(edited(exported(data_dir), edit), "demo")
 
 
@@ -223,7 +234,7 @@ def test_command_previews_then_applies(
 
 def setting_cell(wb: openpyxl.Workbook, path: str):
     """Die Wertzelle (Spalte B) der Einstellung ``path`` auf dem Blatt Einstellungen."""
-    ws = wb["Einstellungen"]
+    ws = wb["Settings"]
     for row in ws.iter_rows(min_row=3):
         if row[2].value == path:
             return row[1]
@@ -351,15 +362,15 @@ def test_setting_values_need_their_type(data_dir: Path):
         setting_cell(wb, "features.production").value = "vielleicht"
 
     def unknown(wb: openpyxl.Workbook) -> None:
-        wb["Einstellungen"]["A30"].value = "x"
-        wb["Einstellungen"]["B30"].value = 1
-        wb["Einstellungen"]["C30"].value = "forecast.unbekannt"
+        wb["Settings"]["A30"].value = "x"
+        wb["Settings"]["B30"].value = 1
+        wb["Settings"]["C30"].value = "forecast.unbekannt"
 
-    with pytest.raises(DataError, match=r"Einstellungen!B"):
+    with pytest.raises(DataError, match=r"Settings!B"):
         read_workbook(edited(exported(data_dir), not_whole), "demo")
-    with pytest.raises(DataError, match=r"Einstellungen!B"):
+    with pytest.raises(DataError, match=r"Settings!B"):
         read_workbook(edited(exported(data_dir), maybe), "demo")
-    with pytest.raises(DataError, match=r"Einstellungen!C30"):
+    with pytest.raises(DataError, match=r"Settings!C30"):
         read_workbook(edited(exported(data_dir), unknown), "demo")
 
 
@@ -508,9 +519,9 @@ def test_prognoses_refuse_non_finite_values(data_dir: Path, bad: str):
     sprint_id = next(s.id for s in Repository(data_dir).load("demo").sprints)
 
     def edit(wb: openpyxl.Workbook) -> None:
-        wb["Prognosen"].append([sprint_id, datetime(2026, 10, 1, 9), None] + [None] * 6 + [bad])
+        wb["Prognoses"].append([sprint_id, datetime(2026, 10, 1, 9), None] + [None] * 6 + [bad])
 
-    with pytest.raises(DataError, match=r"Prognosen!J"):
+    with pytest.raises(DataError, match=r"Prognoses!J"):
         read_workbook(edited(exported(data_dir), edit), "demo")
 
 
@@ -520,7 +531,7 @@ def test_prognoses_are_sorted_oldest_first(data_dir: Path):
     sprint_id = next(s.id for s in Repository(data_dir).load("demo").sprints)
 
     def edit(wb: openpyxl.Workbook) -> None:
-        ws = wb["Prognosen"]
+        ws = wb["Prognoses"]
         ws.append([sprint_id, datetime(2026, 10, 3, 9), "später"] + [None] * 7)
         ws.append([sprint_id, datetime(2026, 10, 1, 9), "früher"] + [None] * 7)
 
@@ -628,13 +639,13 @@ def test_a_clashing_team_key_is_refused_regardless_of_the_file_system(
 
 def test_the_person_switch_needs_yes_or_no(data_dir: Path):
     def off(wb: openpyxl.Workbook) -> None:
-        wb["Personen"]["F2"].value = "nein"
+        wb["People"]["F2"].value = "nein"
 
     def maybe(wb: openpyxl.Workbook) -> None:
-        wb["Personen"]["F2"].value = "vielleicht"
+        wb["People"]["F2"].value = "vielleicht"
 
     assert not read_workbook(edited(exported(data_dir), off), "demo").people[0].production_access
-    with pytest.raises(DataError, match=r"Personen!F2"):
+    with pytest.raises(DataError, match=r"People!F2"):
         read_workbook(edited(exported(data_dir), maybe), "demo")
 
 
