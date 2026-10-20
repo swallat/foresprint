@@ -23,6 +23,9 @@ from sprintforecast.forecast import Forecast
 from sprintforecast.i18n import t
 from sprintforecast.model import (
     DEFAULT_MATCH_ORDER,
+    RULE_FIELD_NAME,
+    RULE_RESERVED,
+    RULE_SOURCES,
     TRACKER_KINDS,
     TrackerFields,
     TrackerSettings,
@@ -42,7 +45,7 @@ from sprintforecast.sources.jira import (
     suggest_fields,
 )
 from sprintforecast.storage import Repository, TeamData
-from sprintforecast.web.ui import page_intro, save
+from sprintforecast.web.ui import page_intro, pd, save
 
 FIELD_SETTINGS = ("estimate", "remaining", "epic")
 NOT_SET = ""
@@ -88,6 +91,7 @@ def tracker_from_inputs(
     fields: dict[str, str],
     refined_label: str | None = None,
     match_order: tuple[str, ...] | None = None,
+    rule_fields: dict[str, str] | None = None,
 ) -> TrackerSettings:
     """The tracker settings with the edited values; everything else stays as it is."""
     return replace(
@@ -100,7 +104,39 @@ def tracker_from_inputs(
         if refined_label is None
         else (refined_label.strip() or None),
         project_match_order=base.project_match_order if match_order is None else list(match_order),
+        rule_fields=base.rule_fields if rule_fields is None else dict(rule_fields),
     )
+
+
+def rule_fields_from_rows(
+    rows: list[tuple[object, object]],
+) -> tuple[dict[str, str], list[str]]:
+    """The rule fields of the table rows ``(name, field in the tracker)`` and the problems with
+    them; rows without any entry are dropped."""
+    fields: dict[str, str] = {}
+    problems: list[str] = []
+    for raw_name, raw_display in rows:
+        name = raw_name.strip().lower() if isinstance(raw_name, str) else ""
+        display = raw_display.strip() if isinstance(raw_display, str) else ""
+        if not name and not display:
+            continue
+        if not name or not RULE_FIELD_NAME.match(name):
+            problems.append(
+                t(
+                    "“{name}” is not a usable name (lower-case letters, digits and underscores, "
+                    "starting with a letter).",
+                    name=name or "–",
+                )
+            )
+        elif name in RULE_SOURCES or name in RULE_RESERVED or name.endswith("_contains"):
+            problems.append(t("The name “{name}” is reserved.", name=name))
+        elif name in fields:
+            problems.append(t("The name “{name}” is used twice.", name=name))
+        elif not display:
+            problems.append(t("The field of “{name}” is empty.", name=name))
+        else:
+            fields[name] = display
+    return fields, problems
 
 
 def field_options(candidates: list[FieldCandidate], current: str | None) -> list[tuple[str, str]]:
@@ -291,6 +327,26 @@ def _field_inputs(
     return values
 
 
+def _rule_fields_editor(key: str, current: dict[str, str]) -> list[tuple[object, object]]:
+    """Table of the additional fields for assignment rules; returns its rows."""
+    name_col, field_col = t("Name in rules"), t("Field in Jira or column of the CSV")
+    st.markdown("**" + t("Additional fields for assignment rules") + "**")
+    st.caption(
+        t(
+            "A name for a field of your tickets (e.g. `customer` for the field “Customer”) "
+            "to use in the rules of the projects. Values are read on the next import."
+        )
+    )
+    frame = pd.DataFrame(
+        [{name_col: n, field_col: f} for n, f in current.items()],
+        columns=[name_col, field_col],
+    )
+    edited = st.data_editor(
+        frame, num_rows="dynamic", hide_index=True, key=f"jira-{key}-rulefields"
+    )
+    return [(row[0], row[1]) for row in edited.itertuples(index=False)]
+
+
 def _show_probe(probe: Probe) -> None:
     if probe.error:
         st.error(probe.error)
@@ -379,10 +435,14 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             ),
             key=f"jira-{key}-order",
         )
+        rule_rows = _rule_fields_editor(key, tracker.rule_fields)
         left, right = st.columns(2)
         test = left.form_submit_button(t("Test connection"), icon=":material/cable:")
         saved = right.form_submit_button(t("Save"), type="primary")
-    edited = tracker_from_inputs(tracker, kind, base_url, query, fields, refined_label, order)
+    rule_fields, rule_problems = rule_fields_from_rows(rule_rows)
+    edited = tracker_from_inputs(
+        tracker, kind, base_url, query, fields, refined_label, order, rule_fields
+    )
     if test:
         if problem := _address_problem(edited.base_url):
             st.error(problem)
@@ -399,7 +459,10 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if probe is not None:
         _show_probe(probe)
     _token_section(key, data.team.tracker.base_url)  # the saved address: the form is not live
-    if saved and _save(repo, data, edited):
+    if saved and rule_problems:
+        for problem in rule_problems:
+            st.error(problem)
+    elif saved and _save(repo, data, edited):
         st.session_state.pop(draft_key, None)
         st.rerun()  # the token section below must see the saved address
 
