@@ -851,6 +851,7 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
     )
     fetched = f"tickets-{key}-fetched"
+    page_link("jira", t("Set up the Jira connection"))
     if data.team.tracker.kind == "jira":
         if st.button(
             t("Read tickets from Jira"),

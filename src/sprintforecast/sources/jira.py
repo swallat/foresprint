@@ -19,7 +19,7 @@ import math
 import os
 import re
 import ssl
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
@@ -311,6 +311,82 @@ def _ids_by_schema(fields: list[dict[str, Any]], schema: str) -> tuple[str, ...]
         if isinstance(info, dict) and info.get("custom") == schema and f.get("id"):
             found.append(str(f["id"]))
     return tuple(sorted(found))
+
+
+# --- Field suggestions (setup page) ----------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class FieldCandidate:
+    """A field of the instance that could serve as one of ``tracker.fields``."""
+
+    id: str
+    name: str
+    # The text for ``team.yaml``: the display name, or the id when another field has that name.
+    value: str
+    # Higher = more likely (a hint from the name); 0 = no hint, only the type fits.
+    score: int = 0
+
+
+@dataclass
+class FieldSuggestions:
+    """Candidates per setting, best first (the first is only a suggestion when its score > 0)."""
+
+    estimate: list[FieldCandidate] = field(default_factory=list)
+    remaining: list[FieldCandidate] = field(default_factory=list)
+    epic: list[FieldCandidate] = field(default_factory=list)
+
+
+# Fragments of (localized) field names that point at the kind of number a field holds.
+_POINT_HINTS = ("story point", "storypoint", "story-punkt", "storypunkt", "punkte", "points")
+_ESTIMATE_HINTS = ("original", "initial", "ursprüng", "estimate", "schätz", "refine")
+_REMAINING_HINTS = ("remaining", "rest", "verbleib")
+
+
+def _score(name: str, hints: tuple[str, ...]) -> int:
+    lowered = name.casefold()
+    points = 1 if any(h in lowered for h in _POINT_HINTS) else 0
+    return points + (2 if any(h in lowered for h in hints) else 0)
+
+
+def suggest_fields(fields: list[dict[str, Any]]) -> FieldSuggestions:
+    """Candidates for ``tracker.fields`` from the answer of ``/rest/api/2/field``: number fields
+    for the estimate and the remaining work (ordered by hints in the name), the epic link fields
+    and the parent link for the epic."""
+    names = [str(f.get("name", "")).strip() for f in fields]
+
+    def candidate(f: dict[str, Any], hints: tuple[str, ...]) -> FieldCandidate | None:
+        field_id, name = str(f.get("id") or ""), str(f.get("name") or "").strip()
+        if not field_id or not name:
+            return None
+        value = name if names.count(name) == 1 else field_id
+        return FieldCandidate(field_id, name, value, _score(name, hints))
+
+    def ordered(found: list[FieldCandidate]) -> list[FieldCandidate]:
+        return sorted(found, key=lambda c: (-c.score, c.name.casefold(), c.id))
+
+    numbers = [
+        f
+        for f in fields
+        if isinstance(f.get("schema"), dict)
+        and f["schema"].get("type") == "number"
+        and f["schema"].get("custom")
+    ]
+    result = FieldSuggestions()
+    for setting, hints in (("estimate", _ESTIMATE_HINTS), ("remaining", _REMAINING_HINTS)):
+        found = [c for f in numbers if (c := candidate(f, hints))]
+        setattr(result, setting, ordered(found))
+    links = [
+        c
+        for f in fields
+        if isinstance(f.get("schema"), dict)
+        and f["schema"].get("custom") == EPIC_LINK_SCHEMA
+        and (c := candidate(f, ()))
+    ]
+    result.epic = ordered(links)
+    if any(f.get("id") == PARENT_FIELD for f in fields):
+        result.epic.append(FieldCandidate(PARENT_FIELD, PARENT_FIELD, PARENT_FIELD))
+    return result
 
 
 # --- Sprint field ----------------------------------------------------------------------------
@@ -686,6 +762,27 @@ class JiraSource:
                 host=self.host,
             )
         )
+
+    def list_fields(self) -> list[dict[str, Any]]:
+        """All fields of the instance (GET /rest/api/2/field), for suggestions."""
+        fields = self._request("GET", "/rest/api/2/field")
+        if not isinstance(fields, list) or not all(isinstance(f, dict) for f in fields):
+            raise self._shape_error()
+        return fields
+
+    def count_tickets(self) -> int:
+        """Number of tickets the query matches, without reading them (GET /rest/api/2/search
+        with one ticket per page)."""
+        jql = (self.settings.query or "").strip()
+        if not jql:
+            raise SourceError(t("tracker.query is missing (JQL query of the tickets, team.yaml)"))
+        page = self._request(
+            "GET", SEARCH_PATH, {"jql": jql, "fields": "key", "startAt": 0, "maxResults": 1}
+        )
+        total = page.get("total") if isinstance(page, dict) else None
+        if not isinstance(total, int) or isinstance(total, bool) or total < 0:
+            raise self._shape_error()
+        return total
 
     def resolve_fields(self) -> ResolvedFields:
         """Resolves the display names of ``tracker.fields`` and finds the sprint, rank and epic

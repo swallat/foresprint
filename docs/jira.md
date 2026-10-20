@@ -13,7 +13,9 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    `uv tool install --force "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"`
    (give plugins again with `--with`; see [installation.md](installation.md)). Without the extra
    the CSV import still works.
-2. **Configure the tracker** in `team.yaml` (details: [data-format.md](data-format.md)):
+2. **Configure the tracker.** Either on the web page *Jira connection* (Manage team; address,
+   query and fields, with suggestions from your instance once the token is set, see step 5) or
+   in `team.yaml` (details: [data-format.md](data-format.md)):
 
    ```yaml
    features:
@@ -57,6 +59,14 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    ```bash
    sprintforecast tickets TEAM --test-connection
    ```
+
+   The web page *Jira connection* does the same with **Test connection**, and in addition offers
+   the number fields and epic links of the instance as choices for `fields.estimate`,
+   `fields.remaining` and `fields.epic` (a hint marks the likeliest by its name) and counts the
+   tickets the query matches. The page does not take the token and does not store it: it only
+   reports whether one is found (environment variable or keychain) and otherwise explains how to
+   set it. Set the variable before starting the web interface. Components and labels need no
+   setting; they are always read.
 
 ## Reading tickets
 
@@ -117,6 +127,7 @@ Reading uses only `GET` requests, to these endpoints:
 |---|---|
 | `/rest/api/2/myself` | connection test: the display name of the account |
 | `/rest/api/2/field` | resolves the field names from `tracker.fields` to `customfield_…` ids; finds the sprint, rank and epic link fields by their schema |
+| `/rest/api/2/search` | with `maxResults=1`: the number of tickets the query matches (web page *Jira connection*) |
 | `/rest/api/2/search` | the tickets of `tracker.query`, 100 per page, with `fields=` limited to what is needed (summary, status, issue type, labels, components, resolution, issue links, parent, estimate, remaining, epic, sprint, rank) |
 
 Authentication is the header `Authorization: Bearer <token>`; the certificate is always verified
