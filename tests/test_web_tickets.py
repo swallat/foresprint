@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Page "Tickets": filter, tables, earmarks, import with preview and maintenance (AppTest)."""
+"""Page "Tickets": filter, tables, earmarks, import with preview and settings (AppTest)."""
 
 from datetime import date
 from pathlib import Path
