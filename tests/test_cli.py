@@ -359,7 +359,7 @@ def test_people_new_person_gets_id_and_former_hidden(data_dir: Path):
 
 
 def test_default_data_dir_is_current_directory(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.delenv("SPRINTFORECAST_DATA", raising=False)
+    monkeypatch.delenv("FORESPRINT_DATA", raising=False)
     monkeypatch.chdir(data_dir)
     result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
     assert result.exit_code == 0, result.output
@@ -392,7 +392,7 @@ def test_teams_subdirectory_is_found(
 
     root = tmp_path / "sprint-daten"
     shutil.copytree(data_dir, root / "teams")
-    monkeypatch.delenv("SPRINTFORECAST_DATA", raising=False)
+    monkeypatch.delenv("FORESPRINT_DATA", raising=False)
     monkeypatch.chdir(root)
     result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
     assert result.exit_code == 0, result.output
@@ -922,7 +922,7 @@ def test_help_shows_only_english_names(monkeypatch: pytest.MonkeyPatch, lang: st
         assert not re.search(rf"│ {german}\s", output), german
     assert "--data" in output and "--as-of" in output
     assert "--daten" not in output and "--stichtag" not in output
-    assert "SPRINTFORECAST_DATA" in output and "SPRINTFORECAST_DATEN" not in output
+    assert "FORESPRINT_DATA" in output and "FORESPRINT_DATEN" not in output
     output = _no_ansi(runner.invoke(app, ["forecast", "--help"]).output)
     assert "--explain" in output and "--rechenweg" not in output
     assert "--history" in output and "--verlauf" not in output
@@ -981,7 +981,7 @@ def test_legacy_env_names_are_ignored(
     empty.mkdir()
     monkeypatch.chdir(empty)
     monkeypatch.delenv(storage.DATA_ENV, raising=False)
-    monkeypatch.setenv("SPRINTFORECAST_DATEN", str(data_dir))
+    monkeypatch.setenv("FORESPRINT_DATEN", str(data_dir))
     assert storage.default_data_dir() == Path(".")
     monkeypatch.setenv(storage.DATA_ENV, str(data_dir))
     assert storage.default_data_dir() == data_dir
@@ -1100,7 +1100,7 @@ def test_new_person_is_not_blamed_for_an_earlier_edit_of_the_session(data_dir: P
 
 def _complete(data_dir: Path, words: str, monkeypatch) -> list[str]:
     """What bash would offer for ``words`` (the last word is the one being completed)."""
-    monkeypatch.setenv("SPRINTFORECAST_DATA", str(data_dir))
+    monkeypatch.setenv("FORESPRINT_DATA", str(data_dir))
     env = {
         "_SPRINTFORECAST_COMPLETE": "complete_bash",
         "COMP_WORDS": f"sprintforecast {words}",

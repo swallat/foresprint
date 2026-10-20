@@ -97,7 +97,7 @@ def test_default_language_is_english(tmp_path: Path):
     import subprocess
     import sys
 
-    env = {k: v for k, v in os.environ.items() if not k.startswith("SPRINTFORECAST_")}
+    env = {k: v for k, v in os.environ.items() if not k.startswith("FORESPRINT_")}
     env |= {"XDG_CONFIG_HOME": str(tmp_path), "APPDATA": str(tmp_path)}
     code = (
         "from sprintforecast import i18n; "

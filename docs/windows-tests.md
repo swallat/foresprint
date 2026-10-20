@@ -47,7 +47,7 @@ Useful parameters:
 Duration without prompts about 2 to 3 minutes; the interactive questions come on top.
 
 1. **Start and quit the app.** The script starts `sprintforecast-app` with a temporary data
-   repository (only for this start, via `SPRINTFORECAST_DATA`), waits for server and window,
+   repository (only for this start, via `FORESPRINT_DATA`), waits for server and window,
    and lists all processes. Then it closes the window like the close button would
    (`CloseMainWindow`; if that does not work, or the app starts in Firefox or the default
    browser, it asks you to close the window yourself), waits 20 seconds and checks via

@@ -2969,7 +2969,7 @@ def product_list_command(ctx: typer.Context, team: TeamArg, commit_: CommitOpt =
 @command(
     "data-dir",
     "Show or set the remembered data folder (applies when the current directory contains no "
-    "teams and neither --data nor SPRINTFORECAST_DATA is set).",
+    "teams and neither --data nor FORESPRINT_DATA is set).",
 )
 def data_dir_command(
     path: Annotated[
@@ -3143,7 +3143,7 @@ def update_command(
             t(
                 (
                     "Version {version}, pinned to [bold]{ref}[/bold]. For another version, run "
-                    "the install script again with SPRINTFORECAST_REF."
+                    "the install script again with FORESPRINT_REF."
                 ),
                 version=result.current,
                 ref=inst.ref,
