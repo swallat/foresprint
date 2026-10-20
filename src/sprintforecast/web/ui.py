@@ -2481,7 +2481,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         t("Capacity (PT)"),
         fmt_capacity(r.plan_capacity, entry.capacity_digits),
         # The source goes below the value (not inside it): otherwise the number is truncated.
-        delta=capacity_source_note(entry) or None,
+        delta=capacity_source_note(entry, warning="") or None,
         delta_color="off",
         delta_arrow="off",
         help=t("Source: {source}", source=source_label(r.plan_capacity_source) or "–")
@@ -3424,7 +3424,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         capacity_col.metric(
             t("Capacity (PT)"),
             fmt_capacity(shown.result.plan_capacity, shown.capacity_digits),
-            delta=capacity_source_note(shown) or None,
+            delta=capacity_source_note(shown, warning="") or None,
             delta_color="off",
             delta_arrow="off",
             help=_formula_help(fc_view, shown, "capacity"),

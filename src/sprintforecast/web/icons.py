@@ -8,7 +8,6 @@ from __future__ import annotations
 
 DONE_ICON = ":green[:material/check_circle:]"
 OPEN_ICON = ":gray[:material/radio_button_unchecked:]"
-WARNING_ICON = ":orange[:material/warning:]"
 
 
 def status_icon(ok: bool) -> str:

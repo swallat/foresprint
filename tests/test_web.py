@@ -1022,7 +1022,7 @@ def test_preplanning_capacity_metric_marks_an_unsure_source(
     at.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
     assert "⚠" not in capacity.value
-    assert capacity.delta == "⚠️ Kalender, Fehltage unbekannt"
+    assert capacity.delta == "Kalender, Fehltage unbekannt"
 
 
 def test_board_sprint_carries_over_between_boards(app: AppTest):
