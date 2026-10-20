@@ -25,8 +25,8 @@ def test_linux_desktop_entries(tmp_path: Path, program: str, monkeypatch: pytest
     paths = shortcuts.create(home=tmp_path, platform="linux")
     assert not any(path.exists() for path in old)
     assert paths == [
-        tmp_path / ".local/share/applications/sprintoracle.desktop",
-        tmp_path / "Desktop/sprintoracle.desktop",
+        tmp_path / ".local/share/applications/foresprint.desktop",
+        tmp_path / "Desktop/foresprint.desktop",
     ]
     entry = paths[0].read_text()
     assert f'Exec="{program}"' in entry and "Terminal=false" in entry
@@ -47,7 +47,7 @@ def test_mac_bundle_and_alias(tmp_path: Path, program: str):
         pytest.skip("Kein Recht für symbolische Verknüpfungen")
     assert not (tmp_path / "Applications/Sprint-Forecast.app").exists()
     assert not (tmp_path / "Desktop/Sprint-Forecast.app").exists()
-    starter = bundle / "Contents/MacOS/Sprintoracle"
+    starter = bundle / "Contents/MacOS/Foresprint"
     assert f'exec "{program}"' in starter.read_text()
     assert os.access(starter, os.X_OK)
     assert alias.is_symlink() and alias.resolve() == bundle.resolve()

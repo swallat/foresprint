@@ -47,7 +47,7 @@ app also looks in the usual places (on Windows `%LOCALAPPDATA%\Programs\Git`, Sc
 `%ProgramFiles%\Git`; on macOS and Linux Homebrew, `/usr/local/bin`, `~/.local/bin`,
 `~/.nix-profile/bin`). An installation without administrator rights is therefore enough (Git for
 Windows installed for your own user account only); afterwards reopen the app and the
-"Sprintoracle" launcher once. Updating the app (through `uv`, with plugins from Git
+"Foresprint" launcher once. Updating the app (through `uv`, with plugins from Git
 addresses) works then as well: if Git is only outside the PATH, the app appends its folder to
 the PATH for the `uv` call (only there, not system-wide and not for the subsequent restart of
 the app). The first installation through the install script is not affected by this: plugins
@@ -78,7 +78,7 @@ on Windows the Git Credential Manager that comes with Git for Windows, on macOS 
 
 ## Desktop launcher
 
-The script creates a launcher **"Sprintoracle"**: on Windows on the desktop and in the Start
+The script creates a launcher **"Foresprint"**: on Windows on the desktop and in the Start
 menu, on macOS in `~/Applications` (plus an alias on the desktop), on Linux as an application
 entry and on the desktop. It starts the web UI as an app window (on Windows without a console
 window); on the first start the UI guides you through setting up the data folder. Create it

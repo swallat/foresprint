@@ -134,7 +134,7 @@ def test_missing_git_message_names_the_searched_places(
     assert str(error) == "git ist nicht installiert oder nicht im PATH"
     assert "PATH" in error.hint
     assert all(str(place) in error.hint for place in places)
-    assert "neu öffnen" in error.hint and "Sprintoracle" in error.hint
+    assert "neu öffnen" in error.hint and "Foresprint" in error.hint
     assert "ohne Administratorrechte" in error.hint
     assert "IT " not in error.hint and "Betreuung" not in error.hint
     assert "winget" not in error.hint

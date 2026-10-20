@@ -118,5 +118,5 @@ fi
 
 say ""
 say "Done: sprintforecast $("$(uv tool dir --bin)/sprintforecast" --version)"
-say "Start by double-clicking \"Sprintoracle\" or, in a new terminal, e.g.:"
+say "Start by double-clicking \"Foresprint\" or, in a new terminal, e.g.:"
 say "  cd ~/sprint-daten && sprintforecast web"

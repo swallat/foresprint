@@ -2,8 +2,8 @@
 """Double-click launcher: shortcut to `sprintforecast-app` (= `web --app`).
 
 - Windows: desktop and Start menu (.lnk via PowerShell/WScript.Shell)
-- macOS: ~/Applications/Sprintoracle.app plus an alias on the desktop
-- Linux: ~/.local/share/applications/sprintoracle.desktop plus a copy on the desktop
+- macOS: ~/Applications/Foresprint.app plus an alias on the desktop
+- Linux: ~/.local/share/applications/foresprint.desktop plus a copy on the desktop
 
 Launchers created under the former name "Sprint-Forecast" are removed when a new one is made.
 """
@@ -20,7 +20,7 @@ from sprintforecast.i18n import t
 from sprintforecast.icon import write_icon
 from sprintforecast.launcher import profile_dir
 
-APP_NAME = "Sprintoracle"
+APP_NAME = "Foresprint"
 LEGACY_APP_NAME = "Sprint-Forecast"  # launcher name before the rename
 LEGACY_DESKTOP_FILE = "sprintforecast.desktop"
 APP_SCRIPT = "sprintforecast-app"
@@ -97,7 +97,7 @@ def mac_bundle(app_dir: Path, program: str, icon: Path | None = None) -> Path:
         '<plist version="1.0"><dict>\n'
         f"<key>CFBundleName</key><string>{APP_NAME}</string>\n"
         f"<key>CFBundleExecutable</key><string>{APP_NAME}</string>\n"
-        "<key>CFBundleIdentifier</key><string>de.sprintoracle.app</string>\n"
+        "<key>CFBundleIdentifier</key><string>de.foresprint.app</string>\n"
         "<key>CFBundlePackageType</key><string>APPL</string>\n"
         + (f"<key>CFBundleIconFile</key><string>{icon.stem}</string>\n" if icon else "")
         + "</dict></plist>\n",
@@ -157,9 +157,9 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
         return paths
     entry = desktop_entry(program, str(write_icon(icon_dir(), "png")))
     data_home = Path(os.environ.get("XDG_DATA_HOME") or home / ".local" / "share")
-    targets = [data_home / "applications" / "sprintoracle.desktop"]
+    targets = [data_home / "applications" / "foresprint.desktop"]
     if (home / "Desktop").is_dir():
-        targets.append(home / "Desktop" / "sprintoracle.desktop")
+        targets.append(home / "Desktop" / "foresprint.desktop")
     for old in (data_home / "applications", home / "Desktop"):
         _remove(old / LEGACY_DESKTOP_FILE)
     for target in targets:

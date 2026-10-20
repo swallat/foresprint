@@ -1,27 +1,31 @@
 # SPDX-License-Identifier: EUPL-1.2
 """App logo for the launchers (Windows .ico, macOS .icns, Linux .png).
 
-The logo is drawn without extra packages: indigo square with a trend line that fans out into
-a cone (the spread of the forecast) and a mint dot where the forecast starts.
+The logo is drawn without extra packages: an indigo square with a violet diagonal and a
+timeline of sprints: two solid blocks, then a dashed mint block for the forecast.
 """
 
 from __future__ import annotations
 
 import functools
-import math
 import struct
 import zlib
 from pathlib import Path
 
 INDIGO = (91, 91, 240)
+VIOLET = (162, 77, 240)
 WHITE = (255, 255, 255)
 MINT = (23, 195, 160)
-CONE_ALPHA = 0.32
 SIZE = 256
+BAND = tuple(round(v * 0.85 + i * 0.15) for v, i in zip(VIOLET, INDIGO, strict=True))
 
-_START = (0.47, 0.58)  # where the forecast begins
-_TREND_FROM = (0.14, 0.72)
-_CONE = ((0.47, 0.58), (0.86, 0.2), (0.86, 0.83))
+# Geometry on a 64 x 64 grid.
+_DONE = ((6, 24, 20, 40), (23, 24, 37, 40))  # finished sprints
+_NEXT = (40, 24, 54, 40)  # forecast sprint (dashed outline)
+_STUB = (54, 30.5, 60, 33.5)
+_BLOCK_RADIUS = 3
+_OUTLINE = 2.5
+_DASH, _GAP = 4, 3  # dash pattern along the outline of the dashed block
 
 
 def _inside_rounded(x: float, y: float, size: float, radius: float) -> bool:
@@ -30,40 +34,44 @@ def _inside_rounded(x: float, y: float, size: float, radius: float) -> bool:
     return (x - cx) ** 2 + (y - cy) ** 2 <= radius**2
 
 
-def _near_segment(u: float, v: float, a: tuple[float, float], b: tuple[float, float], w: float):
-    """Whether (u, v) is within distance ``w`` of the segment a-b."""
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    t = max(0.0, min(1.0, ((u - a[0]) * dx + (v - a[1]) * dy) / (dx * dx + dy * dy)))
-    return math.hypot(u - (a[0] + t * dx), v - (a[1] + t * dy)) <= w
+def _in_block(g: float, h: float, box: tuple[float, float, float, float], inset: float = 0) -> bool:
+    x0, y0, x1, y1 = box[0] + inset, box[1] + inset, box[2] - inset, box[3] - inset
+    if not (x0 <= g <= x1 and y0 <= h <= y1):
+        return False
+    r = max(_BLOCK_RADIUS - inset, 0)
+    cx, cy = min(max(g, x0 + r), x1 - r), min(max(h, y0 + r), y1 - r)
+    return (g - cx) ** 2 + (h - cy) ** 2 <= r**2
 
 
-def _in_triangle(u: float, v: float, tri: tuple[tuple[float, float], ...]) -> bool:
-    signs = []
-    for i in range(3):
-        (x1, y1), (x2, y2) = tri[i], tri[(i + 1) % 3]
-        signs.append((x2 - x1) * (v - y1) - (y2 - y1) * (u - x1) >= 0)
-    return all(signs) or not any(signs)
+def _along_outline(g: float, h: float, box: tuple[float, float, float, float]) -> float:
+    """Distance along the outline of ``box`` (clockwise from the top left) of the point nearest
+    to (g, h)."""
+    x0, y0, x1, y1 = box
+    w, ht = x1 - x0, y1 - y0
+    near = {"top": h - y0, "right": x1 - g, "bottom": y1 - h, "left": g - x0}
+    side = min(near, key=lambda k: near[k])
+    return {
+        "top": g - x0,
+        "right": w + (h - y0),
+        "bottom": w + ht + (x1 - g),
+        "left": 2 * w + ht + (y1 - h),
+    }[side]
 
 
 def _color(x: float, y: float, s: float) -> tuple[int, int, int, int]:
     """Color (RGBA) at point (x, y) in an image with edge length s."""
     if not _inside_rounded(x, y, s, s * 0.2):
         return 0, 0, 0, 0
-    u, v = x / s, y / s
-    if math.hypot(u - _START[0], v - _START[1]) <= 0.065:
-        return (*MINT, 255)
-    for step in (1, 2, 3):  # dotted median of the cone
-        cx = _START[0] + step * 0.11
-        cy = _START[1] + (0.515 - _START[1]) * step / 3.5
-        if math.hypot(u - cx, v - cy) <= 0.03:
-            return (*MINT, 255)
-    if _near_segment(u, v, _TREND_FROM, _START, 0.028):
+    g, h = x / s * 64, y / s * 64
+    if any(_in_block(g, h, box) for box in _DONE):
         return (*WHITE, 255)
-    if _in_triangle(u, v, _CONE):
-        mixed = tuple(
-            round(w * CONE_ALPHA + b * (1 - CONE_ALPHA)) for w, b in zip(WHITE, INDIGO, strict=True)
-        )
-        return (*mixed, 255)
+    on_outline = _in_block(g, h, _NEXT) and not _in_block(g, h, _NEXT, _OUTLINE)
+    if on_outline and _along_outline(g, h, _NEXT) % (_DASH + _GAP) < _DASH:
+        return (*MINT, 255)
+    if _STUB[0] <= g <= _STUB[2] and _STUB[1] <= h <= _STUB[3]:
+        return (*MINT, 255)
+    if g + h >= 74:  # diagonal band in the lower right corner
+        return (*BAND, 255)
     return (*INDIGO, 255)
 
 

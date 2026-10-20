@@ -22,7 +22,7 @@ from sprintforecast.web.ui import (
     sidebar_footer,
 )
 
-st.set_page_config(page_title="Sprintoracle", page_icon=logo_png(64), layout="wide")
+st.set_page_config(page_title="Foresprint", page_icon=logo_png(64), layout="wide")
 start_idle_watch()
 apply_language()
 if problem := as_of_problem():
