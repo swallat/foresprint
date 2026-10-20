@@ -337,6 +337,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
         "personen": ("People", ":material/group:"),
         "produktliste": ("Products", ":material/category:"),
         "einstellungen": ("Settings", ":material/tune:"),
+        "jira": ("Jira connection", ":material/cable:"),
         "neues_team": ("New team", ":material/group_add:"),
     },
     "Data & help": {
@@ -353,6 +354,7 @@ PAGE_FEATURES = {
     "produkte": "products",
     "produktliste": "products",
     "tickets": "tickets",
+    "jira": "tickets",
 }
 
 
@@ -3580,6 +3582,13 @@ def page_tickets(repo: Repository, data: TeamData, fc: Forecast) -> None:
     tickets_view.page(repo, data, fc)
 
 
+def page_jira(repo: Repository, data: TeamData, fc: Forecast) -> None:
+    """Set up the Jira connection (``features.tickets``); the page component is only loaded here."""
+    from sprintforecast.web import jira_setup
+
+    jira_setup.page(repo, data, fc)
+
+
 def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Product distribution"))
     unit = data.team.unit.value
@@ -6588,9 +6597,10 @@ TEAM_PAGES = {
     "personen": page_people,
     "produktliste": page_product_list,
     "einstellungen": page_settings,
+    "jira": page_jira,
 }
 # Pages that show no forecast and therefore only read the reference date from ``fc``.
-NO_FORECAST = {"personen", "produktliste", "einstellungen"}
+NO_FORECAST = {"personen", "produktliste", "einstellungen", "jira"}
 GLOBAL_PAGES = {
     "datenordner": page_data_dir,
     "verlauf": page_history,

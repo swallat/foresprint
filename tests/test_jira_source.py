@@ -1092,3 +1092,39 @@ def test_english_texts_of_the_review_fixes(english):
         make(fixed(httpx.Response(407)))[0].test_connection()
     with pytest.raises(SourceError, match="credentials"):
         JiraSource(settings(base_url="https://a:b@x.org"), CANARY, httpx.MockTransport(Server()))
+
+
+# --- Setup page: field suggestions and query count -------------------------------------------
+
+
+def test_suggest_fields_orders_number_fields_and_epic_links():
+    found = jira_module.suggest_fields(fixture("fields.json"))
+    assert found.estimate[0].id == "customfield_10016"
+    assert found.estimate[0].score > 0  # "Story Points" hints at an estimate
+    assert found.remaining[0].id == "customfield_10017"  # "Remaining" hints at the rest
+    assert {c.name for c in found.estimate} == {"Story Points", "Remaining", "Business Value"}
+    assert [c.id for c in found.epic] == ["customfield_10014", "parent"]
+    # two fields share the name "Business Value": the id goes to team.yaml, the name is unique
+    values = {c.id: c.value for c in found.estimate}
+    assert values["customfield_10100"] == "customfield_10100"
+    assert values["customfield_10016"] == "Story Points"
+
+
+def test_suggest_fields_ignores_unusable_entries():
+    found = jira_module.suggest_fields([{"id": "x"}, {"name": "n", "schema": "oops"}])
+    assert found.estimate == found.remaining == found.epic == []
+
+
+def test_list_fields_and_count_tickets_only_read():
+    source, server = make()
+    assert any(f["id"] == "customfield_10016" for f in source.list_fields())
+    assert source.count_tickets() == 5
+    [search] = server.searches()
+    assert search.url.params["maxResults"] == "1"
+    assert {r.method for r in server.requests} == {"GET"}
+
+
+def test_count_tickets_needs_a_query():
+    source, _ = make(query=None)
+    with pytest.raises(SourceError):
+        source.count_tickets()
