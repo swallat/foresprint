@@ -283,6 +283,7 @@ name = "foresprint"
 version = "0.7.0"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "holidays" },
     { name = "pyyaml" },
     { name = "rich" },
@@ -315,6 +316,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", specifier = ">=8.1" },
     { name = "holidays", specifier = ">=0.106" },
     { name = "httpx", marker = "extra == 'jira'", specifier = ">=0.28" },
     { name = "keyring", marker = "extra == 'jira'", specifier = ">=25" },

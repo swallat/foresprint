@@ -141,7 +141,7 @@ remembers the answer. The script installs the extras `web`, `excel` (Excel expor
 `jira` (Jira import of the ticket pre-planning, read-only apart from the optional label write-back;
 see [docs/jira.md](docs/jira.md)).
 
-Uninstall (also removes the old name foresprint, keeps your data): `uninstall.sh` / `uninstall.ps1`, see
+Uninstall (also removes the old name sprintforecast, keeps your data): `uninstall.sh` / `uninstall.ps1`, see
 [Uninstalling](docs/installation.md#uninstalling).
 
 ## Quick start

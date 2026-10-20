@@ -37,22 +37,33 @@ uv tool install "foresprint[web,excel,jira] @ https://github.com/swallat/forespr
 
 The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`foresprint tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `FORESPRINT_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "foresprint[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
 
+## Coming from the name Sprint-Forecast
+
+The project was renamed to Foresprint. The commands `sprintforecast` and `sprintforecast-app`
+keep working as aliases, `import sprintforecast` still works for plugins, and settings, Git
+settings, the Jira token and `SPRINTFORECAST_*` variables of the old name are picked up
+automatically (the old config folder is copied once and left in place).
+
+An installation under the old name cannot update itself to the new package (uv refuses the
+changed package name). Run the install script once more (`install.sh` / `install.ps1`); it
+installs `foresprint`, takes over the old commands and removes the old environment.
+
 ## Uninstalling
 
-One script removes Foresprint and also any installation under the old name (**foresprint**),
+One script removes Foresprint and also any installation under the old name (**sprintforecast**),
 so it fits both a plain uninstall and the cleanup after the rename. It removes only what the
 installers created, under both names: the `uv` tool (with its commands `foresprint`,
-`foresprint-app`, `foresprint`, `foresprint-app`), the launchers (desktop and Start menu
+`foresprint-app`, `sprintforecast`, `sprintforecast-app`), the launchers (desktop and Start menu
 on Windows, `~/Applications` and the desktop alias on macOS, `.desktop` files on Linux; a
 launcher is only removed if it starts one of these programs) and the cache folder with the app
 window's browser profile.
 
 It never deletes your data: the team data folder, the Jira token in the keychain and Git
-credentials stay. The settings (`~/.config/foresprint` and `~/.config/foresprint`, on
+credentials stay. The settings (`~/.config/foresprint` and `~/.config/sprintforecast`, on
 Windows `%APPDATA%`: data folder choice, plugin selection) stay as well, so a later
 installation finds them again; `--remove-config` (`-RemoveConfig`) removes them too. The
 `PATH` entry made by `uv tool update-shell` belongs to `uv` and stays. Plugins that pull the old
-package `foresprint` must be updated to the new one.
+package `sprintforecast` must be updated to the new one.
 
 The script lists what it would do and asks first (without a terminal it refuses to proceed
 unless you pass `--yes`/`-Force`). Close the app first, Windows locks running programs. Run it
