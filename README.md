@@ -54,6 +54,9 @@ folder. Running the script again updates the installation; it asks about
 installs the extras `web`, `excel` (Excel export and import) and `jira` (Jira import of the ticket
 pre-planning, read-only apart from the optional label write-back; see [docs/jira.md](docs/jira.md)).
 
+Coming from the old name sprintforecast? `uninstall-old.sh` / `uninstall-old.ps1` remove the old installation
+and keep your data ([details](docs/installation.md#removing-the-old-name-sprintforecast)).
+
 ## Quick start
 
 ```bash
