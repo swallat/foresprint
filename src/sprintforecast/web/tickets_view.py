@@ -30,7 +30,6 @@ from sprintforecast.model import (
     ManualEstimate,
     ProductValues,
     Project,
-    Rule,
     Sprint,
 )
 from sprintforecast.preplan import (
@@ -45,6 +44,7 @@ from sprintforecast.preplan import (
     handover_rows,
     project_range,
 )
+from sprintforecast.ruleexpr import RuleSyntaxError, parse_rule
 from sprintforecast.sources import RawTicket, SourceError, open_source
 from sprintforecast.sources.csv import CsvSource
 from sprintforecast.storage import DataError, Repository, TeamData, save_sprints_together
@@ -59,7 +59,7 @@ from sprintforecast.ticket_import import (
     plan_import,
 )
 from sprintforecast.web.logic import with_sprints
-from sprintforecast.web.rule_editor import rule_editor
+from sprintforecast.web.rule_editor import rule_editor, syntax_message
 from sprintforecast.web.ui import (
     _next_step,
     _saved_text,
@@ -85,8 +85,6 @@ SOURCE_LETTERS = {
     EstimateSource.MANUAL: "M",
     EstimateSource.NONE: "–",
 }
-# Sources of an assignment rule the settings table edits (other rules stay as they are).
-EDITABLE_SOURCES = ("epic", "component", "label")
 AUTOMATIC = ""
 CARD_LIMIT = 30
 IMPORT_LIMIT = 15
@@ -445,43 +443,13 @@ def handover_sprints(data: TeamData, rows: list[HandoverRow], overwrite: bool) -
     return sorted(changed.values(), key=lambda x: x.start)
 
 
-def editable_columns(rule: Rule | None) -> dict[str, list[str]] | None:
-    """The values per source of a rule the table can show: no rule, one leaf or the short form
-    of epic, component and label. None = the rule is more complex (stays untouched)."""
-    if rule is None:
-        return {}
-    leaves = [rule] if rule.op == "leaf" else rule.children if rule.short else None
-    if leaves is None or any(
-        leaf.op != "leaf" or leaf.contains or leaf.source not in EDITABLE_SOURCES for leaf in leaves
-    ):
-        return None
-    return {leaf.source or "": list(leaf.values) for leaf in leaves}
-
-
-def rule_from_columns(columns: dict[str, list[str]]) -> Rule | None:
-    """The rule of the table values (short form for several sources)."""
-    leaves = [Rule(source=s, values=columns[s]) for s in EDITABLE_SOURCES if columns.get(s)]
-    if not leaves:
-        return None
-    return leaves[0] if len(leaves) == 1 else Rule(op="any", children=leaves, short=True)
-
-
-def split_values(text: str | None) -> list[str]:
-    return [v for part in (text or "").split(",") if (v := part.strip())]
-
-
 def apply_project_rows(projects: list[Project], rows: list[tuple[Any, ...]]) -> list[Project]:
     """The projects with the values of the settings table: one row per project in the same
-    order, columns ``id, name, product, target, priority, budget basis, epics, components,
-    labels``. The id is never changed; a nested rule stays as it is."""
+    order, columns ``id, name, product, target, priority, budget basis``. The id and the
+    assignment rule are never changed (the rule has its own editor)."""
     result = []
     for project, row in zip(projects, rows, strict=True):
-        _, name, product, target, priority, basis, *values = row
-        match = project.match
-        if editable_columns(project.match) is not None:
-            match = rule_from_columns(
-                {s: split_values(v) for s, v in zip(EDITABLE_SOURCES, values, strict=True)}
-            )
+        _, name, product, target, priority, basis = row
         result.append(
             replace(
                 project,
@@ -490,7 +458,6 @@ def apply_project_rows(projects: list[Project], rows: list[tuple[Any, ...]]) -> 
                 target=_date(target),
                 priority=0 if _missing(priority) else int(priority),
                 budget_basis=None if _missing(basis) or not basis else BudgetBasis(basis),
-                match=match,
             )
         )
     return result
@@ -1221,21 +1188,15 @@ def _projects_editor(repo: Repository, data: TeamData) -> None:
     st.caption(
         t(
             "A project is an undertaking of the PO with a target date, not a Jira project. "
-            "Tickets are assigned by epics, components or labels (comma-separated); the "
+            "Which tickets belong to a project is set by its rule on the Assignment tab; the "
             "order of precedence is in team.yaml (tracker.project_match_order)."
         )
     )
     products = [p.id for p in data.products] if data.team.features.products else []
     id_, name, product, target = (t("Id"), t("Name"), t("Product"), t("Target"))
     priority, basis = t("Priority"), t("Budget basis")
-    columns = {"epic": t("Epics"), "component": t("Components"), "label": t("Labels")}
-    complex_ids = []
     rows = []
     for p in data.projects:
-        values = editable_columns(p.match)
-        if values is None:
-            complex_ids.append(p.id)
-            values = {}
         rows.append(
             {
                 id_: p.id,
@@ -1244,7 +1205,6 @@ def _projects_editor(repo: Repository, data: TeamData) -> None:
                 target: p.target,
                 priority: p.priority,
                 basis: p.budget_basis.value if p.budget_basis else "",
-                **{columns[s]: ", ".join(values.get(s, [])) for s in EDITABLE_SOURCES},
             }
         )
     if rows:
@@ -1262,16 +1222,6 @@ def _projects_editor(repo: Repository, data: TeamData) -> None:
         edited = st.data_editor(
             pd.DataFrame(rows), hide_index=True, column_config=config, key=f"tickets-{key}-projects"
         )
-        for pid in complex_ids:
-            st.caption(
-                t(
-                    (
-                        "The assignment rule of {id} is nested and can only be changed on the "
-                        "Assignment tab."
-                    ),
-                    id=pid,
-                )
-            )
         if st.button(t("Save projects"), type="primary", key=f"tickets-{key}-projects-save"):
             after = copy.deepcopy(data)
             after.projects = apply_project_rows(
@@ -1304,9 +1254,9 @@ def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> 
         new_name = right.text_input(t("Name"))
         product = left.selectbox(t("Product"), ["", *products]) if products else ""
         target = right.date_input(t("Target"), value=None, format="DD.MM.YYYY")
-        epics = left.text_input(t("Epics"))
-        labels = right.text_input(t("Labels"))
-        components = left.text_input(t("Components"))
+        rule_text = st.text_input(
+            t("Rule"), help=t("Assignment rule as an expression, e.g. epic IN (ABC-300, ABC-301).")
+        )
         if not st.form_submit_button(t("Create project"), type="primary"):
             return
     new_id = new_id.strip()
@@ -1316,6 +1266,11 @@ def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> 
     if data.project(new_id) is not None:
         st.error(t("A project with the id {id} already exists.", id=new_id))
         return
+    try:
+        rule = parse_rule(rule_text) if rule_text.strip() else None
+    except RuleSyntaxError as error:
+        st.error(syntax_message(rule_text, error))
+        return
     after = copy.deepcopy(data)
     after.projects.append(
         Project(
@@ -1323,13 +1278,7 @@ def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> 
             name=new_name.strip(),
             product=product or None,
             target=target,
-            match=rule_from_columns(
-                {
-                    "epic": split_values(epics),
-                    "label": split_values(labels),
-                    "component": split_values(components),
-                }
-            ),
+            match=rule,
         )
     )
     _save_projects(repo, data, after)
