@@ -403,7 +403,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             # new options need new widgets; the typed values stay as the current setting
             st.session_state[counter_key] = counter + 1
             st.session_state[draft_key] = edited.fields
-            if not probe.error and edited.kind != "jira":
+            if not probe.error and edited.kind != "jira" and tracker.kind != "jira":
                 st.session_state[f"{kind_key}-suggest"] = True
                 st.session_state.setdefault("flash", []).append(
                     (
