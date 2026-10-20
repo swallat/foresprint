@@ -61,6 +61,7 @@ shared data repository. The rules for finding the data directory are in the
 | | Jira connection | only with the feature "Ticket pre-planning": address, query (JQL), field names, label of refined tickets and criteria order of the Jira connection in the `tracker` section of `team.yaml`; "Test connection" shows the account of the token, offers the number fields and epic links of the instance as suggestions and counts the tickets of the query. The token can be stored in the operating system keychain from the page (hidden input, replace, remove) or comes from the environment variable; it is never written to a file (see [jira.md](jira.md)) |
 | | New team | create a team; asks for the first sprint (the one running now or starting next) before anything else |
 | Data & help | Data folder | choose, create or clone a data folder (Git repository); enter, test and change the server (remote) |
+| | App settings | settings that only apply to you on this computer (not shared with the team): the **Theme** (As system, Light, Dark). Stored in the user settings file (`settings.json` in the app's settings folder) next to the language, never in the data folder. Switching the theme reloads the page once |
 | | Changes and history | discard open changes, history per team/sprint/file, restore an earlier state, manage tags |
 | | Check | findings of all teams |
 | | Help | tabs Workflow, Terms, Input fields, Team settings, Collaboration (Git) and Command line |

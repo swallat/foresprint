@@ -20,6 +20,7 @@ WORDS = [
 
 
 def all_static_texts() -> list[str]:
+    from sprintforecast.appsettings import THEMES
     from sprintforecast.engine import CapacitySource
     from sprintforecast.formulas import GENERAL
     from sprintforecast.guide import (
@@ -51,6 +52,7 @@ def all_static_texts() -> list[str]:
         texts += [s.label, s.help]
         if s.choices and s is not _COUNTRY:
             texts += list(s.choices.values())
+    texts += list(THEMES.values())
     texts += list(MEASURES.values())
     texts += list(PRODUCTION_MEASURES.values())
     texts += [*LIGHTS.values(), *REASONS.values(), *SOURCES.values(), *VARIANT_NAMES.values()]

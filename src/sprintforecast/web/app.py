@@ -12,6 +12,7 @@ from sprintforecast.plugins import web_pages
 from sprintforecast.web.ui import (
     PAGES,
     apply_language,
+    apply_theme,
     as_of_problem,
     collect_sync_result,
     enabled_pages,
@@ -25,6 +26,7 @@ from sprintforecast.web.ui import (
 st.set_page_config(page_title="Sprint-Forecast", page_icon=logo_png(64), layout="wide")
 start_idle_watch()
 apply_language()
+apply_theme()
 if problem := as_of_problem():
     st.error(problem)  # before anything else: the sidebar reads the reference date on every run
     st.stop()
