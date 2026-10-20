@@ -18,13 +18,10 @@ from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.web.tickets_view import (
     Selection,
     apply_project_rows,
-    editable_columns,
     estimates_from_rows,
     open_rows,
     project_rows,
     refinement_rows,
-    rule_from_columns,
-    split_values,
     timeline_range_rows,
     timeline_rows,
 )
@@ -63,25 +60,6 @@ def button(at: AppTest, label: str):
 
 
 # --- Pure functions ----------------------------------------------------------------------------
-
-
-def test_rule_columns_round_trip():
-    assert editable_columns(None) == {}
-    rule = rule_from_columns({"epic": ["A-1", "A-2"], "label": ["x"], "component": []})
-    assert rule is not None and rule.short
-    assert editable_columns(rule) == {"epic": ["A-1", "A-2"], "label": ["x"]}
-    one = rule_from_columns({"epic": ["A-1"]})
-    assert one is not None and one.op == "leaf" and editable_columns(one) == {"epic": ["A-1"]}
-    assert rule_from_columns({}) is None
-    nested = Rule(op="all", children=[Rule(source="epic", values=["A-1"])])
-    assert editable_columns(nested) is None
-    status = Rule(source="status", values=["Ready"])
-    assert editable_columns(status) is None
-
-
-def test_split_values():
-    assert split_values(" A-1, ,A-2 ,") == ["A-1", "A-2"]
-    assert split_values(None) == []
 
 
 def test_filter_only_hides(data_dir: Path):
@@ -234,7 +212,7 @@ def test_add_edit_and_remove_project(data_dir: Path, monkeypatch):
     for label, value in {
         "Id": "reporting",
         "Name": "Reporting",
-        "Epics": "ABC-300, ABC-301",
+        "Regel": "epic IN (ABC-300, ABC-301)",
     }.items():
         next(t for t in at.text_input if t.label == label).set_value(value)
     next(b for b in at.selectbox if b.label == "Produkt").set_value("webshop")
@@ -244,7 +222,8 @@ def test_add_edit_and_remove_project(data_dir: Path, monkeypatch):
     assert not at.error, [e.value for e in at.error]
     data = Repository(data_dir).load("demo")
     assert [p.id for p in data.projects] == ["payment", "migration", "reporting"]
-    assert editable_columns(data.projects[-1].match) == {"epic": ["ABC-300", "ABC-301"]}
+    created = data.projects[-1].match
+    assert created is not None and created.matches({"epic": ["ABC-301"]})
     assert data.projects[-1].target == date(2027, 2, 1)
     at = page(data_dir, monkeypatch)
     at.selectbox(key="tickets-demo-rm").set_value("reporting").run()
@@ -253,15 +232,15 @@ def test_add_edit_and_remove_project(data_dir: Path, monkeypatch):
     assert [p.id for p in Repository(data_dir).load("demo").projects] == ["payment", "migration"]
 
 
-def test_project_rows_update_everything_but_the_id_and_nested_rules():
+def test_project_rows_update_everything_but_the_id_and_the_rule():
     nested = Rule(op="all", children=[Rule(source="epic", values=["A-1"])])
     projects = [
         Project(id="a", name="A", product="webshop", target=date(2027, 1, 1), match=None),
         Project(id="b", name="B", match=nested),
     ]
     rows = [
-        ("zzz", " New A ", "", date(2027, 5, 1), 2.0, "plan", "E-1, E-2", "", "x"),
-        ("b", "B", None, None, float("nan"), "", "ignored", "", ""),
+        ("zzz", " New A ", "", date(2027, 5, 1), 2.0, "plan"),
+        ("b", "B", None, None, float("nan"), ""),
     ]
     a, b = apply_project_rows(projects, rows)
     assert (a.id, a.name, a.product, a.target, a.priority) == (
@@ -272,7 +251,7 @@ def test_project_rows_update_everything_but_the_id_and_nested_rules():
         2,
     )
     assert a.budget_basis is BudgetBasis.PLAN
-    assert editable_columns(a.match) == {"epic": ["E-1", "E-2"], "label": ["x"]}
+    assert a.match is None
     assert b.match is nested and b.priority == 0 and b.budget_basis is None and b.target is None
     assert projects[0].name == "A"  # the input is not changed
 
@@ -542,3 +521,15 @@ def test_handover_sprints_create_the_calendar_sprints_in_between(data_dir: Path)
     assert [s.id for s in written][-1] == third.id
     assert first.id in {s.id for s in written}
     assert written[-1].products[product].preplanned == 2.0
+
+
+def test_insert_helper_adds_a_condition(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    at = page(data_dir, monkeypatch)
+    at.selectbox(key="tickets-demo-ins-field").set_value("label").run()
+    at.multiselect(key="tickets-demo-ins-values-label").set_value(["zzz-new"]).run()
+    next(b for b in at.button if b.label == "Einfügen").click().run()
+    assert not at.exception, at.exception
+    box = next(a for a in at.text_area if a.label == "Regel")
+    assert "label = zzz-new" in box.value
