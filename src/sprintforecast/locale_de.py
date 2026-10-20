@@ -2027,4 +2027,13 @@ DE: dict[str, str] = {
     "{name} (current setting)": "{name} (aktuelle Einstellung)",
     "– not set –": "– nicht gesetzt –",
     "Unknown trend mode {mode} (allowed: {allowed})": "Unbekannter Trend-Modus {mode} (erlaubt: {allowed})",
+    "Assignment": "Zuordnung",
+    "Contradiction: fits {projects}": "Widerspruch: passt zu {projects}",
+    "Matched by": "Getroffen über",
+    "No open tickets to show.": "Keine offenen Tickets zum Anzeigen.",
+    "No product": "Kein Produkt",
+    "No project": "Kein Projekt",
+    "No project matches": "Kein Projekt passt",
+    "Which project and product each open ticket belongs to, and why. The assignment follows the criteria of the projects (Maintenance), the order of the criteria is set on the page Jira connection.": "Zu welchem Projekt und Produkt jedes offene Ticket gehört, und warum. Die Zuordnung folgt den Kriterien der Projekte (Wartung); die Reihenfolge der Kriterien stellst du auf der Seite Jira-Anbindung ein.",
+    "{count} tickets have no project and therefore no product.": "{count} Tickets haben kein Projekt und damit kein Produkt.",
 }
