@@ -10,7 +10,7 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
 
 1. **Install the extra `[jira]`.** The installer does it; run it again on an older installation
    (it keeps your plugins). By hand:
-   `uv tool install --force "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"`
+   `uv tool install --force "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"`
    (give plugins again with `--with`; see [installation.md](installation.md)). Without the extra
    the CSV import still works.
 2. **Configure the tracker.** Either on the web page *Jira connection* (Manage team; address,

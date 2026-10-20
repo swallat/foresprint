@@ -1,6 +1,6 @@
 # Installs sprintforecast (including the web UI and the extras excel and jira) on Windows.
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.ps1 | iex"
+#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
 #
 # Running it again updates. The script asks for plugins and remembers the choice.
 # Without prompting (set beforehand):
@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 
 $ref = if ($env:SPRINTFORECAST_REF) { $env:SPRINTFORECAST_REF } else { "main" }
 $kind = if ($ref -match '^v\d') { "tags" } else { "heads" }
-$core = "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/$kind/$ref.zip"
+$core = "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/$kind/$ref.zip"
 $pluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"
 
 function Expand-Plugin([string]$item) {

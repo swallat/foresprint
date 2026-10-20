@@ -2,7 +2,7 @@
 # Installs sprintforecast (including the web UI and the extras excel and jira) on Linux and
 # macOS.
 #
-#   curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
+#   curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
 #
 # Running it again updates. The script asks for plugins and remembers the choice.
 # Without prompting:
@@ -14,7 +14,7 @@ set -eu
 REF="${SPRINTFORECAST_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
-CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/${KIND}/${REF}.zip"
+CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/${KIND}/${REF}.zip"
 PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"
 
 say() { printf '%s\n' "$*"; }
