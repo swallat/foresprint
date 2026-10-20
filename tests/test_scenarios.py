@@ -414,7 +414,7 @@ def test_zero_fte_and_midsprint_change(data_dir: Path):
     gone = sprint_capacity(data.team, data.people, sprint)
     assert all(r.person.id != "anna" for r in gone.people)
     issues = check_team(with_sprints(data, []), TODAY)
-    assert not [i for i in issues if i.level.value == "Fehler"]
+    assert not [i for i in issues if i.level.value == "Error"]
 
 
 def test_absences_cannot_exceed_workdays(data_dir: Path):
@@ -422,7 +422,7 @@ def test_absences_cannot_exceed_workdays(data_dir: Path):
     sprint = copy.deepcopy(data.sprint("2026.22"))
     sprint.absences = {"anna": 99.0}
     issues = check_team(with_sprints(data, [sprint]), TODAY)
-    assert any(i.level.value == "Fehler" for i in issues)
+    assert any(i.level.value == "Error" for i in issues)
 
 
 # --- 7. Einheit SP ----------------------------------------------------------------------------
@@ -454,7 +454,7 @@ def test_longer_sprint_scales_capacity_and_shifts_followers(data_dir: Path):
     fc = build_forecast(data, TODAY)
     sprints = [e.sprint for e in fc.upcoming()]
     rows = calendar_table(data, sprints, TODAY)
-    rows[1]["Letzter Tag"] = sprints[1].end + timedelta(days=13)  # 2026.22 vier Wochen
+    rows[1]["Last day"] = sprints[1].end + timedelta(days=13)  # 2026.22 vier Wochen
     after, errors = apply_calendar(data, sprints, rows)
     assert not errors
     assert after[1].end == sprints[1].end + timedelta(days=14)
@@ -558,7 +558,7 @@ def test_expected_absences_roundtrip_and_validation(data_dir: Path):
     assert repo.load("demo").sprint(TARGET).expected_absences == {"anna": 2.5}
     sprint.expected_absences = {"niemand": 1.0}
     issues = check_team(with_sprints(repo.load("demo"), [sprint]), TODAY)
-    assert any(i.level.value == "Fehler" and "niemand" in i.message for i in issues)
+    assert any(i.level.value == "Error" and "niemand" in i.message for i in issues)
 
 
 def test_preplanning_saves_expected_absences_and_changes_plan(

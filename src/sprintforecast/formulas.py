@@ -41,8 +41,10 @@ class Step:
 def fte_change_note(names: list[str]) -> str:
     """Hinweis auf die Näherung bei FTE-Wechsel im Sprint (A7)."""
     return t(
-        "≈ Näherung: Bei FTE-Wechsel im Sprint werden Fehltage mit der mittleren FTE gewichtet "
-        "({names}).",
+        (
+            "≈ Approximation: with an FTE change within the sprint, absences are weighted with "
+            "the mean FTE ({names})."
+        ),
         names=", ".join(names),
     )
 
@@ -73,21 +75,27 @@ def _exact(value: float | None, digits: int = 4) -> str:
 
 # Allgemeine Formeln – z. B. für Spaltenköpfe (Anzeige mit general()).
 GENERAL: dict[str, str] = {
-    "capacity": "Kapazität = Σ Personen (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine; "  # noqa: E501
-    "nach dem Review eingefroren; unbekannte Fehltage nach der Historie geschätzt "
-    "(ohne Historie ohne Abzug); Trend nur ohne Personenliste",
-    "normalized_velocity": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
-    "average": "Ø n. Velocity = Mittel(n. Velocity der letzten Sprints im Fenster)",
-    "trend": "n. Velocity-Trend = Fortschreibung(Ø n. Velocity) gemäß Trend-Modus",
-    "plan": "Forecast PLAN = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)",
-    "roadmap": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
-    "small_stuff": "Kleinkram = Forecast PLAN − Verplanbar",
-    "fulfillment": "Fulfillment = Velocity / Commitment",
-    "scope_creep": "Scope Creep = nachträglich hinzugekommen / Commitment",
-    "focus_factor": "Fokusfaktor = Velocity / Kapazität",
-    "delta": "Planning-Delta = Forecast PLAN − (Überkipper + Backlog − Korrekturen)",
-    "standard": "Standard = verfügbar × Anteil des Produkts (ohne festen Anteil: Rest / Anzahl dieser Produkte)",  # noqa: E501
-    "balance": "Saldo = Σ Erledigt − Σ Standard",
+    "capacity": (
+        "Capacity = Σ people (working days − holidays − absences) × FTE − Scrum "
+        "events deduction; frozen after the review; unknown absences estimated "
+        "from the history (without history, no deduction); trend only without a "
+        "people list"
+    ),
+    "normalized_velocity": "norm. velocity = velocity / capacity × reference capacity",
+    "average": "Ø norm. velocity = mean(norm. velocity of the last sprints in the window)",
+    "trend": "norm. velocity trend = extrapolation(Ø norm. velocity) according to trend mode",
+    "plan": "Forecast PLAN = rounded down(norm. velocity trend / reference capacity × capacity)",
+    "roadmap": "Plannable = Forecast PLAN × plannable share",
+    "small_stuff": "Small stuff = Forecast PLAN − plannable",
+    "fulfillment": "Fulfillment = velocity / commitment",
+    "scope_creep": "Scope creep = added later / commitment",
+    "focus_factor": "Focus factor = velocity / capacity",
+    "delta": "Planning delta = Forecast PLAN − (carry-over + backlog − corrections)",
+    "standard": (
+        "Standard = available × share of the product (without fixed share: rest / "
+        "number of these products)"
+    ),
+    "balance": "Balance = Σ done − Σ standard",
 }
 
 
@@ -101,12 +109,12 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
     r = e.result
     source = r.plan_capacity_source
     team = fc.data.team
-    name = t("Kapazität")
+    name = t("Capacity")
     if source is CapacitySource.RECORDED:
         return Step(
             "capacity",
             name,
-            t("In der Sprintdatei erfasst (beim Review eingefroren)"),
+            t("Recorded in the sprint file (frozen at the review)"),
             f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     if source is CapacitySource.PEOPLE:
@@ -118,11 +126,11 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
         )
         minus = ""
         if b.overhead_days_part:
-            minus += f" − {_n(b.overhead_days_part)} ({t('Scrum-Termine PT')})"
+            minus += f" − {_n(b.overhead_days_part)} ({t('Scrum events PT')})"
         if b.overhead_share_part:
             minus += f" − {_n(b.overhead_share_part)} ({pct(team.capacity.overhead_share)})"
         calculation = t(
-            "{parts} = {gross}{minus} → {capacity} PT (gerundet)",
+            "{parts} = {gross}{minus} → {capacity} PT (rounded)",
             parts=parts,
             gross=_n(b.gross),
             minus=minus,
@@ -135,7 +143,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
         return Step(
             "capacity",
             name,
-            t("Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)"),
+            t("No people list → capacity trend (extrapolated like the norm. velocity)"),
             f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
     if source is CapacitySource.CALENDAR:
@@ -143,8 +151,8 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
             "capacity",
             name,
             t(
-                "Fehltage unbekannt und noch keine Historie → Kapazität laut Personenliste und "
-                "Kalender (Feiertage, Sprintlänge) ohne Abzug für Fehltage"
+                "Absences unknown and no history yet → capacity from the people list and "
+                "calendar (holidays, sprint length) without deduction for absences"
             ),
             f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
@@ -153,8 +161,8 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
             "capacity",
             name,
             t(
-                "Keine Fehltage bestätigt → Kapazität laut Personenliste mit den angekündigten "
-                "Fehltagen aus der PO-Vorplanung"
+                "No absences confirmed → capacity from the people list with the announced "
+                "absences from the PO pre-planning"
             ),
             f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
@@ -163,8 +171,10 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
         used = history.sprints if history else []
         quota = history.rate if history and history.rate is not None else 0.0
         formula = t(
-            "Fehltage unbekannt → Kapazität laut Personenliste und Kalender, gemindert um "
-            "die durchschnittlichen Fehltage ({share}) der Sprints {sprints}",
+            (
+                "Absences unknown → capacity from the people list and calendar, reduced by the "
+                "average absences ({share}) of sprints {sprints}"
+            ),
             share=pct(quota),
             sprints=", ".join(md_code(i) if code else sprint_text(i) for i in used),
         )
@@ -178,7 +188,7 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
             formula,
             f"= {fmt_capacity(r.plan_capacity, e.capacity_digits)} PT",
         )
-    return Step("capacity", name, t("nicht bestimmbar"), "–")
+    return Step("capacity", name, t("cannot be determined"), "–")
 
 
 def _index(fc: Forecast, e: TimelineEntry) -> int:
@@ -191,14 +201,17 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
     values = [x.result.normalized_velocity.value for x in fc.entries[: i + 1]]
     present = [v for v in values if v is not None][-window:]  # Sprints ohne Wert zählen nicht
     avg = e.result.normalized_velocity.average
-    name = t("Ø n. Velocity")
+    name = t("Ø norm. velocity")
     if avg is None:
-        return Step("average", name, general("average"), t("– (Sprint ohne eigenen Wert)"))
+        return Step("average", name, general("average"), t("– (sprint without its own value)"))
     return Step(
         "average",
         name,
         t(
-            "Ø n. Velocity = Mittel der n. Velocity der letzten {window} Sprints mit Wert (Sprints ohne Wert zählen nicht)",  # noqa: E501
+            (
+                "Ø norm. velocity = mean of the norm. velocity of the last {window} sprints "
+                "with a value (sprints without a value do not count)"
+            ),
             window=window,
         ),
         f"({' + '.join(_n(v) for v in present)}) / {len(present)} = {_n(avg)}",
@@ -211,17 +224,17 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     mode = parse_trend_mode(fc.data.team.forecast.trend_mode)
     m: list[Metric] = [x.result.normalized_velocity for x in fc.entries]
     value = m[i].trend
-    name = t("n. Velocity-Trend")
+    name = t("norm. velocity trend")
 
     def made(formula: str, calculation: str) -> Step:
         return Step("trend", name, formula, calculation)
 
     if m[i].average is not None:
         return made(
-            t("n. Velocity-Trend = Ø n. Velocity – vergangener Sprint"), f"Ø = {_n(m[i].average)}"
+            t("norm. velocity trend = Ø norm. velocity – past sprint"), f"Ø = {_n(m[i].average)}"
         )
     if value is None:
-        return made(general("trend"), t("– (zu wenig Historie)"))
+        return made(general("trend"), t("– (not enough history)"))
 
     def avg(j: int) -> float | None:
         return m[j].average if j >= 0 else None
@@ -235,30 +248,30 @@ def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
     if e.result.trend_fallback:
         return made(
             t(
-                "Historie dünn: für {mode} fehlt ein zweiter Durchschnitt, daher gilt "
-                "n. Velocity-Trend = Wert_vorher (flat)",
+                (
+                    "Thin history: {mode} needs a second average, so norm. velocity trend = "
+                    "value_prev (flat) applies"
+                ),
                 mode=mode.value,
             ),
             f"= {_n(known(i - 1))}",
         )
     if mode is TrendMode.FLAT:
-        return made(t("n. Velocity-Trend = Wert_vorher (flat)"), f"= {_n(known(i - 1))}")
+        return made(t("norm. velocity trend = value_prev (flat)"), f"= {_n(known(i - 1))}")
     a1, a2 = avg(i - 1), avg(i - 2)
     if mode is TrendMode.CLASSIC and a1 is not None and a2 is not None:
         return made(
-            t(
-                "n. Velocity-Trend = Ø_vorher + (Ø_vorher − Ø_vorvorher) (klassisch, 1. Zukunftssprint)"  # noqa: E501
-            ),
+            t("norm. velocity trend = Ø_prev + (Ø_prev − Ø_prev2) (classic, 1st future sprint)"),
             f"{_n(a1)} + ({_n(a1)} − {_n(a2)}) = {_n(value)}",
         )
     if mode is TrendMode.CLASSIC and i >= 2 and tr(i - 2) is None:
         return made(
-            t("n. Velocity-Trend = Ø[−2] / Ø[−3] × Trend[−1] (klassisch, 2. Zukunftssprint)"),
+            t("norm. velocity trend = Ø[−2] / Ø[−3] × trend[−1] (classic, 2nd future sprint)"),
             f"{_n(avg(i - 2))} / {_n(avg(i - 3))} × {_n(tr(i - 1))} = {_n(value)}",
         )
     k1, k2 = known(i - 1), known(i - 2)
     return made(
-        t("n. Velocity-Trend = Wert_vorher + (Wert_vorher − Wert_vorvorher) (linear)"),
+        t("norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)"),
         f"{_n(k1)} + ({_n(k1)} − {_n(k2)}) = {_n(value)}",
     )
 
@@ -273,10 +286,10 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
     r = e.result
     unit = team.unit.value
     if r.plan is None:
-        return t("Für diesen Sprint ist noch keine Prognose berechenbar (zu wenig Historie).")
+        return t("No forecast can be calculated for this sprint yet (too little history).")
     if r.plan_source is PlanSource.ACTUAL:
         return t(
-            "Vergangener Sprint: Es zählt das Commitment ({value} {unit}), abgerundet auf {plan}.",
+            "Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.",
             value=_n(r.forecast_ist.value),
             unit=unit,
             plan=fmt(r.plan, f.rounding),
@@ -289,16 +302,20 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
     raw = trend / f.reference_capacity * (r.plan_capacity or 0.0) if trend is not None else 0.0
     parts = [
         t(
-            "Das Team hat zuletzt (Sprints {sprints}) umgerechnet auf eine Referenzkapazität von "
-            "{ref} PT durchschnittlich {trend} {unit} geschafft (normierte Velocity).",
+            (
+                "The team recently (sprints {sprints}) achieved an average of {trend} {unit}, "
+                "converted to a reference capacity of {ref} PT (normalized velocity)."
+            ),
             sprints=", ".join(basis),
             ref=_n(f.reference_capacity, 0),
             trend=_n(trend),
             unit=unit,
         ),
         t(
-            "Für {id} stehen {capacity} PT zur Verfügung ({source}). Das ergibt {trend} / {ref} "
-            "× {exact} = {raw} {unit}, abgerundet **{plan} {unit}**.",
+            (
+                "{capacity} PT are available for {id} ({source}). That gives {trend} / {ref} × "
+                "{exact} = {raw} {unit}, rounded down **{plan} {unit}**."
+            ),
             id=e.sprint.id,
             capacity=fmt_capacity(r.plan_capacity, e.capacity_digits),
             exact=_exact(r.plan_capacity),
@@ -321,14 +338,14 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
     ):
         parts.append(unsure)
     if r.trend_fallback:
-        parts.append(
-            t("Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.")
-        )
+        parts.append(t("The history is thin: the last average applies, without extrapolation."))
     elif f.trend_mode is not TrendMode.FLAT:
         parts.append(
             t(
-                "Der Trend-Modus {mode} schreibt Schwankungen der letzten Sprints fort – "
-                "vorsichtig lesen.",
+                (
+                    "Trend mode {mode} extrapolates fluctuations of the last sprints – read "
+                    "with caution."
+                ),
                 mode=f.trend_mode.value,
             )
         )
@@ -348,7 +365,7 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
         result.append(
             Step(
                 "normalized_velocity",
-                t("n. Velocity"),
+                t("norm. velocity"),
                 general("normalized_velocity"),
                 f"{_n(r.velocity.value)} / {_exact(r.capacity.value)} × {_n(ref, 0)} = "
                 f"{_n(r.normalized_velocity.value)}",
@@ -363,8 +380,10 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
                 "plan",
                 "Forecast PLAN",
                 t(
-                    "Forecast PLAN = abgerundet auf {digits} Stelle(n): (n. Velocity-Trend / "
-                    "Referenzkapazität × Kapazität)",
+                    (
+                        "Forecast PLAN = rounded down to {digits} digit(s): (norm. velocity "
+                        "trend / reference capacity × capacity)"
+                    ),
                     digits=f.rounding,
                 ),
                 f"{_exact(r.normalized_velocity.trend)} / {_n(ref, 0)} × "
@@ -378,7 +397,7 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
             Step(
                 "plan",
                 "Forecast PLAN",
-                t("Forecast PLAN = abgerundet(Commitment) – vergangener Sprint"),
+                t("Forecast PLAN = rounded down(commitment) – past sprint"),
                 f"{_n(r.forecast_ist.value)} → {fmt(r.plan, f.rounding)} {unit}",
             )
         )
@@ -386,13 +405,13 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
         result += [
             Step(
                 "roadmap",
-                t("Verplanbar"),
+                t("Plannable"),
                 general("roadmap"),
                 f"{fmt(r.plan, f.rounding)} × {pct(f.roadmap_share)} = {_n(r.roadmap)}",
             ),
             Step(
                 "small_stuff",
-                t("Kleinkram"),
+                t("Small items"),
                 general("small_stuff"),
                 f"{fmt(r.plan, f.rounding)} − {_n(r.roadmap)} = {_n(r.small_stuff)}",
             ),
@@ -412,7 +431,7 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
         result.append(
             Step(
                 "delta",
-                t("Planning-Delta"),
+                t("Planning delta"),
                 general("delta"),
                 f"{fmt(r.plan, f.rounding)} − ({_n(p.carryover)} + {_n(p.backlog)} − {corr}) = "
                 f"{_n(r.planning_delta)}",

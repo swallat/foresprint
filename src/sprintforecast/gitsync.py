@@ -276,7 +276,7 @@ def _busy_error(since: float) -> GitError:
     seconds = int(max(0.0, time.time() - since))
     return GitError(
         t(
-            "Ein anderer Abgleich dieses Datenordners läuft noch seit {seconds} Sekunden.",
+            "Another sync of this data folder has been running for {seconds} seconds.",
             seconds=seconds,
         ),
         "sync_busy",
@@ -388,7 +388,7 @@ def _fetch_locked(path: Path) -> SyncState:
     current = state(path)
     error: GitError | None = None
     if current.remote is None:
-        error = GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
+        error = GitError(t("No server set up."), "no_remote", hint_for("no_remote"))
     else:
         try:
             _git(root, "fetch", "--prune", current.remote, network=True, url=current.url)
@@ -560,11 +560,9 @@ def conflict_text_diffs(path: Path, file: str) -> tuple[str, str]:
     shown = base or ""
 
     def one(side: str | None, label: str) -> str:
-        return unified_diff(
-            shown, side or "", f"{file} ({t('gemeinsamer Stand')})", f"{file} ({label})"
-        )
+        return unified_diff(shown, side or "", f"{file} ({t('common state')})", f"{file} ({label})")
 
-    return one(mine, t("meine Änderung")), one(theirs, t("andere Änderung"))
+    return one(mine, t("my change")), one(theirs, t("other change"))
 
 
 def _analyse(
@@ -630,7 +628,7 @@ def resolve_conflicts(
                 # Anders als bei Gits ``index.lock`` passt hier aber nur der Hinweis zur Datei.
                 raise GitError(
                     t(
-                        "{file} konnte nicht geschrieben werden ({reason}).",
+                        "{file} could not be written ({reason}).",
                         file=file,
                         reason=e.strerror or str(e),
                     ),
@@ -702,7 +700,7 @@ def _merge(
 
 def _conflict_error() -> GitError:
     return GitError(
-        t("Zusammenführen: Konflikte warten auf deine Entscheidung."),
+        t("Merge: conflicts are waiting for your decision."),
         "conflict",
         hint_for("conflict"),
     )
@@ -793,12 +791,12 @@ def _sync(
         current = state(path)
         if current.unfinished == "rebase":
             raise GitError(
-                t("Ein früherer Vorgang ist noch nicht abgeschlossen."),
+                t("An earlier operation has not been completed."),
                 "merge_in_progress",
                 hint_for("merge_in_progress"),
             )
         if current.detached:
-            raise GitError(t("Kein Branch ausgewählt."), "detached", hint_for("detached"))
+            raise GitError(t("No branch selected."), "detached", hint_for("detached"))
         # 0. Wiederaufnahme: ein offenes Zusammenführen zuerst abschließen.
         if current.unfinished == "merge":
             result.conflicts = resolve_conflicts(path)
@@ -809,7 +807,7 @@ def _sync(
             result.merged = True
         elif current.conflicts:
             raise GitError(
-                t("Ein früherer Vorgang ist noch nicht abgeschlossen."),
+                t("An earlier operation has not been completed."),
                 "merge_in_progress",
                 hint_for("merge_in_progress"),
             )
@@ -820,15 +818,17 @@ def _sync(
             _, elsewhere = gitmod.ensure_tags(root, tags, message)
             result.notes += [
                 t(
-                    "Der Tag {tag} zeigt auf einen anderen Commit als den aktuellen Stand und "
-                    "wurde nicht verschoben.",
+                    (
+                        "The tag {tag} points to a different commit than the current version "
+                        "and was not moved."
+                    ),
                     tag=tag,
                 )
                 for tag in elsewhere
             ]
         current = state(path)
         if current.remote is None:
-            raise GitError(t("Kein Server eingerichtet."), "no_remote", hint_for("no_remote"))
+            raise GitError(t("No server set up."), "no_remote", hint_for("no_remote"))
         if not _ref_exists(root, "HEAD"):
             # Frisches Repository ohne eigene Daten: Es gibt nichts hochzuladen, und ein Branch
             # ohne Commit lässt sich weder mit dem Server verbinden noch pushen (Git meldete
@@ -864,7 +864,7 @@ def _sync(
                 if found:
                     result.validation = found
                     raise GitError(
-                        t("Die zusammengeführten Daten sind nicht gültig."),
+                        t("The merged data is not valid."),
                         "invalid",
                         hint_for("invalid"),
                     )
@@ -874,8 +874,8 @@ def _sync(
             if via_mr and tags:
                 result.notes.append(
                     t(
-                        "Tags werden bei Merge Requests nicht hochgeladen; sie lassen sich nach "
-                        "dem Merge im Bereich „Tags“ teilen."
+                        "Tags are not uploaded with merge requests; share them in the "
+                        "“Tags” section after the merge."
                     )
                 )
             if via_mr and current.upstream and not current.ahead:
@@ -953,8 +953,10 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
         if local != head and not _git_ok(root, "merge-base", "--is-ancestor", local, "HEAD"):
             notes.append(
                 t(
-                    "Der Tag {tag} zeigt auf einen anderen Commit, der nicht zum aktuellen "
-                    "Stand gehört; er wurde nicht verschoben.",
+                    (
+                        "The tag {tag} points to a different commit that is not part of the "
+                        "current version; it was not moved."
+                    ),
                     tag=tag,
                 )
             )
@@ -972,14 +974,16 @@ def _tag_notes(root: Path, current: SyncState, tags: list[str]) -> list[str]:
         if remote and remote != local:
             notes.append(
                 t(
-                    "Der Tag {tag} ist auf dem Server bereits für einen anderen Stand vergeben "
-                    "und wurde nicht überschrieben. Auf diesem Rechner zeigt er auf den "
-                    "eigenen Stand.",
+                    (
+                        "The tag {tag} is already used on the server for a different version "
+                        "and was not overwritten. On this computer it points to your own "
+                        "version."
+                    ),
                     tag=tag,
                 )
             )
         elif not remote:
-            notes.append(t("Der Tag {tag} konnte nicht auf den Server übertragen werden.", tag=tag))
+            notes.append(t("The tag {tag} could not be transferred to the server.", tag=tag))
     return notes
 
 
@@ -1017,8 +1021,10 @@ def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list
     if _ref_exists(root, mr_ref) and _git_ok(root, "merge-base", "--is-ancestor", "HEAD", mr_ref):
         return [
             t(
-                "Dein Merge Request ist noch offen: Deine Änderungen stehen auf dem Server noch "
-                "nicht in {branch}. Hole sie nach dem Merge erneut.",
+                (
+                    "Your merge request is still open: your changes are not in {branch} on the "
+                    "server yet. Pull again after the merge."
+                ),
                 branch=branch,
             )
         ]
@@ -1026,15 +1032,19 @@ def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list
         # Der Pull Request liegt nicht auf einem eigenen Branch, den man hier sehen könnte.
         return [
             t(
-                "Deine Änderungen stehen auf dem Server noch nicht in {branch}. Liegen sie in "
-                "einem offenen Pull Request, hole sie nach dem Merge erneut.",
+                (
+                    "Your changes are not in {branch} on the server yet. If they are in an "
+                    "open pull request, fetch them again after the merge."
+                ),
                 branch=branch,
             )
         ]
     return [
         t(
-            "Deine Änderungen sind noch nicht geteilt (nicht in {branch}, kein Merge Request "
-            "auf dem Server). „Speichern und teilen“ legt ihn an.",
+            (
+                "Your changes are not shared yet (not in {branch}, no merge request on the "
+                "server). “Save and share” creates it."
+            ),
             branch=branch,
         )
     ]
@@ -1148,7 +1158,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
     ref = f"refs/heads/{branch}"
     remote = current.remote or "origin"
     target = (current.upstream or "").partition("/")[2] or current.branch or "main"
-    subject = (title.strip().splitlines() or ["Änderungen"])[0]
+    subject = (title.strip().splitlines() or [t("Changes")])[0]
     if host == HOST_FORGEJO:
         proc = gitmod._git_result(
             root,
@@ -1183,8 +1193,9 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
         if host == HOST_GITLAB:
             raise GitError(
                 t(
-                    "Der Server unterstützt keine Push-Optionen, daher kein Teilen über Merge "
-                    "Request. Bitte die Einstellung auf der Seite „Datenordner“ ausschalten."
+                    "The server does not support push options, so sharing via merge "
+                    "request is not possible. Please switch the setting off on the “Data "
+                    "folder” page."
                 )
             )
         # Kein GitLab: nur den Branch hochladen, den Pull Request öffnet man auf dem Server.
@@ -1254,12 +1265,11 @@ def _reattach_hint(saved: str | None = None) -> str:
     die die App nicht anfasst. Eine Anleitung zu Einstellungen gibt es nie. ``saved`` ist der
     Rettungsbranch, auf dem die Änderungen im Datenordner schon liegen."""
     text = t(
-        "Der Wechsel zurück auf den Branch würde offene Änderungen überschreiben, die "
-        "außerhalb des Datenordners liegen. Die App fasst nur den Datenordner an. Der "
-        "Ausweg: die Änderungen in Git außerhalb des Datenordners sichern oder verwerfen "
-        "(Git-Client oder Terminal; bei Bedarf bei der Betreuung des Rechners nachfragen) "
-        "und danach „Zurück auf den Branch“ noch einmal wählen. Die Dateien nennt die "
-        "Meldung von Git unter „Technische Meldung“."
+        "Switching back to the branch would overwrite open changes that lie outside the "
+        "data folder. The app only touches the data folder. The way out: save or discard "
+        "the changes in Git outside the data folder (Git client or terminal; ask whoever "
+        "looks after the computer if needed) and then choose “Back to the branch” again. "
+        "The files are named in the message from Git under “Technical message”."
     )
     if saved:
         text = _saved_note(saved) + " " + text
@@ -1269,8 +1279,7 @@ def _reattach_hint(saved: str | None = None) -> str:
 def _saved_note(rescue: str) -> str:
     """Satz, der den Rettungsbranch nennt, auf dem die Änderungen im Datenordner liegen."""
     return t(
-        "Die offenen Änderungen im Datenordner sind bereits auf dem Rettungsbranch "
-        "{rescue} gesichert.",
+        "The open changes in the data folder are already saved on the rescue branch {rescue}.",
         rescue=rescue,
     )
 
@@ -1334,7 +1343,7 @@ def reattach(path: Path) -> Reattached:
     genannt."""
     root = _root(path)
     if state(path).branch is not None:
-        raise GitError(t("Das Repository steht bereits auf einem Branch."))
+        raise GitError(t("The repository is already on a branch."))
     default = _git(root, "symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD", check=False)
     candidates = [default.split("/", 1)[-1]] if default else []
     candidates += ["main", "master"]
@@ -1342,9 +1351,9 @@ def reattach(path: Path) -> Reattached:
     target = next((c for c in candidates if c in local), None)
     if target is None:
         raise GitError(
-            t("Kein Hauptbranch gefunden (main oder master)."),
+            t("No main branch found (main or master)."),
             "detached",
-            t("Bitte einen Git-Client oder ein Terminal verwenden."),
+            t("Please use a Git client or a terminal."),
         )
     contains = _git(root, "branch", "--contains", "HEAD", "--format=%(refname:short)", check=False)
     holders = [b for b in contains.splitlines() if not b.startswith("(")]
@@ -1386,7 +1395,7 @@ def reattach(path: Path) -> Reattached:
 def set_identity(name: str, email: str) -> None:
     """Hinterlegt Name und E-Mail-Adresse für Commits (global für den Benutzer)."""
     if not name.strip() or "@" not in email:
-        raise GitError(t("Bitte Name und eine gültige E-Mail-Adresse eintragen."))
+        raise GitError(t("Please enter a name and a valid email address."))
     _git(Path.home(), "config", "--global", "user.name", name.strip())
     _git(Path.home(), "config", "--global", "user.email", email.strip())
 
@@ -1533,7 +1542,7 @@ def set_remote(
     address = gitmod.parse_remote_url(raw, allow_insecure=allow_insecure)
     if state(path).unfinished:
         raise GitError(
-            t("Solange ein Zusammenführen offen ist, lässt sich der Server nicht ändern."),
+            t("The server cannot be changed while a merge is open."),
             "merge_in_progress",
         )
     info = remote_info(root)

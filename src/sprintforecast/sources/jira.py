@@ -103,9 +103,10 @@ def _load_httpx() -> Any:
     if httpx is None:
         raise SourceError(
             t(
-                "Für Jira fehlt das Paket httpx. Installieren Sie das Extra [jira]: den "
-                "Installer erneut ausführen oder {command} (Plugins dabei mit --with erneut "
-                "angeben)",
+                (
+                    "The package httpx is missing for Jira. Install the extra [jira]: run the "
+                    "installer again or {command} (give plugins again with --with)"
+                ),
                 command=INSTALL_COMMAND,
             )
         )
@@ -113,9 +114,7 @@ def _load_httpx() -> Any:
 
 
 def invalid_base_url_error() -> SourceError:
-    return SourceError(
-        t("tracker.base_url fehlt oder ist keine http- oder https-Adresse (team.yaml)")
-    )
+    return SourceError(t("tracker.base_url is missing or not an http or https address (team.yaml)"))
 
 
 def keychain_user(base_url: str) -> str:
@@ -162,9 +161,11 @@ def jira_token(base_url: str | None = None) -> str | None:
 def keyring_missing_error() -> SourceError:
     return SourceError(
         t(
-            "Der Schlüsselbund ist nicht verfügbar: das Paket keyring fehlt (den Installer "
-            "erneut ausführen oder {command} --with keyring; Plugins dabei mit --with erneut "
-            "angeben). Alternativ die Umgebungsvariable {variable} setzen.",
+            (
+                "The keychain is not available: the package keyring is missing (run the "
+                "installer again or {command} --with keyring; give plugins again with --with). "
+                "Alternatively set the environment variable {variable}."
+            ),
             command=INSTALL_COMMAND,
             variable=TOKEN_ENV,
         )
@@ -187,8 +188,10 @@ def store_token(base_url: str, token: str) -> None:
     if not stored:  # raised outside the except block: the backend's error is not reachable
         raise SourceError(
             t(
-                "Der Schlüsselbund hat das Token nicht angenommen (kein Schlüsselbund-Dienst "
-                "verfügbar?). Alternativ die Umgebungsvariable {variable} setzen.",
+                (
+                    "The keychain did not accept the token (no keychain service available?). "
+                    "Alternatively set the environment variable {variable}."
+                ),
                 variable=TOKEN_ENV,
             )
         )
@@ -197,9 +200,11 @@ def store_token(base_url: str, token: str) -> None:
 def missing_token_error() -> SourceError:
     return SourceError(
         t(
-            "Kein Jira-Token gefunden. Die Umgebungsvariable {variable} setzen oder das Token "
-            "mit „sprintforecast tickets TEAM --set-token“ im Schlüsselbund ablegen "
-            "(Jira: Profil > Persönliche Zugriffstoken).",
+            (
+                "No Jira token found. Set the environment variable {variable} or store the "
+                "token in the keychain with “sprintforecast tickets TEAM --set-token” (Jira: "
+                "profile > Personal Access Tokens)."
+            ),
             variable=TOKEN_ENV,
         )
     )
@@ -211,8 +216,8 @@ def _check_token(token: str) -> str:
     if not token or not re.fullmatch(r"[\x21-\x7e]+", token):
         raise SourceError(
             t(
-                "Das Jira-Token ist leer oder enthält Leerzeichen, Zeilenumbrüche oder "
-                "Sonderzeichen – bitte erneut einfügen."
+                "The Jira token is empty or contains spaces, line breaks or special "
+                "characters – please paste it again."
             )
         )
     return token
@@ -276,8 +281,10 @@ def _resolve_name(name: str, fields: list[dict[str, Any]], setting: str, host: s
     if found:
         raise SourceError(
             t(
-                "Das Feld „{name}“ (tracker.fields.{setting}) ist in {host} mehrdeutig: {ids}. "
-                "Bitte in team.yaml die Feld-ID statt des Namens eintragen.",
+                (
+                    "The field “{name}” (tracker.fields.{setting}) is ambiguous in {host}: "
+                    "{ids}. Please enter the field ID instead of the name in team.yaml."
+                ),
                 name=name,
                 setting=setting,
                 host=host,
@@ -288,11 +295,11 @@ def _resolve_name(name: str, fields: list[dict[str, Any]], setting: str, host: s
     close = difflib.get_close_matches(name, names, n=3, cutoff=0.6)
     raise SourceError(
         t(
-            "Das Feld „{name}“ (tracker.fields.{setting}) gibt es in {host} nicht.{hint}",
+            "The field “{name}” (tracker.fields.{setting}) does not exist in {host}.{hint}",
             name=name,
             setting=setting,
             host=host,
-            hint=(" " + t("Ähnliche Namen: {names}", names=", ".join(close))) if close else "",
+            hint=(" " + t("Similar names: {names}", names=", ".join(close))) if close else "",
         )
     )
 
@@ -388,10 +395,10 @@ class JiraSource:
         base = (settings.base_url or "").strip()
         problem = base_url_problem(base)
         if problem == "credentials":
-            raise SourceError(t("tracker.base_url darf keine Zugangsdaten enthalten (team.yaml)"))
+            raise SourceError(t("tracker.base_url must not contain credentials (team.yaml)"))
         if problem == "extra":
             raise SourceError(
-                t("tracker.base_url darf keine Parameter (?…) und kein Fragment (#…) enthalten")
+                t("tracker.base_url must not contain parameters (?…) or a fragment (#…)")
             )
         if problem is not None:
             raise invalid_base_url_error()
@@ -453,8 +460,8 @@ class JiraSource:
                 self._client = self._new_client()
             except OSError:  # includes ssl.SSLError: the CA bundle could not be loaded
                 failure = t(
-                    "Die Zertifikatsdatei aus SSL_CERT_FILE bzw. SSL_CERT_DIR kann nicht gelesen "
-                    "werden – Umgebungsvariable und Datei prüfen."
+                    "The CA file from SSL_CERT_FILE or SSL_CERT_DIR cannot be read – check "
+                    "the environment variable and the file."
                 )
         if failure is None and self._client is not None:
             try:
@@ -465,14 +472,14 @@ class JiraSource:
                 failure = self._timeout_text()
             except httpx.InvalidURL, httpx.UnsupportedProtocol:
                 failure = t(
-                    "Die Adresse {host} ist ungültig (tracker.base_url in team.yaml)",
+                    "The address {host} is invalid (tracker.base_url in team.yaml)",
                     host=self.host,
                 )
             except httpx.ConnectError as e:
                 failure = self._connect_text(e)
             except httpx.HTTPError:
                 failure = t(
-                    "Die Verbindung zu {host} ist fehlgeschlagen (Netzwerk, Proxy oder Firewall?)",
+                    "The connection to {host} failed (network, proxy or firewall?)",
                     host=self.host,
                 )
         if failure is not None or response is None:
@@ -489,15 +496,10 @@ class JiraSource:
             return None
         if response.status_code == 403:
             raise SourceError(
-                t(
-                    "Jira verweigert das Schreiben (403): Das Konto darf an diesem Ticket keine "
-                    "Labels ändern."
-                )
+                t("Jira refuses the write (403): the account may not change labels of this ticket.")
             )
         if response.status_code == 404:
-            raise SourceError(
-                t("Das Ticket existiert nicht oder ist für das Konto nicht sichtbar (404)")
-            )
+            raise SourceError(t("The ticket does not exist or is not visible to the account (404)"))
         return self._decode(response)
 
     def _new_client(self) -> httpx.Client:
@@ -514,8 +516,7 @@ class JiraSource:
 
     def _timeout_text(self) -> str:
         return t(
-            "Keine Antwort von {host} innerhalb von {seconds} Sekunden (Netzwerk, VPN oder "
-            "Firewall?)",
+            "No answer from {host} within {seconds} seconds (network, VPN or firewall?)",
             host=self.host,
             seconds=int(TIMEOUT),
         )
@@ -532,21 +533,24 @@ class JiraSource:
             "CERTIFICATE_VERIFY" in text
         ):
             return t(
-                "Die TLS-Prüfung des Zertifikats von {host} ist fehlgeschlagen. Die Prüfung wird "
-                "nie abgeschaltet. Ist das Zertifikat von einer Firmen-CA ausgestellt, deren "
-                "Zertifikatsdatei in der Umgebungsvariable SSL_CERT_FILE (bzw. SSL_CERT_DIR) "
-                "angeben.",
+                (
+                    "The TLS check of the certificate of {host} failed. The check is never "
+                    "switched off. If the certificate was issued by a company CA, give its "
+                    "certificate file in the environment variable SSL_CERT_FILE (or "
+                    "SSL_CERT_DIR)."
+                ),
                 host=self.host,
             )
         if any(isinstance(e, ssl.SSLError) for e in chain) or "SSL:" in text or "[SSL" in text:
             return t(
-                "Der TLS-Verbindungsaufbau zu {host} ist fehlgeschlagen (http statt https, "
-                "falscher Port oder ein Proxy, der TLS stört?). Die Prüfung wird nie "
-                "abgeschaltet.",
+                (
+                    "The TLS handshake with {host} failed (http instead of https, wrong port, "
+                    "or a proxy interfering with TLS?). The check is never switched off."
+                ),
                 host=self.host,
             )
         return t(
-            "{host} ist nicht erreichbar (Adresse, Netzwerk, VPN, Proxy oder Firewall prüfen)",
+            "{host} is not reachable (check the address, network, VPN, proxy or firewall)",
             host=self.host,
         )
 
@@ -559,30 +563,34 @@ class JiraSource:
                 pass  # the error object holds the whole body: raise outside the except block
             raise SourceError(
                 t(
-                    "{host} antwortet nicht mit JSON – ist tracker.base_url die Adresse von "
-                    "Jira (ohne Anmeldeseite davor)?",
+                    (
+                        "{host} does not answer with JSON – is tracker.base_url the address of "
+                        "Jira (without a login page in front)?"
+                    ),
                     host=self.host,
                 )
             )
         if status == 401:
             raise SourceError(
                 t(
-                    "Jira lehnt das Token ab (401): es ist ungültig oder abgelaufen. Ein neues "
-                    "Token anlegen (Jira: Profil > Persönliche Zugriffstoken)."
+                    "Jira rejects the token (401): it is invalid or has expired. Create a "
+                    "new token (Jira: profile > Personal Access Tokens)."
                 )
             )
         if status == 403:
             raise SourceError(
                 t(
-                    "Jira verweigert den Zugriff (403): Das Konto darf diese Daten nicht lesen "
-                    "oder Jira sperrt die Anmeldung vorübergehend."
+                    "Jira denies access (403): the account may not read this data, or Jira "
+                    "temporarily blocks the login."
                 )
             )
         if status == 404:
             raise SourceError(
                 t(
-                    "Jira nicht gefunden unter {host} (404): tracker.base_url prüfen "
-                    "(ein Kontextpfad wie /jira gehört dazu).",
+                    (
+                        "Jira not found at {host} (404): check tracker.base_url (a context "
+                        "path such as /jira is part of it)."
+                    ),
                     host=self.host,
                 )
             )
@@ -590,13 +598,13 @@ class JiraSource:
             raise SourceError(self._bad_request_text(response))
         if status == 400:
             raise SourceError(
-                t("Jira weist die Anfrage ab (400) – Jira-Version und tracker.base_url prüfen")
+                t("Jira rejects the request (400) – check the Jira version and tracker.base_url")
             )
         if status == 407:
             raise SourceError(
                 t(
-                    "Der Proxy verlangt eine Anmeldung (407) – Proxy und seine Zugangsdaten "
-                    "(HTTPS_PROXY) prüfen."
+                    "The proxy requires authentication (407) – check the proxy and its "
+                    "credentials (HTTPS_PROXY)."
                 )
             )
         if status == 429:
@@ -604,20 +612,19 @@ class JiraSource:
             if wait.isascii() and wait.isdigit() and len(wait) <= 6:
                 raise SourceError(
                     t(
-                        "Jira meldet zu viele Anfragen (429) – bitte in {seconds} Sekunden "
-                        "erneut versuchen",
+                        (
+                            "Jira reports too many requests (429) – please try again in "
+                            "{seconds} seconds"
+                        ),
                         seconds=int(wait),
                     )
                 )
-            raise SourceError(
-                t("Jira meldet zu viele Anfragen (429) – bitte später erneut versuchen")
-            )
+            raise SourceError(t("Jira reports too many requests (429) – please try again later"))
         if 300 <= status < 400:
             target = urlsplit(response.headers.get("location", "")).hostname
             raise SourceError(
                 t(
-                    "{host} leitet um{target} – tracker.base_url auf die endgültige Adresse "
-                    "ändern.",
+                    "{host} redirects{target} – change tracker.base_url to the final address.",
                     host=self.host,
                     target=f" ({target})" if target else "",
                 )
@@ -625,11 +632,11 @@ class JiraSource:
         if status >= 500:
             raise SourceError(
                 t(
-                    "Jira meldet einen Serverfehler ({status}) – bitte später erneut versuchen",
+                    "Jira reports a server error ({status}) – please try again later",
                     status=status,
                 )
             )
-        raise SourceError(t("Unerwartete Antwort von Jira (HTTP {status})", status=status))
+        raise SourceError(t("Unexpected answer from Jira (HTTP {status})", status=status))
 
     @staticmethod
     def _bad_request_text(response: httpx.Response) -> str:
@@ -646,8 +653,8 @@ class JiraSource:
         if len(detail) > 300:
             detail = detail[:299] + "…"
         if not detail:
-            return t("Jira weist die Abfrage ab (400) – tracker.query (JQL) prüfen")
-        return t("Jira weist die Abfrage ab (400): {detail}", detail=detail)
+            return t("Jira rejects the query (400) – check tracker.query (JQL)")
+        return t("Jira rejects the query (400): {detail}", detail=detail)
 
     # --- Operations ---
 
@@ -672,8 +679,10 @@ class JiraSource:
     def _shape_error(self) -> SourceError:
         return SourceError(
             t(
-                "Die Antwort von {host} hat nicht das erwartete Format (Jira-Version oder "
-                "tracker.base_url prüfen)",
+                (
+                    "The answer from {host} does not have the expected format (check the Jira "
+                    "version or tracker.base_url)"
+                ),
                 host=self.host,
             )
         )
@@ -703,7 +712,7 @@ class JiraSource:
         """All tickets of ``tracker.query`` (paged, GET /rest/api/2/search)."""
         jql = (self.settings.query or "").strip()
         if not jql:
-            raise SourceError(t("tracker.query fehlt (JQL-Abfrage der Tickets, team.yaml)"))
+            raise SourceError(t("tracker.query is missing (JQL query of the tickets, team.yaml)"))
         resolved = self.resolve_fields()
         wanted = ",".join(resolved.requested())
         tickets: dict[str, RawTicket] = {}
@@ -743,8 +752,8 @@ class JiraSource:
     def _changed_error(self) -> SourceError:
         return SourceError(
             t(
-                "Das Ergebnis der Abfrage hat sich beim Lesen geändert oder war unvollständig – "
-                "bitte erneut versuchen. Es wurde nichts geschrieben."
+                "The result of the query changed while reading or was incomplete – please "
+                "try again. Nothing was written."
             )
         )
 
@@ -802,7 +811,10 @@ class JiraSource:
         if not valid:
             raise SourceError(
                 t(
-                    "Ticket {key}: Das Feld „{field}“ enthält keine gültige nicht negative Zahl",
+                    (
+                        "Ticket {key}: the field “{field}” does not contain a valid "
+                        "non-negative number"
+                    ),
                     key=key,
                     field=getattr(self.settings.fields, label) or label,
                 )

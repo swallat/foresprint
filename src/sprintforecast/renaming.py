@@ -45,20 +45,20 @@ def plan_renames(data: TeamData, sprint_id: str, new_id: str) -> list[Rename]:
     if sprint is None:
         raise DataError(
             t(
-                "Sprint {id} ist nicht gespeichert (vorhanden: {known}).",
+                "Sprint {id} is not saved (existing: {known}).",
                 id=repr(sprint_id),
-                known=", ".join(s.id for s in data.sprints) or t("keine"),
+                known=", ".join(s.id for s in data.sprints) or t("none"),
             )
         )
     if not new_id:
-        raise DataError(t("Bitte eine neue Sprint-ID eingeben."))
+        raise DataError(t("Please enter a new sprint ID."))
     if problem := file_name_problem(new_id, portable=False):
-        raise DataError(t("ID nicht zulässig als Dateiname ({problem}).", problem=problem))
+        raise DataError(t("ID not allowed as a file name ({problem}).", problem=problem))
     numbering = data.team.sprint.numbering
     if not id_fits_numbering(new_id, sprint.end, numbering):
         raise DataError(
             t(
-                "Sprint-ID {id} passt nicht zur Nummerierung (erwartet {expected}).",
+                "Sprint ID {id} does not match the numbering (expected {expected}).",
                 id=repr(new_id),
                 expected=expected_id_form(numbering),
             )
@@ -72,7 +72,7 @@ def plan_renames(data: TeamData, sprint_id: str, new_id: str) -> list[Rename]:
         if target in untouched:
             raise DataError(
                 t(
-                    "Sprint-ID {id} ist schon vergeben (an einen früheren Sprint).",
+                    "Sprint ID {id} is already taken (by an earlier sprint).",
                     id=repr(target),
                 )
             )
@@ -111,7 +111,7 @@ def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Ap
     sources = {old for old, _, _ in moves} | {src for src, _ in protocols}
     for new in [new for _, new, _ in moves] + [dst for _, dst in protocols]:
         if new.exists() and new not in sources:
-            raise DataError(t("{path} existiert bereits.", path=new))
+            raise DataError(t("{path} already exists.", path=new))
     backup: dict[Path, bytes] = {}
     for old, _, _ in moves:
         try:
@@ -160,8 +160,10 @@ def _unlink(path: Path) -> None:
     except OSError as e:
         raise FileAccessError(
             t(
-                "{path}: nicht gelöscht ({reason}). Ist die Datei schreibgeschützt oder in "
-                "einem anderen Programm geöffnet?",
+                (
+                    "{path}: not deleted ({reason}). Is the file read-only or open in another "
+                    "program?"
+                ),
                 path=path,
                 reason=e.strerror or str(e),
             )
@@ -173,5 +175,5 @@ def _replace(src: Path, dst: Path) -> None:
         os.replace(src, dst)
     except OSError as e:
         raise FileAccessError(
-            t("{path}: nicht umbenannt ({reason})", path=src, reason=e.strerror or str(e))
+            t("{path}: not renamed ({reason})", path=src, reason=e.strerror or str(e))
         ) from e

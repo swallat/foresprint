@@ -16,6 +16,7 @@ from streamlit.testing.v1 import AppTest
 from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps, nav_titles
 
 from sprintforecast.forecast import build_forecast
+from sprintforecast.i18n import t
 from sprintforecast.model import Sprint
 from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 from sprintforecast.web import ui
@@ -867,7 +868,7 @@ def test_preplanning_page_saves_values(app: AppTest, data_dir: Path):
     assert not app.exception
     # Bearbeiten der Tabelle: Vorplanung für ein Produkt setzen und speichern
     app.session_state["vorplanung-2026.22"] = {
-        "edited_rows": {0: {"PO-Vorplanung": 3.5}},
+        "edited_rows": {0: {"PO pre-planning": 3.5}},
         "added_rows": [],
         "deleted_rows": [],
     }
@@ -882,7 +883,7 @@ def test_product_tables_show_empty_cells_as_dash_not_none(app: AppTest):
     zeigen einen Strich statt „None“ – nur die Anzeige, die Daten bleiben None."""
 
     def product_frames() -> list:
-        return [d for d in app.dataframe if "Produkt" in d.value.columns]
+        return [d for d in app.dataframe if "Product" in d.value.columns]
 
     goto(app, "vorplanung")
     editors = [d for d in product_frames() if "_id" in d.value.columns]
@@ -907,19 +908,19 @@ def test_product_editor_shows_only_columns_of_the_phase(app: AppTest):
     """Jeder Termin zeigt nur Spalten, die dort eingegeben oder entschieden werden."""
 
     def editor_columns() -> list[str]:
-        [editor] = [d for d in app.dataframe if {"_id", "Produkt"} <= set(d.value.columns)]
-        return [c for c in editor.value.columns if c not in ("_id", "Produkt", "PO")]
+        [editor] = [d for d in app.dataframe if {"_id", "Product"} <= set(d.value.columns)]
+        return [c for c in editor.value.columns if c not in ("_id", "Product", "PO")]
 
     goto(app, "vorplanung")
     app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
-    assert editor_columns() == ["Standard", "PO-Vorplanung"]
+    assert editor_columns() == ["Standard", "PO pre-planning"]
 
     planning_step(app, "2026.22", 1)
-    assert editor_columns() == ["Standard", "PO-Vorplanung", "Planning"]
+    assert editor_columns() == ["Standard", "PO pre-planning", "Planning"]
 
     goto(app, "review")
     app.selectbox(key="review-sprint").set_value("2026.21").run()
-    assert editor_columns() == ["Planning", "Erledigt"]
+    assert editor_columns() == ["Planning", "Done"]
 
 
 def test_absences_matrix_leaves_cells_of_inactive_people_empty(app: AppTest):
@@ -938,14 +939,14 @@ def test_other_editors_show_empty_cells_as_empty_not_none(app: AppTest):
         return found
 
     goto(app, "produktliste")
-    products = editor({"Name", "Anteil", "ab", "bis"})
+    products = editor({"Name", "Anteil", "from", "until"})
     assert products.proto.HasField("placeholder") and products.proto.placeholder == ""
-    assert products.value["bis"].isna().any()  # die Daten bleiben leer (None), nur die Anzeige
+    assert products.value["until"].isna().any()  # die Daten bleiben leer (None), nur die Anzeige
 
     goto(app, "personen")
-    people = editor({"Name", "FTE", "ab", "bis"})
+    people = editor({"Name", "FTE", "from", "until"})
     assert people.proto.HasField("placeholder") and people.proto.placeholder == ""
-    assert people.value["bis"].isna().any()
+    assert people.value["until"].isna().any()
 
     goto(app, "vorplanung")
     expected = editor({"id", "Person"})
@@ -961,7 +962,7 @@ def test_blank_product_cells_stay_unrecorded_when_saving(app: AppTest, data_dir:
     goto(app, "vorplanung")
     app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
     app.session_state["vorplanung-2026.22"] = {
-        "edited_rows": {0: {"PO-Vorplanung": 0.0}, 1: {"PO-Vorplanung": 3.5}},
+        "edited_rows": {0: {"PO pre-planning": 0.0}, 1: {"PO pre-planning": 3.5}},
         "added_rows": [],
         "deleted_rows": [],
     }
@@ -1361,7 +1362,7 @@ STEP_ORDER = ["fehltage", "vorplanung", "planning", "review"]
 
 def test_step_bar_order_is_the_order_of_the_sidebar():
     """Die Schrittleiste folgt der Seitenleiste (Aufgaben ohne „Start“): Fehltage zuerst."""
-    assert [key for key in PAGES["Aufgaben"] if key != "start"] == STEP_ORDER
+    assert [key for key in PAGES["Tasks"] if key != "start"] == STEP_ORDER
 
 
 @pytest.mark.parametrize("page", STEP_ORDER)
@@ -1373,7 +1374,7 @@ def test_board_navigation_highlights_the_active_page(app: AppTest, page: str):
     steps = nav_steps(app)
     assert [key for key, _, _ in steps] == STEP_ORDER
     # Name = Seitenname der Seitenleiste (bei erledigten Schritten hängt das Symbol dahinter)
-    assert nav_titles(app) == [PAGE_INFO[key][0] for key in STEP_ORDER]
+    assert nav_titles(app) == [t(PAGE_INFO[key][0]) for key in STEP_ORDER]
     assert [key for key, _, active in steps if active] == [page]
     # kein handgeschriebenes HTML mehr (früher: Markdown-Block mit eigener Höhe)
     assert not any("board-active" in m.value for m in app.markdown)
@@ -1400,7 +1401,7 @@ def test_step_bar_marks_only_done_steps_with_a_green_check(app: AppTest):
     steps = nav_steps(app)
     assert [key for key, _, _ in steps] == STEP_ORDER
     for key, label, _ in steps:
-        title = PAGE_INFO[key][0]
+        title = t(PAGE_INFO[key][0])
         assert label == (f"{title} {STEP_DONE_MARK}" if DONE_2026_21[key] else title)
         assert "✅" not in label and "⬜" not in label
     assert STEP_DONE_MARK == ":green[:material/check_circle:]"
@@ -1476,7 +1477,7 @@ CHECK_ICON_WORDS = ("check", "task_alt", "done", "verified", "approval")
 def test_step_icons_are_no_check_marks(app: AppTest):
     """Das Seiten-Icon des Review-Schritts (früher task_alt) sah selbst wie „erledigt“ aus und
     ließ einen offenen Sprint abgehakt wirken. Jetzt ist es eine Flagge; kein Icon doppelt."""
-    assert PAGES["Aufgaben"]["review"][1] == ":material/flag:"
+    assert PAGES["Tasks"]["review"][1] == ":material/flag:"
     goto(app, "review")
     icons = {link.proto.page: link.proto.icon for link, _ in nav_links(app)}
     assert icons == {key: PAGE_INFO[key][1] for key in STEP_ORDER}  # wie in der Seitenleiste
@@ -1624,7 +1625,7 @@ def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
     app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
     assert not nav_done(app)["vorplanung"]
     app.session_state["vorplanung-2026.23"] = {
-        "edited_rows": {0: {"PO-Vorplanung": 2.0}},
+        "edited_rows": {0: {"PO pre-planning": 2.0}},
         "added_rows": [],
         "deleted_rows": [],
     }
@@ -1633,7 +1634,7 @@ def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
     assert not nav_done(app)["vorplanung"]  # nur ein Produkt von mehreren hat einen Wert
     app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
     app.session_state["vorplanung-2026.23"] = {
-        "edited_rows": {i: {"PO-Vorplanung": 2.0} for i in range(3)},  # webshop, app, portal
+        "edited_rows": {i: {"PO pre-planning": 2.0} for i in range(3)},  # webshop, app, portal
         "added_rows": [],
         "deleted_rows": [],
     }
@@ -1695,7 +1696,7 @@ def test_failed_preplanning_save_keeps_the_errors_and_does_not_rerun(app: AppTes
     goto(app, "vorplanung")
     app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
     app.session_state["vorplanung-2026.22"] = {
-        "edited_rows": {0: {"PO-Vorplanung": 2.0}},
+        "edited_rows": {0: {"PO pre-planning": 2.0}},
         "added_rows": [],
         "deleted_rows": [],
     }

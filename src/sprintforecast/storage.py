@@ -89,8 +89,7 @@ class ConflictError(DataError):
         self.files = files
         super().__init__(
             t(
-                "Konflikt beim Zusammenführen in: {files}. Die Bearbeitung ist gesperrt, bis der "
-                "Konflikt gelöst ist.",
+                "Merge conflict in: {files}. Editing is locked until the conflict is resolved.",
                 files=", ".join(str(f) for f in files),
             )
         )
@@ -209,15 +208,15 @@ def _read(path: Path) -> dict[str, Any]:
             raise ConflictError([path])
         content = yaml.load(text, Loader=_YAML_LOADER)
     except FileNotFoundError as e:
-        raise DataError(t("Datei fehlt: {path}", path=path)) from e
+        raise DataError(t("File missing: {path}", path=path)) from e
     except OSError as e:  # keine Leserechte, Ordner statt Datei, Netzlaufwerk nicht erreichbar
         raise _not_readable(path, e) from e
     except (yaml.YAMLError, ValueError) as e:  # z. B. ein unmögliches Datum (2026-13-45)
-        raise DataError(t("{path}: kein gültiges YAML ({error})", path=path, error=e)) from e
+        raise DataError(t("{path}: invalid YAML ({error})", path=path, error=e)) from e
     if content is None:
         return {}
     if not isinstance(content, dict):
-        raise DataError(t("{path}: Inhalt muss ein YAML-Objekt sein", path=path))
+        raise DataError(t("{path}: content must be a YAML mapping", path=path))
     return content
 
 
@@ -233,8 +232,10 @@ def _reason(error: OSError) -> str:
 def _not_readable(path: Path, error: OSError) -> FileAccessError:
     return FileAccessError(
         t(
-            "{path}: nicht lesbar ({reason}). Rechte prüfen oder die Datei in einem "
-            "anderen Programm schließen.",
+            (
+                "{path}: cannot be read ({reason}). Check the permissions or close the file in "
+                "any other program."
+            ),
             path=path,
             reason=_reason(error),
         )
@@ -247,8 +248,10 @@ not_readable = _not_readable
 def _not_saved(path: Path, error: OSError) -> FileAccessError:
     return FileAccessError(
         t(
-            "{path}: nicht gespeichert ({reason}). Die Datei wurde nicht verändert. Ist der "
-            "Ordner beschreibbar, und ist die Datei in keinem anderen Programm geöffnet?",
+            (
+                "{path}: not saved ({reason}). The file was not changed. Is the folder "
+                "writable, and is the file open in another program?"
+            ),
             path=path,
             reason=_reason(error),
         )
@@ -321,7 +324,7 @@ def _float(value: Any, where: str) -> float | None:
         return None
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise DataError(
-            t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+            t("{where}: number expected, found {value}", where=where, value=repr(value))
         )
     try:
         number = float(value)
@@ -329,7 +332,7 @@ def _float(value: Any, where: str) -> float | None:
         number = math.inf
     if not math.isfinite(number):
         raise DataError(
-            t("{where}: endliche Zahl erwartet, gefunden {value}", where=where, value=repr(value))
+            t("{where}: finite number expected, found {value}", where=where, value=repr(value))
         )
     return number
 
@@ -342,12 +345,12 @@ def _lenient_float(value: Any, where: str) -> float | None:
         number = float(value)
     except (TypeError, ValueError, OverflowError) as e:  # OverflowError: ganze Zahl > 1e308
         raise DataError(
-            t("{where}: Zahl erwartet, gefunden {value}", where=where, value=repr(value)[:60])
+            t("{where}: number expected, found {value}", where=where, value=repr(value)[:60])
         ) from e
     if not math.isfinite(number):  # auch Text wie "nan" oder "inf"
         raise DataError(
             t(
-                "{where}: endliche Zahl erwartet, gefunden {value}",
+                "{where}: finite number expected, found {value}",
                 where=where,
                 value=repr(value)[:60],
             )
@@ -362,8 +365,10 @@ def _mapping(value: Any, where: str, name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise DataError(
             t(
-                "{where}: '{name}' muss ein Objekt sein (Zeilen der Form 'Schlüssel: Wert'), "
-                "gefunden {value}",
+                (
+                    "{where}: '{name}' must be a mapping (lines of the form 'key: value'), "
+                    "found {value}"
+                ),
                 where=where,
                 name=name,
                 value=repr(value)[:60],
@@ -379,7 +384,7 @@ def _sequence(value: Any, where: str, name: str) -> list[Any]:
     if not isinstance(value, list):
         raise DataError(
             t(
-                "{where}: '{name}' muss eine Liste sein (Einträge mit '- '), gefunden {value}",
+                "{where}: '{name}' must be a list (entries starting with '- '), found {value}",
                 where=where,
                 name=name,
                 value=repr(value)[:60],
@@ -397,8 +402,10 @@ def _code(value: Any, where: str, name: str) -> str | None:
     if isinstance(value, bool):
         raise DataError(
             t(
-                "{where}: '{name}' bitte in Anführungszeichen setzen, z. B. {name}: \"NO\" "
-                "(unquotiert liest YAML das als Wahrheitswert)",
+                (
+                    "{where}: please put '{name}' in quotes, e.g. {name}: \"NO\" (unquoted, "
+                    "YAML reads it as a boolean)"
+                ),
                 where=where,
                 name=name,
             )
@@ -406,7 +413,7 @@ def _code(value: Any, where: str, name: str) -> str | None:
     if not isinstance(value, str):
         raise DataError(
             t(
-                "{where}: '{name}' muss ein Text sein (z. B. DE oder NW), gefunden {value}",
+                "{where}: '{name}' must be text (e.g. DE or NW), found {value}",
                 where=where,
                 name=name,
                 value=repr(value)[:60],
@@ -426,8 +433,10 @@ def _well_formed(where: str) -> Iterator[None]:
     except (AttributeError, TypeError, KeyError, ValueError, OverflowError) as e:
         raise DataError(
             t(
-                "{where}: Aufbau der Datei ungültig ({error}). Listen beginnen mit '- ', "
-                "Objekte bestehen aus Zeilen 'Schlüssel: Wert'.",
+                (
+                    "{where}: invalid file structure ({error}). Lists start with '- ', "
+                    "mappings consist of lines 'key: value'."
+                ),
                 where=where,
                 error=f"{type(e).__name__}: {e}",
             )
@@ -444,7 +453,7 @@ def _date(value: Any, where: str) -> date:
     except ValueError as e:
         raise DataError(
             t(
-                "{where}: Datum im Format JJJJ-MM-TT erwartet, gefunden {value}",
+                "{where}: date in format YYYY-MM-DD expected, found {value}",
                 where=where,
                 value=repr(value),
             )
@@ -469,7 +478,7 @@ def _int(value: Any, where: str, name: str, default: int = 0) -> int:
     ):
         raise DataError(
             t(
-                "{where}: '{name}' muss eine ganze Zahl sein, gefunden {value}",
+                "{where}: '{name}' must be a whole number, found {value}",
                 where=where,
                 name=name,
                 value=repr(value)[:60],
@@ -507,7 +516,7 @@ def _finite(value: Any) -> float:
     """``float(value)`` für Einstellungen in team.yaml; nan und inf sind keine gültigen Werte."""
     number = float(value)
     if not math.isfinite(number):
-        raise ValueError(t("keine endliche Zahl: {value}", value=value))
+        raise ValueError(t("not a finite number: {value}", value=value))
     return number
 
 
@@ -524,14 +533,14 @@ def file_name_problem(name: str, portable: bool = True) -> str | None:
     vorhandene Daten auszuschließen."""
     strict = portable or sys.platform == "win32"
     if not name or len(name) > 80:
-        return t("leer oder länger als 80 Zeichen")
+        return t("empty or longer than 80 characters")
     forbidden = '<>:"/\\|?*' if strict else "/"
     if any(ord(c) < 32 or c in forbidden for c in name):
-        return t("Pfadtrenner, Doppelpunkt, Sonder- oder Steuerzeichen")
+        return t("path separator, colon, special or control character")
     if name != name.strip() or name.startswith(".") or name.endswith("."):
-        return t("beginnt oder endet mit Punkt oder Leerzeichen")
+        return t("starts or ends with a dot or a space")
     if strict and name.partition(".")[0].strip().lower() in _WINDOWS_DEVICES:
-        return t("unter Windows für Geräte reserviert")
+        return t("reserved for devices on Windows")
     return None
 
 
@@ -541,14 +550,12 @@ def _first_id(value: Any, where: str) -> str | None:
     if value is None:
         return None
     if isinstance(value, float):
-        raise DataError(
-            t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
-        )
+        raise DataError(t('{where}: please quote the id, e.g. id: "2026.20"', where=where))
     text = str(value)
     if problem := file_name_problem(text, portable=False):
         raise DataError(
             t(
-                "{where}: id {id} ist nicht zulässig ({problem})",
+                "{where}: id {id} is not allowed ({problem})",
                 where=where,
                 id=repr(text),
                 problem=problem,
@@ -704,8 +711,10 @@ def _text_value(value: Any, where: str, name: str) -> str:
     if isinstance(value, float):
         raise DataError(
             t(
-                "{where}: {name}: {value} bitte in Anführungszeichen setzen "
-                '(sonst gehen Stellen verloren, z. B. "2026.20")',
+                (
+                    "{where}: {name}: please put {value} in quotes (otherwise digits are lost, "
+                    'e.g. "2026.20")'
+                ),
                 where=where,
                 name=name,
                 value=value,
@@ -737,8 +746,10 @@ def _rule_node(mapping: dict[str, Any], where: str) -> Rule:
         if isinstance(value, dict):
             raise DataError(
                 t(
-                    "{where}: '{name}' muss eine Liste von Werten sein (Einträge mit '- '), "
-                    "gefunden {value}",
+                    (
+                        "{where}: '{name}' must be a list of values (entries with '- '), found "
+                        "{value}"
+                    ),
                     where=where,
                     name=name,
                     value=repr(value)[:60],
@@ -794,7 +805,7 @@ def _choice(value: Any, kind: type[Any], default: str, where: str, name: str) ->
     except ValueError as e:
         raise DataError(
             t(
-                "{where}: {name} '{value}' unbekannt (erlaubt: {allowed})",
+                "{where}: {name} '{value}' unknown (allowed: {allowed})",
                 where=where,
                 name=name,
                 value=value,
@@ -809,8 +820,11 @@ def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
     if (name := secret_key(d)) is not None:
         raise DataError(
             t(
-                "{where}: '{name}' gehört nicht in die Datei – Tokens und Passwörter stehen "
-                "in der Umgebungsvariable SPRINTFORECAST_JIRA_TOKEN oder im Schlüsselbund",
+                (
+                    "{where}: '{name}' does not belong in the file – tokens and passwords "
+                    "belong in the environment variable SPRINTFORECAST_JIRA_TOKEN or in the "
+                    "keychain"
+                ),
                 where=at,
                 name=name,
             )
@@ -901,7 +915,7 @@ def people_from_dict(d: dict[str, Any], where: str) -> list[Person]:
     for i, p in enumerate(_sequence(d.get("people"), where, "people")):
         at = f"{where}: people[{i}]"
         if not isinstance(p, dict) or "id" not in p:
-            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
+            raise DataError(t("{where}: field 'id' missing", where=at))
         memberships = [
             Membership(
                 start=_date(m.get("from"), at),
@@ -961,7 +975,7 @@ def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
     for i, p in enumerate(_sequence(d.get("products"), where, "products")):
         at = f"{where}: products[{i}]"
         if not isinstance(p, dict) or "id" not in p:
-            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
+            raise DataError(t("{where}: field 'id' missing", where=at))
         products.append(
             Product(
                 id=str(p["id"]),
@@ -1001,14 +1015,12 @@ def _prognoses_from(raw: Any, where: str) -> list[Prognosis]:
     for i, p in enumerate(_sequence(raw, where, "prognoses")):
         at_ = f"{where}: prognoses[{i}]"
         if not isinstance(p, dict) or p.get("at") is None:
-            raise DataError(t("{where}: Feld 'at' fehlt", where=at_))
+            raise DataError(t("{where}: field 'at' missing", where=at_))
         stamp = p["at"]
         try:
             when = stamp if isinstance(stamp, datetime) else datetime.fromisoformat(str(stamp))
         except ValueError as e:
-            raise DataError(
-                t("{where}: ungültiger Zeitpunkt '{value}'", where=at_, value=stamp)
-            ) from e
+            raise DataError(t("{where}: invalid time '{value}'", where=at_, value=stamp)) from e
         result.append(
             Prognosis(
                 at=when,
@@ -1057,7 +1069,7 @@ def _absence_state(d: dict[str, Any], where: str) -> AbsenceState | None:
             allowed = ", ".join(s.value for s in AbsenceState)
             raise DataError(
                 t(
-                    "{where}: absence_state '{value}' unbekannt (erlaubt: {allowed})",
+                    "{where}: absence_state '{value}' unknown (allowed: {allowed})",
                     where=where,
                     value=raw,
                     allowed=allowed,
@@ -1069,11 +1081,9 @@ def _absence_state(d: dict[str, Any], where: str) -> AbsenceState | None:
 def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
     for key in ("id", "start", "end"):
         if d.get(key) is None:
-            raise DataError(t("{where}: Feld '{key}' fehlt", where=where, key=key))
+            raise DataError(t("{where}: field '{key}' missing", where=where, key=key))
     if isinstance(d["id"], float):
-        raise DataError(
-            t('{where}: id bitte in Anführungszeichen setzen, z. B. id: "2026.20"', where=where)
-        )
+        raise DataError(t('{where}: please quote the id, e.g. id: "2026.20"', where=where))
     planning = None
     if p := _mapping(d.get("planning"), where, "planning"):
         planning = Planning(
@@ -1088,7 +1098,7 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
     for pid, values in _mapping(d.get("products"), where, "products").items():
         at = f"{where}: products.{pid}"
         if not isinstance(values, dict):
-            raise DataError(t("{where}: Objekt mit preplanned/planned/done erwartet", where=at))
+            raise DataError(t("{where}: mapping with preplanned/planned/done expected", where=at))
         products[str(pid)] = ProductValues(
             preplanned=_float(values.get("preplanned"), at),
             planned=_float(values.get("planned"), at),
@@ -1214,7 +1224,7 @@ def _schema(d: dict[str, Any], where: str) -> int:
     if isinstance(raw, bool) or not isinstance(raw, int):
         raise DataError(
             t(
-                "{where}: schema muss eine ganze Zahl sein, gefunden {value}",
+                "{where}: schema must be a whole number, found {value}",
                 where=where,
                 value=repr(raw)[:60],
             )
@@ -1222,9 +1232,10 @@ def _schema(d: dict[str, Any], where: str) -> int:
     if raw > SCHEMA:
         raise DataError(
             t(
-                "{where}: Die Datei wurde von einer neueren Programmversion geschrieben "
-                "(schema {found}, diese Version kennt bis {known}). Bitte sprintforecast "
-                "aktualisieren.",
+                (
+                    "{where}: The file was written by a newer program version (schema {found}, "
+                    "this version knows up to {known}). Please update sprintforecast."
+                ),
                 where=where,
                 found=raw,
                 known=SCHEMA,
@@ -1240,7 +1251,7 @@ def _sprint_ref(value: Any, where: str, name: str) -> str | None:
     if isinstance(value, float):
         raise DataError(
             t(
-                '{where}: {name} bitte in Anführungszeichen setzen, z. B. {name}: "2026.20"',
+                '{where}: please put {name} in quotation marks, e.g. {name}: "2026.20"',
                 where=where,
                 name=name,
             )
@@ -1254,7 +1265,7 @@ def projects_from_dict(d: dict[str, Any], where: str) -> list[Project]:
     for i, p in enumerate(_sequence(d.get("projects"), where, "projects")):
         at = f"{where}: projects[{i}]"
         if not isinstance(p, dict) or "id" not in p:
-            raise DataError(t("{where}: Feld 'id' fehlt", where=at))
+            raise DataError(t("{where}: field 'id' missing", where=at))
         basis = p.get("budget_basis")
         projects.append(
             Project(
@@ -1302,7 +1313,7 @@ def _timestamp(value: Any, where: str, name: str) -> datetime | None:
         return datetime.fromisoformat(str(value))
     except ValueError as e:
         raise DataError(
-            t("{where}: ungültiger Zeitpunkt '{value}'", where=f"{where}: {name}", value=value)
+            t("{where}: invalid time '{value}'", where=f"{where}: {name}", value=value)
         ) from e
 
 
@@ -1317,7 +1328,7 @@ def tickets_from_dict(
     for i, raw in enumerate(_sequence(d.get("tickets"), where, "tickets")):
         at = f"{where}: tickets[{i}]"
         if not isinstance(raw, dict) or not raw.get("key"):
-            raise DataError(t("{where}: Feld 'key' fehlt", where=at))
+            raise DataError(t("{where}: field 'key' is missing", where=at))
         tickets.append(
             Ticket(
                 key=str(raw["key"]),
@@ -1393,10 +1404,10 @@ def preplan_from_dict(d: dict[str, Any], where: str) -> Preplan:
     for i, raw in enumerate(_sequence(d.get("earmarks"), where, "earmarks")):
         at = f"{where}: earmarks[{i}]"
         if not isinstance(raw, dict) or not raw.get("ticket"):
-            raise DataError(t("{where}: Feld 'ticket' fehlt", where=at))
+            raise DataError(t("{where}: field 'ticket' is missing", where=at))
         sprint = _sprint_ref(raw.get("sprint"), at, "sprint")
         if sprint is None:
-            raise DataError(t("{where}: Feld 'sprint' fehlt", where=at))
+            raise DataError(t("{where}: field 'sprint' is missing", where=at))
         earmarks.append(
             Earmark(ticket=str(raw["ticket"]), sprint=sprint, note=_text(raw.get("note")))
         )
@@ -1404,7 +1415,7 @@ def preplan_from_dict(d: dict[str, Any], where: str) -> Preplan:
     for i, raw in enumerate(_sequence(d.get("estimates"), where, "estimates")):
         at = f"{where}: estimates[{i}]"
         if not isinstance(raw, dict) or not raw.get("ticket"):
-            raise DataError(t("{where}: Feld 'ticket' fehlt", where=at))
+            raise DataError(t("{where}: field 'ticket' is missing", where=at))
         estimates.append(
             ManualEstimate(
                 ticket=str(raw["ticket"]),
@@ -1529,13 +1540,13 @@ def team_key_problem(key: str) -> str | None:
     Teams werden beim Laden nicht geprüft, damit ältere Ordnernamen weiter funktionieren."""
     if key.partition(".")[0].lower() in _WINDOWS_DEVICES:
         return t(
-            "Kürzel: Diese Namen sind unter Windows für Geräte reserviert "
-            "(CON, PRN, AUX, NUL, COM0 bis COM9, LPT0 bis LPT9)."
+            "Key: these names are reserved for devices on Windows (CON, PRN, AUX, NUL, "
+            "COM0 to COM9, LPT0 to LPT9)."
         )
     if not _TEAM_KEY.fullmatch(key):
         return t(
-            "Kürzel: Kleinbuchstaben a–z (ohne Umlaute), Ziffern, Bindestrich und Unterstrich "
-            "(höchstens 64 Zeichen; am Anfang ein Buchstabe oder eine Ziffer)"
+            "Key: lower-case letters a–z (no umlauts), digits, hyphen and underscore (at "
+            "most 64 characters; starting with a letter or digit)"
         )
     return None
 
@@ -1564,10 +1575,10 @@ class Repository:
     def load(self, key: str) -> TeamData:
         base = self.team_dir(key)
         if not (base / "team.yaml").is_file():
-            known = ", ".join(self.teams()) or t("keine")
+            known = ", ".join(self.teams()) or t("none")
             raise DataError(
                 t(
-                    "Team '{key}' nicht gefunden unter {root} (vorhanden: {known})",
+                    "Team '{key}' not found in {root} (available: {known})",
                     key=key,
                     root=self.root,
                     known=known,
@@ -1592,7 +1603,7 @@ class Repository:
                 sprint = sprint_from_dict(_read(f), str(f))
             if sprint.id != f.stem:
                 raise DataError(
-                    t("{file}: id '{id}' passt nicht zum Dateinamen", file=f, id=sprint.id)
+                    t("{file}: id '{id}' does not match the file name", file=f, id=sprint.id)
                 )
             sprints.append(sprint)
         sprints.sort(key=lambda s: s.start)
@@ -1676,7 +1687,7 @@ class Repository:
         if problem := file_name_problem(sprint_id, portable=False):  # wird zum Dateinamen
             raise DataError(
                 t(
-                    "Sprint-ID {id} ist nicht zulässig ({problem})",
+                    "Sprint ID {id} is not allowed ({problem})",
                     id=repr(sprint_id),
                     problem=problem,
                 )
@@ -1704,8 +1715,10 @@ class Repository:
         except OSError as e:
             raise FileAccessError(
                 t(
-                    "{path}: nicht gelöscht ({reason}). Ist die Datei schreibgeschützt oder in "
-                    "einem anderen Programm geöffnet?",
+                    (
+                        "{path}: not deleted ({reason}). Is the file read-only or open in "
+                        "another program?"
+                    ),
                     path=path,
                     reason=_reason(e),
                 )
@@ -1776,7 +1789,7 @@ def import_sprints(repo: Repository, team: Team, sprints: list[Sprint]) -> list[
         if clash := repo.clashing_team(team.key):
             raise DataError(
                 t(
-                    "Team {team} existiert bereits (als {existing}).",
+                    "Team {team} already exists (as {existing}).",
                     team=repr(team.key),
                     existing=clash,
                 )

@@ -197,7 +197,7 @@ def test_translation_markup_is_kept_around_placeholders():
         try:
             text = Text.from_markup(
                 i18n.t(
-                    "Weiter mit: [bold]{command}[/bold]",
+                    "Next: [bold]{command}[/bold]",
                     command=_plain_end("sprintforecast people [x]\\"),
                 )
             )

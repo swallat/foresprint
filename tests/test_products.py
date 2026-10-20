@@ -67,7 +67,7 @@ def test_production_access_group(data_dir: Path):
 
     rows, hidden = people_table(data.people, TODAY, True)
     for row in rows:
-        row["Produktionszugriff"] = row["Name"] == "Ben"  # Ben arbeitet 0,5 FTE
+        row["Production access"] = row["Name"] == "Ben"  # Ben arbeitet 0,5 FTE
     people = people_from_table(rows, data.people, hidden).people
     assert [p.name for p in people if p.production_access] == ["Ben"]
     data.people = people
@@ -150,7 +150,7 @@ def test_product_values_roundtrip(fc, data_dir: Path):
     entry = fc.entry("2026.22")
     rows = product_values_table(distribution(fc, entry))
     rows[0]["Planning"] = 4.0
-    rows[1]["PO-Vorplanung"] = None
+    rows[1]["PO pre-planning"] = None
     after = apply_product_values(entry.sprint, rows, ["preplanned", "planned"])
     assert after.products["webshop"].planned == 4
     assert "app" not in after.products  # leer → entfernt
@@ -163,7 +163,9 @@ def test_products_from_table_new_and_deleted():
     original = [Product("a", "A"), Product("b", "B", end=date(2026, 1, 1))]
     rows, hidden = product_table(original, TODAY, show_former=False)
     assert [r["Name"] for r in rows] == ["A"] and hidden == [original[1]]
-    rows.append({"_id": None, "Name": "Neues Ding", "PO": "Bea", "ab": "2026-11-01", "bis": None})
+    rows.append(
+        {"_id": None, "Name": "Neues Ding", "PO": "Bea", "from": "2026-11-01", "until": None}
+    )
     result = products_from_table(rows, original, hidden)
     assert not result.errors and not result.deleted
     assert [p.id for p in result.products] == ["a", "b", "neues-ding"]
@@ -208,7 +210,7 @@ def test_fixed_shares_over_100_percent_are_rejected(fc):
         if p.id in ("webshop", "app"):
             p.share = 0.6
     issues = check_team(fc.data, TODAY)
-    errors = [i for i in issues if i.level.value == "Fehler" and "mehr als 100 %" in i.message]
+    errors = [i for i in issues if i.level.value == "Error" and "mehr als 100 %" in i.message]
     assert errors and errors[0].where == "products.yaml"
     assert "120" in errors[0].message
 
@@ -218,7 +220,7 @@ def test_fixed_shares_adding_to_100_percent_warn_when_others_remain(fc):
         if p.id in ("webshop", "app"):
             p.share = 0.5
     issues = check_team(fc.data, TODAY)
-    assert not [i for i in issues if i.level.value == "Fehler" and "100 %" in i.message]
+    assert not [i for i in issues if i.level.value == "Error" and "100 %" in i.message]
     assert any("bleibt nichts" in i.message for i in issues)
 
 

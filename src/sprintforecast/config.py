@@ -85,7 +85,7 @@ def update(**changes: Any) -> None:
     except OSError as e:
         raise SettingsError(
             t(
-                "Die Einstellungen konnten nicht gespeichert werden ({path}): {error}",
+                "The settings could not be saved ({path}): {error}",
                 path=path,
                 error=e.strerror or e,
             )

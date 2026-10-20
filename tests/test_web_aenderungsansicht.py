@@ -379,7 +379,7 @@ def test_a_value_that_cannot_be_shown_does_not_stop_the_page():
         def __repr__(self) -> str:
             raise ValueError("kaputt")
 
-    assert ui._view_text(Bad()) == ui.t("(Wert nicht darstellbar)")
+    assert ui._view_text(Bad()) == ui.t("(value cannot be shown)")
 
 
 def test_every_formula_prefix_is_guarded_and_numbers_are_not():

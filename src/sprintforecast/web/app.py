@@ -42,7 +42,7 @@ pages = {
 }
 pages = {group: entries for group, entries in pages.items() if entries}
 for plugin_page in web_pages():
-    pages.setdefault(plugin_page.group, []).append(
+    pages.setdefault(t(plugin_page.group), []).append(
         st.Page(
             partial(run_plugin_page, plugin_page),
             title=plugin_page.title,
