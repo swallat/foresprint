@@ -3,6 +3,7 @@ import re
 import shutil
 from datetime import date
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 import yaml
@@ -1095,3 +1096,47 @@ def test_new_person_is_not_blamed_for_an_earlier_edit_of_the_session(data_dir: P
     assert result.exit_code == 1, result.output
     assert "fte 1.5" in result.output
     assert result.output.count("fte 1.5") == 1  # reported once, at the save
+
+
+def _complete(data_dir: Path, words: str, monkeypatch) -> list[str]:
+    """What bash would offer for ``words`` (the last word is the one being completed)."""
+    monkeypatch.setenv("SPRINTFORECAST_DATA", str(data_dir))
+    env = {
+        "_SPRINTFORECAST_COMPLETE": "complete_bash",
+        "COMP_WORDS": f"sprintforecast {words}",
+        "COMP_CWORD": str(len(words.split(" "))),
+    }
+    result = runner.invoke(app, [], env=env, prog_name="sprintforecast")
+    return result.output.split()
+
+
+def test_completion_offers_teams_and_sprints(data_dir: Path, monkeypatch):
+    assert _complete(data_dir, "forecast d", monkeypatch) == ["demo"]
+    sprints = _complete(data_dir, "absences demo 2026.2", monkeypatch)
+    assert "2026.21" in sprints and all(s.startswith("2026.2") for s in sprints)
+    assert _complete(data_dir, "absences nobody 2026", monkeypatch) == []
+    assert "completion" in _complete(data_dir, "compl", monkeypatch)
+
+
+def test_sprint_ids_sorted_naturally(tmp_path: Path):
+    from sprintforecast import completion
+
+    folder = tmp_path / "t" / "sprints"
+    folder.mkdir(parents=True)
+    for name in ("2026.10", "2026.9", "2026.1"):
+        (folder / f"{name}.yaml").write_text("", encoding="utf-8")
+
+    class Ctx:
+        params: ClassVar = {"team": "t"}
+
+        def find_root(self):
+            return type("R", (), {"params": {"data": str(tmp_path)}})()
+
+    assert completion.sprint_ids(Ctx(), "") == ["2026.1", "2026.9", "2026.10"]
+
+
+@pytest.mark.parametrize("shell", ["bash", "zsh", "fish", "powershell"])
+def test_completion_command_prints_script(shell: str):
+    result = runner.invoke(app, ["completion", shell, "--prog-name", "foresprint"])
+    assert result.exit_code == 0, result.output
+    assert "foresprint" in result.output and "_FORESPRINT_COMPLETE" in result.output

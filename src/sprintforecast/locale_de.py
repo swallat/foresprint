@@ -6,6 +6,10 @@ placeholders match.
 """
 
 DE: dict[str, str] = {
+    "Command name the script is registered for (default: the name used now).": "Befehlsname, für den das Skript gilt (Standard: der aktuell benutzte Name).",
+    "Shell the script is written for.": "Shell, für die das Skript gedacht ist.",
+    "Tab completion script (bash, zsh, fish, powershell); set up with --install-completion": "Skript für die Tab-Vervollständigung (bash, zsh, fish, powershell); einrichten mit --install-completion",
+    "Print the Tab completion script for a shell (bash, zsh, fish, powershell).": "Skript für die Tab-Vervollständigung einer Shell ausgeben (bash, zsh, fish, powershell).",
     "Only with product distribution switched on (settings). If the team looks after several products, the POs enter how much they plan per product – compared to the default (available amount / number of products).": "Nur mit eingeschalteter Produktverteilung (Einstellungen). Betreut das Team mehrere Produkte, tragen die POs ein, wie viel sie je Produkt vorsehen – im Vergleich zum Standard (verfügbare Menge / Anzahl Produkte).",
     "Only with product distribution switched on. Create new products (with PO if “PO assignment” is on) and start date; end handed-over ones with “until” instead of deleting – past reports are kept.": "Nur mit eingeschalteter Produktverteilung. Neue Produkte (mit PO, falls „Zuordnung PO“ an ist) und Beginn anlegen, abgegebene mit „bis“ beenden statt löschen – so bleiben vergangene Auswertungen erhalten.",
     "Feature areas": "Funktionsbereiche",
