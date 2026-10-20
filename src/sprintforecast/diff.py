@@ -41,7 +41,7 @@ class _Budget:
     def spend(self) -> None:
         self.left -= 1
         if self.left < 0:
-            raise TooComplex("zu viele Knoten")
+            raise TooComplex("too many nodes")
 
 
 def _same(a: Any, b: Any, budget: _Budget) -> bool:
@@ -212,7 +212,7 @@ def _load(text: str) -> Any:
     """Loads YAML once a cheap estimate of the nodes (lines, colons, commas) is within the
     limit: otherwise parsing is not worth it, the comparison refuses."""
     if text.count("\n") + text.count(":") + text.count(",") > MAX_NODES:
-        raise TooComplex("zu groß")
+        raise TooComplex("too large")
     return _parse(text)
 
 
