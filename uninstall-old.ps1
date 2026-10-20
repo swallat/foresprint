@@ -6,8 +6,10 @@
 # Parameters:
 #   -DryRun             change nothing, only list
 #   -Force              do not ask
-#   -RemoveOldConfig    also remove the old settings folder, but only after its files were copied
-#                       to the new one (default: keep it)
+#   -RemoveOldConfig    also remove the old settings folder after copying (files that exist in the
+#                       new folder are not overwritten, the old ones are deleted) (default: keep it)
+#
+# Close the old app first: Windows locks running programs.
 #
 # Never touched: the team data folder, the Jira token in the Credential Manager, Git
 # credentials, the new foresprint installation. The settings (data folder, plugin selection)
@@ -27,15 +29,30 @@ $actions = New-Object System.Collections.Generic.List[object]
 function Add-Action($kind, $path) { $actions.Add([pscustomobject]@{ Kind = $kind; Path = $path }) }
 
 # 1. uv tool (removes the commands sprintforecast.exe and sprintforecast-app.exe with it)
+$localBin = Join-Path $HOME ".local\bin"
+if (-not (Get-Command uv -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path $localBin "uv.exe"))) {
+    $env:Path = "$localBin;$env:Path"
+}
 if (Get-Command uv -ErrorAction SilentlyContinue) {
-    $tools = (& uv tool list 2>$null) -join "`n"
+    # uv writes warnings to stderr; under "Stop" Windows PowerShell 5.1 would abort on them.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { $tools = (& uv tool list 2>&1 | ForEach-Object { "$_" }) -join "`n" } finally { $ErrorActionPreference = $previous }
     if ($tools -match "(?m)^$old ") { Add-Action "tool" $old }
+} elseif (Test-Path (Join-Path $localBin "$old.exe")) {
+    Write-Host "Warning: uv not found, so the commands in $localBin cannot be removed; install uv or run 'uv tool uninstall $old'."
 }
 
 # 2. shortcuts on the desktop and in the Start menu
+$shell = New-Object -ComObject WScript.Shell
 foreach ($folder in "Desktop", "Programs") {
-    $link = Join-Path ([Environment]::GetFolderPath($folder)) "$oldApp.lnk"
-    if (Test-Path -LiteralPath $link) { Add-Action "file" $link }
+    $base = [Environment]::GetFolderPath($folder)
+    if (-not $base) { continue }
+    $link = Join-Path $base "$oldApp.lnk"
+    # only if it starts the old program
+    if ((Test-Path -LiteralPath $link) -and $shell.CreateShortcut($link).TargetPath -match "$old-app") {
+        Add-Action "file" $link
+    }
 }
 
 # 3. cache: browser profile of the app window and the logo (recreated on demand)

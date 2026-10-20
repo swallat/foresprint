@@ -47,7 +47,11 @@ It never deletes your data: the team data folder, the Jira token in the keychain
 credentials stay. The settings (data folder, plugin selection) are copied from the old to the
 new settings folder (`~/.config/sprintforecast` to `~/.config/foresprint`, on Windows
 `%APPDATA%`), existing files there are not overwritten. The old settings folder is kept unless
-you add `--remove-old-config` (`-RemoveOldConfig`), which removes it after copying. The
+you add `--remove-old-config` (`-RemoveOldConfig`), which removes it after copying (files that
+exist in the new folder are not overwritten, the old ones are deleted). Close the old app
+first, Windows locks running programs. The Jira token stays in the keychain under the old
+entry name `sprintforecast-jira`; plugins that pull the old package `sprintforecast` must be
+updated to the new one. The
 `PATH` entry made by `uv tool update-shell` belongs to `uv` and stays.
 
 The script lists what it would do and asks first; run it again at any time, it is harmless.

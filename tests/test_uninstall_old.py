@@ -28,7 +28,9 @@ def home(tmp_path: Path) -> Path:
     ):
         target.write_text('[Desktop Entry]\nExec="/uv/bin/sprintforecast-app"\n')
     (home / ".cache/sprintforecast/browser-profil").mkdir(parents=True)
-    (home / "Applications/Sprint-Forecast.app/Contents").mkdir(parents=True)
+    starter = home / "Applications/Sprint-Forecast.app/Contents/MacOS"
+    starter.mkdir(parents=True)
+    (starter / "Sprint-Forecast").write_text('#!/bin/sh\nexec "/uv/bin/sprintforecast-app"\n')
     # the new installation and the team data must survive
     (home / ".local/share/applications/foresprint.desktop").write_text("Exec=foresprint-app\n")
     (home / "sprint-daten").mkdir()
@@ -131,3 +133,20 @@ def test_needs_confirmation_without_terminal(home: Path):
     assert result.returncode == 1
     assert (home / ".cache/sprintforecast").exists()
     assert os.path.exists(home / "Desktop/sprintforecast.desktop")
+
+
+def test_help_and_failing_uv(home: Path):
+    assert "Usage" in run(home, "--help").stdout
+    uv = home.parent / "bin/uv"
+    uv.write_text('#!/bin/sh\nif [ "$2" = list ]; then echo "sprintforecast v1"; else exit 3; fi\n')
+    result = run(home, "--yes")
+    assert result.returncode == 1
+    assert "failed" in result.stderr
+
+
+def test_mac_bundle_checked(home: Path):
+    new = home / "Applications/Foresprint.app/Contents"
+    new.mkdir(parents=True)
+    run(home, "--yes")
+    assert new.exists()
+    assert not (home / "Applications/Sprint-Forecast.app").exists()
