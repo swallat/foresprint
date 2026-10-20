@@ -419,6 +419,10 @@ RULE_SOURCES: tuple[str, ...] = (
 RULE_FIELD_NAME = re.compile(r"[a-z][a-z0-9_]*$")
 
 
+# Words that cannot name a rule field: operators of the YAML form and keywords of the expressions.
+RULE_RESERVED: tuple[str, ...] = ("any", "all", "none", "and", "or", "not", "in")
+
+
 def rule_sources(rule_fields: dict[str, str] | None = None) -> tuple[str, ...]:
     """The sources a rule can name: the fixed ones and the configured rule fields."""
     return (*RULE_SOURCES, *(n for n in (rule_fields or {}) if n not in RULE_SOURCES))

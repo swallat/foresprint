@@ -132,3 +132,9 @@ def test_jira_field_values_become_texts():
     assert field_texts({"value": "Gold"}) == ["Gold"]
     assert field_texts([{"value": "A"}, {"name": "B"}, "A", 3.0]) == ["A", "B", "3"]
     assert field_texts(None) == [] and field_texts(True) == [] and field_texts("  ") == []
+
+
+def test_review_fixes_for_rule_fields():
+    from sprintforecast.sources.jira import field_texts
+
+    assert field_texts(1234567) == ["1234567"] and field_texts(2.5) == ["2.5"]

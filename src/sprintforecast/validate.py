@@ -27,6 +27,7 @@ from sprintforecast.git import blank_controls
 from sprintforecast.i18n import t
 from sprintforecast.model import (
     RULE_FIELD_NAME,
+    RULE_RESERVED,
     RULE_SOURCES,
     TRACKER_KINDS,
     Rule,
@@ -248,15 +249,26 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
         error("team.yaml", t("tracker.dependency_gap must be 0 or 1"))
     sources = rule_sources(tr.rule_fields)
     for name in tr.rule_fields:
-        if not RULE_FIELD_NAME.match(name) or name in RULE_SOURCES or name.endswith("_contains"):
+        if (
+            not RULE_FIELD_NAME.match(name)
+            or name in RULE_SOURCES
+            or name in RULE_RESERVED
+            or name.endswith("_contains")
+        ):
             error(
                 "team.yaml",
                 t(
                     "tracker.rule_fields: '{name}' is not allowed (lower-case words with "
-                    "digits and underscores, not one of {fixed}, not ending in _contains)",
+                    "digits and underscores, not one of {fixed}, not a keyword (and, or, not, in, any, "
+                    "all, none), not ending in _contains)",
                     name=name,
                     fixed=", ".join(RULE_SOURCES),
                 ),
+            )
+        elif not tr.rule_fields[name].strip():
+            error(
+                "team.yaml",
+                t("tracker.rule_fields: the field name of '{name}' is empty", name=name),
             )
     order = tr.project_match_order
     if any(s not in sources for s in order) or len(set(order)) != len(order):

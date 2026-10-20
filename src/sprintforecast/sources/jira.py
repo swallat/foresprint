@@ -372,7 +372,7 @@ def field_texts(value: Any) -> list[str]:
     if isinstance(value, str):
         return [value.strip()] if value.strip() else []
     if isinstance(value, int | float):
-        return [f"{value:g}"]
+        return [str(int(value)) if float(value).is_integer() else str(value)]
     if isinstance(value, dict):
         for key in ("value", "name", "displayName"):
             if isinstance(value.get(key), str) and value[key].strip():

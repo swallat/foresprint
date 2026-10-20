@@ -176,6 +176,16 @@ class CsvSource:
             for field_name, aliases in wanted.items():
                 if any(_norm(alias) == name for alias in aliases):
                     positions.setdefault(field_name, []).append(index)
+        for name in self.rule_fields:
+            if f"{EXTRA_PREFIX}{name}" not in positions:
+                raise SourceError(
+                    t(
+                        "{path}: column for the rule field '{name}' missing – expected {names}",
+                        path=self.path,
+                        name=name,
+                        names=" / ".join(f"„{a}“" for a in wanted[f"{EXTRA_PREFIX}{name}"]),
+                    )
+                )
         missing = [name for name in REQUIRED if name not in positions]
         if missing:
             raise SourceError(
