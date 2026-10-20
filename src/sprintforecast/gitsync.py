@@ -1158,7 +1158,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
     ref = f"refs/heads/{branch}"
     remote = current.remote or "origin"
     target = (current.upstream or "").partition("/")[2] or current.branch or "main"
-    subject = (title.strip().splitlines() or ["Changes"])[0]
+    subject = (title.strip().splitlines() or [t("Changes")])[0]
     if host == HOST_FORGEJO:
         proc = gitmod._git_result(
             root,

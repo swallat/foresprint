@@ -352,3 +352,8 @@ def test_cli_distribution_table_hides_po_when_off(data_dir: Path):
         line for line in off.output.splitlines() if "Produkt" in line and "Standard" in line
     )
     assert " PO " not in header
+
+
+def test_switch_settings_accept_the_german_words():
+    setting = next(s for s in SETTINGS if s.key == "features.po")
+    assert setting.parse("an") == "on" and setting.parse("aus") == "off"
