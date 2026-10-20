@@ -12,17 +12,27 @@ validate, forecast) never imports this module.
                     first (topological)
     Placement     = earliest sprint from (latest sprint of the dependencies + ``dependency_gap``)
                     whose free budget for the product suffices
+    Variants      = the same distribution with a conservative, median and optimistic plan per
+                    sprint (spec section 5.5); "median" is the Forecast PLAN as the forecast
+                    shows it, the others recalculate the plan like ``analysis.band``
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from enum import StrEnum
 
-from sprintforecast.analysis import HorizonEntry, horizon_entries, horizon_forecast
+from sprintforecast.analysis import (
+    HorizonEntry,
+    horizon_entries,
+    horizon_forecast,
+    normalized_history,
+    plan_at,
+)
 from sprintforecast.capacity import production_share
-from sprintforecast.engine import round_down
-from sprintforecast.forecast import lookup_sprint
+from sprintforecast.engine import round_down, round_half_up
+from sprintforecast.forecast import Forecast, lookup_sprint
 from sprintforecast.model import (
     BudgetBasis,
     EstimateSource,
@@ -42,6 +52,26 @@ LIGHTS: dict[str, str] = {
     "missed": "verfehlt",
     "empty": "leer",
 }
+
+
+class Variant(StrEnum):
+    """Which plan per sprint the distribution calculates with (spec section 5.5)."""
+
+    CONSERVATIVE = "conservative"
+    # The Forecast PLAN as the forecast shows it.
+    MEDIAN = "median"
+    OPTIMISTIC = "optimistic"
+
+
+# Display names of the variants: translated with t() on display.
+VARIANT_NAMES: dict[str, str] = {
+    "conservative": "konservativ",
+    "median": "Median",
+    "optimistic": "optimistisch",
+}
+
+# Order of the traffic lights from good to bad (``empty`` = project without open tickets).
+LIGHT_ORDER: tuple[str, ...] = ("empty", "on_track", "tight", "missed")
 
 # Why a ticket is in its sprint, or why it is not distributable.
 REASONS: dict[str, str] = {
@@ -176,6 +206,8 @@ class Distribution:
     later: dict[str, date | None] = field(default_factory=dict)
     # True when no sprint of the horizon has any budget at all (no past sprints, no forecast).
     no_forecast: bool = False
+    # The variant this distribution was calculated for.
+    variant: Variant = Variant.MEDIAN
 
     def placement(self, key: str) -> Placement | None:
         return next((p for p in self.placements if p.ticket == key), None)
@@ -232,12 +264,24 @@ def product_shares(data: TeamData, sprint: Sprint) -> dict[str | None, float]:
     return dict(standard_shares(active_products(data.products, sprint), 1.0))
 
 
-def budgets(data: TeamData, horizon: list[HorizonEntry]) -> list[Budget]:
-    """Budget per horizon sprint and product, before fixed points and distribution."""
+def variant_plans(data: TeamData, horizon: list[HorizonEntry], nvel: float) -> dict[str, float]:
+    """Plan of every horizon sprint for the normalized velocity ``nvel``: calculated like
+    ``analysis.band`` (capacity of the sprint; beyond the people list the average capacity of
+    the last sprints, as in ``plan_of``)."""
+    settings = data.team.forecast
+    return {h.sprint.id: max(plan_at(settings, nvel, h.capacity), 0.0) for h in horizon}
+
+
+def budgets(
+    data: TeamData, horizon: list[HorizonEntry], plans: dict[str, float] | None = None
+) -> list[Budget]:
+    """Budget per horizon sprint and product, before fixed points and distribution. ``plans``
+    replaces the Forecast PLAN per sprint id (variants); without it the plan of ``plan_of``
+    counts."""
     team = data.team
     result = []
     for h in horizon:
-        plan = plan_of(h, data)
+        plan = plan_of(h, data) if plans is None else plans.get(h.sprint.id)
         group = None
         if team.features.production and plan is not None:
             group = production_share(team, data.people, h.sprint)
@@ -310,30 +354,77 @@ def order_tickets(data: TeamData) -> tuple[list[Ticket], list[Ticket]]:
 # --- Size -----------------------------------------------------------------------------------
 
 
-def ticket_size(ticket: Ticket, data: TeamData) -> tuple[float | None, EstimateSource]:
+def ticket_size(
+    ticket: Ticket, data: TeamData, rough_factor: float = 1.0
+) -> tuple[float | None, EstimateSource]:
     """The number the distribution calculates with and where it comes from: the ticket's
     size by ``tracker.planning_uses``; a manual estimate of the PO replaces a missing size.
-    Rough values count as they are: ``tracker.rough_factor`` belongs to the conservative
-    variant (step 4), not to this distribution."""
+    Values count as they are unless ``rough_factor`` (the conservative variant passes
+    ``tracker.rough_factor``) is given: it multiplies rough estimates and estimates of
+    tickets whose refined status is unclear; refined and manual estimates are not inflated."""
     size = ticket.size(data.team.tracker.planning_uses)
     if size is None:
         manual = data.preplan.estimate_for(ticket.key)
         if manual is not None and manual.estimate is not None:
             return manual.estimate, EstimateSource.MANUAL
         return None, EstimateSource.NONE
-    return size, ticket.estimate_source
+    source = ticket.estimate_source
+    if rough_factor != 1.0 and (
+        source is EstimateSource.ROUGH
+        or (ticket.refined_unclear and source is not EstimateSource.MANUAL)
+    ):
+        size *= rough_factor
+    return size, source
 
 
 # --- Distribution ---------------------------------------------------------------------------
 
 
-def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distribution:
-    """Distributes the open tickets over the future sprints (spec section 5)."""
+def variant_velocity(history: list[float], variant: Variant) -> float | None:
+    """Normalized velocity a variant calculates with: the lowest (conservative) or highest
+    (optimistic) of the history like ``analysis.band``; None for the median (the Forecast
+    PLAN counts) and when the history is too short for a range (fewer than two values)."""
+    if variant is Variant.MEDIAN or len(history) < 2:
+        return None
+    return min(history) if variant is Variant.CONSERVATIVE else max(history)
+
+
+def distribute(
+    data: TeamData,
+    today: date,
+    max_sprints: int = 26,
+    variant: Variant | str = Variant.MEDIAN,
+) -> Distribution:
+    """Distributes the open tickets over the future sprints (spec section 5).
+
+    ``variant`` changes only the plan per sprint: ``median`` is the Forecast PLAN as the
+    forecast shows it; ``conservative`` and ``optimistic`` recalculate it from the lowest and
+    highest normalized velocity of the history (and need at least two values, otherwise a
+    ``ValueError`` is raised; :func:`distribute_variants` handles that case). The conservative
+    variant also inflates rough estimates by ``tracker.rough_factor``."""
+    variant = Variant(variant)
     fc = horizon_forecast(data, today, max_sprints)
     horizon = horizon_entries(fc, max_sprints)
+    nvel = variant_velocity(normalized_history(fc), variant)
+    if variant is not Variant.MEDIAN and nvel is None:
+        raise ValueError(f"variant {variant.value} needs at least two sprints with velocity")
+    return _distribute(data, today, fc, horizon, variant, nvel)
+
+
+def _distribute(
+    data: TeamData,
+    today: date,
+    fc: Forecast,
+    horizon: list[HorizonEntry],
+    variant: Variant,
+    nvel: float | None,
+) -> Distribution:
     sprints = [h.sprint for h in horizon]
     index = {s.id: i for i, s in enumerate(sprints)}
-    budget_list = budgets(data, horizon)
+    budget_list = budgets(
+        data, horizon, None if nvel is None else variant_plans(data, horizon, nvel)
+    )
+    rough_factor = data.team.tracker.rough_factor if variant is Variant.CONSERVATIVE else 1.0
     by_cell = {(b.sprint, b.product): b for b in budget_list}
     products = {p.id: p.product for p in data.projects}
     basis_of = {p.id: p.budget_basis or data.team.tracker.budget_basis for p in data.projects}
@@ -388,7 +479,7 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
             sprint, reason = earmark.sprint, "earmark"
         else:
             continue
-        size, source = ticket_size(tk, data)
+        size, source = ticket_size(tk, data, rough_factor)
         placements[tk.key] = Placement(tk.key, sprint, reason, size, source, tk.project)
         cell = by_cell.get((sprint, product_of(tk.project)))
         if cell is not None and size is not None:
@@ -404,7 +495,7 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
     for tk in ordered:
         if tk.key in placements:
             continue
-        size, source = ticket_size(tk, data)
+        size, source = ticket_size(tk, data, rough_factor)
         placement = Placement(tk.key, None, "placed", size, source, tk.project)
         placements[tk.key] = placement
         if tk.project is None or tk.project not in products:
@@ -444,7 +535,7 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
     for tk in leftover:
         if tk.key in placements:
             continue
-        size, source = ticket_size(tk, data)
+        size, source = ticket_size(tk, data, rough_factor)
         reason = "cycle" if tk.key in in_cycle else "blocked"
         placements[tk.key] = Placement(tk.key, None, reason, size, source, tk.project)
 
@@ -459,6 +550,7 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
             if p.sprint is not None and position(p.sprint) >= len(sprints)
         },
         no_forecast=not any(b.plan > _EPS for b in budget_list),
+        variant=variant,
     )
     length = data.team.sprint.length_days
     result.projects = [
@@ -468,6 +560,23 @@ def distribute(data: TeamData, today: date, max_sprints: int = 26) -> Distributi
     result.refinement = refinement_list(data, result, sprints)
     result.unclear = [tk.key for tk in open_tickets if tk.refined_unclear]
     return result
+
+
+def sprint_sums(dist: Distribution, sprint: str, data: TeamData) -> dict[str | None, float]:
+    """Amount per product that the tickets take up in ``sprint`` (tickets of the tracker, earmarks
+    and distributed tickets). A sprint outside the horizon (e.g. the one starting today) has no
+    budget; there only the tickets that sit in it according to the tracker or an earmark count."""
+    cells = {b.product: b.fixed + b.placed for b in dist.budgets if b.sprint == sprint}
+    if cells:
+        return cells
+    products = {p.id: p.product for p in data.projects}
+    sums: dict[str | None, float] = {}
+    for p in dist.placements:
+        if p.sprint != sprint or p.size is None or p.project not in products:
+            continue
+        product = products[p.project] if data.team.features.products else None
+        sums[product] = sums.get(product, 0.0) + p.size
+    return sums
 
 
 # --- Traffic light and refinement list ------------------------------------------------------
@@ -591,3 +700,235 @@ def refinement_list(
                 )
             )
     return result
+
+
+# --- Variants and range (spec section 5.5) ---------------------------------------------------
+
+
+@dataclass
+class Variants:
+    """The distribution under the three plans. The conservative and optimistic variants are
+    None when the range is unavailable (fewer than two sprints with velocity)."""
+
+    median: Distribution
+    conservative: Distribution | None = None
+    optimistic: Distribution | None = None
+    # Sprints with normalized velocity the range is calculated from.
+    samples: int = 0
+
+    @property
+    def available(self) -> bool:
+        """The range can be shown (all three variants exist)."""
+        return self.conservative is not None and self.optimistic is not None
+
+    def get(self, variant: Variant | str) -> Distribution | None:
+        return {
+            Variant.CONSERVATIVE: self.conservative,
+            Variant.MEDIAN: self.median,
+            Variant.OPTIMISTIC: self.optimistic,
+        }[Variant(variant)]
+
+    def items(self) -> list[tuple[Variant, Distribution]]:
+        """The existing variants from optimistic to conservative."""
+        order = (Variant.OPTIMISTIC, Variant.MEDIAN, Variant.CONSERVATIVE)
+        return [(v, d) for v in order if (d := self.get(v)) is not None]
+
+
+def distribute_variants(data: TeamData, today: date, max_sprints: int = 26) -> Variants:
+    """The distribution under the median (Forecast PLAN), conservative (lowest normalized
+    velocity, rough estimates inflated by ``tracker.rough_factor``) and optimistic plan. With
+    fewer than two sprints with velocity there is no range: only the median is returned."""
+    fc = horizon_forecast(data, today, max_sprints)
+    horizon = horizon_entries(fc, max_sprints)
+    history = normalized_history(fc)
+    median = _distribute(data, today, fc, horizon, Variant.MEDIAN, None)
+    if len(history) < 2:
+        return Variants(median, samples=len(history))
+    return Variants(
+        median,
+        conservative=_distribute(
+            data, today, fc, horizon, Variant.CONSERVATIVE,
+            variant_velocity(history, Variant.CONSERVATIVE),
+        ),
+        optimistic=_distribute(
+            data, today, fc, horizon, Variant.OPTIMISTIC,
+            variant_velocity(history, Variant.OPTIMISTIC),
+        ),
+        samples=len(history),
+    )  # fmt: skip
+
+
+def sprint_key(dist: Distribution, sprint_id: str) -> tuple[int, int]:
+    """Sort key of a sprint within a distribution: before the horizon (current or past sprint),
+    the horizon sprints in order, then sprints after the horizon by their last day (an unknown
+    sprint last)."""
+    if sprint_id in dist.sprints:
+        return 1, dist.sprints.index(sprint_id)
+    if sprint_id in dist.later:
+        last = dist.later[sprint_id]
+        return 2, (last or date.max).toordinal()
+    return 0, 0
+
+
+def _light_rank(light: str) -> int:
+    return LIGHT_ORDER.index(light)
+
+
+@dataclass
+class ProjectRange:
+    """Traffic light and last sprint of a project under every variant."""
+
+    project: str
+    # False: only the median exists (too little history), the range is that single value.
+    available: bool
+    # Per variant; only the variants that exist.
+    last_sprint: dict[Variant, str | None]
+    light: dict[Variant, str]
+    # Earliest and latest last sprint over the variants (greedy placement is not monotone
+    # across variants, so this is the minimum and maximum, not optimistic and conservative).
+    earliest: str | None
+    latest: str | None
+    # Best and worst traffic light over the variants (on_track < tight < missed).
+    best_light: str
+    worst_light: str
+    # False: in at least one variant a ticket of the project is not distributable, so
+    # ``latest`` is only the last sprint of the tickets that were placed.
+    complete: bool = True
+
+    @property
+    def light_range(self) -> tuple[str, str]:
+        return self.best_light, self.worst_light
+
+    @property
+    def uniform(self) -> bool:
+        """All variants have the same traffic light."""
+        return self.best_light == self.worst_light
+
+    @property
+    def on_track(self) -> bool:
+        """On track in the range sense: in every variant."""
+        return self.worst_light == "on_track"
+
+
+def project_range(variants: Variants, project_id: str) -> ProjectRange:
+    """Range of the project's last sprint and traffic light over the variants of ``variants``."""
+    rows: list[tuple[Variant, Distribution, ProjectStatus]] = []
+    for variant, dist in variants.items():
+        status = dist.status(project_id)
+        if status is None:
+            raise KeyError(project_id)
+        rows.append((variant, dist, status))
+    placed = [(d, st.last_sprint) for _, d, st in rows if st.last_sprint is not None]
+    keyed = sorted(placed, key=lambda x: sprint_key(x[0], x[1]))
+    lights = [st.light for _, _, st in rows]
+    return ProjectRange(
+        project=project_id,
+        available=variants.available,
+        last_sprint={v: st.last_sprint for v, _, st in rows},
+        light={v: st.light for v, _, st in rows},
+        earliest=keyed[0][1] if keyed else None,
+        latest=keyed[-1][1] if keyed else None,
+        best_light=min(lights, key=_light_rank),
+        worst_light=max(lights, key=_light_rank),
+        complete=all(st.not_distributable == 0 for _, _, st in rows),
+    )
+
+
+@dataclass
+class TicketRange:
+    """Sprint of one ticket under every variant."""
+
+    ticket: str
+    # Per variant; None = not placed in that variant.
+    sprints: dict[Variant, str | None]
+    # Earliest and latest sprint over the variants that placed the ticket.
+    earliest: str | None
+    latest: str | None
+    # False: at least one variant did not place the ticket.
+    complete: bool = True
+
+    @property
+    def fixed(self) -> bool:
+        """The ticket is in the same sprint in every variant."""
+        return self.complete and self.earliest == self.latest
+
+
+def ticket_range(variants: Variants, key: str) -> TicketRange | None:
+    """Earliest and latest sprint of a ticket over the variants; None for a ticket the
+    distribution does not know (done or unknown)."""
+    if variants.median.placement(key) is None:
+        return None
+    found: list[tuple[Distribution, str | None, Variant]] = []
+    for variant, dist in variants.items():
+        placement = dist.placement(key)
+        found.append((dist, placement.sprint if placement else None, variant))
+    placed = sorted(
+        ((d, sp) for d, sp, _ in found if sp is not None), key=lambda x: sprint_key(x[0], x[1])
+    )
+    return TicketRange(
+        ticket=key,
+        sprints={v: sp for _, sp, v in found},
+        earliest=placed[0][1] if placed else None,
+        latest=placed[-1][1] if placed else None,
+        complete=all(sp is not None for _, sp, _ in found),
+    )
+
+
+# --- Handover to the PO pre-planning (spec section 10, step 4) -------------------------------
+
+
+@dataclass
+class HandoverRow:
+    """What the distribution proposes as ``preplanned`` for one sprint and product."""
+
+    sprint: str
+    product: str
+    # Sum of the sizes of the tickets in the sprint, rounded to the team's precision.
+    proposed: float
+    # The value the PO pre-planning holds today; None = nothing entered (or no sprint file).
+    current: float | None = None
+
+    def action(self, overwrite: bool = False) -> str:
+        """``write`` (nothing entered yet), ``same`` (already equal), ``overwrite`` (a different
+        value entered and ``overwrite``) or ``keep`` (a different value entered: stays)."""
+        if self.current is None:
+            return "write"
+        if abs(self.current - self.proposed) < 1e-9:
+            return "same"
+        return "overwrite" if overwrite else "keep"
+
+    def writes(self, overwrite: bool = False) -> bool:
+        return self.action(overwrite) in ("write", "overwrite")
+
+
+def handover_rows(data: TeamData, dist: Distribution, sprint_count: int = 6) -> list[HandoverRow]:
+    """Per future sprint (the first ``sprint_count`` of the horizon) and product the sum of
+    the sizes of the tickets placed there (distributed, earmarked and fixed by the tracker),
+    as the distribution used them. Tickets of projects without a known product are left out;
+    sums that round to nothing are left out. Pure: nothing is written."""
+    products = {p.id: p.product for p in data.projects}
+    known = {p.id for p in data.products}
+    shown = dist.sprints[:sprint_count]
+    sums: dict[tuple[str, str], float] = {}
+    for p in dist.placements:
+        if p.reason not in PLACED_REASONS or p.sprint not in shown or p.size is None:
+            continue
+        product = products.get(p.project) if p.project else None
+        if product is None or product not in known:
+            continue
+        sums[(p.sprint, product)] = sums.get((p.sprint, product), 0.0) + p.size
+    digits = data.team.forecast.rounding
+    order = {p.id: i for i, p in enumerate(data.products)}
+    rows = []
+    for (sprint_id, product), total in sorted(
+        sums.items(), key=lambda kv: (shown.index(kv[0][0]), order[kv[0][1]])
+    ):
+        proposed = round_half_up(total, digits)
+        if proposed <= 0:
+            continue
+        sprint = data.sprint(sprint_id)
+        values = sprint.products.get(product) if sprint is not None else None
+        rows.append(
+            HandoverRow(sprint_id, product, proposed, values.preplanned if values else None)
+        )
+    return rows

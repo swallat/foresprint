@@ -35,6 +35,7 @@ from sprintforecast.excel import (
     SHEET_SETTINGS,
     SHEET_SPRINTS,
     SHEET_VALUES,
+    TEAM_PROPERTY,
     ExcelUnavailable,
 )
 from sprintforecast.i18n import t
@@ -228,7 +229,8 @@ class _Sheet:
         return day
 
 
-def _check_format(wb: Any) -> None:
+def _check_format(wb: Any) -> str | None:
+    """Prüft das Format; liefert den Team-Schlüssel der Mappe (None bei älteren Mappen)."""
     names = set(wb.sheetnames)
     needed = {SHEET_SETTINGS, SHEET_FORECAST, SHEET_SPRINTS, SHEET_PEOPLE, SHEET_PRODUCTS}
     if missing := sorted(needed - names):
@@ -239,10 +241,13 @@ def _check_format(wb: Any) -> None:
             )
         )
     version = None
+    file_team = None
     props = getattr(getattr(wb, "custom_doc_props", None), "props", None) or []
     for prop in props:
         if prop.name == FORMAT_PROPERTY:
             version = str(prop.value)
+        elif prop.name == TEAM_PROPERTY:
+            file_team = str(prop.value)
     if version is not None and version != FORMAT_VERSION:
         raise DataError(
             t(
@@ -251,6 +256,7 @@ def _check_format(wb: Any) -> None:
                 expected=FORMAT_VERSION,
             )
         )
+    return file_team
 
 
 _SETTING_INTS = {
@@ -596,13 +602,29 @@ def _sprints(wb: Any) -> list[Sprint]:
 
 def read_workbook(source: Path | bytes, team_key: str) -> TeamData:
     """Liest die Mappe in ein :class:`TeamData`; Fehler nennen Blatt und Zelle."""
+    return read_workbook_keyed(source, team_key)[0]
+
+
+def read_workbook_keyed(source: Path | bytes, team_key: str) -> tuple[TeamData, str | None]:
+    """Wie :func:`read_workbook`, liefert zusätzlich den Team-Schlüssel aus der Mappe.
+
+    ``None`` heißt: ältere Mappe ohne Schlüssel (Aufrufer warnen). Gehört die Mappe zu einem
+    anderen Team, ist das ein Fehler, damit kein Team die Daten eines anderen überschreibt."""
     openpyxl = _openpyxl()
     stream = io.BytesIO(source) if isinstance(source, bytes) else source
     try:
         wb = openpyxl.load_workbook(stream, data_only=True)
     except Exception as e:  # keine gültige xlsx-Datei
         raise DataError(t("Die Datei ist keine lesbare Excel-Mappe: {error}", error=e)) from e
-    _check_format(wb)
+    file_team = _check_format(wb)
+    if file_team is not None and file_team != team_key:
+        raise DataError(
+            t(
+                "Die Mappe stammt von Team {found}, importiert wird aber in Team {expected}.",
+                found=repr(file_team),
+                expected=repr(team_key),
+            )
+        )
     where = f"{SHEET_SETTINGS}"
     team = team_from_dict(team_key, _settings(_Sheet(wb[SHEET_SETTINGS])), where)
     data = TeamData(
@@ -611,7 +633,7 @@ def read_workbook(source: Path | bytes, team_key: str) -> TeamData:
         products=_products(_Sheet(wb[SHEET_PRODUCTS])),
         sprints=_sprints(wb),
     )
-    return data
+    return data, file_team
 
 
 @dataclass
