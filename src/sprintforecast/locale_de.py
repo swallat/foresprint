@@ -1986,4 +1986,10 @@ DE: dict[str, str] = {
     "Updating sprintforecast …": "sprintforecast wird aktualisiert …",
     "Done. This window closes in 15 seconds.": "Fertig. Dieses Fenster schließt sich in 15 Sekunden.",
     " (not looked after)": " (nicht betreut)",
+    "Set line endings": "Zeilenenden festlegen",
+    "This data folder does not say that YAML files and reports are always stored with LF. Without it, the first save on a machine with `core.autocrlf` (Windows) may rewrite every line ending and add noise to the history. This creates the file {file} with these lines:": "In diesem Datenordner fehlt die Festlegung, dass YAML-Dateien und Berichte immer mit LF gespeichert werden. Ohne sie schreibt das erste Speichern auf einem Rechner mit `core.autocrlf` (Windows) womöglich alle Zeilenenden um und erzeugt Rauschen im Verlauf. Angelegt wird die Datei {file} mit diesen Zeilen:",
+    "Affected ({count}): these tracked files are stored with CRLF in the repository and are converted to LF on the next save (a one-time, purely technical change of the line endings):": "Betroffen (Anzahl: {count}): Diese versionierten Dateien liegen mit CRLF im Repository und werden beim nächsten Speichern auf LF umgestellt (eine einmalige, rein technische Änderung der Zeilenenden):",
+    "No existing file changes because of this.": "Keine vorhandene Datei ändert sich dadurch.",
+    "Create `.gitattributes`": "`.gitattributes` anlegen",
+    "`.gitattributes` created. The change is listed among the open changes; “Save and share” takes it the usual way.": "`.gitattributes` angelegt. Die Änderung steht unter den offenen Änderungen; mit „Speichern und teilen“ geht sie den gewohnten Weg.",
 }

@@ -1845,6 +1845,91 @@ GITATTRIBUTES = """\
 """
 
 
+# The rules of GITATTRIBUTES, one by one: the line and a sample file for which ``git check-attr``
+# shows whether something (possibly elsewhere) already makes the same setting.
+ATTRIBUTE_RULES = (
+    ("*.yaml text eol=lf", "x.yaml"),
+    ("*.yml text eol=lf", "x.yml"),
+    ("*.md text eol=lf", "x.md"),
+)
+
+
+@dataclass(frozen=True)
+class AttributesOffer:
+    """The offer of a ``.gitattributes`` for an existing data repository: ``file`` is the file in
+    the data folder, ``rules`` the missing lines, ``affected`` the tracked files (relative to the
+    data folder) whose line endings are CRLF (or mixed) in the index and would be converted to LF
+    by the next commit once the rules apply."""
+
+    file: Path
+    rules: tuple[str, ...]
+    affected: tuple[str, ...]
+
+
+def _lf_covered(data: Path) -> set[str]:
+    """The sample files for which Git already applies ``eol=lf`` in the data folder."""
+    samples = [sample for _, sample in ATTRIBUTE_RULES]
+    out = _git(data, "check-attr", "-z", "eol", "--", *samples, strip=False)
+    fields = out.split("\0")
+    covered = set()
+    for i in range(0, len(fields) - 2, 3):  # path, attribute, value
+        if fields[i + 2] == "lf":
+            covered.add(fields[i])
+    return covered
+
+
+def attributes_offer(data: Path) -> AttributesOffer | None:
+    """Checks whether the data folder ``data`` (in a Git repository) lacks the setting "YAML and
+    reports with LF". ``None`` if everything is already covered, also by a ``.gitattributes``
+    elsewhere in the repository, or if there is no repository. Nothing is written."""
+    if repo_root(data) is None:
+        return None
+    covered = _lf_covered(data)
+    missing = tuple(rule for rule, sample in ATTRIBUTE_RULES if sample not in covered)
+    if not missing:
+        return None
+    # Python filters the patterns: Git runs with literal pathspecs here (no wildcards).
+    suffixes = tuple(rule.split()[0][1:] for rule, _ in ATTRIBUTE_RULES)
+    out = _git(data, "ls-files", "--eol", "-z", strip=False)
+    affected = []
+    for entry in out.split("\0"):
+        info, _, name = entry.partition("\t")
+        if info.split(" ", 1)[0] in ("i/crlf", "i/mixed") and name.endswith(suffixes):
+            affected.append(name)
+    return AttributesOffer(data / ".gitattributes", missing, tuple(sorted(affected)))
+
+
+def apply_attributes(data: Path) -> AttributesOffer | None:
+    """Writes the missing rules into the ``.gitattributes`` of the data folder (an existing file
+    is extended, nothing in it is changed) and stages the affected files for conversion
+    (``git add --renormalize``). Nothing is committed: the change shows up among the open changes
+    like any other and takes the same way (save and share, as a merge request if configured).
+    Returns the offer that was applied, ``None`` if there was nothing to do."""
+    offer = attributes_offer(data)
+    if offer is None:
+        return None
+    root = require_root(data)
+    previous = offer.file.read_bytes() if offer.file.exists() else None
+    try:
+        existing = previous.decode("utf-8") if previous is not None else ""
+        head = existing if not existing or existing.endswith("\n") else existing + "\n"
+        offer.file.write_text(head + "\n".join(offer.rules) + "\n", encoding="utf-8", newline="\n")
+        # Only the index knows a deletion that is not saved yet: ``git add`` would fail there.
+        names = [str((data / f).resolve()) for f in offer.affected if (data / f).exists()]
+        if names:
+            _git(root, "add", "--renormalize", "--", *names)
+    except BaseException:
+        # Leave nothing half done: without the file the offer stays valid.
+        if previous is None:
+            offer.file.unlink(missing_ok=True)
+        else:
+            offer.file.write_bytes(previous)
+        raise
+    finally:
+        invalidate_status()
+    return offer
+
+
 def folder_problem(path: Path, error: Exception) -> GitError:
     """A file system error on the folder ``path`` as a :class:`GitError` of kind ``folder`` with
     plain text (paths appear as code, because the message is shown as Markdown)."""
