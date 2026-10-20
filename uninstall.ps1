@@ -98,8 +98,7 @@ if ($DryRun) {
 
 if (-not $Force) {
     if ([Console]::IsInputRedirected) {
-        Write-Host "No terminal for the confirmation; use -Force or -DryRun."
-        exit 1
+        throw "No terminal for the confirmation; use -Force or -DryRun."
     }
     $answer = Read-Host "Proceed? [y/N]"
     if ($answer -notmatch '^(y|yes|j|ja)$') { Write-Host "Cancelled."; return }
@@ -107,7 +106,9 @@ if (-not $Force) {
 
 foreach ($a in $actions) {
     if ($a.Kind -eq "tool") {
-        & uv tool uninstall $a.Path
+        # uv reports on stderr; keep Windows PowerShell 5.1 from treating that as an error.
+        $ErrorActionPreference = "Continue"
+        try { & uv tool uninstall $a.Path 2>&1 | ForEach-Object { Write-Host "$_" } } finally { $ErrorActionPreference = "Stop" }
         if ($LASTEXITCODE -ne 0) { throw "uv tool uninstall failed (exit code $LASTEXITCODE); close the app and run again." }
         Write-Host "uv tool $($a.Path) removed"
     } else {
