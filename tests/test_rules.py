@@ -193,3 +193,12 @@ def test_invalid_rules_are_reported_by_the_check(data_dir: Path):
         for where, msg in messages
     )
     assert len(errors) == 3
+
+
+def test_contains_leaf_round_trips_through_yaml():
+    from sprintforecast.storage import _rule_from, _rule_to
+
+    rule = _rule_from({"label_contains": ["pay"]}, "x")
+    assert rule is not None and rule.contains and rule.source == "label"
+    assert rule.matches({"label": ["Payment"]})
+    assert _rule_to(rule) == {"label_contains": ["pay"]}

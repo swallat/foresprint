@@ -198,7 +198,7 @@ def known_epics(projects: list[Project]) -> set[str]:
     for p in projects:
         if p.match is not None:
             for leaf in p.match.leaves():
-                if leaf.source == "epic":
+                if leaf.source == "epic" and not leaf.contains:
                     found.update(leaf.values)
     return found
 
