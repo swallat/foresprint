@@ -1573,7 +1573,7 @@ div.st-key-board-nav [data-testid="stPageLink-NavLink"] p {
     margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-NavLink"] {
-    background: #2a78d6; border-color: #2a78d6; font-weight: 600;
+    background: #5b5bf0; border-color: #5b5bf0; font-weight: 600;
 }
 div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-NavLink"],
 div.st-key-board-nav [class*="st-key-board-active-"] [data-testid="stPageLink-NavLink"] * {
@@ -1635,7 +1635,7 @@ NO_VALUE = "–"
 
 # Categorical colors in a fixed order (product = catalog position); default is neutral.
 SERIES_COLORS = [
-    "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948",
+    "#5b5bf0", "#eb6834", "#17c3a0", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948",
 ]  # fmt: skip
 STANDARD_COLOR = "#9a9a94"
 MAX_PRODUCT_COLORS = len(SERIES_COLORS)
@@ -2030,7 +2030,7 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
             x=alt.X(f"{balance_label}:Q"),
             color=alt.Color(
                 f"{direction}:N",
-                scale=alt.Scale(domain=[more, less], range=["#2a78d6", "#e34948"]),
+                scale=alt.Scale(domain=[more, less], range=["#5b5bf0", "#e34948"]),
                 legend=alt.Legend(orient="top", title=None),
             ),
             tooltip=[c for c in frame.columns if c not in (direction, missing_col)],
