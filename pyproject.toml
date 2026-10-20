@@ -31,9 +31,10 @@ excel = [
     "openpyxl>=3.1",
     "xlsxwriter>=3.2",
 ]
-# Jira import (sprintforecast tickets --fetch); the OS keychain needs "keyring" in addition.
+# Jira import (sprintforecast tickets --fetch); "keyring" holds the token in the OS keychain.
 jira = [
     "httpx>=0.28",
+    "keyring>=25",
 ]
 
 [build-system]
@@ -43,6 +44,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "httpx>=0.28",
+    "keyring>=25",
     "openpyxl>=3.1",
     "playwright>=1.64.0",
     "pytest>=9.1.1",

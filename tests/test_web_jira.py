@@ -15,6 +15,7 @@ from ticketfixtures import enable
 
 from sprintforecast.model import TrackerFields, TrackerSettings
 from sprintforecast.sources import SourceError
+from sprintforecast.sources import jira as jira_module
 from sprintforecast.sources.jira import FieldCandidate, FieldSuggestions
 from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 from sprintforecast.web import jira_setup
@@ -26,10 +27,35 @@ CANARY = "tok-CANARY-0a1b2c3d4e5f"
 ENV = "SPRINTFORECAST_JIRA_TOKEN"
 
 
+class FakeKeyring:
+    """In-memory stand-in for the ``keyring`` module (the real one needs a desktop session)."""
+
+    def __init__(self) -> None:
+        self.entries: dict[tuple[str, str], str] = {}
+
+    def get_password(self, service: str, user: str) -> str | None:
+        return self.entries.get((service, user))
+
+    def set_password(self, service: str, user: str, password: str) -> None:
+        self.entries[(service, user)] = password
+
+    def delete_password(self, service: str, user: str) -> None:
+        del self.entries[(service, user)]
+
+
 @pytest.fixture(autouse=True)
 def no_token(english, monkeypatch: pytest.MonkeyPatch):
+    """By default: no environment variable and no keychain at all."""
     monkeypatch.delenv(ENV, raising=False)
-    monkeypatch.setattr(jira_setup, "jira_token", lambda base_url=None: None)
+    monkeypatch.setattr(jira_module, "_keyring", lambda: None)
+
+
+@pytest.fixture
+def keychain(monkeypatch: pytest.MonkeyPatch) -> FakeKeyring:
+    fake = FakeKeyring()
+    monkeypatch.setattr(jira_module, "_keyring", lambda: fake)
+    monkeypatch.setattr(jira_setup, "keychain_usable", lambda: True)
+    return fake
 
 
 def page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
@@ -47,7 +73,9 @@ def button(at: AppTest, label: str):
 
 
 def texts(at: AppTest) -> str:
-    parts = [e.value for e in (*at.markdown, *at.warning, *at.error, *at.success, *at.info)]
+    parts = [
+        e.value for e in (*at.markdown, *at.caption, *at.warning, *at.error, *at.success, *at.info)
+    ]
     parts += [c.value for c in at.code]
     return "\n".join(str(p) for p in parts)
 
@@ -107,11 +135,12 @@ def test_switched_off_there_is_no_page(data_dir: Path, monkeypatch):
     assert "jira" not in at.session_state["enabled-pages"]
 
 
-def test_without_token_the_page_explains_and_never_asks(data_dir: Path, monkeypatch):
+def test_without_keychain_there_is_only_a_hint(data_dir: Path, monkeypatch):
     enable(data_dir)
     at = page(data_dir, monkeypatch)
-    assert ENV in texts(at)
-    assert not any(getattr(w, "type", None) == "password" for w in at.text_input)
+    at = with_address(at)
+    assert ENV in texts(at) and "No usable keychain" in texts(at)
+    assert not any(w.proto.type == 1 for w in at.text_input)  # no masked input offered
     button(at, "Test connection").click().run()
     assert any("No token" in w.value for w in at.warning)
 
@@ -191,5 +220,106 @@ def test_connection_error_is_shown_without_the_token(data_dir: Path, monkeypatch
     at.text_input(key="jira-demo-url").set_value("https://jira.example.org")
     button(at, "Test connection").click().run()
     assert any("401" in e.value for e in at.error)
-    assert CANARY not in texts(at) and CANARY not in str([e.value for e in at.get("text_input")])
+    assert CANARY not in texts(at)
     assert "environment variable" in texts(at)  # found in the environment: reported, not shown
+
+
+# --- Token in the keychain ---------------------------------------------------------------------
+
+
+def with_address(at: AppTest) -> AppTest:
+    """The address is saved first (the token is kept per host, and the form is not live)."""
+    at.text_input(key="jira-demo-url").set_value("https://jira.example.org")
+    button(at, "Save").click().run()
+    assert not at.error, at.error
+    return at
+
+
+def masked(at: AppTest):
+    return next(w for w in at.text_input if w.proto.type == 1)  # TextInput.PASSWORD
+
+
+def every_file_text(root: Path) -> str:
+    return "\n".join(
+        p.read_text(encoding="utf-8", errors="ignore") for p in root.rglob("*") if p.is_file()
+    )
+
+
+def test_store_replace_and_remove_token(data_dir: Path, monkeypatch, keychain: FakeKeyring):
+    enable(data_dir)
+    at = page(data_dir, monkeypatch)
+    at = with_address(at)
+    assert "No token found" in texts(at)
+    masked(at).set_value(CANARY)
+    button(at, "Store in keychain").click().run()
+    assert not at.exception and not at.error, at.error
+    assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): CANARY}
+    assert "comes from the keychain" in texts(at)
+    # the secret is neither shown nor written anywhere in the data folder
+    assert CANARY not in texts(at) and CANARY not in every_file_text(data_dir)
+    assert all(CANARY not in str(w.value) for w in at.text_input)
+    assert not any(CANARY in str(v) for v in at.session_state.to_dict().values())
+    masked(at).set_value("tok-replacement-1")
+    button(at, "Replace in keychain").click().run()
+    assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): "tok-replacement-1"}
+    button(at, "Remove from keychain").click().run()
+    assert keychain.entries == {} and "No token found" in texts(at)
+
+
+def test_an_empty_or_invalid_token_is_refused_and_a_retry_works(
+    data_dir: Path, monkeypatch, keychain: FakeKeyring
+):
+    enable(data_dir)
+    at = page(data_dir, monkeypatch)
+    at = with_address(at)
+    button(at, "Store in keychain").click().run()
+    assert any("paste the token" in e.value for e in at.error) and not keychain.entries
+    masked(at).set_value("two words")
+    button(at, "Store in keychain").click().run()
+    assert at.error and not keychain.entries
+    # the invalid value does not linger in the session state
+    assert not any("two words" in str(v) for v in at.session_state.to_dict().values())
+    masked(at).set_value(CANARY)  # the retry after an error must not be lost
+    button(at, "Store in keychain").click().run()
+    assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): CANARY}
+    assert not any(CANARY in str(v) for v in at.session_state.to_dict().values())
+
+
+def test_the_environment_variable_takes_precedence(
+    data_dir: Path, monkeypatch, keychain: FakeKeyring
+):
+    enable(data_dir)
+    keychain.entries[("sprintforecast-jira", "jira.example.org")] = "tok-stored"
+    monkeypatch.setenv(ENV, CANARY)
+    at = page(data_dir, monkeypatch)
+    at = with_address(at)
+    shown = texts(at)
+    assert "environment variable" in shown and "stored in the keychain exists too" in shown
+    assert CANARY not in shown and "tok-stored" not in shown
+
+
+def test_the_token_needs_an_address_first(data_dir: Path, monkeypatch, keychain: FakeKeyring):
+    enable(data_dir)
+    at = page(data_dir, monkeypatch)
+    assert "first enter the address" in texts(at)
+    assert not any(w.proto.type == 1 for w in at.text_input)
+
+
+def test_refined_label_and_match_order_are_saved(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    at = page(data_dir, monkeypatch)
+    at.text_input(key="jira-demo-refined").set_value("Ready")
+    at.selectbox(key="jira-demo-order").select(("label", "epic", "component"))
+    button(at, "Save").click().run()
+    assert not at.exception and not at.error, at.error
+    saved = tracker_yaml(data_dir)
+    assert saved["refined_label"] == "Ready"
+    assert saved["project_match_order"] == ["label", "epic", "component"]
+
+
+def test_match_orders_keep_an_unusual_current_order():
+    assert jira_setup.match_orders(["epic", "component", "label"])[0] == (
+        "epic", "component", "label",
+    )  # fmt: skip
+    odd = jira_setup.match_orders(["epic"])
+    assert odd[0] == ("epic",) and len(odd) == 7

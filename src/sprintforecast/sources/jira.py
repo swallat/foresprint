@@ -14,6 +14,7 @@ optional package ``keyring``, from the operating system keychain."""
 
 from __future__ import annotations
 
+import contextlib
 import difflib
 import math
 import os
@@ -156,6 +157,58 @@ def jira_token(base_url: str | None = None) -> str | None:
     except Exception:  # any backend problem simply means "no stored token"
         return None
     return (stored or "").strip() or None
+
+
+# Backends that are the operating system's own keychain. Anything else (the file based stores of
+# ``keyrings.alt``, a test double ...) is a substitute store and does not count as usable.
+OS_KEYCHAIN_MODULES = (
+    "keyring.backends.macOS",
+    "keyring.backends.Windows",
+    "keyring.backends.SecretService",
+    "keyring.backends.kwallet",
+    "keyring.backends.libsecret",
+)
+
+
+def keychain_usable() -> bool:
+    """Is there a keychain of the operating system that can hold a token: ``keyring`` is
+    installed and its backend is a real OS one (not the "fail" backend that headless Linux without
+    Secret Service ends up with, and not a file based substitute store)?"""
+    keyring = _keyring()
+    if keyring is None:
+        return False
+    try:
+        from keyring.backends import chainer
+
+        backend = keyring.get_keyring()
+        candidates = backend.backends if isinstance(backend, chainer.ChainerBackend) else [backend]
+        return any(type(b).__module__.startswith(OS_KEYCHAIN_MODULES) for b in candidates)
+    except Exception:  # any backend problem simply means "not usable"
+        return False
+
+
+def stored_token_exists(base_url: str | None) -> bool:
+    """Is there a keychain entry for the host of ``base_url``? Never returns the token."""
+    keyring = _keyring()
+    if keyring is None or not base_url:
+        return False
+    try:
+        return bool(keyring.get_password(KEYRING_SERVICE, keychain_user(base_url)))
+    except Exception:
+        return False
+
+
+def delete_token(base_url: str) -> None:
+    """Removes the keychain entry of the host of ``base_url`` (no error if there is none)."""
+    keyring = _keyring()
+    if keyring is None:
+        raise keyring_missing_error()
+    user = keychain_user(base_url)
+    # "no entry" is fine; the backend's message could contain anything
+    with contextlib.suppress(Exception):
+        keyring.delete_password(KEYRING_SERVICE, user)
+    if stored_token_exists(base_url):  # a locked or denied keychain must not look like success
+        raise SourceError(t("The keychain did not remove the token."))
 
 
 def keyring_missing_error() -> SourceError:
@@ -960,14 +1013,18 @@ class JiraSource:
 __all__ = [
     "ALLOWED_METHODS",
     "KEYRING_SERVICE",
+    "OS_KEYCHAIN_MODULES",
     "TOKEN_ENV",
     "JiraSource",
     "ResolvedFields",
     "SprintValue",
     "choose_sprint",
+    "delete_token",
     "jira_token",
+    "keychain_usable",
     "keyring_available",
     "keyring_missing_error",
     "parse_sprint",
     "store_token",
+    "stored_token_exists",
 ]
