@@ -87,10 +87,13 @@ def test_field_options_keeps_the_current_value_and_marks_the_suggestion():
     options = field_options(SUGGESTIONS.estimate, "Old Name")
     assert [v for v, _ in options] == ["", "Old Name", "Story Points", "customfield_10100"]
     assert "suggestion" in options[2][1] and "suggestion" not in options[3][1]
-    # a current value that is a candidate (by name or id) is not listed twice
-    assert [v for v, _ in field_options(SUGGESTIONS.estimate, "customfield_10016")].count(
+    # a current value that is a candidate's value is not listed twice
+    assert [v for v, _ in field_options(SUGGESTIONS.estimate, "Story Points")].count(
         "Story Points"
     ) == 1
+    # a field stored by its id stays selectable as the current setting (never silently cleared)
+    by_id = field_options(SUGGESTIONS.estimate, "customfield_10016")
+    assert ("customfield_10016", "customfield_10016 (current setting)") in by_id
 
 
 # --- Page --------------------------------------------------------------------------------------
