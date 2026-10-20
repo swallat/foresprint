@@ -96,8 +96,9 @@ also after `--data`) in bash, zsh, fish and PowerShell. Set it up once for the c
 sprintforecast --install-completion
 ```
 
-and open a new terminal. The installers do this when started with `SPRINTFORECAST_COMPLETION=1`
-(PowerShell: `$env:SPRINTFORECAST_COMPLETION = "1"`). To manage the script yourself, print it with
+and open a new terminal. `install.ps1` does this when started with
+`$env:SPRINTFORECAST_COMPLETION = "1"`; `install.sh` only prints the hint, because the shell cannot be
+detected when the script is piped to `sh`. To manage the script yourself, print it with
 `sprintforecast completion bash|zsh|fish|powershell` (e.g. `eval "$(sprintforecast completion
 bash)"` in `~/.bashrc`; `--prog-name NAME` registers it for another command name). Completion
 starts the program on every Tab and answers in about a quarter of a second.

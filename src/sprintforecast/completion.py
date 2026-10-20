@@ -24,7 +24,8 @@ class Shell(StrEnum):
 
 def prog_name() -> str:
     """Name the program was started with (``sprintforecast``, ``foresprint``, ...)."""
-    return Path(sys.argv[0]).stem or "sprintforecast"
+    name = Path(sys.argv[0]).stem
+    return name if name and name != "__main__" else "sprintforecast"
 
 
 def complete_var(prog: str) -> str:
