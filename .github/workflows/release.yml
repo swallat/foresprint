@@ -61,3 +61,26 @@ jobs:
             gh release create "$TAG" "${files[@]}" --verify-tag --title "${TAG#v}" \
               --generate-notes "$latest"
           fi
+
+  # Publishes the files built above on PyPI through Trusted Publishing (OIDC, no API token).
+  # Needs the environment "pypi" and a trusted publisher entry on pypi.org, see docs/releasing.md.
+  # Skipped for a manual run on a tag that was already published (use "Run workflow" only for
+  # the release page); PyPI refuses files of an existing version anyway (skip-existing).
+  publish-pypi:
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/foresprint/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Check the files
+        run: pipx run twine check --strict dist/*
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
