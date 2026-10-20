@@ -24,7 +24,7 @@ about [plugins](plugins.md#plugins-with-the-installer) and remembers the answer;
 environment variables `SPRINTFORECAST_WITH`, `SPRINTFORECAST_REF` and `SPRINTFORECAST_NO_SHORTCUT`
 skip the prompt.
 
-Remove: `uv tool uninstall sprintforecast`.
+Remove: see [Uninstalling](#uninstalling).
 
 From PyPI (once the package is published, see [releasing.md](releasing.md)):
 `pipx install "foresprint[web,excel,jira]"` or `uv tool install "foresprint[web,excel,jira]"`.
@@ -37,44 +37,42 @@ uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/for
 
 The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `SPRINTFORECAST_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
 
-## Removing the old name (sprintforecast)
+## Uninstalling
 
-The tool was renamed to **Foresprint** (command `foresprint`). An installation under the old
-name keeps running side by side with the new one until you remove it. The uninstaller removes
-only what the old installer created: the `uv` tool `sprintforecast` (with its commands
-`sprintforecast` and `sprintforecast-app`), the launcher "Sprint-Forecast" (desktop and Start
-menu on Windows, `~/Applications` and the desktop alias on macOS, `sprintforecast.desktop` on
-Linux) and the cache folder with the app window's browser profile.
+One script removes Foresprint and also any installation under the old name (**sprintforecast**),
+so it fits both a plain uninstall and the cleanup after the rename. It removes only what the
+installers created, under both names: the `uv` tool (with its commands `foresprint`,
+`foresprint-app`, `sprintforecast`, `sprintforecast-app`), the launchers (desktop and Start menu
+on Windows, `~/Applications` and the desktop alias on macOS, `.desktop` files on Linux; a
+launcher is only removed if it starts one of these programs) and the cache folder with the app
+window's browser profile.
 
 It never deletes your data: the team data folder, the Jira token in the keychain and Git
-credentials stay. The settings (data folder, plugin selection) are copied from the old to the
-new settings folder (`~/.config/sprintforecast` to `~/.config/foresprint`, on Windows
-`%APPDATA%`), existing files there are not overwritten. The old settings folder is kept unless
-you add `--remove-old-config` (`-RemoveOldConfig`), which removes it after copying (files that
-exist in the new folder are not overwritten, the old ones are deleted). Close the old app
-first, Windows locks running programs. The Jira token stays in the keychain under the old
-entry name `sprintforecast-jira`; plugins that pull the old package `sprintforecast` must be
-updated to the new one. The
-`PATH` entry made by `uv tool update-shell` belongs to `uv` and stays.
+credentials stay. The settings (`~/.config/foresprint` and `~/.config/sprintforecast`, on
+Windows `%APPDATA%`: data folder choice, plugin selection) stay as well, so a later
+installation finds them again; `--remove-config` (`-RemoveConfig`) removes them too. The
+`PATH` entry made by `uv tool update-shell` belongs to `uv` and stays. Plugins that pull the old
+package `sprintforecast` must be updated to the new one.
 
-The script lists what it would do and asks first; run it again at any time, it is harmless.
+The script lists what it would do and asks first (without a terminal it refuses to proceed
+unless you pass `--yes`/`-Force`). Close the app first, Windows locks running programs. Run it
+again at any time, it is harmless.
 
 **Linux / macOS:**
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.sh | sh -s -- --dry-run
-curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.sh | sh -s -- --yes
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.sh | sh -s -- --dry-run
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.sh | sh -s -- --yes
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.ps1))) -DryRun"
-powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.ps1))) -Force"
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -DryRun"
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -Force"
 ```
 
-`--dry-run` / `-DryRun` only lists, `--yes` / `-Force` skips the question. Without a terminal
-(for example in a pipe without `/dev/tty`) it refuses to proceed without that option.
+`--dry-run` / `-DryRun` only lists, `--yes` / `-Force` skips the question.
 
 ## Git
 
