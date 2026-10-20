@@ -309,7 +309,10 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
         elif pr.product:
             error(where, t("product must be empty (the product distribution is off)"))
         if pr.target is None:
-            error(where, t("target is missing"))
+            warn(
+                where,
+                t("target is missing: the project is distributed last and has no deadline to miss"),
+            )
         elif pr.target < today:
             warn(where, t("target {date} lies in the past", date=pr.target))
         if pr.match is not None:

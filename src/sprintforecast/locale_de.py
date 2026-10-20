@@ -1673,7 +1673,7 @@ DE: dict[str, str] = {
     "several earmarks for the same ticket": "mehrere Vormerkungen für dasselbe Ticket",
     "product is missing (the product distribution is on)": "product fehlt (die Produktverteilung ist an)",
     "product must be empty (the product distribution is off)": "product muss leer sein (die Produktverteilung ist aus)",
-    "target is missing": "target fehlt",
+    "target is missing: the project is distributed last and has no deadline to miss": "target fehlt: das Projekt wird zuletzt verteilt und hat keinen Termin",
     "target {date} lies in the past": "target {date} liegt in der Vergangenheit",
     "tracker.dependency_gap must be 0 or 1": "tracker.dependency_gap muss 0 oder 1 sein",
     "tracker.project_match_order: only sources from {allowed}, each at most once": "tracker.project_match_order: nur Quellen aus {allowed}, jede höchstens einmal",
