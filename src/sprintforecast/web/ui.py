@@ -269,7 +269,7 @@ from sprintforecast.storage import (
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
-from sprintforecast.web.icons import status_icon
+from sprintforecast.web.icons import DONE_ICON, status_icon
 from sprintforecast.web.lazy import LazyModule
 from sprintforecast.web.logic import (
     CALENDAR_COLUMNS,
