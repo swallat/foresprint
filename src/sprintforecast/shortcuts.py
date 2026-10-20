@@ -64,7 +64,7 @@ def desktop_entry(program: str, icon: str = "office-calendar") -> str:
         "[Desktop Entry]\n"
         "Type=Application\n"
         f"Name={APP_NAME}\n"
-        f"Comment={t('Velocity- und Kapazitäts-Forecast')}\n"
+        f"Comment={t('Velocity and capacity forecast')}\n"
         f'Exec="{program}"\n'
         f"Icon={icon}\n"
         "Terminal=false\n"
@@ -105,8 +105,10 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
     if program is None:
         raise RuntimeError(
             t(
-                "{program} nicht gefunden – bitte sprintforecast mit dem Installationsskript "
-                "installieren bzw. aktualisieren.",
+                (
+                    "{program} not found – please install or update sprintforecast with the "
+                    "install script."
+                ),
                 program=APP_SCRIPT,
             )
         )
@@ -124,7 +126,7 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or t("Verknüpfung nicht angelegt"))
+            raise RuntimeError(proc.stderr.strip() or t("Shortcut not created"))
         return [Path(line) for line in proc.stdout.splitlines() if line.strip()]
     if platform == "darwin":
         bundle = mac_bundle(home / "Applications", program, write_icon(icon_dir(), "icns"))

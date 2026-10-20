@@ -47,10 +47,10 @@ from sprintforecast.validate import find_cycles
 
 # Traffic light per project (spec section 5.3): display texts, translated with t() on display.
 LIGHTS: dict[str, str] = {
-    "on_track": "im Plan",
-    "tight": "knapp",
-    "missed": "verfehlt",
-    "empty": "leer",
+    "on_track": "on track",
+    "tight": "tight",
+    "missed": "missed",
+    "empty": "empty",
 }
 
 
@@ -65,9 +65,9 @@ class Variant(StrEnum):
 
 # Display names of the variants: translated with t() on display.
 VARIANT_NAMES: dict[str, str] = {
-    "conservative": "konservativ",
-    "median": "Median",
-    "optimistic": "optimistisch",
+    "conservative": "conservative",
+    "median": "median",
+    "optimistic": "optimistic",
 }
 
 # Order of the traffic lights from good to bad (``empty`` = project without open tickets).
@@ -75,24 +75,24 @@ LIGHT_ORDER: tuple[str, ...] = ("empty", "on_track", "tight", "missed")
 
 # Why a ticket is in its sprint, or why it is not distributable.
 REASONS: dict[str, str] = {
-    "placed": "verteilt",
-    "fixed_sprint": "Sprint laut Ticketsystem",
-    "earmark": "Vormerkung",
-    "unestimated": "ungeschätzt",
-    "too_large": "zu groß, bitte teilen",
-    "no_budget": "kein Budget",
-    "no_project": "ohne Projekt",
-    "cycle": "Abhängigkeiten im Kreis",
-    "blocked": "Abhängigkeit nicht verteilbar",
-    "beyond_horizon": "außerhalb des Zeitraums",
+    "placed": "distributed",
+    "fixed_sprint": "sprint according to the tracker",
+    "earmark": "earmark",
+    "unestimated": "unestimated",
+    "too_large": "too large, please split",
+    "no_budget": "no budget",
+    "no_project": "without project",
+    "cycle": "circular dependencies",
+    "blocked": "dependency not distributable",
+    "beyond_horizon": "beyond the horizon",
 }
 
 # Where the estimate the distribution calculates with comes from.
 SOURCES: dict[str, str] = {
     "refined": "refined",
-    "rough": "grob geschätzt",
-    "manual": "eigene Schätzung",
-    "none": "ohne Schätzung",
+    "rough": "rough estimate",
+    "manual": "own estimate",
+    "none": "no estimate",
 }
 
 # Reasons of a ticket that is in a sprint (fixed or distributed).

@@ -108,7 +108,7 @@ class CsvSource:
         try:
             header = next(reader)
         except StopIteration:
-            raise SourceError(t("{path}: Die Datei ist leer", path=self.path)) from None
+            raise SourceError(t("{path}: The file is empty", path=self.path)) from None
         except csv.Error as e:
             raise self._csv_error(e, 1) from e
         columns = self._columns(header)
@@ -129,7 +129,7 @@ class CsvSource:
     def _csv_error(self, error: csv.Error, line: int) -> SourceError:
         return SourceError(
             t(
-                "{path}, Zeile {line}: Die Datei ist keine gültige CSV-Datei ({error})",
+                "{path}, line {line}: The file is not valid CSV ({error})",
                 path=self.path,
                 line=line,
                 error=error,
@@ -141,11 +141,11 @@ class CsvSource:
             return self.path.read_text(encoding="utf-8-sig")
         except UnicodeDecodeError as e:
             raise SourceError(
-                t("{path}: Die Datei ist nicht UTF-8-kodiert ({error})", path=self.path, error=e)
+                t("{path}: The file is not UTF-8 encoded ({error})", path=self.path, error=e)
             ) from e
         except OSError as e:
             raise SourceError(
-                t("{path}: Datei nicht lesbar: {error}", path=self.path, error=e.strerror or e)
+                t("{path}: file not readable: {error}", path=self.path, error=e.strerror or e)
             ) from e
 
     def _columns(self, header: list[str]) -> dict[str, list[int]]:
@@ -154,8 +154,10 @@ class CsvSource:
         if not self.fields.estimate:
             raise SourceError(
                 t(
-                    "{path}: Der Feldname der Schätzung ist nicht eingestellt "
-                    "(tracker.fields.estimate in team.yaml)",
+                    (
+                        "{path}: The field name of the estimate is not configured "
+                        "(tracker.fields.estimate in team.yaml)"
+                    ),
                     path=self.path,
                 )
             )
@@ -171,7 +173,7 @@ class CsvSource:
             raise SourceError(
                 "\n".join(
                     t(
-                        "{path}: Spalte fehlt – erwartet {names}",
+                        "{path}: column missing – expected {names}",
                         path=self.path,
                         names=" / ".join(f"„{alias}“" for alias in wanted[name]),
                     )
@@ -199,7 +201,7 @@ class CsvSource:
             except ValueError:
                 raise SourceError(
                     t(
-                        "{path}, Zeile {line}: '{value}' in Spalte „{column}“ ist keine Zahl",
+                        "{path}, line {line}: '{value}' in column “{column}” is not a number",
                         path=self.path,
                         line=line,
                         value=found[0],
@@ -211,7 +213,7 @@ class CsvSource:
             if value is not None and value < 0:
                 raise SourceError(
                     t(
-                        "{path}, Zeile {line}: '{value}' in Spalte „{column}“ ist negativ",
+                        "{path}, line {line}: '{value}' in column “{column}” is negative",
                         path=self.path,
                         line=line,
                         value=found[0],
@@ -222,7 +224,7 @@ class CsvSource:
 
         key = single("key")
         if key is None:
-            raise SourceError(t("{path}, Zeile {line}: Schlüssel fehlt", path=self.path, line=line))
+            raise SourceError(t("{path}, line {line}: key is missing", path=self.path, line=line))
         sprints = values("sprint")
         return RawTicket(
             key=key,

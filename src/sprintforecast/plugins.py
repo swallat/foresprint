@@ -33,7 +33,7 @@ class WebPage:
     title: str
     icon: str  # z. B. ":material/upload_file:"
     render: Callable[[Repository], None]
-    group: str = "Daten & Hilfe"
+    group: str = "Data & help"
 
 
 @dataclass(frozen=True)

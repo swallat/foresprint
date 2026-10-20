@@ -26,6 +26,7 @@ from sprintforecast.excel import (
     FORECAST_FIRST_ROW,
     FORMAT_PROPERTY,
     FORMAT_VERSION,
+    LEGACY_SHEETS,
     SETTINGS_FIRST_ROW,
     SHEET_ABSENCES,
     SHEET_FORECAST,
@@ -75,10 +76,7 @@ def _openpyxl() -> Any:
         import openpyxl
     except ImportError as e:
         raise ExcelUnavailable(
-            t(
-                "Der Excel-Import braucht openpyxl: sprintforecast mit dem Zusatz [excel] "
-                "installieren."
-            )
+            t("The Excel import needs openpyxl: install sprintforecast with the [excel] extra.")
         ) from e
     return openpyxl
 
@@ -95,7 +93,7 @@ def check_sprint_id(sprint_id: str, where: str) -> str:
     if problem := file_name_problem(sprint_id):
         raise DataError(
             t(
-                "{where}: Sprint-ID {id} ist nicht zulässig ({problem})",
+                "{where}: sprint ID {id} is not allowed ({problem})",
                 where=where,
                 id=repr(sprint_id),
                 problem=problem,
@@ -146,7 +144,7 @@ class _Sheet:
             # Text, Wahrheitswert, NaN oder unendlich: keine Zahl, mit der gerechnet werden darf.
             raise DataError(
                 t(
-                    "{where}: eine endliche Zahl erwartet, gefunden: {value}",
+                    "{where}: a finite number expected, found: {value}",
                     where=self.where(number, col),
                     value=repr(value)[:60],
                 )
@@ -154,7 +152,7 @@ class _Sheet:
         if abs(result) > MAX_NUMBER:
             raise DataError(
                 t(
-                    "{where}: Zahl außerhalb des zulässigen Bereichs (höchstens {limit}): {value}",
+                    "{where}: number outside the allowed range (at most {limit}): {value}",
                     where=self.where(number, col),
                     limit=f"{MAX_NUMBER:g}",
                     value=repr(value)[:60],
@@ -177,7 +175,7 @@ class _Sheet:
             return False
         raise DataError(
             t(
-                "{where}: ja oder nein (WAHR oder FALSCH) erwartet, gefunden: {value}",
+                "{where}: yes or no (TRUE or FALSE) expected, found: {value}",
                 where=self.where(number, col),
                 value=repr(value),
             )
@@ -190,8 +188,10 @@ class _Sheet:
         if (isinstance(value, float) and not value.is_integer()) or isinstance(value, datetime):
             raise DataError(
                 t(
-                    "{where}: Text erwartet (Zahlen und Datumswerte bitte als Text eintragen, "
-                    "z. B. 2026.20 in Anführungszeichen oder mit vorangestelltem ' )",
+                    (
+                        "{where}: text expected (enter numbers and dates as text, e.g. 2026.20 "
+                        "in quotes or with a leading ' )"
+                    ),
                     where=self.where(number, col),
                 )
             )
@@ -211,7 +211,7 @@ class _Sheet:
             except ValueError:
                 raise DataError(
                     t(
-                        "{where}: Datum erwartet, gefunden: {value}",
+                        "{where}: date expected, found: {value}",
                         where=self.where(number, col),
                         value=repr(value)[:60],
                     )
@@ -219,7 +219,7 @@ class _Sheet:
         if not MIN_YEAR <= day.year <= MAX_YEAR:
             raise DataError(
                 t(
-                    "{where}: Datum außerhalb von {first} bis {last}: {value}",
+                    "{where}: date outside {first} to {last}: {value}",
                     where=self.where(number, col),
                     first=MIN_YEAR,
                     last=MAX_YEAR,
@@ -231,12 +231,15 @@ class _Sheet:
 
 def _check_format(wb: Any) -> str | None:
     """Prüft das Format; liefert den Team-Schlüssel der Mappe (None bei älteren Mappen)."""
+    for old, new in LEGACY_SHEETS.items():
+        if old in wb.sheetnames and new not in wb.sheetnames:
+            wb[old].title = new
     names = set(wb.sheetnames)
     needed = {SHEET_SETTINGS, SHEET_FORECAST, SHEET_SPRINTS, SHEET_PEOPLE, SHEET_PRODUCTS}
     if missing := sorted(needed - names):
         raise DataError(
             t(
-                "Keine Excel-Ausgabe von sprintforecast: Blatt/Blätter fehlen: {missing}",
+                "Not an Excel output of sprintforecast: missing sheet(s): {missing}",
                 missing=", ".join(missing),
             )
         )
@@ -251,7 +254,7 @@ def _check_format(wb: Any) -> str | None:
     if version is not None and version != FORMAT_VERSION:
         raise DataError(
             t(
-                "Die Mappe hat das Format {found}, dieses Programm liest Format {expected}.",
+                "The workbook has format {found}; this program reads format {expected}.",
                 found=version,
                 expected=FORMAT_VERSION,
             )
@@ -301,7 +304,7 @@ def _settings(sh: _Sheet) -> dict[str, Any]:
             if isinstance(path, str) and path and sh.get(row, 1) is not None and "." in path:
                 raise DataError(
                     t(
-                        "{where}: unbekannter Schlüssel {key}",
+                        "{where}: unknown key {key}",
                         where=sh.where(number, 2),
                         key=repr(path),
                     )
@@ -315,7 +318,7 @@ def _settings(sh: _Sheet) -> dict[str, Any]:
             if number_value is None or not number_value.is_integer():
                 raise DataError(
                     t(
-                        "{where}: eine ganze Zahl erwartet, gefunden: {value}",
+                        "{where}: a whole number expected, found: {value}",
                         where=sh.where(number, 1),
                         value=repr(sh.get(row, 1)),
                     )
@@ -396,7 +399,7 @@ def _preplanned(sh: _Sheet, number: int, row: tuple[Any, ...]) -> dict[str, floa
         except ValueError, OverflowError:
             raise DataError(
                 t(
-                    "{where}: erwartet Kennung=Wert; …, gefunden: {value}",
+                    "{where}: expected ID=value; …, found: {value}",
                     where=sh.where(number, 9),
                     value=repr(text),
                 )
@@ -429,8 +432,10 @@ def _sprints(wb: Any) -> list[Sprint]:
         if sid.casefold() in seen_ids:
             raise DataError(
                 t(
-                    "{where}: Sprint-ID {id} kommt doppelt vor (Groß- und Kleinschreibung gilt auf "
-                    "Windows und macOS als gleich).",
+                    (
+                        "{where}: sprint ID {id} appears twice (upper and lower case count as "
+                        "the same on Windows and macOS)."
+                    ),
                     where=fc.where(number, 0),
                     id=repr(sid),
                 )
@@ -444,8 +449,10 @@ def _sprints(wb: Any) -> list[Sprint]:
             if sid.casefold() in {s.casefold() for s in listed}:
                 raise DataError(
                     t(
-                        "{where}: Sprint-ID {id} kommt doppelt vor (Groß- und Kleinschreibung gilt "
-                        "auf Windows und macOS als gleich).",
+                        (
+                            "{where}: sprint ID {id} appears twice (upper and lower case count "
+                            "as the same on Windows and macOS)."
+                        ),
                         where=sp.where(number, 0),
                         id=repr(sid),
                     )
@@ -462,7 +469,7 @@ def _sprints(wb: Any) -> list[Sprint]:
             number = listed[sid][0]
             raise DataError(
                 t(
-                    "{where}: Sprint {id} fehlt auf dem Blatt {sheet}",
+                    "{where}: sprint {id} is missing on the sheet {sheet}",
                     where=sp.where(number, 0),
                     id=sid,
                     sheet=SHEET_FORECAST,
@@ -474,7 +481,7 @@ def _sprints(wb: Any) -> list[Sprint]:
         if v["start"] is None or v["end"] is None:
             raise DataError(
                 t(
-                    "{where}: Start und Ende des Sprints {id} fehlen",
+                    "{where}: start and end of sprint {id} are missing",
                     where=fc.where(v["row"], 1),
                     id=sid,
                 )
@@ -494,7 +501,7 @@ def _sprints(wb: Any) -> list[Sprint]:
                 if state not in {s.value for s in AbsenceState}:
                     raise DataError(
                         t(
-                            "{where}: Stand der Fehltage unbekannt: {value}",
+                            "{where}: unknown state of the absences: {value}",
                             where=sp.where(number, 1),
                             value=repr(state),
                         )
@@ -518,7 +525,10 @@ def _sprints(wb: Any) -> list[Sprint]:
                     except ValueError:
                         raise DataError(
                             t(
-                                "{where}: Korrekturen bitte als Zahlen mit Leerzeichen getrennt",
+                                (
+                                    "{where}: please enter corrections as numbers separated by "
+                                    "spaces"
+                                ),
                                 where=sp.where(number, 5),
                             )
                         ) from None
@@ -545,7 +555,7 @@ def _sprints(wb: Any) -> list[Sprint]:
         if sid not in by_id or kind not in ABSENCE_KINDS:
             raise DataError(
                 t(
-                    "{where}: unbekannter Sprint {id} oder Art {kind}",
+                    "{where}: unknown sprint {id} or kind {kind}",
                     where=ab.where(number, 0),
                     id=sid,
                     kind=repr(kind),
@@ -563,9 +573,7 @@ def _sprints(wb: Any) -> list[Sprint]:
         if values.is_empty():
             continue
         if sid not in by_id:
-            raise DataError(
-                t("{where}: unbekannter Sprint {id}", where=vs.where(number, 0), id=sid)
-            )
+            raise DataError(t("{where}: unknown sprint {id}", where=vs.where(number, 0), id=sid))
         by_id[sid].products[pid] = values
 
     pg = _Sheet(wb[SHEET_PROGNOSES]) if SHEET_PROGNOSES in wb.sheetnames else None
@@ -575,12 +583,10 @@ def _sprints(wb: Any) -> list[Sprint]:
         if sid is None or at is None:
             continue
         if sid not in by_id:
-            raise DataError(
-                t("{where}: unbekannter Sprint {id}", where=pg.where(number, 0), id=sid)
-            )
+            raise DataError(t("{where}: unknown sprint {id}", where=pg.where(number, 0), id=sid))
         if not isinstance(at, datetime):
             raise DataError(
-                t("{where}: Zeitpunkt (Datum mit Uhrzeit) erwartet", where=pg.where(number, 1))
+                t("{where}: point in time (date with time) expected", where=pg.where(number, 1))
             )
         by_id[sid].prognoses.append(
             Prognosis(
@@ -615,12 +621,15 @@ def read_workbook_keyed(source: Path | bytes, team_key: str) -> tuple[TeamData, 
     try:
         wb = openpyxl.load_workbook(stream, data_only=True)
     except Exception as e:  # keine gültige xlsx-Datei
-        raise DataError(t("Die Datei ist keine lesbare Excel-Mappe: {error}", error=e)) from e
+        raise DataError(t("The file is not a readable Excel workbook: {error}", error=e)) from e
     file_team = _check_format(wb)
     if file_team is not None and file_team != team_key:
         raise DataError(
             t(
-                "Die Mappe stammt von Team {found}, importiert wird aber in Team {expected}.",
+                (
+                    "The workbook is from team {found}, but it is being imported into team "
+                    "{expected}."
+                ),
                 found=repr(file_team),
                 expected=repr(team_key),
             )
@@ -695,13 +704,13 @@ def check_team_key(repo: Repository, key: str) -> None:
         and not file_name_problem(key)
     )
     if not plain:
-        raise DataError(t("Kürzel {key}: kein einfacher Ordnername im Datenordner.", key=repr(key)))
+        raise DataError(t("Key {key}: not a plain folder name in the data folder.", key=repr(key)))
     if not repo.exists(key):
         if problem := team_key_problem(key):
             raise DataError(problem)
         if clash := repo.clashing_team(key):
             raise DataError(
-                t("Team {team} existiert bereits (als {existing}).", team=repr(key), existing=clash)
+                t("Team {team} already exists (as {existing}).", team=repr(key), existing=clash)
             )
 
 
@@ -747,7 +756,7 @@ def check_settings(team: Team) -> None:
             problems.append(f"{setting.key}: {e}")
     if problems:
         raise DataError(
-            t("Die Mappe enthält ungültige Einstellungen:")
+            t("The workbook contains invalid settings:")
             + "\n"
             + "\n".join(f"- {p}" for p in problems)
         )
@@ -769,9 +778,11 @@ def check_valid(data: TeamData, today: date, existing: TeamData | None = None) -
             if (clash := folded.get(old.id.casefold())) is not None:
                 raise DataError(
                     t(
-                        "Sprint-ID {new} aus der Mappe und die vorhandene Sprintdatei {old} "
-                        "unterscheiden sich nur durch Groß- und Kleinschreibung (auf Windows und "
-                        "macOS dieselbe Datei).",
+                        (
+                            "Sprint ID {new} from the workbook and the existing sprint file "
+                            "{old} differ only in upper and lower case (the same file on "
+                            "Windows and macOS)."
+                        ),
                         new=repr(clash),
                         old=repr(old.id),
                     )
@@ -785,7 +796,7 @@ def check_valid(data: TeamData, today: date, existing: TeamData | None = None) -
     errors = [i for i in check_team(union, today) if i.level is Level.ERROR]
     if errors:
         raise DataError(
-            t("Die Mappe enthält ungültige Werte:")
+            t("The workbook contains invalid values:")
             + "\n"
             + "\n".join(f"- {i.where}: {i.message}" for i in errors[:20])
         )
@@ -813,7 +824,7 @@ def plan_import(repo: Repository, data: TeamData, today: date | None = None) -> 
         old_flat = _flat(_normalize(name, old, data.team.key)) if old is not None else None
         new_flat = _flat(doc)
         if old_flat is None:
-            plan.changes.append(Change(name, "", None, t("neu angelegt")))
+            plan.changes.append(Change(name, "", None, t("newly created")))
             plan.files.append(name)
             continue
         diff = False

@@ -492,4 +492,4 @@ def test_note_is_translated(data_dir: Path, english):
     edit(data_dir, "2026.20", absences={})
     _, _, history = history_of(data_dir)
     assert "2 sprints in the" in (absence_derived_note(history) or "")
-    assert t("Was tun bei unsicherer Quote?") == "What to do about an uncertain rate?"
+    assert t("What to do about an uncertain rate?") == "What to do about an uncertain rate?"

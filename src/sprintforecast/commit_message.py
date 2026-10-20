@@ -40,11 +40,11 @@ def _value(v: Any) -> str:
 def _value_change(file: str, v: ValueChange) -> str:
     label = _short(v.label, MAX_LENGTH)
     if v.kind == ADDED:
-        return t("{label} in {file} ergänzt: {new}", label=label, file=file, new=_value(v.new))
+        return t("Add {label} in {file}: {new}", label=label, file=file, new=_value(v.new))
     if v.kind == REMOVED:
-        return t("{label} aus {file} entfernt", label=label, file=file)
+        return t("Remove {label} from {file}", label=label, file=file)
     return t(
-        "{label} in {file} geändert: {old} → {new}",
+        "Update {label} in {file}: {old} → {new}",
         label=label,
         file=file,
         old=_value(v.old),
@@ -55,18 +55,18 @@ def _value_change(file: str, v: ValueChange) -> str:
 def _single(fc: FileChange) -> str:
     file = fc.file
     if fc.orig and "C" in fc.status:
-        return t("{orig} nach {file} kopiert", orig=fc.orig, file=file)
+        return t("Copy {orig} to {file}", orig=fc.orig, file=file)
     if fc.orig:
-        return t("{orig} nach {file} umbenannt", orig=fc.orig, file=file)
+        return t("Rename {orig} to {file}", orig=fc.orig, file=file)
     if "D" in fc.status:
-        return t("{file} entfernt", file=file)
+        return t("Remove {file}", file=file)
     if "A" in fc.status or fc.status == "??":
-        return t("{file} hinzugefügt", file=file)
+        return t("Add {file}", file=file)
     if len(fc.values) == 1 and not fc.omitted:
         return _value_change(file, fc.values[0])
     if fc.values:
-        return t("{file} geändert: {n} Werte", file=file, n=len(fc.values) + fc.omitted)
-    return t("{file} geändert", file=file)
+        return t("Update {file}: {n} values", file=file, n=len(fc.values) + fc.omitted)
+    return t("Update {file}", file=file)
 
 
 def _names(files: Sequence[FileChange]) -> list[str]:
@@ -90,12 +90,12 @@ def suggest_message(files: Sequence[FileChange]) -> str | None:
         more = len(files) - _MAX_NAMES
         message = (
             t(
-                "{n} Dateien geändert: {names} und {more} weitere",
+                "Update {n} files: {names} and {more} more",
                 n=len(files),
                 names=shown,
                 more=more,
             )
             if more > 0
-            else t("{n} Dateien geändert: {names}", n=len(files), names=shown)
+            else t("Update {n} files: {names}", n=len(files), names=shown)
         )
     return _short(message, MAX_LENGTH)

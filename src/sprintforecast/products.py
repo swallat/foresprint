@@ -24,16 +24,16 @@ from sprintforecast.model import Features, Product, ProductBasis, ProductValues,
 # Spalten der Auswertung: Attribut → Anzeigename
 MEASURES: dict[str, str] = {
     "standard": "Standard",
-    "preplanned": "PO-Vorplanung",
+    "preplanned": "PO pre-planning",
     "planned": "Planning",
-    "done": "Erledigt",
+    "done": "Done",
 }
 
 
 # Davon-Werte für Tickets, die Produktionszugriff erfordern (Teilmenge von Planning/Erledigt)
 PRODUCTION_MEASURES: dict[str, str] = {
-    "production_planned": "davon Produktionszugriff (Planning)",
-    "production_done": "davon Produktionszugriff (Erledigt)",
+    "production_planned": "of which production access (planning)",
+    "production_done": "of which production access (done)",
 }
 
 
@@ -212,10 +212,11 @@ def distribution(fc: Forecast, entry: TimelineEntry) -> Distribution:
 def missing_footnote() -> str:
     """Fußnote zur Spalte „ohne Wert“ (Terminal und Bericht; nur Text, ohne Markup)."""
     return t(
-        "„ohne Wert“: Sprints, in denen das Produkt betreut wurde, aber kein Erledigt erfasst "
-        "ist, obwohl es für andere Produkte erfasst ist (leer, nicht 0). Sie zählen im Saldo "
-        "nicht mit; bitte den Wert im Sprint nachtragen. Sprints ohne jeden Erledigt-Wert "
-        "(z. B. der laufende) und Sprints außerhalb der Laufzeit des Produkts bleiben außen vor."
+        '"no value": sprints in which the product was worked on but no done value is '
+        "entered, although it is entered for other products (empty, not 0). They do not "
+        "count towards the balance; please add the value in the sprint. Sprints without "
+        "any done value (e.g. the current one) and sprints outside the product's period "
+        "are left out."
     )
 
 
@@ -263,7 +264,7 @@ def by_po(d: Distribution) -> list[tuple[str, dict[str, float | None]]]:
         return []
     groups: dict[str, list[ProductRow]] = {}
     for r in d.rows:
-        groups.setdefault(r.product.po or t("(ohne PO)"), []).append(r)
+        groups.setdefault(r.product.po or t("(no PO)"), []).append(r)
     result = []
     for po, rows in groups.items():
         totals: dict[str, float | None] = {}

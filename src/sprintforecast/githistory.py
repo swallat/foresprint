@@ -78,7 +78,7 @@ def _no_unfinished(path: Path) -> None:
     current = state(path)
     if current.unfinished or current.conflicts:
         raise GitError(
-            t("Ein Zusammenführen ist noch nicht abgeschlossen."),
+            t("A merge has not been completed yet."),
             "merge_in_progress",
             gitmod.hint_for("merge_in_progress"),
         )
@@ -241,21 +241,21 @@ def _put_back(root: Path, trash: Path, snap: _Snapshot) -> list[str]:
         try:
             _write_index(root, snap.index)
         except OSError:
-            failed.append(t("die Vormerkung (Index)"))
+            failed.append(t("the staging area (index)"))
     return failed
 
 
 def _rollback_hint(failed: list[str], trash: Path, quote: Callable[[str], str] = str) -> str:
     if not failed:
         return t(
-            "Der ursprüngliche Zustand (Dateien und Vormerkung) wurde wiederhergestellt. "
-            "Sicherung der Änderungen: {trash}",
+            ("The original state (files and staging) was restored. Backup of the changes: {trash}"),
             trash=quote(str(trash)),
         )
     return t(
-        "Der ursprüngliche Zustand konnte nicht vollständig wiederhergestellt werden. "
-        "Nicht wiederhergestellt: {files}. Die Sicherung der Änderungen liegt in {trash}; "
-        "bitte die Dateien von dort zurückkopieren.",
+        (
+            "The original state could not be fully restored. Not restored: {files}. The backup "
+            "of the changes is in {trash}; please copy the files back from there."
+        ),
         files=quote(", ".join(failed)),
         trash=quote(str(trash)),
     )
@@ -271,7 +271,7 @@ def discard(path: Path, files: list[str] | None = None) -> Path | None:
     _no_unfinished(path)
     changes = _selected(path, files)
     if not changes:
-        raise GitError(t("Keine Änderungen zum Verwerfen"))
+        raise GitError(t("No changes to discard"))
     trash = _new_trash(root)
     try:
         _backup(root, trash, changes)
@@ -279,9 +279,9 @@ def discard(path: Path, files: list[str] | None = None) -> Path | None:
     except OSError as e:
         shutil.rmtree(trash, ignore_errors=True)
         raise GitError(
-            t("Die Sicherung der Änderungen ist nicht möglich: {error}", error=e),
+            t("The changes cannot be backed up: {error}", error=e),
             "error",
-            t("Es wurde nichts verworfen."),
+            t("Nothing was discarded."),
         ) from e
     try:
         _apply_discard(root, changes)
@@ -289,7 +289,7 @@ def discard(path: Path, files: list[str] | None = None) -> Path | None:
         failed = _put_back(root, trash, snap)
         gitmod.invalidate_status()
         raise GitError(
-            t("Das Verwerfen ist nicht vollständig gelungen: {error}", error=e),
+            t("Discarding did not fully succeed: {error}", error=e),
             getattr(e, "kind", "error"),
             _rollback_hint(failed, trash),
             hint_md=_rollback_hint(failed, trash, gitmod.md_plain),
@@ -356,7 +356,7 @@ def history(path: Path, scope: Path | None = None, limit: int = 40) -> list[Entr
 def _check_rev(rev: str) -> str:
     rev = rev.strip()
     if not rev or rev.startswith("-"):
-        raise GitError(t("Ungültiger Stand: {rev}", rev=rev))
+        raise GitError(t("Invalid version: {rev}", rev=rev))
     return rev
 
 
@@ -417,9 +417,9 @@ def restore_version(path: Path, scope: Path, rev: str, message: str | None = Non
     rel = target.relative_to(root).as_posix()  # "." = die Wurzel selbst
     if any(_inside(c.file, rel) or (c.orig and _inside(c.orig, rel)) for c in changes_in(path)):
         raise GitError(
-            t("Es gibt offene Änderungen in diesem Bereich."),
+            t("There are open changes in this area."),
             "dirty",
-            t("Bitte zuerst speichern (committen) oder verwerfen, dann wiederherstellen."),
+            t("Please save (commit) or discard them first, then restore."),
         )
     where = [] if rel == "." else ["--", rel]
     then = set(split_z(_git(root, "ls-tree", "-r", "-z", "--name-only", rev, *where, strip=False)))
@@ -440,9 +440,9 @@ def restore_version(path: Path, scope: Path, rev: str, message: str | None = Non
         except OSError as e:
             shutil.rmtree(trash, ignore_errors=True)
             raise GitError(
-                t("Die Sicherung ignorierter Dateien ist nicht möglich: {error}", error=e),
+                t("Backing up ignored files is not possible: {error}", error=e),
                 "error",
-                t("Es wurde nichts verändert."),
+                t("Nothing was changed."),
             ) from e
     try:
         for chunk in _chunks(sorted(then)):
@@ -450,9 +450,9 @@ def restore_version(path: Path, scope: Path, rev: str, message: str | None = Non
         for chunk in _chunks(gone):
             _git(root, "rm", "-q", "--", *chunk)
         if not _git(root, "status", "--porcelain", "-z", "--", rel, strip=False):
-            raise GitError(t("Dieser Bereich hat bereits genau diesen Stand."))
+            raise GitError(t("This area already has exactly this state."))
         short = _git(root, "rev-parse", "--short", rev)
-        text = message or t("Stand von {rev} wiederhergestellt ({scope})", rev=short, scope=rel)
+        text = message or t("State of {rev} restored ({scope})", rev=short, scope=rel)
         _git(root, "add", "--all", "--", rel)
         gitmod.refuse_staged_conflict_markers(root)  # ein früher geteilter Fehlerstand
         _git(root, "commit", "-m", text, "--", rel)
@@ -465,8 +465,10 @@ def restore_version(path: Path, scope: Path, rev: str, message: str | None = Non
                 str(e),
                 e.kind,
                 t(
-                    "Der ursprüngliche Stand konnte nicht vollständig wiederhergestellt werden "
-                    "(betroffen: {files}). Gesicherte ignorierte Dateien liegen in {trash}.",
+                    (
+                        "The original version could not be fully restored (affected: {files}). "
+                        "Saved ignored files are in {trash}."
+                    ),
                     files=", ".join(failed),
                     trash=where_saved,
                 ),
@@ -484,12 +486,12 @@ def revert_commit(path: Path, rev: str) -> str:
     rev = _check_rev(rev)
     parents = _git(root, "rev-list", "--parents", "-n", "1", rev).split()
     if len(parents) > 2:
-        raise GitError(t("Eine Zusammenführung lässt sich nicht zurücknehmen."))
+        raise GitError(t("A merge cannot be taken back."))
     if changes_in(root):  # das ganze Repository, nicht nur der Datenordner
         raise GitError(
-            t("Es gibt offene Änderungen."),
+            t("There are open changes."),
             "dirty",
-            t("Bitte zuerst speichern (committen) oder verwerfen, dann zurücknehmen."),
+            t("Please save (commit) or discard them first, then take back."),
         )
     try:
         _git(root, "revert", "--no-edit", rev)
@@ -497,15 +499,15 @@ def revert_commit(path: Path, rev: str) -> str:
         _git(root, "revert", "--abort", check=False)
         if e.kind == "conflict":
             raise GitError(
-                t("Zurücknehmen ist nicht ohne Konflikt möglich: {error}", error=e),
+                t("Taking back is not possible without a conflict: {error}", error=e),
                 "conflict",
-                t("Spätere Änderungen betreffen dieselben Stellen. Es wurde nichts verändert."),
+                t("Later changes affect the same places. Nothing was changed."),
             ) from e
         if "now empty" in str(e) or "nothing to commit" in str(e):
             raise GitError(
-                t("Dieser Commit ändert nichts (mehr); es gibt nichts zurückzunehmen."),
+                t("This commit changes nothing (any more); there is nothing to take back."),
                 "error",
-                t("Es wurde nichts verändert."),
+                t("Nothing was changed."),
             ) from e
         raise
     changed = gitmod.split_z(
@@ -644,7 +646,7 @@ def set_tag(
     existing = _commit_of(root, f"refs/tags/{name}")
     target = _commit_of(root, rev)
     if existing and existing != target:
-        raise GitError(t("Der Tag {name} existiert bereits.", name=name))
+        raise GitError(t("The tag {name} already exists.", name=name))
     if not existing:
         if _adopt_server_tag(root, name, target):
             return None
@@ -668,13 +670,15 @@ def _adopt_server_tag(root: Path, name: str, target: str) -> bool:
     if on_server != target:
         raise GitError(
             t(
-                "Der Tag {name} ist auf dem Server bereits für einen anderen Stand vergeben "
-                "({rev}). Er wurde nicht angelegt.",
+                (
+                    "The tag {name} is already used on the server for a different version "
+                    "({rev}). It was not created."
+                ),
                 name=name,
                 rev=on_server[:7],
             ),
             "tag_exists",
-            t("Einen anderen Namen wählen oder den Tag auf dem Server zuerst löschen."),
+            t("Choose a different name or delete the tag on the server first."),
         )
     try:
         _git(
@@ -715,9 +719,9 @@ def upload_tag(path: Path, name: str) -> None:
     root = _root(path)
     name = _valid_name(root, name)
     if not _tag_exists(root, name):
-        raise GitError(t("Den Tag {name} gibt es auf diesem Rechner nicht.", name=name))
+        raise GitError(t("The tag {name} does not exist on this computer.", name=name))
     if _remote(root) is None:
-        raise GitError(t("Kein Server eingerichtet."), "no_remote", gitmod.hint_for("no_remote"))
+        raise GitError(t("No server set up."), "no_remote", gitmod.hint_for("no_remote"))
     if error := _push_tag(root, name):
         raise error
 

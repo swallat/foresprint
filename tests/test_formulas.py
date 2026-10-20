@@ -4,13 +4,14 @@ from pathlib import Path
 
 from sprintforecast.forecast import build_forecast
 from sprintforecast.formulas import GENERAL, _exact, general, plain_explanation, step, steps
+from sprintforecast.locale_de import DE
 from sprintforecast.model import TrendMode
 from sprintforecast.storage import Repository
 
 
 def test_general_capacity_formula_names_trend_only_without_people_list(english):
     """Mit Personenliste kommt die Kapazität aus Kalender und Personen; der Trend gilt nur ohne."""
-    de = GENERAL["capacity"]
+    de = DE[GENERAL["capacity"]]
     assert de.count("Trend") == 1 and de.endswith("Trend nur ohne Personenliste")
     assert "unbekannte Fehltage nach der Historie geschätzt (ohne Historie ohne Abzug)" in de
     assert "ohne Fehltage: Trend" not in de

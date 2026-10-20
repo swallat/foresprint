@@ -50,9 +50,9 @@ FAILURE_GRACE = timedelta(minutes=15)
 
 
 class Mode(StrEnum):
-    ON = "an"
-    NOTICE = "hinweis"
-    OFF = "aus"
+    ON = "on"
+    NOTICE = "notice"
+    OFF = "off"
 
 
 # --- Ablage ---------------------------------------------------------------------------
@@ -101,13 +101,17 @@ def mode() -> Mode:
         if raw:
             value = str(raw).strip().lower()
             aliases = {
-                "1": "an",
-                "true": "an",
-                "on": "an",
-                "notice": "hinweis",
-                "0": "aus",
-                "false": "aus",
-                "off": "aus",
+                "1": "on",
+                "true": "on",
+                "on": "on",
+                "notice": "notice",
+                "0": "off",
+                "false": "off",
+                "off": "off",
+                # Values written by older versions.
+                "an": "on",
+                "hinweis": "notice",
+                "aus": "off",
             }
             try:
                 return Mode(aliases.get(value, value))
@@ -212,7 +216,7 @@ def remote_version(inst: Installation, timeout: float = 5.0, fresh: bool = False
     project = tomllib.loads(_fetch(request_url, timeout)).get("project", {})
     version = project.get("version")
     if not isinstance(version, str):
-        raise ValueError(t("Keine Version in {url}", url=url))
+        raise ValueError(t("No version in {url}", url=url))
     return version
 
 
@@ -453,7 +457,7 @@ def restart_with_update() -> str | None:
     Liefert eine Fehlermeldung oder None. Der Aufrufer beendet danach den Server."""
     uv = find_uv()
     if uv is None:
-        return t("uv nicht gefunden – bitte das Installationsskript erneut ausführen.")
+        return t("uv not found – please run the install script again.")
     try:
         restart = json.loads(os.environ.get(RESTART_ENV, "null")) or {}
         extra = [int(p) for p in os.environ.get(PIDS_ENV, "").split(",") if p.strip()]
@@ -464,7 +468,7 @@ def restart_with_update() -> str | None:
             uv, pids=[os.getpid(), *extra], then=restart.get("cmd"), cwd=restart.get("cwd")
         )
     except OSError as e:
-        return t("Aktualisierung nicht startbar: {error}", error=e)
+        return t("Update cannot be started: {error}", error=e)
     latest = load_state().get("latest")
     update_state(
         attempted=latest, attempted_at=datetime.now(UTC).isoformat(), failure_reported=False
@@ -485,9 +489,7 @@ def startup_notices(now: datetime | None = None) -> list[str]:
     messages = []
     seen = state.get("seen_version")
     if seen and is_newer(current, seen):
-        messages.append(
-            t("sprintforecast wurde auf Version {version} aktualisiert.", version=current)
-        )
+        messages.append(t("sprintforecast was updated to version {version}.", version=current))
     changes: dict[str, Any] = {"seen_version": current}
     attempted = state.get("attempted")
     attempted_at = _parse_time(state.get("attempted_at"))
@@ -499,8 +501,10 @@ def startup_notices(now: datetime | None = None) -> list[str]:
     ):
         messages.append(
             t(
-                "Die automatische Aktualisierung auf {version} hat nicht geklappt – "
-                "Protokoll: {log}. Manuell: sprintforecast update",
+                (
+                    "The automatic update to {version} did not work – log: {log}. Manually: "
+                    "sprintforecast update"
+                ),
                 version=attempted,
                 log=log_file(),
             )
@@ -551,8 +555,10 @@ class AutoUpdate:
         if mode() is Mode.NOTICE:
             say(
                 t(
-                    "Neue Version {latest} verfügbar (installiert: {current}) – "
-                    "aktualisieren mit: sprintforecast update",
+                    (
+                        "New version {latest} available (installed: {current}) – update with: "
+                        "sprintforecast update"
+                    ),
                     latest=latest,
                     current=result.current,
                 )
@@ -565,7 +571,7 @@ class AutoUpdate:
         if uv is None:
             say(
                 t(
-                    "Neue Version {latest} verfügbar – uv nicht gefunden, bitte neu installieren.",
+                    "New version {latest} available – uv not found, please reinstall.",
                     latest=latest,
                 )
             )
@@ -575,7 +581,7 @@ class AutoUpdate:
         except OSError as e:
             say(
                 t(
-                    "Neue Version {latest} verfügbar – Aktualisierung nicht startbar: {error}",
+                    "New version {latest} available – update cannot be started: {error}",
                     latest=latest,
                     error=e,
                 )
@@ -588,8 +594,10 @@ class AutoUpdate:
         )
         say(
             t(
-                "Neue Version {latest} wird im Hintergrund installiert (gilt ab dem nächsten "
-                "Start).",
+                (
+                    "New version {latest} is being installed in the background (effective from "
+                    "the next start)."
+                ),
                 latest=latest,
             )
         )
@@ -603,16 +611,14 @@ def status_line() -> str:
     if inst is None:
         return text
     if inst.pinned:
-        return t("{text} (fest: {ref})", text=text, ref=inst.ref)
+        return t("{text} (pinned: {ref})", text=text, ref=inst.ref)
     latest = load_state().get("latest")
     if not is_newer(latest, current):
         return text
     if mode() is Mode.ON:
-        return t(
-            "{text} · Version {latest} wird nach dem Beenden installiert", text=text, latest=latest
-        )
+        return t("{text} · version {latest} will be installed on exit", text=text, latest=latest)
     return t(
-        "{text} · Version {latest} verfügbar (`sprintforecast update`)",
+        "{text} · version {latest} available (`sprintforecast update`)",
         text=text,
         latest=latest,
     )

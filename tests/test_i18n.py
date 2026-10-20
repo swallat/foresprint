@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Jeder übersetzbare Text hat eine englische Fassung mit denselben Platzhaltern."""
+"""Every translatable text has a German version with the same placeholders."""
 
 import ast
 import string
@@ -8,13 +8,13 @@ from pathlib import Path
 import pytest
 
 from sprintforecast import i18n
-from sprintforecast.locale_en import EN
+from sprintforecast.locale_de import DE
 
 SRC = Path(__file__).parent.parent / "src" / "sprintforecast"
 
 
 def literal_calls() -> list[tuple[str, int, str]]:
-    """Alle t("…")-Aufrufe mit konstantem Text: (Datei, Zeile, Text)."""
+    """All t("…") calls with a constant text: (file, line, text)."""
     found = []
     for path in SRC.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -32,7 +32,7 @@ def literal_calls() -> list[tuple[str, int, str]]:
 
 
 def static_texts() -> list[str]:
-    """Texte aus Datenstrukturen, die erst bei der Anzeige übersetzt werden."""
+    """Texts from data structures that are only translated on display."""
     from sprintforecast.i18n_texts import all_static_texts
 
     return all_static_texts()
@@ -43,16 +43,16 @@ def fields(text: str) -> set[str]:
 
 
 def test_every_text_is_translated():
-    missing = sorted({text for _, _, text in literal_calls() if text not in EN})
-    missing += sorted(text for text in static_texts() if text not in EN)
-    assert not missing, "Ohne Übersetzung:\n" + "\n".join(missing)
+    missing = sorted({text for _, _, text in literal_calls() if text not in DE})
+    missing += sorted(text for text in static_texts() if text not in DE)
+    assert not missing, "Without translation:\n" + "\n".join(missing)
 
 
 def source_strings() -> set[str]:
-    """Alle Textkonstanten im Quelltext (außer locale_en) samt der Texte aus Datenstrukturen."""
+    """All text constants in the source (except locale_de) plus the texts from data structures."""
     found = set(static_texts())
     for path in SRC.rglob("*.py"):
-        if path.name == "locale_en.py":
+        if path.name == "locale_de.py":
             continue
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Constant) and isinstance(node.value, str):
@@ -61,29 +61,29 @@ def source_strings() -> set[str]:
 
 
 def test_no_orphaned_translations():
-    """Ein Eintrag in locale_en.EN, dessen deutscher Text nirgends mehr im Quelltext steht, ist
-    verwaist (der Text wurde geändert oder entfernt) und gehört gelöscht."""
+    """An entry in locale_de.DE whose English text no longer appears anywhere in the source is
+    orphaned (the text was changed or removed) and must be deleted."""
     used = source_strings()
-    orphaned = [de for de in EN if de not in used]
-    assert not orphaned, "Verwaiste Übersetzungen:\n" + "\n".join(orphaned)
+    orphaned = [en for en in DE if en not in used]
+    assert not orphaned, "Orphaned translations:\n" + "\n".join(orphaned)
 
 
 def test_english_uses_american_spelling():
-    """Die englischen Texte schreiben wie die Doku amerikanisch (normalized, nicht normalised)."""
-    assert not [en for en in EN.values() if "ormalis" in en]
+    """The English texts use American spelling like the docs (normalized, not normalised)."""
+    assert not [en for en in DE if "ormalis" in en]
 
 
 def test_placeholders_match():
-    wrong = [de for de, en in EN.items() if fields(de) != fields(en)]
+    wrong = [en for en, de in DE.items() if fields(de) != fields(en)]
     assert not wrong, wrong
 
 
 def test_switch_language(monkeypatch: pytest.MonkeyPatch):
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, "en")
-    assert i18n.t("Datei fehlt: {path}", path="x") == "File missing: x"
+    assert i18n.t("File missing: {path}", path="x") == "File missing: x"
     monkeypatch.setenv(i18n.LANG_ENV, "de")
-    assert i18n.t("Datei fehlt: {path}", path="x") == "Datei fehlt: x"
+    assert i18n.t("File missing: {path}", path="x") == "Datei fehlt: x"
     monkeypatch.delenv(i18n.LANG_ENV)
     i18n.save_language("en")
     assert i18n.language() == "en"
@@ -101,7 +101,7 @@ def test_default_language_is_english(tmp_path: Path):
     env |= {"XDG_CONFIG_HOME": str(tmp_path), "APPDATA": str(tmp_path)}
     code = (
         "from sprintforecast import i18n; "
-        "print(i18n.DEFAULT, i18n.language(), i18n.t('Datei fehlt: {path}', path='x'))"
+        "print(i18n.DEFAULT, i18n.language(), i18n.t('File missing: {path}', path='x'))"
     )
     done = subprocess.run(
         [sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True
