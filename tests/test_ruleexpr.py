@@ -96,6 +96,4 @@ def test_review_fixes():
     assert parse_rule("in_sprint = True").values == ["true"]
     odd = Rule(source="label", values=["a\u00a0b", "c\nd"])
     assert parse_rule(format_rule(odd)).values == ["a\u00a0b", "c\nd"]
-    assert (
-    )
     assert "((" not in format_rule(parse_rule("NOT (epic = A OR label = b)"))
