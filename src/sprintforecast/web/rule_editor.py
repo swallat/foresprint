@@ -66,10 +66,11 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
     )
     with st.expander(t("Example"), icon=":material/help:"):
         st.code(EXAMPLE, language=None)
+    stored = format_rule(project.match)
     text = st.text_area(
         t("Rule"),
-        value=format_rule(project.match),
-        key=f"tickets-{key}-rule-{chosen}",
+        value=stored,
+        key=f"tickets-{key}-rule-{chosen}-{abs(hash(stored))}",
         help=t("Empty = the project takes no tickets by rule."),
     )
     rule: Rule | None = None
