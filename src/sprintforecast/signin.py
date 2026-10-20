@@ -83,13 +83,17 @@ def host_guide(kind: str) -> HostGuide:
 def https_parts(url: str) -> tuple[str, str]:
     """``(host, pfad)`` einer https-Adresse für den Anmeldedienst. Andere Adressen (SSH, Ordner,
     http) sind hier nicht gemeint: :class:`GitError`."""
-    parts = urlsplit(url)
-    if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
-        raise GitError(
-            t("Die Token-Anmeldung gilt nur für https-Adressen ohne Zugangsdaten in der Adresse.")
-        )
-    host = parts.hostname + (f":{parts.port}" if parts.port else "")
-    return host, parts.path.lstrip("/")
+    problem = GitError(
+        t("Die Token-Anmeldung gilt nur für https-Adressen ohne Zugangsdaten in der Adresse.")
+    )
+    try:
+        parts = urlsplit(url)
+        if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+            raise problem
+        parts.port  # noqa: B018  (wirft ValueError bei einem ungültigen Port)
+    except ValueError as e:
+        raise problem from e
+    return parts.netloc, parts.path.lstrip("/")
 
 
 def is_https(url: str) -> bool:
@@ -101,6 +105,7 @@ def is_https(url: str) -> bool:
 
 
 def _credential_input(url: str, username: str = "", token: str = "") -> str:
+    """Eingabe für ``git credential``: Zeilen ``schlüssel=wert``, am Ende eine Leerzeile."""
     host, path = https_parts(url)
     lines = ["protocol=https", f"host={host}"]
     if path:
@@ -213,11 +218,20 @@ def verify(root: Path, url: str) -> tuple[str, ...]:
     return probe_remote(root, parse_remote_url(url))
 
 
-def forget_token(root: Path, url: str) -> None:
-    """Entfernt die gespeicherte Anmeldung für diesen Server aus dem Anmeldedienst
-    (``git credential reject``)."""
+def forget_token(root: Path, url: str, username: str = "", token: str = "") -> None:
+    """Entfernt die gespeicherte Anmeldung aus dem Anmeldedienst (``git credential reject``).
+    Mit ``username`` und ``token`` trifft es genau diesen Eintrag; ohne beides alle Anmeldungen
+    dieses Servers (der Pfad der Adresse zählt bei den meisten Diensten nicht)."""
+    if username:
+        username = _clean(username, t("den Benutzernamen"))
+    if token:
+        token = _clean(token, t("den Token"))
     proc = _git_result(
-        root, "credential", "reject", timeout=HELPER_TIMEOUT, stdin_text=_credential_input(url)
+        root,
+        "credential",
+        "reject",
+        timeout=HELPER_TIMEOUT,
+        stdin_text=_credential_input(url, username, token),
     )
     if proc.returncode != 0:
         raise GitError(t("Der Anmeldedienst von Git hat die Anmeldung nicht gelöscht."))
