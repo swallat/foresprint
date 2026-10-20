@@ -108,6 +108,7 @@ def tickets() -> list[Ticket]:
             title="Checkout: new payment provider",
             status="To Do",
             issue_type="Story",
+            priority="High",
             estimate=5,
             remaining=3.5,
             estimate_source=EstimateSource.REFINED,

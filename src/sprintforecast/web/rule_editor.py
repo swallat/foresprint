@@ -91,7 +91,7 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
     st.caption(
         t(
             "One expression per project: fields epic, component, label, status, issue_type, "
-            "in_sprint; =, !=, ~ (contains), IN, NOT IN; AND, OR, NOT and parentheses."
+            "priority, in_sprint; =, !=, ~ (contains), IN, NOT IN; AND, OR, NOT and parentheses."
         )
     )
     with st.expander(t("Example"), icon=":material/help:"):

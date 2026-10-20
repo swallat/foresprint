@@ -24,6 +24,7 @@ HEADERS: dict[str, tuple[str, ...]] = {
     "title": ("Summary", "Zusammenfassung"),
     "status": ("Status",),
     "issue_type": ("Issue Type", "Vorgangstyp"),
+    "priority": ("Priority", "Priorität"),
     "labels": ("Labels", "Stichwörter"),
     "components": ("Component/s", "Komponente/n"),
     "sprint": ("Sprint",),
@@ -231,6 +232,7 @@ class CsvSource:
             title=" ".join((single("title") or "").split()),
             status=single("status"),
             issue_type=single("issue_type"),
+            priority=single("priority"),
             estimate=number("estimate"),
             remaining=number("remaining"),
             # Jira lists the sprints of a ticket chronologically: the last one is the current.

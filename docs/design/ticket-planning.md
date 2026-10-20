@@ -248,7 +248,7 @@ projects:
 
 Rule language:
 
-- **Leaf** = one source (`epic`, `component`, `label`, `status`, `issue_type`, `in_sprint`)
+- **Leaf** = one source (`epic`, `component`, `label`, `status`, `issue_type`, `priority`, `in_sprint`)
   with a list of values; the values of a leaf are OR-combined.
 - **Short form:** several leaves directly under `match:` are OR-combined (any match
   suffices).
