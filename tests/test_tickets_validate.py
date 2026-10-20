@@ -106,8 +106,11 @@ def test_project_ids_target_and_tracker_settings(data: TeamData):
         ),
         ("team.yaml", "tracker.rough_factor muss > 0 sein"),
         ("projects.yaml: p", "id ist doppelt"),
-        ("projects.yaml: p", "target fehlt"),
     ]
+    assert (
+        "projects.yaml: p",
+        "target fehlt: das Projekt wird zuletzt verteilt und hat keinen Termin",
+    ) in (warnings(data))
     data.team.tracker.project_match_order = ["label", "status"]  # a subset in any order is fine
     data.team.tracker.dependency_gap = 0
     data.team.tracker.rough_factor = 1
