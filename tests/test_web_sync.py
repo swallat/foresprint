@@ -254,8 +254,8 @@ def test_reattach_with_open_changes_saves_them_on_the_rescue_branch(
     detach_with_open_change(root)
     at = start(data_dir, monkeypatch)
     press(at, "Zurück auf den Branch")
-    rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
-    assert rescue.startswith("rettung-")
+    rescue = git(root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
+    assert rescue.startswith("rescue-")
     assert "velocity: 99" in git(root, "show", f"{rescue}:{SPRINT}")  # the change is there
     assert not at.sidebar.error
     shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
@@ -271,7 +271,7 @@ def test_reattach_names_commits_and_open_changes_on_the_rescue_branch(
     detach_with_open_change(root, orphan_commit=True)
     at = start(data_dir, monkeypatch)
     press(at, "Zurück auf den Branch")
-    rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
+    rescue = git(root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
     shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
     assert "Commits vom Stand ohne Branch und die offenen Änderungen liegen auf dem " in shown
     assert f"Rettungsbranch `{rescue}`" in shown
@@ -284,8 +284,8 @@ def test_reattach_names_the_rescue_branch(shared, data_dir: Path, monkeypatch):
     invalidate_status()
     at = start(data_dir, monkeypatch)
     press(at, "Zurück auf den Branch")
-    rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
-    assert rescue.startswith("rettung-")
+    rescue = git(root, "branch", "--list", "rescue-*", "--format=%(refname:short)")
+    assert rescue.startswith("rescue-")
     shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
     assert "Zurück auf den Branch `main`." in shown  # Branch names as code (foreign texts)
     assert f"Rettungsbranch `{rescue}`" in shown

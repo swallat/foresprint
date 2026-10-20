@@ -21,6 +21,8 @@ from functools import cache
 from importlib.metadata import entry_points
 from typing import TYPE_CHECKING, Any
 
+from sprintforecast.i18n import t
+
 if TYPE_CHECKING:
     from sprintforecast.storage import Repository
 
@@ -52,12 +54,18 @@ def load_plugins() -> tuple[Plugin, ...]:
         try:
             plugin = ep.load()
         except Exception as e:  # a broken plugin must not block the tool
-            print(f"Plugin {ep.name!r} konnte nicht geladen werden: {e}", file=sys.stderr)
+            print(
+                t("Plugin {name!r} could not be loaded: {error}", name=ep.name, error=e),
+                file=sys.stderr,
+            )
             continue
         if isinstance(plugin, Plugin):
             plugins.append(plugin)
         else:
-            print(f"Plugin {ep.name!r} ist kein sprintforecast.plugins.Plugin", file=sys.stderr)
+            print(
+                t("Plugin {name!r} is not a sprintforecast.plugins.Plugin", name=ep.name),
+                file=sys.stderr,
+            )
     return tuple(plugins)
 
 
