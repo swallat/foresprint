@@ -214,3 +214,13 @@ def test_insert_helper_conditions():
     assert append_condition("epic = A OR epic = B", "label = x", "AND") == (
         "(epic = A OR epic = B) AND label = x"
     )
+
+
+def test_insert_helper_brackets_any_or_expression():
+    from sprintforecast.web.rule_editor import append_condition
+
+    for text in ("epic = A or epic = B", "epic = A\nOR epic = B", "epic IN (A) OR(label = b)"):
+        assert append_condition(text, "label = x", "AND") == f"({text}) AND label = x"
+    assert append_condition("epic = A AND label = b", "label = x", "AND") == (
+        "epic = A AND label = b AND label = x"
+    )

@@ -1240,6 +1240,8 @@ def _save_projects(repo: Repository, data: TeamData, after: Any) -> None:
         lambda: [repo.save_projects(data.team.key, after.projects)],
         flash=True,
     ):
+        counter = f"tickets-{data.team.key}-add-n"
+        st.session_state[counter] = st.session_state.get(counter, 0) + 1  # empties the form
         st.rerun()
 
 
@@ -1247,7 +1249,7 @@ def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> 
     key = data.team.key
     with (
         st.expander(t("Create project"), icon=":material/add:"),
-        st.form(f"tickets-{key}-add-project", clear_on_submit=True),
+        st.form(f"tickets-{key}-add-project-{st.session_state.get(f'tickets-{key}-add-n', 0)}"),
     ):
         left, right = st.columns(2)
         new_id = left.text_input(t("Id"), help=t("Short key, e.g. payment-v2."))

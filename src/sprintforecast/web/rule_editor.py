@@ -4,6 +4,7 @@ tickets it hits and of the conflicts with the rules of other projects."""
 from __future__ import annotations
 
 import copy
+import re
 from typing import Any
 
 import streamlit as st
@@ -45,8 +46,13 @@ def append_condition(text: str, condition: str, joiner: str) -> str:
     text = text.strip()
     if not text:
         return condition
-    if joiner == "AND" and " OR " in text:
-        text = f"({text})"
+    if joiner == "AND":
+        try:
+            bracket = parse_rule(text).op == "any"
+        except RuleSyntaxError:
+            bracket = re.search(r"\bor\b", text, re.IGNORECASE) is not None
+        if bracket:
+            text = f"({text})"
     return f"{text} {joiner} {condition}"
 
 
