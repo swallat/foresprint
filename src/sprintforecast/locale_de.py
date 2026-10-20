@@ -1979,6 +1979,7 @@ DE: dict[str, str] = {
     "the token": "den Token",
     "Delete all stored sign-ins for this server (also for other repositories)": "Alle gespeicherten Anmeldungen für diesen Server löschen (auch für andere Repositories)",
     "no browser": "kein Browser",
+    "default browser": "Standardbrowser",
     "Plugin {name!r} could not be loaded: {error}": "Plugin {name!r} konnte nicht geladen werden: {error}",
     "Plugin {name!r} is not a sprintforecast.plugins.Plugin": "Plugin {name!r} ist kein sprintforecast.plugins.Plugin",
     "not installed with uv tool install": "nicht mit uv tool install installiert",

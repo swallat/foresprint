@@ -157,7 +157,7 @@ def find_browser(explicit: str | None = None) -> Browser:
         webbrowser.get()
     except webbrowser.Error:
         return Browser(Kind.NONE, t("no browser"))
-    return Browser(Kind.DEFAULT, "Standardbrowser")
+    return Browser(Kind.DEFAULT, t("default browser"))
 
 
 def profile_dir() -> Path:
