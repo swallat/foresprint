@@ -124,6 +124,14 @@ def test_start_prepare_asks_for_preplanning_once_absences_are_known(
     assert at.selectbox(key="vorplanung-sprint").value == "2026.22"
 
 
+def test_start_prepare_still_asks_while_one_product_has_no_value(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _change_2026_22(data_dir, products={"webshop": {"preplanned": 3.0}})
+    at = start(data_dir, monkeypatch)
+    assert any("PO-Vorplanung fehlt noch" in w.value for w in at.main.markdown)
+
+
 def test_start_prepare_is_not_stuck_without_products(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):

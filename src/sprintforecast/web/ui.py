@@ -2082,9 +2082,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
     recorded = data.sprint(sprint.id)
     done = [
-        board_steps_done(recorded, data.products)[
-            "fehltage"
-        ],  # wie der Haken der Schrittleiste oben
+        board_steps_done(recorded)["fehltage"],  # wie der Haken der Schrittleiste oben
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
         recorded is not None and recorded.forecast_ist is not None,
     ]
