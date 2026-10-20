@@ -67,7 +67,7 @@ def click(at: AppTest, key: str) -> AppTest:
 
 
 def data_folder_page(data_dir: Path, monkeypatch) -> AppTest:
-    return goto(start(data_dir, monkeypatch), "datenordner")
+    return goto(start(data_dir, monkeypatch), "data_dir")
 
 
 def remotes(root: Path) -> str:
@@ -88,7 +88,7 @@ def test_sidebar_offers_the_setup_and_the_page_shows_the_section(
     assert "Kein Server eingerichtet" in shown(at, "caption", "sidebar")
     assert page_links(at) == ["Server einrichten"]
     assert not [b for b in at.sidebar.button if b.label == "Speichern und teilen"]
-    goto(at, "datenordner")
+    goto(at, "data_dir")
     assert [s.value for s in at.main.subheader] == ["Server (Remote)", "Zeilenenden festlegen"]
     assert "noch kein Server" in shown(at, "info")
     assert "Repository klonen" in shown(at, "info")  # the way to join a team
@@ -691,7 +691,7 @@ def test_no_server_hint_names_the_page_and_link_and_problem_can_share_a_run(
     assert page_links(at) == ["Server einrichten"]
     # Also on the "Data folder" page itself (link, problem and form in the same run).
     at.session_state["sync_result"] = gitsync.sync(data_dir, "egal")
-    goto(at, "datenordner")
+    goto(at, "data_dir")
     assert at.text_input(key=FIELD) is not None
     assert "Datenordner" in shown(at, "error", "sidebar")
 

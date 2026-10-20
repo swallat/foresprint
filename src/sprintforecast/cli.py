@@ -792,7 +792,7 @@ def _choose_person(people: list[Person]) -> Person:
 
 
 @command("people", "Show and maintain the list of people (joining, FTE change, leaving).")
-def personen(
+def people_command(
     ctx: typer.Context,
     team: TeamArg,
     commit_: CommitOpt = False,

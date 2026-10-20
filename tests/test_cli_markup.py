@@ -371,7 +371,7 @@ def test_values_with_markup_look_are_shown_literally(
     check(result, *expected, code=code)
 
 
-def test_personen_new_person_and_selection(brackets: Path):
+def test_people_new_person_and_selection(brackets: Path):
     """Select box, new person and check lines after saving with names that look like markup."""
     people = brackets / "demo" / "people.yaml"
     replace(people, "people:\n", "people:\n- id: '[x]'\n  name: Zoe\n")
@@ -390,7 +390,7 @@ def test_personen_new_person_and_selection(brackets: Path):
     assert "Neu [/x]" not in people.read_text(encoding="utf-8")
 
 
-def test_personen_region_with_markup_look(brackets: Path):
+def test_people_region_with_markup_look(brackets: Path):
     replace(brackets / "demo" / "people.yaml", "region: BY", "region: '[/x]'")
     result = run(brackets, "people", "demo", input="q\n")
     check(result, "Cem [red]", "[/x]")

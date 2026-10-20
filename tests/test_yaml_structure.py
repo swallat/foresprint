@@ -150,7 +150,7 @@ def test_web_shows_the_message_for_a_broken_team_file(
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
-    at.switch_page("seiten/forecast.py").run()
+    at.switch_page("page_scripts/forecast.py").run()
     assert not at.exception, at.exception
     assert any(path.name in e.value for e in at.error)
 

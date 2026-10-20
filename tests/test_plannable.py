@@ -208,11 +208,11 @@ def test_excel_labels_are_renamed_but_keys_stay(data_dir: Path, lang: str, monke
     assert ("Verplanbar (PT)" if lang == "de" else "Plannable (PT)") in labels
 
 
-WEB_PAGES = ["forecast", "analyse", "einstellungen", "planning", "produkte", "hilfe", "start"]
+WEB_PAGES = ["forecast", "analysis", "settings", "planning", "products", "help", "start"]
 
 
 @pytest.mark.parametrize("lang", ["de", "en"])
-@pytest.mark.parametrize("page", [*WEB_PAGES, "vorplanung"])
+@pytest.mark.parametrize("page", [*WEB_PAGES, "preplanning"])
 def test_web_pages_show_no_roadmap_label(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str, lang: str
 ):
@@ -226,7 +226,7 @@ def test_web_pages_show_no_roadmap_label(
     try:
         at = AppTest.from_file(str(APP), default_timeout=30)
         at.run()
-        at.switch_page(f"seiten/{page}.py").run()
+        at.switch_page(f"page_scripts/{page}.py").run()
         if page == "planning":  # step "2 · Forecast PLAN & planning" shows the metrics
             at.radio(key="planning-step").set_value(1).run()
         assert not at.exception, at.exception

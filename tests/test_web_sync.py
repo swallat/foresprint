@@ -194,7 +194,7 @@ def test_stale_form_is_discarded_before_saving(shared, data_dir: Path, monkeypat
     """If a file changes while a form is open, it is not saved blindly."""
     root, _, _ = shared
     at = start(data_dir, monkeypatch)
-    at.switch_page("seiten/review.py").run()
+    at.switch_page("page_scripts/review.py").run()
     assert not at.exception
     at.selectbox(key="review-sprint").set_value("2026.21").run()
     other = root / "teams" / "demo" / "sprints" / "2026.20.yaml"
@@ -320,14 +320,14 @@ def test_unsafe_directory_is_named_in_the_sidebar_and_on_the_history_page(
     errors = " ".join(e.value for e in at.sidebar.error)
     assert "Git hält den Ordner für unsicher" in errors and "Betreuung des Rechners" in errors
     assert "keinem Git-Repository" not in captions(at)
-    at.switch_page("seiten/verlauf.py").run()
+    at.switch_page("page_scripts/history.py").run()
     assert not at.exception, at.exception
     assert "Git hält den Ordner für unsicher" in " ".join(e.value for e in at.main.error)
     assert not [i for i in at.main.info if "keinem Git-Repository" in i.value]
 
 
 def open_history(at: AppTest) -> AppTest:
-    at.switch_page("seiten/verlauf.py").run()
+    at.switch_page("page_scripts/history.py").run()
     assert not at.exception, at.exception
     return at
 

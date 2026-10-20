@@ -358,8 +358,8 @@ def _sprint(**fields) -> Sprint:
 
 def test_board_steps_done_without_a_sprint_file_nothing_is_done():
     assert board_steps_done(None) == {
-        "fehltage": False,
-        "vorplanung": False,
+        "absences": False,
+        "preplanning": False,
         "planning": False,
         "review": False,
     }
@@ -371,19 +371,19 @@ def test_board_steps_done_absences_only_when_confirmed():
     """Check mark for absences only for the state "confirmed" (state per sprint), not for
     "announced" or "unknown" and not because a file exists."""
     entered = _sprint(absences={"anna": 1.0})
-    assert board_steps_done(entered)["fehltage"]
+    assert board_steps_done(entered)["absences"]
     nobody = _sprint(absence_state=AbsenceState.CONFIRMED)
-    assert board_steps_done(nobody)["fehltage"]  # explicitly "nobody is absent"
+    assert board_steps_done(nobody)["absences"]  # explicitly "nobody is absent"
     unknown = _sprint(absence_state=AbsenceState.UNKNOWN)
-    assert not board_steps_done(unknown)["fehltage"]
+    assert not board_steps_done(unknown)["absences"]
     expected = _sprint(expected_absences={"anna": 2.0})
-    assert not board_steps_done(expected)["fehltage"]  # announced confirms nothing
+    assert not board_steps_done(expected)["absences"]  # announced confirms nothing
     only_preplanned = _sprint(products={"app": ProductValues(preplanned=3.0)})
-    assert not board_steps_done(only_preplanned)["fehltage"]
+    assert not board_steps_done(only_preplanned)["absences"]
     # Only the absences are recorded: the other steps stay open
     assert board_steps_done(entered) == {
-        "fehltage": True,
-        "vorplanung": False,
+        "absences": True,
+        "preplanning": False,
         "planning": False,
         "review": False,
     }
@@ -419,8 +419,10 @@ def test_board_steps_done_other_steps_follow_their_values():
         velocity=7.5,
     )
     done = board_steps_done(sprint)
-    assert done["vorplanung"] and done["planning"] and done["review"]
-    assert not board_steps_done(_sprint(products={"app": ProductValues(planned=2.0)}))["vorplanung"]
+    assert done["preplanning"] and done["planning"] and done["review"]
+    assert not board_steps_done(_sprint(products={"app": ProductValues(planned=2.0)}))[
+        "preplanning"
+    ]
 
 
 def test_capacity_usage():
@@ -451,11 +453,11 @@ def test_board_steps_done_preplanning_needs_every_active_product():
     def preplanned(**values) -> Sprint:
         return _sprint(products={k: ProductValues(preplanned=v) for k, v in values.items()})
 
-    assert not board_steps_done(preplanned(shop=3.0), products)["vorplanung"]
-    assert not board_steps_done(_sprint(), products)["vorplanung"]
-    assert board_steps_done(preplanned(shop=3.0, app=2.0), products)["vorplanung"]
+    assert not board_steps_done(preplanned(shop=3.0), products)["preplanning"]
+    assert not board_steps_done(_sprint(), products)["preplanning"]
+    assert board_steps_done(preplanned(shop=3.0, app=2.0), products)["preplanning"]
     # A product without a value (only an entry without preplanned) does not count
     partial = _sprint(products={"shop": ProductValues(preplanned=1.0), "app": ProductValues()})
-    assert not board_steps_done(partial, products)["vorplanung"]
+    assert not board_steps_done(partial, products)["preplanning"]
     # Without known products any value suffices (as before)
-    assert board_steps_done(preplanned(shop=3.0))["vorplanung"]
+    assert board_steps_done(preplanned(shop=3.0))["preplanning"]

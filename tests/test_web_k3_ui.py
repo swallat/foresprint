@@ -33,7 +33,7 @@ def start(path: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def goto(at: AppTest, page: str) -> AppTest:
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -127,14 +127,14 @@ def test_without_git_in_empty_folder_leads_to_new_team(
     main_button(at, "Ohne Git verwenden").click().run()
     assert not at.exception, at.exception
     assert [h.value for h in at.header] != ["Datenordner"]  # not the setup again
-    goto(at, "neues_team")
+    goto(at, "new_team")
     assert at.text_input  # "New team" is reachable
 
 
 # --- W4: an open merge locks all writing pages ------------------------------------------
 
 
-@pytest.mark.parametrize("page", ["neues_team", "review"])
+@pytest.mark.parametrize("page", ["new_team", "review"])
 def test_open_merge_locks_writing_pages(
     repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
 ):
@@ -149,7 +149,7 @@ def test_history_buttons_are_disabled_with_open_merge(
 ):
     git(repo, "tag", "alt")
     open_merge(repo)
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     assert any("Zusammenführen ist noch offen" in w.value for w in at.warning)
     for label in ("Diesen Stand wiederherstellen", "Diese Änderung zurücknehmen"):
         assert main_button(at, label).disabled, label
@@ -198,7 +198,7 @@ def test_tag_delete_confirmation_is_per_tag_and_single_use(
     git(repo, "tag", "a")
     git(repo, "tag", "b")
     invalidate_status()
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     tag_box(at).set_value("a").run()
     at.checkbox[-1].check().run()
     tag_box(at).set_value("b").run()

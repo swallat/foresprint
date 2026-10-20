@@ -296,7 +296,7 @@ def test_web_ui_never_shows_key_names_as_markdown(data_dir: Path, monkeypatch):
     app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app_file), default_timeout=30)
     at.run()
-    at.switch_page("seiten/pruefung.py").run()
+    at.switch_page("page_scripts/check.py").run()
     assert not at.exception, at.exception
     shown = [w.value for w in at.warning if "mehrfach" in w.value]
     assert shown

@@ -39,7 +39,7 @@ def settings_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
-    at.switch_page("seiten/einstellungen.py").run()
+    at.switch_page("page_scripts/settings.py").run()
     assert not at.exception, at.exception
     return at
 

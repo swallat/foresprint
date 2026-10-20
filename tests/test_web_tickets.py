@@ -52,7 +52,7 @@ def page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
-    at.switch_page("seiten/tickets.py").run()
+    at.switch_page("page_scripts/tickets.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -111,7 +111,7 @@ def test_switched_off_there_is_no_page(data_dir: Path, monkeypatch):
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     with pytest.raises(ValueError, match="Could not find a navigation page"):
-        at.switch_page("seiten/tickets.py")
+        at.switch_page("page_scripts/tickets.py")
 
 
 def test_no_tickets_yet_points_to_the_import(data_dir: Path, monkeypatch):
@@ -326,7 +326,7 @@ def test_planning_assistant_suggests_the_ticket_sums(data_dir: Path, monkeypatch
     enable(data_dir)
     seed(data_dir)
     at = page(data_dir, monkeypatch)
-    at.switch_page("seiten/planning.py").run()
+    at.switch_page("page_scripts/planning.py").run()
     radio = at.radio(key="planning-step")
     radio.set_value(radio.options[1]).run()
     assert not at.exception, at.exception

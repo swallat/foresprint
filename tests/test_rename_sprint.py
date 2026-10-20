@@ -290,7 +290,7 @@ def test_settings_page_renames(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     app_path = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app_path), default_timeout=30)
     at.run()
-    at.switch_page("seiten/einstellungen.py").run()
+    at.switch_page("page_scripts/settings.py").run()
     assert not at.exception, at.exception
     assert at.selectbox(key="rename-demo-sprint").value == "2026.21"  # current sprint
     button = next(b for b in at.button if b.label == "Sprint-IDs ändern")
@@ -324,7 +324,7 @@ def test_settings_page_without_sprints_has_no_rename_section(
     app_path = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app_path), default_timeout=30)
     at.run()
-    at.switch_page("seiten/einstellungen.py").run()
+    at.switch_page("page_scripts/settings.py").run()
     assert not at.exception, at.exception
     assert not [b for b in at.button if b.label == "Sprint-IDs ändern"]
     assert at.text_input(key="settings-demo-sprint.first_id").value == "2026.1"

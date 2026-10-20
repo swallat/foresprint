@@ -16,7 +16,7 @@ from test_web_k3_ui import goto, start
 
 
 def data_folder_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
-    return goto(start(data_dir, monkeypatch), "datenordner")
+    return goto(start(data_dir, monkeypatch), "data_dir")
 
 
 def errors(at: AppTest) -> str:
