@@ -27,7 +27,6 @@ import sys
 import threading
 import time
 import tomllib
-import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -201,6 +200,8 @@ def installation() -> Installation | None:
 
 
 def _fetch(url: str, timeout: float) -> str:
+    import urllib.request  # only on update checks; keeps Tab completion fast
+
     request = urllib.request.Request(url, headers={"User-Agent": f"{PACKAGE}-updater"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read().decode("utf-8")

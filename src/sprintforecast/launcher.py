@@ -19,7 +19,6 @@ import socket
 import subprocess
 import sys
 import time
-import urllib.request
 import webbrowser
 from dataclasses import dataclass
 from enum import StrEnum
@@ -199,6 +198,8 @@ def free_port(preferred: int) -> int:
 
 
 def wait_until_ready(url: str, server: subprocess.Popen, timeout: float = 60) -> bool:
+    import urllib.request  # not at import time: keeps Tab completion fast
+
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if server.poll() is not None:

@@ -9,6 +9,7 @@
 #   SPRINTFORECAST_WITH="owner/repo; name @ git+https://…"  plugins (empty = none)
 #   SPRINTFORECAST_REF=…                                       branch or tag instead of main
 #   SPRINTFORECAST_NO_SHORTCUT=1                               do not create a launcher
+#   SPRINTFORECAST_COMPLETION=1                                set up Tab completion for the shell
 set -eu
 
 REF="${SPRINTFORECAST_REF:-main}"
@@ -106,6 +107,13 @@ fi
 # Double-click launcher (disable with SPRINTFORECAST_NO_SHORTCUT=1)
 if [ -z "${SPRINTFORECAST_NO_SHORTCUT:-}" ]; then
     "$(uv tool dir --bin)/sprintforecast" shortcut || say "Note: launcher not created."
+fi
+
+# Tab completion for the current shell (opt in with SPRINTFORECAST_COMPLETION=1)
+if [ -n "${SPRINTFORECAST_COMPLETION:-}" ]; then
+    "$(uv tool dir --bin)/sprintforecast" --install-completion || say "Note: Tab completion not set up."
+else
+    say "Tab completion (optional): sprintforecast --install-completion"
 fi
 
 # Git is optional for the installation, but needed to save, share and view the history of data
