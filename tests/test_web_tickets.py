@@ -25,6 +25,7 @@ from sprintforecast.web.tickets_view import (
     refinement_rows,
     rule_from_columns,
     split_values,
+    timeline_range_rows,
     timeline_rows,
 )
 
@@ -100,6 +101,35 @@ def test_filter_only_hides(data_dir: Path):
     bars, marks = timeline_rows(data, dist, only_payment, axis)
     assert {b["Projekt"] for b in bars} <= {"Payment"}
     assert all(m["Projekt"] == "Payment" for m in marks)
+
+
+def test_timeline_range_covers_sprints_outside_the_median_bar(data_dir: Path):
+    import copy
+
+    from sprintforecast.preplan import Variants
+
+    enable(data_dir)
+    seed(data_dir)
+    data = Repository(data_dir).load("demo")
+    median = distribute(data, TODAY)
+    axis = median.sprints
+    sel = Selection(frozenset({"payment"}), no_project=False)
+    (bar,) = [s for s in median.projects if s.project == "payment"]
+    placed = [p for p in median.placements if p.project == "payment" and p.sprint in axis]
+    assert placed
+    last = max(axis.index(p.sprint) for p in placed)
+    assert last + 1 < len(axis)
+    late = copy.deepcopy(median)
+    for p in late.placements:
+        if p.project == "payment" and p.sprint == axis[last]:
+            p.sprint = axis[last + 1]
+    assert timeline_range_rows(data, Variants(median), sel, axis) == []
+    rows = timeline_range_rows(
+        data, Variants(median, conservative=late, optimistic=median), sel, axis
+    )
+    assert [r["Sprint"] for r in rows] == [axis[last + 1]]
+    assert {r["Projekt"] for r in rows} == {"Payment"}
+    assert bar.light
 
 
 # --- Page --------------------------------------------------------------------------------------
