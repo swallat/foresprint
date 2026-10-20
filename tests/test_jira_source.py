@@ -1004,7 +1004,7 @@ def test_the_install_hints_carry_the_full_address(monkeypatch: pytest.MonkeyPatc
         text = str(error)
         assert '"sprintforecast[web,excel,jira] @ https://' in text
         assert "pip install" not in text and "Installer erneut" in text
-    assert jira_module.INSTALL_URL.startswith("https://github.com/swallat/sprint-forecast/")
+    assert jira_module.INSTALL_URL.startswith("https://github.com/swallat/foresprint/")
 
 
 def test_an_unreadable_ca_bundle_is_a_clear_error(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):

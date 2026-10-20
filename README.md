@@ -37,13 +37,13 @@ clones data; the app also finds Git outside the PATH (details in
 **Windows (PowerShell):**
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
 ```
 
 **Linux / macOS:**
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
 ```
 
 Then open a new terminal. The script also creates a desktop launcher **"Foresprint"**

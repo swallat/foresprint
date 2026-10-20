@@ -6,7 +6,7 @@ command line and pages to the web UI, for example an import of the history from 
 They are installed next to the tool:
 
 ```bash
-uv tool install "sprintforecast[web,excel,jira] @ git+https://github.com/swallat/sprint-forecast" \
+uv tool install "sprintforecast[web,excel,jira] @ git+https://github.com/swallat/foresprint" \
   --with "my-plugin @ git+https://..."
 ```
 

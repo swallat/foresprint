@@ -10,13 +10,13 @@ installs sprintforecast with the web UI.
 **Windows (PowerShell):**
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
 ```
 
 **Linux / macOS:**
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
 ```
 
 Then open a new terminal. Running the script again updates the installation. The script asks
@@ -32,7 +32,7 @@ From PyPI (once the package is published, see [releasing.md](releasing.md)):
 Manually, without the script:
 
 ```bash
-uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
+uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
 ```
 
 The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `SPRINTFORECAST_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).

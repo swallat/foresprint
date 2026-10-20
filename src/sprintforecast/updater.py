@@ -41,7 +41,7 @@ from sprintforecast.git import find_git
 from sprintforecast.i18n import t
 
 PACKAGE = "sprintforecast"
-DEFAULT_REPO = "swallat/sprint-forecast"
+DEFAULT_REPO = "swallat/foresprint"
 DEFAULT_REF = "main"
 MODE_ENV = "SPRINTFORECAST_AUTOUPDATE"
 CHECK_INTERVAL = timedelta(hours=24)
