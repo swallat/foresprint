@@ -74,3 +74,21 @@ def test_import_sprints_keeps_existing_team(tmp_path):
     paths = import_sprints(repo, Team(key="t", name="Import"), [sprint])
     assert [p.name for p in paths] == ["2026.1.yaml"]
     assert repo.load("t").team.name == "Geändert"
+
+
+def test_load_plugins_reads_both_groups_and_the_new_group_wins(
+    fake_plugins, monkeypatch: pytest.MonkeyPatch
+):
+    old_only, shared_old, shared_new = Plugin("alt"), Plugin("geteilt-alt"), Plugin("geteilt-neu")
+    by_group = {
+        plugins.ENTRY_POINT_GROUP: [FakeEntryPoint("geteilt", shared_new)],
+        plugins.LEGACY_ENTRY_POINT_GROUP: [
+            FakeEntryPoint("alt", old_only),
+            FakeEntryPoint("geteilt", shared_old),
+        ],
+    }
+    fake_plugins()
+    monkeypatch.setattr(plugins, "entry_points", lambda group: by_group[group])
+    plugins.load_plugins.cache_clear()
+    loaded = plugins.load_plugins()
+    assert shared_new in loaded and old_only in loaded and shared_old not in loaded

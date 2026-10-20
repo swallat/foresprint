@@ -79,7 +79,7 @@ def test_wrongly_typed_language_in_settings_json_falls_back(
 
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     monkeypatch.setenv("APPDATA", str(tmp_path))
-    for var in ("SPRINTFORECAST_LANG", "LANG", "LC_ALL", "LANGUAGE"):
+    for var in ("FORESPRINT_LANG", "LANG", "LC_ALL", "LANGUAGE"):
         monkeypatch.delenv(var, raising=False)
     (tmp_path / "sprintforecast").mkdir()
     (tmp_path / "sprintforecast" / "settings.json").write_text(json.dumps({"language": junk}))

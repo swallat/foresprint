@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Extensions via Python entry points (group ``sprintforecast.plugins``).
+"""Extensions via Python entry points (group ``foresprint.plugins``; the former group
+``sprintforecast.plugins`` still works).
 
 A plugin is a separately installed package that, e.g., in its ``pyproject.toml`` declares
 
-    [project.entry-points."sprintforecast.plugins"]
+    [project.entry-points."foresprint.plugins"]
     mein_import = "mein_paket.plugin:plugin"
 
 as an entry point. ``plugin`` is a :class:`Plugin`; it can contribute commands for the command
@@ -26,7 +27,8 @@ from sprintforecast.i18n import t
 if TYPE_CHECKING:
     from sprintforecast.storage import Repository
 
-ENTRY_POINT_GROUP = "sprintforecast.plugins"
+ENTRY_POINT_GROUP = "foresprint.plugins"
+LEGACY_ENTRY_POINT_GROUP = "sprintforecast.plugins"  # plugins written before the rename
 
 
 @dataclass(frozen=True)
@@ -50,7 +52,11 @@ class Plugin:
 def load_plugins() -> tuple[Plugin, ...]:
     """Installed plugins; faulty ones are skipped with a warning."""
     plugins = []
-    for ep in entry_points(group=ENTRY_POINT_GROUP):
+    found = {}  # by name: a plugin that registers in both groups is loaded once
+    for group in (ENTRY_POINT_GROUP, LEGACY_ENTRY_POINT_GROUP):
+        for ep in entry_points(group=group):
+            found.setdefault(ep.name, ep)
+    for ep in found.values():
         try:
             plugin = ep.load()
         except Exception as e:  # a broken plugin must not block the tool

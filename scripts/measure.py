@@ -92,8 +92,8 @@ def apptest(data: Path, today: date, runs: int) -> dict[str, float]:
     """Cold start and per-page build via AppTest (no browser)."""
     from streamlit.testing.v1 import AppTest
 
-    os.environ["SPRINTFORECAST_DATA"] = str(data)
-    os.environ["SPRINTFORECAST_AS_OF"] = today.isoformat()
+    os.environ["FORESPRINT_DATA"] = str(data)
+    os.environ["FORESPRINT_AS_OF"] = today.isoformat()
     start = time.perf_counter()
     at = AppTest.from_file(str(APP), default_timeout=60)
     at.run()

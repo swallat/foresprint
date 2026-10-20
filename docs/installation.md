@@ -21,7 +21,7 @@ curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh 
 
 Then open a new terminal. Running the script again updates the installation. The script asks
 about [plugins](plugins.md#plugins-with-the-installer) and remembers the answer; the
-environment variables `SPRINTFORECAST_WITH`, `SPRINTFORECAST_REF` and `SPRINTFORECAST_NO_SHORTCUT`
+environment variables `FORESPRINT_WITH`, `FORESPRINT_REF` and `FORESPRINT_NO_SHORTCUT`
 skip the prompt.
 
 Remove: see [Uninstalling](#uninstalling).
@@ -35,7 +35,7 @@ Manually, without the script:
 uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
 ```
 
-The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `SPRINTFORECAST_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
+The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `FORESPRINT_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
 
 ## Uninstalling
 
@@ -79,7 +79,7 @@ powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw
 Git is needed for plugins from Git repositories and for creating, committing, sharing, viewing
 the history of and cloning the data (`sprintforecast data-dir PATH` also requires a Git
 repository). Without Git the app runs with a data folder that is not a repository (`--data`,
-`SPRINTFORECAST_DATA` or "Use without Git" on the Data folder page), but without these
+`FORESPRINT_DATA` or "Use without Git" on the Data folder page), but without these
 functions.
 
 For creating, committing, sharing, history and cloning, Git does not have to be in the PATH: the
@@ -134,7 +134,7 @@ sprintforecast --install-completion
 ```
 
 and open a new terminal. `install.ps1` does this when started with
-`$env:SPRINTFORECAST_COMPLETION = "1"`; `install.sh` only prints the hint, because the shell cannot be
+`$env:FORESPRINT_COMPLETION = "1"`; `install.sh` only prints the hint, because the shell cannot be
 detected when the script is piped to `sh`. To manage the script yourself, print it with
 `sprintforecast completion bash|zsh|fish|powershell` (e.g. `eval "$(sprintforecast completion
 bash)"` in `~/.bashrc`; `--prog-name NAME` registers it for another command name). Completion
@@ -153,7 +153,7 @@ closed (running programs are locked there).
 |---|---|
 | `sprintforecast update` | check and update now (`--check`: check only, `--force`: reinstall) |
 | `sprintforecast update --auto notice` | only point out new versions; `--auto off` switches off, `--auto on` back on |
-| `SPRINTFORECAST_AUTOUPDATE=on\|notice\|off` | like `--auto`, takes precedence (for managed machines, for example) |
+| `FORESPRINT_AUTOUPDATE=on\|notice\|off` | like `--auto`, takes precedence (for managed machines, for example) |
 
 **In the web UI:** at startup the check runs in the background; if a new version exists, it
 appears in the sidebar (on the next page render after the check; the UI does not wait for it).
@@ -161,7 +161,7 @@ It is installed when the app is closed, or immediately with **Update now and res
 exits, updates and reopens (same data directory, same options).
 
 Log and state live next to the plugin selection (`update.log`, `update.json`). Installations
-pinned to a tag (`SPRINTFORECAST_REF=v...`) are not updated automatically. Running the install
+pinned to a tag (`FORESPRINT_REF=v...`) are not updated automatically. Running the install
 script again still works.
 
 > For maintainers: a new version is detected only when `version` in `pyproject.toml` (and

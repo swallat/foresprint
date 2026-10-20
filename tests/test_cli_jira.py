@@ -272,7 +272,7 @@ def test_missing_token_says_how_to_provide_it(jira_dir: Path, monkeypatch: pytes
     monkeypatch.setitem(sys.modules, "keyring", None)
     result = run(jira_dir, "tickets", "demo", "--fetch")
     assert result.exit_code == 1
-    assert "SPRINTFORECAST_JIRA_TOKEN" in result.output and "--set-token" in result.output
+    assert "FORESPRINT_JIRA_TOKEN" in result.output and "--set-token" in result.output
     assert "Traceback" not in result.output
 
 
@@ -315,7 +315,7 @@ def test_set_token_prompts_hidden_and_stores_in_the_keychain(
     monkeypatch.setitem(sys.modules, "keyring", fake)
     result = run(jira_dir, "tickets", "demo", "--set-token", input=f"{CANARY}\n")
     assert result.exit_code == 0, result.output
-    assert fake.stored == {("sprintforecast-jira", "jira.example.org"): CANARY}
+    assert fake.stored == {("foresprint-jira", "jira.example.org"): CANARY}
     assert CANARY not in result.output  # not echoed, not repeated
     assert "jira.example.org" in result.output and "--test-connection" in result.output
 
@@ -342,7 +342,7 @@ def test_set_token_without_keyring_is_a_clear_message(
     monkeypatch.setitem(sys.modules, "keyring", None)
     result = run(jira_dir, "tickets", "demo", "--set-token", input=f"{CANARY}\n")
     assert result.exit_code == 1
-    assert "keyring" in result.output and "SPRINTFORECAST_JIRA_TOKEN" in result.output
+    assert "keyring" in result.output and "FORESPRINT_JIRA_TOKEN" in result.output
     assert CANARY not in result.output
 
 
@@ -402,7 +402,7 @@ def test_set_token_warns_when_the_environment_variable_wins(
     monkeypatch.setenv(jira_module.TOKEN_ENV, "from-env")
     loud = run(jira_dir, "tickets", "demo", "--set-token", input=f"{CANARY}\n")
     assert loud.exit_code == 0, loud.output
-    assert loud.output.count("Vorrang") == 1 and "SPRINTFORECAST_JIRA_TOKEN" in loud.output
+    assert loud.output.count("Vorrang") == 1 and "FORESPRINT_JIRA_TOKEN" in loud.output
     assert CANARY not in loud.output and "from-env" not in loud.output
 
 

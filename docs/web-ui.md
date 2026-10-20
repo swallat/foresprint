@@ -24,7 +24,7 @@ locations (on Windows including the Scoop and Chocolatey directories):
 3. The system's default browser
 4. Nothing found: the address is shown and the server keeps running
 
-`--browser PATH` or the environment variable `SPRINTFORECAST_BROWSER` forces a particular
+`--browser PATH` or the environment variable `FORESPRINT_BROWSER` forces a particular
 browser. If port 8501 is taken, a free one is chosen automatically (`--port N` chooses another
 port).
 
@@ -128,7 +128,7 @@ further changes until you edit the text; your own text is never overwritten.
   the app fetches the server state in the background (`git fetch --prune`) when the sidebar is
   first drawn and every 30 minutes while a browser window is connected, with a 20 second limit
   and without any login prompt (a missing login simply leaves the state unchanged; **Check
-  status** then explains what to do). Set `SPRINTFORECAST_NO_BACKGROUND_FETCH=1` to switch this
+  status** then explains what to do). Set `FORESPRINT_NO_BACKGROUND_FETCH=1` to switch this
   off. The background fetch only runs in connected sessions and never keeps the server alive.
 - **Commit changes** commits locally only, without sharing.
 - Error cases are explained in plain language with the next step: server unreachable, repository
@@ -192,13 +192,13 @@ Only the data directory is committed; spreadsheets (`*.xlsx` and so on) are reje
 "one branch, always in sync"; branches, rebase, force push and stash are deliberately not part of
 the app. By default sharing pushes straight to the branch. For servers that protect `main` and
 require merge or pull requests, switch on **Share via merge request** on the **Data folder** page
-(per data repository, stored in its local Git configuration as `sprintforecast.share`). "Save and
+(per data repository, stored in its local Git configuration as `foresprint.share`). "Save and
 share" then merges the server state and uploads to your own branch `sprintforecast/<name>`; a
 further share updates the same request. `main` stays untouched until the request is merged; then
 **Pull from server** brings it in (and tells you while your request is still open). The app never
 holds an access token and never signs in to a web API; what happens after the push depends on the
 **Kind of server** (detected from the remote address, or chosen on the Data folder page and stored
-as `sprintforecast.host`):
+as `foresprint.host`):
 
 | Server | What the app does |
 | --- | --- |

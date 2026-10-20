@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 """User settings outside the team data (e.g. the remembered data folder).
 
-Stored next to the plugin selection of the install scripts:
-Windows %APPDATA%\\sprintforecast, otherwise ~/.config/sprintforecast.
+Stored in
+Windows %APPDATA%\\foresprint, otherwise ~/.config/foresprint. A folder named ``sprintforecast``
+(from before the rename) is copied there on first use and left in place.
 """
 
 from __future__ import annotations
@@ -19,6 +20,9 @@ from typing import Any
 from sprintforecast.i18n import t
 
 PACKAGE = "sprintforecast"
+CONFIG_NAME = "foresprint"
+LEGACY_CONFIG_NAME = "sprintforecast"
+MIGRATED_MARKER = ".migrated"
 
 
 class SettingsError(OSError):
@@ -26,10 +30,57 @@ class SettingsError(OSError):
     users."""
 
 
+_FAILED: set[Path] = set()  # folders whose migration failed: not retried in this process
+
+
 def config_dir() -> Path:
     if sys.platform == "win32" and os.environ.get("APPDATA"):
-        return Path(os.environ["APPDATA"]) / PACKAGE
-    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / PACKAGE
+        base = Path(os.environ["APPDATA"])
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    folder, legacy = base / CONFIG_NAME, base / LEGACY_CONFIG_NAME
+    if legacy.is_dir() and folder not in _FAILED and not (folder / MIGRATED_MARKER).exists():
+        try:
+            _copy_missing(legacy, folder)  # the old folder stays as a backup
+        except OSError:
+            _FAILED.add(folder)
+            return legacy  # keep using the old folder rather than a half copy
+    return folder
+
+
+def _copy_missing(source: Path, target: Path) -> None:
+    """Copy what ``target`` does not have yet (an install script may have created the folder
+    already), then mark the folder as migrated so it is not looked at again.
+
+    Every file is copied to a temporary name and linked into place, so a process starting at the
+    same time never sees a half-written file. Lock files (``sperren``) are not copied: a lock in
+    the old folder never excludes one in the new folder."""
+    target.mkdir(parents=True, exist_ok=True)
+    for path in sorted(source.rglob("*")):
+        relative = path.relative_to(source)
+        if "sperren" in relative.parts:
+            continue
+        destination = target / relative
+        if path.is_dir():
+            destination.mkdir(parents=True, exist_ok=True)
+        elif not destination.exists():
+            _copy_file(path, destination)
+    (target / MIGRATED_MARKER).write_text("copied from the folder 'sprintforecast'\n", "utf-8")
+
+
+def _copy_file(source: Path, destination: Path) -> None:
+    temporary = destination.with_name(f"{destination.name}.{os.getpid()}.tmp")
+    try:
+        shutil.copy2(source, temporary)
+        try:
+            os.link(temporary, destination)  # fails if another process was faster
+        except FileExistsError:
+            pass
+        except OSError:  # no hard links on this file system
+            if not destination.exists():
+                os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _settings_file() -> Path:

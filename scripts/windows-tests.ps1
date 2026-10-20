@@ -45,7 +45,7 @@
 
 .PARAMETER MitAutoUpdate
     Start the app under test with the configured self-update. Default: off
-    (SPRINTFORECAST_AUTOUPDATE=off only for the started process) so that the process check is
+    (FORESPRINT_AUTOUPDATE=off only for the started process) so that the process check is
     not disturbed by an update.
 
 .PARAMETER PythonExe
@@ -287,7 +287,7 @@ function Invoke-Native {
     if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
     $psi.EnvironmentVariables['PYTHONUTF8'] = '1'
     # Jeder Aufruf der CLI könnte sonst nach seinem Ende die echte Installation aktualisieren.
-    if (-not $MitAutoUpdate) { $psi.EnvironmentVariables['SPRINTFORECAST_AUTOUPDATE'] = 'off' }
+    if (-not $MitAutoUpdate) { $psi.EnvironmentVariables['FORESPRINT_AUTOUPDATE'] = 'off' }
     foreach ($key in $Environment.Keys) { $psi.EnvironmentVariables[[string]$key] = [string]$Environment[$key] }
 
     $result = [pscustomobject]@{ ExitCode = -1; Output = ''; Error = ''; TimedOut = $false; Seconds = 0.0 }
@@ -679,14 +679,14 @@ function Test-AppEnde {
         return
     }
 
-    Save-ProcessEnv @('SPRINTFORECAST_DATA', 'SPRINTFORECAST_AUTOUPDATE')
+    Save-ProcessEnv @('FORESPRINT_DATA', 'FORESPRINT_AUTOUPDATE')
     $dataNote = 'Datenordner der App: ihr gemerkter Ordner (kein Python gefunden, keine Testdaten).'
     if ($script:Py) {
         $teams = Initialize-DemoRepository (Join-Path (Get-TempRoot) 'app-daten')
-        $env:SPRINTFORECAST_DATA = $teams
-        $dataNote = 'Datenordner der App: temporäres Daten-Repository mit dem Team "demo" (SPRINTFORECAST_DATA nur für diesen Start).'
+        $env:FORESPRINT_DATA = $teams
+        $dataNote = 'Datenordner der App: temporäres Daten-Repository mit dem Team "demo" (FORESPRINT_DATA nur für diesen Start).'
     }
-    if (-not $MitAutoUpdate) { $env:SPRINTFORECAST_AUTOUPDATE = 'off' }
+    if (-not $MitAutoUpdate) { $env:FORESPRINT_AUTOUPDATE = 'off' }
     Add-Text $Section ('Start mit: `' + (Split-Path -Leaf $launcher) + ' ' + ($launchArgs -join ' ') + '`. ' + $dataNote + $(if (-not $MitAutoUpdate) { ' Selbstaktualisierung nur für diesen Start aus.' } else { '' }))
 
     $sp = @{ FilePath = $launcher; PassThru = $true }
