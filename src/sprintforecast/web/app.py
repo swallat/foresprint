@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Einstieg der Weboberfläche (Streamlit). Start: `sprintforecast web`."""
+"""Entry point of the web UI (Streamlit). Start: `sprintforecast web`."""
 
 from functools import partial
 
@@ -25,11 +25,11 @@ st.set_page_config(page_title="Sprint-Forecast", page_icon="📈", layout="wide"
 start_idle_watch()
 apply_language()
 if problem := stichtag_problem():
-    st.error(problem)  # vor allem Weiteren: Die Seitenleiste liest den Stichtag in jedem Lauf
+    st.error(problem)  # before anything else: the sidebar reads the reference date on every run
     st.stop()
-collect_sync_result()  # ein Abgleich eines gestoppten Durchlaufs: abwarten, Ergebnis übernehmen
+collect_sync_result()  # a sync from a stopped run: wait for it and take over the result
 repo = repository()
-sidebar(repo)  # vor der Navigation: Die Teamwahl bestimmt, welche Seiten es gibt
+sidebar(repo)  # before the navigation: the team choice determines which pages exist
 enabled = enabled_pages(repo)
 st.session_state["enabled-pages"] = enabled
 pages = {
