@@ -81,7 +81,7 @@ def test_own_save_with_rerun_is_not_reported_as_foreign_change(
     assert (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
     assert not any("Daten haben sich geändert" in w.value for w in at.warning)
     assert at.selectbox(key="planning-sprint").value == "2026.23"  # inputs not discarded
-    assert at.radio(key="planning-step").value == 1
+    assert at.session_state["planning-step"] == 1
 
 
 # --- W2: the data folder applies per session --------------------------------------------
