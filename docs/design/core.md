@@ -113,7 +113,9 @@ whether the implementation agrees with itself. In addition there are **domain te
      deliberately does not create it there; whether it should offer to is open).
   6. Set up the Git sign-in separately (credential manager, SSH prompts, file locks,
      line endings under Windows). Partially: the app detects a missing sign-in and explains the
-     next step; a sign-in of its own in the app deliberately does not exist.
+     next step; for https the guided token sign-in (Data folder page) passes the token to Git's
+     credential helper only (never stored by the app), and a read-only setup checklist is on the
+     start page.
 - A reachable Git contact person is helpful, but does not replace the terminal-free
   acceptance test: it is carried out with two people working at the same time and deliberately created
   conflicts.
@@ -141,8 +143,10 @@ Status per operation:
   (implemented). This includes the **server (remote)**: enter or change the address, validate it and
   check the connection (`git ls-remote`) instead of calling `git remote` in the terminal
   (implemented). Credentials never belong in the address and are not stored or
-  displayed. The app does not generate SSH keys; it changes the global Git configuration only
-  on click, and only for the name and e-mail of the commits (when Git does not know the name or e-mail).
+  displayed. The app does not generate SSH keys. It passes an access token only to Git's
+  credential helper (`git credential approve/reject`), never uses `credential.helper store`, and
+  changes the global Git configuration only on click: the name and e-mail of the commits and a
+  secure credential helper for the user.
 - **Sign-in help:** detect missing authentication and explain comprehensibly what to
   do (store an access token or SSH key, credential manager). Partially: when cloning
   and creating a data folder the sign-in note is still missing.
