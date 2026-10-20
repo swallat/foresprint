@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Token-Anmeldung (A4.4) und Einrichtungs-Checkliste (A4.5): Der Token geht nur an den
-Anmeldedienst von Git. Die Tests nutzen einen Ersatz-Dienst, der die Eingaben in eine Datei
-schreibt, und kein echtes Netzwerk."""
+"""Token sign-in (A4.4) and setup checklist (A4.5): the token goes only to Git's credential
+helper. The tests use a stand-in helper that writes its input to a file, and no real network."""
 
 import subprocess
 import sys
@@ -30,7 +29,7 @@ TOKEN = "glpat-GEHEIM-12345"
 
 @pytest.fixture(autouse=True)
 def own_git_config(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch):
-    """Die Tests schreiben ``--global``-Einstellungen: nie in die des Rechners."""
+    """The tests write ``--global`` settings: never into the computer's own."""
     home = tmp_path_factory.mktemp("home")
     config = home / "gitconfig"
     config.write_text("", encoding="utf-8")
@@ -43,7 +42,7 @@ def own_git_config(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest
 
 @pytest.fixture
 def helper_log(tmp_path: Path) -> Path:
-    """Trägt einen Ersatz-Anmeldedienst ein: Er hängt Aktion und Eingabe an eine Datei an."""
+    """Registers a stand-in credential helper: it appends action and input to a file."""
     log = tmp_path / "helper.log"
     script = tmp_path / "helper.sh"
     script.write_text(f'#!/bin/sh\necho "== $1" >> "{log}"\ncat >> "{log}"\n')
@@ -159,7 +158,7 @@ def test_setup_items_follow_the_state(repo: Path, helper_log: Path):
     assert not items["login"].ok
     git(repo, "remote", "set-url", "origin", "git@git.example.com:team/daten.git")
     invalidate_status()
-    assert {i.key: i for i in signin.setup_items(repo)}["login"].ok  # SSH: keine Token-Anmeldung
+    assert {i.key: i for i in signin.setup_items(repo)}["login"].ok  # SSH: no token sign-in
 
 
 def test_setup_items_without_repository(tmp_path: Path):
@@ -167,7 +166,7 @@ def test_setup_items_without_repository(tmp_path: Path):
     assert keys == ["git", "folder"]
 
 
-# --- Oberfläche -------------------------------------------------------------------------------
+# --- UI -------------------------------------------------------------------------------
 
 
 def with_remote(repo: Path, data_dir: Path, monkeypatch) -> AppTest:
