@@ -89,7 +89,7 @@ def test_sidebar_offers_the_setup_and_the_page_shows_the_section(
     assert page_links(at) == ["Server einrichten"]
     assert not [b for b in at.sidebar.button if b.label == "Speichern und teilen"]
     goto(at, "datenordner")
-    assert [s.value for s in at.main.subheader] == ["Server (Remote)"]
+    assert [s.value for s in at.main.subheader] == ["Server (Remote)", "Zeilenenden festlegen"]
     assert "noch kein Server" in shown(at, "info")
     assert "Repository klonen" in shown(at, "info")  # the way to join a team
     assert at.button(key="git-remote-check").disabled and at.button(key="git-remote-save").disabled
@@ -663,7 +663,7 @@ def test_no_section_in_the_setup(tmp_path: Path, monkeypatch):
 
 def test_section_in_english(repo: Path, data_dir: Path, monkeypatch, english):
     at = datenordner(data_dir, monkeypatch)
-    assert [s.value for s in at.subheader] == ["Server (remote)"]
+    assert [s.value for s in at.subheader] == ["Server (remote)", "Set line endings"]
     assert at.text_input(key=FIELD).label == "Server address"
     assert page_links(at) == ["Set up server"]
     assert "Clone repository" in shown(at, "info")
@@ -692,3 +692,17 @@ def test_no_server_hint_names_the_page_and_link_and_problem_can_share_a_run(
     goto(at, "datenordner")
     assert at.text_input(key=FIELD) is not None
     assert "Datenordner" in shown(at, "error", "sidebar")
+
+
+def test_attributes_offer_is_written_only_on_click_and_shows_as_a_change(
+    repo: Path, data_dir: Path, monkeypatch
+):
+    (data_dir / "crlf.yaml").write_bytes(b"x: 1\r\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "CRLF")
+    at = datenordner(data_dir, monkeypatch)
+    assert not (data_dir / ".gitattributes").exists()
+    assert "crlf.yaml" in [row for df in at.main.dataframe for row in df.value["Datei"]]
+    click(at, "attributes-apply")
+    assert (data_dir / ".gitattributes").is_file()
+    assert not [s for s in at.main.subheader if s.value == "Zeilenenden festlegen"]
