@@ -334,8 +334,7 @@ def test_planning_assistant_suggests_the_ticket_sums(data_dir: Path, monkeypatch
     seed(data_dir)
     at = page(data_dir, monkeypatch)
     at.switch_page("page_scripts/planning.py").run()
-    radio = at.radio(key="planning-step")
-    radio.set_value(radio.options[1]).run()
+    at.button(key="planning-step-1").click().run()
     assert not at.exception, at.exception
     assert any("Vorschlag aus der Ticket-Vorplanung" in e.label for e in at.expander)
 
