@@ -4,14 +4,16 @@
 Address, query and field names are edited here and saved to ``team.yaml``; a connection test asks
 the instance for the account, the fields (suggestions for the estimate, remaining work and epic)
 and the number of tickets the query matches. Only reads happen (``sources.jira``). The page
-never takes the token and never stores it: it stays in the environment variable
-(``SPRINTFORECAST_JIRA_TOKEN``) or the keychain, and the page only checks whether one is found.
+The token is stored only in the operating system keychain (hidden input, replace, remove) or
+comes from the environment variable (``SPRINTFORECAST_JIRA_TOKEN``, which takes precedence); it
+is never written to team.yaml, the data folder or any other file, and never shown.
 Loaded by ``ui.page_jira`` only (``features.tickets``); the helpers are pure functions so that
 tests need no browser."""
 
 from __future__ import annotations
 
 import copy
+import itertools
 import os
 from dataclasses import dataclass, replace
 
@@ -19,14 +21,24 @@ import streamlit as st
 
 from sprintforecast.forecast import Forecast
 from sprintforecast.i18n import t
-from sprintforecast.model import TRACKER_KINDS, TrackerFields, TrackerSettings, base_url_problem
+from sprintforecast.model import (
+    DEFAULT_MATCH_ORDER,
+    TRACKER_KINDS,
+    TrackerFields,
+    TrackerSettings,
+    base_url_problem,
+)
 from sprintforecast.sources import SourceError, open_source
 from sprintforecast.sources.jira import (
     INSTALL_COMMAND,
     TOKEN_ENV,
     FieldCandidate,
     FieldSuggestions,
+    delete_token,
     jira_token,
+    keychain_usable,
+    store_token,
+    stored_token_exists,
     suggest_fields,
 )
 from sprintforecast.storage import Repository, TeamData
@@ -55,8 +67,27 @@ def token_source(base_url: str | None) -> str | None:
     return "keychain" if jira_token(base_url) else None
 
 
+def _criterion_label(source: str) -> str:
+    return {"epic": t("Epic"), "component": t("Component"), "label": t("Jira label")}.get(
+        source, source
+    )
+
+
+def match_orders(current: list[str]) -> list[tuple[str, ...]]:
+    """The orders to choose from: all orders of epic, component and label, plus the current one
+    when team.yaml holds something else (a subset, say), so that saving never changes it."""
+    orders = list(itertools.permutations(DEFAULT_MATCH_ORDER))
+    return orders if tuple(current) in orders else [tuple(current), *orders]
+
+
 def tracker_from_inputs(
-    base: TrackerSettings, kind: str, base_url: str, query: str, fields: dict[str, str]
+    base: TrackerSettings,
+    kind: str,
+    base_url: str,
+    query: str,
+    fields: dict[str, str],
+    refined_label: str | None = None,
+    match_order: tuple[str, ...] | None = None,
 ) -> TrackerSettings:
     """The tracker settings with the edited values; everything else stays as it is."""
     return replace(
@@ -65,6 +96,10 @@ def tracker_from_inputs(
         base_url=base_url.strip() or None,
         query=query.strip() or None,
         fields=TrackerFields(**{k: fields.get(k, "").strip() or None for k in FIELD_SETTINGS}),
+        refined_label=base.refined_label
+        if refined_label is None
+        else (refined_label.strip() or None),
+        project_match_order=base.project_match_order if match_order is None else list(match_order),
     )
 
 
@@ -111,21 +146,95 @@ def run_probe(tracker: TrackerSettings) -> Probe:
     return probe
 
 
-def _token_section(base_url: str | None) -> None:
+def _token_status(base_url: str | None) -> None:
+    """Which source is active. The environment variable comes first (as for the command
+    line); a stored keychain entry it hides is said so."""
     found = token_source(base_url)
     if found == "env":
-        st.success(t("A token was found in the environment variable {name}.", name=TOKEN_ENV))
-        return
-    if found == "keychain":
-        st.success(t("A token was found in the keychain."))
-        return
-    st.warning(
-        t(
-            "No token found. This page does not take the token and does not store it: set it "
-            "yourself, then restart the web interface."
+        st.success(
+            t("The token comes from the environment variable {name} (it takes precedence).",
+              name=TOKEN_ENV)
+        )  # fmt: skip
+        if stored_token_exists(base_url):
+            st.caption(t("A token stored in the keychain exists too; it is not used meanwhile."))
+    elif found == "keychain":
+        st.success(t("The token comes from the keychain."))
+    else:
+        st.warning(t("No token found. Store one below or set the environment variable."))
+
+
+def _token_section(key: str, base_url: str | None) -> None:
+    """Token handling: only ever into the operating system keychain (never into team.yaml, the
+    data folder or another file), hidden input, replace and remove. Without a usable keychain
+    only a hint is shown, no substitute store."""
+    st.subheader(t("Token"))
+    _token_status(base_url)
+    usable = keychain_usable()
+    if not usable:
+        st.info(
+            t(
+                "No usable keychain here (package `keyring` missing, or no keychain service "
+                "such as the Secret Service on Linux), so the token cannot be stored from this "
+                "page. Set the environment variable instead (below)."
+            )
         )
-    )
-    with st.expander(t("How to set the token"), icon=":material/key:", expanded=True):
+    elif problem := _address_problem(base_url):
+        st.caption(
+            t("The token is stored per Jira host: first enter the address above and save it.")
+        )
+        st.caption(problem)
+    else:
+        _token_form(key, base_url or "")
+    if token_source(base_url) is None or not usable:
+        _token_howto()
+
+
+def _token_form(key: str, base_url: str) -> None:
+    stored = stored_token_exists(base_url)
+    counter = f"jira-{key}-token-n"
+    with st.form(f"jira-{key}-token-form", clear_on_submit=True, border=False):
+        token = st.text_input(
+            t("Replace token") if stored else t("Personal access token"),
+            type="password",
+            autocomplete="off",
+            help=t(
+                "Jira: profile > Personal Access Tokens > Create token. It goes only into the "
+                "keychain of this computer, under the host of the address, and is never written "
+                "to a file of the data folder."
+            ),
+            key=f"jira-{key}-token-{st.session_state.get(counter, 0)}",
+        )
+        left, right = st.columns(2)
+        save_it = left.form_submit_button(
+            t("Replace in keychain") if stored else t("Store in keychain"),
+            icon=":material/key:",
+        )
+        remove = right.form_submit_button(
+            t("Remove from keychain"), icon=":material/delete:", disabled=not stored
+        )
+    if not (save_it or remove):
+        return
+    kind, note = "success", ""
+    try:
+        if remove:
+            delete_token(base_url)
+            note = t("The token was removed from the keychain.")
+        elif not token.strip():
+            kind, note = "error", t("Please paste the token.")
+        else:
+            store_token(base_url, token.strip())
+            note = t("The token was stored in the keychain.")
+    except SourceError as e:
+        kind, note = "error", str(e)
+    # A new widget key (and a rerun, also after an error) drops the typed secret from the session
+    # state, not only from the browser; the message is shown in the next run.
+    st.session_state[counter] = st.session_state.get(counter, 0) + 1
+    st.session_state.setdefault("flash", []).append((kind, note))
+    st.rerun()
+
+
+def _token_howto() -> None:
+    with st.expander(t("Set the token as environment variable"), icon=":material/key:"):
         st.markdown(
             t(
                 "Create a personal access token in Jira (profile > *Personal Access Tokens* "
@@ -135,13 +244,6 @@ def _token_section(base_url: str | None) -> None:
         )
         st.code(f'export {TOKEN_ENV}="..."          # Linux, macOS', language="bash")
         st.code(f'$env:{TOKEN_ENV} = "..."          # Windows PowerShell', language="powershell")
-        st.markdown(
-            t(
-                "Alternatively store it in the operating system keychain with "
-                "`sprintforecast tickets TEAM --set-token` (hidden input in the terminal; "
-                "needs the package `keyring`). The environment variable takes precedence."
-            )
-        )
 
 
 def _field_inputs(
@@ -216,10 +318,10 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             "estimates. The connection test only reads."
         ),
         t(
-            "The token is **not entered here**. It stays an environment variable (or a "
-            "keychain entry) and is never written to the data folder. The test shows the "
-            "account of the token, offers the fields of your instance and counts the tickets "
-            "of the query. Needs the extra `[jira]`: {command}",
+            "The token goes only into the keychain of this computer (or comes from the "
+            "environment variable) and is never written to the data folder. The test shows "
+            "the account of the token, offers the fields of your instance and counts the "
+            "tickets of the query. Needs the extra `[jira]`: {command}",
             command=f"`{INSTALL_COMMAND}`",
         ),
     )
@@ -254,16 +356,39 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             key=f"jira-{key}-query",
         )
         fields = _field_inputs(key, st.session_state.get(draft_key, tracker.fields), probe, counter)
+        refined_label = st.text_input(
+            t("Label of refined tickets"),
+            value=tracker.refined_label or "",
+            help=t(
+                "A ticket with this label counts as refined (for example `Refined`). Empty = "
+                "no label; the refinement then follows from the estimate."
+            ),
+            key=f"jira-{key}-refined",
+        )
+        orders = match_orders(tracker.project_match_order)
+        order = st.selectbox(
+            t("Project assignment: order of the criteria"),
+            orders,
+            index=orders.index(tuple(tracker.project_match_order))
+            if tuple(tracker.project_match_order) in orders
+            else 0,
+            format_func=lambda o: " > ".join(_criterion_label(x) for x in o) or t("(none)"),
+            help=t(
+                "If a ticket fits several projects, the project that matches by the first "
+                "criterion wins. The criteria of each project are set on the page Tickets."
+            ),
+            key=f"jira-{key}-order",
+        )
         left, right = st.columns(2)
         test = left.form_submit_button(t("Test connection"), icon=":material/cable:")
         saved = right.form_submit_button(t("Save"), type="primary")
-    edited = tracker_from_inputs(tracker, kind, base_url, query, fields)
+    edited = tracker_from_inputs(tracker, kind, base_url, query, fields, refined_label, order)
     if test:
         if problem := _address_problem(edited.base_url):
             st.error(problem)
         elif token_source(edited.base_url) is None:
             st.session_state.pop(probe_key, None)
-            st.warning(t("No token found – set it first (see below)."))
+            st.warning(t("No token found – store or set it first (see below)."))
         else:
             with st.spinner(t("Asking Jira …")):
                 st.session_state[probe_key] = probe = run_probe(edited)
@@ -273,9 +398,10 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             st.rerun()
     if probe is not None:
         _show_probe(probe)
-    _token_section(edited.base_url)
+    _token_section(key, data.team.tracker.base_url)  # the saved address: the form is not live
     if saved and _save(repo, data, edited):
         st.session_state.pop(draft_key, None)
+        st.rerun()  # the token section below must see the saved address
 
 
 def _address_problem(url: str | None) -> str | None:
@@ -302,4 +428,4 @@ def _save(repo: Repository, data: TeamData, edited: TrackerSettings) -> bool:
     team.tracker = edited
     after = copy.deepcopy(data)
     after.team = team
-    return save(after, ["team.yaml"], lambda: [repo.save_team(team)])
+    return save(after, ["team.yaml"], lambda: [repo.save_team(team)], flash=True)

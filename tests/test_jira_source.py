@@ -1128,3 +1128,57 @@ def test_count_tickets_needs_a_query():
     source, _ = make(query=None)
     with pytest.raises(SourceError):
         source.count_tickets()
+
+
+def test_keychain_usable_tells_a_real_backend_from_the_fail_backend(monkeypatch):
+    keyring = pytest.importorskip("keyring")
+    from keyring.backend import KeyringBackend
+    from keyring.backends import fail
+
+    class Memory(KeyringBackend):
+        priority = 1  # type: ignore[assignment]
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.store: dict[tuple[str, str], str] = {}
+
+        def get_password(self, service, username):
+            return self.store.get((service, username))
+
+        def set_password(self, service, username, password):
+            self.store[(service, username)] = password
+
+        def delete_password(self, service, username):
+            self.store.pop((service, username), None)
+
+    previous = keyring.get_keyring()
+    try:
+        keyring.set_keyring(fail.Keyring())
+        assert not jira_module.keychain_usable()
+        memory = Memory()
+        keyring.set_keyring(memory)
+        # a backend that is not the operating system's own is a substitute store: not usable
+        assert not jira_module.keychain_usable()
+        monkeypatch.setattr(jira_module, "OS_KEYCHAIN_MODULES", (Memory.__module__,))
+        assert jira_module.keychain_usable()
+        jira_module.store_token(BASE, CANARY)
+        assert jira_module.stored_token_exists(BASE) and jira_token(BASE) == CANARY
+        jira_module.delete_token(BASE)
+        jira_module.delete_token(BASE)  # no entry any more: not an error
+        assert not jira_module.stored_token_exists(BASE)
+    finally:
+        keyring.set_keyring(previous)
+
+
+def test_delete_token_reports_a_failed_delete(monkeypatch):
+    class Stuck:
+        def get_password(self, service, user):
+            return "still-there"
+
+        def delete_password(self, service, user):
+            raise RuntimeError("keychain locked: secret detail")
+
+    monkeypatch.setattr(jira_module, "_keyring", lambda: Stuck())
+    with pytest.raises(SourceError) as error:
+        jira_module.delete_token(BASE)
+    assert "secret detail" not in str(error.value) and "still-there" not in str(error.value)
