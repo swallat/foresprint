@@ -5,13 +5,13 @@ The web UI is a local [Streamlit](https://streamlit.io) application. It reads an
 [README](../README.md) for installation and the quick start.
 
 ```bash
-sprintforecast web                         # in the data directory
-sprintforecast --data ../data-repo web     # or with a path
+foresprint web                         # in the data directory
+foresprint --data ../data-repo web     # or with a path
 ```
 
 ## Starting the UI
 
-**As an app (default):** `sprintforecast web` opens the UI in its own window without an address
+**As an app (default):** `foresprint web` opens the UI in its own window without an address
 bar; closing the window also stops the server. `--app` is still accepted (the desktop launcher
 and shortcuts use it). With `--no-app` a normal browser tab opens instead and the server runs
 until Ctrl+C; with `--no-browser` no window opens at all and the server does not stop on its own

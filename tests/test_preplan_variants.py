@@ -10,8 +10,8 @@ from datetime import date, timedelta
 import pytest
 from test_preplan import TODAY, future, project, team_data, ticket
 
-from sprintforecast.analysis import band, horizon_forecast
-from sprintforecast.model import (
+from foresprint.analysis import band, horizon_forecast
+from foresprint.model import (
     BudgetBasis,
     Earmark,
     EstimateSource,
@@ -24,7 +24,7 @@ from sprintforecast.model import (
     Sprint,
     Ticket,
 )
-from sprintforecast.preplan import (
+from foresprint.preplan import (
     Distribution,
     ProjectStatus,
     Variant,
@@ -35,7 +35,7 @@ from sprintforecast.preplan import (
     project_range,
     ticket_range,
 )
-from sprintforecast.storage import TeamData
+from foresprint.storage import TeamData
 
 # Normalized velocities 6..14: the plan per future sprint is 6 (conservative), 10 (median, the
 # Forecast PLAN) and 14 (optimistic); with the plannable share of 80 % the budgets are 4.8, 8

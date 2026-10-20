@@ -13,11 +13,11 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast.cli import app as cli_app
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, DataError, Repository
-from sprintforecast.validate import Level, check_all
+from foresprint.cli import app as cli_app
+from foresprint.storage import AS_OF_ENV, DATA_ENV, DataError, Repository
+from foresprint.validate import Level, check_all
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 TODAY = date(2026, 10, 15)
 runner = CliRunner(env={"COLUMNS": "200"})
 
@@ -172,7 +172,7 @@ def test_quoted_share_number_is_still_accepted(data_dir: Path):
 def test_catch_all_turns_unexpected_structure_errors_into_a_data_error(tmp_path: Path):
     """The safety net around the individual checks: type, attribute, key and overflow errors
     arrive as DataError with the file name."""
-    from sprintforecast.storage import _well_formed
+    from foresprint.storage import _well_formed
 
     for error in (AttributeError("a"), TypeError("b"), KeyError("c"), ValueError("d")):
         with (
@@ -260,7 +260,7 @@ def test_unquoted_first_sprint_id_is_explained(data_dir: Path):
 def test_load_errors_compare_equal_across_folders(data_dir: Path, tmp_path: Path):
     """The "Save and share" action compares the errors of the working state with those of the
     commit that is unpacked in another folder: the folder does not appear in the comparison text."""
-    from sprintforecast.gitsync import _error_set
+    from foresprint.gitsync import _error_set
 
     edit(data_dir, TEAM, setting("sprint", "foo"))
     other = tmp_path / "anderer-ordner"

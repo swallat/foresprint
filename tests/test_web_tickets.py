@@ -12,10 +12,10 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from ticketfixtures import enable, seed
 
-from sprintforecast.model import BudgetBasis, ManualEstimate, Project, Rule
-from sprintforecast.preplan import distribute, handover_rows
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
-from sprintforecast.web.tickets_view import (
+from foresprint.model import BudgetBasis, ManualEstimate, Project, Rule
+from foresprint.preplan import distribute, handover_rows
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.web.tickets_view import (
     Selection,
     apply_project_rows,
     estimates_from_rows,
@@ -26,7 +26,7 @@ from sprintforecast.web.tickets_view import (
     timeline_rows,
 )
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 DATA = Path(__file__).parent / "data"
 TODAY = date(2026, 10, 15)
 CSV = (DATA / "jira_en.csv").read_bytes()
@@ -35,9 +35,9 @@ UPLOADER = "tickets-demo-file-0"
 
 def imported(data_dir: Path) -> None:
     """tickets.yaml as the CSV import would write it."""
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.sources.csv import CsvSource
-    from sprintforecast.ticket_import import apply_import, plan_import
+    from foresprint.forecast import build_forecast
+    from foresprint.sources.csv import CsvSource
+    from foresprint.ticket_import import apply_import, plan_import
 
     repo = Repository(data_dir)
     data = repo.load("demo")
@@ -84,7 +84,7 @@ def test_filter_only_hides(data_dir: Path):
 def test_timeline_range_covers_sprints_outside_the_median_bar(data_dir: Path):
     import copy
 
-    from sprintforecast.preplan import Variants
+    from foresprint.preplan import Variants
 
     enable(data_dir)
     seed(data_dir)
@@ -300,7 +300,7 @@ def test_unknown_project_counts_as_without_project():
 
 
 def test_jira_fetch_previews_then_writes(data_dir: Path, monkeypatch):
-    from sprintforecast.sources import RawTicket
+    from foresprint.sources import RawTicket
 
     class Fake:
         kind, name, host = "jira", "jira.example.org", "jira.example.org"
@@ -317,7 +317,7 @@ def test_jira_fetch_previews_then_writes(data_dir: Path, monkeypatch):
     doc["tracker"]["kind"] = "jira"
     doc["tracker"]["base_url"] = "https://jira.example.org"
     team.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
-    monkeypatch.setattr("sprintforecast.web.tickets_view.open_source", lambda tracker: Fake())
+    monkeypatch.setattr("foresprint.web.tickets_view.open_source", lambda tracker: Fake())
     at = page(data_dir, monkeypatch)
     button(at, "Tickets aus Jira lesen").click().run()
     assert not at.exception, at.exception
@@ -340,8 +340,8 @@ def test_planning_assistant_suggests_the_ticket_sums(data_dir: Path, monkeypatch
 
 
 def test_every_change_kind_has_a_title():
-    from sprintforecast.ticket_import import KINDS
-    from sprintforecast.web.tickets_view import change_titles
+    from foresprint.ticket_import import KINDS
+    from foresprint.web.tickets_view import change_titles
 
     assert set(KINDS) <= set(change_titles())
 
@@ -356,7 +356,7 @@ class LabelSource:
         self.calls: list[tuple[str, list[str], list[str]]] = []
 
     def fetch(self):
-        from sprintforecast.sources import RawTicket
+        from foresprint.sources import RawTicket
 
         return [RawTicket(key="J-1", title="From Jira", estimate=2.0, labels=list(self.labels))]
 
@@ -368,7 +368,7 @@ class LabelSource:
 
 
 def label_setup(data_dir: Path, monkeypatch, source: LabelSource, write_labels: bool = True):
-    from sprintforecast.model import Earmark, Preplan
+    from foresprint.model import Earmark, Preplan
 
     enable(data_dir)
     team = data_dir / "demo" / "team.yaml"
@@ -378,7 +378,7 @@ def label_setup(data_dir: Path, monkeypatch, source: LabelSource, write_labels: 
     doc["tracker"]["write_labels"] = write_labels
     team.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
     Repository(data_dir).save_preplan("demo", Preplan(earmarks=[Earmark("J-1", "2026.24")]))
-    monkeypatch.setattr("sprintforecast.web.tickets_view.open_source", lambda tracker: source)
+    monkeypatch.setattr("foresprint.web.tickets_view.open_source", lambda tracker: source)
     return page(data_dir, monkeypatch)
 
 
@@ -411,7 +411,7 @@ def test_label_writeback_needs_the_switch(data_dir: Path, monkeypatch):
 
 
 def test_label_writeback_failure_drops_the_preview(data_dir: Path, monkeypatch):
-    from sprintforecast.sources import SourceError
+    from foresprint.sources import SourceError
 
     class Failing(LabelSource):
         def set_labels(self, key, add, remove):
@@ -445,7 +445,7 @@ def test_overview_shows_the_range_or_says_why_not(data_dir: Path, monkeypatch):
     at = page(data_dir, monkeypatch)
     assert not at.exception, at.exception
     data = Repository(data_dir).load("demo")
-    from sprintforecast.preplan import distribute_variants
+    from foresprint.preplan import distribute_variants
 
     variants = distribute_variants(data, TODAY)
     columns = {c for df in at.dataframe for c in df.value.columns}
@@ -473,8 +473,8 @@ def test_handover_previews_then_writes_only_empty_values(data_dir: Path, monkeyp
 
 
 def test_handover_sprints_keep_a_different_value_unless_overwritten(data_dir: Path):
-    from sprintforecast.preplan import HandoverRow
-    from sprintforecast.web.tickets_view import handover_sprints
+    from foresprint.preplan import HandoverRow
+    from foresprint.web.tickets_view import handover_sprints
 
     data = Repository(data_dir).load("demo")
     sprint = data.sprints[-1]
@@ -507,13 +507,13 @@ def test_handover_overwrite_checkbox_replaces_the_po_value(data_dir: Path, monke
 
 
 def test_handover_sprints_create_the_calendar_sprints_in_between(data_dir: Path):
-    from sprintforecast.preplan import HandoverRow
-    from sprintforecast.web.tickets_view import handover_sprints
+    from foresprint.preplan import HandoverRow
+    from foresprint.web.tickets_view import handover_sprints
 
     data = Repository(data_dir).load("demo")
     product = data.products[0].id
     last = data.sprints[-1]
-    from sprintforecast.calendar import following_sprint
+    from foresprint.calendar import following_sprint
 
     first = following_sprint(data.team, last)
     third = following_sprint(data.team, following_sprint(data.team, first))

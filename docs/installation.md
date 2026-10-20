@@ -5,7 +5,7 @@ The short version is in the [README](../README.md#installation). This page has t
 ## What the installer does
 
 One command installs [uv](https://docs.astral.sh/uv/) if needed, downloads Python 3.14 and
-installs sprintforecast with the web UI.
+installs foresprint with the web UI.
 
 **Windows (PowerShell):**
 
@@ -32,27 +32,27 @@ From PyPI (once the package is published, see [releasing.md](releasing.md)):
 Manually, without the script:
 
 ```bash
-uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
+uv tool install "foresprint[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
 ```
 
-The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `FORESPRINT_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
+The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`foresprint tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `FORESPRINT_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "foresprint[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
 
 ## Uninstalling
 
-One script removes Foresprint and also any installation under the old name (**sprintforecast**),
+One script removes Foresprint and also any installation under the old name (**foresprint**),
 so it fits both a plain uninstall and the cleanup after the rename. It removes only what the
 installers created, under both names: the `uv` tool (with its commands `foresprint`,
-`foresprint-app`, `sprintforecast`, `sprintforecast-app`), the launchers (desktop and Start menu
+`foresprint-app`, `foresprint`, `foresprint-app`), the launchers (desktop and Start menu
 on Windows, `~/Applications` and the desktop alias on macOS, `.desktop` files on Linux; a
 launcher is only removed if it starts one of these programs) and the cache folder with the app
 window's browser profile.
 
 It never deletes your data: the team data folder, the Jira token in the keychain and Git
-credentials stay. The settings (`~/.config/foresprint` and `~/.config/sprintforecast`, on
+credentials stay. The settings (`~/.config/foresprint` and `~/.config/foresprint`, on
 Windows `%APPDATA%`: data folder choice, plugin selection) stay as well, so a later
 installation finds them again; `--remove-config` (`-RemoveConfig`) removes them too. The
 `PATH` entry made by `uv tool update-shell` belongs to `uv` and stays. Plugins that pull the old
-package `sprintforecast` must be updated to the new one.
+package `foresprint` must be updated to the new one.
 
 The script lists what it would do and asks first (without a terminal it refuses to proceed
 unless you pass `--yes`/`-Force`). Close the app first, Windows locks running programs. Run it
@@ -77,7 +77,7 @@ powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw
 ## Git
 
 Git is needed for plugins from Git repositories and for creating, committing, sharing, viewing
-the history of and cloning the data (`sprintforecast data-dir PATH` also requires a Git
+the history of and cloning the data (`foresprint data-dir PATH` also requires a Git
 repository). Without Git the app runs with a data folder that is not a repository (`--data`,
 `FORESPRINT_DATA` or "Use without Git" on the Data folder page), but without these
 functions.
@@ -122,7 +122,7 @@ The script creates a launcher **"Foresprint"**: on Windows on the desktop and in
 menu, on macOS in `~/Applications` (plus an alias on the desktop), on Linux as an application
 entry and on the desktop. It starts the web UI as an app window (on Windows without a console
 window); on the first start the UI guides you through setting up the data folder. Create it
-again with `sprintforecast shortcut`; the log is `app.log` next to the plugin selection.
+again with `foresprint shortcut`; the log is `app.log` next to the plugin selection.
 
 ## Tab completion
 
@@ -130,29 +130,29 @@ Tab completes commands, options, team names and sprint IDs (the latter two from 
 also after `--data`) in bash, zsh, fish and PowerShell. Set it up once for the current shell:
 
 ```
-sprintforecast --install-completion
+foresprint --install-completion
 ```
 
 and open a new terminal. `install.ps1` does this when started with
 `$env:FORESPRINT_COMPLETION = "1"`; `install.sh` only prints the hint, because the shell cannot be
 detected when the script is piped to `sh`. To manage the script yourself, print it with
-`sprintforecast completion bash|zsh|fish|powershell` (e.g. `eval "$(sprintforecast completion
+`foresprint completion bash|zsh|fish|powershell` (e.g. `eval "$(foresprint completion
 bash)"` in `~/.bashrc`; `--prog-name NAME` registers it for another command name). Completion
 starts the program on every Tab and answers in about a quarter of a second.
 
 ## Updating
 
-Automatic, similar to Claude Code: when a command starts, sprintforecast checks in the
+Automatic, similar to Claude Code: when a command starts, foresprint checks in the
 background at most once a day whether a newer version exists (field `version` in
 `pyproject.toml` of the installed branch). If there is one, it is installed **after the
-command exits** with `uv tool upgrade --reinstall sprintforecast` and applies from the next
+command exits** with `uv tool upgrade --reinstall foresprint` and applies from the next
 start; plugins and the Python version are kept. On Windows the update waits until the program is
 closed (running programs are locked there).
 
 | Command / variable | Effect |
 |---|---|
-| `sprintforecast update` | check and update now (`--check`: check only, `--force`: reinstall) |
-| `sprintforecast update --auto notice` | only point out new versions; `--auto off` switches off, `--auto on` back on |
+| `foresprint update` | check and update now (`--check`: check only, `--force`: reinstall) |
+| `foresprint update --auto notice` | only point out new versions; `--auto off` switches off, `--auto on` back on |
 | `FORESPRINT_AUTOUPDATE=on\|notice\|off` | like `--auto`, takes precedence (for managed machines, for example) |
 
 **In the web UI:** at startup the check runs in the background; if a new version exists, it

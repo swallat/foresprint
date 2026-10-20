@@ -1,6 +1,6 @@
 # Browser tests (Playwright)
 
-These tests really start the web UI (`sprintforecast web --no-browser`, own port, copy of the
+These tests really start the web UI (`foresprint web --no-browser`, own port, copy of the
 demo data, fixed as-of date 2026-10-15, own settings folder) and drive it in a browser. They
 check what `AppTest` cannot see: measured heights and widths, text in the data grid, real
 clicking and typing, two apps against one shared Git repository.

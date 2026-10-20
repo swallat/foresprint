@@ -8,10 +8,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from sprintforecast.cli import app
-from sprintforecast.model import Numbering
-from sprintforecast.renaming import Rename, apply_renames, plan_renames
-from sprintforecast.storage import DataError, Repository
+from foresprint.cli import app
+from foresprint.model import Numbering
+from foresprint.renaming import Rename, apply_renames, plan_renames
+from foresprint.storage import DataError, Repository
 
 runner = CliRunner()
 
@@ -283,11 +283,11 @@ def test_settings_page_renames(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
+    from foresprint.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
-    app_path = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+    app_path = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
     at = AppTest.from_file(str(app_path), default_timeout=30)
     at.run()
     at.switch_page("page_scripts/settings.py").run()
@@ -315,13 +315,13 @@ def test_settings_page_without_sprints_has_no_rename_section(
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
+    from foresprint.storage import AS_OF_ENV, DATA_ENV
 
     for p in (data_dir / "demo" / "sprints").glob("*.yaml"):
         p.unlink()
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
-    app_path = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+    app_path = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
     at = AppTest.from_file(str(app_path), default_timeout=30)
     at.run()
     at.switch_page("page_scripts/settings.py").run()

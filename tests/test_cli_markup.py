@@ -20,9 +20,9 @@ from rich.errors import MarkupError
 from rich.text import Text
 from typer.testing import CliRunner
 
-from sprintforecast import analysis, cli, i18n, shortcuts, updater
-from sprintforecast.cli import _plain, _plain_end, app
-from sprintforecast.storage import DATA_ENV, save_data_dir
+from foresprint import analysis, cli, i18n, shortcuts, updater
+from foresprint.cli import _plain, _plain_end, app
+from foresprint.storage import DATA_ENV, save_data_dir
 
 runner = CliRunner(env={"COLUMNS": "1000"})
 
@@ -198,15 +198,15 @@ def test_translation_markup_is_kept_around_placeholders():
             text = Text.from_markup(
                 i18n.t(
                     "Next: [bold]{command}[/bold]",
-                    command=_plain_end("sprintforecast people [x]\\"),
+                    command=_plain_end("foresprint people [x]\\"),
                 )
             )
         finally:
             i18n.set_language(None)
-        assert text.plain.endswith("sprintforecast people [x]\\")
+        assert text.plain.endswith("foresprint people [x]\\")
         bold = [s for s in text.spans if str(s.style) == "bold"]
         assert len(bold) == 1
-        assert text.plain[bold[0].start : bold[0].end] == "sprintforecast people [x]\\"
+        assert text.plain[bold[0].start : bold[0].end] == "foresprint people [x]\\"
 
 
 # --- Commands on the data with brackets ------------------------------------------------
@@ -418,15 +418,15 @@ def test_names_in_error_lines_with_markup_look(data_dir: Path):
     for key, kwargs in teams.items():
         write_team(data_dir, key, **kwargs)
     result = run(data_dir, "products", "a[x]")
-    check(result, "Einschalten mit: sprintforecast settings a[x]", code=1)
+    check(result, "Einschalten mit: foresprint settings a[x]", code=1)
     result = run(data_dir, "products", "c[x]")
-    check(result, "Zuerst: sprintforecast product-list c[x]", code=1)
+    check(result, "Zuerst: foresprint product-list c[x]", code=1)
     result = run(data_dir, "product-list", "a[x]")
-    check(result, "Einschalten mit: sprintforecast settings a[x]", code=1)
+    check(result, "Einschalten mit: foresprint settings a[x]", code=1)
     result = run(data_dir, "absences", f"b[red]{BS}")
-    check(result, f"Zuerst: sprintforecast people b[red]{BS}", code=1)
+    check(result, f"Zuerst: foresprint people b[red]{BS}", code=1)
     result = run(data_dir, "forecast", "c[x]")
-    check(result, "Sprint-Forecast Klein", "sprintforecast absences c[x] <SPRINT>")
+    check(result, "Sprint-Forecast Klein", "foresprint absences c[x] <SPRINT>")
     result = run(data_dir, "check")
     check(result, "a[x]", f"b[red]{BS}", "c[x]", f"✔ d[x]{BS}\n", "✔ demo\n", code=result.exit_code)
     assert f"\ne[x]{BS}\n  Hinweis people.yaml:" in result.output
@@ -451,8 +451,8 @@ def test_init_with_a_key_that_looks_like_markup(brackets: Path, monkeypatch: pyt
     check(
         result,
         f"Neues Team {key} anlegen.",
-        f"mit sprintforecast settings {key} änderbar",
-        f"Weiter mit: sprintforecast people {key}\n",
+        f"mit foresprint settings {key} änderbar",
+        f"Weiter mit: foresprint people {key}\n",
     )
 
 
@@ -539,10 +539,10 @@ def test_init_with_markup_look(brackets: Path):
     check(
         result,
         "Neues Team neu anlegen.",
-        "sprintforecast settings neu",
+        "foresprint settings neu",
         "Unbekannter Regionscode: [/X]",
         f"Angelegt: {brackets}{SEP}neu{SEP}team.yaml",
-        "Weiter mit: sprintforecast people neu",
+        "Weiter mit: foresprint people neu",
     )
     assert yaml.safe_load((brackets / "neu" / "team.yaml").read_text())["name"] == f"Neu [/x]{BS}"
 
@@ -625,13 +625,13 @@ def test_web_without_streamlit_names_the_extra(
         result = run(data_dir, "web")
     finally:
         i18n.set_language(None)
-    expected = 'uv tool install "sprintforecast[web] @ git+…"'
+    expected = 'uv tool install "foresprint[web] @ git+…"'
     check(result, expected, "uv sync --extra web", code=1)
 
 
 def test_help_shows_square_brackets_of_the_commands(data_dir: Path):
     result = run(data_dir, "help", "commands")
-    check(result, "sprintforecast language [de|en]")
+    check(result, "foresprint language [de|en]")
 
 
 # --- Messages from helper functions that can only be reached with mocks -----------------
@@ -723,7 +723,7 @@ def test_shortcut_with_markup_look(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 def test_language_error_with_markup_look(monkeypatch: pytest.MonkeyPatch):
-    from sprintforecast.config import SettingsError
+    from foresprint.config import SettingsError
 
     def failing(code: str):
         raise SettingsError(f"Einstellungen [/x] [red]{BS}")
@@ -736,8 +736,8 @@ def test_language_error_with_markup_look(monkeypatch: pytest.MonkeyPatch):
 def test_open_app_window_messages_with_markup_look(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ):
-    from sprintforecast.launcher import Browser
-    from sprintforecast.launcher import Kind as BrowserKind
+    from foresprint.launcher import Browser
+    from foresprint.launcher import Kind as BrowserKind
 
     server = SimpleNamespace(poll=lambda: None)
     monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)

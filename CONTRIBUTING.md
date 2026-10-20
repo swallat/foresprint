@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping with sprintforecast. This page covers the local setup, the checks every
+Thank you for helping with foresprint. This page covers the local setup, the checks every
 change has to pass and how pull requests are reviewed.
 
 ## Setup
@@ -10,7 +10,7 @@ change has to pass and how pull requests are reviewed.
 ```bash
 mise install
 uv sync --all-extras
-uv run sprintforecast --data examples/teams web   # run the web UI from source
+uv run foresprint --data examples/teams web   # run the web UI from source
 ```
 
 `uv sync --all-extras` also installs the development group (pytest, ruff, Playwright, the Excel
@@ -47,7 +47,7 @@ Line length is 100. CI runs both checks, so run them before pushing.
 
 Every user-facing text is written once, in German (the source language), and wrapped in
 `t("...")`.
-Every new `t("...")` text needs an entry in `src/sprintforecast/locale_en.py` with the same
+Every new `t("...")` text needs an entry in `src/foresprint/locale_en.py` with the same
 placeholders. `tests/test_i18n.py` walks the source tree, collects every literal `t("...")`
 call and the static texts, and fails when an entry is missing or the placeholders differ, so a
 missing translation never reaches `main`. Texts that are only data (YAML keys, file names,
@@ -59,7 +59,7 @@ command names) are not translated.
   go into separate pull requests.
 - Write commit messages and pull request titles and descriptions in English.
 - Add or adjust tests for behaviour changes; keep `examples/teams` working, because CI runs
-  `sprintforecast check` against it.
+  `foresprint check` against it.
 - Never commit spreadsheets or real team data; CI rejects `*.xlsx` files.
 
 ## Continuous integration
@@ -67,7 +67,7 @@ command names) are not translated.
 `.github/workflows/ci.yml` runs on every push to `main` and on every pull request:
 
 - **test:** no spreadsheets in the repository, `ruff check`, `ruff format --check`, `pytest`,
-  and `sprintforecast check` on the demo data.
+  and `foresprint check` on the demo data.
 - **build:** `uv build`; the wheel and source distribution are stored as the artifact `dist`.
 - **e2e:** the browser tests. A pull request that changes only documentation (`docs/` and
   `*.md` files) skips the browser run; the job still reports success so that the required check

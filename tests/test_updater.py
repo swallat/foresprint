@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import updater
+from foresprint import updater
 
 RECEIPT = """\
 [tool]
-requirements = [{{ name = "sprintforecast", url = "{url}", extras = ["web"] }}]
+requirements = [{{ name = "foresprint", url = "{url}", extras = ["web"] }}]
 """
 MAIN = "https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
 
@@ -35,7 +35,7 @@ def remote(monkeypatch: pytest.MonkeyPatch, version: str) -> list[str]:
 
     def fetch(url: str, timeout: float) -> str:
         calls.append(url)
-        return f'[project]\nname = "sprintforecast"\nversion = "{version}"\n'
+        return f'[project]\nname = "foresprint"\nversion = "{version}"\n'
 
     monkeypatch.setattr(updater, "_fetch", fetch)
     return calls
@@ -67,7 +67,7 @@ def test_versions():
 def test_installation_from_receipt(env: Path, requirement: str, expected):
     sep = ", " if requirement else ""
     (env / "uv-receipt.toml").write_text(
-        f'[tool]\nrequirements = [{{ name = "sprintforecast"{sep}{requirement} }}]\n'
+        f'[tool]\nrequirements = [{{ name = "foresprint"{sep}{requirement} }}]\n'
     )
     inst = updater.installation()
     assert (inst.repo, inst.ref, inst.pinned) == expected
@@ -98,7 +98,7 @@ def test_auto_update_schedules_once(env: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(subprocess, "Popen", lambda args, **kwargs: started.append(args) or None)
     said: list[str] = []
     updater.AutoUpdate().start().finish(said.append)
-    assert started and "/bin/uv tool upgrade --reinstall sprintforecast" in started[0][-1]
+    assert started and "/bin/uv tool upgrade --reinstall foresprint" in started[0][-1]
     assert "0.3.0 wird im Hintergrund installiert" in said[0]
     assert updater.load_state()["attempted"] == "0.3.0"
     # Second start: do not trigger again
@@ -113,7 +113,7 @@ def test_notice_mode_only_reports(env: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: pytest.fail("kein Start"))
     said: list[str] = []
     updater.AutoUpdate().start().finish(said.append)
-    assert "sprintforecast update" in said[0]
+    assert "foresprint update" in said[0]
 
 
 def test_off_mode_and_ci_skip(env: Path, monkeypatch: pytest.MonkeyPatch):
@@ -127,7 +127,7 @@ def test_off_mode_and_ci_skip(env: Path, monkeypatch: pytest.MonkeyPatch):
 
 def test_startup_notices(env: Path):
     updater.update_state(seen_version="0.1.0")
-    assert updater.startup_notices() == ["sprintforecast wurde auf Version 0.2.0 aktualisiert."]
+    assert updater.startup_notices() == ["foresprint wurde auf Version 0.2.0 aktualisiert."]
     assert updater.startup_notices() == []
     past = datetime.now(UTC) - timedelta(hours=1)
     updater.update_state(attempted="0.3.0", attempted_at=past.isoformat())
@@ -147,7 +147,7 @@ def test_powershell_script_waits_and_quotes(tmp_path: Path):
 def test_version_matches_pyproject():
     import tomllib
 
-    from sprintforecast import __version__
+    from foresprint import __version__
 
     pyproject = Path(__file__).parent.parent / "pyproject.toml"
     assert tomllib.loads(pyproject.read_text())["project"]["version"] == __version__
@@ -158,7 +158,7 @@ def test_restart_with_update_waits_and_relaunches(env: Path, monkeypatch: pytest
     monkeypatch.setattr(updater, "find_uv", lambda: "/bin/uv")
     monkeypatch.setenv(updater.PIDS_ENV, "4242")
     monkeypatch.setenv(
-        updater.RESTART_ENV, '{"cmd": ["/bin/sprintforecast", "web", "--app"], "cwd": "/daten x"}'
+        updater.RESTART_ENV, '{"cmd": ["/bin/foresprint", "web", "--app"], "cwd": "/daten x"}'
     )
     updater.update_state(latest="0.3.0")
     started: list[list[str]] = []
@@ -166,7 +166,7 @@ def test_restart_with_update_waits_and_relaunches(env: Path, monkeypatch: pytest
     assert updater.restart_with_update() is None
     script = started[0][-1]
     assert "while kill -0 4242" in script
-    assert script.index("tool upgrade") < script.index("exec /bin/sprintforecast web --app")
+    assert script.index("tool upgrade") < script.index("exec /bin/foresprint web --app")
     assert "cd '/daten x'" in script
     assert updater.load_state()["attempted"] == "0.3.0"
 
@@ -197,9 +197,9 @@ def test_notice_alias_in_environment(env: Path, monkeypatch: pytest.MonkeyPatch)
 def test_restart_uses_double_click_launcher(monkeypatch: pytest.MonkeyPatch):
     import json
 
-    monkeypatch.setenv(updater.LAUNCHER_ENV, json.dumps(["/bin/sprintforecast-app"]))
+    monkeypatch.setenv(updater.LAUNCHER_ENV, json.dumps(["/bin/foresprint-app"]))
     restart = json.loads(updater.web_environment(["/x", "web", "--app"])[updater.RESTART_ENV])
-    assert restart["cmd"] == ["/bin/sprintforecast-app"]
+    assert restart["cmd"] == ["/bin/foresprint-app"]
     monkeypatch.delenv(updater.LAUNCHER_ENV)
     restart = json.loads(updater.web_environment(["/x", "web", "--app"])[updater.RESTART_ENV])
     assert restart["cmd"][1:] == ["web", "--app"]
@@ -218,7 +218,7 @@ def test_auto_setting_that_cannot_be_written_is_an_error(
 ):
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
+    from foresprint.cli import app
 
     (env.parent / "config").write_text("a file, not a folder")  # config dir cannot be created
     result = CliRunner().invoke(app, ["update", "--auto", "off"])

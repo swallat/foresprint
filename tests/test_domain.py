@@ -12,12 +12,12 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import analysis
-from sprintforecast.calendar import team_workdays
-from sprintforecast.capacity import sprint_capacity
-from sprintforecast.engine import CapacitySource, SprintInput, compute
-from sprintforecast.forecast import build_forecast
-from sprintforecast.model import (
+from foresprint import analysis
+from foresprint.calendar import team_workdays
+from foresprint.capacity import sprint_capacity
+from foresprint.engine import CapacitySource, SprintInput, compute
+from foresprint.forecast import build_forecast
+from foresprint.model import (
     ForecastSettings,
     Membership,
     Person,
@@ -25,7 +25,7 @@ from sprintforecast.model import (
     Team,
     TrendMode,
 )
-from sprintforecast.storage import Repository, TeamData
+from foresprint.storage import Repository, TeamData
 
 TODAY = date(2026, 10, 15)
 MODES = list(TrendMode)

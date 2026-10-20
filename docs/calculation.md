@@ -1,10 +1,10 @@
 # Calculation
 
-How sprintforecast turns the [data files](data-format.md) into a forecast. Every figure can be
+How foresprint turns the [data files](data-format.md) into a forecast. Every figure can be
 traced with the numbers substituted: in the web UI through tooltips (the "i" next to figures and
 column headers) and the collapsible **Calculation** on the Forecast and Planning pages, on the
-command line with `sprintforecast forecast TEAM --explain SPRINT` (`-` = the next planning).
-`sprintforecast capacity TEAM [SPRINT]` shows the capacity calculation in detail.
+command line with `foresprint forecast TEAM --explain SPRINT` (`-` = the next planning).
+`foresprint capacity TEAM [SPRINT]` shows the capacity calculation in detail.
 
 ## Figures
 
@@ -85,7 +85,7 @@ distribution per product); where both appear, they are shown separately with the
 
 ## Supplementary analyses
 
-`sprintforecast analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` or the
+`foresprint analysis TEAM [--remaining AMOUNT] [--total] [--share PERCENT]` or the
 **Analysis** page, in addition to the forecast; the existing figures stay unchanged:
 
 - **Range:** forecast with the lowest, middle and highest normalized velocity of the last sprints

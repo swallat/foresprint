@@ -22,10 +22,10 @@ from test_web_k3_ui import (
     tag_box,
 )
 
-from sprintforecast import config
-from sprintforecast.config import SettingsError
-from sprintforecast.git import invalidate_status
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint import config
+from foresprint.config import SettingsError
+from foresprint.git import invalidate_status
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
 
 BROKEN = SettingsError("Die Einstellungen konnten nicht gespeichert werden (x): Zugriff verweigert")
 
@@ -253,8 +253,8 @@ def test_discard_preview_names_renames(repo: Path, data_dir: Path, monkeypatch):
 
 
 def test_lost_status_shows_both_paths_of_a_rename_as_code():
-    from sprintforecast.githistory import Lost
-    from sprintforecast.web import ui
+    from foresprint.githistory import Lost
+    from foresprint.web import ui
 
     renamed = Lost("R", "teams/demo/leute.yaml", orig="teams/demo/people.yaml")
     assert (
@@ -278,7 +278,7 @@ def test_lost_status_shows_both_paths_of_a_rename_as_code():
     ],
 )  # fmt: skip
 def test_status_names(status: str, name: str):
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     assert ui.status_name(status) == name
 
@@ -359,7 +359,7 @@ def test_without_git_survives_a_new_session(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_without_git_choice_is_stored_once(tmp_path: Path):
-    from sprintforecast.web import logic
+    from foresprint.web import logic
 
     folder = tmp_path / "a"
     folder.mkdir()
@@ -390,7 +390,7 @@ def test_without_git_choice_is_taken_back_when_the_switch_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """If the switch fails after remembering, "without Git" is not left half saved."""
-    from sprintforecast.web import logic
+    from foresprint.web import logic
 
     empty = tmp_path / "leer"
     empty.mkdir()
@@ -426,7 +426,7 @@ def test_unrelated_confirmation_does_not_survive_another_sync(shared, data_dir, 
 
 
 def test_recent_dirs_exclude_active_folder_via_symlink(data_dir: Path, tmp_path: Path):
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     link = tmp_path / "verweis"
     try:
@@ -446,8 +446,8 @@ def test_recent_dirs_exclude_active_folder_via_symlink(data_dir: Path, tmp_path:
 def plugin_script() -> None:
     import streamlit as st
 
-    from sprintforecast.plugins import WebPage
-    from sprintforecast.web import ui
+    from foresprint.plugins import WebPage
+    from foresprint.web import ui
 
     ui.run_plugin_page(
         WebPage("demo", "Demo", ":material/upload:", lambda repo: st.write("PLUGIN-INHALT"))
@@ -504,7 +504,7 @@ def test_new_tab_after_folder_switch_starts_in_new_folder(
 
 @pytest.mark.parametrize("error", [OSError("tot"), RuntimeError("Symlink-Schleife")])
 def test_resolved_path_keeps_unresolvable_path(monkeypatch, error: Exception):
-    from sprintforecast.web.logic import resolved_path
+    from foresprint.web.logic import resolved_path
 
     def broken(self):
         raise error

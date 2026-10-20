@@ -11,11 +11,11 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast.model import Rule
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
-from sprintforecast.web.tickets_view import Selection, assignment_rows, assignment_summary
+from foresprint.model import Rule
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.web.tickets_view import Selection, assignment_rows, assignment_summary
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 TODAY = date(2026, 10, 15)
 
 

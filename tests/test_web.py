@@ -15,15 +15,15 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps, nav_titles
 
-from sprintforecast.forecast import build_forecast
-from sprintforecast.i18n import t
-from sprintforecast.model import Sprint
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
-from sprintforecast.web import ui
-from sprintforecast.web.icons import DONE_ICON, OPEN_ICON, status_icon
-from sprintforecast.web.ui import PAGE_FEATURES, PAGE_INFO, PAGES, START_TASKS
+from foresprint.forecast import build_forecast
+from foresprint.i18n import t
+from foresprint.model import Sprint
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.web import ui
+from foresprint.web.icons import DONE_ICON, OPEN_ICON, status_icon
+from foresprint.web.ui import PAGE_FEATURES, PAGE_INFO, PAGES, START_TASKS
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
@@ -150,7 +150,7 @@ def test_start_prepare_is_not_stuck_without_products(
 def test_forecast_page_shows_the_forecast(app: AppTest):
     goto(app, "forecast")
     values = [m.value for m in app.metric]
-    assert values[:2] == ["9,5 PT", "11,2 PT"]  # like `sprintforecast forecast demo`
+    assert values[:2] == ["9,5 PT", "11,2 PT"]  # like `foresprint forecast demo`
     # With a people list the capacity comes from calendar and people: no trend warning
     assert not any("Trend" in w.value for w in app.warning)
 
@@ -537,7 +537,7 @@ def test_saved_message_names_no_button_when_the_content_was_already_saved(
 ):
     """Saving the same state again changes nothing: the sidebar then offers no "Commit changes"
     button, and the message does not mention it either."""
-    from sprintforecast.git import invalidate_status
+    from foresprint.git import invalidate_status
 
     save_review(start(data_dir, monkeypatch))
     git(repo, "add", "-A")
@@ -551,7 +551,7 @@ def test_saved_message_names_no_button_when_the_content_was_already_saved(
 def test_saved_message_with_server_names_no_button_when_nothing_changed(
     shared, data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from sprintforecast.git import invalidate_status
+    from foresprint.git import invalidate_status
 
     save_review(start(data_dir, monkeypatch))
     git(data_dir.parent, "add", "-A")
@@ -565,8 +565,8 @@ def test_saving_still_works_when_git_cannot_report_its_state(
     repo: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """The notice must never prevent saving."""
-    from sprintforecast.git import GitError
-    from sprintforecast.web import ui
+    from foresprint.git import GitError
+    from foresprint.web import ui
 
     def broken(root: Path):
         raise GitError("kaputt")
@@ -593,8 +593,8 @@ def test_next_step_follows_what_the_sidebar_offers(
 ):
     import dataclasses
 
-    from sprintforecast.gitsync import SyncState
-    from sprintforecast.web import ui
+    from foresprint.gitsync import SyncState
+    from foresprint.web import ui
 
     state = SyncState(root=data_dir, branch="main", upstream=None, remote=None)
     monkeypatch.setattr(ui, "data_dir", lambda: data_dir)
@@ -607,7 +607,7 @@ def test_next_step_follows_what_the_sidebar_offers(
 def test_next_step_is_empty_without_git_or_repository(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     monkeypatch.setattr(ui, "data_dir", lambda: data_dir)
     monkeypatch.setattr(ui, "git_available", lambda: False)
@@ -797,7 +797,7 @@ def test_setup_when_no_data_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     click(at, "Anlegen")
     assert (target / ".git").is_dir() and (target / "teams").is_dir()
     assert "*.xlsx" in (target / ".gitignore").read_text()
-    from sprintforecast.storage import saved_data_dir
+    from foresprint.storage import saved_data_dir
 
     assert saved_data_dir() == (target / "teams").resolve()
     assert not any("Kein Datenordner gefunden" in w.value for w in at.warning)
@@ -829,7 +829,7 @@ def test_choose_folder_can_be_used_without_git(
     click(at, "Übernehmen")
     click(at, "Ohne Git verwenden")
     assert not (plain / ".git").exists()
-    from sprintforecast.storage import saved_data_dir
+    from foresprint.storage import saved_data_dir
 
     assert saved_data_dir() == plain.resolve()
     assert any("liegt in keinem Git-Repository" in c.value for c in at.sidebar.caption)
@@ -1037,7 +1037,7 @@ def test_board_sprint_carries_over_between_boards(app: AppTest):
 
 
 def test_manual_update_check_button(app: AppTest, monkeypatch: pytest.MonkeyPatch):
-    from sprintforecast import updater
+    from foresprint import updater
 
     calls = []
 
@@ -1185,7 +1185,7 @@ def test_small_window_does_not_claim_there_is_no_forecast(
 ):
     """The sample is capped at the window (1 or 2), but the availability of the forecast depends
     on all values: with three or more values there is no "No forecast yet" message."""
-    from sprintforecast.analysis import available_count, sample_count
+    from foresprint.analysis import available_count, sample_count
 
     for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
         if int(path.stem.rsplit(".", 1)[1]) > count:
@@ -1603,7 +1603,7 @@ def test_planning_progress_line_agrees_with_the_step_bar(
 def test_board_nav_css_follows_the_step_count():
     """The column count and the width from which all steps sit side by side depend on the number
     of steps (four with, three without the Products area)."""
-    from sprintforecast.web.ui import _board_nav_css
+    from foresprint.web.ui import _board_nav_css
 
     four, three = _board_nav_css(4), _board_nav_css(3)
     assert "repeat(4, minmax(0, 1fr))" in four and "min-width: 65.5rem" in four
@@ -1806,9 +1806,9 @@ def test_range_at_the_absences_forecast_follows_the_unsaved_preview(app: AppTest
 def test_range_helpers_are_empty_without_enough_data_or_for_finished_sprints(data_dir: Path):
     from datetime import date
 
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.report import band_note, band_range
-    from sprintforecast.storage import Repository
+    from foresprint.forecast import build_forecast
+    from foresprint.report import band_note, band_range
+    from foresprint.storage import Repository
 
     fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
     assert band_range(fc, fc.entry("2026.22")) == "10,0–12,3"
@@ -1828,9 +1828,9 @@ def test_range_note_warns_about_little_data(data_dir: Path):
     """With fewer than five sprints with velocity the notice sits right at the range."""
     from datetime import date
 
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.report import band_note
-    from sprintforecast.storage import Repository
+    from foresprint.forecast import build_forecast
+    from foresprint.report import band_note
+    from foresprint.storage import Repository
 
     for file in (data_dir / "demo" / "sprints").glob("*.yaml"):
         if file.stem not in ("2026.17", "2026.18", "2026.19", "2026.20", "2026.21"):

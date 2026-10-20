@@ -1,4 +1,4 @@
-# Installs sprintforecast (including the web UI and the extras excel and jira) on Windows.
+# Installs foresprint (including the web UI and the extras excel and jira) on Windows.
 #
 #   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
 #
@@ -20,7 +20,7 @@ foreach ($name in "WITH", "REF", "NO_SHORTCUT", "COMPLETION") {
 
 $ref = if ($env:FORESPRINT_REF) { $env:FORESPRINT_REF } else { "main" }
 $kind = if ($ref -match '^v\d') { "tags" } else { "heads" }
-$core = "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/$kind/$ref.zip"
+$core = "foresprint[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/$kind/$ref.zip"
 $pluginFile = Join-Path $env:APPDATA "foresprint\plugins.txt"
 $legacyPluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"  # before the rename
 
@@ -59,16 +59,20 @@ if ($items.Count -gt 0) {
     Write-Host "==> with plugins: $($items -join '; ')"
     foreach ($item in $items) { $arguments += @("--with", (Expand-Plugin $item)) }
     # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
-    $arguments += "sprintforecast[web,excel,jira]"
+    $arguments += "foresprint[web,excel,jira]"
 } else {
     $arguments += $core
 }
 
-Write-Host "==> installing sprintforecast with the extras web, excel and jira (Python 3.14 is downloaded if needed)"
+Write-Host "==> installing foresprint with the extras web, excel and jira (Python 3.14 is downloaded if needed)"
 & uv @arguments
 if ($LASTEXITCODE -ne 0) { throw "Installation failed (exit code $LASTEXITCODE)" }
 # No stderr redirection: in Windows PowerShell 5.1 that would abort under "Stop".
 try { & uv tool update-shell | Out-Null } catch { }
+# The environment of the uv tool from before the rename is no longer needed (the commands
+# sprintforecast and sprintforecast-app now belong to the new tool; "uv tool uninstall" would remove them).
+$oldTool = Join-Path (& uv tool dir).Trim() "sprintforecast"
+if (Test-Path (Join-Path $oldTool "uv-receipt.toml")) { Remove-Item -Recurse -Force $oldTool }
 
 # Remember the choice for the next update
 if ($items.Count -gt 0) {
@@ -82,13 +86,13 @@ if ($items.Count -gt 0) {
 $bin = (& uv tool dir --bin).Trim()
 # Double-click launcher (disable with $env:FORESPRINT_NO_SHORTCUT = "1")
 if (-not $env:FORESPRINT_NO_SHORTCUT) {
-    try { & (Join-Path $bin 'sprintforecast.exe') shortcut } catch { Write-Host "Note: launcher not created." }
+    try { & (Join-Path $bin 'foresprint.exe') shortcut } catch { Write-Host "Note: launcher not created." }
 }
 # Tab completion in PowerShell (opt in with $env:FORESPRINT_COMPLETION = "1")
 if ($env:FORESPRINT_COMPLETION) {
-    try { & (Join-Path $bin 'sprintforecast.exe') --install-completion } catch { Write-Host "Note: Tab completion not set up." }
+    try { & (Join-Path $bin 'foresprint.exe') --install-completion } catch { Write-Host "Note: Tab completion not set up." }
 } else {
-    Write-Host "Tab completion (optional): sprintforecast --install-completion"
+    Write-Host "Tab completion (optional): foresprint --install-completion"
 }
 # Git is optional for the installation, but needed to save, share and view the history of data
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -98,6 +102,6 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "required; see the Git section in docs/installation.md)."
 }
 Write-Host ""
-Write-Host "Done: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"
+Write-Host "Done: foresprint $(& (Join-Path $bin 'foresprint.exe') --version)"
 Write-Host "Start by double-clicking 'Foresprint' (desktop/Start menu) or, in a new PowerShell window, e.g.:"
-Write-Host "  cd `"$HOME\sprint-daten`"; sprintforecast web"
+Write-Host "  cd `"$HOME\sprint-daten`"; foresprint web"

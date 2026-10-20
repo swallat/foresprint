@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-from sprintforecast import idle
-from sprintforecast.idle import IdleWatch
+from foresprint import idle
+from foresprint.idle import IdleWatch
 
 
 def test_never_stops_before_first_session():

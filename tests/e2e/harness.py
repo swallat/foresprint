@@ -27,11 +27,11 @@ import yaml
 from playwright.sync_api import Locator, Page, expect
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-from sprintforecast.config import PACKAGE
-from sprintforecast.i18n import LANG_ENV
-from sprintforecast.launcher import free_port
-from sprintforecast.proctree import popen_options, terminate_tree
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV
+from foresprint.config import PACKAGE
+from foresprint.i18n import LANG_ENV
+from foresprint.launcher import free_port
+from foresprint.proctree import popen_options, terminate_tree
+from foresprint.storage import AS_OF_ENV, DATA_ENV
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples" / "teams"
@@ -45,7 +45,7 @@ START_TIMEOUT = 90  # seconds until the server first shows signs of life
 
 @functools.cache
 def _empty_gitconfig() -> Path:
-    folder = Path(tempfile.mkdtemp(prefix="sprintforecast-e2e-"))
+    folder = Path(tempfile.mkdtemp(prefix="foresprint-e2e-"))
     config = folder / "gitconfig"
     config.touch()
     return config
@@ -227,7 +227,7 @@ class App:
             [
                 sys.executable,
                 "-c",
-                "from sprintforecast import main; main()",
+                "from foresprint import main; main()",
                 "web",
                 "--no-browser",
                 "--port",

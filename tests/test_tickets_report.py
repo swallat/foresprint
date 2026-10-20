@@ -6,10 +6,10 @@ from pathlib import Path
 
 from ticketfixtures import enable, seed
 
-from sprintforecast.forecast import build_forecast
-from sprintforecast.preplan import distribute, sprint_sums
-from sprintforecast.report import render
-from sprintforecast.storage import Repository
+from foresprint.forecast import build_forecast
+from foresprint.preplan import distribute, sprint_sums
+from foresprint.report import render
+from foresprint.storage import Repository
 
 TODAY = date(2026, 10, 15)
 

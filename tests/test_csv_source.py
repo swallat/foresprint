@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.model import TrackerFields
-from sprintforecast.sources import RawTicket, SourceError
-from sprintforecast.sources.csv import CsvSource, parse_number, sniff_delimiter
-from sprintforecast.storage import DataError
+from foresprint.model import TrackerFields
+from foresprint.sources import RawTicket, SourceError
+from foresprint.sources.csv import CsvSource, parse_number, sniff_delimiter
+from foresprint.storage import DataError
 
 DATA = Path(__file__).parent / "data"
 FIELDS = TrackerFields(estimate="Story Points", remaining="Remaining", epic="Epic Link")

@@ -22,7 +22,7 @@ from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-APP = ROOT / "src" / "sprintforecast" / "web" / "app.py"
+APP = ROOT / "src" / "foresprint" / "web" / "app.py"
 PAGES = ["forecast", "absences", "planning", "analysis", "products", "people", "help"]
 IMPORTS = [
     "yaml",
@@ -31,10 +31,10 @@ IMPORTS = [
     "streamlit",
     "rich.console",
     "typer",
-    "sprintforecast.storage",
-    "sprintforecast.forecast",
-    "sprintforecast.web.ui",
-    "sprintforecast.cli",
+    "foresprint.storage",
+    "foresprint.forecast",
+    "foresprint.web.ui",
+    "foresprint.cli",
 ]
 
 
@@ -65,9 +65,9 @@ def import_ms(module: str, runs: int) -> float:
 
 
 def measure(data: Path, team: str, runs: int, today: date) -> dict[str, float]:
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.git import pending_changes
-    from sprintforecast.storage import Repository
+    from foresprint.forecast import build_forecast
+    from foresprint.git import pending_changes
+    from foresprint.storage import Repository
 
     result: dict[str, float] = {}
     for module in IMPORTS:

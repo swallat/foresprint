@@ -1,5 +1,5 @@
 #!/bin/sh
-# Installs sprintforecast (including the web UI and the extras excel and jira) on Linux and
+# Installs foresprint (including the web UI and the extras excel and jira) on Linux and
 # macOS.
 #
 #   curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
@@ -23,7 +23,7 @@ done
 REF="${FORESPRINT_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
-CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/${KIND}/${REF}.zip"
+CORE="foresprint[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/${KIND}/${REF}.zip"
 PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/foresprint/plugins"
 LEGACY_PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"  # before the rename
 
@@ -100,14 +100,18 @@ if [ -n "$specs" ]; then
     fi
     say "==> with plugins: $specs"
     # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
-    set -- "$@" "sprintforecast[web,excel,jira]"
+    set -- "$@" "foresprint[web,excel,jira]"
 else
     set -- "$@" "$CORE"
 fi
 
-say "==> installing sprintforecast with the extras web, excel and jira (Python 3.14 is downloaded if needed)"
+say "==> installing foresprint with the extras web, excel and jira (Python 3.14 is downloaded if needed)"
 uv tool install "$@"
 uv tool update-shell >/dev/null 2>&1 || true
+# The environment of the uv tool from before the rename is no longer needed (the commands
+# sprintforecast and sprintforecast-app now belong to the new tool; "uv tool uninstall" would remove them).
+old="$(uv tool dir)/sprintforecast"
+[ -f "$old/uv-receipt.toml" ] && rm -rf "$old"
 
 # Remember the choice for the next update
 if [ -n "$specs" ]; then
@@ -119,11 +123,11 @@ fi
 
 # Double-click launcher (disable with FORESPRINT_NO_SHORTCUT=1)
 if [ -z "${FORESPRINT_NO_SHORTCUT:-}" ]; then
-    "$(uv tool dir --bin)/sprintforecast" shortcut || say "Note: launcher not created."
+    "$(uv tool dir --bin)/foresprint" shortcut || say "Note: launcher not created."
 fi
 
 # Tab completion has to detect the user's shell, which fails when piped to sh: only a hint
-say "Tab completion (optional, in your own shell): sprintforecast --install-completion"
+say "Tab completion (optional, in your own shell): foresprint --install-completion"
 
 # Git is optional for the installation, but needed to save, share and view the history of data
 if ! command -v git >/dev/null 2>&1; then
@@ -134,6 +138,6 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 
 say ""
-say "Done: sprintforecast $("$(uv tool dir --bin)/sprintforecast" --version)"
+say "Done: foresprint $("$(uv tool dir --bin)/foresprint" --version)"
 say "Start by double-clicking \"Foresprint\" or, in a new terminal, e.g.:"
-say "  cd ~/sprint-daten && sprintforecast web"
+say "  cd ~/sprint-daten && foresprint web"

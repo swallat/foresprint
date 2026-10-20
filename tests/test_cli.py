@@ -10,10 +10,10 @@ import yaml
 from gitrepos import git
 from typer.testing import CliRunner
 
-from sprintforecast import cli
-from sprintforecast.cli import app
-from sprintforecast.guide import COMMANDS
-from sprintforecast.storage import Repository
+from foresprint import cli
+from foresprint.cli import app
+from foresprint.guide import COMMANDS
+from foresprint.storage import Repository
 
 runner = CliRunner(env={"COLUMNS": "200"})
 
@@ -376,7 +376,7 @@ def test_invalid_as_of_is_a_usage_error(data_dir: Path, option: str):
 
 
 def test_version_and_help_without_command():
-    from sprintforecast import __version__
+    from foresprint import __version__
 
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0 and __version__ in result.output
@@ -794,7 +794,7 @@ def test_commit_of_a_file_with_conflict_markers_does_not_point_to_a_page(
 def test_git_problem_escapes_square_brackets_of_the_git_message(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from sprintforecast.git import GitError
+    from foresprint.git import GitError
 
     def refused(*_: object) -> str:
         raise GitError(
@@ -863,15 +863,15 @@ def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
 def test_cli_reports_unwritable_settings_without_traceback(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from sprintforecast import cli
-    from sprintforecast.config import SettingsError
+    from foresprint import cli
+    from foresprint.config import SettingsError
 
     def broken(*_: object) -> None:
         raise SettingsError(
             "Die Einstellungen konnten nicht gespeichert werden: Zugriff verweigert"
         )
 
-    from sprintforecast import storage
+    from foresprint import storage
 
     monkeypatch.setattr(storage, "save_data_dir", broken)
     monkeypatch.setattr(cli, "save_language", broken)
@@ -887,11 +887,9 @@ def test_help_command_list_covers_every_cli_command():
     registered = {
         info.name
         for info in app.registered_commands
-        if info.callback.__module__ == "sprintforecast.cli"
+        if info.callback.__module__ == "foresprint.cli"
     }
-    listed = {
-        m[1] for left, _ in COMMANDS if (m := re.match(r"sprintforecast ([a-z][\w-]*)", left))
-    }
+    listed = {m[1] for left, _ in COMMANDS if (m := re.match(r"foresprint ([a-z][\w-]*)", left))}
     assert not registered - listed, f"Fehlt in guide.COMMANDS: {registered - listed}"
     assert not listed - registered, f"Kein CLI-Befehl: {listed - registered}"
 
@@ -911,7 +909,7 @@ def _no_ansi(text: str) -> str:
 @pytest.mark.parametrize("lang", ["de", "en"])
 def test_help_shows_only_english_names(monkeypatch: pytest.MonkeyPatch, lang: str):
     """Commands, options and environment variables have English names in both languages."""
-    from sprintforecast import i18n
+    from foresprint import i18n
 
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, lang)
@@ -959,11 +957,11 @@ def test_german_option_names_are_gone(data_dir: Path, args: list[str]):
 
 def test_german_help_topics_are_gone(data_dir: Path):
     result = run(data_dir, "help", "workflow")
-    assert result.exit_code == 0 and "sprintforecast absences TEAM [SPRINT]" in result.output
+    assert result.exit_code == 0 and "foresprint absences TEAM [SPRINT]" in result.output
     result = run(data_dir, "help", "commands")
-    assert "sprintforecast check [--strict]" in result.output
-    assert "sprintforecast --data PATH …" in result.output
-    assert "Weitere Themen: workflow, terms, fields, team (sprintforecast help TOPIC)" in (
+    assert "foresprint check [--strict]" in result.output
+    assert "foresprint --data PATH …" in result.output
+    assert "Weitere Themen: workflow, terms, fields, team (foresprint help TOPIC)" in (
         result.output
     )
     for german in ("ablauf", "begriffe", "felder", "befehle"):
@@ -975,7 +973,7 @@ def test_german_help_topics_are_gone(data_dir: Path):
 def test_legacy_env_names_are_ignored(
     data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from sprintforecast import storage
+    from foresprint import storage
 
     empty = tmp_path / "leer"
     empty.mkdir()
@@ -991,7 +989,7 @@ def test_legacy_env_names_are_ignored(
 
 
 def test_auto_update_takes_english_values_only(monkeypatch: pytest.MonkeyPatch):
-    from sprintforecast import updater
+    from foresprint import updater
 
     saved: list[str] = []
     monkeypatch.setattr(updater, "update_state", lambda **kw: saved.append(kw["mode"]))
@@ -1024,7 +1022,7 @@ def test_option_ranges_are_checked_before_anything_runs(args: list[str]):
 def test_zero_history_is_empty_not_everything():
     from datetime import date
 
-    from sprintforecast.forecast import Forecast
+    from foresprint.forecast import Forecast
 
     class Entry:
         class sprint:
@@ -1102,11 +1100,11 @@ def _complete(data_dir: Path, words: str, monkeypatch) -> list[str]:
     """What bash would offer for ``words`` (the last word is the one being completed)."""
     monkeypatch.setenv("FORESPRINT_DATA", str(data_dir))
     env = {
-        "_SPRINTFORECAST_COMPLETE": "complete_bash",
-        "COMP_WORDS": f"sprintforecast {words}",
+        "_FORESPRINT_COMPLETE": "complete_bash",
+        "COMP_WORDS": f"foresprint {words}",
         "COMP_CWORD": str(len(words.split(" "))),
     }
-    result = runner.invoke(app, [], env=env, prog_name="sprintforecast")
+    result = runner.invoke(app, [], env=env, prog_name="foresprint")
     return result.output.split()
 
 
@@ -1119,7 +1117,7 @@ def test_completion_offers_teams_and_sprints(data_dir: Path, monkeypatch):
 
 
 def test_sprint_ids_sorted_naturally(tmp_path: Path):
-    from sprintforecast import completion
+    from foresprint import completion
 
     folder = tmp_path / "t" / "sprints"
     folder.mkdir(parents=True)

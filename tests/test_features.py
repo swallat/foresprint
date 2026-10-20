@@ -14,13 +14,13 @@ from streamlit.testing.v1 import AppTest
 from typer.testing import CliRunner
 from webfixtures import nav_steps
 
-from sprintforecast.cli import app as cli_app
-from sprintforecast.model import Features, Sprint, Team
-from sprintforecast.settings import SETTINGS
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository, team_from_dict, team_to_dict
-from sprintforecast.validate import check_team
+from foresprint.cli import app as cli_app
+from foresprint.model import Features, Sprint, Team
+from foresprint.settings import SETTINGS
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository, team_from_dict, team_to_dict
+from foresprint.validate import check_team
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 TEAM = "demo"
 
 
@@ -231,9 +231,9 @@ def test_planning_minutes_follow_the_product_distribution_switch(
 def test_production_split_uses_the_current_plan_for_both_amounts(data_dir: Path):
     """If the Forecast PLAN is frozen and differs from the current one, both quantities split
     the current plan (no negative remainder)."""
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.storage import Repository
-    from sprintforecast.web import ui
+    from foresprint.forecast import build_forecast
+    from foresprint.storage import Repository
+    from foresprint.web import ui
 
     mark_production_access(data_dir)
     data = Repository(data_dir).load(TEAM)
@@ -315,7 +315,7 @@ def test_sprint_level_production_values_roundtrip_and_validate(data_dir: Path):
 
 
 def test_distribution_totals_use_sprint_values_without_products():
-    from sprintforecast.products import Distribution
+    from foresprint.products import Distribution
 
     sprint = Sprint("s", date(2026, 1, 1), date(2026, 1, 15))
     sprint.production_planned = 3.0

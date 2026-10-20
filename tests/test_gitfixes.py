@@ -10,12 +10,12 @@ from pathlib import Path
 import pytest
 from gitrepos import Person, git, rmtree_force
 
-from sprintforecast import config, githistory, gitsync, storage
-from sprintforecast import git as gitmod
-from sprintforecast.git import GitError, invalidate_status, pending_changes, repo_root
-from sprintforecast.model import Sprint
-from sprintforecast.storage import ConflictError, DataError, Repository
-from sprintforecast.yamlmerge import merge3
+from foresprint import config, githistory, gitsync, storage
+from foresprint import git as gitmod
+from foresprint.git import GitError, invalidate_status, pending_changes, repo_root
+from foresprint.model import Sprint
+from foresprint.storage import ConflictError, DataError, Repository
+from foresprint.yamlmerge import merge3
 
 posix = pytest.mark.skipif(sys.platform == "win32", reason="Dateinamen mit Anführungszeichen")
 

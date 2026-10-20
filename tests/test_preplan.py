@@ -9,8 +9,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from sprintforecast import preplan
-from sprintforecast.model import (
+from foresprint import preplan
+from foresprint.model import (
     BudgetBasis,
     Earmark,
     EstimateSource,
@@ -25,8 +25,8 @@ from sprintforecast.model import (
     Team,
     Ticket,
 )
-from sprintforecast.preplan import Budget, Distribution, distribute, order_tickets
-from sprintforecast.storage import TeamData
+from foresprint.preplan import Budget, Distribution, distribute, order_tickets
+from foresprint.storage import TeamData
 
 TODAY = date(2026, 10, 15)
 # The current sprint (without velocity) starts on 7 Oct; five closed sprints precede it.
@@ -80,7 +80,7 @@ def ticket(
 
 def future(dist: Distribution, data: TeamData) -> list[Sprint]:
     """The future sprints of the horizon (to check target date and deadline)."""
-    from sprintforecast.analysis import horizon_entries, horizon_forecast
+    from foresprint.analysis import horizon_entries, horizon_forecast
 
     return [h.sprint for h in horizon_entries(horizon_forecast(data, TODAY))]
 
@@ -120,7 +120,7 @@ def test_horizon_beyond_the_people_list_uses_the_average_capacity():
     # With a people list the capacity comes from the calendar and differs per sprint.
     data.people = [Person(id="a", name="A", memberships=[Membership(start=date(2026, 1, 1))])]
     dist = distribute(data, TODAY)
-    from sprintforecast.analysis import horizon_entries, horizon_forecast
+    from foresprint.analysis import horizon_entries, horizon_forecast
 
     entries = horizon_entries(horizon_forecast(data, TODAY))
     assert not any(h.trend for h in entries)
@@ -720,7 +720,7 @@ def test_earmark_of_a_sprint_that_is_over_is_ignored():
 
 
 def test_sprint_after_the_horizon_is_compared_with_the_target_date():
-    from sprintforecast.forecast import find_sprint
+    from foresprint.forecast import find_sprint
 
     data = team_data()
     data.projects = [project("p")]
