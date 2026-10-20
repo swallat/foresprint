@@ -436,3 +436,26 @@ def test_capacity_usage():
     assert capacity_usage(20.0, None) is None
     zero = capacity_usage(0.0, 2.0)
     assert zero is not None and zero.ratio == 0.0 and zero.over
+
+
+def test_board_steps_done_vorplanung_needs_every_active_product():
+    from sprintforecast.model import Product, ProductValues
+
+    shop, app, old = (
+        Product("shop", "Shop"),
+        Product("app", "App"),
+        Product("old", "Old", end=date(2026, 11, 1)),  # im Sprint nicht mehr aktiv
+    )
+    products = [shop, app, old]
+
+    def preplanned(**values) -> Sprint:
+        return _sprint(products={k: ProductValues(preplanned=v) for k, v in values.items()})
+
+    assert not board_steps_done(preplanned(shop=3.0), products)["vorplanung"]
+    assert not board_steps_done(_sprint(), products)["vorplanung"]
+    assert board_steps_done(preplanned(shop=3.0, app=2.0), products)["vorplanung"]
+    # Ein Produkt ohne Wert (nur Eintrag ohne preplanned) zählt nicht
+    partial = _sprint(products={"shop": ProductValues(preplanned=1.0), "app": ProductValues()})
+    assert not board_steps_done(partial, products)["vorplanung"]
+    # Ohne bekannte Produkte genügt irgendein Wert (wie bisher)
+    assert board_steps_done(preplanned(shop=3.0))["vorplanung"]

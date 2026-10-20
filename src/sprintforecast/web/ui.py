@@ -1556,7 +1556,7 @@ def _board_nav(data: TeamData, sprint: Sprint, current: str) -> None:
     """Schrittleiste Fehltage → PO-Vorplanung → Planning → Review mit dem Stand für den
     gewählten Sprint – Wechsel mit einem Klick. Seiten abgeschalteter Funktionsbereiche
     (PO-Vorplanung ohne Produkte) entfallen."""
-    done = board_steps_done(data.sprint(sprint.id))
+    done = board_steps_done(data.sprint(sprint.id), data.products)
     enabled = st.session_state.get("enabled-pages", BOARD_STEPS)
     steps = [key for key in BOARD_STEPS if key in enabled]
     st.html(_board_nav_css(len(steps)))
