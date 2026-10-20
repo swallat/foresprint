@@ -18,6 +18,7 @@ Grammar (keywords are case-insensitive)::
 
 from __future__ import annotations
 
+import difflib
 import re
 from dataclasses import dataclass
 
@@ -143,6 +144,15 @@ class _Parser:
             )
         source = tok.text.lower()
         if source not in RULE_SOURCES:
+            close = difflib.get_close_matches(source, RULE_SOURCES, n=1)
+            if close:
+                raise self._error(
+                    t(
+                        "Unknown field '{source}', did you mean '{close}'?",
+                        source=tok.text,
+                        close=close[0],
+                    )
+                )
             raise self._error(
                 t(
                     "Unknown field '{source}' (allowed: {allowed})",
