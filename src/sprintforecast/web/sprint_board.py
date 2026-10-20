@@ -70,7 +70,9 @@ export default function (component) {
   };
   const allow = (zone) => {
     zone.ondragover = (e) => { e.preventDefault(); zone.classList.add("over"); };
-    zone.ondragleave = () => zone.classList.remove("over");
+    zone.ondragleave = (e) => {
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove("over");
+    };
     zone.ondrop = (e) => {
       e.preventDefault();
       zone.classList.remove("over");
@@ -193,6 +195,6 @@ def sprint_board(
         on_moved_change=lambda: None,
     )
     moved = result.moved
-    if not moved:
+    if not isinstance(moved, dict) or "ticket" not in moved or "sprint" not in moved:
         return None
     return str(moved["ticket"]), str(moved["sprint"])

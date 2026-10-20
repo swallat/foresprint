@@ -883,7 +883,8 @@ def _drag_board(
     if placement is None or placement.reason == "fixed_sprint":
         return  # a forged or outdated drop: tickets of the tracker's sprints cannot be moved
     if sprint == RELEASE:
-        set_earmark(repo, data, ticket, None)
+        if placement.reason == "earmark":
+            set_earmark(repo, data, ticket, None)
     elif sprint in dist.sprints and sprint != placement.sprint:
         set_earmark(repo, data, ticket, sprint)
 
