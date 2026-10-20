@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Kapazität eines Sprints aus Personenliste, Feiertagen und Fehltagen."""
+"""Sprint capacity from the list of people, holidays and absences."""
 
 from __future__ import annotations
 
@@ -17,12 +17,12 @@ class PersonCapacity:
     workdays: int
     holidays: int
     absence_days: float
-    # Verfügbar nach Feiertagen und Fehltagen (vor den Abzügen für Scrum-Termine).
+    # Available after holidays and absences (before the deductions for Scrum events).
     capacity: float
     mean_fte: float = 1.0
-    # Die FTE wechselt im Sprint: Fehltage werden mit der mittleren FTE gewichtet (Näherung).
+    # FTE changes during the sprint: absences are weighted with the mean FTE (approximation).
     fte_changes: bool = False
-    # Fester Abzug für Scrum-Termine: PT je Person × FTE, höchstens die Kapazität.
+    # Fixed deduction for Scrum events: PD per person × FTE, at most the capacity.
     overhead: float = 0.0
 
 
@@ -32,39 +32,39 @@ class CapacityBreakdown:
 
     @property
     def approximated(self) -> list[PersonCapacity]:
-        """Personen mit FTE-Wechsel im Sprint (Fehltage nur näherungsweise gewichtet)."""
+        """People whose FTE changes during the sprint (absences weighted only approximately)."""
         return [p for p in self.people if p.fte_changes and p.absence_days]
 
     gross: float = 0.0
-    # Abzug Scrum-Termine gesamt = Anteil + feste PT
+    # Total deduction for Scrum events = share + fixed PD
     overhead: float = 0.0
     overhead_share_part: float = 0.0
     overhead_days_part: float = 0.0
-    # Ungerundet: die Prognose rechnet damit weiter (kein Rundungsfehler im Nenner der
-    # normierten Velocity). Gerundet wird erst beim Anzeigen und Einfrieren (``rounded``).
+    # Unrounded: the forecast keeps calculating with it (no rounding error in the denominator
+    # of the normalized velocity). Rounding happens only on display and freezing (``rounded``).
     capacity: float = 0.0
     rounding: int = 1
 
     @property
     def rounded(self) -> float:
-        """Kapazität für Anzeige und Speicherung (kaufmännisch gerundet)."""
+        """Capacity for display and storage (rounded half up)."""
         return round_half_up(self.capacity, self.rounding)
 
 
 def person_capacity(
     team: Team, person: Person, sprint: Sprint, absence_rate: float = 0.0
 ) -> PersonCapacity | None:
-    """Kapazität einer Person im Sprint in PT.
+    """Capacity of one person in the sprint, in PD.
 
-    FTE ist der Anteil an den Arbeitstagen der Person (siehe ``Person.workweek``): Wer vier
-    Tage pro Woche arbeitet und das als ``workweek: mon,tue,wed,thu`` einträgt, hat FTE 1;
-    ``fte: 0.8`` mit voller Arbeitswoche (Mo–Fr) ergibt dieselbe Kapazität. Beides zusammen
-    (vier Tage und 0,8) würde doppelt abziehen.
+    FTE is the share of the person's working days (see ``Person.workweek``): someone who works
+    four days a week and enters that as ``workweek: mon,tue,wed,thu`` has FTE 1; ``fte: 0.8``
+    with a full working week (Mon-Fri) gives the same capacity. Using both (four days and 0.8)
+    would deduct twice.
 
-    ``absence_rate`` mindert die Kapazität um einen erwarteten Anteil unbekannter Fehltage
-    (Schätzung nach Historie); eingetragene Fehltage gelten zusätzlich."""
+    ``absence_rate`` reduces the capacity by an expected share of unknown absences (estimated
+    from history); entered absences apply in addition."""
     country = person.country or team.capacity.country
-    # Hat die Person ein eigenes Land, gilt nicht die Region des Teams.
+    # If the person has their own country, the team's region does not apply.
     region = person.region or (None if person.country else team.capacity.region)
     weekend = person_weekend(team, person)
     days = [d for d in workdays(sprint.start, sprint.end, weekend) if person.fte_on(d) > 0]
@@ -90,14 +90,14 @@ def person_capacity(
 def sprint_capacity(
     team: Team, people: list[Person], sprint: Sprint, absence_rate: float = 0.0
 ) -> CapacityBreakdown:
-    """Kapazität des Sprints. Eine gemeinsame Rechnung für bestätigte, angekündigte und
-    erwartete Fehltage: erst Feiertage und Fehltage (bzw. erwartete Quote) je Person, dann der
-    Abzug für Scrum-Termine. Das Ergebnis (``capacity``) bleibt ungerundet; gerundet wird erst
-    für Anzeige und Einfrieren (``CapacityBreakdown.rounded``, kaufmännisch).
+    """Capacity of the sprint. One shared calculation for confirmed, announced and expected
+    absences: first holidays and absences (or the expected rate) per person, then the deduction
+    for Scrum events. The result (``capacity``) stays unrounded; rounding happens only for
+    display and freezing (``CapacityBreakdown.rounded``, half up).
 
-    Der Abzug: feste PT je Person (``overhead_days`` × FTE, höchstens die Kapazität der Person)
-    ersetzen den Prozentabzug (``overhead_share``); beide sind derselbe Abzug in zwei Einheiten
-    und werden nicht addiert."""
+    The deduction: fixed PD per person (``overhead_days`` × FTE, at most the person's capacity)
+    replace the percentage deduction (``overhead_share``); both are the same deduction in two
+    units and are not added."""
     rows = [
         pc for p in people if (pc := person_capacity(team, p, sprint, absence_rate)) is not None
     ]
@@ -117,8 +117,8 @@ def sprint_capacity(
 
 
 def production_share(team: Team, people: list[Person], sprint: Sprint) -> float | None:
-    """Anteil der Personen mit Produktionszugriff an der Kapazität des Sprints (0–1).
-    None, wenn niemand Produktionszugriff hat."""
+    """Share of the sprint capacity held by people with production access (0-1).
+    None if nobody has production access."""
     group = [p for p in people if p.production_access]
     if not group:
         return None
@@ -128,27 +128,27 @@ def production_share(team: Team, people: list[Person], sprint: Sprint) -> float 
 
 @dataclass(frozen=True)
 class AbsenceHistory:
-    """Ø Anteil der Kapazität, der in vergangenen Sprints durch Fehltage verloren ging."""
+    """Average share of capacity lost to absences in past sprints."""
 
     rate: float | None
-    # Die tatsächlich verwendeten Sprints (IDs, ältere zuerst) und ihre Quoten.
+    # The sprints actually used (IDs, older first) and their rates.
     sprints: list[str]
     rates: list[float]
-    # Davon die Sprints, die nur aus anderen Feldern als bestätigt abgeleitet sind (ältere
-    # Dateien ohne gespeicherten Stand) und keine Fehltage haben: Sie zählen mit „0 % Ausfall“,
-    # die Quote ist dadurch unsicher. Ändert keine Zahl.
+    # Of these, the sprints that are only derived as confirmed from other fields (older files
+    # without a stored state) and have no absences: they count as "0 % loss", which makes the
+    # rate uncertain. Changes no number.
     derived: list[str] = field(default_factory=list)
 
 
 def absence_history(
     team: Team, people: list[Person], past: list[Sprint], count: int
 ) -> AbsenceHistory:
-    """Durchschnittlicher Verlust durch Fehltage in den letzten ``count`` Sprints.
+    """Average loss to absences over the last ``count`` sprints.
 
-    Berücksichtigt werden abgeschlossene Sprints, deren Fehltage **bestätigt** sind – dieselbe
-    Definition wie für die Kapazität (``absence_status``). Bestätigte Sprints ohne Fehltage
-    zählen mit der Quote 0 mit, sonst wäre die Quote zu hoch. Unbekannte und nur
-    angekündigte Sprints bleiben außen vor."""
+    Only completed sprints whose absences are **confirmed** are considered, using the same
+    definition as for the capacity (``absence_status``). Confirmed sprints without absences
+    count with a rate of 0, otherwise the rate would be too high. Unknown and merely announced
+    sprints are left out."""
     if count <= 0:
         return AbsenceHistory(None, [], [])
     used: list[tuple[str, float]] = []
@@ -177,17 +177,17 @@ def absence_history(
 def expected_absence_rate(
     team: Team, people: list[Person], past: list[Sprint], count: int
 ) -> float | None:
-    """Ø Anteil der Kapazität, der durch Fehltage verloren ging (0–1); None ohne Historie."""
+    """Average share of capacity lost to absences (0-1); None without history."""
     return absence_history(team, people, past, count).rate
 
 
 def estimated_capacity(team: Team, people: list[Person], sprint: Sprint, rate: float) -> float:
-    """Kapazität eines Sprints ohne bekannte Fehltage, gemindert um die erwartete Quote."""
+    """Capacity of a sprint without known absences, reduced by the expected rate."""
     return sprint_capacity(team, people, sprint, rate).capacity
 
 
 def capacity_with_expected_absences(team: Team, people: list[Person], sprint: Sprint) -> float:
-    """Kapazität eines Sprints mit seinen angekündigten Fehltagen (PO-Vorplanung)."""
+    """Capacity of a sprint with its announced absences (PO pre-planning)."""
     probe = copy.deepcopy(sprint)
     probe.absences = dict(sprint.expected_absences)
     return sprint_capacity(team, people, probe).capacity

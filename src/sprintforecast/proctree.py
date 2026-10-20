@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Alle Prozesse der App beenden, wenn das App-Fenster zugeht.
+"""Terminate all processes of the app when the app window closes.
 
-Der Server (Python/Streamlit), der Browser mit seinen Hilfsprozessen und Dialoge (Tk) sind
-Kindprozesse des Starters. Unter Windows hält ein Job-Objekt sie zusammen: Endet der Starter
-– auch abgestürzt oder abgeschossen –, beendet Windows alle Prozesse darin. Sonst blieben sie
-laufen und sperren Dateien (z. B. beim Aktualisieren oder Deinstallieren mit uv).
-Unter Linux/macOS bekommt der Server eine eigene Prozessgruppe, die am Ende beendet wird.
+The server (Python/Streamlit), the browser with its helper processes and dialogs (Tk) are
+child processes of the launcher. On Windows a job object keeps them together: when the launcher
+ends, even if it crashed or was killed, Windows terminates all processes in it. Otherwise they
+would keep running and lock files (e.g. when updating or uninstalling with uv).
+On Linux/macOS the server gets its own process group, which is terminated at the end.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import signal
 import subprocess
 import sys
 
-_job = None  # Handle bleibt bis zum Prozessende offen (Schließen löst das Beenden aus)
+_job = None  # handle stays open until the process ends (closing it triggers the termination)
 
 
 def _create_job():
@@ -56,8 +56,8 @@ def _create_job():
     if not job:
         return None
     info = Extended()
-    # KILL_ON_JOB_CLOSE (0x2000) + BREAKAWAY_OK (0x800): der Aktualisierungsprozess muss das
-    # Beenden überleben und löst sich dafür bewusst aus dem Job (updater.py).
+    # KILL_ON_JOB_CLOSE (0x2000) + BREAKAWAY_OK (0x800): the update process has to survive the
+    # termination and deliberately breaks away from the job for that (updater.py).
     info.BasicLimitInformation.LimitFlags = 0x2000 | 0x800
     ok = kernel32.SetInformationJobObject(
         wintypes.HANDLE(job), 9, ctypes.byref(info), ctypes.sizeof(info)
@@ -66,12 +66,12 @@ def _create_job():
 
 
 def popen_options() -> dict:
-    """Zusätzliche Popen-Argumente, damit der Prozess samt Kindern beendbar bleibt."""
+    """Extra Popen arguments so the process can still be terminated together with its children."""
     return {} if sys.platform == "win32" else {"start_new_session": True}
 
 
 def adopt(process: subprocess.Popen) -> None:
-    """Nimmt einen gestarteten Prozess (und alle seine späteren Kinder) in die Gruppe auf."""
+    """Add a started process (and all its later children) to the group."""
     global _job
     if sys.platform != "win32":
         return
@@ -86,11 +86,11 @@ def adopt(process: subprocess.Popen) -> None:
 
 
 def terminate_tree(process: subprocess.Popen, timeout: float = 10) -> None:
-    """Beendet den Prozess und alles, was er gestartet hat."""
+    """Terminate the process and everything it started."""
     if process.poll() is not None and sys.platform == "win32":
         return
     if sys.platform == "win32":
-        # Beendet den Baum samt Kindern; das Job-Objekt fängt den Rest beim Programmende.
+        # Terminates the tree including children; the job object catches the rest at program exit.
         subprocess.run(
             ["taskkill", "/PID", str(process.pid), "/T", "/F"],
             capture_output=True,

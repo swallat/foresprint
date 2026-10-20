@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Texte aus Datenstrukturen, die erst bei der Anzeige mit ``t(...)`` übersetzt werden.
+"""Texts from data structures that are only translated at display time with ``t(...)``.
 
-Dient dem Test auf Vollständigkeit der Übersetzungen (tests/test_i18n.py).
+Used by the translation completeness test (tests/test_i18n.py).
 """
 
 from __future__ import annotations
 
-# Spaltennamen, Status und Wörter, die über eine Variable an t() gehen.
+# Column names, statuses and words that reach t() through a variable.
 WORDS = [
     "Person", "Working days", "Holidays", "Absences", "PT", "When", "What", "Command", "Field",
     "Meaning", "Source", "Example", "Setting", "Key in team.yaml", "before", "new",
@@ -59,7 +59,7 @@ def all_static_texts() -> list[str]:
     texts += [source.value for source in CapacitySource]
     try:
         from sprintforecast.web.ui import PAGES, PLANNING_STEPS
-    except ImportError:  # ohne Streamlit
+    except ImportError:  # without Streamlit
         pass
     else:
         texts += list(PAGES)

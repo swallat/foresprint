@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Protokolle der Sprint-Termine (PO-Vorplanung, Planning, Review).
+"""Minutes of the sprint meetings (PO pre-planning, Planning, Review).
 
-Bei jedem Speichern entsteht eine Markdown-Datei
-``protokolle/<sprint>-<termin>-<Datum>-<Zeit>.md`` im Ordner des Teams (das kann auch die Wurzel des
-Datenordners sein); ältere Stände bleiben lesbar. Wird
-ein Termin hinfällig (z. B. beim Aufheben des Einfrierens), heißt das alte Protokoll danach
+Every save creates a Markdown file
+``protokolle/<sprint>-<termin>-<Datum>-<Zeit>.md`` in the team's folder (which can also be the
+root of the data folder); older versions stay readable. If a meeting becomes obsolete (e.g.
+when the freeze is lifted), the old minutes are afterwards named
 ``…_obsolet_<Datum>-<Zeit>.md``."""
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ PROTOCOL_DIR = "protokolle"
 STAMP = "%Y%m%d-%H%M%S"
 PREPLANNING, PLANNING, REVIEW = "vorplanung", "planning", "review"
 KINDS = (PREPLANNING, PLANNING, REVIEW)
-# Spalten der Produkttabelle je Termin.
+# Columns of the product table per meeting.
 KIND_MEASURES = {
     PREPLANNING: ("standard", "preplanned"),
     PLANNING: ("standard", "preplanned", "planned"),
@@ -53,13 +53,13 @@ KIND_MEASURES = {
 }
 _NAME = re.compile(
     r"^(?P<sprint>.+)-(?P<kind>vorplanung|planning|review)-(?P<at>\d{8}-\d{6})"
-    r"(?:-[0-9a-f]{4})?"  # Anfang des Fingerabdrucks, siehe write_protocol_new
+    r"(?:-[0-9a-f]{4})?"  # start of the fingerprint, see write_protocol_new
     r"(?:_obsolet_(?P<obsolete>\d{8}-\d{6}))?\.md$"
 )
 
 
 def _cell(text: str | None) -> str:
-    """Text für eine Markdown-Zelle oder -Zeile (Trennstriche und Zeilenwechsel neutralisieren)."""
+    """Text for a Markdown cell or line (neutralizes pipes and line breaks)."""
     return " ".join((text or "").replace("|", "\\|").split())
 
 
@@ -74,7 +74,7 @@ def kind_title(kind: str) -> str:
 def _distribution_lines(
     d: Distribution, measures: tuple[str, ...], show_po: bool, heading: str = "##"
 ) -> list[str]:
-    """Tabellen „Je Produkt“ (und „Je PO“) als Markdown-Zeilen; leer ohne Produktzeilen."""
+    """Tables "Per product" (and "Per PO") as Markdown lines; empty without product rows."""
     lines: list[str] = []
     if not d.rows:
         return lines
@@ -110,8 +110,8 @@ def render_protocol(
     comment: str = "",
     show_po: bool = True,
 ) -> str:
-    """Markdown-Text eines Termins: Kopf, Kennzahlen (``facts``), Abschnitte (``notes``) und –
-    mit ``d`` – die Verteilung je Produkt (und je PO)."""
+    """Markdown text of a meeting: header, key figures (``facts``), sections (``notes``) and,
+    with ``d``, the distribution per product (and per PO)."""
     lines = [
         f"# {kind_title(kind)} {_cell(team)} – {t('Sprint {id}', id=sprint_id)}",
         "",
@@ -134,8 +134,8 @@ SECTION_MARKER = "<!-- sprintforecast-section: "
 
 @dataclasses.dataclass
 class PlanningSection:
-    """Ein Abschnitt des Planning-Protokolls (Fehltage, Einplanung, Commitment). ``lines`` sind
-    die Markdown-Zeilen darunter; ohne ``recorded`` steht „noch nicht erfasst“."""
+    """A section of the Planning minutes (absences, scheduling, Commitment). ``lines`` are
+    the Markdown lines below it; without ``recorded`` it says "not yet recorded"."""
 
     key: str
     title: str
@@ -144,7 +144,7 @@ class PlanningSection:
 
 
 def _section_parts(text: str) -> dict[str, tuple[str, list[str]]]:
-    """Abschnitte eines Planning-Protokolls: Schlüssel → (Stand-Text, Zeilen ohne Stand)."""
+    """Sections of Planning minutes: key → (as-of text, lines without the as-of line)."""
     parts: dict[str, tuple[str, list[str]]] = {}
     key: str | None = None
     body: list[str] = []
@@ -168,7 +168,7 @@ def _section_parts(text: str) -> dict[str, tuple[str, list[str]]]:
             close()
             key = None
         elif key is not None and line.strip() and not line.startswith("## "):
-            body.append(line)  # die Überschrift des nächsten Abschnitts gehört nicht dazu
+            body.append(line)  # the heading of the next section is not part of this one
     close()
     return parts
 
@@ -176,8 +176,8 @@ def _section_parts(text: str) -> dict[str, tuple[str, list[str]]]:
 def latest_planning_sections(
     repo: Repository, team: str, sprint_id: str
 ) -> dict[str, tuple[str, list[str]]]:
-    """Die Abschnitte des jüngsten gültigen Planning-Protokolls (leer, wenn es keines gibt oder
-    es nicht lesbar ist)."""
+    """The sections of the latest valid Planning minutes (empty if there are none or they
+    are not readable)."""
     for _, kind, obsolete, path in list_protocols(repo, team, sprint_id):
         if kind == PLANNING and not obsolete:
             try:
@@ -196,10 +196,10 @@ def render_planning_protocol(
     sections: list[PlanningSection],
     previous: dict[str, tuple[str, list[str]]],
 ) -> str:
-    """Vollständiges Planning-Protokoll mit allen Abschnitten. Jeder erfasste Abschnitt trägt
-    seinen eigenen Stand: unverändert gegenüber ``previous`` (dem jüngsten Protokoll) bleibt der
-    alte Stand, sonst gilt ``now``. So zeigt jedes Protokoll, wann welcher Schritt zuletzt
-    geändert wurde, und ein unveränderter Stand erzeugt weiter kein weiteres Protokoll."""
+    """Complete Planning minutes with all sections. Each recorded section carries its own
+    as-of time: if unchanged compared to ``previous`` (the latest minutes), the old as-of time
+    stays, otherwise ``now`` applies. So each set of minutes shows when each step was last
+    changed, and an unchanged state still does not create further minutes."""
     lines = [
         f"# {kind_title(PLANNING)} {_cell(team)} – {t('Sprint {id}', id=sprint_id)}",
         "",
@@ -213,7 +213,7 @@ def render_planning_protocol(
             lines.append(f"_{t('not yet recorded')}_")
             continue
         old_stand, old_lines = previous.get(section.key, ("", []))
-        if old_stand == t("not yet recorded"):  # der Platzhalter ist kein Stand
+        if old_stand == t("not yet recorded"):  # the placeholder is not an as-of time
             old_stand = ""
         body = [ln for ln in section.lines if ln.strip()]
         stand = (
@@ -226,12 +226,12 @@ def render_planning_protocol(
 
 
 def planning_distribution_lines(d: Distribution, show_po: bool) -> list[str]:
-    """Produkttabellen des Planning-Protokolls (Überschriften eine Ebene unter dem Abschnitt)."""
+    """Product tables of the Planning minutes (headings one level below the section)."""
     return _distribution_lines(d, KIND_MEASURES[PLANNING], show_po, heading="###")
 
 
 def md_item(text: str) -> str:
-    """Eine Aufzählungszeile mit neutralisierten Trennstrichen und Zeilenwechseln."""
+    """A bullet line with neutralized pipes and line breaks."""
     return f"- {_cell(text)}"
 
 
@@ -240,7 +240,7 @@ def _folder(repo: Repository, team: str) -> Path:
 
 
 def _body_of(text: str) -> list[str]:
-    """Der Text ohne die Zeile „Stand: …“ (dritte Zeile, mit dem Zeitpunkt)."""
+    """The text without the "As of: …" line (third line, with the timestamp)."""
     lines = text.replace("\r\n", "\n").split("\n")
     return lines[:2] + lines[3:]
 
@@ -256,8 +256,8 @@ STATE_MARKER = "<!-- sprintforecast-state: "
 
 
 def fingerprint(text: str, *documents: dict) -> str:
-    """Kurzer Fingerabdruck des gespeicherten Stands: der Text ohne die Zeile „Stand: …“ und alle
-    gespeicherten Felder der Sprintdateien (auch die, die das Protokoll nicht darstellt)."""
+    """Short fingerprint of the saved state: the text without the "As of: …" line and all
+    saved fields of the sprint files (including those the minutes do not show)."""
     digest = hashlib.sha256("\n".join(_body_of(text)).encode("utf-8"))
     for document in documents:
         digest.update(dump_yaml(document).encode("utf-8"))
@@ -275,13 +275,13 @@ def _state_of(path: Path) -> str | None:
     return None
 
 
-# Sperre je Sprint und Termin: Suchen des letzten Protokolls, Prüfen auf Unverändertes und Schreiben
-# laufen am Stück, damit zwei Sitzungen mit demselben Stand nicht zwei Protokolle erzeugen.
+# Lock per sprint and meeting: finding the latest minutes, checking for no change and writing
+# run in one go, so that two sessions with the same state do not create two sets of minutes.
 LOCK_WAIT_SECONDS = 10.0
 
 
 def _private_dir(path: Path) -> None:
-    """Legt den Ordner an; auf POSIX nur für den Benutzer selbst lesbar und schreibbar."""
+    """Creates the folder; on POSIX readable and writable only by the user themselves."""
     if sys.platform == "win32":
         path.mkdir(parents=True, exist_ok=True)
     else:
@@ -289,9 +289,9 @@ def _private_dir(path: Path) -> None:
 
 
 def _fallback_lock_dir() -> Path:
-    """Benutzerspezifischer Ordner im Temp-Verzeichnis, wenn der Einstellungsordner nicht geht. In
-    einem gemeinsamen ``/tmp`` darf ein fester Name nicht gelten: Das Konto, das ihn zuerst
-    anlegt, sperrte sonst alle anderen aus. Auf POSIX muss der Ordner dem Benutzer gehören."""
+    """Per-user folder in the temp directory, used when the settings folder does not work. In
+    a shared ``/tmp`` a fixed name must not be used: the account that creates it first would
+    otherwise lock out all the others. On POSIX the folder must belong to the user."""
     if sys.platform == "win32":
         try:
             user = getpass.getuser()
@@ -299,14 +299,14 @@ def _fallback_lock_dir() -> Path:
             user = "unknown"
     else:
         user = str(os.getuid())
-    name = re.sub(r"\W", "_", user)  # nur Zeichen, die in einem Ordnernamen gehen
+    name = re.sub(r"\W", "_", user)  # only characters that are valid in a folder name
     root = Path(tempfile.gettempdir()) / f"sprintforecast-sperren-{name}"
     try:
         _private_dir(root)
     except OSError as e:
         raise _not_saved(root, e) from e
     if sys.platform != "win32":
-        info = root.lstat()  # ein Verweis oder fremder Ordner ist kein sicherer Ort
+        info = root.lstat()  # a link or foreign folder is not a safe place
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
             raise FileAccessError(
                 t(
@@ -320,9 +320,9 @@ def _fallback_lock_dir() -> Path:
     return root
 
 
-# Dauerhafte Fehler beim Anlegen/Öffnen im Einstellungsordner: nur dann gilt der Temp-Ordner.
-# Vorübergehende (z. B. ``EMFILE``, ``ENOSPC``, ``EIO``, ``EINTR``) kommen als Fehler, statt
-# Sitzungen unbemerkt auf verschiedene Sperrdateien zu verteilen.
+# Permanent errors when creating/opening in the settings folder: only then is the temp folder
+# used. Transient ones (e.g. ``EMFILE``, ``ENOSPC``, ``EIO``, ``EINTR``) are raised as errors
+# instead of silently spreading sessions across different lock files.
 _PERMANENT_OPEN_ERRNOS = frozenset(
     getattr(errno, name)
     for name in ("ENOENT", "EROFS", "EACCES", "EPERM", "EISDIR", "ENOTDIR", "EEXIST")
@@ -335,9 +335,8 @@ def _is_permanent(e: OSError) -> bool:
 
 
 def _lock_dir() -> Path:
-    """Ordner der Sperrdateien: ``sperren`` im Einstellungsordner des Benutzers (nie im
-    Git-Arbeitsverzeichnis); lässt er sich nicht anlegen, ein benutzerspezifischer Ordner im
-    Temp-Verzeichnis."""
+    """Folder of the lock files: ``sperren`` in the user's settings folder (never in the Git
+    working directory); if it cannot be created, a per-user folder in the temp directory."""
     root = config_dir() / "sperren"
     try:
         _private_dir(root)
@@ -345,25 +344,25 @@ def _lock_dir() -> Path:
         if not _is_permanent(e):
             raise _not_saved(root, e) from e
         return _fallback_lock_dir()
-    # Ein vorhandener, nicht beschreibbarer Ordner (``exist_ok`` gelingt trotzdem) taugt nicht.
-    # Unter Windows sagt ``access`` nichts über Zugriffsrechte; dort sichert :func:`_open_lock` ab.
+    # An existing, non-writable folder (``exist_ok`` succeeds anyway) is no good.
+    # On Windows ``access`` says nothing about permissions; :func:`_open_lock` covers that.
     if not os.access(root, os.W_OK | os.X_OK):
         return _fallback_lock_dir()
     return root
 
 
 def _lock_file(folder: Path, sprint_id: str, kind: str) -> Path:
-    """Sperrdatei außerhalb des Datenordners (nie im Git-Arbeitsverzeichnis): je Protokollordner,
-    Sprint und Termin eine."""
+    """Lock file outside the data folder (never in the Git working directory): one per
+    minutes folder, sprint and meeting."""
     key = hashlib.sha256(f"{folder.resolve()}|{sprint_id}|{kind}".encode()).hexdigest()[:24]
     return _lock_dir() / f"{key}.lock"
 
 
 def _open_lock(path: Path) -> tuple[IO[bytes], Path]:
-    """Öffnet die Sperrdatei. Geht das nicht (z. B. Einstellungsordner ohne Schreibrecht), gilt
-    dieselbe Datei im benutzerspezifischen Temp-Ordner; alle Sitzungen mit denselben Rechten landen
-    so bei derselben Sperrdatei. Liefert Handle und den Pfad, der wirklich geöffnet wurde. Scheitert
-    auch das, kommt ein :class:`FileAccessError`."""
+    """Opens the lock file. If that fails (e.g. settings folder without write permission), the
+    same file in the per-user temp folder is used; all sessions with the same permissions thus
+    end up at the same lock file. Returns the handle and the path that was actually opened.
+    If that fails too, a :class:`FileAccessError` is raised."""
     try:
         return path.open("a+b"), path
     except OSError as e:
@@ -371,7 +370,7 @@ def _open_lock(path: Path) -> tuple[IO[bytes], Path]:
     if not _is_permanent(first):
         raise _not_saved(path, first) from first
     fallback_dir = _fallback_lock_dir()
-    if fallback_dir == path.parent:  # das war schon der Ausweichordner
+    if fallback_dir == path.parent:  # that was already the fallback folder
         raise _not_saved(path, first) from first
     fallback = fallback_dir / path.name
     try:
@@ -381,13 +380,13 @@ def _open_lock(path: Path) -> tuple[IO[bytes], Path]:
 
 
 class _LockUnsupported(Exception):
-    """Das Sperren der Datei scheitert dauerhaft (nicht nur, weil eine andere Sitzung sie hält),
-    z. B. auf einem Dateisystem ohne Dateisperren."""
+    """Locking the file fails permanently (not just because another session holds it),
+    e.g. on a file system without file locks."""
 
 
-# Nur echte Konkurrenz heißt „belegt“: POSIX ``EWOULDBLOCK``/``EAGAIN`` (manche ``flock``-Arten
-# melden ``EACCES``), Windows ``EACCES`` und ``EDEADLOCK`` von ``msvcrt.locking`` sowie die
-# Windows-Fehler 32 (Zugriffsverletzung) und 33 (Verletzung des Sperrbereichs).
+# Only genuine contention means "busy": POSIX ``EWOULDBLOCK``/``EAGAIN`` (some ``flock``
+# variants report ``EACCES``), Windows ``EACCES`` and ``EDEADLOCK`` from ``msvcrt.locking``,
+# and the Windows errors 32 (sharing violation) and 33 (lock violation).
 _BUSY_ERRNOS = frozenset(
     getattr(errno, name)
     for name in ("EACCES", "EAGAIN", "EWOULDBLOCK", "EDEADLK", "EDEADLOCK")
@@ -397,9 +396,9 @@ _BUSY_WINERRORS = frozenset({32, 33})
 
 
 def _try_lock(handle: IO[bytes]) -> bool:
-    """Versucht, die Datei ohne Warten zu sperren (Sperre des Betriebssystems). ``False`` heißt:
-    eine andere Sitzung hält sie. Jeder andere Fehler (z. B. ``ENOLCK``, ``ENOSYS``, ``EINVAL``,
-    ``EIO`` auf Netzlaufwerken ohne Dateisperren) ist dauerhaft und kommt als
+    """Tries to lock the file without waiting (operating system lock). ``False`` means:
+    another session holds it. Any other error (e.g. ``ENOLCK``, ``ENOSYS``, ``EINVAL``,
+    ``EIO`` on network drives without file locks) is permanent and raised as
     :class:`_LockUnsupported`."""
     try:
         if sys.platform == "win32":
@@ -419,8 +418,8 @@ def _try_lock(handle: IO[bytes]) -> bool:
 
 
 def _acquire(handle: IO[bytes]) -> None:
-    """Sperrt die Datei; bei Konkurrenz wird bis ``LOCK_WAIT_SECONDS`` gewartet. Ein dauerhafter
-    Fehler (:class:`_LockUnsupported`) kommt sofort, ohne Warten."""
+    """Locks the file; on contention it waits up to ``LOCK_WAIT_SECONDS``. A permanent error
+    (:class:`_LockUnsupported`) is raised immediately, without waiting."""
     deadline = time.monotonic() + LOCK_WAIT_SECONDS
     while not _try_lock(handle):
         if time.monotonic() >= deadline:
@@ -434,9 +433,9 @@ def _acquire(handle: IO[bytes]) -> None:
 
 
 def _acquire_in_fallback(used: Path) -> IO[bytes]:
-    """Einmaliger zweiter Versuch, wenn das Sperren der Datei ``used`` dauerhaft scheitert: dieselbe
-    Datei im benutzerspezifischen Temp-Ordner. Ohne Erfolg (oder war ``used`` schon dort) kommt ein
-    :class:`FileAccessError`, nie eine Wartezeit."""
+    """One-time second attempt when locking the file ``used`` fails permanently: the same
+    file in the per-user temp folder. Without success (or if ``used`` was already there) a
+    :class:`FileAccessError` is raised, never a wait."""
     unsupported = FileAccessError(
         t(
             (
@@ -478,12 +477,13 @@ def _unlock(handle: IO[bytes]) -> None:
 
 @contextlib.contextmanager
 def _locked(folder: Path, sprint_id: str, kind: str) -> Iterator[None]:
-    """Sperrt Protokolle eines Sprints und Termins für andere Sitzungen auf diesem Rechner. Die
-    Sperre ist eine Sperre des Betriebssystems auf einer Datei (``flock``/``msvcrt.locking``): Sie
-    endet mit dem Prozess von selbst, braucht keine Erkennung verwaister Sperren und keine Uhr. Wer
-    wartet, wartet bis ``LOCK_WAIT_SECONDS``. Zwischen Klonen auf verschiedenen Rechnern wirkt sie
-    nicht; dort schützt der aus dem Inhalt abgeleitete Dateiname. Scheitert das Sperren dauerhaft
-    (Dateisystem ohne Dateisperren), gilt einmal dieselbe Datei im Temp-Ordner; sonst ein Fehler."""
+    """Locks the minutes of a sprint and meeting against other sessions on this machine. The
+    lock is an operating system lock on a file (``flock``/``msvcrt.locking``): it ends with
+    the process by itself and needs neither detection of orphaned locks nor a clock. Whoever
+    waits, waits up to ``LOCK_WAIT_SECONDS``. It has no effect between clones on different
+    machines; there the file name derived from the content protects. If locking fails
+    permanently (file system without file locks), the same file in the temp folder is tried
+    once; otherwise an error is raised."""
     handle, used = _open_lock(_lock_file(folder, sprint_id, kind))
     try:
         try:
@@ -504,9 +504,9 @@ Clock = datetime | Callable[[], datetime] | None
 
 
 def _resolve_now(now: Clock) -> datetime:
-    """Der Zeitpunkt für den Dateinamen. Ein ``datetime`` gilt wie übergeben; ``None`` oder eine
-    Funktion (z. B. ``datetime.now``) wird erst hier gelesen, also nach dem Erwerb der Sperre: Wer
-    länger auf die Sperre wartet, bekommt so keinen älteren Zeitpunkt als der Vorgänger."""
+    """The timestamp for the file name. A ``datetime`` is used as passed; ``None`` or a
+    function (e.g. ``datetime.now``) is only read here, i.e. after acquiring the lock: whoever
+    waits longer for the lock thus never gets an earlier timestamp than the predecessor."""
     if isinstance(now, datetime):
         return now
     return (now() if now is not None else datetime.now()).replace(microsecond=0)
@@ -521,20 +521,20 @@ def write_protocol_new(
     now: Clock,
     state: str | None = None,
 ) -> tuple[Path, bool]:
-    """Schreibt das Protokoll (LF-Zeilenenden, über eine Zwischendatei) und meldet, ob es neu
-    entstand. Mit ``state`` (siehe :func:`fingerprint`) entsteht kein weiteres Protokoll, wenn der
-    Stand unverändert ist; ohne ``state`` entscheidet der Text. Gibt es den Namen schon (zwei
-    Speicherungen in derselben Sekunde), wird die Sekunde hochgezählt: nichts geht verloren.
-    Suchen und Schreiben laufen unter einer Sperre je Sprint und Termin (:func:`_locked`).
-    ``now`` darf ein ``datetime``, eine Funktion oder ``None`` sein (dann wird die Uhr erst unter
-    der Sperre gelesen). Schreibfehler kommen als :class:`FileAccessError`."""
+    """Writes the minutes (LF line endings, via a temporary file) and reports whether they
+    are new. With ``state`` (see :func:`fingerprint`) no further minutes are created if the
+    state is unchanged; without ``state`` the text decides. If the name already exists (two
+    saves in the same second), the second is counted up: nothing is lost. Searching and
+    writing run under a lock per sprint and meeting (:func:`_locked`). ``now`` may be a
+    ``datetime``, a function or ``None`` (then the clock is read only under the lock). Write
+    errors are raised as :class:`FileAccessError`."""
     folder = _make_folder(repo, team)
     with _locked(folder, sprint_id, kind):
         return _write_locked(repo, team, sprint_id, kind, text, now, state)
 
 
 def _make_folder(repo: Repository, team: str) -> Path:
-    """Legt den Protokollordner an (Fehler als :class:`FileAccessError`)."""
+    """Creates the minutes folder (errors as :class:`FileAccessError`)."""
     folder = _folder(repo, team)
     try:
         folder.mkdir(parents=True, exist_ok=True)
@@ -552,9 +552,8 @@ def _write_locked(
     now: Clock,
     state: str | None,
 ) -> tuple[Path, bool]:
-    """Rumpf von :func:`write_protocol_new`. Der Aufrufer hält die Sperre (:func:`_locked`); die
-    Sperre des Betriebssystems ist nicht wiedereintrittsfähig, hier darf sie nicht erneut betreten
-    werden."""
+    """Body of :func:`write_protocol_new`. The caller holds the lock (:func:`_locked`); the
+    operating system lock is not reentrant, so it must not be entered again here."""
     folder = _folder(repo, team)
     latest = next(
         (
@@ -567,18 +566,18 @@ def _write_locked(
     if latest is not None:
         same = _state_of(latest) == state if state is not None else _body(latest) == _body_of(text)
         if same:
-            return latest, False  # nichts hat sich geändert: kein weiteres, gleiches Protokoll
+            return latest, False  # nothing changed: no further identical minutes
     if state is not None:
         text = text.rstrip("\n") + f"\n\n{STATE_MARKER}{state} -->\n"
-    # Ein Bestandteil des Namens aus dem Inhalt: Zwei Klone, die in derselben Sekunde
-    # Verschiedenes speichern, erzeugen so nie denselben Dateinamen (sonst Konflikt beim
-    # Zusammenführen).
+    # Part of the name derived from the content: two clones that save different things in
+    # the same second thus never produce the same file name (otherwise a conflict when
+    # merging).
     tag = (state or hashlib.sha256(text.encode("utf-8")).hexdigest())[:4]
     stamp = _resolve_now(now)
     while (path := folder / f"{sprint_id}-{kind}-{stamp:{STAMP}}-{tag}.md").exists():
         stamp += timedelta(seconds=1)
-    write_text(path, text, newline="\n")  # Zwischendatei, dann ersetzen: nie halb gelesen
-    invalidate_status()  # eine neue Datei ist eine offene Änderung, auch ohne geänderte YAML
+    write_text(path, text, newline="\n")  # temporary file, then replace: never read half-written
+    invalidate_status()  # a new file is an open change, even without changed YAML
     return path, True
 
 
@@ -591,13 +590,13 @@ def write_protocol(
     now: Clock,
     state: str | None = None,
 ) -> Path:
-    """Wie :func:`write_protocol_new`, liefert nur die Datei."""
+    """Like :func:`write_protocol_new`, but returns only the file."""
     return write_protocol_new(repo, team, sprint_id, kind, text, now, state)[0]
 
 
 def _persisted(repo: Repository, team: str, sprint: Sprint) -> dict:
-    """Die Sprintdatei so, wie ``save_sprint`` sie schreibt – mit festgelegtem Stand der Fehltage
-    (``save_sprint`` legt ihn beim Speichern fest; sonst wichen Fingerabdruck und Datei ab)."""
+    """The sprint file as ``save_sprint`` writes it, with the absence state pinned
+    (``save_sprint`` pins it when saving; otherwise fingerprint and file would differ)."""
     copy = dataclasses.replace(sprint)
     if copy.absence_state is None:
         copy.absence_state = repo._pinned_absence_state(repo.sprint_path(team, sprint.id), copy)
@@ -614,13 +613,12 @@ def save_with_protocol(
     sprints: list[Sprint],
     save: Callable[[], list[Path]],
 ) -> list[Path]:
-    """Schreibt erst das Protokoll, dann ``save`` (die Sprintdateien). Ist das Protokoll nicht
-    schreibbar, bleibt die Sprintdatei unverändert; scheitert ``save``, wird das eben geschriebene
-    Protokoll wieder entfernt – beides gelingt oder keines. Die Sperre (:func:`_locked`) gilt über
-    Protokoll, ``save`` und Rückbau: Eine zweite Sitzung mit demselben Stand übernimmt das
-    Protokoll erst, wenn die erste gespeichert hat, und nie eines, das die erste gleich wieder
-    löscht. ``save`` läuft also unter der Sperre und darf sie nicht selbst betreten (sie ist nicht
-    wiedereintrittsfähig)."""
+    """Writes the minutes first, then ``save`` (the sprint files). If the minutes cannot be
+    written, the sprint file stays unchanged; if ``save`` fails, the minutes just written are
+    removed again: both succeed or neither. The lock (:func:`_locked`) covers the minutes,
+    ``save`` and the rollback: a second session with the same state only adopts the minutes
+    once the first has saved, and never minutes that the first deletes again right away.
+    So ``save`` runs under the lock and must not enter it itself (it is not reentrant)."""
     state = fingerprint(text, *(_persisted(repo, team, s) for s in sprints))
     folder = _make_folder(repo, team)
     with _locked(folder, sprint_id, kind):
@@ -629,8 +627,8 @@ def save_with_protocol(
             return save()
         except BaseException as primary:
             if created:
-                # Scheitert auch der Rückbau (z. B. gesperrte Datei), zählt der ursprüngliche
-                # Fehler; der Rückbau-Fehler hängt als Hinweis daran.
+                # If the rollback fails too (e.g. locked file), the original error counts;
+                # the rollback error is attached to it as a note.
                 try:
                     path.unlink(missing_ok=True)
                 except OSError as e:
@@ -642,7 +640,7 @@ def save_with_protocol(
 def list_protocols(
     repo: Repository, team: str, sprint_id: str
 ) -> list[tuple[datetime, str, bool, Path]]:
-    """Die Protokolle eines Sprints als (Zeitpunkt, Termin, obsolet, Datei), neueste zuerst."""
+    """The minutes of a sprint as (timestamp, meeting, obsolete, file), newest first."""
     folder = _folder(repo, team)
     found: list[tuple[datetime, str, bool, Path]] = []
     try:
@@ -654,7 +652,7 @@ def list_protocols(
         if m and m["sprint"] == sprint_id and p.is_file():
             try:
                 at = datetime.strptime(m["at"], STAMP)
-            except ValueError:  # von Hand oder per Sync umbenannt: unmöglicher Zeitpunkt
+            except ValueError:  # renamed by hand or by sync: impossible timestamp
                 continue
             found.append((at, m["kind"], m["obsolete"] is not None, p))
     return sorted(found, key=lambda f: (f[0], f[3].name), reverse=True)
@@ -663,9 +661,9 @@ def list_protocols(
 def protocol_renames(
     repo: Repository, team: str, pairs: list[tuple[str, str]]
 ) -> list[tuple[Path, Path]]:
-    """Dateiumbenennungen, mit denen die Protokolle der Sprints ``alt`` künftig unter ``neu``
-    geführt werden (auch obsolete); nur der Sprint im Dateinamen ändert sich, der Inhalt nicht.
-    Es wird nichts umbenannt; die Liste ist vollständig, bevor ein Aufrufer sie abarbeitet."""
+    """File renames by which the minutes of the sprints ``alt`` (old) are kept under ``neu``
+    (new) from now on (obsolete ones too); only the sprint in the file name changes, not the
+    content. Nothing is renamed here; the list is complete before a caller works through it."""
     found: list[tuple[Path, Path]] = []
     for old, new in pairs:
         for _, _, _, path in list_protocols(repo, team, old):
@@ -674,14 +672,14 @@ def protocol_renames(
 
 
 def _note_rollback_failure(primary: BaseException, path: Path, error: OSError) -> None:
-    """Hängt einen gescheiterten Rückbau als Hinweis an den ursprünglichen Fehler (der bleibt der
-    Hauptfehler), damit er nicht stumm bleibt."""
+    """Attaches a failed rollback as a note to the original error (which stays the main
+    error), so that it does not go unnoticed."""
     primary.add_note(t("{path}: not rolled back ({reason})", path=path, reason=str(error)))
 
 
 def _undo(renamed: list[Path], primary: BaseException) -> None:
-    """Macht ``mark_obsolete`` rückgängig (so gut es geht); scheitert ein Zurückbenennen, steht das
-    als Hinweis am ursprünglichen Fehler ``primary``."""
+    """Undoes ``mark_obsolete`` as far as possible; if a rename back fails, that is attached
+    as a note to the original error ``primary``."""
     for target in renamed:
         original = re.sub(r"_obsolet_\d{8}-\d{6}(?=\.md$)", "", target.name)
         try:
@@ -693,11 +691,11 @@ def _undo(renamed: list[Path], primary: BaseException) -> None:
 
 
 def mark_obsolete(repo: Repository, team: str, sprint_id: str, kind: str, now: Clock) -> list[Path]:
-    """Benennt die gültigen Protokolle des Termins in ``…_obsolet_<Datum>-<Zeit>.md`` um (z. B.
-    wenn das Einfrieren des Sprints aufgehoben wird). Liefert die neuen Dateien. Scheitert eine
-    Umbenennung, werden die schon umbenannten wieder zurückbenannt (alles oder nichts). Die Sperre
-    wird auch dann genommen, wenn es den Ordner noch nicht gibt (er wird angelegt; ein leerer Ordner
-    ist harmlos): Eine andere Sitzung kann ihn gleichzeitig anlegen und ein Protokoll schreiben."""
+    """Renames the valid minutes of the meeting to ``…_obsolet_<Datum>-<Zeit>.md`` (e.g. when
+    the freeze of the sprint is lifted). Returns the new files. If a rename fails, those
+    already renamed are renamed back (all or nothing). The lock is taken even if the folder
+    does not exist yet (it is created; an empty folder is harmless): another session may
+    create it at the same time and write minutes."""
     folder = _make_folder(repo, team)
     with _locked(folder, sprint_id, kind):
         return _mark_obsolete(repo, team, sprint_id, kind, now)
@@ -713,7 +711,7 @@ def _mark_obsolete(
             continue
         stamp = moment
         target = path.with_name(f"{path.stem}_obsolet_{stamp:{STAMP}}.md")
-        while target.exists():  # zwei Aufhebungen in derselben Sekunde
+        while target.exists():  # two lifts in the same second
             stamp += timedelta(seconds=1)
             target = path.with_name(f"{path.stem}_obsolet_{stamp:{STAMP}}.md")
         try:
@@ -736,12 +734,12 @@ def obsolete_with_save(
     now: Clock,
     save: Callable[[], list[Path]],
 ) -> list[Path]:
-    """Benennt die Protokolle zuerst um und schreibt dann mit ``save`` die Sprintdatei; scheitert
-    das Speichern, werden die Protokolle zurückbenannt: beides gelingt oder keines. Die Sperre
-    (:func:`_locked`) gilt über Umbenennen, ``save`` und Rückbenennen, damit eine andere Sitzung nie
-    einen Zwischenstand sieht (``save`` darf sie nicht selbst betreten). Die Sperre gilt auch, wenn
-    es den Protokollordner noch nicht gibt (er wird angelegt): Sonst könnte eine andere Sitzung
-    gleichzeitig ein Planning samt Protokoll speichern, das danach gültig bliebe."""
+    """Renames the minutes first and then writes the sprint file with ``save``; if saving
+    fails, the minutes are renamed back: both succeed or neither. The lock (:func:`_locked`)
+    covers renaming, ``save`` and renaming back, so that another session never sees an
+    intermediate state (``save`` must not enter it itself). The lock also applies if the
+    minutes folder does not exist yet (it is created): otherwise another session could save a
+    Planning with minutes at the same time, and those would stay valid afterwards."""
     folder = _make_folder(repo, team)
     with _locked(folder, sprint_id, kind):
         renamed = _mark_obsolete(repo, team, sprint_id, kind, now)

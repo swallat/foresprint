@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Prüfung der Daten auf Fehler und Plausibilität."""
+"""Checks the data for errors and plausibility."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class Level(StrEnum):
 
     @property
     def label(self) -> str:
-        """Anzeigename in der eingestellten Sprache."""
+        """Display name in the selected language."""
         return t(self.value)
 
 
@@ -67,8 +67,8 @@ def _g(value: float) -> str:
 
 
 def _check_product_shares(data: TeamData, today: date, error, warning) -> None:
-    """Feste Anteile der gleichzeitig betreuten Produkte dürfen zusammen nicht über 100 %
-    liegen (je Sprint und heute); bei genau 100 % bleibt für Produkte ohne Anteil nichts."""
+    """Fixed shares of the products looked after at the same time must not add up to more than
+    100 % (per sprint and today); at exactly 100 % nothing is left for products without a share."""
     periods = [(t("Sprint {id}", id=s.id), s.start, s.end) for s in data.sprints]
     periods.append((t("today"), today, today + timedelta(days=1)))
     reported: set[tuple[float, bool]] = set()
@@ -387,9 +387,9 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             "team.yaml",
             t("Without sprint files, sprint.first.id and sprint.first.start are required"),
         )
-    # Kalender, Fehltage und Prognose bilden die Folge-IDs ab dem laufenden Sprint bis über den
-    # letzten hinaus (ohne Sprintdateien: aus dem ersten Sprint). Abgeschlossene Sprints davor
-    # spielen keine Rolle; der letzte zählt immer.
+    # Calendar, absences and forecast form the follow-up IDs from the running sprint to beyond
+    # the last one (without sprint files: from the first sprint). Completed sprints before that
+    # do not matter; the last one always counts.
     chain = [(f"sprints/{s.id}.yaml", s.id, s.end) for s in data.sprints if s.end > today]
     if data.sprints and data.sprints[-1].end <= today:
         last = data.sprints[-1]
@@ -675,17 +675,17 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
 
 
 def issues_for(data: TeamData, today: date, filenames: list[str]) -> list[Issue]:
-    """Prüfergebnisse, die eine der genannten Dateien betreffen (z. B. "2026.21.yaml")."""
+    """Check results that concern one of the named files (e.g. "2026.21.yaml")."""
     return [i for i in check_team(data, today) if any(name in i.where for name in filenames)]
 
 
-# --- Stille Annahmen beim Laden --------------------------------------------------------
+# --- Silent assumptions when loading ---------------------------------------------------
 #
-# Das Laden ändert sich dadurch nicht: Ein doppelter Schlüssel gilt weiter als „der letzte
-# gewinnt“, ein leerer Wert als 0. Die Prüfung macht das nur sichtbar. Gemeldet werden leere
-# Werte nur dort, wo eine Zahl erwartet wird und das Programm den Leerwert still als 0 liest.
-# Absichtlich leere Felder (``to:``, ``capacity:``, ``forecast_ist:``, ``region:`` …) sind
-# gültig und bleiben ohne Meldung.
+# Loading does not change because of this: a duplicate key still counts as "the last one
+# wins", an empty value as 0. The check only makes this visible. Empty values are reported
+# only where a number is expected and the program silently reads the empty value as 0.
+# Intentionally empty fields (``to:``, ``capacity:``, ``forecast_ist:``, ``region:`` ...) are
+# valid and produce no message.
 
 _EMPTY_AS_ZERO: tuple[tuple[str, ...], ...] = (
     ("people", "*", "memberships", "*", "fte"),
@@ -721,8 +721,8 @@ def _matches(path: tuple[str | int, ...], pattern: tuple[str, ...]) -> bool:
     )
 
 
-# Mappings, deren Schlüssel das Programm mit str() liest (Personen- und Produktkürzel): Dort
-# sind ``1`` und ``"1"`` derselbe Schlüssel. Überall sonst behält der Lader beide Einträge.
+# Mappings whose keys the program reads with str() (person and product abbreviations): there
+# ``1`` and ``"1"`` are the same key. Everywhere else the loader keeps both entries.
 _STR_KEYED: tuple[tuple[str, ...], ...] = (
     ("products",),
     ("absences",),
@@ -730,16 +730,16 @@ _STR_KEYED: tuple[tuple[str, ...], ...] = (
     ("prognoses", "*", "preplanned"),
     ("tracker", "sprint_names"),
 )
-# Obergrenze der besuchten Knoten je Datei: schützt vor Anker-Bomben (Verweise, die sich
-# vielfach vervielfachen). Echte Dateien liegen weit darunter.
+# Upper limit of visited nodes per file: protects against anchor bombs (references that
+# multiply many times over). Real files are far below it.
 _MAX_VISITS = 50_000
-# Weitere Grenzen je Datei: Rechenzeit, Zahl der Meldungen und Angaben je Zeilenliste. Die Seite
-# „Prüfung“ zeichnet jede Meldung einzeln.
+# Further limits per file: computing time, number of messages and entries per line list. The
+# "Check" page renders each message individually.
 _MAX_SECONDS = 2.0
 _MAX_ISSUES = 50
 _MAX_PLACES = 10
 
-# Pfad als verkettete Liste (Elternpfad, Teil): Tiefe kostet so nichts beim Anlegen.
+# Path as a linked list (parent path, part): depth costs nothing when creating it.
 type _Path = tuple[_Path | None, str | int] | None
 
 
@@ -752,11 +752,11 @@ def _materialize(cell: _Path) -> tuple[str | int, ...]:
 
 
 def _key_of(node: yaml.Node, as_text: bool, canon: dict[Any, str]) -> tuple[str, Any]:
-    """Anzeigetext und Vergleichsschlüssel. Mit ``as_text`` (Stellen, an denen das Programm
-    ``str()`` bildet) gilt der Text, sonst zusätzlich der Typ (``1`` ist nicht ``"1"``).
-    ``canon`` gehört zum umgebenden Mapping: Der Lader baut erst das Dict mit Python-Gleichheit
-    (``1 == 1.0 == True``, das erste Schlüsselobjekt bleibt) und bildet erst dann ``str()``;
-    ``canon`` merkt sich je Schlüsselobjekt den Text des ersten Eintrags."""
+    """Display text and comparison key. With ``as_text`` (places where the program builds
+    ``str()``) the text counts, otherwise the type too (``1`` is not ``"1"``).
+    ``canon`` belongs to the surrounding mapping: the loader first builds the dict with Python
+    equality (``1 == 1.0 == True``, the first key object stays) and only then applies ``str()``;
+    ``canon`` remembers the text of the first entry for each key object."""
     if not isinstance(node, yaml.ScalarNode):
         return str(id(node)), ("node", id(node))
     if node.tag == _STR_TAG:
@@ -764,17 +764,17 @@ def _key_of(node: yaml.Node, as_text: bool, canon: dict[Any, str]) -> tuple[str,
     else:
         try:
             value = SafeConstructor().construct_object(node, deep=True)
-        except Exception:  # ungewöhnlicher Schlüssel: der Text genügt
+        except Exception:  # unusual key: the text is enough
             value = node.value
-    # Steuerzeichen aus Dateien (Zeilenumbruch, ESC) gehören nie in eine Meldung
+    # Control characters from files (line break, ESC) never belong in a message
     shown = blank_controls(str(value))
     try:
         hash(value)
-    except TypeError:  # nicht hashbar: der Lader würde den Schlüssel ohnehin ablehnen
+    except TypeError:  # unhashable: the loader would reject the key anyway
         return shown, (str(value) if as_text else ("node", id(node)))
     if as_text:
         return shown, canon.setdefault(value, str(value))
-    # Wie der Lader: Python-Gleichheit (1 == 1.0 == True), aber nicht 1 == "1"
+    # Like the loader: Python equality (1 == 1.0 == True), but not 1 == "1"
     return shown, value
 
 
@@ -785,13 +785,13 @@ def _inherited(
     taken: set[Any],
     visiting: frozenset[int],
 ) -> list[tuple[yaml.Node, yaml.Node]]:
-    """Einträge, die ``node`` über ``<<`` erbt und die der Lader behält (Regeln von PyYAML:
-    ausdrückliche Schlüssel gewinnen immer; bei mehreren ``<<`` im selben Mapping das spätere,
-    bei einer Liste ``<<: [a, b]`` die frühere Quelle; in einer Quelle deren eigene Schlüssel
-    vor den von ihr geerbten). ``taken`` sind die schon vergebenen Schlüssel."""
+    """Entries that ``node`` inherits via ``<<`` and that the loader keeps (PyYAML rules:
+    explicit keys always win; with several ``<<`` in the same mapping the later one, with a
+    list ``<<: [a, b]`` the earlier source; within a source its own keys before those it
+    inherited). ``taken`` are the keys already assigned."""
     result: list[tuple[yaml.Node, yaml.Node]] = []
     merges = [vn for kn, vn in node.value if kn.tag == _MERGE_TAG]
-    for value_node in reversed(merges):  # das letzte ``<<`` überschreibt die früheren
+    for value_node in reversed(merges):  # the last ``<<`` overrides the earlier ones
         sources = value_node.value if isinstance(value_node, yaml.SequenceNode) else [value_node]
         for source in sources:
             if not isinstance(source, yaml.MappingNode) or id(source) in visiting:
@@ -809,8 +809,8 @@ def _inherited(
 
 
 def _position(found: list[tuple[int, int]]) -> tuple[str, str]:
-    """Fundstellen (Zeile, Spalte) als Text; stehen alle in einer Zeile (Flow-Schreibweise
-    ``{a: 1, a: 2}``), mit Spalten."""
+    """Occurrences (line, column) as text; if all are on one line (flow notation
+    ``{a: 1, a: 2}``), with columns."""
     if len({line for line, _ in found}) == 1:
         line = found[0][0]
         cols = _listed([c for _, c in found])
@@ -825,7 +825,7 @@ def _position(found: list[tuple[int, int]]) -> tuple[str, str]:
 
 
 def _listed(numbers: list[int]) -> str:
-    """Zahlen als Liste, bei sehr vielen gekürzt (die Meldung bliebe sonst riesig)."""
+    """Numbers as a list, shortened if there are very many (the message would be huge otherwise)."""
     shown = ", ".join(str(n) for n in numbers[:_MAX_PLACES])
     if len(numbers) > _MAX_PLACES:
         shown += t(" … and {n} more", n=len(numbers) - _MAX_PLACES)
@@ -833,11 +833,11 @@ def _listed(numbers: list[int]) -> str:
 
 
 def check_yaml_text(text: str, name: str) -> list[Issue]:
-    """Doppelte Schlüssel und still als 0 gelesene Leerwerte in einer YAML-Datei (als Hinweis)."""
+    """Duplicate keys and empty values silently read as 0 in a YAML file (as a notice)."""
     try:
         root = compose_yaml(text)
     except yaml.YAMLError:
-        return []  # ungültiges YAML meldet das Laden als Fehler
+        return []  # loading reports invalid YAML as an error
     except RecursionError:
         return [Issue(Level.WARNING, name, t("The file is nested too deeply and was not checked."))]
     issues: list[Issue] = []
@@ -850,16 +850,16 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
         else:
             omitted += 1
 
-    # Schritte: (Knoten, Pfad) beim Betreten, (Knoten, None) beim Verlassen. Iterativ, damit
-    # extreme Verschachtelung nicht an der Rekursionsgrenze scheitert. Ein Knoten wird je Pfad
-    # besucht (Anker/Verweise bringen ihn unter jedem Pfad zur Geltung); ``active`` hält die
-    # Knoten auf dem Weg zur Wurzel und beendet Verweise im Kreis.
+    # Steps: (node, path) on entering, (node, None) on leaving. Iterative so that extreme
+    # nesting does not fail at the recursion limit. A node is visited once per path
+    # (anchors/references make it count under every path); ``active`` holds the nodes on the
+    # way to the root and stops circular references.
     stack: list[tuple[yaml.Node, _Path | None, bool]] = []
     if root is not None:
         stack.append((root, None, True))
     active: set[int] = set()
-    visited: set[int] = set()  # Knoten, die schon einmal betreten wurden (Verweise treffen sie)
-    duplicates_done: set[int] = set()  # Mappings, deren doppelte Schlüssel schon gemeldet sind
+    visited: set[int] = set()  # nodes entered before (references hit them)
+    duplicates_done: set[int] = set()  # mappings whose duplicate keys are already reported
     visits = repeats = 0
     stopped = ""
     deadline = time.monotonic() + _MAX_SECONDS
@@ -873,7 +873,7 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
             repeats += 1
         visited.add(id(node))
         if visits > _MAX_VISITS or (visits % 1024 == 0 and time.monotonic() > deadline):
-            # Nur wenn Verweise die Hauptursache sind, ist „Anker“ der richtige Hinweis.
+            # "Anchor" is the right hint only if references are the main cause.
             stopped = (
                 t(
                     "The file refers to the same parts (anchors) so often that it was not "
@@ -898,7 +898,7 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
                     )
                 )
             continue
-        if id(node) in active:  # Verweis auf einen Elternknoten: nicht endlos wiederholen
+        if id(node) in active:  # reference to a parent node: do not repeat endlessly
             continue
         active.add(id(node))
         stack.append((node, None, False))
@@ -908,27 +908,27 @@ def check_yaml_text(text: str, name: str) -> list[Issue]:
         else:
             path = _materialize(cell)
             as_text = any(_matches(path, p) for p in _STR_KEYED)
-            canon: dict[Any, str] = {}  # je Schlüsselobjekt der Text des ersten Eintrags
+            canon: dict[Any, str] = {}  # per key object, the text of the first entry
             found: dict[Any, list[tuple[int, int]]] = {}
             shown: dict[Any, str] = {}
-            kept: dict[Any, tuple[yaml.Node, str]] = {}  # je Schlüssel der letzte Eintrag
+            kept: dict[Any, tuple[yaml.Node, str]] = {}  # per key, the last entry
             for key_node, value_node in node.value:
-                if key_node.tag == _MERGE_TAG:  # geerbte Einträge: siehe _inherited
+                if key_node.tag == _MERGE_TAG:  # inherited entries: see _inherited
                     continue
                 text_of_key, compare = _key_of(key_node, as_text, canon)
                 mark = key_node.start_mark
                 found.setdefault(compare, []).append((mark.line + 1, mark.column + 1))
                 shown[compare] = text_of_key
                 kept[compare] = (value_node, text_of_key)
-            # Der Lader behält nur den letzten Eintrag: überdeckte Werte werden nicht gelesen.
+            # The loader keeps only the last entry: overridden values are not read.
             children = [(value_node, (cell, text), True) for value_node, text in kept.values()]
-            # Geerbte Einträge (``<<``) zählen nur, wo kein ausdrücklicher Eintrag sie ersetzt.
+            # Inherited entries (``<<``) count only where no explicit entry replaces them.
             for key_node, value_node in _inherited(
                 node, as_text, canon, set(found), frozenset({id(node)})
             ):
                 text_of_key = _key_of(key_node, as_text, canon)[0]
                 children.append((value_node, (cell, text_of_key), True))
-            first_time = id(node) not in duplicates_done  # Verweise: nur einmal melden
+            first_time = id(node) not in duplicates_done  # references: report only once
             duplicates_done.add(id(node))
             for compare, places in found.items():
                 if len(places) > 1 and first_time:
@@ -971,9 +971,9 @@ def _tickets_enabled(base: Path) -> bool:
 
 
 def check_team_files(base: Path, tickets: bool | None = None) -> list[Issue]:
-    """Stille Annahmen in den Dateien eines Teams (Ordner ``base``): doppelte Schlüssel und
-    leere Zahlenfelder, je als Hinweis mit Dateiname, Zeile und Schlüsselpfad. Die Dateien der
-    Ticket-Vorplanung nur mit ``features.tickets`` (``tickets``; ohne Angabe nach team.yaml)."""
+    """Silent assumptions in a team's files (folder ``base``): duplicate keys and empty number
+    fields, each as a notice with file name, line and key path. The ticket pre-planning files
+    only with ``features.tickets`` (``tickets``; if not given, according to team.yaml)."""
     if tickets is None:
         tickets = _tickets_enabled(base)
     files = [base / name for name in TEAM_FILES if tickets or name not in TICKET_FILES]
@@ -983,7 +983,7 @@ def check_team_files(base: Path, tickets: bool | None = None) -> list[Issue]:
         try:
             text = path.read_text(encoding="utf-8")
         except OSError, UnicodeDecodeError:
-            continue  # fehlende oder unlesbare Dateien meldet das Laden
+            continue  # loading reports missing or unreadable files
         name = path.relative_to(base).as_posix()
         issues += check_yaml_text(text, name)
     return issues

@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Dreiwege-Zusammenführen auf Schlüsselebene für YAML-Daten.
+"""Three-way merge at key level for YAML data.
 
-Verschiedene Schlüssel derselben Datei werden vereinigt; nur wenn beide Seiten denselben Wert
-unterschiedlich geändert haben, entsteht ein :class:`KeyConflict`, den ein Mensch entscheidet
-(„meine“ oder „andere“ Änderung). Listen von Objekten mit ``id`` (Personen, Produkte) werden
-je Eintrag zusammengeführt. Die Prognosen eines Sprints (Liste ``prognoses``, ohne ``id``) werden
-über ihren Zeitpunkt ``at`` vereinigt und danach aufsteigend nach ``at`` sortiert: Hängen zwei
-Personen je eine Prognose an, bleiben beide. Alle anderen Listen gelten als ein Wert.
+Different keys of the same file are combined; only if both sides changed the same value in
+different ways does a :class:`KeyConflict` arise, which a human decides ("mine" or "theirs"
+change). Lists of objects with an ``id`` (people, products) are merged entry by entry. The
+forecasts of a sprint (list ``prognoses``, without ``id``) are combined by their timestamp
+``at`` and then sorted ascending by ``at``: if two people each append a forecast, both stay.
+All other lists count as a single value.
 """
 
 from __future__ import annotations
@@ -28,16 +28,16 @@ THEIRS = "theirs"
 
 Path = tuple[str, ...]
 
-PROGNOSES = "prognoses"  # Liste ohne ``id``, die über den Zeitpunkt ``at`` vereinigt wird
+PROGNOSES = "prognoses"  # list without ``id``, combined by the timestamp ``at``
 
 
 @dataclass(frozen=True)
 class KeyConflict:
-    """Beide Seiten haben den Wert unter ``path`` unterschiedlich geändert."""
+    """Both sides changed the value at ``path`` in different ways."""
 
     path: Path
-    ours: Any  # MISSING = von mir entfernt
-    theirs: Any  # MISSING = von anderen entfernt
+    ours: Any  # MISSING = removed by me
+    theirs: Any  # MISSING = removed by others
 
     @property
     def label(self) -> str:
@@ -45,7 +45,7 @@ class KeyConflict:
 
 
 def keyed(items: Any) -> dict[str, dict] | None:
-    """Liste von Objekten mit eindeutiger ``id`` als Abbildung, sonst None."""
+    """List of objects with a unique ``id`` as a mapping, else None."""
     if not isinstance(items, list) or not items:
         return None
     ids = []
@@ -59,17 +59,17 @@ def keyed(items: Any) -> dict[str, dict] | None:
 def merge3(
     base: Any, ours: Any, theirs: Any, choices: dict[Path, str] | None = None
 ) -> tuple[Any, list[KeyConflict]]:
-    """Führt ``ours`` und ``theirs`` auf Basis von ``base`` zusammen (``MISSING`` = nicht
-    vorhanden). Für Konflikte gilt ``choices[path]`` ("ours" oder "theirs"); ohne Wahl bleibt
-    die eigene Seite im Ergebnis und der Konflikt wird gemeldet."""
+    """Merges ``ours`` and ``theirs`` on the basis of ``base`` (``MISSING`` = not present).
+    Conflicts are resolved by ``choices[path]`` ("ours" or "theirs"); without a choice, our
+    side stays in the result and the conflict is reported."""
     conflicts: list[KeyConflict] = []
     merged = _merge(base, ours, theirs, (), choices or {}, conflicts)
     return merged, conflicts
 
 
 def same(a: Any, b: Any) -> bool:
-    """Gleicher Wert und gleiche Art: ``True`` ist nicht ``1`` (Python setzt beide gleich, in
-    YAML sind es aber verschiedene Werte), auch nicht innerhalb von Listen und Objekten."""
+    """Same value and same type: ``True`` is not ``1`` (Python treats them as equal, but in
+    YAML they are different values), also not inside lists and objects."""
     if a is MISSING or b is MISSING:
         return a is b
     if isinstance(a, bool) or isinstance(b, bool):
@@ -79,7 +79,7 @@ def same(a: Any, b: Any) -> bool:
     if isinstance(a, list) and isinstance(b, list):
         return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
     if isinstance(a, float) and isinstance(b, float) and a != a and b != b:
-        return True  # ``.nan`` ist in YAML ein Wert; nan == nan ist in Python falsch
+        return True  # ``.nan`` is a value in YAML; nan == nan is false in Python
     return a == b
 
 
@@ -90,7 +90,7 @@ def _merge(base: Any, ours: Any, theirs: Any, path: Path, choices, conflicts) ->
         return theirs
     if same(theirs, base):
         return ours
-    # Beide haben geändert, unterschiedlich.
+    # Both changed it, in different ways.
     if isinstance(ours, dict) and isinstance(theirs, dict):
         return _merge_dicts(
             base if isinstance(base, dict) else {}, ours, theirs, path, choices, conflicts
@@ -115,7 +115,7 @@ def _merge(base: Any, ours: Any, theirs: Any, path: Path, choices, conflicts) ->
 
 
 def _stamp(value: Any) -> datetime | None:
-    """Zeitpunkt eines Prognose-Eintrags (``datetime`` oder ISO-Text) auf Sekunden genau."""
+    """Timestamp of a forecast entry (``datetime`` or ISO text), to the second."""
     if isinstance(value, str):
         try:
             value = datetime.fromisoformat(value)
@@ -125,22 +125,22 @@ def _stamp(value: Any) -> datetime | None:
 
 
 def _order(stamp: datetime) -> datetime:
-    """Zeitpunkt als Instant: mit Zeitzone nach UTC gerechnet und ohne Zone, damit sich
-    verschiedene Schreibweisen (``+00:00`` und ``+01:00``) und Zeitpunkte ohne Zone vergleichen
-    und sortieren lassen."""
+    """Timestamp as an instant: converted to UTC if it has a time zone, and returned without
+    a zone, so that different notations (``+00:00`` and ``+01:00``) and timestamps without a
+    zone can be compared and sorted."""
     if stamp.tzinfo is None:
         return stamp
     return stamp.astimezone(UTC).replace(tzinfo=None)
 
 
 def _key(stamp: datetime) -> str:
-    """Schlüssel eines Zeitpunkts: der Instant, nicht die Schreibweise."""
+    """Key of a timestamp: the instant, not the notation."""
     return _order(stamp).isoformat()
 
 
 def _by_stamp(items: Any) -> dict[str, tuple[datetime, dict]] | None:
-    """Prognosen als Abbildung Zeitpunkt (normiert) → (Zeitpunkt, Eintrag); ``None``, wenn ein
-    Eintrag keinen lesbaren ``at`` hat oder ein ``at`` doppelt vorkommt."""
+    """Forecasts as a mapping timestamp (normalized) → (timestamp, entry); ``None`` if an
+    entry has no readable ``at`` or an ``at`` occurs twice."""
     if not isinstance(items, list):
         return None
     out: dict[str, tuple[datetime, dict]] = {}
@@ -153,13 +153,12 @@ def _by_stamp(items: Any) -> dict[str, tuple[datetime, dict]] | None:
 
 
 def _merge_prognoses(base, ours, theirs, path, choices, conflicts) -> list | None:
-    """Vereinigt Prognosen über ihren Zeitpunkt ``at`` (Einträge tragen keine ``id``): Beide
-    Seiten dürfen anhängen, ohne dass eine verloren geht. Ein Eintrag gilt als Ganzes; nur bei
-    gleichem ``at`` mit verschiedenem Inhalt entsteht ein Konflikt (Pfad ``…[<at>]``). Das
-    Ergebnis ist nach ``at`` aufsteigend sortiert. Eine Basis ohne Prognosen (fehlender oder
-    leerer Schlüssel ``prognoses:``, also ``None``) zählt als leere Liste. ``None`` = nicht
-    anwendbar (kein ``at``, doppeltes ``at``, keine Liste): dann gilt die Liste wie sonst als
-    ein Wert."""
+    """Combines forecasts by their timestamp ``at`` (entries carry no ``id``): both sides may
+    append without one getting lost. An entry counts as a whole; only the same ``at`` with
+    different content causes a conflict (path ``…[<at>]``). The result is sorted ascending by
+    ``at``. A base without forecasts (missing or empty key ``prognoses:``, i.e. ``None``)
+    counts as an empty list. ``None`` = not applicable (no ``at``, duplicate ``at``, not a
+    list): then the list counts as a single value, as with other lists."""
     if not isinstance(ours, list) or not isinstance(theirs, list):
         return None
     empty_base = base is MISSING or base is None
@@ -171,8 +170,8 @@ def _merge_prognoses(base, ours, theirs, path, choices, conflicts) -> list | Non
         return None
 
     def content(entry: tuple[datetime, dict] | None) -> Any:
-        # ``at`` normiert, damit datetime und Text sowie verschiedene Zeitzonen-Schreibweisen
-        # mit gleichem Zeitpunkt gleich sind
+        # ``at`` normalized, so that datetime and text as well as different time zone
+        # notations of the same instant compare equal
         if entry is None:
             return MISSING
         return {**entry[1], "at": _key(entry[0])}
@@ -194,7 +193,7 @@ def _merge_prognoses(base, ours, theirs, path, choices, conflicts) -> list | Non
             chosen = t if choice == THEIRS else o
         if chosen is not None:
             merged.append(chosen)
-    merged.sort(key=lambda entry: _order(entry[0]))  # stabil: gleiche Zeitpunkte bleiben
+    merged.sort(key=lambda entry: _order(entry[0]))  # stable: equal timestamps keep their order
     return [entry for _, entry in merged]
 
 
@@ -213,7 +212,7 @@ def _merge_dicts(base, ours, theirs, path, choices, conflicts, item: bool = Fals
 
 
 def header_of(text: str) -> str:
-    """Führender Kommentarblock einer Datei (bleibt beim Zusammenführen erhalten)."""
+    """Leading comment block of a file (kept when merging)."""
     lines = []
     for line in text.splitlines(keepends=True):
         if line.startswith("#") or not line.strip():
