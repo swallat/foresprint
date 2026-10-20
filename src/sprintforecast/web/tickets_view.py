@@ -2,7 +2,7 @@
 """Page "Tickets" of the ticket pre-planning (docs/design/ticket-planning.md, section 8).
 
 Filter over products and projects, project traffic light, timeline, sprint columns with
-earmarks, refinement list, open points, import with preview and maintenance of projects and
+earmarks, refinement list, open points, import with preview and settings for projects and
 manual estimates. The computation is ``preplan.distribute``; this module only selects and
 displays. Loaded by ``ui.page_tickets`` only (``features.tickets``); the filter and the table
 builders are pure functions so that tests need no browser."""
@@ -78,7 +78,6 @@ LIGHT_COLOURS = {
     "missed": "#d64545",
     "empty": "#9aa0a6",
 }
-LIGHT_SYMBOLS = {"on_track": "🟢", "tight": "🟡", "missed": "🔴", "empty": "⚪"}
 # One letter per origin of an estimate on a ticket card (legend below the columns).
 SOURCE_LETTERS = {
     EstimateSource.REFINED: "R",
@@ -86,7 +85,7 @@ SOURCE_LETTERS = {
     EstimateSource.MANUAL: "M",
     EstimateSource.NONE: "–",
 }
-# Sources of an assignment rule the maintenance table edits (other rules stay as they are).
+# Sources of an assignment rule the settings table edits (other rules stay as they are).
 EDITABLE_SOURCES = ("epic", "component", "label")
 AUTOMATIC = ""
 CARD_LIMIT = 30
@@ -143,7 +142,7 @@ def project_rows(
         project = data.project(status.project)
         if project is None or not sel.shows(project.id):
             continue
-        light = f"{LIGHT_SYMBOLS[status.light]} {t(LIGHTS[status.light])}"
+        light = t(LIGHTS[status.light])  # text only: table cells render no icons
         last: dict[str, Any] = {t("Last sprint"): status.last_sprint or "–"}
         if ranged:
             assert variants is not None
@@ -414,7 +413,7 @@ def change_rows(plan: TicketImportPlan, kind: str) -> list[dict[str, str]]:
     ]
 
 
-# --- Project rules in the maintenance table ---------------------------------------------------
+# --- Project rules in the settings table ---------------------------------------------------
 
 
 def handover_sprints(data: TeamData, rows: list[HandoverRow], overwrite: bool) -> list[Sprint]:
@@ -472,7 +471,7 @@ def split_values(text: str | None) -> list[str]:
 
 
 def apply_project_rows(projects: list[Project], rows: list[tuple[Any, ...]]) -> list[Project]:
-    """The projects with the values of the maintenance table: one row per project in the same
+    """The projects with the values of the settings table: one row per project in the same
     order, columns ``id, name, product, target, priority, budget basis, epics, components,
     labels``. The id is never changed; a nested rule stays as it is."""
     result = []
@@ -563,7 +562,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             t("Open points"),
             t("Assignment"),
             t("Import"),
-            t("Maintenance"),
+            t("Settings"),
         ]
     )
     with tabs[0]:
@@ -981,8 +980,8 @@ def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
         return
     st.caption(
         t(
-            "These tickets cannot be distributed. Enter an own estimate under "
-            "**Maintenance**; split tickets that are too large in the ticket system."
+            "These tickets cannot be distributed. Enter an own estimate on the "
+            "tab **Settings**; split tickets that are too large in the ticket system."
         )
     )
     st.dataframe(pd.DataFrame(rows), hide_index=True)
@@ -1213,7 +1212,7 @@ def _import_preview(
     st.rerun()
 
 
-# --- Maintenance ------------------------------------------------------------------------------
+# --- Settings ------------------------------------------------------------------------------
 
 
 def _projects_editor(repo: Repository, data: TeamData) -> None:

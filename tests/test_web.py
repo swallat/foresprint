@@ -20,6 +20,7 @@ from sprintforecast.i18n import t
 from sprintforecast.model import Sprint
 from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.web import ui
+from sprintforecast.web.icons import DONE_ICON, OPEN_ICON, status_icon
 from sprintforecast.web.ui import PAGE_FEATURES, PAGE_INFO, PAGES, START_TASKS
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -77,9 +78,9 @@ def test_start_is_default_page(app: AppTest):
     assert app.header[0].value == "Was möchtest du tun?"
     # 2026.22 is prepared (absences, pre-planning) but not scheduled yet
     assert [s.value for s in app.subheader] == [
-        "✅ Sprint vorbereiten",
-        "⬜ Planning",
-        "⬜ Sprint abschließen",
+        f"{DONE_ICON} Sprint vorbereiten",
+        f"{OPEN_ICON} Planning",
+        f"{OPEN_ICON} Sprint abschließen",
     ]
 
 
@@ -1021,7 +1022,7 @@ def test_preplanning_capacity_metric_marks_an_unsure_source(
     at.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
     assert "⚠" not in capacity.value
-    assert capacity.delta == "⚠️ Kalender, Fehltage unbekannt"
+    assert capacity.delta == "Kalender, Fehltage unbekannt"
 
 
 def test_board_sprint_carries_over_between_boards(app: AppTest):
@@ -1403,7 +1404,7 @@ def test_step_bar_marks_only_done_steps_with_a_green_check(app: AppTest):
     for key, label, _ in steps:
         title = t(PAGE_INFO[key][0])
         assert label == (f"{title} {STEP_DONE_MARK}" if DONE_2026_21[key] else title)
-        assert "✅" not in label and "⬜" not in label
+        assert "\u2705" not in label and "\u2b1c" not in label
     assert STEP_DONE_MARK == ":green[:material/check_circle:]"
     # The open step carries no mark at all in its name (its page icon is in `icon`)
     [open_label] = [label for key, label, _ in steps if not DONE_2026_21[key]]
@@ -1495,7 +1496,7 @@ def test_start_task_icons_are_the_page_icons_and_no_check_marks(app: AppTest):
     # This is how it actually appears on the start page buttons (the review task is still open)
     icons = {key: app.button(key=f"start-{key}").proto.icon for key in START_TASKS}
     assert icons == {key: icon for key, (_, icon) in START_TASKS.items()}
-    assert [s.value for s in app.subheader][-1] == "⬜ Sprint abschließen"
+    assert [s.value for s in app.subheader][-1] == f"{OPEN_ICON} Sprint abschließen"
     assert not [i for i in icons.values() if any(word in i for word in CHECK_ICON_WORDS)]
     assert len(set(icons.values())) == len(icons)
 
@@ -1570,7 +1571,7 @@ def test_start_task_and_step_bar_agree_on_prepared_sprint(
     disagree for the same sprint."""
     _change_2026_22(data_dir, **fields)
     at = start(data_dir, monkeypatch)
-    assert at.subheader[0].value == ("✅" if done else "⬜") + " Sprint vorbereiten"
+    assert at.subheader[0].value == status_icon(done) + " Sprint vorbereiten"
     goto(at, "planning")
     assert at.selectbox(key="planning-sprint").value == "2026.22"
     assert nav_done(at)["absences"] == done
@@ -1579,10 +1580,10 @@ def test_start_task_and_step_bar_agree_on_prepared_sprint(
 @pytest.mark.parametrize(
     ("fields", "mark"),
     [
-        ({}, "✅"),
-        ({"absences": {}}, "⬜"),  # unknown: sprint file exists, absences not confirmed
-        ({"absences": {}, "absence_state": "confirmed"}, "✅"),
-        ({"absences": {}, "expected_absences": {"cem": 2}}, "⬜"),
+        ({}, DONE_ICON),
+        ({"absences": {}}, OPEN_ICON),  # unknown: sprint file exists, absences not confirmed
+        ({"absences": {}, "absence_state": "confirmed"}, DONE_ICON),
+        ({"absences": {}, "expected_absences": {"cem": 2}}, OPEN_ICON),
     ],
 )
 def test_planning_progress_line_agrees_with_the_step_bar(
@@ -1595,7 +1596,7 @@ def test_planning_progress_line_agrees_with_the_step_bar(
     assert at.selectbox(key="planning-sprint").value == "2026.22"
     line = next(c.value for c in at.caption if c.value.endswith(" Commitment"))
     assert line.startswith(f"{mark} Fehltage")
-    assert nav_done(at)["absences"] == (mark == "✅")
+    assert nav_done(at)["absences"] == (mark == DONE_ICON)
 
 
 def test_board_nav_css_follows_the_step_count():
