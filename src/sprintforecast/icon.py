@@ -25,7 +25,8 @@ _NEXT = (40, 24, 54, 40)  # forecast sprint (dashed outline)
 _STUB = (54, 30.5, 60, 33.5)
 _BLOCK_RADIUS = 3
 _OUTLINE = 2.5
-_DASH, _GAP = 4, 3  # dash pattern along the outline of the dashed block
+_DASH, _GAP = 4, 2  # dash pattern along the outline (60 units long, closes evenly)
+_PHASE = 4  # centers a dash on the right side, where the stub meets it
 
 
 def _inside_rounded(x: float, y: float, size: float, radius: float) -> bool:
@@ -66,7 +67,7 @@ def _color(x: float, y: float, s: float) -> tuple[int, int, int, int]:
     if any(_in_block(g, h, box) for box in _DONE):
         return (*WHITE, 255)
     on_outline = _in_block(g, h, _NEXT) and not _in_block(g, h, _NEXT, _OUTLINE)
-    if on_outline and _along_outline(g, h, _NEXT) % (_DASH + _GAP) < _DASH:
+    if on_outline and (_along_outline(g, h, _NEXT) + _PHASE) % (_DASH + _GAP) < _DASH:
         return (*MINT, 255)
     if _STUB[0] <= g <= _STUB[2] and _STUB[1] <= h <= _STUB[3]:
         return (*MINT, 255)
