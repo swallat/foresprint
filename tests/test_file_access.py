@@ -174,7 +174,7 @@ def app(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def goto(at: AppTest, page: str) -> AppTest:
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -210,7 +210,7 @@ def test_web_page_keeps_rendering_after_a_failed_save(
     last = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
     repo.save_sprint("demo", Sprint(id=last.id, start=last.start, end=last.end))
     app = start(data_dir, monkeypatch)
-    goto(app, "fehltage")
+    goto(app, "absences")
     assert any("Fehltage zurücksetzen" in h.value for h in app.subheader)
     frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
     rows = {i: {"Niemand fehlt": True} for i, s in enumerate(frame["Sprint"]) if s == "2026.23"}
@@ -240,7 +240,7 @@ def test_web_reset_absences_shows_the_error(data_dir: Path, monkeypatch: pytest.
     following = build_forecast(data, date(2026, 10, 15)).entries[-1].sprint
     repo.save_sprint("demo", Sprint(id=following.id, start=following.start, end=following.end))
     app = start(data_dir, monkeypatch)
-    goto(app, "fehltage")
+    goto(app, "absences")
     real_unlink = Path.unlink
 
     def unlink(self, *args, **kwargs):

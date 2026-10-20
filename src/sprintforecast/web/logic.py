@@ -700,10 +700,10 @@ def board_steps_done(
     pre-planning) get no checkmark. PO pre-planning counts when all ``products`` active in the
     sprint have a value."""
     if recorded is None:
-        return {"fehltage": False, "vorplanung": False, "planning": False, "review": False}
+        return {"absences": False, "preplanning": False, "planning": False, "review": False}
     return {
-        "fehltage": absence_status(recorded) is AbsenceState.CONFIRMED,
-        "vorplanung": preplanned_complete(recorded, products or []),
+        "absences": absence_status(recorded) is AbsenceState.CONFIRMED,
+        "preplanning": preplanned_complete(recorded, products or []),
         "planning": recorded.commitment is not None,
         "review": recorded.velocity is not None,
     }
@@ -744,19 +744,19 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
                 if absences is AbsenceState.UNKNOWN
                 else t("Sprint {id}: absences announced, not yet confirmed.", id=sid)
             )
-            tasks.append(StartTask("prepare", "fehltage", sid, hint))
+            tasks.append(StartTask("prepare", "absences", sid, hint))
         elif products and not preplanned_complete(sprint, fc.data.products):
             tasks.append(
                 StartTask(
                     "prepare",
-                    "vorplanung",
+                    "preplanning",
                     sid,
                     t("Sprint {id}: absences known, PO pre-planning still missing.", id=sid),
                 )
             )
         else:
             tasks.append(
-                StartTask("prepare", "fehltage", sid, t("Sprint {id}: prepared.", id=sid), True)
+                StartTask("prepare", "absences", sid, t("Sprint {id}: prepared.", id=sid), True)
             )
         committed = sprint.commitment is not None
         tasks.append(

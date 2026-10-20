@@ -40,12 +40,12 @@ vary by about 10 to 20 % from run to run.
 | AppTest start (cold, first run) | 1083.4 | 792.1 |
 | AppTest rerun (same page) | 71.2 | 32.8 |
 | AppTest page forecast | 63.4 | 32.0 |
-| AppTest page fehltage | 52.8 | 23.6 |
+| AppTest page absences | 52.8 | 23.6 |
 | AppTest page planning | 48.3 | 20.5 |
-| AppTest page analyse | 42.8 | 19.1 |
-| AppTest page produkte | 118.8 | 74.6 |
-| AppTest page personen | 63.4 | 18.1 |
-| AppTest page hilfe | 33.5 | 29.3 |
+| AppTest page analysis | 42.8 | 19.1 |
+| AppTest page products | 118.8 | 74.6 |
+| AppTest page people | 63.4 | 18.1 |
+| AppTest page help | 33.5 | 29.3 |
 
 How to read this:
 
@@ -95,12 +95,12 @@ Before = commit `78010e5` (before PR 1), after = `main` after merging PR 1. Medi
 | AppTest start (cold, first run) | 1165.7 | 1175.4 |
 | AppTest rerun (same page) | 99.4 | 23.6 |
 | AppTest page forecast | 101.4 | 24.0 |
-| AppTest page fehltage | 94.1 | 18.5 |
+| AppTest page absences | 94.1 | 18.5 |
 | AppTest page planning | 96.5 | 18.8 |
-| AppTest page analyse | 90.2 | 17.4 |
-| AppTest page produkte | 122.1 | 46.4 |
-| AppTest page personen | 91.4 | 16.2 |
-| AppTest page hilfe | 80.5 | 23.6 |
+| AppTest page analysis | 90.2 | 17.4 |
+| AppTest page products | 122.1 | 46.4 |
+| AppTest page people | 91.4 | 16.2 |
+| AppTest page help | 80.5 | 23.6 |
 
 Result (Python process only, no browser):
 

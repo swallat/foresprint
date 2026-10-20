@@ -257,9 +257,7 @@ def setup_items(root: Path | None) -> list[SetupItem]:
     items: list[SetupItem] = []
     git_ok = git_available()
     items.append(
-        SetupItem(
-            "git", git_ok, t("Git is installed.") if git_ok else t("Git is missing."), "hilfe"
-        )
+        SetupItem("git", git_ok, t("Git is installed.") if git_ok else t("Git is missing."), "help")
     )
     top = gitmod.repo_root(root) if git_ok and root is not None else None
     items.append(
@@ -269,7 +267,7 @@ def setup_items(root: Path | None) -> list[SetupItem]:
             t("The data folder is a Git repository.")
             if top
             else t("The data folder is not a Git repository yet."),
-            "datenordner",
+            "data_dir",
         )
     )
     if top is None:
@@ -283,7 +281,7 @@ def setup_items(root: Path | None) -> list[SetupItem]:
             "server",
             info.name is not None,
             t("A server is configured.") if info.name else t("No server is configured yet."),
-            "datenordner",
+            "data_dir",
         )
     )
     if info.name:
@@ -297,7 +295,7 @@ def setup_items(root: Path | None) -> list[SetupItem]:
             )
         else:
             ok, detail = True, t("The address needs no token sign-in.")
-        items.append(SetupItem("login", ok, detail, "datenordner"))
+        items.append(SetupItem("login", ok, detail, "data_dir"))
     name = _git(top, "config", "--get", "user.name", check=False)
     email = _git(top, "config", "--get", "user.email", check=False)
     items.append(
@@ -307,7 +305,7 @@ def setup_items(root: Path | None) -> list[SetupItem]:
             t("Name and email address for changes are set.")
             if name and email
             else t("Name and email address for changes are missing."),
-            "datenordner",
+            "data_dir",
         )
     )
     return items

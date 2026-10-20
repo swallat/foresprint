@@ -172,7 +172,7 @@ def tag_rows(at: AppTest) -> dict[str, str]:
 
 def test_tag_list_shows_status_after_server_check(shared, data_dir, monkeypatch):
     tag_setup(shared)
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     assert set(tag_rows(at)) == {"nurlokal", "beide", "anders"}
     assert not any(tag_rows(at).values())  # no claim without a sync
     main_button(at, "Mit dem Server abgleichen").click().run()
@@ -191,7 +191,7 @@ def test_failed_server_check_without_local_tags_is_not_reported_as_no_tags(
     root, _, _ = shared
     git(root, "remote", "set-url", "origin", str(root / "gibt-es-nicht"))
     invalidate_status()
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     main_button(at, "Mit dem Server abgleichen").click().run()
     assert not at.exception, at.exception
     assert any("Der Server konnte nicht abgefragt werden" in w.value for w in at.main.warning)
@@ -200,7 +200,7 @@ def test_failed_server_check_without_local_tags_is_not_reported_as_no_tags(
 def test_local_only_tag_can_be_uploaded(shared, data_dir, monkeypatch):
     _, _, server = shared
     tag_setup(shared)
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     assert not [s for s in at.main.selectbox if s.label == "Tag zum Server übertragen"]
     main_button(at, "Mit dem Server abgleichen").click().run()
     box = next(s for s in at.main.selectbox if s.label == "Tag zum Server übertragen")
@@ -215,7 +215,7 @@ def test_local_only_tag_can_be_uploaded(shared, data_dir, monkeypatch):
 def test_upload_failure_is_explained(shared, data_dir, monkeypatch):
     _, _, server = shared
     tag_setup(shared)
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     main_button(at, "Mit dem Server abgleichen").click().run()
     server.rename(server.with_name("weg.git"))
     main_button(at, "Zum Server übertragen").click().run()
@@ -226,7 +226,7 @@ def test_upload_failure_is_explained(shared, data_dir, monkeypatch):
 def test_server_only_tag_can_be_deleted_with_per_tag_confirmation(shared, data_dir, monkeypatch):
     _, _, server = shared
     tag_setup(shared)
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     main_button(at, "Mit dem Server abgleichen").click().run()
     assert "nurserver" in tag_box(at).options
     tag_box(at).set_value("nurserver").run()
@@ -244,7 +244,7 @@ def test_server_only_tag_can_be_deleted_with_per_tag_confirmation(shared, data_d
 def test_discard_preview_names_renames(repo: Path, data_dir: Path, monkeypatch):
     git(repo, "mv", "teams/demo/people.yaml", "teams/demo/leute.yaml")
     invalidate_status()
-    at = goto(start(data_dir, monkeypatch), "verlauf")
+    at = goto(start(data_dir, monkeypatch), "history")
     text = "umbenannt: `teams/demo/people.yaml` → `teams/demo/leute.yaml`"
     assert text in " ".join(c.label for c in at.checkbox)
     assert "geändert" not in " ".join(c.label for c in at.checkbox)
@@ -320,7 +320,7 @@ def test_folder_switch_with_unwritable_settings(
 def test_forget_with_unwritable_settings(
     repo: Path, data_dir: Path, second_folder: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    at = goto(start(data_dir, monkeypatch), "datenordner")
+    at = goto(start(data_dir, monkeypatch), "data_dir")
     fail_settings(monkeypatch)
     main_button(at, "Entfernen").click().run()
     assert not at.exception, at.exception
@@ -331,7 +331,7 @@ def test_forget_with_unwritable_settings(
 def test_choose_folder_with_unwritable_settings(
     repo: Path, data_dir: Path, second_folder: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    at = goto(start(data_dir, monkeypatch), "datenordner")
+    at = goto(start(data_dir, monkeypatch), "data_dir")
     fail_settings(monkeypatch)
     at.text_input(key="data-path").set_value(str(second_folder))
     main_button(at, "Übernehmen").click().run()

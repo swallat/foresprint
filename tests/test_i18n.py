@@ -200,9 +200,9 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     assert not at.exception, at.exception
     assert at.header[0].value == "What would you like to do?"
     for page in sorted(PAGE_INFO):
-        at.switch_page(f"seiten/{page}.py").run()
+        at.switch_page(f"page_scripts/{page}.py").run()
         assert not at.exception, (page, at.exception)
-    at.switch_page("seiten/planning.py").run()
+    at.switch_page("page_scripts/planning.py").run()
     assert at.radio(key="planning-step").options == [
         "1 · Absences", "2 · Forecast PLAN & planning", "3 · Commitment",
     ]  # fmt: skip

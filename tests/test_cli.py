@@ -162,7 +162,7 @@ def test_planning_rejects_non_finite_corrections(data_dir: Path, raw: str):
     assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
 
 
-def test_personen_change_fte(data_dir: Path):
+def test_people_change_fte(data_dir: Path):
     result = run(data_dir, "people", "demo", input="f\nanna\n2026-11-01\n0.8\nq\n")
     assert result.exit_code == 0, result.output
     assert "n = neue Person, f = FTE ändern, a = Austritt, q = fertig" in result.output
@@ -345,7 +345,7 @@ def test_planning_without_control_calculation(data_dir: Path):
     assert "planning" not in sprint
 
 
-def test_personen_new_person_gets_id_and_former_hidden(data_dir: Path):
+def test_people_new_person_gets_id_and_former_hidden(data_dir: Path):
     result = run(data_dir, "people", "demo", input="n\nJörg Müller\n\n2026-11-01\n1\nq\n")
     assert result.exit_code == 0, result.output
     assert "Emil" not in result.output  # left → hidden

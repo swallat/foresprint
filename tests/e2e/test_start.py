@@ -9,7 +9,7 @@ from playwright.sync_api import Page, expect
 
 # Reference date 2026-10-15: sprint 2026.21 is running, 2026.22 is the next (absences confirmed).
 TILES = [
-    ("prepare", "✅ Sprint vorbereiten", "Sprint 2026.22: vorbereitet.", "fehltage", "absences-sprint", "2026.22"),
+    ("prepare", "✅ Sprint vorbereiten", "Sprint 2026.22: vorbereitet.", "absences", "absences-sprint", "2026.22"),
     ("planning", "⬜ Planning", "Sprint 2026.22: Commitment fehlt noch.", "planning", "planning-sprint", "2026.22"),
     ("review", "⬜ Sprint abschließen", "Sprint 2026.21 läuft noch", "review", "review-sprint", "2026.21"),
 ]  # fmt: skip
