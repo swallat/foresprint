@@ -120,7 +120,8 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
     if source is CapacitySource.PEOPLE:
         b = sprint_capacity(team, fc.data.people, e.sprint)
         parts = " + ".join(
-            f"{p.person.name} ({p.workdays} − {p.holidays} − {_g(p.absence_days)}) × "
+            f"{md_code(p.person.name) if code else p.person.name} "
+            f"({p.workdays} − {p.holidays} − {_g(p.absence_days)}) × "
             f"{_g(round(p.mean_fte, 2))}"
             for p in b.people
         )
@@ -137,7 +138,9 @@ def capacity_step(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool
             capacity=fmt_capacity(b.capacity, b.rounding),
         )
         if b.approximated:
-            calculation += " · " + fte_change_note([p.person.name for p in b.approximated])
+            calculation += " · " + fte_change_note(
+                [md_code(p.person.name) if code else p.person.name for p in b.approximated]
+            )
         return Step("capacity", name, general("capacity"), calculation)
     if source is CapacitySource.TREND:
         return Step(
@@ -406,7 +409,7 @@ def structured_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) ->
         )
     return Explanation(
         inputs=(
-            (t("Basis sprints"), ", ".join(basis)),
+            (t("Basis sprints"), ", ".join(md_code(i) for i in basis)),
             (
                 t(
                     "Normalized velocity (reference capacity {ref} PT)",
@@ -415,7 +418,7 @@ def structured_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) ->
                 f"{_n(trend)} {unit}",
             ),
             (
-                t("Available in {id}", id=e.sprint.id),
+                t("Available in {id}", id=md_code(e.sprint.id)),
                 f"{fmt_capacity(r.plan_capacity, e.capacity_digits)} PT ({source})",
             ),
         ),

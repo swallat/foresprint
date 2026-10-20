@@ -17,7 +17,7 @@ def test_calculation_path_is_structured_and_formulas_are_not_cut_off(page: Page,
     expect(area.get_by_text("Eingesetzte Werte und Quellen")).to_be_visible()
     table = area.get_by_test_id("stTable").last
     table.scroll_into_view_if_needed()
-    cells = table.locator("td")
+    cells = table.locator("td, th")
     assert cells.count() > 0
     for i in range(cells.count()):  # nothing is cut off: content fits the cell
         box = cells.nth(i).evaluate("e => [e.scrollWidth, e.clientWidth]")
