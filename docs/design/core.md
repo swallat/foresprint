@@ -159,7 +159,7 @@ Status per operation:
   note for `locked` still mentions the `index.lock` for “unable to unlink” / “Device busy”);
   a bare “Could not read from remote repository” and “unable to access … 503” still count
   as “offline”. “Back to the branch” secures open changes in the data folder before the
-  switch as a commit of its own on the rescue branch (`rettung-<date>`) and names it in the
+  switch as a commit of its own on the rescue branch (`rescue-<date>`; older versions used `rettung-`) and names it in the
   success message; the app does not touch changes outside the data folder (separate
   note, the backup remains). Write and read errors of the
   data files (no write permission, file locked) have shown a message with file,
