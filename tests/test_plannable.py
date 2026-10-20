@@ -228,7 +228,7 @@ def test_web_pages_show_no_roadmap_label(
         at.run()
         at.switch_page(f"page_scripts/{page}.py").run()
         if page == "planning":  # step "2 · Forecast PLAN & planning" shows the metrics
-            at.radio(key="planning-step").set_value(1).run()
+            at.button(key=f"planning-step-{1}").click().run()
         assert not at.exception, at.exception
         shown = repr(at.main) + repr(at.sidebar)
         # Metric labels and column headers are not in ``repr(at.main)``.

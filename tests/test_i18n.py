@@ -203,6 +203,8 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
         at.switch_page(f"page_scripts/{page}.py").run()
         assert not at.exception, (page, at.exception)
     at.switch_page("page_scripts/planning.py").run()
-    assert at.radio(key="planning-step").options == [
-        "1 · Absences", "2 · Forecast PLAN & planning", "3 · Commitment",
-    ]  # fmt: skip
+    labels = [at.button(key=f"planning-step-{i}").label for i in range(3)]
+    for label, title in zip(
+        labels, ["1 · Absences", "2 · Forecast PLAN & planning", "3 · Commitment"], strict=True
+    ):
+        assert label.startswith(title)
