@@ -1934,3 +1934,30 @@ def test_older_rescue_names_are_still_recognised():
     assert gitsync._LEGACY_SAVE_SUBJECT in gitsync._SAVE_SUBJECTS
     assert "rettung-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
     assert "rescue-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
+
+
+def test_branches_and_switch(tmp_path: Path):
+    import subprocess
+
+    from sprintforecast import git as gitmod
+
+    def g(*a: str) -> None:
+        subprocess.run(["git", "-C", str(tmp_path), *a], check=True, capture_output=True)
+
+    g("init", "-q", "-b", "main")
+    g("config", "user.email", "a@b.c")
+    g("config", "user.name", "A")
+    (tmp_path / "f.txt").write_text("1")
+    g("add", ".")
+    g("commit", "-qm", "x")
+    g("branch", "other")
+    found = gitsync.branches(tmp_path)
+    assert [(b.name, b.current) for b in found] == [("main", True), ("other", False)]
+    (tmp_path / "f.txt").write_text("2")
+    with pytest.raises(gitmod.GitError):
+        gitsync.switch_branch(tmp_path, "other")
+    g("checkout", "--", "f.txt")
+    assert gitsync.switch_branch(tmp_path, "other") == "other"
+    assert gitsync.state(tmp_path).branch == "other"
+    with pytest.raises(gitmod.GitError):
+        gitsync.switch_branch(tmp_path, "nope")
