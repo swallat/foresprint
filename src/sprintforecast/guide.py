@@ -748,6 +748,10 @@ COMMANDS: list[tuple[str, str]] = [
     ("sprintforecast web --no-browser", "Start the server without opening a window"),
     ("sprintforecast shortcut", "Create a double-click launcher (desktop/start menu)"),
     (
+        "sprintforecast completion SHELL",
+        "Tab completion script (bash, zsh, fish, powershell); set up with --install-completion",
+    ),
+    (
         "sprintforecast forecast TEAM [--explain SPRINT]",
         "Forecast for the current and upcoming sprints",
     ),

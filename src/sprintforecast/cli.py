@@ -25,7 +25,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from sprintforecast import LOG_ENV, __version__, appsettings, updater
+from sprintforecast import LOG_ENV, __version__, appsettings, completion, updater
 from sprintforecast.calendar import (
     day_label,
     expected_id_form,
@@ -229,7 +229,7 @@ def _main(
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
         raise typer.Exit()
-    if ctx.invoked_subcommand != "update":
+    if ctx.invoked_subcommand not in ("update", "completion"):
         _auto_update()
     today = date.fromisoformat(as_of) if as_of else date.today()
     ctx.obj = Context(repo=Repository(data or default_data_dir()), today=today, as_of=as_of)
@@ -516,8 +516,17 @@ def _saved(path: Path) -> None:
     console.print(f"[green]{t('Saved: {path}', path=_plain_end(path))}[/green]")
 
 
-TeamArg = Annotated[str, typer.Argument(help=t("Team key = folder name, e.g. team-a."))]
-SprintArg = Annotated[str | None, typer.Argument(help=t("Sprint ID, e.g. 2026.21."))]
+NewTeamArg = Annotated[str, typer.Argument(help=t("Team key = folder name, e.g. team-a."))]
+TeamArg = Annotated[
+    str,
+    typer.Argument(
+        help=t("Team key = folder name, e.g. team-a."), autocompletion=completion.team_names
+    ),
+]
+SprintArg = Annotated[
+    str | None,
+    typer.Argument(help=t("Sprint ID, e.g. 2026.21."), autocompletion=completion.sprint_ids),
+]
 CommitOpt = Annotated[bool, typer.Option("--commit", help=t("Commit the change in Git."))]
 
 
@@ -627,7 +636,7 @@ def _exists_text(team: str, existing: str) -> str:
 
 
 @command("init", "Create a new team with guided input.")
-def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
+def init(ctx: typer.Context, team: NewTeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
     if clash := c.repo.clashing_team(team):
         err.print(f"[red]{escape(_exists_text(team, clash))}[/red]")
@@ -3046,6 +3055,23 @@ def shortcut_command() -> None:
             "first start."
         )
     )
+
+
+@command("completion", "Print the Tab completion script for a shell (bash, zsh, fish, powershell).")
+def completion_command(
+    shell: Annotated[
+        completion.Shell,
+        typer.Argument(help=t("Shell the script is written for.")),
+    ],
+    prog: Annotated[
+        str | None,
+        typer.Option(
+            "--prog-name",
+            help=t("Command name the script is registered for (default: the name used now)."),
+        ),
+    ] = None,
+) -> None:
+    typer.echo(completion.script(shell, prog or completion.prog_name()))
 
 
 @command(

@@ -1,6 +1,6 @@
 # Data repository
 
-The code repository (`swallat/sprint-forecast`) contains **only code and demo data**. Real team
+The code repository (`swallat/foresprint`) contains **only code and demo data**. Real team
 data lives in a separate data repository inside your company's domain (`*.xlsx` and `/teams/`
 are excluded from the code repository through `.gitignore`).
 
