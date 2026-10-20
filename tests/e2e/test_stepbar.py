@@ -12,7 +12,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 BOARDS = ["absences", "preplanning", "planning", "review"]
 STEP_HEIGHT = 40  # 2.5 rem at 16 px font size
-ACTIVE_BACKGROUND = "rgb(42, 120, 214)"
+ACTIVE_BACKGROUND = "rgb(91, 91, 240)"
 
 # In narrow windows Streamlit draws each link twice (one is hidden): the visible one is always
 # measured.

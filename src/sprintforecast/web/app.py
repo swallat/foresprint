@@ -6,6 +6,7 @@ from functools import partial
 import streamlit as st
 
 from sprintforecast.i18n import t
+from sprintforecast.icon import png as logo_png
 from sprintforecast.idle import start_idle_watch
 from sprintforecast.plugins import web_pages
 from sprintforecast.web.ui import (
@@ -21,7 +22,7 @@ from sprintforecast.web.ui import (
     sidebar_footer,
 )
 
-st.set_page_config(page_title="Sprint-Forecast", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Sprint-Forecast", page_icon=logo_png(64), layout="wide")
 start_idle_watch()
 apply_language()
 if problem := as_of_problem():

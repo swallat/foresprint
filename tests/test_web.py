@@ -1411,7 +1411,7 @@ def test_step_bar_marks_only_done_steps_with_a_green_check(app: AppTest):
 
 
 def test_step_bar_mark_is_also_on_the_active_step(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
-    """The active step (blue, the icon turns white via CSS) carries the same icon as the other
+    """The active step (indigo, the icon turns white via CSS) carries the same icon as the other
     steps, on every page, once the sprint is fully recorded."""
     _change_2026_22(data_dir, commitment=10, velocity=9)
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"

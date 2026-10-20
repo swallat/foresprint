@@ -2529,6 +2529,7 @@ def web(
         "--server.headless", "false" if browser and not app_mode else "true",
         "--browser.gatherUsageStats", "false",
         "--client.toolbarMode", "minimal",
+        "--theme.primaryColor", "#5b5bf0",
     ]  # fmt: skip
     console.print(t("Web interface: [bold]{url}[/bold] (stop with Ctrl+C)", url=url))
     popen: dict = popen_options()
