@@ -1157,6 +1157,9 @@ def test_keychain_usable_tells_a_real_backend_from_the_fail_backend(monkeypatch)
         assert not jira_module.keychain_usable()
         memory = Memory()
         keyring.set_keyring(memory)
+        # a backend that is not the operating system's own is a substitute store: not usable
+        assert not jira_module.keychain_usable()
+        monkeypatch.setattr(jira_module, "OS_KEYCHAIN_MODULES", (Memory.__module__,))
         assert jira_module.keychain_usable()
         jira_module.store_token(BASE, CANARY)
         assert jira_module.stored_token_exists(BASE) and jira_token(BASE) == CANARY
@@ -1165,3 +1168,17 @@ def test_keychain_usable_tells_a_real_backend_from_the_fail_backend(monkeypatch)
         assert not jira_module.stored_token_exists(BASE)
     finally:
         keyring.set_keyring(previous)
+
+
+def test_delete_token_reports_a_failed_delete(monkeypatch):
+    class Stuck:
+        def get_password(self, service, user):
+            return "still-there"
+
+        def delete_password(self, service, user):
+            raise RuntimeError("keychain locked: secret detail")
+
+    monkeypatch.setattr(jira_module, "_keyring", lambda: Stuck())
+    with pytest.raises(SourceError) as error:
+        jira_module.delete_token(BASE)
+    assert "secret detail" not in str(error.value) and "still-there" not in str(error.value)

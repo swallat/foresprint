@@ -258,6 +258,7 @@ def test_store_replace_and_remove_token(data_dir: Path, monkeypatch, keychain: F
     # the secret is neither shown nor written anywhere in the data folder
     assert CANARY not in texts(at) and CANARY not in every_file_text(data_dir)
     assert all(CANARY not in str(w.value) for w in at.text_input)
+    assert not any(CANARY in str(v) for v in at.session_state.to_dict().values())
     masked(at).set_value("tok-replacement-1")
     button(at, "Replace in keychain").click().run()
     assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): "tok-replacement-1"}
@@ -265,7 +266,9 @@ def test_store_replace_and_remove_token(data_dir: Path, monkeypatch, keychain: F
     assert keychain.entries == {} and "No token found" in texts(at)
 
 
-def test_an_empty_or_invalid_token_is_refused(data_dir: Path, monkeypatch, keychain: FakeKeyring):
+def test_an_empty_or_invalid_token_is_refused_and_a_retry_works(
+    data_dir: Path, monkeypatch, keychain: FakeKeyring
+):
     enable(data_dir)
     at = page(data_dir, monkeypatch)
     at = with_address(at)
@@ -274,6 +277,12 @@ def test_an_empty_or_invalid_token_is_refused(data_dir: Path, monkeypatch, keych
     masked(at).set_value("two words")
     button(at, "Store in keychain").click().run()
     assert at.error and not keychain.entries
+    # the invalid value does not linger in the session state
+    assert not any("two words" in str(v) for v in at.session_state.to_dict().values())
+    masked(at).set_value(CANARY)  # the retry after an error must not be lost
+    button(at, "Store in keychain").click().run()
+    assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): CANARY}
+    assert not any(CANARY in str(v) for v in at.session_state.to_dict().values())
 
 
 def test_the_environment_variable_takes_precedence(

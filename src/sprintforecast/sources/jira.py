@@ -14,6 +14,7 @@ optional package ``keyring``, from the operating system keychain."""
 
 from __future__ import annotations
 
+import contextlib
 import difflib
 import math
 import os
@@ -158,19 +159,30 @@ def jira_token(base_url: str | None = None) -> str | None:
     return (stored or "").strip() or None
 
 
+# Backends that are the operating system's own keychain. Anything else (the file based stores of
+# ``keyrings.alt``, a test double ...) is a substitute store and does not count as usable.
+OS_KEYCHAIN_MODULES = (
+    "keyring.backends.macOS",
+    "keyring.backends.Windows",
+    "keyring.backends.SecretService",
+    "keyring.backends.kwallet",
+    "keyring.backends.libsecret",
+)
+
+
 def keychain_usable() -> bool:
-    """Is there a keychain that can hold a token: ``keyring`` is installed and its backend is a
-    real one (not the "fail" backend that headless Linux without Secret Service ends up with)?"""
+    """Is there a keychain of the operating system that can hold a token: ``keyring`` is
+    installed and its backend is a real OS one (not the "fail" backend that headless Linux without
+    Secret Service ends up with, and not a file based substitute store)?"""
     keyring = _keyring()
     if keyring is None:
         return False
     try:
-        from keyring.backends import chainer, fail
+        from keyring.backends import chainer
 
         backend = keyring.get_keyring()
-        if isinstance(backend, chainer.ChainerBackend):
-            return any(not isinstance(b, fail.Keyring) for b in backend.backends)
-        return not isinstance(backend, fail.Keyring) and getattr(backend, "priority", 1) > 0
+        candidates = backend.backends if isinstance(backend, chainer.ChainerBackend) else [backend]
+        return any(type(b).__module__.startswith(OS_KEYCHAIN_MODULES) for b in candidates)
     except Exception:  # any backend problem simply means "not usable"
         return False
 
@@ -192,13 +204,10 @@ def delete_token(base_url: str) -> None:
     if keyring is None:
         raise keyring_missing_error()
     user = keychain_user(base_url)
-    failed = False
-    try:
+    # "no entry" is fine; the backend's message could contain anything
+    with contextlib.suppress(Exception):
         keyring.delete_password(KEYRING_SERVICE, user)
-    except Exception as e:
-        # no entry is fine; the backend's message could contain anything: not shown
-        failed = type(e).__name__ != "PasswordDeleteError"
-    if failed:
+    if stored_token_exists(base_url):  # a locked or denied keychain must not look like success
         raise SourceError(t("The keychain did not remove the token."))
 
 
@@ -1004,6 +1013,7 @@ class JiraSource:
 __all__ = [
     "ALLOWED_METHODS",
     "KEYRING_SERVICE",
+    "OS_KEYCHAIN_MODULES",
     "TOKEN_ENV",
     "JiraSource",
     "ResolvedFields",
