@@ -614,7 +614,7 @@ def product_values_table(d: Distribution) -> list[dict[str, Any]]:
     return [
         {
             "_id": r.product.id,
-            "Product": r.product.name + ("" if r.active else " (nicht betreut)"),
+            "Product": r.product.name + ("" if r.active else t(" (not looked after)")),
             "PO": r.product.po or "",
             **{label: r.value(m) for m, label in (MEASURES | PRODUCTION_MEASURES).items()},
         }

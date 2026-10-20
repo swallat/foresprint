@@ -697,7 +697,7 @@ GIT_HELP: list[tuple[str, str]] = [
             "repository is on no branch (detached HEAD), “Back to the branch” returns; commits "
             "without a branch are saved on a rescue branch first, whose name the message "
             "gives. Open changes in the data folder are saved there as well before the switch "
-            "(as a commit of their own, “Offene Änderungen vor dem Wechsel gesichert”); the "
+            "(as a commit of their own, “Open changes saved before the switch”); the "
             "main branch does not contain them, they are only on the rescue branch (a separate "
             "branch just for saved work). If the switch would overwrite changes outside the "
             "data folder, everything stays as it is: the app only touches the data folder. "

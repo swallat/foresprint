@@ -1279,7 +1279,11 @@ def _saved_note(rescue: str) -> str:
     )
 
 
-_SAVE_SUBJECT = "Offene Änderungen vor dem Wechsel gesichert"
+_SAVE_SUBJECT = "Open changes saved before the switch"
+_LEGACY_SAVE_SUBJECT = "Offene Änderungen vor dem Wechsel gesichert"  # commits of older versions
+_SAVE_SUBJECTS = (_SAVE_SUBJECT, _LEGACY_SAVE_SUBJECT)
+_RESCUE_PREFIX = "rescue-"
+_RESCUE_PREFIXES = (_RESCUE_PREFIX, "rettung-")  # older versions named the branches "rettung-"
 
 
 def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
@@ -1289,7 +1293,7 @@ def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
     the detached state as before."""
     start = _git(root, "rev-parse", "HEAD")
     index = _git(root, "write-tree")  # the user's staged state, for the rollback
-    name = rescue or f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
+    name = rescue or f"{_RESCUE_PREFIX}{time.strftime('%Y%m%d-%H%M%S')}"
     if rescue:
         _git(root, "switch", rescue)
     else:
@@ -1313,21 +1317,21 @@ def _save_open_changes(root: Path, path: Path, rescue: str | None) -> str:
 
 def _saved_before(root: Path, holders: list[str]) -> bool | None:
     """Is HEAD on the backup of an earlier attempt of :func:`reattach` (commit
-    ``Offene Änderungen vor dem Wechsel gesichert``, only on rescue branches)? If so: were
+    ``Open changes saved before the switch``, only on rescue branches)? If so: were
     there commits on no branch before it (``True``) or not (``False``)? Otherwise ``None``."""
-    if not holders or not all(b.startswith("rettung-") for b in holders):
+    if not holders or not all(b.startswith(_RESCUE_PREFIXES) for b in holders):
         return None
-    if _git(root, "log", "-1", "--format=%s", "HEAD", check=False) != _SAVE_SUBJECT:
+    if _git(root, "log", "-1", "--format=%s", "HEAD", check=False) not in _SAVE_SUBJECTS:
         return None
     # Go back through the whole chain of backups (several attempts): only the first other
     # commit shows whether the detached state had commits of its own.
     depth = 1
-    while _git(root, "log", "-1", "--format=%s", f"HEAD~{depth}", check=False) == _SAVE_SUBJECT:
+    while _git(root, "log", "-1", "--format=%s", f"HEAD~{depth}", check=False) in _SAVE_SUBJECTS:
         depth += 1
     parent = _git(
         root, "branch", "--contains", f"HEAD~{depth}", "--format=%(refname:short)", check=False
     )
-    return all(b.startswith("rettung-") for b in parent.splitlines() if not b.startswith("("))
+    return all(b.startswith(_RESCUE_PREFIXES) for b in parent.splitlines() if not b.startswith("("))
 
 
 def reattach(path: Path) -> Reattached:
@@ -1355,8 +1359,8 @@ def reattach(path: Path) -> Reattached:
     commits = False
     if not holders:
         commits = True
-        rescue = f"rettung-{time.strftime('%Y%m%d-%H%M%S')}"
-    elif all(b.startswith("rettung-") for b in holders):  # saved by an earlier attempt
+        rescue = f"{_RESCUE_PREFIX}{time.strftime('%Y%m%d-%H%M%S')}"
+    elif all(b.startswith(_RESCUE_PREFIXES) for b in holders):  # saved by an earlier attempt
         commits = True
         rescue = holders[0]
     new_changes = bool(gitmod.changes_in(path))
