@@ -145,6 +145,7 @@ tracker:
       - none:
           - status: [To Do]
   project_match_order: [epic, component, label]   # which match wins between two projects
+  priority_order: [Highest, High, Medium, Low, Lowest]   # distribution order by ticket priority; [] = ignore
   dependency_gap: 1              # 1 = a dependent ticket goes at least one sprint later, 0 = same
   budget_basis: roadmap_share    # roadmap_share (PLAN × roadmap_share) | plan (whole PLAN)
   rough_factor: 1.5              # only the conservative variant multiplies rough estimates (and

@@ -290,7 +290,7 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
 
     products = {p.id: p for p in data.products}
     for prod in data.products:
-        if prod.match is not None:
+        if prod.match is not None and team.features.products:
             for problem in rule_problems(prod.match, sources):
                 error(f"products.yaml: {prod.id}", t("match: {problem}", problem=problem))
     project_ids: set[str] = set()

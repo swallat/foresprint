@@ -130,13 +130,13 @@ def test_horizon_beyond_the_people_list_uses_the_average_capacity():
 # --- Order and placement ------------------------------------------------------------
 
 
-def test_projects_by_priority_then_target_and_tickets_by_rank():
+def test_projects_by_target_then_priority_and_tickets_by_rank():
     data = team_data()
     data.projects = [
-        project("late", date(2027, 6, 30), priority=3),
+        project("late", date(2027, 6, 30)),
         project("early-2", date(2027, 3, 31), priority=2),
         project("early-1", date(2027, 3, 31), priority=1),
-        project("open", None, priority=3),
+        project("open", None),
     ]
     data.tickets = [
         ticket("L-1", project="late"),
@@ -790,29 +790,39 @@ def test_two_product_rules_via_the_same_source_contradict():
     assert preplan.ticket_product(tk, data) == (None, ["shop", "platform"])
 
 
-def test_priority_decides_between_a_product_backlog_and_a_project():
+def test_ticket_priority_decides_before_project_and_unit():
     data = product_data()
-    data.projects = [project("pay", product="shop", priority=1)]
-    data.products[0].priority = 0  # product backlog more important than the project
+    data.projects = [project("pay", product="shop")]
     data.tickets = [
-        ticket("P", 8, project="pay"),
-        ticket("B", 8, project=None, labels=["shop"]),
+        ticket("P-low", 8, project="pay", priority="Low"),
+        ticket("B-high", 8, project=None, labels=["shop"], priority="High"),
+        ticket("P-none", 8, project="pay"),
+        ticket("B-med", 8, project=None, labels=["shop"], priority="medium"),
     ]
-    assert [tk.key for tk in order_tickets(data)[0]] == ["B", "P"]
-    data.products[0].priority = 1  # equal priority: the project (target date) first
-    assert [tk.key for tk in order_tickets(data)[0]] == ["P", "B"]
-    data.products[0].priority = None  # not given: after every project
-    assert [tk.key for tk in order_tickets(data)[0]] == ["P", "B"]
+    # Priority first (case-insensitive, unknown or missing last), then project before backlog.
+    assert [tk.key for tk in order_tickets(data)[0]] == ["B-high", "B-med", "P-low", "P-none"]
+    data.team.tracker.priority_order = []  # switch off: project first, then backlog
+    assert [tk.key for tk in order_tickets(data)[0]] == ["P-low", "P-none", "B-high", "B-med"]
 
 
-def test_product_rule_and_priority_round_trip_through_products_yaml():
+def test_product_rule_round_trips_through_products_yaml():
     from sprintforecast.model import Rule
     from sprintforecast.storage import products_from_dict, products_to_dict
 
     products = [
-        Product("shop", "Shop", priority=2, match=Rule(source="label", values=["shop"])),
+        Product("shop", "Shop", match=Rule(source="label", values=["shop"])),
         Product("platform", "Platform"),
     ]
     again = products_from_dict(products_to_dict(products), "products.yaml")
-    assert again[0].priority == 2 and again[0].match == products[0].match
-    assert again[1].priority is None and again[1].match is None
+    assert again[0].match == products[0].match and again[1].match is None
+
+
+def test_priority_order_round_trips_through_team_yaml():
+    from sprintforecast.model import TrackerSettings
+    from sprintforecast.storage import _tracker_from, _tracker_to
+
+    assert _tracker_from({}, "team.yaml").priority_order[0] == "Highest"
+    assert "priority_order" not in _tracker_to(TrackerSettings())
+    custom = TrackerSettings(priority_order=["P1", "P2"])
+    assert _tracker_from(_tracker_to(custom), "team.yaml").priority_order == ["P1", "P2"]
+    assert _tracker_from({"priority_order": []}, "team.yaml").priority_order == []
