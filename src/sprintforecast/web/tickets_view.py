@@ -59,6 +59,7 @@ from sprintforecast.ticket_import import (
     plan_import,
 )
 from sprintforecast.web.logic import with_sprints
+from sprintforecast.web.rule_editor import rule_editor
 from sprintforecast.web.ui import (
     _next_step,
     _saved_text,
@@ -575,7 +576,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
     with tabs[3]:
         _open_points(data, dist, sel)
     with tabs[4]:
-        _assignment(data, sel)
+        _assignment(repo, data, sel)
     with tabs[5]:
         _import(repo, data, fc)
         _label_section(data, fc)
@@ -947,11 +948,13 @@ def _refinement(data: TeamData, dist: Distribution, sel: Selection) -> None:
     )
 
 
-def _assignment(data: TeamData, sel: Selection) -> None:
+def _assignment(repo: Repository, data: TeamData, sel: Selection) -> None:
+    rule_editor(repo, data)
+    st.subheader(t("Result"))
     st.caption(
         t(
             "Which project and product each open ticket belongs to, and why. The assignment "
-            "follows the criteria of the projects (Maintenance), the order of the criteria is "
+            "follows the rules of the projects (above), the order of the criteria is "
             "set on the page Jira connection."
         )
     )
@@ -1264,8 +1267,8 @@ def _projects_editor(repo: Repository, data: TeamData) -> None:
             st.caption(
                 t(
                     (
-                        "The assignment rule of {id} is nested and can only be changed in "
-                        "projects.yaml."
+                        "The assignment rule of {id} is nested and can only be changed on the "
+                        "Assignment tab."
                     ),
                     id=pid,
                 )

@@ -11,6 +11,7 @@ Grammar (keywords are case-insensitive)::
     and   := not (AND not)*
     not   := NOT not | '(' expr ')' | cond
     cond  := source '=' value | source '!=' value
+           | source '~' value (contains) | source '!~' value
            | source IN '(' value (',' value)* ')' | source NOT IN '(' ... ')'
     value := word | "quoted text"
 """
@@ -26,8 +27,8 @@ from .model import RULE_SOURCES, Rule
 _TOKEN = re.compile(
     r"""\s*(?:
         (?P<str>"(?:[^"\\]|\\.)*")
-      | (?P<op>!=|=|\(|\)|,)
-      | (?P<word>[^\s=!(),"]+)
+      | (?P<op>!=|!~|=|~|\(|\)|,)
+      | (?P<word>[^\s=!~(),"]+)
     )""",
     re.VERBOSE,
 )
@@ -156,15 +157,20 @@ class _Parser:
             negate = True
             if self.cur.keyword != "in":
                 raise self._error(t("Expected IN after NOT"))
-        if self._is_op("=") or self._is_op("!="):
-            negate = self._next().text == "!="
+        contains = False
+        if self._is_op("=") or self._is_op("!=") or self._is_op("~") or self._is_op("!~"):
+            op = self._next().text
+            negate = op.startswith("!")
+            contains = op.endswith("~")
             values = [self._value()]
         elif self.cur.keyword == "in":
             self._next()
             values = self._value_list()
         else:
-            raise self._error(t("Expected =, !=, IN or NOT IN after '{source}'", source=tok.text))
-        leaf = Rule(source=source, values=values)
+            raise self._error(
+                t("Expected =, !=, ~, !~, IN or NOT IN after '{source}'", source=tok.text)
+            )
+        leaf = Rule(source=source, values=values, contains=contains)
         return Rule(op="none", children=[leaf]) if negate else leaf
 
     def _value(self) -> str:
@@ -206,13 +212,16 @@ def parse_rule(text: str) -> Rule:
 
 
 def _quote(value: str) -> str:
-    if value and not any(c in value for c in ' \t=!(),"') and value.lower() not in _KEYWORDS:
+    if value and not any(c in value for c in ' \t=!~(),"') and value.lower() not in _KEYWORDS:
         return value
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 def _leaf_text(leaf: Rule) -> str:
     source = leaf.source or ""
+    if leaf.contains:
+        parts = [f"{source} ~ {_quote(v)}" for v in leaf.values]
+        return parts[0] if len(parts) == 1 else "(" + " OR ".join(parts) + ")"
     if len(leaf.values) == 1:
         return f"{source} = {_quote(leaf.values[0])}"
     return f"{source} IN ({', '.join(_quote(v) for v in leaf.values)})"
@@ -233,9 +242,12 @@ def _format(rule: Rule, top: bool = False) -> str:
         inner = rule.children
         if len(inner) == 1 and inner[0].op == "leaf":
             leaf = inner[0]
-            if len(leaf.values) == 1:
+            if leaf.contains and len(leaf.values) == 1:
+                return f"{leaf.source} !~ {_quote(leaf.values[0])}"
+            if not leaf.contains and len(leaf.values) == 1:
                 return f"{leaf.source} != {_quote(leaf.values[0])}"
-            return f"{leaf.source} NOT IN ({', '.join(_quote(v) for v in leaf.values)})"
+            if not leaf.contains:
+                return f"{leaf.source} NOT IN ({', '.join(_quote(v) for v in leaf.values)})"
         body = " OR ".join(_format(c) for c in inner)
         return f"NOT ({body})"
     joiner = " AND " if rule.op == "all" else " OR "

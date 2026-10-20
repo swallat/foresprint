@@ -79,3 +79,14 @@ def test_format_of_existing_rules():
         short=True,
     )
     assert format_rule(rule) == "epic IN (A, B) OR label = x"
+
+
+def test_contains_operator():
+    rule = parse_rule(
+        "label ~ pay AND summary_free = x" if False else "label ~ pay AND epic !~ old"
+    )
+    assert rule.matches(facts(label=["Payment"], epic=["ABC"]))
+    assert not rule.matches(facts(label=["Payment"], epic=["Old-1"]))
+    assert format_rule(rule) == "label ~ pay AND epic !~ old"
+    again = parse_rule(format_rule(rule))
+    assert again.matches(facts(label=["payroll"], epic=["X"]))
