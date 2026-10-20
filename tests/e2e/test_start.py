@@ -9,9 +9,9 @@ from playwright.sync_api import Page, expect
 
 # Reference date 2026-10-15: sprint 2026.21 is running, 2026.22 is the next (absences confirmed).
 TILES = [
-    ("prepare", "✅ Sprint vorbereiten", "Sprint 2026.22: vorbereitet.", "absences", "absences-sprint", "2026.22"),
-    ("planning", "⬜ Planning", "Sprint 2026.22: Commitment fehlt noch.", "planning", "planning-sprint", "2026.22"),
-    ("review", "⬜ Sprint abschließen", "Sprint 2026.21 läuft noch", "review", "review-sprint", "2026.21"),
+    ("prepare", "Sprint vorbereiten", "Sprint 2026.22: vorbereitet.", "absences", "absences-sprint", "2026.22"),
+    ("planning", "Planning", "Sprint 2026.22: Commitment fehlt noch.", "planning", "planning-sprint", "2026.22"),
+    ("review", "Sprint abschließen", "Sprint 2026.21 läuft noch", "review", "review-sprint", "2026.21"),
 ]  # fmt: skip
 
 
@@ -23,7 +23,12 @@ def test_start_shows_three_tiles(page: Page, app: App):
     open_page(page, app)
     expect(main_area(page).get_by_role("heading", name="Was möchtest du tun?")).to_be_visible()
     headings = main_area(page).get_by_role("heading", level=3)
-    assert headings.all_inner_texts() == [heading for _, heading, *_ in TILES]
+    # the status icon is a Material icon; its ligature name is the leading text of the heading
+    texts = [
+        re.sub(r"^(check_circle|radio_button_unchecked)\s*", "", x)
+        for x in headings.all_inner_texts()
+    ]
+    assert texts == [heading for _, heading, *_ in TILES]
     for _, heading, hint, *_ in TILES:
         expect(tile(page, heading)).to_contain_text(hint)
         expect(tile(page, heading).get_by_role("button", name="Öffnen")).to_be_visible()
