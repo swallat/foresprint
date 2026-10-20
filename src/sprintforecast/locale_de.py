@@ -652,7 +652,6 @@ DE: dict[str, str] = {
     "more than standard": "mehr als Standard",
     "less than standard": "weniger als Standard",
     "Planning on **{day}** · flow: first the known absences, then plan the tickets with the Forecast PLAN, enter the commitment before the sprint starts.": "Planning am **{day}** · Ablauf: zuerst die bekannten Fehltage, dann mit dem Forecast PLAN die Tickets einplanen, vor dem Sprintstart das Commitment eintragen.",
-    "Step": "Schritt",
     "Known absences": "Bekannte Fehltage",
     "Forecast PLAN – plan this much": "Forecast PLAN – so viel einplanen",
     "Next": "Weiter",

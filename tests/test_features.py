@@ -163,7 +163,7 @@ def test_planning_and_review_ignore_products_when_distribution_is_off(
     at = start(data_dir, monkeypatch)
     goto(at, "planning")
     at.selectbox(key="planning-sprint").set_value("2026.22").run()
-    at.radio(key="planning-step").set_value(1).run()
+    at.button(key=f"planning-step-{1}").click().run()
     assert not at.exception, at.exception
     assert not any("Einplanung je Produkt" in s.value for s in at.subheader)
     goto(at, "review")
@@ -196,7 +196,7 @@ def test_planning_step_two_splits_capacity_by_production_access(
     def captions(at: AppTest) -> str:
         goto(at, "planning")
         at.selectbox(key="planning-sprint").set_value("2026.22").run()
-        at.radio(key="planning-step").set_value(1).run()
+        at.button(key=f"planning-step-{1}").click().run()
         assert not at.exception, at.exception
         return " ".join(c.value for c in at.caption)
 
@@ -216,7 +216,7 @@ def test_planning_minutes_follow_the_product_distribution_switch(
         set_features(data_dir, products=products)
         at = goto(start(data_dir, monkeypatch), "planning")
         at.selectbox(key="planning-sprint").set_value("2026.22").run()
-        at.radio(key="planning-step").set_value(2).run()
+        at.button(key=f"planning-step-{2}").click().run()
         at.number_input(key="fist-2026.22").set_value(10.0 + (1 if products else 0))
         click(at, "Planning speichern")
         # Two saves in the same second: the names then sort by fingerprint, so choose by
@@ -285,7 +285,7 @@ def test_production_without_products_is_recorded_per_sprint(
     at = start(data_dir, monkeypatch)
     goto(at, "planning")
     at.selectbox(key="planning-sprint").set_value("2026.22").run()
-    at.radio(key="planning-step").set_value(1).run()
+    at.button(key=f"planning-step-{1}").click().run()
     assert any("Themen mit Produktionszugriff" in s.value for s in at.subheader)
     at.number_input(key="production-planned-2026.22").set_value(2.0).run()
     click(at, "Speichern und weiter")
