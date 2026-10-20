@@ -137,6 +137,7 @@ from sprintforecast.gitsync import (
     abort_running_sync,
     abort_unfinished,
     auto_merge,
+    branches,
     cached_remote_info,
     check_remote,
     conflict_text_diffs,
@@ -156,6 +157,7 @@ from sprintforecast.gitsync import (
     set_share_mode,
     share_mode,
     start_background_fetch,
+    switch_branch,
     sync,
     sync_running_seconds,
 )
@@ -4665,6 +4667,65 @@ def _remote_offer(root: Path, address: RemoteAddress | None, insecure: bool, loc
         _remote_save(root, address, insecure, **{confirmed: True})
 
 
+def _switch_branch_clicked(root: Path, key: str) -> None:
+    name = st.session_state.get(key)
+    if not name:
+        return
+    try:
+        done = switch_branch(root, name)
+    except GitError as e:
+        st.session_state["commit_error"] = e
+        return
+    clear_team_cache()
+    st.session_state["flash"] = [
+        ("success", t("Switched to branch {branch}.", branch=md_code(done)))
+    ]
+
+
+def _branch_section(repo: Repository) -> None:
+    """Choose the branch of the data folder. Only without open changes: nothing is saved or
+    discarded implicitly. New branches are not created here."""
+    if not git_available():
+        return
+    try:
+        current = cached_sync_state(repo.root)
+        found = branches(repo.root)
+    except GitError:
+        return
+    if len(found) < 2 and not current.detached:
+        return
+    st.subheader(t("Branch"))
+    blocked = None
+    if current.detached or current.unfinished or current.conflicts:
+        blocked = t("Finish the open merge or go back to the branch first (sidebar).")
+    elif cached_pending_changes(repo.root):
+        blocked = t("There are open changes. Commit or discard them in the sidebar first.")
+    names = [b.name for b in found]
+    by_name = {b.name: b for b in found}
+
+    def label(name: str) -> str:
+        b = by_name[name]
+        return name if b.local else t("{name} (only on the server)", name=name)
+
+    key = "branch-choice"
+    if st.session_state.get(key) not in names:
+        st.session_state[key] = current.branch if current.branch in names else names[0]
+    choice = st.selectbox(
+        t("Switch to branch"), names, key=key, format_func=label, disabled=blocked is not None
+    )
+    if blocked:
+        st.caption(blocked)
+    st.button(
+        t("Switch branch"),
+        key="branch-switch",
+        icon=":material/call_split:",
+        on_click=_switch_branch_clicked,
+        args=(repo.root, key),
+        disabled=blocked is not None or choice == current.branch,
+        help=t("Loads the data of the chosen branch. Uploads and changes nothing on the server."),
+    )
+
+
 def _remote_section(repo: Repository) -> None:
     """Show, check and change the server (remote) of the data folder. Draws nothing without Git,
     without a repository or when Git does not provide the state (the other hints suffice then).
@@ -5039,6 +5100,7 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
             )
         _remote_section(repo)
         if root:
+            _branch_section(repo)
             _attributes_section(repo)
     if recent := _recent_dirs(repo):
         st.subheader(t("Recently used"))
@@ -6246,14 +6308,8 @@ def _git_panel(repo: Repository) -> None:
     st.caption(_status_text(state))
     if state.remote is None:
         page_link("data_dir", t("Set up server"))
-    with st.expander(
-        t("Git: {count} pending change(s)", count=len(changes))
-        if changes
-        else t("Git: everything committed"),
-        expanded=bool(changes) or state.behind > 0 or state.unfinished is not None,
-        icon=":material/commit:",
-    ):
-        if state.unfinished or state.conflicts:
+    if state.unfinished or state.conflicts:
+        with st.expander(t("Git: conflict"), expanded=True, icon=":material/commit:"):
             st.warning(hint_for("conflict"))
             st.button(
                 t("Abort merge"),
@@ -6261,8 +6317,9 @@ def _git_panel(repo: Repository) -> None:
                 on_click=_abort_clicked,
                 args=(repo.root,),
             )
-            return
-        if state.detached:
+        return
+    if state.detached:
+        with st.expander(t("Git: no branch"), expanded=True, icon=":material/commit:"):
             st.warning(hint_for("detached"))
             st.button(
                 t("Back to the branch"),
@@ -6270,7 +6327,15 @@ def _git_panel(repo: Repository) -> None:
                 on_click=_reattach_clicked,
                 args=(repo.root,),
             )
-            return
+        return
+    # Only the changes and diffs fold away; message and buttons stay visible.
+    with st.expander(
+        t("Git: {count} pending change(s)", count=len(changes))
+        if changes
+        else t("Git: everything committed"),
+        expanded=bool(changes) or state.behind > 0,
+        icon=":material/commit:",
+    ):
         if state.behind:
             commits, files = incoming(repo.root)
             st.markdown(t("**New from others** (not taken over yet)"))
@@ -6279,53 +6344,54 @@ def _git_panel(repo: Repository) -> None:
             st.code("\n".join(f"{status:>2} {file}" for status, file in changes), language=None)
             loaded = _load_changes(repo.root, changes)
             _changes_view(repo.root, loaded)
-            _refresh_commit_message(repo.root, loaded)
-            st.text_input(t("Commit message"), key="commit_message")
-            if tags:
-                st.checkbox(t("Set tags: {tags}", tags=", ".join(tags)), value=True, key="use_tags")
         else:
             st.caption(t("No pending changes in the data folder."))
-        if state.remote is not None:
-            st.button(
-                t("Save and share"),
-                type="primary",
-                icon=":material/sync:",
-                key="git-sync",
-                on_click=_sync_clicked,
-                args=(repo.root, list(tags)),
-                help=t(
-                    "Saves your changes, fetches those of the others, merges both and "
-                    "uploads the result."
-                ),
-            )
-            st.button(
-                t("Pull from server"),
-                icon=":material/download:",
-                key="git-pull",
-                on_click=_sync_clicked,
-                args=(repo.root, list(tags), False, False, False),
-                help=t(
-                    "Fetches the changes of the others into this data folder and merges "
-                    "them with yours (your open changes are saved first). Uploads nothing."
-                ),
-            )
-            st.button(
-                t("Check state"),
-                icon=":material/refresh:",
-                key="git-fetch",
-                on_click=_fetch_clicked,
-                args=(repo.root,),
-                help=t("Asks the server whether there is anything new (changes nothing)."),
-            )
-        if changes:
-            st.button(
-                t("Commit changes"),
-                type="secondary" if state.remote is not None else "primary",
-                icon=":material/save:",
-                on_click=_commit_clicked,
-                args=(repo.root, list(tags)),
-                help=t("Save locally only, without sharing."),
-            )
+    if changes:
+        _refresh_commit_message(repo.root, loaded)
+        st.text_input(t("Commit message"), key="commit_message")
+        if tags:
+            st.checkbox(t("Set tags: {tags}", tags=", ".join(tags)), value=True, key="use_tags")
+    if state.remote is not None:
+        st.button(
+            t("Save and share"),
+            type="primary",
+            icon=":material/sync:",
+            key="git-sync",
+            on_click=_sync_clicked,
+            args=(repo.root, list(tags)),
+            help=t(
+                "Saves your changes, fetches those of the others, merges both and "
+                "uploads the result."
+            ),
+        )
+        st.button(
+            t("Pull from server"),
+            icon=":material/download:",
+            key="git-pull",
+            on_click=_sync_clicked,
+            args=(repo.root, list(tags), False, False, False),
+            help=t(
+                "Fetches the changes of the others into this data folder and merges "
+                "them with yours (your open changes are saved first). Uploads nothing."
+            ),
+        )
+        st.button(
+            t("Check state"),
+            icon=":material/refresh:",
+            key="git-fetch",
+            on_click=_fetch_clicked,
+            args=(repo.root,),
+            help=t("Asks the server whether there is anything new (changes nothing)."),
+        )
+    if changes:
+        st.button(
+            t("Commit changes"),
+            type="secondary" if state.remote is not None else "primary",
+            icon=":material/save:",
+            on_click=_commit_clicked,
+            args=(repo.root, list(tags)),
+            help=t("Save locally only, without sharing."),
+        )
 
 
 # --- Discard changes, history, tags ----------------------------------------------------------

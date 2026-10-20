@@ -65,7 +65,7 @@ PARENT_FIELD = "parent"
 SEARCH_PATH = "/rest/api/2/search"
 
 # The command that installs the extra: sprintforecast is not on PyPI, so it needs its address.
-INSTALL_URL = "https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
+INSTALL_URL = "https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
 INSTALL_COMMAND = f'uv tool install --force "sprintforecast[web,excel,jira] @ {INSTALL_URL}"'
 
 

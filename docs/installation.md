@@ -10,13 +10,13 @@ installs sprintforecast with the web UI.
 **Windows (PowerShell):**
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swallat/foresprint/main/install.ps1 | iex"
 ```
 
 **Linux / macOS:**
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
 ```
 
 Then open a new terminal. Running the script again updates the installation. The script asks
@@ -26,10 +26,13 @@ skip the prompt.
 
 Remove: `uv tool uninstall sprintforecast`.
 
+From PyPI (once the package is published, see [releasing.md](releasing.md)):
+`pipx install "foresprint[web,excel,jira]"` or `uv tool install "foresprint[web,excel,jira]"`.
+
 Manually, without the script:
 
 ```bash
-uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
+uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
 ```
 
 The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `SPRINTFORECAST_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
@@ -86,7 +89,7 @@ app also looks in the usual places (on Windows `%LOCALAPPDATA%\Programs\Git`, Sc
 `%ProgramFiles%\Git`; on macOS and Linux Homebrew, `/usr/local/bin`, `~/.local/bin`,
 `~/.nix-profile/bin`). An installation without administrator rights is therefore enough (Git for
 Windows installed for your own user account only); afterwards reopen the app and the
-"Sprint-Forecast" launcher once. Updating the app (through `uv`, with plugins from Git
+"Foresprint" launcher once. Updating the app (through `uv`, with plugins from Git
 addresses) works then as well: if Git is only outside the PATH, the app appends its folder to
 the PATH for the `uv` call (only there, not system-wide and not for the subsequent restart of
 the app). The first installation through the install script is not affected by this: plugins
@@ -117,11 +120,27 @@ on Windows the Git Credential Manager that comes with Git for Windows, on macOS 
 
 ## Desktop launcher
 
-The script creates a launcher **"Sprint-Forecast"**: on Windows on the desktop and in the Start
+The script creates a launcher **"Foresprint"**: on Windows on the desktop and in the Start
 menu, on macOS in `~/Applications` (plus an alias on the desktop), on Linux as an application
 entry and on the desktop. It starts the web UI as an app window (on Windows without a console
 window); on the first start the UI guides you through setting up the data folder. Create it
 again with `sprintforecast shortcut`; the log is `app.log` next to the plugin selection.
+
+## Tab completion
+
+Tab completes commands, options, team names and sprint IDs (the latter two from the data folder,
+also after `--data`) in bash, zsh, fish and PowerShell. Set it up once for the current shell:
+
+```
+sprintforecast --install-completion
+```
+
+and open a new terminal. `install.ps1` does this when started with
+`$env:SPRINTFORECAST_COMPLETION = "1"`; `install.sh` only prints the hint, because the shell cannot be
+detected when the script is piped to `sh`. To manage the script yourself, print it with
+`sprintforecast completion bash|zsh|fish|powershell` (e.g. `eval "$(sprintforecast completion
+bash)"` in `~/.bashrc`; `--prog-name NAME` registers it for another command name). Completion
+starts the program on every Tab and answers in about a quarter of a second.
 
 ## Updating
 

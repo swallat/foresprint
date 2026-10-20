@@ -2,7 +2,7 @@
 # Installs sprintforecast (including the web UI and the extras excel and jira) on Linux and
 # macOS.
 #
-#   curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
+#   curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
 #
 # Running it again updates. The script asks for plugins and remembers the choice.
 # Without prompting:
@@ -14,7 +14,7 @@ set -eu
 REF="${SPRINTFORECAST_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
-CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/sprint-forecast/archive/refs/${KIND}/${REF}.zip"
+CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/${KIND}/${REF}.zip"
 PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"
 
 say() { printf '%s\n' "$*"; }
@@ -108,6 +108,9 @@ if [ -z "${SPRINTFORECAST_NO_SHORTCUT:-}" ]; then
     "$(uv tool dir --bin)/sprintforecast" shortcut || say "Note: launcher not created."
 fi
 
+# Tab completion has to detect the user's shell, which fails when piped to sh: only a hint
+say "Tab completion (optional, in your own shell): sprintforecast --install-completion"
+
 # Git is optional for the installation, but needed to save, share and view the history of data
 if ! command -v git >/dev/null 2>&1; then
     say ""
@@ -118,5 +121,5 @@ fi
 
 say ""
 say "Done: sprintforecast $("$(uv tool dir --bin)/sprintforecast" --version)"
-say "Start by double-clicking \"Sprint-Forecast\" or, in a new terminal, e.g.:"
+say "Start by double-clicking \"Foresprint\" or, in a new terminal, e.g.:"
 say "  cd ~/sprint-daten && sprintforecast web"
