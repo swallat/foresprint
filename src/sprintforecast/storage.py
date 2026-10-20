@@ -32,8 +32,10 @@ import yaml
 from sprintforecast.git import invalidate_status
 from sprintforecast.i18n import t
 from sprintforecast.model import (
+    CONTAINS_SUFFIX,
     DEFAULT_MATCH_ORDER,
     RULE_OPERATORS,
+    RULE_SOURCES,
     AbsenceState,
     BudgetBasis,
     CapacitySettings,
@@ -760,7 +762,14 @@ def _rule_node(mapping: dict[str, Any], where: str) -> Rule:
             values = [_rule_value(v, where, name) for v in value]
         else:
             values = [_rule_value(value, where, name)]
-        entries.append(Rule(source=name, values=values))
+        base = name.removesuffix(CONTAINS_SUFFIX)
+        entries.append(
+            Rule(
+                source=base if base in RULE_SOURCES else name,
+                values=values,
+                contains=base != name and base in RULE_SOURCES,
+            )
+        )
     if len(entries) == 1:
         return entries[0]  # a single leaf, or the long form: exactly one of any/all/none
     # Short form (several sources directly in the mapping, OR-combined). Mixed forms and
@@ -777,6 +786,10 @@ def _rule_from(raw: Any, where: str) -> Rule | None:
     return _rule_node(mapping, where)
 
 
+def _rule_key(leaf: Rule) -> str:
+    return (leaf.source or "") + (CONTAINS_SUFFIX if leaf.contains else "")
+
+
 def _rule_values_to(leaf: Rule) -> list[Any]:
     if leaf.source == "in_sprint":  # written back as YAML booleans
         return [{"true": True, "false": False}.get(v, v) for v in leaf.values]
@@ -788,12 +801,12 @@ def _rule_to(rule: Rule) -> dict[str, Any]:
         out: dict[str, Any] = {}
         for child in rule.children:
             if child.op == "leaf":
-                out[child.source or ""] = _rule_values_to(child)
+                out[_rule_key(child)] = _rule_values_to(child)
             else:
                 out[child.op] = [_rule_to(c) for c in child.children]
         return out
     if rule.op == "leaf":
-        return {rule.source or "": _rule_values_to(rule)}
+        return {_rule_key(rule): _rule_values_to(rule)}
     return {rule.op: [_rule_to(c) for c in rule.children]}
 
 
