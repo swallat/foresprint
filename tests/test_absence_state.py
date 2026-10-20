@@ -65,7 +65,7 @@ def test_saving_planning_values_pins_the_unknown_state(data_dir: Path):
     """Planning alone (commitment) does not confirm absences: the state is stored with the
     file."""
     repo = Repository(data_dir)
-    sprint = Sprint("2026.30", START, END, forecast_ist=9.0, absence_state=AbsenceState.UNKNOWN)
+    sprint = Sprint("2026.30", START, END, commitment=9.0, absence_state=AbsenceState.UNKNOWN)
     path = repo.save_sprint("demo", sprint)
     assert yaml.safe_load(path.read_text())["absence_state"] == "unknown"
     assert state_of(data_dir, "2026.30") is AbsenceState.UNKNOWN
@@ -75,7 +75,7 @@ def test_saving_without_a_state_derives_it_from_the_previous_file(data_dir: Path
     path = write(data_dir, "2026.30", "products:\n  webshop: {preplanned: 3}\n")
     repo = Repository(data_dir)
     sprint = repo.load("demo").sprint("2026.30")
-    sprint.forecast_ist = 9.0  # e.g. planning on a previously unconfirmed file
+    sprint.commitment = 9.0  # e.g. planning on a previously unconfirmed file
     repo.save_sprint("demo", sprint)
     assert yaml.safe_load(path.read_text())["absence_state"] == "unknown"
 
@@ -126,7 +126,7 @@ def test_history_counts_confirmed_zero_sprints_and_skips_unknown(data_dir: Path)
     assert history.rate == pytest.approx(history.rates[-1] / 4)
 
     past[0].absence_state = AbsenceState.UNKNOWN  # unknown does not count
-    past[0].velocity = past[0].forecast_ist = past[0].forecast_plan = None
+    past[0].velocity = past[0].commitment = past[0].forecast_plan = None
     past[0].planning = None
     skipped = absence_history(data.team, data.people, past, 4)
     assert past[0].id not in skipped.sprints and len(skipped.sprints) == 3

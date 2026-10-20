@@ -247,8 +247,8 @@ from sprintforecast.signin import (
     verify,
 )
 from sprintforecast.storage import (
+    AS_OF_ENV,
     DATA_ENV,
-    STICHTAG_ENV,
     ConflictError,
     DataError,
     FileAccessError,
@@ -283,7 +283,7 @@ from sprintforecast.web.logic import (
     calendar_table,
     calendar_to_save,
     capacity_usage,
-    default_forecast_ist,
+    default_sprint_commitment,
     edit_absences,
     forget_without_git,
     is_without_git,
@@ -382,13 +382,13 @@ def page_link(key: str, label: str | None = None) -> None:
 
 
 def today() -> date:
-    raw = os.environ.get(STICHTAG_ENV)
+    raw = os.environ.get(AS_OF_ENV)
     return date.fromisoformat(raw) if raw else date.today()
 
 
-def stichtag_problem() -> str | None:
+def as_of_problem() -> str | None:
     """Message if the environment has no valid reference date (otherwise ``today`` fails)."""
-    raw = os.environ.get(STICHTAG_ENV)
+    raw = os.environ.get(AS_OF_ENV)
     if raw:
         try:
             date.fromisoformat(raw)
@@ -399,7 +399,7 @@ def stichtag_problem() -> str | None:
                     "format YYYY-MM-DD is expected. Please correct or remove the variable and "
                     "restart the web interface."
                 ),
-                name=STICHTAG_ENV,
+                name=AS_OF_ENV,
                 value=raw,
             )
     return None
@@ -651,7 +651,7 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     assumed: dict[str, Assumption] = {}
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
-        default_commitment = default_forecast_ist(fc, sprint)
+        default_commitment = default_sprint_commitment(fc, sprint)
         # Align at the bottom: labels that wrap would otherwise push the fields down.
         commitment_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
         commitment = commitment_col.number_input(
@@ -948,7 +948,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 {
                     "Sprint": e.sprint.id,
                     capacity_col: fmt_capacity(e.result.capacity.value, e.capacity_digits),
-                    t("Commitment"): fmt(e.result.forecast_ist.value, 2),
+                    t("Commitment"): fmt(e.result.commitment.value, 2),
                     "Velocity": fmt(e.result.velocity.value, 2),
                     nvel: fmt(e.result.normalized_velocity.value, 2),
                     avg: fmt(e.result.normalized_velocity.average, 2),
@@ -1091,10 +1091,10 @@ def _formula_expander(fc: Forecast) -> None:
         sprint = sprint_select(fc.data, fc, "formula-sprint", "current", None)
         entry = fc.entry(sprint.id) if sprint else None
         if entry is not None:
-            _rechenweg(fc, entry)
+            _derivation(fc, entry)
 
 
-def _rechenweg(fc: Forecast, entry: TimelineEntry) -> None:
+def _derivation(fc: Forecast, entry: TimelineEntry) -> None:
     """First an explanation in plain language, with the values used and their sources below
     on request."""
     st.markdown(plain_explanation(fc, entry))
@@ -1149,7 +1149,7 @@ def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart |
         r = e.result
         future = e.sprint.end > fc.today
         values = {
-            t("Commitment / PLAN"): r.plan if future else r.forecast_ist.value,
+            t("Commitment / PLAN"): r.plan if future else r.commitment.value,
             "Velocity": r.velocity.trend if future else r.velocity.value,
             t("norm. velocity"): r.normalized_velocity.trend
             if future
@@ -2153,7 +2153,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     done = [
         board_steps_done(recorded)["fehltage"],  # like the check mark of the step bar above
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
-        recorded is not None and recorded.forecast_ist is not None,
+        recorded is not None and recorded.commitment is not None,
     ]
     marks = [
         f"{'✅' if ok else '⬜'} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)
@@ -2164,7 +2164,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     elif step == 1:
         _planning_plan(repo, data, fc, sprint)
     else:
-        _planning_ist(repo, data, fc, sprint)
+        _planning_commitment(repo, data, fc, sprint)
 
 
 def _planning_writer(
@@ -2225,13 +2225,13 @@ def _planning_writer(
             # the distribution applies.
             recorded=any(v.planned is not None for v in sprint.products.values())
             or sprint.production_planned is not None
-            or sprint.forecast_ist is not None,
+            or sprint.commitment is not None,
         )
     )
 
     p = sprint.planning
     commitment_lines = [
-        md_item(f"{t('Commitment ({unit})', unit=unit)}: {fmt(sprint.forecast_ist, 2)}")
+        md_item(f"{t('Commitment ({unit})', unit=unit)}: {fmt(sprint.commitment, 2)}")
     ]
     if sprint.forecast_plan is not None:
         commitment_lines.append(
@@ -2256,7 +2256,7 @@ def _planning_writer(
             "commitment",
             t("Commitment"),
             commitment_lines,
-            recorded=sprint.forecast_ist is not None,
+            recorded=sprint.commitment is not None,
         )
     )
 
@@ -2518,7 +2518,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.caption(split)
     _quote_note(fc, [entry])
     with st.expander(t("Calculation path"), icon=":material/function:"):
-        _rechenweg(fc, entry)
+        _derivation(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
         st.warning(t("No absences recorded yet – the capacity is only estimated."))
         st.button(t("Back to the absences"), on_click=_goto, args=(0,))
@@ -2663,7 +2663,7 @@ def _planning_production(
     return True
 
 
-def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
+def _planning_commitment(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     sprint = _base_sprint(data, sprint)
     entry = fc.entry(sprint.id)
@@ -2692,9 +2692,9 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
             t("Total planned per product: {total} {unit}", total=fmt(sum(planned), 2), unit=unit)
         )
     with st.form(f"planning-{sprint.id}"):
-        forecast_ist = _number(
+        commitment = _number(
             t("Commitment ({unit})", unit=unit),
-            sprint.forecast_ist,
+            sprint.commitment,
             f"fist-{sprint.id}",
             help_text("forecast_ist"),
         )
@@ -2748,14 +2748,14 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
         return
     prefilled = apply_planning(
         sprint,
-        forecast_ist,
+        commitment,
         Planning(carryover=carryover or 0.0, backlog=backlog or 0.0, corrections=corrections),
     )
     freeze_plan(sprint, entry, fc.today, refreeze=refreeze)
     prefill_note = (
         t(
             "Commitment taken from carry-over + backlog: {value} {unit}",
-            value=fmt(sprint.forecast_ist, 2),
+            value=fmt(sprint.commitment, 2),
             unit=unit,
         )
         if prefilled
@@ -2788,7 +2788,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
                     ),
                 )
             )
-        if sprint.forecast_ist is not None:
+        if sprint.commitment is not None:
             flash.append(
                 (
                     "success",
@@ -2950,7 +2950,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         now=now,
         facts=[
             (t("Done – velocity ({unit})", unit=unit), fmt(sprint.velocity, 2)),
-            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.commitment, 2)),
             (t("Of which not finished ({unit})", unit=unit), fmt(sprint.not_done, 2)),
             (t("Additionally done ({unit})", unit=unit), fmt(sprint.additional_done, 2)),
             (t("Available person days (PD)"), fmt(sprint.capacity, 1)),
@@ -3210,7 +3210,7 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
             }
             if details:
                 row |= {
-                    f"Commitment ({unit})": fmt(p.forecast_ist, 2),
+                    f"Commitment ({unit})": fmt(p.commitment, 2),
                     t("not finished"): fmt(p.not_done, 2),
                     t("additionally done"): fmt(p.additional_done, 2),
                 }
@@ -3537,7 +3537,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                                 "{unit}"
                             ),
                             id=sid,
-                            commitment=fmt(a.forecast_ist, 2),
+                            commitment=fmt(a.commitment, 2),
                             not_done=fmt(a.not_done, 2),
                             extra=fmt(a.additional_done, 2),
                             done=fmt(a.expected, 2),

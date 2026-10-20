@@ -302,10 +302,10 @@ def web_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str):
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     at.switch_page(f"seiten/{page}.py").run()
@@ -449,7 +449,7 @@ def test_expected_only_sprint_is_neither_counted_nor_flagged(data_dir: Path):
         absence_state=None,
         expected_absences={data.people[0].id: 2.0},
         velocity=None,
-        forecast_ist=None,
+        commitment=None,
         forecast_plan=None,
         planning=None,
     )

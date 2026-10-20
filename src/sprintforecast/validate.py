@@ -566,13 +566,13 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                         ),
                     )
         planned = [v.planned for v in s.products.values() if v.planned is not None]
-        if planned and s.forecast_ist is not None and sum(planned) > s.forecast_ist + 0.05:
+        if planned and s.commitment is not None and sum(planned) > s.commitment + 0.05:
             warn(
                 where,
                 t(
                     "planned per product ({planned}) exceeds the commitment ({commitment})",
                     planned=_g(sum(planned)),
-                    commitment=_g(s.forecast_ist),
+                    commitment=_g(s.commitment),
                 ),
             )
         done = [v.done for v in s.products.values() if v.done is not None]
@@ -592,23 +592,23 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                 error(where, t("{name} must not be negative", name=name))
         if (
             s.production_planned is not None
-            and s.forecast_ist is not None
-            and s.production_planned > s.forecast_ist + 0.05
+            and s.commitment is not None
+            and s.production_planned > s.commitment + 0.05
         ):
             warn(
                 where,
                 t(
                     "Planned with production access ({part}) exceeds the commitment ({whole})",
                     part=_g(s.production_planned),
-                    whole=_g(s.forecast_ist),
+                    whole=_g(s.commitment),
                 ),
             )
         if (
             s.velocity is not None
-            and s.forecast_ist is not None
+            and s.commitment is not None
             and (s.not_done is not None or s.additional_done is not None)
         ):
-            expected = s.forecast_ist - (s.not_done or 0.0) + (s.additional_done or 0.0)
+            expected = s.commitment - (s.not_done or 0.0) + (s.additional_done or 0.0)
             if abs(expected - s.velocity) > 0.05:
                 warn(
                     where,
@@ -617,15 +617,20 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                             "Commitment ({commitment}) − not finished ({open}) + additionally done "
                             "({extra}) gives {expected}, but the velocity is {velocity}"
                         ),
-                        commitment=_g(s.forecast_ist),
+                        commitment=_g(s.commitment),
                         open=_g(s.not_done or 0.0),
                         extra=_g(s.additional_done or 0.0),
                         expected=_g(expected),
                         velocity=_g(s.velocity),
                     ),
                 )
-        for name in ("capacity", "forecast_ist", "velocity", "forecast_plan"):
-            value = getattr(s, name)
+        non_negative = {
+            "capacity": s.capacity,
+            "forecast_ist": s.commitment,  # the file key keeps its name
+            "velocity": s.velocity,
+            "forecast_plan": s.forecast_plan,
+        }
+        for name, value in non_negative.items():
             if value is not None and value < 0:
                 error(where, t("{name} must not be negative", name=name))
         if s.scope_creep is not None and not 0 <= s.scope_creep <= 1:
@@ -638,12 +643,12 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             )
         if s.capacity == 0:
             warn(where, t("capacity 0 – normalized velocity cannot be calculated"))
-        if s.velocity is not None and s.forecast_ist and s.velocity > 2 * s.forecast_ist:
+        if s.velocity is not None and s.commitment and s.velocity > 2 * s.commitment:
             warn(where, t("velocity is more than twice the commitment – typo?"))
 
         if s.planning is not None and s.end > today:
             committed = s.planning.committed
-            if s.forecast_ist is not None and committed and abs(s.forecast_ist - committed) > 0.05:
+            if s.commitment is not None and committed and abs(s.commitment - committed) > 0.05:
                 warn(
                     where,
                     t(
@@ -651,7 +656,7 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                             "commitment {commitment} differs from carry-over + backlog "
                             "({planned}) – typo or missing ticket?"
                         ),
-                        commitment=_g(s.forecast_ist),
+                        commitment=_g(s.commitment),
                         planned=_g(committed),
                     ),
                 )
@@ -684,7 +689,7 @@ def issues_for(data: TeamData, today: date, filenames: list[str]) -> list[Issue]
 # Loading does not change because of this: a duplicate key still counts as "the last one
 # wins", an empty value as 0. The check only makes this visible. Empty values are reported
 # only where a number is expected and the program silently reads the empty value as 0.
-# Intentionally empty fields (``to:``, ``capacity:``, ``forecast_ist:``, ``region:`` ...) are
+# Intentionally empty fields (``to:``, ``capacity:``, ``commitment:``, ``region:`` ...) are
 # valid and produce no message.
 
 _EMPTY_AS_ZERO: tuple[tuple[str, ...], ...] = (

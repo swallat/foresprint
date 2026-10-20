@@ -160,10 +160,10 @@ def test_settings_page_changes_country(data_dir: Path, monkeypatch: pytest.Monke
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     app = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app), default_timeout=30)
     at.run()

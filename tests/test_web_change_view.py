@@ -12,7 +12,7 @@ from streamlit.testing.v1 import AppTest
 
 from sprintforecast import diff
 from sprintforecast.git import GitError, invalidate_status
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 from sprintforecast.yamlmerge import MISSING
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -28,7 +28,7 @@ def git(cwd: Path, *args: str) -> str:
 
 def start(data_dir: Path, monkeypatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception

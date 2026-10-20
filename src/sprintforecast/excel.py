@@ -447,7 +447,7 @@ def build_workbook(fc: Forecast) -> bytes:
         # Inputs (yellow): exactly the fields of the sprint file; a missing value leaves the
         # cell empty.
         for name, v, f in (
-            ("ist", s.forecast_ist, inp),
+            ("ist", s.commitment, inp),
             ("vel", s.velocity, inp),
             ("scope", s.scope_creep, scope_f),
             ("caprec", s.capacity, inp1),
@@ -711,7 +711,7 @@ def _data_sheets(
         for pg in sp.prognoses:
             pre = "; ".join(f"{k}={v:g}" for k, v in pg.preplanned.items()) or None
             values = [
-                sp.id, pg.at, pg.comment, pg.forecast_ist, pg.not_done, pg.additional_done,
+                sp.id, pg.at, pg.comment, pg.commitment, pg.not_done, pg.additional_done,
                 pg.expected_done, pg.target, pg.plan, pre,
             ]  # fmt: skip
             for col, v in enumerate(values):
@@ -815,7 +815,7 @@ def _trend_sheet(
         lambda e: e.result.normalized_velocity.trend,
         lambda e: e.result.plan,
         lambda e: e.result.input.velocity,
-        lambda e: e.result.input.forecast_ist,
+        lambda e: e.result.input.commitment,
     ]
     for i, e in enumerate(entries):
         for k, (src, get) in enumerate(zip(sources, cached, strict=True)):

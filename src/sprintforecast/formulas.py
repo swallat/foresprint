@@ -290,7 +290,7 @@ def plain_explanation(fc: Forecast, e: TimelineEntry, note: bool = True) -> str:
     if r.plan_source is PlanSource.ACTUAL:
         return t(
             "Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.",
-            value=_n(r.forecast_ist.value),
+            value=_n(r.commitment.value),
             unit=unit,
             plan=fmt(r.plan, f.rounding),
         )
@@ -398,7 +398,7 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
                 "plan",
                 "Forecast PLAN",
                 t("Forecast PLAN = rounded down(commitment) – past sprint"),
-                f"{_n(r.forecast_ist.value)} → {fmt(r.plan, f.rounding)} {unit}",
+                f"{_n(r.commitment.value)} → {fmt(r.plan, f.rounding)} {unit}",
             )
         )
     if r.plan is not None:
@@ -422,7 +422,7 @@ def steps(fc: Forecast, e: TimelineEntry, code: bool = False, note: bool = True)
                 "fulfillment",
                 "Fulfillment",
                 general("fulfillment"),
-                f"{_n(r.velocity.value)} / {_n(r.forecast_ist.value)} = {pct(r.fulfillment.value)}",
+                f"{_n(r.velocity.value)} / {_n(r.commitment.value)} = {pct(r.fulfillment.value)}",
             )
         )
     if r.planning_total is not None and e.sprint.planning is not None:

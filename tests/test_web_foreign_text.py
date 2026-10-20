@@ -12,7 +12,7 @@ import pytest
 pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
-from test_web_data_folder import datenordner, enter_address
+from test_web_data_folder import data_folder_page, enter_address
 from test_web_data_folder import errors as main_errors
 from test_web_k3_integration import foreign_history, sidebar_text
 from test_web_sync import SPRINT, git, main_button, open_history, press, start
@@ -356,7 +356,7 @@ def test_a_message_of_git_without_hint_is_shown_as_code(
             return clone(url, path)
         raise classify(f"fatal: bad ref {LINK}\nremote: {HOOK}   \nremote: ! `tick`")
 
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     monkeypatch.setattr(ui, "clone_repository", failing)
     enter_address(at, "https://example.org/team/daten.git")
     at.text_input(key="data-clone").set_value(str(tmp_path / "klon")).run()

@@ -25,7 +25,7 @@ from test_web_k3_ui import (
 from sprintforecast import config
 from sprintforecast.config import SettingsError
 from sprintforecast.git import invalidate_status
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 
 BROKEN = SettingsError("Die Einstellungen konnten nicht gespeichert werden (x): Zugriff verweigert")
 
@@ -459,7 +459,7 @@ def test_plugin_page_is_locked_with_open_merge(
 ):
     open_merge(repo)
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_function(plugin_script, default_timeout=30)
     at.run()
     assert not at.exception, at.exception

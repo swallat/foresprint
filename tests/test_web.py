@@ -18,7 +18,7 @@ from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps
 from sprintforecast.forecast import build_forecast
 from sprintforecast.i18n import t
 from sprintforecast.model import Sprint
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.web import ui
 from sprintforecast.web.ui import PAGE_FEATURES, PAGE_INFO, PAGES, START_TASKS
 
@@ -27,7 +27,7 @@ APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -63,12 +63,12 @@ def git(cwd: Path, *args: str) -> str:
 
 def test_invalid_as_of_variable_shows_error(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "morgen")
+    monkeypatch.setenv(AS_OF_ENV, "morgen")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
     assert len(at.error) == 1
-    for part in (STICHTAG_ENV, "morgen", "JJJJ-MM-TT"):
+    for part in (AS_OF_ENV, "morgen", "JJJJ-MM-TT"):
         assert part in at.error[0].value
     assert not at.header  # the page is not drawn
 
@@ -1413,7 +1413,7 @@ def test_step_bar_marks_only_done_steps_with_a_green_check(app: AppTest):
 def test_step_bar_mark_is_also_on_the_active_step(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     """The active step (blue, the icon turns white via CSS) carries the same icon as the other
     steps, on every page, once the sprint is fully recorded."""
-    _change_2026_22(data_dir, forecast_ist=10, velocity=9)
+    _change_2026_22(data_dir, commitment=10, velocity=9)
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
     path.write_text(yaml.safe_dump({**load(path), "velocity": 9}))  # both sprints complete
     at = start(data_dir, monkeypatch)
@@ -1504,7 +1504,7 @@ def test_start_task_icons_are_the_page_icons_and_no_check_marks(app: AppTest):
     ("fields", "done"),
     [
         ({}, {"fehltage": True, "vorplanung": True, "planning": False, "review": False}),
-        # Planning = forecast state (forecast_ist) recorded
+        # Planning = forecast state (commitment) recorded
         (
             {"forecast_ist": 10},
             {"fehltage": True, "vorplanung": True, "planning": True, "review": False},

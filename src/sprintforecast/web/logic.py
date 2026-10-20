@@ -79,14 +79,14 @@ def open_velocity_sprints(fc: Forecast, count: int = 2) -> list[Sprint]:
 class Assumption:
     """The team's forecast for an open sprint."""
 
-    forecast_ist: float
+    commitment: float
     not_done: float | None = None
     additional_done: float | None = None
 
     @property
     def expected(self) -> float:
         """Expected completed amount (velocity)."""
-        return max(self.forecast_ist - (self.not_done or 0.0) + (self.additional_done or 0.0), 0.0)
+        return max(self.commitment - (self.not_done or 0.0) + (self.additional_done or 0.0), 0.0)
 
 
 def record_prognoses(
@@ -115,7 +115,7 @@ def record_prognoses(
             Prognosis(
                 at=now,
                 comment=comment.strip() or None,
-                forecast_ist=a.forecast_ist,
+                commitment=a.commitment,
                 not_done=a.not_done,
                 additional_done=a.additional_done,
                 expected_done=a.expected,
@@ -127,13 +127,13 @@ def record_prognoses(
     return list(result.values())
 
 
-def default_forecast_ist(fc: Forecast, sprint: Sprint) -> float | None:
+def default_sprint_commitment(fc: Forecast, sprint: Sprint) -> float | None:
     """Default for the commitment in the what-if: the sprint's recorded value, otherwise that
     of the nearest earlier sprint that has one recorded."""
-    if sprint.forecast_ist is not None:
-        return sprint.forecast_ist
+    if sprint.commitment is not None:
+        return sprint.commitment
     earlier = [e.sprint for e in fc.entries if e.sprint.start < sprint.start]
-    return next((s.forecast_ist for s in reversed(earlier) if s.forecast_ist is not None), None)
+    return next((s.commitment for s in reversed(earlier) if s.commitment is not None), None)
 
 
 def whatif_forecast(fc: Forecast, velocities: dict[str, float] | dict[str, Assumption]) -> Forecast:
@@ -229,7 +229,7 @@ def _only_absences(sprint: Sprint) -> bool:
     """Sprint holds nothing besides (empty) absences, a pure confirmation of the absences."""
     return (
         sprint.capacity is None
-        and sprint.forecast_ist is None
+        and sprint.commitment is None
         and sprint.velocity is None
         and sprint.scope_creep is None
         and sprint.planning is None
@@ -704,7 +704,7 @@ def board_steps_done(
     return {
         "fehltage": absence_status(recorded) is AbsenceState.CONFIRMED,
         "vorplanung": preplanned_complete(recorded, products or []),
-        "planning": recorded.forecast_ist is not None,
+        "planning": recorded.commitment is not None,
         "review": recorded.velocity is not None,
     }
 
@@ -758,7 +758,7 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
             tasks.append(
                 StartTask("prepare", "fehltage", sid, t("Sprint {id}: prepared.", id=sid), True)
             )
-        committed = sprint.forecast_ist is not None
+        committed = sprint.commitment is not None
         tasks.append(
             StartTask(
                 "planning",

@@ -269,16 +269,16 @@ def build_target(data):
 
 def test_default_commitment_falls_back_to_previous_sprint(data_dir: Path):
     from sprintforecast.forecast import build_forecast
-    from sprintforecast.web.logic import default_forecast_ist
+    from sprintforecast.web.logic import default_sprint_commitment
 
     fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
     current = fc.current.sprint
-    assert default_forecast_ist(fc, current) == current.forecast_ist
-    own = current.forecast_ist
-    current.forecast_ist = None
+    assert default_sprint_commitment(fc, current) == current.commitment
+    own = current.commitment
+    current.commitment = None
     earlier = [e.sprint for e in fc.entries if e.sprint.start < current.start]
-    expected = next(s.forecast_ist for s in reversed(earlier) if s.forecast_ist is not None)
-    assert default_forecast_ist(fc, current) == expected
+    expected = next(s.commitment for s in reversed(earlier) if s.commitment is not None)
+    assert default_sprint_commitment(fc, current) == expected
     assert own is not None
 
 
@@ -415,7 +415,7 @@ def test_hidden_product_columns_keep_their_stored_values():
 def test_board_steps_done_other_steps_follow_their_values():
     sprint = _sprint(
         products={"app": ProductValues(), "web": ProductValues(preplanned=0.0)},
-        forecast_ist=0.0,  # 0 is recorded (not "missing")
+        commitment=0.0,  # 0 is recorded (not "missing")
         velocity=7.5,
     )
     done = board_steps_done(sprint)

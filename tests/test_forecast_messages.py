@@ -12,7 +12,7 @@ from typer.testing import CliRunner
 from sprintforecast.calendar import id_fits_numbering, next_id
 from sprintforecast.cli import app as cli_app
 from sprintforecast.model import Numbering
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, DataError, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, DataError, Repository
 from sprintforecast.validate import Level, check_team
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -242,7 +242,7 @@ def test_cli_check_reports_the_unfitting_id(data_dir: Path):
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
