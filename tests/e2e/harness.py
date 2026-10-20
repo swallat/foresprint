@@ -197,7 +197,7 @@ class App:
         env = {
             key: value
             for key, value in os.environ.items()
-            if not key.startswith(("FORESPRINT_", "STREAMLIT_"))
+            if not key.startswith(("FORESPRINT_", "SPRINTFORECAST_", "STREAMLIT_"))
         }
         env |= git_env(self.person, self.gitconfig)
         env |= {

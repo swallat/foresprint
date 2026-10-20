@@ -8,7 +8,7 @@
 #   $env:FORESPRINT_REF = "…"                                      branch or tag instead of main
 #   $env:FORESPRINT_NO_SHORTCUT = "1"                              do not create a launcher
 #   $env:FORESPRINT_COMPLETION = "1"                               set up Tab completion
-# The former names SPRINTFORECAST_WITH, SPRINTFORECAST_REF and SPRINTFORECAST_NO_SHORTCUT still work.
+# The former names SPRINTFORECAST_WITH, _REF, _NO_SHORTCUT and _COMPLETION still work.
 $ErrorActionPreference = "Stop"
 
 # Old variable names: use them when the new one is not set.
@@ -21,7 +21,8 @@ foreach ($name in "WITH", "REF", "NO_SHORTCUT", "COMPLETION") {
 $ref = if ($env:FORESPRINT_REF) { $env:FORESPRINT_REF } else { "main" }
 $kind = if ($ref -match '^v\d') { "tags" } else { "heads" }
 $core = "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/$kind/$ref.zip"
-$pluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"
+$pluginFile = Join-Path $env:APPDATA "foresprint\plugins.txt"
+$legacyPluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"  # before the rename
 
 function Expand-Plugin([string]$item) {
     # "owner/repo" -> git+https://github.com/owner/repo; everything else unchanged
@@ -35,7 +36,7 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     $env:Path = "$HOME\.local\bin;$env:Path"
 }
 
-$saved = if (Test-Path $pluginFile) { (Get-Content $pluginFile -Raw).Trim() } else { "" }
+$saved = if (Test-Path $pluginFile) { (Get-Content $pluginFile -Raw).Trim() } elseif (Test-Path $legacyPluginFile) { (Get-Content $legacyPluginFile -Raw).Trim() } else { "" }
 if (Test-Path Env:FORESPRINT_WITH) {
     $plugins = $env:FORESPRINT_WITH
 } elseif ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
@@ -75,6 +76,7 @@ if ($items.Count -gt 0) {
     Set-Content -Path $pluginFile -Value ($items -join "; ") -Encoding UTF8
 } elseif (Test-Path $pluginFile) {
     Remove-Item $pluginFile
+    if (Test-Path $legacyPluginFile) { Remove-Item $legacyPluginFile }
 }
 
 $bin = (& uv tool dir --bin).Trim()

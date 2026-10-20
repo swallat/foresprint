@@ -50,7 +50,7 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
 
    The keychain needs the package `keyring`, which comes with the extra `[jira]`; the entry is
    stored under the
-   service `sprintforecast-jira` and the **host** of `base_url` only: one token per Jira host,
+   service `foresprint-jira` (the former `sprintforecast-jira` is still read) and the **host** of `base_url` only: one token per Jira host,
    shared by all teams and paths on it. The environment variable comes first when both exist
    (`--set-token` warns about that).
 5. **Test the connection.** Shows the account the token belongs to and the fields found in the

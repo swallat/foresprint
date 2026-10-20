@@ -2604,6 +2604,7 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
         )
         # otherwise find_browser would read the invalid setting again
         os.environ.pop(BROWSER_ENV, None)
+        os.environ.pop(BROWSER_ENV.replace("FORESPRINT_", "SPRINTFORECAST_"), None)
         found = find_browser(None)
     match found.kind:
         case BrowserKind.APP:

@@ -9,7 +9,7 @@
 #   FORESPRINT_WITH="owner/repo; name @ git+https://…"  plugins (empty = none)
 #   FORESPRINT_REF=…                                       branch or tag instead of main
 #   FORESPRINT_NO_SHORTCUT=1                               do not create a launcher
-# The former names SPRINTFORECAST_WITH, SPRINTFORECAST_REF and SPRINTFORECAST_NO_SHORTCUT still work.
+# The former names SPRINTFORECAST_WITH, _REF and _NO_SHORTCUT still work.
 set -eu
 
 # Old variable names: use them when the new one is not set.
@@ -24,7 +24,8 @@ REF="${FORESPRINT_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
 CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/${KIND}/${REF}.zip"
-PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"
+PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/foresprint/plugins"
+LEGACY_PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"  # before the rename
 
 say() { printf '%s\n' "$*"; }
 trim() { printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
@@ -48,7 +49,11 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 saved=""
-[ -f "$PLUGIN_FILE" ] && saved=$(trim "$(cat "$PLUGIN_FILE")")
+if [ -f "$PLUGIN_FILE" ]; then
+    saved=$(trim "$(cat "$PLUGIN_FILE")")
+elif [ -f "$LEGACY_PLUGIN_FILE" ]; then
+    saved=$(trim "$(cat "$LEGACY_PLUGIN_FILE")")
+fi
 if [ -n "${FORESPRINT_WITH+x}" ]; then
     plugins="$FORESPRINT_WITH"
 elif interactive; then
@@ -109,7 +114,7 @@ if [ -n "$specs" ]; then
     mkdir -p "$(dirname "$PLUGIN_FILE")"
     printf '%s\n' "$specs" >"$PLUGIN_FILE"
 else
-    rm -f "$PLUGIN_FILE"
+    rm -f "$PLUGIN_FILE" "$LEGACY_PLUGIN_FILE"
 fi
 
 # Double-click launcher (disable with FORESPRINT_NO_SHORTCUT=1)

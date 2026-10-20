@@ -105,3 +105,29 @@ def test_token_stored_under_the_old_keychain_service_is_found_and_removed(
     assert jira_module.stored_token_exists(base)
     jira_module.delete_token(base)
     assert not stored
+
+
+def test_new_git_key_wins_over_the_old_one(tmp_path: Path):
+    root = make_local(tmp_path)
+    data = root / "teams"
+    for key, value in (
+        ("sprintforecast.host", "gitlab"),
+        ("foresprint.host", "github"),
+    ):
+        subprocess.run(["git", "config", "--local", key, value], cwd=root, check=True)
+    assert gitsync.host_setting(data) == "github"
+
+
+def test_config_migration_skips_lock_files_and_leaves_no_temporary_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    legacy = tmp_path / "sprintforecast"
+    (legacy / "sperren").mkdir(parents=True)
+    (legacy / "sperren" / "x.lock").write_text("lock", encoding="utf-8")
+    (legacy / "settings.json").write_text('{"language": "de"}', encoding="utf-8")
+    assert config.load() == {"language": "de"}
+    folder = tmp_path / "foresprint"
+    assert not (folder / "sperren" / "x.lock").exists()
+    assert not list(folder.rglob("*.tmp"))
