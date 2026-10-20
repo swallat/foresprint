@@ -49,15 +49,21 @@ from sprintforecast.yamlmerge import (
 # How own changes reach the server: directly onto the branch or (server with a protected
 # main branch, e.g. GitLab) via a merge request. The choice applies per data repository and
 # is stored in its local Git configuration.
-SHARE_KEY = "sprintforecast.share"
-AUTO_MERGE_KEY = "sprintforecast.mrautomerge"  # "false" turns auto-merge off (default: on)
+SHARE_KEY = "foresprint.share"
+AUTO_MERGE_KEY = "foresprint.mrautomerge"  # "false" turns auto-merge off (default: on)
 SHARE_DIRECT, SHARE_MERGE_REQUEST = "direct", "merge_request"
 _PR_URL = re.compile(
     r"https?://\S+/(?:pulls?/(?:\d+|new/\S+)|merge_requests/(?:\d+|new\b\S*)|compare/\S+)"
 )
 # Which server hosts the data repository? That determines how a merge/pull request is
 # created. ``HOST_KEY`` overrides the detection from the address (default: automatic).
-HOST_KEY = "sprintforecast.host"
+HOST_KEY = "foresprint.host"
+# Keys written before the rename to Foresprint; still read, removed when the setting is saved.
+LEGACY_KEYS = {
+    SHARE_KEY: "sprintforecast.share",
+    AUTO_MERGE_KEY: "sprintforecast.mrautomerge",
+    HOST_KEY: "sprintforecast.host",
+}
 HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC = "gitlab", "github", "forgejo", "generic"
 HOSTS = (HOST_GITLAB, HOST_GITHUB, HOST_FORGEJO, HOST_GENERIC)
 
@@ -246,7 +252,7 @@ def cached_state(path: Path) -> SyncState:
 # button then explains the next step.
 BACKGROUND_FETCH_SECONDS = 30 * 60
 BACKGROUND_TIMEOUT = 20.0
-BACKGROUND_OFF_ENV = "SPRINTFORECAST_NO_BACKGROUND_FETCH"  # set: no background fetch
+BACKGROUND_OFF_ENV = "FORESPRINT_NO_BACKGROUND_FETCH"  # set: no background fetch
 _QUIET_ENV = {
     "GCM_INTERACTIVE": "never",
     "SSH_ASKPASS_REQUIRE": "never",
@@ -996,10 +1002,25 @@ def _drop_merged_commits(root: Path, current: SyncState) -> SyncState:
     return current
 
 
+def _get_setting(root: Path, key: str) -> str:
+    """Local Git setting of the data folder; the key from before the rename is the fallback."""
+    value = _git(root, "config", "--local", "--get", key, check=False)
+    return value or _git(root, "config", "--local", "--get", LEGACY_KEYS[key], check=False)
+
+
+def _set_setting(root: Path, key: str, value: str | None) -> None:
+    """Save (or, with ``None``, remove) a local Git setting and drop the old spelling of it."""
+    _git(root, "config", "--local", "--unset-all", LEGACY_KEYS[key], check=False)
+    if value is None:
+        _git(root, "config", "--local", "--unset-all", key, check=False)
+    else:
+        _git(root, "config", "--local", key, value)
+
+
 def share_mode(path: Path) -> str:
     """``"direct"`` (default) or ``"merge_request"``: where "Save and share" uploads to."""
     root = _root(path)
-    value = _git(root, "config", "--local", "--get", SHARE_KEY, check=False)
+    value = _get_setting(root, SHARE_KEY)
     return value if value == SHARE_MERGE_REQUEST else SHARE_DIRECT
 
 
@@ -1049,23 +1070,17 @@ def _open_merge_request_note(root: Path, path: Path, current: SyncState) -> list
 def auto_merge(path: Path) -> bool:
     """Should the merge request merge automatically once the pipeline is green? Default: yes."""
     root = _root(path)
-    return _git(root, "config", "--local", "--get", AUTO_MERGE_KEY, check=False) != "false"
+    return _get_setting(root, AUTO_MERGE_KEY) != "false"
 
 
 def set_auto_merge(path: Path, enabled: bool) -> None:
     root = _root(path)
-    if enabled:
-        _git(root, "config", "--local", "--unset-all", AUTO_MERGE_KEY, check=False)
-    else:
-        _git(root, "config", "--local", AUTO_MERGE_KEY, "false")
+    _set_setting(root, AUTO_MERGE_KEY, None if enabled else "false")
 
 
 def set_share_mode(path: Path, mode: str) -> None:
     root = _root(path)
-    if mode == SHARE_MERGE_REQUEST:
-        _git(root, "config", "--local", SHARE_KEY, mode)
-    else:
-        _git(root, "config", "--local", "--unset-all", SHARE_KEY, check=False)
+    _set_setting(root, SHARE_KEY, mode if mode == SHARE_MERGE_REQUEST else None)
 
 
 def detect_host(url: str) -> str:
@@ -1092,16 +1107,13 @@ def _web_location(url: str) -> tuple[str, str] | None:
 
 def host_setting(path: Path) -> str | None:
     """The explicitly chosen server kind (``None``: detect automatically from the address)."""
-    value = _git(_root(path), "config", "--local", "--get", HOST_KEY, check=False)
+    value = _get_setting(_root(path), HOST_KEY)
     return value if value in HOSTS else None
 
 
 def set_host(path: Path, host: str | None) -> None:
     root = _root(path)
-    if host in HOSTS:
-        _git(root, "config", "--local", HOST_KEY, host)
-    else:
-        _git(root, "config", "--local", "--unset-all", HOST_KEY, check=False)
+    _set_setting(root, HOST_KEY, host if host in HOSTS else None)
 
 
 def host_kind(path: Path) -> str:

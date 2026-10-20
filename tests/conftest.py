@@ -14,7 +14,7 @@ EXAMPLES = Path(__file__).parent.parent / "examples" / "teams"
 @pytest.fixture(autouse=True)
 def german_by_default(monkeypatch: pytest.MonkeyPatch):
     """The UI is English by default; the test suite still expects German texts, so every test
-    defaults to "de" (tests using the ``english`` fixture or SPRINTFORECAST_LANG=en are
+    defaults to "de" (tests using the ``english`` fixture or FORESPRINT_LANG=en are
     unaffected)."""
     monkeypatch.setattr(i18n, "DEFAULT", "de")
 
@@ -23,7 +23,7 @@ def german_by_default(monkeypatch: pytest.MonkeyPatch):
 def no_background_fetch(monkeypatch: pytest.MonkeyPatch):
     """No background fetch of the server state: a thread that changes the Git state in the middle
     of a test would make runs flaky (tests for it reset the variable)."""
-    monkeypatch.setenv("SPRINTFORECAST_NO_BACKGROUND_FETCH", "1")
+    monkeypatch.setenv("FORESPRINT_NO_BACKGROUND_FETCH", "1")
 
 
 @pytest.fixture

@@ -6,16 +6,26 @@
 #
 # Running it again updates. The script asks for plugins and remembers the choice.
 # Without prompting:
-#   SPRINTFORECAST_WITH="owner/repo; name @ git+https://…"  plugins (empty = none)
-#   SPRINTFORECAST_REF=…                                       branch or tag instead of main
-#   SPRINTFORECAST_NO_SHORTCUT=1                               do not create a launcher
+#   FORESPRINT_WITH="owner/repo; name @ git+https://…"  plugins (empty = none)
+#   FORESPRINT_REF=…                                       branch or tag instead of main
+#   FORESPRINT_NO_SHORTCUT=1                               do not create a launcher
+# The former names SPRINTFORECAST_WITH, _REF and _NO_SHORTCUT still work.
 set -eu
 
-REF="${SPRINTFORECAST_REF:-main}"
+# Old variable names: use them when the new one is not set.
+for name in WITH REF NO_SHORTCUT; do
+    if eval "[ -z \"\${FORESPRINT_$name+x}\" ] && [ -n \"\${SPRINTFORECAST_$name+x}\" ]"; then
+        eval "FORESPRINT_$name=\$SPRINTFORECAST_$name"
+        eval "export FORESPRINT_$name"
+    fi
+done
+
+REF="${FORESPRINT_REF:-main}"
 KIND=heads
 case "$REF" in v[0-9]*) KIND=tags ;; esac
 CORE="sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/${KIND}/${REF}.zip"
-PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"
+PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/foresprint/plugins"
+LEGACY_PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"  # before the rename
 
 say() { printf '%s\n' "$*"; }
 trim() { printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
@@ -39,9 +49,13 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 saved=""
-[ -f "$PLUGIN_FILE" ] && saved=$(trim "$(cat "$PLUGIN_FILE")")
-if [ -n "${SPRINTFORECAST_WITH+x}" ]; then
-    plugins="$SPRINTFORECAST_WITH"
+if [ -f "$PLUGIN_FILE" ]; then
+    saved=$(trim "$(cat "$PLUGIN_FILE")")
+elif [ -f "$LEGACY_PLUGIN_FILE" ]; then
+    saved=$(trim "$(cat "$LEGACY_PLUGIN_FILE")")
+fi
+if [ -n "${FORESPRINT_WITH+x}" ]; then
+    plugins="$FORESPRINT_WITH"
 elif interactive; then
     {
         say ""
@@ -100,11 +114,11 @@ if [ -n "$specs" ]; then
     mkdir -p "$(dirname "$PLUGIN_FILE")"
     printf '%s\n' "$specs" >"$PLUGIN_FILE"
 else
-    rm -f "$PLUGIN_FILE"
+    rm -f "$PLUGIN_FILE" "$LEGACY_PLUGIN_FILE"
 fi
 
-# Double-click launcher (disable with SPRINTFORECAST_NO_SHORTCUT=1)
-if [ -z "${SPRINTFORECAST_NO_SHORTCUT:-}" ]; then
+# Double-click launcher (disable with FORESPRINT_NO_SHORTCUT=1)
+if [ -z "${FORESPRINT_NO_SHORTCUT:-}" ]; then
     "$(uv tool dir --bin)/sprintforecast" shortcut || say "Note: launcher not created."
 fi
 

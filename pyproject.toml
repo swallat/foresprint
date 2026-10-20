@@ -75,5 +75,5 @@ testpaths = ["tests"]
 addopts = "-m 'not e2e and not jira_live'"
 markers = [
     "e2e: Browsertests mit Playwright gegen die laufende App (nur mit -m e2e)",
-    "jira_live: Test gegen eine echte Jira-Instanz (nur mit -m jira_live und SPRINTFORECAST_JIRA_*)",
+    "jira_live: Test gegen eine echte Jira-Instanz (nur mit -m jira_live und FORESPRINT_JIRA_*)",
 ]

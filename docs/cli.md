@@ -5,12 +5,12 @@ how the data directory is found, the settings and the environment variables.
 
 ## Data directory and reference date
 
-**Data directory:** `--data PATH`, otherwise the environment variable `SPRINTFORECAST_DATA`,
+**Data directory:** `--data PATH`, otherwise the environment variable `FORESPRINT_DATA`,
 otherwise the **current directory** if it contains teams, otherwise the **remembered data
 folder** (web UI: *Data folder* page; command line: `sprintforecast data-dir PATH`). Teams are
 subfolders with a `team.yaml`; if a directory has none but a subfolder `teams` with teams, that
 one is used. If the web UI finds no data folder, it guides you through choosing, creating or
-cloning one. `--as-of DATE` (or `SPRINTFORECAST_AS_OF`) sets the date that counts as "today",
+cloning one. `--as-of DATE` (or `FORESPRINT_AS_OF`) sets the date that counts as "today",
 for retrospectives and tests.
 
 ## Commands at a glance
@@ -46,7 +46,7 @@ commits the change to Git. The full sprint workflow is in
 
 English is the default. Switch in the sidebar of the web UI (**Sprache / Language**) or with
 `sprintforecast language de` (back with `sprintforecast language en`); the choice is remembered.
-`SPRINTFORECAST_LANG=de` takes precedence. Command, option and environment variable names are
+`FORESPRINT_LANG=de` takes precedence. Command, option and environment variable names are
 English in both languages. The YAML files are English regardless of the language; only the report
 `FORECAST.md` and the minutes follow the configured language.
 
@@ -57,9 +57,9 @@ English in both languages. The YAML files are English regardless of the language
   mode, overhead, country, region and working week. Change them with `sprintforecast settings
   TEAM` or the *Settings* page; every key is explained in [Data format](data-format.md)
   and `sprintforecast help team`.
-- **Environment variables:** `SPRINTFORECAST_DATA` (data directory), `SPRINTFORECAST_AS_OF`
-  (date that counts as today), `SPRINTFORECAST_LANG` (`en` or `de`), `SPRINTFORECAST_AUTOUPDATE`
-  (`on`, `notice` or `off`), `SPRINTFORECAST_BROWSER` (browser for the app window).
+- **Environment variables:** `FORESPRINT_DATA` (data directory), `FORESPRINT_AS_OF`
+  (date that counts as today), `FORESPRINT_LANG` (`en` or `de`), `FORESPRINT_AUTOUPDATE`
+  (`on`, `notice` or `off`), `FORESPRINT_BROWSER` (browser for the app window).
 - **Web UI options:** `sprintforecast web --no-app` opens a browser tab instead of an app
   window, `--no-browser` only starts the server, `--port` and `--browser PATH` choose port and
   browser.
@@ -69,5 +69,5 @@ English in both languages. The YAML files are English regardless of the language
 `sprintforecast` checks at most once a day for a newer version and installs it after the command
 or the app exits; plugins and the Python version are kept. `sprintforecast update` updates now
 (`--check` only checks, `--force` reinstalls); `sprintforecast update --auto on|notice|off` or
-`SPRINTFORECAST_AUTOUPDATE` controls the automatic behaviour. Installations pinned to a tag are
+`FORESPRINT_AUTOUPDATE` controls the automatic behaviour. Installations pinned to a tag are
 not updated automatically. Details in [Installation](installation.md#updating).

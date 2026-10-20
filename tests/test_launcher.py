@@ -237,7 +237,7 @@ def test_web_no_browser_opens_nothing_and_never_stops_itself(web_run, options: l
 def test_invalid_browser_variable_falls_back_to_automatic_search(
     no_browsers: dict, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """If SPRINTFORECAST_BROWSER points to a nonexistent path, `web` keeps searching on its own
+    """If FORESPRINT_BROWSER points to a nonexistent path, `web` keeps searching on its own
     (no traceback), although app mode is now the default."""
     from sprintforecast import cli
 
@@ -292,7 +292,7 @@ def test_terminate_tree_stops_children():
 
 
 def test_unwritable_log_does_not_stop_the_start(web_run, tmp_path: Path, monkeypatch):
-    monkeypatch.setenv("SPRINTFORECAST_LOG", str(tmp_path / "nothing" / "app.log"))
+    monkeypatch.setenv("FORESPRINT_LOG", str(tmp_path / "nothing" / "app.log"))
     seen = web_run("--no-browser")
     assert seen["cmd"] is not None  # the server was started anyway
 

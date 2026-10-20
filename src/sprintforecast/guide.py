@@ -815,7 +815,7 @@ COMMANDS: list[tuple[str, str]] = [
     (
         "sprintforecast --data PATH …",
         (
-            "Before the command: set the data directory (otherwise SPRINTFORECAST_DATA, the "
+            "Before the command: set the data directory (otherwise FORESPRINT_DATA, the "
             "current or the saved directory)"
         ),
     ),

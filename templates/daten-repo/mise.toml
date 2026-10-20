@@ -3,9 +3,9 @@ python = "3.14"
 uv = "0.13.1"
 
 [env]
-SPRINTFORECAST_DATA = "teams"
+FORESPRINT_DATA = "teams"
 # Language of the generated reports (FORECAST.md): "en" or "de".
-SPRINTFORECAST_LANG = "en"
+FORESPRINT_LANG = "en"
 
 [tasks.sf]
 description = "run sprintforecast, e.g. `mise run sf -- forecast team-a`"

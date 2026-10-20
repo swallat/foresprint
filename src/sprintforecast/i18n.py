@@ -3,7 +3,7 @@
 
 Source texts are English; ``t("Saved: {names}", names=...)`` returns the English text or, for
 German, the translation from ``locale_de.DE``. Language: environment variable
-SPRINTFORECAST_LANG > user setting (``sprintforecast language`` or the sidebar of the web UI)
+FORESPRINT_LANG > user setting (``sprintforecast language`` or the sidebar of the web UI)
 > English. File contents (YAML) are English regardless of the language.
 """
 
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 
-LANG_ENV = "SPRINTFORECAST_LANG"
+LANG_ENV = "FORESPRINT_LANG"
 LANGUAGES: dict[str, str] = {"de": "Deutsch", "en": "English"}
 DEFAULT = "en"
 

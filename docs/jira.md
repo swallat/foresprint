@@ -39,7 +39,7 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
 4. **Give the tool the token.** Either set the environment variable
 
    ```bash
-   export SPRINTFORECAST_JIRA_TOKEN=...        # PowerShell: $env:SPRINTFORECAST_JIRA_TOKEN = "..."
+   export FORESPRINT_JIRA_TOKEN=...        # PowerShell: $env:FORESPRINT_JIRA_TOKEN = "..."
    ```
 
    or store it in the operating system keychain (hidden input, nothing is echoed):
@@ -50,7 +50,7 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
 
    The keychain needs the package `keyring`, which comes with the extra `[jira]`; the entry is
    stored under the
-   service `sprintforecast-jira` and the **host** of `base_url` only: one token per Jira host,
+   service `foresprint-jira` (the former `sprintforecast-jira` is still read) and the **host** of `base_url` only: one token per Jira host,
    shared by all teams and paths on it. The environment variable comes first when both exist
    (`--set-token` warns about that).
 5. **Test the connection.** Shows the account the token belongs to and the fields found in the
@@ -166,7 +166,7 @@ and every request has a 30 second timeout. Proxy settings of the environment (`H
 | The field "..." does not exist / is ambiguous | Use the display name exactly as in Jira, or the field id (`customfield_10016`) if two fields share a name; the message lists the ids. |
 | The result changed while reading | Tickets were edited while the pages were read, or Jira returned fewer than announced: nothing is written, just run the command again. |
 | The proxy requires authentication (407) | Check `HTTPS_PROXY` and its credentials. |
-| No Jira token found | Set `SPRINTFORECAST_JIRA_TOKEN` or run `--set-token`. |
+| No Jira token found | Set `FORESPRINT_JIRA_TOKEN` or run `--set-token`. |
 
 ## Manual test against a real instance
 
@@ -174,11 +174,11 @@ The test suite never touches the network. One test is deselected by default and 
 real instance when you ask for it:
 
 ```bash
-SPRINTFORECAST_JIRA_URL=https://jira.example.org \
-SPRINTFORECAST_JIRA_TOKEN=... \
-SPRINTFORECAST_JIRA_JQL='project = ABC AND sprint in openSprints()' \
+FORESPRINT_JIRA_URL=https://jira.example.org \
+FORESPRINT_JIRA_TOKEN=... \
+FORESPRINT_JIRA_JQL='project = ABC AND sprint in openSprints()' \
 uv run --extra jira pytest -m jira_live
 ```
 
-Optionally `SPRINTFORECAST_JIRA_ESTIMATE`, `_REMAINING` and `_EPIC` name the fields. The test
+Optionally `FORESPRINT_JIRA_ESTIMATE`, `_REMAINING` and `_EPIC` name the fields. The test
 prints only counts.

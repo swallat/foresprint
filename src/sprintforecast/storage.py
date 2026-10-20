@@ -68,9 +68,9 @@ from sprintforecast.model import (
     explicit_state_needed,
 )
 
-DATA_ENV = "SPRINTFORECAST_DATA"
+DATA_ENV = "FORESPRINT_DATA"
 # Date that counts as "today" (for retrospectives and tests).
-AS_OF_ENV = "SPRINTFORECAST_AS_OF"
+AS_OF_ENV = "FORESPRINT_AS_OF"
 
 
 class DataError(Exception):
@@ -171,7 +171,7 @@ def forget_data_dir(path: Path) -> None:
 
 
 def default_data_dir() -> Path:
-    """--data > environment variable SPRINTFORECAST_DATA > current directory, if it contains
+    """--data > environment variable FORESPRINT_DATA > current directory, if it contains
     teams > remembered data folder > current directory.
 
     If a directory contains no teams itself but has a subfolder ``teams`` with teams (layout of
@@ -834,7 +834,7 @@ def _tracker_from(d: dict[str, Any], where: str) -> TrackerSettings:
             t(
                 (
                     "{where}: '{name}' does not belong in the file – tokens and passwords "
-                    "belong in the environment variable SPRINTFORECAST_JIRA_TOKEN or in the "
+                    "belong in the environment variable FORESPRINT_JIRA_TOKEN or in the "
                     "keychain"
                 ),
                 where=at,

@@ -1,7 +1,7 @@
 # Plugins
 
 Plugins are separate Python packages that hook in through the entry point
-`sprintforecast.plugins` (see `src/sprintforecast/plugins.py`). They can add commands to the
+`foresprint.plugins` (the former group `sprintforecast.plugins` is still loaded) (see `src/sprintforecast/plugins.py`). They can add commands to the
 command line and pages to the web UI, for example an import of the history from a previous tool.
 They are installed next to the tool:
 
@@ -30,9 +30,9 @@ Without the prompt (set the environment variables before the call):
 
 | Variable | Effect |
 |---|---|
-| `SPRINTFORECAST_WITH="owner/repo; ..."` | install these plugins (empty = none) |
-| `SPRINTFORECAST_REF=v1.0` | install a particular tag or branch instead of `main` |
-| `SPRINTFORECAST_NO_SHORTCUT=1` | do not create a desktop launcher |
+| `FORESPRINT_WITH="owner/repo; ..."` | install these plugins (empty = none) |
+| `FORESPRINT_REF=v1.0` | install a particular tag or branch instead of `main` |
+| `FORESPRINT_NO_SHORTCUT=1` | do not create a desktop launcher |
 
 Plugins and the Python version are kept across [automatic updates](installation.md#updating).
 While a merge is open in the data repository, plugin pages are replaced by the conflict

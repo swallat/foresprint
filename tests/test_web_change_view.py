@@ -443,7 +443,7 @@ def test_clipping_offset_and_lengthening():
 
 
 def test_english_view(repo, data_dir: Path, monkeypatch):
-    monkeypatch.setenv("SPRINTFORECAST_LANG", "en")
+    monkeypatch.setenv("FORESPRINT_LANG", "en")
     file = commit_extra(repo, "viel.yaml", "".join(f"k{i}: 0\n" for i in range(31)))
     file.write_text("".join(f"k{i}: 1\n" for i in range(31)), encoding="utf-8")
     invalidate_status()

@@ -2,7 +2,7 @@
 """Pages and sidebar of the web UI. Entry point: web/app.py, pages: web/page_scripts/*.py.
 
 Reads and writes the same YAML files as the command line. Configuration via environment
-variables: SPRINTFORECAST_DATA (data directory), SPRINTFORECAST_AS_OF (reference date).
+variables: FORESPRINT_DATA (data directory), FORESPRINT_AS_OF (reference date).
 Texts are translatable via i18n.t; internal column keys of the tables stay German, the
 translated labels are displayed.
 """
