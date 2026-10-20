@@ -146,12 +146,12 @@ def test_apply_with_a_chain_that_overlaps_itself(data_dir: Path):
     """2026.20 → 2026.21: the new ID is the old one of the successor; nothing is lost."""
     repo = Repository(data_dir)
     data = repo.load("demo")
-    velocity = {s.id: s.forecast_ist for s in data.sprints}
+    velocity = {s.id: s.commitment for s in data.sprints}
     apply_renames(repo, data, plan_renames(data, "2026.20", "2026.21"))
     after = repo.load("demo")
     assert [s.id for s in after.sprints][-3:] == ["2026.21", "2026.22", "2026.23"]
-    assert after.sprint("2026.21").forecast_ist == velocity["2026.20"]
-    assert after.sprint("2026.22").forecast_ist == velocity["2026.21"]
+    assert after.sprint("2026.21").commitment == velocity["2026.20"]
+    assert after.sprint("2026.22").commitment == velocity["2026.21"]
 
 
 def test_overlapping_chain_keeps_every_minutes_file(data_dir: Path):
@@ -283,10 +283,10 @@ def test_settings_page_renames(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     app_path = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app_path), default_timeout=30)
     at.run()
@@ -315,12 +315,12 @@ def test_settings_page_without_sprints_has_no_rename_section(
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
     for p in (data_dir / "demo" / "sprints").glob("*.yaml"):
         p.unlink()
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     app_path = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app_path), default_timeout=30)
     at.run()

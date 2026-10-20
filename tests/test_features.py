@@ -17,7 +17,7 @@ from webfixtures import nav_steps
 from sprintforecast.cli import app as cli_app
 from sprintforecast.model import Features, Sprint, Team
 from sprintforecast.settings import SETTINGS
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository, team_from_dict, team_to_dict
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository, team_from_dict, team_to_dict
 from sprintforecast.validate import check_team
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -41,7 +41,7 @@ def mark_production_access(data_dir: Path, person: str = "ben") -> None:
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception

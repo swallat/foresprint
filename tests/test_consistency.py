@@ -37,7 +37,7 @@ from sprintforecast.report import (
     fmt_capacity,
     render,
 )
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 
 TODAY = date(2026, 10, 15)
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -57,7 +57,7 @@ def fc(data_dir: Path):
 
 def open_app(data_dir: Path, monkeypatch: pytest.MonkeyPatch, today: str = "2026-10-15") -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, today)
+    monkeypatch.setenv(AS_OF_ENV, today)
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception

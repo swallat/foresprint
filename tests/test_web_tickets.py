@@ -14,7 +14,7 @@ from ticketfixtures import enable, seed
 
 from sprintforecast.model import BudgetBasis, ManualEstimate, Project, Rule
 from sprintforecast.preplan import distribute, handover_rows
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.web.tickets_view import (
     Selection,
     apply_project_rows,
@@ -49,7 +49,7 @@ def imported(data_dir: Path) -> None:
 
 def page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
+    monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     at.switch_page("seiten/tickets.py").run()
@@ -107,7 +107,7 @@ def test_filter_only_hides(data_dir: Path):
 
 def test_switched_off_there_is_no_page(data_dir: Path, monkeypatch):
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
+    monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     with pytest.raises(ValueError, match="Could not find a navigation page"):

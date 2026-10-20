@@ -31,7 +31,7 @@ from sprintforecast.config import PACKAGE
 from sprintforecast.i18n import LANG_ENV
 from sprintforecast.launcher import free_port
 from sprintforecast.proctree import popen_options, terminate_tree
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples" / "teams"
@@ -202,7 +202,7 @@ class App:
         env |= git_env(self.person, self.gitconfig)
         env |= {
             DATA_ENV: str(self.data_dir),
-            STICHTAG_ENV: STICHTAG,
+            AS_OF_ENV: STICHTAG,
             "SPRINTFORECAST_AUTOUPDATE": "off",
             "XDG_CONFIG_HOME": str(self.config),
             "APPDATA": str(self.config),

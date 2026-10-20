@@ -151,9 +151,9 @@ def _late_share(e: TimelineEntry) -> float | None:
     if s.scope_creep is None:
         return None
     plan = s.forecast_plan if s.forecast_plan is not None else e.result.plan
-    if s.forecast_ist is None or not plan:
+    if s.commitment is None or not plan:
         return s.scope_creep  # cannot be converted without a commitment or plan
-    return s.scope_creep * s.forecast_ist / plan
+    return s.scope_creep * s.commitment / plan
 
 
 def buffer_hint(fc: Forecast) -> BufferHint:

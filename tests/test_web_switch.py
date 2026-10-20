@@ -13,9 +13,9 @@ from streamlit.testing.v1 import AppTest
 
 from sprintforecast import gitsync
 from sprintforecast.storage import (
+    AS_OF_ENV,
     DATA_ENV,
     MAX_RECENT,
-    STICHTAG_ENV,
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
@@ -60,7 +60,7 @@ def two_folders(data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 def start(path: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(path))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception

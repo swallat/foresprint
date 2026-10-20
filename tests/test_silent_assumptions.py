@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from sprintforecast.cli import app as cli_app
 from sprintforecast.forecast import build_forecast
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.validate import Level, check_all, check_team_files, check_yaml_text
 
 TODAY = date(2026, 10, 15)
@@ -148,7 +148,7 @@ def test_calculation_with_duplicate_and_empty_value_stays_the_same(data_dir: Pat
 
 def test_command_line_and_strict(data_dir: Path):
     edit(data_dir, SPRINT, "velocity: 9.75\n", "velocity: 9.75\nvelocity: 8\n")
-    env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
+    env = {DATA_ENV: str(data_dir), AS_OF_ENV: TODAY.isoformat()}
     result = runner.invoke(cli_app, ["check"], env=env)
     assert result.exit_code == 0
     assert "Hinweis sprints/2026.20.yaml" in result.output
@@ -280,7 +280,7 @@ def test_duplicate_in_a_row_names_the_columns():
 
 def test_command_line_masks_markup_from_files(data_dir: Path):
     edit(data_dir, SPRINT, "  anna: 5\n", "  '[red]x[/red]': 1\n  '[red]x[/red]': 2\n  anna: 5\n")
-    env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
+    env = {DATA_ENV: str(data_dir), AS_OF_ENV: TODAY.isoformat()}
     result = runner.invoke(cli_app, ["check"], env=env)
     assert "[red]x[/red]" in result.output
 
@@ -292,7 +292,7 @@ def test_web_ui_never_shows_key_names_as_markdown(data_dir: Path, monkeypatch):
     evil = "[Klick](http://evil.example) www.evil.example **fett**"
     edit(data_dir, SPRINT, "  anna: 5\n", f"  '{evil}': 1\n  '{evil}': 2\n  anna: 5\n")
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
+    monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
     app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app_file), default_timeout=30)
     at.run()
@@ -387,7 +387,7 @@ def test_displayed_key_is_the_last_entry():
 def test_control_characters_in_the_key_do_not_reach_the_output(data_dir: Path):
     key = '"a\\nb\\e[31mc"'
     edit(data_dir, SPRINT, "  anna: 5\n", f"  {key}: 1\n  {key}: 2\n  anna: 5\n")
-    env = {DATA_ENV: str(data_dir), STICHTAG_ENV: TODAY.isoformat()}
+    env = {DATA_ENV: str(data_dir), AS_OF_ENV: TODAY.isoformat()}
     result = runner.invoke(cli_app, ["check"], env=env)
     assert "\x1b" not in result.output
     assert "a b" in result.output.replace("\n  ", " ").replace("\n", " ")

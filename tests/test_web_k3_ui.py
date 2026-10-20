@@ -11,7 +11,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
 from sprintforecast.git import invalidate_status
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 SPRINT = Path("teams") / "demo" / "sprints" / "2026.20.yaml"
@@ -25,7 +25,7 @@ def git(cwd: Path, *args: str) -> str:
 
 def start(path: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(path))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception

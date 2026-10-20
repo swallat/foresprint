@@ -183,7 +183,7 @@ class SprintInput:
     id: str
     capacity: float | None
     capacity_source: CapacitySource | None
-    forecast_ist: float | None
+    commitment: float | None
     velocity: float | None
     scope_creep: float | None
     planning: Planning | None = None
@@ -199,7 +199,7 @@ class Metric:
 @dataclass
 class SprintResult:
     input: SprintInput
-    forecast_ist: Metric
+    commitment: Metric
     velocity: Metric
     capacity: Metric
     normalized_velocity: Metric
@@ -241,14 +241,14 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
     ref = settings.reference_capacity
     capacity = [s.capacity for s in inputs]
     velocity = [s.velocity for s in inputs]
-    forecast_ist = [s.forecast_ist for s in inputs]
+    commitment = [s.commitment for s in inputs]
     normalized = [
         None if v is None or c in (None, 0) else v / c * ref
         for v, c in zip(velocity, capacity, strict=True)
     ]
-    fulfillment = [_div(v, f) for v, f in zip(velocity, forecast_ist, strict=True)]
+    fulfillment = [_div(v, f) for v, f in zip(velocity, commitment, strict=True)]
 
-    m_fist, _ = _metric_series(forecast_ist, settings)
+    m_fist, _ = _metric_series(commitment, settings)
     m_vel, _ = _metric_series(velocity, settings)
     m_cap, _ = _metric_series(capacity, settings)
     m_norm, norm_fallback = _metric_series(normalized, settings)
@@ -269,9 +269,9 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
             plan = round_down(n_trend / ref * plan_cap, settings.rounding)
             plan_source = PlanSource.FORECAST
             plan = max(plan, 0.0)
-        elif s.forecast_ist is not None:
+        elif s.commitment is not None:
             # The fallback to Commitment is also rounded down.
-            plan = round_down(s.forecast_ist, settings.rounding)
+            plan = round_down(s.commitment, settings.rounding)
             plan_source = PlanSource.ACTUAL
         else:
             plan, plan_source = None, None
@@ -281,7 +281,7 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
         results.append(
             SprintResult(
                 input=s,
-                forecast_ist=m_fist[i],
+                commitment=m_fist[i],
                 velocity=m_vel[i],
                 capacity=m_cap[i],
                 normalized_velocity=m_norm[i],

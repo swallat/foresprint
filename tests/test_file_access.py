@@ -15,7 +15,7 @@ from sprintforecast import storage
 from sprintforecast.cli import app as cli_app
 from sprintforecast.forecast import build_forecast
 from sprintforecast.model import Sprint
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, FileAccessError, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, FileAccessError, Repository
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 runner = CliRunner(env={"COLUMNS": "200"})
@@ -161,7 +161,7 @@ def test_write_text_is_atomic(tmp_path: Path, monkeypatch):
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception

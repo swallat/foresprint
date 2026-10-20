@@ -101,8 +101,8 @@ from sprintforecast.report import (
 )
 from sprintforecast.settings import FIRST_SPRINT_KEYS, SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
+    AS_OF_ENV,
     DATA_ENV,
-    STICHTAG_ENV,
     DataError,
     Repository,
     TeamData,
@@ -182,14 +182,14 @@ def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[...
 class Context:
     repo: Repository
     today: date
-    stichtag: str | None = None
+    as_of: str | None = None
 
 
 def _ctx(ctx: typer.Context) -> Context:
     return ctx.obj
 
 
-def _check_stichtag(value: str | None) -> str | None:
+def _check_as_of(value: str | None) -> str | None:
     if value:
         try:
             date.fromisoformat(value)
@@ -213,11 +213,11 @@ def _main(
             ),
         ),
     ] = None,
-    stichtag: Annotated[
+    as_of: Annotated[
         str | None,
         typer.Option(
             "--as-of",
-            callback=_check_stichtag,
+            callback=_check_as_of,
             help=t('Date (YYYY-MM-DD) treated as "today" – for retrospectives and tests.'),
         ),
     ] = None,
@@ -231,8 +231,8 @@ def _main(
         raise typer.Exit()
     if ctx.invoked_subcommand != "update":
         _auto_update()
-    today = date.fromisoformat(stichtag) if stichtag else date.today()
-    ctx.obj = Context(repo=Repository(data or default_data_dir()), today=today, stichtag=stichtag)
+    today = date.fromisoformat(as_of) if as_of else date.today()
+    ctx.obj = Context(repo=Repository(data or default_data_dir()), today=today, as_of=as_of)
 
 
 def _auto_update() -> None:
@@ -525,7 +525,7 @@ CommitOpt = Annotated[bool, typer.Option("--commit", help=t("Commit the change i
 
 
 @command("help", "Guide, terms, input fields, settings and commands.")
-def hilfe(
+def help_command(
     topic_arg: Annotated[
         str | None,
         typer.Argument(metavar="TOPIC", help=t("Topic: {topics}", topics=", ".join(TOPICS))),
@@ -699,7 +699,7 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     "settings",
     "Change team settings with guided input (unit, federal state, reference capacity …).",
 )
-def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
+def settings_command(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
     before = copy.deepcopy(data.team)
@@ -891,7 +891,7 @@ def personen(
 
 
 @command("absences", "Record planned absences per person for a sprint (default: next sprint).")
-def fehltage(
+def absences_command(
     ctx: typer.Context, team: TeamArg, sprint: SprintArg = None, commit_: CommitOpt = False
 ) -> None:
     c = _ctx(ctx)
@@ -1134,7 +1134,7 @@ def planning(
         corrections = _ask_numbers(t("Corrections ({unit})", unit=unit), p.corrections)
         plan_values = Planning(carryover=carryover, backlog=backlog, corrections=corrections)
     _explain("forecast_ist")
-    default = s.forecast_ist
+    default = s.commitment
     if default is None and plan_values is not None and plan_values.committed:
         default = plan_values.committed
         console.print(f"[dim]{t('Prefilled with carry-over + backlog.')}[/dim]")
@@ -1527,7 +1527,7 @@ def analyse(
 
 
 @command("report", "Create the Markdown report (for the Git web interface / PO round).")
-def bericht(
+def report_command(
     ctx: typer.Context,
     team: Annotated[str | None, typer.Argument(help=t("Team; omit for all teams."))] = None,
     output: Annotated[
@@ -2430,7 +2430,7 @@ def tickets(
 
 
 @command("check", "Check all team data for errors and plausibility (for CI and before committing).")
-def pruefen(
+def check_command(
     ctx: typer.Context,
     strict: Annotated[
         bool,
@@ -2509,8 +2509,8 @@ def web(
     c = _ctx(ctx)
     app_mode = app_mode and browser  # --no-browser: no window, no self-exit
     env = os.environ | {DATA_ENV: str(c.repo.root.resolve())} | updater.web_environment(sys.argv)
-    if c.stichtag:
-        env[STICHTAG_ENV] = c.stichtag
+    if c.as_of:
+        env[AS_OF_ENV] = c.as_of
     if app_mode:
         env[IDLE_ENV] = str(_IDLE_EXIT_SECONDS)  # the server exits by itself without a session
     actual_port = free_port(port)
@@ -2788,7 +2788,7 @@ def rename_sprint(
     "products",
     "Distribution across the products: default, PO pre-planning, planning, done, balance.",
 )
-def produkte(
+def products_command(
     ctx: typer.Context,
     team: TeamArg,
     sprint: SprintArg = None,
@@ -2857,7 +2857,7 @@ def produkte(
 
 
 @command("product-list", "Maintain the team's products (new, change PO, hand over).")
-def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
+def product_list_command(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
     _require_products(data, team)
@@ -2959,7 +2959,7 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
     "Show or set the remembered data folder (applies when the current directory contains no "
     "teams and neither --data nor SPRINTFORECAST_DATA is set).",
 )
-def datenordner(
+def data_dir_command(
     path: Annotated[
         Path | None,
         typer.Argument(
@@ -3005,7 +3005,7 @@ def datenordner(
 
 
 @command("language", "Show or set the interface language (de, en).")
-def sprache(
+def language_command(
     code: Annotated[str | None, typer.Argument(help=t("de or en"))] = None,
 ) -> None:
     if code is None:
@@ -3027,7 +3027,7 @@ def sprache(
 
 
 @command("shortcut", "Create a launcher to double-click (desktop/start menu, macOS: Applications).")
-def verknuepfung() -> None:
+def shortcut_command() -> None:
     from sprintforecast import shortcuts
 
     try:
@@ -3049,7 +3049,7 @@ def verknuepfung() -> None:
     "update",
     "Update sprintforecast to the latest version (plugins are kept).",
 )
-def aktualisieren(
+def update_command(
     check_: Annotated[
         bool,
         typer.Option("--check", help=t("Only check, do not install.")),
@@ -3176,7 +3176,7 @@ def aktualisieren(
     "capacity",
     "Show the capacity calculation of a sprint in detail (default: next sprint).",
 )
-def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> None:
+def capacity_command(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
     s = _find_or_create(data, build_forecast(data, c.today), sprint, "next")

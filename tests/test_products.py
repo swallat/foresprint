@@ -177,7 +177,7 @@ def test_validation_of_product_values(fc):
     data = fc.data
     s = data.sprint("2026.22")
     s.products["unbekannt"] = s.products["webshop"]
-    s.forecast_ist = 5
+    s.commitment = 5
     s.products["app"].planned = 7
     messages = [i.message for i in check_team(data, TODAY)]
     assert any("unbekanntes Produkt 'unbekannt'" in m for m in messages)
@@ -199,7 +199,7 @@ def test_freeze_keeps_existing_plan_unless_requested(fc):
 
 def test_planning_default_skips_committed_future_sprint(fc):
     assert fc.default_entry("planning").sprint.id == "2026.22"
-    fc.entry("2026.22").sprint.forecast_ist = 10
+    fc.entry("2026.22").sprint.commitment = 10
     assert fc.default_entry("planning").sprint.id == "2026.23"
     assert fc.default_entry("next").sprint.id == "2026.22"  # absences unchanged
 

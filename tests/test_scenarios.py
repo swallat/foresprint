@@ -33,7 +33,7 @@ from sprintforecast.model import (
 )
 from sprintforecast.products import distribution
 from sprintforecast.report import fmt, render
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.validate import check_team
 from sprintforecast.web.logic import apply_calendar, calendar_table, with_sprints
 
@@ -54,7 +54,7 @@ def load(data_dir: Path):
 
 def web(data_dir: Path, monkeypatch: pytest.MonkeyPatch, today: str = "2026-10-15") -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, today)
+    monkeypatch.setenv(AS_OF_ENV, today)
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -88,10 +88,10 @@ STATES = {
     ),
     "Fehltage eingetragen": (lambda s: s.absences.update({"anna": 2.0}), "PEOPLE"),
     # New: the Planning alone does not confirm absences (B2); the state stays "unknown".
-    "Commitment gesetzt": (lambda s: setattr(s, "forecast_ist", 9.0), None),
+    "Commitment gesetzt": (lambda s: setattr(s, "commitment", 9.0), None),
     # Older files without a saved state: a planned sprint counts as confirmed.
     "Commitment gesetzt (altes Format)": (
-        lambda s: (setattr(s, "forecast_ist", 9.0), setattr(s, "absence_state", None)),
+        lambda s: (setattr(s, "commitment", 9.0), setattr(s, "absence_state", None)),
         "PEOPLE",
     ),
     "angekündigte Fehltage": (lambda s: s.expected_absences.update({"anna": 3.0}), "EXPECTED"),
@@ -155,10 +155,10 @@ def test_absences_known_rules():
     assert not absences_known(Sprint(**base, expected_absences={"anna": 1.0}))
     assert absences_known(Sprint(**base, absences={"anna": 1.0}))
     assert absences_known(Sprint(**base, absence_state=AbsenceState.CONFIRMED))
-    assert absences_known(Sprint(**base, forecast_ist=5.0))  # older file without a state
+    assert absences_known(Sprint(**base, commitment=5.0))  # older file without a state
     # Explicitly saved as "unknown": Planning values confirm nothing
     unknown = AbsenceState.UNKNOWN
-    assert not absences_known(Sprint(**base, forecast_ist=5.0, absence_state=unknown))
+    assert not absences_known(Sprint(**base, commitment=5.0, absence_state=unknown))
     assert absences_known(Sprint(**base, absences={"anna": 1.0}, absence_state=unknown))
 
 

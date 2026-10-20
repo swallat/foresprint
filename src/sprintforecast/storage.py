@@ -68,7 +68,7 @@ from sprintforecast.model import (
 
 DATA_ENV = "SPRINTFORECAST_DATA"
 # Date that counts as "today" (for retrospectives and tests).
-STICHTAG_ENV = "SPRINTFORECAST_AS_OF"
+AS_OF_ENV = "SPRINTFORECAST_AS_OF"
 
 
 class DataError(Exception):
@@ -1024,7 +1024,7 @@ def _prognoses_from(raw: Any, where: str) -> list[Prognosis]:
             Prognosis(
                 at=when,
                 comment=str(p["comment"]) if p.get("comment") else None,
-                forecast_ist=_float(p.get("forecast_ist"), at_),
+                commitment=_float(p.get("forecast_ist"), at_),
                 not_done=_float(p.get("not_done"), at_),
                 additional_done=_float(p.get("additional_done"), at_),
                 expected_done=_float(p.get("expected_done"), at_),
@@ -1045,8 +1045,14 @@ def _prognoses_to(prognoses: list[Prognosis]) -> list[dict[str, Any]]:
         entry: dict[str, Any] = {"at": p.at.replace(microsecond=0)}
         if p.comment:
             entry["comment"] = p.comment
-        for key in ("forecast_ist", "not_done", "additional_done", "expected_done"):
-            if (value := getattr(p, key)) is not None:
+        stored = {
+            "forecast_ist": p.commitment,
+            "not_done": p.not_done,
+            "additional_done": p.additional_done,
+            "expected_done": p.expected_done,
+        }
+        for key, value in stored.items():
+            if value is not None:
                 entry[key] = _clean(value)
         if p.target is not None:
             entry["target"] = p.target
@@ -1114,7 +1120,7 @@ def sprint_from_dict(d: dict[str, Any], where: str) -> Sprint:
         end=_date(d["end"], where),
         absences=absences,
         capacity=_float(d.get("capacity"), f"{where}: capacity"),
-        forecast_ist=_float(d.get("forecast_ist"), f"{where}: forecast_ist"),
+        commitment=_float(d.get("forecast_ist"), f"{where}: forecast_ist"),
         velocity=_float(d.get("velocity"), f"{where}: velocity"),
         scope_creep=_float(d.get("scope_creep"), f"{where}: scope_creep"),
         planning=planning,
@@ -1150,7 +1156,7 @@ def sprint_to_dict(s: Sprint) -> dict[str, Any]:
             else {}
         ),
         "capacity": _clean(s.capacity),
-        "forecast_ist": _clean(s.forecast_ist),
+        "forecast_ist": _clean(s.commitment),
         "velocity": _clean(s.velocity),
         "scope_creep": _clean(s.scope_creep),
     }

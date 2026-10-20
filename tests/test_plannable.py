@@ -32,7 +32,7 @@ from sprintforecast.i18n import t
 from sprintforecast.model import ProductBasis
 from sprintforecast.report import render
 from sprintforecast.settings import SETTINGS
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 runner = CliRunner(env={"COLUMNS": "250"})
@@ -141,7 +141,7 @@ def use_roadmap_basis(data_dir: Path) -> None:
 
 
 def test_planning_panel_keeps_its_separators(data_dir: Path):
-    # The metrics row after "planning" (same function as for "fehltage").
+    # The metrics row after "planning" (same function as for "absences_command").
     result = runner.invoke(
         app,
         ["--data", str(data_dir), "--as-of", "2026-10-15", "planning", "demo", "2026.20"],
@@ -220,7 +220,7 @@ def test_web_pages_show_no_roadmap_label(
 
     use_roadmap_basis(data_dir)
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, lang)
     try:
