@@ -267,6 +267,7 @@ from sprintforecast.storage import (
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
+from sprintforecast.web.icons import status_icon
 from sprintforecast.web.lazy import LazyModule
 from sprintforecast.web.logic import (
     CALENDAR_COLUMNS,
@@ -776,7 +777,7 @@ def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
     for col, task in zip(st.columns(len(tasks)), tasks, strict=True):
         title, icon = START_TASKS[task.key]
         with col, st.container(border=True):
-            st.subheader(f"{'✅' if task.done else '⬜'} {t(title)}")
+            st.subheader(f"{status_icon(task.done)} {t(title)}")
             st.write(task.hint)
             st.button(
                 t("Open"),
@@ -810,7 +811,7 @@ def _setup_checklist(repo: Repository) -> None:
     with st.container(border=True):
         st.markdown(f"**{t('Setup')}**")
         for item in items:
-            line = f"{'✅' if item.ok else '⬜'} {item.detail}"
+            line = f"{status_icon(item.ok)} {item.detail}"
             if item.ok or not item.page:
                 st.write(line)
                 continue
@@ -2158,9 +2159,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
         recorded is not None and recorded.commitment is not None,
     ]
-    marks = [
-        f"{'✅' if ok else '⬜'} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)
-    ]
+    marks = [f"{status_icon(ok)} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)]
     st.caption(" · ".join(marks))
     if step == 0:
         _planning_absences(repo, data, fc, sprint)
