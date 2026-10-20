@@ -16,7 +16,7 @@ from ticketfixtures import enable
 from sprintforecast.model import TrackerFields, TrackerSettings
 from sprintforecast.sources import SourceError
 from sprintforecast.sources.jira import FieldCandidate, FieldSuggestions
-from sprintforecast.storage import DATA_ENV, AS_OF_ENV
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 from sprintforecast.web import jira_setup
 from sprintforecast.web.jira_setup import Probe, field_options, tracker_from_inputs
 
