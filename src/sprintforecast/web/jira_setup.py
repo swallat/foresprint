@@ -178,19 +178,22 @@ def _token_section(key: str, base_url: str | None) -> None:
                 "page. Set the environment variable instead (below)."
             )
         )
-    elif problem := _address_problem(base_url):
-        st.caption(
-            t("The token is stored per Jira host: first enter the address above and save it.")
-        )
-        st.caption(problem)
     else:
-        _token_form(key, base_url or "")
+        ready = _address_problem(base_url) is None
+        if not ready:
+            st.caption(
+                t(
+                    "The token is stored per Jira host: first enter a valid address above and "
+                    "save it."
+                )
+            )
+        _token_form(key, base_url or "", ready)
     if token_source(base_url) is None or not usable:
         _token_howto()
 
 
-def _token_form(key: str, base_url: str) -> None:
-    stored = stored_token_exists(base_url)
+def _token_form(key: str, base_url: str, ready: bool) -> None:
+    stored = ready and stored_token_exists(base_url)
     counter = f"jira-{key}-token-n"
     with st.form(f"jira-{key}-token-form", clear_on_submit=True, border=False):
         token = st.text_input(
@@ -203,11 +206,13 @@ def _token_form(key: str, base_url: str) -> None:
                 "to a file of the data folder."
             ),
             key=f"jira-{key}-token-{st.session_state.get(counter, 0)}",
+            disabled=not ready,
         )
         left, right = st.columns(2)
         save_it = left.form_submit_button(
             t("Replace in keychain") if stored else t("Store in keychain"),
             icon=":material/key:",
+            disabled=not ready,
         )
         remove = right.form_submit_button(
             t("Remove from keychain"), icon=":material/delete:", disabled=not stored
@@ -330,13 +335,16 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
     draft_key = f"jira-{key}-draft"
     probe: Probe | None = st.session_state.get(probe_key)
     counter = st.session_state.get(counter_key, 0)
+    kind_key = f"jira-{key}-kind"
+    if st.session_state.pop(f"{kind_key}-suggest", False):
+        st.session_state[kind_key] = "jira"  # before the widget exists
     with st.form(f"jira-{key}-form"):
         kind = st.selectbox(
             t("Ticket source"),
             TRACKER_KINDS,
             index=TRACKER_KINDS.index(tracker.kind) if tracker.kind in TRACKER_KINDS else 0,
             format_func=lambda k: "Jira" if k == "jira" else t("CSV export"),
-            key=f"jira-{key}-kind",
+            key=kind_key,
         )
         base_url = st.text_input(
             t("Jira address"),
@@ -395,6 +403,17 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             # new options need new widgets; the typed values stay as the current setting
             st.session_state[counter_key] = counter + 1
             st.session_state[draft_key] = edited.fields
+            if not probe.error and edited.kind != "jira" and tracker.kind != "jira":
+                st.session_state[f"{kind_key}-suggest"] = True
+                st.session_state.setdefault("flash", []).append(
+                    (
+                        "info",
+                        t(
+                            "The ticket source is now set to Jira in the form. Save to use it "
+                            "for the import."
+                        ),
+                    )
+                )
             st.rerun()
     if probe is not None:
         _show_probe(probe)
