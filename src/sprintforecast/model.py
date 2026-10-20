@@ -195,6 +195,11 @@ class Product:
     # Agreed fixed share of the distributable amount (0-1), e.g. 0.1 = 10 %. If not given, the
     # products without a fixed share split the remainder evenly.
     share: float | None = None
+    # Tickets of the product without a project (ticket pre-planning): ``priority`` (lower =
+    # more important) decides, like a project's, where they come in the distribution. Not
+    # given = after all projects.
+    priority: int | None = None
+    match: Rule | None = None
 
     def active_between(self, start: date, end: date) -> bool:
         """Looked after in the sprint [start, end), on at least one day."""
