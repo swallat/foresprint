@@ -26,10 +26,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import streamlit as st
+import streamlit.components.v1 as components
 import yaml
+from streamlit import config
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
-from sprintforecast import updater
+from sprintforecast import appsettings, updater
 from sprintforecast.analysis import (
     available_count,
     average_focus_factor,
@@ -68,7 +70,7 @@ from sprintforecast.forecast import (
     freeze_plan,
     refreeze_offer,
 )
-from sprintforecast.formulas import fte_change_note, general, plain_explanation, steps
+from sprintforecast.formulas import fte_change_note, general, steps, structured_explanation
 from sprintforecast.formulas import step as formula_step
 from sprintforecast.git import (
     _BIDI_CONTROLS,
@@ -267,6 +269,7 @@ from sprintforecast.storage import (
 )
 from sprintforecast.updater import status_line
 from sprintforecast.validate import Level, check_all, check_team
+from sprintforecast.web.icons import status_icon
 from sprintforecast.web.lazy import LazyModule
 from sprintforecast.web.logic import (
     CALENDAR_COLUMNS,
@@ -342,6 +345,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
     },
     "Data & help": {
         "data_dir": ("Data folder", ":material/folder_open:"),
+        "app_settings": ("App settings", ":material/settings:"),
         "history": ("Changes and history", ":material/history:"),
         "check": ("Check", ":material/fact_check:"),
         "help": ("Help", ":material/help:"),
@@ -431,6 +435,13 @@ def apply_language() -> None:
     set_language(language())
 
 
+def apply_theme() -> None:
+    """Set the theme options for this server (read by Streamlit for each new browser session)."""
+    for option, value in appsettings.theme_options().items():
+        if config.get_option(option) != value:
+            config.set_option(option, value)
+
+
 def _settings_problem(error: SettingsError, consequence: str) -> str:
     """Message about settings that could not be saved: what happened, what was skipped and what
     to do."""
@@ -489,7 +500,12 @@ def field_help(key: str) -> str:
 
 
 def _steps_frame(fc: Forecast, entry: TimelineEntry) -> pd.DataFrame:
-    return pd.DataFrame([{t("Metric"): s.name, t("Formula"): s.formula} for s in steps(fc, entry)])
+    return pd.DataFrame(
+        [
+            {t("Metric"): s.name, t("Formula"): s.formula, t("Calculation"): s.calculation}
+            for s in steps(fc, entry, code=True)
+        ]
+    )
 
 
 # --- Saving with validation ----------------------------------------------------------
@@ -776,7 +792,7 @@ def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
     for col, task in zip(st.columns(len(tasks)), tasks, strict=True):
         title, icon = START_TASKS[task.key]
         with col, st.container(border=True):
-            st.subheader(f"{'✅' if task.done else '⬜'} {t(title)}")
+            st.subheader(f"{status_icon(task.done)} {t(title)}")
             st.write(task.hint)
             st.button(
                 t("Open"),
@@ -810,7 +826,7 @@ def _setup_checklist(repo: Repository) -> None:
     with st.container(border=True):
         st.markdown(f"**{t('Setup')}**")
         for item in items:
-            line = f"{'✅' if item.ok else '⬜'} {item.detail}"
+            line = f"{status_icon(item.ok)} {item.detail}"
             if item.ok or not item.page:
                 st.write(line)
                 continue
@@ -1098,11 +1114,23 @@ def _formula_expander(fc: Forecast) -> None:
 
 
 def _derivation(fc: Forecast, entry: TimelineEntry) -> None:
-    """First an explanation in plain language, with the values used and their sources below
-    on request."""
-    st.markdown(plain_explanation(fc, entry))
-    with st.popover(t("Values used and sources"), icon=":material/table:"):
-        st.dataframe(_steps_frame(fc, entry), hide_index=True, width="stretch")
+    """Inputs, calculation and result as a short sequence; the formulas with all values used
+    and their sources below on request."""
+    ex = structured_explanation(fc, entry)
+    if ex.message:
+        st.markdown(ex.message)
+    else:
+        st.table(pd.DataFrame(ex.inputs, columns=[t("Input"), t("Value")]).set_index(t("Input")))
+        calc, result = st.columns([3, 1], vertical_alignment="center")
+        calc.caption(t("Calculation"))
+        calc.code(ex.calculation, language=None)
+        result.metric(ex.result_label, ex.result)
+        for line in ex.notes:
+            st.caption(f":material/info: {line}")
+    # Not an expander (the calculation path itself sits in one) and not a popover (too narrow
+    # for the formulas); a table wraps long formulas.
+    st.caption(t("Values used and sources"))
+    st.table(_steps_frame(fc, entry).set_index(t("Metric")))
 
 
 def _next_dates(fc: Forecast) -> None:
@@ -2158,9 +2186,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
         recorded is not None and recorded.commitment is not None,
     ]
-    marks = [
-        f"{'✅' if ok else '⬜'} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)
-    ]
+    marks = [f"{status_icon(ok)} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)]
     st.caption(" · ".join(marks))
     if step == 0:
         _planning_absences(repo, data, fc, sprint)
@@ -2482,7 +2508,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         t("Capacity (PT)"),
         fmt_capacity(r.plan_capacity, entry.capacity_digits),
         # The source goes below the value (not inside it): otherwise the number is truncated.
-        delta=capacity_source_note(entry) or None,
+        delta=capacity_source_note(entry, warning="") or None,
         delta_color="off",
         delta_arrow="off",
         help=t("Source: {source}", source=source_label(r.plan_capacity_source) or "–")
@@ -3425,7 +3451,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
         capacity_col.metric(
             t("Capacity (PT)"),
             fmt_capacity(shown.result.plan_capacity, shown.capacity_digits),
-            delta=capacity_source_note(shown) or None,
+            delta=capacity_source_note(shown, warning="") or None,
             delta_color="off",
             delta_arrow="off",
             help=_formula_help(fc_view, shown, "capacity"),
@@ -5169,6 +5195,47 @@ def page_check(repo: Repository) -> None:
             show(f"{md_code(i.where)}: {md_plain(i.message)}")
 
 
+def _theme_changed() -> None:
+    code = st.session_state["theme"]
+    try:
+        appsettings.save_theme(code)
+    except SettingsError as e:
+        st.session_state["theme"] = appsettings.theme()
+        st.session_state.setdefault("flash", []).append(
+            ("error", _settings_problem(e, t("The theme was not changed.")))
+        )
+        return
+    apply_theme()
+    st.session_state["theme-reload"] = True
+
+
+def page_app_settings(repo: Repository) -> None:
+    """Settings of this installation / user (stored in the user settings, not in the team data
+    folder and therefore not shared)."""
+    st.header(t("App settings"))
+    page_intro(
+        t("These settings only apply to you on this computer and are not shared with the team."),
+        t(
+            "They are stored in the settings folder of the app (`{folder}`), not in the data "
+            "folder. The team settings are on the page Settings.",
+            folder=config_dir(),
+        ),
+    )
+    st.session_state.setdefault("theme", appsettings.theme())
+    st.radio(
+        t("Theme"),
+        list(appsettings.THEMES),
+        format_func=lambda code: t(appsettings.THEMES[code]),
+        key="theme",
+        horizontal=True,
+        on_change=_theme_changed,
+        help=t('"As system" follows the light or dark setting of your browser or system.'),
+    )
+    if st.session_state.pop("theme-reload", False):
+        # Streamlit sends the theme when a browser session starts: reload the page once.
+        components.html("<script>window.parent.location.reload();</script>", height=0)
+
+
 def page_help(repo: Repository) -> None:
     st.header(t("Help"))
     st.markdown(
@@ -6607,6 +6674,7 @@ TEAM_PAGES = {
 NO_FORECAST = {"people", "product_list", "settings", "jira"}
 GLOBAL_PAGES = {
     "data_dir": page_data_dir,
+    "app_settings": page_app_settings,
     "history": page_history,
     "new_team": page_new_team,
     "check": page_check,
@@ -6619,7 +6687,7 @@ GLOBAL_PAGES = {
 # State that is kept when files change (everything else is form input).
 _KEEP_STATE = {
     "selected_team", "flash", "pending_tags", "commit_message", "commit_message_auto", "use_tags",
-    "language",
+    "language", "theme",
     "enabled-pages", "sync_result", "sync_earlier", SYNC_RUNNING_KEY, "last_commit",
     "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",

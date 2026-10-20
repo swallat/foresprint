@@ -50,7 +50,7 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
     key = data.team.key
     st.subheader(t("Assignment rules"))
     if not data.projects:
-        st.info(t("There are no projects yet. Create one under Maintenance."))
+        st.info(t("There are no projects yet. Create one on the tab Settings."))
         return
     names = {p.id: p.name for p in data.projects}
     chosen = st.selectbox(
