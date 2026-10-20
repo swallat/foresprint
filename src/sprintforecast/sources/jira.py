@@ -9,7 +9,7 @@ responses never end up in messages, exceptions or logs; error texts say only wha
 and what to do.
 
 ``httpx`` (extra ``[jira]``) is imported lazily so that the core and the CSV path work without
-it. The token comes from the environment variable ``SPRINTFORECAST_JIRA_TOKEN`` or, with the
+it. The token comes from the environment variable ``FORESPRINT_JIRA_TOKEN`` or, with the
 optional package ``keyring``, from the operating system keychain."""
 
 from __future__ import annotations
@@ -32,8 +32,9 @@ from sprintforecast.sources import LABEL_PREFIX, RawTicket, SourceError
 if TYPE_CHECKING:  # pragma: no cover - typing only, httpx stays an optional import
     import httpx
 
-TOKEN_ENV = "SPRINTFORECAST_JIRA_TOKEN"
-KEYRING_SERVICE = "sprintforecast-jira"
+TOKEN_ENV = "FORESPRINT_JIRA_TOKEN"
+KEYRING_SERVICE = "foresprint-jira"
+LEGACY_KEYRING_SERVICE = "sprintforecast-jira"  # tokens stored before the rename
 USER_AGENT = f"sprintforecast/{__version__} (read-only Jira import)"
 TIMEOUT = 30.0  # seconds, per request
 PAGE_SIZE = 100
@@ -144,7 +145,7 @@ def keyring_available() -> bool:
 
 
 def jira_token(base_url: str | None = None) -> str | None:
-    """The personal access token: ``SPRINTFORECAST_JIRA_TOKEN`` first, then the keychain entry
+    """The personal access token: ``FORESPRINT_JIRA_TOKEN`` first, then the keychain entry
     of this Jira host (only with the optional package ``keyring``). None when there is none."""
     value = (os.environ.get(TOKEN_ENV) or "").strip()
     if value:
@@ -153,10 +154,14 @@ def jira_token(base_url: str | None = None) -> str | None:
     if keyring is None or not base_url:
         return None
     try:
-        stored = keyring.get_password(KEYRING_SERVICE, keychain_user(base_url))
+        user = keychain_user(base_url)
+        for service in (KEYRING_SERVICE, LEGACY_KEYRING_SERVICE):
+            stored = keyring.get_password(service, user)
+            if (stored or "").strip():
+                return stored.strip()
     except Exception:  # any backend problem simply means "no stored token"
         return None
-    return (stored or "").strip() or None
+    return None
 
 
 # Backends that are the operating system's own keychain. Anything else (the file based stores of
@@ -193,7 +198,11 @@ def stored_token_exists(base_url: str | None) -> bool:
     if keyring is None or not base_url:
         return False
     try:
-        return bool(keyring.get_password(KEYRING_SERVICE, keychain_user(base_url)))
+        user = keychain_user(base_url)
+        return any(
+            bool(keyring.get_password(service, user))
+            for service in (KEYRING_SERVICE, LEGACY_KEYRING_SERVICE)
+        )
     except Exception:
         return False
 
@@ -205,8 +214,9 @@ def delete_token(base_url: str) -> None:
         raise keyring_missing_error()
     user = keychain_user(base_url)
     # "no entry" is fine; the backend's message could contain anything
-    with contextlib.suppress(Exception):
-        keyring.delete_password(KEYRING_SERVICE, user)
+    for service in (KEYRING_SERVICE, LEGACY_KEYRING_SERVICE):
+        with contextlib.suppress(Exception):
+            keyring.delete_password(service, user)
     if stored_token_exists(base_url):  # a locked or denied keychain must not look like success
         raise SourceError(t("The keychain did not remove the token."))
 

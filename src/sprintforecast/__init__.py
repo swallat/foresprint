@@ -3,6 +3,10 @@
 
 __version__ = "0.7.0"
 
+from sprintforecast.compat import adopt_legacy_environment
+
+adopt_legacy_environment()  # SPRINTFORECAST_* variables from before the rename still work
+
 
 def main() -> None:
     from sprintforecast.cli import app
@@ -11,7 +15,7 @@ def main() -> None:
 
 
 # Log file when started without a console (double-click); `web` redirects the server there.
-LOG_ENV = "SPRINTFORECAST_LOG"
+LOG_ENV = "FORESPRINT_LOG"
 
 
 def app_main() -> None:

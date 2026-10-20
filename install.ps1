@@ -4,13 +4,21 @@
 #
 # Running it again updates. The script asks for plugins and remembers the choice.
 # Without prompting (set beforehand):
-#   $env:SPRINTFORECAST_WITH = "owner/repo; name @ git+https://…"   plugins ("" = none)
-#   $env:SPRINTFORECAST_REF = "…"                                      branch or tag instead of main
-#   $env:SPRINTFORECAST_NO_SHORTCUT = "1"                              do not create a launcher
-#   $env:SPRINTFORECAST_COMPLETION = "1"                               set up Tab completion
+#   $env:FORESPRINT_WITH = "owner/repo; name @ git+https://…"   plugins ("" = none)
+#   $env:FORESPRINT_REF = "…"                                      branch or tag instead of main
+#   $env:FORESPRINT_NO_SHORTCUT = "1"                              do not create a launcher
+#   $env:FORESPRINT_COMPLETION = "1"                               set up Tab completion
+# The former names SPRINTFORECAST_WITH, SPRINTFORECAST_REF and SPRINTFORECAST_NO_SHORTCUT still work.
 $ErrorActionPreference = "Stop"
 
-$ref = if ($env:SPRINTFORECAST_REF) { $env:SPRINTFORECAST_REF } else { "main" }
+# Old variable names: use them when the new one is not set.
+foreach ($name in "WITH", "REF", "NO_SHORTCUT", "COMPLETION") {
+    if (-not (Test-Path "Env:FORESPRINT_$name") -and (Test-Path "Env:SPRINTFORECAST_$name")) {
+        Set-Item "Env:FORESPRINT_$name" (Get-Item "Env:SPRINTFORECAST_$name").Value
+    }
+}
+
+$ref = if ($env:FORESPRINT_REF) { $env:FORESPRINT_REF } else { "main" }
 $kind = if ($ref -match '^v\d') { "tags" } else { "heads" }
 $core = "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/$kind/$ref.zip"
 $pluginFile = Join-Path $env:APPDATA "sprintforecast\plugins.txt"
@@ -28,8 +36,8 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 }
 
 $saved = if (Test-Path $pluginFile) { (Get-Content $pluginFile -Raw).Trim() } else { "" }
-if (Test-Path Env:SPRINTFORECAST_WITH) {
-    $plugins = $env:SPRINTFORECAST_WITH
+if (Test-Path Env:FORESPRINT_WITH) {
+    $plugins = $env:FORESPRINT_WITH
 } elseif ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
     Write-Host ""
     Write-Host "Install plugins? Separate several with ';', e.g.:"
@@ -70,12 +78,12 @@ if ($items.Count -gt 0) {
 }
 
 $bin = (& uv tool dir --bin).Trim()
-# Double-click launcher (disable with $env:SPRINTFORECAST_NO_SHORTCUT = "1")
-if (-not $env:SPRINTFORECAST_NO_SHORTCUT) {
+# Double-click launcher (disable with $env:FORESPRINT_NO_SHORTCUT = "1")
+if (-not $env:FORESPRINT_NO_SHORTCUT) {
     try { & (Join-Path $bin 'sprintforecast.exe') shortcut } catch { Write-Host "Note: launcher not created." }
 }
-# Tab completion in PowerShell (opt in with $env:SPRINTFORECAST_COMPLETION = "1")
-if ($env:SPRINTFORECAST_COMPLETION) {
+# Tab completion in PowerShell (opt in with $env:FORESPRINT_COMPLETION = "1")
+if ($env:FORESPRINT_COMPLETION) {
     try { & (Join-Path $bin 'sprintforecast.exe') --install-completion } catch { Write-Host "Note: Tab completion not set up." }
 } else {
     Write-Host "Tab completion (optional): sprintforecast --install-completion"

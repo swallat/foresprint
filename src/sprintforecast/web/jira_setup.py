@@ -5,7 +5,7 @@ Address, query and field names are edited here and saved to ``team.yaml``; a con
 the instance for the account, the fields (suggestions for the estimate, remaining work and epic)
 and the number of tickets the query matches. Only reads happen (``sources.jira``). The page
 The token is stored only in the operating system keychain (hidden input, replace, remove) or
-comes from the environment variable (``SPRINTFORECAST_JIRA_TOKEN``, which takes precedence); it
+comes from the environment variable (``FORESPRINT_JIRA_TOKEN``, which takes precedence); it
 is never written to team.yaml, the data folder or any other file, and never shown.
 Loaded by ``ui.page_jira`` only (``features.tickets``); the helpers are pure functions so that
 tests need no browser."""

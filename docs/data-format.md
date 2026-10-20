@@ -184,7 +184,7 @@ tracker:
   when it differs from `Blocks`.
 - **No secrets in this file.** A key such as `token`, `password` or `secret` in the `tracker`
   section is an error (`check` reports it; the value is never shown). The token lives in the
-  environment variable `SPRINTFORECAST_JIRA_TOKEN` or in the operating system keychain.
+  environment variable `FORESPRINT_JIRA_TOKEN` or in the operating system keychain.
 
 ### `projects.yaml`
 

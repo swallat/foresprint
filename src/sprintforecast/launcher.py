@@ -26,7 +26,7 @@ from pathlib import Path
 
 from sprintforecast.i18n import t
 
-BROWSER_ENV = "SPRINTFORECAST_BROWSER"
+BROWSER_ENV = "FORESPRINT_BROWSER"
 
 
 class Kind(StrEnum):
@@ -168,7 +168,7 @@ def profile_dir() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
-    return base / "sprintforecast" / "browser-profil"
+    return base / "foresprint" / "browser-profil"
 
 
 def browser_command(browser: Browser, url: str) -> list[str]:

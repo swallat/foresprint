@@ -16,7 +16,7 @@ import time
 from collections.abc import Callable
 
 # grace period in seconds; without a value the server stays up
-IDLE_ENV = "SPRINTFORECAST_IDLE_EXIT"
+IDLE_ENV = "FORESPRINT_IDLE_EXIT"
 _POLL_SECONDS = 2.0
 
 _started = False

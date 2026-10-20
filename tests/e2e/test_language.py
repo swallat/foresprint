@@ -30,7 +30,7 @@ def test_language_can_be_switched_in_the_sidebar(page: Page, make_app):
 
 
 def test_start_in_english_through_the_environment(page: Page, app_english):
-    """The default SPRINTFORECAST_LANG=en applies without any setting in the UI."""
+    """The default FORESPRINT_LANG=en applies without any setting in the UI."""
     open_page(page, app_english)
     expect(
         main_area(page).get_by_role("heading", name="What would you like to do?")

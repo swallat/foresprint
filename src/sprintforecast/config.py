@@ -2,7 +2,8 @@
 """User settings outside the team data (e.g. the remembered data folder).
 
 Stored next to the plugin selection of the install scripts:
-Windows %APPDATA%\\sprintforecast, otherwise ~/.config/sprintforecast.
+Windows %APPDATA%\\foresprint, otherwise ~/.config/foresprint. A folder named ``sprintforecast``
+(from before the rename) is copied there on first use and left in place.
 """
 
 from __future__ import annotations
@@ -19,6 +20,9 @@ from typing import Any
 from sprintforecast.i18n import t
 
 PACKAGE = "sprintforecast"
+CONFIG_NAME = "foresprint"
+LEGACY_CONFIG_NAME = "sprintforecast"
+MIGRATED_MARKER = ".migrated"
 
 
 class SettingsError(OSError):
@@ -28,8 +32,28 @@ class SettingsError(OSError):
 
 def config_dir() -> Path:
     if sys.platform == "win32" and os.environ.get("APPDATA"):
-        return Path(os.environ["APPDATA"]) / PACKAGE
-    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / PACKAGE
+        base = Path(os.environ["APPDATA"])
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    folder, legacy = base / CONFIG_NAME, base / LEGACY_CONFIG_NAME
+    if legacy.is_dir() and not (folder / MIGRATED_MARKER).exists():
+        try:
+            _copy_missing(legacy, folder)  # the old folder stays as a backup
+        except OSError:
+            return legacy  # keep using the old folder rather than a half copy
+    return folder
+
+
+def _copy_missing(source: Path, target: Path) -> None:
+    """Copy what ``target`` does not have yet (an install script may have created the folder
+    already), then mark the folder as migrated so it is not looked at again."""
+    shutil.copytree(
+        source,
+        target,
+        dirs_exist_ok=True,
+        copy_function=lambda src, dst: None if os.path.exists(dst) else shutil.copy2(src, dst),
+    )
+    (target / MIGRATED_MARKER).write_text("copied from the folder 'sprintforecast'\n", "utf-8")
 
 
 def _settings_file() -> Path:

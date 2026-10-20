@@ -42,7 +42,7 @@ from sprintforecast.i18n import t
 PACKAGE = "sprintforecast"
 DEFAULT_REPO = "swallat/foresprint"
 DEFAULT_REF = "main"
-MODE_ENV = "SPRINTFORECAST_AUTOUPDATE"
+MODE_ENV = "FORESPRINT_AUTOUPDATE"
 CHECK_INTERVAL = timedelta(hours=24)
 # Only after this time does an update that had no effect count as failed.
 FAILURE_GRACE = timedelta(minutes=15)
@@ -431,10 +431,10 @@ def schedule_after_exit(
 
 # Passed from `sprintforecast web` to the web UI: processes whose end the update has to wait
 # for, and the command for the restart (JSON list).
-PIDS_ENV = "SPRINTFORECAST_PARENT_PIDS"
-RESTART_ENV = "SPRINTFORECAST_RESTART"
+PIDS_ENV = "FORESPRINT_PARENT_PIDS"
+RESTART_ENV = "FORESPRINT_RESTART"
 # Set by sprintforecast-app: original launcher including arguments (JSON list).
-LAUNCHER_ENV = "SPRINTFORECAST_LAUNCHER"
+LAUNCHER_ENV = "FORESPRINT_LAUNCHER"
 
 
 def web_environment(argv: list[str]) -> dict[str, str]:

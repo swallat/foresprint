@@ -24,7 +24,7 @@ locations (on Windows including the Scoop and Chocolatey directories):
 3. The system's default browser
 4. Nothing found: the address is shown and the server keeps running
 
-`--browser PATH` or the environment variable `SPRINTFORECAST_BROWSER` forces a particular
+`--browser PATH` or the environment variable `FORESPRINT_BROWSER` forces a particular
 browser. If port 8501 is taken, a free one is chosen automatically (`--port N` chooses another
 port).
 
@@ -128,7 +128,7 @@ further changes until you edit the text; your own text is never overwritten.
   the app fetches the server state in the background (`git fetch --prune`) when the sidebar is
   first drawn and every 30 minutes while a browser window is connected, with a 20 second limit
   and without any login prompt (a missing login simply leaves the state unchanged; **Check
-  status** then explains what to do). Set `SPRINTFORECAST_NO_BACKGROUND_FETCH=1` to switch this
+  status** then explains what to do). Set `FORESPRINT_NO_BACKGROUND_FETCH=1` to switch this
   off. The background fetch only runs in connected sessions and never keeps the server alive.
 - **Commit changes** commits locally only, without sharing.
 - Error cases are explained in plain language with the next step: server unreachable, repository

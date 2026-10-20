@@ -838,7 +838,10 @@ def test_token_from_the_keychain_by_host(monkeypatch: pytest.MonkeyPatch):
     fake = FakeKeyring({("sprintforecast-jira", "jira.example.org"): "from-keychain"})
     monkeypatch.setitem(sys.modules, "keyring", fake)
     assert jira_token("https://Jira.Example.org:8443/jira") == "from-keychain"
-    assert fake.calls == [("get", "sprintforecast-jira", "jira.example.org")]
+    assert fake.calls == [  # the new service first, the one from before the rename second
+        ("get", "foresprint-jira", "jira.example.org"),
+        ("get", "sprintforecast-jira", "jira.example.org"),
+    ]
     assert jira_token("https://other.example.org") is None
 
 
@@ -863,7 +866,7 @@ def test_store_token_writes_to_the_keychain(monkeypatch: pytest.MonkeyPatch):
     fake = FakeKeyring()
     monkeypatch.setitem(sys.modules, "keyring", fake)
     store_token("https://jira.example.org/jira", CANARY)
-    assert fake.stored == {("sprintforecast-jira", "jira.example.org"): CANARY}
+    assert fake.stored == {("foresprint-jira", "jira.example.org"): CANARY}
     assert jira_token(BASE) == CANARY
 
 

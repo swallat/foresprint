@@ -24,7 +24,7 @@ from sprintforecast.web.jira_setup import Probe, field_options, tracker_from_inp
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 TODAY = date(2026, 10, 15)
 CANARY = "tok-CANARY-0a1b2c3d4e5f"
-ENV = "SPRINTFORECAST_JIRA_TOKEN"
+ENV = "FORESPRINT_JIRA_TOKEN"
 
 
 class FakeKeyring:
@@ -253,7 +253,7 @@ def test_store_replace_and_remove_token(data_dir: Path, monkeypatch, keychain: F
     masked(at).set_value(CANARY)
     button(at, "Store in keychain").click().run()
     assert not at.exception and not at.error, at.error
-    assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): CANARY}
+    assert keychain.entries == {("foresprint-jira", "jira.example.org"): CANARY}
     assert "comes from the keychain" in texts(at)
     # the secret is neither shown nor written anywhere in the data folder
     assert CANARY not in texts(at) and CANARY not in every_file_text(data_dir)
@@ -261,7 +261,7 @@ def test_store_replace_and_remove_token(data_dir: Path, monkeypatch, keychain: F
     assert not any(CANARY in str(v) for v in at.session_state.to_dict().values())
     masked(at).set_value("tok-replacement-1")
     button(at, "Replace in keychain").click().run()
-    assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): "tok-replacement-1"}
+    assert keychain.entries == {("foresprint-jira", "jira.example.org"): "tok-replacement-1"}
     button(at, "Remove from keychain").click().run()
     assert keychain.entries == {} and "No token found" in texts(at)
 
@@ -281,7 +281,7 @@ def test_an_empty_or_invalid_token_is_refused_and_a_retry_works(
     assert not any("two words" in str(v) for v in at.session_state.to_dict().values())
     masked(at).set_value(CANARY)  # the retry after an error must not be lost
     button(at, "Store in keychain").click().run()
-    assert keychain.entries == {("sprintforecast-jira", "jira.example.org"): CANARY}
+    assert keychain.entries == {("foresprint-jira", "jira.example.org"): CANARY}
     assert not any(CANARY in str(v) for v in at.session_state.to_dict().values())
 
 

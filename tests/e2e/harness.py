@@ -197,13 +197,13 @@ class App:
         env = {
             key: value
             for key, value in os.environ.items()
-            if not key.startswith(("SPRINTFORECAST_", "STREAMLIT_"))
+            if not key.startswith(("FORESPRINT_", "STREAMLIT_"))
         }
         env |= git_env(self.person, self.gitconfig)
         env |= {
             DATA_ENV: str(self.data_dir),
             AS_OF_ENV: AS_OF,
-            "SPRINTFORECAST_AUTOUPDATE": "off",
+            "FORESPRINT_AUTOUPDATE": "off",
             "XDG_CONFIG_HOME": str(self.config),
             "APPDATA": str(self.config),
             "PYTHONUTF8": "1",
