@@ -406,6 +406,8 @@ class BudgetBasis(StrEnum):
 
 # Sources a rule leaf can refer to; the ticket facts carry one value list per source.
 RULE_SOURCES: tuple[str, ...] = ("epic", "component", "label", "status", "issue_type", "in_sprint")
+# Suffix of a leaf key in projects.yaml that searches parts of the values (``label_contains``).
+CONTAINS_SUFFIX = "_contains"
 # Operators of the long form; a leaf has the operator ``leaf``.
 RULE_OPERATORS: tuple[str, ...] = ("any", "all", "none")
 # Default order in which the sources decide between two matching projects.
@@ -427,11 +429,15 @@ class Rule:
     values: list[str] = field(default_factory=list)
     children: list[Rule] = field(default_factory=list)
     short: bool = False
+    # Leaf only: the values are searched as parts of the ticket's values (case-insensitive).
+    contains: bool = False
 
     def matches(self, facts: dict[str, list[str]]) -> bool:
         """Does a ticket with these facts (see :meth:`Ticket.facts`) fulfil the rule?"""
         if self.op == "leaf":
             have = facts.get(self.source or "", [])
+            if self.contains:
+                return any(v.lower() in h.lower() for v in self.values for h in have)
             return any(v in have for v in self.values)
         results = [child.matches(facts) for child in self.children]
         if self.op == "all":

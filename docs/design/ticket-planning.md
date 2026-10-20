@@ -253,6 +253,13 @@ Rule language:
 - **Short form:** several leaves directly under `match:` are OR-combined (any match
   suffices).
 - **Long form:** `any` (at least one), `all` (all), `none` (none); can be nested arbitrarily.
+- **Contains:** a leaf key with the suffix `_contains` (`label_contains: [pay]`) searches parts of
+  the values, case-insensitively.
+- **Expression form:** the web page (Tickets > Assignment) edits a rule as text, e.g.
+  `component = Database AND NOT label IN (maintenance, hotfix) AND (epic = ABC-200 OR status = Ready)`.
+  Operators `=`, `!=`, `~` (contains), `!~`, `IN`, `NOT IN`, `AND`, `OR`, `NOT`, parentheses
+  (`ruleexpr.py`). It maps one to one to the YAML tree and is evaluated locally, so it applies to
+  every ticket source.
 - The same language applies to `refined_also_if` and to the product assignment without a project.
 - Validation rejects empty lists, unknown sources and short and long form in the same
   `match:`.
