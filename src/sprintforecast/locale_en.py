@@ -1996,4 +1996,5 @@ EN: dict[str, str] = {
     "Zugriffstoken": "Access token",
     "den Benutzernamen": "the user name",
     "den Token": "the token",
+    "Alle gespeicherten Anmeldungen für diesen Server löschen (auch für andere Repositories)": "Delete all stored sign-ins for this server (also for other repositories)",
 }

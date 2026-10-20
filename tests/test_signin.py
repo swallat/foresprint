@@ -97,6 +97,26 @@ def test_store_token_rejects_empty_and_multiline_input(tmp_path, helper_log, use
     assert not helper_log.exists()
 
 
+def test_helper_given_by_full_path_is_still_recognised(tmp_path: Path):
+    for value in (
+        "/usr/lib/git-core/git-credential-store --file=x",
+        "C:/Program Files/Git/git-credential-store.exe",
+        "C:\\Git\\git-credential-store.exe",
+    ):
+        subprocess.run(["git", "config", "--global", "credential.helper", value], check=True)
+        assert signin.helper_state(tmp_path) == "plain", value
+
+
+def test_odd_addresses_do_not_crash():
+    assert not signin.is_https("https://h:abc/x")
+    assert signin.https_parts("https://[::1]:8443/x.git")[0] == "[::1]:8443"
+
+
+def test_forget_one_token_names_user_and_password(tmp_path: Path, helper_log: Path):
+    signin.forget_token(tmp_path, URL, "oauth2", TOKEN)
+    assert f"password={TOKEN}" in helper_log.read_text()
+
+
 def test_forget_token_rejects_the_entry(tmp_path: Path, helper_log: Path):
     signin.forget_token(tmp_path, URL)
     log = helper_log.read_text()
@@ -214,7 +234,9 @@ def test_no_token_section_for_ssh_addresses(repo: Path, data_dir: Path, monkeypa
 
 def test_start_page_shows_and_hides_the_checklist(repo: Path, data_dir: Path, monkeypatch):
     at = start(data_dir, monkeypatch)
-    assert "Einrichtung" in [s.value for s in at.main.subheader]
-    assert "noch kein Server" in "\n".join(w.value for w in at.main.markdown)
+    text = "\n".join(w.value for w in at.main.markdown)
+    assert "**Einrichtung**" in text and "noch kein Server" in "\n".join(
+        w.value for w in at.main.markdown
+    )
     at.button(key="setup-hide").click().run()
-    assert "Einrichtung" not in [s.value for s in at.main.subheader]
+    assert "**Einrichtung**" not in "\n".join(w.value for w in at.main.markdown)

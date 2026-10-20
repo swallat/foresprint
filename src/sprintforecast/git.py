@@ -1111,6 +1111,7 @@ _SAFE_HELPERS = {
     "cache",
     "oauth",
 }
+_STORE_HELPER = re.compile(r"(?:^|[/\\ ])(?:git-credential-)?store(?:\.exe|\.cmd)?(?:\s|$)")
 _PLAIN_TEXT_HELPERS = {"store"}  # legt den Token unverschlüsselt in ~/.git-credentials ab
 
 
@@ -1134,8 +1135,13 @@ def credential_helpers(cwd: Path | None = None) -> list[str]:
             if key == "credential.helper":  # nur der allgemeine Eintrag hebt alle auf
                 names.clear()
             continue
+        if _STORE_HELPER.search(value):  # auch mit Pfad, Endung oder Optionen
+            names.append("store")
+            continue
         first = "custom" if value.startswith("!") else value.split()[0]
-        first = first.removeprefix("git-credential-")
+        # Auch ein Helfer mit vollem Pfad (…/git-credential-store.exe) ist beim Namen erkannt.
+        first = first.replace("\\", "/").rsplit("/", 1)[-1]
+        first = first.removesuffix(".exe").removesuffix(".cmd").removeprefix("git-credential-")
         names.append(first if first in _SAFE_HELPERS | _PLAIN_TEXT_HELPERS else "custom")
     return names
 

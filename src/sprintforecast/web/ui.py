@@ -795,7 +795,7 @@ def _setup_checklist(repo: Repository) -> None:
     if all(item.ok for item in items):
         return
     with st.container(border=True):
-        st.subheader(t("Einrichtung"))
+        st.markdown(f"**{t('Einrichtung')}**")
         for item in items:
             line = f"{'✅' if item.ok else '⬜'} {item.detail}"
             if item.ok or not item.page:
@@ -4716,9 +4716,10 @@ def _signin_section(root: Path, info: RemoteInfo) -> None:
             try:
                 with st.spinner(t("Prüfe die Anmeldung …")):
                     verify(root, info.url)
-            except GitError:
-                with contextlib.suppress(GitError):
-                    forget_token(root, info.url)  # ein abgelehnter Token bleibt nicht liegen
+            except GitError as e:
+                if e.kind == "auth":  # nur ein abgelehnter Token wird entfernt (genau dieser)
+                    with contextlib.suppress(GitError):
+                        forget_token(root, info.url, user, token)
                 raise
         except GitError as e:
             st.session_state["signin-result"] = ("error", e)
@@ -4730,7 +4731,14 @@ def _signin_section(root: Path, info: RemoteInfo) -> None:
         invalidate_status()
         st.session_state["signin-reset"] = True
         st.rerun()
-    if can_store and st.button(t("Gespeicherte Anmeldung löschen"), key="signin-forget"):
+    confirmed = can_store and st.checkbox(
+        t(
+            "Alle gespeicherten Anmeldungen für diesen Server löschen "
+            "(auch für andere Repositories)"
+        ),
+        key="signin-forget-ok",
+    )
+    if confirmed and st.button(t("Gespeicherte Anmeldung löschen"), key="signin-forget"):
         try:
             forget_token(root, info.url)
         except GitError as e:
