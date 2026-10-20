@@ -79,6 +79,8 @@ from sprintforecast.git import (
     NewBranchError,
     RemoteAddress,
     UnrelatedHistoriesError,
+    apply_attributes,
+    attributes_offer,
     cached_pending_changes,
     classify,
     clone_repository,
@@ -4797,6 +4799,65 @@ def _signin_section(root: Path, info: RemoteInfo) -> None:
         st.rerun()
 
 
+def _attributes_applied(data: Path) -> None:
+    try:
+        apply_attributes(data)
+    except (GitError, OSError, ValueError) as e:  # ValueError: not a UTF-8 file
+        st.session_state["commit_error"] = e if isinstance(e, GitError) else folder_problem(data, e)
+        return
+    st.session_state["flash"] = [
+        (
+            "success",
+            t(
+                "`.gitattributes` created. The change is listed among the open changes; "
+                "“Save and share” takes it the usual way."
+            ),
+        )
+    ]
+
+
+def _attributes_section(repo: Repository) -> None:
+    """Offer of a ``.gitattributes`` (YAML and reports with LF) for an existing data repository,
+    with a preview of the files that change. Written only on a click, and then only to the
+    working folder: committing and sharing go the usual way through “Save and share” (as a merge
+    request if configured)."""
+    try:
+        offer = attributes_offer(repo.root)
+    except GitError, OSError:
+        return
+    if offer is None:
+        return
+    st.subheader(t("Set line endings"))
+    st.markdown(
+        t(
+            "This data folder does not say that YAML files and reports are always stored with LF. "
+            "Without it, the first save on a machine with `core.autocrlf` (Windows) may rewrite "
+            "every line ending and add noise to the history. This creates the file {file} with "
+            "these lines:",
+            file=md_code(offer.file.name),
+        )
+    )
+    st.code("\n".join(offer.rules), language=None)
+    if offer.affected:
+        st.warning(
+            t(
+                "Affected ({count}): these tracked files are stored with CRLF in the repository "
+                "and are converted to LF on the next save (a one-time, purely technical change "
+                "of the line endings):",
+                count=len(offer.affected),
+            )
+        )
+        st.dataframe(pd.DataFrame({t("File"): list(offer.affected)}), hide_index=True)
+    else:
+        st.caption(t("No existing file changes because of this."))
+    st.button(
+        t("Create `.gitattributes`"),
+        key="attributes-apply",
+        on_click=_attributes_applied,
+        args=(repo.root,),
+    )
+
+
 def _share_mode_changed(root: Path) -> None:
     mode = SHARE_MERGE_REQUEST if st.session_state.get("git-share-mr") else SHARE_DIRECT
     try:
@@ -4916,6 +4977,8 @@ def page_data_dir(repo: Repository, setup: bool = False) -> None:
                 else t("Attention: not inside a Git repository.")
             )
         _remote_section(repo)
+        if root:
+            _attributes_section(repo)
     if recent := _recent_dirs(repo):
         st.subheader(t("Recently used"))
         for n, folder in enumerate(recent):
