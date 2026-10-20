@@ -17,7 +17,7 @@ MAIN = "https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
 
 @pytest.fixture
 def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Isolierte Konfiguration und eine uv-Tool-Installation von main."""
+    """Isolated configuration and a uv tool installation of main."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setenv("APPDATA", str(tmp_path / "config"))
     monkeypatch.delenv(updater.MODE_ENV, raising=False)
@@ -57,7 +57,7 @@ def test_versions():
             ("me/fork", "v1.0", True),
         ),
         ('git = "https://github.com/me/fork", branch = "dev"', ("me/fork", "dev", False)),
-        ("", ("swallat/sprint-forecast", "main", False)),  # Quelle aus einem Plugin
+        ("", ("swallat/sprint-forecast", "main", False)),  # source from a plugin
     ],
 )
 def test_installation_from_receipt(env: Path, requirement: str, expected):
@@ -89,7 +89,7 @@ def test_check_caches_for_a_day(env: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def test_auto_update_schedules_once(env: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(sys, "platform", "linux")  # Shell-Variante, auch unter Windows
+    monkeypatch.setattr(sys, "platform", "linux")  # shell variant, also on Windows
     remote(monkeypatch, "0.3.0")
     monkeypatch.setattr(updater, "find_uv", lambda: "/bin/uv")
     started: list[list[str]] = []
@@ -99,7 +99,7 @@ def test_auto_update_schedules_once(env: Path, monkeypatch: pytest.MonkeyPatch):
     assert started and "/bin/uv tool upgrade --reinstall sprintforecast" in started[0][-1]
     assert "0.3.0 wird im Hintergrund installiert" in said[0]
     assert updater.load_state()["attempted"] == "0.3.0"
-    # Zweiter Start: nicht erneut anstoßen
+    # Second start: do not trigger again
     updater.AutoUpdate().start().finish(said.append)
     assert len(started) == 1
     assert "wird nach dem Beenden installiert" in updater.status_line()
@@ -131,7 +131,7 @@ def test_startup_notices(env: Path):
     updater.update_state(attempted="0.3.0", attempted_at=past.isoformat())
     [message] = updater.startup_notices()
     assert "nicht geklappt" in message
-    assert updater.startup_notices() == []  # nur einmal
+    assert updater.startup_notices() == []  # only once
 
 
 def test_powershell_script_waits_and_quotes(tmp_path: Path):

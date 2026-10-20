@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Das Windows-Prüfskript (scripts/windows-tests.ps1) wird mit PowerShell 7 auf Syntax und die
-plattformunabhängigen Hilfsfunktionen geprüft. Ohne `pwsh` entfallen die Tests; die Windows-
-Teile (Prozessliste, Sperren, Fenster) lassen sich nur auf Windows ausführen."""
+"""The Windows check script (scripts/windows-tests.ps1) is checked with PowerShell 7 for syntax
+and the platform-independent helper functions. Without `pwsh` the tests are skipped; the
+Windows parts (process list, locks, windows) can only be run on Windows."""
 
 import shutil
 import subprocess
@@ -20,7 +20,7 @@ def pwsh(command: str, home: str | None = None) -> subprocess.CompletedProcess:
     if home is not None:
         import os
 
-        # Unter Windows gilt USERPROFILE als Profilordner, sonst HOME.
+        # On Windows USERPROFILE counts as the profile folder, otherwise HOME.
         env = os.environ | {"HOME": home, "USERPROFILE": home}
     return subprocess.run(
         [PWSH or "pwsh", "-NoProfile", "-NonInteractive", "-Command", command],
@@ -33,7 +33,7 @@ def pwsh(command: str, home: str | None = None) -> subprocess.CompletedProcess:
 
 
 def test_script_has_a_byte_order_mark_for_windows_powershell():
-    """Windows PowerShell 5.1 liest eine Datei ohne BOM als ANSI und verstümmelt die Umlaute."""
+    """Windows PowerShell 5.1 reads a file without BOM as ANSI and garbles the umlauts."""
     assert SCRIPT.read_bytes().startswith(b"\xef\xbb\xbf")
 
 
@@ -48,7 +48,7 @@ def test_script_parses_without_errors():
 
 
 def test_script_avoids_powershell_7_only_syntax():
-    """Das Skript soll auch unter Windows PowerShell 5.1 laufen."""
+    """The script must also run under Windows PowerShell 5.1."""
     text = SCRIPT.read_text(encoding="utf-8-sig")
     for forbidden in ("??", "?.", "-AsByteStream", "ForEach-Object -Parallel", "&&", "||"):
         assert forbidden not in text.replace("-and", "").replace("-or", ""), forbidden

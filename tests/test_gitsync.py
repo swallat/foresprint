@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""„Speichern und teilen“ mit echten Git-Repositories: ein Server (bare) und zwei Klone."""
+"""The "Save and share" action with real Git repositories: one server (bare) and two clones."""
 
 import http.server
 import subprocess
@@ -43,7 +43,7 @@ def test_ahead_and_behind(alice: Person, bob: Person):
     git(alice.root, "commit", "-qm", "lokal")
     assert gitsync.state(alice.data).ahead == 1
     assert alice.sync().ok
-    # Bob weiß noch nichts davon, bis er den Stand holt
+    # Bob does not know about it until he fetches the state
     assert gitsync.state(bob.data).behind == 0
     state = gitsync.fetch(bob.data)
     assert state.behind == 1 and state.fetch_error is None and state.fetched_at
@@ -58,7 +58,7 @@ def test_sync_shows_changes_by_others(alice: Person, bob: Person):
     assert result.pulled[0].author == "Alice"
     assert ("A", "teams/a/2026.2.yaml") in result.pulled_files
     assert (bob.data / "a" / "2026.2.yaml").read_text() == "velocity: 5\n"
-    assert "a/2026.2" in git(bob.root, "tag")  # Tag kam mit
+    assert "a/2026.2" in git(bob.root, "tag")  # tag came along
 
 
 def test_incoming_before_pull(alice: Person, bob: Person):
@@ -71,15 +71,15 @@ def test_incoming_before_pull(alice: Person, bob: Person):
 
 
 def commit_without_subject(person: Person, rel: str, text: str) -> None:
-    """Ein Commit mit leerem Betreff (Git verlangt dafür ``--allow-empty-message``)."""
+    """A commit with an empty subject (Git requires ``--allow-empty-message`` for it)."""
     person.write(rel, text)
     git(person.root, "add", "-A")
     git(person.root, "commit", "-q", "--allow-empty-message", "-m", "")
 
 
 def test_incoming_with_an_empty_subject_of_the_oldest_commit(alice: Person, bob: Person):
-    """``_git`` schneidet das Trennzeichen am Ende der letzten Zeile ab (str.strip): Die Zeile
-    des ältesten neuen Commits hat dann nur drei Felder, wenn dessen Betreff leer ist."""
+    """``_git`` strips the separator at the end of the last line (str.strip): the line of the oldest
+    new commit then has only three fields if its subject is empty."""
     commit_without_subject(alice, "a/2026.2.yaml", "velocity: 5\n")
     alice.write("a/2026.3.yaml", "velocity: 6\n")
     git(alice.root, "add", "-A")
@@ -108,14 +108,14 @@ def test_parallel_changes_in_different_files_are_merged(alice: Person, bob: Pers
     again = alice.sync()
     assert again.ok and (alice.data / "a" / "2026.3.yaml").exists()
     assert (alice.data / "a" / "2026.2.yaml").exists()
-    # Verlauf enthält beide Änderungen, nichts ging verloren
+    # History contains both changes, nothing was lost
     log = git(alice.root, "log", "--format=%s", "--no-merges")
     assert "Alice" in log and "Bob" in log
 
 
 def test_push_race_is_retried(alice: Person, bob: Person, tmp_path: Path, monkeypatch):
-    """Zwischen Abgleich und Push lädt jemand anderes hoch: Der Push wird abgelehnt, die App
-    holt den neuen Stand und versucht es erneut."""
+    """Between sync and push someone else uploads: the push is rejected, the app fetches the new
+    state and tries again."""
     carol = make_clone(
         Path(git(alice.root, "remote", "get-url", "origin")), tmp_path / "c", "Carol"
     )
@@ -181,7 +181,7 @@ def test_value_conflict_stays_open_and_nothing_is_lost(alice: Person, bob: Perso
     assert (key.path, key.ours, key.theirs) == (("velocity",), 12, 11)
     state = gitsync.state(bob.data)
     assert state.unfinished == "merge" and state.conflicts == (FILE,)
-    assert git(remote, "show", f"main:{FILE}").startswith("velocity: 11")  # Server unverändert
+    assert git(remote, "show", f"main:{FILE}").startswith("velocity: 11")  # server unchanged
     assert "Bob" in git(bob.root, "log", "--format=%s")  # eigener Commit gesichert
 
 
@@ -192,19 +192,19 @@ def test_resolve_mine_or_other_and_continue(
     conflict_between_alice_and_bob(alice, bob)
     remaining = gitsync.resolve_conflicts(bob.data, {FILE: {("velocity",): choice}})
     assert remaining == []
-    result = bob.sync("egal")  # Wiederaufnahme: Merge abschließen, prüfen, hochladen
+    result = bob.sync("egal")  # resume: finish the merge, check, upload
     assert result.ok and result.merged and result.pushed
     assert gitsync.state(bob.data).unfinished is None
     assert yaml.safe_load(git(remote, "show", f"main:{FILE}"))["velocity"] == int(value)
     assert yaml.safe_load(git(remote, "show", f"main:{FILE}"))["scope_creep"] == 1
     log = git(remote, "log", "--format=%s", "main")
-    assert "Alice" in log and "Bob" in log  # beide Änderungen bleiben im Verlauf
+    assert "Alice" in log and "Bob" in log  # both changes stay in the history
 
 
 def test_resume_after_restart_and_abort(alice: Person, bob: Person):
     conflict_between_alice_and_bob(alice, bob)
     invalidate_status()
-    again = bob.sync("noch einmal")  # ohne Entscheidung: bleibt offen, nichts geht verloren
+    again = bob.sync("noch einmal")  # no decision: stays open, nothing is lost
     assert again.error and again.error.kind == "conflict" and again.conflicts
     gitsync.abort_unfinished(bob.data)
     assert (bob.data / "a" / "2026.1.yaml").read_text() == "velocity: 12\nscope_creep: 1\n"
@@ -223,9 +223,8 @@ def test_different_keys_of_same_file_are_merged(alice: Person, bob: Person, remo
 def test_locked_file_during_automatic_merge_is_a_message_and_the_merge_can_resume(
     alice: Person, bob: Person, remote: Path, monkeypatch
 ):
-    """Lässt sich die zusammengeführte Datei nicht schreiben (gesperrt, schreibgeschützt), meldet
-    „Speichern und teilen“ das mit Hinweis statt mit Traceback; das Zusammenführen bleibt offen
-    und wird beim nächsten Versuch zu Ende geführt."""
+    """If the merged file cannot be written (locked, write-protected), "Save and share" reports it
+    with a hint instead of a traceback; the merge stays open and is completed on the next try."""
     alice.write("a/2026.1.yaml", "velocity: 11\nscope_creep: 1\n")
     assert alice.sync("Alice").ok
     bob.write("a/2026.1.yaml", "velocity: 10\nscope_creep: 2\nnote: Bob\n")
@@ -240,13 +239,13 @@ def test_locked_file_during_automatic_merge_is_a_message_and_the_merge_can_resum
     result = bob.sync("Bob")
     assert result.error is not None and result.error.kind == "locked"
     assert "2026.1.yaml" in str(result.error) and "Permission denied" in str(result.error)
-    # Die Datei ist keine Sperrdatei von Git: Der Absatz zur verwaisten index.lock passt hier
-    # nicht, wohl aber der Schreibschutz bzw. ein Programm, das die Datei hält.
+    # The file is not a Git lock file: the paragraph about the orphaned index.lock does not fit
+    # here, but write protection or a program holding the file does.
     hint = result.error.hint
     assert "Sperrdatei" not in hint and "index.lock" not in hint
     assert "Programm" in hint and "schreibgeschützt" in hint and "Speichern und teilen" in hint
     assert hint != gitmod.hint_for("locked")
-    assert not result.error.raw  # eigener Text, keine Ausgabe von Git
+    assert not result.error.raw  # own text, no output from Git
     monkeypatch.undo()
     again = bob.sync("Bob")
     assert again.ok and again.pushed
@@ -255,8 +254,8 @@ def test_locked_file_during_automatic_merge_is_a_message_and_the_merge_can_resum
 
 
 def test_unwritable_file_hint_does_not_talk_about_a_lock_file():
-    """Die Datei, die beim Zusammenführen nicht geschrieben werden kann, ist keine Sperrdatei von
-    Git: Der Hinweis nennt Programme, Schreibschutz und Rechte und wie es weitergeht."""
+    """The file that cannot be written during the merge is not a Git lock file: the hint names
+    programs, write protection and permissions and how to proceed."""
     hint = gitmod.unwritable_file_hint()
     assert "index.lock" not in hint and "Sperrdatei" not in hint
     assert "Programm" in hint and "schreibgeschützt" in hint and "Rechte" in hint
@@ -334,8 +333,8 @@ def test_deleted_on_one_side_is_decided_as_whole_file(alice: Person, bob: Person
 
 
 def test_invalid_merge_result_is_not_pushed(alice: Person, bob: Person, remote: Path, data_dir):
-    """Zwei Personen ändern verschiedene Produktanteile: technisch ein sauberer Merge, fachlich
-    zusammen 120 %. Die Gesamtvalidierung hält das Hochladen an."""
+    """Two people change different product shares: technically a clean merge, but 120 % in total
+    in terms of content. The full validation stops the upload."""
     import shutil
 
     from sprintforecast.storage import Repository
@@ -358,7 +357,7 @@ def test_invalid_merge_result_is_not_pushed(alice: Person, bob: Person, remote: 
     assert result.merged and not result.conflicts and not result.pushed
     assert result.error and result.error.kind == "invalid"
     assert any("120" in line for line in result.validation)
-    assert gitsync.state(bob.data).ahead >= 1  # lokal gesichert, nicht geteilt
+    assert gitsync.state(bob.data).ahead >= 1  # stored locally, not shared
     assert (
         "share: 0.6" not in git(remote, "show", "main:teams/demo/products.yaml").split("id: app")[1]
     )
@@ -369,7 +368,7 @@ def test_invalid_merge_result_is_not_pushed(alice: Person, bob: Person, remote: 
 
 
 def test_offline_keeps_local_work(alice: Person, tmp_path: Path):
-    """Der Server ist ein Ordner auf einem Laufwerk, das gerade fehlt (ohne Netzwerk)."""
+    """The server is a folder on a drive that is currently missing (no network)."""
     git(alice.root, "remote", "set-url", "origin", str(tmp_path / "getrennt" / "daten.git"))
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     result = alice.sync("Offline")
@@ -380,8 +379,8 @@ def test_offline_keeps_local_work(alice: Person, tmp_path: Path):
 
 
 def test_missing_repository_is_not_offline(alice: Person, tmp_path: Path):
-    """Der Server (hier ein Ordner) antwortet, das Repository gibt es dort nicht: Internet oder
-    VPN zu prüfen hilft nicht, die Adresse stimmt nicht."""
+    """The server (here a folder) answers, the repository does not exist there: checking the
+    internet or VPN does not help, the address is wrong."""
     git(alice.root, "remote", "set-url", "origin", str(tmp_path / "gibt-es-nicht.git"))
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     result = alice.sync("Falsche Adresse")
@@ -396,23 +395,23 @@ def test_missing_repository_is_not_offline(alice: Person, tmp_path: Path):
 def test_folder_server_on_a_missing_drive_is_offline_but_a_missing_repository_is_not(
     tmp_path: Path,
 ):
-    """Ein Ordner-Server (Netzlaufwerk, Stick) ohne übergeordneten Ordner ist „nicht erreichbar“;
-    liegt der Ordner vor und fehlt nur das Repository, stimmt die Adresse nicht."""
+    """A folder server (network drive, stick) without a parent folder is "Server not reachable"; if
+    the folder exists and only the repository is missing, the address is wrong."""
     gone = tmp_path / "laufwerk" / "daten.git"
     message = f"fatal: '{gone}' does not appear to be a git repository\n{TAIL}"
     assert classify(message, url=str(gone)).kind == "offline"
     assert classify(message, url=str(gone)).hint == gitmod.hint_for("offline")
-    # Netzfreigabe (UNC), die nicht erreichbar ist: der übergeordnete Ordner fehlt auch hier.
+    # Network share (UNC) that is not reachable: the parent folder is missing here too.
     unc = "//fileserver-gibt-es-nicht/daten/repo.git"
     unc_message = f"fatal: '{unc}' does not appear to be a git repository\n{TAIL}"
     assert classify(unc_message, url=unc).kind == "offline"
-    # Der Ordner ist da, das Repository nicht: nicht gefunden, wie bei jedem erreichbaren Server.
+    # The folder exists, the repository does not: not found, as with any reachable server.
     there = tmp_path / "gibt-es-nicht.git"
     assert classify(message, url=str(there)).kind == "not_found"
-    # Ohne Adresse und bei einer Webadresse bleibt es bei „nicht gefunden“.
+    # Without an address and with a web address it stays "not found".
     assert classify(message).kind == "not_found"
     assert classify(message, url="https://h.example/r.git").kind == "not_found"
-    # Die Prüfung einer neu eingegebenen Adresse: ein fehlender Ordner ist ein Tippfehler.
+    # Checking a newly entered address: a missing folder is a typo.
     probe = gitmod._probe_error(message, gitmod.RemoteAddress(str(gone), "local"))
     assert probe.kind == "not_found"
 
@@ -420,8 +419,8 @@ def test_folder_server_on_a_missing_drive_is_offline_but_a_missing_repository_is
 def test_git_passes_the_address_on_to_the_classification(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Nicht ``classify`` allein, sondern der ganze Weg ``_git`` → ``classify``: Die Adresse wählt
-    die Anmelde-Hilfe (SSH oder https)."""
+    """Not ``classify`` alone, but the whole path ``_git`` -> ``classify``: the address selects the
+    login help (SSH or https)."""
     refused = subprocess.CompletedProcess([], 128, "", "git@x: Permission denied (publickey).")
     monkeypatch.setattr(gitmod, "_git_result", lambda *args, **kwargs: refused)
     with pytest.raises(GitError) as ssh:
@@ -438,7 +437,7 @@ def test_http_404_is_not_found_and_not_offline(alice: Person):
         git(alice.root, "remote", "set-url", "origin", f"http://127.0.0.1:{port}/r.git")
         error = gitsync.fetch(alice.data).fetch_error
     assert error is not None and error.kind == "not_found"
-    assert "not found" in str(error) or "error: 404" in str(error)  # je nach Git-Version
+    assert "not found" in str(error) or "error: 404" in str(error)  # depending on the Git version
     assert "VPN" not in error.hint
 
 
@@ -447,8 +446,8 @@ def test_timeout_counts_as_offline():
 
 
 def test_first_push_to_a_missing_drive_is_offline(tmp_path: Path):
-    """Der erste Hochlade-Versuch (``push -u``) reicht die Adresse an die Zuordnung weiter: Ein
-    Ordner-Server auf einem fehlenden Laufwerk ist „nicht erreichbar“."""
+    """The first upload attempt (``push -u``) passes the address on to the mapping: a folder server
+    on a missing drive is "Server not reachable"."""
     git(tmp_path, "init", "-q", "-b", "main")
     git(tmp_path, "config", "user.name", "X")
     git(tmp_path, "config", "user.email", "x@example.org")
@@ -504,7 +503,7 @@ def test_auth_help_for_ssh_differs():
     "url", ["https://example.org/team/daten.git", "git@example.org:team/daten.git", ""]
 )
 def test_auth_help_does_not_repeat_the_heading(url: str):
-    """Die Überschrift („Anmeldung fehlt oder wurde abgelehnt“) steht schon über dem Hinweis."""
+    """The heading ("Login is missing or was rejected") is already above the hint."""
     from sprintforecast.git import auth_help, hint_for, title_for
 
     hint = auth_help(url)
@@ -520,7 +519,7 @@ def test_auth_help_is_cut_to_the_address():
     https = auth_help("https://example.org/team/daten.git")
     assert "Zugangstoken" in https and "`gh auth setup-git`" in https
     assert "Anmeldedienst des Rechners" in https
-    # nur die Schritte des eigenen Betriebssystems, keine SSH-Schritte
+    # only the steps for the own operating system, no SSH steps
     for other in ("ssh-keygen", "SSH"):
         assert other not in https, other
 
@@ -570,8 +569,8 @@ def test_fetch_login_failure_names_the_steps_for_the_address(
     alice: Person, monkeypatch: pytest.MonkeyPatch, url: str, message: str, expected: str,
     absent: str,
 ):  # fmt: skip
-    """Scheitert der Abgleich an der Anmeldung, passt der Hinweis zur Adresse des Servers: bei
-    SSH die SSH-Schritte, bei https der Zugangstoken – nicht der Text für https überall."""
+    """If the sync fails at login, the hint matches the server's address: SSH steps for SSH, the
+    access token for https, not the https text everywhere."""
     git(alice.root, "remote", "set-url", "origin", url)
     real_git = gitsync._git
 
@@ -584,7 +583,7 @@ def test_fetch_login_failure_names_the_steps_for_the_address(
     error = gitsync.fetch(alice.data).fetch_error
     assert error is not None and error.kind == "auth"
     assert expected in error.hint and absent not in error.hint
-    # „Speichern und teilen“ meldet denselben Hinweis
+    # "Save and share" reports the same hint
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     shared = alice.sync("Login")
     assert shared.error is not None and shared.error.kind == "auth"
@@ -612,8 +611,8 @@ def test_push_login_failure_names_the_steps_for_the_address(
     alice: Person, monkeypatch: pytest.MonkeyPatch, url: str, message: str, expected: str,
     absent: str,
 ):  # fmt: skip
-    """Gelingt der Abgleich und scheitert erst das Hochladen an der Anmeldung (z. B. ein anderer
-    Schlüssel), gilt für den Hinweis dasselbe wie beim Abgleich."""
+    """If the sync succeeds and only the upload fails at login (e.g. a different key), the same
+    applies to the hint as for the sync."""
     git(alice.root, "remote", "set-url", "origin", url)
     real_git = gitsync._git
 
@@ -632,17 +631,16 @@ def test_push_login_failure_names_the_steps_for_the_address(
 
 
 def test_login_failure_without_a_heading_names_the_cause():
-    """„Nur lokal erledigt“ (z. B. ein Tag, der nicht hochgeladen werden konnte) zeigt
-    ``GitError.full()`` ohne Überschrift: Die Ursache steht deshalb dort voran, der Hinweis
-    selbst wiederholt sie nicht."""
+    """ "Done locally only" (e.g. a tag that could not be uploaded) shows ``GitError.full()``
+    without a heading: the cause therefore comes first there, the hint itself does not repeat it."""
     error = classify("fatal: Authentication failed for 'https://example.org/team/daten.git/'")
     assert error.kind == "auth"
     text = error.full()
     assert text.startswith(title_for("auth") + ". ")
     assert text.count("fehlt oder wurde abgelehnt") == 1
-    assert "Authentication failed" in text  # die Meldung von Git bleibt erhalten
+    assert "Authentication failed" in text  # Git's message is kept
     assert text.endswith(error.hint)
-    # andere Fehlerarten bleiben unverändert: Meldung, dann Hinweis
+    # other kinds of errors stay unchanged: message, then hint
     offline = classify("fatal: unable to access 'https://x/': Could not resolve host: x")
     assert offline.full() == f"{offline} {offline.hint}"
     assert classify("fatal: etwas Unbekanntes").full() == "fatal: etwas Unbekanntes"
@@ -665,7 +663,7 @@ def test_locked_file(alice: Person):
     result = alice.sync("Gesperrt")
     assert result.error and result.error.kind == "locked"
     assert "Programm" in result.error.hint
-    # Nach einem Absturz kann die Sperrdatei übrig sein: nachfragen, nicht selbst löschen
+    # After a crash the lock file may be left over: ask, do not delete it yourself
     assert "Sperrdatei" in result.error.hint and "Betreuung" in result.error.hint
 
 
@@ -679,8 +677,8 @@ def test_locked_file(alice: Person):
 def test_unwritable_repository_is_not_a_locked_file(
     alice: Person, monkeypatch: pytest.MonkeyPatch, message: str
 ):
-    """Rechtefehler lassen sich nicht unter Windows und Linux gleich herstellen: Git antwortet
-    hier nachgestellt."""
+    """Permission errors cannot be produced the same way on Windows and Linux: Git answers with
+    the hint appended here."""
     real = gitmod._git_result
 
     def refusing(cwd, *args, **kwargs):
@@ -730,8 +728,8 @@ def test_detached_head_blocks_and_reattach(alice: Person):
     alice.write("a/2026.2.yaml", "velocity: 5\n")
     result = alice.sync("Detached")
     assert result.error and result.error.kind == "detached"
-    assert not result.committed  # nichts auf einen namenlosen Stand schreiben
-    git(alice.root, "stash", "-u", "-q")  # nur damit der Wechsel ohne offene Änderungen läuft
+    assert not result.committed  # write nothing onto a nameless state
+    git(alice.root, "stash", "-u", "-q")  # only so that the switch works without open changes
     assert gitsync.reattach(alice.data).branch == "main"
     assert gitsync.state(alice.data).branch == "main"
 
@@ -749,9 +747,9 @@ def test_reattach_rescues_orphan_commits(alice: Person):
 
 
 def detach_with_open_change(alice: Person, orphan_commit: bool = False) -> None:
-    """Lose auf dem Stand vor der letzten Änderung von ``main``, mit offener Änderung an derselben
-    Datei: Der Wechsel zurück würde sie überschreiben. Mit ``orphan_commit`` hängt vorher noch ein
-    Commit an keinem Branch."""
+    """Detached at the state before the last change of ``main``, with an open change to the same
+    file: switching back would overwrite it. With ``orphan_commit`` a commit on no branch is
+    attached beforehand."""
     file = alice.data / "a" / "2026.1.yaml"
     file.write_text("velocity: 11\nscope_creep: 1\n", encoding="utf-8")
     git(alice.root, "commit", "-qam", "Neuer Stand")
@@ -765,8 +763,8 @@ def detach_with_open_change(alice: Person, orphan_commit: bool = False) -> None:
 
 
 def test_reattach_with_open_changes_saves_them_on_a_rescue_branch(alice: Person):
-    """Offene Änderungen im Datenordner gehen nicht verloren und werden nicht mitgenommen: Sie
-    liegen als eigener Commit auf einem Rettungsbranch, danach steht der Hauptbranch sauber da."""
+    """Open changes in the data folder are not lost and not carried along: they sit as a commit of
+    their own on a rescue branch, after which the main branch is clean."""
     detach_with_open_change(alice)
     done = gitsync.reattach(alice.data)
     assert done.branch == "main" and done.changes and not done.commits
@@ -788,17 +786,17 @@ def test_reattach_saves_new_files_and_commits_together_on_one_rescue_branch(alic
     done = gitsync.reattach(alice.data)
     assert done.commits and done.changes and done.rescue is not None
     rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
-    assert rescue == done.rescue  # ein einziger Rettungsbranch
+    assert rescue == done.rescue  # a single rescue branch
     files = git(alice.root, "ls-tree", "-r", "--name-only", done.rescue)
     assert "teams/a/neu.yaml" in files and "teams/a/frisch.yaml" in files
-    assert "frisch.yaml" not in (git(alice.root, "ls-files"))  # auf main nicht mitgenommen
+    assert "frisch.yaml" not in (git(alice.root, "ls-files"))  # not carried along on main
 
 
 def test_reattach_with_open_changes_and_a_commit_on_a_branch_makes_a_new_rescue_branch(
     alice: Person,
 ):
-    """Hängt der Stand an einem Branch, wird für die offenen Änderungen ein Rettungsbranch neu
-    angelegt; der Branch selbst bleibt unverändert."""
+    """If the state is on a branch, a new rescue branch is created for the open changes; the branch
+    itself stays unchanged."""
     git(alice.root, "checkout", "-q", "--detach")
     (alice.data / "a" / "2026.1.yaml").write_text("velocity: 50\n", encoding="utf-8")
     invalidate_status()
@@ -819,9 +817,8 @@ def test_reattach_without_open_changes_makes_no_extra_commit(alice: Person):
 
 
 def test_reattach_keeps_the_state_when_saving_fails(alice: Person):
-    """Eine Tabellenkalkulation im Datenordner lässt sich nicht committen: Der Wechsel bricht ab,
-    das Repository steht wie vorher auf dem losen Stand, ein neu angelegter Rettungsbranch ist
-    wieder weg."""
+    """A spreadsheet in the data folder cannot be committed: the switch aborts, the repository is
+    back on the detached state as before, a newly created rescue branch is gone again."""
     git(alice.root, "checkout", "-q", "--detach")
     (alice.data / "a" / "plan.xlsx").write_text("x", encoding="utf-8")
     invalidate_status()
@@ -835,9 +832,9 @@ def test_reattach_keeps_the_state_when_saving_fails(alice: Person):
 
 
 def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(alice: Person):
-    """Das Verwerfen auf der Seite „Änderungen und Verlauf“ wirkt nur im Datenordner: Liegt die
-    blockierende Datei außerhalb (hier ``README.md`` im Wurzelordner), wäre der Hinweis
-    „verwerfen“ eine Sackgasse."""
+    """Discarding on the "Changes and history" page only works in the data folder: if the blocking
+    file is outside (here ``README.md`` in the root folder), the hint "discard" would be a dead
+    end."""
     readme = alice.root / "README.md"
     readme.write_text("eins\n", encoding="utf-8")
     git(alice.root, "add", "-A")
@@ -847,7 +844,7 @@ def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(a
     invalidate_status()
     from sprintforecast.githistory import discard_preview
 
-    assert discard_preview(alice.data) == []  # im Datenordner gibt es nichts zu verwerfen
+    assert discard_preview(alice.data) == []  # nothing to discard in the data folder
     with pytest.raises(GitError) as info:
         gitsync.reattach(alice.data)
     hint = " ".join(info.value.hint.split())
@@ -860,9 +857,9 @@ def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(a
 def test_reattach_names_the_rescue_branch_for_a_failure_that_is_not_dirty(
     alice: Person, monkeypatch: pytest.MonkeyPatch
 ):
-    """Scheitert der Wechsel aus einem anderen Grund als offenen Änderungen (hier eine gesperrte
-    Datei), liegen die Änderungen im Datenordner trotzdem schon auf dem Rettungsbranch: Die
-    Meldung nennt ihn, die Art des Fehlers bleibt."""
+    """If the switch fails for a reason other than open changes (here a locked file), the changes in
+    the data folder are already on the rescue branch anyway: the message names it, the kind of
+    error stays."""
     git(alice.root, "checkout", "-q", "--detach")
     (alice.data / "a" / "2026.1.yaml").write_text("velocity: 99\n", encoding="utf-8")
     invalidate_status()
@@ -890,10 +887,9 @@ def test_reattach_names_no_rescue_branch_when_the_commit_is_on_a_branch(alice: P
 
 
 def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Person):
-    """Erst scheitert der Wechsel an offenen Änderungen (die Commits sind schon gesichert), nach
-    dem Aufräumen außerhalb des Datenordners gelingt er: Die Meldung nennt den Rettungsbranch
-    trotzdem, und die Sicherung der Änderungen im Datenordner bleibt, ohne ein zweites Mal
-    zu committen."""
+    """First the switch fails because of open changes (the commits are already saved), after
+    cleaning up outside the data folder it succeeds: the message still names the rescue branch,
+    and the backup of the changes in the data folder stays, without committing a second time."""
     readme = alice.root / "README.md"
     readme.write_text("eins\n", encoding="utf-8")
     git(alice.root, "add", "-A")
@@ -909,13 +905,13 @@ def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Pe
         gitsync.reattach(alice.data)
     rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
     assert rescue.startswith("rettung-") and "\n" not in rescue
-    assert rescue in info.value.hint  # die Änderungen im Datenordner liegen schon dort
+    assert rescue in info.value.hint  # the changes in the data folder are already there
     assert gitsync.state(alice.data).detached
-    readme.unlink()  # außerhalb des Datenordners aufgeräumt
+    readme.unlink()  # cleaned up outside the data folder
     invalidate_status()
     done = gitsync.reattach(alice.data)
     assert done.branch == "main" and done.rescue == rescue and done.commits
-    assert done.changes  # die frühere Sicherung wird erkannt: Meldung nennt auch die Änderungen
+    assert done.changes  # the earlier backup is recognized: the message also names the changes
     assert git(alice.root, "log", "--format=%s", "-2", rescue).splitlines() == [
         "Offene Änderungen vor dem Wechsel gesichert",
         "auf losem Stand",
@@ -923,8 +919,8 @@ def test_reattach_names_the_rescue_branch_again_after_a_failed_attempt(alice: Pe
 
 
 def detach_blocked_outside(alice: Person) -> Path:
-    """Lose, mit einer offenen Änderung im Datenordner und einer blockierenden Datei außerhalb
-    (``README.md`` im Wurzelordner, auf ``main`` vorhanden)."""
+    """Detached, with an open change in the data folder and a blocking file outside (``README.md``
+    in the root folder, present on ``main``)."""
     readme = alice.root / "README.md"
     readme.write_text("eins\n", encoding="utf-8")
     git(alice.root, "add", "-A")
@@ -942,7 +938,7 @@ def test_second_attempt_names_the_earlier_save_in_the_hint(alice: Person):
         gitsync.reattach(alice.data)
     rescue = git(alice.root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
     with pytest.raises(GitError) as info:
-        gitsync.reattach(alice.data)  # nichts Neues im Datenordner, die Sicherung steht schon
+        gitsync.reattach(alice.data)  # nothing new in the data folder, the backup is already there
     assert rescue in info.value.hint
     readme.unlink()
     invalidate_status()
@@ -952,8 +948,8 @@ def test_second_attempt_names_the_earlier_save_in_the_hint(alice: Person):
 
 @pytest.mark.parametrize("orphan", [False, True])
 def test_commits_are_told_apart_over_a_chain_of_saves(alice: Person, orphan: bool):
-    """Zwei Sicherungen hintereinander (zwei gescheiterte Versuche): Ob der lose Stand eigene
-    Commits hatte, zeigt erst der Commit vor der ganzen Kette."""
+    """Two backups in a row (two failed attempts): only the commit before the whole chain shows
+    whether the detached state had commits of its own."""
     readme = detach_blocked_outside(alice)
     if orphan:
         git(alice.root, "add", "teams/a/eins.yaml")
@@ -992,8 +988,8 @@ def test_new_changes_after_a_failed_attempt_go_to_the_same_rescue_branch(alice: 
 
 
 def test_failed_save_restores_the_index(alice: Person, monkeypatch: pytest.MonkeyPatch):
-    """Nach einem gescheiterten Commit (hier: fehlende Identität) ist der Index wie vorher: neue
-    Dateien nicht vorgemerkt, geänderte nicht vorgemerkt; HEAD lose auf dem alten Stand."""
+    """After a failed commit (here: missing identity) the index is as before: new files not staged,
+    changed ones not staged; HEAD detached on the old state."""
     git(alice.root, "checkout", "-q", "--detach")
     (alice.data / "a" / "neu.yaml").write_text("x: 1\n", encoding="utf-8")
     (alice.data / "a" / "2026.1.yaml").write_text("velocity: 50\n", encoding="utf-8")
@@ -1018,16 +1014,16 @@ def test_failed_save_restores_the_index(alice: Person, monkeypatch: pytest.Monke
 
 
 def test_failed_save_keeps_the_staging_of_the_user(alice: Person, monkeypatch: pytest.MonkeyPatch):
-    """Eine vorhandene (auch teilweise) Vormerkung bleibt nach dem Rückbau exakt erhalten."""
+    """An existing (even partial) staging is preserved exactly after the rollback."""
     git(alice.root, "checkout", "-q", "--detach")
     full = alice.data / "a" / "voll.yaml"
     full.write_text("x: 1\n", encoding="utf-8")
-    git(alice.root, "add", str(full))  # vollständig vorgemerkt
+    git(alice.root, "add", str(full))  # fully staged
     part = alice.data / "a" / "2026.1.yaml"
     part.write_text("velocity: 50\n", encoding="utf-8")
     git(alice.root, "add", str(part))
-    part.write_text("velocity: 51\n", encoding="utf-8")  # danach erneut geändert: teilweise
-    (alice.data / "a" / "lose.yaml").write_text("z: 3\n", encoding="utf-8")  # nicht vorgemerkt
+    part.write_text("velocity: 51\n", encoding="utf-8")  # changed again: partially staged
+    (alice.data / "a" / "lose.yaml").write_text("z: 3\n", encoding="utf-8")  # not staged
     invalidate_status()
     before = [
         git(alice.root, *args)
@@ -1048,7 +1044,7 @@ def test_failed_save_keeps_the_staging_of_the_user(alice: Person, monkeypatch: p
         git(alice.root, *args)
         for args in (("diff", "--cached"), ("diff",), ("status", "--porcelain"))
     ]
-    assert after == before and before[0]  # es gab eine Vormerkung
+    assert after == before and before[0]  # there was a staging
     assert gitsync.state(alice.data).detached
 
 
@@ -1118,7 +1114,7 @@ TAIL = (
         ("CONFLICT (content): Merge conflict in a.yaml", "conflict"),
         ("fatal: Repository not found.", "not_found"),
         ("etwas ganz anderes", "error"),
-        # Der Server antwortet, es gibt das Repository dort nicht: nie „offline“.
+        # The server answers, the repository does not exist there: never "offline".
         (
             "fatal: unable to access 'https://x/r.git/': The requested URL returned error: 404",
             "not_found",
@@ -1130,14 +1126,14 @@ TAIL = (
             "not_found",
         ),
         (f"fatal: '/x/y' does not appear to be a git repository\n{TAIL}", "not_found"),
-        ("fatal: repository '/x/y' does not exist", "not_found"),  # Klonen von einem Pfad
+        ("fatal: repository '/x/y' does not exist", "not_found"),  # cloning from a path
         ("remote: Project not found.\nfatal: Could not read from remote repository.", "not_found"),
         (
             "remote: ERROR: The project does not exist or you do not have permission to access it.",
             "not_found",
         ),
         ("error: unable to create file x.yaml: Device or resource busy", "locked"),
-        # Das Zertifikat wird nicht anerkannt: VPN oder Internet zu prüfen nützt nichts.
+        # The certificate is not accepted: checking the VPN or internet is useless.
         (
             "fatal: unable to access 'https://x/': server certificate verification failed. "
             "CAfile: none CRLfile: none",
@@ -1163,7 +1159,7 @@ TAIL = (
             "fatal: unable to access 'https://x/': schannel: SEC_E_UNTRUSTED_ROOT (0x80090325)",
             "certificate",
         ),
-        # Kein Schreibrecht, auch beim Anlegen der Sperrdatei; die SSH-Anmeldung bleibt „auth“.
+        # No write permission, also when creating the lock file; the SSH login stays "auth".
         ("error: unable to create file teams/a/2026.2.yaml: Permission denied", "not_writable"),
         ("fatal: Unable to create '/r/.git/index.lock': Permission denied", "not_writable"),
         ("error: could not lock config file .git/config: Permission denied", "not_writable"),
@@ -1183,11 +1179,11 @@ TAIL = (
         ("fatal: cannot mkdir ziel: Permission denied", "not_writable"),
         ("error: cannot create directory at 'teams/a': Permission denied", "not_writable"),
         ("error: cannot open .git/FETCH_HEAD: Permission denied", "not_writable"),
-        # Windows beendet die Zeile mit CRLF.
+        # Windows ends the line with CRLF.
         ("error: unable to create file x.yaml: Permission denied\r\n", "not_writable"),
-        # „Permission denied“ allein macht es nicht zu „nicht beschreibbar“: Verbindung gesperrt
-        # (Firewall, Sicherheitssoftware) bleibt offline, Schlüsseldatei und Host-Key bleiben
-        # Anmeldung, die Ablehnung des Servers bleibt „denied“, wie vor dieser Änderung.
+        # "Permission denied" alone does not make it "not writable": a blocked connection (firewall,
+        # security software) stays offline, key file and host key stay login, the server's refusal
+        # stays "denied", as before this change.
         (
             "git@x: Permission denied, please try again.\ngit@x: Permission denied (publickey).",
             "auth",
@@ -1235,22 +1231,22 @@ TAIL = (
             "declined)",
             "denied",
         ),
-        # Ein Schreibfehler auf dem Server ist nicht der eigene Datenordner.
+        # A write error on the server is not the own data folder.
         ("remote: error: unable to create file x: Permission denied", "error"),
-        # Ein anderes Programm benutzt die Datei: gesperrt (Windows meldet oft Permission denied).
+        # Another program is using the file: locked (Windows often reports Permission denied).
         ("error: unable to unlink old 'teams/a/x.yaml': Permission denied", "locked"),
         (
             "error: unable to create file x.yaml: The process cannot access the file because it "
             "is being used by another process",
             "locked",
         ),
-        # Git verweigert einen fremden Ordner.
+        # Git refuses a foreign folder.
         (
             "fatal: detected dubious ownership in repository at '/r'\nTo add an exception for "
             "this directory, call:\n\n\tgit config --global --add safe.directory /r",
             "unsafe_directory",
         ),
-        # Der Fingerabdruck des SSH-Servers ist unbekannt oder hat sich geändert.
+        # The fingerprint of the SSH server is unknown or has changed.
         (f"Host key verification failed.\n{TAIL}", "auth"),
         ("@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @", "auth"),
     ],
@@ -1295,7 +1291,7 @@ def test_classify(text: str, kind: str):
             "Schreibrechte",
             "Sperrdatei",
         ),
-        # Eine Sperrdatei nach einem Absturz: nachfragen, bevor sie entfernt wird.
+        # A lock file after a crash: ask before it is removed.
         (
             "fatal: Unable to create '/r/.git/index.lock': File exists.",
             "",
@@ -1315,7 +1311,7 @@ def test_classify(text: str, kind: str):
             "ändert keine Git-Einstellungen",
             "VPN",
         ),
-        # Fingerabdruck: unabhängig von der Adresse, die Meldung belegt SSH
+        # Fingerprint: independent of the address, the message proves SSH
         ("Host key verification failed.", "git@x:r.git", "Fingerabdruck", "ssh-keygen"),
         ("Host key verification failed.", "", "Fingerabdruck", "Zugangstoken"),
         ("git@x: Permission denied (publickey).", "git@x:r.git", "ssh-keygen", "Fingerabdruck"),
@@ -1347,13 +1343,13 @@ MARKED = "<<<<<<< HEAD\nvelocity: 5\n=======\nvelocity: 7\n>>>>>>> origin/main\n
 def test_files_with_conflict_markers_are_not_committed_or_shared(
     alice: Person, remote: Path, newline: str
 ):
-    """Markierungen ohne offenes Zusammenführen (z. B. nach einem Git-Client) würden sonst
-    geteilt und sperrten die Bearbeitung bei allen anderen."""
+    """Markers without an open merge (e.g. after a Git client) would otherwise be shared and block
+    editing for everyone else."""
     before = git(remote, "rev-parse", "main")
     alice.write("a/2026.2.yaml", MARKED.replace("\n", newline))
     result = alice.sync("Mit Markierungen")
     assert result.error is not None and result.error.kind == "conflict"
-    assert "teams/a/2026.2.yaml" in str(result.error)  # Pfad statt nur des Dateinamens
+    assert "teams/a/2026.2.yaml" in str(result.error)  # path instead of just the file name
     assert "Konflikte lösen" in result.error.hint
     assert not result.committed and not result.pushed
     assert git(remote, "rev-parse", "main") == before  # nichts hochgeladen
@@ -1376,7 +1372,7 @@ def test_other_changes_are_shared_once_the_marked_file_is_gone(alice: Person, re
     alice.write("a/2026.2.yaml", MARKED)
     alice.write("a/2026.3.yaml", "velocity: 7\n")
     assert alice.sync("Mit Markierungen").error is not None
-    (alice.data / "a" / "2026.2.yaml").unlink()  # die Datei ist weg: der Rest lässt sich teilen
+    (alice.data / "a" / "2026.2.yaml").unlink()  # the file is gone: the rest can be shared
     invalidate_status()
     result = alice.sync("Ohne Markierungen")
     assert result.ok and result.committed and result.pushed
@@ -1391,7 +1387,7 @@ def test_conflict_markers_are_refused_for_other_kinds_of_change(alice: Person, h
     if how == "yml":
         alice.write("a/notizen.yml", MARKED)
     elif how == "tracked-modified":
-        alice.write("a/2026.1.yaml", MARKED)  # eine bereits verfolgte Datei, Status „M“
+        alice.write("a/2026.1.yaml", MARKED)  # an already tracked file, status "M"
     else:
         alice.write("a/2026.1.yaml", MARKED)
         git(alice.root, "mv", "teams/a/2026.1.yaml", "teams/a/2026.5.yaml")  # Status „R“
@@ -1409,7 +1405,7 @@ def test_deleted_tracked_file_is_not_checked(alice: Person):
 
 
 def test_markdown_with_a_line_of_equal_signs_is_not_mistaken_for_a_conflict(alice: Person):
-    alice.write("a/NOTIZ.md", "<<<<<<< x\n=======\n>>>>>>> y\n")  # nur Datendateien werden geprüft
+    alice.write("a/NOTIZ.md", "<<<<<<< x\n=======\n>>>>>>> y\n")  # only data files are checked
     assert alice.sync("Notiz").ok
 
 
@@ -1424,16 +1420,16 @@ def test_commit_of_given_files_refuses_conflict_markers(alice: Person):
 def test_finishing_an_open_merge_does_not_commit_leftover_markers(
     alice: Person, bob: Person, remote: Path
 ):
-    """Wer die Datei im Git-Client als gelöst vormerkt, ohne die Markierungen zu entfernen, kann
-    das Zusammenführen nicht über „Speichern und teilen“ abschließen und hochladen."""
+    """Anyone who stages the file as resolved in the Git client without removing the markers cannot
+    finish the merge via "Save and share" and upload."""
     conflict_between_alice_and_bob(alice, bob)
-    git(bob.root, "add", "--", FILE)  # „gelöst“, aber die Markierungen stehen noch darin
+    git(bob.root, "add", "--", FILE)  # "resolved", but the markers are still in it
     assert "<<<<<<<" in (bob.root / FILE).read_text()
     result = bob.sync("Abschließen")
     assert result.error is not None and result.error.kind == "conflict"
     assert not result.pushed
-    assert (bob.root / ".git" / "MERGE_HEAD").exists()  # das Zusammenführen bleibt offen
-    assert git(remote, "show", f"main:{FILE}").startswith("velocity: 11")  # Server unverändert
+    assert (bob.root / ".git" / "MERGE_HEAD").exists()  # the merge stays open
+    assert git(remote, "show", f"main:{FILE}").startswith("velocity: 11")  # server unchanged
 
 
 def test_protocols_travel_through_the_server(alice: Person, bob: Person):
@@ -1713,7 +1709,7 @@ def test_background_fetch_does_not_bring_tags_along(alice: Person, bob: Person):
 
 
 def _helpers(monkeypatch, *values: str):
-    """Ersetzt die Ausgabe von ``git config --get-regexp`` für die Anmelde-Hilfe."""
+    """Replaces the output of ``git config --get-regexp`` for the login helper."""
     import subprocess
 
     from sprintforecast import git as gitmod
@@ -1787,13 +1783,13 @@ def test_credential_helpers_reads_the_repository_of_the_data_folder(tmp_path):
 
 
 def test_conflict_hint_for_markdown_keeps_file_names_literal(tmp_path: Path):
-    """Der Hinweis geht als Markdown in die Oberfläche: Zeichen in Dateinamen wirken nicht."""
+    """The hint goes into the UI as Markdown: characters in file names have no effect."""
     name = "a*_[x](www.e.de)\x1f.yaml"
     (tmp_path / name).write_text(MARKED, encoding="utf-8")
     with pytest.raises(GitError) as caught:
         gitmod.refuse_conflict_markers(tmp_path, [tmp_path / name])
     err = caught.value
-    assert "a*_[x](www.e.de)" in err.hint  # Kommandozeile: unverändert
+    assert "a*_[x](www.e.de)" in err.hint  # command line: unchanged
     assert "a\\*\\_\\[x\\]\\(www\\.e\\.de\\)" in err.hint_md
     assert "\x1f" not in err.hint_md and "*_[" not in err.hint_md
 

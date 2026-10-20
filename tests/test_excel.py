@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Excel-Ausgabe: echte Formeln, Zwischenspeicher aus der Engine, Diagramme, Befehl."""
+"""Excel output: real formulas, cache from the engine, charts, command."""
 
 import re
 import zipfile
@@ -23,7 +23,7 @@ TODAY = date(2026, 10, 15)
 
 
 def sheet_xml(z: zipfile.ZipFile, name: str) -> str:
-    """XML des Blatts ``name`` (Reihenfolge laut workbook.xml)."""
+    """XML of the sheet ``name`` (order according to workbook.xml)."""
     book = z.read("xl/workbook.xml").decode()
     names = re.findall(r'<sheet name="([^"]+)"', book)
     return z.read(f"xl/worksheets/sheet{names.index(name) + 1}.xml").decode()
@@ -38,14 +38,14 @@ def workbook(data_dir: Path, mode: TrendMode = TrendMode.FLAT) -> zipfile.ZipFil
 def test_workbook_has_formulas_charts_and_the_settings_names(data_dir: Path):
     z = workbook(data_dir)
     names = z.namelist()
-    assert sum(n.startswith("xl/charts/chart") for n in names) == 2  # Trend und Plan
+    assert sum(n.startswith("xl/charts/chart") for n in names) == 2  # trend and plan
     book = z.read("xl/workbook.xml").decode()
     for name in ("Referenz", "Fenster", "Roadmap_Anteil", "Rundung", "Duenn_nVelocity"):
         assert f'definedName name="{name}"' in book
     sheet = sheet_xml(z, "Forecast")
     formulas = re.findall(r"<f>(.*?)</f>", sheet)
     assert any("ROUNDDOWN" in f and "Referenz" in f for f in formulas)  # Forecast PLAN
-    assert any("AVERAGEIFS" in f and "Fenster" in f for f in formulas)  # Durchschnitt
+    assert any("AVERAGEIFS" in f and "Fenster" in f for f in formulas)  # average
     assert any("Roadmap_Anteil" in f for f in formulas)
     assert len(formulas) > 200
 
@@ -72,13 +72,13 @@ def test_trend_formula_exists_for_every_mode(mode: TrendMode):
 def test_products_sheet_and_production_split_are_included(data_dir: Path):
     z = workbook(data_dir)
     products = sheet_xml(z, "Product values")
-    assert "SUMIFS" not in products and "<f>" in products  # Differenz ohne Produktion
+    assert "SUMIFS" not in products and "<f>" in products  # difference without production
     forecast = sheet_xml(z, "Forecast")
-    assert "SUMIFS" in forecast and "COUNTIFS" in forecast  # Σ Planning je Produkt
+    assert "SUMIFS" in forecast and "COUNTIFS" in forecast  # Σ Planning per product
 
 
 def test_imported_text_never_becomes_a_formula_in_the_next_export(data_dir: Path):
-    """Notizen und Namen aus einer Mappe, die mit = beginnen, werden als Text geschrieben."""
+    """Notes and names from a workbook that start with = are written as text."""
     import openpyxl
 
     repo = Repository(data_dir)
@@ -95,7 +95,7 @@ def test_imported_text_never_becomes_a_formula_in_the_next_export(data_dir: Path
     ]
     names = [c for row in wb["People"].iter_rows(min_row=2) for c in row if c.value == "=1+1"]
     assert notes and names
-    assert all(c.data_type == "s" for c in [*notes, *names])  # Text, keine Formel ("f")
+    assert all(c.data_type == "s" for c in [*notes, *names])  # text, not a formula ("f")
 
 
 def test_command_writes_the_file(data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

@@ -54,7 +54,7 @@ def test_commit_only_data_directory(repo: Path):
 
     commit_directory(teams, "Daten", ["a/2026.1"])
     assert pending_changes(teams) == []
-    assert git(repo, "status", "--porcelain") == "M andere.txt"  # außerhalb bleibt offen
+    assert git(repo, "status", "--porcelain") == "M andere.txt"  # outside stays open
     assert git(repo, "tag") == "a/2026.1"
 
 
@@ -68,7 +68,7 @@ def test_spreadsheet_is_refused(repo: Path):
     (repo / "teams" / "sheet.xlsx").write_bytes(b"x")
     with pytest.raises(GitError, match="Tabellenkalkulationen"):
         commit_directory(repo / "teams", "nicht erlaubt")
-    assert git(repo, "log", "--oneline").count("\n") == 0  # nur der init-Commit
+    assert git(repo, "log", "--oneline").count("\n") == 0  # only the init commit
 
 
 def test_nothing_to_commit(repo: Path):
@@ -76,34 +76,34 @@ def test_nothing_to_commit(repo: Path):
         commit_directory(repo / "teams", "leer")
 
 
-# --- Git hält den Ordner für fremd („detected dubious ownership“) -----------------------------
+# --- Git considers the folder foreign (“detected dubious ownership”) -----------------------------
 
 
 @pytest.fixture
 def unsafe(repo: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Das Repository, das Git nun als fremd ablehnt."""
+    """The repository that Git now rejects as foreign."""
     assume_foreign_owner(monkeypatch, repo)
     return repo
 
 
 def test_repo_root_names_the_reason_for_an_unsafe_directory(unsafe: Path):
     folder = unsafe / "teams"
-    assert repo_root(folder) is None  # wie bisher: kein Wurzelordner
+    assert repo_root(folder) is None  # as before: no root folder
     problem = root_problem(folder)
     assert problem is not None and problem.kind == "unsafe_directory"
-    assert "dubious ownership" in str(problem)  # die Meldung von Git bleibt erhalten
+    assert "dubious ownership" in str(problem)  # Git's message is preserved
     assert "ändert keine Git-Einstellungen" in problem.hint
-    assert "safe.directory" not in problem.hint  # die App rät nicht zu einer Einstellung
-    # Auch die technische Meldung trägt Gits Rat („git config --global --add safe.directory …“)
-    # nicht: Wer sie liest, soll den Befehl nicht einfach kopieren.
+    assert "safe.directory" not in problem.hint  # the app does not recommend a setting
+    # The technical message does not carry Git's advice ("git config --global --add
+    # safe.directory …") either: whoever reads it should not simply copy the command.
     assert "safe.directory" not in str(problem) and "git config" not in str(problem)
     assert str(problem).startswith("fatal: detected dubious ownership in repository at")
 
 
 def test_the_reason_stays_the_output_of_git_where_it_is_passed_on(unsafe: Path):
-    """Die Meldung nennt Pfade und kommt von Git: Wo der Grund weitergereicht wird
-    (``require_root``, ``init_data_repository``), bleibt sie als Ausgabe von Git gekennzeichnet,
-    damit die Oberfläche sie als Code setzt statt als Markdown."""
+    """The message names paths and comes from Git: where the reason is passed on
+    (``require_root``, ``init_data_repository``), it stays marked as Git output,
+    so the UI renders it as code instead of Markdown."""
     from sprintforecast.git import init_data_repository
 
     folder = unsafe / "teams"
@@ -119,7 +119,7 @@ def test_the_reason_stays_the_output_of_git_where_it_is_passed_on(unsafe: Path):
 
 
 def test_init_data_repository_leaves_an_unsafe_directory_untouched(unsafe: Path):
-    """Git lehnt den Ordner ab: kein „git init“ und keine neue Datei dort, sondern der Grund."""
+    """Git rejects the folder: no "git init" and no new file there, just the reason."""
     from sprintforecast.git import init_data_repository
 
     before = sorted(p.relative_to(unsafe).as_posix() for p in unsafe.rglob("*"))
@@ -166,7 +166,7 @@ def test_an_unsafe_directory_is_reported_instead_of_no_repository(unsafe: Path, 
 
 
 def test_the_reason_is_not_permanent(unsafe: Path, monkeypatch: pytest.MonkeyPatch):
-    """Wird der Ordner in Ordnung gebracht, gilt das nach dem nächsten Speichern oder Abgleich."""
+    """Once the folder is fixed, this applies after the next save or sync."""
     assert root_problem(unsafe) is not None
     monkeypatch.delenv("GIT_TEST_ASSUME_DIFFERENT_OWNER")
     invalidate_status()

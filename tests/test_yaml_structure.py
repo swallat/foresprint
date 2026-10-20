@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Falsche Typen und Strukturen in den YAML-Dateien: Meldung mit Dateiname statt Absturz."""
+"""Wrong types and structures in the YAML files: message with file name instead of a crash."""
 
 from collections.abc import Callable
 from datetime import date
@@ -115,7 +115,7 @@ def test_wrong_structure_is_a_data_error_naming_the_file_and_the_field(
     with pytest.raises(DataError) as caught:
         Repository(data_dir).load("demo")
     assert str(path) in str(caught.value)
-    # Das Feld steht in der Meldung: Es kommt aus der Einzelprüfung, nicht aus dem Auffangnetz.
+    # The field is in the message: it comes from the individual check, not from the safety net.
     assert EXPECTED[request.node.callspec.id] in str(caught.value), str(caught.value)
     assert "Aufbau der Datei ungültig" not in str(caught.value)
 
@@ -143,7 +143,7 @@ def test_cli_shows_a_message_with_exit_code_1(data_dir: Path):
 def test_web_shows_the_message_for_a_broken_team_file(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Auch die Navigation (enabled_pages) und der Seitenaufbau stürzen nicht ab."""
+    """The navigation (enabled_pages) and the page layout do not crash either."""
     path = edit(data_dir, TEAM, setting("sprint", "foo"))
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
@@ -156,7 +156,7 @@ def test_web_shows_the_message_for_a_broken_team_file(
 
 
 def test_valid_files_with_empty_sections_still_load(data_dir: Path):
-    """Leere Abschnitte (``sprint:`` ohne Inhalt, ``absences: {}``) bleiben gültig."""
+    """Empty sections (``sprint:`` without content, ``absences: {}``) stay valid."""
     edit(data_dir, TEAM, setting("features", None))
     edit(data_dir, SPRINT, lambda d: d.update(absences=None, products=None, prognoses=[]))
     data = Repository(data_dir).load("demo")
@@ -170,8 +170,8 @@ def test_quoted_share_number_is_still_accepted(data_dir: Path):
 
 
 def test_catch_all_turns_unexpected_structure_errors_into_a_data_error(tmp_path: Path):
-    """Das Auffangnetz um die Einzelprüfungen: Typ-, Attribut-, Schlüssel- und Überlauffehler
-    kommen mit dem Dateinamen als DataError an."""
+    """The safety net around the individual checks: type, attribute, key and overflow errors
+    arrive as DataError with the file name."""
     from sprintforecast.storage import _well_formed
 
     for error in (AttributeError("a"), TypeError("b"), KeyError("c"), ValueError("d")):
@@ -184,7 +184,7 @@ def test_catch_all_turns_unexpected_structure_errors_into_a_data_error(tmp_path:
     with pytest.raises(DataError, match="Aufbau der Datei ungültig"), _well_formed("x.yaml"):
         raise OverflowError("e")
     with pytest.raises(DataError, match="schon ein DataError"), _well_formed("x.yaml"):
-        raise DataError("schon ein DataError")  # bleibt unverändert
+        raise DataError("schon ein DataError")  # stays unchanged
 
 
 def set_capacity(**fields) -> Callable[[dict], None]:
@@ -197,7 +197,7 @@ def set_capacity(**fields) -> Callable[[dict], None]:
         (TEAM, set_capacity(region=["NW"]), "capacity.region"),
         (TEAM, set_capacity(region={"a": 1}), "capacity.region"),
         (TEAM, set_capacity(country=["DE"]), "capacity.country"),
-        (TEAM, set_capacity(country=False), "Anführungszeichen"),  # unquotiert NO = Norwegen
+        (TEAM, set_capacity(country=False), "Anführungszeichen"),  # unquoted NO = Norway
         (PEOPLE, person(region=["BY"]), "region"),
         (PEOPLE, person(country=False), "Anführungszeichen"),
     ],
@@ -205,8 +205,8 @@ def set_capacity(**fields) -> Callable[[dict], None]:
 def test_country_and_region_must_be_text(
     data_dir: Path, name: str, change: Callable[[dict], None], fragment: str
 ):
-    """Eine Liste als Region ließ die Feiertagsberechnung später mit TypeError abstürzen
-    („unhashable type“), obwohl Laden und Prüfung durchliefen."""
+    """A list as region made the holiday calculation crash later with TypeError ("unhashable
+    type"), although loading and checking passed."""
     edit(data_dir, name, change)
     with pytest.raises(DataError, match=fragment):
         Repository(data_dir).load("demo")
@@ -214,8 +214,8 @@ def test_country_and_region_must_be_text(
 
 @pytest.mark.parametrize("raw", ["2026-10-14 00:00:00", "2026-10-14T08:00:00"])
 def test_timestamps_are_read_as_dates(data_dir: Path, raw: str):
-    """YAML liest ein Datum mit Uhrzeit als datetime; es wird zum Datum (sonst TypeError beim
-    Sortieren und Vergleichen)."""
+    """YAML reads a date with a time as datetime; it becomes the date (otherwise TypeError when
+    sorting and comparing)."""
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
     text = path.read_text(encoding="utf-8")
     assert "start: 2026-10-14\n" in text
@@ -226,7 +226,7 @@ def test_timestamps_are_read_as_dates(data_dir: Path, raw: str):
 
 
 def test_infinite_whole_number_setting_is_a_data_error(data_dir: Path):
-    """``int(inf)`` wirft OverflowError, kein ValueError: früher ein Absturz ohne Dateiname."""
+    """``int(inf)`` raises OverflowError, not ValueError: formerly a crash without a file name."""
     path = data_dir / "demo" / "team.yaml"
     text = path.read_text(encoding="utf-8")
     assert "window: 5" in text
@@ -258,8 +258,8 @@ def test_unquoted_first_sprint_id_is_explained(data_dir: Path):
 
 
 def test_load_errors_compare_equal_across_folders(data_dir: Path, tmp_path: Path):
-    """„Speichern und teilen“ vergleicht die Fehler des Arbeitsstands mit denen des Commits, der
-    in einem anderen Ordner entpackt wird: Der Ordner steht nicht im Vergleichstext."""
+    """The "Save and share" action compares the errors of the working state with those of the
+    commit that is unpacked in another folder: the folder does not appear in the comparison text."""
     from sprintforecast.gitsync import _error_set
 
     edit(data_dir, TEAM, setting("sprint", "foo"))

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Änderungsansicht „Was hat sich geändert?“ im Git-Bereich (AppTest, echte Git-Repositories)."""
+"""The "What has changed?" view in the Git area (AppTest, real Git repositories)."""
 
 import subprocess
 from pathlib import Path
@@ -36,7 +36,7 @@ def start(data_dir: Path, monkeypatch) -> AppTest:
 
 
 def view(at: AppTest) -> str:
-    """Alles, was die Ansicht als Markdown oder Beschriftung ausgibt."""
+    """Everything the view outputs as Markdown or label."""
     return "\n".join([m.value for m in at.sidebar.markdown] + [c.value for c in at.sidebar.caption])
 
 
@@ -77,8 +77,8 @@ def test_new_deleted_and_unreadable_files(repo, data_dir: Path, monkeypatch):
     assert "`neu.yaml` – neu" in text
     assert "`bericht.xlsx` – neu" in text
     assert "`demo/sprints/2026.20.yaml` – gelöscht" in text
-    assert text.count("keine Wertansicht") == 1  # nur die Excel-Datei
-    assert len(at.sidebar.dataframe) == 0  # neu und gelöscht: nur die Art
+    assert text.count("keine Wertansicht") == 1  # only the Excel file
+    assert len(at.sidebar.dataframe) == 0  # new and deleted: only the kind
 
 
 def test_foreign_text_is_never_rendered_as_markdown(repo, data_dir: Path, monkeypatch):
@@ -87,7 +87,7 @@ def test_foreign_text_is_never_rendered_as_markdown(repo, data_dir: Path, monkey
     file.write_text(f"wert: '{evil}'\n", encoding="utf-8")
     invalidate_status()
     at = start(data_dir, monkeypatch)
-    # Der Dateiname steht als Code, der Wert nur in der Tabelle (kein Markdown, keine Beschriftung).
+    # The file name is shown as code, the value only in the table (no Markdown, no label).
     assert "`**fett**.yaml` – geändert" in view(at)
     assert evil not in view(at)
     (frame,) = [d.value for d in at.sidebar.dataframe]
@@ -116,7 +116,7 @@ def test_rows_and_files_are_limited(repo, data_dir: Path, monkeypatch):
     at = start(data_dir, monkeypatch)
     (frame,) = [d.value for d in at.sidebar.dataframe]
     assert len(frame) == 31 and frame.iloc[-1]["Feld"] == "… und 10 weitere"
-    # 31 Dateien (viel.yaml und 30 neue): 25 gezeigt, 6 weitere
+    # 31 files (viel.yaml and 30 new ones): 25 shown, 6 more
     assert "… und 6 weitere" in view(at)
     assert sum(1 for m in at.sidebar.markdown if " – " in m.value) == 25
 
@@ -136,13 +136,13 @@ def test_second_run_reads_nothing_again_until_invalidated(repo, data_dir: Path, 
     at = start(data_dir, monkeypatch)
     assert len(calls) == 1
     at.run()
-    assert len(calls) == 1  # unverändert: aus dem Zwischenspeicher
+    assert len(calls) == 1  # unchanged: from the cache
     invalidate_status()
     at.run()
     assert len(calls) == 2
-    file.write_text(file.read_text().replace("velocity: 7.0", "velocity: 6.5"))  # Größe gleich
+    file.write_text(file.read_text().replace("velocity: 7.0", "velocity: 6.5"))  # same size
     at.run()
-    assert len(calls) == 3  # Änderungszeit der Arbeitsdatei geändert
+    assert len(calls) == 3  # modification time of the working file changed
     assert any(d.value["Nachher"].eq("6.5").any() for d in at.sidebar.dataframe)
 
 
@@ -164,7 +164,7 @@ def test_git_error_hides_only_the_view(repo, data_dir: Path, monkeypatch):
 
 
 def cells(at: AppTest) -> dict[str, tuple[str, str]]:
-    """Feld → (Vorher, Nachher) aus allen Tabellen der Ansicht."""
+    """Field -> (before, after) from all tables of the view."""
     out: dict[str, tuple[str, str]] = {}
     for d in at.sidebar.dataframe:
         for _, r in d.value.iterrows():
@@ -176,7 +176,7 @@ def test_date_as_key_does_not_crash(repo, data_dir: Path, monkeypatch):
     file = commit_extra(repo, "tage.yaml", "a:\n  2026-01-01: 1\nl:\n  - 2026-01-01: 1\n")
     file.write_text("a: 5\nl:\n  - 2026-01-01: 2\n", encoding="utf-8")
     invalidate_status()
-    at = start(data_dir, monkeypatch)  # prüft: keine Ausnahme
+    at = start(data_dir, monkeypatch)  # checks: no exception
     shown = cells(at)
     assert shown["a"] == ("{2026-01-01: 1}", "5")
     assert shown["l"] == ("[{2026-01-01: 1}]", "[{2026-01-01: 2}]")
@@ -189,7 +189,7 @@ def test_before_and_after_never_look_alike(repo, data_dir: Path, monkeypatch):
     shown = cells(start(data_dir, monkeypatch))
     assert shown["a"] == ("1", "'1'")
     assert shown["b"] == ("null", "None")
-    assert shown["c"][0] != shown["c"][1]  # Leerraum wird nicht zusammengezogen
+    assert shown["c"][0] != shown["c"][1]  # whitespace is not collapsed
     assert shown["d"] == ("true", "'true'")
 
 
@@ -215,7 +215,7 @@ def test_renamed_files_show_old_and_new_name(repo, data_dir: Path, monkeypatch):
     text = view(at)
     assert "umbenannt: `alt1.yaml` → `neu1.yaml`" in text
     assert "alt2.yaml` → `neu2.yaml`" in text
-    assert cells(at)["a"] == ("1", "2")  # nur die geänderte Umbenennung hat Werte
+    assert cells(at)["a"] == ("1", "2")  # only the changed rename has values
 
 
 def test_staged_then_deleted_files(repo, data_dir: Path, monkeypatch):
@@ -239,9 +239,9 @@ def test_table_export_cannot_become_a_formula(repo, data_dir: Path, monkeypatch)
     invalidate_status()
     shown = cells(start(data_dir, monkeypatch))
     assert shown["a"][1] == "'-x"
-    assert shown["b"][1] == "-5"  # Zahlen bleiben
+    assert shown["b"][1] == "-5"  # numbers stay
     assert shown["c"][1].lstrip("'").startswith("@")
-    assert "'=cmd" in shown  # auch der Feldname
+    assert "'=cmd" in shown  # the field name too
 
 
 def test_limits_at_the_exact_boundary(repo, data_dir: Path, monkeypatch):
@@ -272,7 +272,7 @@ def test_huge_hex_integer_does_not_crash(repo, data_dir: Path, monkeypatch):
     file = commit_extra(repo, "gross.yaml", "n: 0x" + "F" * 5000 + "\nm: 1\n")
     file.write_text("n: 0x" + "E" + "F" * 4999 + "\nm: 2\n", encoding="utf-8")
     invalidate_status()
-    shown = cells(start(data_dir, monkeypatch))  # keine Ausnahme
+    shown = cells(start(data_dir, monkeypatch))  # no exception
     before, after = shown["n"]
     assert "Bit" in before and before != after
     assert shown["m"] == ("1", "2")
@@ -289,7 +289,7 @@ def test_big_values_are_bounded_and_fast():
     texts = {f"k{i}": "x" * 150_000 for i in range(30)}
     ui._view_pair(texts, {**texts, "k0": "y"})
     assert time.monotonic() - started < 2
-    assert len(a) <= 80 and b.startswith(a) and "(" in b  # gleicher Ausschnitt: Hinweis
+    assert len(a) <= 80 and b.startswith(a) and "(" in b  # same excerpt: notice
 
 
 def test_sets_binary_and_unknown_types_are_bounded():
@@ -316,7 +316,7 @@ def test_same_excerpt_but_different_values_gets_the_hint():
     from sprintforecast.web import ui
 
     a, b = ui._view_pair(list(range(2000)), [*range(1999), 5])
-    assert a != b and "(" in b  # beide Ausschnitte gleich: Hinweis statt gleicher Zellen
+    assert a != b and "(" in b  # both excerpts equal: notice instead of identical cells
 
 
 def test_rows_are_computed_once_until_invalidated(repo, data_dir: Path, monkeypatch):
@@ -337,7 +337,7 @@ def test_rows_are_computed_once_until_invalidated(repo, data_dir: Path, monkeypa
     assert len(calls) == 1
     at.sidebar.text_input(key="commit_message").set_value("Tippen")
     at.run()
-    assert len(calls) == 1  # Tastendruck: keine Neuberechnung
+    assert len(calls) == 1  # keystroke: no recalculation
     invalidate_status()
     at.run()
     assert len(calls) == 2
@@ -351,7 +351,7 @@ def test_note_for_a_changed_file_without_value_changes(repo, data_dir: Path, mon
     invalidate_status()
     at = start(data_dir, monkeypatch)
     notes = [c.value for c in at.sidebar.caption if "keine Wertänderung" in c.value]
-    assert len(notes) == 1  # nur die geänderte (und umbenannte) Datei, nicht die neue
+    assert len(notes) == 1  # only the changed (and renamed) file, not the new one
 
 
 def test_pure_rename_and_new_file_get_no_note(repo, data_dir: Path, monkeypatch):
@@ -389,7 +389,7 @@ def test_every_formula_prefix_is_guarded_and_numbers_are_not():
         assert ui._formula_safe(f"{ch}x") == f"'{ch}x"
     assert ui._formula_safe("+1+2") == "'+1+2" and ui._formula_safe("+5", 5) == "'+5"
     assert ui._formula_safe("-5", -5) == "-5" and ui._formula_safe("-1.5", -1.5) == "-1.5"
-    # Die Kurzform großer Zahlen und ``-.inf`` sind keine Zahlen im Zahlenformat
+    # The short form of large numbers and ``-.inf`` are not numbers in the number format
     assert ui._view_pair(1, -(10**60))[1].startswith("'-0x")
     assert ui._view_pair(1, float("-inf"))[1] == "'-.inf"
 
@@ -412,7 +412,7 @@ def test_files_beyond_the_size_budget_are_marked(repo, data_dir: Path, monkeypat
     for file in files:
         file.write_text("a: 2\n", encoding="utf-8")
     invalidate_status()
-    monkeypatch.setattr(diff_module, "_BYTES_BUDGET", 12)  # eine Datei: HEAD und Arbeitsstand
+    monkeypatch.setattr(diff_module, "_BYTES_BUDGET", 12)  # one file: HEAD and working state
     at = start(data_dir, monkeypatch)
     notes = [c.value for c in at.sidebar.caption if "nicht ausgewertet" in c.value]
     assert len(notes) == 1 and len(at.sidebar.dataframe) == 1
@@ -425,7 +425,7 @@ def test_clipping_offset_and_lengthening():
     assert a == "…" + "x" * 10 + "A" * 68 + "…" and b == "…" + "x" * 10 + "B" * 68 + "…"
     a, b = ui._view_pair("x" * 100, "x" * 100 + "Z")
     assert (a, b) == ("…" + "x" * 10, "…" + "x" * 10 + "Z")
-    # Genau 80 Zeichen: nicht gekürzt, auch nicht am Anfang
+    # Exactly 80 characters: not shortened, not even at the start
     a, b = ui._view_pair("a" * 80, "a" * 79 + "b")
     assert (a, b) == ("a" * 80, "a" * 79 + "b")
     a, b = ui._view_pair("a" * 81, "a" * 80 + "b")
@@ -455,12 +455,12 @@ def test_view_helpers():
     assert ui._view_pair(longer, MISSING)[0] == "a" * 79 + "…"
     assert ui._view_text(["Büro", date(2026, 1, 1), True, None]) == "[Büro, 2026-01-01, true, null]"
     assert ui._view_clean("a\nb\tc\u202ed\x07") == "a⏎b⇥cd "
-    # Gleich nach dem Bereinigen: Hinweis statt scheinbar gleicher Zellen
+    # Equal right after cleaning: notice instead of seemingly identical cells
     a, b = ui._view_pair("ab", "a\u202eb")
     assert a == "ab" and b.startswith("ab (") and len(b) > 4
     assert ui._formula_safe("=1", "=1") == "'=1" and ui._formula_safe("-1", -1) == "-1"
     assert ui._formula_safe("x") == "x" and ui._formula_safe("") == ""
-    assert ui._view_text(object()).startswith("<object")  # kein Absturz bei Unbekanntem
+    assert ui._view_text(object()).startswith("<object")  # no crash on unknown input
 
 
 def test_view_name_for_data_folder_equal_to_repository_root(tmp_path: Path):

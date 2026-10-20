@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Git finden, auch wenn es nicht im PATH liegt (Installation ohne Administratorrechte)."""
+"""Find Git even if it is not in the PATH (installation without administrator rights)."""
 
 import errno
 import os
@@ -14,16 +14,17 @@ from sprintforecast import git as gitmod
 from sprintforecast import gitsync
 from sprintforecast.git import GitError, find_git, git_command, git_locations, reset_git_cache
 
-# Die echte Funktion; die Testumgebung (conftest) ersetzt gitmod.git_locations durch eine leere.
+# The real function; the test environment (conftest) replaces gitmod.git_locations with an
+# empty one.
 REAL_LOCATIONS = git_locations
-REAL_GIT = shutil.which("git")  # vor jeder PATH-Änderung der Tests
+REAL_GIT = shutil.which("git")  # before any PATH change by the tests
 
 posix = pytest.mark.skipif(sys.platform == "win32", reason="Shell-Skript als Fake-Git")
 
 
 def fake_git(folder: Path, name: str = "git", version: str = "9.9.9-fake") -> Path:
-    """Ein ausführbares „git“, das ``--version`` selbst beantwortet und sonst an das echte
-    Git weiterreicht."""
+    """An executable "git" that answers ``--version`` itself and otherwise passes through to
+    the real Git."""
     real = REAL_GIT
     assert real
     folder.mkdir(parents=True, exist_ok=True)
@@ -39,7 +40,7 @@ def fake_git(folder: Path, name: str = "git", version: str = "9.9.9-fake") -> Pa
 
 @pytest.fixture
 def no_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Git ist nicht im PATH."""
+    """Git is not in the PATH."""
     leer = tmp_path / "leerer-path"
     leer.mkdir()
     monkeypatch.setenv("PATH", str(leer))
@@ -85,13 +86,13 @@ def test_found_path_is_remembered_and_cache_can_be_reset(
     fake = fake_git(tmp_path / "a")
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
     assert find_git() == str(fake)
-    monkeypatch.setattr(gitmod, "git_locations", lambda: [])  # Orte sind nicht mehr bekannt …
-    assert find_git() == str(fake)  # … der gemerkte Pfad gilt, solange die Datei besteht
+    monkeypatch.setattr(gitmod, "git_locations", lambda: [])  # locations are no longer known …
+    assert find_git() == str(fake)  # … the remembered path applies as long as the file exists
     reset_git_cache()
     assert find_git() is None
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
     assert find_git() == str(fake)
-    fake.unlink()  # deinstalliert: der gemerkte Pfad verfällt von selbst
+    fake.unlink()  # uninstalled: the remembered path expires by itself
     assert find_git() is None
 
 
@@ -99,8 +100,8 @@ def test_found_path_is_remembered_and_cache_can_be_reset(
 def test_fresh_installation_is_found_without_restart(
     tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
 ):
-    """Ein Misserfolg wird nicht gemerkt: Git, das erst nach dem ersten Suchen installiert
-    wird, findet die App beim nächsten Aufruf."""
+    """A failure is not remembered: Git that is installed only after the first search
+    is found by the app on the next call."""
     later = tmp_path / "spaeter" / "git"
     monkeypatch.setattr(gitmod, "git_locations", lambda: [later])
     assert find_git() is None and not gitsync.git_available()
@@ -182,7 +183,7 @@ def test_default_locations_on_unix(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 @posix
 def test_relative_path_hit_is_made_absolute(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Ein leerer oder „.“-Eintrag im PATH liefert einen relativen Treffer (Arbeitsordner)."""
+    """An empty or "." entry in the PATH yields a relative hit (working folder)."""
     fake_git(tmp_path / "hier")
     monkeypatch.chdir(tmp_path / "hier")
     monkeypatch.setattr(shutil, "which", lambda name: "git")
@@ -200,7 +201,7 @@ def test_cache_read_survives_a_reset_by_another_thread(
     real_isfile = gitmod.os.path.isfile
 
     def isfile_after_reset(path):
-        reset_git_cache()  # ein anderer Thread setzt zurück, mitten in der Prüfung
+        reset_git_cache()  # another thread resets, in the middle of the check
         return real_isfile(path)
 
     monkeypatch.setattr(gitmod.os.path, "isfile", isfile_after_reset)
@@ -208,7 +209,7 @@ def test_cache_read_survives_a_reset_by_another_thread(
 
 
 def broken_git(folder: Path) -> Path:
-    """Ausführbar, aber kein Programm (kein gültiges Format, keine Shebang-Zeile)."""
+    """Executable, but not a program (no valid format, no shebang line)."""
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / "git"
     path.write_bytes(b"\x00\x01\x02 kein Programm")
@@ -236,7 +237,7 @@ def test_unusable_git_is_reported_as_missing_and_forgotten(
         call(tmp_path)
     assert raised.value.kind == "git_missing"
     assert str(broken) in raised.value.hint and "nicht starten" in raised.value.hint
-    assert gitmod._FOUND is None  # der gemerkte Fund ist vergessen
+    assert gitmod._FOUND is None  # the remembered find is forgotten
 
 
 @posix
@@ -296,17 +297,17 @@ def test_missing_git_hint_in_english(tmp_path: Path, english, monkeypatch: pytes
 def test_broken_git_in_path_gives_way_to_a_fallback_location(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Veraltetes oder defektes ``git`` im PATH (Store-Alias): Schon der erste Aufruf wiederholt
-    den Start mit dem Ersatzort; danach ist das defekte gesperrt."""
+    """Outdated or broken ``git`` in the PATH (Store alias): the very first call retries the
+    start with the fallback location; after that the broken one is blocked."""
     in_path = broken_git(tmp_path / "pfad")
     fallback = fake_git(tmp_path / "ersatz", version="2.2.2-fallback")
     monkeypatch.setenv("PATH", str(in_path.parent))
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
-    assert find_git() == str(in_path)  # PATH hat Vorrang, solange der Treffer taugt
+    assert find_git() == str(in_path)  # PATH takes precedence as long as the hit is usable
     assert gitmod._git(tmp_path, "--version") == "git version 2.2.2-fallback"
     assert find_git() == str(fallback)
     assert gitsync.git_available()
-    reset_git_cache()  # nach dem Zurücksetzen gilt der PATH-Treffer wieder zuerst
+    reset_git_cache()  # after the reset the PATH hit applies first again
     assert find_git() == str(in_path)
 
 
@@ -329,7 +330,7 @@ def test_everything_unusable_stays_git_missing_and_names_the_path(
     fallback = broken_git(tmp_path / "ersatz")
     monkeypatch.setenv("PATH", str(in_path.parent))
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
-    for _ in range(3):  # jeder Versuch scheitert gleich, es gibt keine Endlosschleife
+    for _ in range(3):  # every attempt fails the same way, there is no endless loop
         with pytest.raises(GitError) as raised:
             gitmod._git(tmp_path, "--version")
         assert raised.value.kind == "git_missing"
@@ -354,8 +355,8 @@ CALL_IDS = ["_git", "_git_bytes", "_probe_run"]
 def test_missing_working_folder_does_not_block_git(
     call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
 ):
-    """Ein gelöschter oder getrennter Datenordner betrifft nicht das Programm: Git bleibt
-    verfügbar; gemeldet wird es wie bisher als „Git fehlt“."""
+    """A deleted or disconnected data folder does not affect the program: Git stays
+    available; it is reported as before as "Git is not installed"."""
     fake = fake_git(tmp_path / "a")
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
     with pytest.raises(GitError) as raised:
@@ -363,7 +364,7 @@ def test_missing_working_folder_does_not_block_git(
     assert raised.value.kind == "git_missing"
     assert not gitmod._BROKEN and gitmod.broken_git() == ""
     assert find_git() == str(fake)
-    assert call(tmp_path) is not None  # und es läuft weiter
+    assert call(tmp_path) is not None  # and it keeps running
 
 
 @posix
@@ -392,8 +393,8 @@ def test_resource_errors_do_not_block_git_and_are_passed_on(
 def test_too_long_arguments_do_not_block_git(
     call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
 ):
-    """Auf POSIX trägt jeder execve-Fehler den Programmpfad als Dateinamen, auch E2BIG (sehr
-    lange Commit-Nachricht): Das Programm ist deshalb nicht unbrauchbar."""
+    """On POSIX every execve error carries the program path as filename, also E2BIG (very
+    long commit message): the program is therefore not unusable."""
     fake = fake_git(tmp_path / "a")
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
     long_text = "x" * 300_000
@@ -413,7 +414,7 @@ def test_too_long_arguments_do_not_block_git(
 def test_text_file_busy_does_not_block_git(
     call, tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch
 ):
-    """ETXTBSY (Datei wird gerade geschrieben, etwa bei einem Update) geht vorüber."""
+    """ETXTBSY (file is currently being written, e.g. during an update) passes."""
     fake = fake_git(tmp_path / "a")
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
 
@@ -440,7 +441,7 @@ def test_block_expires_after_the_time_limit(
     assert find_git() is None and gitmod.broken_git() == str(fake)
     clock[0] += gitmod._BROKEN_TTL - 1
     assert find_git() is None
-    clock[0] += 2  # die Frist ist um: der Pfad wird erneut versucht
+    clock[0] += 2  # the deadline has passed: the path is tried again
     assert find_git() == str(fake) and gitmod.broken_git() == ""
 
 
@@ -453,7 +454,7 @@ def test_block_is_lifted_by_a_successful_start(
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
     gitmod._mark_broken(str(fake))
     assert find_git() is None
-    call(tmp_path)  # letzter Versuch mit dem gesperrten Pfad gelingt
+    call(tmp_path)  # last attempt with the blocked path succeeds
     assert not gitmod._BROKEN and find_git() == str(fake)
 
 
@@ -467,7 +468,7 @@ def test_first_call_already_uses_the_fallback_when_path_git_is_broken(
     monkeypatch.setenv("PATH", str(in_path.parent))
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fallback])
     assert find_git() == str(in_path) and gitsync.git_available()
-    call(tmp_path)  # kein git_missing beim ersten Aufruf
+    call(tmp_path)  # no git_missing on the first call
     assert find_git() == str(fallback)
 
 
@@ -481,7 +482,7 @@ def test_retry_is_limited_to_one_more_candidate(tmp_path: Path, monkeypatch: pyt
     with pytest.raises(GitError) as raised:
         gitmod._git(tmp_path, "--version")
     assert raised.value.kind == "git_missing" and str(second) in raised.value.hint
-    assert gitmod._git(tmp_path, "--version") == "git version 9.9.9-fake"  # nächster Aufruf
+    assert gitmod._git(tmp_path, "--version") == "git version 9.9.9-fake"  # next call
 
 
 @posix
@@ -490,7 +491,7 @@ def test_blocked_cached_location_is_not_used(
 ):
     fake = fake_git(tmp_path / "a")
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
-    assert find_git() == str(fake)  # gemerkt
+    assert find_git() == str(fake)  # remembered
     monkeypatch.setattr(gitmod, "git_locations", lambda: [])
     gitmod._BROKEN[str(fake)] = gitmod._now()
     assert find_git() is None
@@ -508,7 +509,7 @@ def test_relative_location_is_made_absolute(tmp_path: Path, monkeypatch: pytest.
 @pytest.mark.parametrize("winerror", [2, 5, 193, 740, 1260])
 @pytest.mark.parametrize("filename", [None, "C:\\Programme\\Git\\cmd\\git.exe"])
 def test_windows_program_errors_block_the_path(winerror: int, filename: str | None):
-    error = OSError(errno.EINVAL, "Fehler", filename)  # unter Windows ohne passenden errno
+    error = OSError(errno.EINVAL, "Fehler", filename)  # on Windows without a matching errno
     error.winerror = winerror
     with pytest.raises(GitError) as raised:
         gitmod._start_failed(error, "C:\\Programme\\Git\\cmd\\git.exe")
@@ -526,8 +527,8 @@ def test_other_windows_errors_do_not_block_the_path(winerror: int):
 
 
 def test_windows_error_about_another_file_does_not_block_the_path(tmp_path: Path):
-    """Ein Fehler mit gesetztem Dateinamen (etwa der Arbeitsordner) sperrt nicht über den
-    Windows-Fehlercode."""
+    """An error with a filename set (e.g. the working folder) does not block via the
+    Windows error code."""
     error = OSError(errno.EINVAL, "Fehler", str(tmp_path / "ordner"))
     error.winerror = 193
     with pytest.raises(OSError) as raised:
