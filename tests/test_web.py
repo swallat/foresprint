@@ -125,6 +125,14 @@ def test_start_prepare_asks_for_preplanning_once_absences_are_known(
     assert at.selectbox(key="vorplanung-sprint").value == "2026.22"
 
 
+def test_start_prepare_still_asks_while_one_product_has_no_value(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _change_2026_22(data_dir, products={"webshop": {"preplanned": 3.0}})
+    at = start(data_dir, monkeypatch)
+    assert any("PO-Vorplanung fehlt noch" in w.value for w in at.main.markdown)
+
+
 def test_start_prepare_is_not_stuck_without_products(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -1618,6 +1626,15 @@ def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
     assert not nav_done(app)["vorplanung"]
     app.session_state["vorplanung-2026.23"] = {
         "edited_rows": {0: {"PO pre-planning": 2.0}},
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
+    assert not nav_done(app)["vorplanung"]  # nur ein Produkt von mehreren hat einen Wert
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    app.session_state["vorplanung-2026.23"] = {
+        "edited_rows": {i: {"PO-Vorplanung": 2.0} for i in range(3)},  # webshop, app, portal
         "added_rows": [],
         "deleted_rows": [],
     }
