@@ -70,7 +70,7 @@ def tracker_from_inputs(
 
 def field_options(candidates: list[FieldCandidate], current: str | None) -> list[tuple[str, str]]:
     """(value, label) pairs for one field setting: not set, the current value (when it is not a
-    candidate by its value), then the candidates, a hint on the first one when the name suggests it."""
+    candidate by its value), then the candidates, a hint on the first when its name suggests it."""
     options = [(NOT_SET, t("– not set –"))]
     values = {c.value for c in candidates}
     if current and current not in values:
