@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Import einer Excel-Mappe im Format der Excel-Ausgabe (:mod:`sprintforecast.excel`): das ganze
-Team einschließlich Historie – Einstellungen, Personen, Produkte und alle Sprints mit Fehltagen,
-Produktwerten und Prognosen.
+"""Import of an Excel workbook in the format of the Excel output (:mod:`sprintforecast.excel`):
+the whole team including history: settings, people, products and all sprints with absences,
+product values and prognoses.
 
-Gelesen werden nur die Eingaben (gelbe Zellen) nach fester Spaltenposition; berechnete Spalten
-(Formeln, Standardverteilung, Namen) werden ignoriert. Vorab zeigt :func:`plan_import`, welche
-Werte sich gegenüber den vorhandenen Dateien ändern; erst :func:`apply_import` schreibt.
-Der Import des früheren Plugins (:func:`sprintforecast.storage.import_sprints`) bleibt davon
-unberührt. Erfordert ``openpyxl`` (``sprintforecast[excel]``)."""
+Only the inputs (yellow cells) are read, by fixed column position; calculated columns
+(formulas, standard distribution, names) are ignored. :func:`plan_import` first shows which
+values change compared to the existing files; only :func:`apply_import` writes.
+The import of the former plugin (:func:`sprintforecast.storage.import_sprints`) is not
+affected. Requires ``openpyxl`` (``sprintforecast[excel]``)."""
 
 from __future__ import annotations
 
@@ -83,13 +83,13 @@ def _openpyxl() -> Any:
 
 _TRUE = {"true", "wahr", "ja", "an", "yes", "on", "1", "x"}
 _FALSE = {"false", "falsch", "nein", "aus", "no", "off", "0"}
-# Plausible Grenzen: Mengen und Tage liegen weit darunter, Daten in einem sinnvollen Zeitraum.
+# Plausible limits: quantities and days are far below them, dates fall in a sensible period.
 MAX_NUMBER = 1e9
 MIN_YEAR, MAX_YEAR = 1990, 2100
 
 
 def check_sprint_id(sprint_id: str, where: str) -> str:
-    """Sprint-IDs werden zu Dateinamen (siehe :func:`sprintforecast.storage.file_name_problem`)."""
+    """Sprint IDs become file names (see :func:`sprintforecast.storage.file_name_problem`)."""
     if problem := file_name_problem(sprint_id):
         raise DataError(
             t(
@@ -103,14 +103,14 @@ def check_sprint_id(sprint_id: str, where: str) -> str:
 
 
 class _Sheet:
-    """Ein Blatt mit Zellzugriff und Fehlermeldungen, die Blatt und Zelle nennen."""
+    """A sheet with cell access and error messages that name the sheet and the cell."""
 
     def __init__(self, ws: Any) -> None:
         self.ws = ws
         self.name = ws.title
 
     def rows(self, first: int) -> list[tuple[int, tuple[Any, ...]]]:
-        """Zeilen ab ``first`` (1-basiert) bis zur letzten gefüllten Zeile."""
+        """Rows from ``first`` (1-based) to the last filled row."""
         out = []
         for number, row in enumerate(self.ws.iter_rows(min_row=first, values_only=True), first):
             if any(v not in (None, "") for v in row):
@@ -138,10 +138,10 @@ class _Sheet:
                 if isinstance(value, bool) or not isinstance(value, int | float)
                 else float(value)
             )
-        except ValueError, OverflowError:  # Text oder eine Ganzzahl jenseits von float
+        except ValueError, OverflowError:  # text or an integer beyond float
             result = math.nan
         if not math.isfinite(result) or isinstance(value, bool):
-            # Text, Wahrheitswert, NaN oder unendlich: keine Zahl, mit der gerechnet werden darf.
+            # Text, boolean, NaN or infinite: not a number that may be calculated with.
             raise DataError(
                 t(
                     "{where}: a finite number expected, found: {value}",
@@ -161,8 +161,8 @@ class _Sheet:
         return result
 
     def flag(self, number: int, row: tuple[Any, ...], col: int) -> bool:
-        """Wahrheitswert einer Zelle: Excel-Wahrheitswert oder ja/nein-Text; leer = nein. Alles
-        andere ist ein Fehler (``bool("aus")`` wäre wahr)."""
+        """Boolean value of a cell: Excel boolean or yes/no text; empty = no. Anything else is
+        an error (``bool("aus")`` would be true)."""
         value = self.get(row, col)
         if value is None:
             return False
@@ -230,7 +230,7 @@ class _Sheet:
 
 
 def _check_format(wb: Any) -> str | None:
-    """Prüft das Format; liefert den Team-Schlüssel der Mappe (None bei älteren Mappen)."""
+    """Checks the format; returns the workbook's team key (None for older workbooks)."""
     for old, new in LEGACY_SHEETS.items():
         if old in wb.sheetnames and new not in wb.sheetnames:
             wb[old].title = new
@@ -292,8 +292,8 @@ _SETTING_TEXTS = {
 
 
 def _settings(sh: _Sheet) -> dict[str, Any]:
-    """Die Einstellungen als verschachteltes Wörterbuch wie in ``team.yaml``. Nur bekannte
-    Schlüssel, jeder Wert mit seinem Typ: Zahlen endlich (ganzzahlige ganz), Schalter ja/nein."""
+    """The settings as a nested dictionary as in ``team.yaml``. Only known keys, each value with
+    its type: finite numbers (whole numbers as integers), yes/no switches."""
     result: dict[str, Any] = {}
     for number, row in sh.rows(SETTINGS_FIRST_ROW):
         path = sh.get(row, 2)
@@ -309,7 +309,7 @@ def _settings(sh: _Sheet) -> dict[str, Any]:
                         key=repr(path),
                     )
                 )
-            continue  # Beschriftungszeilen ohne Schlüssel
+            continue  # label rows without a key
         if sh.get(row, 1) is None:
             continue
         value: Any
@@ -427,7 +427,7 @@ def _sprints(wb: Any) -> list[Sprint]:
             "row": number,
         }
         if sid not in sheet_ids and all(entry[k] is None for k in entry if k != "row"):
-            continue  # Freitext (Summe, Hinweis) unter den Sprints: keine Sprintzeile
+            continue  # free text (sum, hint) below the sprints: not a sprint row
         check_sprint_id(sid, fc.where(number, 0))
         if sid.casefold() in seen_ids:
             raise DataError(
@@ -601,26 +601,26 @@ def _sprints(wb: Any) -> list[Sprint]:
                 preplanned=_preplanned(pg, number, row),
             )
         )
-    for sprint in result:  # die Oberfläche erwartet „ältere zuerst“
+    for sprint in result:  # the UI expects "older first"
         sprint.prognoses.sort(key=lambda p: p.at)
     return sorted(result, key=lambda s: s.start)
 
 
 def read_workbook(source: Path | bytes, team_key: str) -> TeamData:
-    """Liest die Mappe in ein :class:`TeamData`; Fehler nennen Blatt und Zelle."""
+    """Reads the workbook into a :class:`TeamData`; errors name the sheet and the cell."""
     return read_workbook_keyed(source, team_key)[0]
 
 
 def read_workbook_keyed(source: Path | bytes, team_key: str) -> tuple[TeamData, str | None]:
-    """Wie :func:`read_workbook`, liefert zusätzlich den Team-Schlüssel aus der Mappe.
+    """Like :func:`read_workbook`, but also returns the team key from the workbook.
 
-    ``None`` heißt: ältere Mappe ohne Schlüssel (Aufrufer warnen). Gehört die Mappe zu einem
-    anderen Team, ist das ein Fehler, damit kein Team die Daten eines anderen überschreibt."""
+    ``None`` means: older workbook without a key (callers should warn). If the workbook belongs
+    to a different team, that is an error so that no team overwrites another team's data."""
     openpyxl = _openpyxl()
     stream = io.BytesIO(source) if isinstance(source, bytes) else source
     try:
         wb = openpyxl.load_workbook(stream, data_only=True)
-    except Exception as e:  # keine gültige xlsx-Datei
+    except Exception as e:  # not a valid xlsx file
         raise DataError(t("The file is not a readable Excel workbook: {error}", error=e)) from e
     file_team = _check_format(wb)
     if file_team is not None and file_team != team_key:
@@ -657,8 +657,8 @@ class Change:
 class ImportPlan:
     data: TeamData
     changes: list[Change] = field(default_factory=list)
-    # Dateien, die geschrieben werden (relativ zum Teamordner), und Sprintdateien, die es schon
-    # gibt, in der Mappe aber nicht vorkommen (bleiben unverändert).
+    # Files that are written (relative to the team folder), and sprint files that already
+    # exist but do not appear in the workbook (they stay unchanged).
     files: list[str] = field(default_factory=list)
     untouched: list[str] = field(default_factory=list)
 
@@ -675,7 +675,7 @@ def _documents(data: TeamData) -> dict[str, dict[str, Any]]:
 
 
 def _flat(doc: Any) -> dict[str, Any]:
-    """Pfad → Wert; Listen werden je Eintrag mit Index aufgeschlüsselt."""
+    """Path → value; lists are broken down per entry with an index."""
 
     def walk(value: Any, prefix: str) -> dict[str, Any]:
         if isinstance(value, dict):
@@ -694,9 +694,9 @@ def _flat(doc: Any) -> dict[str, Any]:
 
 
 def check_team_key(repo: Repository, key: str) -> None:
-    """Das Kürzel ist ein einfacher Ordnername unterhalb des Datenordners (kein Pfad, kein
-    Laufwerk, kein ``..``); ein neues Team muss außerdem ein zulässiges Kürzel tragen und darf
-    keinem vorhandenen gleichen (auch nicht bis auf Groß- und Kleinschreibung)."""
+    """The key is a plain folder name below the data folder (no path, no drive, no ``..``); a
+    new team must also carry a permitted key and must not equal an existing one (not even up to
+    upper and lower case)."""
     plain = (
         key not in ("", ".", "..")
         and key == Path(key).name
@@ -715,8 +715,8 @@ def check_team_key(repo: Repository, key: str) -> None:
 
 
 def check_ids(data: TeamData) -> None:
-    """Sprint-IDs und die ID des ersten Sprints werden zu Dateinamen: prüfen, bevor sie einen Pfad
-    bilden."""
+    """Sprint IDs and the ID of the first sprint become file names: check them before they
+    form a path."""
     for sprint in data.sprints:
         check_sprint_id(sprint.id, f"{SHEET_FORECAST}: {sprint.id}")
     if data.team.sprint.first_id is not None:
@@ -724,10 +724,10 @@ def check_ids(data: TeamData) -> None:
 
 
 def _reload(data: TeamData) -> TeamData:
-    """Die Daten so, wie sie nach dem Schreiben wieder geladen würden: jedes Dokument als YAML
-    schreiben und mit denselben Prüfungen wie beim Laden einlesen. Fängt alles, was die eigene
-    Ladeprüfung später ablehnt (nicht endliche Zahlen, falsche Typen, unzulässige IDs), schon vor
-    dem Schreiben ab – und rundet wie das Speichern (6 Stellen)."""
+    """The data as they would be loaded again after writing: write each document as YAML and
+    read it back with the same checks as when loading. Catches everything the own load check
+    would reject later (non-finite numbers, wrong types, invalid IDs) before writing, and
+    rounds like saving does (6 places)."""
     key = data.team.key
 
     def back(doc: dict[str, Any]) -> dict[str, Any]:
@@ -743,8 +743,8 @@ def _reload(data: TeamData) -> TeamData:
 
 
 def check_settings(team: Team) -> None:
-    """Jede Einstellung muss die Prüfung der Einstellungsseite und der Kommandozeile bestehen
-    (Bereiche, Auswahl, Region zum Land): ``Setting.parse`` auf den angezeigten Wert."""
+    """Every setting must pass the check of the settings page and of the command line (ranges,
+    choices, region matching the country): ``Setting.parse`` on the displayed value."""
     problems = []
     for setting in SETTINGS:
         value = setting.get(team)
@@ -763,9 +763,9 @@ def check_settings(team: Team) -> None:
 
 
 def check_valid(data: TeamData, today: date, existing: TeamData | None = None) -> TeamData:
-    """Weist die Mappe ab, wenn sie so, wie sie gespeichert würde, nicht ladbar ist oder die
-    Prüfung der Daten (wie vor jedem Speichern) Fehler findet. Geprüft wird der Gesamtstand: die
-    Mappe samt den vorhandenen Sprintdateien, die in ihr fehlen. Liefert die neu geladenen Daten."""
+    """Rejects the workbook if, as it would be saved, it cannot be loaded or the data check
+    (as before every save) finds errors. The overall state is checked: the workbook together
+    with the existing sprint files that are missing from it. Returns the reloaded data."""
     check_ids(data)
     reloaded = _reload(data)
     check_settings(reloaded.team)
@@ -774,7 +774,7 @@ def check_valid(data: TeamData, today: date, existing: TeamData | None = None) -
         new_ids = {s.id for s in reloaded.sprints}
         extra = [s for s in existing.sprints if s.id not in new_ids]
         folded = {s.id.casefold(): s.id for s in reloaded.sprints}
-        for old in extra:  # auf Windows und macOS dieselbe Datei wie eine importierte ID
+        for old in extra:  # on Windows and macOS the same file as an imported ID
             if (clash := folded.get(old.id.casefold())) is not None:
                 raise DataError(
                     t(
@@ -804,9 +804,9 @@ def check_valid(data: TeamData, today: date, existing: TeamData | None = None) -
 
 
 def plan_import(repo: Repository, data: TeamData, today: date | None = None) -> ImportPlan:
-    """Vergleicht die Mappe mit den vorhandenen Dateien: Liste der Änderungen je Datei und Wert.
-    Weist ein unzulässiges Kürzel, unzulässige IDs, nicht ladbare Werte und Daten mit Prüffehlern
-    vorab ab; es wird nichts geschrieben."""
+    """Compares the workbook with the existing files: list of changes per file and value.
+    Rejects an invalid key, invalid IDs, values that cannot be loaded and data with validation
+    errors up front; nothing is written."""
     check_team_key(repo, data.team.key)
     existing = repo.load(data.team.key) if repo.exists(data.team.key) else None
     if existing is not None:
@@ -820,7 +820,7 @@ def plan_import(repo: Repository, data: TeamData, today: date | None = None) -> 
     for name, doc in new_docs.items():
         path = team_dir / name
         old = _read(path) if path.is_file() else None
-        # Gleiche Darstellung wie beim Schreiben: erst nach einem Rundlauf vergleichen.
+        # Same representation as when writing: compare only after a round trip.
         old_flat = _flat(_normalize(name, old, data.team.key)) if old is not None else None
         new_flat = _flat(doc)
         if old_flat is None:
@@ -845,7 +845,7 @@ def plan_import(repo: Repository, data: TeamData, today: date | None = None) -> 
 
 
 def _normalize(name: str, raw: dict[str, Any], key: str) -> dict[str, Any]:
-    """Eine vorhandene Datei in dieselbe Form bringen, in der die Mappe sie schreiben würde."""
+    """Bring an existing file into the same form in which the workbook would write it."""
     if name == "team.yaml":
         return team_to_dict(team_from_dict(key, raw, name))
     if name == "people.yaml":
@@ -856,10 +856,10 @@ def _normalize(name: str, raw: dict[str, Any], key: str) -> dict[str, Any]:
 
 
 def apply_import(repo: Repository, plan: ImportPlan) -> list[Path]:
-    """Schreibt die geänderten Dateien (unveränderte bleiben unberührt)."""
+    """Writes the changed files (unchanged ones are left untouched)."""
     data = plan.data
     key = data.team.key
-    check_team_key(repo, key)  # auch hier: ein Plan lässt sich von Hand zusammenbauen
+    check_team_key(repo, key)  # here too: a plan can be assembled by hand
     check_ids(data)
     writers = {
         "team.yaml": lambda: repo.save_team(data.team),

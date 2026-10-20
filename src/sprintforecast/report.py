@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Markdown-Bericht (wird von GitHub/GitLab inkl. Mermaid-Diagramm gerendert)."""
+"""Markdown report (rendered by GitHub/GitLab, including the Mermaid chart)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from sprintforecast.model import AbsenceState, Sprint, absence_status
 
 
 def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
-    """Zahl mit Tausender- und Dezimaltrennzeichen der Sprache (1.234,5 bzw. 1,234.5)."""
+    """Number with the thousands and decimal separators of the language (1.234,5 or 1,234.5)."""
     if value is None:
         return "–"
     text = f"{value:,.{digits}f}"
@@ -23,14 +23,14 @@ def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
 
 
 def fmt_capacity(value: float | None, digits: int = 1) -> str:
-    """Kapazität für die Anzeige, kaufmännisch gerundet (ab ,5 auf) wie ``rounded`` und der
-    eingefrorene Wert. Pythons Formatierung rundet bei exakter Hälfte zur geraden Ziffer
-    (25,25 → „25,2“) und darf für Kapazitäten nicht direkt benutzt werden. Die Prognose rechnet
-    weiter mit dem ungerundeten Wert.
+    """Capacity for display, rounded half up (from .5 up) like ``rounded`` and the frozen
+    value. Python's formatting rounds an exact half to the even digit (25.25 → "25.2") and must
+    not be used directly for capacities. The forecast keeps calculating with the unrounded
+    value.
 
-    ``digits`` ist die Einstellung ``capacity.rounding`` des Teams (Standard 1), dieselbe wie bei
-    ``CapacityBreakdown.rounded``: Anzeige und eingefrorener Wert stimmen so auch bei einer
-    anderen Stellenzahl überein. Aufrufer mit Team bzw. Sprint übergeben sie
+    ``digits`` is the team's ``capacity.rounding`` setting (default 1), the same as in
+    ``CapacityBreakdown.rounded``: display and frozen value then also agree with a different
+    number of decimal places. Callers with a team or sprint pass it
     (``TimelineEntry.capacity_digits``, ``CapacityBreakdown.rounding``)."""
     return "–" if value is None else fmt(round_half_up(value, digits), digits)
 
@@ -48,9 +48,9 @@ def source_label(source: CapacitySource | None) -> str:
 
 
 def capacity_source_note(e: TimelineEntry) -> str:
-    """Quelle der Kapazität allein (ohne Zahl) – für Kennzahlen, deren Wert nicht durch einen
-    angehängten Text gekürzt werden soll; bei unsicherer Quelle mit Warnzeichen, ohne Quelle
-    leer."""
+    """Source of the capacity alone (without the number), for metrics whose value should not be
+    shortened by an appended text; with a warning sign for an uncertain source, empty without a
+    source."""
     source = e.result.plan_capacity_source
     if source in UNSURE_SOURCES:
         return f"⚠️ {source_label(source)}"
@@ -58,7 +58,7 @@ def capacity_source_note(e: TimelineEntry) -> str:
 
 
 def capacity_label(e: TimelineEntry) -> str:
-    """Kapazität mit angehängter Quelle als ein Text (Tabellen, Berichte, Kommandozeile)."""
+    """Capacity with the source appended, as one text (tables, reports, command line)."""
     source = e.result.plan_capacity_source
     value = fmt_capacity(e.result.plan_capacity, e.capacity_digits)
     if source in UNSURE_SOURCES:
@@ -67,8 +67,8 @@ def capacity_label(e: TimelineEntry) -> str:
 
 
 def band_range(fc: Forecast, e: TimelineEntry) -> str:
-    """„niedrig–hoch“ der Spanne eines künftigen Sprints für Tabellen („–“, wenn nicht
-    berechenbar oder der Sprint schon abgeschlossen ist)."""
+    """The range of a future sprint as "low–high" for tables ("–" if it cannot be calculated or
+    the sprint is already completed)."""
     from sprintforecast.analysis import band
 
     b = band(fc, e) if e.sprint.end > fc.today else None
@@ -76,10 +76,11 @@ def band_range(fc: Forecast, e: TimelineEntry) -> str:
 
 
 def band_note(fc: Forecast, e: TimelineEntry, without_assumption: bool = False) -> str:
-    """Spanne mit Stichprobengröße als Satz direkt an einer Prognose-Kachel; bei wenig Daten
-    mit Hinweis. Leer, wenn die Spanne nicht berechenbar ist oder der Sprint schon abgeschlossen
-    ist (die Spanne gehört zur heutigen Historie, die Prognose eines alten Sprints nicht).
-    ``without_assumption``: Die Prognose daneben rechnet mit einer Annahme, die Spanne nicht."""
+    """Range with the sample size as a sentence right at a forecast tile; with a hint if there
+    is little data. Empty if the range cannot be calculated or the sprint is already completed
+    (the range belongs to today's history, the forecast of an old sprint does not).
+    ``without_assumption``: the forecast next to it calculates with an assumption, the range
+    does not."""
     from sprintforecast.analysis import band, few_samples
 
     b = band(fc, e) if e.sprint.end > fc.today else None
@@ -97,7 +98,7 @@ def band_note(fc: Forecast, e: TimelineEntry, without_assumption: bool = False) 
 
 
 def absence_status_label(sprint: Sprint) -> str:
-    """Stand der Fehltage eines Sprints in Worten."""
+    """State of a sprint's absences in words."""
     return {
         AbsenceState.CONFIRMED: t("confirmed"),
         AbsenceState.EXPECTED: t("announced"),
@@ -111,14 +112,14 @@ def absence_derived_note(
     code: bool = True,
     window: int = 0,
 ) -> str | None:
-    """Hinweis, dass die erwartete Fehltage-Quote unsicher ist: Sprints, die nur aus anderen
-    Feldern (ältere Dateien ohne gespeicherten Stand) als bestätigt gelten und keine Fehltage
-    haben, zählen mit „0 % Ausfall“ und ziehen die Quote nach unten. Die Zahlen bleiben
-    unverändert. None, wenn kein solcher Sprint in die Quote eingeht.
+    """Hint that the expected absence rate is uncertain: sprints that count as confirmed only
+    from other fields (older files without a stored state) and have no absences count as
+    "0 % lost" and pull the rate down. The numbers stay unchanged. None if no such sprint goes
+    into the rate.
 
-    Die Sprint-IDs stammen aus Dateien und stehen in Code-Schreibweise (``md_code``), damit
-    sie in Markdown nichts verändern (``code=False`` für Tabellen, Klartext und die
-    Kommandozeile, dort mit ``sprint_text``). ``detailed`` ergänzt, was zu tun ist."""
+    The sprint IDs come from files and are shown in code notation (``md_code``) so that they
+    change nothing in Markdown (``code=False`` for tables, plain text and the command line,
+    there with ``sprint_text``). ``detailed`` adds what to do."""
     if history is None or not history.derived:
         return None
     count = len(history.derived)
@@ -149,14 +150,14 @@ def absence_derived_note(
 
 
 def sprint_text(sprint_id: str) -> str:
-    """Sprint-ID für Klartext ohne Markdown (Tabelle, Kommandozeile): Steuerzeichen und
-    Zeichen der Schreibrichtung werden wie bei ``md_code`` zu Leerzeichen."""
+    """Sprint ID for plain text without Markdown (table, command line): control characters and
+    text direction characters become spaces, as with ``md_code``."""
     return blank_controls(sprint_id)
 
 
 def absence_derived_hint(history: AbsenceHistory | None) -> str | None:
-    """Kurzer Verweis für Seiten, auf denen nur die geschätzte Kapazität steht (ohne die Liste
-    der Sprints; die steht auf der Fehltage-Seite, im Rechenweg, im Bericht)."""
+    """Short pointer for pages that show only the estimated capacity (without the list of
+    sprints; that is on the absences page, in the calculation path, in the report)."""
     if history is None or not history.derived:
         return None
     page = t("Prepare the sprint: absences")
@@ -180,8 +181,8 @@ def absence_derived_hint(history: AbsenceHistory | None) -> str | None:
 
 
 def absence_derived_remedy(window: int) -> str:
-    """Was bei einer unsicheren Fehltage-Quote zu tun ist (ohne Sprint-IDs). ``window`` ist die
-    Einstellung ``absence_history``: Wie lange der Hinweis bleibt."""
+    """What to do about an uncertain absence rate (without sprint IDs). ``window`` is the
+    ``absence_history`` setting: how long the hint stays."""
     return t(
         (
             "If someone was absent in one of these sprints, enter the absences on the "
@@ -198,8 +199,8 @@ def absence_derived_remedy(window: int) -> str:
 
 
 def absence_derived_cli_remedy(window: int, team: str) -> str:
-    """Wie :func:`absence_derived_remedy`, für die Kommandozeile: der Befehl statt der
-    Bedienung der Weboberfläche, ohne Markdown."""
+    """Like :func:`absence_derived_remedy`, for the command line: the command instead of the
+    web UI steps, without Markdown."""
     return t(
         (
             "If someone was absent in one of these sprints, add the absences with: "
@@ -213,8 +214,9 @@ def absence_derived_cli_remedy(window: int, team: str) -> str:
 
 
 def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
-    """Hinweise zur Belastbarkeit der Prognose (Kommandozeile und Bericht). ``code=False``
-    für die Kommandozeile: Sprint-IDs ohne Markdown-Backticks, dazu der Befehl zum Nachtragen."""
+    """Hints on the reliability of the forecast (command line and report). ``code=False`` for
+    the command line: sprint IDs without Markdown backticks, plus the command to add them
+    later."""
     from sprintforecast.model import TrendMode
 
     notes = []
@@ -254,10 +256,10 @@ def reliability_notes(fc: Forecast, code: bool = True) -> list[str]:
 
 
 def few_samples_note(fc: Forecast) -> str | None:
-    """Warnung „Wenig Daten“ der Prognose (Kommandozeile, Bericht und Weboberfläche): Die
-    Stichprobe von Spanne und Simulation (``sample_count``, auf das Fenster gedeckelt) liegt
-    unter ``MIN_SAMPLES``. Deckelt das Fenster, nennt der Satz beide Zahlen (Stichprobe und alle
-    erfassten Werte) und erklärt das Fenster. ``None`` ohne Werte oder ab der Schwelle."""
+    """Warning "Little data" of the forecast (command line, report and web UI): the sample of
+    range and simulation (``sample_count``, capped at the window) is below ``MIN_SAMPLES``. If
+    the window caps it, the sentence names both numbers (sample and all recorded values) and
+    explains the window. ``None`` without values or from the threshold on."""
     from sprintforecast.analysis import available_count, sample_count
 
     samples = sample_count(fc)
@@ -289,11 +291,10 @@ def few_samples_note(fc: Forecast) -> str | None:
 
 
 def window_hint(window: int, samples: int, available: int, simulation: bool = False) -> str:
-    """Zusatz zu „Wenig Daten“, wenn das Prognosefenster unter ``MIN_SAMPLES`` die Stichprobe
-    tatsächlich deckelt (``available`` erfasste Werte, ``samples`` davon in der Rechnung): Die
-    Stichprobe kann die Schwelle dann nie erreichen. Sonst leer, auch wenn es schlicht nicht
-    mehr Werte gibt. ``simulation``: Der Hinweis hängt an der Warnung der
-    Fertigstellungs-Simulation."""
+    """Addition to "Little data" when the forecast window below ``MIN_SAMPLES`` actually caps
+    the sample (``available`` recorded values, ``samples`` of them in the calculation): the
+    sample can then never reach the threshold. Otherwise empty, even if there are simply no
+    more values. ``simulation``: the hint is attached to the completion simulation's warning."""
     if window >= MIN_SAMPLES or available <= samples:
         return ""
     if simulation:
@@ -314,7 +315,7 @@ def window_hint(window: int, samples: int, available: int, simulation: bool = Fa
 
 
 def completion_note(samples: int) -> str | None:
-    """Warnung der Fertigstellungs-Simulation bei wenig Daten (Kommandozeile und Weboberfläche)."""
+    """Warning of the completion simulation for little data (command line and web UI)."""
     if samples >= MIN_SAMPLES:
         return None
     return t(
@@ -525,7 +526,7 @@ def _tickets_section(fc: Forecast, sprints: int = 6) -> list[str]:
 
 
 def _analysis_section(fc: Forecast) -> list[str]:
-    """Ergänzende Analysen (Bandbreite, Fokusfaktor, Puffer) – am Ende des Berichts."""
+    """Supplementary analyses (range, focus factor, buffer) at the end of the report."""
     unit = fc.data.team.unit.value
     rows = [(e, b) for e in fc.upcoming() if (b := band(fc, e)) is not None]
     lines: list[str] = []
@@ -578,7 +579,7 @@ def _analysis_section(fc: Forecast) -> list[str]:
 
 
 def _products_section(fc: Forecast, history: int = 6) -> list[str]:
-    """Verteilung je Produkt: laufender und nächster Sprint, Saldo der letzten Sprints."""
+    """Distribution per product: current and next sprint, balance of the last sprints."""
     from sprintforecast.products import (
         MEASURES,
         balance,
@@ -614,7 +615,7 @@ def _products_section(fc: Forecast, history: int = 6) -> list[str]:
             + " |"
             for r in d.rows
         ]
-    # nur Produkte mit mindestens einem Wert (wie in der Weboberfläche)
+    # only products with at least one value (as in the web UI)
     rows = [b for b in balance(fc, fc.history(history)) if b.sprints]
     if rows:
         with_missing = any(b.missing for b in rows)

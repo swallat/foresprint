@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Rechenkern: Velocity-, Kapazitäts- und Prognoseberechnung je Sprint.
+"""Calculation engine: velocity, capacity and forecast calculation per sprint.
 
-Kennzahlen (je Sprint):
-    Commitment, Velocity, Kapazität, Scope Creep   → Eingaben
-    Normierte Velocity  = Velocity / Kapazität × Referenzkapazität
+Metrics (per sprint):
+    Commitment, Velocity, capacity, Scope Creep   → inputs
+    Normalized velocity = Velocity / capacity × reference capacity
     Fulfillment         = Velocity / Commitment
-    Ø (gleitend)        = Durchschnitt über ``window`` Sprints je Kennzahl
-    Trend               = Fortschreibung des Durchschnitts in die Zukunft
-    Forecast PLAN       = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)
-    Verplanbar / Kleinkram = Forecast PLAN × Verplanbarer Anteil (``roadmap_share``) / Rest
-    Planning-Delta      = Forecast PLAN − (Überkipper + Backlog − Korrekturen)
+    Ø (rolling)         = average over ``window`` sprints per metric
+    Trend               = projection of the average into the future
+    Forecast PLAN       = rounded down(norm. velocity trend / reference capacity × capacity)
+    Plannable / small items = Forecast PLAN × plannable share (``roadmap_share``) / remainder
+    Planning delta      = Forecast PLAN − (carryover + backlog − corrections)
 """
 
 from __future__ import annotations
@@ -26,13 +26,13 @@ _EPS = 1e-9
 
 
 def round_down(value: float, digits: int) -> float:
-    """Richtung null abschneiden (mit Toleranz für Gleitkommafehler)."""
+    """Truncate toward zero (with tolerance for floating-point errors)."""
     factor = 10**digits
     return math.copysign(math.floor(abs(value) * factor + _EPS) / factor, value)
 
 
 def round_half_up(value: float, digits: int) -> float:
-    """Kaufmännisch runden (ab ,5 auf, mit Toleranz für Gleitkommafehler); ohne Richtungs-Bias."""
+    """Round half up (.5 rounds up, tolerant of floating-point errors); no directional bias."""
     factor = 10**digits
     return math.copysign(math.floor(abs(value) * factor + 0.5 + _EPS) / factor, value)
 
@@ -43,27 +43,27 @@ def _div(a: float | None, b: float | None) -> float | None:
     return a / b
 
 
-# Neue Teams: Schon ab so vielen Sprints mit Wert gibt es einen Durchschnitt und damit einen
-# Forecast, auch wenn das Fenster noch nicht voll ist („Historie dünn“, siehe thin_history).
+# New teams: with this many sprints with a value there is already an average and thus a
+# forecast, even if the window is not full yet ("thin history", see thin_history).
 MIN_THIN_HISTORY = 3
 
 
 def thin_history(values: Series, window: int) -> bool:
-    """Zu wenige Werte für ein volles Fenster, aber genug für einen Anfangs-Forecast."""
+    """Too few values for a full window, but enough for an initial forecast."""
     count = sum(1 for v in values if v is not None)
     return MIN_THIN_HISTORY <= count < window
 
 
 def rolling_average(values: Series, window: int) -> Series:
-    """Gleitender Durchschnitt über die letzten ``window`` Sprints **mit Wert**.
+    """Rolling average over the last ``window`` sprints **with a value**.
 
-    Regel für Lücken: Sprints ohne Wert zählen nicht mit, das Fenster reicht entsprechend weiter
-    zurück (es werden immer ``window`` Werte gemittelt, nie weniger). Der Durchschnitt ist nur
-    definiert, wenn der Sprint selbst einen Wert hat und davor genug Werte vorliegen.
+    Rule for gaps: sprints without a value do not count, the window reaches back further
+    accordingly (always exactly ``window`` values are averaged, never fewer). The average is
+    only defined if the sprint itself has a value and enough values precede it.
 
-    Ausnahme für neue Teams: Gibt es insgesamt weniger als ``window``, aber mindestens
-    ``MIN_THIN_HISTORY`` Werte, mittelt jeder Sprint ab dem dritten Wert über alle bisherigen
-    (dünne Historie).
+    Exception for new teams: if there are fewer than ``window`` values in total but at least
+    ``MIN_THIN_HISTORY``, each sprint from the third value on averages over all values so far
+    (thin history).
     """
     thin = thin_history(values, window)
     result: Series = []
@@ -83,7 +83,7 @@ def rolling_average(values: Series, window: int) -> Series:
 
 
 def gaps_in_window(values: Series, window: int) -> int:
-    """Anzahl der Sprints ohne Wert, die das Fenster des letzten Durchschnitts überspringt."""
+    """Number of sprints without a value that the window of the last average skips over."""
     last = max((i for i, v in enumerate(values) if v is not None), default=None)
     if last is None:
         return 0
@@ -97,7 +97,7 @@ def gaps_in_window(values: Series, window: int) -> int:
 
 
 def parse_trend_mode(mode: TrendMode | str) -> TrendMode:
-    """Wandelt einen Text in ``TrendMode`` um; ein unbekannter Wert ist ein Fehler (kein stilles
+    """Converts a string to ``TrendMode``; an unknown value is an error (no silent
     ``linear``)."""
     try:
         return TrendMode(mode)
@@ -107,8 +107,8 @@ def parse_trend_mode(mode: TrendMode | str) -> TrendMode:
 
 
 def _trend(average: Series, mode: TrendMode | str) -> tuple[Series, list[bool]]:
-    """Trend und je Position, ob statt des gewählten Modus auf ``flat`` zurückgegriffen wurde
-    (zu wenig Historie für die Fortschreibung)."""
+    """Trend, and per position whether it fell back to ``flat`` instead of the chosen mode
+    (too little history to project)."""
     mode = parse_trend_mode(mode)
     result: Series = [None] * len(average)
     fallback = [False] * len(average)
@@ -142,20 +142,20 @@ def _trend(average: Series, mode: TrendMode | str) -> tuple[Series, list[bool]]:
                 k1, k2 = known(i - 1), known(i - 2)
                 value = None if k1 is None or k2 is None else k1 + (k1 - k2)
             if value is None and (value := known(i - 1)) is not None:
-                fallback[i] = True  # Historie dünn: letzten Durchschnitt fortschreiben
+                fallback[i] = True  # thin history: carry the last average forward
             elif i > 0 and fallback[i - 1]:
-                fallback[i] = True  # baut auf einem Wert auf, der schon „flat“ war
-        # Mengen, Kapazität und Anteile sind nie negativ; eine Fortschreibung unter null
-        # (Rauschen) wird auf null begrenzt.
+                fallback[i] = True  # builds on a value that was already "flat"
+        # Quantities, capacity and shares are never negative; a projection below zero (noise)
+        # is clamped to zero.
         result[i] = None if value is None else max(value, 0.0)
     return result, fallback
 
 
 def trend(average: Series, mode: TrendMode | str) -> Series:
-    """Schreibt den gleitenden Durchschnitt dort fort, wo er fehlt (Zukunft).
+    """Projects the rolling average forward where it is missing (future).
 
-    Reicht die Historie für ``classic``/``linear`` nicht (z. B. genau ``window`` Sprints),
-    gilt ``flat``. Das Ergebnis ist nie negativ."""
+    If the history is not enough for ``classic``/``linear`` (e.g. exactly ``window`` sprints),
+    ``flat`` applies. The result is never negative."""
     return _trend(average, mode)[0]
 
 
@@ -163,13 +163,13 @@ class CapacitySource(StrEnum):
     RECORDED = "recorded"
     PEOPLE = "people list"
     TREND = "Trend"
-    # Personenliste und Kalender; Fehltage unbekannt und keine Historie, daher ohne Abzug.
+    # People list and calendar; absences unknown and no history, hence no deduction.
     CALENDAR = "Calendar, absences unknown"
     ESTIMATED = "expected absences"
     EXPECTED = "announced absences"
 
 
-# Quellen ohne bekannte Fehltage und ohne Historie: Die Kapazität ist nur geschätzt.
+# Sources without known absences and without history: the capacity is only an estimate.
 UNSURE_SOURCES = (CapacitySource.TREND, CapacitySource.CALENDAR)
 
 
@@ -205,14 +205,14 @@ class SprintResult:
     normalized_velocity: Metric
     fulfillment: Metric
     scope_creep: Metric
-    # Kapazität, mit der Forecast PLAN gerechnet wurde (erfasst, aus Personen und Kalender oder
-    # Trend).
+    # Capacity the Forecast PLAN was calculated with (recorded, from people and calendar, or
+    # trend).
     plan_capacity: float | None
     plan_capacity_source: CapacitySource | None
     plan: float | None
     plan_source: PlanSource | None
-    # Stichprobe hinter dem Trend der normierten Velocity: Anzahl aller bisherigen Werte; und ob
-    # wegen dünner Historie ``flat`` statt des gewählten Trend-Modus gerechnet wurde.
+    # Sample behind the normalized velocity trend: number of all values so far; and whether
+    # ``flat`` was used instead of the chosen trend mode because of thin history.
     samples: int
     trend_fallback: bool
     roadmap: float | None
@@ -228,7 +228,7 @@ class SprintResult:
 def _metric_series(values: Series, settings: ForecastSettings) -> tuple[list[Metric], list[bool]]:
     averages = rolling_average(values, settings.window)
     if thin_history(values, settings.window):
-        # Dünne Historie: nur der Durchschnitt, keine Fortschreibung eines Anstiegs.
+        # Thin history: only the average, no projection of an increase.
         trends, _ = _trend(averages, TrendMode.FLAT)
         fallback = [parse_trend_mode(settings.trend_mode) is not TrendMode.FLAT] * len(values)
     else:
@@ -270,7 +270,7 @@ def compute(inputs: list[SprintInput], settings: ForecastSettings) -> list[Sprin
             plan_source = PlanSource.FORECAST
             plan = max(plan, 0.0)
         elif s.forecast_ist is not None:
-            # Auch der Rückgriff auf Commitment wird abgerundet.
+            # The fallback to Commitment is also rounded down.
             plan = round_down(s.forecast_ist, settings.rounding)
             plan_source = PlanSource.ACTUAL
         else:

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Kommandozeile mit geführter Eingabe (Deutsch/Englisch, siehe i18n)."""
+"""Command line with guided input (German/English, see i18n)."""
 
 from __future__ import annotations
 
@@ -117,13 +117,13 @@ app = typer.Typer(
     help=t("Velocity and capacity forecast for Scrum teams. Start with: `sprintforecast help`."),
     rich_markup_mode="rich",
 )
-console = Console(emoji=False)  # Namen wie „:smile:“ bleiben Text
+console = Console(emoji=False)  # names like ":smile:" stay text
 err = Console(stderr=True, emoji=False)
 
 
-# Wie rich.markup.escape: ein Tag ist „[“ + Buchstabe, „#“, „/“ oder „@“ … „]“; Backslashes davor
-# zählen mit (zwei ergeben einen, ein ungerader maskiert das Tag). Rich macht außerdem aus jedem
-# „\[“ ein „[“, auch wenn kein Tag folgt (`D:\Projekte\[2024]`): Dort fehlte ein Backslash.
+# Like rich.markup.escape: a tag is "[" + a letter, "#", "/" or "@" ... "]"; backslashes before
+# it count (two make one, an odd one escapes the tag). Rich also turns every "\[" into "[", even
+# when no tag follows (`D:\Projects\[2024]`): a backslash was missing there.
 _BRACKET = re.compile(r"(\\*)\[([a-z#/@][^[]*?]|)")
 
 
@@ -135,24 +135,24 @@ def _bracket(match: re.Match[str]) -> str:
 
 
 def _plain(value: object) -> str:
-    """Freitext aus Daten oder Meldungen für die Ausgabe: eckige Klammern sind kein Markup.
+    """Free text from data or messages for output: square brackets are not markup.
 
-    Anders als rich.markup.escape bleibt ein abschließender Backslash unverändert: Rich zeigt
-    ihn nur dann richtig, wenn danach kein Tag folgt (Tabellenzelle, Prompt, Titel, Satz). Steht
-    der Wert direkt vor einem Tag (`[bold]{x}[/bold]`), gilt `_plain_end`."""
+    Unlike rich.markup.escape, a trailing backslash stays unchanged: Rich shows it correctly
+    only when no tag follows (table cell, prompt, title, sentence). If the value comes directly
+    before a tag (`[bold]{x}[/bold]`), use `_plain_end`."""
     return _BRACKET.sub(_bracket, str(value))
 
 
 def _plain_end(value: object) -> str:
-    """Wie `_plain` für einen Wert, auf den unmittelbar ein Tag folgt: abschließende Backslashes
-    werden verdoppelt, sonst maskierten sie das Tag (`Eva\\[/red]` zeigte „[/red]“ als Text)."""
+    """Like `_plain` for a value directly followed by a tag: trailing backslashes are doubled,
+    otherwise they would escape the tag (`Eva\\[/red]` showed "[/red]" as text)."""
     text = _plain(value)
     return text + text[len(text.rstrip("\\")) :]
 
 
 def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
-    """Gibt einen Fehler der Datendateien als Meldung aus (Exit-Code 1): Schreib- oder
-    Lesefehler, kein erster Sprint, eine ID ohne Folge-ID."""
+    """Prints a data file error as a message (exit code 1): write or read error, no first
+    sprint, an ID without a successor ID."""
     if getattr(fn, "_guarded", False):
         return fn
 
@@ -160,7 +160,7 @@ def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
     def guarded(*args: Any, **kwargs: Any) -> Any:
         try:
             return fn(*args, **kwargs)
-        except DataError as e:  # Meldung statt Traceback (kein Schreibrecht, Prognose u. Ä.)
+        except DataError as e:  # message, not a traceback (no write permission, forecast, ...)
             err.print(f"[red]{escape(str(e))}[/red]")
             raise typer.Exit(1) from e
 
@@ -169,7 +169,7 @@ def _guarded(fn: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Registriert einen Befehl (englischer Name, übersetzte Hilfe)."""
+    """Registers a command (English name, translated help)."""
 
     def register(fn: Callable[..., Any]) -> Callable[..., Any]:
         app.command(name, help=t(help))(_guarded(fn))
@@ -236,7 +236,7 @@ def _main(
 
 
 def _auto_update() -> None:
-    """Hinweise zur letzten Aktualisierung; Prüfung im Hintergrund, Installation am Ende."""
+    """Notices about the last update; check in the background, install at the end."""
     import atexit
 
     for message in updater.startup_notices():
@@ -253,7 +253,7 @@ def _load(c: Context, team: str) -> TeamData:
         raise typer.Exit(1) from e
 
 
-# --- Eingabe-Helfer -------------------------------------------------------------------
+# --- Input helpers -------------------------------------------------------------------
 
 
 def _explain(key: str) -> None:
@@ -334,7 +334,7 @@ def fmt_plain(value: float) -> str:
 
 
 def _find_or_create(data: TeamData, fc: Forecast, sprint_id: str | None, purpose: str) -> Sprint:
-    """Liefert den Sprint aus der Ablage oder erzeugt ihn aus dem Kalender."""
+    """Returns the sprint from the store or creates it from the calendar."""
     if sprint_id is None:
         entry = fc.default_entry(purpose)
         if entry is None:
@@ -384,7 +384,7 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     )
     for i, col in enumerate(("Person", "Working days", "Holidays", "Absences", "PT")):
         table.add_column(t(col), justify="left" if i == 0 else "right")
-    digits = breakdown.rounding  # alle PT-Zahlen wie die Summe: kaufmännisch gerundet
+    digits = breakdown.rounding  # all PD figures like the total: rounded half up
     for pc in breakdown.people:
         table.add_row(
             _plain(pc.person.name),
@@ -417,8 +417,8 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
 
 
 def _cli_git_hints() -> dict[str, str]:
-    """Hinweise für die Kommandozeile zu Fehlerarten, deren Hinweis der Git-Schicht sich an die
-    Weboberfläche richtet (Seitenleiste, Seiten, Knöpfe)."""
+    """Command line hints for error kinds whose hint from the Git layer addresses the web UI
+    (sidebar, pages, buttons)."""
     return {
         "identity": t(
             "Git does not know your name yet. Set it up with `git config --global "
@@ -437,7 +437,7 @@ def _cli_git_hints() -> dict[str, str]:
 
 
 def _git_problem(e: GitError) -> NoReturn:
-    """Gibt einen Git-Fehler mit Überschrift, Meldung und nächstem Schritt aus (Exit-Code 1)."""
+    """Prints a Git error with heading, message and next step (exit code 1)."""
     err.print(f"[bold red]{escape(title_for(e.kind))}[/bold red]")
     if str(e):
         err.print(f"[red]{escape(str(e))}[/red]")
@@ -449,8 +449,8 @@ def _git_problem(e: GitError) -> NoReturn:
 def _maybe_commit(
     c: Context, team: str, paths: list[Path], message: str, tag: str | None, do_commit: bool
 ) -> list[Issue]:
-    """Zeigt Prüfergebnisse zu den geänderten Dateien und committet, falls gewünscht.
-    Liefert die gezeigten Prüfergebnisse."""
+    """Shows check results for the changed files and commits if requested.
+    Returns the check results shown."""
     issues = issues_for(_load(c, team), c.today, [p.name for p in paths])
     for i in issues:
         colour = "red" if i.level is Level.ERROR else "yellow"
@@ -476,8 +476,8 @@ def _maybe_commit(
 
 
 def _new_errors(c: Context, before: TeamData, after: TeamData, where: str) -> list[Issue]:
-    """Fehler im neuen Stand (nur in den Dateien, deren Name mit ``where`` beginnt), die im
-    alten noch nicht standen."""
+    """Errors in the new state (only in files whose name starts with ``where``) that were not
+    in the old one."""
     known = {(i.where, i.message) for i in check_team(before, c.today)}
     return [
         i
@@ -494,9 +494,9 @@ def _print_errors(errors: list[Issue]) -> None:
 
 
 def _refuse_invalid(c: Context, before: TeamData, after: TeamData, where: str) -> None:
-    """Wie die Weboberfläche: Fehler im neuen Stand (nur in den betroffenen Dateien, ``where``
-    ist der Anfang des Dateinamens) verhindern das Schreiben, statt nachträglich gemeldet zu
-    werden. Fehler, die schon vorher bestanden, blockieren die Änderung nicht."""
+    """Like the web UI: errors in the new state (only in the affected files, ``where`` is the
+    start of the file name) prevent the write instead of being reported afterwards. Errors that
+    existed before do not block the change."""
     if errors := _new_errors(c, before, after, where):
         _print_errors(errors)
         err.print(f"[red]{t('Not saved – please fix the errors.')}[/red]")
@@ -504,7 +504,7 @@ def _refuse_invalid(c: Context, before: TeamData, after: TeamData, where: str) -
 
 
 def _with_sprint(data: TeamData, sprint: Sprint) -> TeamData:
-    """Kopie von ``data`` mit dem (neuen oder geänderten) Sprint."""
+    """Copy of ``data`` with the (new or changed) sprint."""
     after = copy.copy(data)
     after.sprints = sorted(
         [x for x in data.sprints if x.id != sprint.id] + [sprint], key=lambda x: x.start
@@ -739,7 +739,7 @@ def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False)
     after = copy.copy(data)
     after.team = current
     old = copy.copy(data)
-    old.team = before  # ``current`` wurde an Ort und Stelle geändert, ``before`` ist die Kopie
+    old.team = before  # ``current`` was changed in place, ``before`` is the copy
     _refuse_invalid(c, old, after, "team.yaml")
     path = c.repo.save_team(current)
     _saved(path)
@@ -774,7 +774,7 @@ def _people_table(people: list[Person], day: date, show_former: bool) -> Table:
 
 
 def _choose_person(people: list[Person]) -> Person:
-    """Auswahl über den Namen; bei gleichen Namen mit interner ID unterschieden."""
+    """Selection by name; identical names are told apart by the internal ID."""
     names = [p.name for p in people]
     labels = [p.name if names.count(p.name) == 1 else f"{p.name} ({p.id})" for p in people]
     by_label = {label.lower(): p for label, p in zip(labels, people, strict=True)}
@@ -804,7 +804,7 @@ def personen(
     c = _ctx(ctx)
     data = _load(c, team)
     people = data.people
-    before = copy.deepcopy(data)  # die Liste wird unten an Ort und Stelle geändert
+    before = copy.deepcopy(data)  # the list is changed in place below
     changed = False
     while True:
         console.print(_people_table(people, c.today, ehemalige))
@@ -846,7 +846,7 @@ def personen(
             tentative = copy.copy(data)
             tentative.people = [*people, person]
             if errors := _new_errors(c, data, tentative, "people.yaml"):
-                _print_errors(errors)  # sofort melden, statt erst beim Speichern zu verwerfen
+                _print_errors(errors)  # report right away instead of discarding only on save
                 continue
             people.append(person)
         else:
@@ -953,8 +953,8 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
 
 
 def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
-    """Fragt die Fehltage je aktiver Person ab und speichert den Sprint."""
-    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
+    """Asks for the absences of each active person and saves the sprint."""
+    before = copy.deepcopy(data)  # the sprint is changed in place below
     days = team_workdays(data.team, s.start, s.end)
     console.print(_sprint_panel(data, s))
     _explain("absences")
@@ -966,7 +966,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
             s.absences[p.id] = min(value, len(days))
         else:
             s.absences.pop(p.id, None)
-    s.absence_state = AbsenceState.CONFIRMED  # alle Personen wurden gefragt, auch „0“
+    s.absence_state = AbsenceState.CONFIRMED  # all people were asked, including "0"
     if s.capacity is not None and Confirm.ask(
         t(
             (
@@ -984,7 +984,7 @@ def _ask_absences(c: Context, data: TeamData, s: Sprint) -> Path:
 
 
 def _require_products(data: TeamData, team: str) -> None:
-    """Beendet den Befehl, wenn das Team die Produktverteilung nicht nutzt."""
+    """Ends the command when the team does not use the product distribution."""
     if not data.team.features.products:
         err.print(
             "[yellow]"
@@ -1015,7 +1015,7 @@ def _require_tickets(data: TeamData, team: str) -> None:
 
 
 def _ask_product_values(data: TeamData, fc: Forecast, s: Sprint, measure: str) -> bool:
-    """Fragt einen Wert (preplanned/planned/done) je Produkt ab. True, wenn etwas geändert."""
+    """Asks for a value (preplanned/planned/done) per product. True if something changed."""
     entry = fc.entry(s.id)
     if not data.products or entry is None:
         return False
@@ -1085,7 +1085,7 @@ def planning(
     data = _load(c, team)
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "planning")
-    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
+    before = copy.deepcopy(data)  # the sprint is changed in place below
     paths: list[Path] = []
     console.rule(t("Planning {id} – step 1: absences", id=_plain(s.id)))
     if data.people and Confirm.ask(
@@ -1197,7 +1197,7 @@ def review(
     data = _load(c, team)
     fc = build_forecast(data, c.today)
     s = _find_or_create(data, fc, sprint, "review")
-    before = copy.deepcopy(data)  # der Sprint wird unten an Ort und Stelle geändert
+    before = copy.deepcopy(data)  # the sprint is changed in place below
     unit = data.team.unit.value
     console.print(
         Panel(
@@ -1288,7 +1288,8 @@ def forecast(
         t("Small items"),
     ]
     for i, col in enumerate(columns):
-        band = col == t("Range")  # nie mitten in der Zahl kürzen: lieber umbrechen die anderen
+        # never truncate in the middle of a number: let the others wrap instead
+        band = col == t("Range")
         table.add_column(
             col, justify="left" if i < 3 else "right", no_wrap=band, min_width=9 if band else None
         )
@@ -1352,7 +1353,7 @@ def forecast(
 
 
 def _finite_option(value: float | None) -> float | None:
-    """Typer-Prüfung: nan und inf sind keine Zahlen, mit denen sich rechnen ließe."""
+    """Typer check: nan and inf are not numbers one could calculate with."""
     if value is not None and not math.isfinite(value):
         raise typer.BadParameter(t("Please enter a finite number."))
     return value
@@ -1546,7 +1547,7 @@ def bericht(
         data = _load(c, key)
         try:
             forecast_ = build_forecast(data, c.today)
-        except DataError as e:  # ohne Teamangabe läuft die Schleife über alle Teams
+        except DataError as e:  # without a team argument the loop runs over all teams
             if key in str(e):
                 raise
             raise DataError(t("Team {team}: {error}", team=key, error=e)) from e
@@ -2451,7 +2452,7 @@ def pruefen(
         console.print(f"[bold]{_plain_end(key)}[/bold]")
         for i in issues:
             colour = "red" if i.level is Level.ERROR else "yellow"
-            # Namen aus den Dateien können Steuerzeichen enthalten (Zeilenumbruch, ESC)
+            # names from the files can contain control characters (line break, ESC)
             where, message = blank_controls(i.where), blank_controls(i.message)
             console.print(
                 f"  [{colour}]{i.level.label}[/{colour}] {_plain(where)}: {_plain(message)}"
@@ -2498,7 +2499,7 @@ def web(
     if importlib.util.find_spec("streamlit") is None:
         err.print(
             "[red]"
-            + escape(  # „[web]“ ist das Extra im Befehl, kein Markup
+            + escape(  # "[web]" is the extra in the command, not markup
                 t(
                     "The web interface needs Streamlit: uv tool install "
                     '"sprintforecast[web] @ git+…" or uv sync --extra web'
@@ -2508,12 +2509,12 @@ def web(
         )
         raise typer.Exit(1)
     c = _ctx(ctx)
-    app_mode = app_mode and browser  # --no-browser: kein Fenster, kein Selbst-Beenden
+    app_mode = app_mode and browser  # --no-browser: no window, no self-exit
     env = os.environ | {DATA_ENV: str(c.repo.root.resolve())} | updater.web_environment(sys.argv)
     if c.stichtag:
         env[STICHTAG_ENV] = c.stichtag
     if app_mode:
-        env[IDLE_ENV] = str(_IDLE_EXIT_SECONDS)  # Server beendet sich selbst ohne Sitzung
+        env[IDLE_ENV] = str(_IDLE_EXIT_SECONDS)  # the server exits by itself without a session
     actual_port = free_port(port)
     if actual_port != port:
         console.print(
@@ -2535,12 +2536,12 @@ def web(
     popen: dict = popen_options()
     log_handle = None
     if log := os.environ.get(LOG_ENV):
-        # Doppelklick-Start: kein Konsolenfenster, Ausgaben des Servers ins Protokoll
+        # Double-click start: no console window, server output goes to the log
         try:
             log_handle = open(log, "a", encoding="utf-8")  # noqa: SIM115
         except OSError as e:
-            # Der Start darf nicht am Protokoll scheitern; ohne Konsole gehen die Ausgaben
-            # dann verloren, aber die Oberfläche läuft.
+            # Startup must not fail because of the log; without a console the output is
+            # lost then, but the UI runs.
             err.print(
                 "[yellow]"
                 + escape(
@@ -2561,8 +2562,8 @@ def web(
         server = subprocess.Popen(cmd_line, env=env, **popen)
     finally:
         if log_handle is not None:
-            log_handle.close()  # das Kind hat seine eigene Kopie des Handles
-    adopt(server)  # alles, was der Server später startet, endet mit ihm
+            log_handle.close()  # the child has its own copy of the handle
+    adopt(server)  # everything the server starts later ends with it
     try:
         if app_mode:
             _open_app_window(url, server, browser_path)
@@ -2573,15 +2574,15 @@ def web(
         terminate_tree(server)
 
 
-# Endet der Browserprozess schneller, hat er vermutlich an eine laufende Instanz übergeben –
-# dann darf der Server nicht beendet werden.
+# If the browser process ends sooner, it probably handed over to a running instance, so the
+# server must not be stopped.
 _HANDOFF_SECONDS = 5.0
-# So lange darf nach dem Besuch eines Browsers keine Sitzung mehr verbunden sein (idle.py).
+# How long after a browser visit no session may remain connected (idle.py).
 _IDLE_EXIT_SECONDS = 20
 
 
 def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -> None:
-    """Öffnet das App-Fenster; kehrt zurück, wenn der Server weiterlaufen soll."""
+    """Opens the app window; returns when the server should keep running."""
     if not wait_until_ready(url, server):
         err.print(f"[red]{t('The web interface did not start – see the output above.')}[/red]")
         raise typer.Exit(1)
@@ -2591,7 +2592,8 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
         console.print(
             f"[yellow]{t('{error} – searching automatically.', error=_plain(e))}[/yellow]"
         )
-        os.environ.pop(BROWSER_ENV, None)  # sonst läse find_browser die ungültige Vorgabe erneut
+        # otherwise find_browser would read the invalid setting again
+        os.environ.pop(BROWSER_ENV, None)
         found = find_browser(None)
     match found.kind:
         case BrowserKind.APP:
@@ -2601,7 +2603,7 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
             adopt(window)
             while window.poll() is None:
                 if server.poll() is not None:
-                    # Server beendet (z. B. Neustart für eine Aktualisierung) → Fenster zu
+                    # server ended (e.g. restart for an update) -> close the window
                     window.terminate()
                     return
                 time.sleep(0.5)
@@ -2834,7 +2836,7 @@ def produkte(
     if entry is not None:
         console.print(_distribution_table(distribution(fc, entry), unit))
     entries = [e for e in fc.entries if e.sprint.start <= s.start][-verlauf:]
-    rows = [b for b in balance(fc, entries) if b.sprints]  # nur Produkte mit mindestens einem Wert
+    rows = [b for b in balance(fc, entries) if b.sprints]  # only products with at least one value
     if rows:
         with_missing = any(b.missing for b in rows)
         columns = ("Product", "Sprints", "Σ standard", "Σ done", "Balance")
@@ -2862,7 +2864,7 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
     data = _load(c, team)
     _require_products(data, team)
     products = data.products
-    before = copy.deepcopy(data)  # die Liste wird unten an Ort und Stelle geändert
+    before = copy.deepcopy(data)  # the list is changed in place below
     with_po = data.team.features.po
     changed = False
     while True:
@@ -2985,7 +2987,7 @@ def datenordner(
         _git_problem(classify("", missing=True))
     if repo_root(pfad) is None:
         if problem := root_problem(pfad):
-            _git_problem(problem)  # Überschrift, Meldung von Git und nächster Schritt
+            _git_problem(problem)  # heading, message from Git and next step
         else:
             err.print(
                 "[red]"
@@ -3066,7 +3068,7 @@ def aktualisieren(
     ] = None,
 ) -> None:
     if auto is not None:
-        # gespeichert werden die bisherigen Werte an/hinweis/aus
+        # what gets stored are the values on/notice/off
         values = {"on": "on", "notice": "notice", "off": "off"}
         word = auto.strip().lower()
         try:
@@ -3203,10 +3205,10 @@ def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> N
         console.print(f"[yellow]{hint}[/yellow]")
 
 
-# Erweiterungen (z. B. Import-Plugins) registrieren ihre Befehle zuletzt.
+# Extensions (e.g. import plugins) register their commands last.
 for _plugin in load_plugins():
     if _plugin.register_cli is not None:
         _plugin.register_cli(app)
-for _command in app.registered_commands:  # auch die Befehle der Erweiterungen
+for _command in app.registered_commands:  # also the commands of the extensions
     if _command.callback is not None:
         _command.callback = _guarded(_command.callback)

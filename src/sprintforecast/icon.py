@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Logo der App für die Starter (Windows .ico, macOS .icns, Linux .png).
+"""App logo for the launchers (Windows .ico, macOS .icns, Linux .png).
 
-Das Logo wird ohne Zusatzpakete gezeichnet: blaues Quadrat mit Balken und einem Punkt
-auf dem höchsten Balken (Velocity-Verlauf).
+The logo is drawn without extra packages: blue square with bars and a dot
+on the tallest bar (velocity trend).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def _inside_rounded(x: float, y: float, size: float, radius: float) -> bool:
 
 
 def _color(x: float, y: float, s: float) -> tuple[int, int, int, int]:
-    """Farbe (RGBA) am Punkt (x, y) in einem Bild der Kantenlänge s."""
+    """Color (RGBA) at point (x, y) in an image with edge length s."""
     if not _inside_rounded(x, y, s, s * 0.2):
         return 0, 0, 0, 0
     u, v = x / s, y / s
@@ -37,11 +37,11 @@ def _color(x: float, y: float, s: float) -> tuple[int, int, int, int]:
 
 
 def png(size: int = SIZE) -> bytes:
-    """Das Logo als PNG (RGBA, 2×2-Überabtastung für glatte Kanten)."""
+    """The logo as PNG (RGBA, 2×2 supersampling for smooth edges)."""
     rows = bytearray()
     offsets = (0.25, 0.75)
     for py in range(size):
-        rows.append(0)  # Filter „none“
+        rows.append(0)  # filter "none"
         for px in range(size):
             acc = [0, 0, 0, 0]
             for oy in offsets:
@@ -71,19 +71,19 @@ def png(size: int = SIZE) -> bytes:
 
 
 def ico(image: bytes) -> bytes:
-    """Windows-Symbol mit einem 256×256-PNG (seit Windows Vista erlaubt)."""
+    """Windows icon with a 256×256 PNG (allowed since Windows Vista)."""
     entry = struct.pack("<BBBBHHII", 0, 0, 0, 0, 1, 32, len(image), 22)
     return struct.pack("<HHH", 0, 1, 1) + entry + image
 
 
 def icns(image: bytes) -> bytes:
-    """macOS-Symbol mit einem 256×256-PNG (Typ ic08)."""
+    """macOS icon with a 256×256 PNG (type ic08)."""
     chunk = b"ic08" + struct.pack(">I", len(image) + 8) + image
     return b"icns" + struct.pack(">I", len(chunk) + 8) + chunk
 
 
 def write_icon(folder: Path, kind: str) -> Path:
-    """Schreibt das Logo als ``png``, ``ico`` oder ``icns`` in ``folder``; liefert den Pfad."""
+    """Write the logo as ``png``, ``ico`` or ``icns`` into ``folder``; return the path."""
     folder.mkdir(parents=True, exist_ok=True)
     image = png()
     path = folder / f"sprintforecast.{kind}"
