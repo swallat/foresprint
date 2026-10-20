@@ -65,6 +65,7 @@ from sprintforecast.ticket_import import (
 )
 from sprintforecast.web.logic import with_sprints
 from sprintforecast.web.rule_editor import rule_editor, syntax_message
+from sprintforecast.web.sprint_board import RELEASE, sprint_board
 from sprintforecast.web.ui import (
     _next_step,
     _saved_text,
@@ -829,11 +830,20 @@ def _sprint_columns(repo: Repository, data: TeamData, dist: Distribution, sel: S
             key=f"tickets-{key}-sprints",
         )
     )
-    for start in range(0, count, 4):
-        chunk = dist.sprints[start : min(start + 4, count)]
-        for column, sprint in zip(st.columns(len(chunk)), chunk, strict=True):
-            with column:
-                _sprint_column(repo, data, dist, sel, sprint)
+    dragging = st.radio(
+        t("View"),
+        [t("Cards with buttons"), t("Drag and drop")],
+        horizontal=True,
+        key=f"tickets-{key}-board-view",
+    ) == t("Drag and drop")
+    if dragging:
+        _drag_board(repo, data, dist, sel, dist.sprints[:count])
+    else:
+        for start in range(0, count, 4):
+            chunk = dist.sprints[start : min(start + 4, count)]
+            for column, sprint in zip(st.columns(len(chunk)), chunk, strict=True):
+                with column:
+                    _sprint_column(repo, data, dist, sel, sprint)
     st.caption(
         t(
             "R = refined · U = rough estimate (unrefined) · M = own estimate · **bold** = "
@@ -842,6 +852,40 @@ def _sprint_columns(repo: Repository, data: TeamData, dist: Distribution, sel: S
         )
     )
     _earmark_form(repo, data, dist, sel)
+
+
+def _drag_board(
+    repo: Repository, data: TeamData, dist: Distribution, sel: Selection, shown: list[str]
+) -> None:
+    """The sprint columns as a drag-and-drop board; a dropped card is earmarked for its new
+    sprint, a card dropped on the release bar goes back to the automatic distribution."""
+
+    def describe(p: Placement) -> str:
+        mark = " ✎" if p.reason == "earmark" else ""
+        project = data.project(p.project) if p.project else None
+        where = project.name if project else product_label(data, p.product)
+        return f"{fmt(p.size)} {SOURCE_LETTERS[p.source]}{mark} · {where}"
+
+    moved = sprint_board(
+        data,
+        dist,
+        shown,
+        lambda p: sel.shows(p.project),
+        describe,
+        CARD_LIMIT,
+        key=f"tickets-{data.team.key}-board",
+    )
+    st.caption(t("Drag a card onto another sprint to earmark it there."))
+    if moved is None:
+        return
+    ticket, sprint = moved
+    placement = dist.placement(ticket)
+    if placement is None or placement.reason == "fixed_sprint":
+        return  # a forged or outdated drop: tickets of the tracker's sprints cannot be moved
+    if sprint == RELEASE:
+        set_earmark(repo, data, ticket, None)
+    elif sprint in dist.sprints and sprint != placement.sprint:
+        set_earmark(repo, data, ticket, sprint)
 
 
 def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
