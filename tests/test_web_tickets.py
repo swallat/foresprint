@@ -522,3 +522,15 @@ def test_handover_sprints_create_the_calendar_sprints_in_between(data_dir: Path)
     assert [s.id for s in written][-1] == third.id
     assert first.id in {s.id for s in written}
     assert written[-1].products[product].preplanned == 2.0
+
+
+def test_insert_helper_adds_a_condition(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    at = page(data_dir, monkeypatch)
+    at.selectbox(key="tickets-demo-ins-field").set_value("label").run()
+    at.multiselect(key="tickets-demo-ins-values-label").set_value(["zzz-new"]).run()
+    next(b for b in at.button if b.label == "Einfügen").click().run()
+    assert not at.exception, at.exception
+    box = next(a for a in at.text_area if a.label == "Regel")
+    assert "label = zzz-new" in box.value
