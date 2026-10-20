@@ -3,7 +3,7 @@
 
 A sprint gets a new ID; all saved sprints after it continue counting from it
 (the team's numbering) so that the following IDs can still be derived. The sprint files
-and the sprint's protocols are renamed; their contents stay unchanged.
+and the sprint's minutes are renamed; their contents stay unchanged.
 """
 
 from __future__ import annotations
@@ -85,14 +85,14 @@ def plan_renames(data: TeamData, sprint_id: str, new_id: str) -> list[Rename]:
 @dataclass(frozen=True)
 class Applied:
     """Result of ``apply_renames``: the new sprint files and all touched paths (old
-    and new names of sprint files and protocols, for committing)."""
+    and new names of sprint files and minutes, for committing)."""
 
     files: list[Path]
     touched: list[Path]
 
 
 def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Applied:
-    """Rename sprint files and protocols; all or nothing."""
+    """Rename sprint files and minutes; all or nothing."""
     from sprintforecast.protocol import protocol_renames
 
     if not renames:
@@ -105,7 +105,7 @@ def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Ap
         renamed = copy.deepcopy(sprint)
         renamed.id = r.new
         moves.append((repo.sprint_path(key, r.old), repo.sprint_path(key, r.new), renamed))
-    # Collect protocols before the first rename: otherwise a later sprint would find the
+    # Collect minutes before the first rename: otherwise a later sprint would find the
     # just-renamed files of its predecessor.
     protocols = protocol_renames(repo, key, [(r.old, r.new) for r in renames])
     sources = {old for old, _, _ in moves} | {src for src, _ in protocols}
@@ -119,9 +119,9 @@ def apply_renames(repo: Repository, data: TeamData, renames: list[Rename]) -> Ap
         except OSError as e:
             raise not_readable(old, e) from e
     written: list[Path] = []
-    # Protocols in two steps: first all to an intermediate name, then to the new name.
+    # Minutes in two steps: first all to an intermediate name, then to the new name.
     # If the chain overlaps (2026.20 → 2026.21, 2026.21 → 2026.22), a direct rename would
-    # otherwise overwrite the successor's protocol.
+    # otherwise overwrite the successor's minutes.
     stamp = uuid.uuid4().hex[:8]
     staged = [(src, src.with_name(f"{src.name}.renaming-{stamp}"), dst) for src, dst in protocols]
     done: list[tuple[Path, Path]] = []  # (from, to) in execution order
