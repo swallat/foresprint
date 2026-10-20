@@ -9,8 +9,9 @@
 # Options:
 #   --dry-run, -n          change nothing, only list
 #   --yes, -y              do not ask
-#   --remove-old-config    also remove the old settings folder, but only after its files were
-#                          copied to the new one (default: keep it)
+#   --remove-old-config    also remove the old settings folder after copying (files that exist in
+#                          the new folder are not overwritten, the old ones are deleted)
+#                          (default: keep it)
 #   --help, -h
 #
 # Never touched: the team data folder, the Jira token in the keychain, Git credentials, the
@@ -18,6 +19,8 @@
 # ~/.config/sprintforecast to ~/.config/foresprint unless the file exists there already.
 # Running it again is harmless.
 set -eu
+
+say() { printf '%s\n' "$*"; }
 
 OLD=sprintforecast
 OLD_APP="Sprint-Forecast"
@@ -31,7 +34,10 @@ for arg in "$@"; do
         --yes | -y) yes=1 ;;
         --remove-old-config) rm_config=1 ;;
         --help | -h)
-            sed -n '2,/^set -eu/p' "$0" | sed '$d; s/^# \{0,1\}//'
+            say "Usage: sh uninstall-old.sh [--dry-run|-n] [--yes|-y] [--remove-old-config]"
+            say "Removes the installation under the old name sprintforecast (uv tool, launchers,"
+            say "browser profile cache) and copies the settings to ~/.config/foresprint."
+            say "Never deletes the team data folder, the keychain or Git credentials."
             exit 0
             ;;
         *)
@@ -41,7 +47,6 @@ for arg in "$@"; do
     esac
 done
 
-say() { printf '%s\n' "$*"; }
 home="${HOME:?HOME is not set}"
 config_home="${XDG_CONFIG_HOME:-$home/.config}"
 data_home="${XDG_DATA_HOME:-$home/.local/share}"
@@ -52,8 +57,14 @@ add() { actions="${actions}$1|$2
 "; }
 
 # 1. uv tool (removes the commands sprintforecast and sprintforecast-app with it)
-if command -v uv >/dev/null 2>&1 && uv tool list 2>/dev/null | grep -q "^$OLD "; then
-    add tool "$OLD"
+if ! command -v uv >/dev/null 2>&1 && [ -x "$home/.local/bin/uv" ]; then
+    PATH="$home/.local/bin:$PATH"
+    export PATH
+fi
+if command -v uv >/dev/null 2>&1; then
+    if uv tool list 2>/dev/null | grep -q "^$OLD "; then add tool "$OLD"; fi
+elif [ -e "$home/.local/bin/$OLD" ]; then
+    say "Warning: uv not found, so the commands in ~/.local/bin cannot be removed; install uv or run 'uv tool uninstall $OLD'."
 fi
 
 # 2. launchers; a .desktop file only if it really starts the old program
@@ -61,13 +72,18 @@ for f in "$data_home/applications/$OLD.desktop" "$home/Desktop/$OLD.desktop"; do
     if [ -f "$f" ] && grep -q "^Exec=.*$OLD" "$f"; then add file "$f"; fi
 done
 for f in "$home/Applications/$OLD_APP.app" "$home/Desktop/$OLD_APP.app"; do
-    if [ -e "$f" ] || [ -L "$f" ]; then add file "$f"; fi
+    # only if it starts the old program (or is a dangling alias)
+    if grep -qs "$OLD-app" "$f/Contents/MacOS/$OLD_APP" || { [ -L "$f" ] && [ ! -e "$f" ]; }; then
+        add file "$f"
+    fi
 done
 
 # 3. cache: browser profile of the app window and the logo (recreated on demand)
-for d in "$cache_home/$OLD" "$home/Library/Application Support/$OLD"; do
-    [ -d "$d" ] && add dir "$d"
-done
+case "$(uname -s)" in
+    Darwin) cache_dir="$home/Library/Application Support/$OLD" ;;
+    *) cache_dir="$cache_home/$OLD" ;;
+esac
+if [ -d "$cache_dir" ]; then add dir "$cache_dir"; fi
 
 # 4. settings: copy to the new folder, remove the old one only on request
 old_config="$config_home/$OLD"
@@ -118,7 +134,7 @@ if [ "$yes" != 1 ]; then
         exit 1
     fi
     case "$answer" in
-        y | Y | yes | YES | j | J | ja) ;;
+        [yYjJ] | [yY][eE][sS] | [jJ][aA]) ;;
         *) say "Cancelled."; exit 0 ;;
     esac
 fi
@@ -132,7 +148,13 @@ done
 printf '%s' "$actions" | grep -v '^copy|' | while IFS='|' read -r kind path; do
     [ -z "$kind" ] && continue
     case "$kind" in
-        tool) uv tool uninstall "$path" && say "uv tool $path removed" ;;
+        tool)
+            uv tool uninstall "$path" </dev/null || {
+                say "uv tool uninstall failed (is the app still running?); close it and run again." >&2
+                exit 1
+            }
+            say "uv tool $path removed"
+            ;;
         file) rm -rf -- "$path" && say "removed $path" ;;
         dir) rm -rf -- "$path" && say "removed $path" ;;
     esac
