@@ -1934,3 +1934,57 @@ def test_older_rescue_names_are_still_recognised():
     assert gitsync._LEGACY_SAVE_SUBJECT in gitsync._SAVE_SUBJECTS
     assert "rettung-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
     assert "rescue-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
+
+
+def test_branches_and_switch(tmp_path: Path):
+    import subprocess
+
+    from sprintforecast import git as gitmod
+
+    def g(*a: str) -> None:
+        subprocess.run(["git", "-C", str(tmp_path), *a], check=True, capture_output=True)
+
+    g("init", "-q", "-b", "main")
+    g("config", "user.email", "a@b.c")
+    g("config", "user.name", "A")
+    (tmp_path / "f.txt").write_text("1")
+    g("add", ".")
+    g("commit", "-qm", "x")
+    g("branch", "other")
+    found = gitsync.branches(tmp_path)
+    assert [(b.name, b.current) for b in found] == [("main", True), ("other", False)]
+    (tmp_path / "f.txt").write_text("2")
+    with pytest.raises(gitmod.GitError):
+        gitsync.switch_branch(tmp_path, "other")
+    g("checkout", "--", "f.txt")
+    assert gitsync.switch_branch(tmp_path, "other") == "other"
+    assert gitsync.state(tmp_path).branch == "other"
+    with pytest.raises(gitmod.GitError):
+        gitsync.switch_branch(tmp_path, "nope")
+
+
+def test_switch_to_remote_only_branch_with_two_remotes(tmp_path: Path):
+    import subprocess
+
+    def g(cwd: Path, *a: str) -> None:
+        subprocess.run(["git", "-C", str(cwd), *a], check=True, capture_output=True)
+
+    server = tmp_path / "server"
+    server.mkdir()
+    g(server, "init", "-q", "-b", "main")
+    g(server, "config", "user.email", "a@b.c")
+    g(server, "config", "user.name", "A")
+    (server / "f.txt").write_text("1")
+    g(server, "add", ".")
+    g(server, "commit", "-qm", "x")
+    g(server, "branch", "feat")
+    work = tmp_path / "work"
+    subprocess.run(["git", "clone", "-q", str(server), str(work)], check=True)
+    g(work, "remote", "add", "up", str(server))
+    g(work, "fetch", "-q", "up")
+    found = {b.name: b for b in gitsync.branches(work)}
+    assert found["feat"].remote and not found["feat"].local
+    assert gitsync.switch_branch(work, "feat") == "feat"
+    assert gitsync.state(work).branch == "feat"
+    g(work, "checkout", "-q", "--detach")
+    assert all(not b.name.startswith("(") and " " not in b.name for b in gitsync.branches(work))
