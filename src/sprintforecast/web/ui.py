@@ -591,7 +591,9 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
     """Period, working days and holidays of a sprint."""
     days = team_workdays(data.team, s.start, s.end)
     region, country = data.team.capacity.region, data.team.capacity.country
-    hol = [f"{d:%d.%m.} {name}" for d in days if (name := holiday_name(d, region, country))]
+    holiday_names = [
+        f"{d:%d.%m.} {name}" for d in days if (name := holiday_name(d, region, country))
+    ]
     last = f"{days[-1]:%d.%m.%Y}" if days else f"{s.end:%d.%m.%Y}"
     text = t(
         (
@@ -605,8 +607,8 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
         days=len(days),
         week=workweek_label(data.team),
     )
-    if hol:
-        text += t(" · including holidays: {holidays}", holidays=", ".join(hol))
+    if holiday_names:
+        text += t(" · including holidays: {holidays}", holidays=", ".join(holiday_names))
     if not data.sprint(s.id):
         text += t(" · no sprint file yet")
     return text
@@ -627,8 +629,8 @@ def sprints_summary(data: TeamData, sprints: list[Sprint], today: date) -> str:
             for sid, days in workdays.items()
         ]
     for sid, days in workdays.items():
-        if hol := [f"{d:%d.%m.}" for d in days if holiday_name(d, region, country)]:
-            parts.append(t("{id}: public holidays {dates}", id=sid, dates=", ".join(hol)))
+        if holiday_names := [f"{d:%d.%m.}" for d in days if holiday_name(d, region, country)]:
+            parts.append(t("{id}: public holidays {dates}", id=sid, dates=", ".join(holiday_names)))
     if done := [s.id for s in sprints if s.end <= today]:
         parts.append(t("completed: {ids}", ids=", ".join(done)))
     if missing := sum(1 for s in sprints if not data.sprint(s.id)):
@@ -649,13 +651,13 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     assumed: dict[str, Assumption] = {}
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
-        default_ist = default_forecast_ist(fc, sprint)
+        default_commitment = default_forecast_ist(fc, sprint)
         # Align at the bottom: labels that wrap would otherwise push the fields down.
-        ist_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
-        ist = ist_col.number_input(
+        commitment_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
+        commitment = commitment_col.number_input(
             t("Commitment ({unit})", unit=unit),
             min_value=0.0,
-            value=default_ist,
+            value=default_commitment,
             step=0.25,
             format="%.2f",
             key=f"{prefix}-{sprint.id}-ist",
@@ -682,11 +684,11 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
             key=f"{prefix}-{sprint.id}-extra",
             help=t("Amount expected to be done in addition to the commitment."),
         )
-        changed = not_done is not None or extra is not None or ist != default_ist
-        if ist is None or not changed:
+        changed = not_done is not None or extra is not None or commitment != default_commitment
+        if commitment is None or not changed:
             result_col.metric(t("Expected done"), "–")
             continue
-        assumed[sprint.id] = Assumption(ist, not_done, extra)
+        assumed[sprint.id] = Assumption(commitment, not_done, extra)
         result_col.metric(t("Expected done"), f"{fmt(assumed[sprint.id].expected, 2)} {unit}")
     return assumed
 
@@ -2001,7 +2003,7 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
         return
     product, direction = t("Product"), t("Direction")
     more, less = t("more than standard"), t("less than standard")
-    saldo = f"{t('Balance')} ({unit})"
+    balance_label = f"{t('Balance')} ({unit})"
     frame = pd.DataFrame(
         [
             {
@@ -2009,7 +2011,7 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
                 "Sprints": b.sprints,
                 f"Σ Standard ({unit})": round(b.standard, 2),
                 f"Σ {t('Done')} ({unit})": round(b.done, 2),
-                saldo: round(b.difference, 2),
+                balance_label: round(b.difference, 2),
                 direction: more if b.difference >= 0 else less,
                 t("no value"): b.missing,
             }
@@ -2022,7 +2024,7 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
         .mark_bar(cornerRadius=4)
         .encode(
             y=alt.Y(f"{product}:N", sort=[b.product.name for b in rows], title=None),
-            x=alt.X(f"{saldo}:Q"),
+            x=alt.X(f"{balance_label}:Q"),
             color=alt.Color(
                 f"{direction}:N",
                 scale=alt.Scale(domain=[more, less], range=["#2a78d6", "#e34948"]),
@@ -3530,12 +3532,12 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     [
                         t(
                             (
-                                "Sprint {id}: commitment {ist} {unit}, expected not done "
+                                "Sprint {id}: commitment {commitment} {unit}, expected not done "
                                 "{not_done}, additionally done {extra} → expected done {done} "
                                 "{unit}"
                             ),
                             id=sid,
-                            ist=fmt(a.forecast_ist, 2),
+                            commitment=fmt(a.forecast_ist, 2),
                             not_done=fmt(a.not_done, 2),
                             extra=fmt(a.additional_done, 2),
                             done=fmt(a.expected, 2),
@@ -5167,7 +5169,7 @@ def page_help(repo: Repository) -> None:
             "the tab “Collaboration (Git)”."
         )
     )
-    ablauf, begriffe, felder, team, zusammenarbeit, befehle = st.tabs(
+    workflow, terms, fields, team, collaboration, commands = st.tabs(
         [
             t("Workflow"),
             t("Terms"),
@@ -5177,7 +5179,7 @@ def page_help(repo: Repository) -> None:
             t("Command line"),
         ]
     )
-    with ablauf:
+    with workflow:
         for step in WORKFLOW:
             with st.container(border=True):
                 left, right = st.columns([3, 1], vertical_alignment="center")
@@ -5185,7 +5187,7 @@ def page_help(repo: Repository) -> None:
                 left.markdown(f"**{t(step.title)}**  \n{t(step.text)}")
                 with right:
                     page_link(step.page)
-    with begriffe:
+    with terms:
         term, meaning = t("Term"), t("Meaning")
         st.table(
             pd.DataFrame([(t(a), t(b)) for a, b in TERMS], columns=[term, meaning]).set_index(term)
@@ -5197,7 +5199,7 @@ def page_help(repo: Repository) -> None:
                 [(t(a), t(b)) for a, b in CAPACITY_SOURCES], columns=[source, meaning]
             ).set_index(source)
         )
-    with felder:
+    with fields:
         for f in FIELDS.values():
             with st.container(border=True):
                 st.markdown(f"**{t(f.title)}**  \n{t(f.what)}")
@@ -5210,11 +5212,11 @@ def page_help(repo: Repository) -> None:
             ).set_index(setting)
         )
         page_link("einstellungen", t("Change settings"))
-    with zusammenarbeit:
+    with collaboration:
         for title, text in GIT_HELP:
             with st.container(border=True):
                 st.markdown(f"**{t(title)}**  \n{t(text)}")
-    with befehle:
+    with commands:
         command, purpose = t("Command"), t("Purpose")
         st.table(
             pd.DataFrame([(a, t(b)) for a, b in COMMANDS], columns=[command, purpose]).set_index(
