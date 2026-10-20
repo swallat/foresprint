@@ -227,7 +227,7 @@ def test_planning_page_shows_engine_plan(web: AppTest, fc):
     sprint = "2026.22"
     page(web, "planning")
     web.selectbox(key="planning-sprint").set_value(sprint).run()
-    web.radio(key="planning-step").set_value(1).run()
+    web.button(key=f"planning-step-{1}").click().run()
     assert not web.exception, web.exception
     tile = next(m for m in web.metric if m.label.startswith("Prognose aktuell"))
     assert num(tile.value) == pytest.approx(fc.entry(sprint).result.plan)
@@ -461,7 +461,7 @@ def test_border_capacity_in_web_pages_and_frozen_value(
     page(border_web, "planning")
     border_web.selectbox(key="planning-sprint").set_value(BORDER).run()
     for step_index in (0, 1):  # absences, Forecast PLAN
-        border_web.radio(key="planning-step").set_value(step_index).run()
+        border_web.button(key=f"planning-step-{step_index}").click().run()
         assert not border_web.exception, border_web.exception
         tile = next(m for m in border_web.metric if m.label == "Kapazität (PT)")
         assert tile.value == "25,3", step_index
@@ -535,7 +535,7 @@ def test_recorded_capacity_in_past_sprint_tables(
 def test_recorded_capacity_in_the_planning_hint(recorded_dir: Path, monkeypatch):
     at = page(open_app(recorded_dir, monkeypatch), "planning")
     at.selectbox(key="planning-sprint").set_value(BORDER).run()
-    at.radio(key="planning-step").set_value(0).run()
+    at.button(key=f"planning-step-{0}").click().run()
     assert not at.exception, at.exception
     assert any("feste Kapazität (25,3 PT)" in i.value for i in at.info), [i.value for i in at.info]
 
