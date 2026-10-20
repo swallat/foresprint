@@ -87,6 +87,7 @@ from sprintforecast.git import (
     has_credentials,
     hint_for,
     init_data_repository,
+    invalidate_status,
     md_code,
     md_code_lines,
     md_plain,
@@ -231,6 +232,17 @@ from sprintforecast.settings import (
     Setting,
     applicable,
     changes,
+)
+from sprintforecast.signin import (
+    enable_helper,
+    forget_token,
+    helper_state,
+    host_guide,
+    is_https,
+    setup_items,
+    store_token,
+    suggested_helper,
+    verify,
 )
 from sprintforecast.storage import (
     DATA_ENV,
@@ -745,6 +757,7 @@ def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
     st.header(t("Was möchtest du tun?"))
     if (goto := st.session_state.pop("start-goto", None)) is not None:
         st.switch_page(page_path(goto))
+    _setup_checklist(repo)
     tasks = start_tasks(
         fc, "vorplanung" in st.session_state.get("enabled-pages", PAGE_INFO) and bool(data.products)
     )
@@ -768,6 +781,35 @@ def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
     )
     page_link("forecast")
+
+
+def _setup_checklist(repo: Repository) -> None:
+    """Einrichtungs-Checkliste (Git, Datenordner, Server, Anmeldung, Identität): nur lesende
+    Prüfungen ohne Netzwerk, führt nichts aus und verschwindet, wenn alles erledigt ist."""
+    if st.session_state.get("setup-hidden"):
+        return
+    try:
+        items = setup_items(repo.root)
+    except GitError:
+        return
+    if all(item.ok for item in items):
+        return
+    with st.container(border=True):
+        st.markdown(f"**{t('Einrichtung')}**")
+        for item in items:
+            line = f"{'✅' if item.ok else '⬜'} {item.detail}"
+            if item.ok or not item.page:
+                st.write(line)
+                continue
+            left, right = st.columns([4, 1], vertical_alignment="center")
+            left.write(line)
+            with right:
+                page_link(item.page, t("Öffnen"))
+        st.button(t("Ausblenden"), key="setup-hide", on_click=_hide_setup)
+
+
+def _hide_setup() -> None:
+    st.session_state["setup-hidden"] = True
 
 
 def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
@@ -4589,6 +4631,124 @@ def _remote_section(repo: Repository) -> None:
     _remote_offer(root, address, insecure, locked)
     if info.name:
         _share_mode_setting(root)
+        _signin_section(root, info)
+
+
+def _signin_section(root: Path, info: RemoteInfo) -> None:
+    """Geführte Token-Anmeldung für https-Server. Die App reicht den Token nur an den
+    Anmeldedienst von Git weiter (``git credential approve``), speichert und zeigt ihn nie."""
+    if not is_https(info.url):
+        return
+    if st.session_state.pop("signin-reset", False):
+        st.session_state["signin-token"] = ""  # vor dem Feld; danach wäre es nicht erlaubt
+    st.subheader(t("Anmeldung einrichten"))
+    shown = st.session_state.pop("signin-result", None)
+    if shown is not None:
+        kind, content = shown
+        if kind == "error":
+            _show_problem(content, interactive=False)
+        else:
+            st.success(content)
+    state = helper_state(root)
+    helper = suggested_helper()
+    if state == "plain":
+        st.warning(
+            t(
+                "Git legt Anmeldungen hier im Klartext ab (`credential.helper store`). Die App "
+                "gibt dort keinen Token ab. Bitte einen Anmeldedienst des Rechners verwenden und "
+                "`store` aus der Git-Einstellung entfernen."
+            )
+        )
+    elif state == "none":
+        if helper:
+            st.info(
+                t(
+                    "Auf diesem Rechner ist noch kein Anmeldedienst von Git eingetragen. Die App "
+                    "kann „{name}“ für dein Benutzerkonto einschalten (`git config --global "
+                    "credential.helper {name}`); das Repository bleibt unverändert.",
+                    name=helper,
+                )
+            )
+            if st.button(t("Anmeldedienst „{name}“ einschalten", name=helper), key="signin-helper"):
+                try:
+                    enable_helper(helper)
+                except GitError as e:
+                    st.session_state["signin-result"] = ("error", e)
+                else:
+                    invalidate_status()
+                    st.session_state["signin-result"] = (
+                        "ok",
+                        t("Der Anmeldedienst „{name}“ ist eingeschaltet.", name=helper),
+                    )
+                st.rerun()
+        else:
+            st.info(
+                t(
+                    "Auf diesem Rechner gibt es keinen sicheren Anmeldedienst, den die App "
+                    "einschalten könnte. Mit `gh auth setup-git` (GitHub-CLI) oder einem "
+                    "Anmeldedienst der Distribution (z. B. `git-credential-libsecret`) lässt sich "
+                    "das einrichten; danach hier den Token eintragen."
+                )
+            )
+    guide = host_guide(host_kind(root))
+    st.markdown(guide.steps)
+    can_store = state == "ok"
+    if guide.username and "signin-user" not in st.session_state:
+        st.session_state["signin-user"] = guide.username
+    with st.form("signin-form", clear_on_submit=True, border=False):
+        user = st.text_input(t("Benutzername"), key="signin-user")
+        token = st.text_input(
+            t("Zugriffstoken"),
+            type="password",
+            key="signin-token",
+            autocomplete="off",
+            help=t(
+                "Der Token geht nur an den Anmeldedienst von Git. Die App speichert ihn nicht und "
+                "zeigt ihn nie wieder an."
+            ),
+        )
+        submitted = st.form_submit_button(
+            t("Token speichern und prüfen"), type="primary", disabled=not can_store
+        )
+    if submitted:
+        try:
+            store_token(root, info.url, user, token)
+            try:
+                with st.spinner(t("Prüfe die Anmeldung …")):
+                    verify(root, info.url)
+            except GitError as e:
+                if e.kind == "auth":  # nur ein abgelehnter Token wird entfernt (genau dieser)
+                    with contextlib.suppress(GitError):
+                        forget_token(root, info.url, user, token)
+                raise
+        except GitError as e:
+            st.session_state["signin-result"] = ("error", e)
+        else:
+            st.session_state["signin-result"] = (
+                "ok",
+                t("Angemeldet: Der Server hat den Token angenommen."),
+            )
+        invalidate_status()
+        st.session_state["signin-reset"] = True
+        st.rerun()
+    confirmed = can_store and st.checkbox(
+        t(
+            "Alle gespeicherten Anmeldungen für diesen Server löschen "
+            "(auch für andere Repositories)"
+        ),
+        key="signin-forget-ok",
+    )
+    if confirmed and st.button(t("Gespeicherte Anmeldung löschen"), key="signin-forget"):
+        try:
+            forget_token(root, info.url)
+        except GitError as e:
+            st.session_state["signin-result"] = ("error", e)
+        else:
+            st.session_state["signin-result"] = (
+                "ok",
+                t("Die gespeicherte Anmeldung für diesen Server wurde gelöscht."),
+            )
+        st.rerun()
 
 
 def _share_mode_changed(root: Path) -> None:

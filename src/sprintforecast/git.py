@@ -429,7 +429,12 @@ def abort_running(cwd: Path) -> bool:
 
 
 def _run_tracked(
-    command: list[str], cwd: Path, *, timeout: float, env: dict[str, str]
+    command: list[str],
+    cwd: Path,
+    *,
+    timeout: float,
+    env: dict[str, str],
+    stdin_text: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Wie ``subprocess.run`` mit Zeitlimit, aber der Prozess ist für :func:`abort_running`
     auffindbar und läuft in eigener Prozessgruppe, damit sich der ganze Baum beenden lässt."""
@@ -442,7 +447,7 @@ def _run_tracked(
         text=True,
         encoding="utf-8",
         errors="replace",
-        stdin=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL if stdin_text is None else subprocess.PIPE,
         env=env,
         **{**proctree.popen_options(), **NO_WINDOW},
     )
@@ -454,7 +459,7 @@ def _run_tracked(
         if late:
             proctree.terminate_tree(process, timeout=5)
         try:
-            out, err = process.communicate(timeout=timeout)
+            out, err = process.communicate(stdin_text, timeout=timeout)
         except subprocess.TimeoutExpired:
             proctree.terminate_tree(process)
             # Pipes können von Enkeln (ssh) offen gehalten werden: nicht ewig warten
@@ -479,6 +484,7 @@ def _git_result(
     network: bool = False,
     timeout: float | None = None,
     env_extra: dict[str, str] | None = None,
+    stdin_text: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
     „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
@@ -491,6 +497,7 @@ def _git_result(
                 cwd,
                 timeout=timeout or (NETWORK_TIMEOUT if network else 120),
                 env=_env(network, env_extra),
+                stdin_text=stdin_text,
             )
         except subprocess.TimeoutExpired as e:
             raise classify("", timeout=True) from e
@@ -522,7 +529,7 @@ def _git(
     if proc.returncode != 0:
         if not check:
             return ""
-        raise classify(proc.stderr.strip() or proc.stdout.strip(), url=url)
+        raise classify(proc.stderr.strip() or proc.stdout.strip(), url=url, cwd=cwd)
     return proc.stdout.strip() if strip else proc.stdout
 
 
@@ -855,6 +862,7 @@ def classify(
     url: str = "",
     drive_check: bool = True,
     broken: str = "",
+    cwd: Path | None = None,
 ) -> GitError:
     """Macht aus einer Git-Fehlermeldung eine :class:`GitError` mit Art und nächstem Schritt.
     ``url`` ist die Adresse des Servers, wenn die Meldung von einem Netzwerkaufruf stammt: Sie
@@ -880,7 +888,7 @@ def classify(
                 message = _without_safe_directory_advice(message)
             if kind == "not_found" and drive_check and _missing_folder(url):
                 kind = "offline"  # Netzlaufwerk getrennt, Stick abgezogen: nicht die Adresse
-            hint = auth_help(url, message) if kind == "auth" else hint_for(kind)
+            hint = auth_help(url, message, cwd) if kind == "auth" else hint_for(kind)
             return GitError(message or kind, kind, hint, raw=bool(message))
     if _BARE_READ.search(message):
         # Git hängt das auch an, wenn der Server das Repository verweigert; allein belegt es keine
@@ -1060,7 +1068,7 @@ def unwritable_file_hint() -> str:
     )
 
 
-def auth_help(url: str = "", message: str = "") -> str:
+def auth_help(url: str = "", message: str = "", cwd: Path | None = None) -> str:
     """Anmelde-Hilfe passend zur Adresse des Servers (https oder SSH). Der Text beginnt gleich
     mit dem nächsten Schritt und wiederholt die Ursache nicht: Wo der Hinweis unter der
     Überschrift (``title_for``) steht („Anmeldung fehlt oder wurde abgelehnt“), nennt sie schon
@@ -1088,7 +1096,7 @@ def auth_help(url: str = "", message: str = "") -> str:
         "`gh auth setup-git` ein; sonst den Token im Anmeldedienst des Rechners hinterlegen "
         "oder beim nächsten Anmeldefenster als Kennwort eingeben."
     )
-    return f"{steps} {credential_advice()} " + t("Danach noch einmal versuchen.")
+    return f"{steps} {credential_advice(cwd)} " + t("Danach noch einmal versuchen.")
 
 
 # Anmeldedienste, die Git mitbringt oder die verbreitet sind; alles andere heißt „custom“.
@@ -1103,17 +1111,19 @@ _SAFE_HELPERS = {
     "cache",
     "oauth",
 }
+_STORE_HELPER = re.compile(r"(?:^|[/\\ ])(?:git-credential-)?store(?:\.exe|\.cmd)?(?:\s|$)")
 _PLAIN_TEXT_HELPERS = {"store"}  # legt den Token unverschlüsselt in ~/.git-credentials ab
 
 
-def credential_helpers() -> list[str]:
+def credential_helpers(cwd: Path | None = None) -> list[str]:
     """Namen der Anmeldedienste, die Git für diesen Benutzer eingetragen hat (nur lesend:
     ``git config``, keine Änderung). Eine leere Einstellung hebt die davor stehenden auf, wie
-    in Git selbst. Namen außerhalb der bekannten Liste erscheinen als ``custom``. Ist Git nicht
-    zu starten, ist die Liste leer."""
+    in Git selbst. Namen außerhalb der bekannten Liste erscheinen als ``custom``. ``cwd`` ist
+    der Ordner, in dem Git fragt (der Datenordner): So zählt auch ein Eintrag, der nur in
+    dessen Repository steht. Ist Git nicht zu starten, ist die Liste leer."""
     try:
         proc = _git_result(
-            Path.cwd(), "config", "--get-regexp", r"^credential(\..+)?\.helper$", timeout=10
+            cwd or Path.cwd(), "config", "--get-regexp", r"^credential(\..+)?\.helper$", timeout=10
         )
     except GitError, OSError:
         return []
@@ -1125,17 +1135,22 @@ def credential_helpers() -> list[str]:
             if key == "credential.helper":  # nur der allgemeine Eintrag hebt alle auf
                 names.clear()
             continue
+        if _STORE_HELPER.search(value):  # auch mit Pfad, Endung oder Optionen
+            names.append("store")
+            continue
         first = "custom" if value.startswith("!") else value.split()[0]
-        first = first.removeprefix("git-credential-")
+        # Auch ein Helfer mit vollem Pfad (…/git-credential-store.exe) ist beim Namen erkannt.
+        first = first.replace("\\", "/").rsplit("/", 1)[-1]
+        first = first.removesuffix(".exe").removesuffix(".cmd").removeprefix("git-credential-")
         names.append(first if first in _SAFE_HELPERS | _PLAIN_TEXT_HELPERS else "custom")
     return names
 
 
-def credential_advice() -> str:
+def credential_advice(cwd: Path | None = None) -> str:
     """Konkreter nächster Schritt für https-Anmeldungen, passend zum Betriebssystem dieses
     Rechners und zum eingetragenen Anmeldedienst. Die App liest nur und ändert keine
     Git-Einstellung; ein Klartext-Speicher (``store``) wird nie empfohlen."""
-    helpers = credential_helpers()
+    helpers = credential_helpers(cwd)
     if any(name in _PLAIN_TEXT_HELPERS for name in helpers):
         return t(
             "Achtung: Git speichert Anmeldungen hier im Klartext (`credential.helper store`, "
@@ -1498,25 +1513,27 @@ def probe_remote(
     Liste, genau wenn der Server ihn hat. Das Kürzen für die Anzeige ist Sache der Oberfläche."""
     run = _probe_run(root, ("ls-remote", "--heads", "--", address.url), timeout)
     if run.code != 0:
-        raise _probe_failure(run, address)
+        raise _probe_failure(run, address, root)
     heads = _heads_of(run)
     if branch and run.truncated and branch not in heads:
         wanted = _probe_run(
             root, ("ls-remote", "--heads", "--", address.url, f"refs/heads/{branch}"), timeout
         )
         if wanted.code != 0:
-            raise _probe_failure(wanted, address)
+            raise _probe_failure(wanted, address, root)
         if branch in _heads_of(wanted):  # das Muster passt auch auf …/refs/heads/NAME
             heads.append(branch)
     return tuple(heads)
 
 
-def _probe_failure(run: _ProbeRun, address: RemoteAddress) -> GitError:
+def _probe_failure(run: _ProbeRun, address: RemoteAddress, root: Path) -> GitError:
     message = (run.err.strip() or run.out.strip())[:4000]
-    return _probe_error(message, address, timed_out=run.code is None)
+    return _probe_error(message, address, timed_out=run.code is None, cwd=root)
 
 
-def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) -> GitError:
+def _probe_error(
+    message: str, address: RemoteAddress, timed_out: bool = False, cwd: Path | None = None
+) -> GitError:
     """Macht aus der Fehlerausgabe der Verbindungsprüfung einen verständlichen Fehler. Art und
     Hinweis zu Anmeldung, Fingerabdruck, nicht gefundenem Repository und Zertifikat kommen von
     :func:`classify`, wie bei jedem anderen Netzwerkaufruf. Hier kommt hinzu, was nur die Prüfung
@@ -1526,7 +1543,7 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
     das nicht (Git hängt es auch an, wenn der Server das Repository verweigert). Der Text von
     Git bleibt in ``str(error)`` (erscheint als „Technische Meldung“); es gibt immer einen
     Hinweis."""
-    err = classify(message, timeout=timed_out, url=address.url, drive_check=False)
+    err = classify(message, timeout=timed_out, url=address.url, drive_check=False, cwd=cwd)
     if timed_out:
         err.hint = _unreachable_hint()
     elif err.kind == "certificate":
