@@ -259,8 +259,8 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
                 "team.yaml",
                 t(
                     "tracker.rule_fields: '{name}' is not allowed (lower-case words with "
-                    "digits and underscores, not one of {fixed}, not a keyword (and, or, not, in, any, "
-                    "all, none), not ending in _contains)",
+                    "digits and underscores, not one of {fixed}, not a keyword (and, or, not, "
+                    "in, any, all, none), not ending in _contains)",
                     name=name,
                     fixed=", ".join(RULE_SOURCES),
                 ),
