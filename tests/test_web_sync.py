@@ -232,8 +232,8 @@ def test_unfinished_merge_offers_abort(shared, data_dir: Path, monkeypatch):
 
 
 def detach_with_open_change(root: Path, orphan_commit: bool = False) -> None:
-    """Loose at the state before the last change of ``main``, with an open change to the same file
-    (switching back would overwrite it); optionally with a commit without a branch."""
+    """Detached at the state before the last change of ``main``, with an open change to the same
+    file (switching back would overwrite it); optionally with a commit without a branch."""
     sprint = root / SPRINT
     original = sprint.read_text(encoding="utf-8")
     sprint.write_text(original.replace("velocity: 9.75", "velocity: 8"), encoding="utf-8")

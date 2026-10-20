@@ -184,7 +184,7 @@ def test_a_tag_message_with_a_unicode_line_separator_stays_one_tag(alice: Person
 
 @pytest.mark.usefixtures("no_login_prompt")
 def test_tag_upload_without_login_is_a_warning_that_names_the_cause(alice: Person):
-    """ " "Done locally only" shows the warning without a heading (``GitError.full()``): it names
+    """The "Done locally only" warning shows without a heading (``GitError.full()``): it names
     the cause itself, because the hint starts right away with the next step."""
     with serve(Denying) as port:
         git(alice.root, "remote", "set-url", "origin", f"http://127.0.0.1:{port}/r.git")

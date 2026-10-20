@@ -90,12 +90,8 @@ def test_next_id_error_names_the_expected_form():
         ("2026.22", date(2027, 1, 6), YEARLY, "2027.1"),
         ("39", date(2026, 1, 7), YEARLY, "2026.1"),  # numbering change
         ("S12", date(2026, 1, 7), YEARLY, "2026.1"),
-        (
-            "2026.22b",
-            date(2027, 1, 6),
-            YEARLY,
-            "2027.1",
-        ),  # the counter only counts within the same year
+        # the counter only counts within the same year
+        ("2026.22b", date(2027, 1, 6), YEARLY, "2027.1"),
         ("22", date(2026, 10, 28), SEQUENTIAL, "23"),
         ("22.0", date(2026, 10, 28), SEQUENTIAL, "23"),
     ],

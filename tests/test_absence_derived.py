@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""A5, remainder: sprints that count as confirmed only through fields other than "absences
-confirmed" (older files without a stored state) and have no absences are included in the expected
+"""A5, remainder: sprints that count as "absences confirmed" only by derivation from other
+fields (older files without a stored state) and have no absences are included in the expected
 absence rate as "0 % lost". The rate is flagged as uncertain, without any number changing."""
 
 import copy

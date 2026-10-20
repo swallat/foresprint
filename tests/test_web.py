@@ -453,7 +453,7 @@ def test_commit_button(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.session_state["pending_tags"] = ["demo/2026.21"]
     at.run()
-    # Sprint file and review log (protokolle/2026.21-review-....md).
+    # Sprint file and review minutes (protokolle/2026.21-review-....md).
     assert any("2 offene Änderung" in e.label for e in at.sidebar.expander)
     at.text_input(key="commit_message").set_value("Review 2026.21")
     next(b for b in at.button if b.label == "Änderungen committen").click().run()
@@ -941,9 +941,8 @@ def test_other_editors_show_empty_cells_as_empty_not_none(app: AppTest):
     goto(app, "produktliste")
     products = editor({"Name", "Anteil", "from", "until"})
     assert products.proto.HasField("placeholder") and products.proto.placeholder == ""
-    assert (
-        products.value["until"].isna().any()
-    )  # the data stays empty (None), only the display differs
+    # the data stays empty (None), only the display differs
+    assert products.value["until"].isna().any()
 
     goto(app, "personen")
     people = editor({"Name", "FTE", "from", "until"})

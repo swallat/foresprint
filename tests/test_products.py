@@ -262,9 +262,8 @@ def test_production_state_distinguishes_unconfigured_from_unavailable(fc):
     assert distribution(fc, entry).production_state == "ok"
     assert distribution(fc, entry).production_share > 0
 
-    entry.sprint.absences = {
-        "anna": 10.0
-    }  # the only authorized person is absent for the whole sprint
+    # the only authorized person is absent for the whole sprint
+    entry.sprint.absences = {"anna": 10.0}
     fc = build_forecast(fc.data, TODAY)
     unavailable = distribution(fc, fc.entry("2026.22"))
     assert unavailable.production_state == "unavailable"

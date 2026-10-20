@@ -58,9 +58,8 @@ def test_git_outside_path_is_appended_for_uv(outside: Path):
 @posix
 def test_unset_path_keeps_the_system_default(outside: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("PATH")
-    monkeypatch.setattr(
-        updater.shutil, "which", lambda name: None
-    )  # without PATH, which searches /bin
+    # without PATH, which searches /bin
+    monkeypatch.setattr(updater.shutil, "which", lambda name: None)
     env = updater.upgrade_environment()
     assert env is not None
     assert env["PATH"] == os.pathsep.join([os.defpath, str(outside.parent)])
@@ -182,9 +181,8 @@ def windows(outside: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setattr(os, "environ", {"Path": "C:\\Windows", "Andere": "x"})
     monkeypatch.setattr(os, "pathsep", ";")
-    monkeypatch.setattr(
-        updater.shutil, "which", lambda name: None
-    )  # without PATH, which searches /bin
+    # without PATH, which searches /bin
+    monkeypatch.setattr(updater.shutil, "which", lambda name: None)
     for name, value in {
         "CREATE_NEW_PROCESS_GROUP": 0x200,
         "CREATE_NEW_CONSOLE": 0x10,
