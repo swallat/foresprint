@@ -39,7 +39,7 @@ commit; after "Use without Git" you continue with **New team**; the decision is 
 folder in the user settings and still applies after a reload or in a new tab), create a new data
 repository (`git init`, `.gitignore`, a `teams` folder with `.gitattributes`) or clone the team's
 shared data repository. The rules for finding the data directory are in the
-[README](../README.md#quick-start).
+[README](cli.md#data-directory-and-reference-date).
 
 ## Pages
 

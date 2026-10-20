@@ -33,8 +33,8 @@ the numbers substituted, so a forecast is something you can discuss, not just be
 It is for Scrum teams that want to own their planning data. There is no server and no account: the
 data is a folder of YAML files in a Git repository, and a local web UI and a command line read and
 write the same files. Several people can work on them in parallel, and every change has an author
-and a history. Foresprint does not tie you to a tracker or Git host; Jira and CSV exports are
-supported for the ticket pre-planning, and Git hosting is just whatever your team already uses.
+and a history. Foresprint does not tie you to a tracker or Git host; Jira or a CSV export from
+any tracker feeds the ticket pre-planning, and Git hosting is just whatever your team already uses.
 
 **Get started:** [install it](#installation) with one command, then [open the demo](#quick-start)
 in a minute. The [documentation](#documentation) covers everything after that.
@@ -59,7 +59,7 @@ in a minute. The [documentation](#documentation) covers everything after that.
 - **Supplementary analyses:** range, focus factor, buffer, and "When will it be done?" (Monte
   Carlo).
 - **Git without the terminal:** save and share, fetch others' changes, resolve conflicts per
-  value, view the history and restore an earlier state, all from the web UI.
+  value, view the history, restore an earlier state and manage tags, all from the web UI.
 - **Excel round trip:** export a workbook with real formulas and import the yellow cells back.
 - **Unit-neutral:** the estimation unit, story points (SP) or person days (PD), is a team setting.
 - **English and German:** UI, command line and report in both languages, light and dark theme.
@@ -133,8 +133,8 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swa
 curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
 ```
 
-Then open a new terminal. The script also creates a desktop launcher (desktop and Start menu on
-Windows, `~/Applications` on macOS, application entry on Linux) that opens the web UI as an app
+Then open a new terminal. The script also creates a desktop launcher "Foresprint" (desktop and
+Start menu on Windows, `~/Applications` on macOS, application entry on Linux) that opens the web UI as an app
 window; the first start guides you through setting up the data folder. Running the script again
 updates the installation; it asks about [plugins](docs/plugins.md#plugins-with-the-installer) and
 remembers the answer. The script installs the extras `web`, `excel` (Excel export and import) and
@@ -201,7 +201,7 @@ full sprint workflow is in [Sprint workflow](docs/sprint-workflow.md).
 ## Contributing
 
 Bug reports, questions and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) describes
-the setup (Prerequisite: [mise](https://mise.jdx.dev)), tests, lint, the translation rule and the
+the setup (requires [mise](https://mise.jdx.dev)), tests, lint, the translation rule and the
 CI. Releases are described in [docs/releasing.md](docs/releasing.md).
 
 ```bash
