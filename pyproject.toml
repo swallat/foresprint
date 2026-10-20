@@ -10,6 +10,7 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "click>=8.1",
     "holidays>=0.106",
     "pyyaml>=6.0.3",
     "rich>=15.0.0",

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Extensions via Python entry points (group ``foresprint.plugins``; the former group
-``foresprint.plugins`` still works).
+``sprintforecast.plugins`` still works).
 
 A plugin is a separately installed package that, e.g., in its ``pyproject.toml`` declares
 

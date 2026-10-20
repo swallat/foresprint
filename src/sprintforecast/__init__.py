@@ -16,12 +16,14 @@ _OLD, _NEW = "sprintforecast", "foresprint"
 class _Alias(importlib.abc.Loader):
     def __init__(self, module):
         self.module = module
+        self.spec = module.__spec__
 
     def create_module(self, spec):
         return self.module
 
     def exec_module(self, module):
-        pass
+        module.__spec__ = self.spec  # the real module keeps its own identity
+        module.__loader__ = self.spec.loader
 
 
 class _Finder(importlib.abc.MetaPathFinder):

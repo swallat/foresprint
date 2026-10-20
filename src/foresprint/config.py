@@ -65,7 +65,7 @@ def _copy_missing(source: Path, target: Path) -> None:
             destination.mkdir(parents=True, exist_ok=True)
         elif not destination.exists():
             _copy_file(path, destination)
-    (target / MIGRATED_MARKER).write_text("copied from the folder 'foresprint'\n", "utf-8")
+    (target / MIGRATED_MARKER).write_text("copied from the folder 'sprintforecast'\n", "utf-8")
 
 
 def _copy_file(source: Path, destination: Path) -> None:

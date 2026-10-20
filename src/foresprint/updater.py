@@ -164,8 +164,6 @@ class Installation:
     pinned: bool
     # Core without its own address, the source comes from a plugin.
     via_plugin: bool = False
-    # Installed under the name before the rename: the update installs the new package instead.
-    legacy: bool = False
 
 
 _ARCHIVE = re.compile(r"github\.com/([^/]+/[^/]+)/archive/refs/(heads|tags)/(.+?)\.(zip|tar\.gz)$")
@@ -183,57 +181,23 @@ def installation() -> Installation | None:
     except OSError, tomllib.TOMLDecodeError:
         return None
     requirements = receipt.get("tool", {}).get("requirements", [])
-    core = _core_requirement(requirements)
+    core = next((r for r in requirements if r.get("name") == PACKAGE), None)
     if core is None:
         return None
-    legacy = core.get("name") == LEGACY_PACKAGE
     if url := core.get("url"):
         if match := _ARCHIVE.search(url):
             repo, kind, ref, _ = match.groups()
-            return Installation(repo=repo, ref=ref, pinned=kind == "tags", legacy=legacy)
-        return Installation(repo=DEFAULT_REPO, ref=DEFAULT_REF, pinned=False, legacy=legacy)
+            return Installation(repo=repo, ref=ref, pinned=kind == "tags")
+        return Installation(repo=DEFAULT_REPO, ref=DEFAULT_REF, pinned=False)
     if git := core.get("git"):
         match = _GIT.search(git)
         repo = match.group(1) if match else DEFAULT_REPO
         if tag := core.get("tag"):
-            return Installation(repo=repo, ref=tag, pinned=True, legacy=legacy)
+            return Installation(repo=repo, ref=tag, pinned=True)
         if rev := core.get("rev"):
-            return Installation(repo=repo, ref=rev, pinned=True, legacy=legacy)
-        return Installation(
-            repo=repo, ref=core.get("branch") or DEFAULT_REF, pinned=False, legacy=legacy
-        )
-    return Installation(
-        repo=DEFAULT_REPO, ref=DEFAULT_REF, pinned=False, via_plugin=True, legacy=legacy
-    )
-
-
-def _core_requirement(requirements: list[dict[str, Any]]) -> dict[str, Any] | None:
-    return next((r for r in requirements if r.get("name") in (PACKAGE, LEGACY_PACKAGE)), None)
-
-
-def _requirement_spec(requirement: dict[str, Any], name: str | None = None) -> str:
-    """A uv requirement string from an entry of the receipt."""
-    name = name or str(requirement.get("name"))
-    if extras := requirement.get("extras"):
-        name += "[" + ",".join(extras) + "]"
-    if url := requirement.get("url"):
-        return f"{name} @ {url}"
-    if git := requirement.get("git"):
-        ref = requirement.get("tag") or requirement.get("rev") or requirement.get("branch")
-        return f"{name} @ git+{git}" + (f"@{ref}" if ref else "")
-    return name + str(requirement.get("specifier") or "")
-
-
-def _migration_command(uv: str, receipt: dict[str, Any]) -> list[str]:
-    """Installs the renamed package over the old uv tool (same address, same extras, same
-    plugins). The old environment is removed afterwards by :func:`remove_legacy_tool`."""
-    requirements = receipt.get("tool", {}).get("requirements", [])
-    core = _core_requirement(requirements) or {}
-    command = [uv, "tool", "install", "--force", _requirement_spec(core, PACKAGE)]
-    for requirement in requirements:
-        if requirement is not core:
-            command += ["--with", _requirement_spec(requirement)]
-    return command
+            return Installation(repo=repo, ref=rev, pinned=True)
+        return Installation(repo=repo, ref=core.get("branch") or DEFAULT_REF, pinned=False)
+    return Installation(repo=DEFAULT_REPO, ref=DEFAULT_REF, pinned=False, via_plugin=True)
 
 
 def remove_legacy_tool() -> None:
@@ -322,13 +286,6 @@ def find_uv() -> str | None:
 
 def upgrade_command(uv: str) -> list[str]:
     # --reinstall reloads the source (same address, new content) and keeps --with plugins.
-    inst = installation()
-    if inst is not None and inst.legacy:
-        try:
-            receipt = tomllib.loads(receipt_path().read_text(encoding="utf-8"))
-        except OSError, tomllib.TOMLDecodeError:
-            receipt = {}
-        return _migration_command(uv, receipt)
     return [uv, "tool", "upgrade", "--reinstall", PACKAGE]
 
 
