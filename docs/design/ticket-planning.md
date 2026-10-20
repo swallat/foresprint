@@ -407,8 +407,8 @@ per step, in English, with tests and `locale_en.py` entries.
 
 Implemented so far: steps 1 and 2 (model, distribution, CSV and Jira import) and the command-line
 part of step 4 (`tickets` with the range of the three variants, `--variant`, and `--handover` for
-the sums per sprint and product as `preplanned`). The page and the timeline range (step 3 and the
-rest of step 4) and step 5 follow.
+the sums per sprint and product as `preplanned`). The page (step 3) and the range of the three
+variants in the timeline (the lighter area) are done; step 5 follows.
 
 Step 3 starts only when nothing big is open on `web/ui.py`. Later candidates: GitHub
 and GitLab adapters, epic roadmap from the projects, export of the distribution (CSV), drag-and-drop.

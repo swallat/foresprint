@@ -170,6 +170,49 @@ def project_rows(
     return rows
 
 
+def _bar_span(dist: Distribution, project_id: str, axis: list[str]) -> tuple[int, int] | None:
+    """First and last column of a project's bar on ``axis`` (tickets after the horizon extend
+    the bar to the end); None when no ticket of the project is placed."""
+    own = [p for p in dist.placements if p.project == project_id and p.sprint is not None]
+    positions = [axis.index(p.sprint) for p in own if p.sprint in axis]
+    beyond = any(p.sprint in dist.later for p in own)
+    if not positions and not beyond:
+        return None
+    first = min(positions) if positions else len(axis) - 1
+    last = len(axis) - 1 if beyond else max(positions)
+    return first, last
+
+
+def timeline_range_rows(
+    data: TeamData, variants: Variants, sel: Selection, axis: list[str]
+) -> list[dict[str, Any]]:
+    """The lighter area of the timeline: per project the sprints that lie within the bars of
+    the optimistic or conservative variant but outside the median bar."""
+    if not variants.available:
+        return []
+    rows: list[dict[str, Any]] = []
+    for status in variants.median.projects:
+        project = data.project(status.project)
+        if project is None or not sel.shows(project.id):
+            continue
+        spans = [_bar_span(d, project.id, axis) for _, d in variants.items()]
+        median = _bar_span(variants.median, project.id, axis)
+        found = [x for x in spans if x is not None]
+        if median is None or not found:
+            continue
+        first, last = min(x[0] for x in found), max(x[1] for x in found)
+        for i in range(first, last + 1):
+            if not median[0] <= i <= median[1]:
+                rows.append(
+                    {
+                        t("Project"): project.name,
+                        t("Sprint"): axis[i],
+                        t("Traffic light"): t(LIGHTS[status.light]),
+                    }
+                )
+    return rows
+
+
 def timeline_rows(
     data: TeamData, dist: Distribution, sel: Selection, axis: list[str]
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -182,13 +225,10 @@ def timeline_rows(
         project = data.project(status.project)
         if project is None or not sel.shows(project.id):
             continue
-        own = [p for p in dist.placements if p.project == project.id and p.sprint is not None]
-        positions = [axis.index(p.sprint) for p in own if p.sprint in axis]
-        beyond = any(p.sprint in dist.later for p in own)
-        if not positions and not beyond:
+        span = _bar_span(dist, project.id, axis)
+        if span is None:
             continue
-        first = min(positions) if positions else len(axis) - 1
-        last = len(axis) - 1 if beyond else max(positions)
+        first, last = span
         light = t(LIGHTS[status.light])
         for i in range(first, last + 1):
             bars.append(
@@ -536,16 +576,21 @@ def _overview(
         column_config={t("Target"): st.column_config.DateColumn(format="DD.MM.YYYY")},
     )
     st.subheader(t("Timeline"))
-    chart = _timeline_chart(data, fc, dist, sel)
+    chart = _timeline_chart(data, fc, dist, sel, variants)
     if chart is None:
         st.caption(t("No distributed tickets in the selected projects yet."))
     else:
         st.altair_chart(chart, width="stretch")
-        st.caption(t("◆ Target sprint of the project. Colour and text show the traffic light."))
+        st.caption(
+            t(
+                "◆ Target sprint of the project. Colour and text show the traffic light; "
+                "the lighter area is the range of the optimistic to conservative variant."
+            )
+        )
 
 
 def _timeline_chart(
-    data: TeamData, fc: Forecast, dist: Distribution, sel: Selection
+    data: TeamData, fc: Forecast, dist: Distribution, sel: Selection, variants: Variants
 ) -> alt.Chart | None:
     axis = ([fc.current.sprint.id] if fc.current is not None else []) + dist.sprints
     bars, marks = timeline_rows(data, dist, sel, axis)
@@ -554,19 +599,30 @@ def _timeline_chart(
     project, sprint, light = t("Project"), t("Sprint"), t("Traffic light")
     order = list(dict.fromkeys(b[project] for b in bars))
     texts = [t(LIGHTS[k]) for k in LIGHTS]
+    scale = alt.Scale(domain=texts, range=[LIGHT_COLOURS[k] for k in LIGHTS])
     chart = (
         alt.Chart(pd.DataFrame(bars))
         .mark_rect(height=18)
         .encode(
             x=alt.X(f"{sprint}:N", sort=axis),
             y=alt.Y(f"{project}:N", sort=order, title=None),
-            color=alt.Color(
-                f"{light}:N",
-                scale=alt.Scale(domain=texts, range=[LIGHT_COLOURS[k] for k in LIGHTS]),
-            ),
+            color=alt.Color(f"{light}:N", scale=scale),
             tooltip=[f"{project}:N", f"{sprint}:N", f"{light}:N"],
         )
     )
+    spread = timeline_range_rows(data, variants, sel, axis)
+    if spread:
+        # Drawn first, so the median bars stay on top.
+        chart = (
+            alt.Chart(pd.DataFrame(spread))
+            .mark_rect(height=18, opacity=0.3)
+            .encode(
+                x=alt.X(f"{sprint}:N", sort=axis),
+                y=alt.Y(f"{project}:N", sort=order, title=None),
+                color=alt.Color(f"{light}:N", scale=scale, legend=None),
+                tooltip=[f"{project}:N", f"{sprint}:N"],
+            )
+        ) + chart
     if marks:
         target = t("Target")
         chart += (
