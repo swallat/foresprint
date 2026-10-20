@@ -117,7 +117,7 @@ def test_idempotent_and_foreign_files_kept(home: Path):
     assert foreign.exists()
     second = run(home, "--yes", tools="")
     assert second.returncode == 0
-    assert "Nothing to remove" in second.stdout or "Found" in second.stdout
+    assert "Nothing to remove" in second.stdout
 
 
 def test_dangling_alias_removed(home: Path):
