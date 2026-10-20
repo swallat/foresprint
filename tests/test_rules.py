@@ -90,6 +90,7 @@ def test_ticket_facts_feed_the_rules():
         "label": ["payment"],
         "status": ["In Progress"],
         "issue_type": ["Story"],
+        "priority": [],
         "in_sprint": ["true", "2026.22"],
     }
     assert parse({"in_sprint": [True]}).matches(ticket.facts())
@@ -202,3 +203,25 @@ def test_contains_leaf_round_trips_through_yaml():
     assert rule is not None and rule.contains and rule.source == "label"
     assert rule.matches({"label": ["Payment"]})
     assert _rule_to(rule) == {"label_contains": ["pay"]}
+
+
+def test_insert_helper_conditions():
+    from sprintforecast.web.rule_editor import append_condition, condition_text
+
+    assert condition_text("label", "=", ["a", "b"]) == "label IN (a, b)"
+    assert condition_text("label", "!=", ["a"]) == "label != a"
+    assert condition_text("label", "~", ["pay"]) == "label ~ pay"
+    assert append_condition("", "epic = A", "AND") == "epic = A"
+    assert append_condition("epic = A OR epic = B", "label = x", "AND") == (
+        "(epic = A OR epic = B) AND label = x"
+    )
+
+
+def test_insert_helper_brackets_any_or_expression():
+    from sprintforecast.web.rule_editor import append_condition
+
+    for text in ("epic = A or epic = B", "epic = A\nOR epic = B", "epic IN (A) OR(label = b)"):
+        assert append_condition(text, "label = x", "AND") == f"({text}) AND label = x"
+    assert append_condition("epic = A AND label = b", "label = x", "AND") == (
+        "epic = A AND label = b AND label = x"
+    )

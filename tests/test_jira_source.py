@@ -243,6 +243,7 @@ def test_search_asks_only_for_the_needed_fields_with_the_jql():
         "summary",
         "status",
         "issuetype",
+        "priority",
         "labels",
         "components",
         "resolution",

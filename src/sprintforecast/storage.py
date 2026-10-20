@@ -1353,6 +1353,7 @@ def tickets_from_dict(
                 title=str(raw.get("title") or ""),
                 status=_text(raw.get("status")),
                 issue_type=_text(raw.get("issue_type")),
+                priority=_text(raw.get("priority")),
                 estimate=_float(raw.get("estimate"), f"{at}: estimate"),
                 remaining=_float(raw.get("remaining"), f"{at}: remaining"),
                 estimate_source=_choice(
@@ -1391,6 +1392,8 @@ def tickets_to_dict(
             "issue_type": tk.issue_type,
             "estimate": _clean(tk.estimate),
         }
+        if tk.priority:
+            entry["priority"] = tk.priority
         if tk.remaining is not None:
             entry["remaining"] = _clean(tk.remaining)
         entry["estimate_source"] = tk.estimate_source.value
