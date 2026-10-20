@@ -1,4 +1,4 @@
-# sprintforecast
+# Sprintoracle
 
 Velocity and capacity forecast for Scrum teams. It answers one question above all: **how much
 can the team plan in the next sprint?** It answers it mid-sprint too, so product owners can plan
@@ -46,7 +46,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/swa
 curl -LsSf https://raw.githubusercontent.com/swallat/sprint-forecast/main/install.sh | sh
 ```
 
-Then open a new terminal. The script also creates a desktop launcher **"Sprint-Forecast"**
+Then open a new terminal. The script also creates a desktop launcher **"Sprintoracle"**
 (desktop and Start menu on Windows, `~/Applications` on macOS, application entry on Linux) that
 opens the web UI as an app window; the first start guides you through setting up the data
 folder. Running the script again updates the installation; it asks about

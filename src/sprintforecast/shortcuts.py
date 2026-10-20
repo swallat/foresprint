@@ -2,8 +2,10 @@
 """Double-click launcher: shortcut to `sprintforecast-app` (= `web --app`).
 
 - Windows: desktop and Start menu (.lnk via PowerShell/WScript.Shell)
-- macOS: ~/Applications/Sprint-Forecast.app plus an alias on the desktop
-- Linux: ~/.local/share/applications/sprintforecast.desktop plus a copy on the desktop
+- macOS: ~/Applications/Sprintoracle.app plus an alias on the desktop
+- Linux: ~/.local/share/applications/sprintoracle.desktop plus a copy on the desktop
+
+Launchers created under the former name "Sprint-Forecast" are removed when a new one is made.
 """
 
 from __future__ import annotations
@@ -18,7 +20,9 @@ from sprintforecast.i18n import t
 from sprintforecast.icon import write_icon
 from sprintforecast.launcher import profile_dir
 
-APP_NAME = "Sprint-Forecast"
+APP_NAME = "Sprintoracle"
+LEGACY_APP_NAME = "Sprint-Forecast"  # launcher name before the rename
+LEGACY_DESKTOP_FILE = "sprintforecast.desktop"
 APP_SCRIPT = "sprintforecast-app"
 
 
@@ -47,11 +51,13 @@ def windows_script(program: str, workdir: str, icon: str | None = None) -> str:
     lines = ["$shell = New-Object -ComObject WScript.Shell"]
     for folder in ("Desktop", "Programs"):
         lines += [
+            f"$old = Join-Path ([Environment]::GetFolderPath('{folder}')) '{LEGACY_APP_NAME}.lnk'",
+            "if (Test-Path $old) { Remove-Item $old }",
             f"$path = Join-Path ([Environment]::GetFolderPath('{folder}')) '{APP_NAME}.lnk'",
             "$link = $shell.CreateShortcut($path)",
             f"$link.TargetPath = {_ps_quote(program)}",
             f"$link.WorkingDirectory = {_ps_quote(workdir)}",
-            "$link.Description = 'Sprint-Forecast'",
+            f"$link.Description = '{APP_NAME}'",
             *([f"$link.IconLocation = {_ps_quote(icon)}"] if icon else []),
             "$link.Save()",
             "Write-Output $path",
@@ -83,7 +89,7 @@ def mac_bundle(app_dir: Path, program: str, icon: Path | None = None) -> Path:
         '<plist version="1.0"><dict>\n'
         f"<key>CFBundleName</key><string>{APP_NAME}</string>\n"
         f"<key>CFBundleExecutable</key><string>{APP_NAME}</string>\n"
-        "<key>CFBundleIdentifier</key><string>de.sprintforecast.app</string>\n"
+        "<key>CFBundleIdentifier</key><string>de.sprintoracle.app</string>\n"
         "<key>CFBundlePackageType</key><string>APPL</string>\n"
         + (f"<key>CFBundleIconFile</key><string>{icon.stem}</string>\n" if icon else "")
         + "</dict></plist>\n",
@@ -132,6 +138,8 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
         bundle = mac_bundle(home / "Applications", program, write_icon(icon_dir(), "icns"))
         paths = [bundle]
         desktop = home / "Desktop"
+        shutil.rmtree(home / "Applications" / f"{LEGACY_APP_NAME}.app", ignore_errors=True)
+        (desktop / f"{LEGACY_APP_NAME}.app").unlink(missing_ok=True)
         if desktop.is_dir():
             alias = desktop / bundle.name
             if alias.is_symlink() or alias.exists():
@@ -141,9 +149,11 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
         return paths
     entry = desktop_entry(program, str(write_icon(icon_dir(), "png")))
     data_home = Path(os.environ.get("XDG_DATA_HOME") or home / ".local" / "share")
-    targets = [data_home / "applications" / "sprintforecast.desktop"]
+    targets = [data_home / "applications" / "sprintoracle.desktop"]
     if (home / "Desktop").is_dir():
-        targets.append(home / "Desktop" / "sprintforecast.desktop")
+        targets.append(home / "Desktop" / "sprintoracle.desktop")
+    for old in (data_home / "applications", home / "Desktop"):
+        (old / LEGACY_DESKTOP_FILE).unlink(missing_ok=True)
     for target in targets:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(entry, encoding="utf-8")

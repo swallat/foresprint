@@ -848,7 +848,7 @@ def missing_hint(broken: str = "") -> str:
             "Install Git (Windows: https://git-scm.com/download/win – possible without "
             "administrator rights, for your own user account only; macOS: `xcode-select "
             "--install`; Linux: package manager). Then close and reopen the app and the "
-            "“Sprint-Forecast” launcher, or sign out and back in once, so that they can "
+            "“Sprintoracle” launcher, or sign out and back in once, so that they can "
             "find Git."
         ),
         t("Searched in PATH and in these places:\n{places}", places=places),

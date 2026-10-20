@@ -17,10 +17,16 @@ def program(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> str:
 def test_linux_desktop_entries(tmp_path: Path, program: str, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("XDG_DATA_HOME", raising=False)
     (tmp_path / "Desktop").mkdir()
+    old = [tmp_path / ".local/share/applications/sprintforecast.desktop"]
+    old.append(tmp_path / "Desktop/sprintforecast.desktop")
+    old[0].parent.mkdir(parents=True)
+    for path in old:
+        path.write_text("[Desktop Entry]\n")  # launcher from before the rename
     paths = shortcuts.create(home=tmp_path, platform="linux")
+    assert not any(path.exists() for path in old)
     assert paths == [
-        tmp_path / ".local/share/applications/sprintforecast.desktop",
-        tmp_path / "Desktop/sprintforecast.desktop",
+        tmp_path / ".local/share/applications/sprintoracle.desktop",
+        tmp_path / "Desktop/sprintoracle.desktop",
     ]
     entry = paths[0].read_text()
     assert f'Exec="{program}"' in entry and "Terminal=false" in entry
@@ -31,13 +37,15 @@ def test_linux_desktop_entries(tmp_path: Path, program: str, monkeypatch: pytest
 
 def test_mac_bundle_and_alias(tmp_path: Path, program: str):
     (tmp_path / "Desktop").mkdir()
+    (tmp_path / "Applications/Sprint-Forecast.app/Contents").mkdir(parents=True)  # before rename
     try:
         bundle, alias = shortcuts.create(home=tmp_path, platform="darwin")
     except OSError as e:  # Windows without administrator/developer mode: no symlinks
         if getattr(e, "winerror", None) != 1314:
             raise
         pytest.skip("Kein Recht für symbolische Verknüpfungen")
-    starter = bundle / "Contents/MacOS/Sprint-Forecast"
+    assert not (tmp_path / "Applications/Sprint-Forecast.app").exists()
+    starter = bundle / "Contents/MacOS/Sprintoracle"
     assert f'exec "{program}"' in starter.read_text()
     assert os.access(starter, os.X_OK)
     assert alias.is_symlink() and alias.resolve() == bundle.resolve()
@@ -46,6 +54,7 @@ def test_mac_bundle_and_alias(tmp_path: Path, program: str):
 
 def test_windows_script():
     script = shortcuts.windows_script("C:\\Users\\O'Neil\\sf-app.exe", "C:\\Users\\O'Neil")
+    assert "Sprint-Forecast.lnk" in script and "Remove-Item $old" in script  # old launcher goes
     assert "GetFolderPath('Desktop')" in script and "GetFolderPath('Programs')" in script
     assert "$link.TargetPath = 'C:\\Users\\O''Neil\\sf-app.exe'" in script
 
