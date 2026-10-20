@@ -124,11 +124,12 @@ Budget[s, p] = DefaultShare[p] × Base[s]  −  Σ (tickets already in sprint s 
 
 ### 5.2 Order and placement
 
-1. **Units** by priority (lower first), then target date, then id; tickets within a unit by rank.
-   A unit is a project, or, for tickets without a project, the product's own tickets (the
-   "backlog" of the product, no target date: without `priority` on the product in `products.yaml`
-   it comes after all projects; with one it ranks among them, so product tickets can overtake
-   projects).
+1. **Ticket priority** first (`tracker.priority_order` in `team.yaml`, most important first,
+   default Jira's Highest to Lowest, case-insensitive; a ticket without or with an unknown
+   priority comes after the named ones; an empty list switches this off). Then the ticket's
+   **unit**: its project (target date, then project priority), or, without a project, the
+   product's own tickets, which come after the projects; finally the tracker rank. So a
+   high-priority ticket without project goes before a low-priority ticket of a project.
 2. **Topologically** by `depends_on`; a cycle is an error that is shown.
 3. Each ticket goes into the **earliest sprint** from (latest sprint of its dependencies
    + `dependency_gap`) whose remaining budget for its product suffices. `dependency_gap` is configurable

@@ -195,10 +195,7 @@ class Product:
     # Agreed fixed share of the distributable amount (0-1), e.g. 0.1 = 10 %. If not given, the
     # products without a fixed share split the remainder evenly.
     share: float | None = None
-    # Tickets of the product without a project (ticket pre-planning): ``priority`` (lower =
-    # more important) decides, like a project's, where they come in the distribution. Not
-    # given = after all projects.
-    priority: int | None = None
+    # Rule for the product's tickets without a project (ticket pre-planning).
     match: Rule | None = None
 
     def active_between(self, start: date, end: date) -> bool:
@@ -439,6 +436,8 @@ CONTAINS_SUFFIX = "_contains"
 RULE_OPERATORS: tuple[str, ...] = ("any", "all", "none")
 # Default order in which the sources decide between two matching projects.
 DEFAULT_MATCH_ORDER: tuple[str, ...] = ("epic", "component", "label")
+# Jira's standard priorities, most important first.
+DEFAULT_PRIORITY_ORDER: tuple[str, ...] = ("Highest", "High", "Medium", "Low", "Lowest")
 
 
 @dataclass
@@ -540,6 +539,10 @@ class TrackerSettings:
     refined_label: str | None = None
     refined_also_if: Rule | None = None
     project_match_order: list[str] = field(default_factory=lambda: list(DEFAULT_MATCH_ORDER))
+    # The tracker's priority names, most important first. The distribution takes the tickets
+    # of a product in this order before target date and rank (case-insensitive; a ticket
+    # without or with an unknown priority comes last). Empty = ticket priority is ignored.
+    priority_order: list[str] = field(default_factory=lambda: list(DEFAULT_PRIORITY_ORDER))
     # 1 = a dependent ticket goes at least one sprint after its dependency, 0 = same sprint allowed.
     dependency_gap: int = 1
     budget_basis: BudgetBasis = BudgetBasis.ROADMAP_SHARE

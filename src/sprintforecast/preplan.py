@@ -8,7 +8,7 @@ validate, forecast) never imports this module.
                     the tracker, earmarks)  −  tickets placed by the distribution
     base[s]       = Forecast PLAN × plannable share (``budget_basis: roadmap_share``) or the
                     whole Forecast PLAN (``plan``); per team, overridable per project
-    Order         = projects by target date, priority and id; tickets by rank; dependencies
+    Order         = tickets by priority, then project (target date, priority) and rank; dependencies
                     first (topological)
     Placement     = earliest sprint from (latest sprint of the dependencies + ``dependency_gap``)
                     whose free budget for the product suffices
@@ -102,7 +102,6 @@ PLACED_REASONS = frozenset({"placed", "fixed_sprint", "earmark"})
 # Tolerance for the budget comparison (floating point).
 _EPS = 1e-9
 # Product key of a ticket without known project (matches no budget).
-_LAST = 10**9  # priority of a product backlog without ``priority``: after every project
 _NO_PRODUCT = "\0no-product"
 
 
@@ -312,9 +311,9 @@ def budgets(
 
 
 def project_order(projects: list[Project]) -> list[Project]:
-    """Projects by priority (lower first), then target date (without target last) and id."""
+    """Projects by target date (without target last), priority and id."""
     return sorted(
-        projects, key=lambda p: (p.priority, p.target is None, p.target or date.min, p.id)
+        projects, key=lambda p: (p.target is None, p.target or date.min, p.priority, p.id)
     )
 
 
@@ -347,53 +346,47 @@ def ticket_order(tickets: list[Ticket]) -> list[Ticket]:
     return sorted(tickets, key=lambda tk: (tk.rank is None, tk.rank or "", tk.key))
 
 
+def priority_rank(priority: str | None, order: list[str]) -> int:
+    """Position of a tracker priority in ``tracker.priority_order`` (case-insensitive; 0 =
+    most important). Without or with an unknown priority: after all named ones. An empty
+    order ignores the priority: every ticket gets the same rank."""
+    if not order:
+        return 0
+    names = [name.casefold() for name in order]
+    return (
+        names.index(priority.casefold())
+        if priority and priority.casefold() in names
+        else len(names)
+    )
+
+
 def order_tickets(data: TeamData) -> tuple[list[Ticket], list[Ticket]]:
-    """Open tickets in distribution order. The unit of a ticket is its project, or, without a
-    project, its product (the product's own tickets); units are ordered by priority (lower
-    first), then target date (a product has none) and id.
-    Within a unit by rank; tickets without unit last; dependencies always before their
-    successors (Kahn). Second list: tickets that cannot be ordered because they are in a
-    dependency cycle or depend on one (in the same order)."""
+    """Open tickets in distribution order: by ticket priority (``tracker.priority_order``),
+    then by the ticket's unit, its project (target date, project priority) or, without a
+    project, its product's own tickets (after the projects), then by rank. So a ticket
+    without project can overtake a lower-priority ticket of a project. Tickets without project
+    and product last; dependencies always before their successors (Kahn). Second list:
+    tickets that cannot be ordered because they are in a dependency cycle or depend on one
+    (in the same order)."""
     open_tickets = [tk for tk in data.tickets if not tk.done]
     projects = {p.id: p for p in data.projects}
-    by_unit: dict[tuple[bool, str | None], list[Ticket]] = {}
+    order = data.team.tracker.priority_order
+    keyed: list[tuple[tuple, Ticket]] = []
     unassigned: list[Ticket] = []
     for tk in open_tickets:
         if tk.project in projects:
-            by_unit.setdefault((False, tk.project), []).append(tk)
-            continue
-        product, _ = ticket_product(tk, data)
-        if product is not None or not data.team.features.products:
-            by_unit.setdefault((True, product), []).append(tk)
+            pr = projects[tk.project or ""]
+            unit = (pr.target is None, pr.target or date.min, pr.priority, pr.id)
         else:
-            unassigned.append(tk)
-    keyed: list[tuple[tuple, tuple[bool, str | None]]] = []
-    for (backlog, unit_id), _ in by_unit.items():
-        if backlog:
-            prod = next((p for p in data.products if p.id == unit_id), None)
-            keyed.append(
-                (
-                    (
-                        prod.priority if prod and prod.priority is not None else _LAST,
-                        True,
-                        date.min,
-                        1,
-                        unit_id or "",
-                    ),
-                    (backlog, unit_id),
-                )
-            )
-        else:
-            pr = projects[unit_id or ""]
-            keyed.append(
-                (
-                    (pr.priority, pr.target is None, pr.target or date.min, 0, pr.id),
-                    (backlog, unit_id),
-                )
-            )
-    sequence: list[Ticket] = []
-    for _, unit in sorted(keyed, key=lambda kv: kv[0]):
-        sequence += ticket_order(by_unit[unit])
+            product, _ = ticket_product(tk, data)
+            if product is None and data.team.features.products:
+                unassigned.append(tk)
+                continue
+            unit = (True, date.max, 0, product or "")
+        keyed.append(
+            ((priority_rank(tk.priority, order), *unit, tk.rank is None, tk.rank or "", tk.key), tk)
+        )
+    sequence: list[Ticket] = [tk for _, tk in sorted(keyed, key=lambda kv: kv[0])]
     # Tickets without project and product (not distributable, but reported).
     for key in sorted({tk.project for tk in unassigned}, key=lambda k: (k is None, k or "")):
         sequence += ticket_order([tk for tk in unassigned if tk.project == key])
