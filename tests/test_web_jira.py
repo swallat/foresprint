@@ -16,7 +16,7 @@ from ticketfixtures import enable
 from sprintforecast.model import TrackerFields, TrackerSettings
 from sprintforecast.sources import SourceError
 from sprintforecast.sources.jira import FieldCandidate, FieldSuggestions
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 from sprintforecast.web import jira_setup
 from sprintforecast.web.jira_setup import Probe, field_options, tracker_from_inputs
 
@@ -34,10 +34,10 @@ def no_token(english, monkeypatch: pytest.MonkeyPatch):
 
 def page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
+    monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
-    at.switch_page("seiten/jira.py").run()
+    at.switch_page("page_scripts/jira.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -101,7 +101,7 @@ def test_field_options_keeps_the_current_value_and_marks_the_suggestion():
 
 def test_switched_off_there_is_no_page(data_dir: Path, monkeypatch):
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, TODAY.isoformat())
+    monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert "jira" not in at.session_state["enabled-pages"]

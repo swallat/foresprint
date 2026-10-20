@@ -55,7 +55,7 @@ def team_data(
         cap = 40.0 if capacities is None else capacities[i]
         sprints.append(
             Sprint(f"2026.{i + 1}", start, start + timedelta(days=LENGTH), capacity=cap,
-                   velocity=v, forecast_ist=v)
+                   velocity=v, commitment=v)
         )  # fmt: skip
     n = len(velocities) + 1
     sprints.append(Sprint(f"2026.{n}", CURRENT_START, CURRENT_START + timedelta(days=LENGTH)))

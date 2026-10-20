@@ -171,7 +171,7 @@ def test_setup_items_without_repository(tmp_path: Path):
 
 def with_remote(repo: Path, data_dir: Path, monkeypatch) -> AppTest:
     git(repo, "remote", "add", "origin", URL)
-    return goto(start(data_dir, monkeypatch), "datenordner")
+    return goto(start(data_dir, monkeypatch), "data_dir")
 
 
 def submit(at: AppTest, user: str, token: str) -> AppTest:
@@ -227,7 +227,7 @@ def test_page_enables_the_suggested_helper_on_request(repo: Path, data_dir: Path
 
 def test_no_token_section_for_ssh_addresses(repo: Path, data_dir: Path, monkeypatch):
     git(repo, "remote", "add", "origin", "git@git.example.com:team/daten.git")
-    at = goto(start(data_dir, monkeypatch), "datenordner")
+    at = goto(start(data_dir, monkeypatch), "data_dir")
     assert "Anmeldung einrichten" not in [s.value for s in at.main.subheader]
 
 

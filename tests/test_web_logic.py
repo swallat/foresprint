@@ -267,18 +267,18 @@ def build_target(data):
     return find_sprint(data, "2026.22")
 
 
-def test_default_forecast_ist_falls_back_to_previous_sprint(data_dir: Path):
+def test_default_commitment_falls_back_to_previous_sprint(data_dir: Path):
     from sprintforecast.forecast import build_forecast
-    from sprintforecast.web.logic import default_forecast_ist
+    from sprintforecast.web.logic import default_sprint_commitment
 
     fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
     current = fc.current.sprint
-    assert default_forecast_ist(fc, current) == current.forecast_ist
-    own = current.forecast_ist
-    current.forecast_ist = None
+    assert default_sprint_commitment(fc, current) == current.commitment
+    own = current.commitment
+    current.commitment = None
     earlier = [e.sprint for e in fc.entries if e.sprint.start < current.start]
-    expected = next(s.forecast_ist for s in reversed(earlier) if s.forecast_ist is not None)
-    assert default_forecast_ist(fc, current) == expected
+    expected = next(s.commitment for s in reversed(earlier) if s.commitment is not None)
+    assert default_sprint_commitment(fc, current) == expected
     assert own is not None
 
 
@@ -358,8 +358,8 @@ def _sprint(**fields) -> Sprint:
 
 def test_board_steps_done_without_a_sprint_file_nothing_is_done():
     assert board_steps_done(None) == {
-        "fehltage": False,
-        "vorplanung": False,
+        "absences": False,
+        "preplanning": False,
         "planning": False,
         "review": False,
     }
@@ -371,19 +371,19 @@ def test_board_steps_done_absences_only_when_confirmed():
     """Check mark for absences only for the state "confirmed" (state per sprint), not for
     "announced" or "unknown" and not because a file exists."""
     entered = _sprint(absences={"anna": 1.0})
-    assert board_steps_done(entered)["fehltage"]
+    assert board_steps_done(entered)["absences"]
     nobody = _sprint(absence_state=AbsenceState.CONFIRMED)
-    assert board_steps_done(nobody)["fehltage"]  # explicitly "nobody is absent"
+    assert board_steps_done(nobody)["absences"]  # explicitly "nobody is absent"
     unknown = _sprint(absence_state=AbsenceState.UNKNOWN)
-    assert not board_steps_done(unknown)["fehltage"]
+    assert not board_steps_done(unknown)["absences"]
     expected = _sprint(expected_absences={"anna": 2.0})
-    assert not board_steps_done(expected)["fehltage"]  # announced confirms nothing
+    assert not board_steps_done(expected)["absences"]  # announced confirms nothing
     only_preplanned = _sprint(products={"app": ProductValues(preplanned=3.0)})
-    assert not board_steps_done(only_preplanned)["fehltage"]
+    assert not board_steps_done(only_preplanned)["absences"]
     # Only the absences are recorded: the other steps stay open
     assert board_steps_done(entered) == {
-        "fehltage": True,
-        "vorplanung": False,
+        "absences": True,
+        "preplanning": False,
         "planning": False,
         "review": False,
     }
@@ -415,12 +415,14 @@ def test_hidden_product_columns_keep_their_stored_values():
 def test_board_steps_done_other_steps_follow_their_values():
     sprint = _sprint(
         products={"app": ProductValues(), "web": ProductValues(preplanned=0.0)},
-        forecast_ist=0.0,  # 0 is recorded (not "missing")
+        commitment=0.0,  # 0 is recorded (not "missing")
         velocity=7.5,
     )
     done = board_steps_done(sprint)
-    assert done["vorplanung"] and done["planning"] and done["review"]
-    assert not board_steps_done(_sprint(products={"app": ProductValues(planned=2.0)}))["vorplanung"]
+    assert done["preplanning"] and done["planning"] and done["review"]
+    assert not board_steps_done(_sprint(products={"app": ProductValues(planned=2.0)}))[
+        "preplanning"
+    ]
 
 
 def test_capacity_usage():
@@ -438,7 +440,7 @@ def test_capacity_usage():
     assert zero is not None and zero.ratio == 0.0 and zero.over
 
 
-def test_board_steps_done_vorplanung_needs_every_active_product():
+def test_board_steps_done_preplanning_needs_every_active_product():
     from sprintforecast.model import Product, ProductValues
 
     shop, app, old = (
@@ -451,11 +453,11 @@ def test_board_steps_done_vorplanung_needs_every_active_product():
     def preplanned(**values) -> Sprint:
         return _sprint(products={k: ProductValues(preplanned=v) for k, v in values.items()})
 
-    assert not board_steps_done(preplanned(shop=3.0), products)["vorplanung"]
-    assert not board_steps_done(_sprint(), products)["vorplanung"]
-    assert board_steps_done(preplanned(shop=3.0, app=2.0), products)["vorplanung"]
+    assert not board_steps_done(preplanned(shop=3.0), products)["preplanning"]
+    assert not board_steps_done(_sprint(), products)["preplanning"]
+    assert board_steps_done(preplanned(shop=3.0, app=2.0), products)["preplanning"]
     # A product without a value (only an entry without preplanned) does not count
     partial = _sprint(products={"shop": ProductValues(preplanned=1.0), "app": ProductValues()})
-    assert not board_steps_done(partial, products)["vorplanung"]
+    assert not board_steps_done(partial, products)["preplanning"]
     # Without known products any value suffices (as before)
-    assert board_steps_done(preplanned(shop=3.0))["vorplanung"]
+    assert board_steps_done(preplanned(shop=3.0))["preplanning"]

@@ -14,7 +14,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
 from sprintforecast.cli import app as cli_app
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, DataError, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, DataError, Repository
 from sprintforecast.validate import Level, check_all
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -146,11 +146,11 @@ def test_web_shows_the_message_for_a_broken_team_file(
     """The navigation (enabled_pages) and the page layout do not crash either."""
     path = edit(data_dir, TEAM, setting("sprint", "foo"))
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
-    at.switch_page("seiten/forecast.py").run()
+    at.switch_page("page_scripts/forecast.py").run()
     assert not at.exception, at.exception
     assert any(path.name in e.value for e in at.error)
 

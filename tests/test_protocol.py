@@ -225,7 +225,7 @@ def test_saving_the_same_state_twice_writes_one_protocol_even_with_a_pinned_stat
     def save_twice() -> int:
         for _ in range(2):
             sprint = sprint_from_dict(_read(path), str(path))  # like the page: from the file
-            sprint.forecast_ist = 12.0  # the Planning enters the commitment
+            sprint.commitment = 12.0  # the Planning enters the commitment
             save_with_protocol(
                 repo, "demo", "2026.21", PLANNING, "# T\n\nStand: 1\n\nx\n", NOW, [sprint],
                 lambda sprint=sprint: [repo.save_sprint("demo", sprint)],

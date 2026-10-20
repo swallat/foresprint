@@ -17,7 +17,7 @@ from webfixtures import nav_steps
 from sprintforecast.cli import app as cli_app
 from sprintforecast.model import Features, Sprint, Team
 from sprintforecast.settings import SETTINGS
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository, team_from_dict, team_to_dict
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository, team_from_dict, team_to_dict
 from sprintforecast.validate import check_team
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -41,7 +41,7 @@ def mark_production_access(data_dir: Path, person: str = "ben") -> None:
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -49,7 +49,7 @@ def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def goto(at: AppTest, page: str) -> AppTest:
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -134,11 +134,11 @@ def page_keys(at: AppTest) -> set[str]:
 def test_product_pages_exist_only_with_product_distribution(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    assert {"vorplanung", "produkte", "produktliste"} <= page_keys(start(data_dir, monkeypatch))
+    assert {"preplanning", "products", "product_list"} <= page_keys(start(data_dir, monkeypatch))
     set_features(data_dir, products=False)
     off = page_keys(start(data_dir, monkeypatch))
-    assert not {"vorplanung", "produkte", "produktliste"} & off
-    assert {"fehltage", "planning", "review", "forecast", "personen"} <= off
+    assert not {"preplanning", "products", "product_list"} & off
+    assert {"absences", "planning", "review", "forecast", "people"} <= off
 
 
 def test_step_bar_has_three_steps_without_the_products_area(
@@ -146,13 +146,13 @@ def test_step_bar_has_three_steps_without_the_products_area(
 ):
     """Without the Products feature area, PO pre-planning is dropped: absences, Planning, Review."""
     at = goto(start(data_dir, monkeypatch), "planning")
-    assert [key for key, _, _ in nav_steps(at)] == ["fehltage", "vorplanung", "planning", "review"]
+    assert [key for key, _, _ in nav_steps(at)] == ["absences", "preplanning", "planning", "review"]
     set_features(data_dir, products=False)
     at = start(data_dir, monkeypatch)
-    for page in ("fehltage", "planning", "review"):
+    for page in ("absences", "planning", "review"):
         goto(at, page)
         steps = nav_steps(at)
-        assert [key for key, _, _ in steps] == ["fehltage", "planning", "review"]
+        assert [key for key, _, _ in steps] == ["absences", "planning", "review"]
         assert [key for key, _, active in steps if active] == [page]
 
 
@@ -176,7 +176,7 @@ def test_po_sums_and_production_hint_follow_their_switches(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     def products_page(at: AppTest) -> str:
-        goto(at, "produkte")
+        goto(at, "products")
         at.selectbox(key="products-sprint").set_value("2026.20").run()
         return " ".join([*(m.value for m in at.markdown), *(c.value for c in at.caption)])
 
@@ -252,7 +252,7 @@ def test_new_team_form_explains_the_areas_and_saves_them_off(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     at = start(data_dir, monkeypatch)
-    goto(at, "neues_team")
+    goto(at, "new_team")
     at.text_input[0].set_value("team-b").run()
     assert any("**Optionale Bereiche:**" in m.value for m in at.markdown)
     for key in ("features.products", "features.po", "features.production"):
@@ -268,7 +268,7 @@ def test_settings_page_switches_areas_independently(
 ):
     set_features(data_dir, products=False, po=False, production=False)
     at = start(data_dir, monkeypatch)
-    goto(at, "einstellungen")
+    goto(at, "settings")
     at.selectbox(key=f"settings-{TEAM}-features.production").set_value("on")
     click(at, "Speichern")
     saved = yaml.safe_load((data_dir / TEAM / "team.yaml").read_text())

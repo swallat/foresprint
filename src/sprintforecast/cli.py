@@ -101,8 +101,8 @@ from sprintforecast.report import (
 )
 from sprintforecast.settings import FIRST_SPRINT_KEYS, SETTINGS, Setting, applicable, changes
 from sprintforecast.storage import (
+    AS_OF_ENV,
     DATA_ENV,
-    STICHTAG_ENV,
     DataError,
     Repository,
     TeamData,
@@ -182,14 +182,14 @@ def command(name: str, help: str) -> Callable[[Callable[..., Any]], Callable[...
 class Context:
     repo: Repository
     today: date
-    stichtag: str | None = None
+    as_of: str | None = None
 
 
 def _ctx(ctx: typer.Context) -> Context:
     return ctx.obj
 
 
-def _check_stichtag(value: str | None) -> str | None:
+def _check_as_of(value: str | None) -> str | None:
     if value:
         try:
             date.fromisoformat(value)
@@ -201,7 +201,7 @@ def _check_stichtag(value: str | None) -> str | None:
 @app.callback(invoke_without_command=True)
 def _main(
     ctx: typer.Context,
-    daten: Annotated[
+    data: Annotated[
         Path | None,
         typer.Option(
             "--data",
@@ -213,11 +213,11 @@ def _main(
             ),
         ),
     ] = None,
-    stichtag: Annotated[
+    as_of: Annotated[
         str | None,
         typer.Option(
             "--as-of",
-            callback=_check_stichtag,
+            callback=_check_as_of,
             help=t('Date (YYYY-MM-DD) treated as "today" – for retrospectives and tests.'),
         ),
     ] = None,
@@ -231,8 +231,8 @@ def _main(
         raise typer.Exit()
     if ctx.invoked_subcommand != "update":
         _auto_update()
-    today = date.fromisoformat(stichtag) if stichtag else date.today()
-    ctx.obj = Context(repo=Repository(daten or default_data_dir()), today=today, stichtag=stichtag)
+    today = date.fromisoformat(as_of) if as_of else date.today()
+    ctx.obj = Context(repo=Repository(data or default_data_dir()), today=today, as_of=as_of)
 
 
 def _auto_update() -> None:
@@ -525,13 +525,13 @@ CommitOpt = Annotated[bool, typer.Option("--commit", help=t("Commit the change i
 
 
 @command("help", "Guide, terms, input fields, settings and commands.")
-def hilfe(
-    thema: Annotated[
+def help_command(
+    topic_arg: Annotated[
         str | None,
         typer.Argument(metavar="TOPIC", help=t("Topic: {topics}", topics=", ".join(TOPICS))),
     ] = None,
 ) -> None:
-    topic = thema or "workflow"
+    topic = topic_arg or "workflow"
     if topic not in TOPICS:
         err.print(f"[red]{t('Unknown topic. Available: {topics}', topics=', '.join(TOPICS))}[/red]")
         raise typer.Exit(1)
@@ -699,7 +699,7 @@ def init(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     "settings",
     "Change team settings with guided input (unit, federal state, reference capacity …).",
 )
-def einstellungen(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
+def settings_command(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
     before = copy.deepcopy(data.team)
@@ -792,11 +792,11 @@ def _choose_person(people: list[Person]) -> Person:
 
 
 @command("people", "Show and maintain the list of people (joining, FTE change, leaving).")
-def personen(
+def people_command(
     ctx: typer.Context,
     team: TeamArg,
     commit_: CommitOpt = False,
-    ehemalige: Annotated[
+    former: Annotated[
         bool,
         typer.Option("--former", help=t("Show people who left.")),
     ] = False,
@@ -807,7 +807,7 @@ def personen(
     before = copy.deepcopy(data)  # the list is changed in place below
     changed = False
     while True:
-        console.print(_people_table(people, c.today, ehemalige))
+        console.print(_people_table(people, c.today, former))
         action = Prompt.ask(
             t("Action: n = new person, f = change FTE, a = leaves the team, q = done"),
             choices=["n", "f", "a", "q"],
@@ -891,7 +891,7 @@ def personen(
 
 
 @command("absences", "Record planned absences per person for a sprint (default: next sprint).")
-def fehltage(
+def absences_command(
     ctx: typer.Context, team: TeamArg, sprint: SprintArg = None, commit_: CommitOpt = False
 ) -> None:
     c = _ctx(ctx)
@@ -925,7 +925,7 @@ def fehltage(
 def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
     days = team_workdays(data.team, s.start, s.end)
     region, country = data.team.capacity.region, data.team.capacity.country
-    hol = [
+    holiday_names = [
         f"{d:%d.%m.} {holiday_name(d, region, country)}"
         for d in days
         if holiday_name(d, region, country)
@@ -943,11 +943,11 @@ def _sprint_panel(data: TeamData, s: Sprint) -> Panel:
         days=len(days),
         week=workweek_label(data.team),
     )
-    if hol:
+    if holiday_names:
         text += "\n" + t(
             "including holidays ({region}): {holidays}",
             region=_plain(region) if region else t("nationwide"),
-            holidays=", ".join(hol),
+            holidays=", ".join(holiday_names),
         )
     return Panel(text, border_style="cyan")
 
@@ -1134,7 +1134,7 @@ def planning(
         corrections = _ask_numbers(t("Corrections ({unit})", unit=unit), p.corrections)
         plan_values = Planning(carryover=carryover, backlog=backlog, corrections=corrections)
     _explain("forecast_ist")
-    default = s.forecast_ist
+    default = s.commitment
     if default is None and plan_values is not None and plan_values.committed:
         default = plan_values.committed
         console.print(f"[dim]{t('Prefilled with carry-over + backlog.')}[/dim]")
@@ -1250,11 +1250,11 @@ def review(
 def forecast(
     ctx: typer.Context,
     team: TeamArg,
-    verlauf: Annotated[
+    history: Annotated[
         int,
         typer.Option("--history", min=0, help=t("Number of past sprints shown.")),
     ] = 5,
-    rechenweg: Annotated[
+    explain: Annotated[
         str | None,
         typer.Option(
             "--explain",
@@ -1293,7 +1293,7 @@ def forecast(
         table.add_column(
             col, justify="left" if i < 3 else "right", no_wrap=band, min_width=9 if band else None
         )
-    for e in fc.history(verlauf) + fc.upcoming():
+    for e in fc.history(history) + fc.upcoming():
         r = e.result
         future = e.sprint.end > c.today
         n_vel = r.normalized_velocity.trend if future else r.normalized_velocity.average
@@ -1325,15 +1325,13 @@ def forecast(
         )
     for note in reliability_notes(fc, code=False):
         console.print(f"[yellow]⚠ {escape(note)}[/yellow]")
-    if rechenweg is not None:
+    if explain is not None:
         from sprintforecast.formulas import steps
 
         default = fc.default_entry("planning")
-        entry = default if rechenweg == "-" else fc.entry(rechenweg)
+        entry = default if explain == "-" else fc.entry(explain)
         if entry is None:
-            err.print(
-                f"[red]{t('Sprint {id} is not in the forecast.', id=_plain(rechenweg))}[/red]"
-            )
+            err.print(f"[red]{t('Sprint {id} is not in the forecast.', id=_plain(explain))}[/red]")
             raise typer.Exit(1)
         from sprintforecast.formulas import plain_explanation
 
@@ -1374,14 +1372,14 @@ def analyse(
             help=t("Remaining amount for which the completion sprint is estimated."),
         ),
     ] = None,
-    gesamt: Annotated[
+    total: Annotated[
         bool,
         typer.Option(
             "--total",
             help=t("Use the entire forecast for --remaining instead of only the plannable share."),
         ),
     ] = False,
-    anteil: Annotated[
+    share_percent: Annotated[
         float,
         typer.Option(
             "--share",
@@ -1471,19 +1469,19 @@ def analyse(
         )
 
     if rest is not None:
-        basis_share = 1.0 if gesamt else data.team.forecast.roadmap_share
-        share = basis_share * anteil / 100
+        basis_share = 1.0 if total else data.team.forecast.roadmap_share
+        share = basis_share * share_percent / 100
         result = completion(data, c.today, rest, share)
         if result is None:
             err.print(f"[red]{t('Not enough history for a completion forecast.')}[/red]")
             raise typer.Exit(1)
         basis = (
-            t("entire forecast") if gesamt else t("plannable share {share}", share=pct(basis_share))
+            t("entire forecast") if total else t("plannable share {share}", share=pct(basis_share))
         )
-        if anteil < 100:
+        if share_percent < 100:
             basis += t(
                 " × project share {project} % = {share} of the forecast",
-                project=fmt(anteil, 0),
+                project=fmt(share_percent, 0),
                 share=pct(share),
             )
         later = t(
@@ -1529,10 +1527,10 @@ def analyse(
 
 
 @command("report", "Create the Markdown report (for the Git web interface / PO round).")
-def bericht(
+def report_command(
     ctx: typer.Context,
     team: Annotated[str | None, typer.Argument(help=t("Team; omit for all teams."))] = None,
-    ausgabe: Annotated[
+    output: Annotated[
         Path | None,
         typer.Option(
             "--output",
@@ -1552,10 +1550,10 @@ def bericht(
                 raise
             raise DataError(t("Team {team}: {error}", team=key, error=e)) from e
         text = render(forecast_)
-        if ausgabe is not None and str(ausgabe) == "-":
+        if output is not None and str(output) == "-":
             sys.stdout.write(text)
             continue
-        target = ausgabe if ausgabe is not None and team else c.repo.team_dir(key) / "FORECAST.md"
+        target = output if output is not None and team else c.repo.team_dir(key) / "FORECAST.md"
         write_text(target, text)
         console.print(f"[green]{_plain_end(target)}[/green]")
 
@@ -1567,7 +1565,7 @@ def bericht(
 def excel(
     ctx: typer.Context,
     team: Annotated[str, typer.Argument(help=t("Team."))],
-    ausgabe: Annotated[
+    output: Annotated[
         Path | None,
         typer.Option(
             "--output",
@@ -1590,7 +1588,7 @@ def excel(
     except ExcelUnavailable as e:
         err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
-    target = ausgabe or Path(f"{team}-forecast.xlsx")
+    target = output or Path(f"{team}-forecast.xlsx")
     try:
         target.write_bytes(content)
     except OSError as e:
@@ -1605,10 +1603,10 @@ def excel(
 def excel_import(
     ctx: typer.Context,
     team: Annotated[str, typer.Argument(help=t("Team."))],
-    datei: Annotated[
+    file: Annotated[
         Path, typer.Argument(metavar="FILE", help=t("Excel file from “sprintforecast excel”."))
     ],
-    uebernehmen: Annotated[
+    apply: Annotated[
         bool,
         typer.Option("--apply", help=t("Write the changes (otherwise preview only).")),
     ] = False,
@@ -1618,7 +1616,7 @@ def excel_import(
 
     c = _ctx(ctx)
     try:
-        data, file_team = read_workbook_keyed(datei, team)
+        data, file_team = read_workbook_keyed(file, team)
     except ExcelUnavailable as e:
         err.print(f"[red]{escape(str(e))}[/red]")
         raise typer.Exit(1) from e
@@ -1649,7 +1647,7 @@ def excel_import(
     for name in plan.untouched:
         note = t("Not in the workbook, stays unchanged: {file}", file=_plain(name))
         console.print(f"[dim]{note}[/dim]")
-    if not uebernehmen:
+    if not apply:
         console.print(t("Preview only – write with --apply."))
         return
     for path in apply_import(c.repo, plan):
@@ -2029,7 +2027,7 @@ def _ticket_test_connection(data: TeamData) -> None:
     )
 
 
-def _ticket_read(data: TeamData, datei: Path | None, fetch: bool) -> tuple[list[Any], str]:
+def _ticket_read(data: TeamData, file: Path | None, fetch: bool) -> tuple[list[Any], str]:
     """Reads the tickets from the CSV file or the tracker: ``(raw tickets, source name)``.
     Ends the command on a source error."""
     from sprintforecast import sources
@@ -2040,7 +2038,7 @@ def _ticket_read(data: TeamData, datei: Path | None, fetch: bool) -> tuple[list[
         _jira_settings(data, "--fetch")
     source = None
     try:
-        source = sources.open_source(tracker, datei)
+        source = sources.open_source(tracker, file)
         raws = source.fetch()
     except SourceError as e:
         raise _source_failed(e) from e
@@ -2228,7 +2226,7 @@ def _ticket_write_labels(c: Any, data: TeamData, apply: bool) -> None:
 def tickets(
     ctx: typer.Context,
     team: TeamArg,
-    datei: Annotated[
+    file: Annotated[
         Path | None,
         typer.Option(
             "--import",
@@ -2297,7 +2295,7 @@ def tickets(
             ),
         ),
     ] = False,
-    uebernehmen: Annotated[
+    apply: Annotated[
         bool,
         typer.Option("--apply", help=t("Write the import or handover (otherwise preview only).")),
     ] = False,
@@ -2312,7 +2310,7 @@ def tickets(
     actions = [
         name
         for name, given in (
-            ("--import", datei is not None),
+            ("--import", file is not None),
             ("--fetch", fetch),
             ("--test-connection", test_connection),
             ("--set-token", set_token),
@@ -2330,7 +2328,7 @@ def tickets(
         refused = [
             name
             for name, given in (
-                ("--apply", uebernehmen),
+                ("--apply", apply),
                 ("--commit", commit_),
                 ("--sprints", _given(ctx, "sprints")),
                 ("--variant", _given(ctx, "variant")),
@@ -2373,7 +2371,7 @@ def tickets(
                 + "[/red]"
             )
             raise typer.Exit(1)
-        _ticket_write_labels(c, data, uebernehmen)
+        _ticket_write_labels(c, data, apply)
         return
     if set_token:
         _ticket_set_token(data)
@@ -2382,27 +2380,27 @@ def tickets(
         _ticket_test_connection(data)
         return
     if handover:
-        if commit_ and not uebernehmen:
+        if commit_ and not apply:
             err.print(f"[red]{t('--commit needs --apply.')}[/red]")
             raise typer.Exit(1)
-        _ticket_handover(c, data, team, sprints, uebernehmen, overwrite, commit_)
+        _ticket_handover(c, data, team, sprints, apply, overwrite, commit_)
         return
-    importing = datei is not None or fetch
-    if importing and commit_ and not uebernehmen:
+    importing = file is not None or fetch
+    if importing and commit_ and not apply:
         err.print(f"[red]{t('--commit needs --apply.')}[/red]")
         raise typer.Exit(1)
     printed: list[Issue] = []
     if importing:
         from sprintforecast.ticket_import import apply_import, plan_import
 
-        raws, source_name = _ticket_read(data, datei, fetch)
+        raws, source_name = _ticket_read(data, file, fetch)
         fc = build_forecast(data, c.today)
         plan = plan_import(data, fc, raws, c.today, source=source_name)
         _ticket_preview(plan)
         if plan.unchanged(data):
             # Nothing to write: no time-stamp-only rewrite of tickets.yaml.
             console.print(t("No changes compared to the existing files."))
-        elif not uebernehmen:
+        elif not apply:
             console.print(t("Preview only – write with --apply."))
         else:
             paths = apply_import(c.repo, team, plan)
@@ -2413,7 +2411,7 @@ def tickets(
                 None, commit_,
             )  # fmt: skip
             data = _load(c, team)
-        if not uebernehmen:
+        if not apply:
             if _given(ctx, "variant"):
                 console.print(
                     "[yellow]"
@@ -2421,7 +2419,7 @@ def tickets(
                     + "[/yellow]"
                 )
             return
-    elif uebernehmen or commit_:
+    elif apply or commit_:
         err.print(
             "[red]"
             + t("--apply and --commit belong to --import, --fetch and --handover.")
@@ -2432,9 +2430,9 @@ def tickets(
 
 
 @command("check", "Check all team data for errors and plausibility (for CI and before committing).")
-def pruefen(
+def check_command(
     ctx: typer.Context,
-    streng: Annotated[
+    strict: Annotated[
         bool,
         typer.Option("--strict", help=t("Treat notes as errors too.")),
     ] = False,
@@ -2457,7 +2455,7 @@ def pruefen(
             console.print(
                 f"  [{colour}]{i.level.label}[/{colour}] {_plain(where)}: {_plain(message)}"
             )
-            failed |= i.level is Level.ERROR or streng
+            failed |= i.level is Level.ERROR or strict
     raise typer.Exit(1 if failed else 0)
 
 
@@ -2511,8 +2509,8 @@ def web(
     c = _ctx(ctx)
     app_mode = app_mode and browser  # --no-browser: no window, no self-exit
     env = os.environ | {DATA_ENV: str(c.repo.root.resolve())} | updater.web_environment(sys.argv)
-    if c.stichtag:
-        env[STICHTAG_ENV] = c.stichtag
+    if c.as_of:
+        env[AS_OF_ENV] = c.as_of
     if app_mode:
         env[IDLE_ENV] = str(_IDLE_EXIT_SECONDS)  # the server exits by itself without a session
     actual_port = free_port(port)
@@ -2641,17 +2639,17 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
 def sprints(
     ctx: typer.Context,
     team: TeamArg,
-    anzahl: Annotated[
+    count: Annotated[
         int,
         typer.Option(
             "--count", min=1, max=60, help=t("Number of sprints starting with the current one.")
         ),
     ] = 6,
-    anlegen: Annotated[
+    create: Annotated[
         bool,
         typer.Option("--create", help=t("Create missing sprint files.")),
     ] = False,
-    ende: Annotated[
+    end: Annotated[
         list[str] | None,
         typer.Option(
             "--end",
@@ -2674,9 +2672,9 @@ def sprints(
     c = _ctx(ctx)
     data = _load(c, team)
     fc = build_forecast(data, c.today)
-    planned = absence_sprints(data, fc, anzahl)
+    planned = absence_sprints(data, fc, count)
     rows = calendar_table(data, planned, c.today)
-    for raw in ende or []:
+    for raw in end or []:
         sid, _, day = raw.partition("=")
         row = next((r for r in rows if r["Sprint"] == sid.strip()), None)
         try:
@@ -2720,7 +2718,7 @@ def sprints(
         week=workweek_label(data.team),
     )
     console.print(table)
-    changed = calendar_to_save(data, planned, after, create_missing=anlegen)
+    changed = calendar_to_save(data, planned, after, create_missing=create)
     blocking = [
         i
         for i in check_team(with_sprints(data, changed), c.today)
@@ -2731,7 +2729,7 @@ def sprints(
             err.print(f"[red]{_plain(i.where)}: {_plain_end(i.message)}[/red]")
         raise typer.Exit(1)
     if not changed:
-        if not anlegen:
+        if not create:
             console.print(f"[dim]{t('Create missing sprint files with --create.')}[/dim]")
         return
     paths = [c.repo.save_sprint(team, s) for s in changed]
@@ -2790,15 +2788,15 @@ def rename_sprint(
     "products",
     "Distribution across the products: default, PO pre-planning, planning, done, balance.",
 )
-def produkte(
+def products_command(
     ctx: typer.Context,
     team: TeamArg,
     sprint: SprintArg = None,
-    vorplanung: Annotated[
+    preplanning: Annotated[
         bool,
         typer.Option("--preplanning", help=t("Record PO pre-planning per product.")),
     ] = False,
-    verlauf: Annotated[
+    history: Annotated[
         int, typer.Option("--history", min=1, help=t("Sprints for the balance."))
     ] = 6,
     commit_: CommitOpt = False,
@@ -2819,7 +2817,7 @@ def produkte(
     fc = build_forecast(data, c.today)
     s = copy.deepcopy(_find_or_create(data, fc, sprint, "planning"))
     unit = data.team.unit.value
-    if vorplanung and _ask_product_values(data, fc, s, "preplanned"):
+    if preplanning and _ask_product_values(data, fc, s, "preplanned"):
         path = c.repo.save_sprint(team, s)
         _saved(path)
         _maybe_commit(
@@ -2835,7 +2833,7 @@ def produkte(
     entry = fc.entry(s.id)
     if entry is not None:
         console.print(_distribution_table(distribution(fc, entry), unit))
-    entries = [e for e in fc.entries if e.sprint.start <= s.start][-verlauf:]
+    entries = [e for e in fc.entries if e.sprint.start <= s.start][-history:]
     rows = [b for b in balance(fc, entries) if b.sprints]  # only products with at least one value
     if rows:
         with_missing = any(b.missing for b in rows)
@@ -2859,7 +2857,7 @@ def produkte(
 
 
 @command("product-list", "Maintain the team's products (new, change PO, hand over).")
-def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
+def product_list_command(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
     _require_products(data, team)
@@ -2961,8 +2959,8 @@ def produktliste(ctx: typer.Context, team: TeamArg, commit_: CommitOpt = False) 
     "Show or set the remembered data folder (applies when the current directory contains no "
     "teams and neither --data nor SPRINTFORECAST_DATA is set).",
 )
-def datenordner(
-    pfad: Annotated[
+def data_dir_command(
+    path: Annotated[
         Path | None,
         typer.Argument(
             metavar="PATH", help=t("Save the folder (must be inside a Git repository).")
@@ -2973,31 +2971,31 @@ def datenordner(
     from sprintforecast.gitsync import git_available
     from sprintforecast.storage import save_data_dir, saved_data_dir, teams_dir
 
-    if pfad is None:
+    if path is None:
         saved = saved_data_dir()
         console.print(
             t("Remembered: {path}", path=_plain(saved)) if saved else t("No data folder saved.")
         )
         console.print(t("Used (without --data): {path}", path=_plain(default_data_dir().resolve())))
         return
-    if not pfad.is_dir():
-        err.print(f"[red]{escape(t('Folder not found: {path}', path=pfad))}[/red]")
+    if not path.is_dir():
+        err.print(f"[red]{escape(t('Folder not found: {path}', path=path))}[/red]")
         raise typer.Exit(1)
     if not git_available():
         _git_problem(classify("", missing=True))
-    if repo_root(pfad) is None:
-        if problem := root_problem(pfad):
+    if repo_root(path) is None:
+        if problem := root_problem(path):
             _git_problem(problem)  # heading, message from Git and next step
         else:
             err.print(
                 "[red]"
                 + escape(
-                    t("{path} is not inside a Git repository (git init or git clone).", path=pfad)
+                    t("{path} is not inside a Git repository (git init or git clone).", path=path)
                 )
                 + "[/red]"
             )
         raise typer.Exit(1)
-    target = teams_dir(pfad) or pfad
+    target = teams_dir(path) or path
     try:
         save_data_dir(target)
     except SettingsError as e:
@@ -3007,7 +3005,7 @@ def datenordner(
 
 
 @command("language", "Show or set the interface language (de, en).")
-def sprache(
+def language_command(
     code: Annotated[str | None, typer.Argument(help=t("de or en"))] = None,
 ) -> None:
     if code is None:
@@ -3029,7 +3027,7 @@ def sprache(
 
 
 @command("shortcut", "Create a launcher to double-click (desktop/start menu, macOS: Applications).")
-def verknuepfung() -> None:
+def shortcut_command() -> None:
     from sprintforecast import shortcuts
 
     try:
@@ -3051,12 +3049,12 @@ def verknuepfung() -> None:
     "update",
     "Update sprintforecast to the latest version (plugins are kept).",
 )
-def aktualisieren(
-    pruefen_: Annotated[
+def update_command(
+    check_: Annotated[
         bool,
         typer.Option("--check", help=t("Only check, do not install.")),
     ] = False,
-    erzwingen: Annotated[
+    force: Annotated[
         bool,
         typer.Option("--force", help=t("Reinstall even without a new version.")),
     ] = False,
@@ -3111,7 +3109,7 @@ def aktualisieren(
             )
         )
         raise typer.Exit(1)
-    if inst.pinned and not erzwingen:
+    if inst.pinned and not force:
         console.print(
             t(
                 (
@@ -3125,7 +3123,7 @@ def aktualisieren(
         return
     if result.error:
         err.print(f"[red]{t('Check failed: {error}', error=_plain_end(result.error))}[/red]")
-        if not erzwingen:
+        if not force:
             raise typer.Exit(1)
     console.print(
         t(
@@ -3139,10 +3137,10 @@ def aktualisieren(
             ref=inst.ref,
         )
     )
-    if not result.available and not erzwingen:
+    if not result.available and not force:
         console.print(f"[green]{t('sprintforecast is up to date.')}[/green]")
         return
-    if pruefen_:
+    if check_:
         console.print(t("Update with: sprintforecast update"))
         return
     uv = updater.find_uv()
@@ -3178,7 +3176,7 @@ def aktualisieren(
     "capacity",
     "Show the capacity calculation of a sprint in detail (default: next sprint).",
 )
-def kapazitaet(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> None:
+def capacity_command(ctx: typer.Context, team: TeamArg, sprint: SprintArg = None) -> None:
     c = _ctx(ctx)
     data = _load(c, team)
     s = _find_or_create(data, build_forecast(data, c.today), sprint, "next")

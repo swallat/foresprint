@@ -430,7 +430,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 '("Ticket pre-planning").'
             )
         )
-        page_link("einstellungen")
+        page_link("settings")
         return
     page_intro(
         t(

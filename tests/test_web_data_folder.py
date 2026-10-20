@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from gitrepos import Denying, serve
-from test_datenordner import fail_on
+from test_data_folder import fail_on
 
 pytest.importorskip("streamlit")
 
@@ -15,8 +15,8 @@ from streamlit.testing.v1 import AppTest
 from test_web_k3_ui import goto, start
 
 
-def datenordner(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
-    return goto(start(data_dir, monkeypatch), "datenordner")
+def data_folder_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
+    return goto(start(data_dir, monkeypatch), "data_dir")
 
 
 def errors(at: AppTest) -> str:
@@ -55,7 +55,7 @@ def test_unknown_user_folder_is_explained_and_the_button_stays_locked(
         return real(self)
 
     monkeypatch.setattr(Path, "expanduser", expanduser)
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter_address(at, "https://example.org/team/daten.git")
     at.text_input(key=key).set_value("~gibtesnicht/daten").run()
     assert not at.exception, at.exception
@@ -71,7 +71,7 @@ def test_a_user_shortcut_that_works_is_still_expanded(
         return tmp_path.joinpath(*self.parts[1:]) if self.parts[:1] == ("~",) else self
 
     monkeypatch.setattr(Path, "expanduser", expanduser)
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     at.text_input(key="data-path").set_value("~/fehlt")
     at.button(key="data-choose").click().run()
     assert not at.exception, at.exception
@@ -87,7 +87,7 @@ def test_create_on_a_file_names_the_problem(
 ):
     file = tmp_path / "datei.txt"
     file.write_text("x", encoding="utf-8")
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     at.text_input(key="data-new").set_value(str(file))
     at.button(key="data-create").click().run()
     assert not at.exception, at.exception
@@ -101,7 +101,7 @@ def test_create_without_rights_names_the_problem(
 ):
     target = tmp_path / "gesperrt"
     fail_on(monkeypatch, "mkdir", target, PermissionError(errno.EACCES, "Permission denied"))
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     at.text_input(key="data-new").set_value(str(target))
     at.button(key="data-create").click().run()
     assert not at.exception, at.exception
@@ -119,7 +119,7 @@ def test_create_in_a_folder_that_cannot_be_listed_names_the_problem(
     denied = PermissionError(errno.EACCES, "Permission denied")
     fail_on(monkeypatch, "iterdir", target, denied)
     fail_on(monkeypatch, "mkdir", target, denied)
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     at.text_input(key="data-new").set_value(str(target))
     at.button(key="data-create").click().run()
     assert not at.exception, at.exception
@@ -129,7 +129,7 @@ def test_create_in_a_folder_that_cannot_be_listed_names_the_problem(
 def test_create_without_git_shows_how_to_install_it(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     at.text_input(key="data-new").set_value(str(tmp_path / "neu"))
     monkeypatch.setenv("PATH", "")
     at.button(key="data-create").click().run()
@@ -146,7 +146,7 @@ def test_clone_with_missing_login_explains_the_steps(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
     with serve(Denying) as port:
-        at = datenordner(data_dir, monkeypatch)
+        at = data_folder_page(data_dir, monkeypatch)
         enter_address(at, f"http://127.0.0.1:{port}/r.git")
         at.text_input(key="data-clone").set_value(str(tmp_path / "ziel"))
         at.button(key="data-clone-go").click().run()
@@ -161,7 +161,7 @@ def test_clone_with_missing_login_explains_the_steps(
 def test_clone_without_git_shows_how_to_install_it(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter_address(at, "https://example.org/team/daten.git")
     at.text_input(key="data-clone").set_value(str(tmp_path / "ziel"))
     monkeypatch.setenv("PATH", "")
@@ -176,7 +176,7 @@ def test_clone_onto_a_file_names_the_problem(
 ):
     file = tmp_path / "datei.txt"
     file.write_text("x", encoding="utf-8")
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter_address(at, "https://example.org/team/daten.git")
     at.text_input(key="data-clone").set_value(str(file))
     at.button(key="data-clone-go").click().run()
@@ -188,7 +188,7 @@ def test_clone_onto_a_file_names_the_problem(
 def test_clone_keeps_the_title_of_a_bad_address(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter_address(at, "github.com/team/daten")
     at.text_input(key="data-clone").set_value(str(tmp_path / "ziel"))
     at.button(key="data-clone-go").click().run()
@@ -214,7 +214,7 @@ def test_choose_a_folder_without_access_names_the_problem(
             raise PermissionError(errno.EACCES, "Permission denied")
         return real(path)
 
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     monkeypatch.setattr(ui, "git_root", refuse)
     at.text_input(key="data-path").set_value(str(tmp_path))
     at.button(key="data-choose").click().run()
@@ -235,7 +235,7 @@ def test_choose_a_folder_that_cannot_be_listed_names_the_problem(
             raise PermissionError(errno.EACCES, "Permission denied")
         return real(path)
 
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     monkeypatch.setattr(ui, "git_root", lambda path: path)
     monkeypatch.setattr(ui, "teams_dir", refuse)
     at.text_input(key="data-path").set_value(str(tmp_path))
@@ -251,7 +251,7 @@ def test_choose_a_folder_that_cannot_be_listed_names_the_problem(
 def test_an_empty_path_field_does_not_mean_the_working_folder(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, key: str, button: str
 ):
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter_address(at, "https://example.org/team/daten.git")
     at.text_input(key=key).set_value("   ").run()
     assert not at.exception, at.exception
@@ -274,7 +274,7 @@ def test_clone_errors_give_hints_that_fit_cloning(
     def failing(url, path):
         raise GitError("fatal: unable to access", kind, hint_for(kind))
 
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     monkeypatch.setattr(ui, "clone_repository", failing)
     enter_address(at, "https://example.org/team/daten.git")
     at.text_input(key="data-clone").set_value(str(tmp_path / "klon")).run()
@@ -290,7 +290,7 @@ def test_clone_into_a_non_empty_folder_says_folder_not_git(
     target = tmp_path / "ziel"
     target.mkdir()
     (target / "datei.txt").write_text("x", encoding="utf-8")
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     enter_address(at, "https://example.org/team/daten.git")
     at.text_input(key="data-clone").set_value(str(target)).run()
     at.button(key="data-clone-go").click().run()
@@ -307,7 +307,7 @@ def test_create_here_after_choosing_a_folder_without_git_shows_the_problem_with_
     def failing(path, teams_folder=True):
         raise GitError("kaputt", "folder")
 
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     monkeypatch.setattr(ui, "init_data_repository", failing)
     at.session_state["offer-init"] = str(tmp_path)
     at.run()
@@ -325,7 +325,7 @@ def test_create_in_a_folder_that_is_writable_but_cannot_be_listed_creates_nothin
     target.mkdir()
     (target / "datei.txt").write_text("x", encoding="utf-8")
     fail_on(monkeypatch, "iterdir", target, PermissionError(errno.EACCES, "Permission denied"))
-    at = datenordner(data_dir, monkeypatch)
+    at = data_folder_page(data_dir, monkeypatch)
     at.text_input(key="data-new").set_value(str(target))
     at.button(key="data-create").click().run()
     assert not at.exception, at.exception

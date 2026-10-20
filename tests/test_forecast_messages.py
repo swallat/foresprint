@@ -12,7 +12,7 @@ from typer.testing import CliRunner
 from sprintforecast.calendar import id_fits_numbering, next_id
 from sprintforecast.cli import app as cli_app
 from sprintforecast.model import Numbering
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, DataError, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, DataError, Repository
 from sprintforecast.validate import Level, check_team
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
@@ -242,7 +242,7 @@ def test_cli_check_reports_the_unfitting_id(data_dir: Path):
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -250,7 +250,7 @@ def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def goto(at: AppTest, page: str) -> AppTest:
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -263,7 +263,7 @@ def test_web_without_first_sprint_shows_the_message(
     [error] = app.error
     assert "Es ist noch kein Sprint erfasst" in error.value
     assert "Start und ID des ersten Sprints eintragen" in error.value
-    for page in ("forecast", "personen"):
+    for page in ("forecast", "people"):
         goto(app, page)
 
 
@@ -271,7 +271,7 @@ def test_web_first_sprint_can_be_entered_in_the_settings(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     without_first_sprint(data_dir)
-    app = goto(start(data_dir, monkeypatch), "einstellungen")
+    app = goto(start(data_dir, monkeypatch), "settings")
     assert not app.error
     app.date_input(key="settings-demo-sprint.first_start").set_value(date(2026, 10, 14))
     app.text_input(key="settings-demo-sprint.first_id").set_value("2026.20")
@@ -289,7 +289,7 @@ def test_web_unfitting_id_shows_the_message(data_dir: Path, monkeypatch: pytest.
     assert "JJJJ.N" in error.value
     goto(app, "forecast")
     assert any("passt nicht zur Nummerierung" in e.value for e in app.error)
-    for page in ("einstellungen", "personen"):  # reachable without a forecast
+    for page in ("settings", "people"):  # reachable without a forecast
         goto(app, page)
         assert not app.error, (page, [e.value for e in app.error])
 
@@ -299,7 +299,7 @@ def test_web_unfitting_id_of_an_earlier_sprint_shows_the_message(
 ):
     """The absences page forms the following IDs from the current sprint (2026.21) itself."""
     rename_sprint(data_dir, "2026.21", "2026.21b")
-    app = goto(start(data_dir, monkeypatch), "fehltage")
+    app = goto(start(data_dir, monkeypatch), "absences")
     [error] = app.error
     assert "Sprint-ID '2026.21b' passt nicht zur Nummerierung" in error.value
 

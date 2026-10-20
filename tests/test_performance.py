@@ -61,9 +61,9 @@ def test_cache_sees_save_through_repository(data_dir: Path):
     repo = Repository(data_dir)
     data = repo.load_cached(TEAM)
     sprint = data.sprints[-1]
-    sprint.forecast_ist = 123.0
+    sprint.commitment = 123.0
     repo.save_sprint(TEAM, sprint)
-    assert repo.load_cached(TEAM).sprint(sprint.id).forecast_ist == 123.0
+    assert repo.load_cached(TEAM).sprint(sprint.id).commitment == 123.0
 
 
 def write_raw(path: Path, **changes) -> None:
@@ -101,7 +101,7 @@ def test_cache_does_not_trust_fresh_files(data_dir: Path):
         raw["forecast_ist"] = value
         path.write_text(yaml.safe_dump(raw))
         os.utime(path, ns=(now, now))
-        assert repo.load_cached(TEAM).sprint(sprint_id).forecast_ist == value
+        assert repo.load_cached(TEAM).sprint(sprint_id).commitment == value
 
 
 def test_cache_follows_data_folder_change(data_dir: Path, tmp_path: Path):
@@ -110,13 +110,13 @@ def test_cache_follows_data_folder_change(data_dir: Path, tmp_path: Path):
     other.mkdir()
     shutil.copytree(data_dir / TEAM, other / TEAM)
     sprint = Repository(other).load(TEAM).sprints[-1]
-    sprint.forecast_ist = 77.0
+    sprint.commitment = 77.0
     Repository(other).save_sprint(TEAM, sprint)
     age(other)
     first = Repository(data_dir).load_cached(TEAM).sprint(sprint.id)
     second = Repository(other).load_cached(TEAM).sprint(sprint.id)
-    assert first.forecast_ist != 77.0
-    assert second.forecast_ist == 77.0
+    assert first.commitment != 77.0
+    assert second.commitment == 77.0
 
 
 def test_loader_uses_c_loader_when_available():
@@ -154,7 +154,7 @@ def test_git_status_invalidated_by_save(git_dir: Path):
     repo = Repository(git_dir)
     assert cached_pending_changes(git_dir) == []
     sprint = repo.load(TEAM).sprints[-1]
-    sprint.forecast_ist = 99.0
+    sprint.commitment = 99.0
     repo.save_sprint(TEAM, sprint)  # writing invalidates the Git state
     assert [f.rsplit("/", 1)[-1] for _, f in cached_pending_changes(git_dir)] == [
         f"{sprint.id}.yaml"
@@ -170,7 +170,7 @@ def test_git_status_not_requeried_within_ttl(git_dir: Path, monkeypatch: pytest.
 def test_git_status_invalidated_by_commit(git_dir: Path):
     repo = Repository(git_dir)
     sprint = repo.load(TEAM).sprints[-1]
-    sprint.forecast_ist = 98.0
+    sprint.commitment = 98.0
     repo.save_sprint(TEAM, sprint)
     assert cached_pending_changes(git_dir)
     commit_directory(git_dir, "test")

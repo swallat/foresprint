@@ -27,7 +27,7 @@ DECIDE = "Entscheidungen übernehmen und teilen"
 
 def change_absence(page: Page, app: App, person: str, value: str) -> None:
     """Enters absences for ``person`` in sprint 2026.22 and saves them (not shared yet)."""
-    open_page(page, app, "fehltage")
+    open_page(page, app, "absences")
     edit_absence(page, person, SPRINT, value)
     save = main_area(page).get_by_role("button", name="Fehltage speichern")
     expect(save).to_be_enabled()
@@ -56,9 +56,9 @@ def test_absences_of_different_people_merge_without_conflict(clones, new_page):
     assert on_server["anna"] == 2 and on_server["dana"] == 1
     assert git(bare, "log", "-1", "--format=%an", "main") == "Bob"
     # Alice fetches Bob's change: both values are in her grid.
-    open_page(pa, alice, "fehltage")
+    open_page(pa, alice, "absences")
     shared(pa, "von anderen übernommen")
-    open_page(pa, alice, "fehltage")
+    open_page(pa, alice, "absences")
     expect(main_area(pa).get_by_test_id("stDataFrame").first).to_be_visible()
     assert absence_cell(pa, "Anna", SPRINT) == "2"
     assert absence_cell(pa, "Dana", SPRINT) == "1"
@@ -131,7 +131,7 @@ def test_app_restart_in_the_middle_of_a_conflict_keeps_it_open(clones, new_page)
     _, bob, bare, _ = make_value_conflict(clones, new_page)
     bob.restart()  # the conflict is in Git, not in the app's memory
     fresh = new_page()
-    open_page(fresh, bob, "fehltage")
+    open_page(fresh, bob, "absences")
     expect(main_area(fresh).get_by_role("heading", name="Konflikte lösen")).to_be_visible()
     expect(main_area(fresh).get_by_role("button", name="Fehltage speichern")).to_have_count(0)
     expect(main_area(fresh).get_by_text("Meine Änderung: 3")).to_be_visible()
@@ -140,7 +140,7 @@ def test_app_restart_in_the_middle_of_a_conflict_keeps_it_open(clones, new_page)
     main_area(fresh).get_by_role("button", name=DECIDE).click()
     expect(sidebar(fresh).get_by_text("Hochgeladen")).to_be_visible()
     assert server_absences(bare)["anna"] == 3
-    open_page(fresh, bob, "fehltage")
+    open_page(fresh, bob, "absences")
     expect(main_area(fresh).get_by_role("heading", name="Planbare Fehltage")).to_be_visible()
 
 
@@ -150,7 +150,7 @@ def test_aborting_the_merge_keeps_both_versions(clones, new_page):
     expect(main_area(page).get_by_role("heading", name="Konflikte lösen")).to_have_count(0)
     assert server_absences(bare)["anna"] == 2  # Alice's state is unchanged on the server
     assert git(bob.data_dir.parent, "status", "--short", "--untracked-files=no") == ""
-    open_page(page, bob, "fehltage")
+    open_page(page, bob, "absences")
     expect(main_area(page).get_by_test_id("stDataFrame").first).to_be_visible()
     assert absence_cell(page, "Anna", SPRINT) == "3"  # Bob's own state is kept
 
@@ -159,7 +159,7 @@ TAG = "team/2026.21"
 
 
 def tags_tab(page: Page, app: App) -> None:
-    open_page(page, app, "verlauf")
+    open_page(page, app, "history")
     main_area(page).get_by_role("tab", name="Tags").click()
 
 

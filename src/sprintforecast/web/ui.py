@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Pages and sidebar of the web UI. Entry point: web/app.py, pages: web/seiten/*.py.
+"""Pages and sidebar of the web UI. Entry point: web/app.py, pages: web/page_scripts/*.py.
 
 Reads and writes the same YAML files as the command line. Configuration via environment
 variables: SPRINTFORECAST_DATA (data directory), SPRINTFORECAST_AS_OF (reference date).
@@ -247,8 +247,8 @@ from sprintforecast.signin import (
     verify,
 )
 from sprintforecast.storage import (
+    AS_OF_ENV,
     DATA_ENV,
-    STICHTAG_ENV,
     ConflictError,
     DataError,
     FileAccessError,
@@ -283,7 +283,7 @@ from sprintforecast.web.logic import (
     calendar_table,
     calendar_to_save,
     capacity_usage,
-    default_forecast_ist,
+    default_sprint_commitment,
     edit_absences,
     forget_without_git,
     is_without_git,
@@ -313,14 +313,14 @@ else:  # load on first access (cold start)
     alt = LazyModule("altair")
     pd = LazyModule("pandas")
 
-# Pages: file name under web/seiten → (title, Material icon). Groups for the navigation.
+# Pages: file name under web/page_scripts → (title, Material icon). Groups for the navigation.
 # Titles and groups are German source texts and are translated on display.
 PAGES: dict[str, dict[str, tuple[str, str]]] = {
     # Sprint tasks in chronological order: prepare, Planning, close.
     "Tasks": {
         "start": ("Start", ":material/home:"),
-        "fehltage": ("Prepare the sprint: absences", ":material/event_busy:"),
-        "vorplanung": ("PO pre-planning", ":material/groups:"),
+        "absences": ("Prepare the sprint: absences", ":material/event_busy:"),
+        "preplanning": ("PO pre-planning", ":material/groups:"),
         "planning": ("Planning", ":material/edit_note:"),
         # Deliberately no check mark symbol (task_alt, check …): In the step bar a check mark means
         # "done", so the page icon must not fake it.
@@ -328,31 +328,31 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
     },
     "Reports": {
         "forecast": ("Forecast", ":material/trending_up:"),
-        "analyse": ("Analysis", ":material/insights:"),
-        "produkte": ("Product distribution", ":material/pie_chart:"),
+        "analysis": ("Analysis", ":material/insights:"),
+        "products": ("Product distribution", ":material/pie_chart:"),
         "tickets": ("Tickets", ":material/view_kanban:"),
     },
     "Manage team": {
         "sprints": ("Sprint calendar", ":material/calendar_month:"),
-        "personen": ("People", ":material/group:"),
-        "produktliste": ("Products", ":material/category:"),
-        "einstellungen": ("Settings", ":material/tune:"),
+        "people": ("People", ":material/group:"),
+        "product_list": ("Products", ":material/category:"),
+        "settings": ("Settings", ":material/tune:"),
         "jira": ("Jira connection", ":material/cable:"),
-        "neues_team": ("New team", ":material/group_add:"),
+        "new_team": ("New team", ":material/group_add:"),
     },
     "Data & help": {
-        "datenordner": ("Data folder", ":material/folder_open:"),
-        "verlauf": ("Changes and history", ":material/history:"),
-        "pruefung": ("Check", ":material/fact_check:"),
-        "hilfe": ("Help", ":material/help:"),
+        "data_dir": ("Data folder", ":material/folder_open:"),
+        "history": ("Changes and history", ":material/history:"),
+        "check": ("Check", ":material/fact_check:"),
+        "help": ("Help", ":material/help:"),
     },
 }
 PAGE_INFO = {key: info for group in PAGES.values() for key, info in group.items()}
 # Pages that only appear if the team uses the feature area (Team → Settings).
 PAGE_FEATURES = {
-    "vorplanung": "products",
-    "produkte": "products",
-    "produktliste": "products",
+    "preplanning": "products",
+    "products": "products",
+    "product_list": "products",
     "tickets": "tickets",
     "jira": "tickets",
 }
@@ -373,7 +373,7 @@ def enabled_pages(repo: Repository) -> set[str]:
 
 
 def page_path(key: str) -> str:
-    return f"seiten/{key}.py"
+    return f"page_scripts/{key}.py"
 
 
 def page_link(key: str, label: str | None = None) -> None:
@@ -384,13 +384,13 @@ def page_link(key: str, label: str | None = None) -> None:
 
 
 def today() -> date:
-    raw = os.environ.get(STICHTAG_ENV)
+    raw = os.environ.get(AS_OF_ENV)
     return date.fromisoformat(raw) if raw else date.today()
 
 
-def stichtag_problem() -> str | None:
+def as_of_problem() -> str | None:
     """Message if the environment has no valid reference date (otherwise ``today`` fails)."""
-    raw = os.environ.get(STICHTAG_ENV)
+    raw = os.environ.get(AS_OF_ENV)
     if raw:
         try:
             date.fromisoformat(raw)
@@ -401,7 +401,7 @@ def stichtag_problem() -> str | None:
                     "format YYYY-MM-DD is expected. Please correct or remove the variable and "
                     "restart the web interface."
                 ),
-                name=STICHTAG_ENV,
+                name=AS_OF_ENV,
                 value=raw,
             )
     return None
@@ -593,7 +593,9 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
     """Period, working days and holidays of a sprint."""
     days = team_workdays(data.team, s.start, s.end)
     region, country = data.team.capacity.region, data.team.capacity.country
-    hol = [f"{d:%d.%m.} {name}" for d in days if (name := holiday_name(d, region, country))]
+    holiday_names = [
+        f"{d:%d.%m.} {name}" for d in days if (name := holiday_name(d, region, country))
+    ]
     last = f"{days[-1]:%d.%m.%Y}" if days else f"{s.end:%d.%m.%Y}"
     text = t(
         (
@@ -607,8 +609,8 @@ def sprint_caption(data: TeamData, s: Sprint) -> str:
         days=len(days),
         week=workweek_label(data.team),
     )
-    if hol:
-        text += t(" · including holidays: {holidays}", holidays=", ".join(hol))
+    if holiday_names:
+        text += t(" · including holidays: {holidays}", holidays=", ".join(holiday_names))
     if not data.sprint(s.id):
         text += t(" · no sprint file yet")
     return text
@@ -629,8 +631,8 @@ def sprints_summary(data: TeamData, sprints: list[Sprint], today: date) -> str:
             for sid, days in workdays.items()
         ]
     for sid, days in workdays.items():
-        if hol := [f"{d:%d.%m.}" for d in days if holiday_name(d, region, country)]:
-            parts.append(t("{id}: public holidays {dates}", id=sid, dates=", ".join(hol)))
+        if holiday_names := [f"{d:%d.%m.}" for d in days if holiday_name(d, region, country)]:
+            parts.append(t("{id}: public holidays {dates}", id=sid, dates=", ".join(holiday_names)))
     if done := [s.id for s in sprints if s.end <= today]:
         parts.append(t("completed: {ids}", ids=", ".join(done)))
     if missing := sum(1 for s in sprints if not data.sprint(s.id)):
@@ -651,13 +653,13 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
     assumed: dict[str, Assumption] = {}
     for sprint in open_velocity_sprints(fc):
         st.markdown(f"**{t('Sprint {id}', id=sprint.id)}**")
-        default_ist = default_forecast_ist(fc, sprint)
+        default_commitment = default_sprint_commitment(fc, sprint)
         # Align at the bottom: labels that wrap would otherwise push the fields down.
-        ist_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
-        ist = ist_col.number_input(
+        commitment_col, open_col, extra_col, result_col = st.columns(4, vertical_alignment="bottom")
+        commitment = commitment_col.number_input(
             t("Commitment ({unit})", unit=unit),
             min_value=0.0,
-            value=default_ist,
+            value=default_commitment,
             step=0.25,
             format="%.2f",
             key=f"{prefix}-{sprint.id}-ist",
@@ -684,11 +686,11 @@ def _whatif_inputs(fc: Forecast, unit: str, prefix: str = "whatif") -> dict[str,
             key=f"{prefix}-{sprint.id}-extra",
             help=t("Amount expected to be done in addition to the commitment."),
         )
-        changed = not_done is not None or extra is not None or ist != default_ist
-        if ist is None or not changed:
+        changed = not_done is not None or extra is not None or commitment != default_commitment
+        if commitment is None or not changed:
             result_col.metric(t("Expected done"), "–")
             continue
-        assumed[sprint.id] = Assumption(ist, not_done, extra)
+        assumed[sprint.id] = Assumption(commitment, not_done, extra)
         result_col.metric(t("Expected done"), f"{fmt(assumed[sprint.id].expected, 2)} {unit}")
     return assumed
 
@@ -749,7 +751,7 @@ def _whatif_panel(fc: Forecast, upcoming: list[TimelineEntry], unit: str) -> Non
 # The icons come from PAGES: a task has the same icon everywhere (start page, sidebar, step
 # bar), and no page icon fakes a check mark ("done").
 START_TASKS = {
-    "prepare": ("Prepare sprint", PAGE_INFO["fehltage"][1]),
+    "prepare": ("Prepare sprint", PAGE_INFO["absences"][1]),
     "planning": ("Planning", PAGE_INFO["planning"][1]),
     "review": ("Close sprint", PAGE_INFO["review"][1]),
 }
@@ -768,7 +770,8 @@ def page_start(repo: Repository, data: TeamData, fc: Forecast) -> None:
         st.switch_page(page_path(goto))
     _setup_checklist(repo)
     tasks = start_tasks(
-        fc, "vorplanung" in st.session_state.get("enabled-pages", PAGE_INFO) and bool(data.products)
+        fc,
+        "preplanning" in st.session_state.get("enabled-pages", PAGE_INFO) and bool(data.products),
     )
     for col, task in zip(st.columns(len(tasks)), tasks, strict=True):
         title, icon = START_TASKS[task.key]
@@ -948,7 +951,7 @@ def page_forecast(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 {
                     "Sprint": e.sprint.id,
                     capacity_col: fmt_capacity(e.result.capacity.value, e.capacity_digits),
-                    t("Commitment"): fmt(e.result.forecast_ist.value, 2),
+                    t("Commitment"): fmt(e.result.commitment.value, 2),
                     "Velocity": fmt(e.result.velocity.value, 2),
                     nvel: fmt(e.result.normalized_velocity.value, 2),
                     avg: fmt(e.result.normalized_velocity.average, 2),
@@ -1091,10 +1094,10 @@ def _formula_expander(fc: Forecast) -> None:
         sprint = sprint_select(fc.data, fc, "formula-sprint", "current", None)
         entry = fc.entry(sprint.id) if sprint else None
         if entry is not None:
-            _rechenweg(fc, entry)
+            _derivation(fc, entry)
 
 
-def _rechenweg(fc: Forecast, entry: TimelineEntry) -> None:
+def _derivation(fc: Forecast, entry: TimelineEntry) -> None:
     """First an explanation in plain language, with the values used and their sources below
     on request."""
     st.markdown(plain_explanation(fc, entry))
@@ -1149,7 +1152,7 @@ def _chart(fc: Forecast, entries: list[TimelineEntry], unit: str) -> alt.Chart |
         r = e.result
         future = e.sprint.end > fc.today
         values = {
-            t("Commitment / PLAN"): r.plan if future else r.forecast_ist.value,
+            t("Commitment / PLAN"): r.plan if future else r.commitment.value,
             "Velocity": r.velocity.trend if future else r.velocity.value,
             t("norm. velocity"): r.normalized_velocity.trend
             if future
@@ -1185,7 +1188,7 @@ def page_absences(repo: Repository, data: TeamData, fc: Forecast) -> None:
     # Selected sprint and step bar as on the boards; the table below still shows several
     # sprints.
     if (board_sprint := sprint_select(data, fc, "absences-sprint")) is not None:
-        _board_nav(data, board_sprint, "fehltage")
+        _board_nav(data, board_sprint, "absences")
     page_intro(
         t(
             "Enter absences per person and sprint: vacation, time off, training, other "
@@ -1532,8 +1535,8 @@ def sprint_select(
 
 # The three boards for product values; with "absences" in front they form the step bar (order as
 # in the sidebar and start page: prepare, PO pre-planning, Planning, Review).
-BOARDS = ("vorplanung", "planning", "review")
-BOARD_STEPS = ("fehltage", *BOARDS)
+BOARDS = ("preplanning", "planning", "review")
+BOARD_STEPS = ("absences", *BOARDS)
 
 # Step bar: all steps are built the same way: a link in a container with a key, in a grid of
 # equally wide columns. Same height, width and alignment; only the color distinguishes the
@@ -2003,7 +2006,7 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
         return
     product, direction = t("Product"), t("Direction")
     more, less = t("more than standard"), t("less than standard")
-    saldo = f"{t('Balance')} ({unit})"
+    balance_label = f"{t('Balance')} ({unit})"
     frame = pd.DataFrame(
         [
             {
@@ -2011,7 +2014,7 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
                 "Sprints": b.sprints,
                 f"Σ Standard ({unit})": round(b.standard, 2),
                 f"Σ {t('Done')} ({unit})": round(b.done, 2),
-                saldo: round(b.difference, 2),
+                balance_label: round(b.difference, 2),
                 direction: more if b.difference >= 0 else less,
                 t("no value"): b.missing,
             }
@@ -2024,7 +2027,7 @@ def _balance_section(fc: Forecast, entries: list[TimelineEntry], unit: str) -> N
         .mark_bar(cornerRadius=4)
         .encode(
             y=alt.Y(f"{product}:N", sort=[b.product.name for b in rows], title=None),
-            x=alt.X(f"{saldo}:Q"),
+            x=alt.X(f"{balance_label}:Q"),
             color=alt.Color(
                 f"{direction}:N",
                 scale=alt.Scale(domain=[more, less], range=["#2a78d6", "#e34948"]),
@@ -2151,9 +2154,9 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
     recorded = data.sprint(sprint.id)
     done = [
-        board_steps_done(recorded)["fehltage"],  # like the check mark of the step bar above
+        board_steps_done(recorded)["absences"],  # like the check mark of the step bar above
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
-        recorded is not None and recorded.forecast_ist is not None,
+        recorded is not None and recorded.commitment is not None,
     ]
     marks = [
         f"{'✅' if ok else '⬜'} {t(s)[4:]}" for s, ok in zip(PLANNING_STEPS, done, strict=True)
@@ -2164,7 +2167,7 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     elif step == 1:
         _planning_plan(repo, data, fc, sprint)
     else:
-        _planning_ist(repo, data, fc, sprint)
+        _planning_commitment(repo, data, fc, sprint)
 
 
 def _planning_writer(
@@ -2225,13 +2228,13 @@ def _planning_writer(
             # the distribution applies.
             recorded=any(v.planned is not None for v in sprint.products.values())
             or sprint.production_planned is not None
-            or sprint.forecast_ist is not None,
+            or sprint.commitment is not None,
         )
     )
 
     p = sprint.planning
     commitment_lines = [
-        md_item(f"{t('Commitment ({unit})', unit=unit)}: {fmt(sprint.forecast_ist, 2)}")
+        md_item(f"{t('Commitment ({unit})', unit=unit)}: {fmt(sprint.commitment, 2)}")
     ]
     if sprint.forecast_plan is not None:
         commitment_lines.append(
@@ -2256,7 +2259,7 @@ def _planning_writer(
             "commitment",
             t("Commitment"),
             commitment_lines,
-            recorded=sprint.forecast_ist is not None,
+            recorded=sprint.commitment is not None,
         )
     )
 
@@ -2518,7 +2521,7 @@ def _planning_plan(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprin
         st.caption(split)
     _quote_note(fc, [entry])
     with st.expander(t("Calculation path"), icon=":material/function:"):
-        _rechenweg(fc, entry)
+        _derivation(fc, entry)
     if r.plan_capacity_source in UNSURE_SOURCES:
         st.warning(t("No absences recorded yet – the capacity is only estimated."))
         st.button(t("Back to the absences"), on_click=_goto, args=(0,))
@@ -2663,7 +2666,7 @@ def _planning_production(
     return True
 
 
-def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
+def _planning_commitment(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
     unit = data.team.unit.value
     sprint = _base_sprint(data, sprint)
     entry = fc.entry(sprint.id)
@@ -2692,9 +2695,9 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
             t("Total planned per product: {total} {unit}", total=fmt(sum(planned), 2), unit=unit)
         )
     with st.form(f"planning-{sprint.id}"):
-        forecast_ist = _number(
+        commitment = _number(
             t("Commitment ({unit})", unit=unit),
-            sprint.forecast_ist,
+            sprint.commitment,
             f"fist-{sprint.id}",
             help_text("forecast_ist"),
         )
@@ -2748,14 +2751,14 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
         return
     prefilled = apply_planning(
         sprint,
-        forecast_ist,
+        commitment,
         Planning(carryover=carryover or 0.0, backlog=backlog or 0.0, corrections=corrections),
     )
     freeze_plan(sprint, entry, fc.today, refreeze=refreeze)
     prefill_note = (
         t(
             "Commitment taken from carry-over + backlog: {value} {unit}",
-            value=fmt(sprint.forecast_ist, 2),
+            value=fmt(sprint.commitment, 2),
             unit=unit,
         )
         if prefilled
@@ -2788,7 +2791,7 @@ def _planning_ist(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint
                     ),
                 )
             )
-        if sprint.forecast_ist is not None:
+        if sprint.commitment is not None:
             flash.append(
                 (
                     "success",
@@ -2950,7 +2953,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
         now=now,
         facts=[
             (t("Done – velocity ({unit})", unit=unit), fmt(sprint.velocity, 2)),
-            (t("Commitment ({unit})", unit=unit), fmt(sprint.forecast_ist, 2)),
+            (t("Commitment ({unit})", unit=unit), fmt(sprint.commitment, 2)),
             (t("Of which not finished ({unit})", unit=unit), fmt(sprint.not_done, 2)),
             (t("Additionally done ({unit})", unit=unit), fmt(sprint.additional_done, 2)),
             (t("Available person days (PD)"), fmt(sprint.capacity, 1)),
@@ -3210,7 +3213,7 @@ def _prognosis_history(data: TeamData, sprints: list[Sprint], unit: str) -> None
             }
             if details:
                 row |= {
-                    f"Commitment ({unit})": fmt(p.forecast_ist, 2),
+                    f"Commitment ({unit})": fmt(p.commitment, 2),
                     t("not finished"): fmt(p.not_done, 2),
                     t("additionally done"): fmt(p.additional_done, 2),
                 }
@@ -3300,13 +3303,13 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 "amount across the products of the team."
             )
         )
-        page_link("produktliste", t("Add products"))
+        page_link("product_list", t("Add products"))
         return
-    sprint = sprint_select(data, fc, "vorplanung-sprint")
+    sprint = sprint_select(data, fc, "preplanning-sprint")
     entry = fc.entry(sprint.id) if sprint else None
     if sprint is None or entry is None:
         return
-    _board_nav(data, sprint, "vorplanung")
+    _board_nav(data, sprint, "preplanning")
     st.caption(
         t(
             "Before the planning, the POs enter how much they intend per product for the "
@@ -3326,11 +3329,11 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     "only recorded in the review."
                 )
             )
-            assumed = _whatif_inputs(fc, unit, "vorplanung-whatif")
+            assumed = _whatif_inputs(fc, unit, "preplanning-whatif")
             comment = (
                 st.text_input(
                     t("Comment on the forecast"),
-                    key=f"vorplanung-comment-{sprint.id}",
+                    key=f"preplanning-comment-{sprint.id}",
                     placeholder=t(
                         "Where does the assumption come from? e.g. forecast from the daily "
                         "on 16 Oct"
@@ -3372,7 +3375,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     ),
                 },
                 hide_index=True,
-                key=f"vorplanung-expected-{sprint.id}",
+                key=f"preplanning-expected-{sprint.id}",
                 placeholder="",  # empty = person is not on the team in this sprint
             )
             [probe_after] = edit_absences(data.people, [probe], edited_expected.to_dict("records"))
@@ -3451,7 +3454,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 )
             )
     d = distribution(fc_view, fc_view.entry(sprint.id) or entry)
-    rows = _product_editor(d, ["preplanned"], f"vorplanung-{sprint.id}", unit, PREPLANNING)
+    rows = _product_editor(d, ["preplanned"], f"preplanning-{sprint.id}", unit, PREPLANNING)
     if rows is None:
         return
     base = _base_sprint(data, sprint)
@@ -3532,12 +3535,12 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                     [
                         t(
                             (
-                                "Sprint {id}: commitment {ist} {unit}, expected not done "
+                                "Sprint {id}: commitment {commitment} {unit}, expected not done "
                                 "{not_done}, additionally done {extra} → expected done {done} "
                                 "{unit}"
                             ),
                             id=sid,
-                            ist=fmt(a.forecast_ist, 2),
+                            commitment=fmt(a.commitment, 2),
                             not_done=fmt(a.not_done, 2),
                             extra=fmt(a.additional_done, 2),
                             done=fmt(a.expected, 2),
@@ -3600,7 +3603,7 @@ def page_products(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 "planning and done."
             )
         )
-        page_link("produktliste", t("Add products"))
+        page_link("product_list", t("Add products"))
         return
     sprint = sprint_select(data, fc, "products-sprint")
     if sprint is None:
@@ -4248,7 +4251,7 @@ def page_new_team(repo: Repository) -> None:
         lambda: [repo.save_team(edited), repo.save_people(key, [])],
     ):
         st.session_state["selected_team"] = key
-        page_link("personen", t("Next: add people"))
+        page_link("people", t("Next: add people"))
 
 
 def needs_setup(root: Path) -> bool:
@@ -5177,7 +5180,7 @@ def page_help(repo: Repository) -> None:
             "the tab “Collaboration (Git)”."
         )
     )
-    ablauf, begriffe, felder, team, zusammenarbeit, befehle = st.tabs(
+    workflow, terms, fields, team, collaboration, commands = st.tabs(
         [
             t("Workflow"),
             t("Terms"),
@@ -5187,7 +5190,7 @@ def page_help(repo: Repository) -> None:
             t("Command line"),
         ]
     )
-    with ablauf:
+    with workflow:
         for step in WORKFLOW:
             with st.container(border=True):
                 left, right = st.columns([3, 1], vertical_alignment="center")
@@ -5195,7 +5198,7 @@ def page_help(repo: Repository) -> None:
                 left.markdown(f"**{t(step.title)}**  \n{t(step.text)}")
                 with right:
                     page_link(step.page)
-    with begriffe:
+    with terms:
         term, meaning = t("Term"), t("Meaning")
         st.table(
             pd.DataFrame([(t(a), t(b)) for a, b in TERMS], columns=[term, meaning]).set_index(term)
@@ -5207,7 +5210,7 @@ def page_help(repo: Repository) -> None:
                 [(t(a), t(b)) for a, b in CAPACITY_SOURCES], columns=[source, meaning]
             ).set_index(source)
         )
-    with felder:
+    with fields:
         for f in FIELDS.values():
             with st.container(border=True):
                 st.markdown(f"**{t(f.title)}**  \n{t(f.what)}")
@@ -5219,12 +5222,12 @@ def page_help(repo: Repository) -> None:
                 [(s.title, s.text) for s in SETTINGS], columns=[setting, meaning]
             ).set_index(setting)
         )
-        page_link("einstellungen", t("Change settings"))
-    with zusammenarbeit:
+        page_link("settings", t("Change settings"))
+    with collaboration:
         for title, text in GIT_HELP:
             with st.container(border=True):
                 st.markdown(f"**{t(title)}**  \n{t(text)}")
-    with befehle:
+    with commands:
         command, purpose = t("Command"), t("Purpose")
         st.table(
             pd.DataFrame([(a, t(b)) for a, b in COMMANDS], columns=[command, purpose]).set_index(
@@ -5641,7 +5644,7 @@ def _unrelated_dialog(root: Path, tags: list[str], error: UnrelatedHistoriesErro
     with st.container(border=True):
         st.error(f"**{git_title(error.kind)}**  \n{error.hint_md}")
         st.markdown(error.render(md_code))  # names server address and branch: as code
-        page_link("datenordner", t("Change server address"))  # the address is usually the problem
+        page_link("data_dir", t("Change server address"))  # the address is usually the problem
         sure = st.checkbox(t("Yes, merge both histories"), key="unrelated-confirm")
         st.button(
             t("Merge both histories"),
@@ -5782,7 +5785,7 @@ def _show_sync_result(result: SyncResult, root: Path, tags: list[str], latest: b
                 args=(root,),
             )
         if latest and result.error.kind == "not_found":  # usually the address is wrong
-            page_link("datenordner", t("Change server address"))
+            page_link("data_dir", t("Change server address"))
         if result.validation:
             st.markdown("\n".join(f"- {line}" for line in result.validation))
             if latest:
@@ -6153,7 +6156,7 @@ def _git_panel(repo: Repository) -> None:
     tags = st.session_state.get("pending_tags", [])
     st.caption(_status_text(state))
     if state.remote is None:
-        page_link("datenordner", t("Set up server"))
+        page_link("data_dir", t("Set up server"))
     with st.expander(
         t("Git: {count} pending change(s)", count=len(changes))
         if changes
@@ -6587,27 +6590,27 @@ def page_history(repo: Repository) -> None:
 TEAM_PAGES = {
     "start": page_start,
     "forecast": page_forecast,
-    "fehltage": page_absences,
+    "absences": page_absences,
     "sprints": page_calendar,
-    "vorplanung": page_preplanning,
+    "preplanning": page_preplanning,
     "planning": page_planning,
     "review": page_review,
-    "produkte": page_products,
+    "products": page_products,
     "tickets": page_tickets,
-    "analyse": page_analysis,
-    "personen": page_people,
-    "produktliste": page_product_list,
-    "einstellungen": page_settings,
+    "analysis": page_analysis,
+    "people": page_people,
+    "product_list": page_product_list,
+    "settings": page_settings,
     "jira": page_jira,
 }
 # Pages that show no forecast and therefore only read the reference date from ``fc``.
-NO_FORECAST = {"personen", "produktliste", "einstellungen", "jira"}
+NO_FORECAST = {"people", "product_list", "settings", "jira"}
 GLOBAL_PAGES = {
-    "datenordner": page_data_dir,
-    "verlauf": page_history,
-    "neues_team": page_new_team,
-    "pruefung": page_check,
-    "hilfe": page_help,
+    "data_dir": page_data_dir,
+    "history": page_history,
+    "new_team": page_new_team,
+    "check": page_check,
+    "help": page_help,
 }
 
 
@@ -6836,11 +6839,11 @@ def _merge_open(repo: Repository) -> bool:
 
 
 # Global pages that create or change files (the others only read or check on their own).
-LOCKED_PAGES = {"neues_team"}
+LOCKED_PAGES = {"new_team"}
 
 
 def run_page(key: str) -> None:
-    """Called by the page files under web/seiten."""
+    """Called by the page files under web/page_scripts."""
     repo = repository()
     show_flash()  # once, centrally: hints appear on every page, never later elsewhere
     if needs_setup(repo.root):
@@ -6857,7 +6860,7 @@ def run_page(key: str) -> None:
     if team is None or not repo.exists(team):
         st.header(t(PAGE_INFO[key][0]))
         st.info(t("No team yet – create a team or import one with an import plugin."))
-        page_link("neues_team")
+        page_link("new_team")
         return
     try:
         data = repo.load_cached(team)

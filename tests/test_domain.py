@@ -42,7 +42,7 @@ def inputs_for(velocities: list[float | None], capacity: float = 40.0, future: i
             id=str(i),
             capacity=capacity,
             capacity_source=CapacitySource.RECORDED,
-            forecast_ist=v,
+            commitment=v,
             velocity=v,
             scope_creep=None,
         )
@@ -53,7 +53,7 @@ def inputs_for(velocities: list[float | None], capacity: float = 40.0, future: i
             id=f"f{i}",
             capacity=capacity,
             capacity_source=CapacitySource.RECORDED,
-            forecast_ist=None,
+            commitment=None,
             velocity=None,
             scope_creep=None,
         )
@@ -81,7 +81,7 @@ def team_data(velocities: list[float], capacity: float = 40.0, window: int = 5) 
                 s + timedelta(days=14),
                 capacity=capacity,
                 velocity=v,
-                forecast_ist=v,
+                commitment=v,
             )
         )
     team.sprint.first_id, team.sprint.first_start = "2026.1", start
