@@ -195,7 +195,8 @@ uv run python scripts/measure.py --md      # response-time measurement (see docs
 3. The *Release* workflow (`.github/workflows/release.yml`) runs tests and lint, compares tag
    and version, builds wheel and source distribution (`uv build`) and writes the release page
    with the files and automatically generated notes (from the pull requests merged since the
-   last tag).
+   last tag). Its last job uploads the files to PyPI (Trusted Publishing; one-time setup in
+   [docs/releasing.md](docs/releasing.md)).
 
 For an existing tag, the release can be repeated under *Actions, Release, Run workflow*. The
 normal CI also builds the packages on every push and stores them as the artifact `dist`.
