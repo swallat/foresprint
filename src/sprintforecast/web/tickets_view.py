@@ -77,7 +77,6 @@ LIGHT_COLOURS = {
     "missed": "#d64545",
     "empty": "#9aa0a6",
 }
-LIGHT_SYMBOLS = {"on_track": "🟢", "tight": "🟡", "missed": "🔴", "empty": "⚪"}
 # One letter per origin of an estimate on a ticket card (legend below the columns).
 SOURCE_LETTERS = {
     EstimateSource.REFINED: "R",
@@ -142,7 +141,7 @@ def project_rows(
         project = data.project(status.project)
         if project is None or not sel.shows(project.id):
             continue
-        light = f"{LIGHT_SYMBOLS[status.light]} {t(LIGHTS[status.light])}"
+        light = t(LIGHTS[status.light])  # text only: table cells render no icons
         last: dict[str, Any] = {t("Last sprint"): status.last_sprint or "–"}
         if ranged:
             assert variants is not None
