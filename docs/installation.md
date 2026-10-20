@@ -87,6 +87,22 @@ entry and on the desktop. It starts the web UI as an app window (on Windows with
 window); on the first start the UI guides you through setting up the data folder. Create it
 again with `sprintforecast shortcut`; the log is `app.log` next to the plugin selection.
 
+## Tab completion
+
+Tab completes commands, options, team names and sprint IDs (the latter two from the data folder,
+also after `--data`) in bash, zsh, fish and PowerShell. Set it up once for the current shell:
+
+```
+sprintforecast --install-completion
+```
+
+and open a new terminal. `install.ps1` does this when started with
+`$env:SPRINTFORECAST_COMPLETION = "1"`; `install.sh` only prints the hint, because the shell cannot be
+detected when the script is piped to `sh`. To manage the script yourself, print it with
+`sprintforecast completion bash|zsh|fish|powershell` (e.g. `eval "$(sprintforecast completion
+bash)"` in `~/.bashrc`; `--prog-name NAME` registers it for another command name). Completion
+starts the program on every Tab and answers in about a quarter of a second.
+
 ## Updating
 
 Automatic, similar to Claude Code: when a command starts, sprintforecast checks in the

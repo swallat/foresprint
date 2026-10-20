@@ -6,12 +6,14 @@ from __future__ import annotations
 import re
 from datetime import date, timedelta
 from functools import cache
-
-import holidays
+from typing import TYPE_CHECKING
 
 from sprintforecast.i18n import t
 from sprintforecast.model import AbsenceState, Numbering, Person, Sprint, Team
 from sprintforecast.storage import DataError
+
+if TYPE_CHECKING:
+    import holidays
 
 
 def _successor(previous_id: str, start_year: int, numbering: Numbering) -> str:
@@ -119,6 +121,7 @@ WORKWEEKS: dict[str, frozenset[int]] = {
 @cache
 def countries() -> dict[str, str]:
     """Supported countries: ISO code → name (from the holidays library)."""
+    import holidays
     from holidays import registry
 
     supported = set(holidays.list_supported_countries())
@@ -133,12 +136,16 @@ def countries() -> dict[str, str]:
 @cache
 def subdivisions(country: str) -> list[str]:
     """Valid region codes (federal state, state, province …) of a country."""
+    import holidays
+
     return list(holidays.list_supported_countries().get(country.upper(), []))
 
 
 @cache
 def country_weekend(country: str) -> frozenset[int]:
     """Weekend of the country according to the holidays library (e.g. Fri/Sat in Saudi Arabia)."""
+    import holidays
+
     try:
         return frozenset(holidays.country_holidays(country.upper()).weekend)
     except NotImplementedError:
@@ -227,6 +234,8 @@ def _holiday_calendar(
     # Not every language exists for every country, so the library falls back to the local language.
     # An unknown country or mismatched region does not crash the calculation (the check
     # reports the error); then only the nationwide holidays apply, or none.
+    import holidays
+
     language = "en_US" if lang == "en" else "de"
     for subdiv in (region or None, None):
         try:
