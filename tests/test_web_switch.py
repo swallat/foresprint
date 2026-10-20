@@ -13,9 +13,9 @@ from streamlit.testing.v1 import AppTest
 
 from sprintforecast import gitsync
 from sprintforecast.storage import (
+    AS_OF_ENV,
     DATA_ENV,
     MAX_RECENT,
-    STICHTAG_ENV,
     forget_data_dir,
     recent_data_dirs,
     save_data_dir,
@@ -60,7 +60,7 @@ def two_folders(data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 def start(path: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(path))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -78,7 +78,7 @@ def test_active_folder_and_branch_are_always_visible(two_folders, monkeypatch):
 def test_switch_discards_old_form_state_and_caches(two_folders, monkeypatch):
     first, _second = two_folders
     at = start(first, monkeypatch)
-    at.switch_page("seiten/review.py").run()
+    at.switch_page("page_scripts/review.py").run()
     at.selectbox(key="review-sprint").set_value("2026.21").run()
     at.session_state["probe"] = "Eingabe des alten Ordners"
     at.run()
@@ -127,7 +127,7 @@ def test_switch_keeps_changes_of_old_folder_and_git_state_is_not_mixed(two_folde
 def test_data_dir_page_lists_and_forgets_recent_folders(two_folders, monkeypatch):
     first, second = two_folders
     at = start(first, monkeypatch)
-    at.switch_page("seiten/datenordner.py").run()
+    at.switch_page("page_scripts/data_dir.py").run()
     assert not at.exception
     assert any("zweiter-ordner" in m.value for m in at.markdown)
     next(b for b in at.button if b.label == "Entfernen").click().run()

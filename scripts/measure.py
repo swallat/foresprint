@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "src" / "sprintforecast" / "web" / "app.py"
-PAGES = ["forecast", "fehltage", "planning", "analyse", "produkte", "personen", "hilfe"]
+PAGES = ["forecast", "absences", "planning", "analysis", "products", "people", "help"]
 IMPORTS = [
     "yaml",
     "pandas",
@@ -102,10 +102,10 @@ def apptest(data: Path, today: date, runs: int) -> dict[str, float]:
     for page in PAGES:
 
         def switch(page=page) -> None:
-            at.switch_page(f"seiten/{page}.py").run()
+            at.switch_page(f"page_scripts/{page}.py").run()
 
         out[f"AppTest page {page}"] = median_ms(switch, runs)
-    at.switch_page("seiten/forecast.py").run()
+    at.switch_page("page_scripts/forecast.py").run()
     assert not at.exception, at.exception
     return out
 

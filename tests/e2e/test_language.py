@@ -21,10 +21,10 @@ def test_language_can_be_switched_in_the_sidebar(page: Page, make_app):
     expect(sidebar(page).get_by_role("link", name="Prepare the sprint: absences")).to_be_visible()
     expect(sidebar(page).get_by_text("Tasks", exact=True)).to_be_visible()
     # The choice is kept across page changes ...
-    navigate(page, "fehltage")
+    navigate(page, "absences")
     expect(main_area(page).get_by_role("heading", name="Planned absences")).to_be_visible()
     # ... and also applies to a new window (stored in the settings).
-    open_page(page, app, "fehltage")
+    open_page(page, app, "absences")
     expect(main_area(page).get_by_role("heading", name="Planned absences")).to_be_visible()
     expect(selected(page, "language")).to_have_value("English")
 

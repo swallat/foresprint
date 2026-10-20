@@ -9,16 +9,16 @@ from sprintforecast.web.ui import PAGES
 
 # Pages with data grids and the minimum number of grids they show in the demo data.
 GRIDS = {
-    "fehltage": 3,
-    "vorplanung": 3,
+    "absences": 3,
+    "preplanning": 3,
     "planning": 1,
     "review": 1,
     "forecast": 2,
-    "analyse": 2,
-    "produkte": 3,
+    "analysis": 2,
+    "products": 3,
     "sprints": 1,
-    "personen": 1,
-    "produktliste": 1,
+    "people": 1,
+    "product_list": 1,
 }
 PAGE_KEYS = [key for entries in PAGES.values() for key in entries]
 MISSING_WORDS = {"none", "nan", "<na>", "nat", "null"}
@@ -44,7 +44,7 @@ def test_grids_show_no_none_cells(page, app: App, key: str, minimum: int):
 def test_unrecorded_values_show_no_none_in_the_product_overview(page, app: App):
     """Values not recorded never appear as "None"; columns without any value (here Planning and
     Done) are not shown at all."""
-    open_page(page, app, "produkte")
+    open_page(page, app, "products")
     tables = all_tables(page, 3)
     cells = [cell for table in tables for row in table for cell in row]
     assert "None" not in cells
@@ -55,7 +55,7 @@ def test_unrecorded_values_show_no_none_in_the_product_overview(page, app: App):
 def test_grids_are_readable_through_the_accessible_table(page, app: App):
     """The route these tests take (the text is in the accessible table) yields readable rows:
     header row with the columns, below it the people and their absences per sprint."""
-    open_page(page, app, "fehltage")
+    open_page(page, app, "absences")
     absences = all_tables(page, 3)[0]
     assert absences[0] == ["Person", "2026.21", "2026.22", "2026.23", "2026.24"]
     assert absences[1] == ["Anna", "0", "0", "0", "0"]
@@ -71,7 +71,7 @@ def test_nothing_is_cut_off_with_an_ellipsis(new_page, app: App, key: str, width
     assert page.evaluate(TRUNCATED) == []
 
 
-@pytest.mark.parametrize("key", ["forecast", "vorplanung", "planning", "analyse"])
+@pytest.mark.parametrize("key", ["forecast", "preplanning", "planning", "analysis"])
 def test_metrics_are_shown_in_full(new_page, app: App, key: str):
     """Every metric shows label, number and addendum completely (also at the app window width,
     1400 px wide)."""

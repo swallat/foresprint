@@ -592,7 +592,7 @@ def _sprints(wb: Any) -> list[Sprint]:
             Prognosis(
                 at=at,
                 comment=pg.text(number, row, 2),
-                forecast_ist=pg.number(number, row, 3),
+                commitment=pg.number(number, row, 3),
                 not_done=pg.number(number, row, 4),
                 additional_done=pg.number(number, row, 5),
                 expected_done=pg.number(number, row, 6),

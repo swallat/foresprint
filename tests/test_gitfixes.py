@@ -650,13 +650,13 @@ def test_yaml_files_stay_on_lf_in_checkout_despite_autocrlf(tmp_path: Path):
     git(root, "config", "core.autocrlf", "true")
     git(root, "config", "user.name", "T")
     git(root, "config", "user.email", "t@example.org")
-    datei = teams / "team.yaml"
-    datei.write_bytes(b"name: A\r\n")
+    file = teams / "team.yaml"
+    file.write_bytes(b"name: A\r\n")
     git(root, "add", "-A")
     git(root, "commit", "-qm", "Start")
-    datei.unlink()
+    file.unlink()
     git(root, "checkout", "--", "teams/team.yaml")
-    assert datei.read_bytes() == b"name: A\n"
+    assert file.read_bytes() == b"name: A\n"
 
 
 def test_data_repository_template_matches_new_repositories(tmp_path: Path):

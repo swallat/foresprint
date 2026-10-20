@@ -15,7 +15,7 @@ from sprintforecast import storage
 from sprintforecast.cli import app as cli_app
 from sprintforecast.forecast import build_forecast
 from sprintforecast.model import Sprint
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, FileAccessError, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, FileAccessError, Repository
 
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 runner = CliRunner(env={"COLUMNS": "200"})
@@ -161,7 +161,7 @@ def test_write_text_is_atomic(tmp_path: Path, monkeypatch):
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -174,7 +174,7 @@ def app(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def goto(at: AppTest, page: str) -> AppTest:
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -210,7 +210,7 @@ def test_web_page_keeps_rendering_after_a_failed_save(
     last = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
     repo.save_sprint("demo", Sprint(id=last.id, start=last.start, end=last.end))
     app = start(data_dir, monkeypatch)
-    goto(app, "fehltage")
+    goto(app, "absences")
     assert any("Fehltage zurücksetzen" in h.value for h in app.subheader)
     frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
     rows = {i: {"Niemand fehlt": True} for i, s in enumerate(frame["Sprint"]) if s == "2026.23"}
@@ -240,7 +240,7 @@ def test_web_reset_absences_shows_the_error(data_dir: Path, monkeypatch: pytest.
     following = build_forecast(data, date(2026, 10, 15)).entries[-1].sprint
     repo.save_sprint("demo", Sprint(id=following.id, start=following.start, end=following.end))
     app = start(data_dir, monkeypatch)
-    goto(app, "fehltage")
+    goto(app, "absences")
     real_unlink = Path.unlink
 
     def unlink(self, *args, **kwargs):

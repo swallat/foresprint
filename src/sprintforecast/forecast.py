@@ -63,9 +63,7 @@ class Forecast:
         if purpose == "planning":
             # The earliest running or future sprint without a Commitment.
             open_ = [
-                e
-                for e in self.entries
-                if e.sprint.end > self.today and e.sprint.forecast_ist is None
+                e for e in self.entries if e.sprint.end > self.today and e.sprint.commitment is None
             ]
             return open_[0] if open_ else None
         if purpose == "next":
@@ -111,7 +109,7 @@ def lookup_sprint(fc: Forecast, sprint_id: str, max_ahead: int = 52) -> Sprint |
     return find_sprint(fc.data, sprint_id, max_ahead)
 
 
-def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Planning | None) -> bool:
+def apply_planning(sprint: Sprint, commitment: float | None, planning: Planning | None) -> bool:
     """Applies the Planning inputs to ``sprint``.
 
     The control calculation (carryover, backlog, corrections) is optional; empty or 0 means
@@ -124,8 +122,8 @@ def apply_planning(sprint: Sprint, forecast_ist: float | None, planning: Plannin
         planning = None
     sprint.planning = planning
     planned = planning.committed if planning is not None else 0.0
-    prefilled = forecast_ist is None and planned > 0
-    sprint.forecast_ist = planned if prefilled else forecast_ist
+    prefilled = commitment is None and planned > 0
+    sprint.commitment = planned if prefilled else commitment
     return prefilled
 
 
@@ -197,7 +195,7 @@ def build_forecast(data: TeamData, today: date | None = None) -> Forecast:
                 id=sprint.id,
                 capacity=capacity,
                 capacity_source=source,
-                forecast_ist=sprint.forecast_ist,
+                commitment=sprint.commitment,
                 velocity=sprint.velocity,
                 scope_creep=sprint.scope_creep,
                 planning=sprint.planning,

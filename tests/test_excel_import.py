@@ -180,7 +180,7 @@ def test_roundtrip_keeps_every_field_of_a_fully_filled_team(data_dir: Path, tmp_
         Prognosis(
             at=datetime(2026, 10, 16, 14, 43, 5),
             comment="Daily",
-            forecast_ist=15.7,
+            commitment=15.7,
             not_done=1.0,
             additional_done=0.5,
             expected_done=15.2,
