@@ -979,6 +979,8 @@ def people_to_dict(people: list[Person]) -> dict[str, Any]:
 PRODUCTS_HEADER = """\
 # Products of the team. Period (from/to) = when the team works on the product; po optional.
 # Never delete products; end them with `to:` instead – otherwise past evaluations change.
+# match (optional): rule for tickets of the product without a project (same language as the
+# projects' match); priority: order of these tickets against the projects' (lower = first).
 """
 
 
@@ -996,6 +998,12 @@ def products_from_dict(d: dict[str, Any], where: str) -> list[Product]:
                 start=_date(p["from"], at) if p.get("from") else None,
                 end=_date(p["to"], at) if p.get("to") else None,
                 share=_lenient_float(p.get("share"), f"{at}: share"),
+                priority=(
+                    None
+                    if p.get("priority") in (None, "")
+                    else _int(p.get("priority"), at, "priority")
+                ),
+                match=_rule_from(p.get("match"), f"{at}: match"),
             )
         )
     return products
@@ -1009,6 +1017,10 @@ def products_to_dict(products: list[Product]) -> dict[str, Any]:
             entry["po"] = p.po
         if p.share is not None:
             entry["share"] = _clean(p.share)
+        if p.priority is not None:
+            entry["priority"] = p.priority
+        if p.match is not None:
+            entry["match"] = _rule_to(p.match)
         entry["from"] = p.start
         entry["to"] = p.end
         out.append(entry)

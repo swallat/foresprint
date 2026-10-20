@@ -289,6 +289,10 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
     _check_tracker_source(tr, error, warn)
 
     products = {p.id: p for p in data.products}
+    for prod in data.products:
+        if prod.match is not None:
+            for problem in rule_problems(prod.match, sources):
+                error(f"products.yaml: {prod.id}", t("match: {problem}", problem=problem))
     project_ids: set[str] = set()
     for pr in data.projects:
         where = f"projects.yaml: {pr.id}"
