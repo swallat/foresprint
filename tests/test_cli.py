@@ -690,9 +690,9 @@ def one_line(output: str) -> str:
 @pytest.fixture
 def without_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Git is not installed on this machine (not in PATH)."""
-    leer = tmp_path / "ohne-git"
-    leer.mkdir()
-    monkeypatch.setenv("PATH", str(leer))
+    empty = tmp_path / "ohne-git"
+    empty.mkdir()
+    monkeypatch.setenv("PATH", str(empty))
 
 
 @pytest.fixture
@@ -740,10 +740,10 @@ def test_commit_without_git_identity_names_the_command_line_way(
     monkeypatch.delenv("GIT_COMMITTER_EMAIL", raising=False)
     # No user settings of the machine (on Windows: USERPROFILE instead of HOME): otherwise Git
     # would find a name there.
-    leer = tmp_path.parent / f"{tmp_path.name}-leer.gitconfig"
-    leer.write_text("", encoding="utf-8")
+    empty = tmp_path.parent / f"{tmp_path.name}-leer.gitconfig"
+    empty.write_text("", encoding="utf-8")
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
-    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(leer))
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty))
     for variable in ("HOME", "USERPROFILE"):
         monkeypatch.setenv(variable, str(tmp_path / "leer"))
     result = commit_planning(data_dir)

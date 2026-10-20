@@ -570,9 +570,9 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
             warn(
                 where,
                 t(
-                    "planned per product ({planned}) exceeds the commitment ({ist})",
+                    "planned per product ({planned}) exceeds the commitment ({commitment})",
                     planned=_g(sum(planned)),
-                    ist=_g(s.forecast_ist),
+                    commitment=_g(s.forecast_ist),
                 ),
             )
         done = [v.done for v in s.products.values() if v.done is not None]
@@ -614,10 +614,10 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                     where,
                     t(
                         (
-                            "Commitment ({ist}) − not finished ({open}) + additionally done "
+                            "Commitment ({commitment}) − not finished ({open}) + additionally done "
                             "({extra}) gives {expected}, but the velocity is {velocity}"
                         ),
-                        ist=_g(s.forecast_ist),
+                        commitment=_g(s.forecast_ist),
                         open=_g(s.not_done or 0.0),
                         extra=_g(s.additional_done or 0.0),
                         expected=_g(expected),
@@ -648,10 +648,10 @@ def check_team(data: TeamData, today: date) -> list[Issue]:
                     where,
                     t(
                         (
-                            "commitment {ist} differs from carry-over + backlog ({planned}) – "
-                            "typo or missing ticket?"
+                            "commitment {commitment} differs from carry-over + backlog "
+                            "({planned}) – typo or missing ticket?"
                         ),
-                        ist=_g(s.forecast_ist),
+                        commitment=_g(s.forecast_ist),
                         planned=_g(committed),
                     ),
                 )

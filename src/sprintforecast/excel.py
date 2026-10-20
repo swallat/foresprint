@@ -490,12 +490,12 @@ def build_workbook(fc: Forecast) -> bytes:
             n1,
             _blank(res.plan_capacity),
         )
-        tr, pcap, ist = at("norm_trend", row), at("plancap", row), at("ist", row)
+        tr, pcap, commitment = at("norm_trend", row), at("plancap", row), at("ist", row)
         ws.write_formula(
             row,
             c["plan"],
             f"=IF(AND({_num(tr)},{_num(pcap)}),MAX(0,ROUNDDOWN({tr}/Referenz*{pcap},Rundung)),"
-            f'IF({_num(ist)},ROUNDDOWN({ist},Rundung),""))',
+            f'IF({_num(commitment)},ROUNDDOWN({commitment},Rundung),""))',
             n2,
             _blank(res.plan),
         )
@@ -518,7 +518,7 @@ def build_workbook(fc: Forecast) -> bytes:
         ws.write_formula(
             row,
             c["ful"],
-            f'=IF(AND({_num(vel)},{_num(ist)},{ist}<>0),{vel}/{ist},"")',
+            f'=IF(AND({_num(vel)},{_num(commitment)},{commitment}<>0),{vel}/{commitment},"")',
             pc,
             _blank(res.fulfillment.value),
         )

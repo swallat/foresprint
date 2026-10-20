@@ -93,7 +93,7 @@ def write_team(
 
 
 @pytest.fixture
-def klammern(data_dir: Path, tmp_path: Path) -> Path:
+def brackets(data_dir: Path, tmp_path: Path) -> Path:
     """Demo data whose path, names and sprint IDs look like Rich markup."""
     root = tmp_path / f"da[x]ten{BS}[red]"
     data_dir.rename(root)
@@ -365,18 +365,18 @@ BLANK = "\n" * 60  # Enter accepts the suggestion each time
     ],
 )
 def test_values_with_markup_look_are_shown_literally(
-    klammern: Path, args: list[str], input: str | None, expected: list[str], code: int
+    brackets: Path, args: list[str], input: str | None, expected: list[str], code: int
 ):
-    result = run(klammern, *args, input=input)
+    result = run(brackets, *args, input=input)
     check(result, *expected, code=code)
 
 
-def test_personen_new_person_and_selection(klammern: Path):
+def test_personen_new_person_and_selection(brackets: Path):
     """Select box, new person and check lines after saving with names that look like markup."""
-    people = klammern / "demo" / "people.yaml"
+    people = brackets / "demo" / "people.yaml"
     replace(people, "people:\n", "people:\n- id: '[x]'\n  name: Zoe\n")
     result = run(
-        klammern,
+        brackets,
         "people",
         "demo",
         input="f\nEva\n2026-12-01\n0.5\nn\nNeu [/x]\n[/x]\n2026-11-01\n1\nq\n",
@@ -390,15 +390,15 @@ def test_personen_new_person_and_selection(klammern: Path):
     assert "Neu [/x]" not in people.read_text(encoding="utf-8")
 
 
-def test_personen_region_with_markup_look(klammern: Path):
-    replace(klammern / "demo" / "people.yaml", "region: BY", "region: '[/x]'")
-    result = run(klammern, "people", "demo", input="q\n")
+def test_personen_region_with_markup_look(brackets: Path):
+    replace(brackets / "demo" / "people.yaml", "region: BY", "region: '[/x]'")
+    result = run(brackets, "people", "demo", input="q\n")
     check(result, "Cem [red]", "[/x]")
 
 
-def test_commit_message_lines_with_markup_look(klammern: Path):
+def test_commit_message_lines_with_markup_look(brackets: Path):
     """Check lines and tag hint of _maybe_commit also appear without markup with --commit."""
-    result = run(klammern, "absences", "demo", f"[red]{BS}", "--commit", input=ABSENCES)
+    result = run(brackets, "absences", "demo", f"[red]{BS}", "--commit", input=ABSENCES)
     check(
         result,
         f"Fehler sprints/[red]{BS}.yaml: Fehltage für unbekannte Person '[/x]'",
@@ -433,21 +433,21 @@ def test_names_in_error_lines_with_markup_look(data_dir: Path):
 
 
 def test_sprint_panel_names_the_region_with_markup_look(
-    klammern: Path, monkeypatch: pytest.MonkeyPatch
+    brackets: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """The holidays in the sprint panel name the team's region."""
-    replace(klammern / "demo" / "team.yaml", "region: NW", "region: '[x]'")
+    replace(brackets / "demo" / "team.yaml", "region: NW", "region: '[x]'")
     monkeypatch.setattr(cli, "holiday_name", lambda d, region, country: "Feiertag" * (d.day == 20))
-    result = run(klammern, "absences", "demo", f"[red]{BS}", input=ABSENCES)
+    result = run(brackets, "absences", "demo", f"[red]{BS}", input=ABSENCES)
     check(result, "davon Feiertage ([x]): 20.10. Feiertag")
 
 
-def test_init_with_a_key_that_looks_like_markup(klammern: Path, monkeypatch: pytest.MonkeyPatch):
+def test_init_with_a_key_that_looks_like_markup(brackets: Path, monkeypatch: pytest.MonkeyPatch):
     """New keys are limited to a–z, digits, "-" and "_"; the messages do not depend on this check
     anyway."""
     monkeypatch.setattr(cli, "team_key_problem", lambda key: None)
     key = f"neu[x]{BS}"
-    result = run(klammern, "init", key, input=INIT_ANSWERS.format(bs=BS))
+    result = run(brackets, "init", key, input=INIT_ANSWERS.format(bs=BS))
     check(
         result,
         f"Neues Team {key} anlegen.",
@@ -456,15 +456,15 @@ def test_init_with_a_key_that_looks_like_markup(klammern: Path, monkeypatch: pyt
     )
 
 
-def test_fte_change_note_names_people_with_markup_look(klammern: Path):
+def test_fte_change_note_names_people_with_markup_look(brackets: Path):
     """The approximation for an FTE change names the people in the table caption."""
-    result = run(klammern, "capacity", "demo", "2026.11")
+    result = run(brackets, "capacity", "demo", "2026.11")
     check(result, "(Ben [/x]).")
 
 
-def test_commit_line_with_tag_with_markup_look(klammern: Path, monkeypatch: pytest.MonkeyPatch):
+def test_commit_line_with_tag_with_markup_look(brackets: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(cli, "commit", lambda paths, message, tag: "abc1234")
-    result = run(klammern, "review", "demo", "[x]", "--commit", input="\ny\n" + BLANK)
+    result = run(brackets, "review", "demo", "[x]", "--commit", input="\ny\n" + BLANK)
     check(result, "Committet (abc1234), Tag demo/[x].")
 
 
@@ -478,8 +478,8 @@ def test_empty_data_dir_ending_in_a_backslash(tmp_path: Path):
 
 
 def test_sprint_id_with_brackets(data_dir: Path):
-    neu = data_dir / "neu"
-    neu.mkdir()
+    new_dir = data_dir / "neu"
+    new_dir.mkdir()
     team = {
         "name": "Neu",
         "unit": "PT",
@@ -487,8 +487,8 @@ def test_sprint_id_with_brackets(data_dir: Path):
     }
     person = {"id": "eva", "name": "Eva", "memberships": [{"from": date(2025, 1, 1)}]}
     people = {"people": [person]}
-    (neu / "team.yaml").write_text(yaml.safe_dump(team), encoding="utf-8")
-    (neu / "people.yaml").write_text(yaml.safe_dump(people), encoding="utf-8")
+    (new_dir / "team.yaml").write_text(yaml.safe_dump(team), encoding="utf-8")
+    (new_dir / "people.yaml").write_text(yaml.safe_dump(people), encoding="utf-8")
 
     for args in (["sprints", "neu"], ["forecast", "neu"]):
         result = run(data_dir, *args)
@@ -534,22 +534,22 @@ INIT_ANSWERS = (
 )
 
 
-def test_init_with_markup_look(klammern: Path):
-    result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
+def test_init_with_markup_look(brackets: Path):
+    result = run(brackets, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
     check(
         result,
         "Neues Team neu anlegen.",
         "sprintforecast settings neu",
         "Unbekannter Regionscode: [/X]",
-        f"Angelegt: {klammern}{SEP}neu{SEP}team.yaml",
+        f"Angelegt: {brackets}{SEP}neu{SEP}team.yaml",
         "Weiter mit: sprintforecast people neu",
     )
-    assert yaml.safe_load((klammern / "neu" / "team.yaml").read_text())["name"] == f"Neu [/x]{BS}"
+    assert yaml.safe_load((brackets / "neu" / "team.yaml").read_text())["name"] == f"Neu [/x]{BS}"
 
 
-def test_settings_with_markup_look(klammern: Path):
+def test_settings_with_markup_look(brackets: Path):
     result = run(
-        klammern,
+        brackets,
         "settings",
         "demo",
         input=f"Neu [x]{BS}\n" + "\n" * 6 + "[/x]\n\n" + "\n" * 20 + "y\n",
@@ -561,40 +561,40 @@ def test_settings_with_markup_look(klammern: Path):
         "Änderungen",
         "[/x] Team",
         f"Neu [x]{BS}",
-        f"Gespeichert: {klammern}{SEP}demo{SEP}team.yaml",
+        f"Gespeichert: {brackets}{SEP}demo{SEP}team.yaml",
     )
 
 
 # --- Paths ---------------------------------------------------------------------------
 
 
-def test_path_with_brackets_and_backslashes_in_messages(klammern: Path):
+def test_path_with_brackets_and_backslashes_in_messages(brackets: Path):
     """_saved, "Created" and report show the path with "[x]", "[red]" and a backslash."""
     shown = f"da[x]ten{BS}[red]"
-    result = run(klammern, "absences", "demo", "2026.23", input=ABSENCES)
-    check(result, f"Gespeichert: {klammern}{SEP}demo{SEP}sprints{SEP}2026.23.yaml", shown)
-    result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
-    check(result, f"Angelegt: {klammern}{SEP}neu{SEP}team.yaml", shown)
-    result = run(klammern, "report", "demo")
-    check(result, f"{klammern}{SEP}demo{SEP}FORECAST.md")
+    result = run(brackets, "absences", "demo", "2026.23", input=ABSENCES)
+    check(result, f"Gespeichert: {brackets}{SEP}demo{SEP}sprints{SEP}2026.23.yaml", shown)
+    result = run(brackets, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
+    check(result, f"Angelegt: {brackets}{SEP}neu{SEP}team.yaml", shown)
+    result = run(brackets, "report", "demo")
+    check(result, f"{brackets}{SEP}demo{SEP}FORECAST.md")
 
 
 def test_path_with_brackets_and_backslashes_for_data_folder(tmp_path: Path):
     """Without an argument ``data-dir`` shows the remembered and the used folder. If it ends in a
     backslash (drive root "C:\\"), it appears once."""
-    gemerkt = tmp_path / f"alt[x]{BS}"
-    verwendet = tmp_path / f"neu[red]{BS}"
-    gemerkt.mkdir()
-    verwendet.mkdir()
-    save_data_dir(gemerkt)
-    result = runner.invoke(app, ["data-dir"], env={DATA_ENV: str(verwendet)})
+    saved = tmp_path / f"alt[x]{BS}"
+    used = tmp_path / f"neu[red]{BS}"
+    saved.mkdir()
+    used.mkdir()
+    save_data_dir(saved)
+    result = runner.invoke(app, ["data-dir"], env={DATA_ENV: str(used)})
     check(
         result,
-        f"Gemerkt: {gemerkt}\n",
-        f"Verwendet (ohne --data): {verwendet}\n",
+        f"Gemerkt: {saved}\n",
+        f"Verwendet (ohne --data): {used}\n",
     )
     result = runner.invoke(app, ["data-dir"], env={DATA_ENV: ""})
-    check(result, f"Gemerkt: {gemerkt}\n")
+    check(result, f"Gemerkt: {saved}\n")
 
 
 def test_path_with_brackets_and_backslashes_for_missing_folder(data_dir: Path):
@@ -637,7 +637,7 @@ def test_help_shows_square_brackets_of_the_commands(data_dir: Path):
 # --- Messages from helper functions that can only be reached with mocks -----------------
 
 
-def test_analyse_completion_with_markup_look(klammern: Path, monkeypatch: pytest.MonkeyPatch):
+def test_analyse_completion_with_markup_look(brackets: Path, monkeypatch: pytest.MonkeyPatch):
     real = analysis.completion
 
     def completion(*args, **kwargs):
@@ -650,7 +650,7 @@ def test_analyse_completion_with_markup_look(klammern: Path, monkeypatch: pytest
         )
 
     monkeypatch.setattr(analysis, "completion", completion)
-    result = run(klammern, "analysis", "demo", "--remaining", "20")
+    result = run(brackets, "analysis", "demo", "--remaining", "20")
     check(
         result,
         "in 50 % der Simulationen bis [x], in 85 % bis später als [red]",
@@ -663,7 +663,7 @@ def test_analyse_completion_with_markup_look(klammern: Path, monkeypatch: pytest
             real(*a, **k), p50=None, p85=f"[x]{BS}", trend_capacity_sprints=["[x]", f"[red]{BS}"]
         ),
     )
-    result = run(klammern, "analysis", "demo", "--remaining", "20")
+    result = run(brackets, "analysis", "demo", "--remaining", "20")
     check(result, f"bis [x]{BS} (", f"Kapazität: [x], [red]{BS}\n")
 
 
@@ -772,13 +772,13 @@ def test_open_app_window_messages_with_markup_look(
 
 
 @pytest.mark.usefixtures("english")
-def test_english_translations_keep_their_markup(klammern: Path):
+def test_english_translations_keep_their_markup(brackets: Path):
     """The English templates with [bold] around a placeholder also stay markup."""
-    result = run(klammern, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
-    check(result, "Create new team neu.", f"Created: {klammern}{SEP}neu{SEP}team.yaml", "Next: ")
-    result = run(klammern, "absences", "demo", f"[red]{BS}", input=ABSENCES)
+    result = run(brackets, "init", "neu", input=INIT_ANSWERS.format(bs=BS))
+    check(result, "Create new team neu.", f"Created: {brackets}{SEP}neu{SEP}team.yaml", "Next: ")
+    result = run(brackets, "absences", "demo", f"[red]{BS}", input=ABSENCES)
     check(result, f"Sprint [red]{BS}: ", "Saved: ")
-    result = run(klammern, "review", "demo", f"[red]{BS}", input="\ny\n" + BLANK)
+    result = run(brackets, "review", "demo", f"[red]{BS}", input="\ny\n" + BLANK)
     check(result, f"Review Sprint [red]{BS} (", "Capacity according to people list")
 
 
