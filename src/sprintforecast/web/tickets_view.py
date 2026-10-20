@@ -2,7 +2,7 @@
 """Page "Tickets" of the ticket pre-planning (docs/design/ticket-planning.md, section 8).
 
 Filter over products and projects, project traffic light, timeline, sprint columns with
-earmarks, refinement list, open points, import with preview and maintenance of projects and
+earmarks, refinement list, open points, import with preview and settings for projects and
 manual estimates. The computation is ``preplan.distribute``; this module only selects and
 displays. Loaded by ``ui.page_tickets`` only (``features.tickets``); the filter and the table
 builders are pure functions so that tests need no browser."""
@@ -85,7 +85,7 @@ SOURCE_LETTERS = {
     EstimateSource.MANUAL: "M",
     EstimateSource.NONE: "–",
 }
-# Sources of an assignment rule the maintenance table edits (other rules stay as they are).
+# Sources of an assignment rule the settings table edits (other rules stay as they are).
 EDITABLE_SOURCES = ("epic", "component", "label")
 AUTOMATIC = ""
 CARD_LIMIT = 30
@@ -413,7 +413,7 @@ def change_rows(plan: TicketImportPlan, kind: str) -> list[dict[str, str]]:
     ]
 
 
-# --- Project rules in the maintenance table ---------------------------------------------------
+# --- Project rules in the settings table ---------------------------------------------------
 
 
 def handover_sprints(data: TeamData, rows: list[HandoverRow], overwrite: bool) -> list[Sprint]:
@@ -471,7 +471,7 @@ def split_values(text: str | None) -> list[str]:
 
 
 def apply_project_rows(projects: list[Project], rows: list[tuple[Any, ...]]) -> list[Project]:
-    """The projects with the values of the maintenance table: one row per project in the same
+    """The projects with the values of the settings table: one row per project in the same
     order, columns ``id, name, product, target, priority, budget basis, epics, components,
     labels``. The id is never changed; a nested rule stays as it is."""
     result = []
@@ -951,7 +951,7 @@ def _assignment(data: TeamData, sel: Selection) -> None:
     st.caption(
         t(
             "Which project and product each open ticket belongs to, and why. The assignment "
-            "follows the criteria of the projects (Settings), the order of the criteria is "
+            "follows the criteria of the projects (tab Settings), the order of the criteria is "
             "set on the page Jira connection."
         )
     )
@@ -978,8 +978,8 @@ def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
         return
     st.caption(
         t(
-            "These tickets cannot be distributed. Enter an own estimate under "
-            "**Settings**; split tickets that are too large in the ticket system."
+            "These tickets cannot be distributed. Enter an own estimate on the "
+            "tab **Settings**; split tickets that are too large in the ticket system."
         )
     )
     st.dataframe(pd.DataFrame(rows), hide_index=True)
@@ -1210,7 +1210,7 @@ def _import_preview(
     st.rerun()
 
 
-# --- Settings    ------------------------------------------------------------------------------
+# --- Settings ------------------------------------------------------------------------------
 
 
 def _projects_editor(repo: Repository, data: TeamData) -> None:
