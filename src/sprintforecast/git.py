@@ -1828,17 +1828,17 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
 
 
 GITIGNORE = """\
-# Tabellenkalkulationen nie committen – sie können echte Team-Daten enthalten.
+# Never commit spreadsheets – they can contain real team data.
 *.xlsx
 *.xlsm
 *.xls
-# Übrig gebliebene Zwischendateien des Speicherns.
+# Leftover temporary files from saving.
 *.tmp
 """
 
 GITATTRIBUTES = """\
-# Datendateien und Berichte immer mit LF, auch bei core.autocrlf (Windows): Sonst schriebe das
-# erste Speichern alle Zeilenenden um und erzeugte Rauschen im Verlauf.
+# Data files and reports always with LF, even with core.autocrlf (Windows): otherwise the first
+# save would rewrite all line endings and create noise in the history.
 *.yaml text eol=lf
 *.yml text eol=lf
 *.md text eol=lf

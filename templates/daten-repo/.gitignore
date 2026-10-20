@@ -1,6 +1,6 @@
-# Tabellenkalkulationen nie committen – sie können echte Team-Daten enthalten.
+# Never commit spreadsheets – they can contain real team data.
 *.xlsx
 *.xlsm
 *.xls
-# Übrig gebliebene Zwischendateien des Speicherns.
+# Leftover temporary files from saving.
 *.tmp
