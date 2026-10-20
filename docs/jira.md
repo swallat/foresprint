@@ -48,8 +48,8 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    sprintforecast tickets TEAM --set-token
    ```
 
-   The keychain needs the optional package `keyring`
-   (the install command above with `--with keyring` added); the entry is stored under the
+   The keychain needs the package `keyring`, which comes with the extra `[jira]`; the entry is
+   stored under the
    service `sprintforecast-jira` and the **host** of `base_url` only: one token per Jira host,
    shared by all teams and paths on it. The environment variable comes first when both exist
    (`--set-token` warns about that).
@@ -60,13 +60,19 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    sprintforecast tickets TEAM --test-connection
    ```
 
+   On the web page *Jira connection* the token can be entered too (hidden input, **Store in
+   keychain**, **Replace**, **Remove**): it goes only into the same keychain entry, never into
+   `team.yaml`, the data folder or any other file, and is never shown again. Without a usable
+   keychain (package missing, or Linux without a Secret Service) the page only explains the
+   environment variable; there is no substitute store. The page shows the active source; the
+   environment variable takes precedence over a stored token.
+
    The web page *Jira connection* does the same with **Test connection**, and in addition offers
    the number fields and epic links of the instance as choices for `fields.estimate`,
    `fields.remaining` and `fields.epic` (a hint marks the likeliest by its name) and counts the
-   tickets the query matches. The page does not take the token and does not store it: it only
-   reports whether one is found (environment variable or keychain) and otherwise explains how to
-   set it. Set the variable before starting the web interface. Components and labels need no
-   setting; they are always read.
+   tickets the query matches. Components and labels need no setting; they are always read. The
+   page also sets the label of refined tickets and the order of the project assignment criteria
+   (epic, component, label); the criteria of each project are on the page Tickets.
 
 ## Reading tickets
 

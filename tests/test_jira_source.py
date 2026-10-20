@@ -1128,3 +1128,40 @@ def test_count_tickets_needs_a_query():
     source, _ = make(query=None)
     with pytest.raises(SourceError):
         source.count_tickets()
+
+
+def test_keychain_usable_tells_a_real_backend_from_the_fail_backend(monkeypatch):
+    keyring = pytest.importorskip("keyring")
+    from keyring.backend import KeyringBackend
+    from keyring.backends import fail
+
+    class Memory(KeyringBackend):
+        priority = 1  # type: ignore[assignment]
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.store: dict[tuple[str, str], str] = {}
+
+        def get_password(self, service, username):
+            return self.store.get((service, username))
+
+        def set_password(self, service, username, password):
+            self.store[(service, username)] = password
+
+        def delete_password(self, service, username):
+            self.store.pop((service, username), None)
+
+    previous = keyring.get_keyring()
+    try:
+        keyring.set_keyring(fail.Keyring())
+        assert not jira_module.keychain_usable()
+        memory = Memory()
+        keyring.set_keyring(memory)
+        assert jira_module.keychain_usable()
+        jira_module.store_token(BASE, CANARY)
+        assert jira_module.stored_token_exists(BASE) and jira_token(BASE) == CANARY
+        jira_module.delete_token(BASE)
+        jira_module.delete_token(BASE)  # no entry any more: not an error
+        assert not jira_module.stored_token_exists(BASE)
+    finally:
+        keyring.set_keyring(previous)
