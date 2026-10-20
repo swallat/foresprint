@@ -37,6 +37,45 @@ uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/for
 
 The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `SPRINTFORECAST_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
 
+## Removing the old name (sprintforecast)
+
+The tool was renamed to **Foresprint** (command `foresprint`). An installation under the old
+name keeps running side by side with the new one until you remove it. The uninstaller removes
+only what the old installer created: the `uv` tool `sprintforecast` (with its commands
+`sprintforecast` and `sprintforecast-app`), the launcher "Sprint-Forecast" (desktop and Start
+menu on Windows, `~/Applications` and the desktop alias on macOS, `sprintforecast.desktop` on
+Linux) and the cache folder with the app window's browser profile.
+
+It never deletes your data: the team data folder, the Jira token in the keychain and Git
+credentials stay. The settings (data folder, plugin selection) are copied from the old to the
+new settings folder (`~/.config/sprintforecast` to `~/.config/foresprint`, on Windows
+`%APPDATA%`), existing files there are not overwritten. The old settings folder is kept unless
+you add `--remove-old-config` (`-RemoveOldConfig`), which removes it after copying (files that
+exist in the new folder are not overwritten, the old ones are deleted). Close the old app
+first, Windows locks running programs. The Jira token stays in the keychain under the old
+entry name `sprintforecast-jira`; plugins that pull the old package `sprintforecast` must be
+updated to the new one. The
+`PATH` entry made by `uv tool update-shell` belongs to `uv` and stays.
+
+The script lists what it would do and asks first; run it again at any time, it is harmless.
+
+**Linux / macOS:**
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.sh | sh -s -- --dry-run
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.sh | sh -s -- --yes
+```
+
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.ps1))) -DryRun"
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall-old.ps1))) -Force"
+```
+
+`--dry-run` / `-DryRun` only lists, `--yes` / `-Force` skips the question. Without a terminal
+(for example in a pipe without `/dev/tty`) it refuses to proceed without that option.
+
 ## Git
 
 Git is needed for plugins from Git repositories and for creating, committing, sharing, viewing
