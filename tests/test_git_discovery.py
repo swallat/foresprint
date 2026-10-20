@@ -41,9 +41,9 @@ def fake_git(folder: Path, name: str = "git", version: str = "9.9.9-fake") -> Pa
 @pytest.fixture
 def no_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Git is not in the PATH."""
-    leer = tmp_path / "leerer-path"
-    leer.mkdir()
-    monkeypatch.setenv("PATH", str(leer))
+    empty = tmp_path / "leerer-path"
+    empty.mkdir()
+    monkeypatch.setenv("PATH", str(empty))
 
 
 @posix

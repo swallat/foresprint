@@ -31,12 +31,12 @@ from sprintforecast.config import PACKAGE
 from sprintforecast.i18n import LANG_ENV
 from sprintforecast.launcher import free_port
 from sprintforecast.proctree import popen_options, terminate_tree
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples" / "teams"
 # "Today" in the tests: sprint 2026.21 is running, 2026.22 is the next one (demo data).
-STICHTAG = "2026-10-15"
+AS_OF = "2026-10-15"
 START_TIMEOUT = 90  # seconds until the server first shows signs of life
 
 
@@ -202,7 +202,7 @@ class App:
         env |= git_env(self.person, self.gitconfig)
         env |= {
             DATA_ENV: str(self.data_dir),
-            STICHTAG_ENV: STICHTAG,
+            AS_OF_ENV: AS_OF,
             "SPRINTFORECAST_AUTOUPDATE": "off",
             "XDG_CONFIG_HOME": str(self.config),
             "APPDATA": str(self.config),

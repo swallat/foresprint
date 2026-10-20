@@ -7,8 +7,8 @@ from harness import App, choose, navigate, no_exception, open_page, selected
 from playwright.sync_api import Page, expect
 
 SPRINT_KEYS = {
-    "fehltage": "absences-sprint",
-    "vorplanung": "vorplanung-sprint",
+    "absences": "absences-sprint",
+    "preplanning": "preplanning-sprint",
     "planning": "planning-sprint",
     "review": "review-sprint",
 }

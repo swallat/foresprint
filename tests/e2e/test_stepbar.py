@@ -10,7 +10,7 @@ from harness import App, open_page, settle
 from playwright.sync_api import Page, expect
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-BOARDS = ["fehltage", "vorplanung", "planning", "review"]
+BOARDS = ["absences", "preplanning", "planning", "review"]
 STEP_HEIGHT = 40  # 2.5 rem at 16 px font size
 ACTIVE_BACKGROUND = "rgb(42, 120, 214)"
 
@@ -79,10 +79,10 @@ def rounded(box: dict) -> tuple:
 @pytest.mark.parametrize("width", [1900, 1400, 900, 500])
 def test_steps_are_equally_tall_and_stay_in_place(new_page, app: App, width: int):
     page = new_page(width)
-    open_page(page, app, "fehltage")
+    open_page(page, app, "absences")
     seen: dict[str, list[dict]] = {}
     for board in BOARDS:
-        if board != "fehltage":
+        if board != "absences":
             go_to_step(page, board)
         steps = measure(page)
         seen[board] = steps
@@ -94,7 +94,7 @@ def test_steps_are_equally_tall_and_stay_in_place(new_page, app: App, width: int
             assert step["labelLines"] == 1 and step["labelFits"], (board, step)
             expected = ACTIVE_BACKGROUND if step["active"] else "rgba(0, 0, 0, 0)"
             assert step["background"] == expected, (board, step)
-    first = [rounded(s) for s in seen["fehltage"]]
+    first = [rounded(s) for s in seen["absences"]]
     for board in BOARDS[1:]:
         assert [rounded(s) for s in seen[board]] == first, f"Schritte springen auf {board}"
 
@@ -110,11 +110,11 @@ def test_steps_line_up_by_the_available_width(new_page, app: App, width: int, ro
 
 def test_team_without_products_has_three_equally_tall_steps(new_page, app_without_products: App):
     page = new_page(1400)
-    open_page(page, app_without_products, "fehltage")
-    for board in ["fehltage", "planning", "review"]:
-        if board != "fehltage":
+    open_page(page, app_without_products, "absences")
+    for board in ["absences", "planning", "review"]:
+        if board != "absences":
             go_to_step(page, board)
         steps = measure(page)
-        assert [s["key"] for s in steps] == ["fehltage", "planning", "review"]
+        assert [s["key"] for s in steps] == ["absences", "planning", "review"]
         assert {round(s["height"], 1) for s in steps} == {STEP_HEIGHT}
         assert [s["key"] for s in steps if s["active"]] == [board]

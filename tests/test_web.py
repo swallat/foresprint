@@ -18,7 +18,7 @@ from webfixtures import STEP_DONE_MARK, nav_done, nav_help, nav_links, nav_steps
 from sprintforecast.forecast import build_forecast
 from sprintforecast.i18n import t
 from sprintforecast.model import Sprint
-from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
+from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
 from sprintforecast.web import ui
 from sprintforecast.web.ui import PAGE_FEATURES, PAGE_INFO, PAGES, START_TASKS
 
@@ -27,7 +27,7 @@ APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
 def start(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -40,7 +40,7 @@ def app(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def goto(at: AppTest, page: str) -> AppTest:
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -61,14 +61,14 @@ def git(cwd: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def test_invalid_stichtag_variable_shows_error(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+def test_invalid_as_of_variable_shows_error(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "morgen")
+    monkeypatch.setenv(AS_OF_ENV, "morgen")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
     assert len(at.error) == 1
-    for part in (STICHTAG_ENV, "morgen", "JJJJ-MM-TT"):
+    for part in (AS_OF_ENV, "morgen", "JJJJ-MM-TT"):
         assert part in at.error[0].value
     assert not at.header  # the page is not drawn
 
@@ -122,7 +122,7 @@ def test_start_prepare_asks_for_preplanning_once_absences_are_known(
     assert any("PO-Vorplanung fehlt noch" in w.value for w in at.main.markdown)
     at.button(key="start-prepare").click().run()
     assert at.header[0].value == "PO-Vorplanung"
-    assert at.selectbox(key="vorplanung-sprint").value == "2026.22"
+    assert at.selectbox(key="preplanning-sprint").value == "2026.22"
 
 
 def test_start_prepare_still_asks_while_one_product_has_no_value(
@@ -192,7 +192,7 @@ def test_pages_render(data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
 
 
 def test_help_shows_workflow_and_terms(app: AppTest):
-    goto(app, "hilfe")
+    goto(app, "help")
     assert [t.label for t in app.tabs] == [
         "Ablauf", "Begriffe", "Eingabefelder", "Team-Einstellungen", "Zusammenarbeit (Git)",
         "Kommandozeile",
@@ -202,14 +202,14 @@ def test_help_shows_workflow_and_terms(app: AppTest):
 
 def test_absences_save_does_not_confirm_silently(app: AppTest, data_dir: Path):
     """Saving without an entry and without explicit confirmation creates nothing (B2)."""
-    goto(app, "fehltage")
+    goto(app, "absences")
     assert not any("angelegt" in c.value for c in app.caption)
     assert next(b for b in app.button if b.label == "Fehltage speichern").disabled
     assert not (data_dir / "demo" / "sprints" / "2026.24.yaml").exists()
 
 
 def test_absences_confirm_nobody_absent_creates_sprint_files(app: AppTest, data_dir: Path):
-    goto(app, "fehltage")
+    goto(app, "absences")
     frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
     states = f"absence-states-{frame['Sprint'].iloc[0]}-{len(frame)}"
     rows = {
@@ -236,7 +236,7 @@ def test_reset_absences_text_names_calendar_and_people_not_trend(
     repo = Repository(data_dir)
     nxt = build_forecast(repo.load("demo"), date(2026, 10, 15)).entries[-1].sprint
     repo.save_sprint("demo", Sprint(id=nxt.id, start=nxt.start, end=nxt.end))
-    at = goto(start(data_dir, monkeypatch), "fehltage")
+    at = goto(start(data_dir, monkeypatch), "absences")
     assert "Fehltage zurücksetzen" in [s.value for s in at.subheader]
     caption = next(c.value for c in at.caption if "Zurücksetzen löscht" in c.value)
     assert "Trend" not in caption
@@ -319,7 +319,7 @@ def test_review_saves_and_freezes_capacity(app: AppTest, data_dir: Path):
 
 
 def test_settings_save(app: AppTest, data_dir: Path):
-    goto(app, "einstellungen")
+    goto(app, "settings")
     app.selectbox(key="settings-demo-forecast.trend_mode").set_value("classic")
     app.number_input(key="settings-demo-forecast.roadmap_share").set_value(70.0)
     click(app, "Speichern")
@@ -330,7 +330,7 @@ def test_settings_save(app: AppTest, data_dir: Path):
 
 
 def test_overhead_fields_stay_in_sync(app: AppTest, data_dir: Path):
-    goto(app, "einstellungen")
+    goto(app, "settings")
     app.number_input(key="settings-demo-capacity.overhead_days").set_value(1.0).run()
     # 14 calendar days = 10 working days -> 1 PD = 10 %
     assert app.number_input(key="settings-demo-capacity.overhead_share").value == 10.0
@@ -343,7 +343,7 @@ def test_overhead_fields_stay_in_sync(app: AppTest, data_dir: Path):
 
 
 def test_new_team(app: AppTest, data_dir: Path):
-    goto(app, "neues_team")
+    goto(app, "new_team")
     app.text_input[0].set_value("team-b").run()
     app.text_input(key="new-team-b-sprint.first_id").set_value("2026.15")
     app.text_input(key="new-team-b-capacity.region").set_value("BY")
@@ -357,7 +357,7 @@ def test_new_team(app: AppTest, data_dir: Path):
 def test_new_team_asks_for_the_first_sprint_first(app: AppTest):
     """The first sprint is its own section before all other settings, the ID without a default
     (a prefilled 2026.1 was overlooked and then hard to change)."""
-    goto(app, "neues_team")
+    goto(app, "new_team")
     app.text_input[0].set_value("team-b").run()
     assert [h.value for h in app.subheader] == ["Erster Sprint", "Weitere Einstellungen"]
     # Per field type in page order: the first sprint comes before name, unit, etc.
@@ -369,7 +369,7 @@ def test_new_team_asks_for_the_first_sprint_first(app: AppTest):
 
 
 def test_new_team_requires_the_first_sprint_id(app: AppTest, data_dir: Path):
-    goto(app, "neues_team")
+    goto(app, "new_team")
     app.text_input[0].set_value("team-b").run()
     click(app, "Team anlegen")
     assert any("ID des ersten Sprints: Bitte einen Wert eingeben." in e.value for e in app.error)
@@ -379,7 +379,7 @@ def test_new_team_requires_the_first_sprint_id(app: AppTest, data_dir: Path):
 
 @pytest.mark.parametrize("key", ["../x", "a/b", "..", "con", "-x", "a" * 65])
 def test_new_team_rejects_invalid_key(app: AppTest, data_dir: Path, key: str):
-    goto(app, "neues_team")
+    goto(app, "new_team")
     app.text_input[0].set_value(key).run()
     assert not app.exception, app.exception
     assert any("Kleinbuchstaben a–z" in e.value or "Windows" in e.value for e in app.error)
@@ -390,7 +390,7 @@ def test_new_team_rejects_invalid_key(app: AppTest, data_dir: Path, key: str):
 
 def test_new_team_refuses_a_key_that_only_differs_in_case(app: AppTest, data_dir: Path):
     shutil.copytree(data_dir / "demo", data_dir / "Alpha")
-    goto(app, "neues_team")
+    goto(app, "new_team")
     app.text_input[0].set_value("alpha").run()
     assert any("existiert bereits (als 'Alpha'" in e.value for e in app.error)
     assert not [b for b in app.button if b.label == "Team anlegen"]
@@ -398,7 +398,7 @@ def test_new_team_refuses_a_key_that_only_differs_in_case(app: AppTest, data_dir
 
 
 def test_new_team_key_is_normalized_before_the_check(app: AppTest, data_dir: Path):
-    goto(app, "neues_team")
+    goto(app, "new_team")
     app.text_input[0].set_value("  Team_C ").run()
     assert not app.error
     app.text_input(key="new-team_c-sprint.first_id").set_value("2026.15")
@@ -410,7 +410,7 @@ def test_new_team_key_is_normalized_before_the_check(app: AppTest, data_dir: Pat
 def test_without_any_team(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     at = start(tmp_path, monkeypatch)
     assert any("Noch kein Team" in i.value for i in at.info)
-    for page in ("neues_team", "hilfe", "personen"):
+    for page in ("new_team", "help", "people"):
         goto(at, page)
 
 
@@ -424,7 +424,7 @@ def test_team_without_history(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     at = goto(start(data_dir, monkeypatch), "forecast")
     assert at.sidebar.selectbox[1].value == "aaa-neu"
     assert any("Noch keine Werte" in i.value for i in at.info)
-    for page in ("fehltage", "planning", "review", "personen", "einstellungen"):
+    for page in ("absences", "planning", "review", "people", "settings"):
         goto(at, page)
 
 
@@ -617,7 +617,7 @@ def test_next_step_is_empty_without_git_or_repository(
 
 
 def test_help_intro_names_both_ways_to_secure_the_changes(app: AppTest):
-    goto(app, "hilfe")
+    goto(app, "help")
     intro = app.main.markdown[0].value
     assert "**Änderungen committen**" in intro and "**Speichern und teilen**" in intro
     assert "Reiter „Zusammenarbeit (Git)“" in intro
@@ -649,7 +649,7 @@ def test_commit_button_refuses_files_with_conflict_markers(
     assert "Konflikte lösen" in shown and "2026.21.yaml" in shown
 
 
-def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
+def test_planning_prefills_commitment(app: AppTest, data_dir: Path):
     planning_step(app, "2026.22", 2)
     assert app.number_input(key="fist-2026.22").value is None  # not the value of 2026.21
     app.number_input(key="carry-2026.22").set_value(1.5)
@@ -681,13 +681,13 @@ def test_planning_control_calculation_is_optional(app: AppTest, data_dir: Path):
 def test_sidebar_on_every_page(app: AppTest):
     """Regression: a `pages/` folder activated Streamlit's old page detection, so direct page
     calls ran without navigation and team selection."""
-    for page in ("planning", "hilfe", "pruefung"):
+    for page in ("planning", "help", "check"):
         goto(app, page)
         assert app.sidebar.selectbox[1].value == "demo"
 
 
 def test_people_page_toggle_former(app: AppTest):
-    goto(app, "personen")
+    goto(app, "people")
     assert any("1 ehemalige Person" in c.value for c in app.caption)
     app.toggle(key="show_former").set_value(True).run()
     assert not any("ehemalige Person" in c.value for c in app.caption)
@@ -696,7 +696,7 @@ def test_people_page_toggle_former(app: AppTest):
 
 
 def test_analysis_page(app: AppTest):
-    goto(app, "analyse")
+    goto(app, "analysis")
     assert app.header[0].value == "Analyse"
     app.number_input(key="rest").set_value(40.0)
     app.number_input(key="project_share").set_value(50.0)
@@ -722,7 +722,7 @@ def test_planning_freezes_forecast_plan(app: AppTest, data_dir: Path):
 
 
 def test_products_page(app: AppTest):
-    goto(app, "produkte")
+    goto(app, "products")
     assert app.selectbox(key="products-sprint").value == "2026.22"
     assert any("3 betreute Produkte" in c.value for c in app.caption)
     app.selectbox(key="products-sprint").set_value("2026.20").run()
@@ -732,7 +732,7 @@ def test_products_page(app: AppTest):
 
 
 def test_product_list_page(app: AppTest, data_dir: Path):
-    goto(app, "produktliste")
+    goto(app, "product_list")
     assert any("1 ehemalige(s) Produkt" in c.value for c in app.caption)
     click(app, "Produkte speichern")
     assert any("Gespeichert" in s.value for s in app.success)
@@ -760,19 +760,19 @@ def test_calendar_texts_follow_the_configured_workweek(
 
 def test_whatif_panel_has_one_title_on_both_pages(app: AppTest):
     titles = set()
-    for page in ("forecast", "vorplanung"):
+    for page in ("forecast", "preplanning"):
         goto(app, page)
         titles |= {e.label for e in app.expander if "Was-wäre-wenn" in e.label}
     assert titles == {"Was-wäre-wenn: Prognose des Teams für offene Sprints"}
 
 
 def test_prognosis_history_is_compact_until_details_are_requested(app: AppTest):
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     next(
         n
         for n in app.number_input
-        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-open")
+        if n.key and n.key.startswith("preplanning-whatif-") and n.key.endswith("-open")
     ).set_value(3.0).run()
     click(app, "PO-Vorplanung speichern")
     app.run()  # the page reads the saved forecast only in the next run
@@ -806,7 +806,7 @@ def test_choose_folder_without_git_offers_init_or_use_without_git(
     tmp_path: Path, data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     at = start(data_dir, monkeypatch)
-    goto(at, "datenordner")
+    goto(at, "data_dir")
     plain = tmp_path / "ohne-git"
     plain.mkdir()
     at.text_input(key="data-path").set_value(str(plain)).run()
@@ -821,7 +821,7 @@ def test_choose_folder_can_be_used_without_git(
 ):
     """B7: Git is not a prerequisite for getting started."""
     at = start(data_dir, monkeypatch)
-    goto(at, "datenordner")
+    goto(at, "data_dir")
     plain = tmp_path / "ohne-git"
     plain.mkdir()
     at.text_input(key="data-path").set_value(str(plain)).run()
@@ -862,12 +862,12 @@ def test_whatif_panel_on_forecast_page(app: AppTest):
 
 
 def test_preplanning_page_saves_values(app: AppTest, data_dir: Path):
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.22").run()
     assert any("Standard" in c.value for c in app.caption)
     assert not app.exception
     # Editing the table: set pre-planning for a product and save
-    app.session_state["vorplanung-2026.22"] = {
+    app.session_state["preplanning-2026.22"] = {
         "edited_rows": {0: {"PO pre-planning": 3.5}},
         "added_rows": [],
         "deleted_rows": [],
@@ -885,7 +885,7 @@ def test_product_tables_show_empty_cells_as_dash_not_none(app: AppTest):
     def product_frames() -> list:
         return [d for d in app.dataframe if "Product" in d.value.columns]
 
-    goto(app, "vorplanung")
+    goto(app, "preplanning")
     editors = [d for d in product_frames() if "_id" in d.value.columns]
     assert [d.proto.placeholder for d in editors] == ["–"]
     assert "Planning" not in editors[0].value.columns  # only in Planning
@@ -899,7 +899,7 @@ def test_product_tables_show_empty_cells_as_dash_not_none(app: AppTest):
     editors = [d for d in product_frames() if "_id" in d.value.columns]
     assert [d.proto.placeholder for d in editors] == ["–"]
 
-    goto(app, "produkte")
+    goto(app, "products")
     tables = [d for d in product_frames() if "Standard" in d.value.columns]
     assert tables and tables[0].proto.placeholder == "–"
 
@@ -911,8 +911,8 @@ def test_product_editor_shows_only_columns_of_the_phase(app: AppTest):
         [editor] = [d for d in app.dataframe if {"_id", "Product"} <= set(d.value.columns)]
         return [c for c in editor.value.columns if c not in ("_id", "Product", "PO")]
 
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.22").run()
     assert editor_columns() == ["Standard", "PO pre-planning"]
 
     planning_step(app, "2026.22", 1)
@@ -925,7 +925,7 @@ def test_product_editor_shows_only_columns_of_the_phase(app: AppTest):
 
 def test_absences_matrix_leaves_cells_of_inactive_people_empty(app: AppTest):
     """The text "Empty cells: the person is not in the team during this sprint.", not "None"."""
-    goto(app, "fehltage")
+    goto(app, "absences")
     matrix = next(d for d in app.dataframe if {"id", "Person"} <= set(d.value.columns))
     assert matrix.proto.HasField("placeholder") and matrix.proto.placeholder == ""
 
@@ -938,18 +938,18 @@ def test_other_editors_show_empty_cells_as_empty_not_none(app: AppTest):
         [found] = [d for d in app.dataframe if columns <= set(d.value.columns)]
         return found
 
-    goto(app, "produktliste")
+    goto(app, "product_list")
     products = editor({"Name", "Anteil", "from", "until"})
     assert products.proto.HasField("placeholder") and products.proto.placeholder == ""
     # the data stays empty (None), only the display differs
     assert products.value["until"].isna().any()
 
-    goto(app, "personen")
+    goto(app, "people")
     people = editor({"Name", "FTE", "from", "until"})
     assert people.proto.HasField("placeholder") and people.proto.placeholder == ""
     assert people.value["until"].isna().any()
 
-    goto(app, "vorplanung")
+    goto(app, "preplanning")
     expected = editor({"id", "Person"})
     assert expected.proto.HasField("placeholder") and expected.proto.placeholder == ""
 
@@ -960,9 +960,9 @@ def test_other_editors_show_empty_cells_as_empty_not_none(app: AppTest):
 
 def test_blank_product_cells_stay_unrecorded_when_saving(app: AppTest, data_dir: Path):
     """The display "-" does not change the data: empty stays empty (None), 0 stays 0."""
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
-    app.session_state["vorplanung-2026.22"] = {
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.22").run()
+    app.session_state["preplanning-2026.22"] = {
         "edited_rows": {0: {"PO pre-planning": 0.0}, 1: {"PO pre-planning": 3.5}},
         "added_rows": [],
         "deleted_rows": [],
@@ -978,11 +978,11 @@ def test_blank_product_cells_stay_unrecorded_when_saving(app: AppTest, data_dir:
 def test_preplanning_capacity_metric_keeps_the_value_free_of_the_source(app: AppTest):
     """The metric shows only the number (otherwise it is cut off: "50.6 (expected F...");
     the source is shown below it."""
-    goto(app, "vorplanung")
+    goto(app, "preplanning")
     capacity = next(m for m in app.metric if m.label == "Kapazität (PT)")
     assert capacity.value == "30,0"  # 2026.22: absences confirmed
     assert capacity.delta == "Personenliste"
-    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    app.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     capacity = next(m for m in app.metric if m.label == "Kapazität (PT)")
     assert "(" not in capacity.value and "⚠" not in capacity.value
     assert capacity.delta == "erwartete Fehltage"  # absences unknown, estimated from the history
@@ -1001,8 +1001,8 @@ def test_preplanning_capacity_metric_rounds_like_the_other_pages(
     content = yaml.safe_load(sprint.read_text())
     content["absences"]["ben"] = 3.5  # 25.25 PD: exactly at the half
     sprint.write_text(yaml.safe_dump(content))
-    at = goto(start(data_dir, monkeypatch), "vorplanung")
-    at.selectbox(key="vorplanung-sprint").set_value("2026.21").run()
+    at = goto(start(data_dir, monkeypatch), "preplanning")
+    at.selectbox(key="preplanning-sprint").set_value("2026.21").run()
     capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
     assert capacity.value == expected
     goto(at, "planning")
@@ -1017,21 +1017,21 @@ def test_preplanning_capacity_metric_marks_an_unsure_source(
     raw = yaml.safe_load(team.read_text())
     raw["capacity"]["absence_history"] = 0  # no estimate: only calendar and people list
     team.write_text(yaml.safe_dump(raw))
-    at = goto(start(data_dir, monkeypatch), "vorplanung")
-    at.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    at = goto(start(data_dir, monkeypatch), "preplanning")
+    at.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
     assert "⚠" not in capacity.value
     assert capacity.delta == "⚠️ Kalender, Fehltage unbekannt"
 
 
 def test_board_sprint_carries_over_between_boards(app: AppTest):
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.21").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.21").run()
     goto(app, "planning")
     assert app.selectbox(key="planning-sprint").value == "2026.21"
     goto(app, "review")
     assert app.selectbox(key="review-sprint").value == "2026.21"
-    goto(app, "fehltage")
+    goto(app, "absences")
     assert app.selectbox(key="absences-sprint").value == "2026.21"
 
 
@@ -1052,12 +1052,12 @@ def test_manual_update_check_button(app: AppTest, monkeypatch: pytest.MonkeyPatc
 
 
 def test_preplanning_whatif_is_not_saved(app: AppTest, data_dir: Path):
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     box = next(
         n
         for n in app.number_input
-        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-open")
+        if n.key and n.key.startswith("preplanning-whatif-") and n.key.endswith("-open")
     )
     before = [m.value for m in app.metric]
     box.set_value(6.0).run()
@@ -1070,15 +1070,15 @@ def test_preplanning_whatif_is_not_saved(app: AppTest, data_dir: Path):
 
 
 def test_preplanning_saves_prognosis_with_comment(app: AppTest, data_dir: Path):
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     box = next(
         n
         for n in app.number_input
-        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-open")
+        if n.key and n.key.startswith("preplanning-whatif-") and n.key.endswith("-open")
     )
     box.set_value(3.0).run()
-    comment = next(i for i in app.text_input if i.key and i.key.startswith("vorplanung-comment-"))
+    comment = next(i for i in app.text_input if i.key and i.key.startswith("preplanning-comment-"))
     comment.set_value("Prognose aus dem Daily").run()
     click(app, "PO-Vorplanung speichern")
     sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
@@ -1108,7 +1108,7 @@ def test_analysis_warns_when_the_simulation_has_few_samples(
     for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
         if int(path.stem.rsplit(".", 1)[1]) > 3:
             path.unlink()
-    at = goto(start(data_dir, monkeypatch), "analyse")
+    at = goto(start(data_dir, monkeypatch), "analysis")
     at.number_input(key="rest").set_value(20.0)
     click(at, "Berechnen")
     assert any(
@@ -1138,7 +1138,7 @@ def test_small_window_caps_the_sample_and_explains_the_warning(
         for w in at.warning
     )
     assert any("Spanne aus den letzten 3 Sprints" in c.value for c in at.caption)
-    at = goto(at, "analyse")
+    at = goto(at, "analysis")
     at.number_input(key="rest").set_value(20.0)
     click(at, "Berechnen")
     assert any(
@@ -1167,7 +1167,7 @@ def test_small_window_without_more_values_does_not_blame_the_window(
         "Wenig Daten: bisher nur 2 Sprints mit Velocity (ab 5 " in w.value for w in at.warning
     )
     assert not any("Prognosefenster" in w.value for w in at.warning)
-    at = goto(at, "analyse")
+    at = goto(at, "analysis")
     at.number_input(key="rest").set_value(20.0)
     click(at, "Berechnen")
     assert any(
@@ -1220,7 +1220,7 @@ def test_no_forecast_notice_counts_all_values_with_only_two_values(
 
 
 def test_analysis_too_large_rest_explains_horizon(app: AppTest):
-    goto(app, "analyse")
+    goto(app, "analysis")
     app.number_input(key="rest").set_value(100000.0)
     click(app, "Berechnen")
     later = [m for m in app.metric if "später als" in m.value]
@@ -1233,7 +1233,7 @@ def test_analysis_too_large_rest_explains_horizon(app: AppTest):
 
 
 def test_analysis_completion_metrics_show_the_sprint_without_a_note(app: AppTest):
-    goto(app, "analyse")
+    goto(app, "analysis")
     app.number_input(key="rest").set_value(20.0)
     click(app, "Berechnen")
     reached = [m for m in app.metric if m.label.endswith("der Simulationen")]
@@ -1243,7 +1243,7 @@ def test_analysis_completion_metrics_show_the_sprint_without_a_note(app: AppTest
 
 
 def test_absences_page_can_edit_past_sprints(app: AppTest, data_dir: Path):
-    goto(app, "fehltage")
+    goto(app, "absences")
     app.number_input(key="absences-past").set_value(1).run()
     assert not app.exception
     assert any("abgeschlossen" in c.value for c in app.caption)
@@ -1261,14 +1261,14 @@ def test_forecast_plan_is_consistent_across_pages(app: AppTest):
     forecast = next(m for m in app.metric if m.label.startswith(sprint))
     expected = _pt(forecast.value)
 
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value(sprint).run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value(sprint).run()
     headline = next(m for m in app.metric if m.label == f"Prognose aktuell {sprint}")
     available = next(m for m in app.metric if m.label == "Verteilbar")
     assert _pt(headline.value) == expected
     assert abs(_pt(available.value) - expected) < 0.05
 
-    goto(app, "produkte")
+    goto(app, "products")
     app.selectbox(key="products-sprint").set_value(sprint).run()
     assert any(f"{expected:.2f}".replace(".", ",") in c.value for c in app.caption)
 
@@ -1350,14 +1350,14 @@ def test_gap_notice_follows_the_running_sprints_review_value(
 
 def test_absences_page_answers_how_much_fits_into_the_next_sprint(app: AppTest):
     """K2 acceptance: entering absences immediately shows how much fits into the next sprint."""
-    goto(app, "fehltage")
+    goto(app, "absences")
     text = " ".join(m.value for m in app.markdown)
     assert "In den nächsten Sprint 2026.22 passen 11,2 PT" in text
     frame = next(d.value for d in app.dataframe if "Kapazität (PT)" in d.value.columns)
     assert frame.loc[frame["Sprint"] == "2026.22", "Forecast PLAN (PT)"].iloc[0] == "11,2"
 
 
-STEP_ORDER = ["fehltage", "vorplanung", "planning", "review"]
+STEP_ORDER = ["absences", "preplanning", "planning", "review"]
 
 
 def test_step_bar_order_is_the_order_of_the_sidebar():
@@ -1383,7 +1383,7 @@ def test_board_navigation_highlights_the_active_page(app: AppTest, page: str):
 
 # Default on the Review page: open review 2026.21, absences confirmed, pre-planned,
 # recorded in Planning, only the velocity is missing
-DONE_2026_21 = {"fehltage": True, "vorplanung": True, "planning": True, "review": False}
+DONE_2026_21 = {"absences": True, "preplanning": True, "planning": True, "review": False}
 
 
 def test_step_bar_state_is_taken_from_the_chosen_sprint(app: AppTest):
@@ -1413,13 +1413,13 @@ def test_step_bar_marks_only_done_steps_with_a_green_check(app: AppTest):
 def test_step_bar_mark_is_also_on_the_active_step(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     """The active step (blue, the icon turns white via CSS) carries the same icon as the other
     steps, on every page, once the sprint is fully recorded."""
-    _change_2026_22(data_dir, forecast_ist=10, velocity=9)
+    _change_2026_22(data_dir, commitment=10, velocity=9)
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
     path.write_text(yaml.safe_dump({**load(path), "velocity": 9}))  # both sprints complete
     at = start(data_dir, monkeypatch)
     for page in STEP_ORDER:
         goto(at, page)
-        picker = at.selectbox(key=f"{'absences' if page == 'fehltage' else page}-sprint")
+        picker = at.selectbox(key=f"{'absences' if page == 'absences' else page}-sprint")
         picker.set_value("2026.21" if "2026.21" in picker.options else "2026.22").run()
         assert all(nav_done(at).values()), page
         [(_, label, _)] = [step for step in nav_steps(at) if step[2]]
@@ -1429,8 +1429,8 @@ def test_step_bar_mark_is_also_on_the_active_step(data_dir: Path, monkeypatch: p
 def test_step_bar_tooltip_says_whether_the_sprint_is_recorded(app: AppTest):
     goto(app, "review")
     assert nav_help(app) == {
-        "fehltage": "erfasst für Sprint 2026.21",
-        "vorplanung": "erfasst für Sprint 2026.21",
+        "absences": "erfasst für Sprint 2026.21",
+        "preplanning": "erfasst für Sprint 2026.21",
         "planning": "erfasst für Sprint 2026.21",
         "review": "noch offen für Sprint 2026.21",
     }
@@ -1438,14 +1438,14 @@ def test_step_bar_tooltip_says_whether_the_sprint_is_recorded(app: AppTest):
     assert set(nav_help(app).values()) == {"noch offen für Sprint 2026.23"}
     # Mixed state on another page: 2026.22 is prepared (absences, pre-planning) but not scheduled
     # yet. Mark and tooltip match there step by step.
-    goto(app, "fehltage")
+    goto(app, "absences")
     app.selectbox(key="absences-sprint").set_value("2026.22").run()
     assert not app.exception, app.exception
     done = nav_done(app)
-    assert done == {"fehltage": True, "vorplanung": True, "planning": False, "review": False}
+    assert done == {"absences": True, "preplanning": True, "planning": False, "review": False}
     assert nav_help(app) == {
-        "fehltage": "erfasst für Sprint 2026.22",
-        "vorplanung": "erfasst für Sprint 2026.22",
+        "absences": "erfasst für Sprint 2026.22",
+        "preplanning": "erfasst für Sprint 2026.22",
         "planning": "noch offen für Sprint 2026.22",
         "review": "noch offen für Sprint 2026.22",
     }
@@ -1463,8 +1463,8 @@ def test_step_bar_in_english(data_dir: Path, monkeypatch: pytest.MonkeyPatch, en
     ]
     assert nav_done(at) == DONE_2026_21  # same icon, only the tooltip is translated
     assert nav_help(at) == {
-        "fehltage": "recorded for sprint 2026.21",
-        "vorplanung": "recorded for sprint 2026.21",
+        "absences": "recorded for sprint 2026.21",
+        "preplanning": "recorded for sprint 2026.21",
         "planning": "recorded for sprint 2026.21",
         "review": "still open for sprint 2026.21",
     }
@@ -1489,7 +1489,7 @@ def test_step_icons_are_no_check_marks(app: AppTest):
 def test_start_task_icons_are_the_page_icons_and_no_check_marks(app: AppTest):
     """The start page also shows no check mark for "Close sprint" (formerly task_alt
     on the "Open" button although the sprint was open): a task has the same icon everywhere."""
-    assert START_TASKS["prepare"][1] == PAGE_INFO["fehltage"][1]
+    assert START_TASKS["prepare"][1] == PAGE_INFO["absences"][1]
     assert START_TASKS["planning"][1] == PAGE_INFO["planning"][1]
     assert START_TASKS["review"][1] == PAGE_INFO["review"][1] == ":material/flag:"
     # This is how it actually appears on the start page buttons (the review task is still open)
@@ -1503,21 +1503,21 @@ def test_start_task_icons_are_the_page_icons_and_no_check_marks(app: AppTest):
 @pytest.mark.parametrize(
     ("fields", "done"),
     [
-        ({}, {"fehltage": True, "vorplanung": True, "planning": False, "review": False}),
-        # Planning = forecast state (forecast_ist) recorded
+        ({}, {"absences": True, "preplanning": True, "planning": False, "review": False}),
+        # Planning = forecast state (commitment) recorded
         (
             {"forecast_ist": 10},
-            {"fehltage": True, "vorplanung": True, "planning": True, "review": False},
+            {"absences": True, "preplanning": True, "planning": True, "review": False},
         ),
         # Review = velocity recorded
         (
             {"velocity": 9},
-            {"fehltage": True, "vorplanung": True, "planning": False, "review": True},
+            {"absences": True, "preplanning": True, "planning": False, "review": True},
         ),
         # Pre-planning = product values pre-planned, absences = state confirmed
         (
             {"products": {}, "absences": {}},
-            {"fehltage": False, "vorplanung": False, "planning": False, "review": False},
+            {"absences": False, "preplanning": False, "planning": False, "review": False},
         ),
     ],
 )
@@ -1548,7 +1548,7 @@ def test_step_bar_absences_check_follows_the_absence_state(
     _change_2026_22(data_dir, **fields)
     at = goto(start(data_dir, monkeypatch), "planning")
     assert at.selectbox(key="planning-sprint").value == "2026.22"
-    label = next(label for key, label, _ in nav_steps(at) if key == "fehltage")
+    label = next(label for key, label, _ in nav_steps(at) if key == "absences")
     assert label == "Sprint vorbereiten: Fehltage" + (f" {STEP_DONE_MARK}" if checked else "")
 
 
@@ -1573,7 +1573,7 @@ def test_start_task_and_step_bar_agree_on_prepared_sprint(
     assert at.subheader[0].value == ("✅" if done else "⬜") + " Sprint vorbereiten"
     goto(at, "planning")
     assert at.selectbox(key="planning-sprint").value == "2026.22"
-    assert nav_done(at)["fehltage"] == done
+    assert nav_done(at)["absences"] == done
 
 
 @pytest.mark.parametrize(
@@ -1595,7 +1595,7 @@ def test_planning_progress_line_agrees_with_the_step_bar(
     assert at.selectbox(key="planning-sprint").value == "2026.22"
     line = next(c.value for c in at.caption if c.value.endswith(" Commitment"))
     assert line.startswith(f"{mark} Fehltage")
-    assert nav_done(at)["fehltage"] == (mark == "✅")
+    assert nav_done(at)["absences"] == (mark == "✅")
 
 
 def test_board_nav_css_follows_the_step_count():
@@ -1621,26 +1621,26 @@ def test_start_prepare_says_when_absences_are_only_announced(
 
 
 def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
-    assert not nav_done(app)["vorplanung"]
-    app.session_state["vorplanung-2026.23"] = {
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.23").run()
+    assert not nav_done(app)["preplanning"]
+    app.session_state["preplanning-2026.23"] = {
         "edited_rows": {0: {"PO pre-planning": 2.0}},
         "added_rows": [],
         "deleted_rows": [],
     }
     app.run()
     click(app, "PO-Vorplanung speichern")
-    assert not nav_done(app)["vorplanung"]  # only one of several products has a value
-    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
-    app.session_state["vorplanung-2026.23"] = {
+    assert not nav_done(app)["preplanning"]  # only one of several products has a value
+    app.selectbox(key="preplanning-sprint").set_value("2026.23").run()
+    app.session_state["preplanning-2026.23"] = {
         "edited_rows": {i: {"PO pre-planning": 2.0} for i in range(3)},  # webshop, app, portal
         "added_rows": [],
         "deleted_rows": [],
     }
     app.run()
     click(app, "PO-Vorplanung speichern")
-    assert nav_done(app)["vorplanung"]  # already in the same run, without another click
+    assert nav_done(app)["preplanning"]  # already in the same run, without another click
     assert any("Gespeichert" in s.value for s in app.success)  # the message follows in the rebuild
 
 
@@ -1693,9 +1693,9 @@ def test_failed_review_save_keeps_the_errors_and_does_not_rerun(app: AppTest, da
 
 def test_failed_preplanning_save_keeps_the_errors_and_does_not_rerun(app: AppTest, data_dir: Path):
     before = add_unknown_absence(data_dir, "2026.22")
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
-    app.session_state["vorplanung-2026.22"] = {
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.22").run()
+    app.session_state["preplanning-2026.22"] = {
         "edited_rows": {0: {"PO pre-planning": 2.0}},
         "added_rows": [],
         "deleted_rows": [],
@@ -1710,9 +1710,9 @@ def test_failed_preplanning_save_keeps_the_errors_and_does_not_rerun(app: AppTes
 
 def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path):
     """After "Save absences" the bar shows the new state immediately (not a click later)."""
-    goto(app, "fehltage")
+    goto(app, "absences")
     app.selectbox(key="absences-sprint").set_value("2026.23").run()
-    assert not nav_done(app)["fehltage"]  # no sprint file yet
+    assert not nav_done(app)["absences"]  # no sprint file yet
     assert not (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
     frame = next(d.value for d in app.dataframe if "Niemand fehlt" in d.value.columns)
     rows = {i: {"Niemand fehlt": True} for i, s in enumerate(frame["Sprint"]) if s == "2026.23"}
@@ -1724,7 +1724,7 @@ def test_absences_save_updates_the_step_bar_at_once(app: AppTest, data_dir: Path
     app.run()
     click(app, "Fehltage speichern")
     assert (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
-    assert nav_done(app)["fehltage"]
+    assert nav_done(app)["absences"]
     assert any("Gespeichert" in s.value for s in app.success)  # the message comes after loading
 
 
@@ -1742,14 +1742,14 @@ def test_range_is_shown_at_the_planning_forecast(app: AppTest):
 
 
 def test_range_is_shown_at_the_absences_forecast_line(app: AppTest):
-    goto(app, "fehltage")
+    goto(app, "absences")
     assert any("In den nächsten Sprint" in m.value for m in app.markdown)
     assert any(c.startswith("Spanne ") and "aus den letzten 5 Sprints" in c for c in captions(app))
 
 
 def test_range_is_shown_at_the_preplanning_forecast(app: AppTest):
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.23").run()
     assert "Spanne 10,2–12,5 aus den letzten 5 Sprints" in captions(app)
 
 
@@ -1758,21 +1758,21 @@ def test_range_is_not_shown_for_finished_sprints(app: AppTest):
     the one at that time. Showing both side by side would contradict each other."""
     planning_step(app, "2026.20", 1)
     assert not any(c.startswith("Spanne ") for c in captions(app))
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.20").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.20").run()
     assert not app.exception, app.exception
     assert not any(c.startswith("Spanne ") for c in captions(app))
 
 
 def test_range_at_the_preplanning_says_when_the_forecast_assumes_something(app: AppTest):
     """The forecast computes with the assumption, the range does not: that is stated."""
-    goto(app, "vorplanung")
-    app.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
+    goto(app, "preplanning")
+    app.selectbox(key="preplanning-sprint").set_value("2026.22").run()
     assert "Spanne 10,0–12,3 aus den letzten 5 Sprints" in captions(app)
     next(
         n
         for n in app.number_input
-        if n.key and n.key.startswith("vorplanung-whatif-") and n.key.endswith("-extra")
+        if n.key and n.key.startswith("preplanning-whatif-") and n.key.endswith("-extra")
     ).set_value(8.0).run()
     assert "Spanne 10,0–12,3 aus den letzten 5 Sprints (ohne die Annahme)" in captions(app)
 
@@ -1786,7 +1786,7 @@ def test_planning_capacity_tile_shows_no_arrow_before_the_source(app: AppTest):
 def test_range_at_the_absences_forecast_follows_the_unsaved_preview(app: AppTest):
     """The line under "Fits into the next sprint" belongs to the preview, not to the saved
     state: if someone enters more absences, the capacity drops and the range with it."""
-    goto(app, "fehltage")
+    goto(app, "absences")
     before = next(c for c in captions(app) if c.startswith("Spanne "))
     frame = next(d.value for d in app.dataframe if "Person" in d.value.columns)
     sprints = [c for c in frame.columns if c.startswith("2026.")]
@@ -1840,22 +1840,22 @@ def test_range_note_warns_about_little_data(data_dir: Path):
 
 
 def test_absences_page_shows_the_step_bar_and_shares_the_board_sprint(app: AppTest):
-    goto(app, "fehltage")
+    goto(app, "absences")
     assert app.selectbox(key="absences-sprint").value == "2026.22"
-    assert [key for key, _, active in nav_steps(app) if active] == ["fehltage"]
-    assert nav_done(app)["fehltage"]  # 2026.22: absences entered
+    assert [key for key, _, active in nav_steps(app) if active] == ["absences"]
+    assert nav_done(app)["absences"]  # 2026.22: absences entered
     app.selectbox(key="absences-sprint").set_value("2026.23").run()
     assert not app.exception, app.exception
-    assert not nav_done(app)["fehltage"]  # 2026.23 has no sprint file
+    assert not nav_done(app)["absences"]  # 2026.23 has no sprint file
     goto(app, "planning")
     assert app.selectbox(key="planning-sprint").value == "2026.23"
     assert [key for key, _, active in nav_steps(app) if active] == ["planning"]
-    assert not nav_done(app)["fehltage"]
+    assert not nav_done(app)["absences"]
 
 
 def test_products_page_is_evaluation_only(app: AppTest):
     """B4: product values are only recorded on the boards; the evaluation has no input."""
-    goto(app, "produkte")
+    goto(app, "products")
     assert not app.main.button  # no "Save product values"
     assert not app.number_input.values or all(
         n.key == "products-n" for n in app.number_input
@@ -1863,7 +1863,7 @@ def test_products_page_is_evaluation_only(app: AppTest):
     assert any("Reine Auswertung" in c.value for c in app.caption)
     assert any(len(d.value) for d in app.dataframe)  # table stays visible
     links = [p.proto.page for p in app.get("page_link")]
-    assert {"vorplanung", "planning", "review"} <= set(links)
+    assert {"preplanning", "planning", "review"} <= set(links)
 
 
 def test_sprint_selection_is_the_same_on_all_pages(app: AppTest):
@@ -1871,9 +1871,9 @@ def test_sprint_selection_is_the_same_on_all_pages(app: AppTest):
     pages = {
         "planning": "planning-sprint",
         "review": "review-sprint",
-        "vorplanung": "vorplanung-sprint",
-        "fehltage": "absences-sprint",
-        "produkte": "products-sprint",
+        "preplanning": "preplanning-sprint",
+        "absences": "absences-sprint",
+        "products": "products-sprint",
         "forecast": "formula-sprint",
     }
     seen = []
@@ -1900,7 +1900,7 @@ def test_sprint_selection_is_the_same_on_all_pages(app: AppTest):
 
 
 def test_absences_intro_is_short_and_details_are_in_an_expander(app: AppTest):
-    goto(app, "fehltage")
+    goto(app, "absences")
     lead = next(m.value for m in app.markdown if m.value.startswith("Fehltage je Person"))
     assert "Urlaubskalender" not in lead  # source and example are in the expander
     details = next(e for e in app.expander if e.label.startswith("Mehr dazu"))
@@ -1933,10 +1933,10 @@ def test_calendar_people_and_products_have_a_lead_and_an_expander(app: AppTest):
     goto(app, "sprints")
     assert any(m.value.startswith("Sprints folgen automatisch") for m in app.markdown)
     assert any(e.label.startswith("Abweichende Sprints") for e in app.expander)
-    goto(app, "personen")
+    goto(app, "people")
     assert any(m.value.startswith("Eine Zeile je Person") for m in app.markdown)
     assert any(e.label.startswith("Austritt oder FTE") for e in app.expander)
-    goto(app, "produktliste")
+    goto(app, "product_list")
     assert any(m.value.startswith("Eine Zeile je Produkt") for m in app.markdown)
     assert any(e.label.startswith("Produkt abgeben") for e in app.expander)
 

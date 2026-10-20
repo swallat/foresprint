@@ -25,7 +25,7 @@ def team_with(velocities: list[float], capacity: float = 40, scope=None) -> Team
         sprints.append(
             Sprint(
                 f"2026.{i + 1}", s, s + timedelta(days=14), capacity=capacity, velocity=v,
-                forecast_ist=v, scope_creep=None if scope is None else scope[i],
+                commitment=v, scope_creep=None if scope is None else scope[i],
             )
         )  # fmt: skip
     return TeamData(team=team, sprints=sprints)
@@ -168,7 +168,7 @@ def running_sprint(
     data.team.forecast.window = window
     for i, (sprint, v) in enumerate(zip(data.sprints, velocities, strict=True)):
         if v is None:
-            sprint.velocity = sprint.forecast_ist = None
+            sprint.velocity = sprint.commitment = None
         if capacities is not None:
             sprint.capacity = capacities[i]
     return data, data.sprints[running].start + timedelta(days=days_in)

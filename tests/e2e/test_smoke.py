@@ -37,5 +37,5 @@ def test_team_without_products_has_no_product_pages(page: Page, app_without_prod
     hrefs = [href for link in links.all() if (href := link.get_attribute("href"))]
     paths = {href.rstrip("/").rsplit("/", 1)[-1] for href in hrefs}
     assert not paths & PRODUCT_PAGES
-    assert {"fehltage", "planning", "review"} <= paths
+    assert {"absences", "planning", "review"} <= paths
     settle(page)

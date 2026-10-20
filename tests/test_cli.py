@@ -86,7 +86,7 @@ def test_analyse_rejects_non_finite_options(data_dir: Path, args: list[str]):
     assert "endliche Zahl" in result.output
 
 
-def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_list(
+def test_capacity_without_sprint_file_names_calendar_and_people_with_people_list(
     data_dir: Path,
 ):
     result = run(data_dir, "capacity", "demo", "2026.25")
@@ -98,7 +98,7 @@ def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_li
     assert "Trend" not in result.output
 
 
-def test_kapazitaet_without_sprint_file_names_trend_without_people_list(data_dir: Path):
+def test_capacity_without_sprint_file_names_trend_without_people_list(data_dir: Path):
     (data_dir / "demo" / "people.yaml").unlink()
     result = run(data_dir, "capacity", "demo", "2026.25")
     assert result.exit_code == 0, result.output
@@ -106,7 +106,7 @@ def test_kapazitaet_without_sprint_file_names_trend_without_people_list(data_dir
     assert "Kapazitäts-Trend" in result.output
 
 
-def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
+def test_absences_for_future_sprint_creates_file(data_dir: Path):
     # Sprint 2026.23 has no file yet; active people: Anna, Ben, Cem, Dana
     result = run(data_dir, "absences", "demo", "2026.23", input="2\n0\n1,5\n0\n")
     assert result.exit_code == 0, result.output
@@ -118,14 +118,14 @@ def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
     assert "31,5" in result.output
 
 
-def test_fehltage_rejects_invalid_number(data_dir: Path):
+def test_absences_rejects_invalid_number(data_dir: Path):
     result = run(data_dir, "absences", "demo", "2026.23", input="abc\n1\n0\n0\n0\n")
     assert result.exit_code == 0, result.output
     assert "Bitte eine Zahl eingeben" in result.output
 
 
 @pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999"])
-def test_fehltage_rejects_non_finite_number(data_dir: Path, raw: str):
+def test_absences_rejects_non_finite_number(data_dir: Path, raw: str):
     result = run(data_dir, "absences", "demo", "2026.23", input=f"{raw}\n1\n0\n0\n0\n")
     assert result.exit_code == 0, result.output
     assert "Bitte eine endliche Zahl eingeben" in result.output
@@ -162,7 +162,7 @@ def test_planning_rejects_non_finite_corrections(data_dir: Path, raw: str):
     assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
 
 
-def test_personen_change_fte(data_dir: Path):
+def test_people_change_fte(data_dir: Path):
     result = run(data_dir, "people", "demo", input="f\nanna\n2026-11-01\n0.8\nq\n")
     assert result.exit_code == 0, result.output
     assert "n = neue Person, f = FTE ändern, a = Austritt, q = fertig" in result.output
@@ -175,7 +175,7 @@ def test_personen_change_fte(data_dir: Path):
     }
 
 
-def test_pruefen_fails_on_error(data_dir: Path):
+def test_check_fails_on_error(data_dir: Path):
     assert run(data_dir, "check").exit_code == 0
     path = data_dir / "demo" / "sprints" / "2026.21.yaml"
     path.write_text(
@@ -258,7 +258,7 @@ def test_existing_team_with_unusual_name_still_works_in_cli(data_dir: Path):
     assert "Trend" in result.output
 
 
-def test_einstellungen_changes_and_validates(data_dir: Path):
+def test_settings_changes_and_validates(data_dir: Path):
     # Order: name, unit, product distribution, PO, production access, ticket pre-planning,
     # country, state, overhead, length, numbering, reference, window, trend, roadmap,
     # horizon, rounding, product basis, save?
@@ -302,7 +302,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
     assert "first" in team["sprint"]  # adopted unchanged
 
 
-def test_einstellungen_without_changes(data_dir: Path):
+def test_settings_without_changes(data_dir: Path):
     before = (data_dir / "demo" / "team.yaml").read_text(encoding="utf-8")
     result = run(data_dir, "settings", "demo", input="\n" * 21)
     assert result.exit_code == 0, result.output
@@ -326,7 +326,7 @@ def test_commit_refused_on_errors(data_dir: Path):
     assert "Nicht committet" in result.output
 
 
-def test_planning_prefills_forecast_ist(data_dir: Path):
+def test_planning_prefills_commitment(data_dir: Path):
     path = data_dir / "demo" / "sprints" / "2026.22.yaml"
     result = run(data_dir, "planning", "demo", "2026.22", input="n\nn\ny\n1.5\n11\n\n\n")
     assert result.exit_code == 0, result.output
@@ -345,7 +345,7 @@ def test_planning_without_control_calculation(data_dir: Path):
     assert "planning" not in sprint
 
 
-def test_personen_new_person_gets_id_and_former_hidden(data_dir: Path):
+def test_people_new_person_gets_id_and_former_hidden(data_dir: Path):
     result = run(data_dir, "people", "demo", input="n\nJörg Müller\n\n2026-11-01\n1\nq\n")
     assert result.exit_code == 0, result.output
     assert "Emil" not in result.output  # left → hidden
@@ -366,7 +366,7 @@ def test_default_data_dir_is_current_directory(data_dir: Path, monkeypatch: pyte
 
 
 @pytest.mark.parametrize("option", ["--as-of", "--as-of"])
-def test_invalid_stichtag_is_a_usage_error(data_dir: Path, option: str):
+def test_invalid_as_of_is_a_usage_error(data_dir: Path, option: str):
     args = ["--data", str(data_dir), option, "2026-13-45", "forecast", "demo"]
     result = runner.invoke(app, args)
     assert result.exit_code == 2, result.output
@@ -495,7 +495,7 @@ def test_planning_flow_next_sprint(data_dir: Path):
     assert sprint["forecast_plan"] is not None
 
 
-def test_produkte_and_vorplanung(data_dir: Path):
+def test_products_and_preplanning(data_dir: Path):
     result = run(data_dir, "products", "demo", "2026.23", "--preplanning", input="2\n2\n2\n")
     assert result.exit_code == 0, result.output
     sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
@@ -525,7 +525,7 @@ def balance_table(output: str) -> str:
     return output.split("Saldo: Σ Erledigt − Σ Standard")[1]
 
 
-def test_produkte_balance_hides_products_without_value_and_shows_missing(data_dir: Path):
+def test_products_balance_hides_products_without_value_and_shows_missing(data_dir: Path):
     plain = run(data_dir, "products", "demo", "2026.20", "--history", "6")
     assert "ohne Wert" not in balance_table(plain.output)  # everything recorded: no column
     assert FOOTNOTE not in " ".join(plain.output.split())
@@ -613,7 +613,7 @@ def test_balance_missing_ignores_sprints_outside_product_period(data_dir: Path):
     assert cells[1] == "1" and cells[-1] == "1"
 
 
-def test_produktliste_add_and_end(data_dir: Path):
+def test_product_list_add_and_end(data_dir: Path):
     answers = ["n", "Neues Produkt", "Cleo", "2026-11-01", "e", "mobile app", "2026-12-31", "q"]
     result = run(data_dir, "product-list", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
@@ -625,7 +625,7 @@ def test_produktliste_add_and_end(data_dir: Path):
     assert products[1]["to"] == date(2026, 12, 31)
 
 
-def test_aktualisieren_outside_uv_tool(data_dir: Path):
+def test_update_outside_uv_tool(data_dir: Path):
     result = run(data_dir, "update", "--check")
     assert result.exit_code == 1
     assert "nicht mit `uv tool install` installiert" in result.output
@@ -645,14 +645,14 @@ def test_sprints_calendar_and_longer_sprint(data_dir: Path):
     assert run(data_dir, "check").exit_code == 0
 
 
-def test_forecast_rechenweg(data_dir: Path):
+def test_forecast_derivation(data_dir: Path):
     result = run(data_dir, "forecast", "demo", "--explain", "2026.22")
     assert result.exit_code == 0, result.output
     assert "Rechenweg Sprint 2026.22" in result.output
     assert "16,8433 / 45 × 30 = 11,229" in result.output
 
 
-def test_datenordner(tmp_path: Path, data_dir: Path):
+def test_data_folder(tmp_path: Path, data_dir: Path):
     import subprocess
 
     assert run(data_dir, "data-dir", str(tmp_path)).exit_code == 1  # no Git
@@ -663,7 +663,7 @@ def test_datenordner(tmp_path: Path, data_dir: Path):
     assert "Gemerkt:" in run(data_dir, "data-dir").output
 
 
-def test_datenordner_names_the_reason_for_an_unsafe_folder(
+def test_data_folder_names_the_reason_for_an_unsafe_folder(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
     import subprocess
@@ -690,9 +690,9 @@ def one_line(output: str) -> str:
 @pytest.fixture
 def without_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Git is not installed on this machine (not in PATH)."""
-    leer = tmp_path / "ohne-git"
-    leer.mkdir()
-    monkeypatch.setenv("PATH", str(leer))
+    empty = tmp_path / "ohne-git"
+    empty.mkdir()
+    monkeypatch.setenv("PATH", str(empty))
 
 
 @pytest.fixture
@@ -740,10 +740,10 @@ def test_commit_without_git_identity_names_the_command_line_way(
     monkeypatch.delenv("GIT_COMMITTER_EMAIL", raising=False)
     # No user settings of the machine (on Windows: USERPROFILE instead of HOME): otherwise Git
     # would find a name there.
-    leer = tmp_path.parent / f"{tmp_path.name}-leer.gitconfig"
-    leer.write_text("", encoding="utf-8")
+    empty = tmp_path.parent / f"{tmp_path.name}-leer.gitconfig"
+    empty.write_text("", encoding="utf-8")
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
-    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(leer))
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty))
     for variable in ("HOME", "USERPROFILE"):
         monkeypatch.setenv(variable, str(tmp_path / "leer"))
     result = commit_planning(data_dir)
@@ -808,7 +808,7 @@ def test_git_problem_escapes_square_brackets_of_the_git_message(
     assert "Zuerst [holen]." in text
 
 
-def test_datenordner_without_git_installed_says_so(
+def test_data_folder_without_git_installed_says_so(
     tmp_path: Path, data_dir: Path, without_git: None
 ):
     result = run(data_dir, "data-dir", str(data_dir))
@@ -820,7 +820,7 @@ def test_datenordner_without_git_installed_says_so(
     assert "Kein Datenordner gemerkt." in run(data_dir, "data-dir").output
 
 
-def test_datenordner_names_a_folder_without_repository(tmp_path: Path, data_dir: Path):
+def test_data_folder_names_a_folder_without_repository(tmp_path: Path, data_dir: Path):
     result = run(data_dir, "data-dir", str(tmp_path))
     assert result.exit_code == 1
     assert "liegt in keinem Git-Repository (git init bzw. git clone)" in one_line(result.output)
@@ -828,7 +828,7 @@ def test_datenordner_names_a_folder_without_repository(tmp_path: Path, data_dir:
 
 
 @pytest.mark.parametrize("parts", [("x[a]",), ("x[", "y]", "b")])
-def test_datenordner_messages_keep_brackets_in_the_path(
+def test_data_folder_messages_keep_brackets_in_the_path(
     tmp_path: Path, data_dir: Path, parts: tuple[str, ...]
 ):
     """Rich reads square brackets as markup: the path is escaped and appears completely in the

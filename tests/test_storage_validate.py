@@ -130,10 +130,10 @@ def test_apply_planning():
 
     s = Sprint("x", d(2026, 1, 1), d(2026, 1, 15))
     assert apply_planning(s, None, Planning(carryover=1, backlog=7.5, corrections=[2])) is True
-    assert s.forecast_ist == 8.5  # carry-over + backlog, corrections only for the delta
+    assert s.commitment == 8.5  # carry-over + backlog, corrections only for the delta
     assert s.planning.total == 6.5
     assert apply_planning(s, 9.0, Planning(backlog=7.5)) is False
-    assert s.forecast_ist == 9.0
+    assert s.commitment == 9.0
     assert apply_planning(s, 9.0, Planning()) is False
     assert s.planning is None  # empty cross-check = not recorded
 
@@ -141,10 +141,10 @@ def test_apply_planning():
 def test_planning_plausibility(data_dir: Path):
     data = Repository(data_dir).load("demo")
     s = data.sprint("2026.21")  # current; demo: carry-over 0.25 + backlog 9.75 = commitment 10
-    s.forecast_ist = 12
+    s.commitment = 12
     messages = [i.message for i in check_team(data, TODAY)]
     assert any("Commitment 12 weicht von Überkipper + Backlog (10)" in m for m in messages)
-    s.forecast_ist = 10
+    s.commitment = 10
     s.planning.corrections = [20]
     messages = [i.message for i in check_team(data, TODAY)]
     assert not any("weicht" in m for m in messages)

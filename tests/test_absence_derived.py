@@ -226,7 +226,7 @@ def test_no_note_when_the_rate_is_not_used(data_dir: Path):
     assert NOTE not in render(fc)
 
 
-def test_rechenweg_names_the_uncertainty(data_dir: Path):
+def test_derivation_names_the_uncertainty(data_dir: Path):
     edit(data_dir, "2026.19", absences={})
     fc = estimated_forecast(data_dir)
     entry = next(
@@ -302,13 +302,13 @@ def web_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str):
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
-    at.switch_page(f"seiten/{page}.py").run()
+    at.switch_page(f"page_scripts/{page}.py").run()
     assert not at.exception, at.exception
     return at
 
@@ -323,7 +323,7 @@ def hints(at) -> list[str]:
     return [v for v in shown(at) if NOTE in v]
 
 
-@pytest.mark.parametrize("page", ["fehltage", "forecast", "vorplanung", "planning"])
+@pytest.mark.parametrize("page", ["absences", "forecast", "preplanning", "planning"])
 def test_web_pages_show_the_note_only_when_needed(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
 ):
@@ -333,7 +333,7 @@ def test_web_pages_show_the_note_only_when_needed(
     at = web_page(data_dir, monkeypatch, page)
     found = hints(at)
     assert found, page
-    if page == "fehltage":  # detailed, with the sprints, as information (no warning)
+    if page == "absences":  # detailed, with the sprints, as information (no warning)
         assert any("`2026.19`" in v for v in found)
         assert not any(NOTE in w.value for w in at.warning)
         assert any(NOTE in i.value for i in at.info)
@@ -353,7 +353,7 @@ def confirm_all_upcoming(data_dir: Path) -> None:
         repo.save_sprint("demo", sprint)
 
 
-@pytest.mark.parametrize("page", ["forecast", "vorplanung", "planning"])
+@pytest.mark.parametrize("page", ["forecast", "preplanning", "planning"])
 def test_web_pages_without_estimated_sprints_show_no_hint(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
 ):
@@ -365,7 +365,7 @@ def test_web_pages_without_estimated_sprints_show_no_hint(
     assert not hints(web_page(data_dir, monkeypatch, page))
 
 
-@pytest.mark.parametrize("page", ["planning", "vorplanung"])
+@pytest.mark.parametrize("page", ["planning", "preplanning"])
 def test_tooltips_show_foreign_sprint_ids_only_as_code(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str
 ):
@@ -391,7 +391,7 @@ def test_tooltips_show_foreign_sprint_ids_only_as_code(
 
 def test_absence_page_explains_what_to_do(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     edit(data_dir, "2026.19", absences={})
-    at = web_page(data_dir, monkeypatch, "fehltage")
+    at = web_page(data_dir, monkeypatch, "absences")
     expander = next(e for e in at.expander if e.label == "Was tun bei unsicherer Quote?")
     text = " ".join(m.value for m in expander.markdown)
     assert "„Sprint vorbereiten: Fehltage“" in text and "„Fehltage speichern“" in text
@@ -449,7 +449,7 @@ def test_expected_only_sprint_is_neither_counted_nor_flagged(data_dir: Path):
         absence_state=None,
         expected_absences={data.people[0].id: 2.0},
         velocity=None,
-        forecast_ist=None,
+        commitment=None,
         forecast_plan=None,
         planning=None,
     )

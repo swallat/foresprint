@@ -182,7 +182,7 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import DATA_ENV, STICHTAG_ENV
+    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
     from sprintforecast.web.ui import PAGE_INFO
 
     i18n.save_language("en")
@@ -193,16 +193,16 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     raw["features"]["tickets"] = True  # the page "Tickets" exists only with its feature
     team_file.write_text(yaml.safe_dump(raw))
     monkeypatch.setenv(DATA_ENV, str(data_dir))
-    monkeypatch.setenv(STICHTAG_ENV, "2026-10-15")
+    monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
     app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
     at = AppTest.from_file(str(app_file), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
     assert at.header[0].value == "What would you like to do?"
     for page in sorted(PAGE_INFO):
-        at.switch_page(f"seiten/{page}.py").run()
+        at.switch_page(f"page_scripts/{page}.py").run()
         assert not at.exception, (page, at.exception)
-    at.switch_page("seiten/planning.py").run()
+    at.switch_page("page_scripts/planning.py").run()
     assert at.radio(key="planning-step").options == [
         "1 · Absences", "2 · Forecast PLAN & planning", "3 · Commitment",
     ]  # fmt: skip

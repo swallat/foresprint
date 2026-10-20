@@ -18,7 +18,7 @@ pytest.importorskip("streamlit")
 
 import streamlit as st
 from streamlit.runtime.scriptrunner_utils.exceptions import StopException
-from test_web_k3_anbindung import sidebar_text
+from test_web_k3_integration import sidebar_text
 from test_web_k3_ui import git, sidebar_button, start
 
 from sprintforecast import gitsync
@@ -347,7 +347,7 @@ def test_pending_messages_survive_the_cleanup_of_stale_inputs(shared, data_dir, 
     """If the files have changed (here: by sharing), the page discards open inputs. The sync
     messages are not part of that."""
     at = start(data_dir, monkeypatch)
-    at.switch_page("seiten/review.py").run()  # a team page remembers the state of the files
+    at.switch_page("page_scripts/review.py").run()  # a team page remembers the state of the files
     assert not at.exception, at.exception
     sprint = data_dir / "demo/sprints/2026.20.yaml"
     sprint.write_text(sprint.read_text().replace("velocity: 9.75", "velocity: 5.0"))  # from outside

@@ -28,7 +28,7 @@ def servers(tmp_path: Path) -> dict[str, Path]:
 def mask(page: Page, make_app) -> tuple[Page, App]:
     """The Data folder page of an app with a Git repository (one commit, no server yet)."""
     app = make_app("maske", git=True)
-    open_page(page, app, "datenordner")
+    open_page(page, app, "data_dir")
     expect(main_area(page).get_by_role("heading", name="Server (Remote)")).to_be_visible()
     return page, app
 
@@ -147,7 +147,7 @@ def test_folder_without_any_commit_can_still_get_a_server(page: Page, make_app, 
     """A freshly created repository without a commit: the mask still checks and saves."""
     app = make_app("ohne-commit")
     git(app.data_dir.parent, "init", "-q", "-b", "main")  # Git repository, but no commit
-    open_page(page, app, "datenordner")
+    open_page(page, app, "data_dir")
     enter(page, str(servers["good"]))
     expect(button(page, "Verbindung prüfen")).to_be_enabled()
     button(page, "Verbindung prüfen").click()
@@ -168,7 +168,7 @@ def test_open_merge_locks_saving_but_not_checking(page: Page, make_app, servers)
     sprint.write_text(sprint.read_text(encoding="utf-8").replace("velocity: 9.75", "velocity: 2"))
     git(root, "commit", "-qam", "eigene")
     git(root, "merge", "andere", check=False)  # conflict: the merge stays open
-    open_page(page, app, "datenordner")
+    open_page(page, app, "data_dir")
     expect(alert(page, "Ein Zusammenführen ist unvollständig")).to_be_visible()
     enter(page, str(servers["good"]))
     expect(button(page, "Verbindung prüfen")).to_be_enabled()

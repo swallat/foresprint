@@ -186,7 +186,7 @@ class Step:
     when: str
     title: str
     text: str
-    # Web UI page (file name under web/seiten without .py)
+    # Web UI page (file name under web/page_scripts without .py)
     page: str
     cli: str
 
@@ -199,7 +199,7 @@ WORKFLOW: list[Step] = [
             "Create a new team (or import the history with an import plugin), then add "
             "the people with their FTE share."
         ),
-        page="neues_team",
+        page="new_team",
         cli="sprintforecast init TEAM",
     ),
     Step(
@@ -225,7 +225,7 @@ WORKFLOW: list[Step] = [
             "“Nobody is absent”. Without confirmation the absences stay “unknown” and are "
             "estimated from the last sprints."
         ),
-        page="fehltage",
+        page="absences",
         cli="sprintforecast absences TEAM [SPRINT]",
     ),
     Step(
@@ -248,7 +248,7 @@ WORKFLOW: list[Step] = [
             "after several products, the POs enter how much they plan per product – "
             "compared to the default (available amount / number of products)."
         ),
-        page="vorplanung",
+        page="preplanning",
         cli="sprintforecast products TEAM --preplanning",
     ),
     Step(
@@ -283,7 +283,7 @@ WORKFLOW: list[Step] = [
             "In addition to the forecast: range (conservative/optimistic), focus factor, "
             'buffer recommendation and "When will it be done?" for a remaining amount.'
         ),
-        page="analyse",
+        page="analysis",
         cli="sprintforecast analysis TEAM [--remaining AMOUNT]",
     ),
     Step(
@@ -293,7 +293,7 @@ WORKFLOW: list[Step] = [
             "Record joining, leaving and FTE changes; adjust team settings such as German "
             "state or reference capacity."
         ),
-        page="personen",
+        page="people",
         cli="sprintforecast people TEAM · sprintforecast settings TEAM",
     ),
     Step(
@@ -304,7 +304,7 @@ WORKFLOW: list[Step] = [
             "“PO assignment” is on) and start date; end handed-over ones with “until” "
             "instead of deleting – past reports are kept."
         ),
-        page="produktliste",
+        page="product_list",
         cli="sprintforecast product-list TEAM",
     ),
 ]
