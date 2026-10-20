@@ -26,10 +26,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import streamlit as st
+import streamlit.components.v1 as components
 import yaml
+from streamlit import config
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
-from sprintforecast import updater
+from sprintforecast import appsettings, updater
 from sprintforecast.analysis import (
     available_count,
     average_focus_factor,
@@ -342,6 +344,7 @@ PAGES: dict[str, dict[str, tuple[str, str]]] = {
     },
     "Data & help": {
         "data_dir": ("Data folder", ":material/folder_open:"),
+        "app_settings": ("App settings", ":material/settings:"),
         "history": ("Changes and history", ":material/history:"),
         "check": ("Check", ":material/fact_check:"),
         "help": ("Help", ":material/help:"),
@@ -429,6 +432,13 @@ def apply_language() -> None:
     """Set the language for this run (from the setting or the environment)."""
     set_language(None)
     set_language(language())
+
+
+def apply_theme() -> None:
+    """Set the theme options for this server (read by Streamlit for each new browser session)."""
+    for option, value in appsettings.theme_options().items():
+        if config.get_option(option) != value:
+            config.set_option(option, value)
 
 
 def _settings_problem(error: SettingsError, consequence: str) -> str:
@@ -5169,6 +5179,47 @@ def page_check(repo: Repository) -> None:
             show(f"{md_code(i.where)}: {md_plain(i.message)}")
 
 
+def _theme_changed() -> None:
+    code = st.session_state["theme"]
+    try:
+        appsettings.save_theme(code)
+    except SettingsError as e:
+        st.session_state["theme"] = appsettings.theme()
+        st.session_state.setdefault("flash", []).append(
+            ("error", _settings_problem(e, t("The theme was not changed.")))
+        )
+        return
+    apply_theme()
+    st.session_state["theme-reload"] = True
+
+
+def page_app_settings(repo: Repository) -> None:
+    """Settings of this installation / user (stored in the user settings, not in the team data
+    folder and therefore not shared)."""
+    st.header(t("App settings"))
+    page_intro(
+        t("These settings only apply to you on this computer and are not shared with the team."),
+        t(
+            "They are stored in the settings folder of the app (`{folder}`), not in the data "
+            "folder. The team settings are on the page Settings.",
+            folder=config_dir(),
+        ),
+    )
+    st.session_state.setdefault("theme", appsettings.theme())
+    st.radio(
+        t("Theme"),
+        list(appsettings.THEMES),
+        format_func=lambda code: t(appsettings.THEMES[code]),
+        key="theme",
+        horizontal=True,
+        on_change=_theme_changed,
+        help=t('"As system" follows the light or dark setting of your browser or system.'),
+    )
+    if st.session_state.pop("theme-reload", False):
+        # Streamlit sends the theme when a browser session starts: reload the page once.
+        components.html("<script>window.parent.location.reload();</script>", height=0)
+
+
 def page_help(repo: Repository) -> None:
     st.header(t("Help"))
     st.markdown(
@@ -6607,6 +6658,7 @@ TEAM_PAGES = {
 NO_FORECAST = {"people", "product_list", "settings", "jira"}
 GLOBAL_PAGES = {
     "data_dir": page_data_dir,
+    "app_settings": page_app_settings,
     "history": page_history,
     "new_team": page_new_team,
     "check": page_check,
@@ -6619,7 +6671,7 @@ GLOBAL_PAGES = {
 # State that is kept when files change (everything else is form input).
 _KEEP_STATE = {
     "selected_team", "flash", "pending_tags", "commit_message", "commit_message_auto", "use_tags",
-    "language",
+    "language", "theme",
     "enabled-pages", "sync_result", "sync_earlier", SYNC_RUNNING_KEY, "last_commit",
     "commit_error", "restarting", "update-started",
     "manual-check", "offer-init", "browse-error", "seen-versions", "planning-step",
