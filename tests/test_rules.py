@@ -202,3 +202,15 @@ def test_contains_leaf_round_trips_through_yaml():
     assert rule is not None and rule.contains and rule.source == "label"
     assert rule.matches({"label": ["Payment"]})
     assert _rule_to(rule) == {"label_contains": ["pay"]}
+
+
+def test_insert_helper_conditions():
+    from sprintforecast.web.rule_editor import append_condition, condition_text
+
+    assert condition_text("label", "=", ["a", "b"]) == "label IN (a, b)"
+    assert condition_text("label", "!=", ["a"]) == "label != a"
+    assert condition_text("label", "~", ["pay"]) == "label ~ pay"
+    assert append_condition("", "epic = A", "AND") == "epic = A"
+    assert append_condition("epic = A OR epic = B", "label = x", "AND") == (
+        "(epic = A OR epic = B) AND label = x"
+    )

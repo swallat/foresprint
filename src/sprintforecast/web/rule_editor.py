@@ -9,7 +9,7 @@ from typing import Any
 import streamlit as st
 
 from sprintforecast.i18n import t
-from sprintforecast.model import Rule
+from sprintforecast.model import RULE_SOURCES, Rule
 from sprintforecast.ruleexpr import RuleSyntaxError, format_rule, parse_rule
 from sprintforecast.storage import Repository, TeamData
 from sprintforecast.validate import rule_problems
@@ -24,6 +24,30 @@ EXAMPLE = (
 def syntax_message(text: str, error: RuleSyntaxError) -> str:
     """The error with the place in the text, e.g. ``... (position 12)``."""
     return t("{message} (position {position})", message=str(error), position=error.position + 1)
+
+
+def known_values(data: TeamData, source: str) -> list[str]:
+    """The values of a field on the open tickets, for the insert helper."""
+    found = {v for tk in data.tickets if not tk.done for v in tk.facts().get(source, [])}
+    return sorted(found, key=str.lower)
+
+
+def condition_text(source: str, operator: str, values: list[str]) -> str:
+    """One condition for the expression; several values turn ``=`` into ``IN`` (and ``!=`` into
+    ``NOT IN``)."""
+    leaf = Rule(source=source, values=values, contains=operator in ("~", "!~"))
+    text = format_rule(leaf if operator in ("=", "~") else Rule(op="none", children=[leaf]))
+    return text
+
+
+def append_condition(text: str, condition: str, joiner: str) -> str:
+    """The expression with the condition added; an existing OR expression is bracketed first."""
+    text = text.strip()
+    if not text:
+        return condition
+    if joiner == "AND" and " OR " in text:
+        text = f"({text})"
+    return f"{text} {joiner} {condition}"
 
 
 def rule_hits(data: TeamData, rule: Rule, project_id: str) -> list[dict[str, Any]]:
@@ -67,12 +91,14 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
     with st.expander(t("Example"), icon=":material/help:"):
         st.code(EXAMPLE, language=None)
     stored = format_rule(project.match)
+    text_key = f"tickets-{key}-rule-{chosen}-{abs(hash(stored))}"
     text = st.text_area(
         t("Rule"),
         value=stored,
-        key=f"tickets-{key}-rule-{chosen}-{abs(hash(stored))}",
+        key=text_key,
         help=t("Empty = the project takes no tickets by rule."),
     )
+    _insert_helper(data, text_key)
     rule: Rule | None = None
     if text.strip():
         try:
@@ -105,3 +131,34 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
             flash=True,
         ):
             st.rerun()
+
+
+def _insert_helper(data: TeamData, text_key: str) -> None:
+    """Field, operator and values (from the open tickets) picked from lists and added to the
+    expression; the text area has no completion while typing."""
+    key = data.team.key
+    with st.expander(t("Insert condition"), icon=":material/add:"):
+        left, middle, right = st.columns([1, 1, 2])
+        source = left.selectbox(t("Field"), RULE_SOURCES, key=f"tickets-{key}-ins-field")
+        operator = middle.selectbox(
+            t("Operator"), ["=", "!=", "~", "!~"], key=f"tickets-{key}-ins-op"
+        )
+        values = right.multiselect(
+            t("Values"),
+            known_values(data, source),
+            accept_new_options=True,
+            key=f"tickets-{key}-ins-values-{source}",
+        )
+        joiner = st.radio(
+            t("Join with"), ["AND", "OR"], horizontal=True, key=f"tickets-{key}-ins-join"
+        )
+
+        def insert() -> None:
+            if values:
+                st.session_state[text_key] = append_condition(
+                    st.session_state.get(text_key, ""),
+                    condition_text(source, operator, values),
+                    joiner,
+                )
+
+        st.button(t("Insert"), on_click=insert, key=f"tickets-{key}-ins-go")
