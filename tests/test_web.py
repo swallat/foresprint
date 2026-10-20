@@ -1622,6 +1622,15 @@ def test_preplanning_save_updates_the_step_bar_at_once(app: AppTest):
     }
     app.run()
     click(app, "PO-Vorplanung speichern")
+    assert not nav_done(app)["vorplanung"]  # nur ein Produkt von mehreren hat einen Wert
+    app.selectbox(key="vorplanung-sprint").set_value("2026.23").run()
+    app.session_state["vorplanung-2026.23"] = {
+        "edited_rows": {i: {"PO-Vorplanung": 2.0} for i in range(3)},  # webshop, app, portal
+        "added_rows": [],
+        "deleted_rows": [],
+    }
+    app.run()
+    click(app, "PO-Vorplanung speichern")
     assert nav_done(app)["vorplanung"]  # schon im selben Durchlauf, ohne weiteren Klick
     assert any("Gespeichert" in s.value for s in app.success)  # die Meldung folgt im Neuaufbau
 

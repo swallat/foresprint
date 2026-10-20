@@ -1541,7 +1541,7 @@ def _board_nav(data: TeamData, sprint: Sprint, current: str) -> None:
     """Schrittleiste Fehltage → PO-Vorplanung → Planning → Review mit dem Stand für den
     gewählten Sprint – Wechsel mit einem Klick. Seiten abgeschalteter Funktionsbereiche
     (PO-Vorplanung ohne Produkte) entfallen."""
-    done = board_steps_done(data.sprint(sprint.id))
+    done = board_steps_done(data.sprint(sprint.id), data.products)
     enabled = st.session_state.get("enabled-pages", BOARD_STEPS)
     steps = [key for key in BOARD_STEPS if key in enabled]
     st.html(_board_nav_css(len(steps)))
@@ -2082,7 +2082,9 @@ def page_planning(repo: Repository, data: TeamData, fc: Forecast) -> None:
     )
     recorded = data.sprint(sprint.id)
     done = [
-        board_steps_done(recorded)["fehltage"],  # wie der Haken der Schrittleiste oben
+        board_steps_done(recorded, data.products)[
+            "fehltage"
+        ],  # wie der Haken der Schrittleiste oben
         recorded is not None and any(v.planned is not None for v in recorded.products.values()),
         recorded is not None and recorded.forecast_ist is not None,
     ]
