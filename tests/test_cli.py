@@ -544,9 +544,8 @@ def test_produkte_balance_hides_products_without_value_and_shows_missing(data_di
     assert result.exit_code == 0, result.output
     table = balance_table(result.output)
     assert "ohne Wert" in table
-    assert FOOTNOTE in " ".join(
-        table.split()
-    )  # footnote explains the column (line breaks do not matter)
+    # footnote explains the column (line breaks do not matter)
+    assert FOOTNOTE in " ".join(table.split())
     app_row = next(line for line in table.splitlines() if "Mobile App" in line)
     cells = [c.strip() for c in app_row.strip("│").split("│")]
     assert cells[1] == "3" and cells[-1] == "1"

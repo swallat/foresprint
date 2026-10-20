@@ -521,8 +521,7 @@ TAIL = (
             "Tippfehler",
         ),
         # A blocked connection (firewall, security software) stays "Server not reachable";
-        # "Permission
-        # denied" when creating ~/.ssh does not change the fingerprint hint.
+        # "Permission denied" when creating ~/.ssh does not change the fingerprint hint.
         (
             "ssh: connect to host h.example port 22: Permission denied\n" + TAIL,
             SSH,
@@ -544,8 +543,7 @@ TAIL = (
             "Fingerabdruck",
         ),
         # The kinds for the local machine keep their hint: a server folder of another account
-        # (network
-        # drive), write permissions and a lock file are not a "failed connection".
+        # (network drive), write permissions and a lock file are not a "failed connection".
         (
             "fatal: detected dubious ownership in repository at '/srv/r.git'\n"
             "To add an exception for this directory, call:\n\n"

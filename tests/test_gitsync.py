@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-""" "Save and share" with real Git repositories: one server (bare) and two clones."""
+"""The "Save and share" action with real Git repositories: one server (bare) and two clones."""
 
 import http.server
 import subprocess
