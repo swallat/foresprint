@@ -32,3 +32,6 @@ becomes a normal trusted publisher.
 2. Tag the merge commit and push: `git tag -a vX.Y.Z -m "Version X.Y.Z" && git push origin vX.Y.Z`.
 3. Approve the `pypi` deployment if a reviewer is required. PyPI never accepts a version twice;
    after a faulty upload raise the version (a yanked release cannot be replaced).
+
+For an existing tag, the release can be repeated under *Actions, Release, Run workflow*. The normal
+CI also builds the packages on every push and stores them as the artifact `dist`.
