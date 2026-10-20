@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Fachliche Tests: Eigenschaften der Berechnung, Randfälle, handgerechnete Beispiele und ein
-Backtest (rückblickende Prüfung).
+"""Domain tests: properties of the calculation, edge cases, hand-calculated examples and a
+backtest (retrospective check).
 
-Die Konsistenztests prüfen, ob Seiten zum Rechenkern passen. Diese Tests prüfen, ob der
-Rechenkern fachlich Sinn ergibt – unabhängig davon, wie er implementiert ist."""
+The consistency tests check whether pages match the calculation core. These tests check whether
+the calculation core makes sense in terms of the domain, regardless of how it is implemented."""
 
 import random
 import statistics
@@ -32,11 +32,11 @@ MODES = list(TrendMode)
 REF = 40.0
 
 
-# --- Hilfen --------------------------------------------------------------------------------
+# --- Helpers --------------------------------------------------------------------------------
 
 
 def inputs_for(velocities: list[float | None], capacity: float = 40.0, future: int = 3):
-    """Sprints mit fester Kapazität; ``None`` = offen (Zukunft)."""
+    """Sprints with fixed capacity; ``None`` = open (future)."""
     rows = [
         SprintInput(
             id=str(i),
@@ -104,13 +104,13 @@ def capacity_of(people, sprint, **team_kw) -> float:
     return sprint_capacity(team, people, sprint).capacity
 
 
-# --- Eigenschaften des Rechenkerns -----------------------------------------------------------
+# --- Properties of the calculation core -----------------------------------------------------------
 
 
 @pytest.mark.parametrize("mode", MODES)
 @pytest.mark.parametrize("window", [1, 3, 5])
 def test_constant_velocity_gives_constant_forecast(mode, window):
-    """Konstante Velocity → konstanter Forecast, in jedem Trend-Modus."""
+    """Constant velocity → constant forecast, in every trend mode."""
     results = compute(inputs_for([10.0] * 12), settings(mode, window))
     future = results[12:]
     assert [r.plan for r in future] == [10.0, 10.0, 10.0]
@@ -119,7 +119,7 @@ def test_constant_velocity_gives_constant_forecast(mode, window):
 
 @pytest.mark.parametrize("mode", MODES)
 def test_forecast_scales_with_capacity_not_with_noise_in_capacity(mode):
-    """Gleiche normierte Velocity: halbe Kapazität → halber Forecast."""
+    """Same normalized velocity: half the capacity → half the forecast."""
     rows = inputs_for([10.0] * 8, future=0)
     rows += [
         SprintInput("half", 20.0, CapacitySource.RECORDED, None, None, None),
@@ -131,7 +131,7 @@ def test_forecast_scales_with_capacity_not_with_noise_in_capacity(mode):
 
 @pytest.mark.parametrize("seed", range(10))
 def test_plan_lies_within_band_for_default_mode(seed):
-    """Der Plan (flat) liegt in der Bandbreite der letzten Sprints."""
+    """The plan (flat) lies within the range of the last Sprints."""
     rng = random.Random(seed)
     data = team_data([max(1.0, rng.gauss(12, 3)) for _ in range(14)])
     fc = build_forecast(data, date(2026, 1, 7) + timedelta(days=14 * 14))
@@ -142,9 +142,9 @@ def test_plan_lies_within_band_for_default_mode(seed):
 
 
 def test_classic_and_linear_can_leave_the_band():
-    """Begründung für den flat-Standard (A1): Linear schreibt Rauschen fort und liegt nach
-    wenigen Zukunftssprints außerhalb der eigenen Bandbreite."""
-    values = [10, 11, 13, 14, 16, 17, 19, 21, 22, 24]  # steigend
+    """Rationale for the flat default (A1): linear extrapolates noise and, after a few future
+    Sprints, lies outside its own range."""
+    values = [10, 11, 13, 14, 16, 17, 19, 21, 22, 24]  # rising
     data = team_data([float(v) for v in values])
     data.team.forecast.trend_mode = TrendMode.LINEAR
     data.team.forecast.horizon = 5
@@ -169,12 +169,12 @@ def test_forecast_is_never_negative(mode, seed):
 
 def test_holiday_sprint_has_less_capacity_than_normal_sprint():
     people = [person("a"), person("b", fte=0.5)]
-    normal = sprint_at(date(2026, 11, 2))  # 10 Arbeitstage
-    christmas = sprint_at(date(2026, 12, 21))  # 25.12. (Fr) und 01.01. (Fr) fallen hinein
+    normal = sprint_at(date(2026, 11, 2))  # 10 working days
+    christmas = sprint_at(date(2026, 12, 21))  # Dec 25 (Fri) and Jan 1 (Fri) fall inside
     assert len(team_workdays(Team(key="t", name="T"), normal.start, normal.end)) == 10
     assert capacity_of(people, christmas) < capacity_of(people, normal)
-    assert capacity_of(people, normal) == pytest.approx(15.0)  # (1 + 0,5) × 10
-    assert capacity_of(people, christmas) == pytest.approx(12.0)  # (1 + 0,5) × 8
+    assert capacity_of(people, normal) == pytest.approx(15.0)  # (1 + 0.5) × 10
+    assert capacity_of(people, christmas) == pytest.approx(12.0)  # (1 + 0.5) × 8
 
 
 @pytest.mark.parametrize("seed", range(8))
@@ -195,18 +195,18 @@ def test_more_people_never_means_less_capacity(seed):
 
 @pytest.mark.parametrize("days", [7, 14, 21, 28])
 def test_different_sprint_lengths_scale_capacity(days):
-    """Kapazität zählt die Arbeitstage: 7 Kalendertage ≈ 5 Arbeitstage usw. (ohne Feiertage)."""
-    start = date(2026, 3, 2)  # Montag, keine Feiertage bis Ende März
+    """Capacity counts working days: 7 calendar days ≈ 5 working days etc. (without holidays)."""
+    start = date(2026, 3, 2)  # Monday, no holidays until the end of March
     people = [person("a")]
     assert capacity_of(people, sprint_at(start, days)) == pytest.approx(days / 7 * 5)
 
 
-# --- Randfälle -------------------------------------------------------------------------------
+# --- Edge cases -------------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("mode", [TrendMode.CLASSIC, TrendMode.LINEAR])
 def test_exactly_window_sprints_gives_flat_with_note(mode):
-    """A4: Genau ``window`` Sprints Historie → Forecast statt keinem, mit Hinweis."""
+    """A4: Exactly ``window`` Sprints of history → a forecast instead of none, with a note."""
     results = compute(inputs_for([8.0, 10.0, 12.0], future=2), settings(mode, window=3))
     assert [r.plan for r in results[3:]] == [10.0, 10.0]
     assert all(r.trend_fallback for r in results[3:])
@@ -225,7 +225,7 @@ def test_one_value_below_window_gives_no_trend():
 def test_fte_zero_gives_zero_capacity_and_no_division_error():
     sprint = sprint_at(date(2026, 10, 14))
     assert capacity_of([person("a", fte=0.0)], sprint) == 0.0
-    # Sprint mit Kapazität 0: normierte Velocity nicht definiert, Forecast ohne Absturz
+    # Sprint with capacity 0: normalized velocity undefined, forecast without crashing
     rows = [
         *inputs_for([10.0] * 6, future=0),
         SprintInput("zero", 0.0, CapacitySource.RECORDED, None, 5.0, None),
@@ -237,47 +237,47 @@ def test_fte_zero_gives_zero_capacity_and_no_division_error():
 
 
 def test_gaps_do_not_count_as_values():
-    """A4: Lücken (Sprints ohne Velocity) zählen nicht mit; das Fenster reicht weiter zurück."""
+    """A4: Gaps (Sprints without velocity) do not count; the window reaches back further."""
     values: list[float | None] = [10.0, 10.0, None, 10.0, None, 10.0, 10.0]
     results = compute(inputs_for(values, future=1), settings(TrendMode.FLAT, window=5))
     assert results[-1].plan == 10.0
     assert results[-1].samples == 5
 
 
-# --- Handgerechnete Beispiele: FTE, Arbeitswoche, Overhead, Fehltage --------------------------
+# --- Hand-calculated examples: FTE, work week, overhead, absences --------------------------
 
-START = date(2026, 3, 2)  # Montag; 10 Arbeitstage bis 16.03., keine Feiertage
+START = date(2026, 3, 2)  # Monday; 10 working days until Mar 16, no holidays
 
 
 def test_fte_is_share_of_the_persons_working_days():
-    """A6: Mo–Fr + FTE 0,8 = Vier-Tage-Woche + FTE 1 = 8 PT; beides zusammen zöge doppelt ab."""
+    """A6: Mon-Fri + FTE 0.8 = four-day week + FTE 1 = 8 PD; both together would deduct twice."""
     s = sprint_at(START)
     assert capacity_of([person(fte=0.8)], s) == pytest.approx(8.0)
     assert capacity_of([person(fte=1.0, workweek="mon,tue,wed,thu")], s) == pytest.approx(8.0)
     doubled = capacity_of([person(fte=0.8, workweek="mon,tue,wed,thu")], s)
-    assert doubled == pytest.approx(6.4)  # 8 × 0,8 – der Fall, den die Hilfe warnend erklärt
+    assert doubled == pytest.approx(6.4)  # 8 × 0.8: the case the help warns about
     assert capacity_of([person(fte=0.5)], s) == pytest.approx(5.0)
 
 
 def test_absences_are_taken_in_person_days_times_fte():
     s = sprint_at(START, absences={"a": 2})
     assert capacity_of([person(fte=1.0)], s) == pytest.approx(8.0)
-    assert capacity_of([person(fte=0.5)], s) == pytest.approx(4.0)  # (5 − 2 × 0,5)
+    assert capacity_of([person(fte=0.5)], s) == pytest.approx(4.0)  # (5 − 2 × 0.5)
 
 
 def test_overhead_days_replace_percentage_for_confirmed_and_expected_absences():
-    """A8: Eine gemeinsame Rechnung. Feste PT ersetzen den Prozentabzug (nicht addiert)."""
+    """A8: One combined calculation. Fixed PD replace the percentage deduction (not added)."""
     s = sprint_at(START)
     people = [person("a"), person("b", fte=0.5)]
-    assert capacity_of(people, s, overhead_share=0.1) == pytest.approx(13.5)  # 15 − 10 %
-    assert capacity_of(people, s, overhead_days=1.0) == pytest.approx(13.5)  # 15 − (1 + 0,5)
+    assert capacity_of(people, s, overhead_share=0.1) == pytest.approx(13.5)  # 15 − 10%
+    assert capacity_of(people, s, overhead_days=1.0) == pytest.approx(13.5)  # 15 − (1 + 0.5)
     both = capacity_of(people, s, overhead_share=0.1, overhead_days=1.0)
-    assert both == pytest.approx(13.5)  # nicht 12,0
+    assert both == pytest.approx(13.5)  # not 12.0
 
 
 def test_expected_and_estimated_absences_use_the_same_overhead_rule():
-    """Bestätigte Fehltage (2 Tage), erwartete Quote (20 %) und angekündigte Fehltage rechnen
-    gleich: erst Fehltage, dann Overhead, dann Rundung."""
+    """Confirmed absences (2 days), expected rate (20%) and announced absences calculate the
+    same: absences first, then overhead, then rounding."""
     people = [person("a")]
     team = Team(key="t", name="T")
     team.capacity.region = "NW"
@@ -285,13 +285,13 @@ def test_expected_and_estimated_absences_use_the_same_overhead_rule():
     confirmed = sprint_at(START, absences={"a": 2})
     assert sprint_capacity(team, people, confirmed).capacity == pytest.approx(7.0)  # 8 − 1
     estimated = sprint_capacity(team, people, sprint_at(START), absence_rate=0.2).capacity
-    assert estimated == pytest.approx(7.0)  # 10 × 0,8 − 1
+    assert estimated == pytest.approx(7.0)  # 10 × 0.8 − 1
     assert sprint_capacity(team, people, sprint_at(START), absence_rate=0.2).overhead == 1.0
 
 
 def test_unknown_absences_still_use_calendar_and_people():
-    """A2: Kapazität künftiger Sprints ohne Fehltage kommt aus Kalender und Personen, nicht aus
-    dem Trend – hier mit einem Feiertagssprint, den ein Trend nicht kennen kann."""
+    """A2: Capacity of future Sprints without absences comes from the calendar and people, not
+    from the trend, here with a holiday Sprint that a trend cannot know about."""
     data = team_data([10.0] * 6)
     data.people = [person("a")]
     data.team.capacity.region = "NW"
@@ -299,12 +299,12 @@ def test_unknown_absences_still_use_calendar_and_people():
         s.capacity = None
         s.velocity = None
     data.sprints = data.sprints[:0]
-    data.team.sprint.first_start = date(2026, 12, 21)  # erster Sprint enthält 2 Feiertage
+    data.team.sprint.first_start = date(2026, 12, 21)  # first Sprint contains 2 holidays
     data.team.sprint.first_id = "2026.1"
     fc = build_forecast(data, date(2026, 12, 1))
     first, second = fc.entries[0], fc.entries[1]
     assert first.result.plan_capacity_source is CapacitySource.CALENDAR
-    assert first.result.plan_capacity == pytest.approx(8.0)  # 10 − 2 Feiertage
+    assert first.result.plan_capacity == pytest.approx(8.0)  # 10 − 2 holidays
     assert second.result.plan_capacity == pytest.approx(10.0)
     assert first.result.plan_capacity < second.result.plan_capacity
 
@@ -315,8 +315,8 @@ def test_unknown_absences_still_use_calendar_and_people():
 def predict(
     values: list[float], mode: TrendMode, window: int, capacity: float = 40.0, ahead: int = 1
 ) -> float:
-    """Normierte Velocity, die für den Sprint ``ahead`` Sprints nach ``values`` prognostiziert
-    würde (1 = der nächste)."""
+    """Normalized velocity that would be forecast for the Sprint ``ahead`` Sprints after
+    ``values`` (1 = the next one)."""
     results = compute(inputs_for(values, capacity, future=ahead), settings(mode, window))
     trend = results[-1].normalized_velocity.trend
     assert trend is not None
@@ -324,9 +324,9 @@ def predict(
 
 
 def backtest(series: list[float], window: int = 5, ahead: int = 1) -> dict[str, float]:
-    """Für jeden Sprint ab ``window`` + 2: mit den damals verfügbaren Daten (``ahead`` Sprints
-    vorher) prognostizieren und mit dem tatsächlichen Wert vergleichen (mittlerer absoluter
-    Fehler je Verfahren)."""
+    """For each Sprint from ``window`` + 2 on: forecast with the data available at the time
+    (``ahead`` Sprints earlier) and compare with the actual value (mean absolute error per
+    method)."""
     errors: dict[str, list[float]] = {m.value: [] for m in MODES} | {"mean": [], "median": []}
     for i in range(window + 2 + ahead - 1, len(series)):
         past, actual = series[: i - ahead + 1], series[i]
@@ -344,15 +344,15 @@ def stationary(seed: int, n: int = 40) -> list[float]:
 
 
 def test_backtest_flat_equals_the_constant_mean_forecast():
-    """flat ist der konstante Forecast aus dem Mittel der letzten Sprints – nicht schlechter."""
+    """flat is the constant forecast from the mean of the last Sprints, and not worse."""
     for seed in range(5):
         result = backtest(stationary(seed))
         assert result["flat"] == pytest.approx(result["mean"])
 
 
 def test_backtest_default_mode_is_best_on_stationary_series():
-    """Auf stationären Reihen mit Rauschen ist der Standard besser als classic/linear und nicht
-    schlechter als der konstante Forecast (Mittel, Median)."""
+    """On stationary series with noise the default is better than classic/linear and not worse
+    than the constant forecast (mean, median)."""
     totals: dict[str, list[float]] = {}
     for seed in range(20):
         for name, error in backtest(stationary(seed)).items():
@@ -360,11 +360,11 @@ def test_backtest_default_mode_is_best_on_stationary_series():
     mae = {name: statistics.fmean(v) for name, v in totals.items()}
     assert mae["flat"] < mae["classic"] and mae["flat"] < mae["linear"]
     assert mae["flat"] <= mae["mean"] + 1e-9
-    assert mae["flat"] <= mae["median"] * 1.05  # Median ist bei Normalrauschen nicht besser
+    assert mae["flat"] <= mae["median"] * 1.05  # the median is not better for normal noise
 
 
 def test_backtest_three_sprints_ahead_penalizes_extrapolating_noise():
-    """Je weiter voraus, desto mehr schadet das Fortschreiben von Rauschen (A1)."""
+    """The further ahead, the more extrapolating noise hurts (A1)."""
     totals: dict[str, list[float]] = {}
     for seed in range(20):
         for name, error in backtest(stationary(seed), ahead=3).items():
@@ -376,22 +376,22 @@ def test_backtest_three_sprints_ahead_penalizes_extrapolating_noise():
 
 
 def test_backtest_trend_series_shows_when_linear_is_better():
-    """Bei einem echten, stabilen Trend schlägt ``linear`` den Standard – deshalb bleibt es
-    ausdrücklich wählbar, aber nicht der Standard."""
+    """With a real, stable trend ``linear`` beats the default, which is why it stays
+    explicitly selectable but is not the default."""
     series = [10 + 0.6 * i + random.Random(i).gauss(0, 0.3) for i in range(40)]
     result = backtest(series)
     assert result["linear"] < result["flat"]
 
 
 def test_backtest_jump_series_flat_recovers_after_one_window():
-    """Nach einem Sprung (Teamwechsel) holt der Standard die neue Höhe nach einem Fenster ein."""
+    """After a jump (team change) the default catches up with the new level after one window."""
     rng = random.Random(3)
     series = [max(1.0, rng.gauss(10, 1)) for _ in range(20)]
     series += [max(1.0, rng.gauss(16, 1)) for _ in range(20)]
     window = 5
     late = [
         abs(predict(series[:i], TrendMode.FLAT, window) - series[i])
-        for i in range(20 + window + 1, 40)  # ab einem Fenster nach dem Sprung
+        for i in range(20 + window + 1, 40)  # from one window after the jump on
     ]
     early = [
         abs(predict(series[:i], TrendMode.FLAT, window) - series[i]) for i in range(20, 20 + window)
@@ -405,7 +405,7 @@ def demo_series() -> list[float]:
     return [
         v
         for e in fc.history()
-        if (v := e.result.normalized_velocity.value) is not None  # Referenz des Demo-Teams
+        if (v := e.result.normalized_velocity.value) is not None  # reference of the demo team
     ]
 
 
@@ -414,7 +414,7 @@ def test_backtest_on_demo_history_default_mode_is_not_worse_than_constant_foreca
     assert len(series) >= 15
     result = backtest(series)
     assert result["flat"] <= result["mean"] + 1e-9
-    assert result["flat"] <= result["classic"]  # classic läuft dem Rauschen hinterher
+    assert result["flat"] <= result["classic"]  # classic lags behind the noise
     assert result["flat"] <= result["linear"]
 
 
@@ -427,7 +427,7 @@ def test_plan_of_demo_lies_in_band():
 
 
 def test_fte_change_within_sprint_weights_absences_with_mean_fte():
-    """A7: Näherung bei FTE-Wechsel im Sprint, handgerechnet und als solche gekennzeichnet."""
+    """A7: Approximation for an FTE change within the Sprint, hand-calculated and marked as such."""
     changing = Person(
         "a",
         "A",
@@ -440,21 +440,21 @@ def test_fte_change_within_sprint_weights_absences_with_mean_fte():
     team.capacity.region = "NW"
     sprint = sprint_at(START, absences={"a": 2})
     breakdown = sprint_capacity(team, [changing], sprint)
-    # 5 Tage × 1 + 5 Tage × 0,5 = 7,5; mittlere FTE 0,75; 2 Fehltage × 0,75 = 1,5
+    # 5 days × 1 + 5 days × 0.5 = 7.5; mean FTE 0.75; 2 absences × 0.75 = 1.5
     assert breakdown.capacity == pytest.approx(6.0)
     assert breakdown.people[0].fte_changes
     assert [p.person.id for p in breakdown.approximated] == ["a"]
     steady = sprint_capacity(team, [person("b", fte=0.5)], sprint_at(START, absences={"b": 2}))
     assert not steady.people[0].fte_changes and not steady.approximated
-    # ohne Fehltage ist nichts genähert
+    # without absences nothing is approximated
     assert not sprint_capacity(team, [changing], sprint_at(START)).approximated
 
 
 @pytest.mark.parametrize("mode", MODES)
 def test_reference_capacity_does_not_change_the_forecast(mode):
-    """A13: Die Referenzkapazität kürzt sich heraus – sie ist nur ein Darstellungsmaßstab.
-    Fokusfaktor und normierte Velocity sind dieselbe Größe (n. Velocity = Fokusfaktor ×
-    Referenz)."""
+    """A13: The reference capacity cancels out; it is only a display scale.
+    Focus factor and normalized velocity are the same quantity (norm. velocity = focus factor ×
+    reference)."""
     rng = random.Random(7)
     values = [max(1.0, rng.gauss(12, 3)) for _ in range(10)]
     plans = []

@@ -90,9 +90,9 @@ def test_switch_language(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_default_language_is_english(tmp_path: Path):
-    """Ohne Umgebungsvariable und ohne gespeicherte Einstellung ist die Oberfläche englisch.
-    (Die Testsuite selbst setzt die Vorgabe in conftest.py auf Deutsch, daher ein eigener
-    Prozess.)"""
+    """Without an environment variable and without a saved setting the UI is in English.
+    (The test suite itself sets the default to German in conftest.py, hence a separate
+    process.)"""
     import os
     import subprocess
     import sys
@@ -110,7 +110,7 @@ def test_default_language_is_english(tmp_path: Path):
 
 
 def test_german_texts_name_the_english_commands(data_dir: Path):
-    """Auch die deutsche Oberfläche nennt die Befehle und Optionen englisch."""
+    """The German UI also names the commands and options in English."""
     from typer.testing import CliRunner
 
     from sprintforecast.cli import app
@@ -154,10 +154,10 @@ def test_capacity_in_english(data_dir: Path, english):
     from sprintforecast.report import fmt_capacity
     from sprintforecast.storage import Repository
 
-    assert fmt_capacity(25.25) == "25.3"  # kaufmännisch gerundet, Dezimalpunkt
+    assert fmt_capacity(25.25) == "25.3"  # commercially rounded, decimal point
     assert fmt_capacity(1234.25) == "1,234.3"
     fc = build_forecast(Repository(data_dir).load("demo"), date(2026, 10, 15))
-    e = fc.entry("2026.23")  # Kapazität 30,4375 (erwartete Fehltage: aus der Historie geschätzt)
+    e = fc.entry("2026.23")  # capacity 30.4375 (expected absences: estimated from the history)
     assert "30.4 PT are available" in plain_explanation(fc, e)
     assert "16.8433 / 45 × 30.4375 = 11.393" in plain_explanation(fc, e)
     assert step(fc, e, "plan").calculation == "16.8433 / 45 × 30.4375 = 11.393 → 11.3 PT"

@@ -25,7 +25,7 @@ def test_reconnect_within_grace_resets_timer():
     watch = IdleWatch(grace=20, poll=2)
     watch.update(1, 0)
     watch.update(0, 2)
-    assert not watch.update(1, 4)  # Neuladen des Fensters
+    assert not watch.update(1, 4)  # reloading the window
     assert not any(watch.update(0, now) for now in range(6, 26, 2))
     assert watch.update(0, 26)
 

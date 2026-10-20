@@ -1,16 +1,17 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Anzeigename „Verplanbarer Anteil“ (früher „Roadmap“): nur die Beschriftung ändert sich.
+"""Display name "Plannable share" (formerly "Roadmap"): only the label changes.
 
-Der Speicherschlüssel ``forecast.roadmap_share`` (und ``product_basis: roadmap``) bleibt, damit
-bestehende Dateien lesbar und Änderungen zusammenführbar bleiben.
+The storage key ``forecast.roadmap_share`` (and ``product_basis: roadmap``) stays so that existing
+files remain readable and changes remain mergeable.
 
-Bewusst weiter „roadmap“ genannt (und deshalb hier nicht geprüft):
-- der YAML-Schlüssel ``roadmap_share`` und der Wert ``product_basis: roadmap`` (Speicherformat),
-- die Schlüsselspalte der Excel-Mappe und der benannte Bereich ``Roadmap_Anteil`` in den
-  Formeln (alte Exporte müssen importierbar bleiben),
-- der Wert „roadmap“ in der Auswahl „Standardverteilung je Produkt“ (steht vor dem Text),
-- die Hilfetabelle „team“ der Kommandozeile, die den Schlüssel ``forecast.roadmap_share``
-  anzeigt (kleingeschrieben; geprüft wird nur das großgeschriebene Wort „Roadmap“).
+Deliberately still called "roadmap" (and therefore not checked here):
+- the YAML key ``roadmap_share`` and the value ``product_basis: roadmap`` (storage format),
+- the key column of the Excel workbook and the named range ``Roadmap_Anteil`` in the formulas
+  (old exports must stay importable),
+- the value "roadmap" in the selection "Standard distribution per product" (it comes before the
+  text),
+- the help table "team" of the command line, which shows the key ``forecast.roadmap_share``
+  (lowercase; only the capitalized word "Roadmap" is checked).
 """
 
 import re
@@ -36,7 +37,7 @@ from sprintforecast.storage import DATA_ENV, STICHTAG_ENV, Repository
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 runner = CliRunner(env={"COLUMNS": "250"})
 KEY = "roadmap_share"
-WORD = "Roadmap"  # großgeschrieben = sichtbare Beschriftung; Schlüssel sind kleingeschrieben
+WORD = "Roadmap"  # capitalized = visible label; keys are lowercase
 
 
 def test_roadmap_share_key_is_still_read_and_written(data_dir: Path):
@@ -93,7 +94,7 @@ def test_command_line_shows_no_roadmap_label(
     finally:
         i18n.set_language(None)
     assert WORD not in output
-    assert "roadmap" not in output.replace("roadmap_share", "")  # englische Beschriftung
+    assert "roadmap" not in output.replace("roadmap_share", "")  # English label
 
 
 def test_command_line_names_the_column_verplanbar(data_dir: Path):
@@ -132,7 +133,7 @@ def test_formula_steps_name_the_plannable_share(
 
 
 def use_roadmap_basis(data_dir: Path) -> None:
-    """Standardverteilung je Produkt aus dem verplanbaren Anteil (Wert ``roadmap``)."""
+    """Standard distribution per product from the plannable share (value ``roadmap``)."""
     repo = Repository(data_dir)
     data = repo.load("demo")
     data.team.forecast.product_basis = ProductBasis.ROADMAP
@@ -140,7 +141,7 @@ def use_roadmap_basis(data_dir: Path) -> None:
 
 
 def test_planning_panel_keeps_its_separators(data_dir: Path):
-    # Die Kennzahlenzeile nach „planning“ (gleiche Funktion wie bei „fehltage“).
+    # The metrics row after "planning" (same function as for "fehltage").
     result = runner.invoke(
         app,
         ["--data", str(data_dir), "--as-of", "2026-10-15", "planning", "demo", "2026.20"],
@@ -198,7 +199,7 @@ def test_excel_labels_are_renamed_but_keys_stay(data_dir: Path, lang: str, monke
                 value = cell.value
                 if isinstance(value, str) and not value.startswith("="):
                     texts.append(value)
-    # Schlüssel (Import liest ihn) und benannter Bereich (Formeln) bleiben unverändert.
+    # Key (import reads it) and named range (formulas) stay unchanged.
     assert "forecast.roadmap_share" in texts
     assert "Roadmap_Anteil" in book.defined_names
     labels = [x for x in texts if x != "forecast.roadmap_share"]
@@ -226,11 +227,11 @@ def test_web_pages_show_no_roadmap_label(
         at = AppTest.from_file(str(APP), default_timeout=30)
         at.run()
         at.switch_page(f"seiten/{page}.py").run()
-        if page == "planning":  # Schritt „Forecast PLAN & Einplanung“ zeigt die Kennzahlen
+        if page == "planning":  # step "2 · Forecast PLAN & planning" shows the metrics
             at.radio(key="planning-step").set_value(1).run()
         assert not at.exception, at.exception
         shown = repr(at.main) + repr(at.sidebar)
-        # Kennzahl-Beschriftungen und Spaltenköpfe stehen nicht in ``repr(at.main)``.
+        # Metric labels and column headers are not in ``repr(at.main)``.
         shown += " ".join(m.label for m in at.metric)
         for frame in at.dataframe:
             shown += " ".join(str(c) for c in frame.value.columns)
@@ -241,9 +242,9 @@ def test_web_pages_show_no_roadmap_label(
         assert any(plannable in frame.value.columns for frame in at.dataframe)
     if page == "planning":
         assert any(m.label.startswith(("Verplanbar", "Plannable")) for m in at.metric)
-    # Widget-Schlüssel (settings-demo-forecast.roadmap_share) sind kleingeschrieben und bleiben.
+    # Widget keys (settings-demo-forecast.roadmap_share) are lowercase and stay.
     assert WORD not in shown
-    # Die Auswahl „Standardverteilung je Produkt“ zeigt den Speicherwert vor dem Text
-    # („roadmap – nur verplanbarer Anteil …“); der Wert bleibt (Speicherformat).
+    # The selection "Standard distribution per product" shows the storage value before the text
+    # ("roadmap – plannable share only …"); the value stays (storage format).
     rest = shown.replace("roadmap_share", "").replace("'roadmap'", "").replace("roadmap – ", "")
     assert "roadmap" not in rest

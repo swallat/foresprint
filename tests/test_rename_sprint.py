@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Sprint-IDs nachträglich ändern: Planung, Dateien, Befehlszeile und Einstellungsseite."""
+"""Changing sprint IDs after the fact: planning, files, command line and settings page."""
 
 from datetime import date
 from pathlib import Path
@@ -27,12 +27,12 @@ def load(path: Path) -> dict:
 
 
 def ids(data_dir: Path) -> list[str]:
-    """Sprint-IDs der Dateien, numerisch sortiert (2026.2 vor 2026.10)."""
+    """Sprint IDs of the files, sorted numerically (2026.2 before 2026.10)."""
     found = (p.stem for p in (data_dir / "demo" / "sprints").glob("*.yaml"))
     return sorted(found, key=lambda s: [int(part) for part in s.split(".")])
 
 
-# --- Planung ------------------------------------------------------------------------------
+# --- Planning -----------------------------------------------------------------------------
 
 
 def test_following_sprints_count_on_from_the_new_id(data_dir: Path):
@@ -48,7 +48,7 @@ def test_following_sprints_count_on_from_the_new_id(data_dir: Path):
 def test_earlier_sprints_are_untouched_and_unchanged_ids_are_skipped(data_dir: Path):
     data = Repository(data_dir).load("demo")
     assert plan_renames(data, "2026.22", "2026.22") == []
-    # Ab dem ersten Sprint: alle 22 Dateien, in Reihenfolge des Starts.
+    # From the first sprint: all 22 files, in order of the start.
     renames = plan_renames(data, "2026.1", "2026.15")
     assert [r.old for r in renames] == [f"2026.{n}" for n in range(1, 23)]
     assert [r.new for r in renames] == [f"2026.{n}" for n in range(15, 37)]
@@ -56,7 +56,7 @@ def test_earlier_sprints_are_untouched_and_unchanged_ids_are_skipped(data_dir: P
 
 def test_renumbering_across_a_year_change(data_dir: Path):
     data = Repository(data_dir).load("demo")
-    # 2026.22 beginnt am 28.10.; ein Folgesprint im neuen Jahr fängt mit 2027.1 an.
+    # 2026.22 starts on 28.10.; a following sprint in the new year starts with 2027.1.
     data.sprints[-1].start, data.sprints[-1].end = date(2026, 12, 23), date(2027, 1, 6)
     renames = plan_renames(data, "2026.21", "2026.40")
     assert renames == [Rename("2026.21", "2026.40"), Rename("2026.22", "2026.41")]
@@ -70,8 +70,8 @@ def test_renumbering_across_a_year_change(data_dir: Path):
         ("2026.99", "2026.5", "nicht gespeichert"),
         ("2026.21", "", "neue Sprint-ID eingeben"),
         ("2026.21", "a/b", "nicht zulässig"),
-        ("2026.21", "x", "schon vergeben"),  # Folgesprint von „x“ wäre 2026.1
-        ("2026.21", "2026.3", "schon vergeben"),  # 2026.3 existiert vor 2026.21
+        ("2026.21", "x", "schon vergeben"),  # the following sprint of "x" would be 2026.1
+        ("2026.21", "2026.3", "schon vergeben"),  # 2026.3 exists before 2026.21
     ],
 )
 def test_rejected_renames(data_dir: Path, sprint: str, new: str, expected: str):
@@ -81,12 +81,12 @@ def test_rejected_renames(data_dir: Path, sprint: str, new: str, expected: str):
 
 
 def test_a_chain_may_take_over_the_ids_of_later_sprints(data_dir: Path):
-    """2026.1 → 2026.0: die Kette nimmt die alten IDs ihrer Nachfolger ein – nur frühere Sprints
-    (die nicht umbenannt werden) blockieren."""
+    """2026.1 → 2026.0: the chain takes over the old IDs of its successors; only earlier sprints
+    (which are not renamed) block."""
     data = Repository(data_dir).load("demo")
     with pytest.raises(DataError, match="schon vergeben"):
-        plan_renames(data, "2026.2", "2026.1")  # 2026.1 ist früher: belegt
-    renames = plan_renames(data, "2026.1", "2026.0")  # 2026.2 wird 2026.1 usw.
+        plan_renames(data, "2026.2", "2026.1")  # 2026.1 is earlier: taken
+    renames = plan_renames(data, "2026.1", "2026.0")  # 2026.2 becomes 2026.1 etc.
     assert renames[:2] == [Rename("2026.1", "2026.0"), Rename("2026.2", "2026.1")]
 
 
@@ -102,7 +102,7 @@ def test_sequential_numbering(data_dir: Path):
     ]
 
 
-# --- Dateien ------------------------------------------------------------------------------
+# --- Files --------------------------------------------------------------------------------
 
 
 def test_apply_moves_sprint_files_and_minutes(data_dir: Path):
@@ -129,7 +129,7 @@ def test_apply_moves_sprint_files_and_minutes(data_dir: Path):
     assert ids(data_dir) == [f"2026.{n}" for n in range(1, 21)] + ["2026.41", "2026.42"]
     renamed = load(paths[0])
     assert renamed["id"] == "2026.41"
-    assert renamed["absences"] == {"ben": 3, "cem": 5, "dana": 3}  # Inhalt unverändert
+    assert renamed["absences"] == {"ben": 3, "cem": 5, "dana": 3}  # content unchanged
     assert paths[0].read_text(encoding="utf-8").startswith("# Sprint 2026.41.")
     assert before.replace("2026.21", "2026.41") == paths[0].read_text(encoding="utf-8")
     assert sorted(p.name for p in minutes.iterdir()) == [
@@ -137,13 +137,13 @@ def test_apply_moves_sprint_files_and_minutes(data_dir: Path):
         "2026.41-planning-20261012-090000_obsolet_20261013-090000.md",
         "2026.41-planning-20261013-090000-ab12.md",
     ]
-    after = repo.load("demo")  # Zwischenspeicher geleert, Team weiterhin ladbar
+    after = repo.load("demo")  # cache cleared, team still loadable
     assert [s.id for s in after.sprints][-3:] == ["2026.20", "2026.41", "2026.42"]
     assert run(data_dir, "check").exit_code == 0
 
 
 def test_apply_with_a_chain_that_overlaps_itself(data_dir: Path):
-    """2026.20 → 2026.21: die neue ID ist die alte des Nachfolgers; nichts geht verloren."""
+    """2026.20 → 2026.21: the new ID is the old one of the successor; nothing is lost."""
     repo = Repository(data_dir)
     data = repo.load("demo")
     velocity = {s.id: s.forecast_ist for s in data.sprints}
@@ -155,8 +155,8 @@ def test_apply_with_a_chain_that_overlaps_itself(data_dir: Path):
 
 
 def test_overlapping_chain_keeps_every_minutes_file(data_dir: Path):
-    """2026.20 → 2026.21 → 2026.22: gleich benannte Protokolle (Termin, Zeitpunkt) dürfen sich
-    beim Weiterreichen nicht überschreiben."""
+    """2026.20 → 2026.21 → 2026.22: identically named minutes (meeting, point in time) must not
+    overwrite each other when passed on."""
     repo = Repository(data_dir)
     minutes = data_dir / "demo" / "protokolle"
     minutes.mkdir()
@@ -220,7 +220,7 @@ def test_apply_rolls_back_when_a_file_cannot_be_written(
     assert [p.name for p in minutes.iterdir()] == ["2026.21-planning-20261013-090000.md"]
 
 
-# --- Befehlszeile -------------------------------------------------------------------------
+# --- Command line -------------------------------------------------------------------------
 
 
 def test_cli_renames_and_shows_the_chain(data_dir: Path):
@@ -260,7 +260,7 @@ def test_cli_commit_records_the_move(data_dir: Path, tmp_path: Path):
     subprocess.run(
         [*git, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "minutes"], check=True
     )
-    # Eine Sprintdatei, die nie committet wurde (z. B. mit „sprints --create“ angelegt).
+    # A sprint file that was never committed (e.g. created with "sprints --create").
     assert run(data_dir, "sprints", "demo", "--create").exit_code == 0
     assert (data_dir / "demo" / "sprints" / "2026.23.yaml").is_file()
     result = run(data_dir, "rename-sprint", "demo", "2026.22", "2026.30", "--commit")
@@ -268,15 +268,15 @@ def test_cli_commit_records_the_move(data_dir: Path, tmp_path: Path):
     assert "Committet" in result.output
     assert (minutes / "2026.30-review-20261028-120000.md").is_file()
     status = subprocess.run([*git, "status", "--porcelain"], capture_output=True, text=True)
-    # Sprintdateien und Protokolle umbenannt committet; offen sind nur die übrigen mit
-    # „--create“ angelegten (nie committeten) Sprintdateien unter ihrem neuen Namen nicht.
+    # Sprint files and minutes are committed as renamed; the only files left open are the other
+    # sprint files created with "--create" (never committed), and not under their new name.
     assert "protokolle" not in status.stdout
     assert " 2026.22.yaml" not in status.stdout and "2026.30.yaml" not in status.stdout
     log = subprocess.run([*git, "log", "-1", "--format=%s"], capture_output=True, text=True)
     assert log.stdout.strip() == "Demo-Team: Sprint 2026.22 heißt jetzt 2026.30"
 
 
-# --- Weboberfläche ------------------------------------------------------------------------
+# --- Web UI -------------------------------------------------------------------------------
 
 
 def test_settings_page_renames(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
@@ -292,9 +292,9 @@ def test_settings_page_renames(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     at.run()
     at.switch_page("seiten/einstellungen.py").run()
     assert not at.exception, at.exception
-    assert at.selectbox(key="rename-demo-sprint").value == "2026.21"  # laufender Sprint
+    assert at.selectbox(key="rename-demo-sprint").value == "2026.21"  # current sprint
     button = next(b for b in at.button if b.label == "Sprint-IDs ändern")
-    assert button.disabled  # noch keine neue ID
+    assert button.disabled  # no new ID yet
     at.text_input(key="rename-demo-new").set_value("2026.3").run()
     assert any("schon vergeben" in e.value for e in at.error)
     at.text_input(key="rename-demo-new").set_value("2026.41").run()

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Gemeinsame Fixtures der Web-Tests mit echten Git-Repositories (in conftest.py eingebunden)."""
+"""Shared fixtures of the web tests with real Git repositories (included in conftest.py)."""
 
 import shutil
 import subprocess
@@ -11,16 +11,16 @@ import pytest
 from sprintforecast.git import invalidate_status
 from sprintforecast.storage import save_data_dir
 
-# Zustand „erledigt“ in der Schrittleiste: grünes Haken-Symbol am Ende der Beschriftung (offene
-# Schritte tragen kein Zeichen). Bewusst hier ausgeschrieben, nicht aus ui.py übernommen: Die
-# Tests halten fest, was die Nutzer sehen.
+# State "done" in the step bar: green check icon at the end of the label (open steps
+# carry no mark). Deliberately spelled out here, not taken from ui.py: the tests record what
+# users see.
 STEP_DONE_MARK = ":green[:material/check_circle:]"
 
 
 def nav_links(at: Any) -> list[tuple[Any, bool]]:
-    """Die Links der Schrittleiste (``AppTest``) mit ``aktiv`` in der Reihenfolge der Leiste.
-    Jeder Schritt ist ein Link in einem Container mit Schlüssel ``board-step-…`` bzw.
-    ``board-active-…`` – alle gleich aufgebaut, der aktive nur anders gefärbt (CSS)."""
+    """The links of the step bar (``AppTest``) with ``active`` in the order of the bar. Each step
+    is a link in a container with key ``board-step-...`` or ``board-active-...``, all built the
+    same way, the active one only colored differently (CSS)."""
     steps = []
     for node in at.main:
         key = getattr(node, "key", None)
@@ -31,23 +31,23 @@ def nav_links(at: Any) -> list[tuple[Any, bool]]:
 
 
 def nav_steps(at: Any) -> list[tuple[str, str, bool]]:
-    """Schrittleiste der Aufgabenseiten: je Schritt (Seite, Beschriftung, aktiv) in der
-    Reihenfolge der Leiste; die Beschriftung enthält bei erledigten Schritten das Symbol."""
+    """Step bar of the task pages: per step (page, label, active) in the order of the bar; for
+    completed steps the label contains the icon."""
     return [(link.proto.page, link.proto.label, active) for link, active in nav_links(at)]
 
 
 def nav_titles(at: Any) -> list[str]:
-    """Namen der Schritte ohne das Erledigt-Symbol, in der Reihenfolge der Leiste."""
+    """Names of the steps without the done icon, in the order of the bar."""
     return [label.removesuffix(f" {STEP_DONE_MARK}") for _, label, _ in nav_steps(at)]
 
 
 def nav_done(at: Any) -> dict[str, bool]:
-    """Seite → Schritt erledigt (Symbol am Ende der Beschriftung)."""
+    """Page -> step done (icon at the end of the label)."""
     return {page: label.endswith(STEP_DONE_MARK) for page, label, _ in nav_steps(at)}
 
 
 def nav_help(at: Any) -> dict[str, str]:
-    """Seite → Tooltip des Schritts (sagt „erfasst“ bzw. „noch offen“ für den Sprint)."""
+    """Page -> tooltip of the step (says "recorded" or "still open" for the sprint)."""
     return {link.proto.page: link.proto.help for link, _ in nav_links(at)}
 
 
@@ -59,7 +59,7 @@ def _git(cwd: Path, *args: str) -> str:
 
 @pytest.fixture
 def repo(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Git-Repository um ``data_dir`` (Aufbau ``<repo>/teams``) mit einem Commit."""
+    """Git repository around ``data_dir`` (layout ``<repo>/teams``) with a commit."""
     for var in ("AUTHOR", "COMMITTER"):
         monkeypatch.setenv(f"GIT_{var}_NAME", "T")
         monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")
@@ -82,7 +82,7 @@ def second_folder(data_dir: Path, tmp_path: Path) -> Path:
 
 @pytest.fixture
 def shared(data_dir: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch):
-    """Alice (App auf data_dir) und Bob (zweiter Klon) teilen sich einen Server."""
+    """Alice (app on data_dir) and Bob (second clone) share a server."""
     for var in ("AUTHOR", "COMMITTER"):
         monkeypatch.setenv(f"GIT_{var}_NAME", "T")
         monkeypatch.setenv(f"GIT_{var}_EMAIL", "t@t")

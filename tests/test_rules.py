@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Regelsprache der Zuordnung (Spezifikation 6.4): Kurzform, any/all/none, Verschachtelung,
-Lesen und Schreiben, ungültige Regeln in der Prüfung."""
+"""Rule language of the assignment (spec 6.4): short form, any/all/none, nesting, reading and
+writing, invalid rules in the check."""
 
 from datetime import date
 from pathlib import Path
@@ -24,7 +24,7 @@ def parse(raw: dict) -> Rule:
     return rule
 
 
-# --- Auswertung -----------------------------------------------------------------------------
+# --- Evaluation -----------------------------------------------------------------------------
 
 
 def test_short_form_is_an_or_of_leaves():
@@ -103,7 +103,7 @@ def test_ticket_facts_feed_the_rules():
     assert refined.matches(Ticket(key="ABC-4", status="Ready").facts())
 
 
-# --- Lesen und Schreiben --------------------------------------------------------------------
+# --- Reading and writing --------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -143,7 +143,7 @@ def test_scalars_and_empty_rules():
     }
 
 
-# --- Ungültige Regeln -----------------------------------------------------------------------
+# --- Invalid rules --------------------------------------------------------------------------
 
 
 def test_rule_problems():

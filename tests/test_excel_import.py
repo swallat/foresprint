@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Import der Excel-Ausgabe: Rundlauf ohne Verlust, Vorschau der Änderungen, Fehlermeldungen."""
+"""Import of the Excel output: lossless round trip, preview of the changes, error messages."""
 
 import dataclasses
 import io
@@ -74,7 +74,7 @@ def test_roundtrip_into_an_empty_data_folder_restores_every_file(data_dir: Path,
     assert again.changes == []
     original = Repository(data_dir).load("demo")
     restored = target.load("demo")
-    assert restored.sprints == original.sprints  # inklusive Fehltage, Produktwerte, Prognosen
+    assert restored.sprints == original.sprints  # including absences, product values, forecasts
     assert restored.people == original.people
     assert restored.products == original.products
     assert restored.team == original.team
@@ -143,7 +143,7 @@ def test_existing_sprint_files_missing_in_the_workbook_stay_untouched(
 
 
 def test_roundtrip_keeps_every_field_of_a_fully_filled_team(data_dir: Path, tmp_path: Path):
-    """Alle Felder der Sprintdatei, mehrere Mitgliedschaften, Produktwerte mit Produktion."""
+    """All fields of the sprint file, several memberships, product values with production."""
     from datetime import datetime
 
     from sprintforecast.model import (
@@ -229,11 +229,11 @@ def test_command_previews_then_applies(
     assert Repository(data_dir).load("demo").sprint(sprint.id).velocity == sprint.velocity + 1
 
 
-# --- Sicherheit und Eingabeprüfung (Codex-Befunde zu #86) ---------------------------------
+# --- Security and input validation (Codex findings on #86) ---------------------------------
 
 
 def setting_cell(wb: openpyxl.Workbook, path: str):
-    """Die Wertzelle (Spalte B) der Einstellung ``path`` auf dem Blatt Einstellungen."""
+    """The value cell (column B) of the setting ``path`` on the Settings sheet."""
     ws = wb["Settings"]
     for row in ws.iter_rows(min_row=3):
         if row[2].value == path:
@@ -254,13 +254,13 @@ def test_a_new_team_key_must_be_valid_and_not_clash(data_dir: Path):
     from sprintforecast.excel_import import check_team_key
 
     repo = Repository(data_dir)
-    check_team_key(repo, "demo")  # vorhandenes Team: in Ordnung
+    check_team_key(repo, "demo")  # existing team: fine
     check_team_key(repo, "neues-team")
-    if not repo.exists("DEMO"):  # Linux/macOS mit Groß-/Kleinschreibung: ein anderer Ordner
+    if not repo.exists("DEMO"):  # Linux/macOS are case-sensitive: a different folder
         with pytest.raises(DataError):
             check_team_key(repo, "DEMO")
     with pytest.raises(DataError):
-        check_team_key(repo, "con")  # unter Windows für Geräte reserviert
+        check_team_key(repo, "con")  # reserved for devices on Windows
     with pytest.raises(DataError):
         check_team_key(repo, "Großes Team")
 
@@ -385,7 +385,7 @@ def test_yes_no_words_work_for_switches_and_text_off_is_not_true(data_dir: Path)
     assert read_workbook(edited(exported(data_dir), on), "demo").team.features.production
 
 
-# --- Befunde des unabhängigen Reviews zur Härtung -------------------------------------------
+# --- Findings of the independent hardening review -------------------------------------------
 
 
 def cell_sheet():
@@ -428,7 +428,7 @@ def test_first_sprint_id_setting_cannot_become_a_path(data_dir: Path):
 
 
 def test_the_settings_form_does_not_accept_an_id_the_loader_would_reject():
-    """Was beim Laden abgelehnt wird (unsichere erste Sprint-ID), darf nicht speicherbar sein."""
+    """What is rejected on load (unsafe first sprint ID) must not be saveable."""
     from sprintforecast.settings import SETTINGS
 
     setting = next(s for s in SETTINGS if s.key == "sprint.first_id")
@@ -443,8 +443,8 @@ def test_the_repository_refuses_unsafe_sprint_ids_as_paths(data_dir: Path):
     import sys
 
     repo = Repository(data_dir)
-    # Auf jedem System ein Pfad: Trenner und Punkt am Rand. Doppelpunkt und Gerätenamen nur unter
-    # Windows (anderswo gewöhnliche Zeichen; vorhandene Daten bleiben nutzbar).
+    # A bad path on every system: separators and a dot at the edge. Colon and device names only
+    # on Windows (ordinary characters elsewhere; existing data stays usable).
     bad_ids = ["../x", "a/b", "..", "ende."]
     if sys.platform == "win32":
         bad_ids += ["nul", "a:b", "a\\b"]
@@ -452,13 +452,13 @@ def test_the_repository_refuses_unsafe_sprint_ids_as_paths(data_dir: Path):
         with pytest.raises(DataError, match="nicht zulässig"):
             repo.sprint_path("demo", bad)
     assert repo.sprint_path("demo", "2026.22b").name == "2026.22b.yaml"
-    if sys.platform != "win32":  # vorhandene exotische IDs bleiben dort möglich
+    if sys.platform != "win32":  # existing exotic IDs remain possible there
         assert repo.sprint_path("demo", "[red]\\").name
         assert repo.sprint_path("demo", "a:b").name == "a:b.yaml"
 
 
 def test_a_traversal_id_cannot_overwrite_an_existing_file_outside(data_dir: Path):
-    """Ein echtes Ziel außerhalb des Datenordners bleibt unverändert (nicht nur nicht angelegt)."""
+    """A real target outside the data folder stays unchanged (not just not created)."""
     import dataclasses
 
     from sprintforecast.excel_import import ImportPlan
@@ -570,7 +570,7 @@ def test_settings_outside_their_ranges_are_refused_before_writing(
 def test_existing_sprint_files_missing_in_the_workbook_are_part_of_the_check(
     data_dir: Path,
 ):
-    """Eine vorhandene Sprintdatei, die in der Mappe fehlt, wird mitgeprüft (Gesamtstand)."""
+    """An existing sprint file that is missing from the workbook is checked too (overall state)."""
     repo = Repository(data_dir)
     data = read_workbook(exported(data_dir), "demo")
     broken = data_dir / "demo" / "sprints" / "2026.50.yaml"
@@ -581,7 +581,7 @@ def test_existing_sprint_files_missing_in_the_workbook_are_part_of_the_check(
 
     union = repo.load("demo")
     expected_error = any(i.level is Level.ERROR for i in check_team(union, TODAY))
-    if expected_error:  # nur wenn check_team die Datei tatsächlich als Fehler wertet
+    if expected_error:  # only if check_team actually treats the file as an error
         with pytest.raises(DataError):
             plan_import(repo, data, TODAY)
 
@@ -589,19 +589,20 @@ def test_existing_sprint_files_missing_in_the_workbook_are_part_of_the_check(
 def test_a_workbook_id_that_differs_from_an_omitted_sprint_file_only_by_case_is_refused(
     data_dir: Path,
 ):
-    """Sonst überschriebe save_sprint auf Windows/macOS die vorhandene Datei (dieselbe Datei)."""
+    """Otherwise save_sprint would overwrite the existing file on Windows/macOS (same file)."""
     import dataclasses
 
     from sprintforecast.model import Sprint
 
     repo = Repository(data_dir)
-    data = read_workbook(exported(data_dir), "demo")  # vor der Datei Foo: die Mappe kennt sie nicht
+    # before the file Foo: the workbook does not know it
+    data = read_workbook(exported(data_dir), "demo")
     repo.save_sprint("demo", Sprint(id="Foo", start=date(2099, 1, 1), end=date(2099, 1, 15)))
     new = Sprint(id="foo", start=date(2099, 2, 1), end=date(2099, 2, 15))
     colliding = dataclasses.replace(data, sprints=[*data.sprints, new])
     with pytest.raises(DataError, match="Groß- und Kleinschreibung"):
         plan_import(repo, colliding, TODAY)
-    # dieselbe ID in gleicher Schreibweise ist dagegen ein normaler Ersatz
+    # the same ID with the same spelling, however, is a normal replacement
     same = Sprint(id="Foo", start=date(2099, 1, 1), end=date(2099, 1, 15))
     plan_import(repo, dataclasses.replace(data, sprints=[*data.sprints, same]), TODAY)
 
@@ -627,8 +628,8 @@ def test_a_clashing_team_key_is_refused_regardless_of_the_file_system(
 ):
     from sprintforecast.excel_import import check_team_key
 
-    # Ein älteres Team mit Großbuchstaben im Ordnernamen; ein neues "alpha" würde sich auf
-    # Windows und macOS denselben Ordner teilen.
+    # An older team with capital letters in the folder name; a new "alpha" would share the
+    # same folder on Windows and macOS.
     shutil.copytree(data_dir / "demo", data_dir / "Alpha")
     repo = Repository(data_dir)
     real_exists = repo.exists

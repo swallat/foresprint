@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Seite „Datenordner“: Sonderfälle der Pfadeingabe und Fehler beim Anlegen und Klonen
+"""The "Data folder" page: special cases of path input and errors when creating and cloning
 (AppTest)."""
 
 import errno
@@ -20,21 +20,21 @@ def datenordner(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def errors(at: AppTest) -> str:
-    """Die Fehler im Hauptbereich (die Seitenleiste meldet fehlendes Git von sich aus)."""
+    """The errors in the main area (the sidebar reports missing Git on its own)."""
     return "\n".join(e.value for e in at.main.error)
 
 
 def enter_address(at: AppTest, value: str) -> None:
-    """Erst mit der Adresse wird „Klonen“ freigegeben: ein Durchlauf dazwischen."""
+    """Only with the address is "Clone" enabled: a run in between."""
     next(e for e in at.text_input if e.label == "Adresse").set_value(value).run()
 
 
 def technical(at: AppTest) -> str:
-    """Inhalt der aufklappbaren „Technischen Meldung“."""
+    """Content of the collapsible "Technical message"."""
     return "\n".join(c.value for c in at.code)
 
 
-# --- Benutzerkürzel (~) -----------------------------------------------------------------------
+# --- User shortcut (~) ------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -44,9 +44,9 @@ def technical(at: AppTest) -> str:
 def test_unknown_user_folder_is_explained_and_the_button_stays_locked(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, key: str, button: str
 ):
-    """Ist der Benutzerordner nicht zu ermitteln, wirft ``Path.expanduser`` einen
-    ``RuntimeError`` (unter Linux für ``~name`` eines unbekannten Benutzers, unter Windows nur
-    selten; deshalb nachgestellt). ``Path.home()`` bleibt unberührt."""
+    """If the home folder cannot be determined, ``Path.expanduser`` raises a ``RuntimeError``
+    (on Linux for ``~name`` of an unknown user, on Windows only rarely; hence
+    simulated). ``Path.home()`` stays untouched."""
     real = Path.expanduser
 
     def expanduser(self):
@@ -79,7 +79,7 @@ def test_a_user_shortcut_that_works_is_still_expanded(
     assert f"Ordner nicht gefunden: {tmp_path / 'fehlt'}" in errors(at)
 
 
-# --- Neues Daten-Repository anlegen -----------------------------------------------------------
+# --- Create a new data repository -------------------------------------------------------------
 
 
 def test_create_on_a_file_names_the_problem(
@@ -113,7 +113,7 @@ def test_create_without_rights_names_the_problem(
 def test_create_in_a_folder_that_cannot_be_listed_names_the_problem(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    """Der Ordner ist da, aber nicht lesbar: kein Traceback bei der Prüfung „nicht leer“."""
+    """The folder exists but is not readable: no traceback in the "not empty" check."""
     target = tmp_path / "gesperrt"
     target.mkdir()
     denied = PermissionError(errno.EACCES, "Permission denied")
@@ -138,7 +138,7 @@ def test_create_without_git_shows_how_to_install_it(
     assert "Git installieren (Windows:" in errors(at)
 
 
-# --- Repository klonen ------------------------------------------------------------------------
+# --- Clone a repository -----------------------------------------------------------------------
 
 
 @pytest.mark.usefixtures("no_login_prompt")
@@ -153,8 +153,8 @@ def test_clone_with_missing_login_explains_the_steps(
     assert not at.exception, at.exception
     assert "Anmeldung fehlt oder wurde abgelehnt" in errors(at)
     assert "Zugangstoken" in errors(at) and "gh auth setup-git" in errors(at)
-    assert errors(at).count("fehlt oder wurde abgelehnt") == 1  # Überschrift nur einmal
-    assert "terminal prompts disabled" in technical(at)  # Meldung von Git: aufklappbar
+    assert errors(at).count("fehlt oder wurde abgelehnt") == 1  # heading only once
+    assert "terminal prompts disabled" in technical(at)  # message from Git: collapsible
     assert "terminal prompts disabled" not in errors(at)
 
 
@@ -197,20 +197,20 @@ def test_clone_keeps_the_title_of_a_bad_address(
     assert "Das Format wird nicht erkannt" in errors(at)
 
 
-# --- Ordner ohne Zutritt, leere Felder, Hinweise beim Klonen -----------------------------------
+# --- Folder without access, empty fields, notices when cloning ---------------------------------
 
 
 def test_choose_a_folder_without_access_names_the_problem(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    """Der Ordner ist da, aber git startet darin nicht (kein Zutritt): eine Meldung statt der
-    Fehlerseite."""
+    """The folder exists but git does not start in it (no access): a message instead of the error
+    page."""
     from sprintforecast.web import ui
 
     real = ui.git_root
 
     def refuse(path):
-        if Path(path) == tmp_path:  # nur der gewählte Ordner; die Seitenleiste fragt auch
+        if Path(path) == tmp_path:  # only the chosen folder; the sidebar asks too
             raise PermissionError(errno.EACCES, "Permission denied")
         return real(path)
 
@@ -319,8 +319,8 @@ def test_create_here_after_choosing_a_folder_without_git_shows_the_problem_with_
 def test_create_in_a_folder_that_is_writable_but_cannot_be_listed_creates_nothing(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    """Ob der Ordner leer ist, lässt sich nicht sagen: Die Prüfung „nicht leer“ darf nicht still
-    entfallen und ein Repository in einen vollen Ordner legen."""
+    """Whether the folder is empty cannot be determined: the "not empty" check must not be
+    silently skipped and put a repository into a full folder."""
     target = tmp_path / "voll"
     target.mkdir()
     (target / "datei.txt").write_text("x", encoding="utf-8")

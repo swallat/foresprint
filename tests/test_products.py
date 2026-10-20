@@ -26,7 +26,7 @@ def fc(data_dir: Path):
 
 def test_standard_is_plan_divided_by_active_products(fc):
     d = distribution(fc, fc.entry("2026.22"))
-    assert [r.product.id for r in d.rows] == ["webshop", "app", "portal"]  # Altsystem beendet
+    assert [r.product.id for r in d.rows] == ["webshop", "app", "portal"]  # legacy system ended
     assert d.available == pytest.approx(11.2)
     assert all(r.standard == pytest.approx(11.2 / 3) for r in d.rows)
     assert d.total("preplanned") == 10
@@ -67,7 +67,7 @@ def test_production_access_group(data_dir: Path):
 
     rows, hidden = people_table(data.people, TODAY, True)
     for row in rows:
-        row["Production access"] = row["Name"] == "Ben"  # Ben arbeitet 0,5 FTE
+        row["Production access"] = row["Name"] == "Ben"  # Ben works 0.5 FTE
     people = people_from_table(rows, data.people, hidden).people
     assert [p.name for p in people if p.production_access] == ["Ben"]
     data.people = people
@@ -107,7 +107,7 @@ def test_roadmap_basis(fc):
 
 def test_inactive_product_with_values_has_no_standard(fc):
     d = distribution(fc, fc.entry("2026.18"))
-    # 2026.18: Altsystem noch betreut (bis 15.09.), Portal ab 02.09.
+    # 2026.18: legacy system still supported (until 15.09.), Portal from 02.09.
     assert d.active_count == 4
     s = fc.entry("2026.19").sprint
     s.products["altsystem"] = s.products["webshop"]
@@ -133,7 +133,7 @@ def test_freeze_plan_skips_finished_sprints(fc):
 def test_balance_over_history(fc):
     rows = balance(fc, fc.history(6))
     by_id = {b.product.id: b for b in rows}
-    # 2026.17–2026.20 mit Erledigt; Webshop: 4,5 + 3,5 + 4,5 + 4
+    # 2026.17-2026.20 with done; Webshop: 4.5 + 3.5 + 4.5 + 4
     assert by_id["webshop"].done == pytest.approx(16.5)
     assert by_id["webshop"].sprints == 4
     assert by_id["portal"].sprints == 3
@@ -153,7 +153,7 @@ def test_product_values_roundtrip(fc, data_dir: Path):
     rows[1]["PO pre-planning"] = None
     after = apply_product_values(entry.sprint, rows, ["preplanned", "planned"])
     assert after.products["webshop"].planned == 4
-    assert "app" not in after.products  # leer → entfernt
+    assert "app" not in after.products  # empty -> removed
     repo = Repository(data_dir)
     repo.save_sprint("demo", after)
     assert repo.load("demo").sprint("2026.22").products == after.products
@@ -201,11 +201,11 @@ def test_planning_default_skips_committed_future_sprint(fc):
     assert fc.default_entry("planning").sprint.id == "2026.22"
     fc.entry("2026.22").sprint.forecast_ist = 10
     assert fc.default_entry("planning").sprint.id == "2026.23"
-    assert fc.default_entry("next").sprint.id == "2026.22"  # Fehltage unverändert
+    assert fc.default_entry("next").sprint.id == "2026.22"  # absences unchanged
 
 
 def test_fixed_shares_over_100_percent_are_rejected(fc):
-    """A10: Zwei feste Anteile von je 60 % werden abgelehnt."""
+    """A10: Two fixed shares of 60 % each are rejected."""
     for p in fc.data.products:
         if p.id in ("webshop", "app"):
             p.share = 0.6
@@ -225,8 +225,8 @@ def test_fixed_shares_adding_to_100_percent_warn_when_others_remain(fc):
 
 
 def test_balance_distinguishes_missing_from_zero(fc):
-    """A10: In einem Sprint mit Erledigt für andere Produkte zählt ein fehlender Wert nicht
-    als 0 – weder sein Erledigt noch sein Standard fließen in den Saldo ein."""
+    """A10: In a sprint with Done for other products, a missing value does not count as 0:
+    neither its Done nor its standard enters the balance."""
     from sprintforecast.products import balance
 
     entry = fc.entry("2026.20")
@@ -235,13 +235,13 @@ def test_balance_distinguishes_missing_from_zero(fc):
     assert len(recorded) >= 2
     before = {b.product.id: b for b in balance(fc, [entry])}
     skipped = next(iter(recorded))
-    sprint.products[skipped].done = None  # nicht erfasst
+    sprint.products[skipped].done = None  # not recorded
     after = {b.product.id: b for b in balance(fc, [entry])}
     assert after[skipped].missing == 1 and after[skipped].sprints == 0
-    assert after[skipped].standard == 0.0 and after[skipped].done == 0.0  # nicht als 0 gezählt
+    assert after[skipped].standard == 0.0 and after[skipped].done == 0.0  # not counted as 0
     other = next(pid for pid in recorded if pid != skipped)
     assert after[other].difference == pytest.approx(before[other].difference)
-    # als echte 0 erfasst, zählt der Standard dagegen mit
+    # recorded as a real 0, the standard counts after all
     sprint.products[skipped].done = 0.0
     zero = {b.product.id: b for b in balance(fc, [entry])}
     assert zero[skipped].sprints == 1 and zero[skipped].missing == 0
@@ -249,7 +249,7 @@ def test_balance_distinguishes_missing_from_zero(fc):
 
 
 def test_production_state_distinguishes_unconfigured_from_unavailable(fc):
-    """A11: „niemand markiert“ (Konfiguration unbekannt) ≠ „Berechtigte sind im Sprint nicht da“."""
+    """A11: "nobody marked" (configuration unknown) != "authorized people are away that sprint"."""
     entry = fc.entry("2026.22")
     for p in fc.data.people:
         p.production_access = False
@@ -262,7 +262,8 @@ def test_production_state_distinguishes_unconfigured_from_unavailable(fc):
     assert distribution(fc, entry).production_state == "ok"
     assert distribution(fc, entry).production_share > 0
 
-    entry.sprint.absences = {"anna": 10.0}  # die einzige Berechtigte fehlt den ganzen Sprint
+    # the only authorized person is absent for the whole sprint
+    entry.sprint.absences = {"anna": 10.0}
     fc = build_forecast(fc.data, TODAY)
     unavailable = distribution(fc, fc.entry("2026.22"))
     assert unavailable.production_state == "unavailable"

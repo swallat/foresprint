@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Sperre des Abgleichs: Hinweis statt ewigen Wartens, Abbruch von Hand."""
+"""Sync lock: a hint instead of waiting forever, manual abort."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def test_waiting_call_gets_busy_error_while_lock_is_held(
         result = gitsync.sync(repo, "msg", None, None)
         assert result.error is not None and result.error.kind == "sync_busy"
         assert "Sekunden" in str(result.error)
-        gitsync.fetch(repo)  # wirft nicht
+        gitsync.fetch(repo)  # does not raise
     finally:
         release.set()
         thread.join()
@@ -68,7 +68,7 @@ def test_abort_running_sync_terminates_the_child(repo: Path, monkeypatch: pytest
                     gitmod._git_result(repo.resolve(), "sleep")
                 assert killed.value.kind == "aborted"
                 with pytest.raises(gitmod.GitError) as raised:
-                    gitmod._git_result(repo.resolve(), "sleep")  # nach dem Abbruch: nichts Neues
+                    gitmod._git_result(repo.resolve(), "sleep")  # after the abort: nothing new
                 assert raised.value.kind == "aborted"
         except BaseException as e:
             errors.append(e)
@@ -84,8 +84,8 @@ def test_abort_running_sync_terminates_the_child(repo: Path, monkeypatch: pytest
     thread.join(10)
     assert not thread.is_alive() and not errors
     assert time.monotonic() - start < 20
-    assert gitsync.abort_running_sync(repo) is False  # nichts läuft mehr
-    with gitsync._locked(repo):  # der nächste Abgleich darf wieder starten
+    assert gitsync.abort_running_sync(repo) is False  # nothing is running anymore
+    with gitsync._locked(repo):  # the next sync may start again
         gitmod._raise_if_aborted(repo)
 
 
@@ -106,7 +106,7 @@ def test_killed_call_reports_aborted_and_reads_work_afterwards(
                 gitmod._git(repo.resolve(), "sleep")
             except gitmod.GitError as e:
                 kinds.append(e.kind)
-            release.wait(10)  # der Abgleich hält die Sperre noch
+            release.wait(10)  # the sync still holds the lock
 
     thread = threading.Thread(target=run)
     thread.start()
@@ -120,11 +120,11 @@ def test_killed_call_reports_aborted_and_reads_work_afterwards(
             break
         time.sleep(0.05)
     assert kinds == ["aborted"]
-    gitsync.state(repo)  # andere Fäden lesen weiter, auch bei laufendem Abgleich
+    gitsync.state(repo)  # other threads keep reading, even while a sync is running
     release.set()
     thread.join(10)
     gitmod.invalidate_status()
-    gitsync.state(repo)  # und nach dem Ende des Abgleichs
+    gitsync.state(repo)  # and after the sync has ended
     assert not gitmod._ABORTED
 
 
@@ -174,13 +174,13 @@ def test_abort_only_touches_the_sync_holder_not_readers(
         time.sleep(0.05)
     assert gitsync.abort_running_sync(repo) is True
     time.sleep(0.5)
-    assert "reader" not in outcome  # läuft weiter (bis zum eigenen Zeitlimit)
+    assert "reader" not in outcome  # keeps running (until its own timeout)
     reader.join(10)
     assert outcome["reader"] == "timeout" or outcome["reader"] != "aborted"
     assert outcome["holder"] == "aborted"
     release.set()
     threads[0].join(10)
-    assert not gitmod._ABORTED and not gitmod._HOLDERS  # nichts überlebt den Abgleich
+    assert not gitmod._ABORTED and not gitmod._HOLDERS  # nothing survives the sync
     assert gitsync.abort_running_sync(repo) is False
 
 

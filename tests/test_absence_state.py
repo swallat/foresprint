@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Stand der Fehltage je Sprint (unbekannt / angekündigt / bestätigt) und die Historie der
-Fehltage (A5, B2)."""
+"""State of the absences per sprint (unknown / announced / confirmed) and the absence history
+(A5, B2)."""
 
 from datetime import date
 from pathlib import Path
@@ -28,17 +28,17 @@ def state_of(data_dir: Path, name: str) -> AbsenceState:
 @pytest.mark.parametrize(
     ("extra", "expected"),
     [
-        ("", AbsenceState.UNKNOWN),  # leere Datei bestätigt nichts
-        ("products:\n  webshop: {preplanned: 3}\n", AbsenceState.UNKNOWN),  # nur Vorplanung
+        ("", AbsenceState.UNKNOWN),  # empty file confirms nothing
+        ("products:\n  webshop: {preplanned: 3}\n", AbsenceState.UNKNOWN),  # pre-planning only
         ("expected_absences: {anna: 2}\n", AbsenceState.EXPECTED),
         ("absences: {anna: 2}\n", AbsenceState.CONFIRMED),
-        ("absences_confirmed: true\n", AbsenceState.CONFIRMED),  # ältere Datei
-        ("forecast_ist: 9\n", AbsenceState.CONFIRMED),  # ältere Datei: geplant = bekannt
+        ("absences_confirmed: true\n", AbsenceState.CONFIRMED),  # older file
+        ("forecast_ist: 9\n", AbsenceState.CONFIRMED),  # older file: planned = known
         ("velocity: 9\n", AbsenceState.CONFIRMED),
-        ("absence_state: unknown\nforecast_ist: 9\n", AbsenceState.UNKNOWN),  # ausdrücklich
+        ("absence_state: unknown\nforecast_ist: 9\n", AbsenceState.UNKNOWN),  # explicit
         ("absence_state: unknown\nexpected_absences: {anna: 1}\n", AbsenceState.EXPECTED),
-        ("absence_state: confirmed\n", AbsenceState.CONFIRMED),  # „niemand fehlt“
-        ("absence_state: unknown\nabsences: {anna: 1}\n", AbsenceState.CONFIRMED),  # Einträge
+        ("absence_state: confirmed\n", AbsenceState.CONFIRMED),  # "nobody is absent"
+        ("absence_state: unknown\nabsences: {anna: 1}\n", AbsenceState.CONFIRMED),  # entries
     ],
 )
 def test_state_is_read_from_existing_files(data_dir: Path, extra: str, expected: AbsenceState):
@@ -57,13 +57,13 @@ def test_resaving_a_legacy_file_keeps_it_unchanged(data_dir: Path):
     repo = Repository(data_dir)
     repo.save_sprint("demo", repo.load("demo").sprint("2026.30"))
     saved = yaml.safe_load(path.read_text())
-    assert "absence_state" not in saved  # keine Migration nötig
+    assert "absence_state" not in saved  # no migration needed
     assert state_of(data_dir, "2026.30") is AbsenceState.CONFIRMED
 
 
 def test_saving_planning_values_pins_the_unknown_state(data_dir: Path):
-    """Das Planning allein (Commitment) bestätigt keine Fehltage: Der Stand wird mit der
-    Datei festgehalten."""
+    """Planning alone (commitment) does not confirm absences: the state is stored with the
+    file."""
     repo = Repository(data_dir)
     sprint = Sprint("2026.30", START, END, forecast_ist=9.0, absence_state=AbsenceState.UNKNOWN)
     path = repo.save_sprint("demo", sprint)
@@ -75,16 +75,16 @@ def test_saving_without_a_state_derives_it_from_the_previous_file(data_dir: Path
     path = write(data_dir, "2026.30", "products:\n  webshop: {preplanned: 3}\n")
     repo = Repository(data_dir)
     sprint = repo.load("demo").sprint("2026.30")
-    sprint.forecast_ist = 9.0  # z. B. Planning auf einer bisher unbestätigten Datei
+    sprint.forecast_ist = 9.0  # e.g. planning on a previously unconfirmed file
     repo.save_sprint("demo", sprint)
     assert yaml.safe_load(path.read_text())["absence_state"] == "unknown"
 
 
 def test_new_file_for_an_evaluated_sprint_counts_as_confirmed(data_dir: Path):
-    """Import aus einem anderen Werkzeug: Sprint mit Velocity ist ausgewertet."""
+    """Import from another tool: a sprint with velocity counts as evaluated."""
     repo = Repository(data_dir)
     path = repo.save_sprint("demo", Sprint("2026.30", START, END, velocity=9.0))
-    assert "absence_state" not in yaml.safe_load(path.read_text())  # wie die Ableitung
+    assert "absence_state" not in yaml.safe_load(path.read_text())  # like the derivation
     assert state_of(data_dir, "2026.30") is AbsenceState.CONFIRMED
 
 
@@ -110,22 +110,22 @@ def test_preplanning_only_file_does_not_confirm():
     assert absence_status(sprint) is AbsenceState.UNKNOWN
 
 
-# --- A5: Fehltage-Historie -----------------------------------------------------------------
+# --- A5: absence history -------------------------------------------------------------------
 
 
 def test_history_counts_confirmed_zero_sprints_and_skips_unknown(data_dir: Path):
     data = Repository(data_dir).load("demo")
     past = [s for s in data.sprints if s.end <= date(2026, 10, 15)][-4:]
-    for sprint in past:  # alle vier bestätigt, nur der letzte mit Fehltagen
+    for sprint in past:  # all four confirmed, only the last one with absences
         sprint.absences = {}
         sprint.absence_state = AbsenceState.CONFIRMED
     past[-1].absences = {data.people[0].id: 5.0}
     history = absence_history(data.team, data.people, past, 4)
     assert history.sprints == [s.id for s in past]
-    assert history.rates[:3] == [0.0, 0.0, 0.0]  # bestätigte Null-Sprints zählen mit
+    assert history.rates[:3] == [0.0, 0.0, 0.0]  # confirmed zero sprints count
     assert history.rate == pytest.approx(history.rates[-1] / 4)
 
-    past[0].absence_state = AbsenceState.UNKNOWN  # unbekannt zählt nicht
+    past[0].absence_state = AbsenceState.UNKNOWN  # unknown does not count
     past[0].velocity = past[0].forecast_ist = past[0].forecast_plan = None
     past[0].planning = None
     skipped = absence_history(data.team, data.people, past, 4)
