@@ -8,14 +8,14 @@ from __future__ import annotations
 
 # Spaltennamen, Status und Wörter, die über eine Variable an t() gehen.
 WORDS = [
-    "Person", "Arbeitstage", "Feiertage", "Fehltage", "PT", "Wann", "Was", "Befehl", "Feld",
-    "Bedeutung", "Quelle", "Beispiel", "Einstellung", "Schlüssel in team.yaml", "bisher", "neu",
-    "Name", "Bundesland", "FTE heute", "Zeiträume im Team", "Kennzahl", "Formel", "Rechnung",
-    "Produkt", "Sprints", "Σ Standard", "Σ Erledigt", "Saldo", "PO", "ab", "bis", "Sprint",
-    "Start", "Letzter Tag", "Status", "abgeschlossen", "laufend", "geplant", "noch ohne Datei",
-    "an", "hinweis", "aus", "Sprint-Daten aktualisiert", "Trend", "geändert", "gelöscht",
-    "neu, danach gelöscht", "umbenannt", "umbenannt und geändert",
-    "umbenannt, danach gelöscht", "kopiert", "kopiert und geändert",
+    "Person", "Working days", "Holidays", "Absences", "PT", "When", "What", "Command", "Field",
+    "Meaning", "Source", "Example", "Setting", "Key in team.yaml", "before", "new",
+    "Name", "State", "FTE today", "Periods in the team", "Metric", "Formula", "Calculation",
+    "Product", "Sprints", "Σ standard", "Σ done", "Balance", "PO", "from", "until", "Sprint",
+    "Start", "Last day", "Status", "finished", "running", "planned", "no file yet",
+    "on", "notice", "off", "Sprint data updated", "Trend", "changed", "deleted",
+    "new, then deleted", "renamed", "renamed and changed",
+    "renamed, then deleted", "copied", "copied and changed",
 ]  # fmt: skip
 
 

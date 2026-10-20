@@ -265,7 +265,7 @@ def sprints_to_save(data: TeamData, originals: list[Sprint], edited: list[Sprint
 
 # --- Sprintkalender -------------------------------------------------------------------
 
-CALENDAR_COLUMNS = ["Sprint", "Start", "Letzter Tag", "Arbeitstage", "Status"]
+CALENDAR_COLUMNS = ["Sprint", "Start", "Last day", "Working days", "Status"]
 
 
 def calendar_table(data: TeamData, sprints: list[Sprint], today: date) -> list[dict[str, Any]]:
@@ -273,17 +273,17 @@ def calendar_table(data: TeamData, sprints: list[Sprint], today: date) -> list[d
     rows = []
     for s in sprints:
         if s.end <= today:
-            state = "abgeschlossen"
+            state = "finished"
         elif s.start <= today:
-            state = "laufend"
+            state = "running"
         else:
-            state = "geplant" if data.sprint(s.id) else "noch ohne Datei"
+            state = "planned" if data.sprint(s.id) else "no file yet"
         rows.append(
             {
                 "Sprint": s.id,
                 "Start": s.start,
-                "Letzter Tag": s.end - timedelta(days=1),
-                "Arbeitstage": len(team_workdays(data.team, s.start, s.end)),
+                "Last day": s.end - timedelta(days=1),
+                "Working days": len(team_workdays(data.team, s.start, s.end)),
                 "Status": state,
             }
         )
@@ -307,11 +307,11 @@ def apply_calendar(
             if data.sprint(original.id) is None:
                 sprint.id = next_id(previous.id, sprint.start, data.team.sprint.numbering)
         try:
-            last = as_date(row.get("Letzter Tag"))
+            last = as_date(row.get("Last day"))
         except ValueError:
             last = None
         if last is None:
-            errors.append(t("Zeile {row}: letzter Tag fehlt", row=i + 1))
+            errors.append(t("Row {row}: last day missing", row=i + 1))
             last = original.end - timedelta(days=1)
         if last == original.end - timedelta(days=1):
             # unverändert → Länge behalten, d. h. mit dem Vorgänger mitverschieben
@@ -321,7 +321,7 @@ def apply_calendar(
         if end <= sprint.start:
             errors.append(
                 t(
-                    "Sprint {id}: letzter Tag liegt vor dem Start {start}",
+                    "Sprint {id}: last day is before the start {start}",
                     id=sprint.id,
                     start=sprint.start,
                 )
@@ -332,7 +332,10 @@ def apply_calendar(
         ):
             errors.append(
                 t(
-                    "Sprint-ID {id} wäre doppelt – bitte zuerst die folgenden Sprints anpassen.",
+                    (
+                        "Sprint ID {id} would be duplicated – please adjust the following "
+                        "sprints first."
+                    ),
                     id=sprint.id,
                 )
             )
@@ -372,16 +375,16 @@ TEAM_REGION = "(Team)"
 PEOPLE_COLUMNS = [
     "_id",
     "Name",
-    "Land",
-    "Bundesland",
-    "Arbeitswoche",
-    "ab",
-    "bis",
+    "Country",
+    "State",
+    "Work week",
+    "from",
+    "until",
     "FTE",
-    "Produktionszugriff",
+    "Production access",
 ]
 # Spalten, die allein eine Zeile nicht „befüllt“ machen (Häkchen-Spalte hat immer einen Wert).
-PEOPLE_FLAG_COLUMNS = ("_id", "Produktionszugriff")
+PEOPLE_FLAG_COLUMNS = ("_id", "Production access")
 
 
 def people_table(
@@ -394,13 +397,13 @@ def people_table(
         {
             "_id": p.id,
             "Name": p.name,
-            "Land": p.country or TEAM_REGION,
-            "Bundesland": p.region or TEAM_REGION,
-            "Arbeitswoche": p.workweek or "",
-            "ab": m.start,
-            "bis": m.end,
+            "Country": p.country or TEAM_REGION,
+            "State": p.region or TEAM_REGION,
+            "Work week": p.workweek or "",
+            "from": m.start,
+            "until": m.end,
             "FTE": m.fte,
-            "Produktionszugriff": p.production_access,
+            "Production access": p.production_access,
         }
         for p in sorted(visible, key=lambda p: p.name.lower())
         for m in p.memberships
@@ -433,7 +436,7 @@ def people_from_table(
             continue
         name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
         if not name:
-            errors.append(t("Zeile {row}: Name fehlt", row=i))
+            errors.append(t("Row {row}: name missing", row=i))
             continue
         pid = None if is_blank(row.get("_id")) else str(row["_id"])
         if pid is None:
@@ -442,10 +445,10 @@ def people_from_table(
             pid = new_person_id(name, used)
             used.add(pid)
             name_to_id[name.lower()] = pid
-        access = not is_blank(row.get("Produktionszugriff")) and bool(row["Produktionszugriff"])
-        raw_country = row.get("Land")
+        access = not is_blank(row.get("Production access")) and bool(row["Production access"])
+        raw_country = row.get("Country")
         country = None if is_blank(raw_country) or raw_country == TEAM_REGION else str(raw_country)
-        raw_workweek = row.get("Arbeitswoche")
+        raw_workweek = row.get("Work week")
         workweek = None if is_blank(raw_workweek) else str(raw_workweek).strip().lower()
         if workweek is not None:
             try:
@@ -453,14 +456,14 @@ def people_from_table(
             except ValueError:
                 errors.append(
                     t(
-                        "Zeile {row} ({name}): Arbeitswoche '{value}' ist unbekannt",
+                        "Row {row} ({name}): work week '{value}' is unknown",
                         row=i,
                         name=name,
                         value=workweek,
                     )
                 )
                 continue
-        raw_region = row.get("Bundesland")
+        raw_region = row.get("State")
         region = None if is_blank(raw_region) or raw_region == TEAM_REGION else str(raw_region)
         person = visible_people.get(pid)
         if person is None:
@@ -475,8 +478,10 @@ def people_from_table(
         ):
             errors.append(
                 t(
-                    "Zeile {row}: Für {name} stehen in mehreren Zeilen unterschiedliche Namen "
-                    "oder Bundesländer – bitte einheitlich eintragen.",
+                    (
+                        "Row {row}: {name} has different names or states in several rows – "
+                        "please enter them consistently."
+                    ),
                     row=i,
                     name=person.name,
                 )
@@ -484,12 +489,12 @@ def people_from_table(
             continue
         person.production_access = person.production_access or access
         try:
-            start, end = as_date(row.get("ab")), as_date(row.get("bis"))
+            start, end = as_date(row.get("from")), as_date(row.get("until"))
         except ValueError:
-            errors.append(t("Zeile {row} ({name}): ungültiges Datum", row=i, name=name))
+            errors.append(t("Row {row} ({name}): invalid date", row=i, name=name))
             continue
         if start is None:
-            errors.append(t("Zeile {row} ({name}): 'ab' fehlt", row=i, name=name))
+            errors.append(t("Row {row} ({name}): 'from' missing", row=i, name=name))
             continue
         try:
             fte = 1.0 if is_blank(row.get("FTE")) else float(row["FTE"])
@@ -498,8 +503,10 @@ def people_from_table(
         if not 0 <= fte <= 1:
             errors.append(
                 t(
-                    "Zeile {row} ({name}): FTE muss zwischen 0 und 1 liegen "
-                    "(0 = keine Kapazität, z. B. bei längerer Abwesenheit)",
+                    (
+                        "Row {row} ({name}): FTE must be between 0 and 1 (0 = no capacity, "
+                        "e.g. during a long absence)"
+                    ),
                     row=i,
                     name=name,
                 )
@@ -527,7 +534,7 @@ def people_from_table(
 
 # --- Produkte ------------------------------------------------------------------------
 
-PRODUCT_COLUMNS = ["_id", "Name", "PO", "Anteil", "ab", "bis"]
+PRODUCT_COLUMNS = ["_id", "Name", "PO", "Anteil", "from", "until"]
 
 
 def product_table(
@@ -542,8 +549,8 @@ def product_table(
             "Name": p.name,
             "PO": p.po or "",
             "Anteil": None if p.share is None else round(p.share * 100, 6),
-            "ab": p.start,
-            "bis": p.end,
+            "from": p.start,
+            "until": p.end,
         }
         for p in visible
     ]
@@ -570,10 +577,10 @@ def products_from_table(
             continue
         name = "" if is_blank(row.get("Name")) else str(row["Name"]).strip()
         if not name:
-            errors.append(t("Zeile {row}: Name fehlt", row=i))
+            errors.append(t("Row {row}: name missing", row=i))
             continue
         if name.lower() in seen:
-            errors.append(t("Zeile {row}: {name} ist doppelt", row=i, name=name))
+            errors.append(t("Row {row}: {name} is a duplicate", row=i, name=name))
             continue
         seen.add(name.lower())
         pid = None if is_blank(row.get("_id")) else str(row["_id"])
@@ -581,18 +588,18 @@ def products_from_table(
             pid = new_person_id(name, used, fallback="produkt")
             used.add(pid)
         try:
-            start, end = as_date(row.get("ab")), as_date(row.get("bis"))
+            start, end = as_date(row.get("from")), as_date(row.get("until"))
         except ValueError:
-            errors.append(t("Zeile {row} ({name}): ungültiges Datum", row=i, name=name))
+            errors.append(t("Row {row} ({name}): invalid date", row=i, name=name))
             continue
         if start and end and end < start:
-            errors.append(t("Zeile {row} ({name}): 'bis' liegt vor 'ab'", row=i, name=name))
+            errors.append(t("Row {row} ({name}): 'until' is before 'from'", row=i, name=name))
             continue
         po = None if is_blank(row.get("PO")) else str(row["PO"]).strip()
         share = None if is_blank(row.get("Anteil")) else float(row["Anteil"]) / 100
         if share is not None and not 0 < share <= 1:
             errors.append(
-                t("Zeile {row} ({name}): Anteil muss zwischen 0 und 100 % liegen", row=i, name=name)
+                t("Row {row} ({name}): share must be between 0 and 100 %", row=i, name=name)
             )
             continue
         result.append(Product(id=pid, name=name, po=po, start=start, end=end, share=share))
@@ -609,7 +616,7 @@ def product_values_table(d: Distribution) -> list[dict[str, Any]]:
     return [
         {
             "_id": r.product.id,
-            "Produkt": r.product.name + ("" if r.active else " (nicht betreut)"),
+            "Product": r.product.name + ("" if r.active else " (nicht betreut)"),
             "PO": r.product.po or "",
             **{label: r.value(m) for m, label in (MEASURES | PRODUCTION_MEASURES).items()},
         }
@@ -640,7 +647,7 @@ def parse_numbers(raw: str) -> list[float]:
     """„4,25 4.5“ → [4.25, 4.5]; wirft ValueError bei ungültigen oder nicht endlichen Einträgen."""
     numbers = [float(x.replace(",", ".")) for x in raw.replace(";", " ").split()]
     if not all(math.isfinite(n) for n in numbers):
-        raise ValueError(t("Bitte eine endliche Zahl eingeben."))
+        raise ValueError(t("Please enter a finite number."))
     return numbers
 
 
@@ -709,7 +716,7 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
     review = fc.default_entry("review")
     tasks: list[StartTask] = []
     if nxt is None:
-        hint = t("Kein offener Sprint – zuerst im Sprintkalender Sprints anlegen.")
+        hint = t("No open sprint – first create sprints in the sprint calendar.")
         tasks.append(StartTask("prepare", "sprints", None, hint))
         tasks.append(StartTask("planning", "sprints", None, hint))
     else:
@@ -720,9 +727,9 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
         absences = absence_status(sprint)
         if absences is not AbsenceState.CONFIRMED:
             hint = (
-                t("Sprint {id}: Fehltage unbekannt.", id=sid)
+                t("Sprint {id}: absences unknown.", id=sid)
                 if absences is AbsenceState.UNKNOWN
-                else t("Sprint {id}: Fehltage angekündigt, noch nicht bestätigt.", id=sid)
+                else t("Sprint {id}: absences announced, not yet confirmed.", id=sid)
             )
             tasks.append(StartTask("prepare", "fehltage", sid, hint))
         elif products and not any(v.preplanned is not None for v in sprint.products.values()):
@@ -731,12 +738,12 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
                     "prepare",
                     "vorplanung",
                     sid,
-                    t("Sprint {id}: Fehltage bekannt, PO-Vorplanung fehlt noch.", id=sid),
+                    t("Sprint {id}: absences known, PO pre-planning still missing.", id=sid),
                 )
             )
         else:
             tasks.append(
-                StartTask("prepare", "fehltage", sid, t("Sprint {id}: vorbereitet.", id=sid), True)
+                StartTask("prepare", "fehltage", sid, t("Sprint {id}: prepared.", id=sid), True)
             )
         committed = sprint.forecast_ist is not None
         tasks.append(
@@ -744,14 +751,14 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
                 "planning",
                 "planning",
                 sid,
-                t("Sprint {id}: Commitment eingetragen.", id=sid)
+                t("Sprint {id}: commitment entered.", id=sid)
                 if committed
-                else t("Sprint {id}: Commitment fehlt noch.", id=sid),
+                else t("Sprint {id}: commitment still missing.", id=sid),
                 committed,
             )
         )
     if review is None:
-        tasks.append(StartTask("review", "review", None, t("Kein Sprint zum Abschließen.")))
+        tasks.append(StartTask("review", "review", None, t("No sprint to close.")))
     else:
         sprint = fc.data.sprint(review.sprint.id) or review.sprint
         closed = sprint.velocity is not None
@@ -760,11 +767,13 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
                 "review",
                 "review",
                 sprint.id,
-                t("Sprint {id}: abgeschlossen.", id=sprint.id)
+                t("Sprint {id}: closed.", id=sprint.id)
                 if closed
-                else t("Sprint {id} läuft noch – Review am Sprintende.", id=sprint.id)
+                else t(
+                    "Sprint {id} is still running – review at the end of the sprint.", id=sprint.id
+                )
                 if sprint.end > fc.today
-                else t("Sprint {id}: Velocity fehlt noch.", id=sprint.id),
+                else t("Sprint {id}: velocity still missing.", id=sprint.id),
                 closed,
             )
         )

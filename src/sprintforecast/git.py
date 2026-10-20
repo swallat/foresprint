@@ -392,7 +392,7 @@ def _aborted_here(cwd: Path) -> bool:
 
 def _raise_if_aborted(cwd: Path) -> None:
     if _aborted_here(cwd):
-        raise GitError(t("Der Abgleich wurde abgebrochen."), "aborted", hint_for("aborted"))
+        raise GitError(t("The sync was aborted."), "aborted", hint_for("aborted"))
 
 
 def begin_sync(cwd: Path) -> None:
@@ -548,7 +548,7 @@ def check_name(name: str) -> str:
     Leerzeichen am Anfang oder Ende haben (sie werden nicht still entfernt, sonst entstünde ein
     anderer Name als der eingegebene). Gibt den Namen unverändert zurück."""
     if not name.strip() or name != name.strip() or name.startswith("-") or name in {"HEAD", "@"}:
-        raise GitError(t("Ungültiger Tag-Name: {name}", name=name))
+        raise GitError(t("Invalid tag name: {name}", name=name))
     return name
 
 
@@ -556,7 +556,7 @@ def valid_tag_name(root: Path, name: str) -> str:
     """Wie :func:`check_name`, prüft aber zusätzlich mit Git, ob der Referenzname gültig ist."""
     name = check_name(name)
     if _git_result(root, "check-ref-format", f"refs/tags/{name}").returncode != 0:
-        raise GitError(t("Ungültiger Tag-Name: {name}", name=name))
+        raise GitError(t("Invalid tag name: {name}", name=name))
     return name
 
 
@@ -576,8 +576,10 @@ def check_new_tags(root: Path, tags: list[str] | None) -> list[str]:
         if existing := tag_commit(root, name):
             raise GitError(
                 t(
-                    "Der Tag {name} gibt es auf diesem Rechner schon (er zeigt auf {rev}). "
-                    "Es wurde nichts committet.",
+                    (
+                        "The tag {name} already exists on this computer (it points to {rev}). "
+                        "Nothing was committed."
+                    ),
                     name=name,
                     rev=existing[:7],
                 ),
@@ -685,9 +687,9 @@ _BARE_READ = re.compile(r"Could not read from remote repository", re.I)
 
 def _refused_hint() -> str:
     return t(
-        "Der Server hat die Anfrage nicht erfüllt. Bitte die Adresse (Tippfehler im "
-        "Projektnamen?) und die Berechtigung prüfen. Die Meldung von Git steht unter "
-        "„Technische Meldung“."
+        "The server did not fulfil the request. Please check the address (typo in the "
+        "project name?) and the permission. The message from Git is under “Technical "
+        "message”."
     )
 
 
@@ -815,34 +817,36 @@ def missing_hint(broken: str = "") -> str:
     places = "\n".join(f"- {md_code(str(place))}" for place in git_locations())
     if sys.platform == "win32":
         advice = t(
-            "Liegt Git an einem anderen Ort, den Ordner mit `git.exe` zum PATH des eigenen "
-            "Benutzers hinzufügen – ohne Administratorrechte möglich über „Umgebungsvariablen "
-            "für dieses Konto bearbeiten“."
+            "If Git is somewhere else, add the folder containing `git.exe` to your own "
+            "user’s PATH – possible without administrator rights via “Edit environment "
+            "variables for your account”."
         )
     else:
         advice = t(
-            "Liegt Git an einem anderen Ort, am besten eine Installation im eigenen "
-            "Benutzerordner nutzen (etwa Homebrew oder Nix) oder den Ordner mit `git` in der "
-            "Datei `~/.profile` zum PATH hinzufügen."
+            "If Git is somewhere else, it is best to use an installation in your own home "
+            "folder (such as Homebrew or Nix) or add the folder containing `git` to your "
+            "PATH in the file `~/.profile`."
         )
     parts = []
     if broken:
         parts.append(
             t(
-                "Git wurde unter {path} gefunden, ließ sich aber nicht starten (defekte oder "
-                "unvollständige Installation).",
+                (
+                    "Git was found at {path} but could not be started (damaged or incomplete "
+                    "installation)."
+                ),
                 path=md_code(broken),
             )
         )
     parts += [
         t(
-            "Git installieren (Windows: https://git-scm.com/download/win – ohne "
-            "Administratorrechte möglich, nur für das eigene Benutzerkonto; macOS: "
-            "`xcode-select --install`; Linux: Paketverwaltung). Danach die App und den Starter "
-            "„Sprint-Forecast“ schließen und neu öffnen oder einmal ab- und wieder anmelden, "
-            "damit sie Git finden."
+            "Install Git (Windows: https://git-scm.com/download/win – possible without "
+            "administrator rights, for your own user account only; macOS: `xcode-select "
+            "--install`; Linux: package manager). Then close and reopen the app and the "
+            "“Sprint-Forecast” launcher, or sign out and back in once, so that they can "
+            "find Git."
         ),
-        t("Gesucht wurde im PATH und an diesen Orten:\n{places}", places=places),
+        t("Searched in PATH and in these places:\n{places}", places=places),
         advice,
     ]
     return "\n\n".join(parts)
@@ -864,15 +868,15 @@ def classify(
     eingegebenen Adresse: Dort ist ein fehlender Ordner ein Tippfehler)."""
     if missing:
         return GitError(
-            t("git ist nicht installiert oder nicht im PATH"),
+            t("git is not installed or not in PATH"),
             "git_missing",
             missing_hint(broken),
         )
     if timeout:
         return GitError(
-            t("Der Server antwortet nicht rechtzeitig."),
+            t("The server does not answer in time."),
             "offline",
-            t("Internetverbindung und VPN prüfen und später noch einmal versuchen."),
+            t("Check the internet connection and VPN and try again later."),
         )
     for kind, pattern in _PATTERNS:
         if pattern.search(message):
@@ -886,44 +890,44 @@ def classify(
         # Git hängt das auch an, wenn der Server das Repository verweigert; allein belegt es keine
         # fehlende Verbindung. Alle anderen Muster haben Vorrang.
         return GitError(message, "error", _refused_hint(), raw=True)
-    return GitError(message or t("Unbekannter Git-Fehler"), "error", raw=bool(message))
+    return GitError(message or t("Unknown Git error"), "error", raw=bool(message))
 
 
 def title_for(kind: str) -> str:
     """Kurze Überschrift zu einer Fehlerart."""
     titles = {
-        "git_missing": t("Git ist nicht installiert"),
-        "identity": t("Name und E-Mail-Adresse fehlen"),
-        "locked": t("Eine Datei ist gesperrt"),
-        "not_writable": t("Datei oder Ordner nicht beschreibbar"),
-        "unsafe_directory": t("Git hält den Ordner für unsicher"),
-        "auth": t("Anmeldung fehlt oder wurde abgelehnt"),
-        "offline": t("Server nicht erreichbar"),
-        "denied": t("Server lehnt das Hochladen ab"),
-        "rejected": t("Hochladen abgelehnt, weil inzwischen etwas Neues da ist"),
-        "merge_in_progress": t("Zusammenführen ist unvollständig"),
-        "conflict": t("Konflikt beim Zusammenführen"),
-        "invalid": t("Zusammengeführte Daten sind nicht gültig"),
-        "dirty": t("Offene Änderungen außerhalb des Datenordners"),
-        "detached": t("Kein Branch ausgewählt (detached HEAD)"),
-        "no_upstream": t("Branch ist nicht mit dem Server verbunden"),
-        "no_remote": t("Kein Server eingerichtet"),
-        "not_repo": t("Kein Git-Repository"),
-        "not_found": t("Repository nicht gefunden"),
-        "unrelated_histories": t("Server hat eine andere Historie"),
-        "tag_exists": t("Tag-Name ist schon vergeben"),
-        "bad_url": t("Ungültige Adresse"),
-        "secret_in_url": t("Zugangsdaten gehören nicht in die Adresse"),
-        "insecure_url": t("Unverschlüsselte Verbindung"),
-        "new_branch": t("Branch fehlt auf dem Server"),
-        "remote_special": t("Ungewöhnliche Server-Einstellung"),
-        "certificate": t("Zertifikat des Servers nicht anerkannt"),
-        "folder": t("Ordner nicht nutzbar"),
-        "nothing_to_share": t("Noch nichts zu teilen"),
-        "sync_busy": t("Ein anderer Abgleich läuft noch"),
-        "aborted": t("Abgleich abgebrochen"),
+        "git_missing": t("Git is not installed"),
+        "identity": t("Name and email address are missing"),
+        "locked": t("A file is locked"),
+        "not_writable": t("File or folder not writable"),
+        "unsafe_directory": t("Git considers the folder unsafe"),
+        "auth": t("Login is missing or was rejected"),
+        "offline": t("Server not reachable"),
+        "denied": t("Server refuses the upload"),
+        "rejected": t("Upload rejected because something new arrived in the meantime"),
+        "merge_in_progress": t("Merge is incomplete"),
+        "conflict": t("Conflict while merging"),
+        "invalid": t("Merged data is not valid"),
+        "dirty": t("Open changes outside the data folder"),
+        "detached": t("No branch selected (detached HEAD)"),
+        "no_upstream": t("Branch is not connected to the server"),
+        "no_remote": t("No server set up"),
+        "not_repo": t("No Git repository"),
+        "not_found": t("Repository not found"),
+        "unrelated_histories": t("Server has a different history"),
+        "tag_exists": t("Tag name is already taken"),
+        "bad_url": t("Invalid address"),
+        "secret_in_url": t("Credentials do not belong in the address"),
+        "insecure_url": t("Unencrypted connection"),
+        "new_branch": t("Branch missing on the server"),
+        "remote_special": t("Unusual server setting"),
+        "certificate": t("Server certificate not accepted"),
+        "folder": t("Folder cannot be used"),
+        "nothing_to_share": t("Nothing to share yet"),
+        "sync_busy": t("Another sync is still running"),
+        "aborted": t("Sync aborted"),
     }
-    return titles.get(kind, t("Git-Fehler"))
+    return titles.get(kind, t("Git error"))
 
 
 def hint_for(kind: str, url: str = "") -> str:
@@ -932,114 +936,109 @@ def hint_for(kind: str, url: str = "") -> str:
         return auth_help(url)
     hints = {
         "sync_busy": t(
-            "Ein Abgleich dieses Datenordners läuft schon sehr lange und hängt vielleicht "
-            "(z. B. wegen einer schlechten Netzwerkverbindung). Warten oder den laufenden "
-            "Abgleich abbrechen: Deine Dateien bleiben lokal gespeichert."
+            "A sync of this data folder has been running for a very long time and may be "
+            "stuck (e.g. because of a bad network connection). Wait, or abort the running "
+            "sync: your files stay saved locally."
         ),
         "aborted": t(
-            "Der Abgleich wurde von Hand beendet. Deine Dateien sind lokal gespeichert; "
-            "bitte noch einmal teilen. Meldet Git danach eine gesperrte Datei, ist der Hinweis "
-            "dazu zu beachten."
+            "The sync was ended by hand. Your files are saved locally; please share again. "
+            "If Git then reports a locked file, follow the hint for it."
         ),
         "identity": t(
-            "Git kennt deinen Namen noch nicht. Bitte in der Seitenleiste Name und "
-            "E-Mail-Adresse eintragen."
+            "Git does not know your name yet. Please enter name and email address in the sidebar."
         ),
         "locked": t(
-            "Eine Datei ist gesperrt, weil ein anderes Programm (Git-Client, Editor, "
-            "Virenscanner, Synchronisationsdienst) sie benutzt. Andere Programme schließen und "
-            "noch einmal versuchen. Bleibt es dabei, ist nach einem Absturz vielleicht eine "
-            "Sperrdatei (index.lock im Ordner .git) übrig geblieben: Bitte bei der Betreuung "
-            "des Rechners oder des Repositorys nachfragen, bevor sie entfernt wird."
+            "A file is locked because another program (Git client, editor, virus scanner, "
+            "sync service) is using it. Close other programs and try again. If it stays "
+            "that way, a lock file (index.lock in the .git folder) may have been left "
+            "behind after a crash: please ask whoever looks after the computer or the "
+            "repository before it is removed."
         ),
         "not_writable": t(
-            "Git darf hier nichts schreiben. Bitte prüfen, ob dein Benutzerkonto im Datenordner "
-            "(samt dem versteckten Ordner .git darin) Schreibrechte hat, der Ordner nicht "
-            "schreibgeschützt ist und – bei einem Netzlaufwerk oder Cloud-Ordner – verbunden und "
-            "beschreibbar ist. Hilft das nicht, bei der Betreuung des Rechners nachfragen."
+            "Git may not write here. Please check that your user account has write "
+            "permission in the data folder (including the hidden .git folder inside it), "
+            "that the folder is not write-protected and – for a network drive or cloud "
+            "folder – is connected and writable. If that does not help, ask whoever looks "
+            "after the computer."
         ),
         "unsafe_directory": t(
-            "Git verweigert die Arbeit in diesem Ordner, weil er einem anderen Benutzerkonto "
-            "gehört als dem, mit dem die App läuft (eine Schutzmaßnahme von Git, häufig bei "
-            "Netzlaufwerken, kopierten Ordnern oder nach einem Kontowechsel). Die App ändert "
-            "keine Git-Einstellungen. Bitte bei der Betreuung des Rechners nachfragen: Sie kann "
-            "den Ordner dem eigenen Konto zuordnen oder ihn bewusst als sicher eintragen."
+            "Git refuses to work in this folder because it belongs to a different user "
+            "account than the one the app runs under (a protection by Git, common with "
+            "network drives, copied folders or after an account change). The app changes "
+            "no Git settings. Please ask whoever looks after the computer: they can assign "
+            "the folder to your own account or deliberately mark it as safe."
         ),
         "certificate": t(
-            "Der Server antwortet, aber sein Sicherheitszertifikat wird von diesem Rechner nicht "
-            "anerkannt (häufig ein Firmenzertifikat oder ein selbst ausgestelltes Zertifikat). "
-            "Bitte die IT bitten, das Zertifikat auf dem Rechner zu hinterlegen. Die App ändert "
-            "keine Git-Einstellungen."
+            "The server responds, but this computer does not accept its security "
+            "certificate (often a company certificate or a self-issued one). Please ask IT "
+            "to install the certificate on the computer. The app changes no Git settings."
         ),
         "offline": t(
-            "Der Server ist nicht erreichbar. Deine Änderungen bleiben lokal gesichert; "
-            "Internetverbindung bzw. VPN prüfen und später erneut „Speichern und teilen“ wählen."
+            "The server is not reachable. Your changes stay safely stored locally; check "
+            "the internet connection or VPN and choose “Save and share” again later."
         ),
         "denied": t(
-            "Der Server hat das Hochladen abgelehnt, etwa wegen eines geschützten Branches "
-            "oder fehlender Schreibrechte. Deine Änderungen sind lokal gesichert; bitte "
-            "bei der Betreuung des Repositorys nachfragen."
+            "The server refused the upload, for example because of a protected branch or "
+            "missing write permission. Your changes are stored locally; please ask whoever "
+            "looks after the repository."
         ),
         "rejected": t(
-            "Jemand anderes hat inzwischen Änderungen hochgeladen. Noch einmal "
-            "„Speichern und teilen“ wählen, dann werden sie zuerst übernommen."
+            "Someone else has uploaded changes in the meantime. Choose “Save and share” "
+            "once more; they will be taken over first."
         ),
         "merge_in_progress": t(
-            "Ein Zusammenführen ist unvollständig. Es kann abgebrochen werden; die eigenen "
-            "Änderungen bleiben dabei erhalten."
+            "A merge is incomplete. It can be aborted; your own changes are kept."
         ),
         "conflict": t(
-            "Dieselbe Stelle wurde von zwei Personen geändert. Auf der Seite „Konflikte "
-            "lösen“ je Eintrag „meine“ oder „andere“ Änderung wählen, oder das "
-            "Zusammenführen abbrechen. Es ist nichts verloren."
+            "Two people changed the same place. On the “Resolve conflicts” page choose "
+            "“my” or “other” change for each entry, or abort the merge. Nothing is lost."
         ),
         "invalid": t(
-            "Die Zusammenführung war technisch möglich, aber die Daten sind nun fachlich "
-            "ungültig (siehe Liste). Nichts wurde hochgeladen. Bitte die Werte korrigieren und "
-            "erneut „Speichern und teilen“ wählen – oder bewusst „Trotzdem teilen“."
+            "The merge was technically possible, but the data is now invalid in content "
+            "(see list). Nothing was uploaded. Please correct the values and choose “Save "
+            "and share” again – or deliberately “Share anyway”."
         ),
         "dirty": t(
-            "Es gibt nicht gesicherte Änderungen außerhalb des Datenordners, die mit den "
-            "neuen Änderungen kollidieren. Diese bitte zuerst committen oder verwerfen."
+            "There are unsaved changes outside the data folder that collide with the new "
+            "changes. Please commit or discard them first."
         ),
         "detached": t(
-            "Das Repository steht auf keinem Branch (detached HEAD). In der Seitenleiste "
-            "„Zurück auf den Branch“ wählen; offene Änderungen werden vorher auf einem "
-            "Rettungsbranch gesichert."
+            "The repository is not on a branch (detached HEAD). Choose “Back to the "
+            "branch” in the sidebar; open changes are saved on a rescue branch first."
         ),
         "no_upstream": t(
-            "Der Branch ist noch nicht mit dem Server verbunden. „Speichern und teilen“ "
-            "richtet das beim ersten Mal ein."
+            "The branch is not connected to the server yet. “Save and share” sets that up "
+            "the first time."
         ),
         "no_remote": t(
-            "Zu diesem Datenordner gehört noch kein Server. Auf der Seite „Datenordner“ unter "
-            "„Server (Remote)“ die Adresse des gemeinsamen Daten-Repositorys eintragen; bis "
-            "dahin bleiben alle Änderungen auf diesem Rechner. Wer einem bestehenden Team "
-            "beitritt, wählt dort „Repository klonen“."
+            "This data folder has no server yet. On the “Data folder” page, under “Server "
+            "(remote)”, enter the address of the shared data repository; until then all "
+            "changes stay on this computer. Anyone joining an existing team chooses “Clone "
+            "repository” there."
         ),
         "not_repo": t(
-            "Der Datenordner muss in einem Git-Repository liegen: mit `git init` ein neues "
-            "anlegen oder mit `git clone` ein bestehendes holen. Ein entpacktes ZIP-Archiv "
-            "(„Download source code“ bei GitHub oder GitLab) ist kein Repository, denn ihm "
-            "fehlt der versteckte Ordner `.git`. Für ein bestehendes Team-Repository stattdessen "
-            "auf der Seite „Datenordner“ „Repository klonen“ wählen."
+            "The data folder must be inside a Git repository: create a new one with `git "
+            "init` or fetch an existing one with `git clone`. An unpacked ZIP archive "
+            "(“Download source code” on GitHub or GitLab) is not a repository because it "
+            "lacks the hidden `.git` folder. For an existing team repository, choose "
+            "“Clone repository” on the “Data folder” page instead."
         ),
         "not_found": t(
-            "Das Repository wurde nicht gefunden oder du hast keinen Zugriff. Adresse und "
-            "Berechtigung prüfen; die Adresse lässt sich auf der Seite „Datenordner“ unter "
-            "„Server (Remote)“ ändern."
+            "The repository was not found or you have no access. Check address and "
+            "permission; the address can be changed on the “Data folder” page under "
+            "“Server (remote)”."
         ),
         "unrelated_histories": t(
-            "Der Server enthält eine andere Historie als dieser Datenordner – vermutlich ist "
-            "ein falsches Repository verbunden (z. B. ein Code-Repository). Es wurde nichts "
-            "zusammengeführt und nichts hochgeladen; deine Änderungen sind lokal gesichert. "
-            "Ist es das falsche Repository, lässt sich die Adresse auf der Seite „Datenordner“ "
-            "unter „Server (Remote)“ ändern. Ist das Daten-Repository auf dem Server richtig, "
-            "muss das Zusammenführen ausdrücklich bestätigt werden."
+            "The server contains a different history than this data folder – probably the "
+            "wrong repository is connected (e.g. a code repository). Nothing was merged "
+            "and nothing was uploaded; your changes are safe locally. If it is the wrong "
+            "repository, the address can be changed on the “Data folder” page under "
+            "“Server (remote)”. If the data repository on the server is the right one, "
+            "merging must be confirmed explicitly."
         ),
         "tag_exists": t(
-            "Einen anderen Namen wählen oder den vorhandenen Tag zuerst entfernen. Die "
-            "Änderungen sind unverändert und noch nicht gespeichert."
+            "Choose a different name or remove the existing tag first. The changes are "
+            "unchanged and not yet saved."
         ),
     }
     return hints.get(kind, "")
@@ -1051,12 +1050,12 @@ def unwritable_file_hint() -> str:
     Unter Windows sagt Python „Permission denied“ sowohl für eine von einem anderen Programm
     gehaltene als auch für eine schreibgeschützte Datei; beides nennt der Hinweis."""
     return t(
-        "Die Datei konnte nicht geschrieben werden. Entweder benutzt ein anderes Programm sie "
-        "gerade (Editor, Tabellenprogramm, Virenscanner, Synchronisationsdienst; unter Windows "
-        "meist der Grund), oder sie ist schreibgeschützt bzw. dein Benutzerkonto darf sie nicht "
-        "ändern. Andere Programme schließen, Schreibschutz und Rechte prüfen und noch einmal "
-        "„Speichern und teilen“ wählen: Das unterbrochene Zusammenführen wird dann fortgesetzt, "
-        "nichts geht verloren. Hilft das nicht, bei der Betreuung des Rechners nachfragen."
+        "The file could not be written. Either another program is using it right now "
+        "(editor, spreadsheet program, virus scanner, sync service; on Windows usually the "
+        "reason), or it is write-protected or your user account may not change it. Close "
+        "other programs, check the write protection and permissions, and choose “Save and "
+        "share” again: the interrupted merge is then continued and nothing is lost. If "
+        "that does not help, ask whoever looks after the computer."
     )
 
 
@@ -1069,26 +1068,26 @@ def auth_help(url: str = "", message: str = "") -> str:
     sondern nur der Fingerabdruck."""
     if _HOST_KEY.search(message):
         return t(
-            "Der Rechner kennt diesen SSH-Server noch nicht (oder sein Schlüssel hat sich "
-            "geändert). Die App kann das nicht bestätigen: Bitte einmal mit einem SSH- oder "
-            "Git-Programm zum Server verbinden und den Fingerabdruck bestätigen, oder die "
-            "https-Adresse des Repositorys verwenden. Danach noch einmal versuchen."
+            "This computer does not know this SSH server yet (or its key has changed). The "
+            "app cannot confirm this: please connect to the server once with an SSH or Git "
+            "program and confirm the fingerprint, or use the https address of the "
+            "repository. Then try again."
         )
     if url.lower().startswith("ssh://") or _SCP_FORM.match(url):
         return t(
-            "Diese Adresse nutzt die Anmeldung per SSH-Schlüssel. Dafür einen Schlüssel anlegen "
-            "(`ssh-keygen -t ed25519`), den öffentlichen Teil (Datei `.pub`) beim Server "
-            "(GitHub, GitLab …) unter „SSH-Schlüssel“ hinterlegen und den Schlüssel im "
-            "ssh-agent ohne Kennwortabfrage verfügbar machen. Danach noch einmal versuchen."
+            "This address uses login with an SSH key. To set it up, create a key "
+            "(`ssh-keygen -t ed25519`), register the public part (`.pub` file) with the "
+            "server (GitHub, GitLab …) under “SSH keys” and make the key available in the "
+            "ssh-agent without a passphrase prompt. Then try again."
         )
     steps = t(
-        "Bei https braucht der Server meist einen Zugangstoken statt des Kennworts (GitHub: "
-        "Settings › Developer settings › Personal access tokens; GitLab: Zugriffstoken mit dem "
-        "Recht „write_repository“). Wer die GitHub-CLI nutzt, richtet die Anmeldung mit "
-        "`gh auth setup-git` ein; sonst den Token im Anmeldedienst des Rechners hinterlegen "
-        "oder beim nächsten Anmeldefenster als Kennwort eingeben."
+        "With https the server usually needs an access token instead of the password "
+        "(GitHub: Settings › Developer settings › Personal access tokens; GitLab: access "
+        "token with the “write_repository” scope). If you use the GitHub CLI, set up the "
+        "login with `gh auth setup-git`; otherwise store the token in the computer's "
+        "credential service or enter it as the password in the next login window."
     )
-    return f"{steps} {credential_advice()} " + t("Danach noch einmal versuchen.")
+    return f"{steps} {credential_advice()} " + t("Then try again.")
 
 
 # Anmeldedienste, die Git mitbringt oder die verbreitet sind; alles andere heißt „custom“.
@@ -1138,37 +1137,37 @@ def credential_advice() -> str:
     helpers = credential_helpers()
     if any(name in _PLAIN_TEXT_HELPERS for name in helpers):
         return t(
-            "Achtung: Git speichert Anmeldungen hier im Klartext (`credential.helper store`, "
-            "Datei `.git-credentials` im Benutzerordner). Besser einen Anmeldedienst des "
-            "Rechners verwenden; die App ändert diese Einstellung nicht."
+            "Attention: Git stores logins here in plain text (`credential.helper store`, "
+            "file `.git-credentials` in the user folder). Better use the computer's "
+            "credential service; the app does not change this setting."
         )
     if helpers:
         return t(
-            "Ein Anmeldedienst ist eingetragen. Scheitert die Anmeldung trotzdem, ist der "
-            "gespeicherte Token vermutlich abgelaufen oder widerrufen: den alten Eintrag im "
-            "Anmeldedienst löschen und beim nächsten Versuch den neuen Token eingeben."
+            "A credential service is set up. If the login still fails, the stored token "
+            "has probably expired or been revoked: delete the old entry in the credential "
+            "service and enter the new token on the next attempt."
         )
-    prefix = t("In der Git-Einstellung ist noch kein Anmeldedienst eingetragen.")
+    prefix = t("No credential service is set up in the Git settings yet.")
     if sys.platform == "win32":
         step = t(
-            "Git for Windows bringt den Git Credential Manager mit; `git config --global "
-            "credential.helper manager` im Terminal schaltet ihn ein. Beim nächsten Versuch den "
-            "Token im Anmeldefenster als Kennwort eingeben."
+            "Git for Windows ships the Git Credential Manager; `git config --global "
+            "credential.helper manager` in a terminal turns it on. On the next attempt, "
+            "enter the token as the password in the login window."
         )
     elif sys.platform == "darwin":
         step = t(
-            "Der Schlüsselbund wird mit `git config --global credential.helper osxkeychain` im "
-            "Terminal eingeschaltet (der Helfer gehört zu Git von Xcode oder Homebrew). Beim "
-            "nächsten Versuch den Token als Kennwort eingeben."
+            "The Keychain is turned on with `git config --global credential.helper "
+            "osxkeychain` in a terminal (the helper belongs to Git from Xcode or "
+            "Homebrew). On the next attempt, enter the token as the password."
         )
     else:
         step = t(
-            "Entweder `git config --global credential.helper libsecret` im Terminal eingeben "
-            "(Schlüsselbund des Desktops; der Helfer `git-credential-libsecret` kommt mit dem "
-            "Git-Paket der Distribution) oder mit `gh auth setup-git` die GitHub-CLI nutzen. "
-            "Die Ablage im Klartext (`store`) ist keine gute Wahl."
+            "Either enter `git config --global credential.helper libsecret` in a terminal "
+            "(desktop keyring; the helper `git-credential-libsecret` comes with the "
+            "distribution's Git package) or use the GitHub CLI with `gh auth setup-git`. "
+            "Plain-text storage (`store`) is not a good choice."
         )
-    note = t("Die App ändert keine Git-Einstellung selbst.")
+    note = t("The app does not change any Git setting itself.")
     return f"{prefix} {step} {note}"
 
 
@@ -1223,11 +1222,11 @@ def secret_in_url_error() -> GitError:
     Eingabe zu wiederholen)."""
     return GitError(
         t(
-            "Die Adresse enthält einen Benutzernamen, ein Kennwort, einen Token oder "
-            "Parameter (alles ab „?“ oder „#“). Bitte nur die reine Adresse eintragen, z. B. "
-            "https://server/team/daten.git; die Anmeldung übernimmt der Anmeldedienst des "
-            "Rechners, fehlt sie, erklärt die App den nächsten Schritt (siehe Hilfe, "
-            "„Anmeldung“)."
+            "The address contains a user name, a password, a token or parameters "
+            "(everything from “?” or “#”). Please enter the plain address only, e.g. "
+            "https://server/team/data.git; the login service of the computer handles the "
+            "login, and if it is missing the app explains the next step (see Help, "
+            "“Login”)."
         ),
         "secret_in_url",
     )
@@ -1237,9 +1236,8 @@ def remote_special_error() -> GitError:
     """Fehler für einen Server mit mehreren Adressen oder eigener Upload-Adresse."""
     return GitError(
         t(
-            "Für diesen Server sind mehrere Adressen oder eine eigene Upload-Adresse "
-            "eingetragen. Das lässt sich hier nicht ändern – bitte mit einem Git-Programm "
-            "bereinigen."
+            "Several addresses or a separate upload address are set for this server. This "
+            "cannot be changed here – please clean it up with a Git program."
         ),
         "remote_special",
     )
@@ -1263,20 +1261,23 @@ class NewBranchError(GitError):
         names = ", ".join(quote(h) for h in self.heads[:5]) + (", …" if len(self.heads) > 5 else "")
         if self.unborn:
             text = t(
-                "Dieser Datenordner enthält noch keine gespeicherten Daten, der Server aber "
-                "schon (vorhanden: {heads}). Beim ersten Teilen würde dort ein neuer Branch "
-                "„{branch}“ angelegt, ohne dass die Daten des Teams ankommen. Wer einem "
-                "bestehenden Team beitritt, wählt stattdessen „Repository klonen“ weiter unten "
-                "auf dieser Seite.",
+                (
+                    "This data folder has no saved data yet, but the server does (available: "
+                    "{heads}). The first share would create a new branch “{branch}” there "
+                    "without the data of the team arriving. Anyone joining an existing team "
+                    "should choose “Clone repository” further down on this page instead."
+                ),
                 branch=quote(self.branch),
                 heads=names,
             )
         else:
             text = t(
-                "Auf dem Server gibt es den Branch „{branch}“ nicht (vorhanden: {heads}). Beim "
-                "ersten Teilen würde er dort neu angelegt. Das ist nur richtig, wenn dies "
-                "wirklich das Daten-Repository ist. Wer einem bestehenden Team beitritt, wählt "
-                "stattdessen „Repository klonen“ weiter unten auf dieser Seite.",
+                (
+                    "The server has no branch “{branch}” (available: {heads}). The first share "
+                    "would create it there. That is only right if this really is the data "
+                    "repository. Anyone joining an existing team should choose “Clone "
+                    "repository” further down on this page instead."
+                ),
                 branch=quote(self.branch),
                 heads=names,
             )
@@ -1305,8 +1306,10 @@ class UnrelatedHistoriesError(GitError):
     def render(self, quote: Callable[[str], str] = str) -> str:
         """Meldung; ``quote`` wird auf Adresse und Branch angewendet."""
         return t(
-            "Der Server ({url}, Branch {branch}) enthält eine andere Historie als dieser "
-            "Datenordner.",
+            (
+                "The server ({url}, branch {branch}) contains a different history than this "
+                "data folder."
+            ),
             url=quote(self.url),
             branch=quote(self.branch),
         )
@@ -1316,14 +1319,11 @@ def nothing_to_share_error() -> GitError:
     """Fehler, wenn „Speichern und teilen“ gewählt wird, obwohl der Datenordner noch nichts
     Gespeichertes enthält (kein Commit): Es gäbe nichts hochzuladen."""
     return GitError(
-        t(
-            "Der Datenordner enthält noch keine gespeicherten Daten, deshalb gibt es nichts zu "
-            "teilen."
-        ),
+        t("The data folder holds no saved data yet, so there is nothing to share."),
         "nothing_to_share",
         t(
-            "Zuerst Daten anlegen (z. B. ein Team) und speichern. Wer einem bestehenden Team "
-            "beitritt, wählt auf der Seite „Datenordner“ „Repository klonen“."
+            "Create data first (e.g. a team) and save it. Anyone joining an existing team "
+            "chooses “Clone repository” on the “Data folder” page."
         ),
     )
 
@@ -1337,12 +1337,12 @@ def _parse_url_form(text: str, scheme: str, rest: str, allow_insecure: bool) -> 
     if scheme not in _URL_SCHEMES:
         raise _bad_url(
             t(
-                "Dieses Verfahren wird nicht unterstützt. Erlaubt sind "
-                "https://, ssh://, git@server:pfad und vollständige Ordnerpfade."
+                "This protocol is not supported. Allowed are https://, ssh://, "
+                "git@server:path and complete folder paths."
             )
         )
     if "\\" in text or not all("!" <= c <= "~" for c in text):
-        raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+        raise _bad_url(t("It contains spaces or invalid characters."))
     if "?" in rest or "#" in rest:
         raise secret_in_url_error()
     authority, _, path = rest.partition("/")
@@ -1353,21 +1353,21 @@ def _parse_url_form(text: str, scheme: str, rest: str, allow_insecure: bool) -> 
         if scheme != "ssh" or ":" in user:  # bei http(s) immer; bei ssh der Kennwortteil
             raise secret_in_url_error()
         if not re.fullmatch(_SSH_USER, user):
-            raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+            raise _bad_url(t("It contains spaces or invalid characters."))
     found = _HOST_PORT.fullmatch(host_port)
     if found is None:
-        raise _bad_url(t("Der Servername ist ungültig."))
+        raise _bad_url(t("The server name is invalid."))
     port = found.group(2)
     if port is not None and not (port.isascii() and port.isdigit() and 0 < int(port) < 65536):
-        raise _bad_url(t("Die Portnummer ist ungültig."))
+        raise _bad_url(t("The port number is invalid."))
     if not path.strip("/"):
-        raise _bad_url(t("Es fehlt der Pfad zum Repository, z. B. …/team/sprint-daten.git."))
+        raise _bad_url(t("The path to the repository is missing, e.g. …/team/sprint-data.git."))
     if scheme == "http" and not allow_insecure:
         raise GitError(
             t(
-                "Die Adresse beginnt mit http:// – Daten und Anmeldung würden unverschlüsselt "
-                "übertragen. Besser https:// verwenden oder die unverschlüsselte Verbindung "
-                "ausdrücklich bestätigen."
+                "The address starts with http:// – data and login would be sent "
+                "unencrypted. Better use https:// or explicitly confirm the unencrypted "
+                "connection."
             ),
             "insecure_url",
         )
@@ -1382,18 +1382,18 @@ def parse_remote_url(raw: str, *, allow_insecure: bool = False) -> RemoteAddress
     Text, der die Eingabe nie wiederholt."""
     text = raw.strip()
     if not text:
-        raise _bad_url(t("Bitte eine Adresse eintragen."))
+        raise _bad_url(t("Please enter an address."))
     if len(text) > MAX_URL_LENGTH:
-        raise _bad_url(t("Sie ist zu lang."))
+        raise _bad_url(t("It is too long."))
     # Steuerzeichen, Zeilentrenner und unsichtbare Zeichen (Zero-Width, Bidi, BOM).
     if any(
         unicodedata.category(c) in {"Zl", "Zp"} or unicodedata.category(c)[0] == "C" for c in text
     ):
-        raise _bad_url(t("Sie enthält Zeilenumbrüche oder Steuerzeichen."))
+        raise _bad_url(t("It contains line breaks or control characters."))
     if text.startswith("-"):  # Git läse die Adresse sonst als Option
-        raise _bad_url(t("Sie darf nicht mit „-“ beginnen."))
+        raise _bad_url(t("It must not start with “-”."))
     if _HELPER.match(text):
-        raise _bad_url(t("Spezielle Übertragungswege (z. B. „ext::“) sind nicht erlaubt."))
+        raise _bad_url(t("Special transports (e.g. “ext::”) are not allowed."))
     if scheme := _SCHEME.match(text):
         return _parse_url_form(text, scheme.group(1).lower(), text[scheme.end() :], allow_insecure)
     if Path(text).is_absolute():  # die Plattform entscheidet, was „vollständig“ ist
@@ -1402,13 +1402,12 @@ def parse_remote_url(raw: str, *, allow_insecure: bool = False) -> RemoteAddress
         raise secret_in_url_error()
     if found := _SCP_ADDRESS.fullmatch(text):
         if found.group(3).startswith("-"):
-            raise _bad_url(t("Sie enthält Leerzeichen oder unzulässige Zeichen."))
+            raise _bad_url(t("It contains spaces or invalid characters."))
         return RemoteAddress(text, "ssh")
     raise _bad_url(
         t(
-            "Das Format wird nicht erkannt. Beispiele: "
-            "https://server/team/daten.git, git@server:team/daten.git oder ein vollständiger "
-            "Ordnerpfad."
+            "The format is not recognised. Examples: https://server/team/data.git, "
+            "git@server:team/data.git or a complete folder path."
         )
     )
 
@@ -1530,7 +1529,7 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
     if timed_out:
         err.hint = _unreachable_hint()
     elif err.kind == "certificate":
-        err.hint += " " + t("Die Adresse wird so nicht gespeichert.")
+        err.hint += " " + t("The address is not saved this way.")
     elif err.kind == "offline" and _UNREACHABLE.search(message):
         err.hint = _unreachable_hint()
     elif err.kind == "offline":  # Netzwerkfehler ohne belegte Unerreichbarkeit
@@ -1540,17 +1539,16 @@ def _probe_error(message: str, address: RemoteAddress, timed_out: bool = False) 
         pass  # classify hat „Could not read from remote repository“ ohne Grund schon erklärt
     elif err.kind not in {"auth", "not_found", "unsafe_directory", "not_writable", "locked"}:
         err.hint = t(
-            "Die Verbindung zum Server ist fehlgeschlagen. Die Meldung von Git steht unter "
-            "„Technische Meldung“."
+            "The connection to the server failed. Git’s message is under “Technical message”."
         )
     return err
 
 
 def _unreachable_hint() -> str:
     return t(
-        "Der Server ist unter dieser Adresse nicht erreichbar. Bitte die Adresse "
-        "(Tippfehler?), die Internetverbindung und das VPN prüfen. Ein Anmeldefenster des "
-        "Rechners kann den Vorgang verzögern."
+        "The server cannot be reached at this address. Please check the address (typo?), "
+        "the internet connection and the VPN. A login window of the computer can delay the "
+        "process."
     )
 
 
@@ -1595,7 +1593,7 @@ def require_root(path: Path) -> Path:
         return root
     if problem is not None:  # neu erzeugt: der gespeicherte sammelte bei jedem Auslösen Spuren an
         raise GitError(str(problem), problem.kind, problem.hint, problem.raw)
-    raise GitError(t("{path} liegt in keinem Git-Repository", path=path))
+    raise GitError(t("{path} is not inside a Git repository", path=path))
 
 
 def forget_roots(path: Path) -> None:
@@ -1716,21 +1714,27 @@ def refuse_conflict_markers(root: Path, files: Iterable[Path]) -> None:
         names = ", ".join(marked)
         raise GitError(
             t(
-                "In diesen Dateien stehen noch Konfliktmarkierungen (<<<<<<<, =======, "
-                ">>>>>>>), sie werden nicht übernommen: {files}",
+                (
+                    "These files still contain conflict markers (<<<<<<<, =======, >>>>>>>); "
+                    "they are not taken over: {files}"
+                ),
                 files=names,
             ),
             "conflict",
             t(
-                "Betroffen: {files}. Die Markierungen stammen aus einem unvollständigen "
-                "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
-                "erscheint, dort den letzten Stand wiederherstellen.",
+                (
+                    "Affected: {files}. The markers come from an incomplete merge: remove them "
+                    "in an editor or, if the page “Resolve conflicts” appears, restore the "
+                    "last saved state there."
+                ),
                 files=names,
             ),
             hint_md=t(
-                "Betroffen: {files}. Die Markierungen stammen aus einem unvollständigen "
-                "Zusammenführen: im Editor entfernen oder, wenn die Seite „Konflikte lösen“ "
-                "erscheint, dort den letzten Stand wiederherstellen.",
+                (
+                    "Affected: {files}. The markers come from an incomplete merge: remove them "
+                    "in an editor or, if the page “Resolve conflicts” appears, restore the "
+                    "last saved state there."
+                ),
                 files=md_plain(names),
             ),
         )
@@ -1749,12 +1753,14 @@ def commit_directory(path: Path, message: str, tags: list[str] | None = None) ->
     root = require_root(path)
     changes = pending_changes(path)
     if not changes:
-        raise GitError(t("Keine Änderungen zum Committen"))
+        raise GitError(t("No changes to commit"))
     if blocked := [f for _, f in changes if FORBIDDEN.search(f)]:
         raise GitError(
             t(
-                "Tabellenkalkulationen werden nicht committet – bitte entfernen oder in "
-                ".gitignore aufnehmen: {files}",
+                (
+                    "Spreadsheets are not committed – please remove them or add them to "
+                    ".gitignore: {files}"
+                ),
                 files=", ".join(blocked),
             )
         )
@@ -1793,7 +1799,7 @@ def commit(paths: list[Path], message: str, tag: str | None = None) -> str:
     except GitError as e:
         if e.kind == "error" and _NOT_A_REPOSITORY.search(str(e)):
             raise GitError(
-                t("{path} liegt in keinem Git-Repository", path=cwd),
+                t("{path} is not inside a Git repository", path=cwd),
                 "not_repo",
                 hint_for("not_repo"),
             ) from e
@@ -1835,14 +1841,16 @@ def folder_problem(path: Path, error: Exception) -> GitError:
     shown = md_code(str(path))
     if isinstance(error, PermissionError):
         message = t(
-            "Keine Zugriffsrechte für {path} – bitte einen anderen Ordner wählen oder die "
-            "Rechte anpassen.",
+            (
+                "No access rights for {path} – please choose another folder or adjust the "
+                "permissions."
+            ),
             path=shown,
         )
     else:
         reason = getattr(error, "strerror", None) or str(error)
         message = t(
-            "{path} lässt sich nicht anlegen ({reason}) – bitte den Pfad prüfen.",
+            "{path} cannot be created ({reason}) – please check the path.",
             path=shown,
             reason=reason,
         )
@@ -1858,7 +1866,7 @@ def _folder_access(path: Path) -> Iterator[None]:
         if path.is_file():
             raise GitError(
                 t(
-                    "{path} ist eine Datei, kein Ordner – bitte einen Ordner angeben.",
+                    "{path} is a file, not a folder – please specify a folder.",
                     path=md_code(str(path)),
                 ),
                 "folder",
@@ -1916,7 +1924,7 @@ def clone_repository(url: str, path: Path, timeout: float = 300) -> None:
         with _folder_access(path):
             if path.exists() and any(path.iterdir()):
                 raise GitError(
-                    t("{path} ist nicht leer", path=md_code(str(path))),
+                    t("{path} is not empty", path=md_code(str(path))),
                     "folder",
                 )
             path.parent.mkdir(parents=True, exist_ok=True)

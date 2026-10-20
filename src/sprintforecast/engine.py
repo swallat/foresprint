@@ -160,13 +160,13 @@ def trend(average: Series, mode: TrendMode | str) -> Series:
 
 
 class CapacitySource(StrEnum):
-    RECORDED = "erfasst"
-    PEOPLE = "Personenliste"
+    RECORDED = "recorded"
+    PEOPLE = "people list"
     TREND = "Trend"
     # Personenliste und Kalender; Fehltage unbekannt und keine Historie, daher ohne Abzug.
-    CALENDAR = "Kalender, Fehltage unbekannt"
-    ESTIMATED = "erwartete Fehltage"
-    EXPECTED = "angekündigte Fehltage"
+    CALENDAR = "Calendar, absences unknown"
+    ESTIMATED = "expected absences"
+    EXPECTED = "announced absences"
 
 
 # Quellen ohne bekannte Fehltage und ohne Historie: Die Kapazität ist nur geschätzt.
@@ -175,7 +175,7 @@ UNSURE_SOURCES = (CapacitySource.TREND, CapacitySource.CALENDAR)
 
 class PlanSource(StrEnum):
     ACTUAL = "IST"
-    FORECAST = "Prognose"
+    FORECAST = "Projection"
 
 
 @dataclass

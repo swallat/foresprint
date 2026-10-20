@@ -74,13 +74,13 @@ def test_new_rows_get_ids_and_join_existing_person(data_dir: Path):
     people = Repository(data_dir).load("demo").people
     rows, hidden = people_table(people, TODAY, show_former=False)
     anna = next(r for r in rows if r["Name"] == "Anna")
-    anna["bis"] = date(2026, 10, 31)
+    anna["until"] = date(2026, 10, 31)
     rows += [
         # FTE-Änderung: neue Zeile, gleicher Name, keine ID
-        {"_id": None, "Name": "Anna", "Bundesland": "(Team)", "ab": "2026-11-01", "bis": None,
+        {"_id": None, "Name": "Anna", "State": "(Team)", "from": "2026-11-01", "until": None,
          "FTE": 0.5},
-        {"_id": float("nan"), "Name": "Jörg Müller", "Bundesland": "BY",
-         "ab": pd.Timestamp("2026-11-01"), "bis": pd.NaT, "FTE": float("nan")},
+        {"_id": float("nan"), "Name": "Jörg Müller", "State": "BY",
+         "from": pd.Timestamp("2026-11-01"), "until": pd.NaT, "FTE": float("nan")},
     ]  # fmt: skip
     result = people_from_table(rows, people, hidden)
     assert result.errors == []
@@ -104,9 +104,9 @@ def test_people_table_errors(data_dir: Path):
     people = Repository(data_dir).load("demo").people
     rows, hidden = people_table(people, TODAY, show_former=False)
     ben = [r for r in rows if r["Name"] == "Ben"]
-    ben[1]["Bundesland"] = "HE"  # zweiter Zeitraum mit anderem Bundesland
-    rows.append({"_id": None, "Name": "", "Bundesland": None, "ab": None, "bis": None, "FTE": 1})
-    rows.append({"_id": None, "Name": "Neu", "Bundesland": None, "ab": None, "bis": None})
+    ben[1]["State"] = "HE"  # zweiter Zeitraum mit anderem Bundesland
+    rows.append({"_id": None, "Name": "", "State": None, "from": None, "until": None, "FTE": 1})
+    rows.append({"_id": None, "Name": "Neu", "State": None, "from": None, "until": None})
     errors = people_from_table(rows, people, hidden).errors
     assert any("unterschiedliche Namen oder Bundesländer" in e for e in errors)
     assert any("Name fehlt" in e for e in errors)
@@ -146,7 +146,7 @@ def test_calendar_shifts_persisted_sprints_outside_window(data_dir):
     data, fc, absence_sprints, calendar_table = _calendar(data_dir)
     shown = absence_sprints(data, fc, 1)  # nur 2026.21; 2026.22 liegt gespeichert dahinter
     rows = calendar_table(data, shown, fc.today)
-    rows[0]["Letzter Tag"] = date(2026, 11, 3)
+    rows[0]["Last day"] = date(2026, 11, 3)
     after, errors = apply_calendar(data, shown, rows)
     assert not errors
     to_save = calendar_to_save(data, shown, after, create_missing=False)
@@ -172,7 +172,7 @@ def test_calendar_rejects_id_collision(data_dir):
     shown = absence_sprints(data, fc, 7)
     assert [s.id for s in shown][-3:] == ["2026.25", "2026.26", "2027.1"]
     rows = calendar_table(data, shown, fc.today)
-    rows[-3]["Letzter Tag"] = date(2027, 1, 12)
+    rows[-3]["Last day"] = date(2027, 1, 12)
     _, errors = apply_calendar(data, shown, rows)
     assert any("2027.1" in e and "doppelt" in e for e in errors)
 
@@ -190,7 +190,7 @@ def test_fte_zero_is_allowed_and_out_of_range_is_reported(data_dir: Path):
     assert result.errors == []
     assert result.people[0].memberships[-1].fte == 0.0
     data.people = result.people
-    assert [i for i in check_team(data, TODAY) if i.level.value == "Fehler"] == []
+    assert [i for i in check_team(data, TODAY) if i.level.value == "Error"] == []
     assert sprint_capacity(data.team, data.people, data.sprint("2026.22")).capacity < before
     for bad in (1.5, -0.5, "abc"):
         rows[0]["FTE"] = bad
@@ -258,7 +258,7 @@ def test_prognosis_roundtrip_and_validation(data_dir: Path):
     messages = [i.message for i in check_team(s, TODAY)]
     assert any("ergibt 8" in m for m in messages)
     sprint.not_done = -1.0
-    assert any(i.level.value == "Fehler" for i in check_team(s, TODAY))
+    assert any(i.level.value == "Error" for i in check_team(s, TODAY))
 
 
 def build_target(data):
@@ -394,8 +394,8 @@ def test_blank_product_cells_stay_none_and_zero_stays_zero():
     None = nicht erfasst, und 0 bleibt eine erfasste Null."""
     base = _sprint(products={"app": ProductValues(preplanned=2.0)})
     rows = [
-        {"_id": "app", "PO-Vorplanung": float("nan"), "Planning": 0.0},
-        {"_id": "web", "PO-Vorplanung": None, "Planning": float("nan")},
+        {"_id": "app", "PO pre-planning": float("nan"), "Planning": 0.0},
+        {"_id": "web", "PO pre-planning": None, "Planning": float("nan")},
     ]
     after = apply_product_values(base, rows, ["preplanned", "planned"])
     assert after.products["app"].preplanned is None

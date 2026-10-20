@@ -96,8 +96,8 @@ def open_source(
             raise missing_token_error()
         return JiraSource(settings, token, transport)
     if settings.kind == "csv":
-        raise SourceError(t("Die Quelle „csv“ braucht eine Datei: --import DATEI"))
-    raise SourceError(t("Unbekannte Ticketquelle „{kind}“ (tracker.kind)", kind=settings.kind))
+        raise SourceError(t("The source “csv” needs a file: --import FILE"))
+    raise SourceError(t("Unknown ticket source “{kind}” (tracker.kind)", kind=settings.kind))
 
 
 __all__ = [

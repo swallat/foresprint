@@ -100,7 +100,7 @@ def test_settings_form_shows_imported_values_after_apply(data_dir: Path, monkeyp
     window = team.forecast.window
 
     def edit(wb: openpyxl.Workbook) -> None:
-        for row in wb["Einstellungen"].iter_rows(min_row=3):
+        for row in wb["Settings"].iter_rows(min_row=3):
             if row[2].value == "forecast.window":
                 row[1].value = window + 1
                 return

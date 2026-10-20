@@ -143,7 +143,7 @@ def project_rows(
         if project is None or not sel.shows(project.id):
             continue
         light = f"{LIGHT_SYMBOLS[status.light]} {t(LIGHTS[status.light])}"
-        last: dict[str, Any] = {t("Letzter Sprint"): status.last_sprint or "–"}
+        last: dict[str, Any] = {t("Last sprint"): status.last_sprint or "–"}
         if ranged:
             assert variants is not None
             span = project_range(variants, status.project)
@@ -151,20 +151,20 @@ def project_rows(
                 best, worst = (t(LIGHTS[x]) for x in span.light_range)
                 light += f" ({best} – {worst})"
             last = {
-                t("Letzter Sprint optimistisch"): span.last_sprint[Variant.OPTIMISTIC] or "–",
-                t("Letzter Sprint Median"): span.last_sprint[Variant.MEDIAN] or "–",
-                t("Letzter Sprint konservativ"): span.last_sprint[Variant.CONSERVATIVE] or "–",
+                t("Last sprint optimistic"): span.last_sprint[Variant.OPTIMISTIC] or "–",
+                t("Last sprint median"): span.last_sprint[Variant.MEDIAN] or "–",
+                t("Last sprint conservative"): span.last_sprint[Variant.CONSERVATIVE] or "–",
             }
         rows.append(
             {
-                t("Projekt"): project.name,
-                t("Produkt"): project.product or "–",
-                t("Ziel"): project.target,
-                t("Zielsprint"): status.target_sprint or "–",
+                t("Project"): project.name,
+                t("Product"): project.product or "–",
+                t("Target"): project.target,
+                t("Target sprint"): status.target_sprint or "–",
                 **last,
-                t("Ampel"): light,
-                t("Offen"): status.open_tickets,
-                t("Nicht verteilbar"): status.not_distributable,
+                t("Traffic light"): light,
+                t("Outstanding"): status.open_tickets,
+                t("Not distributable"): status.not_distributable,
             }
         )
     return rows
@@ -193,18 +193,18 @@ def timeline_rows(
         for i in range(first, last + 1):
             bars.append(
                 {
-                    t("Projekt"): project.name,
+                    t("Project"): project.name,
                     t("Sprint"): axis[i],
-                    t("Ampel"): light,
+                    t("Traffic light"): light,
                     "light": status.light,
                 }
             )
         if status.target_sprint in axis:
             marks.append(
                 {
-                    t("Projekt"): project.name,
+                    t("Project"): project.name,
                     t("Sprint"): status.target_sprint,
-                    t("Ziel"): f"{project.target:%d.%m.%Y}" if project.target else "–",
+                    t("Target"): f"{project.target:%d.%m.%Y}" if project.target else "–",
                 }
             )
     return bars, marks
@@ -225,12 +225,12 @@ def refinement_rows(data: TeamData, dist: Distribution, sel: Selection) -> list[
         rows.append(
             {
                 t("Sprint"): item.sprint,
-                t("Spätestens bis"): item.deadline,
+                t("Latest by"): item.deadline,
                 t("Ticket"): ticket.key,
-                t("Titel"): ticket.title,
-                t("Projekt"): project.name if project else "–",
-                t("Schätzung"): t(SOURCES[item.source.value]),
-                t("Refined-Status unklar"): item.unclear,
+                t("Title"): ticket.title,
+                t("Project"): project.name if project else "–",
+                t("Estimate"): t(SOURCES[item.source.value]),
+                t("Refined status unclear"): item.unclear,
             }
         )
     return rows
@@ -246,9 +246,9 @@ def open_rows(data: TeamData, dist: Distribution, sel: Selection) -> list[dict[s
         rows.append(
             {
                 t("Ticket"): ticket.key,
-                t("Titel"): ticket.title,
-                t("Projekt"): project.name if project else "–",
-                t("Grund"): t(REASONS[p.reason]),
+                t("Title"): ticket.title,
+                t("Project"): project.name if project else "–",
+                t("Reason"): t(REASONS[p.reason]),
             }
         )
     return rows
@@ -260,33 +260,35 @@ def change_note(change: TicketChange) -> str:
     if not note:
         return ""
     if change.kind == "sprint_unresolved":
-        return t("Sprintname „{name}“", name=note)
+        return t('Sprint name "{name}"', name=note)
     if change.kind == "changed":
-        return {"estimate": t("Schätzung"), "remaining": t("Restaufwand")}.get(note, note)
+        return {"estimate": t("Estimate"), "remaining": t("Remaining")}.get(note, note)
     if change.kind == "refined_unclear":
         if note == UNCLEAR_RULE:
-            return t("nur über refined_also_if, Label fehlt")
+            return t("only via refined_also_if, label missing")
         if note == UNCLEAR_NO_ESTIMATE:
-            return t("Label ohne Schätzung")
+            return t("label without estimate")
     if change.kind == "earmark_dropped" and note == DROPPED_ENDED:
-        return t("Sprint beendet")
+        return t("sprint ended")
     if change.kind == "missing":
-        return t("Vormerkung für Sprint {sprint} bleibt", sprint=note)
+        return t("earmark for sprint {sprint} stays", sprint=note)
     return note
 
 
 def change_titles() -> dict[str, str]:
     return {
-        "new": t("Neue Tickets"),
-        "changed": t("Geänderte Zahlen"),
-        "done": t("Erledigt"),
-        "missing": t("Nicht mehr im Import"),
-        "unassigned": t("Noch keinem Projekt zugeordnet"),
-        "unknown_epic": t("Unbekannte Epics (Kandidaten für ein neues Projekt)"),
-        "refined_unclear": t("Refined-Status unklar"),
-        "earmark_dropped": t("Vormerkung verworfen"),
-        "sprint_unresolved": t("Sprint nicht erkannt (in team.yaml unter tracker.sprint_names)"),
-        "earmark_from_label": t("Vormerkung aus dem Label planned_for_… übernommen"),
+        "new": t("New tickets"),
+        "changed": t("Changed numbers"),
+        "done": t("Done"),
+        "missing": t("No longer in the import"),
+        "unassigned": t("Not assigned to a project yet"),
+        "unknown_epic": t("Unknown epics (candidates for a new project)"),
+        "refined_unclear": t("Refined status unclear"),
+        "earmark_dropped": t("Earmark dropped"),
+        "sprint_unresolved": t(
+            "Sprint not recognised (map it under tracker.sprint_names in team.yaml)"
+        ),
+        "earmark_from_label": t("Earmark taken from the label planned_for_…"),
     }
 
 
@@ -297,10 +299,10 @@ def change_rows(plan: TicketImportPlan, kind: str) -> list[dict[str, str]]:
     return [
         {
             t("Ticket"): c.key,
-            t("Titel"): c.title,
-            t("bisher"): show(c.old),
-            t("neu"): show(c.new),
-            t("Hinweis"): change_note(c),
+            t("Title"): c.title,
+            t("before"): show(c.old),
+            t("new"): show(c.new),
+            t("Notice"): change_note(c),
         }
         for c in plan.of_kind(kind)
     ]
@@ -424,22 +426,23 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
     if not data.team.features.tickets:
         st.info(
             t(
-                "Die Ticket-Vorplanung ist ausgeschaltet. Einschalten unter Team → "
-                "Einstellungen („Ticket-Vorplanung“)."
+                "Ticket pre-planning is switched off. Switch it on under Team → Settings "
+                '("Ticket pre-planning").'
             )
         )
         page_link("einstellungen")
         return
     page_intro(
         t(
-            "Tickets auf künftige Sprints verteilen und prüfen, ob die Projekte ihr Zieldatum "
-            "halten. Zuerst die Tickets importieren, dann Projekte mit Zieldatum anlegen."
+            "Distribute tickets over future sprints and check whether the projects meet "
+            "their target date. First import the tickets, then create projects with a "
+            "target date."
         ),
         t(
-            "Die Verteilung rechnet jedes Mal neu aus Tickets, Projekten und Forecast; "
-            "gespeichert werden nur Projekte, Vormerkungen und eigene Schätzungen. Der Filter "
-            "blendet Projekte aus, ohne die Verteilung zu ändern: Das Budget eines Sprints "
-            "bleibt gemeinsam."
+            "The distribution is recalculated every time from tickets, projects and "
+            "forecast; only projects, earmarks and own estimates are stored. The filter "
+            "hides projects without changing the distribution: the budget of a sprint "
+            "stays shared."
         ),
     )
     key = data.team.key
@@ -448,12 +451,12 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
     sel = _filter(data, key)
     tabs = st.tabs(
         [
-            t("Übersicht"),
+            t("Overview"),
             t("Sprints"),
             t("Refinement"),
-            t("Offene Punkte"),
+            t("Open points"),
             t("Import"),
-            t("Pflege"),
+            t("Maintenance"),
         ]
     )
     with tabs[0]:
@@ -481,7 +484,7 @@ def _filter(data: TeamData, key: str) -> Selection:
         ids = [p.id for p in data.products]
         names = {p.id: p.name for p in data.products}
         chosen = left.multiselect(
-            t("Produkte"),
+            t("Products"),
             ids,
             default=ids,
             format_func=lambda i: names[i],
@@ -491,13 +494,15 @@ def _filter(data: TeamData, key: str) -> Selection:
     options = project_options(data, products)
     names = {p.id: p.name for p in options}
     shown = right.multiselect(
-        t("Projekte"),
+        t("Projects"),
         list(names),
         default=list(names),
         format_func=lambda i: names[i],
         key=f"tickets-{key}-projects-{'-'.join(sorted(names))}",
     )
-    without = st.checkbox(t("Tickets ohne Projekt zeigen"), value=True, key=f"tickets-{key}-none")
+    without = st.checkbox(
+        t("Show tickets without a project"), value=True, key=f"tickets-{key}-none"
+    )
     return Selection(frozenset(shown), without, frozenset(p.id for p in data.projects))
 
 
@@ -505,46 +510,38 @@ def _overview(
     data: TeamData, fc: Forecast, dist: Distribution, sel: Selection, variants: Variants
 ) -> None:
     if not data.tickets:
-        st.info(
-            t(
-                "Noch keine Tickets. Auf dem Reiter **Import** eine CSV-Datei aus dem "
-                "Ticketsystem einlesen."
-            )
-        )
+        st.info(t("No tickets yet. Read a CSV file from the ticket system on the **Import** tab."))
         return
     if dist.no_forecast:
         st.warning(
             t(
-                "Noch kein Budget: ohne vergangene Sprints mit Velocity gibt es keinen "
-                "Forecast, die Tickets können nicht verteilt werden."
+                "No budget yet: without past sprints with velocity there is no forecast, "
+                "so the tickets cannot be distributed."
             )
         )
     for cycle in dist.cycles:
-        st.error(f"{t('Abhängigkeiten im Kreis')}: {' → '.join([*cycle, cycle[0]])}")
+        st.error(f"{t('circular dependencies')}: {' → '.join([*cycle, cycle[0]])}")
     rows = project_rows(data, dist, sel, variants)
     if not rows:
-        st.info(t("Kein Projekt ausgewählt oder angelegt."))
+        st.info(t("No project selected or created."))
         return
     if not variants.available:
         st.caption(
-            t(
-                "Keine Bandbreite: weniger als zwei Sprints mit Velocity. Gezeigt wird nur die "
-                "Median-Variante."
-            )
+            t("No range: fewer than two sprints with velocity. Only the median variant is shown.")
         )
-    st.subheader(t("Projekte"))
+    st.subheader(t("Projects"))
     st.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
-        column_config={t("Ziel"): st.column_config.DateColumn(format="DD.MM.YYYY")},
+        column_config={t("Target"): st.column_config.DateColumn(format="DD.MM.YYYY")},
     )
-    st.subheader(t("Zeitstrahl"))
+    st.subheader(t("Timeline"))
     chart = _timeline_chart(data, fc, dist, sel)
     if chart is None:
-        st.caption(t("Noch keine verteilten Tickets in den ausgewählten Projekten."))
+        st.caption(t("No distributed tickets in the selected projects yet."))
     else:
         st.altair_chart(chart, width="stretch")
-        st.caption(t("◆ Zielsprint des Projekts. Farbe und Text zeigen die Ampel."))
+        st.caption(t("◆ Target sprint of the project. Colour and text show the traffic light."))
 
 
 def _timeline_chart(
@@ -554,7 +551,7 @@ def _timeline_chart(
     bars, marks = timeline_rows(data, dist, sel, axis)
     if not bars:
         return None
-    project, sprint, light = t("Projekt"), t("Sprint"), t("Ampel")
+    project, sprint, light = t("Project"), t("Sprint"), t("Traffic light")
     order = list(dict.fromkeys(b[project] for b in bars))
     texts = [t(LIGHTS[k]) for k in LIGHTS]
     chart = (
@@ -571,7 +568,7 @@ def _timeline_chart(
         )
     )
     if marks:
-        target = t("Ziel")
+        target = t("Target")
         chart += (
             alt.Chart(pd.DataFrame(marks))
             .mark_point(
@@ -594,11 +591,11 @@ def _timeline_chart(
 def _sprint_columns(repo: Repository, data: TeamData, dist: Distribution, sel: Selection) -> None:
     key = data.team.key
     if not dist.sprints:
-        st.info(t("Keine künftigen Sprints im Zeitraum."))
+        st.info(t("No future sprints in the period."))
         return
     count = int(
         st.number_input(
-            t("Anzahl Sprints"),
+            t("Number of sprints"),
             min_value=1,
             max_value=len(dist.sprints),
             value=min(4, len(dist.sprints)),
@@ -612,8 +609,8 @@ def _sprint_columns(repo: Repository, data: TeamData, dist: Distribution, sel: S
                 _sprint_column(data, dist, sel, sprint)
     st.caption(
         t(
-            "R = refined · U = grob geschätzt (unrefined) · M = eigene Schätzung · "
-            "**fett** = Sprint laut Ticketsystem (fest) · ✎ = Vormerkung"
+            "R = refined · U = rough estimate (unrefined) · M = own estimate · **bold** = "
+            "sprint according to the ticket system (fixed) · ✎ = earmark"
         )
     )
     _earmark_form(repo, data, dist, sel)
@@ -627,17 +624,17 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
         return
     key = data.team.key
     st.divider()
-    st.subheader(t("Übergabe an die PO-Vorplanung"))
+    st.subheader(t("Handover to the PO pre-planning"))
     st.caption(
         t(
-            "Die Summen der verteilten Tickets je Sprint und Produkt (Median-Variante) als "
-            "Vorplanung des POs. Geschrieben wird nur, wo noch nichts erfasst ist; bereits "
-            "erfasste Werte bleiben, solange das Ersetzen nicht gewählt ist."
+            "The sums of the distributed tickets per sprint and product (median variant) "
+            "as the PO's pre-planning. Only values that are not entered yet are written; "
+            "values already entered stay unless replacing is chosen."
         )
     )
     count = int(
         st.number_input(
-            t("Anzahl Sprints"),
+            t("Number of sprints"),
             min_value=1,
             max_value=max(len(dist.sprints), 1),
             value=min(6, max(len(dist.sprints), 1)),
@@ -645,35 +642,35 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
         )
     )
     overwrite = st.checkbox(
-        t("Bereits erfasste PO-Vorplanung ersetzen"), key=f"tickets-{key}-handover-overwrite"
+        t("Replace pre-planning the PO already entered"), key=f"tickets-{key}-handover-overwrite"
     )
     if dist.no_forecast:
         st.warning(
             t(
-                "Noch kein Budget: ohne vergangene Sprints mit Velocity gibt es keinen "
-                "Forecast, die Tickets können nicht verteilt werden."
+                "No budget yet: without past sprints with velocity there is no forecast, "
+                "so the tickets cannot be distributed."
             )
         )
     rows = handover_rows(data, dist, count)
     if not rows:
-        st.info(t("Nichts zu übergeben: in den gezeigten Sprints ist kein Ticket verteilt."))
+        st.info(t("Nothing to hand over: no ticket is distributed in the sprints shown."))
         return
     names = {p.id: p.name for p in data.products}
     notes = {
-        "write": t("neu"),
-        "same": t("unverändert"),
-        "keep": t("PO-Wert bleibt"),
-        "overwrite": t("wird ersetzt"),
+        "write": t("new"),
+        "same": t("unchanged"),
+        "keep": t("PO value stays"),
+        "overwrite": t("will be replaced"),
     }
     st.dataframe(
         pd.DataFrame(
             [
                 {
                     t("Sprint"): r.sprint,
-                    t("Produkt"): names.get(r.product, r.product),
-                    t("Bisher"): exact(r.current),
-                    t("Vorschlag"): exact(r.proposed),
-                    t("Hinweis"): notes[r.action(overwrite)],
+                    t("Product"): names.get(r.product, r.product),
+                    t("So far"): exact(r.current),
+                    t("Proposal"): exact(r.proposed),
+                    t("Notice"): notes[r.action(overwrite)],
                 }
                 for r in rows
             ]
@@ -682,10 +679,10 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
     )
     to_save = handover_sprints(data, rows, overwrite)
     if not any(r.writes(overwrite) for r in rows):
-        st.caption(t("Nichts zu schreiben: die PO-Vorplanung steht schon."))
+        st.caption(t("Nothing to write: the PO pre-planning is already in place."))
         return
     if st.button(
-        t("In die PO-Vorplanung übernehmen"), type="primary", key=f"tickets-{key}-handover"
+        t("Adopt into the PO pre-planning"), type="primary", key=f"tickets-{key}-handover"
     ):
         after = with_sprints(data, to_save)
         ids = [x.id for x in after.sprints]
@@ -707,7 +704,7 @@ def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: s
         prefix = f"{name}: " if name and len(data.products) > 1 else ""
         st.caption(
             t(
-                "{prefix}Budget {budget} · belegt {used} · frei {free}",
+                "{prefix}Budget {budget} · used {used} · free {free}",
                 prefix=prefix,
                 budget=fmt(budget),
                 used=fmt(used),
@@ -729,16 +726,16 @@ def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: s
                 f"{project.name if project else t(REASONS['no_project'])}"
             )
     if len(shown) > CARD_LIMIT:
-        st.caption(t("… und {count} weitere", count=len(shown) - CARD_LIMIT))
+        st.caption(t("… and {count} more", count=len(shown) - CARD_LIMIT))
 
 
 def _earmark_form(repo: Repository, data: TeamData, dist: Distribution, sel: Selection) -> None:
     """Reserve a ticket for a sprint or release it again (back to the automatic distribution)."""
     key = data.team.key
-    st.subheader(t("Vormerken und freigeben"))
+    st.subheader(t("Earmark and release"))
     candidates = [tk for tk in data.tickets if not tk.done and sel.shows(tk.project)]
     if not candidates:
-        st.caption(t("Keine Tickets zum Vormerken."))
+        st.caption(t("No tickets to earmark."))
         return
     titles = {
         tk.key: f"{tk.key} {textwrap.shorten(tk.title, 50, placeholder='…')}" for tk in candidates
@@ -755,8 +752,10 @@ def _earmark_form(repo: Repository, data: TeamData, dist: Distribution, sel: Sel
     if placement is not None and placement.reason == "fixed_sprint":
         st.info(
             t(
-                "{key} liegt laut Ticketsystem in Sprint {sprint} und lässt sich hier nicht "
-                "verschieben.",
+                (
+                    "{key} is in sprint {sprint} according to the ticket system and cannot be "
+                    "moved here."
+                ),
                 key=chosen,
                 sprint=placement.sprint,
             )
@@ -767,28 +766,26 @@ def _earmark_form(repo: Repository, data: TeamData, dist: Distribution, sel: Sel
     if earmark is not None and earmark.sprint not in options:
         options.append(earmark.sprint)
     where = (
-        t("Vorgemerkt für Sprint {sprint}.", sprint=earmark.sprint)
+        t("Earmarked for sprint {sprint}.", sprint=earmark.sprint)
         if earmark
-        else t(
-            "Nicht vorgemerkt: {state}.", state=t(REASONS[placement.reason]) if placement else "–"
-        )
+        else t("Not earmarked: {state}.", state=t(REASONS[placement.reason]) if placement else "–")
     )
     st.caption(where)
     sprint = st.selectbox(
         t("Sprint"),
         options,
         index=options.index(earmark.sprint) if earmark else 0,
-        format_func=lambda s: t("automatisch verteilen (freigeben)") if s == AUTOMATIC else s,
+        format_func=lambda s: t("distribute automatically (release)") if s == AUTOMATIC else s,
         key=f"tickets-{key}-earmark-sprint-{chosen}",
     )
     note = st.text_input(
-        t("Notiz"),
+        t("Note"),
         value=earmark.note or "" if earmark else "",
         key=f"tickets-{key}-earmark-note-{chosen}",
     )
     current = (earmark.sprint, earmark.note or "") if earmark else (AUTOMATIC, "")
     changed = (sprint, note.strip() if sprint != AUTOMATIC else "") != current
-    label = t("Freigeben") if sprint == AUTOMATIC else t("Vormerken")
+    label = t("Release") if sprint == AUTOMATIC else t("Earmark")
     if not st.button(label, type="primary", disabled=not changed, key=f"tickets-{key}-earmark-go"):
         return
     after = copy.deepcopy(data)
@@ -802,8 +799,8 @@ def _earmark_form(repo: Repository, data: TeamData, dist: Distribution, sel: Sel
 def _refinement(data: TeamData, dist: Distribution, sel: Selection) -> None:
     st.caption(
         t(
-            "Tickets mit grober oder eigener Schätzung, je Sprint, in dem sie liegen. Bis zum "
-            "Planning des Sprints müssen sie refined sein."
+            "Tickets with a rough or own estimate, per sprint they are in. They have to be "
+            "refined by the planning of the sprint."
         )
     )
     unclear = [data.ticket(k) for k in dist.unclear]
@@ -811,30 +808,30 @@ def _refinement(data: TeamData, dist: Distribution, sel: Selection) -> None:
     if unclear:
         st.warning(
             t(
-                "Refined-Status unklar (zählt als grob): {keys}",
+                "Refined status unclear (counts as rough): {keys}",
                 keys=", ".join(tk.key for tk in unclear),
             )
         )
     rows = refinement_rows(data, dist, sel)
     if not rows:
-        st.info(t("Nichts zu refinen."))
+        st.info(t("Nothing to refine."))
         return
     st.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
-        column_config={t("Spätestens bis"): st.column_config.DateColumn(format="DD.MM.YYYY")},
+        column_config={t("Latest by"): st.column_config.DateColumn(format="DD.MM.YYYY")},
     )
 
 
 def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
     rows = open_rows(data, dist, sel)
     if not rows:
-        st.info(t("Alle Tickets sind verteilt."))
+        st.info(t("All tickets are distributed."))
         return
     st.caption(
         t(
-            "Diese Tickets lassen sich nicht verteilen. Eigene Schätzung eintragen unter "
-            "**Pflege**, zu große Tickets im Ticketsystem teilen."
+            "These tickets cannot be distributed. Enter an own estimate under "
+            "**Maintenance**; split tickets that are too large in the ticket system."
         )
     )
     st.dataframe(pd.DataFrame(rows), hide_index=True)
@@ -848,23 +845,24 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
     counter = f"tickets-{key}-import-n"
     st.markdown(
         t(
-            "Liest die Tickets aus Jira oder aus dem CSV-Export der erweiterten Jira-Suche ein. "
-            "Zuerst erscheint, was sich ändern würde; geschrieben wird erst nach der Bestätigung."
+            "Reads the tickets from Jira or from the CSV export of the advanced Jira "
+            "search. It first shows what would change; nothing is written until you "
+            "confirm."
         )
     )
     fetched = f"tickets-{key}-fetched"
     if data.team.tracker.kind == "jira":
         if st.button(
-            t("Tickets aus Jira lesen"),
+            t("Read tickets from Jira"),
             icon=":material/cloud_download:",
             key=f"tickets-{key}-fetch",
         ):
             st.session_state.pop(fetched, None)
             if result := _fetch_jira(data):
                 st.session_state[fetched] = result
-        st.caption(t("Oder eine CSV-Datei einlesen (ohne Netzzugang):"))
+        st.caption(t("Or read a CSV file (without network access):"))
     upload = st.file_uploader(
-        t("CSV-Datei"), type=["csv"], key=f"tickets-{key}-file-{st.session_state.get(counter, 0)}"
+        t("CSV file"), type=["csv"], key=f"tickets-{key}-file-{st.session_state.get(counter, 0)}"
     )
     if upload is None:
         if fetched in st.session_state:
@@ -894,8 +892,8 @@ def _plan_labels(data: TeamData, fc: Forecast, source: Any) -> LabelPlan:
     if not raws:
         raise SourceError(
             t(
-                "Die Abfrage lieferte keine Tickets – nichts geschrieben. JQL "
-                "(tracker.query) und Berechtigungen des Tokens prüfen."
+                "The query returned no tickets – nothing written. Check the JQL "
+                "(tracker.query) and the permissions of the token."
             )
         )
     import_plan = plan_import(data, fc, raws, today(), adopt_labels=False)
@@ -911,20 +909,20 @@ def _label_section(data: TeamData, fc: Forecast) -> None:
     key = data.team.key
     stored = f"tickets-{key}-labelplan"
     st.divider()
-    st.subheader(t("Vormerkungen als Label nach Jira schreiben"))
+    st.subheader(t("Write earmarks to Jira as labels"))
     st.caption(
         t(
-            "Jeder Vormerkung entspricht das Label planned_for_<Sprint> am Ticket; ein "
-            "veraltetes Label wird entfernt. Tickets in einem echten Sprint bekommen keins. "
-            "Zuerst erscheint die Vorschau, geschrieben wird erst nach der Bestätigung."
+            "Each earmark corresponds to the label planned_for_<sprint> on the ticket; an "
+            "outdated label is removed. Tickets in a real sprint get none. The preview "
+            "comes first; nothing is written until you confirm."
         )
     )
-    if st.button(t("Label-Änderungen prüfen"), key=f"tickets-{key}-labels-plan"):
+    if st.button(t("Check label changes"), key=f"tickets-{key}-labels-plan"):
         st.session_state.pop(stored, None)
         source = None
         try:
             source = open_source(tracker)
-            with st.spinner(t("Jira wird gelesen …")):
+            with st.spinner(t("Reading Jira …")):
                 st.session_state[stored] = _plan_labels(data, fc, source)
         except SourceError as e:
             st.error(str(e))
@@ -936,28 +934,28 @@ def _label_section(data: TeamData, fc: Forecast) -> None:
     for warning in plan.warnings:
         st.warning(warning)
     if not plan.writes:
-        st.info(t("Keine Label-Änderungen nötig."))
+        st.info(t("No label changes needed."))
         return
     st.dataframe(
         pd.DataFrame(
             [
                 {
                     t("Ticket"): w.key,
-                    t("Titel"): w.title,
-                    t("Label hinzufügen"): ", ".join(w.add) or "–",
-                    t("Label entfernen"): ", ".join(w.remove) or "–",
+                    t("Title"): w.title,
+                    t("Add label"): ", ".join(w.add) or "–",
+                    t("Remove label"): ", ".join(w.remove) or "–",
                 }
                 for w in plan.writes
             ]
         ),
         hide_index=True,
     )
-    if not st.button(t("In Jira schreiben"), type="primary", key=f"tickets-{key}-labels-write"):
+    if not st.button(t("Write to Jira"), type="primary", key=f"tickets-{key}-labels-write"):
         return
     source = None
     try:
         source = open_source(tracker)
-        with st.spinner(t("Jira wird gelesen …")):
+        with st.spinner(t("Reading Jira …")):
             fresh = _plan_labels(data, fc, source)
         if _label_signature(fresh) != _label_signature(plan):
             # Jira changed since the preview: show the new one instead of writing the old one.
@@ -965,7 +963,7 @@ def _label_section(data: TeamData, fc: Forecast) -> None:
             st.session_state["flash"] = [
                 (
                     "warning",
-                    t("Der Stand in Jira hat sich seit der Vorschau geändert – bitte prüfen."),
+                    t("The state in Jira changed since the preview - please check again."),
                 )
             ]
             st.rerun()
@@ -982,8 +980,10 @@ def _label_section(data: TeamData, fc: Forecast) -> None:
         (
             "success",
             t(
-                "{count} Tickets in Jira geändert. Danach „Tickets aus Jira lesen“, um den Stand "
-                "zu übernehmen.",
+                (
+                    '{count} tickets changed in Jira. Then "Read tickets from Jira" to adopt '
+                    "the state."
+                ),
                 count=written,
             ),
         )
@@ -1002,7 +1002,7 @@ def _fetch_jira(data: TeamData) -> tuple[list[RawTicket], str] | None:
     source = None
     try:
         source = open_source(data.team.tracker)
-        with st.spinner(t("Jira wird gelesen …")):
+        with st.spinner(t("Reading Jira …")):
             raws = source.fetch()
     except SourceError as e:
         st.error(str(e))
@@ -1012,8 +1012,8 @@ def _fetch_jira(data: TeamData) -> tuple[list[RawTicket], str] | None:
     if not raws and data.tickets:
         st.error(
             t(
-                "Die Abfrage lieferte keine Tickets – nichts geschrieben. JQL "
-                "(tracker.query) und Berechtigungen des Tokens prüfen."
+                "The query returned no tickets – nothing written. Check the JQL "
+                "(tracker.query) and the permissions of the token."
             )
         )
         return None
@@ -1040,13 +1040,13 @@ def _import_preview(
         with st.expander(f"{titles[kind]} ({len(rows)})", expanded=kind in ("new", "unassigned")):
             st.dataframe(pd.DataFrame(rows[:IMPORT_LIMIT]), hide_index=True)
             if len(rows) > IMPORT_LIMIT:
-                st.caption(t("… und {count} weitere", count=len(rows) - IMPORT_LIMIT))
+                st.caption(t("… and {count} more", count=len(rows) - IMPORT_LIMIT))
     for warning in plan.warnings:
         st.warning(warning)
     if plan.unchanged(data):
-        st.info(t("Keine Änderungen gegenüber den vorhandenen Dateien."))
+        st.info(t("No changes compared to the existing files."))
         return
-    if not st.button(t("Änderungen übernehmen"), type="primary", key=f"tickets-{key}-apply"):
+    if not st.button(t("Apply changes"), type="primary", key=f"tickets-{key}-apply"):
         return
     step = _next_step()
     try:
@@ -1066,18 +1066,18 @@ def _import_preview(
 
 def _projects_editor(repo: Repository, data: TeamData) -> None:
     key = data.team.key
-    st.subheader(t("Projekte"))
+    st.subheader(t("Projects"))
     st.caption(
         t(
-            "Ein Projekt ist ein Vorhaben des PO mit Zieldatum, kein Jira-Projekt. Die "
-            "Zuordnung der Tickets läuft über Epics, Komponenten oder Labels (kommagetrennt); "
-            "die Rangfolge steht in team.yaml (tracker.project_match_order)."
+            "A project is an undertaking of the PO with a target date, not a Jira project. "
+            "Tickets are assigned by epics, components or labels (comma-separated); the "
+            "order of precedence is in team.yaml (tracker.project_match_order)."
         )
     )
     products = [p.id for p in data.products] if data.team.features.products else []
-    id_, name, product, target = (t("Id"), t("Name"), t("Produkt"), t("Ziel"))
-    priority, basis = t("Priorität"), t("Budget-Basis")
-    columns = {"epic": t("Epics"), "component": t("Komponenten"), "label": t("Labels")}
+    id_, name, product, target = (t("Id"), t("Name"), t("Product"), t("Target"))
+    priority, basis = t("Priority"), t("Budget basis")
+    columns = {"epic": t("Epics"), "component": t("Components"), "label": t("Labels")}
     complex_ids = []
     rows = []
     for p in data.projects:
@@ -1103,7 +1103,7 @@ def _projects_editor(repo: Repository, data: TeamData) -> None:
             priority: st.column_config.NumberColumn(min_value=0, step=1),
             basis: st.column_config.SelectboxColumn(
                 options=["", *(b.value for b in BudgetBasis)],
-                help=t("Leer = Einstellung des Teams (tracker.budget_basis)."),
+                help=t("Empty = the team's setting (tracker.budget_basis)."),
             ),
         }
         if products:
@@ -1114,12 +1114,14 @@ def _projects_editor(repo: Repository, data: TeamData) -> None:
         for pid in complex_ids:
             st.caption(
                 t(
-                    "Die Zuordnungsregel von {id} ist verschachtelt und nur in projects.yaml "
-                    "änderbar.",
+                    (
+                        "The assignment rule of {id} is nested and can only be changed in "
+                        "projects.yaml."
+                    ),
                     id=pid,
                 )
             )
-        if st.button(t("Projekte speichern"), type="primary", key=f"tickets-{key}-projects-save"):
+        if st.button(t("Save projects"), type="primary", key=f"tickets-{key}-projects-save"):
             after = copy.deepcopy(data)
             after.projects = apply_project_rows(
                 after.projects, [tuple(row) for row in edited.itertuples(index=False)]
@@ -1143,25 +1145,25 @@ def _save_projects(repo: Repository, data: TeamData, after: Any) -> None:
 def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> None:
     key = data.team.key
     with (
-        st.expander(t("Projekt anlegen"), icon=":material/add:"),
+        st.expander(t("Create project"), icon=":material/add:"),
         st.form(f"tickets-{key}-add-project", clear_on_submit=True),
     ):
         left, right = st.columns(2)
-        new_id = left.text_input(t("Id"), help=t("Kurzer Schlüssel, z. B. payment-v2."))
+        new_id = left.text_input(t("Id"), help=t("Short key, e.g. payment-v2."))
         new_name = right.text_input(t("Name"))
-        product = left.selectbox(t("Produkt"), ["", *products]) if products else ""
-        target = right.date_input(t("Ziel"), value=None, format="DD.MM.YYYY")
+        product = left.selectbox(t("Product"), ["", *products]) if products else ""
+        target = right.date_input(t("Target"), value=None, format="DD.MM.YYYY")
         epics = left.text_input(t("Epics"))
         labels = right.text_input(t("Labels"))
-        components = left.text_input(t("Komponenten"))
-        if not st.form_submit_button(t("Projekt anlegen"), type="primary"):
+        components = left.text_input(t("Components"))
+        if not st.form_submit_button(t("Create project"), type="primary"):
             return
     new_id = new_id.strip()
     if not new_id or not new_name.strip():
-        st.error(t("Id und Name sind nötig."))
+        st.error(t("Id and name are required."))
         return
     if data.project(new_id) is not None:
-        st.error(t("Ein Projekt mit der Id {id} gibt es schon.", id=new_id))
+        st.error(t("A project with the id {id} already exists.", id=new_id))
         return
     after = copy.deepcopy(data)
     after.projects.append(
@@ -1184,20 +1186,22 @@ def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> 
 
 def _remove_project_form(repo: Repository, data: TeamData) -> None:
     key = data.team.key
-    with st.expander(t("Projekt entfernen"), icon=":material/delete:"):
+    with st.expander(t("Remove project"), icon=":material/delete:"):
         names = {p.id: p.name for p in data.projects}
         chosen = st.selectbox(
-            t("Projekt"), list(names), format_func=lambda i: names[i], key=f"tickets-{key}-rm"
+            t("Project"), list(names), format_func=lambda i: names[i], key=f"tickets-{key}-rm"
         )
         count = sum(1 for tk in data.tickets if tk.project == chosen)
         st.caption(
             t(
-                "{count} Tickets gehören derzeit dazu; sie sind danach „ohne Projekt“, bis der "
-                "nächste Import sie neu zuordnet.",
+                (
+                    '{count} tickets currently belong to it; afterwards they are "without '
+                    'project" until the next import assigns them again.'
+                ),
                 count=count,
             )
         )
-        if st.button(t("Projekt entfernen"), key=f"tickets-{key}-rm-go"):
+        if st.button(t("Remove project"), key=f"tickets-{key}-rm-go"):
             after = copy.deepcopy(data)
             after.projects = [p for p in after.projects if p.id != chosen]
             for tk in after.tickets:  # tickets.yaml must not name a project that is gone
@@ -1221,14 +1225,14 @@ def _remove_project_form(repo: Repository, data: TeamData) -> None:
 
 def _estimates_editor(repo: Repository, data: TeamData) -> None:
     key = data.team.key
-    st.subheader(t("Eigene Schätzungen"))
+    st.subheader(t("Own estimates"))
     st.caption(
         t(
-            "Für Tickets ohne Schätzung im Ticketsystem. Die Zahl gilt nur hier und wird beim "
-            "nächsten Import nicht überschrieben."
+            "For tickets without an estimate in the ticket system. The number applies only "
+            "here and is not overwritten by the next import."
         )
     )
-    ticket, estimate, note = t("Ticket"), t("Schätzung"), t("Notiz")
+    ticket, estimate, note = t("Ticket"), t("Estimate"), t("Note")
     keys = [tk.key for tk in data.tickets if not tk.done]
     known = {e.ticket for e in data.preplan.estimates}
     options = keys + sorted(known - set(keys))
@@ -1249,7 +1253,7 @@ def _estimates_editor(repo: Repository, data: TeamData) -> None:
             estimate: st.column_config.NumberColumn(min_value=0.0, step=0.5),
         },
     )
-    if not st.button(t("Schätzungen speichern"), type="primary", key=f"tickets-{key}-est-save"):
+    if not st.button(t("Save estimates"), type="primary", key=f"tickets-{key}-est-save"):
         return
     after = copy.deepcopy(data)
     try:
@@ -1257,7 +1261,7 @@ def _estimates_editor(repo: Repository, data: TeamData) -> None:
             [tuple(row) for row in edited.itertuples(index=False)]
         )
     except ValueError:
-        st.error(t("Jedes Ticket nur einmal."))
+        st.error(t("Each ticket only once."))
         return
     if save(after, ["preplan.yaml"], lambda: [repo.save_preplan(key, after.preplan)], flash=True):
         st.rerun()
