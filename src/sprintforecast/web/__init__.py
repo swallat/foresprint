@@ -1,2 +1,2 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Lokale Weboberfläche (Streamlit)."""
+"""Local web UI (Streamlit)."""
