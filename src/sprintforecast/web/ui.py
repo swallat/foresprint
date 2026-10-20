@@ -603,8 +603,12 @@ def save(
 
 
 def show_flash() -> None:
+    """Notices of the run before. They go into a container that is always there: a notice that
+    appears only now would shift every element below it (e.g. the selected tab would be lost)."""
+    box = st.container()
     for kind, text in st.session_state.pop("flash", []):
-        getattr(st, kind)(text)
+        with box:
+            getattr(st, kind)(text)
 
 
 def sprint_caption(data: TeamData, s: Sprint) -> str:
