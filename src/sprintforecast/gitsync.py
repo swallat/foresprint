@@ -1405,7 +1405,11 @@ def branches(path: Path) -> list[Branch]:
     then alphabetically."""
     root = _root(path)
     current = state(path)
-    local = set(_git(root, "branch", "--format=%(refname:short)").split())
+    local = {
+        n
+        for n in _git(root, "branch", "--format=%(refname:short)").splitlines()
+        if n and not n.startswith("(")  # "(HEAD detached at …)"
+    }
     remote: set[str] = set()
     if current.remote:
         prefix = f"{current.remote}/"
@@ -1427,10 +1431,14 @@ def switch_branch(path: Path, name: str) -> str:
         raise GitError(
             t("There are open changes. Commit or discard them before switching the branch.")
         )
-    if name not in {b.name for b in branches(path)}:
+    found = {b.name: b for b in branches(path)}
+    if name not in found:
         raise GitError(t("Branch {name} not found.", name=name))
     with _locked(path):
-        _git(root, "switch", name)
+        if found[name].local:
+            _git(root, "switch", name)
+        else:  # explicit remote: git's guessing fails with several servers having the name
+            _git(root, "switch", "-c", name, "--track", f"{current.remote}/{name}")
     gitmod.invalidate_status()
     return name
 
