@@ -219,7 +219,7 @@ def average_step(fc: Forecast, e: TimelineEntry) -> Step:
 
 
 def trend_step(fc: Forecast, e: TimelineEntry) -> Step:
-    """Calculation path of the n-th velocity trend, same as engine.trend."""
+    """Calculation path of the normalized velocity trend, same as engine.trend."""
     i = _index(fc, e)
     mode = parse_trend_mode(fc.data.team.forecast.trend_mode)
     m: list[Metric] = [x.result.normalized_velocity for x in fc.entries]

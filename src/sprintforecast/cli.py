@@ -384,7 +384,7 @@ def _capacity_table(data: TeamData, s: Sprint) -> Table:
     )
     for i, col in enumerate(("Person", "Working days", "Holidays", "Absences", "PT")):
         table.add_column(t(col), justify="left" if i == 0 else "right")
-    digits = breakdown.rounding  # all PD figures like the total: commercially rounded
+    digits = breakdown.rounding  # all PD figures like the total: rounded half up
     for pc in breakdown.people:
         table.add_row(
             _plain(pc.person.name),
@@ -1288,9 +1288,8 @@ def forecast(
         t("Small items"),
     ]
     for i, col in enumerate(columns):
-        band = col == t(
-            "Range"
-        )  # never truncate in the middle of a number: let the others wrap instead
+        # never truncate in the middle of a number: let the others wrap instead
+        band = col == t("Range")
         table.add_column(
             col, justify="left" if i < 3 else "right", no_wrap=band, min_width=9 if band else None
         )
@@ -2593,9 +2592,8 @@ def _open_app_window(url: str, server: subprocess.Popen, explicit: str | None) -
         console.print(
             f"[yellow]{t('{error} – searching automatically.', error=_plain(e))}[/yellow]"
         )
-        os.environ.pop(
-            BROWSER_ENV, None
-        )  # otherwise find_browser would read the invalid setting again
+        # otherwise find_browser would read the invalid setting again
+        os.environ.pop(BROWSER_ENV, None)
         found = find_browser(None)
     match found.kind:
         case BrowserKind.APP:

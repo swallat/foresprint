@@ -80,7 +80,7 @@ class ForecastSettings:
 class CapacitySettings:
     # Share of the capacity for Scrum events and the like, deducted as a flat amount.
     overhead_share: float = 0.0
-    # The same deduction in PT per full-time person and sprint (× FTE), e.g. 1 for Planning,
+    # The same deduction in PD per full-time person and sprint (× FTE), e.g. 1 for Planning,
     # Review and Retro. If set, it applies instead of the share (not in addition).
     overhead_days: float = 0.0
     # Country (ISO 3166-1, e.g. "DE", "US") and region within it (e.g. "NW", "CA") for holidays;
@@ -272,7 +272,7 @@ class Sprint:
     end: date
     # Plannable absences per person (working days).
     absences: dict[str, float] = field(default_factory=dict)
-    # Capacity in PT, recorded or frozen at the Review.
+    # Capacity in PD, recorded or frozen at the Review.
     capacity: float | None = None
     forecast_ist: float | None = None
     velocity: float | None = None
