@@ -215,7 +215,7 @@ projects:
       - label: [maintenance, hotfix]
 ```
 
-Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `in_sprint` (`true`,
+Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `priority`, `in_sprint` (`true`,
 `false` or a sprint id). Validation rejects empty lists, unknown sources and short and long form
 in the same `match:`.
 
