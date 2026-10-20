@@ -405,7 +405,15 @@ class BudgetBasis(StrEnum):
 
 
 # Sources a rule leaf can refer to; the ticket facts carry one value list per source.
-RULE_SOURCES: tuple[str, ...] = ("epic", "component", "label", "status", "issue_type", "in_sprint")
+RULE_SOURCES: tuple[str, ...] = (
+    "epic",
+    "component",
+    "label",
+    "status",
+    "issue_type",
+    "priority",
+    "in_sprint",
+)
 # Suffix of a leaf key in projects.yaml that searches parts of the values (``label_contains``).
 CONTAINS_SUFFIX = "_contains"
 # Operators of the long form; a leaf has the operator ``leaf``.
@@ -552,6 +560,8 @@ class Ticket:
     title: str = ""
     status: str | None = None
     issue_type: str | None = None
+    # Priority as the tracker names it (e.g. "High"); only for assignment rules.
+    priority: str | None = None
     estimate: float | None = None
     remaining: float | None = None
     estimate_source: EstimateSource = EstimateSource.NONE
@@ -584,6 +594,7 @@ class Ticket:
             "label": list(self.labels),
             "status": [self.status] if self.status else [],
             "issue_type": [self.issue_type] if self.issue_type else [],
+            "priority": [self.priority] if self.priority else [],
             "in_sprint": in_sprint,
         }
 

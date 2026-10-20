@@ -24,7 +24,7 @@ about [plugins](plugins.md#plugins-with-the-installer) and remembers the answer;
 environment variables `FORESPRINT_WITH`, `FORESPRINT_REF` and `FORESPRINT_NO_SHORTCUT`
 skip the prompt.
 
-Remove: `uv tool uninstall sprintforecast`.
+Remove: see [Uninstalling](#uninstalling).
 
 From PyPI (once the package is published, see [releasing.md](releasing.md)):
 `pipx install "foresprint[web,excel,jira]"` or `uv tool install "foresprint[web,excel,jira]"`.
@@ -36,6 +36,43 @@ uv tool install "sprintforecast[web,excel,jira] @ https://github.com/swallat/for
 ```
 
 The extra `[excel]` provides the Excel export and import; without it the commands `excel` and `excel-import` and the download on the forecast page report that `xlsxwriter` or `openpyxl` is missing. The extra `[jira]` provides the Jira import of the ticket pre-planning (`sprintforecast tickets TEAM --fetch`, see [jira.md](jira.md)); without it that command reports that `httpx` is missing, the CSV import works regardless. The extra also brings the package `keyring`, which stores the Jira token in the operating system keychain (web page *Jira connection* or `tickets TEAM --set-token`); the environment variable `FORESPRINT_JIRA_TOKEN` needs nothing. An installation without the extras is upgraded with `uv tool install --force "sprintforecast[web,excel,jira] @ ..."` (the updater keeps the extras it was installed with).
+
+## Uninstalling
+
+One script removes Foresprint and also any installation under the old name (**sprintforecast**),
+so it fits both a plain uninstall and the cleanup after the rename. It removes only what the
+installers created, under both names: the `uv` tool (with its commands `foresprint`,
+`foresprint-app`, `sprintforecast`, `sprintforecast-app`), the launchers (desktop and Start menu
+on Windows, `~/Applications` and the desktop alias on macOS, `.desktop` files on Linux; a
+launcher is only removed if it starts one of these programs) and the cache folder with the app
+window's browser profile.
+
+It never deletes your data: the team data folder, the Jira token in the keychain and Git
+credentials stay. The settings (`~/.config/foresprint` and `~/.config/sprintforecast`, on
+Windows `%APPDATA%`: data folder choice, plugin selection) stay as well, so a later
+installation finds them again; `--remove-config` (`-RemoveConfig`) removes them too. The
+`PATH` entry made by `uv tool update-shell` belongs to `uv` and stays. Plugins that pull the old
+package `sprintforecast` must be updated to the new one.
+
+The script lists what it would do and asks first (without a terminal it refuses to proceed
+unless you pass `--yes`/`-Force`). Close the app first, Windows locks running programs. Run it
+again at any time, it is harmless.
+
+**Linux / macOS:**
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.sh | sh -s -- --dry-run
+curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.sh | sh -s -- --yes
+```
+
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -DryRun"
+powershell -ExecutionPolicy ByPass -c "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/swallat/foresprint/main/uninstall.ps1))) -Force"
+```
+
+`--dry-run` / `-DryRun` only lists, `--yes` / `-Force` skips the question.
 
 ## Git
 

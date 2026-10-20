@@ -97,3 +97,17 @@ def test_review_fixes():
     odd = Rule(source="label", values=["a\u00a0b", "c\nd"])
     assert parse_rule(format_rule(odd)).values == ["a\u00a0b", "c\nd"]
     assert "((" not in format_rule(parse_rule("NOT (epic = A OR label = b)"))
+
+
+def test_field_typo_suggests_the_field():
+    with pytest.raises(RuleSyntaxError, match="'label'"):
+        parse_rule("lable = a")
+
+
+def test_priority_is_a_field():
+    from sprintforecast.model import Ticket
+
+    ticket = Ticket(key="T-1", priority="High")
+    assert parse_rule("priority IN (High, Highest)").matches(ticket.facts())
+    assert not parse_rule("priority = Low").matches(ticket.facts())
+    assert Ticket(key="T-2").facts()["priority"] == []
