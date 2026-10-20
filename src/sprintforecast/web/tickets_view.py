@@ -119,6 +119,12 @@ class Selection:
     # All project ids; a ticket of an id outside it counts as "without project" (as in the
     # distribution). None = the chosen projects are all there are.
     known: frozenset[str] | None = None
+    # The chosen products; None = no product filter. Hides the tickets without a project of
+    # the other products.
+    products: frozenset[str] | None = None
+
+    def shows_product(self, product: str | None) -> bool:
+        return self.products is None or product is None or product in self.products
 
     def shows(self, project: str | None) -> bool:
         if project is None or project not in (self.known or self.projects):
@@ -172,15 +178,17 @@ def project_rows(
         )
     if sel.no_project:
         for product, placements in backlog_units(data, dist).items():
-            placed = [dist.sprints.index(p.sprint) for p in placements if p.sprint in dist.sprints]
+            if not sel.shows_product(product):
+                continue
+            last = last_sprint(dist, placements)
             rows.append(
                 {
                     t("Project"): backlog_label(data, product),
-                    t("Product"): _product_name(data, product),
+                    t("Product"): product or "–",
                     t("Target"): None,
                     t("Target sprint"): "–",
                     **(
-                        {t("Last sprint"): dist.sprints[max(placed)] if placed else "–"}
+                        {t("Last sprint"): last}
                         if not ranged
                         else {
                             t("Last sprint optimistic"): "–",
@@ -209,6 +217,21 @@ def backlog_units(data: TeamData, dist: Distribution) -> dict[str | None, list[P
             continue
         units.setdefault(p.product, []).append(p)
     return units
+
+
+def last_sprint(dist: Distribution, placements: list[Placement]) -> str:
+    """The latest sprint of the placed tickets, also one after the horizon; "–" = none."""
+    placed = [p.sprint for p in placements if p.sprint is not None]
+    if not placed:
+        return "–"
+    return max(
+        placed,
+        key=lambda s: (
+            (0, dist.sprints.index(s), date.min)
+            if s in dist.sprints
+            else (1, 0, dist.later.get(s) or date.min)
+        ),
+    )
 
 
 def _product_name(data: TeamData, product: str | None) -> str:
@@ -306,6 +329,8 @@ def timeline_rows(
             )
     if sel.no_project:
         for product, placements in backlog_units(data, dist).items():
+            if not sel.shows_product(product):
+                continue
             span = _span(dist, [p for p in placements if p.sprint is not None], axis)
             if span is None:
                 continue
@@ -391,6 +416,8 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
         if ticket.done or not sel.shows(ticket.project):
             continue
         project = data.project(ticket.project) if ticket.project else None
+        if project is None and not sel.shows_product(ticket_product(ticket, data)[0]):
+            continue
         matched = ""
         note = ""
         if project is not None:
@@ -425,7 +452,9 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
             note = (note + "; " if note else "") + t("Product by rule, no project")
         elif project is None and candidates:
             names = [p.name for p in data.products if p.id in candidates]
-            note = t("Contradiction: fits {products}", products=", ".join(names))
+            note = (note + "; " if note else "") + t(
+                "Contradiction: fits {products}", products=", ".join(names)
+            )
         elif project is None and not note:
             note = (
                 t("No product matches") if data.team.features.products else t("No project matches")
@@ -679,7 +708,12 @@ def _filter(data: TeamData, key: str) -> Selection:
     without = st.checkbox(
         t("Show tickets without a project"), value=True, key=f"tickets-{key}-none"
     )
-    return Selection(frozenset(shown), without, frozenset(p.id for p in data.projects))
+    return Selection(
+        frozenset(shown),
+        without,
+        frozenset(p.id for p in data.projects),
+        None if products is None else frozenset(products),
+    )
 
 
 def _overview(

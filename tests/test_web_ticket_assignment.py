@@ -163,3 +163,26 @@ def test_the_rule_editor_saves_a_product_rule(data_dir: Path, monkeypatch):
     assert not at.exception, at.exception
     products = Repository(data_dir).load("demo").products
     assert any(p.match is not None for p in products)
+
+
+def test_the_product_filter_hides_the_lines_without_project():
+    from test_preplan import TODAY, team_data
+
+    from sprintforecast.model import EstimateSource, Product, Rule, Ticket
+    from sprintforecast.preplan import distribute
+    from sprintforecast.web.tickets_view import project_rows, timeline_rows
+
+    data = team_data(
+        products=[Product("shop", "Shop", match=Rule(source="label", values=["shop"]))]
+    )
+    data.tickets = [
+        Ticket(key="B-1", estimate=3, labels=["shop"], estimate_source=EstimateSource.REFINED)
+    ]
+    dist = distribute(data, TODAY)
+    off = Selection(frozenset(), True, None, frozenset())
+    assert project_rows(data, dist, off) == []
+    assert timeline_rows(data, dist, off, dist.sprints) == ([], [])
+    assert assignment_rows(data, off) == []
+    on = Selection(frozenset(), True, None, frozenset({"shop"}))
+    assert len(project_rows(data, dist, on)) == 1
+    assert project_rows(data, dist, on)[0]["Last sprint"] == dist.sprints[0]
