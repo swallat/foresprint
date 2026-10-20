@@ -18,6 +18,7 @@ import math
 from dataclasses import dataclass
 from enum import StrEnum
 
+from sprintforecast.i18n import t
 from sprintforecast.model import ForecastSettings, Planning, TrendMode
 
 type Series = list[float | None]
@@ -103,7 +104,9 @@ def parse_trend_mode(mode: TrendMode | str) -> TrendMode:
         return TrendMode(mode)
     except ValueError:
         allowed = ", ".join(m.value for m in TrendMode)
-        raise ValueError(f"Unbekannter Trend-Modus {mode!r} (erlaubt: {allowed})") from None
+        raise ValueError(
+            t("Unknown trend mode {mode} (allowed: {allowed})", mode=repr(mode), allowed=allowed)
+        ) from None
 
 
 def _trend(average: Series, mode: TrendMode | str) -> tuple[Series, list[bool]]:

@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Anmeldung am Git-Server per Zugriffstoken (https), geführt von der App.
+"""Sign-in to the Git server with an access token (https), guided by the app.
 
-Die App speichert den Token nie selbst: Sie reicht ihn einmal mit ``git credential approve`` an
-den Anmeldedienst von Git weiter (Credential Manager, Schlüsselbund, libsecret …), schreibt ihn
-in keine Datei und kein Protokoll und zeigt ihn nie wieder an. Ein Klartext-Speicher
-(``credential.helper store``) wird weder gesetzt noch zum Ablegen benutzt. SSH-Schlüssel erzeugt
-die App nicht.
+The app never stores the token itself: it hands it over once with ``git credential approve`` to
+Git's credential helper (Credential Manager, keychain, libsecret …), writes it to no file and no
+log, and never shows it again. A plain-text store (``credential.helper store``) is neither set
+nor used for saving. The app does not create SSH keys.
 """
 
 import shutil
@@ -19,18 +18,18 @@ from .git import GitError, _git, _git_result, credential_helpers, parse_remote_u
 from .gitsync import cached_remote_info, git_available
 from .i18n import t
 
-# Anmeldedienste, bei denen ``git credential approve`` ein Geheimnis verschlüsselt ablegt.
-# Alles Unbekannte („custom“) ist erlaubt (Sache des Rechners), ``store`` nie.
+# Credential helpers for which ``git credential approve`` stores a secret in plain text.
+# Anything unknown (“custom”) is allowed (up to the computer), ``store`` never.
 _PLAIN_TEXT = {"store"}
-# Mehr Zeit als ein Anmeldedienst braucht (Windows startet ihn kalt).
+# More time than a credential helper needs (Windows starts it cold).
 HELPER_TIMEOUT = 30.0
 MAX_TOKEN_LENGTH = 4096
 
 
 @dataclass(frozen=True)
 class HostGuide:
-    """Wie man bei einem Hoster einen Token anlegt; ``username`` ist die Vorgabe für das Feld
-    (leer = die Person trägt ihren Benutzernamen ein)."""
+    """How to create a token at a host; ``username`` is the default for the field
+    (empty = the person enters their own user name)."""
 
     kind: str
     username: str
@@ -38,7 +37,7 @@ class HostGuide:
 
 
 def host_guide(kind: str) -> HostGuide:
-    """Anleitung je Art des Servers (``gitsync.HOST_*``); Unbekanntes bekommt die allgemeine."""
+    """Guide per kind of server (``gitsync.HOST_*``); anything unknown gets the generic one."""
     if kind == "gitlab":
         return HostGuide(
             kind,
@@ -81,8 +80,8 @@ def host_guide(kind: str) -> HostGuide:
 
 
 def https_parts(url: str) -> tuple[str, str]:
-    """``(host, pfad)`` einer https-Adresse für den Anmeldedienst. Andere Adressen (SSH, Ordner,
-    http) sind hier nicht gemeint: :class:`GitError`."""
+    """``(host, path)`` of an https address for the credential helper. Other addresses (SSH, folder,
+    http) are not meant here: :class:`GitError`."""
     problem = GitError(
         t("Token sign-in applies only to https addresses without credentials in the address.")
     )
@@ -90,7 +89,7 @@ def https_parts(url: str) -> tuple[str, str]:
         parts = urlsplit(url)
         if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
             raise problem
-        parts.port  # noqa: B018  (wirft ValueError bei einem ungültigen Port)
+        parts.port  # noqa: B018  (raises ValueError for an invalid port)
     except ValueError as e:
         raise problem from e
     return parts.netloc, parts.path.lstrip("/")
@@ -105,7 +104,7 @@ def is_https(url: str) -> bool:
 
 
 def _credential_input(url: str, username: str = "", token: str = "") -> str:
-    """Eingabe für ``git credential``: Zeilen ``schlüssel=wert``, am Ende eine Leerzeile."""
+    """Input for ``git credential``: ``key=value`` lines, ending with an empty line."""
     host, path = https_parts(url)
     lines = ["protocol=https", f"host={host}"]
     if path:
@@ -124,11 +123,11 @@ def _clean(value: str, what: str) -> str:
     return value
 
 
-# --- Anmeldedienst -------------------------------------------------------------------------
+# --- Credential helper -------------------------------------------------------------------------
 
 
 def _helper_exists(name: str) -> bool:
-    """Gibt es ``git-credential-<name>`` im PATH oder im Ordner der Git-Programme?"""
+    """Is there a ``git-credential-<name>`` on the PATH or in the folder of the Git programs?"""
     command = f"git-credential-{name}"
     if shutil.which(command):
         return True
@@ -141,9 +140,9 @@ def _helper_exists(name: str) -> bool:
 
 
 def suggested_helper() -> str | None:
-    """Der Anmeldedienst, den die App für diesen Rechner anbieten darf, oder ``None`` (dann nur
-    Hinweise). Windows: ``manager`` (Git Credential Manager), macOS: ``osxkeychain``, Linux:
-    ``libsecret`` bzw. ``manager``, wenn der Helfer vorhanden ist. Nie ``store``."""
+    """The credential helper the app may offer for this computer, or ``None`` (then hints only).
+    Windows: ``manager`` (Git Credential Manager), macOS: ``osxkeychain``, Linux:
+    ``libsecret`` or ``manager``, if the helper is present. Never ``store``."""
     if sys.platform == "win32":
         candidates = ["manager", "wincred"]
     elif sys.platform == "darwin":
@@ -154,28 +153,28 @@ def suggested_helper() -> str | None:
 
 
 def enable_helper(name: str) -> None:
-    """Trägt den Anmeldedienst für den Benutzer ein (``git config --global``, nie im
-    Repository). Nur die Namen aus :func:`suggested_helper`; ``store`` ist ausgeschlossen."""
+    """Registers the credential helper for the user (``git config --global``, never in the
+    repository). Only the names from :func:`suggested_helper`; ``store`` is excluded."""
     if name != suggested_helper():
         raise GitError(t("The app does not set up this credential helper."))
     _git(Path.home(), "config", "--global", "credential.helper", name)
 
 
 def helper_state(root: Path) -> str:
-    """``"none"`` (kein Dienst), ``"plain"`` (Klartext-Speicher) oder ``"ok"``."""
+    """``"none"`` (no helper), ``"plain"`` (plain-text store) or ``"ok"``."""
     names = credential_helpers(root)
     if any(name in _PLAIN_TEXT for name in names):
         return "plain"
     return "ok" if names else "none"
 
 
-# --- Token speichern, prüfen, löschen ------------------------------------------------------
+# --- Store, verify, delete the token ------------------------------------------------------
 
 
 def store_token(root: Path, url: str, username: str, token: str) -> None:
-    """Reicht den Token an den Anmeldedienst weiter (``git credential approve``). Fehlt ein
-    Dienst oder ist es ein Klartext-Speicher, passiert nichts und es kommt eine
-    :class:`GitError`. Der Token erscheint in keiner Meldung."""
+    """Hands the token to the credential helper (``git credential approve``). If there is no
+    helper or it is a plain-text store, nothing happens and a :class:`GitError` is raised.
+    The token appears in no message."""
     username = _clean(username, t("the user name"))
     token = _clean(token, t("the token"))
     if len(token) > MAX_TOKEN_LENGTH:
@@ -204,7 +203,7 @@ def store_token(root: Path, url: str, username: str, token: str) -> None:
         stdin_text=_credential_input(url, username, token),
     )
     if proc.returncode != 0:
-        # Die Ausgabe des Dienstes kann den Token nennen: nur der Rückgabecode zählt.
+        # The helper’s output may contain the token: only the return code counts.
         raise GitError(
             t("The Git credential helper did not accept the token."),
             "auth",
@@ -216,15 +215,15 @@ def store_token(root: Path, url: str, username: str, token: str) -> None:
 
 
 def verify(root: Path, url: str) -> tuple[str, ...]:
-    """Prüft die Anmeldung mit ``git ls-remote`` (ändert nichts) und liefert die Branches.
-    Fehler (abgelehnt, abgelaufen, falsches Recht) kommen mit Hinweis als :class:`GitError`."""
+    """Checks the sign-in with ``git ls-remote`` (changes nothing) and returns the branches.
+    Errors (rejected, expired, wrong permission) come with a hint as :class:`GitError`."""
     return probe_remote(root, parse_remote_url(url))
 
 
 def forget_token(root: Path, url: str, username: str = "", token: str = "") -> None:
-    """Entfernt die gespeicherte Anmeldung aus dem Anmeldedienst (``git credential reject``).
-    Mit ``username`` und ``token`` trifft es genau diesen Eintrag; ohne beides alle Anmeldungen
-    dieses Servers (der Pfad der Adresse zählt bei den meisten Diensten nicht)."""
+    """Removes the stored sign-in from the credential helper (``git credential reject``).
+    With ``username`` and ``token`` it hits exactly that entry; without both, all sign-ins
+    of this server (most helpers ignore the path of the address)."""
     if username:
         username = _clean(username, t("the user name"))
     if token:
@@ -240,7 +239,7 @@ def forget_token(root: Path, url: str, username: str = "", token: str = "") -> N
         raise GitError(t("The Git credential helper did not delete the sign-in."))
 
 
-# --- Einrichtungs-Checkliste ---------------------------------------------------------------
+# --- Setup checklist ---------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -248,12 +247,12 @@ class SetupItem:
     key: str
     ok: bool
     detail: str
-    page: str  # Seite, auf der man es erledigt ("" = keine)
+    page: str  # page where it is done ("" = none)
 
 
 def setup_items(root: Path | None) -> list[SetupItem]:
-    """Lesende Prüfungen für die Checkliste auf der Startseite (ohne Netzwerk, ohne
-    Rückfragen). ``root`` ist der Datenordner oder ``None``."""
+    """Read-only checks for the checklist on the start page (no network, no prompts).
+    ``root`` is the data folder or ``None``."""
     items: list[SetupItem] = []
     git_ok = git_available()
     items.append(

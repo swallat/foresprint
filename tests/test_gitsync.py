@@ -1770,7 +1770,7 @@ def test_not_repo_hint_explains_unpacked_zip():
 
 
 def test_credential_helpers_reads_the_repository_of_the_data_folder(tmp_path):
-    """Ein Anmeldedienst, der nur in der Konfiguration des Datenordners steht, zählt mit."""
+    """A credential helper that appears only in the data folder's configuration counts too."""
     import subprocess
 
     from sprintforecast.git import credential_helpers
