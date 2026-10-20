@@ -340,3 +340,18 @@ def test_match_orders_keep_an_unusual_current_order():
     )  # fmt: skip
     odd = jira_setup.match_orders(["epic"])
     assert odd[0] == ("epic",) and len(odd) == 7
+
+
+def test_a_removed_rule_field_that_rules_still_use_is_reported():
+    from sprintforecast.model import Project, Rule
+    from sprintforecast.storage import TeamData
+    from sprintforecast.web.jira_setup import rule_fields_in_use
+
+    data = TeamData.__new__(TeamData)
+    data.projects = [
+        Project(id="p", name="P", match=Rule(source="customer", values=["Acme"])),
+        Project(id="q", name="Q", match=Rule(source="label", values=["x"])),
+    ]
+    data.products = []
+    assert rule_fields_in_use(data, {"customer"}) == ["P"]
+    assert rule_fields_in_use(data, {"other"}) == []

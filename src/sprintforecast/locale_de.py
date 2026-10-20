@@ -1617,6 +1617,7 @@ DE: dict[str, str] = {
     "Assignment rules": "Zuordnungsregeln",
     "There are no projects yet. Create one on the tab Settings.": "Es gibt noch keine Projekte. Lege eines im Reiter Einstellungen an.",
     "Rule": "Regel",
+    "A removed field is still used in rules of: {names}. Change those rules first.": "Ein entferntes Feld wird noch in Regeln benutzt: {names}. Ändere zuerst diese Regeln.",
     "“{name}” is not a usable name (lower-case letters, digits and underscores, starting with a letter).": "„{name}“ ist kein brauchbarer Name (Kleinbuchstaben, Ziffern und Unterstriche, mit einem Buchstaben beginnend).",
     "The name “{name}” is reserved.": "Der Name „{name}“ ist reserviert.",
     "The name “{name}” is used twice.": "Der Name „{name}“ kommt doppelt vor.",
