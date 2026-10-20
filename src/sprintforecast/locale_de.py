@@ -1693,7 +1693,7 @@ DE: dict[str, str] = {
     "earmark": "Vormerkung",
     "unestimated": "ungeschätzt",
     "too large, please split": "zu groß, bitte teilen",
-    "without project": "ohne Projekt",
+    "without product": "ohne Produkt",
     "circular dependencies": "Abhängigkeiten im Kreis",
     "dependency not distributable": "Abhängigkeit nicht verteilbar",
     "beyond the horizon": "außerhalb des Zeitraums",
