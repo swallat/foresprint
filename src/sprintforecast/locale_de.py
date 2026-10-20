@@ -1616,7 +1616,7 @@ DE: dict[str, str] = {
     "Also matches": "Passt auch auf",
     "Assignment rules": "Zuordnungsregeln",
     "There are no projects yet. Create one on the tab Settings.": "Es gibt noch keine Projekte. Lege eines im Reiter Einstellungen an.",
-    "One expression per project: fields epic, component, label, status, issue_type, in_sprint; =, !=, ~ (contains), IN, NOT IN; AND, OR, NOT and parentheses.": "Ein Ausdruck je Projekt: Felder epic, component, label, status, issue_type, in_sprint; =, !=, ~ (enthält), IN, NOT IN; AND, OR, NOT und Klammern.",
+    "One expression per project: fields epic, component, label, status, issue_type, priority, in_sprint; =, !=, ~ (contains), IN, NOT IN; AND, OR, NOT and parentheses.": "Ein Ausdruck je Projekt: Felder epic, component, label, status, issue_type, priority, in_sprint; =, !=, ~ (enthält), IN, NOT IN; AND, OR, NOT und Klammern.",
     "Rule": "Regel",
     "Insert": "Einfügen",
     "Insert condition": "Bedingung einfügen",

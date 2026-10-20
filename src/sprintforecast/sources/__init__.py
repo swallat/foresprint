@@ -51,6 +51,7 @@ class RawTicket:
     title: str = ""
     status: str | None = None
     issue_type: str | None = None
+    priority: str | None = None
     estimate: float | None = None
     remaining: float | None = None
     # The sprint name as the tracker shows it (resolved to a sprint id by the import).

@@ -302,6 +302,7 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
         "label": t("Jira label"),
         "status": t("Status"),
         "issue_type": t("Issue type"),
+        "priority": t("Priority"),
         "in_sprint": t("In sprint"),
     }
     order = list(data.team.tracker.project_match_order)
