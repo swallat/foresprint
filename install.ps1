@@ -82,5 +82,5 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 Write-Host ""
 Write-Host "Done: sprintforecast $(& (Join-Path $bin 'sprintforecast.exe') --version)"
-Write-Host "Start by double-clicking 'Sprint-Forecast' (desktop/Start menu) or, in a new PowerShell window, e.g.:"
+Write-Host "Start by double-clicking 'Foresprint' (desktop/Start menu) or, in a new PowerShell window, e.g.:"
 Write-Host "  cd `"$HOME\sprint-daten`"; sprintforecast web"
