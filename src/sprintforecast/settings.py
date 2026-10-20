@@ -108,6 +108,8 @@ class Setting:
             case Kind.CHOICE:
                 assert self.choices is not None
                 value = raw.upper() if raw.upper() in self.choices else raw
+                if self.choices is SWITCH:
+                    value = _SWITCH_ALIASES.get(value.lower(), value)  # an/aus: German UI
                 if value not in self.choices:
                     raise ValueError(t("Allowed: {values}", values=", ".join(self.choices)))
                 return value
@@ -186,6 +188,7 @@ def _switch_setter(path: str) -> Callable[[Team, Any], None]:
 
 
 SWITCH = {"off": "off", "on": "on"}
+_SWITCH_ALIASES = {"an": "on", "aus": "off"}
 
 SETTINGS: list[Setting] = [
     Setting(
