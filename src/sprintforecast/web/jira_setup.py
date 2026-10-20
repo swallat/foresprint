@@ -480,12 +480,31 @@ def _address_problem(url: str | None) -> str | None:
     return None
 
 
+def rule_fields_in_use(data: TeamData, names: set[str]) -> list[str]:
+    """Names of projects and products whose rules still use one of these rule fields."""
+    users = []
+    for entity in (*data.projects, *data.products):
+        match = getattr(entity, "match", None)
+        if match is not None and match.leaf_sources() & names:
+            users.append(entity.name or entity.id)
+    return users
+
+
 def _save(repo: Repository, data: TeamData, edited: TrackerSettings) -> bool:
     if edited.kind == "jira" and (problem := _address_problem(edited.base_url)):
         st.error(problem)
         return False
     if edited == data.team.tracker:
         st.info(t("No changes."))
+        return False
+    removed = set(data.team.tracker.rule_fields) - set(edited.rule_fields)
+    if users := rule_fields_in_use(data, removed):
+        st.error(
+            t(
+                "A removed field is still used in rules of: {names}. Change those rules first.",
+                names=", ".join(users),
+            )
+        )
         return False
     team = copy.deepcopy(data.team)
     team.tracker = edited
