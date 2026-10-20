@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Startseite: drei Aufgaben-Kacheln, jede führt zur richtigen Seite mit dem richtigen Sprint."""
+"""Start page: three task tiles, each leads to the right page with the right sprint."""
 
 import re
 
@@ -7,7 +7,7 @@ import pytest
 from harness import App, main_area, no_exception, open_page, selected, settle
 from playwright.sync_api import Page, expect
 
-# Stichtag 2026-10-15: Sprint 2026.21 läuft, 2026.22 ist der nächste (Fehltage bestätigt).
+# Reference date 2026-10-15: sprint 2026.21 is running, 2026.22 is the next (absences confirmed).
 TILES = [
     ("prepare", "✅ Sprint vorbereiten", "Sprint 2026.22: vorbereitet.", "fehltage", "absences-sprint", "2026.22"),
     ("planning", "⬜ Planning", "Sprint 2026.22: Commitment fehlt noch.", "planning", "planning-sprint", "2026.22"),

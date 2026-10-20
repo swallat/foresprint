@@ -50,7 +50,7 @@ def test_forecast_table_has_a_range_column(data_dir: Path):
         for line in result.output.splitlines()
         if line.startswith("│ 2026.")
     }
-    # 2026.21 läuft, 2026.22 bis .24 sind geplant; abgeschlossene Sprints haben keine Spanne
+    # 2026.21 is running, 2026.22 to .24 are planned; completed sprints have no range
     for sprint, expected in {
         "2026.21": "8,5–10,5",
         "2026.22": "10,0–12,3",
@@ -65,7 +65,7 @@ def test_forecast_table_has_a_range_column(data_dir: Path):
     forecast_rows = {}
     for line in report.splitlines():
         cells = [c.strip() for c in line.strip("|").split("|")]
-        if line.startswith("| 2026.") and len(cells) == 9:  # Prognosetabelle
+        if line.startswith("| 2026.") and len(cells) == 9:  # forecast table
             forecast_rows[cells[0]] = cells
     assert forecast_rows["2026.22"][5:7] == ["**11,2**", "10,0–12,3"]
     assert forecast_rows["2026.21"][5:7] == ["**9,5**", "8,5–10,5"]
@@ -93,7 +93,7 @@ def test_kapazitaet_without_sprint_file_names_calendar_and_people_with_people_li
     assert result.exit_code == 0, result.output
     assert "Noch keine Sprintdatei" in result.output
     assert "Kalender und Personenliste" in result.output
-    text = " ".join(result.output.split())  # Umbrüche der Konsole
+    text = " ".join(result.output.split())  # console line breaks
     assert "Fehltage werden nach der Historie geschätzt (ohne Historie ohne Abzug)" in text
     assert "Trend" not in result.output
 
@@ -107,14 +107,14 @@ def test_kapazitaet_without_sprint_file_names_trend_without_people_list(data_dir
 
 
 def test_fehltage_for_future_sprint_creates_file(data_dir: Path):
-    # Sprint 2026.23 hat noch keine Datei; aktive Personen: Anna, Ben, Cem, Dana
+    # Sprint 2026.23 has no file yet; active people: Anna, Ben, Cem, Dana
     result = run(data_dir, "absences", "demo", "2026.23", input="2\n0\n1,5\n0\n")
     assert result.exit_code == 0, result.output
     sprint = load(data_dir / "demo" / "sprints" / "2026.23.yaml")
     assert sprint["absences"] == {"anna": 2, "cem": 1.5}
     assert sprint["start"].isoformat() == "2026-11-11"
     assert "Prognose Sprint 2026.23" in result.output
-    # Kapazität: Anna 8 + Ben 5 + Cem 8.5 + Dana 10
+    # Capacity: Anna 8 + Ben 5 + Cem 8.5 + Dana 10
     assert "31,5" in result.output
 
 
@@ -144,13 +144,13 @@ def test_review_freezes_capacity(data_dir: Path):
 
 
 def test_planning_reports_delta(data_dir: Path):
-    # Fehltage prüfen? n · Planning je Produkt? n · Kontrollrechnung? y …
+    # Check absences? n · Planning per product? n · Cross-check? y …
     result = run(data_dir, "planning", "demo", "2026.21", input="n\nn\ny\n1\n8\n0.5\n9\n")
     assert result.exit_code == 0, result.output
     sprint = load(data_dir / "demo" / "sprints" / "2026.21.yaml")
     assert sprint["forecast_ist"] == 9
     assert sprint["planning"] == {"carryover": 1, "backlog": 8, "corrections": [0.5]}
-    assert "Delta 1,00" in result.output  # Forecast PLAN 9,5 − Planning 8,5
+    assert "Delta 1,00" in result.output  # Forecast PLAN 9.5 − Planning 8.5
 
 
 @pytest.mark.parametrize("raw", ["nan", "inf", "-inf", "1e999", "0.5 nan"])
@@ -187,7 +187,7 @@ def test_pruefen_fails_on_error(data_dir: Path):
 
 
 def test_init_new_team(tmp_path: Path):
-    # Reihenfolge: Name, dann der erste Sprint (Nummerierung, Start, ID), dann alles Weitere.
+    # Order: name, then the first sprint (numbering, start, ID), then everything else.
     answers = [
         "Team A", "yearly", "2026-10-14", "2026.20",
         "PT", "", "", "", "", "", "by", "", "10", "", "", "14",
@@ -204,7 +204,7 @@ def test_init_new_team(tmp_path: Path):
 
 
 def test_init_has_no_default_for_the_first_sprint_id(tmp_path: Path):
-    """Enter übernimmt keine ID: Das Team kennt seinen laufenden Sprint, das Programm nicht."""
+    """Enter does not accept an ID: the team knows its running sprint, the program does not."""
     answers = ["Team A", "", "2026-10-14", "", "", "2026.15"] + [""] * 19
     result = run(tmp_path, "init", "team-a", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
@@ -231,8 +231,8 @@ def test_init_rejects_invalid_key(tmp_path: Path, key: str):
     result = run(data_dir, "init", key)
     assert result.exit_code == 1
     assert "Kürzel" in result.output
-    assert "Neues Team" not in result.output  # es wird gar nicht erst gefragt
-    assert list(tmp_path.rglob("*")) == [data_dir]  # weder darin noch daneben etwas angelegt
+    assert "Neues Team" not in result.output  # it is not even asked
+    assert list(tmp_path.rglob("*")) == [data_dir]  # nothing created inside or next to it
 
 
 @pytest.mark.parametrize(
@@ -241,8 +241,8 @@ def test_init_rejects_invalid_key(tmp_path: Path, key: str):
 def test_init_names_an_existing_team_before_complaining_about_the_key(
     data_dir: Path, key: str, expected: str
 ):
-    """Ein Altteam mit Großbuchstaben oder Punkt: „existiert bereits“ statt der Kürzelregel,
-    auch wenn nur die Schreibweise abweicht (auf Windows und macOS derselbe Ordner)."""
+    """A legacy team with uppercase letters or a dot: "already exists" instead of the key rule,
+    even if only the spelling differs (the same folder on Windows and macOS)."""
     shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
     result = run(data_dir, "init", key)
     assert result.exit_code == 1
@@ -259,9 +259,9 @@ def test_existing_team_with_unusual_name_still_works_in_cli(data_dir: Path):
 
 
 def test_einstellungen_changes_and_validates(data_dir: Path):
-    # Reihenfolge: Name, Einheit, Produktverteilung, PO, Produktionszugriff, Ticket-Vorplanung,
-    # Land, Bundesland, Overhead, Länge, Nummerierung, Referenz, Fenster, Trend, Roadmap,
-    # Horizont, Rundung, Produktbasis, Speichern?
+    # Order: name, unit, product distribution, PO, production access, ticket pre-planning,
+    # country, state, overhead, length, numbering, reference, window, trend, roadmap,
+    # horizon, rounding, product basis, save?
     answers = [
         "",
         "SP",
@@ -290,8 +290,8 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
     ]
     result = run(data_dir, "settings", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
-    assert "Unbekannter Regionscode" in result.output  # Region xx
-    assert "muss ≥ 1" in result.output  # Referenz -5
+    assert "Unbekannter Regionscode" in result.output  # region xx
+    assert "muss ≥ 1" in result.output  # reference -5
     assert "rückwirkend" in result.output
     team = load(data_dir / "demo" / "team.yaml")
     assert team["unit"] == "SP"
@@ -299,7 +299,7 @@ def test_einstellungen_changes_and_validates(data_dir: Path):
     assert team["forecast"]["reference_capacity"] == 50
     assert team["forecast"]["trend_mode"] == "flat"
     assert team["forecast"]["roadmap_share"] == 0.75
-    assert "first" in team["sprint"]  # unverändert übernommen
+    assert "first" in team["sprint"]  # adopted unchanged
 
 
 def test_einstellungen_without_changes(data_dir: Path):
@@ -348,7 +348,7 @@ def test_planning_without_control_calculation(data_dir: Path):
 def test_personen_new_person_gets_id_and_former_hidden(data_dir: Path):
     result = run(data_dir, "people", "demo", input="n\nJörg Müller\n\n2026-11-01\n1\nq\n")
     assert result.exit_code == 0, result.output
-    assert "Emil" not in result.output  # ausgeschieden → ausgeblendet
+    assert "Emil" not in result.output  # left → hidden
     assert "ehemalige Person(en) ausgeblendet" in result.output
     people = load(data_dir / "demo" / "people.yaml")["people"]
     assert people[-1]["id"] == "joerg-mueller"
@@ -371,7 +371,7 @@ def test_invalid_stichtag_is_a_usage_error(data_dir: Path, option: str):
     result = runner.invoke(app, args)
     assert result.exit_code == 2, result.output
     assert "Datum im Format JJJJ-MM-TT erwartet" in result.output
-    assert isinstance(result.exception, SystemExit)  # Nutzungsfehler, kein ungefangener ValueError
+    assert isinstance(result.exception, SystemExit)  # usage error, not an uncaught ValueError
 
 
 def test_version_and_help_without_command():
@@ -386,7 +386,7 @@ def test_version_and_help_without_command():
 def test_teams_subdirectory_is_found(
     data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Start im Wurzelordner eines Daten-Repos mit Unterordner teams/."""
+    """Start in the root folder of a data repo with a teams/ subfolder."""
     import shutil
 
     root = tmp_path / "sprint-daten"
@@ -395,7 +395,7 @@ def test_teams_subdirectory_is_found(
     monkeypatch.chdir(root)
     result = runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"])
     assert result.exit_code == 0, result.output
-    # Liegen Teams direkt im aktuellen Verzeichnis, haben diese Vorrang
+    # If teams lie directly in the current directory, they take precedence
     monkeypatch.chdir(root / "teams")
     assert runner.invoke(app, ["--as-of", "2026-10-15", "forecast", "demo"]).exit_code == 0
 
@@ -420,7 +420,7 @@ def test_analyse_with_project_share(data_dir: Path):
 
 
 def keep_first_sprints(data_dir: Path, count: int) -> None:
-    """Nur die ersten ``count`` Sprints des Demo-Teams behalten (wenige Werte für die Analyse)."""
+    """Keep only the first ``count`` sprints of the demo team (few values for the analysis)."""
     for path in (data_dir / "demo" / "sprints").glob("*.yaml"):
         if int(path.stem.rsplit(".", 1)[1]) > count:
             path.unlink()
@@ -428,8 +428,8 @@ def keep_first_sprints(data_dir: Path, count: int) -> None:
 
 @pytest.mark.parametrize(("count", "warned"), [(2, True), (4, True), (5, False)])
 def test_analyse_rest_warns_about_few_samples(data_dir: Path, count: int, warned: bool):
-    """Die Simulation rechnet schon ab 2 Werten; unter 5 Sprints kommt dieselbe Warnung wie in
-    der Weboberfläche."""
+    """The simulation already calculates from 2 values; below 5 sprints the same warning appears as
+    in the web UI."""
     keep_first_sprints(data_dir, count)
     result = run(data_dir, "analysis", "demo", "--remaining", "40")
     assert result.exit_code == 0, result.output
@@ -439,8 +439,8 @@ def test_analyse_rest_warns_about_few_samples(data_dir: Path, count: int, warned
 
 
 def test_analyse_rest_with_a_small_window_caps_the_sample_and_explains_it(data_dir: Path):
-    """Die Stichprobe ist auf das Fenster gedeckelt; die Schwelle bleibt 5, der Hinweis nennt das
-    Fenster."""
+    """The sample is capped at the window; the threshold stays 5, the notice names the
+    window."""
     team_file = data_dir / "demo" / "team.yaml"
     raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
     raw.setdefault("forecast", {})["window"] = 3
@@ -455,7 +455,7 @@ def test_analyse_rest_with_a_small_window_caps_the_sample_and_explains_it(data_d
 
 
 def test_analyse_rest_with_a_small_window_but_no_more_values_has_no_window_hint(data_dir: Path):
-    """Fenster 3, nur 2 Werte: Das Fenster deckelt nichts, also kein Fensterhinweis."""
+    """Window 3, only 2 values: the window caps nothing, so no window notice."""
     keep_first_sprints(data_dir, 2)
     team_file = data_dir / "demo" / "team.yaml"
     raw = yaml.safe_load(team_file.read_text(encoding="utf-8"))
@@ -482,8 +482,8 @@ def test_analyse_without_rest_has_no_simulation_warning(data_dir: Path):
 
 
 def test_planning_flow_next_sprint(data_dir: Path):
-    # Standard: nächstes Planning (2026.22). Fehltage: Anna 1, Ben 0, Cem 5, Dana 0;
-    # Planning je Produkt: Webshop 4, App 3, Portal 3; ohne Kontrollrechnung; Commitment 10
+    # Default: next planning (2026.22). Absences: Anna 1, Ben 0, Cem 5, Dana 0;
+    # planning per product: Webshop 4, App 3, Portal 3; no cross-check; commitment 10
     answers = ["y", "1", "0", "5", "0", "y", "4", "3", "3", "n", "10"]
     result = run(data_dir, "planning", "demo", input="\n".join(answers) + "\n")
     assert result.exit_code == 0, result.output
@@ -504,7 +504,7 @@ def test_produkte_and_vorplanung(data_dir: Path):
 
 
 def drop_done(data_dir: Path, product: str, *sprint_ids: str) -> None:
-    """Entfernt „Erledigt“ des Produkts in den Sprints (nicht erfasst, nicht 0)."""
+    """Removes the product's "Done" in the sprints (not recorded, not 0)."""
     repo = Repository(data_dir)
     data = repo.load("demo")
     for sprint_id in sprint_ids:
@@ -527,24 +527,26 @@ def balance_table(output: str) -> str:
 
 def test_produkte_balance_hides_products_without_value_and_shows_missing(data_dir: Path):
     plain = run(data_dir, "products", "demo", "2026.20", "--history", "6")
-    assert "ohne Wert" not in balance_table(plain.output)  # alles erfasst: keine Spalte
+    assert "ohne Wert" not in balance_table(plain.output)  # everything recorded: no column
     assert FOOTNOTE not in " ".join(plain.output.split())
 
     drop_done(data_dir, "app", "2026.20")
-    # Fenster nur mit dem Sprint ohne Wert: keine Zeile „0 | 0,00 | 0,00 | 0,00“
+    # Window with only the sprint without a value: no row "0 | 0,00 | 0,00 | 0,00"
     only = run(data_dir, "products", "demo", "2026.20", "--history", "1")
     assert only.exit_code == 0, only.output
     table = balance_table(only.output)
     assert "Webshop" in table and "Mobile App" not in table
-    # Das ausgeblendete Produkt hat einen fehlenden Wert, die angezeigten haben keinen: keine Spalte
+    # The hidden product has a missing value, the shown ones do not: no column
     assert "ohne Wert" not in table and FOOTNOTE not in " ".join(table.split())
 
-    # sonst bleibt das Produkt mit seinen übrigen Sprints, die fehlenden stehen daneben
+    # otherwise the product stays with its other sprints, the missing ones appear next to them
     result = run(data_dir, "products", "demo", "2026.20", "--history", "6")
     assert result.exit_code == 0, result.output
     table = balance_table(result.output)
     assert "ohne Wert" in table
-    assert FOOTNOTE in " ".join(table.split())  # Fußnote erklärt die Spalte (Umbrüche egal)
+    assert FOOTNOTE in " ".join(
+        table.split()
+    )  # footnote explains the column (line breaks do not matter)
     app_row = next(line for line in table.splitlines() if "Mobile App" in line)
     cells = [c.strip() for c in app_row.strip("│").split("│")]
     assert cells[1] == "3" and cells[-1] == "1"
@@ -563,19 +565,19 @@ def test_report_balance_hides_products_without_value_and_shows_missing(data_dir:
 
     drop_done(data_dir, "app", "2026.20")
     section = balance_section()
-    assert f"*{FOOTNOTE}*" in section  # Fußnote unter der Tabelle, nur bei fehlenden Werten
+    assert f"*{FOOTNOTE}*" in section  # footnote below the table, only for missing values
     rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
     assert "ohne Wert" in rows["Produkt"]
     cells = [c.strip() for c in rows["Mobile App"].strip("|").split("|")]
     assert cells[1] == "3" and cells[-1] == "1"
     assert rows["Webshop"].strip("|").split("|")[-1].strip() == "0"
 
-    # Ein einziger Sprint mit Wert genügt, die Zeile bleibt
+    # A single sprint with a value is enough, the row stays
     drop_done(data_dir, "app", "2026.17", "2026.18")
     assert "Mobile App" in balance_section()
 
-    # In keinem Sprint des Fensters ein Wert: das Produkt entfällt statt als Nullzeile zu stehen,
-    # und das ausgeblendete Produkt schaltet die Spalte nicht ein (wie in der Weboberfläche)
+    # No value in any sprint of the window: the product is dropped instead of showing as a zero row,
+    # and the hidden product does not switch the column on (as in the web UI)
     drop_done(data_dir, "app", "2026.19")
     section = balance_section()
     assert "Mobile App" not in section and "ohne Wert" not in section
@@ -583,11 +585,11 @@ def test_report_balance_hides_products_without_value_and_shows_missing(data_dir:
 
 
 def test_balance_missing_ignores_sprints_without_any_done_value(data_dir: Path):
-    # Sprint ganz ohne Erledigt-Wert (wie der laufende): zählt nirgends, auch nicht in „ohne Wert“
+    # Sprint without any "Done" value (like the running one): counts nowhere, not even in "no value"
     drop_done(data_dir, "webshop", "2026.20")
     drop_done(data_dir, "app", "2026.20")
     drop_done(data_dir, "portal", "2026.20")
-    drop_done(data_dir, "app", "2026.19")  # nur hier fehlt es für ein einzelnes Produkt
+    drop_done(data_dir, "app", "2026.19")  # only here it is missing for a single product
     assert run(data_dir, "report", "demo").exit_code == 0
     report = (data_dir / "demo" / "FORECAST.md").read_text(encoding="utf-8")
     section = report.split("**Saldo**")[1].split("\n## ")[0]
@@ -597,7 +599,7 @@ def test_balance_missing_ignores_sprints_without_any_done_value(data_dir: Path):
 
 
 def test_balance_missing_ignores_sprints_outside_product_period(data_dir: Path):
-    # „Mobile App“ wird erst ab 2026.19 betreut; davor ist sie weder aktiv noch erfasst
+    # "Mobile App" is only maintained from 2026.19; before that it is neither active nor recorded
     path = data_dir / "demo" / "products.yaml"
     content = load(path)
     next(p for p in content["products"] if p["id"] == "app")["from"] = date(2026, 9, 16)
@@ -608,7 +610,7 @@ def test_balance_missing_ignores_sprints_outside_product_period(data_dir: Path):
     section = report.split("**Saldo**")[1].split("\n## ")[0]
     rows = {line.split("|")[1].strip(): line for line in section.splitlines() if "|" in line}
     cells = [c.strip() for c in rows["Mobile App"].strip("|").split("|")]
-    # nur 2026.19 (betreut, ohne Wert) zählt als fehlend, 2026.17/.18 liegen vor der Laufzeit
+    # only 2026.19 (maintained, no value) counts as missing, 2026.17/.18 are before the start
     assert cells[1] == "1" and cells[-1] == "1"
 
 
@@ -633,8 +635,8 @@ def test_aktualisieren_outside_uv_tool(data_dir: Path):
 def test_sprints_calendar_and_longer_sprint(data_dir: Path):
     result = run(data_dir, "sprints", "demo")
     assert result.exit_code == 0, result.output
-    assert "Di 27.10.2026" in result.output  # letzter Tag von 2026.21
-    # 2026.25 drei Wochen bis Di 12.01.2027 → 2026.26 entfällt, danach 2027.1
+    assert "Di 27.10.2026" in result.output  # last day of 2026.21
+    # 2026.25 three weeks until Tue 12.01.2027 → 2026.26 is dropped, then 2027.1
     result = run(data_dir, "sprints", "demo", "--end", "2026.25=2027-01-12", "--create")
     assert result.exit_code == 0, result.output
     s25 = load(data_dir / "demo" / "sprints" / "2026.25.yaml")
@@ -654,7 +656,7 @@ def test_forecast_rechenweg(data_dir: Path):
 def test_datenordner(tmp_path: Path, data_dir: Path):
     import subprocess
 
-    assert run(data_dir, "data-dir", str(tmp_path)).exit_code == 1  # kein Git
+    assert run(data_dir, "data-dir", str(tmp_path)).exit_code == 1  # no Git
     subprocess.run(["git", "init", "-q", str(data_dir)], check=True)
     result = run(data_dir, "data-dir", str(data_dir))
     assert result.exit_code == 0, result.output
@@ -673,22 +675,22 @@ def test_datenordner_names_the_reason_for_an_unsafe_folder(
     assume_foreign_owner(monkeypatch, data_dir)
     result = run(data_dir, "data-dir", str(data_dir))
     assert result.exit_code == 1
-    assert "dubious ownership" in result.output  # die Meldung von Git
-    assert "Git-Einstellungen" in " ".join(result.output.split())  # der Hinweis
+    assert "dubious ownership" in result.output  # the message from Git
+    assert "Git-Einstellungen" in " ".join(result.output.split())  # the hint
     assert "liegt in keinem Git-Repository" not in result.output
-    assert "Git hält den Ordner für unsicher" in result.output  # die Überschrift
-    # Die App rät nie zu einer Konfigurationsänderung, auch nicht mit Gits Wortlaut.
+    assert "Git hält den Ordner für unsicher" in result.output  # the heading
+    # The app never advises a configuration change, not even with Git's wording.
     assert "safe.directory" not in result.output and "git config" not in result.output
 
 
 def one_line(output: str) -> str:
-    """Ausgabe ohne Zeilenumbrüche der Konsole (Rich bricht lange Zeilen um)."""
+    """Output without console line breaks (Rich wraps long lines)."""
     return " ".join(output.split())
 
 
 @pytest.fixture
 def without_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Git ist auf diesem Rechner nicht installiert (nicht im PATH)."""
+    """Git is not installed on this machine (not in PATH)."""
     leer = tmp_path / "ohne-git"
     leer.mkdir()
     monkeypatch.setenv("PATH", str(leer))
@@ -696,7 +698,7 @@ def without_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def data_repo(data_dir: Path, tmp_path: Path) -> Path:
-    """Das Datenverzeichnis liegt in einem Git-Repository (Wurzel ist ``tmp_path``)."""
+    """The data directory is in a Git repository (root is ``tmp_path``)."""
     git(tmp_path, "init", "-q", "-b", "main")
     git(tmp_path, "config", "user.name", "T")
     git(tmp_path, "config", "user.email", "t@example.org")
@@ -715,7 +717,7 @@ def test_commit_without_repository_says_so_instead_of_showing_git_output(data_di
     assert "liegt in keinem Git-Repository" in text
     assert "`git init`" in text and "`git clone`" in text
     assert "fatal" not in text
-    assert "Gespeichert:" in result.output  # die Daten sind geschrieben, nur nicht committet
+    assert "Gespeichert:" in result.output  # the data is written, just not committed
 
 
 def test_commit_without_git_installed_says_so(data_dir: Path, without_git: None):
@@ -737,8 +739,8 @@ def test_commit_without_git_identity_names_the_command_line_way(
     for name in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "EMAIL"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.delenv("GIT_COMMITTER_EMAIL", raising=False)
-    # Keine Benutzereinstellungen des Rechners (unter Windows: USERPROFILE statt HOME): Git
-    # fände dort sonst einen Namen.
+    # No user settings of the machine (on Windows: USERPROFILE instead of HOME): otherwise Git
+    # would find a name there.
     leer = tmp_path.parent / f"{tmp_path.name}-leer.gitconfig"
     leer.write_text("", encoding="utf-8")
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
@@ -750,7 +752,7 @@ def test_commit_without_git_identity_names_the_command_line_way(
     text = one_line(result.output)
     assert "Name und E-Mail-Adresse fehlen" in text
     assert "git config --global user.name" in text and "git config --global user.email" in text
-    assert "Dein Name" in text  # der Hinweis der Kommandozeile, nicht nur Gits eigene Meldung
+    assert "Dein Name" in text  # the command-line hint, not only Git's own message
     assert "Seitenleiste" not in text
 
 
@@ -830,11 +832,11 @@ def test_datenordner_names_a_folder_without_repository(tmp_path: Path, data_dir:
 def test_datenordner_messages_keep_brackets_in_the_path(
     tmp_path: Path, data_dir: Path, parts: tuple[str, ...]
 ):
-    """Rich liest eckige Klammern als Auszeichnung: Der Pfad wird maskiert und steht vollständig
-    in der Meldung (ein „[/y]“ ohne Gegenstück brach vorher den Befehl ab)."""
+    """Rich reads square brackets as markup: the path is escaped and appears completely in the
+    message (an unmatched "[/y]" used to abort the command)."""
     folder = tmp_path.joinpath(*parts)
     folder.mkdir(parents=True)
-    shown = "/".join(parts)  # Rich bricht lange Pfade um: nur die Namen prüfen
+    shown = "/".join(parts)  # Rich wraps long paths: check only the names
     result = run(data_dir, "data-dir", str(folder))
     assert result.exit_code == 1
     assert result.exception is None or isinstance(result.exception, SystemExit)
@@ -846,7 +848,7 @@ def test_datenordner_messages_keep_brackets_in_the_path(
 
 def test_forecast_warns_for_noise_extrapolating_trend_mode(data_dir: Path):
     plain = run(data_dir, "forecast", "demo")
-    assert "schreibt Schwankungen fort" not in plain.output  # Standard flat: keine Warnung
+    assert "schreibt Schwankungen fort" not in plain.output  # default flat: no warning
     team = data_dir / "demo" / "team.yaml"
     team.write_text(
         team.read_text(encoding="utf-8").replace("trend_mode: flat", "trend_mode: classic"),
@@ -881,7 +883,7 @@ def test_cli_reports_unwritable_settings_without_traceback(
 
 
 def test_help_command_list_covers_every_cli_command():
-    """Jeder Befehl der CLI steht in guide.COMMANDS, und dort steht kein unbekannter Befehl."""
+    """Every CLI command is in guide.COMMANDS, and no unknown command is listed there."""
     registered = {
         info.name
         for info in app.registered_commands
@@ -902,13 +904,13 @@ GERMAN_COMMANDS = [
 
 
 def _no_ansi(text: str) -> str:
-    """Farbcodes entfernen: In der CI (FORCE_COLOR) färbt Rich die Hilfe ein."""
+    """Strip color codes: in CI (FORCE_COLOR) Rich colors the help."""
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
 @pytest.mark.parametrize("lang", ["de", "en"])
 def test_help_shows_only_english_names(monkeypatch: pytest.MonkeyPatch, lang: str):
-    """Befehle, Optionen und Umgebungsvariablen heißen in beiden Sprachen englisch."""
+    """Commands, options and environment variables have English names in both languages."""
     from sprintforecast import i18n
 
     i18n.set_language(None)

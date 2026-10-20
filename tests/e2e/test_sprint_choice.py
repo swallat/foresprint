@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Die Sprintwahl gilt seitenübergreifend: Wer auf einer Seite einen Sprint wählt, findet ihn auf
-den anderen Boards wieder."""
+"""The sprint choice applies across pages: choosing a sprint on one page finds it again on the
+other boards."""
 
 import pytest
 from harness import App, choose, navigate, no_exception, open_page, selected
@@ -29,7 +29,7 @@ def test_chosen_sprint_carries_over_to_the_other_boards(page: Page, app: App, st
 
 
 def test_sprint_choice_is_not_shared_between_browser_sessions(page: Page, app: App, new_page):
-    """Die Wahl gehört zur Sitzung: ein zweites Fenster beginnt wieder beim Standard."""
+    """The choice belongs to the session: a second window starts at the default again."""
     open_page(page, app, "planning")
     choose(page, "planning-sprint", "2026.23")
     expect(selected(page, "planning-sprint")).to_have_value("2026.23")

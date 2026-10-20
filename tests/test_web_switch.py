@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Aktiver Datenordner sichtbar, Liste zuletzt benutzter Ordner, Wechsel ohne Altlasten."""
+"""Active data folder visible, list of recently used folders, switching without leftovers."""
 
 import shutil
 import subprocess
@@ -35,7 +35,7 @@ def test_recent_folders_are_listed_newest_first_and_limited(tmp_path: Path):
     for folder in folders:
         folder.mkdir()
         save_data_dir(folder)
-    save_data_dir(folders[3])  # erneut benutzt: rückt nach vorn, kein Doppeltes
+    save_data_dir(folders[3])  # used again: moves to the front, no duplicate
     recent = recent_data_dirs()
     assert recent[0] == folders[3].resolve() and len(recent) == MAX_RECENT
     assert len({str(p) for p in recent}) == MAX_RECENT
@@ -72,7 +72,7 @@ def test_active_folder_and_branch_are_always_visible(two_folders, monkeypatch):
     at = start(first, monkeypatch)
     text = " ".join(m.value for m in at.sidebar.markdown)
     assert first.name in text and "main" in text
-    assert team_of(at) == "demo"  # aktives Team
+    assert team_of(at) == "demo"  # active team
 
 
 def test_switch_discards_old_form_state_and_caches(two_folders, monkeypatch):
@@ -92,12 +92,12 @@ def test_switch_discards_old_form_state_and_caches(two_folders, monkeypatch):
     assert not at.exception, at.exception
 
     assert Path(monkeypatch_env(DATA_ENV)).name == "zweiter-ordner"
-    assert "probe" not in at.session_state  # alter Formularzustand verworfen
-    assert team_of(at) == "zweit"  # Team des neuen Ordners
+    assert "probe" not in at.session_state  # old form state discarded
+    assert team_of(at) == "zweit"  # team of the new folder
     assert "zweiter-ordner" in " ".join(m.value for m in at.sidebar.markdown)
-    # Der alte Ordner steht jetzt in der Liste der zuletzt benutzten
+    # The old folder is now in the list of recently used ones
     assert any(first.name in o for o in at.sidebar.selectbox(key="switch-target").options)
-    # kein Git-Repository im zweiten Ordner: Branch nicht angezeigt, kein Absturz
+    # no Git repository in the second folder: branch not shown, no crash
     assert not any("Branch `" in m.value for m in at.sidebar.markdown)
 
 
@@ -115,10 +115,10 @@ def test_switch_keeps_changes_of_old_folder_and_git_state_is_not_mixed(two_folde
     assert any("1 offene Änderung" in e.label for e in at.sidebar.expander)
     caption = " ".join(c.value for c in at.sidebar.caption)
     next(b for b in at.sidebar.button if b.label == "Wechseln").click().run()
-    assert "velocity: 1.0" in sprint.read_text()  # nichts verloren
-    assert not any("offene Änderung" in e.label for e in at.sidebar.expander)  # anderer Ordner
+    assert "velocity: 1.0" in sprint.read_text()  # nothing lost
+    assert not any("offene Änderung" in e.label for e in at.sidebar.expander)  # other folder
     assert caption and git(first, "status", "--porcelain").startswith("M")
-    # Zurückwechseln zeigt die offene Änderung wieder
+    # Switching back shows the open change again
     next(b for b in at.sidebar.button if b.label == "Wechseln").click().run()
     assert any("1 offene Änderung" in e.label for e in at.sidebar.expander)
     assert gitsync.state(first).branch == "main"

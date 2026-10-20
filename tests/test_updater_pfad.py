@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Die Aktualisierung findet Git auch außerhalb des PATH: uv bekommt den Ordner hinten im PATH."""
+"""The update finds Git outside the PATH too: uv gets the folder at the end of the PATH."""
 
 import base64
 import os
@@ -19,7 +19,7 @@ posix = pytest.mark.skipif(sys.platform == "win32", reason="Shell-Skript als Fak
 
 @pytest.fixture
 def no_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Git ist nicht im PATH."""
+    """Git is not in the PATH."""
     leer = tmp_path / "leerer-path"
     leer.mkdir()
     monkeypatch.setenv("PATH", str(leer))
@@ -27,7 +27,7 @@ def no_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def outside(tmp_path: Path, no_path: None, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Ein Git außerhalb des PATH, das find_git findet."""
+    """A Git outside the PATH that find_git finds."""
     fake = fake_git(tmp_path / "benutzer" / "cmd")
     monkeypatch.setattr(gitmod, "git_locations", lambda: [fake])
     return fake
@@ -48,9 +48,9 @@ def test_git_outside_path_is_appended_for_uv(outside: Path):
     before = dict(os.environ)
     env = updater.upgrade_environment()
     assert env is not None
-    # hinten: ein gleichnamiges Programm (python, uv …) im Git-Ordner überdeckt nichts
+    # at the end: a program of the same name (python, uv ...) in the Git folder shadows nothing
     assert env["PATH"] == os.pathsep.join([leer, str(outside.parent)])
-    # nur die Kopie ändert sich: weder global noch die Umgebung für Git
+    # only the copy changes: neither the global one nor the environment for Git
     assert dict(os.environ) == before
     assert gitmod._env(False)["PATH"] == leer
 
@@ -58,7 +58,9 @@ def test_git_outside_path_is_appended_for_uv(outside: Path):
 @posix
 def test_unset_path_keeps_the_system_default(outside: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("PATH")
-    monkeypatch.setattr(updater.shutil, "which", lambda name: None)  # ohne PATH sucht which /bin
+    monkeypatch.setattr(
+        updater.shutil, "which", lambda name: None
+    )  # without PATH, which searches /bin
     env = updater.upgrade_environment()
     assert env is not None
     assert env["PATH"] == os.pathsep.join([os.defpath, str(outside.parent)])
@@ -78,7 +80,7 @@ def test_run_upgrade_passes_the_environment(outside: Path, monkeypatch: pytest.M
 def test_scheduled_upgrade_changes_the_path_only_for_uv(
     outside: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Der Neustart (``then``) läuft mit dem ursprünglichen PATH, uv mit dem ergänzten."""
+    """The restart (``then``) runs with the original PATH, uv with the extended one."""
     monkeypatch.setattr(updater, "log_file", lambda: tmp_path / "log" / "update.log")
     leer = os.environ["PATH"]
     uv_out, then_out = tmp_path / "uv.txt", tmp_path / "then.txt"
@@ -136,8 +138,9 @@ def test_unchanged_when_git_is_in_path(tmp_path: Path, monkeypatch: pytest.Monke
 def test_unusable_git_in_path_gives_way_to_the_fallback_folder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Im PATH liegt nur ein gesperrtes ``git`` (Store-Alias), das brauchbare an einem Ersatzort:
-    uv bekommt den Ersatzordner hinten im PATH, sonst würde es das kaputte starten."""
+    """Only a blocked ``git`` (Store alias) is in the PATH, the usable one in a replacement
+    location: uv gets the replacement folder at the end of the PATH, otherwise it would start the
+    broken one."""
     im_path = fake_git(tmp_path / "im-path")
     ersatz = fake_git(tmp_path / "ersatz")
     monkeypatch.setenv("PATH", str(im_path.parent))
@@ -153,7 +156,7 @@ def test_unusable_git_in_path_gives_way_to_the_fallback_folder(
 def test_unchanged_when_the_usable_git_is_a_later_path_entry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Das brauchbare Git liegt schon im PATH (hinter dem gesperrten): Anhängen änderte nichts."""
+    """The usable Git is already in the PATH (behind the blocked one): appending changes nothing."""
     erstes = fake_git(tmp_path / "eins")
     zweites = fake_git(tmp_path / "zwei")
     monkeypatch.setenv("PATH", os.pathsep.join([str(erstes.parent), str(zweites.parent)]))
@@ -175,11 +178,13 @@ def test_unchanged_when_git_is_missing(
 
 @pytest.fixture
 def windows(outside: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Läuft unter Windows (simuliert): Variable „Path“, Trenner „;“, Flags und Protokoll."""
+    """Runs on Windows (simulated): variable "Path", separator ";", flags and protocol."""
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setattr(os, "environ", {"Path": "C:\\Windows", "Andere": "x"})
     monkeypatch.setattr(os, "pathsep", ";")
-    monkeypatch.setattr(updater.shutil, "which", lambda name: None)  # ohne PATH sucht which /bin
+    monkeypatch.setattr(
+        updater.shutil, "which", lambda name: None
+    )  # without PATH, which searches /bin
     for name, value in {
         "CREATE_NEW_PROCESS_GROUP": 0x200,
         "CREATE_NEW_CONSOLE": 0x10,
@@ -212,7 +217,7 @@ def test_windows_script_sets_the_path_only_around_uv(
     updater.schedule_after_exit("C:\\uv.exe", visible=visible, then=["C:\\sf.exe", "web"])
     assert len(popen.calls) == 1
     command, kwargs = popen.calls[0]
-    assert "env" not in kwargs  # der PowerShell-Prozess selbst erbt den PATH unverändert
+    assert "env" not in kwargs  # the PowerShell process itself inherits the PATH unchanged
     assert kwargs["creationflags"] & subprocess.CREATE_BREAKAWAY_FROM_JOB
     lines = decoded(command)
     new = f"$env:PATH = 'C:\\Windows;{windows.parent}'"

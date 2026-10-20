@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Szenarien, in denen Kennzahlen auseinanderlaufen könnten.
+"""Scenarios in which metrics could diverge.
 
-Jede Kombination wird gegen den Rechenkern und gegen die Seiten der Weboberfläche geprüft:
-Zustand der Sprintdatei × erwartete Fehltage, eingefrorener Forecast PLAN, Produktbasis,
-Rundung, Kapazitätsdetails, Einheit, Sprintlängen, dünne Historie, Stichtag, Sprache.
+Every combination is checked against the calculation core and against the web UI pages: state of
+the sprint file × expected absences, frozen Forecast PLAN, product basis, rounding, capacity
+details, unit, sprint lengths, thin history, reference date, language.
 """
 
 import copy
@@ -38,7 +38,7 @@ from sprintforecast.validate import check_team
 from sprintforecast.web.logic import apply_calendar, calendar_table, with_sprints
 
 TODAY = date(2026, 10, 15)
-TARGET = "2026.23"  # künftiger Sprint ohne Datei
+TARGET = "2026.23"  # future sprint without a file
 APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
 
@@ -72,7 +72,7 @@ def target_sprint(data) -> Sprint:
     return copy.deepcopy(entry.sprint)
 
 
-# --- 1. Zustand der Sprintdatei × erwartete Fehltage ------------------------------------------
+# --- 1. State of the sprint file × expected absences ------------------------------------------
 
 STATES = {
     "keine Datei": (None, None),
@@ -87,9 +87,9 @@ STATES = {
         None,
     ),
     "Fehltage eingetragen": (lambda s: s.absences.update({"anna": 2.0}), "PEOPLE"),
-    # Neu: Das Planning allein bestätigt keine Fehltage (B2) – Stand „unbekannt“ bleibt.
+    # New: the Planning alone does not confirm absences (B2); the state stays "unknown".
     "Commitment gesetzt": (lambda s: setattr(s, "forecast_ist", 9.0), None),
-    # Ältere Dateien ohne gespeicherten Stand: Ein geplanter Sprint gilt als bestätigt.
+    # Older files without a saved state: a planned sprint counts as confirmed.
     "Commitment gesetzt (altes Format)": (
         lambda s: (setattr(s, "forecast_ist", 9.0), setattr(s, "absence_state", None)),
         "PEOPLE",
@@ -115,7 +115,7 @@ def expected_source(state: str, history: int) -> CapacitySource:
     fixed = STATES[state][1]
     if fixed:
         return CapacitySource[fixed]
-    # Mit Personenliste nie der Trend: Historie → erwartete Fehltage, sonst Kalender (A2).
+    # With a people list never the trend: history -> expected absences, otherwise calendar (A2).
     return CapacitySource.ESTIMATED if history else CapacitySource.CALENDAR
 
 
@@ -155,8 +155,8 @@ def test_absences_known_rules():
     assert not absences_known(Sprint(**base, expected_absences={"anna": 1.0}))
     assert absences_known(Sprint(**base, absences={"anna": 1.0}))
     assert absences_known(Sprint(**base, absence_state=AbsenceState.CONFIRMED))
-    assert absences_known(Sprint(**base, forecast_ist=5.0))  # ältere Datei ohne Stand
-    # Ausdrücklich „unbekannt“ gespeichert: Planning-Werte bestätigen nichts
+    assert absences_known(Sprint(**base, forecast_ist=5.0))  # older file without a state
+    # Explicitly saved as "unknown": Planning values confirm nothing
     unknown = AbsenceState.UNKNOWN
     assert not absences_known(Sprint(**base, forecast_ist=5.0, absence_state=unknown))
     assert absences_known(Sprint(**base, absences={"anna": 1.0}, absence_state=unknown))
@@ -187,7 +187,7 @@ def test_more_expected_absences_lower_capacity_and_plan(data_dir: Path):
     assert values[0][1] >= values[1][1] >= values[2][1]
 
 
-# --- 2. Eingefrorener Forecast PLAN -------------------------------------------------------------
+# --- 2. Frozen Forecast PLAN --------------------------------------------------------------------
 
 
 def test_frozen_plan_drives_distribution_but_not_forecast_page(
@@ -209,15 +209,15 @@ def test_frozen_plan_drives_distribution_but_not_forecast_page(
     at = web(data_dir, monkeypatch)
     goto(at, "forecast")
     tile = next(m for m in at.metric if m.label.startswith("2026.22"))
-    assert num(tile.value) == pytest.approx(live)  # Forecast-Seite: live berechnet
+    assert num(tile.value) == pytest.approx(live)  # Forecast page: calculated live
     goto(at, "vorplanung")
     at.selectbox(key="vorplanung-sprint").set_value("2026.22").run()
-    # Board: beide Stände getrennt – aktuell berechnet und beim Planning eingefroren (B1)
+    # Board: both states separately, currently calculated and frozen at Planning (B1)
     headline = next(m for m in at.metric if m.label == "Prognose aktuell 2026.22")
     assert num(headline.value) == pytest.approx(live)
     frozen = next(m for m in at.metric if m.label == "Prognose beim Planning 2026.22")
     assert num(frozen.value) == pytest.approx(5.0)
-    assert num(frozen.delta.replace("−", "-")) == pytest.approx(live - 5.0)  # Differenz
+    assert num(frozen.delta.replace("−", "-")) == pytest.approx(live - 5.0)  # difference
     assert num(next(m for m in at.metric if m.label == "Verteilbar").value) == pytest.approx(5.0)
 
 
@@ -234,7 +234,7 @@ def test_unfreeze_clears_the_frozen_plan_after_confirmation(
     at.selectbox(key="planning-sprint").set_value("2026.21").run()
     assert any("nicht nachträglich ins Planning" in w.value for w in at.warning)
     button = next(b for b in at.button if b.key == "unfreeze-go-2026.21")
-    assert button.disabled  # erst nach Bestätigung
+    assert button.disabled  # only after confirmation
     at.checkbox(key="unfreeze-2026.21").set_value(True).run()
     next(b for b in at.button if b.key == "unfreeze-go-2026.21").click().run()
     assert not at.exception, at.exception
@@ -244,8 +244,8 @@ def test_unfreeze_clears_the_frozen_plan_after_confirmation(
     d = distribution(fc, fc.entry("2026.21"))
     assert not d.plan_frozen and d.available == pytest.approx(fc.entry("2026.21").result.plan)
 
-    # Wird der Sprint erneut eingefroren, ist die Bestätigung nicht mehr angehakt – auch wenn
-    # der Browser den alten Wert noch kennt.
+    # If the sprint is frozen again, the confirmation is no longer checked, even if
+    # the browser still knows the old value.
     at.session_state["unfreeze-2026.21"] = True
     sprint = load(data_dir).sprint("2026.21")
     sprint.forecast_plan = 10.1
@@ -255,7 +255,7 @@ def test_unfreeze_clears_the_frozen_plan_after_confirmation(
     assert next(b for b in at.button if b.key == "unfreeze-go-2026.21").disabled
 
 
-# --- 3. Was-wäre-wenn --------------------------------------------------------------------------
+# --- 3. What-if --------------------------------------------------------------------------------
 
 
 def test_whatif_with_two_open_sprints_and_frozen_target(data_dir: Path):
@@ -269,7 +269,7 @@ def test_whatif_with_two_open_sprints_and_frozen_target(data_dir: Path):
     high = whatif_forecast(fc, {s.id: Assumption(20.0) for s in open_sprints})
     assert fc.entry("2026.22").result.plan is not None
     assert low.entry("2026.22").result.plan < high.entry("2026.22").result.plan
-    # eingefrorene Ziele ändern sich nicht (Verteilung nutzt den eingefrorenen Wert)
+    # frozen targets do not change (the distribution uses the frozen value)
     frozen = copy.deepcopy(data.sprint("2026.22"))
     frozen.forecast_plan = 7.0
     base = build_forecast(with_sprints(data, [frozen]), TODAY)
@@ -288,7 +288,7 @@ def test_whatif_target_is_the_open_sprint_itself(data_dir: Path, monkeypatch: py
     assert any(m.label == "Prognose aktuell 2026.21" for m in at.metric)
 
 
-# --- 4. Produktbasis, feste Anteile ------------------------------------------------------------
+# --- 4. Product basis, fixed shares ------------------------------------------------------------
 
 
 @pytest.mark.parametrize("basis", [ProductBasis.PLAN, ProductBasis.ROADMAP])
@@ -311,7 +311,7 @@ def test_standard_always_adds_up(data_dir: Path, basis, shares):
         )
         if fixed <= 1:
             assert d.total("standard") == pytest.approx(d.available)
-        else:  # Anteile über 100 %: der Rest wird 0, nichts wird negativ
+        else:  # shares above 100 %: the rest becomes 0, nothing goes negative
             assert all(r.standard is None or r.standard >= 0 for r in d.rows)
         expected = d.plan * (
             data.team.forecast.roadmap_share if basis is ProductBasis.ROADMAP else 1
@@ -326,10 +326,10 @@ def test_products_without_catalog_entry_and_inactive_products(data_dir: Path):
     fc = build_forecast(with_sprints(data, [sprint]), TODAY)
     d = distribution(fc, fc.entry("2026.20"))
     assert any(r.product.id == "geloescht" and not r.active for r in d.rows)
-    assert d.total("standard") == pytest.approx(d.available)  # nicht betreute Produkte: kein Anteil
+    assert d.total("standard") == pytest.approx(d.available)  # unsupported products: no share
 
 
-# --- 5. Rundung --------------------------------------------------------------------------------
+# --- 5. Rounding -------------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("rounding", [0, 1, 2])
@@ -348,7 +348,7 @@ def test_rounding_setting_is_applied_everywhere(data_dir: Path, rounding: int):
     assert f"| {fc.upcoming()[1].sprint.id} |" in render(fc)
 
 
-# --- 6. Kapazitätsdetails ----------------------------------------------------------------------
+# --- 6. Capacity details -----------------------------------------------------------------------
 
 
 def test_capacity_details_add_up(data_dir: Path):
@@ -360,10 +360,10 @@ def test_capacity_details_add_up(data_dir: Path):
     breakdown = sprint_capacity(data.team, data.people, sprint)
     assert breakdown.gross == pytest.approx(sum(r.capacity for r in breakdown.people))
     assert breakdown.overhead == pytest.approx(breakdown.overhead_days_part)
-    # Intern ungerundet (A14); gerundet wird erst für Anzeige und Einfrieren.
+    # Unrounded internally (A14); rounded only for display and freezing.
     assert breakdown.capacity == pytest.approx(breakdown.gross - breakdown.overhead)
     assert breakdown.rounded == round_half_up(breakdown.gross - breakdown.overhead, 1)
-    # Prozent und PT gleichzeitig: nur ein Abzug
+    # Percent and PD at the same time: only one deduction
     data.team.capacity.overhead_share = 0.5
     again = sprint_capacity(data.team, data.people, sprint)
     assert again.capacity == breakdown.capacity
@@ -375,8 +375,8 @@ def test_capacity_details_add_up(data_dir: Path):
 
 
 def test_capacity_stays_unrounded_internally(data_dir: Path):
-    """A14: Der Nenner der normierten Velocity ist nicht abgerundet; ``rounded`` rundet
-    kaufmännisch."""
+    """A14: The denominator of the normalized velocity is not rounded down; ``rounded`` rounds
+    half up."""
     from sprintforecast.capacity import sprint_capacity
 
     data = load(data_dir)
@@ -408,7 +408,7 @@ def test_zero_fte_and_midsprint_change(data_dir: Path):
     anna_after = next(r for r in after.people if r.person.id == "anna")
     assert (
         anna_after.workdays < anna_before.workdays
-    )  # nach dem Wechsel auf FTE 0 zählen nur frühere Tage
+    )  # after the switch to FTE 0, only earlier days count
     assert anna_after.capacity < anna_before.capacity
     anna.memberships = [Membership(start=anna.memberships[0].start, end=None, fte=0.0)]
     gone = sprint_capacity(data.team, data.people, sprint)
@@ -425,7 +425,7 @@ def test_absences_cannot_exceed_workdays(data_dir: Path):
     assert any(i.level.value == "Error" for i in issues)
 
 
-# --- 7. Einheit SP ----------------------------------------------------------------------------
+# --- 7. Unit SP -------------------------------------------------------------------------------
 
 
 def test_unit_sp_changes_labels_but_not_numbers(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
@@ -443,10 +443,10 @@ def test_unit_sp_changes_labels_but_not_numbers(data_dir: Path, monkeypatch: pyt
     headline = next(m for m in at.metric if m.label == "Prognose aktuell 2026.22")
     assert headline.value.endswith(" SP")
     capacity = next(m for m in at.metric if m.label == "Kapazität (PT)")
-    assert "PT" not in capacity.value or "SP" not in capacity.value  # Kapazität bleibt PT
+    assert "PT" not in capacity.value or "SP" not in capacity.value  # capacity stays in PD
 
 
-# --- 8. Sprintlängen ---------------------------------------------------------------------------
+# --- 8. Sprint lengths -------------------------------------------------------------------------
 
 
 def test_longer_sprint_scales_capacity_and_shifts_followers(data_dir: Path):
@@ -454,7 +454,7 @@ def test_longer_sprint_scales_capacity_and_shifts_followers(data_dir: Path):
     fc = build_forecast(data, TODAY)
     sprints = [e.sprint for e in fc.upcoming()]
     rows = calendar_table(data, sprints, TODAY)
-    rows[1]["Last day"] = sprints[1].end + timedelta(days=13)  # 2026.22 vier Wochen
+    rows[1]["Last day"] = sprints[1].end + timedelta(days=13)  # 2026.22 four weeks
     after, errors = apply_calendar(data, sprints, rows)
     assert not errors
     assert after[1].end == sprints[1].end + timedelta(days=14)
@@ -476,7 +476,7 @@ def test_sequential_to_yearly_numbering_keeps_order(data_dir: Path):
     assert next_id("2026.26", date(2027, 1, 6), Numbering.YEARLY) == "2027.1"
 
 
-# --- 9. Dünne Historie, Trend-Modi -------------------------------------------------------------
+# --- 9. Thin history, trend modes --------------------------------------------------------------
 
 
 @pytest.mark.parametrize("keep", [0, 1, 2, 3])
@@ -484,7 +484,7 @@ def test_thin_history_does_not_break_any_page(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, keep: int
 ):
     sprints = sorted((data_dir / "demo" / "sprints").glob("*.yaml"))
-    for path in sprints[: len(sprints) - keep - 2]:  # nur die jüngsten Dateien behalten
+    for path in sprints[: len(sprints) - keep - 2]:  # keep only the most recent files
         path.unlink()
     at = web(data_dir, monkeypatch)
     for page in ("forecast", "vorplanung", "planning", "review", "produkte", "analyse", "fehltage"):
@@ -502,16 +502,16 @@ def test_trend_modes_match_formula_steps(data_dir: Path, mode: TrendMode):
         assert calc.rstrip().endswith(trend) or trend in calc, (mode, e.sprint.id, calc, trend)
 
 
-# --- 10. Stichtag ------------------------------------------------------------------------------
+# --- 10. Reference date ------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
     ("today", "current"),
     [
-        (date(2026, 10, 14), "2026.21"),  # erster Tag
-        (date(2026, 10, 27), "2026.21"),  # letzter Tag
-        (date(2026, 10, 28), "2026.22"),  # Ende ist exklusiv
-        (date(2026, 10, 17), "2026.21"),  # Wochenende
+        (date(2026, 10, 14), "2026.21"),  # first day
+        (date(2026, 10, 27), "2026.21"),  # last day
+        (date(2026, 10, 28), "2026.22"),  # end is exclusive
+        (date(2026, 10, 17), "2026.21"),  # weekend
     ],
 )
 def test_today_boundaries(data_dir: Path, today: date, current: str):
@@ -524,7 +524,7 @@ def test_today_boundaries(data_dir: Path, today: date, current: str):
     assert f"| {current} |" in report and "**laufend**" in report
 
 
-# --- 11. Sprache -------------------------------------------------------------------------------
+# --- 11. Language ------------------------------------------------------------------------------
 
 
 def test_english_ui_shows_same_numbers(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
@@ -544,7 +544,7 @@ def test_english_ui_shows_same_numbers(data_dir: Path, monkeypatch: pytest.Monke
         i18n.save_language("de")
 
 
-# --- Funktionen der neuen Abläufe -------------------------------------------------------------
+# --- Functions of the new flows ---------------------------------------------------------------
 
 
 def test_expected_absences_roundtrip_and_validation(data_dir: Path):
@@ -579,14 +579,14 @@ def test_preplanning_saves_expected_absences_and_changes_plan(
         return num(next(m for m in at.metric if m.label == f"Prognose aktuell {TARGET}").value)
 
     few, many = plan_with(2.0), plan_with(8.0)
-    assert many < few  # mehr angekündigte Fehltage → kleinerer Forecast PLAN
+    assert many < few  # more announced absences -> smaller Forecast PLAN
     next(b for b in at.button if b.label == "PO-Vorplanung speichern").click().run()
     saved = yaml.safe_load((data_dir / "demo" / "sprints" / f"{TARGET}.yaml").read_text())
     assert sum(saved["expected_absences"].values()) == 8
-    assert not saved.get("absences")  # bestätigt wurde nichts
+    assert not saved.get("absences")  # nothing was confirmed
     fc = build_forecast(load(data_dir), TODAY)
     assert fc.entry(TARGET).result.plan_capacity_source is CapacitySource.EXPECTED
-    assert fc.entry(TARGET).result.plan == many  # gespeichert = angezeigt
+    assert fc.entry(TARGET).result.plan == many  # saved = displayed
 
 
 def test_planning_prefills_absences_and_products_from_preplanning(
@@ -603,7 +603,7 @@ def test_planning_prefills_absences_and_products_from_preplanning(
     goto(at, "planning")
     at.selectbox(key="planning-sprint").set_value(TARGET).run()
     assert any("Vorbelegt mit den angekündigten Fehltagen" in i.value for i in at.info)
-    # Bestätigen übernimmt die vorbelegten Fehltage als echte Fehltage
+    # Confirming adopts the prefilled absences as real absences
     next(b for b in at.button if b.label == "Fehltage speichern und weiter").click().run()
     assert not at.exception, at.exception
     saved = load(data_dir).sprint(TARGET)

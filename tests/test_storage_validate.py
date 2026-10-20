@@ -63,8 +63,8 @@ def test_non_finite_number_in_yaml_gives_error(data_dir: Path, raw: str):
 def test_non_finite_setting_in_team_yaml_gives_error(
     data_dir: Path, section: str, key: str, raw: str
 ):
-    """Auch die Einstellungen in team.yaml: vorher meldete die Prüfung nichts und die Berechnung
-    stürzte ab (nan) bzw. das Laden brach mit OverflowError ab (inf bei ganzen Zahlen)."""
+    """Also the settings in team.yaml: previously the check reported nothing and the calculation
+    crashed (nan) or loading aborted with OverflowError (inf for integers)."""
     import re
 
     path = data_dir / "demo" / "team.yaml"
@@ -73,7 +73,7 @@ def test_non_finite_setting_in_team_yaml_gives_error(
     assert block, section
     if re.search(rf"^  {key}:", block.group(0), re.M):
         changed = re.sub(rf"^(  {key}:).*$", rf"\1 {raw}", block.group(0), flags=re.M)
-    else:  # Standardwerte stehen nicht in der Datei: Zeile ergänzen
+    else:  # defaults are not in the file: add the line
         changed = block.group(0) + f"  {key}: {raw}\n"
     path.write_text(text.replace(block.group(0), changed), encoding="utf-8")
     with pytest.raises(DataError, match=r"team\.yaml"):
@@ -114,7 +114,7 @@ def test_capacity_sources_in_forecast(data_dir: Path):
     assert sources == {
         "2026.21": CapacitySource.PEOPLE,
         "2026.22": CapacitySource.PEOPLE,
-        # Fehltage unbekannt: Kalender und Personen, Fehltage nach der Historie geschätzt
+        # Absences unknown: calendar and people, absences estimated from history
         "2026.23": CapacitySource.ESTIMATED,
         "2026.24": CapacitySource.ESTIMATED,
     }
@@ -130,17 +130,17 @@ def test_apply_planning():
 
     s = Sprint("x", d(2026, 1, 1), d(2026, 1, 15))
     assert apply_planning(s, None, Planning(carryover=1, backlog=7.5, corrections=[2])) is True
-    assert s.forecast_ist == 8.5  # Überkipper + Backlog, Korrekturen nur fürs Delta
+    assert s.forecast_ist == 8.5  # carry-over + backlog, corrections only for the delta
     assert s.planning.total == 6.5
     assert apply_planning(s, 9.0, Planning(backlog=7.5)) is False
     assert s.forecast_ist == 9.0
     assert apply_planning(s, 9.0, Planning()) is False
-    assert s.planning is None  # leere Kontrollrechnung = nicht erfasst
+    assert s.planning is None  # empty cross-check = not recorded
 
 
 def test_planning_plausibility(data_dir: Path):
     data = Repository(data_dir).load("demo")
-    s = data.sprint("2026.21")  # laufend; Demo: Überkipper 0.25 + Backlog 9.75 = IST 10
+    s = data.sprint("2026.21")  # current; demo: carry-over 0.25 + backlog 9.75 = commitment 10
     s.forecast_ist = 12
     messages = [i.message for i in check_team(data, TODAY)]
     assert any("Commitment 12 weicht von Überkipper + Backlog (10)" in m for m in messages)
@@ -149,7 +149,7 @@ def test_planning_plausibility(data_dir: Path):
     messages = [i.message for i in check_team(data, TODAY)]
     assert not any("weicht" in m for m in messages)
     assert any("Korrekturen sind größer" in m for m in messages)
-    # abgeschlossene Sprints (z. B. importierte Historie) werden nicht geprüft
+    # completed sprints (e.g. imported history) are not checked
     assert not any("weicht" in i.message for i in check_team(data, date(2027, 1, 1)))
 
 
@@ -181,12 +181,12 @@ def test_team_key_problem_names_the_cause():
     assert "Windows" in team_key_problem("con")
     assert "Windows" in team_key_problem("COM1.txt")
     assert team_key_problem("../x").startswith("Kürzel: Kleinbuchstaben a–z (ohne Umlaute)")
-    assert team_key_problem("köln") == team_key_problem("../x")  # Umlaute sind nicht erlaubt
+    assert team_key_problem("köln") == team_key_problem("../x")  # umlauts are not allowed
     assert team_key_problem("a" * 65) == team_key_problem("../x")
 
 
 def test_existing_team_with_unusual_name_still_loads(data_dir: Path):
-    """Nur neue Kürzel werden geprüft; ältere Teams (Großbuchstaben, Punkt) laufen unverändert."""
+    """Only new keys are checked; older teams (capital letters, dot) run unchanged."""
     shutil.copytree(data_dir / "demo", data_dir / "Alt.Team_X")
     repo = Repository(data_dir)
     assert team_key_problem("Alt.Team_X")
@@ -198,15 +198,15 @@ def test_existing_team_with_unusual_name_still_loads(data_dir: Path):
 def test_clashing_team_ignores_case(data_dir: Path):
     repo = Repository(data_dir)
     shutil.copytree(data_dir / "demo", data_dir / "Alpha")
-    assert repo.clashing_team("Alpha") == "Alpha"  # gleicher Name
-    assert repo.clashing_team("alpha") == "Alpha"  # nur anders geschrieben
-    assert repo.clashing_team("../demo") is None  # kein Treffer über einen Pfad
+    assert repo.clashing_team("Alpha") == "Alpha"  # same name
+    assert repo.clashing_team("alpha") == "Alpha"  # only spelled differently
+    assert repo.clashing_team("../demo") is None  # no match via a path
     assert repo.clashing_team("beta") is None
 
 
 @pytest.mark.parametrize("key", ["../out", "con", "Team X", "köln"])
 def test_import_refuses_unsuitable_keys_for_new_teams(data_dir: Path, key: str):
-    """Der Einstieg für Import-Plugins legt ein neues Team an: auch dort wird das Kürzel geprüft."""
+    """The entry point for import plugins creates a new team: the key is checked there as well."""
     repo = Repository(data_dir)
     data = repo.load("demo")
     team = copy.deepcopy(data.team)

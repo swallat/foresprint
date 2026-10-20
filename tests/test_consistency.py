@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Konsistenz: Dieselbe Kennzahl muss an allen Stellen denselben Wert haben.
+"""Consistency: the same metric must have the same value everywhere.
 
-Die Wahrheit liefert der Rechenkern (``build_forecast``). Verglichen werden Bericht
-(FORECAST.md), Kommandozeile, Formel-Rechenwege, Produktverteilung und die Seiten der
-Weboberfläche für jeden künftigen Sprint – auch für Sprints ohne Datei (Trend) und solche
-mit Datei (Personenliste).
+The calculation core (``build_forecast``) is the source of truth. Compared are the report
+(FORECAST.md), command line, formula calculation paths, product distribution and the web UI
+pages for every future Sprint, including Sprints without a file (trend) and those with a
+file (people list).
 """
 
 import re
@@ -44,7 +44,7 @@ APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
 
 
 def num(text: str) -> float:
-    """„10,1 PT“, „9,0“, „25,5 (Personenliste)“ → Zahl."""
+    """'10,1 PT', '9,0', '25,5 (Personenliste)' → number."""
     match = re.search(r"-?\d+(?:[.,]\d+)?", text)
     assert match, text
     return float(match.group().replace(",", "."))
@@ -79,11 +79,11 @@ def upcoming_ids(fc) -> list[str]:
     return [e.sprint.id for e in fc.upcoming()]
 
 
-# --- Rechenkern ↔ Bericht ↔ Kommandozeile ↔ Rechenweg ----------------------------------
+# --- Calculation core ↔ report ↔ command line ↔ calculation path ----------------------------------
 
 
 def test_internal_identities_hold(fc):
-    """Roadmap + Kleinkram = Forecast PLAN; Plan = abgerundet(Trend / Referenz × Kapazität)."""
+    """Roadmap + small items = Forecast PLAN; plan = floor(trend / reference × capacity)."""
     ref = fc.data.team.forecast.reference_capacity
     for e in fc.upcoming():
         r = e.result
@@ -97,7 +97,7 @@ def test_report_table_matches_engine(fc):
     rows = {}
     for line in render(fc).splitlines():
         cells = [c.strip() for c in line.strip("|").split("|")]
-        if line.startswith("| 20") and len(cells) == 9:  # Prognosetabelle
+        if line.startswith("| 20") and len(cells) == 9:  # forecast table
             rows[cells[0]] = cells
     assert set(rows) == set(upcoming_ids(fc))
     for e in fc.upcoming():
@@ -151,7 +151,7 @@ def test_formula_steps_reproduce_the_numbers(fc):
         assert half_up(r.plan_capacity) in by_key["capacity"].calculation
 
 
-# --- Produktverteilung -------------------------------------------------------------------
+# --- Product distribution -------------------------------------------------------------------
 
 
 def test_distribution_adds_up_to_available(fc):
@@ -176,7 +176,7 @@ def test_fixed_share_distribution_adds_up(data_dir: Path):
             assert d.total("standard") == pytest.approx(d.available)
 
 
-# --- Weboberfläche -----------------------------------------------------------------------
+# --- Web UI -----------------------------------------------------------------------
 
 
 def test_forecast_page_matches_engine(web: AppTest, fc):
@@ -222,8 +222,8 @@ def test_planning_vorplanung_products_and_analysis_agree(web: AppTest, fc, sprin
 
 
 def test_planning_page_shows_engine_plan(web: AppTest, fc):
-    """Planning-Seite Schritt 2: Forecast PLAN wie im Rechenkern (Sprint ohne Fehltagebestätigung
-    unverändert, mit gespeicherter Datei ebenso)."""
+    """Planning page step 2: Forecast PLAN as in the calculation core (Sprint without absences
+    confirmation unchanged, likewise with a saved file)."""
     sprint = "2026.22"
     page(web, "planning")
     web.selectbox(key="planning-sprint").set_value(sprint).run()
@@ -245,8 +245,8 @@ def test_analysis_band_uses_the_same_plan(web: AppTest, fc):
 
 
 def test_absences_page_preview_matches_engine(web: AppTest, fc):
-    """Kapazität (mit Quelle), Stand der Fehltage und Forecast PLAN der Vorschau = Rechenkern –
-    für alle Sprints, auch für Sprints mit unbekannten Fehltagen."""
+    """Capacity (with source), absences status and Forecast PLAN of the preview = calculation
+    core, for all Sprints, including Sprints with unknown absences."""
     from sprintforecast.report import absence_status_label, capacity_label
 
     page(web, "fehltage")
@@ -269,8 +269,8 @@ def test_history_table_matches_engine(web: AppTest, fc):
 
 
 def test_review_defaults_to_computed_capacity(web: AppTest, data_dir: Path):
-    """Die vorbelegten verfügbaren Personentage im Review = Kapazität aus Personenliste, so
-    gerundet, wie sie eingefroren wird (A14: intern ungerundet, ``rounded`` für Speicherung)."""
+    """The prefilled available person days in the Review = capacity from the people list,
+    rounded the way it is frozen (A14: unrounded internally, ``rounded`` for storage)."""
     data = Repository(data_dir).load("demo")
     sprint = data.sprint("2026.21")
     expected = sprint.capacity if sprint.capacity is not None else None
@@ -281,20 +281,21 @@ def test_review_defaults_to_computed_capacity(web: AppTest, data_dir: Path):
     assert web.number_input(key="capacity-2026.21").value == pytest.approx(expected)
 
 
-# --- Kapazität auf der Rundungsgrenze (A14) ----------------------------------------------------
+# --- Capacity at the rounding boundary (A14) ----------------------------------------------------
 #
-# Ben fehlt 3,5 statt 3 Tage: Die Kapazität von 2026.21 ist 25,25, genau die Hälfte. Pythons
-# Formatierung ergäbe „25,2“ (gerade Ziffer), kaufmännisch gerundet gilt überall „25,3“. Die
-# Prognose rechnet dagegen mit 25,25. Die Erwartungen stehen als Text da oder kommen aus
-# ``half_up`` (unabhängig von ``fmt_capacity``), nicht aus dem getesteten Formatierer.
+# Ben is absent 3.5 instead of 3 days: the capacity of 2026.21 is 25.25, exactly half.
+# Python's formatting would give "25,2" (even digit); rounded half up, "25,3" applies
+# everywhere. The forecast, however, calculates with 25.25. The expectations are written out
+# as text or come from ``half_up`` (independent of ``fmt_capacity``), not from the formatter
+# under test.
 
 BORDER = "2026.21"
 BORDER_LABEL = "25,3 (Personenliste)"
-LATER = "2026-11-20"  # Stichtag, an dem 2026.21 vorbei ist (Vergangenheitstabellen)
+LATER = "2026-11-20"  # reference date on which 2026.21 is over (past tables)
 
 
 def half_up(value: float, digits: int = 1) -> str:
-    """Orakel: kaufmännisch gerundet, mit Dezimalkomma (über Decimal, ohne Tausenderpunkt)."""
+    """Oracle: rounded half up, with decimal comma (via Decimal, without thousands separator)."""
     rounded = Decimal(repr(value)).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP)
     return f"{rounded:.{digits}f}".replace(".", ",")
 
@@ -334,8 +335,8 @@ def cli(data_dir: Path, *args: str, today: str = "2026-10-15", input: str | None
 
 
 def table_cells(text: str, first: str) -> list[str]:
-    """Zellen der ersten Tabellenzeile (Rich oder Markdown), deren erste Zelle mit ``first``
-    beginnt."""
+    """Cells of the first table row (Rich or Markdown) whose first cell starts with
+    ``first``."""
     for line in text.splitlines():
         cells = [c.strip() for c in re.split(r"[|│┃]", line.strip())][1:-1]
         if cells and cells[0].startswith(first):
@@ -348,7 +349,7 @@ def sprint_file(data_dir: Path, sprint: str) -> dict:
 
 
 def history_capacity(at: AppTest, sprint: str) -> str:
-    """Kapazität in der Verlauf-Tabelle der Prognose-Seite."""
+    """Capacity in the history table of the forecast page."""
     table = next(d.value for d in at.dataframe if "Ø n. Velocity" in d.value.columns)
     return table[table["Sprint"] == sprint].iloc[0]["Kapazität (PT)"]
 
@@ -383,19 +384,19 @@ def border_web(border_dir: Path, monkeypatch: pytest.MonkeyPatch) -> AppTest:
 )
 def test_fmt_capacity_rounds_half_up(value: float, digits: int, expected: str):
     assert fmt_capacity(value, digits) == expected
-    assert half_up(value, digits) == expected  # das Orakel selbst
+    assert half_up(value, digits) == expected  # the oracle itself
     assert fmt_capacity(None) == "–"
     assert fmt_capacity(1234.25) == "1.234,3"
 
 
 def test_border_capacity_is_exactly_half(border_dir: Path, border_fc):
     r = border_fc.entry(BORDER).result
-    assert r.plan_capacity == pytest.approx(25.25)  # intern ungerundet
-    # Pythons Formatierung rundet zur geraden Ziffer: das war die uneinheitliche Anzeige.
+    assert r.plan_capacity == pytest.approx(25.25)  # unrounded internally
+    # Python's formatting rounds to the even digit: that was the inconsistent display.
     assert fmt(r.plan_capacity) == "25,2"
     data = Repository(border_dir).load("demo")
     breakdown = sprint_capacity(data.team, data.people, data.sprint(BORDER))
-    assert breakdown.rounded == 25.3  # Vorbelegung im Review und eingefrorener Wert
+    assert breakdown.rounded == 25.3  # prefill in the Review and frozen value
 
 
 def test_border_capacity_is_displayed_alike_in_report_cli_and_steps(border_dir: Path, border_fc):
@@ -415,14 +416,14 @@ def test_border_capacity_is_displayed_alike_in_report_cli_and_steps(border_dir: 
 
 
 def test_capacity_table_rounds_every_row_like_the_sum(border_dir: Path):
-    """Personenzeilen und Summe stehen in einer Tabelle: Ben (10 − 3,5) × 0,5 = 3,25 → 3,3."""
+    """Person rows and total are in one table: Ben (10 − 3.5) × 0.5 = 3.25 → 3.3."""
     out = cli(border_dir, "capacity", "demo", BORDER)
     shown = {name: table_cells(out, name)[-1] for name in ("Anna", "Ben", "Cem", "Dana", "Summe")}
     assert shown == {"Anna": "10,0", "Ben": "3,3", "Cem": "5,0", "Dana": "7,0", "Summe": "25,3"}
 
 
 def test_capacity_table_rounds_the_share_deduction_like_the_sum(data_dir: Path):
-    """Brutto 22,5, Abzug 50 % = 11,25 → 11,3; Dana 4,25 → 4,3 (Python zeigte 11,2 und 4,2)."""
+    """Gross 22.5, deduction 50% = 11.25 → 11.3; Dana 4.25 → 4.3 (Python showed 11.2 and 4.2)."""
     with_absences(data_dir, BORDER, ben=3.5, cem=5, dana=5.75)
     with_capacity_settings(data_dir, overhead_share=0.5)
     out = cli(data_dir, "capacity", "demo", BORDER)
@@ -432,7 +433,7 @@ def test_capacity_table_rounds_the_share_deduction_like_the_sum(data_dir: Path):
 
 
 def test_capacity_table_rounds_the_fixed_deduction_like_the_sum(border_dir: Path):
-    """Der feste Abzug ist auf die Kapazität der Person begrenzt: Σ = 25,25 → 25,3, Rest 0."""
+    """The fixed deduction is capped at the person's capacity: Σ = 25.25 → 25.3, remainder 0."""
     with_capacity_settings(border_dir, overhead_days=100.0)
     out = cli(border_dir, "capacity", "demo", BORDER)
     assert table_cells(out, "Abzug")[-1] == "−25,3"
@@ -459,7 +460,7 @@ def test_border_capacity_in_web_pages_and_frozen_value(
 
     page(border_web, "planning")
     border_web.selectbox(key="planning-sprint").set_value(BORDER).run()
-    for step_index in (0, 1):  # Fehltage, Forecast PLAN
+    for step_index in (0, 1):  # absences, Forecast PLAN
         border_web.radio(key="planning-step").set_value(step_index).run()
         assert not border_web.exception, border_web.exception
         tile = next(m for m in border_web.metric if m.label == "Kapazität (PT)")
@@ -479,7 +480,7 @@ def test_border_capacity_in_web_pages_and_frozen_value(
 def test_border_capacity_in_the_announcement_for_the_next_sprint(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Fehltage-Seite: „In den nächsten Sprint … (Kapazität …)“. 2026.22 mit Ben 3,5: 28,25."""
+    """Absences page: "fit into the next sprint … (capacity …)". 2026.22 with Ben 3.5: 28.25."""
     with_absences(data_dir, "2026.22", ben=3.5)
     at = page(open_app(data_dir, monkeypatch), "fehltage")
     assert any("(Kapazität 28,3 PT)" in m.value for m in at.markdown), [
@@ -487,15 +488,15 @@ def test_border_capacity_in_the_announcement_for_the_next_sprint(
     ]
 
 
-# --- Vergangene Sprints, erfasste Kapazität ---------------------------------------------------
+# --- Past Sprints, recorded capacity ---------------------------------------------------
 
 
 def test_border_capacity_in_past_sprint_tables(border_dir: Path, monkeypatch: pytest.MonkeyPatch):
-    """2026.21 ist vorbei und nicht eingefroren: Die Kapazität kommt aus der Personenliste."""
+    """2026.21 is over and not frozen: the capacity comes from the people list."""
     fc = build_forecast(Repository(border_dir).load("demo"), date.fromisoformat(LATER))
     assert fc.entry(BORDER) in fc.history()
     assert fc.entry(BORDER).result.capacity.value == pytest.approx(25.25)
-    assert table_cells(render(fc), BORDER)[1] == "25,3"  # Bericht, Verlauf
+    assert table_cells(render(fc), BORDER)[1] == "25,3"  # report, history
     assert table_cells(cli(border_dir, "forecast", "demo", today=LATER), BORDER)[3] == "25,3"
     at = page(open_app(border_dir, monkeypatch, today=LATER), "forecast")
     assert history_capacity(at, BORDER) == "25,3"
@@ -503,7 +504,7 @@ def test_border_capacity_in_past_sprint_tables(border_dir: Path, monkeypatch: py
 
 @pytest.fixture
 def recorded_dir(data_dir: Path) -> Path:
-    """Kapazität 25,25 in der Sprintdatei – die Personenliste ergäbe 25,5."""
+    """Capacity 25.25 in the sprint file; the people list would give 25.5."""
     return with_recorded_capacity(data_dir, BORDER, 25.25)
 
 
@@ -544,10 +545,10 @@ def test_recorded_capacity_in_the_cli_absences_prompt(recorded_dir: Path):
     assert "feste Kapazität (25,3)" in out and "25.25" not in out
 
 
-# --- Jede Quelle der Kapazität, jede Stellenzahl ------------------------------------------------
+# --- Every source of capacity, every number of decimal places -------------------------------------
 
-# Die Personenliste rechnet den Schritt aus den Personen (siehe oben); alle anderen Quellen zeigen
-# die Kapazität des Ergebnisses.
+# The people list computes the step from the people (see above); all other sources show the
+# capacity of the result.
 SHOWN_SOURCES = [
     CapacitySource.RECORDED,
     CapacitySource.TREND,
@@ -560,7 +561,7 @@ SHOWN_SOURCES = [
 @pytest.mark.parametrize("source", SHOWN_SOURCES)
 @pytest.mark.parametrize(("digits", "shown"), [(1, "25,3"), (0, "25"), (2, "25,25")])
 def test_capacity_step_of_every_source_rounds_half_up(fc, source: CapacitySource, digits, shown):
-    """Der Kapazitäts-Schritt zeigt für jede Quelle 25,25 gerundet auf die Stellenzahl des Teams."""
+    """The capacity step shows 25.25 for every source, rounded to the team's decimal places."""
     e = fc.entry("2026.22")
     result = replace(e.result, plan_capacity=25.25, plan_capacity_source=source)
     patched = replace(e, result=result, capacity_digits=digits)
@@ -572,7 +573,7 @@ def test_capacity_step_of_every_source_rounds_half_up(fc, source: CapacitySource
 def test_capacity_rounding_setting_is_followed_by_display_and_frozen_value(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, rounding: int, shown: str, frozen: float
 ):
-    """``capacity.rounding`` gilt für Anzeige, Vorbelegung und eingefrorenen Wert gleich."""
+    """``capacity.rounding`` applies equally to display, prefill and frozen value."""
     with_absences(data_dir, BORDER, ben=3.5)
     with_capacity_settings(data_dir, rounding=rounding)
     data = Repository(data_dir).load("demo")
@@ -599,13 +600,13 @@ def test_capacity_rounding_setting_is_followed_by_display_and_frozen_value(
     assert sprint_file(data_dir, BORDER)["capacity"] == frozen
 
 
-# --- Gleichungen im Rechenweg -----------------------------------------------------------------
+# --- Equations in the calculation path ------------------------------------------------------------
 
 
 def test_equations_contain_the_numbers_used_for_the_calculation(border_fc):
-    """In der Gleichung stehen Trend und Kapazität, mit denen gerechnet wird (bis 4 Stellen,
-    ohne überflüssige Nullen), nicht die für die Anzeige gerundeten Werte: Nachrechnen ergibt
-    das gezeigte Ergebnis. Der Plan bleibt abgerundet."""
+    """The equation shows the trend and capacity actually used in the calculation (up to 4
+    digits, without superfluous zeros), not the values rounded for display: recalculating
+    gives the displayed result. The plan stays rounded down."""
     ref = border_fc.data.team.forecast.reference_capacity
     shown = {"2026.21": "25,25", "2026.22": "30", "2026.23": "30,4375", "2026.24": "30,4375"}
     assert {e.sprint.id for e in border_fc.upcoming()} == set(shown)
@@ -622,7 +623,7 @@ def test_equations_contain_the_numbers_used_for_the_calculation(border_fc):
         assert num(trend_text) == pytest.approx(r.normalized_velocity.trend, abs=5e-5)
         assert num(capacity_text) == pytest.approx(r.plan_capacity, abs=5e-5)
         recomputed = num(trend_text) / ref * num(capacity_text)
-        assert fmt(recomputed, 3) == raw_text, calculation  # die Gleichung stimmt
+        assert fmt(recomputed, 3) == raw_text, calculation  # the equation holds
         assert num(plan_text) == r.plan == round_down(recomputed, 1)
 
         text = plain_explanation(border_fc, e)
@@ -632,7 +633,7 @@ def test_equations_contain_the_numbers_used_for_the_calculation(border_fc):
 def test_velocity_step_uses_the_exact_capacity(border_dir: Path):
     data = Repository(border_dir).load("demo")
     data.sprint(BORDER).velocity = 10.0
-    fc = build_forecast(data, date.fromisoformat(LATER))  # 2026.21 vorbei, nicht eingefroren
+    fc = build_forecast(data, date.fromisoformat(LATER))  # 2026.21 over, not frozen
     e = fc.entry(BORDER)
     assert e.result.plan_capacity_source is CapacitySource.PEOPLE
     calculation = step(fc, e, "normalized_velocity").calculation
@@ -640,10 +641,10 @@ def test_velocity_step_uses_the_exact_capacity(border_dir: Path):
     assert num(calculation.rsplit("= ", 1)[1]) == pytest.approx(10 / 25.25 * 45, abs=5e-3)
 
 
-# --- Der Plan rechnet mit der ungerundeten Kapazität (je Quelle) -------------------------------
+# --- The plan calculates with the unrounded capacity (per source) -------------------------------
 
-# Ben 0,5, Cem 4,5 und Dana 3 Fehltage: Kapazität 27,25. Mit der gerundeten 27,3 käme ein anderer
-# Plan (10,2) heraus als mit der ungerundeten Kapazität (10,1); gerechnet wird mit 27,25.
+# Ben 0.5, Cem 4.5 and Dana 3 absences: capacity 27.25. With the rounded 27.3 a different
+# plan (10.2) would result than with the unrounded capacity (10.1); 27.25 is used.
 
 
 def assert_plan_from_unrounded_capacity(fc, sprint: str, source: CapacitySource) -> None:
@@ -653,7 +654,7 @@ def assert_plan_from_unrounded_capacity(fc, sprint: str, source: CapacitySource)
     trend = r.normalized_velocity.trend
     assert r.plan_capacity_source is source
     assert r.plan_capacity == pytest.approx(27.25)
-    assert round_down(trend / ref * 27.3, 1) != round_down(trend / ref * 27.25, 1)  # Vorbedingung
+    assert round_down(trend / ref * 27.3, 1) != round_down(trend / ref * 27.25, 1)  # precondition
     assert r.plan == round_down(trend / ref * 27.25, 1) == 10.1
     assert capacity_label(e).startswith("27,3 ")
     calculation = next(s for s in steps(fc, e) if s.key == "plan").calculation
@@ -661,15 +662,15 @@ def assert_plan_from_unrounded_capacity(fc, sprint: str, source: CapacitySource)
 
 
 def test_plan_is_computed_from_the_unrounded_capacity(data_dir: Path):
-    """Quelle Personenliste (bestätigte Fehltage)."""
+    """Source people list (confirmed absences)."""
     with_absences(data_dir, BORDER, ben=0.5, cem=4.5)
     fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
     assert_plan_from_unrounded_capacity(fc, BORDER, CapacitySource.PEOPLE)
 
 
 def test_plan_with_announced_absences_uses_the_unrounded_capacity(data_dir: Path):
-    """Quelle angekündigte Fehltage (PO-Vorplanung, nichts bestätigt): Die Kapazität mit den
-    angekündigten Fehltagen darf nicht vorzeitig gerundet werden."""
+    """Source announced absences (PO pre-planning, nothing confirmed): the capacity with the
+    announced absences must not be rounded prematurely."""
     data = Repository(data_dir).load("demo")
     sprint = data.sprint("2026.22")
     sprint.absences = {}
@@ -680,8 +681,8 @@ def test_plan_with_announced_absences_uses_the_unrounded_capacity(data_dir: Path
 
 
 def test_capacity_label_is_the_value_followed_by_the_source_note():
-    """Die Quelle allein (für Kennzahlen, deren Wert nicht gekürzt werden soll) und der
-    zusammengesetzte Text der Tabellen sagen dasselbe."""
+    """The source alone (for metrics whose value must not be truncated) and the composed
+    text of the tables say the same."""
     from types import SimpleNamespace
 
     from sprintforecast.engine import UNSURE_SOURCES, CapacitySource

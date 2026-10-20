@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Seitenleiste „Speichern und teilen“ mit zwei Personen (AppTest, echte Git-Repositories)."""
+"""The "Save and share" sidebar with two people (AppTest, real Git repositories)."""
 
 import subprocess
 from pathlib import Path
@@ -48,7 +48,7 @@ def test_status_and_incoming_changes_of_others(shared, data_dir: Path, monkeypat
     at = start(data_dir, monkeypatch)
     assert "Serverstand noch nicht geprüft" in captions(at)
 
-    # Bob ändert einen Sprint und teilt
+    # Bob changes a sprint and shares
     file = bob / SPRINT
     file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 8"))
     git(bob, "commit", "-qam", "Korrektur durch Bob")
@@ -79,7 +79,7 @@ def test_own_changes_are_saved_and_shared(shared, data_dir: Path, monkeypatch):
 
 def test_offline_is_explained_and_nothing_is_lost(shared, data_dir: Path, monkeypatch):
     root, _, server = shared
-    # Ein Ordner auf einem Laufwerk, das gerade fehlt (ohne Netzwerk, ohne Proxy).
+    # A folder on a drive that is currently missing (no network, no proxy).
     git(root, "remote", "set-url", "origin", str(server.parent / "getrennt" / "daten.git"))
     file = root / SPRINT
     file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
@@ -88,13 +88,13 @@ def test_offline_is_explained_and_nothing_is_lost(shared, data_dir: Path, monkey
     press(at, "Speichern und teilen")
     errors = " ".join(e.value for e in at.sidebar.error)
     assert "Server nicht erreichbar" in errors and "Internetverbindung" in errors
-    assert git(root, "status", "--porcelain") == ""  # lokal gesichert
+    assert git(root, "status", "--porcelain") == ""  # saved locally
     assert "Server nicht erreichbar" in captions(at)
 
 
 def test_wrong_address_is_not_explained_as_offline(shared, data_dir: Path, monkeypatch):
-    """Das Repository gibt es unter der Adresse nicht (z. B. umbenannt): Der nächste Schritt ist
-    die Adresse, nicht Internet oder VPN."""
+    """The repository does not exist at the address (e.g. renamed): the next step is the address,
+    not internet or VPN."""
     root, _, server = shared
     git(root, "remote", "set-url", "origin", str(server) + "-weg")
     invalidate_status()
@@ -108,8 +108,8 @@ def test_wrong_address_is_not_explained_as_offline(shared, data_dir: Path, monke
 
 
 def test_status_line_does_not_blame_the_server_for_local_errors():
-    """Fehler auf diesem Rechner (nicht beschreibbar, gesperrt, fremder Ordner) stehen nicht als
-    „Server meldet: …“ in der Statuszeile."""
+    """Errors on this computer (not writable, locked, foreign folder) do not appear as "Server
+    reports: ..." in the status line."""
     from dataclasses import replace
 
     from sprintforecast.git import classify
@@ -149,21 +149,21 @@ def test_conflict_locks_editing_and_is_resolved_in_the_app(shared, data_dir: Pat
     at = start(data_dir, monkeypatch)
     press(at, "Speichern und teilen")
     assert any("Konflikt beim Zusammenführen" in e.value for e in at.sidebar.error)
-    # Die Seite ist gesperrt und zeigt statt des Forecasts die Konfliktlösung
+    # The page is locked and shows the conflict resolution instead of the forecast
     assert [h.value for h in at.header] == ["Konflikte lösen"]
     assert not at.metric
     apply = next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen")
-    assert apply.disabled  # erst nach einer Entscheidung je Eintrag
+    assert apply.disabled  # only after a decision per entry
     radio = at.radio(key="conf-0-0")
     assert any("Meine Änderung: `7.0`" in o for o in radio.options)
     radio.set_value("theirs").run()
     next(b for b in at.button if b.label == "Entscheidungen übernehmen und teilen").click().run()
     assert not at.exception
     assert any("Hochgeladen" in s.value for s in at.sidebar.success)
-    assert "velocity: 8.5" in mine.read_text()  # "andere Änderung" gewählt
+    assert "velocity: 8.5" in mine.read_text()  # "other change" chosen
     assert "velocity: 8.5" in git(server, "show", f"main:{SPRINT.as_posix()}")
     assert git(root, "status", "--porcelain") == ""
-    assert at.header[0].value == "Was möchtest du tun?"  # Bearbeitung wieder freigegeben
+    assert at.header[0].value == "Was möchtest du tun?"  # editing released again
 
 
 def test_conflict_choose_mine(shared, data_dir: Path, monkeypatch):
@@ -191,14 +191,14 @@ def test_conflict_markers_without_merge_offer_restore(shared, data_dir: Path, mo
 
 
 def test_stale_form_is_discarded_before_saving(shared, data_dir: Path, monkeypatch):
-    """Ändert sich eine Datei, während ein Formular offen ist, wird nicht blind gespeichert."""
+    """If a file changes while a form is open, it is not saved blindly."""
     root, _, _ = shared
     at = start(data_dir, monkeypatch)
     at.switch_page("seiten/review.py").run()
     assert not at.exception
     at.selectbox(key="review-sprint").set_value("2026.21").run()
     other = root / "teams" / "demo" / "sprints" / "2026.20.yaml"
-    other.write_text(other.read_text().replace("velocity: 9.75", "velocity: 5.0"))  # „von außen“
+    other.write_text(other.read_text().replace("velocity: 9.75", "velocity: 5.0"))  # "from outside"
     at.number_input(key="velocity-2026.21").set_value(9.0)
     next(b for b in at.button if b.label == "Review speichern").click().run()
     assert not at.exception
@@ -206,7 +206,7 @@ def test_stale_form_is_discarded_before_saving(shared, data_dir: Path, monkeypat
     assert (
         not (root / "teams" / "demo" / "sprints" / "2026.21.yaml").read_text().count("velocity: 9")
     )
-    # nach dem Hinweis lässt sich normal speichern
+    # after the notice, saving works normally
     at.number_input(key="velocity-2026.21").set_value(9.0)
     next(b for b in at.button if b.label == "Review speichern").click().run()
     assert "velocity: 9" in (root / "teams" / "demo" / "sprints" / "2026.21.yaml").read_text()
@@ -232,8 +232,8 @@ def test_unfinished_merge_offers_abort(shared, data_dir: Path, monkeypatch):
 
 
 def detach_with_open_change(root: Path, orphan_commit: bool = False) -> None:
-    """Lose auf dem Stand vor der letzten Änderung von ``main``, mit offener Änderung an derselben
-    Datei (der Wechsel zurück würde sie überschreiben); optional mit einem Commit ohne Branch."""
+    """Loose at the state before the last change of ``main``, with an open change to the same file
+    (switching back would overwrite it); optionally with a commit without a branch."""
     sprint = root / SPRINT
     original = sprint.read_text(encoding="utf-8")
     sprint.write_text(original.replace("velocity: 9.75", "velocity: 8"), encoding="utf-8")
@@ -256,7 +256,7 @@ def test_reattach_with_open_changes_saves_them_on_the_rescue_branch(
     press(at, "Zurück auf den Branch")
     rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
     assert rescue.startswith("rettung-")
-    assert "velocity: 99" in git(root, "show", f"{rescue}:{SPRINT}")  # die Änderung liegt dort
+    assert "velocity: 99" in git(root, "show", f"{rescue}:{SPRINT}")  # the change is there
     assert not at.sidebar.error
     shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
     assert "Zurück auf den Branch `main`." in shown
@@ -280,14 +280,14 @@ def test_reattach_names_commits_and_open_changes_on_the_rescue_branch(
 def test_reattach_names_the_rescue_branch(shared, data_dir: Path, monkeypatch):
     root, _, _ = shared
     detach_with_open_change(root, orphan_commit=True)
-    git(root, "checkout", "--", ".")  # keine offene Änderung mehr
+    git(root, "checkout", "--", ".")  # no open change anymore
     invalidate_status()
     at = start(data_dir, monkeypatch)
     press(at, "Zurück auf den Branch")
     rescue = git(root, "branch", "--list", "rettung-*", "--format=%(refname:short)")
     assert rescue.startswith("rettung-")
     shown = " ".join(s.value for s in [*at.success, *at.sidebar.success])
-    assert "Zurück auf den Branch `main`." in shown  # Namen von Branches als Code (Fremdtexte)
+    assert "Zurück auf den Branch `main`." in shown  # Branch names as code (foreign texts)
     assert f"Rettungsbranch `{rescue}`" in shown
 
 
@@ -312,8 +312,8 @@ def test_git_missing_is_explained(data_dir: Path, monkeypatch):
 def test_unsafe_directory_is_named_in_the_sidebar_and_on_the_history_page(
     shared, data_dir: Path, monkeypatch
 ):
-    """Git lehnt den Ordner ab (anderer Besitzer): Die Oberfläche sagt das, statt „liegt in
-    keinem Git-Repository“."""
+    """Git rejects the folder (different owner): the UI says so, instead of "is not inside a Git
+    repository"."""
     root, _, _ = shared
     assume_foreign_owner(monkeypatch, root)
     at = start(data_dir, monkeypatch)
@@ -344,12 +344,12 @@ def test_discard_asks_and_shows_what_is_lost(shared, data_dir: Path, monkeypatch
     (root / "teams" / "neu.yaml").write_text("x: 1\n")
     invalidate_status()
     at = open_history(start(data_dir, monkeypatch))
-    assert len(at.checkbox) == 2  # je Datei eine Auswahl
+    assert len(at.checkbox) == 2  # one choice per file
     main_button(at, "Alles verwerfen …").click().run()
     warning = " ".join(w.value for w in at.warning)
     assert "geht verloren" in warning and "2026.20.yaml" in warning and "neu.yaml" in warning
-    assert main_button(at, "Jetzt verwerfen").disabled  # erst nach Bestätigung
-    assert sprint.read_text() != original  # noch nichts passiert
+    assert main_button(at, "Jetzt verwerfen").disabled  # only after confirmation
+    assert sprint.read_text() != original  # nothing happened yet
     at.checkbox(key="discard-confirm").check().run()
     main_button(at, "Jetzt verwerfen").click().run()
     assert not at.exception
@@ -374,7 +374,7 @@ def test_discard_single_file_only(shared, data_dir: Path, monkeypatch):
     at.checkbox(key="discard-confirm").check().run()
     main_button(at, "Jetzt verwerfen").click().run()
     assert not (root / "teams" / "neu.yaml").exists()
-    assert "velocity: 1.0" in sprint.read_text()  # andere Datei bleibt
+    assert "velocity: 1.0" in sprint.read_text()  # other file stays
 
 
 def test_history_restore_and_undo_in_the_app(shared, data_dir: Path, monkeypatch):
@@ -388,12 +388,12 @@ def test_history_restore_and_undo_in_the_app(shared, data_dir: Path, monkeypatch
     at = open_history(start(data_dir, monkeypatch))
     entries = at.selectbox(key=f"history-entry-{root / 'teams' / 'demo'}")
     assert "Fehlerhafte Eingabe" in entries.options[0]
-    entries.select_index(1).run()  # der Stand davor
+    entries.select_index(1).run()  # the state before
     main_button(at, "Diesen Stand wiederherstellen").click().run()
     assert not at.exception
     assert sprint.read_text() == original
     assert any("Wiederhergestellt" in s.value for s in at.success)
-    # Die Wiederherstellung steht jetzt oben im Verlauf und lässt sich zurücknehmen
+    # The restore now appears at the top of the history and can be undone
     entries = at.selectbox(key=f"history-entry-{root / 'teams' / 'demo'}")
     assert "wiederhergestellt" in entries.options[0]
     entries.select_index(0).run()

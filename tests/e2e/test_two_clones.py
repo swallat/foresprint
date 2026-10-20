@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Zwei Klone desselben Bare-Repositorys, je eine App-Instanz (Alice und Bob): Änderungen
-verschiedener Personen, ein absichtlicher Wertkonflikt samt Konfliktseite, Neustart mitten im
-Konflikt und Tags. (Zwei Tabs im selben Klon gibt es in der Praxis nicht und werden nicht getestet.)"""
+"""Two clones of the same bare repository, one app instance each (Alice and Bob): changes by
+different people, a deliberate value conflict with the conflict page, restart in the middle of
+the conflict, and tags. (Two tabs in the same clone do not occur in practice and are not tested.)"""
 
 import time
 from pathlib import Path
@@ -26,7 +26,7 @@ DECIDE = "Entscheidungen übernehmen und teilen"
 
 
 def change_absence(page: Page, app: App, person: str, value: str) -> None:
-    """Trägt für ``person`` im Sprint 2026.22 Fehltage ein und speichert sie (noch nicht geteilt)."""
+    """Enters absences for ``person`` in sprint 2026.22 and saves them (not shared yet)."""
     open_page(page, app, "fehltage")
     edit_absence(page, person, SPRINT, value)
     save = main_area(page).get_by_role("button", name="Fehltage speichern")
@@ -49,13 +49,13 @@ def test_absences_of_different_people_merge_without_conflict(clones, new_page):
     change_absence(pa, alice, "Anna", "2")
     shared(pa, "Hochgeladen")
     change_absence(pb, bob, "Dana", "1")
-    shared(pb, "von anderen übernommen")  # Bob holt Annas Änderung und lädt beides hoch
+    shared(pb, "von anderen übernommen")  # Bob fetches Anna's change and uploads both
     assert not pb.get_by_test_id("stException").count()
     expect(main_area(pb).get_by_role("heading", name="Konflikte lösen")).to_have_count(0)
     on_server = server_absences(bare)
     assert on_server["anna"] == 2 and on_server["dana"] == 1
     assert git(bare, "log", "-1", "--format=%an", "main") == "Bob"
-    # Alice holt Bobs Änderung: Beide Werte stehen in ihrem Raster.
+    # Alice fetches Bob's change: both values are in her grid.
     open_page(pa, alice, "fehltage")
     shared(pa, "von anderen übernommen")
     open_page(pa, alice, "fehltage")
@@ -66,11 +66,11 @@ def test_absences_of_different_people_merge_without_conflict(clones, new_page):
 
 
 def test_sharing_still_reports_when_another_rerun_comes_during_the_sync(clones, new_page):
-    """Streamlit stoppt den Rückruf von „Speichern und teilen“, sobald mitten im Abgleich ein
-    weiterer Durchlauf angefordert wird (hier: eine Eingabe auf der Seite). Der Abgleich läuft
-    zu Ende; die Meldung darf trotzdem nicht fehlen und die Seitenleiste nicht den Stand
-    mittendrin zeigen. Das Hochladen dauert (Hook im Klon), damit der zweite Durchlauf sicher
-    in den Abgleich fällt; die Marke zeigt, dass der Abgleich bis dorthin gekommen ist."""
+    """Streamlit stops the "Save and share" callback as soon as another run is requested in the
+    middle of the sync (here: an input on the page). The sync runs to the end; the message must
+    still not be missing and the sidebar must not show the state from the middle. The upload
+    takes a while (hook in the clone) so that the second run surely falls into the sync; the
+    marker shows that the sync got that far."""
     alice, bob, bare = clones()
     pa, pb = new_page(), new_page()
     change_absence(pa, alice, "Anna", "2")
@@ -78,9 +78,9 @@ def test_sharing_still_reports_when_another_rerun_comes_during_the_sync(clones, 
     change_absence(pb, bob, "Dana", "1")
     mark = bob.data_dir.parent.parent / "push-started"
     hook = bob.data_dir.parent / ".git" / "hooks" / "pre-push"
-    # Zeilenvorschub, nicht CRLF: ``write_text`` schreibt unter Windows sonst CRLF, und ein
-    # Wagenrücklauf hinter der Shebang-Zeile oder hinter ``sleep 3`` macht den Hook für ``sh``
-    # fehlerhaft (je nach Shell läuft er dann nicht oder bricht ab).
+    # Line feed, not CRLF: on Windows ``write_text`` otherwise writes CRLF, and a carriage return
+    # after the shebang line or after ``sleep 3`` breaks the hook for ``sh`` (depending on the
+    # shell it then does not run or aborts).
     hook.write_text(
         f"#!/bin/sh\ntouch '{mark.as_posix()}'\nsleep 3\n", encoding="utf-8", newline="\n"
     )
@@ -90,7 +90,7 @@ def test_sharing_still_reports_when_another_rerun_comes_during_the_sync(clones, 
     while not mark.exists():
         assert time.monotonic() < deadline, "der Abgleich kam nicht bis zum Hochladen"
         pb.wait_for_timeout(50)
-    main_area(pb).get_by_role("button", name="Increment").first.click()  # zweiter Durchlauf
+    main_area(pb).get_by_role("button", name="Increment").first.click()  # second run
     expect(alerts.filter(has_text="von anderen übernommen").first).to_be_visible()
     expect(alerts.filter(has_text="Hochgeladen").first).to_be_visible()
     on_server = server_absences(bare)
@@ -98,8 +98,8 @@ def test_sharing_still_reports_when_another_rerun_comes_during_the_sync(clones, 
 
 
 def make_value_conflict(clones, new_page) -> tuple[App, App, Path, Page]:
-    """Alice und Bob tragen für Anna im selben Sprint verschiedene Werte ein; Alice teilt zuerst,
-    Bob läuft danach in den Konflikt. Liefert Bobs geöffnete Seite."""
+    """Alice and Bob enter different values for Anna in the same sprint; Alice shares first,
+    Bob then runs into the conflict. Returns Bob's open page."""
     alice, bob, bare = clones()
     pa, pb = new_page(), new_page()
     change_absence(pa, alice, "Anna", "2")
@@ -117,7 +117,7 @@ def test_value_conflict_is_resolved_on_the_conflict_page(clones, new_page, choic
     expect(main_area(page).get_by_text("Meine Änderung: 3")).to_be_visible()
     expect(main_area(page).get_by_text("Andere Änderung: 2")).to_be_visible()
     decide = main_area(page).get_by_role("button", name=DECIDE)
-    expect(decide).to_be_disabled()  # erst nach einer Entscheidung je Eintrag
+    expect(decide).to_be_disabled()  # only after a decision per entry
     main_area(page).get_by_text(f"{choice}: {value}").click()
     expect(decide).to_be_enabled()
     decide.click()
@@ -129,7 +129,7 @@ def test_value_conflict_is_resolved_on_the_conflict_page(clones, new_page, choic
 
 def test_app_restart_in_the_middle_of_a_conflict_keeps_it_open(clones, new_page):
     _, bob, bare, _ = make_value_conflict(clones, new_page)
-    bob.restart()  # der Konflikt steht in Git, nicht im Speicher der App
+    bob.restart()  # the conflict is in Git, not in the app's memory
     fresh = new_page()
     open_page(fresh, bob, "fehltage")
     expect(main_area(fresh).get_by_role("heading", name="Konflikte lösen")).to_be_visible()
@@ -148,11 +148,11 @@ def test_aborting_the_merge_keeps_both_versions(clones, new_page):
     _, bob, bare, page = make_value_conflict(clones, new_page)
     main_area(page).get_by_role("button", name="Zusammenführen abbrechen").click()
     expect(main_area(page).get_by_role("heading", name="Konflikte lösen")).to_have_count(0)
-    assert server_absences(bare)["anna"] == 2  # Alices Stand liegt unverändert auf dem Server
+    assert server_absences(bare)["anna"] == 2  # Alice's state is unchanged on the server
     assert git(bob.data_dir.parent, "status", "--short", "--untracked-files=no") == ""
     open_page(page, bob, "fehltage")
     expect(main_area(page).get_by_test_id("stDataFrame").first).to_be_visible()
-    assert absence_cell(page, "Anna", SPRINT) == "3"  # Bobs eigener Stand ist erhalten
+    assert absence_cell(page, "Anna", SPRINT) == "3"  # Bob's own state is kept
 
 
 TAG = "team/2026.21"
@@ -174,14 +174,14 @@ def test_tag_set_by_alice_appears_for_bob_and_is_fetched_when_sharing(clones, ne
         pa.get_by_test_id("stAlert").filter(has_text=f"Tag {TAG} gesetzt und geteilt.")
     ).to_be_visible()
     assert git(bare, "tag", "-l") == TAG
-    # Bob sieht ihn erst nach dem Abgleich mit dem Server – und nur dort.
+    # Bob sees it only after syncing with the server, and only there.
     tags_tab(pb, bob)
     expect(main_area(pb).get_by_text("Noch keine Tags.")).to_be_visible()
     main_area(pb).get_by_role("button", name="Mit dem Server abgleichen").click()
     row = main_area(pb).get_by_role("row").filter(has_text=TAG)
     expect(row).to_contain_text("nur auf dem Server")
     assert git(bob.data_dir.parent, "tag", "-l") == ""
-    # „Speichern und teilen“ holt ihn: danach gibt es ihn lokal und auf dem Server.
+    # "Save and share" fetches it: afterwards it exists locally and on the server.
     shared(pb, "Hochgeladen")
     tags_tab(pb, bob)
     main_area(pb).get_by_role("button", name="Mit dem Server abgleichen").click()
@@ -193,7 +193,7 @@ def test_tag_set_by_alice_appears_for_bob_and_is_fetched_when_sharing(clones, ne
 def test_same_tag_name_on_different_states_is_shown_as_different(clones, new_page):
     alice, bob, _ = clones()
     pa, pb = new_page(), new_page()
-    git(bob.data_dir.parent, "tag", TAG, name="Bob")  # Bob hat den Namen schon, auf dem alten Stand
+    git(bob.data_dir.parent, "tag", TAG, name="Bob")  # Bob already has the name, on the old state
     change_absence(pa, alice, "Anna", "2")
     shared(pa, "Hochgeladen")
     tags_tab(pa, alice)

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Länder, Regionen und Arbeitswochen außerhalb von Deutschland."""
+"""Countries, regions and working weeks outside of Germany."""
 
 from datetime import date
 from pathlib import Path
@@ -32,11 +32,11 @@ def test_supported_countries_and_regions():
 
 
 def test_holidays_per_country_and_region():
-    assert is_holiday(date(2026, 10, 3), None)  # Deutsche Einheit, Standard bleibt DE
+    assert is_holiday(date(2026, 10, 3), None)  # German Unity Day, default stays DE
     assert not is_holiday(date(2026, 10, 3), None, "US")
     assert is_holiday(date(2026, 11, 26), None, "US")  # Thanksgiving
     assert not is_holiday(date(2026, 11, 26), None, "DE")
-    assert is_holiday(date(2026, 3, 31), "CA", "US")  # nur in Kalifornien
+    assert is_holiday(date(2026, 3, 31), "CA", "US")  # only in California
     assert not is_holiday(date(2026, 3, 31), None, "US")
     assert is_holiday(date(2026, 11, 1), "NW", "DE") and not is_holiday(date(2026, 11, 1), "HH")
     assert holiday_name(date(2026, 11, 26), None, "US")
@@ -44,9 +44,9 @@ def test_holidays_per_country_and_region():
 
 def test_weekends_follow_the_country():
     assert country_weekend("DE") == {5, 6}
-    assert country_weekend("SA") == {4, 5}  # Freitag/Samstag
-    assert country_weekend("XX") == {5, 6}  # unbekannt: Standard
-    week = (date(2026, 10, 18), date(2026, 10, 25))  # So–Sa
+    assert country_weekend("SA") == {4, 5}  # Friday/Saturday
+    assert country_weekend("XX") == {5, 6}  # unknown: default
+    week = (date(2026, 10, 18), date(2026, 10, 25))  # Sun-Sat
     assert [d.weekday() for d in workdays(*week, country_weekend("SA"))] == [6, 0, 1, 2, 3]
     assert [d.weekday() for d in workdays(*week)] == [0, 1, 2, 3, 4]
 
@@ -96,9 +96,9 @@ def test_capacity_uses_country_holidays_and_weekend():
     sprint = Sprint(id="1", start=date(2026, 11, 23), end=date(2026, 12, 7))
     people = [_person()]
     de = sprint_capacity(_team("DE"), people, sprint)
-    us = sprint_capacity(_team("US"), people, sprint)  # Thanksgiving 26.11.
+    us = sprint_capacity(_team("US"), people, sprint)  # Thanksgiving 11/26
     assert de.gross == 10 and us.gross == 9
-    sa = sprint_capacity(_team("SA"), people, sprint)  # So–Do: 5 Arbeitstage je Woche
+    sa = sprint_capacity(_team("SA"), people, sprint)  # Sun-Thu: 5 working days per week
     assert sa.gross == 10 and sa.people[0].workdays == 10
 
 
@@ -107,8 +107,8 @@ def test_person_with_own_country_follows_it():
     team = _team("DE")
     local = sprint_capacity(team, [_person()], sprint).gross
     abroad = sprint_capacity(team, [_person(country="US")], sprint).gross
-    assert abroad == local - 1  # Thanksgiving zählt nur für die Person im US-Team
-    # Teamregion gilt nicht für Personen eines anderen Landes
+    assert abroad == local - 1  # Thanksgiving counts only for the person in the US team
+    # The team region does not apply to people of another country
     team.capacity.region = "NW"
     assert sprint_capacity(team, [_person(country="US")], sprint).gross == abroad
 
@@ -126,7 +126,7 @@ def test_files_roundtrip_country_region_workweek(data_dir: Path):
     assert (saved["country"], saved["region"], saved["workweek"]) == ("US", "CA", "sun-thu")
     again = repo.load("demo")
     assert again.team.capacity.country == "US" and again.people[0].country == "AT"
-    # Standardwerte bleiben aus der Datei heraus
+    # Default values stay out of the file
     data.team.capacity.country, data.team.capacity.workweek = "DE", "auto"
     repo.save_team(data.team)
     plain = yaml.safe_load((data_dir / "demo" / "team.yaml").read_text())["capacity"]
@@ -136,7 +136,7 @@ def test_files_roundtrip_country_region_workweek(data_dir: Path):
 def test_validation_of_country_region_and_workweek(data_dir: Path):
     data = Repository(data_dir).load("demo")
     for person in data.people:
-        person.region = None  # Demo: Cem hat BY
+        person.region = None  # Demo: Cem has BY
     today = date(2026, 10, 15)
 
     def errors() -> list[str]:
@@ -175,27 +175,27 @@ def test_settings_page_changes_country(data_dir: Path, monkeypatch: pytest.Monke
     assert not at.exception, at.exception
     saved = yaml.safe_load((data_dir / "demo" / "team.yaml").read_text())["capacity"]
     assert saved["country"] == "US" and saved["region"] == "CA"
-    # Die Seiten rechnen danach mit US-Feiertagen
+    # The pages then calculate with US holidays
     at.switch_page("seiten/forecast.py").run()
-    assert not at.exception, at.exception  # auch mit Cems (nicht mehr passender) Region BY
+    assert not at.exception, at.exception  # also with Cem's (no longer fitting) region BY
 
 
 def test_four_day_week_person():
-    sprint = Sprint(id="1", start=date(2026, 10, 12), end=date(2026, 10, 26))  # Mo–So, 2 Wochen
+    sprint = Sprint(id="1", start=date(2026, 10, 12), end=date(2026, 10, 26))  # Mon-Sun, 2 weeks
     team = _team("DE")
     full = sprint_capacity(team, [_person()], sprint)
     four = sprint_capacity(team, [_person(workweek="mon,tue,wed,thu")], sprint)
     assert full.gross == 10 and four.gross == 8
     assert four.people[0].workdays == 8
-    # Feiertag auf einen freien Tag (Freitag) kostet nichts, auf einen Arbeitstag schon
+    # A holiday on a day off (Friday) costs nothing, on a working day it does
     friday = Sprint(id="2", start=date(2026, 10, 26), end=date(2026, 11, 9))
     with_holiday = sprint_capacity(_team("DE", "NW"), [_person(workweek="mon,tue,wed,thu")], friday)
-    assert with_holiday.gross == 8  # 1.11. ist Sonntag, kein Arbeitstag
-    team_day = Sprint(id="3", start=date(2026, 12, 21), end=date(2027, 1, 4))  # 25./26.12. + 1.1.
+    assert with_holiday.gross == 8  # 11/1 is a Sunday, not a working day
+    team_day = Sprint(id="3", start=date(2026, 12, 21), end=date(2027, 1, 4))  # 12/25, 12/26 + 1/1
     five = sprint_capacity(_team("DE"), [_person()], team_day).gross
     four_days = sprint_capacity(_team("DE"), [_person(workweek="mon,tue,wed,thu")], team_day).gross
-    # 25.12. und 1.1. fallen auf Freitage: die Vollzeitperson verliert zwei Tage (10 → 8), die
-    # Person mit Mo–Do-Woche nichts (8 → 8)
+    # 12/25 and 1/1 fall on Fridays: the full-time person loses two days (10 -> 8), the person
+    # with a Mon-Thu week loses nothing (8 -> 8)
     assert five == 8 and four_days == 8
     assert sprint_capacity(_team("DE"), [_person(workweek="mon-sat")], team_day).gross >= five
 
@@ -214,7 +214,7 @@ def test_workweek_parsing_and_validation(data_dir: Path):
     data.people[0].workweek = "mon,xyz"
     errors = [i for i in check_team(data, date(2026, 10, 15)) if i.level.value == "Error"]
     assert any("xyz" in i.message for i in errors)
-    # Roundtrip
+    # round trip
     repo = Repository(data_dir)
     data.people[0].workweek = "mon,tue,wed,thu"
     repo.save_people("demo", data.people)

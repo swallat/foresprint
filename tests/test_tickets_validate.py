@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Prüfung der Ticket-Vorplanung (Fehler und Hinweise), nur mit ``features.tickets``."""
+"""Check of the ticket pre-planning (errors and notes), only with ``features.tickets``."""
 
 from datetime import date
 from pathlib import Path
