@@ -31,6 +31,7 @@ from sprintforecast.model import (
     ProductValues,
     Project,
     Sprint,
+    rule_sources,
 )
 from sprintforecast.preplan import (
     LIGHTS,
@@ -993,7 +994,7 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = Path(tmp) / name
         path.write_bytes(upload.getvalue())
         try:
-            raws = CsvSource(path, data.team.tracker.fields).fetch()
+            raws = CsvSource(path, data.team.tracker.fields, data.team.tracker.rule_fields).fetch()
         except SourceError as e:
             st.error(str(e).replace(str(path), name))  # not the temporary path
             return
@@ -1270,7 +1271,11 @@ def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> 
         st.error(t("A project with the id {id} already exists.", id=new_id))
         return
     try:
-        rule = parse_rule(rule_text) if rule_text.strip() else None
+        rule = (
+            parse_rule(rule_text, rule_sources(data.team.tracker.rule_fields))
+            if rule_text.strip()
+            else None
+        )
     except RuleSyntaxError as error:
         st.error(syntax_message(rule_text, error))
         return

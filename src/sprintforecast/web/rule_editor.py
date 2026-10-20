@@ -10,7 +10,7 @@ from typing import Any
 import streamlit as st
 
 from sprintforecast.i18n import t
-from sprintforecast.model import RULE_SOURCES, Rule
+from sprintforecast.model import Rule, rule_sources
 from sprintforecast.ruleexpr import RuleSyntaxError, format_rule, parse_rule
 from sprintforecast.storage import Repository, TeamData
 from sprintforecast.validate import rule_problems
@@ -96,6 +96,7 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
     )
     with st.expander(t("Example"), icon=":material/help:"):
         st.code(EXAMPLE, language=None)
+    sources = rule_sources(data.team.tracker.rule_fields)
     stored = format_rule(project.match)
     text_key = f"tickets-{key}-rule-{chosen}-{abs(hash(stored))}"
     text = st.text_area(
@@ -104,15 +105,15 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
         key=text_key,
         help=t("Empty = the project takes no tickets by rule."),
     )
-    _insert_helper(data, text_key)
+    _insert_helper(data, text_key, sources)
     rule: Rule | None = None
     if text.strip():
         try:
-            rule = parse_rule(text)
+            rule = parse_rule(text, sources)
         except RuleSyntaxError as error:
             st.error(syntax_message(text, error))
             return
-        if problems := rule_problems(rule):
+        if problems := rule_problems(rule, sources):
             st.error("; ".join(problems))
             return
     if rule is None:
@@ -139,13 +140,13 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
             st.rerun()
 
 
-def _insert_helper(data: TeamData, text_key: str) -> None:
+def _insert_helper(data: TeamData, text_key: str, sources: tuple[str, ...]) -> None:
     """Field, operator and values (from the open tickets) picked from lists and added to the
     expression; the text area has no completion while typing."""
     key = data.team.key
     with st.expander(t("Insert condition"), icon=":material/add:"):
         left, middle, right = st.columns([1, 1, 2])
-        source = left.selectbox(t("Field"), RULE_SOURCES, key=f"tickets-{key}-ins-field")
+        source = left.selectbox(t("Field"), sources, key=f"tickets-{key}-ins-field")
         operator = middle.selectbox(
             t("Operator"), ["=", "!=", "~", "!~"], key=f"tickets-{key}-ins-op"
         )

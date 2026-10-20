@@ -310,3 +310,8 @@ def test_jira_address_problems_are_errors_without_echoing_the_address(
     found = errors(data)
     assert found == [("team.yaml", f"tracker.base_url {message}")]
     assert "pw" not in found[0][1]
+
+
+def test_rule_field_names_are_checked(data: TeamData):
+    data.team.tracker.rule_fields = {"Bad Name": "X", "status": "Y", "customer": "Customer"}
+    assert sum("rule_fields" in m for _, m in errors(data)) == 2

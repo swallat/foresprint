@@ -35,6 +35,8 @@ HEADERS: dict[str, tuple[str, ...]] = {
     # Epic without a configured field name: the parent of the issue.
     "parent": ("Parent", "Übergeordnet"),
 }
+# Prefix of the column keys of the configured rule fields.
+EXTRA_PREFIX = "rule:"
 # Columns without which the file is useless; the others are optional.
 REQUIRED = ("key", "title", "estimate")
 
@@ -78,9 +80,12 @@ class CsvSource:
 
     kind = "csv"
 
-    def __init__(self, path: Path, fields: TrackerFields) -> None:
+    def __init__(
+        self, path: Path, fields: TrackerFields, rule_fields: dict[str, str] | None = None
+    ) -> None:
         self.path = Path(path)
         self.fields = fields
+        self.rule_fields = rule_fields or {}
 
     @property
     def name(self) -> str:
@@ -98,6 +103,8 @@ class CsvSource:
             wanted["epic"] = custom_field_headers(self.fields.epic)
         else:
             wanted["epic"] = wanted.pop("parent")
+        for name, display in self.rule_fields.items():
+            wanted[f"{EXTRA_PREFIX}{name}"] = custom_field_headers(display)
         return wanted
 
     def fetch(self) -> list[RawTicket]:
@@ -233,6 +240,11 @@ class CsvSource:
             status=single("status"),
             issue_type=single("issue_type"),
             priority=single("priority"),
+            extra={
+                name: list(dict.fromkeys(values(f"{EXTRA_PREFIX}{name}")))
+                for name in self.rule_fields
+                if values(f"{EXTRA_PREFIX}{name}")
+            },
             estimate=number("estimate"),
             remaining=number("remaining"),
             # Jira lists the sprints of a ticket chronologically: the last one is the current.

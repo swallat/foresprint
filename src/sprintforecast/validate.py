@@ -26,6 +26,7 @@ from sprintforecast.calendar import (
 from sprintforecast.git import blank_controls
 from sprintforecast.i18n import t
 from sprintforecast.model import (
+    RULE_FIELD_NAME,
     RULE_SOURCES,
     TRACKER_KINDS,
     Rule,
@@ -33,6 +34,7 @@ from sprintforecast.model import (
     Ticket,
     TrackerSettings,
     base_url_problem,
+    rule_sources,
 )
 from sprintforecast.storage import (
     TEAM_FILES,
@@ -106,19 +108,19 @@ def _check_product_shares(data: TeamData, today: date, error, warning) -> None:
 # --- Ticket pre-planning ---------------------------------------------------------------
 
 
-def rule_problems(rule: Rule) -> list[str]:
+def rule_problems(rule: Rule, sources: tuple[str, ...] = RULE_SOURCES) -> list[str]:
     """Why an assignment rule is invalid (spec section 6.4): unknown sources, leaves without
     values, operators without conditions, short and long form mixed. Empty = valid."""
     problems: list[str] = []
 
     def walk(node: Rule) -> None:
         if node.op == "leaf":
-            if node.source not in RULE_SOURCES:
+            if node.source not in sources:
                 problems.append(
                     t(
                         "unknown source '{source}' (allowed: {allowed})",
                         source=node.source,
-                        allowed=", ".join(RULE_SOURCES),
+                        allowed=", ".join(sources),
                     )
                 )
             if not node.values:
@@ -244,19 +246,31 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
             error("team.yaml", str(e).removeprefix("team.yaml: "))
     if tr.dependency_gap not in (0, 1):
         error("team.yaml", t("tracker.dependency_gap must be 0 or 1"))
+    sources = rule_sources(tr.rule_fields)
+    for name in tr.rule_fields:
+        if not RULE_FIELD_NAME.match(name) or name in RULE_SOURCES or name.endswith("_contains"):
+            error(
+                "team.yaml",
+                t(
+                    "tracker.rule_fields: '{name}' is not allowed (lower-case words with "
+                    "digits and underscores, not one of {fixed}, not ending in _contains)",
+                    name=name,
+                    fixed=", ".join(RULE_SOURCES),
+                ),
+            )
     order = tr.project_match_order
-    if any(s not in RULE_SOURCES for s in order) or len(set(order)) != len(order):
+    if any(s not in sources for s in order) or len(set(order)) != len(order):
         error(
             "team.yaml",
             t(
                 "tracker.project_match_order: only sources from {allowed}, each at most once",
-                allowed=", ".join(RULE_SOURCES),
+                allowed=", ".join(sources),
             ),
         )
     if tr.rough_factor <= 0:
         error("team.yaml", t("tracker.rough_factor must be > 0"))
     if tr.refined_also_if is not None:
-        for problem in rule_problems(tr.refined_also_if):
+        for problem in rule_problems(tr.refined_also_if, sources):
             error("team.yaml", t("tracker.refined_also_if: {problem}", problem=problem))
     if not tr.link_type.strip():
         error("team.yaml", t("tracker.link_type must not be empty"))
@@ -283,7 +297,7 @@ def _check_tickets(data: TeamData, today: date, error, warn) -> None:
         elif pr.target < today:
             warn(where, t("target {date} lies in the past", date=pr.target))
         if pr.match is not None:
-            for problem in rule_problems(pr.match):
+            for problem in rule_problems(pr.match, sources):
                 error(where, t("match: {problem}", problem=problem))
         elif not any(tk.project == pr.id for tk in data.tickets):
             warn(where, t("neither a match rule nor assigned tickets"))

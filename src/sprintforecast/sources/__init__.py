@@ -52,6 +52,8 @@ class RawTicket:
     status: str | None = None
     issue_type: str | None = None
     priority: str | None = None
+    # Values of the configured ``tracker.rule_fields``, per rule name.
+    extra: dict[str, list[str]] = field(default_factory=dict)
     estimate: float | None = None
     remaining: float | None = None
     # The sprint name as the tracker shows it (resolved to a sprint id by the import).
@@ -88,7 +90,7 @@ def open_source(
     if path is not None:
         from sprintforecast.sources.csv import CsvSource
 
-        return CsvSource(path, settings.fields)
+        return CsvSource(path, settings.fields, settings.rule_fields)
     if settings.kind == "jira":
         from sprintforecast.sources.jira import JiraSource, jira_token, missing_token_error
 
