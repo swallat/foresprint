@@ -52,6 +52,7 @@ LIGHTS: dict[str, str] = {
     "tight": "tight",
     "missed": "missed",
     "empty": "empty",
+    "backlog": "no target date",  # the tickets of a product without a project
 }
 
 

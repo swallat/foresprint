@@ -58,10 +58,14 @@ def append_condition(
     return f"{text} {joiner} {condition}"
 
 
-def rule_hits(data: TeamData, rule: Rule, project_id: str) -> list[dict[str, Any]]:
-    """The open tickets the rule hits; ``Also matches`` names other projects whose rule hits the
-    ticket too (a conflict the order of precedence or the next import has to settle)."""
-    others = [p for p in data.projects if p.id != project_id and p.match is not None]
+def rule_hits(
+    data: TeamData, rule: Rule, own_id: str, products: bool = False
+) -> list[dict[str, Any]]:
+    """The open tickets the rule hits; ``Also matches`` names other projects (or, for a product
+    rule, other products) whose rule hits the ticket too (a conflict the order of precedence or
+    the next import has to settle)."""
+    pool = data.products if products else data.projects
+    others = [p for p in pool if p.id != own_id and p.match is not None]
     rows = []
     for ticket in data.tickets:
         facts = ticket.facts()
@@ -81,31 +85,48 @@ def rule_hits(data: TeamData, rule: Rule, project_id: str) -> list[dict[str, Any
 def rule_editor(repo: Repository, data: TeamData) -> None:
     key = data.team.key
     st.subheader(t("Assignment rules"))
-    if not data.projects:
+    with_products = data.team.features.products and bool(data.products)
+    if not data.projects and not with_products:
         st.info(t("There are no projects yet. Create one on the tab Settings."))
         return
-    names = {p.id: p.name for p in data.projects}
+    on_products = False
+    if with_products and data.projects:
+        on_products = st.radio(
+            t("Rule for"),
+            [t("Project"), t("Product")],
+            horizontal=True,
+            key=f"tickets-{key}-rule-kind",
+            help=t("A product rule takes the tickets that belong to no project."),
+        ) == t("Product")
+    elif with_products:
+        on_products = True
+    pool = data.products if on_products else data.projects
+    names = {p.id: p.name for p in pool}
     chosen = st.selectbox(
-        t("Project"), list(names), format_func=lambda i: names[i], key=f"tickets-{key}-rule-project"
+        t("Product") if on_products else t("Project"),
+        list(names),
+        format_func=lambda i: names[i],
+        key=f"tickets-{key}-rule-{'product' if on_products else 'project'}",
     )
-    project = data.project(chosen)
-    assert project is not None
+    owner = next(p for p in pool if p.id == chosen)
     st.caption(
         t(
-            "One expression per project: fields epic, component, label, status, issue_type, "
-            "priority, in_sprint; =, !=, ~ (contains), IN, NOT IN; AND, OR, NOT and parentheses."
+            "One expression per project or product: fields epic, component, label, status, "
+            "issue_type, priority, in_sprint; =, !=, ~ (contains), IN, NOT IN; AND, OR, NOT and "
+            "parentheses."
         )
     )
     with st.expander(t("Example"), icon=":material/help:"):
         st.code(EXAMPLE, language=None)
     sources = rule_sources(data.team.tracker.rule_fields)
-    stored = format_rule(project.match)
-    text_key = f"tickets-{key}-rule-{chosen}-{abs(hash(stored))}"
+    stored = format_rule(owner.match)
+    kind = "product" if on_products else "project"
+    text_key = f"tickets-{key}-rule-{kind}-{chosen}-{abs(hash(stored))}"
     text = st.text_area(
         t("Rule"),
         value=stored,
         key=text_key,
-        help=t("Empty = the project takes no tickets by rule."),
+        help=t("Empty = no tickets are taken by rule."),
     )
     _insert_helper(data, text_key, sources)
     rule: Rule | None = None
@@ -119,26 +140,40 @@ def rule_editor(repo: Repository, data: TeamData) -> None:
             st.error("; ".join(problems))
             return
     if rule is None:
-        st.info(t("No rule: no ticket is assigned to this project by rule."))
+        st.info(t("No rule: no ticket is assigned by rule."))
     else:
-        rows = rule_hits(data, rule, chosen)
+        rows = rule_hits(data, rule, chosen, on_products)
         conflicts = sum(1 for r in rows if r[t("Also matches")])
         st.write(t("{count} open tickets match.", count=len(rows)))
         if conflicts:
-            st.warning(t("{count} of them also match another project.", count=conflicts))
+            st.warning(
+                t("{count} of them also match another product.", count=conflicts)
+                if on_products
+                else t("{count} of them also match another project.", count=conflicts)
+            )
         if rows:
             st.dataframe(pd.DataFrame(rows), hide_index=True)
     if st.button(t("Save rule"), type="primary", key=f"tickets-{key}-rule-save"):
         after = copy.deepcopy(data)
-        target = after.project(chosen)
-        assert target is not None
+        target = next(
+            p for p in (after.products if on_products else after.projects) if p.id == chosen
+        )
         target.match = rule
-        if save(
-            after,
-            ["projects.yaml"],
-            lambda: [repo.save_projects(key, after.projects)],
-            flash=True,
-        ):
+        if on_products:
+            ok = save(
+                after,
+                ["products.yaml"],
+                lambda: [repo.save_products(key, after.products)],
+                flash=True,
+            )
+        else:
+            ok = save(
+                after,
+                ["projects.yaml"],
+                lambda: [repo.save_projects(key, after.projects)],
+                flash=True,
+            )
+        if ok:
             st.rerun()
 
 
