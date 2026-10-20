@@ -12,7 +12,7 @@ RECEIPT = """\
 [tool]
 requirements = [{{ name = "sprintforecast", url = "{url}", extras = ["web"] }}]
 """
-MAIN = "https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"
+MAIN = "https://github.com/swallat/foresprint/archive/refs/heads/main.zip"
 
 
 @pytest.fixture
@@ -51,13 +51,17 @@ def test_versions():
 @pytest.mark.parametrize(
     ("requirement", "expected"),
     [
-        (f'url = "{MAIN}"', ("swallat/sprint-forecast", "main", False)),
+        (f'url = "{MAIN}"', ("swallat/foresprint", "main", False)),
+        (  # installed before the repo was renamed; GitHub redirects the old name
+            'url = "https://github.com/swallat/sprint-forecast/archive/refs/heads/main.zip"',
+            ("swallat/sprint-forecast", "main", False),
+        ),
         (
             'url = "https://github.com/me/fork/archive/refs/tags/v1.0.zip"',
             ("me/fork", "v1.0", True),
         ),
         ('git = "https://github.com/me/fork", branch = "dev"', ("me/fork", "dev", False)),
-        ("", ("swallat/sprint-forecast", "main", False)),  # source from a plugin
+        ("", ("swallat/foresprint", "main", False)),  # source from a plugin
     ],
 )
 def test_installation_from_receipt(env: Path, requirement: str, expected):
@@ -79,9 +83,7 @@ def test_check_caches_for_a_day(env: Path, monkeypatch: pytest.MonkeyPatch):
     calls = remote(monkeypatch, "0.3.0")
     now = datetime(2026, 10, 16, tzinfo=UTC)
     assert updater.check(now=now).available
-    assert calls == [
-        "https://raw.githubusercontent.com/swallat/sprint-forecast/main/pyproject.toml"
-    ]
+    assert calls == ["https://raw.githubusercontent.com/swallat/foresprint/main/pyproject.toml"]
     assert updater.check(now=now + timedelta(hours=1)).latest == "0.3.0"
     assert len(calls) == 1
     updater.check(now=now + timedelta(hours=25))
