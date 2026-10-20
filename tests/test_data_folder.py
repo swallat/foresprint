@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Create, clone and remember the data folder: files, missing permissions and broken settings
-come as plain text instead of a raw exception (no UI; the page: test_web_datenordner)."""
+come as plain text instead of a raw exception (no UI; the page: test_web_data_folder)."""
 
 import errno
 from pathlib import Path

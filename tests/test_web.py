@@ -61,7 +61,7 @@ def git(cwd: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def test_invalid_stichtag_variable_shows_error(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+def test_invalid_as_of_variable_shows_error(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(STICHTAG_ENV, "morgen")
     at = AppTest.from_file(str(APP), default_timeout=30)
@@ -649,7 +649,7 @@ def test_commit_button_refuses_files_with_conflict_markers(
     assert "Konflikte lösen" in shown and "2026.21.yaml" in shown
 
 
-def test_planning_prefills_forecast_ist(app: AppTest, data_dir: Path):
+def test_planning_prefills_commitment(app: AppTest, data_dir: Path):
     planning_step(app, "2026.22", 2)
     assert app.number_input(key="fist-2026.22").value is None  # not the value of 2026.21
     app.number_input(key="carry-2026.22").set_value(1.5)

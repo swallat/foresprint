@@ -267,7 +267,7 @@ def build_target(data):
     return find_sprint(data, "2026.22")
 
 
-def test_default_forecast_ist_falls_back_to_previous_sprint(data_dir: Path):
+def test_default_commitment_falls_back_to_previous_sprint(data_dir: Path):
     from sprintforecast.forecast import build_forecast
     from sprintforecast.web.logic import default_forecast_ist
 
@@ -438,7 +438,7 @@ def test_capacity_usage():
     assert zero is not None and zero.ratio == 0.0 and zero.over
 
 
-def test_board_steps_done_vorplanung_needs_every_active_product():
+def test_board_steps_done_preplanning_needs_every_active_product():
     from sprintforecast.model import Product, ProductValues
 
     shop, app, old = (

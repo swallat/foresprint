@@ -54,7 +54,7 @@ def test_roadmap_share_key_is_still_read_and_written(data_dir: Path):
     assert repo.load("demo").team.forecast.roadmap_share == pytest.approx(0.65)
 
 
-def test_setting_is_called_verplanbarer_anteil():
+def test_setting_is_called_plannable_share():
     setting = next(s for s in SETTINGS if s.key == "forecast.roadmap_share")
     assert t(setting.label) == "Verplanbarer Anteil (%)"
     assert "Kleinkram" in t(setting.help)
@@ -97,7 +97,7 @@ def test_command_line_shows_no_roadmap_label(
     assert "roadmap" not in output.replace("roadmap_share", "")  # English label
 
 
-def test_command_line_names_the_column_verplanbar(data_dir: Path):
+def test_command_line_names_the_column_plannable(data_dir: Path):
     output = run(data_dir, "forecast", "demo")
     assert "Verplanbar" in output
     assert "Kleinkram" in output

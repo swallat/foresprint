@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 import pytest
-from test_gitfinden import fake_git
+from test_git_discovery import fake_git
 
 from sprintforecast import git as gitmod
 from sprintforecast import updater

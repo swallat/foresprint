@@ -226,7 +226,7 @@ def test_no_note_when_the_rate_is_not_used(data_dir: Path):
     assert NOTE not in render(fc)
 
 
-def test_rechenweg_names_the_uncertainty(data_dir: Path):
+def test_derivation_names_the_uncertainty(data_dir: Path):
     edit(data_dir, "2026.19", absences={})
     fc = estimated_forecast(data_dir)
     entry = next(
