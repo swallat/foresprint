@@ -672,18 +672,33 @@ def capacity_usage(plan: float | None, planned: float | None) -> CapacityUsage |
     return CapacityUsage(planned=planned, plan=plan)
 
 
-def board_steps_done(recorded: Sprint | None) -> dict[str, bool]:
+def preplanned_complete(sprint: Sprint, products: list[Product]) -> bool:
+    """Die PO-Vorplanung gilt als erledigt, wenn jedes im Sprint aktive Produkt einen Wert hat.
+    Ohne bekannte aktive Produkte (``products`` leer oder keins aktiv) genügt irgendein Wert."""
+    active = [p.id for p in products if p.active_between(sprint.start, sprint.end)]
+    if not active:
+        return any(v.preplanned is not None for v in sprint.products.values())
+    return all(
+        (values := sprint.products.get(pid)) is not None and values.preplanned is not None
+        for pid in active
+    )
+
+
+def board_steps_done(
+    recorded: Sprint | None, products: list[Product] | None = None
+) -> dict[str, bool]:
     """Erledigt-Haken der Schrittleiste (Fehltage, PO-Vorplanung, Planning, Review) für einen
     Sprint – aus den gespeicherten Daten, ``recorded`` ist der Sprint ohne Sprintdatei ``None``.
 
     Fehltage zählen nur als erledigt, wenn sie bestätigt sind (Stand ``absence_status``:
     eingetragen oder ausdrücklich „niemand fehlt“); unbekannte und nur angekündigte Fehltage
-    (aus der PO-Vorplanung) bekommen keinen Haken."""
+    (aus der PO-Vorplanung) bekommen keinen Haken. Die PO-Vorplanung zählt, wenn alle im Sprint
+    aktiven ``products`` einen Wert haben."""
     if recorded is None:
         return {"fehltage": False, "vorplanung": False, "planning": False, "review": False}
     return {
         "fehltage": absence_status(recorded) is AbsenceState.CONFIRMED,
-        "vorplanung": any(v.preplanned is not None for v in recorded.products.values()),
+        "vorplanung": preplanned_complete(recorded, products or []),
         "planning": recorded.forecast_ist is not None,
         "review": recorded.velocity is not None,
     }
@@ -725,7 +740,7 @@ def start_tasks(fc: Forecast, products: bool = True) -> list[StartTask]:
                 else t("Sprint {id}: Fehltage angekündigt, noch nicht bestätigt.", id=sid)
             )
             tasks.append(StartTask("prepare", "fehltage", sid, hint))
-        elif products and not any(v.preplanned is not None for v in sprint.products.values()):
+        elif products and not preplanned_complete(sprint, fc.data.products):
             tasks.append(
                 StartTask(
                     "prepare",
