@@ -2276,7 +2276,7 @@ def _planning_writer(
         datetime.now,
         [sprint],
         lambda: [repo.save_sprint(team.key, sprint)],
-    )  # Log only: not in the message
+    )  # minutes: not mentioned in the message
 
 
 def _planning_absences(repo: Repository, data: TeamData, fc: Forecast, sprint: Sprint) -> None:
@@ -2967,7 +2967,7 @@ def page_review(repo: Repository, data: TeamData, fc: Forecast) -> None:
             datetime.now,
             [sprint],
             lambda: [repo.save_sprint(data.team.key, sprint)],
-        )  # Log only: not in the message
+        )  # minutes: not mentioned in the message
 
     if save(
         after,
@@ -3252,7 +3252,7 @@ def _available_base(d: Distribution, data: TeamData, unit: str) -> str:
 
 
 def _protocols(repo: Repository, data: TeamData, sprint_id: str, kind: str) -> None:
-    """The logs written on every save for one appointment of this sprint, including
+    """The minutes written on every save for one meeting of this sprint, including
     older ones and those renamed as obsolete."""
     found = [f for f in list_protocols(repo, data.team.key, sprint_id) if f[1] == kind]
     with st.expander(
@@ -3563,7 +3563,7 @@ def page_preplanning(repo: Repository, data: TeamData, fc: Forecast) -> None:
                 datetime.now,
                 to_save,
                 lambda: save_sprints_together(repo, data.team.key, to_save),
-            )  # Log only: not in the message
+            )  # minutes: not mentioned in the message
 
         if save(with_sprints(data, to_save), [f"{s.id}.yaml" for s in to_save], write, flash=True):
             st.rerun()  # the step bar above shows the saved state
@@ -4494,9 +4494,8 @@ def _remote_failed(root: Path, address: RemoteAddress, error: GitError) -> None:
     if isinstance(error, NewBranchError):
         st.session_state["git-remote-offer"] = offer | {
             "kind": "new_branch",
-            "text": error.render(
-                md_code
-            ),  # Branch names from the server: as code, never as Markdown
+            # Branch names from the server: as code, never as Markdown
+            "text": error.render(md_code),
         }
         return  # the offer shows the message
     _show_problem(error)
@@ -4505,8 +4504,8 @@ def _remote_failed(root: Path, address: RemoteAddress, error: GitError) -> None:
 
 
 def _remote_check(root: Path, address: RemoteAddress, insecure: bool) -> None:
-    """ "Check connection": asks the server for its branches, changes nothing. The network is
-    only touched here, on click."""
+    """The "Check connection" action: asks the server for its branches, changes nothing. The
+    network is only touched here, on click."""
     try:
         with st.spinner(
             t("Checking the connection … If a login window appears, please log in there.")
@@ -4545,9 +4544,9 @@ def _remote_check(root: Path, address: RemoteAddress, insecure: bool) -> None:
 
 
 def _remote_save(root: Path, address: RemoteAddress, insecure: bool, **confirmed: bool) -> None:
-    """ "Save": the backend checks again and saves only after the check passes (or with the
-    explicit confirmation in ``confirmed``). On success the next run redraws everything
-    (sidebar, empty field)."""
+    """The "Save" action: the backend checks again and saves only after the check passes (or
+    with the explicit confirmation in ``confirmed``). On success the next run redraws
+    everything (sidebar, empty field)."""
     try:
         with st.spinner(
             t("Checking the connection … If a login window appears, please log in there.")
@@ -4621,9 +4620,8 @@ def _remote_section(repo: Repository) -> None:
     st.subheader(t("Server (remote)"))
     _remote_status(info, merge_open)
     if st.session_state.pop("git-remote-reset", False):
-        st.session_state["git-remote-url"] = (
-            ""  # before the field; afterwards it would not be allowed
-        )
+        # before the field; afterwards it would not be allowed
+        st.session_state["git-remote-url"] = ""
     raw = st.text_input(
         t("New server address") if info.name else t("Server address"),
         key="git-remote-url",
@@ -5506,8 +5504,8 @@ def _sync_clicked(
     allow_unrelated: bool = False,
     push: bool = True,
 ) -> None:
-    """ "Save and share": secure own changes, fetch the others', upload. With ``push=False``
-    ("Pull from server") it only secures and adopts the server state."""
+    """The "Save and share" action: secure own changes, fetch the others', upload. With
+    ``push=False`` ("Pull from server") it only secures and adopts the server state."""
     slot = _sync_slot()
     if not slot.begin():  # a sync of this session is still running: do not start another
         st.session_state.setdefault("flash", []).append(
@@ -5962,8 +5960,9 @@ def _view_name(root: Path, file: str, git_root_path: Path | None) -> str:
 
 
 def _changes_view(root: Path, loaded: tuple[list[FileChange], Path | None] | None) -> None:
-    """ "What has changed?": values before and after per changed file. File names and values
-    come from files that others put into the repository: only as code or in tables."""
+    """The "What has changed?" action: values before and after per changed file. File names
+    and values come from files that others put into the repository: only as code or in
+    tables."""
     if loaded is None:
         st.caption(t("The change view is not available right now."))
         return
