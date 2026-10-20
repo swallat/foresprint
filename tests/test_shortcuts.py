@@ -38,6 +38,7 @@ def test_linux_desktop_entries(tmp_path: Path, program: str, monkeypatch: pytest
 def test_mac_bundle_and_alias(tmp_path: Path, program: str):
     (tmp_path / "Desktop").mkdir()
     (tmp_path / "Applications/Sprint-Forecast.app/Contents").mkdir(parents=True)  # before rename
+    (tmp_path / "Desktop/Sprint-Forecast.app").mkdir()  # a copied bundle, not a link
     try:
         bundle, alias = shortcuts.create(home=tmp_path, platform="darwin")
     except OSError as e:  # Windows without administrator/developer mode: no symlinks
@@ -45,6 +46,7 @@ def test_mac_bundle_and_alias(tmp_path: Path, program: str):
             raise
         pytest.skip("Kein Recht für symbolische Verknüpfungen")
     assert not (tmp_path / "Applications/Sprint-Forecast.app").exists()
+    assert not (tmp_path / "Desktop/Sprint-Forecast.app").exists()
     starter = bundle / "Contents/MacOS/Sprintoracle"
     assert f'exec "{program}"' in starter.read_text()
     assert os.access(starter, os.X_OK)

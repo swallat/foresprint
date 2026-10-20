@@ -26,6 +26,14 @@ LEGACY_DESKTOP_FILE = "sprintforecast.desktop"
 APP_SCRIPT = "sprintforecast-app"
 
 
+def _remove(path: Path) -> None:
+    """Delete a launcher of the former name: a link or file, or a bundle folder; if present."""
+    if path.is_symlink() or path.is_file():
+        path.unlink(missing_ok=True)
+    elif path.is_dir():
+        shutil.rmtree(path, ignore_errors=True)
+
+
 def app_program() -> str | None:
     """Path of `sprintforecast-app` (located next to `sprintforecast` in uv's bin folder)."""
     exe = f"{APP_SCRIPT}.exe" if sys.platform == "win32" else APP_SCRIPT
@@ -138,8 +146,8 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
         bundle = mac_bundle(home / "Applications", program, write_icon(icon_dir(), "icns"))
         paths = [bundle]
         desktop = home / "Desktop"
-        shutil.rmtree(home / "Applications" / f"{LEGACY_APP_NAME}.app", ignore_errors=True)
-        (desktop / f"{LEGACY_APP_NAME}.app").unlink(missing_ok=True)
+        _remove(home / "Applications" / f"{LEGACY_APP_NAME}.app")
+        _remove(desktop / f"{LEGACY_APP_NAME}.app")
         if desktop.is_dir():
             alias = desktop / bundle.name
             if alias.is_symlink() or alias.exists():
@@ -153,7 +161,7 @@ def create(home: Path | None = None, platform: str = sys.platform) -> list[Path]
     if (home / "Desktop").is_dir():
         targets.append(home / "Desktop" / "sprintoracle.desktop")
     for old in (data_home / "applications", home / "Desktop"):
-        (old / LEGACY_DESKTOP_FILE).unlink(missing_ok=True)
+        _remove(old / LEGACY_DESKTOP_FILE)
     for target in targets:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(entry, encoding="utf-8")
