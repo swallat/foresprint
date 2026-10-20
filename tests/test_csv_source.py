@@ -220,3 +220,10 @@ def test_rule_fields_are_read_from_their_columns(tmp_path: Path):
     )
     a, b = CsvSource(path, FIELDS, {"customer": "Customer"}).fetch()
     assert a.extra == {"customer": ["Acme", "Beta"]} and b.extra == {}
+
+
+def test_a_missing_rule_field_column_is_reported(tmp_path: Path):
+    path = tmp_path / "x.csv"
+    path.write_text("Issue key,Summary,Story Points\nK-1,T,3\n")
+    with pytest.raises(SourceError, match="Customer"):
+        CsvSource(path, FIELDS, {"customer": "Customer"}).fetch()

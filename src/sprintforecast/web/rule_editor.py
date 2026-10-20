@@ -10,7 +10,7 @@ from typing import Any
 import streamlit as st
 
 from sprintforecast.i18n import t
-from sprintforecast.model import Rule, rule_sources
+from sprintforecast.model import RULE_SOURCES, Rule, rule_sources
 from sprintforecast.ruleexpr import RuleSyntaxError, format_rule, parse_rule
 from sprintforecast.storage import Repository, TeamData
 from sprintforecast.validate import rule_problems
@@ -41,14 +41,16 @@ def condition_text(source: str, operator: str, values: list[str]) -> str:
     return text
 
 
-def append_condition(text: str, condition: str, joiner: str) -> str:
+def append_condition(
+    text: str, condition: str, joiner: str, sources: tuple[str, ...] = RULE_SOURCES
+) -> str:
     """The expression with the condition added; an existing OR expression is bracketed first."""
     text = text.strip()
     if not text:
         return condition
     if joiner == "AND":
         try:
-            bracket = parse_rule(text).op == "any"
+            bracket = parse_rule(text, sources).op == "any"
         except RuleSyntaxError:
             bracket = re.search(r"\bor\b", text, re.IGNORECASE) is not None
         if bracket:
@@ -166,6 +168,7 @@ def _insert_helper(data: TeamData, text_key: str, sources: tuple[str, ...]) -> N
                     st.session_state.get(text_key, ""),
                     condition_text(source, operator, values),
                     joiner,
+                    sources,
                 )
 
         st.button(t("Insert"), on_click=insert, key=f"tickets-{key}-ins-go")

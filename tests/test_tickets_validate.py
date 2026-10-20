@@ -315,3 +315,5 @@ def test_jira_address_problems_are_errors_without_echoing_the_address(
 def test_rule_field_names_are_checked(data: TeamData):
     data.team.tracker.rule_fields = {"Bad Name": "X", "status": "Y", "customer": "Customer"}
     assert sum("rule_fields" in m for _, m in errors(data)) == 2
+    data.team.tracker.rule_fields = {"none": "X", "in": "Y", "team": " "}
+    assert sum("rule_fields" in m for _, m in errors(data)) == 3
