@@ -102,7 +102,7 @@ def test_project_ids_target_and_tracker_settings(data: TeamData):
         (
             "team.yaml",
             "tracker.project_match_order: nur Quellen aus epic, component, label, status, "
-            "issue_type, in_sprint, jede höchstens einmal",
+            "issue_type, priority, in_sprint, jede höchstens einmal",
         ),
         ("team.yaml", "tracker.rough_factor muss > 0 sein"),
         ("projects.yaml: p", "id ist doppelt"),
