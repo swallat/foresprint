@@ -414,6 +414,20 @@ RULE_SOURCES: tuple[str, ...] = (
     "priority",
     "in_sprint",
 )
+# Names of configured rule fields (``tracker.rule_fields``): lower-case words, no clash with the
+# fixed sources.
+RULE_FIELD_NAME = re.compile(r"[a-z][a-z0-9_]*$")
+
+
+# Words that cannot name a rule field: operators of the YAML form and keywords of the expressions.
+RULE_RESERVED: tuple[str, ...] = ("any", "all", "none", "and", "or", "not", "in")
+
+
+def rule_sources(rule_fields: dict[str, str] | None = None) -> tuple[str, ...]:
+    """The sources a rule can name: the fixed ones and the configured rule fields."""
+    return (*RULE_SOURCES, *(n for n in (rule_fields or {}) if n not in RULE_SOURCES))
+
+
 # Suffix of a leaf key in projects.yaml that searches parts of the values (``label_contains``).
 CONTAINS_SUFFIX = "_contains"
 # Operators of the long form; a leaf has the operator ``leaf``.
@@ -533,6 +547,9 @@ class TrackerSettings:
     sprint_names: dict[str, str] = field(default_factory=dict)
     # Jira: name of the issue link type whose inward side means "is blocked by".
     link_type: str = "Blocks"
+    # Additional fields for assignment rules: rule name → display name of the field in the
+    # tracker (or header of the CSV column).
+    rule_fields: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -562,6 +579,8 @@ class Ticket:
     issue_type: str | None = None
     # Priority as the tracker names it (e.g. "High"); only for assignment rules.
     priority: str | None = None
+    # Values of the configured ``tracker.rule_fields``, per rule name.
+    extra: dict[str, list[str]] = field(default_factory=dict)
     estimate: float | None = None
     remaining: float | None = None
     estimate_source: EstimateSource = EstimateSource.NONE
@@ -589,6 +608,7 @@ class Ticket:
         both work."""
         in_sprint = ["true", self.in_sprint] if self.in_sprint else ["false"]
         return {
+            **self.extra,
             "epic": [self.epic] if self.epic else [],
             "component": list(self.components),
             "label": list(self.labels),

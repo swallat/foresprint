@@ -683,3 +683,18 @@ def test_ordinary_keys_and_sprint_names_are_not_taken_for_secrets():
     }
     tr = team_from_dict("t", raw, "team.yaml").tracker
     assert tr.sprint_names == {"Secret Santa": "2026.20", "Token Sprint": "2026.21"}
+
+
+def test_rule_fields_and_ticket_values_round_trip():
+    from sprintforecast.storage import (
+        _tracker_from,
+        _tracker_to,
+        tickets_from_dict,
+        tickets_to_dict,
+    )
+
+    settings = TrackerSettings(rule_fields={"customer": "Customer"})
+    assert _tracker_from(_tracker_to(settings), "team.yaml").rule_fields == {"customer": "Customer"}
+    ticket = Ticket(key="K-1", extra={"customer": ["Acme"]})
+    [back], _, _ = tickets_from_dict(tickets_to_dict([ticket]), "tickets.yaml")
+    assert back.extra == {"customer": ["Acme"]} and back.facts()["customer"] == ["Acme"]

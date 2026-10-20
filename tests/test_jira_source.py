@@ -1186,3 +1186,28 @@ def test_delete_token_reports_a_failed_delete(monkeypatch):
     with pytest.raises(SourceError) as error:
         jira_module.delete_token(BASE)
     assert "secret detail" not in str(error.value) and "still-there" not in str(error.value)
+
+
+def test_rule_fields_are_resolved_requested_and_read():
+    handler = Server()
+    handler.fields = [
+        *handler.fields,
+        {
+            "id": "customfield_20000",
+            "name": "Customer",
+            "custom": True,
+            "schema": {"type": "option"},
+        },
+    ]
+    handler.pages[0]["issues"][0]["fields"]["customfield_20000"] = {"value": "Acme"}
+    source, _ = make(handler, rule_fields={"customer": "Customer"})
+    tickets = {x.key: x for x in source.fetch()}
+    first = handler.pages[0]["issues"][0]["key"]
+    assert tickets[first].extra == {"customer": ["Acme"]}
+    assert "customfield_20000" in handler.searches()[0].url.params["fields"].split(",")
+
+
+def test_unknown_rule_field_is_reported():
+    source, _ = make(rule_fields={"customer": "No such field"})
+    with pytest.raises(SourceError, match=r"rule_fields\.customer"):
+        source.fetch()

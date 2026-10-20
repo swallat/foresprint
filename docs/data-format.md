@@ -219,6 +219,12 @@ Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `priority`, 
 `false` or a sprint id). Validation rejects empty lists, unknown sources and short and long form
 in the same `match:`.
 
+More sources come from `tracker.rule_fields` in `team.yaml`: a name for the rule, the display name
+of the Jira field (or the header of the CSV column) as value, e.g. `rule_fields: {customer:
+Customer}` makes `customer` usable in rules and expressions. The values (text, option, user or a
+list of these) are stored per ticket in `tickets.yaml` under `fields:`. A leaf key with the suffix
+`_contains` (`label_contains: [pay]`) searches parts of the values.
+
 ### `tickets.yaml`
 
 The state of the last import, written by `sprintforecast tickets TEAM --import FILE --apply` or

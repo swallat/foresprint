@@ -321,6 +321,8 @@ class ResolvedFields:
     epic_link: tuple[str, ...] = ()
     sprint: tuple[str, ...] = ()
     rank: tuple[str, ...] = ()
+    # Field ids of ``tracker.rule_fields``, per rule name.
+    extra: dict[str, str] = field(default_factory=dict)
 
     def requested(self) -> list[str]:
         """The ``fields=`` list of a search: only what is needed."""
@@ -328,11 +330,13 @@ class ResolvedFields:
         for name in (self.estimate, self.remaining, self.epic):
             if name:
                 wanted.append(name)
-        wanted += [*self.epic_link, *self.sprint, *self.rank]
+        wanted += [*self.epic_link, *self.sprint, *self.rank, *self.extra.values()]
         return list(dict.fromkeys(wanted))
 
 
-def _resolve_name(name: str, fields: list[dict[str, Any]], setting: str, host: str) -> str:
+def _resolve_name(
+    name: str, fields: list[dict[str, Any]], setting: str, host: str, section: str = "fields"
+) -> str:
     """Field id of the field with this display name (or this id). Raises for an unknown or an
     ambiguous name; the ids of the candidates are in the message."""
     wanted = name.strip().casefold()
@@ -348,10 +352,11 @@ def _resolve_name(name: str, fields: list[dict[str, Any]], setting: str, host: s
         raise SourceError(
             t(
                 (
-                    "The field “{name}” (tracker.fields.{setting}) is ambiguous in {host}: "
+                    "The field “{name}” (tracker.{section}.{setting}) is ambiguous in {host}: "
                     "{ids}. Please enter the field ID instead of the name in team.yaml."
                 ),
                 name=name,
+                section=section,
                 setting=setting,
                 host=host,
                 ids=", ".join(sorted(str(f["id"]) for f in found)),
@@ -361,13 +366,33 @@ def _resolve_name(name: str, fields: list[dict[str, Any]], setting: str, host: s
     close = difflib.get_close_matches(name, names, n=3, cutoff=0.6)
     raise SourceError(
         t(
-            "The field “{name}” (tracker.fields.{setting}) does not exist in {host}.{hint}",
+            "The field “{name}” (tracker.{section}.{setting}) does not exist in {host}.{hint}",
             name=name,
+            section=section,
             setting=setting,
             host=host,
             hint=(" " + t("Similar names: {names}", names=", ".join(close))) if close else "",
         )
     )
+
+
+def field_texts(value: Any) -> list[str]:
+    """The texts of a field value for the rule facts: a text, a number, an option (``value`` or
+    ``name``), a user (``displayName``) or a list of these."""
+    if value is None or isinstance(value, bool):
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, int | float):
+        return [str(int(value)) if float(value).is_integer() else str(value)]
+    if isinstance(value, dict):
+        for key in ("value", "name", "displayName"):
+            if isinstance(value.get(key), str) and value[key].strip():
+                return [value[key].strip()]
+        return []
+    if isinstance(value, list):
+        return list(dict.fromkeys(x for item in value for x in field_texts(item)))
+    return []
 
 
 def _ids_by_schema(fields: list[dict[str, Any]], schema: str) -> tuple[str, ...]:
@@ -868,6 +893,8 @@ class JiraSource:
             name = getattr(configured, setting)
             if name:
                 setattr(resolved, setting, _resolve_name(name, fields, setting, self.host))
+        for name, display in self.settings.rule_fields.items():
+            resolved.extra[name] = _resolve_name(display, fields, name, self.host, "rule_fields")
         self._fields = resolved
         return resolved
 
@@ -947,6 +974,11 @@ class JiraSource:
             status=named(data.get("status")),
             issue_type=named(data.get("issuetype")),
             priority=named(data.get("priority")),
+            extra={
+                name: values
+                for name, field_id in resolved.extra.items()
+                if (values := field_texts(data.get(field_id)))
+            },
             estimate=number(resolved.estimate, "estimate"),
             remaining=number(resolved.remaining, "remaining"),
             sprint_name=choose_sprint(first(resolved.sprint)),
