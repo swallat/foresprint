@@ -1114,6 +1114,24 @@ def test_suggest_fields_orders_number_fields_and_epic_links():
     assert values["customfield_10016"] == "Story Points"
 
 
+def test_suggest_fields_puts_the_original_points_first_for_the_estimate():
+    fields = [
+        {
+            "id": "customfield_10424",
+            "name": "Story-Punkte",
+            "schema": {"type": "number", "custom": "x"},
+        },
+        {
+            "id": "customfield_12033",
+            "name": "Ursprüngliche Story-Punkte",
+            "schema": {"type": "number", "custom": "x"},
+        },
+    ]
+    found = jira_module.suggest_fields(fields)
+    assert found.estimate[0].id == "customfield_12033"
+    assert found.remaining[0].id == "customfield_10424"
+
+
 def test_suggest_fields_ignores_unusable_entries():
     found = jira_module.suggest_fields([{"id": "x"}, {"name": "n", "schema": "oops"}])
     assert found.estimate == found.remaining == found.epic == []

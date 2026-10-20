@@ -194,6 +194,8 @@ def test_connection_test_offers_fields_and_saves_the_choice(data_dir: Path, monk
     assert calls and calls[0].base_url == "https://jira.example.org"
     shown = texts(at)
     assert "Ada" in shown and "42" in shown
+    assert at.selectbox(key="jira-demo-kind").value == "jira"  # a working connection: use it
+    assert "now set to Jira" in "\n".join(e.value for e in at.info)
     [estimate] = [s for s in at.selectbox if s.label.startswith("Estimate")]
     assert "suggestion" in estimate.options[1] and "suggestion" not in estimate.options[2]
     # the saved epic name stays the current setting although it is a candidate by name
@@ -205,6 +207,7 @@ def test_connection_test_offers_fields_and_saves_the_choice(data_dir: Path, monk
     saved = tracker_yaml(data_dir)
     assert saved["fields"]["estimate"] == "customfield_10100"
     assert saved["base_url"] == "https://jira.example.org"
+    assert saved["kind"] == "jira"
 
 
 def test_connection_error_is_shown_without_the_token(data_dir: Path, monkeypatch):
@@ -301,8 +304,9 @@ def test_the_environment_variable_takes_precedence(
 def test_the_token_needs_an_address_first(data_dir: Path, monkeypatch, keychain: FakeKeyring):
     enable(data_dir)
     at = page(data_dir, monkeypatch)
-    assert "first enter the address" in texts(at)
-    assert not any(w.proto.type == 1 for w in at.text_input)
+    assert "first enter a valid address" in texts(at)
+    token_field = next(w for w in at.text_input if w.proto.type == 1)
+    assert token_field.disabled
 
 
 def test_refined_label_and_match_order_are_saved(data_dir: Path, monkeypatch):

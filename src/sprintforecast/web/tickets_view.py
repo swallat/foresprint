@@ -16,6 +16,7 @@ from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import streamlit as st
 
@@ -1092,6 +1093,10 @@ def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
 # --- Import -----------------------------------------------------------------------------------
 
 
+def _tracker_host(data: TeamData) -> str:
+    return urlsplit(data.team.tracker.base_url or "").hostname or "?"
+
+
 def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
     key = data.team.key
     counter = f"tickets-{key}-import-n"
@@ -1103,6 +1108,15 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
     )
     fetched = f"tickets-{key}-fetched"
+    if data.team.tracker.kind == "jira":
+        st.caption(t("Active ticket source: **Jira** ({host}).", host=_tracker_host(data)))
+    else:
+        st.caption(
+            t(
+                "Active ticket source: **CSV export**. To read from Jira, switch the source "
+                "on the Jira connection page."
+            )
+        )
     page_link("jira", t("Set up the Jira connection"))
     if data.team.tracker.kind == "jira":
         if st.button(

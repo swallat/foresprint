@@ -127,6 +127,12 @@ def test_no_tickets_yet_points_to_the_import(data_dir: Path, monkeypatch):
     assert at.file_uploader
 
 
+def test_import_says_which_source_is_active(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    at = page(data_dir, monkeypatch)
+    assert any("CSV-Export" in c.value and "Aktive" in c.value for c in at.caption)
+
+
 def test_overview_shows_projects_and_timeline(data_dir: Path, monkeypatch):
     enable(data_dir)
     seed(data_dir)
