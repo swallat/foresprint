@@ -353,7 +353,8 @@ projects, individually deselectable; it applies to all parts of the page. Below:
 
 1. **Project traffic light:** per project target date, target sprint, sprint of the last ticket, traffic light, number
    of tickets, open points (unestimated, too large, without product).
-2. **Timeline:** all selected projects in one figure, sprints as columns, per project
+2. **Timeline:** (per product also one line "<product> without project" for its tickets without a
+   project: no target date, neutral colour, no traffic light) all selected projects in one figure, sprints as columns, per project
    one bar from the first to the last sprint of its tickets, target date as a mark; colour by
    traffic light; in step 4 the range of the three variants as a lighter area.
 3. **Sprint columns:** per future sprint one column with fill level (budget, used, free) and
