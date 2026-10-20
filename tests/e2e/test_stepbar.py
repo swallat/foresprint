@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Schrittleiste der Boards: alle Schritte gleich hoch (aktiv und inaktiv), nichts springt beim
-Seitenwechsel, der Text bricht nie um – bei jeder Fensterbreite."""
+"""Step bar of the boards: all steps equally high (active and inactive), nothing jumps on page
+change, the text never wraps, at every window width."""
 
 import contextlib
 import re
@@ -11,11 +11,11 @@ from playwright.sync_api import Page, expect
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 BOARDS = ["fehltage", "vorplanung", "planning", "review"]
-STEP_HEIGHT = 40  # 2,5 rem bei 16 px Schriftgröße
+STEP_HEIGHT = 40  # 2.5 rem at 16 px font size
 ACTIVE_BACKGROUND = "rgb(42, 120, 214)"
 
-# In schmalen Fenstern zeichnet Streamlit jeden Link doppelt (einer ist ausgeblendet): Gemessen
-# wird immer der sichtbare.
+# In narrow windows Streamlit draws each link twice (one is hidden): the visible one is always
+# measured.
 HELPERS = """
 const visibleLink = el => [...el.querySelectorAll('[data-testid="stPageLink-NavLink"]')]
     .find(link => link.getClientRects().length > 0);
@@ -57,8 +57,8 @@ MEASURE = (
 
 
 def measure(page: Page) -> list[dict]:
-    """Misst die Schritte, sobald das Layout steht. Hält die Seite die erwartete Höhe nie ein,
-    läuft das Warten ab und die Prüfungen der Tests melden die gemessenen Werte."""
+    """Measures the steps once the layout is stable. If the page never reaches the expected height,
+    the wait times out and the test assertions report the measured values."""
     expect(page.locator("div.st-key-board-nav")).to_be_visible()
     with contextlib.suppress(PlaywrightTimeoutError):
         page.wait_for_function(LAYOUT_DONE, timeout=10_000)
@@ -66,7 +66,7 @@ def measure(page: Page) -> list[dict]:
 
 
 def go_to_step(page: Page, board: str) -> None:
-    """Wechselt mit dem Schritt der Leiste (in schmalen Fenstern ist die Seitenleiste zu)."""
+    """Switches with the step of the bar (in narrow windows the sidebar is closed)."""
     page.locator(f"div.st-key-board-nav .st-key-board-step-{board} a:visible").click()
     expect(page).to_have_url(re.compile(rf"/{board}$"))
     settle(page)

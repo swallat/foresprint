@@ -38,9 +38,9 @@ def test_parse_rejects(key, raw, message):
 @pytest.mark.parametrize(
     "key",
     [
-        "forecast.reference_capacity",  # Zahl ohne Obergrenze
-        "capacity.overhead_share",  # Prozent
-        "forecast.window",  # ganze Zahl
+        "forecast.reference_capacity",  # number without an upper limit
+        "capacity.overhead_share",  # percent
+        "forecast.window",  # integer
     ],
 )
 def test_parse_rejects_non_finite(key, raw):

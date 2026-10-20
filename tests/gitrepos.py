@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Gemeinsame Hilfen für Tests mit echten Git-Repositories: ein Server (bare) und Klone."""
+"""Shared helpers for tests with real Git repositories: a server (bare) and clones."""
 
 import contextlib
 import http.server
@@ -17,7 +17,7 @@ import pytest
 from sprintforecast import gitsync
 from sprintforecast.git import invalidate_status
 
-# Ein Kennwort bzw. Token, das in keiner Anzeige, Meldung oder Konfiguration auftauchen darf.
+# A password or token that must not appear in any display, message or configuration.
 SECRET = "GEHEIM123"
 
 
@@ -28,7 +28,7 @@ def git(cwd: Path, *args: str) -> str:
 
 
 def rmtree_force(path: Path) -> None:
-    """Löscht einen Ordner samt schreibgeschützter Dateien (Git-Objekte sind es unter Windows)."""
+    """Deletes a folder including read-only files (Git objects are read-only on Windows)."""
 
     def make_writable(function, name, _error) -> None:
         os.chmod(name, stat.S_IWRITE)
@@ -38,7 +38,7 @@ def rmtree_force(path: Path) -> None:
 
 
 def make_local(tmp_path: Path, name: str = "work", commit: bool = True) -> Path:
-    """Datenordner ``<name>/teams`` in einem Repository (ohne Server), optional mit einem Commit."""
+    """Data folder ``<name>/teams`` in a repository (without server), optionally with a commit."""
     root = tmp_path / name
     git(tmp_path, "init", "-q", "-b", "main", str(root))
     git(root, "config", "user.name", "T")
@@ -52,7 +52,7 @@ def make_local(tmp_path: Path, name: str = "work", commit: bool = True) -> Path:
 
 
 def make_server(tmp_path: Path, name: str = "server.git", branch: str | None = None) -> Path:
-    """Bare-Repository als Server; mit ``branch`` liegt dort ein Commit auf diesem Branch."""
+    """Bare repository as server; with ``branch`` it holds a commit on that branch."""
     bare = tmp_path / name
     git(tmp_path, "init", "-q", "--bare", "-b", branch or "main", str(bare))
     if branch:
@@ -63,9 +63,9 @@ def make_server(tmp_path: Path, name: str = "server.git", branch: str | None = N
 
 
 def add_branches(server: Path, names: list[str]) -> None:
-    """Legt viele Branches auf dem Server an; sie zeigen auf den Commit des Servers. Der Server
-    braucht einen Commit, z. B. ``branch="main"``. Die Branches landen direkt in ``packed-refs``
-    (hunderte Aufrufe wären langsam, und lange Namen sprengen unter Windows den Dateipfad)."""
+    """Creates many branches on the server; they point to the server's commit. The server needs a
+    commit, e.g. ``branch="main"``. The branches go straight into ``packed-refs`` (hundreds of
+    calls would be slow, and long names exceed the file path limit on Windows)."""
     commit = git(server, "rev-parse", "HEAD")
     git(server, "pack-refs", "--all")
     packed = server / "packed-refs"
@@ -78,7 +78,7 @@ def add_branches(server: Path, names: list[str]) -> None:
 
 
 class Denying(http.server.BaseHTTPRequestHandler):
-    """Ein Server, der jede Anfrage mit „Anmeldung nötig“ (401) beantwortet."""
+    """A server that answers every request with "login required" (401)."""
 
     def do_GET(self):
         self.send_response(401)
@@ -90,7 +90,7 @@ class Denying(http.server.BaseHTTPRequestHandler):
 
 
 class NotFound(http.server.BaseHTTPRequestHandler):
-    """Ein Server, der jede Anfrage mit „nicht gefunden“ (404) beantwortet."""
+    """A server that answers every request with "not found" (404)."""
 
     def do_GET(self):
         self.send_response(404)
@@ -102,7 +102,7 @@ class NotFound(http.server.BaseHTTPRequestHandler):
 
 @contextlib.contextmanager
 def serve(handler: type[http.server.BaseHTTPRequestHandler]) -> Iterator[int]:
-    """Startet einen kleinen Server auf einem freien Port (``127.0.0.1``) und liefert den Port."""
+    """Starts a small server on a free port (``127.0.0.1``) and returns the port."""
     server = http.server.HTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
@@ -114,8 +114,8 @@ def serve(handler: type[http.server.BaseHTTPRequestHandler]) -> Iterator[int]:
 
 @pytest.fixture
 def no_login_prompt(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch):
-    """Kein Anmeldedienst des Rechners (Credential Manager) im Test: Er würde bei einem
-    401-Server ein Fenster öffnen. Ohne System- und Benutzerkonfiguration von Git."""
+    """No credential service of the machine (Credential Manager) in the test: it would open a window
+    for a 401 server. Without Git system and user configuration."""
     empty = tmp_path_factory.mktemp("gitconfig") / "leer"
     empty.write_text("", encoding="utf-8")
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
@@ -124,10 +124,10 @@ def no_login_prompt(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytes
 
 
 def assume_foreign_owner(monkeypatch: pytest.MonkeyPatch, repo: Path) -> None:
-    """Ab hier hält Git ``repo`` für den Ordner eines anderen Benutzerkontos („detected dubious
-    ownership“), ohne dass Rechte oder Besitzer geändert werden (das gälte nicht unter Windows).
-    Der Aufrufer legt das Repository vorher an: Auch die Hilfen dieser Datei bekämen den Fehler.
-    Wird übersprungen, wenn die Git-Version den Besitzer nicht prüft."""
+    """From here on Git considers ``repo`` the folder of another user account ("detected dubious
+    ownership") without changing permissions or owner (that would not work on Windows).
+    The caller creates the repository beforehand: the helpers in this file would hit the error too.
+    Skipped if the Git version does not check ownership."""
     monkeypatch.setenv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1")
     probe = subprocess.run(["git", "rev-parse"], cwd=repo, capture_output=True, text=True)
     if "dubious ownership" not in probe.stderr:

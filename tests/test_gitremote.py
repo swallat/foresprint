@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Server-Adresse (Remote) prüfen und speichern: Adressformen, Zugangsdaten, Verbindungsprüfung
-und ``set_remote`` mit echten Git-Repositories."""
+"""Check and save the server address (remote): address forms, credentials, connection check
+and ``set_remote`` with real Git repositories."""
 
 import contextlib
 import copy
@@ -45,7 +45,7 @@ def assert_no_secret(error: GitError) -> None:
 
 
 def snapshot(root: Path) -> dict[str, bytes]:
-    """Konfiguration und Referenzen eines Repositories (zum Vergleich vorher/nachher)."""
+    """Configuration and refs of a repository (to compare before/after)."""
     gitdir = root / ".git"
     found = {}
     for file in [gitdir / "config", gitdir / "packed-refs"]:
@@ -58,14 +58,14 @@ def snapshot(root: Path) -> dict[str, bytes]:
 
 
 class SpyPopen:
-    """Merkt sich alle ``git``-Aufrufe (Argumente, Umgebung) und führt sie echt aus."""
+    """Records all ``git`` calls (arguments, environment) and runs them for real."""
 
     def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
         self.calls: list[tuple[list[str], dict[str, str]]] = []
         real = subprocess.Popen
 
         def popen(args, *a, **kw):
-            # Die App ruft Git mit vollem Pfad auf (find_git); verglichen wird der Name.
+            # The app calls Git with the full path (find_git); the name is what gets compared.
             if args and Path(args[0]).stem == "git":
                 self.calls.append((["git", *args[1:]], dict(kw.get("env") or {})))
             return real(args, *a, **kw)
@@ -95,7 +95,7 @@ def test_accepted_addresses(tmp_path: Path):
     ]
     for raw, kind in unchanged:
         assert parse_remote_url(raw) == RemoteAddress(raw, kind), raw
-    # Das Schema wird klein geschrieben, Randleerraum entfernt; der Rest bleibt, wie er ist.
+    # The scheme is lowercased and surrounding whitespace removed; the rest stays as it is.
     assert parse_remote_url("HTTPS://Git.Example.com/t/d.git") == RemoteAddress(
         "https://Git.Example.com/t/d.git", "https"
     )
@@ -175,13 +175,13 @@ def test_rejected_addresses(raw: str, kind: str):
         parse_remote_url(raw, allow_insecure=False)
     assert info.value.kind == kind, (raw, info.value)
     assert_no_secret(info.value)
-    assert raw.strip() not in str(info.value) or not raw.strip()  # die Eingabe wird nie wiederholt
+    assert raw.strip() not in str(info.value) or not raw.strip()  # the input is never repeated
 
 
 @pytest.mark.parametrize(("raw", "kind"), REJECTED)
 def test_address_messages_do_not_repeat_the_title(raw: str, kind: str):
-    """Die Oberfläche setzt die Überschrift (``title_for``) über die Meldung; steht der Titel
-    schon in der Meldung, erscheint er doppelt."""
+    """The UI puts the heading (``title_for``) above the message; if the title is already in the
+    message, it appears twice."""
     with pytest.raises(GitError) as info:
         parse_remote_url(raw)
     title = gitmod.title_for(kind)
@@ -196,7 +196,7 @@ def test_rejection_does_not_depend_on_insecure_flag(raw: str):
 
 
 def test_relative_and_foreign_paths_are_not_absolute():
-    """Was ein vollständiger Pfad ist, entscheidet die Plattform."""
+    """The platform decides what counts as a complete path."""
     foreign = "/srv/git/daten.git" if sys.platform == "win32" else r"C:\git\daten.git"
     with pytest.raises(GitError) as info:
         parse_remote_url(foreign)
@@ -206,10 +206,10 @@ def test_relative_and_foreign_paths_are_not_absolute():
 def test_secret_message_names_what_is_wrong_in_plain_words():
     text = str(gitmod.secret_in_url_error())
     assert "Benutzernamen" in text and "Parameter" in text
-    assert "Zusätze" not in text  # kein Fachwort für Leute ohne Terminalwissen
+    assert "Zusätze" not in text  # no jargon for people without terminal knowledge
 
 
-# --- T3: Anzeigefassung und Scrubbing ----------------------------------------------------------
+# --- T3: Display form and scrubbing ------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -281,8 +281,8 @@ def test_scrub_finds_an_address_after_any_punctuation(text: str):
 
 @pytest.mark.parametrize("unit", ["a.", "a-", "a+", "Ab1."])
 def test_scrub_stays_linear_for_long_lines_without_an_address(unit: str):
-    """Eine lange Zeile aus Schema-Zeichen („remote: a.a.a. …“) darf die Sitzung nicht
-    minutenlang stilllegen: Der Treffer begann früher hinter jedem Punkt neu."""
+    """A long line of schema characters ("remote: a.a.a. ...") must not stall the session for
+    minutes: the match used to restart after every dot."""
     text = "remote: " + unit * 60_000
     started = time.monotonic()
     assert scrub(text) == text
@@ -306,7 +306,7 @@ def test_sync_state_repr_hides_the_stored_address(tmp_path: Path):
     root = make_local(tmp_path)
     git(root, "remote", "add", "origin", f"https://u:{SECRET}@h.example/r.git")
     current = gitsync.state(root / "teams")
-    assert SECRET in current.url  # roh, damit Git sie benutzen kann
+    assert SECRET in current.url  # raw, so that Git can use it
     assert SECRET not in repr(current)
 
 
@@ -335,13 +335,14 @@ def test_env_drops_trace_variables(monkeypatch: pytest.MonkeyPatch):
         ("a``b", "```a``b```"),
         ("a\nb\u202ec", "`a b c`"),
         ("", ""),
-        # Steuerzeichen, Zeilen- und Absatztrenner und die Zeichen der Schreibrichtung:
+        # Control characters, line and paragraph separators and the bidi (text direction)
+        # characters:
         ("a\x00b\x85c\u2028d\u2029e", "`a b c d e`"),
         ("a\u200eb\u200fc\u061cd", "`a b c d`"),
         ("a\u202ab\u202bc\u202cd\u202de", "`a b c d e`"),
         ("a\u2066b\u2067c\u2068d\u2069e", "`a b c d e`"),
-        # Formatzeichen, die zu Zeichenfolgen gehören, bleiben: Joiner in Emoji-Folgen,
-        # Non-Joiner in persischen Namen, Variantenauswahl, Flaggen.
+        # Format characters that belong to character sequences stay: joiners in emoji sequences,
+        # non-joiners in Persian names, variation selectors, flags.
         (
             "Familie \U0001f468\u200d\U0001f469\u200d\U0001f467",
             "`Familie \U0001f468\u200d\U0001f469\u200d\U0001f467`",
@@ -374,10 +375,10 @@ def test_git_error_text_of_git_is_quoted_and_own_text_is_not():
     assert raw.render(md_code_lines) == (
         "`remote: [Klick](http://example.org)`  \n`fatal: www.evil.example/x`"
     )
-    assert raw.render() == str(raw)  # ohne ``quote`` bleibt der Text unverändert
+    assert raw.render() == str(raw)  # without ``quote`` the text stays unchanged
     assert copy.copy(raw).raw and not copy.copy(own).raw
     assert not gitmod.classify("", missing=True).raw and not gitmod.classify("", timeout=True).raw
-    assert not gitmod.classify("").raw  # ohne Text von Git gibt es nichts zu schützen
+    assert not gitmod.classify("").raw  # without text from Git there is nothing to protect
 
 
 def test_git_error_full_quotes_only_the_message_of_git():
@@ -385,7 +386,7 @@ def test_git_error_full_quotes_only_the_message_of_git():
     assert denied.kind == "denied" and denied.hint
     full = denied.full(md_code_lines)
     assert full.startswith("`! [remote rejected] www.evil.example/x (pre-receive hook declined)` ")
-    assert full.endswith(denied.hint)  # der Hinweis ist ein eigener Text
+    assert full.endswith(denied.hint)  # the hint is a text of its own
     assert denied.full() == f"{denied} {denied.hint}"
 
 
@@ -408,10 +409,10 @@ def test_unrelated_histories_error_is_plain_text_and_renders_server_and_branch_a
     shown = error.render(md_code)
     assert "(`https://h.example/r.git`, Branch `www.evil.example/x`)" in shown
     clone = copy.copy(error)
-    assert clone.render(md_code) == shown and clone.hint == error.hint  # lässt sich kopieren
+    assert clone.render(md_code) == shown and clone.hint == error.hint  # can be copied
 
 
-# --- T4: Zuordnung der Fehler der Verbindungsprüfung -------------------------------------------
+# --- T4: Mapping of the connection check errors ------------------------------------------------
 
 HTTPS = RemoteAddress("https://h.example/r.git", "https")
 SSH = RemoteAddress("git@h.example:r.git", "ssh")
@@ -454,8 +455,8 @@ TAIL = (
             "not_found",
             "nicht gefunden",
         ),
-        # Der Server antwortet, das Projekt gibt es nicht (oder er verschweigt es): SSH-Meldungen
-        # von GitHub, GitLab, Bitbucket, Azure DevOps und Gitea. Nie „nicht erreichbar“.
+        # The server answers, the project does not exist (or it conceals it): SSH messages from
+        # GitHub, GitLab, Bitbucket, Azure DevOps and Gitea. Never "Server not reachable".
         (f"ERROR: Repository not found.\n{TAIL}", SSH, "not_found", "nicht gefunden"),
         (
             "remote: ERROR: The project you were looking for could not be found or you don't "
@@ -473,7 +474,7 @@ TAIL = (
             "nicht gefunden",
         ),
         (f"Gitea: Repository does not exist.\n{TAIL}", SSH, "not_found", "nicht gefunden"),
-        # Das Zertifikat wird nicht anerkannt: Der Server antwortet, VPN prüfen hilft nicht.
+        # The certificate is not accepted: the server answers, so checking the VPN does not help.
         (
             "fatal: unable to access 'https://h/r.git/': SSL certificate problem: unable to get "
             "local issuer certificate",
@@ -488,7 +489,7 @@ TAIL = (
             "certificate",
             "Zertifikat",
         ),
-        # Nur belegte Netzwerkfehler gelten als „nicht erreichbar“.
+        # Only proven network errors count as "Server not reachable".
         (
             "fatal: unable to access 'https://h/': Could not resolve host: h",
             HTTPS,
@@ -519,8 +520,9 @@ TAIL = (
             "offline",
             "Tippfehler",
         ),
-        # Eine gesperrte Verbindung (Firewall, Sicherheitssoftware) bleibt „nicht erreichbar“;
-        # „Permission denied“ beim Anlegen von ~/.ssh ändert nichts am Fingerabdruck-Hinweis.
+        # A blocked connection (firewall, security software) stays "Server not reachable";
+        # "Permission
+        # denied" when creating ~/.ssh does not change the fingerprint hint.
         (
             "ssh: connect to host h.example port 22: Permission denied\n" + TAIL,
             SSH,
@@ -541,9 +543,9 @@ TAIL = (
             "auth",
             "Fingerabdruck",
         ),
-        # Die Arten für den eigenen Rechner behalten ihren Hinweis: Ein Server-Ordner eines
-        # anderen Kontos (Netzlaufwerk), Schreibrechte und eine Sperrdatei sind keine
-        # „fehlgeschlagene Verbindung“.
+        # The kinds for the local machine keep their hint: a server folder of another account
+        # (network
+        # drive), write permissions and a lock file are not a "failed connection".
         (
             "fatal: detected dubious ownership in repository at '/srv/r.git'\n"
             "To add an exception for this directory, call:\n\n"
@@ -564,8 +566,8 @@ TAIL = (
             "locked",
             "Sperrdatei",
         ),
-        # Git sagt nur „Could not read from remote repository“ oder der Server antwortet mit
-        # einem Fehler: unklar, aber nie „nicht erreichbar“ und nie zum Speichern angeboten.
+        # Git only says "Could not read from remote repository" or the server answers with an error:
+        # unclear, but never "Server not reachable" and never offered for saving.
         (TAIL, SSH, "error", "nicht erfüllt"),
         (
             "fatal: unable to access 'https://h/r.git/': The requested URL returned error: 503",
@@ -586,8 +588,8 @@ def test_probe_error_table(message: str, address: RemoteAddress, kind: str, hint
 
 
 def test_probe_certificate_hint_says_the_address_is_not_saved():
-    """Nur die Prüfung der Adresse sagt, dass sie nicht gespeichert wird; bei jedem anderen
-    Netzwerkaufruf steht derselbe Hinweis ohne diesen Zusatz."""
+    """Only the address check says that it is not saved; for every other network call the same hint
+    appears without this addition."""
     message = "fatal: unable to access 'https://h/r.git/': SSL certificate problem: x"
     probe = gitmod._probe_error(message, HTTPS)
     assert probe.kind == "certificate" and probe.hint.endswith(
@@ -671,7 +673,7 @@ def test_check_server_without_the_local_branch(tmp_path: Path):
 
 
 def test_check_without_commit_against_a_server_with_data(tmp_path: Path):
-    """Der Beitritts-Fall: Ordner frisch angelegt (noch kein Commit), der Server hat Daten."""
+    """The join case: folder freshly created (no commit yet), the server has data."""
     root = make_local(tmp_path, commit=False)
     check = gitsync.check_remote(root / "teams", str(make_server(tmp_path, branch="master")))
     assert check.branch == "main" and check.unborn and check.branch_missing
@@ -693,8 +695,8 @@ def test_check_with_a_detached_head_has_no_branch_to_miss(tmp_path: Path):
 
 
 def test_check_sees_all_branches_not_only_the_first_200(tmp_path: Path, monkeypatch):
-    """250 Branches ``feature/…`` und ``main``: Die Ausgabe ist alphabetisch, ``main`` steht
-    hinter dem 200. Eintrag und gehört trotzdem zum Server."""
+    """250 branches ``feature/...`` and ``main``: the output is alphabetical, ``main`` comes after
+    the 200th entry and still belongs to the server."""
     root = make_local(tmp_path)
     server = make_server(tmp_path, branch="main")
     add_branches(server, [f"feature/{n:03d}" for n in range(250)])
@@ -702,14 +704,14 @@ def test_check_sees_all_branches_not_only_the_first_200(tmp_path: Path, monkeypa
     check = gitsync.check_remote(root / "teams", str(server))
     assert len(check.heads) == 251 and "main" in check.heads
     assert not check.branch_missing
-    assert len(spy.with_command("ls-remote")) == 1  # die Liste passt ins Limit: eine Anfrage
-    gitsync.set_remote(root / "teams", str(server))  # ohne Bestätigung des Branches
+    assert len(spy.with_command("ls-remote")) == 1  # the list fits the limit: one request
+    gitsync.set_remote(root / "teams", str(server))  # without confirming the branch
     assert git(root, "remote", "get-url", "origin") == str(server)
 
 
 def test_check_asks_for_the_local_branch_when_the_list_is_too_long(tmp_path: Path, monkeypatch):
-    """Über 64 KB Ausgabe kürzt die Abfrage die Liste; ob der lokale Branch dabei ist, klärt eine
-    zweite, gezielte Anfrage (nicht die gekürzte Liste)."""
+    """Above 64 KB of output the query truncates the list; whether the local branch is among them is
+    clarified by a second, targeted request (not the truncated list)."""
     root = make_local(tmp_path)
     server = make_server(tmp_path, branch="main")
     add_branches(server, [f"feature/{'x' * 80}-{n:04d}" for n in range(1000)])
@@ -717,10 +719,10 @@ def test_check_asks_for_the_local_branch_when_the_list_is_too_long(tmp_path: Pat
     check = gitsync.check_remote(root / "teams", str(server))
     first, second = (args for args, _ in spy.with_command("ls-remote"))
     assert first[-1] == str(server) and second[-2:] == [str(server), "refs/heads/main"]
-    assert "main" in check.heads and len(check.heads) < 1001  # die Liste ist gekürzt
+    assert "main" in check.heads and len(check.heads) < 1001  # the list is truncated
     assert not check.branch_missing
 
-    git(root, "branch", "-m", "lokal")  # einen Branch, den der Server wirklich nicht hat
+    git(root, "branch", "-m", "lokal")  # a branch that the server really does not have
     gitmod.invalidate_status()
     check = gitsync.check_remote(root / "teams", str(server))
     assert check.branch == "lokal" and "lokal" not in check.heads and check.branch_missing
@@ -778,7 +780,7 @@ def test_check_changes_nothing(tmp_path: Path):
     assert snapshot(root) == before
 
 
-# --- T7: Prozess und Protokollsperre -----------------------------------------------------------
+# --- T7: Process and protocol lock -------------------------------------------------------------
 
 
 def test_probe_command_and_environment(tmp_path: Path, monkeypatch):
@@ -795,7 +797,7 @@ def test_probe_command_and_environment(tmp_path: Path, monkeypatch):
 
 @pytest.mark.parametrize("helper", ["fd::3", "ext::sh -c 'touch marker'"])
 def test_probe_refuses_remote_helpers_even_without_the_parser(tmp_path: Path, helper: str):
-    """Zweite Sperre: Käme eine solche Adresse am Parser vorbei, führt Git sie nicht aus."""
+    """Second lock: if such an address got past the parser, Git does not execute it."""
     root = make_local(tmp_path)
     started = time.monotonic()
     run = gitmod._probe_run(root, ("ls-remote", "--heads", "--", helper), 20)
@@ -805,16 +807,16 @@ def test_probe_refuses_remote_helpers_even_without_the_parser(tmp_path: Path, he
 
 
 def test_probe_returns_when_the_server_never_answers(tmp_path: Path, monkeypatch):
-    """Der Server nimmt die Verbindung an und schweigt. Das Zeitlimit der App (3 s) liegt unter
-    dem von Git (10 s, ``GIT_HTTP_LOW_SPEED_TIME``): Kommt die App-Meldung nach wenigen Sekunden,
-    hat die App selbst abgebrochen und den Prozessbaum beendet."""
+    """The server accepts the connection and stays silent. The app's timeout (3 s) is below Git's
+    (10 s, ``GIT_HTTP_LOW_SPEED_TIME``): if the app message arrives after a few seconds, the app
+    aborted itself and ended the process tree."""
     root = make_local(tmp_path)
     ended: list[int | None] = []
     terminate = proctree.terminate_tree
 
     def spy(process, *args, **kwargs):
         terminate(process, *args, **kwargs)
-        ended.append(process.poll())  # nach dem Beenden: Rückgabecode, nicht „läuft noch“
+        ended.append(process.poll())  # after ending: return code, not "still running"
 
     monkeypatch.setattr(proctree, "terminate_tree", spy)
     listener = socket.socket()
@@ -852,11 +854,11 @@ def test_probe_returns_when_the_server_never_answers(tmp_path: Path, monkeypatch
     assert not worker.is_alive(), "Die Prüfung hängt"
     error = outcome["error"]
     assert isinstance(error, GitError) and error.kind == "offline"
-    # Die Meldung der App, nicht die von Git („Operation too slow“ nach 10 s): Das Zeitlimit
-    # wurde durchgereicht und hat gegriffen.
+    # The app's message, not Git's ("Operation too slow" after 10 s): the timeout was passed on
+    # and took effect.
     assert str(error) == "Der Server antwortet nicht rechtzeitig."
     assert 3 <= outcome["seconds"] < 8
-    assert len(ended) == 1 and ended[0] is not None  # der Prozess war beim Zurückkehren beendet
+    assert len(ended) == 1 and ended[0] is not None  # the process had ended by the time it returned
 
 
 # --- T8: set_remote ----------------------------------------------------------------------------
@@ -874,9 +876,9 @@ def test_set_remote_without_server_creates_origin(tmp_path: Path):
     server = make_server(tmp_path)
     saved = gitsync.set_remote(data, str(server))
     assert saved == gitsync.RemoteSaved("origin", str(server), True)
-    current = gitsync.cached_state(data)  # sofort aktuell, ohne Wartezeit
+    current = gitsync.cached_state(data)  # up to date immediately, no waiting
     assert current.remote == "origin" and current.fetch_error is None
-    assert current.fetched_at is None  # Serverstand noch nicht geprüft
+    assert current.fetched_at is None  # server state not checked yet
     assert git(root, "remote", "get-url", "origin") == str(server)
 
 
@@ -982,8 +984,8 @@ def test_set_remote_saves_nothing_for_a_missing_repository(tmp_path: Path):
 @pytest.mark.parametrize(
     ("stderr", "kind"),
     [
-        # GitLab über SSH: Server erreichbar, Projekt fehlt (Tippfehler). Früher „offline“ und
-        # damit zum ungeprüften Speichern angeboten.
+        # GitLab over SSH: server reachable, project missing (typo). Used to be "offline" and thus
+        # offered for unchecked saving.
         (
             "remote: ERROR: The project you were looking for could not be found or you don't "
             f"have permission to view it.\n{TAIL}",
@@ -1034,15 +1036,15 @@ def test_set_remote_new_branch_needs_confirmation(tmp_path: Path):
         gitsync.set_remote(root / "teams", str(server))
     assert info.value.kind == "new_branch" and config_of(root) == before
     assert "„main“" in str(info.value) and "master" in str(info.value)
-    assert "Repository klonen" in str(info.value)  # der Weg für den Beitritt zu einem Team
+    assert "Repository klonen" in str(info.value)  # the way to join a team
     assert not info.value.hint
     saved = gitsync.set_remote(root / "teams", str(server), accept_new_branch=True)
     assert saved.verified and git(root, "remote", "get-url", "origin") == str(server)
 
 
 def test_set_remote_without_commit_against_a_server_with_data_names_cloning(tmp_path: Path):
-    """Frisch angelegter Ordner (noch kein Commit) und die Adresse des Team-Servers: Ohne
-    Warnung würde der erste Upload auf dem Team-Server einen fremden Branch anlegen."""
+    """Freshly created folder (no commit yet) and the address of the team server: without the
+    warning, the first upload to the team server would create a foreign branch."""
     root = make_local(tmp_path, commit=False)
     server = make_server(tmp_path, branch="master")
     before = config_of(root)
@@ -1094,11 +1096,11 @@ def test_set_remote_never_touches_global_or_credential_settings(tmp_path: Path, 
     for args, _ in spy.calls:
         assert "--global" not in args and "--system" not in args
         assert not any(a.startswith("credential") for a in args), args
-        assert "fetch" not in args  # kein automatischer Abruf
+        assert "fetch" not in args  # no automatic fetch
 
 
 def test_write_arguments_work_with_the_installed_git(tmp_path: Path):
-    """Die Argumentstellung ``remote add -- NAME URL`` und ``remote set-url NAME -- URL``."""
+    """The argument order ``remote add -- NAME URL`` and ``remote set-url NAME -- URL``."""
     root = make_local(tmp_path)
     gitmod._git(root, "remote", "add", "--", "o", "https://a.example/x.git")
     gitmod._git(root, "remote", "set-url", "o", "--", "https://b.example/y.git")
@@ -1129,7 +1131,7 @@ def test_remote_info_without_server(tmp_path: Path):
     info = gitsync.remote_info(root / "teams")
     assert info.name is None and info.url == "" and not info.has_secret
     assert info.others == () and info.special == ""
-    assert info.branch == "main" and info.unborn  # frisch angelegt: Branch ohne Commit
+    assert info.branch == "main" and info.unborn  # freshly created: branch without a commit
 
 
 def test_remote_info_reports_branch_and_unborn_state(tmp_path: Path):
@@ -1152,8 +1154,8 @@ def test_state_knows_a_repository_without_commit(tmp_path: Path):
 def test_a_stored_address_with_a_token_is_scrubbed_from_sync_errors(
     tmp_path: Path, no_login_prompt
 ):
-    """Der echte Leckpfad: Ein Altbestand mit ``?token=…`` in der Adresse. Git selbst druckt die
-    Adresse samt Token („repository '…' not found“); erst ``GitError`` entfernt ihn."""
+    """The real leak path: a legacy entry with ``?token=...`` in the address. Git itself prints the
+    address including the token ("repository '...' not found"); only ``GitError`` removes it."""
     root = make_local(tmp_path)
     with serve(NotFound) as port:
         git(root, "remote", "add", "origin", f"http://127.0.0.1:{port}/r.git?token={SECRET}")
@@ -1169,12 +1171,12 @@ def test_a_stored_address_with_a_token_is_scrubbed_from_sync_errors(
         assert_no_secret(error)
 
 
-# --- Frisches Repository ohne Commit und „Speichern und teilen“ -------------------------------
+# --- Fresh repository without a commit and "Save and share" -----------------------------------
 
 
 def test_sync_without_any_data_says_there_is_nothing_to_share(tmp_path: Path):
-    """Neuer Ordner ohne Dateien, Server mit Team-Daten (Branch ``master``): Es gibt nichts
-    hochzuladen. Früher kam „Hochladen abgelehnt, weil inzwischen etwas Neues da ist“."""
+    """New folder without files, server with team data (branch ``master``): there is nothing to
+    upload. It used to report "Upload rejected because something new arrived in the meantime"."""
     root = make_local(tmp_path, commit=False)
     server = make_server(tmp_path, branch="master")
     gitsync.set_remote(root / "teams", str(server), accept_new_branch=True)

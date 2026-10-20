@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Oberfläche zu den Backend-Fixes (K3): fremde Historie, Hinweise, Tags, Umbenennungen,
-Einstellungsfehler, „Ohne Git“ und Testlücken (AppTest)."""
+"""UI for the backend fixes (K3): foreign history, notices, tags, renames, settings errors,
+"Use without Git" and test gaps (AppTest)."""
 
 import subprocess
 from pathlib import Path
@@ -47,7 +47,7 @@ def any_error(at: AppTest, text: str) -> bool:
 
 
 def foreign_history(server: Path) -> None:
-    """Der Server bekommt eine Historie ohne gemeinsamen Ursprung (falsches Repository)."""
+    """The server receives a history without a common origin (wrong repository)."""
     other = server.parent / "fremd"
     other.mkdir()
     git(other, "init", "-q", "-b", "main")
@@ -57,7 +57,7 @@ def foreign_history(server: Path) -> None:
     git(other, "push", "-qf", str(server), "main")
 
 
-# --- U1: fremde Historie ----------------------------------------------------------------
+# --- U1: foreign history ----------------------------------------------------------------
 
 
 def test_unrelated_histories_ask_for_explicit_confirmation(shared, data_dir, monkeypatch):
@@ -70,16 +70,16 @@ def test_unrelated_histories_ask_for_explicit_confirmation(shared, data_dir, mon
     assert "Server hat eine andere Historie" in text
     assert "falsches Repository" in text
     assert str(server) in text and "main" in text
-    # Der richtige Ausweg bei einer falschen Adresse ist die Maske unter „Datenordner“.
+    # The right way out of a wrong address is the form under "Data folder".
     assert "Server (Remote)" in text
     assert [p.proto.label for p in at.sidebar.get("page_link")] == ["Server-Adresse ändern"]
-    assert at.sidebar.button(key="unrelated-go").disabled  # ohne Bestätigung geht nichts
-    # Das Ankreuzen löst einen neuen Durchlauf aus; der Dialog bleibt stehen.
+    assert at.sidebar.button(key="unrelated-go").disabled  # nothing works without confirmation
+    # Ticking the box triggers a new run; the dialog stays.
     at.sidebar.checkbox(key="unrelated-confirm").check().run()
     assert not at.sidebar.button(key="unrelated-go").disabled
     at.sidebar.checkbox(key="unrelated-confirm").uncheck().run()
     assert at.sidebar.button(key="unrelated-go").disabled
-    assert "Fremder Code" in git(server, "log", "--format=%s", "main")  # unverändert
+    assert "Fremder Code" in git(server, "log", "--format=%s", "main")  # unchanged
     assert "Start" not in git(server, "log", "--format=%s", "main")
 
 
@@ -126,7 +126,7 @@ def test_existing_tag_blocks_commit_with_explanation(
     assert "anderen Namen" in errors
 
 
-# --- U2: Hinweise trotz Erfolg ----------------------------------------------------------
+# --- U2: notices despite success --------------------------------------------------------
 
 
 def test_sync_notes_are_shown(shared, data_dir, monkeypatch):
@@ -137,7 +137,7 @@ def test_sync_notes_are_shown(shared, data_dir, monkeypatch):
     git(root, "commit", "-qm", "Weiter")
     invalidate_status()
     at = start(data_dir, monkeypatch)
-    at.session_state["pending_tags"] = ["demo/alt"]  # zeigt auf einen anderen Commit als HEAD
+    at.session_state["pending_tags"] = ["demo/alt"]  # points to a different commit than HEAD
     at.run()
     sidebar_button(at, "Speichern und teilen").click().run()
     assert not at.exception, at.exception
@@ -145,11 +145,11 @@ def test_sync_notes_are_shown(shared, data_dir, monkeypatch):
     assert "zeigt auf einen anderen Commit" in notes and "demo/alt" in notes
 
 
-# --- U3: Tags mit Teilfehlern ----------------------------------------------------------
+# --- U3: tags with partial failures ----------------------------------------------------
 
 
 def tag_setup(shared) -> Path:
-    """Lokal: nurlokal, beide (hochgeladen), anders; nur auf dem Server: nurserver."""
+    """Local: nurlokal, both (uploaded), anders; only on the server: nurserver."""
     root, bob, server = shared
     git(root, "tag", "-a", "nurlokal", "-m", "x")
     git(root, "tag", "-a", "beide", "-m", "x")
@@ -167,14 +167,14 @@ def tag_setup(shared) -> Path:
 
 def tag_rows(at: AppTest) -> dict[str, str]:
     frame = at.table[0].value
-    return {name.strip("`"): row["Server"] for name, row in frame.iterrows()}  # Namen als Code
+    return {name.strip("`"): row["Server"] for name, row in frame.iterrows()}  # names as code
 
 
 def test_tag_list_shows_status_after_server_check(shared, data_dir, monkeypatch):
     tag_setup(shared)
     at = goto(start(data_dir, monkeypatch), "verlauf")
     assert set(tag_rows(at)) == {"nurlokal", "beide", "anders"}
-    assert not any(tag_rows(at).values())  # ohne Abgleich keine Behauptung
+    assert not any(tag_rows(at).values())  # no claim without a sync
     main_button(at, "Mit dem Server abgleichen").click().run()
     assert not at.exception, at.exception
     rows = tag_rows(at)
@@ -187,7 +187,7 @@ def test_tag_list_shows_status_after_server_check(shared, data_dir, monkeypatch)
 def test_failed_server_check_without_local_tags_is_not_reported_as_no_tags(
     shared, data_dir, monkeypatch
 ):
-    """Ohne lokale Tags und mit unerreichbarem Server darf nicht „Noch keine Tags“ allein stehen."""
+    """Without local tags and with an unreachable server, "No tags yet" must not stand alone."""
     root, _, _ = shared
     git(root, "remote", "set-url", "origin", str(root / "gibt-es-nicht"))
     invalidate_status()
@@ -209,7 +209,7 @@ def test_local_only_tag_can_be_uploaded(shared, data_dir, monkeypatch):
     assert not at.exception, at.exception
     assert "nurlokal" in git(server, "tag").split()
     assert any("nurlokal" in s.value for s in at.success)
-    assert tag_rows(at)["nurlokal"] == "auf dem Server"  # nach der Aktion neu abgeglichen
+    assert tag_rows(at)["nurlokal"] == "auf dem Server"  # re-synced after the action
 
 
 def test_upload_failure_is_explained(shared, data_dir, monkeypatch):
@@ -220,7 +220,7 @@ def test_upload_failure_is_explained(shared, data_dir, monkeypatch):
     server.rename(server.with_name("weg.git"))
     main_button(at, "Zum Server übertragen").click().run()
     assert not at.exception, at.exception
-    assert at.error  # verständlicher Fehler statt Traceback
+    assert at.error  # understandable error instead of a traceback
 
 
 def test_server_only_tag_can_be_deleted_with_per_tag_confirmation(shared, data_dir, monkeypatch):
@@ -238,7 +238,7 @@ def test_server_only_tag_can_be_deleted_with_per_tag_confirmation(shared, data_d
     assert "nurserver" not in tag_rows(at)
 
 
-# --- U4: Umbenennungen und Statuswerte beim Verwerfen ----------------------------------
+# --- U4: renames and status values when discarding -------------------------------------
 
 
 def test_discard_preview_names_renames(repo: Path, data_dir: Path, monkeypatch):
@@ -260,10 +260,10 @@ def test_lost_status_shows_both_paths_of_a_rename_as_code():
     assert (
         ui._lost_status(renamed) == "umbenannt: `teams/demo/people.yaml` → `teams/demo/leute.yaml`"
     )
-    # Ein Pfad mit Backtick beendet den Code-Span nicht (Markdown-Zeichen werden nicht gedeutet).
+    # A path with a backtick does not end the code span (Markdown characters are not interpreted).
     odd = Lost("R", "neu*`x`.yaml", orig="alt _name_.yaml")
     assert ui._lost_status(odd) == "umbenannt: `alt _name_.yaml` → ``neu*`x`.yaml``"
-    assert ui._lost_status(Lost("M", "a.yaml")) == "geändert"  # ohne Umbenennung unverändert
+    assert ui._lost_status(Lost("M", "a.yaml")) == "geändert"  # unchanged without a rename
 
 
 @pytest.mark.parametrize(
@@ -283,7 +283,7 @@ def test_status_names(status: str, name: str):
     assert ui.status_name(status) == name
 
 
-# --- U5: Einstellungen nicht speicherbar -----------------------------------------------
+# --- U5: settings cannot be saved ------------------------------------------------------
 
 
 def fail_settings(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -302,7 +302,7 @@ def test_language_change_with_unwritable_settings(
     assert not at.exception, at.exception
     assert any_error(at, "Zugriff verweigert")
     assert any_error(at, "Sprache wurde nicht geändert")
-    assert at.sidebar.selectbox(key="language").value == "de"  # nichts umgestellt
+    assert at.sidebar.selectbox(key="language").value == "de"  # nothing switched
 
 
 def test_folder_switch_with_unwritable_settings(
@@ -325,7 +325,7 @@ def test_forget_with_unwritable_settings(
     main_button(at, "Entfernen").click().run()
     assert not at.exception, at.exception
     assert any_error(at, "Zugriff verweigert")
-    assert any("zweiter-ordner" in m.value for m in at.main.markdown)  # noch in der Liste
+    assert any("zweiter-ordner" in m.value for m in at.main.markdown)  # still in the list
 
 
 def test_choose_folder_with_unwritable_settings(
@@ -340,7 +340,7 @@ def test_choose_folder_with_unwritable_settings(
     assert "zweiter-ordner" not in " ".join(m.value for m in at.sidebar.markdown)
 
 
-# --- U6: „Ohne Git verwenden“ überlebt einen neuen Tab -----------------------------------
+# --- U6: "Use without Git" survives a new tab --------------------------------------------
 
 
 def test_without_git_survives_a_new_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -351,7 +351,7 @@ def test_without_git_survives_a_new_session(tmp_path: Path, monkeypatch: pytest.
     at.run()
     main_button(at, "Ohne Git verwenden").click().run()
     assert [h.value for h in at.header] != ["Datenordner"]
-    fresh = AppTest.from_file(str(APP), default_timeout=30)  # neuer Tab = neue Sitzung
+    fresh = AppTest.from_file(str(APP), default_timeout=30)  # new tab = new session
     fresh.run()
     assert not fresh.exception, fresh.exception
     assert [h.value for h in fresh.header] != ["Datenordner"]
@@ -365,7 +365,7 @@ def test_without_git_choice_is_stored_once(tmp_path: Path):
     folder.mkdir()
     logic.remember_without_git(folder)
     logic.remember_without_git(folder)
-    logic.remember_without_git(tmp_path / "a" / ".." / "a")  # andere Schreibweise
+    logic.remember_without_git(tmp_path / "a" / ".." / "a")  # different spelling
     assert config.load()["without_git_dirs"] == [str(folder.resolve())]
     assert logic.is_without_git(folder)
     assert not logic.is_without_git(tmp_path)
@@ -383,13 +383,13 @@ def test_without_git_does_nothing_when_settings_cannot_be_saved(
     main_button(at, "Ohne Git verwenden").click().run()
     assert not at.exception, at.exception
     assert any_error(at, "Zugriff verweigert")
-    assert [h.value for h in at.header] == ["Datenordner"]  # unverändert in der Einrichtung
+    assert [h.value for h in at.header] == ["Datenordner"]  # unchanged in the setup
 
 
 def test_without_git_choice_is_taken_back_when_the_switch_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Scheitert der Wechsel nach dem Merken, bleibt „ohne Git“ nicht halb gespeichert."""
+    """If the switch fails after remembering, "without Git" is not left half saved."""
     from sprintforecast.web import logic
 
     empty = tmp_path / "leer"
@@ -419,10 +419,10 @@ def test_unrelated_confirmation_does_not_survive_another_sync(shared, data_dir, 
     at.sidebar.checkbox(key="unrelated-confirm").check().run()
     assert not at.sidebar.button(key="unrelated-go").disabled
     sidebar_button(at, "Speichern und teilen").click().run()
-    assert at.sidebar.button(key="unrelated-go").disabled  # neu bestätigen
+    assert at.sidebar.button(key="unrelated-go").disabled  # confirm again
 
 
-# --- U7: aktiver Ordner fehlt in der Umschaltliste, auch bei anderem Pfad ----------------
+# --- U7: active folder missing in the switch list, also with a different path ----------------
 
 
 def test_recent_dirs_exclude_active_folder_via_symlink(data_dir: Path, tmp_path: Path):
@@ -431,7 +431,7 @@ def test_recent_dirs_exclude_active_folder_via_symlink(data_dir: Path, tmp_path:
     link = tmp_path / "verweis"
     try:
         link.symlink_to(data_dir, target_is_directory=True)
-    except OSError as e:  # Windows ohne Administrator/Entwicklermodus: keine Symlinks
+    except OSError as e:  # Windows without administrator/developer mode: no symlinks
         if getattr(e, "winerror", None) != 1314:
             raise
         pytest.skip("Kein Recht für symbolische Verknüpfungen")
@@ -440,7 +440,7 @@ def test_recent_dirs_exclude_active_folder_via_symlink(data_dir: Path, tmp_path:
     assert ui._recent_dirs(Repository(link)) == []
 
 
-# --- U8: Testlücken ---------------------------------------------------------------------
+# --- U8: test gaps ----------------------------------------------------------------------
 
 
 def plugin_script() -> None:
@@ -481,7 +481,7 @@ def test_sidebar_has_no_write_buttons_with_open_merge(shared, data_dir, monkeypa
     root, _, _ = shared
     diverge(root)
     subprocess.run(["git", "merge", "andere"], cwd=root, capture_output=True)
-    (root / "offen.txt").write_text("offen\n")  # eine offene Änderung wäre sonst commitbar
+    (root / "offen.txt").write_text("offen\n")  # an open change would otherwise be committable
     invalidate_status()
     at = start(data_dir, monkeypatch)
     labels = [b.label for b in at.sidebar.button]
@@ -496,7 +496,7 @@ def test_new_tab_after_folder_switch_starts_in_new_folder(
     tab1 = start(data_dir, monkeypatch)
     sidebar_button(tab1, "Wechseln").click().run()
     assert "zweiter-ordner" in " ".join(m.value for m in tab1.sidebar.markdown)
-    fresh = AppTest.from_file(str(APP), default_timeout=30)  # neuer Tab, Umgebung unverändert
+    fresh = AppTest.from_file(str(APP), default_timeout=30)  # new tab, environment unchanged
     fresh.run()
     assert not fresh.exception, fresh.exception
     assert "zweiter-ordner" in " ".join(m.value for m in fresh.sidebar.markdown)

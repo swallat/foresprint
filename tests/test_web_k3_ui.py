@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Oberfläche der Git-Synchronisation und des Datenordner-Umschalters: Review-Befunde (AppTest)."""
+"""UI of the Git sync and the data folder switcher: review findings (AppTest)."""
 
 import subprocess
 from pathlib import Path
@@ -51,7 +51,7 @@ def sidebar_button(at: AppTest, label: str):
 
 
 def diverge(root: Path) -> None:
-    """Zwei Zweige ändern dieselbe Zeile; am Ende steht ``andere`` oder ``main`` aus."""
+    """Two branches change the same line; in the end ``andere`` or ``main`` remains."""
     git(root, "checkout", "-q", "-b", "andere")
     other = root / SPRINT
     other.write_text(other.read_text().replace("velocity: 9.75", "velocity: 8"))
@@ -68,7 +68,7 @@ def open_merge(root: Path) -> None:
     invalidate_status()
 
 
-# --- W1: eigenes Speichern gilt nie als fremde Änderung ---------------------------------
+# --- W1: own saving never counts as a foreign change ------------------------------------
 
 
 def test_own_save_with_rerun_is_not_reported_as_foreign_change(
@@ -80,11 +80,11 @@ def test_own_save_with_rerun_is_not_reported_as_foreign_change(
     assert not at.exception, at.exception
     assert (data_dir / "demo" / "sprints" / "2026.23.yaml").exists()
     assert not any("Daten haben sich geändert" in w.value for w in at.warning)
-    assert at.selectbox(key="planning-sprint").value == "2026.23"  # Eingaben nicht verworfen
+    assert at.selectbox(key="planning-sprint").value == "2026.23"  # inputs not discarded
     assert at.radio(key="planning-step").value == 1
 
 
-# --- W2: Datenordner gilt je Sitzung ----------------------------------------------------
+# --- W2: the data folder applies per session --------------------------------------------
 
 
 def test_folder_switch_does_not_leak_into_other_sessions(
@@ -95,10 +95,10 @@ def test_folder_switch_does_not_leak_into_other_sessions(
     tab2.selectbox(key="review-sprint").set_value("2026.21").run()
     tab2.number_input(key="velocity-2026.21").set_value(9.0)
 
-    sidebar_button(tab1, "Wechseln").click().run()  # Tab 1 wechselt auf den zweiten Ordner
+    sidebar_button(tab1, "Wechseln").click().run()  # tab 1 switches to the second folder
     assert not tab1.exception, tab1.exception
 
-    main_button(tab2, "Review speichern").click().run()  # Tab 2 speichert weiter in Ordner A
+    main_button(tab2, "Review speichern").click().run()  # tab 2 keeps saving in folder A
     assert not tab2.exception, tab2.exception
     assert "velocity: 9" in (data_dir / "demo" / "sprints" / "2026.21.yaml").read_text()
     assert "velocity: 9.0" not in (second_folder / "zweit" / "sprints" / "2026.21.yaml").read_text()
@@ -112,7 +112,7 @@ def test_header_shows_parent_folder(repo: Path, data_dir: Path, monkeypatch):
     assert f"`{repo.name}/teams`" in text
 
 
-# --- W3: „Ohne Git verwenden“ ist keine Sackgasse ---------------------------------------
+# --- W3: "Use without Git" is not a dead end --------------------------------------------
 
 
 def test_without_git_in_empty_folder_leads_to_new_team(
@@ -126,12 +126,12 @@ def test_without_git_in_empty_folder_leads_to_new_team(
     at.run()
     main_button(at, "Ohne Git verwenden").click().run()
     assert not at.exception, at.exception
-    assert [h.value for h in at.header] != ["Datenordner"]  # nicht wieder die Einrichtung
+    assert [h.value for h in at.header] != ["Datenordner"]  # not the setup again
     goto(at, "neues_team")
-    assert at.text_input  # „Neues Team“ ist erreichbar
+    assert at.text_input  # "New team" is reachable
 
 
-# --- W4: offenes Zusammenführen sperrt alle schreibenden Seiten -------------------------
+# --- W4: an open merge locks all writing pages ------------------------------------------
 
 
 @pytest.mark.parametrize("page", ["neues_team", "review"])
@@ -165,7 +165,7 @@ def test_open_rebase_locks_pages(repo: Path, data_dir: Path, monkeypatch: pytest
     assert [h.value for h in at.header] == ["Konflikte lösen"]
 
 
-# --- W5: Tags und Commit-Nachricht gehören zum Ordner -----------------------------------
+# --- W5: tags and commit message belong to the folder -----------------------------------
 
 
 def test_pending_tags_and_message_survive_switching_back(
@@ -176,20 +176,20 @@ def test_pending_tags_and_message_survive_switching_back(
     at.session_state["commit_message"] = "Review 20"
     at.run()
     sidebar_button(at, "Wechseln").click().run()
-    # Der zweite Ordner startet ohne die Tags und die Nachricht des ersten ...
+    # The second folder starts without the tags and the message of the first ...
     assert "pending_tags" not in at.session_state or not at.session_state["pending_tags"]
     assert at.session_state["commit_message"] != "Review 20"
-    # ... und führt eine eigene Nachricht.
+    # ... and carries its own message.
     at.session_state["commit_message"] = "Zweiter Ordner"
     at.run()
-    sidebar_button(at, "Wechseln").click().run()  # zurück
+    sidebar_button(at, "Wechseln").click().run()  # back
     assert at.session_state["pending_tags"] == ["demo/2026.20"]
     assert at.session_state["commit_message"] == "Review 20"
-    sidebar_button(at, "Wechseln").click().run()  # wieder in den zweiten
+    sidebar_button(at, "Wechseln").click().run()  # into the second again
     assert at.session_state["commit_message"] == "Zweiter Ordner"
 
 
-# --- W6: Löschbestätigung für Tags gilt einmal und nur für den gewählten Tag ------------
+# --- W6: delete confirmation for tags applies once and only to the chosen tag ------------
 
 
 def test_tag_delete_confirmation_is_per_tag_and_single_use(
@@ -204,7 +204,7 @@ def test_tag_delete_confirmation_is_per_tag_and_single_use(
     tag_box(at).set_value("b").run()
     assert not at.checkbox[-1].value
     assert main_button(at, "Tag löschen").disabled
-    # Nach dem Löschen ist die nächste Auswahl wieder unbestätigt
+    # After deleting, the next selection is unconfirmed again
     at.checkbox[-1].check().run()
     main_button(at, "Tag löschen").click().run()
     assert git(repo, "tag").split() == ["a"]
@@ -212,7 +212,7 @@ def test_tag_delete_confirmation_is_per_tag_and_single_use(
     assert main_button(at, "Tag löschen").disabled
 
 
-# --- K1: Hinweise erscheinen auf jeder Seite --------------------------------------------
+# --- K1: notices appear on every page ---------------------------------------------------
 
 
 def test_flash_is_shown_on_any_page(repo: Path, data_dir: Path, monkeypatch):
@@ -223,7 +223,7 @@ def test_flash_is_shown_on_any_page(repo: Path, data_dir: Path, monkeypatch):
     assert "flash" not in at.session_state or not at.session_state["flash"]
 
 
-# --- K2: Git-Fehler verständlich -------------------------------------------------------
+# --- K2: understandable Git errors -----------------------------------------------------
 
 
 def test_git_error_in_sidebar_is_explained(
@@ -238,7 +238,7 @@ def test_git_error_in_sidebar_is_explained(
     assert not any("(0)" in e.label for e in at.sidebar.expander)
 
 
-# --- K3: Ordnerprüfung der Umschaltliste wird kurz gemerkt ------------------------------
+# --- K3: folder check of the switch list is briefly remembered ------------------------------
 
 
 def test_recent_folder_check_is_cached(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

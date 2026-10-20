@@ -20,7 +20,7 @@ N = None
 def test_round_down():
     assert round_down(15.72, 1) == 15.7
     assert round_down(14.0, 1) == 14.0
-    # Gleitkommafehler dürfen nicht eine Stelle zu tief abrunden.
+    # Floating-point errors must not round down one digit too far.
     assert round_down(0.1 + 0.2, 1) == 0.3
     assert round_down(-1.25, 1) == -1.2
 
@@ -29,7 +29,7 @@ def test_round_half_up():
     assert round_half_up(15.75, 1) == 15.8
     assert round_half_up(15.74, 1) == 15.7
     assert round_half_up(0.1 + 0.2, 1) == 0.3
-    assert round_half_up(2.675, 2) == 2.68  # als Gleitkommazahl 2.67499…
+    assert round_half_up(2.675, 2) == 2.68  # as a float it is 2.67499…
     assert round_half_up(-1.25, 1) == -1.3
 
 
@@ -38,8 +38,8 @@ def test_rolling_average_needs_full_window_and_own_value():
 
 
 def test_rolling_average_skips_gaps_and_always_uses_window_values():
-    # Sprints ohne Wert zählen nicht mit; das Fenster reicht entsprechend weiter zurück.
-    assert rolling_average([2, N, 4, 6, 8, 10], 5)[-1] == 6.0  # genau fünf Werte
+    # Sprints without a value do not count; the window reaches back correspondingly further.
+    assert rolling_average([2, N, 4, 6, 8, 10], 5)[-1] == 6.0  # exactly five values
     assert rolling_average([2, N, 4, 6, 8, 10], 5) == [N, N, N, N, N, 6.0]
     assert rolling_average([1, 2, N, 3, N, 4, 5], 3) == [N, N, N, 2.0, N, 3.0, 4.0]
 
@@ -87,9 +87,9 @@ def test_compute_forecast_plan():
         _input(0, velocity=10, forecast_ist=12.34),
         _input(1, velocity=12, forecast_ist=11),
         _input(2, velocity=14, forecast_ist=13),
-        # laufender Sprint: Kapazität bekannt, Velocity offen
+        # current Sprint: capacity known, velocity open
         _input(3, capacity=20, planning=Planning(carryover=1, backlog=8, corrections=[0.5])),
-        # künftiger Sprint ohne Kapazität → Kapazitäts-Trend
+        # future Sprint without capacity → capacity trend
         _input(4, capacity=None),
     ]
     r = compute(inputs, settings)
@@ -98,7 +98,7 @@ def test_compute_forecast_plan():
     assert r[2].normalized_velocity.value == pytest.approx(14.0)
     assert r[2].fulfillment.value == pytest.approx(14 / 13)
 
-    # n. Velocity Ø: [-, 11, 13] → Trend Sprint 3 = 13 + 2 = 15
+    # norm. velocity avg: [-, 11, 13] → trend Sprint 3 = 13 + 2 = 15
     assert r[3].normalized_velocity.trend == pytest.approx(15.0)
     assert r[3].plan == 7.5 and r[3].plan_source is PlanSource.FORECAST  # 15/40×20
     assert r[3].roadmap == pytest.approx(6.0)
@@ -106,18 +106,18 @@ def test_compute_forecast_plan():
     assert r[3].planning_total == pytest.approx(8.5)
     assert r[3].planning_delta == pytest.approx(-1.0)
 
-    # Kapazität Ø: [-, 40, 40, 30] → Trend Sprint 4 = 30 + (30 − 40) = 20
+    # capacity avg: [-, 40, 40, 30] → trend Sprint 4 = 30 + (30 − 40) = 20
     assert r[4].plan_capacity == pytest.approx(20.0)
     assert r[4].plan_capacity_source is CapacitySource.TREND
-    # n. Velocity Trend Sprint 4 (multiplikativ): 13/11 × 15
+    # norm. velocity trend Sprint 4 (multiplicative): 13/11 × 15
     assert r[4].plan == round_down(13 / 11 * 15 / 40 * 20, 1)
 
 
 def test_trend_accepts_text_mode():
-    """Ein Text darf nicht stillschweigend im Zweig ``linear`` landen (A15)."""
+    """A text must not silently end up in the ``linear`` branch (A15)."""
     assert trend(AVG, "flat")[6:] == [12.0, 12.0, 12.0]
     assert trend(AVG, "classic")[7] == pytest.approx(16.8)
-    assert trend(AVG, "klassisch")[7] == pytest.approx(16.8)  # alter deutscher Name
+    assert trend(AVG, "klassisch")[7] == pytest.approx(16.8)  # old German name
     with pytest.raises(ValueError):
         trend(AVG, "quadratisch")
 
@@ -134,14 +134,14 @@ def test_trend_never_negative(mode):
 
 @pytest.mark.parametrize("mode", [TrendMode.CLASSIC, TrendMode.LINEAR])
 def test_thin_history_falls_back_to_flat(mode):
-    """Genau ``window`` Sprints: ein einziger Durchschnitt, kein Anstieg bestimmbar."""
+    """Exactly ``window`` Sprints: a single average, no slope can be determined."""
     thin = [N, N, N, 8.0, N, N]
     assert trend(thin, mode)[4:] == [8.0, 8.0]
     settings = ForecastSettings(reference_capacity=40, window=2, trend_mode=mode)
     inputs = [_input(0, velocity=10), _input(1, velocity=12), _input(2), _input(3)]
     r = compute(inputs, settings)
     assert r[2].plan is not None and r[2].trend_fallback
-    assert r[2].plan == 11.0  # Ø 11 bleibt stehen
+    assert r[2].plan == 11.0  # avg 11 stays
     assert r[2].samples == 2
 
 
@@ -158,10 +158,10 @@ def test_plan_never_negative():
 
 
 def test_thin_history_gives_averages_from_the_third_value():
-    """B7: Neue Teams sehen schon ab drei Sprints einen Durchschnitt (Fenster noch nicht voll)."""
+    """B7: New teams see an average from three Sprints on (window not yet full)."""
     assert rolling_average([2, 4, 6, 8], 5) == [N, N, 4.0, 5.0]
-    assert rolling_average([2, 4], 5) == [N, N]  # zu wenig
-    assert rolling_average([2, 4, 6, 8, 10, 12], 5) == [N, N, N, N, 6.0, 8.0]  # volles Fenster
+    assert rolling_average([2, 4], 5) == [N, N]  # too few
+    assert rolling_average([2, 4, 6, 8, 10, 12], 5) == [N, N, N, N, 6.0, 8.0]  # full window
 
 
 def _thin(velocities, mode, future=2):
@@ -188,6 +188,6 @@ def test_trend_text_equals_enum_mode():
 
 
 def test_trend_rejects_unknown_mode():
-    """Ein unbekannter Text darf nicht still als ``linear`` gerechnet werden."""
+    """An unknown text must not be silently calculated as ``linear``."""
     with pytest.raises(ValueError, match="Unbekannter Trend-Modus 'foo'"):
         trend(AVG, "foo")

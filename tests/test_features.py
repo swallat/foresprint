@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Funktionsbereiche: Produktverteilung, Zuordnung PO und Produktionszugriff sind unabhängig
-voneinander zuschaltbar; bei neuen Teams aus, bei älteren Dateien aus den Daten abgeleitet."""
+"""Feature areas: product distribution, PO assignment and production access can be enabled
+independently of each other; off for new teams, derived from the data for older files."""
 
 from datetime import date
 from pathlib import Path
@@ -60,7 +60,7 @@ def click(at: AppTest, label: str) -> AppTest:
     return at
 
 
-# --- Voreinstellung und ältere Dateien -----------------------------------------------------
+# --- Default and older files -----------------------------------------------------
 
 
 def test_new_team_has_all_areas_off_and_writes_them():
@@ -91,7 +91,7 @@ def test_legacy_team_file_derives_the_areas_from_its_data(data_dir: Path):
     path.write_text(yaml.safe_dump(raw, allow_unicode=True))
     team = Repository(data_dir).load(TEAM).team
     assert not team.features.explicit
-    # Produkte mit PO sind erfasst, im Demo-Team ist aber noch niemand als berechtigt markiert
+    # Products with PO are recorded, but nobody is marked as authorized in the demo team yet
     assert (team.features.products, team.features.po, team.features.production) == (
         True,
         True,
@@ -99,7 +99,7 @@ def test_legacy_team_file_derives_the_areas_from_its_data(data_dir: Path):
     )
     mark_production_access(data_dir)
     assert Repository(data_dir).load(TEAM).team.features.production
-    # ohne Produkte und ohne Berechtigte bleibt alles aus
+    # without products and without authorized people, everything stays off
     (data_dir / TEAM / "products.yaml").write_text("products: []\n")
     people = yaml.safe_load((data_dir / TEAM / "people.yaml").read_text())
     for person in people["people"]:
@@ -124,7 +124,7 @@ def test_legacy_file_is_written_with_explicit_areas_on_save(data_dir: Path):
     assert team_from_dict("x", {"name": "X", "features": {"po": True}}, "x").features.po
 
 
-# --- Oberfläche ----------------------------------------------------------------------------
+# --- UI ----------------------------------------------------------------------------
 
 
 def page_keys(at: AppTest) -> set[str]:
@@ -144,7 +144,7 @@ def test_product_pages_exist_only_with_product_distribution(
 def test_step_bar_has_three_steps_without_the_products_area(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Ohne Funktionsbereich Produkte entfällt die PO-Vorplanung: Fehltage, Planning, Review."""
+    """Without the Products feature area, PO pre-planning is dropped: absences, Planning, Review."""
     at = goto(start(data_dir, monkeypatch), "planning")
     assert [key for key, _, _ in nav_steps(at)] == ["fehltage", "vorplanung", "planning", "review"]
     set_features(data_dir, products=False)
@@ -209,8 +209,8 @@ def test_planning_step_two_splits_capacity_by_production_access(
 def test_planning_minutes_follow_the_product_distribution_switch(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Ohne Funktionsbereich Produkte bleibt das Planning-Protokoll ohne Produktabschnitt, auch
-    wenn der Produktkatalog in den Dateien erhalten ist."""
+    """Without the Products feature area, the Planning minutes have no product section, even
+    if the product catalog is kept in the files."""
 
     def planning_minutes(products: bool) -> str:
         set_features(data_dir, products=products)
@@ -219,8 +219,8 @@ def test_planning_minutes_follow_the_product_distribution_switch(
         at.radio(key="planning-step").set_value(2).run()
         at.number_input(key="fist-2026.22").set_value(10.0 + (1 if products else 0))
         click(at, "Planning speichern")
-        # Zwei Speicherungen in derselben Sekunde: die Namen ordnen dann nach dem Fingerabdruck,
-        # also nach dem Schreibzeitpunkt wählen.
+        # Two saves in the same second: the names then sort by fingerprint, so choose by
+        # write time.
         files = (data_dir / TEAM / "protokolle").glob("2026.22-planning-*.md")
         return max(files, key=lambda p: p.stat().st_mtime_ns).read_text(encoding="utf-8")
 
@@ -229,8 +229,8 @@ def test_planning_minutes_follow_the_product_distribution_switch(
 
 
 def test_production_split_uses_the_current_plan_for_both_amounts(data_dir: Path):
-    """Ist der Forecast PLAN eingefroren und weicht vom aktuellen ab, teilen beide Mengen den
-    aktuellen Plan auf (keine negative Restmenge)."""
+    """If the Forecast PLAN is frozen and differs from the current one, both quantities split
+    the current plan (no negative remainder)."""
     from sprintforecast.forecast import build_forecast
     from sprintforecast.storage import Repository
     from sprintforecast.web import ui
@@ -238,7 +238,7 @@ def test_production_split_uses_the_current_plan_for_both_amounts(data_dir: Path)
     mark_production_access(data_dir)
     data = Repository(data_dir).load(TEAM)
     sprint = next(s for s in data.sprints if s.end > date(2026, 10, 15))
-    sprint.forecast_plan = 500.0  # viel größer als der aktuelle Plan
+    sprint.forecast_plan = 500.0  # much larger than the current plan
     fc = build_forecast(data, date(2026, 10, 15))
     entry = fc.entry(sprint.id)
     text = ui._production_split_note(fc, entry, data, "PT")
@@ -275,7 +275,7 @@ def test_settings_page_switches_areas_independently(
     assert saved["features"] == {"products": False, "po": False, "production": True}
 
 
-# --- Produktionszugriff ohne Produktverteilung ---------------------------------------------
+# --- Production access without product distribution ---------------------------------------------
 
 
 def test_production_without_products_is_recorded_per_sprint(
@@ -308,7 +308,7 @@ def test_sprint_level_production_values_roundtrip_and_validate(data_dir: Path):
     assert repo.load(TEAM).sprint("2026.22").production_planned == 2.0
     sprint.production_planned = -1.0
     errors = [i.message for i in check_team(repo.load(TEAM), date(2026, 10, 15))]
-    assert not any("production_planned" in m for m in errors)  # gespeichert war 2.0
+    assert not any("production_planned" in m for m in errors)  # 2.0 was stored
     data.sprints = [s for s in data.sprints if s.id != "2026.22"] + [sprint]
     issues = check_team(data, date(2026, 10, 15))
     assert any("production_planned darf nicht negativ sein" in i.message for i in issues)
@@ -324,7 +324,7 @@ def test_distribution_totals_use_sprint_values_without_products():
     assert d.total("production_done") is None
 
 
-# --- Kommandozeile -------------------------------------------------------------------------
+# --- Command line -------------------------------------------------------------------------
 
 runner = CliRunner()
 

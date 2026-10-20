@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Ablage der Ticket-Vorplanung: projects.yaml, tickets.yaml, preplan.yaml und der Abschnitt
-``tracker`` in team.yaml – nur mit ``features.tickets`` gelesen, stabil geschrieben."""
+"""Storage of the ticket pre-planning: projects.yaml, tickets.yaml, preplan.yaml and the ``tracker``
+section in team.yaml, read only with ``features.tickets``, written stably."""
 
 from datetime import date, datetime
 from pathlib import Path
@@ -162,7 +162,7 @@ def texts(base: Path) -> dict[str, str]:
     return {p.name: p.read_text(encoding="utf-8") for p in base.glob("*.yaml")}
 
 
-# --- Lesen und Schreiben --------------------------------------------------------------------
+# --- Reading and writing --------------------------------------------------------------------
 
 
 def test_roundtrip_is_byte_stable_and_keeps_every_field(data_dir: Path):

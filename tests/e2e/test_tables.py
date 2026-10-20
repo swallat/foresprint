@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Tabellen und Kennzahlen: keine „None“-Zellen und nichts mit „…“ abgeschnitten."""
+"""Tables and metrics: no "None" cells and nothing truncated with "…"."""
 
 import pytest
 from harness import App, all_tables, main_area, open_page
@@ -7,7 +7,7 @@ from playwright.sync_api import expect
 
 from sprintforecast.web.ui import PAGES
 
-# Seiten mit Datenrastern und die Zahl der Raster, die sie in den Demo-Daten mindestens zeigen.
+# Pages with data grids and the minimum number of grids they show in the demo data.
 GRIDS = {
     "fehltage": 3,
     "vorplanung": 3,
@@ -23,8 +23,8 @@ GRIDS = {
 PAGE_KEYS = [key for entries in PAGES.values() for key in entries]
 MISSING_WORDS = {"none", "nan", "<na>", "nat", "null"}
 
-# Elemente mit „…“ am Ende, deren Text breiter ist als der Platz (abgeschnitten). Ohne Breite
-# (clientWidth 0) ist nichts zu sehen: das verborgene Dateifeld des Uploads gehört dazu.
+# Elements ending in "…" whose text is wider than the available space (truncated). Without a
+# width (clientWidth 0) nothing is visible: the hidden file input of the upload counts here.
 TRUNCATED = """() => [...document.querySelectorAll('[data-testid=stMain] *')]
     .filter(el => getComputedStyle(el).textOverflow === 'ellipsis' && el.clientWidth > 0
         && el.scrollWidth > el.clientWidth)
@@ -42,8 +42,8 @@ def test_grids_show_no_none_cells(page, app: App, key: str, minimum: int):
 
 
 def test_unrecorded_values_show_no_none_in_the_product_overview(page, app: App):
-    """Nicht erfasste Werte erscheinen nie als „None“; Spalten ohne jeden Wert (hier Planning und
-    Erledigt) werden gar nicht gezeigt."""
+    """Values not recorded never appear as "None"; columns without any value (here Planning and
+    Done) are not shown at all."""
     open_page(page, app, "produkte")
     tables = all_tables(page, 3)
     cells = [cell for table in tables for row in table for cell in row]
@@ -53,8 +53,8 @@ def test_unrecorded_values_show_no_none_in_the_product_overview(page, app: App):
 
 
 def test_grids_are_readable_through_the_accessible_table(page, app: App):
-    """Der Weg dieser Tests – der Text steht in der barrierefreien Tabelle – liefert lesbare Zeilen:
-    Kopfzeile mit den Spalten, darunter die Personen und ihre Fehltage je Sprint."""
+    """The route these tests take (the text is in the accessible table) yields readable rows:
+    header row with the columns, below it the people and their absences per sprint."""
     open_page(page, app, "fehltage")
     absences = all_tables(page, 3)[0]
     assert absences[0] == ["Person", "2026.21", "2026.22", "2026.23", "2026.24"]
@@ -73,8 +73,8 @@ def test_nothing_is_cut_off_with_an_ellipsis(new_page, app: App, key: str, width
 
 @pytest.mark.parametrize("key", ["forecast", "vorplanung", "planning", "analyse"])
 def test_metrics_are_shown_in_full(new_page, app: App, key: str):
-    """Jede Kennzahl zeigt Beschriftung, Zahl und Zusatz vollständig (auch beim Fenster der App,
-    1400 px breit)."""
+    """Every metric shows label, number and addendum completely (also at the app window width,
+    1400 px wide)."""
     page = new_page(1400)
     open_page(page, app, key)
     metrics = main_area(page).get_by_test_id("stMetric")
