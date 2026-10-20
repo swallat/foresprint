@@ -192,13 +192,13 @@ Only the data directory is committed; spreadsheets (`*.xlsx` and so on) are reje
 "one branch, always in sync"; branches, rebase, force push and stash are deliberately not part of
 the app. By default sharing pushes straight to the branch. For servers that protect `main` and
 require merge or pull requests, switch on **Share via merge request** on the **Data folder** page
-(per data repository, stored in its local Git configuration as `sprintforecast.share`). "Save and
+(per data repository, stored in its local Git configuration as `foresprint.share`). "Save and
 share" then merges the server state and uploads to your own branch `sprintforecast/<name>`; a
 further share updates the same request. `main` stays untouched until the request is merged; then
 **Pull from server** brings it in (and tells you while your request is still open). The app never
 holds an access token and never signs in to a web API; what happens after the push depends on the
 **Kind of server** (detected from the remote address, or chosen on the Data folder page and stored
-as `sprintforecast.host`):
+as `foresprint.host`):
 
 | Server | What the app does |
 | --- | --- |

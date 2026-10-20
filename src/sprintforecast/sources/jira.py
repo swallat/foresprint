@@ -246,6 +246,8 @@ def store_token(base_url: str, token: str) -> None:
     try:
         keyring.set_password(KEYRING_SERVICE, user, token)
         stored = True
+        with contextlib.suppress(Exception):  # the old entry would be stale
+            keyring.delete_password(LEGACY_KEYRING_SERVICE, user)
     except Exception:  # the backend's message could contain anything: not shown
         pass
     if not stored:  # raised outside the except block: the backend's error is not reachable
