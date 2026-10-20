@@ -1927,3 +1927,10 @@ def test_forgejo_without_agit_falls_back_to_the_branch(alice: Person, bob: Perso
     result = bob.sync("Sprint 2")
     assert result.error is None
     assert git(remote, "rev-parse", "--verify", f"refs/heads/{result.merge_request_branch}")
+
+
+def test_older_rescue_names_are_still_recognised():
+    assert gitsync._LEGACY_SAVE_SUBJECT == "Offene Änderungen vor dem Wechsel gesichert"
+    assert gitsync._LEGACY_SAVE_SUBJECT in gitsync._SAVE_SUBJECTS
+    assert "rettung-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
+    assert "rescue-20260101-000000".startswith(gitsync._RESCUE_PREFIXES)
