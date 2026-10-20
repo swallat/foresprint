@@ -1202,7 +1202,7 @@ def _push_merge_request(root: Path, current: SyncState, title: str) -> tuple[str
         proc = gitmod._git_result(root, "push", lease, remote, f"HEAD:{ref}", network=True)
         message = proc.stderr.strip() or proc.stdout.strip()
     if proc.returncode != 0:
-        raise gitmod.classify(message, url=current.url)
+        raise gitmod.classify(message, url=current.url, cwd=root)
     found = _PR_URL.search(proc.stderr + proc.stdout)
     if found:
         return branch, found.group(0).rstrip(".,)")
