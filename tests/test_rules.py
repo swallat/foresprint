@@ -90,6 +90,7 @@ def test_ticket_facts_feed_the_rules():
         "label": ["payment"],
         "status": ["In Progress"],
         "issue_type": ["Story"],
+        "priority": [],
         "in_sprint": ["true", "2026.22"],
     }
     assert parse({"in_sprint": [True]}).matches(ticket.facts())
