@@ -26,6 +26,9 @@ skip the prompt.
 
 Remove: `uv tool uninstall sprintforecast`.
 
+From PyPI (once the package is published, see [releasing.md](releasing.md)):
+`pipx install "foresprint[web,excel,jira]"` or `uv tool install "foresprint[web,excel,jira]"`.
+
 Manually, without the script:
 
 ```bash
