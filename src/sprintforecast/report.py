@@ -47,13 +47,13 @@ def source_label(source: CapacitySource | None) -> str:
     return t(source.value) if source else ""
 
 
-def capacity_source_note(e: TimelineEntry) -> str:
+def capacity_source_note(e: TimelineEntry, warning: str = "⚠️ ") -> str:
     """Source of the capacity alone (without the number), for metrics whose value should not be
-    shortened by an appended text; with a warning sign for an uncertain source, empty without a
-    source."""
+    shortened by an appended text; with the ``warning`` prefix for an uncertain source (the web
+    UI passes none: no emojis there), empty without a source."""
     source = e.result.plan_capacity_source
     if source in UNSURE_SOURCES:
-        return f"⚠️ {source_label(source)}"
+        return f"{warning}{source_label(source)}"
     return source_label(source)
 
 
