@@ -429,7 +429,12 @@ def abort_running(cwd: Path) -> bool:
 
 
 def _run_tracked(
-    command: list[str], cwd: Path, *, timeout: float, env: dict[str, str]
+    command: list[str],
+    cwd: Path,
+    *,
+    timeout: float,
+    env: dict[str, str],
+    stdin_text: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Wie ``subprocess.run`` mit Zeitlimit, aber der Prozess ist für :func:`abort_running`
     auffindbar und läuft in eigener Prozessgruppe, damit sich der ganze Baum beenden lässt."""
@@ -442,7 +447,7 @@ def _run_tracked(
         text=True,
         encoding="utf-8",
         errors="replace",
-        stdin=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL if stdin_text is None else subprocess.PIPE,
         env=env,
         **{**proctree.popen_options(), **NO_WINDOW},
     )
@@ -454,7 +459,7 @@ def _run_tracked(
         if late:
             proctree.terminate_tree(process, timeout=5)
         try:
-            out, err = process.communicate(timeout=timeout)
+            out, err = process.communicate(stdin_text, timeout=timeout)
         except subprocess.TimeoutExpired:
             proctree.terminate_tree(process)
             # Pipes können von Enkeln (ssh) offen gehalten werden: nicht ewig warten
@@ -479,6 +484,7 @@ def _git_result(
     network: bool = False,
     timeout: float | None = None,
     env_extra: dict[str, str] | None = None,
+    stdin_text: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Führt ``git`` aus und liefert das Ergebnis samt Rückgabecode (ohne Fehlerprüfung); nur
     „git fehlt“ und Zeitüberschreitung kommen als :class:`GitError`."""
@@ -491,6 +497,7 @@ def _git_result(
                 cwd,
                 timeout=timeout or (NETWORK_TIMEOUT if network else 120),
                 env=_env(network, env_extra),
+                stdin_text=stdin_text,
             )
         except subprocess.TimeoutExpired as e:
             raise classify("", timeout=True) from e
