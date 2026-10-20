@@ -18,7 +18,7 @@ pytest.importorskip("streamlit")
 
 import streamlit as st
 from streamlit.runtime.scriptrunner_utils.exceptions import StopException
-from test_web_k3_anbindung import sidebar_text
+from test_web_k3_integration import sidebar_text
 from test_web_k3_ui import git, sidebar_button, start
 
 from sprintforecast import gitsync

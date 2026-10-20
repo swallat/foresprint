@@ -197,7 +197,7 @@ def test_forecast_page_matches_engine(web: AppTest, fc):
 
 
 @pytest.mark.parametrize("sprint", ["2026.21", "2026.22", "2026.23", "2026.24"])
-def test_planning_vorplanung_products_and_analysis_agree(web: AppTest, fc, sprint: str):
+def test_planning_preplanning_products_and_analysis_agree(web: AppTest, fc, sprint: str):
     expected = fc.entry(sprint).result.plan
 
     page(web, "vorplanung")

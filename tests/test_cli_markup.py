@@ -547,7 +547,7 @@ def test_init_with_markup_look(klammern: Path):
     assert yaml.safe_load((klammern / "neu" / "team.yaml").read_text())["name"] == f"Neu [/x]{BS}"
 
 
-def test_einstellungen_with_markup_look(klammern: Path):
+def test_settings_with_markup_look(klammern: Path):
     result = run(
         klammern,
         "settings",
@@ -579,7 +579,7 @@ def test_path_with_brackets_and_backslashes_in_messages(klammern: Path):
     check(result, f"{klammern}{SEP}demo{SEP}FORECAST.md")
 
 
-def test_path_with_brackets_and_backslashes_for_datenordner(tmp_path: Path):
+def test_path_with_brackets_and_backslashes_for_data_folder(tmp_path: Path):
     """Without an argument ``data-dir`` shows the remembered and the used folder. If it ends in a
     backslash (drive root "C:\\"), it appears once."""
     gemerkt = tmp_path / f"alt[x]{BS}"
@@ -702,13 +702,13 @@ def check_result(**fields):
     return SimpleNamespace(**(base | fields))
 
 
-def test_aktualisieren_error_with_markup_look(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
+def test_update_error_with_markup_look(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(updater, "check", lambda force=False: check_result(error=f"[/x]{BS}"))
     result = run(data_dir, "update", "--check")
     check(result, f"Prüfung fehlgeschlagen: [/x]{BS}\n", code=1)
 
 
-def test_verknuepfung_with_markup_look(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_shortcut_with_markup_look(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     paths = [tmp_path / f"a[x]{BS}", tmp_path / "b[x]"]
     monkeypatch.setattr(shortcuts, "create", lambda: paths)
     result = runner.invoke(app, ["shortcut"])
@@ -722,7 +722,7 @@ def test_verknuepfung_with_markup_look(tmp_path: Path, monkeypatch: pytest.Monke
     check(result, f"Kein Programm [/x]{BS}\n", code=1)
 
 
-def test_sprache_error_with_markup_look(monkeypatch: pytest.MonkeyPatch):
+def test_language_error_with_markup_look(monkeypatch: pytest.MonkeyPatch):
     from sprintforecast.config import SettingsError
 
     def failing(code: str):

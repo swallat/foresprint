@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from gitrepos import Denying, serve
-from test_datenordner import fail_on
+from test_data_folder import fail_on
 
 pytest.importorskip("streamlit")
 

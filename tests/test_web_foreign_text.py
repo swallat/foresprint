@@ -12,9 +12,9 @@ import pytest
 pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
-from test_web_datenordner import datenordner, enter_address
-from test_web_datenordner import errors as main_errors
-from test_web_k3_anbindung import foreign_history, sidebar_text
+from test_web_data_folder import datenordner, enter_address
+from test_web_data_folder import errors as main_errors
+from test_web_k3_integration import foreign_history, sidebar_text
 from test_web_sync import SPRINT, git, main_button, open_history, press, start
 
 from sprintforecast.git import classify, invalidate_status
