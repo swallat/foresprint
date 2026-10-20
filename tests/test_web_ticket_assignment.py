@@ -186,3 +186,22 @@ def test_the_product_filter_hides_the_lines_without_project():
     on = Selection(frozenset(), True, None, frozenset({"shop"}))
     assert len(project_rows(data, dist, on)) == 1
     assert project_rows(data, dist, on)[0]["Last sprint"] == dist.sprints[0]
+
+
+def test_a_card_button_earmarks_and_releases(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    seed(data_dir)
+    monkeypatch.setenv(DATA_ENV, str(data_dir))
+    monkeypatch.setenv(AS_OF_ENV, TODAY.isoformat())
+    at = AppTest.from_file(str(APP), default_timeout=30)
+    at.run()
+    at.switch_page("page_scripts/tickets.py").run()
+    assert not at.exception, at.exception
+    pins = [b for b in at.button if b.key and b.key.endswith("-pin")]
+    assert pins, "no ticket card with buttons"
+    pins[0].click().run()
+    assert not at.exception, at.exception
+    assert Repository(data_dir).load("demo").preplan.earmarks
+    release = next(b for b in at.button if b.key and b.key.endswith("-pin"))
+    release.click().run()
+    assert not Repository(data_dir).load("demo").preplan.earmarks

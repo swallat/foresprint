@@ -533,3 +533,19 @@ def test_insert_helper_adds_a_condition(data_dir: Path, monkeypatch):
     assert not at.exception, at.exception
     box = next(a for a in at.text_area if a.label == "Regel")
     assert "label = zzz-new" in box.value
+
+
+def test_moving_a_card_earmarks_the_neighbouring_sprint():
+    from test_preplan import TODAY, project, team_data, ticket
+
+    from sprintforecast.preplan import distribute
+    from sprintforecast.web.tickets_view import moved_earmark
+
+    data = team_data()
+    data.projects = [project("p")]
+    data.tickets = [ticket("A", 3)]
+    dist = distribute(data, TODAY)
+    placement = dist.placement("A")
+    assert placement.sprint == dist.sprints[0]
+    assert moved_earmark(dist, placement, -1) is None  # first sprint of the horizon
+    assert moved_earmark(dist, placement, 1) == dist.sprints[1]
