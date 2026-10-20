@@ -39,11 +39,14 @@ from sprintforecast.preplan import (
     SOURCES,
     Distribution,
     HandoverRow,
+    Placement,
     Variant,
     Variants,
     distribute_variants,
     handover_rows,
+    product_conflict,
     project_range,
+    ticket_product,
 )
 from sprintforecast.ruleexpr import RuleSyntaxError, parse_rule
 from sprintforecast.sources import RawTicket, SourceError, open_source
@@ -78,6 +81,7 @@ LIGHT_COLOURS = {
     "tight": "#e0a800",
     "missed": "#d64545",
     "empty": "#9aa0a6",
+    "backlog": "#6b7fa3",
 }
 # One letter per origin of an estimate on a ticket card (legend below the columns).
 SOURCE_LETTERS = {
@@ -115,6 +119,12 @@ class Selection:
     # All project ids; a ticket of an id outside it counts as "without project" (as in the
     # distribution). None = the chosen projects are all there are.
     known: frozenset[str] | None = None
+    # The chosen products; None = no product filter. Hides the tickets without a project of
+    # the other products.
+    products: frozenset[str] | None = None
+
+    def shows_product(self, product: str | None) -> bool:
+        return self.products is None or product is None or product in self.products
 
     def shows(self, project: str | None) -> bool:
         if project is None or project not in (self.known or self.projects):
@@ -166,13 +176,84 @@ def project_rows(
                 t("Not distributable"): status.not_distributable,
             }
         )
+    if sel.no_project:
+        for product, placements in backlog_units(data, dist).items():
+            if not sel.shows_product(product):
+                continue
+            last = last_sprint(dist, placements)
+            rows.append(
+                {
+                    t("Project"): backlog_label(data, product),
+                    t("Product"): product or "–",
+                    t("Target"): None,
+                    t("Target sprint"): "–",
+                    **(
+                        {t("Last sprint"): last}
+                        if not ranged
+                        else {
+                            t("Last sprint optimistic"): "–",
+                            t("Last sprint median"): "–",
+                            t("Last sprint conservative"): "–",
+                        }
+                    ),
+                    t("Traffic light"): t(LIGHTS["backlog"]),
+                    t("Outstanding"): len(placements),
+                    t("Not distributable"): sum(1 for p in placements if p.sprint is None),
+                }
+            )
     return rows
+
+
+def backlog_units(data: TeamData, dist: Distribution) -> dict[str | None, list[Placement]]:
+    """The open tickets without a known project, per product they use the budget of (None =
+    the implicit product of a team without product distribution). Tickets without any product
+    are not here: they are under the open points."""
+    known = {p.id for p in data.projects}
+    units: dict[str | None, list[Placement]] = {}
+    for p in dist.placements:
+        if p.project in known or p.reason == "no_product":
+            continue
+        if p.product is None and data.team.features.products:
+            continue
+        units.setdefault(p.product, []).append(p)
+    return units
+
+
+def last_sprint(dist: Distribution, placements: list[Placement]) -> str:
+    """The latest sprint of the placed tickets, also one after the horizon; "–" = none."""
+    placed = [p.sprint for p in placements if p.sprint is not None]
+    if not placed:
+        return "–"
+    return max(
+        placed,
+        key=lambda s: (
+            (0, dist.sprints.index(s), date.min)
+            if s in dist.sprints
+            else (1, 0, dist.later.get(s) or date.min)
+        ),
+    )
+
+
+def _product_name(data: TeamData, product: str | None) -> str:
+    found = next((p for p in data.products if p.id == product), None)
+    return found.name if found else "–"
+
+
+def backlog_label(data: TeamData, product: str | None) -> str:
+    """Name of the line for the tickets of a product without a project."""
+    if product is None:
+        return t("Without project")
+    return t("{product} without project", product=_product_name(data, product))
 
 
 def _bar_span(dist: Distribution, project_id: str, axis: list[str]) -> tuple[int, int] | None:
     """First and last column of a project's bar on ``axis`` (tickets after the horizon extend
     the bar to the end); None when no ticket of the project is placed."""
     own = [p for p in dist.placements if p.project == project_id and p.sprint is not None]
+    return _span(dist, own, axis)
+
+
+def _span(dist: Distribution, own: list[Placement], axis: list[str]) -> tuple[int, int] | None:
     positions = [axis.index(p.sprint) for p in own if p.sprint in axis]
     beyond = any(p.sprint in dist.later for p in own)
     if not positions and not beyond:
@@ -246,6 +327,22 @@ def timeline_rows(
                     t("Target"): f"{project.target:%d.%m.%Y}" if project.target else "–",
                 }
             )
+    if sel.no_project:
+        for product, placements in backlog_units(data, dist).items():
+            if not sel.shows_product(product):
+                continue
+            span = _span(dist, [p for p in placements if p.sprint is not None], axis)
+            if span is None:
+                continue
+            for i in range(span[0], span[1] + 1):
+                bars.append(
+                    {
+                        t("Project"): backlog_label(data, product),
+                        t("Sprint"): axis[i],
+                        t("Traffic light"): t(LIGHTS["backlog"]),
+                        "light": "backlog",
+                    }
+                )
     return bars, marks
 
 
@@ -319,6 +416,8 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
         if ticket.done or not sel.shows(ticket.project):
             continue
         project = data.project(ticket.project) if ticket.project else None
+        if project is None and not sel.shows_product(ticket_product(ticket, data)[0]):
+            continue
         matched = ""
         note = ""
         if project is not None:
@@ -337,8 +436,34 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
         elif ticket.project:
             note = t("Unknown project {id}", id=ticket.project)
         else:
-            note = t("No project matches")
-        product = project.product if project and project.product else None
+            note = ""
+        product, candidates = ticket_product(ticket, data)
+        if project is None and product is not None:
+            by_rule = next((p for p in data.products if p.id == product), None)
+            sources = (
+                by_rule.match.matched_sources(ticket.facts())
+                if by_rule and by_rule.match
+                else set()
+            )
+            matched = ", ".join(
+                labels.get(x, x)
+                for x in sorted(sources, key=lambda x: order.index(x) if x in order else len(order))
+            )
+            note = (note + "; " if note else "") + t("Product by rule, no project")
+        elif project is None and candidates:
+            names = [p.name for p in data.products if p.id in candidates]
+            note = (note + "; " if note else "") + t(
+                "Contradiction: fits {products}", products=", ".join(names)
+            )
+        elif project is None and not note:
+            note = (
+                t("No product matches") if data.team.features.products else t("No project matches")
+            )
+        if (other := product_conflict(ticket, data)) is not None:
+            note = (note + "; " if note else "") + t(
+                "The product rule says {product}; the project wins",
+                product=_product_name(data, other),
+            )
         rows.append(
             {
                 t("Ticket"): ticket.key,
@@ -354,13 +479,10 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
 
 def assignment_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Tickets per product (and the ones without a project) from ``assignment_rows``."""
-    product, project = t("Product"), t("Project")
+    product = t("Product")
     counts: dict[str, int] = {}
     for row in rows:
-        if row[project] == "–":
-            name = t("No project")
-        else:
-            name = row[product] if row[product] != "–" else t("No product")
+        name = row[product] if row[product] != "–" else t("No product")
         counts[name] = counts.get(name, 0) + 1
     return [{t("Product"): name, t("Tickets"): n} for name, n in counts.items()]
 
@@ -586,7 +708,12 @@ def _filter(data: TeamData, key: str) -> Selection:
     without = st.checkbox(
         t("Show tickets without a project"), value=True, key=f"tickets-{key}-none"
     )
-    return Selection(frozenset(shown), without, frozenset(p.id for p in data.projects))
+    return Selection(
+        frozenset(shown),
+        without,
+        frozenset(p.id for p in data.projects),
+        None if products is None else frozenset(products),
+    )
 
 
 def _overview(
