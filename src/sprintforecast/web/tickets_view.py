@@ -294,6 +294,71 @@ def open_rows(data: TeamData, dist: Distribution, sel: Selection) -> list[dict[s
     return rows
 
 
+def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
+    """One row per open ticket the filter shows: its project, the product of that project and the
+    criterion (epic, component or label) that put it there; a contradiction or the lack of a
+    matching project is said in the last column."""
+    labels = {
+        "epic": t("Epic"),
+        "component": t("Component"),
+        "label": t("Jira label"),
+        "status": t("Status"),
+        "issue_type": t("Issue type"),
+        "in_sprint": t("In sprint"),
+    }
+    order = list(data.team.tracker.project_match_order)
+    products = {p.id: p.name for p in data.products}
+    rows = []
+    for ticket in data.tickets:
+        if ticket.done or not sel.shows(ticket.project):
+            continue
+        project = data.project(ticket.project) if ticket.project else None
+        matched = ""
+        note = ""
+        if project is not None:
+            sources = project.match.matched_sources(ticket.facts()) if project.match else set()
+            matched = ", ".join(
+                labels.get(x, x)
+                for x in sorted(sources, key=lambda x: order.index(x) if x in order else len(order))
+            )
+            if not sources:  # the rule changed since the import; the next import reassigns
+                note = t("The rule of the project no longer matches; the next import reassigns")
+        elif ticket.project_candidates:
+            names = [
+                p.name if (p := data.project(pid)) else pid for pid in ticket.project_candidates
+            ]
+            note = t("Contradiction: fits {projects}", projects=", ".join(names))
+        elif ticket.project:
+            note = t("Unknown project {id}", id=ticket.project)
+        else:
+            note = t("No project matches")
+        product = project.product if project and project.product else None
+        rows.append(
+            {
+                t("Ticket"): ticket.key,
+                t("Title"): ticket.title,
+                t("Project"): project.name if project else "–",
+                t("Product"): products.get(product, product) if product else "–",
+                t("Matched by"): matched or "–",
+                t("Note"): note,
+            }
+        )
+    return rows
+
+
+def assignment_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Tickets per product (and the ones without a project) from ``assignment_rows``."""
+    product, project = t("Product"), t("Project")
+    counts: dict[str, int] = {}
+    for row in rows:
+        if row[project] == "–":
+            name = t("No project")
+        else:
+            name = row[product] if row[product] != "–" else t("No product")
+        counts[name] = counts.get(name, 0) + 1
+    return [{t("Product"): name, t("Tickets"): n} for name, n in counts.items()]
+
+
 def change_note(change: TicketChange) -> str:
     """Readable text for the ``note`` of a change of the import preview."""
     note = change.note
@@ -495,6 +560,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             t("Sprints"),
             t("Refinement"),
             t("Open points"),
+            t("Assignment"),
             t("Import"),
             t("Maintenance"),
         ]
@@ -509,9 +575,11 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
     with tabs[3]:
         _open_points(data, dist, sel)
     with tabs[4]:
+        _assignment(data, sel)
+    with tabs[5]:
         _import(repo, data, fc)
         _label_section(data, fc)
-    with tabs[5]:
+    with tabs[6]:
         _projects_editor(repo, data)
         _estimates_editor(repo, data)
 
@@ -877,6 +945,30 @@ def _refinement(data: TeamData, dist: Distribution, sel: Selection) -> None:
         hide_index=True,
         column_config={t("Latest by"): st.column_config.DateColumn(format="DD.MM.YYYY")},
     )
+
+
+def _assignment(data: TeamData, sel: Selection) -> None:
+    st.caption(
+        t(
+            "Which project and product each open ticket belongs to, and why. The assignment "
+            "follows the criteria of the projects (Maintenance), the order of the criteria is "
+            "set on the page Jira connection."
+        )
+    )
+    rows = assignment_rows(data, sel)
+    if not rows:
+        st.info(t("No open tickets to show."))
+        return
+    unassigned = [r for r in rows if r[t("Project")] == "–"]
+    if unassigned:
+        st.warning(
+            t(
+                "{count} tickets have no project and therefore no product.",
+                count=len(unassigned),
+            )
+        )
+    st.dataframe(pd.DataFrame(assignment_summary(rows)), hide_index=True)
+    st.dataframe(pd.DataFrame(rows), hide_index=True)
 
 
 def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
