@@ -25,7 +25,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from sprintforecast import LOG_ENV, __version__, updater
+from sprintforecast import LOG_ENV, __version__, appsettings, updater
 from sprintforecast.calendar import (
     day_label,
     expected_id_form,
@@ -2529,8 +2529,10 @@ def web(
         "--server.headless", "false" if browser and not app_mode else "true",
         "--browser.gatherUsageStats", "false",
         "--client.toolbarMode", "minimal",
-        "--theme.primaryColor", "#5b5bf0",
     ]  # fmt: skip
+    for option, value in appsettings.theme_options().items():
+        if value:
+            cmd_line += [f"--{option}", value]
     console.print(t("Web interface: [bold]{url}[/bold] (stop with Ctrl+C)", url=url))
     popen: dict = popen_options()
     log_handle = None
