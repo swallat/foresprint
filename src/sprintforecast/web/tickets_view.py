@@ -562,7 +562,7 @@ def page(repo: Repository, data: TeamData, fc: Forecast) -> None:
             t("Open points"),
             t("Assignment"),
             t("Import"),
-            t("Maintenance"),
+            t("Settings"),
         ]
     )
     with tabs[0]:
@@ -951,7 +951,7 @@ def _assignment(data: TeamData, sel: Selection) -> None:
     st.caption(
         t(
             "Which project and product each open ticket belongs to, and why. The assignment "
-            "follows the criteria of the projects (Maintenance), the order of the criteria is "
+            "follows the criteria of the projects (Settings), the order of the criteria is "
             "set on the page Jira connection."
         )
     )
@@ -979,7 +979,7 @@ def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
     st.caption(
         t(
             "These tickets cannot be distributed. Enter an own estimate under "
-            "**Maintenance**; split tickets that are too large in the ticket system."
+            "**Settings**; split tickets that are too large in the ticket system."
         )
     )
     st.dataframe(pd.DataFrame(rows), hide_index=True)
@@ -1210,7 +1210,7 @@ def _import_preview(
     st.rerun()
 
 
-# --- Maintenance ------------------------------------------------------------------------------
+# --- Settings    ------------------------------------------------------------------------------
 
 
 def _projects_editor(repo: Repository, data: TeamData) -> None:
