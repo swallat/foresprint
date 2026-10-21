@@ -80,7 +80,6 @@ address).
   emoji as icons, identical cards in a grid.
 - Jira's own clutter: dozens of fields per row, modal on modal.
 
-## Open questions
+## Audience
 
-See the decision questions in the redesign thread; product-level ones are tracked in
-[docs/redesign/inventory.md](docs/redesign/inventory.md#open-questions).
+Any Scrum team; Foresprint is open source. Examples and screenshots use an invented demo team, never a real team or company. Decisions: [docs/redesign/plan.md](docs/redesign/plan.md) section 6.
