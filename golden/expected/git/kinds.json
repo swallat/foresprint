@@ -1,0 +1,162 @@
+[
+ {
+  "kind": "git_missing",
+  "title": "Git is not installed",
+  "hint": ""
+ },
+ {
+  "kind": "identity",
+  "title": "Name and email address are missing",
+  "hint": "Git does not know your name yet. Please enter name and email address in the sidebar."
+ },
+ {
+  "kind": "locked",
+  "title": "A file is locked",
+  "hint": "A file is locked because another program (Git client, editor, virus scanner, sync service) is using it. Close other programs and try again. If it stays that way, a lock file (index.lock in the .git folder) may have been left behind after a crash: please ask whoever looks after the computer or the repository before it is removed."
+ },
+ {
+  "kind": "not_writable",
+  "title": "File or folder not writable",
+  "hint": "Git may not write here. Please check that your user account has write permission in the data folder (including the hidden .git folder inside it), that the folder is not write-protected and – for a network drive or cloud folder – is connected and writable. If that does not help, ask whoever looks after the computer."
+ },
+ {
+  "kind": "unsafe_directory",
+  "title": "Git considers the folder unsafe",
+  "hint": "Git refuses to work in this folder because it belongs to a different user account than the one the app runs under (a protection by Git, common with network drives, copied folders or after an account change). The app changes no Git settings. Please ask whoever looks after the computer: they can assign the folder to your own account or deliberately mark it as safe."
+ },
+ {
+  "kind": "auth",
+  "title": "Login is missing or was rejected",
+  "hint": "With https the server usually needs an access token instead of the password (GitHub: Settings › Developer settings › Personal access tokens; GitLab: access token with the “write_repository” scope). If you use the GitHub CLI, set up the login with `gh auth setup-git`; otherwise store the token in the computer's credential service or enter it as the password in the next login window. No credential service is set up in the Git settings yet. Either enter `git config --global credential.helper libsecret` in a terminal (desktop keyring; the helper `git-credential-libsecret` comes with the distribution's Git package) or use the GitHub CLI with `gh auth setup-git`. Plain-text storage (`store`) is not a good choice. The app does not change any Git setting itself. Then try again."
+ },
+ {
+  "kind": "offline",
+  "title": "Server not reachable",
+  "hint": "The server is not reachable. Your changes stay safely stored locally; check the internet connection or VPN and choose “Save and share” again later."
+ },
+ {
+  "kind": "denied",
+  "title": "Server refuses the upload",
+  "hint": "The server refused the upload, for example because of a protected branch or missing write permission. Your changes are stored locally; please ask whoever looks after the repository."
+ },
+ {
+  "kind": "rejected",
+  "title": "Upload rejected because something new arrived in the meantime",
+  "hint": "Someone else has uploaded changes in the meantime. Choose “Save and share” once more; they will be taken over first."
+ },
+ {
+  "kind": "merge_in_progress",
+  "title": "Merge is incomplete",
+  "hint": "A merge is incomplete. It can be aborted; your own changes are kept."
+ },
+ {
+  "kind": "conflict",
+  "title": "Conflict while merging",
+  "hint": "Two people changed the same place. On the “Resolve conflicts” page choose “my” or “other” change for each entry, or abort the merge. Nothing is lost."
+ },
+ {
+  "kind": "invalid",
+  "title": "Merged data is not valid",
+  "hint": "The merge was technically possible, but the data is now invalid in content (see list). Nothing was uploaded. Please correct the values and choose “Save and share” again – or deliberately “Share anyway”."
+ },
+ {
+  "kind": "dirty",
+  "title": "Open changes outside the data folder",
+  "hint": "There are unsaved changes outside the data folder that collide with the new changes. Please commit or discard them first."
+ },
+ {
+  "kind": "detached",
+  "title": "No branch selected (detached HEAD)",
+  "hint": "The repository is not on a branch (detached HEAD). Choose “Back to the branch” in the sidebar; open changes are saved on a rescue branch first."
+ },
+ {
+  "kind": "no_upstream",
+  "title": "Branch is not connected to the server",
+  "hint": "The branch is not connected to the server yet. “Save and share” sets that up the first time."
+ },
+ {
+  "kind": "no_remote",
+  "title": "No server set up",
+  "hint": "This data folder has no server yet. On the “Data folder” page, under “Server (remote)”, enter the address of the shared data repository; until then all changes stay on this computer. Anyone joining an existing team chooses “Clone repository” there."
+ },
+ {
+  "kind": "not_repo",
+  "title": "No Git repository",
+  "hint": "The data folder must be inside a Git repository: create a new one with `git init` or fetch an existing one with `git clone`. An unpacked ZIP archive (“Download source code” on GitHub or GitLab) is not a repository because it lacks the hidden `.git` folder. For an existing team repository, choose “Clone repository” on the “Data folder” page instead."
+ },
+ {
+  "kind": "not_found",
+  "title": "Repository not found",
+  "hint": "The repository was not found or you have no access. Check address and permission; the address can be changed on the “Data folder” page under “Server (remote)”."
+ },
+ {
+  "kind": "unrelated_histories",
+  "title": "Server has a different history",
+  "hint": "The server contains a different history than this data folder – probably the wrong repository is connected (e.g. a code repository). Nothing was merged and nothing was uploaded; your changes are safe locally. If it is the wrong repository, the address can be changed on the “Data folder” page under “Server (remote)”. If the data repository on the server is the right one, merging must be confirmed explicitly."
+ },
+ {
+  "kind": "tag_exists",
+  "title": "Tag name is already taken",
+  "hint": "Choose a different name or remove the existing tag first. The changes are unchanged and not yet saved."
+ },
+ {
+  "kind": "bad_url",
+  "title": "Invalid address",
+  "hint": ""
+ },
+ {
+  "kind": "secret_in_url",
+  "title": "Credentials do not belong in the address",
+  "hint": ""
+ },
+ {
+  "kind": "insecure_url",
+  "title": "Unencrypted connection",
+  "hint": ""
+ },
+ {
+  "kind": "new_branch",
+  "title": "Branch missing on the server",
+  "hint": ""
+ },
+ {
+  "kind": "remote_special",
+  "title": "Unusual server setting",
+  "hint": ""
+ },
+ {
+  "kind": "certificate",
+  "title": "Server certificate not accepted",
+  "hint": "The server responds, but this computer does not accept its security certificate (often a company certificate or a self-issued one). Please ask IT to install the certificate on the computer. The app changes no Git settings."
+ },
+ {
+  "kind": "folder",
+  "title": "Folder cannot be used",
+  "hint": ""
+ },
+ {
+  "kind": "nothing_to_share",
+  "title": "Nothing to share yet",
+  "hint": ""
+ },
+ {
+  "kind": "sync_busy",
+  "title": "Another sync is still running",
+  "hint": "A sync of this data folder has been running for a very long time and may be stuck (e.g. because of a bad network connection). Wait, or abort the running sync: your files stay saved locally."
+ },
+ {
+  "kind": "aborted",
+  "title": "Sync aborted",
+  "hint": "The sync was ended by hand. Your files are saved locally; please share again. If Git then reports a locked file, follow the hint for it."
+ },
+ {
+  "kind": "error",
+  "title": "Git error",
+  "hint": ""
+ },
+ {
+  "kind": "nonsense",
+  "title": "Git error",
+  "hint": ""
+ }
+]

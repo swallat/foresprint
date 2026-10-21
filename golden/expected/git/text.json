@@ -1,0 +1,792 @@
+{
+ "public_url": [
+  {
+   "in": "https://github.com/team/data.git",
+   "out": "https://github.com/team/data.git",
+   "creds": false
+  },
+  {
+   "in": "https://user:secret@github.com/team/data.git",
+   "out": "https://github.com/team/data.git",
+   "creds": true
+  },
+  {
+   "in": "https://token@github.com/team/data.git",
+   "out": "https://github.com/team/data.git",
+   "creds": true
+  },
+  {
+   "in": "https://host/path?token=abc#frag",
+   "out": "https://host/path",
+   "creds": true
+  },
+  {
+   "in": "ssh://git@host.example:2222/team/data.git",
+   "out": "ssh://git@host.example:2222/team/data.git",
+   "creds": false
+  },
+  {
+   "in": "ssh://user:pw@host/team/data.git",
+   "out": "ssh://user@host/team/data.git",
+   "creds": true
+  },
+  {
+   "in": "git@gitlab.example.com:team/data.git",
+   "out": "git@gitlab.example.com:team/data.git",
+   "creds": false
+  },
+  {
+   "in": "user:password@host:team/data.git",
+   "out": "user@host:team/data.git",
+   "creds": true
+  },
+  {
+   "in": "HTTPS://Host/Team/Data.git",
+   "out": "HTTPS://Host/Team/Data.git",
+   "creds": false
+  },
+  {
+   "in": "/srv/git/data.git",
+   "out": "/srv/git/data.git",
+   "creds": false
+  },
+  {
+   "in": "relative/path",
+   "out": "relative/path",
+   "creds": false
+  },
+  {
+   "in": "C:\\Users\\x\\data",
+   "out": "C:\\Users\\x\\data",
+   "creds": false
+  },
+  {
+   "in": "https://a@b@c/d",
+   "out": "https://c/d",
+   "creds": true
+  },
+  {
+   "in": "http://insecure.example/x.git",
+   "out": "http://insecure.example/x.git",
+   "creds": false
+  },
+  {
+   "in": "git://host/x.git",
+   "out": "git://host/x.git",
+   "creds": false
+  },
+  {
+   "in": "file:///srv/git/x.git",
+   "out": "file:///srv/git/x.git",
+   "creds": false
+  },
+  {
+   "in": "ext::sh -c touch% /tmp/x",
+   "out": "ext::sh -c touch% /tmp/x",
+   "creds": false
+  },
+  {
+   "in": "-oProxyCommand=evil",
+   "out": "-oProxyCommand=evil",
+   "creds": false
+  },
+  {
+   "in": "",
+   "out": "",
+   "creds": false
+  },
+  {
+   "in": "   ",
+   "out": "   ",
+   "creds": false
+  },
+  {
+   "in": "https://host",
+   "out": "https://host",
+   "creds": false
+  },
+  {
+   "in": "https://host/",
+   "out": "https://host/",
+   "creds": false
+  },
+  {
+   "in": "https://host:99999/x.git",
+   "out": "https://host:99999/x.git",
+   "creds": false
+  },
+  {
+   "in": "https://host:abc/x.git",
+   "out": "https://host:abc/x.git",
+   "creds": false
+  },
+  {
+   "in": "https://host:/x.git",
+   "out": "https://host:/x.git",
+   "creds": false
+  },
+  {
+   "in": "https://[::1]:8443/x.git",
+   "out": "https://[::1]:8443/x.git",
+   "creds": false
+  },
+  {
+   "in": "https://bad host/x.git",
+   "out": "https://bad host/x.git",
+   "creds": false
+  },
+  {
+   "in": "https://host/a b.git",
+   "out": "https://host/a b.git",
+   "creds": false
+  },
+  {
+   "in": "https://u:12/ss@host/x",
+   "out": "https://host/x",
+   "creds": true
+  },
+  {
+   "in": "ssh://host/x.git",
+   "out": "ssh://host/x.git",
+   "creds": false
+  },
+  {
+   "in": "ssh://-bad@host/x.git",
+   "out": "ssh://-bad@host/x.git",
+   "creds": false
+  },
+  {
+   "in": "git@host:-bad",
+   "out": "git@host:-bad",
+   "creds": false
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "out": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "creds": false
+  },
+  {
+   "in": "https://host/‮x.git",
+   "out": "https://host/‮x.git",
+   "creds": false
+  },
+  {
+   "in": "https://host/x.git\n",
+   "out": "https://host/x.git\n",
+   "creds": false
+  },
+  {
+   "in": "  https://github.com/team/data.git  ",
+   "out": "  https://github.com/team/data.git  ",
+   "creds": false
+  },
+  {
+   "in": "https://äöü.example/x.git",
+   "out": "https://äöü.example/x.git",
+   "creds": false
+  },
+  {
+   "in": "git@host:team/data.git extra",
+   "out": "git@host:team/data.git extra",
+   "creds": false
+  },
+  {
+   "in": "host.example:team/data.git",
+   "out": "host.example:team/data.git",
+   "creds": false
+  },
+  {
+   "in": "https://www.example.com/a/b.git?x=1",
+   "out": "https://www.example.com/a/b.git",
+   "creds": true
+  },
+  {
+   "in": "ssh://git@host/x.git#frag",
+   "out": "ssh://git@host/x.git",
+   "creds": true
+  },
+  {
+   "in": "",
+   "out": "",
+   "creds": false
+  },
+  {
+   "in": "plain text",
+   "out": "plain text",
+   "creds": false
+  },
+  {
+   "in": "see https://user:pw@host/x.git?token=1 for details",
+   "out": "see https://user:pw@host/x.git?token=1 for details",
+   "creds": false
+  },
+  {
+   "in": "two https://a:b@h/x and ssh://git:pw@h2/y.git end",
+   "out": "two https://a:b@h/x and ssh://git:pw@h2/y.git end",
+   "creds": false
+  },
+  {
+   "in": "xhttp://u:p@h/x and (https://u:p@h/y) and 1http://u:p@h/z",
+   "out": "xhttp://h/z",
+   "creds": true
+  },
+  {
+   "in": "a.b-c+d://u:p@host/x",
+   "out": "a.b-c+d://host/x",
+   "creds": true
+  },
+  {
+   "in": "-https://u:p@h/x",
+   "out": "-https://u:p@h/x",
+   "creds": false
+  },
+  {
+   "in": "fatal: unable to access 'https://oauth2:glpat-abc@gitlab.example/team/x.git/': Could not resolve host",
+   "out": "fatal: unable to access 'https://oauth2:glpat-abc@gitlab.example/team/x.git/': Could not resolve host",
+   "creds": false
+  },
+  {
+   "in": "http://x http://y?z",
+   "out": "http://x http://y",
+   "creds": true
+  },
+  {
+   "in": "ssh://u:p@h:22/x then more",
+   "out": "ssh://u@h:22/x then more",
+   "creds": true
+  },
+  {
+   "in": "no scheme: u:p@h:path",
+   "out": "no scheme: u:p@h:path",
+   "creds": false
+  }
+ ],
+ "scrub": [
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "plain text",
+   "out": "plain text"
+  },
+  {
+   "in": "see https://user:pw@host/x.git?token=1 for details",
+   "out": "see https://host/x.git for details"
+  },
+  {
+   "in": "two https://a:b@h/x and ssh://git:pw@h2/y.git end",
+   "out": "two https://h/x and ssh://git@h2/y.git end"
+  },
+  {
+   "in": "xhttp://u:p@h/x and (https://u:p@h/y) and 1http://u:p@h/z",
+   "out": "xhttp://h/x and (https://h/y) and 1http://u:p@h/z"
+  },
+  {
+   "in": "a.b-c+d://u:p@host/x",
+   "out": "a.b-c+d://host/x"
+  },
+  {
+   "in": "-https://u:p@h/x",
+   "out": "-https://u:p@h/x"
+  },
+  {
+   "in": "fatal: unable to access 'https://oauth2:glpat-abc@gitlab.example/team/x.git/': Could not resolve host",
+   "out": "fatal: unable to access 'https://gitlab.example/team/x.git/': Could not resolve host"
+  },
+  {
+   "in": "http://x http://y?z",
+   "out": "http://x http://y"
+  },
+  {
+   "in": "ssh://u:p@h:22/x then more",
+   "out": "ssh://u@h:22/x then more"
+  },
+  {
+   "in": "no scheme: u:p@h:path",
+   "out": "no scheme: u:p@h:path"
+  },
+  {
+   "in": "https://github.com/team/data.git",
+   "out": "https://github.com/team/data.git"
+  },
+  {
+   "in": "https://user:secret@github.com/team/data.git",
+   "out": "https://github.com/team/data.git"
+  },
+  {
+   "in": "https://token@github.com/team/data.git",
+   "out": "https://github.com/team/data.git"
+  },
+  {
+   "in": "https://host/path?token=abc#frag",
+   "out": "https://host/path"
+  },
+  {
+   "in": "ssh://git@host.example:2222/team/data.git",
+   "out": "ssh://git@host.example:2222/team/data.git"
+  },
+  {
+   "in": "ssh://user:pw@host/team/data.git",
+   "out": "ssh://user@host/team/data.git"
+  },
+  {
+   "in": "git@gitlab.example.com:team/data.git",
+   "out": "git@gitlab.example.com:team/data.git"
+  },
+  {
+   "in": "user:password@host:team/data.git",
+   "out": "user:password@host:team/data.git"
+  },
+  {
+   "in": "HTTPS://Host/Team/Data.git",
+   "out": "HTTPS://Host/Team/Data.git"
+  },
+  {
+   "in": "/srv/git/data.git",
+   "out": "/srv/git/data.git"
+  },
+  {
+   "in": "relative/path",
+   "out": "relative/path"
+  },
+  {
+   "in": "C:\\Users\\x\\data",
+   "out": "C:\\Users\\x\\data"
+  },
+  {
+   "in": "https://a@b@c/d",
+   "out": "https://c/d"
+  },
+  {
+   "in": "http://insecure.example/x.git",
+   "out": "http://insecure.example/x.git"
+  },
+  {
+   "in": "git://host/x.git",
+   "out": "git://host/x.git"
+  },
+  {
+   "in": "file:///srv/git/x.git",
+   "out": "file:///srv/git/x.git"
+  },
+  {
+   "in": "ext::sh -c touch% /tmp/x",
+   "out": "ext::sh -c touch% /tmp/x"
+  },
+  {
+   "in": "-oProxyCommand=evil",
+   "out": "-oProxyCommand=evil"
+  },
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "   ",
+   "out": "   "
+  },
+  {
+   "in": "https://host",
+   "out": "https://host"
+  },
+  {
+   "in": "https://host/",
+   "out": "https://host/"
+  },
+  {
+   "in": "https://host:99999/x.git",
+   "out": "https://host:99999/x.git"
+  },
+  {
+   "in": "https://host:abc/x.git",
+   "out": "https://host:abc/x.git"
+  },
+  {
+   "in": "https://host:/x.git",
+   "out": "https://host:/x.git"
+  },
+  {
+   "in": "https://[::1]:8443/x.git",
+   "out": "https://[::1]:8443/x.git"
+  },
+  {
+   "in": "https://bad host/x.git",
+   "out": "https://bad host/x.git"
+  },
+  {
+   "in": "https://host/a b.git",
+   "out": "https://host/a b.git"
+  },
+  {
+   "in": "https://u:12/ss@host/x",
+   "out": "https://host/x"
+  },
+  {
+   "in": "ssh://host/x.git",
+   "out": "ssh://host/x.git"
+  },
+  {
+   "in": "ssh://-bad@host/x.git",
+   "out": "ssh://-bad@host/x.git"
+  },
+  {
+   "in": "git@host:-bad",
+   "out": "git@host:-bad"
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "out": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "in": "https://host/‮x.git",
+   "out": "https://host/‮x.git"
+  },
+  {
+   "in": "https://host/x.git\n",
+   "out": "https://host/x.git\n"
+  },
+  {
+   "in": "  https://github.com/team/data.git  ",
+   "out": "  https://github.com/team/data.git  "
+  },
+  {
+   "in": "https://äöü.example/x.git",
+   "out": "https://äöü.example/x.git"
+  },
+  {
+   "in": "git@host:team/data.git extra",
+   "out": "git@host:team/data.git extra"
+  },
+  {
+   "in": "host.example:team/data.git",
+   "out": "host.example:team/data.git"
+  },
+  {
+   "in": "https://www.example.com/a/b.git?x=1",
+   "out": "https://www.example.com/a/b.git"
+  },
+  {
+   "in": "ssh://git@host/x.git#frag",
+   "out": "ssh://git@host/x.git"
+  }
+ ],
+ "blank": [
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "plain",
+   "out": "plain"
+  },
+  {
+   "in": "a `b` c",
+   "out": "a `b` c"
+  },
+  {
+   "in": "``double`` and `single`",
+   "out": "``double`` and `single`"
+  },
+  {
+   "in": "`start",
+   "out": "`start"
+  },
+  {
+   "in": "end`",
+   "out": "end`"
+  },
+  {
+   "in": " lead",
+   "out": " lead"
+  },
+  {
+   "in": "trail ",
+   "out": "trail "
+  },
+  {
+   "in": "line\nbreak\r\nand\rcr",
+   "out": "line break  and cr"
+  },
+  {
+   "in": "tab\there",
+   "out": "tab here"
+  },
+  {
+   "in": "bidi ‮ reversed ⁦ isolate",
+   "out": "bidi   reversed   isolate"
+  },
+  {
+   "in": "zero‍width joiner and ‌ non-joiner",
+   "out": "zero‍width joiner and ‌ non-joiner"
+  },
+  {
+   "in": "www.example.com/x and http://example.com *bold* _it_ [l](u) ![i](u) # h > q",
+   "out": "www.example.com/x and http://example.com *bold* _it_ [l](u) ![i](u) # h > q"
+  },
+  {
+   "in": "ctrl\u0000\u0001\u001f end",
+   "out": "ctrl     end"
+  },
+  {
+   "in": " para sep",
+   "out": " para sep"
+  },
+  {
+   "in": "back\\slash and ~tilde~ and |pipe|",
+   "out": "back\\slash and ~tilde~ and |pipe|"
+  }
+ ],
+ "md_plain": [
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "plain",
+   "out": "plain"
+  },
+  {
+   "in": "a `b` c",
+   "out": "a \\`b\\` c"
+  },
+  {
+   "in": "``double`` and `single`",
+   "out": "\\`\\`double\\`\\` and \\`single\\`"
+  },
+  {
+   "in": "`start",
+   "out": "\\`start"
+  },
+  {
+   "in": "end`",
+   "out": "end\\`"
+  },
+  {
+   "in": " lead",
+   "out": " lead"
+  },
+  {
+   "in": "trail ",
+   "out": "trail "
+  },
+  {
+   "in": "line\nbreak\r\nand\rcr",
+   "out": "line break  and cr"
+  },
+  {
+   "in": "tab\there",
+   "out": "tab here"
+  },
+  {
+   "in": "bidi ‮ reversed ⁦ isolate",
+   "out": "bidi   reversed   isolate"
+  },
+  {
+   "in": "zero‍width joiner and ‌ non-joiner",
+   "out": "zero‍width joiner and ‌ non\\-joiner"
+  },
+  {
+   "in": "www.example.com/x and http://example.com *bold* _it_ [l](u) ![i](u) # h > q",
+   "out": "www\\.example\\.com\\/x and http\\:\\/\\/example\\.com \\*bold\\* \\_it\\_ \\[l\\]\\(u\\) \\!\\[i\\]\\(u\\) \\# h \\> q"
+  },
+  {
+   "in": "ctrl\u0000\u0001\u001f end",
+   "out": "ctrl     end"
+  },
+  {
+   "in": " para sep",
+   "out": " para sep"
+  },
+  {
+   "in": "back\\slash and ~tilde~ and |pipe|",
+   "out": "back\\\\slash and \\~tilde\\~ and \\|pipe\\|"
+  }
+ ],
+ "md_code": [
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "plain",
+   "out": "`plain`"
+  },
+  {
+   "in": "a `b` c",
+   "out": "``a `b` c``"
+  },
+  {
+   "in": "``double`` and `single`",
+   "out": "``` ``double`` and `single` ```"
+  },
+  {
+   "in": "`start",
+   "out": "`` `start ``"
+  },
+  {
+   "in": "end`",
+   "out": "`` end` ``"
+  },
+  {
+   "in": " lead",
+   "out": "`  lead `"
+  },
+  {
+   "in": "trail ",
+   "out": "` trail  `"
+  },
+  {
+   "in": "line\nbreak\r\nand\rcr",
+   "out": "`line break  and cr`"
+  },
+  {
+   "in": "tab\there",
+   "out": "`tab here`"
+  },
+  {
+   "in": "bidi ‮ reversed ⁦ isolate",
+   "out": "`bidi   reversed   isolate`"
+  },
+  {
+   "in": "zero‍width joiner and ‌ non-joiner",
+   "out": "`zero‍width joiner and ‌ non-joiner`"
+  },
+  {
+   "in": "www.example.com/x and http://example.com *bold* _it_ [l](u) ![i](u) # h > q",
+   "out": "`www.example.com/x and http://example.com *bold* _it_ [l](u) ![i](u) # h > q`"
+  },
+  {
+   "in": "ctrl\u0000\u0001\u001f end",
+   "out": "`ctrl     end`"
+  },
+  {
+   "in": " para sep",
+   "out": "`  para sep `"
+  },
+  {
+   "in": "back\\slash and ~tilde~ and |pipe|",
+   "out": "`back\\slash and ~tilde~ and |pipe|`"
+  }
+ ],
+ "md_code_lines": [
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "one",
+   "out": "`one`"
+  },
+  {
+   "in": "one\ntwo",
+   "out": "`one`  \n`two`"
+  },
+  {
+   "in": "one  \n\n  \ntwo   \n",
+   "out": "`one`  \n`two`"
+  },
+  {
+   "in": "remote: line `with` ticks   \nremote: second\r\nlast",
+   "out": "``remote: line `with` ticks``  \n`remote: second`  \n`last`"
+  },
+  {
+   "in": "a b",
+   "out": "`a`  \n`b`"
+  },
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "plain",
+   "out": "`plain`"
+  },
+  {
+   "in": "a `b` c",
+   "out": "``a `b` c``"
+  },
+  {
+   "in": "``double`` and `single`",
+   "out": "``` ``double`` and `single` ```"
+  },
+  {
+   "in": "`start",
+   "out": "`` `start ``"
+  },
+  {
+   "in": "end`",
+   "out": "`` end` ``"
+  },
+  {
+   "in": " lead",
+   "out": "`  lead `"
+  },
+  {
+   "in": "trail ",
+   "out": "`trail`"
+  },
+  {
+   "in": "line\nbreak\r\nand\rcr",
+   "out": "`line`  \n`break`  \n`and`  \n`cr`"
+  },
+  {
+   "in": "tab\there",
+   "out": "`tab here`"
+  },
+  {
+   "in": "bidi ‮ reversed ⁦ isolate",
+   "out": "`bidi   reversed   isolate`"
+  },
+  {
+   "in": "zero‍width joiner and ‌ non-joiner",
+   "out": "`zero‍width joiner and ‌ non-joiner`"
+  },
+  {
+   "in": "www.example.com/x and http://example.com *bold* _it_ [l](u) ![i](u) # h > q",
+   "out": "`www.example.com/x and http://example.com *bold* _it_ [l](u) ![i](u) # h > q`"
+  },
+  {
+   "in": "ctrl\u0000\u0001\u001f end",
+   "out": "`ctrl     end`"
+  },
+  {
+   "in": " para sep",
+   "out": "`para`  \n`sep`"
+  },
+  {
+   "in": "back\\slash and ~tilde~ and |pipe|",
+   "out": "`back\\slash and ~tilde~ and |pipe|`"
+  }
+ ],
+ "conflict_markers": [
+  {
+   "in": "a: 1\n",
+   "out": false
+  },
+  {
+   "in": "a: 1\n<<<<<<< HEAD\nb: 2\n=======\nb: 3\n>>>>>>> origin/main\n",
+   "out": true
+  },
+  {
+   "in": "<<<<<<<\n=======\n>>>>>>>\n",
+   "out": true
+  },
+  {
+   "in": "<<<<<<< HEAD\r\nb: 2\r\n=======\r\nb: 3\r\n>>>>>>> x\r\n",
+   "out": true
+  },
+  {
+   "in": "<<<<<<< HEAD\nb\n>>>>>>> x\n",
+   "out": false
+  },
+  {
+   "in": "text <<<<<<< HEAD\n=======\n>>>>>>> x\n",
+   "out": false
+  },
+  {
+   "in": "<<<<<<<< HEAD\n=======\n>>>>>>> x\n",
+   "out": false
+  }
+ ]
+}
