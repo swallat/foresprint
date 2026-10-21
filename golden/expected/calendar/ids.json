@@ -1,0 +1,1234 @@
+[
+ {
+  "previous": "",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": " ",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "7",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "007",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "7.0",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "7.9",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "-3",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "+3",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "1e3",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "1_0",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "1__0",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "_1",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "0x10",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "nan",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "inf",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "-inf",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "Infinity",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "1e400",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": ".5",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "5.",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.7",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.8",
+  "fits": true
+ },
+ {
+  "previous": "2026.07",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.8",
+  "fits": true
+ },
+ {
+  "previous": "2026.7.1",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.x",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": ".7",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "02026.3",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "02026.4",
+  "fits": true
+ },
+ {
+  "previous": "2026.-1",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.0",
+  "fits": true
+ },
+ {
+  "previous": "2026. 4 ",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.5",
+  "fits": true
+ },
+ {
+  "previous": "2026.1_0",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.11",
+  "fits": true
+ },
+ {
+  "previous": "2026.1__0",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2025.9",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "abc",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "22b",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": " 12 ",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "\t8\n",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "99999999999999999999",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "1e30",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "-0",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.99999999999999999999",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.100000000000000000000",
+  "fits": true
+ },
+ {
+  "previous": "2026.+5",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.6",
+  "fits": true
+ },
+ {
+  "previous": "2026",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.0",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "2027.4",
+  "start": "2026-03-01",
+  "numbering": "yearly",
+  "id": "2026.1",
+  "fits": true
+ },
+ {
+  "previous": "",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": " ",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "7",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "007",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "7.0",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "7.9",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "-3",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "+3",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "1e3",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "1_0",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "1__0",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "_1",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "0x10",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "nan",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "inf",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "-inf",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "Infinity",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "1e400",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": ".5",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "5.",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.7",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.07",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.7.1",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.x",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": ".7",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "02026.3",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.-1",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026. 4 ",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.1_0",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.1__0",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2025.9",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "abc",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "22b",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": " 12 ",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "\t8\n",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "99999999999999999999",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "1e30",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "-0",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.99999999999999999999",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.+5",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2026.0",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.1",
+  "fits": true
+ },
+ {
+  "previous": "2027.4",
+  "start": "2027-01-06",
+  "numbering": "yearly",
+  "id": "2027.5",
+  "fits": true
+ },
+ {
+  "previous": "",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": " ",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "7",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "007",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "7.0",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "7.9",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "-3",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "-2",
+  "fits": true
+ },
+ {
+  "previous": "+3",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "4",
+  "fits": true
+ },
+ {
+  "previous": "1e3",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "1001",
+  "fits": true
+ },
+ {
+  "previous": "1_0",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "11",
+  "fits": true
+ },
+ {
+  "previous": "1__0",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "_1",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "0x10",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "nan",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "inf",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "-inf",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "Infinity",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "1e400",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": ".5",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "1",
+  "fits": true
+ },
+ {
+  "previous": "5.",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "6",
+  "fits": true
+ },
+ {
+  "previous": "2026.7",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.07",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.7.1",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.x",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": ".7",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "1",
+  "fits": true
+ },
+ {
+  "previous": "02026.3",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.-1",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026. 4 ",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.1_0",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.1__0",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2025.9",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2026",
+  "fits": true
+ },
+ {
+  "previous": "abc",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "22b",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": " 12 ",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "13",
+  "fits": true
+ },
+ {
+  "previous": "\t8\n",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "9",
+  "fits": true
+ },
+ {
+  "previous": "99999999999999999999",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "100000000000000000001",
+  "fits": true
+ },
+ {
+  "previous": "1e30",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "1000000000000000019884624838657",
+  "fits": true
+ },
+ {
+  "previous": "-0",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "1",
+  "fits": true
+ },
+ {
+  "previous": "2026.99999999999999999999",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2028",
+  "fits": true
+ },
+ {
+  "previous": "2026.+5",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.0",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2027.4",
+  "start": "2026-03-01",
+  "numbering": "sequential",
+  "id": "2028",
+  "fits": true
+ },
+ {
+  "previous": "",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": " ",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "7",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "007",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "7.0",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "7.9",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "8",
+  "fits": true
+ },
+ {
+  "previous": "-3",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "-2",
+  "fits": true
+ },
+ {
+  "previous": "+3",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "4",
+  "fits": true
+ },
+ {
+  "previous": "1e3",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "1001",
+  "fits": true
+ },
+ {
+  "previous": "1_0",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "11",
+  "fits": true
+ },
+ {
+  "previous": "1__0",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "_1",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "0x10",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "nan",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "inf",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "-inf",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "Infinity",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "1e400",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": ".5",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "1",
+  "fits": true
+ },
+ {
+  "previous": "5.",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "6",
+  "fits": true
+ },
+ {
+  "previous": "2026.7",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.07",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.7.1",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.x",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": ".7",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "1",
+  "fits": true
+ },
+ {
+  "previous": "02026.3",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.-1",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026. 4 ",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026.1_0",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.1__0",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2025.9",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2026",
+  "fits": true
+ },
+ {
+  "previous": "abc",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "22b",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": " 12 ",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "13",
+  "fits": true
+ },
+ {
+  "previous": "\t8\n",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "9",
+  "fits": true
+ },
+ {
+  "previous": "99999999999999999999",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "100000000000000000001",
+  "fits": true
+ },
+ {
+  "previous": "1e30",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "1000000000000000019884624838657",
+  "fits": true
+ },
+ {
+  "previous": "-0",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "1",
+  "fits": true
+ },
+ {
+  "previous": "2026.99999999999999999999",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2028",
+  "fits": true
+ },
+ {
+  "previous": "2026.+5",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": null,
+  "fits": false
+ },
+ {
+  "previous": "2026",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2026.0",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2027",
+  "fits": true
+ },
+ {
+  "previous": "2027.4",
+  "start": "2027-01-06",
+  "numbering": "sequential",
+  "id": "2028",
+  "fits": true
+ }
+]

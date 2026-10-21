@@ -1,0 +1,535 @@
+{
+ "entries": [
+  {
+   "sprint": "2026.1",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "In der Sprintdatei erfasst (beim Review eingefroren)",
+     "calculation": "= 38,0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "n. Velocity",
+     "formula": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
+     "calculation": "20,00 / 38 × 40 = 21,05"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "n. Velocity-Trend = Fortschreibung(Ø n. Velocity) gemäß Trend-Modus",
+     "calculation": "– (zu wenig Historie)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet(Commitment) – vergangener Sprint",
+     "calculation": "22,00 → 22,0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "22,0 × 80 % = 17,60"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "22,0 − 17,60 = 4,40"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = Velocity / Commitment",
+     "calculation": "20,00 / 22,00 = 91 %"
+    }
+   ],
+   "plain": "Vergangener Sprint: Es zählt das Commitment (22,00 PT), abgerundet auf 22,0.",
+   "structured": {
+    "message": "Vergangener Sprint: Es zählt das Commitment (22,00 PT), abgerundet auf 22,0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.2",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "In der Sprintdatei erfasst (beim Review eingefroren)",
+     "calculation": "= 40,0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "n. Velocity",
+     "formula": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
+     "calculation": "24,00 / 40 × 40 = 24,00"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "n. Velocity-Trend = Fortschreibung(Ø n. Velocity) gemäß Trend-Modus",
+     "calculation": "– (zu wenig Historie)"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet(Commitment) – vergangener Sprint",
+     "calculation": "24,00 → 24,0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "24,0 × 80 % = 19,20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "24,0 − 19,20 = 4,80"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = Velocity / Commitment",
+     "calculation": "24,00 / 24,00 = 100 %"
+    }
+   ],
+   "plain": "Vergangener Sprint: Es zählt das Commitment (24,00 PT), abgerundet auf 24,0.",
+   "structured": {
+    "message": "Vergangener Sprint: Es zählt das Commitment (24,00 PT), abgerundet auf 24,0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.3",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "In der Sprintdatei erfasst (beim Review eingefroren)",
+     "calculation": "= 36,0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "n. Velocity",
+     "formula": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
+     "calculation": "22,00 / 36 × 40 = 24,44"
+    },
+    {
+     "key": "average",
+     "name": "Ø n. Velocity",
+     "formula": "Ø n. Velocity = Mittel der n. Velocity der letzten 6 Sprints mit Wert (Sprints ohne Wert zählen nicht)",
+     "calculation": "(21,05 + 24,00 + 24,44) / 3 = 23,17"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "n. Velocity-Trend = Ø n. Velocity – vergangener Sprint",
+     "calculation": "Ø = 23,17"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet(Commitment) – vergangener Sprint",
+     "calculation": "24,00 → 24,0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "24,0 × 80 % = 19,20"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "24,0 − 19,20 = 4,80"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = Velocity / Commitment",
+     "calculation": "22,00 / 24,00 = 92 %"
+    }
+   ],
+   "plain": "Vergangener Sprint: Es zählt das Commitment (24,00 PT), abgerundet auf 24,0.",
+   "structured": {
+    "message": "Vergangener Sprint: Es zählt das Commitment (24,00 PT), abgerundet auf 24,0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.4",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "In der Sprintdatei erfasst (beim Review eingefroren)",
+     "calculation": "= 40,0 PT"
+    },
+    {
+     "key": "normalized_velocity",
+     "name": "n. Velocity",
+     "formula": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
+     "calculation": "26,00 / 40 × 40 = 26,00"
+    },
+    {
+     "key": "average",
+     "name": "Ø n. Velocity",
+     "formula": "Ø n. Velocity = Mittel der n. Velocity der letzten 6 Sprints mit Wert (Sprints ohne Wert zählen nicht)",
+     "calculation": "(21,05 + 24,00 + 24,44 + 26,00) / 4 = 23,87"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "n. Velocity-Trend = Ø n. Velocity – vergangener Sprint",
+     "calculation": "Ø = 23,87"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet(Commitment) – vergangener Sprint",
+     "calculation": "26,00 → 26,0 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "26,0 × 80 % = 20,80"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "26,0 − 20,80 = 5,20"
+    },
+    {
+     "key": "fulfillment",
+     "name": "Fulfillment",
+     "formula": "Fulfillment = Velocity / Commitment",
+     "calculation": "26,00 / 26,00 = 100 %"
+    }
+   ],
+   "plain": "Vergangener Sprint: Es zählt das Commitment (26,00 PT), abgerundet auf 26,0.",
+   "structured": {
+    "message": "Vergangener Sprint: Es zählt das Commitment (26,00 PT), abgerundet auf 26,0.",
+    "inputs": [],
+    "calculation": "",
+    "result_label": "",
+    "result": "",
+    "notes": []
+   }
+  },
+  {
+   "sprint": "2026.5",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "In der Sprintdatei erfasst (beim Review eingefroren)",
+     "calculation": "= 40,0 PT"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "Historie dünn: für linear fehlt ein zweiter Durchschnitt, daher gilt n. Velocity-Trend = Wert_vorher (flat)",
+     "calculation": "= 23,87"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet auf 1 Stelle(n): (n. Velocity-Trend / Referenzkapazität × Kapazität)",
+     "calculation": "23,8743 / 40 × 40 = 23,874 → 23,8 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "23,8 × 80 % = 19,04"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "23,8 − 19,04 = 4,76"
+    }
+   ],
+   "plain": "Das Team hat zuletzt (Sprints 2026.1, 2026.2, 2026.3, 2026.4) umgerechnet auf eine Referenzkapazität von 40 PT durchschnittlich 23,87 PT geschafft (normierte Velocity). Für 2026.5 stehen 40,0 PT zur Verfügung (erfasst). Das ergibt 23,8743 / 40 × 40 = 23,874 PT, abgerundet **23,8 PT**. Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Grundlage: Sprints",
+      "`2026.1`, `2026.2`, `2026.3`, `2026.4`"
+     ],
+     [
+      "Normierte Velocity (Referenzkapazität 40 PT)",
+      "23,87 PT"
+     ],
+     [
+      "Verfügbar in `2026.5`",
+      "40,0 PT (erfasst)"
+     ]
+    ],
+    "calculation": "23,8743 / 40 × 40 = 23,874 PT",
+    "result_label": "Forecast PLAN (abgerundet)",
+    "result": "23,8 PT",
+    "notes": [
+     "Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.6",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)",
+     "calculation": "= 38,8 PT"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "Historie dünn: für linear fehlt ein zweiter Durchschnitt, daher gilt n. Velocity-Trend = Wert_vorher (flat)",
+     "calculation": "= 23,87"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet auf 1 Stelle(n): (n. Velocity-Trend / Referenzkapazität × Kapazität)",
+     "calculation": "23,8743 / 40 × 38,8 = 23,158 → 23,1 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "23,1 × 80 % = 18,48"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "23,1 − 18,48 = 4,62"
+    }
+   ],
+   "plain": "Das Team hat zuletzt (Sprints 2026.1, 2026.2, 2026.3, 2026.4) umgerechnet auf eine Referenzkapazität von 40 PT durchschnittlich 23,87 PT geschafft (normierte Velocity). Für 2026.6 stehen 38,8 PT zur Verfügung (Trend). Das ergibt 23,8743 / 40 × 38,8 = 23,158 PT, abgerundet **23,1 PT**. Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Grundlage: Sprints",
+      "`2026.1`, `2026.2`, `2026.3`, `2026.4`"
+     ],
+     [
+      "Normierte Velocity (Referenzkapazität 40 PT)",
+      "23,87 PT"
+     ],
+     [
+      "Verfügbar in `2026.6`",
+      "38,8 PT (Trend)"
+     ]
+    ],
+    "calculation": "23,8743 / 40 × 38,8 = 23,158 PT",
+    "result_label": "Forecast PLAN (abgerundet)",
+    "result": "23,1 PT",
+    "notes": [
+     "Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.7",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)",
+     "calculation": "= 38,8 PT"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "Historie dünn: für linear fehlt ein zweiter Durchschnitt, daher gilt n. Velocity-Trend = Wert_vorher (flat)",
+     "calculation": "= 23,87"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet auf 1 Stelle(n): (n. Velocity-Trend / Referenzkapazität × Kapazität)",
+     "calculation": "23,8743 / 40 × 38,8 = 23,158 → 23,1 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "23,1 × 80 % = 18,48"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "23,1 − 18,48 = 4,62"
+    }
+   ],
+   "plain": "Das Team hat zuletzt (Sprints 2026.1, 2026.2, 2026.3, 2026.4) umgerechnet auf eine Referenzkapazität von 40 PT durchschnittlich 23,87 PT geschafft (normierte Velocity). Für 2026.7 stehen 38,8 PT zur Verfügung (Trend). Das ergibt 23,8743 / 40 × 38,8 = 23,158 PT, abgerundet **23,1 PT**. Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Grundlage: Sprints",
+      "`2026.1`, `2026.2`, `2026.3`, `2026.4`"
+     ],
+     [
+      "Normierte Velocity (Referenzkapazität 40 PT)",
+      "23,87 PT"
+     ],
+     [
+      "Verfügbar in `2026.7`",
+      "38,8 PT (Trend)"
+     ]
+    ],
+    "calculation": "23,8743 / 40 × 38,8 = 23,158 PT",
+    "result_label": "Forecast PLAN (abgerundet)",
+    "result": "23,1 PT",
+    "notes": [
+     "Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.8",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)",
+     "calculation": "= 38,8 PT"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "Historie dünn: für linear fehlt ein zweiter Durchschnitt, daher gilt n. Velocity-Trend = Wert_vorher (flat)",
+     "calculation": "= 23,87"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet auf 1 Stelle(n): (n. Velocity-Trend / Referenzkapazität × Kapazität)",
+     "calculation": "23,8743 / 40 × 38,8 = 23,158 → 23,1 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "23,1 × 80 % = 18,48"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "23,1 − 18,48 = 4,62"
+    }
+   ],
+   "plain": "Das Team hat zuletzt (Sprints 2026.1, 2026.2, 2026.3, 2026.4) umgerechnet auf eine Referenzkapazität von 40 PT durchschnittlich 23,87 PT geschafft (normierte Velocity). Für 2026.8 stehen 38,8 PT zur Verfügung (Trend). Das ergibt 23,8743 / 40 × 38,8 = 23,158 PT, abgerundet **23,1 PT**. Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Grundlage: Sprints",
+      "`2026.1`, `2026.2`, `2026.3`, `2026.4`"
+     ],
+     [
+      "Normierte Velocity (Referenzkapazität 40 PT)",
+      "23,87 PT"
+     ],
+     [
+      "Verfügbar in `2026.8`",
+      "38,8 PT (Trend)"
+     ]
+    ],
+    "calculation": "23,8743 / 40 × 38,8 = 23,158 PT",
+    "result_label": "Forecast PLAN (abgerundet)",
+    "result": "23,1 PT",
+    "notes": [
+     "Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung."
+    ]
+   }
+  },
+  {
+   "sprint": "2026.9",
+   "steps": [
+    {
+     "key": "capacity",
+     "name": "Kapazität",
+     "formula": "Keine Personenliste → Trend der Kapazität (wie n. Velocity fortgeschrieben)",
+     "calculation": "= 38,8 PT"
+    },
+    {
+     "key": "trend",
+     "name": "n. Velocity-Trend",
+     "formula": "Historie dünn: für linear fehlt ein zweiter Durchschnitt, daher gilt n. Velocity-Trend = Wert_vorher (flat)",
+     "calculation": "= 23,87"
+    },
+    {
+     "key": "plan",
+     "name": "Forecast PLAN",
+     "formula": "Forecast PLAN = abgerundet auf 1 Stelle(n): (n. Velocity-Trend / Referenzkapazität × Kapazität)",
+     "calculation": "23,8743 / 40 × 38,8 = 23,158 → 23,1 PT"
+    },
+    {
+     "key": "roadmap",
+     "name": "Verplanbar",
+     "formula": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+     "calculation": "23,1 × 80 % = 18,48"
+    },
+    {
+     "key": "small_stuff",
+     "name": "Kleinkram",
+     "formula": "Kleinkram = Forecast PLAN − Verplanbar",
+     "calculation": "23,1 − 18,48 = 4,62"
+    }
+   ],
+   "plain": "Das Team hat zuletzt (Sprints 2026.1, 2026.2, 2026.3, 2026.4) umgerechnet auf eine Referenzkapazität von 40 PT durchschnittlich 23,87 PT geschafft (normierte Velocity). Für 2026.9 stehen 38,8 PT zur Verfügung (Trend). Das ergibt 23,8743 / 40 × 38,8 = 23,158 PT, abgerundet **23,1 PT**. Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung.",
+   "structured": {
+    "message": "",
+    "inputs": [
+     [
+      "Grundlage: Sprints",
+      "`2026.1`, `2026.2`, `2026.3`, `2026.4`"
+     ],
+     [
+      "Normierte Velocity (Referenzkapazität 40 PT)",
+      "23,87 PT"
+     ],
+     [
+      "Verfügbar in `2026.9`",
+      "38,8 PT (Trend)"
+     ]
+    ],
+    "calculation": "23,8743 / 40 × 38,8 = 23,158 PT",
+    "result_label": "Forecast PLAN (abgerundet)",
+    "result": "23,1 PT",
+    "notes": [
+     "Die Historie ist dünn: Es gilt der letzte Durchschnitt, ohne Fortschreibung."
+    ]
+   }
+  }
+ ]
+}
