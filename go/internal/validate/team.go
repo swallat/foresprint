@@ -729,3 +729,14 @@ func CheckTeamFiles(base string, tickets bool) []Issue {
 func universalNewlines(s string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n")
 }
+
+// CheckFolder is the complete data check of one team folder (root/team): the load error as the
+// only finding when the team does not load, otherwise CheckTeam and CheckTeamFiles. It is what
+// a sync runs on a data folder after a merge.
+func CheckFolder(root, team string, today time.Time) []Issue {
+	data, err := storage.NewRepository(root).Load(team)
+	if err != nil {
+		return []Issue{{Level: Error, Where: team, Message: err.Error()}}
+	}
+	return append(CheckTeam(data, today), CheckTeamFiles(filepath.Join(root, team), data.Team.Features.Tickets)...)
+}
