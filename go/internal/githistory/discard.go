@@ -399,10 +399,7 @@ func Discard(ctx context.Context, path string, files []string) (string, error) {
 			"error", i18n.T("Nothing was discarded."))
 	}
 	if err := applyDiscard(ctx, root, changes); err != nil {
-		if ctx.Err() != nil && git.As(err) == nil {
-			return "", err
-		}
-		failed := putBack(ctx, root, trash, snap)
+		failed := putBack(context.WithoutCancel(ctx), root, trash, snap)
 		git.InvalidateStatus()
 		kind := git.KindOf(err)
 		if kind == "" {

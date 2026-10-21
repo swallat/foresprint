@@ -268,7 +268,10 @@ func RestoreVersion(ctx context.Context, path, scope, rev, message string) (stri
 	}()
 	if err != nil {
 		e := git.As(err)
+		ctx := context.WithoutCancel(ctx) // the rollback must also run after a cancellation
 		if e == nil {
+			rollbackRestore(ctx, root, rel, added, saved)
+			git.InvalidateStatus()
 			return "", err
 		}
 		failed := rollbackRestore(ctx, root, rel, added, saved)

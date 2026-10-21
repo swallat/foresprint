@@ -189,7 +189,7 @@ func Sync(ctx context.Context, path string, opts SyncOptions) (*SyncResult, erro
 		if e := git.As(err); e != nil && e.Kind == "sync_busy" {
 			return &SyncResult{Error: e}, nil
 		}
-		return nil, err
+		return result, err
 	}
 	return result, nil
 }
@@ -201,7 +201,7 @@ func syncLocked(ctx context.Context, path string, opts SyncOptions) (*SyncResult
 	if err != nil {
 		e := git.As(err)
 		if e == nil {
-			return nil, err
+			return result, err
 		}
 		result.Error = e
 	}

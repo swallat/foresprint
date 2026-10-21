@@ -122,10 +122,11 @@ func saveOpenChanges(ctx context.Context, root, path, rescue string) (string, er
 		// Restore the index exactly as before (git add changed it; the working tree stays
 		// untouched) and go back to the detached state; HEAD never stays on the new rescue
 		// branch.
-		_, _ = git.Lenient(ctx, root, "read-tree", index)
-		_, _ = git.Git(ctx, root, "switch", "--detach", start)
+		cctx := context.WithoutCancel(ctx) // the rollback must also run after a cancellation
+		_, _ = git.Lenient(cctx, root, "read-tree", index)
+		_, _ = git.Git(cctx, root, "switch", "--detach", start)
 		if rescue == "" {
-			_, _ = git.Git(ctx, root, "branch", "-D", name)
+			_, _ = git.Git(cctx, root, "branch", "-D", name)
 		}
 		git.InvalidateStatus()
 		return "", err
@@ -155,8 +156,9 @@ func savedBefore(ctx context.Context, root string, holders []string) (value, kno
 	}
 	parent, _ := git.Lenient(ctx, root, "branch", "--contains", "HEAD~"+itoa(depth),
 		"--format=%(refname:short)")
-	for _, b := range strings.Fields(parent) {
-		if !strings.HasPrefix(b, "(") && !isRescue(b) {
+	for _, b := range strings.Split(parent, "\n") {
+		b = strings.TrimSpace(b)
+		if b != "" && !strings.HasPrefix(b, "(") && !isRescue(b) {
 			return false, true
 		}
 	}
@@ -249,7 +251,7 @@ func Reattach(ctx context.Context, path string) (Reattached, error) {
 	changes := newChanges || known
 	if _, err := git.Git(ctx, root, "switch", target); err != nil {
 		if newChanges { // detached again on the backup: the next attempt finds it
-			if _, derr := git.Git(ctx, root, "switch", "--detach", savedAt); derr != nil {
+			if _, derr := git.Git(context.WithoutCancel(ctx), root, "switch", "--detach", savedAt); derr != nil {
 				return Reattached{}, derr
 			}
 		}
