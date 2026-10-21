@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/analysis"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
@@ -17,7 +16,7 @@ import (
 const day = 24 * time.Hour
 
 // lastDay is the last day of a sprint (its end is exclusive); nil for an unknown sprint.
-func lastDay(s *coretypes.Sprint) *time.Time {
+func lastDay(s *model.Sprint) *time.Time {
 	if s == nil {
 		return nil
 	}
@@ -44,7 +43,7 @@ func laterPosition(last, target *time.Time, size, lengthDays int) int {
 // then. The timeline is the current sprint (when given) followed by the horizon sprints. A target
 // inside the current sprint (and not yet over) is the current sprint itself. len(timeline) = the
 // target sprint lies beyond the horizon.
-func TargetSprint(target *time.Time, sprints []coretypes.Sprint, lengthDays int, current *coretypes.Sprint, today *time.Time) (int, bool) {
+func TargetSprint(target *time.Time, sprints []model.Sprint, lengthDays int, current *model.Sprint, today *time.Time) (int, bool) {
 	timeline := timelineOf(sprints, current)
 	if len(timeline) == 0 || target == nil {
 		return 0, false
@@ -65,8 +64,8 @@ func TargetSprint(target *time.Time, sprints []coretypes.Sprint, lengthDays int,
 	return last, ok
 }
 
-func timelineOf(sprints []coretypes.Sprint, current *coretypes.Sprint) []coretypes.Sprint {
-	var timeline []coretypes.Sprint
+func timelineOf(sprints []model.Sprint, current *model.Sprint) []model.Sprint {
+	var timeline []model.Sprint
 	if current != nil {
 		timeline = append(timeline, *current)
 	}
@@ -79,7 +78,7 @@ func timelineOf(sprints []coretypes.Sprint, current *coretypes.Sprint) []coretyp
 // date inside it. Tickets fixed or earmarked after the horizon (dist.Later) are compared with
 // the target date by the last day of their sprint (an unknown sprint counts as later than the
 // target).
-func TrafficLight(project model.Project, dist *Distribution, sprints []coretypes.Sprint, lengthDays int, current *coretypes.Sprint, today *time.Time) ProjectStatus {
+func TrafficLight(project model.Project, dist *Distribution, sprints []model.Sprint, lengthDays int, current *model.Sprint, today *time.Time) ProjectStatus {
 	var own []Placement
 	for _, p := range dist.Placements {
 		if p.Project != nil && *p.Project == project.ID {
@@ -149,7 +148,7 @@ func TrafficLight(project model.Project, dist *Distribution, sprints []coretypes
 
 // refinementList is, per future sprint, the tickets whose estimate is rough or manual; the
 // deadline is the planning of the sprint (spec section 5.4).
-func refinementList(data *storage.TeamData, dist *Distribution, sprints []coretypes.Sprint) []RefinementItem {
+func refinementList(data *storage.TeamData, dist *Distribution, sprints []model.Sprint) []RefinementItem {
 	result := []RefinementItem{}
 	for _, s := range sprints {
 		for _, p := range dist.InSprint(s.ID) {
@@ -213,7 +212,7 @@ func (v *Variants) Items() []VariantDist {
 // normalized velocity, rough estimates inflated by tracker.rough_factor) and optimistic plan.
 // With fewer than two sprints with velocity there is no range: only the median is returned.
 func DistributeVariants(data *storage.TeamData, today time.Time, maxSprints int) (*Variants, error) {
-	core := data.Core()
+	core := data
 	fc, err := analysis.HorizonForecast(core, today, maxSprints)
 	if err != nil {
 		return nil, err

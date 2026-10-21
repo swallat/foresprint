@@ -10,11 +10,10 @@ import (
 	"github.com/swallat/foresprint/internal/analysis"
 	"github.com/swallat/foresprint/internal/assign"
 	"github.com/swallat/foresprint/internal/capacity"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/model"
-	"github.com/swallat/foresprint/internal/pymath"
+	"github.com/swallat/foresprint/internal/products"
 	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/validate"
 )
@@ -63,28 +62,16 @@ type productShare struct {
 	share   float64
 }
 
-// standardShares is the standard quantity per handled product: fixed shares first, the rest
-// evenly (standard_shares of products.py, for an available amount that exists).
+// standardShares is the standard quantity per handled product in order of first appearance
+// (the dict of standard_shares of products.py, for an available amount that exists).
 func standardShares(active []model.Product, available float64) []productShare {
-	if len(active) == 0 {
-		return nil
-	}
+	shares := products.StandardShares(active, &available)
 	var out []productShare
-	var fixed []float64
-	rest := 0
+	seen := map[string]bool{}
 	for _, p := range active {
-		if p.Share != nil {
-			v := available * *p.Share
-			fixed = append(fixed, v)
-			out = append(out, productShare{strPtr(p.ID), v})
-		} else {
-			rest++
-		}
-	}
-	left := math.Max(available-pymath.Sum(fixed), 0.0)
-	for _, p := range active {
-		if p.Share == nil {
-			out = append(out, productShare{strPtr(p.ID), left / float64(rest)})
+		if _, ok := shares[p.ID]; ok && !seen[p.ID] {
+			seen[p.ID] = true
+			out = append(out, productShare{strPtr(p.ID), shares[p.ID]})
 		}
 	}
 	return out
@@ -92,7 +79,7 @@ func standardShares(active []model.Product, available float64) []productShare {
 
 // productShares is the share of each product in a sprint (sum 1). Without the products feature
 // the team has one implicit product (nil) that takes everything.
-func productShares(data *storage.TeamData, sprint coretypes.Sprint) []productShare {
+func productShares(data *storage.TeamData, sprint model.Sprint) []productShare {
 	if !data.Team.Features.Products {
 		return []productShare{{nil, 1.0}}
 	}
@@ -106,7 +93,7 @@ func productShares(data *storage.TeamData, sprint coretypes.Sprint) []productSha
 }
 
 // variantPlans is the plan of every horizon sprint for the normalized velocity nvel.
-func variantPlans(core *coretypes.TeamData, horizon []analysis.HorizonEntry, nvel float64) map[string]float64 {
+func variantPlans(core *storage.TeamData, horizon []analysis.HorizonEntry, nvel float64) map[string]float64 {
 	out := map[string]float64{}
 	for _, h := range horizon {
 		out[h.Entry.Sprint.ID] = math.Max(analysis.PlanAt(core.Team.Forecast, nvel, h.Capacity), 0.0)
@@ -116,7 +103,7 @@ func variantPlans(core *coretypes.TeamData, horizon []analysis.HorizonEntry, nve
 
 // budgets are the budgets per horizon sprint and product, before fixed points and
 // distribution. plans replaces the Forecast PLAN per sprint id (variants).
-func budgets(data *storage.TeamData, core *coretypes.TeamData, horizon []analysis.HorizonEntry, plans map[string]float64) []Budget {
+func budgets(data *storage.TeamData, core *storage.TeamData, horizon []analysis.HorizonEntry, plans map[string]float64) []Budget {
 	team := data.Team
 	var result []Budget
 	for _, h := range horizon {
@@ -128,7 +115,7 @@ func budgets(data *storage.TeamData, core *coretypes.TeamData, horizon []analysi
 		}
 		var group *float64
 		if team.Features.Production && plan != nil {
-			if share, ok := capacity.ProductionShare(core.Team, core.People, h.Entry.Sprint); ok {
+			if share, ok := capacity.ProductionShare(&core.Team, core.People, h.Entry.Sprint); ok {
 				group = &share
 			}
 		}
@@ -471,7 +458,7 @@ func Distribute(data *storage.TeamData, today time.Time, maxSprints int, variant
 	default:
 		return nil, fmt.Errorf("%q is not a valid Variant", variant)
 	}
-	core := data.Core()
+	core := data
 	fc, err := analysis.HorizonForecast(core, today, maxSprints)
 	if err != nil {
 		return nil, err
@@ -497,9 +484,9 @@ func keyOf(sprint string, product *string) cellKey {
 	return cellKey{sprint, *product, true}
 }
 
-func distribute(data *storage.TeamData, core *coretypes.TeamData, today time.Time, fc *forecast.Forecast,
+func distribute(data *storage.TeamData, core *storage.TeamData, today time.Time, fc *forecast.Forecast,
 	horizon []analysis.HorizonEntry, variant Variant, nvel *float64) (*Distribution, error) {
-	sprints := make([]coretypes.Sprint, len(horizon))
+	sprints := make([]model.Sprint, len(horizon))
 	index := map[string]int{}
 	for i, h := range horizon {
 		sprints[i] = h.Entry.Sprint
@@ -538,13 +525,13 @@ func distribute(data *storage.TeamData, core *coretypes.TeamData, today time.Tim
 	}
 
 	gap := data.Team.Tracker.DependencyGap
-	var current *coretypes.Sprint
+	var current *model.Sprint
 	if c := fc.Current(); c != nil {
 		current = &c.Sprint
 	}
-	known := map[string]*coretypes.Sprint{}
+	known := map[string]*model.Sprint{}
 	var lookupErr error
-	sprintOfID := func(id string) *coretypes.Sprint {
+	sprintOfID := func(id string) *model.Sprint {
 		if s, ok := known[id]; ok {
 			return s
 		}
