@@ -14,7 +14,7 @@ import (
 
 	"github.com/swallat/foresprint/internal/capacity"
 	"github.com/swallat/foresprint/internal/engine"
-	"github.com/swallat/foresprint/internal/msg"
+	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/pymath"
 )
 
@@ -23,16 +23,16 @@ const Dash = "–"
 
 // Fmt is a number with the thousands and decimal separators of the language (1.234,5 or
 // 1,234.5); suffix is appended.
-func Fmt(l msg.Lang, value float64, digits int, suffix string) string {
+func Fmt(l string, value float64, digits int, suffix string) string {
 	text := pymath.Fixed(value, digits, true)
-	if !l.IsEnglish() {
+	if l != i18n.Default {
 		text = strings.NewReplacer(",", ".", ".", ",").Replace(text)
 	}
 	return text + suffix
 }
 
 // FmtPtr is Fmt for an optional number; nil gives Dash.
-func FmtPtr(l msg.Lang, value *float64, digits int) string {
+func FmtPtr(l string, value *float64, digits int) string {
 	if value == nil {
 		return Dash
 	}
@@ -42,7 +42,7 @@ func FmtPtr(l msg.Lang, value *float64, digits int) string {
 // FmtCapacity is a capacity for display, rounded half up (from .5 up) like Rounded and the
 // frozen value. Formatting alone rounds an exact half to the even digit (25.25 → "25.2") and
 // must not be used for capacities. digits is the team's capacity rounding.
-func FmtCapacity(l msg.Lang, value *float64, digits int) string {
+func FmtCapacity(l string, value *float64, digits int) string {
 	if value == nil {
 		return Dash
 	}
@@ -50,7 +50,7 @@ func FmtCapacity(l msg.Lang, value *float64, digits int) string {
 }
 
 // Pct is a share as a percentage ("80 %").
-func Pct(l msg.Lang, value float64) string { return Fmt(l, value*100, 0, " %") }
+func Pct(l string, value float64) string { return Fmt(l, value*100, 0, " %") }
 
 // isBidiControl reports the writing-direction control characters that BlankControls replaces:
 // the Arabic letter mark, the direction marks, embeddings, overrides and isolates.
@@ -109,8 +109,8 @@ func SprintText(id string) string { return BlankControls(id) }
 
 // AbsenceDerivedRemedy is what to do about an uncertain absence rate (without sprint IDs).
 // window is the absence_history setting: how long the hint stays.
-func AbsenceDerivedRemedy(l msg.Lang, window int) string {
-	return l.T(
+func AbsenceDerivedRemedy(l string, window int) string {
+	return i18n.TIn(l,
 		"If someone was absent in one of these sprints, enter the absences on the "+
 			"\"{page}\" page and save them with \"Save absences\" (or with `foresprint "+
 			"absences`). If nobody was absent, the rate is correct. In the \"Absence status\" "+
@@ -118,7 +118,7 @@ func AbsenceDerivedRemedy(l msg.Lang, window int) string {
 			"reviewed; but no absences are saved. The note stays until the sprints drop out of "+
 			"the window of the last {window} sprints (setting `absence_history`) or absences "+
 			"are entered.",
-		msg.Values{"page": l.T("Prepare the sprint: absences", nil), "window": window},
+		"page", i18n.TIn(l, "Prepare the sprint: absences"), "window", window,
 	)
 }
 
@@ -130,7 +130,7 @@ func AbsenceDerivedRemedy(l msg.Lang, window int) string {
 // The sprint IDs come from files and are shown in code notation (MdCode) so that they change
 // nothing in Markdown (code=false for tables, plain text and the command line, there with
 // SprintText). detailed adds what to do.
-func AbsenceDerivedNote(l msg.Lang, history *capacity.AbsenceHistory, detailed, code bool, window int) (string, bool) {
+func AbsenceDerivedNote(l string, history *capacity.AbsenceHistory, detailed, code bool, window int) (string, bool) {
 	if history == nil || len(history.Derived) == 0 {
 		return "", false
 	}
@@ -146,19 +146,19 @@ func AbsenceDerivedNote(l msg.Lang, history *capacity.AbsenceHistory, detailed, 
 	sprints := strings.Join(ids, ", ")
 	var note string
 	if count == 1 {
-		note = l.T(
+		note = i18n.TIn(l,
 			"Rate uncertain: {count} sprint in the expected absence rate ({sprints}) only "+
 				"counts as confirmed because it has already been planned or reviewed; no "+
 				"absences are saved, so the rate assumes \"0 % lost\". The estimated capacity "+
 				"of future sprints may be too high.",
-			msg.Values{"count": count, "sprints": sprints})
+			"count", count, "sprints", sprints)
 	} else {
-		note = l.T(
+		note = i18n.TIn(l,
 			"Rate uncertain: {count} sprints in the expected absence rate ({sprints}) only "+
 				"count as confirmed because they have already been planned or reviewed; no "+
 				"absences are saved, so the rate assumes \"0 % lost\". The estimated capacity "+
 				"of future sprints may be too high.",
-			msg.Values{"count": count, "sprints": sprints})
+			"count", count, "sprints", sprints)
 	}
 	if detailed {
 		return note + " " + AbsenceDerivedRemedy(l, window), true
@@ -169,19 +169,19 @@ func AbsenceDerivedNote(l msg.Lang, history *capacity.AbsenceHistory, detailed, 
 // AbsenceDerivedHint is the short pointer for pages that show only the estimated capacity
 // (without the list of sprints; that is on the absences page, in the calculation path, in the
 // report).
-func AbsenceDerivedHint(l msg.Lang, history *capacity.AbsenceHistory) (string, bool) {
+func AbsenceDerivedHint(l string, history *capacity.AbsenceHistory) (string, bool) {
 	if history == nil || len(history.Derived) == 0 {
 		return "", false
 	}
-	page := l.T("Prepare the sprint: absences", nil)
+	page := i18n.TIn(l, "Prepare the sprint: absences")
 	if len(history.Derived) == 1 {
-		return l.T(
+		return i18n.TIn(l,
 			"Rate uncertain: no absences are saved for {count} sprint in the rate. Details "+
 				"on the \"{page}\" page.",
-			msg.Values{"count": 1, "page": page}), true
+			"count", 1, "page", page), true
 	}
-	return l.T(
+	return i18n.TIn(l,
 		"Rate uncertain: no absences are saved for {count} sprints in the rate. Details on "+
 			"the \"{page}\" page.",
-		msg.Values{"count": len(history.Derived), "page": page}), true
+		"count", len(history.Derived), "page", page), true
 }

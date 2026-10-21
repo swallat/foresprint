@@ -7,7 +7,6 @@ import (
 	"github.com/swallat/foresprint/internal/capacity"
 	"github.com/swallat/foresprint/internal/coretest"
 	"github.com/swallat/foresprint/internal/golden"
-	"github.com/swallat/foresprint/internal/msg"
 	"github.com/swallat/foresprint/internal/textfmt"
 )
 
@@ -46,7 +45,7 @@ func num(v any) float64 {
 func TestNumbersAndNotesMatchPython(t *testing.T) {
 	var ref reference
 	golden.Load(t, &ref, "textfmt", "cases.json")
-	langs := map[string]msg.Lang{"en": msg.English, "de": coretest.German(t)}
+	langs := map[string]string{"en": "en", "de": coretest.German(t)}
 	for _, block := range ref.Numbers {
 		l := langs[block.Lang]
 		for _, row := range block.Rows {

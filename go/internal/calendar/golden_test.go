@@ -9,7 +9,6 @@ import (
 	"github.com/swallat/foresprint/internal/coretest"
 	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/golden"
-	"github.com/swallat/foresprint/internal/msg"
 )
 
 func date(t *testing.T, s string) time.Time {
@@ -99,7 +98,7 @@ func TestWorkdaysMatchPython(t *testing.T) {
 	for key, want := range ref.TeamWeekend {
 		team := teamFor(t, key)
 		golden.Compare(t, toAny(want), toAny(sorted(calendar.TeamWeekend(team).Days())))
-		if got := calendar.WorkweekLabel(msg.English, team); got != ref.Labels[key] {
+		if got := calendar.WorkweekLabel("en", team); got != ref.Labels[key] {
 			t.Errorf("%s: label %q, Python %q", key, got, ref.Labels[key])
 		}
 	}
@@ -231,10 +230,10 @@ func orNone(s []string) []string {
 
 func TestDayLabel(t *testing.T) {
 	d := date(t, "2026-10-28")
-	if got := calendar.DayLabel(msg.English, d); got != "Wed 28.10.2026" {
+	if got := calendar.DayLabel("en", d); got != "Wed 28.10.2026" {
 		t.Errorf("English: %q", got)
 	}
-	if got := calendar.DayLabel(msg.Lang{Code: "de"}, d); got != "Mi 28.10.2026" {
+	if got := calendar.DayLabel("de", d); got != "Mi 28.10.2026" {
 		t.Errorf("German: %q", got)
 	}
 }
@@ -254,7 +253,7 @@ type holidaySample struct {
 func TestHolidaysMatchPython(t *testing.T) {
 	var ref map[string]holidaySample
 	golden.Load(t, &ref, "calendar", "holidays-sample.json")
-	german := msg.Lang{Code: "de"}
+	german := "de"
 	for key, s := range ref {
 		for year, y := range s.Years {
 			holiday := map[string]bool{}
@@ -267,7 +266,7 @@ func TestHolidaysMatchPython(t *testing.T) {
 				if got := calendar.IsHoliday(day, s.Region, s.Country); got != holiday[iso] {
 					t.Fatalf("%s %s: IsHoliday %v, Python %v", key, iso, got, holiday[iso])
 				}
-				if got := calendar.HolidayName(msg.English, day, s.Region, s.Country); got != y.En[iso] {
+				if got := calendar.HolidayName("en", day, s.Region, s.Country); got != y.En[iso] {
 					t.Fatalf("%s %s: English name %q, Python %q", key, iso, got, y.En[iso])
 				}
 				if got := calendar.HolidayName(german, day, s.Region, s.Country); got != y.De[iso] {

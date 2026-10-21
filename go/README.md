@@ -43,7 +43,6 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/analysis` | Ranges, focus factor, buffer hint, horizon, Monte Carlo completion (`analysis.py`). |
 | `internal/formulas` | The calculation path of every figure: steps and explanations as texts (`formulas.py`). |
 | `internal/textfmt` | Number format of the language, capacity rounding, Markdown code spans of external text (the helpers of `report.py` and `git.py` the formulas need). |
-| `internal/msg` | `{name}` placeholders and the catalog lookup of the texts (`t()` of the Python core). The German catalog itself belongs to the texts step. |
 | `internal/coretest` | Test helper: loads the golden team folders into `coretypes`. |
 
 | `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |

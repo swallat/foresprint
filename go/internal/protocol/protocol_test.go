@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/golden"
+	"github.com/swallat/foresprint/internal/pymath"
 )
 
 type cases struct {
@@ -390,8 +391,8 @@ func TestPySum(t *testing.T) {
 		{[]float64{17.355, 5.8, 6.8, 23.8, 28.3, 7.65}, 89.705},
 		{[]float64{1e16, 1, -1e16}, 1},
 	} {
-		if got := pySum(c.xs); got != c.want {
-			t.Errorf("pySum(%v) = %v, want %v", c.xs, got, c.want)
+		if got := pymath.Sum(c.xs); got != c.want {
+			t.Errorf("pymath.Sum(%v) = %v, want %v", c.xs, got, c.want)
 		}
 	}
 }

@@ -7,14 +7,13 @@ import (
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/formulas"
 	"github.com/swallat/foresprint/internal/golden"
-	"github.com/swallat/foresprint/internal/msg"
 )
 
 // The general formulas equal the Python texts.
 func TestGeneralMatchesPython(t *testing.T) {
 	var want map[string]string
 	golden.Load(t, &want, "formulas", "general.json")
-	f := formulas.New(msg.English)
+	f := formulas.New("en")
 	if len(want) != len(formulas.GeneralKeys) {
 		t.Fatalf("%d formulas in Python, %d keys here", len(want), len(formulas.GeneralKeys))
 	}
@@ -28,7 +27,7 @@ func TestGeneralMatchesPython(t *testing.T) {
 // Every step and explanation of every sprint of every golden case equals the Python text, in
 // English: the formula, the plugged-in numbers, the notes.
 func TestTextsMatchPython(t *testing.T) {
-	f := formulas.New(msg.English)
+	f := formulas.New("en")
 	for _, c := range golden.Cases(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			var ref struct {
@@ -163,7 +162,7 @@ func TestFTEChangeNote(t *testing.T) {
 		} `json:"numbers"`
 	}
 	golden.Load(t, &ref, "textfmt", "cases.json")
-	langs := map[string]msg.Lang{"en": msg.English, "de": coretest.German(t)}
+	langs := map[string]string{"en": "en", "de": coretest.German(t)}
 	for _, n := range ref.Numbers {
 		got := formulas.New(langs[n.Lang]).FTEChangeNote([]string{"Ben", "`Cem`"})
 		if got != n.FTENote {
