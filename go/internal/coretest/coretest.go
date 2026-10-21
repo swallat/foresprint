@@ -18,7 +18,6 @@ import (
 
 	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/golden"
-	"github.com/swallat/foresprint/internal/msg"
 )
 
 type yamlDate string
@@ -321,14 +320,8 @@ func Prune(want any) any {
 	return want
 }
 
-// German is the German language with the part of the catalog the calculation texts use
-// (golden/expected/catalog/de.json).
-func German(tb testing.TB) msg.Lang {
+// German is the code of the German language; its texts come from the catalog of internal/i18n.
+func German(tb testing.TB) string {
 	tb.Helper()
-	var catalog map[string]string
-	golden.Load(tb, &catalog, "catalog", "de.json")
-	if len(catalog) == 0 {
-		tb.Fatal("empty catalog")
-	}
-	return msg.Lang{Code: "de", Catalog: catalog}
+	return "de"
 }

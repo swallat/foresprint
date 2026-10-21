@@ -1,19 +1,13 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""German golden references of the calculation texts, and the part of the German catalog they
-use (``catalog/de.json``: English source text to German text), for the Go port.
-
-The catalog is recorded, not copied: every text the calculation texts ask the catalog for while
-this module runs through all cases is kept. The Go test translates with exactly this part, so a
-source text that differs by one character between Python and Go shows up as an untranslated
-text. The complete catalog belongs to the step "texts" of the port."""
+"""German golden references of the calculation texts, for the Go port. The Go tests translate
+with the complete catalog of ``internal/i18n``."""
 
 from __future__ import annotations
 
 from datetime import date
-from typing import ClassVar
 
 from foresprint import calendar as cal
-from foresprint import engine, formulas, i18n, locale_de
+from foresprint import engine, formulas, i18n
 from foresprint.capacity import AbsenceHistory
 from foresprint.forecast import build_forecast
 from foresprint.model import Numbering, Team
@@ -23,17 +17,7 @@ from foresprint.storage import DataError
 GERMAN_CASES = ("demo", "people-days", "thin", "trend-classic")
 
 
-class _Recorder(dict):
-    used: ClassVar[set[str]] = set()
-
-    def get(self, key, default=None):
-        _Recorder.used.add(key)
-        return super().get(key, default)
-
-
 def generate(ctx) -> None:
-    original = locale_de.DE
-    locale_de.DE = _Recorder(original)
     i18n.set_language("de")
     try:
         for case in ctx.resolved:
@@ -82,8 +66,5 @@ def generate(ctx) -> None:
         errors["sequential_form"] = cal.expected_id_form(Numbering.SEQUENTIAL)
         errors["day_label"] = cal.day_label(date(2026, 10, 28))
         ctx.write("formulas-de/calendar.json", ctx.dump_json(errors))
-        used = {k: original[k] for k in sorted(_Recorder.used) if k in original}
-        ctx.write("catalog/de.json", ctx.dump_json(used))
     finally:
-        locale_de.DE = original
         i18n.set_language("en")

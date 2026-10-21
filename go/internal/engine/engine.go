@@ -21,7 +21,7 @@ import (
 	"math"
 
 	"github.com/swallat/foresprint/internal/coretypes"
-	"github.com/swallat/foresprint/internal/msg"
+	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/pymath"
 )
 
@@ -142,12 +142,12 @@ func GapsInWindow(values Series, window int) int {
 type UnknownTrendModeError struct{ Mode string }
 
 // Message is the text for the user.
-func (e *UnknownTrendModeError) Message(l msg.Lang) string {
-	return l.T("Unknown trend mode {mode} (allowed: {allowed})",
-		msg.Values{"mode": "'" + e.Mode + "'", "allowed": "classic, linear, flat"})
+func (e *UnknownTrendModeError) Message(l string) string {
+	return i18n.TIn(l, "Unknown trend mode {mode} (allowed: {allowed})",
+		"mode", "'"+e.Mode+"'", "allowed", "classic, linear, flat")
 }
 
-func (e *UnknownTrendModeError) Error() string { return e.Message(msg.English) }
+func (e *UnknownTrendModeError) Error() string { return e.Message(i18n.Default) }
 
 // ParseTrendMode checks a trend mode; an unknown value is an error (no silent linear). The
 // German name of classic is accepted.

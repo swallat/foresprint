@@ -2,7 +2,7 @@
 // computed figure. It mirrors the logic of the engine and the capacity calculation so that
 // every number in the interface and the report can be traced. It ports
 // src/foresprint/formulas.py; the texts are English source texts that the language's catalog
-// translates (msg.Lang).
+// translates (string).
 package formulas
 
 import (
@@ -13,7 +13,7 @@ import (
 	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/forecast"
-	"github.com/swallat/foresprint/internal/msg"
+	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/pymath"
 	"github.com/swallat/foresprint/internal/textfmt"
 )
@@ -32,13 +32,13 @@ func (s Step) Text() string { return s.Formula + "\n\n" + s.Calculation }
 
 // Formatter builds the texts in one language.
 type Formatter struct {
-	Lang msg.Lang
+	Lang string
 }
 
 // New returns a Formatter for the language.
-func New(l msg.Lang) Formatter { return Formatter{Lang: l} }
+func New(l string) Formatter { return Formatter{Lang: l} }
 
-func (f Formatter) t(text string, v msg.Values) string { return f.Lang.T(text, v) }
+func (f Formatter) t(text string, v ...any) string { return i18n.TIn(f.Lang, text, v...) }
 
 // n is _n of Python: a number with two decimal places (a missing value is a dash).
 func (f Formatter) n(v float64) string { return textfmt.Fmt(f.Lang, v, 2, "") }
@@ -50,7 +50,7 @@ func (f Formatter) np(v *float64) string { return textfmt.FmtPtr(f.Lang, v, 2) }
 // g is short, with the decimal separator of the language: 0.5 → "0,5" (German), 3.0 → "3".
 func (f Formatter) g(v float64) string {
 	text := pymath.General(v)
-	if f.Lang.IsEnglish() {
+	if f.Lang == i18n.Default {
 		return text
 	}
 	return strings.ReplaceAll(text, ".", ",")
@@ -65,7 +65,7 @@ func (f Formatter) g(v float64) string {
 func (f Formatter) exact(v *float64) string {
 	text := textfmt.FmtPtr(f.Lang, v, 4)
 	decimal := ","
-	if f.Lang.IsEnglish() {
+	if f.Lang == i18n.Default {
 		decimal = "."
 	}
 	if strings.Contains(text, decimal) {
@@ -110,7 +110,7 @@ func (f Formatter) General(key string) string { return f.t(generalFormulas[key],
 // FTEChangeNote is the note on the approximation for an FTE change within the sprint.
 func (f Formatter) FTEChangeNote(names []string) string {
 	return f.t("≈ Approximation: with an FTE change within the sprint, absences are weighted with "+
-		"the mean FTE ({names}).", msg.Values{"names": strings.Join(names, ", ")})
+		"the mean FTE ({names}).", "names", strings.Join(names, ", "))
 }
 
 func indexOf(fc *forecast.Forecast, e *forecast.TimelineEntry) int {
@@ -171,12 +171,11 @@ func (f Formatter) CapacityStep(fc *forecast.Forecast, e *forecast.TimelineEntry
 		if b.OverheadSharePart != 0 {
 			minus += fmt.Sprintf(" − %s (%s)", f.n(b.OverheadSharePart), textfmt.Pct(f.Lang, team.Capacity.OverheadShare))
 		}
-		calculation := f.t("{parts} = {gross}{minus} → {capacity} PT (rounded)", msg.Values{
-			"parts":    strings.Join(parts, " + "),
-			"gross":    f.n(b.Gross),
-			"minus":    minus,
-			"capacity": f.fmtCap(&b.Capacity, b.Rounding),
-		})
+		calculation := f.t("{parts} = {gross}{minus} → {capacity} PT (rounded)",
+			"parts", strings.Join(parts, " + "),
+			"gross", f.n(b.Gross),
+			"minus", minus,
+			"capacity", f.fmtCap(&b.Capacity, b.Rounding))
 		if approx := b.Approximated(); len(approx) > 0 {
 			names := make([]string, len(approx))
 			for i, p := range approx {
@@ -208,10 +207,9 @@ func (f Formatter) CapacityStep(fc *forecast.Forecast, e *forecast.TimelineEntry
 			ids[i] = f.sprintID(id, code)
 		}
 		formula := f.t("Absences unknown → capacity from the people list and calendar, reduced by the "+
-			"average absences ({share}) of sprints {sprints}", msg.Values{
-			"share":   textfmt.Pct(f.Lang, quota),
-			"sprints": strings.Join(ids, ", "),
-		})
+			"average absences ({share}) of sprints {sprints}",
+			"share", textfmt.Pct(f.Lang, quota),
+			"sprints", strings.Join(ids, ", "))
 		// Short and without sprint IDs (the formula also serves as a tooltip); the list is on the
 		// absences page, in the explanation and in the report.
 		if note {
@@ -247,7 +245,7 @@ func (f Formatter) AverageStep(fc *forecast.Forecast, e *forecast.TimelineEntry)
 		nums[k] = f.n(v)
 	}
 	return Step{"average", name, f.t("Ø norm. velocity = mean of the norm. velocity of the last {window} sprints "+
-		"with a value (sprints without a value do not count)", msg.Values{"window": window}),
+		"with a value (sprints without a value do not count)", "window", window),
 		fmt.Sprintf("(%s) / %d = %s", strings.Join(nums, " + "), len(present), f.np(avg))}
 }
 
@@ -294,7 +292,7 @@ func (f Formatter) TrendStep(fc *forecast.Forecast, e *forecast.TimelineEntry) (
 	}
 	if e.Result.TrendFallback {
 		return made(f.t("Thin history: {mode} needs a second average, so norm. velocity trend = "+
-			"value_prev (flat) applies", msg.Values{"mode": string(mode)}), "= "+f.np(known(i-1)))
+			"value_prev (flat) applies", "mode", string(mode)), "= "+f.np(known(i-1)))
 	}
 	if mode == coretypes.Flat {
 		return made(f.t("norm. velocity trend = value_prev (flat)", nil), "= "+f.np(known(i-1)))
@@ -342,7 +340,7 @@ func (f Formatter) trendNote(fc *forecast.Forecast, e *forecast.TimelineEntry) (
 	}
 	if mode, err := engine.ParseTrendMode(fc.Data.Team.Forecast.TrendMode); err == nil && mode != coretypes.Flat {
 		return f.t("Trend mode {mode} extrapolates fluctuations of the last sprints – read "+
-			"with caution.", msg.Values{"mode": string(mode)}), true
+			"with caution.", "mode", string(mode)), true
 	}
 	return "", false
 }
@@ -371,9 +369,8 @@ func (f Formatter) PlainExplanation(fc *forecast.Forecast, e *forecast.TimelineE
 		return f.t("No forecast can be calculated for this sprint yet (too little history).", nil)
 	}
 	if r.PlanSource != nil && *r.PlanSource == engine.PlanActual {
-		return f.t("Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.", msg.Values{
-			"value": f.np(r.Commitment.Value), "unit": unit, "plan": textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""),
-		})
+		return f.t("Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.",
+			"value", f.np(r.Commitment.Value), "unit", unit, "plan", textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""))
 	}
 	i := indexOf(fc, e)
 	basis := basisSprints(fc, i)
@@ -384,15 +381,13 @@ func (f Formatter) PlainExplanation(fc *forecast.Forecast, e *forecast.TimelineE
 	}
 	parts := []string{
 		f.t("The team recently (sprints {sprints}) achieved an average of {trend} {unit}, "+
-			"converted to a reference capacity of {ref} PT (normalized velocity).", msg.Values{
-			"sprints": strings.Join(basis, ", "), "ref": f.nd(fs.ReferenceCapacity, 0), "trend": f.np(trend), "unit": unit,
-		}),
+			"converted to a reference capacity of {ref} PT (normalized velocity).",
+			"sprints", strings.Join(basis, ", "), "ref", f.nd(fs.ReferenceCapacity, 0), "trend", f.np(trend), "unit", unit),
 		f.t("{capacity} PT are available for {id} ({source}). That gives {trend} / {ref} × "+
-			"{exact} = {raw} {unit}, rounded down **{plan} {unit}**.", msg.Values{
-			"id": e.Sprint.ID, "capacity": f.fmtCap(r.PlanCapacity, e.CapacityDigits), "exact": f.exact(r.PlanCapacity),
-			"source": source, "trend": f.exact(trend), "ref": f.nd(fs.ReferenceCapacity, 0),
-			"raw": f.nd(rawPlan(r, fs.ReferenceCapacity), 3), "unit": unit, "plan": textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""),
-		}),
+			"{exact} = {raw} {unit}, rounded down **{plan} {unit}**.",
+			"id", e.Sprint.ID, "capacity", f.fmtCap(r.PlanCapacity, e.CapacityDigits), "exact", f.exact(r.PlanCapacity),
+			"source", source, "trend", f.exact(trend), "ref", f.nd(fs.ReferenceCapacity, 0),
+			"raw", f.nd(rawPlan(r, fs.ReferenceCapacity), 3), "unit", unit, "plan", textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, "")),
 	}
 	if s, ok := f.absenceNote(fc, e, note); ok {
 		parts = append(parts, s)
@@ -451,9 +446,9 @@ func (f Formatter) StructuredExplanation(fc *forecast.Forecast, e *forecast.Time
 	return Explanation{
 		Inputs: []Pair{
 			{f.t("Basis sprints", nil), strings.Join(ids, ", ")},
-			{f.t("Normalized velocity (reference capacity {ref} PT)", msg.Values{"ref": f.nd(fs.ReferenceCapacity, 0)}),
+			{f.t("Normalized velocity (reference capacity {ref} PT)", "ref", f.nd(fs.ReferenceCapacity, 0)),
 				f.np(trend) + " " + unit},
-			{f.t("Available in {id}", msg.Values{"id": textfmt.MdCode(e.Sprint.ID)}),
+			{f.t("Available in {id}", "id", textfmt.MdCode(e.Sprint.ID)),
 				fmt.Sprintf("%s PT (%s)", f.fmtCap(r.PlanCapacity, e.CapacityDigits), source)},
 		},
 		Calculation: fmt.Sprintf("%s / %s × %s = %s %s", f.exact(trend), f.nd(fs.ReferenceCapacity, 0),
@@ -491,7 +486,7 @@ func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code,
 		case engine.PlanForecast:
 			steps = append(steps, Step{"plan", "Forecast PLAN",
 				f.t("Forecast PLAN = rounded down to {digits} digit(s): (norm. velocity "+
-					"trend / reference capacity × capacity)", msg.Values{"digits": fs.Rounding}),
+					"trend / reference capacity × capacity)", "digits", fs.Rounding),
 				fmt.Sprintf("%s / %s × %s = %s → %s %s", f.exact(r.NormalizedVelocity.Trend), f.nd(ref, 0),
 					f.exact(r.PlanCapacity), f.nd(*r.NormalizedVelocity.Trend/ref**r.PlanCapacity, 3),
 					textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""), unit)})
