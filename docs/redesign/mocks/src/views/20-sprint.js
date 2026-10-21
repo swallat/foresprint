@@ -17,7 +17,7 @@
   const absChip = (sid) => { const m = ABS[absState(sid)]; return `<span class="chip ${m[0]}">${m[1]}</span>`; };
 
   const RATES = D.sprints.filter((s) => s.velocity != null).map((s) => s.velocity / s.capacityPD);
-  const REFCAP = Math.round(FS.sum(D.people, (p) => p.fte) * 10);
+  const REFCAP = FS.refCap();
   const RLO = Math.min(...RATES), RHI = Math.max(...RATES);
   function calc(sid) {
     const s = FS.sprint(sid), abs = absDays(sid), base = BASE[sid];
@@ -203,7 +203,7 @@
       };
       const stageLinks = [["prepare", "event_available", "Vorbereiten"], ["preplan", "low_priority", "Vorplanen"], ["plan", "checklist", "Planen"], ["review", "task_alt", "Review"], ["minutes", "description", "Protokolle"]];
       return `${CSS}<div class="page-head"><div><h1>Sprint-Übersicht</h1><p class="lead">Alle Sprints auf einen Blick. Von hier springst du in jede Stufe, auch in spätere Sprints. Nichts ist gesperrt.</p></div></div>
-      ${tw(`<table class="t"><thead><tr><th>Sprint</th><th>Zeitraum</th><th>Status</th><th>Abwesenheiten</th><th class="num">Kapazität PT</th><th class="num">Forecast PLAN</th><th class="num">Plan</th><th class="num">Velocity</th><th class="num" title="Velocity umgerechnet auf die volle Teamkapazität (Referenz), damit Sprints mit Urlaub vergleichbar sind">Normierte Velocity</th><th>Nächster Schritt</th><th>Stufen</th></tr></thead><tbody>
+      ${tw(`<table class="t"><thead><tr><th>Sprint</th><th>Zeitraum</th><th>Status</th><th>Abwesenheiten</th><th class="num">Kapazität PT</th><th class="num">Forecast PLAN</th><th class="num">Commitment</th><th class="num">Velocity</th><th class="num" title="Velocity umgerechnet auf die volle Teamkapazität (Referenz), damit Sprints mit Urlaub vergleichbar sind">Normierte Velocity</th><th>Nächster Schritt</th><th>Stufen</th></tr></thead><tbody>
       ${D.sprints.map((s) => { const c = calc(s.id), stt = stateOf(s.id), plan = st().frozen[s.id]?.commit ?? s.plan, vel = st().closed[s.id] ? rvVel(s.id) : s.velocity; return `<tr class="${s.id === cur ? "sp-cur" : ""}">
         <td><span class="data"><strong>${s.id}</strong></span></td><td class="data">${FS.fmtDate(s.start)} bis ${FS.fmtDate(s.end)}</td><td>${stateChip(s.id)}</td><td>${absChip(s.id)}</td>
         <td class="num">${fmt(c.cap)}</td>

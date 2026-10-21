@@ -15,20 +15,21 @@ Product context: [PRODUCT.md](PRODUCT.md).
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `--bg` | `#f7f7fb` | `#101118` | App background |
+| `--bg` | `#f2f3f8` | `#101118` | App background |
 | `--surface` | `#ffffff` | `#181a24` | Cards, tables, panels |
-| `--surface-2` | `#eef0f7` | `#212433` | Hover, selected row, inputs |
-| `--border` | `#dcdfeb` | `#2d3144` | Dividers |
+| `--surface-2` | `#e9ebf3` | `#212433` | Hover, selected row, inputs |
+| `--border` | `#c6cad9` | `#2d3144` | Dividers, card edges |
+| `--border-control` | `#858aa3` | `#6b7190` | Edges of buttons, inputs, filter chips (3:1) |
 | `--text` | `#1b1d2a` | `#e8eaf4` | Body |
-| `--text-muted` | `#5d6280` | `#9aa0bf` | Secondary text (4.5:1 on surface) |
-| `--primary` | `#5b5bf0` | `#8585ff` | Primary action, current page |
-| `--secondary` | `#a24df0` | `#bb7bff` | Charts, product accent |
-| `--forecast` | `#17c3a0` | `#2ad9b5` | Forecast, predicted values |
+| `--text-muted` | `#4f546f` | `#9aa0bf` | Secondary text (4.5:1 on surface) |
+| `--primary` | `#4646d4` | `#8585ff` | Primary action, current page |
+| `--secondary` | `#8633d1` | `#bb7bff` | Charts, product accent |
+| `--forecast` | `#0a7660` | `#2ad9b5` | Forecast, predicted values |
 | `--highlight` | `#ffc233` | `#ffc233` | Focus ring accent, marker |
-| `--ok` / `--warn` / `--bad` | `#1a9a5a` / `#c47f00` / `#d33a4a` | `#3dc07c` / `#f0a81c` / `#ff6b7a` | Traffic light; never color alone, always with icon or text |
+| `--ok` / `--warn` / `--bad` | `#157443` / `#835200` / `#b42536` | `#3dc07c` / `#f0a81c` / `#ff6b7a` | Traffic light; never color alone, always with icon or text |
 
 Dark theme is a first-class token set, switched by `prefers-color-scheme` and an explicit setting.
-Contrast target: WCAG AA for text, 3:1 for UI borders and icons.
+Contrast target: WCAG AA for text, 3:1 for UI borders and icons. Light theme checked on 21.10.2026: every text token reaches at least 4.5:1 on its background, including colored text on its own weak tint (chips, banners); control edges reach 3:1.
 
 ## Typography
 

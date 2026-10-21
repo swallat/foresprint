@@ -125,7 +125,7 @@ Sprints                    timeline of sprints with state chips
     Minutes                written automatically on each save of pre-plan, plan and review (Markdown in protokolle/)
 Projects                   portfolio: timeline with milestones and end dates, traffic light, contingent use
   <project>                products, milestones, contingent, tickets, report for the project lead; works offline, tracker rules optional
-Forecast                   coming sprints with range; tabs: Analysis, Products over time, Reports and export
+Forecast                   coming sprints with range, normalized velocity trend, plannable and small-items share; history as in 0.8 (capacity, commitment, velocity, normalized velocity, average, fulfillment, scope creep); chart with commitment, velocity, normalized velocity and Forecast PLAN; tabs: Analysis, Products over time, Reports and export
 Team
   People and absences      people, FTE, POs (outside capacity unless included with a share), absences grid across sprints
   Products                 products, assignment rules with live preview (same rule language and editor as projects)

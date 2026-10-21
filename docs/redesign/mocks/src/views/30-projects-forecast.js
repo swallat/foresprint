@@ -393,6 +393,9 @@
     const past = sp.filter((p) => p.velocity != null);
     s += `<polyline fill="none" style="stroke:var(--primary);stroke-width:2.5" points="${past.map((p) => `${x(sp.indexOf(p))},${y(p.velocity)}`).join(" ")}"/>`;
     past.forEach((p) => { const i = sp.indexOf(p); s += `<line x1="${x(i) - 9}" x2="${x(i) + 9}" y1="${y(p.plan)}" y2="${y(p.plan)}" style="stroke:var(--text-muted);stroke-width:2"><title>Plan ${p.plan}</title></line><circle cx="${x(i)}" cy="${y(p.velocity)}" r="5" style="fill:var(--primary)"><title>${p.id}: Velocity ${p.velocity}, Plan ${p.plan}</title></circle><text class="d" x="${x(i) + 10}" y="${y(p.velocity) - 8}" font-size="12" font-weight="600">${p.velocity}</text>`; });
+    s += `<polyline fill="none" style="stroke:var(--text-muted);stroke-width:2" points="${past.map((p) => `${x(sp.indexOf(p))},${y(FS.normVel(p))}`).join(" ")}"/>`;
+    past.forEach((p) => { const i = sp.indexOf(p); s += `<circle cx="${x(i)}" cy="${y(FS.normVel(p))}" r="3.5" style="fill:var(--text-muted)"><title>${p.id}: normierte Velocity ${fmt(FS.normVel(p), 1)}</title></circle>`; });
+    { const lp = past[past.length - 1], tr = trendNV(), xs = sp.filter((p) => p.state !== "past"); s += `<polyline fill="none" style="stroke:var(--text-muted);stroke-width:2;stroke-dasharray:2 4" points="${x(sp.indexOf(lp))},${y(FS.normVel(lp))} ${xs.map((p) => `${x(sp.indexOf(p))},${y(tr)}`).join(" ")}"><title>Trend normierte Velocity ${fmt(tr, 1)}</title></polyline>`; }
     const cur = sp.find((p) => p.state === "current"), ci = sp.indexOf(cur);
     s += `<rect x="${x(ci) - 5}" y="${y(cur.plan) - 5}" width="10" height="10" style="fill:var(--surface);stroke:var(--primary);stroke-width:2"><title>${cur.id}: Plan ${cur.plan}, läuft noch</title></rect><text class="d" x="${x(ci) + 10}" y="${y(cur.plan) - 8}" font-size="12">Plan ${cur.plan}</text>`;
     const fut = sp.filter((p) => p.forecast != null), last = past[past.length - 1];
@@ -409,6 +412,21 @@
     return s + `</svg>`;
   }
 
+
+  // History as in 0.8: commitment, velocity, normalized velocity, average, fulfillment, scope creep
+  const WINDOW = 5;
+  const pastSprints = () => D.sprints.filter((s) => s.velocity != null);
+  const avgNV = (s) => { const p = pastSprints(), i = p.indexOf(s), w = p.slice(Math.max(0, i - WINDOW + 1), i + 1); return sum(w, FS.normVel) / w.length; };
+  const trendNV = () => avgNV(pastSprints().at(-1));
+  const pct = (v) => (v == null ? "–" : `${Math.round(v * 100)} %`);
+  function pastHtml() {
+    const cur = D.sprints.find((s) => s.state === "current");
+    return `<div class="card" id="fp-history" style="margin-top:16px"><h2>Verlauf</h2>
+      <div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">Kapazität (PT)</th><th class="num">Commitment</th><th class="num">Velocity</th><th class="num" title="Velocity ÷ Kapazität × Referenzkapazität ${FS.refCap()} PT">n. Velocity</th><th class="num" title="Mittel der normierten Velocity der letzten ${WINDOW} Sprints">Ø n. Velocity</th><th class="num" title="Velocity ÷ Commitment">Fulfillment</th><th class="num" title="Nach dem Planning hinzugekommene Arbeit, bezogen auf das Commitment">Scope Creep</th></tr></thead><tbody>
+      ${pastSprints().map((s) => `<tr><td class="data">${s.id}</td><td class="num">${fmt(s.capacityPD)}</td><td class="num">${fmt(s.plan)}</td><td class="num">${fmt(s.velocity)}</td><td class="num">${fmt(FS.normVel(s), 2)}</td><td class="num">${fmt(avgNV(s), 2)}</td><td class="num">${pct(s.velocity / s.plan)}</td><td class="num">${pct(s.scope)}</td></tr>`).join("")}
+      ${cur ? `<tr><td class="data">${cur.id} <span class="chip small">läuft</span></td><td class="num">${fmt(cur.capacityPD)}</td><td class="num">${fmt(cur.plan)}</td><td class="num muted">–</td><td class="num muted">–</td><td class="num muted">–</td><td class="num muted">–</td><td class="num muted">–</td></tr>` : ""}</tbody></table></div>
+      <p class="small muted" style="margin:8px 0 0">Normierte Velocity = Velocity ÷ Kapazität × Referenzkapazität (volles Team ohne Abwesenheit, <span class="data">${FS.refCap()}</span> PT, Einstellung unter Team). Sie macht Sprints mit Urlaub vergleichbar und kürzt sich im Forecast PLAN heraus. <a href="#help">Hilfe > Rechenwege</a></p></div>`;
+  }
   function forecastTabHtml() {
     const fut = D.sprints.filter((s) => s.forecast != null);
     const absChip = (a) => a === "confirmed" ? `<span class="chip ok">${ic("check_circle")}bestätigt</span>` : a === "announced" ? `<span class="chip warn">${ic("schedule")}angekündigt</span>` : `<span class="chip">${ic("help")}nicht erfasst</span>`;
@@ -417,11 +435,11 @@
     ${unknown.length ? `<div class="banner info">${ic("info")}<div class="grow">Für ${unknown.map((s) => `<span class="data">${s.id}</span>`).join(" und ")} sind noch keine Abwesenheiten erfasst. Der Forecast rechnet dort mit voller Kapazität und wird mit jeder Eintragung genauer. <a href="#people">Abwesenheiten erfassen</a></div></div>` : ""}
     <div class="card fp-chart"><h2>Forecast PLAN für die nächsten vier Sprints</h2>
       <div class="pf-scroll" id="fp-chart">${chartSvg(whatIfAlt())}</div>
-      <div class="pf-legend"><span><i class="pf-sw"></i>Velocity (Ist)</span><span><i class="pf-sw" style="border-top-color:var(--text-muted)"></i>Plan, Strich</span><span><i class="pf-sw fc"></i>Forecast PLAN mit Spanne niedrig bis hoch</span><span><i class="pf-sw wi"></i>Was wäre wenn</span></div></div>
-    <div class="grid cols-2" style="margin-top:16px;align-items:start">
-      <div class="fp-table"><div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">Kapazität (PT)</th><th>Abwesenheiten</th><th class="num">Forecast PLAN (Pkt)</th><th class="num">Spanne (Pkt)</th><th></th></tr></thead><tbody>
-        ${fut.map((s) => `<tr><td><span class="data">${s.id}</span> <span class="small muted data">${FS.fmtDate(s.start).slice(0, 5)}.–${FS.fmtDate(s.end).slice(0, 5)}.</span></td><td class="num">${fmt(s.capacityPD)}</td><td>${absChip(s.absences)}</td><td class="num"><strong>${fmt(s.forecast)}</strong></td><td class="num">${s.low} bis ${s.high}</td><td>${calcBtn("fc", s.id)}</td></tr>`).join("")}
-        <tr class="sum"><td>Summe 4 Sprints</td><td class="num">${fmt(sum(fut, (s) => s.capacityPD))}</td><td></td><td class="num">${fmt(sum(fut, (s) => s.forecast))}</td><td class="num">${sum(fut, (s) => s.low)} bis ${sum(fut, (s) => s.high)}</td><td></td></tr></tbody></table></div>
+      <div class="pf-legend"><span><i class="pf-sw"></i>Velocity (Ist)</span><span><i class="pf-sw" style="border-top-color:var(--text-muted)"></i>Commitment, Strich</span><span><i class="pf-sw" style="border-top-color:var(--text-muted)"></i>normierte Velocity (Ist, gepunktet: Trend)</span><span><i class="pf-sw fc"></i>Forecast PLAN mit Spanne niedrig bis hoch</span><span><i class="pf-sw wi"></i>Was wäre wenn</span></div></div>
+    <div class="stack" style="margin-top:16px;gap:16px">
+      <div class="fp-table"><div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">Kapazität (PT)</th><th>Abwesenheiten</th><th class="num" title="Trend der normierten Velocity (Referenzkapazität ${FS.refCap()} PT)">n. Velocity Trend</th><th class="num">Forecast PLAN (Pkt)</th><th class="num">Spanne (Pkt)</th><th class="num" title="Verplanbarer Anteil">Verplanbar</th><th class="num" title="Kleinkram-Anteil">Kleinkram</th><th></th></tr></thead><tbody>
+        ${fut.map((s) => `<tr><td><span class="data">${s.id}</span> <span class="small muted data">${FS.fmtDate(s.start).slice(0, 5)}.–${FS.fmtDate(s.end).slice(0, 5)}.</span></td><td class="num">${fmt(s.capacityPD)}</td><td>${absChip(s.absences)}</td><td class="num">${fmt(trendNV(), 2)}</td><td class="num"><strong>${fmt(s.forecast)}</strong></td><td class="num">${s.low} bis ${s.high}</td><td class="num">${fmt(D.plannableShare, 2)}</td><td class="num">${fmt(D.smallShare, 2)}</td><td>${calcBtn("fc", s.id)}</td></tr>`).join("")}
+        <tr class="sum"><td>Summe 4 Sprints</td><td class="num">${fmt(sum(fut, (s) => s.capacityPD))}</td><td></td><td></td><td class="num">${fmt(sum(fut, (s) => s.forecast))}</td><td class="num">${sum(fut, (s) => s.low)} bis ${sum(fut, (s) => s.high)}</td><td></td><td></td><td></td></tr></tbody></table></div>
         <p class="small muted" style="margin:8px 0 0">Forecast PLAN = Kapazität mal Rate (${rateTxt()} Pkt je PT). Die Spanne zeigt, wie stark die letzten Sprints gestreut haben. Ein Forecast ist eine Erwartung, keine Zusage.</p></div>
       <div class="card fp-whatif"><h2>Was wäre wenn</h2>
         <div class="stack"><div class="field"><label for="wi-sprint">Sprint</label><select class="input" id="wi-sprint"><option value="all">Alle vier Sprints</option>${fut.map((s) => `<option value="${s.id}" ${wi.sprint === s.id ? "selected" : ""}>${s.id}</option>`).join("")}</select></div>
@@ -430,7 +448,8 @@
         <div id="wi-result">${whatIfResult()}</div>
         <div class="row"><button class="btn primary" type="button" id="wi-save">${ic("bookmark_add")}als Prognose speichern</button><button class="btn ghost" type="button" id="wi-reset">Zurücksetzen</button></div>
         <div id="wi-saved">${savedList()}</div></div></div>
-    </div>`;
+    </div>
+    ${pastHtml()}`;
   }
 
   function whatIfResult() {
