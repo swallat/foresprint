@@ -5,6 +5,7 @@ package pytext
 import (
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // IsSpace is str.isspace() for one character (and \s of Python's re): Go's unicode.IsSpace
@@ -41,6 +42,43 @@ func Splitlines(s string) []string {
 	}
 	if start < len(rs) {
 		lines = append(lines, string(rs[start:]))
+	}
+	return lines
+}
+
+// isLineBreak reports the characters at which str.splitlines() splits.
+func isLineBreak(r rune) bool {
+	switch r {
+	case '\n', '\r', '\v', '\f', 0x1c, 0x1d, 0x1e, 0x85, 0x2028, 0x2029:
+		return true
+	}
+	return false
+}
+
+// SplitLines is str.splitlines(keepends): like Splitlines, but with keepends the line ends stay
+// at the end of each line.
+func SplitLines(s string, keepends bool) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if !isLineBreak(r) {
+			i += size
+			continue
+		}
+		end := i + size
+		if r == '\r' && end < len(s) && s[end] == '\n' {
+			end++
+		}
+		if keepends {
+			lines = append(lines, s[start:end])
+		} else {
+			lines = append(lines, s[start:i])
+		}
+		i, start = end, end
+	}
+	if start < len(s) {
+		lines = append(lines, s[start:])
 	}
 	return lines
 }

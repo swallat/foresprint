@@ -1,0 +1,15 @@
+{
+ "capacity": "Kapazität = Σ Personen (Arbeitstage − Feiertage − Fehltage) × FTE − Abzug Scrum-Termine; nach dem Review eingefroren; unbekannte Fehltage nach der Historie geschätzt (ohne Historie ohne Abzug); Trend nur ohne Personenliste",
+ "normalized_velocity": "n. Velocity = Velocity / Kapazität × Referenzkapazität",
+ "average": "Ø n. Velocity = Mittel(n. Velocity der letzten Sprints im Fenster)",
+ "trend": "n. Velocity-Trend = Fortschreibung(Ø n. Velocity) gemäß Trend-Modus",
+ "plan": "Forecast PLAN = abgerundet(n. Velocity-Trend / Referenzkapazität × Kapazität)",
+ "roadmap": "Verplanbar = Forecast PLAN × Verplanbarer Anteil",
+ "small_stuff": "Kleinkram = Forecast PLAN − Verplanbar",
+ "fulfillment": "Fulfillment = Velocity / Commitment",
+ "scope_creep": "Scope Creep = nachträglich hinzugekommen / Commitment",
+ "focus_factor": "Fokusfaktor = Velocity / Kapazität",
+ "delta": "Planning-Delta = Forecast PLAN − (Überkipper + Backlog − Korrekturen)",
+ "standard": "Standard = verfügbar × Anteil des Produkts (ohne festen Anteil: Rest / Anzahl dieser Produkte)",
+ "balance": "Saldo = Σ Erledigt − Σ Standard"
+}
