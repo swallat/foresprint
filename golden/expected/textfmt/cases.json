@@ -1,0 +1,650 @@
+{
+ "texts": [
+  {
+   "text": "",
+   "md_code": "",
+   "blank": ""
+  },
+  {
+   "text": "plain",
+   "md_code": "`plain`",
+   "blank": "plain"
+  },
+  {
+   "text": " lead",
+   "md_code": "`  lead `",
+   "blank": " lead"
+  },
+  {
+   "text": "trail ",
+   "md_code": "` trail  `",
+   "blank": "trail "
+  },
+  {
+   "text": "`",
+   "md_code": "`` ` ``",
+   "blank": "`"
+  },
+  {
+   "text": "a`b",
+   "md_code": "``a`b``",
+   "blank": "a`b"
+  },
+  {
+   "text": "a``b`c",
+   "md_code": "```a``b`c```",
+   "blank": "a``b`c"
+  },
+  {
+   "text": "``",
+   "md_code": "``` `` ```",
+   "blank": "``"
+  },
+  {
+   "text": "x\ny",
+   "md_code": "`x y`",
+   "blank": "x y"
+  },
+  {
+   "text": "tab\there",
+   "md_code": "`tab here`",
+   "blank": "tab here"
+  },
+  {
+   "text": "‮evil‬",
+   "md_code": "`  evil  `",
+   "blank": " evil "
+  },
+  {
+   "text": "zero‍width",
+   "md_code": "`zero‍width`",
+   "blank": "zero‍width"
+  },
+  {
+   "text": "emoji 👨‍👩",
+   "md_code": "`emoji 👨‍👩`",
+   "blank": "emoji 👨‍👩"
+  },
+  {
+   "text": "line sep",
+   "md_code": "`line sep`",
+   "blank": "line sep"
+  },
+  {
+   "text": "para sep",
+   "md_code": "`para sep`",
+   "blank": "para sep"
+  },
+  {
+   "text": "Jörg Müller",
+   "md_code": "`Jörg Müller`",
+   "blank": "Jörg Müller"
+  },
+  {
+   "text": "\u0000nul",
+   "md_code": "`  nul  `",
+   "blank": " nul "
+  },
+  {
+   "text": "؜arabic",
+   "md_code": "`  arabic `",
+   "blank": " arabic"
+  },
+  {
+   "text": " ",
+   "md_code": "`   `",
+   "blank": " "
+  },
+  {
+   "text": "`tick` and ``double``",
+   "md_code": "``` `tick` and ``double`` ```",
+   "blank": "`tick` and ``double``"
+  }
+ ],
+ "numbers": [
+  {
+   "lang": "en",
+   "rows": [
+    {
+     "value": 0,
+     "pct": "0 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "0",
+     "fmt1": "0.0",
+     "cap1": "0.0",
+     "fmt2": "0.00",
+     "cap2": "0.00",
+     "fmt3": "0.000",
+     "cap3": "0.000",
+     "fmt4": "0.0000",
+     "cap4": "0.0000"
+    },
+    {
+     "value": 0.5,
+     "pct": "50 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "1",
+     "fmt1": "0.5",
+     "cap1": "0.5",
+     "fmt2": "0.50",
+     "cap2": "0.50",
+     "fmt3": "0.500",
+     "cap3": "0.500",
+     "fmt4": "0.5000",
+     "cap4": "0.5000"
+    },
+    {
+     "value": 1.5,
+     "pct": "150 %",
+     "none": "–",
+     "fmt0": "2",
+     "cap0": "2",
+     "fmt1": "1.5",
+     "cap1": "1.5",
+     "fmt2": "1.50",
+     "cap2": "1.50",
+     "fmt3": "1.500",
+     "cap3": "1.500",
+     "fmt4": "1.5000",
+     "cap4": "1.5000"
+    },
+    {
+     "value": 2.5,
+     "pct": "250 %",
+     "none": "–",
+     "fmt0": "2",
+     "cap0": "3",
+     "fmt1": "2.5",
+     "cap1": "2.5",
+     "fmt2": "2.50",
+     "cap2": "2.50",
+     "fmt3": "2.500",
+     "cap3": "2.500",
+     "fmt4": "2.5000",
+     "cap4": "2.5000"
+    },
+    {
+     "value": 25.25,
+     "pct": "2,525 %",
+     "none": "–",
+     "fmt0": "25",
+     "cap0": "25",
+     "fmt1": "25.2",
+     "cap1": "25.3",
+     "fmt2": "25.25",
+     "cap2": "25.25",
+     "fmt3": "25.250",
+     "cap3": "25.250",
+     "fmt4": "25.2500",
+     "cap4": "25.2500"
+    },
+    {
+     "value": 25.75,
+     "pct": "2,575 %",
+     "none": "–",
+     "fmt0": "26",
+     "cap0": "26",
+     "fmt1": "25.8",
+     "cap1": "25.8",
+     "fmt2": "25.75",
+     "cap2": "25.75",
+     "fmt3": "25.750",
+     "cap3": "25.750",
+     "fmt4": "25.7500",
+     "cap4": "25.7500"
+    },
+    {
+     "value": 1234.5,
+     "pct": "123,450 %",
+     "none": "–",
+     "fmt0": "1,234",
+     "cap0": "1,235",
+     "fmt1": "1,234.5",
+     "cap1": "1,234.5",
+     "fmt2": "1,234.50",
+     "cap2": "1,234.50",
+     "fmt3": "1,234.500",
+     "cap3": "1,234.500",
+     "fmt4": "1,234.5000",
+     "cap4": "1,234.5000"
+    },
+    {
+     "value": 1234567.891,
+     "pct": "123,456,789 %",
+     "none": "–",
+     "fmt0": "1,234,568",
+     "cap0": "1,234,568",
+     "fmt1": "1,234,567.9",
+     "cap1": "1,234,567.9",
+     "fmt2": "1,234,567.89",
+     "cap2": "1,234,567.89",
+     "fmt3": "1,234,567.891",
+     "cap3": "1,234,567.891",
+     "fmt4": "1,234,567.8910",
+     "cap4": "1,234,567.8910"
+    },
+    {
+     "value": 0.049999999,
+     "pct": "5 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "0",
+     "fmt1": "0.0",
+     "cap1": "0.0",
+     "fmt2": "0.05",
+     "cap2": "0.05",
+     "fmt3": "0.050",
+     "cap3": "0.050",
+     "fmt4": "0.0500",
+     "cap4": "0.0500"
+    },
+    {
+     "value": -1.5,
+     "pct": "-150 %",
+     "none": "–",
+     "fmt0": "-2",
+     "cap0": "-2",
+     "fmt1": "-1.5",
+     "cap1": "-1.5",
+     "fmt2": "-1.50",
+     "cap2": "-1.50",
+     "fmt3": "-1.500",
+     "cap3": "-1.500",
+     "fmt4": "-1.5000",
+     "cap4": "-1.5000"
+    },
+    {
+     "value": -0.0,
+     "pct": "-0 %",
+     "none": "–",
+     "fmt0": "-0",
+     "cap0": "-0",
+     "fmt1": "-0.0",
+     "cap1": "-0.0",
+     "fmt2": "-0.00",
+     "cap2": "-0.00",
+     "fmt3": "-0.000",
+     "cap3": "-0.000",
+     "fmt4": "-0.0000",
+     "cap4": "-0.0000"
+    },
+    {
+     "value": 67,
+     "pct": "6,700 %",
+     "none": "–",
+     "fmt0": "67",
+     "cap0": "67",
+     "fmt1": "67.0",
+     "cap1": "67.0",
+     "fmt2": "67.00",
+     "cap2": "67.00",
+     "fmt3": "67.000",
+     "cap3": "67.000",
+     "fmt4": "67.0000",
+     "cap4": "67.0000"
+    },
+    {
+     "value": 0.8,
+     "pct": "80 %",
+     "none": "–",
+     "fmt0": "1",
+     "cap0": "1",
+     "fmt1": "0.8",
+     "cap1": "0.8",
+     "fmt2": "0.80",
+     "cap2": "0.80",
+     "fmt3": "0.800",
+     "cap3": "0.800",
+     "fmt4": "0.8000",
+     "cap4": "0.8000"
+    },
+    {
+     "value": 0.123456,
+     "pct": "12 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "0",
+     "fmt1": "0.1",
+     "cap1": "0.1",
+     "fmt2": "0.12",
+     "cap2": "0.12",
+     "fmt3": "0.123",
+     "cap3": "0.123",
+     "fmt4": "0.1235",
+     "cap4": "0.1235"
+    },
+    {
+     "value": 999999.5,
+     "pct": "99,999,950 %",
+     "none": "–",
+     "fmt0": "1,000,000",
+     "cap0": "1,000,000",
+     "fmt1": "999,999.5",
+     "cap1": "999,999.5",
+     "fmt2": "999,999.50",
+     "cap2": "999,999.50",
+     "fmt3": "999,999.500",
+     "cap3": "999,999.500",
+     "fmt4": "999,999.5000",
+     "cap4": "999,999.5000"
+    },
+    {
+     "value": 30.4375,
+     "pct": "3,044 %",
+     "none": "–",
+     "fmt0": "30",
+     "cap0": "30",
+     "fmt1": "30.4",
+     "cap1": "30.4",
+     "fmt2": "30.44",
+     "cap2": "30.44",
+     "fmt3": "30.438",
+     "cap3": "30.438",
+     "fmt4": "30.4375",
+     "cap4": "30.4375"
+    },
+    {
+     "value": 100,
+     "pct": "10,000 %",
+     "none": "–",
+     "fmt0": "100",
+     "cap0": "100",
+     "fmt1": "100.0",
+     "cap1": "100.0",
+     "fmt2": "100.00",
+     "cap2": "100.00",
+     "fmt3": "100.000",
+     "cap3": "100.000",
+     "fmt4": "100.0000",
+     "cap4": "100.0000"
+    }
+   ],
+   "day_label": "Wed 28.10.2026",
+   "fte_note": "≈ Approximation: with an FTE change within the sprint, absences are weighted with the mean FTE (Ben, `Cem`).",
+   "notes": {
+    "one": "Rate uncertain: 1 sprint in the expected absence rate (`2026.20`) only counts as confirmed because it has already been planned or reviewed; no absences are saved, so the rate assumes \"0 % lost\". The estimated capacity of future sprints may be too high.",
+    "one_detailed": "Rate uncertain: 1 sprint in the expected absence rate (`2026.20`) only counts as confirmed because it has already been planned or reviewed; no absences are saved, so the rate assumes \"0 % lost\". The estimated capacity of future sprints may be too high. If someone was absent in one of these sprints, enter the absences on the \"Prepare the sprint: absences\" page and save them with \"Save absences\" (or with `foresprint absences`). If nobody was absent, the rate is correct. In the \"Absence status\" table these sprints count as confirmed because they have already been planned or reviewed; but no absences are saved. The note stays until the sprints drop out of the window of the last 4 sprints (setting `absence_history`) or absences are entered.",
+    "two_plain": "Rate uncertain: 2 sprints in the expected absence rate (2026.20, x`y) only count as confirmed because they have already been planned or reviewed; no absences are saved, so the rate assumes \"0 % lost\". The estimated capacity of future sprints may be too high.",
+    "two_detailed": "Rate uncertain: 2 sprints in the expected absence rate (`2026.20`, ``x`y``) only count as confirmed because they have already been planned or reviewed; no absences are saved, so the rate assumes \"0 % lost\". The estimated capacity of future sprints may be too high. If someone was absent in one of these sprints, enter the absences on the \"Prepare the sprint: absences\" page and save them with \"Save absences\" (or with `foresprint absences`). If nobody was absent, the rate is correct. In the \"Absence status\" table these sprints count as confirmed because they have already been planned or reviewed; but no absences are saved. The note stays until the sprints drop out of the window of the last 6 sprints (setting `absence_history`) or absences are entered.",
+    "none": null,
+    "hint_one": "Rate uncertain: no absences are saved for 1 sprint in the rate. Details on the \"Prepare the sprint: absences\" page.",
+    "hint_two": "Rate uncertain: no absences are saved for 2 sprints in the rate. Details on the \"Prepare the sprint: absences\" page.",
+    "hint_none": null
+   }
+  },
+  {
+   "lang": "de",
+   "rows": [
+    {
+     "value": 0,
+     "pct": "0 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "0",
+     "fmt1": "0,0",
+     "cap1": "0,0",
+     "fmt2": "0,00",
+     "cap2": "0,00",
+     "fmt3": "0,000",
+     "cap3": "0,000",
+     "fmt4": "0,0000",
+     "cap4": "0,0000"
+    },
+    {
+     "value": 0.5,
+     "pct": "50 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "1",
+     "fmt1": "0,5",
+     "cap1": "0,5",
+     "fmt2": "0,50",
+     "cap2": "0,50",
+     "fmt3": "0,500",
+     "cap3": "0,500",
+     "fmt4": "0,5000",
+     "cap4": "0,5000"
+    },
+    {
+     "value": 1.5,
+     "pct": "150 %",
+     "none": "–",
+     "fmt0": "2",
+     "cap0": "2",
+     "fmt1": "1,5",
+     "cap1": "1,5",
+     "fmt2": "1,50",
+     "cap2": "1,50",
+     "fmt3": "1,500",
+     "cap3": "1,500",
+     "fmt4": "1,5000",
+     "cap4": "1,5000"
+    },
+    {
+     "value": 2.5,
+     "pct": "250 %",
+     "none": "–",
+     "fmt0": "2",
+     "cap0": "3",
+     "fmt1": "2,5",
+     "cap1": "2,5",
+     "fmt2": "2,50",
+     "cap2": "2,50",
+     "fmt3": "2,500",
+     "cap3": "2,500",
+     "fmt4": "2,5000",
+     "cap4": "2,5000"
+    },
+    {
+     "value": 25.25,
+     "pct": "2.525 %",
+     "none": "–",
+     "fmt0": "25",
+     "cap0": "25",
+     "fmt1": "25,2",
+     "cap1": "25,3",
+     "fmt2": "25,25",
+     "cap2": "25,25",
+     "fmt3": "25,250",
+     "cap3": "25,250",
+     "fmt4": "25,2500",
+     "cap4": "25,2500"
+    },
+    {
+     "value": 25.75,
+     "pct": "2.575 %",
+     "none": "–",
+     "fmt0": "26",
+     "cap0": "26",
+     "fmt1": "25,8",
+     "cap1": "25,8",
+     "fmt2": "25,75",
+     "cap2": "25,75",
+     "fmt3": "25,750",
+     "cap3": "25,750",
+     "fmt4": "25,7500",
+     "cap4": "25,7500"
+    },
+    {
+     "value": 1234.5,
+     "pct": "123.450 %",
+     "none": "–",
+     "fmt0": "1.234",
+     "cap0": "1.235",
+     "fmt1": "1.234,5",
+     "cap1": "1.234,5",
+     "fmt2": "1.234,50",
+     "cap2": "1.234,50",
+     "fmt3": "1.234,500",
+     "cap3": "1.234,500",
+     "fmt4": "1.234,5000",
+     "cap4": "1.234,5000"
+    },
+    {
+     "value": 1234567.891,
+     "pct": "123.456.789 %",
+     "none": "–",
+     "fmt0": "1.234.568",
+     "cap0": "1.234.568",
+     "fmt1": "1.234.567,9",
+     "cap1": "1.234.567,9",
+     "fmt2": "1.234.567,89",
+     "cap2": "1.234.567,89",
+     "fmt3": "1.234.567,891",
+     "cap3": "1.234.567,891",
+     "fmt4": "1.234.567,8910",
+     "cap4": "1.234.567,8910"
+    },
+    {
+     "value": 0.049999999,
+     "pct": "5 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "0",
+     "fmt1": "0,0",
+     "cap1": "0,0",
+     "fmt2": "0,05",
+     "cap2": "0,05",
+     "fmt3": "0,050",
+     "cap3": "0,050",
+     "fmt4": "0,0500",
+     "cap4": "0,0500"
+    },
+    {
+     "value": -1.5,
+     "pct": "-150 %",
+     "none": "–",
+     "fmt0": "-2",
+     "cap0": "-2",
+     "fmt1": "-1,5",
+     "cap1": "-1,5",
+     "fmt2": "-1,50",
+     "cap2": "-1,50",
+     "fmt3": "-1,500",
+     "cap3": "-1,500",
+     "fmt4": "-1,5000",
+     "cap4": "-1,5000"
+    },
+    {
+     "value": -0.0,
+     "pct": "-0 %",
+     "none": "–",
+     "fmt0": "-0",
+     "cap0": "-0",
+     "fmt1": "-0,0",
+     "cap1": "-0,0",
+     "fmt2": "-0,00",
+     "cap2": "-0,00",
+     "fmt3": "-0,000",
+     "cap3": "-0,000",
+     "fmt4": "-0,0000",
+     "cap4": "-0,0000"
+    },
+    {
+     "value": 67,
+     "pct": "6.700 %",
+     "none": "–",
+     "fmt0": "67",
+     "cap0": "67",
+     "fmt1": "67,0",
+     "cap1": "67,0",
+     "fmt2": "67,00",
+     "cap2": "67,00",
+     "fmt3": "67,000",
+     "cap3": "67,000",
+     "fmt4": "67,0000",
+     "cap4": "67,0000"
+    },
+    {
+     "value": 0.8,
+     "pct": "80 %",
+     "none": "–",
+     "fmt0": "1",
+     "cap0": "1",
+     "fmt1": "0,8",
+     "cap1": "0,8",
+     "fmt2": "0,80",
+     "cap2": "0,80",
+     "fmt3": "0,800",
+     "cap3": "0,800",
+     "fmt4": "0,8000",
+     "cap4": "0,8000"
+    },
+    {
+     "value": 0.123456,
+     "pct": "12 %",
+     "none": "–",
+     "fmt0": "0",
+     "cap0": "0",
+     "fmt1": "0,1",
+     "cap1": "0,1",
+     "fmt2": "0,12",
+     "cap2": "0,12",
+     "fmt3": "0,123",
+     "cap3": "0,123",
+     "fmt4": "0,1235",
+     "cap4": "0,1235"
+    },
+    {
+     "value": 999999.5,
+     "pct": "99.999.950 %",
+     "none": "–",
+     "fmt0": "1.000.000",
+     "cap0": "1.000.000",
+     "fmt1": "999.999,5",
+     "cap1": "999.999,5",
+     "fmt2": "999.999,50",
+     "cap2": "999.999,50",
+     "fmt3": "999.999,500",
+     "cap3": "999.999,500",
+     "fmt4": "999.999,5000",
+     "cap4": "999.999,5000"
+    },
+    {
+     "value": 30.4375,
+     "pct": "3.044 %",
+     "none": "–",
+     "fmt0": "30",
+     "cap0": "30",
+     "fmt1": "30,4",
+     "cap1": "30,4",
+     "fmt2": "30,44",
+     "cap2": "30,44",
+     "fmt3": "30,438",
+     "cap3": "30,438",
+     "fmt4": "30,4375",
+     "cap4": "30,4375"
+    },
+    {
+     "value": 100,
+     "pct": "10.000 %",
+     "none": "–",
+     "fmt0": "100",
+     "cap0": "100",
+     "fmt1": "100,0",
+     "cap1": "100,0",
+     "fmt2": "100,00",
+     "cap2": "100,00",
+     "fmt3": "100,000",
+     "cap3": "100,000",
+     "fmt4": "100,0000",
+     "cap4": "100,0000"
+    }
+   ],
+   "day_label": "Mi 28.10.2026",
+   "fte_note": "≈ Näherung: Bei FTE-Wechsel im Sprint werden Fehltage mit der mittleren FTE gewichtet (Ben, `Cem`).",
+   "notes": {
+    "one": "Quote unsicher: 1 Sprint in der erwarteten Fehltage-Quote (`2026.20`) gilt nur als bestätigt, weil er bereits geplant oder ausgewertet wurde; es sind keine Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte Kapazität künftiger Sprints kann zu hoch sein.",
+    "one_detailed": "Quote unsicher: 1 Sprint in der erwarteten Fehltage-Quote (`2026.20`) gilt nur als bestätigt, weil er bereits geplant oder ausgewertet wurde; es sind keine Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte Kapazität künftiger Sprints kann zu hoch sein. Fehlte in einem dieser Sprints jemand, die Fehltage auf der Seite „Sprint vorbereiten: Fehltage“ eintragen und mit „Fehltage speichern“ sichern (oder mit `foresprint absences`). Fehlte niemand, stimmt die Quote. In der Tabelle „Stand der Fehltage“ gelten diese Sprints als bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind aber keine Fehltage gespeichert. Der Hinweis bleibt, bis die Sprints aus dem Fenster der letzten 4 Sprints (Einstellung `absence_history`) herausfallen oder Fehltage eingetragen sind.",
+    "two_plain": "Quote unsicher: 2 Sprints in der erwarteten Fehltage-Quote (2026.20, x`y) gelten nur als bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind keine Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte Kapazität künftiger Sprints kann zu hoch sein.",
+    "two_detailed": "Quote unsicher: 2 Sprints in der erwarteten Fehltage-Quote (`2026.20`, ``x`y``) gelten nur als bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind keine Fehltage gespeichert, die Quote rechnet dort mit „0 % Ausfall“. Die geschätzte Kapazität künftiger Sprints kann zu hoch sein. Fehlte in einem dieser Sprints jemand, die Fehltage auf der Seite „Sprint vorbereiten: Fehltage“ eintragen und mit „Fehltage speichern“ sichern (oder mit `foresprint absences`). Fehlte niemand, stimmt die Quote. In der Tabelle „Stand der Fehltage“ gelten diese Sprints als bestätigt, weil sie bereits geplant oder ausgewertet wurden; es sind aber keine Fehltage gespeichert. Der Hinweis bleibt, bis die Sprints aus dem Fenster der letzten 6 Sprints (Einstellung `absence_history`) herausfallen oder Fehltage eingetragen sind.",
+    "none": null,
+    "hint_one": "Quote unsicher: Für 1 Sprint der Quote sind keine Fehltage gespeichert. Details auf der Seite „Sprint vorbereiten: Fehltage“.",
+    "hint_two": "Quote unsicher: Für 2 Sprints der Quote sind keine Fehltage gespeichert. Details auf der Seite „Sprint vorbereiten: Fehltage“.",
+    "hint_none": null
+   }
+  }
+ ]
+}
