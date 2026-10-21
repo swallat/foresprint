@@ -1,6 +1,12 @@
 package model
 
-import "time"
+import (
+	"maps"
+	"slices"
+	"time"
+
+	"github.com/swallat/foresprint/internal/pymath"
+)
 
 // AbsenceState is the state of a sprint's absences, which determines what the capacity is
 // calculated with.
@@ -50,11 +56,7 @@ func (p Planning) Committed() float64 { return p.Carryover + p.Backlog }
 
 // Total is the planning total for the delta: scheduled minus the parts already done.
 func (p Planning) Total() float64 {
-	var sum float64
-	for _, c := range p.Corrections {
-		sum += c
-	}
-	return p.Committed() - sum
+	return p.Committed() - pymath.Sum(p.Corrections)
 }
 
 // Prognosis is the team forecast for a still open sprint, recorded at a PO pre-planning. The
@@ -161,4 +163,20 @@ func (s Sprint) ExplicitStateNeeded() bool {
 	derived := s
 	derived.AbsenceState = nil
 	return s.AbsenceStatus() != derived.AbsenceStatus()
+}
+
+// Clone returns a copy of the sprint whose maps and planning can be changed without affecting
+// the original. Pointers to single values are shared; those are replaced, not changed.
+func (s Sprint) Clone() Sprint {
+	c := s
+	c.Absences = maps.Clone(s.Absences)
+	c.ExpectedAbsences = maps.Clone(s.ExpectedAbsences)
+	c.Products = maps.Clone(s.Products)
+	c.Prognoses = slices.Clone(s.Prognoses)
+	if s.Planning != nil {
+		p := *s.Planning
+		p.Corrections = slices.Clone(s.Planning.Corrections)
+		c.Planning = &p
+	}
+	return c
 }

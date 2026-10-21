@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/swallat/foresprint/internal/coretest"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/golden"
+	"github.com/swallat/foresprint/internal/model"
 )
 
 type reference struct {
@@ -86,7 +86,7 @@ func TestSeriesMatchPython(t *testing.T) {
 			t.Errorf("%s window %d: GapsInWindow %d, Python %d", c.Name, c.Window, got, c.Gaps)
 		}
 		for mode, want := range c.Trends {
-			trend, err := engine.Trend(average, coretypes.TrendMode(mode))
+			trend, err := engine.Trend(average, model.TrendMode(mode))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -107,7 +107,7 @@ func TestUnknownTrendModeMessage(t *testing.T) {
 }
 
 func TestTrendModes(t *testing.T) {
-	if mode, err := engine.ParseTrendMode("klassisch"); err != nil || mode != coretypes.Classic {
+	if mode, err := engine.ParseTrendMode("klassisch"); err != nil || mode != model.TrendClassic {
 		t.Errorf("klassisch: %v, %v", mode, err)
 	}
 	if _, err := engine.ParseTrendMode("quadratic"); err == nil {
@@ -115,7 +115,7 @@ func TestTrendModes(t *testing.T) {
 	} else if got := err.Error(); got != "Unknown trend mode 'quadratic' (allowed: classic, linear, flat)" {
 		t.Errorf("message %q", got)
 	}
-	if _, err := engine.Compute([]engine.SprintInput{{ID: "x"}}, coretypes.ForecastSettings{Window: 3, TrendMode: "quadratic"}); err == nil {
+	if _, err := engine.Compute([]engine.SprintInput{{ID: "x"}}, model.ForecastSettings{Window: 3, TrendMode: "quadratic"}); err == nil {
 		t.Error("Compute must fail for an unknown trend mode")
 	}
 }
@@ -126,7 +126,7 @@ func TestFallbackMatchesPython(t *testing.T) {
 	for _, c := range load(t).Series {
 		average := engine.RollingAverage(engine.Series(c.Values), c.Window)
 		for mode, want := range c.Trends {
-			got, err := engine.TrendFallback(average, coretypes.TrendMode(mode))
+			got, err := engine.TrendFallback(average, model.TrendMode(mode))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -148,7 +148,7 @@ func TestComputeMatchesPython(t *testing.T) {
 	velocity := []*float64{f(20), f(25), f(18), f(22), f(24), nil, f(21), f(23), nil, nil, nil, nil, nil, nil}
 	commitment := []*float64{f(22), f(24), f(20), f(23), f(24), f(25), f(22), f(24), f(26), nil, nil, nil, nil, nil}
 	scope := []*float64{f(0.1), nil, f(0.2), f(0.05), f(0), nil, nil, nil, nil, nil, nil, nil, nil, nil}
-	plannings := map[int]*coretypes.Planning{
+	plannings := map[int]*model.Planning{
 		3: {Carryover: 5, Backlog: 10, Corrections: []float64{1.5, 2}},
 		7: {Carryover: 0, Backlog: 12, Corrections: []float64{}},
 	}
@@ -165,9 +165,9 @@ func TestComputeMatchesPython(t *testing.T) {
 			}
 			inputs[i] = in
 		}
-		settings := coretypes.ForecastSettings{
+		settings := model.ForecastSettings{
 			ReferenceCapacity: 40, Window: c.Window, RoadmapShare: c.Share, Rounding: c.Rounding,
-			TrendMode: coretypes.TrendMode(c.Mode), Horizon: 3,
+			TrendMode: model.TrendMode(c.Mode), Horizon: 3,
 		}
 		results, err := engine.Compute(inputs, settings)
 		if err != nil {

@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/holidays"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
 )
 
 // Weekend is a set of weekdays (Monday = 0 ... Sunday = 6) as a bit mask: the days off.
@@ -66,7 +66,7 @@ var WeekdayCodes = []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
 // sprint cannot be formed.
 type NumberingError struct {
 	ID        string
-	Numbering coretypes.Numbering
+	Numbering model.Numbering
 }
 
 // Message is the text for the user (the catalog of the language fills it in).
@@ -98,8 +98,8 @@ func (e *NoFirstSprintError) Message(l string) string {
 func (e *NoFirstSprintError) Error() string { return e.Message(i18n.Default) }
 
 // ExpectedIDForm is the form of the sprint IDs that NextID can continue (for messages).
-func ExpectedIDForm(l string, numbering coretypes.Numbering) string {
-	if numbering == coretypes.Sequential {
+func ExpectedIDForm(l string, numbering model.Numbering) string {
+	if numbering == model.NumberingSequential {
 		return i18n.TIn(l, "a number, e.g. 22")
 	}
 	return i18n.TIn(l, "YYYY.N, e.g. 2026.22")
@@ -160,8 +160,8 @@ func isDigitText(s string) bool {
 }
 
 // successor is the ID of the following sprint; false where the ID does not fit the numbering.
-func successor(previousID string, startYear int, numbering coretypes.Numbering) (string, bool) {
-	if numbering == coretypes.Sequential {
+func successor(previousID string, startYear int, numbering model.Numbering) (string, bool) {
+	if numbering == model.NumberingSequential {
 		n, ok := intOfFloatText(previousID)
 		if !ok {
 			return "", false
@@ -187,7 +187,7 @@ func successor(previousID string, startYear int, numbering coretypes.Numbering) 
 
 // NextID is the ID of the following sprint. It fails with a *NumberingError if previousID does
 // not fit the numbering.
-func NextID(previousID string, nextStart time.Time, numbering coretypes.Numbering) (string, error) {
+func NextID(previousID string, nextStart time.Time, numbering model.Numbering) (string, error) {
 	id, ok := successor(previousID, nextStart.Year(), numbering)
 	if !ok {
 		return "", &NumberingError{ID: previousID, Numbering: numbering}
@@ -199,32 +199,32 @@ func NextID(previousID string, nextStart time.Time, numbering coretypes.Numberin
 // derived from sprintID: exactly the condition under which NextID does not fail. With yearly
 // numbering the counter only continues within the same year (a counter like "22b" is harmless
 // at a year change); IDs without a leading year restart the yearly numbering.
-func IDFitsNumbering(sprintID string, nextStart time.Time, numbering coretypes.Numbering) bool {
+func IDFitsNumbering(sprintID string, nextStart time.Time, numbering model.Numbering) bool {
 	_, ok := successor(sprintID, nextStart.Year(), numbering)
 	return ok
 }
 
 // FollowingSprint creates the sprint that follows previous (nil: the team's first sprint).
-func FollowingSprint(team *coretypes.Team, previous *coretypes.Sprint) (coretypes.Sprint, error) {
+func FollowingSprint(team *model.Team, previous *model.Sprint) (model.Sprint, error) {
 	length := time.Duration(team.Sprint.LengthDays) * 24 * time.Hour
 	if previous == nil {
-		if team.Sprint.FirstID == "" || team.Sprint.FirstStart == nil {
-			return coretypes.Sprint{}, &NoFirstSprintError{Team: team.Key}
+		if team.Sprint.FirstID == nil || *team.Sprint.FirstID == "" || team.Sprint.FirstStart == nil {
+			return model.Sprint{}, &NoFirstSprintError{Team: team.Key}
 		}
 		start := *team.Sprint.FirstStart
-		return newSprint(team.Sprint.FirstID, start, start.Add(length)), nil
+		return newSprint(*team.Sprint.FirstID, start, start.Add(length)), nil
 	}
 	start := previous.End
 	id, err := NextID(previous.ID, start, team.Sprint.Numbering)
 	if err != nil {
-		return coretypes.Sprint{}, err
+		return model.Sprint{}, err
 	}
 	return newSprint(id, start, start.Add(length)), nil
 }
 
-func newSprint(id string, start, end time.Time) coretypes.Sprint {
-	unknown := coretypes.Unknown
-	return coretypes.Sprint{
+func newSprint(id string, start, end time.Time) model.Sprint {
+	unknown := model.AbsencesUnknown
+	return model.Sprint{
 		ID: id, Start: start, End: end, AbsenceState: &unknown,
 		Absences: map[string]float64{}, ExpectedAbsences: map[string]float64{},
 	}
@@ -317,9 +317,17 @@ func indexOf(list []string, s string) int {
 	return -1
 }
 
+// text is an optional text: nil is the empty text.
+func text(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 // TeamWeekend is the weekend of the team: the configured workweek, otherwise that of the
 // country.
-func TeamWeekend(team *coretypes.Team) Weekend {
+func TeamWeekend(team *model.Team) Weekend {
 	if w, ok, err := WeekendFromWorkweek(team.Capacity.Workweek); err == nil && ok && w != 0 {
 		return w
 	}
@@ -328,12 +336,12 @@ func TeamWeekend(team *coretypes.Team) Weekend {
 
 // PersonWeekend is the days off of a person: their own workweek, otherwise the weekend of their
 // country, otherwise that of the team.
-func PersonWeekend(team *coretypes.Team, person coretypes.Person) Weekend {
-	if w, ok, err := WeekendFromWorkweek(person.Workweek); err == nil && ok {
+func PersonWeekend(team *model.Team, person model.Person) Weekend {
+	if w, ok, err := WeekendFromWorkweek(text(person.Workweek)); err == nil && ok {
 		return w
 	}
-	if person.Country != "" {
-		return CountryWeekend(person.Country)
+	if country := text(person.Country); country != "" {
+		return CountryWeekend(country)
 	}
 	return TeamWeekend(team)
 }
@@ -350,13 +358,13 @@ func Workdays(start, end time.Time, weekend Weekend) []time.Time {
 }
 
 // TeamWorkdays are the team's workdays in [start, end).
-func TeamWorkdays(team *coretypes.Team, start, end time.Time) []time.Time {
+func TeamWorkdays(team *model.Team, start, end time.Time) []time.Time {
 	return Workdays(start, end, TeamWeekend(team))
 }
 
 // WorkweekLabel is the workweek of the team for texts: "Mon–Fri" for consecutive days,
 // otherwise the list ("Mon, Tue, Wed, Thu").
-func WorkweekLabel(l string, team *coretypes.Team) string {
+func WorkweekLabel(l string, team *model.Team) string {
 	names := weekdayNamesOf(l)
 	weekend := TeamWeekend(team)
 	var worked []int

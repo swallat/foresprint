@@ -7,13 +7,13 @@ import (
 
 	"github.com/swallat/foresprint/internal/calendar"
 	"github.com/swallat/foresprint/internal/coretest"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/golden"
+	"github.com/swallat/foresprint/internal/model"
 )
 
 func date(t *testing.T, s string) time.Time {
 	t.Helper()
-	d, err := coretypes.ParseDate(s)
+	d, err := time.Parse("2006-01-02", s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestWorkdaysMatchPython(t *testing.T) {
 
 func ptr(s string) *string { return &s }
 
-func teamFor(t *testing.T, key string) *coretypes.Team {
+func teamFor(t *testing.T, key string) *model.Team {
 	t.Helper()
 	var country, workweek string
 	for i := range key {
@@ -114,10 +114,10 @@ func teamFor(t *testing.T, key string) *coretypes.Team {
 			country, workweek = key[:i], key[i+1:]
 		}
 	}
-	team := coretypes.NewTeam("x", "x")
+	team := model.NewTeam("x", "x")
 	team.Capacity.Country = country
 	team.Capacity.Workweek = workweek
-	return team
+	return &team
 }
 
 func toAny(v any) any {
@@ -161,15 +161,15 @@ func TestSprintSeriesMatchesPython(t *testing.T) {
 		start string
 	}{{"2026.20", "2026-11-04"}, {"2026.1", "2026-12-02"}, {"21", "2026-03-02"}, {"2026.5", "2025-12-17"}}
 	for i, s := range ref.Series {
-		team := coretypes.NewTeam("t", "t")
-		team.Sprint.Numbering = coretypes.Numbering(s.Numbering)
+		team := model.NewTeam("t", "t")
+		team.Sprint.Numbering = model.Numbering(s.Numbering)
 		team.Sprint.LengthDays = s.LengthDays
-		team.Sprint.FirstID = setups[i].first
+		team.Sprint.FirstID = &setups[i].first
 		start := date(t, setups[i].start)
 		team.Sprint.FirstStart = &start
-		var previous *coretypes.Sprint
+		var previous *model.Sprint
 		for k, want := range s.Sprints {
-			next, err := calendar.FollowingSprint(team, previous)
+			next, err := calendar.FollowingSprint(&team, previous)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -181,7 +181,7 @@ func TestSprintSeriesMatchesPython(t *testing.T) {
 		}
 	}
 	for _, c := range ref.NextID {
-		got, err := calendar.NextID(c.Previous, date(t, c.Start), coretypes.Numbering(c.Numbering))
+		got, err := calendar.NextID(c.Previous, date(t, c.Start), model.Numbering(c.Numbering))
 		switch {
 		case c.ID == nil && err == nil:
 			t.Errorf("NextID(%q, %s, %s) = %q, Python fails", c.Previous, c.Start, c.Numbering, got)
@@ -190,7 +190,7 @@ func TestSprintSeriesMatchesPython(t *testing.T) {
 		}
 	}
 	for _, c := range ref.Fits {
-		if got := calendar.IDFitsNumbering(c.Previous, date(t, c.Start), coretypes.Numbering(c.Numbering)); got != c.Fits {
+		if got := calendar.IDFitsNumbering(c.Previous, date(t, c.Start), model.Numbering(c.Numbering)); got != c.Fits {
 			t.Errorf("IDFitsNumbering(%q, %s, %s) = %v, Python %v", c.Previous, c.Start, c.Numbering, got, c.Fits)
 		}
 	}
@@ -282,8 +282,8 @@ func TestMessagesMatchPython(t *testing.T) {
 	var german map[string]string
 	golden.Load(t, &german, "formulas-de", "calendar.json")
 	de := coretest.German(t)
-	team := coretypes.NewTeam("t", "t")
-	_, err := calendar.FollowingSprint(team, nil)
+	team := model.NewTeam("t", "t")
+	_, err := calendar.FollowingSprint(&team, nil)
 	var first *calendar.NoFirstSprintError
 	if !errors.As(err, &first) {
 		t.Fatalf("error %T", err)
@@ -291,7 +291,7 @@ func TestMessagesMatchPython(t *testing.T) {
 	if got := first.Message(de); got != german["no_first"] {
 		t.Errorf("no first sprint:\n got %q\nwant %q", got, german["no_first"])
 	}
-	_, err = calendar.NextID("22b", date(t, "2026-03-01"), coretypes.Sequential)
+	_, err = calendar.NextID("22b", date(t, "2026-03-01"), model.NumberingSequential)
 	var numbering *calendar.NumberingError
 	if !errors.As(err, &numbering) {
 		t.Fatalf("error %T", err)
@@ -299,10 +299,10 @@ func TestMessagesMatchPython(t *testing.T) {
 	if got := numbering.Message(de); got != german["sequential"] {
 		t.Errorf("numbering:\n got %q\nwant %q", got, german["sequential"])
 	}
-	if got := calendar.ExpectedIDForm(de, coretypes.Yearly); got != german["yearly_form"] {
+	if got := calendar.ExpectedIDForm(de, model.NumberingYearly); got != german["yearly_form"] {
 		t.Errorf("yearly form %q, Python %q", got, german["yearly_form"])
 	}
-	if got := calendar.ExpectedIDForm(de, coretypes.Sequential); got != german["sequential_form"] {
+	if got := calendar.ExpectedIDForm(de, model.NumberingSequential); got != german["sequential_form"] {
 		t.Errorf("sequential form %q, Python %q", got, german["sequential_form"])
 	}
 	if got := calendar.DayLabel(de, date(t, "2026-10-28")); got != german["day_label"] {
@@ -325,7 +325,7 @@ func TestOddIDsMatchPython(t *testing.T) {
 	}
 	for _, r := range rows {
 		start := date(t, r.Start)
-		n := coretypes.Numbering(r.Numbering)
+		n := model.Numbering(r.Numbering)
 		got, err := calendar.NextID(r.Previous, start, n)
 		switch {
 		case r.ID == nil && err == nil:
@@ -363,19 +363,19 @@ func TestWorkweeksMatchPython(t *testing.T) {
 			golden.Compare(t, want, toAny(sorted(w.Days())))
 		}
 		for _, country := range []string{"DE", "SA", "XX"} {
-			team := coretypes.NewTeam("x", "x")
+			team := model.NewTeam("x", "x")
 			team.Capacity.Country = country
 			team.Capacity.Workweek = value
-			golden.Compare(t, r["team_"+country], toAny(sorted(calendar.TeamWeekend(team).Days())))
-			base := coretypes.NewTeam("x", "x")
+			golden.Compare(t, r["team_"+country], toAny(sorted(calendar.TeamWeekend(&team).Days())))
+			base := model.NewTeam("x", "x")
 			base.Capacity.Country = country
 			for _, own := range []string{"SA", "IL", ""} {
-				person := coretypes.Person{ID: "p", Name: "p", Country: own, Workweek: value}
+				person := model.Person{ID: "p", Name: "p", Country: &own, Workweek: &value}
 				key := "person_" + country + "_" + own
 				if own == "" {
 					key = "person_" + country + "_None"
 				}
-				golden.Compare(t, r[key], toAny(sorted(calendar.PersonWeekend(base, person).Days())))
+				golden.Compare(t, r[key], toAny(sorted(calendar.PersonWeekend(&base, person).Days())))
 			}
 		}
 	}

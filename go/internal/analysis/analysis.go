@@ -12,11 +12,12 @@ package analysis
 import (
 	"time"
 
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/forecast"
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/pymath"
 	"github.com/swallat/foresprint/internal/pyrand"
+	"github.com/swallat/foresprint/internal/storage"
 )
 
 // MinSamples is the number of sprints with a velocity below which the range and the frequencies
@@ -88,7 +89,7 @@ func FewSamples(fc *forecast.Forecast) bool { return SampleCount(fc) < MinSample
 
 // PlanAt is the Forecast PLAN for a normalized velocity and a capacity: scaled to the capacity
 // and rounded down to the team's precision (the calculation behind Band).
-func PlanAt(settings coretypes.ForecastSettings, nvel, capacity float64) float64 {
+func PlanAt(settings model.ForecastSettings, nvel, capacity float64) float64 {
 	return engine.RoundDown(nvel/settings.ReferenceCapacity*capacity, settings.Rounding)
 }
 
@@ -129,7 +130,7 @@ func FocusFactor(e *forecast.TimelineEntry) *float64 {
 	if r.Velocity.Value == nil || r.Capacity.Value == nil || *r.Capacity.Value == 0 {
 		return nil
 	}
-	return coretypes.Float(*r.Velocity.Value / *r.Capacity.Value)
+	return model.Ptr(*r.Velocity.Value / *r.Capacity.Value)
 }
 
 // AverageFocusFactor is the mean focus factor of the last Window completed sprints; nil without
@@ -143,7 +144,7 @@ func AverageFocusFactor(fc *forecast.Forecast) *float64 {
 	if len(values) == 0 {
 		return nil
 	}
-	return coretypes.Float(pymath.FMean(values))
+	return model.Ptr(pymath.FMean(values))
 }
 
 // --- Buffer --------------------------------------------------------------------------------
@@ -183,7 +184,7 @@ func lateShare(e *forecast.TimelineEntry) *float64 {
 	if s.Commitment == nil || plan == nil || *plan == 0 {
 		return s.ScopeCreep // cannot be converted without a commitment or plan
 	}
-	return coretypes.Float(*s.ScopeCreep * *s.Commitment / *plan)
+	return model.Ptr(*s.ScopeCreep * *s.Commitment / *plan)
 }
 
 // Buffer is the buffer recommendation of the forecast.
@@ -201,10 +202,10 @@ func Buffer(fc *forecast.Forecast) BufferHint {
 		ConfiguredSmallStuff: 1 - fc.Data.Team.Forecast.RoadmapShare,
 	}
 	if len(values) > 0 {
-		hint.AverageScopeCreep = coretypes.Float(pymath.FMean(values))
+		hint.AverageScopeCreep = model.Ptr(pymath.FMean(values))
 	}
 	if len(lates) > 0 {
-		hint.AverageLateShare = coretypes.Float(pymath.FMean(lates))
+		hint.AverageLateShare = model.Ptr(pymath.FMean(lates))
 	}
 	return hint
 }
@@ -244,18 +245,16 @@ type HorizonEntry struct {
 }
 
 // Sprint is the entry's sprint.
-func (h HorizonEntry) Sprint() coretypes.Sprint { return h.Entry.Sprint }
+func (h HorizonEntry) Sprint() model.Sprint { return h.Entry.Sprint }
 
 // DefaultMaxSprints is the length of the long forecast.
 const DefaultMaxSprints = 26
 
 // HorizonForecast is the forecast with maxSprints sprints after today (the team's horizon is
 // usually much shorter); data stays unchanged.
-func HorizonForecast(data *coretypes.TeamData, today time.Time, maxSprints int) (*forecast.Forecast, error) {
-	team := *data.Team
-	team.Forecast.Horizon = maxSprints
+func HorizonForecast(data *storage.TeamData, today time.Time, maxSprints int) (*forecast.Forecast, error) {
 	longer := *data
-	longer.Team = &team
+	longer.Team.Forecast.Horizon = maxSprints
 	return forecast.Build(&longer, today)
 }
 
@@ -307,7 +306,7 @@ func HorizonEntries(fc *forecast.Forecast, maxSprints int) []HorizonEntry {
 // with the sprint's capacity. For sprints without a people list (capacity only as a trend), the
 // average capacity of the last sprints is used instead of the trend (which is unstable over
 // many sprints). The draws are those of Python's random.Random(seed).
-func Simulate(data *coretypes.TeamData, today time.Time, remaining, share float64, maxSprints, runs int, seed int64) (*Completion, error) {
+func Simulate(data *storage.TeamData, today time.Time, remaining, share float64, maxSprints, runs int, seed int64) (*Completion, error) {
 	fc, err := HorizonForecast(data, today, maxSprints)
 	if err != nil {
 		return nil, err
