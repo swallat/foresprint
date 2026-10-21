@@ -18,12 +18,13 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 
 ## 2. Technischer Weg (Arbeitsstand, im Prototyp zu prüfen)
 
-- **Kern: offen (Python oder Go).** Fest ist: natives Frontend mit Wails und möglichst viel Geschwindigkeit. Feiertage und andere Besonderheiten müssen erhalten bleiben. Eine Entscheidungsvorlage "Go-Kern oder Python-Kern" entsteht in einem eigenen Faden; bei gutem Plan ist eine vollständige Portierung nach Go möglich.
+- **Kern: vollständige Portierung nach Go** (entschieden 21.10.). Feiertage als eingebettete Datendatei, erzeugt aus der Python-Bibliothek `holidays`. YAML-Dateien bleiben byte-gleich. Kommandozeile als Unterbefehle desselben Programms. Plugins entfallen in 1.0 (Ersatz für den Excel-Import: ein Skill, der einem Agenten erklärt, wie er beliebige Excel-Tabellen in Foresprint-Dateien umsetzt). Die Portierung läuft parallel im Faden "Go-Kern Phase 0", zunächst nur für Teile, die von den neuen Abläufen unabhängig sind.
 - **Neue Web-Oberfläche** (HTML, CSS, TypeScript) mit Ziehen, Sofortfilter und virtueller Liste.
-- **Fensterhülle: Wails** (entschieden 21.10.). Mit Python-Kern startet Wails ihn als Hintergrunddienst (FastAPI auf localhost); mit Go-Kern ist alles ein Programm.
-- **Paket:** ein Download je Plattform; mit Python-Kern als PyInstaller-Beiprogramm (Sidecar) neben Wails, mit Go-Kern ein einziges Programm. Größe und Startzeit sind Messgrößen.
+- **Fensterhülle: Wails** (entschieden 21.10.). Kern und Oberfläche sind ein Go-Programm; die Oberfläche spricht über Wails-Bindings mit dem Kern.
+- **Paket:** ein einziges Programm je Plattform, verteilt über GitHub-Releases statt PyPI. Größe und Startzeit sind Messgrößen.
 - **Plattform-Voraussetzungen:** Windows: WebView2-Laufzeit (in Windows 11 enthalten, wird vorausgesetzt). macOS: eingebautes WebKit, nichts zu installieren. Linux: WebKitGTK (bei den meisten Desktops vorhanden).
-- Streamlit bleibt bis zur Gleichwertigkeit, die Datenformate (YAML) ändern sich nicht.
+- Die 0.8 (Python, Streamlit) bleibt bis zur Gleichwertigkeit nutzbar; die Datenformate (YAML) ändern sich nicht.
+- **Sprachen:** Deutsch und Englisch umgesetzt, weitere Sprachen technisch möglich (Übersetzungsdateien), aber nicht Teil von 1.0.
 
 ## 3. Phasen
 
@@ -58,17 +59,16 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 | Langer Branch driftet von `main` weg | Regelmäßiges Zusammenführen von `main` nach `v1`, neue Oberfläche in eigenen Ordnern, gemeinsamer Kern |
 | Zu viel Design vor dem ersten Test | Drei Kernabläufe in der Tiefe, der Rest leichter; Prototyp auf Windows früh |
 | Fensterhülle verhält sich auf Windows anders (Ziehen, WebView2) | Wails-Prototyp früh auf Sebastians Rechner; Kern liefert die Oberfläche auch selbst im Browser aus (Rückfallweg) |
-| Nur mit Python-Kern: zwei Programme (Wails und Beiprogramm) | Start, Beenden, Port und Absturz des Kerns im Prototyp sauber lösen; ein gemeinsamer Download |
-| Nur mit Go-Kern: Portierung verändert Ergebnisse (Feiertage, Monte-Carlo-Zufall) | Vergleichstests gegen die Python-Ergebnisse auf echten Daten vor dem Umstieg |
-| Programm zu groß oder zu langsam beim Start (PyInstaller) | Messen im Prototyp; bei Bedarf Teile des Kerns später nach Go oder Rust holen |
+| Portierung nach Go verändert Ergebnisse (Feiertage, Monte-Carlo-Zufall) | Vergleichstests gegen die Python-Ergebnisse auf echten Daten vor dem Umstieg |
+| Programm zu groß oder zu langsam beim Start | Messen im Wails-Prototyp unter Windows (Größe, Start bis nutzbar unter 3 s) |
 | Unsigniertes Programm wird blockiert | Frage 6 (Zertifikat) früh klären |
-| Plugins brechen | Frage 3: Plugin-Schnittstelle bleibt, solange der Kern Python ist |
+| Wegfall der Plugins | Excel-Import als Skill für Agenten; Plugin-Schnittstelle erst nach 1.0 neu bewerten |
 
 ## 6. Entscheidungen (Stand 21.10.2026)
 
 1. Zielgruppe: beliebige Scrum-Teams, Open Source; keine Interna in Dokumenten, Beispiele mit einem erfundenen Demo-Team. Eine Nutzerart (Scrum Master oder PO).
 2. Schrift: Iosevka für Daten, Iosevka Aile für Text und Überschriften (Begründung in `DESIGN.md`, geprüft nach impeccable `typeset`).
-3. Hülle: Wails (fest). Kern Python oder Go: offen, Entscheidungsvorlage folgt.
+3. Hülle und Kern: Wails mit vollständig nach Go portiertem Kern; Verteilung über GitHub-Releases; Plugins entfallen in 1.0.
 4. Jira-Rückschreiben: nein. Reihenfolge und Einordnen bleiben lokal, nach Jira geht nur das Label `planned_for_<sprint>`.
 5. WebView2 unter Windows vorausgesetzt (bestätigt); macOS und Linux siehe Abschnitt 2.
 6. Code-Signing: Sebastian klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
@@ -76,4 +76,7 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 8. Seitenschicksal: `flows.md` gilt, die Tabelle in `inventory.md` ist überholt.
 9. Datenhaltung: Git bleibt in 1.0 der Speicher (Historie, Datenintegrität), mit allen Git-Abläufen inklusive erzwungener Merge Requests. Ein geteilter Ordner (Fileserver, SharePoint) kommt nach 1.0 über dieselbe Schnittstelle (`storage-interface.md`).
 
-Offen: Kern Python oder Go (eigener Faden); GitHub-Projekt als Tafel anlegen (Sebastian).
+10. Reihenfolge: Erst Mockups der Abläufe und Design festlegen (Abnahme durch Sebastian), parallel nur flow-unabhängige Kern-Portierung.
+11. Sprachen: Deutsch und Englisch, weitere möglich, keine weiteren umgesetzt.
+
+Offen: GitHub-Projekt als Tafel anlegen (Sebastian).
