@@ -23,6 +23,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/golden` | Loads the references of `../golden` and compares results with them. |
 | `internal/pyrand` | `random.Random` of Python (Mersenne Twister, seeding, `random()`, `getrandbits`, `choice`): the Monte Carlo draws are identical for the same seed. |
 | `internal/holidays` | Holidays and weekends of every country and region of the Python `holidays` library, from embedded data (see below). |
+| `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
 
 ## Holiday data
