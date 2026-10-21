@@ -14,12 +14,15 @@ team's own Git repository. There is no server and no account.
 
 ## Who uses it
 
-| Person | Job to be done | How often |
-|---|---|---|
-| Scrum master / team lead (the main user, owns the data) | Prepare the sprint (absences), plan, close the sprint, keep the backlog in order, share the data with the team | several times a week, in short sessions |
-| Product owner (PO) | Say per product what should go into the sprint, see whether projects reach their date | before each planning |
-| Team member | Look up capacity, forecast and the calculation; record own absences | a few times per sprint |
-| Whoever sets the tool up (first team: "kac") | Connect Jira and Git, create teams, products and people | rarely |
+Foresprint is a desktop application with exactly one kind of user: the person who plans for the
+team, a scrum master or a product owner (often one person wears both hats). Everything else in
+this document assumes that one user.
+
+| Typical work | How often |
+|---|---|
+| Prepare the sprint (absences), plan, close the sprint, share the data with the team | several times a week, in short sessions |
+| Say per product what should go into the sprint, keep the backlog in order, check whether projects reach their date | before each planning |
+| Set up Jira and Git, create teams, products and people | rarely |
 
 Primary context: a Windows laptop in a company, no admin rights, a company Jira (read only) and a
 company Git server, German and English speakers. The tool is open source: nothing may be tied to
