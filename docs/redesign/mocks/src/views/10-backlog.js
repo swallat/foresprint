@@ -75,7 +75,7 @@
       <tr><td>Forecast PLAN: ${s.capacityPD} PT mal Rate ${fmt(D.rate, 2)}</td><td class="num">${fmt(s.capacityPD * D.rate, 1)} gerundet ${s.forecast}</td></tr>
       <tr><td>Spanne</td><td class="num">${s.low} bis ${s.high}</td></tr>
       <tr class="sum"><td>Abstand zur Obergrenze</td><td class="num">${s.high - used}</td></tr></tbody></table></div>
-      <p class="small muted">Verfügbare Personentage (PT) kommen aus Abwesenheiten, Rate aus der normalisierten Velocity. ${s.absences === "confirmed" ? "" : "Abwesenheiten sind noch nicht bestätigt, der Forecast kann sich ändern."}</p>`);
+      <p class="small muted">Verfügbare Personentage (PT) kommen aus Abwesenheiten, Rate aus der normierten Velocity. ${s.absences === "confirmed" ? "" : "Abwesenheiten sind noch nicht bestätigt, der Forecast kann sich ändern."}</p>`);
   }
 
   function ruleFlagPanel(key) {

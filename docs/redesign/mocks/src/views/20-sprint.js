@@ -16,11 +16,13 @@
   const ABS = { confirmed: ["ok", "bestätigt"], announced: ["warn", "angekündigt"], unknown: ["", "unbekannt"] };
   const absChip = (sid) => { const m = ABS[absState(sid)]; return `<span class="chip ${m[0]}">${m[1]}</span>`; };
 
+  const RATES = D.sprints.filter((s) => s.velocity != null).map((s) => s.velocity / s.capacityPD);
+  const RLO = Math.min(...RATES), RHI = Math.max(...RATES);
   function calc(sid) {
     const s = FS.sprint(sid), abs = absDays(sid), base = BASE[sid];
     if (s.state === "past" || st().closed[sid]) return { s, base, abs, cap: s.capacityPD, fc: s.plan, low: null, high: null, past: true };
     const cap = base - abs, fc = Math.round(cap * D.rate);
-    return { s, base, abs, cap, fc, low: Math.round(fc * 0.89), high: Math.round(fc * 1.11) };
+    return { s, base, abs, cap, fc, low: Math.round(cap * RLO), high: Math.round(cap * RHI) };
   }
   const tix = (sid) => D.tickets.filter((t) => t.sprint === sid);
   const pts = (l) => sum(l, (t) => t.est);
@@ -102,26 +104,26 @@
     const c = calc(sid), l = tix(sid), p = pts(l), pre = preSum(sid), hints = projHints(sid);
     const commit = st().frozen[sid]?.commit ?? c.s.plan;
     return `<div class="card sp-sumbar" style="margin-bottom:16px"><div class="sp-sum">
-      <div><h3>Kapazität</h3><div class="row"><span class="big">${fmt(c.cap)} PD</span>${calcBtn("cap")}</div>
-        <div class="small muted">${c.abs ? `${fmt(c.abs)} PD Abwesenheit (${ABS[absState(sid)][1]})` : `keine Abwesenheit erfasst`}</div></div>
+      <div><h3>Kapazität</h3><div class="row"><span class="big">${fmt(c.cap)} PT</span>${calcBtn("cap")}</div>
+        <div class="small muted">${c.abs ? `${fmt(c.abs)} PT Abwesenheit (${ABS[absState(sid)][1]})` : `keine Abwesenheit erfasst`}</div></div>
       <div><h3>Forecast PLAN</h3><div class="row"><span class="big" style="color:var(--forecast)">${fmt(c.fc)} Punkte</span>${calcBtn("fc")}</div>
-        <div class="small muted">${c.low != null ? `Spanne <span class="data">${c.low} bis ${c.high}</span> · Rate <span class="data">${fmt(D.rate, 2)}</span> je PD` : "Plan des abgeschlossenen Sprints"}</div></div>
+        <div class="small muted">${c.low != null ? `Spanne <span class="data">${c.low} bis ${c.high}</span> · Rate <span class="data">${fmt(D.rate, 2)}</span> je PT` : "Plan des abgeschlossenen Sprints"}</div></div>
       <div><h3>Geplant</h3><div class="row"><span class="big">${fmt(p)} Punkte</span></div>
         ${FS.capBar(p, c.fc, c.low, c.high)}
         <div class="small muted">${commit != null ? `Zusage <span class="data">${commit}</span> · ` : ""}Vorgeplant <span class="data">${pre || "–"}</span> · ${l.length} Tickets</div></div>
       <div><h3>Kontingente je Projekt <span class="chip small">Schätzung</span></h3>
-        ${hints.length ? hints.map((h) => `<div class="proj"><span class="chip">${ic("flag", "small")}${esc(h.pr.name)}</span><span class="data small">≈ ${fmt(h.need)} PD</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PD drüber` : `Rest ${fmt(h.rest)} PD`)}</div>`).join("") : `<div class="small muted">Keine Projekttickets im Sprint.</div>`}</div>
+        ${hints.length ? hints.map((h) => `<div class="proj"><span class="chip">${ic("flag", "small")}${esc(h.pr.name)}</span><span class="data small">≈ ${fmt(h.need)} PT</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT drüber` : `Rest ${fmt(h.rest)} PT`)}</div>`).join("") : `<div class="small muted">Keine Projekttickets im Sprint.</div>`}</div>
     </div></div>`;
   }
   const tw = (inner) => `<div class="tw">${inner}</div>`;
   const calcTable = (rows) => tw(`<table class="t"><tbody>${rows.map(([a, b, bold]) => `<tr class="${bold ? "sum" : ""}"><td class="sp-nowrap" style="white-space:normal">${a}</td><td class="num">${b}</td></tr>`).join("")}</tbody></table>`);
   function calcPanel(kind, arg) {
     const sid = FS.state.sprint, c = calc(sid);
-    if (kind === "cap") FS.openPanel(`Rechenweg: Kapazität ${sid}`, calcTable([["Personentage nach FTE und Kalender, ohne Abwesenheit", `${fmt(c.base)} PD`], ["minus Abwesenheiten (" + ABS[absState(sid)][1] + ")", `− ${fmt(c.abs)} PD`], ["Kapazität", `${fmt(c.cap)} PD`, 1]]) + `<p class="small muted">Feiertage der Region ${D.team.region} sind in den Personentagen schon abgezogen.</p>`);
-    if (kind === "fc") FS.openPanel(`Rechenweg: Forecast PLAN ${sid}`, calcTable([["Kapazität", `${fmt(c.cap)} PD`], ["mal Rate (normalisierte Velocity)", `${fmt(D.rate, 2)} Punkte je PD`], ["Forecast PLAN", `${fmt(c.fc)} Punkte`, 1], ["untere Grenze (minus 11 %)", fmt(c.low)], ["obere Grenze (plus 11 %)", fmt(c.high)]]) + `<p class="small muted">Die Spanne stammt aus der Streuung der letzten acht Sprints.</p>`);
-    if (kind === "pd") { const h = projHints(sid).find((x) => x.pr.id === arg); FS.openPanel(`Rechenweg: ${h.pr.name} (Schätzung)`, calcTable([[`Punkte im Sprint ${sid}`, fmt(h.p)], ["geteilt durch Rate (Punkte je PD)", fmt(D.rate, 2)], ["entspricht etwa", `${fmt(h.need, 1)} PD`, 1], ["Kontingent gebucht", `${h.pr.contingentPD} PD`], ["bereits verbraucht", `− ${h.pr.usedPD} PD`], ["Rest nach diesem Sprint", `${fmt(h.rest, 1)} PD`, 1]]) + `<p class="small muted">Umrechnung mit der Forecast-Rate des Sprints. Erledigtes wird nach dem Review mit der tatsächlichen Rate gerechnet.</p>`); }
+    if (kind === "cap") FS.openPanel(`Rechenweg: Kapazität ${sid}`, calcTable([["Personentage nach Kalender, FTE und Overhead, ohne Abwesenheit", `${fmt(c.base)} PT`], ["minus Abwesenheiten (" + ABS[absState(sid)][1] + ")", `− ${fmt(c.abs)} PT`], ["Kapazität", `${fmt(c.cap)} PT`, 1]]) + `<p class="small muted">Feiertage der Region ${D.team.region} sind in den Personentagen schon abgezogen.</p>`);
+    if (kind === "fc") FS.openPanel(`Rechenweg: Forecast PLAN ${sid}`, calcTable([["Kapazität", `${fmt(c.cap)} PT`], ["mal Rate (normierte Velocity)", `${fmt(D.rate, 2)} Punkte je PT`], ["Forecast PLAN", `${fmt(c.fc)} Punkte`, 1], ["untere Grenze (niedrigste Rate " + fmt(RLO, 2) + " × Kapazität)", fmt(c.low)], ["obere Grenze (höchste Rate " + fmt(RHI, 2) + " × Kapazität)", fmt(c.high)]]) + `<p class="small muted">Die Spanne kommt aus der niedrigsten und höchsten Rate der letzten Sprints.</p>`);
+    if (kind === "pd") { const h = projHints(sid).find((x) => x.pr.id === arg); FS.openPanel(`Rechenweg: ${h.pr.name} (Schätzung)`, calcTable([[`Punkte im Sprint ${sid}`, fmt(h.p)], ["geteilt durch Rate (Punkte je PT)", fmt(D.rate, 2)], ["entspricht etwa", `${fmt(h.need, 1)} PT`, 1], ["Kontingent gebucht", `${h.pr.contingentPD} PT`], ["bereits verbraucht", `− ${h.pr.usedPD} PT`], ["Rest nach diesem Sprint", `${fmt(h.rest, 1)} PT`, 1]]) + `<p class="small muted">Umrechnung mit der Forecast-Rate des Sprints. Erledigtes wird nach dem Review mit der tatsächlichen Rate gerechnet.</p>`); }
     if (kind === "vel") { const r = rvOf(sid); FS.openPanel(`Rechenweg: Velocity ${sid}`, calcTable([["Zusage (Plan)", fmt(r.plan)], ["minus nicht erledigt", `− ${fmt(r.notDone)}`], ["plus zusätzlich erledigt", `+ ${fmt(r.extra)}`], ["Velocity", `${fmt(r.plan - r.notDone + r.extra)} Punkte`, 1]])); }
-    if (kind === "rate") { const r = rvOf(sid), v = r.plan - r.notDone + r.extra; FS.openPanel(`Rechenweg: tatsächliche Rate ${sid}`, calcTable([["Velocity", `${fmt(v)} Punkte`], ["geteilt durch eingefrorene Personentage", `${fmt(r.freeze)} PD`], ["tatsächliche Rate", `${fmt(v / r.freeze, 2)} Punkte je PD`, 1], ["Planrate zum Vergleich", fmt(D.rate, 2)]]) + `<p class="small muted">Diese Rate rechnet Erledigtes in Projektkontingent um (Schätzung).</p>`); }
+    if (kind === "rate") { const r = rvOf(sid), v = r.plan - r.notDone + r.extra; FS.openPanel(`Rechenweg: tatsächliche Rate ${sid}`, calcTable([["Velocity", `${fmt(v)} Punkte`], ["geteilt durch eingefrorene Personentage", `${fmt(r.freeze)} PT`], ["tatsächliche Rate", `${fmt(v / r.freeze, 2)} Punkte je PT`, 1], ["Planrate zum Vergleich", fmt(D.rate, 2)]]) + `<p class="small muted">Diese Rate rechnet Erledigtes in Projektkontingent um (Schätzung).</p>`); }
   }
   function wireCommon(main) {
     main.addEventListener("click", (e) => {
@@ -162,7 +164,7 @@
       };
       const stageLinks = [["prepare", "event_available", "Vorbereiten"], ["preplan", "low_priority", "Vorplanen"], ["plan", "checklist", "Planen"], ["review", "task_alt", "Review"], ["minutes", "description", "Protokolle"]];
       return `${CSS}<div class="page-head"><div><h1>Sprint-Übersicht</h1><p class="lead">Alle Sprints auf einen Blick. Von hier springst du in jede Stufe, auch in spätere Sprints. Nichts ist gesperrt.</p></div></div>
-      ${tw(`<table class="t"><thead><tr><th>Sprint</th><th>Zeitraum</th><th>Status</th><th>Abwesenheiten</th><th class="num">Kapazität PD</th><th class="num">Forecast PLAN</th><th class="num">Plan</th><th class="num">Velocity</th><th>Nächster Schritt</th><th>Stufen</th></tr></thead><tbody>
+      ${tw(`<table class="t"><thead><tr><th>Sprint</th><th>Zeitraum</th><th>Status</th><th>Abwesenheiten</th><th class="num">Kapazität PT</th><th class="num">Forecast PLAN</th><th class="num">Plan</th><th class="num">Velocity</th><th>Nächster Schritt</th><th>Stufen</th></tr></thead><tbody>
       ${D.sprints.map((s) => { const c = calc(s.id), stt = stateOf(s.id), plan = st().frozen[s.id]?.commit ?? s.plan, vel = st().closed[s.id] ? rvVel(s.id) : s.velocity; return `<tr class="${s.id === cur ? "sp-cur" : ""}">
         <td><span class="data"><strong>${s.id}</strong></span></td><td class="data">${FS.fmtDate(s.start)} bis ${FS.fmtDate(s.end)}</td><td>${stateChip(s.id)}</td><td>${absChip(s.id)}</td>
         <td class="num">${fmt(c.cap)}</td>
@@ -188,8 +190,8 @@
         <span class="small muted">Klick wechselt: leer, <span class="chip" style="border:1.5px dashed var(--border)">angekündigt</span> (Rahmen), <span class="chip" style="background:var(--primary);color:var(--on-primary)">bestätigt</span> (gefüllt). Mit + und − ändert sich die Zahl der Tage.</span></div>
       ${tw(`<table class="t" id="sp-abs-grid"><thead><tr><th>Person</th><th class="num">FTE</th>${cols.map((s) => `<th class="sp-c ${s.id === sid ? "sp-cur" : ""}"><span class="data">${s.id}</span><br><span class="muted small">${FS.fmtDate(s.start)} ${absChip(s.id)}</span></th>`).join("")}</tr></thead><tbody>
       ${D.people.map((p) => `<tr><td>${esc(p.name)}</td><td class="num">${fmt(p.fte, 1)}</td>${cols.map((s) => { const c = absOf(s.id)[p.id]; return `<td class="sp-c"><button type="button" class="sp-btn ${cellCls(c)}" data-cell="${s.id}|${p.id}" aria-label="${esc(p.name)}, ${s.id}: ${c ? `${c.d} Tage, ${c.s === "c" ? "bestätigt" : "angekündigt"}` : "keine Abwesenheit"}" title="${c ? (c.s === "c" ? "bestätigt" : "angekündigt") : "leer"}: Klick wechselt den Status">${c ? `${c.d} T` : "–"}</button></td>`; }).join("")}</tr>`).join("")}
-      <tr class="sum"><td>Abwesend gesamt</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(absDays(s.id))} PD</td>`).join("")}</tr>
-      <tr class="sum"><td>Kapazität</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(calc(s.id).cap)} PD</td>`).join("")}</tr>
+      <tr class="sum"><td>Abwesend gesamt</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(absDays(s.id))} PT</td>`).join("")}</tr>
+      <tr class="sum"><td>Kapazität</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(calc(s.id).cap)} PT</td>`).join("")}</tr>
       <tr class="sum"><td>Forecast PLAN</td><td></td>${cols.map((s) => { const c = calc(s.id); return `<td class="sp-c data" style="color:var(--forecast)">${c.past ? "–" : `${fmt(c.fc)} <span class="muted small">(${c.low} bis ${c.high})</span>`}</td>`; }).join("")}</tr>
       <tr><td>Bestätigen</td><td></td>${cols.map((s) => { const cells = Object.keys(absOf(s.id)).length; return `<td class="sp-c"><div class="stack" style="align-items:center">${cells && absState(s.id) !== "confirmed" ? `<button class="btn" type="button" data-confirm="${s.id}">${ic("done_all")}Angekündigte bestätigen</button>` : ""}<button class="btn ${cells ? "ghost" : ""}" type="button" data-nobody="${s.id}">${ic("person_off")}Niemand abwesend bestätigen</button></div></td>`; }).join("")}</tr>
       </tbody></table>`)}</div>
@@ -197,10 +199,10 @@
         <div class="card" id="sp-ready"><h2>Bereit für die Planung?</h2><div class="stack">${ready.map((r) => `<div class="row">${FS.lightChip(r.light, r.state)}<span style="flex:1;min-width:160px"><strong>${r.title}</strong><br><span class="small muted">${r.text}</span></span>${r.link ? `<a class="btn" href="${r.link[0]}">${r.link[1]}</a>` : ""}</div>`).join("")}</div>
           <p class="small muted" style="margin-top:12px">Offene Punkte sperren nichts. Planen geht jederzeit mit den Daten, die da sind.</p></div>
         <div class="card"><h2>Vorschau für ${sid}</h2>
-          <dl class="kv"><dt>Ohne Abwesenheit</dt><dd class="data">${fmt(BASE[sid])} PD · ${fmt(Math.round(BASE[sid] * D.rate))} Punkte</dd>
-          <dt>Mit Abwesenheit</dt><dd class="data"><strong>${fmt(cur.cap)} PD</strong> · <strong style="color:var(--forecast)">${fmt(cur.fc)} Punkte</strong> ${calcBtn("fc")}</dd>
+          <dl class="kv"><dt>Ohne Abwesenheit</dt><dd class="data">${fmt(BASE[sid])} PT · ${fmt(Math.round(BASE[sid] * D.rate))} Punkte</dd>
+          <dt>Mit Abwesenheit</dt><dd class="data"><strong>${fmt(cur.cap)} PT</strong> · <strong style="color:var(--forecast)">${fmt(cur.fc)} Punkte</strong> ${calcBtn("fc")}</dd>
           <dt>Spanne</dt><dd class="data">${cur.low} bis ${cur.high} Punkte</dd>
-          <dt>Veränderung</dt><dd class="data">${signed(cur.cap - BASE[sid])} PD · ${signed(cur.fc - Math.round(BASE[sid] * D.rate))} Punkte</dd></dl>
+          <dt>Veränderung</dt><dd class="data">${signed(cur.cap - BASE[sid])} PT · ${signed(cur.fc - Math.round(BASE[sid] * D.rate))} Punkte</dd></dl>
           ${FS.capBar(preSum(sid), cur.fc, cur.low, cur.high)}<p class="small muted">Balken: vorgeplante Punkte (${preSum(sid) || 0}) gegen die Spanne des Forecast PLAN.</p></div>
       </div>`;
     },
@@ -246,7 +248,7 @@
       <p class="small muted" style="margin:8px 0 24px">Hier editierbar: Vorgeplant. Standard kommt aus dem Budgetanteil, Vormerkungen sind die Summe der vorgemerkten Tickets (Vorschlag). Geplant, davon Prod und Erledigt füllen Planning und Review, hier nur lesbar.</p>
       <div id="sp-earmarks"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Vorgemerkte Tickets nach Projekt</h2><a class="btn" href="#backlog">${ic("view_list")}Im Backlog vormerken</a></div>
       ${groups.length ? `<div class="stack" style="gap:16px">${groups.map((g) => { const pr = g.pid && FS.project(g.pid), h = pr && projHints(sid).find((x) => x.pr.id === g.pid), p = pts(g.list); return `<div class="card" style="padding:0"><div class="row" style="padding:10px 12px;border-bottom:1px solid var(--border)">${FS.projectChip(g.pid)}<span class="small muted">${g.list.length} Tickets · <span class="data">${fmt(p)}</span> Punkte</span>
-        <span style="flex:1"></span>${h ? `<span class="small">≈ <span class="data">${fmt(h.need, 1)} PD</span> <span class="chip small">Schätzung</span> von ${pr.contingentPD} PD gebucht, ${pr.usedPD} verbraucht</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PD über Kontingent` : `Rest ${fmt(h.rest)} PD`)}${calcBtn("pd", g.pid)}` : `<span class="small muted">Tagesgeschäft: kein Kontingent, läuft über die Produktbeträge</span>`}</div>
+        <span style="flex:1"></span>${h ? `<span class="small">≈ <span class="data">${fmt(h.need, 1)} PT</span> <span class="chip small">Schätzung</span> von ${pr.contingentPD} PT gebucht, ${pr.usedPD} verbraucht</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT über Kontingent` : `Rest ${fmt(h.rest)} PT`)}${calcBtn("pd", g.pid)}` : `<span class="small muted">Tagesgeschäft: kein Kontingent, läuft über die Produktbeträge</span>`}</div>
         ${g.list.map((t) => FS.ticketRow(t, { noProject: true })).join("")}</div>`; }).join("")}</div>` : `<div class="banner">${ic("inbox")}<div class="grow">Noch nichts für ${sid} vorgemerkt. Im Backlog Tickets in die Spalte dieses Sprints ziehen.</div></div>`}</div>`;
     },
     wire(main) {
@@ -296,9 +298,9 @@
       const prodTbl = `<div class="card"><h2>Produkt gegen Budget</h2>${tw(`<table class="t"><thead><tr><th>Produkt</th><th class="num">Budget</th><th class="num">${noT ? "Betrag" : "Tickets"}</th><th class="num">Differenz</th></tr></thead><tbody>
         ${D.products.map((pr) => { const b = pp(sid, pr.id).pre ?? pp(sid, pr.id).def, u = noT ? amtOf(sid, pr.id) : earmark(sid, pr.id), d = u - b; return `<tr><td>${FS.productChip(pr.id)}</td><td class="num">${b}</td><td class="num">${u}</td><td class="num">${d > 0 ? `<span class="chip warn">+${d}</span>` : d < 0 ? `<span class="muted">${signed(d)} frei</span>` : `<span class="chip ok">passt</span>`}</td></tr>`; }).join("")}
         <tr class="sum"><td>Gesamt</td><td class="num">${sum(D.products, (x) => pp(sid, x.id).pre ?? pp(sid, x.id).def)}</td><td class="num">${noT ? sum(D.products, (x) => amtOf(sid, x.id)) : p}</td><td></td></tr></tbody></table>`)}<p class="small muted">Budget ist der vorgeplante Betrag. Abweichungen warnen, sperren aber nichts.</p></div>`;
-      const projTbl = `<div class="card"><h2>Projekt gegen Kontingent <span class="chip small">Schätzung</span></h2>${hints.length ? tw(`<table class="t"><thead><tr><th>Projekt</th><th class="num">Punkte</th><th class="num">PD</th><th class="num">Rest</th><th></th></tr></thead><tbody>
+      const projTbl = `<div class="card"><h2>Projekt gegen Kontingent <span class="chip small">Schätzung</span></h2>${hints.length ? tw(`<table class="t"><thead><tr><th>Projekt</th><th class="num">Punkte</th><th class="num">PT</th><th class="num">Rest</th><th></th></tr></thead><tbody>
         ${hints.map((h) => `<tr><td>${FS.projectChip(h.pr.id)}</td><td class="num">${fmt(h.p)}</td><td class="num">≈ ${fmt(h.need, 1)}</td><td class="num">${fmt(h.rest, 1)}</td><td>${FS.lightChip(h.light, h.rest < 0 ? "über Kontingent" : h.light === "warn" ? "knapp" : "im Plan")}${calcBtn("pd", h.pr.id)}</td></tr>`).join("")}</tbody></table>`) : `<p class="muted">Keine Projekttickets im Sprint.</p>`}
-        <p class="small muted">Tagesgeschäft ohne Projekt: ${fmt(pts(l.filter((t) => !t.project)))} Punkte. Umrechnung mit Rate ${fmt(D.rate, 2)} Punkte je PD.</p></div>`;
+        <p class="small muted">Tagesgeschäft ohne Projekt: ${fmt(pts(l.filter((t) => !t.project)))} Punkte. Umrechnung mit Rate ${fmt(D.rate, 2)} Punkte je PT.</p></div>`;
       const noTrackerCard = `<div class="card" style="margin-bottom:16px"><div class="banner info">${ic("info")}<div class="grow">Ohne Tracker gibt es keine Tickets im Planning. Das Team einigt sich auf einen Betrag je Produkt und eine Zusage (Commitment) als eigene Zahl. Mit Tracker ergibt sich die Zusage aus den gewählten Tickets.</div></div>
         ${tw(`<table class="t"><thead><tr><th>Produkt</th><th class="num">Vorgeplant</th><th class="num">Betrag geplant</th></tr></thead><tbody>${D.products.map((pr) => `<tr><td>${FS.productChip(pr.id)}</td><td class="num">${n(pp(sid, pr.id).pre)}</td><td class="num edit"><input data-amt="${pr.id}" inputmode="numeric" aria-label="Betrag ${esc(pr.name)}" value="${amtOf(sid, pr.id)}" ${fz ? "disabled" : ""}></td></tr>`).join("")}
         <tr class="sum"><td>Summe</td><td class="num">${preSum(sid)}</td><td class="num">${sum(D.products, (x) => amtOf(sid, x.id))}</td></tr></tbody></table>`)}
@@ -372,8 +374,8 @@
       <p class="small" style="margin:8px 0 16px">${doneSum === vel ? FS.lightChip("ok", "Summe passt zur Velocity") : FS.lightChip("warn", `Summe ${doneSum} weicht um ${signed(doneSum - vel)} von der Velocity ab`)} <span class="muted">Der Prod-Anteil (${prodSum}) wird nur angezeigt, nicht erzwungen.</span></p></div>
       <div class="grid cols-2">
         <div class="card" id="sp-freezepd"><h2>Personentage einfrieren</h2><div class="row"><div class="field"><label for="rv-fz">Verfügbare Personentage im Sprint</label><input class="input data" id="rv-fz" data-rv="freeze" inputmode="numeric" value="${r.freeze}" ${ro} style="width:110px"></div>
-          <div><div class="data" style="font-size:18px">${fmt(vel / r.freeze, 2)} Punkte je PD</div><span class="small muted">tatsächliche Rate (Schätzung)</span>${calcBtn("rate")}</div></div>
-          <p class="small muted">Geplant waren ${fmt(calc(sid).cap)} PD. Die eingefrorenen Tage bleiben mit dem Sprint gespeichert, auch wenn sich Abwesenheiten später ändern.</p></div>
+          <div><div class="data" style="font-size:18px">${fmt(vel / r.freeze, 2)} Punkte je PT</div><span class="small muted">tatsächliche Rate (Schätzung)</span>${calcBtn("rate")}</div></div>
+          <p class="small muted">Geplant waren ${fmt(calc(sid).cap)} PT. Die eingefrorenen Tage bleiben mit dem Sprint gespeichert, auch wenn sich Abwesenheiten später ändern.</p></div>
         <div class="card" id="sp-tag"><h2>Tag und teilen</h2><label class="row" style="gap:8px"><input type="checkbox" id="rv-tag" ${S.tagOn ? "checked" : ""} ${ro}> Sprint taggen und mit dem Team teilen</label>
           <div class="field" style="margin-top:8px"><label for="rv-tagname">Name</label><input class="input data" id="rv-tagname" value="${esc(r.tag)}" ${ro} style="max-width:260px"></div></div></div>`;
     },
@@ -410,7 +412,7 @@
       L.push("## Ergebnis", "", `- Zusage: **${r.plan}** Punkte`, `- Nicht erledigt: ${r.notDone}, zusätzlich erledigt: ${r.extra}`, `- Velocity: **${r.plan - r.notDone + r.extra}** Punkte bei ${r.freeze} Personentagen`, "", "## Erledigt je Produkt", "", "| Produkt | Erledigt | davon Prod |", "| --- | --- | --- |", ...D.products.map((p) => `| ${p.name} | ${r.done[p.id]?.d ?? 0} | ${r.done[p.id]?.prod ?? 0} |`));
       return L.join("\n");
     }
-    L.push("## Rahmen", "", `- Kapazität: **${c.cap} PD** (Abwesenheiten ${c.abs} PD)`, c.low != null ? `- Forecast PLAN: **${c.fc}** Punkte, Spanne ${c.low} bis ${c.high}` : `- Plan: ${c.fc} Punkte`, "", "## Beträge je Produkt", "", "| Produkt | Standard | Vorgeplant | Geplant |", "| --- | --- | --- | --- |", ...D.products.map((p) => { const x = pp(sid, p.id); return `| ${p.name} | ${x.def} | ${x.pre ?? "–"} | ${x.plan ?? "–"} |`; }));
+    L.push("## Rahmen", "", `- Kapazität: **${c.cap} PT** (Abwesenheiten ${c.abs} PT)`, c.low != null ? `- Forecast PLAN: **${c.fc}** Punkte, Spanne ${c.low} bis ${c.high}` : `- Plan: ${c.fc} Punkte`, "", "## Beträge je Produkt", "", "| Produkt | Standard | Vorgeplant | Geplant |", "| --- | --- | --- | --- |", ...D.products.map((p) => { const x = pp(sid, p.id); return `| ${p.name} | ${x.def} | ${x.pre ?? "–"} | ${x.plan ?? "–"} |`; }));
     const l = m.kind === "Planning" ? (S.frozen[sid] ? S.frozen[sid].keys.map(FS.ticket) : tix(sid)) : tix(sid);
     if (!(m.kind === "Planning" && S.frozen[sid]?.noT)) L.push("", m.kind === "Planning" ? "## Vereinbarte Tickets" : "## Vorgemerkte Tickets", "", ...l.map(tk), "", `Summe: **${pts(l)}** Punkte`);
     if (m.kind === "Planning") { const j = D.tickets.filter((t) => t.inTrackerSprint === sid && t.sprint !== sid); L.push("", "## In Jira anpassen", "", ...(j.length ? j.map((t) => `- [${t.key}](${D.team.trackerUrl}${t.key}) steht in Jira noch im Sprint, wurde im Planning herausgenommen`) : ["- nichts"])); }
@@ -456,7 +458,7 @@
     { view: "prepare", hl: "#sp-abs-grid", text: "Das Raster zeigt Abwesenheiten für diesen und die nächsten drei Sprints. Klick auf eine Zelle wechselt zwischen leer, angekündigt (Rahmen) und bestätigt (gefüllt). Kapazität und Forecast PLAN unten in der Tabelle ziehen sofort mit." },
     { view: "prepare", hl: "[data-nobody]", text: "Hat niemand frei, genügt \"Niemand abwesend bestätigen\" je Sprint. Mit \"Angekündigte bestätigen\" werden vorhandene Einträge fest." },
     { view: "prepare", hl: "#sp-ready", text: "Die Bereitschaft fasst zusammen: Abwesenheiten, Refinement und Vorplanung je Produkt. Offene Punkte warnen nur, du kannst jederzeit weiter." },
-    { view: "preplan", hl: "#sp-earmarks", text: "Vorplanen geht jederzeit, auch für spätere Sprints. Die Vormerkungen aus dem Backlog stehen hier nach Projekt und Tagesgeschäft, mit Kontingenthinweis in PD (Schätzung)." },
+    { view: "preplan", hl: "#sp-earmarks", text: "Vorplanen geht jederzeit, auch für spätere Sprints. Die Vormerkungen aus dem Backlog stehen hier nach Projekt und Tagesgeschäft, mit Kontingenthinweis in PT (Schätzung)." },
     { view: "preplan", hl: "#sp-prod-table", text: "Eine Tabelle je Sprint: Vorgeplant trägst du hier ein, \"Vormerkungen übernehmen\" macht daraus einen Vorschlag. Geplant und Erledigt sind in dieser Stufe nur lesbar." },
     { view: "preplan", hl: "#sp-prod-table", text: "Probiere es aus: Trägst du bei Abrechnung 12 ein, liegt die Summe über dem Forecast PLAN und eine Warnung erscheint. Sie blockiert nicht. Passt alles, ist der Sprint bereit für die Planung." },
   ] });
@@ -464,7 +466,7 @@
     { view: "plan", before() { FS.state.sprint = "2026.22"; delete st().frozen["2026.22"]; st().noTracker = false; }, hl: ".sp-abs-banner", text: "Zuerst die Abwesenheiten: Sind sie nur angekündigt, bestätigst du sie direkt hier. Ohne Bestätigung kannst du trotzdem planen." },
     { view: "plan", hl: ".sp-sumbar", text: "Oben steht der Forecast PLAN mit Spanne. Der Knopf mit dem Taschenrechner zeigt den Rechenweg." },
     { view: "plan", hl: "#sp-lanes", text: "Links die Kandidaten, rechts der Sprint, vorbelegt aus den Vormerkungen. Ticket ziehen oder mit Alt+Pfeil links/rechts verschieben." },
-    { view: "plan", hl: "#sp-live", text: "Live: Summe gegen die Spanne, Produkte gegen Budget, Projekte gegen Kontingent in PD (Schätzung). Login-Umstellung liegt über dem Kontingent. Das ist ein Hinweis für das Team, kein Stopp." },
+    { view: "plan", hl: "#sp-live", text: "Live: Summe gegen die Spanne, Produkte gegen Budget, Projekte gegen Kontingent in PT (Schätzung). Login-Umstellung liegt über dem Kontingent. Das ist ein Hinweis für das Team, kein Stopp." },
     { view: "plan", hl: "#sp-lanes .ticket[data-key=ATL-421]", text: "Das Team will ATL-421 nicht im Sprint? Nimm es mit Alt+Pfeil links heraus. Es taucht in der Liste \"In Jira anpassen\" auf." },
     { view: "plan", hl: "#sp-mode", text: "Ohne Tracker sieht der Schritt anders aus: ein Betrag je Produkt und eine Zusage als eigene Zahl. Probiere den Schalter aus und wechsle zurück." },
     { view: "plan", hl: "#sp-freeze", text: "Sind sich alle einig, friert \"Einigung festhalten und einfrieren\" den Plan ein. Es entsteht ein Planungsprotokoll, optional kommt das Label planned_for_2026_22 ans Jira-Ticket." },

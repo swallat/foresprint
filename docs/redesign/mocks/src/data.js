@@ -41,17 +41,18 @@ window.DEMO = {
   // state: past = closed, current = running, planned = frozen plan, open = future
   sprints: [
     { id: "2026.17", start: "2026-08-19", end: "2026-09-01", days: 10, state: "past", capacityPD: 49, velocity: 41, plan: 40 },
-    { id: "2026.18", start: "2026-09-02", end: "2026-09-15", days: 10, state: "past", capacityPD: 44, velocity: 35, plan: 37 },
-    { id: "2026.19", start: "2026-09-16", end: "2026-09-29", days: 10, state: "past", capacityPD: 51, velocity: 44, plan: 42 },
-    { id: "2026.20", start: "2026-09-30", end: "2026-10-13", days: 9, state: "past", capacityPD: 43, velocity: 37, plan: 36 },
+    { id: "2026.18", start: "2026-09-02", end: "2026-09-15", days: 10, state: "past", capacityPD: 44, velocity: 33, plan: 37 },
+    { id: "2026.19", start: "2026-09-16", end: "2026-09-29", days: 10, state: "past", capacityPD: 51, velocity: 47, plan: 42 },
+    { id: "2026.20", start: "2026-09-30", end: "2026-10-13", days: 9, state: "past", capacityPD: 43, velocity: 38, plan: 36 },
     { id: "2026.21", start: "2026-10-14", end: "2026-10-27", days: 10, state: "current", capacityPD: 48, velocity: null, plan: 40, absences: "confirmed" },
-    { id: "2026.22", start: "2026-10-28", end: "2026-11-10", days: 10, state: "open", capacityPD: 41, plan: null, forecast: 35, low: 31, high: 39, absences: "announced" },
+    { id: "2026.22", start: "2026-10-28", end: "2026-11-10", days: 10, state: "open", capacityPD: 41, plan: null, forecast: 35, low: 31, high: 38, absences: "announced" },
     { id: "2026.23", start: "2026-11-11", end: "2026-11-24", days: 10, state: "open", capacityPD: 50, plan: null, forecast: 42, low: 37, high: 47, absences: "unknown" },
     { id: "2026.24", start: "2026-11-25", end: "2026-12-08", days: 10, state: "open", capacityPD: 49, plan: null, forecast: 41, low: 36, high: 46, absences: "unknown" },
     { id: "2026.25", start: "2026-12-09", end: "2026-12-22", days: 10, state: "open", capacityPD: 38, plan: null, forecast: 32, low: 27, high: 37, absences: "announced" },
   ],
   // points per available person day (normalized velocity), used to convert points to PD
   rate: 0.85,
+  overheadShare: 0.05,
   // absences in person days per person and sprint; a: announced, c: confirmed
   absences: {
     "2026.22": { p1: { d: 3, s: "a" }, p3: { d: 2, s: "a" }, p4: { d: 5, s: "a" } },

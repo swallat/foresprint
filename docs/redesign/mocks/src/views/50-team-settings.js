@@ -305,12 +305,15 @@
       return `${head("Persönlich", "Gilt nur für dich auf diesem Rechner und wird nicht mit dem Team geteilt.")}
         <div class="grid cols-2"><div class="card"><h2>Darstellung</h2><div class="stack" style="gap:16px">
             <div><div class="small muted" style="margin-bottom:6px">Erscheinungsbild</div>${seg("theme", [["system", "System", "computer"], ["light", "Hell", "light_mode"], ["dark", "Dunkel", "dark_mode"]])}</div>
-            <div><div class="small muted" style="margin-bottom:6px">Dichte der Tabellen</div>${seg("density", [["compact", "Kompakt"], ["normal", "Normal"], ["roomy", "Großzügig"]])}</div></div></div>
+            <div><div class="small muted" style="margin-bottom:6px">Dichte der Tabellen</div>${seg("density", [["compact", "Kompakt"], ["normal", "Normal"], ["roomy", "Großzügig"]])}</div>
+            <div><div class="small muted" style="margin-bottom:6px">Rechenwege</div><div class="row" role="group">${[["off", "Ausblenden", "visibility_off"], ["icon", "Als Symbol", "calculate"], ["inline", "Immer ausgeklappt", "unfold_more"]].map(([v, l, i]) => `<button type="button" class="chip filter ${FS.state.calcMode === v ? "on" : ""}" data-calc-mode="${v}" aria-pressed="${FS.state.calcMode === v}">${ic(i, "small")}${l}</button>`).join("")}</div>
+              <p class="small muted" style="margin:6px 0 0">Wie Rechenwege neben Zahlen erscheinen. Ausführliche Erklärungen stehen immer unter <a href="#help">Hilfe > Rechenwege</a>.</p></div></div></div>
           <div class="card"><h2>Sprache</h2><div class="field"><label for="p-lang">Sprache der Oberfläche</label><select class="input" id="p-lang" style="max-width:220px"><option value="de" ${p.lang === "de" ? "selected" : ""}>Deutsch</option><option value="en" ${p.lang === "en" ? "selected" : ""}>English</option></select></div>
             <p class="small muted" style="margin:8px 0 0">Weitere Sprachen sind möglich: Eine Übersetzungsdatei genügt, die Oberfläche selbst bleibt gleich. ${p.lang === "en" ? `<br><span class="chip warn">Mockup bleibt deutsch</span>` : ""}</p></div></div>`;
     },
     wire(main) {
       main.querySelectorAll("[data-p]").forEach((b) => (b.onclick = () => { const k = b.dataset.p; S.personal[k] = b.dataset.v; if (k === "theme") applyTheme(b.dataset.v); if (k === "density") applyDensity(b.dataset.v); FS.render(); }));
+      main.querySelectorAll("[data-calc-mode]").forEach((b) => (b.onclick = () => { FS.state.calcMode = b.dataset.calcMode; FS.render(); }));
       main.querySelector("#p-lang").onchange = (e) => { S.personal.lang = e.target.value; FS.render(); if (e.target.value === "en") FS.toast("English: im Mockup nicht übersetzt."); };
     },
   });

@@ -63,9 +63,9 @@
     const max = Math.max(p.contingentPD, st.total) * 1.02 || 1;
     const pct = (v) => (v / max) * 100;
     const overPD = st.total - p.contingentPD;
-    return `<div class="pf-meter-wrap"><div class="pf-meter" role="img" aria-label="Verbraucht ${fmt(st.used)} PD, geplant ${fmt(st.plannedPD)} PD von ${fmt(p.contingentPD)} PD">
-      <i class="u" style="width:${pct(st.used)}%"></i><i class="p ${overPD > 0 ? "over" : ""}" style="left:${pct(st.used)}%;width:${pct(st.plannedPD)}%"></i><b class="t" style="left:${pct(p.contingentPD)}%" title="Kontingent ${fmt(p.contingentPD)} PD"></b></div>
-      <span class="small ${overPD > 0 ? "pf-over" : "muted"}">${overPD > 0 ? `${ic("warning")}${fmt(overPD)} PD über Kontingent` : `${fmt(-overPD)} PD frei`}</span></div>`;
+    return `<div class="pf-meter-wrap"><div class="pf-meter" role="img" aria-label="Verbraucht ${fmt(st.used)} PT, geplant ${fmt(st.plannedPD)} PT von ${fmt(p.contingentPD)} PT">
+      <i class="u" style="width:${pct(st.used)}%"></i><i class="p ${overPD > 0 ? "over" : ""}" style="left:${pct(st.used)}%;width:${pct(st.plannedPD)}%"></i><b class="t" style="left:${pct(p.contingentPD)}%" title="Kontingent ${fmt(p.contingentPD)} PT"></b></div>
+      <span class="small ${overPD > 0 ? "pf-over" : "muted"}">${overPD > 0 ? `${ic("warning")}${fmt(overPD)} PT über Kontingent` : `${fmt(-overPD)} PT frei`}</span></div>`;
   }
 
   const STYLE = `<style>
@@ -171,9 +171,9 @@
         <td>${r.light === "ok" ? FS.lightChip("ok", "Platz vorhanden") : r.light === "warn" ? FS.lightChip("warn", "knapp") : FS.lightChip("bad", "kein Platz")}</td>
         <td style="white-space:normal;min-width:260px" class="small">${r.light === "ok" ? "Keine Maßnahme nötig." : r.cand ? `${FS.keyLink(r.cand)} (${esc(FS.project(r.cand.project).name)}, Ampel ${LIGHT_TXT[FS.project(r.cand.project).light]}) um einen Sprint verschieben schafft ${r.cand.est} Punkte Platz.` : "Alle Projekte mit Ticket hier sind gefährdet. Mit der Projektleitung sprechen."}</td></tr>`).join("")}</tbody></table></div>
       <h2 style="margin:16px 0 8px">Kontingent der Projekte</h2>
-      <div class="tw"><table class="t"><thead><tr><th>Projekt</th><th class="num">Rest im Kontingent (PD)</th><th class="num">Bedarf ab ${sid} (PD)</th><th>Bewertung</th></tr></thead><tbody>
+      <div class="tw"><table class="t"><thead><tr><th>Projekt</th><th class="num">Rest im Kontingent (PT)</th><th class="num">Bedarf ab ${sid} (PT)</th><th>Bewertung</th></tr></thead><tbody>
       ${D.projects.map((p) => { const st = projStats(p); const rest = p.contingentPD - p.usedPD; const need = st.plannedPD; const l = need > rest ? "bad" : need > rest * 0.8 ? "warn" : "ok";
-        return `<tr><td><a href="#project" data-project="${p.id}">${esc(p.name)}</a></td><td class="num">${fmt(rest)}</td><td class="num">${fmt(need, 1)} ${calcBtn("proj", p.id)}</td><td>${l === "ok" ? FS.lightChip("ok", "reicht") : l === "warn" ? FS.lightChip("warn", "reicht knapp") : FS.lightChip("bad", `${fmt(need - rest, 1)} PD zu wenig`)}</td></tr>`; }).join("")}
+        return `<tr><td><a href="#project" data-project="${p.id}">${esc(p.name)}</a></td><td class="num">${fmt(rest)}</td><td class="num">${fmt(need, 1)} ${calcBtn("proj", p.id)}</td><td>${l === "ok" ? FS.lightChip("ok", "reicht") : l === "warn" ? FS.lightChip("warn", "reicht knapp") : FS.lightChip("bad", `${fmt(need - rest, 1)} PT zu wenig`)}</td></tr>`; }).join("")}
       </tbody></table></div>
       <div class="banner info" style="margin:16px 0 0">${ic("gavel")}<div class="grow"><strong>PO entscheidet.</strong> Foresprint ändert hier nichts. Mögliche Wege:
         <div class="row" style="margin-top:8px"><button class="btn" type="button" data-decide="Tickets verschieben">${ic("event_repeat")}Tickets verschieben</button><button class="btn" type="button" data-decide="Risiko akzeptieren">${ic("warning")}Risiko akzeptieren</button><button class="btn" type="button" data-decide="Mit Projektleitung sprechen">${ic("forum")}Mit Projektleitung sprechen</button><a class="btn" href="#preplan">${ic("low_priority")}Zum Vorplanen</a></div></div></div></div>`;
@@ -189,7 +189,7 @@
     <div class="card pf-timeline"><h2>Zeitachse bis Ende Januar</h2><div class="pf-scroll">${timelineSvg()}</div>
       <div class="pf-legend"><span><i class="pf-sw bar"></i>Laufzeit bis Ende</span><span>${ic("check_circle")}Meilenstein im Plan</span><span>${ic("error")}knapp</span><span>${ic("cancel")}gefährdet</span><span><i class="pf-sw" style="border-color:var(--highlight);border-top-width:3px"></i>heute</span><span>Klick auf eine Zeile öffnet das Projekt</span></div></div>
     <h2 style="margin:24px 0 8px">Kontingent und Produkte</h2>
-    <div class="tw pf-table"><table class="t"><thead><tr><th>Projekt</th><th>Produkte</th><th>Ende</th><th>Ampel</th><th class="num">gebucht (PD)</th><th class="num">verbraucht (PD)</th><th class="num">geplant (PD)</th><th>Verbrauch</th></tr></thead><tbody>
+    <div class="tw pf-table"><table class="t"><thead><tr><th>Projekt</th><th>Produkte</th><th>Ende</th><th>Ampel</th><th class="num">gebucht (PT)</th><th class="num">verbraucht (PT)</th><th class="num">geplant (PT)</th><th>Verbrauch</th></tr></thead><tbody>
       ${D.projects.map((p) => { const st = projStats(p); return `<tr><td><a href="#project" data-project="${p.id}"><strong>${esc(p.name)}</strong></a></td><td>${p.products.map(FS.productChip).join(" ")}</td><td class="data">${FS.fmtDate(p.end)}</td><td>${FS.lightChip(p.light)}</td>
         <td class="num">${fmt(p.contingentPD)}</td><td class="num">${fmt(st.used)}</td><td class="num">${fmt(st.plannedPD, 1)} ${calcBtn("proj", p.id)}</td><td>${meter(p, st)}</td></tr>`; }).join("")}
       <tr class="pf-sub"><td colspan="8">Tagesgeschäft je Produkt, ohne Ampel: Budget aus der Vorplanung, nicht aus einem Projekt</td></tr>
@@ -197,7 +197,7 @@
         return `<tr><td>${FS.projectChip(null)}</td><td>${FS.productChip(pr.id)}</td><td class="muted">laufend</td><td class="muted">${ic("remove")}keine Ampel</td><td class="num">${fmt(budget, 1)}</td><td class="num">${fmt(used, 1)}</td><td class="num">${fmt(planned, 1)}</td>
           <td><span class="small muted">Budget je Sprint ${sid}; verbraucht = Sprint 2026.21</span></td></tr>`; }).join("")}
     </tbody></table></div>
-    <p class="small muted" style="margin:8px 0 0">${est} Geplante und zugeordnete PD sind aus Punkten berechnet: Punkte geteilt durch ${rateTxt()} Punkte je Personentag. Verbraucht und gebucht sind eingetragene PD.</p>
+    <p class="small muted" style="margin:8px 0 0">${est} Geplante und zugeordnete PT sind aus Punkten berechnet: Punkte geteilt durch ${rateTxt()} Punkte je Personentag. Verbraucht und gebucht sind eingetragene PT.</p>
     ${conflictHtml()}`;
   }
 
@@ -211,7 +211,7 @@
         <div class="field"><label for="np-end">Enddatum</label><input class="input" id="np-end" type="date" value="2027-03-31"></div>
         <fieldset><legend class="small muted" style="padding:0">Meilensteine (Datum, Tickets optional)</legend><div class="stack" id="np-ms"></div><div><button class="btn" type="button" id="np-addms">${ic("add")}Meilenstein</button></div></fieldset>
         <div class="field"><label for="np-pd">Kontingent gesamt (Personentage)</label><input class="input data" id="np-pd" type="number" min="0" step="1" value="40" style="max-width:140px"></div>
-        <details><summary style="cursor:pointer">Aufteilung pro Monat (optional)</summary><div class="stack" style="margin-top:8px">${monthsList.map((m) => `<div class="row"><label class="muted" style="width:72px" for="np-m-${m}">${monthLabel(m)}</label><input class="input data" id="np-m-${m}" data-month="${m}" type="number" min="0" style="width:96px" placeholder="PD"></div>`).join("")}<span class="small muted">Leer lassen, wenn nur das Gesamtkontingent gebucht ist.</span></div></details>
+        <details><summary style="cursor:pointer">Aufteilung pro Monat (optional)</summary><div class="stack" style="margin-top:8px">${monthsList.map((m) => `<div class="row"><label class="muted" style="width:72px" for="np-m-${m}">${monthLabel(m)}</label><input class="input data" id="np-m-${m}" data-month="${m}" type="number" min="0" style="width:96px" placeholder="PT"></div>`).join("")}<span class="small muted">Leer lassen, wenn nur das Gesamtkontingent gebucht ist.</span></div></details>
         <div class="field"><label for="np-rule">Regel aus ${D.team.tracker} (optional)</label><input class="input data" id="np-rule" placeholder="z. B. Epic Link = SSV-12"><span class="small muted">Ohne Regel ordnen Sie Tickets und Arbeitspunkte von Hand zu.</span></div>
         <div class="field"><label for="np-note">Notiz</label><textarea class="input" id="np-note" rows="2" placeholder="z. B. Ansprechpartner, Absprachen"></textarea></div>
         <div class="pf-err" id="np-err" role="alert">${ic("error")}<span></span></div>
@@ -259,17 +259,17 @@
       const p = FS.project(id), st = projStats(p);
       calcPanel(`Rechenweg: geplant, ${esc(p.name)}`, [
         [`Vorgemerkte Punkte (${st.ts.filter((t) => FS.sprint(t.sprint) && t.status !== "Fertig").length} Tickets)`, `<span class="data">${fmt(st.plannedPts)} Pkt</span>`],
-        ["Rate aus der normalisierten Velocity", `<span class="data">${rateTxt()} Pkt je PD</span>`],
-        ["Geplant = Punkte geteilt durch Rate", `<span class="data">${fmt(st.plannedPD, 1)} PD</span>`],
-        ["Verbraucht bis heute (eingetragen)", `<span class="data">${fmt(st.used)} PD</span>`],
-        ["Verbraucht plus geplant", `<span class="data">${fmt(st.total, 1)} PD</span>`, "sum"],
-        [`Kontingent gebucht`, `<span class="data">${fmt(p.contingentPD)} PD</span>`],
+        ["Rate aus der normierten Velocity", `<span class="data">${rateTxt()} Pkt je PT</span>`],
+        ["Geplant = Punkte geteilt durch Rate", `<span class="data">${fmt(st.plannedPD, 1)} PT</span>`],
+        ["Verbraucht bis heute (eingetragen)", `<span class="data">${fmt(st.used)} PT</span>`],
+        ["Verbraucht plus geplant", `<span class="data">${fmt(st.total, 1)} PT</span>`, "sum"],
+        [`Kontingent gebucht`, `<span class="data">${fmt(p.contingentPD)} PT</span>`],
       ], "Der Wert ist eine Schätzung: Punkte sind keine Personentage. Ein Sprint nutzt die Rate seiner Forecast-Daten, Erledigtes die Rate des abgeschlossenen Sprints.");
     } else if (kind === "fc") {
       const s = FS.sprint(id);
       calcPanel(`Rechenweg: Forecast PLAN ${s.id}`, [
-        ["Kapazität aus Personen, FTE, Abwesenheiten", `<span class="data">${fmt(s.capacityPD)} PD</span>`],
-        ["Rate: Mittel der letzten 4 Sprints (Velocity je verfügbarem PD)", `<span class="data">${rateTxt()} Pkt/PD</span>`],
+        ["Kapazität aus Personen, FTE, Abwesenheiten", `<span class="data">${fmt(s.capacityPD)} PT</span>`],
+        ["Rate: Mittel der letzten 4 Sprints (Velocity je verfügbarem PT)", `<span class="data">${rateTxt()} Pkt/PT</span>`],
         ["Forecast PLAN = Kapazität mal Rate", `<span class="data">${fmt(s.capacityPD * D.rate, 1)} Pkt</span>`],
         ["Angezeigt (gerundet)", `<span class="data">${fmt(s.forecast)} Pkt</span>`, "sum"],
         ["Spanne aus Streuung der letzten 4 Sprints", `<span class="data">${fmt(s.low)} bis ${fmt(s.high)} Pkt</span>`],
@@ -314,7 +314,7 @@
     <div class="grid cols-3">
       <div class="card"><div class="small muted">Produkte</div><div class="row" style="margin-top:6px">${p.products.map(FS.productChip).join("")}</div>
         <div class="small muted" style="margin-top:12px">Nächster Meilenstein</div><div style="margin-top:4px">${nextMs ? `${esc(nextMs.name)} <span class="data">${FS.fmtDate(nextMs.date)}</span> ${FS.lightChip(nextMs.light)}` : "keiner mehr"}</div></div>
-      <div class="card"><div class="row"><div class="small muted" style="flex:1">Kontingent (PD)</div>${est}${calcBtn("proj", p.id)}</div>
+      <div class="card"><div class="row"><div class="small muted" style="flex:1">Kontingent (PT)</div>${est}${calcBtn("proj", p.id)}</div>
         <div class="pf-big" style="margin:4px 0 8px">${fmt(st.total, 1)} <span class="muted" style="font-size:14px">von ${fmt(p.contingentPD)}</span></div>${meter(p, st)}
         <div class="small muted" style="margin-top:8px">verbraucht <span class="data">${fmt(st.used)}</span>, geplant <span class="data">${fmt(st.plannedPD, 1)}</span></div></div>
       <div class="card"><div class="small muted">Offener Umfang</div><div class="pf-big" style="margin:4px 0">${fmt(st.remPts)} <span class="muted" style="font-size:14px">Punkte, ${st.nOpen} Tickets</span></div>
@@ -329,18 +329,18 @@
         ${monthRows.map((r) => `<tr><td>${monthLabel(r.ym)}</td><td class="num">${fmt(r.b)}</td><td class="num">${fmt(r.u)}</td><td class="num">${fmt(r.planned, 1)}</td><td class="num">${r.rest < -0.05 ? `<span class="pf-over">${ic("warning")}${fmt(r.rest, 1)}</span>` : fmt(r.rest, 1)}</td></tr>`).join("")}
         <tr class="sum"><td>Summe</td><td class="num">${fmt(sum(monthRows, (r) => r.b))}</td><td class="num">${fmt(sum(monthRows, (r) => r.u))}</td><td class="num">${fmt(sum(monthRows, (r) => r.planned), 1)}</td><td class="num">${fmt(sum(monthRows, (r) => r.rest), 1)}</td></tr></tbody></table></div>
         <p class="small muted" style="margin:8px 0 0">Alle Werte in Personentagen. Geplant ist geschätzt (Punkte durch ${rateTxt()}), zugeordnet nach Sprintende. Frühe Monate sind überbucht, später ist noch Platz: ein Hinweis, Tickets zu verschieben.</p>`
-        : `<div class="banner" style="margin:0">${ic("info")}<div class="grow">Nur ein Gesamtkontingent von <span class="data">${fmt(p.contingentPD)} PD</span> gebucht, keine Aufteilung pro Monat. Das ist erlaubt.</div></div><div style="margin-top:8px"><button class="btn" type="button" data-toast="Monatsaufteilung würde sich öffnen (Mockup).">${ic("add")}Aufteilung pro Monat anlegen</button></div>`}</div>
+        : `<div class="banner" style="margin:0">${ic("info")}<div class="grow">Nur ein Gesamtkontingent von <span class="data">${fmt(p.contingentPD)} PT</span> gebucht, keine Aufteilung pro Monat. Das ist erlaubt.</div></div><div style="margin-top:8px"><button class="btn" type="button" data-toast="Monatsaufteilung würde sich öffnen (Mockup).">${ic("add")}Aufteilung pro Monat anlegen</button></div>`}</div>
     </div>
     <div class="pj-tickets" style="margin-top:24px"><h2>Tickets nach Sprint</h2>
       ${st.ts.length ? [...sprints.map((s) => [s.id, st.ts.filter((t) => t.sprint === s.id)]), ["offen", noSprint]].filter(([, l]) => l.length).map(([id, l]) => `
-        <div class="lane pj-lane" style="margin-bottom:12px"><div class="lane-head"><div class="row"><strong>${id === "offen" ? "Nicht vorgemerkt" : `Sprint <span class="data">${id}</span>`}</strong>${id !== "offen" && FS.sprint(id).state === "current" ? `<span class="chip">läuft</span>` : ""}<span class="muted small">${l.length} Tickets, <span class="data">${sum(l, (t) => t.est)}</span> Punkte, etwa <span class="data">${fmt(pd(sum(l, (t) => t.est)), 1)}</span> PD</span></div></div>
+        <div class="lane pj-lane" style="margin-bottom:12px"><div class="lane-head"><div class="row"><strong>${id === "offen" ? "Nicht vorgemerkt" : `Sprint <span class="data">${id}</span>`}</strong>${id !== "offen" && FS.sprint(id).state === "current" ? `<span class="chip">läuft</span>` : ""}<span class="muted small">${l.length} Tickets, <span class="data">${sum(l, (t) => t.est)}</span> Punkte, etwa <span class="data">${fmt(pd(sum(l, (t) => t.est)), 1)}</span> PT</span></div></div>
         <div class="lane-body">${l.map((t) => FS.ticketRow(t, { noProject: true })).join("")}</div></div>`).join("")
         : `<div class="banner info">${ic("info")}<div class="grow">Noch keine Tickets zugeordnet. Ohne ${D.team.tracker} ordnen Sie Tickets und Arbeitspunkte im Backlog von Hand zu.</div></div>`}</div>
     <div class="card pj-report" style="margin-top:24px"><div class="row"><h2 style="margin:0;flex:1">Bericht für die Projektleitung</h2><button class="btn primary" type="button" id="pj-export">${ic("ios_share")}Bericht exportieren</button></div>
-      <p style="margin:8px 0 12px">Stand ${FS.fmtDate(D.today)}: <span class="data">${fmt(st.used)}</span> von <span class="data">${fmt(p.contingentPD)}</span> PD verbraucht, weitere <span class="data">${fmt(st.plannedPD, 1)}</span> PD geplant (Schätzung). ${nextMs ? `Nächster Meilenstein "${esc(nextMs.name)}" am ${FS.fmtDate(nextMs.date)}, Ampel ${LIGHT_TXT[nextMs.light]}.` : ""}</p>
-      <div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">gebucht (PD)</th><th class="num">geplant (PD)</th><th class="num">erledigt (PD)</th><th>Verhältnis</th></tr></thead><tbody>
+      <p style="margin:8px 0 12px">Stand ${FS.fmtDate(D.today)}: <span class="data">${fmt(st.used)}</span> von <span class="data">${fmt(p.contingentPD)}</span> PT verbraucht, weitere <span class="data">${fmt(st.plannedPD, 1)}</span> PT geplant (Schätzung). ${nextMs ? `Nächster Meilenstein "${esc(nextMs.name)}" am ${FS.fmtDate(nextMs.date)}, Ampel ${LIGHT_TXT[nextMs.light]}.` : ""}</p>
+      <div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">gebucht (PT)</th><th class="num">geplant (PT)</th><th class="num">erledigt (PT)</th><th>Verhältnis</th></tr></thead><tbody>
         ${rep.map((r) => { const over = r.planned + r.done > r.booked + 0.05; return `<tr><td><span class="data">${r.s.id}</span> ${r.s.state === "current" ? `<span class="chip">läuft</span>` : ""}</td><td class="num">${fmt(r.booked, 1)}</td><td class="num">${fmt(r.planned, 1)}</td><td class="num">${fmt(r.done, 1)}</td>
-          <td>${r.booked + r.planned + r.done === 0 ? `<span class="muted">nichts</span>` : over ? `<span class="pf-over">${ic("warning")}${fmt(r.planned + r.done - r.booked, 1)} PD über gebucht</span>` : `<span class="muted">${fmt(r.booked - r.planned - r.done, 1)} PD frei</span>`}</td></tr>`; }).join("")}
+          <td>${r.booked + r.planned + r.done === 0 ? `<span class="muted">nichts</span>` : over ? `<span class="pf-over">${ic("warning")}${fmt(r.planned + r.done - r.booked, 1)} PT über gebucht</span>` : `<span class="muted">${fmt(r.booked - r.planned - r.done, 1)} PT frei</span>`}</td></tr>`; }).join("")}
         <tr class="sum"><td>Summe</td><td class="num">${fmt(sum(rep, (r) => r.booked), 1)}</td><td class="num">${fmt(sum(rep, (r) => r.planned), 1)}</td><td class="num">${fmt(sum(rep, (r) => r.done), 1)}</td><td></td></tr></tbody></table></div>
       <p class="small muted" style="margin:8px 0 0">${est} Gebucht je Sprint: halber Monatswert${months ? "" : " (ohne Monatsaufteilung gleichmäßig verteilt)"}. Geplant und erledigt: Punkte durch ${rateTxt()}. Bisher verbraucht (eingetragen) steht oben.</p></div>`;
   }
@@ -409,13 +409,13 @@
       <div class="pf-scroll" id="fp-chart">${chartSvg(whatIfAlt())}</div>
       <div class="pf-legend"><span><i class="pf-sw"></i>Velocity (Ist)</span><span><i class="pf-sw" style="border-top-color:var(--text-muted)"></i>Plan, Strich</span><span><i class="pf-sw fc"></i>Forecast PLAN mit Spanne niedrig bis hoch</span><span><i class="pf-sw wi"></i>Was wäre wenn</span></div></div>
     <div class="grid cols-2" style="margin-top:16px;align-items:start">
-      <div class="fp-table"><div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">Kapazität (PD)</th><th>Abwesenheiten</th><th class="num">Forecast PLAN (Pkt)</th><th class="num">Spanne (Pkt)</th><th></th></tr></thead><tbody>
+      <div class="fp-table"><div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">Kapazität (PT)</th><th>Abwesenheiten</th><th class="num">Forecast PLAN (Pkt)</th><th class="num">Spanne (Pkt)</th><th></th></tr></thead><tbody>
         ${fut.map((s) => `<tr><td><span class="data">${s.id}</span> <span class="small muted data">${FS.fmtDate(s.start).slice(0, 5)}.–${FS.fmtDate(s.end).slice(0, 5)}.</span></td><td class="num">${fmt(s.capacityPD)}</td><td>${absChip(s.absences)}</td><td class="num"><strong>${fmt(s.forecast)}</strong></td><td class="num">${s.low} bis ${s.high}</td><td>${calcBtn("fc", s.id)}</td></tr>`).join("")}
         <tr class="sum"><td>Summe 4 Sprints</td><td class="num">${fmt(sum(fut, (s) => s.capacityPD))}</td><td></td><td class="num">${fmt(sum(fut, (s) => s.forecast))}</td><td class="num">${sum(fut, (s) => s.low)} bis ${sum(fut, (s) => s.high)}</td><td></td></tr></tbody></table></div>
-        <p class="small muted" style="margin:8px 0 0">Forecast PLAN = Kapazität mal Rate (${rateTxt()} Pkt je PD). Die Spanne zeigt, wie stark die letzten Sprints gestreut haben. Ein Forecast ist eine Erwartung, keine Zusage.</p></div>
+        <p class="small muted" style="margin:8px 0 0">Forecast PLAN = Kapazität mal Rate (${rateTxt()} Pkt je PT). Die Spanne zeigt, wie stark die letzten Sprints gestreut haben. Ein Forecast ist eine Erwartung, keine Zusage.</p></div>
       <div class="card fp-whatif"><h2>Was wäre wenn</h2>
         <div class="stack"><div class="field"><label for="wi-sprint">Sprint</label><select class="input" id="wi-sprint"><option value="all">Alle vier Sprints</option>${fut.map((s) => `<option value="${s.id}" ${wi.sprint === s.id ? "selected" : ""}>${s.id}</option>`).join("")}</select></div>
-        <div class="field"><label for="wi-abs">Zusätzliche Abwesenheit je Sprint (PD): <span class="data" id="wi-abs-v">${wi.abs}</span></label><input class="pf-range" type="range" id="wi-abs" min="0" max="15" step="1" value="${wi.abs}"></div>
+        <div class="field"><label for="wi-abs">Zusätzliche Abwesenheit je Sprint (PT): <span class="data" id="wi-abs-v">${wi.abs}</span></label><input class="pf-range" type="range" id="wi-abs" min="0" max="15" step="1" value="${wi.abs}"></div>
         <div class="field"><label for="wi-focus">Fokus (Anteil der Zeit für Sprintarbeit): <span class="data" id="wi-focus-v">${wi.focus} %</span></label><input class="pf-range" type="range" id="wi-focus" min="70" max="100" step="5" value="${wi.focus}"></div>
         <div id="wi-result">${whatIfResult()}</div>
         <div class="row"><button class="btn primary" type="button" id="wi-save">${ic("bookmark_add")}als Prognose speichern</button><button class="btn ghost" type="button" id="wi-reset">Zurücksetzen</button></div>
@@ -427,7 +427,7 @@
     const alt = whatIfAlt(), ids = Object.keys(alt);
     if (!ids.length) return `<p class="small muted" style="margin:0">Ändern Sie Abwesenheit oder Fokus. Der Chart zeigt das Ergebnis in Violett neben dem Forecast PLAN. Nichts wird gespeichert, bis Sie "als Prognose speichern" wählen.</p>`;
     return `<div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">Kapazität</th><th class="num">Forecast neu</th><th class="num">Änderung</th></tr></thead><tbody>
-      ${ids.map((id) => { const s = FS.sprint(id), a = alt[id], d = a.fc - s.forecast; return `<tr><td class="data">${id}</td><td class="num">${fmt(a.cap, 1)} PD</td><td class="num">${fmt(a.fc, 1)}</td><td class="num">${d < 0 ? `<span class="pf-over">${ic("trending_down")}${fmt(d, 1)}</span>` : fmt(d, 1)}</td></tr>`; }).join("")}</tbody></table></div>`;
+      ${ids.map((id) => { const s = FS.sprint(id), a = alt[id], d = a.fc - s.forecast; return `<tr><td class="data">${id}</td><td class="num">${fmt(a.cap, 1)} PT</td><td class="num">${fmt(a.fc, 1)}</td><td class="num">${d < 0 ? `<span class="pf-over">${ic("trending_down")}${fmt(d, 1)}</span>` : fmt(d, 1)}</td></tr>`; }).join("")}</tbody></table></div>`;
   }
   function savedList() {
     return FS.state.prognosen.length ? `<div class="small muted">Gespeicherte Prognosen</div>${FS.state.prognosen.map((p) => `<div class="row small"><span class="chip fc">${ic("bookmark")}${esc(p.name)}</span><span class="muted">${esc(p.text)}</span></div>`).join("")}` : "";
@@ -479,7 +479,7 @@
 
   function reportsHtml() {
     const fut = D.sprints.filter((s) => s.forecast != null);
-    const md = `# Forecast ${D.team.name}, Stand ${FS.fmtDate(D.today)}\n\n| Sprint | Kapazität (PD) | Forecast PLAN | Spanne |\n| --- | --- | --- | --- |\n${fut.map((s) => `| ${s.id} | ${s.capacityPD} | ${s.forecast} | ${s.low} bis ${s.high} |`).join("\n")}\n\nRate: ${rateTxt()} Punkte je PD.\nProjekte: ${D.projects.map((p) => `${p.name} (${LIGHT_TXT[p.light]})`).join(", ")}.`;
+    const md = `# Forecast ${D.team.name}, Stand ${FS.fmtDate(D.today)}\n\n| Sprint | Kapazität (PT) | Forecast PLAN | Spanne |\n| --- | --- | --- | --- |\n${fut.map((s) => `| ${s.id} | ${s.capacityPD} | ${s.forecast} | ${s.low} bis ${s.high} |`).join("\n")}\n\nRate: ${rateTxt()} Punkte je PT.\nProjekte: ${D.projects.map((p) => `${p.name} (${LIGHT_TXT[p.light]})`).join(", ")}.`;
     return `<div class="grid cols-2" style="align-items:start">
       <div class="card"><div class="row"><h2 style="margin:0;flex:1">Excel-Arbeitsmappe</h2>${ic("table_chart")}</div><p class="muted">Forecast, Produkte im Verlauf und Projekte als Tabellenblätter.</p>
         <div class="stack"><label class="row"><input type="checkbox" checked> Forecast und Kapazität</label><label class="row"><input type="checkbox" checked> Produkte im Verlauf</label><label class="row"><input type="checkbox" checked> Projekte und Kontingent</label></div>
@@ -511,7 +511,7 @@
         q("#wi-reset").onclick = () => { Object.assign(wi, { sprint: "all", abs: 0, focus: 100 }); FS.render(); };
         q("#wi-save").onclick = () => {
           if (!Object.keys(whatIfAlt()).length) { FS.toast("Erst Abwesenheit oder Fokus ändern, dann als Prognose speichern."); return; }
-          const entry = { name: `Prognose ${String.fromCharCode(65 + FS.state.prognosen.length)}`, text: `${wi.sprint === "all" ? "alle Sprints" : wi.sprint}, ${wi.abs} PD weniger, Fokus ${wi.focus} %` };
+          const entry = { name: `Prognose ${String.fromCharCode(65 + FS.state.prognosen.length)}`, text: `${wi.sprint === "all" ? "alle Sprints" : wi.sprint}, ${wi.abs} PT weniger, Fokus ${wi.focus} %` };
           FS.state.prognosen.push(entry); q("#wi-saved").innerHTML = savedList();
           FS.toast(`${entry.name} gespeichert. Sie erscheint im Bericht und beim Planen.`, () => { FS.state.prognosen.pop(); q("#wi-saved").innerHTML = savedList(); });
         };
@@ -544,7 +544,7 @@
     summary: "Forecast mit Spanne ansehen, Annahmen durchspielen, ein Projekt prüfen und Zahlen exportieren.",
     steps: [
       { view: "forecast", before() { FS.state.fcTab = "forecast"; }, hl: ".fp-chart", text: "Der Forecast ist immer erreichbar. Der Chart zeigt die Velocity der letzten Sprints (durchgezogen) und den Forecast PLAN der kommenden vier Sprints mit Spanne (mint, gestrichelt)." },
-      { view: "forecast", hl: ".fp-table", text: "Die Tabelle nennt Kapazität in PD, Forecast PLAN und Spanne. Für 2026.23 und 2026.24 fehlen Abwesenheiten: Das ist nur ein Hinweis, die Seite bleibt benutzbar. Das Rechenweg-Symbol erklärt jede Zeile." },
+      { view: "forecast", hl: ".fp-table", text: "Die Tabelle nennt Kapazität in PT, Forecast PLAN und Spanne. Für 2026.23 und 2026.24 fehlen Abwesenheiten: Das ist nur ein Hinweis, die Seite bleibt benutzbar. Das Rechenweg-Symbol erklärt jede Zeile." },
       { view: "forecast", hl: ".fp-whatif", text: "Was wäre wenn: Ziehen Sie den Regler für Abwesenheit oder Fokus. Das Ergebnis erscheint im Chart in Violett. Gefällt es, speichern Sie es ausdrücklich als Prognose. Ohne Speichern bleibt der Forecast unverändert." },
       { view: "forecast", before() { FS.state.fcTab = "analyse"; FS.state.anProject = "ss2"; FS.state.anShare = null; }, hl: ".fp-analysis", text: "Analyse: Wählen Sie ein Projekt. Foresprint nennt den wahrscheinlichen Sprint mit Spanne und vergleicht ihn mit dem Projektende." },
       { view: "forecast", before() { FS.state.fcTab = "verlauf"; }, hl: ".fp-history", text: "Produkte im Verlauf: dieselben Stufen wie in der Sprintansicht, über mehrere Sprints und je PO gruppiert. Prüfen Sie, ob Budgets zur Abmachung passen." },
@@ -556,9 +556,9 @@
     id: "F8", title: "Mit Projekten vorbereiten und berichten",
     summary: "Projekt anlegen, Zeitachse und Kontingent prüfen, Konflikte erkennen, dem Projektleiter berichten.",
     steps: [
-      { view: "projects", before() { FS.closePanel(); }, hl: "#pf-new", text: "Neues Projekt anlegen: Name, Produkte, Ende, Meilensteine und Kontingent in PD. Das klappt ohne Tracker und offline. Probieren Sie den Knopf aus." },
+      { view: "projects", before() { FS.closePanel(); }, hl: "#pf-new", text: "Neues Projekt anlegen: Name, Produkte, Ende, Meilensteine und Kontingent in PT. Das klappt ohne Tracker und offline. Probieren Sie den Knopf aus." },
       { view: "projects", hl: ".pf-timeline", text: "Die Zeitachse zeigt die Laufzeit, Meilensteine mit Ampel (Symbol und Farbe) und die heutige Linie. Login-Umstellung ist gefährdet." },
-      { view: "projects", hl: ".pf-table", text: "Passt der Bedarf zu Budgets und Kontingenten, geht es direkt weiter in Sprint > Vorplanen. Das Kontingent steht in PD, Geplantes ist eine Schätzung. Tagesgeschäft hat je Produkt eine Zeile ohne Ampel." },
+      { view: "projects", hl: ".pf-table", text: "Passt der Bedarf zu Budgets und Kontingenten, geht es direkt weiter in Sprint > Vorplanen. Das Kontingent steht in PT, Geplantes ist eine Schätzung. Tagesgeschäft hat je Produkt eine Zeile ohne Ampel." },
       { view: "projects", hl: ".pf-conflict", text: "Passt es nicht, zeigt die Konfliktansicht Bedarf gegen Produktbudget und Kontingent. Das PO entscheidet: Tickets verschieben, Risiko akzeptieren oder mit der Projektleitung sprechen. Foresprint gibt nur Empfehlungen." },
       { view: "project", before() { FS.state.project = "ss2"; }, hl: ".pj-tickets", text: "Im Projekt stehen Meilensteine, Kontingent je Monat und die Tickets nach Sprint. Von hier aus verschieben Sie Tickets im Backlog oder in der Vorplanung." },
       { view: "project", hl: ".pj-report", text: "Der Bericht für die Projektleitung zeigt gebucht, geplant und erledigt je Sprint. Mit Bericht exportieren geben Sie ihn weiter." },
