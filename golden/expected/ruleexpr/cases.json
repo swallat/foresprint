@@ -1168,6 +1168,77 @@
    ]
   },
   {
+   "text": "label = İN",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "İN"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = İN",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "İN"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
    "text": "label IN (\"a b\", c) AND (status != Done OR epic = X)",
    "tree": {
     "op": "all",
@@ -4428,6 +4499,21 @@
    "text": "epic ~",
    "message": "Expected a value, found 'end'",
    "position": 6
+  },
+  {
+   "text": "epİc = x",
+   "message": "Unknown field 'epİc', did you mean 'epic'?",
+   "position": 0
+  },
+  {
+   "text": "{allowed} = x",
+   "message": "Unknown field '{allowed}' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+   "position": 0
+  },
+  {
+   "text": "label IN (a) OR NOT label İN (b)",
+   "message": "Expected =, !=, ~, !~, IN or NOT IN after 'label'",
+   "position": 26
   },
   {
    "text": "label = a b",
