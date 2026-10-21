@@ -23,6 +23,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/golden` | Loads the references of `../golden` and compares results with them. |
 | `internal/pyrand` | `random.Random` of Python (Mersenne Twister, seeding, `random()`, `getrandbits`, `choice`): the Monte Carlo draws are identical for the same seed. |
 | `internal/holidays` | Holidays and weekends of every country and region of the Python `holidays` library, from embedded data (see below). |
+| `internal/sources` | Ticket sources: CSV export of Jira, Jira Data Center client (REST v2, token from the environment or the keychain), field resolution, field suggestions, the one label write. Python-compatible CSV reader, float parsing and `difflib`; compared with `golden/expected/sources`. |
 | `cmd/foresprint` | The program. |
 
 ## Holiday data

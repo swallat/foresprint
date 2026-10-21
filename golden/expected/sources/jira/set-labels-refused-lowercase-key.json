@@ -1,0 +1,40 @@
+{
+ "operation": "set_labels",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [],
+ "args": {
+  "key": "abc-1",
+  "add": [
+   "planned_for_x"
+  ],
+  "remove": []
+ },
+ "requests": [
+  {
+   "method": "PUT",
+   "path": "/rest/api/2/issue/abc-1",
+   "query": {},
+   "authorization": true,
+   "body": {
+    "update": {
+     "labels": [
+      {
+       "add": "planned_for_x"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "error": "The ticket does not exist or is not visible to the account (404)"
+}

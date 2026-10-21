@@ -1,0 +1,27 @@
+{
+ "fields": {
+  "estimate": "Story Points",
+  "remaining": "Remaining",
+  "epic": "Epic Link"
+ },
+ "rule_fields": {},
+ "ok": [
+  {
+   "key": "A-1",
+   "title": "Two, lines in one cell",
+   "status": "Done",
+   "issue_type": null,
+   "priority": null,
+   "extra": {},
+   "estimate": 1234.5,
+   "remaining": 2.5,
+   "sprint_name": null,
+   "rank": null,
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  }
+ ]
+}

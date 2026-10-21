@@ -1,0 +1,27 @@
+{
+ "fields": {
+  "estimate": "Story Points",
+  "remaining": null,
+  "epic": null
+ },
+ "rule_fields": {},
+ "ok": [
+  {
+   "key": "A-1",
+   "title": "One",
+   "status": "Open",
+   "issue_type": null,
+   "priority": null,
+   "extra": {},
+   "estimate": 2.0,
+   "remaining": null,
+   "sprint_name": null,
+   "rank": null,
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  }
+ ]
+}
