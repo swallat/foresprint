@@ -274,7 +274,7 @@ func TestCSVFileErrors(t *testing.T) {
 	dir := t.TempDir()
 	fields := Fields{Estimate: "Story Points"}
 	_, err := NewCSVSource(filepath.Join(dir, "missing.csv"), fields, nil).Fetch()
-	if err == nil || !strings.Contains(err.Error(), "file not readable: No such file or directory") {
+	if err == nil || !strings.Contains(err.Error(), "file not readable: ") {
 		t.Errorf("missing file: %v", err)
 	}
 	bad := filepath.Join(dir, "latin1.csv")

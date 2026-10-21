@@ -204,3 +204,7 @@ func dedupe(items []string) []string {
 	}
 	return out
 }
+
+// IsSpace is Python's str.isspace for one character, for callers that must treat text the way the
+// Python code did.
+func IsSpace(r rune) bool { return pyIsSpace(r) }
