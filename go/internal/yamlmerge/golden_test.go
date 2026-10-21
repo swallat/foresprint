@@ -9,6 +9,7 @@ import (
 
 	"github.com/swallat/foresprint/internal/golden"
 	"github.com/swallat/foresprint/internal/yamlmerge"
+	"github.com/swallat/foresprint/internal/yamlx"
 )
 
 // decode turns the tagged JSON of golden/expected/yamlmerge into a value tree.
@@ -68,7 +69,7 @@ func decode(t *testing.T, raw json.RawMessage) any {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return yamlmerge.Date{Year: d.Year(), Month: d.Month(), Day: d.Day()}
+		return yamlx.Date(d)
 	case "datetime":
 		d, ok := yamlmerge.ParseISO(str())
 		if !ok {
@@ -78,7 +79,7 @@ func decode(t *testing.T, raw json.RawMessage) any {
 		if frac := fraction(str()); frac > 0 {
 			d.Time = d.Time.Add(time.Duration(frac) * time.Microsecond)
 		}
-		return d
+		return d.Value()
 	case "list":
 		var items []json.RawMessage
 		if err := json.Unmarshal(parts[1], &items); err != nil {
@@ -94,7 +95,7 @@ func decode(t *testing.T, raw json.RawMessage) any {
 		if err := json.Unmarshal(parts[1], &pairs); err != nil {
 			t.Fatal(err)
 		}
-		m := yamlmerge.NewMap()
+		m := &yamlx.Map{}
 		for _, p := range pairs {
 			m.Set(decode(t, p[0]), decode(t, p[1]))
 		}
@@ -132,22 +133,22 @@ func encode(v any) any {
 	case int64:
 		return []any{"int", strconv.FormatInt(x, 10)}
 	case float64:
-		return []any{"float", yamlmerge.PyFloat(x)}
+		return []any{"float", yamlx.PyFloatRepr(x)}
 	case string:
 		return []any{"str", x}
-	case yamlmerge.Date:
-		return []any{"date", x.String()}
-	case yamlmerge.DateTime:
-		return []any{"datetime", isoDateTime(x)}
+	case yamlx.Date:
+		return []any{"date", time.Time(x).Format("2006-01-02")}
+	case time.Time:
+		return []any{"datetime", isoDateTime(yamlmerge.FromTime(x))}
 	case []any:
 		items := make([]any, len(x))
 		for i, item := range x {
 			items[i] = encode(item)
 		}
 		return []any{"list", items}
-	case *yamlmerge.Map:
+	case *yamlx.Map:
 		pairs := make([]any, 0, x.Len())
-		for _, p := range x.Pairs() {
+		for _, p := range x.Entries {
 			pairs = append(pairs, []any{encode(p.Key), encode(p.Value)})
 		}
 		return []any{"map", pairs}

@@ -21,6 +21,7 @@ import (
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/pytext"
 	"github.com/swallat/foresprint/internal/yamlmerge"
+	"github.com/swallat/foresprint/internal/yamlx"
 )
 
 // stages returns the unmerged files with the stages present (1 = base, 2 = mine, 3 = theirs).
@@ -146,7 +147,7 @@ func parseTree(text string) (any, error) {
 		return nil, err
 	}
 	if tree == nil {
-		return yamlmerge.NewMap(), nil
+		return &yamlx.Map{}, nil
 	}
 	return tree, nil
 }
@@ -184,8 +185,8 @@ func analyse(ctx context.Context, root, file string, present map[int]bool, choic
 	if err != nil {
 		return whole, "", false
 	}
-	_, oursIsMap := ours.(*yamlmerge.Map)
-	_, theirsIsMap := theirs.(*yamlmerge.Map)
+	_, oursIsMap := ours.(*yamlx.Map)
+	_, theirsIsMap := theirs.(*yamlx.Map)
 	if !oursIsMap || !theirsIsMap {
 		return whole, "", false
 	}
