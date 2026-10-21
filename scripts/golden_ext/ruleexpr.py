@@ -151,13 +151,18 @@ def generate(ctx) -> None:
         else:
             invalid.append({"text": text, "ok": True})
     built = [
-        Rule(op="any", children=[Rule(source="epic", values=["A", "B"]),
-                                 Rule(source="label", values=["x"])], short=True),
+        Rule(
+            op="any",
+            children=[Rule(source="epic", values=["A", "B"]), Rule(source="label", values=["x"])],
+            short=True,
+        ),
         Rule(source="label", values=["a", "b"], contains=True),
         Rule(op="none", children=[Rule(source="label", values=["a", "b"], contains=True)]),
         Rule(op="none", children=[Rule(source="epic", values=["a", "b"])]),
-        Rule(op="none", children=[Rule(source="epic", values=["a"]),
-                                  Rule(source="label", values=["b"])]),
+        Rule(
+            op="none",
+            children=[Rule(source="epic", values=["a"]), Rule(source="label", values=["b"])],
+        ),
         Rule(op="all", children=[Rule(source="epic", values=["a"])]),
         Rule(source="label", values=["a b", "c\nd", 'q"uote', "back\\slash", "and"]),
     ]
@@ -165,7 +170,12 @@ def generate(ctx) -> None:
     ctx.write(
         "ruleexpr/cases.json",
         ctx.dump_json(
-            {"facts": FACTS, "valid": valid, "invalid": invalid, "formatted": formatted,
-             "format_none": format_rule(None)}  # fmt: skip
+            {
+                "facts": FACTS,
+                "valid": valid,
+                "invalid": invalid,
+                "formatted": formatted,
+                "format_none": format_rule(None),
+            }
         ),
     )
