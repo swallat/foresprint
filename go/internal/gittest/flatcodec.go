@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/swallat/foresprint/internal/yamlmerge"
+	"github.com/swallat/foresprint/internal/yamlx"
 )
 
 // FlatCodec reads and writes flat "key: value" files (numbers and text), enough for the tests of
@@ -14,7 +14,7 @@ type FlatCodec struct{}
 
 // Parse reads a flat mapping; an empty document gives nil.
 func (FlatCodec) Parse(text string) (any, error) {
-	m := yamlmerge.NewMap()
+	m := &yamlx.Map{}
 	for _, line := range strings.Split(text, "\n") {
 		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -42,7 +42,7 @@ func (FlatCodec) Parse(text string) (any, error) {
 
 // Dump writes a flat mapping.
 func (FlatCodec) Dump(tree any) (string, error) {
-	m, ok := tree.(*yamlmerge.Map)
+	m, ok := tree.(*yamlx.Map)
 	if !ok {
 		if tree == nil {
 			return "", nil
@@ -50,13 +50,13 @@ func (FlatCodec) Dump(tree any) (string, error) {
 		return "", errors.New("not a flat mapping")
 	}
 	var sb strings.Builder
-	for _, p := range m.Pairs() {
-		sb.WriteString(yamlmerge.Str(p.Key))
+	for _, p := range m.Entries {
+		sb.WriteString(yamlx.PyStr(p.Key))
 		if p.Value == nil {
 			sb.WriteString(":\n")
 			continue
 		}
-		sb.WriteString(": " + yamlmerge.Str(p.Value) + "\n")
+		sb.WriteString(": " + yamlx.PyStr(p.Value) + "\n")
 	}
 	return sb.String(), nil
 }

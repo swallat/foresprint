@@ -15,8 +15,10 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/swallat/foresprint/internal/pytext"
+	"github.com/swallat/foresprint/internal/yamlx"
 )
 
 type missingType struct{}
@@ -75,26 +77,26 @@ func (k KeyConflict) Label() string {
 
 // Keyed returns a list of objects with a unique `id` as a mapping from the id (as text) to the
 // object, or nil.
-func Keyed(items any) *Map {
+func Keyed(items any) *yamlx.Map {
 	list, ok := items.([]any)
 	if !ok || len(list) == 0 {
 		return nil
 	}
-	out := NewMap()
+	out := &yamlx.Map{}
 	for _, item := range list {
-		obj, ok := item.(*Map)
+		obj, ok := item.(*yamlx.Map)
 		if !ok {
 			return nil
 		}
-		id, ok := obj.Get("id")
+		id, ok := mapGet(obj, "id")
 		if !ok {
 			return nil
 		}
-		name := Str(id)
-		if out.Has(name) {
+		name := yamlx.PyStr(id)
+		if mapHas(out, name) {
 			return nil
 		}
-		out.Set(name, item)
+		mapSet(out, name, item)
 	}
 	return out
 }
@@ -126,13 +128,13 @@ func Same(a, b any) bool {
 		return aBool && bBool && ab == bb
 	}
 	switch x := a.(type) {
-	case *Map:
-		y, ok := b.(*Map)
+	case *yamlx.Map:
+		y, ok := b.(*yamlx.Map)
 		if !ok || x.Len() != y.Len() {
 			return false
 		}
-		for _, p := range x.pairs {
-			other, ok := y.Get(p.Key)
+		for _, p := range x.Entries {
+			other, ok := mapGet(y, p.Key)
 			if !ok || !Same(p.Value, other) {
 				return false
 			}
@@ -170,15 +172,15 @@ func Same(a, b any) bool {
 			return x == y || (math.IsNaN(x) && math.IsNaN(y)) // .nan is a value in YAML
 		}
 		return false
-	case Date:
-		y, ok := b.(Date)
-		return ok && x == y
-	case DateTime:
-		y, ok := b.(DateTime)
-		if !ok || x.Aware != y.Aware {
+	case yamlx.Date:
+		y, ok := b.(yamlx.Date)
+		return ok && time.Time(x).Equal(time.Time(y))
+	case time.Time:
+		y, ok := b.(time.Time)
+		if !ok || (x.Location() != time.UTC) != (y.Location() != time.UTC) {
 			return false
 		}
-		return x.Time.Equal(y.Time)
+		return x.Equal(y)
 	}
 	return false
 }
@@ -194,11 +196,11 @@ func (m *merger) merge(base, ours, theirs any, path Path) any {
 		return ours
 	}
 	// Both changed it, in different ways.
-	if o, ok := ours.(*Map); ok {
-		if t, ok := theirs.(*Map); ok {
-			b, ok := base.(*Map)
+	if o, ok := ours.(*yamlx.Map); ok {
+		if t, ok := theirs.(*yamlx.Map); ok {
+			b, ok := base.(*yamlx.Map)
 			if !ok {
-				b = NewMap()
+				b = &yamlx.Map{}
 			}
 			return m.mergeMaps(b, o, t, path, false)
 		}
@@ -212,16 +214,16 @@ func (m *merger) merge(base, ours, theirs any, path Path) any {
 	if keyedO != nil && keyedT != nil {
 		baseList, isList := base.([]any)
 		if IsMissing(base) || isList {
-			var keyedB *Map
+			var keyedB *yamlx.Map
 			if IsMissing(base) || len(baseList) == 0 {
-				keyedB = NewMap()
+				keyedB = &yamlx.Map{}
 			} else {
 				keyedB = Keyed(base)
 			}
 			if keyedB != nil {
 				merged := m.mergeMaps(keyedB, keyedO, keyedT, path, true)
 				values := make([]any, 0, merged.Len())
-				for _, p := range merged.pairs {
+				for _, p := range merged.Entries {
 					values = append(values, p.Value)
 				}
 				return values
@@ -238,30 +240,30 @@ func (m *merger) merge(base, ours, theirs any, path Path) any {
 	return ours
 }
 
-func (m *merger) mergeMaps(base, ours, theirs *Map, path Path, item bool) *Map {
-	keys := ours.Keys()
-	for _, k := range theirs.Keys() {
-		if !ours.Has(k) {
+func (m *merger) mergeMaps(base, ours, theirs *yamlx.Map, path Path, item bool) *yamlx.Map {
+	keys := mapKeys(ours)
+	for _, k := range mapKeys(theirs) {
+		if !mapHas(ours, k) {
 			keys = append(keys, k)
 		}
 	}
-	merged := NewMap()
+	merged := &yamlx.Map{}
 	for _, key := range keys {
-		name := Str(key)
+		name := yamlx.PyStr(key)
 		if item {
 			name = "[" + name + "]"
 		}
 		sub := append(append(Path(nil), path...), name)
 		value := m.merge(getOr(base, key), getOr(ours, key), getOr(theirs, key), sub)
 		if !IsMissing(value) {
-			merged.Set(key, value)
+			mapSet(merged, key, value)
 		}
 	}
 	return merged
 }
 
-func getOr(m *Map, key any) any {
-	if v, ok := m.Get(key); ok {
+func getOr(m *yamlx.Map, key any) any {
+	if v, ok := mapGet(m, key); ok {
 		return v
 	}
 	return Missing
@@ -270,7 +272,7 @@ func getOr(m *Map, key any) any {
 // stamped is a forecast entry with its timestamp.
 type stamped struct {
 	at   DateTime
-	item *Map
+	item *yamlx.Map
 }
 
 type stampIndex struct {
@@ -292,8 +294,8 @@ func stampOf(value any) (DateTime, bool) {
 			return DateTime{}, false
 		}
 		return truncateSecond(d), true
-	case DateTime:
-		return truncateSecond(v), true
+	case time.Time:
+		return truncateSecond(FromTime(v)), true
 	}
 	return DateTime{}, false
 }
@@ -327,11 +329,11 @@ func byStamp(items any) (*stampIndex, bool) {
 	}
 	idx := &stampIndex{entries: map[string]stamped{}}
 	for _, raw := range list {
-		item, ok := raw.(*Map)
+		item, ok := raw.(*yamlx.Map)
 		if !ok {
 			return nil, false
 		}
-		at, _ := item.Get("at")
+		at, _ := mapGet(item, "at")
 		stamp, ok := stampOf(at)
 		if !ok {
 			return nil, false
@@ -352,11 +354,11 @@ func content(e stamped, present bool) any {
 	if !present {
 		return Missing
 	}
-	out := NewMap()
-	for _, p := range e.item.pairs {
-		out.Set(p.Key, p.Value)
+	out := &yamlx.Map{}
+	for _, p := range e.item.Entries {
+		mapSet(out, p.Key, p.Value)
 	}
-	out.Set("at", stampKey(e.at))
+	mapSet(out, "at", stampKey(e.at))
 	return out
 }
 
