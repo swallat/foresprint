@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Velocity and capacity forecast for Scrum teams with Git as the data store."""
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 from foresprint.compat import adopt_legacy_environment
 
