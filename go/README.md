@@ -23,6 +23,11 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/golden` | Loads the references of `../golden` and compares results with them. |
 | `internal/pyrand` | `random.Random` of Python (Mersenne Twister, seeding, `random()`, `getrandbits`, `choice`): the Monte Carlo draws are identical for the same seed. |
 | `internal/holidays` | Holidays and weekends of every country and region of the Python `holidays` library, from embedded data (see below). |
+| `internal/i18n` | `i18n.T("English source text {name}", "name", value)`: the texts of the interface. German and other languages are catalogs (`Register`) that map the English text to its translation. |
+| `internal/pytext` | `str.splitlines` and other places where Python's text functions differ from Go's. |
+| `internal/yamlmerge` | Three-way merge of YAML value trees at key level (lists with `id`, forecasts by timestamp). Works on the tree of `value.go`, not on text. |
+| `internal/git` | The `git` program: finding it, calls with a time limit that can be aborted, recognising Git's messages (`Classify`, kinds, hints), checking server addresses, connection check, changes, commit, tags, create and clone a data repository. |
+| `internal/gittest` | Helpers for tests with real repositories (bare server, clones). Only imported by tests. |
 | `internal/pymath` | The arithmetic of Python the results depend on: the compensated `sum()` of floats (Python 3.12+), `math.fsum`, `statistics.median`/`fmean`, `round`, and the number formats `{:,.2f}` and `{:g}`. A sum that has to match Python is calculated with these, not with a loop. |
 | `internal/coretypes` | Settings, people and sprints as the calculation reads them (field names of the Python model). Moves to the complete model of the model-and-storage step by changing the import. |
 | `internal/calendar` | Sprint IDs and the following sprints, workweeks, workdays, holidays of a country and region (`calendar.py`). |

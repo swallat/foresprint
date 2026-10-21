@@ -1,0 +1,973 @@
+[
+ {
+  "in": "https://github.com/team/data.git",
+  "insecure": false,
+  "ok": {
+   "url": "https://github.com/team/data.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "https://github.com/team/data.git",
+  "insecure": true,
+  "ok": {
+   "url": "https://github.com/team/data.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "https://user:secret@github.com/team/data.git",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://user:secret@github.com/team/data.git",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://token@github.com/team/data.git",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://token@github.com/team/data.git",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://host/path?token=abc#frag",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://host/path?token=abc#frag",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "ssh://git@host.example:2222/team/data.git",
+  "insecure": false,
+  "ok": {
+   "url": "ssh://git@host.example:2222/team/data.git",
+   "kind": "ssh"
+  }
+ },
+ {
+  "in": "ssh://git@host.example:2222/team/data.git",
+  "insecure": true,
+  "ok": {
+   "url": "ssh://git@host.example:2222/team/data.git",
+   "kind": "ssh"
+  }
+ },
+ {
+  "in": "ssh://user:pw@host/team/data.git",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "ssh://user:pw@host/team/data.git",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "git@gitlab.example.com:team/data.git",
+  "insecure": false,
+  "ok": {
+   "url": "git@gitlab.example.com:team/data.git",
+   "kind": "ssh"
+  }
+ },
+ {
+  "in": "git@gitlab.example.com:team/data.git",
+  "insecure": true,
+  "ok": {
+   "url": "git@gitlab.example.com:team/data.git",
+   "kind": "ssh"
+  }
+ },
+ {
+  "in": "user:password@host:team/data.git",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "user:password@host:team/data.git",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "HTTPS://Host/Team/Data.git",
+  "insecure": false,
+  "ok": {
+   "url": "https://Host/Team/Data.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "HTTPS://Host/Team/Data.git",
+  "insecure": true,
+  "ok": {
+   "url": "https://Host/Team/Data.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "/srv/git/data.git",
+  "insecure": false,
+  "ok": {
+   "url": "/srv/git/data.git",
+   "kind": "local"
+  }
+ },
+ {
+  "in": "/srv/git/data.git",
+  "insecure": true,
+  "ok": {
+   "url": "/srv/git/data.git",
+   "kind": "local"
+  }
+ },
+ {
+  "in": "relative/path",
+  "insecure": false,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "relative/path",
+  "insecure": true,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "C:\\Users\\x\\data",
+  "insecure": false,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "C:\\Users\\x\\data",
+  "insecure": true,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "https://a@b@c/d",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://a@b@c/d",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "http://insecure.example/x.git",
+  "insecure": false,
+  "error": {
+   "message": "The address starts with http:// – data and login would be sent unencrypted. Better use https:// or explicitly confirm the unencrypted connection.",
+   "kind": "insecure_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address starts with http:// – data and login would be sent unencrypted. Better use https:// or explicitly confirm the unencrypted connection.",
+   "full": "The address starts with http:// – data and login would be sent unencrypted. Better use https:// or explicitly confirm the unencrypted connection."
+  }
+ },
+ {
+  "in": "http://insecure.example/x.git",
+  "insecure": true,
+  "ok": {
+   "url": "http://insecure.example/x.git",
+   "kind": "http"
+  }
+ },
+ {
+  "in": "git://host/x.git",
+  "insecure": false,
+  "error": {
+   "message": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "full": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths."
+  }
+ },
+ {
+  "in": "git://host/x.git",
+  "insecure": true,
+  "error": {
+   "message": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "full": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths."
+  }
+ },
+ {
+  "in": "file:///srv/git/x.git",
+  "insecure": false,
+  "error": {
+   "message": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "full": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths."
+  }
+ },
+ {
+  "in": "file:///srv/git/x.git",
+  "insecure": true,
+  "error": {
+   "message": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths.",
+   "full": "This protocol is not supported. Allowed are https://, ssh://, git@server:path and complete folder paths."
+  }
+ },
+ {
+  "in": "ext::sh -c touch% /tmp/x",
+  "insecure": false,
+  "error": {
+   "message": "Special transports (e.g. “ext::”) are not allowed.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "Special transports (e.g. “ext::”) are not allowed.",
+   "full": "Special transports (e.g. “ext::”) are not allowed."
+  }
+ },
+ {
+  "in": "ext::sh -c touch% /tmp/x",
+  "insecure": true,
+  "error": {
+   "message": "Special transports (e.g. “ext::”) are not allowed.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "Special transports (e.g. “ext::”) are not allowed.",
+   "full": "Special transports (e.g. “ext::”) are not allowed."
+  }
+ },
+ {
+  "in": "-oProxyCommand=evil",
+  "insecure": false,
+  "error": {
+   "message": "It must not start with “-”.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It must not start with “-”.",
+   "full": "It must not start with “-”."
+  }
+ },
+ {
+  "in": "-oProxyCommand=evil",
+  "insecure": true,
+  "error": {
+   "message": "It must not start with “-”.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It must not start with “-”.",
+   "full": "It must not start with “-”."
+  }
+ },
+ {
+  "in": "",
+  "insecure": false,
+  "error": {
+   "message": "Please enter an address.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "Please enter an address.",
+   "full": "Please enter an address."
+  }
+ },
+ {
+  "in": "",
+  "insecure": true,
+  "error": {
+   "message": "Please enter an address.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "Please enter an address.",
+   "full": "Please enter an address."
+  }
+ },
+ {
+  "in": "   ",
+  "insecure": false,
+  "error": {
+   "message": "Please enter an address.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "Please enter an address.",
+   "full": "Please enter an address."
+  }
+ },
+ {
+  "in": "   ",
+  "insecure": true,
+  "error": {
+   "message": "Please enter an address.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "Please enter an address.",
+   "full": "Please enter an address."
+  }
+ },
+ {
+  "in": "https://host",
+  "insecure": false,
+  "error": {
+   "message": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "full": "The path to the repository is missing, e.g. …/team/sprint-data.git."
+  }
+ },
+ {
+  "in": "https://host",
+  "insecure": true,
+  "error": {
+   "message": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "full": "The path to the repository is missing, e.g. …/team/sprint-data.git."
+  }
+ },
+ {
+  "in": "https://host/",
+  "insecure": false,
+  "error": {
+   "message": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "full": "The path to the repository is missing, e.g. …/team/sprint-data.git."
+  }
+ },
+ {
+  "in": "https://host/",
+  "insecure": true,
+  "error": {
+   "message": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The path to the repository is missing, e.g. …/team/sprint-data.git.",
+   "full": "The path to the repository is missing, e.g. …/team/sprint-data.git."
+  }
+ },
+ {
+  "in": "https://host:99999/x.git",
+  "insecure": false,
+  "error": {
+   "message": "The port number is invalid.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The port number is invalid.",
+   "full": "The port number is invalid."
+  }
+ },
+ {
+  "in": "https://host:99999/x.git",
+  "insecure": true,
+  "error": {
+   "message": "The port number is invalid.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The port number is invalid.",
+   "full": "The port number is invalid."
+  }
+ },
+ {
+  "in": "https://host:abc/x.git",
+  "insecure": false,
+  "error": {
+   "message": "The port number is invalid.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The port number is invalid.",
+   "full": "The port number is invalid."
+  }
+ },
+ {
+  "in": "https://host:abc/x.git",
+  "insecure": true,
+  "error": {
+   "message": "The port number is invalid.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The port number is invalid.",
+   "full": "The port number is invalid."
+  }
+ },
+ {
+  "in": "https://host:/x.git",
+  "insecure": false,
+  "error": {
+   "message": "The port number is invalid.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The port number is invalid.",
+   "full": "The port number is invalid."
+  }
+ },
+ {
+  "in": "https://host:/x.git",
+  "insecure": true,
+  "error": {
+   "message": "The port number is invalid.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The port number is invalid.",
+   "full": "The port number is invalid."
+  }
+ },
+ {
+  "in": "https://[::1]:8443/x.git",
+  "insecure": false,
+  "ok": {
+   "url": "https://[::1]:8443/x.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "https://[::1]:8443/x.git",
+  "insecure": true,
+  "ok": {
+   "url": "https://[::1]:8443/x.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "https://bad host/x.git",
+  "insecure": false,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "https://bad host/x.git",
+  "insecure": true,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "https://host/a b.git",
+  "insecure": false,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "https://host/a b.git",
+  "insecure": true,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "https://u:12/ss@host/x",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://u:12/ss@host/x",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "ssh://host/x.git",
+  "insecure": false,
+  "ok": {
+   "url": "ssh://host/x.git",
+   "kind": "ssh"
+  }
+ },
+ {
+  "in": "ssh://host/x.git",
+  "insecure": true,
+  "ok": {
+   "url": "ssh://host/x.git",
+   "kind": "ssh"
+  }
+ },
+ {
+  "in": "ssh://-bad@host/x.git",
+  "insecure": false,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "ssh://-bad@host/x.git",
+  "insecure": true,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "git@host:-bad",
+  "insecure": false,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "git@host:-bad",
+  "insecure": true,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "insecure": false,
+  "error": {
+   "message": "It is too long.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It is too long.",
+   "full": "It is too long."
+  }
+ },
+ {
+  "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "insecure": true,
+  "error": {
+   "message": "It is too long.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It is too long.",
+   "full": "It is too long."
+  }
+ },
+ {
+  "in": "https://host/‮x.git",
+  "insecure": false,
+  "error": {
+   "message": "It contains line breaks or control characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains line breaks or control characters.",
+   "full": "It contains line breaks or control characters."
+  }
+ },
+ {
+  "in": "https://host/‮x.git",
+  "insecure": true,
+  "error": {
+   "message": "It contains line breaks or control characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains line breaks or control characters.",
+   "full": "It contains line breaks or control characters."
+  }
+ },
+ {
+  "in": "https://host/x.git\n",
+  "insecure": false,
+  "ok": {
+   "url": "https://host/x.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "https://host/x.git\n",
+  "insecure": true,
+  "ok": {
+   "url": "https://host/x.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "  https://github.com/team/data.git  ",
+  "insecure": false,
+  "ok": {
+   "url": "https://github.com/team/data.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "  https://github.com/team/data.git  ",
+  "insecure": true,
+  "ok": {
+   "url": "https://github.com/team/data.git",
+   "kind": "https"
+  }
+ },
+ {
+  "in": "https://äöü.example/x.git",
+  "insecure": false,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "https://äöü.example/x.git",
+  "insecure": true,
+  "error": {
+   "message": "It contains spaces or invalid characters.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "It contains spaces or invalid characters.",
+   "full": "It contains spaces or invalid characters."
+  }
+ },
+ {
+  "in": "git@host:team/data.git extra",
+  "insecure": false,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "git@host:team/data.git extra",
+  "insecure": true,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "host.example:team/data.git",
+  "insecure": false,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "host.example:team/data.git",
+  "insecure": true,
+  "error": {
+   "message": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "kind": "bad_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path.",
+   "full": "The format is not recognised. Examples: https://server/team/data.git, git@server:team/data.git or a complete folder path."
+  }
+ },
+ {
+  "in": "https://www.example.com/a/b.git?x=1",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "https://www.example.com/a/b.git?x=1",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "ssh://git@host/x.git#frag",
+  "insecure": false,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ },
+ {
+  "in": "ssh://git@host/x.git#frag",
+  "insecure": true,
+  "error": {
+   "message": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "kind": "secret_in_url",
+   "hint": "",
+   "hint_md": "",
+   "raw": false,
+   "render_md": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”).",
+   "full": "The address contains a user name, a password, a token or parameters (everything from “?” or “#”). Please enter the plain address only, e.g. https://server/team/data.git; the login service of the computer handles the login, and if it is missing the app explains the next step (see Help, “Login”)."
+  }
+ }
+]
