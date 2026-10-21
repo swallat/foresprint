@@ -1,0 +1,12 @@
+# Pre-planning of the PO: earmarks (ticket → future sprint) and own estimates for tickets.
+schema: 1
+earmarks:
+- ticket: T-3
+  sprint: '2026.10'
+  note: pull forward
+estimates:
+- ticket: T-6
+  estimate: 6
+- ticket: T-13
+  estimate: 3
+  note: from refinement

@@ -1,0 +1,15 @@
+{
+ "team": [
+  {
+   "level": "Notice",
+   "where": "projects.yaml: gamma",
+   "message": "target is missing: the project is distributed last and has no deadline to miss"
+  },
+  {
+   "level": "Error",
+   "where": "tickets.yaml",
+   "message": "Circular dependencies: T-10 → T-11 → T-10"
+  }
+ ],
+ "files": []
+}

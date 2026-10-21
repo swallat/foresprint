@@ -1,0 +1,982 @@
+# Tickets as last imported from the tracker. Written by the import – do not edit by hand.
+schema: 1
+imported: 2026-10-14 08:30:00
+source: golden-import.csv
+tickets:
+- key: T-1
+  title: Ticket T-1
+  status: null
+  issue_type: null
+  estimate: 5
+  priority: High
+  estimate_source: refined
+  rank: 0|a
+  epic: A-1
+  labels: []
+  components: []
+  depends_on: []
+  project: alpha
+- key: T-2
+  title: Ticket T-2
+  status: null
+  issue_type: null
+  estimate: 8
+  priority: Medium
+  estimate_source: refined
+  rank: 0|b
+  epic: A-1
+  labels: []
+  components: []
+  depends_on:
+  - T-1
+  project: alpha
+- key: T-3
+  title: Ticket T-3
+  status: null
+  issue_type: null
+  estimate: 13
+  priority: Low
+  estimate_source: refined
+  rank: 0|c
+  epic: A-1
+  labels: []
+  components: []
+  depends_on: []
+  project: alpha
+- key: T-4
+  title: Ticket T-4
+  status: null
+  issue_type: null
+  estimate: 3
+  priority: Highest
+  estimate_source: refined
+  rank: 0|d
+  epic: null
+  labels:
+  - beta
+  components: []
+  depends_on: []
+  project: beta
+- key: T-5
+  title: Ticket T-5
+  status: null
+  issue_type: null
+  estimate: 40
+  estimate_source: refined
+  rank: 0|e
+  epic: null
+  labels:
+  - beta
+  components: []
+  depends_on: []
+  project: beta
+- key: T-6
+  title: Ticket T-6
+  status: null
+  issue_type: null
+  estimate: null
+  estimate_source: none
+  rank: 0|f
+  epic: null
+  labels:
+  - beta
+  components: []
+  depends_on: []
+  project: beta
+- key: T-7
+  title: Ticket T-7
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  in_sprint: '2026.9'
+  rank: 0|g
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: T-8
+  title: Ticket T-8
+  status: null
+  issue_type: null
+  estimate: 2
+  remaining: 1
+  estimate_source: refined
+  rank: 0|h
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: T-9
+  title: Ticket T-9
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: rough
+  rank: 0|i
+  epic: null
+  labels:
+  - beta
+  components: []
+  depends_on: []
+  project: beta
+- key: T-10
+  title: Ticket T-10
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  rank: 0|j
+  epic: A-1
+  labels: []
+  components: []
+  depends_on:
+  - T-11
+  project: alpha
+- key: T-11
+  title: Ticket T-11
+  status: null
+  issue_type: null
+  estimate: 5
+  estimate_source: refined
+  rank: 0|k
+  epic: A-1
+  labels: []
+  components: []
+  depends_on:
+  - T-10
+  project: alpha
+- key: T-12
+  title: Ticket T-12
+  status: null
+  issue_type: null
+  estimate: 4
+  estimate_source: refined
+  rank: 0|l
+  epic: A-1
+  labels: []
+  components: []
+  depends_on:
+  - T-13
+  - T-5
+  project: alpha
+- key: T-13
+  title: Ticket T-13
+  status: null
+  issue_type: null
+  estimate: null
+  estimate_source: none
+  rank: 0|m
+  epic: A-1
+  labels: []
+  components: []
+  depends_on: []
+  project: alpha
+- key: T-14
+  title: Ticket T-14
+  status: null
+  issue_type: null
+  estimate: 2
+  estimate_source: refined
+  rank: 0|n
+  epic: Z-9
+  labels: []
+  components: []
+  depends_on: []
+- key: T-15
+  title: Ticket T-15
+  status: null
+  issue_type: null
+  estimate: 3
+  estimate_source: refined
+  rank: 0|o
+  epic: A-1
+  labels: []
+  components: []
+  depends_on: []
+  project: alpha
+  done: true
+- key: F-1
+  title: Ticket F-1
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|01
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-2
+  title: Ticket F-2
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|02
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-3
+  title: Ticket F-3
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|03
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-4
+  title: Ticket F-4
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|04
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-5
+  title: Ticket F-5
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|05
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-6
+  title: Ticket F-6
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|06
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-7
+  title: Ticket F-7
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|07
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-8
+  title: Ticket F-8
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|08
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-9
+  title: Ticket F-9
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|09
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-10
+  title: Ticket F-10
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|10
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-11
+  title: Ticket F-11
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|11
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-12
+  title: Ticket F-12
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|12
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-13
+  title: Ticket F-13
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|13
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-14
+  title: Ticket F-14
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|14
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-15
+  title: Ticket F-15
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|15
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-16
+  title: Ticket F-16
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|16
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-17
+  title: Ticket F-17
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|17
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-18
+  title: Ticket F-18
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|18
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-19
+  title: Ticket F-19
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|19
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-20
+  title: Ticket F-20
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|20
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-21
+  title: Ticket F-21
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|21
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-22
+  title: Ticket F-22
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|22
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-23
+  title: Ticket F-23
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|23
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-24
+  title: Ticket F-24
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|24
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-25
+  title: Ticket F-25
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|25
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-26
+  title: Ticket F-26
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|26
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-27
+  title: Ticket F-27
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|27
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-28
+  title: Ticket F-28
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|28
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-29
+  title: Ticket F-29
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|29
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-30
+  title: Ticket F-30
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|30
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-31
+  title: Ticket F-31
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|31
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-32
+  title: Ticket F-32
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|32
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-33
+  title: Ticket F-33
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|33
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-34
+  title: Ticket F-34
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|34
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-35
+  title: Ticket F-35
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|35
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-36
+  title: Ticket F-36
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|36
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-37
+  title: Ticket F-37
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|37
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-38
+  title: Ticket F-38
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|38
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-39
+  title: Ticket F-39
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|39
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-40
+  title: Ticket F-40
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|40
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-41
+  title: Ticket F-41
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|41
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-42
+  title: Ticket F-42
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|42
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-43
+  title: Ticket F-43
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|43
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-44
+  title: Ticket F-44
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|44
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-45
+  title: Ticket F-45
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|45
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-46
+  title: Ticket F-46
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|46
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-47
+  title: Ticket F-47
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|47
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-48
+  title: Ticket F-48
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|48
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-49
+  title: Ticket F-49
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|49
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-50
+  title: Ticket F-50
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|50
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-51
+  title: Ticket F-51
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|51
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-52
+  title: Ticket F-52
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|52
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-53
+  title: Ticket F-53
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|53
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-54
+  title: Ticket F-54
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|54
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-55
+  title: Ticket F-55
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|55
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-56
+  title: Ticket F-56
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|56
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-57
+  title: Ticket F-57
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|57
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-58
+  title: Ticket F-58
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|58
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-59
+  title: Ticket F-59
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|59
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma
+- key: F-60
+  title: Ticket F-60
+  status: null
+  issue_type: null
+  estimate: 8
+  estimate_source: refined
+  rank: 1|60
+  epic: null
+  labels: []
+  components:
+  - api
+  depends_on: []
+  project: gamma

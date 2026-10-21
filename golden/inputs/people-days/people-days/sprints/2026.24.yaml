@@ -1,0 +1,12 @@
+# Sprint 2026.24. Explanations of all fields: `foresprint help fields`
+id: '2026.24'
+start: 2026-11-18
+end: 2026-12-02
+absences:
+  anna: 3
+  ben: 1.5
+  cem: 2
+capacity: null
+forecast_ist: 30
+velocity: null
+scope_creep: null

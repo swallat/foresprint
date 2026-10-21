@@ -1,0 +1,10 @@
+{
+ "team": [
+  {
+   "level": "Notice",
+   "where": "projects.yaml: migr",
+   "message": "target is missing: the project is distributed last and has no deadline to miss"
+  }
+ ],
+ "files": []
+}
