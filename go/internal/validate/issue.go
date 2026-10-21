@@ -3,7 +3,11 @@
 // assignment language and the circular dependencies of tickets.
 package validate
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/swallat/foresprint/internal/i18n"
+)
 
 // Level of a finding.
 type Level string
@@ -23,7 +27,7 @@ type Issue struct {
 
 // Translate turns an English message into the language of the user. Wire it to the text
 // catalog; placeholders are {name}, filled from pairs of name and value.
-var Translate = func(text string) string { return text }
+var Translate = func(text string) string { return i18n.T(text) }
 
 func msg(text string, pairs ...string) string {
 	text = Translate(text)
