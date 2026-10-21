@@ -11,8 +11,8 @@ def test_no_changes_gives_none():
 
 
 def test_single_value_names_old_and_new(english):
-    fc = FileChange("kac/people.yaml", " M", (ValueChange(("people", "[ben]", "fte"), 0.5, 0.8),))
-    assert suggest_message([fc]) == "Update people.[ben].fte in kac/people.yaml: 0.5 → 0.8"
+    fc = FileChange("demo/people.yaml", " M", (ValueChange(("people", "[ben]", "fte"), 0.5, 0.8),))
+    assert suggest_message([fc]) == "Update people.[ben].fte in demo/people.yaml: 0.5 → 0.8"
 
 
 def test_added_and_removed_value(english):
