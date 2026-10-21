@@ -73,6 +73,14 @@
    "yaml": "yaml/tickets-products.json"
   },
   {
+   "name": "products-edge",
+   "root": "golden/inputs/products-edge",
+   "team": "products-edge",
+   "today": "2026-06-24",
+   "description": "Product distribution: roadmap basis, fixed and even shares, frozen plans, periods, production access, missing done value, product values for unknown IDs.",
+   "yaml": "yaml/products-edge.json"
+  },
+  {
    "name": "yaml-messy",
    "root": "golden/inputs/yaml-messy",
    "team": "messy",

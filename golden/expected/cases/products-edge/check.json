@@ -1,0 +1,60 @@
+{
+ "team": [
+  {
+   "level": "Error",
+   "where": "sprints/2026.1.yaml",
+   "message": "values for unknown product 'aa'"
+  },
+  {
+   "level": "Error",
+   "where": "sprints/2026.1.yaml",
+   "message": "values for unknown product 'zz'"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.3.yaml",
+   "message": "according to the product list, product 'new' is not handled in this sprint"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.3.yaml",
+   "message": "Product 'web': production access (30) is larger than the total (11)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.4.yaml",
+   "message": "according to the product list, product 'new' is not handled in this sprint"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.7.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.7.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.8.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.8.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.9.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.9.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  }
+ ],
+ "files": []
+}

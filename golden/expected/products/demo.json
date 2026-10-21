@@ -1,0 +1,2537 @@
+{
+ "distributions": [
+  {
+   "sprint": "2026.1",
+   "plan": 11.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.0,
+   "current_plan": 11.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.6666666666666665,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.6666666666666665,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.6666666666666665,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.333333333333333,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.6666666666666665,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.2",
+   "plan": 11.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.2,
+   "current_plan": 11.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.2,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.466666666666666,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.733333333333333,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.3",
+   "plan": 11.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.5,
+   "current_plan": 11.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.8333333333333335,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.8333333333333335,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.8333333333333335,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.5,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.666666666666667,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.8333333333333335,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.4",
+   "plan": 14.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 14.2,
+   "current_plan": 14.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 14.2,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 9.466666666666667,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.733333333333333,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.5",
+   "plan": 11.7,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.7,
+   "current_plan": 11.7,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.9,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.9,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.9,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.7,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.8,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.9,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.6",
+   "plan": 15.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 15.0,
+   "current_plan": 15.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 5.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 5.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 5.0,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 15.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 10.0,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 5.0,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.7",
+   "plan": 7.7,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 7.7,
+   "current_plan": 7.7,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 2.566666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 2.566666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 2.566666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 7.700000000000001,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 5.133333333333334,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 2.566666666666667,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.8",
+   "plan": 15.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 15.2,
+   "current_plan": 15.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 5.066666666666666,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 5.066666666666666,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 5.066666666666666,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 15.2,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 10.133333333333333,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 5.066666666666666,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.9",
+   "plan": 11.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.0,
+   "current_plan": 11.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.6666666666666665,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.6666666666666665,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.6666666666666665,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.333333333333333,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.6666666666666665,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.10",
+   "plan": 10.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 10.0,
+   "current_plan": 10.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.3333333333333335,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.3333333333333335,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.3333333333333335,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 10.0,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 6.666666666666667,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.3333333333333335,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.11",
+   "plan": 14.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 14.2,
+   "current_plan": 14.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.733333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 14.2,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 9.466666666666667,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.733333333333333,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.12",
+   "plan": 11.7,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.7,
+   "current_plan": 11.7,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.9,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.9,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.9,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.7,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.8,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.9,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.13",
+   "plan": 13.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 13.5,
+   "current_plan": 13.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.5,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 13.5,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 9.0,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.5,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.14",
+   "plan": 13.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 13.2,
+   "current_plan": 13.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.3999999999999995,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.3999999999999995,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.3999999999999995,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 13.2,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 8.799999999999999,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.3999999999999995,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.15",
+   "plan": 14.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 14.5,
+   "current_plan": 14.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.833333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.833333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.833333333333333,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 14.5,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 9.666666666666666,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.833333333333333,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.16",
+   "plan": 13.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 13.2,
+   "current_plan": 13.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.3999999999999995,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.3999999999999995,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.3999999999999995,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 13.2,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 8.799999999999999,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.3999999999999995,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.17",
+   "plan": 12.7,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 12.7,
+   "current_plan": 12.7,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.233333333333333,
+     "preplanned": 5.0,
+     "planned": 5.0,
+     "done": 4.5,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.233333333333333,
+     "preplanned": 4.0,
+     "planned": 4.75,
+     "done": 4.5,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.233333333333333,
+     "preplanned": 3.0,
+     "planned": 3.0,
+     "done": 2.5,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 12.7,
+    "preplanned": 12.0,
+    "planned": 12.75,
+    "done": 11.5,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": true,
+    "planned": true,
+    "done": true,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 8.466666666666667,
+      "preplanned": 9.0,
+      "planned": 9.75,
+      "done": 9.0
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.233333333333333,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": 2.5
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.18",
+   "plan": 10.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 10.0,
+   "current_plan": 10.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 4,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 2.5,
+     "preplanned": 3.0,
+     "planned": 3.0,
+     "done": 3.5,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 2.5,
+     "preplanned": 3.0,
+     "planned": 2.5,
+     "done": 3.0,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "portal",
+     "name": "Kundenportal",
+     "po": "Bea",
+     "active": true,
+     "standard": 2.5,
+     "preplanned": 2.0,
+     "planned": 2.5,
+     "done": 2.0,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "altsystem",
+     "name": "Altsystem",
+     "po": "Bea",
+     "active": true,
+     "standard": 2.5,
+     "preplanned": 2.0,
+     "planned": 2.0,
+     "done": 2.0,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 10.0,
+    "preplanned": 10.0,
+    "planned": 10.0,
+    "done": 10.5,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": true,
+    "planned": true,
+    "done": true,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 5.0,
+      "preplanned": 6.0,
+      "planned": 5.5,
+      "done": 6.5
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 5.0,
+      "preplanned": 4.0,
+      "planned": 4.5,
+      "done": 4.0
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.19",
+   "plan": 11.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.5,
+   "current_plan": 11.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.8333333333333335,
+     "preplanned": 4.0,
+     "planned": 4.0,
+     "done": 4.5,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.8333333333333335,
+     "preplanned": 4.0,
+     "planned": 4.0,
+     "done": 4.25,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "portal",
+     "name": "Kundenportal",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.8333333333333335,
+     "preplanned": 4.0,
+     "planned": 3.5,
+     "done": 4.0,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.5,
+    "preplanned": 12.0,
+    "planned": 11.5,
+    "done": 12.75,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": true,
+    "planned": true,
+    "done": true,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.666666666666667,
+      "preplanned": 8.0,
+      "planned": 8.0,
+      "done": 8.75
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.8333333333333335,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 4.0
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.20",
+   "plan": 12.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 12.0,
+   "current_plan": 12.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.0,
+     "preplanned": 4.0,
+     "planned": 4.5,
+     "done": 4.0,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 4.0,
+     "preplanned": 4.0,
+     "planned": 4.0,
+     "done": 3.0,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "portal",
+     "name": "Kundenportal",
+     "po": "Bea",
+     "active": true,
+     "standard": 4.0,
+     "preplanned": 4.0,
+     "planned": 3.5,
+     "done": 2.75,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 12.0,
+    "preplanned": 12.0,
+    "planned": 12.0,
+    "done": 9.75,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": true,
+    "planned": true,
+    "done": true,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 8.0,
+      "preplanned": 8.0,
+      "planned": 8.5,
+      "done": 7.0
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 4.0,
+      "preplanned": 4.0,
+      "planned": 3.5,
+      "done": 2.75
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.21",
+   "plan": 9.5,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 9.5,
+   "current_plan": 9.5,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.1666666666666665,
+     "preplanned": 3.5,
+     "planned": 4.0,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.1666666666666665,
+     "preplanned": 3.0,
+     "planned": 3.0,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "portal",
+     "name": "Kundenportal",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.1666666666666665,
+     "preplanned": 3.0,
+     "planned": 3.0,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 9.5,
+    "preplanned": 9.5,
+    "planned": 10.0,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": true,
+    "planned": true,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 6.333333333333333,
+      "preplanned": 6.5,
+      "planned": 7.0,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.1666666666666665,
+      "preplanned": 3.0,
+      "planned": 3.0,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.22",
+   "plan": 11.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.2,
+   "current_plan": 11.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.733333333333333,
+     "preplanned": 3.0,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.733333333333333,
+     "preplanned": 3.0,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "portal",
+     "name": "Kundenportal",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.733333333333333,
+     "preplanned": 4.0,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.2,
+    "preplanned": 10.0,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": true,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.466666666666666,
+      "preplanned": 6.0,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.733333333333333,
+      "preplanned": 4.0,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.23",
+   "plan": 11.3,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.3,
+   "current_plan": 11.3,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.766666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.766666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "portal",
+     "name": "Kundenportal",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.766666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.3,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.533333333333334,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.766666666666667,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  },
+  {
+   "sprint": "2026.24",
+   "plan": 11.3,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 11.3,
+   "current_plan": 11.3,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 3,
+   "rows": [
+    {
+     "product": "webshop",
+     "name": "Webshop",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.766666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "app",
+     "name": "Mobile App",
+     "po": "Alex",
+     "active": true,
+     "standard": 3.766666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    },
+    {
+     "product": "portal",
+     "name": "Kundenportal",
+     "po": "Bea",
+     "active": true,
+     "standard": 3.766666666666667,
+     "preplanned": null,
+     "planned": null,
+     "done": null,
+     "production_planned": null,
+     "production_done": null
+    }
+   ],
+   "totals": {
+    "standard": 11.3,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": true,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": [
+    {
+     "po": "Alex",
+     "totals": {
+      "standard": 7.533333333333334,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    },
+    {
+     "po": "Bea",
+     "totals": {
+      "standard": 3.766666666666667,
+      "preplanned": null,
+      "planned": null,
+      "done": null
+     }
+    }
+   ]
+  }
+ ],
+ "plan_views": [
+  {
+   "sprint": "2026.1",
+   "current": 11.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.2",
+   "current": 11.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.3",
+   "current": 11.5,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.4",
+   "current": 14.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.5",
+   "current": 11.7,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.6",
+   "current": 15.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.7",
+   "current": 7.7,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.8",
+   "current": 15.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.9",
+   "current": 11.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.10",
+   "current": 10.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.11",
+   "current": 14.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.12",
+   "current": 11.7,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.13",
+   "current": 13.5,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.14",
+   "current": 13.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.15",
+   "current": 14.5,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.16",
+   "current": 13.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.17",
+   "current": 12.7,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.18",
+   "current": 10.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.19",
+   "current": 11.5,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.20",
+   "current": 12.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.21",
+   "current": 9.5,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.22",
+   "current": 11.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.23",
+   "current": 11.3,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.24",
+   "current": 11.3,
+   "frozen": null,
+   "difference": null
+  }
+ ],
+ "sprint_products": [
+  {
+   "sprint": "2026.1",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.2",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.3",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.4",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.5",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.6",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.7",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.8",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.9",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.10",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.11",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.12",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.13",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.14",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.15",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.16",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.17",
+   "products": [
+    "webshop",
+    "app",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.18",
+   "products": [
+    "webshop",
+    "app",
+    "portal",
+    "altsystem"
+   ]
+  },
+  {
+   "sprint": "2026.19",
+   "products": [
+    "webshop",
+    "app",
+    "portal"
+   ]
+  },
+  {
+   "sprint": "2026.20",
+   "products": [
+    "webshop",
+    "app",
+    "portal"
+   ]
+  },
+  {
+   "sprint": "2026.21",
+   "products": [
+    "webshop",
+    "app",
+    "portal"
+   ]
+  },
+  {
+   "sprint": "2026.22",
+   "products": [
+    "webshop",
+    "app",
+    "portal"
+   ]
+  },
+  {
+   "sprint": "2026.23",
+   "products": [
+    "webshop",
+    "app",
+    "portal"
+   ]
+  },
+  {
+   "sprint": "2026.24",
+   "products": [
+    "webshop",
+    "app",
+    "portal"
+   ]
+  }
+ ],
+ "balance": [
+  {
+   "product": "webshop",
+   "sprints": 4,
+   "standard": 14.566666666666666,
+   "done": 16.5,
+   "missing": 0,
+   "difference": 1.9333333333333336
+  },
+  {
+   "product": "app",
+   "sprints": 4,
+   "standard": 14.566666666666666,
+   "done": 14.75,
+   "missing": 0,
+   "difference": 0.18333333333333357
+  },
+  {
+   "product": "portal",
+   "sprints": 3,
+   "standard": 10.333333333333334,
+   "done": 8.75,
+   "missing": 0,
+   "difference": -1.583333333333334
+  },
+  {
+   "product": "altsystem",
+   "sprints": 2,
+   "standard": 6.733333333333333,
+   "done": 4.5,
+   "missing": 0,
+   "difference": -2.2333333333333334
+  }
+ ],
+ "balance_last3": [
+  {
+   "product": "webshop",
+   "sprints": 3,
+   "standard": 10.333333333333334,
+   "done": 12.0,
+   "missing": 0,
+   "difference": 1.666666666666666
+  },
+  {
+   "product": "app",
+   "sprints": 3,
+   "standard": 10.333333333333334,
+   "done": 10.25,
+   "missing": 0,
+   "difference": -0.08333333333333393
+  },
+  {
+   "product": "portal",
+   "sprints": 3,
+   "standard": 10.333333333333334,
+   "done": 8.75,
+   "missing": 0,
+   "difference": -1.583333333333334
+  },
+  {
+   "product": "altsystem",
+   "sprints": 1,
+   "standard": 2.5,
+   "done": 2.0,
+   "missing": 0,
+   "difference": -0.5
+  }
+ ]
+}

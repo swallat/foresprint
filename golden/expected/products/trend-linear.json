@@ -1,0 +1,724 @@
+{
+ "distributions": [
+  {
+   "sprint": "2026.1",
+   "plan": 32.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 32.0,
+   "current_plan": 32.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.2",
+   "plan": 35.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 35.0,
+   "current_plan": 35.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.3",
+   "plan": 33.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 33.0,
+   "current_plan": 33.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.4",
+   "plan": 36.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 36.0,
+   "current_plan": 36.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.5",
+   "plan": 30.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 30.0,
+   "current_plan": 30.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.6",
+   "plan": 34.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 34.0,
+   "current_plan": 34.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.7",
+   "plan": 38.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 38.0,
+   "current_plan": 38.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.8",
+   "plan": 35.7,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 35.7,
+   "current_plan": 35.7,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.9",
+   "plan": 36.3,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 36.3,
+   "current_plan": 36.3,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.10",
+   "plan": 36.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 36.0,
+   "current_plan": 36.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.11",
+   "plan": 37.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 37.0,
+   "current_plan": 37.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.12",
+   "plan": 35.9,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 35.9,
+   "current_plan": 35.9,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.13",
+   "plan": 40.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 40.0,
+   "current_plan": 40.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.14",
+   "plan": 42.2,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 42.2,
+   "current_plan": 42.2,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.15",
+   "plan": 44.4,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 44.4,
+   "current_plan": 44.4,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.16",
+   "plan": 46.7,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 46.7,
+   "current_plan": 46.7,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  },
+  {
+   "sprint": "2026.17",
+   "plan": 49.0,
+   "plan_frozen": false,
+   "basis": "plan",
+   "available": 49.0,
+   "current_plan": 49.0,
+   "production_share": null,
+   "production_available": null,
+   "production_configured": false,
+   "production_state": "unconfigured",
+   "production_overload": null,
+   "active_count": 0,
+   "rows": [],
+   "totals": {
+    "standard": null,
+    "preplanned": null,
+    "planned": null,
+    "done": null,
+    "production_planned": null,
+    "production_done": null
+   },
+   "has": {
+    "standard": false,
+    "preplanned": false,
+    "planned": false,
+    "done": false,
+    "production_planned": false,
+    "production_done": false
+   },
+   "by_po": []
+  }
+ ],
+ "plan_views": [
+  {
+   "sprint": "2026.1",
+   "current": 32.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.2",
+   "current": 35.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.3",
+   "current": 33.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.4",
+   "current": 36.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.5",
+   "current": 30.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.6",
+   "current": 34.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.7",
+   "current": 38.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.8",
+   "current": 35.7,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.9",
+   "current": 36.3,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.10",
+   "current": 36.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.11",
+   "current": 37.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.12",
+   "current": 35.9,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.13",
+   "current": 40.0,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.14",
+   "current": 42.2,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.15",
+   "current": 44.4,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.16",
+   "current": 46.7,
+   "frozen": null,
+   "difference": null
+  },
+  {
+   "sprint": "2026.17",
+   "current": 49.0,
+   "frozen": null,
+   "difference": null
+  }
+ ],
+ "sprint_products": [
+  {
+   "sprint": "2026.1",
+   "products": []
+  },
+  {
+   "sprint": "2026.2",
+   "products": []
+  },
+  {
+   "sprint": "2026.3",
+   "products": []
+  },
+  {
+   "sprint": "2026.4",
+   "products": []
+  },
+  {
+   "sprint": "2026.5",
+   "products": []
+  },
+  {
+   "sprint": "2026.6",
+   "products": []
+  },
+  {
+   "sprint": "2026.7",
+   "products": []
+  },
+  {
+   "sprint": "2026.8",
+   "products": []
+  },
+  {
+   "sprint": "2026.9",
+   "products": []
+  },
+  {
+   "sprint": "2026.10",
+   "products": []
+  },
+  {
+   "sprint": "2026.11",
+   "products": []
+  },
+  {
+   "sprint": "2026.12",
+   "products": []
+  },
+  {
+   "sprint": "2026.13",
+   "products": []
+  },
+  {
+   "sprint": "2026.14",
+   "products": []
+  },
+  {
+   "sprint": "2026.15",
+   "products": []
+  },
+  {
+   "sprint": "2026.16",
+   "products": []
+  },
+  {
+   "sprint": "2026.17",
+   "products": []
+  }
+ ],
+ "balance": [],
+ "balance_last3": []
+}
