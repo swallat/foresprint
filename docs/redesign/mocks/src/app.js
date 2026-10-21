@@ -17,6 +17,9 @@
   FS.fmtDate = (iso) => { const [y, m, d] = iso.split("-"); return `${d}.${m}.${y.slice(2)}`; };
   FS.fmt = (n, digits = 0) => (n == null ? "–" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits }));
   FS.sum = (arr, f = (x) => x) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+  // Reference capacity: full team without absences (display scale of the normalized velocity, as in 0.8)
+  FS.refCap = () => Math.round(FS.sum(D.people, (p) => p.fte) * 10);
+  FS.normVel = (s) => (s.velocity == null ? null : (s.velocity / s.capacityPD) * FS.refCap());
 
   // Ticket key with tracker link (rule: every ticket links to its tracker)
   FS.keyLink = (t) => `<span class="key"><a href="${D.team.trackerUrl}${t.key}" target="_blank" rel="noopener" title="In ${D.team.tracker} öffnen">${t.key}${FS.icon("open_in_new")}</a></span>`;

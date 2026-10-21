@@ -40,10 +40,10 @@ window.DEMO = {
   ],
   // state: past = closed, current = running, planned = frozen plan, open = future
   sprints: [
-    { id: "2026.17", start: "2026-08-19", end: "2026-09-01", days: 10, state: "past", capacityPD: 49, velocity: 41, plan: 40 },
-    { id: "2026.18", start: "2026-09-02", end: "2026-09-15", days: 10, state: "past", capacityPD: 44, velocity: 33, plan: 37 },
-    { id: "2026.19", start: "2026-09-16", end: "2026-09-29", days: 10, state: "past", capacityPD: 51, velocity: 47, plan: 42 },
-    { id: "2026.20", start: "2026-09-30", end: "2026-10-13", days: 9, state: "past", capacityPD: 43, velocity: 38, plan: 36 },
+    { id: "2026.17", scope: 0.10, start: "2026-08-19", end: "2026-09-01", days: 10, state: "past", capacityPD: 49, velocity: 41, plan: 40 },
+    { id: "2026.18", scope: 0.05, start: "2026-09-02", end: "2026-09-15", days: 10, state: "past", capacityPD: 44, velocity: 33, plan: 37 },
+    { id: "2026.19", scope: 0.21, start: "2026-09-16", end: "2026-09-29", days: 10, state: "past", capacityPD: 51, velocity: 47, plan: 42 },
+    { id: "2026.20", scope: 0.14, start: "2026-09-30", end: "2026-10-13", days: 9, state: "past", capacityPD: 43, velocity: 38, plan: 36 },
     { id: "2026.21", start: "2026-10-14", end: "2026-10-27", days: 10, state: "current", capacityPD: 48, velocity: null, plan: 40, absences: "confirmed" },
     { id: "2026.22", start: "2026-10-28", end: "2026-11-10", days: 10, state: "open", capacityPD: 41, plan: null, forecast: 35, low: 31, high: 38, absences: "announced" },
     { id: "2026.23", start: "2026-11-11", end: "2026-11-24", days: 10, state: "open", capacityPD: 50, plan: null, forecast: 42, low: 37, high: 47, absences: "unknown" },
@@ -52,6 +52,7 @@ window.DEMO = {
   ],
   // points per available person day (normalized velocity), used to convert points to PD
   rate: 0.85,
+  plannableShare: 0.85, smallShare: 0.1,
   overheadShare: 0.05,
   // absences in person days per person and sprint; a: announced, c: confirmed
   absences: {
