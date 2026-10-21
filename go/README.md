@@ -108,6 +108,10 @@ version gives (`gen_holidays.py --check`).
   leaves such IDs out of the reference.
 - Years outside 2001-2050 have no holidays (see Holiday data); Python's library calculates any
   year.
+- A sprint's `note` is always text in Go; Python keeps a bare number as a number
+  (`sprint/note-number` in the golden known differences).
+- Files are written with mode 0644; there is no team cache; integers beyond 64 bits in YAML
+  are refused with an error. Configuration is handled by `internal/config`.
 - An error is a typed value with a `Message(lang)` for the user text, not an exception with a
   translated string.
 

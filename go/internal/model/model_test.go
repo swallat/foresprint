@@ -79,37 +79,18 @@ func TestPlanning(t *testing.T) {
 	}
 }
 
-func TestRule(t *testing.T) {
+func TestTicketFacts(t *testing.T) {
 	tk := Ticket{Epic: Ptr("E1"), Labels: []string{"Backend-Fix"}, InSprint: Ptr("2026.22")}
-	facts := tk.Facts()
-	leaf := func(src string, contains bool, v ...string) *Rule {
-		return &Rule{Op: OpLeaf, Source: src, Values: v, Contains: contains}
+	f := tk.Facts()
+	if len(f["epic"]) != 1 || f["in_sprint"][0] != "true" || f["in_sprint"][1] != "2026.22" || len(f["status"]) != 0 {
+		t.Errorf("%v", f)
 	}
-	cases := []struct {
-		name string
-		rule *Rule
-		want bool
-	}{
-		{"epic", leaf("epic", false, "E1"), true},
-		{"case sensitive", leaf("epic", false, "e1"), false},
-		{"contains", leaf("label", true, "BACKEND"), true},
-		{"in_sprint true", leaf("in_sprint", false, "true"), true},
-		{"in_sprint id", leaf("in_sprint", false, "2026.22"), true},
-		{"all", &Rule{Op: OpAll, Children: []*Rule{leaf("epic", false, "E1"), leaf("label", false, "x")}}, false},
-		{"none", &Rule{Op: OpNone, Children: []*Rule{leaf("label", false, "x")}}, true},
-		{"any", &Rule{Op: OpAny, Children: []*Rule{leaf("label", false, "x"), leaf("epic", false, "E1")}}, true},
+	if got := (Ticket{}).Facts()["in_sprint"]; len(got) != 1 || got[0] != "false" {
+		t.Errorf("%v", got)
 	}
-	for _, c := range cases {
-		if got := c.rule.Matches(facts); got != c.want {
-			t.Errorf("%s: got %v", c.name, got)
-		}
-	}
-	any := &Rule{Op: OpAny, Short: true, Children: []*Rule{leaf("epic", false, "E1"), leaf("label", false, "x")}}
-	if got := any.MatchedSources(facts); len(got) != 1 || !got["epic"] {
-		t.Errorf("matched sources %v", got)
-	}
-	if got := any.LeafSources(); len(got) != 2 {
-		t.Errorf("leaf sources %v", got)
+	r := &Rule{Op: OpLeaf, Source: "label", Values: []string{"BACKEND"}, Contains: true}
+	if !r.Matches(f) {
+		t.Error("contains is case-insensitive")
 	}
 }
 

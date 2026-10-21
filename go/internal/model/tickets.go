@@ -2,8 +2,9 @@ package model
 
 import (
 	"regexp"
-	"strings"
 	"time"
+
+	"github.com/swallat/foresprint/internal/rules"
 )
 
 // EstimateSource says where a ticket's estimate comes from.
@@ -46,7 +47,7 @@ const (
 
 // RuleSources are the sources a rule leaf can refer to; the ticket facts carry one value list
 // per source.
-var RuleSources = []string{"epic", "component", "label", "status", "issue_type", "priority", "in_sprint"}
+var RuleSources = rules.Sources
 
 // RuleFieldName matches the names of configured rule fields (tracker.rule_fields): lower-case
 // words, no clash with the fixed sources.
@@ -83,10 +84,10 @@ const ContainsSuffix = "_contains"
 
 // Rule operators. A leaf has the operator OpLeaf.
 const (
-	OpLeaf = "leaf"
-	OpAny  = "any"
-	OpAll  = "all"
-	OpNone = "none"
+	OpLeaf = rules.OpLeaf
+	OpAny  = rules.OpAny
+	OpAll  = rules.OpAll
+	OpNone = rules.OpNone
 )
 
 // RuleOperators are the operators of the long form.
@@ -99,119 +100,12 @@ var DefaultMatchOrder = []string{"epic", "component", "label"}
 // DefaultPriorityOrder is Jira's standard priorities, most important first.
 var DefaultPriorityOrder = []string{"Highest", "High", "Medium", "Low", "Lowest"}
 
-// Rule is one node of an assignment rule.
-//
-// A leaf (Op == OpLeaf) names a source and a list of values; the values are OR-combined. An
-// operator node (any, all, none) combines its children. The short form of projects.yaml
-// (several sources directly under match:) is an any node with Short set; it is written back as
-// the flat mapping. Unknown sources and operators without children are kept so that the
-// validation can report them.
-type Rule struct {
-	Op       string
-	Source   string
-	Values   []string
-	Children []*Rule
-	Short    bool
-	// Contains (leaf only): the values are searched as parts of the ticket's values,
-	// case-insensitive.
-	Contains bool
-}
+// Rule is one node of an assignment rule; the type, its evaluation and its text form live in
+// package rules.
+type Rule = rules.Rule
 
 // Facts are the values of a ticket per rule source.
-type Facts map[string][]string
-
-// Matches reports whether a ticket with these facts (see Ticket.Facts) fulfils the rule.
-func (r *Rule) Matches(facts Facts) bool {
-	if r.Op == OpLeaf {
-		have := facts[r.Source]
-		if r.Contains {
-			for _, v := range r.Values {
-				for _, h := range have {
-					if strings.Contains(strings.ToLower(h), strings.ToLower(v)) {
-						return true
-					}
-				}
-			}
-			return false
-		}
-		for _, v := range r.Values {
-			if contains(have, v) {
-				return true
-			}
-		}
-		return false
-	}
-	switch r.Op {
-	case OpAll:
-		for _, c := range r.Children {
-			if !c.Matches(facts) {
-				return false
-			}
-		}
-		return true
-	case OpNone:
-		for _, c := range r.Children {
-			if c.Matches(facts) {
-				return false
-			}
-		}
-		return true
-	}
-	for _, c := range r.Children {
-		if c.Matches(facts) {
-			return true
-		}
-	}
-	return false
-}
-
-// LeafSources returns all sources the rule refers to (also unknown ones).
-func (r *Rule) LeafSources() map[string]bool {
-	out := map[string]bool{}
-	if r.Op == OpLeaf {
-		out[r.Source] = true
-		return out
-	}
-	for _, c := range r.Children {
-		for s := range c.LeafSources() {
-			out[s] = true
-		}
-	}
-	return out
-}
-
-// MatchedSources returns the sources of the leaves that the facts fulfil (project_match_order
-// decides between two matching projects by the source of the match).
-func (r *Rule) MatchedSources(facts Facts) map[string]bool {
-	out := map[string]bool{}
-	if r.Op == OpLeaf {
-		if r.Matches(facts) {
-			out[r.Source] = true
-		}
-		return out
-	}
-	if r.Op == OpNone {
-		return out
-	}
-	for _, c := range r.Children {
-		for s := range c.MatchedSources(facts) {
-			out[s] = true
-		}
-	}
-	return out
-}
-
-// Leaves returns all leaves in document order.
-func (r *Rule) Leaves() []*Rule {
-	if r.Op == OpLeaf {
-		return []*Rule{r}
-	}
-	var out []*Rule
-	for _, c := range r.Children {
-		out = append(out, c.Leaves()...)
-	}
-	return out
-}
+type Facts = rules.Facts
 
 // TrackerFields are the display names of the tracker fields (as in the instance or the CSV
 // export header).
@@ -397,4 +291,36 @@ func (p Preplan) EstimateFor(key string) *ManualEstimate {
 		}
 	}
 	return nil
+}
+
+func sameStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func samePtr[T comparable](a, b *T) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+// IsDefault reports whether the settings equal NewTrackerSettings (a rule counts as different).
+func (t TrackerSettings) IsDefault() bool {
+	d := NewTrackerSettings()
+	return t.Kind == d.Kind && samePtr(t.BaseURL, d.BaseURL) && samePtr(t.Query, d.Query) &&
+		samePtr(t.Fields.Estimate, d.Fields.Estimate) && samePtr(t.Fields.Remaining, d.Fields.Remaining) &&
+		samePtr(t.Fields.Epic, d.Fields.Epic) && t.PlanningUses == d.PlanningUses &&
+		samePtr(t.RefinedLabel, d.RefinedLabel) && t.RefinedAlsoIf == nil &&
+		sameStrings(t.ProjectMatchOrder, d.ProjectMatchOrder) && sameStrings(t.PriorityOrder, d.PriorityOrder) &&
+		t.DependencyGap == d.DependencyGap && t.BudgetBasis == d.BudgetBasis && t.RoughFactor == d.RoughFactor &&
+		t.WriteLabels == d.WriteLabels && t.SprintNames.Len() == 0 && t.LinkType == d.LinkType &&
+		t.RuleFields.Len() == 0
 }
