@@ -188,12 +188,15 @@ func (j *JiraSource) newClient() (*http.Client, error) {
 			return nil, err
 		}
 		base := http.DefaultTransport.(*http.Transport).Clone()
+		// Timeouts per phase like httpx: a slow but steady answer is fine.
+		base.DialContext = (&net.Dialer{Timeout: RequestTimeout}).DialContext
+		base.ResponseHeaderTimeout = RequestTimeout
+		base.TLSHandshakeTimeout = RequestTimeout
 		base.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: pool}
 		transport = base
 	}
 	return &http.Client{
 		Transport: transport,
-		Timeout:   RequestTimeout,
 		// An answer that redirects is reported, not followed.
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}, nil
@@ -288,7 +291,7 @@ func (j *JiraSource) request(method, path string, params url.Values, body map[st
 		return nil, errorf("{text}", "text", j.failureText(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
-	data, readErr := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
+	data, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<30))
 	if readErr != nil {
 		return nil, errorf("{text}", "text", j.failureText(readErr))
 	}
@@ -422,6 +425,10 @@ func isASCIIDigits(s string) bool {
 // parseJSON decodes a whole body; numbers stay json.Number so that integers and floats can be
 // told apart as in Python.
 func parseJSON(data []byte) (any, bool) {
+	if !utf8.Valid(data) { // Python's json.loads fails on invalid UTF-8
+		return nil, false
+	}
+	data = bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
 	var value any

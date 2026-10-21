@@ -148,7 +148,7 @@ func (s *CSVSource) Fetch() ([]RawTicket, error) {
 		return nil, s.csvError(err, 1)
 	}
 	if !ok {
-		return nil, errorf("{path}: The file is empty", "path", s.Path)
+		return nil, errorf("{path}: The file is empty", "path", filepath.Clean(s.Path))
 	}
 	columns, err := s.columns(header)
 	if err != nil {
@@ -185,19 +185,19 @@ func (s *CSVSource) Fetch() ([]RawTicket, error) {
 
 func (s *CSVSource) csvError(err error, line int) error {
 	return errorf("{path}, line {line}: The file is not valid CSV ({error})",
-		"path", s.Path, "line", line, "error", err)
+		"path", filepath.Clean(s.Path), "line", line, "error", err)
 }
 
 // read returns the file as text; a UTF-8 byte order mark is dropped like Python's utf-8-sig.
 func (s *CSVSource) read() (string, error) {
 	raw, err := os.ReadFile(s.Path)
 	if err != nil {
-		return "", errorf("{path}: file not readable: {error}", "path", s.Path, "error", osErrorText(err))
+		return "", errorf("{path}: file not readable: {error}", "path", filepath.Clean(s.Path), "error", osErrorText(err))
 	}
 	raw = bytes.TrimPrefix(raw, []byte{0xEF, 0xBB, 0xBF})
 	if !utf8.Valid(raw) {
 		return "", errorf("{path}: The file is not UTF-8 encoded ({error})",
-			"path", s.Path, "error", decodeErrorText(raw))
+			"path", filepath.Clean(s.Path), "error", decodeErrorText(raw))
 	}
 	// Python reads the file in text mode: a line end is "\n" whatever the file uses.
 	text := strings.ReplaceAll(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\r", "\n")
@@ -259,7 +259,7 @@ func decodeErrorText(raw []byte) string {
 func (s *CSVSource) columns(header []string) (map[string][]int, error) {
 	if s.Fields.Estimate == "" {
 		return nil, errorf("{path}: The field name of the estimate is not configured "+
-			"(tracker.fields.estimate in team.yaml)", "path", s.Path)
+			"(tracker.fields.estimate in team.yaml)", "path", filepath.Clean(s.Path))
 	}
 	order, wanted := s.headers()
 	positions := map[string][]int{}
@@ -277,7 +277,7 @@ func (s *CSVSource) columns(header []string) (map[string][]int, error) {
 	for _, rf := range s.RuleFields {
 		if len(positions[csvExtraPrefix+rf.Name]) == 0 {
 			return nil, errorf("{path}: column for the rule field '{name}' missing – expected {names}",
-				"path", s.Path, "name", rf.Name, "names", quotedAliases(wanted[csvExtraPrefix+rf.Name]))
+				"path", filepath.Clean(s.Path), "name", rf.Name, "names", quotedAliases(wanted[csvExtraPrefix+rf.Name]))
 		}
 	}
 	var missing []string
@@ -290,7 +290,7 @@ func (s *CSVSource) columns(header []string) (map[string][]int, error) {
 		lines := make([]string, len(missing))
 		for i, name := range missing {
 			lines[i] = T("{path}: column missing – expected {names}",
-				"path", s.Path, "names", quotedAliases(wanted[name]))
+				"path", filepath.Clean(s.Path), "names", quotedAliases(wanted[name]))
 		}
 		return nil, &Error{Msg: strings.Join(lines, "\n")}
 	}
@@ -333,7 +333,7 @@ func (s *CSVSource) ticket(row []string, columns map[string][]int, line int) (Ra
 		value, err := ParseNumber(found[0])
 		if err != nil {
 			return nil, errorf("{path}, line {line}: '{value}' in column “{column}” is not a number",
-				"path", s.Path, "line", line, "value", found[0], "column", column)
+				"path", filepath.Clean(s.Path), "line", line, "value", found[0], "column", column)
 		}
 		if *value == 0 {
 			zero := 0.0 // "-0" is stored as 0
@@ -341,14 +341,14 @@ func (s *CSVSource) ticket(row []string, columns map[string][]int, line int) (Ra
 		}
 		if *value < 0 {
 			return nil, errorf("{path}, line {line}: '{value}' in column “{column}” is negative",
-				"path", s.Path, "line", line, "value", found[0], "column", column)
+				"path", filepath.Clean(s.Path), "line", line, "value", found[0], "column", column)
 		}
 		return value, nil
 	}
 
 	key := single("key")
 	if key == "" {
-		return RawTicket{}, errorf("{path}, line {line}: key is missing", "path", s.Path, "line", line)
+		return RawTicket{}, errorf("{path}, line {line}: key is missing", "path", filepath.Clean(s.Path), "line", line)
 	}
 	sprints := values("sprint")
 	ticket := RawTicket{

@@ -56,7 +56,7 @@ func digitValue(r rune) int {
 // pyFloat is float(text) for a finite result: it returns false for text Python rejects and for
 // the values inf and nan, which every caller of the sources treats as an error as well.
 func pyFloat(text string) (float64, bool) {
-	text = pyStrip(text)
+	text = strings.TrimFunc(text, unicode.IsSpace) // float() does not strip U+001C to U+001F
 	if text == "" {
 		return 0, false
 	}
