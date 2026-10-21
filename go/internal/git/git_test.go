@@ -471,3 +471,25 @@ func TestUnsafeDirectoryIsNamed(t *testing.T) {
 		t.Fatalf("RepoRoot = %q after the fix", got)
 	}
 }
+
+func TestMissingFolderDoesNotBreakGit(t *testing.T) {
+	root := repo(t)
+	_, err := Git(bg, filepath.Join(root, "gone", "away"), "status")
+	if e := As(err); e == nil || e.Kind != "git_missing" {
+		t.Fatalf("err = %v", err)
+	}
+	if !Available() || BrokenGit() != "" {
+		t.Fatalf("git marked broken: %q", BrokenGit())
+	}
+}
+
+func TestUnicodeSpaceAndStripInAddress(t *testing.T) {
+	for _, raw := range []string{"git@host:team/da　ta.git", "git@host:team/da ta.git"} {
+		if _, err := ParseRemoteURL(raw, false); err == nil {
+			t.Errorf("%q accepted", raw)
+		}
+	}
+	if _, err := ParseRemoteURL("https://h/t/x.git\x1f", false); err != nil {
+		t.Errorf("trailing \\x1f should be stripped: %v", err)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/pytext"
@@ -154,7 +155,7 @@ func badURL(message string) *Error { return New(message, "bad_url", "") }
 // isCategoryC reports the Unicode categories Z-line, Z-paragraph and C (control, format,
 // private use, surrogate, unassigned).
 func isRejectedRune(r rune) bool {
-	if unicode.Is(unicode.Zl, r) || unicode.Is(unicode.Zp, r) || unicode.Is(unicode.C, r) {
+	if (unicode.Is(unicode.Zs, r) && r != ' ') || unicode.Is(unicode.Zl, r) || unicode.Is(unicode.Zp, r) || unicode.Is(unicode.C, r) {
 		return true
 	}
 	// Unassigned code points (category Cn) belong to no table.
@@ -234,7 +235,7 @@ func ParseRemoteURL(raw string, allowInsecure bool) (RemoteAddress, error) {
 	if text == "" {
 		return RemoteAddress{}, badURL(i18n.T("Please enter an address."))
 	}
-	if len(text) > MaxURLLength {
+	if utf8.RuneCountInString(text) > MaxURLLength {
 		return RemoteAddress{}, badURL(i18n.T("It is too long."))
 	}
 	// Control characters, line separators and invisible characters (zero-width, bidi, BOM).
@@ -320,10 +321,10 @@ func RunProbe(ctx context.Context, root string, args []string, timeout time.Dura
 		cmd.Stdout, cmd.Stderr = out, errFile
 		if err := cmd.Start(); err != nil {
 			cancel()
-			if attempt+1 < startAttempts && retryWithNext(err, argv[0]) {
+			if attempt+1 < startAttempts && retryWithNext(err, argv[0], root) {
 				continue
 			}
-			return nil, startFailed(err, argv[0])
+			return nil, startFailed(err, argv[0], root)
 		}
 		started(argv[0])
 		_ = cmd.Wait()
