@@ -128,7 +128,7 @@ Projects                   portfolio: timeline with milestones and end dates, tr
 Forecast                   coming sprints with range; tabs: Analysis, Products over time, Reports and export
 Team
   People and absences      people, FTE, POs (outside capacity unless included with a share), absences grid across sprints
-  Products                 products, assignment rules with live preview
+  Products                 products, assignment rules with live preview (same rule language and editor as projects)
   Sprint calendar          dates, length, sprint IDs
 Data                       the team's data, the same for every storage
   Overview                 where the data lives, status, who saved what recently, changes from others
@@ -456,6 +456,7 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 9. **Ticket details in Foresprint:** description, acceptance criteria, subtasks, links, comments and attachment names are read on each sync and cached locally per machine, not in the team data (YAML unchanged). A presentation view shows one ticket large for meetings.
 10. **Write sprint back to the tracker (optional, 21.10.2026):** off by default, switched on per team. Only on an explicit button in Sprint > Plan, always with preview, per-ticket opt-out and undo, logged in the planning minutes. Only the sprint field (and the existing label) is written; order, estimate, status and texts stay untouched, and Foresprint never creates, starts or closes tracker sprints. The token needs the right to edit sprints; without it everything stays read-only. Writing the order back remains rejected.
 11. **Product owners and capacity:** POs are outside the team and capacity by default; including one is an explicit choice with a share (FTE).
+12. **One rule language for products and projects:** both use the expression rules from 0.8 (fields component, label, epic, priority, type, status plus configured extra fields; operators = != ~ !~ IN NOT IN, AND OR NOT, parentheses), with the same editor and live preview. Ligatures are off in rule text so `!=` stays visible as typed.
 
 ## 10. Open questions
 

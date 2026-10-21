@@ -23,11 +23,11 @@ window.DEMO = {
     { id: "platform", name: "Plattform", po: "lea", share: 0.20, color: "#2a8fbd" },
   ],
   projects: [
-    { id: "ss2", name: "Self-Service 2.0", products: ["portal", "mobile"], end: "2027-01-29", lead: "Projektleitung Vertrieb", contingentPD: 60, usedPD: 31, plannedPD: 14, light: "warn",
+    { id: "ss2", name: "Self-Service 2.0", products: ["portal", "mobile"], end: "2027-01-29", lead: "Projektleitung Vertrieb", contingentPD: 60, usedPD: 31, plannedPD: 14, light: "warn", rule: 'epic = "Self-Service 2.0"',
       milestones: [{ name: "Beta für Pilotkunden", date: "2026-11-20", tickets: 6, done: 3, light: "warn" }, { name: "Go-live", date: "2027-01-29", tickets: 0, done: 0, light: "ok" }] },
-    { id: "erech", name: "E-Rechnung", products: ["billing", "platform"], end: "2026-12-18", lead: "Projektleitung Finanzen", contingentPD: 40, usedPD: 22, plannedPD: 9, light: "ok",
+    { id: "erech", name: "E-Rechnung", products: ["billing", "platform"], end: "2026-12-18", lead: "Projektleitung Finanzen", contingentPD: 40, usedPD: 22, plannedPD: 9, light: "ok", rule: 'epic = "E-Rechnung" OR (component = "Abrechnung" AND label ~ "xrechnung")',
       milestones: [{ name: "XRechnung-Export", date: "2026-11-27", tickets: 4, done: 2, light: "ok" }, { name: "Abnahme", date: "2026-12-18", tickets: 0, done: 0, light: "ok" }] },
-    { id: "login", name: "Login-Umstellung", products: ["portal", "mobile", "platform"], end: "2026-12-04", lead: "IT-Sicherheit", contingentPD: 25, usedPD: 21, plannedPD: 6, light: "bad",
+    { id: "login", name: "Login-Umstellung", products: ["portal", "mobile", "platform"], end: "2026-12-04", lead: "IT-Sicherheit", contingentPD: 25, usedPD: 21, plannedPD: 6, light: "bad", rule: 'epic = "Login-Umstellung" OR label IN ("login", "security")',
       milestones: [{ name: "Neuer Anmeldedienst live", date: "2026-12-04", tickets: 5, done: 1, light: "bad" }] },
   ],
   people: [

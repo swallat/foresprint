@@ -228,3 +228,4 @@ button.link { background: none; border: 0; padding: 0; color: var(--primary); te
 .present-est { display: flex; align-items: baseline; gap: 8px; }
 .present-est .data { font-size: 44px; font-weight: 600; line-height: 1; }
 @media (max-width: 900px) { .present-body { grid-template-columns: minmax(0, 1fr); padding: 16px; } .present-head { padding: 8px 16px; } }
+.rule-ed, .rule-txt { font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }

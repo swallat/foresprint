@@ -212,7 +212,7 @@
         <fieldset><legend class="small muted" style="padding:0">Meilensteine (Datum, Tickets optional)</legend><div class="stack" id="np-ms"></div><div><button class="btn" type="button" id="np-addms">${ic("add")}Meilenstein</button></div></fieldset>
         <div class="field"><label for="np-pd">Kontingent gesamt (Personentage)</label><input class="input data" id="np-pd" type="number" min="0" step="1" value="40" style="max-width:140px"></div>
         <details><summary style="cursor:pointer">Aufteilung pro Monat (optional)</summary><div class="stack" style="margin-top:8px">${monthsList.map((m) => `<div class="row"><label class="muted" style="width:72px" for="np-m-${m}">${monthLabel(m)}</label><input class="input data" id="np-m-${m}" data-month="${m}" type="number" min="0" style="width:96px" placeholder="PT"></div>`).join("")}<span class="small muted">Leer lassen, wenn nur das Gesamtkontingent gebucht ist.</span></div></details>
-        <div class="field"><label for="np-rule">Regel aus ${D.team.tracker} (optional)</label><input class="input data" id="np-rule" placeholder="z. B. Epic Link = SSV-12"><span class="small muted">Ohne Regel ordnen Sie Tickets und Arbeitspunkte von Hand zu.</span></div>
+        <div class="field"><label for="np-rule">Regel aus ${D.team.tracker} (optional)</label><input class="input data" id="np-rule" placeholder='z. B. epic = "SSV-12" OR label = "self-service"'><span class="small muted">Ohne Regel ordnen Sie Tickets und Arbeitspunkte von Hand zu.</span></div>
         <div class="field"><label for="np-note">Notiz</label><textarea class="input" id="np-note" rows="2" placeholder="z. B. Ansprechpartner, Absprachen"></textarea></div>
         <div class="pf-err" id="np-err" role="alert">${ic("error")}<span></span></div>
         <div class="row"><button class="btn primary" type="submit">${ic("check")}Projekt anlegen</button><button class="btn ghost" type="button" id="np-cancel">Abbrechen</button></div>
@@ -308,7 +308,7 @@
     });
     return `${STYLE}
     <div class="page-head"><div><div class="small muted"><a href="#projects">Projekte</a> / Projekt</div><h1>${esc(p.name)} ${FS.lightChip(p.light)}</h1>
-      <p class="lead">Ansprechpartner: ${esc(p.lead)}. Ende <span class="data">${FS.fmtDate(p.end)}</span>.${p.rule ? ` Regel: <span class="data">${esc(p.rule)}</span>.` : ` Ohne ${D.team.tracker}-Regel: Tickets ordnen Sie von Hand zu.`}</p></div>
+      <p class="lead">Ansprechpartner: ${esc(p.lead)}. Ende <span class="data">${FS.fmtDate(p.end)}</span>.${p.rule ? ` Regel: <span class="data rule-txt">${esc(p.rule)}</span>` : ` Ohne Regel: Tickets ordnen Sie von Hand zu.`} <button class="link" type="button" id="pj-rule">${p.rule ? "Regel bearbeiten" : "Regel anlegen"}</button></p></div>
       <div class="actions"><select class="input" id="pj-pick" aria-label="Projekt wechseln">${D.projects.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>
         <button class="btn" type="button" id="pj-edit">${ic("edit")}Bearbeiten</button></div></div>
     <div class="grid cols-3">
@@ -353,6 +353,16 @@
       wireCommon(main);
       main.querySelector("#pj-pick").onchange = (e) => { FS.state.project = e.target.value; FS.render(); };
       main.querySelector("#pj-edit").onclick = () => { newProjectPanel(); };
+      main.querySelector("#pj-rule").onclick = () => {
+        const p = FS.project(FS.state.project), others = D.projects.map((x) => ({ id: x.id, name: x.name, rule: x.rule }));
+        const el = FS.openPanel(`Zuordnungsregel: ${p.name}`, `${FS.ruleEditor("project", p.id, p.rule, others)}
+          <p class="small muted" style="margin:0">Dieselbe Regelsprache wie bei Produkten. Passt ein Ticket auf mehrere Projekte, entscheidet die Reihenfolge unter Einstellungen > Team; der Widerspruch erscheint in der Vorschau. Ohne Regel ordnest du Tickets von Hand zu.</p>
+          <div class="row"><button class="btn primary" type="button" id="pr-apply">Regel übernehmen</button><button class="btn ghost" type="button" id="pr-cancel">Abbrechen</button></div>`);
+        if (!el) return;
+        const get = FS.wireRuleEditor(el, others);
+        el.querySelector("#pr-cancel").onclick = FS.closePanel;
+        el.querySelector("#pr-apply").onclick = () => { const v = get(); try { FS.parseRule(v); } catch (e) { return FS.toast("Regel ist noch unvollständig: " + e.message); } FS.addUnsaved?.(`Regel ${p.name}`, p.rule || "keine", v || "keine", "projekte.yaml"); p.rule = v; FS.render(); FS.toast("Regel übernommen, noch nicht gespeichert."); };
+      };
       main.querySelector("#pj-export").onclick = () => FS.toast(`Bericht "${esc(FS.project(FS.state.project).name)}" als Markdown exportiert (im Mockup nur angezeigt).`);
       main.querySelectorAll("[data-toast]").forEach((b) => (b.onclick = () => FS.toast(b.dataset.toast)));
       main.querySelector("#pj-when").onclick = (e) => { e.preventDefault(); FS.state.fcTab = "analyse"; FS.state.anProject = FS.state.project; FS.state.anShare = null; location.hash = "forecast"; };

@@ -10,12 +10,12 @@
   S.teamApplied ??= { hist: 6, method: "median", band: "p20", horizon: 4, len: 10, prod: true, projects: true, minutes: true, label: true, absState: true, basis: "forecast" };
   S.teamDraft ??= { ...S.teamApplied };
   S.rules ??= {
-    portal: { field: "Komponente", op: "enthält", value: "Portal" },
-    billing: { field: "Komponente", op: "enthält", value: "Abrechnung" },
-    mobile: { field: "Komponente", op: "enthält", value: "App" },
-    platform: { field: "Komponente", op: "enthält", value: "Plattform" },
+    portal: 'component = "Portal"',
+    billing: 'component = "Abrechnung"',
+    mobile: 'component ~ "App" AND type != "Bug"',
+    platform: 'component = "Plattform" OR label = "team-platform"',
   };
-  S.ruleDraft ??= { product: "portal", ...S.rules.portal };
+  S.ruleDraft ??= { product: "portal" };
   S.members ??= { p1: "Mitglied", p2: "Mitglied", p3: "Mitglied", p4: "Mitglied", p5: "Gast", p6: "Mitglied" };
   S.jira ??= { off: false, url: "https://jira.example.com", user: "svc-foresprint", tokenSet: true, jql: "project = ATL AND (sprint is EMPTY OR sprint in openSprints())", interval: "15", checked: null, csv: null,
     write: { sprint: false, removed: "backlog", checked: false },
@@ -101,32 +101,27 @@
   });
 
   // ================= products =================
-  const comp = { portal: "Portal", billing: "Abrechnung", mobile: "Mobile App", platform: "Plattform" };
-  const fieldVals = (t, field) => (field === "Komponente" ? [comp[t.product]] : field === "Label" ? ["team-" + t.product, t.refined ? "refined" : ""] : [t.project ? FS.project(t.project).name : ""]);
-  const matches = (rule) => D.tickets.filter((t) => rule.value && fieldVals(t, rule.field).some((v) => v && (rule.op === "ist" ? v.toLowerCase() === rule.value.toLowerCase() : v.toLowerCase().includes(rule.value.toLowerCase()))));
+  const matches = (rule) => FS.ruleMatches(rule);
+  const prodRules = () => D.products.map((p) => ({ id: p.id, name: p.name, rule: S.rules[p.id] }));
   FS.view("products", {
     title: "Produkte",
     render() {
       const sum = Math.round(FS.sum(D.products, (p) => p.share) * 100);
-      const rd = S.ruleDraft, m = matches(rd), other = m.filter((t) => t.product !== rd.product);
+      const rd = S.ruleDraft;
       return `${head("Produkte", "Produkte mit Product Owner, Anteil am Sprint und Regel, die Tickets zuordnet.", `<button class="btn" type="button" data-act="add">${ic("add")}Produkt hinzufügen</button>`)}
         ${sum !== 100 ? `<div class="banner warn">${ic("error")}<div class="grow">Die Anteile ergeben <strong class="data">${sum} %</strong>, nicht 100 %. Der Rest wird im Standardanteil nicht verteilt.</div></div>` : ""}
         <div class="tw"><table class="t"><thead><tr><th>Produkt</th><th>Product Owner</th><th class="num">Anteil</th><th>Zuordnungsregel</th><th class="num">Tickets</th><th class="num" title="Forecast 2026.22 mal Anteil">Standard 2026.22</th><th></th></tr></thead><tbody>
           ${D.products.map((p) => { const r = S.rules[p.id]; return `<tr><td>${FS.productChip(p.id)}</td><td><select class="input" data-po="${p.id}" aria-label="PO ${esc(p.name)}">${D.pos.map((o) => `<option value="${o.id}" ${o.id === p.po ? "selected" : ""}>${esc(o.name)}</option>`).join("")}</select></td>
             <td class="num"><input class="input data" style="width:64px;text-align:right" data-share="${p.id}" value="${Math.round(p.share * 100)}" inputmode="numeric" aria-label="Anteil ${esc(p.name)}"> %</td>
-            <td><span class="row" style="flex-wrap:nowrap"><span class="data small">${r.field} ${r.op} "${esc(r.value)}"</span> <button class="btn ghost icon" type="button" data-edit="${p.id}" aria-label="Regel bearbeiten" title="Regel bearbeiten">${ic("edit")}</button></span></td>
+            <td><span class="row" style="flex-wrap:nowrap"><span class="data small rule-txt">${esc(r)}</span> <button class="btn ghost icon" type="button" data-edit="${p.id}" aria-label="Regel bearbeiten" title="Regel bearbeiten">${ic("edit")}</button></span></td>
             <td class="num">${matches(r).length}</td><td class="num">${FS.fmt(Math.round(p.share * fcOf("2026.22")))} Punkte</td><td>${calcBtn("def:" + p.id)}</td></tr>`; }).join("")}
           <tr class="sum"><td>Summe</td><td></td><td class="num">${sum} %</td><td></td><td class="num">${FS.sum(D.products, (p) => matches(S.rules[p.id]).length)}</td><td class="num">${FS.fmt(FS.sum(D.products, (p) => Math.round(p.share * fcOf("2026.22"))))} Punkte</td><td></td></tr></tbody></table></div>
         <p class="small muted">Je PO: ${D.pos.map((o) => `${esc(o.name)} <span class="data">${Math.round(FS.sum(D.products.filter((p) => p.po === o.id), (p) => p.share) * 100)} %</span>`).join(", ")}. Der Anteil ist die Vorgabe, was im Sprint wirklich geplant und erledigt wird, steht in der Sprint-Tabelle.</p>
         <div class="grid cols-2" style="margin-top:16px">
           <div class="card" id="rule-ed"><h2>Zuordnungsregel bearbeiten</h2>
-            <div class="grid" style="gap:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
-              <div class="field"><label for="r-p">Produkt</label><select class="input" id="r-p">${D.products.map((p) => `<option value="${p.id}" ${p.id === rd.product ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div>
-              <div class="field"><label for="r-f">Feld im Tracker</label><select class="input" id="r-f">${["Komponente", "Label", "Epic"].map((x) => `<option ${x === rd.field ? "selected" : ""}>${x}</option>`).join("")}</select></div>
-              <div class="field"><label for="r-o">Bedingung</label><select class="input" id="r-o">${["enthält", "ist"].map((x) => `<option ${x === rd.op ? "selected" : ""}>${x}</option>`).join("")}</select></div>
-              <div class="field"><label for="r-v">Wert</label><input class="input" id="r-v" value="${esc(rd.value)}"></div></div>
-            <div class="banner info" style="margin:12px 0 0" id="r-prev">${ic("preview")}<div class="grow"><strong class="data">${m.length}</strong> Tickets passen (<span class="data">${FS.sum(m, (t) => t.est || 0)}</span> Punkte)${other.length ? `, davon <span class="data">${other.length}</span> heute einem anderen Produkt zugeordnet` : ""}.
-              <div class="small" style="margin-top:4px">${m.slice(0, 4).map((t) => `${FS.keyLink(t)} `).join("")}${m.length > 4 ? `<span class="muted">und ${m.length - 4} weitere</span>` : ""}</div></div></div>
+            <div class="field" style="margin-bottom:8px"><label for="r-p">Produkt</label><select class="input" id="r-p" style="max-width:240px">${D.products.map((p) => `<option value="${p.id}" ${p.id === rd.product ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div>
+            ${FS.ruleEditor("product", rd.product, S.rules[rd.product], prodRules())}
+            <p class="small muted" style="margin:8px 0 0">Dieselbe Regelsprache wie bei Projekten. Beispiel: <span class="data rule-txt">component = "Portal" OR (epic ~ "Kunde" AND label != "intern")</span></p>
             <div class="row" style="margin-top:12px"><button class="btn primary" type="button" data-act="apply">Regel übernehmen</button><span class="small muted">Gilt ab dem nächsten Abruf. Ein Produkt per Hand am Ticket hat Vorrang.</span></div></div>
           <div class="card"><h2>Standardanteil je Sprint</h2><p class="small muted" style="margin:0 0 8px">Forecast PLAN mal Anteil, in Punkten.</p>
             <div class="tw"><table class="t"><thead><tr><th>Produkt</th>${FUT.map((s) => `<th class="num">${s}</th>`).join("")}</tr></thead><tbody>
@@ -137,17 +132,11 @@
     wire(main) {
       main.querySelectorAll("[data-po]").forEach((i) => (i.onchange = () => { const p = FS.product(i.dataset.po); track(`PO ${p.name}`, FS.po(p.po).name, FS.po(i.value).name, "produkte.yaml"); p.po = i.value; FS.render(); }));
       main.querySelectorAll("[data-share]").forEach((i) => (i.onchange = () => { const p = FS.product(i.dataset.share); const v = Math.max(0, Math.min(100, parseInt(i.value, 10) || 0)); track(`Anteil ${p.name}`, `${Math.round(p.share * 100)} %`, `${v} %`, "produkte.yaml"); p.share = v / 100; FS.render(); }));
-      main.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => { S.ruleDraft = { product: b.dataset.edit, ...S.rules[b.dataset.edit] }; FS.render(); main.querySelector("#rule-ed")?.scrollIntoView({ block: "nearest" }); }));
-      // live preview without re-render so typing keeps focus
-      const live = () => {
-        const rd = S.ruleDraft; rd.product = main.querySelector("#r-p").value; rd.field = main.querySelector("#r-f").value; rd.op = main.querySelector("#r-o").value; rd.value = main.querySelector("#r-v").value;
-        const m = matches(rd), other = m.filter((t) => t.product !== rd.product);
-        main.querySelector("#r-prev .grow").innerHTML = `<strong class="data">${m.length}</strong> Tickets passen (<span class="data">${FS.sum(m, (t) => t.est || 0)}</span> Punkte)${other.length ? `, davon <span class="data">${other.length}</span> heute einem anderen Produkt zugeordnet` : ""}.<div class="small" style="margin-top:4px">${m.slice(0, 4).map((t) => FS.keyLink(t) + " ").join("")}${m.length > 4 ? `<span class="muted">und ${m.length - 4} weitere</span>` : ""}</div>`;
-      };
-      ["#r-p", "#r-f", "#r-o"].forEach((q) => main.querySelector(q).addEventListener("change", () => { live(); if (q === "#r-p") { Object.assign(S.ruleDraft, S.rules[S.ruleDraft.product]); FS.render(); } }));
-      main.querySelector("#r-v").addEventListener("input", live);
+      main.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => { S.ruleDraft = { product: b.dataset.edit }; FS.render(); main.querySelector("#rule-ed")?.scrollIntoView({ block: "nearest" }); }));
+      const getRule = FS.wireRuleEditor(main.querySelector("#rule-ed"), prodRules());
+      main.querySelector("#r-p").onchange = (e) => { S.ruleDraft.product = e.target.value; FS.render(); };
       acts(main, {
-        apply: () => { const rd = S.ruleDraft, o = S.rules[rd.product]; track(`Regel ${FS.product(rd.product).name}`, `${o.field} ${o.op} "${o.value}"`, `${rd.field} ${rd.op} "${rd.value}"`, "produkte.yaml"); S.rules[rd.product] = { field: rd.field, op: rd.op, value: rd.value }; FS.render(); FS.toast("Regel übernommen, noch nicht gespeichert."); },
+        apply: () => { const id = S.ruleDraft.product, v = getRule(); try { FS.parseRule(v); } catch (e) { return FS.toast("Regel ist noch unvollständig: " + e.message); } track(`Regel ${FS.product(id).name}`, S.rules[id], v, "produkte.yaml"); S.rules[id] = v; FS.render(); FS.toast("Regel übernommen, noch nicht gespeichert."); },
         add: () => FS.toast("Produkt hinzufügen: Name, PO, Anteil und Regel (im Mockup nicht ausgeführt)."),
       });
       main.querySelectorAll("[data-calc]").forEach((b) => (b.onclick = () => {
