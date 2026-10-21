@@ -54,19 +54,6 @@ func (r *reporter) warn(where, message string) {
 	r.issues = append(r.issues, Issue{Level: Warning, Where: where, Message: message})
 }
 
-// coreTeam gives the calendar the team settings it works with.
-func coreTeam(t model.Team) *coretypes.Team {
-	c := coretypes.NewTeam(t.Key, t.Name)
-	c.Sprint.LengthDays = t.Sprint.LengthDays
-	c.Sprint.Numbering = coretypes.Numbering(t.Sprint.Numbering)
-	c.Sprint.FirstID = str(t.Sprint.FirstID)
-	c.Sprint.FirstStart = t.Sprint.FirstStart
-	c.Capacity.Country = t.Capacity.Country
-	c.Capacity.Region = str(t.Capacity.Region)
-	c.Capacity.Workweek = t.Capacity.Workweek
-	return c
-}
-
 func hasCountry(code string) bool {
 	for _, c := range calendar.Countries() {
 		if c.Code == code {
@@ -151,7 +138,7 @@ func knownSprints(data *storage.TeamData, ahead int) map[string]time.Time {
 	if n := len(data.Sprints); n > 0 {
 		last = &coretypes.Sprint{ID: data.Sprints[n-1].ID, End: data.Sprints[n-1].End}
 	}
-	team := coreTeam(data.Team)
+	team := storage.CoreTeam(data.Team)
 	for i := 0; i < ahead; i++ {
 		next, err := calendar.FollowingSprint(team, last)
 		if err != nil {
@@ -557,7 +544,7 @@ func checkSprint(r *reporter, data *storage.TeamData, s, previous *model.Sprint,
 		}
 	}
 
-	workdays := len(calendar.TeamWorkdays(coreTeam(data.Team), s.Start, s.End))
+	workdays := len(calendar.TeamWorkdays(storage.CoreTeam(data.Team), s.Start, s.End))
 	for _, pid := range keys(s.Absences) {
 		absent := s.Absences[pid]
 		person, ok := people[pid]

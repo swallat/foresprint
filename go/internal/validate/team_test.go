@@ -3,6 +3,7 @@ package validate
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +26,9 @@ type teamCase struct {
 		Message string `json:"message"`
 	} `json:"issues"`
 }
+
+// yamlSyntax picks the file and the problem out of the reference text of a YAML syntax error.
+var yamlSyntax = regexp.MustCompile(`^(.+?): invalid YAML \(while parsing[^\n]*\n[^\n]*\n(did not find[^\n]*|expected[^\n]*|could not[^\n]*)\n`)
 
 func copyTree(t *testing.T, from, to string) {
 	t.Helper()
@@ -59,11 +63,6 @@ func TestCheckTeam(t *testing.T) {
 	}
 	for _, tc := range cases.Cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			if strings.Contains(tc.LoadError, "invalid YAML (while parsing") {
-				// The text of a YAML syntax error is PyYAML's parser message with its marks;
-				// the Go loader's parser words it differently. Not a question of the checks.
-				t.Skip("YAML syntax error wording differs between PyYAML and the Go parser")
-			}
 			base, ok := bases[tc.Base]
 			if !ok {
 				t.Fatalf("no base case %q", tc.Base)
@@ -96,6 +95,17 @@ func TestCheckTeam(t *testing.T) {
 			}
 			var got []Issue
 			data, err := storage.NewRepository(root).Load(tc.Team)
+			if err != nil && yamlSyntax.MatchString(tc.LoadError) {
+				// Known deviation: the text of a YAML syntax error is PyYAML's parser message
+				// with its marks; the Go parser words it differently. The file and the problem
+				// itself must agree.
+				want, have := yamlSyntax.FindStringSubmatch(tc.LoadError), err.Error()
+				if !strings.Contains(strings.ReplaceAll(have, root, "<data>"), want[1]+": invalid YAML (") ||
+					!strings.Contains(have, want[2]) {
+					t.Errorf("load error %q does not match the reference %q", have, tc.LoadError)
+				}
+				return
+			}
 			if err != nil {
 				got = []Issue{{Level: Error, Where: tc.Team, Message: strings.ReplaceAll(err.Error(), root, "<data>")}}
 				if tc.LoadError == "" {
