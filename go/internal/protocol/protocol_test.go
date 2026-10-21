@@ -381,3 +381,17 @@ func TestLockContention(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestPySum(t *testing.T) {
+	for _, c := range []struct {
+		xs   []float64
+		want float64
+	}{
+		{[]float64{17.355, 5.8, 6.8, 23.8, 28.3, 7.65}, 89.705},
+		{[]float64{1e16, 1, -1e16}, 1},
+	} {
+		if got := pySum(c.xs); got != c.want {
+			t.Errorf("pySum(%v) = %v, want %v", c.xs, got, c.want)
+		}
+	}
+}

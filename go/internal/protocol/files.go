@@ -158,7 +158,7 @@ type Entry struct {
 }
 
 var namePattern = regexp.MustCompile(
-	`^(.+)-(vorplanung|planning|review)-(\d{8}-\d{6})(?:-[0-9a-f]{4})?(?:_obsolet_(\d{8}-\d{6}))?\.md$`)
+	`^(.+)-(vorplanung|planning|review)-(\d{8}-\d{6})(?:-[0-9a-f]{4})?(?:_obsolet_(\p{Nd}{8}-\p{Nd}{6}))?\.md$`)
 
 // List returns the minutes of a sprint, newest first.
 func (s *Store) List(sprintID string) ([]Entry, error) {
@@ -265,7 +265,8 @@ func (s *Store) writeLocked(sprintID, kind, text string, state *string) (string,
 	if state != nil {
 		text = strings.TrimRight(text, "\n") + "\n\n" + StateMarker + *state + " -->\n"
 		tag = *state
-	} else {
+	}
+	if tag == "" {
 		sum := sha256.Sum256([]byte(text))
 		tag = hex.EncodeToString(sum[:])
 	}
@@ -276,7 +277,7 @@ func (s *Store) writeLocked(sprintID, kind, text string, state *string) (string,
 	var path string
 	for {
 		path = filepath.Join(s.folder(), fmt.Sprintf("%s-%s-%s-%s.md", sprintID, kind, at.Format(stamp), tag))
-		if _, err := os.Lstat(path); err != nil {
+		if _, err := os.Stat(path); err != nil {
 			break
 		}
 		at = at.Add(time.Second)
@@ -369,7 +370,7 @@ func (s *Store) markObsolete(sprintID, kind string) ([]string, error) {
 		stem := strings.TrimSuffix(e.Path, ".md")
 		target := fmt.Sprintf("%s_obsolet_%s.md", stem, at.Format(stamp))
 		for {
-			if _, err := os.Lstat(target); err != nil {
+			if _, err := os.Stat(target); err != nil {
 				break
 			}
 			at = at.Add(time.Second) // two lifts in the same second
@@ -417,7 +418,31 @@ type lockUnsupported struct{ err error }
 
 func (e *lockUnsupported) Error() string { return e.err.Error() }
 
-func privateDir(path string) error { return os.MkdirAll(path, privateMode) }
+// privateDir creates the folder; only the last level is private (on POSIX), parents get the
+// default mode.
+func privateDir(path string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o777); err != nil {
+		return err
+	}
+	if err := os.Mkdir(path, privateMode); err != nil && !errors.Is(err, fs.ErrExist) {
+		return err
+	}
+	if info, err := os.Stat(path); err != nil || !info.IsDir() {
+		return &fs.PathError{Op: "mkdir", Path: path, Err: syscall.EEXIST}
+	}
+	return nil
+}
+
+// tempDir is the temp folder like Python's tempfile.gettempdir: TMPDIR, TEMP, TMP, then the
+// system default.
+func tempDir() string {
+	for _, name := range []string{"TMPDIR", "TEMP", "TMP"} {
+		if dir := os.Getenv(name); dir != "" {
+			return dir
+		}
+	}
+	return os.TempDir()
+}
 
 // permanent reports errors when creating or opening in the settings folder after which the temp
 // folder is used; transient ones (too many files, no space, I/O) are raised instead of silently
@@ -436,7 +461,7 @@ func permanent(err error) bool {
 
 func fallbackLockDir() (string, error) {
 	name := regexp.MustCompile(`[^\p{L}\p{N}_]`).ReplaceAllString(userName(), "_")
-	root := filepath.Join(os.TempDir(), "sprintforecast-sperren-"+name)
+	root := filepath.Join(tempDir(), "sprintforecast-sperren-"+name)
 	if err := privateDir(root); err != nil {
 		return "", notSaved(root, err)
 	}
@@ -523,7 +548,10 @@ func acquireInFallback(used string) (*os.File, error) {
 		"File locks are not supported on the drive of {path}. Please move the settings folder to a local drive.",
 		"path", filepath.Dir(used))}
 	dir, err := fallbackLockDir()
-	if err != nil || dir == filepath.Dir(used) {
+	if err != nil {
+		return nil, err
+	}
+	if dir == filepath.Dir(used) {
 		return nil, unsupported
 	}
 	f, err := os.OpenFile(filepath.Join(dir, filepath.Base(used)), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)

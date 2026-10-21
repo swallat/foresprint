@@ -6,6 +6,7 @@ package protocol
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"math"
 	"strings"
 	"time"
 
@@ -156,13 +157,13 @@ func ByPO(d Distribution) []POTotals {
 	for _, po := range order {
 		totals := map[string]*float64{}
 		for _, m := range Measures {
-			sum, seen := 0.0, false
+			var xs []float64
 			for _, r := range groups[po] {
 				if v := r.Value(m); v != nil {
-					sum += *v
-					seen = true
+					xs = append(xs, *v)
 				}
 			}
+			sum, seen := pySum(xs), len(xs) > 0
 			if seen {
 				s := sum
 				totals[m] = &s
@@ -423,4 +424,26 @@ func Fingerprint(text string, documents ...string) string {
 		h.Write([]byte(d))
 	}
 	return hex.EncodeToString(h.Sum(nil))[:16]
+}
+
+// pySum adds like Python's sum() on floats (3.12+): Neumaier compensated summation.
+func pySum(xs []float64) float64 {
+	sum, c := 0.0, 0.0
+	for _, x := range xs {
+		if math.IsInf(x, 0) || math.IsNaN(x) || math.IsInf(sum, 0) || math.IsNaN(sum) {
+			sum += x
+			continue
+		}
+		t := sum + x
+		if math.Abs(sum) >= math.Abs(x) {
+			c += (sum - t) + x
+		} else {
+			c += (x - t) + sum
+		}
+		sum = t
+	}
+	if c != 0 && !math.IsInf(sum, 0) && !math.IsNaN(sum) {
+		sum += c
+	}
+	return sum
 }

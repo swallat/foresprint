@@ -51,7 +51,13 @@ func unlock(f *os.File) error {
 	return nil
 }
 
+// currentUser is the account name like Python's getpass.getuser (USERNAME, not DOMAIN\\name).
 func currentUser() string {
+	for _, name := range []string{"LOGNAME", "USER", "LNAME", "USERNAME"} {
+		if v := os.Getenv(name); v != "" {
+			return v
+		}
+	}
 	if u, err := user.Current(); err == nil {
 		return u.Username
 	}
