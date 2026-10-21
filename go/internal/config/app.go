@@ -82,6 +82,9 @@ func SaveDataDir(path string) error {
 	if err != nil {
 		here = path
 	}
+	if resolved, err := filepath.EvalSymlinks(here); err == nil {
+		here = resolved
+	}
 	recent := []string{here}
 	for _, p := range RecentDataDirs() {
 		if p != here {
