@@ -410,12 +410,18 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 14. ... switch sharing to merge requests?
 15. ... see what a colleague changed yesterday?
 
-## 9. Open questions
+## 9. Decisions (Sebastian, 21.10.2026)
 
-1. Announced vs confirmed absences as one grid with a cell state: needs a small data-format change or a UI-only mapping. Proposal: UI-only first.
-2. Contingent unit and period: person days or points; per sprint, per month or in total for the project?
-3. Where do contingents come from: entered by hand, or also read from a tracker field?
-4. Milestones: dates only, or also a set of tickets per milestone (for its own traffic light)?
-5. Product of a project ticket when the project spans several products: product rule decides (proposal), or the PO picks per ticket?
-6. Planning with tickets: is the agreed ticket list the commitment, or does the commitment stay a number next to it?
-7. Tickets that the tracker already lists in the sprint but the team takes out during planning: only a local note, or a hint to fix it in Jira?
+1. **Absences:** announced and confirmed absences in one grid, each cell shows its state. UI only first, data format unchanged.
+2. **Contingents and units:** team planning stays in story points as today. Project contingents are booked in person days (PD) for the whole project, optionally split per month. Both live side by side: Foresprint converts points to PD with the team's own rate (points per available person day from the forecast data: normalized velocity). Planned uses the Forecast rate of that sprint, done uses the sprint's actual rate. Converted values are always marked as estimates.
+
+    Example: rate 1.5 points per PD; project X has 12 points planned in sprint S -> about 8 PD of its 40 PD contingent.
+3. **Contingent source:** entered by hand; a tracker field as source later and optional.
+4. **Milestones:** a date, optionally with tickets assigned; with tickets it gets its own traffic light.
+5. **Product of a project ticket** when the project spans several products: the product rule decides, the PO can override per ticket.
+6. **Commitment with tickets:** the agreed ticket list is the commitment, its sum follows from it. A separate number remains only without a tracker.
+7. **Ticket in the tracker's sprint but taken out in planning:** noted locally, shown in a list "adjust in Jira" and in the planning minutes. The tracker stays read-only.
+
+## 10. Open questions
+
+None at the moment.
