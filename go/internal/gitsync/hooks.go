@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/swallat/foresprint/internal/yamlx"
 )
 
 // Codec reads and writes the YAML files of a data folder as value trees (see package yamlmerge).
@@ -31,8 +33,17 @@ var (
 	validator Validator
 )
 
-// SetCodec sets the YAML codec used to merge files at key level. Without one, every YAML file
-// that both sides changed is a conflict to decide as a whole.
+// YAMLCodec reads and writes the data files exactly as the core does (package yamlx). It is the
+// codec in use unless SetCodec sets another one (tests do).
+type YAMLCodec struct{}
+
+// Parse reads one file; an empty document gives nil.
+func (YAMLCodec) Parse(text string) (any, error) { return yamlx.Load(text) }
+
+// Dump writes a tree the way all files are written.
+func (YAMLCodec) Dump(tree any) (string, error) { return yamlx.Dump(tree) }
+
+// SetCodec sets the YAML codec used to merge files at key level (default: YAMLCodec).
 func SetCodec(c Codec) {
 	hookMu.Lock()
 	codec = c
@@ -50,6 +61,9 @@ func SetValidator(v Validator) {
 func currentCodec() Codec {
 	hookMu.RLock()
 	defer hookMu.RUnlock()
+	if codec == nil {
+		return YAMLCodec{}
+	}
 	return codec
 }
 
