@@ -204,3 +204,11 @@ table.t td.edit input { width: 64px; height: 26px; text-align: right; border: 1p
   .topbar .sel { padding: 4px 6px; }
   .page { padding: 16px max(16px, env(safe-area-inset-left, 0px)) 96px max(16px, env(safe-area-inset-right, 0px)); }
 }
+
+/* Calculation display mode (Settings > Personal) */
+[data-calc="off"] .calc-btn, [data-calc="inline"] .calc-btn { display: none !important; }
+.calc-inline { margin-top: 8px; padding: 8px 10px; border: 1px dashed var(--border); border-radius: var(--r-ctl); background: var(--surface-2); font-size: 12px; line-height: 16px; white-space: normal; text-align: left; font-weight: normal; }
+.calc-inline summary { cursor: pointer; color: var(--text-muted); }
+.calc-inline .tw { margin-top: 6px; }
+.help-topic { scroll-margin-top: 16px; }
+.formula { font-family: var(--font-data); background: var(--surface-2); border-radius: var(--r-ctl); padding: 8px 10px; white-space: pre-wrap; overflow-wrap: anywhere; }

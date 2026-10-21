@@ -105,7 +105,7 @@ flowchart LR
 9. **Stages are not gates.** Every stage of a sprint can be opened at any time; a stage that lacks input shows what is missing and still works with the data at hand.
 10. **Pro-forma sprints.** A tracker sprint can be marked as pro forma in Settings > Jira and tickets (none, one or several), for example "Refinement" for tickets that go into the next refinement. Pro-forma sprints are shown as collapsible sections under the backlog, never count for capacity or forecast, and moving a ticket into or out of one is a local change listed under "adjust in Jira". Sprints without dates or with names like "Refinement" are suggested as pro forma.
 11. **Trackers are optional.** Projects, products, sprints and planning work fully offline; a tracker only adds tickets and assignment rules on top.
-12. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
+12. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29). How much of this shows next to the numbers is a personal setting (Settings > Personal > Calculations): hidden, as a calculator icon (default) or always expanded below the number. Independent of that setting, Help > Calculations explains every formula once in full, with the team's own numbers filled in.
 
 ## 5. Navigation proposal (text tree for the tree test)
 
@@ -135,7 +135,9 @@ Settings
   Team                     forecast settings, features, budget basis
   Jira and tickets         connection, fields, sync interval, which tracker sprints are pro forma, import
   Storage                  Git: server, sign-in, branch, name and email, line endings, recent folders; after 1.0 also kind (Git or shared folder)
-  Personal                 theme, language, density
+  Personal                 theme, language, density, calculations next to numbers (hidden, icon, expanded)
+Help
+  Calculations             every formula once: capacity, rate, Forecast PLAN and range, default per product, points in PD, traffic light, when done, balance; filled with the team's numbers
 Always reachable, independent of sprint stage: Forecast, Settings, PO pre-planning (Backlog lanes and Sprint > Pre-plan), Save, Refresh and tracker sync (top bar).
 Top bar                    team, sprint, Save, Refresh, status chip (Saved / 2 new changes from Anna / Conflict / Read only, no connection / Locked by Anna), tracker sync (last sync, sync now), search (Ctrl+K), help
 ```
@@ -381,6 +383,17 @@ flowchart TD
   R --> E([Export or share with the project lead])
 ```
 
+### F9 Understand a calculation
+
+Job: "Why does the Forecast say 35 points?" Works from any number with a calculator icon.
+
+```mermaid
+flowchart LR
+  N[Number with calculator icon] --> P[Panel: short calculation with this sprint's numbers]
+  P --> H[Help > Calculations: formula, example, special cases]
+  S[Settings > Personal > Calculations] -- hidden / icon / expanded --> N
+```
+
 ## 8. Tree test (before mocks)
 
 Sebastian plus one or two other scrum masters or POs get the text tree of section 5 and answer "Where do you click to ...?" Target: 80 percent direct success.
@@ -412,6 +425,7 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 5. **Product of a project ticket** when the project spans several products: the product rule decides, the PO can override per ticket.
 6. **Commitment with tickets:** the agreed ticket list is the commitment, its sum follows from it. A separate number remains only without a tracker.
 7. **Ticket in the tracker's sprint but taken out in planning:** noted locally, shown in a list "adjust in Jira" and in the planning minutes. The tracker stays read-only.
+8. **Calculations:** explained in a help page (Help > Calculations) and switchable per person: hidden, icon or always expanded. The default UI stays light.
 
 ## 10. Open questions
 

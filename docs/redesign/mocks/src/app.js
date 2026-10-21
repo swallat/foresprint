@@ -3,7 +3,7 @@
 // tokens (#backlog, #plan) because the artifact viewer passes only those through.
 (function () {
   const D = window.DEMO;
-  const FS = (window.FS = { views: {}, flows: [], state: { sprint: "2026.22", theme: null } });
+  const FS = (window.FS = { views: {}, flows: [], state: { sprint: "2026.22", theme: null, calcMode: "icon" } });
 
   // ---------- helpers ----------
   FS.esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -61,6 +61,8 @@
     const el = document.createElement("aside");
     el.className = "panel";
     el.setAttribute("aria-label", title);
+    if (/^Rechenweg/.test(title) && !FS.capturing) html += `<p class="small" style="margin:0"><a href="#help">${FS.icon("help", "small")} Ausführlich erklärt in Hilfe > Rechenwege</a></p>`;
+    if (FS.capturing) { FS.captured = html; return null; }
     el.innerHTML = `<div class="panel-head"><strong style="flex:1">${title}</strong><button class="btn icon ghost" type="button" aria-label="Schließen">${FS.icon("close")}</button></div><div class="panel-body">${html}</div>`;
     el.querySelector(".panel-head button").onclick = FS.closePanel;
     document.body.appendChild(el);
@@ -147,6 +149,7 @@
     { group: "Team", items: [["people", "group", "Personen und Abwesenheiten"], ["products", "category", "Produkte"], ["calendar", "calendar_month", "Sprint-Kalender"]] },
     { group: "Daten", items: [["data", "database", "Übersicht"], ["conflicts", "call_split", "Konflikte"], ["history", "history", "Verlauf und Tags"]] },
     { group: "Einstellungen", items: [["settings", "tune", "Team"], ["jira", "sync", "Jira und Tickets"], ["storage", "cloud", "Speicher"], ["personal", "person", "Persönlich"]] },
+    { group: "Hilfe", items: [["help", "calculate", "Rechenwege"]] },
     { group: "Mockups", items: [["flows", "route", "Abläufe durchspielen"]] },
   ];
 
@@ -256,10 +259,31 @@
     FS.closePanel();
     main.innerHTML = `<div class="page">${v.render()}</div>`;
     if (v.wire) v.wire(main);
+    applyCalcMode(main);
     main.querySelectorAll(".ticket").forEach((el) => el.addEventListener("dblclick", () => FS.ticketPanel(el.dataset.key)));
     main.querySelectorAll(".ticket .title").forEach((el) => el.addEventListener("click", () => FS.ticketPanel(el.closest(".ticket").dataset.key)));
     document.title = `${v.title || "Foresprint"} · Foresprint Mockups`;
     guide();
+  }
+
+  // Calculation affordances: "off" hides them, "icon" shows the calculator button,
+  // "inline" renders each calculation as an open disclosure next to its number.
+  function applyCalcMode(main) {
+    const btns = [...main.querySelectorAll("button")].filter((b) => b.querySelector(".ms")?.textContent === "calculate" && !b.closest("[data-calc-mode]"));
+    btns.forEach((b) => b.classList.add("calc-btn"));
+    document.documentElement.dataset.calc = FS.state.calcMode;
+    if (FS.state.calcMode !== "inline") return;
+    btns.forEach((b) => {
+      FS.capturing = true; FS.captured = null;
+      try { b.click(); } catch (e) { /* ignore */ }
+      FS.capturing = false;
+      if (!FS.captured) return;
+      const d = document.createElement("details");
+      d.className = "calc-inline";
+      d.open = true;
+      d.innerHTML = `<summary>${FS.icon("calculate", "small")} Rechenweg</summary>${FS.captured}`;
+      (b.closest("td, .card, .lane-head, div") || b.parentElement).appendChild(d);
+    });
   }
   FS.render = render;
 
