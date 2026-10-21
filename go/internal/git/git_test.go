@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -197,8 +198,9 @@ func TestCommitOutsideARepositoryIsClassified(t *testing.T) {
 	file := gittest.Write(t, filepath.Join(folder, "team.yaml"), "name: A\n")
 	_, err := Commit(bg, []string{file}, "no repo", "")
 	e := As(err)
-	if e == nil || e.Kind != "not_repo" || !strings.Contains(e.Error(), folder) {
-		t.Fatalf("err = %v", err)
+	if e == nil || e.Kind != "not_repo" ||
+		!strings.Contains(strings.ToLower(filepath.ToSlash(e.Error())), strings.ToLower(filepath.ToSlash(folder))) {
+		t.Fatalf("err = %v (%#v)", err, e)
 	}
 }
 
@@ -416,7 +418,7 @@ func TestStrerror(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, statErr := os.Stat("/definitely/not/here")
-	if got := FolderProblem("/x", statErr).Error(); !strings.Contains(got, "(No such file or directory)") {
+	if got := FolderProblem("/x", statErr).Error(); runtime.GOOS != "windows" && !strings.Contains(got, "(No such file or directory)") {
 		t.Fatalf("message = %q", got)
 	}
 }
