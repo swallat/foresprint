@@ -9,7 +9,7 @@ import (
 	"unicode"
 )
 
-// PyRepr is Python's repr() of a loaded value.
+// PyRepr is Python's repr() of a loaded value (used in messages and by PyStr).
 func PyRepr(v any) string {
 	switch x := v.(type) {
 	case nil:
@@ -26,14 +26,14 @@ func PyRepr(v any) string {
 	case *big.Int:
 		return x.String()
 	case float64:
-		return pyFloatRepr2(x)
+		return PyFloatRepr(x)
 	case string:
 		return pyStrRepr(x)
 	case Date:
 		t := time.Time(x)
 		return fmt.Sprintf("datetime.date(%d, %d, %d)", t.Year(), int(t.Month()), t.Day())
 	case time.Time:
-		return "datetime.datetime(" + timestampText(x) + ")"
+		return datetimeRepr(x)
 	case []any:
 		parts := make([]string, len(x))
 		for i, it := range x {
@@ -50,8 +50,8 @@ func PyRepr(v any) string {
 	return fmt.Sprint(v)
 }
 
-// PyTypeName is the name of the Python type of a loaded value as a TypeError shows it
-// ("datetime.date" for dates, like the C type reports itself).
+// PyTypeName is the name of the Python type of a loaded value as Python shows it in a
+// TypeError (type(x).__name__; "datetime.date" for dates, like the C type reports itself).
 func PyTypeName(v any) string {
 	switch v.(type) {
 	case nil:
@@ -74,19 +74,6 @@ func PyTypeName(v any) string {
 		return "dict"
 	}
 	return "object"
-}
-
-// pyFloatRepr2 is repr(float) including inf and nan.
-func pyFloatRepr2(f float64) string {
-	switch t := floatText(f); t {
-	case ".inf":
-		return "inf"
-	case "-.inf":
-		return "-inf"
-	case ".nan":
-		return "nan"
-	}
-	return pyFloatRepr(f)
 }
 
 // pyStrRepr is repr(str): single quotes unless the text has a single and no double quote.
@@ -122,4 +109,47 @@ func pyStrRepr(s string) string {
 	}
 	b.WriteRune(quote)
 	return b.String()
+}
+
+// datetimeRepr is repr(datetime): seconds and microseconds only when set, then the zone.
+func datetimeRepr(t time.Time) string {
+	parts := []int{t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute()}
+	us := t.Nanosecond() / 1000
+	if t.Second() != 0 || us != 0 {
+		parts = append(parts, t.Second())
+	}
+	if us != 0 {
+		parts = append(parts, us)
+	}
+	texts := make([]string, len(parts))
+	for i, p := range parts {
+		texts[i] = strconv.Itoa(p)
+	}
+	out := "datetime.datetime(" + strings.Join(texts, ", ")
+	if t.Location() != time.UTC {
+		_, off := t.Zone()
+		if off == 0 {
+			out += ", tzinfo=datetime.timezone.utc"
+		} else {
+			out += ", tzinfo=datetime.timezone(datetime.timedelta(" + timedeltaArgs(off) + "))"
+		}
+	}
+	return out + ")"
+}
+
+// timedeltaArgs is the argument list of repr(timedelta) for an offset in seconds.
+func timedeltaArgs(sec int) string {
+	days := 0
+	for sec < 0 {
+		sec += 86400
+		days--
+	}
+	var args []string
+	if days != 0 {
+		args = append(args, "days="+strconv.Itoa(days))
+	}
+	if sec != 0 {
+		args = append(args, "seconds="+strconv.Itoa(sec))
+	}
+	return strings.Join(args, ", ")
 }
