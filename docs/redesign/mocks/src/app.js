@@ -173,6 +173,59 @@
     el.querySelector("[data-close]").focus();
   };
 
+
+  // ---------- assignment rules (same language for products and projects, as in 0.8 ruleexpr) ----------
+  // Fields: component, label, epic, priority, type, status. Operators: = != ~ !~ IN, NOT IN; AND OR NOT, parentheses.
+  const COMP = { portal: "Portal", billing: "Abrechnung", mobile: "Mobile App", platform: "Plattform" };
+  FS.ruleFields = ["component", "label", "epic", "priority", "type", "status"];
+  FS.ticketFields = (t) => { const d = D.details[t.key]; return { component: [COMP[t.product]], label: ["team-" + t.product, t.refined ? "refined" : "", ...(d?.labels || [])].filter(Boolean), epic: [t.project ? FS.project(t.project).name : ""].filter(Boolean), priority: [d?.priority || "Mittel"], type: [d?.type || "Story"], status: [t.status] }; };
+  FS.parseRule = (src) => {
+    const toks = []; const re = /\s*(?:("(?:[^"\\]|\\.)*")|(!=|!~|=|~|\(|\)|,)|([A-Za-zÄÖÜäöüß_][\w.-]*))/gy; let m, pos = 0;
+    while (pos < src.length) { re.lastIndex = pos; m = re.exec(src); if (!m || m[0].length === 0) { if (/^\s*$/.test(src.slice(pos))) break; throw new Error(`Unerwartetes Zeichen an Stelle ${pos + 1}`); } toks.push(m[1] ? { s: JSON.parse(m[1]) } : m[2] ? { o: m[2] } : { w: m[3] }); pos = re.lastIndex; }
+    let i = 0; const peek = () => toks[i], kw = (k) => peek()?.w?.toUpperCase() === k, eat = (o) => { if (peek()?.o !== o) throw new Error(`"${o}" erwartet`); i++; };
+    const val = () => { const t = toks[i++]; if (!t || t.o) throw new Error("Wert erwartet"); return t.s ?? t.w; };
+    const cond = () => {
+      if (kw("NOT")) { i++; return { not: cond() }; }
+      if (peek()?.o === "(") { i++; const e = or(); eat(")"); return e; }
+      const f = toks[i++]?.w?.toLowerCase(); if (!FS.ruleFields.includes(f)) throw new Error(`Unbekanntes Feld "${f ?? ""}". Felder: ${FS.ruleFields.join(", ")}`);
+      let op; if (kw("NOT")) { i++; if (!kw("IN")) throw new Error("NOT IN erwartet"); i++; op = "NOT IN"; } else if (kw("IN")) { i++; op = "IN"; } else { op = toks[i++]?.o; if (!["=", "!=", "~", "!~"].includes(op)) throw new Error(`Operator nach ${f} erwartet (= != ~ !~ IN)`); }
+      if (op.endsWith("IN")) { eat("("); const vs = [val()]; while (peek()?.o === ",") { i++; vs.push(val()); } eat(")"); return { f, op, vs }; }
+      return { f, op, vs: [val()] };
+    };
+    const and = () => { let l = cond(); while (kw("AND")) { i++; l = { and: [l, cond()] }; } return l; };
+    const or = () => { let l = and(); while (kw("OR")) { i++; l = { or: [l, and()] }; } return l; };
+    if (!toks.length) return null; const tree = or(); if (i < toks.length) throw new Error("Ausdruck endet nicht sauber, AND oder OR fehlt?"); return tree;
+  };
+  const evalTree = (n, fv) => {
+    if (n.not) return !evalTree(n.not, fv); if (n.and) return n.and.every((x) => evalTree(x, fv)); if (n.or) return n.or.some((x) => evalTree(x, fv));
+    const have = fv[n.f].map((v) => v.toLowerCase()), want = n.vs.map((v) => v.toLowerCase());
+    const eq = have.some((h) => want.includes(h)), con = have.some((h) => want.some((w) => h.includes(w)));
+    return { "=": eq, IN: eq, "!=": !eq, "NOT IN": !eq, "~": con, "!~": !con }[n.op];
+  };
+  FS.ruleMatches = (expr) => { try { const tr = FS.parseRule(expr || ""); return tr ? D.tickets.filter((t) => evalTree(tr, FS.ticketFields(t))) : []; } catch (e) { return []; } };
+  // Rule editor with live preview. kind: "product" | "project"; others: [{id, name, rule}] of the same kind
+  FS.ruleEditor = (kind, owner, expr, others) => `<div class="stack rule-ed" data-rule-kind="${kind}" data-rule-owner="${owner}" style="gap:8px">
+      <div class="field"><label for="re-${owner}">Regel für ${FS.esc((kind === "product" ? FS.product(owner) : FS.project(owner))?.name || "")}</label><textarea class="input data" id="re-${owner}" rows="2" spellcheck="false">${FS.esc(expr || "")}</textarea></div>
+      <div class="small muted">Felder: ${FS.ruleFields.map((f) => `<button class="link data" type="button" data-ins="${f} = &quot;&quot;">${f}</button>`).join(" ")} · Operatoren <span class="data">= != ~ !~ IN NOT IN AND OR NOT ( )</span> · weitere Felder unter Einstellungen > Jira und Tickets</div>
+      <div class="banner info rule-prev" style="margin:0">${FS.icon("preview")}<div class="grow"></div></div></div>`;
+  FS.wireRuleEditor = (root, others, onApplyBtn) => {
+    const box = root.querySelector(".rule-ed"); if (!box) return;
+    const kind = box.dataset.ruleKind, owner = box.dataset.ruleOwner, ta = box.querySelector("textarea"), prev = box.querySelector(".rule-prev .grow");
+    const cur = (t) => (kind === "product" ? t.product : t.project);
+    const upd = () => {
+      let m; try { const tr = FS.parseRule(ta.value); m = tr ? D.tickets.filter((t) => evalTree(tr, FS.ticketFields(t))) : []; } catch (e) { prev.innerHTML = `<strong>Regel unvollständig:</strong> ${FS.esc(e.message)}`; box.querySelector(".rule-prev").className = "banner warn rule-prev"; return; }
+      box.querySelector(".rule-prev").className = "banner info rule-prev";
+      const clash = m.filter((t) => others.some((o) => o.id !== owner && FS.ruleMatches(o.rule).includes(t)));
+      const moved = m.filter((t) => cur(t) && cur(t) !== owner);
+      prev.innerHTML = `<strong class="data">${m.length}</strong> Tickets passen (<span class="data">${FS.sum(m, (t) => t.est || 0)}</span> Punkte)${moved.length ? `, <span class="data">${moved.length}</span> davon heute anders zugeordnet` : ""}${clash.length ? `. <span class="chip warn">${clash.length} passen auch auf eine andere Regel</span> (Reihenfolge entscheidet, Widerspruch erscheint in der Vorschau)` : ""}.
+        <div class="small" style="margin-top:4px">${m.slice(0, 5).map((t) => FS.keyLink(t) + " ").join("")}${m.length > 5 ? `<span class="muted">und ${m.length - 5} weitere</span>` : ""}</div>`;
+    };
+    ta.addEventListener("input", upd);
+    box.querySelectorAll("[data-ins]").forEach((b) => (b.onclick = () => { const p = ta.selectionStart ?? ta.value.length; const add = (ta.value.trim() && p === ta.value.length ? " AND " : "") + b.dataset.ins; ta.value = ta.value.slice(0, p) + add + ta.value.slice(p); ta.focus(); ta.selectionStart = ta.selectionEnd = p + add.length - 1; upd(); }));
+    upd();
+    return () => ta.value.trim();
+  };
+
   // ---------- drag and drop with keyboard alternative ----------
   // FS.dnd(root, { onDrop(key, zoneId, beforeKey) }) for .ticket[draggable] inside [data-zone]
   FS.dnd = (root, { onDrop }) => {
