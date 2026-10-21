@@ -340,7 +340,7 @@ func (f Formatter) trendNote(fc *forecast.Forecast, e *forecast.TimelineEntry) (
 	if e.Result.TrendFallback {
 		return f.t("The history is thin: the last average applies, without extrapolation.", nil), true
 	}
-	if mode := fc.Data.Team.Forecast.TrendMode; mode != coretypes.Flat {
+	if mode, err := engine.ParseTrendMode(fc.Data.Team.Forecast.TrendMode); err == nil && mode != coretypes.Flat {
 		return f.t("Trend mode {mode} extrapolates fluctuations of the last sprints – read "+
 			"with caution.", msg.Values{"mode": string(mode)}), true
 	}

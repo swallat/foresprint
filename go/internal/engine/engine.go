@@ -98,7 +98,7 @@ func RollingAverage(values Series, window int) Series {
 		present = append(present, *value)
 		switch {
 		case len(present) >= window:
-			result = append(result, coretypes.Float(pymath.Sum(present[len(present)-window:])/float64(window)))
+			result = append(result, coretypes.Float(pymath.Sum(present[max(len(present)-window, 0):])/float64(window)))
 		case thin && len(present) >= MinThinHistory:
 			result = append(result, coretypes.Float(pymath.Sum(present)/float64(len(present))))
 		default:
@@ -226,7 +226,7 @@ func trendOf(average Series, mode coretypes.TrendMode) (Series, []bool, error) {
 		// Quantities, capacity and shares are never negative; a projection below zero (noise)
 		// is clamped to zero.
 		if value != nil {
-			result[i] = coretypes.Float(math.Max(*value, 0))
+			result[i] = coretypes.Float(maxZero(*value))
 		}
 	}
 	return result, fallback, nil
@@ -405,7 +405,7 @@ func Compute(inputs []SprintInput, settings coretypes.ForecastSettings) ([]Sprin
 		switch {
 		case nTrend != nil && planCap != nil:
 			p := RoundDown((*nTrend/ref)*(*planCap), settings.Rounding)
-			p = math.Max(p, 0)
+			p = maxZero(p)
 			plan = &p
 			src := PlanForecast
 			planSource = &src
@@ -458,4 +458,12 @@ func Compute(inputs []SprintInput, settings coretypes.ForecastSettings) ([]Sprin
 		}
 	}
 	return results, nil
+}
+
+// maxZero is Python's max(x, 0.0): it keeps -0.0, where math.Max turns it into +0.
+func maxZero(x float64) float64 {
+	if x < 0 {
+		return 0
+	}
+	return x
 }
