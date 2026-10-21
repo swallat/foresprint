@@ -219,7 +219,7 @@ def test_saving_the_same_state_twice_writes_one_protocol_even_with_a_pinned_stat
 
     repo = Repository(tmp_path)
     # Older file that contains only the PO pre-planning: absences unknown, nothing fixed.
-    repo.save_sprint("demo", sprint_stub(products={"kwg": ProductValues(preplanned=1.0)}))
+    repo.save_sprint("demo", sprint_stub(products={"webshop": ProductValues(preplanned=1.0)}))
     path = repo.sprint_path("demo", "2026.21")
 
     def save_twice() -> int:

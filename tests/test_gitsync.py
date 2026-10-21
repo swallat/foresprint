@@ -1817,10 +1817,10 @@ def test_hint_md_follows_a_hint_assigned_after_construction():
         ("https://github.com/o/r.git", "github"),
         ("git@github.com:o/r.git", "github"),
         ("https://gitlab.example.org/team/data.git", "gitlab"),
-        ("ssh://git@gitlab.firma.de:2222/team/data.git", "gitlab"),
+        ("ssh://git@gitlab.example.org:2222/team/data.git", "gitlab"),
         ("https://codeberg.org/o/r", "forgejo"),
         ("https://gitea.example.org/o/r.git", "forgejo"),
-        ("https://git.firma.de/team/data.git", "generic"),
+        ("https://git.example.org/team/data.git", "generic"),
         ("/srv/git/data.git", "generic"),
     ],
 )

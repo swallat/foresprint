@@ -174,7 +174,7 @@ def test_roundtrip_keeps_every_field_of_a_fully_filled_team(data_dir: Path, tmp_
     sprint.forecast_plan, sprint.note = 17.4, "Notiz mit Ümlaut | und Strich"
     sprint.not_done, sprint.additional_done = 1.5, 2.0
     sprint.production_planned, sprint.production_done = 3.0, 2.0
-    ids = [p.id for p in data.products[:2]] or ["kwg"]
+    ids = [p.id for p in data.products[:2]] or ["webshop"]
     sprint.products = {pid: ProductValues(1.0, 2.0, 3.0, 0.5, 0.25) for pid in ids}
     sprint.prognoses = [
         Prognosis(
