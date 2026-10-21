@@ -59,6 +59,9 @@ type Fail struct{ Msg string }
 
 func (f *Fail) Error() string { return f.Msg }
 
+// errExit1 ends a command with the exit code 1 after it has printed its findings itself.
+var errExit1 = &Fail{}
+
 // Failf makes a Fail from a translated text.
 func Failf(text string, values ...any) *Fail { return &Fail{Msg: i18n.P(text, values...)} }
 
@@ -89,7 +92,9 @@ func Execute(args []string, in io.Reader, out, errOut io.Writer) int {
 	var cfg *config.Error
 	switch {
 	case errors.As(err, &fail), errors.As(err, &cfg):
-		_, _ = fmt.Fprintln(errOut, err.Error())
+		if err.Error() != "" {
+			_, _ = fmt.Fprintln(errOut, err.Error())
+		}
 		return 1
 	default:
 		_, _ = fmt.Fprintln(errOut, i18n.T("Usage error: {error}", "error", err))
