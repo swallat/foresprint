@@ -26,6 +26,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/i18n` | Texts: English source texts, one JSON file per language in `data/` (see below). |
 | `internal/config` | `settings.json` of the user (language, theme, data folders); same file and format as the Python version. |
 | `internal/cli` | The command line: commands are subcommands of the one program (cobra), plain output. |
+| `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
 
 ## Texts
