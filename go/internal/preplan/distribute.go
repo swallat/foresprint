@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/swallat/foresprint/internal/analysis"
@@ -14,6 +13,7 @@ import (
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/products"
+	"github.com/swallat/foresprint/internal/pytext"
 	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/validate"
 )
@@ -68,10 +68,14 @@ func standardShares(active []model.Product, available float64) []productShare {
 	shares := products.StandardShares(active, &available)
 	var out []productShare
 	seen := map[string]bool{}
-	for _, p := range active {
-		if _, ok := shares[p.ID]; ok && !seen[p.ID] {
-			seen[p.ID] = true
-			out = append(out, productShare{strPtr(p.ID), shares[p.ID]})
+	// Like the dict of Python: the fixed shares first, then the rest, each in order of first
+	// appearance.
+	for _, withShare := range []bool{true, false} {
+		for _, p := range active {
+			if _, ok := shares[p.ID]; ok && (p.Share != nil) == withShare && !seen[p.ID] {
+				seen[p.ID] = true
+				out = append(out, productShare{strPtr(p.ID), shares[p.ID]})
+			}
 		}
 	}
 	return out
@@ -105,7 +109,7 @@ func variantPlans(core *storage.TeamData, horizon []analysis.HorizonEntry, nvel 
 // distribution. plans replaces the Forecast PLAN per sprint id (variants).
 func budgets(data *storage.TeamData, core *storage.TeamData, horizon []analysis.HorizonEntry, plans map[string]float64) []Budget {
 	team := data.Team
-	var result []Budget
+	result := []Budget{}
 	for _, h := range horizon {
 		var plan *float64
 		if plans == nil {
@@ -234,10 +238,8 @@ func rankText(t model.Ticket) string {
 	return *t.Rank
 }
 
-// casefold is str.casefold() for the usual letters.
-func casefold(s string) string {
-	return strings.NewReplacer("ß", "ss", "ẞ", "ss", "ſ", "s").Replace(strings.ToLower(s))
-}
+// casefold is str.casefold().
+func casefold(s string) string { return pytext.Casefold(s) }
 
 // PriorityRank is the position of a tracker priority in tracker.priority_order
 // (case-insensitive; 0 = most important). Without or with an unknown priority: after all named

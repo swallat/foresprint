@@ -26,3 +26,13 @@ func TestSplitLines(t *testing.T) {
 		}
 	}
 }
+
+func TestCasefold(t *testing.T) {
+	for in, want := range map[string]string{
+		"Straße": "strasse", "ς": "σ", "µ": "μ", "İ": "i̇", "ﬁ": "fi", "ſ": "s", "ẞ": "ss", "ABC": "abc",
+	} {
+		if got := Casefold(in); got != want {
+			t.Errorf("Casefold(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
