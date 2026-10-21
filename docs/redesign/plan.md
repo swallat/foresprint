@@ -18,10 +18,10 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 
 ## 2. Technischer Weg (Arbeitsstand, im Prototyp zu prüfen)
 
-- **Kern bleibt Python** (Prognose, Monte-Carlo, Feiertage, Jira, Git, Plugins). Er bekommt eine lokale Schnittstelle und einen Hintergrund-Abruf.
+- **Kern: offen (Python oder Go).** Fest ist: natives Frontend mit Wails und möglichst viel Geschwindigkeit. Feiertage und andere Besonderheiten müssen erhalten bleiben. Eine Entscheidungsvorlage "Go-Kern oder Python-Kern" entsteht in einem eigenen Faden; bei gutem Plan ist eine vollständige Portierung nach Go möglich.
 - **Neue Web-Oberfläche** (HTML, CSS, TypeScript) mit Ziehen, Sofortfilter und virtueller Liste.
-- **Fensterhülle: Wails** (entschieden 21.10.). Das Wails-Programm öffnet das Fenster und startet den Python-Kern als Hintergrunddienst (FastAPI auf localhost); der Kern wird nicht nach Go portiert.
-- **Paket:** Wails-Programm plus Python-Kern als PyInstaller-Beiprogramm (Sidecar), zusammen als ein Download je Plattform; Größe und Startzeit sind Messgrößen.
+- **Fensterhülle: Wails** (entschieden 21.10.). Mit Python-Kern startet Wails ihn als Hintergrunddienst (FastAPI auf localhost); mit Go-Kern ist alles ein Programm.
+- **Paket:** ein Download je Plattform; mit Python-Kern als PyInstaller-Beiprogramm (Sidecar) neben Wails, mit Go-Kern ein einziges Programm. Größe und Startzeit sind Messgrößen.
 - **Plattform-Voraussetzungen:** Windows: WebView2-Laufzeit (in Windows 11 enthalten, wird vorausgesetzt). macOS: eingebautes WebKit, nichts zu installieren. Linux: WebKitGTK (bei den meisten Desktops vorhanden).
 - Streamlit bleibt bis zur Gleichwertigkeit, die Datenformate (YAML) ändern sich nicht.
 
@@ -58,7 +58,8 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 | Langer Branch driftet von `main` weg | Regelmäßiges Zusammenführen von `main` nach `v1`, neue Oberfläche in eigenen Ordnern, gemeinsamer Kern |
 | Zu viel Design vor dem ersten Test | Drei Kernabläufe in der Tiefe, der Rest leichter; Prototyp auf Windows früh |
 | Fensterhülle verhält sich auf Windows anders (Ziehen, WebView2) | Wails-Prototyp früh auf Sebastians Rechner; Kern liefert die Oberfläche auch selbst im Browser aus (Rückfallweg) |
-| Zwei Programme (Wails und Python-Beiprogramm) | Start, Beenden, Port und Absturz des Kerns im Prototyp sauber lösen; ein gemeinsamer Download |
+| Nur mit Python-Kern: zwei Programme (Wails und Beiprogramm) | Start, Beenden, Port und Absturz des Kerns im Prototyp sauber lösen; ein gemeinsamer Download |
+| Nur mit Go-Kern: Portierung verändert Ergebnisse (Feiertage, Monte-Carlo-Zufall) | Vergleichstests gegen die Python-Ergebnisse auf echten Daten vor dem Umstieg |
 | Programm zu groß oder zu langsam beim Start (PyInstaller) | Messen im Prototyp; bei Bedarf Teile des Kerns später nach Go oder Rust holen |
 | Unsigniertes Programm wird blockiert | Frage 6 (Zertifikat) früh klären |
 | Plugins brechen | Frage 3: Plugin-Schnittstelle bleibt, solange der Kern Python ist |
@@ -67,11 +68,11 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 
 1. Zielgruppe: beliebige Scrum-Teams, Open Source; keine Interna in Dokumenten, Beispiele mit einem erfundenen Demo-Team. Eine Nutzerart (Scrum Master oder PO).
 2. Schrift: Iosevka für Daten, Iosevka Aile für Text und Überschriften (Begründung in `DESIGN.md`, geprüft nach impeccable `typeset`).
-3. Hülle: Wails mit Python-Kern als Hintergrunddienst.
+3. Hülle: Wails (fest). Kern Python oder Go: offen, Entscheidungsvorlage folgt.
 4. Jira-Rückschreiben: nein. Reihenfolge und Einordnen bleiben lokal, nach Jira geht nur das Label `planned_for_<sprint>`.
-5. WebView2 unter Windows vorausgesetzt; macOS und Linux siehe Abschnitt 2.
+5. WebView2 unter Windows vorausgesetzt (bestätigt); macOS und Linux siehe Abschnitt 2.
 6. Code-Signing: Sebastian klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
 7. Impeccable: direkt aus dem GitHub-Repository (siehe `impeccable.md`).
 8. Seitenschicksal: `flows.md` gilt, die Tabelle in `inventory.md` ist überholt.
 
-Offen: GitHub-Projekt als Tafel anlegen (Sebastian); Datenhaltung Fileserver-Ordner oder Git (eigene Vorstudie).
+Offen: Kern Python oder Go (eigener Faden); Datenhaltung Fileserver-Ordner oder Git (eigene Vorstudie); GitHub-Projekt als Tafel anlegen (Sebastian).
