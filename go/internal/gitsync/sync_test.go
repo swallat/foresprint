@@ -13,6 +13,7 @@ import (
 	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/gittest"
 	"github.com/swallat/foresprint/internal/yamlmerge"
+	"github.com/swallat/foresprint/internal/yamlx"
 )
 
 const file = "teams/a/2026.1.yaml"
@@ -320,7 +321,7 @@ func TestInvalidMergeResultIsNotPushed(t *testing.T) {
 				continue
 			}
 			v, _ := gittest.FlatCodec{}.Parse(string(b))
-			if m, ok := v.(*yamlmerge.Map); ok {
+			if m, ok := v.(*yamlx.Map); ok {
 				if s, ok := m.Get("share"); ok {
 					switch n := s.(type) {
 					case int64:
