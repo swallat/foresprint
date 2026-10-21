@@ -1,0 +1,271 @@
+// Shell, router and helpers shared by all mock views.
+// Views register with FS.view(id, {...}); flows with FS.flow({...}). Navigation uses bare hash
+// tokens (#backlog, #plan) because the artifact viewer passes only those through.
+(function () {
+  const D = window.DEMO;
+  const FS = (window.FS = { views: {}, flows: [], state: { sprint: "2026.22", theme: null } });
+
+  // ---------- helpers ----------
+  FS.esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  FS.icon = (name, extra = "") => `<span class="ms ${extra}" aria-hidden="true">${name}</span>`;
+  FS.product = (id) => D.products.find((p) => p.id === id);
+  FS.project = (id) => D.projects.find((p) => p.id === id);
+  FS.person = (id) => D.people.find((p) => p.id === id);
+  FS.po = (id) => D.pos.find((p) => p.id === id);
+  FS.sprint = (id) => D.sprints.find((s) => s.id === id);
+  FS.ticket = (key) => D.tickets.find((t) => t.key === key);
+  FS.fmtDate = (iso) => { const [y, m, d] = iso.split("-"); return `${d}.${m}.${y.slice(2)}`; };
+  FS.fmt = (n, digits = 0) => (n == null ? "–" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits }));
+  FS.sum = (arr, f = (x) => x) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+
+  // Ticket key with tracker link (rule: every ticket links to its tracker)
+  FS.keyLink = (t) => `<span class="key"><a href="${D.team.trackerUrl}${t.key}" target="_blank" rel="noopener" title="In ${D.team.tracker} öffnen">${t.key}${FS.icon("open_in_new")}</a></span>`;
+  FS.productChip = (id) => { const p = FS.product(id); return p ? `<span class="chip"><span class="dot" style="background:${p.color}"></span>${FS.esc(p.name)}</span>` : ""; };
+  FS.projectChip = (id) => { const p = FS.project(id); return p ? `<span class="chip">${FS.icon("flag", "small")}${FS.esc(p.name)}</span>` : `<span class="chip muted">Tagesgeschäft</span>`; };
+  FS.lightChip = (l, text) => { const m = { ok: ["ok", "check_circle", "im Plan"], warn: ["warn", "error", "knapp"], bad: ["bad", "cancel", "gefährdet"] }[l]; return `<span class="chip ${m[0]}">${FS.icon(m[1])}${text || m[2]}</span>`; };
+  FS.refinedChip = (t) => (t.refined ? "" : `<span class="chip warn" title="Nicht refined">${FS.icon("help")}offen</span>`);
+  FS.estHtml = (t) => (t.est == null ? `<span class="est muted" title="Keine Schätzung">?</span>` : `<span class="est">${t.est}</span>`);
+
+  // Standard ticket row; opts.drag adds a drag handle
+  FS.ticketRow = (t, opts = {}) => `
+    <div class="ticket" data-key="${t.key}" ${opts.drag ? 'draggable="true"' : ""} tabindex="0" aria-label="${t.key} ${FS.esc(t.title)}">
+      <span class="handle">${opts.drag ? FS.icon("drag_indicator") : ""}</span>
+      ${FS.keyLink(t)}
+      <span class="title">${FS.esc(t.title)}</span>
+      <span class="meta">${FS.refinedChip(t)}${opts.noProduct ? "" : FS.productChip(t.product)}${opts.noProject ? "" : FS.projectChip(t.project)}${FS.estHtml(t)}</span>
+    </div>`;
+
+  // Capacity bar: used vs forecast range (all in points)
+  FS.capBar = (used, fc, low, high, max) => {
+    max = max || Math.max(high || 0, used) * 1.15;
+    const pct = (v) => Math.max(0, Math.min(100, (v / max) * 100));
+    const over = high != null && used > high;
+    return `<div class="cap" title="${FS.fmt(used)} von ${FS.fmt(fc)} Punkten (Spanne ${FS.fmt(low)} bis ${FS.fmt(high)})">
+      ${low != null ? `<div class="fc" style="left:${pct(low)}%;width:${pct(high) - pct(low)}%"></div>` : ""}
+      <div class="used ${over ? "over" : ""}" style="width:${pct(used)}%"></div></div>`;
+  };
+
+  FS.toast = (msg, undo) => {
+    document.querySelectorAll(".toast").forEach((t) => t.remove());
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.setAttribute("role", "status");
+    el.innerHTML = `<span>${msg}</span>${undo ? `<button type="button">Rückgängig</button>` : ""}`;
+    if (undo) el.querySelector("button").onclick = () => { undo(); el.remove(); };
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  };
+
+  FS.openPanel = (title, html) => {
+    FS.closePanel();
+    const el = document.createElement("aside");
+    el.className = "panel";
+    el.setAttribute("aria-label", title);
+    el.innerHTML = `<div class="panel-head"><strong style="flex:1">${title}</strong><button class="btn icon ghost" type="button" aria-label="Schließen">${FS.icon("close")}</button></div><div class="panel-body">${html}</div>`;
+    el.querySelector(".panel-head button").onclick = FS.closePanel;
+    document.body.appendChild(el);
+    return el;
+  };
+  FS.closePanel = () => document.querySelectorAll(".panel").forEach((p) => p.remove());
+
+  FS.ticketPanel = (key) => {
+    const t = FS.ticket(key);
+    const opts = (list, cur, label) => list.map((x) => `<option value="${x.id}" ${x.id === cur ? "selected" : ""}>${FS.esc(x.name)}</option>`).join("");
+    FS.openPanel(`${t.key}`, `
+      <div class="row">${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span></div>
+      <h2 style="margin:0">${FS.esc(t.title)}</h2>
+      <dl class="kv">
+        <dt>Produkt</dt><dd><select class="input" id="tp-product">${opts(D.products, t.product)}</select></dd>
+        <dt>Projekt</dt><dd><select class="input" id="tp-project"><option value="">Tagesgeschäft</option>${opts(D.projects, t.project)}</select></dd>
+        <dt>Schätzung</dt><dd class="data">${t.est ?? "keine"} Punkte <span class="muted small">aus ${D.team.tracker}</span></dd>
+        <dt>Refined</dt><dd>${t.refined ? FS.lightChip("ok", "ja") : FS.lightChip("warn", "nein")}</dd>
+        <dt>Vorgemerkt</dt><dd>${t.sprint ? `<span class="chip">${FS.icon("event")}Sprint ${t.sprint}</span>` : `<span class="muted">nicht vorgemerkt</span>`}</dd>
+        ${t.inTrackerSprint ? `<dt>Im ${D.team.tracker}-Sprint</dt><dd class="data">${t.inTrackerSprint}</dd>` : ""}
+      </dl>
+      <div class="field"><label for="tp-note">Notiz zur Vormerkung</label><textarea class="input" id="tp-note" rows="2" placeholder="z. B. mit Kim abgestimmt"></textarea></div>
+      <p class="small muted">Produkt per Regel (Komponente = Portal). Abweichung hier überschreibt die Regel nur für dieses Ticket.</p>
+      <h2>Verlauf</h2>
+      <ul class="small" style="margin:0;padding-left:18px"><li>21.10. Kim Berger: vorgemerkt für 2026.22</li><li>18.10. Abruf aus ${D.team.tracker}: Schätzung 5</li></ul>`);
+  };
+
+  // ---------- drag and drop with keyboard alternative ----------
+  // FS.dnd(root, { onDrop(key, zoneId, beforeKey) }) for .ticket[draggable] inside [data-zone]
+  FS.dnd = (root, { onDrop }) => {
+    let dragKey = null;
+    root.querySelectorAll(".ticket[draggable]").forEach((el) => {
+      el.addEventListener("dragstart", (e) => { dragKey = el.dataset.key; el.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragKey); });
+      el.addEventListener("dragend", () => { el.classList.remove("dragging"); root.querySelectorAll(".drop-line").forEach((l) => l.remove()); root.querySelectorAll(".over").forEach((z) => z.classList.remove("over")); });
+      el.addEventListener("keydown", (e) => {
+        if (!e.altKey) return;
+        const zones = [...root.querySelectorAll("[data-zone]")];
+        const zone = el.closest("[data-zone]");
+        const items = [...zone.querySelectorAll(".ticket")];
+        const i = items.indexOf(el);
+        if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); onDrop(el.dataset.key, zone.dataset.zone, items[i - 1].dataset.key, true); }
+        if (e.key === "ArrowDown" && i < items.length - 1) { e.preventDefault(); onDrop(el.dataset.key, zone.dataset.zone, items[i + 2]?.dataset.key || null, true); }
+        const zi = zones.indexOf(zone);
+        if (e.key === "ArrowRight" && zi < zones.length - 1) { e.preventDefault(); onDrop(el.dataset.key, zones[zi + 1].dataset.zone, null, true); }
+        if (e.key === "ArrowLeft" && zi > 0) { e.preventDefault(); onDrop(el.dataset.key, zones[zi - 1].dataset.zone, null, true); }
+      });
+    });
+    root.querySelectorAll("[data-zone]").forEach((zone) => {
+      zone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        zone.classList.add("over");
+        root.querySelectorAll(".drop-line").forEach((l) => l.remove());
+        const after = [...zone.querySelectorAll(".ticket:not(.dragging)")].find((t) => e.clientY < t.getBoundingClientRect().top + t.offsetHeight / 2);
+        const line = document.createElement("div");
+        line.className = "drop-line";
+        if (after) after.before(line); else (zone.querySelector(".lane-body") || zone).appendChild(line);
+        zone.dataset.before = after ? after.dataset.key : "";
+      });
+      zone.addEventListener("dragleave", (e) => { if (!zone.contains(e.relatedTarget)) zone.classList.remove("over"); });
+      zone.addEventListener("drop", (e) => { e.preventDefault(); zone.classList.remove("over"); if (dragKey) onDrop(dragKey, zone.dataset.zone, zone.dataset.before || null); dragKey = null; });
+    });
+  };
+  // Move ticket in D.tickets (rank order) and set sprint; zone "backlog" = no sprint
+  FS.moveTicket = (key, zone, beforeKey) => {
+    const list = D.tickets;
+    const t = FS.ticket(key);
+    const prev = { sprint: t.sprint, idx: list.indexOf(t) };
+    t.sprint = zone === "backlog" ? null : zone;
+    list.splice(list.indexOf(t), 1);
+    const bi = beforeKey ? list.findIndex((x) => x.key === beforeKey) : -1;
+    if (bi >= 0) list.splice(bi, 0, t); else list.push(t);
+    return () => { t.sprint = prev.sprint; list.splice(list.indexOf(t), 1); list.splice(prev.idx, 0, t); };
+  };
+
+  // ---------- registry ----------
+  FS.view = (id, def) => (FS.views[id] = { id, ...def });
+  FS.flow = (def) => FS.flows.push(def);
+
+  // ---------- navigation model (flows.md section 5) ----------
+  const NAV = [
+    { group: null, items: [["today", "today", "Heute"], ["backlog", "view_list", "Backlog"]] },
+    { group: "Sprints", items: [["sprints", "date_range", "Sprint-Übersicht"], ["prepare", "event_available", "Vorbereiten", true], ["preplan", "low_priority", "Vorplanen", true], ["plan", "checklist", "Planen", true], ["review", "task_alt", "Review", true], ["minutes", "description", "Protokolle", true]] },
+    { group: null, items: [["projects", "flag", "Projekte"], ["forecast", "insights", "Forecast"]] },
+    { group: "Team", items: [["people", "group", "Personen und Abwesenheiten"], ["products", "category", "Produkte"], ["calendar", "calendar_month", "Sprint-Kalender"]] },
+    { group: "Daten", items: [["data", "database", "Übersicht"], ["conflicts", "call_split", "Konflikte"], ["history", "history", "Verlauf und Tags"]] },
+    { group: "Einstellungen", items: [["settings", "tune", "Team"], ["jira", "sync", "Jira und Tickets"], ["storage", "cloud", "Speicher"], ["personal", "person", "Persönlich"]] },
+    { group: "Mockups", items: [["flows", "route", "Abläufe durchspielen"]] },
+  ];
+
+  const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="rc"><rect width="64" height="64" rx="13"/></clipPath></defs><rect width="64" height="64" rx="13" fill="#5b5bf0"/><path clip-path="url(#rc)" d="M64 10 L10 64 H64Z" fill="#a24df0" opacity=".85"/><rect x="6" y="24" width="14" height="16" rx="3" fill="#fff"/><rect x="23" y="24" width="14" height="16" rx="3" fill="#fff"/><rect x="40" y="24" width="14" height="16" rx="3" fill="none" stroke="#17c3a0" stroke-width="2.5" stroke-dasharray="4 2"/><line x1="54" y1="32" x2="60" y2="32" stroke="#17c3a0" stroke-width="3" stroke-linecap="round"/></svg>`;
+
+  FS.storageChip = () => {
+    const st = FS.state.storageState || "incoming";
+    const m = {
+      saved: ["ok", "cloud_done", "Gespeichert"],
+      incoming: ["warn", "cloud_download", `${D.storage.incoming.length} neue Änderungen von Lea`],
+      conflict: ["bad", "call_split", "Konflikt"],
+      offline: ["", "cloud_off", "Offline, Speichern lokal"],
+      mr: ["warn", "merge", "Wartet auf Merge Request"],
+    }[st];
+    return `<a class="chip-status ${m[0]}" href="#data" id="storage-chip" title="Speicherstatus">${FS.icon(m[1])}<span class="hide-narrow">${m[2]}</span></a>`;
+  };
+
+  function shell() {
+    const s = FS.sprint(FS.state.sprint);
+    return `
+    <div class="app">
+      <header class="topbar">
+        <button class="btn icon ghost rail-toggle" type="button" aria-label="Navigation" id="rail-toggle">${FS.icon("menu")}</button>
+        <div class="brand">${LOGO}<span>Foresprint</span></div>
+        <button class="sel hide-narrow" type="button" title="Team wechseln">${FS.icon("groups")}${D.team.name}${FS.icon("expand_more")}</button>
+        <button class="sel" type="button" id="sprint-sel" title="Sprint wählen">${FS.icon("date_range")}<span class="data">${s.id}</span>${FS.icon("expand_more")}</button>
+        <div class="spacer"></div>
+        <div class="search" role="button" tabindex="0" title="Suchen und springen (Strg+K)">${FS.icon("search")}<span class="txt">Suchen</span><span class="small data hide-narrow">Strg+K</span></div>
+        <a class="chip-status ${FS.state.trackerOk === false ? "bad" : ""}" href="#jira" title="Letzter Abruf aus ${D.team.tracker}">${FS.icon("sync")}<span class="hide-narrow">${D.team.tracker} ${D.trackerSync.last}</span></a>
+        ${FS.storageChip()}
+        <button class="btn hide-narrow" type="button" id="btn-refresh" title="Änderungen von anderen holen">${FS.icon("download")}Aktualisieren</button>
+        <button class="btn primary" type="button" id="btn-save" title="Speichern und für das Team sichtbar machen" aria-label="Speichern">${FS.icon("save")}<span class="hide-narrow">Speichern</span></button>
+        <button class="btn icon ghost" type="button" id="btn-theme" aria-label="Hell oder dunkel">${FS.icon("contrast")}</button>
+      </header>
+      <nav class="rail" id="rail" aria-label="Hauptnavigation">
+        ${NAV.map((g) => `${g.group ? `<h6>${g.group}${g.group === "Sprints" ? ` <span class="data">${s.id}</span>` : ""}</h6>` : ""}${g.items.map(([id, ic, label, sub]) => `<a href="#${id}" data-nav="${id}">${FS.icon(ic)}<span>${label}</span>${id === "conflicts" && FS.state.storageState === "conflict" ? '<span class="count" style="color:var(--bad)">2</span>' : ""}</a>`).join("")}`).join("")}
+      </nav>
+      <main class="main" id="main"></main>
+    </div>`;
+  }
+
+  function wireShell() {
+    document.getElementById("rail-toggle").onclick = () => document.getElementById("rail").classList.toggle("open");
+    document.getElementById("btn-save").onclick = () => {
+      FS.state.storageState = "saved";
+      rerenderTop();
+      FS.toast(D.storage.mrEnforced && FS.state.mrDemo ? "Gespeichert. Der Server verlangt einen Merge Request: Link im Statuschip." : "Gespeichert und mit dem Team geteilt.");
+    };
+    document.getElementById("btn-refresh").onclick = () => { FS.state.storageState = "saved"; rerenderTop(); FS.toast("2 Änderungen von Lea und Kim übernommen."); };
+    document.getElementById("btn-theme").onclick = () => {
+      const root = document.documentElement;
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+    };
+    document.getElementById("sprint-sel").onclick = () => {
+      const ids = D.sprints.filter((s) => s.state !== "past").map((s) => s.id);
+      FS.state.sprint = ids[(ids.indexOf(FS.state.sprint) + 1) % ids.length];
+      render();
+      FS.toast(`Sprint ${FS.state.sprint} gewählt (Klick wechselt weiter).`);
+    };
+  }
+  function rerenderTop() { const c = document.getElementById("storage-chip"); if (c) c.outerHTML = FS.storageChip(); }
+
+  // ---------- flow guide ----------
+  function guide() {
+    document.querySelectorAll(".guide").forEach((g) => g.remove());
+    document.querySelectorAll(".hl").forEach((h) => h.classList.remove("hl"));
+    const g = FS.state.guide;
+    if (!g) return;
+    const flow = FS.flows.find((f) => f.id === g.flow);
+    const step = flow.steps[g.step];
+    const el = document.createElement("div");
+    el.className = "guide";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", "Ablauf");
+    el.innerHTML = `<div class="step">${flow.id} ${FS.esc(flow.title)} · Schritt ${g.step + 1} von ${flow.steps.length}</div><p>${step.text}</p>
+      <div class="row"><button class="btn" type="button" data-g="prev" ${g.step === 0 ? "disabled" : ""}>${FS.icon("arrow_back")}Zurück</button>
+      ${g.step < flow.steps.length - 1 ? `<button class="btn primary" type="button" data-g="next">Weiter${FS.icon("arrow_forward")}</button>` : `<button class="btn primary" type="button" data-g="end">Fertig</button>`}
+      <button class="btn ghost" type="button" data-g="end" style="margin-left:auto">Beenden</button></div>`;
+    el.onclick = (e) => {
+      const b = e.target.closest("[data-g]");
+      if (!b) return;
+      if (b.dataset.g === "end") { FS.state.guide = null; guide(); return; }
+      g.step += b.dataset.g === "next" ? 1 : -1;
+      FS.goStep();
+    };
+    document.body.appendChild(el);
+    if (step.hl) [60, 300, 800].forEach((ms) => setTimeout(() => document.querySelectorAll(step.hl).forEach((h) => { if (h.classList.contains("hl")) return; h.classList.add("hl"); h.scrollIntoView({ block: "nearest" }); }), ms));
+  }
+  FS.startFlow = (id) => { FS.state.guide = { flow: id, step: 0 }; FS.goStep(); };
+  FS.goStep = () => {
+    const g = FS.state.guide;
+    const step = FS.flows.find((f) => f.id === g.flow).steps[g.step];
+    if (step.before) step.before();
+    if (location.hash.slice(1) === step.view) render(); else location.hash = step.view;
+  };
+
+  // ---------- router ----------
+  function render() {
+    const id = location.hash.slice(1) || "today";
+    const v = FS.views[id] || FS.views.missing;
+    document.getElementById("app").innerHTML = shell();
+    wireShell();
+    const navId = { project: "projects", setup: "storage" }[id] || id;
+    document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("active", a.dataset.nav === navId));
+    const main = document.getElementById("main");
+    FS.closePanel();
+    main.innerHTML = `<div class="page">${v.render()}</div>`;
+    if (v.wire) v.wire(main);
+    main.querySelectorAll(".ticket").forEach((el) => el.addEventListener("dblclick", () => FS.ticketPanel(el.dataset.key)));
+    main.querySelectorAll(".ticket .title").forEach((el) => el.addEventListener("click", () => FS.ticketPanel(el.closest(".ticket").dataset.key)));
+    document.title = `${v.title || "Foresprint"} · Foresprint Mockups`;
+    guide();
+  }
+  FS.render = render;
+
+  FS.view("missing", { title: "In Arbeit", render: () => `<div class="page-head"><div><h1>Diese Ansicht folgt</h1><p class="lead">Das Mockup für diesen Bereich ist noch in Arbeit.</p></div></div>` });
+
+  window.addEventListener("hashchange", render);
+  window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); FS.toast("Befehlspalette: Seite, Ticket oder Aktion suchen (im Mockup nicht ausgeführt)."); } });
+  document.addEventListener("DOMContentLoaded", render);
+})();

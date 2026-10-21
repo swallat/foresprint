@@ -103,14 +103,15 @@ flowchart LR
 7. **Every ticket links to its tracker.** Key and an open-in-tracker icon on every ticket row, card and panel (Jira today, GitHub or GitLab later).
 8. **Always available: Forecast, Settings, PO pre-planning, saving and sync.** Save, Refresh, the status chip and the tracker sync sit permanently in the top bar and work from every page, also during an unfinished flow (an incomplete flow is saved as a draft). None of these depend on the sprint stage, on absences being confirmed, on a frozen plan or on a finished setup step. Missing inputs show as a hint in place, never as a locked page. Pre-planning works for any future sprint, also several sprints ahead.
 9. **Stages are not gates.** Every stage of a sprint can be opened at any time; a stage that lacks input shows what is missing and still works with the data at hand.
-10. **Trackers are optional.** Projects, products, sprints and planning work fully offline; a tracker only adds tickets and assignment rules on top.
-11. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
+10. **Pro-forma sprints.** A tracker sprint can be marked as pro forma in Settings > Jira and tickets (none, one or several), for example "Refinement" for tickets that go into the next refinement. Pro-forma sprints are shown as collapsible sections under the backlog, never count for capacity or forecast, and moving a ticket into or out of one is a local change listed under "adjust in Jira". Sprints without dates or with names like "Refinement" are suggested as pro forma.
+11. **Trackers are optional.** Projects, products, sprints and planning work fully offline; a tracker only adds tickets and assignment rules on top.
+12. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
 
 ## 5. Navigation proposal (text tree for the tree test)
 
 ```
 Today                      state-aware: next step per sprint, sync state, findings
-Backlog                    all tickets with lanes for the coming sprints (PO pre-planning across sprints), group by project or product; saved views: Daily business, Refinement, Unassigned, Earmarked, Open points
+Backlog                    all tickets with lanes for the coming sprints (PO pre-planning across sprints), pro-forma sprints (e.g. Refinement) as sections under the list, group by project or product; saved views: Daily business, Refinement, Unassigned, Earmarked, Open points
   ticket panel             details, product, project, estimate, earmark, history
 Sprints                    timeline of sprints with state chips
   <sprint>                 one workspace, one selector
@@ -132,7 +133,7 @@ Data                       the team's data, the same for every storage
   History and tags         who changed what and when, restore a state, take back a change, tags (after 1.0 for folders: journal and daily snapshots)
 Settings
   Team                     forecast settings, features, budget basis
-  Jira and tickets         connection, fields, sync interval, import
+  Jira and tickets         connection, fields, sync interval, which tracker sprints are pro forma, import
   Storage                  Git: server, sign-in, branch, name and email, line endings, recent folders; after 1.0 also kind (Git or shared folder)
   Personal                 theme, language, density
 Always reachable, independent of sprint stage: Forecast, Settings, PO pre-planning (Backlog lanes and Sprint > Pre-plan), Save, Refresh and tracker sync (top bar).
@@ -188,7 +189,7 @@ flowchart TD
   O --> P[Open ticket panel]
   P --> R[Estimate, product, project, refine flag]
   R --> C{Rule conflict?}
-  C -- yes --> C1[Hint in panel, project wins] --> B
+  C -- yes --> C1[Hint in panel; product rule decides, PO can override per ticket] --> B
   C -- no --> B
 ```
 
