@@ -28,6 +28,17 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/yamlmerge` | Three-way merge of YAML value trees at key level (lists with `id`, forecasts by timestamp). Works on the tree of `value.go`, not on text. |
 | `internal/git` | The `git` program: finding it, calls with a time limit that can be aborted, recognising Git's messages (`Classify`, kinds, hints), checking server addresses, connection check, changes, commit, tags, create and clone a data repository. |
 | `internal/gittest` | Helpers for tests with real repositories (bare server, clones). Only imported by tests. |
+| `internal/pymath` | The arithmetic of Python the results depend on: the compensated `sum()` of floats (Python 3.12+), `math.fsum`, `statistics.median`/`fmean`, `round`, and the number formats `{:,.2f}` and `{:g}`. A sum that has to match Python is calculated with these, not with a loop. |
+| `internal/coretypes` | Settings, people and sprints as the calculation reads them (field names of the Python model). Moves to the complete model of the model-and-storage step by changing the import. |
+| `internal/calendar` | Sprint IDs and the following sprints, workweeks, workdays, holidays of a country and region (`calendar.py`). |
+| `internal/engine` | Rounding, rolling average, trend modes, `Compute` (`engine.py`). |
+| `internal/capacity` | Capacity per person and sprint, expected absence rate (`capacity.py`). |
+| `internal/forecast` | Timeline, capacity source, `Build`, Planning inputs, freezing the plan (`forecast.py`). |
+| `internal/analysis` | Ranges, focus factor, buffer hint, horizon, Monte Carlo completion (`analysis.py`). |
+| `internal/formulas` | The calculation path of every figure: steps and explanations as texts (`formulas.py`). |
+| `internal/textfmt` | Number format of the language, capacity rounding, Markdown code spans of external text (the helpers of `report.py` and `git.py` the formulas need). |
+| `internal/msg` | `{name}` placeholders and the catalog lookup of the texts (`t()` of the Python core). The German catalog itself belongs to the texts step. |
+| `internal/coretest` | Test helper: loads the golden team folders into `coretypes`. |
 | `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
 
@@ -64,6 +75,16 @@ version gives (`gen_holidays.py --check`).
 - YAML is written byte for byte like PyYAML `safe_dump(width=100, sort_keys=False,
   allow_unicode=True)`. `golden/expected/yaml` has the cases, `yaml-messy` the awkward ones.
 - Texts for users are English in code and files; German comes from the catalog.
+
+## Where Go differs from Python on purpose
+
+- Sprint IDs are read with ASCII digits only (`2026.7`); Python's `int()` also takes other
+  scripts' digits. IDs are file names, so this is no loss; `scripts/golden_ext/calendar_ids.py`
+  leaves such IDs out of the reference.
+- Years outside 2001-2050 have no holidays (see Holiday data); Python's library calculates any
+  year.
+- An error is a typed value with a `Message(lang)` for the user text, not an exception with a
+  translated string.
 
 ## Port plan
 
