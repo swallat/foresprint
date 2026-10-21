@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/gittest"
@@ -38,7 +39,7 @@ func setup(t *testing.T) {
 	fetched = map[string]fetchRecord{}
 	mu.Unlock()
 	SetCodec(gittest.FlatCodec{})
-	SetValidator(nil)
+	SetValidator(noCheck)
 	t.Cleanup(func() {
 		SetCodec(nil)
 		SetValidator(nil)
@@ -141,3 +142,6 @@ func (w *world) onServer() string {
 	w.alice.t.Helper()
 	return gittest.Git(w.alice.t, w.remote, "show", "main:"+file)
 }
+
+// noCheck is the validator of tests with flat files: no data check.
+func noCheck(context.Context, string, time.Time) ([]Issue, error) { return nil, nil }
