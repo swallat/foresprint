@@ -16,6 +16,8 @@ Work is either **daily business** or a **project topic**. Products and projects 
 - A ticket always has a product. It has a project if it is project work; without a project it is daily business of its product.
 - A project may have **booked contingents** (resources a project lead booked from the team, for example person days or points per sprint or period). Foresprint compares them with what is planned and done, so the PO can report back to the project lead.
 
+Projects live in the data folder and work **without any tracker**: products, milestones, end date, contingent and notes are created and kept in Foresprint, offline. A tracker adds optional assignment rules that pull its tickets into a project; without one, tickets or plain work items are assigned by hand (0.8 already stores projects in `projects.yaml` and allows hand-kept tickets in `tickets.yaml`).
+
 Everything Foresprint derives here (assignment, budgets, traffic lights, contingent use) is a **recommendation**. The PO makes the final call; the numbers make demand visible.
 
 ```mermaid
@@ -50,7 +52,7 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J13 | need numbers elsewhere | export a report or workbook, import Excel or CSV | Foresprint fits the existing tools |
 | J14 | wonder what a number means | open its calculation and help in place | I trust the numbers |
 | J15 | prepare the coming sprints | see work grouped by project with milestones and end dates next to daily business | I can tell what must come first |
-| J16 | a project starts or changes | record its products, milestones, end date and booked contingent | the forecast knows what the project expects |
+| J16 | a project starts or changes | record its products, milestones, end date and booked contingent, also without a tracker and offline | the forecast knows what the project expects |
 | J17 | a project lead asks how their project is doing | see booked vs planned vs done per sprint and the milestone traffic light, and export it | I can give a clear answer |
 | J18 | project demand and product budgets disagree | see the conflict with numbers and decide | the decision stays mine, but is informed |
 | J19 | look at any ticket anywhere | open it in the tracker with one click | I never search for a key by hand |
@@ -91,7 +93,8 @@ flowchart LR
 7. **Every ticket links to its tracker.** Key and an open-in-tracker icon on every ticket row, card and panel (Jira today, GitHub or GitLab later).
 8. **Always available: Forecast, Settings, PO pre-planning, saving and sync.** Save, share (Git push or merge request), pull and the tracker sync sit permanently in the top bar and work from every page, also during an unfinished flow (an incomplete flow is saved as a draft). None of these depend on the sprint stage, on absences being confirmed, on a frozen plan or on a finished setup step. Missing inputs show as a hint in place, never as a locked page. Pre-planning works for any future sprint, also several sprints ahead.
 9. **Stages are not gates.** Every stage of a sprint can be opened at any time; a stage that lacks input shows what is missing and still works with the data at hand.
-10. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
+10. **Trackers are optional.** Projects, products, sprints and planning work fully offline; a tracker only adds tickets and assignment rules on top.
+11. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
 
 ## 5. Navigation proposal (text tree for the tree test)
 
@@ -106,7 +109,7 @@ Sprints                    timeline of sprints with state chips
     Plan                   ticket list vs sprint lane with live capacity and Forecast PLAN; planned amounts; agree and freeze
     Review                 velocity, scope change, done per product, tag
 Projects                   portfolio: timeline with milestones and end dates, traffic light, contingent use
-  <project>                products, milestones, contingent, tickets, report for the project lead
+  <project>                products, milestones, contingent, tickets, report for the project lead; works offline, tracker rules optional
 Forecast                   coming sprints with range; tabs: Analysis, Products over time, Reports and export
 Team
   People and absences      people, FTE, absences grid across sprints
@@ -260,6 +263,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
+  N[Create or edit project locally: products, milestones, end date, contingent] --> P
   P[Projects] --> T[Timeline: milestones, end dates, traffic light]
   T --> D{Demand fits budgets and contingents?}
   D -- yes --> S[Sprint > Pre-plan: earmark project tickets and daily business]
