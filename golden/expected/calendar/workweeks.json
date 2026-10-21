@@ -1,0 +1,1824 @@
+[
+ {
+  "value": "",
+  "weekend": null,
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": " ",
+  "weekend": null,
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "auto",
+  "weekend": null,
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "AUTO",
+  "weekend": null,
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "Auto ",
+  "weekend": null,
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon-fri",
+  "weekend": [
+   5,
+   6
+  ],
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   5,
+   6
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   5,
+   6
+  ],
+  "person_SA_None": [
+   5,
+   6
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   5,
+   6
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "MON-FRI",
+  "weekend": [
+   5,
+   6
+  ],
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   5,
+   6
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   5,
+   6
+  ],
+  "person_SA_None": [
+   5,
+   6
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   5,
+   6
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": " Sun-Thu ",
+  "weekend": [
+   4,
+   5
+  ],
+  "team_DE": [
+   4,
+   5
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   4,
+   5
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   4,
+   5
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   4,
+   5
+  ]
+ },
+ {
+  "value": "mon-sat",
+  "weekend": [
+   6
+  ],
+  "team_DE": [
+   6
+  ],
+  "person_DE_SA": [
+   6
+  ],
+  "person_DE_IL": [
+   6
+  ],
+  "person_DE_None": [
+   6
+  ],
+  "team_SA": [
+   6
+  ],
+  "person_SA_SA": [
+   6
+  ],
+  "person_SA_IL": [
+   6
+  ],
+  "person_SA_None": [
+   6
+  ],
+  "team_XX": [
+   6
+  ],
+  "person_XX_SA": [
+   6
+  ],
+  "person_XX_IL": [
+   6
+  ],
+  "person_XX_None": [
+   6
+  ]
+ },
+ {
+  "value": "mon;tue",
+  "weekend": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_DE": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_None": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_None": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_XX": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_None": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon,,tue",
+  "weekend": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_DE": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_None": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_None": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_XX": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_None": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ {
+  "value": ",",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": ";",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon, tue ,wed",
+  "weekend": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_DE": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_None": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_SA": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_None": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_XX": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_None": [
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon\ttue",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon-fri,sat",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+  "weekend": [],
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [],
+  "person_DE_IL": [],
+  "person_DE_None": [],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [],
+  "person_SA_IL": [],
+  "person_SA_None": [],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [],
+  "person_XX_IL": [],
+  "person_XX_None": []
+ },
+ {
+  "value": "mon,tue,wed,thu,fri",
+  "weekend": [
+   5,
+   6
+  ],
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   5,
+   6
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   5,
+   6
+  ],
+  "person_SA_None": [
+   5,
+   6
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   5,
+   6
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "sat,sun",
+  "weekend": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "team_DE": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_DE_SA": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_DE_IL": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_DE_None": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "team_SA": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_SA_SA": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_SA_IL": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_SA_None": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "team_XX": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_XX_SA": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_XX_IL": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "person_XX_None": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ]
+ },
+ {
+  "value": "sat",
+  "weekend": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "team_DE": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_DE_SA": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_DE_IL": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_DE_None": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "team_SA": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_SA_SA": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_SA_IL": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_SA_None": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "team_XX": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_XX_SA": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_XX_IL": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "person_XX_None": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ]
+ },
+ {
+  "value": "mon",
+  "weekend": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_DE": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_None": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_None": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_XX": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_None": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon mon",
+  "weekend": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_DE": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_DE_None": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_SA_None": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "team_XX": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "person_XX_None": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mo",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "fri,sat",
+  "weekend": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "team_DE": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_DE_SA": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_DE_IL": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_DE_None": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "team_SA": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_SA_SA": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_SA_IL": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_SA_None": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "team_XX": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_XX_SA": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_XX_IL": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ],
+  "person_XX_None": [
+   0,
+   1,
+   2,
+   3,
+   6
+  ]
+ },
+ {
+  "value": "tue;wed;thu",
+  "weekend": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "team_DE": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_DE_IL": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_DE_None": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "team_SA": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_SA_SA": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_SA_IL": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_SA_None": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "team_XX": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_XX_IL": [
+   0,
+   4,
+   5,
+   6
+  ],
+  "person_XX_None": [
+   0,
+   4,
+   5,
+   6
+  ]
+ },
+ {
+  "value": "xyz",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon,foo",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ },
+ {
+  "value": "mon-thu",
+  "weekend": "error",
+  "team_DE": [
+   5,
+   6
+  ],
+  "person_DE_SA": [
+   4,
+   5
+  ],
+  "person_DE_IL": [
+   4,
+   5
+  ],
+  "person_DE_None": [
+   5,
+   6
+  ],
+  "team_SA": [
+   4,
+   5
+  ],
+  "person_SA_SA": [
+   4,
+   5
+  ],
+  "person_SA_IL": [
+   4,
+   5
+  ],
+  "person_SA_None": [
+   4,
+   5
+  ],
+  "team_XX": [
+   5,
+   6
+  ],
+  "person_XX_SA": [
+   4,
+   5
+  ],
+  "person_XX_IL": [
+   4,
+   5
+  ],
+  "person_XX_None": [
+   5,
+   6
+  ]
+ }
+]

@@ -1,0 +1,105 @@
+{
+ "apply_planning": [
+  {
+   "commitment": null,
+   "planning": {
+    "carryover": 5,
+    "backlog": 10,
+    "corrections": [
+     1.0
+    ]
+   },
+   "prefilled": true,
+   "sprint_commitment": 15,
+   "sprint_planning": {
+    "carryover": 5,
+    "backlog": 10,
+    "corrections": [
+     1.0
+    ]
+   }
+  },
+  {
+   "commitment": 20.0,
+   "planning": {
+    "carryover": 5,
+    "backlog": 10,
+    "corrections": []
+   },
+   "prefilled": false,
+   "sprint_commitment": 20.0,
+   "sprint_planning": {
+    "carryover": 5,
+    "backlog": 10,
+    "corrections": []
+   }
+  },
+  {
+   "commitment": null,
+   "planning": {
+    "carryover": 0,
+    "backlog": 0,
+    "corrections": []
+   },
+   "prefilled": false,
+   "sprint_commitment": null,
+   "sprint_planning": null
+  },
+  {
+   "commitment": null,
+   "planning": null,
+   "prefilled": false,
+   "sprint_commitment": null,
+   "sprint_planning": null
+  },
+  {
+   "commitment": null,
+   "planning": {
+    "carryover": 0,
+    "backlog": 0,
+    "corrections": [
+     2.0
+    ]
+   },
+   "prefilled": false,
+   "sprint_commitment": null,
+   "sprint_planning": {
+    "carryover": 0,
+    "backlog": 0,
+    "corrections": [
+     2.0
+    ]
+   }
+  },
+  {
+   "commitment": 12.0,
+   "planning": null,
+   "prefilled": false,
+   "sprint_commitment": 12.0,
+   "sprint_planning": null
+  },
+  {
+   "commitment": null,
+   "planning": {
+    "carryover": 0,
+    "backlog": 7.5,
+    "corrections": []
+   },
+   "prefilled": true,
+   "sprint_commitment": 7.5,
+   "sprint_planning": {
+    "carryover": 0,
+    "backlog": 7.5,
+    "corrections": []
+   }
+  }
+ ],
+ "errors": {
+  "no_first_sprint": "Team no-first: No sprint has been recorded yet. Please enter the start and ID of the first sprint under Settings (in team.yaml: sprint.first.id and sprint.first.start).",
+  "sequential_22b": "Sprint ID '22b' does not match the numbering (expected a number, e.g. 22); the ID of the following sprint cannot be formed. Please correct the ID: with foresprint rename-sprint or under Settings (without sprint files: the ID of the first sprint there).",
+  "sequential_x": "Sprint ID 'x' does not match the numbering (expected a number, e.g. 22); the ID of the following sprint cannot be formed. Please correct the ID: with foresprint rename-sprint or under Settings (without sprint files: the ID of the first sprint there).",
+  "yearly_counter": "Sprint ID '2026.x' does not match the numbering (expected YYYY.N, e.g. 2026.22); the ID of the following sprint cannot be formed. Please correct the ID: with foresprint rename-sprint or under Settings (without sprint files: the ID of the first sprint there).",
+  "yearly_form": "YYYY.N, e.g. 2026.22",
+  "sequential_form": "a number, e.g. 22"
+ }
+}
