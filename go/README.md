@@ -23,7 +23,9 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/golden` | Loads the references of `../golden` and compares results with them. |
 | `internal/pyrand` | `random.Random` of Python (Mersenne Twister, seeding, `random()`, `getrandbits`, `choice`): the Monte Carlo draws are identical for the same seed. |
 | `internal/holidays` | Holidays and weekends of every country and region of the Python `holidays` library, from embedded data (see below). |
-| `internal/i18n` | `i18n.T("English source text {name}", "name", value)`: the texts of the interface. German and other languages are catalogs (`Register`) that map the English text to its translation. |
+| `internal/i18n` | Texts: English source texts, one JSON file per language in `data/` (see below). |
+| `internal/config` | `settings.json` of the user (language, theme, data folders); same file and format as the Python version. |
+| `internal/cli` | The command line: commands are subcommands of the one program (cobra), plain output. |
 | `internal/pytext` | `str.splitlines` and other places where Python's text functions differ from Go's. |
 | `internal/yamlmerge` | Three-way merge of YAML value trees at key level (lists with `id`, forecasts by timestamp). Works on the tree of `value.go`, not on text. |
 | `internal/git` | The `git` program: finding it, calls with a time limit that can be aborted, recognising Git's messages (`Classify`, kinds, hints), checking server addresses, connection check, changes, commit, tags, create and clone a data repository. |
@@ -43,8 +45,27 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/textfmt` | Number format of the language, capacity rounding, Markdown code spans of external text (the helpers of `report.py` and `git.py` the formulas need). |
 | `internal/msg` | `{name}` placeholders and the catalog lookup of the texts (`t()` of the Python core). The German catalog itself belongs to the texts step. |
 | `internal/coretest` | Test helper: loads the golden team folders into `coretypes`. |
+
 | `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
+
+## Texts
+
+`internal/i18n/data/<code>.json` maps English source texts to the translation; a text without
+entry shows in English. `de.json` is generated from the Python table by `scripts/gen_locales.py`
+(CI checks it) until Python is removed. Texts that only exist in the Go core go to
+`<code>.<name>.json` (for example `de.cli.json`) and are merged. Another language is another
+file, nothing else changes. Language: `FORESPRINT_LANG` > saved setting > English.
+`i18n.T` keeps rich markup of the Python texts, `i18n.P` (command line) removes it before the
+values are filled in.
+
+## Command line
+
+A command is a file in `internal/cli` that calls `Register` in an `init` function and returns a
+`*cobra.Command`; global options (`--data`, `--as-of`) and the streams come with the `Env`.
+Exit codes: 0 success, 1 the command failed (`cli.Failf`), 2 wrong use. Shell completion:
+`foresprint completion bash|zsh|fish|powershell`; `cli.TeamNames` and `cli.SprintIDs` complete
+team and sprint arguments.
 
 ## Holiday data
 
