@@ -77,7 +77,14 @@ flowchart LR
 
 1. **One object, one home.** Every piece of data is edited in exactly one place; other places show it read-only with a link (Jira and Linear pattern).
 2. **A sprint is a workspace, not four pages.** Absences, pre-planning, planning and review become the stages of one sprint view with one sprint selector (fixes D06, D07, D24).
-3. **Stages are states, not pages.** "Pre-planned", "planned", "done" are columns of one product table per sprint (fixes D01, D21); "earmarked", "refined" are ticket states in the backlog (fixes D19).
+3. **One table instead of one page per stage.** Today the amount per product is entered on PO pre-planning, again in Planning step 2 and shown on Product distribution (D01, D21). In 1.0 each sprint has one product table whose columns are the stages; each column is editable only in its stage:
+
+    | Product | Default | Pre-planned | Planned | Done |
+    | --- | --- | --- | --- | --- |
+    | A | 12 | 10 | 11 | 9 |
+    | B | 8 | 9 | 8 | 8 |
+
+    Likewise a ticket's "earmarked for sprint S" and "refined" are properties shown on the ticket wherever it appears (backlog row, sprint lane, panel), not separate lists or forms (D19).
 4. **Views are filters.** Backlog, refinement list, open points and assignment are saved filters of one ticket list, details in a side panel.
 5. **Git is global.** Change count, share and conflicts live in the top bar with one changes drawer; server, sign-in and history live in Settings (fixes D08 to D11, D13).
 6. **Settings are separate from daily work.** Team, tracker, data and sharing, and personal settings each have one section (fixes D14 to D16).
