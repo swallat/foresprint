@@ -29,6 +29,7 @@ Source: [docs/web-ui.md](../web-ui.md), [docs/sprint-workflow.md](../sprint-work
 
 - Automatic background sync with Jira (read-only) and Git, with status in the top bar.
 - Backlog with drag and drop, multi-select, saved filters, keyboard operation, command palette.
+- Projects as their own area: several products per project, milestones, end date, booked contingents, report for project leads (recommendations, the PO decides).
 - Optional write-back of order (open decision; default: stays local).
 - Single executable, no admin rights, window shell, offline start.
 
