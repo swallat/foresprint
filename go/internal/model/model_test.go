@@ -134,6 +134,9 @@ func TestBaseURLProblem(t *testing.T) {
 		"https://jira.example.com/#top":     URLExtra,
 		"https://jira.example.com:99999":    URLInvalid,
 		"https://jira.example.com:8443/abc": "",
+		"https://u:p w@h":                   URLCredentials,
+		"https://h/%zz":                     "",
+		"https://exa mple.com":              "",
 	} {
 		if got := BaseURLProblem(in); got != want {
 			t.Errorf("%q: got %q, want %q", in, got, want)

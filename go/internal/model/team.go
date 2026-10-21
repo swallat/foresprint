@@ -1,7 +1,6 @@
 package model
 
 import (
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -260,25 +259,54 @@ const (
 
 // BaseURLProblem says why tracker.base_url is unusable, or "" if it is fine: URLInvalid (no
 // http/https address), URLCredentials (user or password in the address) or URLExtra (query or
-// fragment). The address itself is never part of the result.
+// fragment). The address itself is never part of the result. The address is split by hand
+// like Python's urlsplit, so odd characters do not turn a credentials problem into "invalid".
 func BaseURLProblem(raw string) string {
 	raw = strings.TrimSpace(raw)
-	u, err := url.Parse(raw)
-	if err != nil {
+	raw = strings.NewReplacer("\t", "", "\n", "", "\r", "").Replace(raw)
+	scheme, rest, ok := strings.Cut(raw, ":")
+	scheme = strings.ToLower(scheme)
+	if !ok || scheme == "" || !regexp.MustCompile(`^[a-z][a-z0-9+.-]*$`).MatchString(scheme) {
 		return URLInvalid
 	}
-	if u.Port() != "" {
-		if _, ok := parsePort(u.Port()); !ok {
+	netloc := ""
+	if strings.HasPrefix(rest, "//") {
+		rest = rest[2:]
+		end := strings.IndexAny(rest, "/?#")
+		if end < 0 {
+			end = len(rest)
+		}
+		netloc = rest[:end]
+	}
+	hostport := netloc[strings.LastIndex(netloc, "@")+1:]
+	host, port := hostport, ""
+	if strings.HasPrefix(hostport, "[") {
+		close := strings.Index(hostport, "]")
+		if close < 0 {
+			return URLInvalid
+		}
+		host = hostport[1:close]
+		if tail := hostport[close+1:]; tail != "" {
+			if !strings.HasPrefix(tail, ":") {
+				return URLInvalid
+			}
+			port = tail[1:]
+		}
+	} else if i := strings.LastIndex(hostport, ":"); i >= 0 {
+		host, port = hostport[:i], hostport[i+1:]
+	}
+	if port != "" {
+		if _, ok := parsePort(port); !ok {
 			return URLInvalid
 		}
 	}
-	if (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {
+	if (scheme != "http" && scheme != "https") || host == "" {
 		return URLInvalid
 	}
-	if strings.Contains(u.Host, "@") || u.User != nil {
+	if strings.Contains(netloc, "@") {
 		return URLCredentials
 	}
-	if u.RawQuery != "" || u.Fragment != "" || strings.ContainsAny(raw, "?#") {
+	if strings.ContainsAny(raw, "?#") {
 		return URLExtra
 	}
 	return ""

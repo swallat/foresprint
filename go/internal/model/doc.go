@@ -71,7 +71,7 @@ func (m OrderedMap[V]) Keys() []string {
 	return keys
 }
 
-// Clone returns a copy that shares nothing with m.
+// Clone returns a copy of the entries (values that are slices stay shared).
 func (m OrderedMap[V]) Clone() OrderedMap[V] {
 	return OrderedMap[V]{Entries: append([]Entry[V](nil), m.Entries...)}
 }
