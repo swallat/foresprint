@@ -57,11 +57,11 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 
 ## 3. Story map
 
-Backbone (left to right = time in the sprint cadence). Under each activity: the steps; the functions behind them are in section 6.
+Backbone (left to right = the typical order in the sprint cadence). The order is not a navigation rule: every activity is reachable directly at any time (section 5), and only the steps inside one flow have an order. Setup runs once; the rest repeats every sprint, and grooming, master data and looking ahead happen whenever needed. Under each activity: the steps; the functions behind them are in section 6.
 
 ```mermaid
 flowchart LR
-  A[Set up] --> B[Keep master data] --> C[Groom backlog] --> D[Prepare sprint] --> E[Plan sprint] --> F[Run sprint] --> G[Close sprint] --> H[Look ahead]
+  A[Set up] ~~~ B[Keep master data] ~~~ C[Groom backlog] ~~~ D[Prepare sprint] ~~~ E[Plan sprint] ~~~ F[Run sprint] ~~~ G[Close sprint] ~~~ H[Look ahead]
   A --- A1[Data folder and server] --- A2[Team and first sprint] --- A3[Connect Jira]
   B --- B1[People and FTE] --- B2[Products with rules] --- B3[Sprint calendar]
   B --- B4[Projects: products, milestones, end date, contingent]
