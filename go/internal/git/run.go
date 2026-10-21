@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/pytext"
 )
 
 // NetworkTimeout is the limit of network calls (fetch, push, clone): they must never hang forever
@@ -302,10 +303,20 @@ func programFailed(err error, executable string) bool {
 	return false
 }
 
+// folderMissing says the working folder is gone (e.g. a disconnected network drive). Go reports
+// that as a failure to start the program, which must not mark Git as broken.
+func folderMissing(cwd string) bool {
+	if cwd == "" {
+		return false
+	}
+	info, err := os.Stat(cwd)
+	return err != nil || !info.IsDir()
+}
+
 // retryWithNext blocks the path if the error concerns the program, and says whether another
 // candidate is available with which the call can be tried once more.
-func retryWithNext(err error, executable string) bool {
-	if !programFailed(err, executable) {
+func retryWithNext(err error, executable, cwd string) bool {
+	if folderMissing(cwd) || !programFailed(err, executable) {
 		return false
 	}
 	markBroken(executable)
@@ -317,7 +328,10 @@ func retryWithNext(err error, executable string) bool {
 // counts as unusable. Other errors - working folder missing or not a folder, arguments too long,
 // too many open files, out of memory - do not block Git: a missing folder counts as "Git is
 // missing", as before, everything else is passed on unchanged.
-func startFailed(err error, executable string) error {
+func startFailed(err error, executable, cwd string) error {
+	if folderMissing(cwd) {
+		return Classify("", ClassifyOpts{Missing: true})
+	}
 	if programFailed(err, executable) {
 		markBroken(executable)
 		broken := executable
@@ -359,10 +373,10 @@ func Run(ctx context.Context, cwd string, opts Opts, args ...string) (*Result, e
 			if !errors.As(err, &start) {
 				return nil, err
 			}
-			if attempt+1 < startAttempts && retryWithNext(start.err, argv[0]) {
+			if attempt+1 < startAttempts && retryWithNext(start.err, argv[0], cwd) {
 				continue
 			}
-			return nil, startFailed(start.err, argv[0])
+			return nil, startFailed(start.err, argv[0], cwd)
 		}
 		started(argv[0])
 		if aborted := raiseIfAborted(ctx); aborted != nil { // an ended Git reports nothing useful
@@ -394,16 +408,16 @@ func With(ctx context.Context, cwd string, opts Opts, args ...string) (string, e
 		if opts.Lenient {
 			return "", nil
 		}
-		message := strings.TrimSpace(proc.Stderr)
+		message := pytext.Strip(proc.Stderr)
 		if message == "" {
-			message = strings.TrimSpace(proc.Stdout)
+			message = pytext.Strip(proc.Stdout)
 		}
 		return "", Classify(message, ClassifyOpts{URL: opts.URL, Cwd: cwd})
 	}
 	if opts.Keep {
 		return proc.Stdout, nil
 	}
-	return strings.TrimSpace(proc.Stdout), nil
+	return pytext.Strip(proc.Stdout), nil
 }
 
 // Bytes is like Git, but returns the raw output (e.g. an archive).
@@ -422,10 +436,10 @@ func Bytes(ctx context.Context, cwd string, args ...string) ([]byte, error) {
 		err := cmd.Start()
 		if err != nil {
 			cancel()
-			if attempt+1 < startAttempts && retryWithNext(err, argv[0]) {
+			if attempt+1 < startAttempts && retryWithNext(err, argv[0], cwd) {
 				continue
 			}
-			return nil, startFailed(err, argv[0])
+			return nil, startFailed(err, argv[0], cwd)
 		}
 		_ = cmd.Wait()
 		timedOut := runCtx.Err() != nil

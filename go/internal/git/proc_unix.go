@@ -19,6 +19,11 @@ func setProcAttr(cmd *exec.Cmd) {
 func terminateTree(cmd *exec.Cmd) error {
 	pid := cmd.Process.Pid
 	_ = syscall.Kill(-pid, syscall.SIGTERM)
-	time.AfterFunc(killDelay, func() { _ = syscall.Kill(-pid, syscall.SIGKILL) })
+	time.AfterFunc(killDelay, func() {
+		// Only while the leader is still there: once reaped, the group id may belong to others.
+		if cmd.Process.Signal(syscall.Signal(0)) == nil {
+			_ = syscall.Kill(-pid, syscall.SIGKILL)
+		}
+	})
 	return nil
 }

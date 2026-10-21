@@ -4,6 +4,7 @@ package pytext
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -45,4 +46,7 @@ func SplitLines(s string, keepends bool) []string {
 }
 
 // Strip is str.strip() without arguments.
-func Strip(s string) string { return strings.TrimSpace(s) }
+func Strip(s string) string { return strings.TrimFunc(s, isSpace) }
+
+// isSpace is str.isspace() for one character: Unicode white space and \x1c-\x1f.
+func isSpace(r rune) bool { return unicode.IsSpace(r) || (r >= 0x1c && r <= 0x1f) }

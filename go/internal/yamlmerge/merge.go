@@ -447,7 +447,7 @@ func (m *merger) mergePrognoses(base, ours, theirs any, path Path) (union []any,
 func HeaderOf(text string) string {
 	var b strings.Builder
 	for _, line := range pytext.SplitLines(text, true) {
-		if strings.HasPrefix(line, "#") || strings.TrimSpace(line) == "" {
+		if strings.HasPrefix(line, "#") || pytext.Strip(line) == "" {
 			b.WriteString(line)
 			continue
 		}
