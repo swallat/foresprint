@@ -28,6 +28,10 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/yamlmerge` | Three-way merge of YAML value trees at key level (lists with `id`, forecasts by timestamp). Works on the tree of `value.go`, not on text. |
 | `internal/git` | The `git` program: finding it, calls with a time limit that can be aborted, recognising Git's messages (`Classify`, kinds, hints), checking server addresses, connection check, changes, commit, tags, create and clone a data repository. |
 | `internal/gittest` | Helpers for tests with real repositories (bare server, clones). Only imported by tests. |
+| `internal/difflib` | Python's `difflib` (SequenceMatcher, grouped opcodes, `unified_diff`) with identical output. |
+| `internal/gitsync` | State, fetch, "Save and share" (commit, merge at key level, validate, push with retry, merge request instead of push), conflicts and their decisions, remote server setup, branches, rescue after a detached HEAD. The YAML codec and the data check are supplied by the storage layer (`SetCodec`, `SetValidator`). |
+| `internal/githistory` | Discard (with trash and rollback), history, restore a version, take back a commit, tags (also on the server). |
+| `internal/signin` | Token sign-in over Git's credential helper (`git credential approve/reject`); the token is never stored or shown by the program. |
 | `internal/pymath` | The arithmetic of Python the results depend on: the compensated `sum()` of floats (Python 3.12+), `math.fsum`, `statistics.median`/`fmean`, `round`, and the number formats `{:,.2f}` and `{:g}`. A sum that has to match Python is calculated with these, not with a loop. |
 | `internal/coretypes` | Settings, people and sprints as the calculation reads them (field names of the Python model). Moves to the complete model of the model-and-storage step by changing the import. |
 | `internal/calendar` | Sprint IDs and the following sprints, workweeks, workdays, holidays of a country and region (`calendar.py`). |
