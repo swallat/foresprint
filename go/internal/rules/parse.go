@@ -80,15 +80,15 @@ func tokenize(text string) ([]token, error) {
 			break
 		}
 		r := rs[start]
-		switch {
-		case r == '"':
+		switch r {
+		case '"':
 			end, ok := scanString(rs, start)
 			if !ok {
 				return nil, &SyntaxError{msg("Unterminated quote or unexpected character"), start}
 			}
 			tokens = append(tokens, token{tokStr, unescape(rs[start+1 : end-1]), start})
 			pos = end
-		case (r == '!' || r == '=' || r == '~' || r == '(' || r == ')' || r == ','):
+		case '!', '=', '~', '(', ')', ',':
 			op := string(r)
 			if (r == '!') && start+1 < len(rs) && (rs[start+1] == '=' || rs[start+1] == '~') {
 				op = string(rs[start : start+2])
@@ -114,10 +114,10 @@ func tokenize(text string) ([]token, error) {
 func scanString(rs []rune, start int) (end int, ok bool) {
 	i := start + 1
 	for i < len(rs) {
-		switch {
-		case rs[i] == '"':
+		switch rs[i] {
+		case '"':
 			return i + 1, true
-		case rs[i] == '\\':
+		case '\\':
 			if i+1 >= len(rs) || rs[i+1] == '\n' {
 				return 0, false
 			}
