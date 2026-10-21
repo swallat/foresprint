@@ -1,0 +1,819 @@
+{
+ "fmt": [
+  {
+   "value": null,
+   "digits": 0,
+   "suffix": "",
+   "text": "–"
+  },
+  {
+   "value": null,
+   "digits": 1,
+   "suffix": "",
+   "text": "–"
+  },
+  {
+   "value": null,
+   "digits": 2,
+   "suffix": "",
+   "text": "–"
+  },
+  {
+   "value": null,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "–"
+  },
+  {
+   "value": 0,
+   "digits": 0,
+   "suffix": "",
+   "text": "0"
+  },
+  {
+   "value": 0,
+   "digits": 1,
+   "suffix": "",
+   "text": "0.0"
+  },
+  {
+   "value": 0,
+   "digits": 2,
+   "suffix": "",
+   "text": "0.00"
+  },
+  {
+   "value": 0,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "0.0 PT"
+  },
+  {
+   "value": 0.0,
+   "digits": 0,
+   "suffix": "",
+   "text": "0"
+  },
+  {
+   "value": 0.0,
+   "digits": 1,
+   "suffix": "",
+   "text": "0.0"
+  },
+  {
+   "value": 0.0,
+   "digits": 2,
+   "suffix": "",
+   "text": "0.00"
+  },
+  {
+   "value": 0.0,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "0.0 PT"
+  },
+  {
+   "value": -0.0,
+   "digits": 0,
+   "suffix": "",
+   "text": "-0"
+  },
+  {
+   "value": -0.0,
+   "digits": 1,
+   "suffix": "",
+   "text": "-0.0"
+  },
+  {
+   "value": -0.0,
+   "digits": 2,
+   "suffix": "",
+   "text": "-0.00"
+  },
+  {
+   "value": -0.0,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "-0.0 PT"
+  },
+  {
+   "value": 1,
+   "digits": 0,
+   "suffix": "",
+   "text": "1"
+  },
+  {
+   "value": 1,
+   "digits": 1,
+   "suffix": "",
+   "text": "1.0"
+  },
+  {
+   "value": 1,
+   "digits": 2,
+   "suffix": "",
+   "text": "1.00"
+  },
+  {
+   "value": 1,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "1.0 PT"
+  },
+  {
+   "value": 1.5,
+   "digits": 0,
+   "suffix": "",
+   "text": "2"
+  },
+  {
+   "value": 1.5,
+   "digits": 1,
+   "suffix": "",
+   "text": "1.5"
+  },
+  {
+   "value": 1.5,
+   "digits": 2,
+   "suffix": "",
+   "text": "1.50"
+  },
+  {
+   "value": 1.5,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "1.5 PT"
+  },
+  {
+   "value": 2.5,
+   "digits": 0,
+   "suffix": "",
+   "text": "2"
+  },
+  {
+   "value": 2.5,
+   "digits": 1,
+   "suffix": "",
+   "text": "2.5"
+  },
+  {
+   "value": 2.5,
+   "digits": 2,
+   "suffix": "",
+   "text": "2.50"
+  },
+  {
+   "value": 2.5,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "2.5 PT"
+  },
+  {
+   "value": 0.05,
+   "digits": 0,
+   "suffix": "",
+   "text": "0"
+  },
+  {
+   "value": 0.05,
+   "digits": 1,
+   "suffix": "",
+   "text": "0.1"
+  },
+  {
+   "value": 0.05,
+   "digits": 2,
+   "suffix": "",
+   "text": "0.05"
+  },
+  {
+   "value": 0.05,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "0.1 PT"
+  },
+  {
+   "value": 0.005,
+   "digits": 0,
+   "suffix": "",
+   "text": "0"
+  },
+  {
+   "value": 0.005,
+   "digits": 1,
+   "suffix": "",
+   "text": "0.0"
+  },
+  {
+   "value": 0.005,
+   "digits": 2,
+   "suffix": "",
+   "text": "0.01"
+  },
+  {
+   "value": 0.005,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "0.0 PT"
+  },
+  {
+   "value": 0.045,
+   "digits": 0,
+   "suffix": "",
+   "text": "0"
+  },
+  {
+   "value": 0.045,
+   "digits": 1,
+   "suffix": "",
+   "text": "0.0"
+  },
+  {
+   "value": 0.045,
+   "digits": 2,
+   "suffix": "",
+   "text": "0.04"
+  },
+  {
+   "value": 0.045,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "0.0 PT"
+  },
+  {
+   "value": 1.005,
+   "digits": 0,
+   "suffix": "",
+   "text": "1"
+  },
+  {
+   "value": 1.005,
+   "digits": 1,
+   "suffix": "",
+   "text": "1.0"
+  },
+  {
+   "value": 1.005,
+   "digits": 2,
+   "suffix": "",
+   "text": "1.00"
+  },
+  {
+   "value": 1.005,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "1.0 PT"
+  },
+  {
+   "value": 12345.678,
+   "digits": 0,
+   "suffix": "",
+   "text": "12,346"
+  },
+  {
+   "value": 12345.678,
+   "digits": 1,
+   "suffix": "",
+   "text": "12,345.7"
+  },
+  {
+   "value": 12345.678,
+   "digits": 2,
+   "suffix": "",
+   "text": "12,345.68"
+  },
+  {
+   "value": 12345.678,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "12,345.7 PT"
+  },
+  {
+   "value": -3.25,
+   "digits": 0,
+   "suffix": "",
+   "text": "-3"
+  },
+  {
+   "value": -3.25,
+   "digits": 1,
+   "suffix": "",
+   "text": "-3.2"
+  },
+  {
+   "value": -3.25,
+   "digits": 2,
+   "suffix": "",
+   "text": "-3.25"
+  },
+  {
+   "value": -3.25,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "-3.2 PT"
+  },
+  {
+   "value": 1e-09,
+   "digits": 0,
+   "suffix": "",
+   "text": "0"
+  },
+  {
+   "value": 1e-09,
+   "digits": 1,
+   "suffix": "",
+   "text": "0.0"
+  },
+  {
+   "value": 1e-09,
+   "digits": 2,
+   "suffix": "",
+   "text": "0.00"
+  },
+  {
+   "value": 1e-09,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "0.0 PT"
+  },
+  {
+   "value": 1000000000000000.0,
+   "digits": 0,
+   "suffix": "",
+   "text": "1,000,000,000,000,000"
+  },
+  {
+   "value": 1000000000000000.0,
+   "digits": 1,
+   "suffix": "",
+   "text": "1,000,000,000,000,000.0"
+  },
+  {
+   "value": 1000000000000000.0,
+   "digits": 2,
+   "suffix": "",
+   "text": "1,000,000,000,000,000.00"
+  },
+  {
+   "value": 1000000000000000.0,
+   "digits": 1,
+   "suffix": " PT",
+   "text": "1,000,000,000,000,000.0 PT"
+  }
+ ],
+ "fmt_capacity": [
+  {
+   "value": null,
+   "digits": 0,
+   "text": "–"
+  },
+  {
+   "value": null,
+   "digits": 1,
+   "text": "–"
+  },
+  {
+   "value": null,
+   "digits": 2,
+   "text": "–"
+  },
+  {
+   "value": 0,
+   "digits": 0,
+   "text": "0"
+  },
+  {
+   "value": 0,
+   "digits": 1,
+   "text": "0.0"
+  },
+  {
+   "value": 0,
+   "digits": 2,
+   "text": "0.00"
+  },
+  {
+   "value": 0.0,
+   "digits": 0,
+   "text": "0"
+  },
+  {
+   "value": 0.0,
+   "digits": 1,
+   "text": "0.0"
+  },
+  {
+   "value": 0.0,
+   "digits": 2,
+   "text": "0.00"
+  },
+  {
+   "value": -0.0,
+   "digits": 0,
+   "text": "-0"
+  },
+  {
+   "value": -0.0,
+   "digits": 1,
+   "text": "-0.0"
+  },
+  {
+   "value": -0.0,
+   "digits": 2,
+   "text": "-0.00"
+  },
+  {
+   "value": 1,
+   "digits": 0,
+   "text": "1"
+  },
+  {
+   "value": 1,
+   "digits": 1,
+   "text": "1.0"
+  },
+  {
+   "value": 1,
+   "digits": 2,
+   "text": "1.00"
+  },
+  {
+   "value": 1.5,
+   "digits": 0,
+   "text": "2"
+  },
+  {
+   "value": 1.5,
+   "digits": 1,
+   "text": "1.5"
+  },
+  {
+   "value": 1.5,
+   "digits": 2,
+   "text": "1.50"
+  },
+  {
+   "value": 2.5,
+   "digits": 0,
+   "text": "3"
+  },
+  {
+   "value": 2.5,
+   "digits": 1,
+   "text": "2.5"
+  },
+  {
+   "value": 2.5,
+   "digits": 2,
+   "text": "2.50"
+  },
+  {
+   "value": 0.05,
+   "digits": 0,
+   "text": "0"
+  },
+  {
+   "value": 0.05,
+   "digits": 1,
+   "text": "0.1"
+  },
+  {
+   "value": 0.05,
+   "digits": 2,
+   "text": "0.05"
+  },
+  {
+   "value": 0.005,
+   "digits": 0,
+   "text": "0"
+  },
+  {
+   "value": 0.005,
+   "digits": 1,
+   "text": "0.0"
+  },
+  {
+   "value": 0.005,
+   "digits": 2,
+   "text": "0.01"
+  },
+  {
+   "value": 0.045,
+   "digits": 0,
+   "text": "0"
+  },
+  {
+   "value": 0.045,
+   "digits": 1,
+   "text": "0.0"
+  },
+  {
+   "value": 0.045,
+   "digits": 2,
+   "text": "0.05"
+  },
+  {
+   "value": 1.005,
+   "digits": 0,
+   "text": "1"
+  },
+  {
+   "value": 1.005,
+   "digits": 1,
+   "text": "1.0"
+  },
+  {
+   "value": 1.005,
+   "digits": 2,
+   "text": "1.01"
+  },
+  {
+   "value": 12345.678,
+   "digits": 0,
+   "text": "12,346"
+  },
+  {
+   "value": 12345.678,
+   "digits": 1,
+   "text": "12,345.7"
+  },
+  {
+   "value": 12345.678,
+   "digits": 2,
+   "text": "12,345.68"
+  },
+  {
+   "value": -3.25,
+   "digits": 0,
+   "text": "-3"
+  },
+  {
+   "value": -3.25,
+   "digits": 1,
+   "text": "-3.3"
+  },
+  {
+   "value": -3.25,
+   "digits": 2,
+   "text": "-3.25"
+  },
+  {
+   "value": 1e-09,
+   "digits": 0,
+   "text": "0"
+  },
+  {
+   "value": 1e-09,
+   "digits": 1,
+   "text": "0.0"
+  },
+  {
+   "value": 1e-09,
+   "digits": 2,
+   "text": "0.00"
+  },
+  {
+   "value": 1000000000000000.0,
+   "digits": 0,
+   "text": "1,000,000,000,000,000"
+  },
+  {
+   "value": 1000000000000000.0,
+   "digits": 1,
+   "text": "1,000,000,000,000,000.0"
+  },
+  {
+   "value": 1000000000000000.0,
+   "digits": 2,
+   "text": "1,000,000,000,000,000.00"
+  }
+ ],
+ "pct": [
+  {
+   "value": null,
+   "text": "–"
+  },
+  {
+   "value": 0,
+   "text": "0 %"
+  },
+  {
+   "value": 0.0,
+   "text": "0 %"
+  },
+  {
+   "value": -0.0,
+   "text": "-0 %"
+  },
+  {
+   "value": 1,
+   "text": "100 %"
+  },
+  {
+   "value": 1.5,
+   "text": "150 %"
+  },
+  {
+   "value": 2.5,
+   "text": "250 %"
+  },
+  {
+   "value": 0.05,
+   "text": "5 %"
+  },
+  {
+   "value": 0.005,
+   "text": "0 %"
+  },
+  {
+   "value": 0.045,
+   "text": "4 %"
+  },
+  {
+   "value": 1.005,
+   "text": "100 %"
+  },
+  {
+   "value": 12345.678,
+   "text": "1,234,568 %"
+  },
+  {
+   "value": -3.25,
+   "text": "-325 %"
+  },
+  {
+   "value": 1e-09,
+   "text": "0 %"
+  },
+  {
+   "value": 1000000000000000.0,
+   "text": "100,000,000,000,000,000 %"
+  }
+ ],
+ "window_hint": [
+  {
+   "window": 3,
+   "samples": 1,
+   "available": 5,
+   "simulation": false,
+   "text": "The forecast window is set to 3 sprints; with a larger window (settings) more values go into the range."
+  },
+  {
+   "window": 3,
+   "samples": 1,
+   "available": 5,
+   "simulation": true,
+   "text": "The forecast window is set to 3 sprints; with a larger window (settings) more values go into the range and the simulation."
+  },
+  {
+   "window": 5,
+   "samples": 2,
+   "available": 5,
+   "simulation": false,
+   "text": ""
+  },
+  {
+   "window": 5,
+   "samples": 2,
+   "available": 5,
+   "simulation": true,
+   "text": ""
+  },
+  {
+   "window": 5,
+   "samples": 0,
+   "available": 5,
+   "simulation": false,
+   "text": ""
+  },
+  {
+   "window": 5,
+   "samples": 0,
+   "available": 5,
+   "simulation": true,
+   "text": ""
+  },
+  {
+   "window": 5,
+   "samples": 4,
+   "available": 12,
+   "simulation": false,
+   "text": ""
+  },
+  {
+   "window": 5,
+   "samples": 4,
+   "available": 12,
+   "simulation": true,
+   "text": ""
+  },
+  {
+   "window": 5,
+   "samples": 5,
+   "available": 5,
+   "simulation": false,
+   "text": ""
+  },
+  {
+   "window": 5,
+   "samples": 5,
+   "available": 5,
+   "simulation": true,
+   "text": ""
+  },
+  {
+   "window": 8,
+   "samples": 3,
+   "available": 2,
+   "simulation": false,
+   "text": ""
+  },
+  {
+   "window": 8,
+   "samples": 3,
+   "available": 2,
+   "simulation": true,
+   "text": ""
+  }
+ ],
+ "completion_note": [
+  {
+   "samples": 0,
+   "text": "Little data: the simulation draws from only 0 sprints (from 5 on, statements are more reliable). The frequencies are rough hints."
+  },
+  {
+   "samples": 1,
+   "text": "Little data: the simulation draws from only 1 sprints (from 5 on, statements are more reliable). The frequencies are rough hints."
+  },
+  {
+   "samples": 2,
+   "text": "Little data: the simulation draws from only 2 sprints (from 5 on, statements are more reliable). The frequencies are rough hints."
+  },
+  {
+   "samples": 3,
+   "text": "Little data: the simulation draws from only 3 sprints (from 5 on, statements are more reliable). The frequencies are rough hints."
+  },
+  {
+   "samples": 4,
+   "text": "Little data: the simulation draws from only 4 sprints (from 5 on, statements are more reliable). The frequencies are rough hints."
+  },
+  {
+   "samples": 5,
+   "text": null
+  },
+  {
+   "samples": 6,
+   "text": null
+  },
+  {
+   "samples": 7,
+   "text": null
+  },
+  {
+   "samples": 8,
+   "text": null
+  }
+ ],
+ "absence_derived_remedy": [
+  {
+   "window": 1,
+   "text": "If someone was absent in one of these sprints, enter the absences on the \"Prepare the sprint: absences\" page and save them with \"Save absences\" (or with `foresprint absences`). If nobody was absent, the rate is correct. In the \"Absence status\" table these sprints count as confirmed because they have already been planned or reviewed; but no absences are saved. The note stays until the sprints drop out of the window of the last 1 sprints (setting `absence_history`) or absences are entered."
+  },
+  {
+   "window": 4,
+   "text": "If someone was absent in one of these sprints, enter the absences on the \"Prepare the sprint: absences\" page and save them with \"Save absences\" (or with `foresprint absences`). If nobody was absent, the rate is correct. In the \"Absence status\" table these sprints count as confirmed because they have already been planned or reviewed; but no absences are saved. The note stays until the sprints drop out of the window of the last 4 sprints (setting `absence_history`) or absences are entered."
+  },
+  {
+   "window": 5,
+   "text": "If someone was absent in one of these sprints, enter the absences on the \"Prepare the sprint: absences\" page and save them with \"Save absences\" (or with `foresprint absences`). If nobody was absent, the rate is correct. In the \"Absence status\" table these sprints count as confirmed because they have already been planned or reviewed; but no absences are saved. The note stays until the sprints drop out of the window of the last 5 sprints (setting `absence_history`) or absences are entered."
+  }
+ ],
+ "absence_derived_cli_remedy": [
+  {
+   "window": 1,
+   "text": "If someone was absent in one of these sprints, add the absences with: foresprint absences team-a <SPRINT>. If nobody was absent, the rate is correct. The note stays until the sprints drop out of the window of the last 1 sprints (setting absence_history) or absences are entered."
+  },
+  {
+   "window": 4,
+   "text": "If someone was absent in one of these sprints, add the absences with: foresprint absences team-a <SPRINT>. If nobody was absent, the rate is correct. The note stays until the sprints drop out of the window of the last 4 sprints (setting absence_history) or absences are entered."
+  },
+  {
+   "window": 5,
+   "text": "If someone was absent in one of these sprints, add the absences with: foresprint absences team-a <SPRINT>. If nobody was absent, the rate is correct. The note stays until the sprints drop out of the window of the last 5 sprints (setting absence_history) or absences are entered."
+  }
+ ],
+ "sprint_text": [
+  {
+   "id": "2026.1",
+   "text": "2026.1"
+  },
+  {
+   "id": "7",
+   "text": "7"
+  },
+  {
+   "id": "x y",
+   "text": "x y"
+  }
+ ]
+}

@@ -1,0 +1,12 @@
+id: '2026.6'
+start: 2026-09-01
+end: 2026-09-15
+absences: {}
+absence_state: unknown
+capacity: 40
+forecast_ist: 32
+velocity: null
+scope_creep: null
+products:
+  old:
+    planned: 5
