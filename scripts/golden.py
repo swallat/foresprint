@@ -58,6 +58,8 @@ from foresprint.model import (  # noqa: E402
     PlanningUses,
     Preplan,
     Product,
+    ProductBasis,
+    ProductValues,
     Project,
     Rule,
     Sprint,
@@ -417,6 +419,72 @@ def build_tickets_products(root: Path) -> Case:
         date(2026, 7, 8),
         "Ticket distribution with products: shares, periods, product rules, budget bases, "
         "rough factor, contradicting projects, far earmark.",
+    )  # fmt: skip
+
+
+def build_products_edge(root: Path) -> Case:
+    """Product distribution beyond the demo: roadmap basis, fixed and even shares, frozen and
+    current plan, product periods, people with production access (overload, group without
+    capacity), product values with production amounts, a missing done value and product values
+    for IDs that are not in the catalog."""
+    team = _base_team(
+        "products-edge", trend_mode=TrendMode.FLAT, window=5, horizon=3,
+        product_basis=ProductBasis.ROADMAP, roadmap_share=0.75,
+    )  # fmt: skip
+    team.features.products = True
+    team.features.po = True
+    team.features.production = True
+    sprints = _sprints(
+        team, 9,
+        {"velocity": [30, 34, 28, 36, 33, 31], "commitment": [32, 35, 33, 36, 34, 32],
+         "capacity": [40, 44, 38, 42, 40, 41]},
+    )  # fmt: skip
+    products = [
+        Product("web", "Web", po="Alex", share=0.4),
+        Product("app", "App", po="Alex", share=0.35),
+        Product("api", "API", po="Bea"),
+        Product("old", "Old", po="Bea", end=date(2026, 3, 1)),
+        Product("new", "New", start=date(2026, 3, 4)),
+    ]  # fmt: skip
+
+    def pv(**kw: float | None) -> ProductValues:
+        return ProductValues(**kw)
+
+    sprints[0].forecast_plan = 25.5
+    sprints[1].forecast_plan = 27.0
+    sprints[0].products = {
+        "web": pv(preplanned=10, planned=11, done=10.5, production_planned=2, production_done=1.5),
+        "app": pv(preplanned=9, planned=9, done=9),
+        "api": pv(preplanned=6, planned=5.5, done=5),
+        "old": pv(done=1),
+        "zz": pv(done=0.5),
+        "aa": pv(planned=1),
+    }
+    sprints[1].products = {
+        "web": pv(planned=12, done=12.5),
+        "app": pv(planned=9, done=None),
+        "api": pv(planned=6, done=6.5, production_planned=1),
+        "old": pv(done=0),
+    }
+    sprints[2].products = {
+        "web": pv(planned=11, done=10, production_planned=30),
+        "api": pv(planned=7, done=7),
+        "new": pv(done=2, production_done=1),
+    }
+    sprints[3].products = {"app": pv(done=8), "new": pv(done=3)}
+    sprints[3].forecast_plan = 30.0
+    sprints[4].production_planned = 3.0
+    sprints[4].production_done = 2.5
+    sprints[5].products = {"web": pv(preplanned=9), "app": pv(preplanned=8)}
+    people = _people()
+    for person in people:
+        if person.id == "ines":  # the production group has no capacity from late March on
+            person.memberships = [Membership(date(2025, 1, 1), date(2026, 3, 20))]
+    _write_team(root, team, people=people, products=products, sprints=sprints)
+    return Case(
+        "products-edge", "golden/inputs/products-edge", "products-edge", date(2026, 6, 24),
+        "Product distribution: roadmap basis, fixed and even shares, frozen plans, periods, "
+        "production access, missing done value, product values for unknown IDs.",
     )  # fmt: skip
 
 
@@ -871,6 +939,7 @@ BUILDERS: list[tuple[str, Callable[[Path], Case]]] = [
                                             absence_history=0, rounding=0)),
     ("tickets-simple", build_tickets_simple),
     ("tickets-products", build_tickets_products),
+    ("products-edge", build_products_edge),
     ("yaml-messy", build_messy),
 ]  # fmt: skip
 

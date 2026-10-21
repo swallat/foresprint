@@ -72,9 +72,13 @@ func normalize(key string, v any) any {
 	switch x := v.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(x))
+		_, isSprint := x["Absences"]
+		if !isSprint {
+			_, isSprint = x["absences"]
+		}
 		for k, e := range x {
 			k = snake(k)
-			if unmodelledKey[k] {
+			if isSprint && unmodelledKey[k] {
 				continue
 			}
 			out[k] = normalize(k, e)
@@ -130,13 +134,15 @@ var unmodelledKey = func() map[string]bool {
 	return m
 }()
 
-// Prune removes the keys of the Python sprint that the calculation types do not model from a
-// reference, so that it can be compared with a Go result.
+// Prune removes the keys of the Python sprint that the calculation does not compare from a
+// reference, so that it can be compared with a Go result (which ToAny prunes the same way).
 func Prune(want any) any {
 	switch x := want.(type) {
 	case map[string]any:
-		for _, k := range unmodelled {
-			delete(x, k)
+		if _, ok := x["absences"]; ok {
+			for _, k := range unmodelled {
+				delete(x, k)
+			}
 		}
 		for k, e := range x {
 			x[k] = Prune(e)

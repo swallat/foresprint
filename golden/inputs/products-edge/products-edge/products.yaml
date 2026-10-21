@@ -1,0 +1,31 @@
+# Products of the team. Period (from/to) = when the team works on the product; po optional.
+# Never delete products; end them with `to:` instead – otherwise past evaluations change.
+# match (optional): rule for tickets of the product without a project (same language as the
+# projects' match).
+products:
+- id: web
+  name: Web
+  po: Alex
+  share: 0.4
+  from: null
+  to: null
+- id: app
+  name: App
+  po: Alex
+  share: 0.35
+  from: null
+  to: null
+- id: api
+  name: API
+  po: Bea
+  from: null
+  to: null
+- id: old
+  name: Old
+  po: Bea
+  from: null
+  to: 2026-03-01
+- id: new
+  name: New
+  from: 2026-03-04
+  to: null
