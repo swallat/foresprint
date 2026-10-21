@@ -1,0 +1,46 @@
+name: Golden tickets-products
+unit: PT
+features:
+  products: true
+  po: true
+  production: true
+  tickets: false
+sprint:
+  length_days: 14
+  numbering: yearly
+  first:
+    id: '2026.1'
+    start: 2026-05-06
+forecast:
+  reference_capacity: 40
+  window: 5
+  roadmap_share: 0.8
+  rounding: 1
+  trend_mode: flat
+  horizon: 3
+capacity:
+  overhead_share: 0.0
+  region: null
+  rounding: 1
+tracker:
+  kind:
+  - not
+  - a
+  - text
+  planning_uses: estimate
+  refined_label: refined
+  project_match_order:
+  - epic
+  - component
+  - label
+  priority_order:
+  - Blocker
+  - High
+  - Normal
+  dependency_gap: 0
+  budget_basis: roadmap_share
+  rough_factor: 1.5
+  write_labels: false
+  rule_fields:
+    team: Team
+  fields: oops

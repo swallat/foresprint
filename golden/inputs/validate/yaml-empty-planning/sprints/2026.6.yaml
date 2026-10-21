@@ -1,0 +1,15 @@
+id: '2026.6'
+start: 2026-07-15
+end: 2026-07-29
+absences: {}
+absence_state: unknown
+capacity: 40
+forecast_ist: 32
+velocity: null
+scope_creep: null
+planning:
+  carryover: null
+  backlog: null
+  corrections:
+  - null
+  - 2
