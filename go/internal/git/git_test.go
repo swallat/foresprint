@@ -198,8 +198,9 @@ func TestCommitOutsideARepositoryIsClassified(t *testing.T) {
 	file := gittest.Write(t, filepath.Join(folder, "team.yaml"), "name: A\n")
 	_, err := Commit(bg, []string{file}, "no repo", "")
 	e := As(err)
+	long, _ := filepath.EvalSymlinks(folder) // Windows shows the long form of 8.3 names
 	if e == nil || e.Kind != "not_repo" ||
-		!strings.Contains(strings.ToLower(filepath.ToSlash(e.Error())), strings.ToLower(filepath.ToSlash(folder))) {
+		!strings.Contains(strings.ToLower(filepath.ToSlash(e.Error())), strings.ToLower(filepath.ToSlash(long))) {
 		t.Fatalf("err = %v (%#v)", err, e)
 	}
 }
