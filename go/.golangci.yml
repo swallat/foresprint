@@ -1,0 +1,25 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - errorlint
+    - gocritic
+    - misspell
+    - nolintlint
+    - revive
+    - unconvert
+    - unparam
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+        - name: package-comments
+          disabled: false
+formatters:
+  enable:
+    - gofmt
+    - goimports

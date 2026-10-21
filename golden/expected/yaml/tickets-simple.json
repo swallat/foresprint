@@ -1,0 +1,49 @@
+{
+ "case": "tickets-simple",
+ "files": [
+  {
+   "file": "preplan.yaml",
+   "identical": true
+  },
+  {
+   "file": "projects.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.1.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.2.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.3.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.4.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.5.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.6.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.7.yaml",
+   "identical": true
+  },
+  {
+   "file": "team.yaml",
+   "identical": true
+  },
+  {
+   "file": "tickets.yaml",
+   "identical": true
+  }
+ ]
+}

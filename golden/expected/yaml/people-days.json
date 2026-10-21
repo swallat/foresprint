@@ -1,0 +1,69 @@
+{
+ "case": "people-days",
+ "files": [
+  {
+   "file": "people.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.14.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.15.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.16.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.17.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.18.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.19.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.20.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.21.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.22.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.23.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.24.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.25.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.26.yaml",
+   "identical": true
+  },
+  {
+   "file": "sprints/2026.27.yaml",
+   "identical": true
+  },
+  {
+   "file": "team.yaml",
+   "identical": true
+  }
+ ]
+}

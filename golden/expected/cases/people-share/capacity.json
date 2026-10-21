@@ -1,0 +1,8896 @@
+{
+ "sprints": [
+  {
+   "sprint": "2026.14",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 3.0,
+      "capacity": 7.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.5,
+      "capacity": 8.5,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 78.5,
+    "overhead": 9.42,
+    "overhead_share_part": 9.42,
+    "overhead_days_part": 0.0,
+    "capacity": 69.08,
+    "rounding": 0
+   },
+   "rounded": 69.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 3.0,
+      "capacity": 6.3,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.5,
+      "capacity": 7.65,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 70.65,
+    "overhead": 8.478,
+    "overhead_share_part": 8.478,
+    "overhead_days_part": 0.0,
+    "capacity": 62.172000000000004,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 74.8,
+   "production_share": 0.12738853503184713
+  },
+  {
+   "sprint": "2026.15",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 86.0,
+    "overhead": 10.32,
+    "overhead_share_part": 10.32,
+    "overhead_days_part": 0.0,
+    "capacity": 75.68,
+    "rounding": 0
+   },
+   "rounded": 76.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 77.4,
+    "overhead": 9.288,
+    "overhead_share_part": 9.288,
+    "overhead_days_part": 0.0,
+    "capacity": 68.11200000000001,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 75.68,
+   "production_share": 0.11627906976744186
+  },
+  {
+   "sprint": "2026.16",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 85.0,
+    "overhead": 10.2,
+    "overhead_share_part": 10.2,
+    "overhead_days_part": 0.0,
+    "capacity": 74.8,
+    "rounding": 0
+   },
+   "rounded": 75.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 76.5,
+    "overhead": 9.18,
+    "overhead_share_part": 9.18,
+    "overhead_days_part": 0.0,
+    "capacity": 67.32,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 75.68,
+   "production_share": 0.11764705882352941
+  },
+  {
+   "sprint": "2026.17",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 86.0,
+    "overhead": 10.32,
+    "overhead_share_part": 10.32,
+    "overhead_days_part": 0.0,
+    "capacity": 75.68,
+    "rounding": 0
+   },
+   "rounded": 76.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 77.4,
+    "overhead": 9.288,
+    "overhead_share_part": 9.288,
+    "overhead_days_part": 0.0,
+    "capacity": 68.11200000000001,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 73.04,
+   "production_share": 0.11627906976744186
+  },
+  {
+   "sprint": "2026.18",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.0,
+      "mean_fte": 0.7,
+      "fte_changes": true,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 82.0,
+    "overhead": 9.84,
+    "overhead_share_part": 9.84,
+    "overhead_days_part": 0.0,
+    "capacity": 72.16,
+    "rounding": 0
+   },
+   "rounded": 72.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 6.3,
+      "mean_fte": 0.7,
+      "fte_changes": true,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 73.8,
+    "overhead": 8.856,
+    "overhead_share_part": 8.856,
+    "overhead_days_part": 0.0,
+    "capacity": 64.944,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 72.16,
+   "production_share": 0.12195121951219512
+  },
+  {
+   "sprint": "2026.19",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 3.0,
+      "capacity": 7.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.5,
+      "capacity": 4.25,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 6,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 6.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 81.25,
+    "overhead": 9.75,
+    "overhead_share_part": 9.75,
+    "overhead_days_part": 0.0,
+    "capacity": 71.5,
+    "rounding": 0
+   },
+   "rounded": 72.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 3.0,
+      "capacity": 6.3,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.5,
+      "capacity": 3.825,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 6,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.4,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 73.125,
+    "overhead": 8.775,
+    "overhead_share_part": 8.775,
+    "overhead_days_part": 0.0,
+    "capacity": 64.35,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 76.56,
+   "production_share": 0.19692307692307692
+  },
+  {
+   "sprint": "2026.20",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 5,
+      "absence_days": 0.0,
+      "capacity": 4.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 86.0,
+    "overhead": 10.32,
+    "overhead_share_part": 10.32,
+    "overhead_days_part": 0.0,
+    "capacity": 75.68,
+    "rounding": 0
+   },
+   "rounded": 76.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 5,
+      "absence_days": 0.0,
+      "capacity": 3.6,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 77.4,
+    "overhead": 9.288,
+    "overhead_share_part": 9.288,
+    "overhead_days_part": 0.0,
+    "capacity": 68.11200000000001,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 75.68,
+   "production_share": 0.23255813953488372
+  },
+  {
+   "sprint": "2026.21",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 89.2,
+    "overhead": 10.704,
+    "overhead_share_part": 10.704,
+    "overhead_days_part": 0.0,
+    "capacity": 78.49600000000001,
+    "rounding": 0
+   },
+   "rounded": 78.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 6.48,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 80.28,
+    "overhead": 9.6336,
+    "overhead_share_part": 9.6336,
+    "overhead_days_part": 0.0,
+    "capacity": 70.6464,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 79.376,
+   "production_share": 0.22421524663677128
+  },
+  {
+   "sprint": "2026.22",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 90.0,
+    "overhead": 10.799999999999999,
+    "overhead_share_part": 10.799999999999999,
+    "overhead_days_part": 0.0,
+    "capacity": 79.2,
+    "rounding": 0
+   },
+   "rounded": 79.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 81.0,
+    "overhead": 9.719999999999999,
+    "overhead_share_part": 9.719999999999999,
+    "overhead_days_part": 0.0,
+    "capacity": 71.28,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 76.56,
+   "production_share": 0.2222222222222222
+  },
+  {
+   "sprint": "2026.23",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 90.0,
+    "overhead": 10.799999999999999,
+    "overhead_share_part": 10.799999999999999,
+    "overhead_days_part": 0.0,
+    "capacity": 79.2,
+    "rounding": 0
+   },
+   "rounded": 79.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 81.0,
+    "overhead": 9.719999999999999,
+    "overhead_share_part": 9.719999999999999,
+    "overhead_days_part": 0.0,
+    "capacity": 71.28,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 79.2,
+   "production_share": 0.2222222222222222
+  },
+  {
+   "sprint": "2026.24",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 3.0,
+      "capacity": 7.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.5,
+      "capacity": 4.25,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 83.25,
+    "overhead": 9.99,
+    "overhead_share_part": 9.99,
+    "overhead_days_part": 0.0,
+    "capacity": 73.26,
+    "rounding": 0
+   },
+   "rounded": 73.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 3.0,
+      "capacity": 6.3,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 1.5,
+      "capacity": 3.825,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 74.925,
+    "overhead": 8.991,
+    "overhead_share_part": 8.991,
+    "overhead_days_part": 0.0,
+    "capacity": 65.934,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 78.32,
+   "production_share": 0.24024024024024024
+  },
+  {
+   "sprint": "2026.25",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 91.0,
+    "overhead": 10.92,
+    "overhead_share_part": 10.92,
+    "overhead_days_part": 0.0,
+    "capacity": 80.08,
+    "rounding": 0
+   },
+   "rounded": 80.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 81.9,
+    "overhead": 9.828000000000001,
+    "overhead_share_part": 9.828000000000001,
+    "overhead_days_part": 0.0,
+    "capacity": 72.072,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 80.08,
+   "production_share": 0.21978021978021978
+  },
+  {
+   "sprint": "2026.26",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 85.5,
+    "overhead": 10.26,
+    "overhead_share_part": 10.26,
+    "overhead_days_part": 0.0,
+    "capacity": 75.24,
+    "rounding": 0
+   },
+   "rounded": 75.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 4.05,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 76.95,
+    "overhead": 9.234,
+    "overhead_share_part": 9.234,
+    "overhead_days_part": 0.0,
+    "capacity": 67.71600000000001,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 72.6,
+   "production_share": 0.21052631578947367
+  },
+  {
+   "sprint": "2026.27",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 2,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 2.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 76.7,
+    "overhead": 9.204,
+    "overhead_share_part": 9.204,
+    "overhead_days_part": 0.0,
+    "capacity": 67.49600000000001,
+    "rounding": 0
+   },
+   "rounded": 67.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 4.05,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 6.48,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ines",
+       "name": "Ines",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-12-31",
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 2,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 1.8,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 69.03,
+    "overhead": 8.2836,
+    "overhead_share_part": 8.2836,
+    "overhead_days_part": 0.0,
+    "capacity": 60.7464,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 64.85600000000001,
+   "production_share": 0.14341590612777053
+  },
+  {
+   "sprint": "2027.1",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 80.0,
+    "overhead": 9.6,
+    "overhead_share_part": 9.6,
+    "overhead_days_part": 0.0,
+    "capacity": 70.4,
+    "rounding": 0
+   },
+   "rounded": 70.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 72.0,
+    "overhead": 8.64,
+    "overhead_share_part": 8.64,
+    "overhead_days_part": 0.0,
+    "capacity": 63.36,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 70.4,
+   "production_share": 0.125
+  },
+  {
+   "sprint": "2027.2",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 3,
+      "absence_days": 0.0,
+      "capacity": 5.6000000000000005,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 78.6,
+    "overhead": 9.431999999999999,
+    "overhead_share_part": 9.431999999999999,
+    "overhead_days_part": 0.0,
+    "capacity": 69.16799999999999,
+    "rounding": 0
+   },
+   "rounded": 69.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 3,
+      "absence_days": 0.0,
+      "capacity": 5.040000000000001,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 70.74,
+    "overhead": 8.4888,
+    "overhead_share_part": 8.4888,
+    "overhead_days_part": 0.0,
+    "capacity": 62.2512,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 69.16799999999999,
+   "production_share": 0.1272264631043257
+  },
+  {
+   "sprint": "2027.3",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 78.2,
+    "overhead": 9.384,
+    "overhead_share_part": 9.384,
+    "overhead_days_part": 0.0,
+    "capacity": 68.816,
+    "rounding": 0
+   },
+   "rounded": 69.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 6.48,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 70.38,
+    "overhead": 8.445599999999999,
+    "overhead_share_part": 8.445599999999999,
+    "overhead_days_part": 0.0,
+    "capacity": 61.9344,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 68.816,
+   "production_share": 0.1278772378516624
+  },
+  {
+   "sprint": "2027.4",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 80.0,
+    "overhead": 9.6,
+    "overhead_share_part": 9.6,
+    "overhead_days_part": 0.0,
+    "capacity": 70.4,
+    "rounding": 0
+   },
+   "rounded": 70.0,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "anna",
+       "name": "Anna",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "ben",
+       "name": "Ben",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": "2026-08-31",
+         "fte": 1.0
+        },
+        {
+         "start": "2026-09-01",
+         "end": null,
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "cem",
+       "name": "Cem",
+       "region": "BY",
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "dana",
+       "name": "Dana",
+       "region": "CA",
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "US",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "eli",
+       "name": "Eli",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-06-01",
+         "end": null,
+         "fte": 0.8
+        }
+       ],
+       "production_access": false,
+       "country": "CN",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 0.8,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "fadi",
+       "name": "Fadi",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": "SA",
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 1,
+      "absence_days": 0.0,
+      "capacity": 8.1,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "gina",
+       "name": "Gina",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "mon,tue,wed,thu"
+      },
+      "workdays": 8,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "hugo",
+       "name": "Hugo",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": "sun-thu"
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "jonas",
+       "name": "Jonas",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2026-09-15",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": true,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 72.0,
+    "overhead": 8.64,
+    "overhead_share_part": 8.64,
+    "overhead_days_part": 0.0,
+    "capacity": 63.36,
+    "rounding": 0
+   },
+   "history_rate": 0.0,
+   "expected_absences": 70.4,
+   "production_share": 0.125
+  }
+ ]
+}

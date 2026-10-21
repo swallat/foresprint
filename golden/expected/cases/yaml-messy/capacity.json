@@ -1,0 +1,872 @@
+{
+ "sprints": [
+  {
+   "sprint": "2026.1",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 15.0,
+    "overhead": 1.5,
+    "overhead_share_part": 1.5,
+    "overhead_days_part": 0.0,
+    "capacity": 13.5,
+    "rounding": 1
+   },
+   "rounded": 13.5,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 13.5,
+    "overhead": 1.35,
+    "overhead_share_part": 1.35,
+    "overhead_days_part": 0.0,
+    "capacity": 12.15,
+    "rounding": 1
+   },
+   "history_rate": 0.06666666666666665,
+   "expected_absences": 13.5,
+   "production_share": null
+  },
+  {
+   "sprint": "2026.2",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 13.0,
+    "overhead": 1.3,
+    "overhead_share_part": 1.3,
+    "overhead_days_part": 0.0,
+    "capacity": 11.7,
+    "rounding": 1
+   },
+   "rounded": 11.7,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 2.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 11.7,
+    "overhead": 1.17,
+    "overhead_share_part": 1.17,
+    "overhead_days_part": 0.0,
+    "capacity": 10.53,
+    "rounding": 1
+   },
+   "history_rate": 0.06666666666666665,
+   "expected_absences": 13.5,
+   "production_share": null
+  },
+  {
+   "sprint": "2026.3",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 15.0,
+    "overhead": 1.5,
+    "overhead_share_part": 1.5,
+    "overhead_days_part": 0.0,
+    "capacity": 13.5,
+    "rounding": 1
+   },
+   "rounded": 13.5,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 13.5,
+    "overhead": 1.35,
+    "overhead_share_part": 1.35,
+    "overhead_days_part": 0.0,
+    "capacity": 12.15,
+    "rounding": 1
+   },
+   "history_rate": 0.06666666666666665,
+   "expected_absences": 13.5,
+   "production_share": null
+  },
+  {
+   "sprint": "2026.4",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 15.0,
+    "overhead": 1.5,
+    "overhead_share_part": 1.5,
+    "overhead_days_part": 0.0,
+    "capacity": 13.5,
+    "rounding": 1
+   },
+   "rounded": 13.5,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 13.5,
+    "overhead": 1.35,
+    "overhead_share_part": 1.35,
+    "overhead_days_part": 0.0,
+    "capacity": 12.15,
+    "rounding": 1
+   },
+   "history_rate": 0.06666666666666665,
+   "expected_absences": 13.5,
+   "production_share": null
+  },
+  {
+   "sprint": "2026.5",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 15.0,
+    "overhead": 1.5,
+    "overhead_share_part": 1.5,
+    "overhead_days_part": 0.0,
+    "capacity": 13.5,
+    "rounding": 1
+   },
+   "rounded": 13.5,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 13.5,
+    "overhead": 1.35,
+    "overhead_share_part": 1.35,
+    "overhead_days_part": 0.0,
+    "capacity": 12.15,
+    "rounding": 1
+   },
+   "history_rate": 0.06666666666666665,
+   "expected_absences": 13.5,
+   "production_share": null
+  },
+  {
+   "sprint": "2026.6",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 10.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 5.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 15.0,
+    "overhead": 1.5,
+    "overhead_share_part": 1.5,
+    "overhead_days_part": 0.0,
+    "capacity": 13.5,
+    "rounding": 1
+   },
+   "rounded": 13.5,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 9.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 0,
+      "absence_days": 0.0,
+      "capacity": 4.5,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 13.5,
+    "overhead": 1.35,
+    "overhead_share_part": 1.35,
+    "overhead_days_part": 0.0,
+    "capacity": 12.15,
+    "rounding": 1
+   },
+   "history_rate": 0.06666666666666665,
+   "expected_absences": 13.5,
+   "production_share": null
+  },
+  {
+   "sprint": "2026.7",
+   "breakdown": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 8.0,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 4.0,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 12.0,
+    "overhead": 1.2000000000000002,
+    "overhead_share_part": 1.2000000000000002,
+    "overhead_days_part": 0.0,
+    "capacity": 10.8,
+    "rounding": 1
+   },
+   "rounded": 10.8,
+   "approximated": [],
+   "with_rate_0_1": {
+    "people": [
+     {
+      "person": {
+       "id": "zoe",
+       "name": "Zoë Äpfel",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-01-01",
+         "end": null,
+         "fte": 1.0
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 7.2,
+      "mean_fte": 1.0,
+      "fte_changes": false,
+      "overhead": 0.0
+     },
+     {
+      "person": {
+       "id": "li",
+       "name": "O'Neil: the \"second\"",
+       "region": null,
+       "memberships": [
+        {
+         "start": "2025-03-01",
+         "end": "2026-06-30",
+         "fte": 0.5
+        }
+       ],
+       "production_access": false,
+       "country": null,
+       "workweek": null
+      },
+      "workdays": 10,
+      "holidays": 2,
+      "absence_days": 0.0,
+      "capacity": 3.6,
+      "mean_fte": 0.5,
+      "fte_changes": false,
+      "overhead": 0.0
+     }
+    ],
+    "gross": 10.8,
+    "overhead": 1.08,
+    "overhead_share_part": 1.08,
+    "overhead_days_part": 0.0,
+    "capacity": 9.72,
+    "rounding": 1
+   },
+   "history_rate": 0.06666666666666665,
+   "expected_absences": 10.8,
+   "production_share": null
+  }
+ ]
+}

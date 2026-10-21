@@ -1,0 +1,39 @@
+# Team settings. Explanations: `foresprint help team`
+name: Golden tickets-simple
+unit: PT
+features:
+  products: false
+  po: false
+  production: false
+  tickets: true
+sprint:
+  length_days: 14
+  numbering: yearly
+  first:
+    id: '2026.1'
+    start: 2026-05-06
+forecast:
+  reference_capacity: 40
+  window: 5
+  roadmap_share: 0.8
+  rounding: 1
+  trend_mode: flat
+  horizon: 3
+capacity:
+  overhead_share: 0.0
+  region: null
+  rounding: 1
+tracker:
+  kind: csv
+  planning_uses: remaining
+  refined_label: refined
+  project_match_order:
+  - epic
+  - component
+  - label
+  dependency_gap: 1
+  budget_basis: roadmap_share
+  rough_factor: 1.5
+  write_labels: false
+  rule_fields:
+    team: Team

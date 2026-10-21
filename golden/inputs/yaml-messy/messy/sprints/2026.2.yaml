@@ -1,0 +1,8 @@
+id: "2026.2"
+start: 2026-01-21
+end: 2026-02-04
+velocity: 1.0e+1
+commitment: 12
+capacity: 40
+scope_creep: 0.05
+absences: {zoe: 2.0}

@@ -1,0 +1,21 @@
+{
+ "case": "yaml-messy",
+ "files": [
+  {
+   "file": "people.yaml",
+   "identical": false
+  },
+  {
+   "file": "sprints/2026.1.yaml",
+   "identical": false
+  },
+  {
+   "file": "sprints/2026.2.yaml",
+   "identical": false
+  },
+  {
+   "file": "team.yaml",
+   "identical": false
+  }
+ ]
+}

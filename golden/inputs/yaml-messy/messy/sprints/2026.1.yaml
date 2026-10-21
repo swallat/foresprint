@@ -1,0 +1,7 @@
+id: "2026.1"
+start: 2026-01-07
+end: 2026-01-21
+commitment: 30.0
+velocity: 28
+capacity: 41.50
+note: "A long note that has to wrap because it is longer than one hundred characters, which is the width the dumper uses."
