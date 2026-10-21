@@ -23,7 +23,28 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/golden` | Loads the references of `../golden` and compares results with them. |
 | `internal/pyrand` | `random.Random` of Python (Mersenne Twister, seeding, `random()`, `getrandbits`, `choice`): the Monte Carlo draws are identical for the same seed. |
 | `internal/holidays` | Holidays and weekends of every country and region of the Python `holidays` library, from embedded data (see below). |
+| `internal/i18n` | Texts: English source texts, one JSON file per language in `data/` (see below). |
+| `internal/config` | `settings.json` of the user (language, theme, data folders); same file and format as the Python version. |
+| `internal/cli` | The command line: commands are subcommands of the one program (cobra), plain output. |
 | `cmd/foresprint` | The program. |
+
+## Texts
+
+`internal/i18n/data/<code>.json` maps English source texts to the translation; a text without
+entry shows in English. `de.json` is generated from the Python table by `scripts/gen_locales.py`
+(CI checks it) until Python is removed. Texts that only exist in the Go core go to
+`<code>.<name>.json` (for example `de.cli.json`) and are merged. Another language is another
+file, nothing else changes. Language: `FORESPRINT_LANG` > saved setting > English.
+`i18n.T` keeps rich markup of the Python texts, `i18n.P` (command line) removes it before the
+values are filled in.
+
+## Command line
+
+A command is a file in `internal/cli` that calls `Register` in an `init` function and returns a
+`*cobra.Command`; global options (`--data`, `--as-of`) and the streams come with the `Env`.
+Exit codes: 0 success, 1 the command failed (`cli.Failf`), 2 wrong use. Shell completion:
+`foresprint completion bash|zsh|fish|powershell`; `cli.TeamNames` and `cli.SprintIDs` complete
+team and sprint arguments.
 
 ## Holiday data
 
