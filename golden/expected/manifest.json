@@ -1,0 +1,84 @@
+{
+ "cases": [
+  {
+   "name": "demo",
+   "root": "examples/teams",
+   "team": "demo",
+   "today": "2026-10-15",
+   "description": "The demo team of the examples folder.",
+   "yaml": "yaml/demo.json"
+  },
+  {
+   "name": "trend-flat",
+   "root": "golden/inputs/trend-flat",
+   "team": "trend-flat",
+   "today": "2026-06-24",
+   "description": "Trend mode flat: gaps in velocity and capacity, no people list.",
+   "yaml": "yaml/trend-flat.json"
+  },
+  {
+   "name": "trend-linear",
+   "root": "golden/inputs/trend-linear",
+   "team": "trend-linear",
+   "today": "2026-06-24",
+   "description": "Trend mode linear: gaps in velocity and capacity, no people list.",
+   "yaml": "yaml/trend-linear.json"
+  },
+  {
+   "name": "trend-classic",
+   "root": "golden/inputs/trend-classic",
+   "team": "trend-classic",
+   "today": "2026-06-24",
+   "description": "Trend mode classic: gaps in velocity and capacity, no people list.",
+   "yaml": "yaml/trend-classic.json"
+  },
+  {
+   "name": "thin",
+   "root": "golden/inputs/thin",
+   "team": "thin",
+   "today": "2026-03-18",
+   "description": "Fewer sprints than the window: the thin-history rule and the flat fallback.",
+   "yaml": "yaml/thin.json"
+  },
+  {
+   "name": "people-days",
+   "root": "golden/inputs/people-days",
+   "team": "people-days",
+   "today": "2027-01-05",
+   "description": "People list: FTE changes, own countries, workweeks, holidays, all absence states, year change.",
+   "yaml": "yaml/people-days.json"
+  },
+  {
+   "name": "people-share",
+   "root": "golden/inputs/people-share",
+   "team": "people-share",
+   "today": "2027-01-05",
+   "description": "People list: FTE changes, own countries, workweeks, holidays, all absence states, year change.",
+   "yaml": "yaml/people-share.json"
+  },
+  {
+   "name": "tickets-simple",
+   "root": "golden/inputs/tickets-simple",
+   "team": "tickets-simple",
+   "today": "2026-07-08",
+   "description": "Ticket distribution (no products): targets, priorities, dependencies and cycles, fixed sprint, earmark, manual estimates, too large, unestimated.",
+   "yaml": "yaml/tickets-simple.json"
+  },
+  {
+   "name": "tickets-products",
+   "root": "golden/inputs/tickets-products",
+   "team": "tickets-products",
+   "today": "2026-07-08",
+   "description": "Ticket distribution with products: shares, periods, product rules, budget bases, rough factor, contradicting projects, far earmark.",
+   "yaml": "yaml/tickets-products.json"
+  },
+  {
+   "name": "yaml-messy",
+   "root": "golden/inputs/yaml-messy",
+   "team": "messy",
+   "today": "2026-03-01",
+   "description": "Hand-written files (comments, quoting, flow style, 5 vs 5.0): the YAML round trip.",
+   "yaml": "yaml/yaml-messy.json"
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+# Team settings. Explanations: `foresprint help team`
+name: Messy Team
+unit: SP
+features:
+  products: false
+  po: false
+  production: false
+sprint:
+  length_days: 14
+  numbering: yearly
+  first:
+    id: '2026.1'
+    start: 2026-01-07
+forecast:
+  reference_capacity: 50
+  window: 5
+  roadmap_share: 0.8
+  rounding: 1
+  trend_mode: linear
+  horizon: 3
+capacity:
+  overhead_share: 0.1
+  region: BY
+  rounding: 1

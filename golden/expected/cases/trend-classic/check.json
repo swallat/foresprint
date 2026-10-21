@@ -1,0 +1,25 @@
+{
+ "team": [
+  {
+   "level": "Notice",
+   "where": "sprints/2026.5.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.8.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.9.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.12.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  }
+ ],
+ "files": []
+}

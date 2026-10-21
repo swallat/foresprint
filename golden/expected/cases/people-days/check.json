@@ -1,0 +1,85 @@
+{
+ "team": [
+  {
+   "level": "Notice",
+   "where": "sprints/2026.14.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.15.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.16.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.17.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.18.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.19.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.20.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.21.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.22.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.23.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.24.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.24.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.25.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.25.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.26.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  },
+  {
+   "level": "Notice",
+   "where": "sprints/2026.26.yaml",
+   "message": "sprint has ended, capacity not frozen (otherwise calculated from the current people list)"
+  }
+ ],
+ "files": []
+}
