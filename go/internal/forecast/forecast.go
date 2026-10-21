@@ -9,13 +9,14 @@ import (
 
 	"github.com/swallat/foresprint/internal/calendar"
 	"github.com/swallat/foresprint/internal/capacity"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
+	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/storage"
 )
 
 // TimelineEntry is a sprint with its result.
 type TimelineEntry struct {
-	Sprint coretypes.Sprint `json:"sprint"`
+	Sprint model.Sprint `json:"sprint"`
 	// Recorded is false for sprints generated from the calendar only (no file).
 	Recorded bool                `json:"recorded"`
 	Result   engine.SprintResult `json:"result"`
@@ -26,7 +27,7 @@ type TimelineEntry struct {
 
 // Forecast is the calculated timeline of a team.
 type Forecast struct {
-	Data    *coretypes.TeamData
+	Data    *storage.TeamData
 	Today   time.Time
 	Entries []TimelineEntry
 	// Absences is the absence history used to estimate unknown absences (nil = without a
@@ -143,19 +144,19 @@ func (f *Forecast) DefaultEntry(purpose Purpose) (*TimelineEntry, error) {
 
 // SprintRef is a sprint of the timeline and whether it is recorded.
 type SprintRef struct {
-	Sprint   coretypes.Sprint
+	Sprint   model.Sprint
 	Recorded bool
 }
 
 // Timeline is the recorded sprints plus the generated follow-up sprints up to Horizon sprints
 // after today.
-func Timeline(data *coretypes.TeamData, today time.Time) ([]SprintRef, error) {
+func Timeline(data *storage.TeamData, today time.Time) ([]SprintRef, error) {
 	line := make([]SprintRef, 0, len(data.Sprints)+data.Team.Forecast.Horizon)
 	for _, s := range data.Sprints {
 		line = append(line, SprintRef{s, true})
 	}
 	horizon := data.Team.Forecast.Horizon
-	var last *coretypes.Sprint
+	var last *model.Sprint
 	if len(data.Sprints) > 0 {
 		last = &data.Sprints[len(data.Sprints)-1]
 	}
@@ -169,7 +170,7 @@ func Timeline(data *coretypes.TeamData, today time.Time) ([]SprintRef, error) {
 		if future >= horizon {
 			return line, nil
 		}
-		next, err := calendar.FollowingSprint(data.Team, last)
+		next, err := calendar.FollowingSprint(&data.Team, last)
 		if err != nil {
 			return nil, err
 		}
@@ -180,16 +181,16 @@ func Timeline(data *coretypes.TeamData, today time.Time) ([]SprintRef, error) {
 
 // FindSprint is the sprint from storage or, if it has no file yet, generated from the calendar
 // (up to maxAhead sprints beyond the last recorded one); nil = unknown.
-func FindSprint(data *coretypes.TeamData, sprintID string, maxAhead int) (*coretypes.Sprint, error) {
-	if s := data.Sprint(sprintID); s != nil {
+func FindSprint(data *storage.TeamData, sprintID string, maxAhead int) (*model.Sprint, error) {
+	if s := data.SprintByID(sprintID); s != nil {
 		return s, nil
 	}
-	var last *coretypes.Sprint
+	var last *model.Sprint
 	if len(data.Sprints) > 0 {
 		last = &data.Sprints[len(data.Sprints)-1]
 	}
 	for i := 0; i < maxAhead; i++ {
-		next, err := calendar.FollowingSprint(data.Team, last)
+		next, err := calendar.FollowingSprint(&data.Team, last)
 		if err != nil {
 			return nil, err
 		}
@@ -209,8 +210,8 @@ const (
 
 // LookupSprint is the sprint by ID: recorded, in the forecast, or generated from the calendar up
 // to maxAhead sprints beyond the last recorded one; nil = unknown.
-func (f *Forecast) LookupSprint(sprintID string, maxAhead int) (*coretypes.Sprint, error) {
-	if s := f.Data.Sprint(sprintID); s != nil {
+func (f *Forecast) LookupSprint(sprintID string, maxAhead int) (*model.Sprint, error) {
+	if s := f.Data.SprintByID(sprintID); s != nil {
 		return s, nil
 	}
 	if e := f.Entry(sprintID); e != nil {
@@ -224,7 +225,7 @@ func (f *Forecast) LookupSprint(sprintID string, maxAhead int) (*coretypes.Sprin
 // The control calculation (carryover, backlog, corrections) is optional; empty or 0 means "not
 // recorded". An empty Commitment is prefilled with carryover + backlog. It reports whether it
 // was prefilled.
-func ApplyPlanning(sprint *coretypes.Sprint, commitment *float64, planning *coretypes.Planning) bool {
+func ApplyPlanning(sprint *model.Sprint, commitment *float64, planning *model.Planning) bool {
 	if planning != nil && planning.Carryover == 0 && planning.Backlog == 0 && len(planning.Corrections) == 0 {
 		planning = nil
 	}
@@ -235,7 +236,7 @@ func ApplyPlanning(sprint *coretypes.Sprint, commitment *float64, planning *core
 	}
 	prefilled := commitment == nil && planned > 0
 	if prefilled {
-		sprint.Commitment = coretypes.Float(planned)
+		sprint.Commitment = model.Ptr(planned)
 	} else {
 		sprint.Commitment = commitment
 	}
@@ -244,18 +245,18 @@ func ApplyPlanning(sprint *coretypes.Sprint, commitment *float64, planning *core
 
 // FreezePlan remembers the Forecast PLAN at Planning time, the basis of the default distribution
 // per product. An already frozen value is kept unless refreeze; completed sprints stay unchanged.
-func FreezePlan(sprint *coretypes.Sprint, entry *TimelineEntry, today time.Time, refreeze bool) {
+func FreezePlan(sprint *model.Sprint, entry *TimelineEntry, today time.Time, refreeze bool) {
 	if entry == nil || !sprint.End.After(today) || entry.Result.Plan == nil {
 		return
 	}
 	if sprint.ForecastPlan != nil && !refreeze {
 		return
 	}
-	sprint.ForecastPlan = coretypes.Float(*entry.Result.Plan)
+	sprint.ForecastPlan = model.Ptr(*entry.Result.Plan)
 }
 
 // RefreezeOffer is (frozen, current) if the Forecast PLAN has changed since freezing.
-func RefreezeOffer(sprint *coretypes.Sprint, entry *TimelineEntry) (frozen, current float64, ok bool) {
+func RefreezeOffer(sprint *model.Sprint, entry *TimelineEntry) (frozen, current float64, ok bool) {
 	if entry == nil || sprint.ForecastPlan == nil || entry.Result.Plan == nil {
 		return 0, 0, false
 	}
@@ -269,8 +270,8 @@ func RefreezeOffer(sprint *coretypes.Sprint, entry *TimelineEntry) (frozen, curr
 // explicitly confirmed (Absences page), or, for older files without a stored state, if the
 // sprint was already planned or evaluated. Announced absences from the PO pre-planning confirm
 // nothing.
-func AbsencesKnown(sprint coretypes.Sprint) bool {
-	return coretypes.AbsenceStatus(sprint) == coretypes.Confirmed
+func AbsencesKnown(sprint model.Sprint) bool {
+	return sprint.AbsenceStatus() == model.AbsencesConfirmed
 }
 
 // ResolveCapacity is the capacity of a sprint and its source (nil, nil if it cannot be
@@ -279,7 +280,7 @@ func AbsencesKnown(sprint coretypes.Sprint) bool {
 // With a people list it is always calculated from calendar and people (holidays, sprint length,
 // FTE); only unknown absences are estimated. The capacity trend applies only to teams without a
 // people list.
-func ResolveCapacity(data *coretypes.TeamData, sprint coretypes.Sprint, history *capacity.AbsenceHistory) (*float64, *engine.CapacitySource) {
+func ResolveCapacity(data *storage.TeamData, sprint model.Sprint, history *capacity.AbsenceHistory) (*float64, *engine.CapacitySource) {
 	src := func(s engine.CapacitySource) *engine.CapacitySource { return &s }
 	if sprint.Capacity != nil {
 		return sprint.Capacity, src(engine.SourceRecorded)
@@ -287,11 +288,11 @@ func ResolveCapacity(data *coretypes.TeamData, sprint coretypes.Sprint, history 
 	if len(data.People) == 0 {
 		return nil, nil
 	}
-	switch coretypes.AbsenceStatus(sprint) {
-	case coretypes.Confirmed:
-		return coretypes.Float(capacity.Sprint(data.Team, data.People, sprint, 0).Capacity), src(engine.SourcePeople)
-	case coretypes.Expected:
-		return coretypes.Float(capacity.WithExpectedAbsences(data.Team, data.People, sprint)), src(engine.SourceExpected)
+	switch sprint.AbsenceStatus() {
+	case model.AbsencesConfirmed:
+		return model.Ptr(capacity.Sprint(&data.Team, data.People, sprint, 0).Capacity), src(engine.SourcePeople)
+	case model.AbsencesExpected:
+		return model.Ptr(capacity.WithExpectedAbsences(&data.Team, data.People, sprint)), src(engine.SourceExpected)
 	}
 	var rate *float64
 	if history != nil {
@@ -301,7 +302,7 @@ func ResolveCapacity(data *coretypes.TeamData, sprint coretypes.Sprint, history 
 	if rate != nil {
 		r = *rate
 	}
-	c := coretypes.Float(capacity.Estimated(data.Team, data.People, sprint, r))
+	c := model.Ptr(capacity.Estimated(&data.Team, data.People, sprint, r))
 	if rate != nil {
 		return c, src(engine.SourceEstimated)
 	}
@@ -309,10 +310,10 @@ func ResolveCapacity(data *coretypes.TeamData, sprint coretypes.Sprint, history 
 }
 
 // Build calculates the forecast of a team. A zero today means today's date.
-func Build(data *coretypes.TeamData, today time.Time) (*Forecast, error) {
+func Build(data *storage.TeamData, today time.Time) (*Forecast, error) {
 	if today.IsZero() {
 		y, m, d := time.Now().Date()
-		today = coretypes.NewDate(y, m, d)
+		today = time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 	}
 	line, err := Timeline(data, today)
 	if err != nil {
@@ -320,13 +321,13 @@ func Build(data *coretypes.TeamData, today time.Time) (*Forecast, error) {
 	}
 	var history *capacity.AbsenceHistory
 	if len(data.People) > 0 {
-		var past []coretypes.Sprint
+		var past []model.Sprint
 		for _, r := range line {
 			if r.Recorded && !r.Sprint.End.After(today) {
 				past = append(past, r.Sprint)
 			}
 		}
-		h := capacity.History(data.Team, data.People, past, data.Team.Capacity.AbsenceHistory)
+		h := capacity.History(&data.Team, data.People, past, data.Team.Capacity.AbsenceHistory)
 		history = &h
 	}
 	inputs := make([]engine.SprintInput, len(line))

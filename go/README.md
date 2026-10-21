@@ -35,7 +35,6 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/githistory` | Discard (with trash and rollback), history, restore a version, take back a commit, tags (also on the server). |
 | `internal/signin` | Token sign-in over Git's credential helper (`git credential approve/reject`); the token is never stored or shown by the program. |
 | `internal/pymath` | The arithmetic of Python the results depend on: the compensated `sum()` of floats (Python 3.12+), `math.fsum`, `statistics.median`/`fmean`, `round`, and the number formats `{:,.2f}` and `{:g}`. A sum that has to match Python is calculated with these, not with a loop. |
-| `internal/coretypes` | Settings, people and sprints as the calculation reads them (field names of the Python model). Moves to the complete model of the model-and-storage step by changing the import. |
 | `internal/calendar` | Sprint IDs and the following sprints, workweeks, workdays, holidays of a country and region (`calendar.py`). |
 | `internal/engine` | Rounding, rolling average, trend modes, `Compute` (`engine.py`). |
 | `internal/capacity` | Capacity per person and sprint, expected absence rate (`capacity.py`). |
@@ -43,7 +42,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/analysis` | Ranges, focus factor, buffer hint, horizon, Monte Carlo completion (`analysis.py`). |
 | `internal/formulas` | The calculation path of every figure: steps and explanations as texts (`formulas.py`). |
 | `internal/textfmt` | Number format of the language, capacity rounding, Markdown code spans of external text (the helpers of `report.py` and `git.py` the formulas need). |
-| `internal/coretest` | Test helper: loads the golden team folders into `coretypes`. |
+| `internal/coretest` | Test helper: loads the golden team folders with `storage` and turns results into the JSON form of the Python references (snake case keys, dates as YYYY-MM-DD). |
 
 | `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |

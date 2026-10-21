@@ -5,9 +5,9 @@ import (
 
 	"github.com/swallat/foresprint/internal/capacity"
 	"github.com/swallat/foresprint/internal/coretest"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/golden"
+	"github.com/swallat/foresprint/internal/model"
 )
 
 // The capacity breakdown of every sprint in the forecast of a team with a people list equals
@@ -31,23 +31,23 @@ func TestCapacityMatchesPython(t *testing.T) {
 			}
 			out := []map[string]any{}
 			for _, e := range fc.Entries {
-				b := capacity.Sprint(data.Team, data.People, e.Sprint, 0)
+				b := capacity.Sprint(&data.Team, data.People, e.Sprint, 0)
 				approx := []string{}
 				for _, p := range b.Approximated() {
 					approx = append(approx, p.Person.ID)
 				}
 				var share *float64
-				if s, ok := capacity.ProductionShare(data.Team, data.People, e.Sprint); ok {
-					share = coretypes.Float(s)
+				if s, ok := capacity.ProductionShare(&data.Team, data.People, e.Sprint); ok {
+					share = model.Ptr(s)
 				}
 				out = append(out, map[string]any{
 					"sprint":            e.Sprint.ID,
 					"breakdown":         b,
 					"rounded":           b.Rounded(),
 					"approximated":      approx,
-					"with_rate_0_1":     capacity.Sprint(data.Team, data.People, e.Sprint, 0.1),
+					"with_rate_0_1":     capacity.Sprint(&data.Team, data.People, e.Sprint, 0.1),
 					"history_rate":      rate,
-					"expected_absences": capacity.WithExpectedAbsences(data.Team, data.People, e.Sprint),
+					"expected_absences": capacity.WithExpectedAbsences(&data.Team, data.People, e.Sprint),
 					"production_share":  share,
 				})
 			}

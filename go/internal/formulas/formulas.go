@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/swallat/foresprint/internal/capacity"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/pymath"
 	"github.com/swallat/foresprint/internal/textfmt"
 )
@@ -105,7 +105,7 @@ var GeneralKeys = []string{
 }
 
 // General is the general formula for a key, e.g. for column headers; empty for an unknown key.
-func (f Formatter) General(key string) string { return f.t(generalFormulas[key], nil) }
+func (f Formatter) General(key string) string { return f.t(generalFormulas[key]) }
 
 // FTEChangeNote is the note on the approximation for an FTE change within the sprint.
 func (f Formatter) FTEChangeNote(names []string) string {
@@ -145,18 +145,18 @@ func (f Formatter) fmtCap(v *float64, digits int) string {
 // command line shows it separately).
 func (f Formatter) CapacityStep(fc *forecast.Forecast, e *forecast.TimelineEntry, code, note bool) Step {
 	r := e.Result
-	team := fc.Data.Team
-	name := f.t("Capacity", nil)
+	team := &fc.Data.Team
+	name := f.t("Capacity")
 	step := func(formula, calculation string) Step {
 		return Step{"capacity", name, formula, calculation}
 	}
 	same := fmt.Sprintf("= %s PT", f.fmtCap(r.PlanCapacity, e.CapacityDigits))
 	if r.PlanCapacitySource == nil {
-		return step(f.t("cannot be determined", nil), "–")
+		return step(f.t("cannot be determined"), "–")
 	}
 	switch *r.PlanCapacitySource {
 	case engine.SourceRecorded:
-		return step(f.t("Recorded in the sprint file (frozen at the review)", nil), same)
+		return step(f.t("Recorded in the sprint file (frozen at the review)"), same)
 	case engine.SourcePeople:
 		b := capacity.Sprint(team, fc.Data.People, e.Sprint, 0)
 		parts := make([]string, len(b.People))
@@ -166,7 +166,7 @@ func (f Formatter) CapacityStep(fc *forecast.Forecast, e *forecast.TimelineEntry
 		}
 		minus := ""
 		if b.OverheadDaysPart != 0 {
-			minus += fmt.Sprintf(" − %s (%s)", f.n(b.OverheadDaysPart), f.t("Scrum events PT", nil))
+			minus += fmt.Sprintf(" − %s (%s)", f.n(b.OverheadDaysPart), f.t("Scrum events PT"))
 		}
 		if b.OverheadSharePart != 0 {
 			minus += fmt.Sprintf(" − %s (%s)", f.n(b.OverheadSharePart), textfmt.Pct(f.Lang, team.Capacity.OverheadShare))
@@ -185,13 +185,13 @@ func (f Formatter) CapacityStep(fc *forecast.Forecast, e *forecast.TimelineEntry
 		}
 		return step(f.General("capacity"), calculation)
 	case engine.SourceTrend:
-		return step(f.t("No people list → capacity trend (extrapolated like the norm. velocity)", nil), same)
+		return step(f.t("No people list → capacity trend (extrapolated like the norm. velocity)"), same)
 	case engine.SourceCalendar:
 		return step(f.t("Absences unknown and no history yet → capacity from the people list and "+
-			"calendar (holidays, sprint length) without deduction for absences", nil), same)
+			"calendar (holidays, sprint length) without deduction for absences"), same)
 	case engine.SourceExpected:
 		return step(f.t("No absences confirmed → capacity from the people list with the announced "+
-			"absences from the PO pre-planning", nil), same)
+			"absences from the PO pre-planning"), same)
 	case engine.SourceEstimated:
 		history := fc.Absences
 		var used []string
@@ -219,7 +219,7 @@ func (f Formatter) CapacityStep(fc *forecast.Forecast, e *forecast.TimelineEntry
 		}
 		return step(formula, same)
 	}
-	return step(f.t("cannot be determined", nil), "–")
+	return step(f.t("cannot be determined"), "–")
 }
 
 // AverageStep is the calculation path of the rolling average. e must be an entry of fc.
@@ -236,9 +236,9 @@ func (f Formatter) AverageStep(fc *forecast.Forecast, e *forecast.TimelineEntry)
 		present = present[len(present)-window:]
 	}
 	avg := e.Result.NormalizedVelocity.Average
-	name := f.t("Ø norm. velocity", nil)
+	name := f.t("Ø norm. velocity")
 	if avg == nil {
-		return Step{"average", name, f.General("average"), f.t("– (sprint without its own value)", nil)}
+		return Step{"average", name, f.General("average"), f.t("– (sprint without its own value)")}
 	}
 	nums := make([]string, len(present))
 	for k, v := range present {
@@ -262,15 +262,15 @@ func (f Formatter) TrendStep(fc *forecast.Forecast, e *forecast.TimelineEntry) (
 		m[k] = x.Result.NormalizedVelocity
 	}
 	value := m[i].Trend
-	name := f.t("norm. velocity trend", nil)
+	name := f.t("norm. velocity trend")
 	made := func(formula, calculation string) (Step, error) {
 		return Step{"trend", name, formula, calculation}, nil
 	}
 	if m[i].Average != nil {
-		return made(f.t("norm. velocity trend = Ø norm. velocity – past sprint", nil), "Ø = "+f.np(m[i].Average))
+		return made(f.t("norm. velocity trend = Ø norm. velocity – past sprint"), "Ø = "+f.np(m[i].Average))
 	}
 	if value == nil {
-		return made(f.General("trend"), f.t("– (not enough history)", nil))
+		return made(f.General("trend"), f.t("– (not enough history)"))
 	}
 	avg := func(j int) *float64 {
 		if j >= 0 {
@@ -294,20 +294,20 @@ func (f Formatter) TrendStep(fc *forecast.Forecast, e *forecast.TimelineEntry) (
 		return made(f.t("Thin history: {mode} needs a second average, so norm. velocity trend = "+
 			"value_prev (flat) applies", "mode", string(mode)), "= "+f.np(known(i-1)))
 	}
-	if mode == coretypes.Flat {
-		return made(f.t("norm. velocity trend = value_prev (flat)", nil), "= "+f.np(known(i-1)))
+	if mode == model.TrendFlat {
+		return made(f.t("norm. velocity trend = value_prev (flat)"), "= "+f.np(known(i-1)))
 	}
 	a1, a2 := avg(i-1), avg(i-2)
-	if mode == coretypes.Classic && a1 != nil && a2 != nil {
-		return made(f.t("norm. velocity trend = Ø_prev + (Ø_prev − Ø_prev2) (classic, 1st future sprint)", nil),
+	if mode == model.TrendClassic && a1 != nil && a2 != nil {
+		return made(f.t("norm. velocity trend = Ø_prev + (Ø_prev − Ø_prev2) (classic, 1st future sprint)"),
 			fmt.Sprintf("%s + (%s − %s) = %s", f.np(a1), f.np(a1), f.np(a2), f.np(value)))
 	}
-	if mode == coretypes.Classic && i >= 2 && tr(i-2) == nil {
-		return made(f.t("norm. velocity trend = Ø[−2] / Ø[−3] × trend[−1] (classic, 2nd future sprint)", nil),
+	if mode == model.TrendClassic && i >= 2 && tr(i-2) == nil {
+		return made(f.t("norm. velocity trend = Ø[−2] / Ø[−3] × trend[−1] (classic, 2nd future sprint)"),
 			fmt.Sprintf("%s / %s × %s = %s", f.np(avg(i-2)), f.np(avg(i-3)), f.np(tr(i-1)), f.np(value)))
 	}
 	k1, k2 := known(i-1), known(i-2)
-	return made(f.t("norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)", nil),
+	return made(f.t("norm. velocity trend = value_prev + (value_prev − value_prev2) (linear)"),
 		fmt.Sprintf("%s + (%s − %s) = %s", f.np(k1), f.np(k1), f.np(k2), f.np(value)))
 }
 
@@ -336,9 +336,9 @@ func (f Formatter) absenceNote(fc *forecast.Forecast, e *forecast.TimelineEntry,
 
 func (f Formatter) trendNote(fc *forecast.Forecast, e *forecast.TimelineEntry) (string, bool) {
 	if e.Result.TrendFallback {
-		return f.t("The history is thin: the last average applies, without extrapolation.", nil), true
+		return f.t("The history is thin: the last average applies, without extrapolation."), true
 	}
-	if mode, err := engine.ParseTrendMode(fc.Data.Team.Forecast.TrendMode); err == nil && mode != coretypes.Flat {
+	if mode, err := engine.ParseTrendMode(fc.Data.Team.Forecast.TrendMode); err == nil && mode != model.TrendFlat {
 		return f.t("Trend mode {mode} extrapolates fluctuations of the last sprints – read "+
 			"with caution.", "mode", string(mode)), true
 	}
@@ -361,12 +361,12 @@ func rawPlan(r engine.SprintResult, ref float64) float64 {
 // note on the uncertain absence rate (the command line shows it once separately, with the
 // command instead of the web UI operation).
 func (f Formatter) PlainExplanation(fc *forecast.Forecast, e *forecast.TimelineEntry, note bool) string {
-	team := fc.Data.Team
+	team := &fc.Data.Team
 	fs := team.Forecast
 	r := e.Result
 	unit := string(team.Unit)
 	if r.Plan == nil {
-		return f.t("No forecast can be calculated for this sprint yet (too little history).", nil)
+		return f.t("No forecast can be calculated for this sprint yet (too little history).")
 	}
 	if r.PlanSource != nil && *r.PlanSource == engine.PlanActual {
 		return f.t("Past sprint: the commitment ({value} {unit}) counts, rounded down to {plan}.",
@@ -377,7 +377,7 @@ func (f Formatter) PlainExplanation(fc *forecast.Forecast, e *forecast.TimelineE
 	trend := r.NormalizedVelocity.Trend
 	source := "–"
 	if r.PlanCapacitySource != nil {
-		source = f.t(string(*r.PlanCapacitySource), nil)
+		source = f.t(string(*r.PlanCapacitySource))
 	}
 	parts := []string{
 		f.t("The team recently (sprints {sprints}) achieved an average of {trend} {unit}, "+
@@ -418,7 +418,7 @@ type Explanation struct {
 // StructuredExplanation has the same facts as PlainExplanation, but as a short sequence (inputs
 // → calculation → result, notes apart) instead of one paragraph.
 func (f Formatter) StructuredExplanation(fc *forecast.Forecast, e *forecast.TimelineEntry, note bool) Explanation {
-	team := fc.Data.Team
+	team := &fc.Data.Team
 	fs := team.Forecast
 	r := e.Result
 	unit := string(team.Unit)
@@ -434,7 +434,7 @@ func (f Formatter) StructuredExplanation(fc *forecast.Forecast, e *forecast.Time
 	trend := r.NormalizedVelocity.Trend
 	source := "–"
 	if r.PlanCapacitySource != nil {
-		source = f.t(string(*r.PlanCapacitySource), nil)
+		source = f.t(string(*r.PlanCapacitySource))
 	}
 	notes := []string{}
 	if s, ok := f.absenceNote(fc, e, note); ok {
@@ -445,7 +445,7 @@ func (f Formatter) StructuredExplanation(fc *forecast.Forecast, e *forecast.Time
 	}
 	return Explanation{
 		Inputs: []Pair{
-			{f.t("Basis sprints", nil), strings.Join(ids, ", ")},
+			{f.t("Basis sprints"), strings.Join(ids, ", ")},
 			{f.t("Normalized velocity (reference capacity {ref} PT)", "ref", f.nd(fs.ReferenceCapacity, 0)),
 				f.np(trend) + " " + unit},
 			{f.t("Available in {id}", "id", textfmt.MdCode(e.Sprint.ID)),
@@ -453,7 +453,7 @@ func (f Formatter) StructuredExplanation(fc *forecast.Forecast, e *forecast.Time
 		},
 		Calculation: fmt.Sprintf("%s / %s × %s = %s %s", f.exact(trend), f.nd(fs.ReferenceCapacity, 0),
 			f.exact(r.PlanCapacity), f.nd(rawPlan(r, fs.ReferenceCapacity), 3), unit),
-		ResultLabel: f.t("Forecast PLAN (rounded down)", nil),
+		ResultLabel: f.t("Forecast PLAN (rounded down)"),
 		Result:      textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, "") + " " + unit,
 		Notes:       notes,
 	}
@@ -462,14 +462,14 @@ func (f Formatter) StructuredExplanation(fc *forecast.Forecast, e *forecast.Time
 // Steps are all calculation steps of a sprint in reading order (code and note as in
 // CapacityStep).
 func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code, note bool) ([]Step, error) {
-	team := fc.Data.Team
+	team := &fc.Data.Team
 	fs := team.Forecast
 	r := e.Result
 	unit := string(team.Unit)
 	ref := fs.ReferenceCapacity
 	steps := []Step{f.CapacityStep(fc, e, code, note)}
 	if r.Velocity.Value != nil {
-		steps = append(steps, Step{"normalized_velocity", f.t("norm. velocity", nil), f.General("normalized_velocity"),
+		steps = append(steps, Step{"normalized_velocity", f.t("norm. velocity"), f.General("normalized_velocity"),
 			fmt.Sprintf("%s / %s × %s = %s", f.np(r.Velocity.Value), f.exact(r.Capacity.Value), f.nd(ref, 0),
 				f.np(r.NormalizedVelocity.Value))})
 	}
@@ -492,16 +492,16 @@ func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code,
 					textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""), unit)})
 		case engine.PlanActual:
 			steps = append(steps, Step{"plan", "Forecast PLAN",
-				f.t("Forecast PLAN = rounded down(commitment) – past sprint", nil),
+				f.t("Forecast PLAN = rounded down(commitment) – past sprint"),
 				fmt.Sprintf("%s → %s %s", f.np(r.Commitment.Value), textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""), unit)})
 		}
 	}
 	if r.Plan != nil {
 		plan := textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, "")
 		steps = append(steps,
-			Step{"roadmap", f.t("Plannable", nil), f.General("roadmap"),
+			Step{"roadmap", f.t("Plannable"), f.General("roadmap"),
 				fmt.Sprintf("%s × %s = %s", plan, textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
-			Step{"small_stuff", f.t("Small items", nil), f.General("small_stuff"),
+			Step{"small_stuff", f.t("Small items"), f.General("small_stuff"),
 				fmt.Sprintf("%s − %s = %s", plan, f.np(r.Roadmap), f.np(r.SmallStuff))})
 	}
 	if r.Fulfillment.Value != nil {
@@ -519,7 +519,7 @@ func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code,
 			}
 			corr = strings.Join(cs, " − ")
 		}
-		steps = append(steps, Step{"delta", f.t("Planning delta", nil), f.General("delta"),
+		steps = append(steps, Step{"delta", f.t("Planning delta"), f.General("delta"),
 			fmt.Sprintf("%s − (%s + %s − %s) = %s", textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, ""),
 				f.n(p.Carryover), f.n(p.Backlog), corr, f.np(r.PlanningDelta))})
 	}

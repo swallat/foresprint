@@ -2,13 +2,14 @@ package forecast_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/swallat/foresprint/internal/analysis"
 	"github.com/swallat/foresprint/internal/calendar"
 	"github.com/swallat/foresprint/internal/coretest"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/golden"
+	"github.com/swallat/foresprint/internal/model"
 )
 
 type apiRef struct {
@@ -158,7 +159,7 @@ func TestLookupsMatchPython(t *testing.T) {
 
 			i := 0
 			for _, e := range fc.Entries {
-				for _, preset := range []*float64{nil, coretypes.Float(9.9)} {
+				for _, preset := range []*float64{nil, model.Ptr(9.9)} {
 					for _, refreeze := range []bool{false, true} {
 						want := ref.Freeze[i]
 						i++
@@ -173,7 +174,7 @@ func TestLookupsMatchPython(t *testing.T) {
 			}
 			j := 0
 			for _, e := range fc.Entries {
-				for _, preset := range []*float64{nil, coretypes.Float(9.9)} {
+				for _, preset := range []*float64{nil, model.Ptr(9.9)} {
 					want := ref.Refreeze[j]
 					j++
 					s := e.Sprint.Clone()
@@ -192,11 +193,11 @@ func eqF(a, b *float64) bool { return (a == nil) == (b == nil) && (a == nil || *
 
 type miscRef struct {
 	ApplyPlanning []struct {
-		Commitment *float64            `json:"commitment"`
-		Planning   *coretypes.Planning `json:"planning"`
-		Prefilled  bool                `json:"prefilled"`
-		SprintC    *float64            `json:"sprint_commitment"`
-		SprintP    *coretypes.Planning `json:"sprint_planning"`
+		Commitment *float64        `json:"commitment"`
+		Planning   *model.Planning `json:"planning"`
+		Prefilled  bool            `json:"prefilled"`
+		SprintC    *float64        `json:"sprint_commitment"`
+		SprintP    *model.Planning `json:"sprint_planning"`
 	} `json:"apply_planning"`
 	Errors map[string]*string `json:"errors"`
 }
@@ -205,8 +206,8 @@ func TestApplyPlanningAndErrorsMatchPython(t *testing.T) {
 	var ref miscRef
 	golden.Load(t, &ref, "forecast_api", "misc.json")
 	for _, c := range ref.ApplyPlanning {
-		s := coretypes.Sprint{ID: "x"}
-		var planning *coretypes.Planning
+		s := model.Sprint{ID: "x"}
+		var planning *model.Planning
 		if c.Planning != nil {
 			p := *c.Planning
 			p.Corrections = append([]float64{}, c.Planning.Corrections...)
@@ -219,18 +220,18 @@ func TestApplyPlanningAndErrorsMatchPython(t *testing.T) {
 		golden.Compare(t, coretest.JSON(t, c.SprintP), coretest.JSON(t, s.Planning))
 	}
 
-	team := coretypes.NewTeam("no-first", "x")
-	_, err := calendar.FollowingSprint(team, nil)
+	team := model.NewTeam("no-first", "x")
+	_, err := calendar.FollowingSprint(&team, nil)
 	if err == nil || err.Error() != *ref.Errors["no_first_sprint"] {
 		t.Errorf("no first sprint: %v, Python %q", err, *ref.Errors["no_first_sprint"])
 	}
-	d := coretypes.NewDate(2026, 3, 1)
+	d := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
 	for key, in := range map[string]struct {
 		id        string
-		numbering coretypes.Numbering
+		numbering model.Numbering
 	}{
-		"sequential_22b": {"22b", coretypes.Sequential}, "sequential_x": {"x", coretypes.Sequential},
-		"yearly_counter": {"2026.x", coretypes.Yearly},
+		"sequential_22b": {"22b", model.NumberingSequential}, "sequential_x": {"x", model.NumberingSequential},
+		"yearly_counter": {"2026.x", model.NumberingYearly},
 	} {
 		_, err := calendar.NextID(in.id, d, in.numbering)
 		want := ref.Errors[key]
@@ -238,10 +239,10 @@ func TestApplyPlanningAndErrorsMatchPython(t *testing.T) {
 			t.Errorf("%s: %v, Python %v", key, err, want)
 		}
 	}
-	if got := calendar.ExpectedIDForm("en", coretypes.Yearly); got != *ref.Errors["yearly_form"] {
+	if got := calendar.ExpectedIDForm("en", model.NumberingYearly); got != *ref.Errors["yearly_form"] {
 		t.Errorf("%q", got)
 	}
-	if got := calendar.ExpectedIDForm("en", coretypes.Sequential); got != *ref.Errors["sequential_form"] {
+	if got := calendar.ExpectedIDForm("en", model.NumberingSequential); got != *ref.Errors["sequential_form"] {
 		t.Errorf("%q", got)
 	}
 }

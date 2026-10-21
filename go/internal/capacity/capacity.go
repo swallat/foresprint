@@ -7,17 +7,17 @@ import (
 	"time"
 
 	"github.com/swallat/foresprint/internal/calendar"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/engine"
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/pymath"
 )
 
 // PersonCapacity is the capacity of one person in a sprint, in PD.
 type PersonCapacity struct {
-	Person      coretypes.Person `json:"person"`
-	Workdays    int              `json:"workdays"`
-	Holidays    int              `json:"holidays"`
-	AbsenceDays float64          `json:"absence_days"`
+	Person      model.Person `json:"person"`
+	Workdays    int          `json:"workdays"`
+	Holidays    int          `json:"holidays"`
+	AbsenceDays float64      `json:"absence_days"`
 	// Capacity is the available time after holidays and absences (before the deductions for
 	// Scrum events).
 	Capacity float64 `json:"capacity"`
@@ -70,15 +70,15 @@ func (b Breakdown) Approximated() []PersonCapacity {
 //
 // absenceRate reduces the capacity by an expected share of unknown absences (estimated from
 // history); entered absences apply in addition.
-func PersonOf(team *coretypes.Team, person coretypes.Person, sprint coretypes.Sprint, absenceRate float64) (PersonCapacity, bool) {
-	country := person.Country
+func PersonOf(team *model.Team, person model.Person, sprint model.Sprint, absenceRate float64) (PersonCapacity, bool) {
+	country := text(person.Country)
 	if country == "" {
 		country = team.Capacity.Country
 	}
 	// If the person has their own country, the team's region does not apply.
-	region := person.Region
-	if region == "" && person.Country == "" {
-		region = team.Capacity.Region
+	region := text(person.Region)
+	if region == "" && text(person.Country) == "" {
+		region = text(team.Capacity.Region)
 	}
 	weekend := calendar.PersonWeekend(team, person)
 	var days []time.Time
@@ -129,7 +129,7 @@ func PersonOf(team *coretypes.Team, person coretypes.Person, sprint coretypes.Sp
 // The deduction: fixed PD per person (OverheadDays × FTE, at most the person's capacity)
 // replace the percentage deduction (OverheadShare); both are the same deduction in two units
 // and are not added.
-func Sprint(team *coretypes.Team, people []coretypes.Person, sprint coretypes.Sprint, absenceRate float64) Breakdown {
+func Sprint(team *model.Team, people []model.Person, sprint model.Sprint, absenceRate float64) Breakdown {
 	rows := []PersonCapacity{}
 	gross := make([]float64, 0, len(people))
 	overheads := make([]float64, 0, len(people))
@@ -160,8 +160,8 @@ func Sprint(team *coretypes.Team, people []coretypes.Person, sprint coretypes.Sp
 
 // ProductionShare is the share of the sprint capacity held by people with production access
 // (0-1); ok is false if nobody has production access.
-func ProductionShare(team *coretypes.Team, people []coretypes.Person, sprint coretypes.Sprint) (share float64, ok bool) {
-	var group []coretypes.Person
+func ProductionShare(team *model.Team, people []model.Person, sprint model.Sprint) (share float64, ok bool) {
+	var group []model.Person
 	for _, p := range people {
 		if p.ProductionAccess {
 			group = append(group, p)
@@ -194,7 +194,7 @@ type AbsenceHistory struct {
 // Only completed sprints whose absences are confirmed are considered, using the same definition
 // as for the capacity (AbsenceStatus). Confirmed sprints without absences count with a rate of
 // 0, otherwise the rate would be too high. Unknown and merely announced sprints are left out.
-func History(team *coretypes.Team, people []coretypes.Person, past []coretypes.Sprint, count int) AbsenceHistory {
+func History(team *model.Team, people []model.Person, past []model.Sprint, count int) AbsenceHistory {
 	empty := AbsenceHistory{Sprints: []string{}, Rates: []float64{}, Derived: []string{}}
 	if count <= 0 {
 		return empty
@@ -206,10 +206,10 @@ func History(team *coretypes.Team, people []coretypes.Person, past []coretypes.S
 	var rows []used
 	derived := map[string]bool{}
 	for _, sprint := range past {
-		if coretypes.AbsenceStatus(sprint) != coretypes.Confirmed {
+		if sprint.AbsenceStatus() != model.AbsencesConfirmed {
 			continue
 		}
-		if len(sprint.Absences) == 0 && sprint.AbsenceState == nil && coretypes.LegacyKnown(sprint) {
+		if len(sprint.Absences) == 0 && sprint.AbsenceState == nil && sprint.AbsenceStatus() != model.AbsencesUnknown {
 			derived[sprint.ID] = true
 		}
 		without := sprint.Clone()
@@ -232,29 +232,37 @@ func History(team *coretypes.Team, people []coretypes.Person, past []coretypes.S
 		}
 	}
 	if len(out.Rates) > 0 {
-		out.Rate = coretypes.Float(pymath.Sum(out.Rates) / float64(len(out.Rates)))
+		out.Rate = model.Ptr(pymath.Sum(out.Rates) / float64(len(out.Rates)))
 	}
 	return out
 }
 
 // ExpectedAbsenceRate is the average share of capacity lost to absences (0-1); nil without
 // history.
-func ExpectedAbsenceRate(team *coretypes.Team, people []coretypes.Person, past []coretypes.Sprint, count int) *float64 {
+func ExpectedAbsenceRate(team *model.Team, people []model.Person, past []model.Sprint, count int) *float64 {
 	return History(team, people, past, count).Rate
 }
 
 // Estimated is the capacity of a sprint without known absences, reduced by the expected rate.
-func Estimated(team *coretypes.Team, people []coretypes.Person, sprint coretypes.Sprint, rate float64) float64 {
+func Estimated(team *model.Team, people []model.Person, sprint model.Sprint, rate float64) float64 {
 	return Sprint(team, people, sprint, rate).Capacity
 }
 
 // WithExpectedAbsences is the capacity of a sprint with its announced absences (PO
 // pre-planning).
-func WithExpectedAbsences(team *coretypes.Team, people []coretypes.Person, sprint coretypes.Sprint) float64 {
+func WithExpectedAbsences(team *model.Team, people []model.Person, sprint model.Sprint) float64 {
 	probe := sprint.Clone()
 	probe.Absences = map[string]float64{}
 	for k, v := range sprint.ExpectedAbsences {
 		probe.Absences[k] = v
 	}
 	return Sprint(team, people, probe, 0).Capacity
+}
+
+// text is an optional text: nil is the empty text.
+func text(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
