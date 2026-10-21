@@ -1,6 +1,6 @@
 # Storage interface
 
-Decided 21.10.2026: each team chooses where its data lives. Default is a **shared folder** (file server, later SharePoint); **Git** stays available. Both sit behind one interface so the UI and the flows in [flows.md](flows.md) (D1 to D6) are the same. Data stays readable YAML in both.
+Decided 21.10.2026: **Git is the storage of 1.0** (history, data integrity). A **shared folder** (file server, later SharePoint) is supported after 1.0. Both sit behind one interface so the UI and the flows in [flows.md](flows.md) (D1 to D6) stay the same when the folder arrives. Data stays readable YAML in both. In the table, the Folder column is the design for after 1.0; only the Git column is built for 1.0.
 
 ## Operations
 
@@ -24,7 +24,7 @@ Decided 21.10.2026: each team chooses where its data lives. Default is a **share
 - Smaller files (one per project instead of one ticket file) reduce conflicts; the file layout is part of the 1.0 data-format review.
 - The interface is defined independently of the core language (Python or Go, decision pending).
 
-## Open
+## Open (folder, after 1.0)
 
 - Behaviour on the real SMB share (lock, rename, clock skew): test script `share-test.py` from the storage pre-study, result pending.
 - Working without connection to the shared folder: read only from cache (proposal), clarification pending.
