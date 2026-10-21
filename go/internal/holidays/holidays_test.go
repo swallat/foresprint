@@ -177,3 +177,24 @@ func TestAllCalendars(t *testing.T) {
 		}
 	}
 }
+
+// Alias spellings and deprecated codes of a region give the regional calendar, as in Python.
+func TestSubdivisionAliases(t *testing.T) {
+	cases := []struct{ country, alias, region string }{
+		{"DE", "Bayern", "BY"},
+		{"DE", "BYP", "BY"},
+	}
+	for _, c := range cases {
+		for year := 2024; year <= 2027; year++ {
+			a := holidays.List(c.country, c.alias, "en", year, year)
+			b := holidays.List(c.country, c.region, "en", year, year)
+			if len(a) == 0 || fmt.Sprint(a) != fmt.Sprint(b) {
+				t.Errorf("%s/%s %d differs from %s", c.country, c.alias, year, c.region)
+			}
+		}
+	}
+	// US/Arkansas has no Columbus Day in 2026 (the nationwide list has one).
+	if got, nat := len(holidays.List("US", "Arkansas", "en", 2026, 2026)), len(holidays.List("US", "", "en", 2026, 2026)); got == nat {
+		t.Errorf("US/Arkansas should differ from the nationwide list (%d)", got)
+	}
+}

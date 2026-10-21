@@ -238,8 +238,9 @@ def build_people(root: Path, name: str, **capacity: Any) -> Case:
         {"velocity": [28, 30, 27, 33, 31, 29, 35, 30, 28, 32, None, None],
          "commitment": [30, 31, 30, 34, 32, 30, 36, 31, 30, 33, 30, 29]},
     )  # fmt: skip
-    # 0 confirmed with absences; 1 confirmed explicitly without; 2 legacy (no state, planned);
-    # 3 expected only; 4 unknown; then the pattern repeats.
+    # 0 absences entered; 1 confirmed without absences and 2 absences of one person (both are
+    # stored as plain legacy files, the stored state is derived); 3 announced only; 4 unknown
+    # (stored explicitly). Then the pattern repeats.
     for i, sprint in enumerate(sprints[:12]):
         kind = i % 5
         if kind == 0:
@@ -855,7 +856,7 @@ def export_rng() -> dict[str, Any]:
                 "choice_indexes": choices,
             }
         )
-    return {"python": sys.version.split()[0], "streams": out}
+    return {"streams": out}
 
 
 # --- Everything -----------------------------------------------------------------------------

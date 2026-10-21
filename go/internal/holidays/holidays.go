@@ -52,6 +52,7 @@ type rawCountry struct {
 	Weekend      []int                  `json:"weekend"`
 	Subdivisions []string               `json:"subdivisions"`
 	Names        [][]string             `json:"names"`
+	Aliases      map[string]string      `json:"subdivision_aliases"`
 	Calendars    map[string]rawCalendar `json:"calendars"`
 }
 
@@ -68,6 +69,7 @@ type calendar struct {
 }
 
 type country struct {
+	aliases      map[string]string
 	names        [][]string
 	name         string
 	weekend      []time.Weekday
@@ -180,7 +182,7 @@ func lookup(code string) *country {
 	if err := readJSON("countries/"+key+".json", &rc); err != nil {
 		panic(err)
 	}
-	c := &country{name: doc.Countries[key], names: rc.Names, subdivisions: rc.Subdivisions, calendars: map[string]*calendar{}}
+	c := &country{name: doc.Countries[key], names: rc.Names, aliases: rc.Aliases, subdivisions: rc.Subdivisions, calendars: map[string]*calendar{}}
 	for _, d := range rc.Weekend {
 		// The data counts Monday as 0 (Python); time.Weekday counts Sunday as 0.
 		c.weekend = append(c.weekend, time.Weekday((d+1)%7))
@@ -212,8 +214,8 @@ type Country struct {
 func Countries() []Country {
 	mustLoad()
 	out := make([]Country, 0, len(doc.Countries))
-	for code := range doc.Countries {
-		out = append(out, Country{Code: code, Name: lookup(code).name})
+	for code, name := range doc.Countries {
+		out = append(out, Country{Code: code, Name: name})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Code < out[j].Code })
 	return out
@@ -255,10 +257,7 @@ func find(countryCode, region string, day time.Time) (*country, *calendar, int) 
 	if c == nil || !Covers(day.Year()) {
 		return nil, nil, -1
 	}
-	cal := c.calendars[region]
-	if cal == nil {
-		cal = c.calendars[""]
-	}
+	cal := c.region(region)
 	if cal == nil {
 		return c, nil, -1
 	}
@@ -303,10 +302,7 @@ func List(countryCode, region, lang string, first, last int) []Holiday {
 	if c == nil {
 		return nil
 	}
-	cal := c.calendars[region]
-	if cal == nil {
-		cal = c.calendars[""]
-	}
+	cal := c.region(region)
 	if cal == nil {
 		return nil
 	}
@@ -323,4 +319,18 @@ func List(countryCode, region, lang string, first, last int) []Holiday {
 		out = append(out, Holiday{Date: day, Name: c.names[cal.names[i]][col]})
 	}
 	return out
+}
+
+// region returns the calendar for a region code or alias; the nationwide one for an unknown
+// region (nil if the country has none).
+func (c *country) region(code string) *calendar {
+	if cal := c.calendars[code]; cal != nil {
+		return cal
+	}
+	if target, ok := c.aliases[code]; ok {
+		if cal := c.calendars[target]; cal != nil {
+			return cal
+		}
+	}
+	return c.calendars[""]
 }
