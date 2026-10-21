@@ -112,6 +112,7 @@ Sprints                    timeline of sprints with state chips
     Pre-plan               earmarked tickets by project and daily business, amount per product, contingent hints
     Plan                   ticket list vs sprint lane with live capacity and Forecast PLAN; planned amounts; agree and freeze
     Review                 velocity, scope change, done per product, tag
+    Minutes                written automatically on each save of pre-plan, plan and review (Markdown in protokolle/)
 Projects                   portfolio: timeline with milestones and end dates, traffic light, contingent use
   <project>                products, milestones, contingent, tickets, report for the project lead; works offline, tracker rules optional
 Forecast                   coming sprints with range; tabs: Analysis, Products over time, Reports and export
@@ -146,7 +147,7 @@ Top bar                    team, sprint, Save, Git sync (pull, share, conflicts,
 | D19 Earmarking | buttons, drag, form | Drag in Backlog or Sprint > Pre-plan, plus menu and keyboard; note in the ticket panel |
 | D20, D26 Import and export | Jira connection, Tickets > Import, Forecast, Settings | Settings > Jira and tickets (sources, import); Forecast > Reports and export (Excel, report); Excel import there too |
 | D22 Production access | five places | Feature switch in Settings > Team, flag per person in Team > People, planned and done production part as columns of the product table; overload hint once in the sprint summary bar |
-| D23 Minutes | three save buttons, expanders | Sprint workspace activity log |
+| D23 Minutes | written by three save buttons, shown only in an expander per board | Kept as today: every save of pre-plan, plan and review writes a Markdown file in `protokolle/` (same names, obsolete versions kept and marked), shared via Git with the other changes. Shown in a Minutes tab of the sprint workspace (all versions, open as file); planning minutes also list the agreed tickets with tracker links |
 | D25 Histories | four separate | Per object "History" in the side panel; Git history in Settings |
 | D27 Findings | Check page, save, share | Findings badge in the top bar, list on Today |
 
@@ -219,7 +220,8 @@ flowchart TD
   P2 --> C[Commitment = selected tickets]
   P --> Z
   C --> Z[Freeze plan, store ticket list locally]
-  Z --> W[Optional: write label planned_for_sprint]
+  Z --> MN[Write planning minutes with agreed tickets]
+  MN --> W[Optional: write label planned_for_sprint]
   W --> SH[Share: push or merge request]
   SH --> D([Sprint planned])
 ```
@@ -300,10 +302,9 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 ## 9. Open questions
 
 1. Announced vs confirmed absences as one grid with a cell state: needs a small data-format change or a UI-only mapping. Proposal: UI-only first.
-2. Minutes: keep as files, or show only as an activity log?
-3. Contingent unit and period: person days or points; per sprint, per month or in total for the project?
-4. Where do contingents come from: entered by hand, or also read from a tracker field?
-5. Milestones: dates only, or also a set of tickets per milestone (for its own traffic light)?
-6. Product of a project ticket when the project spans several products: product rule decides (proposal), or the PO picks per ticket?
-7. Planning with tickets: is the agreed ticket list the commitment, or does the commitment stay a number next to it?
-8. Tickets that the tracker already lists in the sprint but the team takes out during planning: only a local note, or a hint to fix it in Jira?
+2. Contingent unit and period: person days or points; per sprint, per month or in total for the project?
+3. Where do contingents come from: entered by hand, or also read from a tracker field?
+4. Milestones: dates only, or also a set of tickets per milestone (for its own traffic light)?
+5. Product of a project ticket when the project spans several products: product rule decides (proposal), or the PO picks per ticket?
+6. Planning with tickets: is the agreed ticket list the commitment, or does the commitment stay a number next to it?
+7. Tickets that the tracker already lists in the sprint but the team takes out during planning: only a local note, or a hint to fix it in Jira?
