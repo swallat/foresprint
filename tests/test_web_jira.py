@@ -19,7 +19,12 @@ from foresprint.sources import jira as jira_module
 from foresprint.sources.jira import FieldCandidate, FieldSuggestions
 from foresprint.storage import AS_OF_ENV, DATA_ENV
 from foresprint.web import jira_setup
-from foresprint.web.jira_setup import Probe, field_options, tracker_from_inputs
+from foresprint.web.jira_setup import (
+    Probe,
+    field_options,
+    rule_fields_from_rows,
+    tracker_from_inputs,
+)
 
 APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 TODAY = date(2026, 10, 15)
@@ -109,6 +114,18 @@ def test_tracker_from_inputs_keeps_the_rest():
     assert edited.query == "project = A"
     assert edited.fields == TrackerFields(estimate="SP", remaining=None, epic=None)
     assert edited.write_labels and edited.refined_label == "Refined"
+
+
+def test_rule_fields_from_rows():
+    fields, problems = rule_fields_from_rows([(" Customer ", " Kunde "), (None, None), ("", "")])
+    assert fields == {"customer": "Kunde"} and problems == []
+    _, problems = rule_fields_from_rows(
+        [("status", "X"), ("Bad Name", "Y"), ("a", "Y"), ("a", "Z"), ("b", ""), ("none", "Q")]
+    )
+    assert len(problems) == 5
+    base = TrackerSettings(rule_fields={"old": "Old"})
+    assert tracker_from_inputs(base, "jira", "", "", {}).rule_fields == {"old": "Old"}
+    assert tracker_from_inputs(base, "jira", "", "", {}, rule_fields={}).rule_fields == {}
 
 
 def test_field_options_keeps_the_current_value_and_marks_the_suggestion():
@@ -327,3 +344,18 @@ def test_match_orders_keep_an_unusual_current_order():
     )  # fmt: skip
     odd = jira_setup.match_orders(["epic"])
     assert odd[0] == ("epic",) and len(odd) == 7
+
+
+def test_a_removed_rule_field_that_rules_still_use_is_reported():
+    from foresprint.model import Project, Rule
+    from foresprint.storage import TeamData
+    from foresprint.web.jira_setup import rule_fields_in_use
+
+    data = TeamData.__new__(TeamData)
+    data.projects = [
+        Project(id="p", name="P", match=Rule(source="customer", values=["Acme"])),
+        Project(id="q", name="Q", match=Rule(source="label", values=["x"])),
+    ]
+    data.products = []
+    assert rule_fields_in_use(data, {"customer"}) == ["P"]
+    assert rule_fields_in_use(data, {"other"}) == []
