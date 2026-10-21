@@ -1,6 +1,7 @@
 package rules_test
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -118,8 +119,8 @@ func TestGolden(t *testing.T) {
 			}
 			continue
 		}
-		se, ok := err.(*rules.SyntaxError)
-		if !ok {
+		var se *rules.SyntaxError
+		if !errors.As(err, &se) {
 			t.Errorf("%q: got %v, want a syntax error", c.Text, err)
 			continue
 		}
