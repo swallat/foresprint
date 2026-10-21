@@ -47,7 +47,7 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J08 | am asked "when will it be done?" | see the forecast with range for the coming sprints | I can answer with confidence |
 | J09 | want to check fairness across products | compare default, pre-planned, planned and done per product over time | budgets match agreements |
 | J10 | the team or products change | edit people, FTE, products, projects and rules | the master data stays true |
-| J11 | finished a change | share it with the team (push or merge request) and see what changed | nobody overwrites anybody |
+| J11 | finished a change | save it so the team sees it, without thinking about the storage | nobody overwrites anybody |
 | J12 | made a mistake | see the history of an object and undo or restore | errors are cheap |
 | J13 | need numbers elsewhere | export a report or workbook, import Excel or CSV | Foresprint fits the existing tools |
 | J14 | wonder what a number means | open its calculation and help in place | I trust the numbers |
@@ -56,11 +56,11 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J17 | a project lead asks how their project is doing | see booked vs planned vs done per sprint and the milestone traffic light, and export it | I can give a clear answer |
 | J18 | project demand and product budgets disagree | see the conflict with numbers and decide | the decision stays mine, but is informed |
 | J19 | look at any ticket anywhere | open it in the tracker with one click | I never search for a key by hand |
-| J20 | start working in the morning | see at a glance whether others changed something and take it over | I never plan on stale numbers |
-| J21 | the company enforces merge requests | share my changes as a merge request with one click and see its state | I follow the rules without leaving Foresprint |
+| J20 | start working | see at a glance whether others changed something and take it over | I never plan on stale numbers |
+| J21 | my team keeps its data in Git and the server enforces merge requests | still save with one click and get a link to the merge request | Foresprint works with our server rules |
 | J22 | two people changed the same value | see both values side by side and pick per entry | nothing gets lost and I stay in control |
-| J23 | work on a train or without VPN | keep working offline and share later | the server is never a blocker |
-| J24 | try something out or work on a variant | switch to another branch and back | the main data stays untouched |
+| J23 | have no connection to the shared folder or server | keep reading the last state (folder) or keep working and save later (Git) | the network is never a surprise |
+| J24 | set up a team's storage | choose a shared folder or Git and switch later if needed | the team decides where its data lives |
 
 ## 3. Story map
 
@@ -75,9 +75,9 @@ flowchart LR
   C --- C1[Sync tickets] --- C2[Filter and order] --- C3[Refine and estimate] --- C4[Assign product and project]
   D --- D0[Project view: milestones, demand vs budget] --- D1[Absences] --- D2[Earmark tickets] --- D3[Amount per product] --- D4[Readiness check]
   E --- E1[Confirm absences] --- E2[Forecast PLAN] --- E5[Add and remove tickets live] --- E3[Planned amounts per product] --- E4[Agree, commit and freeze]
-  F --- F1[Scope changes] --- F2[Share changes]
+  F --- F1[Scope changes] --- F2[Save changes]
   G --- G1[Velocity and done per product] --- G2[Tag and share]
-  X[Work with data, any time] --- X1[Pull and share] --- X2[Resolve conflicts] --- X3[History, undo, tags] --- X4[Folder, server, branch, sign-in]
+  X[Work with data, any time] --- X1[Save and refresh] --- X2[Resolve conflicts] --- X3[History and restore] --- X4[Choose storage]
   H --- H1[Forecast with range] --- H2[Product balance] --- H4[Project report: contingent and milestones] --- H3[Reports and export]
 ```
 
@@ -98,10 +98,10 @@ flowchart LR
 
     Likewise a ticket's "earmarked for sprint S" and "refined" are properties shown on the ticket wherever it appears (backlog row, sprint lane, panel), not separate lists or forms (D19).
 4. **Views are filters.** Backlog, refinement list, open points and assignment are saved filters of one ticket list, details in a side panel.
-5. **Git has two places.** The actions (save, pull, share, n changes, conflict warning) sit in the top bar and work from every page. Everything else about the data (changes, conflicts, history, tags, folder, server, branch, sign-in, merge request mode) has its own top-level area **Data** (fixes D08 to D13, D28).
+5. **Storage is neutral.** Each team picks its storage: a **shared folder** (default, for example a file server or SharePoint folder) or **Git**. The UI speaks one language for both: Save, Refresh, Changes from others, History, Resolve conflict. Git words (branch, merge request, token, commit) appear only in Settings > Storage when Git is chosen. Save, Refresh and a status chip sit in the top bar on every page; changes, conflicts and history have their own area **Data** (fixes D08 to D13, D28).
 6. **Settings are separate from daily work.** Team, tracker, data and sharing, and personal settings each have one section (fixes D14 to D16).
 7. **Every ticket links to its tracker.** Key and an open-in-tracker icon on every ticket row, card and panel (Jira today, GitHub or GitLab later).
-8. **Always available: Forecast, Settings, PO pre-planning, saving and sync.** Save, share (Git push or merge request), pull and the tracker sync sit permanently in the top bar and work from every page, also during an unfinished flow (an incomplete flow is saved as a draft). None of these depend on the sprint stage, on absences being confirmed, on a frozen plan or on a finished setup step. Missing inputs show as a hint in place, never as a locked page. Pre-planning works for any future sprint, also several sprints ahead.
+8. **Always available: Forecast, Settings, PO pre-planning, saving and sync.** Save, Refresh, the status chip and the tracker sync sit permanently in the top bar and work from every page, also during an unfinished flow (an incomplete flow is saved as a draft). None of these depend on the sprint stage, on absences being confirmed, on a frozen plan or on a finished setup step. Missing inputs show as a hint in place, never as a locked page. Pre-planning works for any future sprint, also several sprints ahead.
 9. **Stages are not gates.** Every stage of a sprint can be opened at any time; a stage that lacks input shows what is missing and still works with the data at hand.
 10. **Trackers are optional.** Projects, products, sprints and planning work fully offline; a tracker only adds tickets and assignment rules on top.
 11. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
@@ -126,18 +126,17 @@ Team
   People and absences      people, FTE, absences grid across sprints
   Products                 products, assignment rules with live preview
   Sprint calendar          dates, length, sprint IDs
-Data                       everything about the data folder and Git
-  Overview                 folder, branch, server, sync state, incoming and outgoing changes
-  Changes                  open changes with values before and after, discard, commit message
-  Conflicts                pick my or their value per entry, apply and share; abort merge
-  History and tags         history per team, sprint or file, restore, take back, tags
-  Setup                    open, create or clone folder, recent folders, server and sign-in, merge request mode and server kind, branch, Git identity, line endings
+Data                       the team's data, the same for every storage
+  Overview                 where the data lives, status, who saved what recently, changes from others
+  Conflicts                same value changed by two people: pick mine, theirs or edit; per entry
+  History                  who changed what and when (journal or Git history), restore a state, take back a change; daily snapshots (folder) or tags (Git)
 Settings
   Team                     forecast settings, features, budget basis
   Jira and tickets         connection, fields, sync interval, import
+  Storage                  kind (shared folder or Git), location, recent folders; folder: lock timeout, snapshot retention; Git: server, sign-in, branch, name and email, line endings
   Personal                 theme, language, density
-Always reachable, independent of sprint stage: Forecast, Settings, PO pre-planning (Backlog lanes and Sprint > Pre-plan), Save, Git sync and tracker sync (top bar).
-Top bar                    team, sprint, Save, Git sync (pull, share, conflicts, n changes), tracker sync (last sync, sync now), search (Ctrl+K), help
+Always reachable, independent of sprint stage: Forecast, Settings, PO pre-planning (Backlog lanes and Sprint > Pre-plan), Save, Refresh and tracker sync (top bar).
+Top bar                    team, sprint, Save, Refresh, status chip (Saved / 2 new changes from Anna / Conflict / Read only, no connection / Locked by Anna), tracker sync (last sync, sync now), search (Ctrl+K), help
 ```
 
 ## 6. Where the scattered functions go
@@ -149,9 +148,9 @@ Top bar                    team, sprint, Save, Git sync (pull, share, conflicts,
 | D03 Capacity and PLAN preview | six views | One sprint summary bar at the top of the sprint workspace |
 | D04 What-if | Forecast and PO pre-planning | Forecast, with "save as prognosis" as an explicit action |
 | D06, D07 Sprint selection and entry | six selectors, eight routes | Sprints timeline and one selector in the top bar; Today links into the right stage |
-| D08 to D11 Git | sidebar, Data folder, Changes and history | Actions in the top bar; Data > Changes, Conflicts, History and tags; identity in Data > Setup |
-| D12, D28 Data folder and setup | sidebar, Data folder, Start, first-start screen | First-run wizard; afterwards Data > Setup (recent folders there too) |
-| D13 Tokens | Data folder and Jira connection | Git sign-in in Data > Setup, Jira token in Settings > Jira and tickets, same sign-in pattern (separate stores) |
+| D08 to D11 Git | sidebar, Data folder, Changes and history | Save, Refresh and status chip in the top bar; Data > Overview, Conflicts, History; Git specifics only in Settings > Storage |
+| D12, D28 Data folder and setup | sidebar, Data folder, Start, first-start screen | First-run wizard; afterwards Settings > Storage (recent folders there too) |
+| D13 Tokens | Data folder and Jira connection | Git sign-in in Settings > Storage (only in Git mode), Jira token in Settings > Jira and tickets, same sign-in pattern |
 | D14, D16 Team settings | Settings, New team, Jira connection, Excel import | Settings > Team; New team is a wizard over the same form; sprint IDs and lengths in Team > Sprint calendar |
 | D15 Personal settings | sidebar, App settings | Settings > Personal |
 | D17, D18, D30 Products, projects, rules | Products, Tickets > Assignment, Tickets > Settings, Jira connection | Products in Team > Products (rules, resulting default share); projects in the top-level Projects area (rules, products, milestones, contingent) |
@@ -168,13 +167,11 @@ Top bar                    team, sprint, Save, Git sync (pull, share, conflicts,
 
 ```mermaid
 flowchart TD
-  S([Start app]) --> Q{Data folder known?}
+  S([Start app]) --> Q{Storage known?}
   Q -- yes --> T[Today]
-  Q -- no --> W1[Choose: open, create or clone folder]
-  W1 --> W2{Server reachable and signed in?}
-  W2 -- no --> W2a[Sign in or continue offline] --> W3
-  W2 -- yes --> W3{Team exists?}
-  W3 -- no --> W4[Create team: name, region, first sprint] --> W5
+  Q -- no --> D1[[D1 Choose and set up storage]]
+  D1 --> W3{Team exists?}
+  W3 -- no --> W4[Create team: name, region, first sprint; or open the demo team] --> W5
   W3 -- yes --> W5[Optional: connect Jira, test, first sync]
   W5 --> T
 ```
@@ -233,7 +230,7 @@ flowchart TD
   C --> Z[Freeze plan, store ticket list locally]
   Z --> MN[Write planning minutes with agreed tickets]
   MN --> W[Optional: write label planned_for_sprint]
-  W --> SH[Share: push or merge request]
+  W --> SH[Save]
   SH --> D([Sprint planned])
 ```
 
@@ -262,115 +259,108 @@ flowchart TD
   X --> E[Reports and export]
 ```
 
-### Git flows (J11, J12, J20 to J24)
+### Data flows (J11, J12, J20 to J24)
 
-Top bar, always visible: **Save** (writes the files), **sync chip** (`3 changes, 2 new from others`, or `offline`, or `conflict`), **Pull**, **Share**. Share means: commit with a generated message, pull, then push directly or open or update the merge request, depending on Data > Setup. Everything else is in the Data area.
+The same flows for both storages. Where they differ, the diagram says so. The technical contract behind them is in [storage-interface.md](storage-interface.md).
 
-#### G1 Join a team or set up a folder (J01)
+Top bar, always visible: **Save**, **Refresh**, **status chip**. Save means "persist and make visible to the team": in a shared folder it writes with a short lock; in Git it commits, pulls and pushes in one step.
+
+#### D1 Choose and set up storage (J01, J24)
 
 ```mermaid
 flowchart TD
-  S([First start or Data > Setup]) --> C{What do you have?}
-  C -- server address --> CL[Clone] --> SI
-  C -- existing folder --> OP[Open folder] --> GI{Git repository?}
-  GI -- no --> MK[Create Git repository or use without Git] --> SI
-  GI -- yes --> SI
-  C -- nothing --> NW[Create new data folder] --> SV[Optional: add server address, test]
-  SV --> SI
-  SI{Sign-in needed?} -- yes --> TK[Token via Git credential helper, test] --> MR
-  SI -- no --> MR[Share mode: direct push or merge request; server kind]
-  MR --> ID{Git name and email set?}
+  S([First start or Settings > Storage]) --> K{Where does the team keep its data?}
+  K -- shared folder --> F[Pick or create folder; write test]
+  F --> FR{Writable?}
+  FR -- no --> FE[Explain: read only, ask for access] --> T
+  FR -- yes --> T([Today])
+  K -- Git --> G[Clone from server address, or open a local repository]
+  G --> SI{Sign-in needed?}
+  SI -- yes --> TK[Token via Git credential helper, test] --> ID
+  SI -- no --> ID{Name and email set?}
   ID -- no --> IDF[Enter once] --> T
-  ID -- yes --> T([Today])
+  ID -- yes --> T
 ```
 
-#### G2 Daily sync (J20, J11)
+#### D2 Save and refresh (J11, J20)
 
 ```mermaid
 flowchart TD
-  O([App open]) --> BG[Background check against server]
-  BG --> N{New from others?}
-  N -- yes --> CH[Sync chip shows count; Pull takes it over, preview in Data > Overview]
+  O([App open]) --> BG[Background check for changes from others]
+  BG --> N{New changes?}
+  N -- yes --> CH[Status chip: 2 new changes from Anna; Refresh takes them over]
   N -- no --> W
-  CH --> W[Work, Save]
-  W --> SH[Share in top bar]
-  SH --> V{Findings in changed files?}
-  V -- errors --> VF[List with links; fix or share anyway]
-  V -- none --> PL[Commit, pull]
-  VF --> PL
-  PL --> K{Conflict?}
-  K -- yes --> G3[[G3 Resolve conflict]]
-  K -- no --> M{Share mode}
-  M -- direct --> PU[Push] --> D([Shared])
-  M -- merge request --> G4[[G4 Merge request]]
+  CH --> W[Work]
+  W --> SV[Save]
+  SV --> V{Findings in changed data?}
+  V -- errors --> VF[List with links; fix or save anyway] --> ST
+  V -- none --> ST{Storage}
+  ST -- folder --> L[Short lock, version check, write, journal entry]
+  ST -- Git --> C[Commit, pull, push]
+  L --> M{Changed by someone else meanwhile?}
+  C --> M
+  M -- different values --> MG[Merged automatically by key] --> D([Saved])
+  M -- same value, both changed --> D3[[D3 Resolve conflict]]
+  M -- no --> D
 ```
 
-#### G3 Resolve a conflict (J22)
+#### D3 Resolve a conflict (J22)
 
 ```mermaid
 flowchart TD
-  K([Conflict after pull]) --> B[Banner on every page, sync chip red; pages stay readable, editing paused]
-  B --> C[Data > Conflicts: list of files and entries]
-  C --> E[Per entry: my value, their value, base; pick or edit]
+  K([Same value changed by two people]) --> B[Status chip red; other pages stay usable, the affected file waits]
+  B --> C[Data > Conflicts: entries with mine, theirs, before]
+  C --> E[Pick or edit per entry]
   E --> A{All decided?}
   A -- no --> E
-  A -- yes --> AP[Apply and share] --> D([Shared])
-  C --> AB[Abort merge: back to my state, nothing lost]
+  A -- yes --> AP[Save] --> D([Saved])
+  C --> AB[Discard mine: take theirs for all]
 ```
 
-#### G4 Share via merge request (J21)
+#### D4 Git server enforces merge requests (J21)
+
+Foresprint has no merge request workflow of its own. It only handles servers that reject direct pushes to the main branch.
 
 ```mermaid
 flowchart TD
-  S([Share with merge request mode]) --> BR[Push to own branch]
-  BR --> H{Server kind}
-  H -- GitLab --> GL[Push options create or update MR, optional auto-merge]
-  H -- Forgejo or Gitea --> AG[AGit flow creates or updates PR]
-  H -- GitHub or other --> LK[Branch pushed, link to open PR]
-  GL --> ST[Sync chip shows MR link and state]
-  AG --> ST
-  LK --> ST
-  ST --> MG{Merged on server?}
-  MG -- yes --> PL[Next pull takes it over, branch cleaned up]
-  MG -- not yet --> W[Keep working; next Share updates the same MR]
+  S([Save in Git mode]) --> P[Push to main branch]
+  P --> R{Rejected: protected branch?}
+  R -- no --> D([Saved])
+  R -- yes --> BR[Push to own branch; GitLab push options or AGit create or update the merge request]
+  BR --> LK[Status chip: waiting for merge request, link]
+  LK --> MG{Merged on the server?}
+  MG -- not yet --> W[Keep working; next Save updates the same branch]
+  MG -- yes --> RF[Next Refresh takes it over] --> D
 ```
 
-#### G5 Work offline and catch up (J23)
+#### D5 No connection (J23)
 
 ```mermaid
 flowchart TD
-  O([Server not reachable]) --> C[Sync chip: offline, last contact time]
-  C --> W[Work and Save as usual; Share commits locally]
-  W --> R{Server back?}
-  R -- no --> W
-  R -- yes --> P[Chip shows pending local commits; Share pulls and pushes them]
-  P --> K{Conflict?}
-  K -- yes --> G3[[G3]]
-  K -- no --> D([In sync])
+  O([Folder or server not reachable]) --> ST{Storage}
+  ST -- folder --> RO[Status chip: read only, last state from local cache; Save disabled with reason]
+  ST -- Git --> LW[Status chip: offline; Save commits locally]
+  RO --> R{Connection back?}
+  LW --> R
+  R -- no --> O
+  R -- yes --> RF[Refresh; Git also pushes pending saves] --> K{Conflict?}
+  K -- yes --> D3[[D3]]
+  K -- no --> D([Up to date])
 ```
 
-#### G6 Switch branch (J24)
+#### D6 History and restore (J12)
 
 ```mermaid
 flowchart TD
-  S([Data > Setup > Branch]) --> O{Open changes?}
-  O -- yes --> CH[Share or discard first, with links]
-  CH --> S
-  O -- no --> P[Pick branch or create one] --> R[Reload data, branch shown in top bar]
-```
-
-#### G7 Undo, restore, tags (J12)
-
-```mermaid
-flowchart TD
-  H([Data > History and tags]) --> SC[Scope: team, sprint, file]
-  SC --> E[Pick an entry: who, when, what changed]
+  H([Data > History]) --> SC[Scope: team, sprint, file]
+  SC --> E[Entry: who, when, what changed]
   E --> A{Action}
-  A -- take back this change --> TB[New change that reverts it]
-  A -- restore this state --> RS[Files back to that state as open changes]
-  A -- tag --> TG[Set or delete tag, upload]
-  TB --> SH[Share]
-  RS --> SH
+  A -- take back this change --> TB[Reverse change, then Save]
+  A -- restore a state --> RS{Storage}
+  RS -- folder --> SN[Pick a daily snapshot, up to 30 days]
+  RS -- Git --> GC[Pick any earlier state; tags shown]
+  SN --> SV[Loaded as unsaved changes, then Save]
+  GC --> SV
 ```
 
 ### F8 Prepare with projects and report back (J15 to J18)
@@ -406,8 +396,8 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 10. ... show a project lead how much of the booked contingent was used?
 11. ... take a ticket out of the sprint during planning because the team disagrees?
 12. ... open a ticket in Jira from the sprint plan?
-13. ... resolve a conflict after pulling?
-14. ... switch sharing to merge requests?
+13. ... resolve a conflict after saving?
+14. ... move the team's data from a shared folder to Git?
 15. ... see what a colleague changed yesterday?
 
 ## 9. Decisions (Sebastian, 21.10.2026)
