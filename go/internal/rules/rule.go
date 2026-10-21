@@ -48,7 +48,7 @@ func (r *Rule) Matches(facts Facts) bool {
 		for _, v := range r.Values {
 			for _, h := range have {
 				if r.Contains {
-					if strings.Contains(strings.ToLower(h), strings.ToLower(v)) {
+					if strings.Contains(lower(h), lower(v)) {
 						return true
 					}
 				} else if v == h {

@@ -137,3 +137,22 @@ func TestGolden(t *testing.T) {
 		t.Errorf("format of no rule: %q", rules.FormatRule(nil))
 	}
 }
+
+func TestPythonLowerAndFormat(t *testing.T) {
+	if _, err := rules.ParseRule("epİc = x", rules.Sources); err == nil {
+		t.Error("epİc must be an unknown field")
+	}
+	_, err := rules.ParseRule("{allowed} = x", rules.Sources)
+	var se *rules.SyntaxError
+	if !errors.As(err, &se) || se.Message != "Unknown field '{allowed}' (allowed: epic, component, label, status, issue_type, priority, in_sprint)" {
+		t.Errorf("placeholder text expanded: %v", err)
+	}
+	if rules.NewLeaf("label", "İ").Matches(rules.Facts{"label": {"i"}}) {
+		t.Error("contains-free leaf must not match")
+	}
+	c := rules.NewLeaf("label", "İ")
+	c.Contains = true
+	if c.Matches(rules.Facts{"label": {"i"}}) {
+		t.Error("İ lower-cases to two code points in Python")
+	}
+}

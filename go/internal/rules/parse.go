@@ -21,10 +21,40 @@ var Translate = func(text string) string { return text }
 
 func msg(text string, pairs ...string) string {
 	text = Translate(text)
-	for i := 0; i+1 < len(pairs); i += 2 {
-		text = strings.ReplaceAll(text, "{"+pairs[i]+"}", pairs[i+1])
+	if len(pairs) == 0 {
+		return text
 	}
-	return text
+	// One pass like str.format: inserted text is never expanded again.
+	var b strings.Builder
+	for i := 0; i < len(text); {
+		if text[i] == '{' {
+			if end := strings.IndexByte(text[i:], '}'); end > 0 {
+				name := text[i+1 : i+end]
+				if v, ok := lookup(pairs, name); ok {
+					b.WriteString(v)
+					i += end + 1
+					continue
+				}
+			}
+		}
+		b.WriteByte(text[i])
+		i++
+	}
+	return b.String()
+}
+
+func lookup(pairs []string, name string) (string, bool) {
+	for i := 0; i+1 < len(pairs); i += 2 {
+		if pairs[i] == name {
+			return pairs[i+1], true
+		}
+	}
+	return "", false
+}
+
+// lower is str.lower() of Python; Go's ToLower keeps U+0130 as a plain "i".
+func lower(s string) string {
+	return strings.ToLower(strings.ReplaceAll(s, "\u0130", "i\u0307"))
 }
 
 // isSpace is str.isspace() of Python, which also decides \s of its regular expressions: Go's
@@ -48,7 +78,7 @@ func (t token) keyword() string {
 	if t.kind != tokWord {
 		return ""
 	}
-	switch l := strings.ToLower(t.text); l {
+	switch l := lower(t.text); l {
 	case "and", "or", "not", "in":
 		return l
 	}
@@ -56,7 +86,7 @@ func (t token) keyword() string {
 }
 
 func isKeyword(s string) bool {
-	switch strings.ToLower(s) {
+	switch lower(s) {
 	case "and", "or", "not", "in":
 		return true
 	}
@@ -266,7 +296,7 @@ func (p *parser) condition() (*Rule, error) {
 		return nil, p.fail(msg("Expected a field ({fields}), found '{found}'",
 			"fields", strings.Join(p.sources, ", "), "found", found))
 	}
-	source := strings.ToLower(tok.text)
+	source := lower(tok.text)
 	if !contains(p.sources, source) {
 		if close := closeMatch(source, p.sources); close != "" {
 			return nil, p.fail(msg("Unknown field '{source}', did you mean '{close}'?",
@@ -307,7 +337,7 @@ func (p *parser) condition() (*Rule, error) {
 	}
 	if source == "in_sprint" { // the facts carry "true"/"false" in lower case
 		for i, v := range values {
-			if l := strings.ToLower(v); l == "true" || l == "false" {
+			if l := lower(v); l == "true" || l == "false" {
 				values[i] = l
 			}
 		}
