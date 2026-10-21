@@ -21,8 +21,11 @@ import (
 // "no zone" carry their offset; a timestamp without a zone has location time.UTC, one with "Z"
 // has a fixed zone of offset 0, so the two stay apart as they do in Python.
 //
-// Unlike PyYAML it rejects recursive structures and the tags !!binary, !!set, !!omap and
-// !!pairs (the Foresprint files never contain them).
+// Known differences from PyYAML (the Foresprint files never need them): recursive structures and
+// the tags !!binary, !!set, !!omap and !!pairs are errors; explicit tags are stricter (no white
+// space or signs inside !!int/!!float values, no !!value or bare "!" tags); a duplicate anchor
+// is accepted; and yaml.v3 differs from libyaml in a few exotic spellings (the escape "\/",
+// "?" inside plain scalars of a flow collection, a trailing ":" in a flow collection).
 func Load(text string) (any, error) {
 	dec := yaml.NewDecoder(strings.NewReader(NormalizeDirective(text)))
 	var doc yaml.Node
@@ -41,21 +44,38 @@ func Load(text string) (any, error) {
 	if doc.Kind != yaml.DocumentNode || len(doc.Content) == 0 {
 		return nil, nil
 	}
-	l := &loader{done: map[*yaml.Node]any{}, active: map[*yaml.Node]bool{}}
+	l := &loader{done: map[*yaml.Node]any{}, active: map[*yaml.Node]bool{}, flattening: map[*yaml.Node]bool{}}
 	return l.construct(doc.Content[0])
 }
 
 type loader struct {
-	done   map[*yaml.Node]any
-	active map[*yaml.Node]bool
+	flattening map[*yaml.Node]bool
+	done       map[*yaml.Node]any
+	active     map[*yaml.Node]bool
 }
 
 // Names of the tags of a node ("!!str" and the like).
-// reDirective finds "%YAML 1.x" lines: PyYAML accepts every minor version, yaml.v3 only some.
-var reDirective = regexp.MustCompile(`(?m)^(%YAML[ \t]+)1\.[0-9]+`)
+// reDirective finds a "%YAML 1.2" line: PyYAML accepts 1.1 and 1.2, yaml.v3 only 1.1.
+var reDirective = regexp.MustCompile(`^(%YAML[ \t]+)1\.2\b`)
 
 // NormalizeDirective makes a "%YAML 1.x" directive acceptable to yaml.v3.
-func NormalizeDirective(text string) string { return reDirective.ReplaceAllString(text, "${1}1.1") }
+func NormalizeDirective(text string) string {
+	if !strings.HasPrefix(strings.TrimLeft(text, "\ufeff"), "%") && !strings.Contains(text[:min(len(text), 2000)], "\n%") {
+		return text
+	}
+	lines := strings.SplitAfter(text, "\n")
+	for i, line := range lines {
+		t := strings.TrimLeft(line, "\ufeff")
+		switch {
+		case strings.HasPrefix(t, "%"):
+			lines[i] = reDirective.ReplaceAllString(t, "${1}1.1")
+		case strings.HasPrefix(t, "#") || strings.TrimSpace(t) == "":
+		default:
+			return strings.Join(lines, "")
+		}
+	}
+	return strings.Join(lines, "")
+}
 
 func shortTag(n *yaml.Node) string {
 	t := n.Tag
@@ -137,9 +157,8 @@ func isMergeKey(k *yaml.Node) bool {
 
 // flatten returns the pairs of a mapping with the merged ones first (SafeConstructor.flatten_mapping).
 func (l *loader) flatten(n *yaml.Node, depth int) ([]pair, error) {
-	if depth > 200 {
-		return nil, errors.New("merge keys are nested too deeply")
-	}
+	l.flattening[n] = true
+	defer delete(l.flattening, n)
 	var merge, explicit []pair
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		k, v := n.Content[i], n.Content[i+1]
@@ -150,6 +169,9 @@ func (l *loader) flatten(n *yaml.Node, depth int) ([]pair, error) {
 		v = target(v)
 		switch v.Kind {
 		case yaml.MappingNode:
+			if l.flattening[v] {
+				continue
+			}
 			sub, err := l.flatten(v, depth+1)
 			if err != nil {
 				return nil, err
@@ -161,6 +183,9 @@ func (l *loader) flatten(n *yaml.Node, depth int) ([]pair, error) {
 				item = target(item)
 				if item.Kind != yaml.MappingNode {
 					return nil, errors.New("expected a mapping for merging, but found " + kindName(item))
+				}
+				if l.flattening[item] {
+					continue
 				}
 				sub, err := l.flatten(item, depth+1)
 				if err != nil {
