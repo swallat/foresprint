@@ -398,8 +398,11 @@ func TestImportSprints(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repo.Root, "Gamma", "team.yaml"), []byte("name: G\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ImportSprints(repo, model.NewTeam("gamma", "x"), nil); err == nil || !strings.Contains(err.Error(), "already exists") {
-		t.Errorf("case clash: %v", err)
+	// On a case-insensitive file system "gamma" is the folder "Gamma" itself, so there is no clash.
+	if !repo.Exists("gamma") {
+		if _, err := ImportSprints(repo, model.NewTeam("gamma", "x"), nil); err == nil || !strings.Contains(err.Error(), "already exists") {
+			t.Errorf("case clash: %v", err)
+		}
 	}
 	if _, err := ImportSprints(repo, model.NewTeam("a b", "x"), nil); err == nil {
 		t.Error("bad key accepted")
