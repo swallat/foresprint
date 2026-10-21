@@ -82,13 +82,15 @@ flowchart LR
 5. **Git is global.** Change count, share and conflicts live in the top bar with one changes drawer; server, sign-in and history live in Settings (fixes D08 to D11, D13).
 6. **Settings are separate from daily work.** Team, tracker, data and sharing, and personal settings each have one section (fixes D14 to D16).
 7. **Every ticket links to its tracker.** Key and an open-in-tracker icon on every ticket row, card and panel (Jira today, GitHub or GitLab later).
-8. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
+8. **Always available: Forecast, Settings and PO pre-planning.** They never depend on the sprint stage, on absences being confirmed, on a frozen plan or on a finished setup step. Missing inputs show as a hint in place, never as a locked page. Pre-planning works for any future sprint, also several sprints ahead.
+9. **Stages are not gates.** Every stage of a sprint can be opened at any time; a stage that lacks input shows what is missing and still works with the data at hand.
+10. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
 
 ## 5. Navigation proposal (text tree for the tree test)
 
 ```
 Today                      state-aware: next step per sprint, sync state, findings
-Backlog                    all tickets, group by project or product; saved views: Daily business, Refinement, Unassigned, Earmarked, Open points
+Backlog                    all tickets with lanes for the coming sprints (PO pre-planning across sprints), group by project or product; saved views: Daily business, Refinement, Unassigned, Earmarked, Open points
   ticket panel             details, product, project, estimate, earmark, history
 Sprints                    timeline of sprints with state chips
   <sprint>                 one workspace, one selector
@@ -108,6 +110,7 @@ Settings
   Jira and tickets         connection, fields, sync interval, import
   Data and sharing         data folder, server, sign-in, merge request mode, history and restore, tags
   Personal                 theme, language, density, recent folders
+Always reachable, independent of sprint stage: Forecast, Settings, PO pre-planning (Backlog lanes and Sprint > Pre-plan).
 Top bar                    team, sprint, sync state, changes (share, conflicts), search (Ctrl+K), help
 ```
 
