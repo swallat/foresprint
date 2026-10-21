@@ -5,7 +5,7 @@ Method: jobs to be done per role, story map after Patton (activities, steps, fun
 
 ## 1. User
 
-Foresprint is a desktop application with one kind of user: the person who plans for the team, a scrum master or a product owner (often both in one). There are no separate roles, permissions or views per role. Setup is done by the same user, rarely.
+Foresprint is a desktop application with one kind of user: the person who plans for the team, a scrum master or a product owner (often both in one). There are no separate roles, permissions or views per role. The data still knows several POs: each product has a PO, and totals per PO stay. Setup is done by the same user, rarely.
 
 ## 1a. Products, projects and daily business
 
@@ -81,10 +81,14 @@ flowchart LR
 2. **A sprint is a workspace, not four pages.** Absences, pre-planning, planning and review become the stages of one sprint view with one sprint selector (fixes D06, D07, D24).
 3. **One table instead of one page per stage.** Today the amount per product is entered on PO pre-planning, again in Planning step 2 and shown on Product distribution (D01, D21). In 1.0 each sprint has one product table whose columns are the stages; each column is editable only in its stage:
 
-    | Product | Default | Pre-planned | Planned | Done |
-    | --- | --- | --- | --- | --- |
-    | A | 12 | 10 | 11 | 9 |
-    | B | 8 | 9 | 8 | 8 |
+    | PO | Product | Default | Pre-planned | Planned | of it prod | Done | of it prod |
+    | --- | --- | --- | --- | --- | --- | --- | --- |
+    | Kim | A | 12 | 10 | 11 | 3 | 9 | 2 |
+    | Kim | B | 8 | 9 | 8 | 0 | 8 | 0 |
+    | Kim | **Total** | 20 | 19 | 19 | 3 | 17 | 2 |
+    | Lea | C | 6 | 6 | 5 | 1 | 5 | 1 |
+
+    Rows are grouped by PO with a subtotal (D21). The production-access columns appear only when the feature is on and are shown, not enforced (D22). The same table over several sprints is the product balance in Forecast > Products over time.
 
     Likewise a ticket's "earmarked for sprint S" and "refined" are properties shown on the ticket wherever it appears (backlog row, sprint lane, panel), not separate lists or forms (D19).
 4. **Views are filters.** Backlog, refinement list, open points and assignment are saved filters of one ticket list, details in a side panel.
@@ -141,7 +145,7 @@ Top bar                    team, sprint, Save, Git sync (pull, share, conflicts,
 | D17, D18, D30 Products, projects, rules | Products, Tickets > Assignment, Tickets > Settings, Jira connection | Products in Team > Products (rules, resulting default share); projects in the top-level Projects area (rules, products, milestones, contingent) |
 | D19 Earmarking | buttons, drag, form | Drag in Backlog or Sprint > Pre-plan, plus menu and keyboard; note in the ticket panel |
 | D20, D26 Import and export | Jira connection, Tickets > Import, Forecast, Settings | Settings > Jira and tickets (sources, import); Forecast > Reports and export (Excel, report); Excel import there too |
-| D22 Production access | five places | Setting in Team; per sprint as a column of the product table |
+| D22 Production access | five places | Feature switch in Settings > Team, flag per person in Team > People, planned and done production part as columns of the product table; overload hint once in the sprint summary bar |
 | D23 Minutes | three save buttons, expanders | Sprint workspace activity log |
 | D25 Histories | four separate | Per object "History" in the side panel; Git history in Settings |
 | D27 Findings | Check page, save, share | Findings badge in the top bar, list on Today |
