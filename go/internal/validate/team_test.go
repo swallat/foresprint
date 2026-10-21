@@ -142,3 +142,21 @@ func TestCheckTeam(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckFolder(t *testing.T) {
+	c := golden.Cases(t)[0]
+	root := filepath.Dir(c.TeamDir(t))
+	today, _ := time.Parse("2006-01-02", c.Today)
+	data, err := storage.NewRepository(root).Load(c.Team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := append(CheckTeam(data, today), CheckTeamFiles(c.TeamDir(t), data.Team.Features.Tickets)...)
+	if got := CheckFolder(root, c.Team, today); len(got) != len(want) {
+		t.Errorf("CheckFolder: %d findings, want %d", len(got), len(want))
+	}
+	got := CheckFolder(t.TempDir(), "missing", today)
+	if len(got) != 1 || got[0].Level != Error || got[0].Where != "missing" {
+		t.Errorf("an unloadable team gives one error, got %+v", got)
+	}
+}
