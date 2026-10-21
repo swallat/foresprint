@@ -10,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/swallat/foresprint/internal/calendar"
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/pymath"
@@ -134,11 +133,11 @@ func knownSprints(data *storage.TeamData, ahead int) map[string]time.Time {
 	for _, s := range data.Sprints {
 		ends[s.ID] = s.End
 	}
-	var last *coretypes.Sprint
+	var last *model.Sprint
 	if n := len(data.Sprints); n > 0 {
-		last = &coretypes.Sprint{ID: data.Sprints[n-1].ID, End: data.Sprints[n-1].End}
+		last = &model.Sprint{ID: data.Sprints[n-1].ID, End: data.Sprints[n-1].End}
 	}
-	team := storage.CoreTeam(data.Team)
+	team := &data.Team
 	for i := 0; i < ahead; i++ {
 		next, err := calendar.FollowingSprint(team, last)
 		if err != nil {
@@ -426,7 +425,7 @@ func CheckTeam(data *storage.TeamData, today time.Time) []Issue {
 		}
 		chain = append(chain, link{"team.yaml", *team.Sprint.FirstID, team.Sprint.FirstStart.AddDate(0, 0, days)})
 	}
-	numbering := coretypes.Numbering(team.Sprint.Numbering)
+	numbering := team.Sprint.Numbering
 	for _, l := range chain {
 		if !calendar.IDFitsNumbering(l.id, l.nextStart, numbering) {
 			r.error(l.where, msg("ID does not match the numbering (expected {expected}) – the ID of the following sprint cannot be formed",
@@ -544,7 +543,7 @@ func checkSprint(r *reporter, data *storage.TeamData, s, previous *model.Sprint,
 		}
 	}
 
-	workdays := len(calendar.TeamWorkdays(storage.CoreTeam(data.Team), s.Start, s.End))
+	workdays := len(calendar.TeamWorkdays(&data.Team, s.Start, s.End))
 	for _, pid := range keys(s.Absences) {
 		absent := s.Absences[pid]
 		person, ok := people[pid]
@@ -729,4 +728,15 @@ func CheckTeamFiles(base string, tickets bool) []Issue {
 // universalNewlines reads text like Python's text mode: CRLF and CR become LF.
 func universalNewlines(s string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n")
+}
+
+// CheckFolder is the complete data check of one team folder (root/team): the load error as the
+// only finding when the team does not load, otherwise CheckTeam and CheckTeamFiles. It is what
+// a sync runs on a data folder after a merge.
+func CheckFolder(root, team string, today time.Time) []Issue {
+	data, err := storage.NewRepository(root).Load(team)
+	if err != nil {
+		return []Issue{{Level: Error, Where: team, Message: err.Error()}}
+	}
+	return append(CheckTeam(data, today), CheckTeamFiles(filepath.Join(root, team), data.Team.Features.Tickets)...)
 }
