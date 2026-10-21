@@ -14,7 +14,7 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 - Hell und Dunkel, Deutsch und Englisch, flache Icons, keine Emojis
 - Ein Programm für Windows ohne Adminrechte (macOS und Linux unterstützt)
 
-**Nicht Ziel von 1.0:** neue Tracker-Anbindungen (GitHub, GitLab), Epic-Roadmap mit Monte-Carlo, Rückschreiben des Einordnens nach Jira (offene Frage 4).
+**Nicht Ziel von 1.0:** neue Tracker-Anbindungen (GitHub, GitLab), Fileserver- oder SharePoint-Ordner als Speicher, Epic-Roadmap mit Monte-Carlo, Rückschreiben des Einordnens nach Jira (offene Frage 4).
 
 ## 2. Technischer Weg (Arbeitsstand, im Prototyp zu prüfen)
 
@@ -74,6 +74,6 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 6. Code-Signing: Sebastian klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
 7. Impeccable: direkt aus dem GitHub-Repository (siehe `impeccable.md`).
 8. Seitenschicksal: `flows.md` gilt, die Tabelle in `inventory.md` ist überholt.
-9. Datenhaltung: Standard ist ein geteilter Ordner (Fileserver), Git je Team wählbar; Schnittstelle in `storage-interface.md`.
+9. Datenhaltung: Git bleibt in 1.0 der Speicher (Historie, Datenintegrität), mit allen Git-Abläufen inklusive erzwungener Merge Requests. Ein geteilter Ordner (Fileserver, SharePoint) kommt nach 1.0 über dieselbe Schnittstelle (`storage-interface.md`).
 
 Offen: Kern Python oder Go (eigener Faden); GitHub-Projekt als Tafel anlegen (Sebastian).

@@ -59,8 +59,8 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J20 | start working | see at a glance whether others changed something and take it over | I never plan on stale numbers |
 | J21 | my team keeps its data in Git and the server enforces merge requests | still save with one click and get a link to the merge request | Foresprint works with our server rules |
 | J22 | two people changed the same value | see both values side by side and pick per entry | nothing gets lost and I stay in control |
-| J23 | have no connection to the shared folder or server | keep reading the last state (folder) or keep working and save later (Git) | the network is never a surprise |
-| J24 | set up a team's storage | choose a shared folder or Git and switch later if needed | the team decides where its data lives |
+| J23 | have no connection to the server | keep working and save later | the network is never a blocker |
+| J24 | set up a team's storage | clone or open the team's Git repository (after 1.0 also choose a shared folder) | the team decides where its data lives |
 
 ## 3. Story map
 
@@ -98,7 +98,7 @@ flowchart LR
 
     Likewise a ticket's "earmarked for sprint S" and "refined" are properties shown on the ticket wherever it appears (backlog row, sprint lane, panel), not separate lists or forms (D19).
 4. **Views are filters.** Backlog, refinement list, open points and assignment are saved filters of one ticket list, details in a side panel.
-5. **Storage is neutral.** Each team picks its storage: a **shared folder** (default, for example a file server or SharePoint folder) or **Git**. The UI speaks one language for both: Save, Refresh, Changes from others, History, Resolve conflict. Git words (branch, merge request, token, commit) appear only in Settings > Storage when Git is chosen. Save, Refresh and a status chip sit in the top bar on every page; changes, conflicts and history have their own area **Data** (fixes D08 to D13, D28).
+5. **Storage: Git in 1.0, neutral UI.** In 1.0 the data lives in Git, for history and data integrity (decided 21.10.2026). A **shared folder** (file server, SharePoint) is supported after 1.0 through the same [storage interface](storage-interface.md). The UI therefore speaks one language: Save, Refresh, Changes from others, History, Resolve conflict. Git specifics (server, branch, token) sit in Settings > Storage. Save, Refresh and a status chip are in the top bar on every page; changes, conflicts and history have their own area **Data** (fixes D08 to D13, D28).
 6. **Settings are separate from daily work.** Team, tracker, data and sharing, and personal settings each have one section (fixes D14 to D16).
 7. **Every ticket links to its tracker.** Key and an open-in-tracker icon on every ticket row, card and panel (Jira today, GitHub or GitLab later).
 8. **Always available: Forecast, Settings, PO pre-planning, saving and sync.** Save, Refresh, the status chip and the tracker sync sit permanently in the top bar and work from every page, also during an unfinished flow (an incomplete flow is saved as a draft). None of these depend on the sprint stage, on absences being confirmed, on a frozen plan or on a finished setup step. Missing inputs show as a hint in place, never as a locked page. Pre-planning works for any future sprint, also several sprints ahead.
@@ -129,11 +129,11 @@ Team
 Data                       the team's data, the same for every storage
   Overview                 where the data lives, status, who saved what recently, changes from others
   Conflicts                same value changed by two people: pick mine, theirs or edit; per entry
-  History                  who changed what and when (journal or Git history), restore a state, take back a change; daily snapshots (folder) or tags (Git)
+  History and tags         who changed what and when, restore a state, take back a change, tags (after 1.0 for folders: journal and daily snapshots)
 Settings
   Team                     forecast settings, features, budget basis
   Jira and tickets         connection, fields, sync interval, import
-  Storage                  kind (shared folder or Git), location, recent folders; folder: lock timeout, snapshot retention; Git: server, sign-in, branch, name and email, line endings
+  Storage                  Git: server, sign-in, branch, name and email, line endings, recent folders; after 1.0 also kind (Git or shared folder)
   Personal                 theme, language, density
 Always reachable, independent of sprint stage: Forecast, Settings, PO pre-planning (Backlog lanes and Sprint > Pre-plan), Save, Refresh and tracker sync (top bar).
 Top bar                    team, sprint, Save, Refresh, status chip (Saved / 2 new changes from Anna / Conflict / Read only, no connection / Locked by Anna), tracker sync (last sync, sync now), search (Ctrl+K), help
@@ -261,16 +261,16 @@ flowchart TD
 
 ### Data flows (J11, J12, J20 to J24)
 
-The same flows for both storages. Where they differ, the diagram says so. The technical contract behind them is in [storage-interface.md](storage-interface.md).
+Scope 1.0: Git, all branches of these flows marked Git are in scope (including enforced merge requests, conflicts, history and tags). Branches marked folder come after 1.0 and are kept here so the storage interface fits them. The technical contract behind them is in [storage-interface.md](storage-interface.md).
 
-Top bar, always visible: **Save**, **Refresh**, **status chip**. Save means "persist and make visible to the team": in a shared folder it writes with a short lock; in Git it commits, pulls and pushes in one step.
+Top bar, always visible: **Save**, **Refresh**, **status chip**. Save means "persist and make visible to the team": in Git it commits, pulls and pushes in one step (after 1.0, in a shared folder: write with a short lock).
 
 #### D1 Choose and set up storage (J01, J24)
 
 ```mermaid
 flowchart TD
   S([First start or Settings > Storage]) --> K{Where does the team keep its data?}
-  K -- shared folder --> F[Pick or create folder; write test]
+  K -- shared folder, after 1.0 --> F[Pick or create folder; write test]
   F --> FR{Writable?}
   FR -- no --> FE[Explain: read only, ask for access] --> T
   FR -- yes --> T([Today])
@@ -295,7 +295,7 @@ flowchart TD
   SV --> V{Findings in changed data?}
   V -- errors --> VF[List with links; fix or save anyway] --> ST
   V -- none --> ST{Storage}
-  ST -- folder --> L[Short lock, version check, write, journal entry]
+  ST -- folder, after 1.0 --> L[Short lock, version check, write, journal entry]
   ST -- Git --> C[Commit, pull, push]
   L --> M{Changed by someone else meanwhile?}
   C --> M
@@ -338,7 +338,7 @@ flowchart TD
 ```mermaid
 flowchart TD
   O([Folder or server not reachable]) --> ST{Storage}
-  ST -- folder --> RO[Status chip: read only, last state from local cache; Save disabled with reason]
+  ST -- folder, after 1.0 --> RO[Status chip: read only, last state from local cache; Save disabled with reason]
   ST -- Git --> LW[Status chip: offline; Save commits locally]
   RO --> R{Connection back?}
   LW --> R
@@ -357,7 +357,7 @@ flowchart TD
   E --> A{Action}
   A -- take back this change --> TB[Reverse change, then Save]
   A -- restore a state --> RS{Storage}
-  RS -- folder --> SN[Pick a daily snapshot, up to 30 days]
+  RS -- folder, after 1.0 --> SN[Pick a daily snapshot, up to 30 days]
   RS -- Git --> GC[Pick any earlier state; tags shown]
   SN --> SV[Loaded as unsaved changes, then Save]
   GC --> SV
@@ -397,7 +397,7 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 11. ... take a ticket out of the sprint during planning because the team disagrees?
 12. ... open a ticket in Jira from the sprint plan?
 13. ... resolve a conflict after saving?
-14. ... move the team's data from a shared folder to Git?
+14. ... set the Git server address or sign in again?
 15. ... see what a colleague changed yesterday?
 
 ## 9. Decisions (Sebastian, 21.10.2026)
