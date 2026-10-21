@@ -9,7 +9,6 @@ import (
 	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/golden"
-	"github.com/swallat/foresprint/internal/msg"
 )
 
 type apiRef struct {
@@ -239,10 +238,10 @@ func TestApplyPlanningAndErrorsMatchPython(t *testing.T) {
 			t.Errorf("%s: %v, Python %v", key, err, want)
 		}
 	}
-	if got := calendar.ExpectedIDForm(msg.English, coretypes.Yearly); got != *ref.Errors["yearly_form"] {
+	if got := calendar.ExpectedIDForm("en", coretypes.Yearly); got != *ref.Errors["yearly_form"] {
 		t.Errorf("%q", got)
 	}
-	if got := calendar.ExpectedIDForm(msg.English, coretypes.Sequential); got != *ref.Errors["sequential_form"] {
+	if got := calendar.ExpectedIDForm("en", coretypes.Sequential); got != *ref.Errors["sequential_form"] {
 		t.Errorf("%q", got)
 	}
 }

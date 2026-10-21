@@ -14,7 +14,7 @@ import (
 
 	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/holidays"
-	"github.com/swallat/foresprint/internal/msg"
+	"github.com/swallat/foresprint/internal/i18n"
 )
 
 // Weekend is a set of weekdays (Monday = 0 ... Sunday = 6) as a bit mask: the days off.
@@ -70,39 +70,39 @@ type NumberingError struct {
 }
 
 // Message is the text for the user (the catalog of the language fills it in).
-func (e *NumberingError) Message(l msg.Lang) string {
-	return l.T(
+func (e *NumberingError) Message(l string) string {
+	return i18n.TIn(l,
 		"Sprint ID '{id}' does not match the numbering (expected {expected}); the "+
 			"ID of the following sprint cannot be formed. Please correct the ID: with "+
 			"foresprint rename-sprint or under Settings (without sprint files: the "+
 			"ID of the first sprint there).",
-		msg.Values{"id": e.ID, "expected": ExpectedIDForm(l, e.Numbering)},
+		"id", e.ID, "expected", ExpectedIDForm(l, e.Numbering),
 	)
 }
 
-func (e *NumberingError) Error() string { return e.Message(msg.English) }
+func (e *NumberingError) Error() string { return e.Message(i18n.Default) }
 
 // NoFirstSprintError says that no sprint exists and the team has no first sprint either.
 type NoFirstSprintError struct{ Team string }
 
 // Message is the text for the user.
-func (e *NoFirstSprintError) Message(l msg.Lang) string {
-	return l.T(
+func (e *NoFirstSprintError) Message(l string) string {
+	return i18n.TIn(l,
 		"Team {team}: No sprint has been recorded yet. Please enter the start "+
 			"and ID of the first sprint under Settings (in team.yaml: "+
 			"sprint.first.id and sprint.first.start).",
-		msg.Values{"team": e.Team},
+		"team", e.Team,
 	)
 }
 
-func (e *NoFirstSprintError) Error() string { return e.Message(msg.English) }
+func (e *NoFirstSprintError) Error() string { return e.Message(i18n.Default) }
 
 // ExpectedIDForm is the form of the sprint IDs that NextID can continue (for messages).
-func ExpectedIDForm(l msg.Lang, numbering coretypes.Numbering) string {
+func ExpectedIDForm(l string, numbering coretypes.Numbering) string {
 	if numbering == coretypes.Sequential {
-		return l.T("a number, e.g. 22", nil)
+		return i18n.TIn(l, "a number, e.g. 22")
 	}
-	return l.T("YYYY.N, e.g. 2026.22", nil)
+	return i18n.TIn(l, "YYYY.N, e.g. 2026.22")
 }
 
 // pyFloat matches what Python's float() accepts as a decimal number.
@@ -235,18 +235,18 @@ var weekdayNames = map[string][]string{
 	"en": {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"},
 }
 
-func weekdayNamesOf(l msg.Lang) []string {
-	if l.IsEnglish() {
+func weekdayNamesOf(l string) []string {
+	if l == i18n.Default {
 		return weekdayNames["en"]
 	}
-	if names, ok := weekdayNames[l.Code]; ok {
+	if names, ok := weekdayNames[l]; ok {
 		return names
 	}
 	return weekdayNames["en"]
 }
 
 // DayLabel is the day for texts: German "Mi 28.10.2026", English "Wed 28.10.2026".
-func DayLabel(l msg.Lang, d time.Time) string {
+func DayLabel(l string, d time.Time) string {
 	return fmt.Sprintf("%s %s", weekdayNamesOf(l)[Weekday(d)], d.Format("02.01.2006"))
 }
 
@@ -356,7 +356,7 @@ func TeamWorkdays(team *coretypes.Team, start, end time.Time) []time.Time {
 
 // WorkweekLabel is the workweek of the team for texts: "Mon–Fri" for consecutive days,
 // otherwise the list ("Mon, Tue, Wed, Thu").
-func WorkweekLabel(l msg.Lang, team *coretypes.Team) string {
+func WorkweekLabel(l string, team *coretypes.Team) string {
 	names := weekdayNamesOf(l)
 	weekend := TeamWeekend(team)
 	var worked []int
@@ -403,12 +403,12 @@ func IsHoliday(day time.Time, region, country string) bool {
 }
 
 // HolidayName is the name of the holiday in the language, or "" if the day is none.
-func HolidayName(l msg.Lang, day time.Time, region, country string) string {
+func HolidayName(l string, day time.Time, region, country string) string {
 	code := "de"
-	if l.IsEnglish() {
+	if l == i18n.Default {
 		code = "en"
-	} else if l.Code != "" {
-		code = l.Code
+	} else if l != "" {
+		code = l
 	}
 	return holidays.Name(country, region, day, code)
 }
