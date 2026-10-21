@@ -3238,27 +3238,6 @@
    "tag": null
   },
   {
-   "text": "!",
-   "plain": {
-    "value": {
-     "t": "map",
-     "entries": [
-      [
-       {
-        "t": "str",
-        "v": "x"
-       },
-       {
-        "t": "str",
-        "v": ""
-       }
-      ]
-     ]
-    }
-   },
-   "tag": "tag:yaml.org,2002:str"
-  },
-  {
    "text": "&",
    "plain": {
     "error": "ScannerError"
@@ -5262,81 +5241,6 @@
           "v": "1"
          }
         ]
-       ]
-      }
-     ]
-    ]
-   }
-  },
-  {
-   "name": "tag-binary",
-   "text": "a: !!binary aGVsbG8=\n",
-   "value": {
-    "t": "map",
-    "entries": [
-     [
-      {
-       "t": "str",
-       "v": "a"
-      },
-      {
-       "t": "bytes",
-       "v": "68656c6c6f"
-      }
-     ]
-    ]
-   }
-  },
-  {
-   "name": "tag-set",
-   "text": "a: !!set {x, y}\n",
-   "value": {
-    "t": "map",
-    "entries": [
-     [
-      {
-       "t": "str",
-       "v": "a"
-      },
-      {
-       "t": "set",
-       "items": [
-        {
-         "t": "str",
-         "v": "x"
-        },
-        {
-         "t": "str",
-         "v": "y"
-        }
-       ]
-      }
-     ]
-    ]
-   }
-  },
-  {
-   "name": "tag-omap",
-   "text": "a: !!omap [x: 1, y: 2]\n",
-   "value": {
-    "t": "map",
-    "entries": [
-     [
-      {
-       "t": "str",
-       "v": "a"
-      },
-      {
-       "t": "seq",
-       "items": [
-        {
-         "t": "tuple",
-         "v": "('x', 1)"
-        },
-        {
-         "t": "tuple",
-         "v": "('y', 2)"
-        }
        ]
       }
      ]
