@@ -20,8 +20,8 @@ package engine
 import (
 	"math"
 
-	"github.com/swallat/foresprint/internal/coretypes"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/pymath"
 )
 
@@ -54,7 +54,7 @@ func div(a, b *float64) *float64 {
 	if a == nil || b == nil || *b == 0 {
 		return nil
 	}
-	return coretypes.Float(*a / *b)
+	return model.Ptr(*a / *b)
 }
 
 // MinThinHistory is the number of sprints with a value from which a new team already has an
@@ -98,9 +98,9 @@ func RollingAverage(values Series, window int) Series {
 		present = append(present, *value)
 		switch {
 		case len(present) >= window:
-			result = append(result, coretypes.Float(pymath.Sum(present[max(len(present)-window, 0):])/float64(window)))
+			result = append(result, model.Ptr(pymath.Sum(present[max(len(present)-window, 0):])/float64(window)))
 		case thin && len(present) >= MinThinHistory:
-			result = append(result, coretypes.Float(pymath.Sum(present)/float64(len(present))))
+			result = append(result, model.Ptr(pymath.Sum(present)/float64(len(present))))
 		default:
 			result = append(result, nil)
 		}
@@ -151,17 +151,19 @@ func (e *UnknownTrendModeError) Error() string { return e.Message(i18n.Default) 
 
 // ParseTrendMode checks a trend mode; an unknown value is an error (no silent linear). The
 // German name of classic is accepted.
-func ParseTrendMode(mode coretypes.TrendMode) (coretypes.TrendMode, error) {
-	m, ok := coretypes.ParseTrendMode(string(mode))
-	if !ok {
-		return "", &UnknownTrendModeError{Mode: string(mode)}
+func ParseTrendMode(mode model.TrendMode) (model.TrendMode, error) {
+	switch mode {
+	case model.TrendClassic, model.TrendLinear, model.TrendFlat:
+		return mode, nil
+	case "klassisch":
+		return model.TrendClassic, nil
 	}
-	return m, nil
+	return "", &UnknownTrendModeError{Mode: string(mode)}
 }
 
 // trendOf projects the rolling average into the future where it is missing, and says per
 // position whether it fell back to flat instead of the chosen mode (too little history).
-func trendOf(average Series, mode coretypes.TrendMode) (Series, []bool, error) {
+func trendOf(average Series, mode model.TrendMode) (Series, []bool, error) {
 	mode, err := ParseTrendMode(mode)
 	if err != nil {
 		return nil, nil, err
@@ -191,26 +193,26 @@ func trendOf(average Series, mode coretypes.TrendMode) (Series, []bool, error) {
 			continue
 		}
 		var value *float64
-		if mode == coretypes.Flat {
+		if mode == model.TrendFlat {
 			value = known(i - 1)
 		} else {
 			a1, a2 := avg(i-1), avg(i-2)
 			switch {
-			case mode == coretypes.Classic && a1 != nil:
+			case mode == model.TrendClassic && a1 != nil:
 				// =(Ø[i-1] − Ø[i-2]) + Ø[i-1]
 				if a2 != nil {
-					value = coretypes.Float(*a1 + (*a1 - *a2))
+					value = model.Ptr(*a1 + (*a1 - *a2))
 				}
-			case mode == coretypes.Classic && i >= 2 && tr(i-2) == nil:
+			case mode == model.TrendClassic && i >= 2 && tr(i-2) == nil:
 				// =Ø[i-2] / Ø[i-3] × Trend[i-1]
 				ratio := div(avg(i-2), avg(i-3))
 				if t1 := tr(i - 1); ratio != nil && t1 != nil {
-					value = coretypes.Float(*ratio * *t1)
+					value = model.Ptr(*ratio * *t1)
 				}
 			default:
 				k1, k2 := known(i-1), known(i-2)
 				if k1 != nil && k2 != nil {
-					value = coretypes.Float(*k1 + (*k1 - *k2))
+					value = model.Ptr(*k1 + (*k1 - *k2))
 				}
 			}
 			if value == nil {
@@ -226,7 +228,7 @@ func trendOf(average Series, mode coretypes.TrendMode) (Series, []bool, error) {
 		// Quantities, capacity and shares are never negative; a projection below zero (noise)
 		// is clamped to zero.
 		if value != nil {
-			result[i] = coretypes.Float(maxZero(*value))
+			result[i] = model.Ptr(maxZero(*value))
 		}
 	}
 	return result, fallback, nil
@@ -234,7 +236,7 @@ func trendOf(average Series, mode coretypes.TrendMode) (Series, []bool, error) {
 
 // TrendFallback says per position whether the trend fell back to flat instead of the chosen
 // mode because of too little history.
-func TrendFallback(average Series, mode coretypes.TrendMode) ([]bool, error) {
+func TrendFallback(average Series, mode model.TrendMode) ([]bool, error) {
 	_, fallback, err := trendOf(average, mode)
 	return fallback, err
 }
@@ -242,7 +244,7 @@ func TrendFallback(average Series, mode coretypes.TrendMode) ([]bool, error) {
 // Trend projects the rolling average forward where it is missing (future). If the history is
 // not enough for classic or linear (e.g. exactly window sprints), flat applies. The result is
 // never negative.
-func Trend(average Series, mode coretypes.TrendMode) (Series, error) {
+func Trend(average Series, mode model.TrendMode) (Series, error) {
 	t, _, err := trendOf(average, mode)
 	return t, err
 }
@@ -278,13 +280,13 @@ const (
 
 // SprintInput is what the engine calculates a sprint from.
 type SprintInput struct {
-	ID             string              `json:"id"`
-	Capacity       *float64            `json:"capacity"`
-	CapacitySource *CapacitySource     `json:"capacity_source"`
-	Commitment     *float64            `json:"commitment"`
-	Velocity       *float64            `json:"velocity"`
-	ScopeCreep     *float64            `json:"scope_creep"`
-	Planning       *coretypes.Planning `json:"planning"`
+	ID             string          `json:"id"`
+	Capacity       *float64        `json:"capacity"`
+	CapacitySource *CapacitySource `json:"capacity_source"`
+	Commitment     *float64        `json:"commitment"`
+	Velocity       *float64        `json:"velocity"`
+	ScopeCreep     *float64        `json:"scope_creep"`
+	Planning       *model.Planning `json:"planning"`
 }
 
 // Metric is a value with its rolling average and trend.
@@ -323,13 +325,13 @@ type SprintResult struct {
 // ID is the sprint's ID.
 func (r SprintResult) ID() string { return r.Input.ID }
 
-func metricSeries(values Series, s coretypes.ForecastSettings) ([]Metric, []bool, error) {
+func metricSeries(values Series, s model.ForecastSettings) ([]Metric, []bool, error) {
 	averages := RollingAverage(values, s.Window)
 	var trends Series
 	var fallback []bool
 	if ThinHistory(values, s.Window) {
 		// Thin history: only the average, no projection of an increase.
-		t, _, err := trendOf(averages, coretypes.Flat)
+		t, _, err := trendOf(averages, model.TrendFlat)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -340,7 +342,7 @@ func metricSeries(values Series, s coretypes.ForecastSettings) ([]Metric, []bool
 		}
 		fallback = make([]bool, len(values))
 		for i := range fallback {
-			fallback[i] = mode != coretypes.Flat
+			fallback[i] = mode != model.TrendFlat
 		}
 	} else {
 		t, f, err := trendOf(averages, s.TrendMode)
@@ -358,7 +360,7 @@ func metricSeries(values Series, s coretypes.ForecastSettings) ([]Metric, []bool
 
 // Compute calculates the metrics, trends and forecast of every sprint. It fails only for an
 // unknown trend mode.
-func Compute(inputs []SprintInput, settings coretypes.ForecastSettings) ([]SprintResult, error) {
+func Compute(inputs []SprintInput, settings model.ForecastSettings) ([]SprintResult, error) {
 	ref := settings.ReferenceCapacity
 	n := len(inputs)
 	capacity := make(Series, n)
@@ -370,7 +372,7 @@ func Compute(inputs []SprintInput, settings coretypes.ForecastSettings) ([]Sprin
 	for i, s := range inputs {
 		capacity[i], velocity[i], commitment[i], scope[i] = s.Capacity, s.Velocity, s.Commitment, s.ScopeCreep
 		if s.Velocity != nil && s.Capacity != nil && *s.Capacity != 0 {
-			normalized[i] = coretypes.Float(*s.Velocity / *s.Capacity * ref)
+			normalized[i] = model.Ptr(*s.Velocity / *s.Capacity * ref)
 		}
 		fulfillment[i] = div(s.Velocity, s.Commitment)
 	}
@@ -421,15 +423,15 @@ func Compute(inputs []SprintInput, settings coretypes.ForecastSettings) ([]Sprin
 		if plan != nil {
 			r := float64(*plan * settings.RoadmapShare)
 			roadmap = &r
-			small = coretypes.Float(*plan - r)
+			small = model.Ptr(*plan - r)
 		}
 		var planningTotal *float64
 		if s.Planning != nil {
-			planningTotal = coretypes.Float(s.Planning.Total())
+			planningTotal = model.Ptr(s.Planning.Total())
 		}
 		var delta *float64
 		if plan != nil && planningTotal != nil {
-			delta = coretypes.Float(*plan - *planningTotal)
+			delta = model.Ptr(*plan - *planningTotal)
 		}
 		samples := 0
 		for _, v := range normalized[:i] {
