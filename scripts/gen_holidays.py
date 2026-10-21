@@ -19,6 +19,7 @@ Contents (``format`` 1), all dates as days since the epoch 2001-01-01:
                           "countries": {"DE": "Germany", ...}}
     countries/DE.json    {"weekend": [5, 6], "subdivisions": ["BB", ...],
                           "names": [["Neujahr", "New Year's Day"], ...],  # one column per language
+                          "subdivision_aliases": {"Bayern": "BY", ...},
                           "calendars": {"": {"days": [..], "names": [..]},   # "" = nationwide
                                         "BY": {...}}}
 
@@ -71,6 +72,29 @@ def calendar(country: str, region: str | None, language: str) -> dict[date, str]
     )
 
 
+def encode_calendar(
+    code: str, region: str | None, names: dict[tuple[str, ...], int]
+) -> dict | None:
+    """Days and name indexes of one calendar; ``names`` is the country's name table."""
+    per_language = [calendar(code, region, lib) for lib in LANGUAGES.values()]
+    days = sorted(per_language[0])
+    for other in per_language[1:]:
+        # IsHoliday reads one language only; every language must have the same days.
+        assert sorted(other) == days, f"{code}/{region}: languages differ in dates"
+    if not days:
+        return None
+    indexes = []
+    for day in days:
+        entry = tuple(cal.get(day, "") for cal in per_language)
+        indexes.append(names.setdefault(entry, len(names)))
+    offsets, previous = [], 0
+    for day in days:
+        n = (day - EPOCH).days
+        offsets.append(n - previous)
+        previous = n
+    return {"days": offsets, "names": indexes}
+
+
 def build() -> dict[str, object]:
     """The files of the archive: path -> JSON-able content."""
     supported = holidays.list_supported_countries(include_aliases=False)
@@ -78,26 +102,36 @@ def build() -> dict[str, object]:
     files: dict[str, object] = {}
     for code in sorted(supported):
         names: dict[tuple[str, ...], int] = {}  # per country: a country file stands alone
+
         calendars = {}
         for region in [None, *supported[code]]:
-            per_language = [calendar(code, region, lib) for lib in LANGUAGES.values()]
-            days = sorted(set().union(*per_language))
-            if not days:
+            if (encoded := encode_calendar(code, region, names)) is not None:
+                calendars[region or ""] = encoded
+        # The library also accepts alias spellings ("Bayern") and deprecated codes of a region.
+        # They get the calendar of the region they stand for; one that cannot be matched to an
+        # existing calendar gets its own.
+        cls = holidays.country_holidays(code).__class__
+        spellings = {
+            **dict(getattr(cls, "subdivisions_aliases", None) or {}),
+            **{old: None for old in (getattr(cls, "_deprecated_subdivisions", None) or ())},
+        }
+        subdivision_aliases = {}
+        for alias in sorted(spellings):
+            if alias in calendars or alias in supported[code]:
                 continue
-            indexes = []
-            for day in days:
-                entry = tuple(cal.get(day, "") for cal in per_language)
-                indexes.append(names.setdefault(entry, len(names)))
-            offsets, previous = [], 0
-            for day in days:
-                n = (day - EPOCH).days
-                offsets.append(n - previous)
-                previous = n
-            calendars[region or ""] = {"days": offsets, "names": indexes}
+            encoded = encode_calendar(code, alias, names)
+            if encoded is None:
+                continue
+            match = next((r for r, c in calendars.items() if c == encoded), None)
+            if match is not None:
+                subdivision_aliases[alias] = match
+            else:
+                calendars[alias] = encoded
         files[f"countries/{code}.json"] = {
             "weekend": sorted(holidays.country_holidays(code).weekend),
             "subdivisions": list(supported[code]),
             "names": [list(entry) for entry in names],
+            "subdivision_aliases": subdivision_aliases,
             "calendars": calendars,
         }
     aliases = {}
@@ -152,6 +186,11 @@ def entries(archive: bytes) -> dict[str, set[tuple]]:
     return result
 
 
+def meta(archive: bytes) -> dict:
+    with zipfile.ZipFile(io.BytesIO(archive)) as zf:
+        return json.loads(zf.read("meta.json"))
+
+
 def summary(old: bytes, new: bytes) -> str:
     """Markdown list of what differs between two archives, for the pull request."""
     before, after = entries(old), entries(new)
@@ -180,7 +219,9 @@ def main() -> int:
         print(summary(args.summary.read_bytes(), data))
         return 0
     if args.check:
-        if not args.output.is_file() or args.output.read_bytes() != data:
+        # Compare the content, not the bytes: deflate output differs between zlib builds.
+        current = args.output.read_bytes() if args.output.is_file() else b""
+        if not current or entries(current) != entries(data) or meta(current) != meta(data):
             print(f"{args.output} is outdated: run scripts/gen_holidays.py", file=sys.stderr)
             return 1
         return 0

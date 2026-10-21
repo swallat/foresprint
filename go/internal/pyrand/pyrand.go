@@ -171,7 +171,7 @@ func (r *Random) GetRandBitsBig(k int) *big.Int {
 }
 
 // RandBelow is random.Random._randbelow(n): a uniform integer in [0, n) by rejection sampling
-// on getrandbits(bit_length(n)). It returns 0 for n == 0 and panics for negative n.
+// on getrandbits(bit_length(n)). It returns 0 for n == 0.
 func (r *Random) RandBelow(n uint64) uint64 {
 	if n == 0 {
 		return 0

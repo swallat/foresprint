@@ -38,6 +38,9 @@ version gives (`gen_holidays.py --check`).
 - The workflow `holidays-update.yml` runs monthly (from the default branch, see its header),
   upgrades `holidays` in `uv.lock`, regenerates the file and the dependent golden files and opens
   a pull request that lists the changed countries.
+- The golden digests of `../golden` belong to the committed file. A build that swaps in newer
+  data must not run the holiday golden tests against it (or regenerate `golden/` with the same
+  library version first).
 - Another language: add it to `LANGUAGES` in the generator. The format has one name column per
   language; readers look the column up by code.
 - Years outside 2001-2050 have no holidays (`holidays.Covers`). Loading at run time is not part
