@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from sprintforecast.storage import Repository
+from foresprint.storage import Repository
 
 
 def enable(data_dir: Path, projects: bool = True) -> None:
@@ -42,7 +42,7 @@ def enable(data_dir: Path, projects: bool = True) -> None:
 
 def seed(data_dir: Path) -> None:
     """Tickets small enough for the budget of the demo team (3 per sprint and product)."""
-    from sprintforecast.model import EstimateSource, Ticket
+    from foresprint.model import EstimateSource, Ticket
 
     refined, rough = EstimateSource.REFINED, EstimateSource.ROUGH
 

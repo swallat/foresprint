@@ -5,7 +5,7 @@ import pytest
 from harness import App, all_tables, main_area, open_page
 from playwright.sync_api import expect
 
-from sprintforecast.web.ui import PAGES
+from foresprint.web.ui import PAGES
 
 # Pages with data grids and the minimum number of grids they show in the demo data.
 GRIDS = {

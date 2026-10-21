@@ -11,11 +11,11 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast.model import Rule
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
-from sprintforecast.web.tickets_view import Selection, assignment_rows, assignment_summary
+from foresprint.model import Rule
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.web.tickets_view import Selection, assignment_rows, assignment_summary
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 TODAY = date(2026, 10, 15)
 
 
@@ -118,9 +118,9 @@ def test_a_stale_assignment_and_product_names(data_dir: Path):
 def test_product_rules_show_in_rows_backlog_and_timeline():
     from test_preplan import TODAY, team_data
 
-    from sprintforecast.model import EstimateSource, Product, Rule, Ticket
-    from sprintforecast.preplan import distribute
-    from sprintforecast.web.tickets_view import (
+    from foresprint.model import EstimateSource, Product, Rule, Ticket
+    from foresprint.preplan import distribute
+    from foresprint.web.tickets_view import (
         Selection,
         assignment_rows,
         project_rows,
@@ -168,9 +168,9 @@ def test_the_rule_editor_saves_a_product_rule(data_dir: Path, monkeypatch):
 def test_the_product_filter_hides_the_lines_without_project():
     from test_preplan import TODAY, team_data
 
-    from sprintforecast.model import EstimateSource, Product, Rule, Ticket
-    from sprintforecast.preplan import distribute
-    from sprintforecast.web.tickets_view import project_rows, timeline_rows
+    from foresprint.model import EstimateSource, Product, Rule, Ticket
+    from foresprint.preplan import distribute
+    from foresprint.web.tickets_view import project_rows, timeline_rows
 
     data = team_data(
         products=[Product("shop", "Shop", match=Rule(source="label", values=["shop"]))]

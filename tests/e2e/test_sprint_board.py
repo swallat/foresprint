@@ -12,7 +12,7 @@ from playwright.sync_api import expect
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from ticketfixtures import enable, seed
 
-from sprintforecast.storage import Repository
+from foresprint.storage import Repository
 
 
 def test_dragging_a_card_earmarks_it_and_the_release_bar_undoes_it(

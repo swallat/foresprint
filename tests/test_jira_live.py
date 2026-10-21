@@ -13,9 +13,9 @@ import os
 
 import pytest
 
-from sprintforecast.model import TrackerFields, TrackerSettings, base_url_problem
-from sprintforecast.sources import SourceError
-from sprintforecast.sources.jira import JiraSource, jira_token
+from foresprint.model import TrackerFields, TrackerSettings, base_url_problem
+from foresprint.sources import SourceError
+from foresprint.sources.jira import JiraSource, jira_token
 
 pytestmark = pytest.mark.jira_live
 

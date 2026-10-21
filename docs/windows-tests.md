@@ -8,9 +8,9 @@ that is deleted at the end.
 ## Prerequisites
 
 - Windows 10 or 11, Windows PowerShell 5.1 or PowerShell 7
-- `sprintforecast` installed as a uv tool (`uv tool install …`), `git` and `uv` in the PATH
+- `foresprint` installed as a uv tool (`uv tool install …`), `git` and `uv` in the PATH
 - for the login check: the https and/or SSH address of your data repository
-- **close all sprintforecast windows first** (otherwise the script skips the app check)
+- **close all foresprint windows first** (otherwise the script skips the app check)
 
 ## Running
 
@@ -25,7 +25,7 @@ If the file was downloaded and Windows reports it as blocked, run
 `Unblock-File .\scripts\windows-tests.ps1` once beforehand.
 
 The report is written to the **current PowerShell folder** as
-`sprintforecast-windows-bericht-YYYYMMDD-HHMM.md` (if that location is not writable, to the temp
+`foresprint-windows-bericht-YYYYMMDD-HHMM.md` (if that location is not writable, to the temp
 folder; the script says so right at the start). It contains no credentials (tokens and
 credentials in addresses are replaced by `***`, the profile folder by `%USERPROFILE%`); still,
 skim it before passing it on.
@@ -46,19 +46,19 @@ Useful parameters:
 
 Duration without prompts about 2 to 3 minutes; the interactive questions come on top.
 
-1. **Start and quit the app.** The script starts `sprintforecast-app` with a temporary data
+1. **Start and quit the app.** The script starts `foresprint-app` with a temporary data
    repository (only for this start, via `FORESPRINT_DATA`), waits for server and window,
    and lists all processes. Then it closes the window like the close button would
    (`CloseMainWindow`; if that does not work, or the app starts in Firefox or the default
    browser, it asks you to close the window yourself), waits 20 seconds and checks via
-   `Get-CimInstance Win32_Process` that nothing is still running: no `sprintforecast-app.exe`,
-   no `python(w).exe` with sprintforecast/streamlit, no browser with
-   `--user-data-dir=…\sprintforecast\…`, no `uv.exe` update. If processes remain, the report
+   `Get-CimInstance Win32_Process` that nothing is still running: no `foresprint-app.exe`,
+   no `python(w).exe` with foresprint/streamlit, no browser with
+   `--user-data-dir=…\foresprint\…`, no `uv.exe` update. If processes remain, the report
    names them together with the time at which they ended later. It also shows `app.log` and
-   `update.log` from `%APPDATA%\sprintforecast`. Leftover processes are terminated by the
+   `update.log` from `%APPDATA%\foresprint`. Leftover processes are terminated by the
    script at the end.
 2. **Installation (uv tool).** `uv tool list`; on request (prompt j/N, only with the app
-   closed) `uv tool upgrade --reinstall sprintforecast`, which is also how the app updates
+   closed) `uv tool upgrade --reinstall foresprint`, which is also how the app updates
    itself, and the reinstall touches every file (if a process still locks something, this is
    where it shows).
 3. **Login (Git).** `credential.helper` with its origin, Git Credential Manager,
@@ -66,9 +66,9 @@ Duration without prompts about 2 to 3 minutes; the interactive questions come on
    Addresses with credentials are rejected. A Credential Manager login window may open; time
    limit 90 s.
 4. **Line endings.** The script creates a data repository through the app logic (team `demo`,
-   sprints via `sprintforecast sprints`), commits, clones it three times (your `core.autocrlf`
+   sprints via `foresprint sprints`), commits, clones it three times (your `core.autocrlf`
    setting, `autocrlf=true`, `autocrlf=false`) and checks: `git status`/`git diff` empty,
-   `sprintforecast check` without errors, saving again changes nothing. The repository
+   `foresprint check` without errors, saving again changes nothing. The repository
    carries the `.gitattributes` (YAML with LF) that the app creates in new data repositories,
    so the protected state is what gets checked. Older repositories without that file are not
    covered.
@@ -98,11 +98,11 @@ Duration without prompts about 2 to 3 minutes; the interactive questions come on
 
 ## What the script creates or changes on your machine
 
-- temp folder `%TEMP%\sprintforecast-wintest-…` (deleted at the end; if it remains, the script
+- temp folder `%TEMP%\foresprint-wintest-…` (deleted at the end; if it remains, the script
   names the path)
 - the report file in the current folder
-- by starting the app (check 1): its usual files under `%APPDATA%\sprintforecast` (`app.log`
-  is overwritten) and the browser profile under `%LOCALAPPDATA%\sprintforecast`
+- by starting the app (check 1): its usual files under `%APPDATA%\foresprint` (`app.log`
+  is overwritten) and the browser profile under `%LOCALAPPDATA%\foresprint`
 - read only, never changed: Git configuration, SSH agent, registry (developer mode)
 
 ## Known limits

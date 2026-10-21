@@ -10,12 +10,12 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast import diff
-from sprintforecast.git import GitError, invalidate_status
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV
-from sprintforecast.yamlmerge import MISSING
+from foresprint import diff
+from foresprint.git import GitError, invalidate_status
+from foresprint.storage import AS_OF_ENV, DATA_ENV
+from foresprint.yamlmerge import MISSING
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 SPRINT = Path("teams") / "demo" / "sprints" / "2026.20.yaml"
 TITLE = "Was hat sich geändert?"
 
@@ -291,7 +291,7 @@ def test_huge_hex_integer_does_not_crash(repo, data_dir: Path, monkeypatch):
 def test_big_values_are_bounded_and_fast():
     import time
 
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     started = time.monotonic()
     big = list(range(1_000_000))
@@ -308,7 +308,7 @@ def test_sets_binary_and_unknown_types_are_bounded():
 
     import yaml
 
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     members = ", ".join(f"m{i}" for i in range(100_000))
     data = base64.b64encode(bytes(3_000_000)).decode()
@@ -323,14 +323,14 @@ def test_sets_binary_and_unknown_types_are_bounded():
 
 
 def test_same_excerpt_but_different_values_gets_the_hint():
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     a, b = ui._view_pair(list(range(2000)), [*range(1999), 5])
     assert a != b and "(" in b  # both excerpts equal: notice instead of identical cells
 
 
 def test_rows_are_computed_once_until_invalidated(repo, data_dir: Path, monkeypatch):
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     file = repo / SPRINT
     file.write_text(file.read_text().replace("velocity: 9.75", "velocity: 7.0"))
@@ -383,7 +383,7 @@ def test_long_field_names_are_shortened(repo, data_dir: Path, monkeypatch):
 
 
 def test_a_value_that_cannot_be_shown_does_not_stop_the_page():
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     class Bad:
         def __repr__(self) -> str:
@@ -393,7 +393,7 @@ def test_a_value_that_cannot_be_shown_does_not_stop_the_page():
 
 
 def test_every_formula_prefix_is_guarded_and_numbers_are_not():
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     for ch in "=+-@":
         assert ui._formula_safe(f"{ch}x") == f"'{ch}x"
@@ -405,8 +405,8 @@ def test_every_formula_prefix_is_guarded_and_numbers_are_not():
 
 
 def test_rows_memory_is_bounded():
-    from sprintforecast.diff import FileChange, ValueChange
-    from sprintforecast.web import ui
+    from foresprint.diff import FileChange, ValueChange
+    from foresprint.web import ui
 
     ui._ROWS.clear()
     for _ in range(ui._ROWS_MAX * 2 + 5):
@@ -416,7 +416,7 @@ def test_rows_memory_is_bounded():
 
 
 def test_files_beyond_the_size_budget_are_marked(repo, data_dir: Path, monkeypatch):
-    from sprintforecast import diff as diff_module
+    from foresprint import diff as diff_module
 
     files = [commit_extra(repo, name, "a: 1\n") for name in ("eins.yaml", "zwei.yaml")]
     for file in files:
@@ -429,7 +429,7 @@ def test_files_beyond_the_size_budget_are_marked(repo, data_dir: Path, monkeypat
 
 
 def test_clipping_offset_and_lengthening():
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     a, b = ui._view_pair("x" * 30 + "A" * 100, "x" * 30 + "B" * 100)
     assert a == "…" + "x" * 10 + "A" * 68 + "…" and b == "…" + "x" * 10 + "B" * 68 + "…"
@@ -457,8 +457,8 @@ def test_english_view(repo, data_dir: Path, monkeypatch):
 def test_view_helpers():
     from datetime import date
 
-    from sprintforecast.web import ui
-    from sprintforecast.yamlmerge import MISSING
+    from foresprint.web import ui
+    from foresprint.yamlmerge import MISSING
 
     exact, longer = "a" * 80, "a" * 81
     assert ui._view_pair(exact, MISSING) == (exact, "–")
@@ -474,7 +474,7 @@ def test_view_helpers():
 
 
 def test_view_name_for_data_folder_equal_to_repository_root(tmp_path: Path):
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     root = tmp_path.resolve()
     assert ui._view_name(root, "x.yaml", root) == "x.yaml"

@@ -1,49 +1,42 @@
 # SPDX-License-Identifier: EUPL-1.2
-"""Velocity and capacity forecast for Scrum teams with Git as the data store."""
+"""The package was renamed to ``foresprint``. This alias keeps ``import sprintforecast`` and
+``import sprintforecast.storage`` (plugins written before the rename) working: both names lead
+to the very same module objects."""
 
-__version__ = "0.7.0"
+import importlib
+import importlib.abc
+import importlib.util
+import sys
 
-from sprintforecast.compat import adopt_legacy_environment
+import foresprint
 
-adopt_legacy_environment()  # SPRINTFORECAST_* variables from before the rename still work
-
-
-def main() -> None:
-    from sprintforecast.cli import app
-
-    app()
-
-
-# Log file when started without a console (double-click); `web` redirects the server there.
-LOG_ENV = "FORESPRINT_LOG"
+_OLD, _NEW = "sprintforecast", "foresprint"
 
 
-def app_main() -> None:
-    """Double-click start: web UI as an app window (`sprintforecast web --app`)."""
-    import os
-    import sys
+class _Alias(importlib.abc.Loader):
+    def __init__(self, module):
+        self.module = module
+        self.spec = module.__spec__
 
-    from sprintforecast.config import config_dir
+    def create_module(self, spec):
+        return self.module
 
-    log = config_dir() / "app.log"
-    # The log is a convenience: if it cannot be created (folder not writable, file locked),
-    # the app starts anyway, just without a log.
-    try:
-        log.parent.mkdir(parents=True, exist_ok=True)
-        out = open(log, "w", encoding="utf-8", buffering=1)  # noqa: SIM115 – stays open until exit
-    except OSError:
-        out = open(os.devnull, "w", encoding="utf-8")  # noqa: SIM115 – stays open until exit
-    else:
-        os.environ[LOG_ENV] = str(log)
-    # Without a console (pythonw) there is no stdout/stderr; send output to the log.
-    sys.stdout = out if sys.stdout is None else sys.stdout
-    sys.stderr = out if sys.stderr is None else sys.stderr
-    import json
+    def exec_module(self, module):
+        module.__spec__ = self.spec  # the real module keeps its own identity
+        module.__loader__ = self.spec.loader
 
-    from sprintforecast.updater import LAUNCHER_ENV
 
-    # For "Update and restart now": call this launcher again, not the CLI.
-    os.environ[LAUNCHER_ENV] = json.dumps([sys.argv[0], *sys.argv[1:]])
-    from sprintforecast.cli import app
+class _Finder(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if not fullname.startswith(_OLD + "."):
+            return None
+        real = importlib.import_module(_NEW + fullname[len(_OLD) :])
+        spec = importlib.util.spec_from_loader(
+            fullname, _Alias(real), is_package=hasattr(real, "__path__")
+        )
+        return spec
 
-    app(args=["web", "--app", *sys.argv[1:]], prog_name="sprintforecast")
+
+if not any(isinstance(f, _Finder) for f in sys.meta_path):
+    sys.meta_path.insert(0, _Finder())
+sys.modules[_OLD] = foresprint  # ``import sprintforecast`` yields the real package

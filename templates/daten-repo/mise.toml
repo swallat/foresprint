@@ -8,6 +8,6 @@ FORESPRINT_DATA = "teams"
 FORESPRINT_LANG = "en"
 
 [tasks.sf]
-description = "run sprintforecast, e.g. `mise run sf -- forecast team-a`"
+description = "run foresprint, e.g. `mise run sf -- forecast team-a`"
 # Pin the tool version here; raise it when you update.
-run = "uvx --from git+https://github.com/swallat/foresprint@main sprintforecast"
+run = "uvx --from git+https://github.com/swallat/foresprint@main foresprint"

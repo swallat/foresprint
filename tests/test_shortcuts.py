@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import shortcuts
+from foresprint import shortcuts
 
 
 @pytest.fixture
 def program(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> str:
     monkeypatch.setattr(shortcuts, "icon_dir", lambda: tmp_path / "icons")
-    monkeypatch.setattr(shortcuts, "app_program", lambda: "/opt/uv/bin/sprintforecast-app")
-    return "/opt/uv/bin/sprintforecast-app"
+    monkeypatch.setattr(shortcuts, "app_program", lambda: "/opt/uv/bin/foresprint-app")
+    return "/opt/uv/bin/foresprint-app"
 
 
 def test_linux_desktop_entries(tmp_path: Path, program: str, monkeypatch: pytest.MonkeyPatch):
@@ -68,13 +68,13 @@ def test_missing_program(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
 
 def test_windows_script_icon():
-    script = shortcuts.windows_script("C:\\sf-app.exe", "C:\\", "C:\\x\\sprintforecast.ico")
-    assert "$link.IconLocation = 'C:\\x\\sprintforecast.ico'" in script
+    script = shortcuts.windows_script("C:\\sf-app.exe", "C:\\", "C:\\x\\foresprint.ico")
+    assert "$link.IconLocation = 'C:\\x\\foresprint.ico'" in script
     assert "IconLocation" not in shortcuts.windows_script("C:\\sf-app.exe", "C:\\")
 
 
 def test_icon_formats(tmp_path: Path):
-    from sprintforecast.icon import write_icon
+    from foresprint.icon import write_icon
 
     assert write_icon(tmp_path, "png").read_bytes().startswith(b"\x89PNG")
     assert write_icon(tmp_path, "ico").read_bytes()[:6] == b"\x00\x00\x01\x00\x01\x00"

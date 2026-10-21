@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import config, storage
-from sprintforecast import git as gitmod
-from sprintforecast.git import GitError
+from foresprint import config, storage
+from foresprint import git as gitmod
+from foresprint.git import GitError
 
 ADDRESS = "https://example.org/team/daten.git"
 

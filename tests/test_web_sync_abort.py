@@ -21,9 +21,9 @@ from streamlit.runtime.scriptrunner_utils.exceptions import StopException
 from test_web_k3_integration import sidebar_text
 from test_web_k3_ui import git, sidebar_button, start
 
-from sprintforecast import gitsync
-from sprintforecast.git import classify
-from sprintforecast.web import ui
+from foresprint import gitsync
+from foresprint.git import classify
+from foresprint.web import ui
 
 SESSION = "test session id"  # the session ID that AppTest assigns
 

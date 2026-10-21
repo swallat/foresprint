@@ -13,9 +13,9 @@ import pytest
 import yaml
 from gitrepos import Denying, NotFound, Person, git, make_clone, serve
 
-from sprintforecast import git as gitmod
-from sprintforecast import gitsync
-from sprintforecast.git import (
+from foresprint import git as gitmod
+from foresprint import gitsync
+from foresprint.git import (
     GitError,
     classify,
     clone_repository,
@@ -337,7 +337,7 @@ def test_invalid_merge_result_is_not_pushed(alice: Person, bob: Person, remote: 
     in terms of content. The full validation stops the upload."""
     import shutil
 
-    from sprintforecast.storage import Repository
+    from foresprint.storage import Repository
 
     shutil.copytree(data_dir / "demo", alice.data / "demo")
     assert alice.sync("Demo").ok
@@ -493,7 +493,7 @@ def test_missing_login_is_explained(alice: Person):
 
 
 def test_auth_help_for_ssh_differs():
-    from sprintforecast.git import auth_help
+    from foresprint.git import auth_help
 
     assert "SSH" in auth_help("git@example.org:team/daten.git")
     assert "Zugangstoken" in auth_help("https://example.org/team/daten.git")
@@ -504,7 +504,7 @@ def test_auth_help_for_ssh_differs():
 )
 def test_auth_help_does_not_repeat_the_heading(url: str):
     """The heading ("Login is missing or was rejected") is already above the hint."""
-    from sprintforecast.git import auth_help, hint_for, title_for
+    from foresprint.git import auth_help, hint_for, title_for
 
     hint = auth_help(url)
     assert "fehlt oder wurde abgelehnt" not in hint
@@ -514,7 +514,7 @@ def test_auth_help_does_not_repeat_the_heading(url: str):
 
 
 def test_auth_help_is_cut_to_the_address():
-    from sprintforecast.git import auth_help
+    from foresprint.git import auth_help
 
     https = auth_help("https://example.org/team/daten.git")
     assert "Zugangstoken" in https and "`gh auth setup-git`" in https
@@ -842,7 +842,7 @@ def test_reattach_blocked_outside_the_data_folder_does_not_point_to_discarding(a
     git(alice.root, "checkout", "-q", "--detach", "HEAD~1")
     readme.write_text("zwei\n", encoding="utf-8")
     invalidate_status()
-    from sprintforecast.githistory import discard_preview
+    from foresprint.githistory import discard_preview
 
     assert discard_preview(alice.data) == []  # nothing to discard in the data folder
     with pytest.raises(GitError) as info:
@@ -1457,8 +1457,8 @@ def test_pull_takes_over_server_state_without_pushing(alice: Person, bob: Person
 
 
 def test_text_diff_of_open_changes_includes_protocols(alice: Person):
-    from sprintforecast.diff import text_diff
-    from sprintforecast.git import changes_in
+    from foresprint.diff import text_diff
+    from foresprint.git import changes_in
 
     alice.write("a/2026.1.yaml", "velocity: 12\nscope_creep: 1\n")
     alice.write("a/protokolle/2026.1-planning-20260104-100000-aa11.md", "# Planning\nneu\n")
@@ -1637,7 +1637,7 @@ def test_background_fetch_is_due_once_and_runs_as_daemon(alice: Person, bob: Per
 
     class Recorder(real):
         def __init__(self, *args, **kwargs):
-            if kwargs.get("name") == "sprintforecast-fetch":
+            if kwargs.get("name") == "foresprint-fetch":
                 started.append(kwargs.get("daemon"))
             super().__init__(*args, **kwargs)
 
@@ -1712,7 +1712,7 @@ def _helpers(monkeypatch, *values: str):
     """Replaces the output of ``git config --get-regexp`` for the login helper."""
     import subprocess
 
-    from sprintforecast import git as gitmod
+    from foresprint import git as gitmod
 
     out = "".join(f"credential.helper {v}\n" for v in values)
     monkeypatch.setattr(
@@ -1721,21 +1721,21 @@ def _helpers(monkeypatch, *values: str):
 
 
 def test_credential_helpers_names_only(monkeypatch):
-    from sprintforecast.git import credential_helpers
+    from foresprint.git import credential_helpers
 
     _helpers(monkeypatch, "manager", "!f() { echo secret; }; f", "git-credential-store --file x")
     assert credential_helpers() == ["manager", "custom", "store"]
 
 
 def test_credential_helpers_empty_value_resets(monkeypatch):
-    from sprintforecast.git import credential_helpers
+    from foresprint.git import credential_helpers
 
     _helpers(monkeypatch, "store", "", "osxkeychain")
     assert credential_helpers() == ["osxkeychain"]
 
 
 def test_auth_help_warns_about_plain_text_store(monkeypatch):
-    from sprintforecast.git import auth_help
+    from foresprint.git import auth_help
 
     _helpers(monkeypatch, "store")
     hint = auth_help("https://example.org/team/daten.git")
@@ -1743,7 +1743,7 @@ def test_auth_help_warns_about_plain_text_store(monkeypatch):
 
 
 def test_auth_help_with_service_set_up_suggests_new_token(monkeypatch):
-    from sprintforecast.git import auth_help
+    from foresprint.git import auth_help
 
     _helpers(monkeypatch, "manager")
     assert "abgelaufen oder widerrufen" in auth_help("https://example.org/t/d.git")
@@ -1754,16 +1754,16 @@ def test_auth_help_with_service_set_up_suggests_new_token(monkeypatch):
     [("win32", "credential.helper manager"), ("darwin", "osxkeychain"), ("linux", "libsecret")],
 )
 def test_auth_help_names_the_steps_of_this_operating_system(monkeypatch, platform, needle):
-    from sprintforecast.git import auth_help
+    from foresprint.git import auth_help
 
     _helpers(monkeypatch)
-    monkeypatch.setattr("sprintforecast.git.sys.platform", platform)
+    monkeypatch.setattr("foresprint.git.sys.platform", platform)
     hint = auth_help("https://example.org/t/d.git")
     assert needle in hint
 
 
 def test_not_repo_hint_explains_unpacked_zip():
-    from sprintforecast.git import hint_for
+    from foresprint.git import hint_for
 
     hint = hint_for("not_repo")
     assert "ZIP" in hint and "Repository klonen" in hint
@@ -1773,7 +1773,7 @@ def test_credential_helpers_reads_the_repository_of_the_data_folder(tmp_path):
     """A credential helper that appears only in the data folder's configuration counts too."""
     import subprocess
 
-    from sprintforecast.git import credential_helpers
+    from foresprint.git import credential_helpers
 
     repo = tmp_path / "daten"
     repo.mkdir()
@@ -1795,7 +1795,7 @@ def test_conflict_hint_for_markdown_keeps_file_names_literal(tmp_path: Path):
 
 
 def test_rollback_hint_escapes_backup_path_for_markdown(tmp_path: Path):
-    from sprintforecast import githistory
+    from foresprint import githistory
 
     trash = tmp_path / "s_ich*erung"
     plain = githistory._rollback_hint(["a_b.yaml"], trash)
@@ -1939,7 +1939,7 @@ def test_older_rescue_names_are_still_recognised():
 def test_branches_and_switch(tmp_path: Path):
     import subprocess
 
-    from sprintforecast import git as gitmod
+    from foresprint import git as gitmod
 
     def g(*a: str) -> None:
         subprocess.run(["git", "-C", str(tmp_path), *a], check=True, capture_output=True)

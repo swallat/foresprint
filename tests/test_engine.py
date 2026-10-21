@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 import pytest
 
-from sprintforecast.engine import (
+from foresprint.engine import (
     CapacitySource,
     PlanSource,
     SprintInput,
@@ -12,7 +12,7 @@ from sprintforecast.engine import (
     round_half_up,
     trend,
 )
-from sprintforecast.model import ForecastSettings, Planning, TrendMode
+from foresprint.model import ForecastSettings, Planning, TrendMode
 
 N = None
 

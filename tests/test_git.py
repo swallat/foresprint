@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from gitrepos import assume_foreign_owner
 
-from sprintforecast import gitsync
-from sprintforecast.git import (
+from foresprint import gitsync
+from foresprint.git import (
     GitError,
     changes_in,
     commit,
@@ -104,7 +104,7 @@ def test_the_reason_stays_the_output_of_git_where_it_is_passed_on(unsafe: Path):
     """The message names paths and comes from Git: where the reason is passed on
     (``require_root``, ``init_data_repository``), it stays marked as Git output,
     so the UI renders it as code instead of Markdown."""
-    from sprintforecast.git import init_data_repository
+    from foresprint.git import init_data_repository
 
     folder = unsafe / "teams"
     problem = root_problem(folder)
@@ -120,7 +120,7 @@ def test_the_reason_stays_the_output_of_git_where_it_is_passed_on(unsafe: Path):
 
 def test_init_data_repository_leaves_an_unsafe_directory_untouched(unsafe: Path):
     """Git rejects the folder: no "git init" and no new file there, just the reason."""
-    from sprintforecast.git import init_data_repository
+    from foresprint.git import init_data_repository
 
     before = sorted(p.relative_to(unsafe).as_posix() for p in unsafe.rglob("*"))
     for teams_folder in (True, False):

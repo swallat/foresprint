@@ -9,13 +9,13 @@ import pytest
 from streamlit.testing.v1 import AppTest
 from typer.testing import CliRunner
 
-from sprintforecast.calendar import id_fits_numbering, next_id
-from sprintforecast.cli import app as cli_app
-from sprintforecast.model import Numbering
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, DataError, Repository
-from sprintforecast.validate import Level, check_team
+from foresprint.calendar import id_fits_numbering, next_id
+from foresprint.cli import app as cli_app
+from foresprint.model import Numbering
+from foresprint.storage import AS_OF_ENV, DATA_ENV, DataError, Repository
+from foresprint.validate import Level, check_team
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 runner = CliRunner(env={"COLUMNS": "200"})
 TODAY = date(2026, 10, 15)
 YEARLY, SEQUENTIAL = Numbering.YEARLY, Numbering.SEQUENTIAL
@@ -175,7 +175,7 @@ def test_check_ignores_finished_sprints_before_the_last(data_dir: Path):
 
 def test_check_accepts_a_suffix_when_the_next_sprint_starts_in_the_next_year(data_dir: Path):
     """2026.22b only ends in 2027: next_id forms 2027.1, the forecast runs, the check is silent."""
-    from sprintforecast.forecast import build_forecast
+    from foresprint.forecast import build_forecast
 
     rename_sprint(data_dir, "2026.22", "2026.22b")
     repo = Repository(data_dir)

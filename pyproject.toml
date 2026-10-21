@@ -1,5 +1,5 @@
 [project]
-name = "sprintforecast"
+name = "foresprint"
 version = "0.7.0"
 description = "Velocity and capacity forecast for Scrum teams with Git as the data store"
 readme = "README.md"
@@ -10,6 +10,7 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "click>=8.1",
     "holidays>=0.106",
     "pyyaml>=6.0.3",
     "rich>=15.0.0",
@@ -17,11 +18,14 @@ dependencies = [
 ]
 
 [project.scripts]
-sprintforecast = "sprintforecast:main"
+foresprint = "foresprint:main"
+# The name before the rename keeps working (shell history, scripts, launchers).
+sprintforecast = "foresprint:main"
 
 # Doppelklick-Start (unter Windows ohne Konsolenfenster): Weboberfläche als App.
 [project.gui-scripts]
-sprintforecast-app = "sprintforecast:app_main"
+foresprint-app = "foresprint:app_main"
+sprintforecast-app = "foresprint:app_main"
 
 [project.optional-dependencies]
 web = [
@@ -31,11 +35,15 @@ excel = [
     "openpyxl>=3.1",
     "xlsxwriter>=3.2",
 ]
-# Jira import (sprintforecast tickets --fetch); "keyring" holds the token in the OS keychain.
+# Jira import (foresprint tickets --fetch); "keyring" holds the token in the OS keychain.
 jira = [
     "httpx>=0.28",
     "keyring>=25",
 ]
+
+[tool.uv.build-backend]
+# "sprintforecast" is a thin alias package so that plugins written before the rename still import.
+module-name = ["foresprint", "sprintforecast"]
 
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
@@ -64,7 +72,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 # Browsertests: lange JavaScript-Texte und Erwartungstexte bleiben je Stück auf einer Zeile.
 "tests/e2e/*" = ["E501"]
 # Translation catalog: long texts bleiben je Eintrag auf einer Zeile.
-"src/sprintforecast/locale_de.py" = ["E501"]
+"src/foresprint/locale_de.py" = ["E501"]
 # Windows-Skript: Beispiele mit langen Befehlszeilen und PowerShell-Code in einem Text.
 "tests/test_windows_script.py" = ["E501"]
 

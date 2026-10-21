@@ -13,20 +13,20 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from ticketfixtures import enable
 
-from sprintforecast.model import TrackerFields, TrackerSettings
-from sprintforecast.sources import SourceError
-from sprintforecast.sources import jira as jira_module
-from sprintforecast.sources.jira import FieldCandidate, FieldSuggestions
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV
-from sprintforecast.web import jira_setup
-from sprintforecast.web.jira_setup import (
+from foresprint.model import TrackerFields, TrackerSettings
+from foresprint.sources import SourceError
+from foresprint.sources import jira as jira_module
+from foresprint.sources.jira import FieldCandidate, FieldSuggestions
+from foresprint.storage import AS_OF_ENV, DATA_ENV
+from foresprint.web import jira_setup
+from foresprint.web.jira_setup import (
     Probe,
     field_options,
     rule_fields_from_rows,
     tracker_from_inputs,
 )
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 TODAY = date(2026, 10, 15)
 CANARY = "tok-CANARY-0a1b2c3d4e5f"
 ENV = "FORESPRINT_JIRA_TOKEN"
@@ -309,7 +309,7 @@ def test_the_environment_variable_takes_precedence(
     data_dir: Path, monkeypatch, keychain: FakeKeyring
 ):
     enable(data_dir)
-    keychain.entries[("sprintforecast-jira", "jira.example.org")] = "tok-stored"
+    keychain.entries[("foresprint-jira", "jira.example.org")] = "tok-stored"
     monkeypatch.setenv(ENV, CANARY)
     at = page(data_dir, monkeypatch)
     at = with_address(at)
@@ -347,9 +347,9 @@ def test_match_orders_keep_an_unusual_current_order():
 
 
 def test_a_removed_rule_field_that_rules_still_use_is_reported():
-    from sprintforecast.model import Project, Rule
-    from sprintforecast.storage import TeamData
-    from sprintforecast.web.jira_setup import rule_fields_in_use
+    from foresprint.model import Project, Rule
+    from foresprint.storage import TeamData
+    from foresprint.web.jira_setup import rule_fields_in_use
 
     data = TeamData.__new__(TeamData)
     data.projects = [

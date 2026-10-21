@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from sprintforecast.capacity import absence_history
-from sprintforecast.model import AbsenceState, ProductValues, Sprint, absence_status
-from sprintforecast.storage import DataError, Repository
+from foresprint.capacity import absence_history
+from foresprint.model import AbsenceState, ProductValues, Sprint, absence_status
+from foresprint.storage import DataError, Repository
 
 START, END = date(2026, 11, 11), date(2026, 11, 25)
 

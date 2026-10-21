@@ -38,7 +38,7 @@ data-repo/
 ```
 
 - `mise.toml` pins Python and uv and defines the task `mise run sf -- forecast team-a`, which
-  runs sprintforecast through `uvx` from the Git ref pinned there (`@main` in the template; pin
+  runs foresprint through `uvx` from the Git ref pinned there (`@main` in the template; pin
   a tag and raise it when you update).
   It also points the data directory at `teams` for the repository.
 - `.gitattributes` forces LF line endings for `*.yaml`, `*.yml` and `*.md` even with

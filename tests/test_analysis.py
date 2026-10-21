@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import analysis
-from sprintforecast.forecast import build_forecast
-from sprintforecast.model import Sprint, Team
-from sprintforecast.storage import Repository, TeamData
+from foresprint import analysis
+from foresprint.forecast import build_forecast
+from foresprint.model import Sprint, Team
+from foresprint.storage import Repository, TeamData
 
 TODAY = date(2026, 10, 15)
 
@@ -123,7 +123,7 @@ def test_buffer_hint_compares_on_the_same_base():
 
 
 def test_completion_note_only_below_the_minimum_of_samples():
-    from sprintforecast.report import completion_note
+    from foresprint.report import completion_note
 
     assert completion_note(analysis.MIN_SAMPLES) is None
     note = completion_note(analysis.MIN_SAMPLES - 1)
@@ -134,7 +134,7 @@ def test_window_hint_only_when_the_window_really_caps_the_sample():
     """The notice appears only if a window below MIN_SAMPLES actually cuts off values (more
     values exist than in the sample): it says why and names the window. If there are simply no
     more values, a larger window does not help, so no notice."""
-    from sprintforecast.report import window_hint
+    from foresprint.report import window_hint
 
     assert window_hint(analysis.MIN_SAMPLES, 5, 12) == ""
     assert window_hint(8, 8, 12) == ""
@@ -301,7 +301,7 @@ def test_a_future_sprint_with_a_recorded_value_can_still_leave_the_band():
 def test_gap_notice_uses_the_same_sprints_as_the_average():
     """The gap notice considers the same sprints as the calculation (incl. the running sprint):
     the window of 5 reaches back over the gap, but only with the running sprint."""
-    from sprintforecast.engine import gaps_in_window
+    from foresprint.engine import gaps_in_window
 
     data, today = running_sprint([10.0, 12.0, None, 14.0, 11.0, 9.0])
     fc = build_forecast(data, today)
@@ -322,7 +322,7 @@ def test_few_samples_follows_what_is_drawn_from():
 
 
 def test_reliability_note_counts_the_values_drawn_from():
-    from sprintforecast.report import reliability_notes
+    from foresprint.report import reliability_notes
 
     data, today = running_sprint([10.0, 11.0, 12.0], window=5)
     note = reliability_notes(build_forecast(data, today))[0]
@@ -347,7 +347,7 @@ def test_reliability_note_counts_the_values_drawn_from():
 def test_reliability_note_without_window_hint_when_the_window_cuts_nothing():
     """Window 3, but only 2 (or exactly 3) values: a larger window would not help, the sentence
     names the values as before and says nothing about the window."""
-    from sprintforecast.report import reliability_notes
+    from foresprint.report import reliability_notes
 
     for velocities in ([10.0, 11.0], [10.0, 11.0, 12.0]):
         data, today = running_sprint(velocities, window=3)

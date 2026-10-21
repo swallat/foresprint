@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.engine import CapacitySource
-from sprintforecast.forecast import build_forecast
-from sprintforecast.storage import DataError, Repository, import_sprints, team_key_problem
-from sprintforecast.validate import Level, check_team
+from foresprint.engine import CapacitySource
+from foresprint.forecast import build_forecast
+from foresprint.storage import DataError, Repository, import_sprints, team_key_problem
+from foresprint.validate import Level, check_team
 
 TODAY = date(2026, 10, 15)
 
@@ -125,8 +125,8 @@ def test_capacity_sources_in_forecast(data_dir: Path):
 def test_apply_planning():
     from datetime import date as d
 
-    from sprintforecast.forecast import apply_planning
-    from sprintforecast.model import Planning, Sprint
+    from foresprint.forecast import apply_planning
+    from foresprint.model import Planning, Sprint
 
     s = Sprint("x", d(2026, 1, 1), d(2026, 1, 15))
     assert apply_planning(s, None, Planning(carryover=1, backlog=7.5, corrections=[2])) is True

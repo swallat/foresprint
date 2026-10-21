@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.model import Earmark, ManualEstimate, Project, Rule, Ticket
-from sprintforecast.storage import Repository, TeamData
-from sprintforecast.validate import Level, check_team, find_cycles
+from foresprint.model import Earmark, ManualEstimate, Project, Rule, Ticket
+from foresprint.storage import Repository, TeamData
+from foresprint.validate import Level, check_team, find_cycles
 
 TODAY = date(2026, 10, 15)
 
@@ -166,7 +166,7 @@ def test_preplan_entries_refer_to_known_tickets_and_sprints(data: TeamData):
 def test_cli_check_passes_with_the_feature_on(data_dir: Path):
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
+    from foresprint.cli import app
 
     repo = Repository(data_dir)
     team = repo.load("demo").team

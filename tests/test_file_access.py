@@ -11,13 +11,13 @@ from streamlit.testing.v1 import AppTest
 from typer.testing import CliRunner
 from webfixtures import nav_done
 
-from sprintforecast import storage
-from sprintforecast.cli import app as cli_app
-from sprintforecast.forecast import build_forecast
-from sprintforecast.model import Sprint
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, FileAccessError, Repository
+from foresprint import storage
+from foresprint.cli import app as cli_app
+from foresprint.forecast import build_forecast
+from foresprint.model import Sprint
+from foresprint.storage import AS_OF_ENV, DATA_ENV, FileAccessError, Repository
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 runner = CliRunner(env={"COLUMNS": "200"})
 
 

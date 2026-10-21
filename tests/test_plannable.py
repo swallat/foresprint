@@ -26,15 +26,15 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from typer.testing import CliRunner
 
-from sprintforecast.cli import app
-from sprintforecast.forecast import build_forecast
-from sprintforecast.i18n import t
-from sprintforecast.model import ProductBasis
-from sprintforecast.report import render
-from sprintforecast.settings import SETTINGS
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.cli import app
+from foresprint.forecast import build_forecast
+from foresprint.i18n import t
+from foresprint.model import ProductBasis
+from foresprint.report import render
+from foresprint.settings import SETTINGS
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 runner = CliRunner(env={"COLUMNS": "250"})
 KEY = "roadmap_share"
 WORD = "Roadmap"  # capitalized = visible label; keys are lowercase
@@ -85,7 +85,7 @@ def run(data_dir: Path, *args: str) -> str:
 def test_command_line_shows_no_roadmap_label(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, args: tuple[str, ...], lang: str
 ):
-    from sprintforecast import i18n
+    from foresprint import i18n
 
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, lang)
@@ -114,8 +114,8 @@ def test_report_shows_no_roadmap_label(data_dir: Path):
 def test_formula_steps_name_the_plannable_share(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, lang: str
 ):
-    from sprintforecast import i18n
-    from sprintforecast.formulas import GENERAL, general, steps
+    from foresprint import i18n
+    from foresprint.formulas import GENERAL, general, steps
 
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, lang)
@@ -163,7 +163,7 @@ def test_planning_panel_in_english(data_dir: Path, english):
 def test_product_distribution_names_the_plannable_share(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, lang: str
 ):
-    from sprintforecast import i18n
+    from foresprint import i18n
 
     use_roadmap_basis(data_dir)
     i18n.set_language(None)
@@ -182,8 +182,8 @@ def test_excel_labels_are_renamed_but_keys_stay(data_dir: Path, lang: str, monke
     pytest.importorskip("xlsxwriter")
     from io import BytesIO
 
-    from sprintforecast import i18n
-    from sprintforecast.excel import build_workbook
+    from foresprint import i18n
+    from foresprint.excel import build_workbook
 
     i18n.set_language(None)
     monkeypatch.setenv(i18n.LANG_ENV, lang)
@@ -216,7 +216,7 @@ WEB_PAGES = ["forecast", "analysis", "settings", "planning", "products", "help",
 def test_web_pages_show_no_roadmap_label(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str, lang: str
 ):
-    from sprintforecast import i18n
+    from foresprint import i18n
 
     use_roadmap_basis(data_dir)
     monkeypatch.setenv(DATA_ENV, str(data_dir))

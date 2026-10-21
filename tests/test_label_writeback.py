@@ -20,17 +20,17 @@ from test_cli_jira import (  # noqa: F401
 )
 from test_ticket_import import TODAY, data, fc, raw  # noqa: F401
 
-from sprintforecast.forecast import Forecast
-from sprintforecast.label_writeback import (
+from foresprint.forecast import Forecast
+from foresprint.label_writeback import (
     LabelWrite,
     apply_label_writes,
     plan_label_writes,
     wanted_label,
 )
-from sprintforecast.model import Earmark, Preplan, Ticket
-from sprintforecast.sources import SourceError, label_sprints
-from sprintforecast.storage import TeamData
-from sprintforecast.ticket_import import plan_import
+from foresprint.model import Earmark, Preplan, Ticket
+from foresprint.sources import SourceError, label_sprints
+from foresprint.storage import TeamData
+from foresprint.ticket_import import plan_import
 
 
 def ticket(key: str = "A-1", **values) -> Ticket:

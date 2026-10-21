@@ -18,11 +18,11 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast import i18n
-from sprintforecast.engine import CapacitySource, round_down, round_half_up
-from sprintforecast.forecast import absences_known, build_forecast
-from sprintforecast.formulas import steps
-from sprintforecast.model import (
+from foresprint import i18n
+from foresprint.engine import CapacitySource, round_down, round_half_up
+from foresprint.forecast import absences_known, build_forecast
+from foresprint.formulas import steps
+from foresprint.model import (
     AbsenceState,
     ProductBasis,
     ProductValues,
@@ -31,15 +31,15 @@ from sprintforecast.model import (
     TrendMode,
     Unit,
 )
-from sprintforecast.products import distribution
-from sprintforecast.report import fmt, render
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
-from sprintforecast.validate import check_team
-from sprintforecast.web.logic import apply_calendar, calendar_table, with_sprints
+from foresprint.products import distribution
+from foresprint.report import fmt, render
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.validate import check_team
+from foresprint.web.logic import apply_calendar, calendar_table, with_sprints
 
 TODAY = date(2026, 10, 15)
 TARGET = "2026.23"  # future sprint without a file
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 
 
 def num(text: str) -> float:
@@ -259,7 +259,7 @@ def test_unfreeze_clears_the_frozen_plan_after_confirmation(
 
 
 def test_whatif_with_two_open_sprints_and_frozen_target(data_dir: Path):
-    from sprintforecast.web.logic import Assumption, open_velocity_sprints, whatif_forecast
+    from foresprint.web.logic import Assumption, open_velocity_sprints, whatif_forecast
 
     data = load(data_dir)
     fc = build_forecast(data, TODAY)
@@ -352,7 +352,7 @@ def test_rounding_setting_is_applied_everywhere(data_dir: Path, rounding: int):
 
 
 def test_capacity_details_add_up(data_dir: Path):
-    from sprintforecast.capacity import production_share, sprint_capacity
+    from foresprint.capacity import production_share, sprint_capacity
 
     data = load(data_dir)
     sprint = data.sprint("2026.22")
@@ -377,7 +377,7 @@ def test_capacity_details_add_up(data_dir: Path):
 def test_capacity_stays_unrounded_internally(data_dir: Path):
     """A14: The denominator of the normalized velocity is not rounded down; ``rounded`` rounds
     half up."""
-    from sprintforecast.capacity import sprint_capacity
+    from foresprint.capacity import sprint_capacity
 
     data = load(data_dir)
     sprint = data.sprint("2026.22")
@@ -390,8 +390,8 @@ def test_capacity_stays_unrounded_internally(data_dir: Path):
 
 
 def test_zero_fte_and_midsprint_change(data_dir: Path):
-    from sprintforecast.capacity import sprint_capacity
-    from sprintforecast.model import Membership
+    from foresprint.capacity import sprint_capacity
+    from foresprint.model import Membership
 
     data = load(data_dir)
     sprint = data.sprint("2026.22")
@@ -468,8 +468,8 @@ def test_longer_sprint_scales_capacity_and_shifts_followers(data_dir: Path):
 
 
 def test_sequential_to_yearly_numbering_keeps_order(data_dir: Path):
-    from sprintforecast.calendar import next_id
-    from sprintforecast.model import Numbering
+    from foresprint.calendar import next_id
+    from foresprint.model import Numbering
 
     assert next_id("39", date(2026, 1, 7), Numbering.YEARLY) == "2026.1"
     assert next_id("2026.9", date(2026, 6, 1), Numbering.YEARLY) == "2026.10"
