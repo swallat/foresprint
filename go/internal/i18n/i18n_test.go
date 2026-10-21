@@ -184,3 +184,11 @@ func TestGolden(t *testing.T) {
 		}
 	}
 }
+
+func TestRegister(t *testing.T) {
+	Register("de", map[string]string{"Registered {n}": "Eingetragen {n}"})
+	if got := TIn("de", "Registered {n}", "n", 2); got != "Eingetragen 2" {
+		t.Errorf("got %q", got)
+	}
+	Register("xx", map[string]string{"a": "b"}) // unknown language: ignored
+}

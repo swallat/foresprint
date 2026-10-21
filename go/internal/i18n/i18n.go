@@ -75,6 +75,23 @@ func load() {
 	}
 }
 
+// Register adds translations of one language (English source text to translated text) from
+// code, for packages that keep a few texts next to their code. Entries win over the files.
+// Call it from an init function, before texts are translated. Prefer a data file (see the
+// package comment).
+func Register(code string, entries map[string]string) {
+	loadOnce.Do(load)
+	mu.Lock()
+	defer mu.Unlock()
+	c := catalogs[code]
+	if c == nil {
+		return
+	}
+	for k, v := range entries {
+		c.Texts[k] = v
+	}
+}
+
 // Languages returns the available language codes with their names, sorted by code.
 func Languages() []Catalog {
 	loadOnce.Do(load)
