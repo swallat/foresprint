@@ -6,10 +6,11 @@ package protocol
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/swallat/foresprint/internal/i18n"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/swallat/foresprint/internal/i18n"
 
 	"github.com/swallat/foresprint/internal/pytext"
 	"github.com/swallat/foresprint/internal/report"

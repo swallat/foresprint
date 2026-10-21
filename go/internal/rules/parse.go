@@ -2,9 +2,10 @@ package rules
 
 import (
 	"fmt"
-	"github.com/swallat/foresprint/internal/i18n"
 	"strings"
 	"unicode"
+
+	"github.com/swallat/foresprint/internal/i18n"
 )
 
 // SyntaxError is an invalid expression; Position is the offset of the problem in characters
