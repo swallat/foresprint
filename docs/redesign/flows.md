@@ -31,7 +31,7 @@ Gap to 0.8: a project has at most one product (`Project.product`), only a target
 
 ## 2. Jobs to be done
 
-One user, scrum master or PO. Each job is one row of the function matrix (section 6). IDs J01 to J18.
+One user, scrum master or PO. Each job is one row of the function matrix (section 6). IDs J01 to J19.
 
 | ID | When I ... | I want to ... | so that ... |
 | --- | --- | --- | --- |
@@ -40,7 +40,7 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J03 | prepare the next sprint | see what is still missing (absences, pre-planning, refinement) | planning starts complete |
 | J04 | look at my backlog | filter, order and refine tickets and assign them to products and projects | the next sprints carry the right work |
 | J05 | prepare a sprint | earmark tickets and set the amount per product | planning is a confirmation, not a negotiation |
-| J06 | run sprint planning | confirm absences, take the Forecast PLAN, set planned amounts and the commitment, freeze | the sprint has a reliable plan |
+| J06 | run sprint planning | confirm absences, then add and remove tickets live against capacity and the Forecast PLAN until the team agrees, and freeze | the sprint has a plan everyone agreed to |
 | J07 | close a sprint | record velocity, scope change and done per product | the forecast learns from what happened |
 | J08 | am asked "when will it be done?" | see the forecast with range for the coming sprints | I can answer with confidence |
 | J09 | want to check fairness across products | compare default, pre-planned, planned and done per product over time | budgets match agreements |
@@ -53,6 +53,7 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J16 | a project starts or changes | record its products, milestones, end date and booked contingent | the forecast knows what the project expects |
 | J17 | a project lead asks how their project is doing | see booked vs planned vs done per sprint and the milestone traffic light, and export it | I can give a clear answer |
 | J18 | project demand and product budgets disagree | see the conflict with numbers and decide | the decision stays mine, but is informed |
+| J19 | look at any ticket anywhere | open it in the tracker with one click | I never search for a key by hand |
 
 ## 3. Story map
 
@@ -66,7 +67,7 @@ flowchart LR
   B --- B4[Projects: products, milestones, end date, contingent]
   C --- C1[Sync tickets] --- C2[Filter and order] --- C3[Refine and estimate] --- C4[Assign product and project]
   D --- D0[Project view: milestones, demand vs budget] --- D1[Absences] --- D2[Earmark tickets] --- D3[Amount per product] --- D4[Readiness check]
-  E --- E1[Confirm absences] --- E2[Forecast PLAN] --- E3[Planned amounts] --- E4[Commitment and freeze]
+  E --- E1[Confirm absences] --- E2[Forecast PLAN] --- E5[Add and remove tickets live] --- E3[Planned amounts per product] --- E4[Agree, commit and freeze]
   F --- F1[Scope changes] --- F2[Share changes]
   G --- G1[Velocity and done per product] --- G2[Tag and share]
   H --- H1[Forecast with range] --- H2[Product balance] --- H4[Project report: contingent and milestones] --- H3[Reports and export]
@@ -80,7 +81,8 @@ flowchart LR
 4. **Views are filters.** Backlog, refinement list, open points and assignment are saved filters of one ticket list, details in a side panel.
 5. **Git is global.** Change count, share and conflicts live in the top bar with one changes drawer; server, sign-in and history live in Settings (fixes D08 to D11, D13).
 6. **Settings are separate from daily work.** Team, tracker, data and sharing, and personal settings each have one section (fixes D14 to D16).
-7. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
+7. **Every ticket links to its tracker.** Key and an open-in-tracker icon on every ticket row, card and panel (Jira today, GitHub or GitLab later).
+8. **Every number explains itself.** Calculation and help open in place; no separate copies (fixes D05, D29).
 
 ## 5. Navigation proposal (text tree for the tree test)
 
@@ -92,7 +94,7 @@ Sprints                    timeline of sprints with state chips
   <sprint>                 one workspace, one selector
     Prepare                absences grid (this sprint), readiness checklist
     Pre-plan               earmarked tickets by project and daily business, amount per product, contingent hints
-    Plan                   Forecast PLAN, planned amounts, commitment, freeze
+    Plan                   ticket list vs sprint lane with live capacity and Forecast PLAN; planned amounts; agree and freeze
     Review                 velocity, scope change, done per product, tag
 Projects                   portfolio: timeline with milestones and end dates, traffic light, contingent use
   <project>                products, milestones, contingent, tickets, report for the project lead
@@ -181,17 +183,30 @@ flowchart TD
 
 ### F4 Plan a sprint (J06)
 
+With a tracker connected, planning works on tickets; without one it stays amount-based (planned amount per product, commitment). The tracker stays read-only: the agreement is made and stored locally. After freezing, the optional label `planned_for_<sprint>` is the only write (existing exception).
+
 ```mermaid
 flowchart TD
   S[Sprint > Plan] --> A{Absences confirmed?}
   A -- no --> A1[Confirm inline or nobody absent] --> F
   A -- yes --> F[Forecast PLAN with range and calculation]
-  F --> P[Planned amount per product, prefilled from pre-plan]
-  P --> C[Commitment]
-  C --> Z[Freeze plan]
-  Z --> SH[Share: push or merge request]
+  F --> T{Tracker connected?}
+  T -- no --> P[Planned amount per product and commitment]
+  T -- yes --> L[Two lanes: candidates left, sprint right, prefilled from earmarks]
+  L --> M[Add or remove tickets by drag, keyboard or menu]
+  M --> G[Live: sum vs Forecast PLAN, per product vs budget, per project vs contingent]
+  G --> Q{Team agrees?}
+  Q -- not yet --> M
+  Q -- yes --> P2[Planned amounts per product derived from the tickets, editable]
+  P2 --> C[Commitment = selected tickets]
+  P --> Z
+  C --> Z[Freeze plan, store ticket list locally]
+  Z --> W[Optional: write label planned_for_sprint]
+  W --> SH[Share: push or merge request]
   SH --> D([Sprint planned])
 ```
+
+Each ticket in both lanes shows key with tracker link, title, estimate, product, project and refinement state. Unrefined or unestimated tickets can be added but are flagged and counted separately.
 
 ### F5 Close a sprint (J07)
 
@@ -260,6 +275,8 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 8. ... share your changes with the team?
 9. ... check whether project X still reaches its next milestone?
 10. ... show a project lead how much of the booked contingent was used?
+11. ... take a ticket out of the sprint during planning because the team disagrees?
+12. ... open a ticket in Jira from the sprint plan?
 
 ## 9. Open questions
 
@@ -269,3 +286,5 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 4. Where do contingents come from: entered by hand, or also read from a tracker field?
 5. Milestones: dates only, or also a set of tickets per milestone (for its own traffic light)?
 6. Product of a project ticket when the project spans several products: product rule decides (proposal), or the PO picks per ticket?
+7. Planning with tickets: is the agreed ticket list the commitment, or does the commitment stay a number next to it?
+8. Tickets that the tracker already lists in the sprint but the team takes out during planning: only a local note, or a hint to fix it in Jira?
