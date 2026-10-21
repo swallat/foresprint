@@ -260,17 +260,26 @@ func StandardShares(active []model.Product, available *float64) map[string]float
 	if available == nil || len(active) == 0 {
 		return map[string]float64{}
 	}
-	result := map[string]float64{}
-	var fixed []float64
+	// Like the dicts of the Python original: a product ID that appears twice counts once (the
+	// last value stays, at the position of the first).
+	fixedValue := map[string]float64{}
+	var fixedOrder []string
 	var rest []model.Product
 	for _, p := range active {
 		if p.Share == nil {
 			rest = append(rest, p)
 			continue
 		}
-		v := float64(*available * *p.Share)
-		result[p.ID] = v
-		fixed = append(fixed, v)
+		if _, seen := fixedValue[p.ID]; !seen {
+			fixedOrder = append(fixedOrder, p.ID)
+		}
+		fixedValue[p.ID] = float64(*available * *p.Share)
+	}
+	result := make(map[string]float64, len(active))
+	fixed := make([]float64, 0, len(fixedOrder))
+	for _, id := range fixedOrder {
+		result[id] = fixedValue[id]
+		fixed = append(fixed, fixedValue[id])
 	}
 	if len(rest) == 0 {
 		return result
@@ -293,7 +302,7 @@ func Distribute(fc *forecast.Forecast, entry *forecast.TimelineEntry) Distributi
 	plan, frozen := PlanOf(entry)
 	available := plan
 	if plan != nil && basis == model.BasisRoadmap {
-		available = model.Ptr(*plan * data.Team.Forecast.RoadmapShare)
+		available = model.Ptr(float64(*plan * data.Team.Forecast.RoadmapShare))
 	}
 	handled := SprintProducts(data.Products, sprint)
 	known := map[string]bool{}
@@ -301,20 +310,20 @@ func Distribute(fc *forecast.Forecast, entry *forecast.TimelineEntry) Distributi
 		known[p.ID] = true
 	}
 	var active []model.Product
-	activeIDs := map[string]bool{}
-	for _, p := range handled {
+	isActive := make([]bool, len(handled))
+	for i, p := range handled {
 		if known[p.ID] && p.ActiveBetween(sprint.Start, sprint.End) {
 			active = append(active, p)
-			activeIDs[p.ID] = true
+			isActive[i] = true
 		}
 	}
 	shares := StandardShares(active, available)
 	rows := make([]Row, 0, len(handled))
-	for _, p := range handled {
+	for i, p := range handled {
 		values := sprint.Products[p.ID]
 		row := Row{
 			Product:           p,
-			Active:            activeIDs[p.ID],
+			Active:            isActive[i],
 			Preplanned:        values.Preplanned,
 			Planned:           values.Planned,
 			Done:              values.Done,

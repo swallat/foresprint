@@ -1,0 +1,32 @@
+# Sprint 2026.1. Explanations of all fields: `foresprint help fields`
+id: '2026.1'
+start: 2026-01-07
+end: 2026-01-21
+absences: {}
+absence_state: unknown
+capacity: 40
+forecast_ist: 32
+velocity: 30
+scope_creep: null
+forecast_plan: 25.5
+products:
+  aa:
+    planned: 1
+  api:
+    preplanned: 6
+    planned: 5.5
+    done: 5
+  app:
+    preplanned: 9
+    planned: 9
+    done: 9
+  old:
+    done: 1
+  web:
+    preplanned: 10
+    planned: 11
+    done: 10.5
+    production_planned: 2
+    production_done: 1.5
+  zz:
+    done: 0.5

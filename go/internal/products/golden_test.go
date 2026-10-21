@@ -187,3 +187,17 @@ func TestMiscMatchesPython(t *testing.T) {
 		t.Error("the footnote has no German text in the catalog")
 	}
 }
+
+// A product ID that appears twice counts once, like the dicts of the Python original
+// (checked against Python: {'a': 3.0, 'b': 7.0}).
+func TestStandardSharesDuplicateIDs(t *testing.T) {
+	active := []model.Product{
+		{ID: "a", Name: "a", Share: model.Ptr(0.3)},
+		{ID: "a", Name: "a", Share: model.Ptr(0.3)},
+		{ID: "b", Name: "b"},
+	}
+	got := products.StandardShares(active, model.Ptr(10.0))
+	if len(got) != 2 || got["a"] != 3 || got["b"] != 7 {
+		t.Errorf("shares = %v, Python {'a': 3.0, 'b': 7.0}", got)
+	}
+}

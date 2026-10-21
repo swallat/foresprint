@@ -1,0 +1,348 @@
+{
+ "normalized_history": [
+  30.909090909090907,
+  29.473684210526315,
+  34.285714285714285,
+  33.0,
+  30.24390243902439
+ ],
+ "sample_count": 5,
+ "average_focus_factor": 0.7895619592217795,
+ "buffer_hint": {
+  "average_scope_creep": null,
+  "samples": 0,
+  "average_late_share": null,
+  "configured_small_stuff": 0.25
+ },
+ "bands": {
+  "2026.14": {
+   "low": 56.0,
+   "mid": 58.7,
+   "high": 65.1,
+   "samples": 5
+  },
+  "2026.15": {
+   "low": 56.0,
+   "mid": 58.7,
+   "high": 65.1,
+   "samples": 5
+  },
+  "2026.16": {
+   "low": 56.0,
+   "mid": 58.7,
+   "high": 65.1,
+   "samples": 5
+  },
+  "2026.17": {
+   "low": 55.6,
+   "mid": 58.3,
+   "high": 64.7,
+   "samples": 5
+  },
+  "2026.18": {
+   "low": 52.3,
+   "mid": 54.8,
+   "high": 60.8,
+   "samples": 5
+  },
+  "2026.19": {
+   "low": 58.3,
+   "mid": 61.2,
+   "high": 67.8,
+   "samples": 5
+  },
+  "2026.20": {
+   "low": 56.7,
+   "mid": 59.5,
+   "high": 66.0,
+   "samples": 5
+  },
+  "2026.21": {
+   "low": 59.6,
+   "mid": 62.5,
+   "high": 69.4,
+   "samples": 5
+  },
+  "2026.22": {
+   "low": 59.6,
+   "mid": 62.5,
+   "high": 69.4,
+   "samples": 5
+  },
+  "2026.23": {
+   "low": 58.9,
+   "mid": 61.8,
+   "high": 68.5,
+   "samples": 5
+  },
+  "2026.24": {
+   "low": 58.2,
+   "mid": 61.0,
+   "high": 67.7,
+   "samples": 5
+  },
+  "2026.25": {
+   "low": 59.6,
+   "mid": 62.5,
+   "high": 69.4,
+   "samples": 5
+  },
+  "2026.26": {
+   "low": 52.4,
+   "mid": 55.0,
+   "high": 61.0,
+   "samples": 5
+  },
+  "2027.1": {
+   "low": 58.2,
+   "mid": 61.0,
+   "high": 67.7,
+   "samples": 5
+  },
+  "2027.2": {
+   "low": 59.6,
+   "mid": 62.5,
+   "high": 69.4,
+   "samples": 5
+  },
+  "2027.3": {
+   "low": 56.5,
+   "mid": 59.3,
+   "high": 65.8,
+   "samples": 5
+  },
+  "2027.4": {
+   "low": 58.9,
+   "mid": 61.8,
+   "high": 68.5,
+   "samples": 5
+  },
+  "2027.5": {
+   "low": 56.7,
+   "mid": 59.5,
+   "high": 66.0,
+   "samples": 5
+  },
+  "2027.6": {
+   "low": 53.0,
+   "mid": 55.6,
+   "high": 61.7,
+   "samples": 5
+  },
+  "2027.7": {
+   "low": 58.3,
+   "mid": 61.2,
+   "high": 67.8,
+   "samples": 5
+  },
+  "2027.8": {
+   "low": 59.6,
+   "mid": 62.5,
+   "high": 69.4,
+   "samples": 5
+  },
+  "2027.9": {
+   "low": 54.4,
+   "mid": 57.1,
+   "high": 63.3,
+   "samples": 5
+  },
+  "2027.10": {
+   "low": 52.6,
+   "mid": 55.2,
+   "high": 61.2,
+   "samples": 5
+  },
+  "2027.11": {
+   "low": 58.2,
+   "mid": 61.0,
+   "high": 67.7,
+   "samples": 5
+  },
+  "2027.12": {
+   "low": 58.3,
+   "mid": 61.2,
+   "high": 67.8,
+   "samples": 5
+  },
+  "2027.13": {
+   "low": 58.9,
+   "mid": 61.8,
+   "high": 68.5,
+   "samples": 5
+  }
+ },
+ "focus": {
+  "2026.1": 0.75,
+  "2026.2": 0.7727272727272727,
+  "2026.3": 0.7368421052631579,
+  "2026.4": 0.8571428571428571,
+  "2026.5": 0.825,
+  "2026.6": 0.7560975609756098,
+  "2026.7": null,
+  "2026.8": null,
+  "2026.9": null,
+  "2026.10": null,
+  "2026.11": null,
+  "2026.12": null,
+  "2026.13": null,
+  "2026.14": null,
+  "2026.15": null,
+  "2026.16": null,
+  "2026.17": null,
+  "2026.18": null,
+  "2026.19": null,
+  "2026.20": null,
+  "2026.21": null,
+  "2026.22": null,
+  "2026.23": null,
+  "2026.24": null,
+  "2026.25": null,
+  "2026.26": null,
+  "2027.1": null,
+  "2027.2": null,
+  "2027.3": null,
+  "2027.4": null,
+  "2027.5": null,
+  "2027.6": null,
+  "2027.7": null,
+  "2027.8": null,
+  "2027.9": null,
+  "2027.10": null,
+  "2027.11": null,
+  "2027.12": null,
+  "2027.13": null
+ },
+ "horizon": [
+  {
+   "sprint": "2026.14",
+   "capacity": 76.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.15",
+   "capacity": 76.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.16",
+   "capacity": 76.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.17",
+   "capacity": 75.5,
+   "trend": false
+  },
+  {
+   "sprint": "2026.18",
+   "capacity": 71.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.19",
+   "capacity": 79.2,
+   "trend": false
+  },
+  {
+   "sprint": "2026.20",
+   "capacity": 77.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.21",
+   "capacity": 81.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.22",
+   "capacity": 81.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.23",
+   "capacity": 80.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.24",
+   "capacity": 79.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.25",
+   "capacity": 81.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.26",
+   "capacity": 71.2,
+   "trend": false
+  },
+  {
+   "sprint": "2027.1",
+   "capacity": 79.0,
+   "trend": false
+  },
+  {
+   "sprint": "2027.2",
+   "capacity": 81.0,
+   "trend": false
+  },
+  {
+   "sprint": "2027.3",
+   "capacity": 76.8,
+   "trend": false
+  },
+  {
+   "sprint": "2027.4",
+   "capacity": 80.0,
+   "trend": false
+  },
+  {
+   "sprint": "2027.5",
+   "capacity": 77.0,
+   "trend": false
+  },
+  {
+   "sprint": "2027.6",
+   "capacity": 72.0,
+   "trend": false
+  },
+  {
+   "sprint": "2027.7",
+   "capacity": 79.2,
+   "trend": false
+  },
+  {
+   "sprint": "2027.8",
+   "capacity": 81.0,
+   "trend": false
+  },
+  {
+   "sprint": "2027.9",
+   "capacity": 73.9,
+   "trend": false
+  },
+  {
+   "sprint": "2027.10",
+   "capacity": 71.5,
+   "trend": false
+  },
+  {
+   "sprint": "2027.11",
+   "capacity": 79.0,
+   "trend": false
+  },
+  {
+   "sprint": "2027.12",
+   "capacity": 79.2,
+   "trend": false
+  },
+  {
+   "sprint": "2027.13",
+   "capacity": 80.0,
+   "trend": false
+  }
+ ]
+}
