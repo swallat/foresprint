@@ -70,6 +70,44 @@
     .sp-step-chip{margin-left:4px}
     .sp-nowrap{white-space:normal !important}
   </style>`;
+  // Tracker reconciliation on the plan step. Read-only by default: a list to adjust by hand.
+  // With "write sprint back" switched on (Settings > Jira): preview, confirm, undo.
+  const W = () => FS.state.jira?.write || { sprint: false, removed: "backlog" };
+  const removedTarget = (sid) => ({ backlog: null, proforma: "Refinement", next: D.sprints[D.sprints.findIndex((s) => s.id === sid) + 1]?.id || null }[W().removed]);
+  const tName = (x) => (x ? `Sprint ${x}` : "Backlog");
+  function jiraCard(sid, l, out, fz) {
+    const trk = D.team.tracker, w = W().sprint;
+    const add = l.filter((t) => t.inTrackerSprint !== sid);
+    const row = (t, from, to, btns) => `<div class="row" style="border-top:1px solid var(--border);padding:6px 0">${FS.keyLink(t)}<span style="flex:1;min-width:180px">${esc(t.title)}</span><span class="small muted data">${from} → ${to}</span>${btns}</div>`;
+    if (!w) return `<div class="card" id="sp-jira" style="margin-bottom:16px"><h2>In ${trk} anpassen</h2>
+        ${out.length ? `<p class="small muted" style="margin-top:0">Diese Tickets stehen in ${trk} noch im Sprint ${sid}, wurden hier aber herausgenommen. Das Tracker-Ticket bleibt unverändert, die Liste kommt ins Planungsprotokoll.</p>${out.map((t) => row(t, tName(sid), "herausgenommen", `<button class="btn" type="button" data-back="${t.key}">${ic("undo")}Zurück in den Sprint</button><button class="btn" type="button" data-jdone="${t.key}">${ic("check")}In ${trk} angepasst</button>`)).join("")}` : `<p class="muted" style="margin:0">Nichts anzupassen: ${trk} und Plan stimmen überein. Nimm zum Beispiel ATL-421 aus dem Sprint, dann erscheint es hier.</p>`}
+        <p class="small muted" style="margin:8px 0 0">Wenn ihr komplett in Foresprint plant, kann Foresprint den Sprint auch zurückschreiben: <a href="#jira">Einstellungen > Jira und Tickets</a>.</p></div>`;
+    const n = add.length + out.length;
+    return `<div class="card" id="sp-jira" style="margin-bottom:16px"><div class="row"><h2 style="margin:0;flex:1">Abgleich mit ${trk}</h2>${n ? `<span class="chip warn">${n} Änderungen offen</span>` : FS.lightChip("ok", "stimmt überein")}
+        <button class="btn ${fz ? "primary" : ""}" type="button" id="sp-jwrite" ${n ? "" : "disabled"}>${ic("upload")}In ${trk} übernehmen</button></div>
+      <p class="small muted" style="margin:8px 0">Foresprint schreibt nur das Sprintfeld, erst nach deiner Bestätigung in der Vorschau. Am besten nach dem Einfrieren.</p>
+      ${add.map((t) => row(t, tName(t.inTrackerSprint), `Sprint ${sid}`, "")).join("")}
+      ${out.map((t) => row(t, `Sprint ${sid}`, tName(removedTarget(sid)), `<button class="btn" type="button" data-back="${t.key}">${ic("undo")}Zurück in den Sprint</button>`)).join("")}</div>`;
+  }
+  function jiraPreview(sid, rerender) {
+    const l = tix(sid), trk = D.team.tracker;
+    const ch = [...l.filter((t) => t.inTrackerSprint !== sid).map((t) => [t, t.inTrackerSprint || null, sid]), ...D.tickets.filter((t) => t.inTrackerSprint === sid && t.sprint !== sid).map((t) => [t, sid, removedTarget(sid)])];
+    const el = FS.openPanel(`In ${trk} übernehmen: Sprint ${sid}`, `
+      <p style="margin:0">Diese Änderungen schreibt Foresprint nach ${trk}. Abwählen, was so bleiben soll.</p>
+      ${tw(`<table class="t"><thead><tr><th></th><th>Ticket</th><th>jetzt</th><th>danach</th></tr></thead><tbody>${ch.map(([t, a, b], i) => `<tr><td><input type="checkbox" data-jw="${i}" checked aria-label="${t.key} übernehmen"></td><td>${FS.keyLink(t)}</td><td class="data small">${tName(a)}</td><td class="data small"><strong>${tName(b)}</strong></td></tr>`).join("")}</tbody></table>`)}
+      <p class="small muted" style="margin:0">Nur das Sprintfeld. Reihenfolge, Schätzung, Status und Texte bleiben. Der Vorgang kommt ins Planungsprotokoll und lässt sich direkt danach rückgängig machen.</p>
+      <div class="row"><button class="btn primary" type="button" id="jw-go">${ic("upload")}<span id="jw-n">${ch.length}</span> Änderungen schreiben</button><button class="btn ghost" type="button" id="jw-cancel">Abbrechen</button></div>`);
+    if (!el) return;
+    const sel = () => ch.filter((_, i) => el.querySelector(`[data-jw="${i}"]`).checked);
+    el.querySelectorAll("[data-jw]").forEach((c) => (c.onchange = () => (el.querySelector("#jw-n").textContent = sel().length)));
+    el.querySelector("#jw-cancel").onclick = FS.closePanel;
+    el.querySelector("#jw-go").onclick = () => {
+      const done = sel(); done.forEach(([t, a, b]) => (t.inTrackerSprint = b));
+      (st().jiraLog ??= []).push({ sid, n: done.length });
+      FS.closePanel(); rerender();
+      FS.toast(`${done.length} Tickets in ${trk} angepasst. Steht im Planungsprotokoll.`, () => { done.forEach(([t, a]) => (t.inTrackerSprint = a)); st().jiraLog.pop(); rerender(); FS.toast(`In ${trk} zurückgesetzt.`); });
+    };
+  }
   const STAGES = [["prepare", "Vorbereiten"], ["preplan", "Vorplanen"], ["plan", "Planen"], ["review", "Review"], ["minutes", "Protokolle"]];
   const LEAD = {
     prepare: "Abwesenheiten eintragen und bestätigen, dann sehen, was für die Planung noch fehlt.",
@@ -286,7 +324,7 @@
       const unref = l.filter((t) => !t.refined).length, noEst = l.filter((t) => t.est == null).length;
       const jira = D.tickets.filter((t) => t.inTrackerSprint === sid && t.sprint !== sid && !t.jiraDone);
       const hints = projHints(sid);
-      const actions = `<button class="btn primary" type="button" id="sp-freeze" ${fz ? "disabled" : ""}>${ic("lock")}Einigung festhalten und einfrieren</button>`;
+      const actions = `${noT ? "" : `<button class="btn" type="button" id="sp-present" title="Tickets groß im Fenster zeigen, zum Teilen im Meeting">${ic("fit_screen")}Großansicht</button>`}<button class="btn primary" type="button" id="sp-freeze" ${fz ? "disabled" : ""}>${ic("lock")}Einigung festhalten und einfrieren</button>`;
       const laneTop = noT ? "" : `<div id="sp-lanes" class="grid cols-2" style="margin-bottom:16px">
         <div class="lane" data-zone="backlog"><div class="lane-head"><div class="sp-lane-h"><strong style="flex:1">Kandidaten</strong><span class="small muted data">${cands.length} Tickets · ${fmt(pts(cands))} Punkte</span></div><span class="small muted">Backlog und für spätere Sprints vorgemerkt</span></div>
           <div class="lane-body sp-lb">${cands.map((t) => FS.ticketRow(t, { drag: !fz })).join("") || `<div class="small muted" style="padding:12px">Keine Kandidaten übrig.</div>`}</div></div>
@@ -312,9 +350,8 @@
       <div class="row" id="sp-mode" style="margin-bottom:12px"><button class="chip filter ${noT ? "" : "on"}" type="button" data-mode="trk">${ic("confirmation_number", "small")}Mit Tracker: Tickets</button><button class="chip filter ${noT ? "on" : ""}" type="button" data-mode="amt">${ic("pin", "small")}Ohne Tracker: Beträge und Zusage</button></div>
       ${noT ? noTrackerCard : laneTop}
       <div class="grid cols-2" id="sp-live" style="margin-bottom:16px">${prodTbl}${projTbl}</div>
-      ${noT ? "" : `<div class="card" id="sp-jira" style="margin-bottom:16px"><h2>In ${D.team.tracker} anpassen</h2>
-        ${jira.length ? `<p class="small muted" style="margin-top:0">Diese Tickets stehen in ${D.team.tracker} noch im Sprint ${sid}, wurden hier aber herausgenommen. Das Tracker-Ticket bleibt unverändert, die Liste kommt ins Planungsprotokoll.</p>${jira.map((t) => `<div class="row" style="border-top:1px solid var(--border);padding:6px 0">${FS.keyLink(t)}<span style="flex:1;min-width:180px">${esc(t.title)}</span>${FS.productChip(t.product)}<button class="btn" type="button" data-back="${t.key}">${ic("undo")}Zurück in den Sprint</button><button class="btn" type="button" data-jdone="${t.key}">${ic("check")}In ${D.team.tracker} angepasst</button></div>`).join("")}` : `<p class="muted" style="margin:0">Nichts anzupassen: ${D.team.tracker} und Plan stimmen überein. Nimm zum Beispiel ATL-421 aus dem Sprint, dann erscheint es hier.</p>`}</div>`}
-      <div class="card"><div class="row"><label class="row" style="gap:8px"><input type="checkbox" id="sp-label" ${S.label ? "checked" : ""}> Label <span class="data">planned_for_${sid.replace(".", "_")}</span> in ${D.team.tracker} setzen (optional, einziger Schreibzugriff)</label></div>
+      ${noT ? "" : jiraCard(sid, l, jira, fz)}
+      <div class="card"><div class="row"><label class="row" style="gap:8px"><input type="checkbox" id="sp-label" ${S.label ? "checked" : ""}> Label <span class="data">planned_for_${sid.replace(".", "_")}</span> in ${D.team.tracker} setzen (optional)</label></div>
         <p class="small muted" style="margin:8px 0 0">Der Knopf oben rechts friert die Einigung ein, speichert die Ticketliste lokal und schreibt das Planungsprotokoll.</p></div>`;
     },
     wire(main) {
@@ -332,6 +369,8 @@
         freeze(sid); rerender();
         FS.toast(`Plan ${sid} eingefroren. Planungsprotokoll geschrieben${S.label ? `, Label planned_for_${sid.replace(".", "_")} wird gesetzt` : ", Label planned_for_" + sid.replace(".", "_") + " bleibt optional (nicht gesetzt)"}.`);
       };
+      const jw = main.querySelector("#sp-jwrite"); if (jw) jw.onclick = () => jiraPreview(sid, rerender);
+      const pr = main.querySelector("#sp-present"); if (pr) pr.onclick = () => { const q = (z) => [...main.querySelectorAll(`#sp-lanes [data-zone="${z}"] .ticket[data-key]`)].map((e) => e.dataset.key); const k = [...q(sid), ...q("backlog")]; const first = k.find((x) => D.details[x]) || k[0]; if (first) FS.presentTicket(first, k); };
       const ro = main.querySelector("#sp-reopen"); if (ro) ro.onclick = () => { delete S.frozen[sid]; rerender(); FS.toast("Plan wieder geöffnet. Beim nächsten Einfrieren wird das alte Protokoll als überholt markiert."); };
       const lanes = main.querySelector("#sp-lanes");
       if (lanes) FS.dnd(lanes, { onDrop(key, zone, before, kb) {
@@ -478,5 +517,15 @@
     { view: "review", hl: "#sp-freezepd", text: "Die verfügbaren Personentage werden eingefroren. Daraus ergibt sich die tatsächliche Rate für Kontingente (Schätzung)." },
     { view: "review", hl: "#sp-tag", text: "Optional: Sprint taggen und mit dem Team teilen." },
     { view: "review", hl: "#sp-close", text: "\"Sprint abschließen\" schreibt das Review-Protokoll. Danach erscheint der nächste Sprint auf Heute." },
+  ] });
+  FS.flow({ id: "F10", title: "Tickets im Meeting zeigen", summary: "Ein Fenster teilen: Ticketdetails aus Jira groß zeigen, blättern und dabei planen.", steps: [
+    { view: "plan", before() { FS.state.sprint = "2026.22"; }, hl: "#sp-present", text: "Im Planning teilst du nur Foresprint. \"Großansicht\" zeigt die Tickets aus Sprint und Kandidaten groß im Fenster." },
+    { view: "plan", before() { setTimeout(() => FS.presentTicket("ATL-421"), 250); }, text: "Beschreibung, Akzeptanzkriterien, Unteraufgaben, Verknüpfungen, Kommentare und Anhänge kommen beim Abruf aus Jira mit. Pfeiltasten blättern, die Leertaste nimmt das Ticket in den Sprint oder heraus." },
+    { view: "backlog", before() { FS.presentClose?.(); setTimeout(() => FS.ticketPanel("ATL-415"), 250); }, text: "Dieselben Details stehen überall im Ticket-Panel, zum Beispiel im Backlog. Von dort öffnet \"Großansicht\" die Präsentation." },
+  ] });
+  FS.flow({ id: "F11", title: "Geplanten Sprint nach Jira übernehmen", summary: "Optional: Sprintzuordnung aus der Planung nach Jira schreiben, mit Vorschau und Rückgängig.", steps: [
+    { view: "jira", before() { FS.presentClose?.(); }, hl: "#j-write", text: "Standard ist nur lesen. Hier schaltet ihr das Rückschreiben für das Team ein und legt fest, wohin herausgenommene Tickets in Jira gehen." },
+    { view: "plan", before() { FS.state.jira.write.sprint = true; }, hl: "#sp-jira", text: "In Planen zeigt \"Abgleich mit Jira\", welche Tickets in Jira in den Sprint kommen oder ihn verlassen." },
+    { view: "plan", before() { setTimeout(() => document.querySelector("#sp-jwrite")?.click(), 250); }, text: "\"In Jira übernehmen\" öffnet die Vorschau. Abwählen, was bleiben soll, dann schreiben. Geschrieben wird nur das Sprintfeld; der Vorgang landet im Planungsprotokoll und lässt sich rückgängig machen." },
   ] });
 })();

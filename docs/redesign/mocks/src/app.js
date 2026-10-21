@@ -70,11 +70,37 @@
   };
   FS.closePanel = () => document.querySelectorAll(".panel").forEach((p) => p.remove());
 
+  // Ticket details fetched read-only from the tracker; tickets without demo details get a short stand-in
+  FS.detail = (t) => D.details[t.key] || { type: "Story", priority: "Mittel", reporter: "Kim Berger", assignee: null, updated: "17.10.26 11:05", labels: [], components: [FS.product(t.product)?.name || ""], epic: FS.project(t.project)?.name || null,
+    description: `${t.title}. Die ausführliche Beschreibung steht im Ticket in ${D.team.tracker} und erscheint hier nach dem Abruf.`, acceptance: [], subtasks: [], links: [], comments: [], commentsTotal: 0, attachments: [] };
+  const dText = (txt) => txt.split("\n\n").map((p) => `<p style="margin:0 0 8px">${FS.esc(p)}</p>`).join("");
+  const dLinks = (d) => d.links.map(([rel, key, title]) => `<li><span class="muted">${rel}</span> ${FS.keyLink({ key })} ${FS.esc(title)}</li>`).join("");
+  const dSubs = (d) => d.subtasks.map(([key, title, st]) => `<li>${FS.keyLink({ key })} ${FS.esc(title)} <span class="chip small">${st}</span></li>`).join("");
+  const dComments = (d) => d.comments.map(([who, at, txt]) => `<div class="td-comment"><div class="small"><strong>${FS.esc(who)}</strong> <span class="muted data">${at}</span></div><div>${FS.esc(txt)}</div></div>`).join("") +
+    (d.commentsTotal > d.comments.length ? `<p class="small muted" style="margin:0">${d.commentsTotal - d.comments.length} ältere Kommentare ausgeblendet. <button class="link" type="button">Alle zeigen</button></p>` : "");
+  const dFiles = (d) => d.attachments.map(([n, kind, size]) => `<li class="row" style="gap:6px">${FS.icon(kind === "Bild" ? "image" : "description", "small")}<span class="data">${FS.esc(n)}</span><span class="muted small">${size}</span></li>`).join("");
+  const sect = (title, body, empty) => `<section class="td-sec"><h3>${title}</h3>${body || `<p class="muted small" style="margin:0">${empty}</p>`}</section>`;
+  // Jira content blocks shared by the side panel and the presentation view
+  FS.trackerBlocks = (t) => {
+    const d = FS.detail(t);
+    return sect("Beschreibung", dText(d.description)) +
+      sect("Akzeptanzkriterien", d.acceptance.length ? `<ul class="td-list">${d.acceptance.map((x) => `<li>${FS.esc(x)}</li>`).join("")}</ul>` : "", "Keine eigenen Akzeptanzkriterien (Feld zuordnen unter Einstellungen > Jira und Tickets).") +
+      sect(`Unteraufgaben <span class="muted small">${d.subtasks.length}</span>`, d.subtasks.length ? `<ul class="td-list">${dSubs(d)}</ul>` : "", "Keine.") +
+      sect("Verknüpfungen", d.links.length ? `<ul class="td-list">${dLinks(d)}</ul>` : "", "Keine.") +
+      sect(`Kommentare <span class="muted small">${d.commentsTotal}</span>`, dComments(d), "Keine.") +
+      sect(`Anhänge <span class="muted small">${d.attachments.length}</span>`, d.attachments.length ? `<ul class="td-list" style="list-style:none;padding:0">${dFiles(d)}</ul>` : "", "Keine.");
+  };
+  const facts = (t) => { const d = FS.detail(t); return `<dl class="kv">
+        <dt>Typ, Priorität</dt><dd>${d.type} · ${d.priority}</dd>
+        <dt>Zuständig</dt><dd>${d.assignee ? FS.esc(d.assignee) : `<span class="muted">niemand</span>`}</dd>
+        <dt>Labels</dt><dd>${d.labels.length ? d.labels.map((l) => `<span class="chip small data">${FS.esc(l)}</span>`).join(" ") : `<span class="muted">keine</span>`}</dd>
+        <dt>Stand</dt><dd class="small muted">Abruf ${D.trackerSync.last}, in ${D.team.tracker} geändert ${d.updated}</dd></dl>`; };
+
   FS.ticketPanel = (key) => {
     const t = FS.ticket(key);
     const opts = (list, cur, label) => list.map((x) => `<option value="${x.id}" ${x.id === cur ? "selected" : ""}>${FS.esc(x.name)}</option>`).join("");
-    FS.openPanel(`${t.key}`, `
-      <div class="row">${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span></div>
+    const el = FS.openPanel(`${t.key}`, `
+      <div class="row">${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span><span style="flex:1"></span><button class="btn" type="button" id="tp-present" title="Ticket groß im Fenster zeigen, mit Pfeiltasten blättern">${FS.icon("fit_screen")}Großansicht</button></div>
       <h2 style="margin:0">${FS.esc(t.title)}</h2>
       <dl class="kv">
         <dt>Produkt</dt><dd><select class="input" id="tp-product">${opts(D.products, t.product)}</select></dd>
@@ -85,9 +111,66 @@
         ${t.inTrackerSprint ? `<dt>Im ${D.team.tracker}-Sprint</dt><dd class="data">${t.inTrackerSprint}</dd>` : ""}
       </dl>
       <div class="field"><label for="tp-note">Notiz zur Vormerkung</label><textarea class="input" id="tp-note" rows="2" placeholder="z. B. mit Kim abgestimmt"></textarea></div>
-      <p class="small muted">Produkt per Regel (Komponente = Portal). Abweichung hier überschreibt die Regel nur für dieses Ticket.</p>
-      <h2>Verlauf</h2>
+      <p class="small muted" style="margin:0">Produkt per Regel (Komponente = Portal). Abweichung hier überschreibt die Regel nur für dieses Ticket.</p>
+      <h2 style="margin:8px 0 0">Aus ${D.team.tracker} <span class="chip small">nur gelesen</span></h2>
+      ${facts(t)}
+      ${FS.trackerBlocks(t)}
+      <h2>Verlauf in Foresprint</h2>
       <ul class="small" style="margin:0;padding-left:18px"><li>21.10. Kim Berger: vorgemerkt für 2026.22</li><li>18.10. Abruf aus ${D.team.tracker}: Schätzung 5</li></ul>`);
+    if (el) el.querySelector("#tp-present").onclick = () => FS.presentTicket(key);
+  };
+
+  // Presentation view: one ticket fills the window, arrows step through the list on screen.
+  // Built for sharing a single app window in planning and refinement meetings.
+  FS.presentTicket = (key, keys) => {
+    keys ??= [...new Set([...document.querySelectorAll("#main .ticket[data-key]")].map((e) => e.dataset.key))];
+    if (!keys.includes(key)) keys = [key, ...keys];
+    FS.closePanel();
+    document.querySelectorAll(".present").forEach((p) => p.remove());
+    const el = document.createElement("div");
+    el.className = "present";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    const draw = () => {
+      const t = FS.ticket(key), d = FS.detail(t), i = keys.indexOf(key), sid = FS.state.sprint, inSp = t.sprint === sid;
+      const onPlan = location.hash.slice(1) === "plan";
+      const inSprint = D.tickets.filter((x) => x.sprint === sid), pts = FS.sum(inSprint, (x) => x.est), sp = FS.sprint(sid);
+      el.setAttribute("aria-label", `${t.key} ${t.title}`);
+      el.innerHTML = `<div class="present-head">
+          ${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span>${FS.refinedChip(t)}${FS.productChip(t.product)}${FS.projectChip(t.project)}
+          <span style="flex:1"></span>
+          <span class="small muted data">${i + 1} von ${keys.length}</span>
+          <button class="btn icon" type="button" data-step="-1" aria-label="Vorheriges Ticket" ${i <= 0 ? "disabled" : ""}>${FS.icon("chevron_left")}</button>
+          <button class="btn icon" type="button" data-step="1" aria-label="Nächstes Ticket" ${i >= keys.length - 1 ? "disabled" : ""}>${FS.icon("chevron_right")}</button>
+          <button class="btn icon ghost" type="button" data-close aria-label="Großansicht schließen">${FS.icon("close")}</button></div>
+        <div class="present-body"><div class="present-main">
+          <h1>${FS.esc(t.title)}</h1>
+          ${FS.trackerBlocks(t)}</div>
+          <aside class="present-side">
+            <div class="present-est"><span class="data">${t.est ?? "?"}</span><span class="small muted">Punkte</span></div>
+            ${onPlan ? `<div class="card stack" style="gap:8px"><div class="small muted">Sprint <span class="data">${sid}</span>: <strong class="data">${pts}</strong> von <span class="data">${sp.forecast}</span> Punkten</div>${FS.capBar(pts, sp.forecast, sp.low, sp.high)}
+              <button class="btn ${inSp ? "" : "primary"}" type="button" data-move>${FS.icon(inSp ? "remove" : "add")}${inSp ? "Aus dem Sprint nehmen" : `In Sprint ${sid} nehmen`}</button></div>` : ""}
+            ${facts(t)}
+            <dl class="kv"><dt>Vorgemerkt</dt><dd>${t.sprint ? `Sprint ${t.sprint}` : `<span class="muted">nicht vorgemerkt</span>`}</dd><dt>Epic</dt><dd>${d.epic ? FS.esc(d.epic) : `<span class="muted">keins</span>`}</dd></dl>
+            <p class="small muted" style="margin:0">Pfeiltasten blättern, Esc schließt. ${onPlan ? "Leertaste nimmt das Ticket in den Sprint oder heraus." : ""}</p>
+          </aside></div>`;
+      el.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => step(+b.dataset.step)));
+      el.querySelector("[data-close]").onclick = close;
+      const mv = el.querySelector("[data-move]"); if (mv) mv.onclick = move;
+    };
+    const step = (n) => { const i = keys.indexOf(key) + n; if (i < 0 || i >= keys.length) return; key = keys[i]; draw(); };
+    const move = () => { FS.moveTicket(key, FS.ticket(key).sprint === FS.state.sprint ? "backlog" : FS.state.sprint, null); FS.keepPresent = true; FS.render(); FS.keepPresent = false; draw(); };
+    const onKey = (e) => {
+      if (e.target.closest("input, textarea, select")) return;
+      if (e.key === "ArrowRight") step(1); else if (e.key === "ArrowLeft") step(-1); else if (e.key === "Escape") close();
+      else if (e.key === " " && el.querySelector("[data-move]")) { e.preventDefault(); move(); } else return;
+    };
+    const close = () => { el.remove(); window.removeEventListener("keydown", onKey); FS.presentClose = null; };
+    FS.presentClose?.(); FS.presentClose = close;
+    window.addEventListener("keydown", onKey);
+    document.body.appendChild(el);
+    draw();
+    el.querySelector("[data-close]").focus();
   };
 
   // ---------- drag and drop with keyboard alternative ----------
@@ -257,6 +340,7 @@
     document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("active", a.dataset.nav === navId));
     const main = document.getElementById("main");
     FS.closePanel();
+    if (!FS.keepPresent) FS.presentClose?.();
     main.innerHTML = `<div class="page">${v.render()}</div>`;
     if (v.wire) v.wire(main);
     applyCalcMode(main);

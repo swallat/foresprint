@@ -27,7 +27,7 @@
           table(["Person", "Abwesend (T)", "FTE", "PT"], people.map((x) => [x.p.name, f(x.a), f(x.p.fte, 1), f(x.pd, 1)]), ["Summe vor Overhead", "", "", f(gross, 1)]) +
           `<p class="small">${f(gross, 1)} − ${f(over, 1)} Overhead = <strong class="data">${f(cap, 1)} PT</strong>, angezeigt gerundet ${f(cap)} PT.</p>`,
         special: ["Bestätigt: die eingetragenen Abwesenheiten zählen. Angekündigt: die Ankündigung aus der Vorplanung zählt. Unbekannt: Foresprint zieht den Durchschnitt der Abwesenheiten aus früheren bestätigten Sprints ab und warnt.",
-          "Feiertage kommen aus dem Kalender der Region (Team-Einstellung). Brückentage trägst du als Abwesenheit ein.",
+          "Product Owner zählen nicht mit, außer sie sind unter Team > Personen als \"arbeitet im Team mit\" mit einem Anteil eingetragen.", "Feiertage kommen aus dem Kalender der Region (Team-Einstellung). Brückentage trägst du als Abwesenheit ein.",
           "Die Kapazität bleibt intern ungerundet; gerundet wird nur zur Anzeige und beim Einfrieren im Review."] },
       { id: "rate", icon: "speed", title: "Rate (normierte Velocity)", lead: "Wie viele Punkte das Team je verfügbarem Personentag schafft. Daraus entstehen Forecast und Umrechnungen.",
         formula: "Rate = Velocity ÷ Kapazität      Mittelwert über die letzten Sprints mit Wert (Fenster 5)",

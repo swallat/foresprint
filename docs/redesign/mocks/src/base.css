@@ -212,3 +212,19 @@ table.t td.edit input { width: 64px; height: 26px; text-align: right; border: 1p
 .calc-inline .tw { margin-top: 6px; }
 .help-topic { scroll-margin-top: 16px; }
 .formula { font-family: var(--font-data); background: var(--surface-2); border-radius: var(--r-ctl); padding: 8px 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Ticket details from the tracker (panel and presentation view) */
+.td-sec h3 { font-size: 13px; margin: 0 0 6px; color: var(--text-muted); font-weight: 600; letter-spacing: .02em; }
+.td-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.td-comment { border-left: 2px solid var(--border); padding: 2px 0 2px 10px; margin-bottom: 8px; }
+button.link { background: none; border: 0; padding: 0; color: var(--primary); text-decoration: underline; cursor: pointer; font: inherit; }
+.present { position: fixed; top: var(--top); left: 0; right: 0; bottom: 0; z-index: 32; background: var(--bg); display: flex; flex-direction: column; }
+.present-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.present-body { flex: 1; overflow: auto; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 32px; padding: 24px 32px; max-width: 1400px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.present-main { display: flex; flex-direction: column; gap: 20px; font-size: 17px; line-height: 1.55; max-width: 75ch; }
+.present-main h1 { font-size: 30px; line-height: 1.2; margin: 0; }
+.present-main .td-sec h3 { font-size: 14px; }
+.present-side { display: flex; flex-direction: column; gap: 16px; }
+.present-est { display: flex; align-items: baseline; gap: 8px; }
+.present-est .data { font-size: 44px; font-weight: 600; line-height: 1; }
+@media (max-width: 900px) { .present-body { grid-template-columns: minmax(0, 1fr); padding: 16px; } .present-head { padding: 8px 16px; } }

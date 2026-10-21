@@ -5,7 +5,7 @@ Method: jobs to be done per role, story map after Patton (activities, steps, fun
 
 ## 1. User
 
-Foresprint is a desktop application with one kind of user: the person who plans for the team, a scrum master or a product owner (often both in one). There are no separate roles, permissions or views per role. The data still knows several POs: each product has a PO, and totals per PO stay. Setup is done by the same user, rarely.
+Foresprint is a desktop application with one kind of user: the person who plans for the team, a scrum master or a product owner (often both in one). There are no separate roles, permissions or views per role. The data still knows several POs: each product has a PO, and totals per PO stay. POs are not team members by default and do not count towards capacity; a PO who regularly takes on team work can be included with a share (FTE) and then counts like a person, absences included. Setup is done by the same user, rarely.
 
 ## 1a. Products, projects and daily business
 
@@ -33,7 +33,7 @@ Gap to 0.8: a project has at most one product (`Project.product`), only a target
 
 ## 2. Jobs to be done
 
-One user, scrum master or PO. Each job is one row of the function matrix (section 6). IDs J01 to J24.
+One user, scrum master or PO. Each job is one row of the function matrix (section 6). IDs J01 to J26.
 
 | ID | When I ... | I want to ... | so that ... |
 | --- | --- | --- | --- |
@@ -60,6 +60,8 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J21 | my team keeps its data in Git and the server enforces merge requests | still save with one click and get a link to the merge request | Foresprint works with our server rules |
 | J22 | two people changed the same value | see both values side by side and pick per entry | nothing gets lost and I stay in control |
 | J23 | have no connection to the server | keep working and save later | the network is never a blocker |
+| J25 | discuss a ticket in planning or refinement while sharing one window | see description, acceptance criteria, subtasks, links, comments and attachments in Foresprint, large, and step through the list | the meeting never leaves Foresprint |
+| J26 | the team plans completely in Foresprint | take the agreed sprint over into the tracker with one confirmed step | the tracker matches the plan without manual work |
 | J24 | set up a team's storage | clone or open the team's Git repository (after 1.0 also choose a shared folder) | the team decides where its data lives |
 
 ## 3. Story map
@@ -112,7 +114,8 @@ flowchart LR
 ```
 Today                      state-aware: next step per sprint, sync state, findings
 Backlog                    all tickets with lanes for the coming sprints (PO pre-planning across sprints), pro-forma sprints (e.g. Refinement) as sections under the list, group by project or product; saved views: Daily business, Refinement, Unassigned, Earmarked, Open points
-  ticket panel             details, product, project, estimate, earmark, history
+  ticket panel             Foresprint fields (product, project, estimate, earmark, note) plus tracker content read on sync: description, acceptance criteria, subtasks, links, comments, attachments; history
+  presentation view        one ticket fills the window, arrows step through the current list, space adds or removes it on Sprint > Plan (for sharing one window in meetings)
 Sprints                    timeline of sprints with state chips
   <sprint>                 one workspace, one selector
     Prepare                absences grid (this sprint), readiness checklist
@@ -124,7 +127,7 @@ Projects                   portfolio: timeline with milestones and end dates, tr
   <project>                products, milestones, contingent, tickets, report for the project lead; works offline, tracker rules optional
 Forecast                   coming sprints with range; tabs: Analysis, Products over time, Reports and export
 Team
-  People and absences      people, FTE, absences grid across sprints
+  People and absences      people, FTE, POs (outside capacity unless included with a share), absences grid across sprints
   Products                 products, assignment rules with live preview
   Sprint calendar          dates, length, sprint IDs
 Data                       the team's data, the same for every storage
@@ -133,7 +136,7 @@ Data                       the team's data, the same for every storage
   History and tags         who changed what and when, restore a state, take back a change, tags (after 1.0 for folders: journal and daily snapshots)
 Settings
   Team                     forecast settings, features, budget basis
-  Jira and tickets         connection, fields, sync interval, which tracker sprints are pro forma, import
+  Jira and tickets         connection, fields (incl. acceptance criteria), sync interval, which tracker sprints are pro forma, write back (off by default: sprint assignment, label), import
   Storage                  Git: server, sign-in, branch, name and email, line endings, recent folders; after 1.0 also kind (Git or shared folder)
   Personal                 theme, language, density, calculations next to numbers (hidden, icon, expanded)
 Help
@@ -213,7 +216,7 @@ flowchart TD
 
 ### F4 Plan a sprint (J06)
 
-With a tracker connected, planning works on tickets; without one it stays amount-based (planned amount per product, commitment). The tracker stays read-only: the agreement is made and stored locally. After freezing, the optional label `planned_for_<sprint>` is the only write (existing exception).
+With a tracker connected, planning works on tickets; without one it stays amount-based (planned amount per product, commitment). By default the tracker stays read-only: the agreement is made and stored locally, and the optional label `planned_for_<sprint>` is written after freezing. If the team switched on "write sprint back" (Settings > Jira and tickets), "Reconcile with Jira" lists the tickets that enter or leave the tracker sprint, and "Take over into Jira" writes only the sprint field after a preview with per-ticket opt-out; undo right after, and the step goes into the planning minutes. "Presentation view" shows the candidates and sprint tickets with their tracker details in one window.
 
 ```mermaid
 flowchart TD
@@ -233,7 +236,11 @@ flowchart TD
   C --> Z[Freeze plan, store ticket list locally]
   Z --> MN[Write planning minutes with agreed tickets]
   MN --> W[Optional: write label planned_for_sprint]
-  W --> SH[Save]
+  W --> WB{Write sprint back on?}
+  WB -- no --> J[List: adjust in Jira by hand]
+  WB -- yes --> PV[Preview: enter and leave tracker sprint, opt out per ticket] --> WR[Write sprint field, undo possible, note in minutes]
+  J --> SH
+  WR --> SH[Save]
   SH --> D([Sprint planned])
 ```
 
@@ -394,6 +401,26 @@ flowchart LR
   S[Settings > Personal > Calculations] -- hidden / icon / expanded --> N
 ```
 
+### F10 Show tickets in a meeting (J25)
+
+```mermaid
+flowchart LR
+  P[Sprint > Plan or any ticket panel] --> V[Presentation view: one ticket, large]
+  V -- arrows --> V
+  V -- space on Plan --> M[Ticket enters or leaves the sprint, live sums update]
+  V -- Esc --> P
+```
+
+### F11 Take the agreed sprint over into the tracker (J26)
+
+```mermaid
+flowchart LR
+  S[Settings > Jira and tickets: write sprint back on, target for removed tickets, check permission] --> R[Sprint > Plan: Reconcile with Jira]
+  R --> PV[Preview with opt-out] --> W[Write sprint field] --> U{Wrong?}
+  U -- yes --> UN[Undo] --> R
+  U -- no --> MN([Noted in planning minutes])
+```
+
 ## 8. Tree test (before mocks)
 
 Sebastian plus one or two other scrum masters or POs get the text tree of section 5 and answer "Where do you click to ...?" Target: 80 percent direct success.
@@ -424,8 +451,11 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 4. **Milestones:** a date, optionally with tickets assigned; with tickets it gets its own traffic light.
 5. **Product of a project ticket** when the project spans several products: the product rule decides, the PO can override per ticket.
 6. **Commitment with tickets:** the agreed ticket list is the commitment, its sum follows from it. A separate number remains only without a tracker.
-7. **Ticket in the tracker's sprint but taken out in planning:** noted locally, shown in a list "adjust in Jira" and in the planning minutes. The tracker stays read-only.
+7. **Ticket in the tracker's sprint but taken out in planning:** noted locally, shown in a list "adjust in Jira" and in the planning minutes. With write back switched on (decision 10) Foresprint moves it in the tracker to the backlog, a pro-forma sprint or the next sprint (team setting).
 8. **Calculations:** explained in a help page (Help > Calculations) and switchable per person: hidden, icon or always expanded. The default UI stays light.
+9. **Ticket details in Foresprint:** description, acceptance criteria, subtasks, links, comments and attachment names are read on each sync and cached locally per machine, not in the team data (YAML unchanged). A presentation view shows one ticket large for meetings.
+10. **Write sprint back to the tracker (optional, 21.10.2026):** off by default, switched on per team. Only on an explicit button in Sprint > Plan, always with preview, per-ticket opt-out and undo, logged in the planning minutes. Only the sprint field (and the existing label) is written; order, estimate, status and texts stay untouched, and Foresprint never creates, starts or closes tracker sprints. The token needs the right to edit sprints; without it everything stays read-only. Writing the order back remains rejected.
+11. **Product owners and capacity:** POs are outside the team and capacity by default; including one is an explicit choice with a share (FTE).
 
 ## 10. Open questions
 

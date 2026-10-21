@@ -13,8 +13,8 @@ window.DEMO = {
   ],
   trackerSync: { last: "vor 3 min", tickets: 46, changed: 4 },
   pos: [
-    { id: "kim", name: "Kim Berger" },
-    { id: "lea", name: "Lea Hoffmann" },
+    { id: "kim", name: "Kim Berger", inTeam: false, teamFte: 0.2 },
+    { id: "lea", name: "Lea Hoffmann", inTeam: false, teamFte: 0.2 },
   ],
   products: [
     { id: "portal", name: "Kundenportal", po: "kim", share: 0.35, color: "#5b5bf0" },
@@ -63,6 +63,39 @@ window.DEMO = {
   productPlan: {
     "2026.21": { portal: { def: 14, pre: 13, plan: 14, prodPlan: 3, done: null }, billing: { def: 8, pre: 9, plan: 8, prodPlan: 1, done: null }, mobile: { def: 10, pre: 10, plan: 10, prodPlan: 2, done: null }, platform: { def: 8, pre: 8, plan: 8, prodPlan: 2, done: null } },
     "2026.22": { portal: { def: 12, pre: 13 }, billing: { def: 7, pre: 6 }, mobile: { def: 9, pre: 8 }, platform: { def: 7, pre: 8 } },
+  },
+  // Ticket details as fetched read-only from the tracker (cached locally, not part of team data)
+  details: {
+    "ATL-421": {
+      type: "Story", priority: "Hoch", reporter: "Kim Berger", assignee: null, updated: "20.10.26 16:42", labels: ["login", "security"], components: ["Anmeldedienst"], epic: "Login-Umstellung",
+      description: "Der Anmeldedienst soll Access-Tokens erneuern, ohne dass sich Nutzer neu anmelden müssen. Refresh-Tokens werden rotiert und nach einmaliger Nutzung ungültig.\n\nHintergrund: Die Mobile App meldet heute nach 15 Minuten ab, das erzeugt viele Support-Anfragen.",
+      acceptance: ["Access-Token läuft nach 15 Minuten ab, Refresh-Token nach 30 Tagen", "Ein Refresh-Token ist genau einmal gültig (Rotation)", "Wiederverwendung eines Refresh-Tokens sperrt die ganze Sitzung", "Metriken: Anzahl Erneuerungen und Fehlversuche je Stunde"],
+      subtasks: [["ATL-421-1", "Endpunkt /token/refresh", "Neu"], ["ATL-421-2", "Rotation und Sperrliste", "Neu"], ["ATL-421-3", "Lasttest 500 Anfragen/s", "Neu"]],
+      links: [["blockiert", "ATL-420", "OAuth-Client für Mobile App registrieren"], ["wird blockiert von", "ATL-407", "Anmeldedienst: Grundgerüst"]],
+      comments: [["Tarek Aydin", "19.10.26", "Rotation würde ich mit der vorhandenen Redis-Instanz lösen, dann brauchen wir keine neue Tabelle."], ["Kim Berger", "20.10.26", "Security-Review ist für den 05.11. angefragt. Bis dahin reicht ein Feature-Flag."], ["Sara Klein", "20.10.26", "Schätzung im Refinement: 8. Lasttest ist darin enthalten."]],
+      commentsTotal: 5,
+      attachments: [["ablauf-token-erneuerung.png", "Bild", "184 KB"], ["security-anforderungen.pdf", "PDF", "312 KB"]],
+    },
+    "ATL-415": {
+      type: "Story", priority: "Mittel", reporter: "Lea Hoffmann", assignee: "Mira Schulz", updated: "18.10.26 09:12", labels: ["self-service"], components: ["Portal"], epic: "Self-Service 2.0",
+      description: "Kundinnen und Kunden ändern ihre Rechnungsadresse selbst im Portal. Die Änderung gilt ab der nächsten Rechnung.",
+      acceptance: ["Adresse wird gegen das Adressverzeichnis geprüft", "Bestätigung per E-Mail an die alte und die neue Adresse", "Änderung erscheint im Verlauf des Kundenkontos"],
+      subtasks: [["ATL-415-1", "Formular und Prüfung", "Neu"], ["ATL-415-2", "E-Mail-Vorlagen", "Neu"]],
+      links: [["bezieht sich auf", "ATL-412", "Rechnungsliste filtern nach Zeitraum"]],
+      comments: [["Lea Hoffmann", "18.10.26", "Texte für die E-Mails liefert das Kundenteam bis 25.10."]],
+      commentsTotal: 1,
+      attachments: [["entwurf-adresse.png", "Bild", "96 KB"]],
+    },
+    "ATL-434": {
+      type: "Story", priority: "Mittel", reporter: "Lea Hoffmann", assignee: null, updated: "21.10.26 08:30", labels: ["self-service"], components: ["Portal"], epic: "Self-Service 2.0",
+      description: "Zählerstand im Portal melden, mit Foto des Zählers. Noch offen: Plausibilitätsprüfung gegen den Vorjahresverbrauch.",
+      acceptance: ["Eingabe mit Datum und Zählernummer", "Foto optional, höchstens 5 MB", "Unplausible Werte zeigen einen Hinweis, sperren aber nicht"],
+      subtasks: [],
+      links: [],
+      comments: [["Jonas Weber", "21.10.26", "Für das Refinement: Wer entscheidet über die Grenze für unplausibel?"]],
+      commentsTotal: 1,
+      attachments: [],
+    },
   },
   tickets: [
     { key: "ATL-412", title: "Rechnungsliste filtern nach Zeitraum", product: "portal", project: "ss2", est: 5, refined: true, status: "Bereit", sprint: "2026.22", rank: 1 },
