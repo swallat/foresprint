@@ -34,9 +34,9 @@ def main(argv: list[str]) -> int:
             print("merged:", ", ".join(str(r) for r in ws.merged_cells.ranges))
         for row in ws.iter_rows(max_row=max_rows):
             for cell in row:
-                if cell.value is None:
-                    continue
                 raw = fs[cell.coordinate].value
+                if cell.value is None and raw is None:
+                    continue
                 note = f"   [formula {raw}]" if isinstance(raw, str) and raw.startswith("=") else ""
                 print(f"{cell.coordinate} = {cell.value!r}{note}")
         if ws.max_row > max_rows:
