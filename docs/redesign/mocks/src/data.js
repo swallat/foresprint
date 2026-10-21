@@ -1,0 +1,101 @@
+// Invented demo team for the mocks. No real team, company or person.
+window.DEMO = {
+  team: { id: "atlas", name: "Team Atlas", region: "DE-NW", tracker: "Jira", trackerUrl: "https://jira.example.com/browse/" },
+  today: "2026-10-21",
+  storage: { kind: "Git", server: "git.example.com/planung/atlas-daten", branch: "main", mrEnforced: true, lastSave: "heute 09:42", incoming: [{ who: "Lea Hoffmann", what: "Abwesenheiten 2026.22", when: "vor 12 min" }, { who: "Kim Berger", what: "Projekt Self-Service 2.0: Meilenstein", when: "vor 40 min" }] },
+  // Tracker sprints that are not real time-boxes (e.g. a parking sprint for the next refinement).
+  // Configurable per team: none, one or several. They never count for capacity or forecast.
+  trackerSprints: [
+    { name: "Refinement", proforma: true, note: "Tickets für das nächste Refinement" },
+    { name: "Ideen-Parkplatz", proforma: true, note: "Ideen ohne Termin" },
+    { name: "Atlas 2026.21", proforma: false, mapsTo: "2026.21" },
+    { name: "Atlas 2026.22", proforma: false, mapsTo: "2026.22" },
+  ],
+  trackerSync: { last: "vor 3 min", tickets: 46, changed: 4 },
+  pos: [
+    { id: "kim", name: "Kim Berger" },
+    { id: "lea", name: "Lea Hoffmann" },
+  ],
+  products: [
+    { id: "portal", name: "Kundenportal", po: "kim", share: 0.35, color: "#5b5bf0" },
+    { id: "billing", name: "Abrechnung", po: "kim", share: 0.20, color: "#a24df0" },
+    { id: "mobile", name: "Mobile App", po: "lea", share: 0.25, color: "#e0732c" },
+    { id: "platform", name: "Plattform", po: "lea", share: 0.20, color: "#2a8fbd" },
+  ],
+  projects: [
+    { id: "ss2", name: "Self-Service 2.0", products: ["portal", "mobile"], end: "2027-01-29", lead: "Projektleitung Vertrieb", contingentPD: 60, usedPD: 31, plannedPD: 14, light: "warn",
+      milestones: [{ name: "Beta für Pilotkunden", date: "2026-11-20", tickets: 6, done: 3, light: "warn" }, { name: "Go-live", date: "2027-01-29", tickets: 0, done: 0, light: "ok" }] },
+    { id: "erech", name: "E-Rechnung", products: ["billing", "platform"], end: "2026-12-18", lead: "Projektleitung Finanzen", contingentPD: 40, usedPD: 22, plannedPD: 9, light: "ok",
+      milestones: [{ name: "XRechnung-Export", date: "2026-11-27", tickets: 4, done: 2, light: "ok" }, { name: "Abnahme", date: "2026-12-18", tickets: 0, done: 0, light: "ok" }] },
+    { id: "login", name: "Login-Umstellung", products: ["portal", "mobile", "platform"], end: "2026-12-04", lead: "IT-Sicherheit", contingentPD: 25, usedPD: 21, plannedPD: 6, light: "bad",
+      milestones: [{ name: "Neuer Anmeldedienst live", date: "2026-12-04", tickets: 5, done: 1, light: "bad" }] },
+  ],
+  people: [
+    { id: "p1", name: "Jonas Weber", fte: 1.0, prod: true },
+    { id: "p2", name: "Mira Schulz", fte: 1.0, prod: false },
+    { id: "p3", name: "Tarek Aydin", fte: 0.8, prod: true },
+    { id: "p4", name: "Paula Neumann", fte: 1.0, prod: false },
+    { id: "p5", name: "Felix Braun", fte: 0.5, prod: false },
+    { id: "p6", name: "Sara Klein", fte: 1.0, prod: true },
+  ],
+  // state: past = closed, current = running, planned = frozen plan, open = future
+  sprints: [
+    { id: "2026.17", start: "2026-08-19", end: "2026-09-01", days: 10, state: "past", capacityPD: 49, velocity: 41, plan: 40 },
+    { id: "2026.18", start: "2026-09-02", end: "2026-09-15", days: 10, state: "past", capacityPD: 44, velocity: 35, plan: 37 },
+    { id: "2026.19", start: "2026-09-16", end: "2026-09-29", days: 10, state: "past", capacityPD: 51, velocity: 44, plan: 42 },
+    { id: "2026.20", start: "2026-09-30", end: "2026-10-13", days: 9, state: "past", capacityPD: 43, velocity: 37, plan: 36 },
+    { id: "2026.21", start: "2026-10-14", end: "2026-10-27", days: 10, state: "current", capacityPD: 48, velocity: null, plan: 40, absences: "confirmed" },
+    { id: "2026.22", start: "2026-10-28", end: "2026-11-10", days: 10, state: "open", capacityPD: 41, plan: null, forecast: 35, low: 31, high: 39, absences: "announced" },
+    { id: "2026.23", start: "2026-11-11", end: "2026-11-24", days: 10, state: "open", capacityPD: 50, plan: null, forecast: 42, low: 37, high: 47, absences: "unknown" },
+    { id: "2026.24", start: "2026-11-25", end: "2026-12-08", days: 10, state: "open", capacityPD: 49, plan: null, forecast: 41, low: 36, high: 46, absences: "unknown" },
+    { id: "2026.25", start: "2026-12-09", end: "2026-12-22", days: 10, state: "open", capacityPD: 38, plan: null, forecast: 32, low: 27, high: 37, absences: "announced" },
+  ],
+  // points per available person day (normalized velocity), used to convert points to PD
+  rate: 0.85,
+  // absences in person days per person and sprint; a: announced, c: confirmed
+  absences: {
+    "2026.22": { p1: { d: 3, s: "a" }, p3: { d: 2, s: "a" }, p4: { d: 5, s: "a" } },
+    "2026.23": {},
+    "2026.25": { p1: { d: 4, s: "a" }, p2: { d: 5, s: "a" }, p6: { d: 3, s: "a" } },
+  },
+  // per sprint and product: default, preplanned, planned, done (points) and production part
+  productPlan: {
+    "2026.21": { portal: { def: 14, pre: 13, plan: 14, prodPlan: 3, done: null }, billing: { def: 8, pre: 9, plan: 8, prodPlan: 1, done: null }, mobile: { def: 10, pre: 10, plan: 10, prodPlan: 2, done: null }, platform: { def: 8, pre: 8, plan: 8, prodPlan: 2, done: null } },
+    "2026.22": { portal: { def: 12, pre: 13 }, billing: { def: 7, pre: 6 }, mobile: { def: 9, pre: 8 }, platform: { def: 7, pre: 8 } },
+  },
+  tickets: [
+    { key: "ATL-412", title: "Rechnungsliste filtern nach Zeitraum", product: "portal", project: "ss2", est: 5, refined: true, status: "Bereit", sprint: "2026.22", rank: 1 },
+    { key: "ATL-415", title: "Self-Service: Adresse ändern", product: "portal", project: "ss2", est: 8, refined: true, status: "Bereit", sprint: "2026.22", rank: 2 },
+    { key: "ATL-417", title: "Push-Hinweis bei neuer Rechnung", product: "mobile", project: "ss2", est: 5, refined: true, status: "Bereit", sprint: "2026.22", rank: 3 },
+    { key: "ATL-420", title: "OAuth-Client für Mobile App registrieren", product: "mobile", project: "login", est: 3, refined: true, status: "Bereit", sprint: "2026.22", rank: 4 },
+    { key: "ATL-421", title: "Anmeldedienst: Token-Erneuerung", product: "platform", project: "login", est: 8, refined: true, status: "Bereit", sprint: "2026.22", rank: 5, inTrackerSprint: "2026.22" },
+    { key: "ATL-423", title: "XRechnung: Pflichtfelder prüfen", product: "billing", project: "erech", est: 5, refined: true, status: "Bereit", sprint: "2026.22", rank: 6 },
+    { key: "ATL-424", title: "Lastschriftmandat als PDF", product: "billing", project: null, est: 3, refined: true, status: "Bereit", sprint: null, rank: 7 },
+    { key: "ATL-426", title: "Fehlerseite bei Wartung", product: "portal", project: null, est: 2, refined: true, status: "Bereit", sprint: null, rank: 8 },
+    { key: "ATL-427", title: "Logging auf neues Format umstellen", product: "platform", project: null, est: 5, refined: true, status: "Bereit", sprint: null, rank: 9 },
+    { key: "ATL-430", title: "XRechnung-Export als Hintergrundjob", product: "platform", project: "erech", est: 8, refined: true, status: "Bereit", sprint: "2026.23", rank: 10 },
+    { key: "ATL-431", title: "Login-Seite im Portal umbauen", product: "portal", project: "login", est: 5, refined: true, status: "Bereit", sprint: "2026.23", rank: 11 },
+    { key: "ATL-433", title: "Biometrische Anmeldung (iOS)", product: "mobile", project: "login", est: 8, refined: false, status: "Neu", sprint: "2026.23", rank: 12 },
+    { key: "ATL-434", title: "Self-Service: Zählerstand melden", product: "portal", project: "ss2", est: 8, refined: false, status: "Neu", sprint: "Refinement", inTrackerSprint: "Refinement", rank: 13 },
+    { key: "ATL-436", title: "Offline-Modus für Rechnungen", product: "mobile", project: "ss2", est: 13, refined: false, status: "Neu", sprint: null, rank: 14 },
+    { key: "ATL-437", title: "Abrechnungslauf parallelisieren", product: "billing", project: null, est: 8, refined: true, status: "Bereit", sprint: null, rank: 15 },
+    { key: "ATL-439", title: "Mahnstufe 3 konfigurierbar", product: "billing", project: null, est: 3, refined: true, status: "Bereit", sprint: null, rank: 16 },
+    { key: "ATL-440", title: "Zertifikate automatisch erneuern", product: "platform", project: null, est: 3, refined: true, status: "Bereit", sprint: null, rank: 17 },
+    { key: "ATL-442", title: "E-Rechnung: Empfängerverzeichnis", product: "billing", project: "erech", est: 5, refined: false, status: "Neu", sprint: "Refinement", inTrackerSprint: "Refinement", rank: 18 },
+    { key: "ATL-443", title: "Dark Mode in der App", product: "mobile", project: null, est: null, refined: false, status: "Neu", sprint: "Ideen-Parkplatz", inTrackerSprint: "Ideen-Parkplatz", rank: 19 },
+    { key: "ATL-445", title: "Sitzungsverwaltung im Portal", product: "portal", project: "login", est: 5, refined: true, status: "Bereit", sprint: null, rank: 20 },
+    { key: "ATL-446", title: "Barrierefreiheit: Formulare", product: "portal", project: null, est: 5, refined: true, status: "Bereit", sprint: null, rank: 21 },
+    { key: "ATL-448", title: "Monitoring-Dashboards für Abrechnung", product: "platform", project: null, est: 3, refined: false, status: "Neu", sprint: null, rank: 22 },
+    { key: "ATL-401", title: "Rechnungsdetail: Positionen aufklappen", product: "portal", project: "ss2", est: 5, refined: true, status: "In Arbeit", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+    { key: "ATL-402", title: "Kündigungsformular", product: "portal", project: null, est: 5, refined: true, status: "In Arbeit", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+    { key: "ATL-404", title: "Gutschriften im Export", product: "billing", project: "erech", est: 8, refined: true, status: "Fertig", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+    { key: "ATL-405", title: "Release-Pipeline App", product: "mobile", project: null, est: 5, refined: true, status: "In Arbeit", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+    { key: "ATL-407", title: "Anmeldedienst: Grundgerüst", product: "platform", project: "login", est: 8, refined: true, status: "Review", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+    { key: "ATL-408", title: "Zahlungsstatus in der App", product: "mobile", project: "ss2", est: 5, refined: true, status: "Fertig", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+  ],
+  minutes: [
+    { sprint: "2026.21", kind: "Planning", at: "2026-10-14 10:05", by: "Kim Berger", file: "protokolle/2026.21-planning-20261014-100512.md" },
+    { sprint: "2026.21", kind: "Vorplanung", at: "2026-10-09 15:20", by: "Lea Hoffmann", file: "protokolle/2026.21-vorplanung-20261009-152044.md" },
+    { sprint: "2026.21", kind: "Vorplanung", at: "2026-10-08 11:02", by: "Kim Berger", file: "protokolle/2026.21-vorplanung-20261008-110230.md", obsolete: true },
+  ],
+};
