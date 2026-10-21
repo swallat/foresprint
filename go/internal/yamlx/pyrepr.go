@@ -9,19 +9,7 @@ import (
 	"unicode"
 )
 
-// PyFloatRepr is Python's repr(float).
-func PyFloatRepr(f float64) string { return pyFloatRepr(f) }
-
-// PyStr is Python's str() of a loaded value, for texts that were written by a person in a
-// field that holds text ("name: 5" gives "5", "note: true" gives "True").
-func PyStr(v any) string {
-	if s, ok := v.(string); ok {
-		return s
-	}
-	return PyRepr(v)
-}
-
-// PyRepr is Python's repr() of a loaded value (used in messages and by PyStr).
+// PyRepr is Python's repr() of a loaded value.
 func PyRepr(v any) string {
 	switch x := v.(type) {
 	case nil:
@@ -62,7 +50,8 @@ func PyRepr(v any) string {
 	return fmt.Sprint(v)
 }
 
-// PyTypeName is the name of the Python type of a loaded value (type(x).__name__).
+// PyTypeName is the name of the Python type of a loaded value as a TypeError shows it
+// ("datetime.date" for dates, like the C type reports itself).
 func PyTypeName(v any) string {
 	switch v.(type) {
 	case nil:
@@ -76,9 +65,9 @@ func PyTypeName(v any) string {
 	case string:
 		return "str"
 	case Date:
-		return "date"
+		return "datetime.date"
 	case time.Time:
-		return "datetime"
+		return "datetime.datetime"
 	case []any:
 		return "list"
 	case *Map:
