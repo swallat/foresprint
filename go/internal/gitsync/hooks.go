@@ -2,9 +2,10 @@ package gitsync
 
 import (
 	"context"
-	"github.com/swallat/foresprint/internal/yamlx"
 	"sync"
 	"time"
+
+	"github.com/swallat/foresprint/internal/yamlx"
 )
 
 // Codec reads and writes the YAML files of a data folder as value trees (see package yamlmerge).
