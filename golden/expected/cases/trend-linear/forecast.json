@@ -1,0 +1,1298 @@
+{
+ "today": "2026-06-24",
+ "entries": [
+  {
+   "sprint": {
+    "id": "2026.1",
+    "start": "2026-01-07",
+    "end": "2026-01-21",
+    "absences": {},
+    "capacity": 40.0,
+    "commitment": 32.0,
+    "velocity": 30.0,
+    "scope_creep": 0.1,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.1",
+     "capacity": 40.0,
+     "capacity_source": "recorded",
+     "commitment": 32.0,
+     "velocity": 30.0,
+     "scope_creep": 0.1,
+     "planning": null
+    },
+    "commitment": {
+     "value": 32.0,
+     "average": null,
+     "trend": null
+    },
+    "velocity": {
+     "value": 30.0,
+     "average": null,
+     "trend": null
+    },
+    "capacity": {
+     "value": 40.0,
+     "average": null,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 30.0,
+     "average": null,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 0.9375,
+     "average": null,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.1,
+     "average": null,
+     "trend": null
+    },
+    "plan_capacity": 40.0,
+    "plan_capacity_source": "recorded",
+    "plan": 32.0,
+    "plan_source": "IST",
+    "samples": 0,
+    "trend_fallback": false,
+    "roadmap": 25.6,
+    "small_stuff": 6.399999999999999,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.2",
+    "start": "2026-01-21",
+    "end": "2026-02-04",
+    "absences": {},
+    "capacity": 44.0,
+    "commitment": 35.0,
+    "velocity": 34.0,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.2",
+     "capacity": 44.0,
+     "capacity_source": "recorded",
+     "commitment": 35.0,
+     "velocity": 34.0,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": 35.0,
+     "average": null,
+     "trend": null
+    },
+    "velocity": {
+     "value": 34.0,
+     "average": null,
+     "trend": null
+    },
+    "capacity": {
+     "value": 44.0,
+     "average": null,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 30.909090909090907,
+     "average": null,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 0.9714285714285714,
+     "average": null,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": null
+    },
+    "plan_capacity": 44.0,
+    "plan_capacity_source": "recorded",
+    "plan": 35.0,
+    "plan_source": "IST",
+    "samples": 1,
+    "trend_fallback": false,
+    "roadmap": 28.0,
+    "small_stuff": 7.0,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.3",
+    "start": "2026-02-04",
+    "end": "2026-02-18",
+    "absences": {},
+    "capacity": 38.0,
+    "commitment": 33.0,
+    "velocity": 28.0,
+    "scope_creep": 0.05,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.3",
+     "capacity": 38.0,
+     "capacity_source": "recorded",
+     "commitment": 33.0,
+     "velocity": 28.0,
+     "scope_creep": 0.05,
+     "planning": null
+    },
+    "commitment": {
+     "value": 33.0,
+     "average": null,
+     "trend": null
+    },
+    "velocity": {
+     "value": 28.0,
+     "average": null,
+     "trend": null
+    },
+    "capacity": {
+     "value": 38.0,
+     "average": null,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 29.473684210526315,
+     "average": null,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 0.8484848484848485,
+     "average": null,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.05,
+     "average": null,
+     "trend": null
+    },
+    "plan_capacity": 38.0,
+    "plan_capacity_source": "recorded",
+    "plan": 33.0,
+    "plan_source": "IST",
+    "samples": 2,
+    "trend_fallback": false,
+    "roadmap": 26.400000000000002,
+    "small_stuff": 6.599999999999998,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.4",
+    "start": "2026-02-18",
+    "end": "2026-03-04",
+    "absences": {},
+    "capacity": 42.0,
+    "commitment": 36.0,
+    "velocity": 36.0,
+    "scope_creep": 0.2,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.4",
+     "capacity": 42.0,
+     "capacity_source": "recorded",
+     "commitment": 36.0,
+     "velocity": 36.0,
+     "scope_creep": 0.2,
+     "planning": null
+    },
+    "commitment": {
+     "value": 36.0,
+     "average": null,
+     "trend": null
+    },
+    "velocity": {
+     "value": 36.0,
+     "average": null,
+     "trend": null
+    },
+    "capacity": {
+     "value": 42.0,
+     "average": null,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 34.285714285714285,
+     "average": null,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 1.0,
+     "average": null,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.2,
+     "average": null,
+     "trend": null
+    },
+    "plan_capacity": 42.0,
+    "plan_capacity_source": "recorded",
+    "plan": 36.0,
+    "plan_source": "IST",
+    "samples": 3,
+    "trend_fallback": false,
+    "roadmap": 28.8,
+    "small_stuff": 7.199999999999999,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.5",
+    "start": "2026-03-04",
+    "end": "2026-03-18",
+    "absences": {},
+    "capacity": 40.0,
+    "commitment": 30.0,
+    "velocity": null,
+    "scope_creep": 0.0,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.5",
+     "capacity": 40.0,
+     "capacity_source": "recorded",
+     "commitment": 30.0,
+     "velocity": null,
+     "scope_creep": 0.0,
+     "planning": null
+    },
+    "commitment": {
+     "value": 30.0,
+     "average": 33.2,
+     "trend": null
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": null
+    },
+    "capacity": {
+     "value": 40.0,
+     "average": 40.8,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.0,
+     "average": null,
+     "trend": null
+    },
+    "plan_capacity": 40.0,
+    "plan_capacity_source": "recorded",
+    "plan": 30.0,
+    "plan_source": "IST",
+    "samples": 4,
+    "trend_fallback": false,
+    "roadmap": 24.0,
+    "small_stuff": 6.0,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.6",
+    "start": "2026-03-18",
+    "end": "2026-04-01",
+    "absences": {},
+    "capacity": 36.0,
+    "commitment": 34.0,
+    "velocity": 33.0,
+    "scope_creep": 0.15,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.6",
+     "capacity": 36.0,
+     "capacity_source": "recorded",
+     "commitment": 34.0,
+     "velocity": 33.0,
+     "scope_creep": 0.15,
+     "planning": null
+    },
+    "commitment": {
+     "value": 34.0,
+     "average": 33.6,
+     "trend": null
+    },
+    "velocity": {
+     "value": 33.0,
+     "average": 32.2,
+     "trend": null
+    },
+    "capacity": {
+     "value": 36.0,
+     "average": 40.0,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 36.666666666666664,
+     "average": 32.26703121439964,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 0.9705882352941176,
+     "average": 0.9456003310415075,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.15,
+     "average": 0.1,
+     "trend": null
+    },
+    "plan_capacity": 36.0,
+    "plan_capacity_source": "recorded",
+    "plan": 34.0,
+    "plan_source": "IST",
+    "samples": 4,
+    "trend_fallback": false,
+    "roadmap": 27.200000000000003,
+    "small_stuff": 6.799999999999997,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.7",
+    "start": "2026-04-01",
+    "end": "2026-04-15",
+    "absences": {},
+    "capacity": 44.0,
+    "commitment": 38.0,
+    "velocity": 38.0,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.7",
+     "capacity": 44.0,
+     "capacity_source": "recorded",
+     "commitment": 38.0,
+     "velocity": 38.0,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": 38.0,
+     "average": 34.2,
+     "trend": null
+    },
+    "velocity": {
+     "value": 38.0,
+     "average": 33.8,
+     "trend": null
+    },
+    "capacity": {
+     "value": 44.0,
+     "average": 40.0,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 34.54545454545455,
+     "average": 33.17612212349054,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 1.0,
+     "average": 0.9581003310415076,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": 0.1
+    },
+    "plan_capacity": 44.0,
+    "plan_capacity_source": "recorded",
+    "plan": 38.0,
+    "plan_source": "IST",
+    "samples": 5,
+    "trend_fallback": false,
+    "roadmap": 30.400000000000002,
+    "small_stuff": 7.599999999999998,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.8",
+    "start": "2026-04-15",
+    "end": "2026-04-29",
+    "absences": {},
+    "capacity": 42.0,
+    "commitment": 33.0,
+    "velocity": null,
+    "scope_creep": 0.1,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.8",
+     "capacity": 42.0,
+     "capacity_source": "recorded",
+     "commitment": 33.0,
+     "velocity": null,
+     "scope_creep": 0.1,
+     "planning": null
+    },
+    "commitment": {
+     "value": 33.0,
+     "average": 34.2,
+     "trend": null
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": 35.39999999999999
+    },
+    "capacity": {
+     "value": 42.0,
+     "average": 40.8,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 34.08521303258145
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": 0.9706003310415077
+    },
+    "scope_creep": {
+     "value": 0.1,
+     "average": 0.1,
+     "trend": null
+    },
+    "plan_capacity": 42.0,
+    "plan_capacity_source": "recorded",
+    "plan": 35.7,
+    "plan_source": "Projection",
+    "samples": 6,
+    "trend_fallback": false,
+    "roadmap": 28.560000000000002,
+    "small_stuff": 7.140000000000001,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.9",
+    "start": "2026-04-29",
+    "end": "2026-05-13",
+    "absences": {},
+    "capacity": null,
+    "commitment": 32.0,
+    "velocity": 31.0,
+    "scope_creep": 0.05,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.9",
+     "capacity": null,
+     "capacity_source": null,
+     "commitment": 32.0,
+     "velocity": 31.0,
+     "scope_creep": 0.05,
+     "planning": null
+    },
+    "commitment": {
+     "value": 32.0,
+     "average": 33.4,
+     "trend": null
+    },
+    "velocity": {
+     "value": 31.0,
+     "average": 33.2,
+     "trend": null
+    },
+    "capacity": {
+     "value": null,
+     "average": null,
+     "trend": 41.599999999999994
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 34.99430394167236
+    },
+    "fulfillment": {
+     "value": 0.96875,
+     "average": 0.9575646167557933,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.05,
+     "average": 0.1,
+     "trend": null
+    },
+    "plan_capacity": 41.599999999999994,
+    "plan_capacity_source": "Trend",
+    "plan": 36.3,
+    "plan_source": "Projection",
+    "samples": 6,
+    "trend_fallback": false,
+    "roadmap": 29.04,
+    "small_stuff": 7.259999999999998,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.10",
+    "start": "2026-05-13",
+    "end": "2026-05-27",
+    "absences": {},
+    "capacity": 41.0,
+    "commitment": 36.0,
+    "velocity": 35.0,
+    "scope_creep": 0.0,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.10",
+     "capacity": 41.0,
+     "capacity_source": "recorded",
+     "commitment": 36.0,
+     "velocity": 35.0,
+     "scope_creep": 0.0,
+     "planning": null
+    },
+    "commitment": {
+     "value": 36.0,
+     "average": 34.6,
+     "trend": null
+    },
+    "velocity": {
+     "value": 35.0,
+     "average": 34.6,
+     "trend": null
+    },
+    "capacity": {
+     "value": 41.0,
+     "average": 40.6,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 34.146341463414636,
+     "average": 33.82357223435529,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 0.9722222222222222,
+     "average": 0.982312091503268,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.0,
+     "average": 0.06,
+     "trend": null
+    },
+    "plan_capacity": 41.0,
+    "plan_capacity_source": "recorded",
+    "plan": 36.0,
+    "plan_source": "IST",
+    "samples": 6,
+    "trend_fallback": false,
+    "roadmap": 28.8,
+    "small_stuff": 7.199999999999999,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.11",
+    "start": "2026-05-27",
+    "end": "2026-06-10",
+    "absences": {},
+    "capacity": 40.0,
+    "commitment": 37.0,
+    "velocity": 37.0,
+    "scope_creep": 0.1,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.11",
+     "capacity": 40.0,
+     "capacity_source": "recorded",
+     "commitment": 37.0,
+     "velocity": 37.0,
+     "scope_creep": 0.1,
+     "planning": null
+    },
+    "commitment": {
+     "value": 37.0,
+     "average": 35.2,
+     "trend": null
+    },
+    "velocity": {
+     "value": 37.0,
+     "average": 34.8,
+     "trend": null
+    },
+    "capacity": {
+     "value": 40.0,
+     "average": 40.6,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": 37.0,
+     "average": 35.32883539225003,
+     "trend": null
+    },
+    "fulfillment": {
+     "value": 1.0,
+     "average": 0.982312091503268,
+     "trend": null
+    },
+    "scope_creep": {
+     "value": 0.1,
+     "average": 0.08,
+     "trend": null
+    },
+    "plan_capacity": 40.0,
+    "plan_capacity_source": "recorded",
+    "plan": 37.0,
+    "plan_source": "IST",
+    "samples": 7,
+    "trend_fallback": false,
+    "roadmap": 29.6,
+    "small_stuff": 7.399999999999999,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.12",
+    "start": "2026-06-10",
+    "end": "2026-06-24",
+    "absences": {},
+    "capacity": 39.0,
+    "commitment": 36.0,
+    "velocity": null,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": true,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.12",
+     "capacity": 39.0,
+     "capacity_source": "recorded",
+     "commitment": 36.0,
+     "velocity": null,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": 36.0,
+     "average": 34.8,
+     "trend": null
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": 34.99999999999999
+    },
+    "capacity": {
+     "value": 39.0,
+     "average": 41.2,
+     "trend": null
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 36.834098550144766
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": 0.982312091503268
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": 0.1
+    },
+    "plan_capacity": 39.0,
+    "plan_capacity_source": "recorded",
+    "plan": 35.9,
+    "plan_source": "Projection",
+    "samples": 8,
+    "trend_fallback": false,
+    "roadmap": 28.72,
+    "small_stuff": 7.18,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.13",
+    "start": "2026-06-24",
+    "end": "2026-07-08",
+    "absences": {},
+    "capacity": null,
+    "commitment": null,
+    "velocity": null,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": false,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.13",
+     "capacity": null,
+     "capacity_source": null,
+     "commitment": null,
+     "velocity": null,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": null,
+     "average": null,
+     "trend": 34.39999999999999
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": 35.19999999999999
+    },
+    "capacity": {
+     "value": null,
+     "average": null,
+     "trend": 41.800000000000004
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 38.339361708039505
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": 0.982312091503268
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": 0.12000000000000001
+    },
+    "plan_capacity": 41.800000000000004,
+    "plan_capacity_source": "Trend",
+    "plan": 40.0,
+    "plan_source": "Projection",
+    "samples": 8,
+    "trend_fallback": false,
+    "roadmap": 32.0,
+    "small_stuff": 8.0,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.14",
+    "start": "2026-07-08",
+    "end": "2026-07-22",
+    "absences": {},
+    "capacity": null,
+    "commitment": null,
+    "velocity": null,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": false,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.14",
+     "capacity": null,
+     "capacity_source": null,
+     "commitment": null,
+     "velocity": null,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": null,
+     "average": null,
+     "trend": 33.999999999999986
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": 35.399999999999984
+    },
+    "capacity": {
+     "value": null,
+     "average": null,
+     "trend": 42.400000000000006
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 39.84462486593424
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": 0.982312091503268
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": 0.14
+    },
+    "plan_capacity": 42.400000000000006,
+    "plan_capacity_source": "Trend",
+    "plan": 42.2,
+    "plan_source": "Projection",
+    "samples": 8,
+    "trend_fallback": false,
+    "roadmap": 33.760000000000005,
+    "small_stuff": 8.439999999999998,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.15",
+    "start": "2026-07-22",
+    "end": "2026-08-05",
+    "absences": {},
+    "capacity": null,
+    "commitment": null,
+    "velocity": null,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": false,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.15",
+     "capacity": null,
+     "capacity_source": null,
+     "commitment": null,
+     "velocity": null,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": null,
+     "average": null,
+     "trend": 33.59999999999998
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": 35.59999999999998
+    },
+    "capacity": {
+     "value": null,
+     "average": null,
+     "trend": 43.00000000000001
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 41.34988802382898
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": 0.982312091503268
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": 0.16000000000000003
+    },
+    "plan_capacity": 43.00000000000001,
+    "plan_capacity_source": "Trend",
+    "plan": 44.4,
+    "plan_source": "Projection",
+    "samples": 8,
+    "trend_fallback": false,
+    "roadmap": 35.52,
+    "small_stuff": 8.879999999999995,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.16",
+    "start": "2026-08-05",
+    "end": "2026-08-19",
+    "absences": {},
+    "capacity": null,
+    "commitment": null,
+    "velocity": null,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": false,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.16",
+     "capacity": null,
+     "capacity_source": null,
+     "commitment": null,
+     "velocity": null,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": null,
+     "average": null,
+     "trend": 33.199999999999974
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": 35.799999999999976
+    },
+    "capacity": {
+     "value": null,
+     "average": null,
+     "trend": 43.60000000000001
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 42.85515118172372
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": 0.982312091503268
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": 0.18000000000000005
+    },
+    "plan_capacity": 43.60000000000001,
+    "plan_capacity_source": "Trend",
+    "plan": 46.7,
+    "plan_source": "Projection",
+    "samples": 8,
+    "trend_fallback": false,
+    "roadmap": 37.36000000000001,
+    "small_stuff": 9.339999999999996,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  },
+  {
+   "sprint": {
+    "id": "2026.17",
+    "start": "2026-08-19",
+    "end": "2026-09-02",
+    "absences": {},
+    "capacity": null,
+    "commitment": null,
+    "velocity": null,
+    "scope_creep": null,
+    "planning": null,
+    "forecast_plan": null,
+    "products": {},
+    "note": null,
+    "production_planned": null,
+    "production_done": null,
+    "not_done": null,
+    "additional_done": null,
+    "absence_state": "unknown",
+    "expected_absences": {},
+    "prognoses": []
+   },
+   "recorded": false,
+   "capacity_digits": 1,
+   "result": {
+    "input": {
+     "id": "2026.17",
+     "capacity": null,
+     "capacity_source": null,
+     "commitment": null,
+     "velocity": null,
+     "scope_creep": null,
+     "planning": null
+    },
+    "commitment": {
+     "value": null,
+     "average": null,
+     "trend": 32.79999999999997
+    },
+    "velocity": {
+     "value": null,
+     "average": null,
+     "trend": 35.99999999999997
+    },
+    "capacity": {
+     "value": null,
+     "average": null,
+     "trend": 44.20000000000001
+    },
+    "normalized_velocity": {
+     "value": null,
+     "average": null,
+     "trend": 44.36041433961846
+    },
+    "fulfillment": {
+     "value": null,
+     "average": null,
+     "trend": 0.982312091503268
+    },
+    "scope_creep": {
+     "value": null,
+     "average": null,
+     "trend": 0.20000000000000007
+    },
+    "plan_capacity": 44.20000000000001,
+    "plan_capacity_source": "Trend",
+    "plan": 49.0,
+    "plan_source": "Projection",
+    "samples": 8,
+    "trend_fallback": false,
+    "roadmap": 39.2,
+    "small_stuff": 9.799999999999997,
+    "planning_total": null,
+    "planning_delta": null
+   }
+  }
+ ],
+ "absences": null
+}

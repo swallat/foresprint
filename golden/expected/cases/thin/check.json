@@ -1,0 +1,10 @@
+{
+ "team": [
+  {
+   "level": "Notice",
+   "where": "sprints/2026.5.yaml",
+   "message": "sprint has ended, velocity missing (record the review)"
+  }
+ ],
+ "files": []
+}

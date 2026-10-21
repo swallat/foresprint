@@ -73,6 +73,8 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 "tests/e2e/*" = ["E501"]
 # Translation catalog: long texts bleiben je Eintrag auf einer Zeile.
 "src/foresprint/locale_de.py" = ["E501"]
+# Golden harness: tables of test data (and a deliberately long YAML line) stay one entry per line.
+"scripts/golden.py" = ["E501"]
 # Windows-Skript: Beispiele mit langen Befehlszeilen und PowerShell-Code in einem Text.
 "tests/test_windows_script.py" = ["E501"]
 

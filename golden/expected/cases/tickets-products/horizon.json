@@ -1,0 +1,340 @@
+{
+ "normalized_history": [
+  31.0,
+  30.526315789473685,
+  35.0,
+  31.428571428571427,
+  30.0
+ ],
+ "sample_count": 5,
+ "average_focus_factor": 0.799718045112782,
+ "buffer_hint": {
+  "average_scope_creep": null,
+  "samples": 0,
+  "average_late_share": null,
+  "configured_small_stuff": 0.19999999999999996
+ },
+ "bands": {
+  "2026.6": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.7": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.8": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.9": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.10": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.11": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.12": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.13": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.14": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.15": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.16": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.17": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2026.18": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.1": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.2": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.3": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.4": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.5": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.6": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.7": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.8": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.9": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.10": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.11": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.12": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  },
+  "2027.13": {
+   "low": 30.0,
+   "mid": 31.0,
+   "high": 35.0,
+   "samples": 5
+  }
+ },
+ "focus": {
+  "2026.1": 0.775,
+  "2026.2": 0.7631578947368421,
+  "2026.3": 0.875,
+  "2026.4": 0.7857142857142857,
+  "2026.5": 0.75,
+  "2026.6": null,
+  "2026.7": null,
+  "2026.8": null,
+  "2026.9": null,
+  "2026.10": null,
+  "2026.11": null,
+  "2026.12": null,
+  "2026.13": null,
+  "2026.14": null,
+  "2026.15": null,
+  "2026.16": null,
+  "2026.17": null,
+  "2026.18": null,
+  "2027.1": null,
+  "2027.2": null,
+  "2027.3": null,
+  "2027.4": null,
+  "2027.5": null,
+  "2027.6": null,
+  "2027.7": null,
+  "2027.8": null,
+  "2027.9": null,
+  "2027.10": null,
+  "2027.11": null,
+  "2027.12": null,
+  "2027.13": null
+ },
+ "horizon": [
+  {
+   "sprint": "2026.6",
+   "capacity": 40.0,
+   "trend": false
+  },
+  {
+   "sprint": "2026.7",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.8",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.9",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.10",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.11",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.12",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.13",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.14",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.15",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.16",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.17",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2026.18",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.1",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.2",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.3",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.4",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.5",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.6",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.7",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.8",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.9",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.10",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.11",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.12",
+   "capacity": 40.0,
+   "trend": true
+  },
+  {
+   "sprint": "2027.13",
+   "capacity": 40.0,
+   "trend": true
+  }
+ ]
+}

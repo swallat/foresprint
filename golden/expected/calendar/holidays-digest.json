@@ -1,0 +1,3755 @@
+{
+ "first_year": 2001,
+ "last_year": 2050,
+ "digests": {
+  "AD/": {
+   "de": "6802c557d620be99c4373fe5",
+   "en": "011515c3b31ffde5555cbedc"
+  },
+  "AD/02": {
+   "de": "af7caa15539707b4d6864cab",
+   "en": "97f1527cb1f24f89b0182d01"
+  },
+  "AD/03": {
+   "de": "6802c557d620be99c4373fe5",
+   "en": "011515c3b31ffde5555cbedc"
+  },
+  "AD/04": {
+   "de": "bb91507c629bafdf0620b503",
+   "en": "68ac354bfdb744b649a121c2"
+  },
+  "AD/05": {
+   "de": "81dc4f079fe87ff0ea729c79",
+   "en": "60bae0c4773f119e6b5aa1f4"
+  },
+  "AD/06": {
+   "de": "fa14c6e377d7affbd4e9ca52",
+   "en": "055c863f94c71956ca8ee1ab"
+  },
+  "AD/07": {
+   "de": "cc3da71bd6311e9151b217d3",
+   "en": "296eb676f7db17081dc47f80"
+  },
+  "AD/08": {
+   "de": "e00c38f06677f9748e0c3189",
+   "en": "18eafb0003febf79e36fbdb6"
+  },
+  "AE/": {
+   "de": "01757f0c94f4aecbc70d7471",
+   "en": "2e149c0c89fd65cbfcb26515"
+  },
+  "AF/": {
+   "de": "37bacdf9232b5e040cd59fde",
+   "en": "e75dca31a18bce6e1bef1046"
+  },
+  "AG/": {
+   "de": "a5ef2ee886aca898335396b7",
+   "en": "a5ef2ee886aca898335396b7"
+  },
+  "AI/": {
+   "de": "551a105d9effb594344dfb93",
+   "en": "0d5febee215f28be21d41173"
+  },
+  "AL/": {
+   "de": "29f354d537c1a3a17572f7b6",
+   "en": "8131c43e794237e35deb289d"
+  },
+  "AM/": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/AG": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/AR": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/AV": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/ER": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/GR": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/KT": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/LO": {
+   "de": "6631c240ad542e76401ddf4c",
+   "en": "d940a117808e834d39d896a9"
+  },
+  "AM/SH": {
+   "de": "6631c240ad542e76401ddf4c",
+   "en": "d940a117808e834d39d896a9"
+  },
+  "AM/SU": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/TV": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AM/VD": {
+   "de": "cde4d334e2a2879daa525438",
+   "en": "68a6a5bab74ce73fb8efca8a"
+  },
+  "AO/": {
+   "de": "6f0076ee8dce3619d73aafe1",
+   "en": "a4181d5fa2c59ffa3c2b431c"
+  },
+  "AQ/": {
+   "de": "2db6c53ce74b5fb17c32a4ad",
+   "en": "2db6c53ce74b5fb17c32a4ad"
+  },
+  "AR/": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/A": {
+   "de": "7319de9ad2adbfe053317773",
+   "en": "d10af613710bed10d70962de"
+  },
+  "AR/B": {
+   "de": "2feb1a0990d1f909cea7462c",
+   "en": "ba9263dd69d52112028034a7"
+  },
+  "AR/C": {
+   "de": "6b2b0bbca95915d436c97ca0",
+   "en": "8d635fbfa9994bea01274135"
+  },
+  "AR/D": {
+   "de": "7eb1ea11b923e0c98483523c",
+   "en": "a96d0be63cab678c6da0ef3d"
+  },
+  "AR/E": {
+   "de": "e01c7d1473732ea6a7778919",
+   "en": "1153081821f2e1e4bc86bd29"
+  },
+  "AR/F": {
+   "de": "9ace8016ddadf854c118e168",
+   "en": "e6c908e76f9435078a7bb10c"
+  },
+  "AR/G": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/H": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/J": {
+   "de": "5eb35c22533e49c888b60dca",
+   "en": "f1867d55ddaaf6cb1908b7c9"
+  },
+  "AR/K": {
+   "de": "a234a266260bc9d61eb054a4",
+   "en": "24f814f03bd37579c4cf1d87"
+  },
+  "AR/L": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/M": {
+   "de": "c92306a7be7e2b73b3c93b02",
+   "en": "bce05405c64dffb9882afb54"
+  },
+  "AR/N": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/P": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/Q": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/R": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/S": {
+   "de": "8519f6ec5cbeabf1397c8628",
+   "en": "f9a570016f635200dc839cb1"
+  },
+  "AR/T": {
+   "de": "efacd961fd05932b10b11427",
+   "en": "c0629337a5307d7bf2e9eddb"
+  },
+  "AR/U": {
+   "de": "35b628949dd4545871441ffb",
+   "en": "172b110e87d402c2278693c0"
+  },
+  "AR/V": {
+   "de": "abfdefed211b52c0799d832c",
+   "en": "126958efb799e8963e48e98c"
+  },
+  "AR/W": {
+   "de": "da52f15a810b953311207450",
+   "en": "baa1d9d2dc398fb318b503f8"
+  },
+  "AR/X": {
+   "de": "6db502ac7ce2863a3581c619",
+   "en": "9dc70ca58665cadb90c8b552"
+  },
+  "AR/Y": {
+   "de": "e8af366a585bcdc0260f4d5f",
+   "en": "e614c1c22124917c758a77d5"
+  },
+  "AR/Z": {
+   "de": "1f074222e02ff5fc56f5108b",
+   "en": "0f0d59d97e01080a9631f88e"
+  },
+  "AS/": {
+   "de": "b9d19107b35d207a5172239a",
+   "en": "b9d19107b35d207a5172239a"
+  },
+  "AT/": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/1": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/2": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/3": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/4": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/5": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/6": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/7": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/8": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AT/9": {
+   "de": "c9600ecc87574cb07e04b854",
+   "en": "0cd5c9d4a7a1a3118bcc68f8"
+  },
+  "AU/": {
+   "de": "d323f24592862fcdc9b3cfdf",
+   "en": "d323f24592862fcdc9b3cfdf"
+  },
+  "AU/ACT": {
+   "de": "d26570941eb20c595a6fc973",
+   "en": "060ad67990a38b228bb2a40a"
+  },
+  "AU/NSW": {
+   "de": "3ead5be6f8db9ea87f2d30ad",
+   "en": "e7360d97bb4eb7204f44506a"
+  },
+  "AU/NT": {
+   "de": "3396bbce6bcbf6e5f0987585",
+   "en": "3396bbce6bcbf6e5f0987585"
+  },
+  "AU/QLD": {
+   "de": "85b396e11d7e2d30e6bfb2e3",
+   "en": "c4ba700d573eb7f60ac54f2c"
+  },
+  "AU/SA": {
+   "de": "c98d2f91c352135618e8e492",
+   "en": "0f35d81a6ac7df89ac2dbdaf"
+  },
+  "AU/TAS": {
+   "de": "334d9c0276bffe88f8d40fd8",
+   "en": "334d9c0276bffe88f8d40fd8"
+  },
+  "AU/VIC": {
+   "de": "7c67733c2bba55b1ac09e660",
+   "en": "9dc52ca09a49c62ab5dce75a"
+  },
+  "AU/WA": {
+   "de": "9e17ac17ec66f9e3bbde6f75",
+   "en": "b37d2c2d51d59b1debcfaa66"
+  },
+  "AW/": {
+   "de": "877e873b4ec00ad6eae51229",
+   "en": "e486363e54aec0dc62400ca1"
+  },
+  "AX/": {
+   "de": "7c91ed38ae58572291526fc1",
+   "en": "ce03a43c3a4521460ec92903"
+  },
+  "AZ/": {
+   "de": "18b2d65b6faa91cf85489f2b",
+   "en": "a824c8eeed56a00941221b8d"
+  },
+  "BA/": {
+   "de": "04185436463982d30d0fd44d",
+   "en": "4f5edc9ccbbaa3cd16565298"
+  },
+  "BA/BIH": {
+   "de": "f251bff72aa06419ee19238c",
+   "en": "e480a4cea5d4044e2bb65f3c"
+  },
+  "BA/BRC": {
+   "de": "39135450b249166b3d80f337",
+   "en": "48d6c9276da77932dbb98ff0"
+  },
+  "BA/SRP": {
+   "de": "7256fd6844650fada3d80b81",
+   "en": "d1f7621e7a17a8a2881dea41"
+  },
+  "BB/": {
+   "de": "916c59384784b2340a11b9ce",
+   "en": "916c59384784b2340a11b9ce"
+  },
+  "BD/": {
+   "de": "55f4a1297c4fa194c463f900",
+   "en": "88e75a5828eed7b28d0805a1"
+  },
+  "BE/": {
+   "de": "04b370fe8f925516c2e3f404",
+   "en": "257e1bc4a18d36890310980c"
+  },
+  "BF/": {
+   "de": "e7ab006177cb57b79196e101",
+   "en": "45c0f29a93794ce5e90d22d2"
+  },
+  "BG/": {
+   "de": "43c8cd370424f49983f6199a",
+   "en": "071177ab181c428067a9ae3e"
+  },
+  "BH/": {
+   "de": "29626b6c313341488c068c68",
+   "en": "2652768b044054d3bb170c96"
+  },
+  "BI/": {
+   "de": "2627e6b3e244611885045c3e",
+   "en": "0e3b140665b7d53182c2de87"
+  },
+  "BJ/": {
+   "de": "afdb92f10ef86ee2c794fe1b",
+   "en": "35fd886a7adb8c6b0ad96148"
+  },
+  "BL/": {
+   "de": "37f10d5634032c89a17feb84",
+   "en": "bf0cd2efa14886368f2447a7"
+  },
+  "BM/": {
+   "de": "a57684ad3b6a8891ed6d67dc",
+   "en": "8d113614c68f44c29bfd18c1"
+  },
+  "BN/": {
+   "de": "2ef24dd2fa0bb2ccea311e71",
+   "en": "4216ae302d15f4dcaf2d7289"
+  },
+  "BO/": {
+   "de": "fba7157fbe936caa71f5fc8c",
+   "en": "866155b00563f36879830f8b"
+  },
+  "BO/B": {
+   "de": "723884e284dd781c67ef73e8",
+   "en": "d19398c061ba920e908d3e61"
+  },
+  "BO/C": {
+   "de": "5e5caa93c6a7474b26fc89ec",
+   "en": "9bf87ce2f1a6fcafeaf4a747"
+  },
+  "BO/H": {
+   "de": "d2505d69c1edc25ff2586d02",
+   "en": "edccd15ae380b7afc6691b12"
+  },
+  "BO/L": {
+   "de": "224a9c8a417a1148a85c9585",
+   "en": "a9a435cd5ba75f8a93b49465"
+  },
+  "BO/N": {
+   "de": "47acf091971f67b3fbc47239",
+   "en": "c8eff707f050902467226156"
+  },
+  "BO/O": {
+   "de": "b63653649c1da2cebd94c93f",
+   "en": "ef04615be1d20cd581769d92"
+  },
+  "BO/P": {
+   "de": "31eec5394e7c965e839b5f9d",
+   "en": "ddba9eed91da54a69f3cba91"
+  },
+  "BO/S": {
+   "de": "f9d5f83ae898bd8f0167d0b4",
+   "en": "e50fa070d00cd564437589d4"
+  },
+  "BO/T": {
+   "de": "919661172c88cd99056af0fd",
+   "en": "be35a1aa7c48f5c11dfb18b0"
+  },
+  "BQ/": {
+   "de": "3532513ec867e008ac71fc2f",
+   "en": "3491639ef322db143400c4ba"
+  },
+  "BQ/BON": {
+   "de": "2b43a9d73bbfe31bb624c9cd",
+   "en": "387dcaeb7093befffc0258d7"
+  },
+  "BQ/SAB": {
+   "de": "a73bc1afc1abce1f556f429a",
+   "en": "762ab1ad2036e6cf25e8a899"
+  },
+  "BQ/STA": {
+   "de": "38afc616f16c9790746e4fd2",
+   "en": "c43eb8c24d1d526d0d28895b"
+  },
+  "BR/": {
+   "de": "6741849380a65e8f5c8d43a4",
+   "en": "0aa52de18b600e30ecdd6fca"
+  },
+  "BR/AC": {
+   "de": "4570d495f50d9216d21a6c77",
+   "en": "321fb331876d181e0b993c13"
+  },
+  "BR/AL": {
+   "de": "98fa9c97c71326d8c14ff903",
+   "en": "ba6c231cced3a88da346f2ae"
+  },
+  "BR/AM": {
+   "de": "76c5aae594fbe66648e302bd",
+   "en": "9ab0c003c131e60dff7c468c"
+  },
+  "BR/AP": {
+   "de": "d539f4684f92a7d19bd84808",
+   "en": "728e934fe8a28cf48aeaec02"
+  },
+  "BR/BA": {
+   "de": "06e4154d06a2cb0cfee38eaf",
+   "en": "239a4ee2eb2300174a8e7f1f"
+  },
+  "BR/CE": {
+   "de": "909d44609ebe91532f45a7f5",
+   "en": "1dc17eb4b0c0e6d0eea9e00d"
+  },
+  "BR/DF": {
+   "de": "1b21978e0486e18a2fea0819",
+   "en": "611ffef1c1de5a2271676657"
+  },
+  "BR/ES": {
+   "de": "9b87fe4fe8cff0aabd9c1471",
+   "en": "18c315c0829f37112c6d948d"
+  },
+  "BR/GO": {
+   "de": "bf31f2fb0eb11627e75a40cc",
+   "en": "fb2fe8c6f90fde6aff349605"
+  },
+  "BR/MA": {
+   "de": "c1a7e97192bb6e70e68d76c0",
+   "en": "2ac0c60daa1ee345270183fb"
+  },
+  "BR/MG": {
+   "de": "38a37b2c1c7e2016a22d29bb",
+   "en": "ce246174eb9d24652af50511"
+  },
+  "BR/MS": {
+   "de": "8ee821ffab4216e765a89c2b",
+   "en": "2a8e07e780cb9d7f768cdd49"
+  },
+  "BR/MT": {
+   "de": "c19f37d4d73e31d10af60b88",
+   "en": "dfbdccb9b4fa715982cc8d67"
+  },
+  "BR/PA": {
+   "de": "7a86f1c1f7cbad5d2efe418c",
+   "en": "558314f9a55b090347eeff99"
+  },
+  "BR/PB": {
+   "de": "ec88c76d04e4ecbba95b789e",
+   "en": "65bf8107746702bc83ca6766"
+  },
+  "BR/PE": {
+   "de": "465b895653d58c29e9748604",
+   "en": "ab878e75b18b5a78e58ae797"
+  },
+  "BR/PI": {
+   "de": "fb8f1cc91c788eb76d00d745",
+   "en": "34f6b755594a88c494370621"
+  },
+  "BR/PR": {
+   "de": "8018e4805f46d5788aca2175",
+   "en": "09d2e8dae740715651a11081"
+  },
+  "BR/RJ": {
+   "de": "22105b13708788dab46d3083",
+   "en": "ebb19a67388196fb1624390b"
+  },
+  "BR/RN": {
+   "de": "f9bc188923a8cdedc691b1c6",
+   "en": "3df94c798f0dcc47c5b388c6"
+  },
+  "BR/RO": {
+   "de": "e0c9db5ab9d53cd8071f5db3",
+   "en": "c2e036d926aea09eb4b3ee88"
+  },
+  "BR/RR": {
+   "de": "0d93fd9f185cf9de5acd461b",
+   "en": "8772df623839b12e2bb707fa"
+  },
+  "BR/RS": {
+   "de": "a340687fd0df4ec73702a9e0",
+   "en": "513ba911ea79b7ab9b977a96"
+  },
+  "BR/SC": {
+   "de": "c3887f84d8be72c46116ba7a",
+   "en": "f976d3244927859d39045048"
+  },
+  "BR/SE": {
+   "de": "3ceb9238db3cdbda58514634",
+   "en": "7e41a75a182007aeb9b13b5c"
+  },
+  "BR/SP": {
+   "de": "e2776c02e57ea98f57441661",
+   "en": "005e8189ed49a6b5de012def"
+  },
+  "BR/TO": {
+   "de": "c9a9159ff621128db59dd9e4",
+   "en": "14194d00a50b32ce4baccef0"
+  },
+  "BR/São Paulo Capital": {
+   "de": "16110867e2a1fdec1bb1f4d2",
+   "en": "33071ae8ac7a4d90a7232623"
+  },
+  "BS/": {
+   "de": "2d3fb0c751dbe86bf3286e3f",
+   "en": "2d3fb0c751dbe86bf3286e3f"
+  },
+  "BT/": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/11": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/12": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/13": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/14": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/15": {
+   "de": "af891db988a82a7de709661b",
+   "en": "2f2d8f06baed8b2464c5dc1d"
+  },
+  "BT/21": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/22": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/23": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/24": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/31": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/32": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/33": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/34": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/41": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/42": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/43": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/44": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/45": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/GA": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BT/TY": {
+   "de": "4f1e28e76f6809a92eabd7de",
+   "en": "0f963b13824be03f32690b49"
+  },
+  "BV/": {
+   "de": "e3b0c44298fc1c149afbf4c8",
+   "en": "e3b0c44298fc1c149afbf4c8"
+  },
+  "BW/": {
+   "de": "7d3b0d4dfffdb42a405f9ded",
+   "en": "7d3b0d4dfffdb42a405f9ded"
+  },
+  "BY/": {
+   "de": "6603ef657ea858c13746abed",
+   "en": "203a4b2b27c499c0293021f8"
+  },
+  "BZ/": {
+   "de": "a4841abda28febb2a90d0a20",
+   "en": "a4841abda28febb2a90d0a20"
+  },
+  "CA/": {
+   "de": "96c68472a18ca3ddcbfc1d30",
+   "en": "faf4c6987b82836e8cd4c560"
+  },
+  "CA/AB": {
+   "de": "55e074ebc286fcab88028b14",
+   "en": "222c87fad9e0f8f9f12848cc"
+  },
+  "CA/BC": {
+   "de": "6a9b9b5c16cb0fe9fdb28dda",
+   "en": "17dc8fb98a2186966d77d512"
+  },
+  "CA/MB": {
+   "de": "5271624ff384a367d9c58642",
+   "en": "88651289be6b22a5a7ba130e"
+  },
+  "CA/NB": {
+   "de": "66f27ad0dfb93ffa050347bf",
+   "en": "0a1ce03f12d607903e9dcc6c"
+  },
+  "CA/NL": {
+   "de": "2f16e8b41601fc6451d271bf",
+   "en": "4a6d168b8de78d0496870ba4"
+  },
+  "CA/NS": {
+   "de": "f04299c0ed8a8038335fc286",
+   "en": "5807a4210882c52a6822a568"
+  },
+  "CA/NT": {
+   "de": "ca7b9ef16bb5811f3860dab9",
+   "en": "5be5c0e4ff995a471f72feae"
+  },
+  "CA/NU": {
+   "de": "5fdba018a9892cdca53fca3e",
+   "en": "e5c569ae8ecccf2391fac9a6"
+  },
+  "CA/ON": {
+   "de": "22dc75f6cfc5573db2cbf8f6",
+   "en": "a0257cff3cc9a44461514dda"
+  },
+  "CA/PE": {
+   "de": "8c555f23244aaade3207dec1",
+   "en": "fc10f83cda2bd8626a8d70e6"
+  },
+  "CA/QC": {
+   "de": "a402688d83b0da42a0144298",
+   "en": "cccc8e454e882f067c0bb86b"
+  },
+  "CA/SK": {
+   "de": "bc092b4837dc34761ee5750b",
+   "en": "e465df6c1dc9236b5362edc3"
+  },
+  "CA/YT": {
+   "de": "92f4209bd0b7af4403cb92e9",
+   "en": "f7b501bc3f8a1ff8ab9c3a2f"
+  },
+  "CC/": {
+   "de": "be982aceaf5300c204b3f7f9",
+   "en": "be982aceaf5300c204b3f7f9"
+  },
+  "CD/": {
+   "de": "64e655c64dc67edb1342fb00",
+   "en": "67802a10ef8e0ecf55fee212"
+  },
+  "CF/": {
+   "de": "63f82cb9e77f91aa04ac755f",
+   "en": "f991c8f32ba158a4fb8eb286"
+  },
+  "CG/": {
+   "de": "1cc681b4f92428c7c478263a",
+   "en": "b86f4977741c6e26c984bc16"
+  },
+  "CH/": {
+   "de": "829ea960f7daf85ac15f3838",
+   "en": "6e9b02ab26d25dc56293b811"
+  },
+  "CH/AG": {
+   "de": "9721f17f6c314715367d4e5e",
+   "en": "88f8cfa8982701c68b712328"
+  },
+  "CH/AI": {
+   "de": "8481775235072929f1c4eff0",
+   "en": "1fb1e41ce50b6f5b39da2032"
+  },
+  "CH/AR": {
+   "de": "181b3a91255ae3cd5eea11bf",
+   "en": "cf226665a13a20fe9d310879"
+  },
+  "CH/BE": {
+   "de": "3d0299773b1a5e0d6af80099",
+   "en": "ff0dedb5dc7b699a431fba66"
+  },
+  "CH/BL": {
+   "de": "88783a05e9ce32c147f0e487",
+   "en": "e2e1b7bee46144d5544b1b7a"
+  },
+  "CH/BS": {
+   "de": "88783a05e9ce32c147f0e487",
+   "en": "e2e1b7bee46144d5544b1b7a"
+  },
+  "CH/FR": {
+   "de": "021549594f8eb49c05144012",
+   "en": "98e6c384326367f95545d52d"
+  },
+  "CH/GE": {
+   "de": "f12d8eb3ee0900fcba64b407",
+   "en": "c36f2935358f4257d8fc6f0b"
+  },
+  "CH/GL": {
+   "de": "cf94c739601d235e4f206e72",
+   "en": "69c4589628d00b4dd34d561b"
+  },
+  "CH/GR": {
+   "de": "48c7200fb08d443622b386cf",
+   "en": "c502273dcd8d31f7cb0b73cc"
+  },
+  "CH/JU": {
+   "de": "7ce1d354ac990367f3ed0e56",
+   "en": "89b9eb0b695da14ac5d5f8d3"
+  },
+  "CH/LU": {
+   "de": "e62d449712cea068bb9f3d1f",
+   "en": "a728de2b593ce001a6641ae7"
+  },
+  "CH/NE": {
+   "de": "cb81f5993d0c900532f6c403",
+   "en": "573f6a3fc2ead8b4d0b4be3a"
+  },
+  "CH/NW": {
+   "de": "027a63d882da570c736e6195",
+   "en": "20948898db00411735bde7b2"
+  },
+  "CH/OW": {
+   "de": "fccdf70bca0cdc3e821b47d6",
+   "en": "85642c438b8d77090ef42a04"
+  },
+  "CH/SG": {
+   "de": "b9caf81a858975f0bbc14d09",
+   "en": "9fc9c08f701d9ddd5e44a545"
+  },
+  "CH/SH": {
+   "de": "88783a05e9ce32c147f0e487",
+   "en": "e2e1b7bee46144d5544b1b7a"
+  },
+  "CH/SO": {
+   "de": "021549594f8eb49c05144012",
+   "en": "98e6c384326367f95545d52d"
+  },
+  "CH/SZ": {
+   "de": "1c87270ececaf00a13214f6b",
+   "en": "47c8786759d1cc62cc90c693"
+  },
+  "CH/TG": {
+   "de": "37cf49cba9f32ad4d83f46b3",
+   "en": "7fb2493218d6c6c6bcc611ca"
+  },
+  "CH/TI": {
+   "de": "828e897fd8e5afb7e11ce8c6",
+   "en": "db5dc379c8e36390df0e4638"
+  },
+  "CH/UR": {
+   "de": "c25106ef6131dcda5e0658d3",
+   "en": "d9ed558aa3336aa1dfba6f0b"
+  },
+  "CH/VD": {
+   "de": "524cac939cd9a78155d82a6e",
+   "en": "e7feacd488e46546a50be835"
+  },
+  "CH/VS": {
+   "de": "26b8293e28b296818aa93462",
+   "en": "f1a46938e4aebf961de42868"
+  },
+  "CH/ZG": {
+   "de": "def18d33b3d2a9ef50dab995",
+   "en": "ed917b4d490ae11161ef7155"
+  },
+  "CH/ZH": {
+   "de": "88783a05e9ce32c147f0e487",
+   "en": "e2e1b7bee46144d5544b1b7a"
+  },
+  "CH/Stadt Zurich": {
+   "de": "5a76c4b4069bac19bd4a2408",
+   "en": "52ecf66eecf4789b657f2684"
+  },
+  "CI/": {
+   "de": "c9f25d00343d31dbfc39eb24",
+   "en": "d6d289f0adc175b6a8c5bf98"
+  },
+  "CK/": {
+   "de": "7a80a095ba23814810dbb51d",
+   "en": "6021d59b53831337e35fb614"
+  },
+  "CL/": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/AI": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/AN": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/AP": {
+   "de": "f5ad02558373eee176fb7520",
+   "en": "bf59e171e4433a39e6d5aea6"
+  },
+  "CL/AR": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/AT": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/BI": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/CO": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/LI": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/LL": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/LR": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/MA": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/ML": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/NB": {
+   "de": "638dc283052092ea43ae5688",
+   "en": "00f8e2f6c429d257fc38aa18"
+  },
+  "CL/RM": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/TA": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CL/VS": {
+   "de": "ac63396d8420be1c07807eb7",
+   "en": "a1f6ae1966d2fa18b3f30c38"
+  },
+  "CM/": {
+   "de": "ac25a705ec13a613a8747545",
+   "en": "ac25a705ec13a613a8747545"
+  },
+  "CN/": {
+   "de": "5785f83cc24ad5d1613dbf42",
+   "en": "2ae112dc87d0283a20f4adc3"
+  },
+  "CO/": {
+   "de": "651873682d98e1621284a71d",
+   "en": "1e66b17d89db8fda064f6fbf"
+  },
+  "CR/": {
+   "de": "184ad00e96f2d82775ae7972",
+   "en": "bef8cfcfa45933ecbdd0ccfc"
+  },
+  "CU/": {
+   "de": "da74385d979f3c08766fa6d8",
+   "en": "fd3abf8eb7f32ac9b04e6cab"
+  },
+  "CV/": {
+   "de": "5abb0f82f4287a4852b31c13",
+   "en": "2fddea8cf5038f09d30431fd"
+  },
+  "CV/BR": {
+   "de": "c3d48a77587d7b886daa48af",
+   "en": "effacf8ad450749b0312a441"
+  },
+  "CV/BV": {
+   "de": "06941fde5a7e9ee993519409",
+   "en": "a17da39964bedc2cc950061a"
+  },
+  "CV/CA": {
+   "de": "280cb0592cf0f8eda2eac205",
+   "en": "eb002e96fd06d99fdb4a5ba0"
+  },
+  "CV/CF": {
+   "de": "885ae39c0fe4aa7773c9745a",
+   "en": "ee7b7e6897c52ebc150eacf9"
+  },
+  "CV/CR": {
+   "de": "828c304e9c5508eb5582ebf7",
+   "en": "a4725f96be64545a18d1f635"
+  },
+  "CV/MA": {
+   "de": "85a4fbe3cbe4de8953435d9e",
+   "en": "8036d7373d1d685b11193e3e"
+  },
+  "CV/MO": {
+   "de": "ac1481601ac11f0bb2f55de9",
+   "en": "252c9a84350da0b8065bcafb"
+  },
+  "CV/PA": {
+   "de": "87e46fcc1fea4881149d5ff6",
+   "en": "f9d14a0b99db5301dcb9b644"
+  },
+  "CV/PN": {
+   "de": "5439bc8872d1cc736546be83",
+   "en": "a1889840d8165bee61c71668"
+  },
+  "CV/PR": {
+   "de": "57d2a07b5107f9e8369b1bb5",
+   "en": "56620dde966669400ba05605"
+  },
+  "CV/RB": {
+   "de": "f779574571405d2108448776",
+   "en": "c4f0234adcace44fcbabe3f9"
+  },
+  "CV/RG": {
+   "de": "9505656e7d4aeb1a7fcad2dc",
+   "en": "13bae20133c302e368b99e3e"
+  },
+  "CV/RS": {
+   "de": "c4e2cbc3ee1aa9dbf477f8ef",
+   "en": "34ee5c744f9e989b7e78a2b1"
+  },
+  "CV/SD": {
+   "de": "f38fda288ff89a40ce776a95",
+   "en": "e937e51e9666bdd37c922f3d"
+  },
+  "CV/SF": {
+   "de": "d04a3734c88fee569f2c6e60",
+   "en": "14545a94841d89014bff94ba"
+  },
+  "CV/SL": {
+   "de": "471b4c5d999e217d2cb49c9e",
+   "en": "a9b7155702e45329dcdaf696"
+  },
+  "CV/SM": {
+   "de": "1192c9bd1fe95b79b29bf189",
+   "en": "b722e425f0ff77f9210bb2ca"
+  },
+  "CV/SO": {
+   "de": "661b46a427f759b087953a8d",
+   "en": "549c87f8056d5fa8f36609f1"
+  },
+  "CV/SS": {
+   "de": "56698fbe1ba35fbcefbef440",
+   "en": "4b1ae744bea932a760df88cc"
+  },
+  "CV/SV": {
+   "de": "b3d75f99446ad50eb8443a7b",
+   "en": "9e24ef1a2ae94cb39362c62a"
+  },
+  "CV/TA": {
+   "de": "ccf52e5455c3391de6fa32ac",
+   "en": "9d3b2d90753070c66ae352f3"
+  },
+  "CV/TS": {
+   "de": "80d984ddde12e28dc4137289",
+   "en": "a3d18279d72b85365170a58e"
+  },
+  "CW/": {
+   "de": "920e922d8fa16a41f7d04988",
+   "en": "aadd9e4c731cbd7690ae9619"
+  },
+  "CX/": {
+   "de": "c6e6c40e3da02bca39885e42",
+   "en": "49905259900f75cd75b603a7"
+  },
+  "CY/": {
+   "de": "fa5db9ace3ed6fd51bb67e21",
+   "en": "2bfd6e855d68566af8e1150c"
+  },
+  "CZ/": {
+   "de": "3156994b042bdb2e48d049f1",
+   "en": "b1ff6893f5e29b14360a2de5"
+  },
+  "DE/": {
+   "de": "ed16d70618fff183e5936a0f",
+   "en": "e8b059759a9ee3773271dd9a"
+  },
+  "DE/BB": {
+   "de": "d5a2499cfc7cc223f6c21493",
+   "en": "b2f55785d073c9ae50ca053a"
+  },
+  "DE/BE": {
+   "de": "dd6196f4dd9720a83381e601",
+   "en": "b385ce58d0c5c681779ef8c6"
+  },
+  "DE/BW": {
+   "de": "b5273ad39ab8a92250204070",
+   "en": "53bdd4d0ef221376ce74912c"
+  },
+  "DE/BY": {
+   "de": "b5273ad39ab8a92250204070",
+   "en": "53bdd4d0ef221376ce74912c"
+  },
+  "DE/HB": {
+   "de": "c2a024288981246bedf3db23",
+   "en": "8bd4bd244dfe98d1f29a135c"
+  },
+  "DE/HE": {
+   "de": "b99973ed2f03dc7b98c14125",
+   "en": "018b14d7b493c7504828cfcd"
+  },
+  "DE/HH": {
+   "de": "c2a024288981246bedf3db23",
+   "en": "8bd4bd244dfe98d1f29a135c"
+  },
+  "DE/MV": {
+   "de": "af930a3d337d1fa9654e4fc0",
+   "en": "05bda509216ec34a26a66cd0"
+  },
+  "DE/NI": {
+   "de": "c2a024288981246bedf3db23",
+   "en": "8bd4bd244dfe98d1f29a135c"
+  },
+  "DE/NW": {
+   "de": "0c472f7c093098c7e10d9c7e",
+   "en": "65511778500d1d741aee2ea1"
+  },
+  "DE/RP": {
+   "de": "0c472f7c093098c7e10d9c7e",
+   "en": "65511778500d1d741aee2ea1"
+  },
+  "DE/SH": {
+   "de": "c2a024288981246bedf3db23",
+   "en": "8bd4bd244dfe98d1f29a135c"
+  },
+  "DE/SL": {
+   "de": "53c1a2c9b31f33ad16f0e9cc",
+   "en": "c8979268fff42c7ece3d09e3"
+  },
+  "DE/SN": {
+   "de": "695a8e23c8456b4d3891389b",
+   "en": "d43b08caa87f4f15579f9357"
+  },
+  "DE/ST": {
+   "de": "14e52bdc3ca2b8384286bc42",
+   "en": "ab33f42bb33cd3362c6fd48d"
+  },
+  "DE/TH": {
+   "de": "58a8f6f02f94d8e5eec5eee1",
+   "en": "76bb3e2d85d92ac402b9ef62"
+  },
+  "DE/Augsburg": {
+   "de": "11d05ff2b178d0a9d7e39eb1",
+   "en": "b0d93693ce0d5877978d45e0"
+  },
+  "DJ/": {
+   "de": "80061157f7ce67d1eb0b01d5",
+   "en": "7ed7cb0604f040b3f2b20b90"
+  },
+  "DK/": {
+   "de": "0030714c687930789a3d2b00",
+   "en": "5d0edf2d6c5a216793f4ee37"
+  },
+  "DM/": {
+   "de": "32cbc6aa2696b1a64dd470ef",
+   "en": "32cbc6aa2696b1a64dd470ef"
+  },
+  "DO/": {
+   "de": "9178cbdb67896b39ad424007",
+   "en": "23cc20ea921940152bd4c5ee"
+  },
+  "DZ/": {
+   "de": "9564de4c627f9ff7b01dffe2",
+   "en": "db91ea22f33cc9e12c79b5b3"
+  },
+  "EC/": {
+   "de": "969510ca979c2e11d16b57a7",
+   "en": "75b6d1afb01daad59cd4d1df"
+  },
+  "EE/": {
+   "de": "f8176e16ce25b0e85e88ce1e",
+   "en": "6d27e21518cb3bc3c93b1b5d"
+  },
+  "EG/": {
+   "de": "426d91426a3f258b7244b7f3",
+   "en": "ef50a61c01c2bc52cc4e2dbd"
+  },
+  "EH/": {
+   "de": "39b1b0001847a935828f1eef",
+   "en": "ffe99ed599fb369c29a1e54f"
+  },
+  "ER/": {
+   "de": "97bebedc6d38fafce54e821c",
+   "en": "97bebedc6d38fafce54e821c"
+  },
+  "ES/": {
+   "de": "3f81cc2e65cd778ec2460252",
+   "en": "f301499f726f78d61cb4cc6c"
+  },
+  "ES/AN": {
+   "de": "9cc5bf7232f8e43b34b97899",
+   "en": "5dbcbd895ce23952bdaf4406"
+  },
+  "ES/AR": {
+   "de": "a5697834c3b5eb06103701f4",
+   "en": "4e64801d8aa3e3ee80b74e44"
+  },
+  "ES/AS": {
+   "de": "ced07ad614afe765f03a1369",
+   "en": "400f1b18fd2e053c08529b0f"
+  },
+  "ES/CB": {
+   "de": "2428e30a73afd3f160907318",
+   "en": "6b11636e195f423f8d6b2b25"
+  },
+  "ES/CE": {
+   "de": "b783bd06f5d88fac024f7dc8",
+   "en": "7e9b6ad3b0cb54475716cc04"
+  },
+  "ES/CL": {
+   "de": "ebc92c87fbe5fbac3a881f0e",
+   "en": "c09c558282168868befc33bd"
+  },
+  "ES/CM": {
+   "de": "d187953ecd1e55af58f68ff5",
+   "en": "cb7a3d3a86b7af41739b035e"
+  },
+  "ES/CN": {
+   "de": "d1556290bc0eb1563dc6dd80",
+   "en": "a3fc55c5a492ac63f5afbf57"
+  },
+  "ES/CT": {
+   "de": "78fd19e17027cdc52ed756cb",
+   "en": "f88eebf9ff255ed9ffe9c30c"
+  },
+  "ES/EX": {
+   "de": "76f7032d48f3c3f5d0eb8a4f",
+   "en": "5bb7642d91675a82f6d22313"
+  },
+  "ES/GA": {
+   "de": "709b805cc01280c6e71f14f1",
+   "en": "c3b8357b21ee2c0826fa835f"
+  },
+  "ES/IB": {
+   "de": "61a2eb4ead795890be07708b",
+   "en": "68bc7b71db9971813bad04a4"
+  },
+  "ES/MC": {
+   "de": "9181708b60568b750e076a96",
+   "en": "bc40a747f3dc0836840bdd7b"
+  },
+  "ES/MD": {
+   "de": "f58fd4c645a4d10065f52c14",
+   "en": "3da26dbf7df7b6987f34981b"
+  },
+  "ES/ML": {
+   "de": "a74eca1e7467ff012cf0cacc",
+   "en": "e50110628bf18e7f5d9049da"
+  },
+  "ES/NC": {
+   "de": "5b56a0865e7052d8aa3c08cf",
+   "en": "726aedc6f67a47af3d81cfad"
+  },
+  "ES/PV": {
+   "de": "191c4e3910efeada07927ee0",
+   "en": "4c609f01df92d5b944fa22fa"
+  },
+  "ES/RI": {
+   "de": "20cb74b6c202a908d20144c7",
+   "en": "e126411d561fe8c425eb899a"
+  },
+  "ES/VC": {
+   "de": "2c9b450c797c5c5350f5cc06",
+   "en": "5e273b1a43ac0530dd8e5962"
+  },
+  "ET/": {
+   "de": "b5bc13068993f166bec5f4a9",
+   "en": "3872c3edca83214e6e652ccb"
+  },
+  "FI/": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/01": {
+   "de": "7c91ed38ae58572291526fc1",
+   "en": "ce03a43c3a4521460ec92903"
+  },
+  "FI/02": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/03": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/04": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/05": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/06": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/07": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/08": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/09": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/10": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/11": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/12": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/13": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/14": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/15": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/16": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/17": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/18": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FI/19": {
+   "de": "5106216e3fb69a971ebc8149",
+   "en": "597b4c3489df5194b54fc900"
+  },
+  "FJ/": {
+   "de": "21d67998c3cea7ecb6641c95",
+   "en": "21d67998c3cea7ecb6641c95"
+  },
+  "FK/": {
+   "de": "53895de5944ab66bcc299fd4",
+   "en": "daa44b947ad53113ba763aee"
+  },
+  "FM/": {
+   "de": "e3fb0b5e82687180c9537eb2",
+   "en": "e3fb0b5e82687180c9537eb2"
+  },
+  "FM/KSA": {
+   "de": "b2d6533a2204602df8f5efc7",
+   "en": "b2d6533a2204602df8f5efc7"
+  },
+  "FM/PNI": {
+   "de": "ea473690496221490e5a5f0e",
+   "en": "ea473690496221490e5a5f0e"
+  },
+  "FM/TRK": {
+   "de": "e54f0ebedf2a2c3e27cf92f7",
+   "en": "e54f0ebedf2a2c3e27cf92f7"
+  },
+  "FM/YAP": {
+   "de": "b92a9a02bf9734ddf669790f",
+   "en": "b92a9a02bf9734ddf669790f"
+  },
+  "FO/": {
+   "de": "7a0e46d0b05a91781158f232",
+   "en": "1b7a8ccd3ff39e863b7cdf50"
+  },
+  "FR/": {
+   "de": "9d3732b6846c6121ff702ade",
+   "en": "e31b21aeec41e331181ab3f6"
+  },
+  "FR/57": {
+   "de": "a38817ee8c1b18bfc9e72c8e",
+   "en": "1d2fd38e5ec2e2c544763908"
+  },
+  "FR/6AE": {
+   "de": "a38817ee8c1b18bfc9e72c8e",
+   "en": "1d2fd38e5ec2e2c544763908"
+  },
+  "FR/971": {
+   "de": "93042b8e44373f25e52c41c2",
+   "en": "99faa587de993e9615750047"
+  },
+  "FR/972": {
+   "de": "67ae34a6004f51f12d9c3917",
+   "en": "9c9d4954d6996971a3c423d1"
+  },
+  "FR/973": {
+   "de": "fd19c87b43ff9af771b2aa44",
+   "en": "ae863065fb7723ed961d57e2"
+  },
+  "FR/974": {
+   "de": "8262322d08bb994f15253227",
+   "en": "7b12a087cc60c68410408428"
+  },
+  "FR/976": {
+   "de": "8f4c6d27dfb2dd8bc1d59760",
+   "en": "12e88d085547dac4af7cd2c9"
+  },
+  "FR/BL": {
+   "de": "f8d711ce5f4063e66f43e650",
+   "en": "de55e13dedb8410bbc581276"
+  },
+  "FR/MF": {
+   "de": "39b9d3e9e8a27fde9cba5382",
+   "en": "91cf5f5a6b5b8947da23938b"
+  },
+  "FR/NC": {
+   "de": "e8aba420fbcda4184a4027c0",
+   "en": "42b92589706fc5e89bed0fa6"
+  },
+  "FR/PF": {
+   "de": "0df7856207e46392458ae91b",
+   "en": "86f3e301fda64232e0bfed74"
+  },
+  "FR/PM": {
+   "de": "9d3732b6846c6121ff702ade",
+   "en": "e31b21aeec41e331181ab3f6"
+  },
+  "FR/TF": {
+   "de": "9d3732b6846c6121ff702ade",
+   "en": "e31b21aeec41e331181ab3f6"
+  },
+  "FR/WF": {
+   "de": "7910bdbc36dd5b2ff9c51db2",
+   "en": "4b47a617301161d10f4200f6"
+  },
+  "GA/": {
+   "de": "80ac1b904b920d6c019c0aef",
+   "en": "1c4d623b3673ccb88b39ed8d"
+  },
+  "GB/": {
+   "de": "46f61d7f04af351831505f3a",
+   "en": "46f61d7f04af351831505f3a"
+  },
+  "GB/ENG": {
+   "de": "477ee8f229db5f74d218fe28",
+   "en": "477ee8f229db5f74d218fe28"
+  },
+  "GB/NIR": {
+   "de": "96fd5fab3e2ca0d3b99f3085",
+   "en": "96fd5fab3e2ca0d3b99f3085"
+  },
+  "GB/SCT": {
+   "de": "5c167f32696f1c98980bb727",
+   "en": "5c167f32696f1c98980bb727"
+  },
+  "GB/WLS": {
+   "de": "477ee8f229db5f74d218fe28",
+   "en": "477ee8f229db5f74d218fe28"
+  },
+  "GD/": {
+   "de": "abcdd791a897cb9498271e08",
+   "en": "f12fcdda56dc1b3e1e166818"
+  },
+  "GE/": {
+   "de": "3bb3c715717979d4a31e17cb",
+   "en": "7b07d47ab4a146d52ef2c8fd"
+  },
+  "GF/": {
+   "de": "fd19c87b43ff9af771b2aa44",
+   "en": "ae863065fb7723ed961d57e2"
+  },
+  "GG/": {
+   "de": "35e05d59617395a2dc046235",
+   "en": "35e05d59617395a2dc046235"
+  },
+  "GH/": {
+   "de": "cacba5303d3153c1febb8ceb",
+   "en": "cacba5303d3153c1febb8ceb"
+  },
+  "GI/": {
+   "de": "a7556be4649328275010cbfa",
+   "en": "2fd3e600a8b38f342060b18e"
+  },
+  "GL/": {
+   "de": "8be1bc67247b295089c39a14",
+   "en": "7d8a1a9d29b1c2e7485121fd"
+  },
+  "GM/": {
+   "de": "05682356c1e8d967e54571ba",
+   "en": "c093bd463fdc475f0bfd40a6"
+  },
+  "GN/": {
+   "de": "eba5de47c05f43682a01ff3b",
+   "en": "3583459cf9f2b11a779619fc"
+  },
+  "GP/": {
+   "de": "93042b8e44373f25e52c41c2",
+   "en": "99faa587de993e9615750047"
+  },
+  "GQ/": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GQ/AN": {
+   "de": "f63bc84795343d89445fa2bf",
+   "en": "e1b1acf3ad1f4ac8015accf2"
+  },
+  "GQ/BN": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GQ/BS": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GQ/CS": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GQ/DJ": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GQ/KN": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GQ/LI": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GQ/WN": {
+   "de": "d3c3b226f8fb6ddf59aeb970",
+   "en": "92a73db71e7a87b6afa97082"
+  },
+  "GR/": {
+   "de": "8d75d0da3b9c302ec364d335",
+   "en": "467b464474f6a12c31023a43"
+  },
+  "GS/": {
+   "de": "c63d000e782844f53a2c36c8",
+   "en": "2d849a4a66462d7fdf6c53d0"
+  },
+  "GT/": {
+   "de": "d8b6641ee435af3e08548e02",
+   "en": "11ef7c45a998cf1ecfb0e28d"
+  },
+  "GU/": {
+   "de": "50fb2b074cd1719ade09ac52",
+   "en": "50fb2b074cd1719ade09ac52"
+  },
+  "GW/": {
+   "de": "c3b65f8be335215d8fb7e18a",
+   "en": "77ec94bc1a534098285453f7"
+  },
+  "GY/": {
+   "de": "4b98a929e718e007363131b2",
+   "en": "ba506f387356384735f6ae7d"
+  },
+  "HK/": {
+   "de": "b1de9751dbda1220e1f4eed7",
+   "en": "f98a126ba231caa55c0ed96c"
+  },
+  "HM/": {
+   "de": "e3b0c44298fc1c149afbf4c8",
+   "en": "e3b0c44298fc1c149afbf4c8"
+  },
+  "HN/": {
+   "de": "ab93a9a9f323dcf3f93d8c30",
+   "en": "1c48660f86d468c73f26b700"
+  },
+  "HR/": {
+   "de": "b90bbc96a63f47e27b2dfb96",
+   "en": "10222fe5ca8bf487efe594cb"
+  },
+  "HT/": {
+   "de": "e40d7c800e29340036eedc8f",
+   "en": "722f84436c4ef3c133296c8b"
+  },
+  "HU/": {
+   "de": "1c979f00997f4fb21d189be0",
+   "en": "15fc6ecbe6ed7a68480aa90f"
+  },
+  "ID/": {
+   "de": "db0f3aaffecd2e1ac83b2301",
+   "en": "6b189d779f8441f3120878a1"
+  },
+  "IE/": {
+   "de": "16ad9677ecff14c3b486b059",
+   "en": "16ad9677ecff14c3b486b059"
+  },
+  "IL/": {
+   "de": "7e2a8c49f980291ab45c4f56",
+   "en": "51e315766d62e6e95984ad47"
+  },
+  "IM/": {
+   "de": "7c9d436659238631fced3d1c",
+   "en": "7c9d436659238631fced3d1c"
+  },
+  "IN/": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/AN": {
+   "de": "4c3695e1498fbc1a18debec3",
+   "en": "badedba035c6294a7bcecd96"
+  },
+  "IN/AP": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/AR": {
+   "de": "d3a0bb935eab9667ebead416",
+   "en": "ef8bd671552acd71ad6f7059"
+  },
+  "IN/AS": {
+   "de": "42cae1e5011ad1f44dddf392",
+   "en": "d043aa495551f901cdd25804"
+  },
+  "IN/BR": {
+   "de": "3be00002b6eb11a0b6232c5b",
+   "en": "a88e922efc4c1d6d765dd348"
+  },
+  "IN/CG": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/CH": {
+   "de": "9ebf5867a6d9dbdf1e69c0d0",
+   "en": "18dc2be4f0918cc508dcf9e2"
+  },
+  "IN/DH": {
+   "de": "e601b7b75213cb3a3fcb976a",
+   "en": "f3182bb273efa9f798b91c12"
+  },
+  "IN/DL": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/GA": {
+   "de": "8de87f79c401bbb589ea3764",
+   "en": "c74c42a6fec6ba286b0be5bc"
+  },
+  "IN/GJ": {
+   "de": "10426f12f7d18bd28ad93dcf",
+   "en": "cf37ce5b6a244784eea1d0c6"
+  },
+  "IN/HP": {
+   "de": "64b0ae63cc0c24a72e5f601f",
+   "en": "eacc2fd30c2d4fbf415ff3fb"
+  },
+  "IN/HR": {
+   "de": "5befb71c83ae8ad761347b48",
+   "en": "4c8a77cb65553f3987089a3b"
+  },
+  "IN/JH": {
+   "de": "81f41f03863688f1207bb1da",
+   "en": "bf408fdbd644e56976658da1"
+  },
+  "IN/JK": {
+   "de": "aa972d268dfd7ee0c4eae50d",
+   "en": "7456504adab90b76f63ea829"
+  },
+  "IN/KA": {
+   "de": "fb7bed837c3a1297513e4bf0",
+   "en": "dc5ff92ecf0c100b718a8dca"
+  },
+  "IN/KL": {
+   "de": "5e0e8fff37cfad5b5aeb2dda",
+   "en": "19034828152109bc24b31a73"
+  },
+  "IN/LA": {
+   "de": "70fb535b050c208c7e9770f4",
+   "en": "d0e704952142683070f5e31a"
+  },
+  "IN/LD": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/MH": {
+   "de": "31e1d03afac53f7d7251240c",
+   "en": "e30ab7f23a2fe8fbc84da687"
+  },
+  "IN/ML": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/MN": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/MP": {
+   "de": "78d40d40929748821c6ef2f0",
+   "en": "8a2659be76607801df21cc15"
+  },
+  "IN/MZ": {
+   "de": "94688ed6067380273525055f",
+   "en": "ecf4197c44ac7089a1cc4705"
+  },
+  "IN/NL": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/OD": {
+   "de": "64822d0efecc054672ccde8c",
+   "en": "94f606480e4cf27ae8a8ab1d"
+  },
+  "IN/PB": {
+   "de": "6a48cff6f81e7ee0f1f501e6",
+   "en": "41bcfd42bffab6d807ec096a"
+  },
+  "IN/PY": {
+   "de": "e2df30e04262496d00b0aa50",
+   "en": "b15a116c726e3e94afc39cf4"
+  },
+  "IN/RJ": {
+   "de": "57abbb05f7469f69dcf88a28",
+   "en": "2ac7d6d49ba80a312fed026c"
+  },
+  "IN/SK": {
+   "de": "913e24dfd29c66b601e240c4",
+   "en": "83f33ff99d4dc0b86071e821"
+  },
+  "IN/TN": {
+   "de": "1ad48173899c55a486450560",
+   "en": "d713d1a2585420b029b9056c"
+  },
+  "IN/TR": {
+   "de": "4aefe8b3a4244cdc9fedec1a",
+   "en": "aa0a195712f1ce2ee3862cc6"
+  },
+  "IN/TS": {
+   "de": "8503cfdcba1fa01ef4a3451e",
+   "en": "8cb20565abf5798bc8780328"
+  },
+  "IN/UK": {
+   "de": "3b0d04a3d94fbb707b627540",
+   "en": "d26016aef08c9cd166e9e67a"
+  },
+  "IN/UP": {
+   "de": "6a5c8ffd744d835acc978968",
+   "en": "f0592aee3eb6d5c43e81a2cc"
+  },
+  "IN/WB": {
+   "de": "6de7d324728eb17febe44d13",
+   "en": "acc01aefdc746ec6fc316797"
+  },
+  "IO/": {
+   "de": "e3b0c44298fc1c149afbf4c8",
+   "en": "e3b0c44298fc1c149afbf4c8"
+  },
+  "IQ/": {
+   "de": "8959a0df26676faf57ba7932",
+   "en": "6cd6c2767a8cb51156db119c"
+  },
+  "IR/": {
+   "de": "1ade3a1c92e35be0351b86e9",
+   "en": "d6fa2adb5b4b337434fe5722"
+  },
+  "IS/": {
+   "de": "9530e18a29d9b10d92903c01",
+   "en": "a03138fb1288bdd141726170"
+  },
+  "IT/": {
+   "de": "5e1ccc2f8ee46dce75214891",
+   "en": "4926f4314eb74b56bb8da55a"
+  },
+  "IT/AG": {
+   "de": "0865f8474a40e2c83d96e9a0",
+   "en": "e7eaef053b989b0c03d74d79"
+  },
+  "IT/AL": {
+   "de": "d93cd434efc08e2d5005cc45",
+   "en": "2ab90d2aa1c3ddb3c58c575f"
+  },
+  "IT/AN": {
+   "de": "db1dac25a59dad7201a92e06",
+   "en": "cb8b3a08a17bcfaaa13f0b76"
+  },
+  "IT/AO": {
+   "de": "508272fe023442547eb609a5",
+   "en": "10630e909d468ba48b45bca5"
+  },
+  "IT/AP": {
+   "de": "4cd7527329fecb39a33fe1d6",
+   "en": "893e7a47ffadec35916bc260"
+  },
+  "IT/AQ": {
+   "de": "7d43ccfc9b4121011190abef",
+   "en": "1323dc3ceca92ff87b732017"
+  },
+  "IT/AR": {
+   "de": "13b1c4afe7e34b1d3d1be04d",
+   "en": "c85dc1656df02968ed300b10"
+  },
+  "IT/AT": {
+   "de": "58bc6a9c51cd471d60b523b3",
+   "en": "e8901df4023b818d328cf969"
+  },
+  "IT/AV": {
+   "de": "f252e426531571d913d2b937",
+   "en": "dec35a6e20749ce5ef14051a"
+  },
+  "IT/BA": {
+   "de": "53394f0c63ae16d797d2ab67",
+   "en": "2a422b3b285538721c6a6b65"
+  },
+  "IT/BG": {
+   "de": "741ef4225452d38c9752a8bd",
+   "en": "2ea17027982b3039108ec9e9"
+  },
+  "IT/BI": {
+   "de": "5e1ccc2f8ee46dce75214891",
+   "en": "4926f4314eb74b56bb8da55a"
+  },
+  "IT/BL": {
+   "de": "ed1d26f52cdf1dfb51caacd3",
+   "en": "81cdf31e54121862e05a90a7"
+  },
+  "IT/BN": {
+   "de": "bb97105b203dcb723162c5fb",
+   "en": "04448a73ad96af674b26054e"
+  },
+  "IT/BO": {
+   "de": "a6c91f5a389d2346e011ca2e",
+   "en": "620cd365a8e196ac4ffb58b1"
+  },
+  "IT/BR": {
+   "de": "68aacc620c2ce9bb941df462",
+   "en": "4a47417e3428834ccc8cd1fa"
+  },
+  "IT/BS": {
+   "de": "7ad05db2608f4a3f9e4ea458",
+   "en": "76e6a9975d86c825588cf2b1"
+  },
+  "IT/BT": {
+   "de": "f3af1798cc742cdb65a579c2",
+   "en": "198184885e2b8221b22c523e"
+  },
+  "IT/BZ": {
+   "de": "389da6cb1ae094bea45d97da",
+   "en": "6f3a23fe0d288f16481b21b1"
+  },
+  "IT/CA": {
+   "de": "052c095fee0973b337955fb2",
+   "en": "84fcf34eb97628d10267ef85"
+  },
+  "IT/CB": {
+   "de": "43cfcd302f9ed655143da7d2",
+   "en": "39db70fb055b3aaaaa493f3c"
+  },
+  "IT/CE": {
+   "de": "c7d7f4879dbf2b649e54ef86",
+   "en": "b826afe50f8581a56ff21b4c"
+  },
+  "IT/CH": {
+   "de": "a7cfe3c4408f811213b00e59",
+   "en": "3519b5e875cfa753b09b1dcf"
+  },
+  "IT/CL": {
+   "de": "94a22de90283467d9515a40c",
+   "en": "2f21d7f2fdf8bf23118ca77c"
+  },
+  "IT/CN": {
+   "de": "94a22de90283467d9515a40c",
+   "en": "2f21d7f2fdf8bf23118ca77c"
+  },
+  "IT/CO": {
+   "de": "c39b1129f4e435374c1a1c1f",
+   "en": "68b53260c2106fa05acd63fd"
+  },
+  "IT/CR": {
+   "de": "17edfe74caab127b7eb89061",
+   "en": "6de4c2bba603447baebb82a9"
+  },
+  "IT/CS": {
+   "de": "3471367bbfbaefaf8334a75c",
+   "en": "4fecb1fa75370420047c3083"
+  },
+  "IT/CT": {
+   "de": "1b189fc0a56f15a9688c560c",
+   "en": "6d1a28181cbb2479d0d2228c"
+  },
+  "IT/CZ": {
+   "de": "dab282c95a905bbaa1787393",
+   "en": "b1ca6d9add85f111237e7aa7"
+  },
+  "IT/EN": {
+   "de": "7766be0a8432d6c6cbbfd8e7",
+   "en": "ddf8de076da01fa164ef008b"
+  },
+  "IT/FC": {
+   "de": "da7ac2af2cadbc584401d687",
+   "en": "d431811c2d753abe2b251546"
+  },
+  "IT/FE": {
+   "de": "43cfcd302f9ed655143da7d2",
+   "en": "39db70fb055b3aaaaa493f3c"
+  },
+  "IT/FG": {
+   "de": "b5154834fb6b380bc99dc58b",
+   "en": "39c9c3bba8d88c068f25dcb3"
+  },
+  "IT/FI": {
+   "de": "f314d1ce21bfe1f37df6cec5",
+   "en": "64c4bb724dad1b7b2a3c9b9f"
+  },
+  "IT/FM": {
+   "de": "4a49c491b6392f1dcfa7f7d1",
+   "en": "7e6c789c752ac3daccc6cf3b"
+  },
+  "IT/FR": {
+   "de": "b07eb7f09435900e53d9225d",
+   "en": "0156d3e0eaefd47556bc2577"
+  },
+  "IT/GE": {
+   "de": "f314d1ce21bfe1f37df6cec5",
+   "en": "64c4bb724dad1b7b2a3c9b9f"
+  },
+  "IT/GO": {
+   "de": "acf09c0e1bab7dd927874a71",
+   "en": "93701ea665eea1f5a1237f1a"
+  },
+  "IT/GR": {
+   "de": "f6596de2bcafad2890285a3e",
+   "en": "a0d11ce02cc335eda455b89c"
+  },
+  "IT/IM": {
+   "de": "aa73804439b52b4b1f4764f6",
+   "en": "79ea4c657131401ea918c9f3"
+  },
+  "IT/IS": {
+   "de": "7dd15db1d0b929bda30f59c7",
+   "en": "0296f1f4719cddc47cce1110"
+  },
+  "IT/KR": {
+   "de": "5d7a4b53adb88ef7e0e3271d",
+   "en": "87e3e49027309c3119836a90"
+  },
+  "IT/LC": {
+   "de": "53394f0c63ae16d797d2ab67",
+   "en": "2a422b3b285538721c6a6b65"
+  },
+  "IT/LE": {
+   "de": "099b1358a403e875ddf63e7f",
+   "en": "71da89e649e7096a9cbc62b3"
+  },
+  "IT/LI": {
+   "de": "e5c3f35416c01b2c02ba2bf0",
+   "en": "7d42c934d4b9334ebf4a8332"
+  },
+  "IT/LO": {
+   "de": "8cbb28c85ef63f536b9c1cab",
+   "en": "fc8f031454cc4a4a553a0bee"
+  },
+  "IT/LT": {
+   "de": "7b7458cb2159cc72c50884bd",
+   "en": "e38320ddebcf7d9cfb1939c8"
+  },
+  "IT/LU": {
+   "de": "c2d50be81cee90186d893610",
+   "en": "fcecc8f098bdd8cefcf0c06d"
+  },
+  "IT/MB": {
+   "de": "f314d1ce21bfe1f37df6cec5",
+   "en": "64c4bb724dad1b7b2a3c9b9f"
+  },
+  "IT/MC": {
+   "de": "8eb5ab0512318fdc2751d066",
+   "en": "fc0b4444228be7726d665a63"
+  },
+  "IT/ME": {
+   "de": "07c530474f99ef58fd60cc68",
+   "en": "352c5cac40a0fdad6cfe7a66"
+  },
+  "IT/MI": {
+   "de": "02ddf456138b104cb98b2ef5",
+   "en": "b2ea66021aa6d04242798b4e"
+  },
+  "IT/MN": {
+   "de": "95b26fc9d841963eb2a4c993",
+   "en": "17c2418e76e1bf1eacd5451f"
+  },
+  "IT/MO": {
+   "de": "9431d9e30a40a09effb30949",
+   "en": "e36225ccc7c8e188d65352eb"
+  },
+  "IT/MS": {
+   "de": "f286e049e61e4f0b5e9fd4fe",
+   "en": "fbaa6f5c0abe86901dfca9cb"
+  },
+  "IT/MT": {
+   "de": "e5a8ed551b932b7ab18c83b4",
+   "en": "e9cf69523df9844a2c6fbc86"
+  },
+  "IT/NA": {
+   "de": "daee00ea402b6cedc226fd39",
+   "en": "d876cbf655b1cdb25992ee89"
+  },
+  "IT/NO": {
+   "de": "6d08254e5eadbba1e129e20b",
+   "en": "2c3870f8375a4e20ccdde726"
+  },
+  "IT/NU": {
+   "de": "c849d280d003a35403f886e9",
+   "en": "6f478dd5b49ab6bb6369ace0"
+  },
+  "IT/OR": {
+   "de": "9a27da0f12e609a9027c0fab",
+   "en": "6e0bf434ec4b46e379361784"
+  },
+  "IT/PA": {
+   "de": "f39553c067d31c65baabf369",
+   "en": "33642f651d05c8a9505c3969"
+  },
+  "IT/PC": {
+   "de": "0e0977eb2c384e4cb7c46386",
+   "en": "b6d0ab1cc3a0f4e8d9d0cd70"
+  },
+  "IT/PD": {
+   "de": "055f80643b7faa0f195a706d",
+   "en": "65d2e4fce4328cdee59c82c9"
+  },
+  "IT/PE": {
+   "de": "a018c00b1fb239a51b6d6443",
+   "en": "c36e2bf2c1eedc37f079d189"
+  },
+  "IT/PG": {
+   "de": "9b947930c86c030f55b6d900",
+   "en": "78eb52ebee7b09bd46e4aab4"
+  },
+  "IT/PI": {
+   "de": "b9dc2ba5353233dd1c530c1e",
+   "en": "6a388850da40afedffc1687f"
+  },
+  "IT/PN": {
+   "de": "7d9d4c087ba8d0bd25a97e53",
+   "en": "7f8c9c3a0dca18be7b97b9b7"
+  },
+  "IT/PO": {
+   "de": "5e1ccc2f8ee46dce75214891",
+   "en": "4926f4314eb74b56bb8da55a"
+  },
+  "IT/PR": {
+   "de": "3a47ddc61f5e954df8077b1d",
+   "en": "dd32ad264a9a5dac7ac11527"
+  },
+  "IT/PT": {
+   "de": "bcf128a408a9323046c199d4",
+   "en": "2c4feed044ea17d44e7d1ee3"
+  },
+  "IT/PU": {
+   "de": "ddaef825578d39ea419d3557",
+   "en": "e3b36af6641a094d611bea22"
+  },
+  "IT/PV": {
+   "de": "7d3bdc200ad58d94f125c6cc",
+   "en": "cb725dfc6a6486be14c08216"
+  },
+  "IT/PZ": {
+   "de": "362991d23159c8716dbfee18",
+   "en": "0301bf522c5b808dab47078c"
+  },
+  "IT/RA": {
+   "de": "05d86212104f7a2a1efd1829",
+   "en": "e01889c6c9b62130099d6303"
+  },
+  "IT/RC": {
+   "de": "43cfcd302f9ed655143da7d2",
+   "en": "39db70fb055b3aaaaa493f3c"
+  },
+  "IT/RE": {
+   "de": "29cf43ad281b7d641050d6c5",
+   "en": "48f9114ca4b7739ac5744b8b"
+  },
+  "IT/RG": {
+   "de": "111cdbcc659b0d599c4e5b12",
+   "en": "251edf1f5827cb00674a22ed"
+  },
+  "IT/RI": {
+   "de": "17feeed0cd6eabcf290fec4f",
+   "en": "25ee726b1922f1279aedc125"
+  },
+  "IT/RM": {
+   "de": "542ef9208a2c8aeb2b69006d",
+   "en": "35d20d7f9e675bdca4275b4b"
+  },
+  "IT/RN": {
+   "de": "0e5259ea285bfdb650a2b804",
+   "en": "782735a7dea9c4993f81cd8f"
+  },
+  "IT/RO": {
+   "de": "b0d5faaf991b560e29acc938",
+   "en": "ece11691c33aa566afc8510c"
+  },
+  "IT/SA": {
+   "de": "2e7e48a61d1f8245901baa38",
+   "en": "98ccfc0f3d161d519ed850d9"
+  },
+  "IT/SI": {
+   "de": "ccdca5dcb6607f744d0b3f8e",
+   "en": "bc2517d9afe51ef4c8bc7530"
+  },
+  "IT/SO": {
+   "de": "a1dace23d5ec4cf6c7356d4c",
+   "en": "7c517ea59ffb57ab00946bc2"
+  },
+  "IT/SP": {
+   "de": "76f1fcb4a4c49cea8f1e0fed",
+   "en": "1d1dbaba0d9cc04736b71936"
+  },
+  "IT/SR": {
+   "de": "a21f251c3b3a572616d7423d",
+   "en": "833429f86adb75812b7629c4"
+  },
+  "IT/SS": {
+   "de": "53394f0c63ae16d797d2ab67",
+   "en": "2a422b3b285538721c6a6b65"
+  },
+  "IT/SU": {
+   "de": "2dc0355de8f5842a879d6810",
+   "en": "00cb14cab234590b461d547d"
+  },
+  "IT/SV": {
+   "de": "19c020a9933fb098599e0e80",
+   "en": "608cf6862a218b457ba7ab95"
+  },
+  "IT/TA": {
+   "de": "3ccb09dd2f6da43f656c6fd7",
+   "en": "adef90a16cbfbc7c6cd0d8ac"
+  },
+  "IT/TE": {
+   "de": "a0dd89b90495f0bf6fba19b5",
+   "en": "579b13478325e10c7fae7eda"
+  },
+  "IT/TN": {
+   "de": "c5c49624b46f86faf2932b8d",
+   "en": "b59c4fe6ce80260b6d28e2ca"
+  },
+  "IT/TO": {
+   "de": "f314d1ce21bfe1f37df6cec5",
+   "en": "64c4bb724dad1b7b2a3c9b9f"
+  },
+  "IT/TP": {
+   "de": "01a2bbeaec81d27eeb17afe1",
+   "en": "8c278da792206675980d8d44"
+  },
+  "IT/TR": {
+   "de": "8c9ea4d52c5042877e88f558",
+   "en": "0553e2ce9fc9e8e956205589"
+  },
+  "IT/TS": {
+   "de": "d90c4af1e0082a091ae77541",
+   "en": "6cf7e4f4a9824a23fcd486a5"
+  },
+  "IT/TV": {
+   "de": "7d75fc0bae0aeb46b772068d",
+   "en": "27fad18c70c4835ffde33180"
+  },
+  "IT/UD": {
+   "de": "f5178ab25d6bd298d2cd51f3",
+   "en": "352f2266f9e1528460b3f2c2"
+  },
+  "IT/VA": {
+   "de": "d46878d359d967f52f1e8865",
+   "en": "7d8a5d07b627554e2f3803a9"
+  },
+  "IT/VB": {
+   "de": "d46878d359d967f52f1e8865",
+   "en": "7d8a5d07b627554e2f3803a9"
+  },
+  "IT/VC": {
+   "de": "ab28997b9a0a9dfccb5894df",
+   "en": "bcdf3cf3410b55a231e3632f"
+  },
+  "IT/VE": {
+   "de": "e16e4ed5d0f73d7b0b3af741",
+   "en": "dcee1d348935a5aa55ed7eed"
+  },
+  "IT/VI": {
+   "de": "42abd66358eb699f6455f629",
+   "en": "53c709df3c0bca8c78c6f0f6"
+  },
+  "IT/VR": {
+   "de": "70e61de36b6e98fe8aa57d7b",
+   "en": "6a7d86d834c7a3126e1d333e"
+  },
+  "IT/VT": {
+   "de": "d54be5a8d51552aeb6d086db",
+   "en": "e22d32b5dc9620eb71a3cdaf"
+  },
+  "IT/VV": {
+   "de": "07c305a2bbf57a84356a844d",
+   "en": "d09c1d91edb43657cf91768d"
+  },
+  "IT/Andria": {
+   "de": "380c947054f6918f50dc4885",
+   "en": "8cadd2bcd0f629c21e176a11"
+  },
+  "IT/Barletta": {
+   "de": "1d5c366b079e75ba544012ea",
+   "en": "f5190d0fe1af85c24a76e059"
+  },
+  "IT/Cesena": {
+   "de": "f314d1ce21bfe1f37df6cec5",
+   "en": "64c4bb724dad1b7b2a3c9b9f"
+  },
+  "IT/Forli": {
+   "de": "0e0bb91784d6290db127c44a",
+   "en": "a4b07180100c24bc93a8061e"
+  },
+  "IT/Pesaro": {
+   "de": "fb02efb0cc01d0753e4b59f5",
+   "en": "18255693d9299ebb0cd7c72c"
+  },
+  "IT/Trani": {
+   "de": "12e4a7b2e2a547a0b0f23a49",
+   "en": "2b3cd58df17a2b94312c068d"
+  },
+  "IT/Urbino": {
+   "de": "abb4cbd5f43ac6ee82178b18",
+   "en": "516be4f5c3ec758ac793d9bb"
+  },
+  "JE/": {
+   "de": "d729f100f5a283ac999826a7",
+   "en": "d729f100f5a283ac999826a7"
+  },
+  "JM/": {
+   "de": "8e3d2754e947181380825727",
+   "en": "8e3d2754e947181380825727"
+  },
+  "JO/": {
+   "de": "d673f1e1ca95ce52cd639fa2",
+   "en": "0525fb15b1dc71c21031600c"
+  },
+  "JP/": {
+   "de": "8d917ac1a086fae42af0205a",
+   "en": "3ef1ef8512b2b86e75c82d55"
+  },
+  "KE/": {
+   "de": "ee4e94fb62c285448bb878ba",
+   "en": "6124913aa2d2134417278b1f"
+  },
+  "KG/": {
+   "de": "b53dd77fbe007f584e1b124e",
+   "en": "9d84764b9be16bfc9bb1f17e"
+  },
+  "KH/": {
+   "de": "1904d38bd53a5594d65fb20c",
+   "en": "7bfc458bf718ebb3687c978b"
+  },
+  "KI/": {
+   "de": "9c8c818f96be3d301a137699",
+   "en": "9c8c818f96be3d301a137699"
+  },
+  "KM/": {
+   "de": "38e4a77cbfd2a5904588d02f",
+   "en": "38e4a77cbfd2a5904588d02f"
+  },
+  "KN/": {
+   "de": "af03bed1a3d5ddc17d8c789f",
+   "en": "af03bed1a3d5ddc17d8c789f"
+  },
+  "KP/": {
+   "de": "c9996cdd7d15b913528d8b48",
+   "en": "8c5107966fdd4bc197fdb6e9"
+  },
+  "KR/": {
+   "de": "4f7fe13b0d5661ab961f70de",
+   "en": "5c1d0bcaf471fe09dd1ef90c"
+  },
+  "KW/": {
+   "de": "e01265ebb4b859a7466401e0",
+   "en": "0354eac018a673bd8388390f"
+  },
+  "KY/": {
+   "de": "dfbdeb0670f20e206559b5d0",
+   "en": "fb2596afaff950b8e922179e"
+  },
+  "KZ/": {
+   "de": "025d17b7e59f7f96e449c418",
+   "en": "c812ad7ed5eb429d532ec16c"
+  },
+  "LA/": {
+   "de": "76066da6b6af3709a5602afe",
+   "en": "901fcd241c03a979209ff739"
+  },
+  "LB/": {
+   "de": "5c0c92c380fc878f1498d958",
+   "en": "182b4ee3f7bee2c1266c7b20"
+  },
+  "LC/": {
+   "de": "52d6951e1c2d5b38a2595d58",
+   "en": "841e88f655b5392ede184822"
+  },
+  "LI/": {
+   "de": "4c3673eb64bac76eea7dc655",
+   "en": "3c60878a356ddc5ec727aea5"
+  },
+  "LK/": {
+   "de": "d33a74013eba5e81fafc92cd",
+   "en": "fc02b1198e878e33c8436cd0"
+  },
+  "LR/": {
+   "de": "6bc1e5ec2a715a2de632c70d",
+   "en": "6bc1e5ec2a715a2de632c70d"
+  },
+  "LS/": {
+   "de": "6ca94a32ec9e7a9a3c4f36fe",
+   "en": "6ca94a32ec9e7a9a3c4f36fe"
+  },
+  "LT/": {
+   "de": "1df4a2867af3d6154a2a798b",
+   "en": "7273ae624e8affcc191b4d0c"
+  },
+  "LU/": {
+   "de": "525996c02f4f03cac63aa9e0",
+   "en": "48ea5b7495af8cb259d7ddd1"
+  },
+  "LV/": {
+   "de": "e8d3827187ab63e16d4fde47",
+   "en": "2bbc45a3c1598b7cc998b5fd"
+  },
+  "LY/": {
+   "de": "bc26d4bc079cf01e3fc373ce",
+   "en": "aee1c4315fadfeeb8bca1aa1"
+  },
+  "MA/": {
+   "de": "69722669320b78f856373338",
+   "en": "82318b5236c6cc2890bef5e1"
+  },
+  "MC/": {
+   "de": "9bf177ea73d1f97a41a610c4",
+   "en": "6ac6755224fd77c4f6654d66"
+  },
+  "MD/": {
+   "de": "32ec29646b6d1b91ff9af62a",
+   "en": "61c2257e89611f51460edd4b"
+  },
+  "ME/": {
+   "de": "ffe7263ce755f963bea0e850",
+   "en": "84a96b9bcdabd701c5b38d33"
+  },
+  "MF/": {
+   "de": "6a2f9c773bb70eeb721e0127",
+   "en": "c64879222e73716a612a946e"
+  },
+  "MG/": {
+   "de": "3e5b53e5b3f1264e08b37b30",
+   "en": "cbda99ff596ced6dc7dd9dd9"
+  },
+  "MH/": {
+   "de": "32e2e8ce6794cdc33a263b2d",
+   "en": "32e2e8ce6794cdc33a263b2d"
+  },
+  "MK/": {
+   "de": "effbc9d6e3799c47e3010564",
+   "en": "7a2587b36cb8b8cf7fdd3bd9"
+  },
+  "ML/": {
+   "de": "97acdd009dfcaded63211a36",
+   "en": "934b1d115fd071d1b1d00fb3"
+  },
+  "MM/": {
+   "de": "22ff87b55f09d1d0804ca0fc",
+   "en": "6fe5ee3ea130bb90e308b5a5"
+  },
+  "MN/": {
+   "de": "74a7c6d6bef7bfed23ab12e6",
+   "en": "691a896bf870ea860a4c5419"
+  },
+  "MO/": {
+   "de": "1a2cac9618a73069bca2f333",
+   "en": "054c2c84065e5a4c0e630e68"
+  },
+  "MO/I": {
+   "de": "1a2cac9618a73069bca2f333",
+   "en": "054c2c84065e5a4c0e630e68"
+  },
+  "MO/M": {
+   "de": "1a2cac9618a73069bca2f333",
+   "en": "054c2c84065e5a4c0e630e68"
+  },
+  "MP/": {
+   "de": "82eb6fc9e7be050939dbe011",
+   "en": "82eb6fc9e7be050939dbe011"
+  },
+  "MQ/": {
+   "de": "67ae34a6004f51f12d9c3917",
+   "en": "9c9d4954d6996971a3c423d1"
+  },
+  "MR/": {
+   "de": "3b7367a073712e78065a9210",
+   "en": "34c2be5616a33fc12885c288"
+  },
+  "MS/": {
+   "de": "53a41445400caf5dbb9a9c00",
+   "en": "8bef2f157a43141d19298a94"
+  },
+  "MT/": {
+   "de": "33054ddbfde89855974a3389",
+   "en": "fd64e975d7a9f2acf7acfa6b"
+  },
+  "MU/": {
+   "de": "90019caa7fa384c75c112323",
+   "en": "9a99f3b3ef9f294c016071f5"
+  },
+  "MV/": {
+   "de": "c4530db073c9586b0784c33e",
+   "en": "5b0ec0e38f22a22f8fba9328"
+  },
+  "MW/": {
+   "de": "29928a9ecfb59e50295f1189",
+   "en": "29928a9ecfb59e50295f1189"
+  },
+  "MX/": {
+   "de": "e379c40a5d25f18aa31ab62f",
+   "en": "5ecf1001cffc88eddf90bf3a"
+  },
+  "MY/": {
+   "de": "34ea6c0b8d81aebb7fe314b8",
+   "en": "d9499fc582b7c07c44f30d27"
+  },
+  "MY/01": {
+   "de": "8c44cb213c2a22898ea7cdd4",
+   "en": "6e08cf47d023a33e7c253ef9"
+  },
+  "MY/02": {
+   "de": "26da05ec4cf855b738565941",
+   "en": "48d6ab47130b22a532e1dd66"
+  },
+  "MY/03": {
+   "de": "3de3223318dd145e563d9733",
+   "en": "45b217b794bf965fcb2f9883"
+  },
+  "MY/04": {
+   "de": "da40b17c761ec7779738feb4",
+   "en": "fd09094302b3ad9a99b99622"
+  },
+  "MY/05": {
+   "de": "09590eb0081523aa08ad0295",
+   "en": "2002b4f87ee989ae700bfc4c"
+  },
+  "MY/06": {
+   "de": "577e6cebf8def135806c504f",
+   "en": "d836bc127adf0cae41ad6424"
+  },
+  "MY/07": {
+   "de": "61c10151775fb79e456bb137",
+   "en": "2653ca22263953145ab0f56a"
+  },
+  "MY/08": {
+   "de": "f1abcd6b625932a5438f2b7f",
+   "en": "1aac282e1b608da72cbf43dc"
+  },
+  "MY/09": {
+   "de": "49e5cdfe0e555b5999f64e54",
+   "en": "a3ce20adfb8bdddd536a728e"
+  },
+  "MY/10": {
+   "de": "df8ca673a83658b4b8f1c438",
+   "en": "c93ce2c2730b78955611977b"
+  },
+  "MY/11": {
+   "de": "e51547b5f3123b77ba07fbe1",
+   "en": "6eb48ed024861e3077196b40"
+  },
+  "MY/12": {
+   "de": "df422da6da3b76ab8adeb9cd",
+   "en": "aa463b4670ed346093b2ce30"
+  },
+  "MY/13": {
+   "de": "ed2a9d1377450f12b0018bd0",
+   "en": "15a7f02cbe96c09d35088880"
+  },
+  "MY/14": {
+   "de": "4b8ca4330d102c5ea287f78c",
+   "en": "2c9d6e15b02154feed688be1"
+  },
+  "MY/15": {
+   "de": "d14a53853775fb1ad690fc82",
+   "en": "31e892e4c7512a383dba6e05"
+  },
+  "MY/16": {
+   "de": "4b8ca4330d102c5ea287f78c",
+   "en": "2c9d6e15b02154feed688be1"
+  },
+  "MZ/": {
+   "de": "4aff44199e92d6d263c776c7",
+   "en": "3a9d6d8c208983247e7c90f4"
+  },
+  "NA/": {
+   "de": "3c4b72586414c12a840b1591",
+   "en": "3c4b72586414c12a840b1591"
+  },
+  "NC/": {
+   "de": "e8aba420fbcda4184a4027c0",
+   "en": "42b92589706fc5e89bed0fa6"
+  },
+  "NE/": {
+   "de": "56f068273ff6cafa5f5febed",
+   "en": "5d81656963acbcd4fab732bf"
+  },
+  "NF/": {
+   "de": "f0bd0d2a4ab3fd7f68c99d4c",
+   "en": "f0bd0d2a4ab3fd7f68c99d4c"
+  },
+  "NG/": {
+   "de": "fb2e9a462d7ab3f7e1212750",
+   "en": "b23dbc50a923f057416d443d"
+  },
+  "NI/": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/AN": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/AS": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/BO": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/CA": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/CI": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/CO": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/ES": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/GR": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/JI": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/LE": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/MD": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/MN": {
+   "de": "99d69d14abb007aa0fd3aa0e",
+   "en": "2a288e0fb8fa504bea82f054"
+  },
+  "NI/MS": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/MT": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/NS": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/RI": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NI/SJ": {
+   "de": "af320e4e8a0f53e2eb87ee8a",
+   "en": "54c60535a5eed119aaeee8ea"
+  },
+  "NL/": {
+   "de": "2244bd9b8878ae67c69ef25d",
+   "en": "c515bce934266477d9448195"
+  },
+  "NO/": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/03": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/11": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/15": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/18": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/21": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/22": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/31": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/32": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/33": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/34": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/39": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/40": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/42": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/46": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/50": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/55": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NO/56": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "NP/": {
+   "de": "2074c793cce6d6d6366a5558",
+   "en": "75d1e0ede2940337c5372bd3"
+  },
+  "NR/": {
+   "de": "db8e9300468f43f390457655",
+   "en": "db8e9300468f43f390457655"
+  },
+  "NU/": {
+   "de": "e0ff3f25bcd25d61b037bc5d",
+   "en": "e0ff3f25bcd25d61b037bc5d"
+  },
+  "NZ/": {
+   "de": "bfe60496671bcab344626968",
+   "en": "bfe60496671bcab344626968"
+  },
+  "NZ/AUK": {
+   "de": "f8cd364e754c2caed9d1fff5",
+   "en": "f8cd364e754c2caed9d1fff5"
+  },
+  "NZ/BOP": {
+   "de": "bfe60496671bcab344626968",
+   "en": "bfe60496671bcab344626968"
+  },
+  "NZ/CAN": {
+   "de": "41d0b077f575fc438d11d1da",
+   "en": "41d0b077f575fc438d11d1da"
+  },
+  "NZ/CIT": {
+   "de": "6f563063569f788d8deef0be",
+   "en": "6f563063569f788d8deef0be"
+  },
+  "NZ/GIS": {
+   "de": "bfe60496671bcab344626968",
+   "en": "bfe60496671bcab344626968"
+  },
+  "NZ/HKB": {
+   "de": "f629b25e54add0558c9a4035",
+   "en": "f629b25e54add0558c9a4035"
+  },
+  "NZ/MBH": {
+   "de": "6e793c63c58d485c898a83c1",
+   "en": "6e793c63c58d485c898a83c1"
+  },
+  "NZ/MWT": {
+   "de": "bfe60496671bcab344626968",
+   "en": "bfe60496671bcab344626968"
+  },
+  "NZ/NSN": {
+   "de": "d8c0349e7085e5e65a42a6db",
+   "en": "d8c0349e7085e5e65a42a6db"
+  },
+  "NZ/NTL": {
+   "de": "f8cd364e754c2caed9d1fff5",
+   "en": "f8cd364e754c2caed9d1fff5"
+  },
+  "NZ/OTA": {
+   "de": "7e60858454e452dee3edecd8",
+   "en": "7e60858454e452dee3edecd8"
+  },
+  "NZ/STL": {
+   "de": "84a5e9fca336fbbb9d2e9c94",
+   "en": "84a5e9fca336fbbb9d2e9c94"
+  },
+  "NZ/TAS": {
+   "de": "bfe60496671bcab344626968",
+   "en": "bfe60496671bcab344626968"
+  },
+  "NZ/TKI": {
+   "de": "e24d324e56179a392fcf2b59",
+   "en": "e24d324e56179a392fcf2b59"
+  },
+  "NZ/WGN": {
+   "de": "d4a76aeb5a32e04099185bae",
+   "en": "d4a76aeb5a32e04099185bae"
+  },
+  "NZ/WKO": {
+   "de": "bfe60496671bcab344626968",
+   "en": "bfe60496671bcab344626968"
+  },
+  "NZ/WTC": {
+   "de": "70f02cb9df6b91f3970eaf5c",
+   "en": "70f02cb9df6b91f3970eaf5c"
+  },
+  "NZ/South Canterbury": {
+   "de": "8684a0b1be3c50013842cdae",
+   "en": "8684a0b1be3c50013842cdae"
+  },
+  "OM/": {
+   "de": "3408c21edf1909f9c5a70272",
+   "en": "d47b490b198e2208f303999a"
+  },
+  "PA/": {
+   "de": "082e89e9e9a8971f244f2f3a",
+   "en": "008d9288478c701f79faab74"
+  },
+  "PE/": {
+   "de": "b57b7f4279eb71d466e9140a",
+   "en": "0cb4b625f1c1adf47e233fa3"
+  },
+  "PF/": {
+   "de": "0df7856207e46392458ae91b",
+   "en": "86f3e301fda64232e0bfed74"
+  },
+  "PG/": {
+   "de": "80a0f6032fad4107a6c8743a",
+   "en": "80a0f6032fad4107a6c8743a"
+  },
+  "PH/": {
+   "de": "52afd8714e580e2f7ad07806",
+   "en": "7fa857a32c4ee9b864a183cb"
+  },
+  "PK/": {
+   "de": "0573add6b311653a049edad8",
+   "en": "92b35ca5e1bcbd0bff61de56"
+  },
+  "PL/": {
+   "de": "bb78ab4f0ee68602aae4c665",
+   "en": "902f35de57ae7557a34e94ff"
+  },
+  "PM/": {
+   "de": "9d3732b6846c6121ff702ade",
+   "en": "e31b21aeec41e331181ab3f6"
+  },
+  "PN/": {
+   "de": "10bf2320d9118bb3c5185e77",
+   "en": "10bf2320d9118bb3c5185e77"
+  },
+  "PR/": {
+   "de": "a0918d56b4f494faaaf2a17a",
+   "en": "a0918d56b4f494faaaf2a17a"
+  },
+  "PS/": {
+   "de": "5bfce2ef0d32c13a9b57cd3e",
+   "en": "f8088501ff546ab766fb2deb"
+  },
+  "PT/": {
+   "de": "ee7b8af2e7e4bd40a1ff2d9c",
+   "en": "e452c5f890c50a00915593b4"
+  },
+  "PT/01": {
+   "de": "10fc87cf779bbce6ec0b175f",
+   "en": "4a133108c6bd0aa5b84f8ef8"
+  },
+  "PT/02": {
+   "de": "efcaff694e6a28e184411452",
+   "en": "35c6b2a8a5c50ee9948ca52d"
+  },
+  "PT/03": {
+   "de": "b3c41fd72195ff30be53eff4",
+   "en": "420d266ea119e3321822714b"
+  },
+  "PT/04": {
+   "de": "9c41744c8a5c13636a441be5",
+   "en": "7e031eeb080e1d05dc14688d"
+  },
+  "PT/05": {
+   "de": "7195c79a3fa565d6f6578a6b",
+   "en": "97d4734b87966ffa883e9602"
+  },
+  "PT/06": {
+   "de": "9acc65207b30559593492826",
+   "en": "61ff3fc158dddc43412dbbd3"
+  },
+  "PT/07": {
+   "de": "6c764e168db681d8ec21ff9f",
+   "en": "0bd10dad735e48ba54de6ffb"
+  },
+  "PT/08": {
+   "de": "cc0b8f5cf08d3705435c7ebb",
+   "en": "a9df69b5a288638e71463944"
+  },
+  "PT/09": {
+   "de": "b2993a07810097aada013826",
+   "en": "c824f0795b06757c5a7128fa"
+  },
+  "PT/10": {
+   "de": "7acc11eb2ec29194695b19db",
+   "en": "6557cdc4b21ccc01f0833346"
+  },
+  "PT/11": {
+   "de": "6b609f2de8e945f00baea202",
+   "en": "c6c1ac509c30272d5989cc80"
+  },
+  "PT/12": {
+   "de": "179283f1095ac6c498d2b707",
+   "en": "f1e2618984f498239c3ae16f"
+  },
+  "PT/13": {
+   "de": "b3c41fd72195ff30be53eff4",
+   "en": "420d266ea119e3321822714b"
+  },
+  "PT/14": {
+   "de": "4ed3dab5b35f91794fb07621",
+   "en": "939aace58d3858619f3758f5"
+  },
+  "PT/15": {
+   "de": "cc0eac7cf3e8387d30cd7163",
+   "en": "cb64b72fe8034900096a08eb"
+  },
+  "PT/16": {
+   "de": "80acdc141f3ef11a997bea22",
+   "en": "84aff5e3654452e13c855c84"
+  },
+  "PT/17": {
+   "de": "6b609f2de8e945f00baea202",
+   "en": "c6c1ac509c30272d5989cc80"
+  },
+  "PT/18": {
+   "de": "023123b0c13a224ad9e03081",
+   "en": "50ad45a9222448500fefe098"
+  },
+  "PT/20": {
+   "de": "afcc0eddecd7489ff90040e2",
+   "en": "cb531e1cb4ab5d5b98762bd8"
+  },
+  "PT/30": {
+   "de": "154533e476d220c5cd1a0d96",
+   "en": "27cfc474158376e959ae967f"
+  },
+  "PW/": {
+   "de": "4840cf4d37f47884e36fa532",
+   "en": "4840cf4d37f47884e36fa532"
+  },
+  "PY/": {
+   "de": "2b2501b44d066ba2331c3576",
+   "en": "c7856c6a2bfabfb472fd5d9f"
+  },
+  "QA/": {
+   "de": "d55d443823ac34147c8f5d36",
+   "en": "82d436da4a86850dee1bf65b"
+  },
+  "RE/": {
+   "de": "8262322d08bb994f15253227",
+   "en": "7b12a087cc60c68410408428"
+  },
+  "RO/": {
+   "de": "66a99fe8e05abf27a7a68717",
+   "en": "88d73f07359769887069c735"
+  },
+  "RS/": {
+   "de": "bb794e757490466a5ea836fc",
+   "en": "23fb753fbf6c9505b78e3d20"
+  },
+  "RU/": {
+   "de": "26313ddc668b4bde216a6ef5",
+   "en": "faf06056d81cdf196ae2e5fc"
+  },
+  "RW/": {
+   "de": "57f4ac9e7bfc0f902d58068f",
+   "en": "a7aa0d755fc18c4149d30d1e"
+  },
+  "SA/": {
+   "de": "8db62499b25340d82273ffed",
+   "en": "463d7ed50b727c2301df9e52"
+  },
+  "SB/": {
+   "de": "9ff2a60c5510cfd22c6ba7da",
+   "en": "9ff2a60c5510cfd22c6ba7da"
+  },
+  "SB/CE": {
+   "de": "06a71839e111f77c019c3b74",
+   "en": "06a71839e111f77c019c3b74"
+  },
+  "SB/CH": {
+   "de": "f3fe8f7829179335fc44fe7c",
+   "en": "f3fe8f7829179335fc44fe7c"
+  },
+  "SB/CT": {
+   "de": "9ff2a60c5510cfd22c6ba7da",
+   "en": "9ff2a60c5510cfd22c6ba7da"
+  },
+  "SB/GU": {
+   "de": "18e36f841c09220655849c2e",
+   "en": "18e36f841c09220655849c2e"
+  },
+  "SB/IS": {
+   "de": "3526325934eeb50ad18227d1",
+   "en": "3526325934eeb50ad18227d1"
+  },
+  "SB/MK": {
+   "de": "590ce9ce0c56790a300d98c1",
+   "en": "590ce9ce0c56790a300d98c1"
+  },
+  "SB/ML": {
+   "de": "cd12ccf65bc41f4c521b2b47",
+   "en": "cd12ccf65bc41f4c521b2b47"
+  },
+  "SB/RB": {
+   "de": "ebb0e217d0addb574297cff3",
+   "en": "ebb0e217d0addb574297cff3"
+  },
+  "SB/TE": {
+   "de": "640220dd6ea6c66a5b58051b",
+   "en": "640220dd6ea6c66a5b58051b"
+  },
+  "SB/WE": {
+   "de": "5c2c6306528a0e9f080420b5",
+   "en": "5c2c6306528a0e9f080420b5"
+  },
+  "SC/": {
+   "de": "4790354f566faa0a3f248562",
+   "en": "de4c5458ac759840cd761b4a"
+  },
+  "SD/": {
+   "de": "ce764998731a2c46260ddcf9",
+   "en": "a0fb574ea00d60c6940a43c7"
+  },
+  "SE/": {
+   "de": "e25b38b78d5336f5622cac09",
+   "en": "97ceb0c9d6787c14ea646a0a"
+  },
+  "SG/": {
+   "de": "1ff63b74a8ef6c3f567f8f0b",
+   "en": "0880dfe905f41eb0733e496d"
+  },
+  "SH/": {
+   "de": "0abb0572ba49431a18073138",
+   "en": "0abb0572ba49431a18073138"
+  },
+  "SH/AC": {
+   "de": "00b4a256df2375234b804a67",
+   "en": "00b4a256df2375234b804a67"
+  },
+  "SH/HL": {
+   "de": "85bd057e4d23450540947c0c",
+   "en": "85bd057e4d23450540947c0c"
+  },
+  "SH/TA": {
+   "de": "eadc6f509ef2ef54561268bd",
+   "en": "eadc6f509ef2ef54561268bd"
+  },
+  "SI/": {
+   "de": "7786de0ab01b3ff4c35b8e54",
+   "en": "eaa7706e42569c8b5ddb963a"
+  },
+  "SJ/": {
+   "de": "8cea71e1fa7577643c5e0e47",
+   "en": "684b1f38a37509c822520e58"
+  },
+  "SK/": {
+   "de": "2bde20732db3f74e7687a671",
+   "en": "ad18f517a1258627fb60f39d"
+  },
+  "SL/": {
+   "de": "e3b5d14efc133409788b3ee8",
+   "en": "e3b5d14efc133409788b3ee8"
+  },
+  "SM/": {
+   "de": "51ee9a06d13cd908483cf518",
+   "en": "b49393aa94169e4353fe905b"
+  },
+  "SN/": {
+   "de": "c5bd6090228f899eb63c2d53",
+   "en": "f73dd046da83f1698a9cc25e"
+  },
+  "SO/": {
+   "de": "7b8049b066c58d44bca4e5f3",
+   "en": "7b8049b066c58d44bca4e5f3"
+  },
+  "SR/": {
+   "de": "d95e4cb2ed11eb2c92d9b062",
+   "en": "b850f59d5e0920bb8bf75c66"
+  },
+  "SS/": {
+   "de": "5e99ffe78f427e66c4a38127",
+   "en": "5e99ffe78f427e66c4a38127"
+  },
+  "ST/": {
+   "de": "4d02f25b77dbc43daf966146",
+   "en": "06f0179f61be4f02c22bc0db"
+  },
+  "ST/01": {
+   "de": "4d02f25b77dbc43daf966146",
+   "en": "06f0179f61be4f02c22bc0db"
+  },
+  "ST/02": {
+   "de": "4d02f25b77dbc43daf966146",
+   "en": "06f0179f61be4f02c22bc0db"
+  },
+  "ST/03": {
+   "de": "4d02f25b77dbc43daf966146",
+   "en": "06f0179f61be4f02c22bc0db"
+  },
+  "ST/04": {
+   "de": "4d02f25b77dbc43daf966146",
+   "en": "06f0179f61be4f02c22bc0db"
+  },
+  "ST/05": {
+   "de": "4d02f25b77dbc43daf966146",
+   "en": "06f0179f61be4f02c22bc0db"
+  },
+  "ST/06": {
+   "de": "4d02f25b77dbc43daf966146",
+   "en": "06f0179f61be4f02c22bc0db"
+  },
+  "ST/P": {
+   "de": "eb9275f960d2a4500fd2094d",
+   "en": "bbe111f49539a9168fbf7100"
+  },
+  "SV/": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/AH": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/CA": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/CH": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/CU": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/LI": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/MO": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/PA": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/SA": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/SM": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/SO": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/SS": {
+   "de": "e73bd853e08cb6ecd4a155e8",
+   "en": "a3205c1acef91b07b4335912"
+  },
+  "SV/SV": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/UN": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SV/US": {
+   "de": "9a8686b1e4143dcf5889de3c",
+   "en": "55ad47b91276cb7c92b2a5d3"
+  },
+  "SX/": {
+   "de": "e1d471bef60ce64d9d937cdd",
+   "en": "6cff662801240b33904a7c8a"
+  },
+  "SY/": {
+   "de": "f406c8529d241264050af65e",
+   "en": "094989ca4d76953fdb9e765d"
+  },
+  "SZ/": {
+   "de": "3e2964b35b8018d29bacf439",
+   "en": "3e2964b35b8018d29bacf439"
+  },
+  "TC/": {
+   "de": "3aca0f43cf269c9b293da7a1",
+   "en": "3aca0f43cf269c9b293da7a1"
+  },
+  "TD/": {
+   "de": "8482d3b7c30e7621f9ef04b8",
+   "en": "8482d3b7c30e7621f9ef04b8"
+  },
+  "TF/": {
+   "de": "9d3732b6846c6121ff702ade",
+   "en": "e31b21aeec41e331181ab3f6"
+  },
+  "TG/": {
+   "de": "cd97ad42a9edaeb09c4d72c3",
+   "en": "d4f09dd69eeeaa002f67d6d8"
+  },
+  "TH/": {
+   "de": "fd4c552ee506e87b16af5627",
+   "en": "c3fb98de842d3232aa6401ef"
+  },
+  "TJ/": {
+   "de": "ff026b0b7243ae49377f98b4",
+   "en": "20fd3b21227034103924565a"
+  },
+  "TK/": {
+   "de": "4d3b6a0051703064d159d6a2",
+   "en": "4d3b6a0051703064d159d6a2"
+  },
+  "TL/": {
+   "de": "6153e958d27e0311fafc5ce7",
+   "en": "cf14b7c34abbdbf2e029b58a"
+  },
+  "TM/": {
+   "de": "79a43ebfe2c8329737308ef3",
+   "en": "c9c385d96b75683b80cbfe0c"
+  },
+  "TN/": {
+   "de": "e58bbf4de893722d9d1ea77f",
+   "en": "6b7db1e0fa06b616d0980cf1"
+  },
+  "TO/": {
+   "de": "d0fc4d79a1dbf838c353dd5d",
+   "en": "cf7cbb9e7135bff120337c26"
+  },
+  "TR/": {
+   "de": "ad9232412649a36d898b33b1",
+   "en": "185aa050b594a520f9d59c41"
+  },
+  "TT/": {
+   "de": "0ab7bea6d9e700bc73a195f4",
+   "en": "0562c57d9bf8694fbe92f256"
+  },
+  "TV/": {
+   "de": "5a810a676a0c8c8696fcaf55",
+   "en": "dae6e4b2c4095e65b70c7820"
+  },
+  "TV/FUN": {
+   "de": "190317d47d87d877454a5ca9",
+   "en": "3be013eb0b21be95dd816982"
+  },
+  "TV/NIT": {
+   "de": "8d22b3511bde3a0ee722930d",
+   "en": "3fa47768f5ca24d8a2b67bc2"
+  },
+  "TV/NKF": {
+   "de": "a2d2aedaee5519e36822eadd",
+   "en": "05467e0ad4670a273e34085c"
+  },
+  "TV/NKL": {
+   "de": "4bfe75626e937d252a56e230",
+   "en": "96731bc3f9b5faeac7dd3c20"
+  },
+  "TV/NMA": {
+   "de": "3972ea83167fbe3b8ec24d3c",
+   "en": "f92ba46af3e5e3982c43fb84"
+  },
+  "TV/NMG": {
+   "de": "ab22e1ab75f6935e54410f90",
+   "en": "729eeda75e32704ac47b7e15"
+  },
+  "TV/NUI": {
+   "de": "278ee06cb5626cd19b4d8bdd",
+   "en": "16c711bfa0d192c7577e2c28"
+  },
+  "TV/VAI": {
+   "de": "8ee4ec625e5019c4e08c1429",
+   "en": "cfff4245f6443a8719c90f2a"
+  },
+  "TW/": {
+   "de": "3b44acc969ed5dbae109fbea",
+   "en": "66d6b9931d1d60b0d5ece9a0"
+  },
+  "TZ/": {
+   "de": "282bea585d90c774d17937f2",
+   "en": "aac5e719420f02b02534578e"
+  },
+  "UA/": {
+   "de": "0f4428dbafa886d6d6a4f24c",
+   "en": "712965b12460c3455c018dce"
+  },
+  "UG/": {
+   "de": "1089a1b1be7ffdd04b7bc600",
+   "en": "1089a1b1be7ffdd04b7bc600"
+  },
+  "UM/": {
+   "de": "a3134ded46d4f724cc7954b9",
+   "en": "a3134ded46d4f724cc7954b9"
+  },
+  "US/": {
+   "de": "bdadd1bfd5b0e7e58f865115",
+   "en": "bdadd1bfd5b0e7e58f865115"
+  },
+  "US/AK": {
+   "de": "3e153b01377f2d7c94e64162",
+   "en": "3e153b01377f2d7c94e64162"
+  },
+  "US/AL": {
+   "de": "e7f301ff4d2df0ffdef02bf4",
+   "en": "e7f301ff4d2df0ffdef02bf4"
+  },
+  "US/AR": {
+   "de": "79960ff92dea34b3168b00f5",
+   "en": "79960ff92dea34b3168b00f5"
+  },
+  "US/AS": {
+   "de": "b9d19107b35d207a5172239a",
+   "en": "b9d19107b35d207a5172239a"
+  },
+  "US/AZ": {
+   "de": "f803c297e5160e0e884575c2",
+   "en": "f803c297e5160e0e884575c2"
+  },
+  "US/CA": {
+   "de": "003b7de41cba61dc0f603655",
+   "en": "003b7de41cba61dc0f603655"
+  },
+  "US/CO": {
+   "de": "57d25c9448abf8899098661f",
+   "en": "57d25c9448abf8899098661f"
+  },
+  "US/CT": {
+   "de": "680b0ffe568b49a77db29daa",
+   "en": "680b0ffe568b49a77db29daa"
+  },
+  "US/DC": {
+   "de": "71c68d3cd328dbc823f09055",
+   "en": "71c68d3cd328dbc823f09055"
+  },
+  "US/DE": {
+   "de": "6e176348b08c39fdf556386a",
+   "en": "6e176348b08c39fdf556386a"
+  },
+  "US/FL": {
+   "de": "df9f6a414a7c1e8b22f76225",
+   "en": "df9f6a414a7c1e8b22f76225"
+  },
+  "US/GA": {
+   "de": "fc2c35e3ad09225d2ca147f6",
+   "en": "fc2c35e3ad09225d2ca147f6"
+  },
+  "US/GU": {
+   "de": "50fb2b074cd1719ade09ac52",
+   "en": "50fb2b074cd1719ade09ac52"
+  },
+  "US/HI": {
+   "de": "cfa1f9afa2a36edd43067ca1",
+   "en": "cfa1f9afa2a36edd43067ca1"
+  },
+  "US/IA": {
+   "de": "834e15b8bc5baee513ba66d7",
+   "en": "834e15b8bc5baee513ba66d7"
+  },
+  "US/ID": {
+   "de": "37addfefd40946b5588981b6",
+   "en": "37addfefd40946b5588981b6"
+  },
+  "US/IL": {
+   "de": "934c5f2ee06086d5af354264",
+   "en": "934c5f2ee06086d5af354264"
+  },
+  "US/IN": {
+   "de": "ba73f91db966bed4672c49e9",
+   "en": "ba73f91db966bed4672c49e9"
+  },
+  "US/KS": {
+   "de": "6b509affb1ea99065c4446b0",
+   "en": "6b509affb1ea99065c4446b0"
+  },
+  "US/KY": {
+   "de": "5f3264400cc57862ca8b2c55",
+   "en": "5f3264400cc57862ca8b2c55"
+  },
+  "US/LA": {
+   "de": "54a88be6b775dac9ce49c0b1",
+   "en": "54a88be6b775dac9ce49c0b1"
+  },
+  "US/MA": {
+   "de": "6810753cb548553297480e6a",
+   "en": "6810753cb548553297480e6a"
+  },
+  "US/MD": {
+   "de": "93e7a22d56917688598521c5",
+   "en": "93e7a22d56917688598521c5"
+  },
+  "US/ME": {
+   "de": "5e8a50d24f2d6ad5bd6bd117",
+   "en": "5e8a50d24f2d6ad5bd6bd117"
+  },
+  "US/MI": {
+   "de": "634d141232a4b33cb43e0a0b",
+   "en": "634d141232a4b33cb43e0a0b"
+  },
+  "US/MN": {
+   "de": "ed5bfc832cbfdaba1cb10e84",
+   "en": "ed5bfc832cbfdaba1cb10e84"
+  },
+  "US/MO": {
+   "de": "a68f0bda1aada207062df887",
+   "en": "a68f0bda1aada207062df887"
+  },
+  "US/MP": {
+   "de": "82eb6fc9e7be050939dbe011",
+   "en": "82eb6fc9e7be050939dbe011"
+  },
+  "US/MS": {
+   "de": "5c83836a23648118582d8ad6",
+   "en": "5c83836a23648118582d8ad6"
+  },
+  "US/MT": {
+   "de": "97a6839be1d4e76cc6b66242",
+   "en": "97a6839be1d4e76cc6b66242"
+  },
+  "US/NC": {
+   "de": "c8b1699eab7b1625625a488e",
+   "en": "c8b1699eab7b1625625a488e"
+  },
+  "US/ND": {
+   "de": "a3134ded46d4f724cc7954b9",
+   "en": "a3134ded46d4f724cc7954b9"
+  },
+  "US/NE": {
+   "de": "a56daf1f756d12c1ec29e1dd",
+   "en": "a56daf1f756d12c1ec29e1dd"
+  },
+  "US/NH": {
+   "de": "57ff2f5e97d59cceaec45b05",
+   "en": "57ff2f5e97d59cceaec45b05"
+  },
+  "US/NJ": {
+   "de": "07e69073b75854a203c16fc6",
+   "en": "07e69073b75854a203c16fc6"
+  },
+  "US/NM": {
+   "de": "6924027ca14fa5e173fd6f9c",
+   "en": "6924027ca14fa5e173fd6f9c"
+  },
+  "US/NV": {
+   "de": "9aa25468638317b018545aeb",
+   "en": "9aa25468638317b018545aeb"
+  },
+  "US/NY": {
+   "de": "7f89a032b53fcd685b12b724",
+   "en": "7f89a032b53fcd685b12b724"
+  },
+  "US/OH": {
+   "de": "0f00e07515ce363a598b63df",
+   "en": "0f00e07515ce363a598b63df"
+  },
+  "US/OK": {
+   "de": "bf8ef87ac5aebe3d56cd4ca2",
+   "en": "bf8ef87ac5aebe3d56cd4ca2"
+  },
+  "US/OR": {
+   "de": "492d0a4a61120f0e06c294f5",
+   "en": "492d0a4a61120f0e06c294f5"
+  },
+  "US/PA": {
+   "de": "65cb6cee05bcf553c170ad29",
+   "en": "65cb6cee05bcf553c170ad29"
+  },
+  "US/PR": {
+   "de": "a0918d56b4f494faaaf2a17a",
+   "en": "a0918d56b4f494faaaf2a17a"
+  },
+  "US/RI": {
+   "de": "3075c87a35e1a5e8f5e9d45a",
+   "en": "3075c87a35e1a5e8f5e9d45a"
+  },
+  "US/SC": {
+   "de": "3451116d2f4eea76e51b4c3e",
+   "en": "3451116d2f4eea76e51b4c3e"
+  },
+  "US/SD": {
+   "de": "ac50d67124cfdeb307d18e6d",
+   "en": "ac50d67124cfdeb307d18e6d"
+  },
+  "US/TN": {
+   "de": "6ae817b11ce3dba861e5b190",
+   "en": "6ae817b11ce3dba861e5b190"
+  },
+  "US/TX": {
+   "de": "2cae472cf3e675bcaa0a2445",
+   "en": "2cae472cf3e675bcaa0a2445"
+  },
+  "US/UM": {
+   "de": "a3134ded46d4f724cc7954b9",
+   "en": "a3134ded46d4f724cc7954b9"
+  },
+  "US/UT": {
+   "de": "c6e923edb3617ce06552bd3e",
+   "en": "c6e923edb3617ce06552bd3e"
+  },
+  "US/VA": {
+   "de": "936b7815d449fe565edb719a",
+   "en": "936b7815d449fe565edb719a"
+  },
+  "US/VI": {
+   "de": "32bd0538a6e53ddb0dfd6a3c",
+   "en": "32bd0538a6e53ddb0dfd6a3c"
+  },
+  "US/VT": {
+   "de": "0c9d38ed999fe9667198a83f",
+   "en": "0c9d38ed999fe9667198a83f"
+  },
+  "US/WA": {
+   "de": "63f0684bcb7588096eb518f4",
+   "en": "63f0684bcb7588096eb518f4"
+  },
+  "US/WI": {
+   "de": "b0f64ebeafedeb599546b804",
+   "en": "b0f64ebeafedeb599546b804"
+  },
+  "US/WV": {
+   "de": "155e0a20052121f361fa94be",
+   "en": "155e0a20052121f361fa94be"
+  },
+  "US/WY": {
+   "de": "8029bff054873438e5b5a3ef",
+   "en": "8029bff054873438e5b5a3ef"
+  },
+  "UY/": {
+   "de": "18bd8c592d2abc19cc043729",
+   "en": "ee606a75cd415299c03f5f76"
+  },
+  "UZ/": {
+   "de": "343713f56821392901d5b92c",
+   "en": "9c7ddccefd4bc3ee8f7781c5"
+  },
+  "VA/": {
+   "de": "40bede6b64d306aca82c837c",
+   "en": "df4e8d276360101174dca155"
+  },
+  "VC/": {
+   "de": "935e53bfede04ac61568ac64",
+   "en": "876f9674cb9254c2406ed795"
+  },
+  "VE/": {
+   "de": "5d59cef2fbe578a7a0dab38e",
+   "en": "8635cbb1cd5c187d41e7a76a"
+  },
+  "VG/": {
+   "de": "ab7c37f529c50938fe61baa3",
+   "en": "2c048c0132f81b58931e5ac7"
+  },
+  "VI/": {
+   "de": "32bd0538a6e53ddb0dfd6a3c",
+   "en": "32bd0538a6e53ddb0dfd6a3c"
+  },
+  "VN/": {
+   "de": "06f47b44876ca8a364909600",
+   "en": "c0eebc66a632dd74b8b9520a"
+  },
+  "VU/": {
+   "de": "a4e61d4d731eb701a4e0cb1c",
+   "en": "a4e61d4d731eb701a4e0cb1c"
+  },
+  "WF/": {
+   "de": "7910bdbc36dd5b2ff9c51db2",
+   "en": "4b47a617301161d10f4200f6"
+  },
+  "WS/": {
+   "de": "e6995e367c1ea9573d27e5a2",
+   "en": "e6995e367c1ea9573d27e5a2"
+  },
+  "XK/": {
+   "de": "6c79bbc6ab237a20b773fbcf",
+   "en": "65436f7f01556560acb94b83"
+  },
+  "YE/": {
+   "de": "c9ab931978249055503cb016",
+   "en": "2d1e16cec1c56d44ec1555cb"
+  },
+  "YT/": {
+   "de": "8f4c6d27dfb2dd8bc1d59760",
+   "en": "12e88d085547dac4af7cd2c9"
+  },
+  "ZA/": {
+   "de": "0b620e7db70b991574ed5d7f",
+   "en": "0b620e7db70b991574ed5d7f"
+  },
+  "ZM/": {
+   "de": "a5d277105a15aba8694e6212",
+   "en": "a5d277105a15aba8694e6212"
+  },
+  "ZW/": {
+   "de": "25a5e771e532c74d8ffe2419",
+   "en": "25a5e771e532c74d8ffe2419"
+  }
+ },
+ "aliases": {
+  "ABW": "AW",
+  "AFG": "AF",
+  "AGO": "AO",
+  "AIA": "AI",
+  "ALA": "AX",
+  "ALB": "AL",
+  "AND": "AD",
+  "ARE": "AE",
+  "ARG": "AR",
+  "ARM": "AM",
+  "ASM": "AS",
+  "ATA": "AQ",
+  "ATF": "TF",
+  "ATG": "AG",
+  "AUS": "AU",
+  "AUT": "AT",
+  "AZE": "AZ",
+  "BAH": "BH",
+  "BDI": "BI",
+  "BEL": "BE",
+  "BEN": "BJ",
+  "BES": "BQ",
+  "BFA": "BF",
+  "BGD": "BD",
+  "BHS": "BS",
+  "BIH": "BA",
+  "BLG": "BG",
+  "BLM": "BL",
+  "BLR": "BY",
+  "BLZ": "BZ",
+  "BMU": "BM",
+  "BOL": "BO",
+  "BRA": "BR",
+  "BRB": "BB",
+  "BRN": "BN",
+  "BTN": "BT",
+  "BVT": "BV",
+  "BWA": "BW",
+  "CAF": "CF",
+  "CAN": "CA",
+  "CCK": "CC",
+  "CHE": "CH",
+  "CHL": "CL",
+  "CHN": "CN",
+  "CIV": "CI",
+  "CMR": "CM",
+  "COD": "CD",
+  "COG": "CG",
+  "COK": "CK",
+  "COL": "CO",
+  "COM": "KM",
+  "CPV": "CV",
+  "CRI": "CR",
+  "CUB": "CU",
+  "CUW": "CW",
+  "CXR": "CX",
+  "CYM": "KY",
+  "CYP": "CY",
+  "CZE": "CZ",
+  "DEU": "DE",
+  "DJI": "DJ",
+  "DMA": "DM",
+  "DNK": "DK",
+  "DOM": "DO",
+  "DZA": "DZ",
+  "ECU": "EC",
+  "EGY": "EG",
+  "ERI": "ER",
+  "ESH": "EH",
+  "ESP": "ES",
+  "EST": "EE",
+  "ETH": "ET",
+  "FIN": "FI",
+  "FJI": "FJ",
+  "FLK": "FK",
+  "FRA": "FR",
+  "FRO": "FO",
+  "FSM": "FM",
+  "GAB": "GA",
+  "GBR": "GB",
+  "GEO": "GE",
+  "GGY": "GG",
+  "GHA": "GH",
+  "GIB": "GI",
+  "GIN": "GN",
+  "GLP": "GP",
+  "GMB": "GM",
+  "GNB": "GW",
+  "GNQ": "GQ",
+  "GRC": "GR",
+  "GRD": "GD",
+  "GRL": "GL",
+  "GUA": "GT",
+  "GUF": "GF",
+  "GUM": "GU",
+  "GUY": "GY",
+  "HKG": "HK",
+  "HMD": "HM",
+  "HND": "HN",
+  "HRV": "HR",
+  "HTI": "HT",
+  "HUN": "HU",
+  "IDN": "ID",
+  "IMN": "IM",
+  "IND": "IN",
+  "IOT": "IO",
+  "IRL": "IE",
+  "IRN": "IR",
+  "IRQ": "IQ",
+  "ISL": "IS",
+  "ISR": "IL",
+  "ITA": "IT",
+  "JAM": "JM",
+  "JEY": "JE",
+  "JOR": "JO",
+  "JPN": "JP",
+  "KAZ": "KZ",
+  "KEN": "KE",
+  "KGZ": "KG",
+  "KHM": "KH",
+  "KIR": "KI",
+  "KNA": "KN",
+  "KOR": "KR",
+  "KWT": "KW",
+  "LAO": "LA",
+  "LBN": "LB",
+  "LBR": "LR",
+  "LBY": "LY",
+  "LCA": "LC",
+  "LIE": "LI",
+  "LKA": "LK",
+  "LSO": "LS",
+  "LTU": "LT",
+  "LUX": "LU",
+  "LVA": "LV",
+  "MAC": "MO",
+  "MAF": "MF",
+  "MCO": "MC",
+  "MDA": "MD",
+  "MDG": "MG",
+  "MDV": "MV",
+  "MEX": "MX",
+  "MHL": "MH",
+  "MKD": "MK",
+  "MLI": "ML",
+  "MLT": "MT",
+  "MMR": "MM",
+  "MNE": "ME",
+  "MNG": "MN",
+  "MNP": "MP",
+  "MOR": "MA",
+  "MOZ": "MZ",
+  "MRT": "MR",
+  "MSR": "MS",
+  "MTQ": "MQ",
+  "MUS": "MU",
+  "MWI": "MW",
+  "MYS": "MY",
+  "MYT": "YT",
+  "NAM": "NA",
+  "NCL": "NC",
+  "NER": "NE",
+  "NFK": "NF",
+  "NGA": "NG",
+  "NIC": "NI",
+  "NIU": "NU",
+  "NLD": "NL",
+  "NOR": "NO",
+  "NPL": "NP",
+  "NRU": "NR",
+  "NZL": "NZ",
+  "OMN": "OM",
+  "PAK": "PK",
+  "PAN": "PA",
+  "PCN": "PN",
+  "PER": "PE",
+  "PHL": "PH",
+  "PLW": "PW",
+  "PNG": "PG",
+  "POL": "PL",
+  "PRI": "PR",
+  "PRK": "KP",
+  "PRT": "PT",
+  "PRY": "PY",
+  "PSE": "PS",
+  "PYF": "PF",
+  "QAT": "QA",
+  "REU": "RE",
+  "ROU": "RO",
+  "RUS": "RU",
+  "RWA": "RW",
+  "SAU": "SA",
+  "SDN": "SD",
+  "SEN": "SN",
+  "SGP": "SG",
+  "SGS": "GS",
+  "SHN": "SH",
+  "SJM": "SJ",
+  "SLB": "SB",
+  "SLE": "SL",
+  "SLV": "SV",
+  "SMR": "SM",
+  "SOM": "SO",
+  "SPM": "PM",
+  "SRB": "RS",
+  "SSD": "SS",
+  "STP": "ST",
+  "SUR": "SR",
+  "SVK": "SK",
+  "SVN": "SI",
+  "SWE": "SE",
+  "SXM": "SX",
+  "SYC": "SC",
+  "SYR": "SY",
+  "SZW": "SZ",
+  "TCA": "TC",
+  "TCD": "TD",
+  "TGO": "TG",
+  "THA": "TH",
+  "TJK": "TJ",
+  "TKL": "TK",
+  "TKM": "TM",
+  "TLS": "TL",
+  "TON": "TO",
+  "TTO": "TT",
+  "TUN": "TN",
+  "TUR": "TR",
+  "TUV": "TV",
+  "TWN": "TW",
+  "TZA": "TZ",
+  "UGA": "UG",
+  "UK": "GB",
+  "UKR": "UA",
+  "UMI": "UM",
+  "URY": "UY",
+  "USA": "US",
+  "UZB": "UZ",
+  "VAT": "VA",
+  "VCT": "VC",
+  "VEN": "VE",
+  "VGB": "VG",
+  "VIR": "VI",
+  "VNM": "VN",
+  "VTU": "VU",
+  "WLF": "WF",
+  "WSM": "WS",
+  "XKK": "XK",
+  "YEM": "YE",
+  "ZAF": "ZA",
+  "ZMB": "ZM",
+  "ZWE": "ZW"
+ }
+}
