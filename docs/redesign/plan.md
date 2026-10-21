@@ -74,5 +74,6 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 6. Code-Signing: Sebastian klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
 7. Impeccable: direkt aus dem GitHub-Repository (siehe `impeccable.md`).
 8. Seitenschicksal: `flows.md` gilt, die Tabelle in `inventory.md` ist überholt.
+9. Datenhaltung: Standard ist ein geteilter Ordner (Fileserver), Git je Team wählbar; Schnittstelle in `storage-interface.md`.
 
-Offen: Kern Python oder Go (eigener Faden); Datenhaltung Fileserver-Ordner oder Git (eigene Vorstudie); GitHub-Projekt als Tafel anlegen (Sebastian).
+Offen: Kern Python oder Go (eigener Faden); GitHub-Projekt als Tafel anlegen (Sebastian).
