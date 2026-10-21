@@ -145,6 +145,7 @@ tracker:
       - none:
           - status: [To Do]
   project_match_order: [epic, component, label]   # which match wins between two projects
+  priority_order: [Highest, High, Medium, Low, Lowest]   # distribution order by ticket priority; [] = ignore
   dependency_gap: 1              # 1 = a dependent ticket goes at least one sprint later, 0 = same
   budget_basis: roadmap_share    # roadmap_share (PLAN × roadmap_share) | plan (whole PLAN)
   rough_factor: 1.5              # only the conservative variant multiplies rough estimates (and
@@ -218,6 +219,12 @@ projects:
 Rule sources: `epic`, `component`, `label`, `status`, `issue_type`, `priority`, `in_sprint` (`true`,
 `false` or a sprint id). Validation rejects empty lists, unknown sources and short and long form
 in the same `match:`.
+
+More sources come from `tracker.rule_fields` in `team.yaml`: a name for the rule, the display name
+of the Jira field (or the header of the CSV column) as value, e.g. `rule_fields: {customer:
+Customer}` makes `customer` usable in rules and expressions. The values (text, option, user or a
+list of these) are stored per ticket in `tickets.yaml` under `fields:`. A leaf key with the suffix
+`_contains` (`label_contains: [pay]`) searches parts of the values.
 
 ### `tickets.yaml`
 

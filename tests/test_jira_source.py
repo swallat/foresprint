@@ -1114,6 +1114,24 @@ def test_suggest_fields_orders_number_fields_and_epic_links():
     assert values["customfield_10016"] == "Story Points"
 
 
+def test_suggest_fields_puts_the_original_points_first_for_the_estimate():
+    fields = [
+        {
+            "id": "customfield_10424",
+            "name": "Story-Punkte",
+            "schema": {"type": "number", "custom": "x"},
+        },
+        {
+            "id": "customfield_12033",
+            "name": "Ursprüngliche Story-Punkte",
+            "schema": {"type": "number", "custom": "x"},
+        },
+    ]
+    found = jira_module.suggest_fields(fields)
+    assert found.estimate[0].id == "customfield_12033"
+    assert found.remaining[0].id == "customfield_10424"
+
+
 def test_suggest_fields_ignores_unusable_entries():
     found = jira_module.suggest_fields([{"id": "x"}, {"name": "n", "schema": "oops"}])
     assert found.estimate == found.remaining == found.epic == []
@@ -1186,3 +1204,28 @@ def test_delete_token_reports_a_failed_delete(monkeypatch):
     with pytest.raises(SourceError) as error:
         jira_module.delete_token(BASE)
     assert "secret detail" not in str(error.value) and "still-there" not in str(error.value)
+
+
+def test_rule_fields_are_resolved_requested_and_read():
+    handler = Server()
+    handler.fields = [
+        *handler.fields,
+        {
+            "id": "customfield_20000",
+            "name": "Customer",
+            "custom": True,
+            "schema": {"type": "option"},
+        },
+    ]
+    handler.pages[0]["issues"][0]["fields"]["customfield_20000"] = {"value": "Acme"}
+    source, _ = make(handler, rule_fields={"customer": "Customer"})
+    tickets = {x.key: x for x in source.fetch()}
+    first = handler.pages[0]["issues"][0]["key"]
+    assert tickets[first].extra == {"customer": ["Acme"]}
+    assert "customfield_20000" in handler.searches()[0].url.params["fields"].split(",")
+
+
+def test_unknown_rule_field_is_reported():
+    source, _ = make(rule_fields={"customer": "No such field"})
+    with pytest.raises(SourceError, match=r"rule_fields\.customer"):
+        source.fetch()

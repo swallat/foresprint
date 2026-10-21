@@ -127,6 +127,12 @@ def test_no_tickets_yet_points_to_the_import(data_dir: Path, monkeypatch):
     assert at.file_uploader
 
 
+def test_import_says_which_source_is_active(data_dir: Path, monkeypatch):
+    enable(data_dir)
+    at = page(data_dir, monkeypatch)
+    assert any("CSV-Export" in c.value and "Aktive" in c.value for c in at.caption)
+
+
 def test_overview_shows_projects_and_timeline(data_dir: Path, monkeypatch):
     enable(data_dir)
     seed(data_dir)
@@ -533,3 +539,19 @@ def test_insert_helper_adds_a_condition(data_dir: Path, monkeypatch):
     assert not at.exception, at.exception
     box = next(a for a in at.text_area if a.label == "Regel")
     assert "label = zzz-new" in box.value
+
+
+def test_moving_a_card_earmarks_the_neighbouring_sprint():
+    from test_preplan import TODAY, project, team_data, ticket
+
+    from foresprint.preplan import distribute
+    from foresprint.web.tickets_view import moved_earmark
+
+    data = team_data()
+    data.projects = [project("p")]
+    data.tickets = [ticket("A", 3)]
+    dist = distribute(data, TODAY)
+    placement = dist.placement("A")
+    assert placement.sprint == dist.sprints[0]
+    assert moved_earmark(dist, placement, -1) is None  # first sprint of the horizon
+    assert moved_earmark(dist, placement, 1) == dist.sprints[1]

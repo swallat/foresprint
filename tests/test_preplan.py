@@ -155,7 +155,9 @@ def test_projects_by_target_then_priority_and_tickets_by_rank():
     assert [sprint_of(dist, k) for k in ("E1-a", "E1-b", "E1-z", "E2-1", "L-1", "O-1")] == [
         s[0], s[1], s[2], s[3], s[4], s[5],
     ]  # fmt: skip
-    assert dist.placement("X-1").reason == "no_project" and sprint_of(dist, "X-1") is None
+    # Without the products feature a ticket without project uses the one product's budget,
+    # after the projects of equal priority.
+    assert dist.placement("X-1").reason == "placed" and sprint_of(dist, "X-1") == s[6]
     assert [p.project for p in dist.projects] == ["early-1", "early-2", "late", "open"]
 
 
@@ -538,7 +540,6 @@ def test_random_distributions_respect_dependencies_and_budgets(seed: int):
     by_key = {p.ticket: p for p in dist.placements}
     open_keys = {tk.key for tk in tickets if not tk.done}
     assert set(by_key) == open_keys  # every open ticket exactly once
-    products_of = {p.id: p.product for p in data.projects}
     for tk in tickets:
         if tk.done:
             continue
@@ -547,7 +548,7 @@ def test_random_distributions_respect_dependencies_and_budgets(seed: int):
         if p.reason != "placed":
             continue
         assert tk.in_sprint is None and data.preplan.earmark_for(tk.key) is None
-        assert p.size is not None and tk.project in products_of
+        assert p.size is not None
         for dep in tk.depends_on:
             if dep not in open_keys:
                 continue
@@ -561,15 +562,18 @@ def test_random_distributions_respect_dependencies_and_budgets(seed: int):
             if not tk.done
             and by_key[tk.key].sprint == b.sprint
             and by_key[tk.key].reason == "placed"
-            and products_of.get(tk.project) == b.product
+            and by_key[tk.key].product == b.product
         ]
         assert b.placed == pytest.approx(sum(p.size for p in own))
         # Distributed tickets never exceed the budget; fixed points may (reported).
         assert b.placed <= b.plan - b.fixed + 1e-9 or b.placed == 0
         placed_by_team_basis = [
             p for p in own
-            if (data.project(p.project).budget_basis or data.team.tracker.budget_basis)
-            is data.team.tracker.budget_basis
+            if (
+                (pr := data.project(p.project) if p.project else None) is None
+                or (pr.budget_basis or data.team.tracker.budget_basis)
+                is data.team.tracker.budget_basis
+            )
         ]  # fmt: skip
         if len(placed_by_team_basis) == len(own):
             assert b.free >= -b.fixed - 1e-9 or b.placed == 0
@@ -693,7 +697,7 @@ def test_project_without_budget_cell_is_no_budget():
     data = team_data()
     data.projects = [project("a", product="shop")]
     data.tickets = [ticket("A", 3, project="a")]
-    assert reason_of(distribute(data, TODAY), "A") == "no_budget"
+    assert reason_of(distribute(data, TODAY), "A") == "placed"
 
 
 def test_too_large_only_above_a_positive_budget():
@@ -741,3 +745,84 @@ def test_sprint_after_the_horizon_is_compared_with_the_target_date():
     # A sprint the calendar does not know stays missed.
     data.preplan = Preplan(earmarks=[Earmark(ticket="far", sprint="2099.1")])
     assert light(date(2099, 12, 31)) == "missed"
+
+
+# --- Product rules: tickets without a project -----------------------------------------------
+
+
+def product_data() -> TeamData:
+    from foresprint.model import Rule
+
+    data = team_data(products=[Product("shop", "Shop"), Product("platform", "Platform")])
+    data.products[0].match = Rule(source="label", values=["shop"])
+    data.products[1].match = Rule(source="label", values=["plat"])
+    data.projects = [project("pay", product="shop")]
+    return data
+
+
+def test_ticket_without_project_uses_the_budget_of_its_product_by_rule():
+    data = product_data()
+    data.tickets = [
+        ticket("A", 3, project=None, labels=["plat"]),
+        ticket("B", 3, project=None, labels=[]),
+        ticket("C", 3, project="pay"),
+    ]
+    dist = distribute(data, TODAY)
+    assert dist.placement("A").product == "platform" and dist.placement("A").reason == "placed"
+    assert dist.placement("C").product == "shop"
+    assert dist.placement("B").reason == "no_product" and sprint_of(dist, "B") is None
+    first = dist.sprints[0]
+    assert dist.budget(first, "platform").placed > 0 and dist.budget(first, "shop").placed > 0
+
+
+def test_project_wins_over_a_contradicting_product_rule():
+    data = product_data()
+    tk = ticket("A", 3, project="pay", labels=["plat"])
+    data.tickets = [tk]
+    assert preplan.ticket_product(tk, data) == ("shop", [])
+    assert preplan.product_conflict(tk, data) == "platform"
+    assert preplan.product_conflict(ticket("B", project="pay", labels=["shop"]), data) is None
+
+
+def test_two_product_rules_via_the_same_source_contradict():
+    data = product_data()
+    tk = ticket("A", 3, project=None, labels=["shop", "plat"])
+    assert preplan.ticket_product(tk, data) == (None, ["shop", "platform"])
+
+
+def test_ticket_priority_decides_before_project_and_unit():
+    data = product_data()
+    data.projects = [project("pay", product="shop")]
+    data.tickets = [
+        ticket("P-low", 8, project="pay", priority="Low"),
+        ticket("B-high", 8, project=None, labels=["shop"], priority="High"),
+        ticket("P-none", 8, project="pay"),
+        ticket("B-med", 8, project=None, labels=["shop"], priority="medium"),
+    ]
+    # Priority first (case-insensitive, unknown or missing last), then project before backlog.
+    assert [tk.key for tk in order_tickets(data)[0]] == ["B-high", "B-med", "P-low", "P-none"]
+    data.team.tracker.priority_order = []  # switch off: project first, then backlog
+    assert [tk.key for tk in order_tickets(data)[0]] == ["P-low", "P-none", "B-high", "B-med"]
+
+
+def test_product_rule_round_trips_through_products_yaml():
+    from foresprint.model import Rule
+    from foresprint.storage import products_from_dict, products_to_dict
+
+    products = [
+        Product("shop", "Shop", match=Rule(source="label", values=["shop"])),
+        Product("platform", "Platform"),
+    ]
+    again = products_from_dict(products_to_dict(products), "products.yaml")
+    assert again[0].match == products[0].match and again[1].match is None
+
+
+def test_priority_order_round_trips_through_team_yaml():
+    from foresprint.model import TrackerSettings
+    from foresprint.storage import _tracker_from, _tracker_to
+
+    assert _tracker_from({}, "team.yaml").priority_order[0] == "Highest"
+    assert "priority_order" not in _tracker_to(TrackerSettings())
+    custom = TrackerSettings(priority_order=["P1", "P2"])
+    assert _tracker_from(_tracker_to(custom), "team.yaml").priority_order == ["P1", "P2"]
+    assert _tracker_from({"priority_order": []}, "team.yaml").priority_order == []

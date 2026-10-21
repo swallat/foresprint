@@ -16,6 +16,7 @@ from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import streamlit as st
 
@@ -31,6 +32,7 @@ from foresprint.model import (
     ProductValues,
     Project,
     Sprint,
+    rule_sources,
 )
 from foresprint.preplan import (
     LIGHTS,
@@ -38,11 +40,14 @@ from foresprint.preplan import (
     SOURCES,
     Distribution,
     HandoverRow,
+    Placement,
     Variant,
     Variants,
     distribute_variants,
     handover_rows,
+    product_conflict,
     project_range,
+    ticket_product,
 )
 from foresprint.ruleexpr import RuleSyntaxError, parse_rule
 from foresprint.sources import RawTicket, SourceError, open_source
@@ -60,6 +65,7 @@ from foresprint.ticket_import import (
 )
 from foresprint.web.logic import with_sprints
 from foresprint.web.rule_editor import rule_editor, syntax_message
+from foresprint.web.sprint_board import RELEASE, sprint_board
 from foresprint.web.ui import (
     _next_step,
     _saved_text,
@@ -77,6 +83,7 @@ LIGHT_COLOURS = {
     "tight": "#e0a800",
     "missed": "#d64545",
     "empty": "#9aa0a6",
+    "backlog": "#6b7fa3",
 }
 # One letter per origin of an estimate on a ticket card (legend below the columns).
 SOURCE_LETTERS = {
@@ -114,6 +121,12 @@ class Selection:
     # All project ids; a ticket of an id outside it counts as "without project" (as in the
     # distribution). None = the chosen projects are all there are.
     known: frozenset[str] | None = None
+    # The chosen products; None = no product filter. Hides the tickets without a project of
+    # the other products.
+    products: frozenset[str] | None = None
+
+    def shows_product(self, product: str | None) -> bool:
+        return self.products is None or product is None or product in self.products
 
     def shows(self, project: str | None) -> bool:
         if project is None or project not in (self.known or self.projects):
@@ -165,13 +178,84 @@ def project_rows(
                 t("Not distributable"): status.not_distributable,
             }
         )
+    if sel.no_project:
+        for product, placements in backlog_units(data, dist).items():
+            if not sel.shows_product(product):
+                continue
+            last = last_sprint(dist, placements)
+            rows.append(
+                {
+                    t("Project"): backlog_label(data, product),
+                    t("Product"): product or "–",
+                    t("Target"): None,
+                    t("Target sprint"): "–",
+                    **(
+                        {t("Last sprint"): last}
+                        if not ranged
+                        else {
+                            t("Last sprint optimistic"): "–",
+                            t("Last sprint median"): "–",
+                            t("Last sprint conservative"): "–",
+                        }
+                    ),
+                    t("Traffic light"): t(LIGHTS["backlog"]),
+                    t("Outstanding"): len(placements),
+                    t("Not distributable"): sum(1 for p in placements if p.sprint is None),
+                }
+            )
     return rows
+
+
+def backlog_units(data: TeamData, dist: Distribution) -> dict[str | None, list[Placement]]:
+    """The open tickets without a known project, per product they use the budget of (None =
+    the implicit product of a team without product distribution). Tickets without any product
+    are not here: they are under the open points."""
+    known = {p.id for p in data.projects}
+    units: dict[str | None, list[Placement]] = {}
+    for p in dist.placements:
+        if p.project in known or p.reason == "no_product":
+            continue
+        if p.product is None and data.team.features.products:
+            continue
+        units.setdefault(p.product, []).append(p)
+    return units
+
+
+def last_sprint(dist: Distribution, placements: list[Placement]) -> str:
+    """The latest sprint of the placed tickets, also one after the horizon; "–" = none."""
+    placed = [p.sprint for p in placements if p.sprint is not None]
+    if not placed:
+        return "–"
+    return max(
+        placed,
+        key=lambda s: (
+            (0, dist.sprints.index(s), date.min)
+            if s in dist.sprints
+            else (1, 0, dist.later.get(s) or date.min)
+        ),
+    )
+
+
+def _product_name(data: TeamData, product: str | None) -> str:
+    found = next((p for p in data.products if p.id == product), None)
+    return found.name if found else "–"
+
+
+def backlog_label(data: TeamData, product: str | None) -> str:
+    """Name of the line for the tickets of a product without a project."""
+    if product is None:
+        return t("Without project")
+    return t("{product} without project", product=_product_name(data, product))
 
 
 def _bar_span(dist: Distribution, project_id: str, axis: list[str]) -> tuple[int, int] | None:
     """First and last column of a project's bar on ``axis`` (tickets after the horizon extend
     the bar to the end); None when no ticket of the project is placed."""
     own = [p for p in dist.placements if p.project == project_id and p.sprint is not None]
+    return _span(dist, own, axis)
+
+
+def _span(dist: Distribution, own: list[Placement], axis: list[str]) -> tuple[int, int] | None:
     positions = [axis.index(p.sprint) for p in own if p.sprint in axis]
     beyond = any(p.sprint in dist.later for p in own)
     if not positions and not beyond:
@@ -245,6 +329,22 @@ def timeline_rows(
                     t("Target"): f"{project.target:%d.%m.%Y}" if project.target else "–",
                 }
             )
+    if sel.no_project:
+        for product, placements in backlog_units(data, dist).items():
+            if not sel.shows_product(product):
+                continue
+            span = _span(dist, [p for p in placements if p.sprint is not None], axis)
+            if span is None:
+                continue
+            for i in range(span[0], span[1] + 1):
+                bars.append(
+                    {
+                        t("Project"): backlog_label(data, product),
+                        t("Sprint"): axis[i],
+                        t("Traffic light"): t(LIGHTS["backlog"]),
+                        "light": "backlog",
+                    }
+                )
     return bars, marks
 
 
@@ -292,6 +392,12 @@ def open_rows(data: TeamData, dist: Distribution, sel: Selection) -> list[dict[s
     return rows
 
 
+def product_label(data: TeamData, product_id: str | None) -> str:
+    """Where a ticket without project belongs: its product's name (or "without product")."""
+    product = next((p for p in data.products if p.id == product_id), None)
+    return product.name if product else t(REASONS["no_product"])
+
+
 def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
     """One row per open ticket the filter shows: its project, the product of that project and the
     criterion (epic, component or label) that put it there; a contradiction or the lack of a
@@ -312,6 +418,8 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
         if ticket.done or not sel.shows(ticket.project):
             continue
         project = data.project(ticket.project) if ticket.project else None
+        if project is None and not sel.shows_product(ticket_product(ticket, data)[0]):
+            continue
         matched = ""
         note = ""
         if project is not None:
@@ -330,8 +438,34 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
         elif ticket.project:
             note = t("Unknown project {id}", id=ticket.project)
         else:
-            note = t("No project matches")
-        product = project.product if project and project.product else None
+            note = ""
+        product, candidates = ticket_product(ticket, data)
+        if project is None and product is not None:
+            by_rule = next((p for p in data.products if p.id == product), None)
+            sources = (
+                by_rule.match.matched_sources(ticket.facts())
+                if by_rule and by_rule.match
+                else set()
+            )
+            matched = ", ".join(
+                labels.get(x, x)
+                for x in sorted(sources, key=lambda x: order.index(x) if x in order else len(order))
+            )
+            note = (note + "; " if note else "") + t("Product by rule, no project")
+        elif project is None and candidates:
+            names = [p.name for p in data.products if p.id in candidates]
+            note = (note + "; " if note else "") + t(
+                "Contradiction: fits {products}", products=", ".join(names)
+            )
+        elif project is None and not note:
+            note = (
+                t("No product matches") if data.team.features.products else t("No project matches")
+            )
+        if (other := product_conflict(ticket, data)) is not None:
+            note = (note + "; " if note else "") + t(
+                "The product rule says {product}; the project wins",
+                product=_product_name(data, other),
+            )
         rows.append(
             {
                 t("Ticket"): ticket.key,
@@ -347,13 +481,10 @@ def assignment_rows(data: TeamData, sel: Selection) -> list[dict[str, Any]]:
 
 def assignment_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Tickets per product (and the ones without a project) from ``assignment_rows``."""
-    product, project = t("Product"), t("Project")
+    product = t("Product")
     counts: dict[str, int] = {}
     for row in rows:
-        if row[project] == "–":
-            name = t("No project")
-        else:
-            name = row[product] if row[product] != "–" else t("No product")
+        name = row[product] if row[product] != "–" else t("No product")
         counts[name] = counts.get(name, 0) + 1
     return [{t("Product"): name, t("Tickets"): n} for name, n in counts.items()]
 
@@ -579,7 +710,12 @@ def _filter(data: TeamData, key: str) -> Selection:
     without = st.checkbox(
         t("Show tickets without a project"), value=True, key=f"tickets-{key}-none"
     )
-    return Selection(frozenset(shown), without, frozenset(p.id for p in data.projects))
+    return Selection(
+        frozenset(shown),
+        without,
+        frozenset(p.id for p in data.projects),
+        None if products is None else frozenset(products),
+    )
 
 
 def _overview(
@@ -694,18 +830,63 @@ def _sprint_columns(repo: Repository, data: TeamData, dist: Distribution, sel: S
             key=f"tickets-{key}-sprints",
         )
     )
-    for start in range(0, count, 4):
-        chunk = dist.sprints[start : min(start + 4, count)]
-        for column, sprint in zip(st.columns(len(chunk)), chunk, strict=True):
-            with column:
-                _sprint_column(data, dist, sel, sprint)
+    dragging = st.radio(
+        t("View"),
+        [t("Cards with buttons"), t("Drag and drop")],
+        horizontal=True,
+        key=f"tickets-{key}-board-view",
+    ) == t("Drag and drop")
+    if dragging:
+        _drag_board(repo, data, dist, sel, dist.sprints[:count])
+    else:
+        for start in range(0, count, 4):
+            chunk = dist.sprints[start : min(start + 4, count)]
+            for column, sprint in zip(st.columns(len(chunk)), chunk, strict=True):
+                with column:
+                    _sprint_column(repo, data, dist, sel, sprint)
     st.caption(
         t(
             "R = refined · U = rough estimate (unrefined) · M = own estimate · **bold** = "
-            "sprint according to the ticket system (fixed) · ✎ = earmark"
+            "sprint according to the ticket system (fixed) · ✎ = earmark · the buttons on a card "
+            "earmark the ticket for the previous or next sprint, pin it, or release the earmark"
         )
     )
     _earmark_form(repo, data, dist, sel)
+
+
+def _drag_board(
+    repo: Repository, data: TeamData, dist: Distribution, sel: Selection, shown: list[str]
+) -> None:
+    """The sprint columns as a drag-and-drop board; a dropped card is earmarked for its new
+    sprint, a card dropped on the release bar goes back to the automatic distribution."""
+
+    def describe(p: Placement) -> str:
+        mark = " ✎" if p.reason == "earmark" else ""
+        project = data.project(p.project) if p.project else None
+        where = project.name if project else product_label(data, p.product)
+        return f"{fmt(p.size)} {SOURCE_LETTERS[p.source]}{mark} · {where}"
+
+    moved = sprint_board(
+        data,
+        dist,
+        shown,
+        lambda p: sel.shows(p.project),
+        describe,
+        CARD_LIMIT,
+        key=f"tickets-{data.team.key}-board",
+    )
+    st.caption(t("Drag a card onto another sprint to earmark it there."))
+    if moved is None:
+        return
+    ticket, sprint = moved
+    placement = dist.placement(ticket)
+    if placement is None or placement.reason == "fixed_sprint":
+        return  # a forged or outdated drop: tickets of the tracker's sprints cannot be moved
+    if sprint == RELEASE:
+        if placement.reason == "earmark":
+            set_earmark(repo, data, ticket, None)
+    elif sprint in dist.sprints and sprint != placement.sprint:
+        set_earmark(repo, data, ticket, sprint)
 
 
 def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
@@ -789,7 +970,68 @@ def _handover(repo: Repository, data: TeamData, dist: Distribution) -> None:
             st.rerun()
 
 
-def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: str) -> None:
+def moved_earmark(dist: Distribution, placement: Placement, step: int) -> str | None:
+    """The sprint one step before (-1) or after (+1) the ticket's sprint on the horizon; None =
+    the ticket is at the edge or its sprint is not on the horizon."""
+    if placement.sprint not in dist.sprints:
+        return None
+    target = dist.sprints.index(placement.sprint) + step
+    return dist.sprints[target] if 0 <= target < len(dist.sprints) else None
+
+
+def set_earmark(repo: Repository, data: TeamData, ticket: str, sprint: str | None) -> None:
+    """Earmark a ticket for ``sprint`` (keeping an existing note) or release it (None)."""
+    key = data.team.key
+    after = copy.deepcopy(data)
+    old = after.preplan.earmark_for(ticket)
+    after.preplan.earmarks = [e for e in after.preplan.earmarks if e.ticket != ticket]
+    if sprint is not None:
+        after.preplan.earmarks.append(Earmark(ticket, sprint, old.note if old else None))
+    if save(after, ["preplan.yaml"], lambda: [repo.save_preplan(key, after.preplan)], flash=True):
+        st.rerun()
+
+
+def _card_buttons(
+    repo: Repository, data: TeamData, dist: Distribution, placement: Placement
+) -> None:
+    """Buttons of a ticket card: one sprint earlier or later (earmarks it there), pin it where it
+    is, or release the earmark. Tickets in a sprint according to the tracker cannot be moved."""
+    if placement.reason == "fixed_sprint":
+        return
+    key = f"tickets-{data.team.key}-card-{placement.ticket}"
+    earlier = moved_earmark(dist, placement, -1)
+    later = moved_earmark(dist, placement, 1)
+    left, middle, right = st.columns(3)
+    if left.button(
+        "", icon=":material/chevron_left:", key=f"{key}-earlier", disabled=earlier is None,
+        help=t("Earmark for the previous sprint"), width="stretch",
+    ):  # fmt: skip
+        set_earmark(repo, data, placement.ticket, earlier)
+    if middle.button(
+        "",
+        icon=":material/close:" if placement.reason == "earmark" else ":material/push_pin:",
+        key=f"{key}-pin",
+        help=t("Release the earmark (distribute automatically)")
+        if placement.reason == "earmark"
+        else t("Earmark for this sprint"),
+        width="stretch",
+    ):
+        set_earmark(
+            repo,
+            data,
+            placement.ticket,
+            None if placement.reason == "earmark" else placement.sprint,
+        )
+    if right.button(
+        "", icon=":material/chevron_right:", key=f"{key}-later", disabled=later is None,
+        help=t("Earmark for the next sprint"), width="stretch",
+    ):  # fmt: skip
+        set_earmark(repo, data, placement.ticket, later)
+
+
+def _sprint_column(
+    repo: Repository, data: TeamData, dist: Distribution, sel: Selection, sprint: str
+) -> None:
     st.markdown(f"**{sprint}**")
     for product, budget, used in sprint_fill(dist, sprint):
         name = next((p.name for p in data.products if p.id == product), None)
@@ -815,8 +1057,9 @@ def _sprint_column(data: TeamData, dist: Distribution, sel: Selection, sprint: s
             st.markdown(f"{name} {title}")
             st.caption(
                 f"{fmt(p.size)} {SOURCE_LETTERS[p.source]}{mark} · "
-                f"{project.name if project else t(REASONS['no_project'])}"
+                f"{project.name if project else product_label(data, p.product)}"
             )
+            _card_buttons(repo, data, dist, p)
     if len(shown) > CARD_LIMIT:
         st.caption(t("… and {count} more", count=len(shown) - CARD_LIMIT))
 
@@ -958,6 +1201,10 @@ def _open_points(data: TeamData, dist: Distribution, sel: Selection) -> None:
 # --- Import -----------------------------------------------------------------------------------
 
 
+def _tracker_host(data: TeamData) -> str:
+    return urlsplit(data.team.tracker.base_url or "").hostname or "?"
+
+
 def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
     key = data.team.key
     counter = f"tickets-{key}-import-n"
@@ -969,6 +1216,15 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         )
     )
     fetched = f"tickets-{key}-fetched"
+    if data.team.tracker.kind == "jira":
+        st.caption(t("Active ticket source: **Jira** ({host}).", host=_tracker_host(data)))
+    else:
+        st.caption(
+            t(
+                "Active ticket source: **CSV export**. To read from Jira, switch the source "
+                "on the Jira connection page."
+            )
+        )
     page_link("jira", t("Set up the Jira connection"))
     if data.team.tracker.kind == "jira":
         if st.button(
@@ -993,7 +1249,7 @@ def _import(repo: Repository, data: TeamData, fc: Forecast) -> None:
         path = Path(tmp) / name
         path.write_bytes(upload.getvalue())
         try:
-            raws = CsvSource(path, data.team.tracker.fields).fetch()
+            raws = CsvSource(path, data.team.tracker.fields, data.team.tracker.rule_fields).fetch()
         except SourceError as e:
             st.error(str(e).replace(str(path), name))  # not the temporary path
             return
@@ -1270,7 +1526,11 @@ def _add_project_form(repo: Repository, data: TeamData, products: list[str]) -> 
         st.error(t("A project with the id {id} already exists.", id=new_id))
         return
     try:
-        rule = parse_rule(rule_text) if rule_text.strip() else None
+        rule = (
+            parse_rule(rule_text, rule_sources(data.team.tracker.rule_fields))
+            if rule_text.strip()
+            else None
+        )
     except RuleSyntaxError as error:
         st.error(syntax_message(rule_text, error))
         return
