@@ -3,35 +3,30 @@
 Draft for review (Phase 1b). Input: [function-inventory.md](function-inventory.md) (F001 to F292, scattering D01 to D30).
 Method: jobs to be done per role, story map after Patton (activities, steps, functions), one flow per activity, navigation derived last and checked by a tree test before any mock.
 
-## 1. Roles
+## 1. User
 
-| Role | Who | Rhythm |
-| --- | --- | --- |
-| Scrum Master (SM) | Runs the team's sprint cadence, owns the numbers | every sprint, plus setup |
-| Product Owner (PO) | Owns one or more products, orders tickets, wants to know what fits | weekly and before planning |
-| Team member | Reports absences, looks up the plan | occasionally |
-| Admin | Sets up data folder, server, Jira | once, then rarely |
+Foresprint is a desktop application with one kind of user: the person who plans for the team, a scrum master or a product owner (often both in one). There are no separate roles, permissions or views per role. Setup is done by the same user, rarely.
 
 ## 2. Jobs to be done
 
-Each job is one row of the function matrix (section 6). IDs J01 to J14.
+One user, scrum master or PO. Each job is one row of the function matrix (section 6). IDs J01 to J14.
 
-| ID | Role | When I ... | I want to ... | so that ... |
-| --- | --- | --- | --- | --- |
-| J01 | Admin | start Foresprint for a new team | connect data folder, server and Jira in one guided setup | the team works on shared numbers from day one |
-| J02 | SM | learn about vacations or sick days | record them once per person and sprint | capacity and forecast are right everywhere |
-| J03 | SM | prepare the next sprint | see what is still missing (absences, pre-planning, refinement) | planning starts complete |
-| J04 | PO | look at my backlog | filter, order and refine tickets and assign them to products and projects | the next sprints carry the right work |
-| J05 | PO | prepare a sprint | earmark tickets and set the amount per product | planning is a confirmation, not a negotiation |
-| J06 | SM | run sprint planning | confirm absences, take the Forecast PLAN, set planned amounts and the commitment, freeze | the sprint has a reliable plan |
-| J07 | SM | close a sprint | record velocity, scope change and done per product | the forecast learns from what happened |
-| J08 | PO | am asked "when will it be done?" | see the forecast with range for the coming sprints | I can answer with confidence |
-| J09 | PO | want to check fairness across products | compare default, pre-planned, planned and done per product over time | budgets match agreements |
-| J10 | SM | the team or products change | edit people, FTE, products, projects and rules | the master data stays true |
-| J11 | SM | finished a change | share it with the team (push or merge request) and see what changed | nobody overwrites anybody |
-| J12 | SM | made a mistake | see the history of an object and undo or restore | errors are cheap |
-| J13 | SM | need numbers elsewhere | export a report or workbook, import Excel or CSV | Foresprint fits the existing tools |
-| J14 | anyone | wonder what a number means | open its calculation and help in place | I trust the numbers |
+| ID | When I ... | I want to ... | so that ... |
+| --- | --- | --- | --- |
+| J01 | start Foresprint for a new team | connect data folder, server and Jira in one guided setup | the team works on shared numbers from day one |
+| J02 | learn about vacations or sick days | record them once per person and sprint | capacity and forecast are right everywhere |
+| J03 | prepare the next sprint | see what is still missing (absences, pre-planning, refinement) | planning starts complete |
+| J04 | look at my backlog | filter, order and refine tickets and assign them to products and projects | the next sprints carry the right work |
+| J05 | prepare a sprint | earmark tickets and set the amount per product | planning is a confirmation, not a negotiation |
+| J06 | run sprint planning | confirm absences, take the Forecast PLAN, set planned amounts and the commitment, freeze | the sprint has a reliable plan |
+| J07 | close a sprint | record velocity, scope change and done per product | the forecast learns from what happened |
+| J08 | am asked "when will it be done?" | see the forecast with range for the coming sprints | I can answer with confidence |
+| J09 | want to check fairness across products | compare default, pre-planned, planned and done per product over time | budgets match agreements |
+| J10 | the team or products change | edit people, FTE, products, projects and rules | the master data stays true |
+| J11 | finished a change | share it with the team (push or merge request) and see what changed | nobody overwrites anybody |
+| J12 | made a mistake | see the history of an object and undo or restore | errors are cheap |
+| J13 | need numbers elsewhere | export a report or workbook, import Excel or CSV | Foresprint fits the existing tools |
+| J14 | wonder what a number means | open its calculation and help in place | I trust the numbers |
 
 ## 3. Story map
 
@@ -208,7 +203,7 @@ flowchart TD
 
 ## 8. Tree test (before mocks)
 
-Sebastian plus one or two team members get the text tree of section 5 and answer "Where do you click to ...?" Target: 80 percent direct success.
+Sebastian plus one or two other scrum masters or POs get the text tree of section 5 and answer "Where do you click to ...?" Target: 80 percent direct success.
 
 1. ... record that Anna is on vacation in the next sprint?
 2. ... move a ticket to the top of the backlog?
@@ -222,5 +217,4 @@ Sebastian plus one or two team members get the text tree of section 5 and answer
 ## 9. Open questions
 
 1. Announced vs confirmed absences as one grid with a cell state: needs a small data-format change or a UI-only mapping. Proposal: UI-only first.
-2. Should team members (not SM/PO) use the app at all, or only read reports?
-3. Minutes: keep as files, or show only as an activity log?
+2. Minutes: keep as files, or show only as an activity log?
