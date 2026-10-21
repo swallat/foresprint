@@ -54,8 +54,7 @@ Show the user a preview: team settings, people with memberships, products, and a
 sprints you will create (id, start, end, commitment, velocity, absences). Wait for approval.
 Then write the files under `<data-dir>/teams/<team-id>/` using the shapes in
 [references/format.md](references/format.md). The data directory is the user's data
-repository, or a new empty folder if they have none (`foresprint init TEAM` also creates one
-interactively).
+repository, or a new empty folder if they have none; the files go in its `teams/` subfolder.
 
 Rules that matter most:
 
@@ -76,7 +75,7 @@ bash skills/excel-import/scripts/check.sh <data-dir> <team-id>
 This runs `foresprint check` and then `foresprint forecast`. Errors must be fixed. Notices such
 as "capacity not frozen" are normal for imported history, but read every warning and explain
 the ones that point to a data problem (velocity more than twice the commitment, absence for a
-person outside their membership, overlapping sprints). Then compare 2-3 numbers from the sheet
+person outside their membership, overlapping sprints are an error). Then compare 2-3 numbers from the sheet
 with the forecast output (velocity of a sprint, number of people) to prove the import is
 faithful.
 
@@ -100,6 +99,5 @@ import should produce (`expected/`). The repository test suite runs `foresprint 
 ## Keeping this skill current
 
 The source of truth for the format is `docs/data-format.md` in this repository. When the format
-changes (the Go core keeps the YAML byte-identical, and the 1.0 flows will add projects with
-milestones and quotas), update only `references/format.md` and, if needed, the example; this
+changes, update only `references/format.md` and, if needed, the example; this
 file describes the process and rarely changes. See "Maintenance" in the format reference.

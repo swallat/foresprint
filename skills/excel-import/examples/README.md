@@ -18,14 +18,15 @@ Decisions the importer had to make (and would have asked about):
 | "Committed" / "Done" | commitment / finished | `forecast_ist` / `velocity` |
 | "Added during sprint: 4" with commitment 22 | share, user confirmed points/commitment | `scope_creep: 0.18` (4/22 rounded to 2 decimals); blank rows stay `null` |
 | Absence columns | working days, holidays not included | `absences` per person ID |
-| Last sprint: no committed/done, partial absences | future sprint | `forecast_ist`, `velocity` null; `absence_state: expected` |
+| Last sprint: no committed/done, absences listed | sprint that starts next, absences announced | `forecast_ist`, `velocity` null; `expected_absences` (not `absences`), `absence_state: expected` |
+| No reference capacity in the sheet | asked; proposed typical capacity | `reference_capacity: 17` (assumed, confirmed by the user) |
 | Last sprint: Joel's absence blank | no data, not 0 | Joel omitted (not `0`) |
 | `Absent Joel` = 0 in sprint 1 | explicit zero | `joel: 0` kept |
 
 Check it:
 
 ```bash
-bash skills/excel-import/scripts/check.sh skills/excel-import/examples/expected sheet-demo 2026-02-10
+bash skills/excel-import/scripts/check.sh skills/excel-import/examples/expected sheet-demo 2026-02-16
 ```
 
 Expect no errors (notices about frozen capacity are normal for historic sprints).

@@ -24,7 +24,7 @@ def test_expected_example_passes_check():
             "--data",
             str(SKILL / "examples" / "expected" / "teams"),
             "--as-of",
-            "2026-02-10",
+            "2026-02-16",
             "check",
         ],
     )

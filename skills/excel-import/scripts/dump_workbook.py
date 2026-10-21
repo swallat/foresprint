@@ -15,11 +15,15 @@ from openpyxl import load_workbook
 
 
 def main(argv: list[str]) -> int:
-    args = [a for a in argv if not a.startswith("--")]
+    args = list(argv)
     max_rows = 500
-    if "--max-rows" in argv:
-        max_rows = int(argv[argv.index("--max-rows") + 1])
-        args = [a for a in args if a != str(max_rows)]
+    if "--max-rows" in args:
+        i = args.index("--max-rows")
+        if i + 1 >= len(args):
+            print(__doc__)
+            return 2
+        max_rows = int(args[i + 1])
+        del args[i : i + 2]
     if len(args) != 1:
         print(__doc__)
         return 2

@@ -14,7 +14,7 @@ sf=(foresprint)
 command -v foresprint >/dev/null 2>&1 || sf=(uvx foresprint)
 
 echo "== check =="
-"${sf[@]}" --data "$data_dir/teams" "${as_of[@]}" check
+"${sf[@]}" --data "$data_dir/teams" ${as_of[@]+"${as_of[@]}"} check
 echo
 echo "== forecast =="
-"${sf[@]}" --data "$data_dir/teams" "${as_of[@]}" forecast "$team"
+"${sf[@]}" --data "$data_dir/teams" ${as_of[@]+"${as_of[@]}"} forecast "$team"
