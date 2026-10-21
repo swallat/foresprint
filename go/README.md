@@ -28,6 +28,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/yamlmerge` | Three-way merge of YAML value trees at key level (lists with `id`, forecasts by timestamp). Works on the tree of `value.go`, not on text. |
 | `internal/git` | The `git` program: finding it, calls with a time limit that can be aborted, recognising Git's messages (`Classify`, kinds, hints), checking server addresses, connection check, changes, commit, tags, create and clone a data repository. |
 | `internal/gittest` | Helpers for tests with real repositories (bare server, clones). Only imported by tests. |
+| `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
 
 ## Holiday data
