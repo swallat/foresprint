@@ -40,7 +40,7 @@ The extra `[excel]` provides the Excel export and import; without it the command
 ## Coming from the name Sprint-Forecast
 
 The project was renamed to Foresprint. The commands `sprintforecast` and `sprintforecast-app`
-keep working as aliases, `import sprintforecast` still works for plugins, and settings, Git
+keep working as aliases, `import foresprint` still works for plugins, and settings, Git
 settings, the Jira token and `SPRINTFORECAST_*` variables of the old name are picked up
 automatically (the old config folder is copied once and left in place).
 

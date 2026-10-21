@@ -106,8 +106,11 @@ def test_project_ids_target_and_tracker_settings(data: TeamData):
         ),
         ("team.yaml", "tracker.rough_factor muss > 0 sein"),
         ("projects.yaml: p", "id ist doppelt"),
-        ("projects.yaml: p", "target fehlt"),
     ]
+    assert (
+        "projects.yaml: p",
+        "target fehlt: das Projekt wird zuletzt verteilt und hat keinen Termin",
+    ) in (warnings(data))
     data.team.tracker.project_match_order = ["label", "status"]  # a subset in any order is fine
     data.team.tracker.dependency_gap = 0
     data.team.tracker.rough_factor = 1
@@ -310,3 +313,10 @@ def test_jira_address_problems_are_errors_without_echoing_the_address(
     found = errors(data)
     assert found == [("team.yaml", f"tracker.base_url {message}")]
     assert "pw" not in found[0][1]
+
+
+def test_rule_field_names_are_checked(data: TeamData):
+    data.team.tracker.rule_fields = {"Bad Name": "X", "status": "Y", "customer": "Customer"}
+    assert sum("rule_fields" in m for _, m in errors(data)) == 2
+    data.team.tracker.rule_fields = {"none": "X", "in": "Y", "team": " "}
+    assert sum("rule_fields" in m for _, m in errors(data)) == 3

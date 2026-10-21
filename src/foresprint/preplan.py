@@ -8,7 +8,7 @@ validate, forecast) never imports this module.
                     the tracker, earmarks)  −  tickets placed by the distribution
     base[s]       = Forecast PLAN × plannable share (``budget_basis: roadmap_share``) or the
                     whole Forecast PLAN (``plan``); per team, overridable per project
-    Order         = projects by target date, priority and id; tickets by rank; dependencies
+    Order         = tickets by priority, then project (target date, priority) and rank; dependencies
                     first (topological)
     Placement     = earliest sprint from (latest sprint of the dependencies + ``dependency_gap``)
                     whose free budget for the product suffices
@@ -43,6 +43,7 @@ from foresprint.model import (
 )
 from foresprint.products import standard_shares
 from foresprint.storage import TeamData
+from foresprint.ticket_import import assign_project
 from foresprint.validate import find_cycles
 
 # Traffic light per project (spec section 5.3): display texts, translated with t() on display.
@@ -51,6 +52,7 @@ LIGHTS: dict[str, str] = {
     "tight": "tight",
     "missed": "missed",
     "empty": "empty",
+    "backlog": "no target date",  # the tickets of a product without a project
 }
 
 
@@ -81,7 +83,7 @@ REASONS: dict[str, str] = {
     "unestimated": "unestimated",
     "too_large": "too large, please split",
     "no_budget": "no budget",
-    "no_project": "without project",
+    "no_product": "without product",
     "cycle": "circular dependencies",
     "blocked": "dependency not distributable",
     "beyond_horizon": "beyond the horizon",
@@ -153,6 +155,9 @@ class Placement:
     size: float | None = None
     source: EstimateSource = EstimateSource.NONE
     project: str | None = None
+    # Product whose budget the ticket uses (its project's, else by a product rule); None =
+    # none found, or the team has no product distribution.
+    product: str | None = None
 
     @property
     def distributable(self) -> bool:
@@ -313,26 +318,79 @@ def project_order(projects: list[Project]) -> list[Project]:
     )
 
 
+def ticket_product(ticket: Ticket, data: TeamData) -> tuple[str | None, list[str]]:
+    """``(product id, candidates)`` whose budget a ticket uses. A ticket of a known project
+    takes the project's product; otherwise the product rules decide (like the project rules,
+    by ``tracker.project_match_order``; several products via the same source contradict: no
+    product, all of them as candidates). Without ``features.products`` there is only the one
+    implicit product: ``(None, [])``."""
+    if not data.team.features.products:
+        return None, []
+    project = data.project(ticket.project) if ticket.project else None
+    if project is not None and project.product:
+        return project.product, []
+    return assign_project(ticket.facts(), data.products, data.team.tracker.project_match_order)
+
+
+def product_conflict(ticket: Ticket, data: TeamData) -> str | None:
+    """The product a product rule assigns although the ticket's project belongs to another
+    one (the project wins); None = no contradiction."""
+    project = data.project(ticket.project) if ticket.project else None
+    if project is None or not project.product or not data.team.features.products:
+        return None
+    other, _ = assign_project(ticket.facts(), data.products, data.team.tracker.project_match_order)
+    return other if other is not None and other != project.product else None
+
+
 def ticket_order(tickets: list[Ticket]) -> list[Ticket]:
     """Tickets by rank (as text, without rank last), then key."""
     return sorted(tickets, key=lambda tk: (tk.rank is None, tk.rank or "", tk.key))
 
 
+def priority_rank(priority: str | None, order: list[str]) -> int:
+    """Position of a tracker priority in ``tracker.priority_order`` (case-insensitive; 0 =
+    most important). Without or with an unknown priority: after all named ones. An empty
+    order ignores the priority: every ticket gets the same rank."""
+    if not order:
+        return 0
+    names = [name.casefold() for name in order]
+    return (
+        names.index(priority.casefold())
+        if priority and priority.casefold() in names
+        else len(names)
+    )
+
+
 def order_tickets(data: TeamData) -> tuple[list[Ticket], list[Ticket]]:
-    """Open tickets in distribution order: by project (target date, priority), within a project
-    by rank, tickets without project last; dependencies always before their successors (Kahn).
-    Second list: tickets that cannot be ordered because they are in a dependency cycle or
-    depend on one (in the same order)."""
+    """Open tickets in distribution order: by ticket priority (``tracker.priority_order``),
+    then by the ticket's unit, its project (target date, project priority) or, without a
+    project, its product's own tickets (after the projects), then by rank. So a ticket
+    without project can overtake a lower-priority ticket of a project. Tickets without project
+    and product last; dependencies always before their successors (Kahn). Second list:
+    tickets that cannot be ordered because they are in a dependency cycle or depend on one
+    (in the same order)."""
     open_tickets = [tk for tk in data.tickets if not tk.done]
-    by_project: dict[str | None, list[Ticket]] = {}
+    projects = {p.id: p for p in data.projects}
+    order = data.team.tracker.priority_order
+    keyed: list[tuple[tuple, Ticket]] = []
+    unassigned: list[Ticket] = []
     for tk in open_tickets:
-        by_project.setdefault(tk.project, []).append(tk)
-    sequence: list[Ticket] = []
-    for project in project_order(data.projects):
-        sequence += ticket_order(by_project.pop(project.id, []))
-    # Tickets of unknown projects and without project (not distributable, but reported).
-    for key in sorted(by_project, key=lambda k: (k is None, k or "")):
-        sequence += ticket_order(by_project[key])
+        if tk.project in projects:
+            pr = projects[tk.project or ""]
+            unit = (pr.target is None, pr.target or date.min, pr.priority, pr.id)
+        else:
+            product, _ = ticket_product(tk, data)
+            if product is None and data.team.features.products:
+                unassigned.append(tk)
+                continue
+            unit = (True, date.max, 0, product or "")
+        keyed.append(
+            ((priority_rank(tk.priority, order), *unit, tk.rank is None, tk.rank or "", tk.key), tk)
+        )
+    sequence: list[Ticket] = [tk for _, tk in sorted(keyed, key=lambda kv: kv[0])]
+    # Tickets without project and product (not distributable, but reported).
+    for key in sorted({tk.project for tk in unassigned}, key=lambda k: (k is None, k or "")):
+        sequence += ticket_order([tk for tk in unassigned if tk.project == key])
 
     known = {tk.key for tk in open_tickets}
     ordered: list[Ticket] = []
@@ -426,8 +484,15 @@ def _distribute(
     )
     rough_factor = data.team.tracker.rough_factor if variant is Variant.CONSERVATIVE else 1.0
     by_cell = {(b.sprint, b.product): b for b in budget_list}
-    products = {p.id: p.product for p in data.projects}
-    basis_of = {p.id: p.budget_basis or data.team.tracker.budget_basis for p in data.projects}
+    default_basis = data.team.tracker.budget_basis
+    basis_of = {p.id: p.budget_basis or default_basis for p in data.projects}
+    resolved: dict[str, str | None] = {}
+
+    def resolve(tk: Ticket) -> str | None:
+        if tk.key not in resolved:
+            resolved[tk.key] = ticket_product(tk, data)[0]
+        return resolved[tk.key]
+
     gap = data.team.tracker.dependency_gap
     current = fc.current.sprint if fc.current is not None else None
     known_sprints: dict[str, Sprint | None] = {}
@@ -453,13 +518,12 @@ def _distribute(
             return -1
         return len(sprints)
 
-    def product_of(project_id: str | None) -> str | None:
-        """Product whose budget a ticket of the project consumes. Without the products
-        feature every ticket counts against the one implicit product, also without project;
-        with it, a ticket without (known) project counts against no product."""
-        if project_id in products:
-            return products[project_id]
-        return None if not data.team.features.products else _NO_PRODUCT
+    def product_of(tk: Ticket) -> str | None:
+        """Product whose budget a ticket uses. Without the products feature every ticket
+        counts against the one implicit product; with it, a ticket without product counts
+        against no product."""
+        product = resolve(tk)
+        return product if product is not None or not data.team.features.products else _NO_PRODUCT
 
     ordered, leftover = order_tickets(data)
     open_tickets = ordered + leftover
@@ -480,8 +544,10 @@ def _distribute(
         else:
             continue
         size, source = ticket_size(tk, data, rough_factor)
-        placements[tk.key] = Placement(tk.key, sprint, reason, size, source, tk.project)
-        cell = by_cell.get((sprint, product_of(tk.project)))
+        placements[tk.key] = Placement(
+            tk.key, sprint, reason, size, source, tk.project, resolve(tk)
+        )
+        cell = by_cell.get((sprint, product_of(tk)))
         if cell is not None and size is not None:
             cell.fixed += size
 
@@ -496,10 +562,10 @@ def _distribute(
         if tk.key in placements:
             continue
         size, source = ticket_size(tk, data, rough_factor)
-        placement = Placement(tk.key, None, "placed", size, source, tk.project)
+        placement = Placement(tk.key, None, "placed", size, source, tk.project, resolve(tk))
         placements[tk.key] = placement
-        if tk.project is None or tk.project not in products:
-            placement.reason = "no_project"
+        if product_of(tk) == _NO_PRODUCT:
+            placement.reason = "no_product"
             continue
         if size is None:
             placement.reason = "unestimated"
@@ -515,7 +581,7 @@ def _distribute(
             first = max(first, dep_index + gap)
         if placement.reason == "blocked":
             continue
-        product, basis = products[tk.project], basis_of[tk.project]
+        product, basis = resolve(tk), basis_of.get(tk.project or "", default_basis)
         cells = [c for s in sprints if (c := by_cell.get((s.id, product))) is not None]
         best = max((c.limit(basis) for c in cells), default=0.0)
         if size > best + _EPS:
@@ -537,7 +603,7 @@ def _distribute(
             continue
         size, source = ticket_size(tk, data, rough_factor)
         reason = "cycle" if tk.key in in_cycle else "blocked"
-        placements[tk.key] = Placement(tk.key, None, reason, size, source, tk.project)
+        placements[tk.key] = Placement(tk.key, None, reason, size, source, tk.project, resolve(tk))
 
     result = Distribution(
         sprints=[s.id for s in sprints],
@@ -569,12 +635,13 @@ def sprint_sums(dist: Distribution, sprint: str, data: TeamData) -> dict[str | N
     cells = {b.product: b.fixed + b.placed for b in dist.budgets if b.sprint == sprint}
     if cells:
         return cells
-    products = {p.id: p.product for p in data.projects}
     sums: dict[str | None, float] = {}
     for p in dist.placements:
-        if p.sprint != sprint or p.size is None or p.project not in products:
+        if p.sprint != sprint or p.size is None:
             continue
-        product = products[p.project] if data.team.features.products else None
+        product = p.product if data.team.features.products else None
+        if product is None and data.team.features.products:
+            continue
         sums[product] = sums.get(product, 0.0) + p.size
     return sums
 
@@ -904,16 +971,15 @@ class HandoverRow:
 def handover_rows(data: TeamData, dist: Distribution, sprint_count: int = 6) -> list[HandoverRow]:
     """Per future sprint (the first ``sprint_count`` of the horizon) and product the sum of
     the sizes of the tickets placed there (distributed, earmarked and fixed by the tracker),
-    as the distribution used them. Tickets of projects without a known product are left out;
+    as the distribution used them. Tickets without a known product are left out;
     sums that round to nothing are left out. Pure: nothing is written."""
-    products = {p.id: p.product for p in data.projects}
     known = {p.id for p in data.products}
     shown = dist.sprints[:sprint_count]
     sums: dict[tuple[str, str], float] = {}
     for p in dist.placements:
         if p.reason not in PLACED_REASONS or p.sprint not in shown or p.size is None:
             continue
-        product = products.get(p.project) if p.project else None
+        product = p.product
         if product is None or product not in known:
             continue
         sums[(p.sprint, product)] = sums.get((p.sprint, product), 0.0) + p.size

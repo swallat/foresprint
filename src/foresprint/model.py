@@ -195,6 +195,8 @@ class Product:
     # Agreed fixed share of the distributable amount (0-1), e.g. 0.1 = 10 %. If not given, the
     # products without a fixed share split the remainder evenly.
     share: float | None = None
+    # Rule for the product's tickets without a project (ticket pre-planning).
+    match: Rule | None = None
 
     def active_between(self, start: date, end: date) -> bool:
         """Looked after in the sprint [start, end), on at least one day."""
@@ -414,12 +416,28 @@ RULE_SOURCES: tuple[str, ...] = (
     "priority",
     "in_sprint",
 )
+# Names of configured rule fields (``tracker.rule_fields``): lower-case words, no clash with the
+# fixed sources.
+RULE_FIELD_NAME = re.compile(r"[a-z][a-z0-9_]*$")
+
+
+# Words that cannot name a rule field: operators of the YAML form and keywords of the expressions.
+RULE_RESERVED: tuple[str, ...] = ("any", "all", "none", "and", "or", "not", "in")
+
+
+def rule_sources(rule_fields: dict[str, str] | None = None) -> tuple[str, ...]:
+    """The sources a rule can name: the fixed ones and the configured rule fields."""
+    return (*RULE_SOURCES, *(n for n in (rule_fields or {}) if n not in RULE_SOURCES))
+
+
 # Suffix of a leaf key in projects.yaml that searches parts of the values (``label_contains``).
 CONTAINS_SUFFIX = "_contains"
 # Operators of the long form; a leaf has the operator ``leaf``.
 RULE_OPERATORS: tuple[str, ...] = ("any", "all", "none")
 # Default order in which the sources decide between two matching projects.
 DEFAULT_MATCH_ORDER: tuple[str, ...] = ("epic", "component", "label")
+# Jira's standard priorities, most important first.
+DEFAULT_PRIORITY_ORDER: tuple[str, ...] = ("Highest", "High", "Medium", "Low", "Lowest")
 
 
 @dataclass
@@ -521,6 +539,10 @@ class TrackerSettings:
     refined_label: str | None = None
     refined_also_if: Rule | None = None
     project_match_order: list[str] = field(default_factory=lambda: list(DEFAULT_MATCH_ORDER))
+    # The tracker's priority names, most important first. The distribution takes the tickets
+    # of a product in this order before target date and rank (case-insensitive; a ticket
+    # without or with an unknown priority comes last). Empty = ticket priority is ignored.
+    priority_order: list[str] = field(default_factory=lambda: list(DEFAULT_PRIORITY_ORDER))
     # 1 = a dependent ticket goes at least one sprint after its dependency, 0 = same sprint allowed.
     dependency_gap: int = 1
     budget_basis: BudgetBasis = BudgetBasis.ROADMAP_SHARE
@@ -533,6 +555,9 @@ class TrackerSettings:
     sprint_names: dict[str, str] = field(default_factory=dict)
     # Jira: name of the issue link type whose inward side means "is blocked by".
     link_type: str = "Blocks"
+    # Additional fields for assignment rules: rule name → display name of the field in the
+    # tracker (or header of the CSV column).
+    rule_fields: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -562,6 +587,8 @@ class Ticket:
     issue_type: str | None = None
     # Priority as the tracker names it (e.g. "High"); only for assignment rules.
     priority: str | None = None
+    # Values of the configured ``tracker.rule_fields``, per rule name.
+    extra: dict[str, list[str]] = field(default_factory=dict)
     estimate: float | None = None
     remaining: float | None = None
     estimate_source: EstimateSource = EstimateSource.NONE
@@ -589,6 +616,7 @@ class Ticket:
         both work."""
         in_sprint = ["true", self.in_sprint] if self.in_sprint else ["false"]
         return {
+            **self.extra,
             "epic": [self.epic] if self.epic else [],
             "component": list(self.components),
             "label": list(self.labels),

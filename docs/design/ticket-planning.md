@@ -60,8 +60,11 @@ at most the sums per product as a proposal into the PO pre-planning (section 10,
 - No conversion between person-days and story points.
 - No optimisation (no "best" distribution); the greedy distribution from section 5 suffices and
   stays traceable.
-- No multi-product ticket: a ticket belongs to exactly one project and thus one product;
-  contradictions are shown, not weighted.
+- No multi-product ticket: a ticket belongs to exactly one product (its project's, else the one
+  whose `match:` rule in `products.yaml` it fulfils; most tickets have both a product and a
+  project). If a product rule contradicts the project's product, the project wins; two product
+  rules contradicting each other leave the ticket "without product". Contradictions are shown,
+  not weighted.
 - No rule of thumb "latest sprint" from the fulfilment history (rejected).
 - Epic roadmap with Monte Carlo: deferred; it follows later from the projects.
 
@@ -121,7 +124,12 @@ Budget[s, p] = DefaultShare[p] × Base[s]  −  Σ (tickets already in sprint s 
 
 ### 5.2 Order and placement
 
-1. **Projects** by target date, then priority; tickets within a project by rank.
+1. **Ticket priority** first (`tracker.priority_order` in `team.yaml`, most important first,
+   default Jira's Highest to Lowest, case-insensitive; a ticket without or with an unknown
+   priority comes after the named ones; an empty list switches this off). Then the ticket's
+   **unit**: its project (target date, then project priority), or, without a project, the
+   product's own tickets, which come after the projects; finally the tracker rank. So a
+   high-priority ticket without project goes before a low-priority ticket of a project.
 2. **Topologically** by `depends_on`; a cycle is an error that is shown.
 3. Each ticket goes into the **earliest sprint** from (latest sprint of its dependencies
    + `dependency_gap`) whose remaining budget for its product suffices. `dependency_gap` is configurable
@@ -260,7 +268,8 @@ Rule language:
   Operators `=`, `!=`, `~` (contains), `!~`, `IN`, `NOT IN`, `AND`, `OR`, `NOT`, parentheses
   (`ruleexpr.py`). It maps one to one to the YAML tree and is evaluated locally, so it applies to
   every ticket source.
-- The same language applies to `refined_also_if` and to the product assignment without a project.
+- The same language applies to `refined_also_if` and to the product assignment without a project
+  (`match:` of a product in `products.yaml`, with the same precedence `project_match_order`).
 - Validation rejects empty lists, unknown sources and short and long form in the same
   `match:`.
 
@@ -343,15 +352,16 @@ One page **"Tickets"** (only with `features.tickets`), at the top a **filter** o
 projects, individually deselectable; it applies to all parts of the page. Below:
 
 1. **Project traffic light:** per project target date, target sprint, sprint of the last ticket, traffic light, number
-   of tickets, open points (unestimated, too large, without project).
-2. **Timeline:** all selected projects in one figure, sprints as columns, per project
+   of tickets, open points (unestimated, too large, without product).
+2. **Timeline:** (per product also one line "<product> without project" for its tickets without a
+   project: no target date, neutral colour, no traffic light) all selected projects in one figure, sprints as columns, per project
    one bar from the first to the last sprint of its tickets, target date as a mark; colour by
    traffic light; in step 4 the range of the three variants as a lighter area.
 3. **Sprint columns:** per future sprint one column with fill level (budget, used, free) and
    cards per ticket (key, short title, estimate, origin, project). Earmark and release
    via a select box; fixed points (real Jira sprint) are marked and cannot be moved.
 4. **Refinement list:** per sprint the tickets to be refined with deadline.
-5. **Not distributable:** unestimated, too large, cycle, without project.
+5. **Not distributable:** unestimated, too large, cycle, without product.
 6. **Import and maintenance:** import with preview, create and change projects, manual estimates.
 7. **Report section** and proposal in the planning assistant (sums per product, step 4).
 
@@ -376,8 +386,11 @@ S44  Budget 21 · used 18 · free 3       S45  Budget 21 · used 20 · free 1
 R = refined, U = rough (unrefined), M = own estimate      bold = fixed Jira sprint
 ```
 
-Streamlit suffices for filter, tables, select boxes and the two charts; an interactive
-planning surface (drag-and-drop) is not a goal.
+Streamlit suffices for filter, tables, select boxes and the two charts. The sprint columns are
+also a board: buttons on each card earmark the ticket for the previous or next sprint, pin it or
+release it, and a view switch shows the columns as a drag-and-drop board (a small component in
+`web/sprint_board.py`; a card dropped on another sprint is earmarked there, a card dropped on the
+release bar goes back to the automatic distribution). Both write the same earmarks.
 
 ## 9. Architecture
 
@@ -418,7 +431,7 @@ the sums per sprint and product as `preplanned`). The page (step 3) and the rang
 variants in the timeline (the lighter area) are done; step 5 follows.
 
 Step 3 starts only when nothing big is open on `web/ui.py`. Later candidates: GitHub
-and GitLab adapters, epic roadmap from the projects, export of the distribution (CSV), drag-and-drop.
+and GitLab adapters, epic roadmap from the projects, export of the distribution (CSV).
 
 ## 11. Tests
 

@@ -600,7 +600,18 @@ def products_from_table(
                 t("Row {row} ({name}): share must be between 0 and 100 %", row=i, name=name)
             )
             continue
-        result.append(Product(id=pid, name=name, po=po, start=start, end=end, share=share))
+        old = next((p for p in original if p.id == pid), None)
+        result.append(
+            Product(
+                id=pid,
+                name=name,
+                po=po,
+                start=start,
+                end=end,
+                share=share,
+                match=old.match if old else None,  # not a column of the table
+            )
+        )
     kept = {p.id for p in result} | {p.id for p in hidden}
     deleted = [p.name for p in original if p.id not in kept]
     order = {p.id: n for n, p in enumerate(original)}
