@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"github.com/swallat/foresprint/internal/i18n"
 	"strings"
 	"unicode"
 )
@@ -17,7 +18,7 @@ func (e *SyntaxError) Error() string { return e.Message }
 
 // Translate turns an English message into the language of the user; the catalog of the texts
 // replaces it. Placeholders are {name}, filled from pairs of name and value.
-var Translate = func(text string) string { return text }
+var Translate = func(text string) string { return i18n.T(text) }
 
 func msg(text string, pairs ...string) string {
 	text = Translate(text)

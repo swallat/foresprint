@@ -6,6 +6,7 @@ package protocol
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/swallat/foresprint/internal/i18n"
 	"math"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ const (
 
 // Translate maps an English source text to the configured language (the text catalog replaces
 // it); placeholders are {name}, filled from pairs of name and value.
-var Translate = func(text string) string { return text }
+var Translate = func(text string) string { return i18n.T(text) }
 
 func msg(text string, pairs ...string) string {
 	text = Translate(text)
