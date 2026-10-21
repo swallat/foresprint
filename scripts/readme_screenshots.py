@@ -5,7 +5,7 @@ Usage: ``uv run python scripts/readme_screenshots.py [--out DIR]``
 
 Runs the app on a copy of the demo data (a Git repository, so the start page shows no setup
 hints) in English, once light and once dark. Aborts without writing a file for a page that shows
-an error message ("Page not found", a Python exception, a Streamlit alert about a failure), so a
+an error message ("Page not found", a Python exception, an error alert), so a
 broken screenshot cannot reach the README unnoticed.
 """
 
@@ -44,7 +44,7 @@ PAGES = {
     "analysis": ("analysis", "Analysis"),
 }
 THEMES = {"light": "Light", "dark": "Dark"}
-ERRORS = ("Page not found", "Traceback", "Error")
+ERRORS = ("Page not found", "Traceback")
 
 
 class BrokenScreenshot(RuntimeError):
@@ -59,9 +59,9 @@ def check(page: Page, name: str, heading: str) -> None:
         problems.append("Python exception")
     if page.get_by_role("dialog").count():
         problems.append("dialog open: " + page.get_by_role("dialog").first.inner_text()[:80])
-    if page.get_by_test_id("stAlert").filter(has_text="Error").count():
+    if page.get_by_test_id("stAlertContentError").count():
         problems.append("error alert")
-    for text in ERRORS[:2]:
+    for text in ERRORS:
         if page.get_by_text(text).count():
             problems.append(f"text '{text}' on the page")
     if problems:
@@ -79,7 +79,7 @@ def relax_targets(data: Path) -> None:
     file = data / "demo" / "projects.yaml"
     file.write_text(
         file.read_text(encoding="utf-8")
-        .replace("2027-03-31", "2028-06-30")
+        .replace("2027-03-31", "2027-06-30")
         .replace("2026-11-30", "2027-09-30"),
         encoding="utf-8",
     )
