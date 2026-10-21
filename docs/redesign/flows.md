@@ -177,6 +177,7 @@ flowchart TD
   P --> A[Absences grid: enter or mark nobody absent]
   A --> R[Readiness: absences, refinement, pre-planning]
   R --> PP[Sprint > Pre-plan]
+  X([Any time, any future sprint]) --> PP
   PP --> E[Drag tickets into the sprint lane]
   E --> M[Amount per product, suggested from earmarks]
   M --> L{Over capacity?}
