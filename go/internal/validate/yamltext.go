@@ -148,12 +148,12 @@ func keyOf(n *yaml.Node, asText bool, canon map[string]string) keyInfo {
 	} else {
 		value = n.Value // unusual key: the text is enough
 	}
-	shown := blankControls(pyStr(value))
+	shown := blankControls(yamlx.PyStr(value))
 	c := yamlx.CanonicalKey(value)
 	if asText {
 		first, ok := canon[c]
 		if !ok {
-			first = pyStr(value)
+			first = yamlx.PyStr(value)
 			canon[c] = first
 		}
 		return keyInfo{shown, "t" + first}
