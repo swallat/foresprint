@@ -1,7 +1,7 @@
 import pytest
 
-from sprintforecast.model import Rule
-from sprintforecast.ruleexpr import RuleSyntaxError, format_rule, parse_rule
+from foresprint.model import Rule
+from foresprint.ruleexpr import RuleSyntaxError, format_rule, parse_rule
 
 
 def facts(**kw):
@@ -105,7 +105,7 @@ def test_field_typo_suggests_the_field():
 
 
 def test_priority_is_a_field():
-    from sprintforecast.model import Ticket
+    from foresprint.model import Ticket
 
     ticket = Ticket(key="T-1", priority="High")
     assert parse_rule("priority IN (High, Highest)").matches(ticket.facts())
@@ -114,8 +114,8 @@ def test_priority_is_a_field():
 
 
 def test_configured_rule_fields_are_parsed_and_validated():
-    from sprintforecast.model import Ticket, rule_sources
-    from sprintforecast.validate import rule_problems
+    from foresprint.model import Ticket, rule_sources
+    from foresprint.validate import rule_problems
 
     sources = rule_sources({"customer": "Customer"})
     rule = parse_rule("customer IN (Acme, Beta) AND customer !~ test", sources)
@@ -127,7 +127,7 @@ def test_configured_rule_fields_are_parsed_and_validated():
 
 
 def test_jira_field_values_become_texts():
-    from sprintforecast.sources.jira import field_texts
+    from foresprint.sources.jira import field_texts
 
     assert field_texts({"value": "Gold"}) == ["Gold"]
     assert field_texts([{"value": "A"}, {"name": "B"}, "A", 3.0]) == ["A", "B", "3"]
@@ -135,6 +135,6 @@ def test_jira_field_values_become_texts():
 
 
 def test_review_fixes_for_rule_fields():
-    from sprintforecast.sources.jira import field_texts
+    from foresprint.sources.jira import field_texts
 
     assert field_texts(1234567) == ["1234567"] and field_texts(2.5) == ["2.5"]

@@ -9,8 +9,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from sprintforecast import preplan
-from sprintforecast.model import (
+from foresprint import preplan
+from foresprint.model import (
     BudgetBasis,
     Earmark,
     EstimateSource,
@@ -25,8 +25,8 @@ from sprintforecast.model import (
     Team,
     Ticket,
 )
-from sprintforecast.preplan import Budget, Distribution, distribute, order_tickets
-from sprintforecast.storage import TeamData
+from foresprint.preplan import Budget, Distribution, distribute, order_tickets
+from foresprint.storage import TeamData
 
 TODAY = date(2026, 10, 15)
 # The current sprint (without velocity) starts on 7 Oct; five closed sprints precede it.
@@ -80,7 +80,7 @@ def ticket(
 
 def future(dist: Distribution, data: TeamData) -> list[Sprint]:
     """The future sprints of the horizon (to check target date and deadline)."""
-    from sprintforecast.analysis import horizon_entries, horizon_forecast
+    from foresprint.analysis import horizon_entries, horizon_forecast
 
     return [h.sprint for h in horizon_entries(horizon_forecast(data, TODAY))]
 
@@ -120,7 +120,7 @@ def test_horizon_beyond_the_people_list_uses_the_average_capacity():
     # With a people list the capacity comes from the calendar and differs per sprint.
     data.people = [Person(id="a", name="A", memberships=[Membership(start=date(2026, 1, 1))])]
     dist = distribute(data, TODAY)
-    from sprintforecast.analysis import horizon_entries, horizon_forecast
+    from foresprint.analysis import horizon_entries, horizon_forecast
 
     entries = horizon_entries(horizon_forecast(data, TODAY))
     assert not any(h.trend for h in entries)
@@ -724,7 +724,7 @@ def test_earmark_of_a_sprint_that_is_over_is_ignored():
 
 
 def test_sprint_after_the_horizon_is_compared_with_the_target_date():
-    from sprintforecast.forecast import find_sprint
+    from foresprint.forecast import find_sprint
 
     data = team_data()
     data.projects = [project("p")]
@@ -751,7 +751,7 @@ def test_sprint_after_the_horizon_is_compared_with_the_target_date():
 
 
 def product_data() -> TeamData:
-    from sprintforecast.model import Rule
+    from foresprint.model import Rule
 
     data = team_data(products=[Product("shop", "Shop"), Product("platform", "Platform")])
     data.products[0].match = Rule(source="label", values=["shop"])
@@ -806,8 +806,8 @@ def test_ticket_priority_decides_before_project_and_unit():
 
 
 def test_product_rule_round_trips_through_products_yaml():
-    from sprintforecast.model import Rule
-    from sprintforecast.storage import products_from_dict, products_to_dict
+    from foresprint.model import Rule
+    from foresprint.storage import products_from_dict, products_to_dict
 
     products = [
         Product("shop", "Shop", match=Rule(source="label", values=["shop"])),
@@ -818,8 +818,8 @@ def test_product_rule_round_trips_through_products_yaml():
 
 
 def test_priority_order_round_trips_through_team_yaml():
-    from sprintforecast.model import TrackerSettings
-    from sprintforecast.storage import _tracker_from, _tracker_to
+    from foresprint.model import TrackerSettings
+    from foresprint.storage import _tracker_from, _tracker_to
 
     assert _tracker_from({}, "team.yaml").priority_order[0] == "Highest"
     assert "priority_order" not in _tracker_to(TrackerSettings())

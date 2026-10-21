@@ -149,17 +149,17 @@ Uninstall (also removes the old name sprintforecast, keeps your data): `uninstal
 Try the demo first, in the folder of this repository:
 
 ```bash
-sprintforecast --data examples/teams --as-of 2026-10-15 web        # the web UI with demo data
-sprintforecast --data examples/teams --as-of 2026-10-15 forecast demo   # the forecast on the command line
+foresprint --data examples/teams --as-of 2026-10-15 web        # the web UI with demo data
+foresprint --data examples/teams --as-of 2026-10-15 forecast demo   # the forecast on the command line
 ```
 
 Then use your own data. Teams are subfolders of the data directory:
 
 ```bash
 cd sprint-data                     # data directory: one subfolder per team
-sprintforecast init team-a         # create a team with guidance
-sprintforecast web                 # web UI
-sprintforecast help                # what to do when
+foresprint init team-a         # create a team with guidance
+foresprint web                 # web UI
+foresprint help                # what to do when
 ```
 
 On Windows PowerShell, `cd "$HOME\sprint-data"` and the same commands work. If the web UI finds no
@@ -199,7 +199,7 @@ full sprint workflow is in [Sprint workflow](docs/sprint-workflow.md).
 - [Plugins](docs/plugins.md): writing and installing plugins
 - [Data repository](docs/data-repository.md): why Git, the template, separating code and data
 - [Performance](docs/performance.md) and [Branding](docs/branding.md)
-- `sprintforecast help [workflow|terms|fields|team|commands]` and the *Help* page of the web UI
+- `foresprint help [workflow|terms|fields|team|commands]` and the *Help* page of the web UI
 
 ## Contributing
 
@@ -210,7 +210,7 @@ CI. Releases are described in [docs/releasing.md](docs/releasing.md).
 ```bash
 mise install
 uv sync --all-extras
-uv run sprintforecast --data examples/teams web   # run from source
+uv run foresprint --data examples/teams web   # run from source
 uv run pytest
 ```
 

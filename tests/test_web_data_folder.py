@@ -205,7 +205,7 @@ def test_choose_a_folder_without_access_names_the_problem(
 ):
     """The folder exists but git does not start in it (no access): a message instead of the error
     page."""
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     real = ui.git_root
 
@@ -226,7 +226,7 @@ def test_choose_a_folder_without_access_names_the_problem(
 def test_choose_a_folder_that_cannot_be_listed_names_the_problem(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     real = ui.teams_dir
 
@@ -268,8 +268,8 @@ def test_an_empty_path_field_does_not_mean_the_working_folder(
 def test_clone_errors_give_hints_that_fit_cloning(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, kind, expected, unwanted
 ):
-    from sprintforecast.git import GitError, hint_for
-    from sprintforecast.web import ui
+    from foresprint.git import GitError, hint_for
+    from foresprint.web import ui
 
     def failing(url, path):
         raise GitError("fatal: unable to access", kind, hint_for(kind))
@@ -301,8 +301,8 @@ def test_clone_into_a_non_empty_folder_says_folder_not_git(
 def test_create_here_after_choosing_a_folder_without_git_shows_the_problem_with_its_title(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    from sprintforecast.git import GitError
-    from sprintforecast.web import ui
+    from foresprint.git import GitError
+    from foresprint.web import ui
 
     def failing(path, teams_folder=True):
         raise GitError("kaputt", "folder")

@@ -279,6 +279,68 @@ wheels = [
 ]
 
 [[package]]
+name = "foresprint"
+version = "0.7.0"
+source = { editable = "." }
+dependencies = [
+    { name = "click" },
+    { name = "holidays" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "typer" },
+]
+
+[package.optional-dependencies]
+excel = [
+    { name = "openpyxl" },
+    { name = "xlsxwriter" },
+]
+jira = [
+    { name = "httpx" },
+    { name = "keyring" },
+]
+web = [
+    { name = "streamlit" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "keyring" },
+    { name = "openpyxl" },
+    { name = "playwright" },
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "xlsxwriter" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1" },
+    { name = "holidays", specifier = ">=0.106" },
+    { name = "httpx", marker = "extra == 'jira'", specifier = ">=0.28" },
+    { name = "keyring", marker = "extra == 'jira'", specifier = ">=25" },
+    { name = "openpyxl", marker = "extra == 'excel'", specifier = ">=3.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "rich", specifier = ">=15.0.0" },
+    { name = "streamlit", marker = "extra == 'web'", specifier = ">=1.66.0" },
+    { name = "typer", specifier = ">=0.27.3" },
+    { name = "xlsxwriter", marker = "extra == 'excel'", specifier = ">=3.2" },
+]
+provides-extras = ["web", "excel", "jira"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "keyring", specifier = ">=25" },
+    { name = "openpyxl", specifier = ">=3.1" },
+    { name = "playwright", specifier = ">=1.64.0" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.17.0" },
+    { name = "xlsxwriter", specifier = ">=3.2" },
+]
+
+[[package]]
 name = "greenlet"
 version = "3.5.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1138,66 +1200,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
-]
-
-[[package]]
-name = "sprintforecast"
-version = "0.7.0"
-source = { editable = "." }
-dependencies = [
-    { name = "holidays" },
-    { name = "pyyaml" },
-    { name = "rich" },
-    { name = "typer" },
-]
-
-[package.optional-dependencies]
-excel = [
-    { name = "openpyxl" },
-    { name = "xlsxwriter" },
-]
-jira = [
-    { name = "httpx" },
-    { name = "keyring" },
-]
-web = [
-    { name = "streamlit" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "keyring" },
-    { name = "openpyxl" },
-    { name = "playwright" },
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "xlsxwriter" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "holidays", specifier = ">=0.106" },
-    { name = "httpx", marker = "extra == 'jira'", specifier = ">=0.28" },
-    { name = "keyring", marker = "extra == 'jira'", specifier = ">=25" },
-    { name = "openpyxl", marker = "extra == 'excel'", specifier = ">=3.1" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "rich", specifier = ">=15.0.0" },
-    { name = "streamlit", marker = "extra == 'web'", specifier = ">=1.66.0" },
-    { name = "typer", specifier = ">=0.27.3" },
-    { name = "xlsxwriter", marker = "extra == 'excel'", specifier = ">=3.2" },
-]
-provides-extras = ["web", "excel", "jira"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28" },
-    { name = "keyring", specifier = ">=25" },
-    { name = "openpyxl", specifier = ">=3.1" },
-    { name = "playwright", specifier = ">=1.64.0" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "ruff", specifier = ">=0.17.0" },
-    { name = "xlsxwriter", specifier = ">=3.2" },
 ]
 
 [[package]]

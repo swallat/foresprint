@@ -5,8 +5,8 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from sprintforecast import plugins
-from sprintforecast.plugins import Plugin, WebPage
+from foresprint import plugins
+from foresprint.plugins import Plugin, WebPage
 
 
 class FakeEntryPoint:
@@ -63,8 +63,8 @@ def test_plugin_registers_cli_command():
 def test_import_sprints_keeps_existing_team(tmp_path):
     from datetime import date
 
-    from sprintforecast.model import Sprint, Team
-    from sprintforecast.storage import Repository, import_sprints
+    from foresprint.model import Sprint, Team
+    from foresprint.storage import Repository, import_sprints
 
     repo = Repository(tmp_path)
     sprint = Sprint("2026.1", date(2026, 1, 7), date(2026, 1, 21), velocity=10)

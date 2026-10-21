@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 from gitrepos import Denying, Person, git, serve
 
-from sprintforecast import git as gitmod
-from sprintforecast import githistory, gitsync
-from sprintforecast.git import GitError, invalidate_status
+from foresprint import git as gitmod
+from foresprint import githistory, gitsync
+from foresprint.git import GitError, invalidate_status
 
 A1 = "teams/a/2026.1.yaml"
 

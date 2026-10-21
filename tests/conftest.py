@@ -6,7 +6,7 @@ import pytest
 from gitrepos import alice, bob, clean_caches, no_login_prompt, remote  # noqa: F401  (Fixtures)
 from webfixtures import repo, second_folder, shared  # noqa: F401  (Fixtures)
 
-from sprintforecast import i18n
+from foresprint import i18n
 
 EXAMPLES = Path(__file__).parent.parent / "examples" / "teams"
 
@@ -47,7 +47,7 @@ def data_dir(tmp_path: Path) -> Path:
 def no_git_outside_path(monkeypatch: pytest.MonkeyPatch):
     """Look for Git only in PATH, not in the fallback locations of this machine (Homebrew, Scoop
     ...): tests that "remove" Git (empty PATH) behave the same on every machine."""
-    from sprintforecast import git
+    from foresprint import git
 
     git.reset_git_cache()
     monkeypatch.setattr(git, "git_locations", lambda: [])

@@ -2,11 +2,11 @@
 from datetime import date
 from pathlib import Path
 
-from sprintforecast.forecast import build_forecast
-from sprintforecast.formulas import GENERAL, _exact, general, plain_explanation, step, steps
-from sprintforecast.locale_de import DE
-from sprintforecast.model import TrendMode
-from sprintforecast.storage import Repository
+from foresprint.forecast import build_forecast
+from foresprint.formulas import GENERAL, _exact, general, plain_explanation, step, steps
+from foresprint.locale_de import DE
+from foresprint.model import TrendMode
+from foresprint.storage import Repository
 
 
 def test_general_capacity_formula_names_trend_only_without_people_list(english):

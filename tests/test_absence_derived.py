@@ -12,21 +12,21 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from sprintforecast.capacity import absence_history
-from sprintforecast.cli import app as cli_app
-from sprintforecast.engine import CapacitySource
-from sprintforecast.forecast import build_forecast
-from sprintforecast.formulas import plain_explanation, steps
-from sprintforecast.i18n import t
-from sprintforecast.model import AbsenceState, absence_status
-from sprintforecast.report import (
+from foresprint.capacity import absence_history
+from foresprint.cli import app as cli_app
+from foresprint.engine import CapacitySource
+from foresprint.forecast import build_forecast
+from foresprint.formulas import plain_explanation, steps
+from foresprint.i18n import t
+from foresprint.model import AbsenceState, absence_status
+from foresprint.report import (
     absence_derived_hint,
     absence_derived_note,
     reliability_notes,
     render,
 )
-from sprintforecast.storage import Repository
-from sprintforecast.web.logic import absence_matrix, edit_absences, sprints_to_save
+from foresprint.storage import Repository
+from foresprint.web.logic import absence_matrix, edit_absences, sprints_to_save
 
 TODAY = date(2026, 10, 15)
 NOTE = "Quote unsicher"
@@ -49,7 +49,7 @@ def history_of(data_dir: Path, count: int = 4):
 
 def old_rate(data, past, count):
     """The previous calculation (before the flagging), rebuilt independently."""
-    from sprintforecast.capacity import sprint_capacity
+    from foresprint.capacity import sprint_capacity
 
     rates = []
     for s in past:
@@ -283,11 +283,11 @@ def test_command_line_and_report_file(data_dir: Path):
     assert explained.exit_code == 0, explained.output
     out = " ".join(explained.output.split())  # ignore console line breaks
     assert out.count(NOTE) == 1  # only the ⚠ line, not also explanatory text and table cell
-    for web_only in ("`2026.19`", "`absence_history`", "`sprintforecast absences`"):
+    for web_only in ("`2026.19`", "`absence_history`", "`foresprint absences`"):
         assert web_only not in out  # no Markdown backticks in the console
     for web_text in ("Fehltage speichern", "Stand der Fehltage", "Sprint vorbereiten: Fehltage"):
         assert web_text not in out  # no instructions for the web UI
-    assert "sprintforecast absences demo <SPRINT>" in out  # the command instead
+    assert "foresprint absences demo <SPRINT>" in out  # the command instead
     assert "Fenster der letzten 4 Sprints" in out
     report = run_cli(data_dir, "report", "demo")
     assert report.exit_code == 0, report.output
@@ -295,14 +295,14 @@ def test_command_line_and_report_file(data_dir: Path):
     assert f"⚠️ {NOTE}" in text and "`2026.19`" in text
 
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 
 
 def web_page(data_dir: Path, monkeypatch: pytest.MonkeyPatch, page: str):
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
+    from foresprint.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(AS_OF_ENV, "2026-10-15")

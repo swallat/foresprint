@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.forecast import build_forecast, freeze_plan
-from sprintforecast.model import Product, ProductBasis, ProductValues
-from sprintforecast.products import balance, by_po, distribution
-from sprintforecast.storage import Repository
-from sprintforecast.validate import check_team
-from sprintforecast.web.logic import (
+from foresprint.forecast import build_forecast, freeze_plan
+from foresprint.model import Product, ProductBasis, ProductValues
+from foresprint.products import balance, by_po, distribution
+from foresprint.storage import Repository
+from foresprint.validate import check_team
+from foresprint.web.logic import (
     apply_product_values,
     product_table,
     product_values_table,
@@ -58,7 +58,7 @@ def test_share_roundtrip_and_table(data_dir: Path):
 
 
 def test_production_access_group(data_dir: Path):
-    from sprintforecast.web.logic import people_from_table, people_table
+    from foresprint.web.logic import people_from_table, people_table
 
     repo = Repository(data_dir)
     data = repo.load("demo")
@@ -185,7 +185,7 @@ def test_validation_of_product_values(fc):
 
 
 def test_freeze_keeps_existing_plan_unless_requested(fc):
-    from sprintforecast.forecast import refreeze_offer
+    from foresprint.forecast import refreeze_offer
 
     entry = fc.entry("2026.22")
     entry.sprint.forecast_plan = 9.0
@@ -227,7 +227,7 @@ def test_fixed_shares_adding_to_100_percent_warn_when_others_remain(fc):
 def test_balance_distinguishes_missing_from_zero(fc):
     """A10: In a sprint with Done for other products, a missing value does not count as 0:
     neither its Done nor its standard enters the balance."""
-    from sprintforecast.products import balance
+    from foresprint.products import balance
 
     entry = fc.entry("2026.20")
     sprint = entry.sprint

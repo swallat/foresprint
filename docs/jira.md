@@ -10,7 +10,7 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
 
 1. **Install the extra `[jira]`.** The installer does it; run it again on an older installation
    (it keeps your plugins). By hand:
-   `uv tool install --force "sprintforecast[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"`
+   `uv tool install --force "foresprint[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/heads/main.zip"`
    (give plugins again with `--with`; see [installation.md](installation.md)). Without the extra
    the CSV import still works.
 2. **Configure the tracker.** Either on the web page *Jira connection* (Manage team; address,
@@ -45,7 +45,7 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    or store it in the operating system keychain (hidden input, nothing is echoed):
 
    ```bash
-   sprintforecast tickets TEAM --set-token
+   foresprint tickets TEAM --set-token
    ```
 
    The keychain needs the package `keyring`, which comes with the extra `[jira]`; the entry is
@@ -57,7 +57,7 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
    instance; writes nothing:
 
    ```bash
-   sprintforecast tickets TEAM --test-connection
+   foresprint tickets TEAM --test-connection
    ```
 
    On the web page *Jira connection* the token can be entered too (hidden input, **Store in
@@ -77,9 +77,9 @@ off by default), which adds or removes `planned_for_<sprint>` labels and nothing
 ## Reading tickets
 
 ```bash
-sprintforecast tickets TEAM --fetch            # preview: what would change, nothing is written
-sprintforecast tickets TEAM --fetch --apply    # write tickets.yaml (and preplan.yaml if needed)
-sprintforecast tickets TEAM --fetch --apply --commit
+foresprint tickets TEAM --fetch            # preview: what would change, nothing is written
+foresprint tickets TEAM --fetch --apply    # write tickets.yaml (and preplan.yaml if needed)
+foresprint tickets TEAM --fetch --apply --commit
 ```
 
 The preview is the same as for the CSV import (new, changed, done, to be assigned, refined status
@@ -99,8 +99,8 @@ that others see the planned sprint in Jira without being able to put a not yet r
 the sprint itself.
 
 ```bash
-sprintforecast tickets TEAM --write-labels            # preview: which label is added or removed where
-sprintforecast tickets TEAM --write-labels --apply    # write the labels to Jira
+foresprint tickets TEAM --write-labels            # preview: which label is added or removed where
+foresprint tickets TEAM --write-labels --apply    # write the labels to Jira
 ```
 
 - The command reads the tickets fresh from Jira, compares them with the earmarks and lists only

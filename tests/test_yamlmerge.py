@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.storage import ConflictError, DataError, Repository, has_conflict_markers
-from sprintforecast.yamlmerge import MISSING, merge3, same
+from foresprint.storage import ConflictError, DataError, Repository, has_conflict_markers
+from foresprint.yamlmerge import MISSING, merge3, same
 
 BASE = {"velocity": 10, "absences": {"anna": 1}, "note": "x", "list": [1, 2]}
 

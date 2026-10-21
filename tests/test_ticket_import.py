@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.forecast import Forecast, build_forecast
-from sprintforecast.model import (
+from foresprint.forecast import Forecast, build_forecast
+from foresprint.model import (
     Earmark,
     EstimateSource,
     ManualEstimate,
@@ -20,9 +20,9 @@ from sprintforecast.model import (
     TrackerFields,
     TrackerSettings,
 )
-from sprintforecast.sources import RawTicket
-from sprintforecast.storage import Repository, TeamData
-from sprintforecast.ticket_import import (
+from foresprint.sources import RawTicket
+from foresprint.storage import Repository, TeamData
+from foresprint.ticket_import import (
     KINDS,
     UNCLEAR_NO_ESTIMATE,
     UNCLEAR_RULE,

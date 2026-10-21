@@ -24,9 +24,9 @@ from gitrepos import (
     serve,
 )
 
-from sprintforecast import git as gitmod
-from sprintforecast import gitsync, proctree
-from sprintforecast.git import (
+from foresprint import git as gitmod
+from foresprint import gitsync, proctree
+from foresprint.git import (
     GitError,
     RemoteAddress,
     clone_repository,

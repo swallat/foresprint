@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from sprintforecast import launcher
-from sprintforecast.launcher import Browser, Kind, browser_command, find_browser, free_port
+from foresprint import launcher
+from foresprint.launcher import Browser, Kind, browser_command, find_browser, free_port
 
 
 @pytest.fixture
@@ -108,7 +108,7 @@ def test_free_port_skips_busy_port():
 
 def test_handoff_keeps_server_running(monkeypatch: pytest.MonkeyPatch):
     """If the browser process ends immediately (running instance), the server must not stop."""
-    from sprintforecast import cli
+    from foresprint import cli
 
     monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)
     monkeypatch.setattr(cli, "find_browser", lambda explicit: Browser(Kind.APP, "Edge", "/e"))
@@ -130,7 +130,7 @@ class FakeProcess:
 
 def test_window_closes_when_server_ends(monkeypatch: pytest.MonkeyPatch):
     """If the server ends (restart for an update), the window closes."""
-    from sprintforecast import cli
+    from foresprint import cli
 
     window = FakeProcess()
     monkeypatch.setattr(cli, "wait_until_ready", lambda url, server: True)
@@ -143,13 +143,13 @@ def test_window_closes_when_server_ends(monkeypatch: pytest.MonkeyPatch):
 @pytest.mark.skipif(sys.platform == "win32", reason="Fake-Browser als Shell-Skript")
 def test_app_window_closes_server(data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     pytest.importorskip("streamlit")
-    from sprintforecast.cli import app
+    from foresprint.cli import app
 
     log = tmp_path / "browser-args.txt"
     fake = tmp_path / "fake-browser"
     fake.write_text(f'#!/bin/sh\necho "$@" > {log}\nsleep 6\n')
     fake.chmod(0o755)
-    monkeypatch.setattr("sprintforecast.cli._HANDOFF_SECONDS", 5.0)
+    monkeypatch.setattr("foresprint.cli._HANDOFF_SECONDS", 5.0)
     result = CliRunner().invoke(
         app, ["--data", str(data_dir), "web", "--app", "--browser", str(fake), "--port", "8590"]
     )
@@ -174,10 +174,10 @@ class _FakeServer:
 
 @pytest.fixture
 def web_run(data_dir: Path, monkeypatch: pytest.MonkeyPatch):
-    """Calls `sprintforecast web` without a real server and browser and reports what happened."""
+    """Calls `foresprint web` without a real server and browser and reports what happened."""
     pytest.importorskip("streamlit")
-    from sprintforecast import cli
-    from sprintforecast.idle import IDLE_ENV
+    from foresprint import cli
+    from foresprint.idle import IDLE_ENV
 
     monkeypatch.delenv(IDLE_ENV, raising=False)  # otherwise the caller's value would apply
 
@@ -207,7 +207,7 @@ def _headless(cmd: list[str]) -> str:
 
 @pytest.mark.parametrize("options", [[], ["--app"]])
 def test_web_opens_app_window_by_default(web_run, options: list[str]):
-    from sprintforecast.idle import IDLE_ENV
+    from foresprint.idle import IDLE_ENV
 
     seen = web_run(*options)
     assert seen["window"].startswith("http://localhost:")
@@ -216,7 +216,7 @@ def test_web_opens_app_window_by_default(web_run, options: list[str]):
 
 
 def test_web_no_app_leaves_the_browser_tab_to_streamlit(web_run):
-    from sprintforecast.idle import IDLE_ENV
+    from foresprint.idle import IDLE_ENV
 
     seen = web_run("--no-app")
     assert seen["window"] is None
@@ -226,7 +226,7 @@ def test_web_no_app_leaves_the_browser_tab_to_streamlit(web_run):
 
 @pytest.mark.parametrize("options", [["--no-browser"], ["--app", "--no-browser"]])
 def test_web_no_browser_opens_nothing_and_never_stops_itself(web_run, options: list[str]):
-    from sprintforecast.idle import IDLE_ENV
+    from foresprint.idle import IDLE_ENV
 
     seen = web_run(*options)
     assert seen["window"] is None
@@ -239,7 +239,7 @@ def test_invalid_browser_variable_falls_back_to_automatic_search(
 ):
     """If FORESPRINT_BROWSER points to a nonexistent path, `web` keeps searching on its own
     (no traceback), although app mode is now the default."""
-    from sprintforecast import cli
+    from foresprint import cli
 
     missing = str(tmp_path / "gibt-es-nicht")
     monkeypatch.setenv(launcher.BROWSER_ENV, missing)
@@ -255,7 +255,7 @@ def test_terminate_tree_stops_children():
     import sys
     import time
 
-    from sprintforecast.proctree import adopt, popen_options, terminate_tree
+    from foresprint.proctree import adopt, popen_options, terminate_tree
 
     # Parent process starts a child and waits: both must end.
     code = (
@@ -300,19 +300,19 @@ def test_unwritable_log_does_not_stop_the_start(web_run, tmp_path: Path, monkeyp
 def test_app_starter_survives_an_unwritable_config_dir(tmp_path: Path, monkeypatch, capsys):
     import os
 
-    import sprintforecast
-    from sprintforecast import cli
-    from sprintforecast.updater import LAUNCHER_ENV
+    import foresprint
+    from foresprint import cli
+    from foresprint.updater import LAUNCHER_ENV
 
     monkeypatch.setenv(LAUNCHER_ENV, "")  # app_main() sets it; the monkeypatch restores it
     blocked = tmp_path / "config"
     blocked.write_text("a file, not a folder")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(blocked))
     monkeypatch.setenv("APPDATA", str(blocked))
-    monkeypatch.delenv(sprintforecast.LOG_ENV, raising=False)
+    monkeypatch.delenv(foresprint.LOG_ENV, raising=False)
     seen: list[list[str]] = []
     monkeypatch.setattr(cli, "app", lambda args, prog_name: seen.append(args))
-    monkeypatch.setattr("sys.argv", ["sprintforecast-app"])
-    sprintforecast.app_main()
+    monkeypatch.setattr("sys.argv", ["foresprint-app"])
+    foresprint.app_main()
     assert seen == [["web", "--app"]]
-    assert sprintforecast.LOG_ENV not in os.environ
+    assert foresprint.LOG_ENV not in os.environ

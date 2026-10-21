@@ -11,14 +11,14 @@ from pathlib import Path
 import pytest
 import yaml
 
-from sprintforecast import storage
-from sprintforecast.git import (
+from foresprint import storage
+from foresprint.git import (
     cached_pending_changes,
     commit_directory,
     invalidate_status,
     pending_changes,
 )
-from sprintforecast.storage import Repository, clear_team_cache
+from foresprint.storage import Repository, clear_team_cache
 
 TEAM = "demo"
 
@@ -163,7 +163,7 @@ def test_git_status_invalidated_by_save(git_dir: Path):
 
 def test_git_status_not_requeried_within_ttl(git_dir: Path, monkeypatch: pytest.MonkeyPatch):
     cached_pending_changes(git_dir)
-    monkeypatch.setattr("sprintforecast.git._git", lambda *a, **k: pytest.fail("neu abgefragt"))
+    monkeypatch.setattr("foresprint.git._git", lambda *a, **k: pytest.fail("neu abgefragt"))
     assert cached_pending_changes(git_dir) == []
 
 
@@ -181,8 +181,8 @@ def test_git_status_invalidated_by_commit(git_dir: Path):
 def test_gui_import_loads_no_heavy_modules():
     """No pandas/altair/rich/typer/CLI when importing the UI (cold start)."""
     code = (
-        "import sys, sprintforecast.web.ui\n"
-        "bad = [m for m in ('pandas', 'altair', 'rich', 'typer', 'sprintforecast.cli')"
+        "import sys, foresprint.web.ui\n"
+        "bad = [m for m in ('pandas', 'altair', 'rich', 'typer', 'foresprint.cli')"
         " if m in sys.modules]\n"
         "print(','.join(bad))"
     )

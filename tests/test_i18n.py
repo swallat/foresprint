@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import i18n
-from sprintforecast.locale_de import DE
+from foresprint import i18n
+from foresprint.locale_de import DE
 
-SRC = Path(__file__).parent.parent / "src" / "sprintforecast"
+SRC = Path(__file__).parent.parent / "src" / "foresprint"
 
 
 def literal_calls() -> list[tuple[str, int, str]]:
@@ -33,7 +33,7 @@ def literal_calls() -> list[tuple[str, int, str]]:
 
 def static_texts() -> list[str]:
     """Texts from data structures that are only translated on display."""
-    from sprintforecast.i18n_texts import all_static_texts
+    from foresprint.i18n_texts import all_static_texts
 
     return all_static_texts()
 
@@ -100,7 +100,7 @@ def test_default_language_is_english(tmp_path: Path):
     env = {k: v for k, v in os.environ.items() if not k.startswith("FORESPRINT_")}
     env |= {"XDG_CONFIG_HOME": str(tmp_path), "APPDATA": str(tmp_path)}
     code = (
-        "from sprintforecast import i18n; "
+        "from foresprint import i18n; "
         "print(i18n.DEFAULT, i18n.language(), i18n.t('File missing: {path}', path='x'))"
     )
     done = subprocess.run(
@@ -113,15 +113,15 @@ def test_german_texts_name_the_english_commands(data_dir: Path):
     """The German UI also names the commands and options in English."""
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
+    from foresprint.cli import app
 
     runner = CliRunner(env={"COLUMNS": "200"})
     result = runner.invoke(
         app, ["--data", str(data_dir), "--as-of", "2026-10-15", "help", "commands"]
     )
     assert result.exit_code == 0, result.output
-    assert "sprintforecast absences TEAM [SPRINT]" in result.output
-    assert "Weitere Themen: workflow, terms, fields, team (sprintforecast help TOPIC)" in (
+    assert "foresprint absences TEAM [SPRINT]" in result.output
+    assert "Weitere Themen: workflow, terms, fields, team (foresprint help TOPIC)" in (
         result.output
     )
     assert "fehltage" not in result.output
@@ -130,7 +130,7 @@ def test_german_texts_name_the_english_commands(data_dir: Path):
 def test_cli_in_english(data_dir: Path, english):
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
+    from foresprint.cli import app
 
     runner = CliRunner(env={"COLUMNS": "200"})
     base = ["--data", str(data_dir), "--as-of", "2026-10-15"]
@@ -140,7 +140,7 @@ def test_cli_in_english(data_dir: Path, english):
     assert "11.229" in result.output  # Dezimalpunkt
     assert "Small items" in result.output
     result = runner.invoke(app, [*base, "help", "commands"])
-    assert "sprintforecast absences TEAM [SPRINT]" in result.output
+    assert "foresprint absences TEAM [SPRINT]" in result.output
     assert runner.invoke(app, [*base, "check"]).exit_code == 0
     result = runner.invoke(app, [*base, "report", "demo", "-o", "-"])
     assert "## History (last" in result.output and "Small items" in result.output
@@ -149,10 +149,10 @@ def test_cli_in_english(data_dir: Path, english):
 def test_capacity_in_english(data_dir: Path, english):
     from datetime import date
 
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.formulas import plain_explanation, step
-    from sprintforecast.report import fmt_capacity
-    from sprintforecast.storage import Repository
+    from foresprint.forecast import build_forecast
+    from foresprint.formulas import plain_explanation, step
+    from foresprint.report import fmt_capacity
+    from foresprint.storage import Repository
 
     assert fmt_capacity(25.25) == "25.3"  # commercially rounded, decimal point
     assert fmt_capacity(1234.25) == "1,234.3"
@@ -167,7 +167,7 @@ def test_capacity_in_english(data_dir: Path, english):
 def test_language_command(data_dir: Path):
     from typer.testing import CliRunner
 
-    from sprintforecast.cli import app
+    from foresprint.cli import app
 
     i18n.set_language(None)
     result = CliRunner().invoke(app, ["--data", str(data_dir), "language", "en"])
@@ -182,8 +182,8 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
-    from sprintforecast.web.ui import PAGE_INFO
+    from foresprint.storage import AS_OF_ENV, DATA_ENV
+    from foresprint.web.ui import PAGE_INFO
 
     i18n.save_language("en")
     import yaml
@@ -194,7 +194,7 @@ def test_web_pages_in_english(data_dir: Path, english, monkeypatch: pytest.Monke
     team_file.write_text(yaml.safe_dump(raw))
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
-    app_file = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+    app_file = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
     at = AppTest.from_file(str(app_file), default_timeout=30)
     at.run()
     assert not at.exception, at.exception

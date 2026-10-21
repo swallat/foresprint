@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 """Suggested commit message derived from the change view."""
 
-from sprintforecast.commit_message import MAX_LENGTH, suggest_message
-from sprintforecast.diff import FileChange, ValueChange
-from sprintforecast.yamlmerge import MISSING
+from foresprint.commit_message import MAX_LENGTH, suggest_message
+from foresprint.diff import FileChange, ValueChange
+from foresprint.yamlmerge import MISSING
 
 
 def test_no_changes_gives_none():

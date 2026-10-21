@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from sprintforecast.calendar import (
+from foresprint.calendar import (
     countries,
     country_weekend,
     holiday_name,
@@ -17,10 +17,10 @@ from sprintforecast.calendar import (
     workdays,
     workweek_label,
 )
-from sprintforecast.capacity import sprint_capacity
-from sprintforecast.model import Membership, Person, Sprint, Team
-from sprintforecast.storage import Repository
-from sprintforecast.validate import check_team
+from foresprint.capacity import sprint_capacity
+from foresprint.model import Membership, Person, Sprint, Team
+from foresprint.storage import Repository
+from foresprint.validate import check_team
 
 
 def test_supported_countries_and_regions():
@@ -160,11 +160,11 @@ def test_settings_page_changes_country(data_dir: Path, monkeypatch: pytest.Monke
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
-    from sprintforecast.storage import AS_OF_ENV, DATA_ENV
+    from foresprint.storage import AS_OF_ENV, DATA_ENV
 
     monkeypatch.setenv(DATA_ENV, str(data_dir))
     monkeypatch.setenv(AS_OF_ENV, "2026-10-15")
-    app = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+    app = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
     at = AppTest.from_file(str(app), default_timeout=30)
     at.run()
     at.switch_page("page_scripts/settings.py").run()
@@ -201,7 +201,7 @@ def test_four_day_week_person():
 
 
 def test_workweek_parsing_and_validation(data_dir: Path):
-    from sprintforecast.calendar import weekend_from_workweek
+    from foresprint.calendar import weekend_from_workweek
 
     assert weekend_from_workweek("auto") is None and weekend_from_workweek(None) is None
     assert weekend_from_workweek("mon,tue,wed,thu") == {4, 5, 6}
@@ -222,7 +222,7 @@ def test_workweek_parsing_and_validation(data_dir: Path):
 
 
 def test_people_table_keeps_workweek(data_dir: Path):
-    from sprintforecast.web.logic import people_from_table, people_table
+    from foresprint.web.logic import people_from_table, people_table
 
     data = Repository(data_dir).load("demo")
     data.people[0].workweek = "mon,tue,wed,thu"

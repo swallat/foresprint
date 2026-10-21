@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast.model import Team, TrendMode
-from sprintforecast.settings import BY_KEY, SETTINGS, applicable, changes
+from foresprint.model import Team, TrendMode
+from foresprint.settings import BY_KEY, SETTINGS, applicable, changes
 
 
 def test_parse_and_apply():
@@ -75,12 +75,12 @@ def test_wrongly_typed_language_in_settings_json_falls_back(
 ):
     import json
 
-    from sprintforecast import i18n
+    from foresprint import i18n
 
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     monkeypatch.setenv("APPDATA", str(tmp_path))
     for var in ("FORESPRINT_LANG", "LANG", "LC_ALL", "LANGUAGE"):
         monkeypatch.delenv(var, raising=False)
-    (tmp_path / "sprintforecast").mkdir()
-    (tmp_path / "sprintforecast" / "settings.json").write_text(json.dumps({"language": junk}))
+    (tmp_path / "foresprint").mkdir()
+    (tmp_path / "foresprint" / "settings.json").write_text(json.dumps({"language": junk}))
     assert i18n._saved() is None

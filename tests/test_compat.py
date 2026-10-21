@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from gitrepos import make_local
 
-from sprintforecast import compat, config, gitsync
-from sprintforecast.sources import jira as jira_module
+from foresprint import compat, config, gitsync
+from foresprint.sources import jira as jira_module
 
 
 def test_legacy_environment_variables_are_adopted():
@@ -131,3 +131,30 @@ def test_config_migration_skips_lock_files_and_leaves_no_temporary_files(
     folder = tmp_path / "foresprint"
     assert not (folder / "sperren" / "x.lock").exists()
     assert not list(folder.rglob("*.tmp"))
+
+
+def test_old_package_name_leads_to_the_same_modules():
+    code = (
+        "import sprintforecast, foresprint;"
+        "import sprintforecast.storage as old, foresprint.storage as new;"
+        "from sprintforecast.plugins import Plugin as OldPlugin;"
+        "from foresprint.plugins import Plugin;"
+        "assert sprintforecast is foresprint and old is new and OldPlugin is Plugin;"
+        "assert new.__spec__.name == 'foresprint.storage' and new.__name__ == 'foresprint.storage'"
+    )
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_old_tool_environment_is_removed_once_the_new_tool_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from foresprint import updater
+
+    tools = tmp_path / "tools"
+    (tools / "foresprint").mkdir(parents=True)
+    (tools / "sprintforecast").mkdir()
+    (tools / "sprintforecast" / "uv-receipt.toml").write_text("", encoding="utf-8")
+    monkeypatch.setattr(updater.sys, "prefix", str(tools / "foresprint"))
+    updater.remove_legacy_tool()
+    assert not (tools / "sprintforecast").exists() and (tools / "foresprint").exists()

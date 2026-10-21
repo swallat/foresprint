@@ -5,7 +5,7 @@ import pytest
 from harness import choose, main_area, navigate, no_exception, open_page, selected, sidebar
 from playwright.sync_api import Page, expect
 
-from sprintforecast.web.ui import PAGES
+from foresprint.web.ui import PAGES
 
 PAGE_KEYS = [key for entries in PAGES.values() for key in entries]
 

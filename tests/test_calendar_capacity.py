@@ -3,10 +3,10 @@ from datetime import date
 
 import pytest
 
-from sprintforecast.calendar import following_sprint, is_holiday, next_id, workdays
-from sprintforecast.capacity import sprint_capacity
-from sprintforecast.model import Membership, Numbering, Person, Sprint, Team
-from sprintforecast.storage import DataError
+from foresprint.calendar import following_sprint, is_holiday, next_id, workdays
+from foresprint.capacity import sprint_capacity
+from foresprint.model import Membership, Numbering, Person, Sprint, Team
+from foresprint.storage import DataError
 
 
 def test_next_id_yearly_rolls_over_with_start_year():
@@ -92,7 +92,7 @@ def test_capacity_overhead_and_absence_cap():
 
 
 def test_new_person_id():
-    from sprintforecast.model import new_person_id
+    from foresprint.model import new_person_id
 
     assert new_person_id("Jörg Müller-Weiß", set()) == "joerg-mueller-weiss"
     assert new_person_id("Anna", {"anna", "anna-2"}) == "anna-3"
@@ -102,8 +102,8 @@ def test_new_person_id():
 def test_overhead_in_days_and_percent(data_dir):
     from datetime import date
 
-    from sprintforecast.capacity import sprint_capacity
-    from sprintforecast.storage import Repository
+    from foresprint.capacity import sprint_capacity
+    from foresprint.storage import Repository
 
     data = Repository(data_dir).load("demo")
     sprint = data.sprint("2026.22")
@@ -123,10 +123,10 @@ def test_overhead_in_days_and_percent(data_dir):
 def test_expected_absences_estimate_future_capacity(data_dir):
     from datetime import date
 
-    from sprintforecast.capacity import expected_absence_rate
-    from sprintforecast.engine import CapacitySource
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.storage import Repository
+    from foresprint.capacity import expected_absence_rate
+    from foresprint.engine import CapacitySource
+    from foresprint.forecast import build_forecast
+    from foresprint.storage import Repository
 
     data = Repository(data_dir).load("demo")
     today = date(2026, 10, 15)

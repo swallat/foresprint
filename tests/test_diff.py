@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 from gitrepos import git, make_local
 
-from sprintforecast import diff as diff_module
-from sprintforecast.diff import (
+from foresprint import diff as diff_module
+from foresprint.diff import (
     ADDED,
     CHANGED,
     REMOVED,
@@ -19,8 +19,8 @@ from sprintforecast.diff import (
     diff_values,
     file_changes,
 )
-from sprintforecast.git import GitError, pending_changes
-from sprintforecast.yamlmerge import MISSING
+from foresprint.git import GitError, pending_changes
+from foresprint.yamlmerge import MISSING
 
 
 def test_equal_values_have_no_changes():
@@ -184,7 +184,7 @@ def test_oversized_working_file_is_unreadable(tmp_path: Path, monkeypatch):
     root = make_local(tmp_path)
     data = root / "teams"
     (data / "team.yaml").write_text("name: " + "B" * 100 + "\n", encoding="utf-8")
-    monkeypatch.setattr("sprintforecast.diff._MAX_BYTES", 20)
+    monkeypatch.setattr("foresprint.diff._MAX_BYTES", 20)
     (change,) = file_changes(data)
     assert not change.readable
 
@@ -195,7 +195,7 @@ def test_oversized_committed_file_is_unreadable(tmp_path: Path, monkeypatch):
     (data / "team.yaml").write_text("name: " + "B" * 100 + "\n", encoding="utf-8")
     git(root, "commit", "-qam", "gross")
     (data / "team.yaml").write_text("name: C\n", encoding="utf-8")
-    monkeypatch.setattr("sprintforecast.diff._MAX_BYTES", 20)
+    monkeypatch.setattr("foresprint.diff._MAX_BYTES", 20)
     (change,) = file_changes(data)
     assert not change.readable
 
@@ -227,10 +227,10 @@ def test_git_problems_are_raised_other_git_errors_make_the_file_unreadable(
 
         return read
 
-    monkeypatch.setattr("sprintforecast.git._git_bytes", broken("error"))
+    monkeypatch.setattr("foresprint.git._git_bytes", broken("error"))
     (change,) = file_changes(data)
     assert not change.readable
-    monkeypatch.setattr("sprintforecast.git._git_bytes", broken("git_missing"))
+    monkeypatch.setattr("foresprint.git._git_bytes", broken("git_missing"))
     with pytest.raises(GitError):
         file_changes(data)
 
@@ -268,7 +268,7 @@ def test_only_the_first_files_are_evaluated(tmp_path: Path, monkeypatch):
     git(root, "add", "teams/zweit.yaml")
     git(root, "commit", "-qm", "zweit")
     (data / "zweit.yaml").write_text("a: 2\n", encoding="utf-8")
-    monkeypatch.setattr("sprintforecast.diff._EVAL_LIMIT", 1)
+    monkeypatch.setattr("foresprint.diff._EVAL_LIMIT", 1)
     first, second = file_changes(data)
     assert first.values and not second.values and second.readable
 
@@ -301,7 +301,7 @@ def test_old_path_for_text_files_new_deleted_and_beyond_the_limit(tmp_path: Path
     result = {c.file: c for c in file_changes(data)}
     assert result["teams/b.txt"].orig == "teams/a.txt" and not result["teams/b.txt"].readable
     assert result["teams/neu.yaml"].orig == "" and result["teams/team.yaml"].orig == ""
-    monkeypatch.setattr("sprintforecast.diff._EVAL_LIMIT", 0)
+    monkeypatch.setattr("foresprint.diff._EVAL_LIMIT", 0)
     beyond = {c.file: c for c in file_changes(data)}
     assert beyond["teams/b.txt"].orig == "teams/a.txt" and beyond["teams/b.txt"].readable
 

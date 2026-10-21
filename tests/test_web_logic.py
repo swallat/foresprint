@@ -5,10 +5,10 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from sprintforecast.forecast import build_forecast
-from sprintforecast.model import AbsenceState, ProductValues, Sprint
-from sprintforecast.storage import Repository
-from sprintforecast.web.logic import (
+from foresprint.forecast import build_forecast
+from foresprint.model import AbsenceState, ProductValues, Sprint
+from foresprint.storage import Repository
+from foresprint.web.logic import (
     absence_matrix,
     absence_sprints,
     apply_product_values,
@@ -128,9 +128,9 @@ def test_parse_numbers_rejects_non_finite(raw: str):
 def _calendar(data_dir):
     from datetime import date
 
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.storage import Repository
-    from sprintforecast.web.logic import absence_sprints, calendar_table
+    from foresprint.forecast import build_forecast
+    from foresprint.storage import Repository
+    from foresprint.web.logic import absence_sprints, calendar_table
 
     data = Repository(data_dir).load("demo")
     fc = build_forecast(data, date(2026, 10, 15))
@@ -140,8 +140,8 @@ def _calendar(data_dir):
 def test_calendar_shifts_persisted_sprints_outside_window(data_dir):
     from datetime import date
 
-    from sprintforecast.validate import Level, check_team
-    from sprintforecast.web.logic import apply_calendar, calendar_to_save, with_sprints
+    from foresprint.validate import Level, check_team
+    from foresprint.web.logic import apply_calendar, calendar_to_save, with_sprints
 
     data, fc, absence_sprints, calendar_table = _calendar(data_dir)
     shown = absence_sprints(data, fc, 1)  # only 2026.21; 2026.22 is saved behind it
@@ -159,8 +159,8 @@ def test_calendar_shifts_persisted_sprints_outside_window(data_dir):
 def test_calendar_rejects_id_collision(data_dir):
     from datetime import date
 
-    from sprintforecast.storage import Repository
-    from sprintforecast.web.logic import apply_calendar
+    from foresprint.storage import Repository
+    from foresprint.web.logic import apply_calendar
 
     data, fc, absence_sprints, calendar_table = _calendar(data_dir)
     repo = Repository(data_dir)
@@ -178,8 +178,8 @@ def test_calendar_rejects_id_collision(data_dir):
 
 
 def test_fte_zero_is_allowed_and_out_of_range_is_reported(data_dir: Path):
-    from sprintforecast.capacity import sprint_capacity
-    from sprintforecast.validate import check_team
+    from foresprint.capacity import sprint_capacity
+    from foresprint.validate import check_team
 
     repo = Repository(data_dir)
     data = repo.load("demo")
@@ -198,8 +198,8 @@ def test_fte_zero_is_allowed_and_out_of_range_is_reported(data_dir: Path):
 
 
 def test_whatif_velocity_changes_next_plan(data_dir: Path):
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.web.logic import open_velocity_sprints, whatif_forecast
+    from foresprint.forecast import build_forecast
+    from foresprint.web.logic import open_velocity_sprints, whatif_forecast
 
     fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
     open_ = open_velocity_sprints(fc)
@@ -213,9 +213,9 @@ def test_whatif_velocity_changes_next_plan(data_dir: Path):
 
 
 def test_reset_future_absences_to_unknown(data_dir: Path):
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.model import Sprint
-    from sprintforecast.web.logic import resettable_sprints
+    from foresprint.forecast import build_forecast
+    from foresprint.model import Sprint
+    from foresprint.web.logic import resettable_sprints
 
     repo = Repository(data_dir)
     data = repo.load("demo")
@@ -234,8 +234,8 @@ def test_reset_future_absences_to_unknown(data_dir: Path):
 def test_prognosis_roundtrip_and_validation(data_dir: Path):
     from datetime import datetime
 
-    from sprintforecast.validate import check_team
-    from sprintforecast.web.logic import Assumption, record_prognoses
+    from foresprint.validate import check_team
+    from foresprint.web.logic import Assumption, record_prognoses
 
     repo = Repository(data_dir)
     data = repo.load("demo")
@@ -262,14 +262,14 @@ def test_prognosis_roundtrip_and_validation(data_dir: Path):
 
 
 def build_target(data):
-    from sprintforecast.forecast import find_sprint
+    from foresprint.forecast import find_sprint
 
     return find_sprint(data, "2026.22")
 
 
 def test_default_commitment_falls_back_to_previous_sprint(data_dir: Path):
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.web.logic import default_sprint_commitment
+    from foresprint.forecast import build_forecast
+    from foresprint.web.logic import default_sprint_commitment
 
     fc = build_forecast(Repository(data_dir).load("demo"), TODAY)
     current = fc.current.sprint
@@ -283,8 +283,8 @@ def test_default_commitment_falls_back_to_previous_sprint(data_dir: Path):
 
 
 def test_absence_sprints_can_include_past_sprints(data_dir: Path):
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.web.logic import absence_sprints
+    from foresprint.forecast import build_forecast
+    from foresprint.web.logic import absence_sprints
 
     data = Repository(data_dir).load("demo")
     fc = build_forecast(data, TODAY)
@@ -296,10 +296,10 @@ def test_absence_sprints_can_include_past_sprints(data_dir: Path):
 
 
 def test_saving_preplanning_does_not_change_capacity_source(data_dir: Path):
-    from sprintforecast.engine import CapacitySource
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.model import ProductValues
-    from sprintforecast.web.logic import with_sprints
+    from foresprint.engine import CapacitySource
+    from foresprint.forecast import build_forecast
+    from foresprint.model import ProductValues
+    from foresprint.web.logic import with_sprints
 
     data = Repository(data_dir).load("demo")
     before = build_forecast(data, TODAY)
@@ -318,8 +318,8 @@ def test_saving_preplanning_does_not_change_capacity_source(data_dir: Path):
 
 
 def test_unchanged_preview_keeps_forecast_of_unsaved_sprint(data_dir: Path):
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.web.ui import _preview_forecast
+    from foresprint.forecast import build_forecast
+    from foresprint.web.ui import _preview_forecast
 
     data = Repository(data_dir).load("demo")
     fc = build_forecast(data, TODAY)
@@ -330,10 +330,10 @@ def test_unchanged_preview_keeps_forecast_of_unsaved_sprint(data_dir: Path):
 
 
 def test_empty_sprint_file_does_not_confirm_absences(data_dir: Path):
-    from sprintforecast.engine import CapacitySource
-    from sprintforecast.forecast import build_forecast
-    from sprintforecast.model import Sprint
-    from sprintforecast.web.logic import with_sprints
+    from foresprint.engine import CapacitySource
+    from foresprint.forecast import build_forecast
+    from foresprint.model import Sprint
+    from foresprint.web.logic import with_sprints
 
     data = Repository(data_dir).load("demo")
     base = build_forecast(data, TODAY)
@@ -345,7 +345,7 @@ def test_empty_sprint_file_does_not_confirm_absences(data_dir: Path):
     confirmed = build_forecast(with_sprints(data, [sprint]), TODAY).entry(sprint.id)
     assert confirmed.result.plan_capacity_source is CapacitySource.PEOPLE
 
-    from sprintforecast.storage import Repository as Repo
+    from foresprint.storage import Repository as Repo
 
     repo = Repo(data_dir)
     repo.save_sprint("demo", sprint)
@@ -426,7 +426,7 @@ def test_board_steps_done_other_steps_follow_their_values():
 
 
 def test_capacity_usage():
-    from sprintforecast.web.logic import capacity_usage
+    from foresprint.web.logic import capacity_usage
 
     usage = capacity_usage(20.0, 15.0)
     assert usage is not None
@@ -441,7 +441,7 @@ def test_capacity_usage():
 
 
 def test_board_steps_done_preplanning_needs_every_active_product():
-    from sprintforecast.model import Product, ProductValues
+    from foresprint.model import Product, ProductValues
 
     shop, app, old = (
         Product("shop", "Shop"),

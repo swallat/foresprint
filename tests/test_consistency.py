@@ -21,26 +21,26 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 from typer.testing import CliRunner
 
-from sprintforecast.analysis import band
-from sprintforecast.capacity import sprint_capacity
-from sprintforecast.cli import app as cli_app
-from sprintforecast.engine import CapacitySource, round_down
-from sprintforecast.forecast import build_forecast
-from sprintforecast.formulas import capacity_step, plain_explanation, step, steps
-from sprintforecast.i18n import t
-from sprintforecast.model import AbsenceState
-from sprintforecast.products import distribution
-from sprintforecast.report import (
+from foresprint.analysis import band
+from foresprint.capacity import sprint_capacity
+from foresprint.cli import app as cli_app
+from foresprint.engine import CapacitySource, round_down
+from foresprint.forecast import build_forecast
+from foresprint.formulas import capacity_step, plain_explanation, step, steps
+from foresprint.i18n import t
+from foresprint.model import AbsenceState
+from foresprint.products import distribution
+from foresprint.report import (
     absence_status_label,
     capacity_label,
     fmt,
     fmt_capacity,
     render,
 )
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV, Repository
+from foresprint.storage import AS_OF_ENV, DATA_ENV, Repository
 
 TODAY = date(2026, 10, 15)
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 
 
 def num(text: str) -> float:
@@ -247,7 +247,7 @@ def test_analysis_band_uses_the_same_plan(web: AppTest, fc):
 def test_absences_page_preview_matches_engine(web: AppTest, fc):
     """Capacity (with source), absences status and Forecast PLAN of the preview = calculation
     core, for all Sprints, including Sprints with unknown absences."""
-    from sprintforecast.report import absence_status_label, capacity_label
+    from foresprint.report import absence_status_label, capacity_label
 
     page(web, "absences")
     table = next(d.value for d in web.dataframe if "Kapazität (PT)" in d.value.columns)
@@ -685,8 +685,8 @@ def test_capacity_label_is_the_value_followed_by_the_source_note():
     text of the tables say the same."""
     from types import SimpleNamespace
 
-    from sprintforecast.engine import UNSURE_SOURCES, CapacitySource
-    from sprintforecast.report import capacity_source_note
+    from foresprint.engine import UNSURE_SOURCES, CapacitySource
+    from foresprint.report import capacity_source_note
 
     def entry(source):
         return SimpleNamespace(

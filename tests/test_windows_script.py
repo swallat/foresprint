@@ -58,16 +58,16 @@ HELPERS = r"""
 . '__SCRIPT__'
 $bad = @()
 $kinds = @(
-  @('sprintforecast-app.exe', '"C:\x\sprintforecast-app.exe"', 'Starter'),
-  @('pythonw.exe', '"C:\u\tools\sprintforecast\Scripts\pythonw.exe" -m streamlit run C:\u\app.py --server.port 8501', 'Server (Streamlit)'),
-  @('python.exe', 'C:\u\tools\sprintforecast\Scripts\python.exe snippet.py', 'Python'),
-  @('msedge.exe', '"C:\Edge\msedge.exe" --app=http://localhost:8501 "--user-data-dir=C:\Users\Max Muster\AppData\Local\sprintforecast\browser-profil"', 'Browser (App-Fenster)'),
-  @('msedge.exe', 'msedge.exe --type=renderer --user-data-dir="C:\Users\Max Muster\AppData\Local\sprintforecast\browser-profil" --lang=de', 'Browser (App-Fenster)'),
+  @('foresprint-app.exe', '"C:\x\foresprint-app.exe"', 'Starter'),
+  @('pythonw.exe', '"C:\u\tools\foresprint\Scripts\pythonw.exe" -m streamlit run C:\u\app.py --server.port 8501', 'Server (Streamlit)'),
+  @('python.exe', 'C:\u\tools\foresprint\Scripts\python.exe snippet.py', 'Python'),
+  @('msedge.exe', '"C:\Edge\msedge.exe" --app=http://localhost:8501 "--user-data-dir=C:\Users\Max Muster\AppData\Local\foresprint\browser-profil"', 'Browser (App-Fenster)'),
+  @('msedge.exe', 'msedge.exe --type=renderer --user-data-dir="C:\Users\Max Muster\AppData\Local\foresprint\browser-profil" --lang=de', 'Browser (App-Fenster)'),
   @('msedge.exe', 'msedge.exe --user-data-dir="C:\Users\x\AppData\Local\Microsoft\Edge\User Data"', ''),
   @('python.exe', 'C:\Python314\python.exe C:\work\other.py', ''),
-  @('uv.exe', 'uv tool upgrade --reinstall sprintforecast', 'Aktualisierung (uv)'),
+  @('uv.exe', 'uv tool upgrade --reinstall foresprint', 'Aktualisierung (uv)'),
   @('uv.exe', 'uv pip install foo', ''),
-  @('powershell.exe', 'powershell -File C:\sprintforecast\scripts\windows-tests.ps1', '')
+  @('powershell.exe', 'powershell -File C:\foresprint\scripts\windows-tests.ps1', '')
 )
 foreach ($c in $kinds) {
   $k = Get-SfKind -Name $c[0] -CommandLine $c[1]

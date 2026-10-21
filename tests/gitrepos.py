@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from sprintforecast import gitsync
-from sprintforecast.git import invalidate_status
+from foresprint import gitsync
+from foresprint.git import invalidate_status
 
 # A password or token that must not appear in any display, message or configuration.
 SECRET = "GEHEIM123"

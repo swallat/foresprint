@@ -5,7 +5,7 @@ import pytest
 from harness import App, main_area, no_exception, open_page, settle
 from playwright.sync_api import Page, expect
 
-from sprintforecast.web.ui import PAGE_FEATURES, PAGES
+from foresprint.web.ui import PAGE_FEATURES, PAGES
 
 PAGE_KEYS = [key for entries in PAGES.values() for key in entries]
 PRODUCT_PAGES = {key for key, feature in PAGE_FEATURES.items() if feature == "products"}

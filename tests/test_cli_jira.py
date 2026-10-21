@@ -11,10 +11,10 @@ import yaml
 from test_jira_source import CANARY, FakeKeyring, Server, fixed, on_search
 from typer.testing import CliRunner
 
-from sprintforecast import sources
-from sprintforecast.cli import app
-from sprintforecast.sources import jira as jira_module
-from sprintforecast.sources.jira import JiraSource
+from foresprint import sources
+from foresprint.cli import app
+from foresprint.sources import jira as jira_module
+from foresprint.sources.jira import JiraSource
 
 runner = CliRunner(env={"COLUMNS": "200"})
 DATA = Path(__file__).parent / "data"

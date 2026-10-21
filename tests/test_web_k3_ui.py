@@ -10,10 +10,10 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from sprintforecast.git import invalidate_status
-from sprintforecast.storage import AS_OF_ENV, DATA_ENV
+from foresprint.git import invalidate_status
+from foresprint.storage import AS_OF_ENV, DATA_ENV
 
-APP = Path(__file__).parent.parent / "src" / "sprintforecast" / "web" / "app.py"
+APP = Path(__file__).parent.parent / "src" / "foresprint" / "web" / "app.py"
 SPRINT = Path("teams") / "demo" / "sprints" / "2026.20.yaml"
 
 
@@ -242,7 +242,7 @@ def test_git_error_in_sidebar_is_explained(
 
 
 def test_recent_folder_check_is_cached(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from sprintforecast.web import ui
+    from foresprint.web import ui
 
     calls: list[Path] = []
     real = Path.is_dir
