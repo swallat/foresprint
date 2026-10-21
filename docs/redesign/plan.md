@@ -20,8 +20,9 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 
 - **Kern bleibt Python** (Prognose, Monte-Carlo, Feiertage, Jira, Git, Plugins). Er bekommt eine lokale Schnittstelle und einen Hintergrund-Abruf.
 - **Neue Web-Oberfläche** (HTML, CSS, TypeScript) mit Ziehen, Sofortfilter und virtueller Liste.
-- **Fensterhülle:** erst `pywebview`, Tauri oder Wails als Option, im Prototyp entschieden.
-- **Paket:** PyInstaller zu einem Programm; Größe und Startzeit sind Messgrößen.
+- **Fensterhülle: Wails** (entschieden 21.10.). Das Wails-Programm öffnet das Fenster und startet den Python-Kern als Hintergrunddienst (FastAPI auf localhost); der Kern wird nicht nach Go portiert.
+- **Paket:** Wails-Programm plus Python-Kern als PyInstaller-Beiprogramm (Sidecar), zusammen als ein Download je Plattform; Größe und Startzeit sind Messgrößen.
+- **Plattform-Voraussetzungen:** Windows: WebView2-Laufzeit (in Windows 11 enthalten, wird vorausgesetzt). macOS: eingebautes WebKit, nichts zu installieren. Linux: WebKitGTK (bei den meisten Desktops vorhanden).
 - Streamlit bleibt bis zur Gleichwertigkeit, die Datenformate (YAML) ändern sich nicht.
 
 ## 3. Phasen
@@ -34,7 +35,7 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 | 3 Übrige Bereiche | Start, Abwesenheiten, Team und Produkte, Jira-Anbindung und Sync-Status, Git-Teilen, Einstellungen | 1 bis 2 | Mocks und Abläufe |
 | 4 Spezifikation | Zusammenhängendes Dokument (Navigation, Abläufe, Zustände, Tastatur, Fehler), User Stories als Issues mit Akzeptanzkriterien, Architekturentscheidungen | 1 bis 2 | Freigabe der Spezifikation |
 | Spur T (parallel zu 1 bis 4) | Kern-Schnittstelle, Hintergrund-Abruf, Prototyp der Hülle mit Windows-Messung (Größe, Start, Ziehen) | 3 bis 4 | Windows-Test |
-| 5 Entwicklung | Meilensteine M1 Backlog, M2 Planung und Forecast, M3 übrige Bereiche, M4 Paketierung und Signatur, M5 Beta mit Team kac | 8 bis 12 | je Meilenstein ein Test durch Sebastian |
+| 5 Entwicklung | Meilensteine M1 Backlog, M2 Planung und Forecast, M3 übrige Bereiche, M4 Paketierung und Signatur, M5 Beta mit einem Pilotteam | 8 bis 12 | je Meilenstein ein Test durch Sebastian |
 | 6 Release 1.0 | Release-Notiz (Seiten-URLs, Plugin-Schnittstelle, Umbenennung), Tag durch Sebastian | 1 | Tag |
 
 Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der kritische Pfad ist die Abnahme durch Sebastian und der Windows-Test, nicht das Schreiben.
@@ -56,18 +57,21 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 | --- | --- |
 | Langer Branch driftet von `main` weg | Regelmäßiges Zusammenführen von `main` nach `v1`, neue Oberfläche in eigenen Ordnern, gemeinsamer Kern |
 | Zu viel Design vor dem ersten Test | Drei Kernabläufe in der Tiefe, der Rest leichter; Prototyp auf Windows früh |
-| Fensterhülle verhält sich auf Windows anders (Ziehen, WebView2) | Prototyp früh auf Sebastians Rechner, Hülle austauschbar halten (Kern liefert die Oberfläche auch selbst aus) |
+| Fensterhülle verhält sich auf Windows anders (Ziehen, WebView2) | Wails-Prototyp früh auf Sebastians Rechner; Kern liefert die Oberfläche auch selbst im Browser aus (Rückfallweg) |
+| Zwei Programme (Wails und Python-Beiprogramm) | Start, Beenden, Port und Absturz des Kerns im Prototyp sauber lösen; ein gemeinsamer Download |
 | Programm zu groß oder zu langsam beim Start (PyInstaller) | Messen im Prototyp; bei Bedarf Teile des Kerns später nach Go oder Rust holen |
 | Unsigniertes Programm wird blockiert | Frage 6 (Zertifikat) früh klären |
 | Plugins brechen | Frage 3: Plugin-Schnittstelle bleibt, solange der Kern Python ist |
 
-## 6. Offene Entscheidungen
+## 6. Entscheidungen (Stand 21.10.2026)
 
-1. Zielgruppe und Ton in `PRODUCT.md` (bis Ende Phase 1)
-2. Schrift für die Oberfläche (Vorschlag in `DESIGN.md`)
-3. Hülle: pywebview, Tauri oder Wails (nach dem Prototyp)
-4. Einordnen nach Jira zurückschreiben und Reihenfolge nur lokal oder auch in Jira? (vor Phase 4)
-5. WebView2-Laufzeit voraussetzen? (vor Prototyp)
-6. Code-Signing-Zertifikat vorhanden? (vor M4)
-7. Impeccable-Skills: Host `impeccable.style` freigeben oder lokal installieren
-8. GitHub-Projekt als Tafel anlegen (Sebastian, 2 Minuten)
+1. Zielgruppe: beliebige Scrum-Teams, Open Source; keine Interna in Dokumenten, Beispiele mit einem erfundenen Demo-Team. Eine Nutzerart (Scrum Master oder PO).
+2. Schrift: Iosevka für Daten, Iosevka Aile für Text und Überschriften (Begründung in `DESIGN.md`, geprüft nach impeccable `typeset`).
+3. Hülle: Wails mit Python-Kern als Hintergrunddienst.
+4. Jira-Rückschreiben: nein. Reihenfolge und Einordnen bleiben lokal, nach Jira geht nur das Label `planned_for_<sprint>`.
+5. WebView2 unter Windows vorausgesetzt; macOS und Linux siehe Abschnitt 2.
+6. Code-Signing: Sebastian klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
+7. Impeccable: direkt aus dem GitHub-Repository (siehe `impeccable.md`).
+8. Seitenschicksal: `flows.md` gilt, die Tabelle in `inventory.md` ist überholt.
+
+Offen: GitHub-Projekt als Tafel anlegen (Sebastian); Datenhaltung Fileserver-Ordner oder Git (eigene Vorstudie).

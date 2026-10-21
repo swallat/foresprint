@@ -32,15 +32,17 @@ Contrast target: WCAG AA for text, 3:1 for UI borders and icons.
 
 ## Typography
 
+Decision basis: impeccable `typeset` reference (v4.7.0). It allows a monospace face for code, data, measurement and small labels, but not for running text or headings ("monospace as a costume" is a craft-floor failure). Foresprint is mostly data (tables, ticket keys, points, dates), so the brand face Iosevka can carry far more of the UI than in 0.8 without breaking that rule. For prose and headings we stay in the same family: **Iosevka Aile**, the quasi-proportional sans of Iosevka with the same letter skeleton. This replaces the current default (Source Sans from Streamlit) and keeps one family across the whole app.
+
 | Role | Font | Size / line |
 | --- | --- | --- |
-| UI text | Proposal: Inter (OFL), system UI fallback. Alternative: Iosevka Aile. Decision open, see PRODUCT.md | 14 / 20 |
-| Numbers, IDs, tickets | Iosevka (OFL), tabular figures | 13 / 20 |
-| Page title | UI font semibold | 22 / 28 |
-| Section title | UI font semibold | 16 / 24 |
-| Caption | UI font | 12 / 16 |
+| Body, labels, buttons, help text | Iosevka Aile (OFL) | 14 / 20 (dense UI), 16 / 24 for longer help text |
+| Headings (page, section) | Iosevka Aile semibold | 22 / 28, 16 / 24 |
+| Data: numbers, ticket keys, dates, table cells, chips | Iosevka (fixed), tabular figures | 13 / 20 |
+| Wordmark, logo | Iosevka extended, as in docs/branding.md | |
+| Caption, metadata | Iosevka Aile | 12 / 16 |
 
-Fonts ship inside the executable; no web requests.
+Rules: two cuts of one family, no third face. Prose stays within 45 to 75 characters. Both cuts ship inside the app (only the weights in use: 400, 600), no web requests. Fallback: system UI font for Aile, system monospace for Iosevka. To be checked with `impeccable detect --scope type` on the first mocks; if Aile reads too narrow in German running text at 14 px, fall back to Inter for body only.
 
 ## Spacing, shape, motion
 
@@ -87,4 +89,4 @@ Full keyboard use, visible focus ring (2 px indigo plus 2 px offset), landmarks 
 
 ## Checks
 
-`npx impeccable detect` runs on the HTML mocks in CI once added. Skill-based critique needs access to impeccable.style from the host or a local install.
+impeccable runs from its GitHub repository (see docs/redesign/impeccable.md): `detect` on every mock, `critique` and `typeset` per page.

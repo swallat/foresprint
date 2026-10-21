@@ -1,5 +1,7 @@
 # Inventory of the 0.8 UI and fate in 1.0
 
+Superseded: the navigation and the home of every function are defined in [flows.md](flows.md). This table is kept as the first rough pass.
+
 Source: [docs/web-ui.md](../web-ui.md), [docs/sprint-workflow.md](../sprint-workflow.md). Fate: keep, merge, rework, drop (proposal, to be confirmed in review).
 
 | 0.8 page | Fate in 1.0 | Notes |
@@ -30,7 +32,7 @@ Source: [docs/web-ui.md](../web-ui.md), [docs/sprint-workflow.md](../sprint-work
 - Automatic background sync with Jira (read-only) and Git, with status in the top bar.
 - Backlog with drag and drop, multi-select, saved filters, keyboard operation, command palette.
 - Projects as their own area: several products per project, milestones, end date, booked contingents, report for project leads (recommendations, the PO decides).
-- Optional write-back of order (open decision; default: stays local).
+- Order and earmarks stay local; only the label `planned_for_<sprint>` is written to Jira.
 - Single executable, no admin rights, window shell, offline start.
 
 ## Flows to specify (each: steps, states, errors, mock, acceptance criteria)
@@ -46,6 +48,4 @@ Source: [docs/web-ui.md](../web-ui.md), [docs/sprint-workflow.md](../sprint-work
 
 ## Open questions
 
-- Audience: only team kac, or other teams too (affects tone, onboarding, localization).
-- Jira write-back of order (needs a rule change).
-- UI font, window shell, WebView2 prerequisite, code signing.
+All decided, see [plan.md](plan.md) section 6.
