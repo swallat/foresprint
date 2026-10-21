@@ -1,0 +1,4701 @@
+{
+ "facts": [
+  {},
+  {
+   "epic": [
+    "A"
+   ]
+  },
+  {
+   "epic": [
+    "B"
+   ],
+   "status": [
+    "Open"
+   ]
+  },
+  {
+   "epic": [
+    "B"
+   ],
+   "status": [
+    "Done"
+   ]
+  },
+  {
+   "component": [
+    "B"
+   ],
+   "label": [
+    "c"
+   ]
+  },
+  {
+   "component": [
+    "Database"
+   ]
+  },
+  {
+   "component": [
+    "Database"
+   ],
+   "label": [
+    "hot fix"
+   ]
+  },
+  {
+   "label": [
+    "a b"
+   ],
+   "status": [
+    "Open"
+   ]
+  },
+  {
+   "label": [
+    "Payment"
+   ],
+   "epic": [
+    "ABC"
+   ]
+  },
+  {
+   "label": [
+    "Payment"
+   ],
+   "epic": [
+    "Old-1"
+   ]
+  },
+  {
+   "label": [
+    "payroll"
+   ],
+   "epic": [
+    "X"
+   ]
+  },
+  {
+   "status": [
+    "Closed"
+   ]
+  },
+  {
+   "priority": [
+    "High"
+   ]
+  },
+  {
+   "priority": [
+    "Low"
+   ]
+  },
+  {
+   "in_sprint": [
+    "true"
+   ]
+  },
+  {
+   "in_sprint": [
+    "false"
+   ]
+  },
+  {
+   "customer": [
+    "Acme"
+   ]
+  },
+  {
+   "label": [
+    "a",
+    "c"
+   ],
+   "epic": [
+    "x"
+   ]
+  },
+  {
+   "label": [
+    "and"
+   ]
+  },
+  {
+   "label": [
+    ""
+   ]
+  }
+ ],
+ "valid": [
+  {
+   "text": "epic = A",
+   "tree": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A",
+   "reparsed": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic"
+   ]
+  },
+  {
+   "text": "epic = A OR component = B AND label = c",
+   "tree": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "component",
+        "values": [
+         "B"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "c"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A OR (component = B AND label = c)",
+   "reparsed": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "component",
+        "values": [
+         "B"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "c"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [
+     "component",
+     "label"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "component",
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "epic = a or component = b and label = c",
+   "tree": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "a"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "component",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "c"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = a OR (component = b AND label = c)",
+   "reparsed": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "a"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "component",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "c"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "component",
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "component = Database AND NOT label IN (maintenance, \"hot fix\")",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "component",
+      "values": [
+       "Database"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "maintenance",
+         "hot fix"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "component = Database AND label NOT IN (maintenance, \"hot fix\")",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "component",
+      "values": [
+       "Database"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "maintenance",
+         "hot fix"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "component"
+    ],
+    [
+     "component"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "component",
+    "label"
+   ]
+  },
+  {
+   "text": "status != Done",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "status",
+      "values": [
+       "Done"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "status != Done",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "status",
+      "values": [
+       "Done"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "status"
+   ]
+  },
+  {
+   "text": "status NOT IN (Done, Closed)",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "status",
+      "values": [
+       "Done",
+       "Closed"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "status NOT IN (Done, Closed)",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "status",
+      "values": [
+       "Done",
+       "Closed"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "status"
+   ]
+  },
+  {
+   "text": "(epic = A or epic = B) and not (status = Done)",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "B"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "status",
+        "values": [
+         "Done"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "(epic = A OR epic = B) AND status != Done",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "B"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "status",
+        "values": [
+         "Done"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [
+     "epic"
+    ],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic",
+    "status"
+   ]
+  },
+  {
+   "text": "epic = A AND component = B OR NOT label IN (x, y)",
+   "tree": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "component",
+        "values": [
+         "B"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "x",
+         "y"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "(epic = A AND component = B) OR label NOT IN (x, y)",
+   "reparsed": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "component",
+        "values": [
+         "B"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "x",
+         "y"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [
+     "component"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "component",
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "label = İN",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "İN"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = İN",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "İN"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label IN (\"a b\", c) AND (status != Done OR epic = X)",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a b",
+       "c"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "none",
+        "source": null,
+        "values": [],
+        "children": [
+         {
+          "op": "leaf",
+          "source": "status",
+          "values": [
+           "Done"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         }
+        ],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "X"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label IN (\"a b\", c) AND (status != Done OR epic = X)",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a b",
+       "c"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "none",
+        "source": null,
+        "values": [],
+        "children": [
+         {
+          "op": "leaf",
+          "source": "status",
+          "values": [
+           "Done"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         }
+        ],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "X"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [],
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic",
+    "label",
+    "status"
+   ]
+  },
+  {
+   "text": "NOT (epic = A AND label = b)",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "NOT (epic = A AND label = b)",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "all",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "NOT (epic = A OR label = b)",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "NOT (epic = A OR label = b)",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "NOT NOT epic = A",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "NOT (epic != A)",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "A"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic"
+   ]
+  },
+  {
+   "text": "in_sprint = true",
+   "tree": {
+    "op": "leaf",
+    "source": "in_sprint",
+    "values": [
+     "true"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "in_sprint = true",
+   "reparsed": {
+    "op": "leaf",
+    "source": "in_sprint",
+    "values": [
+     "true"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "in_sprint"
+    ],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "in_sprint"
+   ]
+  },
+  {
+   "text": "in_sprint = True",
+   "tree": {
+    "op": "leaf",
+    "source": "in_sprint",
+    "values": [
+     "true"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "in_sprint = true",
+   "reparsed": {
+    "op": "leaf",
+    "source": "in_sprint",
+    "values": [
+     "true"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "in_sprint"
+    ],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "in_sprint"
+   ]
+  },
+  {
+   "text": "in_sprint IN (True, FALSE, other)",
+   "tree": {
+    "op": "leaf",
+    "source": "in_sprint",
+    "values": [
+     "true",
+     "false",
+     "other"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "in_sprint IN (true, false, other)",
+   "reparsed": {
+    "op": "leaf",
+    "source": "in_sprint",
+    "values": [
+     "true",
+     "false",
+     "other"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "in_sprint"
+    ],
+    [
+     "in_sprint"
+    ],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "in_sprint"
+   ]
+  },
+  {
+   "text": "label ~ pay AND epic !~ old",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "pay"
+      ],
+      "children": [],
+      "short": false,
+      "contains": true
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "old"
+        ],
+        "children": [],
+        "short": false,
+        "contains": true
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label ~ pay AND epic !~ old",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "pay"
+      ],
+      "children": [],
+      "short": false,
+      "contains": true
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "epic",
+        "values": [
+         "old"
+        ],
+        "children": [],
+        "short": false,
+        "contains": true
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [
+     "label"
+    ],
+    [
+     "label"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "label IN (a, b) AND label IN (c, d) AND epic = x",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a",
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "c",
+       "d"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "x"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label IN (a, b) AND label IN (c, d) AND epic = x",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a",
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "c",
+       "d"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "x"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "epic",
+     "label"
+    ],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "(epic = A AND label = b) AND component = c",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "component",
+      "values": [
+       "c"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A AND label = b AND component = c",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "component",
+      "values": [
+       "c"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "component",
+    "epic",
+    "label"
+   ]
+  },
+  {
+   "text": "epic = A AND (label = b OR (component = c AND status = Open))",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "all",
+        "source": null,
+        "values": [],
+        "children": [
+         {
+          "op": "leaf",
+          "source": "component",
+          "values": [
+           "c"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         },
+         {
+          "op": "leaf",
+          "source": "status",
+          "values": [
+           "Open"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         }
+        ],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A AND (label = b OR (component = c AND status = Open))",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "label",
+        "values": [
+         "b"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "all",
+        "source": null,
+        "values": [],
+        "children": [
+         {
+          "op": "leaf",
+          "source": "component",
+          "values": [
+           "c"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         },
+         {
+          "op": "leaf",
+          "source": "status",
+          "values": [
+           "Open"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         }
+        ],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [
+     "status"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [
+     "status"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "component",
+    "epic",
+    "label",
+    "status"
+   ]
+  },
+  {
+   "text": "priority IN (High, Highest)",
+   "tree": {
+    "op": "leaf",
+    "source": "priority",
+    "values": [
+     "High",
+     "Highest"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "priority IN (High, Highest)",
+   "reparsed": {
+    "op": "leaf",
+    "source": "priority",
+    "values": [
+     "High",
+     "Highest"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "priority"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "priority"
+   ]
+  },
+  {
+   "text": "priority = Low",
+   "tree": {
+    "op": "leaf",
+    "source": "priority",
+    "values": [
+     "Low"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "priority = Low",
+   "reparsed": {
+    "op": "leaf",
+    "source": "priority",
+    "values": [
+     "Low"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "priority"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "priority"
+   ]
+  },
+  {
+   "text": "EPIC = A",
+   "tree": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A",
+   "reparsed": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic"
+   ]
+  },
+  {
+   "text": "label = \"and\"",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "and"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = \"and\"",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "and"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label = \"or\" OR label = \"not\" OR label = \"in\"",
+   "tree": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "or"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "not"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "in"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = \"or\" OR label = \"not\" OR label = \"in\"",
+   "reparsed": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "or"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "not"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "in"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label = \"\"",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     ""
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = \"\"",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     ""
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "label"
+    ]
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label = \"a\\\"b\"",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a\"b"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = \"a\\\"b\"",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a\"b"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label = \"a\\\\b\"",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a\\b"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = a\\b",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a\\b"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label = \"c\nd\"",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "c\nd"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = \"c\nd\"",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "c\nd"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label = a-b_c.d",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a-b_c.d"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = a-b_c.d",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a-b_c.d"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "label = ünï",
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "ünï"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label = ünï",
+   "reparsed": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "ünï"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "  epic   =   A  ",
+   "tree": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A",
+   "reparsed": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic"
+   ]
+  },
+  {
+   "text": "customer IN (Acme, Beta) AND customer !~ test",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "customer",
+      "values": [
+       "Acme",
+       "Beta"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "customer",
+        "values": [
+         "test"
+        ],
+        "children": [],
+        "short": false,
+        "contains": true
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "customer IN (Acme, Beta) AND customer !~ test",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "customer",
+      "values": [
+       "Acme",
+       "Beta"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "none",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "leaf",
+        "source": "customer",
+        "values": [
+         "test"
+        ],
+        "children": [],
+        "short": false,
+        "contains": true
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "customer"
+    ],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "customer"
+   ]
+  },
+  {
+   "text": "epic = A OR epic = B OR epic = C",
+   "tree": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "B"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "C"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A OR epic = B OR epic = C",
+   "reparsed": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "B"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "C"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [
+     "epic"
+    ],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic"
+   ]
+  },
+  {
+   "text": "epic = A AND epic = B AND epic = C",
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "B"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "C"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A AND epic = B AND epic = C",
+   "reparsed": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "B"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "C"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [
+     "epic"
+    ],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic"
+   ]
+  },
+  {
+   "text": "((epic = A))",
+   "tree": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "epic = A",
+   "reparsed": {
+    "op": "leaf",
+    "source": "epic",
+    "values": [
+     "A"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "matched_sources": [
+    [],
+    [
+     "epic"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic"
+   ]
+  },
+  {
+   "text": "NOT (label IN (a, b))",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a",
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label NOT IN (a, b)",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a",
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    true,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "NOT (label ~ a)",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a"
+      ],
+      "children": [],
+      "short": false,
+      "contains": true
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "label !~ a",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a"
+      ],
+      "children": [],
+      "short": false,
+      "contains": true
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "label"
+   ]
+  },
+  {
+   "text": "NOT (epic = A AND label = b OR status = c)",
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "all",
+        "source": null,
+        "values": [],
+        "children": [
+         {
+          "op": "leaf",
+          "source": "epic",
+          "values": [
+           "A"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         },
+         {
+          "op": "leaf",
+          "source": "label",
+          "values": [
+           "b"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         }
+        ],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "status",
+        "values": [
+         "c"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "formatted": "NOT ((epic = A AND label = b) OR status = c)",
+   "reparsed": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "any",
+      "source": null,
+      "values": [],
+      "children": [
+       {
+        "op": "all",
+        "source": null,
+        "values": [],
+        "children": [
+         {
+          "op": "leaf",
+          "source": "epic",
+          "values": [
+           "A"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         },
+         {
+          "op": "leaf",
+          "source": "label",
+          "values": [
+           "b"
+          ],
+          "children": [],
+          "short": false,
+          "contains": false
+         }
+        ],
+        "short": false,
+        "contains": false
+       },
+       {
+        "op": "leaf",
+        "source": "status",
+        "values": [
+         "c"
+        ],
+        "children": [],
+        "short": false,
+        "contains": false
+       }
+      ],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "matches": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "matched_sources": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "leaf_sources": [
+    "epic",
+    "label",
+    "status"
+   ]
+  }
+ ],
+ "invalid": [
+  {
+   "text": "",
+   "message": "The expression is empty",
+   "position": 0
+  },
+  {
+   "text": "   ",
+   "message": "The expression is empty",
+   "position": 3
+  },
+  {
+   "text": "epic =",
+   "message": "Expected a value, found 'end'",
+   "position": 6
+  },
+  {
+   "text": "foo = 1",
+   "message": "Unknown field 'foo' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+   "position": 0
+  },
+  {
+   "text": "lable = a",
+   "message": "Unknown field 'lable', did you mean 'label'?",
+   "position": 0
+  },
+  {
+   "text": "epic = A AND",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'end'",
+   "position": 12
+  },
+  {
+   "text": "(epic = A",
+   "message": "Missing closing parenthesis",
+   "position": 9
+  },
+  {
+   "text": "epic = A)",
+   "message": "Closing parenthesis without an opening one",
+   "position": 8
+  },
+  {
+   "text": "epic = \"A",
+   "message": "Unterminated quote or unexpected character",
+   "position": 7
+  },
+  {
+   "text": "epic",
+   "message": "Expected =, !=, ~, !~, IN or NOT IN after 'epic'",
+   "position": 4
+  },
+  {
+   "text": "epic A",
+   "message": "Expected =, !=, ~, !~, IN or NOT IN after 'epic'",
+   "position": 5
+  },
+  {
+   "text": "epic NOT = A",
+   "message": "Expected IN after NOT",
+   "position": 9
+  },
+  {
+   "text": "epic IN A",
+   "message": "Expected '(' after IN",
+   "position": 8
+  },
+  {
+   "text": "epic IN (A",
+   "message": "Missing closing parenthesis",
+   "position": 10
+  },
+  {
+   "text": "epic IN ()",
+   "message": "Expected a value, found ')'",
+   "position": 9
+  },
+  {
+   "text": "epic IN (A,)",
+   "message": "Expected a value, found ')'",
+   "position": 11
+  },
+  {
+   "text": "epic = AND",
+   "message": "Expected a value, found 'AND'",
+   "position": 7
+  },
+  {
+   "text": "AND epic = A",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'AND'",
+   "position": 0
+  },
+  {
+   "text": "epic = A OR",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'end'",
+   "position": 11
+  },
+  {
+   "text": "epic = A epic = B",
+   "message": "Expected AND, OR or the end, found 'epic'",
+   "position": 9
+  },
+  {
+   "text": "NOT",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'end'",
+   "position": 3
+  },
+  {
+   "text": "( )",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found ')'",
+   "position": 2
+  },
+  {
+   "text": "epic = (A)",
+   "message": "Expected a value, found '('",
+   "position": 7
+  },
+  {
+   "text": "epic !! A",
+   "message": "Unterminated quote or unexpected character",
+   "position": 5
+  },
+  {
+   "text": "epic == A",
+   "message": "Expected a value, found '='",
+   "position": 6
+  },
+  {
+   "text": "customer = a",
+   "message": "Unknown field 'customer' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+   "position": 0
+  },
+  {
+   "text": "epic = A, label = b",
+   "message": "Expected AND, OR or the end, found ','",
+   "position": 8
+  },
+  {
+   "text": "= A",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found '='",
+   "position": 0
+  },
+  {
+   "text": "epic = A AND AND label = b",
+   "message": "Expected a field (epic, component, label, status, issue_type, priority, in_sprint), found 'AND'",
+   "position": 13
+  },
+  {
+   "text": "epic ~",
+   "message": "Expected a value, found 'end'",
+   "position": 6
+  },
+  {
+   "text": "epİc = x",
+   "message": "Unknown field 'epİc', did you mean 'epic'?",
+   "position": 0
+  },
+  {
+   "text": "{allowed} = x",
+   "message": "Unknown field '{allowed}' (allowed: epic, component, label, status, issue_type, priority, in_sprint)",
+   "position": 0
+  },
+  {
+   "text": "label IN (a) OR NOT label İN (b)",
+   "message": "Expected =, !=, ~, !~, IN or NOT IN after 'label'",
+   "position": 26
+  },
+  {
+   "text": "label = a b",
+   "message": "Expected AND, OR or the end, found 'b'",
+   "position": 10
+  },
+  {
+   "text": "label = a b",
+   "message": "Expected AND, OR or the end, found 'b'",
+   "position": 10
+  },
+  {
+   "text": "epic !~ ",
+   "message": "Expected a value, found 'end'",
+   "position": 8
+  }
+ ],
+ "formatted": [
+  {
+   "tree": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "A",
+       "B"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "x"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": true,
+    "contains": false
+   },
+   "text": "epic IN (A, B) OR label = x"
+  },
+  {
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a",
+     "b"
+    ],
+    "children": [],
+    "short": false,
+    "contains": true
+   },
+   "text": "(label ~ a OR label ~ b)"
+  },
+  {
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "a",
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": true
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "text": "NOT ((label ~ a OR label ~ b))"
+  },
+  {
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "a",
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "text": "epic NOT IN (a, b)"
+  },
+  {
+   "tree": {
+    "op": "none",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "a"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "b"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "text": "NOT (epic = a OR label = b)"
+  },
+  {
+   "tree": {
+    "op": "all",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "a"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": false,
+    "contains": false
+   },
+   "text": "epic = a"
+  },
+  {
+   "tree": {
+    "op": "leaf",
+    "source": "label",
+    "values": [
+     "a b",
+     "c\nd",
+     "q\"uote",
+     "back\\slash",
+     "and"
+    ],
+    "children": [],
+    "short": false,
+    "contains": false
+   },
+   "text": "label IN (\"a b\", \"c\nd\", \"q\\\"uote\", back\\slash, \"and\")"
+  }
+ ],
+ "format_none": ""
+}
