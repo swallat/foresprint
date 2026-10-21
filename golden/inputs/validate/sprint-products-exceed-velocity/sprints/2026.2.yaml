@@ -1,0 +1,14 @@
+id: '2026.2'
+start: 2026-05-20
+end: 2026-06-03
+absences: {}
+absence_state: unknown
+capacity: 38
+forecast_ist: 30
+velocity: 10
+scope_creep: null
+products:
+  web:
+    done: 8
+  app:
+    done: 7

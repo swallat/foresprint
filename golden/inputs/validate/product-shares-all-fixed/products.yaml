@@ -1,0 +1,33 @@
+products:
+- id: web
+  name: Web
+  po: Alex
+  share: 0.25
+  match:
+    any:
+    - component:
+      - frontend
+  from: null
+  to: null
+- id: app
+  name: App
+  po: Alex
+  match:
+    any:
+    - label_contains:
+      - mobile
+  from: null
+  to: null
+  share: 0.25
+- id: old
+  name: Old
+  po: Bea
+  from: null
+  to: 2026-08-20
+  share: 0.25
+- id: new
+  name: New
+  po: Bea
+  from: 2026-08-05
+  to: null
+  share: 0.25
