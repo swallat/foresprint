@@ -1,25 +1,37 @@
-// Command foresprint is the Go core of Foresprint. It is a scaffold: the calculation core, the
-// command line and the window shell (Wails) are ported in the following steps of the 1.0 plan
-// (go/README.md).
+// Command foresprint is the Go core of Foresprint: the command line and, later, the window
+// shell (Wails) in one program (go/README.md).
 package main
 
 import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
+	"github.com/swallat/foresprint/internal/cli"
 	"github.com/swallat/foresprint/internal/holidays"
 )
 
 // version is set at build time: -ldflags "-X main.version=1.0.0".
 var version = "dev"
 
+func init() {
+	cli.Version = version
+	cli.Register(versionCommand)
+}
+
 func main() {
-	if len(os.Args) > 1 && (os.Args[1] == "version" || os.Args[1] == "--version") {
-		info := holidays.Info()
-		fmt.Printf("foresprint %s (go core, holidays %s, %d-%d)\n",
-			version, info.HolidaysVersion, info.FirstYear, info.LastYear)
-		return
+	os.Exit(cli.Execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+}
+
+func versionCommand(env *cli.Env) *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Show the version and the data it was built with.",
+		Run: func(*cobra.Command, []string) {
+			info := holidays.Info()
+			_, _ = fmt.Fprintf(env.Out, "foresprint %s (go core, holidays %s, %d-%d)\n",
+				version, info.HolidaysVersion, info.FirstYear, info.LastYear)
+		},
 	}
-	fmt.Fprintln(os.Stderr, "foresprint (go core) is not usable yet: run `foresprint version`")
-	os.Exit(2)
 }
