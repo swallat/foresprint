@@ -1,0 +1,12 @@
+schema: 1
+earmarks:
+- ticket: W-4
+  sprint: '2026.9'
+- ticket: W-7
+  sprint: '2027.9'
+  note: far away
+estimates:
+- ticket: W-13
+  estimate: 8
+- ticket: W-5
+  estimate: -3
