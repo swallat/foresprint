@@ -105,6 +105,9 @@ func TestDataDirs(t *testing.T) {
 	var dirs []string
 	for i := 0; i < MaxRecent+2; i++ {
 		d := t.TempDir()
+		if resolved, err := filepath.EvalSymlinks(d); err == nil {
+			d = resolved // SaveDataDir stores the resolved path (/var is /private/var on macOS)
+		}
 		dirs = append(dirs, d)
 		if err := SaveDataDir(d); err != nil {
 			t.Fatal(err)
