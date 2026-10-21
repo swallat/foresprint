@@ -83,7 +83,7 @@ func HTTPSParts(raw string) (host, path string, err error) {
 			return "", "", problem
 		}
 	}
-	return u.Host, strings.TrimLeft(u.EscapedPath(), "/"), nil
+	return u.Host, strings.TrimLeft(u.Path, "/"), nil
 }
 
 // IsHTTPS says whether the address is one that token sign-in applies to.
