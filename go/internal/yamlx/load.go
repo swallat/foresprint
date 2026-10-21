@@ -24,7 +24,7 @@ import (
 // Unlike PyYAML it rejects recursive structures and the tags !!binary, !!set, !!omap and
 // !!pairs (the Foresprint files never contain them).
 func Load(text string) (any, error) {
-	dec := yaml.NewDecoder(strings.NewReader(reDirective.ReplaceAllString(text, "${1}1.1")))
+	dec := yaml.NewDecoder(strings.NewReader(NormalizeDirective(text)))
 	var doc yaml.Node
 	if err := dec.Decode(&doc); err != nil {
 		if errors.Is(err, io.EOF) {
@@ -53,6 +53,9 @@ type loader struct {
 // Names of the tags of a node ("!!str" and the like).
 // reDirective finds "%YAML 1.x" lines: PyYAML accepts every minor version, yaml.v3 only some.
 var reDirective = regexp.MustCompile(`(?m)^(%YAML[ \t]+)1\.[0-9]+`)
+
+// NormalizeDirective makes a "%YAML 1.x" directive acceptable to yaml.v3.
+func NormalizeDirective(text string) string { return reDirective.ReplaceAllString(text, "${1}1.1") }
 
 func shortTag(n *yaml.Node) string {
 	t := n.Tag
@@ -117,6 +120,9 @@ func target(n *yaml.Node) *yaml.Node {
 	}
 	return n
 }
+
+// IsMergeKey reports whether a mapping key node is the merge key "<<".
+func IsMergeKey(k *yaml.Node) bool { return isMergeKey(k) }
 
 func isMergeKey(k *yaml.Node) bool {
 	k = target(k)
@@ -210,7 +216,7 @@ func (l *loader) mapping(n *yaml.Node) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		canon := l.canonicalKey(key)
+		canon := CanonicalKey(key)
 		if i, ok := index[canon]; ok {
 			m.Entries[i].Value = value
 			continue
@@ -221,9 +227,9 @@ func (l *loader) mapping(n *yaml.Node) (any, error) {
 	return m, nil
 }
 
-// canonicalKey is the identity of a key under Python equality: 1, True and 1.0 are one key; a
+// CanonicalKey is the identity of a key under Python equality: 1, True and 1.0 are one key; a
 // NaN is never equal to anything.
-func (l *loader) canonicalKey(k any) string {
+func CanonicalKey(k any) string {
 	switch v := k.(type) {
 	case nil:
 		return "n"
@@ -302,16 +308,23 @@ func isNull(v string) bool {
 	return false
 }
 
-func (l *loader) scalar(n *yaml.Node) (any, error) {
-	var tag string
+// ScalarTag is the tag PyYAML gives a scalar node: the explicit one, "!!str" for quoted and block
+// scalars, else the one of the implicit resolver.
+func ScalarTag(n *yaml.Node) string {
 	switch {
 	case n.Style&yaml.TaggedStyle != 0:
-		tag = shortTag(n)
+		return shortTag(n)
 	case n.Style&(yaml.DoubleQuotedStyle|yaml.SingleQuotedStyle|yaml.LiteralStyle|yaml.FoldedStyle) != 0:
-		tag = "!!str"
-	default:
-		tag = ResolveTag(n.Value)
+		return "!!str"
 	}
+	return ResolveTag(n.Value)
+}
+
+// Scalar is the value of a scalar node (see Load).
+func Scalar(n *yaml.Node) (any, error) { return (&loader{}).scalar(n) }
+
+func (l *loader) scalar(n *yaml.Node) (any, error) {
+	tag := ScalarTag(n)
 	v := n.Value
 	switch tag {
 	case "!!null":

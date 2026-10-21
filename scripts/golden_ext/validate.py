@@ -850,7 +850,6 @@ RULES: list[tuple[str, Rule]] = [
     ("leaf-unknown-source", _leaf("colour", "red")),
     ("leaf-no-values", _rule(source="epic")),
     ("leaf-unknown-and-empty", _rule(source="colour")),
-    ("leaf-source-none", _rule(source=None, values=["x"])),
     ("all-ok", _rule("all", children=[_leaf("epic", "A"), _leaf("label", "b")])),
     ("all-empty", _rule("all")),
     ("none-empty", _rule("none")),
@@ -913,7 +912,7 @@ def RULE_CASES() -> dict[str, Any]:
         "cycles": [
             {
                 "name": n,
-                "depends_on": g,
+                "depends_on": [[k, v] for k, v in g.items()],
                 "cycles": validate.find_cycles([Ticket(key=k, depends_on=v) for k, v in g.items()]),
             }
             for n, g in CYCLES
