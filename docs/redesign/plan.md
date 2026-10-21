@@ -9,7 +9,7 @@ Für die Version 1.0 entsteht eine neue Oberfläche mit deutlich besserer Bedien
 **Muss in 1.0:**
 
 - Jira-artiges Backlog mit Sortieren und Ziehen, Sofortfilter, Einordnen in Sprints
-- Automatischer Hintergrund-Abruf von Jira (nur lesend per PAT, einzige Schreib-Ausnahme: Label `planned_for_<sprint>`) und von Git
+- Automatischer Hintergrund-Abruf von Jira (standardmäßig nur lesend per PAT; optional schreibbar: Label `planned_for_<sprint>` und, je Team einschaltbar, die Sprintzuordnung des geplanten Sprints) und von Git
 - Die heutigen Abläufe: Sprint vorbereiten, Planung, Review, Forecast, Teamverwaltung, Git-Teilen
 - Hell und Dunkel, Deutsch und Englisch, flache Icons, keine Emojis
 - Ein Programm für Windows ohne Adminrechte (macOS und Linux unterstützt)
@@ -69,7 +69,7 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 1. Zielgruppe: beliebige Scrum-Teams, Open Source; keine Interna in Dokumenten, Beispiele mit einem erfundenen Demo-Team. Eine Nutzerart (Scrum Master oder PO).
 2. Schrift: Iosevka für Daten, Iosevka Aile für Text und Überschriften (Begründung in `DESIGN.md`, geprüft nach impeccable `typeset`).
 3. Hülle und Kern: Wails mit vollständig nach Go portiertem Kern; Verteilung über GitHub-Releases; Plugins entfallen in 1.0.
-4. Jira-Rückschreiben: nein. Reihenfolge und Einordnen bleiben lokal, nach Jira geht nur das Label `planned_for_<sprint>`.
+4. Jira-Rückschreiben: Reihenfolge nein. Label `planned_for_<sprint>` optional; Sprintzuordnung des geplanten Sprints als Team-Option (Standard aus, nur per Knopf mit Vorschau und Rückgängig, Entscheidung 21.10.2026, siehe flows.md Entscheidung 10).
 5. WebView2 unter Windows vorausgesetzt (bestätigt); macOS und Linux siehe Abschnitt 2.
 6. Code-Signing: Sebastian klärt ein Zertifikat; bis dahin unsigniert nur zum Testen.
 7. Impeccable: direkt aus dem GitHub-Repository (siehe `impeccable.md`).

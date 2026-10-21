@@ -18,7 +18,8 @@
   S.ruleDraft ??= { product: "portal", ...S.rules.portal };
   S.members ??= { p1: "Mitglied", p2: "Mitglied", p3: "Mitglied", p4: "Mitglied", p5: "Gast", p6: "Mitglied" };
   S.jira ??= { off: false, url: "https://jira.example.com", user: "svc-foresprint", tokenSet: true, jql: "project = ATL AND (sprint is EMPTY OR sprint in openSprints())", interval: "15", checked: null, csv: null,
-    map: { est: "Story Points (customfield_10016)", product: "Komponente", project: "Epic Link", refined: "Label: refined", status: "Status" } };
+    write: { sprint: false, removed: "backlog", checked: false },
+    map: { ac: "Eigenes Feld: Akzeptanzkriterien", est: "Story Points (customfield_10016)", product: "Komponente", project: "Epic Link", refined: "Label: refined", status: "Status" } };
   S.personal ??= { theme: "system", lang: "de", density: "normal" };
   const HOLIDAYS = { "2026-11-01": "Allerheiligen", "2026-12-24": "Heiligabend (Betriebsruhe)", "2026-12-25": "1. Weihnachtstag", "2026-12-26": "2. Weihnachtstag", "2027-01-01": "Neujahr" };
   S.cal ??= [...D.sprints.map((s) => ({ ...s, orig: s.id })), { id: "2026.26", start: "2026-12-23", end: "2027-01-05", days: 7, state: "open", orig: "2026.26" }];
@@ -57,12 +58,18 @@
             <td><select class="input" data-mem="${p.id}" aria-label="Zugehörigkeit ${esc(p.name)}">${["Mitglied", "Gast", "Ausgeschieden zum Sprintende"].map((m) => `<option ${S.members[p.id] === m ? "selected" : ""}>${m}</option>`).join("")}</select></td>
             <td class="num">${f1(p.fte * 10)}</td><td>${calcBtn("pt:" + p.id)}</td></tr>`).join("")}
           <tr class="sum"><td>Team</td><td class="num">${FS.fmt(tot, 1)}</td>${prod ? `<td class="data">${D.people.filter((p) => p.prod).length} von ${D.people.length}</td>` : ""}<td></td><td class="num">${f1(tot * 10)}</td><td></td></tr></tbody></table></div>
+        <div class="card" id="po-team" style="margin-top:16px"><h2>Product Owner</h2>
+          <p class="small muted" style="margin:0 0 8px">POs gehören in der Regel nicht zum Team und zählen nicht zur Kapazität. Übernimmt ein PO regelmäßig Aufgaben im Team, plane ihn mit seinem Anteil ein; dann zählt er wie eine Person und erscheint bei den Abwesenheiten.</p>
+          <div class="tw">${`<table class="t"><thead><tr><th>PO</th><th>Produkte</th><th>Arbeitet im Team mit</th><th class="num">Anteil (FTE)</th><th class="num">PT je Sprint</th></tr></thead><tbody>${D.pos.map((o) => `<tr><td>${esc(o.name)}</td><td>${D.products.filter((p) => p.po === o.id).map((p) => FS.productChip(p.id)).join(" ")}</td>
+            <td><label class="row" style="gap:6px"><input type="checkbox" data-poin="${o.id}" ${o.inTeam ? "checked" : ""}>${o.inTeam ? "ja, zählt zur Kapazität" : '<span class="muted">nein (Standard)</span>'}</label></td>
+            <td class="num">${o.inTeam ? `<input class="input data" style="width:64px;text-align:right" data-pofte="${o.id}" value="${FS.fmt(o.teamFte, 1)}" inputmode="decimal" aria-label="Anteil ${esc(o.name)}">` : '<span class="muted">–</span>'}</td>
+            <td class="num">${o.inTeam ? f1(o.teamFte * 10) : '<span class="muted">0</span>'}</td></tr>`).join("")}</tbody></table>`}</div></div>
         ${prod ? "" : `<p class="small muted">Die Spalte Produktionszugang erscheint, wenn die Funktion unter <a href="#settings">Einstellungen, Team</a> aktiv ist.</p>`}
         <div class="row" style="margin:24px 0 8px"><h2 style="flex:1;margin:0">Abwesenheiten über mehrere Sprints</h2>
           <span class="chip warn" title="angekündigt">${ic("schedule")}angekündigt</span><span class="chip ok">${ic("check")}bestätigt</span></div>
         <p class="small muted" style="margin:0 0 8px">Zahl = Personentage. Eintragen genügt, bestätigt wird im Sprint-Planning. Zellen mit Eintrag sind blau hinterlegt.</p>
         <div class="tw" id="abs"><table class="t"><thead><tr><th>Person</th>${FUT.map((s) => `<th class="num">${s}</th>`).join("")}</tr></thead><tbody>
-          ${D.people.map((p) => `<tr><td>${esc(p.name)}</td>${FUT.map((s) => { const a = D.absences[s]?.[p.id]; return `<td class="num ${a ? "edit" : ""}"><input class="input data" style="width:64px;text-align:right" data-abs="${s}|${p.id}" value="${a ? a.d : ""}" placeholder="0" inputmode="numeric" aria-label="Abwesenheit ${esc(p.name)} ${s}"></td>`; }).join("")}</tr>`).join("")}
+          ${[...D.people, ...D.pos.filter((o) => o.inTeam).map((o) => ({ id: o.id, name: `${o.name} (PO, ${FS.fmt(o.teamFte, 1)} FTE)` }))].map((p) => `<tr><td>${esc(p.name)}</td>${FUT.map((s) => { const a = D.absences[s]?.[p.id]; return `<td class="num ${a ? "edit" : ""}"><input class="input data" style="width:64px;text-align:right" data-abs="${s}|${p.id}" value="${a ? a.d : ""}" placeholder="0" inputmode="numeric" aria-label="Abwesenheit ${esc(p.name)} ${s}"></td>`; }).join("")}</tr>`).join("")}
           <tr class="sum"><td>Verfügbar (PT)</td>${FUT.map((s) => `<td class="num">${nc(FS.fmt(FS.sprint(s).capacityPD), calcBtn("cap:" + s, "Rechenweg " + s))}</td>`).join("")}</tr></tbody></table></div>${unsavedHint()}`;
     },
     wire(main) {
@@ -72,11 +79,13 @@
         track(`FTE ${p.name}`, FS.fmt(p.fte, 1), FS.fmt(v, 1), "personen.yaml"); p.fte = v; FS.render();
       }));
       main.querySelectorAll("[data-prod]").forEach((i) => (i.onchange = () => { const p = FS.person(i.dataset.prod); track(`Produktionszugang ${p.name}`, p.prod ? "ja" : "nein", i.checked ? "ja" : "nein", "personen.yaml"); p.prod = i.checked; FS.render(); }));
+      main.querySelectorAll("[data-poin]").forEach((i) => (i.onchange = () => { const o = FS.po(i.dataset.poin); track(`${o.name} arbeitet im Team mit`, o.inTeam ? "ja" : "nein", i.checked ? "ja" : "nein", "personen.yaml"); o.inTeam = i.checked; FS.render(); FS.toast(i.checked ? `${o.name} zählt jetzt mit ${FS.fmt(o.teamFte, 1)} FTE zur Kapazität (etwa ${f1(o.teamFte * 10)} PT je Sprint).` : `${o.name} zählt nicht mehr zur Kapazität.`); }));
+      main.querySelectorAll("[data-pofte]").forEach((i) => (i.onchange = () => { const o = FS.po(i.dataset.pofte); const v = parseFloat(i.value.replace(",", ".")); if (!(v > 0 && v <= 1)) { FS.toast("Anteil zwischen 0,1 und 1,0 eingeben."); return FS.render(); } track(`Anteil ${o.name} im Team`, FS.fmt(o.teamFte, 1), FS.fmt(v, 1), "personen.yaml"); o.teamFte = v; FS.render(); }));
       main.querySelectorAll("[data-mem]").forEach((i) => (i.onchange = () => { const p = FS.person(i.dataset.mem); track(`Zugehörigkeit ${p.name}`, S.members[p.id], i.value, "personen.yaml"); S.members[p.id] = i.value; FS.render(); }));
       main.querySelectorAll("[data-abs]").forEach((i) => (i.onchange = () => {
         const [s, id] = i.dataset.abs.split("|"); const v = parseInt(i.value, 10) || 0; const old = D.absences[s]?.[id]?.d || 0;
         D.absences[s] ??= {}; if (v) D.absences[s][id] = { d: v, s: "a" }; else delete D.absences[s][id];
-        track(`Abwesenheit ${FS.person(id).name}, ${s}`, `${old} Tage`, `${v} Tage`, "abwesenheiten.yaml"); FS.render();
+        track(`Abwesenheit ${(FS.person(id) || FS.po(id)).name}, ${s}`, `${old} Tage`, `${v} Tage`, "abwesenheiten.yaml"); FS.render();
       }));
       acts(main, { add: () => { D.people.push({ id: "p" + (D.people.length + 1), name: "Neue Person", fte: 1.0, prod: false }); S.members["p" + D.people.length] = "Mitglied"; FS.addUnsaved("Person hinzugefügt: Neue Person", "–", "1,0 FTE", "personen.yaml"); FS.render(); FS.toast("Person hinzugefügt. Name bitte im nächsten Schritt ergänzen (Mockup: fester Name)."); } });
       main.querySelectorAll("[data-calc]").forEach((b) => (b.onclick = () => {
@@ -249,8 +258,8 @@
     title: "Einstellungen, Jira und Tickets",
     render() {
       const j = S.jira, off = j.off;
-      const mapRows = [["Schätzung", "est", ["Story Points (customfield_10016)", "Original Estimate"]], ["Produkt", "product", ["Komponente", "Label", "Eigenes Feld"]], ["Projekt", "project", ["Epic Link", "Label", "Parent"]], ["Refined", "refined", ["Label: refined", "Status: Bereit"]], ["Status", "status", ["Status"]]];
-      return `${head("Jira und Tickets", `Verbindung zu ${D.team.tracker}, Abfrage, Feldzuordnung und Import. ${D.team.tracker} wird nur gelesen.`)}
+      const mapRows = [["Schätzung", "est", ["Story Points (customfield_10016)", "Original Estimate"]], ["Produkt", "product", ["Komponente", "Label", "Eigenes Feld"]], ["Projekt", "project", ["Epic Link", "Label", "Parent"]], ["Refined", "refined", ["Label: refined", "Status: Bereit"]], ["Status", "status", ["Status"]], ["Akzeptanzkriterien", "ac", ["Eigenes Feld: Akzeptanzkriterien", "Teil der Beschreibung", "keins"]]];
+      return `${head("Jira und Tickets", `Verbindung zu ${D.team.tracker}, Abfrage, Feldzuordnung und Import. ${j.write.sprint ? `${D.team.tracker} wird gelesen; die Sprintzuordnung schreibt Foresprint nur auf Knopfdruck zurück.` : `${D.team.tracker} wird nur gelesen.`}`)}
         <div class="card" style="margin-bottom:16px"><label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="j-off" ${off ? "checked" : ""} style="margin-top:3px"><span><strong>Ohne Tracker arbeiten</strong><br><span class="small muted">Projekte, Produkte, Sprints und Planung laufen vollständig ohne Tracker.</span></span></label></div>
         ${off ? `<div class="banner info">${ic("info")}<div class="grow"><strong>So sieht Foresprint ohne Tracker aus:</strong> Das Backlog zeigt nur von Hand gepflegte Tickets, die Planung arbeitet mit Mengen je Produkt statt Tickets, Zuordnungsregeln ruhen, der Jira-Chip oben zeigt "nicht verbunden". Projekte, Meilensteine und Kontingente bleiben unverändert nutzbar.</div></div>` : ""}
         <div class="grid cols-2" style="${off ? "opacity:.45;pointer-events:none" : ""}" ${off ? 'aria-disabled="true" inert' : ""}>
@@ -263,6 +272,13 @@
           <div class="card" style="grid-column:1/-1"><h2>Sprints aus ${D.team.tracker}</h2><p class="small muted" style="margin:0 0 8px">Lege fest, welche Sprints nur Ablagen sind (pro forma, z. B. "Refinement"). Sie erscheinen unter dem Backlog und zählen nie für Kapazität oder Forecast. Keiner, einer oder mehrere sind möglich.</p>
             <div class="tw"><table class="t"><thead><tr><th>Sprint in ${D.team.tracker}</th><th>Pro forma</th><th>Entspricht Foresprint-Sprint</th></tr></thead><tbody>${D.trackerSprints.map((s, i) => `<tr><td class="data">${esc(s.name)}</td><td><input type="checkbox" data-pf-i="${i}" ${s.proforma ? "checked" : ""} aria-label="${esc(s.name)} ist pro forma"></td><td class="data">${s.proforma ? '<span class="muted">nein</span>' : esc(s.mapsTo || "automatisch per Name")}</td></tr>`).join("")}</tbody></table></div>
             <p class="small muted" style="margin:8px 0 0">Neue Sprints mit Namen wie "Refinement" oder ohne Start- und Enddatum schlägt Foresprint beim Abruf als pro forma vor.</p></div>
+          <div class="card" id="j-write" style="grid-column:1/-1"><div class="row"><h2 style="margin:0;flex:1">Nach ${D.team.tracker} schreiben</h2>${j.write.sprint ? '<span class="chip warn">Rückschreiben an</span>' : '<span class="chip">nur lesen</span>'}</div>
+            <p class="small muted" style="margin:4px 0 12px">Standard ist nur lesen. Wenn ihr komplett in Foresprint plant, kann die Planung die Sprintzuordnung nach ${D.team.tracker} übernehmen: nur auf Knopfdruck, immer mit Vorschau und Rückgängig. Reihenfolge, Schätzung, Status und Texte bleiben unangetastet. Foresprint legt keine Sprints an und startet oder schließt keine.</p>
+            <div class="stack" style="gap:10px">
+              <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="j-w-sprint" ${j.write.sprint ? "checked" : ""} style="margin-top:3px"><span><strong>Geplanten Sprint nach ${D.team.tracker} zurückschreiben</strong><br><span class="small muted">In Planen erscheint "In ${D.team.tracker} übernehmen". Gilt für das ganze Team (team.yaml).</span></span></label>
+              <div class="field" style="max-width:420px;${j.write.sprint ? "" : "opacity:.5"}"><label for="j-w-removed">Herausgenommene Tickets landen in ${D.team.tracker}</label><select class="input" id="j-w-removed" ${j.write.sprint ? "" : "disabled"}>${[["backlog", "im Backlog (ohne Sprint)"], ["proforma", 'im Pro-forma-Sprint "Refinement"'], ["next", "im nächsten Sprint"]].map(([v, l]) => `<option value="${v}" ${v === j.write.removed ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+              <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="j-w-label" ${S.teamApplied.label ? "checked" : ""} style="margin-top:3px"><span>Label <span class="data">planned_for_&lt;sprint&gt;</span> beim Einfrieren vorschlagen<br><span class="small muted">Wie bisher; in Planen je Sprint abwählbar.</span></span></label>
+              <div class="row"><button class="btn" type="button" data-act="wcheck" ${j.write.sprint ? "" : "disabled"}>${ic("verified_user")}Schreibrecht prüfen</button><span class="small">${j.write.checked ? FS.lightChip("ok", "Token darf Sprints im Projekt ATL bearbeiten") : '<span class="muted">Der Token braucht dafür das Recht, Sprints zu bearbeiten. Ohne dieses Recht bleibt alles lesend.</span>'}</span></div></div></div>
           <div class="card" style="grid-column:1/-1"><h2>Abfrage (JQL)</h2><div class="field"><label for="j-jql">Welche Tickets Foresprint liest</label><textarea class="input data" id="j-jql" rows="2">${esc(j.jql)}</textarea></div>
             <div class="row" style="margin-top:8px"><button class="btn" type="button" data-act="jql">${ic("play_arrow")}Abfrage testen</button><span id="j-jql-res" class="small">${j.checked === "jql" ? FS.lightChip("ok", "46 Tickets, 28 mit Schätzung, 6 ohne Produkt") : ""}</span></div></div>
           <div class="card" style="grid-column:1/-1"><h2>Feldzuordnung</h2><div class="tw"><table class="t"><thead><tr><th>Foresprint</th><th>Feld in ${D.team.tracker}</th></tr></thead><tbody>${mapRows.map(([l, k, o]) => `<tr><td>${l}</td><td><select class="input" data-map="${k}" aria-label="Feld für ${l}">${o.map((x) => `<option ${x === j.map[k] ? "selected" : ""}>${x}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div></div>
@@ -275,12 +291,15 @@
       const j = S.jira;
       main.querySelectorAll("[data-pf-i]").forEach((c) => (c.onchange = () => { const s = D.trackerSprints[c.dataset.pfI]; s.proforma = c.checked; FS.toast(`${s.name} ist ${c.checked ? "jetzt pro forma und erscheint unter dem Backlog" : "kein Pro-forma-Sprint mehr"}.`); FS.render(); }));
       main.querySelector("#j-off").onchange = (e) => { track("Einstellung Ohne Tracker arbeiten", j.off ? "an" : "aus", e.target.checked ? "an" : "aus", "team.yaml"); j.off = e.target.checked; S.trackerOk = j.off ? false : true; FS.render(); };
+      main.querySelector("#j-w-sprint").onchange = (e) => { track("Sprint nach Jira zurückschreiben", j.write.sprint ? "an" : "aus", e.target.checked ? "an" : "aus", "team.yaml"); j.write.sprint = e.target.checked; j.write.checked = false; FS.render(); };
+      main.querySelector("#j-w-removed").onchange = (e) => { track("Herausgenommene Tickets in Jira", j.write.removed, e.target.value, "team.yaml"); j.write.removed = e.target.value; };
+      main.querySelector("#j-w-label").onchange = (e) => { S.teamApplied.label = e.target.checked; };
       main.querySelector("#j-int").onchange = (e) => { track("Abrufintervall", j.interval + " min", e.target.value + " min", "team.yaml"); j.interval = e.target.value; };
       main.querySelector("#j-jql").onchange = (e) => { track("Abfrage (JQL)", "geändert", "geändert", "team.yaml"); j.jql = e.target.value; };
       main.querySelectorAll("[data-map]").forEach((s) => (s.onchange = () => { track(`Feldzuordnung ${s.dataset.map}`, j.map[s.dataset.map], s.value, "team.yaml"); j.map[s.dataset.map] = s.value; }));
       main.querySelector("#j-file").onchange = (e) => { j.csv = e.target.files[0]?.name || "tickets-export.csv"; FS.render(); };
       acts(main, {
-        test: () => { j.checked = "conn"; FS.render(); }, jql: () => { j.checked = "jql"; FS.render(); },
+        test: () => { j.checked = "conn"; FS.render(); }, wcheck: () => { j.write.checked = true; FS.render(); }, jql: () => { j.checked = "jql"; FS.render(); },
         setTok: () => { if (!main.querySelector("#j-tok").value) return FS.toast("Bitte zuerst einen Token einfügen."); j.tokenSet = true; FS.render(); FS.toast("Token im Schlüsselbund ersetzt."); },
         rmTok: () => { j.tokenSet = false; S.trackerOk = false; FS.render(); FS.toast("Token entfernt. Abrufe pausieren.", () => { j.tokenSet = true; S.trackerOk = true; FS.render(); }); },
         sync: () => { D.trackerSync.last = "gerade eben"; main.querySelector("#j-last").textContent = "gerade eben"; FS.toast("46 Tickets abgerufen, 0 geändert."); },

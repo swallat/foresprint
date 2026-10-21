@@ -36,8 +36,8 @@ one tracker, Git host or company.
    sprints, see capacity and project dates change immediately.
 3. **Trust the numbers.** Every figure opens its calculation. Uncertainty (the range) is shown,
    not hidden.
-4. **Stay in sync without thinking about it.** Jira is polled in the background (read only; the
-   one write is the label `planned_for_<sprint>`), Git sharing is one clear action with plain
+4. **Stay in sync without thinking about it.** Jira is polled in the background (read only by default; optional
+   writes are the label `planned_for_<sprint>` and, if the team switches it on, the sprint assignment), Git sharing is one clear action with plain
    language when something goes wrong.
 
 ## Tone
@@ -66,7 +66,8 @@ address).
 - One executable per platform for the 1.0 release, no admin rights, no required internet except
   the team's own Jira and Git servers.
 - Windows 10/11 first; macOS and Linux supported.
-- Jira stays read only (PAT); exception: the label `planned_for_<sprint>`.
+- Jira stays read only by default (PAT); optional writes: the label `planned_for_<sprint>` and the sprint
+  assignment of a planned sprint (team setting, preview and undo). Order is never written back.
 - Accessibility: keyboard reachable everywhere, visible focus, contrast AA in both themes,
   state never conveyed by color alone.
 - Project rules for the interface: flat icons (Material Symbols), **no emojis** anywhere in
