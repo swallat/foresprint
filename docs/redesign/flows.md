@@ -7,9 +7,31 @@ Method: jobs to be done per role, story map after Patton (activities, steps, fun
 
 Foresprint is a desktop application with one kind of user: the person who plans for the team, a scrum master or a product owner (often both in one). There are no separate roles, permissions or views per role. Setup is done by the same user, rarely.
 
+## 1a. Products, projects and daily business
+
+Work is either **daily business** or a **project topic**. Products and projects are two independent axes:
+
+- A **product** is a long-lived area with a PO and a budget share of the sprint.
+- A **project** is a time-boxed undertaking with milestones and an end date. It can touch several products, and a product can take part in several projects; the sets do not overlap cleanly.
+- A ticket always has a product. It has a project if it is project work; without a project it is daily business of its product.
+- A project may have **booked contingents** (resources a project lead booked from the team, for example person days or points per sprint or period). Foresprint compares them with what is planned and done, so the PO can report back to the project lead.
+
+Everything Foresprint derives here (assignment, budgets, traffic lights, contingent use) is a **recommendation**. The PO makes the final call; the numbers make demand visible.
+
+```mermaid
+flowchart LR
+  P1[Product A] --- T1[Ticket] --- J1[Project X]
+  P2[Product B] --- T2[Ticket] --- J1
+  P2 --- T3[Ticket] --- J2[Project Y]
+  P1 --- T4[Ticket: daily business]
+  J1 -.-> M1[Milestones, end date, booked contingent]
+```
+
+Gap to 0.8: a project has at most one product (`Project.product`), only a target date (no milestones) and no contingents; "project wins" on a product conflict assumes one product per project. 1.0 needs: products per project as a list, milestones, contingents, and a new conflict rule (proposal: the product rule decides the ticket's product; a hint appears when it is not one of the project's products).
+
 ## 2. Jobs to be done
 
-One user, scrum master or PO. Each job is one row of the function matrix (section 6). IDs J01 to J14.
+One user, scrum master or PO. Each job is one row of the function matrix (section 6). IDs J01 to J18.
 
 | ID | When I ... | I want to ... | so that ... |
 | --- | --- | --- | --- |
@@ -27,6 +49,10 @@ One user, scrum master or PO. Each job is one row of the function matrix (sectio
 | J12 | made a mistake | see the history of an object and undo or restore | errors are cheap |
 | J13 | need numbers elsewhere | export a report or workbook, import Excel or CSV | Foresprint fits the existing tools |
 | J14 | wonder what a number means | open its calculation and help in place | I trust the numbers |
+| J15 | prepare the coming sprints | see work grouped by project with milestones and end dates next to daily business | I can tell what must come first |
+| J16 | a project starts or changes | record its products, milestones, end date and booked contingent | the forecast knows what the project expects |
+| J17 | a project lead asks how their project is doing | see booked vs planned vs done per sprint and the milestone traffic light, and export it | I can give a clear answer |
+| J18 | project demand and product budgets disagree | see the conflict with numbers and decide | the decision stays mine, but is informed |
 
 ## 3. Story map
 
@@ -36,13 +62,14 @@ Backbone (left to right = time in the sprint cadence). Under each activity: the 
 flowchart LR
   A[Set up] --> B[Keep master data] --> C[Groom backlog] --> D[Prepare sprint] --> E[Plan sprint] --> F[Run sprint] --> G[Close sprint] --> H[Look ahead]
   A --- A1[Data folder and server] --- A2[Team and first sprint] --- A3[Connect Jira]
-  B --- B1[People and FTE] --- B2[Products and projects with rules] --- B3[Sprint calendar]
+  B --- B1[People and FTE] --- B2[Products with rules] --- B3[Sprint calendar]
+  B --- B4[Projects: products, milestones, end date, contingent]
   C --- C1[Sync tickets] --- C2[Filter and order] --- C3[Refine and estimate] --- C4[Assign product and project]
-  D --- D1[Absences] --- D2[Earmark tickets] --- D3[Amount per product] --- D4[Readiness check]
+  D --- D0[Project view: milestones, demand vs budget] --- D1[Absences] --- D2[Earmark tickets] --- D3[Amount per product] --- D4[Readiness check]
   E --- E1[Confirm absences] --- E2[Forecast PLAN] --- E3[Planned amounts] --- E4[Commitment and freeze]
   F --- F1[Scope changes] --- F2[Share changes]
   G --- G1[Velocity and done per product] --- G2[Tag and share]
-  H --- H1[Forecast with range] --- H2[Product balance] --- H3[Reports and export]
+  H --- H1[Forecast with range] --- H2[Product balance] --- H4[Project report: contingent and milestones] --- H3[Reports and export]
 ```
 
 ## 4. Consolidation rules
@@ -59,18 +86,20 @@ flowchart LR
 
 ```
 Today                      state-aware: next step per sprint, sync state, findings
-Backlog                    all tickets; saved views: Refinement, Unassigned, Earmarked, Open points
+Backlog                    all tickets, group by project or product; saved views: Daily business, Refinement, Unassigned, Earmarked, Open points
   ticket panel             details, product, project, estimate, earmark, history
 Sprints                    timeline of sprints with state chips
   <sprint>                 one workspace, one selector
     Prepare                absences grid (this sprint), readiness checklist
-    Pre-plan               earmarked tickets, amount per product (PO)
+    Pre-plan               earmarked tickets by project and daily business, amount per product, contingent hints
     Plan                   Forecast PLAN, planned amounts, commitment, freeze
     Review                 velocity, scope change, done per product, tag
+Projects                   portfolio: timeline with milestones and end dates, traffic light, contingent use
+  <project>                products, milestones, contingent, tickets, report for the project lead
 Forecast                   coming sprints with range; tabs: Analysis, Products over time, Reports and export
 Team
   People and absences      people, FTE, absences grid across sprints
-  Products and projects    products, projects, assignment rules with live preview
+  Products                 products, assignment rules with live preview
   Sprint calendar          dates, length, sprint IDs
 Settings
   Team                     forecast settings, features, budget basis
@@ -94,7 +123,7 @@ Top bar                    team, sprint, sync state, changes (share, conflicts),
 | D13 Tokens | Data folder and Jira connection | Both under Settings with one sign-in pattern (still separate stores) |
 | D14, D16 Team settings | Settings, New team, Jira connection, Excel import | Settings > Team; New team is a wizard over the same form; sprint IDs and lengths in Team > Sprint calendar |
 | D15 Personal settings | sidebar, App settings | Settings > Personal |
-| D17, D18, D30 Products, projects, rules | Products, Tickets > Assignment, Tickets > Settings, Jira connection | Team > Products and projects with rule editor and live preview; resulting default share shown there |
+| D17, D18, D30 Products, projects, rules | Products, Tickets > Assignment, Tickets > Settings, Jira connection | Products in Team > Products (rules, resulting default share); projects in the top-level Projects area (rules, products, milestones, contingent) |
 | D19 Earmarking | buttons, drag, form | Drag in Backlog or Sprint > Pre-plan, plus menu and keyboard; note in the ticket panel |
 | D20, D26 Import and export | Jira connection, Tickets > Import, Forecast, Settings | Settings > Jira and tickets (sources, import); Forecast > Reports and export (Excel, report); Excel import there too |
 | D22 Production access | five places | Setting in Team; per sprint as a column of the product table |
@@ -201,6 +230,22 @@ flowchart TD
   K -- no --> OK([Shared, toast with Undo where possible])
 ```
 
+### F8 Prepare with projects and report back (J15 to J18)
+
+```mermaid
+flowchart TD
+  P[Projects] --> T[Timeline: milestones, end dates, traffic light]
+  T --> D{Demand fits budgets and contingents?}
+  D -- yes --> S[Sprint > Pre-plan: earmark project tickets and daily business]
+  D -- no --> C[Conflict view: project demand vs product budget vs booked contingent]
+  C --> PO{PO decides}
+  PO -- shift tickets --> S
+  PO -- accept risk --> S
+  PO -- talk to project lead --> R[Project report: booked, planned, done, milestones]
+  S --> R
+  R --> E([Export or share with the project lead])
+```
+
 ## 8. Tree test (before mocks)
 
 Sebastian plus one or two other scrum masters or POs get the text tree of section 5 and answer "Where do you click to ...?" Target: 80 percent direct success.
@@ -213,8 +258,14 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 6. ... change the Jira query?
 7. ... undo yesterday's change to a person's FTE?
 8. ... share your changes with the team?
+9. ... check whether project X still reaches its next milestone?
+10. ... show a project lead how much of the booked contingent was used?
 
 ## 9. Open questions
 
 1. Announced vs confirmed absences as one grid with a cell state: needs a small data-format change or a UI-only mapping. Proposal: UI-only first.
 2. Minutes: keep as files, or show only as an activity log?
+3. Contingent unit and period: person days or points; per sprint, per month or in total for the project?
+4. Where do contingents come from: entered by hand, or also read from a tracker field?
+5. Milestones: dates only, or also a set of tickets per milestone (for its own traffic light)?
+6. Product of a project ticket when the project spans several products: product rule decides (proposal), or the PO picks per ticket?

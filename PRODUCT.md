@@ -21,7 +21,7 @@ this document assumes that one user.
 | Typical work | How often |
 |---|---|
 | Prepare the sprint (absences), plan, close the sprint, share the data with the team | several times a week, in short sessions |
-| Say per product what should go into the sprint, keep the backlog in order, check whether projects reach their date | before each planning |
+| Say per product what should go into the sprint, keep the backlog in order, check whether projects reach their milestones and end date, report contingent use back to project leads | before each planning |
 | Set up Jira and Git, create teams, products and people | rarely |
 
 Primary context: a Windows laptop in a company, no admin rights, a company Jira (read only) and a
