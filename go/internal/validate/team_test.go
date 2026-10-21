@@ -52,6 +52,15 @@ func copyTree(t *testing.T, from, to string) {
 	}
 }
 
+// scrub replaces the temporary folder by <data> and writes paths with slashes like the reference.
+func scrub(s, root string) string {
+	s = strings.ReplaceAll(s, root, "<data>")
+	if filepath.Separator != '/' {
+		s = strings.ReplaceAll(s, string(filepath.Separator), "/")
+	}
+	return s
+}
+
 func TestCheckTeam(t *testing.T) {
 	var cases struct {
 		Cases []teamCase `json:"cases"`
@@ -100,14 +109,14 @@ func TestCheckTeam(t *testing.T) {
 				// with its marks; the Go parser words it differently. The file and the problem
 				// itself must agree.
 				want, have := yamlSyntax.FindStringSubmatch(tc.LoadError), err.Error()
-				if !strings.Contains(strings.ReplaceAll(have, root, "<data>"), want[1]+": invalid YAML (") ||
+				if !strings.Contains(scrub(have, root), want[1]+": invalid YAML (") ||
 					!strings.Contains(have, want[2]) {
 					t.Errorf("load error %q does not match the reference %q", have, tc.LoadError)
 				}
 				return
 			}
 			if err != nil {
-				got = []Issue{{Level: Error, Where: tc.Team, Message: strings.ReplaceAll(err.Error(), root, "<data>")}}
+				got = []Issue{{Level: Error, Where: tc.Team, Message: scrub(err.Error(), root)}}
 				if tc.LoadError == "" {
 					t.Fatalf("load failed: %v", err)
 				}
