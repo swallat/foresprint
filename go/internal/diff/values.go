@@ -317,7 +317,7 @@ func diffMapping(old, new *yamlx.Map, path []string, item bool, bg *budget) ([]V
 			text = "[" + text + "]"
 		}
 		sub := append(append([]string{}, path...), text)
-		var o, n any = Missing, Missing
+		o, n := Missing, Missing
 		if i, ok := oldIdx[c]; ok {
 			o = old.Entries[i].Value
 		}
