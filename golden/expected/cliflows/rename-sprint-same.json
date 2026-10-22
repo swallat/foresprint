@@ -1,0 +1,14 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "rename-sprint",
+  "demo",
+  "2026.21",
+  "2026.21"
+ ],
+ "input": "",
+ "exit_code": 0,
+ "files": {},
+ "deleted": [],
+ "seed": {}
+}

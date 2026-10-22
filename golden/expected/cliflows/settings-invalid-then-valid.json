@@ -8,5 +8,7 @@
  "exit_code": 0,
  "files": {
   "demo/team.yaml": "# Team settings. Explanations: `foresprint help team`\nname: Demo-Team\nunit: PT\nfeatures:\n  products: true\n  po: true\n  production: true\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: '2026.1'\n    start: 2026-01-07\nforecast:\n  reference_capacity: 45\n  window: 7\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: NW\n  rounding: 1\n"
- }
+ },
+ "deleted": [],
+ "seed": {}
 }
