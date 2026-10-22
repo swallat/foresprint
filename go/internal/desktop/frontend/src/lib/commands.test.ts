@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { commandsFor, registerCommands, score, type Command } from './commands';
+import { api } from './api';
+import { app } from './app.svelte';
+import { commandsFor, loadTicketIndex, registerCommands, score, type Command } from './commands';
 
 const cmd = (label: string, extra: Partial<Command> = {}): Command => ({ id: label, label, group: 'action', run: () => {}, ...extra });
 
@@ -33,6 +35,17 @@ describe('commandsFor', () => {
     expect(seen).toContain('login');
     off();
     expect(commandsFor('login').some((c) => c.id === 'ticket:ATL-1')).toBe(false);
+  });
+  it('finds sprints and, once loaded, tickets of the team, fast', async () => {
+    app.sprints = [{ id: '7', start: '2026-10-12', end: '2026-10-26', state: 'current' }];
+    expect(commandsFor('sprint 7').some((c) => c.id === 'sprint:7')).toBe(true);
+    app.team = (await api.Teams())[0]!.key;
+    const first = (await api.Backlog(app.team)).tickets[0]!;
+    await loadTicketIndex();
+    const t0 = performance.now();
+    const hit = commandsFor(first.key.toLowerCase());
+    expect(performance.now() - t0).toBeLessThan(100);
+    expect(hit.some((c) => c.id === `ticket:${first.key}`)).toBe(true);
   });
   it('keeps the limit', () => {
     expect(commandsFor('', 3)).toHaveLength(3);
