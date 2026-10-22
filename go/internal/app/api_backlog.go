@@ -1016,12 +1016,12 @@ func (a *API) DeleteWorkPackage(team, key string) error {
 // MoveWorkPackage puts a work package next to another one in the backlog order: before it, or
 // after it when after is set; anchor "" means to the end. The rank decides only among packages
 // of the same priority and project and behind dependencies, so a move the order does not show
-// is refused instead of silently doing nothing. A tracker keeps its own order, which Foresprint
-// never writes back.
+// is refused instead of silently doing nothing. For a tracker the order is kept in preplan.yaml
+// beside the tracker's rank and never written back to the tracker.
 func (a *API) MoveWorkPackage(team, key, anchor string, after bool) error {
 	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
-		if !a.writePackages(data) {
-			return nil, fmt.Errorf("%s", i18n.T("The order of tracker tickets is kept in the tracker."))
+		if data.Team.Source() == model.SourceNone {
+			return nil, fmt.Errorf("%s", i18n.T("There are no tickets to order."))
 		}
 		if tk.Done {
 			return nil, fmt.Errorf("%s", i18n.T("{key} is done and has no place in the backlog.", "key", key))
@@ -1052,11 +1052,16 @@ func (a *API) MoveWorkPackage(team, key, anchor string, after bool) error {
 			}
 		}
 		keys = append(keys[:at], append([]string{key}, keys[at:]...)...)
-		for n, k := range keys {
-			r := fmt.Sprintf("%08d", (n+1)*10)
-			if t := data.TicketByKey(k); t != nil {
-				t.Rank = &r
+		if a.writePackages(data) {
+			for n, k := range keys {
+				r := fmt.Sprintf("%08d", (n+1)*10)
+				if t := data.TicketByKey(k); t != nil {
+					t.Rank = &r
+				}
 			}
+		} else {
+			// Tracker tickets keep the tracker's rank; the order of the PO is stored beside it.
+			data.Preplan.Order = keys
 		}
 		// The new order must show; otherwise priority, project or a dependency keeps the package
 		// where it is. Nothing is saved then.
@@ -1071,6 +1076,9 @@ func (a *API) MoveWorkPackage(team, key, anchor string, after bool) error {
 				return nil, fmt.Errorf("%s", i18n.T("{key} has to stay where it is: priority, project or a dependency decides here. Change that in the panel first.", "key", key))
 			}
 		}
-		return backlogSavePackages(repo, team, data), nil
+		if a.writePackages(data) {
+			return backlogSavePackages(repo, team, data), nil
+		}
+		return backlogSavePreplan(repo, team, data), nil
 	})
 }

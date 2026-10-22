@@ -339,6 +339,9 @@ type Preplan struct {
 	Overrides  []TicketOverride
 	// ProForma are the placements of the PO into pro-forma sprints that differ from the tracker.
 	ProForma []ProFormaPlacement
+	// Order is the order of the PO among tracker tickets (first = most important): it replaces
+	// the tracker's rank for the tickets listed; the others keep the tracker's rank after them.
+	Order []string
 }
 
 // ProFormaPlacement is the wish of the PO to have a ticket in a pro-forma sprint (by name, as

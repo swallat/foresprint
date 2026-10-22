@@ -590,6 +590,11 @@ func preplanExtrasFrom(d *yamlx.Map, pp *model.Preplan, where string) error {
 		}
 		pp.ProForma = append(pp.ProForma, model.ProFormaPlacement{Ticket: pyStr(get(m, "ticket")), Name: name})
 	}
+	order, err := texts(get(d, "order"), where, "order")
+	if err != nil {
+		return err
+	}
+	pp.Order = order
 	return nil
 }
 
@@ -628,6 +633,13 @@ func preplanExtrasTo(out *yamlx.Map, pp model.Preplan) {
 			list[i] = omap("ticket", f.Ticket, "name", f.Name)
 		}
 		put(out, "proforma", list)
+	}
+	if len(pp.Order) > 0 {
+		list := make([]any, len(pp.Order))
+		for i, k := range pp.Order {
+			list[i] = k
+		}
+		put(out, "order", list)
 	}
 }
 

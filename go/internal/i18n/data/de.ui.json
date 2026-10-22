@@ -326,7 +326,6 @@
   "Open in {tracker}": "In {tracker} öffnen",
   "Open settings": "Einstellungen öffnen",
   "Open {unit} go to": "Offene {unit} gehen an",
-  "Order: ticket priority, then project, then rank from the tracker. The order is changed in the tracker. Drag by the handle, or press Alt+Right to earmark for the next sprint.": "Reihenfolge: Ticket-Priorität, dann Projekt, dann Rang aus dem Tracker. Die Reihenfolge ändert man im Tracker. Am Griff ziehen, oder Alt+Pfeil rechts merkt für den nächsten Sprint vor.",
   "Others who open the data may run into them. Fix them first, or save anyway.": "Wer die Daten danach öffnet, kann darüber stolpern. Korrigiere sie zuerst oder speichere trotzdem.",
   "Over the Forecast PLAN: {used} of {plan}.": "Über dem Forecast PLAN: {used} von {plan}.",
   "Overview": "Übersicht",

@@ -466,3 +466,11 @@ func TestPreplanProFormaRoundTrip(t *testing.T) {
 		t.Errorf("got %+v", got.ProForma)
 	}
 }
+
+func TestPreplanOrderRoundTrip(t *testing.T) {
+	pp := model.Preplan{Order: []string{"X-3", "X-1"}}
+	got, err := PreplanFromDict(PreplanToDict(pp), "preplan.yaml")
+	if err != nil || len(got.Order) != 2 || got.Order[0] != "X-3" || got.Order[1] != "X-1" {
+		t.Errorf("got %+v err %v", got.Order, err)
+	}
+}

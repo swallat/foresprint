@@ -400,3 +400,47 @@ func TestStaleProFormaPlacementsDoNotCount(t *testing.T) {
 		t.Errorf("adjust %+v pro-forma %+v", view.Adjust, view.ProForma)
 	}
 }
+
+func TestMoveTrackerTicketKeepsOwnOrderBesideTrackerRank(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	r1, r2, r3 := "0|a", "0|b", "0|c"
+	tf := storage.TicketsFile{Tickets: []model.Ticket{
+		{Key: "X-1", Title: "One", Rank: &r1, EstimateSource: model.EstimateNone},
+		{Key: "X-2", Title: "Two", Rank: &r2, EstimateSource: model.EstimateNone},
+		{Key: "X-3", Title: "Three", Rank: &r3, EstimateSource: model.EstimateNone},
+	}, Imported: func() *time.Time { n := time.Now(); return &n }()}
+	if _, err := repo.SaveTickets("t", tf); err != nil {
+		t.Fatal(err)
+	}
+	keys := func() string {
+		view, err := api.Backlog("t")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, tk := range view.Tickets {
+			out = append(out, tk.Key)
+		}
+		return strings.Join(out, ",")
+	}
+	if got := keys(); got != "X-1,X-2,X-3" {
+		t.Fatalf("order %s", got)
+	}
+	if err := api.MoveWorkPackage("t", "X-3", "X-1", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := keys(); got != "X-3,X-1,X-2" {
+		t.Fatalf("order %s", got)
+	}
+	// The tracker's rank is untouched; a new ticket from a later fetch comes after the own order.
+	after, _ := repo.Load("t")
+	if after.TicketByKey("X-3").Rank == nil || *after.TicketByKey("X-3").Rank != "0|c" {
+		t.Errorf("tracker rank changed: %+v", after.TicketByKey("X-3").Rank)
+	}
+}

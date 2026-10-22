@@ -154,8 +154,8 @@
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
   }
 
-  // Reordering: only work packages (a tracker keeps its own order), in the planning order, ungrouped.
-  const canReorder = $derived(packages && ui.sort === 'order' && ui.group === 'none');
+  // Reordering: in the planning order, ungrouped. A tracker's own rank stays; the order is kept beside it.
+  const canReorder = $derived(view?.source !== 'none' && ui.sort === 'order' && ui.group === 'none');
   let overRow = $state('');
   function rowOver(e: DragEvent, tk: BacklogTicket): void {
     if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key) return;
@@ -397,7 +397,7 @@
                 <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
               </Calc>
             </div>
-            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then rank. Drop a package on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: ticket priority, then project, then rank from the tracker. The order is changed in the tracker. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
+            <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, choose the planning order and no grouping. Alt+Right earmarks for the next sprint.')}</span>
           </div>
           <div class="lane-body">
             {#if items.length === 0}
