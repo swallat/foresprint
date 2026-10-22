@@ -1,0 +1,644 @@
+// Shell, router and helpers shared by all mock views.
+// Views register with FS.view(id, {...}); flows with FS.flow({...}). Navigation uses bare hash
+// tokens (#backlog, #plan) because the artifact viewer passes only those through.
+(function () {
+  const D = window.DEMO;
+  const FS = (window.FS = { views: {}, flows: [], state: { sprint: "2026.22", theme: null, calcMode: "icon" } });
+
+  // ---------- helpers ----------
+  FS.esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  FS.icon = (name, extra = "") => `<span class="ms ${extra}" aria-hidden="true">${name}</span>`;
+  FS.product = (id) => D.products.find((p) => p.id === id) || D.formerProducts?.find((p) => p.id === id);
+  FS.project = (id) => D.projects.find((p) => p.id === id) || D.closedProjects?.find((p) => p.id === id);
+  FS.person = (id) => D.people.find((p) => p.id === id);
+  FS.po = (id) => D.pos.find((p) => p.id === id);
+  FS.sprint = (id) => D.sprints.find((s) => s.id === id);
+  FS.ticket = (key) => D.tickets.find((t) => t.key === key);
+  FS.fmtDate = (iso) => { const [y, m, d] = iso.split("-"); return `${d}.${m}.${y.slice(2)}`; };
+  FS.fmt = (n, digits = 0) => (n == null ? "–" : Number(n).toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits }));
+  FS.sum = (arr, f = (x) => x) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+  // Reference capacity: full team without absences (display scale of the normalized velocity, as in 0.8)
+  // Optional features show up only when configured: several products, several POs, production share.
+  FS.multiProduct = () => D.products.length > 1;
+  FS.multiPO = () => D.pos.length > 1;
+  FS.prodOn = () => FS.state.teamApplied?.prod !== false;
+  // Cap on production time: at most this share of the time of people with production access counts (100 % = no cap).
+  FS.prodMax = () => Math.min(100, Math.max(0, FS.state.teamApplied?.prodMax ?? 100)) / 100;
+  // Plannable share (Settings > Forecast, as roadmap_share in 0.8). Plannable = (PLAN - carry-over) x share,
+  // rounded down; the remainder is small stuff.
+  FS.share = () => (FS.state.teamApplied?.share ?? D.plannableShare * 100) / 100;
+  FS.split = (base) => { const f = Math.floor(base * FS.share() + 1e-9); return { free: f, small: base - f }; };
+  // Ticket source (Settings > Tickets und Tracker): "jira" = tracker, "local" = work packages kept in
+  // Foresprint, "none" = no tickets at all, planning with amounts per product and project.
+  // The choice survives a reload of the mockup (per viewer, best effort).
+  try { const v = localStorage.getItem("fs-trk"); if (["jira", "local", "none"].includes(v)) { FS.state.trk = v; document.documentElement.dataset.trk = v; } } catch (e) { /* storage blocked */ }
+  FS.trk = () => FS.state.trk ?? "jira";
+  FS.setTrk = (v) => {
+    FS.state.trk = v;
+    try { localStorage.setItem("fs-trk", v); } catch (e) { /* storage blocked */ }
+    document.documentElement.dataset.trk = v;
+    if (FS.state.bl) FS.state.bl.notracker = v !== "jira";
+    if (FS.state.sp) FS.state.sp.noTracker = v === "none";
+    if (FS.state.jira) FS.state.jira.off = v !== "jira";
+    if (v === "none" && !D.projAmt) {
+      // Seed the hand-kept amounts from the demo tickets so all numbers stay comparable.
+      D.projAmt = {};
+      Object.keys(D.productPlan).forEach((sid) => D.products.forEach((pr) => D.projects.forEach((pj) => { const v = FS.sum(D.tickets.filter((t) => t.sprint === sid && t.product === pr.id && t.project === pj.id), (t) => t.est); if (v) ((D.projAmt[sid] ??= {})[pr.id] ??= {})[pj.id] = v; })));
+      D.projects.forEach((pj) => (pj.restPts ??= FS.sum(D.tickets.filter((t) => t.project === pj.id && t.status !== "Fertig"), (t) => t.est)));
+    }
+  };
+  // Points a project takes in a sprint (optionally for one product): from tickets, or from the hand-kept amounts.
+  FS.projPts = (sid, pj, pr) => FS.trk() === "none"
+    ? FS.sum(D.products.filter((p) => !pr || p.id === pr), (p) => D.projAmt?.[sid]?.[p.id]?.[pj] || 0)
+    : FS.sum(D.tickets.filter((t) => t.sprint === sid && t.project === pj && (!pr || t.product === pr)), (t) => t.est);
+  // Demo switch: Team Atlas with every feature, or a simple team (one PO, one product, no production share)
+  FS.setSimple = (on) => {
+    FS._full ??= structuredClone(D);
+    Object.keys(FS._full).forEach((k) => (D[k] = structuredClone(FS._full[k])));
+    FS.state.simple = on;
+    FS.state.sp = undefined;
+    if (FS.state.bl) { FS.state.bl.products = []; if (FS.state.bl.group === "product") FS.state.bl.group = "none"; }
+    if (FS.state.teamApplied) { FS.state.teamApplied.prod = !on; FS.state.teamDraft = { ...FS.state.teamApplied }; }
+    if (!on) { FS.state.rules = FS._fullRules ?? FS.state.rules; FS.state.ruleDraft = { product: D.products[0].id }; return; }
+    FS._fullRules ??= FS.state.rules;
+    const ids = D.products.map((p) => p.id);
+    D.products = [{ id: "team", name: D.team.name, po: D.pos[0].id, share: 1, color: "#4646d4" }];
+    D.pos = [D.pos[0]];
+    D.tickets.forEach((t) => (t.product = "team"));
+    D.projects.forEach((p) => (p.products = ["team"]));
+    const add = (rows) => rows.reduce((a, r) => { Object.entries(r || {}).forEach(([k, v]) => { if (typeof v === "number") a[k] = (a[k] ?? 0) + v; else if (v == null && !(k in a)) a[k] = null; }); return a; }, {});
+    Object.keys(D.productPlan).forEach((sid) => (D.productPlan[sid] = { team: add(ids.map((id) => D.productPlan[sid][id])) }));
+    if (D.productHistory) Object.keys(D.productHistory).forEach((sid) => { const r = ids.map((id) => D.productHistory[sid][id]); D.productHistory[sid] = { team: r[0].map((_, i) => (r.some((x) => x[i] == null) ? null : FS.sum(r, (x) => x[i]))) }; });
+    FS.state.rules = { team: "" };
+    FS.state.ruleDraft = { product: "team" };
+  };
+  // Absences removed since the last save stay visible as a ghost value until Save, so a slip can be undone
+  // ---------- absences as periods ----------
+  // A period (vacation, training, ...) per person becomes working days per sprint in the absence grid.
+  // Cells typed by hand win; sprints whose absences are confirmed ("festgeschrieben") are not changed.
+  FS.workdays = (from, to, s) => {
+    const a = new Date(Math.max(new Date(from), new Date(s.start))), b = new Date(Math.min(new Date(to), new Date(s.end))); let n = 0;
+    for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) if (d.getDay() % 6) n++;
+    return n;
+  };
+  FS.periodDays = (pid, s) => FS.sum((D.absPeriods || []).filter((z) => z.person === pid), (z) => FS.workdays(z.from, z.to, s));
+  FS.periodsOf = (pid, s) => (D.absPeriods || []).filter((z) => z.person === pid && FS.workdays(z.from, z.to, s) > 0);
+  FS.periodSprints = (z) => D.sprints.filter((s) => FS.workdays(z.from, z.to, s) > 0).map((s) => s.id);
+  FS.applyPeriods = () => {
+    const skipped = new Set(), kept = [];
+    D.sprints.filter((s) => s.state !== "past").forEach((s) => {
+      const a = (D.absences[s.id] ??= {});
+      D.people.forEach((p) => {
+        const d = Math.min(s.days, FS.periodDays(p.id, s)), e = a[p.id], zs = FS.periodsOf(p.id, s);
+        if (e && !e.src) { if (d > 0 && d !== e.d) kept.push(`${p.name.split(" ")[0]} ${s.id}`); return; }
+        if (s.absences === "confirmed") { if ((e?.d || 0) !== d) skipped.add(s.id); return; }
+        if (d > 0) a[p.id] = { d, s: zs.every((z) => z.s === "c") ? "c" : "a", src: "z" }; else if (e) delete a[p.id];
+      });
+      if (s.absences !== "confirmed") { const c = Object.values(a); s.absences = !c.length ? "unknown" : c.every((x) => x.s === "c") ? "confirmed" : "announced"; }
+    });
+    return Object.assign([...skipped], { kept });
+  };
+  FS.periodTitle = (pid, s) => FS.periodsOf(pid, s).map((z) => `${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`).join(", ");
+  // One panel per person: list, change and add planned absences (only dates; no reason is stored, on purpose).
+  FS.periodPanel = (pid, after) => {
+    pid = pid || D.people[0].id;
+    const p = FS.person(pid), re = () => (after ? after() : FS.render()), zs = D.absPeriods.filter((z) => z.person === pid).sort((a, b) => a.from.localeCompare(b.from));
+    const note = (what, a, b) => FS.addUnsaved?.(`Abwesenheit ${p.name}: ${what}`, a, b, "abwesenheiten.yaml");
+    const done = (msg) => { const skip = FS.applyPeriods(); re(); FS.periodPanel(pid, after); const extra = `${skip.length ? ` ${skip.join(", ")} ist festgeschrieben und bleibt unverändert; dort bei Bedarf von Hand anpassen.` : ""}${skip.kept.length ? ` Von Hand eingetragene Tage gehen vor (${skip.kept.join(", ")}); bitte prüfen.` : ""}`; if (msg || extra) FS.toast((msg || "") + extra); };
+    const sprintTxt = (f, t) => { const hits = D.sprints.map((s) => [s.id, FS.workdays(f, t, s)]).filter(([, n]) => n); return hits.length ? hits.map(([id, n]) => `<span class="data">${n}</span> T in ${id}`).join(", ") : '<span class="muted">nach dem angelegten Kalender</span>'; };
+    const el = FS.openPanel(`Abwesend geplant: ${p.name}`, `<div class="field"><label for="zp-p">Person</label><select class="input" id="zp-p">${D.people.map((x) => `<option value="${x.id}" ${x.id === pid ? "selected" : ""}>${FS.esc(x.name)}</option>`).join("")}</select></div>
+      <p class="small muted" style="margin:0">Nur der Zeitraum, ohne Grund. Foresprint rechnet die Arbeitstage je Sprint und trägt sie in Vorbereiten ein. Von Hand getippte Tage gehen vor, festgeschriebene Sprints bleiben unverändert.</p>
+      ${zs.length ? `<div class="stack" style="gap:8px">${zs.map((z) => `<div class="card" style="padding:10px 12px"><div class="row" style="gap:8px;flex-wrap:nowrap"><input class="input" type="date" data-zf="${z.id}" value="${z.from}" aria-label="von" style="width:150px"><span class="muted">bis</span><input class="input" type="date" data-zt="${z.id}" value="${z.to}" aria-label="bis" style="width:150px"><span style="flex:1"></span><button class="btn icon ghost" type="button" data-zx="${z.id}" aria-label="Zeitraum entfernen">${FS.icon("delete")}</button></div>
+        <div class="row small" style="margin-top:6px;gap:8px"><button type="button" class="chip ${z.s === "c" ? "ok" : "warn"}" data-zs="${z.id}" title="Klick wechselt">${FS.icon(z.s === "c" ? "lock" : "lock_open", "small")}${z.s === "c" ? "bestätigt" : "angekündigt"}</button><span>${sprintTxt(z.from, z.to)}</span></div></div>`).join("")}</div>` : '<p class="muted small" style="margin:0">Noch nichts geplant.</p>'}
+      <h3 style="margin:0">Neuer Zeitraum</h3>
+      <div class="row"><div class="field"><label for="zp-f">von</label><input class="input" id="zp-f" type="date" value="2026-11-23"></div><div class="field"><label for="zp-t">bis</label><input class="input" id="zp-t" type="date" value="2026-11-27"></div></div>
+      <label class="row" style="gap:6px"><input type="checkbox" id="zp-c">schon bestätigt</label>
+      <p class="small" id="zp-res" style="margin:0"></p>
+      <div class="row"><button class="btn primary" type="button" id="zp-ok">${FS.icon("add")}Hinzufügen</button><button class="btn ghost" type="button" id="zp-cancel">Schließen</button></div>`);
+    if (!el) return;
+    const q = (id) => el.querySelector(id), zOf = (id) => D.absPeriods.find((z) => z.id === id);
+    const show = () => { const f = q("#zp-f").value, t = q("#zp-t").value; q("#zp-res").innerHTML = !f || !t || t < f ? FS.lightChip("warn", "bis liegt vor von") : `Ergibt ${sprintTxt(f, t)}.`; };
+    ["#zp-f", "#zp-t"].forEach((id) => (q(id).oninput = show)); show();
+    q("#zp-p").onchange = (e) => FS.periodPanel(e.target.value, after);
+    q("#zp-cancel").onclick = FS.closePanel;
+    el.querySelectorAll("[data-zf]").forEach((i) => (i.onchange = () => { const z = zOf(i.dataset.zf); if (!i.value || i.value > z.to) return FS.toast("von muss vor bis liegen."); note("von", FS.fmtDate(z.from), FS.fmtDate(i.value)); z.from = i.value; done(); }));
+    el.querySelectorAll("[data-zt]").forEach((i) => (i.onchange = () => { const z = zOf(i.dataset.zt); if (!i.value || i.value < z.from) return FS.toast("bis muss nach von liegen."); note("bis", FS.fmtDate(z.to), FS.fmtDate(i.value)); z.to = i.value; done(); }));
+    el.querySelectorAll("[data-zs]").forEach((b) => (b.onclick = () => { const z = zOf(b.dataset.zs); z.s = z.s === "c" ? "a" : "c"; note("Stand", z.s === "c" ? "angekündigt" : "bestätigt", z.s === "c" ? "bestätigt" : "angekündigt"); done(); }));
+    el.querySelectorAll("[data-zx]").forEach((b) => (b.onclick = () => { const z = zOf(b.dataset.zx); D.absPeriods.splice(D.absPeriods.indexOf(z), 1); note("entfernt", `${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`, "–"); done("Zeitraum entfernt, die Tage sind aus den offenen Sprints raus."); }));
+    q("#zp-ok").onclick = () => {
+      const z = { id: "z" + Date.now(), person: pid, from: q("#zp-f").value, to: q("#zp-t").value, s: q("#zp-c").checked ? "c" : "a" };
+      if (!z.from || !z.to || z.to < z.from) return FS.toast("Bitte einen gültigen Zeitraum wählen.");
+      D.absPeriods.push(z); note("neu", "–", `${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`); done("Zeitraum eingetragen.");
+    };
+  };
+  FS.absGhost = () => (FS.state.absGhost ??= {});
+  FS.ghostAbs = (sid, pid, cell) => { if (cell) FS.absGhost()[`${sid}|${pid}`] = { ...cell }; };
+  FS.restoreAbs = (sid, pid) => { const g = FS.absGhost()[`${sid}|${pid}`]; if (!g) return; (D.absences[sid] ??= {})[pid] = { ...g }; delete FS.absGhost()[`${sid}|${pid}`]; };
+  document.addEventListener("click", (e) => { if (e.target.closest("#btn-save") && Object.keys(FS.absGhost()).length) { FS.state.absGhost = {}; setTimeout(() => ["prepare", "people"].includes(location.hash.slice(1)) && FS.render(), 0); } });
+  FS.prodSub = (v) => ` <span class="prod-sub" title="davon ${v} Punkte mit Produktionszugang">${FS.icon("dns", "small")}Prod ${v}</span>`;
+  FS.refCap = () => Math.round(FS.sum(D.people, (p) => p.fte) * 10);
+  FS.normVel = (s) => (s.velocity == null ? null : (s.velocity / s.capacityPD) * FS.refCap());
+
+  // Ticket key with tracker link (rule: every ticket links to its tracker)
+  // Display key: with work packages kept in Foresprint the demo tickets show as AP-… and link nowhere.
+  FS.dk = (k) => (FS.trk() === "local" ? String(k).replace(/^ATL-/, "AP-") : k);
+  FS.keyLink = (t) => FS.trk() === "local" ? `<span class="key" title="Arbeitspaket in Foresprint, kein Tracker">${FS.dk(t.key)}</span>` : `<span class="key"><a href="${D.team.trackerUrl}${t.key}" target="_blank" rel="noopener" title="In ${D.team.tracker} öffnen">${t.key}${FS.icon("open_in_new")}</a></span>`;
+  FS.productChip = (id) => { const p = FS.product(id); return p ? `<span class="chip"><span class="dot" style="background:${p.color}"></span>${FS.esc(p.name)}</span>` : ""; };
+  FS.projectChip = (id) => { const p = FS.project(id); return p ? `<span class="chip">${FS.icon("flag", "small")}${FS.esc(p.name)}</span>` : `<span class="chip muted">Tagesgeschäft</span>`; };
+  FS.lightChip = (l, text) => { const m = { ok: ["ok", "check_circle", "im Plan"], warn: ["warn", "error", "knapp"], bad: ["bad", "cancel", "gefährdet"] }[l]; return `<span class="chip ${m[0]}">${FS.icon(m[1])}${text || m[2]}</span>`; };
+  FS.refinedChip = (t) => (t.refined ? "" : `<span class="chip warn" title="Nicht refined">${FS.icon("help")}offen</span>`);
+  // Production share: part of a ticket's estimate that needs people with production access (0 to 100 %; 100 = production only).
+  // From the tracker field configured under Tickets und Tracker; a value set in Foresprint wins (kept in the team data).
+  // Order: value set in Foresprint, then the tracker field (if one is mapped), then the first matching rule, else 0.
+  const prodMode = () => (FS.trk() === "jira" ? FS.state.jira?.src?.prod ?? "field+rule" : "field");
+  FS.prodFieldOn = () => ["field", "field+rule"].includes(prodMode());
+  FS.prodRule = (t) => (FS.state.prodRules || []).find((r) => FS.ruleMatches(r.expr).includes(t));
+  FS.prodSrc = (t) => (FS.state.prodOver?.[t.key] != null ? "set" : t.prod != null && FS.prodFieldOn() ? "field" : ["rule", "field+rule"].includes(prodMode()) && FS.prodRule(t) ? "rule" : "none");
+  FS.prodPct = (t) => { const s = FS.prodSrc(t); return s === "set" ? FS.state.prodOver[t.key] : s === "field" ? t.prod : s === "rule" ? FS.prodRule(t).pct : 0; };
+  FS.prodPts = (l) => FS.sum(l, (t) => ((t.est || 0) * FS.prodPct(t)) / 100);
+  FS.prodChip = (t) => (FS.prodOn() && FS.prodPct(t) ? `<span class="prod-sub" title="${FS.prodPct(t)} % der Schätzung brauchen Produktionszugang">${FS.icon("dns", "small")}Prod ${FS.prodPct(t)} %</span>` : "");
+  FS.setProd = (t, v, file) => { const was = FS.prodPct(t); if (v === was) return; if (FS.trk() === "local") t.prod = v; else (FS.state.prodOver ??= {})[t.key] = v; FS.addUnsaved?.(`${FS.dk(t.key)}: Prod-Anteil`, `${was} %`, `${v} %`, file); };
+  FS.estHtml = (t) => (t.est == null ? `<span class="est muted" title="Keine Schätzung">?</span>` : `<span class="est">${t.est}</span>`);
+
+  // Standard ticket row; opts.drag adds a drag handle
+  FS.ticketRow = (t, opts = {}) => `
+    <div class="ticket" data-key="${t.key}" ${opts.drag ? 'draggable="true"' : ""} tabindex="0" aria-label="${FS.dk(t.key)} ${FS.esc(t.title)}">
+      <span class="handle">${opts.drag ? FS.icon("drag_indicator") : ""}</span>
+      ${FS.keyLink(t)}
+      <span class="title">${FS.esc(t.title)}</span>
+      <span class="meta">${FS.refinedChip(t)}${opts.noProduct || !FS.multiProduct() ? "" : FS.productChip(t.product)}${opts.noProject ? "" : FS.projectChip(t.project)}${FS.prodChip(t)}${FS.estHtml(t)}</span>
+    </div>`;
+
+  // Capacity bar: used vs forecast range (all in points)
+  FS.capBar = (used, fc, low, high, max) => {
+    max = max || Math.max(high || 0, used) * 1.15;
+    const pct = (v) => Math.max(0, Math.min(100, (v / max) * 100));
+    const over = high != null && used > high;
+    return `<div class="cap" title="${FS.fmt(used)} von ${FS.fmt(fc)} Punkten (Spanne ${FS.fmt(low)} bis ${FS.fmt(high)})">
+      ${low != null ? `<div class="fc" style="left:${pct(low)}%;width:${pct(high) - pct(low)}%"></div>` : ""}
+      <div class="used ${over ? "over" : ""}" style="width:${pct(used)}%"></div></div>`;
+  };
+
+  // Work packages kept in Foresprint are called that everywhere: "Ticket" reads "Arbeitspaket" in local mode.
+  // Elements marked data-terms="keep" (the ticket-source choice itself) keep the original wording.
+  const termFix = (t) => t.replace(/Tickets und Tracker/g, "\u0001").replace(/Ticketquelle/g, "\u0002").replace(/Ticket(s?)/g, (m, p) => (p ? "Arbeitspakete" : "Arbeitspaket")).replace(/ticket(s?)/g, (m, p) => (p ? "arbeitspakete" : "arbeitspaket")).replace(/\u0001/g, "Tickets und Tracker").replace(/\u0002/g, "Ticketquelle");
+  FS.localTerms = (root) => {
+    if (!root || FS.trk() !== "local" || ["#jira", "#flows"].includes(location.hash)) return;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+    while ((n = w.nextNode())) if (/icket/.test(n.textContent) && !n.parentElement.closest('[data-terms="keep"], .ms, script, style')) n.textContent = termFix(n.textContent);
+    root.querySelectorAll("[aria-label], [title], [placeholder]").forEach((el) => { if (el.closest('[data-terms="keep"]')) return; ["aria-label", "title", "placeholder"].forEach((a) => { const v = el.getAttribute(a); if (v && /icket/.test(v)) el.setAttribute(a, termFix(v)); }); });
+  };
+  FS.toast = (msg, undo) => {
+    document.querySelectorAll(".toast").forEach((t) => t.remove());
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.setAttribute("role", "status");
+    el.innerHTML = `<span>${msg}</span>${undo ? `<button type="button">Rückgängig</button>` : ""}`;
+    if (undo) el.querySelector("button").onclick = () => { undo(); el.remove(); };
+    document.body.appendChild(el);
+    FS.localTerms(el);
+    setTimeout(() => el.remove(), 4000);
+  };
+
+  FS.openPanel = (title, html) => {
+    FS.closePanel();
+    const el = document.createElement("aside");
+    el.className = "panel";
+    el.setAttribute("aria-label", title);
+    if (/^Rechenweg/.test(title) && !FS.capturing) html += `<p class="small" style="margin:0"><a href="#help">${FS.icon("help", "small")} Ausführlich erklärt in Hilfe > Rechenwege</a></p>`;
+    if (FS.capturing) { FS.captured = html; return null; }
+    el.innerHTML = `<div class="panel-head"><strong style="flex:1">${title}</strong><button class="btn icon ghost" type="button" aria-label="Schließen">${FS.icon("close")}</button></div><div class="panel-body">${html}</div>`;
+    el.querySelector(".panel-head button").onclick = FS.closePanel;
+    document.body.appendChild(el);
+    FS.localTerms(el);
+    return el;
+  };
+  FS.closePanel = () => document.querySelectorAll(".panel").forEach((p) => p.remove());
+
+  // Ticket details fetched read-only from the tracker; tickets without demo details get a short stand-in
+  FS.detail = (t) => D.details[t.key] || { type: "Story", priority: "Mittel", reporter: "Kim Berger", assignee: null, updated: "17.10.26 11:05", labels: [], components: [FS.product(t.product)?.name || ""], epic: FS.project(t.project)?.name || null,
+    description: `${t.title}. Die ausführliche Beschreibung steht im Ticket in ${D.team.tracker} und erscheint hier nach dem Abruf.`, acceptance: [], subtasks: [], links: [], comments: [], commentsTotal: 0, attachments: [] };
+  const dText = (txt) => txt.split("\n\n").map((p) => `<p style="margin:0 0 8px">${FS.esc(p)}</p>`).join("");
+  const dLinks = (d) => d.links.map(([rel, key, title]) => `<li><span class="muted">${rel}</span> ${FS.keyLink({ key })} ${FS.esc(title)}</li>`).join("");
+  const dSubs = (d) => d.subtasks.map(([key, title, st]) => `<li>${FS.keyLink({ key })} ${FS.esc(title)} <span class="chip small">${st}</span></li>`).join("");
+  const dComments = (d) => d.comments.map(([who, at, txt]) => `<div class="td-comment"><div class="small"><strong>${FS.esc(who)}</strong> <span class="muted data">${at}</span></div><div>${FS.esc(txt)}</div></div>`).join("") +
+    (d.commentsTotal > d.comments.length ? `<p class="small muted" style="margin:0">${d.commentsTotal - d.comments.length} ältere Kommentare ausgeblendet. <button class="link" type="button">Alle zeigen</button></p>` : "");
+  const dFiles = (d) => d.attachments.map(([n, kind, size]) => `<li class="row" style="gap:6px">${FS.icon(kind === "Bild" ? "image" : "description", "small")}<span class="data">${FS.esc(n)}</span><span class="muted small">${size}</span></li>`).join("");
+  const sect = (title, body, empty) => `<section class="td-sec"><h3>${title}</h3>${body || `<p class="muted small" style="margin:0">${empty}</p>`}</section>`;
+  // Jira content blocks shared by the side panel and the presentation view
+  FS.trackerBlocks = (t) => {
+    const d = FS.detail(t);
+    return sect("Beschreibung", dText(d.description)) +
+      sect("Akzeptanzkriterien", d.acceptance.length ? `<ul class="td-list">${d.acceptance.map((x) => `<li>${FS.esc(x)}</li>`).join("")}</ul>` : "", FS.trk() === "local" ? "Keine. Im Panel des Arbeitspakets eintragen." : "Keine eigenen Akzeptanzkriterien (Feld zuordnen unter Einstellungen > Jira und Tickets).") +
+      sect(`Unteraufgaben <span class="muted small">${d.subtasks.length}</span>`, d.subtasks.length ? `<ul class="td-list">${dSubs(d)}</ul>` : "", "Keine.") +
+      sect("Verknüpfungen", d.links.length ? `<ul class="td-list">${dLinks(d)}</ul>` : "", "Keine.") +
+      sect(`Kommentare <span class="muted small">${d.commentsTotal}</span>`, dComments(d), "Keine.") +
+      sect(`Anhänge <span class="muted small">${d.attachments.length}</span>`, d.attachments.length ? `<ul class="td-list" style="list-style:none;padding:0">${dFiles(d)}</ul>` : "", "Keine.");
+  };
+  const facts = (t) => { const d = FS.detail(t); return `<dl class="kv">
+        <dt>Typ, Priorität</dt><dd>${d.type} · ${d.priority}</dd>
+        <dt>Zuständig</dt><dd>${d.assignee ? FS.esc(d.assignee) : `<span class="muted">niemand</span>`}</dd>
+        <dt>Labels</dt><dd>${d.labels.length ? d.labels.map((l) => `<span class="chip small data">${FS.esc(l)}</span>`).join(" ") : `<span class="muted">keine</span>`}</dd>
+        <dt>Stand</dt><dd class="small muted">${FS.trk() === "local" ? `in Foresprint geändert ${d.updated}` : `Abruf ${D.trackerSync.last}, in ${D.team.tracker} geändert ${d.updated}`}</dd></dl>`; };
+
+  // Work packages kept in Foresprint: every field is edited here and saved with the team data (arbeitspakete.yaml).
+  const WP_STATUS = ["Neu", "Offen", "In Arbeit", "Review", "Fertig"], WP_TYPE = ["Story", "Aufgabe", "Fehler", "Spike"], WP_PRIO = ["Hoch", "Mittel", "Niedrig"];
+  FS.wpPanel = (key) => {
+    const t = FS.ticket(key), d = (D.details[t.key] ??= { ...FS.detail(t), description: "", acceptance: [], subtasks: [], links: [], comments: [], commentsTotal: 0, attachments: [] });
+    const sel = (id, list, cur, lab) => `<select class="input" id="${id}" aria-label="${lab}">${list.map((x) => { const [v, l] = Array.isArray(x) ? x : [x, x]; return `<option value="${FS.esc(v)}" ${v === cur ? "selected" : ""}>${FS.esc(l)}</option>`; }).join("")}</select>`;
+    const keys = D.tickets.filter((x) => x.key !== t.key).map((x) => [x.key, `${FS.dk(x.key)} ${x.title}`]);
+    const people = [["", "niemand"], ...D.people.map((p) => [p.name, p.name])];
+    const el = FS.openPanel(`${FS.dk(t.key)}`, `
+      <div class="row"><span class="key data">${FS.dk(t.key)}</span>${sel("wp-status", WP_STATUS, t.status, "Status")}<span style="flex:1"></span><button class="btn" type="button" id="tp-present" title="Groß im Fenster zeigen, mit Pfeiltasten blättern">${FS.icon("fit_screen")}Großansicht</button></div>
+      <div class="field"><label for="wp-title">Titel</label><input class="input" id="wp-title" value="${FS.esc(t.title)}"></div>
+      <dl class="kv">
+        <dt>Typ, Priorität</dt><dd class="row" style="gap:6px;flex-wrap:nowrap">${sel("wp-type", WP_TYPE, d.type, "Typ")}${sel("wp-prio", WP_PRIO, d.priority, "Priorität")}</dd>
+        <dt>Zuständig</dt><dd>${sel("wp-who", people, d.assignee || "", "Zuständig")}</dd>
+        <dt class="only-multiprod">Produkt</dt><dd class="only-multiprod">${sel("tp-product", D.products.map((p) => [p.id, p.name]), t.product, "Produkt")}</dd>
+        <dt>Projekt</dt><dd>${sel("tp-project", [["", "Tagesgeschäft"], ...D.projects.map((p) => [p.id, p.name])], t.project || "", "Projekt")}</dd>
+        <dt>Schätzung</dt><dd class="row" style="gap:6px"><input class="input data" id="wp-est" inputmode="numeric" value="${t.est ?? ""}" placeholder="–" style="width:72px;text-align:right" aria-label="Schätzung in Punkten"><span class="small muted">Punkte</span></dd>
+        ${FS.prodOn() ? `<dt>Prod-Anteil</dt><dd class="row" style="gap:6px"><input class="input data" id="tp-prod" inputmode="numeric" value="${FS.prodPct(t)}" style="width:72px;text-align:right" aria-label="Anteil mit Produktionszugang in Prozent"><span class="small muted">% der Schätzung brauchen Produktionszugang, 100 = nur Prod</span></dd>` : ""}
+        <dt>Refined</dt><dd><label class="row" style="gap:6px"><input type="checkbox" id="wp-ref" ${t.refined ? "checked" : ""}><span class="small">im Refinement geklärt</span></label></dd>
+        <dt>Vorgemerkt</dt><dd>${t.sprint ? `<span class="chip">${FS.icon("event")}Sprint ${t.sprint}</span>` : `<span class="muted">nicht vorgemerkt</span>`} <span class="small muted">im Backlog ziehen</span></dd>
+        <dt>Labels</dt><dd><input class="input" id="wp-labels" value="${FS.esc(d.labels.join(", "))}" placeholder="kommagetrennt"></dd>
+      </dl>
+      <div class="field"><label for="wp-desc">Beschreibung</label><textarea class="input" id="wp-desc" rows="4" placeholder="Was soll erreicht werden? Markdown geht.">${FS.esc(d.description)}</textarea></div>
+      <div class="field"><label for="wp-ac">Akzeptanzkriterien <span class="muted small">eins je Zeile</span></label><textarea class="input" id="wp-ac" rows="3">${FS.esc(d.acceptance.join("\n"))}</textarea></div>
+      <section class="td-sec"><h3>Unteraufgaben <span class="muted small">${d.subtasks.length}</span></h3>
+        ${d.subtasks.map(([, title, st], i) => `<label class="row" style="gap:6px"><input type="checkbox" data-sub="${i}" ${st === "Fertig" ? "checked" : ""}><span ${st === "Fertig" ? 'class="muted" style="text-decoration:line-through"' : ""}>${FS.esc(title)}</span></label>`).join("")}
+        <div class="row" style="gap:6px;margin-top:6px"><input class="input" id="wp-sub" placeholder="Neue Unteraufgabe" style="flex:1"><button class="btn" type="button" id="wp-sub-add">${FS.icon("add")}Hinzufügen</button></div></section>
+      <section class="td-sec"><h3>Abhängigkeiten</h3>
+        ${d.links.length ? `<ul class="td-list">${d.links.map(([rel, k, title]) => `<li><span class="muted">${rel}</span> <span class="key data">${FS.dk(k)}</span> ${FS.esc(title)}</li>`).join("")}</ul>` : `<p class="muted small" style="margin:0 0 6px">Keine. Vorplanen warnt, wenn ein Paket vor seiner Voraussetzung vorgemerkt ist.</p>`}
+        <div class="row" style="gap:6px"><select class="input" id="wp-dep-rel" aria-label="Art"><option>braucht</option><option>blockiert</option></select>${sel("wp-dep", keys, "", "Arbeitspaket").replace('style="', 'style="flex:1;')}<button class="btn" type="button" id="wp-dep-add">${FS.icon("add_link")}Verknüpfen</button></div></section>
+      <section class="td-sec"><h3>Kommentare <span class="muted small">${d.comments.length}</span></h3>
+        ${d.comments.map(([who, at, txt]) => `<div class="td-comment"><div class="small"><strong>${FS.esc(who)}</strong> <span class="muted data">${at}</span></div><div>${FS.esc(txt)}</div></div>`).join("")}
+        <div class="row" style="gap:6px;margin-top:6px"><input class="input" id="wp-com" placeholder="Kommentar" style="flex:1"><button class="btn" type="button" id="wp-com-add">${FS.icon("send")}Senden</button></div></section>
+      <p class="small muted" style="margin:0">Änderungen landen bei den ungespeicherten und gehen mit Speichern oben ans Team (Datei arbeitspakete.yaml). Anhänge bleiben bei Arbeitspaketen außen vor: Links in die Beschreibung schreiben.</p>
+      <div class="row"><button class="btn" type="button" id="wp-dup">${FS.icon("content_copy")}Duplizieren</button><button class="btn danger" type="button" id="wp-del">${FS.icon("delete")}Löschen</button></div>
+      <h2>Verlauf in Foresprint</h2>
+      <ul class="small" style="margin:0;padding-left:18px"><li>21.10. Kim Berger: vorgemerkt für 2026.22</li><li>14.10. Lea Hoffmann: Schätzung 5, refined</li><li>02.10. Kim Berger: angelegt</li></ul>`);
+    if (!el) return;
+    const k = FS.dk(t.key), note = (what, before, after) => FS.addUnsaved?.(`${k}: ${what}`, before, after, "arbeitspakete.yaml");
+    const on = (id, ev, fn) => el.querySelector(id).addEventListener(ev, fn);
+    on("#tp-present", "click", () => FS.presentTicket(key));
+    on("#wp-status", "change", (e) => { note("Status", t.status, e.target.value); t.status = e.target.value; });
+    on("#wp-title", "change", (e) => { note("Titel", t.title, e.target.value); t.title = e.target.value; });
+    on("#wp-type", "change", (e) => { note("Typ", d.type, e.target.value); d.type = e.target.value; });
+    on("#wp-prio", "change", (e) => { note("Priorität", d.priority, e.target.value); d.priority = e.target.value; });
+    on("#wp-who", "change", (e) => { note("Zuständig", d.assignee || "niemand", e.target.value || "niemand"); d.assignee = e.target.value || null; });
+    on("#tp-product", "change", (e) => { note("Produkt", FS.product(t.product)?.name, FS.product(e.target.value).name); t.product = e.target.value; });
+    on("#tp-project", "change", (e) => { note("Projekt", FS.project(t.project)?.name || "Tagesgeschäft", FS.project(e.target.value)?.name || "Tagesgeschäft"); t.project = e.target.value || null; });
+    on("#wp-est", "change", (e) => { const v = parseInt(e.target.value, 10); note("Schätzung", t.est ?? "–", isNaN(v) ? "–" : v); t.est = isNaN(v) ? null : v; });
+    el.querySelector("#tp-prod")?.addEventListener("change", (e) => { const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)); e.target.value = v; FS.setProd(t, v, "arbeitspakete.yaml"); FS.render(); });
+    on("#wp-ref", "change", (e) => { note("Refined", t.refined ? "ja" : "nein", e.target.checked ? "ja" : "nein"); t.refined = e.target.checked; });
+    on("#wp-labels", "change", (e) => { d.labels = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); note("Labels", "", d.labels.join(", ")); });
+    on("#wp-desc", "change", (e) => { note("Beschreibung", "geändert", "geändert"); d.description = e.target.value; });
+    on("#wp-ac", "change", (e) => { d.acceptance = e.target.value.split("\n").map((x) => x.trim()).filter(Boolean); note("Akzeptanzkriterien", "", `${d.acceptance.length} Punkte`); });
+    el.querySelectorAll("[data-sub]").forEach((c) => c.addEventListener("change", () => { d.subtasks[c.dataset.sub][2] = c.checked ? "Fertig" : "Offen"; note("Unteraufgabe", "", d.subtasks[c.dataset.sub][1]); FS.wpPanel(key); }));
+    on("#wp-sub-add", "click", () => { const v = el.querySelector("#wp-sub").value.trim(); if (!v) return; d.subtasks.push([null, v, "Offen"]); note("Unteraufgabe", "", v); FS.wpPanel(key); });
+    on("#wp-dep-add", "click", () => { const o = FS.ticket(el.querySelector("#wp-dep").value); if (!o) return; d.links.push([el.querySelector("#wp-dep-rel").value, o.key, o.title]); note("Abhängigkeit", "", FS.dk(o.key)); FS.wpPanel(key); });
+    on("#wp-com-add", "click", () => { const v = el.querySelector("#wp-com").value.trim(); if (!v) return; d.comments.push(["Du", "gerade eben", v]); d.commentsTotal = d.comments.length; FS.wpPanel(key); });
+    on("#wp-dup", "click", () => FS.toast(`${k} dupliziert als neues Arbeitspaket (im Mockup nicht ausgeführt).`));
+    on("#wp-del", "click", () => FS.toast(`${k} gelöscht. Bis Speichern rückgängig zu machen (im Mockup nicht ausgeführt).`));
+  };
+
+  FS.ticketPanel = (key) => {
+    if (FS.trk() === "local") return FS.wpPanel(key);
+    const t = FS.ticket(key);
+    const opts = (list, cur, label) => list.map((x) => `<option value="${x.id}" ${x.id === cur ? "selected" : ""}>${FS.esc(x.name)}</option>`).join("");
+    const el = FS.openPanel(`${FS.dk(t.key)}`, `
+      <div class="row">${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span><span style="flex:1"></span><button class="btn" type="button" id="tp-present" title="Ticket groß im Fenster zeigen, mit Pfeiltasten blättern">${FS.icon("fit_screen")}Großansicht</button></div>
+      <h2 style="margin:0">${FS.esc(t.title)}</h2>
+      <dl class="kv">
+        <dt class="only-multiprod">Produkt</dt><dd class="only-multiprod"><select class="input" id="tp-product">${opts(D.products, t.product)}</select></dd>
+        <dt>Projekt</dt><dd><select class="input" id="tp-project"><option value="">Tagesgeschäft</option>${opts(D.projects, t.project)}</select></dd>
+        <dt>Schätzung</dt><dd class="data">${t.est ?? "keine"} Punkte <span class="muted small">aus ${D.team.tracker}</span></dd>
+        ${FS.prodOn() ? `<dt>Prod-Anteil</dt><dd class="row" style="gap:6px"><input class="input data" id="tp-prod" inputmode="numeric" value="${FS.prodPct(t)}" style="width:72px;text-align:right" aria-label="Anteil mit Produktionszugang in Prozent"><span class="small muted">% · ${{ set: "in Foresprint gesetzt", field: `aus ${D.team.tracker}`, rule: `per Regel ${FS.esc(FS.prodRule(t)?.expr || "")}`, none: "kein Wert, gilt 0" }[FS.prodSrc(t)]}</span></dd>` : ""}
+        <dt>Refined</dt><dd>${t.refined ? FS.lightChip("ok", "ja") : FS.lightChip("warn", "nein")}</dd>
+        <dt>Vorgemerkt</dt><dd>${t.sprint ? `<span class="chip">${FS.icon("event")}Sprint ${t.sprint}</span>` : `<span class="muted">nicht vorgemerkt</span>`}</dd>
+        ${t.inTrackerSprint ? `<dt>Im ${D.team.tracker}-Sprint</dt><dd class="data">${t.inTrackerSprint}</dd>` : ""}
+      </dl>
+      <div class="field"><label for="tp-note">Notiz zur Vormerkung</label><textarea class="input" id="tp-note" rows="2" placeholder="z. B. mit Kim abgestimmt"></textarea></div>
+      <p class="small muted only-multiprod" style="margin:0">Produkt per Regel (Komponente = Portal). Abweichung hier überschreibt die Regel nur für dieses Ticket.</p>
+      <h2 style="margin:8px 0 0">Aus ${D.team.tracker} <span class="chip small">nur gelesen</span></h2>
+      ${facts(t)}
+      ${FS.trackerBlocks(t)}
+      <h2>Verlauf in Foresprint</h2>
+      <ul class="small" style="margin:0;padding-left:18px"><li>21.10. Kim Berger: vorgemerkt für 2026.22</li><li>18.10. Abruf aus ${D.team.tracker}: Schätzung 5</li></ul>`);
+    if (el) el.querySelector("#tp-present").onclick = () => FS.presentTicket(key);
+    el?.querySelector("#tp-prod")?.addEventListener("change", (e) => { const v = Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)); e.target.value = v; FS.setProd(t, v, "vorplanung.yaml"); FS.render(); });
+  };
+
+  // Presentation view: one ticket fills the window, arrows step through the list on screen.
+  // Built for sharing a single app window in planning and refinement meetings.
+  FS.presentTicket = (key, keys) => {
+    keys ??= [...new Set([...document.querySelectorAll("#main .ticket[data-key]")].map((e) => e.dataset.key))];
+    if (!keys.includes(key)) keys = [key, ...keys];
+    FS.closePanel();
+    document.querySelectorAll(".present").forEach((p) => p.remove());
+    const el = document.createElement("div");
+    el.className = "present";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    const draw = () => {
+      const t = FS.ticket(key), d = FS.detail(t), i = keys.indexOf(key), sid = FS.state.sprint, inSp = t.sprint === sid;
+      const onPlan = location.hash.slice(1) === "plan";
+      const inSprint = D.tickets.filter((x) => x.sprint === sid), pts = FS.sum(inSprint, (x) => x.est), sp = FS.sprint(sid);
+      el.setAttribute("aria-label", `${FS.dk(t.key)} ${t.title}`);
+      el.innerHTML = `<div class="present-head">
+          ${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span>${FS.refinedChip(t)}${FS.multiProduct() ? FS.productChip(t.product) : ""}${FS.projectChip(t.project)}
+          <span style="flex:1"></span>
+          <span class="small muted data">${i + 1} von ${keys.length}</span>
+          <button class="btn icon" type="button" data-step="-1" aria-label="Vorheriges Ticket" ${i <= 0 ? "disabled" : ""}>${FS.icon("chevron_left")}</button>
+          <button class="btn icon" type="button" data-step="1" aria-label="Nächstes Ticket" ${i >= keys.length - 1 ? "disabled" : ""}>${FS.icon("chevron_right")}</button>
+          <button class="btn icon ghost" type="button" data-close aria-label="Großansicht schließen">${FS.icon("close")}</button></div>
+        <div class="present-body"><div class="present-main">
+          <h1>${FS.esc(t.title)}</h1>
+          ${FS.trackerBlocks(t)}</div>
+          <aside class="present-side">
+            <div class="present-est"><span class="data">${t.est ?? "?"}</span><span class="small muted">Punkte</span></div>
+            ${onPlan ? `<div class="card stack" style="gap:8px"><div class="small muted">Sprint <span class="data">${sid}</span>: <strong class="data">${pts}</strong> von <span class="data">${sp.forecast}</span> Punkten</div>${FS.capBar(pts, sp.forecast, sp.low, sp.high)}
+              <button class="btn ${inSp ? "" : "primary"}" type="button" data-move>${FS.icon(inSp ? "remove" : "add")}${inSp ? "Aus dem Sprint nehmen" : `In Sprint ${sid} nehmen`}</button></div>` : ""}
+            ${facts(t)}
+            <dl class="kv"><dt>Vorgemerkt</dt><dd>${t.sprint ? `Sprint ${t.sprint}` : `<span class="muted">nicht vorgemerkt</span>`}</dd><dt>Epic</dt><dd>${d.epic ? FS.esc(d.epic) : `<span class="muted">keins</span>`}</dd></dl>
+            <p class="small muted" style="margin:0">Pfeiltasten blättern, Esc schließt. ${onPlan ? "Leertaste nimmt das Ticket in den Sprint oder heraus." : ""}</p>
+          </aside></div>`;
+      el.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => step(+b.dataset.step)));
+      el.querySelector("[data-close]").onclick = close;
+      const mv = el.querySelector("[data-move]"); if (mv) mv.onclick = move;
+    };
+    const step = (n) => { const i = keys.indexOf(key) + n; if (i < 0 || i >= keys.length) return; key = keys[i]; draw(); };
+    const move = () => { FS.moveTicket(key, FS.ticket(key).sprint === FS.state.sprint ? "backlog" : FS.state.sprint, null); FS.keepPresent = true; FS.render(); FS.keepPresent = false; draw(); };
+    const onKey = (e) => {
+      if (e.target.closest("input, textarea, select")) return;
+      if (e.key === "ArrowRight") step(1); else if (e.key === "ArrowLeft") step(-1); else if (e.key === "Escape") close();
+      else if (e.key === " " && el.querySelector("[data-move]")) { e.preventDefault(); move(); } else return;
+    };
+    const close = () => { el.remove(); window.removeEventListener("keydown", onKey); FS.presentClose = null; };
+    FS.presentClose?.(); FS.presentClose = close;
+    window.addEventListener("keydown", onKey);
+    document.body.appendChild(el);
+    draw();
+    el.querySelector("[data-close]").focus();
+  };
+
+
+  // ---------- assignment rules (same language for products and projects, as in 0.8 ruleexpr) ----------
+  // Fields: component, label, epic, priority, type, status. Operators: = != ~ !~ IN, NOT IN; AND OR NOT, parentheses.
+  const COMP = { portal: "Portal", billing: "Abrechnung", mobile: "Mobile App", platform: "Plattform" };
+  FS.ruleFields = ["component", "label", "epic", "priority", "type", "status", "bereich"];
+  FS.ticketFields = (t) => { const d = D.details[t.key]; return { component: [COMP[t.product]], label: ["team-" + t.product, t.refined ? "refined" : "", ...(d?.labels || [])].filter(Boolean), epic: [t.project ? FS.project(t.project).name : ""].filter(Boolean), priority: [d?.priority || "Mittel"], type: [d?.type || "Story"], status: [t.status], bereich: [{ platform: "Betrieb", billing: "Fachlich", portal: "Fachlich", mobile: "Fachlich" }[t.product]] }; };
+  FS.parseRule = (src) => {
+    const toks = []; const re = /\s*(?:("(?:[^"\\]|\\.)*")|(!=|!~|=|~|\(|\)|,)|([A-Za-zÄÖÜäöüß_][\w.-]*))/gy; let m, pos = 0;
+    while (pos < src.length) { re.lastIndex = pos; m = re.exec(src); if (!m || m[0].length === 0) { if (/^\s*$/.test(src.slice(pos))) break; throw new Error(`Unerwartetes Zeichen an Stelle ${pos + 1}`); } toks.push(m[1] ? { s: JSON.parse(m[1]) } : m[2] ? { o: m[2] } : { w: m[3] }); pos = re.lastIndex; }
+    let i = 0; const peek = () => toks[i], kw = (k) => peek()?.w?.toUpperCase() === k, eat = (o) => { if (peek()?.o !== o) throw new Error(`"${o}" erwartet`); i++; };
+    const val = () => { const t = toks[i++]; if (!t || t.o) throw new Error("Wert erwartet"); return t.s ?? t.w; };
+    const cond = () => {
+      if (kw("NOT")) { i++; return { not: cond() }; }
+      if (peek()?.o === "(") { i++; const e = or(); eat(")"); return e; }
+      const f = toks[i++]?.w?.toLowerCase(); if (!FS.ruleFields.includes(f)) throw new Error(`Unbekanntes Feld "${f ?? ""}". Felder: ${FS.ruleFields.join(", ")}`);
+      let op; if (kw("NOT")) { i++; if (!kw("IN")) throw new Error("NOT IN erwartet"); i++; op = "NOT IN"; } else if (kw("IN")) { i++; op = "IN"; } else { op = toks[i++]?.o; if (!["=", "!=", "~", "!~"].includes(op)) throw new Error(`Operator nach ${f} erwartet (= != ~ !~ IN)`); }
+      if (op.endsWith("IN")) { eat("("); const vs = [val()]; while (peek()?.o === ",") { i++; vs.push(val()); } eat(")"); return { f, op, vs }; }
+      return { f, op, vs: [val()] };
+    };
+    const and = () => { let l = cond(); while (kw("AND")) { i++; l = { and: [l, cond()] }; } return l; };
+    const or = () => { let l = and(); while (kw("OR")) { i++; l = { or: [l, and()] }; } return l; };
+    if (!toks.length) return null; const tree = or(); if (i < toks.length) throw new Error("Ausdruck endet nicht sauber, AND oder OR fehlt?"); return tree;
+  };
+  const evalTree = (n, fv) => {
+    if (n.not) return !evalTree(n.not, fv); if (n.and) return n.and.every((x) => evalTree(x, fv)); if (n.or) return n.or.some((x) => evalTree(x, fv));
+    const have = (fv[n.f] || []).map((v) => v.toLowerCase()), want = n.vs.map((v) => v.toLowerCase());
+    const eq = have.some((h) => want.includes(h)), con = have.some((h) => want.some((w) => h.includes(w)));
+    return { "=": eq, IN: eq, "!=": !eq, "NOT IN": !eq, "~": con, "!~": !con }[n.op];
+  };
+  FS.ruleMatches = (expr) => { try { const tr = FS.parseRule(expr || ""); return tr ? D.tickets.filter((t) => evalTree(tr, FS.ticketFields(t))) : []; } catch (e) { return []; } };
+  // Rule editor with live preview. kind: "product" | "project"; others: [{id, name, rule}] of the same kind
+  FS.ruleEditor = (kind, owner, expr, others) => `<div class="stack rule-ed" data-rule-kind="${kind}" data-rule-owner="${owner}" style="gap:8px">
+      <div class="field"><label for="re-${owner}">Regel für ${FS.esc((kind === "product" ? FS.product(owner) : FS.project(owner))?.name || "")}</label><textarea class="input data" id="re-${owner}" rows="2" spellcheck="false">${FS.esc(expr || "")}</textarea></div>
+      <div class="small muted">Felder: ${FS.ruleFields.map((f) => `<button class="link data" type="button" data-ins="${f} = &quot;&quot;">${f}</button>`).join(" ")} · Operatoren <span class="data">= != ~ !~ IN NOT IN AND OR NOT ( )</span> · weitere Felder unter Einstellungen > Jira und Tickets</div>
+      <div class="banner info rule-prev" style="margin:0">${FS.icon("preview")}<div class="grow"></div></div></div>`;
+  FS.wireRuleEditor = (root, others, onApplyBtn) => {
+    const box = root.querySelector(".rule-ed"); if (!box) return;
+    const kind = box.dataset.ruleKind, owner = box.dataset.ruleOwner, ta = box.querySelector("textarea"), prev = box.querySelector(".rule-prev .grow");
+    const cur = (t) => (kind === "product" ? t.product : t.project);
+    const upd = () => {
+      let m; try { const tr = FS.parseRule(ta.value); m = tr ? D.tickets.filter((t) => evalTree(tr, FS.ticketFields(t))) : []; } catch (e) { prev.innerHTML = `<strong>Regel unvollständig:</strong> ${FS.esc(e.message)}`; box.querySelector(".rule-prev").className = "banner warn rule-prev"; return; }
+      box.querySelector(".rule-prev").className = "banner info rule-prev";
+      const clash = m.filter((t) => others.some((o) => o.id !== owner && FS.ruleMatches(o.rule).includes(t)));
+      const moved = m.filter((t) => cur(t) && cur(t) !== owner);
+      prev.innerHTML = `<strong class="data">${m.length}</strong> Tickets passen (<span class="data">${FS.sum(m, (t) => t.est || 0)}</span> Punkte)${moved.length ? `, <span class="data">${moved.length}</span> davon heute anders zugeordnet` : ""}${clash.length ? `. <span class="chip warn">${clash.length} passen auch auf eine andere Regel</span> (Reihenfolge entscheidet, Widerspruch erscheint in der Vorschau)` : ""}.
+        <div class="small" style="margin-top:4px">${m.slice(0, 5).map((t) => FS.keyLink(t) + " ").join("")}${m.length > 5 ? `<span class="muted">und ${m.length - 5} weitere</span>` : ""}</div>`;
+    };
+    ta.addEventListener("input", upd);
+    box.querySelectorAll("[data-ins]").forEach((b) => (b.onclick = () => { const p = ta.selectionStart ?? ta.value.length; const add = (ta.value.trim() && p === ta.value.length ? " AND " : "") + b.dataset.ins; ta.value = ta.value.slice(0, p) + add + ta.value.slice(p); ta.focus(); ta.selectionStart = ta.selectionEnd = p + add.length - 1; upd(); }));
+    upd();
+    return () => ta.value.trim();
+  };
+
+  // ---------- drag and drop with keyboard alternative ----------
+  // FS.dnd(root, { onDrop(key, zoneId, beforeKey) }) for .ticket[draggable] inside [data-zone]
+  FS.dnd = (root, { onDrop }) => {
+    let dragKey = null;
+    root.querySelectorAll(".ticket[draggable]").forEach((el) => {
+      el.addEventListener("dragstart", (e) => { dragKey = el.dataset.key; el.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragKey); });
+      el.addEventListener("dragend", () => { el.classList.remove("dragging"); root.querySelectorAll(".drop-line").forEach((l) => l.remove()); root.querySelectorAll(".over").forEach((z) => z.classList.remove("over")); });
+      el.addEventListener("keydown", (e) => {
+        if (!e.altKey) return;
+        const zones = [...root.querySelectorAll("[data-zone]")];
+        const zone = el.closest("[data-zone]");
+        const items = [...zone.querySelectorAll(".ticket")];
+        const i = items.indexOf(el);
+        if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); onDrop(el.dataset.key, zone.dataset.zone, items[i - 1].dataset.key, true); }
+        if (e.key === "ArrowDown" && i < items.length - 1) { e.preventDefault(); onDrop(el.dataset.key, zone.dataset.zone, items[i + 2]?.dataset.key || null, true); }
+        const zi = zones.indexOf(zone);
+        if (e.key === "ArrowRight" && zi < zones.length - 1) { e.preventDefault(); onDrop(el.dataset.key, zones[zi + 1].dataset.zone, null, true); }
+        if (e.key === "ArrowLeft" && zi > 0) { e.preventDefault(); onDrop(el.dataset.key, zones[zi - 1].dataset.zone, null, true); }
+      });
+    });
+    root.querySelectorAll("[data-zone]").forEach((zone) => {
+      zone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        zone.classList.add("over");
+        root.querySelectorAll(".drop-line").forEach((l) => l.remove());
+        const after = [...zone.querySelectorAll(".ticket:not(.dragging)")].find((t) => e.clientY < t.getBoundingClientRect().top + t.offsetHeight / 2);
+        const line = document.createElement("div");
+        line.className = "drop-line";
+        if (after) after.before(line); else (zone.querySelector(".lane-body") || zone).appendChild(line);
+        zone.dataset.before = after ? after.dataset.key : "";
+      });
+      zone.addEventListener("dragleave", (e) => { if (!zone.contains(e.relatedTarget)) zone.classList.remove("over"); });
+      zone.addEventListener("drop", (e) => { e.preventDefault(); zone.classList.remove("over"); if (dragKey) onDrop(dragKey, zone.dataset.zone, zone.dataset.before || null); dragKey = null; });
+    });
+  };
+  // Move ticket in D.tickets (rank order) and set sprint; zone "backlog" = no sprint
+  FS.moveTicket = (key, zone, beforeKey) => {
+    const list = D.tickets;
+    const t = FS.ticket(key);
+    const prev = { sprint: t.sprint, idx: list.indexOf(t) };
+    t.sprint = zone === "backlog" ? null : zone;
+    list.splice(list.indexOf(t), 1);
+    const bi = beforeKey ? list.findIndex((x) => x.key === beforeKey) : -1;
+    if (bi >= 0) list.splice(bi, 0, t); else list.push(t);
+    return () => { t.sprint = prev.sprint; list.splice(list.indexOf(t), 1); list.splice(prev.idx, 0, t); };
+  };
+
+  // ---------- registry ----------
+  FS.view = (id, def) => (FS.views[id] = { id, ...def });
+  FS.flow = (def) => FS.flows.push(def);
+
+  // ---------- navigation model (flows.md section 5) ----------
+  const NAV = [
+    { group: null, items: [["today", "today", "Heute"], ["backlog", "view_list", "Backlog", false, "need-tickets"]] },
+    { group: "Sprints", items: [["sprints", "date_range", "Sprint-Übersicht"], ["prepare", "event_available", "Vorbereiten", true], ["preplan", "low_priority", "Vorplanen", true], ["plan", "checklist", "Planen", true], ["review", "task_alt", "Review", true], ["minutes", "description", "Protokolle", true]] },
+    { group: null, items: [["projects", "flag", "Projekte"], ["forecast", "insights", "Forecast"]] },
+    { group: "Team", items: [["people", "group", "Personen und Abwesenheiten"], ["products", "category", "Produkte"], ["calendar", "calendar_month", "Sprint-Kalender"]] },
+    { group: "Daten", items: [["data", "database", "Übersicht"], ["conflicts", "call_split", "Konflikte"], ["history", "history", "Verlauf und Tags"]] },
+    { group: "Einstellungen", items: [["settings", "tune", "Team"], ["jira", "sync", "Tickets und Tracker"], ["storage", "cloud", "Speicher"], ["personal", "person", "Persönlich"]] },
+    { group: "Hilfe", items: [["help", "calculate", "Rechenwege"]] },
+    { group: "Mockups", items: [["flows", "route", "Abläufe durchspielen"]] },
+  ];
+
+  const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="rc"><rect width="64" height="64" rx="13"/></clipPath></defs><rect width="64" height="64" rx="13" fill="#5b5bf0"/><path clip-path="url(#rc)" d="M64 10 L10 64 H64Z" fill="#a24df0" opacity=".85"/><rect x="6" y="24" width="14" height="16" rx="3" fill="#fff"/><rect x="23" y="24" width="14" height="16" rx="3" fill="#fff"/><rect x="40" y="24" width="14" height="16" rx="3" fill="none" stroke="#17c3a0" stroke-width="2.5" stroke-dasharray="4 2"/><line x1="54" y1="32" x2="60" y2="32" stroke="#17c3a0" stroke-width="3" stroke-linecap="round"/></svg>`;
+
+  FS.storageChip = () => {
+    const st = FS.state.storageState || "incoming";
+    const m = {
+      saved: ["ok", "cloud_done", "Gespeichert"],
+      incoming: ["warn", "cloud_download", `${D.storage.incoming.length} neue Änderungen von Lea`],
+      conflict: ["bad", "call_split", "Konflikt"],
+      offline: ["", "cloud_off", "Offline, Speichern lokal"],
+      mr: ["warn", "merge", "Wartet auf Merge Request"],
+    }[st];
+    return `<a class="chip-status ${m[0]}" href="#data" id="storage-chip" title="Speicherstatus">${FS.icon(m[1])}<span class="hide-narrow">${m[2]}</span></a>`;
+  };
+
+  function shell() {
+    const s = FS.sprint(FS.state.sprint);
+    return `
+    <div class="app">
+      <header class="topbar">
+        <button class="btn icon ghost rail-toggle" type="button" aria-label="Navigation" id="rail-toggle">${FS.icon("menu")}</button>
+        <div class="brand">${LOGO}<span>Foresprint</span></div>
+        <button class="sel hide-narrow" type="button" title="Team wechseln">${FS.icon("groups")}${D.team.name}${FS.icon("expand_more")}</button>
+        <button class="sel" type="button" id="sprint-sel" title="Sprint wählen">${FS.icon("date_range")}<span class="data">${s.id}</span>${FS.icon("expand_more")}</button>
+        <div class="spacer"></div>
+        <div class="search" role="button" tabindex="0" title="Suchen und springen (Strg+K)">${FS.icon("search")}<span class="txt">Suchen</span><span class="small data hide-narrow">Strg+K</span></div>
+        <a class="chip-status only-jira ${FS.state.trackerOk === false ? "bad" : ""}" href="#jira" title="Letzter Abruf aus ${D.team.tracker}">${FS.icon("sync")}<span class="hide-narrow">${D.team.tracker} ${D.trackerSync.last}</span></a>
+        ${FS.storageChip()}
+        <button class="btn hide-narrow" type="button" id="btn-refresh" title="Änderungen von anderen holen">${FS.icon("download")}Aktualisieren</button>
+        <button class="btn primary" type="button" id="btn-save" title="Speichern und für das Team sichtbar machen" aria-label="Speichern">${FS.icon("save")}<span class="hide-narrow">Speichern</span></button>
+        <button class="btn icon ghost" type="button" id="btn-theme" aria-label="Hell oder dunkel">${FS.icon("contrast")}</button>
+      </header>
+      <nav class="rail" id="rail" aria-label="Hauptnavigation">
+        ${NAV.map((g) => `${g.group ? `<h6>${g.group}${g.group === "Sprints" ? ` <span class="data">${s.id}</span>` : ""}</h6>` : ""}${g.items.map(([id, ic, label, sub, cls]) => `<a href="#${id}" data-nav="${id}" class="${cls || ""}">${FS.icon(ic)}<span>${label}</span>${id === "conflicts" && FS.state.storageState === "conflict" ? '<span class="count" style="color:var(--bad)">2</span>' : ""}</a>`).join("")}`).join("")}
+      </nav>
+      <main class="main" id="main"></main>
+    </div>`;
+  }
+
+  function wireShell() {
+    document.getElementById("rail-toggle").onclick = () => document.getElementById("rail").classList.toggle("open");
+    document.getElementById("btn-save").onclick = () => {
+      FS.state.storageState = "saved";
+      rerenderTop();
+      FS.toast(D.storage.mrEnforced && FS.state.mrDemo ? "Gespeichert. Der Server verlangt einen Merge Request: Link im Statuschip." : "Gespeichert und mit dem Team geteilt.");
+    };
+    document.getElementById("btn-refresh").onclick = () => { FS.state.storageState = "saved"; rerenderTop(); FS.toast("2 Änderungen von Lea und Kim übernommen."); };
+    document.getElementById("btn-theme").onclick = () => {
+      const root = document.documentElement;
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+    };
+    document.getElementById("sprint-sel").onclick = () => {
+      const ids = D.sprints.filter((s) => s.state !== "past").map((s) => s.id);
+      FS.state.sprint = ids[(ids.indexOf(FS.state.sprint) + 1) % ids.length];
+      render();
+      FS.toast(`Sprint ${FS.state.sprint} gewählt (Klick wechselt weiter).`);
+    };
+  }
+  function rerenderTop() { const c = document.getElementById("storage-chip"); if (c) c.outerHTML = FS.storageChip(); }
+
+  // ---------- flow guide ----------
+  function guide() {
+    document.querySelectorAll(".guide").forEach((g) => g.remove());
+    document.querySelectorAll(".hl").forEach((h) => h.classList.remove("hl"));
+    const g = FS.state.guide;
+    if (!g) return;
+    const flow = FS.flows.find((f) => f.id === g.flow);
+    const step = flow.steps[g.step];
+    const el = document.createElement("div");
+    el.className = "guide";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", "Ablauf");
+    el.innerHTML = `<div class="step">${flow.id} ${FS.esc(flow.title)} · Schritt ${g.step + 1} von ${flow.steps.length}</div><p>${step.text}</p>
+      <div class="row"><button class="btn" type="button" data-g="prev" ${g.step === 0 ? "disabled" : ""}>${FS.icon("arrow_back")}Zurück</button>
+      ${g.step < flow.steps.length - 1 ? `<button class="btn primary" type="button" data-g="next">Weiter${FS.icon("arrow_forward")}</button>` : `<button class="btn primary" type="button" data-g="end">Fertig</button>`}
+      <button class="btn ghost" type="button" data-g="end" style="margin-left:auto">Beenden</button></div>`;
+    el.onclick = (e) => {
+      const b = e.target.closest("[data-g]");
+      if (!b) return;
+      if (b.dataset.g === "end") { FS.state.guide = null; guide(); return; }
+      g.step += b.dataset.g === "next" ? 1 : -1;
+      FS.goStep();
+    };
+    document.body.appendChild(el);
+    if (step.hl) [60, 300, 800].forEach((ms) => setTimeout(() => document.querySelectorAll(step.hl).forEach((h) => { if (h.classList.contains("hl")) return; h.classList.add("hl"); h.scrollIntoView({ block: "nearest" }); }), ms));
+  }
+  FS.startFlow = (id) => { FS.state.guide = { flow: id, step: 0 }; FS.goStep(); };
+  FS.goStep = () => {
+    const g = FS.state.guide;
+    const step = FS.flows.find((f) => f.id === g.flow).steps[g.step];
+    if (step.before) step.before();
+    if (location.hash.slice(1) === step.view) render(); else location.hash = step.view;
+  };
+
+  // ---------- router ----------
+  function render() {
+    const id = location.hash.slice(1) || "today";
+    const v = FS.views[id] || FS.views.missing;
+    document.getElementById("app").innerHTML = shell();
+    wireShell();
+    const navId = { project: "projects", setup: "storage" }[id] || id;
+    document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("active", a.dataset.nav === navId));
+    const main = document.getElementById("main");
+    FS.closePanel();
+    if (!FS.keepPresent) FS.presentClose?.();
+    main.innerHTML = `<div class="page">${v.render()}</div>`;
+    if (v.wire) v.wire(main);
+    applyCalcMode(main);
+    FS.localTerms(main);
+    const de = document.documentElement.dataset;
+    de.prodshare = FS.prodOn() ? "on" : "off"; de.multiprod = FS.multiProduct() ? "on" : "off"; de.multipo = FS.multiPO() ? "on" : "off";
+    main.querySelectorAll(".ticket").forEach((el) => el.addEventListener("dblclick", () => FS.ticketPanel(el.dataset.key)));
+    main.querySelectorAll(".ticket .title").forEach((el) => el.addEventListener("click", () => FS.ticketPanel(el.closest(".ticket").dataset.key)));
+    document.title = `${v.title || "Foresprint"} · Foresprint Mockups`;
+    guide();
+  }
+
+  // Calculation affordances: "off" hides them, "icon" shows the calculator button,
+  // "inline" renders each calculation as an open disclosure next to its number.
+  function applyCalcMode(main) {
+    const btns = [...main.querySelectorAll("button")].filter((b) => b.querySelector(".ms")?.textContent === "calculate" && !b.closest("[data-calc-mode]"));
+    btns.forEach((b) => b.classList.add("calc-btn"));
+    document.documentElement.dataset.calc = FS.state.calcMode;
+    if (FS.state.calcMode !== "inline") return;
+    btns.forEach((b) => {
+      FS.capturing = true; FS.captured = null;
+      try { b.click(); } catch (e) { /* ignore */ }
+      FS.capturing = false;
+      if (!FS.captured) return;
+      const d = document.createElement("details");
+      d.className = "calc-inline";
+      d.open = true;
+      d.innerHTML = `<summary>${FS.icon("calculate", "small")} Rechenweg</summary>${FS.captured}`;
+      (b.closest("td, .card, .lane-head, div") || b.parentElement).appendChild(d);
+    });
+  }
+  FS.render = render;
+
+  FS.view("missing", { title: "In Arbeit", render: () => `<div class="page-head"><div><h1>Diese Ansicht folgt</h1><p class="lead">Das Mockup für diesen Bereich ist noch in Arbeit.</p></div></div>` });
+
+  window.addEventListener("hashchange", render);
+  window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); FS.toast("Befehlspalette: Seite, Ticket oder Aktion suchen (im Mockup nicht ausgeführt)."); } });
+  document.addEventListener("DOMContentLoaded", () => { if (FS.state.trk) FS.setTrk(FS.state.trk); FS.applyPeriods(); render(); });
+})();
