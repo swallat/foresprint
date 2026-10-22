@@ -53,6 +53,25 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
 
+## Data format in 1.0
+
+Everything 1.0 adds is optional and written only when it has a value, so a 0.8 file reads and
+writes back unchanged (the golden round trips prove it).
+
+| File | Addition |
+| --- | --- |
+| `team.yaml` | `tracker.kind: packages` (work packages kept in Foresprint; no tickets = `features.tickets` off); `features.projects` (read `projects.yaml` without tickets); `sprint.naming` (list of `{from, pattern}`), `sprint.pro_forma` (names); `estimation: {factor, changes: [{from, unit, factor}]}`; tracker: more `fields` (status, acceptance, product, project, refined, production), `production_label`, `production_rules` (`{match, share}`), `write_sprint`, `removed_target` (backlog, pro_forma, next), `package_prefix` |
+| `people.yaml` | `kind: guest` or `external` (member is not written) |
+| `abwesenheiten.yaml` | `absences: {<person>: [{from, to, confirmed}]}`, dates only, never a reason |
+| `projects.yaml` | `products` (list; with one product the 0.8 key `product` stays), `start`, `end`, `state` (finished, cancelled), `open_scope`, `milestones`, `contingent: {total, per_month}` |
+| `tickets.yaml` / `arbeitspakete.yaml` | work package fields `description`, `acceptance`, `assignee`, `product`, `subtasks`, `comments`; `arbeitspakete.yaml` has the format of `tickets.yaml` and replaces it for `kind: packages` |
+| `preplan.yaml` | `production` (`{ticket, share, note}`), `overrides` (`{ticket, product, project, daily}`) |
+| `sprints/<id>.yaml` | `name`, `committed_tickets`, `carry` (`{ticket, rest, target}`), `rest_next`, `projects` (values per project, no tickets); prognoses: `label`, `finish`, `carry`, `rest_next` |
+
+`model.FormatSprintName` fills a naming pattern ({JJJJ} {JJ} {NN} {N} {LFD} {Q} {MM} {KW}).
+`tracker.kind` accepts `packages`, so the message of the check lists it (known deviation from
+the Python reference).
+
 ## Texts
 
 `internal/i18n/data/<code>.json` maps English source texts to the translation; a text without

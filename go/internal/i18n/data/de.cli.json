@@ -23,6 +23,16 @@
   "Version {latest} is available (installed: {version}). Update with: {command}": "Version {latest} ist verfügbar (installiert: {version}). Aktualisieren mit: {command}",
   "Installing version {latest} …": "Version {latest} wird installiert …",
   "The update failed: {error}": "Die Aktualisierung ist fehlgeschlagen: {error}",
-  "Updated to version {latest}. The next start uses it.": "Auf Version {latest} aktualisiert. Der nächste Start nutzt sie."
+  "Updated to version {latest}. The next start uses it.": "Auf Version {latest} aktualisiert. Der nächste Start nutzt sie.",
+  "{where}: unknown placeholder {name}": "{where}: unbekannter Platzhalter {name}",
+  "{where}: 'share' must be between 0 and 100": "{where}: 'share' muss zwischen 0 und 100 liegen",
+  "{where}: estimation.factor must be greater than 0": "{where}: estimation.factor muss größer als 0 sein",
+  "{where}: factor must be greater than 0": "{where}: factor muss größer als 0 sein",
+  "{where}: 'to' lies before 'from'": "{where}: 'to' liegt vor 'from'",
+  "{where}: fields 'from' and 'to' are required": "{where}: die Felder 'from' und 'to' sind nötig",
+  "{where}: mapping with from/unit expected": "{where}: Abschnitt mit from/unit erwartet",
+  "{where}: mapping with ticket/rest/target expected": "{where}: Abschnitt mit ticket/rest/target erwartet",
+  "{where}: mapping with author/text expected": "{where}: Abschnitt mit author/text erwartet",
+  "external person without an end date": "externe Person ohne Enddatum"
  }
 }

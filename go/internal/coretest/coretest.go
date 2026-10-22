@@ -76,9 +76,13 @@ func normalize(key string, v any) any {
 		if !isSprint {
 			_, isSprint = x["absences"]
 		}
+		_, isPerson := x["Memberships"]
 		for k, e := range x {
 			k = snake(k)
 			if isSprint && unmodelledKey[k] {
+				continue
+			}
+			if isPerson && k == "kind" { // 1.0 addition without a Python counterpart
 				continue
 			}
 			out[k] = normalize(k, e)
@@ -124,7 +128,9 @@ func snake(name string) string {
 }
 
 // unmodelled are the fields of the Python sprint that the calculation types do not have.
-var unmodelled = []string{"products", "note", "production_planned", "production_done", "not_done", "additional_done", "prognoses"}
+var unmodelled = []string{"products", "note", "production_planned", "production_done", "not_done", "additional_done", "prognoses",
+	// 1.0 additions without a Python counterpart
+	"name", "committed_tickets", "carry", "rest_next", "projects"}
 
 var unmodelledKey = func() map[string]bool {
 	m := map[string]bool{}
