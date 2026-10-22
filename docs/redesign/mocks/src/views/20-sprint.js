@@ -29,8 +29,8 @@
   // against the production part of the planned work (share per ticket, or one PT value without tickets).
   function prodCap(sid) {
     const days = FS.sprint(sid).days, all = sum(D.people, (p) => p.fte * days), base = BASE[sid] ?? FS.sprint(sid).capacityPD;
-    const ppl = D.people.filter((p) => p.prod).map((p) => { const raw = (p.fte * days * base) / all, abs = absOf(sid)[p.id]?.d || 0; return { p, raw, abs, pd: Math.max(0, raw - abs) }; });
-    return { ppl, pd: sum(ppl, (x) => x.pd) };
+    const ppl = D.people.filter((p) => p.prod).map((p) => { const raw = (p.fte * days * base) / all, abs = absOf(sid)[p.id]?.d || 0; const avail = Math.max(0, raw - abs); return { p, raw, abs, avail, pd: avail * FS.prodMax() }; });
+    return { ppl, avail: sum(ppl, (x) => x.avail), pd: sum(ppl, (x) => x.pd), max: FS.prodMax() };
   }
   const prodPT = (sid) => (st().prodPT ??= { "2026.22": 6 })[sid] ?? null;
   function prodNeed(sid) {
@@ -256,7 +256,7 @@
     return `<div class="card sp-sumbar" style="margin-bottom:16px"><div class="sp-sum">
       <div><h2>Kapazität</h2><div class="row"><span class="big">${fmt(c.cap)} PT</span>${calcBtn("cap")}</div>
         <div class="small muted">${c.abs ? `${fmt(c.abs)} PT Abwesenheit (${ABS[absState(sid)][1]})` : `keine Abwesenheit erfasst`}</div>
-        ${FS.prodOn() && !c.past ? `<div class="small muted">davon mit Prod-Zugang ≈ <span class="data">${fmt(prodCap(sid).pd, 1)}</span> PT</div>` : ""}</div>
+        ${FS.prodOn() && !c.past ? `<div class="small muted">davon mit Prod-Zugang ≈ <span class="data">${fmt(prodCap(sid).avail, 1)}</span> PT, für Prod höchstens <span class="data">${fmt(prodCap(sid).pd, 1)}</span></div>` : ""}</div>
       <div><h2>Forecast PLAN${A ? ` <span class="chip small">mit Annahme ${esc(cw().name)}</span>` : ""}</h2><div class="row"><span class="big" style="color:var(--forecast)">${fmt(fc)} Punkte</span>${calcBtn("fc")}</div>
         <div class="small muted">${lo != null ? `Spanne <span class="data">${lo} bis ${hi}</span> · ${A ? `ohne Annahme <span class="data">${c.fc}</span>` : `Rate <span class="data">${fmt(D.rate, 2)}</span> je PT`}` : "Plan des abgeschlossenen Sprints"}</div></div>
       ${lo != null ? `<div id="sp-free"><h2>Verplanbar</h2><div class="row"><span class="big">${pt ? `${fmt(free / D.rate, 1)} PT` : `${fmt(free)} Punkte`}</span>${calcBtn("free")}</div>
@@ -276,7 +276,7 @@
     if (!FS.prodOn()) return "";
     const pc = prodCap(sid), nd = prodNeed(sid), li = prodLight(nd.pd, pc.pd), none = FS.trk() === "none";
     const head = `<div class="row" style="margin-bottom:4px"><h2 style="margin:0;flex:1">Produktion</h2>${nd.set ? FS.lightChip(li, li === "bad" ? `${fmt(nd.pd - pc.pd, 1)} PT mehr als verfügbar` : li === "warn" ? "knapp" : "passt") : ""}${calcBtn("prod")}</div>
-      <p class="small muted" style="margin:0 0 8px">Verfügbar: <span class="data">${fmt(pc.pd, 1)}</span> PT bei ${pc.ppl.length} Personen mit Produktionszugang (${pc.ppl.map((x) => esc(x.p.name.split(" ")[0])).join(", ")}), nach Abwesenheit.</p>`;
+      <p class="small muted" style="margin:0 0 8px">Verfügbar: <span class="data">${fmt(pc.pd, 1)}</span> PT${pc.max < 1 ? `, das sind ${Math.round(pc.max * 100)} % (Deckel) von <span class="data">${fmt(pc.avail, 1)}</span> PT` : ""} bei ${pc.ppl.length} Personen mit Produktionszugang (${pc.ppl.map((x) => esc(x.p.name.split(" ")[0])).join(", ")}), nach Abwesenheit.</p>`;
     if (none) return `<div class="card" id="sp-prod" style="margin-bottom:16px">${head}
       <div class="row"><div class="field"><label for="sp-prodpt">Produktionsarbeit in ${sid} (PT)</label><input class="input data" id="sp-prodpt" inputmode="decimal" value="${prodPT(sid) ?? ""}" placeholder="–" style="width:120px;text-align:right" ${ro ? "disabled" : ""}></div>
       <p class="small muted" style="flex:1;min-width:220px;margin:0">Ohne Tickets reicht ein Wert: wie viele Personentage brauchen Zugang zur Produktion?</p></div></div>`;
@@ -304,10 +304,10 @@
     if (kind === "free") { const a0 = cwCalc(sid), A = a0 && a0.touched ? a0 : null, fc = A ? A.fc : c.fc, rest = A ? A.rest : sum(D.tickets.filter((t) => t.carryTo === sid), (t) => t.carryRest ?? t.est);
       FS.openPanel(`Rechenweg: Verplanbar ${sid}`, calcTable([[`Forecast PLAN${A ? " mit Annahme" : ""}`, `${fmt(fc)} Punkte`], ["minus Rest der Tickets, die aus dem laufenden Sprint übertragen werden", `− ${fmt(rest)} Punkte`], ["bleibt für neue Arbeit", `${fmt(fc - rest)} Punkte`], [`mal verplanbarer Anteil (${Math.round(FS.share() * 100)} %), abgerundet`, ""], ["Verplanbar", `${fmt(FS.split(fc - rest).free)} Punkte`, 1], ["Rest als Kleinkram", `${fmt(FS.split(fc - rest).small)} Punkte`], ["Verplanbar geteilt durch Rate (Punkte je PT)", fmt(D.rate, 2)], ["entspricht etwa", `${fmt(FS.split(fc - rest).free / D.rate, 1)} PT`, 1]]) + `<p class="small muted">Den verplanbaren Anteil stellst du unter Einstellungen, Forecast ein. Kleinkram hält Platz für ungeplante kleine Aufgaben frei. Die Einheit der großen Zahl folgt der Schätzeinheit des Teams (Einstellungen, Team). Die andere Einheit steht darunter.</p>`); }
     if (kind === "prod") { const pc = prodCap(sid), nd = prodNeed(sid);
-      FS.openPanel(`Rechenweg: Produktion ${sid}`, `<h3 style="margin:0">Verfügbar</h3>` + calcTable([...pc.ppl.map((x) => [`${esc(x.p.name)} (FTE ${fmt(x.p.fte, 1)}${x.abs ? `, ${x.abs} T abwesend` : ""})`, `${fmt(x.pd, 1)} PT`]), ["Personen mit Produktionszugang", `${fmt(pc.pd, 1)} PT`, 1]]) +
+      FS.openPanel(`Rechenweg: Produktion ${sid}`, `<h3 style="margin:0">Verfügbar</h3>` + calcTable([...pc.ppl.map((x) => [`${esc(x.p.name)} (FTE ${fmt(x.p.fte, 1)}${x.abs ? `, ${x.abs} T abwesend` : ""})`, `${fmt(x.avail, 1)} PT`]), ["Zeit der Personen mit Produktionszugang", `${fmt(pc.avail, 1)} PT`], [`mal Deckel Prod-Zeit (${Math.round(pc.max * 100)} %, Einstellungen, Team)`, ""], ["für Produktion verfügbar", `${fmt(pc.pd, 1)} PT`, 1]]) +
         `<h3 style="margin:8px 0 0">Gebraucht</h3>` + (FS.trk() === "none" ? calcTable([["Produktionsarbeit, von Hand eingetragen", `${fmt(nd.pd, 1)} PT`, 1]]) :
         calcTable([...nd.list.map((t) => [`${FS.dk(t.key)} ${esc(t.title)}: ${t.est} × ${FS.prodPct(t)} %`, fmt((t.est * FS.prodPct(t)) / 100, 1)]), ["Prod-Anteil in Punkten", fmt(nd.pts, 1), 1], ["geteilt durch Rate (Punkte je PT)", fmt(D.rate, 2)], ["entspricht etwa", `${fmt(nd.pd, 1)} PT`, 1]])) +
-        `<p class="small muted">Je Person zählt ihr Anteil an den Personentagen des Sprints, minus ihre Abwesenheit. Die Prüfung warnt nur. Sie nimmt an, dass Personen mit Zugang ihre ganze Zeit für Produktionsarbeit einsetzen könnten.</p>`); }
+        `<p class="small muted">Je Person zählt ihr Anteil an den Personentagen des Sprints, minus ihre Abwesenheit. Die Prüfung warnt nur. Der Deckel legt fest, welcher Teil ihrer Zeit höchstens für Produktionsarbeit zählt. 100 % heißt kein Deckel.</p>`); }
     if (kind === "vel") { const r = rvOf(sid); FS.openPanel(`Rechenweg: Velocity ${sid}`, calcTable([["Zusage (Plan)", fmt(r.plan)], ["minus nicht erledigt", `− ${fmt(r.notDone)}`], ["plus zusätzlich erledigt", `+ ${fmt(r.extra)}`], ["Velocity", `${fmt(r.plan - r.notDone + r.extra)} Punkte`, 1]])); }
     if (kind === "rate") { const r = rvOf(sid), v = r.plan - r.notDone + r.extra; FS.openPanel(`Rechenweg: tatsächliche Rate ${sid}`, calcTable([["Velocity", `${fmt(v)} Punkte`], ["geteilt durch eingefrorene Personentage", `${fmt(r.freeze)} PT`], ["tatsächliche Rate", `${fmt(v / r.freeze, 2)} Punkte je PT`, 1], ["Planrate zum Vergleich", fmt(D.rate, 2)]]) + `<p class="small muted">Diese Rate rechnet Erledigtes in Projektkontingent um (Schätzung).</p>`); }
   }

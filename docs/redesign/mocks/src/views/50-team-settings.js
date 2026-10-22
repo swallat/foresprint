@@ -7,7 +7,7 @@
   const f1 = (n) => FS.fmt(n, 1);
 
   // ---------- shared mock state ----------
-  S.teamApplied ??= { hist: 5, trend: "flat", refcap: 53, share: 85, rounding: 1, horizon: 4, len: 10, prod: true, projects: true, minutes: true, label: true, absState: true, basis: "forecast", unit: "sp", conv: "velocity", factor: 0.85, unitFrom: "2026.22" };
+  S.teamApplied ??= { hist: 5, trend: "flat", refcap: 53, share: 85, rounding: 1, horizon: 4, len: 10, prod: true, projects: true, minutes: true, label: true, absState: true, basis: "forecast", unit: "sp", conv: "velocity", factor: 0.85, unitFrom: "2026.22", prodMax: 60 };
   S.teamDraft ??= { ...S.teamApplied };
   S.rules ??= {
     portal: 'component = "Portal"',
@@ -355,7 +355,7 @@
   });
 
   // ================= settings (team) =================
-  const SET_LABEL = { hist: "Sprints für die Velocity", trend: "Trend", refcap: "Referenzkapazität (PT)", share: "Verplanbarer Anteil (%)", rounding: "Rundung", horizon: "Forecast-Horizont (Sprints)", len: "Standard-Sprintlänge (Arbeitstage)", prod: "Produktionszugang", projects: "Projekte und Kontingente", minutes: "Protokolle schreiben", label: "Label planned_for im Tracker", absState: "Abwesenheit: angekündigt und bestätigt", basis: "Budgetbasis", unit: "Schätzeinheit", conv: "Umrechnung SP und PT", factor: "Fester Faktor (SP je PT)", unitFrom: "Einheit gilt ab Sprint" };
+  const SET_LABEL = { hist: "Sprints für die Velocity", trend: "Trend", refcap: "Referenzkapazität (PT)", share: "Verplanbarer Anteil (%)", rounding: "Rundung", horizon: "Forecast-Horizont (Sprints)", len: "Standard-Sprintlänge (Arbeitstage)", prod: "Produktionszugang", projects: "Projekte und Kontingente", minutes: "Protokolle schreiben", label: "Label planned_for im Tracker", absState: "Abwesenheit: angekündigt und bestätigt", basis: "Budgetbasis", unit: "Schätzeinheit", conv: "Umrechnung SP und PT", factor: "Fester Faktor (SP je PT)", unitFrom: "Einheit gilt ab Sprint", prodMax: "Deckel Prod-Zeit (%)" };
   const fmtV = (v) => (v === true ? "an" : v === false ? "aus" : { flat: "Flach", linear: "Linear", classic: "Klassisch", forecast: "Forecast PLAN", share: "nur verplanbarer Anteil", sp: "Story Points", pt: "Personentage", velocity: "aus der Velocity" , fixed: "fester Faktor" }[v] || (typeof v === "number" ? FS.fmt(v, 2) : String(v)));
   const settingsDiff = () => Object.keys(S.teamDraft).filter((k) => S.teamDraft[k] !== S.teamApplied[k]);
   FS.view("settings", {
@@ -377,8 +377,9 @@
               <li><strong>Spanne:</strong> niedrigste bis höchste normierte Velocity im Fenster, auf die Kapazität umgerechnet. Keine Einstellung.</li>
               <li><strong>Verplanbarer Anteil:</strong> Teil des Forecast PLAN, der auf Produkte und Projekte verteilt wird; der Rest ist Kleinkram.</li></ul></details>
             <div class="row small" style="margin:12px 0 0"><span>Rate aus dem Verlauf: <strong class="data">${FS.fmt(D.rate, 2)}</strong> Punkte je Personentag</span>${calcBtn("rate")}</div></div>
-          <div class="card" data-s="funktionen features produktionszugang projekte protokolle label abwesenheit"><h2>Funktionen</h2><div class="stack" style="gap:12px">
+          <div class="card" data-s="funktionen features deckel prod-zeit produktionszugang projekte protokolle label abwesenheit"><h2>Funktionen</h2><div class="stack" style="gap:12px">
             ${sw("prod", "Produktionszugang", "Je Person ein Merkmal Produktionszugang, je Ticket ein Prod-Anteil (ohne Tickets ein PT-Wert je Sprint). Vorplanen und Planen vergleichen das mit der Zeit der Personen mit Zugang. Warnt, sperrt nicht.")}
+            ${d.prod ? `<div class="row" style="margin-left:26px;gap:12px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="width:150px"><label for="t-prodMax">Deckel Prod-Zeit (%)</label><input class="input data" id="t-prodMax" data-t="prodMax" inputmode="numeric" value="${d.prodMax}" style="text-align:right"></div><span class="small muted" style="flex:1;min-width:200px">Höchstens dieser Teil der Zeit von Personen mit Zugang zählt als Prod-Zeit. 100 % heißt kein Deckel. Der Rest bleibt für andere Arbeit.</span></div>` : ""}
             ${sw("projects", "Projekte und Kontingente", "Projekte mit Meilensteinen und Kontingent in Personentagen.")}
             ${sw("minutes", "Protokolle schreiben", "Jedes Speichern von Vorplanung, Planung und Review schreibt eine Markdown-Datei.")}
             <div class="only-jira">${sw("label", "Label planned_for im Tracker setzen", `Einzige Schreibaktion in ${D.team.tracker}, nach dem Einfrieren des Plans.`)}</div>

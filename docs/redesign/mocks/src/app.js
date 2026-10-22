@@ -22,6 +22,8 @@
   FS.multiProduct = () => D.products.length > 1;
   FS.multiPO = () => D.pos.length > 1;
   FS.prodOn = () => FS.state.teamApplied?.prod !== false;
+  // Cap on production time: at most this share of the time of people with production access counts (100 % = no cap).
+  FS.prodMax = () => Math.min(100, Math.max(0, FS.state.teamApplied?.prodMax ?? 100)) / 100;
   // Plannable share (Settings > Forecast, as roadmap_share in 0.8). Plannable = (PLAN - carry-over) x share,
   // rounded down; the remainder is small stuff.
   FS.share = () => (FS.state.teamApplied?.share ?? D.plannableShare * 100) / 100;
