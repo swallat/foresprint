@@ -54,7 +54,10 @@ func (a *API) Discard(files []string) datasvc.Done { return a.data.Discard(nilIf
 func (a *API) Lost(files []string) ([]datasvc.LostFile, error) { return a.data.Lost(nilIfEmpty(files)) }
 
 // UnsavedChanges lists what changed since the last save, value by value.
-func (a *API) UnsavedChanges() ([]datasvc.UnsavedFile, error) { return a.data.UnsavedChanges() }
+func (a *API) UnsavedChanges() ([]datasvc.UnsavedFile, error) {
+	files, err := a.data.UnsavedChanges()
+	return nonNilList(files), err
+}
 
 // DiscardValues puts single values back to what they were at the last save.
 func (a *API) DiscardValues(items []datasvc.ValueRef) datasvc.Done {
