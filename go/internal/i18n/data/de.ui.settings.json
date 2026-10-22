@@ -77,6 +77,7 @@
   "Switch": "Wechseln",
   "Switching is locked: {n} unsaved changes. Save or discard them first.": "Wechsel gesperrt: {n} ungespeicherte Änderungen. Speichere oder verwirf sie zuerst.",
   "The Jira board whose sprints are looked up, so that a sprint without tickets is found too. Leave empty if tickets alone are enough.": "Das Jira-Board, dessen Sprints nachgeschlagen werden, damit auch ein Sprint ohne Tickets gefunden wird. Leer lassen, wenn die Tickets allein genügen.",
+  "The board number is a positive whole number.": "Die Board-Nummer ist eine positive ganze Zahl.",
   "The branch in use: {name}.": "Aktiver Branch: {name}.",
   "The data is not on a working version": "Die Daten stehen auf keinem Arbeitsstand",
   "The remote address has a setup that the app leaves alone ({kind}). Change it with Git directly if you need to.": "Die Serveradresse hat eine Einrichtung, die die App nicht anfasst ({kind}). Ändere sie bei Bedarf direkt mit Git.",

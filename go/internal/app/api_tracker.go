@@ -283,10 +283,12 @@ func (a *API) applyTracker(t *model.Team, data *storage.TeamData, in TrackerSett
 	if in.BoardID < 0 {
 		return bad("The board number is a positive whole number.")
 	}
-	tr.BoardID = nil
-	if in.BoardID > 0 {
-		n := in.BoardID
-		tr.BoardID = &n
+	if in.Kind == "jira" { // the board belongs to Jira; another kind keeps what is there
+		tr.BoardID = nil
+		if in.BoardID > 0 {
+			n := in.BoardID
+			tr.BoardID = &n
+		}
 	}
 	tr.WriteSprint, tr.RemovedTarget, tr.WriteLabels = in.WriteSprint, in.RemovedTarget, in.WriteLabels
 	t.Tracker = tr
