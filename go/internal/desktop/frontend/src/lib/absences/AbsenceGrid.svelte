@@ -30,14 +30,17 @@
   let error = $state('');
   /** Cleared values by "sprint|person", restorable until the next save. */
   let ghosts = $state<Record<string, number>>({});
-  let busy = $state(false);
-
+  
+  let seq = 0;
   async function load() {
+    const mine = ++seq;
     try {
-      grid = await api.AbsenceGrid(team, from, count);
+      const next = await api.AbsenceGrid(team, from, count);
+      if (mine !== seq) return; // a newer request is on its way
+      grid = next;
       error = '';
     } catch (e) {
-      error = String(e);
+      if (mine === seq) error = String(e);
     }
   }
 
@@ -55,6 +58,16 @@
   const col = (i: number) => grid!.columns[i] as AbsenceColumn;
   const rowAt = (i: number) => grid!.rows[i] as AbsenceRow;
   const cellAt = (ri: number, ci: number) => rowAt(ri).cells[ci] as AbsenceCell;
+  const nameOf = (id: string) => grid?.columns.find((c) => c.id === id)?.name ?? id;
+
+  // Every write goes through one queue: edits are applied in the order they were made, so a
+  // freeze right after typing cannot overtake the typed days.
+  let queue: Promise<unknown> = Promise.resolve();
+  function enqueue<T>(job: () => Promise<T>): Promise<T> {
+    const run = queue.then(job, job);
+    queue = run.catch(() => undefined);
+    return run;
+  }
 
   function replaceColumn(next: AbsenceColumn) {
     if (!grid) return;
@@ -62,12 +75,8 @@
     onchange?.(next);
   }
 
-  async function set(sprint: string, person: string, value: number): Promise<void> {
-    replaceColumn(await api.SetAbsence(team, sprint, person, value));
-  }
-
   async function commit(ci: number, ri: number, input: HTMLInputElement) {
-    if (!grid || busy) return;
+    if (!grid) return;
     const cell = cellAt(ri, ci);
     const sprint = col(ci).id;
     const person = rowAt(ri).person;
@@ -83,67 +92,67 @@
       input.value = cell.days ? days(cell.days) : '';
       return;
     }
-    busy = true;
+    if (shown === 0) ghosts[key] = cell.days;
+    else delete ghosts[key];
+    cell.days = shown;
+    input.value = shown ? days(shown) : '';
+    if (shown !== value) toast(t('Set to {days} days (half days, at most {max}).', { days: days(shown), max: days(cell.max) }));
     try {
-      if (shown === 0) ghosts[key] = cell.days;
-      else delete ghosts[key];
-      cell.days = shown;
-      input.value = shown ? days(shown) : '';
-      if (shown !== value) toast(t('Set to {days} days (half days, at most {max}).', { days: days(shown), max: days(cell.max) }));
-      await set(sprint, person, shown);
+      await enqueue(async () => replaceColumn(await api.SetAbsence(team, sprint, person, shown)));
     } catch (e) {
+      delete ghosts[key];
       toast(String(e), 'bad');
       await load();
-    } finally {
-      busy = false;
     }
   }
 
   async function restore(ci: number, ri: number) {
     if (!grid) return;
-    const key = `${col(ci).id}|${rowAt(ri).person}`;
+    const sprint = col(ci).id;
+    const person = rowAt(ri).person;
+    const key = `${sprint}|${person}`;
     const value = ghosts[key] ?? 0;
     delete ghosts[key];
     cellAt(ri, ci).days = value;
     try {
-      await set(col(ci).id, rowAt(ri).person, value);
+      await enqueue(async () => replaceColumn(await api.SetAbsence(team, sprint, person, value)));
     } catch (e) {
       toast(String(e), 'bad');
       await load();
     }
   }
 
-  async function freeze(ci: number) {
-    const id = col(ci).id;
+  async function freeze(sprint: string) {
     try {
-      replaceColumn(await api.FreezeAbsences(team, id));
-      toast(t('Allocation of {sprint} frozen. Empty cells count as 0 days.', { sprint: id }), 'ok', {
+      await enqueue(async () => replaceColumn(await api.FreezeAbsences(team, sprint)));
+      toast(t('Allocation of {sprint} frozen. Empty cells count as 0 days.', { sprint: nameOf(sprint) }), 'ok', {
         label: t('Undo'),
-        run: () => void unfreeze(ci, false),
+        run: () => void unfreeze(sprint, false),
       });
     } catch (e) {
       toast(String(e), 'bad');
     }
   }
 
-  async function unfreeze(ci: number, say = true) {
-    const id = col(ci).id;
+  async function unfreeze(sprint: string, say = true) {
     try {
-      replaceColumn(await api.UnfreezeAbsences(team, id));
+      await enqueue(async () => replaceColumn(await api.UnfreezeAbsences(team, sprint)));
       await load();
-      if (say) toast(t('Allocation of {sprint} is open again. Entries count as announced.', { sprint: id }));
+      if (say) toast(t('Allocation of {sprint} is open again. Entries count as announced.', { sprint: nameOf(sprint) }));
     } catch (e) {
       toast(String(e), 'bad');
     }
   }
 
-  /** Enter moves to the same sprint, next person. */
+  /** Enter saves the cell and moves to the same sprint, next person. */
   function onkey(e: KeyboardEvent, ci: number, ri: number) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    const inputs = document.querySelectorAll<HTMLInputElement>(`[data-abs-col="${col(ci).id}"]`);
-    const list = [...inputs];
-    (list[list.indexOf(e.currentTarget as HTMLInputElement) + 1] ?? (e.currentTarget as HTMLInputElement)).focus();
+    const input = e.currentTarget as HTMLInputElement;
+    const list = [...document.querySelectorAll<HTMLInputElement>(`[data-abs-col="${col(ci).id}"]`)];
+    const next = list[list.indexOf(input) + 1];
+    if (next) next.focus();
+    else void commit(ci, ri, input); // last person: no blur follows, so save here
   }
 
   const stateText = (s: AbsenceColumn['state']) =>
@@ -197,7 +206,7 @@
                       onkeydown={(e) => onkey(e, ci, ri)}
                     />
                     {#if ghost !== undefined}
-                      <button class="btn icon ghost" type="button" title={t('Restore {days} days', { days: days(ghost) })} aria-label={t('Restore {days} days', { days: days(ghost) })} onclick={() => restore(ci, ri)}>
+                      <button class="btn icon ghost" type="button" disabled={c.past} title={t('Restore {days} days', { days: days(ghost) })} aria-label={t('Restore {days} days', { days: days(ghost) })} onclick={() => restore(ci, ri)}>
                         <Icon name="undo" size={16} />
                       </button>
                     {:else if cell.days > 0}
@@ -207,7 +216,7 @@
                         disabled={c.past}
                         title={c.state === 'confirmed' ? t('Confirmed. A click opens the whole sprint again.') : t('Announced. A click freezes the whole sprint.')}
                         aria-label={c.state === 'confirmed' ? t('Confirmed. A click opens the whole sprint again.') : t('Announced. A click freezes the whole sprint.')}
-                        onclick={() => (c.state === 'confirmed' ? unfreeze(ci) : freeze(ci))}
+                        onclick={() => (c.state === 'confirmed' ? unfreeze(c.id) : freeze(c.id))}
                       >
                         <Icon name={c.state === 'confirmed' ? 'lock' : 'lock_open'} size={16} />
                       </button>
@@ -245,11 +254,11 @@
               {#if c.past}
                 <span class="muted small">{t('Closed')}</span>
               {:else if c.state === 'confirmed'}
-                <button class="btn ghost frozen" type="button" onclick={() => unfreeze(ci)} title={c.entries ? t('{n} entries confirmed, all others 0 days. A click opens the sprint again.', { n: c.entries }) : t('Nobody is absent. A click opens the sprint again.')}>
+                <button class="btn ghost frozen" type="button" onclick={() => unfreeze(c.id)} title={c.entries ? t('{n} entries confirmed, all others 0 days. A click opens the sprint again.', { n: c.entries }) : t('Nobody is absent. A click opens the sprint again.')}>
                   <Icon name="lock" size={16} />{t('Frozen')}
                 </button>
               {:else}
-                <button class="btn" type="button" onclick={() => freeze(ci)} title={c.entries ? t('Confirm all entries; empty cells count as 0 days.') : t('Nobody is absent: empty cells count as 0 days.')}>
+                <button class="btn" type="button" onclick={() => freeze(c.id)} title={c.entries ? t('Confirm all entries; empty cells count as 0 days.') : t('Nobody is absent: empty cells count as 0 days.')}>
                   <Icon name="lock_open" size={16} />{c.entries ? t('Freeze') : t('Nobody absent')}
                 </button>
               {/if}

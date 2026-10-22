@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/swallat/foresprint/internal/calendar"
@@ -17,6 +18,10 @@ import (
 // Sprint workspace: absences (Prepare, later also Team > People), the readiness list and the
 // figures of the sprint overview. Edits are written to the sprint file at once; "Save" in the
 // top bar shares them. Absences are days per person and sprint, never a reason.
+
+// editMu serializes edits: Wails runs bound calls at the same time, and every edit loads the
+// sprint file, changes it and writes it back.
+var editMu sync.Mutex
 
 func today() time.Time {
 	y, m, d := time.Now().Date()
@@ -112,6 +117,8 @@ func column(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) Absen
 		if !col.Past {
 			col.Plan = e.Result.Plan
 		}
+	} else if s.AbsenceStatus() == model.AbsencesConfirmed {
+		col.Capacity = capacity.Sprint(&data.Team, data.People, s, 0).Capacity
 	} else {
 		col.Capacity = capacity.WithExpectedAbsences(&data.Team, data.People, s)
 	}
@@ -168,6 +175,8 @@ func absenceGrid(data *storage.TeamData, from string, count int) (AbsenceGrid, e
 // editSprint loads the team, applies change to the sprint (a copy of the stored one, or the
 // generated one) and writes the sprint file. It returns the updated column.
 func (a *API) editSprint(team, sprintID string, change func(data *storage.TeamData, s *model.Sprint) error) (AbsenceColumn, error) {
+	editMu.Lock()
+	defer editMu.Unlock()
 	repo := storage.NewRepository(a.DataDir())
 	data, err := repo.Load(team)
 	if err != nil {
@@ -183,6 +192,9 @@ func (a *API) editSprint(team, sprintID string, change func(data *storage.TeamDa
 	}
 	if found == nil {
 		return AbsenceColumn{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", sprintID))
+	}
+	if !found.End.After(fc.Today) {
+		return AbsenceColumn{}, fmt.Errorf("%s", i18n.T("Sprint {id} is finished; its absences cannot be changed.", "id", sprintID))
 	}
 	s := found.Clone()
 	if err := change(data, &s); err != nil {
@@ -272,10 +284,10 @@ func (a *API) FreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 func (a *API) UnfreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
 		announced := map[string]float64{}
-		for k, v := range s.Absences {
+		for k, v := range s.ExpectedAbsences {
 			announced[k] = v
 		}
-		for k, v := range s.ExpectedAbsences {
+		for k, v := range s.Absences { // confirmed days win over stale announced ones
 			announced[k] = v
 		}
 		s.ExpectedAbsences = announced

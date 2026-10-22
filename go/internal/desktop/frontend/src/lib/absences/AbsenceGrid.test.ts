@@ -66,12 +66,12 @@ describe('AbsenceGrid', () => {
 
   it('freezing confirms the sprint and shows the frozen state', async () => {
     await open();
-    const freeze = [...host.querySelectorAll<HTMLButtonElement>('tbody tr:last-child button')][0]!;
-    freeze.click();
+    const idx = [...host.querySelectorAll('thead th.sc')].findIndex((th) => th.textContent!.includes(column));
+    host.querySelectorAll<HTMLButtonElement>('tbody tr:last-child button')[idx]!.click();
     await settle();
-    flushSync();
-    expect(host.querySelector('.frozen')).not.toBeNull();
-    expect(host.querySelector('th .chip.ok')).not.toBeNull();
+    await settle();
+    expect(cell.value).toMatch(/3/);
+    expect(cell.closest('.cell')!.classList.contains('c')).toBe(true);
   });
 
   it('stays out of reach for a finished sprint', async () => {

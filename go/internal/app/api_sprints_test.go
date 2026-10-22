@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
@@ -119,5 +120,60 @@ func TestSprintPrepareReadiness(t *testing.T) {
 	}
 	if p, _ = api.SprintPrepare(team, id); p.Ready[0].State != ReadyDone {
 		t.Fatalf("frozen absences should be done: %+v", p.Ready[0])
+	}
+}
+
+func TestAbsenceEditsRunTogetherWithoutLosingData(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	grid, err := api.AbsenceGrid(team, "", 40)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, col := range grid.Columns[len(grid.Columns)-6:] {
+		person := grid.Rows[0].Person
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() { defer wg.Done(); _, _ = api.SetAbsence(team, col.ID, person, 2) }()
+		go func() { defer wg.Done(); _, _ = api.FreezeAbsences(team, col.ID) }()
+		wg.Wait()
+		got, _ := api.AbsenceGrid(team, col.ID, 1)
+		// Whatever ran first, both effects must be there: the sprint is frozen and, unless the
+		// freeze came first and the entry was typed into the frozen sprint, the entry exists.
+		if got.Columns[0].State != AbsenceConfirmed || got.Rows[0].Cells[0].Days != 2 {
+			t.Fatalf("%s: state %q, days %v", col.ID, got.Columns[0].State, got.Rows[0].Cells[0].Days)
+		}
+	}
+}
+
+func TestFinishedSprintRefusesEdits(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	sprints, _ := api.Sprints(team)
+	if _, err := api.SetAbsence(team, sprints[0].ID, "anna", 1); err == nil {
+		t.Fatal("an edit of a finished sprint was accepted")
+	}
+	if _, err := api.FreezeAbsences(team, sprints[0].ID); err == nil {
+		t.Fatal("freezing a finished sprint was accepted")
+	}
+}
+
+func TestUnfreezeKeepsConfirmedDays(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	grid, _ := api.AbsenceGrid(team, "", 40)
+	col := grid.Columns[len(grid.Columns)-1]
+	person := grid.Rows[0].Person
+	if _, err := api.SetAbsence(team, col.ID, person, 3); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.FreezeAbsences(team, col.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.UnfreezeAbsences(team, col.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := api.AbsenceGrid(team, col.ID, 1); got.Rows[0].Cells[0].Days != 3 {
+		t.Fatalf("days after unfreeze: %v", got.Rows[0].Cells[0].Days)
 	}
 }

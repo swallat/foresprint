@@ -19,13 +19,17 @@
   let info = $state<SprintPrepare | undefined>();
   let error = $state('');
 
+  let seq = 0;
   async function load() {
     if (!app.team || !app.sprint) return;
+    const mine = ++seq;
     try {
-      info = await api.SprintPrepare(app.team, app.sprint);
+      const next = await api.SprintPrepare(app.team, app.sprint);
+      if (mine !== seq) return; // the sprint changed meanwhile
+      info = next;
       error = '';
     } catch (e) {
-      error = String(e);
+      if (mine === seq) error = String(e);
     }
   }
 
