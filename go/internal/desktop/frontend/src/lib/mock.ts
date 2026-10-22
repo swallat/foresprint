@@ -8,6 +8,7 @@ import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, Report
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
 import { createReviewMock } from './mock.review';
 import { createSprintsMock } from './mock.sprints';
+import { settingsMock } from './mock.settings';
 import { teamMock } from './mock.team';
 import type { Prefs, Result, SprintInfo } from './types';
 import type { NewTeam, Opened, Problem, Region, ServerCheck, SetupKind, SetupState, SignInGuide } from './types.setup';
@@ -39,6 +40,7 @@ let prefs: Prefs = {
     { code: 'en', label: 'English' },
   ],
   theme: 'system',
+  density: 'normal',
   themes: [
     { code: 'system', label: 'As system' },
     { code: 'light', label: 'Light' },
@@ -64,7 +66,7 @@ function forecastView(): ForecastView {
       id: `2026.${12 + i}`, start: iso(base + i * 14 * day), end: iso(base + i * 14 * day + 11 * day), state, recorded: i < 11,
       capacity: caps[i] ?? 39, capacitySource: i < 10 ? 'recorded' : 'people list', unsure: false,
       commitment: v !== null ? v + 2 : null, velocity: v, normalizedVelocity: nv, average: nv, trend: nv,
-      fulfillment: v !== null ? Math.round((v / (v + 2)) * 1000) / 1000 : null, plan: null, planSource: '', low: null, high: null, plannable: null, small: null,
+      fulfillment: v !== null ? Math.round((v / (v + 2)) * 1000) / 1000 : null, plan: null, planSource: '', low: null, high: null, plannable: null, small: null, carryIn: 0, carryAssumed: false, overbooked: false,
     };
   };
   const past = Array.from({ length: 10 }, (_, i) => row(i, 'past'));
@@ -75,7 +77,7 @@ function forecastView(): ForecastView {
     const plan = Math.floor((nvTrend / ref) * cap);
     return { ...r, velocity: null, commitment: null, normalizedVelocity: null, fulfillment: null, capacity: cap, capacitySource: k < 2 ? 'announced absences' : 'expected absences', unsure: k > 3,
       average: nvTrend, trend: nvTrend, plan, planSource: 'projection' as const, low: Math.floor((33 / ref) * cap), high: Math.floor((42 / ref) * cap),
-      plannable: plan * 0.8, small: round1(plan * 0.2) };
+      carryIn: k === 0 ? 4 : 0, carryAssumed: k === 0, plannable: Math.floor((plan - (k === 0 ? 4 : 0)) * 0.8), small: plan - (k === 0 ? 4 : 0) - Math.floor((plan - (k === 0 ? 4 : 0)) * 0.8) };
   });
   return { team: 'atlas', today: iso(base + 10 * 14 * day + 3 * day), referenceCapacity: ref, window: 6, roadmapShare: 0.8, trendMode: 'flat', horizon: 4, rounding: 0, products: 3, samples: 6, fewSamples: false, rate: nvTrend / ref, past, upcoming };
 }
@@ -146,6 +148,7 @@ export const mockApi: Api = {
   ...dataMock,
   ...planMock,
   ...teamMock,
+  ...settingsMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
@@ -158,6 +161,10 @@ export const mockApi: Api = {
   async SetTheme(code) {
     prefs = { ...prefs, theme: code };
   },
+  async SetDensity(code) {
+    prefs = { ...prefs, density: code as Prefs['density'] };
+  },
+
   async Texts(lang) {
     // The catalog is bundled only where the mock is the whole program (npm run dev, tests); in
     // the program, texts always come from the core, also while the demo team is shown.
@@ -188,9 +195,6 @@ export const mockApi: Api = {
   },
   async Today() {
     return today();
-  },
-  async SyncTracker() {
-    return { ok: true, message: 'Tracker synced.' };
   },
   async SetupState(): Promise<SetupState> {
     return { dataDir: prefs.dataDir, teams: [team], name: '', email: '', suggestedHelper: '' };

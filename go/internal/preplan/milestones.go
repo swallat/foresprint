@@ -95,7 +95,7 @@ func MilestoneStatuses(project model.Project, dist *Distribution, data *storage.
 				}
 			case sprints[i].End.After(m.Date.Add(day)): // the sprint ends after the milestone day
 				st.Late = append(st.Late, key)
-				if holding >= 0 && i == holding+1 {
+				if holding >= 0 && (i == holding || i == holding+1) {
 					worst = max(worst, 1)
 				} else {
 					worst = max(worst, 2)

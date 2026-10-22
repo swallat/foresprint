@@ -36,12 +36,15 @@ type API struct {
 	// ChooseFile opens the file dialog for an Excel workbook and returns the chosen path ("" if
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFile func(title string) (string, error)
+	// OpenPath opens a file with the program of the system; nil = the default of the platform.
+	OpenPath func(path string) error
 
 	// Now is the clock; nil = the system clock (set in tests).
 	Now func() time.Time
 
 	mu      sync.Mutex
 	dataDir string
+	run     trackerRun
 	undo    []projectSnapshot
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
@@ -101,6 +104,7 @@ type Prefs struct {
 	Languages      []Choice `json:"languages"`
 	Theme          string   `json:"theme"`
 	Themes         []Choice `json:"themes"`
+	Density        string   `json:"density"` // "compact", "normal" or "roomy"
 	DataDir        string   `json:"dataDir"`
 	RecentDataDirs []string `json:"recentDataDirs"`
 }
@@ -110,6 +114,7 @@ func (a *API) Prefs() Prefs {
 	p := Prefs{
 		Language:       savedLanguage(),
 		Theme:          config.Theme(),
+		Density:        config.Density(),
 		DataDir:        a.DataDir(),
 		RecentDataDirs: config.RecentDataDirs(),
 	}
@@ -127,6 +132,9 @@ func (a *API) SetLanguage(code string) error { return config.SaveLanguage(code) 
 
 // SetTheme saves the theme ("system", "light", "dark").
 func (a *API) SetTheme(code string) error { return config.SaveTheme(code) }
+
+// SetDensity saves the density of tables ("compact", "normal", "roomy").
+func (a *API) SetDensity(code string) error { return config.SaveDensity(code) }
 
 // Texts returns the texts of the window for a language: English source text to translation.
 // A text without entry is shown in English by the frontend.
@@ -147,8 +155,15 @@ func (a *API) SetDataDir(path string) error {
 		return err
 	}
 	a.mu.Lock()
+	changed := a.dataDir != path
 	a.dataDir = path
 	a.mu.Unlock()
+	if changed {
+		// Tags a Review asked for belong to the data they were asked for.
+		a.tagMu.Lock()
+		a.tags, a.sprintTags = nil, nil
+		a.tagMu.Unlock()
+	}
 	a.data.SetFolder(path)
 	storage.ClearTeamCache()
 	return nil

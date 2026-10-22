@@ -45,6 +45,10 @@
   let months = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).filter((m) => m.booked > 0).map((m) => [m.month, String(m.booked)])));
   let error = $state('');
   let busy = $state(false);
+  const filled = (m: Record<string, string>) => Object.fromEntries(Object.entries(m).filter(([, v]) => v !== ''));
+  const snapshot = () => JSON.stringify([name, products, start, end, booked, used, contact, openScope, rule, note, milestones, filled(months), filled(usedMonths)]);
+  const initial = snapshot();
+  const dirty = $derived(snapshot() !== initial);
 
   // Months of the contingent: from the start (or today) to the end, at most three years.
   const monthKeys = $derived.by(() => {
@@ -129,7 +133,8 @@
   }
 </script>
 
-<SidePanel title={p ? t('Edit project') : t('New project')} {onclose}>
+<SidePanel title={p ? t('Edit project') : t('New project')} {onclose} {dirty}>
+  {#snippet children(askClose)}
   <form class="stack" onsubmit={submit} novalidate>
     <div class="banner info">
       <Icon name="cloud_off" />
@@ -242,9 +247,10 @@
     {#if error}<div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>{/if}
     <div class="row">
       <button class="btn primary" type="submit" disabled={busy || !ruleValid}><Icon name="check" />{p ? t('Save project') : t('Create project')}</button>
-      <button class="btn ghost" type="button" onclick={onclose}>{t('Cancel')}</button>
+      <button class="btn ghost" type="button" onclick={askClose}>{t('Cancel')}</button>
     </div>
   </form>
+  {/snippet}
 </SidePanel>
 
 <style>

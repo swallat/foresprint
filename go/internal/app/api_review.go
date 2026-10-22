@@ -644,3 +644,21 @@ func (a *API) MinutesText(team, file string) (MinutesText, error) {
 	}
 	return MinutesText{Text: string(b), Path: path}, nil
 }
+
+// PendingTag is a tag a Review asked for; it is set with the next Save.
+type PendingTag struct {
+	Name string `json:"name"`
+	// Ready: the name is valid and free, so the next Save sets it. Otherwise the tag is dropped
+	// at the Save without being set.
+	Ready bool `json:"ready"`
+}
+
+// PendingTags lists the tags that wait for the next Save.
+func (a *API) PendingTags() []PendingTag {
+	usable := a.usableTags()
+	out := []PendingTag{}
+	for _, name := range a.pendingTags() {
+		out = append(out, PendingTag{Name: name, Ready: contains(usable, name)})
+	}
+	return out
+}

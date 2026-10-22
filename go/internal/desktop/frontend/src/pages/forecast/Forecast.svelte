@@ -127,7 +127,7 @@
 {#if view}
   <nav class="tabs" aria-label={t('Forecast views')}>
     {#each tabs as tab (tab.id)}
-      <a href={link('/forecast', {}, tab.id === 'forecast' ? {} : { tab: tab.id })} class:active={activeTab === tab.id} aria-current={activeTab === tab.id ? 'page' : undefined}>
+      <a href={link('/forecast', {}, tab.id === 'forecast' ? {} : { tab: tab.id })} data-tour={tab.id === 'reports' ? 'forecast-reports' : undefined} class:active={activeTab === tab.id} aria-current={activeTab === tab.id ? 'page' : undefined}>
         <Icon name={tab.icon} size={18} />{tab.label}
       </a>
     {/each}
@@ -153,7 +153,7 @@
     <Reports />
   {:else}
   <div class="stack-lg">
-    <section class="card" aria-labelledby="fc-chart">
+    <section class="card" aria-labelledby="fc-chart" data-tour="forecast-chart">
       <h2 id="fc-chart">{t('Velocity and Forecast PLAN')}</h2>
       <ForecastChart past={view.past} upcoming={view.upcoming} {whatIf} digits={view.rounding} />
       {#if view.rate !== null}
@@ -164,7 +164,7 @@
       {/if}
     </section>
 
-    <section aria-labelledby="fc-next">
+    <section aria-labelledby="fc-next" data-tour="forecast-table">
       <h2 id="fc-next">{t('Coming sprints')}</h2>
       <div class="tw">
         <table class="t">
@@ -199,7 +199,9 @@
                 <td class="num">{fmt(r.trend)}</td>
                 <td class="num"><strong>{fmt(r.plan, view.rounding)}</strong></td>
                 <td class="num">{r.low !== null ? `${fmt(r.low, view.rounding)} – ${fmt(r.high, view.rounding)}` : '–'}</td>
-                <td class="num">{fmt(r.plannable, view.rounding)}</td>
+                <td class="num" title={r.carryIn > 0 ? t('After {n} points of carry-over.', { n: fmt(r.carryIn) }) : undefined}>
+                  {fmt(r.plannable, view.rounding)}{r.carryIn > 0 ? '*' : ''}
+                </td>
                 <td class="num">{fmt(r.small, view.rounding)}</td>
                 {#if whatIf.length > 0}
                   <td class="num">
@@ -223,10 +225,18 @@
                         {#if r.low !== null}
                           <div class="muted">{t('Range: lowest and highest normalized velocity of the last {n} sprints, same calculation.', { n: view.samples })}</div>
                         {/if}
-                        <div class="muted">{t('Plannable: {share} of the plan.', { share: pct(view.roadmapShare) })}</div>
                       {:else}
                         <div class="muted">{t('The recorded commitment of the sprint, rounded down.')}</div>
                       {/if}
+                      <div class="data">
+                        {t('Plannable: ({plan} − {carry}) × {share}', { plan: fmt(r.plan, view.rounding), carry: fmt(r.carryIn), share: pct(view.roadmapShare) })} → {fmt(r.plannable, view.rounding)}
+                      </div>
+                      {#if r.carryIn > 0}
+                        <div class="muted">
+                          {r.carryAssumed ? t('Carry-over of {n} points is an assumption of the running sprint.', { n: fmt(r.carryIn) }) : t('Carry-over of {n} points continues in this sprint.', { n: fmt(r.carryIn) })}
+                        </div>
+                      {/if}
+                      {#if r.overbooked}<div class="muted">{t('The carry-over alone exceeds the plan; nothing is plannable.')}</div>{/if}
                     </Calc>
                   {/if}
                 </td>
@@ -252,7 +262,7 @@
     </section>
 
     <div class="grid cols-2">
-      <section class="card stack" aria-labelledby="fc-wif">
+      <section class="card stack" aria-labelledby="fc-wif" data-tour="forecast-whatif">
         <h2 id="fc-wif">{t('What if')}</h2>
         <p class="small muted">{t('Try other assumptions. Nothing is saved; the chart and the table show the result.')}</p>
         <div class="row">
@@ -277,7 +287,7 @@
         {/if}
       </section>
 
-      <section class="card stack" aria-labelledby="fc-done">
+      <section class="card stack" aria-labelledby="fc-done" data-tour="forecast-analysis">
         <h2 id="fc-done">{t('When is it done?')}</h2>
         <p class="small muted">{t('Simulates the coming sprints from the velocities so far. A likelihood, not a promise.')}</p>
         <form
@@ -351,7 +361,7 @@
       </section>
     </div>
 
-    <section aria-labelledby="fc-hist">
+    <section aria-labelledby="fc-hist" data-tour="forecast-history">
       <h2 id="fc-hist">{t('Completed sprints')}</h2>
       {#if view.past.length === 0}
         <p class="muted">{t('No completed sprints yet.')}</p>

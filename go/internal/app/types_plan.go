@@ -44,9 +44,15 @@ type PlanSprint struct {
 	CarryLater float64    `json:"carryLater"`
 	// Planned is the sum that is pre-planned (amounts) or planned (tickets), Committed the
 	// commitment of a frozen plan.
-	Preplanned float64  `json:"preplanned"`
-	Earmarked  float64  `json:"earmarked"`
-	Committed  *float64 `json:"committed"`
+	Preplanned float64 `json:"preplanned"`
+	Earmarked  float64 `json:"earmarked"`
+	// Removed are tickets the team took out of the sprint although the tracker still has them
+	// in it (kept until the plan is frozen).
+	Removed []string `json:"removed"`
+	// SprintPre is the pre-planned amount of the whole sprint (teams without the products
+	// feature), nil if none is set.
+	SprintPre *float64 `json:"sprintPre"`
+	Committed *float64 `json:"committed"`
 
 	Products   []PlanProduct   `json:"products"`
 	Tickets    []PlanTicket    `json:"tickets"`
@@ -124,6 +130,8 @@ type PlanProject struct {
 	Amount  float64  `json:"amount"`   // in the unit
 	NeedPD  *float64 `json:"needPD"`   // estimate via the rate
 	Booked  *float64 `json:"bookedPD"` // contingent for the whole project, in PD
+	// UsedPD is what the contingent already consumed (from the project, nil if not recorded).
+	UsedPD *float64 `json:"usedPD"`
 	// Manual is the split of an amount without tickets: editable.
 	Manual bool `json:"manual"`
 }

@@ -57,6 +57,14 @@
     }
   }
 
+  async function openFile(path: string) {
+    try {
+      await api.OpenFile(path);
+    } catch (e) {
+      toast(String(e), 'bad');
+    }
+  }
+
   async function copyPath(path: string) {
     try {
       await navigator.clipboard.writeText(path);
@@ -135,6 +143,7 @@
       <h2 id="doc-h">{kindName(open.row.kind)} {open.row.sprint}</h2>
       {#if open.row.obsolete}<span class="chip warn"><Icon name="history" size={14} />{t('superseded')}</span>{/if}
       <span class="grow"></span>
+      <button type="button" class="btn" onclick={() => open && openFile(open.text.path)}><Icon name="open_in_new" />{t('Open as file')}</button>
       <button type="button" class="btn" onclick={() => open && copyPath(open.text.path)}><Icon name="content_copy" />{t('Copy path')}</button>
       <button type="button" class="btn ghost icon" aria-label={t('Close')} onclick={() => (open = undefined)}><Icon name="close" /></button>
     </div>
