@@ -20,6 +20,7 @@ func init() { Register(absencesCommand) }
 
 func absencesCommand(env *Env) *cobra.Command {
 	var doCommit bool
+	var period periodOptions
 	cmd := &cobra.Command{
 		Use:   "absences TEAM [SPRINT]",
 		Short: i18n.T("Record planned absences per person for a sprint (default: next sprint)."),
@@ -29,6 +30,9 @@ func absencesCommand(env *Env) *cobra.Command {
 			data, err := env.LoadTeam(key)
 			if err != nil {
 				return err
+			}
+			if period.used() {
+				return runAbsencePeriods(env, key, data, period, doCommit)
 			}
 			if len(data.People) == 0 {
 				return Failf("No people recorded. First: {command}", "command", "foresprint people "+key)
@@ -56,6 +60,7 @@ func absencesCommand(env *Env) *cobra.Command {
 	}
 	teamArg(env, cmd)
 	commitFlag(cmd, &doCommit)
+	period.flags(cmd)
 	return cmd
 }
 
@@ -111,14 +116,11 @@ func (e *Env) askAbsences(data *storage.TeamData, s *model.Sprint) (string, erro
 	days := calendar.TeamWorkdays(&data.Team, s.Start, s.End)
 	e.Println(sprintSummary(data, s))
 	e.explain("absences")
-	if s.Absences == nil {
-		s.Absences = map[string]float64{}
-	}
 	for _, p := range data.People {
 		if !p.ActiveBetween(s.Start, s.End) {
 			continue
 		}
-		current := s.Absences[p.ID]
+		current := s.CellDays(p.ID)
 		value, err := e.AskNumber(textfmt.BlankControls(p.Name), &current, false, 0)
 		if err != nil {
 			return "", err
@@ -127,12 +129,12 @@ func (e *Env) askAbsences(data *storage.TeamData, s *model.Sprint) (string, erro
 			if limit := float64(len(days)); v > limit {
 				v = limit
 			}
-			s.Absences[p.ID] = v
+			s.SetCell(p.ID, v, model.AbsencesConfirmed)
 		} else {
-			delete(s.Absences, p.ID)
+			s.SetCell(p.ID, 0, model.AbsencesConfirmed)
 		}
 	}
-	s.SetAbsencesConfirmed(true) // all people were asked, including "0"
+	s.Freeze() // all people were asked, including "0": the allocation is confirmed
 	if s.Capacity != nil {
 		ok, err := e.Confirm(i18n.P("A fixed capacity ({capacity}) is recorded for the sprint. Remove it so it is "+
 			"calculated from the absences?", "capacity", textfmt.FmtCapacity(i18n.Language(), s.Capacity, data.Team.Capacity.Rounding)),
