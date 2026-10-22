@@ -1,6 +1,8 @@
 package app
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -90,5 +92,18 @@ func TestTextsAreTranslated(t *testing.T) {
 func TestPickDataDirWithoutDialog(t *testing.T) {
 	if _, err := newAPI(t, "").PickDataDir(); err == nil {
 		t.Error("expected an error without a folder dialog")
+	}
+}
+
+// The window reads the length of the lists of Prefs; a fresh machine has no recent folders and
+// the answer must still carry an empty list, not null.
+func TestPrefsListsAreNeverNull(t *testing.T) {
+	api := newAPI(t, t.TempDir())
+	b, err := json.Marshal(api.Prefs())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(b, []byte("null")) {
+		t.Fatalf("prefs contain null: %s", b)
 	}
 }

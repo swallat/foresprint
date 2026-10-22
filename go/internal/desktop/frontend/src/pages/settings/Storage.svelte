@@ -51,7 +51,7 @@
     shown = { server: st.server, name: st.name, email: st.email };
     user = user || st.guide.username;
     if (st.ready) {
-      branches = await api.Branches().catch(() => []);
+      branches = (await api.Branches().catch(() => [])) ?? [];
       pickBranch = st.branch;
       endings = await api.LineEndings().catch(() => undefined);
     } else {
@@ -247,7 +247,7 @@
           </button>
         </div>
       </div>
-      {#if app.prefs && app.prefs.recentDataDirs.length > 1}
+      {#if app.prefs?.recentDataDirs && app.prefs.recentDataDirs.length > 1}
         <h3 class="small muted">{t('Recently used folders')}</h3>
         <ul class="plain">
           {#each app.prefs.recentDataDirs as dir (dir)}
