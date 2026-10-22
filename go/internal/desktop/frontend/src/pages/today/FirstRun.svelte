@@ -78,6 +78,15 @@
   }
 
   const d = $state<Draft>(restore());
+  // From the team selection ("Create a new team"): storage and sign-in are done already, so the
+  // wizard starts at the team and offers nothing but a new team. It is not kept as a draft.
+  const addRequested = current.query.add === 'team';
+  let adding = $state(addRequested);
+  if (addRequested) {
+    d.kind = 'keep';
+    d.team = 'new';
+    d.step = 'team';
+  }
   let info = $state<SetupState>();
   let regions = $state<Region[]>([]);
   let os = $state('linux');
@@ -93,6 +102,7 @@
   let applied = '';
 
   $effect(() => {
+    if (adding) return;
     // An address with credentials in it is never written down (the core rejects it anyway).
     const snapshot = JSON.stringify({ ...d, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
     try {
@@ -127,21 +137,14 @@
       d.name ||= info.name;
       d.email ||= info.email;
       if (info.teams.some((x) => !x.problem) && d.kind === 'clone' && !d.address) d.kind = 'keep';
+      if (adding && !info.teams.some((x) => !x.problem)) {
+        // No team of the real data yet (only the demo was open): the full wizard asks for the storage.
+        adding = false;
+        Object.assign(d, restore());
+      }
     } catch (e) {
       fail(null, String(e));
     }
-  });
-
-  // From the team selection ("Create a new team"): storage and sign-in are done already, so the
-  // wizard starts at the team and offers nothing but a new team.
-  const adding = $derived(current.query.add === 'team');
-  let startedAdding = false;
-  $effect(() => {
-    if (!adding || startedAdding || !info) return;
-    startedAdding = true;
-    d.kind = 'keep';
-    d.team = 'new';
-    d.step = 'team';
   });
 
   const hasTeams = $derived((info?.teams ?? []).filter((x) => !x.problem));
@@ -303,6 +306,7 @@
   }
 
   function back(): void {
+    if (adding && index === 0) return go('/today');
     const prev = steps[index - 1];
     if (prev) goTo(prev);
   }
@@ -568,7 +572,7 @@
   </div>
 
   <div class="row nav">
-    <button class="btn" type="button" disabled={index === 0 || busy} onclick={back}><Icon name="arrow_back" />{t('Back')}</button>
+    <button class="btn" type="button" disabled={(index === 0 && !adding) || busy} onclick={back}><Icon name="arrow_back" />{adding && index === 0 ? t('Cancel') : t('Back')}</button>
     <span class="grow small muted">{t('Your choices are kept as a draft.')}</span>
     {#if d.step === 'signin'}
       <button class="btn ghost" type="button" disabled={busy} onclick={next}>{t('Skip')}</button>
