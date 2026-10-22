@@ -2,11 +2,14 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
+import { createBacklogMock } from './mock.backlog';
 import type { Prefs, Result, SprintInfo, Status } from './types';
 
+// The demo sprints run around today: nine behind, the running one, four ahead.
+const anchor = new Date(Date.now() - ((new Date().getUTCDay() + 6) % 7) * 86400000);
 const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
   const n = 12 + i;
-  const start = new Date(Date.UTC(2026, 0, 5 + i * 14));
+  const start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate() + (i - 9) * 14));
   const end = new Date(start.getTime() + 11 * 86400000);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const now = Date.now();
@@ -46,6 +49,7 @@ const status = (): Status => ({
 const ok = (message: string): Result => ({ ok: true, message });
 
 export const mockApi: Api = {
+  ...createBacklogMock(() => sprints),
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },

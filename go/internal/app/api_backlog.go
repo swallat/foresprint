@@ -1,0 +1,854 @@
+package app
+
+// The Backlog area: the ranked ticket list with lanes for the coming sprints, the ticket panel
+// and the presentation view. Reading uses the pre-planning of the core (preplan); writing keeps
+// the PO's decisions in preplan.yaml and, for work packages, the packages themselves in
+// arbeitspakete.yaml. Nothing here talks to the tracker (that is Settings > Tickets).
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/swallat/foresprint/internal/forecast"
+	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/preplan"
+	"github.com/swallat/foresprint/internal/storage"
+)
+
+// lanesShown is the number of coming sprints the backlog shows as lanes.
+const lanesShown = 3
+
+// backlogMu serialises the changes of the ticket files (read, change, write).
+var backlogMu sync.Mutex
+
+func today() time.Time {
+	now := time.Now()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func str(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
+func ptr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func (a *API) loadTickets(team string) (*storage.Repository, *storage.TeamData, error) {
+	repo := storage.NewRepository(a.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		return nil, nil, err
+	}
+	return repo, data, nil
+}
+
+// view builds the row of one ticket. effective product and project honour the PO's decisions.
+type backlogContext struct {
+	data     *storage.TeamData
+	order    map[string]int
+	sprints  map[string]model.Sprint
+	proForma map[string]string // lower case name to name
+	byKey    map[string]*model.Ticket
+}
+
+func newBacklogContext(data *storage.TeamData) *backlogContext {
+	c := &backlogContext{
+		data:     data,
+		order:    map[string]int{},
+		sprints:  map[string]model.Sprint{},
+		proForma: map[string]string{},
+		byKey:    map[string]*model.Ticket{},
+	}
+	ordered, leftover := preplan.OrderTickets(data)
+	for i, tk := range append(ordered, leftover...) {
+		c.order[tk.Key] = i
+	}
+	for _, s := range data.Sprints {
+		c.sprints[s.ID] = s
+	}
+	for _, name := range data.Team.Sprint.ProForma {
+		c.proForma[strings.ToLower(strings.TrimSpace(name))] = name
+	}
+	for i := range data.Tickets {
+		c.byKey[data.Tickets[i].Key] = &data.Tickets[i]
+	}
+	return c
+}
+
+// proFormaName is the pro-forma sprint the tracker has the ticket in, or "".
+func (c *backlogContext) proFormaName(tk model.Ticket) string {
+	for _, name := range []string{str(tk.SprintName), str(tk.InSprint)} {
+		if p, ok := c.proForma[strings.ToLower(strings.TrimSpace(name))]; ok && name != "" {
+			return p
+		}
+	}
+	return ""
+}
+
+func (c *backlogContext) sprintStart(id string) (time.Time, bool) {
+	s, ok := c.sprints[id]
+	return s.Start, ok
+}
+
+// plannedSprint is the sprint the ticket is in according to the tracker, else its earmark.
+func (c *backlogContext) plannedSprint(tk model.Ticket) string {
+	if id := str(tk.InSprint); id != "" {
+		return id
+	}
+	if e := c.data.Preplan.EarmarkFor(tk.Key); e != nil {
+		return e.Sprint
+	}
+	return ""
+}
+
+func trackerName(team model.Team) string {
+	switch team.Tracker.Kind {
+	case "jira":
+		return "Jira"
+	case "csv":
+		return "CSV"
+	}
+	return ""
+}
+
+func ticketURL(team model.Team, key string) string {
+	if team.Tracker.Kind != "jira" || team.Tracker.BaseURL == nil || *team.Tracker.BaseURL == "" {
+		return ""
+	}
+	return strings.TrimRight(*team.Tracker.BaseURL, "/") + "/browse/" + key
+}
+
+func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
+	data := c.data
+	size, source := preplan.TicketSize(tk, data, 1)
+	r := BacklogTicket{
+		Key:            tk.Key,
+		Title:          tk.Title,
+		Status:         str(tk.Status),
+		Type:           str(tk.IssueType),
+		Priority:       str(tk.Priority),
+		Assignee:       str(tk.Assignee),
+		URL:            ticketURL(data.Team, tk.Key),
+		Size:           size,
+		SizeSource:     string(source),
+		Refined:        source == model.EstimateRefined,
+		RefinedUnclear: tk.RefinedUnclear,
+		Earmark:        "",
+		TrackerSprint:  str(tk.InSprint),
+		Epic:           str(tk.Epic),
+		Labels:         append([]string{}, tk.Labels...),
+		DependsOn:      append([]string{}, tk.DependsOn...),
+	}
+	if r.TrackerSprint == "" {
+		r.TrackerSprint = str(tk.SprintName)
+	}
+	if e := data.Preplan.EarmarkFor(tk.Key); e != nil {
+		r.Earmark = e.Sprint
+	}
+	if share := data.Preplan.ProductionFor(tk.Key); share != nil {
+		p := share.Percent
+		r.Production = &p
+	}
+
+	r.Project = str(tk.Project)
+	over := data.Preplan.OverrideFor(tk.Key)
+	if over != nil {
+		if over.Daily {
+			r.Project, r.ProjectSet = "", true
+		} else if over.Project != nil {
+			r.Project, r.ProjectSet = *over.Project, true
+		}
+	}
+	if data.Team.Source() == model.SourcePackages {
+		r.Product = str(tk.Product)
+	} else {
+		probe := tk
+		if r.ProjectSet {
+			probe.Project = ptr(r.Project)
+		}
+		product, candidates := preplan.TicketProduct(probe, data)
+		r.Product = str(product)
+		if data.Team.Features.Products {
+			switch {
+			case product == nil && len(candidates) > 1:
+				r.RuleHint, r.RuleProducts = "several", candidates
+			case product == nil:
+				r.RuleHint = "none"
+			default:
+				if other := preplan.ProductConflict(probe, data); other != nil {
+					r.RuleHint, r.RuleProducts = "project", []string{*other}
+				}
+			}
+		}
+		if over != nil && over.Product != nil {
+			r.Product, r.ProductSet = *over.Product, true
+			r.RuleHint, r.RuleProducts = "", nil
+		}
+	}
+	r.Blocked = c.blocked(tk, r.Earmark)
+	return r
+}
+
+// blocked: the ticket is earmarked, but a ticket it depends on is not planned early enough.
+func (c *backlogContext) blocked(tk model.Ticket, earmark string) bool {
+	if earmark == "" {
+		return false
+	}
+	mine, ok := c.sprintStart(earmark)
+	if !ok {
+		return false
+	}
+	gap := c.data.Team.Tracker.DependencyGap
+	for _, key := range tk.DependsOn {
+		dep := c.byKey[key]
+		if dep == nil || dep.Done {
+			continue
+		}
+		at := c.plannedSprint(*dep)
+		if at == "" {
+			return true
+		}
+		start, ok := c.sprintStart(at)
+		if !ok {
+			continue
+		}
+		if gap > 0 && !start.Before(mine) || gap == 0 && start.After(mine) {
+			return true
+		}
+	}
+	return false
+}
+
+func namedProducts(data *storage.TeamData) []Named {
+	out := make([]Named, 0, len(data.Products))
+	for _, p := range data.Products {
+		out = append(out, Named{ID: p.ID, Name: p.Name, Closed: p.End != nil && p.End.Before(today())})
+	}
+	return out
+}
+
+func namedProjects(data *storage.TeamData) []Named {
+	out := make([]Named, 0, len(data.Projects))
+	for _, p := range data.Projects {
+		out = append(out, Named{ID: p.ID, Name: p.Name, Closed: p.Closed()})
+	}
+	return out
+}
+
+// Backlog returns the open tickets in planning order, the lanes of the coming sprints with
+// their earmarked tickets and the pro-forma sprints.
+func (a *API) Backlog(team string) (*BacklogView, error) {
+	_, data, err := a.loadTickets(team)
+	if err != nil {
+		return nil, err
+	}
+	view := &BacklogView{
+		Source:     string(data.Team.Source()),
+		Tracker:    trackerName(data.Team),
+		Unit:       string(data.Team.Unit),
+		Products:   namedProducts(data),
+		Projects:   namedProjects(data),
+		Tickets:    []BacklogTicket{},
+		Lanes:      []BacklogLane{},
+		ProForma:   []ProFormaSprint{},
+		Multi:      data.Team.Features.Products,
+		Production: data.Team.Features.Production,
+		Cycles:     [][]string{},
+	}
+	if data.TicketsImported != nil {
+		view.Imported = data.TicketsImported.Format(time.RFC3339)
+	}
+	if data.Team.Source() == model.SourceNone {
+		return view, nil
+	}
+	c := newBacklogContext(data)
+	ordered, leftover := preplan.OrderTickets(data)
+	all := append(ordered, leftover...)
+	for _, cycle := range cycles(leftover) {
+		view.Cycles = append(view.Cycles, cycle)
+	}
+
+	lanes := a.lanes(data)
+	laneAt := map[string]int{}
+	for i, l := range lanes {
+		laneAt[l.Sprint] = i
+	}
+	pro := map[string]*ProFormaSprint{}
+	for _, name := range data.Team.Sprint.ProForma {
+		view.ProForma = append(view.ProForma, ProFormaSprint{Name: name, Tickets: []BacklogTicket{}})
+	}
+	for i := range view.ProForma {
+		pro[view.ProForma[i].Name] = &view.ProForma[i]
+	}
+	now := today()
+	for _, tk := range all {
+		r := c.row(tk)
+		if name := c.proFormaName(tk); name != "" {
+			pro[name].Tickets = append(pro[name].Tickets, r)
+			continue
+		}
+		sprint := c.plannedSprint(tk)
+		if i, ok := laneAt[sprint]; ok {
+			lanes[i].Tickets = append(lanes[i].Tickets, r)
+			continue
+		}
+		if s, ok := c.sprints[str(tk.InSprint)]; ok && tk.InSprint != nil && !s.End.After(now) {
+			continue // finished sprint: not backlog any more
+		}
+		if tk.InSprint != nil && *tk.InSprint != "" {
+			continue // in the running sprint: the sprint pages show it
+		}
+		view.Tickets = append(view.Tickets, r)
+	}
+	view.Lanes = lanes
+	return view, nil
+}
+
+// cycles reports the dependency cycles among the tickets the order left over.
+func cycles(left []model.Ticket) [][]string {
+	if len(left) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(left))
+	for _, tk := range left {
+		keys = append(keys, tk.Key)
+	}
+	return [][]string{keys}
+}
+
+// lanes returns the next coming sprints with their Forecast PLAN.
+func (a *API) lanes(data *storage.TeamData) []BacklogLane {
+	now := today()
+	plans := map[string]*float64{}
+	var upcoming []model.Sprint
+	if fc, err := forecast.Build(data, now); err == nil {
+		for i := range fc.Entries {
+			e := fc.Entries[i]
+			if e.Sprint.Start.After(now) {
+				upcoming = append(upcoming, e.Sprint)
+				plans[e.Sprint.ID] = e.Result.Plan
+			}
+		}
+	} else {
+		for _, s := range data.Sprints {
+			if s.Start.After(now) {
+				upcoming = append(upcoming, s)
+			}
+		}
+	}
+	sort.SliceStable(upcoming, func(i, j int) bool { return upcoming[i].Start.Before(upcoming[j].Start) })
+	if len(upcoming) > lanesShown {
+		upcoming = upcoming[:lanesShown]
+	}
+	out := make([]BacklogLane, 0, len(upcoming))
+	for _, s := range upcoming {
+		state := "unknown"
+		switch s.AbsenceStatus() {
+		case model.AbsencesConfirmed:
+			state = "confirmed"
+		case model.AbsencesExpected:
+			state = "announced"
+		}
+		out = append(out, BacklogLane{
+			Sprint:   s.ID,
+			Start:    s.Start.Format("2006-01-02"),
+			End:      s.End.Format("2006-01-02"),
+			Plan:     plans[s.ID],
+			Absences: state,
+			Tickets:  []BacklogTicket{},
+		})
+	}
+	return out
+}
+
+// Ticket returns one ticket with all details.
+func (a *API) Ticket(team, key string) (*TicketDetail, error) {
+	_, data, err := a.loadTickets(team)
+	if err != nil {
+		return nil, err
+	}
+	tk := data.TicketByKey(key)
+	if tk == nil {
+		return nil, fmt.Errorf("%s", i18n.T("Ticket {key} not found.", "key", key))
+	}
+	c := newBacklogContext(data)
+	d := &TicketDetail{
+		BacklogTicket: c.row(*tk),
+		Description:   str(tk.Description),
+		Acceptance:    str(tk.Acceptance),
+		Subtasks:      []Subtask{},
+		Comments:      []Comment{},
+		Dependencies:  []Dependency{},
+		Components:    append([]string{}, tk.Components...),
+		Estimate:      tk.Estimate,
+		Remaining:     tk.Remaining,
+		Editable:      data.Team.Source() == model.SourcePackages,
+		Sprints:       []string{},
+		Statuses:      statusChoices(data),
+		Types:         []string{"Story", "Bug", "Task"},
+		Priorities:    priorityChoices(data),
+		People:        []string{},
+	}
+	if e := data.Preplan.EarmarkFor(key); e != nil {
+		d.Note = str(e.Note)
+	}
+	for _, s := range tk.Subtasks {
+		d.Subtasks = append(d.Subtasks, Subtask{Title: s.Title, Done: s.Done})
+	}
+	for _, cm := range tk.Comments {
+		at := ""
+		if cm.At != nil {
+			at = cm.At.Format(time.RFC3339)
+		}
+		d.Comments = append(d.Comments, Comment{Author: cm.Author, At: at, Text: cm.Text})
+	}
+	for _, k := range tk.DependsOn {
+		dep := Dependency{Key: k}
+		if o := c.byKey[k]; o != nil {
+			dep.Title = o.Title
+			dep.Earmark = c.plannedSprint(*o)
+		}
+		d.Dependencies = append(d.Dependencies, dep)
+	}
+	for _, l := range a.lanes(data) {
+		d.Sprints = append(d.Sprints, l.Sprint)
+	}
+	for _, p := range data.People {
+		d.People = append(d.People, p.Name)
+	}
+	return d, nil
+}
+
+func statusChoices(data *storage.TeamData) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, s := range []string{"New", "In progress", "In review", "Done"} {
+		seen[s] = true
+		out = append(out, s)
+	}
+	for _, tk := range data.Tickets {
+		if s := str(tk.Status); s != "" && !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+func priorityChoices(data *storage.TeamData) []string {
+	if len(data.Team.Tracker.PriorityOrder) > 0 {
+		return append([]string{}, data.Team.Tracker.PriorityOrder...)
+	}
+	return append([]string{}, model.DefaultPriorityOrder...)
+}
+
+// --- Changes ------------------------------------------------------------------------------
+
+// change loads the team, lets edit change it and returns the repository; the caller writes.
+func (a *API) change(team, key string, edit func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (write func() error, err error)) error {
+	backlogMu.Lock()
+	defer backlogMu.Unlock()
+	repo, data, err := a.loadTickets(team)
+	if err != nil {
+		return err
+	}
+	tk := data.TicketByKey(key)
+	if tk == nil {
+		return fmt.Errorf("%s", i18n.T("Ticket {key} not found.", "key", key))
+	}
+	write, err := edit(repo, data, tk)
+	if err != nil {
+		return err
+	}
+	return write()
+}
+
+func savePreplan(repo *storage.Repository, team string, data *storage.TeamData) func() error {
+	return func() error {
+		_, err := repo.SavePreplan(team, data.Preplan)
+		return err
+	}
+}
+
+func savePackages(repo *storage.Repository, team string, data *storage.TeamData) func() error {
+	return func() error {
+		_, err := repo.SavePackages(team, storage.TicketsFile{Tickets: data.Tickets, Imported: data.TicketsImported, Source: data.TicketsSource})
+		return err
+	}
+}
+
+func saveBoth(repo *storage.Repository, team string, data *storage.TeamData) func() error {
+	return func() error {
+		if err := savePackages(repo, team, data)(); err != nil {
+			return err
+		}
+		return savePreplan(repo, team, data)()
+	}
+}
+
+func (a *API) writePackages(data *storage.TeamData) bool {
+	return data.Team.Source() == model.SourcePackages
+}
+
+func removeEarmark(p *model.Preplan, key string) {
+	out := p.Earmarks[:0:0]
+	for _, e := range p.Earmarks {
+		if e.Ticket != key {
+			out = append(out, e)
+		}
+	}
+	p.Earmarks = out
+}
+
+// SetEarmark earmarks the ticket for a coming sprint; "" takes the earmark away. note is the
+// PO's note on the decision ("" keeps an existing note when only the sprint changes).
+func (a *API) SetEarmark(team, key, sprint, note string) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if sprint == "" {
+			removeEarmark(&data.Preplan, key)
+			return savePreplan(repo, team, data), nil
+		}
+		if tk.Done {
+			return nil, fmt.Errorf("%s", i18n.T("{key} is done and cannot be earmarked.", "key", key))
+		}
+		s := data.SprintByID(sprint)
+		if s == nil {
+			fc, err := forecast.Build(data, today())
+			if err == nil {
+				if e := fc.Entry(sprint); e != nil {
+					s = &e.Sprint
+				}
+			}
+		}
+		if s == nil {
+			return nil, fmt.Errorf("%s", i18n.T("Sprint {id} is not known.", "id", sprint))
+		}
+		if !s.End.After(today()) {
+			return nil, fmt.Errorf("%s", i18n.T("Sprint {id} is over.", "id", sprint))
+		}
+		prev := ""
+		if e := data.Preplan.EarmarkFor(key); e != nil {
+			prev = str(e.Note)
+		}
+		removeEarmark(&data.Preplan, key)
+		if note == "" {
+			note = prev
+		}
+		data.Preplan.Earmarks = append(data.Preplan.Earmarks, model.Earmark{Ticket: key, Sprint: sprint, Note: ptr(note)})
+		return savePreplan(repo, team, data), nil
+	})
+}
+
+// SetEstimate sets the estimate of a ticket: for a work package its estimate, for a tracker
+// ticket without an estimate the PO's own estimate; nil takes it away.
+func (a *API) SetEstimate(team, key string, value *float64) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if value != nil && *value < 0 {
+			return nil, fmt.Errorf("%s", i18n.T("The estimate cannot be negative."))
+		}
+		if a.writePackages(data) {
+			refined := tk.EstimateSource == model.EstimateRefined
+			tk.Estimate = value
+			tk.EstimateSource = estimateSource(value, refined)
+			return savePackages(repo, team, data), nil
+		}
+		if tk.Estimate != nil || tk.Remaining != nil {
+			return nil, fmt.Errorf("%s", i18n.T("The estimate of {key} comes from the tracker.", "key", key))
+		}
+		pp := &data.Preplan
+		kept := pp.Estimates[:0:0]
+		for _, m := range pp.Estimates {
+			if m.Ticket != key {
+				kept = append(kept, m)
+			}
+		}
+		pp.Estimates = kept
+		if value != nil {
+			pp.Estimates = append(pp.Estimates, model.ManualEstimate{Ticket: key, Estimate: value})
+		}
+		return savePreplan(repo, team, data), nil
+	})
+}
+
+func estimateSource(estimate *float64, refined bool) model.EstimateSource {
+	switch {
+	case estimate == nil:
+		return model.EstimateNone
+	case refined:
+		return model.EstimateRefined
+	}
+	return model.EstimateRough
+}
+
+// SetRefined sets the refined state of a work package (a tracker ticket is refined in the
+// tracker).
+func (a *API) SetRefined(team, key string, refined bool) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if !a.writePackages(data) {
+			return nil, fmt.Errorf("%s", i18n.T("{key} is refined in the tracker.", "key", key))
+		}
+		tk.EstimateSource = estimateSource(tk.Estimate, refined)
+		return savePackages(repo, team, data), nil
+	})
+}
+
+// SetAssignment sets product and project of a ticket. For a work package they are its fields;
+// for a tracker ticket they are the PO's decision against the rules. product "" keeps the rule,
+// project "" with daily true says daily business; project "" with daily false keeps the rule.
+func (a *API) SetAssignment(team, key, product, project string, daily bool) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if product != "" && !hasID(namedProducts(data), product) {
+			return nil, fmt.Errorf("%s", i18n.T("Product {id} is not known.", "id", product))
+		}
+		if project != "" && !hasID(namedProjects(data), project) {
+			return nil, fmt.Errorf("%s", i18n.T("Project {id} is not known.", "id", project))
+		}
+		if a.writePackages(data) {
+			tk.Product = ptr(product)
+			tk.Project = ptr(project)
+			return savePackages(repo, team, data), nil
+		}
+		pp := &data.Preplan
+		kept := pp.Overrides[:0:0]
+		for _, o := range pp.Overrides {
+			if o.Ticket != key {
+				kept = append(kept, o)
+			}
+		}
+		pp.Overrides = kept
+		if product != "" || project != "" || daily {
+			pp.Overrides = append(pp.Overrides, model.TicketOverride{Ticket: key, Product: ptr(product), Project: ptr(project), Daily: daily && project == ""})
+		}
+		return savePreplan(repo, team, data), nil
+	})
+}
+
+func hasID(list []Named, id string) bool {
+	for _, n := range list {
+		if n.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// SetProduction sets the share (0 to 100) of the ticket that needs production access; nil
+// takes the value set here away.
+func (a *API) SetProduction(team, key string, percent *float64) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if percent != nil && (*percent < 0 || *percent > 100) {
+			return nil, fmt.Errorf("%s", i18n.T("The production share is between 0 and 100 percent."))
+		}
+		pp := &data.Preplan
+		kept := pp.Production[:0:0]
+		for _, s := range pp.Production {
+			if s.Ticket != key {
+				kept = append(kept, s)
+			}
+		}
+		pp.Production = kept
+		if percent != nil {
+			pp.Production = append(pp.Production, model.ProductionShare{Ticket: key, Percent: *percent})
+		}
+		return savePreplan(repo, team, data), nil
+	})
+}
+
+// --- Work packages ------------------------------------------------------------------------
+
+func packagePrefix(team model.Team) string {
+	if team.Tracker.PackagePrefix != "" {
+		return team.Tracker.PackagePrefix
+	}
+	return model.DefaultPackagePrefix
+}
+
+func nextPackageKey(data *storage.TeamData) string {
+	prefix := packagePrefix(data.Team) + "-"
+	highest := 0
+	for _, tk := range data.Tickets {
+		if n, err := strconv.Atoi(strings.TrimPrefix(tk.Key, prefix)); err == nil && strings.HasPrefix(tk.Key, prefix) && n > highest {
+			highest = n
+		}
+	}
+	return prefix + strconv.Itoa(highest+1)
+}
+
+// rankFirst gives the work package the first rank and renumbers the others in their order.
+func rankFirst(data *storage.TeamData, key string) {
+	var rest []model.Ticket
+	for _, tk := range data.Tickets {
+		if tk.Key != key {
+			rest = append(rest, tk)
+		}
+	}
+	rest = preplan.TicketOrder(rest)
+	rank := map[string]string{key: fmt.Sprintf("%08d", 1000)}
+	for i, tk := range rest {
+		rank[tk.Key] = fmt.Sprintf("%08d", 2000+i*1000)
+	}
+	for i := range data.Tickets {
+		r := rank[data.Tickets[i].Key]
+		data.Tickets[i].Rank = &r
+	}
+}
+
+// SaveWorkPackage creates (Key "") or changes a work package and returns its key. A new one goes
+// to the top of the backlog.
+func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) {
+	backlogMu.Lock()
+	defer backlogMu.Unlock()
+	repo, data, err := a.loadTickets(team)
+	if err != nil {
+		return "", err
+	}
+	if !a.writePackages(data) {
+		return "", fmt.Errorf("%s", i18n.T("This team gets its tickets from a tracker, not from work packages."))
+	}
+	title := strings.TrimSpace(in.Title)
+	if title == "" {
+		return "", fmt.Errorf("%s", i18n.T("A work package needs a title."))
+	}
+	if in.Estimate != nil && *in.Estimate < 0 {
+		return "", fmt.Errorf("%s", i18n.T("The estimate cannot be negative."))
+	}
+	if in.Product != "" && !hasID(namedProducts(data), in.Product) {
+		return "", fmt.Errorf("%s", i18n.T("Product {id} is not known.", "id", in.Product))
+	}
+	if in.Project != "" && !hasID(namedProjects(data), in.Project) {
+		return "", fmt.Errorf("%s", i18n.T("Project {id} is not known.", "id", in.Project))
+	}
+	tk := data.TicketByKey(in.Key)
+	created := tk == nil
+	if created {
+		if in.Key != "" {
+			return "", fmt.Errorf("%s", i18n.T("Ticket {key} not found.", "key", in.Key))
+		}
+		data.Tickets = append(data.Tickets, model.Ticket{Key: nextPackageKey(data)})
+		tk = &data.Tickets[len(data.Tickets)-1]
+	}
+	for _, dep := range in.DependsOn {
+		if dep == tk.Key {
+			return "", fmt.Errorf("%s", i18n.T("A work package cannot depend on itself."))
+		}
+		if data.TicketByKey(dep) == nil {
+			return "", fmt.Errorf("%s", i18n.T("Ticket {key} not found.", "key", dep))
+		}
+	}
+	status := strings.TrimSpace(in.Status)
+	tk.Title = title
+	tk.Status = ptr(status)
+	tk.IssueType = ptr(strings.TrimSpace(in.Type))
+	tk.Priority = ptr(strings.TrimSpace(in.Priority))
+	tk.Assignee = ptr(strings.TrimSpace(in.Assignee))
+	tk.Product = ptr(in.Product)
+	tk.Project = ptr(in.Project)
+	tk.Estimate = in.Estimate
+	tk.EstimateSource = estimateSource(in.Estimate, in.Refined)
+	tk.Labels = cleanList(in.Labels)
+	tk.Description = ptr(strings.TrimSpace(in.Description))
+	tk.Acceptance = ptr(strings.TrimSpace(in.Acceptance))
+	tk.DependsOn = cleanList(in.DependsOn)
+	tk.Done = in.Done || status == "Done"
+	tk.Subtasks = nil
+	for _, s := range in.Subtasks {
+		if strings.TrimSpace(s.Title) != "" {
+			tk.Subtasks = append(tk.Subtasks, model.Subtask{Title: strings.TrimSpace(s.Title), Done: s.Done})
+		}
+	}
+	tk.Comments = nil
+	for _, c := range in.Comments {
+		if strings.TrimSpace(c.Text) == "" {
+			continue
+		}
+		comment := model.Comment{Author: c.Author, Text: strings.TrimSpace(c.Text)}
+		if at, err := time.Parse(time.RFC3339, c.At); err == nil {
+			comment.At = &at
+		}
+		tk.Comments = append(tk.Comments, comment)
+	}
+	key := tk.Key
+	if created {
+		rankFirst(data, key)
+	}
+	if tk.Done {
+		removeEarmark(&data.Preplan, key)
+	}
+	if err := saveBoth(repo, team, data)(); err != nil {
+		return "", err
+	}
+	return key, nil
+}
+
+func cleanList(in []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, s := range in {
+		if s = strings.TrimSpace(s); s != "" && !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// DeleteWorkPackage removes a work package with its earmark, own estimate, decisions and the
+// dependencies on it.
+func (a *API) DeleteWorkPackage(team, key string) error {
+	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
+		if !a.writePackages(data) {
+			return nil, fmt.Errorf("%s", i18n.T("Only work packages can be deleted here."))
+		}
+		kept := data.Tickets[:0:0]
+		for _, o := range data.Tickets {
+			if o.Key == key {
+				continue
+			}
+			var deps []string
+			for _, d := range o.DependsOn {
+				if d != key {
+					deps = append(deps, d)
+				}
+			}
+			o.DependsOn = deps
+			kept = append(kept, o)
+		}
+		data.Tickets = kept
+		pp := &data.Preplan
+		removeEarmark(pp, key)
+		var est []model.ManualEstimate
+		for _, m := range pp.Estimates {
+			if m.Ticket != key {
+				est = append(est, m)
+			}
+		}
+		pp.Estimates = est
+		var prod []model.ProductionShare
+		for _, s := range pp.Production {
+			if s.Ticket != key {
+				prod = append(prod, s)
+			}
+		}
+		pp.Production = prod
+		var over []model.TicketOverride
+		for _, o := range pp.Overrides {
+			if o.Ticket != key {
+				over = append(over, o)
+			}
+		}
+		pp.Overrides = over
+		return saveBoth(repo, team, data), nil
+	})
+}
