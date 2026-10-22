@@ -275,7 +275,14 @@ jobs:
       # installed there, so only the browser itself.
       - name: Install Chromium (GitHub-hosted, with system packages)
         if: steps.scope.outputs.run == 'true' && runner.environment == 'github-hosted'
-        run: uv run playwright install --with-deps chromium
+        run: |
+          # The system packages come from the Ubuntu mirror, which sometimes hangs: stop after
+          # five minutes and try once more.
+          for attempt in 1 2; do
+            timeout 300 uv run playwright install-deps chromium && break
+            test "$attempt" = 2 && exit 1
+          done
+          uv run playwright install chromium
       - name: Install Chromium (self-hosted, without system packages)
         if: steps.scope.outputs.run == 'true' && runner.environment == 'self-hosted'
         run: uv run playwright install chromium
