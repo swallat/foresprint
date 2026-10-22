@@ -1,0 +1,24 @@
+{
+ "operation": "set_labels",
+ "settings": {
+  "base_url": "https://jira.example.org",
+  "query": "project = ABC ORDER BY Rank",
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "rule_fields": {},
+  "link_type": "Blocks"
+ },
+ "routes": [],
+ "args": {
+  "key": "ABC-1/../X-1",
+  "add": [
+   "planned_for_x"
+  ],
+  "remove": []
+ },
+ "requests": [],
+ "refused": "Only a label change of one ticket may be written"
+}

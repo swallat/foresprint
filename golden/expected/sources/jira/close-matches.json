@@ -1,0 +1,177 @@
+[
+ {
+  "word": "Story Point",
+  "possibilities": [
+   "Story Points",
+   "Summary",
+   "Status",
+   "Original Story Points"
+  ],
+  "ok": [
+   "Story Points",
+   "Original Story Points"
+  ]
+ },
+ {
+  "word": "Zzzzz",
+  "possibilities": [
+   "Story Points",
+   "Summary"
+  ],
+  "ok": []
+ },
+ {
+  "word": "Business Value",
+  "possibilities": [
+   "Business Value",
+   "Business Value",
+   "Value",
+   "Business"
+  ],
+  "ok": [
+   "Business Value",
+   "Business Value",
+   "Business"
+  ]
+ },
+ {
+  "word": "story points",
+  "possibilities": [
+   "Story Points",
+   "Story points",
+   "Points story"
+  ],
+  "ok": [
+   "Story points",
+   "Story Points"
+  ]
+ },
+ {
+  "word": "abcd",
+  "possibilities": [
+   "abcd",
+   "abcde",
+   "abcdef",
+   "bcd",
+   "xabcdx",
+   "abc"
+  ],
+  "ok": [
+   "abcd",
+   "abcde",
+   "bcd"
+  ]
+ },
+ {
+  "word": "Remaining",
+  "possibilities": [
+   "Remaining Estimate",
+   "Time Remaining",
+   "Rest",
+   "Remain"
+  ],
+  "ok": [
+   "Remain",
+   "Time Remaining",
+   "Remaining Estimate"
+  ]
+ },
+ {
+  "word": "Épic Link",
+  "possibilities": [
+   "Epic Link",
+   "Epic Name",
+   "Épic Name",
+   "Epic Status"
+  ],
+  "ok": [
+   "Epic Link"
+  ]
+ },
+ {
+  "word": "",
+  "possibilities": [
+   "a",
+   ""
+  ],
+  "ok": [
+   ""
+  ]
+ },
+ {
+  "word": "a",
+  "possibilities": [],
+  "ok": []
+ },
+ {
+  "word": "aaaa",
+  "possibilities": [
+   "aaab",
+   "aaba",
+   "abaa",
+   "baaa",
+   "aaaa "
+  ],
+  "ok": [
+   "aaaa ",
+   "baaa",
+   "aaba"
+  ]
+ },
+ {
+  "word": "Rang",
+  "possibilities": [
+   "Rank",
+   "Range",
+   "Rang",
+   "Orang",
+   "Rangliste"
+  ],
+  "ok": [
+   "Rang",
+   "Range",
+   "Rank"
+  ]
+ },
+ {
+  "word": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "possibilities": [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxy",
+   "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  "ok": [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxy",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ]
+ },
+ {
+  "word": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+  "possibilities": [
+   "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+   "babababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababa",
+   "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababc"
+  ],
+  "ok": [
+   "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababc",
+   "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+  ]
+ },
+ {
+  "word": "Sprint Goal",
+  "possibilities": [
+   "Sprint",
+   "Goal",
+   "Sprint goal",
+   "Goal Sprint",
+   "Sprint Goals"
+  ],
+  "ok": [
+   "Sprint Goals",
+   "Sprint goal",
+   "Sprint"
+  ]
+ }
+]
