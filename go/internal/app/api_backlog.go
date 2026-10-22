@@ -18,6 +18,7 @@ import (
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/preplan"
 	"github.com/swallat/foresprint/internal/storage"
+	"github.com/swallat/foresprint/internal/workpackages"
 )
 
 // lanesShown is the number of coming sprints the backlog shows as lanes.
@@ -698,22 +699,8 @@ func (a *API) SetProduction(team, key string, percent *float64) error {
 
 // --- Work packages ------------------------------------------------------------------------
 
-func packagePrefix(team model.Team) string {
-	if team.Tracker.PackagePrefix != "" {
-		return team.Tracker.PackagePrefix
-	}
-	return model.DefaultPackagePrefix
-}
-
 func nextPackageKey(data *storage.TeamData) string {
-	prefix := packagePrefix(data.Team) + "-"
-	highest := 0
-	for _, tk := range data.Tickets {
-		if n, err := strconv.Atoi(strings.TrimPrefix(tk.Key, prefix)); err == nil && strings.HasPrefix(tk.Key, prefix) && n > highest {
-			highest = n
-		}
-	}
-	return prefix + strconv.Itoa(highest+1)
+	return workpackages.NextKey(data.Tickets, workpackages.Prefix(data.Team.Tracker))
 }
 
 // rankFirst gives the work package the first rank: below the lowest numeric rank if there is
