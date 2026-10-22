@@ -33,6 +33,14 @@
   "{where}: mapping with from/unit expected": "{where}: Abschnitt mit from/unit erwartet",
   "{where}: mapping with ticket/rest/target expected": "{where}: Abschnitt mit ticket/rest/target erwartet",
   "{where}: mapping with author/text expected": "{where}: Abschnitt mit author/text erwartet",
-  "external person without an end date": "externe Person ohne Enddatum"
+  "external person without an end date": "externe Person ohne Enddatum",
+  "The table has no column for the title (expected one of: {names}).": "Die Tabelle hat keine Spalte für den Titel (erwartet: {names}).",
+  "No title": "Kein Titel",
+  "Key {key} is already used in row {row}": "Der Schlüssel {key} ist schon in Zeile {row} vergeben",
+  "The estimate {value} is not a non-negative number": "Die Schätzung {value} ist keine Zahl ab 0",
+  "The CSV file cannot be read: {error}": "Die CSV-Datei kann nicht gelesen werden: {error}",
+  "The workbook has no sheet {name}.": "Die Arbeitsmappe hat kein Blatt {name}.",
+  "Writing sprints back to the tracker is not switched on.": "Das Zurückschreiben von Sprints in den Tracker ist nicht eingeschaltet.",
+  "Jira refuses the write (403): the account may not edit sprints (needs the right to manage sprints).": "Jira verweigert das Schreiben (403): Das Konto darf keine Sprints bearbeiten (Recht „Sprints verwalten“ nötig)."
  }
 }

@@ -98,6 +98,10 @@ type JiraSource struct {
 	token    secret
 	client   *http.Client
 	fields   *resolvedFields
+	// sprintWrite allows moving tickets between sprints (EnableSprintWrite); off by default.
+	sprintWrite bool
+	// seen are the sprints met in the sprint field of fetched tickets, by Jira id.
+	seen map[string]SprintValue
 	// transport replaces the network (tests); nil = the real one.
 	transport http.RoundTripper
 }
@@ -252,6 +256,9 @@ func rootCertificates() (*x509.CertPool, error) {
 // request sends one request and returns the decoded JSON. Only GET and the label PUT are
 // allowed; every failure is an *Error whose text contains neither the token nor the answer.
 func (j *JiraSource) request(method, path string, params url.Values, body map[string]any) (any, error) {
+	if method == http.MethodPost && j.sprintWrite && isSprintWrite(path, any(body)) {
+		return j.send(method, path, params, body)
+	}
 	if method != http.MethodGet && method != http.MethodPut {
 		return nil, fmt.Errorf("HTTP method %q is not allowed: this source only reads", method)
 	}
@@ -259,6 +266,11 @@ func (j *JiraSource) request(method, path string, params url.Values, body map[st
 		(method == http.MethodPut && (len(params) > 0 || !isLabelWrite(path, any(body)))) {
 		return nil, errors.New("Only a label change of one ticket may be written") //nolint:staticcheck // shown to the user
 	}
+	return j.send(method, path, params, body)
+}
+
+// send does the request after request has checked that it is allowed.
+func (j *JiraSource) send(method, path string, params url.Values, body map[string]any) (any, error) {
 	if j.client == nil {
 		client, err := j.newClient()
 		if err != nil {
@@ -298,7 +310,7 @@ func (j *JiraSource) request(method, path string, params url.Values, body map[st
 	if readErr != nil {
 		return nil, errorf("{text}", "text", j.failureText(readErr))
 	}
-	if method == http.MethodPut {
+	if method == http.MethodPut || method == http.MethodPost {
 		return j.decodeWrite(resp, data)
 	}
 	return j.decode(resp, data, path)
