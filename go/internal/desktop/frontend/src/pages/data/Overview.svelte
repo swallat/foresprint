@@ -6,7 +6,7 @@
   import Icon from '../../lib/Icon.svelte';
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { Change, LostFile, Version } from '../../lib/types.data';
+  import type { Change, UnsavedFile, ValueChange, Version } from '../../lib/types.data';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import DataTabs from './DataTabs.svelte';
@@ -16,11 +16,12 @@
   void params;
 
   let incoming = $state<Change[]>([]);
-  let unsaved = $state<LostFile[]>([]);
+  let unsaved = $state<UnsavedFile[]>([]);
   let recent = $state<Version[]>([]);
   /** The file whose discard waits for a confirmation, '' = all, undefined = none. */
   let discarding = $state<string | undefined>();
   let checking = $state(false);
+  let putting = $state(false);
   let failed = $state('');
   let seq = 0;
 
@@ -31,7 +32,7 @@
   async function load(): Promise<void> {
     const mine = ++seq;
     try {
-      const [i, u, r] = await Promise.all([api.DataIncoming(), api.Lost([]), api.History(app.team, 5)]);
+      const [i, u, r] = await Promise.all([api.DataIncoming(), api.UnsavedChanges(), api.History(app.team, 5)]);
       if (mine !== seq) return;
       [incoming, unsaved, recent, failed] = [i, u, r, ''];
     } catch (e) {
@@ -57,6 +58,25 @@
       toast(String(e), 'bad');
     } finally {
       checking = false;
+    }
+  }
+
+  const shownValue = (v: ValueChange, side: 'before' | 'after'): string =>
+    (side === 'before' ? v.hasBefore : v.hasAfter) ? v[side] : t('(none)');
+
+  async function putBack(file: string, v: ValueChange): Promise<void> {
+    if (putting) return;
+    putting = true;
+    try {
+      const done = await api.DiscardValues([{ file, path: v.path }]);
+      await refreshStatus();
+      await load();
+      if (done.problem) toast(done.problem.message, 'bad');
+      else toast(done.warning ?? t('Put back.'), 'ok');
+    } catch (e) {
+      toast(String(e), 'bad');
+    } finally {
+      putting = false;
     }
   }
 
@@ -212,25 +232,39 @@
   {#if unsaved.length === 0}
     <p class="muted">{t('No unsaved changes.')}</p>
   {:else}
-    <div class="tw">
-      <table class="t">
-        <thead><tr><th>{t('File')}</th><th>{t('Type of change')}</th><th class="num">{t('Lines added')}</th><th class="num">{t('Lines removed')}</th><th><span class="sr">{t('Actions')}</span></th></tr></thead>
-        <tbody>
-          {#each unsaved as f (f.file)}
-            <tr>
-              <td class="data wrap">{shortFile(f.file, team)}</td>
-              <td>{stateText(f.status)}</td>
-              <td class="num">{f.added}</td>
-              <td class="num">{f.removed}</td>
-              <td>
-                <button class="btn icon ghost" type="button" aria-label={t('Discard: {file}', { file: shortFile(f.file, team) })} title={t('Discard')} disabled={!!app.busy} onclick={() => (discarding = f.file)}>
-                  <Icon name="undo" />
-                </button>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+    <div class="stack">
+      {#each unsaved as f (f.file)}
+        <div class="file" data-file>
+          <div class="row">
+            <span class="chip data grow">{shortFile(f.file, team)}</span>
+            <span class="muted small">{stateText(f.status)}</span>
+            <button class="btn icon ghost" type="button" aria-label={t('Discard: {file}', { file: shortFile(f.file, team) })} title={t('Discard')} disabled={!!app.busy} onclick={() => (discarding = f.file)}>
+              <Icon name="undo" />
+            </button>
+          </div>
+          {#if !f.whole && f.values.length > 0}
+            <div class="tw">
+              <table class="t">
+                <thead><tr><th>{t('Value')}</th><th>{t('Before')}</th><th>{t('Now')}</th><th><span class="sr">{t('Actions')}</span></th></tr></thead>
+                <tbody>
+                  {#each f.values as v (v.path.join('\u0000'))}
+                    <tr>
+                      <td class="wrap">{v.label}</td>
+                      <td class="data wrap">{shownValue(v, 'before')}</td>
+                      <td class="data wrap">{shownValue(v, 'after')}</td>
+                      <td>
+                        <button class="btn icon ghost" type="button" aria-label={t('Put back: {label}', { label: v.label })} title={t('Put back')} disabled={!!app.busy || putting} onclick={() => putBack(f.file, v)}>
+                          <Icon name="undo" />
+                        </button>
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
+        </div>
+      {/each}
     </div>
   {/if}
   {#if discarding !== undefined}
@@ -271,6 +305,9 @@
 </section>
 
 <style>
+  .file + .file {
+    margin-top: 12px;
+  }
   .block {
     margin-top: 16px;
   }
