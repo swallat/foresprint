@@ -110,13 +110,6 @@ type QueryCheck struct {
 	Count   int    `json:"count"`
 }
 
-// RuleCheck is the answer to a check of rule text.
-type RuleCheck struct {
-	OK      bool   `json:"ok"`
-	Message string `json:"message"` // what is wrong, "" if the rule is fine
-	Text    string `json:"text"`    // the rule in its canonical form
-}
-
 // Features says which optional parts of the window the team uses (decisions 15 and 13 of the
 // design): the pages hide what is not configured instead of greying it out.
 type Features struct {

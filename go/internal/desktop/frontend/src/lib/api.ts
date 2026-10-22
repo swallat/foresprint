@@ -4,12 +4,15 @@
 // To add a method: add it to the Go struct (internal/app/api_<area>.go), add its signature to
 // `Api` below (or to an area interface that extends it) and an answer to the mock.
 
+import type { ForecastApi } from './types.forecast';
+import type { TeamApi } from './types.team';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 import type { DataApi } from './types.data';
 import type { SettingsApi } from './types.settings';
+import type { SprintsApi } from './types.sprints';
 import type { TodayApi } from './types.today';
 
-export interface Api extends DataApi, TodayApi, SettingsApi {
+export interface Api extends DataApi, SprintsApi, TodayApi, ForecastApi, TeamApi, SettingsApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;

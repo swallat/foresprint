@@ -106,12 +106,6 @@ export interface QueryCheck {
   count: number;
 }
 
-export interface RuleCheck {
-  ok: boolean;
-  message: string;
-  text: string;
-}
-
 export interface TrackerInfo {
   enabled: boolean;
   name: string;
@@ -134,7 +128,6 @@ export interface SettingsApi {
   SaveTeamSettings(team: string, settings: TeamSettings): Promise<void>;
   TrackerSettings(team: string): Promise<TrackerSettings>;
   SaveTrackerSettings(team: string, settings: TrackerSettings): Promise<void>;
-  CheckRule(text: string, extraSources: string[]): Promise<RuleCheck>;
   SetTrackerToken(team: string, baseUrl: string, token: string): Promise<void>;
   RemoveTrackerToken(team: string, baseUrl: string): Promise<void>;
   TestTrackerConnection(team: string, baseUrl: string): Promise<Connection>;

@@ -207,6 +207,9 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 	if team.Estimation, err = estimationFrom(get(d, "estimation"), where); err != nil {
 		return model.Team{}, err
 	}
+	if team.ProductOwners, err = productOwnersFrom(get(d, "product_owners"), where); err != nil {
+		return model.Team{}, err
+	}
 	numbering, perr := enumValue(getOr(sprint, "numbering", "yearly"), numberings, "Numbering")
 	if perr != nil {
 		return fail(*perr)
@@ -336,6 +339,9 @@ func TeamToDict(team model.Team) *yamlx.Map {
 		"sprint", sprint, "forecast", fc, "capacity", capm)
 	if est := estimationTo(team.Estimation); len(est.Entries) > 0 {
 		put(out, "estimation", est)
+	}
+	if len(team.ProductOwners) > 0 { // only with a list: files from 0.8 stay unchanged
+		put(out, "product_owners", productOwnersTo(team.ProductOwners))
 	}
 	// The tracker section is kept while the feature is on and whenever it holds settings, so
 	// switching the feature off and on again does not lose the configuration.

@@ -6,7 +6,6 @@ import type {
   Connection,
   Features,
   QueryCheck,
-  RuleCheck,
   SettingsApi,
   TeamSettings,
   TokenState,
@@ -68,6 +67,12 @@ let tracker: TrackerSettings = {
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const fail = (text: string) => Promise.reject(new Error(text));
 
+interface RuleCheck {
+  ok: boolean;
+  message: string;
+  text: string;
+}
+
 function checkRule(text: string, extra: string[]): RuleCheck {
   const t = text.trim();
   if (!t) return { ok: true, message: '', text: '' };
@@ -101,9 +106,6 @@ export const settingsMock: SettingsApi = {
     }
     tracker = clone(s);
     tracker.token = { ...tracker.token, host: (/^https?:\/\/([^/]+)/.exec(s.baseUrl) ?? [])[1] ?? '' };
-  },
-  async CheckRule(text, extra) {
-    return checkRule(text, extra);
   },
   async SetTrackerToken(_t, _b, token) {
     if (!token.trim()) return fail('Paste the token first.');

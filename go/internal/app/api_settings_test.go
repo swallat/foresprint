@@ -8,7 +8,7 @@ import (
 )
 
 // copyDemo copies the demo team to a temporary data folder, so that tests may write.
-func copyDemo(t *testing.T) (*API, string) {
+func copyDemoTeam(t *testing.T) (*API, string) {
 	t.Helper()
 	src := demoDir(t)
 	dst := t.TempDir()
@@ -38,7 +38,7 @@ func copyDemo(t *testing.T) (*API, string) {
 }
 
 func TestTeamSettingsRoundTrip(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	s, err := api.TeamSettings(team)
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +68,7 @@ func TestTeamSettingsRoundTrip(t *testing.T) {
 }
 
 func TestTeamSettingsRefuseNonsense(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	base, _ := api.TeamSettings(team)
 	for name, mutate := range map[string]func(*TeamSettings){
 		"window":    func(s *TeamSettings) { s.Forecast.Window = 0 },
@@ -86,7 +86,7 @@ func TestTeamSettingsRefuseNonsense(t *testing.T) {
 }
 
 func TestUnitChangeNeedsASprintOnceRecorded(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	s, _ := api.TeamSettings(team)
 	orig, other := s.Unit, "SP"
 	if s.Unit == "SP" {
@@ -123,7 +123,7 @@ func TestUnitChangeNeedsASprintOnceRecorded(t *testing.T) {
 }
 
 func TestTrackerSettingsRoundTrip(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	in, err := api.TrackerSettings(team)
 	if err != nil {
 		t.Fatal(err)
@@ -167,7 +167,7 @@ func TestTrackerSettingsRoundTrip(t *testing.T) {
 }
 
 func TestTrackerSettingsRefuseNonsense(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	base, _ := api.TrackerSettings(team)
 	base.Source, base.Kind = "tracker", "jira"
 	for name, mutate := range map[string]func(*TrackerSettings){
@@ -192,7 +192,7 @@ func TestTrackerSettingsRefuseNonsense(t *testing.T) {
 }
 
 func TestSourceNoneKeepsTheTrackerSection(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	in, _ := api.TrackerSettings(team)
 	in.Source, in.Kind, in.BaseURL = "tracker", "jira", "https://jira.example.org"
 	if err := api.SaveTrackerSettings(team, in); err != nil {
@@ -205,22 +205,6 @@ func TestSourceNoneKeepsTheTrackerSection(t *testing.T) {
 	got, _ := api.TrackerSettings(team)
 	if got.Source != "none" || got.BaseURL != "https://jira.example.org" {
 		t.Errorf("got %+v", got)
-	}
-}
-
-func TestCheckRule(t *testing.T) {
-	api, _ := copyDemo(t)
-	if c := api.CheckRule(`label = "a"  OR  component IN (b, c)`, nil); !c.OK || c.Text == "" {
-		t.Errorf("good rule: %+v", c)
-	}
-	if c := api.CheckRule("team = x", nil); c.OK || c.Message == "" {
-		t.Errorf("unknown source must fail: %+v", c)
-	}
-	if c := api.CheckRule("team = x", []string{"team"}); !c.OK {
-		t.Errorf("registered source must pass: %+v", c)
-	}
-	if c := api.CheckRule("  ", nil); !c.OK || c.Text != "" {
-		t.Errorf("empty rule is no rule: %+v", c)
 	}
 }
 
@@ -239,7 +223,7 @@ func TestPersonalDensity(t *testing.T) {
 }
 
 func TestTokenStateNeverHoldsTheToken(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	t.Setenv("FORESPRINT_JIRA_TOKEN", "secret-value")
 	in, _ := api.TrackerSettings(team)
 	in.Source, in.Kind, in.BaseURL = "tracker", "jira", "https://jira.example.org"
@@ -253,7 +237,7 @@ func TestTokenStateNeverHoldsTheToken(t *testing.T) {
 }
 
 func TestManualProductionIgnoresHiddenRules(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	in, _ := api.TrackerSettings(team)
 	in.Source, in.Kind = "tracker", "jira"
 	in.ProductionBy = "manual"
@@ -268,7 +252,7 @@ func TestManualProductionIgnoresHiddenRules(t *testing.T) {
 }
 
 func TestCSVTeamHasNoSyncChip(t *testing.T) {
-	api, team := copyDemo(t)
+	api, team := copyDemoTeam(t)
 	in, _ := api.TrackerSettings(team)
 	in.Source, in.Kind = "tracker", "csv"
 	if err := api.SaveTrackerSettings(team, in); err != nil {

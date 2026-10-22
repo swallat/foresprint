@@ -143,6 +143,9 @@ type Team struct {
 	Tracker TrackerSettings
 	// Estimation is the unit over time and the conversion between the units.
 	Estimation EstimationSettings
+	// ProductOwners are the POs of the team (section product_owners); empty in files from 0.8,
+	// where Product.PO is just a name.
+	ProductOwners []ProductOwner
 	// TrackerRaw is the raw tracker section (a YAML value) that could not be read while
 	// Features.Tickets is off; kept so that writing team.yaml does not drop it. Nil if none.
 	TrackerRaw any
@@ -262,7 +265,7 @@ func NewPersonID(name string, existing map[string]bool, fallback string) string 
 type Product struct {
 	ID   string
 	Name string
-	// PO is the responsible PO (optional, only for grouping).
+	// PO is the responsible PO: an id of Team.ProductOwners, or a plain name in a 0.8 file (optional).
 	PO    *string
 	Start *time.Time
 	End   *time.Time

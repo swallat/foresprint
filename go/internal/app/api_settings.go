@@ -13,7 +13,7 @@ import (
 	"github.com/swallat/foresprint/internal/storage"
 )
 
-func (a *API) loadTeam(key string) (*storage.Repository, *storage.TeamData, error) {
+func (a *API) loadRepoTeam(key string) (*storage.Repository, *storage.TeamData, error) {
 	repo := storage.NewRepository(a.DataDir())
 	data, err := repo.Load(key)
 	return repo, data, err
@@ -46,7 +46,7 @@ func effectiveUnit(data *storage.TeamData, now time.Time) (model.Unit, string) {
 
 // TeamSettings returns the settings of Settings > Team.
 func (a *API) TeamSettings(team string) (TeamSettings, error) {
-	_, data, err := a.loadTeam(team)
+	_, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return TeamSettings{}, err
 	}
@@ -91,7 +91,7 @@ func bad(text string, kv ...any) error { return errors.New(i18n.T(text, kv...)) 
 // the business of Save in the top bar. The unit applies from UnitFrom on if it differs from the
 // unit valid now; the first sprint needs no sprint.
 func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
-	repo, data, err := a.loadTeam(team)
+	repo, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func cleanNames(names []string) ([]string, error) {
 
 // TeamFeatures returns the optional parts the team uses; the window hides the rest.
 func (a *API) TeamFeatures(team string) (Features, error) {
-	_, data, err := a.loadTeam(team)
+	_, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return Features{}, err
 	}

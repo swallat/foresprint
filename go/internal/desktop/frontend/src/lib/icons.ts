@@ -7,6 +7,7 @@
 
 import i_add from '@material-symbols/svg-400/outlined/add.svg?raw';
 import i_add_circle from '@material-symbols/svg-400/outlined/add_circle.svg?raw';
+import i_archive from '@material-symbols/svg-400/outlined/archive.svg?raw';
 import i_arrow_back from '@material-symbols/svg-400/outlined/arrow_back.svg?raw';
 import i_arrow_downward from '@material-symbols/svg-400/outlined/arrow_downward.svg?raw';
 import i_arrow_forward from '@material-symbols/svg-400/outlined/arrow_forward.svg?raw';
@@ -70,8 +71,10 @@ import i_network_check from '@material-symbols/svg-400/outlined/network_check.sv
 import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?raw';
 import i_pending from '@material-symbols/svg-400/outlined/pending.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
+import i_person_add from '@material-symbols/svg-400/outlined/person_add.svg?raw';
 import i_pin from '@material-symbols/svg-400/outlined/pin.svg?raw';
 import i_play_arrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw';
+import i_preview from '@material-symbols/svg-400/outlined/preview.svg?raw';
 import i_radio_button_unchecked from '@material-symbols/svg-400/outlined/radio_button_unchecked.svg?raw';
 import i_refresh from '@material-symbols/svg-400/outlined/refresh.svg?raw';
 import i_route from '@material-symbols/svg-400/outlined/route.svg?raw';
@@ -89,6 +92,7 @@ import i_sync from '@material-symbols/svg-400/outlined/sync.svg?raw';
 import i_task_alt from '@material-symbols/svg-400/outlined/task_alt.svg?raw';
 import i_today from '@material-symbols/svg-400/outlined/today.svg?raw';
 import i_tune from '@material-symbols/svg-400/outlined/tune.svg?raw';
+import i_unarchive from '@material-symbols/svg-400/outlined/unarchive.svg?raw';
 import i_undo from '@material-symbols/svg-400/outlined/undo.svg?raw';
 import i_unfold_more from '@material-symbols/svg-400/outlined/unfold_more.svg?raw';
 import i_verified_user from '@material-symbols/svg-400/outlined/verified_user.svg?raw';
@@ -100,6 +104,7 @@ import i_warning from '@material-symbols/svg-400/outlined/warning.svg?raw';
 const icons = {
   add: i_add,
   add_circle: i_add_circle,
+  archive: i_archive,
   arrow_back: i_arrow_back,
   arrow_downward: i_arrow_downward,
   arrow_forward: i_arrow_forward,
@@ -163,8 +168,10 @@ const icons = {
   open_in_new: i_open_in_new,
   pending: i_pending,
   person: i_person,
+  person_add: i_person_add,
   pin: i_pin,
   play_arrow: i_play_arrow,
+  preview: i_preview,
   radio_button_unchecked: i_radio_button_unchecked,
   refresh: i_refresh,
   route: i_route,
@@ -182,6 +189,7 @@ const icons = {
   task_alt: i_task_alt,
   today: i_today,
   tune: i_tune,
+  unarchive: i_unarchive,
   undo: i_undo,
   unfold_more: i_unfold_more,
   verified_user: i_verified_user,

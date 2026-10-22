@@ -41,7 +41,7 @@ func by(mapped *string) string {
 // TrackerSettings returns the settings of Settings > Tickets and tracker. The token is never part
 // of it, only where it is.
 func (a *API) TrackerSettings(team string) (TrackerSettings, error) {
-	_, data, err := a.loadTeam(team)
+	_, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return TrackerSettings{}, err
 	}
@@ -110,23 +110,11 @@ func parseRule(text string, srcs []string) (*model.Rule, error) {
 	return rules.ParseRule(text, srcs)
 }
 
-// CheckRule reads rule text with the sources of the team and says what is wrong; Text is the
-// rule in its canonical form. extra are the rule fields of the page that are not saved yet.
-func (a *API) CheckRule(text string, extra []string) RuleCheck {
-	srcs := append([]string{}, model.RuleSources...)
-	srcs = append(srcs, extra...)
-	r, err := parseRule(text, srcs)
-	if err != nil {
-		return RuleCheck{Message: err.Error()}
-	}
-	return RuleCheck{OK: true, Text: rules.FormatRule(r)}
-}
-
 // SaveTrackerSettings checks and writes the settings of Tickets and tracker to team.yaml. The
 // source of the work (tracker, work packages, none) lives here only (decision 15); the fields
 // of the connection are only applied while the source is a tracker.
 func (a *API) SaveTrackerSettings(team string, in TrackerSettings) error {
-	repo, data, err := a.loadTeam(team)
+	repo, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return err
 	}
@@ -310,7 +298,7 @@ func contains(list []string, s string) bool {
 // trackerOf returns the stored tracker settings with the address of the page, for tests that
 // run before the page is applied.
 func (a *API) trackerOf(team, base string) (model.TrackerSettings, error) {
-	_, data, err := a.loadTeam(team)
+	_, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return model.TrackerSettings{}, err
 	}
@@ -437,7 +425,7 @@ type trackerRun struct {
 
 // TrackerInfo is the state of the tracker sync of a team for the chip in the top bar.
 func (a *API) TrackerInfo(team string) TrackerStatus {
-	_, data, err := a.loadTeam(team)
+	_, data, err := a.loadRepoTeam(team)
 	if err != nil || data.Team.Source() != model.SourceTracker || data.Team.Tracker.Kind != "jira" {
 		return TrackerStatus{} // a CSV export is read in by hand: nothing to sync
 	}
@@ -481,7 +469,7 @@ func (a *API) SyncTracker(team string) (Result, error) {
 }
 
 func (a *API) syncTracker(team string) (Result, error) {
-	repo, data, err := a.loadTeam(team)
+	repo, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return Result{}, err
 	}

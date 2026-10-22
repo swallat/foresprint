@@ -3,7 +3,8 @@
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { parseNumber } from '../../lib/settings/diff';
-  import RuleInput from '../../lib/settings/RuleInput.svelte';
+  import { app } from '../../lib/app.svelte';
+  import RuleEditor from '../../lib/rules/RuleEditor.svelte';
   import type { TrackerSettings } from '../../lib/types.settings';
 
   interface Props {
@@ -16,7 +17,6 @@
   }
   let { draft = $bindable(), fieldNames, production, tracker }: Props = $props();
 
-  const extra = $derived(draft.ruleFields.map((f) => f.name.trim().toLowerCase()).filter(Boolean));
   const dl = 'tracker-field-names';
 
   function removeRuleField(i: number): void {
@@ -112,8 +112,7 @@
                 <input class="input data" aria-label={t('Label that marks refined tickets')} bind:value={draft.refinedLabel} />
               </label>
               <label class="inline">
-                <span class="small muted">{t('Also refined if')}</span>
-                <RuleInput id="m-refined" label={t('Rule: also refined if')} bind:value={draft.refinedRule} {extra} placeholder={t('e.g. status = Ready')} />
+                <RuleEditor team={app.team} owner={{ kind: 'setting', id: 'refined' }} name={t('“also refined if”')} bind:value={draft.refinedRule} allowEmpty />
               </label>
             {:else}
               <input class="input" list={dl} aria-label={t('Field for “refined”')} bind:value={draft.fields.refined} />
@@ -158,35 +157,29 @@
         <span class="small muted">{t('Label that means 100 percent')}</span>
         <input class="input data" aria-label={t('Label that means 100 percent')} placeholder={t('not set')} bind:value={draft.productionLabel} />
       </label>
-      <div class="tw">
-        <table class="t">
-          <thead>
-            <tr><th>{t('Rule')}</th><th class="num">{t('Production %')}</th><th aria-label={t('Actions')}></th></tr>
-          </thead>
-          <tbody>
-            {#each draft.prodRules as r, i (i)}
-              <tr>
-                <td><RuleInput id={`m-prod-${i}`} label={t('Rule {n}', { n: i + 1 })} bind:value={r.rule} {extra} /></td>
-                <td class="num edit">
-                  <input
-                    inputmode="numeric"
-                    aria-label={t('Production share of rule {n}', { n: i + 1 })}
-                    value={r.percent}
-                    onchange={(e) => (r.percent = Math.max(0, Math.min(100, parseNumber(e.currentTarget.value) ?? r.percent)))}
-                  />
-                </td>
-                <td>
-                  <button class="btn icon ghost" type="button" aria-label={t('Remove rule {n}', { n: i + 1 })} onclick={() => draft.prodRules.splice(i, 1)}>
-                    <Icon name="delete" />
-                  </button>
-                </td>
-              </tr>
-            {:else}
-              <tr><td colspan="3" class="muted">{t('No rule yet.')}</td></tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      {#each draft.prodRules as r, i (i)}
+        <div class="prodrule">
+          <RuleEditor team={app.team} owner={{ kind: 'setting', id: `production-${i}` }} name={t('production rule {n}', { n: i + 1 })} bind:value={r.rule} />
+          <div class="row">
+            <label class="inline">
+              <span class="small muted">{t('Production %')}</span>
+              <input
+                class="input data num"
+                style="width:80px"
+                inputmode="numeric"
+                aria-label={t('Production share of rule {n}', { n: i + 1 })}
+                value={r.percent}
+                onchange={(e) => (r.percent = Math.max(0, Math.min(100, parseNumber(e.currentTarget.value) ?? r.percent)))}
+              />
+            </label>
+            <button class="btn ghost" type="button" onclick={() => draft.prodRules.splice(i, 1)}>
+              <Icon name="delete" />{t('Remove rule {n}', { n: i + 1 })}
+            </button>
+          </div>
+        </div>
+      {:else}
+        <p class="small muted">{t('No rule yet.')}</p>
+      {/each}
       <div class="row add">
         <button class="btn" type="button" onclick={() => draft.prodRules.push({ rule: '', percent: 100 })}><Icon name="add" />{t('Add rule')}</button>
         <span class="small muted">{t('Example:')} <span class="data rule-txt">component = "Operations"</span> → 100 %</span>
@@ -271,5 +264,14 @@
   }
   .add {
     margin-top: 8px;
+  }
+  .prodrule {
+    border: 1px solid var(--border);
+    border-radius: var(--r-ctl);
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 </style>
