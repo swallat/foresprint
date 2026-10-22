@@ -797,7 +797,6 @@
   "Velocity is the sum of the estimates at sprint start of all items that are done at sprint end, including items pulled in later. Unfinished items count zero. Without tickets, it is the value entered at the Review.": "Die Velocity ist die Summe der Schätzungen zum Sprintstart aller Einträge, die am Sprintende fertig sind, auch später hereingenommener. Unfertige zählen null. Ohne Tickets ist es der Wert, der beim Review eingetragen wird.",
   "Version state": "Stand",
   "Visible period": "Sichtbarer Zeitraum",
-  "Waiting for merge request": "Wartet auf Merge Request",
   "Waiting for review": "Wartet auf Freigabe",
   "Waiting for review.": "Wartet auf Freigabe.",
   "Waiting to be shared": "Wartet auf Versand",
