@@ -4,6 +4,7 @@
   import { app, enterDemo, leaveDemo, loadTeams, selectTeam } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
+  import { tour } from '../../lib/tour/tour.svelte';
   import { go, link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import { isDay, joinPath, needsToken, repoName, safeToStore, suggestedSprintId, suggestedStart } from '../../lib/setup';
@@ -118,8 +119,8 @@
 
   onMount(async () => {
     try {
-      // The wizard works on the real data folder, never on the demo team.
-      if (app.demo) await leaveDemo();
+      // The wizard works on the real data folder.
+      if (app.demo && !tour.flow) await leaveDemo(); // a guided flow runs the wizard on the demo team
       info = await api.SetupState();
       regions = await api.SetupRegions();
       os = (await api.Info()).os;
@@ -380,7 +381,7 @@
     <div class="gap"><Banner tone="warn">{message}</Banner></div>
   {/if}
 
-  <div class="card body stack" data-tour="firstrun-{d.step}">
+  <div class="card body stack" data-tour="firstrun-step">
     {#if d.step === 'storage'}
       <h2>{t('Where does the team keep its data?')}</h2>
       <div class="stack" role="radiogroup" aria-label={t('Where does the team keep its data?')}>
