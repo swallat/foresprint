@@ -143,6 +143,16 @@ func (a *API) SaveLastDays(team string, changes []LastDay, count int) (CalendarR
 		}
 		rows[idx].Last = last
 	}
+	// Finished sprints stay as they are: only the sprints from the first one that has not ended
+	// are placed again.
+	first := 0
+	for first < len(sprints) && calendarState(data, sprints[first], today) == CalFinished {
+		first++
+	}
+	sprints, rows = sprints[first:], rows[first:]
+	if len(sprints) == 0 {
+		return CalendarResult{}, errors.New(i18n.T("A finished sprint is locked."))
+	}
 	after, problems, err := sprintcal.Apply(data, sprints, rows)
 	if err != nil {
 		return CalendarResult{}, err
@@ -171,6 +181,9 @@ func (a *API) SaveLastDays(team string, changes []LastDay, count int) (CalendarR
 	}
 	for i := range changed {
 		if _, err := repo.SaveSprint(team, &changed[i]); err != nil {
+			if token != 0 {
+				_ = a.Undo(team, token) // no half-shifted calendar
+			}
 			return CalendarResult{}, err
 		}
 	}
@@ -367,6 +380,9 @@ func (a *API) ApplyNaming(team, pattern, from string, all bool, count int) (Cale
 	if err != nil {
 		return CalendarResult{}, err
 	}
+	if !all && plan.fromIdx < len(plan.list) && calendarState(data, plan.list[plan.fromIdx], a.day()) == CalFinished {
+		return CalendarResult{}, errors.New(i18n.T("A finished sprint is locked."))
+	}
 	final := map[string]bool{}
 	var renames []sprintcal.Rename
 	for i, s := range plan.list {
@@ -381,12 +397,14 @@ func (a *API) ApplyNaming(team, pattern, from string, all bool, count int) (Cale
 			}
 		}
 		if final[name] {
-			return CalendarResult{}, fmt.Errorf("%s", i18n.T("Sprint ID {id!r} is already taken (by an earlier sprint).", "id", name))
+			return CalendarResult{}, fmt.Errorf("%s", i18n.T("Sprint ID {id} is already taken (by an earlier sprint).", "id", name))
 		}
 		final[name] = true
 	}
 	repo := storage.NewRepository(a.DataDir())
+	token := a.rememberTree(team)
 	if _, err := sprintcal.ApplyRenames(repo, data, renames); err != nil {
+		_ = a.Undo(team, token)
 		return CalendarResult{}, err
 	}
 	// The rule begins at the first sprint of the change; earlier rules stay for earlier sprints.
@@ -415,6 +433,7 @@ func (a *API) ApplyNaming(team, pattern, from string, all bool, count int) (Cale
 	rules = append(rules, rule)
 	data.Team.Sprint.Naming = rules
 	if _, err := repo.SaveTeam(data.Team); err != nil {
+		_ = a.Undo(team, token)
 		return CalendarResult{}, err
 	}
 	fresh, err := a.loadTeam(team)
@@ -425,7 +444,7 @@ func (a *API) ApplyNaming(team, pattern, from string, all bool, count int) (Cale
 	if err != nil {
 		return CalendarResult{}, err
 	}
-	return CalendarResult{View: a.calendarView(fresh, shown), Moved: len(renames)}, nil
+	return CalendarResult{View: a.calendarView(fresh, shown), Moved: len(renames), Undo: token}, nil
 }
 
 // RenameSprint gives one sprint another ID (an exception to the pattern). Tickets, minutes and
@@ -442,13 +461,19 @@ func (a *API) RenameSprint(team, sprintID, newID string, count int) (CalendarRes
 	case data.SprintByID(sprintID) == nil:
 		return CalendarResult{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", sprintID))
 	case newID != sprintID && data.SprintByID(newID) != nil:
-		return CalendarResult{}, fmt.Errorf("%s", i18n.T("Sprint ID {id!r} is already taken (by an earlier sprint).", "id", newID))
+		return CalendarResult{}, fmt.Errorf("%s", i18n.T("Sprint ID {id} is already taken (by an earlier sprint).", "id", newID))
 	}
 	if problem := storage.FileNameProblem(newID, false); problem != "" {
 		return CalendarResult{}, fmt.Errorf("%s", i18n.T("ID not allowed as a file name ({problem}).", "problem", problem))
 	}
+	if old := data.SprintByID(sprintID); old != nil && calendarState(data, *old, a.day()) == CalFinished {
+		return CalendarResult{}, errors.New(i18n.T("A finished sprint is locked."))
+	}
+	token := 0
 	if newID != sprintID {
+		token = a.rememberTree(team)
 		if _, err := sprintcal.ApplyRenames(storage.NewRepository(a.DataDir()), data, []sprintcal.Rename{{Old: sprintID, New: newID}}); err != nil {
+			_ = a.Undo(team, token)
 			return CalendarResult{}, err
 		}
 	}
@@ -460,5 +485,5 @@ func (a *API) RenameSprint(team, sprintID, newID string, count int) (CalendarRes
 	if err != nil {
 		return CalendarResult{}, err
 	}
-	return CalendarResult{View: a.calendarView(fresh, shown)}, nil
+	return CalendarResult{View: a.calendarView(fresh, shown), Undo: token}, nil
 }

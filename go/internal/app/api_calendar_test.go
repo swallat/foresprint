@@ -162,3 +162,124 @@ func TestRenameSprintIsAnException(t *testing.T) {
 		t.Error("renamed sprint missing")
 	}
 }
+
+func TestNamingKeepsSavedSprintsVisibleAndCanBeUndone(t *testing.T) {
+	api, team := demoCopy(t)
+	before, _ := api.Calendar(team, 5)
+	var firstOpen CalendarRow
+	for _, r := range before.Rows {
+		if r.Saved && r.State == CalOpen || r.Saved && r.State == CalPlanned {
+			firstOpen = r
+			break
+		}
+	}
+	if firstOpen.ID == "" {
+		t.Skip("demo team has no saved open sprint")
+	}
+	res, err := api.ApplyNaming(team, "Atlas {JJ}-{NN}", "", false, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Undo == 0 {
+		t.Error("no undo token")
+	}
+	saved := 0
+	for _, r := range res.View.Rows {
+		if r.Saved {
+			saved++
+		}
+		if r.Start == firstOpen.Start && !r.Saved {
+			t.Errorf("the renamed sprint %s vanished from the calendar", r.ID)
+		}
+	}
+	if want := countSaved(before.Rows); saved != want {
+		t.Errorf("saved rows = %d, want %d", saved, want)
+	}
+	// the same pattern again changes nothing
+	if p, err := api.NamingPreview(team, "Atlas {JJ}-{NN}", "", false, 5); err != nil || p.Count != 0 {
+		t.Errorf("second preview = %+v, %v", p, err)
+	}
+	if err := api.Undo(team, res.Undo); err != nil {
+		t.Fatal(err)
+	}
+	back, _ := api.Calendar(team, 5)
+	if countSaved(back.Rows) != countSaved(before.Rows) || back.Rows[len(back.Rows)-1].ID != before.Rows[len(before.Rows)-1].ID {
+		t.Errorf("undo did not restore the calendar: %+v", back.Rows)
+	}
+}
+
+func countSaved(rows []CalendarRow) int {
+	n := 0
+	for _, r := range rows {
+		if r.Saved {
+			n++
+		}
+	}
+	return n
+}
+
+func TestRenameRefusesFinishedSprint(t *testing.T) {
+	api, team := demoCopy(t)
+	view, _ := api.Calendar(team, 4)
+	for _, r := range view.Rows {
+		if r.Locked && r.Saved {
+			if _, err := api.RenameSprint(team, r.ID, "Sonder 1", 4); err == nil {
+				t.Error("finished sprint renamed")
+			}
+			return
+		}
+	}
+	t.Skip("no finished saved sprint")
+}
+
+func TestSecondRuleFromGeneratedSprintBeginsThere(t *testing.T) {
+	api, team := demoCopy(t)
+	if _, err := api.ApplyNaming(team, "Atlas {JJ}-{NN}", "", false, 6); err != nil {
+		t.Fatal(err)
+	}
+	view, _ := api.Calendar(team, 6)
+	from := ""
+	for _, r := range view.Rows {
+		if !r.Saved && r.State == CalPlanned {
+			from = r.ID
+			break
+		}
+	}
+	if from == "" {
+		t.Skip("no generated sprint in the window")
+	}
+	res, err := api.ApplyNaming(team, "B{NN}", from, false, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	named := false
+	for _, r := range res.View.Rows {
+		if r.Start == viewStart(view, from) && !strings.HasPrefix(r.ID, "B") {
+			t.Errorf("the sprint at %s is %s, want a name from the new rule", r.Start, r.ID)
+		}
+		named = named || strings.HasPrefix(r.ID, "B")
+	}
+	if !named {
+		t.Error("no sprint named by the new rule")
+	}
+	again := ""
+	for _, r := range res.View.Rows {
+		if r.Start == viewStart(view, from) {
+			again = r.ID
+		}
+	}
+	if p, err := api.NamingPreview(team, "B{NN}", again, false, 6); err != nil {
+		t.Fatal(err)
+	} else if p.Count != 0 {
+		t.Errorf("preview after apply still changes %d sprints", p.Count)
+	}
+}
+
+func viewStart(v CalendarView, id string) string {
+	for _, r := range v.Rows {
+		if r.ID == id {
+			return r.Start
+		}
+	}
+	return ""
+}

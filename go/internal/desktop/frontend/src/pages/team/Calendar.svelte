@@ -23,6 +23,9 @@
   let preview = $state<NamingPreview>();
   let patternInput = $state<HTMLInputElement>();
   let run = 0;
+  let busy = $state(false);
+  let pending = $state(false);
+  let previewError = $state('');
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const openRows = $derived((view?.rows ?? []).filter((r) => r.state === 'open' || r.state === 'planned'));
@@ -57,19 +60,33 @@
   // The preview follows the form after a short pause; an older answer never overwrites a newer one.
   $effect(() => {
     const args = [pattern, from, history === 'all'] as const;
-    void view;
     clearTimeout(timer);
+    if (from && view && !openRows.some((r) => r.id === from)) {
+      from = ''; // the sprint is gone after a reload or a rename
+      return;
+    }
     if (!args[0].trim()) {
       preview = undefined;
+      pending = false;
+      previewError = '';
       return;
     }
     const mine = ++run;
+    pending = true;
     timer = setTimeout(async () => {
       try {
         const next = await api.NamingPreview(app.team, args[0], args[1], args[2], COUNT);
-        if (mine === run) preview = next;
-      } catch {
-        if (mine === run) preview = undefined;
+        if (mine === run) {
+          preview = next;
+          previewError = '';
+        }
+      } catch (e) {
+        if (mine === run) {
+          preview = undefined;
+          previewError = e instanceof Error ? e.message : String(e);
+        }
+      } finally {
+        if (mine === run) pending = false;
       }
     }, 150);
     return () => clearTimeout(timer);
@@ -133,6 +150,8 @@
   }
 
   async function apply() {
+    if (busy) return;
+    busy = true;
     try {
       const result = await api.ApplyNaming(app.team, pattern, from, history === 'all', COUNT);
       from = '';
@@ -140,6 +159,8 @@
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e), 'bad');
       await load();
+    } finally {
+      busy = false;
     }
   }
 
@@ -216,7 +237,7 @@
               <tbody>
                 {#each preview.rows as r (r.index)}
                   <tr class:muted={!r.changes}>
-                    <td>{#if r.locked}<Icon name="lock" size={16} />{/if}</td>
+                    <td>{#if r.locked}<Icon name="lock" size={16} /><span class="sr-only">{t('Locked')}</span>{/if}</td>
                     <td class="data">{fmtDay(r.start)}</td>
                     <td class="data">{r.old}</td>
                     <td class="data">{#if r.changes}<strong>{r.new}</strong>{:else}<span class="muted">{t('stays')}</span>{/if}</td>
@@ -226,6 +247,9 @@
             </table>
           </div>
         {/if}
+        {#if previewError}
+          <Banner tone="bad">{previewError}</Banner>
+        {/if}
         {#if preview?.problem}
           <Banner tone="bad">{t('Unknown placeholder {name}.', { name: preview.problem })}</Banner>
         {:else if preview?.duplicate}
@@ -234,7 +258,7 @@
           <Banner tone="warn">{t('Without a number in the pattern the names are not unique.')}</Banner>
         {/if}
         <div class="row apply">
-          <button class="btn primary" type="button" disabled={!preview || !!preview.problem || !!preview.duplicate || !pattern.trim()} onclick={apply}>
+          <button class="btn primary" type="button" disabled={busy || pending || !preview || !!preview.problem || !!preview.duplicate || !pattern.trim()} onclick={apply}>
             <Icon name="edit" />{preview && preview.count ? t('Rename {count} sprints', { count: preview.count }) : t('Use pattern for the next sprints')}
           </button>
         </div>
@@ -261,13 +285,13 @@
               {#if r.locked || !r.saved}
                 <span class="data">{r.id}</span>
               {:else}
-                <input class="input data name" value={r.id} aria-label={t('Sprint name')} onchange={(e) => rename(r, e.currentTarget.value)} />
+                <input class="input data name" value={r.id} aria-label={t('Name of sprint {id}', { id: r.id })} onchange={(e) => rename(r, e.currentTarget.value)} />
               {/if}
             </td>
             <td class="data">{fmtDay(r.start)}</td>
             <td>
               {#if r.locked}
-                <span class="data">{fmtDay(r.last)}</span> <Icon name="lock" size={16} />
+                <span class="data">{fmtDay(r.last)}</span> <Icon name="lock" size={16} /><span class="sr-only">{t('Locked')}</span>
               {:else}
                 <input class="input data" type="date" min={r.start} value={r.last} aria-label={t('Last day of {id}', { id: r.id })} onchange={(e) => setLast(r, e.currentTarget.value)} />
               {/if}
