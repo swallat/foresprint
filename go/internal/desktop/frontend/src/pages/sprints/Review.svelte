@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Review" pkg="P2 Sprint-Arbeitsraum" spec="flows.md F5" />
+<Placeholder title="Review" pkg="P2" spec="flows.md F5" />

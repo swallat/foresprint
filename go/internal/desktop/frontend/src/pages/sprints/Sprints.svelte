@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Sprint overview" pkg="P2 Sprint-Arbeitsraum" spec="flows.md section 5 (Sprints)" />
+<Placeholder title="Sprint overview" pkg="P2" spec="flows.md section 5 (Sprints)" />

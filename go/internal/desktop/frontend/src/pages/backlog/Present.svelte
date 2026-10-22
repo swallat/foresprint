@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Presentation view" pkg="P1 Backlog" spec="flows.md F10" />
+<Placeholder title="Presentation view" pkg="P1" spec="flows.md F10" />

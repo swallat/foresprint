@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Today" pkg="P9 Start und Hilfe" spec="flows.md section 5 (Today), F1" />
+<Placeholder title="Today" pkg="P9" spec="flows.md section 5 (Today), F1" />

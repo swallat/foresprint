@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Guided flows" pkg="P9 Start und Hilfe" spec="flows.md decision 13" />
+<Placeholder title="Guided flows" pkg="P9" spec="flows.md decision 13" />

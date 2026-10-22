@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Backlog" pkg="P1 Backlog" spec="flows.md F2, F10" />
+<Placeholder title="Backlog" pkg="P1" spec="flows.md F2, F10" />

@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Project" pkg="P6 Projekte" spec="flows.md F8" />
+<Placeholder title="Project" pkg="P6" spec="flows.md F8" />

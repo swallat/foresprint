@@ -23,7 +23,7 @@
         <a href={link(item.path)} class:active={active === item.path} class:sub={item.sub} aria-current={active === item.path ? 'page' : undefined} onclick={close}>
           <Icon name={item.icon} /><span>{t(item.label)}</span>
           {#if item.path === '/data/conflicts' && app.status.storage === 'conflict'}
-            <span class="count" style="color: var(--bad)">!</span>
+            <span class="count" style="color: var(--bad)" title={t('Conflict')} aria-label={t('Conflict')}>!</span>
           {/if}
           {#if item.path === '/data' && app.status.findings > 0}
             <span class="count" title={t('Findings of the data check')}>{app.status.findings}</span>

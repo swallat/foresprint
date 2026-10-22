@@ -24,7 +24,12 @@
   });
 
   onMount(async () => {
-    await start();
+    try {
+      await start();
+    } catch (e) {
+      app.problem = String(e);
+      app.ready = true;
+    }
     if (current.path === '/') go(app.teams.length > 0 ? '/today' : '/setup');
   });
 

@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Tickets and tracker" pkg="P8 Einstellungen und Tracker" spec="flows.md decisions 15, 21" />
+<Placeholder title="Tickets and tracker" pkg="P8" spec="flows.md decisions 15, 21" />

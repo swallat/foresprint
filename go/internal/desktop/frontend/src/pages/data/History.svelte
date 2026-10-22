@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="History and tags" pkg="P7 Daten und Speicher" spec="flows.md D6" />
+<Placeholder title="History and tags" pkg="P7" spec="flows.md D6" />

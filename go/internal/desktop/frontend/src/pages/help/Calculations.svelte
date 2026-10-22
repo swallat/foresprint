@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Calculations" pkg="P4 Forecast" spec="flows.md F9, decision 8" />
+<Placeholder title="Calculations" pkg="P4" spec="flows.md F9, decision 8" />

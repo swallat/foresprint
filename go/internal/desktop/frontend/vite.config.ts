@@ -5,7 +5,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 export default defineConfig({
   base: './',
   plugins: [svelte()],
-  build: { outDir: 'dist', emptyOutDir: true, target: 'es2022', sourcemap: false },
+  build: { outDir: 'dist', emptyOutDir: false, target: 'es2022', sourcemap: false },
   resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
   test: { environment: 'jsdom', include: ['src/**/*.test.ts'] },
 });

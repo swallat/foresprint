@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="Plan" pkg="P3 Vorplanen und Planen" spec="flows.md F4, decisions 6, 7, 10" />
+<Placeholder title="Plan" pkg="P3" spec="flows.md F4, decisions 6, 7, 10" />

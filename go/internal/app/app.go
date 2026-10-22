@@ -92,7 +92,7 @@ type Prefs struct {
 // Prefs returns the language, theme and data folders. Labels of themes are translated.
 func (a *API) Prefs() Prefs {
 	p := Prefs{
-		Language:       i18n.Language(),
+		Language:       savedLanguage(),
 		Theme:          config.Theme(),
 		DataDir:        a.DataDir(),
 		RecentDataDirs: config.RecentDataDirs(),
@@ -200,7 +200,7 @@ func (a *API) Sprints(team string) ([]SprintInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	today := time.Now().UTC().Format("2006-01-02")
+	today := time.Now().Format("2006-01-02")
 	out := make([]SprintInfo, 0, len(data.Sprints))
 	for _, s := range data.Sprints {
 		start, end := s.Start.Format("2006-01-02"), s.End.Format("2006-01-02")
@@ -215,4 +215,13 @@ func (a *API) Sprints(team string) ([]SprintInfo, error) {
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Start < out[j].Start })
 	return out, nil
+}
+
+// savedLanguage is the language the user chose, so that the selector shows the choice even when
+// FORESPRINT_LANG overrides the language of texts in this process.
+func savedLanguage() string {
+	if code := config.Language(); code != "" {
+		return code
+	}
+	return i18n.Language()
 }

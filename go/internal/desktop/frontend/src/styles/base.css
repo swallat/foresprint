@@ -126,7 +126,7 @@ table.t td.edit input { width: 64px; height: 26px; text-align: right; border: 1p
 
 /* Toast, flow guide */
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--text); color: var(--bg); padding: 10px 14px; border-radius: var(--r-ctl); z-index: 50; display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow); }
-.toast button { background: none; border: 0; color: var(--highlight); cursor: pointer; font-weight: 600; }
+.toast button { background: none; border: 0; color: var(--bg); text-decoration: underline; cursor: pointer; font-weight: 600; }
 .guide { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--highlight); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 12px 14px; z-index: 40; }
 .guide .step { font: 12px var(--font-data); color: var(--text-muted); }
 .guide p { margin: 4px 0 10px; }

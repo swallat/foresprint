@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="First start" pkg="P9 Start und Hilfe" spec="flows.md F1, D1" />
+<Placeholder title="First start" pkg="P9" spec="flows.md F1, D1" />

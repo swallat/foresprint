@@ -6,4 +6,4 @@
   void params;
 </script>
 
-<Placeholder title="People and absences" pkg="P5 Team" spec="flows.md decisions 1, 11, 16, 23" />
+<Placeholder title="People and absences" pkg="P5" spec="flows.md decisions 1, 11, 16, 23" />
