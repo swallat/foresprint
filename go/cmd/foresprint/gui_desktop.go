@@ -14,6 +14,7 @@ import (
 func init() {
 	cli.GUI = func(dataDir string) error {
 		reportStart(os.Args[1:])
+		desktop.Trace = reportTrace
 		err := desktop.Run(version, dataDir)
 		if err != nil {
 			// The Windows release has no console: show the problem where it can be seen.

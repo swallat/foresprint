@@ -9,3 +9,5 @@ import "fmt"
 func reportStart([]string) {}
 
 func reportFailure(what string, err error) { fmt.Printf("%s: %v\n", what, err) }
+
+func reportTrace(string) {}

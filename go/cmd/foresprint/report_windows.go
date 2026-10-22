@@ -15,6 +15,9 @@ import (
 // the standard error stream is never seen. Start problems therefore go to a log file and, when
 // the program was started without arguments (a double click), to a message box.
 
+// startedAt is when the program began, so that the log shows where the time of a slow start goes.
+var startedAt = time.Now()
+
 // logPath is the log of the last starts: %LOCALAPPDATA%\Foresprint\logs\start.log.
 func logPath() string {
 	base := os.Getenv("LOCALAPPDATA")
@@ -45,7 +48,8 @@ func logLine(format string, args ...any) {
 		return
 	}
 	defer f.Close()
-	_, _ = fmt.Fprintf(f, "%s %s\n", time.Now().Format("2006-01-02 15:04:05"), fmt.Sprintf(format, args...))
+	_, _ = fmt.Fprintf(f, "%s (+%.1fs) %s\n", time.Now().Format("2006-01-02 15:04:05"),
+		time.Since(startedAt).Seconds(), fmt.Sprintf(format, args...))
 }
 
 // reportStart notes the opening of the window in the log, so that a start without any message
@@ -65,3 +69,6 @@ func reportFailure(what string, err error) {
 	box := syscall.NewLazyDLL("user32.dll").NewProc("MessageBoxW")
 	_, _, _ = box.Call(0, uintptr(unsafe.Pointer(body)), uintptr(unsafe.Pointer(title)), mbOK|mbIconError)
 }
+
+// reportTrace notes a step of the start in the log.
+func reportTrace(step string) { logLine("%s", step) }
