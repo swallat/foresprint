@@ -142,6 +142,5 @@ export interface SettingsApi {
   TrackerFieldNames(team: string, baseUrl: string): Promise<string[]>;
   TrackerInfo(team: string): Promise<TrackerInfo>;
   SetDensity(code: string): Promise<void>;
-  SetCalcMode(code: string): Promise<void>;
   SyncTracker(team: string): Promise<Result>;
 }

@@ -209,19 +209,16 @@ func TestCheckRule(t *testing.T) {
 	}
 }
 
-func TestPersonalChoices(t *testing.T) {
+func TestPersonalDensity(t *testing.T) {
 	api := newAPI(t, "")
 	if err := api.SetDensity("roomy"); err != nil {
 		t.Fatal(err)
 	}
-	if err := api.SetCalcMode("inline"); err != nil {
-		t.Fatal(err)
-	}
 	p := api.Prefs()
-	if p.Density != "roomy" || p.CalcMode != "inline" {
+	if p.Density != "roomy" {
 		t.Fatalf("prefs = %+v", p)
 	}
-	if api.SetDensity("huge") == nil || api.SetCalcMode("loud") == nil {
+	if api.SetDensity("huge") == nil {
 		t.Error("unknown values must be refused")
 	}
 }

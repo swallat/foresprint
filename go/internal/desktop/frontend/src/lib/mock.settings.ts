@@ -140,9 +140,8 @@ export const settingsMock: SettingsApi = {
       failed: '',
     };
   },
-  // SetDensity and SetCalcMode live in mock.ts next to the other personal settings.
+  // SetDensity lives in mock.ts next to the other personal settings.
   async SetDensity() {},
-  async SetCalcMode() {},
   async SyncTracker(): Promise<Result> {
     tracker = { ...tracker, imported: new Date().toISOString() };
     return { ok: true, message: '46 tickets read, no changes.' };

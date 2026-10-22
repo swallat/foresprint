@@ -27,7 +27,6 @@ let prefs: Prefs = {
   ],
   theme: 'system',
   density: 'normal',
-  calcMode: 'icon',
   themes: [
     { code: 'system', label: 'As system' },
     { code: 'light', label: 'Light' },
@@ -65,9 +64,7 @@ export const mockApi: Api = {
   async SetDensity(code) {
     prefs = { ...prefs, density: code as Prefs['density'] };
   },
-  async SetCalcMode(code) {
-    prefs = { ...prefs, calcMode: code as Prefs['calcMode'] };
-  },
+
   async Texts(lang) {
     if (lang !== 'de') return {};
     const mod = await import('../../../../i18n/data/de.ui.json');

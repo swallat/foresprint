@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { app, setCalcMode, setDensity, setLanguage, setTheme, toast } from '../../lib/app.svelte';
+  import { app, setCalcMode, setDensity, setLanguage, setTheme, toast, type CalcMode } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import type { IconName } from '../../lib/icons';
-  import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
@@ -35,9 +34,9 @@
     { code: 'roomy', label: t('Roomy') },
   ]);
   const calcModes: Option[] = $derived([
-    { code: 'off', label: t('Hide'), icon: 'visibility_off' },
-    { code: 'icon', label: t('As icon'), icon: 'calculate' },
-    { code: 'inline', label: t('Always open'), icon: 'unfold_more' },
+    { code: 'off', label: t('Hidden'), icon: 'visibility_off' },
+    { code: 'icon', label: t('Calculator icon'), icon: 'calculate' },
+    { code: 'inline', label: t('Always shown'), icon: 'unfold_more' },
   ]);
 </script>
 
@@ -71,10 +70,9 @@
         {@render choice('theme', t('Theme'), themes, app.prefs.theme, setTheme)}
         {@render choice('density', t('Density of tables'), densities, app.prefs.density, setDensity)}
         <div>
-          {@render choice('calc', t('Calculations'), calcModes, app.prefs.calcMode, setCalcMode)}
+          {@render choice('calc', t('Calculations next to numbers'), calcModes, app.calcMode, async (code) => setCalcMode(code as CalcMode))}
           <p class="small muted">
-            {t('How calculations show next to numbers. Full explanations are always under')}
-            <a href={link('/help/calculations')}>{t('Help > Calculations')}</a>.
+            {t('Help > Calculations explains every formula in any case.')}
           </p>
         </div>
       </div>

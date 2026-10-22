@@ -8,6 +8,7 @@
   import NumInput from '../../lib/settings/NumInput.svelte';
   import Switch from '../../lib/settings/Switch.svelte';
   import { changes, parseNumber, type Field } from '../../lib/settings/diff';
+  import Calc from '../../lib/calc/Calc.svelte';
   import Icon from '../../lib/Icon.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
@@ -275,7 +276,10 @@
                   <input class="input data num" style="width:72px" aria-label={t('Points per person day')} inputmode="decimal" value={factorText} oninput={(e) => setFactor(e.currentTarget.value)} />
                   <span class="small">{t('points per PD')}</span>
                 </div>
-                <div class="small muted indent">{t('Example: 21 points are about {pd} PD.', { pd: (21 / draft.factor).toFixed(1).replace('.', ',') })}</div>
+                <div class="small muted indent">
+                  {t('Example: 21 points are about {pd} PD.', { pd: (21 / draft.factor).toFixed(1).replace('.', ',') })}
+                  <Calc label={t('Points in person days')} topic="units">{t('21 points ÷ {factor} points per PD = {pd} PD', { factor: String(draft.factor).replace('.', ','), pd: (21 / draft.factor).toFixed(1).replace('.', ',') })}</Calc>
+                </div>
               {/if}
             </div>
           {:else}
