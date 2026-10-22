@@ -110,6 +110,9 @@ export interface ImportPreview {
   untouched: string[];
   noTeam: boolean;
   cancelled: boolean;
+  kind: 'workbook' | 'packages';
+  problems: string[];
+  unmapped: string[];
 }
 
 export interface ForecastApi {

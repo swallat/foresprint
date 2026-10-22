@@ -48,6 +48,10 @@ type API struct {
 	dataDir string
 	run     trackerRun
 	undo    []projectSnapshot
+	// demo is the demo mode (api_demo.go).
+	demo demoState
+	// enterMu serialises EnterDemo.
+	enterMu sync.Mutex
 	// teamUndo is the last step of the Team area per team (undo.go).
 	teamUndo undoLog
 	// data is the storage of the data folder (area Data, api_data.go).
@@ -66,6 +70,7 @@ func New(version, dataDir string) *API {
 	if dataDir == "" {
 		dataDir, _ = config.DataDir()
 	}
+	demoSweep()
 	return &API{Version: version, dataDir: dataDir, data: datasvc.New(dataDir)}
 }
 
@@ -159,6 +164,7 @@ func (a *API) SetDataDir(path string) error {
 		return err
 	}
 	a.mu.Lock()
+	a.demoDropLocked() // a new data folder ends the demo
 	changed := a.dataDir != path
 	a.dataDir = path
 	a.mu.Unlock()

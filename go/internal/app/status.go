@@ -93,15 +93,26 @@ func statusOf(d datasvc.Status) Status {
 //
 // The tracker part is a placeholder until the area "Tickets and tracker" fills it.
 func (a *API) Status() Status {
+	if a.InDemo() {
+		return demoStatus()
+	}
 	a.data.StartBackgroundCheck()
 	return statusOf(a.data.Status())
 }
 
 // Save saves the changes and shares them (commit, merge at key level, upload).
-func (a *API) Save() (Result, error) { return a.save(false), nil }
+func (a *API) Save() (Result, error) {
+	if a.InDemo() {
+		return demoResult(), nil
+	}
+	return a.save(false), nil
+}
 
 // SaveAnyway saves although the check of the changed data found errors.
 func (a *API) SaveAnyway() (Result, error) {
+	if a.InDemo() {
+		return demoResult(), nil
+	}
 	return a.save(true), nil
 }
 
@@ -114,7 +125,12 @@ func (a *API) save(anyway bool) Result {
 }
 
 // Refresh fetches the changes of others.
-func (a *API) Refresh() (Result, error) { return resultOf(a.data.Refresh(), true), nil }
+func (a *API) Refresh() (Result, error) {
+	if a.InDemo() {
+		return demoResult(), nil
+	}
+	return resultOf(a.data.Refresh(), true), nil
+}
 
 // resultOf turns the result of the storage into the short answer of the top bar. refresh says
 // the action was Refresh, which changes the words for "nothing to do".
