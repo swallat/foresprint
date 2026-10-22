@@ -763,8 +763,9 @@ func (e *Env) ticketHandover(data *storage.TeamData, key string, sprintCount int
 	if n := len(data.Sprints); n > 0 {
 		lastSprint = &data.Sprints[n-1]
 	}
+	chain := calendar.NewChain(&data.Team, data.Sprints)
 	for len(pending) > 0 {
-		next, err := calendar.FollowingSprint(&data.Team, lastSprint)
+		next, err := chain.After(lastSprint)
 		if err != nil {
 			return asFail(err)
 		}

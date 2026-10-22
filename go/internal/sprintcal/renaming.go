@@ -49,7 +49,7 @@ func PlanRenames(data *storage.TeamData, sprintID, newID string) ([]Rename, erro
 		return nil, dataError("ID not allowed as a file name ({problem}).", "problem", problem)
 	}
 	numbering := data.Team.Sprint.Numbering
-	if !calendar.IDFitsNumbering(newID, sprint.End, numbering) {
+	if len(data.Team.Sprint.Naming) == 0 && !calendar.IDFitsNumbering(newID, sprint.End, numbering) {
 		return nil, dataError("Sprint ID {id!r} does not match the numbering (expected {expected}).",
 			"id", newID, "expected", calendar.ExpectedIDForm(i18n.Language(), numbering))
 	}
@@ -60,14 +60,28 @@ func PlanRenames(data *storage.TeamData, sprintID, newID string) ([]Rename, erro
 	}
 	var renames []Rename
 	previous := newID
+	// With a naming rule the later IDs are names from the pattern, counted on from the order of
+	// the sprints; without one they count on from the previous ID.
+	named := len(data.Team.Sprint.Naming) > 0
+	history := append([]model.Sprint(nil), data.Sprints[:position]...)
 	for i, s := range data.Sprints[position:] {
 		target := newID
 		if i > 0 {
 			var err error
-			if target, err = calendar.NextID(previous, s.Start, numbering); err != nil {
+			if named {
+				var created model.Sprint
+				last := history[len(history)-1]
+				if created, err = calendar.NewChain(&data.Team, history).After(&last); err != nil {
+					return nil, err
+				}
+				target = created.ID
+			} else if target, err = calendar.NextID(previous, s.Start, numbering); err != nil {
 				return nil, err
 			}
 		}
+		renamed := s.Clone()
+		renamed.ID = target
+		history = append(history, renamed)
 		if untouched[target] {
 			return nil, dataError("Sprint ID {id!r} is already taken (by an earlier sprint).", "id", target)
 		}

@@ -71,6 +71,8 @@ writes back unchanged (the golden round trips prove it).
 | `sprints/<id>.yaml` | `name`, `committed_tickets`, `carry` (`{ticket, rest, target}`), `rest_next`, `projects` (values per project, no tickets); prognoses: `label`, `finish`, `carry`, `rest_next` |
 
 `model.FormatSprintName` fills a naming pattern ({JJJJ} {JJ} {NN} {N} {LFD} {Q} {MM} {KW}).
+
+`calendar.Chain` creates the sprints after the recorded ones. With a `sprint.naming` rule the ID of a new sprint is the name from the pattern; the number in the year and the running number come from the order of the sprints (continued from the previous ID, read by the pattern or in the numeric form of the numbering), not from the previous ID alone. A rule with `from` begins at that sprint. Without a rule the IDs count on as before.
 `tracker.kind` accepts `packages`, so the message of the check lists it (known deviation from
 the Python reference).
 
