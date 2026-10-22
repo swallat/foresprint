@@ -5,6 +5,7 @@ import type { Api } from './api';
 import { projectsMock } from './mock.projects';
 import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import { createReviewMock } from './mock.review';
 import { createSprintsMock } from './mock.sprints';
 import { teamMock } from './mock.team';
 import type { Prefs, SprintInfo } from './types';
@@ -124,6 +125,7 @@ function today(): TodayData {
 
 export const mockApi: Api = {
   ...projectsMock,
+  ...createReviewMock(sprints),
   ...createSprintsMock(sprints),
   ...dataMock,
   ...teamMock,
