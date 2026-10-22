@@ -1,7 +1,8 @@
 // Mock answers of the settings area for a browser without the program (demo team "Team Atlas").
 // The checks mirror the Go ones loosely: enough for the pages to behave in the browser and in tests.
 
-import type { Result } from './types';
+import type { Prefs, Result } from '../types';
+import { demo } from './shared';
 import type {
   Connection,
   Features,
@@ -11,7 +12,7 @@ import type {
   TokenState,
   TrackerInfo,
   TrackerSettings,
-} from './types.settings';
+} from '../types.settings';
 
 let team: TeamSettings = {
   name: 'Team Atlas',
@@ -84,7 +85,7 @@ function checkRule(text: string, extra: string[]): RuleCheck {
   return { ok: true, message: '', text: t.replace(/\s+/g, ' ') };
 }
 
-export const settingsMock: SettingsApi = {
+const settingsMock: SettingsApi = {
   async TeamSettings() {
     return clone(team);
   },
@@ -146,10 +147,13 @@ export const settingsMock: SettingsApi = {
       failed: '',
     };
   },
-  // SetDensity lives in mock.ts next to the other personal settings.
-  async SetDensity() {},
+  async SetDensity(code) {
+    demo.prefs = { ...demo.prefs, density: code as Prefs['density'] };
+  },
   async SyncTracker(): Promise<Result> {
     tracker = { ...tracker, imported: new Date().toISOString() };
     return { ok: true, message: '46 tickets read, no changes.' };
   },
 };
+
+export default settingsMock;

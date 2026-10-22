@@ -1,0 +1,16 @@
+{
+ "code": "de",
+ "name": "Deutsch",
+ "texts": {
+  "Fields": "Felder",
+  "One ticket matches ({points} points).": "Ein Ticket passt ({points} Punkte).",
+  "Operators": "Operatoren",
+  "Rule for {name}": "Regel für {name}",
+  "Rule is not complete": "Regel ist noch unvollständig",
+  "and {count} more": "und {count} weitere",
+  "at position {pos}": "an Stelle {pos}",
+  "{count} also match another rule": "{count} passen auch auf eine andere Regel",
+  "{count} tickets match ({points} points), {moved} of them are assigned differently today.": "{count} Tickets passen ({points} Punkte), {moved} davon sind heute anders zugeordnet.",
+  "{count} tickets match ({points} points).": "{count} Tickets passen ({points} Punkte)."
+ }
+}

@@ -3,7 +3,7 @@
 // and ?mock=simple in the address show the other ways of working (work packages, no tickets,
 // one product without PO and production).
 
-import type { SprintInfo } from './types';
+import type { SprintInfo } from '../types';
 import type {
   Assumption,
   FreezeInput,
@@ -14,7 +14,7 @@ import type {
   PlanTicket,
   RunningTicket,
   WhatIf,
-} from './types.plan';
+} from '../types.plan';
 
 const mode = (): string => new URLSearchParams(location.search).get('mock') ?? 'tracker';
 const simple = () => mode() === 'simple';
@@ -269,3 +269,5 @@ export function resetPlanMock(): void {
   tickets = structuredClone(base);
   pre = {}; projAmt = {}; sprintPre = {}; removedMock = {}; prodPT = {}; saved = {}; frozen = {}; planned = {};
 }
+
+export default planMock;

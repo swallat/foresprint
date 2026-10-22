@@ -68,7 +68,7 @@ func New(version, dataDir string) *API {
 	if dataDir == "" {
 		dataDir, _ = config.DataDir()
 	}
-	sweepDemos()
+	demoSweep()
 	return &API{Version: version, dataDir: dataDir, data: datasvc.New(dataDir)}
 }
 
@@ -162,7 +162,7 @@ func (a *API) SetDataDir(path string) error {
 		return err
 	}
 	a.mu.Lock()
-	a.dropDemoLocked() // a new data folder ends the demo
+	a.demoDropLocked() // a new data folder ends the demo
 	changed := a.dataDir != path
 	a.dataDir = path
 	a.mu.Unlock()

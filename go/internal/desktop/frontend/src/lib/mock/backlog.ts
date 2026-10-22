@@ -2,7 +2,8 @@
 // "Team Atlas". The ticket source can be chosen with ?source=tracker|packages|none in the
 // address (before the #), for screenshots and development.
 
-import type { SprintInfo } from './types';
+import type { SprintInfo } from '../types';
+import { sprints as demoSprints } from './shared';
 import type {
   BacklogApi,
   BacklogLane,
@@ -13,7 +14,7 @@ import type {
   TicketDetail,
   TicketSource,
   WorkPackageInput,
-} from './types.backlog';
+} from '../types.backlog';
 
 interface Row extends TicketDetail {
   rank: number;
@@ -262,3 +263,5 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
     },
   };
 }
+
+export default createBacklogMock(() => demoSprints);
