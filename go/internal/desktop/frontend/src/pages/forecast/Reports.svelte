@@ -110,10 +110,8 @@
         <Banner tone="warn">{t('The workbook names no team (older export); it is not checked whether it belongs to this team.')}</Banner>
       {/if}
       {#if preview.problems.length > 0}
-        <Banner tone="warn">
-          {t('{n} rows are skipped:', { n: preview.problems.length })}
-          <ul>{#each preview.problems as m (m)}<li>{m}</li>{/each}</ul>
-        </Banner>
+        <Banner tone="warn">{t('Skipped rows:')}</Banner>
+        <ul class="small">{#each preview.problems as m, i (i)}<li>{m}</li>{/each}</ul>
       {/if}
       {#if preview.unmapped.length > 0}
         <p class="small muted">{t('No field found for the columns: {names}', { names: preview.unmapped.join(', ') })}</p>
@@ -124,7 +122,7 @@
         <div class="tw">
           <table class="t">
             {#if preview.kind === 'packages'}
-              <thead><tr><th scope="col">{t('Work package')}</th><th scope="col">{t('Title before')}</th><th scope="col">{t('Title now')}</th></tr></thead>
+              <thead><tr><th scope="col">{t('Value')}</th><th scope="col">{t('Before')}</th><th scope="col">{t('New')}</th></tr></thead>
             {:else}
               <thead><tr><th scope="col">{t('File')}</th><th scope="col">{t('Value')}</th><th scope="col">{t('Before')}</th><th scope="col">{t('New')}</th></tr></thead>
             {/if}

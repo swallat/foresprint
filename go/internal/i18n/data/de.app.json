@@ -77,6 +77,8 @@
   "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein.",
   "This team gets its tickets from a tracker. A CSV table can only be imported as work packages.": "Dieses Team bekommt seine Tickets aus einem Ticketsystem. Eine CSV-Tabelle lässt sich nur als Arbeitspakete importieren.",
   "Row {row}: {msg}": "Zeile {row}: {msg}",
-  "The tickets are switched off for this team.": "Die Tickets sind für dieses Team ausgeschaltet."
+  "The tickets are switched off for this team.": "Die Tickets sind für dieses Team ausgeschaltet.",
+  "The file is not a regular file or larger than 20 MB.": "Die Datei ist keine normale Datei oder größer als 20 MB.",
+  "… and {n} more rows": "… und {n} weitere Zeilen"
  }
 }

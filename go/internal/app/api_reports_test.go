@@ -136,14 +136,25 @@ func TestCSVImportOfWorkPackages(t *testing.T) {
 		t.Fatalf("apply %v %v", files, err)
 	}
 
-	// Importing the same table again updates the packages instead of adding them.
+	// Importing the same table again changes nothing.
 	again, err := api.previewImport(key, csvFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, c := range again.Changes {
-		if c.Old == "–" {
-			t.Errorf("%s was added twice", c.Path)
-		}
+	if len(again.Changes) != 0 {
+		t.Errorf("an identical table changes %+v", again.Changes)
+	}
+
+	// A new estimate shows as a change of that field; labels stay without a labels column.
+	enc2, _ := charmap.Windows1252.NewEncoder().String("Schlüssel;Titel;Schätzung\r\nAP-1;Anmeldung bauen;5\r\n")
+	if err := os.WriteFile(csvFile, []byte(enc2), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	next, err := api.previewImport(key, csvFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(next.Changes) != 1 || next.Changes[0].Path != "AP-1.estimate" || next.Changes[0].Old != "2.5" || next.Changes[0].New != "5" {
+		t.Errorf("changes %+v", next.Changes)
 	}
 }
