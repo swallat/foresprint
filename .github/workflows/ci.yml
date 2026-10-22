@@ -19,6 +19,7 @@ concurrency:
 # run in the cloud (public repository); SELF_HOSTED=false switches back immediately.
 jobs:
   test:
+    timeout-minutes: 20
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
@@ -33,7 +34,7 @@ jobs:
       - run: uv sync --locked --all-extras
       - run: uv run ruff check
       - run: uv run ruff format --check
-      - run: uv run pytest
+      - run: uv run pytest -n 4
       - run: uv run foresprint --data examples/teams check
       # The Go port compares against these files: they must be exactly what the Python core gives.
       - name: Golden files are current
@@ -48,6 +49,7 @@ jobs:
   # The Go core (go/): format, vet, lint and tests, including the comparison with the golden
   # files of the Python core, on all three desktop platforms.
   go:
+    timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -61,7 +63,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go/go.mod
-          cache: false
+          cache-dependency-path: go/go.sum
       - name: gofmt
         if: runner.os == 'Linux'
         run: test -z "$(gofmt -l .)" || { gofmt -d .; exit 1; }
@@ -78,6 +80,7 @@ jobs:
   # The window (go/internal/desktop): the frontend is checked, tested and built, then the program
   # with the window is built on all three platforms (one program: command line and window).
   desktop:
+    timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -91,7 +94,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go/go.mod
-          cache: false
+          cache-dependency-path: go/go.sum
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -104,9 +107,29 @@ jobs:
           npm run check
           npm test
           npm run build
+      # The downloaded packages are cached: the Ubuntu mirror sometimes hangs for many minutes.
+      # Without a cache hit the download is stopped after five minutes and tried once more.
+      - name: Cache the web view packages (Linux)
+        if: runner.os == 'Linux'
+        id: apt-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-archives
+          key: apt-webkit-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
       - name: Web view libraries (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev xvfb
+        run: |
+          mkdir -p ~/apt-archives/partial
+          install() { sudo apt-get install -y --no-install-recommends -o Dir::Cache::archives="$HOME/apt-archives" libgtk-3-dev libwebkit2gtk-4.1-dev xvfb; }
+          if [ "${{ steps.apt-cache.outputs.cache-hit }}" = "true" ]; then
+            install
+          else
+            for attempt in 1 2; do
+              timeout 300 sh -c 'sudo apt-get update && sudo apt-get install -y --no-install-recommends -o Dir::Cache::archives="$HOME/apt-archives" libgtk-3-dev libwebkit2gtk-4.1-dev xvfb' && break
+              test "$attempt" = 2 && exit 1
+            done
+          fi
+          sudo chown -R "$USER" ~/apt-archives
       - name: Build the program with the window
         shell: bash
         run: |
@@ -144,6 +167,7 @@ jobs:
   # The install scripts against a release page on a local web server (no network, no real release):
   # download, checksum, install, and refusal of a wrong checksum.
   installers:
+    timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -154,7 +178,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go/go.mod
-          cache: false
+          cache-dependency-path: go/go.sum
       - name: Install script (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -198,6 +222,7 @@ jobs:
           if ($accepted) { throw "a wrong checksum was accepted" }
 
   build:
+    timeout-minutes: 10
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
@@ -214,6 +239,7 @@ jobs:
   # Browser tests (Playwright, Chromium) against the running web UI; separate from the fast
   # tests so that a missing browser or a slow run does not hold them up.
   e2e:
+    timeout-minutes: 30
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
@@ -239,6 +265,12 @@ jobs:
         uses: jdx/mise-action@v3
       - if: steps.scope.outputs.run == 'true'
         run: uv sync --locked --all-extras
+      - name: Cache the Chromium download
+        if: steps.scope.outputs.run == 'true' && runner.environment == 'github-hosted'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
       # The self-hosted runner has no sudo; the system packages for Chromium are already
       # installed there, so only the browser itself.
       - name: Install Chromium (GitHub-hosted, with system packages)
@@ -248,7 +280,7 @@ jobs:
         if: steps.scope.outputs.run == 'true' && runner.environment == 'self-hosted'
         run: uv run playwright install chromium
       - if: steps.scope.outputs.run == 'true'
-        run: uv run pytest -m e2e -v
+        run: uv run pytest -m e2e -v -n 3
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
