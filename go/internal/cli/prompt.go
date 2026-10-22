@@ -33,6 +33,18 @@ func (e *Env) readLine() (string, error) {
 	return line, nil
 }
 
+// readLineRaw is readLine without echoing the line (for secrets read from a pipe).
+func (e *Env) readLineRaw() (string, error) {
+	if e.input == nil {
+		e.input = bufio.NewReader(e.In)
+	}
+	line, err := e.input.ReadString('\n')
+	if err != nil && (err != io.EOF || line == "") {
+		return "", err
+	}
+	return strings.TrimRight(line, "\r\n"), nil
+}
+
 // interactive reports whether the input is a terminal.
 func (e *Env) interactive() bool {
 	f, ok := e.In.(*os.File)

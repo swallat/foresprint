@@ -12,6 +12,7 @@
   "Usage error: {error}": "Falsche Eingabe: {error}",
   "Aborted.": "Abgebrochen.",
   "Please enter y or n.": "Bitte j oder n eingeben.",
-  "Please select one of the available options": "Bitte eine der angebotenen Möglichkeiten wählen"
+  "Please select one of the available options": "Bitte eine der angebotenen Möglichkeiten wählen",
+  "The keychain is not available on this computer. Set the environment variable {variable} instead.": "Der Schlüsselbund ist auf diesem Rechner nicht verfügbar. Setze stattdessen die Umgebungsvariable {variable}."
  }
 }
