@@ -265,8 +265,8 @@ func TestBacklogDriftComparesFrozenListOfRunningSprint(t *testing.T) {
 	data.Team.Tracker.Kind = "jira"
 	data.Team.Features.Tickets = true
 	data.Sprints = []model.Sprint{
-		{ID: "S1", Start: now.AddDate(0, 0, -5), End: now.AddDate(0, 0, 5), CommittedTickets: []string{"X-1", "X-2"}},
 		{ID: "S0", Start: now.AddDate(0, 0, -30), End: now.AddDate(0, 0, -20), CommittedTickets: []string{"X-9"}},
+		{ID: "S1", Start: now.AddDate(0, 0, -5), End: now.AddDate(0, 0, 5), CommittedTickets: []string{"X-1", "X-2"}},
 	}
 	data.Tickets = []model.Ticket{
 		{Key: "X-1", InSprint: in("S1")},
@@ -277,13 +277,26 @@ func TestBacklogDriftComparesFrozenListOfRunningSprint(t *testing.T) {
 	if d == nil || d.Sprint != "S1" || len(d.PulledIn) != 1 || d.PulledIn[0] != "X-3" || len(d.Dropped) != 1 || d.Dropped[0] != "X-2" {
 		t.Fatalf("drift %+v", d)
 	}
-	data.Sprints[0].CommittedTickets = nil
+	data.Sprints[1].CommittedTickets = nil
 	if backlogDrift(data, now) != nil {
 		t.Error("a sprint that is not frozen has no drift")
 	}
-	data.Sprints[0].CommittedTickets = []string{"X-1", "X-3", "X-2"}
+	data.Sprints[1].CommittedTickets = []string{"X-1", "X-3", "X-2"}
 	data.Tickets[1].InSprint = in("S1")
 	if backlogDrift(data, now) != nil {
 		t.Error("no difference, no drift")
+	}
+	// On the changeover day the finished sprint (exclusive end) is not the running one.
+	data.Sprints = []model.Sprint{
+		{ID: "S0", Start: now.AddDate(0, 0, -14), End: now, CommittedTickets: []string{"X-9"}},
+		{ID: "S1", Start: now, End: now.AddDate(0, 0, 14), CommittedTickets: []string{"X-1"}},
+	}
+	data.Tickets = []model.Ticket{{Key: "X-1", InSprint: in("S1")}}
+	if d := backlogDrift(data, now); d != nil {
+		t.Errorf("S1 has no drift, got %+v", d)
+	}
+	data.Tickets = append(data.Tickets, model.Ticket{Key: "X-4", InSprint: in("S1")})
+	if d := backlogDrift(data, now); d == nil || d.Sprint != "S1" {
+		t.Errorf("the running sprint is S1, got %+v", d)
 	}
 }

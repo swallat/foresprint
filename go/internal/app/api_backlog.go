@@ -332,7 +332,8 @@ func backlogDrift(data *storage.TeamData, now time.Time) *BacklogDrift {
 		return nil
 	}
 	for _, s := range data.Sprints {
-		if s.CommittedTickets == nil || s.Start.After(now) || s.End.Before(now) {
+		// The stored end is exclusive: on the day a sprint ends, the next one is the running one.
+		if s.Start.After(now) || !now.Before(s.End) {
 			continue
 		}
 		d := ticketimport.DetectDrift(s.CommittedTickets, data.Tickets, s.ID)

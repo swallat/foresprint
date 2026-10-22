@@ -1,7 +1,7 @@
 <script lang="ts">
   // The backlog: all open tickets (or work packages) in planning order, saved views as filters
   // of the one list, and lanes for the coming sprints to earmark into (flows.md F2, F10).
-  import { app, syncTracker } from '../../lib/app.svelte';
+  import { app, selectSprint, syncTracker } from '../../lib/app.svelte';
   import { tick } from 'svelte';
   import { language } from '../../lib/i18n.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
@@ -243,7 +243,7 @@
         {#if view.drift.unknown.length}
           {t('Not in the last fetch: {keys}.', { keys: view.drift.unknown.join(', ') })}
         {/if}
-        {#snippet action()}<a class="btn" href={link('/sprint/plan')}>{t('Open Plan')}</a>{/snippet}
+        {#snippet action()}<a class="btn" href={link('/sprint/plan')} onclick={() => view?.drift && selectSprint(view.drift.sprint)}>{t('Open Plan')}</a>{/snippet}
       </Banner>
     {/if}
 
