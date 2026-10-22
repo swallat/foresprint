@@ -262,3 +262,31 @@ func TestCSVTeamHasNoSyncChip(t *testing.T) {
 		t.Errorf("info = %+v", info)
 	}
 }
+
+func TestTrackerBoardNumber(t *testing.T) {
+	api, team := copyDemoTeam(t)
+	in, err := api.TrackerSettings(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in.Source, in.Kind = "tracker", "jira"
+	in.BoardID = 42
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := api.TrackerSettings(team)
+	if out.BoardID != 42 {
+		t.Fatalf("board: %d", out.BoardID)
+	}
+	in.BoardID = -1
+	if err := api.SaveTrackerSettings(team, in); err == nil {
+		t.Fatal("a negative board number must be refused")
+	}
+	in.BoardID = 0
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	if out, _ = api.TrackerSettings(team); out.BoardID != 0 {
+		t.Fatalf("board not cleared: %d", out.BoardID)
+	}
+}

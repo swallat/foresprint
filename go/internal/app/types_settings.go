@@ -88,12 +88,14 @@ type TrackerSettings struct {
 	RuleFields      []RuleField   `json:"ruleFields"`
 	FixedSources    []string      `json:"fixedSources"` // rule sources that always exist
 	WriteSprint     bool          `json:"writeSprint"`
-	RemovedTarget   string        `json:"removedTarget"` // "backlog", "pro_forma" or "next"
-	WriteLabels     bool          `json:"writeLabels"`
-	PackagePrefix   string        `json:"packagePrefix"`
-	Token           TokenState    `json:"token"`
-	Tickets         int           `json:"tickets"`  // tickets in the last import
-	Imported        string        `json:"imported"` // time of the last import (RFC 3339), "" if none
+	// BoardID is the Jira board whose sprints the write-back looks up (0 = none).
+	BoardID       int        `json:"boardId"`
+	RemovedTarget string     `json:"removedTarget"` // "backlog", "pro_forma" or "next"
+	WriteLabels   bool       `json:"writeLabels"`
+	PackagePrefix string     `json:"packagePrefix"`
+	Token         TokenState `json:"token"`
+	Tickets       int        `json:"tickets"`  // tickets in the last import
+	Imported      string     `json:"imported"` // time of the last import (RFC 3339), "" if none
 }
 
 // Connection is the answer to a connection test.

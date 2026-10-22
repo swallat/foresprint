@@ -157,6 +157,7 @@
   "The file is too large for a table of work packages.": "Die Datei ist zu groß für eine Tabelle mit Arbeitspaketen.",
   "This is not a file.": "Das ist keine Datei.",
   "The workbook is too large": "Die Arbeitsmappe ist zu groß.",
-  "The sheet is too large for a table (at most {cols} columns and {rows} rows).": "Das Blatt ist für eine Tabelle zu groß (höchstens {cols} Spalten und {rows} Zeilen)."
+  "The sheet is too large for a table (at most {cols} columns and {rows} rows).": "Das Blatt ist für eine Tabelle zu groß (höchstens {cols} Spalten und {rows} Zeilen).",
+  "The board number is a positive whole number.": "Die Board-Nummer ist eine positive ganze Zahl."
  }
 }

@@ -86,6 +86,8 @@ export interface TrackerSettings {
   ruleFields: RuleField[];
   fixedSources: string[];
   writeSprint: boolean;
+  /** Jira board of the write-back; 0 or empty = none. */
+  boardId: number | null;
   removedTarget: '' | 'backlog' | 'pro_forma' | 'next';
   writeLabels: boolean;
   packagePrefix: string;
