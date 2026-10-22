@@ -415,8 +415,14 @@ func Build(fc *forecast.Forecast) ([]byte, error) {
 				isNumber(tr), isNumber(pcap), tr, pcap, isNumber(commitment), commitment),
 			n2, blank(res.Plan))
 		plan := at("plan", row)
-		ws.formula(row, c["roadmap"], fmt.Sprintf(`IF(%s,%s*Roadmap_Anteil,"")`, isNumber(plan), plan), n2, blank(res.Roadmap))
-		ws.formula(row, c["small"], fmt.Sprintf(`IF(%s,%s-%s,"")`, isNumber(plan), plan, at("roadmap", row)), n2, blank(res.SmallStuff))
+		if carry := e.CarryIn; carry > 0 {
+			free := fmt.Sprintf("MAX(0,%s-%s)", plan, strconv.FormatFloat(carry, 'f', -1, 64))
+			ws.formula(row, c["roadmap"], fmt.Sprintf(`IF(%s,ROUNDDOWN(%s*Roadmap_Anteil,Rundung),"")`, isNumber(plan), free), n2, blank(res.Roadmap))
+			ws.formula(row, c["small"], fmt.Sprintf(`IF(%s,%s-%s,"")`, isNumber(plan), free, at("roadmap", row)), n2, blank(res.SmallStuff))
+		} else {
+			ws.formula(row, c["roadmap"], fmt.Sprintf(`IF(%s,%s*Roadmap_Anteil,"")`, isNumber(plan), plan), n2, blank(res.Roadmap))
+			ws.formula(row, c["small"], fmt.Sprintf(`IF(%s,%s-%s,"")`, isNumber(plan), plan, at("roadmap", row)), n2, blank(res.SmallStuff))
+		}
 		vel, cap := at("vel", row), at("cap", row)
 		ws.formula(row, c["ful"],
 			fmt.Sprintf(`IF(AND(%s,%s,%s<>0),%s/%s,"")`, isNumber(vel), isNumber(commitment), commitment, vel, commitment),
