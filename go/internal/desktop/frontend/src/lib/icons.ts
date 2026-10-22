@@ -18,6 +18,7 @@ import i_block from '@material-symbols/svg-400/outlined/block.svg?raw';
 import i_calculate from '@material-symbols/svg-400/outlined/calculate.svg?raw';
 import i_calendar_month from '@material-symbols/svg-400/outlined/calendar_month.svg?raw';
 import i_call_split from '@material-symbols/svg-400/outlined/call_split.svg?raw';
+import i_cancel from '@material-symbols/svg-400/outlined/cancel.svg?raw';
 import i_category from '@material-symbols/svg-400/outlined/category.svg?raw';
 import i_check from '@material-symbols/svg-400/outlined/check.svg?raw';
 import i_check_circle from '@material-symbols/svg-400/outlined/check_circle.svg?raw';
@@ -38,6 +39,9 @@ import i_database from '@material-symbols/svg-400/outlined/database.svg?raw';
 import i_date_range from '@material-symbols/svg-400/outlined/date_range.svg?raw';
 import i_delete from '@material-symbols/svg-400/outlined/delete.svg?raw';
 import i_description from '@material-symbols/svg-400/outlined/description.svg?raw';
+import i_stacked_bar_chart from '@material-symbols/svg-400/outlined/stacked_bar_chart.svg?raw';
+import i_ios_share from '@material-symbols/svg-400/outlined/ios_share.svg?raw';
+import i_upload_file from '@material-symbols/svg-400/outlined/upload_file.svg?raw';
 import i_download from '@material-symbols/svg-400/outlined/download.svg?raw';
 import i_drag_indicator from '@material-symbols/svg-400/outlined/drag_indicator.svg?raw';
 import i_edit from '@material-symbols/svg-400/outlined/edit.svg?raw';
@@ -45,6 +49,7 @@ import i_edit_note from '@material-symbols/svg-400/outlined/edit_note.svg?raw';
 import i_error from '@material-symbols/svg-400/outlined/error.svg?raw';
 import i_event from '@material-symbols/svg-400/outlined/event.svg?raw';
 import i_event_available from '@material-symbols/svg-400/outlined/event_available.svg?raw';
+import i_event_repeat from '@material-symbols/svg-400/outlined/event_repeat.svg?raw';
 import i_event_busy from '@material-symbols/svg-400/outlined/event_busy.svg?raw';
 import i_filter_alt_off from '@material-symbols/svg-400/outlined/filter_alt_off.svg?raw';
 import i_fact_check from '@material-symbols/svg-400/outlined/fact_check.svg?raw';
@@ -53,6 +58,8 @@ import i_fit_screen from '@material-symbols/svg-400/outlined/fit_screen.svg?raw'
 import i_flag from '@material-symbols/svg-400/outlined/flag.svg?raw';
 import i_folder from '@material-symbols/svg-400/outlined/folder.svg?raw';
 import i_folder_open from '@material-symbols/svg-400/outlined/folder_open.svg?raw';
+import i_forum from '@material-symbols/svg-400/outlined/forum.svg?raw';
+import i_gavel from '@material-symbols/svg-400/outlined/gavel.svg?raw';
 import i_group from '@material-symbols/svg-400/outlined/group.svg?raw';
 import i_groups from '@material-symbols/svg-400/outlined/groups.svg?raw';
 import i_help from '@material-symbols/svg-400/outlined/help.svg?raw';
@@ -124,6 +131,7 @@ const icons = {
   calculate: i_calculate,
   calendar_month: i_calendar_month,
   call_split: i_call_split,
+  cancel: i_cancel,
   category: i_category,
   check: i_check,
   check_circle: i_check_circle,
@@ -145,12 +153,16 @@ const icons = {
   delete: i_delete,
   description: i_description,
   download: i_download,
+  upload_file: i_upload_file,
+  stacked_bar_chart: i_stacked_bar_chart,
+  ios_share: i_ios_share,
   drag_indicator: i_drag_indicator,
   edit: i_edit,
   edit_note: i_edit_note,
   error: i_error,
   event: i_event,
   event_available: i_event_available,
+  event_repeat: i_event_repeat,
   event_busy: i_event_busy,
   filter_alt_off: i_filter_alt_off,
   fact_check: i_fact_check,
@@ -159,6 +171,8 @@ const icons = {
   flag: i_flag,
   folder: i_folder,
   folder_open: i_folder_open,
+  forum: i_forum,
+  gavel: i_gavel,
   group: i_group,
   groups: i_groups,
   help: i_help,
