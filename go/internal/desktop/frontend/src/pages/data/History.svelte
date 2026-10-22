@@ -200,6 +200,20 @@
   <input class="input data" aria-label={t('Name of the new tag')} placeholder={t('e.g. 2026.22')} bind:value={newLabel} onkeydown={(e) => e.key === 'Enter' && setLabel()} />
   <button class="btn" type="button" disabled={working || !newLabel.trim()} onclick={setLabel}><Icon name="sell" />{t('Tag the current state')}</button>
 </div>
+{#if app.pendingTags.length > 0}
+  <div class="stack pending" data-pending-tags>
+    {#each app.pendingTags as p (p.name)}
+      <div class="row">
+        <span class="chip fc"><Icon name="sell" /><span class="data">{p.name}</span></span>
+        {#if p.ready}
+          <span class="muted small">{t('Set with the next Save (asked for by a sprint review).')}</span>
+        {:else}
+          <span class="chip warn"><Icon name="warning" />{t('Cannot be set: the name is invalid or already taken.')}</span>
+        {/if}
+      </div>
+    {/each}
+  </div>
+{/if}
 <div class="tw">
   <table class="t">
     <thead><tr><th>{t('Tag')}</th><th>{t('Date')}</th><th>{t('Occasion')}</th><th>{t('Shared')}</th><th><span class="sr">{t('Actions')}</span></th></tr></thead>
@@ -263,6 +277,9 @@
 </div>
 
 <style>
+  .pending {
+    margin-bottom: 8px;
+  }
   .scope {
     margin-bottom: 12px;
   }

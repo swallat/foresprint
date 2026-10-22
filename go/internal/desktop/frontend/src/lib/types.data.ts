@@ -129,6 +129,13 @@ export interface LineEndings {
   problem?: Problem;
 }
 
+/** A tag a sprint review asked for; the next Save sets it. */
+export interface PendingTag {
+  name: string;
+  /** false: the name is invalid or taken, so Save drops it without setting it. */
+  ready: boolean;
+}
+
 export interface Done {
   version: string;
   warning?: string;
@@ -227,6 +234,8 @@ export interface DataApi {
   Revert(version: string): Promise<Done>;
   Discard(files: string[]): Promise<Done>;
   Lost(files: string[]): Promise<LostFile[]>;
+  PendingTags(): Promise<PendingTag[]>;
+  OpenFile(path: string): Promise<void>;
   UnsavedChanges(): Promise<UnsavedFile[]>;
   DiscardValues(items: ValueRef[]): Promise<Done>;
   LineEndings(): Promise<LineEndings>;
