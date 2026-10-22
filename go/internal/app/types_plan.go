@@ -60,11 +60,14 @@ type PlanSprint struct {
 	SprintPre *float64 `json:"sprintPre"`
 	Committed *float64 `json:"committed"`
 
-	Products   []PlanProduct   `json:"products"`
-	Tickets    []PlanTicket    `json:"tickets"`
-	Candidates []PlanTicket    `json:"candidates"`
-	Projects   []PlanProject   `json:"projects"`
-	Prod       *PlanProduction `json:"prod"`
+	Products   []PlanProduct `json:"products"`
+	Tickets    []PlanTicket  `json:"tickets"`
+	Candidates []PlanTicket  `json:"candidates"`
+	Projects   []PlanProject `json:"projects"`
+	// Matrix is the pre-planned amount per product and project; nil when the team has no
+	// products or no open project.
+	Matrix *PlanMatrix     `json:"matrix"`
+	Prod   *PlanProduction `json:"prod"`
 	// Frozen is set when the plan is frozen.
 	Frozen *PlanFrozen `json:"frozen"`
 	// Assumptions are the saved assumptions about the running sprint (what-if) that target
@@ -227,4 +230,24 @@ type FreezeInput struct {
 	Commitment *float64           `json:"commitment"`
 	Amounts    map[string]float64 `json:"amounts"`
 	Removed    []string           `json:"removed"`
+}
+
+// PlanMatrix is the table product x project of the pre-planning. Only cells with an amount are
+// listed; Projects are the columns (every open project), the rows are the products of the view.
+type PlanMatrix struct {
+	Projects []PlanRef  `json:"projects"`
+	Cells    []PlanCell `json:"cells"`
+}
+
+// PlanRef names a project.
+type PlanRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// PlanCell is the amount of one product in one project.
+type PlanCell struct {
+	Product string  `json:"product"`
+	Project string  `json:"project"`
+	Value   float64 `json:"value"`
 }

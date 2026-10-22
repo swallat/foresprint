@@ -355,3 +355,107 @@ func TestProductionCapLowersWhatIsAvailable(t *testing.T) {
 		t.Errorf("cap %v, available %v of %v", after.Prod.CapPercent, after.Prod.Available, before.Prod.Time)
 	}
 }
+
+func TestMatrixCellsAndUseMatrix(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	repo := storage.NewRepository(api.DataDir())
+	if _, err := repo.SaveProjects(team, []model.Project{{ID: "alpha", Name: "Alpha"}}); err != nil {
+		t.Fatal(err)
+	}
+	v, err := api.PlanSprint(team, next, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Matrix == nil || len(v.Matrix.Projects) == 0 {
+		t.Fatalf("no matrix: %+v", v.Matrix)
+	}
+	product, project := v.Products[0].ID, v.Matrix.Projects[0].ID
+	f := func(x float64) *float64 { return &x }
+	if err := api.SetMatrixCell(team, next, product, project, f(7)); err != nil {
+		t.Fatal(err)
+	}
+	if err := api.SetMatrixCell(team, next, product, "nope", f(1)); err == nil {
+		t.Error("an unknown project was accepted")
+	}
+	if err := api.SetMatrixCell(team, next, product, project, f(-1)); err == nil {
+		t.Error("a negative amount was accepted")
+	}
+	v, _ = api.PlanSprint(team, next, nil)
+	if len(v.Matrix.Cells) != 1 || v.Matrix.Cells[0].Value != 7 {
+		t.Fatalf("cells = %+v", v.Matrix.Cells)
+	}
+	if err := api.UseMatrix(team, next); err != nil {
+		t.Fatal(err)
+	}
+	v, _ = api.PlanSprint(team, next, nil)
+	if v.Products[0].Pre == nil || *v.Products[0].Pre < 7 {
+		t.Errorf("product amount = %v", v.Products[0].Pre)
+	}
+	if err := api.SetMatrixCell(team, next, product, project, nil); err != nil {
+		t.Fatal(err)
+	}
+	if v, _ = api.PlanSprint(team, next, nil); len(v.Matrix.Cells) != 0 {
+		t.Errorf("cell not cleared: %+v", v.Matrix.Cells)
+	}
+}
+
+func TestUseMatrixNeverLowersAndSkipsClosedProjects(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	repo := storage.NewRepository(api.DataDir())
+	projects := []model.Project{{ID: "alpha", Name: "Alpha"}, {ID: "beta", Name: "Beta"}}
+	if _, err := repo.SaveProjects(team, projects); err != nil {
+		t.Fatal(err)
+	}
+	v, _ := api.PlanSprint(team, next, nil)
+	product := v.Products[0].ID
+	budget := v.Products[0].Budget
+	f := func(x float64) *float64 { return &x }
+	// A row smaller than the standard amount leaves the product as it is.
+	if err := api.SetMatrixCell(team, next, product, "alpha", f(1)); err != nil {
+		t.Fatal(err)
+	}
+	if err := api.UseMatrix(team, next); err != nil {
+		t.Fatal(err)
+	}
+	v, _ = api.PlanSprint(team, next, nil)
+	if v.Products[0].Budget != budget {
+		t.Errorf("budget %v -> %v", budget, v.Products[0].Budget)
+	}
+	// A project that was closed afterwards no longer counts, and its cell can still be cleared.
+	if err := api.SetMatrixCell(team, next, product, "beta", f(budget+50)); err != nil {
+		t.Fatal(err)
+	}
+	projects[1].State = model.ProjectFinished
+	if _, err := repo.SaveProjects(team, projects); err != nil {
+		t.Fatal(err)
+	}
+	if err := api.UseMatrix(team, next); err != nil {
+		t.Fatal(err)
+	}
+	v, _ = api.PlanSprint(team, next, nil)
+	if v.Products[0].Budget != budget {
+		t.Errorf("a closed project raised the budget to %v", v.Products[0].Budget)
+	}
+	if err := api.SetMatrixCell(team, next, product, "beta", f(3)); err == nil {
+		t.Error("a closed project took an amount")
+	}
+	if err := api.SetMatrixCell(team, next, product, "beta", nil); err != nil {
+		t.Errorf("clearing a closed project's cell: %v", err)
+	}
+}
