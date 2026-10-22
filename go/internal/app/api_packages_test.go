@@ -82,3 +82,34 @@ func TestPackageImportCancelled(t *testing.T) {
 		t.Fatalf("%+v %v", p, err)
 	}
 }
+
+func TestPackageImportKeepsLabelsAndRefusesNonFiles(t *testing.T) {
+	api, team, path := packagesAPI(t, "Key;Titel;Labels\nAP-1;A;ui,web\n")
+	p, err := api.PackageImportPreview(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.PackageImportApply(team, p.Path, p.Hash); err != nil {
+		t.Fatal(err)
+	}
+	// Same key again, now with a Refined column and no Labels column: the labels stay.
+	if err := os.WriteFile(path, []byte("Key;Titel;Bereit\nAP-1;A;ja\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p, err = api.PackageImportPreview(team)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.PackageImportApply(team, p.Path, p.Hash); err != nil {
+		t.Fatal(err)
+	}
+	_, data, _ := api.loadRepoTeam(team)
+	got := strings.Join(data.Tickets[0].Labels, ",")
+	if got != "ui,web,refined" {
+		t.Fatalf("labels: %q", got)
+	}
+	api.ChooseTable = func(string) (string, error) { return t.TempDir(), nil }
+	if _, err := api.PackageImportPreview(team); err == nil {
+		t.Fatal("a directory is not a table")
+	}
+}

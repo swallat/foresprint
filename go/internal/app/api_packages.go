@@ -4,9 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/swallat/foresprint/internal/excel"
 	"github.com/swallat/foresprint/internal/i18n"
@@ -77,7 +79,7 @@ func (a *API) PackageImportApply(team, path, hash string) (Result, error) {
 	if len(plan.changes) == 0 {
 		return Result{OK: true, Message: i18n.T("No changes compared to the existing work packages.")}, nil
 	}
-	if _, err := plan.repo.SavePackages(team, storage.TicketsFile{Tickets: plan.merged}); err != nil {
+	if _, err := plan.repo.SavePackages(team, storage.TicketsFile{Tickets: plan.merged, Imported: plan.imported, Source: plan.source}); err != nil {
 		return Result{}, err
 	}
 	storage.ClearTeamCache()
@@ -91,6 +93,8 @@ type packagePlan struct {
 	changes  []workpackages.Change
 	problems []workpackages.Problem
 	unmapped []string
+	imported *time.Time
+	source   *string
 }
 
 func (a *API) planPackages(team, path string) (*packagePlan, error) {
@@ -101,14 +105,7 @@ func (a *API) planPackages(team, path string) (*packagePlan, error) {
 	if data.Team.Source() != model.SourcePackages {
 		return nil, bad("This team does not keep work packages in Foresprint.")
 	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if info.Size() > maxTableBytes {
-		return nil, bad("The file is too large for a table of work packages.")
-	}
-	raw, err := os.ReadFile(path)
+	raw, err := readTable(path)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +120,40 @@ func (a *API) planPackages(team, path string) (*packagePlan, error) {
 	}
 	res := workpackages.ParseTable(rows, workpackages.Options{Tracker: data.Team.Tracker, Existing: data.Tickets})
 	merged, changes := workpackages.Merge(data.Tickets, res.Packages)
-	sum := sha256.Sum256(raw)
-	return &packagePlan{repo: repo, hash: hex.EncodeToString(sum[:]), merged: merged, changes: changes,
-		problems: res.Problems, unmapped: res.Unmapped}, nil
+	// The hash covers the table and the packages it is merged with, so that Apply refuses when
+	// either changed after the preview (another window, a pull).
+	h := sha256.New()
+	h.Write(raw)
+	for _, tk := range data.Tickets {
+		h.Write([]byte{0})
+		h.Write([]byte(tk.Key + "\x00" + tk.Title))
+	}
+	h.Write([]byte(workpackages.Prefix(data.Team.Tracker)))
+	return &packagePlan{repo: repo, hash: hex.EncodeToString(h.Sum(nil)), merged: merged, changes: changes,
+		problems: res.Problems, unmapped: res.Unmapped, imported: data.TicketsImported, source: data.TicketsSource}, nil
+}
+
+// readTable reads a regular file of at most maxTableBytes: a pipe or device would block, a file
+// that grows while it is read is cut off.
+func readTable(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = f.Close() }()
+	info, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, bad("This is not a file.")
+	}
+	raw, err := io.ReadAll(io.LimitReader(f, maxTableBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) > maxTableBytes {
+		return nil, bad("The file is too large for a table of work packages.")
+	}
+	return raw, nil
 }

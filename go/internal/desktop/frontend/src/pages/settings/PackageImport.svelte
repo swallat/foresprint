@@ -80,7 +80,7 @@
         <table class="t">
           <thead><tr><th>{t('Key')}</th><th>{t('Title')}</th><th>{t('What happens')}</th></tr></thead>
           <tbody>
-            {#each preview.changes as c (c.key)}
+            {#each preview.changes as c, i (i)}
               <tr>
                 <td class="data">{c.key}</td>
                 <td>{c.title}</td>
