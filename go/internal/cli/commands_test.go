@@ -148,3 +148,19 @@ func TestAnalysisDemo(t *testing.T) {
 		t.Errorf("share 0: %d", code)
 	}
 }
+
+func TestExcelDemo(t *testing.T) {
+	isolate(t)
+	target := filepath.Join(t.TempDir(), "demo.xlsx")
+	code, out, errOut := run(t, "--data", demoTeams, "--as-of", "2026-03-10", "excel", "demo", "-o", target)
+	if code != 0 || strings.TrimSpace(out) != target || errOut != "" {
+		t.Fatalf("excel: %d %q %q", code, out, errOut)
+	}
+	content, err := os.ReadFile(target)
+	if err != nil || !strings.HasPrefix(string(content), "PK") {
+		t.Errorf("not a workbook: %v", err)
+	}
+	if code, _, errOut := run(t, "--data", demoTeams, "excel", "nope"); code != 1 || !strings.Contains(errOut, "not found") {
+		t.Errorf("unknown team: %d %q", code, errOut)
+	}
+}
