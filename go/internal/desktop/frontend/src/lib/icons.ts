@@ -75,8 +75,10 @@ import i_network_check from '@material-symbols/svg-400/outlined/network_check.sv
 import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?raw';
 import i_pending from '@material-symbols/svg-400/outlined/pending.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
+import i_person_add from '@material-symbols/svg-400/outlined/person_add.svg?raw';
 import i_pin from '@material-symbols/svg-400/outlined/pin.svg?raw';
 import i_play_arrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw';
+import i_preview from '@material-symbols/svg-400/outlined/preview.svg?raw';
 import i_radio_button_unchecked from '@material-symbols/svg-400/outlined/radio_button_unchecked.svg?raw';
 import i_refresh from '@material-symbols/svg-400/outlined/refresh.svg?raw';
 import i_route from '@material-symbols/svg-400/outlined/route.svg?raw';
@@ -173,8 +175,10 @@ const icons = {
   open_in_new: i_open_in_new,
   pending: i_pending,
   person: i_person,
+  person_add: i_person_add,
   pin: i_pin,
   play_arrow: i_play_arrow,
+  preview: i_preview,
   radio_button_unchecked: i_radio_button_unchecked,
   refresh: i_refresh,
   route: i_route,

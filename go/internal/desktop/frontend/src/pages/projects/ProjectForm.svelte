@@ -5,7 +5,7 @@
   import Icon from '../../lib/Icon.svelte';
   import type { MilestoneInput, ProjectInput, ProjectsView, ProjectView } from '../../lib/types.projects';
   import { month } from './format';
-  import RuleField from './RuleField.svelte';
+  import RuleEditor from '../../lib/rules/RuleEditor.svelte';
   import SidePanel from './SidePanel.svelte';
   import { addMonths } from './timeline';
 
@@ -28,6 +28,7 @@
   let booked = $state(p?.booked === null || p?.booked === undefined ? '' : String(p.booked));
   let openScope = $state(p?.openScope === null || p?.openScope === undefined ? '' : String(p.openScope));
   let rule = $state(p?.rule ?? '');
+  let ruleValid = $state(true);
   let note = $state(p?.note ?? '');
   let milestones = $state<MilestoneInput[]>(
     p ? p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets })) : [{ id: '', name: '', date: addMonths(view.today, 2), tickets: [] }],
@@ -194,7 +195,7 @@
         <span class="small muted">{t('Without tickets you keep the open scope by hand, for example after each review.')}</span>
       </div>
     {:else if view.source === 'tracker'}
-      <RuleField value={rule} project={p?.id ?? ''} onchange={(v) => (rule = v)} />
+      <RuleEditor team={app.team} owner={{ kind: 'project', id: p?.id ?? '' }} name={name || t('New project')} bind:value={rule} bind:valid={ruleValid} allowEmpty />
     {/if}
 
     <div class="field">
@@ -204,7 +205,7 @@
 
     {#if error}<div class="banner bad" role="alert"><Icon name="error" /><div class="grow">{error}</div></div>{/if}
     <div class="row">
-      <button class="btn primary" type="submit" disabled={busy}><Icon name="check" />{p ? t('Save project') : t('Create project')}</button>
+      <button class="btn primary" type="submit" disabled={busy || !ruleValid}><Icon name="check" />{p ? t('Save project') : t('Create project')}</button>
       <button class="btn ghost" type="button" onclick={onclose}>{t('Cancel')}</button>
     </div>
   </form>

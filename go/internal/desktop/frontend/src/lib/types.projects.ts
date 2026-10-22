@@ -131,13 +131,6 @@ export interface CloseInput {
   moveTo: string;
 }
 
-export interface RuleCheck {
-  error: string;
-  matches: number;
-  keys: string[];
-  conflicts: string[];
-}
-
 export interface ProjectsApi {
   Projects(team: string): Promise<ProjectsView>;
   Project(team: string, id: string): Promise<ProjectDetail>;
@@ -146,5 +139,4 @@ export interface ProjectsApi {
   ReopenProject(team: string, id: string): Promise<void>;
   DeleteProject(team: string, id: string): Promise<void>;
   UndoProjects(team: string): Promise<void>;
-  CheckRule(team: string, project: string, text: string): Promise<RuleCheck>;
 }

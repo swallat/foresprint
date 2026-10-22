@@ -275,9 +275,4 @@ export const projectsMock: ProjectsApi = {
     if (!prev) throw new Error('There is nothing to undo.');
     state = prev;
   },
-  async CheckRule(_team, _project, text) {
-    if (!text.trim()) return { error: '', matches: 0, keys: [], conflicts: [] };
-    if (/(AND|OR|=|~)\s*$/.test(text.trim())) return { error: 'The rule ends too early.', matches: 0, keys: [], conflicts: [] };
-    return { error: '', matches: 14, keys: ['AT-100', 'AT-101', 'AT-102'], conflicts: [] };
-  },
 };

@@ -166,17 +166,6 @@ func TestProjectNumbersWithTickets(t *testing.T) {
 	}
 }
 
-func TestCheckRule(t *testing.T) {
-	api, team := projectDir(t, true)
-	if c, err := api.CheckRule(team, "alpha", `label = "x" AND`); err != nil || c.Error == "" {
-		t.Fatalf("a broken rule must report an error: %+v %v", c, err)
-	}
-	c, err := api.CheckRule(team, "alpha", `label != "nothing"`)
-	if err != nil || c.Error != "" || c.Matches != 3 {
-		t.Fatalf("check = %+v, %v", c, err)
-	}
-}
-
 // The window reads these names (frontend/src/lib/types.projects.ts).
 func TestProjectJSONNames(t *testing.T) {
 	api, team := projectDir(t, true)
