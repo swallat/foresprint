@@ -16,7 +16,7 @@
 
   const W = 760;
   const H = 300;
-  const M = { l: 44, r: 52, t: 16, b: 44 };
+  const M = { l: 44, r: 52, t: 24, b: 44 };
 
   const history = $derived(past.slice(-shown));
   const all = $derived([...history, ...upcoming]);
@@ -118,7 +118,7 @@
 
   {#each wiPts as p (p.w.id)}
     <polygon points={triangle(p.x, p.y, 7)} class="o wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
-    <text x={p.x} y={p.y + 22} text-anchor="middle" class="value wiftext">{label(p.w.forecast)}</text>
+    <text x={p.x + 11} y={p.y + 4} class="value wiftext">{label(p.w.forecast)}</text>
   {/each}
 </svg>
 
