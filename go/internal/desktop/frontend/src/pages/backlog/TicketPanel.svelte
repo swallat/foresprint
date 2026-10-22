@@ -171,7 +171,7 @@
   const unit = $derived(view?.unit === 'PT' ? t('person days') : t('points'));
 </script>
 
-<aside class="panel" aria-label={packages ? t('Work package') : t('Ticket')}>
+<aside class="panel" data-tour="ticket-panel" aria-label={packages ? t('Work package') : t('Ticket')}>
   <div class="panel-head">
     <strong class="data">{creating ? t('New work package') : app.ticket}</strong>
     {#if detail?.status}<span class="chip">{detail.status}</span>{/if}

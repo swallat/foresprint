@@ -164,7 +164,7 @@
         {#snippet action()}<button class="btn" type="button" onclick={() => syncTracker()}><Icon name="refresh" />{t('Try again')}</button>{/snippet}
       </Banner>
     {:else}
-      <p class="small muted sync">
+      <p class="small muted sync" data-tour="backlog-sync">
         {#if view.imported}
           <Icon name="sync" size={14} />
           {t('{tracker}: last fetch {when}, {count} tickets.', { tracker: view.tracker, when: ago(view.imported), count: view.tickets.length + lanes.reduce((n, l) => n + l.tickets.length, 0) })}
@@ -179,7 +179,7 @@
       <Banner tone="warn">{t('Some tickets depend on each other in a circle. They stay in the list but cannot be distributed. Open them and remove one dependency.')}</Banner>
     {/if}
 
-    <div class="tabs" role="tablist" aria-label={t('Saved views')}>
+    <div class="tabs" role="tablist" data-tour="backlog-views" aria-label={t('Saved views')}>
       {#each VIEWS as v (v.id)}
         <a
           href="#/backlog"
@@ -244,7 +244,7 @@
     {/if}
 
     <div class="board">
-      <div class="stack">
+      <div class="stack" data-tour="backlog-list">
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="lane"
@@ -407,6 +407,7 @@
       {view}
       selectable
       draggable={!tk.fixed}
+      tour={tk.key === view.tickets[0]?.key ? 'backlog-ticket' : undefined}
       {showProduct}
       {showProject}
       checked={ui.selection.includes(tk.key)}

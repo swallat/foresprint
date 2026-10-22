@@ -15,6 +15,8 @@
     selectable?: boolean;
     checked?: boolean;
     draggable?: boolean;
+    /** Name for the guided flows (data-tour). */
+    tour?: string;
     showProduct?: boolean;
     showProject?: boolean;
     onselect?: (on: boolean) => void;
@@ -29,6 +31,7 @@
     selectable = false,
     checked = false,
     draggable = false,
+    tour = undefined,
     showProduct = true,
     showProject = true,
     onselect,
@@ -68,6 +71,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div
   class="ticket"
+  data-tour={tour}
   class:selected={checked}
   class:withbox={selectable}
   data-key={tk.key}
@@ -93,7 +97,7 @@
   <button type="button" class="title linkish" onclick={() => openTicket(tk.key)}>{tk.title}</button>
   <span class="meta">
     {#if tk.size == null}<span class="chip warn"><Icon name="help" size={14} />{t('No estimate')}</span>{/if}
-    {#if hint}<button type="button" class="chip warn" title={hint} onclick={() => openTicket(tk.key)}><Icon name="rule" size={14} />{t('Rule without a match')}</button>{/if}
+    {#if hint}<button type="button" class="chip warn" data-tour="backlog-ruleflag" title={hint} onclick={() => openTicket(tk.key)}><Icon name="rule" size={14} />{t('Rule without a match')}</button>{/if}
     {#if tk.blocked}<span class="chip bad" title={t('A ticket it depends on is not planned early enough')}><Icon name="block" size={14} />{t('Blocked')}</span>{/if}
     {#if tk.refined}<span class="chip ok"><Icon name="check" size={14} />{t('Refined')}</span>{:else}<span class="chip">{t('Not refined')}</span>{/if}
     {#if showProduct && view.multi && product}<span class="chip" title={product.name}><span class="dot" style:background={productColor(view, product.id)}></span>{product.name}</span>{/if}
