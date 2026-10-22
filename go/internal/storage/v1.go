@@ -329,6 +329,9 @@ func projectExtrasFrom(p *yamlx.Map, pr *model.Project, at string) error {
 		if ml.Date, err = dateOf(get(m, "date"), where); err != nil {
 			return err
 		}
+		if ml.Light, err = choice(get(m, "light"), model.MilestoneLights, "", where, "light"); err != nil {
+			return err
+		}
 		if ml.Tickets, err = texts(get(m, "tickets"), where, "tickets"); err != nil {
 			return err
 		}
@@ -352,6 +355,21 @@ func projectExtrasFrom(p *yamlx.Map, pr *model.Project, at string) error {
 		}
 		pr.Contingent.PerMonth.Set(pyStr(e.Key), v)
 	}
+	if pr.Contingent.Used, err = floatOf(get(c, "used"), at+": contingent.used"); err != nil {
+		return err
+	}
+	usedMonths, err := mapping(get(c, "used_per_month"), at, "contingent.used_per_month")
+	if err != nil {
+		return err
+	}
+	for _, e := range usedMonths.Entries {
+		v, err := floatOr0(e.Value, at)
+		if err != nil {
+			return err
+		}
+		pr.Contingent.UsedPerMonth.Set(pyStr(e.Key), v)
+	}
+	pr.Contact = text(get(p, "contact"))
 	return nil
 }
 
@@ -379,11 +397,17 @@ func projectExtrasTo(entry *yamlx.Map, p model.Project) {
 			if len(m.Tickets) > 0 {
 				put(e, "tickets", strs(m.Tickets))
 			}
+			if m.Light != "" {
+				put(e, "light", m.Light)
+			}
 			list[i] = e
 		}
 		put(entry, "milestones", list)
 	}
-	if p.Contingent.Total != nil || p.Contingent.PerMonth.Len() > 0 {
+	if p.Contact != nil && *p.Contact != "" {
+		put(entry, "contact", *p.Contact)
+	}
+	if p.Contingent.Total != nil || p.Contingent.PerMonth.Len() > 0 || p.Contingent.Used != nil || p.Contingent.UsedPerMonth.Len() > 0 {
 		c := &yamlx.Map{}
 		if p.Contingent.Total != nil {
 			put(c, "total", clean(*p.Contingent.Total))
@@ -394,6 +418,16 @@ func projectExtrasTo(entry *yamlx.Map, p model.Project) {
 				put(months, e.Key, clean(e.Value))
 			}
 			put(c, "per_month", months)
+		}
+		if p.Contingent.Used != nil {
+			put(c, "used", clean(*p.Contingent.Used))
+		}
+		if p.Contingent.UsedPerMonth.Len() > 0 {
+			months := &yamlx.Map{}
+			for _, e := range p.Contingent.UsedPerMonth.Entries {
+				put(months, e.Key, clean(e.Value))
+			}
+			put(c, "used_per_month", months)
 		}
 		put(entry, "contingent", c)
 	}
