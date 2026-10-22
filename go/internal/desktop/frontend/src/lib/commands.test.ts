@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { api } from './api';
 import { app } from './app.svelte';
-import { commandsFor, loadTicketIndex, registerCommands, score, type Command } from './commands';
+import { commandsFor, loadTicketIndex, registerCommands, resetTicketIndex, score, type Command } from './commands';
 
 const cmd = (label: string, extra: Partial<Command> = {}): Command => ({ id: label, label, group: 'action', run: () => {}, ...extra });
 
@@ -20,6 +20,7 @@ describe('score', () => {
 });
 
 describe('commandsFor', () => {
+  afterEach(() => resetTicketIndex());
   it('lists pages and actions', () => {
     const all = commandsFor('', 100);
     expect(all.some((c) => c.group === 'page' && c.hint === '/today')).toBe(true);
@@ -40,8 +41,14 @@ describe('commandsFor', () => {
     app.sprints = [{ id: '7', start: '2026-10-12', end: '2026-10-26', state: 'current' }];
     expect(commandsFor('sprint 7').some((c) => c.id === 'sprint:7')).toBe(true);
     app.team = (await api.Teams())[0]!.key;
-    const first = (await api.Backlog(app.team)).tickets[0]!;
+    const view = await api.Backlog(app.team);
+    const planned = view.lanes.flatMap((l) => l.tickets)[0];
+    const first = view.tickets[0]!;
     await loadTicketIndex();
+    if (planned) expect(commandsFor(planned.key.toLowerCase()).some((c) => c.id === `ticket:${planned.key}`)).toBe(true);
+    // Words may come in any order.
+    const words = `${first.title} ${first.key}`.toLowerCase();
+    expect(commandsFor(words).some((c) => c.id === `ticket:${first.key}`)).toBe(true);
     const t0 = performance.now();
     const hit = commandsFor(first.key.toLowerCase());
     expect(performance.now() - t0).toBeLessThan(100);

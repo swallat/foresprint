@@ -86,29 +86,43 @@ function sprintCommands(): Command[] {
 // result of a keystroke never waits for the core.
 let ticketTeam = '';
 let tickets: { key: string; title: string }[] = [];
+let loadNo = 0;
 
-/** Reads the ticket list of the selected team for the palette; failures leave the list empty. */
+/** Forgets the ticket list (another team, tests). */
+export function resetTicketIndex(): void {
+  loadNo++;
+  ticketTeam = '';
+  tickets = [];
+}
+
+/** Reads the ticket list of the selected team for the palette; a failure leaves it empty. */
 export async function loadTicketIndex(): Promise<void> {
   const team = app.team;
   if (!team) return;
-  if (team !== ticketTeam) tickets = [];
+  const mine = ++loadNo;
+  let found: { key: string; title: string }[] = [];
   try {
     const view = await api.Backlog(team);
-    ticketTeam = team;
-    tickets = view.tickets.map((x) => ({ key: x.key, title: x.title }));
+    // Tickets in sprint lanes and pro-forma sprints belong to the list as well.
+    const all = [...view.tickets, ...view.lanes.flatMap((l) => l.tickets), ...view.proForma.flatMap((x) => x.tickets)];
+    found = [...new Map(all.map((x) => [x.key, { key: x.key, title: x.title }])).values()];
   } catch {
     /* the palette still finds pages, sprints and actions */
   }
+  if (mine !== loadNo) return; // a newer load is under way
+  ticketTeam = team;
+  tickets = found;
 }
 
+// Every ticket that contains all words of the query; commandsFor ranks them with everything else.
 function ticketCommands(query: string): Command[] {
-  const q = query.trim().toLowerCase();
-  if (!q || ticketTeam !== app.team) return [];
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0 || ticketTeam !== app.team) return [];
   const out: Command[] = [];
   for (const x of tickets) {
-    if (`${x.key} ${x.title}`.toLowerCase().includes(q)) {
+    const hay = `${x.key} ${x.title}`.toLowerCase();
+    if (words.every((w) => hay.includes(w))) {
       out.push({ id: `ticket:${x.key}`, label: `${x.key} ${x.title}`, group: 'ticket', run: () => openTicket(x.key) });
-      if (out.length >= 20) break;
     }
   }
   return out;
