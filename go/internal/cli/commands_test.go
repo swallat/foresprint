@@ -234,3 +234,113 @@ func TestPeopleKinds(t *testing.T) {
 		t.Errorf("bad kind: %d %q", code, errOut)
 	}
 }
+
+func TestAbsencePeriods(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	base := []string{"--data", data, "--as-of", "2026-10-15", "absences", "demo"}
+	with := func(extra ...string) (int, string, string) {
+		return run(t, append(append([]string{}, base...), extra...)...)
+	}
+
+	code, out, errOut := with("--person", "anna", "--from", "2026-10-26", "--to", "2026-10-30")
+	if code != 0 || !strings.Contains(out, "Working days of Anna") {
+		t.Fatalf("add: %d %q %q", code, out, errOut)
+	}
+	raw, err := os.ReadFile(filepath.Join(data, "demo", "abwesenheiten.yaml"))
+	if err != nil || !strings.Contains(string(raw), "2026-10-26") {
+		t.Fatalf("abwesenheiten.yaml: %v\n%s", err, raw)
+	}
+	// An adjoining period is joined with the first one.
+	if code, _, errOut := with("--person", "Anna", "--from", "2026-10-31", "--to", "2026-11-02", "--confirmed"); code != 0 {
+		t.Fatalf("join: %d %q", code, errOut)
+	}
+	_, list, _ := with("--periods")
+	if !strings.Contains(list, "26.10.2026") || !strings.Contains(list, "02.11.2026") || strings.Count(list, "Anna") != 1 {
+		t.Errorf("list:\n%s", list)
+	}
+	if code, _, errOut := with("--person", "anna", "--from", "2026-10-26", "--remove"); code != 0 {
+		t.Fatalf("remove: %d %q", code, errOut)
+	}
+	if _, list, _ := with("--periods"); !strings.Contains(list, "No absence periods") {
+		t.Errorf("after remove:\n%s", list)
+	}
+	for _, bad := range [][]string{
+		{"--person", "nobody", "--from", "2026-10-26"},
+		{"--person", "anna", "--from", "26.10.2026"},
+		{"--person", "anna", "--from", "2026-10-30", "--to", "2026-10-26"},
+		{"--person", "anna"},
+	} {
+		if code, _, _ := with(bad...); code == 0 {
+			t.Errorf("%v must fail", bad)
+		}
+	}
+}
+
+func TestSprintNaming(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	base := []string{"--data", data, "--as-of", "2026-10-15", "sprint-naming", "demo"}
+	with := func(extra ...string) (int, string, string) {
+		return run(t, append(append([]string{}, base...), extra...)...)
+	}
+
+	if code, out, _ := with(); code != 0 || !strings.Contains(out, "named by their ID") {
+		t.Fatalf("show: %d %q", code, out)
+	}
+	code, out, errOut := with("--pattern", "S{JJ}-{NN}")
+	if code != 0 || !strings.Contains(out, "S26-") {
+		t.Fatalf("set: %d %q %q", code, out, errOut)
+	}
+	raw, err := os.ReadFile(filepath.Join(data, "demo", "team.yaml"))
+	if err != nil || !strings.Contains(string(raw), "S{JJ}-{NN}") {
+		t.Errorf("team.yaml: %v\n%s", err, raw)
+	}
+	if code, out, _ := with("--pattern", "X"); code != 0 || strings.Count(out, "(twice)") == 0 {
+		t.Errorf("duplicate names must be marked: %d\n%s", code, out)
+	}
+	if code, _, errOut := with("--pattern", "{XX}"); code == 0 || !strings.Contains(errOut, "{XX}") {
+		t.Errorf("unknown placeholder: %d %q", code, errOut)
+	}
+	if code, _, errOut := with("--pattern", "A", "--from", "9999.9"); code == 0 || !strings.Contains(errOut, "9999.9") {
+		t.Errorf("unknown sprint: %d %q", code, errOut)
+	}
+	if code, out, _ := with("--clear"); code != 0 || !strings.Contains(out, "named by their ID") {
+		t.Errorf("clear: %d %q", code, out)
+	}
+}
+
+func TestEstimationUnit(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	base := []string{"--data", data, "--as-of", "2026-10-15", "estimation", "demo"}
+	with := func(extra ...string) (int, string, string) {
+		return run(t, append(append([]string{}, base...), extra...)...)
+	}
+
+	if code, out, _ := with(); code != 0 || !strings.Contains(out, "measured team rate") {
+		t.Fatalf("show: %d %q", code, out)
+	}
+	code, out, errOut := with("--unit", "pt", "--from", "2026.9", "--factor", "1.5")
+	if code != 0 || !strings.Contains(out, "PT") {
+		t.Fatalf("change: %d %q %q", code, out, errOut)
+	}
+	raw, err := os.ReadFile(filepath.Join(data, "demo", "team.yaml"))
+	if err != nil || !strings.Contains(string(raw), "2026.9") {
+		t.Errorf("team.yaml: %v\n%s", err, raw)
+	}
+	if code, out, _ := with("--factor", "2"); code != 0 || !strings.Contains(out, "2 points per person day") {
+		t.Errorf("team-wide factor: %d %q", code, out)
+	}
+	if code, _, _ := with("--remove", "2026.9"); code != 0 {
+		t.Errorf("remove: %d", code)
+	}
+	for _, bad := range [][]string{{"--unit", "XX"}, {"--unit", "SP", "--from", "9999.9"}, {"--from", "2026.9"}, {"--remove", "2026.9"}, {"--factor", "-1"}} {
+		if code, _, _ := with(bad...); code == 0 {
+			t.Errorf("%v must fail", bad)
+		}
+	}
+}

@@ -120,13 +120,30 @@ type Milestone struct {
 	Name    string
 	Date    time.Time
 	Tickets []string
+	// Light is the traffic light the PO set by hand (LightGreen, LightYellow, LightRed);
+	// empty = not set, the tool derives one from the tickets.
+	Light string
 }
+
+// Milestone lights set by hand.
+const (
+	LightGreen  = "green"
+	LightYellow = "yellow"
+	LightRed    = "red"
+)
+
+// MilestoneLights are the allowed values of Milestone.Light.
+var MilestoneLights = []string{LightGreen, LightYellow, LightRed}
 
 // Contingent is what a project lead booked from the team, in person days (PD) for the whole
 // project, optionally split per month ("2026-07").
 type Contingent struct {
 	Total    *float64
 	PerMonth OrderedMap[float64]
+	// Used is the consumption booked by hand in PD for the whole project, UsedPerMonth the same
+	// per month ("2026-07"); both optional.
+	Used         *float64
+	UsedPerMonth OrderedMap[float64]
 }
 
 // Subtask is a part of a work package.
@@ -164,4 +181,40 @@ type TicketOverride struct {
 type ProductionRule struct {
 	Match   *Rule
 	Percent float64
+}
+
+// ProductOwner is a PO of the team (decision 11). A PO is outside the team and its capacity by
+// default; one who works in the team is a Person as well (Person names that person's id), so
+// that the share, the absences and the capacity use the same data as everybody else's.
+type ProductOwner struct {
+	ID   string
+	Name string
+	// Person is the id of the Person entry of a PO who works in the team; nil = outside.
+	Person *string
+}
+
+// POName is the name to show for the PO reference of a product: the PO's name if ref is the id
+// of a PO of the team, else ref itself (a file from 0.8 names the PO directly).
+func (t Team) POName(ref string) string {
+	for _, po := range t.ProductOwners {
+		if po.ID == ref {
+			return po.Name
+		}
+	}
+	return ref
+}
+
+// PO returns the PO a product reference names: by id, or else by name (a file from 0.8).
+func (t Team) PO(ref string) (ProductOwner, bool) {
+	for _, po := range t.ProductOwners {
+		if po.ID == ref {
+			return po, true
+		}
+	}
+	for _, po := range t.ProductOwners {
+		if po.Name == ref {
+			return po, true
+		}
+	}
+	return ProductOwner{}, false
 }

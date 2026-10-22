@@ -192,11 +192,14 @@ projects:
   state: finished
   end: 2026-11-15
   open_scope: 12
+  contact: Alex Example
   milestones:
-  - {id: m1, name: Beta, date: 2026-06-01, tickets: [AP-1, AP-2]}
+  - {id: m1, name: Beta, date: 2026-06-01, tickets: [AP-1, AP-2], light: yellow}
   contingent:
     total: 40
     per_month: {2026-07: 10, 2026-08: 12.5}
+    used: 14
+    used_per_month: {2026-07: 9, 2026-08: 5}
   match: {epic: [E1]}
 `
 	d := loadMap(t, text)
@@ -208,7 +211,9 @@ projects:
 	if p.Product == nil || *p.Product != "web" || len(p.AlsoProducts) != 1 || strings.Join(p.Products(), ",") != "web,app" ||
 		!p.Closed() || p.State != model.ProjectFinished || *p.OpenScope != 12 ||
 		len(p.Milestones) != 1 || len(p.Milestones[0].Tickets) != 2 ||
-		*p.Contingent.Total != 40 || p.Contingent.PerMonth.Len() != 2 {
+		*p.Contingent.Total != 40 || p.Contingent.PerMonth.Len() != 2 ||
+		*p.Contingent.Used != 14 || p.Contingent.UsedPerMonth.Len() != 2 ||
+		p.Milestones[0].Light != "yellow" || *p.Contact != "Alex Example" {
 		t.Fatalf("%+v", p)
 	}
 	first := DumpYAML(ProjectsToDict(projects))
@@ -383,5 +388,77 @@ func TestCloneCopiesPrognosisLists(t *testing.T) {
 	c.Prognoses[0].Carry[0].Rest = 2
 	if s.Prognoses[0].Finish[0] != "A" || s.Prognoses[0].Carry[0].Rest != 1 {
 		t.Error("Clone shares the lists of a prognosis")
+	}
+}
+
+func TestAbsenceCellsRoundTrip(t *testing.T) {
+	// 1.0: confirmed and announced cells side by side in an open sprint.
+	open := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences:\n  anna: 2\nabsence_state: open\nexpected_absences:\n  ben: 1\n"
+	d := loadMap(t, open)
+	s, err := SprintFromDict(d, where)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.AbsenceStatus() != model.AbsencesExpected || s.CellState("anna") != model.AbsencesConfirmed || s.CellState("ben") != model.AbsencesExpected {
+		t.Fatalf("read: %v %v %v", s.AbsenceStatus(), s.CellState("anna"), s.CellState("ben"))
+	}
+	out := idempotent(t, "sprint", open)
+	if !strings.Contains(out, "absence_state: open") {
+		t.Errorf("the open state is not written:\n%s", out)
+	}
+	// Announced cells only need no stored state: the file is the 0.8 form.
+	only := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences: {}\nexpected_absences:\n  ben: 1\n"
+	if out := idempotent(t, "sprint", only); strings.Contains(out, "absence_state") {
+		t.Errorf("announced-only sprint got a state:\n%s", out)
+	}
+	// A 0.8 file with absences stays a frozen sprint and is written back without a state.
+	legacy := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences:\n  anna: 2\n"
+	if out := idempotent(t, "sprint", legacy); strings.Contains(out, "absence_state") {
+		t.Errorf("legacy sprint got a state:\n%s", out)
+	}
+	ls, _ := SprintFromDict(loadMap(t, legacy), where)
+	if ls.CellState("ben") != model.AbsencesConfirmed {
+		t.Errorf("legacy sprint is not frozen: %v", ls.CellState("ben"))
+	}
+}
+
+const poTeam = `name: Atlas
+features: {products: true, po: true}
+product_owners:
+  - {id: kim, name: Kim Berger}
+  - {id: lea, name: Lea Hoffmann, person: lea-hoffmann}
+`
+
+func TestProductOwners(t *testing.T) {
+	team, err := TeamFromDict("atlas", loadMap(t, poTeam), where)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(team.ProductOwners) != 2 || team.ProductOwners[0].Person != nil || *team.ProductOwners[1].Person != "lea-hoffmann" {
+		t.Fatalf("product owners %+v", team.ProductOwners)
+	}
+	out := idempotent(t, "team", poTeam)
+	if !strings.Contains(out, "product_owners:") || !strings.Contains(out, "person: lea-hoffmann") {
+		t.Errorf("written team:\n%s", out)
+	}
+	// A file from 0.8 has no list and stays without one.
+	old := idempotent(t, "team", "name: Atlas\nfeatures: {products: true, po: true}\n")
+	if strings.Contains(old, "product_owners") {
+		t.Errorf("a team without POs got a list:\n%s", old)
+	}
+	// Product.PO is an id of the list or, in older files, the name.
+	if team.POName("kim") != "Kim Berger" || team.POName("Old Name") != "Old Name" {
+		t.Errorf("POName: %q %q", team.POName("kim"), team.POName("Old Name"))
+	}
+	if po, ok := team.PO("Lea Hoffmann"); !ok || po.ID != "lea" {
+		t.Errorf("PO by name: %+v %v", po, ok)
+	}
+	for name, text := range map[string]string{
+		"twice":   "product_owners:\n  - {id: a, name: A}\n  - {id: a, name: B}\n",
+		"no name": "product_owners:\n  - {id: a}\n",
+	} {
+		if _, err := TeamFromDict("t", loadMap(t, text), where); err == nil {
+			t.Errorf("%s accepted", name)
+		}
 	}
 }
