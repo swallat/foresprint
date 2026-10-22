@@ -8,81 +8,55 @@ import (
 	"github.com/swallat/foresprint/internal/storage"
 )
 
-// carryOf is the carry-over of a sprint that counts: the rest entered in the Review, else the
-// one of the latest assumption (prognosis) with a carry-over.
-func carryOf(s model.Sprint) []model.CarryItem {
-	if len(s.Carry) > 0 {
-		return s.Carry
-	}
-	for i := len(s.Prognoses) - 1; i >= 0; i-- {
-		if len(s.Prognoses[i].Carry) > 0 {
-			return s.Prognoses[i].Carry
-		}
-	}
-	return nil
-}
-
-// carryIns are the carried rests that continue in the horizon sprints (decisions 14 and 17):
-// per sprint id the amount per product (nil = the implicit product or no ticket), and the
-// tickets whose rest is counted that way (they must not be counted again as fixed points).
-// A rest with target "" continues in the sprint after the one it comes from, with a sprint id
-// there; backlog and pro-forma sprints take no capacity. A rest without ticket is split over
-// the products by their shares.
+// carryIns are the carried rests that continue in the horizon sprints (decisions 14 and 17), by
+// planning.CarryInto: per sprint id the amount per product (nil = the implicit product), the
+// production part of it, and the tickets whose rest is counted that way, with the sprint they
+// continue in (they must neither be counted again as fixed points nor distributed again). A
+// rest without ticket, or of a ticket without product, is split over the products by share.
 type carryIns struct {
-	Amount  map[cellKey]float64
-	Tickets map[string]map[string]bool
+	Amount     map[cellKey]float64
+	Production map[cellKey]float64
+	Target     map[string]string
 }
 
-func carryInsOf(data *storage.TeamData, sprints []model.Sprint, resolve func(model.Ticket) *string) carryIns {
-	out := carryIns{Amount: map[cellKey]float64{}, Tickets: map[string]map[string]bool{}}
+func carryInsOf(data *storage.TeamData, horizon []model.Sprint, resolve func(model.Ticket) *string) carryIns {
+	out := carryIns{Amount: map[cellKey]float64{}, Production: map[cellKey]float64{}, Target: map[string]string{}}
 	byKey := map[string]model.Ticket{}
 	for _, tk := range data.Tickets {
 		byKey[tk.Key] = tk
 	}
-	inHorizon := func(id string) bool {
-		return slices.ContainsFunc(sprints, func(s model.Sprint) bool { return s.ID == id })
+	// All sprints oldest first, so that a rest without target finds the sprint after its own.
+	all := append([]model.Sprint(nil), data.Sprints...)
+	for _, h := range horizon {
+		if !slices.ContainsFunc(all, func(s model.Sprint) bool { return s.ID == h.ID }) {
+			all = append(all, h)
+		}
 	}
-	for _, from := range data.Sprints {
-		items := carryOf(from)
-		for _, it := range items {
+	slices.SortStableFunc(all, func(a, b model.Sprint) int { return a.Start.Compare(b.Start) })
+	for _, to := range horizon {
+		for _, it := range planning.CarryInto(all, to.ID, "").Items {
 			if it.Rest <= 0 {
 				continue
 			}
-			target := it.Target
-			if target == "" {
-				for _, s := range sprints {
-					if !s.Start.Before(from.End) && s.ID != from.ID {
-						target = s.ID
-						break
-					}
-				}
-			}
-			if target == "" || target == model.CarryBacklog || len(target) >= len(model.CarryProForma) && target[:len(model.CarryProForma)] == model.CarryProForma {
-				continue
-			}
-			if !inHorizon(target) {
-				continue
-			}
+			var product *string
+			var share float64
+			named := false
 			if it.Ticket != nil && *it.Ticket != "" {
-				var product *string
 				if tk, ok := byKey[*it.Ticket]; ok {
 					product = resolve(tk)
+					share, _ = ProductionShareOf(tk, data)
+					named = product != nil || !data.Team.Features.Products
+					out.Target[tk.Key] = to.ID
 				}
-				out.Amount[keyOf(target, product)] += it.Rest
-				if out.Tickets[target] == nil {
-					out.Tickets[target] = map[string]bool{}
-				}
-				out.Tickets[target][*it.Ticket] = true
+			}
+			if named {
+				out.Amount[keyOf(to.ID, product)] += it.Rest
+				out.Production[keyOf(to.ID, product)] += it.Rest * share / 100
 				continue
 			}
-			var to model.Sprint
-			for _, s := range sprints {
-				if s.ID == target {
-					to = s
-				}
-			}
 			for _, ps := range productShares(data, to) {
-				out.Amount[keyOf(target, ps.product)] += it.Rest * ps.share
+				out.Amount[keyOf(to.ID, ps.product)] += it.Rest * ps.share
+				out.Production[keyOf(to.ID, ps.product)] += it.Rest * ps.share * share / 100
 			}
 		}
 	}
