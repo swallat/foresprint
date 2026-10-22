@@ -277,3 +277,35 @@ func TestAbsencePeriods(t *testing.T) {
 		}
 	}
 }
+
+func TestSprintNaming(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	base := []string{"--data", data, "--as-of", "2026-10-15", "sprint-naming", "demo"}
+	with := func(extra ...string) (int, string, string) { return run(t, append(append([]string{}, base...), extra...)...) }
+
+	if code, out, _ := with(); code != 0 || !strings.Contains(out, "named by their ID") {
+		t.Fatalf("show: %d %q", code, out)
+	}
+	code, out, errOut := with("--pattern", "S{JJ}-{NN}")
+	if code != 0 || !strings.Contains(out, "S26-") {
+		t.Fatalf("set: %d %q %q", code, out, errOut)
+	}
+	raw, err := os.ReadFile(filepath.Join(data, "demo", "team.yaml"))
+	if err != nil || !strings.Contains(string(raw), "S{JJ}-{NN}") {
+		t.Errorf("team.yaml: %v\n%s", err, raw)
+	}
+	if code, out, _ := with("--pattern", "X"); code != 0 || strings.Count(out, "(twice)") == 0 {
+		t.Errorf("duplicate names must be marked: %d\n%s", code, out)
+	}
+	if code, _, errOut := with("--pattern", "{XX}"); code == 0 || !strings.Contains(errOut, "{XX}") {
+		t.Errorf("unknown placeholder: %d %q", code, errOut)
+	}
+	if code, _, errOut := with("--pattern", "A", "--from", "9999.9"); code == 0 || !strings.Contains(errOut, "9999.9") {
+		t.Errorf("unknown sprint: %d %q", code, errOut)
+	}
+	if code, out, _ := with("--clear"); code != 0 || !strings.Contains(out, "named by their ID") {
+		t.Errorf("clear: %d %q", code, out)
+	}
+}

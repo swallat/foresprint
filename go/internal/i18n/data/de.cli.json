@@ -74,6 +74,17 @@
   "Absence periods": "Abwesenheitszeiträume",
   "From": "Von",
   "To": "Bis",
-  "No absence periods.": "Keine Abwesenheitszeiträume."
+  "No absence periods.": "Keine Abwesenheitszeiträume.",
+  "Show or set the sprint naming pattern (placeholders {JJJJ} {JJ} {NN} {N} {LFD} {Q} {MM} {KW}).": "Sprint-Benennung anzeigen oder festlegen (Platzhalter {JJJJ} {JJ} {NN} {N} {LFD} {Q} {MM} {KW}).",
+  "Sprint not found: {id}": "Sprint nicht gefunden: {id}",
+  "Unknown placeholder {placeholder} (allowed: {allowed}).": "Unbekannter Platzhalter {placeholder} (erlaubt: {allowed}).",
+  "{team}: sprint naming updated": "{team}: Sprint-Benennung aktualisiert",
+  "Naming pattern, e.g. \"{JJJJ}-{NN}\" (from the first sprint, or from --from).": "Muster, z. B. \"{JJJJ}-{NN}\" (ab dem ersten Sprint oder ab --from).",
+  "Sprint ID from which the pattern applies.": "Sprint-ID, ab der das Muster gilt.",
+  "Remove the pattern (of --from): the sprints are named by their ID again.": "Muster entfernen (das von --from): die Sprints heißen wieder wie ihre ID.",
+  "Sprint naming": "Sprint-Benennung",
+  "Pattern from here": "Muster ab hier",
+  "(twice)": "(doppelt)",
+  "No naming pattern: the sprints are named by their ID.": "Kein Benennungsmuster: die Sprints heißen wie ihre ID."
  }
 }
