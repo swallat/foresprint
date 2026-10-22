@@ -228,9 +228,8 @@ func sumPtr(m map[string]float64) float64 {
 	return t
 }
 
-// capPercent is the team setting "Deckel Prod-Zeit" (100 = no cap). The core has no field for
-// it yet.
-func (c *planCtx) capPercent() float64 { return 100 }
+// capPercent is the team setting "Deckel Prod-Zeit" (100 = no cap).
+func (c *planCtx) capPercent() float64 { return c.data.Team.Features.ProductionCap() }
 
 // running returns the running sprint when the sprint of the view directly follows it.
 func (c *planCtx) running() *forecast.TimelineEntry {
@@ -789,13 +788,14 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 	}
 	p.Preplanned = pre
 	// the same label replaces the older entry of the same target
-	var kept []model.Prognosis
+	kept := make([]model.Prognosis, 0, len(cs.Prognoses)+1)
 	for _, old := range cs.Prognoses {
 		if str(old.Target) != sprintID || labelOf(old) != label {
 			kept = append(kept, old)
 		}
 	}
-	cs.Prognoses = append(kept, p)
+	kept = append(kept, p)
+	cs.Prognoses = kept
 	_, err = c.repo.SaveSprint(team, &cs)
 	storage.ClearTeamCache()
 	return err
