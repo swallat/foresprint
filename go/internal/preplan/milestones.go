@@ -1,6 +1,7 @@
 package preplan
 
 import (
+	"slices"
 	"sort"
 	"time"
 
@@ -32,28 +33,18 @@ type MilestoneStatus struct {
 	Late []string `json:"late"`
 }
 
-// MilestoneStatuses evaluates the milestones of a project. Derived light: green when every open
-// ticket ends on or before the date; yellow when the late ones are in the sprint right after the date;
-// red otherwise (also for tickets that cannot be placed). Done tickets do not count; unknown
-// ticket keys are ignored (the check reports them).
+// MilestoneStatuses evaluates the milestones of a project. sprints are all known sprints (past,
+// current and horizon), so that tickets in the running sprint resolve too. Derived light: green
+// when every open ticket ends on or before the date; yellow when the late ones are in the sprint
+// right after the one holding the date; red otherwise (also for tickets that cannot be placed or
+// lie beyond the known sprints). Done tickets do not count; unknown ticket keys are ignored (the
+// check reports them). Without a distribution there is no derived light.
 func MilestoneStatuses(project model.Project, dist *Distribution, data *storage.TeamData, sprints []model.Sprint) []MilestoneStatus {
-	ends := map[string]time.Time{}
-	starts := map[string]time.Time{}
-	for _, s := range sprints {
-		ends[s.ID] = s.End
-		starts[s.ID] = s.Start
-	}
-	sprintEnd := func(id string) (time.Time, bool) {
-		if e, ok := ends[id]; ok {
-			return e, true
-		}
-		if dist == nil {
-			return time.Time{}, false
-		}
-		if l := dist.Later[id]; l != nil {
-			return l.Add(day), true
-		}
-		return time.Time{}, false
+	sprints = slices.Clone(sprints)
+	slices.SortStableFunc(sprints, func(a, b model.Sprint) int { return a.Start.Compare(b.Start) })
+	order := map[string]int{}
+	for i, s := range sprints {
+		order[s.ID] = i
 	}
 	placement := map[string]Placement{}
 	if dist != nil {
@@ -63,33 +54,48 @@ func MilestoneStatuses(project model.Project, dist *Distribution, data *storage.
 	}
 	done := map[string]bool{}
 	known := map[string]bool{}
-	for _, tk := range data.Tickets {
-		known[tk.Key] = true
-		done[tk.Key] = tk.Done
+	if data != nil {
+		for _, tk := range data.Tickets {
+			known[tk.Key] = true
+			done[tk.Key] = tk.Done
+		}
 	}
 	var out []MilestoneStatus
 	for _, m := range project.Milestones {
 		st := MilestoneStatus{ID: m.ID, Name: m.Name, Date: m.Date, Source: LightNone, Late: []string{}}
+		// holding is the sprint with the date in it (the last one before it if none holds it).
+		holding := -1
+		for i, s := range sprints {
+			if s.Start.After(m.Date) {
+				break
+			}
+			holding = i
+		}
 		worst := 0 // 0 green, 1 yellow, 2 red
+		seen := map[string]bool{}
 		for _, key := range m.Tickets {
-			if !known[key] || done[key] {
+			if seen[key] || !known[key] || done[key] {
 				continue
 			}
+			seen[key] = true
 			st.Open++
 			p, ok := placement[key]
-			var end time.Time
-			placed := ok && p.Sprint != nil
-			if placed {
-				end, placed = sprintEnd(*p.Sprint)
+			i, inList := -1, false
+			if ok && p.Sprint != nil {
+				i, inList = order[*p.Sprint]
 			}
 			switch {
-			case !placed:
+			case !inList:
 				st.Late = append(st.Late, key)
-				worst = 2
-			case end.After(m.Date.Add(day)): // the sprint ends after the milestone day
+				// The first sprint after the known ones is the one right after the last of them.
+				if _, later := laterOf(dist, p.Sprint); later && holding == len(sprints)-1 && holding >= 0 {
+					worst = max(worst, 1)
+				} else {
+					worst = 2
+				}
+			case sprints[i].End.After(m.Date.Add(day)): // the sprint ends after the milestone day
 				st.Late = append(st.Late, key)
-				// Yellow: the ticket lands in the sprint right after the one holding the date.
-				if start, ok := starts[*p.Sprint]; ok && !start.After(m.Date.Add(time.Duration(sprintDays(sprints))*day)) {
+				if holding >= 0 && i == holding+1 {
 					worst = max(worst, 1)
 				} else {
 					worst = max(worst, 2)
@@ -97,7 +103,7 @@ func MilestoneStatuses(project model.Project, dist *Distribution, data *storage.
 			}
 		}
 		sort.Strings(st.Late)
-		if st.Open > 0 {
+		if st.Open > 0 && dist != nil {
 			st.Source = LightDerived
 			st.Light = [...]string{model.LightGreen, model.LightYellow, model.LightRed}[worst]
 		}
@@ -107,13 +113,6 @@ func MilestoneStatuses(project model.Project, dist *Distribution, data *storage.
 		out = append(out, st)
 	}
 	return out
-}
-
-func sprintDays(sprints []model.Sprint) int {
-	if len(sprints) == 0 {
-		return 14
-	}
-	return max(int((sprints[0].End.Sub(sprints[0].Start)+day/2)/day), 1)
 }
 
 // ContingentStatus is the consumption of a project's contingent (person days, booked by hand).
@@ -211,4 +210,12 @@ func ContingentStatusOf(c model.Contingent) ContingentStatus {
 	}
 	sort.Slice(st.Months, func(i, j int) bool { return st.Months[i].Month < st.Months[j].Month })
 	return st
+}
+
+func laterOf(dist *Distribution, sprint *string) (*time.Time, bool) {
+	if dist == nil || sprint == nil {
+		return nil, false
+	}
+	t, ok := dist.Later[*sprint]
+	return t, ok
 }

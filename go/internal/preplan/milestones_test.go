@@ -30,6 +30,27 @@ func TestMilestoneStatuses(t *testing.T) {
 		{ID: "hand", Date: day(20), Tickets: []string{"T-4"}, Light: model.LightGreen},
 		{ID: "none", Date: day(20)},
 	}}
+	// Different sprint lengths and a gap: the milestone on day 10 lies in b (7 days), c follows.
+	short := []model.Sprint{
+		{ID: "a", Start: day(0), End: day(7)}, {ID: "b", Start: day(7), End: day(21)}, {ID: "c", Start: day(35), End: day(49)},
+	}
+	dist2 := &Distribution{Placements: []Placement{{Ticket: "T-2", Sprint: sp("c"), Reason: ReasonPlaced}}}
+	pr2 := model.Project{Milestones: []model.Milestone{{ID: "m", Date: day(10), Tickets: []string{"T-2", "T-2"}}}}
+	if m := MilestoneStatuses(pr2, dist2, data, short)[0]; m.Light != model.LightYellow || m.Open != 1 {
+		t.Errorf("gap case: %+v", m)
+	}
+	// A ticket in the first sprint after the known ones (dist.Later) is yellow after the last one.
+	later := day(55)
+	dist3 := &Distribution{Placements: []Placement{{Ticket: "T-2", Sprint: sp("z"), Reason: ReasonFixedSprint}},
+		Later: map[string]*time.Time{"z": &later}}
+	pr3 := model.Project{Milestones: []model.Milestone{{ID: "m", Date: day(45), Tickets: []string{"T-2"}}}}
+	if m := MilestoneStatuses(pr3, dist3, data, short)[0]; m.Light != model.LightYellow {
+		t.Errorf("later case: %+v", m)
+	}
+	// Without a distribution there is no derived light.
+	if m := MilestoneStatuses(pr2, nil, data, short)[0]; m.Light != "" || m.Source != LightNone || m.Open != 1 {
+		t.Errorf("no distribution: %+v", m)
+	}
 	got := map[string]MilestoneStatus{}
 	for _, m := range MilestoneStatuses(pr, dist, data, sprints) {
 		got[m.ID] = m
