@@ -258,7 +258,7 @@ func NewPersonID(name string, existing map[string]bool, fallback string) string 
 type Product struct {
 	ID   string
 	Name string
-	// PO is the responsible PO (optional, only for grouping).
+	// PO is the responsible PO: an id of Team.ProductOwners, or a plain name in a 0.8 file (optional).
 	PO    *string
 	Start *time.Time
 	End   *time.Time
