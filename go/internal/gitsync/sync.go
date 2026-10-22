@@ -63,7 +63,7 @@ func unrelated(ctx context.Context, root, remote, upstream string) (bool, error)
 				msg = strings.TrimSpace(run.Stdout)
 			}
 			if msg == "" {
-				msg = git.SilentFailure([]string{"merge-base"}, run.Code)
+				msg = git.SilentFailure([]string{"merge-base"}, run.Code, run.Signal)
 			}
 			return false, git.Classify(msg, git.ClassifyOpts{})
 		}
