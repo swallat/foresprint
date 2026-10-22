@@ -155,7 +155,7 @@ func resultOf(r datasvc.Result, refresh bool) Result {
 		}
 	case datasvc.OutcomeWaitingForReview:
 		out.OK = true
-		out.Message = i18n.T("Saved. Your changes wait for review on the server.")
+		out.Message = i18n.T("Saved. Your changes wait for approval.")
 	case datasvc.OutcomeDecided:
 		out.OK = true
 		out.Message = i18n.T("All decided. Save finishes the merge.")

@@ -21,24 +21,26 @@
   /** The file whose discard waits for a confirmation, '' = all, undefined = none. */
   let discarding = $state<string | undefined>();
   let checking = $state(false);
+  let failed = $state('');
+  let seq = 0;
 
   const data = $derived(app.status.data);
   // Reload when the numbers behind the lists change, not on every poll of the status.
   const key = $derived(`${app.rev}:${data?.unsaved}:${data?.incoming}:${data?.pending}:${app.team}`);
 
   async function load(): Promise<void> {
+    const mine = ++seq;
     try {
-      [incoming, unsaved, recent] = await Promise.all([
-        api.DataIncoming(),
-        api.Lost([]),
-        api.History(app.team, 5),
-      ]);
+      const [i, u, r] = await Promise.all([api.DataIncoming(), api.Lost([]), api.History(app.team, 5)]);
+      if (mine !== seq) return;
+      [incoming, unsaved, recent, failed] = [i, u, r, ''];
     } catch (e) {
-      // No data repository yet: the banner above says so, the lists stay empty.
+      if (mine !== seq) return;
+      // No data repository yet is already said by the banner; anything else is shown here.
       incoming = [];
       unsaved = [];
       recent = [];
-      void e;
+      failed = data?.problem ? '' : String(e);
     }
   }
 
@@ -92,6 +94,9 @@
 </PageHead>
 <DataTabs />
 
+{#if failed}
+  <Banner tone="bad">{failed}</Banner>
+{/if}
 {#if data?.problem}
   <Banner tone="bad">
     <strong>{data.problem.title || t('The storage cannot be used.')}</strong>
@@ -124,7 +129,7 @@
 {:else if app.status.storage === 'mr'}
   <Banner tone="warn">
     <strong>{t('Waiting for review.')}</strong>
-    {t('The server takes changes only after a check. Yours are submitted.')}
+    {t('Changes need an approval first. Yours are submitted.')}
     {#snippet action()}
       {#if reviewLink}
         <a class="btn" href={reviewLink} onclick={(e) => { e.preventDefault(); openExternal(reviewLink); }}>{t('Open the review')}<Icon name="open_in_new" /></a>
@@ -133,7 +138,7 @@
   </Banner>
 {:else if app.status.storage === 'local'}
   <Banner tone="info">
-    {t('No server is set up. Your data is saved on this computer only.')}
+    {t('No shared storage is set up. Your data is saved on this computer only.')}
     {#snippet action()}
       <a class="btn" href={link('/settings/storage')}>{t('Set up storage')}</a>
     {/snippet}
@@ -141,7 +146,7 @@
 {:else if app.status.storage === 'incoming'}
   <Banner tone="warn">{t('Others changed something. Refresh takes it over; your own changes stay.')}</Banner>
 {:else if app.status.storage === 'pending'}
-  <Banner tone="warn">{t('Saved on this computer, not shared with the team yet. Refresh sends it.')}</Banner>
+  <Banner tone="warn">{t('Saved on this computer, not shared with the team yet. Save shares it.')}</Banner>
 {:else if app.status.storage === 'dirty'}
   <Banner tone="info">{t('You have unsaved changes. Save shares them with the team.')}</Banner>
 {:else}
@@ -153,14 +158,14 @@
     <h2>{t('Where the data is')}</h2>
     <dl class="kv">
       <dt>{t('Storage')}</dt>
-      <dd>{t('Team repository')}</dd>
+      <dd>{t('Team data')}</dd>
       <dt>{t('Location')}</dt>
       <dd class="data wrap">{location}</dd>
       <dt>{t('Waiting to be shared')}</dt>
       <dd class="data">{data?.pending ?? 0}</dd>
       <dt>{t('Connection')}</dt>
       <dd>
-        {#if !data?.configured}<span class="chip">{t('No server')}</span>
+        {#if !data?.configured}<span class="chip">{t('Not shared')}</span>
         {:else if data.connected}<span class="chip ok"><Icon name="check_circle" />{t('Connected')}</span>
         {:else}<span class="chip warn"><Icon name="cloud_off" />{t('Offline')}</span>{/if}
       </dd>
@@ -201,7 +206,7 @@
   <div class="row head">
     <h2>{t('My unsaved changes')}</h2>
     {#if unsaved.length > 0}
-      <button class="btn danger" type="button" onclick={() => (discarding = '')}>{t('Discard all')}</button>
+      <button class="btn danger" type="button" disabled={!!app.busy} onclick={() => (discarding = '')}>{t('Discard all')}</button>
     {/if}
   </div>
   {#if unsaved.length === 0}
@@ -218,7 +223,7 @@
               <td class="num">{f.added}</td>
               <td class="num">{f.removed}</td>
               <td>
-                <button class="btn icon ghost" type="button" aria-label={t('Discard: {file}', { file: shortFile(f.file, team) })} title={t('Discard')} onclick={() => (discarding = f.file)}>
+                <button class="btn icon ghost" type="button" aria-label={t('Discard: {file}', { file: shortFile(f.file, team) })} title={t('Discard')} disabled={!!app.busy} onclick={() => (discarding = f.file)}>
                   <Icon name="undo" />
                 </button>
               </td>
@@ -238,7 +243,7 @@
           {t('Discard the unsaved changes in {file}? They are gone from the file but kept in a trash folder next to the data.', { file: shortFile(discarding, team) })}
         {/if}
       </div>
-      <button class="btn danger" type="button" onclick={() => discard(discarding === '' ? [] : [discarding!])}>{t('Discard')}</button>
+      <button class="btn danger" type="button" disabled={!!app.busy} onclick={() => discard(discarding === '' ? [] : [discarding!])}>{t('Discard')}</button>
       <button class="btn" type="button" onclick={() => (discarding = undefined)}>{t('Cancel')}</button>
     </div>
   {/if}

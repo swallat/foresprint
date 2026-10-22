@@ -34,7 +34,7 @@
       case 'offline':
         return { tone: '', icon: 'cloud_off', text: t('Offline, saving locally'), to: '/data' };
       case 'mr':
-        return { tone: 'warn', icon: 'merge', text: t('Waiting for merge request'), to: '/data' };
+        return { tone: 'warn', icon: 'merge', text: t('Waiting for review'), to: '/data' };
       case 'readonly':
         return { tone: '', icon: 'lock', text: t('Read only'), to: '/data' };
       case 'locked':

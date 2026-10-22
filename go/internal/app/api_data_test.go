@@ -57,11 +57,11 @@ func TestStatusAndSaveFollowTheStorage(t *testing.T) {
 	}
 	gittest.Write(t, filepath.Join(dir, "a", "team.yaml"), "name: B\n")
 	git.InvalidateStatus()
-	lost, err := api.Lost(nil)
+	lost, err := api.Lost([]string{}) // the window sends an empty list for "all"
 	if err != nil || len(lost) != 1 {
 		t.Fatalf("lost = %+v, %v", lost, err)
 	}
-	if d := api.Discard(nil); d.Problem != nil || d.Status.Unsaved != 0 {
+	if d := api.Discard([]string{}); d.Problem != nil || d.Status.Unsaved != 0 {
 		t.Fatalf("discard = %+v", d)
 	}
 	versions, err := api.History("", 10)

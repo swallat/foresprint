@@ -142,21 +142,26 @@ export async function refreshStatus(): Promise<void> {
 
 /** Shows the answer of Save, Refresh and the like: a dialog for data errors, else a toast whose
  * action leads to the place where the person can go on. */
+const textOf = (r: Result): string => {
+  const extra = [r.problem?.hint, ...(r.notes ?? [])].filter(Boolean).join(' ');
+  return extra ? `${r.message} ${extra}` : r.message;
+};
+
 export function announce(r: Result): void {
   if (r.outcome === 'findings') {
     app.findings = r.findings ?? [];
     return;
   }
   if (r.outcome === 'conflict') {
-    toast(r.message, 'bad', { label: t('Decide'), run: () => go('/data/conflicts') });
+    toast(textOf(r), 'bad', { label: t('Decide'), run: () => go('/data/conflicts') });
   } else if (r.problem?.kind === 'auth') {
-    toast(r.message, 'bad', { label: t('Sign in'), run: () => go('/settings/storage') });
+    toast(textOf(r), 'bad', { label: t('Sign in'), run: () => go('/settings/storage') });
   } else if (r.outcome === 'waiting_for_review') {
-    toast(r.message, 'ok', { label: t('Details'), run: () => go('/data') });
+    toast(textOf(r), 'ok', { label: t('Details'), run: () => go('/data') });
   } else if (r.outcome === 'decided') {
-    toast(r.message, 'ok');
+    toast(textOf(r), 'ok');
   } else {
-    toast(r.message, r.ok ? 'ok' : 'bad');
+    toast(textOf(r), r.ok ? 'ok' : 'bad');
   }
 }
 

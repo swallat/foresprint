@@ -48,10 +48,10 @@ func (a *API) Restore(scope, version, message string) datasvc.Done {
 func (a *API) Revert(version string) datasvc.Done { return a.data.Revert(version) }
 
 // Discard throws away the unsaved changes of the files (all when empty).
-func (a *API) Discard(files []string) datasvc.Done { return a.data.Discard(files) }
+func (a *API) Discard(files []string) datasvc.Done { return a.data.Discard(nilIfEmpty(files)) }
 
 // Lost lists the unsaved files and what Discard would lose of them.
-func (a *API) Lost(files []string) ([]datasvc.LostFile, error) { return a.data.Lost(files) }
+func (a *API) Lost(files []string) ([]datasvc.LostFile, error) { return a.data.Lost(nilIfEmpty(files)) }
 
 // Labels lists the named states (tags).
 func (a *API) Labels(checkServer bool) ([]datasvc.Label, error) { return a.data.Labels(checkServer) }
@@ -142,12 +142,21 @@ func (a *API) PickFolder(title string) (string, error) {
 	return a.ChooseFolder(title)
 }
 
+// nilIfEmpty turns the empty list the window sends for "all files" into the nil the core means by it.
+func nilIfEmpty(files []string) []string {
+	if len(files) == 0 {
+		return nil
+	}
+	return files
+}
+
 // adopt remembers a folder the storage has just switched to as the data folder of the program.
 func (a *API) adopt(o datasvc.Opened) datasvc.Opened {
 	if o.Problem != nil || o.Folder == "" {
 		return o
 	}
 	if err := a.SetDataDir(o.Folder); err != nil {
+		a.data.SetFolder(a.DataDir()) // the storage must not point elsewhere than the window
 		o.Problem = &datasvc.Problem{Kind: "error", Message: err.Error()}
 	}
 	return o

@@ -32,6 +32,8 @@
   let email = $state('');
   let pickBranch = $state('');
   let cloneAddress = $state('');
+  /** The stored values the form fields were last filled from. */
+  let shown = { server: '', name: '', email: '' };
 
   async function load(): Promise<void> {
     try {
@@ -41,9 +43,11 @@
       loadFailed = String(e);
       return;
     }
-    server = st.server;
-    name = st.name;
-    email = st.email;
+    // A field the person is typing in keeps its text; only untouched fields follow the stored value.
+    if (server === shown.server) server = st.server;
+    if (name === shown.name) name = st.name;
+    if (email === shown.email) email = st.email;
+    shown = { server: st.server, name: st.name, email: st.email };
     user = user || st.guide.username;
     if (st.ready) {
       branches = await api.Branches().catch(() => []);
@@ -65,6 +69,7 @@
       const problem = await run();
       if (problem) {
         toast(problem.hint ? `${problem.message} ${problem.hint}` : problem.message, 'bad');
+        await load(); // the controls show what is stored again
         return false;
       }
       toast(ok, 'ok');
@@ -143,6 +148,8 @@
       else toast(t('Branch {name} is in use.', { name: pickBranch }), 'ok');
       await load();
       await refreshStatus();
+      await loadTeams();
+      app.rev++;
     } catch (e) {
       toast(String(e), 'bad');
     } finally {
@@ -158,6 +165,8 @@
       else toast(r.rescue ? t('Back on {branch}. Your work is kept on {rescue}.', { branch: r.branch, rescue: r.rescue }) : t('Back on {branch}.', { branch: r.branch }), 'ok');
       await load();
       await refreshStatus();
+      await loadTeams();
+      app.rev++;
     } catch (e) {
       toast(String(e), 'bad');
     } finally {
@@ -337,6 +346,7 @@
 
       <section class="card" aria-labelledby="s-review">
         <h2 id="s-review">{t('Merge request')}</h2>
+        {#key st}
         <div class="field">
           <label for="s-share">{t('How saves reach the server')}</label>
           <select id="s-share" class="input" value={st.share || 'direct'} onchange={(e) => act(() => api.SetShare(e.currentTarget.value), t('Saved.'))} disabled={working}>
@@ -353,7 +363,7 @@
           <li>{t('Further saves update the same merge request.')}</li>
           <li>{t('After the approval on the server, Refresh takes the state over.')}</li>
         </ol>
-        <label class="check"><input type="checkbox" checked={st.autoMerge} onchange={(e) => act(() => api.SetAutoMerge(e.currentTarget.checked), t('Saved.'))} />{t('Merge automatically when the checks pass')}</label>
+        <label class="check"><input type="checkbox" checked={st.autoMerge} disabled={working} onchange={(e) => act(() => api.SetAutoMerge(e.currentTarget.checked), t('Saved.'))} />{t('Merge automatically when the checks pass')}</label>
         <div class="field top">
           <label for="s-host">{t('Kind of server')}</label>
           <select id="s-host" class="input" value={st.host} onchange={(e) => act(() => api.SetHost(e.currentTarget.value), t('Saved.'))} disabled={working}>
@@ -361,6 +371,7 @@
           </select>
           {#if st.host === '' && st.detectedHost}<span class="small muted">{t('Detected: {kind}', { kind: st.detectedHost })}</span>{/if}
         </div>
+              {/key}
       </section>
     {/if}
 

@@ -33,7 +33,7 @@
     <h2 id="fd-title"><Icon name="warning" /> {t('The changed data has errors')}</h2>
     <p class="muted">{t('Others who open the data may run into them. Fix them first, or save anyway.')}</p>
     <ul class="list">
-      {#each app.findings as f (f)}
+      {#each app.findings as f, i (i)}
         <li>{f}</li>
       {/each}
     </ul>

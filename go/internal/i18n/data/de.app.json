@@ -16,9 +16,9 @@
   "1 file needs your decision.": "1 Datei wartet auf deine Entscheidung.",
   "Saved on this computer. It is shared when the connection is back.": "Auf diesem Rechner gespeichert. Es geht ans Team, sobald die Verbindung wieder da ist.",
   "No connection. You keep working with the last state.": "Keine Verbindung. Du arbeitest mit dem letzten Stand.",
-  "Saved. Your changes wait for review on the server.": "Gespeichert. Deine Änderungen warten auf die Freigabe auf dem Server.",
   "All decided. Save finishes the merge.": "Alles entschieden. Speichern schließt das Zusammenführen ab.",
   "You may not write to this storage.": "Du darfst in diesen Speicher nicht schreiben.",
-  "Saving did not work.": "Speichern hat nicht geklappt."
+  "Saving did not work.": "Speichern hat nicht geklappt.",
+  "Saved. Your changes wait for approval.": "Gespeichert. Deine Änderungen warten auf die Freigabe."
  }
 }

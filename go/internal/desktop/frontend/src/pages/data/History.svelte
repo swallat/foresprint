@@ -15,7 +15,7 @@
   void params;
 
   type Mode = 'team' | 'sprint' | 'file';
-  const teamFiles = ['team.yaml', 'people.yaml', 'products.yaml'];
+  const teamFiles = ['team.yaml', 'people.yaml', 'products.yaml', 'projects.yaml', 'tickets.yaml', 'preplan.yaml', 'abwesenheiten.yaml'];
 
   let mode = $state<Mode>('team');
   let sprint = $state('');
@@ -25,7 +25,8 @@
   let loading = $state(true);
   let failed = $state('');
   /** The entry waiting for the decision how to bring it back. */
-  let asking = $state<{ id: string; kind: 'restore' | 'revert' | 'label' } | undefined>();
+  let asking = $state<{ id: string; kind: 'restore' | 'revert' | 'label' | 'delete' } | undefined>();
+  let seq = 0;
   let newLabel = $state('');
   let working = $state(false);
 
@@ -40,16 +41,20 @@
   const key = $derived(`${scope}:${app.rev}:${app.status.data?.unsaved}`);
 
   async function load(): Promise<void> {
+    const mine = ++seq;
     loading = true;
     failed = '';
     try {
-      [versions, labels] = await Promise.all([api.History(scope, 100), api.Labels(false)]);
+      const [v, l] = await Promise.all([api.History(scope, 100), api.Labels(false)]);
+      if (mine !== seq) return;
+      [versions, labels] = [v, l];
     } catch (e) {
+      if (mine !== seq) return;
       versions = [];
       labels = [];
       failed = String(e);
     } finally {
-      loading = false;
+      if (mine === seq) loading = false;
     }
   }
 
@@ -81,9 +86,9 @@
   }
 
   const restore = (v: Version, wholeTeam = false) =>
-    guarded(async () => after(await api.Restore(wholeTeam ? '' : scope, v.id, ''), t('Loaded as unsaved change. Save shares it.')));
+    guarded(async () => after(await api.Restore(wholeTeam ? '' : scope, v.id, ''), t('Brought back and saved on this computer. Save shares it.')));
   const revert = (v: Version) =>
-    guarded(async () => after(await api.Revert(v.id), t('Change taken back, not saved yet. Save shares it.')));
+    guarded(async () => after(await api.Revert(v.id), t('Change taken back and saved on this computer. Save shares it.')));
   const setLabel = () =>
     guarded(async () => {
       const name = newLabel.trim();
@@ -100,7 +105,7 @@
 
 <PageHead
   title={t('History and tags')}
-  lead={t('Who changed what and when. Take back one change or bring back an earlier state. Both arrive as unsaved changes first.')}
+  lead={t('Who changed what and when. Take back one change or bring back an earlier state. Both are saved on this computer first; Save shares them.')}
 />
 <DataTabs />
 
@@ -151,10 +156,10 @@
           <td class="data muted wrap">{files(v)}</td>
           <td>
             <div class="actions">
-              <button class="btn" type="button" disabled={v.merge || working} title={v.merge ? t('A merge cannot be taken back.') : ''} onclick={() => (asking = { id: v.id, kind: 'revert' })}>
+              <button class="btn" type="button" disabled={v.merge || working || !!app.busy} title={v.merge ? t('A merge cannot be taken back.') : ''} onclick={() => (asking = { id: v.id, kind: 'revert' })}>
                 <Icon name="undo" />{t('Take back this change')}
               </button>
-              <button class="btn" type="button" disabled={working} onclick={() => (asking = { id: v.id, kind: 'restore' })}>
+              <button class="btn" type="button" disabled={working || !!app.busy} onclick={() => (asking = { id: v.id, kind: 'restore' })}>
                 <Icon name="settings_backup_restore" />{t('Restore this state')}
               </button>
             </div>
@@ -167,15 +172,15 @@
                 <Icon name="info" />
                 <div class="grow">
                   {#if asking.kind === 'revert'}
-                    {t('This reverses only the change of {who} from {day}. It is loaded as an unsaved change; Save shares it.', { who: v.who, day: v.day })}
+                    {t('This reverses only the change of {who} from {day}. It is saved on this computer; Save shares it.', { who: v.who, day: v.day })}
                   {:else}
-                    {t('The files in this scope go back to the state after the change of {who} from {day}. They are loaded as unsaved changes; the current state stays in the history.', { who: v.who, day: v.day })}
+                    {t('The files in this scope go back to the state after the change of {who} from {day}. This is saved on this computer, the current state stays in the history; Save shares it.', { who: v.who, day: v.day })}
                   {/if}
                 </div>
                 {#if asking.kind === 'revert'}
-                  <button class="btn primary" type="button" disabled={working} onclick={() => revert(v)}>{t('Load as unsaved change')}</button>
+                  <button class="btn primary" type="button" disabled={working || !!app.busy} onclick={() => revert(v)}>{t('Bring it back')}</button>
                 {:else}
-                  <button class="btn primary" type="button" disabled={working} onclick={() => restore(v)}>{t('Load as unsaved change')}</button>
+                  <button class="btn primary" type="button" disabled={working || !!app.busy} onclick={() => restore(v)}>{t('Bring it back')}</button>
                 {/if}
                 <button class="btn" type="button" onclick={() => (asking = undefined)}>{t('Cancel')}</button>
               </div>
@@ -205,7 +210,7 @@
           <td class="data">{l.day}</td>
           <td class="wrap">{l.summary}</td>
           <td>
-            {#if l.differs}<span class="chip warn"><Icon name="warning" />{t('Differs on the server')}</span>
+            {#if l.differs}<span class="chip warn"><Icon name="warning" />{t('Differs from the shared version')}</span>
             {:else if l.onServer === false}<span class="chip">{t('Only here')}</span>
             {:else if l.onServer}<span class="chip ok"><Icon name="check" />{t('Shared')}</span>
             {:else}<span class="muted">–</span>{/if}
@@ -215,24 +220,36 @@
               {#if l.onServer === false}
                 <button class="btn" type="button" disabled={working} onclick={() => shareLabel(l)}><Icon name="cloud_upload" />{t('Share')}</button>
               {/if}
-              <button class="btn" type="button" disabled={working} onclick={() => (asking = { id: l.name, kind: 'label' })}>
+              <button class="btn" type="button" disabled={working || !!app.busy} onclick={() => (asking = { id: l.name, kind: 'label' })}>
                 <Icon name="settings_backup_restore" />{t('Restore this state')}
               </button>
-              <button class="btn icon ghost" type="button" disabled={working} aria-label={t('Delete tag {name}', { name: l.name })} title={t('Delete tag')} onclick={() => deleteLabel(l)}>
+              <button class="btn icon ghost" type="button" disabled={working} aria-label={t('Delete tag {name}', { name: l.name })} title={t('Delete tag')} onclick={() => (asking = { id: l.name, kind: 'delete' })}>
                 <Icon name="delete" />
               </button>
             </div>
           </td>
         </tr>
+        {#if asking?.id === l.name && asking.kind === 'delete'}
+          <tr class="ask">
+            <td colspan="5">
+              <div class="confirm" role="alertdialog" aria-label={t('Confirm')}>
+                <Icon name="warning" />
+                <div class="grow">{t('Delete the tag {name}? The tag goes away, where possible for the others too. The saved states stay.', { name: l.name })}</div>
+                <button class="btn danger" type="button" disabled={working} onclick={() => deleteLabel(l)}>{t('Delete tag')}</button>
+                <button class="btn" type="button" onclick={() => (asking = undefined)}>{t('Cancel')}</button>
+              </div>
+            </td>
+          </tr>
+        {/if}
         {#if asking?.id === l.name && asking.kind === 'label'}
           <tr class="ask">
             <td colspan="5">
               <div class="confirm" role="alertdialog" aria-label={t('Confirm')}>
                 <Icon name="warning" />
                 <div class="grow">
-                  {t('This affects the whole team: later changes to people, sprints and projects go back until you save. Loaded as unsaved changes; the current state stays in the history.')}
+                  {t('This affects all teams in the data folder: later changes to people, sprints and projects go back. It is saved on this computer, the current state stays in the history; Save shares it.')}
                 </div>
-                <button class="btn primary" type="button" disabled={working} onclick={() => restore({ id: l.target } as Version, true)}>{t('Load as unsaved change')}</button>
+                <button class="btn primary" type="button" disabled={working || !!app.busy} onclick={() => restore({ id: l.target } as Version, true)}>{t('Bring it back')}</button>
                 <button class="btn" type="button" onclick={() => (asking = undefined)}>{t('Cancel')}</button>
               </div>
             </td>
