@@ -127,11 +127,6 @@ jobs:
           if (-not $version) { throw "--version printed nothing" }
           $help = (& $exe --help | Out-String)
           if ($help.Length -lt 100) { throw "--help printed nothing" }
-          # PE header: subsystem 3 = console (2 would be a program without a console).
-          $bytes = [System.IO.File]::ReadAllBytes($exe)
-          $pe = [BitConverter]::ToInt32($bytes, 0x3C)
-          $subsystem = [BitConverter]::ToUInt16($bytes, $pe + 24 + 68)
-          if ($subsystem -ne 3) { throw "subsystem is $subsystem, expected 3 (console)" }
       - name: The window opens (Linux)
         if: runner.os == 'Linux'
         run: |

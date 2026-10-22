@@ -98,8 +98,9 @@ The installer creates a launcher **"Foresprint"**: on Windows on the desktop and
 menu, on macOS in `~/Applications` (plus an alias on the desktop), on Linux as an application
 entry and on the desktop. Create it again with `foresprint shortcut`. A double click starts the
 window. On Windows the program is a console program, so a terminal waits for it and shows its
-output (`foresprint --help`), also in scripts and CI. Started by a double click it releases its
-console at once; a console window may flash for a moment.
+output (`foresprint --help`), also in scripts and CI. Started by a double click it starts
+itself again without a console and ends, so no console window or terminal tab stays open (one may
+flash for a moment).
 
 ## Tab completion
 
