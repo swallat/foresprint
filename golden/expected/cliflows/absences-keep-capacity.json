@@ -1,4 +1,5 @@
 {
+ "as_of": "2026-10-15",
  "args": [
   "absences",
   "demo"
@@ -6,6 +7,6 @@
  "input": "0\n0\n0\n0\n0\nn\n",
  "exit_code": 0,
  "files": {
-  "demo/sprints/2026.6.yaml": "# Sprint 2026.6. Explanations of all fields: `foresprint help fields`\nid: '2026.6'\nstart: 2026-03-18\nend: 2026-04-01\nabsences: {}\ncapacity: 40\nforecast_ist: 15\nvelocity: 13.75\nscope_creep: 0\nplanning:\n  carryover: 0.5\n  backlog: 14.5\n  corrections:\n  - 1.5\n"
+  "demo/sprints/2026.22.yaml": "# Sprint 2026.22. Explanations of all fields: `foresprint help fields`\nid: '2026.22'\nstart: 2026-10-28\nend: 2026-11-11\nabsences: {}\nabsence_state: confirmed\nabsences_confirmed: true\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\nproducts:\n  app:\n    preplanned: 3\n  portal:\n    preplanned: 4\n  webshop:\n    preplanned: 3\n"
  }
 }

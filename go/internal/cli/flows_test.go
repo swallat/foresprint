@@ -12,6 +12,7 @@ import (
 )
 
 type flow struct {
+	AsOf     string            `json:"as_of"`
 	Args     []string          `json:"args"`
 	Input    string            `json:"input"`
 	ExitCode int               `json:"exit_code"`
@@ -59,7 +60,7 @@ func TestFlowsMatchPython(t *testing.T) {
 			copyTree(t, filepath.Join(golden.RepoRoot(t), "examples", "teams"), data)
 			before := snapshot(t, data)
 			var out, errOut bytes.Buffer
-			args := append([]string{"--data", data, "--as-of", "2026-03-10"}, want.Args...)
+			args := append([]string{"--data", data, "--as-of", want.AsOf}, want.Args...)
 			code := Execute(args, strings.NewReader(want.Input), &out, &errOut)
 			if code != want.ExitCode {
 				t.Errorf("exit code %d, want %d\nout: %s\nerr: %s", code, want.ExitCode, out.String(), errOut.String())

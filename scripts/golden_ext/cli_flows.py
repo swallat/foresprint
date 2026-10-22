@@ -19,7 +19,7 @@ from foresprint.cli import app
 from foresprint.settings import FIRST_SPRINT_KEYS, applicable
 
 ROOT = Path(__file__).resolve().parents[2]
-AS_OF = "2026-03-10"
+AS_OF = "2026-10-15"  # the day the demo team was written for
 
 
 def _answers(has_sprints: bool, given: dict[str, str]) -> str:
@@ -142,6 +142,43 @@ SCENARIOS: list[dict] = [
     },
     {"name": "absences-unknown-sprint", "args": ["absences", "demo", "1999.1"], "input": ""},
     {
+        "name": "planning-full",
+        "args": ["planning", "demo"],
+        "input": "y\n1\n0\n5\n0\ny\n4\n4\n3,5\ny\n2\n8\n1 0,5\n\nn\n",
+    },
+    {
+        "name": "planning-minimal",
+        "args": ["planning", "demo"],
+        "input": "n\nn\nn\n12\nn\n",
+    },
+    {
+        "name": "planning-refreeze",
+        "args": ["planning", "demo"],
+        "input": "n\nn\nn\n9\ny\n",
+    },
+    {
+        "name": "planning-other-sprint",
+        "args": ["planning", "demo", "2026.23"],
+        "input": "y\n0\n0\n0\n0\n\nn\n\n\n\n\n10\n\n",
+    },
+    {"name": "planning-unknown-sprint", "args": ["planning", "demo", "1999.1"], "input": ""},
+    {"name": "review-default", "args": ["review", "demo"], "input": "y\n38\n0,1\ny\n1\n2\n3\n"},
+    {
+        "name": "review-sprint-capacity",
+        "args": ["review", "demo", "2026.20"],
+        "input": "40\n0,2\nn\n",
+    },
+    {
+        "name": "review-correct-capacity",
+        "args": ["review", "demo", "2026.22"],
+        "input": "n\n30,5\n9\n0,05\ny\n1\n2\n3\n",
+    },
+    {
+        "name": "review-accept-capacity",
+        "args": ["review", "demo", "2026.23"],
+        "input": "y\n9\n\ny\n3\n2\n1\n",
+    },
+    {
         "name": "settings-invalid-then-valid",
         "args": ["settings", "demo"],
         "input": _answers(True, {"forecast.window": "abc\n0\n7"}) + "\n",
@@ -185,6 +222,7 @@ def run_scenario(scenario: dict) -> dict:
         after = _snapshot(data)
         files = {k: v for k, v in after.items() if before.get(k) != v}
         return {
+            "as_of": AS_OF,
             "args": scenario["args"],
             "input": scenario["input"],
             "exit_code": result.exit_code,
