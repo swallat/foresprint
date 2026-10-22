@@ -5,7 +5,7 @@
   import Icon from '../../lib/Icon.svelte';
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
-  import type { Branch, Problem, ServerCheck, StorageSettings } from '../../lib/types.data';
+  import type { Branch, LineEndings, Problem, ServerCheck, StorageSettings } from '../../lib/types.data';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
 
@@ -17,6 +17,7 @@
 
   let st = $state<StorageSettings>();
   let branches = $state<Branch[]>([]);
+  let endings = $state<LineEndings>();
   let loadFailed = $state('');
   let working = $state(false);
 
@@ -52,8 +53,10 @@
     if (st.ready) {
       branches = await api.Branches().catch(() => []);
       pickBranch = st.branch;
+      endings = await api.LineEndings().catch(() => undefined);
     } else {
       branches = [];
+      endings = undefined;
     }
   }
 
@@ -167,6 +170,20 @@
       await refreshStatus();
       await loadTeams();
       app.rev++;
+    } catch (e) {
+      toast(String(e), 'bad');
+    } finally {
+      working = false;
+    }
+  }
+
+  async function fixEndings(): Promise<void> {
+    working = true;
+    try {
+      endings = await api.ApplyLineEndings();
+      if (endings.problem) toast(endings.problem.message, 'bad');
+      else toast(t('Line endings are set. Save shares the setting with the team.'), 'ok');
+      await refreshStatus();
     } catch (e) {
       toast(String(e), 'bad');
     } finally {
@@ -372,6 +389,21 @@
           {#if st.host === '' && st.detectedHost}<span class="small muted">{t('Detected: {kind}', { kind: st.detectedHost })}</span>{/if}
         </div>
               {/key}
+      </section>
+    {/if}
+
+    {#if endings?.needed}
+      <section class="card" aria-labelledby="s-eol">
+        <h2 id="s-eol">{t('Line endings')}</h2>
+        <p>{t('Windows and Linux write line breaks differently. Without a fixed setting, a save can show whole files as changed.')}</p>
+        <p class="small muted">
+          {t('The setting goes into {file}:', { file: endings.file })}
+          <span class="data">{endings.rules.join(', ')}</span>
+        </p>
+        {#if endings.affected.length > 0}
+          <p class="small muted">{t('{n} existing files change their line endings with the next save.', { n: endings.affected.length })}</p>
+        {/if}
+        <button class="btn" type="button" disabled={working} onclick={fixEndings}>{t('Fix line endings')}</button>
       </section>
     {/if}
 

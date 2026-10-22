@@ -53,6 +53,18 @@ func (a *API) Discard(files []string) datasvc.Done { return a.data.Discard(nilIf
 // Lost lists the unsaved files and what Discard would lose of them.
 func (a *API) Lost(files []string) ([]datasvc.LostFile, error) { return a.data.Lost(nilIfEmpty(files)) }
 
+// UnsavedChanges lists what changed since the last save, value by value.
+func (a *API) UnsavedChanges() ([]datasvc.UnsavedFile, error) { return a.data.UnsavedChanges() }
+
+// DiscardValues puts single values back to what they were at the last save.
+func (a *API) DiscardValues(items []datasvc.ValueRef) datasvc.Done { return a.data.DiscardValues(items) }
+
+// LineEndings checks whether the data files keep one kind of line ending on every computer.
+func (a *API) LineEndings() datasvc.LineEndings { return a.data.LineEndings() }
+
+// ApplyLineEndings writes the missing rules; the result is an unsaved change.
+func (a *API) ApplyLineEndings() datasvc.LineEndings { return a.data.ApplyLineEndings() }
+
 // Labels lists the named states (tags).
 func (a *API) Labels(checkServer bool) ([]datasvc.Label, error) { return a.data.Labels(checkServer) }
 
