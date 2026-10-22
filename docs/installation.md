@@ -31,7 +31,22 @@ it again updates. Settings through environment variables:
 Without the script: download `foresprint_<version>_<os>_<arch>` (`.zip` on Windows, `.tar.gz`
 elsewhere) from the [releases](https://github.com/swallat/foresprint/releases), unpack it and
 copy the program wherever you like. Platforms: Windows (amd64), macOS (Apple silicon and Intel),
-Linux (amd64 and arm64; needs GTK 3 and WebKitGTK 4.1 for the window).
+Linux (amd64 and arm64).
+
+### Linux: system libraries
+
+The program is one file for the window and the command line, and it is linked against GTK 3
+and WebKitGTK 4.1. Without them it does not start at all, also not for commands such as
+`foresprint check` on a server without a desktop. `install.sh` looks for missing libraries and
+names them. Install them with your package manager:
+
+| Distribution | Command |
+| --- | --- |
+| Debian, Ubuntu | `sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0` |
+| Fedora | `sudo dnf install gtk3 webkit2gtk4.1` |
+| Arch | `sudo pacman -S gtk3 webkit2gtk-4.1` |
+
+The error `libwebkit2gtk-4.1.so.0: cannot open shared object file` means they are missing.
 
 ## Not signed: SmartScreen and Gatekeeper
 
