@@ -202,6 +202,13 @@ function view(sid: string, as: Assumption | null): PlanSprint {
   };
 }
 
+/** Earmarks a ticket of the Plan mock (the Backlog mock keeps its own list); false if unknown. */
+export function planEarmark(ticket: string, sprint: string): boolean {
+  const x = tickets.find((q) => q.key === ticket);
+  if (x) x.sprint = sprint;
+  return !!x;
+}
+
 export const planMock: PlanApi = {
   async PlanSprint(_team, sprint, assume) {
     return view(sprint, assume);
@@ -243,10 +250,6 @@ export const planMock: PlanApi = {
   async SetProductionPT(_t, sprint, value) {
     if (value == null) delete prodPT[sprint];
     else prodPT[sprint] = value;
-  },
-  async SetEarmark(_t, ticket, sprint) {
-    const x = tickets.find((q) => q.key === ticket);
-    if (x) x.sprint = sprint;
   },
   async SetProductionPercent(_t, ticket, percent) {
     const x = tickets.find((q) => q.key === ticket);

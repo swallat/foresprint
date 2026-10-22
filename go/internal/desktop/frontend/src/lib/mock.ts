@@ -2,12 +2,14 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
-import { bindSprints, planMock } from './mock.plan';
+import { bindSprints, planEarmark, planMock } from './mock.plan';
 import { projectsMock } from './mock.projects';
 import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import { createBacklogMock } from './mock.backlog';
 import { createReviewMock } from './mock.review';
 import { createSprintsMock } from './mock.sprints';
+import { settingsMock } from './mock.settings';
 import { teamMock } from './mock.team';
 import type { Prefs, Result, SprintInfo } from './types';
 import type { NewTeam, Opened, Problem, Region, ServerCheck, SetupKind, SetupState, SignInGuide } from './types.setup';
@@ -39,6 +41,7 @@ let prefs: Prefs = {
     { code: 'en', label: 'English' },
   ],
   theme: 'system',
+  density: 'normal',
   themes: [
     { code: 'system', label: 'As system' },
     { code: 'light', label: 'Light' },
@@ -139,13 +142,26 @@ let team = { key: 'atlas', name: 'Team Atlas', people: 6, sprints: sprints.lengt
 
 const ok = (message: string): Result => ({ ok: true, message });
 
+const backlogMock = createBacklogMock(() => sprints);
+
 export const mockApi: Api = {
+  ...backlogMock,
   ...projectsMock,
   ...createReviewMock(sprints),
   ...createSprintsMock(sprints),
   ...dataMock,
   ...planMock,
   ...teamMock,
+  ...settingsMock,
+  /** One earmark for both pages: the Backlog and the Plan mock keep their own tickets. */
+  async EarmarkTicket(team, key, sprint, note) {
+    const inPlan = planEarmark(key, sprint);
+    try {
+      await backlogMock.EarmarkTicket(team, key, sprint, note);
+    } catch (e) {
+      if (!inPlan) throw e;
+    }
+  },
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
@@ -158,6 +174,10 @@ export const mockApi: Api = {
   async SetTheme(code) {
     prefs = { ...prefs, theme: code };
   },
+  async SetDensity(code) {
+    prefs = { ...prefs, density: code as Prefs['density'] };
+  },
+
   async Texts(lang) {
     // The catalog is bundled only where the mock is the whole program (npm run dev, tests); in
     // the program, texts always come from the core, also while the demo team is shown.
@@ -188,9 +208,6 @@ export const mockApi: Api = {
   },
   async Today() {
     return today();
-  },
-  async SyncTracker() {
-    return { ok: true, message: 'Tracker synced.' };
   },
   async SetupState(): Promise<SetupState> {
     return { dataDir: prefs.dataDir, teams: [team], name: '', email: '', suggestedHelper: '' };

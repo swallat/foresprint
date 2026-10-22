@@ -4,6 +4,7 @@
 // To add a method: add it to the Go struct (internal/app/api_<area>.go), add its signature to
 // `Api` below (or to an area interface that extends it) and an answer to the mock.
 
+import type { BacklogApi } from './types.backlog';
 import type { ForecastApi } from './types.forecast';
 import type { TeamApi } from './types.team';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
@@ -11,11 +12,12 @@ import type { PlanApi } from './types.plan';
 import type { DataApi } from './types.data';
 import type { ProjectsApi } from './types.projects';
 import type { ReviewApi } from './types.review';
+import type { SettingsApi } from './types.settings';
 import type { SetupApi } from './types.setup';
 import type { SprintsApi } from './types.sprints';
 import type { TodayApi } from './types.today';
 
-export interface Api extends DataApi, ProjectsApi, ReviewApi, SprintsApi, TodayApi, ForecastApi, TeamApi, SetupApi, PlanApi {
+export interface Api extends BacklogApi, DataApi, PlanApi, ProjectsApi, ReviewApi, SetupApi, SettingsApi, SprintsApi, TodayApi, ForecastApi, TeamApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
@@ -28,7 +30,6 @@ export interface Api extends DataApi, ProjectsApi, ReviewApi, SprintsApi, TodayA
   Status(): Promise<Status>;
   Save(): Promise<Result>;
   Refresh(): Promise<Result>;
-  SyncTracker(): Promise<Result>;
 }
 
 interface WailsWindow {

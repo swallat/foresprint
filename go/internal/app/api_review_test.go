@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"os/exec"
@@ -158,12 +159,13 @@ func TestReviewTickets(t *testing.T) {
 	}
 	b, _ := os.ReadFile(teamFile)
 	write(teamFile, strings.Replace(string(b), "features:\n", "features:\n  tickets: true\n", 1))
-	write(dir+"/"+team+"/tickets.yaml", `schema: 1
+	write(dir+"/"+team+"/tickets.yaml", fmt.Sprintf(`schema: 1
 tickets:
 - {key: T-1, title: First, estimate: 5, done: true}
 - {key: T-2, title: Second, estimate: 3, remaining: 1}
 - {key: T-3, title: Third, estimate: 8}
-`)
+- {key: T-4, title: Pulled in, estimate: 2, done: true, in_sprint: "%s"}
+`, id))
 	sprintFile := dir + "/" + team + "/sprints/" + id + ".yaml"
 	sb, _ := os.ReadFile(sprintFile)
 	write(sprintFile, string(sb)+"committed_tickets: [T-1, T-2, T-3]\n")
@@ -174,6 +176,9 @@ tickets:
 	}
 	if !r.Tickets || len(r.List) != 3 || !r.List[0].Done || r.List[1].Rest != 1 || r.List[2].Rest != 8 {
 		t.Fatalf("tickets review: %+v", r)
+	}
+	if len(r.Pulled) != 1 || r.Pulled[0] != "T-4" || r.AdditionalDone != 2 {
+		t.Fatalf("additionally done not prefilled from the pulled-in ticket: %+v %v", r.Pulled, r.AdditionalDone)
 	}
 	if r.NotDone != 11 {
 		t.Fatalf("not done %v, want the two open tickets (3 + 8)", r.NotDone)

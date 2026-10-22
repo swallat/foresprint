@@ -952,27 +952,6 @@ func (a *API) SetProductionPT(team, sprintID string, value *float64) error {
 	})
 }
 
-// SetEarmark earmarks a ticket for a sprint; an empty sprint removes the earmark.
-func (a *API) SetEarmark(team, ticket, sprintID string) error {
-	c, err := a.planContext(team, firstSprint(a, team, sprintID))
-	if err != nil {
-		return err
-	}
-	if c.data.TicketByKey(ticket) == nil {
-		return errors.New(i18n.T("The ticket {key} does not exist.", "key", ticket))
-	}
-	pp := c.data.Preplan
-	pp.Earmarks = removeEarmark(pp.Earmarks, ticket)
-	if sprintID != "" {
-		pp.Earmarks = append(pp.Earmarks, model.Earmark{Ticket: ticket, Sprint: sprintID})
-	}
-	if _, err := c.repo.SavePreplan(team, pp); err != nil {
-		return err
-	}
-	storage.ClearTeamCache()
-	return nil
-}
-
 func firstSprint(a *API, team, sprintID string) string {
 	if sprintID != "" {
 		return sprintID
@@ -981,16 +960,6 @@ func firstSprint(a *API, team, sprintID string) string {
 		return s[0].ID
 	}
 	return sprintID
-}
-
-func removeEarmark(list []model.Earmark, ticket string) []model.Earmark {
-	out := list[:0:0]
-	for _, e := range list {
-		if e.Ticket != ticket {
-			out = append(out, e)
-		}
-	}
-	return out
 }
 
 // SetProductionPercent sets the production share of a ticket (0 to 100) in Foresprint; nil

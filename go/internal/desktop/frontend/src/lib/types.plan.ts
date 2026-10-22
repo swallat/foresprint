@@ -181,7 +181,6 @@ export interface PlanApi {
   UseDefaults(team: string, sprint: string): Promise<void>;
   SetProjectAmount(team: string, sprint: string, project: string, value: number | null): Promise<void>;
   SetProductionPT(team: string, sprint: string, value: number | null): Promise<void>;
-  SetEarmark(team: string, ticket: string, sprint: string): Promise<void>;
   SetProductionPercent(team: string, ticket: string, percent: number | null): Promise<void>;
   FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
   ReopenPlan(team: string, sprint: string): Promise<void>;

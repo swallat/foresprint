@@ -89,10 +89,10 @@ func TestEarmarkAndPreplanned(t *testing.T) {
 			break
 		}
 	}
-	if err := api.SetEarmark(team, "T-1", next); err != nil {
+	if err := api.EarmarkTicket(team, "T-1", next, ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := api.SetEarmark(team, "T-2", next); err != nil {
+	if err := api.EarmarkTicket(team, "T-2", next, ""); err != nil {
 		t.Fatal(err)
 	}
 	v, _ := api.PlanSprint(team, next, nil)
@@ -121,7 +121,7 @@ func TestEarmarkAndPreplanned(t *testing.T) {
 	if err := api.SetPreplanned(team, next, v.Products[0].ID, &neg); err == nil {
 		t.Error("negative amount accepted")
 	}
-	if err := api.SetEarmark(team, "T-1", ""); err != nil {
+	if err := api.EarmarkTicket(team, "T-1", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	v, _ = api.PlanSprint(team, next, nil)
@@ -140,7 +140,7 @@ func TestProductionShareSources(t *testing.T) {
 			break
 		}
 	}
-	_ = api.SetEarmark(team, "T-1", next)
+	_ = api.EarmarkTicket(team, "T-1", next, "")
 	half := 50.0
 	if err := api.SetProductionPercent(team, "T-1", &half); err != nil {
 		t.Fatal(err)
@@ -220,8 +220,8 @@ func TestFreezeAndReopen(t *testing.T) {
 			break
 		}
 	}
-	_ = api.SetEarmark(team, "T-1", next)
-	_ = api.SetEarmark(team, "T-2", next)
+	_ = api.EarmarkTicket(team, "T-1", next, "")
+	_ = api.EarmarkTicket(team, "T-2", next, "")
 	name, err := api.FreezePlan(team, next, FreezeInput{Tickets: []string{"T-1", "T-2"}, Removed: []string{"T-3"}})
 	if err != nil || name == "" {
 		t.Fatalf("freeze: %q %v", name, err)
@@ -261,8 +261,8 @@ func TestRemovedTicketsLeaveTheLaneAndStayListed(t *testing.T) {
 			break
 		}
 	}
-	_ = api.SetEarmark(team, "T-1", next)
-	_ = api.SetEarmark(team, "T-2", next)
+	_ = api.EarmarkTicket(team, "T-1", next, "")
+	_ = api.EarmarkTicket(team, "T-2", next, "")
 	if err := api.SetRemoved(team, next, "T-1", true); err != nil {
 		t.Fatal(err)
 	}
