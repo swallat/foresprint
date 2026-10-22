@@ -122,6 +122,23 @@ func Languages() []Catalog {
 	return out
 }
 
+// Texts returns a copy of the translations of a language (English source text to translated
+// text) for a user interface that translates by itself; nil for an unknown code.
+func Texts(code string) map[string]string {
+	loadOnce.Do(load)
+	mu.Lock()
+	defer mu.Unlock()
+	c := catalogs[code]
+	if c == nil {
+		return nil
+	}
+	out := make(map[string]string, len(c.Texts))
+	for k, v := range c.Texts {
+		out[k] = v
+	}
+	return out
+}
+
 // Name is the name of a language in that language ("" for an unknown code).
 func Name(code string) string {
 	loadOnce.Do(load)
