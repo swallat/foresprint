@@ -42,18 +42,26 @@
     void load();
   });
 
-  /** An edit in the grid changes this page's figures only when it is the sprint in focus. */
   // "Enter period" (decision 23): absences as periods of a person, the same panel as Team > People.
   let people = $state<PeopleView | undefined>();
   let periods = $state<AbsencePeriod[]>([]);
   let who = $state('');
   let panelFor = $state('');
   let gridKey = $state(0); // the grid reloads after periods changed
+  let peopleSeq = 0;
   async function loadPeople() {
     if (!app.team) return;
+    const mine = ++peopleSeq;
+    const team = app.team;
     try {
-      [people, periods] = await Promise.all([api.People(app.team), api.AbsencePeriods(app.team)]);
-      if (!who) who = people.people.find((p) => isCurrent(p, people!.today))?.id ?? '';
+      const [p, a] = await Promise.all([api.People(team), api.AbsencePeriods(team)]);
+      if (mine !== peopleSeq) return; // the team changed meanwhile
+      people = p;
+      periods = a;
+      if (!p.people.some((x) => x.id === who && isCurrent(x, p.today))) {
+        who = p.people.find((x) => isCurrent(x, p.today))?.id ?? '';
+      }
+      if (panelFor && !p.people.some((x) => x.id === panelFor)) panelFor = '';
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
@@ -65,6 +73,28 @@
   const current = $derived((people?.people ?? []).filter((p) => isCurrent(p, people?.today ?? '')));
   const panelPerson = $derived(people?.people.find((p) => p.id === panelFor));
 
+  // Saves run one after the other, each on the list the previous one returned.
+  let saving: Promise<void> = Promise.resolve();
+  function savePeriods(edit: (latest: AbsencePeriod[]) => AbsencePeriod[]) {
+    const team = app.team;
+    saving = saving.then(async () => {
+      try {
+        periods = await api.SaveAbsencePeriods(team, edit(periods));
+      } catch (e) {
+        toast(e instanceof Error ? e.message : String(e), 'bad');
+        try {
+          periods = await api.AbsencePeriods(team);
+        } catch {
+          /* the list stays as it was */
+        }
+      }
+      gridKey++;
+      void load();
+    });
+    return saving;
+  }
+
+  /** An edit in the grid changes this page's figures only when it is the sprint in focus. */
   function changed(column: AbsenceColumn) {
     if (column.id === app.sprint) void load();
   }
@@ -185,15 +215,10 @@
     today={people.today}
     absences={periods}
     onclose={() => (panelFor = '')}
-    onchange={async (list) => {
-      try {
-        periods = await api.SaveAbsencePeriods(app.team, list);
-      } catch (e) {
-        toast(e instanceof Error ? e.message : String(e), 'bad');
-        periods = await api.AbsencePeriods(app.team);
-      }
-      gridKey++;
-      void load();
+    onchange={(list) => {
+      const id = panelFor;
+      // The panel sends the whole list; what it changed is only the periods of this person.
+      return savePeriods((latest) => [...latest.filter((x) => x.person !== id), ...list.filter((x) => x.person === id)]);
     }}
   />
 {/if}
