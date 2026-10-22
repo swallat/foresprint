@@ -2,6 +2,7 @@ package preplan
 
 import (
 	"testing"
+	"time"
 
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
@@ -68,5 +69,25 @@ func TestEffectiveProjectID(t *testing.T) {
 	}
 	if id := effectiveProjectID(model.Ticket{Key: "X", Project: sp("old")}, d); id != nil {
 		t.Fatalf("closed project must drop, got %v", *id)
+	}
+}
+
+func TestCarryInsOf(t *testing.T) {
+	d := decisionData()
+	d.Team.Features.Products = false
+	day := func(n int) time.Time { return time.Date(2026, 1, 1+n, 0, 0, 0, 0, time.UTC) }
+	sprints := []model.Sprint{{ID: "s2", Start: day(14), End: day(28)}, {ID: "s3", Start: day(28), End: day(42)}}
+	d.Sprints = []model.Sprint{{ID: "s1", Start: day(0), End: day(14), Carry: []model.CarryItem{
+		{Ticket: sp("T-1"), Rest: 3},
+		{Ticket: sp("T-2"), Rest: 2, Target: "s3"},
+		{Ticket: sp("T-3"), Rest: 9, Target: model.CarryBacklog},
+		{Rest: 4},
+	}}}
+	got := carryInsOf(d, sprints, func(model.Ticket) *string { return nil })
+	if got.Amount[keyOf("s2", nil)] != 7 || got.Amount[keyOf("s3", nil)] != 2 {
+		t.Fatalf("amounts %v", got.Amount)
+	}
+	if !got.Tickets["s2"]["T-1"] || got.Tickets["s2"]["T-3"] {
+		t.Fatalf("tickets %v", got.Tickets)
 	}
 }
