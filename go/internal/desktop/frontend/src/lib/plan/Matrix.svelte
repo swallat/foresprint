@@ -25,7 +25,7 @@
   const total = $derived(matrix?.cells.reduce((a, c) => a + c.value, 0) ?? 0);
   /** A product whose row takes more than its pre-planned amount. */
   const over = (product: string, pre: number | null) => pre != null && rowSum(product) > pre + 1e-9;
-  const raise = $derived(products.some((p) => rowSum(p.id) > (p.pre ?? 0) + 1e-9));
+  const raise = $derived(products.some((p) => rowSum(p.id) > (p.pre ?? p.default ?? 0) + 1e-9));
 
   async function set(product: string, project: string, text: string): Promise<void> {
     const v = parseAmount(text);
@@ -38,25 +38,25 @@
 {#if matrix && matrix.cells.length + products.length > 0}
   <section id="matrix" class="gap" data-tour="preplan-matrix">
     <div class="row head">
-      <h2>{t('Products in projects')}</h2>
+      <h2 id="matrix-h">{t('Products in projects')}</h2>
       <button class="btn" type="button" id="use-matrix" disabled={readonly || matrix.cells.length === 0} onclick={take}>
         <Icon name="calculate" />{t('Take the sums')}
       </button>
     </div>
     <div class="tw">
-      <table class="t">
+      <table class="t" aria-labelledby="matrix-h">
         <thead>
           <tr>
-            <th>{t('Product')}</th>
-            {#each matrix.projects as pr (pr.id)}<th class="num">{pr.name}</th>{/each}
-            <th class="num">{t('Daily business')}</th>
+            <th scope="col">{t('Product')}</th>
+            {#each matrix.projects as pr (pr.id)}<th scope="col" class="num">{pr.name}</th>{/each}
+            <th scope="col" class="num">{t('Daily business')}</th>
           </tr>
         </thead>
         <tbody>
           {#each products as p (p.id)}
             {@const rest = (p.pre ?? p.default ?? 0) - rowSum(p.id)}
             <tr>
-              <td>{p.name}</td>
+              <th scope="row">{p.name}</th>
               {#each matrix.projects as pr (pr.id)}
                 <td class="num edit">
                   <input
@@ -75,7 +75,7 @@
             </tr>
           {/each}
           <tr class="sum">
-            <td>{t('Total')}</td>
+            <th scope="row">{t('Total')}</th>
             {#each matrix.projects as pr (pr.id)}<td class="num">{fmt(colSum(pr.id), 1)}</td>{/each}
             <td class="num">{fmt(total, 1)}</td>
           </tr>
@@ -84,7 +84,7 @@
     </div>
     <p class="small muted gap">
       {raise
-        ? t('Some rows take more than the pre-planned amount of the product; taking the sums raises it.')
+        ? t('Some rows take more than the amount of the product; “Take the sums” raises it.')
         : t('What a product has left after its projects is daily business. The amounts are in {unit}.', { unit: unitName(d) })}
     </p>
   </section>

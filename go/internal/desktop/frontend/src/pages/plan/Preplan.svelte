@@ -183,7 +183,7 @@
     </div>
   {/if}
 
-  <Matrix {d} {model} readonly={d.stage === 'past' || d.stage === 'current'} />
+  <Matrix {d} {model} />
 
   <Production {d} {model} />
 

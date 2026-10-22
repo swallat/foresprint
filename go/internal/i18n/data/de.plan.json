@@ -20,6 +20,7 @@
   "Freeze the plan first; only the agreed tickets are written to the tracker.": "Friere zuerst den Plan ein; nur die vereinbarten Tickets werden in den Tracker geschrieben.",
   "Writing the sprint back to the tracker is not switched on.": "Das Zurückschreiben des Sprints in den Tracker ist nicht eingeschaltet.",
   "There is nothing to take back.": "Es gibt nichts zurückzunehmen.",
-  "The tracker returned no tickets; nothing is written. Check the query and the permissions of the token.": "Der Tracker hat keine Tickets geliefert; es wird nichts geschrieben. Prüfe die Abfrage und die Rechte des Tokens."
+  "The tracker returned no tickets; nothing is written. Check the query and the permissions of the token.": "Der Tracker hat keine Tickets geliefert; es wird nichts geschrieben. Prüfe die Abfrage und die Rechte des Tokens.",
+  "The project {id} is closed.": "Das Projekt {id} ist abgeschlossen."
  }
 }

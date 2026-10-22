@@ -1170,6 +1170,9 @@ func (c *planCtx) fillMatrix(v *PlanSprint) {
 		return
 	}
 	for _, p := range v.Products {
+		if !p.Active {
+			continue
+		}
 		for _, pr := range m.Projects {
 			if x := c.sprint.Matrix[p.ID][pr.ID]; x != 0 {
 				m.Cells = append(m.Cells, PlanCell{Product: p.ID, Project: pr.ID, Value: x})
@@ -1188,10 +1191,15 @@ func (a *API) SetMatrixCell(team, sprintID, product, project string, value *floa
 		if err := c.knownProduct(product); err != nil {
 			return err
 		}
-		if p := c.data.ProjectByID(project); p == nil || p.Closed() {
+		p := c.data.ProjectByID(project)
+		if p == nil {
 			return errors.New(i18n.T("The project {id} does not exist.", "id", project))
 		}
-		if value == nil || *value == 0 {
+		clearing := value == nil || *value == 0
+		if p.Closed() && !clearing { // a cell of a closed project can still be cleared
+			return errors.New(i18n.T("The project {id} is closed.", "id", project))
+		}
+		if clearing {
 			delete(s.Matrix[product], project)
 			if len(s.Matrix[product]) == 0 {
 				delete(s.Matrix, product)
@@ -1212,31 +1220,54 @@ func (a *API) SetMatrixCell(team, sprintID, product, project string, value *floa
 	})
 }
 
-// UseMatrix takes the sums of the table as the pre-planned amounts: the row sum for a product
-// (the rest of an amount that is higher stays as daily business, so a product is only raised,
-// never lowered) and the column sum for a project.
+// UseMatrix takes the sums of the table as the pre-planned amounts. Only the open projects and
+// the active products count, and amounts are only raised, never lowered: a product keeps the
+// budget it has (pre-planned or standard) when its row is smaller, and a project amount that
+// is higher stays. Project amounts are for teams without tickets; with tickets they come from
+// the tickets.
 func (a *API) UseMatrix(team, sprintID string) error {
 	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+		v, err := c.view(team, nil)
+		if err != nil {
+			return err
+		}
+		budget := map[string]float64{}
+		for _, p := range v.Products {
+			if p.Active {
+				budget[p.ID] = p.Budget
+			}
+		}
 		cols := map[string]float64{}
 		for product, row := range s.Matrix {
+			b, active := budget[product]
+			if !active {
+				continue
+			}
 			sum := 0.0
 			for project, x := range row {
+				if pr := c.data.ProjectByID(project); pr == nil || pr.Closed() {
+					continue
+				}
 				sum += x
 				cols[project] += x
 			}
-			sum = math.Round(sum*100) / 100
-			if cur := s.Products[product].Preplanned; cur == nil || *cur < sum {
+			if sum = math.Round(sum*100) / 100; sum > b+1e-9 {
 				setProductValue(s, product, func(v *model.ProductValues) { v.Preplanned = &sum })
 			}
+		}
+		if c.tickets() {
+			return nil
 		}
 		for project, sum := range cols {
 			sum = math.Round(sum*100) / 100
 			if s.Projects == nil {
 				s.Projects = map[string]model.ProductValues{}
 			}
-			v := s.Projects[project]
-			v.Preplanned = &sum
-			s.Projects[project] = v
+			pv := s.Projects[project]
+			if pv.Preplanned == nil || *pv.Preplanned < sum {
+				pv.Preplanned = &sum
+				s.Projects[project] = pv
+			}
 		}
 		return nil
 	})

@@ -101,7 +101,7 @@
   "Set the amount per product and project. Works at any time, also for later sprints.": "Betrag je Produkt und Projekt festlegen. Geht jederzeit, auch für spätere Sprints.",
   "Show what would change": "Änderungen anzeigen",
   "Size": "Größe",
-  "Some rows take more than the pre-planned amount of the product; taking the sums raises it.": "Manche Zeilen nehmen mehr als der vorgeplante Betrag des Produkts; die Summen zu übernehmen hebt ihn an.",
+  "Some rows take more than the amount of the product; “Take the sums” raises it.": "Manche Zeilen nehmen mehr als den Betrag des Produkts; „Summen übernehmen“ hebt ihn an.",
   "Source": "Quelle",
   "Sprint {sprint}": "Sprint {sprint}",
   "Stages of the sprint": "Stufen des Sprints",
