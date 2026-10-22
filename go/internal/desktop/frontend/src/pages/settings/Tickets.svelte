@@ -92,6 +92,11 @@
 
   async function apply(): Promise<void> {
     if (!draft || !app.team) return;
+    const board = draft.boardId;
+    if (board !== null && (!Number.isInteger(board) || board < 0 || board > 2_000_000_000)) {
+      toast(t('The board number is a positive whole number.'), 'bad');
+      return;
+    }
     busy = true;
     try {
       await api.SaveTrackerSettings(app.team, draft);
