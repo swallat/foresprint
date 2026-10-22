@@ -259,10 +259,33 @@ func (m *merger) merge(base, ours, theirs any, path Path) any {
 		return ours
 	}
 	if v, ok, err := CustomValue(choice); ok && err == nil {
-		return v
+		if v, fits := customFits(path, v); fits {
+			return v
+		}
 	}
 	m.conflicts = append(m.conflicts, KeyConflict{append(Path(nil), path...), ours, theirs, base})
 	return ours
+}
+
+// customFits checks the value a person typed for the conflict at path. An item of a list with
+// ids has to be a mapping with the same id; an empty value removes it (Missing).
+func customFits(path Path, v any) (any, bool) {
+	if len(path) == 0 {
+		return v, true
+	}
+	last := path[len(path)-1]
+	if !strings.HasPrefix(last, "[") || !strings.HasSuffix(last, "]") {
+		return v, true
+	}
+	if v == nil {
+		return Missing, true
+	}
+	item, ok := v.(*yamlx.Map)
+	if !ok {
+		return nil, false
+	}
+	id, _ := mapGet(item, "id")
+	return v, yamlx.PyStr(id) == last[1:len(last)-1]
 }
 
 func (m *merger) mergeMaps(base, ours, theirs *yamlx.Map, path Path, item bool) *yamlx.Map {
@@ -441,6 +464,17 @@ func (m *merger) mergePrognoses(base, ours, theirs any, path Path) (union []any,
 			custom, isCustom, cerr := CustomValue(choice)
 			if cerr != nil {
 				isCustom = false
+			}
+			if isCustom {
+				// A value that does not fit the entry (no readable time, another time) is no decision.
+				if item, ok := custom.(*yamlx.Map); ok {
+					at, _ := mapGet(item, "at")
+					stamp, readable := stampOf(at)
+					isCustom = readable && stampKey(stamp) == key
+				} else {
+					isCustom = custom == nil
+				}
+				decided = isCustom
 			}
 			if !decided {
 				c := KeyConflict{Path: sub, Ours: Missing, Theirs: Missing, Base: Missing}

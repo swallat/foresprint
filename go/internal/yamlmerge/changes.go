@@ -169,7 +169,11 @@ func Apply(tree any, path Path, value any) (result any, ok bool) {
 	child := value
 	if len(path) > 1 {
 		var ok bool
-		if child, ok = Apply(&yamlx.Map{}, path[1:], value); !ok {
+		var parent any = &yamlx.Map{}
+		if next := path[1]; strings.HasPrefix(next, "[") && strings.HasSuffix(next, "]") {
+			parent = []any{}
+		}
+		if child, ok = Apply(parent, path[1:], value); !ok {
 			return nil, false
 		}
 	}
