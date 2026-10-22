@@ -14,7 +14,7 @@ var german = map[string]string{
 	"Dark mode":                             "Dunkles Design",
 	"agreed with marketing":                 "mit dem Marketing abgestimmt",
 	"rough guess until refinement":          "grobe Schätzung bis zur Verfeinerung",
-	"needs production access":               "braucht Zugriff auf die Produktion",
+	"needs production access":               "braucht Zugang zum Produktivsystem",
 	"Concept for the new self-service area": "Konzept für den neuen Self-Service-Bereich",
 	"Customers change their address themselves":     "Kunden ändern ihre Adresse selbst",
 	"Customers download their invoices":             "Kunden laden ihre Rechnungen herunter",

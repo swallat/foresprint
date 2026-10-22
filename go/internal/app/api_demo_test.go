@@ -55,7 +55,7 @@ func TestDemoServesTheGuidedFlows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer a.LeaveDemo()
+	defer func() { _ = a.LeaveDemo() }()
 	if v, err := a.Forecast(key); err != nil || v.Team == "" {
 		t.Errorf("forecast %v", err)
 	}
