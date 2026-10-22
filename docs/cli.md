@@ -15,6 +15,11 @@ for retrospectives and tests.
 
 ## Commands at a glance
 
+The 1.0 program (Go, see [go/README.md](../go/README.md)) has the same command names and
+options. It prints plain text instead of panels, has no `web`, `excel`, `excel-import`,
+`shortcut` or `update` (the window, the installer and the spreadsheet import skill take over),
+and writes the same files.
+
 | Command | What it does |
 |---|---|
 | `foresprint web` | start the web UI as an app window |
