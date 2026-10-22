@@ -4,7 +4,9 @@
 //
 // Release layout (written by the release workflow): the archive foresprint_<version>_<os>_<arch>
 // (.zip on Windows, .tar.gz elsewhere) holds the program foresprint (foresprint.exe on Windows)
-// at its top level; checksums.txt lists "<sha256>  <archive name>" lines.
+// at its top level; checksums.txt lists "<sha256>  <archive name>" lines. The Linux build
+// without the window is the archive foresprint-cli_<version>_linux_<arch>.tar.gz with the same
+// content; a program of that variant updates from it.
 package selfupdate
 
 import (
@@ -54,6 +56,9 @@ type Updater struct {
 	GOOS    string       // default runtime.GOOS
 	GOARCH  string       // default runtime.GOARCH
 	ExePath string       // the program to replace, default: the running one
+	// CLI is set for the variant without the window; it only exists for Linux, elsewhere it is
+	// ignored.
+	CLI bool
 }
 
 func (u *Updater) repo() string {
@@ -146,7 +151,11 @@ func (u *Updater) AssetName(version string) string {
 	if u.goos() == "windows" {
 		ext = ".zip"
 	}
-	return fmt.Sprintf("foresprint_%s_%s_%s%s", version, u.goos(), u.goarch(), ext)
+	prefix := "foresprint"
+	if u.CLI && u.goos() == "linux" {
+		prefix = "foresprint-cli"
+	}
+	return fmt.Sprintf("%s_%s_%s_%s%s", prefix, version, u.goos(), u.goarch(), ext)
 }
 
 // binaryName is the file name of the program inside the archive.

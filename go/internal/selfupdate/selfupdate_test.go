@@ -183,3 +183,22 @@ func TestModeAndState(t *testing.T) {
 		t.Error("environment wins")
 	}
 }
+
+func TestAssetNameOfTheCLIVariant(t *testing.T) {
+	cases := []struct {
+		goos string
+		cli  bool
+		want string
+	}{
+		{"linux", false, "foresprint_2.0.0_linux_amd64.tar.gz"},
+		{"linux", true, "foresprint-cli_2.0.0_linux_amd64.tar.gz"},
+		{"darwin", true, "foresprint_2.0.0_darwin_amd64.tar.gz"},
+		{"windows", true, "foresprint_2.0.0_windows_amd64.zip"},
+	}
+	for _, c := range cases {
+		u := &Updater{GOOS: c.goos, GOARCH: "amd64", CLI: c.cli}
+		if got := u.AssetName("2.0.0"); got != c.want {
+			t.Errorf("%s cli=%v: %s, want %s", c.goos, c.cli, got, c.want)
+		}
+	}
+}

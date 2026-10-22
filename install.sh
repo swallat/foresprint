@@ -7,6 +7,8 @@
 #   FORESPRINT_VERSION=1.0.0      install this version instead of the newest one
 #   FORESPRINT_BIN=~/.local/bin   folder for the program (default: ~/.local/bin)
 #   FORESPRINT_NO_SHORTCUT=1      do not create a launcher
+#   FORESPRINT_VARIANT=cli        Linux only: the command line without the window (needs no GTK or
+#                                 WebKit, for servers and CI); "foresprint update" keeps the variant
 #   FORESPRINT_DOWNLOAD_BASE=URL  other place for the release files (tests, mirrors)
 set -eu
 
@@ -53,7 +55,16 @@ if [ -z "$version" ]; then
     [ -n "$version" ] || fail "could not find the newest version"
 fi
 version="${version#v}"
-name="foresprint_${version}_${os}_${arch}.tar.gz"
+prefix=foresprint
+case "${FORESPRINT_VARIANT:-}" in
+    "") ;;
+    cli)
+        [ "$os" = linux ] || fail "FORESPRINT_VARIANT=cli exists for Linux only"
+        prefix=foresprint-cli
+        ;;
+    *) fail "unknown FORESPRINT_VARIANT ${FORESPRINT_VARIANT} (only: cli)" ;;
+esac
+name="${prefix}_${version}_${os}_${arch}.tar.gz"
 base="${FORESPRINT_DOWNLOAD_BASE:-https://github.com/$REPO/releases/download}/v$version"
 
 tmp=$(mktemp -d)
@@ -89,7 +100,7 @@ if [ "$os" = darwin ]; then
 fi
 
 libs_missing=
-if [ "$os" = linux ] && command -v ldd > /dev/null 2>&1; then
+if [ "$os" = linux ] && [ "$prefix" = foresprint ] && command -v ldd > /dev/null 2>&1; then
     libs_missing=$(ldd "$BIN/foresprint" 2> /dev/null | grep "not found" || true)
 fi
 if [ -n "$libs_missing" ]; then
@@ -99,6 +110,9 @@ if [ -n "$libs_missing" ]; then
     say "  Fedora:        sudo dnf install gtk3 webkit2gtk4.1"
     say "  Arch:          sudo pacman -S gtk3 webkit2gtk-4.1"
     say "Install them, then run: foresprint shortcut"
+    say "Without a window (servers, CI): FORESPRINT_VARIANT=cli sh install.sh"
+elif [ "$prefix" = foresprint-cli ]; then
+    say "(command line variant: no launcher)"
 elif [ -z "${FORESPRINT_NO_SHORTCUT:-}" ]; then
     "$BIN/foresprint" shortcut || say "(no launcher created; foresprint shortcut tries again)"
 fi

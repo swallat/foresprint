@@ -134,8 +134,48 @@ jobs:
           name: archive-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/*
 
+  # Linux without the window: no WebKit needed, so it also runs on servers and in CI. Same
+  # program, built without the tag "desktop"; the self-update of this variant looks for these
+  # archives (internal/selfupdate).
+  build-cli:
+    needs: holidays
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: holidays-data
+          path: go/internal/holidays/data
+      - name: Build
+        working-directory: go
+        run: |
+          version="${TAG#v}"
+          mkdir -p ../stage
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath \
+            -ldflags "-s -w -X main.version=$version" -o ../stage/foresprint ./cmd/foresprint
+          cp ../LICENSE ../stage/
+      - name: Smoke test
+        if: matrix.goarch == 'amd64'
+        run: ./stage/foresprint version
+      - name: Archive
+        run: |
+          version="${TAG#v}"
+          mkdir -p dist
+          tar -czf "dist/foresprint-cli_${version}_linux_${{ matrix.goarch }}.tar.gz" -C stage foresprint LICENSE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive-cli-linux-${{ matrix.goarch }}
+          path: dist/*
+
   publish:
-    needs: build
+    needs: [build, build-cli]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -155,7 +195,7 @@ jobs:
       - name: Checksums
         working-directory: dist
         run: |
-          sha256sum foresprint_* > checksums.txt
+          sha256sum foresprint* > checksums.txt
           cat checksums.txt
       - uses: sigstore/cosign-installer@v3
       - name: Sign checksums.txt (cosign, keyless)
@@ -163,17 +203,9 @@ jobs:
         run: cosign sign-blob --yes --bundle checksums.txt.bundle checksums.txt
       - uses: actions/attest-build-provenance@v3
         with:
-          subject-path: dist/foresprint_*
+          subject-path: dist/foresprint*
       - name: Release page
         run: |
-          # release.yml (the Python packages) creates the page for the same tag; wait for it.
-          # Only a pushed tag starts release.yml; a tag made by this run does not.
-          if [ "$GITHUB_EVENT_NAME" = push ]; then
-            for _ in $(seq 1 40); do
-              gh release view "$TAG" > /dev/null 2>&1 && break
-              sleep 15
-            done
-          fi
           # A tag with a suffix (v1.0.0-beta.1) is a pre-release: the self-update ignores it.
           pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then
