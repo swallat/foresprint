@@ -246,8 +246,6 @@ func absenceDTOs(abs model.Absences) []AbsencePeriodDTO {
 	return out
 }
 
-// SaveAbsencePeriods replaces the planned absences of the team (abwesenheiten.yaml). Periods of
-// one person must not overlap; the answer is the list as saved.
 // dropAbsences keeps only the periods of the people in keep.
 func dropAbsences(abs model.Absences, keep map[string]bool) (model.Absences, bool) {
 	var out model.Absences
@@ -262,6 +260,8 @@ func dropAbsences(abs model.Absences, keep map[string]bool) (model.Absences, boo
 	return out, changed
 }
 
+// SaveAbsencePeriods replaces the planned absences of the team (abwesenheiten.yaml). Periods of
+// one person must not overlap; the answer is the list as saved.
 func (a *API) SaveAbsencePeriods(team string, list []AbsencePeriodDTO) ([]AbsencePeriodDTO, error) {
 	data, err := a.loadTeam(team)
 	if err != nil {
