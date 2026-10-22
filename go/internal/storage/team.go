@@ -146,6 +146,7 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 			PO:         truthy(getOr(rawFeatures, "po", false)),
 			Production: truthy(getOr(rawFeatures, "production", false)),
 			Tickets:    truthy(getOr(rawFeatures, "tickets", false)),
+			Projects:   truthy(getOr(rawFeatures, "projects", false)),
 			Explicit:   true,
 		}
 	}
@@ -188,6 +189,15 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 		return fail(pyError(msg))
 	}
 	team.Sprint.LengthDays = n
+	if team.Sprint.Naming, err = namingFrom(get(sprint, "naming"), where+": sprint"); err != nil {
+		return model.Team{}, err
+	}
+	if team.Sprint.ProForma, err = texts(get(sprint, "pro_forma"), where, "sprint.pro_forma"); err != nil {
+		return model.Team{}, err
+	}
+	if team.Estimation, err = estimationFrom(get(d, "estimation"), where); err != nil {
+		return model.Team{}, err
+	}
 	numbering, perr := enumValue(getOr(sprint, "numbering", "yearly"), numberings, "Numbering")
 	if perr != nil {
 		return fail(*perr)
@@ -295,8 +305,20 @@ func TeamToDict(team model.Team) *yamlx.Map {
 	if team.Features.Tickets { // only when on: files of teams without it stay unchanged
 		put(features, "tickets", true)
 	}
+	if team.Features.Projects {
+		put(features, "projects", true)
+	}
+	if len(team.Sprint.Naming) > 0 {
+		put(sprint, "naming", namingTo(team.Sprint.Naming))
+	}
+	if len(team.Sprint.ProForma) > 0 {
+		put(sprint, "pro_forma", strs(team.Sprint.ProForma))
+	}
 	out := omap("name", team.Name, "unit", string(team.Unit), "features", features,
 		"sprint", sprint, "forecast", fc, "capacity", capm)
+	if est := estimationTo(team.Estimation); len(est.Entries) > 0 {
+		put(out, "estimation", est)
+	}
 	// The tracker section is kept while the feature is on and whenever it holds settings, so
 	// switching the feature off and on again does not lose the configuration.
 	switch {

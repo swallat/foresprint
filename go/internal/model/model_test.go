@@ -159,3 +159,36 @@ func TestNewTeamDefaults(t *testing.T) {
 		t.Errorf("%+v", tm)
 	}
 }
+
+func TestFormatSprintName(t *testing.T) {
+	in := SprintNameInput{Start: Date(2026, time.July, 6), Number: 14, Sequence: 40}
+	got, err := FormatSprintName("S{JJ}-{NN}/{N} #{LFD} Q{Q} {MM} KW{KW} {JJJJ}", in)
+	if err != nil || got != "S26-14/14 #40 Q3 07 KW28 2026" {
+		t.Errorf("%q %v", got, err)
+	}
+	in.Number = 3
+	if got, _ := FormatSprintName("{NN}|{N}", in); got != "03|3" {
+		t.Errorf("%q", got)
+	}
+	if _, err := FormatSprintName("{XX}", in); err == nil {
+		t.Error("unknown placeholder accepted")
+	}
+	if NamingProblem("{JJJJ") == "" || NamingProblem("plain") != "" {
+		t.Error("NamingProblem")
+	}
+}
+
+func TestSource(t *testing.T) {
+	team := NewTeam("a", "A")
+	if team.Source() != SourceNone {
+		t.Error("none")
+	}
+	team.Features.Tickets = true
+	if team.Source() != SourceTracker {
+		t.Error("tracker")
+	}
+	team.Tracker.Kind = PackagesKind
+	if team.Source() != SourcePackages {
+		t.Error("packages")
+	}
+}

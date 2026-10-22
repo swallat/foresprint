@@ -214,6 +214,8 @@ type TeamData struct {
 	Projects []model.Project
 	Tickets  []model.Ticket
 	Preplan  model.Preplan
+	// AbsencePeriods are the planned absences as periods (abwesenheiten.yaml); read always.
+	AbsencePeriods model.Absences
 	// TicketsImported and TicketsSource are the time stamp and source (file name or query) of the
 	// last ticket import.
 	TicketsImported *time.Time
@@ -251,10 +253,11 @@ func (d *TeamData) ProjectByID(id string) *model.Project {
 }
 
 // TeamFiles are the files of a team besides the sprint files.
-var TeamFiles = []string{"team.yaml", "people.yaml", "products.yaml", "projects.yaml", "tickets.yaml", "preplan.yaml"}
+var TeamFiles = []string{"team.yaml", "people.yaml", "products.yaml", "projects.yaml", "tickets.yaml", "preplan.yaml",
+	"abwesenheiten.yaml", "arbeitspakete.yaml"}
 
 // TicketFiles are the files of the ticket pre-planning; only read while features.tickets is on.
-var TicketFiles = []string{"projects.yaml", "tickets.yaml", "preplan.yaml"}
+var TicketFiles = []string{"projects.yaml", "tickets.yaml", "preplan.yaml", "arbeitspakete.yaml"}
 
 // FileVersion is one entry of TeamVersion.
 type FileVersion struct {
@@ -414,7 +417,15 @@ func (r *Repository) Load(key string) (*TeamData, error) {
 		}
 		data.Team.Features = f
 	}
-	if data.Team.Features.Tickets { // off: the three files are not even read
+	if p := filepath.Join(base, "abwesenheiten.yaml"); fileExists(p) {
+		if m, err = read(p); err != nil {
+			return nil, err
+		}
+		if data.AbsencePeriods, err = AbsencesFromDict(m, p); err != nil {
+			return nil, err
+		}
+	}
+	if data.Team.Features.Tickets || data.Team.Features.Projects { // off: the files are not even read
 		if p := filepath.Join(base, "projects.yaml"); fileExists(p) {
 			if m, err = read(p); err != nil {
 				return nil, err
@@ -423,7 +434,9 @@ func (r *Repository) Load(key string) (*TeamData, error) {
 				return nil, err
 			}
 		}
-		if p := filepath.Join(base, "tickets.yaml"); fileExists(p) {
+	}
+	if data.Team.Features.Tickets {
+		if p := filepath.Join(base, TicketFileName(data.Team)); fileExists(p) {
 			if m, err = read(p); err != nil {
 				return nil, err
 			}
@@ -469,10 +482,32 @@ func (r *Repository) SaveProjects(key string, projects []model.Project) (string,
 	return path, writeFile(path, ProjectsHeader, ProjectsToDict(projects))
 }
 
+// TicketFileName is the file that holds the tickets of the team: arbeitspakete.yaml for work
+// packages kept in Foresprint, otherwise tickets.yaml.
+func TicketFileName(team model.Team) string {
+	if team.Source() == model.SourcePackages {
+		return "arbeitspakete.yaml"
+	}
+	return "tickets.yaml"
+}
+
 // SaveTickets writes tickets.yaml.
 func (r *Repository) SaveTickets(key string, f TicketsFile) (string, error) {
 	path := filepath.Join(r.TeamDir(key), "tickets.yaml")
 	return path, writeFile(path, TicketsHeader, TicketsToDict(f))
+}
+
+// SavePackages writes arbeitspakete.yaml, the work packages of a team whose work does not come
+// from a tracker.
+func (r *Repository) SavePackages(key string, f TicketsFile) (string, error) {
+	path := filepath.Join(r.TeamDir(key), "arbeitspakete.yaml")
+	return path, writeFile(path, PackagesHeader, TicketsToDict(f))
+}
+
+// SaveAbsences writes abwesenheiten.yaml.
+func (r *Repository) SaveAbsences(key string, a model.Absences) (string, error) {
+	path := filepath.Join(r.TeamDir(key), "abwesenheiten.yaml")
+	return path, writeFile(path, AbsencesHeader, AbsencesToDict(a))
 }
 
 // SavePreplan writes preplan.yaml.

@@ -113,10 +113,22 @@ type TrackerFields struct {
 	Estimate  *string
 	Remaining *string
 	Epic      *string
+	// Status, Acceptance, Product, Project, Refined and Production are the fields the values of
+	// the same name come from; nil = not mapped (rules or by hand, decision 21).
+	Status     *string
+	Acceptance *string
+	Product    *string
+	Project    *string
+	Refined    *string
+	Production *string
 }
 
+// RemovedTargets are the places a ticket goes that was taken out of the tracker's sprint in
+// planning (tracker.removed_target).
+var RemovedTargets = []string{"backlog", "pro_forma", "next"}
+
 // TrackerKinds are the kinds of ticket sources (tracker.kind).
-var TrackerKinds = []string{"csv", "jira"}
+var TrackerKinds = []string{"csv", "jira", PackagesKind}
 
 // TrackerSettings is the section tracker of team.yaml.
 type TrackerSettings struct {
@@ -149,6 +161,17 @@ type TrackerSettings struct {
 	// RuleFields maps the rule name of an additional field to its display name in the tracker
 	// (or header of the CSV column).
 	RuleFields OrderedMap[string]
+	// ProductionLabel marks a ticket as production only (100 %); ProductionRules give other
+	// tickets a share. Both apply when no value set in Foresprint or mapped field exists.
+	ProductionLabel *string
+	ProductionRules []ProductionRule
+	// WriteSprint writes the planned sprint back to the tracker (off by default, only on an
+	// explicit action). RemovedTarget says where a ticket taken out of the tracker's sprint
+	// goes then, one of RemovedTargets ("" = backlog).
+	WriteSprint   bool
+	RemovedTarget string
+	// PackagePrefix starts the keys of work packages; empty = DefaultPackagePrefix.
+	PackagePrefix string
 }
 
 // NewTrackerSettings returns the defaults.
@@ -178,7 +201,30 @@ type Project struct {
 	BudgetBasis *BudgetBasis
 	Match       *Rule
 	Note        *string
+	// AlsoProducts are further products of the project besides Product; the project touches
+	// all of them (decision: products per project as a list).
+	AlsoProducts []string
+	Start        *time.Time
+	Milestones   []Milestone
+	Contingent   Contingent
+	// State and End: a closed project has an end date and is listed under "closed projects".
+	State ProjectState
+	End   *time.Time
+	// OpenScope is the open scope of the project without tickets, kept by hand.
+	OpenScope *float64
 }
+
+// Products returns all products of the project, Product first.
+func (p Project) Products() []string {
+	var out []string
+	if p.Product != nil && *p.Product != "" {
+		out = append(out, *p.Product)
+	}
+	return append(out, p.AlsoProducts...)
+}
+
+// Closed reports whether the project is finished or cancelled.
+func (p Project) Closed() bool { return p.State != ProjectOpen }
 
 // Ticket is a unit of work as last imported from the tracker (tickets.yaml).
 type Ticket struct {
@@ -210,6 +256,15 @@ type Ticket struct {
 	// DependsOn are the keys of tickets that must be finished first.
 	DependsOn []string
 	Project   *string
+	// Description to Comments are kept in the team data only for work packages; for tracker
+	// tickets they are read on each sync and cached per machine.
+	Description *string
+	Acceptance  *string
+	Assignee    *string
+	// Product is the product of a work package.
+	Product  *string
+	Subtasks []Subtask
+	Comments []Comment
 	// ProjectCandidates are the projects whose rules match via the same source (contradiction;
 	// Project stays empty).
 	ProjectCandidates []string
@@ -271,6 +326,30 @@ type ManualEstimate struct {
 type Preplan struct {
 	Earmarks  []Earmark
 	Estimates []ManualEstimate
+	// Production are the production shares set by hand, Overrides the product and project
+	// decisions of the PO against the rules.
+	Production []ProductionShare
+	Overrides  []TicketOverride
+}
+
+// ProductionFor returns the production share set by hand for the ticket, or nil.
+func (p Preplan) ProductionFor(key string) *ProductionShare {
+	for i := range p.Production {
+		if p.Production[i].Ticket == key {
+			return &p.Production[i]
+		}
+	}
+	return nil
+}
+
+// OverrideFor returns the product and project decision of the PO for the ticket, or nil.
+func (p Preplan) OverrideFor(key string) *TicketOverride {
+	for i := range p.Overrides {
+		if p.Overrides[i].Ticket == key {
+			return &p.Overrides[i]
+		}
+	}
+	return nil
 }
 
 // EarmarkFor returns the earmark of the ticket, or nil.
@@ -316,11 +395,11 @@ func samePtr[T comparable](a, b *T) bool {
 func (t TrackerSettings) IsDefault() bool {
 	d := NewTrackerSettings()
 	return t.Kind == d.Kind && samePtr(t.BaseURL, d.BaseURL) && samePtr(t.Query, d.Query) &&
-		samePtr(t.Fields.Estimate, d.Fields.Estimate) && samePtr(t.Fields.Remaining, d.Fields.Remaining) &&
-		samePtr(t.Fields.Epic, d.Fields.Epic) && t.PlanningUses == d.PlanningUses &&
+		t.Fields == d.Fields && t.PlanningUses == d.PlanningUses &&
 		samePtr(t.RefinedLabel, d.RefinedLabel) && t.RefinedAlsoIf == nil &&
 		sameStrings(t.ProjectMatchOrder, d.ProjectMatchOrder) && sameStrings(t.PriorityOrder, d.PriorityOrder) &&
 		t.DependencyGap == d.DependencyGap && t.BudgetBasis == d.BudgetBasis && t.RoughFactor == d.RoughFactor &&
 		t.WriteLabels == d.WriteLabels && t.SprintNames.Len() == 0 && t.LinkType == d.LinkType &&
-		t.RuleFields.Len() == 0
+		t.RuleFields.Len() == 0 && samePtr(t.ProductionLabel, d.ProductionLabel) &&
+		len(t.ProductionRules) == 0 && !t.WriteSprint && t.RemovedTarget == "" && t.PackagePrefix == ""
 }

@@ -101,9 +101,7 @@ func trackerFrom(d *yamlx.Map, where string) (model.TrackerSettings, error) {
 	tr.Kind = strOr(get(d, "kind"), "csv")
 	tr.BaseURL = text(get(d, "base_url"))
 	tr.Query = text(get(d, "query"))
-	tr.Fields = model.TrackerFields{
-		Estimate: text(get(fields, "estimate")), Remaining: text(get(fields, "remaining")), Epic: text(get(fields, "epic")),
-	}
+	tr.Fields = trackerFieldsFrom(fields)
 	if tr.PlanningUses, err = choice(get(d, "planning_uses"), planningUses, model.UsesRemaining, at, "planning_uses"); err != nil {
 		return tr, err
 	}
@@ -142,6 +140,9 @@ func trackerFrom(d *yamlx.Map, where string) (model.TrackerSettings, error) {
 	if tr.RuleFields, err = orderedTexts(get(d, "rule_fields"), at, "rule_fields"); err != nil {
 		return tr, err
 	}
+	if err = trackerExtrasFrom(d, &tr, at); err != nil {
+		return tr, err
+	}
 	return tr, nil
 }
 
@@ -172,10 +173,7 @@ func trackerTo(tr model.TrackerSettings) *yamlx.Map {
 		put(out, "query", *tr.Query)
 	}
 	fields := &yamlx.Map{}
-	for _, f := range []struct {
-		name  string
-		value *string
-	}{{"estimate", tr.Fields.Estimate}, {"remaining", tr.Fields.Remaining}, {"epic", tr.Fields.Epic}} {
+	for _, f := range trackerFieldNames(tr.Fields) {
 		if f.value != nil && *f.value != "" {
 			put(fields, f.name, *f.value)
 		}
@@ -207,6 +205,7 @@ func trackerTo(tr model.TrackerSettings) *yamlx.Map {
 	if tr.RuleFields.Len() > 0 {
 		put(out, "rule_fields", orderedStrings(tr.RuleFields))
 	}
+	trackerExtrasTo(out, tr)
 	return out
 }
 

@@ -134,7 +134,10 @@ func TestCheckTeam(t *testing.T) {
 					t.Errorf("extra issue %d: %+v", i, got[i])
 				default:
 					want := tc.Issues[i]
-					if string(got[i].Level) != want.Level || got[i].Where != want.Where || got[i].Message != want.Message {
+					// Known deviation: 1.0 adds the tracker kind "packages" (work packages kept in
+					// Foresprint), which the message lists.
+					message := strings.Replace(got[i].Message, "only csv, jira, packages", "only csv, jira", 1)
+					if string(got[i].Level) != want.Level || got[i].Where != want.Where || message != want.Message {
 						t.Errorf("issue %d:\n got  %+v\n want %+v", i, got[i], want)
 					}
 				}
