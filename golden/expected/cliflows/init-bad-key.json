@@ -1,0 +1,9 @@
+{
+ "args": [
+  "init",
+  "Bad Key"
+ ],
+ "input": "",
+ "exit_code": 1,
+ "files": {}
+}
