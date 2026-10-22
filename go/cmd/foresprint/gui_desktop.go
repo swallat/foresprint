@@ -3,8 +3,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/swallat/foresprint/internal/cli"
 	"github.com/swallat/foresprint/internal/desktop"
 )
@@ -13,8 +11,8 @@ import (
 // double click) and "foresprint gui" open it.
 func init() {
 	cli.GUI = func(dataDir string) error {
-		reportStart(os.Args[1:])
 		desktop.Trace = reportTrace
+		reportTrace("opening the window")
 		err := desktop.Run(version, dataDir)
 		if err != nil {
 			// The Windows release has no console: show the problem where it can be seen.
@@ -23,3 +21,6 @@ func init() {
 		return err
 	}
 }
+
+// reportTrace notes a step of the start in the start log (Windows release).
+func reportTrace(step string) { reportLog("%s", step) }

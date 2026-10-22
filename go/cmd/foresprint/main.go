@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/spf13/cobra"
 
@@ -22,18 +23,24 @@ func init() {
 	cli.Register(versionCommand)
 }
 
-func main() {
+func main() { os.Exit(run()) }
+
+// run is main without the exit, so that a panic is logged (and shown to a double click) first.
+func run() (code int) {
 	reportBegin(os.Args[1:])
 	defer func() {
 		if r := recover(); r != nil {
-			reportFailure("Foresprint stopped unexpectedly.", fmt.Errorf("%v", r))
-			os.Exit(2)
+			reportLog("panic: %v\n%s", r, debug.Stack())
+			if len(os.Args) == 1 {
+				reportFailure("Foresprint stopped unexpectedly.", fmt.Errorf("%v", r))
+			}
+			code = 2
 		}
 	}()
 	selfupdate.CleanupOld()
-	code := cli.Execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
+	code = cli.Execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
 	reportEnd(os.Args[1:], code)
-	os.Exit(code)
+	return code
 }
 
 func versionCommand(env *cli.Env) *cobra.Command {

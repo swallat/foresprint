@@ -2,15 +2,11 @@
 
 package main
 
-import "fmt"
+// Only the Windows release runs without a console; elsewhere the error is printed by cli.Execute.
 
-// Only the Windows release runs without a console; here the standard streams are enough.
+func reportFailure(string, error) {}
 
-func reportStart([]string) {}
-
-func reportFailure(what string, err error) { fmt.Printf("%s: %v\n", what, err) }
-
-func reportTrace(string) {}
+func reportLog(string, ...any) {}
 
 func reportBegin([]string) {}
 

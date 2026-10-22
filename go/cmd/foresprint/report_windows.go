@@ -47,15 +47,9 @@ func logLine(format string, args ...any) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	_, _ = fmt.Fprintf(f, "%s (+%.1fs) %s\n", time.Now().Format("2006-01-02 15:04:05"),
 		time.Since(startedAt).Seconds(), fmt.Sprintf(format, args...))
-}
-
-// reportStart notes the opening of the window in the log, so that a start without any message
-// leaves a trace.
-func reportStart(args []string) {
-	logLine("opening the window: version=%s args=%q", version, args)
 }
 
 // reportFailure logs a failure and shows it in a message box (the window or the console may not
@@ -65,13 +59,10 @@ func reportFailure(what string, err error) {
 	text := fmt.Sprintf("%s\n\n%v\n\nLog: %s", what, err, logPath())
 	title, _ := syscall.UTF16PtrFromString("Foresprint")
 	body, _ := syscall.UTF16PtrFromString(text)
-	const mbOK, mbIconError = 0x0, 0x10
+	const mbOK, mbIconError, mbSetForeground = 0x0, 0x10, 0x10000
 	box := syscall.NewLazyDLL("user32.dll").NewProc("MessageBoxW")
-	_, _, _ = box.Call(0, uintptr(unsafe.Pointer(body)), uintptr(unsafe.Pointer(title)), mbOK|mbIconError)
+	_, _, _ = box.Call(0, uintptr(unsafe.Pointer(body)), uintptr(unsafe.Pointer(title)), mbOK|mbIconError|mbSetForeground)
 }
-
-// reportTrace notes a step of the start in the log.
-func reportTrace(step string) { logLine("%s", step) }
 
 // reportBegin is the first entry of a start without arguments (a double click, the launcher):
 // when the window never opens, the entries after it show how far the program came.
@@ -89,3 +80,6 @@ func reportEnd(args []string, code int) {
 		logLine("program end: exit code %d", code)
 	}
 }
+
+// reportLog notes a line in the start log without showing anything.
+func reportLog(format string, args ...any) { logLine(format, args...) }
