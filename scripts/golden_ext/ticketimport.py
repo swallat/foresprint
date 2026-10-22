@@ -98,12 +98,12 @@ def old(key: str = "ABC-1", **overrides: Any) -> Ticket:
 
 def sprint_table(data: Any, fc: Any) -> dict[str, str]:
     """Id and end of every sprint ``lookup_sprint`` finds: recorded, in the forecast, and the
-    next 60 from the calendar (recorded wins over the forecast over the calendar)."""
+    next 52 from the calendar (recorded wins over the forecast over the calendar)."""
     table: dict[str, str] = {s.id: s.end.isoformat() for s in data.sprints}
     for entry in fc.entries:
         table.setdefault(entry.sprint.id, entry.sprint.end.isoformat())
     last = data.sprints[-1] if data.sprints else None
-    for _ in range(60):
+    for _ in range(52):
         last = following_sprint(data.team, last)
         table.setdefault(last.id, last.end.isoformat())
     return table

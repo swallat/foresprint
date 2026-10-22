@@ -9,6 +9,7 @@
 package ticketimport
 
 import (
+	"sort"
 	"strings"
 	"time"
 
@@ -534,12 +535,7 @@ func sortChanges(changes []Change) {
 	for i, k := range Kinds {
 		rank[k] = i
 	}
-	// stable insertion sort by kind
-	for i := 1; i < len(changes); i++ {
-		for j := i; j > 0 && rank[changes[j].Kind] < rank[changes[j-1].Kind]; j-- {
-			changes[j], changes[j-1] = changes[j-1], changes[j]
-		}
-	}
+	sort.SliceStable(changes, func(i, j int) bool { return rank[changes[i].Kind] < rank[changes[j].Kind] })
 }
 
 func floatOrNil(f *float64) any {
