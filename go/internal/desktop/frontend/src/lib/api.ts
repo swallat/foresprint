@@ -6,8 +6,10 @@
 
 import type { BacklogApi } from './types.backlog';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
+import type { DataApi } from './types.data';
+import type { TodayApi } from './types.today';
 
-export interface Api extends BacklogApi {
+export interface Api extends BacklogApi, DataApi, TodayApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
