@@ -31,6 +31,7 @@ import i_cloud_done from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import i_cloud_download from '@material-symbols/svg-400/outlined/cloud_download.svg?raw';
 import i_cloud_off from '@material-symbols/svg-400/outlined/cloud_off.svg?raw';
 import i_cloud_upload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw';
+import i_computer from '@material-symbols/svg-400/outlined/computer.svg?raw';
 import i_confirmation_number from '@material-symbols/svg-400/outlined/confirmation_number.svg?raw';
 import i_content_copy from '@material-symbols/svg-400/outlined/content_copy.svg?raw';
 import i_contrast from '@material-symbols/svg-400/outlined/contrast.svg?raw';
@@ -108,6 +109,7 @@ import i_today from '@material-symbols/svg-400/outlined/today.svg?raw';
 import i_tune from '@material-symbols/svg-400/outlined/tune.svg?raw';
 import i_unarchive from '@material-symbols/svg-400/outlined/unarchive.svg?raw';
 import i_undo from '@material-symbols/svg-400/outlined/undo.svg?raw';
+import i_unfold_more from '@material-symbols/svg-400/outlined/unfold_more.svg?raw';
 import i_upload from '@material-symbols/svg-400/outlined/upload.svg?raw';
 import i_verified_user from '@material-symbols/svg-400/outlined/verified_user.svg?raw';
 import i_view_list from '@material-symbols/svg-400/outlined/view_list.svg?raw';
@@ -142,6 +144,7 @@ const icons = {
   cloud_download: i_cloud_download,
   cloud_off: i_cloud_off,
   cloud_upload: i_cloud_upload,
+  computer: i_computer,
   confirmation_number: i_confirmation_number,
   content_copy: i_content_copy,
   contrast: i_contrast,
@@ -219,6 +222,7 @@ const icons = {
   tune: i_tune,
   unarchive: i_unarchive,
   undo: i_undo,
+  unfold_more: i_unfold_more,
   upload: i_upload,
   verified_user: i_verified_user,
   view_list: i_view_list,
