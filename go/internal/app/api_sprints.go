@@ -100,9 +100,14 @@ func cellState(s model.Sprint, person string) string {
 // displayName is the name of a sprint: the manual one, else the naming rule of the team, else
 // the id.
 func displayName(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) string {
-	sprints := make([]model.Sprint, len(fc.Entries))
+	sprints := make([]model.Sprint, len(fc.Entries), len(fc.Entries)+1)
+	known := false
 	for i := range fc.Entries {
 		sprints[i] = fc.Entries[i].Sprint
+		known = known || sprints[i].ID == s.ID
+	}
+	if !known { // beyond the forecast horizon
+		sprints = append(sprints, s)
 	}
 	return model.SprintDisplayName(&data.Team, sprints, s.ID)
 }
