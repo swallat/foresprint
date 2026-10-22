@@ -192,3 +192,17 @@ func TestRegister(t *testing.T) {
 	}
 	Register("xx", map[string]string{"a": "b"}) // unknown language: ignored
 }
+
+func TestTexts(t *testing.T) {
+	texts := Texts("de")
+	if texts["Aborted."] != "Abgebrochen." {
+		t.Errorf("Aborted. = %q", texts["Aborted."])
+	}
+	texts["Aborted."] = "changed"
+	if Texts("de")["Aborted."] != "Abgebrochen." {
+		t.Error("Texts returns the catalog itself, not a copy")
+	}
+	if Texts("xx") != nil {
+		t.Error("unknown language")
+	}
+}
