@@ -35,6 +35,7 @@ const project = (over: Partial<ProjectView>): ProjectView => ({
   open: 0,
   milestones: [],
   state: '',
+  closedAt: '',
   history: false,
   ...over,
 });

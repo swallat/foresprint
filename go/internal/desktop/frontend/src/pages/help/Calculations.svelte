@@ -111,7 +111,7 @@
       <li>{t('The plannable share is a team setting (roadmap share). The carried-over rest is what continues in this sprint from the last one.')}</li>
       <li>{t('The small items are not planned ticket by ticket; they absorb the day-to-day work.')}</li>
     </ul>
-    {#if view && next?.plan != null}{@render example(`${next.id}: ${fmt(next.plan, 0)} × ${pct(view.roadmapShare)} → ${fmt(next.plannable, 0)} + ${fmt(next.small, 0)}`)}{/if}
+    {#if view && next?.plan != null}{@render example(`${next.id}: (${fmt(next.plan, view.rounding)} − ${fmt(next.carryIn)}) × ${pct(view.roadmapShare)} → ${fmt(next.plannable, view.rounding)} + ${fmt(next.small, view.rounding)}`)}{/if}
   {/snippet}
   {@render section('plannable', t('Plannable and small items'), t('The part of the plan for planned work.'), plannableBody)}
 
