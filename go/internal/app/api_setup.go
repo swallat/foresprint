@@ -56,6 +56,9 @@ type Opened = datasvc.Opened
 // "open" uses the existing repository at folder, "new" starts an empty one there. On success the
 // folder is remembered as the data folder.
 func (a *API) SetupStorage(kind, address, folder string) Opened {
+	if p := a.demoProblem(); p != nil {
+		return Opened{Problem: p}
+	}
 	st := a.store()
 	var out Opened
 	switch kind {
