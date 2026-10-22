@@ -199,7 +199,9 @@
                 <td class="num">{fmt(r.trend)}</td>
                 <td class="num"><strong>{fmt(r.plan, view.rounding)}</strong></td>
                 <td class="num">{r.low !== null ? `${fmt(r.low, view.rounding)} – ${fmt(r.high, view.rounding)}` : '–'}</td>
-                <td class="num">{fmt(r.plannable, view.rounding)}</td>
+                <td class="num" title={r.carryIn > 0 ? t('After {n} points of carry-over.', { n: fmt(r.carryIn) }) : undefined}>
+                  {fmt(r.plannable, view.rounding)}{r.carryIn > 0 ? '*' : ''}
+                </td>
                 <td class="num">{fmt(r.small, view.rounding)}</td>
                 {#if whatIf.length > 0}
                   <td class="num">
@@ -223,7 +225,15 @@
                         {#if r.low !== null}
                           <div class="muted">{t('Range: lowest and highest normalized velocity of the last {n} sprints, same calculation.', { n: view.samples })}</div>
                         {/if}
-                        <div class="muted">{t('Plannable: {share} of the plan.', { share: pct(view.roadmapShare) })}</div>
+                        <div class="data">
+                          {t('Plannable: ({plan} − {carry}) × {share}', { plan: fmt(r.plan, view.rounding), carry: fmt(r.carryIn), share: pct(view.roadmapShare) })} → {fmt(r.plannable, view.rounding)}
+                        </div>
+                        {#if r.carryIn > 0}
+                          <div class="muted">
+                            {r.carryAssumed ? t('Carry-over of {n} points is an assumption of the running sprint.', { n: fmt(r.carryIn) }) : t('Carry-over of {n} points continues in this sprint.', { n: fmt(r.carryIn) })}
+                          </div>
+                        {/if}
+                        {#if r.overbooked}<div class="muted">{t('The carry-over alone exceeds the plan; nothing is plannable.')}</div>{/if}
                       {:else}
                         <div class="muted">{t('The recorded commitment of the sprint, rounded down.')}</div>
                       {/if}

@@ -20,6 +20,15 @@ func TestForecastOfTheDemoTeam(t *testing.T) {
 		t.Error("the next sprint has no plan")
 	}
 
+	for _, r := range v.Upcoming {
+		if r.Plan == nil || r.Plannable == nil || r.Small == nil || r.Overbooked {
+			continue
+		}
+		if sum := *r.Plannable + *r.Small + r.CarryIn; sum < *r.Plan-1e-9 || sum > *r.Plan+1e-9 {
+			t.Errorf("%s: plannable %v + small %v + carry-over %v is not the plan %v", r.ID, *r.Plannable, *r.Small, r.CarryIn, *r.Plan)
+		}
+	}
+
 	same, err := api.ForecastWhatIf(key, 0, 100)
 	if err != nil {
 		t.Fatal(err)

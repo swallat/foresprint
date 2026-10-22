@@ -8,6 +8,8 @@ import (
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/planning"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -76,6 +78,16 @@ func row(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) ForecastRo
 		if *r.PlanSource == engine.PlanActual {
 			out.PlanSource = "actual"
 		}
+	}
+	if state != "past" && r.Plan != nil {
+		sprints := make([]model.Sprint, len(fc.Entries))
+		for i := range fc.Entries {
+			sprints[i] = fc.Entries[i].Sprint
+		}
+		carry := planning.CarryInto(sprints, s.ID, "")
+		split := planning.SplitPlan(*r.Plan, carry.Rest, fc.Data.Team.Forecast.RoadmapShare, fc.Data.Team.Forecast.Rounding)
+		out.Plannable, out.Small = &split.Plannable, &split.SmallStuff
+		out.CarryIn, out.CarryAssumed, out.Overbooked = carry.Rest, carry.Assumed, split.Overbooked
 	}
 	if band {
 		if b, ok := analysis.BandOf(fc, e); ok {
