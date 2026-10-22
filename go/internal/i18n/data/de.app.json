@@ -7,6 +7,8 @@
   "Tracker synced.": "Tracker abgerufen.",
   "The folder {path} does not exist.": "Den Ordner {path} gibt es nicht.",
   "No folder dialog in this build.": "Dieser Build hat keinen Ordnerdialog.",
-  "Choose the data folder": "Datenordner wählen"
+  "Choose the data folder": "Datenordner wählen",
+  "Absence days and focus must not be negative.": "Abwesenheitstage und Fokus dürfen nicht negativ sein.",
+  "Remaining work must not be negative and the share must be between 0 and 100.": "Der Rest darf nicht negativ sein und der Anteil muss zwischen 0 und 100 liegen."
  }
 }
