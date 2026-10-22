@@ -148,7 +148,7 @@ func (s *sheet) str(row, col int, v string, f Format) {
 		s.blank(row, col, f)
 		return
 	}
-	s.must(s.b.f.SetCellStr(s.name, s.cell(row, col), v))
+	s.must(s.b.f.SetCellStr(s.name, s.cell(row, col), escapeControl(v)))
 	s.styleAt(row, col, f)
 }
 
@@ -339,4 +339,17 @@ func xmlText(s string) string {
 	var b bytes.Buffer
 	_ = xml.EscapeText(&b, []byte(s))
 	return b.String()
+}
+
+var controlChars = regexp.MustCompile(`[\x00-\x08\x0B-\x1F]|_x[0-9A-Fa-f]{4}_`)
+
+// escapeControl writes control characters the way xlsxwriter does (_x0001_); a literal
+// "_x0001_" in the text is protected as "_x005F_x0001_".
+func escapeControl(v string) string {
+	return controlChars.ReplaceAllStringFunc(v, func(m string) string {
+		if m[0] == '_' {
+			return "_x005F" + m
+		}
+		return fmt.Sprintf("_x%04X_", m[0])
+	})
 }

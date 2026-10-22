@@ -822,7 +822,11 @@ func trendSheet(b *book, wsT, ws *sheet, c map[string]int, entries []forecast.Ti
 		}
 	}
 	last := len(entries)
-	b.errorsGrey(wsT, fmt.Sprintf("B2:%s", ref(last, 6, false, false)))
+	greyRange := fmt.Sprintf("B2:%s", ref(last, 6, false, false))
+	if last == 0 { // xlsxwriter swaps the rows of a reversed range
+		greyRange = fmt.Sprintf("B1:%s", ref(1, 6, false, false))
+	}
+	b.errorsGrey(wsT, greyRange)
 	tname := "'" + wsT.name + "'!"
 	chart := func(title string, columns []int, anchor, ytitle string) {
 		var series []excelize.ChartSeries
