@@ -1,6 +1,6 @@
 // Mock answers of the Team area for a browser without the program (demo team "Atlas").
 
-import type { AbsencePeriod, PeopleView, Person, RuleOwner, RulePreview, TeamApi } from './types.team';
+import type { AbsencePeriod, EndResult, Owner, PeopleView, Person, Product, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from './types.team';
 
 const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'in_sprint'];
 
@@ -79,7 +79,106 @@ const peopleView = (): PeopleView => ({
   people: clone(people),
 });
 
+const product = (id: string, name: string, po: string, share: number | null, rule: string, over: Partial<Product> = {}): Product => ({
+  id,
+  name,
+  po,
+  share,
+  rule,
+  from: '',
+  to: '',
+  tickets: 0,
+  points: 0,
+  ended: false,
+  used: true,
+  ...over,
+});
+
+let products: Product[] = [
+  product('portal', 'Customer portal', 'kim', 0.35, 'component = "Portal"', { tickets: 3, points: 15 }),
+  product('billing', 'Billing', 'kim', 0.2, 'component = "Billing"', { tickets: 1, points: 5 }),
+  product('mobile', 'Mobile app', 'lea', 0.25, 'component = "Mobile App" AND label != "internal"', { tickets: 1, points: 5 }),
+  product('platform', 'Platform', 'lea', 0.2, 'component = "Platform" OR label = "team-platform"', { tickets: 1, points: 8 }),
+  product('legacy', 'Legacy system', 'kim', 0, '', { ended: true, to: '2026-09-15' }),
+];
+let owners: Owner[] = [
+  { id: 'kim', name: 'Kim Berger', person: '', products: 3, inTeam: false, fte: 0 },
+  { id: 'lea', name: 'Lea Hoffmann', person: '', products: 2, inTeam: false, fte: 0 },
+];
+let lastUndo: { token: number; products: Product[]; owners: Owner[] } | undefined;
+let tokens = 0;
+
+function remember(): number {
+  tokens += 1;
+  lastUndo = { token: tokens, products: clone(products), owners: clone(owners) };
+  return tokens;
+}
+
+const productsView = (): ProductsView => {
+  const count = (id: string) => owners.length && products.filter((p) => p.po === id).length;
+  owners = owners.map((o) => ({ ...o, products: count(o.id) as number }));
+  return { source: 'tracker', today: new Date().toISOString().slice(0, 10), multi: true, legacy: false, products: clone(products), owners: clone(owners) };
+};
+const step = (undo: number): Step => ({ view: productsView(), undo });
+
 export const teamMock: TeamApi = {
+  async Products() {
+    return productsView();
+  },
+  async SaveProducts(_team, list) {
+    const before = new Map(products.map((p) => [p.id, p]));
+    for (const p of products) {
+      if (p.used && !list.some((x) => x.id === p.id)) throw new Error(`${p.name} has history and cannot be deleted. End it instead.`);
+    }
+    products = list.map((p) => ({ ...clone(p), id: p.id || p.name.toLowerCase().replace(/\s+/g, '-'), used: before.get(p.id)?.used ?? false }));
+    return productsView();
+  },
+  async EndProduct(_team, id, lastDay, shares, target): Promise<EndResult> {
+    const sum = Object.values(shares).reduce((n, v) => n + v, 0);
+    if (Math.abs(sum - 1) > 0.005) throw new Error(`The shares add up to ${Math.round(sum * 100)} percent, not 100.`);
+    const undo = remember();
+    const ended = products.find((p) => p.id === id);
+    const moved = target && ended ? ended.tickets : 0;
+    products = products.map((p) => {
+      if (p.id === id) return { ...p, ended: true, to: lastDay, share: 0, rule: '', tickets: 0, points: 0 };
+      if (p.id === target && ended) return { ...p, tickets: p.tickets + ended.tickets, points: p.points + ended.points };
+      return { ...p, share: shares[p.id] ?? p.share };
+    });
+    return { view: productsView(), moved, undo };
+  },
+  async ResumeProduct(_team, id) {
+    const undo = remember();
+    products = products.map((p) => (p.id === id ? { ...p, ended: false, to: '', share: 0 } : p));
+    return step(undo);
+  },
+  async AddOwner(_team, name) {
+    const undo = remember();
+    owners = [...owners, { id: name.toLowerCase().replace(/\s+/g, '-'), name, person: '', products: 0, inTeam: false, fte: 0 }];
+    return step(undo);
+  },
+  async RenameOwner(_team, id, name) {
+    const undo = remember();
+    owners = owners.map((o) => (o.id === id ? { ...o, name } : o));
+    return step(undo);
+  },
+  async RemoveOwner(_team, id, handover) {
+    if (owners.length < 2) throw new Error('The only PO cannot be removed.');
+    const undo = remember();
+    products = products.map((p) => (p.po === id ? { ...p, po: handover[p.id] ?? p.po } : p));
+    owners = owners.filter((o) => o.id !== id);
+    return step(undo);
+  },
+  async SetOwnerInTeam(_team, id, inTeam, fte) {
+    const undo = remember();
+    owners = owners.map((o) => (o.id === id ? { ...o, inTeam, fte: inTeam ? fte : 0, person: inTeam ? id : '' } : o));
+    return step(undo);
+  },
+  async Undo(_team, token) {
+    if (!lastUndo || lastUndo.token !== token) throw new Error('This change can no longer be undone.');
+    products = lastUndo.products;
+    owners = lastUndo.owners;
+    lastUndo = undefined;
+  },
   async People() {
     return peopleView();
   },
