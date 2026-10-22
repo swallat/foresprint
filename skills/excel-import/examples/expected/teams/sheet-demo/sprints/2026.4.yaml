@@ -1,0 +1,10 @@
+id: '2026.4'
+start: 2026-02-16
+end: 2026-03-02
+absences: {}
+absence_state: expected
+expected_absences: {mia: 0, rana: 2}
+capacity: null
+forecast_ist: null
+velocity: null
+scope_creep: null

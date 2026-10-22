@@ -1,0 +1,13 @@
+people:
+- id: mia
+  name: Mia
+  memberships:
+  - {from: 2025-03-01, to: null, fte: 1}
+- id: joel
+  name: Joel
+  memberships:
+  - {from: 2025-03-01, to: 2026-02-28, fte: 1}
+- id: rana
+  name: Rana
+  memberships:
+  - {from: 2025-09-01, to: null, fte: 0.6}

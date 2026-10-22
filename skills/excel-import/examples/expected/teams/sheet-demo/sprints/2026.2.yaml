@@ -1,0 +1,12 @@
+id: '2026.2'
+start: 2026-01-19
+end: 2026-02-02
+absences: {mia: 0, joel: 3, rana: 0}
+absence_state: confirmed
+capacity: null
+forecast_ist: 22
+velocity: 22
+scope_creep: 0.18
+products:
+  storefront: {done: 17}
+  ops-console: {done: 5}

@@ -1,0 +1,13 @@
+name: Harbor Crew
+unit: SP
+features:
+  products: true
+  po: true
+sprint:
+  length_days: 14
+  numbering: yearly
+forecast:
+  reference_capacity: 17
+capacity:
+  country: DE
+  region: HH
