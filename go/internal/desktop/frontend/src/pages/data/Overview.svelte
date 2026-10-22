@@ -21,6 +21,7 @@
   /** The file whose discard waits for a confirmation, '' = all, undefined = none. */
   let discarding = $state<string | undefined>();
   let checking = $state(false);
+  let putting = $state(false);
   let failed = $state('');
   let seq = 0;
 
@@ -64,11 +65,19 @@
     (side === 'before' ? v.hasBefore : v.hasAfter) ? v[side] : t('(none)');
 
   async function putBack(file: string, v: ValueChange): Promise<void> {
-    const done = await api.DiscardValues([{ file, path: v.path }]);
-    await refreshStatus();
-    await load();
-    if (done.problem) toast(done.problem.message, 'bad');
-    else toast(done.warning ?? t('Put back.'), 'ok');
+    if (putting) return;
+    putting = true;
+    try {
+      const done = await api.DiscardValues([{ file, path: v.path }]);
+      await refreshStatus();
+      await load();
+      if (done.problem) toast(done.problem.message, 'bad');
+      else toast(done.warning ?? t('Put back.'), 'ok');
+    } catch (e) {
+      toast(String(e), 'bad');
+    } finally {
+      putting = false;
+    }
   }
 
   async function discard(files: string[]): Promise<void> {
@@ -244,7 +253,7 @@
                       <td class="data wrap">{shownValue(v, 'before')}</td>
                       <td class="data wrap">{shownValue(v, 'after')}</td>
                       <td>
-                        <button class="btn icon ghost" type="button" aria-label={t('Put back: {label}', { label: v.label })} title={t('Put back')} disabled={!!app.busy} onclick={() => putBack(f.file, v)}>
+                        <button class="btn icon ghost" type="button" aria-label={t('Put back: {label}', { label: v.label })} title={t('Put back')} disabled={!!app.busy || putting} onclick={() => putBack(f.file, v)}>
                           <Icon name="undo" />
                         </button>
                       </td>

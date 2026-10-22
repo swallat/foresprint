@@ -55,8 +55,8 @@
   function choose(file: string, entry: ConflictEntry, choice: Choice): void {
     const k = entryKey(file, entry);
     choices[k] = choice;
-    // Start the own value from the one that is closest: mine.
-    if (choice === 'custom' && values[k] === undefined) values[k] = entry.mineMissing ? '' : entry.mine;
+    // The own value starts empty: the shown texts are for reading (a diff for whole files, plain text for values) and would change meaning when read back as YAML.
+    if (choice === 'custom' && values[k] === undefined) values[k] = '';
   }
 
   const result = (entry: ConflictEntry, choice: Choice | undefined, own = ''): string | undefined => {
