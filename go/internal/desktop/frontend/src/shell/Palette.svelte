@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { app } from '../lib/app.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from '../lib/Icon.svelte';
-  import { commandsFor, type Command } from '../lib/commands';
+  import { commandsFor, loadTicketIndex, type Command } from '../lib/commands';
 
   // The command palette (Ctrl+K). The entries come from lib/commands.ts: pages, actions, and
   // whatever a package registers there (tickets, guided flows).
@@ -11,16 +11,19 @@
   let index = $state(0);
   let input: HTMLInputElement | undefined = $state();
 
-  const shown = $derived(app.paletteOpen ? commandsFor(query) : []);
+  let ticketsLoaded = $state(0); // the ticket list arrives after the palette opened
+  const shown = $derived(app.paletteOpen ? (void ticketsLoaded, commandsFor(query)) : []);
   const labels: Record<Command['group'], () => string> = {
     page: () => t('Page'),
     action: () => t('Action'),
     help: () => t('Help'),
     ticket: () => t('Ticket'),
+    sprint: () => t('Sprint'),
   };
 
   $effect(() => {
     if (app.paletteOpen) {
+      void untrack(() => loadTicketIndex()).then(() => ticketsLoaded++);
       query = '';
       index = 0;
       void tick().then(() => input?.focus());
