@@ -32,6 +32,7 @@
     try {
       const s = await api.TrackerSettings(team);
       if (team !== app.team) return; // the team changed while the answer was on its way
+      s.boardId = s.boardId || null;
       applied = s;
       draft = structuredClone(s);
       if (s.source === 'tracker' && s.kind === 'jira' && (s.token.stored || s.token.fromEnv)) {
@@ -77,6 +78,7 @@
     { label: t('Production rules'), get: (s) => s.prodRules.map((r) => `${r.rule} → ${r.percent} %`), show: (v) => ((v as string[]).length ? (v as string[]).join('; ') : '–') },
     { label: t('Fields for rules'), get: (s) => s.ruleFields.map((f) => `${f.name} = ${f.display}`) },
     { label: t('Write the sprint back'), get: (s) => s.writeSprint },
+    { label: t('Board number'), get: (s) => s.boardId || '' },
     { label: t('Removed tickets go to'), get: (s) => s.removedTarget, show: removedLabel },
     { label: t('Label planned_for_<sprint>'), get: (s) => s.writeLabels },
     { label: t('Prefix of work packages'), get: (s) => s.packagePrefix },
@@ -325,6 +327,13 @@
                 <option value="next">{t('in the next sprint')}</option>
               </select>
             </div>
+            {#if jira}
+              <div class="field" style="max-width:240px" class:off={!draft.writeSprint}>
+                <label for="t-board">{t('Board number')}</label>
+                <input id="t-board" class="input data" type="number" min="1" step="1" disabled={!draft.writeSprint} bind:value={draft.boardId} />
+                <p class="small muted">{t('The Jira board whose sprints are looked up, so that a sprint without tickets is found too. Leave empty if tickets alone are enough.')}</p>
+              </div>
+            {/if}
             <Switch bind:checked={draft.writeLabels} title={t('Propose the label planned_for_<sprint> when freezing')}>
               {t('The only other write action: after freezing the plan, as before.')}
             </Switch>
