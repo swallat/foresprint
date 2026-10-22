@@ -75,6 +75,9 @@ type Env struct {
 	Preplan model.Preplan
 	Sprints Sprints
 	Today   time.Time
+	// KeepOrder keeps the PO's own order of tracker tickets (preplan.yaml order); otherwise a
+	// fetch takes over the order of the tracker again.
+	KeepOrder bool
 }
 
 // Plan is the result of the preview: the tickets to write, the reconciled preplan and what
@@ -398,7 +401,9 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 		old[tk.Key] = tk
 	}
 	preplan := clonePreplan(env.Preplan)
-	preplan.Order = nil // a fetch takes over the order of the tracker again
+	if !env.KeepOrder {
+		preplan.Order = nil // a fetch takes over the order of the tracker again
+	}
 	plan := Plan{Source: source}
 	epicsKnown := KnownEpics(env.Projects)
 	unknown := map[string][]string{}

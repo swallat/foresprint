@@ -471,7 +471,7 @@ func (a *API) SyncTracker(team string) (Result, error) {
 }
 
 func (a *API) syncTracker(team string) (Result, error) {
-	repo, data, err := a.loadRepoTeam(team)
+	_, data, err := a.loadRepoTeam(team)
 	if err != nil {
 		return Result{}, err
 	}
@@ -485,6 +485,13 @@ func (a *API) syncTracker(team string) (Result, error) {
 	defer jira.Close()
 	raws, err := jira.Fetch()
 	if err != nil {
+		return Result{}, err
+	}
+	// Edits of the PO during the fetch (pro-forma, earmarks, order) must not be written over:
+	// work from the files as they are now.
+	backlogMu.Lock()
+	defer backlogMu.Unlock()
+	if repo, data, err = a.loadRepoTeam(team); err != nil {
 		return Result{}, err
 	}
 	if len(raws) == 0 && len(data.Tickets) > 0 {

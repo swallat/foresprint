@@ -27,3 +27,11 @@ func TestFetchTakesOverTheOrderOfTheTracker(t *testing.T) {
 		t.Errorf("order %v changed %v", plan.Preplan.Order, plan.PreplanChanged)
 	}
 }
+
+func TestFetchCanKeepTheOwnOrder(t *testing.T) {
+	env := Env{Preplan: model.Preplan{Order: []string{"A-2", "A-1"}}, KeepOrder: true}
+	plan := PlanImport(env, nil, nil, false)
+	if len(plan.Preplan.Order) != 2 || plan.PreplanChanged {
+		t.Errorf("order %v changed %v", plan.Preplan.Order, plan.PreplanChanged)
+	}
+}
