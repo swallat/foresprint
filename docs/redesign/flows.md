@@ -444,7 +444,7 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 
 ## 9. Decisions (Sebastian, 21.10.2026)
 
-1. **Absences:** announced and confirmed absences in one grid, each cell shows its state. UI only first, data format unchanged.
+1. **Absences:** announced and confirmed absences in one grid, each cell shows its state. UI only first, data format unchanged. Days are typed in directly (half days allowed). An open lock marks an announced entry, a closed lock a confirmed one. Per sprint, "Freeze" confirms the whole allocation: all entries count as confirmed, empty cells as 0 days, so "nobody absent" needs no extra button. A cleared value stays visible (struck through, with undo) until the next save.
 2. **Contingents and units:** team planning stays in story points as today. Project contingents are booked in person days (PD) for the whole project, optionally split per month. Both live side by side: Foresprint converts points to PD with the team's own rate (points per available person day from the forecast data: normalized velocity). Planned uses the Forecast rate of that sprint, done uses the sprint's actual rate. Converted values are always marked as estimates.
 
     Example: rate 1.5 points per PD; project X has 12 points planned in sprint S -> about 8 PD of its 40 PD contingent.
@@ -458,6 +458,7 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 10. **Write sprint back to the tracker (optional, 21.10.2026):** off by default, switched on per team. Only on an explicit button in Sprint > Plan, always with preview, per-ticket opt-out and undo, logged in the planning minutes. Only the sprint field (and the existing label) is written; order, estimate, status and texts stay untouched, and Foresprint never creates, starts or closes tracker sprints. The token needs the right to edit sprints; without it everything stays read-only. Writing the order back remains rejected.
 11. **Product owners and capacity:** POs are outside the team and capacity by default; including one is an explicit choice with a share (FTE).
 12. **One rule language for products and projects:** both use the expression rules from 0.8 (fields component, label, epic, priority, type, status plus configured extra fields; operators = != ~ !~ IN NOT IN, AND OR NOT, parentheses), with the same editor and live preview. Ligatures are off in rule text so `!=` stays visible as typed.
+13. **Guided flows stay in the product (22.10.2026):** the step-by-step walkthroughs of the mocks (highlight, short text, next/back, runs on demo data) ship in 1.0 as an interactive tutorial under Help > Guided flows, one per flow F1 to F11. They run against the bundled demo team, never against the user's data, and can be started from the first-start screen. Texts live with the UI texts (German and English).
 
 ## 10. Open questions
 

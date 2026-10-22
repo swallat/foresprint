@@ -78,5 +78,6 @@ Gesamtschätzung bis 1.0: 17 bis 25 Kalendertage mit parallelen Fäden. Der krit
 
 10. Reihenfolge: Erst Mockups der Abläufe und Design festlegen (Abnahme durch Sebastian), parallel nur flow-unabhängige Kern-Portierung.
 11. Sprachen: Deutsch und Englisch, weitere möglich, keine weiteren umgesetzt.
+12. Geführte Abläufe (22.10.2026): Die Schritt-für-Schritt-Abläufe der Mocks bleiben in 1.0 als Tutorial erhalten (Hilfe > Geführte Abläufe, auf dem Demo-Team, nie auf echten Daten). Siehe flows.md Entscheidung 13.
 
 Offen: GitHub-Projekt als Tafel anlegen (Sebastian).
