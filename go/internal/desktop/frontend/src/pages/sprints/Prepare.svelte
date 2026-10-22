@@ -47,7 +47,7 @@
   const signed = (v: number) => (v > 0 ? `+${days(v)}` : v < 0 ? `−${days(-v)}` : '0');
 
   function title(r: ReadyItem): string {
-    return r.kind === 'absences' ? t('Absences') : r.kind === 'refinement' ? t('Refinement') : t('Pre-planning per product');
+    return r.kind === 'absences' ? t('Absences of the sprint') : r.kind === 'refinement' ? t('Refinement') : t('Pre-planning per product');
   }
 
   function text(r: ReadyItem): string {
@@ -99,7 +99,7 @@
             {@const go = target(r)}
             <li>
               <span class="chip {r.state === 'done' ? 'ok' : 'warn'}">
-                <Icon name={r.state === 'done' ? 'check_circle' : 'warning'} size={16} />{r.state === 'done' ? t('Done') : t('Open')}
+                <Icon name={r.state === 'done' ? 'check_circle' : 'warning'} size={16} />{r.state === 'done' ? t('Done') : t('Still open')}
               </span>
               <span class="grow"><strong>{title(r)}</strong><br /><span class="small muted">{text(r)}</span></span>
               {#if go}<a class="btn" href={link(go.to)}>{go.label}</a>{/if}

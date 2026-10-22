@@ -95,6 +95,8 @@
     if (shown === 0) ghosts[key] = cell.days;
     else delete ghosts[key];
     cell.days = shown;
+    if (shown === 0 && cell.state !== 'confirmed') cell.state = 'empty';
+    else if (cell.state === 'empty') cell.state = 'announced';
     input.value = shown ? days(shown) : '';
     if (shown !== value) toast(t('Set to {days} days (half days, at most {max}).', { days: days(shown), max: days(cell.max) }));
     try {
@@ -122,9 +124,23 @@
     }
   }
 
+  async function lockCell(ci: number, ri: number, confirmed: boolean) {
+    if (!grid) return;
+    const sprint = col(ci).id;
+    const person = rowAt(ri).person;
+    cellAt(ri, ci).state = confirmed ? 'confirmed' : 'announced';
+    try {
+      await enqueue(async () => replaceColumn(await api.SetAbsenceConfirmed(team, sprint, person, confirmed)));
+    } catch (e) {
+      toast(String(e), 'bad');
+      await load();
+    }
+  }
+
   async function freeze(sprint: string) {
     try {
       await enqueue(async () => replaceColumn(await api.FreezeAbsences(team, sprint)));
+      await load(); // every cell of the sprint is confirmed now
       toast(t('Allocation of {sprint} frozen. Empty cells count as 0 days.', { sprint: nameOf(sprint) }), 'ok', {
         label: t('Undo'),
         run: () => void unfreeze(sprint, false),
@@ -193,7 +209,7 @@
                 {#if !cell.active}
                   <span class="muted" title={t('Not in the team during this sprint.')}>–</span>
                 {:else}
-                  <div class="cell {cell.days > 0 ? (c.state === 'confirmed' ? 'c' : 'a') : ''}" class:g={ghost !== undefined}>
+                  <div class="cell {cell.state === 'confirmed' && cell.days > 0 ? 'c' : cell.state === 'announced' ? 'a' : ''}" class:g={ghost !== undefined}>
                     <input
                       class="input data"
                       inputmode="decimal"
@@ -210,15 +226,20 @@
                         <Icon name="undo" size={16} />
                       </button>
                     {:else if cell.days > 0}
+                      {@const text = c.state === 'confirmed'
+                        ? t('Frozen with the sprint. Open the sprint to change the lock.')
+                        : cell.state === 'confirmed'
+                          ? t('Confirmed. A click makes it announced again.')
+                          : t('Announced. A click confirms it.')}
                       <button
                         class="btn icon ghost lock"
                         type="button"
-                        disabled={c.past}
-                        title={c.state === 'confirmed' ? t('Confirmed. A click opens the whole sprint again.') : t('Announced. A click freezes the whole sprint.')}
-                        aria-label={c.state === 'confirmed' ? t('Confirmed. A click opens the whole sprint again.') : t('Announced. A click freezes the whole sprint.')}
-                        onclick={() => (c.state === 'confirmed' ? unfreeze(c.id) : freeze(c.id))}
+                        disabled={c.past || c.state === 'confirmed'}
+                        title={text}
+                        aria-label={text}
+                        onclick={() => lockCell(ci, ri, cell.state !== 'confirmed')}
                       >
-                        <Icon name={c.state === 'confirmed' ? 'lock' : 'lock_open'} size={16} />
+                        <Icon name={cell.state === 'confirmed' ? 'lock' : 'lock_open'} size={16} />
                       </button>
                     {/if}
                   </div>

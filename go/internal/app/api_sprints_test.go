@@ -177,3 +177,56 @@ func TestUnfreezeKeepsConfirmedDays(t *testing.T) {
 		t.Fatalf("days after unfreeze: %v", got.Rows[0].Cells[0].Days)
 	}
 }
+
+func TestAbsenceCellsAreLockedOneByOne(t *testing.T) {
+	api := newAPI(t, copyDemo(t))
+	team := api.Teams()[0].Key
+	grid, _ := api.AbsenceGrid(team, "", 40)
+	col := grid.Columns[len(grid.Columns)-1]
+	anna, ben := grid.Rows[0].Person, grid.Rows[1].Person
+	cell := func(row int) AbsenceCell {
+		g, err := api.AbsenceGrid(team, col.ID, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return g.Rows[row].Cells[0]
+	}
+	if _, err := api.SetAbsence(team, col.ID, anna, 2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := api.SetAbsence(team, col.ID, ben, 1); err != nil {
+		t.Fatal(err)
+	}
+	if cell(0).State != CellAnnounced || cell(1).State != CellAnnounced {
+		t.Fatalf("typed days are announced: %v %v", cell(0).State, cell(1).State)
+	}
+	// Locking one cell leaves the sprint open and the other cell announced.
+	c, err := api.SetAbsenceConfirmed(team, col.ID, anna, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.State != AbsenceAnnounced {
+		t.Errorf("one locked cell must not freeze the sprint: %q", c.State)
+	}
+	if cell(0).State != CellConfirmed || cell(1).State != CellAnnounced || cell(0).Days != 2 {
+		t.Errorf("after locking anna: %+v %+v", cell(0), cell(1))
+	}
+	// Typing into a confirmed cell keeps it confirmed.
+	if _, err := api.SetAbsence(team, col.ID, anna, 3); err != nil {
+		t.Fatal(err)
+	}
+	if cell(0).State != CellConfirmed || cell(0).Days != 3 {
+		t.Errorf("anna after typing: %+v", cell(0))
+	}
+	// The capacity counts both kinds of cell.
+	if g, _ := api.AbsenceGrid(team, col.ID, 1); g.Columns[0].Absent != 4 {
+		t.Errorf("absent days %v, want 4", g.Columns[0].Absent)
+	}
+	// Freezing confirms the rest; the other cells are empty = 0 days, confirmed.
+	if c, _ = api.FreezeAbsences(team, col.ID); c.State != AbsenceConfirmed || cell(1).State != CellConfirmed {
+		t.Errorf("frozen: %q %+v", c.State, cell(1))
+	}
+	if _, err := api.SetAbsenceConfirmed(team, col.ID, ben, false); err != nil || cell(1).State != CellConfirmed {
+		t.Errorf("a frozen sprint keeps its cells confirmed: %+v %v", cell(1), err)
+	}
+}

@@ -78,13 +78,28 @@ func absenceState(s model.Sprint) string {
 	return AbsenceUnknown
 }
 
-// shownAbsences are the absence days the window shows for a sprint: the confirmed ones, or the
-// announced ones while nothing is confirmed.
-func shownAbsences(s model.Sprint) map[string]float64 {
-	if s.AbsenceStatus() == model.AbsencesConfirmed {
-		return s.Absences
+// allAbsences are the absence days of a sprint as the grid shows them, per person: confirmed
+// cells and announced ones (confirmed wins).
+func allAbsences(s model.Sprint) map[string]float64 {
+	out := map[string]float64{}
+	for k, v := range s.ExpectedAbsences {
+		out[k] = v
 	}
-	return s.ExpectedAbsences
+	for k, v := range s.Absences {
+		out[k] = v
+	}
+	return out
+}
+
+// cellState maps the model's cell state to the one of the window.
+func cellState(s model.Sprint, person string) string {
+	if s.CellDays(person) == 0 && s.AbsenceStatus() != model.AbsencesConfirmed {
+		return CellEmpty
+	}
+	if s.CellState(person) == model.AbsencesConfirmed {
+		return CellConfirmed
+	}
+	return CellAnnounced
 }
 
 func sprintName(s model.Sprint) string {
@@ -104,7 +119,7 @@ func column(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) Absen
 		Workdays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)),
 		Past:     !s.End.After(fc.Today),
 	}
-	for _, d := range shownAbsences(s) {
+	for _, d := range allAbsences(s) {
 		if d > 0 {
 			col.Entries++
 			col.Absent += d
@@ -120,7 +135,7 @@ func column(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) Absen
 	} else if s.AbsenceStatus() == model.AbsencesConfirmed {
 		col.Capacity = capacity.Sprint(&data.Team, data.People, s, 0).Capacity
 	} else {
-		col.Capacity = capacity.WithExpectedAbsences(&data.Team, data.People, s)
+		col.Capacity = capacity.WithOpenAbsences(&data.Team, data.People, s)
 	}
 	return col
 }
@@ -157,7 +172,7 @@ func absenceGrid(data *storage.TeamData, from string, count int) (AbsenceGrid, e
 		}
 		any := false
 		for _, s := range sprints {
-			cell := AbsenceCell{Days: shownAbsences(s)[p.ID]}
+			cell := AbsenceCell{Days: s.CellDays(p.ID), State: cellState(s, p.ID)}
 			if pc, ok := capacity.PersonOf(&data.Team, p, s, 0); ok {
 				cell.Active = true
 				cell.Max = float64(pc.Workdays - pc.Holidays)
@@ -238,26 +253,28 @@ func (a *API) SetAbsence(team, sprintID, person string, days float64) (AbsenceCo
 		if pc, ok := capacity.PersonOf(&data.Team, *p, *s, 0); ok {
 			days = math.Min(days, float64(pc.Workdays-pc.Holidays))
 		}
-		confirmed := s.AbsenceStatus() == model.AbsencesConfirmed
-		target := &s.ExpectedAbsences
-		if confirmed {
-			target = &s.Absences
+		state := model.AbsencesExpected
+		if s.CellState(person) == model.AbsencesConfirmed {
+			state = model.AbsencesConfirmed // typing into a confirmed cell keeps it confirmed
 		}
-		if *target == nil {
-			*target = map[string]float64{}
-		}
+		s.SetCell(person, days, state)
+		return nil
+	})
+}
+
+// SetAbsenceConfirmed locks or unlocks one cell: a confirmed cell is final for that person, an
+// announced one is still a plan. In a frozen sprint all cells are confirmed and stay so.
+func (a *API) SetAbsenceConfirmed(team, sprintID, person string, confirmed bool) (AbsenceColumn, error) {
+	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
+		days := s.CellDays(person)
 		if days == 0 {
-			delete(*target, person)
-		} else {
-			(*target)[person] = days
+			return nil // an empty cell has no state of its own
 		}
-		if !confirmed {
-			if len(s.ExpectedAbsences) > 0 {
-				s.AbsenceState = model.Ptr(model.AbsencesExpected)
-			} else {
-				s.AbsenceState = model.Ptr(model.AbsencesUnknown)
-			}
+		state := model.AbsencesExpected
+		if confirmed {
+			state = model.AbsencesConfirmed
 		}
+		s.SetCell(person, days, state)
 		return nil
 	})
 }
@@ -266,16 +283,7 @@ func (a *API) SetAbsence(team, sprintID, person string, days float64) (AbsenceCo
 // every empty cell as 0 days, so "nobody is absent" needs no extra step.
 func (a *API) FreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
-		merged := map[string]float64{}
-		for k, v := range s.ExpectedAbsences {
-			merged[k] = v
-		}
-		for k, v := range s.Absences {
-			merged[k] = v
-		}
-		s.Absences = merged
-		s.ExpectedAbsences = nil
-		s.SetAbsencesConfirmed(true)
+		s.Freeze()
 		return nil
 	})
 }
@@ -283,19 +291,7 @@ func (a *API) FreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 // UnfreezeAbsences opens a frozen sprint again: the entries count as announced.
 func (a *API) UnfreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
 	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
-		announced := map[string]float64{}
-		for k, v := range s.ExpectedAbsences {
-			announced[k] = v
-		}
-		for k, v := range s.Absences { // confirmed days win over stale announced ones
-			announced[k] = v
-		}
-		s.ExpectedAbsences = announced
-		s.Absences = nil
-		s.AbsenceState = model.Ptr(model.AbsencesUnknown)
-		if len(announced) > 0 {
-			s.AbsenceState = model.Ptr(model.AbsencesExpected)
-		}
+		s.Unfreeze()
 		return nil
 	})
 }

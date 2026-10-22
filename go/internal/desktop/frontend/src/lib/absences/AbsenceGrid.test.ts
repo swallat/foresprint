@@ -87,6 +87,20 @@ describe('AbsenceGrid', () => {
     expect(cell.closest('.cell')!.classList.contains('c')).toBe(true);
   });
 
+  it('locks one cell without freezing the sprint', async () => {
+    await open();
+    // the mock keeps its state between tests: take any announced cell that is still open
+    const box = host.querySelector('.cell.a')!;
+    expect(box).not.toBeNull();
+    const frozenBefore = host.querySelectorAll('.frozen').length;
+    box.querySelector<HTMLButtonElement>('button.lock')!.click();
+    await settle();
+    expect(box.classList.contains('c')).toBe(true);
+    expect(host.querySelectorAll('.frozen').length).toBe(frozenBefore); // the sprint is still open
+    // the other announced cells keep their open lock
+    expect(host.querySelectorAll('.cell.a').length).toBeGreaterThan(0);
+  });
+
   it('stays out of reach for a finished sprint', async () => {
     await open({ from: '2026.12', count: 1 });
     expect(inputs().every((i) => i.disabled)).toBe(true);

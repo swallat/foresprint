@@ -10,6 +10,13 @@ const (
 	AbsenceConfirmed = "confirmed" // frozen (closed lock); empty cells count as 0 days
 )
 
+// States of one cell: confirmed (closed lock), announced (open lock), empty (nothing entered).
+const (
+	CellConfirmed = "confirmed"
+	CellAnnounced = "announced"
+	CellEmpty     = "empty"
+)
+
 // AbsenceColumn is one sprint of the absence grid with its totals.
 type AbsenceColumn struct {
 	ID       string   `json:"id"`
@@ -28,6 +35,7 @@ type AbsenceColumn struct {
 // AbsenceCell is the absence of one person in one sprint.
 type AbsenceCell struct {
 	Days   float64 `json:"days"`
+	State  string  `json:"state"`  // CellConfirmed, CellAnnounced or CellEmpty
 	Max    float64 `json:"max"`    // working days of the person in the sprint (holidays deducted)
 	Active bool    `json:"active"` // the person is in the team during the sprint
 }

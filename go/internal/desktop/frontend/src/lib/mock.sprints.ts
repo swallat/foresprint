@@ -2,7 +2,7 @@
 // The same rules as go/internal/app/api_sprints.go: half days, cut to the working days, an entry
 // in a frozen sprint stays confirmed, "unknown" while nothing is entered.
 
-import type { AbsenceColumn, AbsenceGrid, AbsenceState, ReadyItem, SprintPrepare, SprintsApi } from './types.sprints';
+import type { AbsenceColumn, AbsenceGrid, AbsenceState, CellState, ReadyItem, SprintPrepare, SprintsApi } from './types.sprints';
 import type { SprintInfo } from './types';
 
 const people = [
@@ -19,6 +19,7 @@ const RATE = 1.5; // points per person day
 
 export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
   const days = new Map<string, number>(); // "sprint|person"
+  const locked = new Set<string>(); // confirmed cells of an open sprint
   const state = new Map<string, AbsenceState>();
   // Two announced absences in the running or next sprint, one in the sprint after it.
   const ahead = sprints.filter((s) => s.state !== 'past');
@@ -36,6 +37,11 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
     return s;
   };
   const stateOf = (s: SprintInfo): AbsenceState => (s.state === 'past' ? 'confirmed' : (state.get(s.id) ?? 'unknown'));
+  const cellState = (s: SprintInfo, person: string): CellState => {
+    if (stateOf(s) === 'confirmed') return 'confirmed'; // frozen: every cell, empty ones count as 0 days
+    if ((days.get(`${s.id}|${person}`) ?? 0) === 0) return 'empty';
+    return locked.has(`${s.id}|${person}`) ? 'confirmed' : 'announced';
+  };
   const entries = (id: string) => people.filter((p) => (days.get(`${id}|${p.person}`) ?? 0) > 0);
   const absent = (id: string) => entries(id).reduce((sum, p) => sum + (days.get(`${id}|${p.person}`) ?? 0), 0);
   const fullCapacity = () => people.reduce((sum, p) => sum + p.fte * WORKDAYS, 0);
@@ -73,7 +79,7 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
         columns: cols.map(column),
         rows: people.map((p) => ({
           ...p,
-          cells: cols.map((s) => ({ days: days.get(`${s.id}|${p.person}`) ?? 0, max: WORKDAYS, active: true })),
+          cells: cols.map((s) => ({ days: days.get(`${s.id}|${p.person}`) ?? 0, state: cellState(s, p.person), max: WORKDAYS, active: true })),
         })),
       };
     },
@@ -87,11 +93,18 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
       touch(sprint);
       return column(s);
     },
+    async SetAbsenceConfirmed(_team, sprint, person, confirmed) {
+      const key = `${sprint}|${person}`;
+      if (confirmed && (days.get(key) ?? 0) > 0) locked.add(key);
+      else locked.delete(key);
+      return column(known(sprint));
+    },
     async FreezeAbsences(_team, sprint) {
       state.set(sprint, 'confirmed');
       return column(known(sprint));
     },
     async UnfreezeAbsences(_team, sprint) {
+      for (const p of people) locked.delete(`${sprint}|${p.person}`);
       state.set(sprint, 'unknown');
       touch(sprint);
       return column(known(sprint));

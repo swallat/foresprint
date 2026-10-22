@@ -358,3 +358,34 @@ func TestCloneCopiesPrognosisLists(t *testing.T) {
 		t.Error("Clone shares the lists of a prognosis")
 	}
 }
+
+func TestAbsenceCellsRoundTrip(t *testing.T) {
+	// 1.0: confirmed and announced cells side by side in an open sprint.
+	open := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences:\n  anna: 2\nabsence_state: open\nexpected_absences:\n  ben: 1\n"
+	d := loadMap(t, open)
+	s, err := SprintFromDict(d, where)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.AbsenceStatus() != model.AbsencesExpected || s.CellState("anna") != model.AbsencesConfirmed || s.CellState("ben") != model.AbsencesExpected {
+		t.Fatalf("read: %v %v %v", s.AbsenceStatus(), s.CellState("anna"), s.CellState("ben"))
+	}
+	out := idempotent(t, "sprint", open)
+	if !strings.Contains(out, "absence_state: open") {
+		t.Errorf("the open state is not written:\n%s", out)
+	}
+	// Announced cells only need no stored state: the file is the 0.8 form.
+	only := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences: {}\nexpected_absences:\n  ben: 1\n"
+	if out := idempotent(t, "sprint", only); strings.Contains(out, "absence_state") {
+		t.Errorf("announced-only sprint got a state:\n%s", out)
+	}
+	// A 0.8 file with absences stays a frozen sprint and is written back without a state.
+	legacy := "id: s1\nstart: 2026-01-05\nend: 2026-01-19\nabsences:\n  anna: 2\n"
+	if out := idempotent(t, "sprint", legacy); strings.Contains(out, "absence_state") {
+		t.Errorf("legacy sprint got a state:\n%s", out)
+	}
+	ls, _ := SprintFromDict(loadMap(t, legacy), where)
+	if ls.CellState("ben") != model.AbsencesConfirmed {
+		t.Errorf("legacy sprint is not frozen: %v", ls.CellState("ben"))
+	}
+}

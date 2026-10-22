@@ -259,6 +259,21 @@ func WithExpectedAbsences(team *model.Team, people []model.Person, sprint model.
 	return Sprint(team, people, probe, 0).Capacity
 }
 
+// WithOpenAbsences is the capacity of a sprint that is not frozen: the confirmed cells and the
+// announced ones count together (confirmed days win per person). Without confirmed cells it is
+// WithExpectedAbsences.
+func WithOpenAbsences(team *model.Team, people []model.Person, sprint model.Sprint) float64 {
+	probe := sprint.Clone()
+	probe.Absences = map[string]float64{}
+	for k, v := range sprint.ExpectedAbsences {
+		probe.Absences[k] = v
+	}
+	for k, v := range sprint.Absences {
+		probe.Absences[k] = v
+	}
+	return Sprint(team, people, probe, 0).Capacity
+}
+
 // text is an optional text: nil is the empty text.
 func text(s *string) string {
 	if s == nil {

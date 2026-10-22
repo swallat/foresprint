@@ -102,8 +102,6 @@
   "Not in the team during this sprint.": "In diesem Sprint nicht im Team.",
   "{person}, {sprint}: absence in days": "{person}, {sprint}: Abwesenheit in Tagen",
   "Restore {days} days": "{days} Tage wiederherstellen",
-  "Confirmed. A click opens the whole sprint again.": "Bestätigt. Ein Klick öffnet den ganzen Sprint wieder.",
-  "Announced. A click freezes the whole sprint.": "Angekündigt. Ein Klick schreibt den ganzen Sprint fest.",
   "Absent in total": "Abwesend gesamt",
   "PD": "PT",
   "Capacity": "Kapazität",
@@ -119,7 +117,6 @@
   "Nobody absent": "Niemand abwesend",
   "Loading …": "Lädt …",
   "points": "Punkte",
-  "Absences": "Abwesenheiten",
   "Refinement": "Refinement",
   "Pre-planning per product": "Vorplanung je Produkt",
   "Allocation frozen.": "Belegung festgeschrieben.",
@@ -137,13 +134,17 @@
   "Type days directly (half days with a comma), Enter moves down. New entries are announced; the lock freezes the sprint and makes empty cells count as 0 days. Only days are stored, never a reason.": "Tage direkt eintippen (halbe Tage mit Komma), Enter springt nach unten. Neue Einträge sind angekündigt; das Schloss schreibt den Sprint fest, dann zählen leere Felder als 0 Tage. Gespeichert werden nur Tage, nie ein Grund.",
   "Ready for planning?": "Bereit für die Planung?",
   "Done": "Erledigt",
-  "Open": "Offen",
   "Open points block nothing. You can plan at any time with the data that is there.": "Offene Punkte sperren nichts. Planen geht jederzeit mit den Daten, die da sind.",
   "Preview for {sprint}": "Vorschau für {sprint}",
   "Without absence": "Ohne Abwesenheit",
   "With absence": "Mit Abwesenheit",
   "Change": "Veränderung",
   "Pre-planned": "Vorgeplant",
-  "The Forecast PLAN is still a projection until the absences are frozen.": "Der Forecast PLAN ist eine Projektion, bis die Abwesenheiten festgeschrieben sind."
+  "The Forecast PLAN is still a projection until the absences are frozen.": "Der Forecast PLAN ist eine Projektion, bis die Abwesenheiten festgeschrieben sind.",
+  "Absences of the sprint": "Abwesenheiten im Sprint",
+  "Still open": "Offen",
+  "Frozen with the sprint. Open the sprint to change the lock.": "Mit dem Sprint festgeschrieben. Öffne den Sprint, um das Schloss zu ändern.",
+  "Confirmed. A click makes it announced again.": "Bestätigt. Ein Klick macht es wieder zu angekündigt.",
+  "Announced. A click confirms it.": "Angekündigt. Ein Klick bestätigt es."
  }
 }

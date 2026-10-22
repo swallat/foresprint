@@ -16,8 +16,12 @@ export interface AbsenceColumn {
   past: boolean;
 }
 
+export type CellState = 'confirmed' | 'announced' | 'empty';
+
 export interface AbsenceCell {
   days: number;
+  /** Closed lock (confirmed), open lock (announced) or nothing entered. */
+  state: CellState;
   max: number;
   active: boolean;
 }
@@ -55,8 +59,10 @@ export interface SprintPrepare {
 export interface SprintsApi {
   /** Absences of `count` consecutive sprints from sprint `from` ("" = running or next). */
   AbsenceGrid(team: string, from: string, count: number): Promise<AbsenceGrid>;
-  /** Sets the days of one person (half days; 0 removes). Returns the updated column. */
+  /** Sets the days of one person (half days; 0 removes); typing keeps a confirmed cell confirmed. */
   SetAbsence(team: string, sprint: string, person: string, days: number): Promise<AbsenceColumn>;
+  /** Locks (confirmed) or unlocks (announced) one cell; a frozen sprint keeps all cells confirmed. */
+  SetAbsenceConfirmed(team: string, sprint: string, person: string, confirmed: boolean): Promise<AbsenceColumn>;
   FreezeAbsences(team: string, sprint: string): Promise<AbsenceColumn>;
   UnfreezeAbsences(team: string, sprint: string): Promise<AbsenceColumn>;
   SprintPrepare(team: string, sprint: string): Promise<SprintPrepare>;
