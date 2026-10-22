@@ -266,3 +266,76 @@ func text(s *string) string {
 	}
 	return *s
 }
+
+// ProductionTime is the time of the people with production access in the sprint, in PD: per
+// person the capacity after holidays and absences (max(0, share of the sprint's PD − absence),
+// before the deduction for Scrum events), summed, times capPercent/100. capPercent is the team
+// setting "at most X % of the time of people with production access"; 100 means no cap.
+type ProductionTime struct {
+	People []PersonCapacity `json:"people"`
+	// Time is the time of the group before the cap.
+	Time float64 `json:"time"`
+	// CapPercent is the cap in percent (100 = none).
+	CapPercent float64 `json:"cap_percent"`
+	// Available is Time × CapPercent / 100: what can be planned for production work.
+	Available float64 `json:"available"`
+}
+
+// ProductionTimeOf calculates the ProductionTime of a sprint. absenceRate is the expected share
+// of unknown absences, like in Sprint. A negative capPercent counts as 0.
+func ProductionTimeOf(team *model.Team, people []model.Person, sprint model.Sprint, absenceRate, capPercent float64) ProductionTime {
+	rows := []PersonCapacity{}
+	times := []float64{}
+	for _, p := range people {
+		if !p.ProductionAccess {
+			continue
+		}
+		if pc, ok := PersonOf(team, p, sprint, absenceRate); ok {
+			rows = append(rows, pc)
+			times = append(times, pc.Capacity)
+		}
+	}
+	capPercent = math.Max(capPercent, 0)
+	total := pymath.Sum(times)
+	return ProductionTime{
+		People:     rows,
+		Time:       total,
+		CapPercent: capPercent,
+		Available:  float64(total*capPercent) / 100,
+	}
+}
+
+// PeriodDays are the working days of a planned absence period [from, to] (both included) per
+// sprint, for the sprints that overlap it. Weekend, holidays, region and country are those of
+// the person (see PersonOf); only whole days count, and a person who is not in the team on a day
+// does not have a working day on it. Sprints without a working day in the period are left out.
+func PeriodDays(team *model.Team, person model.Person, from, to time.Time, sprints []model.Sprint) map[string]float64 {
+	result := map[string]float64{}
+	if to.Before(from) {
+		return result
+	}
+	country := text(person.Country)
+	if country == "" {
+		country = team.Capacity.Country
+	}
+	region := text(person.Region)
+	if region == "" && text(person.Country) == "" {
+		region = text(team.Capacity.Region)
+	}
+	weekend := calendar.PersonWeekend(team, person)
+	for _, s := range sprints {
+		count := 0
+		for _, d := range calendar.Workdays(s.Start, s.End, weekend) {
+			if d.Before(from) || d.After(to) || person.FTEOn(d) <= 0 {
+				continue
+			}
+			if !calendar.IsHoliday(d, region, country) {
+				count++
+			}
+		}
+		if count > 0 {
+			result[s.ID] = float64(count)
+		}
+	}
+	return result
+}

@@ -43,6 +43,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/formulas` | The calculation path of every figure: steps and explanations as texts (`formulas.py`). |
 | `internal/textfmt` | Number format of the language, capacity rounding, Markdown code spans of external text (the helpers of `report.py` and `git.py` the formulas need). |
 | `internal/products` | Distribution of the sprint quantity over the products: standard shares, rows and totals, production state, totals per PO, balance (`products.py`). |
+| `internal/planning` | New in 1.0 (no Python original): plannable amount and small stuff, production demand against production time (traffic light), points ↔ person days. Formulas of flows.md, decisions 19 and 20. |
 | `internal/coretest` | Test helper: loads the golden team folders with `storage` and turns results into the JSON form of the Python references (snake case keys, dates as YYYY-MM-DD). |
 
 | `internal/sources` | Ticket sources: CSV export of Jira, Jira Data Center client (REST v2, token from the environment or the keychain), field resolution, field suggestions, the one label write. Python-compatible CSV reader, float parsing and `difflib`; compared with `golden/expected/sources`. |
