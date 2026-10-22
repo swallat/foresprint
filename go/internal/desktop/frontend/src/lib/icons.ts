@@ -39,6 +39,7 @@ import i_drag_indicator from '@material-symbols/svg-400/outlined/drag_indicator.
 import i_edit from '@material-symbols/svg-400/outlined/edit.svg?raw';
 import i_error from '@material-symbols/svg-400/outlined/error.svg?raw';
 import i_event_available from '@material-symbols/svg-400/outlined/event_available.svg?raw';
+import i_event_busy from '@material-symbols/svg-400/outlined/event_busy.svg?raw';
 import i_filter_list from '@material-symbols/svg-400/outlined/filter_list.svg?raw';
 import i_flag from '@material-symbols/svg-400/outlined/flag.svg?raw';
 import i_folder_open from '@material-symbols/svg-400/outlined/folder_open.svg?raw';
@@ -53,6 +54,7 @@ import i_language from '@material-symbols/svg-400/outlined/language.svg?raw';
 import i_light_mode from '@material-symbols/svg-400/outlined/light_mode.svg?raw';
 import i_lock from '@material-symbols/svg-400/outlined/lock.svg?raw';
 import i_lock_open from '@material-symbols/svg-400/outlined/lock_open.svg?raw';
+import i_logout from '@material-symbols/svg-400/outlined/logout.svg?raw';
 import i_low_priority from '@material-symbols/svg-400/outlined/low_priority.svg?raw';
 import i_menu from '@material-symbols/svg-400/outlined/menu.svg?raw';
 import i_merge from '@material-symbols/svg-400/outlined/merge.svg?raw';
@@ -61,6 +63,7 @@ import i_more_vert from '@material-symbols/svg-400/outlined/more_vert.svg?raw';
 import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
 import i_person_add from '@material-symbols/svg-400/outlined/person_add.svg?raw';
+import i_person_remove from '@material-symbols/svg-400/outlined/person_remove.svg?raw';
 import i_play_arrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw';
 import i_preview from '@material-symbols/svg-400/outlined/preview.svg?raw';
 import i_refresh from '@material-symbols/svg-400/outlined/refresh.svg?raw';
@@ -117,6 +120,7 @@ const icons = {
   edit: i_edit,
   error: i_error,
   event_available: i_event_available,
+  event_busy: i_event_busy,
   filter_list: i_filter_list,
   flag: i_flag,
   folder_open: i_folder_open,
@@ -131,6 +135,7 @@ const icons = {
   light_mode: i_light_mode,
   lock: i_lock,
   lock_open: i_lock_open,
+  logout: i_logout,
   low_priority: i_low_priority,
   menu: i_menu,
   merge: i_merge,
@@ -139,6 +144,7 @@ const icons = {
   open_in_new: i_open_in_new,
   person: i_person,
   person_add: i_person_add,
+  person_remove: i_person_remove,
   play_arrow: i_play_arrow,
   preview: i_preview,
   refresh: i_refresh,

@@ -7,6 +7,18 @@
   "Tracker synced.": "Tracker abgerufen.",
   "The folder {path} does not exist.": "Den Ordner {path} gibt es nicht.",
   "No folder dialog in this build.": "Dieser Build hat keinen Ordnerdialog.",
-  "Choose the data folder": "Datenordner wählen"
+  "Choose the data folder": "Datenordner wählen",
+  "'{text}' is not a date (YYYY-MM-DD).": "'{text}' ist kein Datum (JJJJ-MM-TT).",
+  "{name} is listed twice.": "{name} steht doppelt in der Liste.",
+  "{name} stands in sprints and cannot be removed. Enter a leaving day instead.": "{name} steht in Sprints und lässt sich nicht entfernen. Trage stattdessen einen letzten Tag ein.",
+  "Every person needs a name.": "Jede Person braucht einen Namen.",
+  "Unknown kind '{kind}' for {name}.": "Unbekannte Zugehörigkeit '{kind}' bei {name}.",
+  "{name} needs at least one period in the team.": "{name} braucht mindestens einen Zeitraum im Team.",
+  "The share of {name} must be between 0.1 and 1.0.": "Der Anteil von {name} muss zwischen 0,1 und 1,0 liegen.",
+  "The end of a period of {name} lies before its start.": "Das Ende eines Zeitraums von {name} liegt vor seinem Beginn.",
+  "The periods of {name} overlap.": "Die Zeiträume von {name} überschneiden sich.",
+  "Unknown person '{id}'.": "Unbekannte Person '{id}'.",
+  "The last day of an absence lies before its first day.": "Der letzte Tag einer Abwesenheit liegt vor dem ersten.",
+  "Two absences of the same person overlap.": "Zwei Abwesenheiten derselben Person überschneiden sich."
  }
 }
