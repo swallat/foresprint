@@ -111,41 +111,68 @@
   // ---------- portfolio timeline ----------
   // Labels left of the bars never run into the plot: they wrap inside the label column and the row grows.
   const wrap = (items, n) => items.reduce((ls, it) => { const last = ls[ls.length - 1]; if (last && last.len + 2 + it.len <= n) { last.items.push(it); last.len += 2 + it.len; } else ls.push({ items: [it], len: it.len }); return ls; }, []);
+  // Visible window: from the start of the running sprint to N months after today, or to the last project end.
+  const TL_RANGES = [["2", "2 Monate"], ["3", "3 Monate"], ["6", "6 Monate"], ["all", "Bis Projektende"]];
+  const addMonths = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); const t = new Date(Date.UTC(y, m - 1 + n, d)); return t.toISOString().slice(0, 10); };
+  function tlWindow() {
+    const r = FS.state.tlRange ?? "all", cur = D.sprints.find((sp) => sp.start <= D.today && D.today <= sp.end) || D.sprints[0];
+    const lastEnd = D.projects.reduce((a, p) => [p.end, ...p.milestones.map((m) => m.date)].reduce((b, d) => (d > b ? d : b), a), D.today);
+    const from = cur.start, to = r === "custom" ? FS.state.tlTo : r === "all" ? addDays(lastEnd, 3) : addMonths(D.today, Number(r));
+    return { r, from, to: to > addDays(from, 14) ? to : addDays(from, 14) };
+  }
+  // Sprint bands: known sprints, then the regular cadence continued so long windows still show sprints.
+  function tlSprints(to) {
+    const out = D.sprints.map((sp) => ({ id: sp.id, start: sp.start, end: sp.end }));
+    let last = out[out.length - 1];
+    while (last.end < to) { const [y, n] = last.id.split(".").map(Number); last = { id: `${y}.${String(n + 1).padStart(2, "0")}`, start: addDays(last.end, 1), end: addDays(last.end, 14), ext: true }; out.push(last); }
+    return out;
+  }
   function timelineSvg() {
     const W = 960, L = 210, R = 20, T = 48, rowH = 58, plotW = W - L - R;
-    const t0 = dayNum("2026-10-14"), t1 = dayNum("2027-02-01");
+    const win = tlWindow(), t0 = dayNum(win.from), t1 = dayNum(win.to), inWin = (iso) => iso >= win.from && iso <= win.to;
     const x = (iso) => L + ((dayNum(iso) - t0) / (t1 - t0)) * plotW;
     const NAME_CH = Math.floor((L - 20) / 8), SUB_CH = Math.floor((L - 20) / 6.6);
     const lab = D.projects.map((p) => {
       const name = wrap(p.name.split(" ").map((w) => ({ t: w, len: w.length })), NAME_CH).map((l) => l.items.map((i) => i.t).join(" "));
       const prods = wrap(p.products.map((id) => { const pr = FS.product(id); return { pr, len: pr.name.length + 2 }; }), SUB_CH);
-      return { name, prods, h: Math.max(rowH, 14 + name.length * 16 + prods.length * 14 + 14) };
+      // milestone labels: centred under the diamond (right-aligned near the edge); a label that would touch the
+      // previous one in its line moves to the next line, so nothing overlaps at any zoom level
+      const ends = [], ms = p.milestones.filter((m) => inWin(m.date)).sort((a, b) => (a.date < b.date ? -1 : 1)).map((m) => {
+        const mx = Math.min(x(m.date), W - R - 9), w = (m.name.length + 9) * 6.7, anchor = mx + w / 2 > W - R ? "end" : "middle";
+        const a0 = anchor === "end" ? mx + 9 - w : mx - w / 2, a1 = a0 + w;
+        let line = ends.findIndex((e) => e + 10 < a0); if (line < 0) { line = ends.length; ends.push(a1); } else ends[line] = a1;
+        return { m, mx, anchor, line };
+      });
+      return { name, prods, ms, h: Math.max(rowH + Math.max(0, ends.length - 1) * 14, 14 + name.length * 16 + prods.length * 14 + 14) };
     });
     const Y0 = lab.reduce((a, l, i) => (a.push(i ? a[i - 1] + lab[i - 1].h : T), a), []);
     const H = T + sum(lab, (l) => l.h) + 14;
-    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Zeitachse der Projekte von 14.10.2026 bis 31.01.2027 mit Meilensteinen und Ampel">`;
-    D.sprints.filter((sp) => ["2026.21", "2026.22", "2026.23", "2026.24", "2026.25"].includes(sp.id)).forEach((sp, i) => {
-      const x0 = x(sp.start), x1 = x(addDays(sp.end, 1));
-      s += `<rect x="${x0}" y="${T - 6}" width="${x1 - x0}" height="${H - T + 2}" style="fill:${i % 2 ? "transparent" : "var(--surface-2)"}"/><text class="d m" x="${(x0 + x1) / 2}" y="16" font-size="11" text-anchor="middle">${sp.id}</text>`;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Zeitachse der Projekte von ${FS.fmtDate(win.from)} bis ${FS.fmtDate(win.to)} mit Meilensteinen und Ampel">`;
+    const sps = tlSprints(win.to).filter((sp) => sp.end >= win.from && sp.start <= win.to), every = Math.ceil(62 / (plotW * 14 / (t1 - t0)));
+    sps.forEach((sp, i) => {
+      const x0 = Math.max(L, x(sp.start)), x1 = Math.min(W - R, x(addDays(sp.end, 1)));
+      s += `<rect x="${x0}" y="${T - 6}" width="${x1 - x0}" height="${H - T + 2}" style="fill:${i % 2 ? "transparent" : "var(--surface-2)"}"/>${i % every === 0 && (x0 + x1) / 2 + 26 < W ? `<text class="d m" x="${(x0 + x1) / 2}" y="16" font-size="11" text-anchor="middle">${sp.ext ? `<tspan font-style="italic">${sp.id}</tspan>` : sp.id}</text>` : ""}`;
     });
-    ["2026-11-01", "2026-12-01", "2027-01-01", "2027-02-01"].forEach((m) => {
+    // month lines; the first label sits at the left edge, later ones only if they do not collide
+    const months = []; for (let m = addMonths(win.from.slice(0, 8) + "01", 1); m <= win.to; m = addMonths(m, 1)) months.push(m);
+    let lastLx = L + 4 + 44;
+    s += `<text class="m" x="${L + 4}" y="36" font-size="11">${monthLabel(win.from.slice(0, 7))}</text>`;
+    months.forEach((m) => {
       s += `<line x1="${x(m)}" x2="${x(m)}" y1="22" y2="${H - 8}" style="stroke:var(--border)"/>`;
-      if (m < "2027-02") s += `<text class="m" x="${x(m) + 4}" y="36" font-size="11">${monthLabel(m.slice(0, 7))}</text>`;
+      if (x(m) + 4 > lastLx + 6 && x(m) + 48 < W) { s += `<text class="m" x="${x(m) + 4}" y="36" font-size="11">${monthLabel(m.slice(0, 7))}</text>`; lastLx = x(m) + 48; }
     });
-    s += `<text class="m" x="${L + 4}" y="36" font-size="11">Okt 26</text>`;
     D.projects.forEach((p, i) => {
       const y0 = Y0[i], yc = y0 + 20, lb = lab[i];
-      const xe = Math.min(x(p.end), W - R);
+      const cut = p.end > win.to, xe = Math.min(x(p.end), W - R), later = p.milestones.filter((m) => m.date > win.to);
       s += `<g class="pf-row" data-project="${p.id}" tabindex="0" role="link" aria-label="Projekt ${esc(p.name)} öffnen"><title>${esc(p.name)}: Ende ${FS.fmtDate(p.end)}</title>
         <line x1="8" x2="${W - R}" y1="${y0 + lb.h - 6}" y2="${y0 + lb.h - 6}" style="stroke:var(--border)"/>
         ${lb.name.map((t, k) => `<text x="8" y="${yc - 2 + k * 16}" font-size="13" font-weight="600">${esc(t)}</text>`).join("")}${lb.prods.map((l, k) => `<text class="m" x="8" y="${yc + 14 + (lb.name.length - 1) * 16 + k * 14}" font-size="11">${l.items.map((it) => `<tspan style="fill:${it.pr.color}">●</tspan> ${esc(it.pr.name)}`).join("  ")}</text>`).join("")}
         <rect class="pf-bar" x="${L}" y="${yc - 7}" width="${xe - L}" height="14" rx="3" style="fill:var(--primary-weak);stroke:var(--primary);stroke-width:1.5"/>
-        <line x1="${xe}" x2="${xe}" y1="${yc - 11}" y2="${yc + 11}" style="stroke:var(--primary);stroke-width:2.5"/>`;
-      p.milestones.forEach((m) => {
-        const mx = Math.min(x(m.date), W - R - 9);
-        const anchor = mx > W - 130 ? "end" : "middle";
+        ${cut ? `<path d="M${xe - 2} ${yc - 9}l8 9l-8 9" style="fill:none;stroke:var(--primary);stroke-width:2.5;stroke-linejoin:round"/>` : `<line x1="${xe}" x2="${xe}" y1="${yc - 11}" y2="${yc + 11}" style="stroke:var(--primary);stroke-width:2.5"/>`}
+        ${later.length ? `<text class="m" font-size="11" x="${W - R}" y="${yc - 14}" text-anchor="end" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">${cut ? `Ende ${FS.fmtDate(p.end)}, ` : ""}${later.length === 1 ? "1 Meilenstein" : `${later.length} Meilensteine`} danach</text>` : cut ? `<text class="m" font-size="11" x="${W - R}" y="${yc - 14}" text-anchor="end" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">Ende ${FS.fmtDate(p.end)}</text>` : ""}`;
+      lb.ms.forEach(({ m, mx, anchor, line }) => {
         s += diamond(mx, yc, m.light, `${m.name}, ${FS.fmtDate(m.date)}: ${LIGHT_TXT[m.light]}`);
-        s += `<text font-size="11" x="${anchor === "end" ? mx + 9 : mx}" y="${yc + 27}" text-anchor="${anchor}">${esc(m.name)} <tspan class="d m">${FS.fmtDate(m.date)}</tspan></text>`;
+        s += `<text font-size="11" x="${anchor === "end" ? mx + 9 : mx}" y="${yc + 27 + line * 14}" text-anchor="${anchor}">${esc(m.name)} <tspan class="d m">${FS.fmtDate(m.date)}</tspan></text>`;
       });
       s += `</g>`;
     });
@@ -197,7 +224,10 @@
     <div class="page-head"><div><h1>Projekte</h1><p class="lead">Alle Projekte auf einer Zeitachse, mit Meilensteinen, Ampel und Kontingent. Projekte und Meilensteine pflegen Sie hier selbst, auch ohne ${D.team.tracker} und offline.</p></div>
       <div class="actions"><button class="btn primary" type="button" id="pf-new">${ic("add")}Neues Projekt</button></div></div>
     ${light ? `<div class="banner warn">${ic("flag")}<div class="grow"><strong>${light} von ${D.projects.length} Projekten</strong> sind knapp oder gefährdet. Details in der Tabelle und in der Konfliktansicht darunter.</div></div>` : ""}
-    <div class="card pf-timeline"><h2>Zeitachse bis Ende Januar</h2><div class="pf-scroll">${timelineSvg()}</div>
+    <div class="card pf-timeline"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Zeitachse</h2>
+      <div class="row" id="pf-range" role="group" aria-label="Sichtbarer Zeitraum" style="gap:6px"><span class="small muted">Zeitraum</span>${TL_RANGES.map(([k, l]) => `<button type="button" class="chip filter ${tlWindow().r === k ? "on" : ""}" data-tl="${k}" aria-pressed="${tlWindow().r === k}">${l}</button>`).join("")}<label class="small muted" for="pf-to">bis</label><input class="input data" type="date" id="pf-to" value="${tlWindow().to}" min="${addDays(D.today, 14)}" style="width:150px" aria-label="Zeitachse bis Datum"></div></div>
+      <p class="small muted" style="margin:0 0 8px">${FS.fmtDate(tlWindow().from)} bis ${FS.fmtDate(tlWindow().to)}. Kursive Sprints sind im Kalender noch nicht angelegt und folgen dem üblichen Takt. Die Wahl gilt nur für dich und bleibt beim nächsten Start erhalten.</p>
+      <div class="pf-scroll">${timelineSvg()}</div>
       <div class="pf-legend"><span><i class="pf-sw bar"></i>Laufzeit bis Ende</span><span>${ic("check_circle")}Meilenstein im Plan</span><span>${ic("error")}knapp</span><span>${ic("cancel")}gefährdet</span><span><i class="pf-sw" style="border-color:var(--highlight);border-top-width:3px"></i>heute</span><span>Klick auf eine Zeile öffnet das Projekt</span></div></div>
     <h2 style="margin:24px 0 8px">${FS.multiProduct() ? "Kontingent und Produkte" : "Kontingent"}</h2>
     <div class="tw pf-table"><table class="t"><thead><tr><th>Projekt</th><th class="only-multiprod">Produkte</th><th>Ende</th><th>Ampel</th><th class="num">gebucht (PT)</th><th class="num">verbraucht (PT)</th><th class="num">geplant (PT)</th><th>Verbrauch</th></tr></thead><tbody>
@@ -294,6 +324,8 @@
     wire(main) {
       wireCommon(main);
       main.querySelector("#pf-new").onclick = newProjectPanel;
+      main.querySelectorAll("[data-tl]").forEach((b) => (b.onclick = () => { FS.state.tlRange = b.dataset.tl; FS.render(); }));
+      main.querySelector("#pf-to").onchange = (e) => { if (e.target.value) { FS.state.tlRange = "custom"; FS.state.tlTo = e.target.value; FS.render(); } };
       main.querySelectorAll("[data-decide]").forEach((b) => (b.onclick = () => FS.toast(`"${b.dataset.decide}" notiert. Die Entscheidung bleibt beim PO, Foresprint ändert nichts am Plan.`)));
     },
   });
