@@ -130,7 +130,7 @@
     const hint = stage !== "plan" && missing(sid, stage);
     return `${CSS}
     <div class="page-head"><div><h1>${title}: Sprint <span class="data">${sid}</span> ${stateChip(sid)}</h1>
-      <p class="lead"><span class="data">${FS.fmtDate(s.start)} bis ${FS.fmtDate(s.end)}</span> · ${s.days} Arbeitstage. ${LEAD[stage]}</p></div>
+      <p class="lead"><span class="data">${FS.fmtDate(s.start)} bis ${FS.fmtDate(s.end)}</span> · ${s.days} Arbeitstage. ${FS.multiProduct() ? LEAD[stage] : LEAD[stage].replace(" je Produkt", " für das Team").replace("Summe, Produkte und Projekte", "Summe und Projekte").replace("Erledigtes für das Team", "Erledigtes")}</p></div>
       <div class="actions">${actions}</div></div>
     <nav class="stepper" aria-label="Stufen des Sprints">${STAGES.map(([id, label], i) => {
       const m = missing(sid, id), done = !m && id !== "minutes" && (id !== "review" || stateOf(sid) === "past");
@@ -180,9 +180,9 @@
     let out = "";
     D.pos.forEach((po) => {
       const ps = D.products.filter((p) => p.po === po.id);
-      out += `<tr class="sp-po"><td colspan="${cols}">PO ${esc(po.name)}</td></tr>${ps.map((p) => `<tr>${rowFn(p)}</tr>`).join("")}<tr class="sum"><td>Summe ${esc(po.name)}</td>${sumFn(ps)}</tr>`;
+      out += `<tr class="sp-po only-multipo"><td colspan="${cols}">PO ${esc(po.name)}</td></tr>${ps.map((p) => `<tr>${rowFn(p)}</tr>`).join("")}<tr class="sum only-multipo"><td>Summe ${esc(po.name)}</td>${sumFn(ps)}</tr>`;
     });
-    return out + `<tr class="sum"><td>Gesamt</td>${sumFn(D.products)}</tr>`;
+    return out + `<tr class="sum only-multiprod"><td>Gesamt</td>${sumFn(D.products)}</tr>`;
   }
   const n = (v) => (v == null ? `<span class="muted">–</span>` : fmt(v));
   const signed = (v) => (v > 0 ? `+${fmt(v)}` : v < 0 ? `−${fmt(-v)}` : "0");
@@ -274,18 +274,18 @@
   FS.view("preplan", {
     title: "Sprint vorplanen",
     render() {
-      const sid = FS.state.sprint, c = calc(sid), l = tix(sid), pre = preSum(sid), ear = pts(l), prod = D.team.prodAccess !== false;
+      const sid = FS.state.sprint, c = calc(sid), l = tix(sid), pre = preSum(sid), ear = pts(l), prod = FS.prodOn();
       const over = c.high != null && Math.max(pre, ear) > c.high;
       const rows = poRows(8, (p) => { const r = pp(sid, p.id), e = earmark(sid, p.id), dv = r.pre == null ? null : r.pre - e; return `<td>${FS.productChip(p.id)}</td><td class="num">${n(r.def)}</td>
         <td class="num edit"><input aria-label="Vorgeplant ${esc(p.name)}" data-pre="${p.id}" inputmode="numeric" value="${r.pre ?? ""}" placeholder="–"></td><td class="num">${fmt(e)}</td>
-        <td class="num">${dv == null ? n(null) : `<span class="${dv < 0 ? "chip warn" : ""}">${signed(dv)}</span>`}</td><td class="num">${n(r.plan)}</td><td class="num">${n(r.prodPlan)}</td><td class="num">${n(r.done)}</td>`; },
-        (ps) => { const s = (f) => sum(ps, f), pr = s((p) => pp(sid, p.id).pre), e = s((p) => earmark(sid, p.id)); return `<td class="num">${fmt(s((p) => pp(sid, p.id).def))}</td><td class="num">${fmt(pr)}</td><td class="num">${fmt(e)}</td><td class="num">${signed(pr - e)}</td><td class="num">${fmt(s((p) => pp(sid, p.id).plan))}</td><td class="num">${fmt(s((p) => pp(sid, p.id).prodPlan))}</td><td class="num">${fmt(s((p) => pp(sid, p.id).done))}</td>`; });
+        <td class="num">${dv == null ? n(null) : `<span class="${dv < 0 ? "chip warn" : ""}">${signed(dv)}</span>`}</td><td class="num">${n(r.plan)}</td><td class="num col-prod">${n(r.prodPlan)}</td><td class="num">${n(r.done)}</td>`; },
+        (ps) => { const s = (f) => sum(ps, f), pr = s((p) => pp(sid, p.id).pre), e = s((p) => earmark(sid, p.id)); return `<td class="num">${fmt(s((p) => pp(sid, p.id).def))}</td><td class="num">${fmt(pr)}</td><td class="num">${fmt(e)}</td><td class="num">${signed(pr - e)}</td><td class="num">${fmt(s((p) => pp(sid, p.id).plan))}</td><td class="num col-prod">${fmt(s((p) => pp(sid, p.id).prodPlan))}</td><td class="num">${fmt(s((p) => pp(sid, p.id).done))}</td>`; });
       const groups = [...D.projects.map((p) => p.id), null].map((pid) => ({ pid, list: l.filter((t) => (t.project || null) === pid) })).filter((g) => g.list.length);
       return `${header(sid, "preplan", `<button class="btn" type="button" id="sp-take">${ic("playlist_add")}Vormerkungen übernehmen</button><button class="btn" type="button" id="sp-std">${ic("restart_alt")}Standard übernehmen</button>`)}${summary(sid)}
       ${over ? `<div class="banner warn" id="sp-overcap">${ic("warning")}<div class="grow">Vorgeplant <span class="data">${pre}</span> und vorgemerkt <span class="data">${ear}</span> Punkte liegen über der oberen Grenze <span class="data">${c.high}</span> des Forecast PLAN (${c.fc}). Das ist nur eine Warnung. Du kannst weiterarbeiten, im Planning entscheidet das Team.</div></div>` : ""}
-      <h2>Betrag je Produkt</h2>
-      ${tw(`<table class="t" id="sp-prod-table"><thead><tr><th>Produkt</th><th class="num">Standard</th><th class="num">Vorgeplant</th><th class="num">Vormerkungen</th><th class="num">Abweichung</th><th class="num">Geplant</th><th class="num">davon Prod</th><th class="num">Erledigt</th></tr></thead><tbody>${rows}</tbody></table>`)}
-      <p class="small muted" style="margin:8px 0 24px">Hier editierbar: Vorgeplant. Standard kommt aus dem Budgetanteil, Vormerkungen sind die Summe der vorgemerkten Tickets (Vorschlag). Geplant, davon Prod und Erledigt füllen Planning und Review, hier nur lesbar.</p>
+      <h2>${FS.multiProduct() ? "Betrag je Produkt" : "Betrag für das Team"}</h2>
+      ${tw(`<table class="t" id="sp-prod-table"><thead><tr><th>${FS.multiProduct() ? "Produkt" : "Team"}</th><th class="num">Standard</th><th class="num">Vorgeplant</th><th class="num">Vormerkungen</th><th class="num">Abweichung</th><th class="num">Geplant</th><th class="num col-prod">davon Prod</th><th class="num">Erledigt</th></tr></thead><tbody>${rows}</tbody></table>`)}
+      <p class="small muted" style="margin:8px 0 24px">Hier editierbar: Vorgeplant. Standard kommt aus dem Budgetanteil, Vormerkungen sind die Summe der vorgemerkten Tickets (Vorschlag). Geplant${FS.prodOn() ? ", davon Prod" : ""} und Erledigt füllen Planning und Review, hier nur lesbar.</p>
       <div id="sp-earmarks"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Vorgemerkte Tickets nach Projekt</h2><a class="btn" href="#backlog">${ic("view_list")}Im Backlog vormerken</a></div>
       ${groups.length ? `<div class="stack" style="gap:16px">${groups.map((g) => { const pr = g.pid && FS.project(g.pid), h = pr && projHints(sid).find((x) => x.pr.id === g.pid), p = pts(g.list); return `<div class="card" style="padding:0"><div class="row" style="padding:10px 12px;border-bottom:1px solid var(--border)">${FS.projectChip(g.pid)}<span class="small muted">${g.list.length} Tickets · <span class="data">${fmt(p)}</span> Punkte</span>
         <span style="flex:1"></span>${h ? `<span class="small">≈ <span class="data">${fmt(h.need, 1)} PT</span> <span class="chip small">Schätzung</span> von ${pr.contingentPD} PT gebucht, ${pr.usedPD} verbraucht</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT über Kontingent` : `Rest ${fmt(h.rest)} PT`)}${calcBtn("pd", g.pid)}` : `<span class="small muted">Tagesgeschäft: kein Kontingent, läuft über die Produktbeträge</span>`}</div>
@@ -335,7 +335,7 @@
           <div class="row small">${p > c.high ? FS.lightChip("bad", `${p - c.high} über Spanne`) : p < c.low ? `<span class="chip fc">${c.low - p} bis zur Spanne</span>` : FS.lightChip("ok", "in der Spanne")}${unref ? `<span class="chip warn">${unref} nicht refined</span>` : ""}${noEst ? `<span class="chip warn">${noEst} ohne Schätzung (zählen 0)</span>` : ""}</div></div>
           <div class="lane-body sp-lb">${l.map((t) => FS.ticketRow(t, { drag: !fz })).join("") || `<div class="small muted" style="padding:12px">Noch leer. Tickets hierher ziehen.</div>`}</div></div></div>
         <p class="small muted" style="margin:-8px 0 16px">Ziehen oder Alt+Pfeil links/rechts verschiebt zwischen den Spalten, Alt+Pfeil hoch/runter sortiert. Doppelklick öffnet das Ticket.</p>`;
-      const prodTbl = `<div class="card"><h2>Produkt gegen Budget</h2>${tw(`<table class="t"><thead><tr><th>Produkt</th><th class="num">Budget</th><th class="num">${noT ? "Betrag" : "Tickets"}</th><th class="num">Differenz</th></tr></thead><tbody>
+      const prodTbl = `<div class="card only-multiprod"><h2>Produkt gegen Budget</h2>${tw(`<table class="t"><thead><tr><th>Produkt</th><th class="num">Budget</th><th class="num">${noT ? "Betrag" : "Tickets"}</th><th class="num">Differenz</th></tr></thead><tbody>
         ${D.products.map((pr) => { const b = pp(sid, pr.id).pre ?? pp(sid, pr.id).def, u = noT ? amtOf(sid, pr.id) : earmark(sid, pr.id), d = u - b; return `<tr><td>${FS.productChip(pr.id)}</td><td class="num">${b}</td><td class="num">${u}</td><td class="num">${d > 0 ? `<span class="chip warn">+${d}</span>` : d < 0 ? `<span class="muted">${signed(d)} frei</span>` : `<span class="chip ok">passt</span>`}</td></tr>`; }).join("")}
         <tr class="sum"><td>Gesamt</td><td class="num">${sum(D.products, (x) => pp(sid, x.id).pre ?? pp(sid, x.id).def)}</td><td class="num">${noT ? sum(D.products, (x) => amtOf(sid, x.id)) : p}</td><td></td></tr></tbody></table>`)}<p class="small muted">Budget ist der vorgeplante Betrag. Abweichungen warnen, sperren aber nichts.</p></div>`;
       const projTbl = `<div class="card"><h2>Projekt gegen Kontingent <span class="chip small">Schätzung</span></h2>${hints.length ? tw(`<table class="t"><thead><tr><th>Projekt</th><th class="num">Punkte</th><th class="num">PT</th><th class="num">Rest</th><th></th></tr></thead><tbody>
@@ -402,8 +402,8 @@
       const sid = FS.state.sprint, S = st(), stt = stateOf(sid), r = rvOf(sid), closed = stt === "past", vel = r.plan - r.notDone + r.extra;
       const doneSum = sum(D.products, (p) => r.done[p.id]?.d), prodSum = sum(D.products, (p) => r.done[p.id]?.prod);
       const ro = closed ? "disabled" : "";
-      const rows = poRows(6, (p) => { const d = r.done[p.id] || { d: 0, prod: 0 }, pl = pp(sid, p.id).plan ?? pp(sid, p.id).pre ?? pp(sid, p.id).def; return `<td>${FS.productChip(p.id)}</td><td class="num">${fmt(pl)}</td><td class="num edit"><input data-done="${p.id}" inputmode="numeric" aria-label="Erledigt ${esc(p.name)}" value="${d.d}" ${ro}></td><td class="num edit"><input data-prod="${p.id}" inputmode="numeric" aria-label="davon Prod ${esc(p.name)}" value="${d.prod}" ${ro}></td><td class="num">${signed(d.d - pl)}</td>`; },
-        (ps) => { const s = (f) => sum(ps, f), pl = s((p) => pp(sid, p.id).plan ?? pp(sid, p.id).pre ?? pp(sid, p.id).def), dn = s((p) => r.done[p.id]?.d); return `<td class="num">${fmt(pl)}</td><td class="num">${fmt(dn)}</td><td class="num">${fmt(s((p) => r.done[p.id]?.prod))}</td><td class="num">${signed(dn - pl)}</td>`; });
+      const rows = poRows(6, (p) => { const d = r.done[p.id] || { d: 0, prod: 0 }, pl = pp(sid, p.id).plan ?? pp(sid, p.id).pre ?? pp(sid, p.id).def; return `<td>${FS.productChip(p.id)}</td><td class="num">${fmt(pl)}</td><td class="num edit"><input data-done="${p.id}" inputmode="numeric" aria-label="Erledigt ${esc(p.name)}" value="${d.d}" ${ro}></td><td class="num edit col-prod"><input data-prod="${p.id}" inputmode="numeric" aria-label="davon Prod ${esc(p.name)}" value="${d.prod}" ${ro}></td><td class="num">${signed(d.d - pl)}</td>`; },
+        (ps) => { const s = (f) => sum(ps, f), pl = s((p) => pp(sid, p.id).plan ?? pp(sid, p.id).pre ?? pp(sid, p.id).def), dn = s((p) => r.done[p.id]?.d); return `<td class="num">${fmt(pl)}</td><td class="num">${fmt(dn)}</td><td class="num col-prod">${fmt(s((p) => r.done[p.id]?.prod))}</td><td class="num">${signed(dn - pl)}</td>`; });
       return `${header(sid, "review", closed ? `<button class="btn" type="button" id="sp-reopen-rv" ${FS.sprint(sid).state === "past" ? "disabled" : ""}>${ic("lock_open")}Review wieder öffnen</button>` : `<button class="btn primary" type="button" id="sp-close">${ic("task_alt")}Sprint abschließen</button>`)}${summary(sid)}
       ${stt === "open" || stt === "planned" ? `<div class="banner warn">${ic("schedule")}<div class="grow">Der Sprint hat noch nicht begonnen. Die Zahlen unten sind Platzhalter. Das Review-Beispiel zeigt Sprint 2026.21. <a href="#review" data-sprint="2026.21">Zu 2026.21 wechseln</a></div></div>` : ""}
       <div class="grid cols-2" style="margin-bottom:16px">
@@ -411,8 +411,8 @@
           <p class="small muted">Zusage ${fmt(r.plan)} minus nicht erledigt plus zusätzlich erledigt. Die Velocity fließt in den Forecast der nächsten Sprints ein.</p></div>
         <div class="card" id="sp-scope"><h2>Scope-Änderung</h2><div class="row"><div class="field"><label for="rv-nd">Nicht erledigt (Punkte)</label><input class="input data" id="rv-nd" data-rv="notDone" inputmode="numeric" value="${r.notDone}" ${ro} style="width:110px"></div><div class="field"><label for="rv-ex">Zusätzlich erledigt (Punkte)</label><input class="input data" id="rv-ex" data-rv="extra" inputmode="numeric" value="${r.extra}" ${ro} style="width:110px"></div></div>
           <p class="small muted">Nicht erledigte Tickets wandern zurück ins Backlog, zusätzlich erledigte kamen während des Sprints dazu.</p></div></div>
-      <div id="sp-done"><h2>Erledigt je Produkt</h2>${tw(`<table class="t"><thead><tr><th>Produkt</th><th class="num">Geplant</th><th class="num">Erledigt</th><th class="num">davon Prod</th><th class="num">Differenz</th></tr></thead><tbody>${rows}</tbody></table>`)}
-      <p class="small" style="margin:8px 0 16px">${doneSum === vel ? FS.lightChip("ok", "Summe passt zur Velocity") : FS.lightChip("warn", `Summe ${doneSum} weicht um ${signed(doneSum - vel)} von der Velocity ab`)} <span class="muted">Der Prod-Anteil (${prodSum}) wird nur angezeigt, nicht erzwungen.</span></p></div>
+      <div id="sp-done" ${!FS.multiProduct() && !FS.prodOn() ? 'style="display:none"' : ""}><h2>${FS.multiProduct() ? "Erledigt je Produkt" : "Erledigt"}</h2>${tw(`<table class="t"><thead><tr><th>${FS.multiProduct() ? "Produkt" : "Team"}</th><th class="num">Geplant</th><th class="num">Erledigt</th><th class="num col-prod">davon Prod</th><th class="num">Differenz</th></tr></thead><tbody>${rows}</tbody></table>`)}
+      <p class="small" style="margin:8px 0 16px">${doneSum === vel ? FS.lightChip("ok", "Summe passt zur Velocity") : FS.lightChip("warn", `Summe ${doneSum} weicht um ${signed(doneSum - vel)} von der Velocity ab`)} <span class="muted col-prod">Der Prod-Anteil (${prodSum}) wird nur angezeigt, nicht erzwungen.</span></p></div>
       <div class="grid cols-2">
         <div class="card" id="sp-freezepd"><h2>Personentage einfrieren</h2><div class="row"><div class="field"><label for="rv-fz">Verfügbare Personentage im Sprint</label><input class="input data" id="rv-fz" data-rv="freeze" inputmode="numeric" value="${r.freeze}" ${ro} style="width:110px"></div>
           <div><div class="data" style="font-size:18px">${fmt(vel / r.freeze, 2)} Punkte je PT</div><span class="small muted">tatsächliche Rate (Schätzung)</span>${calcBtn("rate")}</div></div>
