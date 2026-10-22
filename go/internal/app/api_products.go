@@ -161,7 +161,7 @@ func productFrom(d ProductDTO, stored model.Product, fields []string) (model.Pro
 	if p.Name == "" {
 		return p, errors.New(i18n.T("Every product needs a name."))
 	}
-	p.PO = optional(d.PO)
+	p.PO = optionalText(d.PO)
 	if d.Share != nil && !(*d.Share >= 0 && *d.Share <= 1) {
 		return p, errors.New(i18n.T("The share of {name} must be between 0 and 100 percent.", "name", p.Name))
 	}
@@ -267,7 +267,7 @@ func (a *API) EndProduct(team, id, lastDay string, shares map[string]float64, ta
 			if t.Done || t.Product == nil || *t.Product != id {
 				continue
 			}
-			t.Product = optional(target)
+			t.Product = optionalText(target)
 			if target != "" {
 				moved++
 			}

@@ -44,14 +44,10 @@ type API struct {
 
 	mu      sync.Mutex
 	dataDir string
-<<<<<<< HEAD
-	// teamUndo is the last step of the Team area per team (undo.go).
-	teamUndo undoLog
-	undo     []projectSnapshot
-=======
 	run     trackerRun
 	undo    []projectSnapshot
->>>>>>> origin/v1
+	// teamUndo is the last step of the Team area per team (undo.go).
+	teamUndo undoLog
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).

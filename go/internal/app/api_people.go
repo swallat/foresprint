@@ -173,7 +173,7 @@ func personFrom(d PersonDTO, stored model.Person) (model.Person, error) {
 	}
 	p.ProductionAccess = d.Production
 	if stored.ID == "" { // new person: the window sends the optional fields as they are
-		p.Region, p.Country, p.Workweek = optional(d.Region), optional(d.Country), optional(d.Workweek)
+		p.Region, p.Country, p.Workweek = optionalText(d.Region), optionalText(d.Country), optionalText(d.Workweek)
 	}
 	if len(d.Memberships) == 0 {
 		return p, errors.New(i18n.T("{name} needs at least one period in the team.", "name", p.Name))
@@ -208,7 +208,7 @@ func personFrom(d PersonDTO, stored model.Person) (model.Person, error) {
 	return p, nil
 }
 
-func optional(s string) *string {
+func optionalText(s string) *string {
 	if s == "" {
 		return nil
 	}

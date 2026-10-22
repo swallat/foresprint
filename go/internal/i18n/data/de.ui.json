@@ -288,7 +288,6 @@
   "Delete the tag {name}? The tag goes away, where possible for the others too. The saved states stay.": "Den Tag {name} löschen? Der Tag verschwindet, wo möglich auch für die anderen. Die gespeicherten Stände bleiben.",
   "Delete {name}": "{name} löschen",
   "Demo team: invented sample data.": "Demo-Team: erfundene Beispieldaten.",
-  "Density follows with the settings package.": "Die Dichte folgt mit dem Einstellungs-Paket.",
   "Density of tables": "Dichte der Tabellen",
   "Derive from tickets": "Aus den Tickets ableiten",
   "Description, acceptance criteria, subtasks, links, comments and attachments come with the sync. The arrow keys page through; the space bar puts the ticket into the sprint or takes it out.": "Beschreibung, Akzeptanzkriterien, Teilaufgaben, Links, Kommentare und Anhänge kommen mit dem Sync. Die Pfeiltasten blättern; die Leertaste nimmt das Ticket in den Sprint oder heraus.",
