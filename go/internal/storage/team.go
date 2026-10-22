@@ -149,6 +149,15 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 			Projects:   truthy(getOr(rawFeatures, "projects", false)),
 			Explicit:   true,
 		}
+		if features.ProductionMax, err = floatOf(get(rawFeatures, "production_max"), where+": features.production_max"); err != nil {
+			return model.Team{}, err
+		}
+		if m := features.ProductionMax; m != nil && *m < 0 {
+			return model.Team{}, dataErr("{where}: production_max must not be negative", "where", where)
+		}
+		if features.ProductionMax != nil && *features.ProductionMax == 100 {
+			features.ProductionMax = nil
+		}
 	}
 	tracker := model.NewTrackerSettings()
 	var trackerRaw any
@@ -305,6 +314,9 @@ func TeamToDict(team model.Team) *yamlx.Map {
 		put(capm, "absence_history", int64(team.Capacity.AbsenceHistory))
 	}
 	features := omap("products", team.Features.Products, "po", team.Features.PO, "production", team.Features.Production)
+	if m := team.Features.ProductionMax; m != nil && *m != 100 {
+		put(features, "production_max", *m)
+	}
 	if team.Features.Tickets { // only when on: files of teams without it stay unchanged
 		put(features, "tickets", true)
 	}
