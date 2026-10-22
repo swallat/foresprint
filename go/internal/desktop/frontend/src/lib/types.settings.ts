@@ -122,6 +122,24 @@ export interface Features {
   projects: boolean;
 }
 
+export interface PackageImportChange {
+  key: string;
+  title: string;
+  update: boolean;
+}
+
+export interface PackageImportPreview {
+  path: string;
+  hash: string;
+  changes: PackageImportChange[];
+  more: number;
+  new: number;
+  updated: number;
+  problems: { row: number; msg: string }[];
+  unmapped: string[];
+  cancelled: boolean;
+}
+
 export interface SettingsApi {
   TeamFeatures(team: string): Promise<Features>;
   TeamSettings(team: string): Promise<TeamSettings>;
@@ -137,4 +155,6 @@ export interface SettingsApi {
   TokenInfo(team: string, baseUrl: string): Promise<TokenState>;
   SetDensity(code: string): Promise<void>;
   SyncTracker(team: string): Promise<Result>;
+  PackageImportPreview(team: string): Promise<PackageImportPreview>;
+  PackageImportApply(team: string, path: string, hash: string): Promise<Result>;
 }
