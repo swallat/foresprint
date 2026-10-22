@@ -1,7 +1,7 @@
 // Icons: Material Symbols, outlined, weight 400, flat (DESIGN.md). Each icon is an SVG from the
 // package @material-symbols/svg-400, bundled as text, so the window needs no icon font and makes
-// no web request. To use another icon: add one import line here (keep the list sorted; the file
-// name is the icon name in node_modules/@material-symbols/svg-400/outlined) and one entry below.
+// no web request. This file holds the icons of the shell and the shared parts; a page area adds
+// its own icons in its own file (icons/<area>.ts), see index.ts.
 //
 // Never use emojis in the UI.
 
@@ -255,8 +255,4 @@ const icons = {
   warning: i_warning,
 } as const;
 
-export type IconName = keyof typeof icons;
-
-export function iconSvg(name: IconName): string {
-  return icons[name];
-}
+export default icons;

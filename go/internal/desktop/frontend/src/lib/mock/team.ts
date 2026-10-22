@@ -1,6 +1,6 @@
 // Mock answers of the Team area for a browser without the program (demo team "Atlas").
 
-import type { AbsencePeriod, EndResult, Owner, PeopleView, Person, Product, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from './types.team';
+import type { AbsencePeriod, EndResult, Owner, PeopleView, Person, Product, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from '../types.team';
 
 const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'in_sprint'];
 
@@ -121,7 +121,7 @@ const productsView = (): ProductsView => {
 };
 const step = (undo: number): Step => ({ view: productsView(), undo });
 
-export const teamMock: TeamApi = {
+const teamMock: TeamApi = {
   async Products() {
     return productsView();
   },
@@ -218,3 +218,5 @@ export const teamMock: TeamApi = {
     };
   },
 };
+
+export default teamMock;
