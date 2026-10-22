@@ -97,8 +97,8 @@
       case 'people list': return t('people list');
       case 'Trend': return t('Trend');
       case 'Calendar, absences unknown': return t('calendar, absences unknown');
-      case 'expected absences': return t('expected absences');
-      case 'announced absences': return t('announced absences');
+      case 'expected absences': return t('absences expected');
+      case 'announced absences': return t('absences announced');
       default: return source || '–';
     }
   }
@@ -154,7 +154,7 @@
               <th class="num">{t('Plannable')}</th>
               <th class="num">{t('Small items')}</th>
               {#if whatIf.length > 0}<th class="num">{t('What if')}</th>{/if}
-              <th><span class="sr-only">{t('Calculation')}</span></th>
+              <th><span class="sr-only">{t('Calculation of the number')}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -164,7 +164,7 @@
                 <td>
                   <span class="data">{r.id}</span>
                   <span class="small muted data">{shortDate(r.start)} – {shortDate(r.end)}</span>
-                  {#if r.state === 'current'}<span class="chip ok">{t('running')}</span>{/if}
+                  {#if r.state === 'current'}<span class="chip ok">{t('in progress')}</span>{/if}
                 </td>
                 <td class="num">{fmt(r.capacity)}</td>
                 <td>
@@ -339,7 +339,7 @@
                 <th class="num">{t('Capacity (PD)')}</th>
                 <th class="num">{t('Commitment')}</th>
                 <th class="num">{t('Velocity')}</th>
-                <th class="num">{t('Fulfillment')}</th>
+                <th class="num">{t('Fulfillment ratio')}</th>
                 <th class="num">{t('Normalized velocity')}</th>
                 <th class="num">{t('Trend')}</th>
               </tr>
