@@ -17,18 +17,49 @@ func init() { Register(peopleCommand) }
 
 func peopleCommand(env *Env) *cobra.Command {
 	var doCommit, former bool
+	var newKind, until string
 	cmd := &cobra.Command{
 		Use:   "people TEAM",
 		Short: i18n.T("Show and maintain the list of people (joining, FTE change, leaving)."),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runPeople(env, args[0], doCommit, former)
+			kind, err := parseKind(newKind)
+			if err != nil {
+				return err
+			}
+			var end *time.Time
+			if until != "" {
+				d, err := time.Parse("2006-01-02", until)
+				if err != nil {
+					return Failf("--until needs a date as YYYY-MM-DD.")
+				}
+				end = &d
+			}
+			return runPeople(env, args[0], doCommit, former, newPerson{kind: kind, end: end})
 		},
 	}
 	teamArg(env, cmd)
 	commitFlag(cmd, &doCommit)
 	cmd.Flags().BoolVar(&former, "former", false, i18n.T("Show people who left."))
+	cmd.Flags().StringVar(&newKind, "kind", "", i18n.T("Kind of a new person: member (default), guest or external."))
+	cmd.Flags().StringVar(&until, "until", "", i18n.T("Last day of a new person in the team, YYYY-MM-DD (asked for external people)."))
 	return cmd
+}
+
+// newPerson carries the options for people added in this run.
+type newPerson struct {
+	kind model.PersonKind
+	end  *time.Time
+}
+
+func parseKind(s string) (model.PersonKind, error) {
+	switch k := model.PersonKind(strings.ToLower(strings.TrimSpace(s))); k {
+	case "", model.KindMember:
+		return model.KindMember, nil
+	case model.KindGuest, model.KindExternal:
+		return k, nil
+	}
+	return "", Failf("--kind must be member, guest or external.")
 }
 
 func day(d time.Time) string { return d.Format("02.01.2006") }
@@ -37,6 +68,15 @@ func peopleTable(people []model.Person, today time.Time, showFormer bool) *Table
 	t := &Table{
 		Title:  i18n.P("People (as of {day})", "day", day(today)),
 		Header: []string{i18n.T("Name"), i18n.T("State"), i18n.T("FTE today"), i18n.T("Periods in the team")},
+	}
+	withKind := false
+	for _, p := range people {
+		if p.Kind != "" && p.Kind != model.KindMember {
+			withKind = true
+		}
+	}
+	if withKind {
+		t.Header = append(t.Header, i18n.T("Kind"))
 	}
 	hidden := 0
 	for _, p := range people {
@@ -64,7 +104,11 @@ func peopleTable(people []model.Person, today time.Time, showFormer bool) *Table
 		if v := p.FTEOn(today); v != 0 {
 			fte = plainNumber(v)
 		}
-		t.Add(textfmt.BlankControls(p.Name), region, fte, text)
+		row := []string{textfmt.BlankControls(p.Name), region, fte, text}
+		if withKind {
+			row = append(row, kindLabel(p.Kind))
+		}
+		t.Add(row...)
 	}
 	if hidden > 0 {
 		t.Caption = i18n.P("{count} former person(s) hidden – show with --former", "count", hidden)
@@ -108,7 +152,7 @@ func (e *Env) choosePerson(people []model.Person) (int, error) {
 	}
 }
 
-func runPeople(env *Env, key string, doCommit, former bool) error {
+func runPeople(env *Env, key string, doCommit, former bool, opts newPerson) error {
 	data, err := env.LoadTeam(key)
 	if err != nil {
 		return err
@@ -127,7 +171,7 @@ func runPeople(env *Env, key string, doCommit, former bool) error {
 			break
 		}
 		if action == "n" {
-			person, ok, err := askNewPerson(env, data, people)
+			person, ok, err := askNewPerson(env, data, people, opts)
 			if err != nil {
 				return err
 			}
@@ -164,7 +208,7 @@ func runPeople(env *Env, key string, doCommit, former bool) error {
 }
 
 // askNewPerson asks for a new person; ok is false if the input was refused (the loop goes on).
-func askNewPerson(env *Env, data *storage.TeamData, people []model.Person) (model.Person, bool, error) {
+func askNewPerson(env *Env, data *storage.TeamData, people []model.Person, opts newPerson) (model.Person, bool, error) {
 	name, err := env.Ask(i18n.P("Name"), "")
 	if err != nil {
 		return model.Person{}, false, err
@@ -204,7 +248,18 @@ func askNewPerson(env *Env, data *storage.TeamData, people []model.Person) (mode
 	if share == 0 {
 		share = 1
 	}
-	person := model.Person{ID: id, Name: name, Region: region, Memberships: []model.Membership{{Start: start, FTE: share}}}
+	end := opts.end
+	if opts.kind == model.KindExternal && end == nil {
+		d, err := env.AskDate(i18n.P("Last day in the team (external people need an end date)"), nil)
+		if err != nil {
+			return model.Person{}, false, err
+		}
+		end = &d
+	}
+	person := model.Person{ID: id, Name: name, Region: region, Memberships: []model.Membership{{Start: start, End: end, FTE: share}}}
+	if opts.kind != model.KindMember {
+		person.Kind = opts.kind
+	}
 	tentative := *data
 	tentative.People = append(append([]model.Person{}, people...), person)
 	if env.reportNewErrors(data, &tentative, "people.yaml") {
@@ -271,4 +326,15 @@ func changeMembership(env *Env, people []model.Person, action string) (bool, err
 	active.End = &end
 	person.Memberships = append(person.Memberships, model.Membership{Start: when, FTE: share})
 	return true, nil
+}
+
+// kindLabel names a person kind for the table.
+func kindLabel(k model.PersonKind) string {
+	switch k {
+	case model.KindGuest:
+		return i18n.P("guest")
+	case model.KindExternal:
+		return i18n.P("external")
+	}
+	return i18n.P("member")
 }
