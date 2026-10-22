@@ -6,7 +6,7 @@
 package sprintwrite
 
 import (
-	"fmt"
+	"errors"
 	"sort"
 	"strconv"
 
@@ -142,10 +142,10 @@ func Build(in Input) Plan {
 	target, ok := in.Dir.ForSprint(in.SprintID)
 	switch {
 	case !ok:
-		plan.Problems = append(plan.Problems, fmt.Sprintf("sprint %s: no sprint of the tracker belongs to it", in.SprintID))
+		plan.Problems = append(plan.Problems, sources.T("Sprint {sprint}: no sprint of the tracker belongs to it", "sprint", in.SprintID))
 		return plan
 	case target.Closed():
-		plan.Problems = append(plan.Problems, fmt.Sprintf("sprint %s: the tracker's sprint %q is closed", in.SprintID, target.Name))
+		plan.Problems = append(plan.Problems, sources.T("Sprint {sprint}: the tracker's sprint “{name}” is closed", "sprint", in.SprintID, "name", target.Name))
 		return plan
 	}
 	byKey := map[string]model.Ticket{}
@@ -176,7 +176,7 @@ func Build(in Input) Plan {
 		t, known := byKey[key]
 		switch {
 		case !known:
-			plan.Problems = append(plan.Problems, fmt.Sprintf("%s: not in the ticket list, cannot be moved", key))
+			plan.Problems = append(plan.Problems, sources.T("{key}: not in the ticket list, cannot be moved", "key", key))
 		case t.Done || inTarget(t):
 		default:
 			ref, ok := from(t)
@@ -210,14 +210,14 @@ func removedTarget(in Input) (*Ref, string) {
 		if r, ok := in.Dir.ForSprint(in.NextSprintID); ok && !r.Closed() {
 			return &r, ""
 		}
-		return nil, fmt.Sprintf("sprint %s: the next sprint does not exist in the tracker, taken-out tickets stay where they are", in.NextSprintID)
+		return nil, sources.T("Sprint {sprint}: the next sprint does not exist in the tracker, taken-out tickets stay where they are", "sprint", in.NextSprintID)
 	case "pro_forma":
 		for _, name := range in.ProForma {
 			if r, ok := in.Dir.ByName(name); ok && !r.Closed() {
 				return &r, ""
 			}
 		}
-		return nil, "no pro-forma sprint exists in the tracker, taken-out tickets stay where they are"
+		return nil, sources.T("No pro-forma sprint exists in the tracker, taken-out tickets stay where they are")
 	}
 	return nil, ""
 }
@@ -274,7 +274,7 @@ func Apply(plan Plan, mover Mover) Result {
 			if g.to == nil {
 				err = mover.MoveToBacklog(keys)
 			} else if id, convErr := strconv.Atoi(g.to.ID); convErr != nil {
-				err = fmt.Errorf("sprint %q has no usable id", g.to.Name)
+				err = errors.New(sources.T("Sprint “{name}” has no usable id", "name", g.to.Name))
 			} else {
 				err = mover.MoveToSprint(id, keys)
 			}
@@ -301,12 +301,33 @@ func UndoPlan(done []Move) Plan {
 		m := done[i]
 		switch {
 		case !m.FromKnown:
-			plan.Problems = append(plan.Problems, fmt.Sprintf("%s: its earlier place is unknown, it stays where it is", m.Key))
+			plan.Problems = append(plan.Problems, sources.T("{key}: its earlier place is unknown, it stays where it is", "key", m.Key))
 		case m.From != nil && m.From.Closed():
-			plan.Problems = append(plan.Problems, fmt.Sprintf("%s: its earlier sprint %q is closed, it stays where it is", m.Key, m.From.Name))
+			plan.Problems = append(plan.Problems, sources.T("{key}: its earlier sprint “{name}” is closed, it stays where it is", "key", m.Key, "name", m.From.Name))
 		default:
 			plan.Moves = append(plan.Moves, Move{Key: m.Key, Title: m.Title, Reason: Undo, From: m.To, FromKnown: true, To: m.From})
 		}
 	}
 	return plan
+}
+
+// BoardLister reads the open and future sprints of a Jira board (JiraSource.ListBoardSprints).
+type BoardLister interface {
+	ListBoardSprints(boardID int) ([]sources.SprintValue, error)
+}
+
+// LoadDirectory builds the directory from the sprints met in the fetched tickets and, when
+// tracker.board_id is set, the sprints of that board, so that a future sprint without any
+// ticket is found too.
+func LoadDirectory(known []sources.SprintValue, board BoardLister, tracker model.TrackerSettings) (Directory, error) {
+	d := NewDirectory(known, tracker)
+	if tracker.BoardID == nil || board == nil {
+		return d, nil
+	}
+	more, err := board.ListBoardSprints(*tracker.BoardID)
+	if err != nil {
+		return d, err
+	}
+	d.Add(more)
+	return d, nil
 }
