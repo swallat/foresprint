@@ -6,6 +6,7 @@
   import { pages } from './lib/routes';
   import Banner from './lib/ui/Banner.svelte';
   import TicketPanel from './pages/backlog/TicketPanel.svelte';
+  import FindingsDialog from './shell/FindingsDialog.svelte';
   import Palette from './shell/Palette.svelte';
   import Rail from './shell/Rail.svelte';
   import Toasts from './shell/Toasts.svelte';
@@ -113,6 +114,7 @@
     </div>
   {/if}
   <Palette />
+  <FindingsDialog />
   <Toasts />
 {:else}
   <p class="boot muted">Foresprint …</p>

@@ -3,7 +3,8 @@
 // keep their own copy of these.
 
 import { api, setDemo } from './api';
-import { useLanguage } from './i18n.svelte';
+import { t, useLanguage } from './i18n.svelte';
+import { go } from './router.svelte';
 import { applyTheme } from './theme';
 import type { Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 
@@ -21,8 +22,19 @@ export const app = $state({
   team: '',
   sprints: [] as SprintInfo[],
   sprint: '',
-  status: { storage: 'saved', detail: '', incoming: 0, findings: 0, tracker: { enabled: false, name: '', last: '', syncing: false, failed: '' } } as Status,
+  status: {
+    storage: 'saved',
+    detail: '',
+    incoming: 0,
+    findings: 0,
+    tracker: { enabled: false, name: '', last: '', syncing: false, failed: '' },
+    data: undefined,
+  } as unknown as Status,
   busy: '' as '' | 'save' | 'refresh' | 'sync',
+  /** Data errors that stopped Save; the dialog offers to fix them or to save anyway. */
+  findings: undefined as string[] | undefined,
+  /** Counts up after every Save or Refresh, so that open pages of the area Data reload. */
+  rev: 0,
   toasts: [] as Toast[],
   /** Key of the ticket shown in the side panel, "" if closed. */
   ticket: '',
@@ -130,22 +142,49 @@ export async function refreshStatus(): Promise<void> {
   }
 }
 
+/** Shows the answer of Save, Refresh and the like: a dialog for data errors, else a toast whose
+ * action leads to the place where the person can go on. */
+const textOf = (r: Result): string => {
+  const extra = [r.problem?.hint, ...(r.notes ?? [])].filter(Boolean).join(' ');
+  return extra ? `${r.message} ${extra}` : r.message;
+};
+
+export function announce(r: Result): void {
+  if (r.outcome === 'findings') {
+    app.findings = r.findings ?? [];
+    return;
+  }
+  if (r.outcome === 'conflict') {
+    toast(textOf(r), 'bad', { label: t('Decide'), run: () => go('/data/conflicts') });
+  } else if (r.problem?.kind === 'auth') {
+    toast(textOf(r), 'bad', { label: t('Sign in'), run: () => go('/settings/storage') });
+  } else if (r.outcome === 'waiting_for_review') {
+    toast(textOf(r), 'ok', { label: t('Details'), run: () => go('/data') });
+  } else if (r.outcome === 'decided') {
+    toast(textOf(r), 'ok');
+  } else {
+    toast(textOf(r), r.ok ? 'ok' : 'bad');
+  }
+}
+
 async function run(kind: 'save' | 'refresh' | 'sync', call: () => Promise<Result>): Promise<void> {
   if (app.busy) return;
   app.busy = kind;
   try {
-    const r = await call();
-    toast(r.message, r.ok ? 'ok' : 'bad');
+    announce(await call());
   } catch (e) {
     toast(String(e), 'bad');
   } finally {
     app.busy = '';
     await refreshStatus();
+    app.rev++;
   }
 }
 
 /** Save and share (top bar). Works from every page. */
 export const save = () => run('save', () => api.Save());
+/** Save although the check of the data found errors (after the person has seen them). */
+export const saveAnyway = () => run('save', () => api.SaveAnyway());
 /** Fetch changes of others (top bar). */
 export const refresh = () => run('refresh', () => api.Refresh());
 /** Fetch tickets from the tracker now (top bar). */

@@ -60,7 +60,6 @@ export type SetupKind = 'clone' | 'open' | 'new';
 
 export interface SetupApi {
   SetupState(): Promise<SetupState>;
-  PickFolder(title: string): Promise<string>;
   SetupCheckServer(address: string): Promise<ServerCheck>;
   SetupStorage(kind: SetupKind, address: string, folder: string): Promise<Opened>;
   SetupGuide(address: string): Promise<SignInGuide>;

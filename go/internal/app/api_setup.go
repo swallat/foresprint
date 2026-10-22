@@ -44,15 +44,6 @@ func (a *API) SetupState() SetupState {
 	return SetupState{DataDir: a.DataDir(), Teams: a.Teams(), Name: s.Name, Email: s.Email, SuggestedHelper: s.SuggestedHelper}
 }
 
-// PickFolder opens the folder dialog and returns the choice without remembering it ("" if
-// cancelled).
-func (a *API) PickFolder(title string) (string, error) {
-	if a.ChooseFolder == nil {
-		return "", errors.New(i18n.T("No folder dialog in this build."))
-	}
-	return a.ChooseFolder(title)
-}
-
 // SetupCheckServer tests the address of a repository (format and connection); it writes nothing.
 func (a *API) SetupCheckServer(address string) datasvc.ServerCheck {
 	return a.store().CheckServer(address, false)

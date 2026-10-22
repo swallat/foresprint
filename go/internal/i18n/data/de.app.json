@@ -12,15 +12,24 @@
   "not entered yet": "noch nicht eingetragen",
   "{done} of {total} products": "{done} von {total} Produkten",
   "announced only (1 person)": "nur angekündigt (1 Person)",
-  "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}",
+  "Nothing to save.": "Es gibt nichts zu speichern.",
+  "Done. Took over 1 change from others.": "Fertig. 1 Änderung von anderen übernommen.",
+  "Done. Took over {count} changes from others.": "Fertig. {count} Änderungen von anderen übernommen.",
+  "The data has errors. Fix them or save anyway.": "In den Daten gibt es Fehler. Korrigiere sie oder speichere trotzdem.",
+  "{count} files need your decision.": "{count} Dateien warten auf deine Entscheidung.",
+  "1 file needs your decision.": "1 Datei wartet auf deine Entscheidung.",
+  "Saved on this computer. It is shared when the connection is back.": "Auf diesem Rechner gespeichert. Es geht ans Team, sobald die Verbindung wieder da ist.",
+  "No connection. You keep working with the last state.": "Keine Verbindung. Du arbeitest mit dem letzten Stand.",
+  "All decided. Save finishes the merge.": "Alles entschieden. Speichern schließt das Zusammenführen ab.",
+  "You may not write to this storage.": "Du darfst in diesen Speicher nicht schreiben.",
+  "Saving did not work.": "Speichern hat nicht geklappt.",
+  "Saved. Your changes wait for approval.": "Gespeichert. Deine Änderungen warten auf die Freigabe.",
+  "Enter a name for the team.": "Gib dem Team einen Namen.",
+  "Enter the ID of the first sprint.": "Trage die ID des ersten Sprints ein.",
   "Enter the address of the tracker and the query that selects the tickets.": "Trage die Adresse des Trackers und die Abfrage ein, die die Tickets auswählt.",
+  "Enter the start of the first sprint as a date (YYYY-MM-DD).": "Trage den Beginn des ersten Sprints als Datum ein (JJJJ-MM-TT).",
   "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
   "Unknown source of work: {source}": "Unbekannte Quelle der Arbeit: {source}",
-  "Enter a name for the team.": "Gib dem Team einen Namen.",
-  "Enter the start of the first sprint as a date (YYYY-MM-DD).": "Trage den Beginn des ersten Sprints als Datum ein (JJJJ-MM-TT).",
-  "Enter the ID of the first sprint.": "Trage die ID des ersten Sprints ein."
- },
-  "Unknown country: {country}": "Unbekanntes Land: {country}",
-  "Unknown region: {region}": "Unbekannte Region: {region}",
-  "A sprint lasts between 1 and 56 days.": "Ein Sprint dauert zwischen 1 und 56 Tagen."
+  "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}"
+ }
 }
