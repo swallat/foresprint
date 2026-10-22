@@ -9,5 +9,7 @@
  "files": {
   "team-eta/people.yaml": "# People. Memberships with period and FTE share (1.0 = full time in the team).\n# Never delete people; end the membership with `to:` instead – otherwise history changes.\npeople: []\n",
   "team-eta/team.yaml": "# Team settings. Explanations: `foresprint help team`\nname: Team Eta\nunit: SP\nfeatures:\n  products: true\n  po: false\n  production: false\nsprint:\n  length_days: 21\n  numbering: sequential\n  first:\n    id: '12'\n    start: 2026-03-02\nforecast:\n  reference_capacity: 55.5\n  window: 5\n  roadmap_share: 0.7\n  rounding: 1\n  trend_mode: linear\n  horizon: 3\ncapacity:\n  overhead_share: 0.1\n  country: AT\n  region: null\n  rounding: 1\n"
- }
+ },
+ "deleted": [],
+ "seed": {}
 }

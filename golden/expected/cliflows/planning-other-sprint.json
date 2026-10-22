@@ -9,5 +9,7 @@
  "exit_code": 0,
  "files": {
   "demo/sprints/2026.23.yaml": "# Sprint 2026.23. Explanations of all fields: `foresprint help fields`\nid: '2026.23'\nstart: 2026-11-11\nend: 2026-11-25\nabsences: {}\ncapacity: null\nforecast_ist: 10\nvelocity: null\nscope_creep: null\nforecast_plan: 13.1\n"
- }
+ },
+ "deleted": [],
+ "seed": {}
 }

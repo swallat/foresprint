@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -17,6 +18,8 @@ type flow struct {
 	Input    string            `json:"input"`
 	ExitCode int               `json:"exit_code"`
 	Files    map[string]string `json:"files"`
+	Deleted  []string          `json:"deleted"`
+	Seed     map[string]string `json:"seed"`
 }
 
 // snapshot reads all files below root (slash paths).
@@ -58,6 +61,15 @@ func TestFlowsMatchPython(t *testing.T) {
 			t.Setenv("FORESPRINT_LANG", "en")
 			data := t.TempDir()
 			copyTree(t, filepath.Join(golden.RepoRoot(t), "examples", "teams"), data)
+			for rel, text := range want.Seed {
+				path := filepath.Join(data, filepath.FromSlash(rel))
+				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
 			before := snapshot(t, data)
 			var out, errOut bytes.Buffer
 			args := append([]string{"--data", data, "--as-of", want.AsOf}, want.Args...)
@@ -66,10 +78,21 @@ func TestFlowsMatchPython(t *testing.T) {
 				t.Errorf("exit code %d, want %d\nout: %s\nerr: %s", code, want.ExitCode, out.String(), errOut.String())
 			}
 			got := map[string]string{}
-			for rel, text := range snapshot(t, data) {
+			after := snapshot(t, data)
+			for rel, text := range after {
 				if before[rel] != text {
 					got[rel] = text
 				}
+			}
+			var deleted []string
+			for rel := range before {
+				if _, ok := after[rel]; !ok {
+					deleted = append(deleted, rel)
+				}
+			}
+			sort.Strings(deleted)
+			if strings.Join(deleted, "\n") != strings.Join(want.Deleted, "\n") {
+				t.Errorf("deleted files %v, want %v", deleted, want.Deleted)
 			}
 			for rel, text := range want.Files {
 				if got[rel] != text {

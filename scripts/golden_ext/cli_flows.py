@@ -35,6 +35,13 @@ def _answers(has_sprints: bool, given: dict[str, str]) -> str:
     return "".join(given.get(k, "") + "\n" for k in keys)
 
 
+SEED_PROTOCOLS = {
+    "demo/protokolle/2026.20-review-20261001-120000.md": "# review 20\n",
+    "demo/protokolle/2026.21-planning-20261012-100000.md": "# planning 21\n",
+    "demo/protokolle/2026.21-review-20261015-120000_obsolet_20261016-080000.md": "# old 21\n",
+    "demo/protokolle/2026.22-planning-20261016-100000.md": "# planning 22\n",
+}
+
 SCENARIOS: list[dict] = [
     {
         "name": "init-defaults",
@@ -210,6 +217,65 @@ SCENARIOS: list[dict] = [
         "input": "e\nkundenportal\n2026-12-31\nq\n",
     },
     {"name": "product-list-nothing", "args": ["product-list", "demo"], "input": "q\n"},
+    {"name": "sprints-show", "args": ["sprints", "demo"], "input": ""},
+    {
+        "name": "sprints-create",
+        "args": ["sprints", "demo", "--create", "--count", "8"],
+        "input": "",
+    },
+    {
+        "name": "sprints-end",
+        "args": ["sprints", "demo", "--end", "2026.23=2027-01-12"],
+        "input": "",
+    },
+    {
+        "name": "sprints-end-saved",
+        "args": ["sprints", "demo", "--end", "2026.21=2026-11-04"],
+        "input": "",
+    },
+    {"name": "sprints-end-bad", "args": ["sprints", "demo", "--end", "nonsense"], "input": ""},
+    {
+        "name": "sprints-end-before-start",
+        "args": ["sprints", "demo", "--end", "2026.22=2026-10-01"],
+        "input": "",
+    },
+    {
+        "name": "rename-sprint-chain",
+        "args": ["rename-sprint", "demo", "2026.20", "2026.30"],
+        "input": "",
+        "seed": SEED_PROTOCOLS,
+    },
+    {
+        "name": "rename-sprint-shift",
+        "args": ["rename-sprint", "demo", "2026.21", "2026.22"],
+        "input": "",
+        "seed": SEED_PROTOCOLS,
+    },
+    {
+        "name": "rename-sprint-same",
+        "args": ["rename-sprint", "demo", "2026.21", "2026.21"],
+        "input": "",
+    },
+    {
+        "name": "rename-sprint-taken",
+        "args": ["rename-sprint", "demo", "2026.21", "2026.20"],
+        "input": "",
+    },
+    {
+        "name": "rename-sprint-unknown",
+        "args": ["rename-sprint", "demo", "2026.99", "2026.98"],
+        "input": "",
+    },
+    {
+        "name": "rename-sprint-invalid",
+        "args": ["rename-sprint", "demo", "2026.21", "a/b"],
+        "input": "",
+    },
+    {
+        "name": "rename-sprint-mismatch",
+        "args": ["rename-sprint", "demo", "2026.21", "17"],
+        "input": "",
+    },
     {
         "name": "settings-invalid-then-valid",
         "args": ["settings", "demo"],
@@ -231,6 +297,10 @@ def run_scenario(scenario: dict) -> dict:
         base = Path(tmp)
         data = base / "data"
         shutil.copytree(ROOT / "examples" / "teams", data)
+        for rel, text in scenario.get("seed", {}).items():
+            path = data / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8", newline="\n")
         before = _snapshot(data)
         config = base / "config"
         config.mkdir()
@@ -253,12 +323,15 @@ def run_scenario(scenario: dict) -> dict:
                     os.environ[k] = v
         after = _snapshot(data)
         files = {k: v for k, v in after.items() if before.get(k) != v}
+        deleted = sorted(k for k in before if k not in after)
         return {
             "as_of": AS_OF,
             "args": scenario["args"],
             "input": scenario["input"],
             "exit_code": result.exit_code,
             "files": files,
+            "deleted": deleted,
+            "seed": scenario.get("seed", {}),
         }
 
 

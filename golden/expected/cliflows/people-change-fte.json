@@ -8,5 +8,7 @@
  "exit_code": 0,
  "files": {
   "demo/people.yaml": "# People. Memberships with period and FTE share (1.0 = full time in the team).\n# Never delete people; end the membership with `to:` instead – otherwise history changes.\npeople:\n- id: anna\n  name: Anna\n  memberships:\n  - from: 2025-01-01\n    to: 2026-03-31\n    fte: 1\n  - from: 2026-04-01\n    to: null\n    fte: 0.6\n- id: ben\n  name: Ben\n  memberships:\n  - from: 2025-01-01\n    to: 2026-05-31\n    fte: 1\n  - from: 2026-06-01\n    to: null\n    fte: 0.5\n- id: cem\n  name: Cem\n  region: BY\n  memberships:\n  - from: 2025-01-01\n    to: null\n    fte: 1\n- id: dana\n  name: Dana\n  memberships:\n  - from: 2026-03-01\n    to: null\n    fte: 1\n- id: emil\n  name: Emil\n  memberships:\n  - from: 2025-01-01\n    to: 2026-07-31\n    fte: 0.8\n"
- }
+ },
+ "deleted": [],
+ "seed": {}
 }
