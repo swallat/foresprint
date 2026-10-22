@@ -78,3 +78,35 @@ func TestACustomChoiceDecidesAConflict(t *testing.T) {
 		t.Fatalf("merged = %q", got)
 	}
 }
+
+func TestACustomValueThatDoesNotFitLeavesTheConflictOpen(t *testing.T) {
+	base := load(t, "items:\n- id: a\n  v: 1\n- id: c\n  v: 1\n")
+	ours := load(t, "items:\n- id: a\n  v: 2\n- id: c\n  v: 1\n")
+	theirs := load(t, "items:\n- id: c\n  v: 1\n")
+	for _, text := range []string{"5", "id: b\nv: 3\n"} {
+		choices := yamlmerge.Choices{}
+		choices.Choose(yamlmerge.Path{"items", "[a]"}, yamlmerge.CustomChoice(text))
+		if _, conflicts := yamlmerge.Merge3(base, ours, theirs, choices); len(conflicts) != 1 {
+			t.Fatalf("%q: conflicts = %v", text, conflicts)
+		}
+	}
+	choices := yamlmerge.Choices{}
+	choices.Choose(yamlmerge.Path{"items", "[a]"}, yamlmerge.CustomChoice("id: a\nv: 9\n"))
+	merged, conflicts := yamlmerge.Merge3(base, ours, theirs, choices)
+	if len(conflicts) != 0 {
+		t.Fatalf("conflicts: %v", conflicts)
+	}
+	if got, _ := yamlx.Dump(merged); got != "items:\n- id: a\n  v: 9\n- id: c\n  v: 1\n" {
+		t.Fatalf("merged = %q", got)
+	}
+}
+
+func TestApplyPutsBackAListItemOfARemovedList(t *testing.T) {
+	tree, ok := yamlmerge.Apply(load(t, "other: 1\n"), yamlmerge.Path{"items", "[a]"}, load(t, "id: a\nv: 1\n"))
+	if !ok {
+		t.Fatal("not applied")
+	}
+	if got, _ := yamlx.Dump(tree); got != "other: 1\nitems:\n- id: a\n  v: 1\n" {
+		t.Fatalf("tree = %q", got)
+	}
+}

@@ -157,7 +157,7 @@ func (s *Store) DiscardValues(items []ValueRef) Done {
 		for _, ref := range byFile[file] {
 			c, found := changes[yamlmerge.Path(ref.Path).Key()]
 			if !found {
-				continue
+				return s.undone(git.New(i18n.T("This value has changed in the meantime; look at the changes again."), "error", ""))
 			}
 			if tree, ok = yamlmerge.Apply(tree, c.Path, c.Before); !ok {
 				return s.undone(git.New(i18n.T("This value cannot be put back."), "error", ""))
