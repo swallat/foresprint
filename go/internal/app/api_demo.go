@@ -26,7 +26,7 @@ func (a *API) EnterDemo(lang string) (string, error) {
 	defer a.enterMu.Unlock()
 	a.mu.Lock()
 	if a.demo.on { // start over with fresh data
-		a.dropDemoLocked()
+		a.demoDropLocked()
 		a.data.SetFolder(a.dataDir)
 	}
 	a.mu.Unlock()
@@ -57,7 +57,7 @@ func (a *API) LeaveDemo() error {
 	a.mu.Lock()
 	previous := a.demo.previous
 	was := a.demo.on
-	a.dropDemoLocked()
+	a.demoDropLocked()
 	a.mu.Unlock()
 	if was {
 		a.data.SetFolder(previous)
@@ -73,8 +73,8 @@ func (a *API) InDemo() bool {
 	return a.demo.on
 }
 
-// dropDemoLocked removes the throwaway folder and restores the data folder; a.mu is held.
-func (a *API) dropDemoLocked() {
+// demoDropLocked removes the throwaway folder and restores the data folder; a.mu is held.
+func (a *API) demoDropLocked() {
 	if !a.demo.on {
 		return
 	}
@@ -94,9 +94,9 @@ func demoResult() Result {
 	return Result{OK: true, Message: i18n.T("This is demo data: nothing is saved or shared.")}
 }
 
-// sweepDemos removes demo folders a former run left behind (the program was closed in the demo);
+// demoSweep removes demo folders a former run left behind (the program was closed in the demo);
 // a day old ones only, another window may still use a younger one.
-func sweepDemos() {
+func demoSweep() {
 	old, _ := filepath.Glob(filepath.Join(os.TempDir(), "foresprint-demo-*"))
 	for _, dir := range old {
 		if info, err := os.Stat(dir); err == nil && time.Since(info.ModTime()) > 24*time.Hour {
