@@ -3,10 +3,10 @@
   // title (or Enter) opens the ticket panel; Alt+Right/Left earmarks for the next sprint or back
   // (the keyboard way of dragging).
   import { openTicket } from '../../lib/app.svelte';
-  import { t } from '../../lib/i18n.svelte';
-  import Icon from '../../lib/Icon.svelte';
+    import Icon from '../../lib/Icon.svelte';
   import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
   import { productColor } from './backlog';
+  import { t } from './backlog.svelte';
   import { openExternal } from './external';
 
   interface Props {

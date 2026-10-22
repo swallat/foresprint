@@ -72,7 +72,7 @@ func newBacklogContext(data *storage.TeamData) *backlogContext {
 		byKey:    map[string]*model.Ticket{},
 	}
 	ordered, leftover := preplan.OrderTickets(data)
-	for i, tk := range append(ordered, leftover...) {
+	for i, tk := range append(append([]model.Ticket{}, ordered...), leftover...) {
 		c.order[tk.Key] = i
 	}
 	for _, s := range data.Sprints {
@@ -95,6 +95,19 @@ func (c *backlogContext) proFormaName(tk model.Ticket) string {
 		}
 	}
 	return ""
+}
+
+// learn adds the coming sprints of the timeline that have no file yet, so that dependencies
+// between earmarks in them can be checked.
+func (c *backlogContext) learn(lanes []BacklogLane) {
+	for _, l := range lanes {
+		if _, ok := c.sprints[l.Sprint]; ok {
+			continue
+		}
+		if start, err := time.Parse("2006-01-02", l.Start); err == nil {
+			c.sprints[l.Sprint] = model.Sprint{ID: l.Sprint, Start: start}
+		}
+	}
 }
 
 func (c *backlogContext) sprintStart(id string) (time.Time, bool) {
@@ -275,12 +288,11 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	}
 	c := newBacklogContext(data)
 	ordered, leftover := preplan.OrderTickets(data)
-	all := append(ordered, leftover...)
-	for _, cycle := range cycles(leftover) {
-		view.Cycles = append(view.Cycles, cycle)
-	}
+	all := append(append([]model.Ticket{}, ordered...), leftover...)
+	view.Cycles = append(view.Cycles, cycles(leftover)...)
 
 	lanes := a.lanes(data)
+	c.learn(lanes)
 	laneAt := map[string]int{}
 	for i, l := range lanes {
 		laneAt[l.Sprint] = i
@@ -384,6 +396,8 @@ func (a *API) Ticket(team, key string) (*TicketDetail, error) {
 		return nil, fmt.Errorf("%s", i18n.T("Ticket {key} not found.", "key", key))
 	}
 	c := newBacklogContext(data)
+	lanes := a.lanes(data)
+	c.learn(lanes)
 	d := &TicketDetail{
 		BacklogTicket: c.row(*tk),
 		Description:   str(tk.Description),
@@ -422,7 +436,7 @@ func (a *API) Ticket(team, key string) (*TicketDetail, error) {
 		}
 		d.Dependencies = append(d.Dependencies, dep)
 	}
-	for _, l := range a.lanes(data) {
+	for _, l := range lanes {
 		d.Sprints = append(d.Sprints, l.Sprint)
 	}
 	for _, p := range data.People {

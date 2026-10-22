@@ -2,7 +2,8 @@
   // The backlog: all open tickets (or work packages) in planning order, saved views as filters
   // of the one list, and lanes for the coming sprints to earmark into (flows.md F2, F10).
   import { app, syncTracker } from '../../lib/app.svelte';
-  import { t, language } from '../../lib/i18n.svelte';
+  import { language } from '../../lib/i18n.svelte';
+  import Calc from '../../lib/calc/Calc.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
@@ -10,7 +11,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, applyView, blank, group, matches, neighbour, sum, type Group } from './backlog';
-  import { NEW, allTickets, earmark, loadBacklog, openPresent, store, toggleSelected, ui } from './backlog.svelte';
+  import { NEW, allTickets, earmark, loadBacklog, openPresent, store, t, toggleSelected, ui } from './backlog.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();
@@ -235,6 +236,12 @@
               <strong>{t('Backlog')}</strong>
               <span class="chip data">{items.length}</span>
               <span class="muted small data">{sum(items)} {unit}</span>
+              <Calc label={t('Backlog')} topic="backlog-sum">
+                <span class="data">{t('{count} tickets in the list', { count: items.length })}</span><br />
+                <span class="data">{t('Sum of the estimates: {sum} {unit}', { sum: sum(items), unit })}</span><br />
+                <span class="data">{t('Without estimate (count 0): {count}', { count: items.filter((tk) => tk.size == null).length })}</span><br />
+                <span class="data">{t('Not refined: {count}', { count: items.filter((tk) => !tk.refined).length })}</span>
+              </Calc>
             </div>
             <span class="small muted">{t('Order: ticket priority, then project, then rank. Drag by the handle, or press Alt+Right to earmark for the next sprint.')}</span>
           </div>
@@ -326,6 +333,17 @@
                 {:else}
                   <span class="data"><strong>{used}</strong> {t('earmarked, no forecast yet')}</span>
                 {/if}
+                <Calc label={t('Earmarked in {sprint}', { sprint: l.sprint })} topic="earmarked-sum">
+                  <span class="data">{t('Sum of the estimates ({count} tickets): {sum} {unit}', { count: l.tickets.length, sum: used, unit })}</span><br />
+                  <span class="data">{t('Without estimate (count 0): {count}', { count: l.tickets.filter((tk) => tk.size == null).length })}</span><br />
+                  {#if l.plan != null}
+                    <span class="data">{t('Forecast PLAN of the sprint: {plan} {unit}', { plan: l.plan, unit })}</span><br />
+                    <span class="data">{t('Distance to the Forecast PLAN: {gap} {unit}', { gap: Math.round((l.plan - used) * 10) / 10, unit })}</span>
+                  {:else}
+                    <span class="data">{t('No Forecast PLAN yet for this sprint.')}</span>
+                  {/if}
+                  {#if l.absences !== 'confirmed'}<br /><span>{t('Absences are not confirmed yet, the forecast can still change.')}</span>{/if}
+                </Calc>
               </div>
               {#if over}
                 <div class="banner bad flat"><Icon name="warning" /><div class="grow">{t('Above the Forecast PLAN: {used} of {plan}. This is a warning, not a stop.', { used, plan: l.plan ?? 0 })}</div></div>

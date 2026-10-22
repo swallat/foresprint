@@ -151,7 +151,9 @@ func TestTrackerTicketsAreReadOnlyWithRuleHints(t *testing.T) {
 	data.Team.Tracker.Kind = "jira"
 	base := "https://jira.example.com/"
 	data.Team.Tracker.BaseURL = &base
-	repo.SaveTeam(data.Team)
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
 	prog, est := "In progress", 3.0
 	tf := storage.TicketsFile{Tickets: []model.Ticket{
 		{Key: "X-1", Title: "Has estimate", Estimate: &est, EstimateSource: model.EstimateRough, Status: &prog},

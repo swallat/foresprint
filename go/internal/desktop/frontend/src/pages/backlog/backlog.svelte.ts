@@ -4,9 +4,15 @@
 
 import { api } from '../../lib/api';
 import { app, refreshStatus, toast } from '../../lib/app.svelte';
-import { t } from '../../lib/i18n.svelte';
+import { language, t as translate } from '../../lib/i18n.svelte';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
 import { blank, type Group } from './backlog';
+import { localTerms } from './terms';
+
+/** Translates like lib/i18n, and says "work package" for a team without a tracker. */
+export function t(text: string, vars?: Record<string, string | number>): string {
+  return localTerms(translate(text, vars), store.view?.source, language());
+}
 
 /** Pseudo key of the ticket panel in "create a work package" mode. */
 export const NEW = '+new';

@@ -63,3 +63,16 @@ describe('neighbour', () => {
     expect(neighbour(lanes, '', -1)).toBeUndefined();
   });
 });
+
+import { localTerms } from './terms';
+
+describe('localTerms', () => {
+  it('speaks of work packages without a tracker, in both languages', () => {
+    expect(localTerms('No ticket fits. 3 tickets.', 'packages', 'en')).toBe('No work package fits. 3 work packages.');
+    expect(localTerms('Kein Ticket passt. 3 Tickets.', 'packages', 'de')).toBe('Kein Arbeitspaket passt. 3 Arbeitspakete.');
+  });
+  it('leaves tracker teams alone', () => {
+    expect(localTerms('3 tickets', 'tracker', 'en')).toBe('3 tickets');
+    expect(localTerms('3 tickets', undefined, 'de')).toBe('3 tickets');
+  });
+});

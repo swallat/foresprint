@@ -5,10 +5,9 @@
   // opens the form for a new work package (flows.md section 5, "ticket panel"; decision 15).
   import { api } from '../../lib/api';
   import { app, toast } from '../../lib/app.svelte';
-  import { t } from '../../lib/i18n.svelte';
-  import Icon from '../../lib/Icon.svelte';
+    import Icon from '../../lib/Icon.svelte';
   import type { TicketDetail, WorkPackageInput } from '../../lib/types.backlog';
-  import { NEW, allTickets, changed, openPresent, store } from './backlog.svelte';
+  import { NEW, allTickets, changed, openPresent, store, t } from './backlog.svelte';
   import { openExternal } from './external';
 
   let detail = $state<TicketDetail | undefined>();

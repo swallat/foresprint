@@ -5,12 +5,11 @@
   import { onMount } from 'svelte';
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
-  import { t } from '../../lib/i18n.svelte';
-  import Icon from '../../lib/Icon.svelte';
+    import Icon from '../../lib/Icon.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { TicketDetail } from '../../lib/types.backlog';
   import { productColor } from './backlog';
-  import { loadBacklog, present, store, allTickets } from './backlog.svelte';
+  import { loadBacklog, present, store, allTickets, t } from './backlog.svelte';
   import { openExternal } from './external';
 
   let { params }: PageProps = $props();
