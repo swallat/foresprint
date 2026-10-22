@@ -22,8 +22,6 @@
   void params;
 
   const model = new PlanModel();
-  /** Tickets the tracker still has in the sprint that the team took out. */
-  let removed = $state<string[]>([]);
   /** Amounts and commitment without tickets, typed during the planning. */
   let amounts = $state<Record<string, number>>({});
   let commit = $state<number | null>(null);
@@ -33,7 +31,6 @@
   $effect(() => {
     void app.team;
     void app.sprint;
-    removed = [];
     amounts = {};
     commit = null;
     model.loading = true;
@@ -41,10 +38,12 @@
   });
 
   const d = $derived(model.data);
+  /** Tickets the tracker still has in the sprint that the team took out (saved with the sprint). */
+  const removed = $derived<string[]>(d?.removed ?? []);
   const noT = $derived(d?.source === 'none');
   const frozen = $derived(!!d?.frozen);
-  const lane = $derived<PlanTicket[]>(d ? d.tickets.filter((x) => !removed.includes(x.key)) : []);
-  const candidates = $derived<PlanTicket[]>(d ? [...d.tickets.filter((x) => removed.includes(x.key)), ...d.candidates] : []);
+  const lane = $derived<PlanTicket[]>(d?.tickets ?? []);
+  const candidates = $derived<PlanTicket[]>(d?.candidates ?? []);
   const sizeSum = (l: PlanTicket[]) => l.reduce((a, x) => a + (x.size ?? 0), 0);
   const laneSum = $derived(sizeSum(lane));
   const unrefined = $derived(lane.filter((x) => !x.refined && x.size != null).length);
@@ -57,7 +56,7 @@
 
   const adjust = $derived(
     d && d.source === 'tracker'
-      ? d.tickets.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
+      ? d.candidates.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
       : [],
   );
 
@@ -69,17 +68,23 @@
     const wasRemoved = removed.includes(key);
     const earmark = x.sprint;
     if (to === 'sprint') {
-      removed = removed.filter((k) => k !== key);
-      await model.change(() => api.SetEarmark(app.team, key, d.sprint));
+      await model.change(async () => {
+        if (wasRemoved) await api.SetRemoved(app.team, d.sprint, key, false);
+        await api.SetEarmark(app.team, key, d.sprint);
+      });
     } else {
-      if (x.inTracker === d.sprint) removed = [...removed, key];
-      await model.change(() => api.SetEarmark(app.team, key, ''));
+      await model.change(async () => {
+        if (x.inTracker === d.sprint) await api.SetRemoved(app.team, d.sprint, key, true);
+        await api.SetEarmark(app.team, key, '');
+      });
     }
     toast(to === 'sprint' ? t('{key} taken into the sprint.', { key }) : t('{key} taken out of the sprint.', { key }), 'info', {
       label: t('Undo'),
       run: () => {
-        removed = wasRemoved ? [...removed.filter((k) => k !== key), key] : removed.filter((k) => k !== key);
-        void model.change(() => api.SetEarmark(app.team, key, earmark));
+        void model.change(async () => {
+          await api.SetRemoved(app.team, d.sprint, key, wasRemoved);
+          await api.SetEarmark(app.team, key, earmark);
+        });
       },
     });
   }
@@ -133,7 +138,7 @@
   // --- Freezing -----------------------------------------------------------------------------
   async function freeze(): Promise<void> {
     if (!d) return;
-    const ok = await model.change(async () => {
+    await model.change(async () => {
       const file = await api.FreezePlan(app.team, d.sprint, {
         tickets: lane.map((x) => x.key),
         commitment: noT ? commit : null,
@@ -142,7 +147,6 @@
       });
       toast(t('Plan {sprint} frozen. Planning minutes written: {file}', { sprint: d.sprint, file }), 'ok');
     });
-    if (ok) removed = [];
   }
   const reopen = () =>
     model.change(() => api.ReopenPlan(app.team, d!.sprint), t('Plan opened again. The next freeze marks the old minutes as obsolete.'));
