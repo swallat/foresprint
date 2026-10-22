@@ -69,9 +69,10 @@ func AbsenceSprints(data *storage.TeamData, fc *forecast.Forecast, count, past i
 	if stored := data.SprintByID(start.Sprint.ID); stored != nil {
 		sprint = stored.Clone()
 	}
+	chain := calendar.NewChain(&data.Team, data.Sprints)
 	for len(result)-chainStart < count {
 		result = append(result, sprint.Clone())
-		following, err := calendar.FollowingSprint(&data.Team, &sprint)
+		following, err := chain.After(&sprint)
 		if err != nil {
 			return nil, err
 		}
@@ -133,11 +134,19 @@ func Apply(data *storage.TeamData, sprints []model.Sprint, rows []Row) ([]model.
 			previous := result[len(result)-1]
 			sprint.Start = previous.End
 			if data.SprintByID(original.ID) == nil {
-				id, err := calendar.NextID(previous.ID, sprint.Start, data.Team.Sprint.Numbering)
+				// The sprints before the window and the ones already placed give the numbers.
+				var history []model.Sprint
+				for _, s := range data.Sprints {
+					if s.Start.Before(sprints[0].Start) {
+						history = append(history, s)
+					}
+				}
+				history = append(history, result...)
+				created, err := calendar.NewChain(&data.Team, history).After(&previous)
 				if err != nil {
 					return nil, nil, err
 				}
-				sprint.ID = id
+				sprint.ID = created.ID
 			}
 		}
 		last := rows[i].Last

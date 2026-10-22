@@ -160,6 +160,7 @@ func Timeline(data *storage.TeamData, today time.Time) ([]SprintRef, error) {
 	if len(data.Sprints) > 0 {
 		last = &data.Sprints[len(data.Sprints)-1]
 	}
+	chain := calendar.NewChain(&data.Team, data.Sprints)
 	for {
 		future := 0
 		for _, r := range line {
@@ -170,7 +171,7 @@ func Timeline(data *storage.TeamData, today time.Time) ([]SprintRef, error) {
 		if future >= horizon {
 			return line, nil
 		}
-		next, err := calendar.FollowingSprint(&data.Team, last)
+		next, err := chain.After(last)
 		if err != nil {
 			return nil, err
 		}
@@ -189,8 +190,9 @@ func FindSprint(data *storage.TeamData, sprintID string, maxAhead int) (*model.S
 	if len(data.Sprints) > 0 {
 		last = &data.Sprints[len(data.Sprints)-1]
 	}
+	chain := calendar.NewChain(&data.Team, data.Sprints)
 	for i := 0; i < maxAhead; i++ {
-		next, err := calendar.FollowingSprint(&data.Team, last)
+		next, err := chain.After(last)
 		if err != nil {
 			return nil, err
 		}
