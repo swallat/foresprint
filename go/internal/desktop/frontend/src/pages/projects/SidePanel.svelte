@@ -8,7 +8,8 @@
     onclose: () => void;
     /** True while the panel holds input that closing would throw away: it asks first. */
     dirty?: boolean;
-    children: Snippet;
+    /** Gets a close function that asks first when the panel is dirty. */
+    children: Snippet<[() => void]>;
   }
   let { title, onclose, dirty = false, children }: Props = $props();
   let asking = $state(false);
@@ -57,5 +58,5 @@
       <button type="button" class="btn" onclick={onclose}>{t('Discard')}</button>
     </div>
   {/if}
-  <div class="panel-body">{@render children()}</div>
+  <div class="panel-body">{@render children(close)}</div>
 </div>

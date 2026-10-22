@@ -114,8 +114,9 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 		if r.Velocity.Value != nil && r.Capacity.Value != nil && *r.Capacity.Value > 0 && *r.Velocity.Value > 0 {
 			c.doneRate[e.Sprint.ID] = *r.Velocity.Value / *r.Capacity.Value
 		}
-		if r.Plan != nil && r.PlanCapacity != nil && *r.PlanCapacity > 0 && *r.Plan > 0 {
-			c.planRate[e.Sprint.ID] = *r.Plan / *r.PlanCapacity
+		// The plan is rounded down; the rate it is built from is the unrounded trend.
+		if tr, ref := r.NormalizedVelocity.Trend, data.Team.Forecast.ReferenceCapacity; tr != nil && *tr > 0 && ref > 0 {
+			c.planRate[e.Sprint.ID] = *tr / ref
 		}
 	}
 	switch {
