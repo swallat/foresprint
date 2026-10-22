@@ -33,6 +33,12 @@
         formula: "Rate = Velocity ÷ Kapazität      Mittelwert über die letzten Sprints mit Wert (Fenster 5)",
         example: table(["Sprint", "Velocity", "Kapazität (PT)", "Rate"], rs.map((x) => [x.s.id, f(x.s.velocity), f(x.s.capacityPD), f(x.r, 3)]), ["Mittelwert", "", "", f(rate, 3)]) +
           `<p class="small">Gerundet ${f(rate, 2)} Punkte je PT. In 0.8 heißt dieselbe Größe mit der Referenzkapazität multipliziert "normierte Velocity".</p>`,
+        basis: ["<strong>Gemessen wird nur in abgeschlossenen Sprints</strong>, im Review. Geplante Zahlen gehen nie in die Rate ein.",
+          "<strong>Velocity</strong> = Summe der Schätzungen aller Tickets oder Arbeitspakete, die am Sprintende fertig sind (Status laut Feldzuordnung), einschließlich nachgezogener. Nicht fertige Tickets zählen gar nicht, auch nicht anteilig. Ohne Tickets ist es der Wert, den das Team im Review einträgt. Grundlage ist die Schätzung beim Sprintstart, nicht der Rest.",
+          "<strong>Kapazität</strong> = die Personentage, die im Review eingefroren werden (\"Personentage einfrieren\"): Arbeitstage nach Kalender und Feiertagen, mal FTE, minus die bestätigten Abwesenheiten, minus Overhead. Siehe Kapazität.",
+          "<strong>Rate eines Sprints</strong> = Velocity ÷ Kapazität dieses Sprints. Sie steht im Review und im Verlauf. Die Rate für Forecast und Umrechnungen ist der Mittelwert (bei Trend linear oder klassisch: die Fortschreibung) über das Fenster der letzten Sprints, Standard 5 (Einstellungen, Team, Forecast).",
+          "<strong>Wofür sie dient:</strong> Forecast PLAN (Rate × Kapazität), Punkte in PT für Projektkontingente und Produktion, und SP und PT in beide Richtungen, wenn unter Schätzeinheit \"aus der Velocity\" gewählt ist. Mit \"fester Faktor\" ersetzt ein eingetragener Wert die Rate nur für die Umrechnung, nicht für den Forecast.",
+          "<strong>Geplant oder erledigt:</strong> Für geplante Arbeit gilt die Forecast-Rate des Sprints, für erledigte nach dem Review die tatsächliche Rate dieses Sprints. Deshalb heißen umgerechnete Werte immer Schätzung."],
         special: ["Sprints ohne Velocity zählen nicht; das Fenster reicht dann weiter zurück.", "Ab 3 Sprints mit Velocity gibt es einen ersten Forecast mit dem Hinweis \"wenig Daten\", ab 5 gelten die Aussagen als belastbar.", "Trendmodus (Einstellung): flach (Standard), linear oder klassisch. Linear und klassisch schreiben auch Ausreißer fort."] },
       { id: "forecast", icon: "insights", title: "Forecast PLAN und Spanne", lead: "Was das Team im Sprint voraussichtlich schafft, mit der Bandbreite aus den letzten Sprints.",
         formula: "Forecast PLAN = Rate × Kapazität (abgerundet auf eine Nachkommastelle)      Spanne = niedrigste bis höchste Rate × Kapazität",
@@ -76,6 +82,7 @@
             <p style="margin:0 0 10px;max-width:70ch">${t.lead}</p>
             <div class="formula" style="margin-bottom:10px">${t.formula}</div>
             <div class="stack">${t.example}</div>
+            ${t.basis ? `<details open style="margin-top:10px"><summary class="small">Woher die Zahlen kommen</summary><ul class="small" style="margin:6px 0 0;padding-left:18px;max-width:80ch">${t.basis.map((x) => `<li>${x}</li>`).join("")}</ul></details>` : ""}
             <details style="margin-top:10px"><summary class="small">Sonderfälle</summary><ul class="small" style="margin:6px 0 0;padding-left:18px">${t.special.map((x) => `<li>${x}</li>`).join("")}</ul></details></section>`).join("")}</div></div>
         <style>@media (max-width:900px){#help-grid{grid-template-columns:minmax(0,1fr)!important}#help-grid nav{position:static!important}}</style>`;
     },
