@@ -3,6 +3,7 @@
 
 import type { Result } from './types';
 import type {
+  PackageImportPreview,
   Connection,
   Features,
   QueryCheck,
@@ -148,6 +149,26 @@ export const settingsMock: SettingsApi = {
   },
   // SetDensity lives in mock.ts next to the other personal settings.
   async SetDensity() {},
+  async PackageImportPreview(): Promise<PackageImportPreview> {
+    return {
+      path: 'work-packages.csv',
+      hash: 'demo',
+      changes: [
+        { key: 'AP-12', title: 'Export as PDF', update: false },
+        { key: 'AP-13', title: 'Search in the backlog', update: false },
+        { key: 'AP-7', title: 'Login page', update: true },
+      ],
+      more: 0,
+      new: 2,
+      updated: 1,
+      problems: [{ row: 5, msg: 'No title' }],
+      unmapped: ['Remark'],
+      cancelled: false,
+    };
+  },
+  async PackageImportApply(): Promise<Result> {
+    return { ok: true, message: '3 work packages imported.' };
+  },
   async SyncTracker(): Promise<Result> {
     tracker = { ...tracker, imported: new Date().toISOString() };
     return { ok: true, message: '46 tickets read, no changes.' };

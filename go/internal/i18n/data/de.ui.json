@@ -1419,6 +1419,20 @@
   "{points} points, each sprint converted with its own rate (mean {rate} points per person day) = {pd} PD (estimate)": "{points} Punkte, jeder Sprint mit seiner eigenen Rate umgerechnet (Mittel {rate} Punkte je Personentag) = {pd} PT (Schätzung)",
   "Closed {date}.": "Abgeschlossen am {date}.",
   "Discard your changes?": "Änderungen verwerfen?",
-  "Keep editing": "Weiter bearbeiten"
+  "Keep editing": "Weiter bearbeiten",
+  "Import work packages": "Arbeitspakete importieren",
+  "Reads a CSV or Excel table with a header row (title, status, type, priority, assignee, product, project, estimate, labels, description and more). You see every change first; nothing is written before you confirm. A key that exists is updated, a new key is added at the end of the backlog.": "Liest eine CSV- oder Excel-Tabelle mit Kopfzeile (Titel, Status, Typ, Priorität, Bearbeiter, Produkt, Projekt, Schätzung, Labels, Beschreibung und mehr). Du siehst zuerst jede Änderung; vor deiner Bestätigung wird nichts geschrieben. Ein vorhandener Schlüssel wird aktualisiert, ein neuer am Ende des Backlogs eingefügt.",
+  "Apply the choice \"Work packages in Foresprint\" first; the import writes to the saved team.": "Übernimm zuerst die Wahl „Arbeitspakete in Foresprint“; der Import schreibt in das gespeicherte Team.",
+  "Choose table": "Tabelle wählen",
+  "Columns without a matching field are ignored: {names}": "Spalten ohne passendes Feld werden ignoriert: {names}",
+  "Rows that are skipped:": "Übersprungene Zeilen:",
+  "Row {row}: {msg}": "Zeile {row}: {msg}",
+  "No changes compared to the existing work packages.": "Keine Änderungen gegenüber den vorhandenen Arbeitspaketen.",
+  "{new} new, {updated} updated": "{new} neu, {updated} aktualisiert",
+  "Key": "Schlüssel",
+  "Title": "Titel",
+  "What happens": "Was passiert",
+  "Updated": "Aktualisiert",
+  "… and {n} more work packages": "… und {n} weitere Arbeitspakete"
  }
 }

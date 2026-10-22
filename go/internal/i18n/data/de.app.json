@@ -113,6 +113,12 @@
   "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}",
   "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein.",
   "No data folder is open.": "Es ist kein Datenordner geöffnet.",
-  "Only files of the data folder can be opened.": "Es lassen sich nur Dateien des Datenordners öffnen."
+  "Only files of the data folder can be opened.": "Es lassen sich nur Dateien des Datenordners öffnen.",
+  "Choose the table of work packages": "Tabelle mit Arbeitspaketen wählen",
+  "The table changed since the preview. Choose it again.": "Die Tabelle hat sich seit der Vorschau geändert. Bitte erneut wählen.",
+  "No changes compared to the existing work packages.": "Keine Änderungen gegenüber den vorhandenen Arbeitspaketen.",
+  "{count} work packages imported.": "{count} Arbeitspakete importiert.",
+  "This team does not keep work packages in Foresprint.": "Dieses Team führt seine Arbeitspakete nicht in Foresprint.",
+  "The file is too large for a table of work packages.": "Die Datei ist zu groß für eine Tabelle mit Arbeitspaketen."
  }
 }

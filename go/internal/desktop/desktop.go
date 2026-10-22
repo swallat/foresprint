@@ -56,6 +56,13 @@ func Run(version, dataDir string) error {
 					Filters: []runtime.FileFilter{{DisplayName: "Excel (*.xlsx)", Pattern: "*.xlsx"}},
 				})
 			}
+			api.ChooseTable = func(title string) (string, error) {
+				return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
+					Title: title,
+					Filters: []runtime.FileFilter{
+						{DisplayName: "Excel / CSV (*.xlsx, *.csv)", Pattern: "*.xlsx;*.csv;*.txt"}},
+				})
+			}
 		},
 		Windows: &windows.Options{Theme: windows.SystemDefault},
 	})
