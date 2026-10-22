@@ -54,6 +54,13 @@
     .sp-sum .big{font:600 22px/28px var(--font-data)}
     .sp-sum .proj{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
     .sp-sum .cap{margin:6px 0 2px}
+    .sp-abs{display:inline-flex;align-items:center;gap:4px}
+    .sp-abs .input{width:56px;height:28px;text-align:right;padding:0 8px}
+    .sp-abs.a .input{background:var(--warn-weak);border-color:var(--warn)}
+    .sp-abs.c .input{background:var(--ok-weak);border-color:var(--ok)}
+    .sp-st{width:24px;height:24px;border:0;background:none;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;border-radius:6px}
+    .sp-abs.a .sp-st{color:var(--warn)} .sp-abs.c .sp-st{color:var(--ok)} .sp-st:hover{background:var(--surface-2)}
+    .sp-st-ph{width:24px;display:inline-block}
     .sp-btn{min-width:60px;height:28px;padding:0 10px;border-radius:999px;border:1.5px solid var(--primary);background:transparent;color:var(--primary);font:13px var(--font-data);cursor:pointer}
     .sp-btn.c{background:var(--primary);color:var(--on-primary)}
     .sp-btn.e{border:1.5px dashed var(--border);color:var(--text-muted)}
@@ -222,14 +229,14 @@
     title: "Sprint vorbereiten",
     render() {
       const sid = FS.state.sprint, i = D.sprints.findIndex((s) => s.id === sid), cols = D.sprints.slice(i, i + 4);
-      const cellCls = (c) => (!c ? "e" : c.s === "c" ? "c" : "");
+      const cellCls = (c) => (!c ? "e" : c.s === "c" ? "c" : "a");
       const cur = calc(sid), c0 = BASE[sid] - 0;
       const ready = readiness(sid);
       return `${header(sid, "prepare")}${summary(sid)}
       <div class="card" style="margin-bottom:16px"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Abwesenheiten in Personentagen</h2>
-        <span class="small muted">Klick wechselt: leer, <span class="chip" style="border:1.5px dashed var(--border)">angekündigt</span> (Rahmen), <span class="chip" style="background:var(--primary);color:var(--on-primary)">bestätigt</span> (gefüllt). Mit + und − ändert sich die Zahl der Tage.</span></div>
+        <span class="small muted">Tage direkt eintippen (halbe Tage mit Komma), Tab springt weiter. Neue Einträge sind <span class="chip warn">${ic("schedule", "small")}angekündigt</span>, ein Klick auf das Symbol macht sie <span class="chip ok">${ic("check_circle", "small")}bestätigt</span>. 0 oder leer löscht.</span></div>
       ${tw(`<table class="t" id="sp-abs-grid"><thead><tr><th>Person</th><th class="num">FTE</th>${cols.map((s) => `<th class="sp-c ${s.id === sid ? "sp-cur" : ""}"><span class="data">${s.id}</span><br><span class="muted small">${FS.fmtDate(s.start)} ${absChip(s.id)}</span></th>`).join("")}</tr></thead><tbody>
-      ${D.people.map((p) => `<tr><td>${esc(p.name)}</td><td class="num">${fmt(p.fte, 1)}</td>${cols.map((s) => { const c = absOf(s.id)[p.id]; return `<td class="sp-c"><button type="button" class="sp-btn ${cellCls(c)}" data-cell="${s.id}|${p.id}" aria-label="${esc(p.name)}, ${s.id}: ${c ? `${c.d} Tage, ${c.s === "c" ? "bestätigt" : "angekündigt"}` : "keine Abwesenheit"}" title="${c ? (c.s === "c" ? "bestätigt" : "angekündigt") : "leer"}: Klick wechselt den Status">${c ? `${c.d} T` : "–"}</button></td>`; }).join("")}</tr>`).join("")}
+      ${D.people.map((p) => `<tr><td>${esc(p.name)}</td><td class="num">${fmt(p.fte, 1)}</td>${cols.map((s) => { const c = absOf(s.id)[p.id]; return `<td class="sp-c"><div class="sp-abs ${cellCls(c)}"><input class="input data" data-abs="${s.id}|${p.id}" inputmode="decimal" value="${c ? fmt(c.d, c.d % 1 ? 1 : 0) : ""}" placeholder="0" aria-label="${esc(p.name)}, ${s.id}: Abwesenheit in Tagen${c ? (c.s === "c" ? ", bestätigt" : ", angekündigt") : ""}">${c ? `<button type="button" class="sp-st" data-st="${s.id}|${p.id}" aria-label="${esc(p.name)}, ${s.id}: ${c.s === "c" ? "bestätigt, Klick setzt zurück auf angekündigt" : "angekündigt, Klick bestätigt"}" title="${c.s === "c" ? "bestätigt" : "angekündigt, Klick bestätigt"}">${ic(c.s === "c" ? "check_circle" : "schedule", "small")}</button>` : `<span class="sp-st-ph"></span>`}</div></td>`; }).join("")}</tr>`).join("")}
       <tr class="sum"><td>Abwesend gesamt</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(absDays(s.id))} PT</td>`).join("")}</tr>
       <tr class="sum"><td>Kapazität</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(calc(s.id).cap)} PT</td>`).join("")}</tr>
       <tr class="sum"><td>Forecast PLAN</td><td></td>${cols.map((s) => { const c = calc(s.id); return `<td class="sp-c data" style="color:var(--forecast)">${c.past ? "–" : `${fmt(c.fc)} <span class="muted small">(${c.low} bis ${c.high})</span>`}</td>`; }).join("")}</tr>
@@ -248,12 +255,20 @@
     },
     wire(main) {
       wireCommon(main);
-      main.querySelectorAll("[data-cell]").forEach((b) => {
-        const [sid, pid] = b.dataset.cell.split("|");
-        const touch = () => { const cells = Object.values(absOf(sid)); FS.sprint(sid).absences = !cells.length ? "unknown" : cells.every((c) => c.s === "c") ? "confirmed" : "announced"; rerender(); main = document.getElementById("main"); main.querySelector(`[data-cell="${sid}|${pid}"]`)?.focus(); };
-        b.onclick = () => { const a = absOf(sid), c = a[pid]; if (!c) a[pid] = { d: 1, s: "a" }; else if (c.s === "a") c.s = "c"; else delete a[pid]; touch(); };
-        b.onkeydown = (e) => { const c = absOf(sid)[pid]; if (!c || !["+", "-"].includes(e.key)) return; c.d = Math.max(1, Math.min(10, c.d + (e.key === "+" ? 1 : -1))); touch(); };
+      const touch = (sid) => { const cells = Object.values(absOf(sid)); FS.sprint(sid).absences = !cells.length ? "unknown" : cells.every((c) => c.s === "c") ? "confirmed" : "announced"; };
+      // Re-render after focus has moved (Tab), then restore focus so typing flows through the grid
+      const redraw = (fallback) => setTimeout(() => { const keep = document.activeElement?.dataset?.abs || fallback; rerender(); const el = document.querySelector(`[data-abs="${keep}"]`); if (el) { el.focus(); el.select?.(); } }, 0);
+      main.querySelectorAll("[data-abs]").forEach((i) => {
+        const [sid, pid] = i.dataset.abs.split("|"), max = FS.sprint(sid).days;
+        i.onchange = () => {
+          const v = parseFloat(i.value.replace(",", ".")), a = absOf(sid);
+          if (i.value.trim() !== "" && (isNaN(v) || v < 0)) { FS.toast("Bitte eine Zahl von 0 bis " + max + " eingeben."); return redraw(i.dataset.abs); }
+          if (!v) delete a[pid]; else { const d = Math.min(max, Math.round(v * 2) / 2); a[pid] = { d, s: a[pid]?.s || "a" }; if (d !== v) FS.toast(`Auf ${fmt(d, d % 1 ? 1 : 0)} Tage gesetzt (halbe Tage, höchstens ${max}).`); }
+          touch(sid); redraw(i.dataset.abs);
+        };
+        i.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); const all = [...main.querySelectorAll("[data-abs]")], col = all.filter((x) => x.dataset.abs.startsWith(sid + "|")), nx = col[col.indexOf(i) + 1]; (nx || i).focus(); } };
       });
+      main.querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { const [sid, pid] = b.dataset.st.split("|"), c = absOf(sid)[pid]; c.s = c.s === "c" ? "a" : "c"; touch(sid); rerender(); document.querySelector(`[data-st="${b.dataset.st}"]`)?.focus(); }));
       main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { confirmAbs(b.dataset.confirm); rerender(); FS.toast(`Abwesenheiten für ${b.dataset.confirm} bestätigt.`); }));
       main.querySelectorAll("[data-nobody]").forEach((b) => (b.onclick = () => { const sid = b.dataset.nobody, prev = JSON.stringify(absOf(sid)), ps = FS.sprint(sid).absences; nobody(sid); rerender(); FS.toast(`Für ${sid}: niemand abwesend, bestätigt.`, () => { D.absences[sid] = JSON.parse(prev); FS.sprint(sid).absences = ps; rerender(); }); }));
     },
@@ -496,7 +511,7 @@
   // ---------- Flows ----------
   FS.flow({ id: "F3", title: "Sprint vorbereiten und vorplanen", summary: "Abwesenheiten klären, Bereitschaft prüfen und den Betrag je Produkt aus den Vormerkungen festlegen.", steps: [
     { view: "prepare", before() { FS.state.sprint = "2026.22"; }, hl: ".stepper", text: "Heute zeigt: Sprint 2026.22 braucht Vorbereitung. Oben siehst du alle Stufen als Links. \"fehlt noch\" ist nur ein Hinweis, nichts ist gesperrt." },
-    { view: "prepare", hl: "#sp-abs-grid", text: "Das Raster zeigt Abwesenheiten für diesen und die nächsten drei Sprints. Klick auf eine Zelle wechselt zwischen leer, angekündigt (Rahmen) und bestätigt (gefüllt). Kapazität und Forecast PLAN unten in der Tabelle ziehen sofort mit." },
+    { view: "prepare", hl: "#sp-abs-grid", text: "Das Raster zeigt Abwesenheiten für diesen und die nächsten drei Sprints. Tage tippst du direkt ein, Tab oder Enter springt weiter. Neue Einträge sind angekündigt (gelb), das Symbol daneben bestätigt sie (grün). Kapazität und Forecast PLAN unten in der Tabelle ziehen sofort mit." },
     { view: "prepare", hl: "[data-nobody]", text: "Hat niemand frei, genügt \"Niemand abwesend bestätigen\" je Sprint. Mit \"Angekündigte bestätigen\" werden vorhandene Einträge fest." },
     { view: "prepare", hl: "#sp-ready", text: "Die Bereitschaft fasst zusammen: Abwesenheiten, Refinement und Vorplanung je Produkt. Offene Punkte warnen nur, du kannst jederzeit weiter." },
     { view: "preplan", hl: "#sp-earmarks", text: "Vorplanen geht jederzeit, auch für spätere Sprints. Die Vormerkungen aus dem Backlog stehen hier nach Projekt und Tagesgeschäft, mit Kontingenthinweis in PT (Schätzung)." },
