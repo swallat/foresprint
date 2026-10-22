@@ -3,7 +3,8 @@
 // and ?mock=simple in the address show the other ways of working (work packages, no tickets,
 // one product without PO and production).
 
-import type { SprintInfo } from './types';
+import type { SprintInfo } from '../types';
+import backlog from './backlog';
 import type {
   Assumption,
   FreezeInput,
@@ -15,7 +16,7 @@ import type {
   RunningTicket,
   WhatIf,
   WriteMove,
-} from './types.plan';
+} from '../types.plan';
 
 const mode = (): string => new URLSearchParams(location.search).get('mock') ?? 'tracker';
 const simple = () => mode() === 'simple';
@@ -301,3 +302,17 @@ export function resetPlanMock(): void {
   tickets = structuredClone(base);
   pre = {}; projAmt = {}; sprintPre = {}; removedMock = {}; prodPT = {}; saved = {}; frozen = {}; planned = {}; writeDone = {};
 }
+
+/** One earmark for both pages: the Backlog and the Plan mock keep their own tickets. */
+const earmark = {
+  async EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void> {
+    const inPlan = planEarmark(key, sprint);
+    try {
+      await backlog.EarmarkTicket(team, key, sprint, note);
+    } catch (e) {
+      if (!inPlan) throw e;
+    }
+  },
+};
+
+export default { ...planMock, ...earmark };

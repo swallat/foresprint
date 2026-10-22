@@ -102,9 +102,9 @@ func writeTeam(t *testing.T) (api *API, team, next string, fake *fakeTracker) {
 		t.Fatal(err)
 	}
 	fake = &fakeTracker{sprints: []sources.SprintValue{{ID: "7", Name: next, State: "FUTURE"}}, where: map[string]string{"T-3": next}}
-	old := openTrackerWriter
-	openTrackerWriter = func(model.TrackerSettings) (trackerWriter, error) { return fake, nil }
-	t.Cleanup(func() { openTrackerWriter = old })
+	old := writebackOpen
+	writebackOpen = func(model.TrackerSettings) (writebackTracker, error) { return fake, nil }
+	t.Cleanup(func() { writebackOpen = old })
 	return api, team, next, fake
 }
 

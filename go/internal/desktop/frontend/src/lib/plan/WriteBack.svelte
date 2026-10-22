@@ -94,7 +94,7 @@
     {/each}
     {#if preview.moves.length}
       <table class="t">
-        <thead><tr><th></th><th>{t('Ticket')}</th><th>{t('From')}</th><th>{t('To')}</th></tr></thead>
+        <thead><tr><th></th><th>{t('Ticket')}</th><th>{t('From')}</th><th>{t('Destination')}</th></tr></thead>
         <tbody>
           {#each preview.moves as m (m.key)}
             <tr>

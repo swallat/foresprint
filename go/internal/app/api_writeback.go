@@ -18,9 +18,9 @@ import (
 // on, and it changes the tracker only through PlanWriteApply or PlanWriteUndo, which the page
 // calls on an explicit action of the person after the preview.
 
-// trackerWriter is the tracker as the write-back needs it; tests replace openTrackerWriter by a
+// writebackTracker is the tracker as the write-back needs it; tests replace writebackOpen by a
 // fake, so that no test talks to a real Jira.
-type trackerWriter interface {
+type writebackTracker interface {
 	sprintwrite.Mover
 	Fetch() ([]sources.RawTicket, error)
 	KnownSprints() []sources.SprintValue
@@ -28,7 +28,7 @@ type trackerWriter interface {
 	Close()
 }
 
-var openTrackerWriter = func(t model.TrackerSettings) (trackerWriter, error) {
+var writebackOpen = func(t model.TrackerSettings) (writebackTracker, error) {
 	src, err := sources.Open(ticketimport.SourceSettings(t), "", "", nil)
 	if err != nil {
 		return nil, err
@@ -43,45 +43,45 @@ var openTrackerWriter = func(t model.TrackerSettings) (trackerWriter, error) {
 // written remembers, per team and sprint, the moves that went through, so that they can be taken
 // back. It lives as long as the program does.
 var (
-	// writeMu lets one Apply or Undo run at a time, so the list below stays consistent.
-	writeMu   sync.Mutex
-	writtenMu sync.Mutex
-	written   = map[string][]sprintwrite.Move{}
+	// writebackLock lets one Apply or Undo run at a time, so the list below stays consistent.
+	writebackLock   sync.Mutex
+	writebackListMu sync.Mutex
+	writebackList   = map[string][]sprintwrite.Move{}
 )
 
-func (a *API) writtenKey(team, sprintID string) string {
+func (a *API) writebackKey(team, sprintID string) string {
 	return a.DataDir() + "\x00" + team + "\x00" + sprintID
 }
 
-func (a *API) writtenMoves(team, sprintID string) []sprintwrite.Move {
-	writtenMu.Lock()
-	defer writtenMu.Unlock()
-	return slices.Clone(written[a.writtenKey(team, sprintID)])
+func (a *API) writebackMoved(team, sprintID string) []sprintwrite.Move {
+	writebackListMu.Lock()
+	defer writebackListMu.Unlock()
+	return slices.Clone(writebackList[a.writebackKey(team, sprintID)])
 }
 
-func (a *API) setWrittenMoves(team, sprintID string, moves []sprintwrite.Move) {
-	writtenMu.Lock()
-	defer writtenMu.Unlock()
+func (a *API) writebackSetMoved(team, sprintID string, moves []sprintwrite.Move) {
+	writebackListMu.Lock()
+	defer writebackListMu.Unlock()
 	if len(moves) == 0 {
-		delete(written, a.writtenKey(team, sprintID))
+		delete(writebackList, a.writebackKey(team, sprintID))
 		return
 	}
-	written[a.writtenKey(team, sprintID)] = moves
+	writebackList[a.writebackKey(team, sprintID)] = moves
 }
 
-func refName(r *sprintwrite.Ref) string {
+func writebackRefName(r *sprintwrite.Ref) string {
 	if r == nil {
 		return ""
 	}
 	return r.Name
 }
 
-func writeMoves(moves []sprintwrite.Move) []WriteMove {
+func writebackMoves(moves []sprintwrite.Move) []WriteMove {
 	out := make([]WriteMove, 0, len(moves))
 	for _, m := range moves {
 		out = append(out, WriteMove{
 			Key: m.Key, Title: m.Title, Reason: string(m.Reason),
-			From: refName(m.From), To: refName(m.To), FromKnown: m.FromKnown,
+			From: writebackRefName(m.From), To: writebackRefName(m.To), FromKnown: m.FromKnown,
 		})
 	}
 	return out
@@ -94,7 +94,7 @@ func (c *planCtx) writeEnabled() bool {
 }
 
 // writePlan builds the plan of the sprint against the live sprints of the tracker (read only).
-func (c *planCtx) writePlan(w trackerWriter) (sprintwrite.Plan, sprintwrite.Directory, error) {
+func (c *planCtx) writePlan(w writebackTracker) (sprintwrite.Plan, sprintwrite.Directory, error) {
 	raws, err := w.Fetch()
 	if err != nil {
 		return sprintwrite.Plan{}, sprintwrite.Directory{}, err
@@ -150,7 +150,7 @@ func (a *API) PlanWritePreview(team, sprintID string) (*WritePreview, error) {
 	if out.RemovedTarget == "" {
 		out.RemovedTarget = "backlog"
 	}
-	out.CanUndo = len(a.writtenMoves(team, sprintID)) > 0
+	out.CanUndo = len(a.writebackMoved(team, sprintID)) > 0
 	if !c.writeEnabled() {
 		return out, nil
 	}
@@ -159,7 +159,7 @@ func (a *API) PlanWritePreview(team, sprintID string) (*WritePreview, error) {
 		out.Problems = append(out.Problems, err.Error())
 		return out, nil
 	}
-	w, err := openTrackerWriter(c.data.Team.Tracker)
+	w, err := writebackOpen(c.data.Team.Tracker)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (a *API) PlanWritePreview(team, sprintID string) (*WritePreview, error) {
 	if ref, ok := dir.ForSprint(sprintID); ok {
 		out.Sprint = ref.Name
 	}
-	out.Moves = writeMoves(plan.Moves)
+	out.Moves = writebackMoves(plan.Moves)
 	out.Problems = append(out.Problems, plan.Problems...)
 	return out, nil
 }
@@ -182,8 +182,8 @@ func (a *API) PlanWritePreview(team, sprintID string) (*WritePreview, error) {
 // moved twice and nothing the person did not see is written. What went through can be taken
 // back with PlanWriteUndo.
 func (a *API) PlanWriteApply(team, sprintID string, approved []string) (*WriteResult, error) {
-	writeMu.Lock()
-	defer writeMu.Unlock()
+	writebackLock.Lock()
+	defer writebackLock.Unlock()
 	c, err := a.planContext(team, sprintID)
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ func (a *API) PlanWriteApply(team, sprintID string, approved []string) (*WriteRe
 	if err := c.writeReady(); err != nil {
 		return nil, err
 	}
-	w, err := openTrackerWriter(c.data.Team.Tracker)
+	w, err := writebackOpen(c.data.Team.Tracker)
 	if err != nil {
 		return nil, err
 	}
@@ -208,8 +208,8 @@ func (a *API) PlanWriteApply(team, sprintID string, approved []string) (*WriteRe
 	}
 	w.EnableSprintWrite()
 	res := sprintwrite.Apply(plan, w)
-	a.setWrittenMoves(team, sprintID, append(a.writtenMoves(team, sprintID), res.Done...))
-	out := &WriteResult{Done: writeMoves(res.Done), Failed: writeMoves(res.Failed), CanUndo: len(a.writtenMoves(team, sprintID)) > 0}
+	a.writebackSetMoved(team, sprintID, append(a.writebackMoved(team, sprintID), res.Done...))
+	out := &WriteResult{Done: writebackMoves(res.Done), Failed: writebackMoves(res.Failed), CanUndo: len(a.writebackMoved(team, sprintID)) > 0}
 	if res.Err != nil {
 		out.Error = res.Err.Error()
 	}
@@ -218,8 +218,8 @@ func (a *API) PlanWriteApply(team, sprintID string, approved []string) (*WriteRe
 
 // PlanWriteUndo puts the tickets that PlanWriteApply moved back where they were.
 func (a *API) PlanWriteUndo(team, sprintID string) (*WriteResult, error) {
-	writeMu.Lock()
-	defer writeMu.Unlock()
+	writebackLock.Lock()
+	defer writebackLock.Unlock()
 	c, err := a.planContext(team, sprintID)
 	if err != nil {
 		return nil, err
@@ -227,14 +227,14 @@ func (a *API) PlanWriteUndo(team, sprintID string) (*WriteResult, error) {
 	if st := c.stage(); st == "past" || st == "current" {
 		return nil, errors.New(i18n.T("The sprint {id} has started; its plan cannot be written to the tracker any more.", "id", sprintID))
 	}
-	done := a.writtenMoves(team, sprintID)
+	done := a.writebackMoved(team, sprintID)
 	if len(done) == 0 {
 		return nil, errors.New(i18n.T("There is nothing to take back."))
 	}
 	if !c.writeEnabled() {
 		return nil, errors.New(i18n.T("Writing the sprint back to the tracker is not switched on."))
 	}
-	w, err := openTrackerWriter(c.data.Team.Tracker)
+	w, err := writebackOpen(c.data.Team.Tracker)
 	if err != nil {
 		return nil, err
 	}
@@ -258,8 +258,8 @@ func (a *API) PlanWriteUndo(team, sprintID string) (*WriteResult, error) {
 			rest = append(rest, m)
 		}
 	}
-	a.setWrittenMoves(team, sprintID, rest)
-	out := &WriteResult{Done: writeMoves(res.Done), Failed: writeMoves(res.Failed), CanUndo: len(rest) > 0}
+	a.writebackSetMoved(team, sprintID, rest)
+	out := &WriteResult{Done: writebackMoves(res.Done), Failed: writebackMoves(res.Failed), CanUndo: len(rest) > 0}
 	if res.Err != nil {
 		out.Error = res.Err.Error()
 	}
