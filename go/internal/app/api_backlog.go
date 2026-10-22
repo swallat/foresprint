@@ -27,11 +27,6 @@ const lanesShown = 3
 // backlogMu serialises the changes of the ticket files (read, change, write).
 var backlogMu sync.Mutex
 
-func today() time.Time {
-	now := time.Now()
-	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-}
-
 func str(p *string) string {
 	if p == nil {
 		return ""

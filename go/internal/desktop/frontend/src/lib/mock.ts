@@ -2,6 +2,7 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
+import type { ForecastRow, ForecastView, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
 import { createBacklogMock } from './mock.backlog';
 import type { Prefs, SprintInfo } from './types';
@@ -38,6 +39,38 @@ let prefs: Prefs = {
   dataDir: '/demo/teams',
   recentDataDirs: ['/demo/teams'],
 };
+
+// Forecast of Team Atlas: 10 completed sprints, the current one and 4 coming ones.
+const round1 = (n: number) => Math.round(n * 10) / 10;
+function forecastView(): ForecastView {
+  const ref = 40;
+  const vel = [31, 36, 34, 38, 33, 40, 37, 41, 39, 42];
+  const caps = [38, 41, 36, 40, 35, 42, 39, 41, 38, 40];
+  const day = 86400000;
+  const base = Date.UTC(2026, 0, 5);
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const row = (i: number, state: ForecastRow['state']): ForecastRow => {
+    const v = vel[i] ?? null;
+    const nv = v !== null ? round1((v / (caps[i] ?? 39)) * ref) : null;
+    return {
+      id: `2026.${12 + i}`, start: iso(base + i * 14 * day), end: iso(base + i * 14 * day + 11 * day), state, recorded: i < 11,
+      capacity: caps[i] ?? 39, capacitySource: i < 10 ? 'recorded' : 'people list', unsure: false,
+      commitment: v !== null ? v + 2 : null, velocity: v, normalizedVelocity: nv, average: nv, trend: nv,
+      fulfillment: v !== null ? Math.round((v / (v + 2)) * 1000) / 1000 : null, plan: null, planSource: '', low: null, high: null, plannable: null, small: null,
+    };
+  };
+  const past = Array.from({ length: 10 }, (_, i) => row(i, 'past'));
+  const nvTrend = 40.2;
+  const upcoming = Array.from({ length: 5 }, (_, k) => {
+    const r = row(10 + k, k === 0 ? 'current' : 'future');
+    const cap = [38, 37, 41, 36, 40][k] ?? 38;
+    const plan = Math.floor((nvTrend / ref) * cap);
+    return { ...r, velocity: null, commitment: null, normalizedVelocity: null, fulfillment: null, capacity: cap, capacitySource: k < 2 ? 'announced absences' : 'expected absences', unsure: k > 3,
+      average: nvTrend, trend: nvTrend, plan, planSource: 'projection' as const, low: Math.floor((33 / ref) * cap), high: Math.floor((42 / ref) * cap),
+      plannable: plan * 0.8, small: round1(plan * 0.2) };
+  });
+  return { team: 'atlas', today: iso(base + 10 * 14 * day + 3 * day), referenceCapacity: ref, window: 6, roadmapShare: 0.8, trendMode: 'flat', horizon: 4, rounding: 0, samples: 6, fewSamples: false, rate: nvTrend / ref, past, upcoming };
+}
 
 function today(): TodayData {
   const day = new Date().toISOString().slice(0, 10);
@@ -132,5 +165,22 @@ export const mockApi: Api = {
   },
   async SyncTracker() {
     return { ok: true, message: 'Tracker synced.' };
+  },
+  async Forecast() {
+    return forecastView();
+  },
+  async ForecastWhatIf(_team, extraAbsenceDays, focusPercent): Promise<WhatIfRow[]> {
+    return forecastView().upcoming.map((r) => {
+      const capacity = Math.max(0, (r.capacity ?? 0) - extraAbsenceDays);
+      const forecast = Math.floor(((r.trend ?? 0) / 40) * capacity * (focusPercent / 100));
+      return { id: r.id, capacity, forecast, base: r.plan ?? 0, delta: forecast - (r.plan ?? 0) };
+    });
+  },
+  async ForecastWhenDone(_team, remaining, sharePercent): Promise<WhenDoneView> {
+    const per = 36 * (sharePercent / 100);
+    const sprints = Array.from({ length: 12 }, (_, i) => `2026.${23 + i}`);
+    const cumulative = sprints.map((_, i) => Math.min(1, Math.max(0, (per * (i + 1) - remaining * 0.6) / (remaining * 0.8))));
+    const first = (p: number) => sprints.find((_, i) => (cumulative[i] ?? 0) >= p) ?? '';
+    return { remaining, share: sharePercent, runs: 10000, samples: 6, p50: first(0.5), p85: first(0.85), sprints, cumulative, perSprint: per, trendCapacity: sprints.slice(6), available: remaining > 0 && sharePercent > 0 };
   },
 };
