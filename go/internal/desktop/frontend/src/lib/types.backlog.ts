@@ -66,6 +66,15 @@ export interface BacklogView {
   multi: boolean;
   production: boolean;
   cycles: string[][];
+  /** Tickets that came into or left the tracker's sprint after the freeze (running sprint). */
+  drift?: BacklogDrift;
+}
+
+export interface BacklogDrift {
+  sprint: string;
+  pulledIn: string[];
+  dropped: string[];
+  unknown: string[];
 }
 
 export interface Subtask {

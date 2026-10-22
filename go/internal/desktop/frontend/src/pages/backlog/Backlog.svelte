@@ -231,6 +231,22 @@
       </p>
     {/if}
 
+    {#if view.drift}
+      <Banner tone="warn">
+        <strong>{t('Sprint {id}: the tracker differs from the frozen plan.', { id: view.drift.sprint })}</strong>
+        {#if view.drift.pulledIn.length}
+          {t('Pulled in after the freeze: {keys}.', { keys: view.drift.pulledIn.join(', ') })}
+        {/if}
+        {#if view.drift.dropped.length}
+          {t('Left the sprint: {keys}.', { keys: view.drift.dropped.join(', ') })}
+        {/if}
+        {#if view.drift.unknown.length}
+          {t('Not in the last fetch: {keys}.', { keys: view.drift.unknown.join(', ') })}
+        {/if}
+        {#snippet action()}<a class="btn" href={link('/sprint/plan')}>{t('Open Plan')}</a>{/snippet}
+      </Banner>
+    {/if}
+
     {#if view.cycles.length}
       <Banner tone="warn">{t('Some tickets depend on each other in a circle. They stay in the list but cannot be distributed. Open them and remove one dependency.')}</Banner>
     {/if}

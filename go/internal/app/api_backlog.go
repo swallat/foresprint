@@ -19,6 +19,7 @@ import (
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/preplan"
 	"github.com/swallat/foresprint/internal/storage"
+	"github.com/swallat/foresprint/internal/ticketimport"
 	"github.com/swallat/foresprint/internal/workpackages"
 )
 
@@ -320,7 +321,34 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 		view.Tickets = append(view.Tickets, r)
 	}
 	view.Lanes = lanes
+	view.Drift = backlogDrift(data, now)
 	return view, nil
+}
+
+// backlogDrift compares the frozen list of the running sprint with the tracker's sprint. It is
+// nil without a tracker, without a running sprint that is frozen, or when nothing differs.
+func backlogDrift(data *storage.TeamData, now time.Time) *BacklogDrift {
+	if data.Team.Source() != model.SourceTracker {
+		return nil
+	}
+	for _, s := range data.Sprints {
+		if s.CommittedTickets == nil || s.Start.After(now) || s.End.Before(now) {
+			continue
+		}
+		d := ticketimport.DetectDrift(s.CommittedTickets, data.Tickets, s.ID)
+		if len(d.PulledIn)+len(d.Dropped)+len(d.Unknown) == 0 {
+			return nil
+		}
+		return &BacklogDrift{Sprint: s.ID, PulledIn: backlogKeys(d.PulledIn), Dropped: backlogKeys(d.Dropped), Unknown: backlogKeys(d.Unknown)}
+	}
+	return nil
+}
+
+func backlogKeys(keys []string) []string {
+	if keys == nil {
+		return []string{}
+	}
+	return keys
 }
 
 // cycles reports the dependency cycles among the tickets the order left over.
