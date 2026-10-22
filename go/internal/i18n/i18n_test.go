@@ -206,3 +206,36 @@ func TestTexts(t *testing.T) {
 		t.Error("unknown language")
 	}
 }
+
+// A text of the window or of the app must not replace a translation of the core catalog: extra
+// files are merged over it, so a key in both with another value would change what the reports
+// and messages say.
+func TestExtraCatalogsDoNotOverrideTheCore(t *testing.T) {
+	read := func(name string) Catalog {
+		raw, err := files.ReadFile("data/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var c Catalog
+		if err := json.Unmarshal(raw, &c); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+	entries, err := files.ReadDir("data")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		parts := strings.Split(e.Name(), ".")
+		if len(parts) != 3 {
+			continue // not an extra file
+		}
+		core, extra := read(parts[0]+".json"), read(e.Name())
+		for k, v := range extra.Texts {
+			if old, ok := core.Texts[k]; ok && old != v {
+				t.Errorf("%s: %q is %q in the core catalog and %q here", e.Name(), k, old, v)
+			}
+		}
+	}
+}

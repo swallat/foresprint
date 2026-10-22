@@ -8,6 +8,7 @@
   "The folder {path} does not exist.": "Den Ordner {path} gibt es nicht.",
   "No folder dialog in this build.": "Dieser Build hat keinen Ordnerdialog.",
   "Choose the data folder": "Datenordner wählen",
+<<<<<<< HEAD
   "Nothing to save.": "Es gibt nichts zu speichern.",
   "Done. Took over 1 change from others.": "Fertig. 1 Änderung von anderen übernommen.",
   "Done. Took over {count} changes from others.": "Fertig. {count} Änderungen von anderen übernommen.",
@@ -20,5 +21,11 @@
   "You may not write to this storage.": "Du darfst in diesen Speicher nicht schreiben.",
   "Saving did not work.": "Speichern hat nicht geklappt.",
   "Saved. Your changes wait for approval.": "Gespeichert. Deine Änderungen warten auf die Freigabe."
+=======
+  "announced only ({count} people)": "nur angekündigt ({count} Personen)",
+  "not entered yet": "noch nicht eingetragen",
+  "{done} of {total} products": "{done} von {total} Produkten",
+  "announced only (1 person)": "nur angekündigt (1 Person)"
+>>>>>>> origin/v1
  }
 }

@@ -6,8 +6,13 @@
 
 import type { DataApi } from './types.data';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
+import type { TodayApi } from './types.today';
 
+<<<<<<< HEAD
 export interface Api extends DataApi {
+=======
+export interface Api extends TodayApi {
+>>>>>>> origin/v1
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
