@@ -29,13 +29,17 @@
   let range = $state<Range>(saved.range);
   let customTo = $state(saved.customTo);
 
+  let loadSeq = 0; // answers of an earlier team must not replace the current one
   async function load(): Promise<void> {
     if (!app.team) return;
+    const mine = ++loadSeq;
     try {
-      view = await api.Projects(app.team);
+      const answer = await api.Projects(app.team);
+      if (mine !== loadSeq) return;
+      view = answer;
       problem = '';
     } catch (e) {
-      problem = String(e);
+      if (mine === loadSeq) problem = String(e);
     }
   }
 

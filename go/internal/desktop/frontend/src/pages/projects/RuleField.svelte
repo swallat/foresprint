@@ -17,6 +17,7 @@
 
   let check = $state<RuleCheck | undefined>();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let seq = 0; // an older answer must not replace a newer one
 
   $effect(() => {
     const text = value;
@@ -25,11 +26,13 @@
       check = undefined;
       return;
     }
+    const mine = ++seq;
     timer = setTimeout(async () => {
       try {
-        check = await api.CheckRule(app.team, project, text);
+        const answer = await api.CheckRule(app.team, project, text);
+        if (mine === seq) check = answer;
       } catch {
-        check = undefined;
+        if (mine === seq) check = undefined;
       }
     }, 300);
     return () => clearTimeout(timer);

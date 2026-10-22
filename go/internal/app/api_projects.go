@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -188,6 +190,7 @@ func (c *projectCtx) milestoneView(m model.Milestone) MilestoneView {
 		return v
 	}
 	light := "ok"
+	unknown := false // open tickets while no distribution exists: no light can be given
 	for _, key := range m.Tickets {
 		t := c.data.TicketByKey(key)
 		if t != nil && t.Done {
@@ -195,6 +198,7 @@ func (c *projectCtx) milestoneView(m model.Milestone) MilestoneView {
 			continue
 		}
 		if c.dist == nil {
+			unknown = true
 			continue
 		}
 		p := c.dist.Placement(key)
@@ -212,6 +216,9 @@ func (c *projectCtx) milestoneView(m model.Milestone) MilestoneView {
 		default:
 			light = worse(light, "bad")
 		}
+	}
+	if unknown && light == "ok" {
+		light = "none"
 	}
 	v.Light = light
 	return v
@@ -263,6 +270,17 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 	if p.Start != nil && p.Start.Before(c.today) {
 		v.History = true
 	}
+	thisMonth := monthOf(c.today)
+	for _, ym := range p.Contingent.PerMonth.Keys() {
+		if ym < thisMonth {
+			v.History = true
+		}
+	}
+	for _, m := range p.Milestones {
+		if m.Date.Before(c.today) {
+			v.History = true
+		}
+	}
 	if c.dist != nil && !p.Closed() {
 		if st := c.dist.Status(p.ID); st != nil {
 			if l, ok := lightOf[st.Light]; ok {
@@ -292,9 +310,6 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 
 func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 	rows := []MonthRow{}
-	if p.Contingent.PerMonth.Len() == 0 {
-		return rows
-	}
 	planned := map[string]float64{}
 	done := map[string]float64{}
 	for _, pl := range c.placements(p.ID) {
@@ -313,7 +328,25 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 			done[monthOf(lastDay(s))] += *t.Estimate
 		}
 	}
-	months := p.Contingent.PerMonth.Keys()
+	// Months with planned or finished work but no booking belong in the table too: that is where
+	// an overbooking shows.
+	seen := map[string]bool{}
+	var months []string
+	add := func(ym string) {
+		if !seen[ym] {
+			seen[ym] = true
+			months = append(months, ym)
+		}
+	}
+	for _, ym := range p.Contingent.PerMonth.Keys() {
+		add(ym)
+	}
+	for ym := range planned {
+		add(ym)
+	}
+	for ym := range done {
+		add(ym)
+	}
 	sort.Strings(months)
 	for _, ym := range months {
 		booked, _ := p.Contingent.PerMonth.Get(ym)
@@ -489,9 +522,16 @@ func (c *projectCtx) report(p model.Project) []SprintRow {
 	} else if len(ids) > 4 {
 		ids = ids[:4]
 	}
-	perMonth := map[string]int{}
+	perMonth := map[string]int{} // all sprints of a month, also those already over
+	for _, s := range c.sprint {
+		perMonth[monthOf(lastDay(s))]++
+	}
+	inWindow := 0 // shown sprints within the term of the project
 	for _, id := range ids {
-		perMonth[monthOf(lastDay(c.sprint[id]))]++
+		s := c.sprint[id]
+		if (p.Start == nil || !lastDay(s).Before(*p.Start)) && (p.End == nil || !s.Start.After(*p.End)) {
+			inWindow++
+		}
 	}
 	planned := map[string]float64{}
 	for _, pl := range c.placements(p.ID) {
@@ -515,8 +555,9 @@ func (c *projectCtx) report(p model.Project) []SprintRow {
 		ym := monthOf(lastDay(s))
 		if v, ok := p.Contingent.PerMonth.Get(ym); ok {
 			r.Booked = round1(v / float64(perMonth[ym]))
-		} else if p.Contingent.PerMonth.Len() == 0 && p.Contingent.Total != nil && len(ids) > 0 {
-			r.Booked = round1(*p.Contingent.Total / float64(len(ids)))
+		} else if p.Contingent.PerMonth.Len() == 0 && p.Contingent.Total != nil && inWindow > 0 &&
+			(p.Start == nil || !lastDay(s).Before(*p.Start)) && (p.End == nil || !s.Start.After(*p.End)) {
+			r.Booked = round1(*p.Contingent.Total / float64(inWindow))
 		}
 		if c.data.Team.Features.Tickets {
 			r.Planned = c.toPD(planned[id])
@@ -534,6 +575,10 @@ type projectSnapshot struct {
 	projects []model.Project
 	preplan  model.Preplan
 	hasPlan  bool
+	// after is the state this change left behind; UndoProjects only goes back when nothing
+	// else has changed since.
+	afterProjects []model.Project
+	afterPreplan  model.Preplan
 }
 
 const maxUndo = 20
@@ -549,7 +594,7 @@ func (a *API) edit(team string, change func(data *storage.TeamData) error) error
 	if !data.Team.Features.Tickets && !data.Team.Features.Projects {
 		return errors.New(i18n.T("This team keeps no projects. Switch them on under Settings > Team."))
 	}
-	snap := projectSnapshot{team: team, projects: cloneProjects(data.Projects), preplan: data.Preplan, hasPlan: data.Team.Features.Tickets}
+	snap := projectSnapshot{team: team, projects: cloneProjects(data.Projects), preplan: clonePreplan(data.Preplan), hasPlan: data.Team.Features.Tickets}
 	if err := change(data); err != nil {
 		return err
 	}
@@ -561,14 +606,26 @@ func (a *API) edit(team string, change func(data *storage.TeamData) error) error
 			return err
 		}
 	}
+	storage.ClearTeamCache()
+	if saved, err := repo.Load(team); err == nil {
+		snap.afterProjects, snap.afterPreplan = cloneProjects(saved.Projects), clonePreplan(saved.Preplan)
+	}
 	a.mu.Lock()
 	a.undo = append(a.undo, snap)
 	if len(a.undo) > maxUndo {
 		a.undo = a.undo[len(a.undo)-maxUndo:]
 	}
 	a.mu.Unlock()
-	storage.ClearTeamCache()
 	return nil
+}
+
+func clonePreplan(in model.Preplan) model.Preplan {
+	return model.Preplan{
+		Earmarks:   slices.Clone(in.Earmarks),
+		Estimates:  slices.Clone(in.Estimates),
+		Production: slices.Clone(in.Production),
+		Overrides:  slices.Clone(in.Overrides),
+	}
 }
 
 func cloneProjects(in []model.Project) []model.Project {
@@ -595,6 +652,13 @@ func (a *API) UndoProjects(team string) error {
 		return errors.New(i18n.T("There is nothing to undo."))
 	}
 	repo := storage.NewRepository(a.DataDir())
+	storage.ClearTeamCache()
+	if now, err := repo.Load(team); err != nil {
+		return err
+	} else if snap.afterProjects == nil || !reflect.DeepEqual(cloneProjects(now.Projects), snap.afterProjects) ||
+		(snap.hasPlan && !reflect.DeepEqual(clonePreplan(now.Preplan), snap.afterPreplan)) {
+		return errors.New(i18n.T("The data changed in the meantime, so this change can no longer be taken back."))
+	}
 	if _, err := repo.SaveProjects(team, snap.projects); err != nil {
 		return err
 	}
@@ -688,6 +752,7 @@ func (a *API) SaveProject(team string, in ProjectInput) (string, error) {
 			id = proj.ID
 		}
 		proj.Name, proj.Start, proj.End = name, start, end
+		proj.Target = end // the form shows one date; an older target would win in the distribution
 		proj.Product, proj.AlsoProducts = nil, nil
 		for i, pr := range in.Products {
 			if i == 0 {
@@ -794,8 +859,6 @@ func (a *API) CloseProject(team string, in CloseInput) error {
 					setOverride(&data.Preplan, t.Key, in.MoveTo)
 				}
 			}
-		} else {
-			p.OpenScope = nil
 		}
 		return nil
 	})

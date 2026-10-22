@@ -23,12 +23,17 @@
   let problem = $state('');
   let panel = $state<'edit' | 'close' | undefined>();
 
+  let loadSeq = 0; // answers for an earlier team or project must not replace the current one
   async function load(): Promise<void> {
     if (!app.team || !params.id) return;
+    const mine = ++loadSeq;
     try {
-      d = await api.Project(app.team, params.id);
+      const answer = await api.Project(app.team, params.id);
+      if (mine !== loadSeq) return;
+      d = answer;
       problem = '';
     } catch (e) {
+      if (mine !== loadSeq) return;
       d = undefined;
       problem = String(e).replace(/^Error: /, '');
     }
@@ -157,7 +162,7 @@
         {#if estimated}<span class="chip" title={t('Converted from points with the team rate')}>≈ {t('estimate')}</span>{/if}
       </div>
       <div class="big">
-        <Amount value={(p.done ?? 0) + (p.planned ?? 0)} est={estimated} inline />
+        <Amount value={p.done === null && p.planned === null ? null : (p.done ?? 0) + (p.planned ?? 0)} est={estimated} inline />
         {#if p.booked !== null}<span class="muted" style="font-size:14px">{t('of {n}', { n: num(p.booked, 1) })}</span>{/if}
       </div>
       <Meter booked={p.booked} done={p.done} planned={p.planned} />
@@ -175,7 +180,7 @@
             class="input data scope"
             inputmode="decimal"
             aria-label={t('Open scope in points')}
-            value={p.openScope === null ? '' : num(p.openScope, 1)}
+            value={p.openScope === null ? '' : String(p.openScope).replace('.', ',')}
             disabled={closed}
             onchange={(e) => void saveScope(e.currentTarget.value)}
           />

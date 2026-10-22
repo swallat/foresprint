@@ -204,3 +204,35 @@ func TestProjectJSONNames(t *testing.T) {
 		}
 	}
 }
+
+func TestSaveClearsTargetAndUndoChecksState(t *testing.T) {
+	api, team := projectDir(t, true)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	data.Projects[0].Target = model.Ptr(time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC))
+	if _, err := repo.SaveProjects(team, data.Projects); err != nil {
+		t.Fatal(err)
+	}
+	storage.ClearTeamCache()
+	if _, err := api.SaveProject(team, ProjectInput{ID: "alpha", Name: "Alpha", Products: []string{"portal"}, End: "2027-02-01", Months: map[string]float64{}}); err != nil {
+		t.Fatal(err)
+	}
+	storage.ClearTeamCache()
+	data, _ = repo.Load(team)
+	if got := data.Projects[0].Target; got == nil || got.Format(dateLayout) != "2027-02-01" {
+		t.Fatalf("target = %v", got)
+	}
+	// Another change after the save: the first one can no longer be taken back on its own.
+	if err := api.CloseProject(team, CloseInput{ID: "alpha", How: "finished", At: "2026-10-22"}); err != nil {
+		t.Fatal(err)
+	}
+	data, _ = repo.Load(team)
+	data.Projects[0].Name = "Changed elsewhere"
+	if _, err := repo.SaveProjects(team, data.Projects); err != nil {
+		t.Fatal(err)
+	}
+	storage.ClearTeamCache()
+	if err := api.UndoProjects(team); err == nil {
+		t.Fatal("undo should refuse after an outside change")
+	}
+}

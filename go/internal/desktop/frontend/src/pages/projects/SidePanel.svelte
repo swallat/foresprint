@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, type Snippet } from 'svelte';
+  import { onDestroy, onMount, type Snippet } from 'svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
 
@@ -10,6 +10,12 @@
   }
   let { title, onclose, children }: Props = $props();
   let panel: HTMLElement | undefined = $state();
+
+  // The button that opened the panel gets the focus back when the panel closes.
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+  onDestroy(() => {
+    if (opener?.isConnected) opener.focus();
+  });
 
   onMount(() => {
     const first = panel?.querySelector<HTMLElement>('input, select, textarea, button.primary');
