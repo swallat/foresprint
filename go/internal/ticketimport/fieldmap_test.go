@@ -188,3 +188,17 @@ func TestHandOverrideWinsOverMappedFields(t *testing.T) {
 		t.Errorf("no override: %v %v", tk.Project, tk.Product)
 	}
 }
+
+func TestMappedProductionLandsInExtraProduction(t *testing.T) {
+	tracker := model.TrackerSettings{}
+	tracker.Fields.Production = str("Prod share")
+	tk := Convert(sources.RawTicket{Key: "A-1", Extra: map[string][]string{"production": {"40"}}}, Env{Tracker: tracker, Sprints: noSprints{}})
+	if v, ok := tk.Extra.Get("production"); !ok || len(v) != 1 || v[0] != "40" {
+		t.Fatalf("%+v", tk.Extra)
+	}
+	// A rule field of the team with the same name keeps the name; the mapped field is not added twice.
+	tracker.RuleFields.Set("production", "Other")
+	if got := MappedRuleFields(tracker); len(got) != 0 {
+		t.Fatalf("%+v", got)
+	}
+}

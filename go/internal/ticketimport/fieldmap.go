@@ -9,13 +9,14 @@ import (
 )
 
 // Names under which the tracker fields of the field mapping (decision 21) travel through the
-// sources: as rule fields, so that CSV and Jira read them without a second path. The leading
-// underscore keeps them apart from the rule fields the team configures (RuleFieldName).
+// sources: as rule fields, so that CSV and Jira read them without a second path. The value of a
+// mapped field is therefore ticket.Extra[name]. A rule field the team configured under the same
+// name wins and the mapped field is not read.
 const (
-	MapProduction = "_production"
-	MapProduct    = "_product"
-	MapProject    = "_project"
-	MapRefined    = "_refined"
+	MapProduction = "production"
+	MapProduct    = "product"
+	MapProject    = "project"
+	MapRefined    = "refined"
 )
 
 // mappedFields are the mapped fields of the tracker settings in a fixed order.
@@ -41,6 +42,9 @@ func mappedFields(t model.TrackerSettings) []struct{ Name, Display string } {
 func MappedRuleFields(t model.TrackerSettings) []sources.RuleField {
 	var out []sources.RuleField
 	for _, m := range mappedFields(t) {
+		if _, taken := t.RuleFields.Get(m.Name); taken {
+			continue
+		}
 		out = append(out, sources.RuleField{Name: m.Name, Display: m.Display})
 	}
 	return out
