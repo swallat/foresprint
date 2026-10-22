@@ -11,7 +11,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import { VIEWS, activeView, applyView, blank, group, matches, neighbour, sum, type Group } from './backlog';
-  import { NEW, allTickets, earmark, loadBacklog, openPresent, store, t, toggleSelected, ui } from './backlog.svelte';
+  import { NEW, allTickets, earmark, loadBacklog, openPresent, store, t, toggleSelected, ui } from './store.svelte';
   import TicketRow from './TicketRow.svelte';
 
   let { params }: PageProps = $props();

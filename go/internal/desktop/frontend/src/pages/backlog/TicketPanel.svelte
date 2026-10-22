@@ -8,7 +8,7 @@
   import { app, toast } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
   import type { TicketDetail, WorkPackageInput } from '../../lib/types.backlog';
-  import { NEW, allTickets, changed, openPresent, store, t } from './backlog.svelte';
+  import { NEW, allTickets, changed, openPresent, store, t } from './store.svelte';
   import { openExternal } from './external';
 
   let detail = $state<TicketDetail | undefined>();

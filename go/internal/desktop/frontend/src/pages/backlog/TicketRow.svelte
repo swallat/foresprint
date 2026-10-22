@@ -6,7 +6,7 @@
     import Icon from '../../lib/Icon.svelte';
   import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
   import { productColor } from './backlog';
-  import { t } from './backlog.svelte';
+  import { t } from './store.svelte';
   import { openExternal } from './external';
 
   interface Props {

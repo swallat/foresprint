@@ -9,7 +9,7 @@
   import type { PageProps } from '../../lib/routes';
   import type { TicketDetail } from '../../lib/types.backlog';
   import { productColor } from './backlog';
-  import { loadBacklog, present, store, allTickets, t } from './backlog.svelte';
+  import { loadBacklog, present, store, allTickets, t } from './store.svelte';
   import { openExternal } from './external';
 
   let { params }: PageProps = $props();
