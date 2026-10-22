@@ -4,6 +4,7 @@
 import type { Api } from './api';
 import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
+import { createReviewMock } from './mock.review';
 import { createSprintsMock } from './mock.sprints';
 import { teamMock } from './mock.team';
 import type { Prefs, Result, SprintInfo } from './types';
@@ -135,6 +136,7 @@ let team = { key: 'atlas', name: 'Team Atlas', people: 6, sprints: sprints.lengt
 const ok = (message: string): Result => ({ ok: true, message });
 
 export const mockApi: Api = {
+  ...createReviewMock(sprints),
   ...createSprintsMock(sprints),
   ...dataMock,
   ...teamMock,

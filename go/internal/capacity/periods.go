@@ -39,8 +39,8 @@ type PeriodsApplied struct {
 
 // ApplyPeriods fills the absences of a sprint from the planned absence periods (decision 23):
 // the working days of a person inside the sprint, each day counted once even if periods
-// overlap. A confirmed period gives confirmed absences (Sprint.Absences), an announced one
-// announced absences (Sprint.ExpectedAbsences).
+// overlap. In an open sprint every period, confirmed or announced, gives announced absences
+// (Sprint.ExpectedAbsences); only the lock of a cell confirms (decision G1).
 //
 // Days typed by hand win over a period (the person is listed in HandWins), and a sprint whose
 // absences are already confirmed is not changed. The result is a copy for calculating; the
@@ -51,9 +51,6 @@ func ApplyPeriods(team *model.Team, people []model.Person, periods model.Absence
 		return result
 	}
 	applied := sprint.Clone()
-	if applied.Absences == nil {
-		applied.Absences = map[string]float64{}
-	}
 	if applied.ExpectedAbsences == nil {
 		applied.ExpectedAbsences = map[string]float64{}
 	}
@@ -63,47 +60,23 @@ func ApplyPeriods(team *model.Team, people []model.Person, periods model.Absence
 		if !ok {
 			continue
 		}
-		confirmed := map[time.Time]bool{}
+		// In an open sprint a period only announces its days, confirmed or not: the lock of a
+		// cell stays the person's own decision, and a later change of the period still reaches
+		// the sprint.
 		announced := map[time.Time]bool{}
 		for _, period := range list {
-			target := announced
-			if period.Confirmed {
-				target = confirmed
-			}
 			for d := range periodDaySet(team, person, period, sprint) {
-				target[d] = true
-			}
-		}
-		for d := range confirmed {
-			delete(announced, d)
-		}
-		if len(confirmed) > 0 {
-			if sprint.CellState(person.ID) != model.AbsencesUnknown { // typed in either state
-				result.HandWins = append(result.HandWins, person.ID)
-			} else {
-				applied.Absences[person.ID] = float64(len(confirmed))
-				changed = true
+				announced[d] = true
 			}
 		}
 		if len(announced) > 0 {
-			if sprint.CellState(person.ID) != model.AbsencesUnknown {
+			if sprint.CellState(person.ID) != model.AbsencesUnknown { // typed in either state
 				result.HandWins = append(result.HandWins, person.ID)
 			} else {
 				applied.ExpectedAbsences[person.ID] = float64(len(announced))
 				changed = true
 			}
 		}
-	}
-	if len(applied.Absences) > 0 {
-		// One confirmed absence makes the sprint's absences confirmed (as typed days do), and
-		// capacity then reads Absences only: the announced days count with them.
-		for id, days := range applied.ExpectedAbsences {
-			if _, typed := sprint.Absences[id]; typed {
-				continue // a typed confirmed cell wins over announced days of the same person
-			}
-			applied.Absences[id] += days
-		}
-		applied.ExpectedAbsences = nil
 	}
 	sort.Strings(result.HandWins)
 	result.HandWins = dedupe(result.HandWins)

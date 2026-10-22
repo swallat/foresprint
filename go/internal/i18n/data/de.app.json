@@ -35,6 +35,7 @@
   "Choose the folder for the export": "Ordner für den Export wählen",
   "Choose the Excel workbook": "Excel-Arbeitsmappe wählen",
   "The workbook changed since the preview. Choose it again.": "Die Arbeitsmappe hat sich seit der Vorschau geändert. Wähle sie erneut.",
+<<<<<<< HEAD
   "Enter a name for the team.": "Gib dem Team einen Namen.",
   "Enter the ID of the first sprint.": "Trage die ID des ersten Sprints ein.",
   "Enter the address of the tracker and the query that selects the tickets.": "Trage die Adresse des Trackers und die Abfrage ein, die die Tickets auswählt.",
@@ -42,5 +43,22 @@
   "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
   "Unknown source of work: {source}": "Unbekannte Quelle der Arbeit: {source}",
   "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}"
+=======
+  "Numbers in the Review must not be negative.": "Zahlen im Review dürfen nicht negativ sein.",
+  "Sprint {id} has not begun; it cannot be reviewed yet.": "Der Sprint {id} hat noch nicht begonnen; sein Review ist noch nicht möglich.",
+  "The rest that continues cannot be more than what was not done.": "Der Rest, der weiterläuft, kann nicht größer sein als das Nicht-Erledigte.",
+  "Not done cannot be more than the commitment.": "Nicht erledigt kann nicht mehr sein als die Zusage.",
+  "Only the latest reviewed sprint can be reopened.": "Nur der zuletzt abgeschlossene Sprint lässt sich wieder öffnen.",
+  "This is not a minutes file.": "Das ist keine Protokolldatei.",
+  "Commitment of the sprint": "Zusage des Sprints",
+  "Not done": "Nicht erledigt",
+  "Done in addition": "Zusätzlich erledigt",
+  "Velocity": "Velocity",
+  "Person days (frozen)": "Personentage (eingefroren)",
+  "Rate per person day": "Rate je Personentag",
+  "rest {rest}": "Rest {rest}",
+  "Done tickets": "Erledigte Tickets",
+  "Carried over": "Übertragen"
+>>>>>>> origin/v1
  }
 }

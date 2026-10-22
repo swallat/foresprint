@@ -98,11 +98,19 @@ func (a *API) Status() Status {
 }
 
 // Save saves the changes and shares them (commit, merge at key level, upload).
-func (a *API) Save() (Result, error) { return resultOf(a.data.Save(datasvc.SaveOptions{}), false), nil }
+func (a *API) Save() (Result, error) { return a.save(false), nil }
 
 // SaveAnyway saves although the check of the changed data found errors.
 func (a *API) SaveAnyway() (Result, error) {
-	return resultOf(a.data.Save(datasvc.SaveOptions{SaveAnyway: true}), false), nil
+	return a.save(true), nil
+}
+
+// save runs Save with the tags the Review asked for; they are dropped once a save went through.
+func (a *API) save(anyway bool) Result {
+	tags := a.usableTags()
+	r := a.data.Save(datasvc.SaveOptions{SaveAnyway: anyway, Tags: tags})
+	a.dropSetTags() // whatever a commit made is a tag now; a failed save keeps the wish
+	return resultOf(r, false)
 }
 
 // Refresh fetches the changes of others.
