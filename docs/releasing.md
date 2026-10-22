@@ -55,4 +55,6 @@ There is no code signing certificate: Windows and macOS warn once, see
 for the GUI subsystem so that a double click opens no console window; the program attaches to
 the console of the caller (`cmd/foresprint/console_windows.go`).
 
-"Run workflow" repeats the build for an existing tag and replaces the files.
+"Run workflow" builds the commit it is started on (choose the branch or tag under "Use workflow from") and names the
+release after the input `tag`; a tag that does not exist yet is created at that commit by the release page. For an
+existing tag it repeats the build and replaces the files.
