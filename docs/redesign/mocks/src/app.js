@@ -86,9 +86,10 @@
   // Production share: part of a ticket's estimate that needs people with production access (0 to 100 %; 100 = production only).
   // From the tracker field configured under Tickets und Tracker; a value set in Foresprint wins (kept in the team data).
   // Order: value set in Foresprint, then the tracker field (if one is mapped), then the first matching rule, else 0.
-  FS.prodFieldOn = () => FS.trk() !== "jira" || !/^kein Feld/.test(FS.state.jira?.map?.prod || "");
+  const prodMode = () => (FS.trk() === "jira" ? FS.state.jira?.src?.prod ?? "field+rule" : "field");
+  FS.prodFieldOn = () => ["field", "field+rule"].includes(prodMode());
   FS.prodRule = (t) => (FS.state.prodRules || []).find((r) => FS.ruleMatches(r.expr).includes(t));
-  FS.prodSrc = (t) => (FS.state.prodOver?.[t.key] != null ? "set" : t.prod != null && FS.prodFieldOn() ? "field" : FS.trk() === "jira" && FS.prodRule(t) ? "rule" : "none");
+  FS.prodSrc = (t) => (FS.state.prodOver?.[t.key] != null ? "set" : t.prod != null && FS.prodFieldOn() ? "field" : ["rule", "field+rule"].includes(prodMode()) && FS.prodRule(t) ? "rule" : "none");
   FS.prodPct = (t) => { const s = FS.prodSrc(t); return s === "set" ? FS.state.prodOver[t.key] : s === "field" ? t.prod : s === "rule" ? FS.prodRule(t).pct : 0; };
   FS.prodPts = (l) => FS.sum(l, (t) => ((t.est || 0) * FS.prodPct(t)) / 100);
   FS.prodChip = (t) => (FS.prodOn() && FS.prodPct(t) ? `<span class="prod-sub" title="${FS.prodPct(t)} % der Schätzung brauchen Produktionszugang">${FS.icon("dns", "small")}Prod ${FS.prodPct(t)} %</span>` : "");
@@ -321,8 +322,8 @@
   // ---------- assignment rules (same language for products and projects, as in 0.8 ruleexpr) ----------
   // Fields: component, label, epic, priority, type, status. Operators: = != ~ !~ IN, NOT IN; AND OR NOT, parentheses.
   const COMP = { portal: "Portal", billing: "Abrechnung", mobile: "Mobile App", platform: "Plattform" };
-  FS.ruleFields = ["component", "label", "epic", "priority", "type", "status"];
-  FS.ticketFields = (t) => { const d = D.details[t.key]; return { component: [COMP[t.product]], label: ["team-" + t.product, t.refined ? "refined" : "", ...(d?.labels || [])].filter(Boolean), epic: [t.project ? FS.project(t.project).name : ""].filter(Boolean), priority: [d?.priority || "Mittel"], type: [d?.type || "Story"], status: [t.status] }; };
+  FS.ruleFields = ["component", "label", "epic", "priority", "type", "status", "bereich"];
+  FS.ticketFields = (t) => { const d = D.details[t.key]; return { component: [COMP[t.product]], label: ["team-" + t.product, t.refined ? "refined" : "", ...(d?.labels || [])].filter(Boolean), epic: [t.project ? FS.project(t.project).name : ""].filter(Boolean), priority: [d?.priority || "Mittel"], type: [d?.type || "Story"], status: [t.status], bereich: [{ platform: "Betrieb", billing: "Fachlich", portal: "Fachlich", mobile: "Fachlich" }[t.product]] }; };
   FS.parseRule = (src) => {
     const toks = []; const re = /\s*(?:("(?:[^"\\]|\\.)*")|(!=|!~|=|~|\(|\)|,)|([A-Za-zÄÖÜäöüß_][\w.-]*))/gy; let m, pos = 0;
     while (pos < src.length) { re.lastIndex = pos; m = re.exec(src); if (!m || m[0].length === 0) { if (/^\s*$/.test(src.slice(pos))) break; throw new Error(`Unerwartetes Zeichen an Stelle ${pos + 1}`); } toks.push(m[1] ? { s: JSON.parse(m[1]) } : m[2] ? { o: m[2] } : { w: m[3] }); pos = re.lastIndex; }
@@ -342,7 +343,7 @@
   };
   const evalTree = (n, fv) => {
     if (n.not) return !evalTree(n.not, fv); if (n.and) return n.and.every((x) => evalTree(x, fv)); if (n.or) return n.or.some((x) => evalTree(x, fv));
-    const have = fv[n.f].map((v) => v.toLowerCase()), want = n.vs.map((v) => v.toLowerCase());
+    const have = (fv[n.f] || []).map((v) => v.toLowerCase()), want = n.vs.map((v) => v.toLowerCase());
     const eq = have.some((h) => want.includes(h)), con = have.some((h) => want.some((w) => h.includes(w)));
     return { "=": eq, IN: eq, "!=": !eq, "NOT IN": !eq, "~": con, "!~": !con }[n.op];
   };
