@@ -65,6 +65,23 @@
   }
 
   // ================= people =================
+  // Removing a PO: their products move to another PO first; minutes and history keep the old name.
+  function removePoPanel(id) {
+    const o = FS.po(id), prods = D.products.filter((p) => p.po === id), others = D.pos.filter((x) => x.id !== id);
+    const done = () => {
+      const i = D.pos.indexOf(o); D.pos.splice(i, 1); FS.closePanel();
+      track(`PO ${o.name}`, "aktiv", "entfernt", "personen.yaml"); FS.render();
+      FS.toast(`${o.name} entfernt.${prods.length ? ` ${prods.length === 1 ? "Ein Produkt hat" : `${prods.length} Produkte haben`} einen neuen PO.` : ""} Bis Speichern rückgängig.`, () => { D.pos.splice(i, 0, o); prods.forEach((p) => (p.po = id)); FS.render(); });
+    };
+    if (!prods.length) return done();
+    const el = FS.openPanel(`${o.name} entfernen`, `<p style="margin:0">${esc(o.name)} betreut noch ${prods.length === 1 ? "ein Produkt" : `${prods.length} Produkte`}. Wer übernimmt?</p>
+      <div class="tw"><table class="t"><thead><tr><th>Produkt</th><th>Neuer PO</th></tr></thead><tbody>${prods.map((p) => `<tr><td>${FS.productChip(p.id)}</td><td><select class="input" data-newpo="${p.id}" aria-label="Neuer PO für ${esc(p.name)}">${others.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>
+      <p class="small muted" style="margin:0">Protokolle, Verlauf und frühere Sprints zeigen weiter ${esc(o.name)}. Die Summen je PO in Planen und Review rechnen ab jetzt mit dem neuen PO.</p>
+      <div class="row"><button class="btn danger" type="button" id="po-rm-ok">${ic("person_remove")}Übergeben und entfernen</button><button class="btn ghost" type="button" id="po-rm-no">Abbrechen</button></div>`);
+    el.querySelector("#po-rm-no").onclick = FS.closePanel;
+    el.querySelector("#po-rm-ok").onclick = () => { el.querySelectorAll("[data-newpo]").forEach((s) => { const p = FS.product(s.dataset.newpo); track(`PO ${p.name}`, o.name, FS.po(s.value).name, "produkte.yaml"); p.po = s.value; }); done(); };
+  }
+
   FS.view("people", {
     title: "Personen und Abwesenheiten",
     render() {
@@ -82,10 +99,12 @@
           ${pf === "former" ? "" : `<tr class="sum"><td>Team</td><td class="num">${FS.fmt(tot, 1)}</td>${prod ? `<td class="data">${D.people.filter((p) => p.prod).length} von ${D.people.length}</td>` : ""}<td></td><td></td><td class="num">${f1(tot * 10)}</td><td></td></tr>`}</tbody></table></div>
         <div class="card" id="po-team" style="margin-top:16px"><div class="row"><h2 style="margin:0;flex:1">Product Owner</h2><button class="btn" type="button" data-act="addpo">${ic("person_add")}PO hinzufügen</button></div>
           <p class="small muted" style="margin:0 0 8px">POs gehören in der Regel nicht zum Team und zählen nicht zur Kapazität. Übernimmt ein PO regelmäßig Aufgaben im Team, plane ihn mit seinem Anteil ein; dann zählt er wie eine Person und erscheint bei den Abwesenheiten.</p>
-          <div class="tw">${`<table class="t"><thead><tr><th>PO</th><th>Produkte</th><th>Arbeitet im Team mit</th><th class="num">Anteil (FTE)</th><th class="num">PT je Sprint</th></tr></thead><tbody>${D.pos.map((o) => `<tr><td><input class="input" data-poname="${o.id}" value="${esc(o.name)}" aria-label="Name des PO" style="width:180px"></td><td>${D.products.filter((p) => p.po === o.id).map((p) => FS.productChip(p.id)).join(" ") || `<span class="muted small">noch kein Produkt, zuordnen unter <a href="#products">Produkte</a></span>`}</td>
+          <div class="tw">${`<table class="t"><thead><tr><th>PO</th><th>Produkte</th><th>Arbeitet im Team mit</th><th class="num">Anteil (FTE)</th><th class="num">PT je Sprint</th><th aria-label="Aktionen"></th></tr></thead><tbody>${D.pos.map((o) => `<tr><td><input class="input" data-poname="${o.id}" value="${esc(o.name)}" aria-label="Name des PO" style="width:180px"></td><td>${D.products.filter((p) => p.po === o.id).map((p) => FS.productChip(p.id)).join(" ") || `<span class="muted small">noch kein Produkt, zuordnen unter <a href="#products">Produkte</a></span>`}</td>
             <td><label class="row" style="gap:6px"><input type="checkbox" data-poin="${o.id}" ${o.inTeam ? "checked" : ""}>${o.inTeam ? "ja, zählt zur Kapazität" : '<span class="muted">nein (Standard)</span>'}</label></td>
             <td class="num">${o.inTeam ? `<input class="input data" style="width:64px;text-align:right" data-pofte="${o.id}" value="${FS.fmt(o.teamFte, 1)}" inputmode="decimal" aria-label="Anteil ${esc(o.name)}">` : '<span class="muted">–</span>'}</td>
-            <td class="num">${o.inTeam ? f1(o.teamFte * 10) : '<span class="muted">0</span>'}</td></tr>`).join("")}</tbody></table>`}</div></div>
+            <td class="num">${o.inTeam ? f1(o.teamFte * 10) : '<span class="muted">0</span>'}</td>
+            <td><button class="btn ghost icon" type="button" data-porm="${o.id}" ${D.pos.length < 2 ? "disabled" : ""} aria-label="${esc(o.name)} entfernen" title="${D.pos.length < 2 ? "Der einzige PO lässt sich nicht entfernen" : `${esc(o.name)} entfernen`}">${ic("person_remove")}</button></td></tr>`).join("")}</tbody></table>`}</div>
+          ${D.pos.length < 2 ? `<p class="small muted" style="margin:8px 0 0">Jedes Produkt braucht einen PO. Den einzigen PO ersetzt du, indem du zuerst einen weiteren anlegst und dann diesen entfernst; oder du änderst einfach den Namen.</p>` : ""}</div>
         ${prod ? "" : `<p class="small muted">Die Spalte Produktionszugang erscheint, wenn die Funktion unter <a href="#settings">Einstellungen, Team</a> aktiv ist.</p>`}
         <div class="row" style="margin:24px 0 8px"><h2 style="flex:1;margin:0">Abwesenheiten über mehrere Sprints</h2>
           <span class="chip warn" title="angekündigt">${ic("lock_open")}angekündigt</span><span class="chip ok">${ic("lock")}bestätigt</span></div>
@@ -102,6 +121,7 @@
       }));
       main.querySelectorAll("[data-prod]").forEach((i) => (i.onchange = () => { const p = FS.person(i.dataset.prod); track(`Produktionszugang ${p.name}`, p.prod ? "ja" : "nein", i.checked ? "ja" : "nein", "personen.yaml"); p.prod = i.checked; FS.render(); }));
       main.querySelectorAll("[data-poname]").forEach((i) => (i.onchange = () => { const o = FS.po(i.dataset.poname); const v = i.value.trim(); if (!v) return FS.render(); track("Name PO", o.name, v, "personen.yaml"); o.name = v; FS.render(); }));
+      main.querySelectorAll("[data-porm]").forEach((b) => (b.onclick = () => removePoPanel(b.dataset.porm)));
       main.querySelectorAll("[data-poin]").forEach((i) => (i.onchange = () => { const o = FS.po(i.dataset.poin); track(`${o.name} arbeitet im Team mit`, o.inTeam ? "ja" : "nein", i.checked ? "ja" : "nein", "personen.yaml"); o.inTeam = i.checked; FS.render(); FS.toast(i.checked ? `${o.name} zählt jetzt mit ${FS.fmt(o.teamFte, 1)} FTE zur Kapazität (etwa ${f1(o.teamFte * 10)} PT je Sprint).` : `${o.name} zählt nicht mehr zur Kapazität.`); }));
       main.querySelectorAll("[data-pofte]").forEach((i) => (i.onchange = () => { const o = FS.po(i.dataset.pofte); const v = parseFloat(i.value.replace(",", ".")); if (!(v > 0 && v <= 1)) { FS.toast("Anteil zwischen 0,1 und 1,0 eingeben."); return FS.render(); } track(`Anteil ${o.name} im Team`, FS.fmt(o.teamFte, 1), FS.fmt(v, 1), "personen.yaml"); o.teamFte = v; FS.render(); }));
       main.querySelectorAll("[data-mem]").forEach((i) => (i.onchange = () => { const p = FS.person(i.dataset.mem); track(`Zugehörigkeit ${p.name}`, S.members[p.id], i.value, "personen.yaml"); S.members[p.id] = i.value; FS.render(); }));

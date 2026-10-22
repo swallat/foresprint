@@ -251,7 +251,7 @@
   }
   function wireCommon(main) {
     main.addEventListener("click", (e) => {
-      const b = e.target.closest("[data-calc]");
+      const b = e.target.closest("button[data-calc]");
       if (b) return calcPanel(b.dataset.calc, b.dataset.arg);
       const a = e.target.closest("a[data-sprint]");
       if (a) {

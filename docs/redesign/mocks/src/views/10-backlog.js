@@ -89,17 +89,18 @@
   }
 
   function workItemPanel() {
-    const el = FS.openPanel("Arbeitspaket anlegen", `<p class="small muted">Ohne Tracker legst du Arbeit hier von Hand an. Sie liegt in der Datei tickets.yaml im Datenordner.</p>
+    const el = FS.openPanel("Arbeitspaket anlegen", `<p class="small muted">Ohne Tracker legst du Arbeit hier von Hand an. Danach öffnet sich das Arbeitspaket mit allen Feldern: Beschreibung, Akzeptanzkriterien, Unteraufgaben, Abhängigkeiten, Kommentare. Gespeichert wird in arbeitspakete.yaml im Datenordner.</p>
       <div class="field"><label for="wi-t">Titel</label><input class="input" id="wi-t" placeholder="z. B. Release-Notizen schreiben"></div>
       <div class="field only-multiprod"><label for="wi-p">Produkt</label><select class="input" id="wi-p">${D.products.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>
       <div class="field"><label for="wi-j">Projekt</label><select class="input" id="wi-j"><option value="">Tagesgeschäft</option>${D.projects.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>
       <div class="field"><label for="wi-e">Schätzung in Punkten</label><input class="input data" id="wi-e" type="number" min="1" value="3"></div>
       <button class="btn primary" type="button" id="wi-ok">${FS.icon("add")}Anlegen</button>`);
     el.querySelector("#wi-ok").onclick = () => {
-      const n = D.tickets.filter((t) => t.key.startsWith("AP-")).length + 1, key = `AP-${String(n).padStart(2, "0")}`;
+      const key = `AP-${Math.max(...D.tickets.map((t) => Number(t.key.split("-")[1]) || 0)) + 1}`;
       D.tickets.push({ key, title: el.querySelector("#wi-t").value.trim() || "Neues Arbeitspaket", product: el.querySelector("#wi-p").value, project: el.querySelector("#wi-j").value || null, est: Number(el.querySelector("#wi-e").value) || null, refined: false, status: "Neu", sprint: null, rank: 0 });
       FS.moveTicket(key, "backlog", "ATL-424");
-      FS.closePanel(); FS.toast(`${key} angelegt und oben im Backlog eingeordnet.`); paint();
+      FS.addUnsaved?.(`${key} angelegt`, "–", D.tickets.at(-1).title, "arbeitspakete.yaml");
+      FS.closePanel(); paint(); FS.ticketPanel(key); FS.toast(`${key} angelegt und oben im Backlog eingeordnet. Details jetzt im Panel ergänzen.`);
     };
   }
 
@@ -203,7 +204,7 @@
         if ((el = c("[data-view]"))) { e.preventDefault(); setView(el.dataset.view); paint(); }
         else if ((el = c("[data-f]"))) { const [k, v] = el.dataset.f.split(":"); if (k === "refined") B.refined = B.refined === v ? "all" : v; else B[k] = B[k].includes(v) ? B[k].filter((x) => x !== v) : [...B[k], v]; paint(); }
         else if ((el = c("[data-group]"))) { B.group = el.dataset.group; paint(); }
-        else if ((el = c("[data-calc]"))) calcPanel(el.dataset.calc);
+        else if ((el = c("button[data-calc]"))) calcPanel(el.dataset.calc);
         else if (c("[data-calc-list]")) { const n = D.tickets.filter((t) => !t.sprint); FS.openPanel("Rechenweg Backlog", `<div class="tw"><table class="t"><tbody><tr><td>Tickets im Backlog</td><td class="num">${n.length}</td></tr><tr><td>Summe der Schätzungen</td><td class="num">${FS.sum(n, (t) => t.est)}</td></tr><tr><td>ohne Schätzung (zählen 0)</td><td class="num">${n.filter((t) => t.est == null).length}</td></tr><tr class="sum"><td>Nicht refined</td><td class="num">${n.filter((t) => !t.refined).length}</td></tr></tbody></table></div>`); }
         else if ((el = c("[data-rule]"))) ruleFlagPanel(el.dataset.rule);
         else if ((el = c("[data-go]"))) { e.preventDefault(); go(el.dataset.go, { sprint: el.dataset.sprint }); }

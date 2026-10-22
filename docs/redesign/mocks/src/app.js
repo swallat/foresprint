@@ -154,7 +154,7 @@
   FS.trackerBlocks = (t) => {
     const d = FS.detail(t);
     return sect("Beschreibung", dText(d.description)) +
-      sect("Akzeptanzkriterien", d.acceptance.length ? `<ul class="td-list">${d.acceptance.map((x) => `<li>${FS.esc(x)}</li>`).join("")}</ul>` : "", "Keine eigenen Akzeptanzkriterien (Feld zuordnen unter Einstellungen > Jira und Tickets).") +
+      sect("Akzeptanzkriterien", d.acceptance.length ? `<ul class="td-list">${d.acceptance.map((x) => `<li>${FS.esc(x)}</li>`).join("")}</ul>` : "", FS.trk() === "local" ? "Keine. Im Panel des Arbeitspakets eintragen." : "Keine eigenen Akzeptanzkriterien (Feld zuordnen unter Einstellungen > Jira und Tickets).") +
       sect(`Unteraufgaben <span class="muted small">${d.subtasks.length}</span>`, d.subtasks.length ? `<ul class="td-list">${dSubs(d)}</ul>` : "", "Keine.") +
       sect("Verknüpfungen", d.links.length ? `<ul class="td-list">${dLinks(d)}</ul>` : "", "Keine.") +
       sect(`Kommentare <span class="muted small">${d.commentsTotal}</span>`, dComments(d), "Keine.") +
@@ -164,9 +164,69 @@
         <dt>Typ, Priorität</dt><dd>${d.type} · ${d.priority}</dd>
         <dt>Zuständig</dt><dd>${d.assignee ? FS.esc(d.assignee) : `<span class="muted">niemand</span>`}</dd>
         <dt>Labels</dt><dd>${d.labels.length ? d.labels.map((l) => `<span class="chip small data">${FS.esc(l)}</span>`).join(" ") : `<span class="muted">keine</span>`}</dd>
-        <dt>Stand</dt><dd class="small muted">Abruf ${D.trackerSync.last}, in ${D.team.tracker} geändert ${d.updated}</dd></dl>`; };
+        <dt>Stand</dt><dd class="small muted">${FS.trk() === "local" ? `in Foresprint geändert ${d.updated}` : `Abruf ${D.trackerSync.last}, in ${D.team.tracker} geändert ${d.updated}`}</dd></dl>`; };
+
+  // Work packages kept in Foresprint: every field is edited here and saved with the team data (arbeitspakete.yaml).
+  const WP_STATUS = ["Neu", "Offen", "In Arbeit", "Review", "Fertig"], WP_TYPE = ["Story", "Aufgabe", "Fehler", "Spike"], WP_PRIO = ["Hoch", "Mittel", "Niedrig"];
+  FS.wpPanel = (key) => {
+    const t = FS.ticket(key), d = (D.details[t.key] ??= { ...FS.detail(t), description: "", acceptance: [], subtasks: [], links: [], comments: [], commentsTotal: 0, attachments: [] });
+    const sel = (id, list, cur, lab) => `<select class="input" id="${id}" aria-label="${lab}">${list.map((x) => { const [v, l] = Array.isArray(x) ? x : [x, x]; return `<option value="${FS.esc(v)}" ${v === cur ? "selected" : ""}>${FS.esc(l)}</option>`; }).join("")}</select>`;
+    const keys = D.tickets.filter((x) => x.key !== t.key).map((x) => [x.key, `${FS.dk(x.key)} ${x.title}`]);
+    const people = [["", "niemand"], ...D.people.map((p) => [p.name, p.name])];
+    const el = FS.openPanel(`${FS.dk(t.key)}`, `
+      <div class="row"><span class="key data">${FS.dk(t.key)}</span>${sel("wp-status", WP_STATUS, t.status, "Status")}<span style="flex:1"></span><button class="btn" type="button" id="tp-present" title="Groß im Fenster zeigen, mit Pfeiltasten blättern">${FS.icon("fit_screen")}Großansicht</button></div>
+      <div class="field"><label for="wp-title">Titel</label><input class="input" id="wp-title" value="${FS.esc(t.title)}"></div>
+      <dl class="kv">
+        <dt>Typ, Priorität</dt><dd class="row" style="gap:6px;flex-wrap:nowrap">${sel("wp-type", WP_TYPE, d.type, "Typ")}${sel("wp-prio", WP_PRIO, d.priority, "Priorität")}</dd>
+        <dt>Zuständig</dt><dd>${sel("wp-who", people, d.assignee || "", "Zuständig")}</dd>
+        <dt class="only-multiprod">Produkt</dt><dd class="only-multiprod">${sel("tp-product", D.products.map((p) => [p.id, p.name]), t.product, "Produkt")}</dd>
+        <dt>Projekt</dt><dd>${sel("tp-project", [["", "Tagesgeschäft"], ...D.projects.map((p) => [p.id, p.name])], t.project || "", "Projekt")}</dd>
+        <dt>Schätzung</dt><dd class="row" style="gap:6px"><input class="input data" id="wp-est" inputmode="numeric" value="${t.est ?? ""}" placeholder="–" style="width:72px;text-align:right" aria-label="Schätzung in Punkten"><span class="small muted">Punkte</span></dd>
+        <dt>Refined</dt><dd><label class="row" style="gap:6px"><input type="checkbox" id="wp-ref" ${t.refined ? "checked" : ""}><span class="small">im Refinement geklärt</span></label></dd>
+        <dt>Vorgemerkt</dt><dd>${t.sprint ? `<span class="chip">${FS.icon("event")}Sprint ${t.sprint}</span>` : `<span class="muted">nicht vorgemerkt</span>`} <span class="small muted">im Backlog ziehen</span></dd>
+        <dt>Labels</dt><dd><input class="input" id="wp-labels" value="${FS.esc(d.labels.join(", "))}" placeholder="kommagetrennt"></dd>
+      </dl>
+      <div class="field"><label for="wp-desc">Beschreibung</label><textarea class="input" id="wp-desc" rows="4" placeholder="Was soll erreicht werden? Markdown geht.">${FS.esc(d.description)}</textarea></div>
+      <div class="field"><label for="wp-ac">Akzeptanzkriterien <span class="muted small">eins je Zeile</span></label><textarea class="input" id="wp-ac" rows="3">${FS.esc(d.acceptance.join("\n"))}</textarea></div>
+      <section class="td-sec"><h3>Unteraufgaben <span class="muted small">${d.subtasks.length}</span></h3>
+        ${d.subtasks.map(([, title, st], i) => `<label class="row" style="gap:6px"><input type="checkbox" data-sub="${i}" ${st === "Fertig" ? "checked" : ""}><span ${st === "Fertig" ? 'class="muted" style="text-decoration:line-through"' : ""}>${FS.esc(title)}</span></label>`).join("")}
+        <div class="row" style="gap:6px;margin-top:6px"><input class="input" id="wp-sub" placeholder="Neue Unteraufgabe" style="flex:1"><button class="btn" type="button" id="wp-sub-add">${FS.icon("add")}Hinzufügen</button></div></section>
+      <section class="td-sec"><h3>Abhängigkeiten</h3>
+        ${d.links.length ? `<ul class="td-list">${d.links.map(([rel, k, title]) => `<li><span class="muted">${rel}</span> <span class="key data">${FS.dk(k)}</span> ${FS.esc(title)}</li>`).join("")}</ul>` : `<p class="muted small" style="margin:0 0 6px">Keine. Vorplanen warnt, wenn ein Paket vor seiner Voraussetzung vorgemerkt ist.</p>`}
+        <div class="row" style="gap:6px"><select class="input" id="wp-dep-rel" aria-label="Art"><option>braucht</option><option>blockiert</option></select>${sel("wp-dep", keys, "", "Arbeitspaket").replace('style="', 'style="flex:1;')}<button class="btn" type="button" id="wp-dep-add">${FS.icon("add_link")}Verknüpfen</button></div></section>
+      <section class="td-sec"><h3>Kommentare <span class="muted small">${d.comments.length}</span></h3>
+        ${d.comments.map(([who, at, txt]) => `<div class="td-comment"><div class="small"><strong>${FS.esc(who)}</strong> <span class="muted data">${at}</span></div><div>${FS.esc(txt)}</div></div>`).join("")}
+        <div class="row" style="gap:6px;margin-top:6px"><input class="input" id="wp-com" placeholder="Kommentar" style="flex:1"><button class="btn" type="button" id="wp-com-add">${FS.icon("send")}Senden</button></div></section>
+      <p class="small muted" style="margin:0">Änderungen landen bei den ungespeicherten und gehen mit Speichern oben ans Team (Datei arbeitspakete.yaml). Anhänge bleiben bei Arbeitspaketen außen vor: Links in die Beschreibung schreiben.</p>
+      <div class="row"><button class="btn" type="button" id="wp-dup">${FS.icon("content_copy")}Duplizieren</button><button class="btn danger" type="button" id="wp-del">${FS.icon("delete")}Löschen</button></div>
+      <h2>Verlauf in Foresprint</h2>
+      <ul class="small" style="margin:0;padding-left:18px"><li>21.10. Kim Berger: vorgemerkt für 2026.22</li><li>14.10. Lea Hoffmann: Schätzung 5, refined</li><li>02.10. Kim Berger: angelegt</li></ul>`);
+    if (!el) return;
+    const k = FS.dk(t.key), note = (what, before, after) => FS.addUnsaved?.(`${k}: ${what}`, before, after, "arbeitspakete.yaml");
+    const on = (id, ev, fn) => el.querySelector(id).addEventListener(ev, fn);
+    on("#tp-present", "click", () => FS.presentTicket(key));
+    on("#wp-status", "change", (e) => { note("Status", t.status, e.target.value); t.status = e.target.value; });
+    on("#wp-title", "change", (e) => { note("Titel", t.title, e.target.value); t.title = e.target.value; });
+    on("#wp-type", "change", (e) => { note("Typ", d.type, e.target.value); d.type = e.target.value; });
+    on("#wp-prio", "change", (e) => { note("Priorität", d.priority, e.target.value); d.priority = e.target.value; });
+    on("#wp-who", "change", (e) => { note("Zuständig", d.assignee || "niemand", e.target.value || "niemand"); d.assignee = e.target.value || null; });
+    on("#tp-product", "change", (e) => { note("Produkt", FS.product(t.product)?.name, FS.product(e.target.value).name); t.product = e.target.value; });
+    on("#tp-project", "change", (e) => { note("Projekt", FS.project(t.project)?.name || "Tagesgeschäft", FS.project(e.target.value)?.name || "Tagesgeschäft"); t.project = e.target.value || null; });
+    on("#wp-est", "change", (e) => { const v = parseInt(e.target.value, 10); note("Schätzung", t.est ?? "–", isNaN(v) ? "–" : v); t.est = isNaN(v) ? null : v; });
+    on("#wp-ref", "change", (e) => { note("Refined", t.refined ? "ja" : "nein", e.target.checked ? "ja" : "nein"); t.refined = e.target.checked; });
+    on("#wp-labels", "change", (e) => { d.labels = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); note("Labels", "", d.labels.join(", ")); });
+    on("#wp-desc", "change", (e) => { note("Beschreibung", "geändert", "geändert"); d.description = e.target.value; });
+    on("#wp-ac", "change", (e) => { d.acceptance = e.target.value.split("\n").map((x) => x.trim()).filter(Boolean); note("Akzeptanzkriterien", "", `${d.acceptance.length} Punkte`); });
+    el.querySelectorAll("[data-sub]").forEach((c) => c.addEventListener("change", () => { d.subtasks[c.dataset.sub][2] = c.checked ? "Fertig" : "Offen"; note("Unteraufgabe", "", d.subtasks[c.dataset.sub][1]); FS.wpPanel(key); }));
+    on("#wp-sub-add", "click", () => { const v = el.querySelector("#wp-sub").value.trim(); if (!v) return; d.subtasks.push([null, v, "Offen"]); note("Unteraufgabe", "", v); FS.wpPanel(key); });
+    on("#wp-dep-add", "click", () => { const o = FS.ticket(el.querySelector("#wp-dep").value); if (!o) return; d.links.push([el.querySelector("#wp-dep-rel").value, o.key, o.title]); note("Abhängigkeit", "", FS.dk(o.key)); FS.wpPanel(key); });
+    on("#wp-com-add", "click", () => { const v = el.querySelector("#wp-com").value.trim(); if (!v) return; d.comments.push(["Du", "gerade eben", v]); d.commentsTotal = d.comments.length; FS.wpPanel(key); });
+    on("#wp-dup", "click", () => FS.toast(`${k} dupliziert als neues Arbeitspaket (im Mockup nicht ausgeführt).`));
+    on("#wp-del", "click", () => FS.toast(`${k} gelöscht. Bis Speichern rückgängig zu machen (im Mockup nicht ausgeführt).`));
+  };
 
   FS.ticketPanel = (key) => {
+    if (FS.trk() === "local") return FS.wpPanel(key);
     const t = FS.ticket(key);
     const opts = (list, cur, label) => list.map((x) => `<option value="${x.id}" ${x.id === cur ? "selected" : ""}>${FS.esc(x.name)}</option>`).join("");
     const el = FS.openPanel(`${FS.dk(t.key)}`, `
