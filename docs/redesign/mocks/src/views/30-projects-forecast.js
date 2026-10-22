@@ -107,8 +107,10 @@
   }
 
   // ---------- portfolio timeline ----------
+  // Labels left of the bars never run into the plot: clipped to the label column, full text in the tooltip.
+  const clip = (t, n) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
   function timelineSvg() {
-    const W = 960, L = 176, R = 20, T = 48, rowH = 58, plotW = W - L - R;
+    const W = 960, L = 232, R = 20, T = 48, rowH = 58, plotW = W - L - R;
     const t0 = dayNum("2026-10-14"), t1 = dayNum("2027-02-01");
     const x = (iso) => L + ((dayNum(iso) - t0) / (t1 - t0)) * plotW;
     const H = T + D.projects.length * rowH + 14;
@@ -127,7 +129,7 @@
       const xe = Math.min(x(p.end), W - R);
       s += `<g class="pf-row" data-project="${p.id}" tabindex="0" role="link" aria-label="Projekt ${esc(p.name)} öffnen"><title>${esc(p.name)}: Ende ${FS.fmtDate(p.end)}</title>
         <line x1="8" x2="${W - R}" y1="${y0 + rowH - 6}" y2="${y0 + rowH - 6}" style="stroke:var(--border)"/>
-        <text x="8" y="${yc - 2}" font-size="13" font-weight="600">${esc(p.name)}</text><text class="m" x="8" y="${yc + 14}" font-size="11">${p.products.length} Produkte: ${p.products.map((id) => FS.product(id).name.split(" ")[0]).join(", ")}</text>
+        <text x="8" y="${yc - 2}" font-size="13" font-weight="600">${esc(clip(p.name, Math.floor((L - 20) / 8)))}</text><text class="m" x="8" y="${yc + 14}" font-size="11">${esc(clip(`${p.products.length} Produkte: ${p.products.map((id) => FS.product(id).name.split(" ")[0]).join(", ")}`, Math.floor((L - 20) / 6.8)))}</text>
         <rect class="pf-bar" x="${L}" y="${yc - 7}" width="${xe - L}" height="14" rx="3" style="fill:var(--primary-weak);stroke:var(--primary);stroke-width:1.5"/>
         <line x1="${xe}" x2="${xe}" y1="${yc - 11}" y2="${yc + 11}" style="stroke:var(--primary);stroke-width:2.5"/>`;
       p.milestones.forEach((m) => {
@@ -370,14 +372,18 @@
   });
 
   // ---------- forecast ----------
-  const wi = { sprint: "all", abs: 0, focus: 100 };
+  const wi = { sprint: "all", abs: 0, focus: 100, curDone: null };
+  const curSp = () => D.sprints.find((s) => s.state === "current");
   function whatIfAlt() {
     const alt = {};
-    if (!wi.abs && wi.focus === 100) return alt;
+    const kc = wi.curDone != null && curSp() ? FS.rateFactor(curSp().id, wi.curDone) / FS.rateFactor(curSp().id, curSp().plan) : 1;
+    if (!wi.abs && wi.focus === 100 && kc === 1) return alt;
     D.sprints.filter((s) => s.forecast != null).forEach((s) => {
-      if (wi.sprint !== "all" && wi.sprint !== s.id) return;
-      const k = Math.max(0, s.capacityPD - (wi.sprint === "all" ? wi.abs : wi.abs)) * (wi.focus / 100) / s.capacityPD;
-      alt[s.id] = { fc: s.forecast * k, lo: s.low * k, hi: s.high * k, cap: Math.max(0, s.capacityPD - wi.abs) * (wi.focus / 100) };
+      const own = wi.sprint === "all" || wi.sprint === s.id;
+      if (!own && kc === 1) return;
+      const a = own ? wi.abs : 0, f = own ? wi.focus : 100;
+      const k = (Math.max(0, s.capacityPD - a) * (f / 100) / s.capacityPD) * kc;
+      alt[s.id] = { fc: s.forecast * k, lo: s.low * k, hi: s.high * k, cap: Math.max(0, s.capacityPD - a) * (f / 100) };
     });
     return alt;
   }
@@ -447,6 +453,7 @@
         <div class="stack"><div class="field"><label for="wi-sprint">Sprint</label><select class="input" id="wi-sprint"><option value="all">Alle vier Sprints</option>${fut.map((s) => `<option value="${s.id}" ${wi.sprint === s.id ? "selected" : ""}>${s.id}</option>`).join("")}</select></div>
         <div class="field"><label for="wi-abs">Zusätzliche Abwesenheit je Sprint (PT): <span class="data" id="wi-abs-v">${wi.abs}</span></label><input class="pf-range" type="range" id="wi-abs" min="0" max="15" step="1" value="${wi.abs}"></div>
         <div class="field"><label for="wi-focus">Fokus (Anteil der Zeit für Sprintarbeit): <span class="data" id="wi-focus-v">${wi.focus} %</span></label><input class="pf-range" type="range" id="wi-focus" min="70" max="100" step="5" value="${wi.focus}"></div>
+        ${curSp() ? `<div class="field"><label for="wi-cur">Erwartet erledigt im laufenden Sprint ${curSp().id} (Punkte, Commitment ${curSp().plan})</label><input class="input data" id="wi-cur" inputmode="decimal" value="${wi.curDone ?? ""}" placeholder="${curSp().plan}" style="width:96px;text-align:right"><span class="small muted">Geht als erwartete Velocity in den Forecast PLAN ein. Je Ticket abschätzen: Sprint &gt; Vorplanen.</span></div>` : ""}
         <div id="wi-result">${whatIfResult()}</div>
         <div class="row"><button class="btn primary" type="button" id="wi-save">${ic("bookmark_add")}als Prognose speichern</button><button class="btn ghost" type="button" id="wi-reset">Zurücksetzen</button></div>
         <div id="wi-saved">${savedList()}</div></div></div>
@@ -456,7 +463,7 @@
 
   function whatIfResult() {
     const alt = whatIfAlt(), ids = Object.keys(alt);
-    if (!ids.length) return `<p class="small muted" style="margin:0">Ändern Sie Abwesenheit oder Fokus. Der Chart zeigt das Ergebnis in Violett neben dem Forecast PLAN. Nichts wird gespeichert, bis Sie "als Prognose speichern" wählen.</p>`;
+    if (!ids.length) return `<p class="small muted" style="margin:0">Ändern Sie Abwesenheit, Fokus oder die Erwartung für den laufenden Sprint. Der Chart zeigt das Ergebnis in Violett neben dem Forecast PLAN. Nichts wird gespeichert, bis Sie "als Prognose speichern" wählen.</p>`;
     return `<div class="tw"><table class="t"><thead><tr><th>Sprint</th><th class="num">Kapazität</th><th class="num">Forecast neu</th><th class="num">Änderung</th></tr></thead><tbody>
       ${ids.map((id) => { const s = FS.sprint(id), a = alt[id], d = a.fc - s.forecast; return `<tr><td class="data">${id}</td><td class="num">${fmt(a.cap, 1)} PT</td><td class="num">${fmt(a.fc, 1)}</td><td class="num">${d < 0 ? `<span class="pf-over">${ic("trending_down")}${fmt(d, 1)}</span>` : fmt(d, 1)}</td></tr>`; }).join("")}</tbody></table></div>`;
   }
@@ -497,15 +504,15 @@
     const stages = [["Standard", 0], ["Vorgeplant", 1], ["Geplant", 2], ["Erledigt", 3]];
     const st = FS.state.fcStage ?? 3, showProd = FS.state.fcProd ?? true;
     const ids = Object.keys(D.productHistory);
-    const cell = (sid, pid, grp) => { const v = D.productHistory[sid][pid]; const a = v[st]; const pr = st === 2 ? v[4] : st === 3 ? v[5] : null; return `<td class="num">${a == null ? `<span class="muted">${sid === "2026.21" ? "läuft" : "–"}</span>` : fmt(a)}${showProd && pr != null ? ` <span class="muted small">davon ${pr}</span>` : ""}</td>`; };
+    const cell = (sid, pid, grp) => { const v = D.productHistory[sid][pid]; const a = v[st]; const pr = st === 2 ? v[4] : st === 3 ? v[5] : null; return `<td class="num">${a == null ? `<span class="muted">${sid === "2026.21" ? "läuft" : "–"}</span>` : fmt(a)}${showProd && pr != null ? FS.prodSub(pr) : ""}</td>`; };
     const tot = (sid, list, i) => { const vals = list.map((p) => D.productHistory[sid][p.id][i]); return vals.some((v) => v == null) ? null : sum(vals); };
     return `<div class="fp-history"><div class="row" style="margin-bottom:12px"><span class="muted small">Stufe</span>${stages.map(([l, i]) => `<button class="chip filter ${st === i ? "on" : ""}" type="button" data-stage="${i}" aria-pressed="${st === i}">${l}</button>`).join("")}
-      <label class="row small col-prod" style="margin-left:auto;gap:6px"><input type="checkbox" id="fp-prod" ${showProd ? "checked" : ""}>davon Prod anzeigen</label></div>
+      <label class="row small col-prod" style="margin-left:auto;gap:6px"><input type="checkbox" id="fp-prod" ${showProd ? "checked" : ""}>Anteil mit Produktionszugang zeigen</label></div>
       <div class="tw"><table class="t"><thead><tr><th>PO</th><th>Produkt</th>${ids.map((id) => `<th class="num">${id}</th>`).join("")}</tr></thead><tbody>
       ${D.pos.map((po) => { const list = D.products.filter((p) => p.po === po.id); return list.map((p, k) => `<tr><td>${k ? "" : esc(po.name)}</td><td>${FS.productChip(p.id)}</td>${ids.map((sid) => cell(sid, p.id)).join("")}</tr>`).join("") +
-        `<tr class="sum"><td></td><td>Summe ${esc(po.name.split(" ")[0])}</td>${ids.map((sid) => { const t = tot(sid, list, st); return `<td class="num">${t == null ? "–" : fmt(t)}${showProd && (st === 2 || st === 3) && t != null ? ` <span class="muted small">davon ${tot(sid, list, st + 2)}</span>` : ""}</td>`; }).join("")}</tr>`; }).join("")}
+        `<tr class="sum"><td></td><td>Summe ${esc(po.name.split(" ")[0])}</td>${ids.map((sid) => { const t = tot(sid, list, st); return `<td class="num">${t == null ? "–" : fmt(t)}${showProd && (st === 2 || st === 3) && t != null ? FS.prodSub(tot(sid, list, st + 2)) : ""}</td>`; }).join("")}</tr>`; }).join("")}
       </tbody></table></div>
-      <p class="small muted" style="margin:8px 0 0">Eine Tabelle über mehrere Sprints, dieselben Stufen wie in der Sprintansicht, in Punkten. "davon Prod" ist der Anteil mit Produktionszugriff, nur angezeigt. Vorgeplant und Geplant weichen oft ab: Vergleichen Sie Geplant mit Erledigt, um Budgets zu prüfen.</p></div>`;
+      <p class="small muted" style="margin:8px 0 0">Eine Tabelle über mehrere Sprints, dieselben Stufen wie in der Sprintansicht, in Punkten. Der graue Zusatz "Prod 3" heißt: 3 dieser Punkte erledigen Personen mit Produktionszugang. Er wird nur angezeigt, nicht erzwungen. Vorgeplant und Geplant weichen oft ab: Vergleichen Sie Geplant mit Erledigt, um Budgets zu prüfen.</p></div>`;
   }
 
   function reportsHtml() {
@@ -540,10 +547,11 @@
         q("#wi-sprint").onchange = (e) => { wi.sprint = e.target.value; upd(); };
         q("#wi-abs").oninput = (e) => { wi.abs = Number(e.target.value); upd(); };
         q("#wi-focus").oninput = (e) => { wi.focus = Number(e.target.value); upd(); };
-        q("#wi-reset").onclick = () => { Object.assign(wi, { sprint: "all", abs: 0, focus: 100 }); FS.render(); };
+        if (q("#wi-cur")) q("#wi-cur").onchange = (e) => { const v = parseFloat(e.target.value.replace(",", ".")); wi.curDone = isNaN(v) || v < 0 ? null : v; upd(); };
+        q("#wi-reset").onclick = () => { Object.assign(wi, { sprint: "all", abs: 0, focus: 100, curDone: null }); FS.render(); };
         q("#wi-save").onclick = () => {
-          if (!Object.keys(whatIfAlt()).length) { FS.toast("Erst Abwesenheit oder Fokus ändern, dann als Prognose speichern."); return; }
-          const entry = { name: `Prognose ${String.fromCharCode(65 + FS.state.prognosen.length)}`, text: `${wi.sprint === "all" ? "alle Sprints" : wi.sprint}, ${wi.abs} PT weniger, Fokus ${wi.focus} %` };
+          if (!Object.keys(whatIfAlt()).length) { FS.toast("Erst eine Annahme ändern, dann als Prognose speichern."); return; }
+          const entry = { name: `Prognose ${String.fromCharCode(65 + FS.state.prognosen.length)}`, text: `${wi.sprint === "all" ? "alle Sprints" : wi.sprint}, ${wi.abs} PT weniger, Fokus ${wi.focus} %${wi.curDone != null ? `, ${curSp().id} erwartet ${wi.curDone} erledigt` : ""}` };
           FS.state.prognosen.push(entry); q("#wi-saved").innerHTML = savedList();
           FS.toast(`${entry.name} gespeichert. Sie erscheint im Bericht und beim Planen.`, () => { FS.state.prognosen.pop(); q("#wi-saved").innerHTML = savedList(); });
         };
