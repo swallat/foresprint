@@ -24,9 +24,12 @@
   FS.prodOn = () => FS.state.teamApplied?.prod !== false;
   // Ticket source (Settings > Tickets und Tracker): "jira" = tracker, "local" = work packages kept in
   // Foresprint, "none" = no tickets at all, planning with amounts per product and project.
+  // The choice survives a reload of the mockup (per viewer, best effort).
+  try { const v = localStorage.getItem("fs-trk"); if (["jira", "local", "none"].includes(v)) { FS.state.trk = v; document.documentElement.dataset.trk = v; } } catch (e) { /* storage blocked */ }
   FS.trk = () => FS.state.trk ?? "jira";
   FS.setTrk = (v) => {
     FS.state.trk = v;
+    try { localStorage.setItem("fs-trk", v); } catch (e) { /* storage blocked */ }
     document.documentElement.dataset.trk = v;
     if (FS.state.bl) FS.state.bl.notracker = v !== "jira";
     if (FS.state.sp) FS.state.sp.noTracker = v === "none";
@@ -101,6 +104,15 @@
       <div class="used ${over ? "over" : ""}" style="width:${pct(used)}%"></div></div>`;
   };
 
+  // Work packages kept in Foresprint are called that everywhere: "Ticket" reads "Arbeitspaket" in local mode.
+  // Elements marked data-terms="keep" (the ticket-source choice itself) keep the original wording.
+  const termFix = (t) => t.replace(/Tickets und Tracker/g, "\u0001").replace(/Ticketquelle/g, "\u0002").replace(/Ticket(s?)/g, (m, p) => (p ? "Arbeitspakete" : "Arbeitspaket")).replace(/ticket(s?)/g, (m, p) => (p ? "arbeitspakete" : "arbeitspaket")).replace(/\u0001/g, "Tickets und Tracker").replace(/\u0002/g, "Ticketquelle");
+  FS.localTerms = (root) => {
+    if (!root || FS.trk() !== "local" || ["#jira", "#flows"].includes(location.hash)) return;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+    while ((n = w.nextNode())) if (/icket/.test(n.textContent) && !n.parentElement.closest('[data-terms="keep"], .ms, script, style')) n.textContent = termFix(n.textContent);
+    root.querySelectorAll("[aria-label], [title], [placeholder]").forEach((el) => { if (el.closest('[data-terms="keep"]')) return; ["aria-label", "title", "placeholder"].forEach((a) => { const v = el.getAttribute(a); if (v && /icket/.test(v)) el.setAttribute(a, termFix(v)); }); });
+  };
   FS.toast = (msg, undo) => {
     document.querySelectorAll(".toast").forEach((t) => t.remove());
     const el = document.createElement("div");
@@ -109,6 +121,7 @@
     el.innerHTML = `<span>${msg}</span>${undo ? `<button type="button">Rückgängig</button>` : ""}`;
     if (undo) el.querySelector("button").onclick = () => { undo(); el.remove(); };
     document.body.appendChild(el);
+    FS.localTerms(el);
     setTimeout(() => el.remove(), 4000);
   };
 
@@ -122,6 +135,7 @@
     el.innerHTML = `<div class="panel-head"><strong style="flex:1">${title}</strong><button class="btn icon ghost" type="button" aria-label="Schließen">${FS.icon("close")}</button></div><div class="panel-body">${html}</div>`;
     el.querySelector(".panel-head button").onclick = FS.closePanel;
     document.body.appendChild(el);
+    FS.localTerms(el);
     return el;
   };
   FS.closePanel = () => document.querySelectorAll(".panel").forEach((p) => p.remove());
@@ -453,6 +467,7 @@
     main.innerHTML = `<div class="page">${v.render()}</div>`;
     if (v.wire) v.wire(main);
     applyCalcMode(main);
+    FS.localTerms(main);
     const de = document.documentElement.dataset;
     de.prodshare = FS.prodOn() ? "on" : "off"; de.multiprod = FS.multiProduct() ? "on" : "off"; de.multipo = FS.multiPO() ? "on" : "off";
     main.querySelectorAll(".ticket").forEach((el) => el.addEventListener("dblclick", () => FS.ticketPanel(el.dataset.key)));
@@ -486,5 +501,5 @@
 
   window.addEventListener("hashchange", render);
   window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); FS.toast("Befehlspalette: Seite, Ticket oder Aktion suchen (im Mockup nicht ausgeführt)."); } });
-  document.addEventListener("DOMContentLoaded", render);
+  document.addEventListener("DOMContentLoaded", () => { if (FS.state.trk) FS.setTrk(FS.state.trk); render(); });
 })();
