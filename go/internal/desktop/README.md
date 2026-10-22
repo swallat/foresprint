@@ -108,6 +108,14 @@ page and marks one element with the outline `.hl`. The element is found by the a
 `data-tour="name"`; a page adds it to the element a step talks about. A missing element is not an
 error: the step is shown without a mark. Keep the names stable; they are listed here.
 
+The demo team is "Team Atlas" from `go/internal/tutorial` (embedded templates, dates relative to
+today, every 1.0 feature on, projects including `self-service`). In the program `enterDemo()` calls
+`API.EnterDemo`: the core writes the team into a throwaway folder, makes it the data folder without
+remembering it, and `LeaveDemo` removes it again. Top bar answers (Save, Refresh) are canned in the
+demo. Only the first-start wizard (`Setup*` calls) stays pretended by the mock, so that nothing is
+cloned. In a browser (`npm run dev`) the mock answers everything. `examples/teams/demo` is a
+different team and stays as it is (golden tests).
+
 | `data-tour` | Page | Package |
 | --- | --- | --- |
 | `firstrun-step` | `/setup` | |

@@ -28,6 +28,10 @@ export interface Api extends DataApi, ProjectsApi, ReviewApi, SprintsApi, TodayA
   Status(): Promise<Status>;
   Save(): Promise<Result>;
   Refresh(): Promise<Result>;
+  /** Writes Team Atlas into a throwaway folder and works on it until LeaveDemo; returns its key. */
+  EnterDemo(lang: string): Promise<string>;
+  LeaveDemo(): Promise<void>;
+  InDemo(): Promise<boolean>;
   SyncTracker(): Promise<Result>;
 }
 
@@ -48,8 +52,15 @@ let demo = false;
 const personal = new Set(['Info', 'Prefs', 'SetLanguage', 'SetTheme', 'Texts', 'PickFolder', 'PickDataDir']);
 
 /**
- * Switches every call about team data to the invented demo team (Team Atlas) that the mock
- * answers, in the program too. Nothing reaches the data folder while it is on.
+ * Calls the wizard makes while the demo is on: they are only pretended (the mock answers), so
+ * that nothing is cloned or remembered. Everything else about the demo team goes to the core.
+ */
+const pretended = /^Setup/;
+
+/**
+ * Marks the demo as on. In the program the core serves Team Atlas from a throwaway folder
+ * (EnterDemo); in a browser the mock answers every call about team data. Nothing reaches the
+ * data folder while it is on.
  */
 export function setDemo(on: boolean): void {
   demo = on;
@@ -65,7 +76,7 @@ async function loadMock(): Promise<Api> {
 }
 
 async function resolve(method: string): Promise<Api> {
-  if (demo && !personal.has(method)) return loadMock();
+  if (demo && !personal.has(method) && (!inProgram || pretended.test(method))) return loadMock();
   if (!impl) {
     // The mock is part of the bundle for the demo team and for the browser (npm run dev, tests);
     // in the program the bridge always exists.
