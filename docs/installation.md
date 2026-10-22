@@ -97,9 +97,9 @@ gh attestation verify foresprint_<version>_<os>_<arch>.tar.gz --repo swallat/for
 The installer creates a launcher **"Foresprint"**: on Windows on the desktop and in the Start
 menu, on macOS in `~/Applications` (plus an alias on the desktop), on Linux as an application
 entry and on the desktop. Create it again with `foresprint shortcut`. A double click starts the
-window; on Windows no console window opens, and the program still prints to the terminal when
-you call it from one (`foresprint --help`). Note that `cmd.exe` and PowerShell do not wait for a
-Windows program of this kind: in scripts use `Start-Process -Wait` or `start /wait`.
+window. On Windows the program is a console program, so a terminal waits for it and shows its
+output (`foresprint --help`), also in scripts and CI. Started by a double click it releases its
+console at once; a console window may flash for a moment.
 
 ## Tab completion
 

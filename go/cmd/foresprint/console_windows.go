@@ -5,28 +5,23 @@ package main
 import (
 	"os"
 	"syscall"
+	"unsafe"
 )
 
-// The Windows release is linked for the GUI subsystem (-H windowsgui), so a double click opens no
-// console window. A call from a terminal then has no standard streams of its own: attach to the
-// console of the parent and use it for the streams that are not redirected.
+// The Windows program is a console program, so that a terminal waits for it and gets its output
+// (scripts and CI depend on both). Started without arguments (the window, by a double click or
+// from the shortcut) from Explorer, it is the only process on its console: the console is
+// released then, so no console window stays behind. Started without arguments from a terminal
+// the terminal is shared with other processes and stays as it is.
 func init() {
-	attach := syscall.NewLazyDLL("kernel32.dll").NewProc("AttachConsole")
-	const attachParent = ^uintptr(0) // ATTACH_PARENT_PROCESS
-	if ok, _, _ := attach.Call(attachParent); ok == 0 {
+	if len(os.Args) > 1 {
 		return
 	}
-	reopen(&os.Stdin, syscall.STD_INPUT_HANDLE, "CONIN$", os.O_RDONLY)
-	reopen(&os.Stdout, syscall.STD_OUTPUT_HANDLE, "CONOUT$", os.O_WRONLY)
-	reopen(&os.Stderr, syscall.STD_ERROR_HANDLE, "CONOUT$", os.O_WRONLY)
-}
-
-// reopen replaces a stream that has no valid handle (started without a console) by the console.
-func reopen(stream **os.File, id int, device string, flag int) {
-	if h, err := syscall.GetStdHandle(id); err == nil && h != 0 && h != syscall.InvalidHandle {
+	list := syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleProcessList")
+	var pids [2]uint32
+	n, _, _ := list.Call(uintptr(unsafe.Pointer(&pids[0])), uintptr(len(pids)))
+	if n != 1 {
 		return
 	}
-	if f, err := os.OpenFile(device, flag, 0); err == nil {
-		*stream = f
-	}
+	_, _, _ = syscall.NewLazyDLL("kernel32.dll").NewProc("FreeConsole").Call()
 }

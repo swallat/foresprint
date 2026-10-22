@@ -117,6 +117,21 @@ jobs:
           exe=foresprint; if [ "$RUNNER_OS" = "Windows" ]; then exe=foresprint.exe; fi
           go build -tags "$tags" -o "../dist/$exe" ./cmd/foresprint
           "../dist/$exe" version
+      - name: The command line prints on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path ../dist/foresprint.exe
+          # A console program: PowerShell waits for it, and the output arrives.
+          $version = & $exe --version
+          if (-not $version) { throw "--version printed nothing" }
+          $help = (& $exe --help | Out-String)
+          if ($help.Length -lt 100) { throw "--help printed nothing" }
+          # PE header: subsystem 3 = console (2 would be a program without a console).
+          $bytes = [System.IO.File]::ReadAllBytes($exe)
+          $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+          $subsystem = [BitConverter]::ToUInt16($bytes, $pe + 24 + 68)
+          if ($subsystem -ne 3) { throw "subsystem is $subsystem, expected 3 (console)" }
       - name: The window opens (Linux)
         if: runner.os == 'Linux'
         run: |

@@ -107,17 +107,19 @@ jobs:
           ldflags="-s -w -X main.version=$version"
           exe=foresprint
           if [ "${{ matrix.goos }}" = linux ]; then tags=$tags,webkit2_41; fi
-          # Windows: no console window on a double click; the program attaches to the console of the
-          # caller (cmd/foresprint/console_windows.go).
-          if [ "${{ matrix.goos }}" = windows ]; then ldflags="$ldflags -H windowsgui"; exe=foresprint.exe; fi
+          # Windows: a console program (a terminal waits for it and shows its output); the window
+          # start releases the console again (cmd/foresprint/console_windows.go).
+          if [ "${{ matrix.goos }}" = windows ]; then exe=foresprint.exe; fi
           # Wails on current macOS SDKs: the linker needs UniformTypeIdentifiers (UTType).
           if [ "${{ matrix.goos }}" = darwin ]; then export CGO_LDFLAGS="-framework UniformTypeIdentifiers"; fi
           mkdir -p ../stage
           CGO_ENABLED=1 go build -trimpath -tags "$tags" -ldflags "$ldflags" -o "../stage/$exe" ./cmd/foresprint
           cp ../LICENSE ../stage/
       - name: Smoke test
-        if: matrix.goos != 'windows'
-        run: ./stage/foresprint version
+        run: |
+          exe=./stage/foresprint; if [ "${{ matrix.goos }}" = windows ]; then exe=./stage/foresprint.exe; fi
+          out=$($exe --version); echo "$out"; test -n "$out"
+          $exe version
       - name: Archive
         run: |
           version="${TAG#v}"
