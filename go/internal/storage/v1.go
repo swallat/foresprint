@@ -309,6 +309,13 @@ func projectExtrasFrom(p *yamlx.Map, pr *model.Project, at string) error {
 		}
 		pr.End = &t
 	}
+	if truthy(get(p, "closed")) {
+		t, err := dateOf(get(p, "closed"), at)
+		if err != nil {
+			return err
+		}
+		pr.ClosedAt = &t
+	}
 	if pr.State, err = choice(get(p, "state"), projectStates, model.ProjectOpen, at, "state"); err != nil {
 		return err
 	}
@@ -386,6 +393,9 @@ func projectExtrasTo(entry *yamlx.Map, p model.Project) {
 	}
 	if p.State != model.ProjectOpen {
 		put(entry, "state", string(p.State))
+		if p.ClosedAt != nil {
+			put(entry, "closed", dateOrNil(p.ClosedAt))
+		}
 	}
 	if p.OpenScope != nil {
 		put(entry, "open_scope", clean(*p.OpenScope))

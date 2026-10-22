@@ -186,6 +186,7 @@
                     type="button"
                     aria-label={p.history ? t('Finish {name}', { name: p.name }) : t('Delete {name}', { name: p.name })}
                     title={p.history ? t('Finish (history is kept)') : t('Delete')}
+                    disabled={panel !== undefined}
                     onclick={() => (panel = { kind: 'close', id: p.id })}
                   >
                     <Icon name={p.history ? 'archive' : 'delete'} />
@@ -210,7 +211,7 @@
     </div>
     {#if estimated}
       <p class="small muted" style="margin:8px 0 0">
-        {t('Values with ≈ are estimates: points divided by the team rate of {rate} points per person day. Booked amounts are entered values.', { rate: num(view.rate, 2) })}
+        {t('Values with ≈ are estimates: points converted with the rate of each sprint (mean {rate} points per person day). Booked amounts are entered values.', { rate: num(view.rate, 2) })}
       </p>
     {/if}
   {/if}
@@ -278,7 +279,7 @@
               <tr>
                 <td><a href={link('/projects/:id', { id: p.id })}>{p.name}</a></td>
                 <td><LightChip light={p.state === 'cancelled' ? 'warn' : 'ok'} label={p.state === 'cancelled' ? t('cancelled') : t('finished')} /></td>
-                <td class="data">{date(p.end)}</td>
+                <td class="data">{date(p.closedAt || p.end)}</td>
                 <td class="num"><Amount value={p.done} est={estimated} /></td>
                 <td class="num"><Amount value={p.booked} /></td>
                 <td><button class="btn" type="button" onclick={() => reopen(p)}><Icon name="unarchive" />{t('Reopen')}</button></td>
