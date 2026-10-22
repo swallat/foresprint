@@ -18,6 +18,8 @@ import (
 type Chain struct {
 	team *model.Team
 	list []model.Sprint
+	// begun are the rules (by index) that a generated sprint already took up.
+	begun map[int]bool
 }
 
 // NewChain starts a chain after the recorded sprints (oldest first).
@@ -44,8 +46,9 @@ func (c *Chain) After(previous *model.Sprint) (model.Sprint, error) {
 	prefix := c.list
 	if previous != nil {
 		prefix = nil
-		for i := range c.list {
-			if c.list[i].ID == previous.ID {
+		// Search from the end: names without a year repeat, and the latest one is meant.
+		for i := len(c.list) - 1; i >= 0; i-- {
+			if c.list[i].ID == previous.ID && (previous.Start.IsZero() || c.list[i].Start.Equal(previous.Start)) {
 				prefix = c.list[:i+1]
 				break
 			}
@@ -72,7 +75,7 @@ func (c *Chain) follow(previous *model.Sprint, prefix []model.Sprint) (model.Spr
 	start := previous.End
 	// The ID the numbering would give: needed for a rule that begins at a sprint not yet there.
 	legacy, legacyErr := NextID(previous.ID, start, c.team.Sprint.Numbering)
-	rule := activeRule(c.team.Sprint.Naming, prefix, legacy, legacyErr == nil)
+	rule := c.activeRule(prefix, legacy, legacyErr == nil)
 	if rule == nil {
 		if legacyErr != nil {
 			return model.Sprint{}, legacyErr
@@ -88,27 +91,46 @@ func (c *Chain) follow(previous *model.Sprint, prefix []model.Sprint) (model.Spr
 }
 
 // activeRule is the last rule that has begun by the new sprint: it has no From, its From sprint
-// is already in the chain, or its From is the ID the numbering gives the new sprint.
-func activeRule(rules []model.NamingRule, prefix []model.Sprint, legacy string, legacyOK bool) *model.NamingRule {
+// is already in the chain, its From is the ID the numbering gives the new sprint, it has already
+// named a sprint of this chain, or it names the previous sprint (its From sprint was renamed).
+func (c *Chain) activeRule(prefix []model.Sprint, legacy string, legacyOK bool) *model.NamingRule {
+	rules := c.team.Sprint.Naming
 	var found *model.NamingRule
 	for i := range rules {
 		r := &rules[i]
-		if r.From == nil {
-			found = r
-			continue
-		}
-		if legacyOK && *r.From == legacy {
-			found = r
-			continue
-		}
-		for _, s := range prefix {
-			if s.ID == *r.From {
-				found = r
-				break
+		started := r.From == nil || c.begun[i] || (legacyOK && *r.From == legacy)
+		if !started {
+			for _, s := range prefix {
+				if s.ID == *r.From {
+					started = true
+					break
+				}
 			}
+		}
+		if !started {
+			if re, _ := patternRegexp(r.Pattern); re != nil && re.MatchString(prefix[len(prefix)-1].ID) {
+				started = true
+			}
+		}
+		if started {
+			found = r
+			if c.begun == nil {
+				c.begun = map[int]bool{}
+			}
+			c.begun[i] = true
 		}
 	}
 	return found
+}
+
+// MatchesNaming reports whether the ID is a name made by one of the rules.
+func MatchesNaming(rules []model.NamingRule, id string) bool {
+	for _, r := range rules {
+		if re, _ := patternRegexp(r.Pattern); re != nil && re.MatchString(id) {
+			return true
+		}
+	}
+	return false
 }
 
 var tokenRE = regexp.MustCompile(`\{([^{}]*)\}`)

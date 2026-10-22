@@ -49,7 +49,7 @@ func PlanRenames(data *storage.TeamData, sprintID, newID string) ([]Rename, erro
 		return nil, dataError("ID not allowed as a file name ({problem}).", "problem", problem)
 	}
 	numbering := data.Team.Sprint.Numbering
-	if len(data.Team.Sprint.Naming) == 0 && !calendar.IDFitsNumbering(newID, sprint.End, numbering) {
+	if !calendar.MatchesNaming(data.Team.Sprint.Naming, newID) && !calendar.IDFitsNumbering(newID, sprint.End, numbering) {
 		return nil, dataError("Sprint ID {id!r} does not match the numbering (expected {expected}).",
 			"id", newID, "expected", calendar.ExpectedIDForm(i18n.Language(), numbering))
 	}

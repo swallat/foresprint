@@ -161,3 +161,45 @@ func TestNameAll(t *testing.T) {
 		t.Error("want an error for an unknown placeholder")
 	}
 }
+
+func TestChainRuleFromFutureSprintStaysOn(t *testing.T) {
+	team := namedTeam(model.NumberingYearly, model.NamingRule{From: str("2026.18"), Pattern: "Atlas {JJ}-{NN}"})
+	chain := calendar.NewChain(team, []model.Sprint{sprintAt("2026.17", "2026-10-05", "2026-10-19")})
+	want := []string{"Atlas 26-18", "Atlas 26-19", "Atlas 26-20"}
+	for _, w := range want {
+		s, err := chain.Next()
+		if err != nil || s.ID != w {
+			t.Fatalf("got %q %v, want %q", s.ID, err, w)
+		}
+	}
+	// A fresh chain over the recorded result continues the same way.
+	saved := []model.Sprint{sprintAt("2026.17", "2026-10-05", "2026-10-19"), sprintAt("Atlas 26-18", "2026-10-19", "2026-11-02")}
+	s, err := calendar.NewChain(team, saved).Next()
+	if err != nil || s.ID != "Atlas 26-19" {
+		t.Errorf("got %q %v", s.ID, err)
+	}
+}
+
+func TestChainNamesWithoutYearRepeat(t *testing.T) {
+	team := namedTeam(model.NumberingYearly, model.NamingRule{Pattern: "Sprint {NN}"})
+	saved := []model.Sprint{
+		sprintAt("Sprint 01", "2026-01-05", "2026-01-19"),
+		sprintAt("Sprint 25", "2026-11-30", "2026-12-14"),
+		sprintAt("Sprint 26", "2026-12-14", "2026-12-28"),
+	}
+	chain := calendar.NewChain(team, saved)
+	var got []string
+	for i := 0; i < 4; i++ {
+		s, err := chain.Next()
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, s.ID)
+	}
+	want := []string{"Sprint 27", "Sprint 01", "Sprint 02", "Sprint 03"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	}
+}
