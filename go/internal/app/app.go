@@ -125,7 +125,7 @@ func (a *API) Prefs() Prefs {
 		Theme:          config.Theme(),
 		Density:        config.Density(),
 		DataDir:        a.DataDir(),
-		RecentDataDirs: config.RecentDataDirs(),
+		RecentDataDirs: append([]string{}, config.RecentDataDirs()...), // a list, never null: the window reads its length
 	}
 	for _, l := range i18n.Languages() {
 		p.Languages = append(p.Languages, Choice{Code: l.Code, Label: l.Name})
