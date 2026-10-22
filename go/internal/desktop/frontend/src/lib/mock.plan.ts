@@ -168,7 +168,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
   const projects: PlanProject[] = PROJECTS.map((p) => {
     const l = lane.filter((x) => x.project === p.id);
     const amount = noT ? projAmt[sid]?.[p.id] ?? 0 : l.reduce((a, x) => a + (x.size ?? 0), 0);
-    return { id: p.id, name: p.name, tickets: l.length, amount, needPD: amount ? amount / rate : null, bookedPD: p.booked, manual: noT };
+    return { id: p.id, name: p.name, tickets: l.length, amount, needPD: amount ? amount / rate : null, bookedPD: p.booked, usedPD: p.booked == null ? null : Math.round(p.booked * 0.3), manual: noT };
   }).filter((p) => p.amount > 0 || noT);
   const demandAmount = lane.reduce((a, x) => a + (x.size ?? 0) * x.prodPct / 100, 0);
   const avail = 11.4;

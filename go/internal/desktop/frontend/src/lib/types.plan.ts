@@ -57,6 +57,7 @@ export interface PlanProject {
   amount: number;
   needPD: number | null;
   bookedPD: number | null;
+  usedPD: number | null;
   manual: boolean;
 }
 
