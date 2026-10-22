@@ -710,3 +710,42 @@ func prognosisExtrasTo(entry *yamlx.Map, p model.Prognosis) {
 		put(entry, "rest_next", clean(*p.RestNext))
 	}
 }
+
+func productOwnersFrom(raw any, where string) ([]model.ProductOwner, error) {
+	list, err := sequence(raw, where, "product_owners")
+	if err != nil {
+		return nil, err
+	}
+	var out []model.ProductOwner
+	seen := map[string]bool{}
+	for i, item := range list {
+		at := where + ": product_owners[" + idx(i) + "]"
+		m, ok := asMap(item)
+		if !ok || !truthy(get(m, "id")) || !truthy(get(m, "name")) {
+			return nil, dataErr("{where}: fields 'id' and 'name' are required", "where", at)
+		}
+		po := model.ProductOwner{ID: pyStr(get(m, "id")), Name: pyStr(get(m, "name"))}
+		if seen[po.ID] {
+			return nil, dataErr("{where}: the id {id} is used twice", "where", at, "id", po.ID)
+		}
+		seen[po.ID] = true
+		if truthy(get(m, "person")) {
+			person := pyStr(get(m, "person"))
+			po.Person = &person
+		}
+		out = append(out, po)
+	}
+	return out, nil
+}
+
+func productOwnersTo(pos []model.ProductOwner) []any {
+	out := make([]any, len(pos))
+	for i, po := range pos {
+		entry := omap("id", po.ID, "name", po.Name)
+		if po.Person != nil && *po.Person != "" {
+			put(entry, "person", *po.Person)
+		}
+		out[i] = entry
+	}
+	return out
+}
