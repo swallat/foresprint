@@ -67,6 +67,9 @@
   <button class="btn primary" type="button" title={t('Save and share with the team (Ctrl+S)')} aria-label={t('Save')} disabled={!!app.busy} onclick={save}>
     <Icon name="save" /><span class="hide-narrow">{t('Save')}</span>
   </button>
+  <a class="btn icon ghost" href={link('/help/guided')} aria-label={t('Help')} title={t('Help: guided flows and calculations')}>
+    <Icon name="help" />
+  </a>
   <button class="btn icon ghost" type="button" aria-label={t('Theme')} title={t('Theme: {name}', { name: app.prefs?.themes.find((x) => x.code === app.prefs?.theme)?.label ?? '' })} onclick={cycleTheme}>
     <Icon name="contrast" />
   </button>
