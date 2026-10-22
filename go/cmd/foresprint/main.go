@@ -23,6 +23,12 @@ func init() {
 }
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			reportFailure("Foresprint stopped unexpectedly.", fmt.Errorf("%v", r))
+			os.Exit(2)
+		}
+	}()
 	selfupdate.CleanupOld()
 	os.Exit(cli.Execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
