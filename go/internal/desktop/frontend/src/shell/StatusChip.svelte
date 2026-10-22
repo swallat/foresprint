@@ -23,10 +23,18 @@
         return { tone: 'warn', icon: 'cloud_download', text: t('{n} new changes', { n }), to: '/data' };
       case 'conflict':
         return { tone: 'bad', icon: 'call_split', text: t('Conflict'), to: '/data/conflicts' };
+      case 'decided':
+        return { tone: 'warn', icon: 'task_alt', text: t('All decided, Save finishes'), to: '/data/conflicts' };
+      case 'pending':
+        return { tone: 'warn', icon: 'cloud_upload', text: t('Saved, not shared yet'), to: '/data' };
+      case 'local':
+        return { tone: '', icon: 'cloud_off', text: t('Saved on this computer only'), to: '/settings/storage' };
+      case 'problem':
+        return { tone: 'bad', icon: 'error', text: t('Storage problem'), to: '/settings/storage' };
       case 'offline':
         return { tone: '', icon: 'cloud_off', text: t('Offline, saving locally'), to: '/data' };
       case 'mr':
-        return { tone: 'warn', icon: 'merge', text: t('Waiting for merge request'), to: '/data' };
+        return { tone: 'warn', icon: 'merge', text: t('Waiting for review'), to: '/data' };
       case 'readonly':
         return { tone: '', icon: 'lock', text: t('Read only'), to: '/data' };
       case 'locked':

@@ -21,6 +21,9 @@ const (
 	AbsencesExpected AbsenceState = "expected"
 	// AbsencesConfirmed: absences confirmed, including "nobody is absent".
 	AbsencesConfirmed AbsenceState = "confirmed"
+	// AbsencesOpen (1.0): the sprint is not frozen; cells are confirmed (Absences) or announced
+	// (ExpectedAbsences) one by one. Only stored when the sprint has a confirmed cell.
+	AbsencesOpen AbsenceState = "open"
 )
 
 // ProductValues are the values of a product in a sprint, in the team's estimation unit; nil =
@@ -142,12 +145,21 @@ func (s Sprint) legacyKnown() bool {
 	return s.Planning != nil || s.Commitment != nil || s.Velocity != nil || s.ForecastPlan != nil
 }
 
-// AbsenceStatus is the state of the absences: confirmed, announced or unknown.
+// AbsenceStatus is the state of the absences of the whole sprint: confirmed ("frozen": every
+// cell is confirmed and an empty cell means 0 days), announced or unknown.
 //
-// Entered absences are confirmed. Otherwise the stored state applies; if it is missing (older
-// files), it is derived from the existing fields. Announced absences only take effect as long
-// as nothing is confirmed.
+// Entered absences are confirmed (files from 0.8 have no cell states). Otherwise the stored
+// state applies; if it is missing (older files), it is derived from the existing fields. The
+// stored state AbsencesOpen (1.0) keeps a sprint open although some of its cells are confirmed:
+// Absences then holds the confirmed cells and ExpectedAbsences the announced ones. Announced
+// absences only take effect as long as nothing is confirmed for the whole sprint.
 func (s Sprint) AbsenceStatus() AbsenceState {
+	if s.AbsenceState != nil && *s.AbsenceState == AbsencesOpen {
+		if len(s.Absences) > 0 || len(s.ExpectedAbsences) > 0 {
+			return AbsencesExpected
+		}
+		return AbsencesUnknown
+	}
 	if len(s.Absences) > 0 || (s.AbsenceState != nil && *s.AbsenceState == AbsencesConfirmed) {
 		return AbsencesConfirmed
 	}
@@ -158,6 +170,102 @@ func (s Sprint) AbsenceStatus() AbsenceState {
 		return AbsencesExpected
 	}
 	return AbsencesUnknown
+}
+
+// CellState is the state of one person's absence in this sprint: confirmed (closed lock),
+// announced (open lock) or unknown (nothing entered). In a frozen sprint every cell is
+// confirmed.
+func (s Sprint) CellState(person string) AbsenceState {
+	if s.AbsenceStatus() == AbsencesConfirmed {
+		return AbsencesConfirmed
+	}
+	if _, ok := s.Absences[person]; ok {
+		return AbsencesConfirmed
+	}
+	if _, ok := s.ExpectedAbsences[person]; ok {
+		return AbsencesExpected
+	}
+	return AbsencesUnknown
+}
+
+// CellDays is the absence days of one person as the cell shows them: the confirmed days, else
+// the announced ones.
+func (s Sprint) CellDays(person string) float64 {
+	if d, ok := s.Absences[person]; ok {
+		return d
+	}
+	if s.AbsenceStatus() == AbsencesConfirmed {
+		return 0
+	}
+	return s.ExpectedAbsences[person]
+}
+
+// SetCell sets the absence days of one person: state AbsencesConfirmed or AbsencesExpected
+// (announced); 0 days removes the entry. In a frozen sprint the cell stays confirmed. An open
+// sprint stores the state "open", so confirmed cells next to announced ones are not read as a
+// frozen sprint.
+func (s *Sprint) SetCell(person string, days float64, state AbsenceState) {
+	frozen := s.AbsenceStatus() == AbsencesConfirmed
+	delete(s.Absences, person)
+	delete(s.ExpectedAbsences, person)
+	if days != 0 {
+		toConfirmed := frozen || state == AbsencesConfirmed
+		target := &s.ExpectedAbsences
+		if toConfirmed {
+			target = &s.Absences
+		}
+		if *target == nil {
+			*target = map[string]float64{}
+		}
+		(*target)[person] = days
+	}
+	if frozen {
+		s.AbsenceState = Ptr(AbsencesConfirmed) // also when the last cell was removed
+	} else {
+		s.settleOpenState()
+	}
+}
+
+// settleOpenState stores the state of an open sprint: open while a cell is confirmed (the 1.0
+// state), announced while there are only announced cells (the 0.8 state), otherwise unknown.
+func (s *Sprint) settleOpenState() {
+	switch {
+	case len(s.Absences) > 0:
+		s.AbsenceState = Ptr(AbsencesOpen)
+	case len(s.ExpectedAbsences) > 0:
+		s.AbsenceState = Ptr(AbsencesExpected)
+	default:
+		s.AbsenceState = Ptr(AbsencesUnknown)
+	}
+}
+
+// Freeze confirms the whole allocation: all entries count as confirmed and every empty cell as
+// 0 days ("nobody is absent" needs no extra step). Confirmed days win over announced ones.
+func (s *Sprint) Freeze() {
+	merged := map[string]float64{}
+	for k, v := range s.ExpectedAbsences {
+		merged[k] = v
+	}
+	for k, v := range s.Absences {
+		merged[k] = v
+	}
+	s.Absences = merged
+	s.ExpectedAbsences = nil
+	s.AbsenceState = Ptr(AbsencesConfirmed)
+}
+
+// Unfreeze opens a frozen sprint again: all entries count as announced.
+func (s *Sprint) Unfreeze() {
+	announced := map[string]float64{}
+	for k, v := range s.ExpectedAbsences {
+		announced[k] = v
+	}
+	for k, v := range s.Absences {
+		announced[k] = v
+	}
+	s.ExpectedAbsences = announced
+	s.Absences = nil
+	s.settleOpenState()
 }
 
 // AbsencesConfirmed reports whether the absences are confirmed.

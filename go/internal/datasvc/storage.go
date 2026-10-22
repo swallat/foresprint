@@ -399,3 +399,59 @@ func (s *Store) signInRoot() string {
 	}
 	return neutralDir()
 }
+
+// LineEndings is the offer to make the data files use the same line endings on every computer.
+type LineEndings struct {
+	// Needed: the setting is missing in this data repository.
+	Needed bool `json:"needed"`
+	// File is the file the rules go into.
+	File string `json:"file"`
+	// Rules are the missing lines.
+	Rules []string `json:"rules"`
+	// Affected are existing files whose line endings change with the next save.
+	Affected []string `json:"affected"`
+	Problem  *Problem `json:"problem,omitempty"`
+}
+
+// LineEndings checks whether the data files are set to keep one kind of line ending. It
+// changes nothing.
+func (s *Store) LineEndings() LineEndings {
+	dir, err := s.folder()
+	if err != nil {
+		return LineEndings{Rules: []string{}, Affected: []string{}, Problem: problemOf(err)}
+	}
+	offer, err := git.AttributesOffered(s.ctx(), dir)
+	if err != nil {
+		return LineEndings{Rules: []string{}, Affected: []string{}, Problem: problemOf(err)}
+	}
+	return lineEndingsOf(offer)
+}
+
+func lineEndingsOf(offer *git.AttributesOffer) LineEndings {
+	out := LineEndings{Rules: []string{}, Affected: []string{}}
+	if offer == nil {
+		return out
+	}
+	out.Needed = true
+	out.File = filepath.Base(offer.File)
+	out.Rules = append(out.Rules, offer.Rules...)
+	out.Affected = append(out.Affected, offer.Affected...)
+	return out
+}
+
+// ApplyLineEndings writes the missing rules and prepares the affected files. The result is an
+// unsaved change like any other; Save shares it.
+func (s *Store) ApplyLineEndings() LineEndings {
+	dir, err := s.folder()
+	if err != nil {
+		return LineEndings{Rules: []string{}, Affected: []string{}, Problem: problemOf(err)}
+	}
+	offer, err := git.ApplyAttributes(s.ctx(), dir)
+	git.InvalidateStatus()
+	if err != nil {
+		return LineEndings{Rules: []string{}, Affected: []string{}, Problem: problemOf(err)}
+	}
+	out := lineEndingsOf(offer)
+	out.Needed = false // done
+	return out
+}

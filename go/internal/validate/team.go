@@ -138,8 +138,9 @@ func knownSprints(data *storage.TeamData, ahead int) map[string]time.Time {
 		last = &model.Sprint{ID: data.Sprints[n-1].ID, End: data.Sprints[n-1].End}
 	}
 	team := &data.Team
+	chain := calendar.NewChain(team, data.Sprints)
 	for i := 0; i < ahead; i++ {
-		next, err := calendar.FollowingSprint(team, last)
+		next, err := chain.After(last)
 		if err != nil {
 			break // no first sprint: reported elsewhere
 		}

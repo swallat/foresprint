@@ -24,6 +24,10 @@
     "Decision for an unknown ticket (not in the last import)": "Entscheidung für ein unbekanntes Ticket (nicht im letzten Import)",
     "Project '{id}' is closed": "Projekt '{id}' ist abgeschlossen",
     "daily business and a project exclude each other": "Tagesgeschäft und Projekt schließen sich aus",
-    "{count} open tickets still belong to the closed project": "{count} offene Tickets gehören noch zum abgeschlossenen Projekt"
+    "{count} open tickets still belong to the closed project": "{count} offene Tickets gehören noch zum abgeschlossenen Projekt",
+    "contingent.used must not be negative": "contingent.used darf nicht negativ sein",
+    "contingent.used_per_month: '{key}' is not a month (YYYY-MM)": "contingent.used_per_month: '{key}' ist kein Monat (JJJJ-MM)",
+    "contingent.used_per_month: {key} must not be negative": "contingent.used_per_month: {key} darf nicht negativ sein",
+    "the booked consumption ({used} PD) exceeds the contingent ({total} PD)": "der eingetragene Verbrauch ({used} PT) übersteigt das Kontingent ({total} PT)"
   }
 }

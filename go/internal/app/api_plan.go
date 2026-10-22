@@ -38,7 +38,7 @@ type planCtx struct {
 	repo   *storage.Repository
 }
 
-func today() time.Time {
+func planToday() time.Time {
 	y, m, d := now().Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
@@ -49,7 +49,7 @@ func (a *API) planContext(team, sprintID string) (*planCtx, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &planCtx{data: data, today: today(), repo: repo}
+	c := &planCtx{data: data, today: planToday(), repo: repo}
 	if c.fc, err = forecast.Build(data, c.today); err != nil {
 		return nil, err
 	}
@@ -785,7 +785,7 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 // --- Changes ----------------------------------------------------------------------------
 
 // editSprint loads the sprint of the view, lets fn change a copy and writes it.
-func (a *API) editSprint(team, sprintID string, fn func(c *planCtx, s *model.Sprint) error) error {
+func (a *API) planEdit(team, sprintID string, fn func(c *planCtx, s *model.Sprint) error) error {
 	c, err := a.planContext(team, sprintID)
 	if err != nil {
 		return err
@@ -835,7 +835,7 @@ func (a *API) SetPreplanned(team, sprintID, product string, value *float64) erro
 	if err := nonNegative(value); err != nil {
 		return err
 	}
-	return a.editSprint(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
 		if err := c.knownProduct(product); err != nil {
 			return err
 		}
@@ -846,7 +846,7 @@ func (a *API) SetPreplanned(team, sprintID, product string, value *float64) erro
 
 // TakeEarmarks sets the pre-planned amount of every product to the sum of its earmarked tickets.
 func (a *API) TakeEarmarks(team, sprintID string) error {
-	return a.editSprint(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
 		v, err := c.view(team, nil)
 		if err != nil {
 			return err
@@ -861,7 +861,7 @@ func (a *API) TakeEarmarks(team, sprintID string) error {
 
 // UseDefaults sets the pre-planned amount of every product to its standard amount.
 func (a *API) UseDefaults(team, sprintID string) error {
-	return a.editSprint(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
 		v, err := c.view(team, nil)
 		if err != nil {
 			return err
@@ -883,7 +883,7 @@ func (a *API) SetProjectAmount(team, sprintID, project string, value *float64) e
 	if err := nonNegative(value); err != nil {
 		return err
 	}
-	return a.editSprint(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
 		if c.data.ProjectByID(project) == nil {
 			return errors.New(i18n.T("The project {id} does not exist.", "id", project))
 		}
@@ -906,7 +906,7 @@ func (a *API) SetProductionPT(team, sprintID string, value *float64) error {
 	if err := nonNegative(value); err != nil {
 		return err
 	}
-	return a.editSprint(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
 		s.ProductionPlanned = value
 		return nil
 	})
@@ -1113,7 +1113,7 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 // ReopenPlan takes the frozen list back so that the team can plan again; the minutes stay and
 // are marked obsolete by the next freeze.
 func (a *API) ReopenPlan(team, sprintID string) error {
-	return a.editSprint(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
 		if st := c.stage(); st == "past" || st == "current" {
 			return errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
 		}
