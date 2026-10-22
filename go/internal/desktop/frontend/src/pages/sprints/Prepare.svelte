@@ -82,7 +82,7 @@
 {#if !app.team || !app.sprint}
   <div class="card"><p class="muted">{t('No sprint selected.')}</p></div>
 {:else}
-  <section class="card block">
+  <section class="card block" data-tour="prepare-grid">
     <h2>{t('Absences in person days')}</h2>
     <p class="small muted hint">
       {t('Type days directly (half days with a comma), Enter moves down. New entries are announced; the lock freezes the sprint and makes empty cells count as 0 days. Only days are stored, never a reason.')}
@@ -92,7 +92,7 @@
 
   {#if info}
     <div class="grid cols-2">
-      <section class="card" aria-labelledby="ready-h">
+      <section class="card" aria-labelledby="ready-h" data-tour="prepare-ready">
         <h2 id="ready-h">{t('Ready for planning?')}</h2>
         <ul class="ready">
           {#each info.ready as r (r.kind)}
