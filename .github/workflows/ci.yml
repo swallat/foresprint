@@ -39,6 +39,8 @@ jobs:
         run: uv run python scripts/gen_holidays.py --check
       - name: Text catalogs of the Go core are current
         run: uv run python scripts/gen_locales.py --check
+      - name: Help texts are up to date
+        run: uv run python scripts/gen_guide.py --check
 
   # The Go core (go/): format, vet, lint and tests, including the comparison with the golden
   # files of the Python core, on all three desktop platforms.

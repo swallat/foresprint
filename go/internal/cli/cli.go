@@ -8,6 +8,7 @@
 package cli
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -43,6 +44,9 @@ type Env struct {
 	In  io.Reader
 	Out io.Writer
 	Err io.Writer
+
+	// input reads In line by line; one reader serves all prompts of a run.
+	input *bufio.Reader
 }
 
 // Printf writes to the standard output.
