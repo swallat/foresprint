@@ -25,6 +25,7 @@
   const project = $derived(d.projects.find((p) => p.id === ticket.project));
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="ticket"
   data-key={ticket.key}
@@ -43,7 +44,7 @@
     {/if}
   </span>
   <span class="title" title={ticket.title}>{ticket.title}</span>
-  <span class="meta">
+  <span class="chips">
     {#if !ticket.refined}
       <span class="chip warn">{ticket.size == null ? t('no estimate') : t('not refined')}</span>
     {/if}
@@ -52,6 +53,8 @@
     {#if d.production && ticket.prodPct > 0}
       <span class="chip" title={t('Production share')}>{t('Prod {pct} %', { pct: fmt(ticket.prodPct) })}</span>
     {/if}
+  </span>
+  <span class="end">
     <span class="est">{ticket.size == null ? '–' : fmt(ticket.size, 1)}</span>
     {#if onmove}
       <button class="btn icon ghost" type="button" aria-label={moveLabel} onclick={onmove}>
@@ -60,3 +63,15 @@
     {/if}
   </span>
 </div>
+
+<style>
+  /* Narrow lanes: chips go below the title, estimate and button stay at the right. */
+  .ticket { grid-template-columns: 20px 92px minmax(0, 1fr) auto; grid-template-areas: 'h k ti e' '. . m m'; row-gap: 4px; }
+  .handle { grid-area: h; }
+  .key { grid-area: k; display: flex; gap: 4px; align-items: center; }
+  .title { grid-area: ti; }
+  .chips { grid-area: m; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips:empty { display: none; }
+  .end { grid-area: e; display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
+  .est { min-width: 2ch; text-align: right; }
+</style>

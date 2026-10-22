@@ -711,12 +711,11 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 
 // sortRest adds the rest of a carried ticket to what continues in this sprint or later.
 func (c *planCtx) sortRest(w *WhatIf, it CarryInput) {
-	switch {
-	case it.Target == "" || it.Target == c.sprint.ID:
+	if it.Target == "" || it.Target == c.sprint.ID {
 		w.Rest += it.Rest
-	default:
-		w.Later += it.Rest
+		return
 	}
+	w.Later += it.Rest
 }
 
 // refore builds the forecast again as if the running sprint ended with the velocity.
@@ -790,9 +789,9 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 	}
 	p.Preplanned = pre
 	// the same label replaces the older entry of the same target
-	kept := cs.Prognoses[:0]
+	var kept []model.Prognosis
 	for _, old := range cs.Prognoses {
-		if !(str(old.Target) == sprintID && labelOf(old) == label) {
+		if str(old.Target) != sprintID || labelOf(old) != label {
 			kept = append(kept, old)
 		}
 	}

@@ -6,7 +6,7 @@
   import { app, openTicket } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import CalcNote from '../../lib/plan/CalcNote.svelte';
+  import Calc from '../../lib/calc/Calc.svelte';
   import { assumptions, fmt, itemWord, parseAmount, PlanModel, signed, touched, unitName } from '../../lib/plan/model.svelte';
   import Production from '../../lib/plan/Production.svelte';
   import SprintHead from '../../lib/plan/SprintHead.svelte';
@@ -229,9 +229,9 @@
                     <span class="chip">{t('estimate')}</span>
                     {g.project.bookedPD == null ? t('no contingent') : t('of {n} PD booked', { n: fmt(g.project.bookedPD) })}
                   </span>
-                  <CalcNote what={g.project.name}>
+                  <Calc label={g.project.name} topic="projects">
                     <div class="data">{fmt(g.project.amount, 1)} {unitName(d)} ÷ {fmt(d.rate, 2)} = {fmt(g.project.needPD, 1)} {t('PD')}</div>
-                  </CalcNote>
+                  </Calc>
                 {:else}
                   <span class="small muted">{t('Daily business: no contingent, runs through the product amounts')}</span>
                 {/if}

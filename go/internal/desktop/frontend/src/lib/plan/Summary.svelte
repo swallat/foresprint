@@ -4,7 +4,7 @@
   import { t } from '../i18n.svelte';
   import type { PlanSprint, WhatIf } from '../types.plan';
   import CapacityBar from '../ui/CapacityBar.svelte';
-  import CalcNote from './CalcNote.svelte';
+  import Calc from '../calc/Calc.svelte';
   import { fmt, itemWord, other, unitName } from './model.svelte';
 
   interface Props {
@@ -44,10 +44,10 @@
     <h2>{t('Capacity')}</h2>
     <div class="row">
       <span class="big">{d.capacity == null ? '–' : fmt(d.capacity, 1)} {t('PD')}</span>
-      <CalcNote what={t('Capacity')}>
+      <Calc label={t('Capacity')} topic="capacity">
         <div>{t('Person days after calendar, FTE and overhead, minus absences.')}</div>
         <div class="data">{fmt(d.capacity, 1)} {t('PD')}</div>
-      </CalcNote>
+      </Calc>
     </div>
     <div class="small muted">
       {#if d.absenceDays}{t('{n} PD absence ({state})', { n: fmt(d.absenceDays, 1), state: stateName(d.absences) })}{:else}{t('no absence entered')}{/if}
@@ -64,10 +64,10 @@
     </h2>
     <div class="row">
       <span class="big fc">{fmt(d.plan, 0)} {unit}</span>
-      <CalcNote what={t('Forecast PLAN')}>
+      <Calc label={t('Forecast PLAN')} topic="forecast-plan">
         <div>{t('Capacity times the rate (trend of the normalized velocity).')}</div>
         <div class="data">{fmt(d.capacity, 1)} {t('PD')} × {fmt(ratio, 2)} = {fmt(d.plan, 0)}</div>
-      </CalcNote>
+      </Calc>
     </div>
     <div class="small muted">
       {#if d.low != null && d.high != null}
@@ -84,10 +84,10 @@
       <h2>{t('Plannable')}</h2>
       <div class="row">
         <span class="big">{fmt(free)} {unit}</span>
-        <CalcNote what={t('Plannable')}>
+        <Calc label={t('Plannable')} topic="plannable">
           <div>{t('(Forecast PLAN − carried-over rest) × plannable share, rounded down.')}</div>
           <div class="data">({fmt(split?.plan)} − {fmt(split?.carryIn)}) × {fmt(d.share * 100)} % = {fmt(free)}</div>
-        </CalcNote>
+        </Calc>
       </div>
       <div class="small muted">
         {#if other(d, free) != null}≈ <span class="data">{fmt(other(d, free), 1)}</span> {t('PD')} ·{' '}{/if}{t('small stuff')}
@@ -120,10 +120,10 @@
       <h2>{t('Production')}</h2>
       <div class="row">
         <span class="big">{prod.demandSet ? fmt(prod.demand, 1) : '–'} {t('of')} {fmt(prod.available, 1)} {t('PD')}</span>
-        <CalcNote what={t('Production')}>
+        <Calc label={t('Production')} topic="production">
           <div>{t('Time of the people with production access, after absences, times the cap.')}</div>
           <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
-        </CalcNote>
+        </Calc>
       </div>
       <div class="small row">
         {#if prod.demandSet}

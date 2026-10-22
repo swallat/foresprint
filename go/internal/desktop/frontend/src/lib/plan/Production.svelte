@@ -7,7 +7,7 @@
   import { app } from '../app.svelte';
   import { t } from '../i18n.svelte';
   import type { PlanSprint } from '../types.plan';
-  import CalcNote from './CalcNote.svelte';
+  import Calc from '../calc/Calc.svelte';
   import { fmt, itemWord, parseAmount, type PlanModel } from './model.svelte';
 
   interface Props {
@@ -50,12 +50,12 @@
               : t('fits')}
         </span>
       {/if}
-      <CalcNote what={t('Production')}>
+      <Calc label={t('Production')} topic="production">
         {#each prod.people as p (p.name)}
           <div>{p.name}: <span class="data">{fmt(p.capacity, 1)} {t('PD')}</span></div>
         {/each}
         <div class="data">{fmt(prod.time, 1)} {t('PD')} × {fmt(prod.capPercent)} % = {fmt(prod.available, 1)} {t('PD')}</div>
-      </CalcNote>
+      </Calc>
     </div>
     <p class="small muted lead">
       {t('Available: {n} PD', { n: fmt(prod.available, 1) })}{prod.capPercent < 100

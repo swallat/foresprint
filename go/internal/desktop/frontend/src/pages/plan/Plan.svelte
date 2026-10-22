@@ -8,7 +8,7 @@
   import { app, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import CalcNote from '../../lib/plan/CalcNote.svelte';
+  import Calc from '../../lib/calc/Calc.svelte';
   import { assumptions, fmt, itemWord, parseAmount, PlanModel, signed, touched, unitName } from '../../lib/plan/model.svelte';
   import Production from '../../lib/plan/Production.svelte';
   import SprintHead from '../../lib/plan/SprintHead.svelte';
@@ -235,6 +235,7 @@
     </div>
   {:else}
     <div id="lanes" class="grid cols-2 gapb">
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <div
         class="lane"
         class:over={over && overWhich === 'candidates'}
@@ -258,6 +259,7 @@
         </div>
       </div>
 
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <div
         class="lane"
         class:over={over && overWhich === 'sprint'}
@@ -327,7 +329,7 @@
                   <td>{r.p.name}</td><td class="num">{fmt(r.amount, 1)}</td><td class="num">≈ {fmt(r.need, 1)}</td><td class="num">{fmt(r.rest, 1)}</td>
                   <td>
                     {#if r.rest != null && r.rest < 0}<span class="chip bad">{t('over contingent')}</span>{:else if r.rest != null && r.p.bookedPD && r.rest < r.p.bookedPD * 0.15}<span class="chip warn">{t('tight')}</span>{:else if r.rest != null}<span class="chip ok">{t('on plan')}</span>{/if}
-                    <CalcNote what={r.p.name}><div class="data">{fmt(r.amount, 1)} ÷ {fmt(d.rate, 2)} = {fmt(r.need, 1)} {t('PD')}</div></CalcNote>
+                    <Calc label={r.p.name} topic="projects"><div class="data">{fmt(r.amount, 1)} ÷ {fmt(d.rate, 2)} = {fmt(r.need, 1)} {t('PD')}</div></Calc>
                   </td>
                 </tr>
               {/each}
