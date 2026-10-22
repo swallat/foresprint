@@ -306,6 +306,10 @@ carry:
 rest_next: 3
 projects:
   p1: {planned: 5, done: 4}
+preplanned: 12
+matrix:
+  web: {p1: 3, p2: 2}
+removed_tickets: [AP-7]
 prognoses:
 - at: 2026-07-01T09:00:00
   label: A
@@ -320,14 +324,17 @@ prognoses:
 	}
 	if *s.Name != "Summer sprint" || len(s.CommittedTickets) != 2 || len(s.Carry) != 2 || s.Carry[0].Target != model.CarryBacklog ||
 		*s.RestNext != 3 || *s.Projects["p1"].Planned != 5 || *s.Prognoses[0].Label != "A" ||
-		s.Prognoses[0].Carry[0].Target != "2026.10" || *s.Prognoses[0].RestNext != 1 || s.Prognoses[0].Finish[0] != "AP-1" {
+		s.Prognoses[0].Carry[0].Target != "2026.10" || *s.Prognoses[0].RestNext != 1 || s.Prognoses[0].Finish[0] != "AP-1" ||
+		*s.Preplanned != 12 || s.Matrix["web"]["p2"] != 2 || len(s.Removed) != 1 {
 		t.Fatalf("%+v", s)
 	}
 	idempotent(t, "sprint", text)
 	c := s.Clone()
 	c.Carry[0].Rest = 99
 	c.CommittedTickets[0] = "X"
-	if s.Carry[0].Rest == 99 || s.CommittedTickets[0] == "X" {
+	c.Matrix["web"]["p2"] = 99
+	c.Removed[0] = "X"
+	if s.Carry[0].Rest == 99 || s.CommittedTickets[0] == "X" || s.Matrix["web"]["p2"] == 99 || s.Removed[0] == "X" {
 		t.Error("Clone shares slices")
 	}
 }

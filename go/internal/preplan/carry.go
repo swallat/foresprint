@@ -1,6 +1,7 @@
 package preplan
 
 import (
+	"math"
 	"slices"
 
 	"github.com/swallat/foresprint/internal/model"
@@ -86,4 +87,41 @@ func applyCarry(list []Budget, carry carryIns, data *storage.TeamData) {
 
 func splitRoadmap(plan, carry, share float64, digits int) float64 {
 	return planning.SplitPlan(plan, carry, share, digits).Plannable
+}
+
+// SplitByShare divides an amount that belongs to no product over the products active in the
+// sprint by their shares (the rule for a carried rest without product). The shares are
+// normalized, so the parts always add up to the amount (rounded to two decimals, the rounding
+// difference goes to the last product by id). Empty without the products feature or without
+// active products.
+func SplitByShare(data *storage.TeamData, sprint model.Sprint, amount float64) map[string]float64 {
+	out := map[string]float64{}
+	if !data.Team.Features.Products {
+		return out
+	}
+	var ids []string
+	shares := map[string]float64{}
+	var total float64
+	for _, ps := range productShares(data, sprint) {
+		if ps.product != nil {
+			ids = append(ids, *ps.product)
+			shares[*ps.product] = ps.share
+			total += ps.share
+		}
+	}
+	if len(ids) == 0 {
+		return out
+	}
+	slices.Sort(ids)
+	var sum float64
+	for _, id := range ids {
+		part := amount / float64(len(ids))
+		if total > 0 {
+			part = amount * shares[id] / total
+		}
+		out[id] = math.Round(part*100) / 100
+		sum += out[id]
+	}
+	out[ids[len(ids)-1]] += math.Round((amount-sum)*100) / 100
+	return out
 }

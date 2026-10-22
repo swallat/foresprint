@@ -130,7 +130,7 @@ func snake(name string) string {
 // unmodelled are the fields of the Python sprint that the calculation types do not have.
 var unmodelled = []string{"products", "note", "production_planned", "production_done", "not_done", "additional_done", "prognoses",
 	// 1.0 additions without a Python counterpart
-	"name", "committed_tickets", "carry", "rest_next", "projects"}
+	"name", "committed_tickets", "carry", "rest_next", "projects", "preplanned", "matrix", "removed"}
 
 var unmodelledKey = func() map[string]bool {
 	m := map[string]bool{}

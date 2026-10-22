@@ -696,6 +696,36 @@ func sprintExtrasFrom(d *yamlx.Map, s *model.Sprint, where string) error {
 	if len(projects) > 0 {
 		s.Projects = projects
 	}
+	if s.Preplanned, err = floatOf(get(d, "preplanned"), where+": preplanned"); err != nil {
+		return err
+	}
+	if s.Removed, err = texts(get(d, "removed_tickets"), where, "removed_tickets"); err != nil {
+		return err
+	}
+	matrix, err := mapping(get(d, "matrix"), where, "matrix")
+	if err != nil {
+		return err
+	}
+	for _, e := range matrix.Entries {
+		product := pyStr(e.Key)
+		row, ok := asMap(e.Value)
+		if !ok {
+			return dataErr("{where}: mapping of project amounts expected", "where", where+": matrix."+product)
+		}
+		for _, c := range row.Entries {
+			v, err := floatOr0(c.Value, where+": matrix."+product)
+			if err != nil {
+				return err
+			}
+			if s.Matrix == nil {
+				s.Matrix = map[string]map[string]float64{}
+			}
+			if s.Matrix[product] == nil {
+				s.Matrix[product] = map[string]float64{}
+			}
+			s.Matrix[product][pyStr(c.Key)] = v
+		}
+	}
 	return nil
 }
 
@@ -706,8 +736,29 @@ func sprintExtrasTo(d *yamlx.Map, s model.Sprint) {
 	if vals := valuesTo(s.Projects); len(vals.Entries) > 0 {
 		put(d, "projects", vals)
 	}
+	if s.Preplanned != nil {
+		put(d, "preplanned", clean(*s.Preplanned))
+	}
+	if len(s.Matrix) > 0 {
+		matrix := &yamlx.Map{}
+		for _, product := range sortedKeys(s.Matrix) {
+			row := &yamlx.Map{}
+			for _, project := range sortedKeys(s.Matrix[product]) {
+				put(row, project, clean(s.Matrix[product][project]))
+			}
+			if len(row.Entries) > 0 {
+				put(matrix, product, row)
+			}
+		}
+		if len(matrix.Entries) > 0 {
+			put(d, "matrix", matrix)
+		}
+	}
 	if s.CommittedTickets != nil {
 		put(d, "committed_tickets", strs(s.CommittedTickets))
+	}
+	if len(s.Removed) > 0 {
+		put(d, "removed_tickets", strs(s.Removed))
 	}
 	if len(s.Carry) > 0 {
 		put(d, "carry", carryTo(s.Carry))

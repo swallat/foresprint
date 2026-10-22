@@ -236,7 +236,7 @@ func TestFreezeAndReopen(t *testing.T) {
 			planned += *p.Planned
 		}
 	}
-	if planned != 5 { // T-2 has no product
+	if math.Abs(planned-13) > 1e-3 { // T-2 has no product: its size is split over the products
 		t.Errorf("planned per product = %v", planned)
 	}
 	if err := api.ReopenPlan(team, next); err != nil {

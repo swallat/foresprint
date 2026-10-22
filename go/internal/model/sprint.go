@@ -136,6 +136,15 @@ type Sprint struct {
 	// Projects are the values per project id, for teams without tickets: the split of the
 	// product amounts over the projects.
 	Projects map[string]ProductValues
+	// Preplanned is the pre-planned amount of the whole sprint for a team without the products
+	// feature (with products it is the sum of the products' Preplanned).
+	Preplanned *float64
+	// Matrix is the pre-planned amount per product and project, product id first; optional, it
+	// refines Projects (per project) for teams that plan by product and project.
+	Matrix map[string]map[string]float64
+	// Removed are tickets the team took out of the sprint in the planning that the tracker still
+	// has in it ("adjust in the tracker"); kept until the plan is frozen.
+	Removed []string
 }
 
 // legacyKnown: in older files without a stored state, absences counted as known if the sprint
@@ -301,6 +310,13 @@ func (s Sprint) Clone() Sprint {
 	c.Products = maps.Clone(s.Products)
 	c.Projects = maps.Clone(s.Projects)
 	c.CommittedTickets = slices.Clone(s.CommittedTickets)
+	c.Removed = slices.Clone(s.Removed)
+	if s.Matrix != nil {
+		c.Matrix = make(map[string]map[string]float64, len(s.Matrix))
+		for k, v := range s.Matrix {
+			c.Matrix[k] = maps.Clone(v)
+		}
+	}
 	c.Carry = slices.Clone(s.Carry)
 	c.Prognoses = slices.Clone(s.Prognoses)
 	for i := range c.Prognoses {
