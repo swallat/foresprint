@@ -61,6 +61,8 @@
     .sp-st{width:24px;height:24px;border:0;background:none;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;border-radius:6px}
     .sp-abs.a .sp-st{color:var(--warn)} .sp-abs.c .sp-st{color:var(--ok)} .sp-st:hover{background:var(--surface-2)}
     .sp-st-ph{width:24px;display:inline-block}
+    .sp-abs.g .input{border-style:dashed} .sp-abs.g .input::placeholder{color:var(--text-muted);text-decoration:line-through;opacity:1}
+    .sp-abs.g .sp-st{color:var(--text-muted)}
     .sp-btn{min-width:60px;height:28px;padding:0 10px;border-radius:999px;border:1.5px solid var(--primary);background:transparent;color:var(--primary);font:13px var(--font-data);cursor:pointer}
     .sp-btn.c{background:var(--primary);color:var(--on-primary)}
     .sp-btn.e{border:1.5px dashed var(--border);color:var(--text-muted)}
@@ -234,9 +236,9 @@
       const ready = readiness(sid);
       return `${header(sid, "prepare")}${summary(sid)}
       <div class="card" style="margin-bottom:16px"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Abwesenheiten in Personentagen</h2>
-        <span class="small muted">Tage direkt eintippen (halbe Tage mit Komma), Tab springt weiter. Neue Einträge sind <span class="chip warn">${ic("schedule", "small")}angekündigt</span>, ein Klick auf das Symbol macht sie <span class="chip ok">${ic("check_circle", "small")}bestätigt</span>. 0 oder leer löscht.</span></div>
+        <span class="small muted">Tage direkt eintippen (halbe Tage mit Komma), Tab springt weiter. Neue Einträge sind <span class="chip warn">${ic("schedule", "small")}angekündigt</span>, ein Klick auf das Symbol macht sie <span class="chip ok">${ic("check_circle", "small")}bestätigt</span>. 0 oder leer entfernt; der alte Wert bleibt durchgestrichen mit ${ic("undo", "small")} zum Wiederherstellen stehen, bis du speicherst.</span></div>
       ${tw(`<table class="t" id="sp-abs-grid"><thead><tr><th>Person</th><th class="num">FTE</th>${cols.map((s) => `<th class="sp-c ${s.id === sid ? "sp-cur" : ""}"><span class="data">${s.id}</span><br><span class="muted small">${FS.fmtDate(s.start)} ${absChip(s.id)}</span></th>`).join("")}</tr></thead><tbody>
-      ${D.people.map((p) => `<tr><td>${esc(p.name)}</td><td class="num">${fmt(p.fte, 1)}</td>${cols.map((s) => { const c = absOf(s.id)[p.id]; return `<td class="sp-c"><div class="sp-abs ${cellCls(c)}"><input class="input data" data-abs="${s.id}|${p.id}" inputmode="decimal" value="${c ? fmt(c.d, c.d % 1 ? 1 : 0) : ""}" placeholder="0" aria-label="${esc(p.name)}, ${s.id}: Abwesenheit in Tagen${c ? (c.s === "c" ? ", bestätigt" : ", angekündigt") : ""}">${c ? `<button type="button" class="sp-st" data-st="${s.id}|${p.id}" aria-label="${esc(p.name)}, ${s.id}: ${c.s === "c" ? "bestätigt, Klick setzt zurück auf angekündigt" : "angekündigt, Klick bestätigt"}" title="${c.s === "c" ? "bestätigt" : "angekündigt, Klick bestätigt"}">${ic(c.s === "c" ? "check_circle" : "schedule", "small")}</button>` : `<span class="sp-st-ph"></span>`}</div></td>`; }).join("")}</tr>`).join("")}
+      ${D.people.map((p) => `<tr><td>${esc(p.name)}</td><td class="num">${fmt(p.fte, 1)}</td>${cols.map((s) => { const c = absOf(s.id)[p.id]; const g = !c && FS.absGhost()[`${s.id}|${p.id}`]; return `<td class="sp-c"><div class="sp-abs ${cellCls(c)}${g ? " g" : ""}"><input class="input data" data-abs="${s.id}|${p.id}" inputmode="decimal" value="${c ? fmt(c.d, c.d % 1 ? 1 : 0) : ""}" placeholder="${g ? fmt(g.d, g.d % 1 ? 1 : 0) : "0"}" aria-label="${esc(p.name)}, ${s.id}: Abwesenheit in Tagen${c ? (c.s === "c" ? ", bestätigt" : ", angekündigt") : ""}">${c ? `<button type="button" class="sp-st" data-st="${s.id}|${p.id}" aria-label="${esc(p.name)}, ${s.id}: ${c.s === "c" ? "bestätigt, Klick setzt zurück auf angekündigt" : "angekündigt, Klick bestätigt"}" title="${c.s === "c" ? "bestätigt" : "angekündigt, Klick bestätigt"}">${ic(c.s === "c" ? "check_circle" : "schedule", "small")}</button>` : g ? `<button type="button" class="sp-st" data-restore="${s.id}|${p.id}" aria-label="${esc(p.name)}, ${s.id}: vorher ${fmt(g.d, g.d % 1 ? 1 : 0)} Tage, wiederherstellen" title="Vorher ${fmt(g.d, g.d % 1 ? 1 : 0)} Tage (${g.s === "c" ? "bestätigt" : "angekündigt"}). Klick stellt den Wert wieder her; endgültig entfernt erst beim Speichern.">${ic("undo", "small")}</button>` : `<span class="sp-st-ph"></span>`}</div></td>`; }).join("")}</tr>`).join("")}
       <tr class="sum"><td>Abwesend gesamt</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(absDays(s.id))} PT</td>`).join("")}</tr>
       <tr class="sum"><td>Kapazität</td><td></td>${cols.map((s) => `<td class="sp-c data">${fmt(calc(s.id).cap)} PT</td>`).join("")}</tr>
       <tr class="sum"><td>Forecast PLAN</td><td></td>${cols.map((s) => { const c = calc(s.id); return `<td class="sp-c data" style="color:var(--forecast)">${c.past ? "–" : `${fmt(c.fc)} <span class="muted small">(${c.low} bis ${c.high})</span>`}</td>`; }).join("")}</tr>
@@ -263,18 +265,19 @@
         i.onchange = () => {
           const v = parseFloat(i.value.replace(",", ".")), a = absOf(sid);
           if (i.value.trim() !== "" && (isNaN(v) || v < 0)) { FS.toast("Bitte eine Zahl von 0 bis " + max + " eingeben."); return redraw(i.dataset.abs); }
-          if (!v) delete a[pid]; else { const d = Math.min(max, Math.round(v * 2) / 2); a[pid] = { d, s: a[pid]?.s || "a" }; if (d !== v) FS.toast(`Auf ${fmt(d, d % 1 ? 1 : 0)} Tage gesetzt (halbe Tage, höchstens ${max}).`); }
+          if (!v) { FS.ghostAbs(sid, pid, a[pid]); delete a[pid]; } else { delete FS.absGhost()[i.dataset.abs]; const d = Math.min(max, Math.round(v * 2) / 2); a[pid] = { d, s: a[pid]?.s || "a" }; if (d !== v) FS.toast(`Auf ${fmt(d, d % 1 ? 1 : 0)} Tage gesetzt (halbe Tage, höchstens ${max}).`); }
           touch(sid); redraw(i.dataset.abs);
         };
         i.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); const all = [...main.querySelectorAll("[data-abs]")], col = all.filter((x) => x.dataset.abs.startsWith(sid + "|")), nx = col[col.indexOf(i) + 1]; (nx || i).focus(); } };
       });
+      main.querySelectorAll("[data-restore]").forEach((b) => (b.onclick = () => { const [sid, pid] = b.dataset.restore.split("|"); FS.restoreAbs(sid, pid); touch(sid); rerender(); document.querySelector(`[data-abs="${b.dataset.restore}"]`)?.focus(); }));
       main.querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { const [sid, pid] = b.dataset.st.split("|"), c = absOf(sid)[pid]; c.s = c.s === "c" ? "a" : "c"; touch(sid); rerender(); document.querySelector(`[data-st="${b.dataset.st}"]`)?.focus(); }));
       main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { confirmAbs(b.dataset.confirm); rerender(); FS.toast(`Abwesenheiten für ${b.dataset.confirm} bestätigt.`); }));
       main.querySelectorAll("[data-nobody]").forEach((b) => (b.onclick = () => { const sid = b.dataset.nobody, prev = JSON.stringify(absOf(sid)), ps = FS.sprint(sid).absences; nobody(sid); rerender(); FS.toast(`Für ${sid}: niemand abwesend, bestätigt.`, () => { D.absences[sid] = JSON.parse(prev); FS.sprint(sid).absences = ps; rerender(); }); }));
     },
   });
   function confirmAbs(sid) { Object.values(absOf(sid)).forEach((c) => (c.s = "c")); FS.sprint(sid).absences = "confirmed"; }
-  function nobody(sid) { D.absences[sid] = {}; FS.sprint(sid).absences = "confirmed"; }
+  function nobody(sid) { Object.entries(D.absences[sid] || {}).forEach(([pid, c]) => FS.ghostAbs(sid, pid, c)); D.absences[sid] = {}; FS.sprint(sid).absences = "confirmed"; }
   function readiness(sid) {
     const unref = tix(sid).filter((t) => !t.refined), noPre = D.products.filter((p) => pp(sid, p.id).pre == null), dev = D.products.filter((p) => pp(sid, p.id).pre != null && earmark(sid, p.id) > pp(sid, p.id).pre);
     const a = absState(sid);
