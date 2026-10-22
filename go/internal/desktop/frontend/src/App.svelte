@@ -11,6 +11,7 @@
   import Rail from './shell/Rail.svelte';
   import Toasts from './shell/Toasts.svelte';
   import TourGuide from './shell/TourGuide.svelte';
+  import { endTour } from './lib/tour/tour.svelte';
   import Topbar from './shell/Topbar.svelte';
 
   const found = $derived.by(() => {
@@ -76,7 +77,7 @@
                 <strong>{t('Demo team: invented sample data.')}</strong>
                 {t('Nothing is read from or saved to your data while you look around.')}
                 {#snippet action()}
-                  <button class="btn" type="button" onclick={async () => { await leaveDemo(); go(app.teams.length > 0 ? '/today' : '/setup'); }}>{t('Back to my data')}</button>
+                  <button class="btn" type="button" onclick={async () => { await endTour(); if (app.demo) await leaveDemo(); go(app.teams.length > 0 ? '/today' : '/setup'); }}>{t('Back to my data')}</button>
                 {/snippet}
               </Banner>
             </div>

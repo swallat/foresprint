@@ -102,7 +102,8 @@ export async function endTour(): Promise<void> {
   if (enteredDemo) {
     enteredDemo = false;
     await leaveDemo();
-    go(app.teams.length > 0 ? '/today' : '/setup');
+    // The page the tour was started from: nothing on it belongs to the demo team any more.
+    go('/help/guided');
   }
 }
 

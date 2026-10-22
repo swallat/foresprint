@@ -119,8 +119,8 @@ export const flows: Flow[] = [
       { route: '/projects', target: tour('projects-timeline'), text: () => t('The timeline shows the duration, the milestones with their traffic light (symbol and colour) and today.') },
       { route: '/projects', target: tour('projects-table'), text: () => t('If the demand fits budgets and contingents you continue with the pre-planning. Contingents are in person days; planned work is an estimate.') },
       { route: '/projects', target: tour('projects-conflict'), text: () => t('If it does not fit, the conflict view sets demand against product budget and contingent. The PO decides; Foresprint only recommends.') },
-      { route: '/projects/atlas-portal', target: tour('project-tickets'), text: () => t('Inside a project you see milestones, the contingent per month and the tickets by sprint. From here you move tickets in the backlog or the pre-planning.') },
-      { route: '/projects/atlas-portal', target: tour('project-report'), text: () => t('The report for the project lead shows booked, planned and done per sprint. Export it to pass it on.') },
+      { route: '/projects/self-service', target: tour('project-tickets'), text: () => t('Inside a project you see milestones, the contingent per month and the tickets by sprint. From here you move tickets in the backlog or the pre-planning.') },
+      { route: '/projects/self-service', target: tour('project-report'), text: () => t('The report for the project lead shows booked, planned and done per sprint. Export it to pass it on.') },
     ],
   },
   {
