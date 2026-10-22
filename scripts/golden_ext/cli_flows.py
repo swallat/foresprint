@@ -9,10 +9,12 @@ same files."""
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import tempfile
 from pathlib import Path
 
+import yaml
 from typer.testing import CliRunner
 
 from foresprint.cli import app
@@ -42,7 +44,124 @@ SEED_PROTOCOLS = {
     "demo/protokolle/2026.22-planning-20261016-100000.md": "# planning 22\n",
 }
 
+
+def _ticket_seed() -> dict[str, str]:
+    """Demo team with the ticket pre-planning on, two projects and a CSV export to read."""
+    doc = yaml.safe_load((ROOT / "examples/teams/demo/team.yaml").read_text(encoding="utf-8"))
+    doc["features"]["tickets"] = True
+    doc["tracker"] = {
+        "kind": "csv",
+        "fields": {"estimate": "Story Points", "remaining": "Remaining", "epic": "Epic Link"},
+        "refined_label": "Refined",
+    }
+    projects = {
+        "schema": 1,
+        "projects": [
+            {
+                "id": "payment",
+                "name": "Payment",
+                "product": "webshop",
+                "target": "2027-03-31",
+                "match": {"epic": ["ABC-100"]},
+            },
+            {
+                "id": "migration",
+                "name": "Migration",
+                "product": "webshop",
+                "target": "2026-11-30",
+                "match": {"epic": ["ABC-200"]},
+            },
+        ],
+    }
+    return {
+        "demo/team.yaml": yaml.safe_dump(doc, sort_keys=False),
+        "demo/projects.yaml": yaml.safe_dump(projects, sort_keys=False),
+        "demo/jira_en.csv": (ROOT / "tests/data/jira_en.csv").read_text(encoding="utf-8"),
+    }
+
+
+TICKET_SEED = _ticket_seed()
+IMPORTED = re.compile(r"^imported: .*$", re.MULTILINE)
+
+
+def _normalize(files: dict[str, str]) -> dict[str, str]:
+    """The import time is the wall clock; compare everything else."""
+    return {k: IMPORTED.sub("imported: X", v) for k, v in files.items()}
+
+
+TICKETS_IN = "tickets-in"  # seed: the one above plus the tickets.yaml of an import
+
+
 SCENARIOS: list[dict] = [
+    {"name": "tickets-off", "args": ["tickets", "demo"], "input": ""},
+    {"name": "tickets-none", "args": ["tickets", "demo"], "input": "", "seed": TICKET_SEED},
+    {
+        "name": "tickets-preview",
+        "args": ["tickets", "demo", "--import", "demo/jira_en.csv"],
+        "input": "",
+        "seed": TICKET_SEED,
+    },
+    {
+        "name": "tickets-import-apply",
+        "args": ["tickets", "demo", "--import", "demo/jira_en.csv", "--apply"],
+        "input": "",
+        "seed": TICKET_SEED,
+    },
+    {"name": "tickets-table", "args": ["tickets", "demo"], "input": "", "seed": TICKETS_IN},
+    {
+        "name": "tickets-table-conservative",
+        "args": ["tickets", "demo", "--variant", "conservative", "--sprints", "3"],
+        "input": "",
+        "seed": TICKETS_IN,
+    },
+    {
+        "name": "tickets-handover-preview",
+        "args": ["tickets", "demo", "--handover"],
+        "input": "",
+        "seed": TICKETS_IN,
+    },
+    {
+        "name": "tickets-handover-apply",
+        "args": ["tickets", "demo", "--handover", "--apply"],
+        "input": "",
+        "seed": TICKETS_IN,
+    },
+    {
+        "name": "tickets-handover-overwrite",
+        "args": ["tickets", "demo", "--handover", "--overwrite", "--apply"],
+        "input": "",
+        "seed": TICKETS_IN,
+    },
+    {
+        "name": "tickets-handover-variant",
+        "args": ["tickets", "demo", "--handover", "--variant", "optimistic"],
+        "input": "",
+        "seed": TICKETS_IN,
+    },
+    {
+        "name": "tickets-overwrite-alone",
+        "args": ["tickets", "demo", "--overwrite"],
+        "input": "",
+        "seed": TICKETS_IN,
+    },
+    {
+        "name": "tickets-apply-alone",
+        "args": ["tickets", "demo", "--apply"],
+        "input": "",
+        "seed": TICKET_SEED,
+    },
+    {
+        "name": "tickets-bad-variant",
+        "args": ["tickets", "demo", "--variant", "x"],
+        "input": "",
+        "seed": TICKET_SEED,
+    },
+    {
+        "name": "tickets-missing-file",
+        "args": ["tickets", "demo", "--import", "demo/nope.csv"],
+        "input": "",
+        "seed": TICKET_SEED,
+    },
     {
         "name": "init-defaults",
         "args": ["init", "team-zeta"],
@@ -292,7 +411,27 @@ def _snapshot(root: Path) -> dict[str, str]:
     }
 
 
+def _tickets_in() -> dict[str, str]:
+    """The ticket seed plus 14 refined tickets of 1 in the project "migration"."""
+    rows = [
+        {
+            "key": f"M-{i}",
+            "title": f"M-{i}",
+            "status": "To Do",
+            "estimate": 1.0,
+            "estimate_source": "refined",
+            "rank": f"0|{i:04d}",
+            "project": "migration",
+        }
+        for i in range(14)
+    ]
+    doc = {"schema": 1, "imported": "2026-10-15 09:00:00", "source": "test.csv", "tickets": rows}
+    return {**TICKET_SEED, "demo/tickets.yaml": yaml.safe_dump(doc, sort_keys=False)}
+
+
 def run_scenario(scenario: dict) -> dict:
+    if scenario.get("seed") == TICKETS_IN:
+        scenario = {**scenario, "seed": _tickets_in()}
     with tempfile.TemporaryDirectory() as tmp:
         base = Path(tmp)
         data = base / "data"
@@ -310,11 +449,16 @@ def run_scenario(scenario: dict) -> dict:
         )
         try:
             runner = CliRunner(env={"COLUMNS": "200"})
-            result = runner.invoke(
-                app,
-                ["--data", str(data), "--as-of", AS_OF, *scenario["args"]],
-                input=scenario["input"],
-            )
+            cwd = os.getcwd()
+            os.chdir(data)  # relative file names in the arguments
+            try:
+                result = runner.invoke(
+                    app,
+                    ["--data", str(data), "--as-of", AS_OF, *scenario["args"]],
+                    input=scenario["input"],
+                )
+            finally:
+                os.chdir(cwd)
         finally:
             for k, v in saved.items():
                 if v is None:
@@ -329,7 +473,7 @@ def run_scenario(scenario: dict) -> dict:
             "args": scenario["args"],
             "input": scenario["input"],
             "exit_code": result.exit_code,
-            "files": files,
+            "files": _normalize(files),
             "deleted": deleted,
             "seed": scenario.get("seed", {}),
         }
