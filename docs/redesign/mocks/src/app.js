@@ -22,6 +22,10 @@
   FS.multiProduct = () => D.products.length > 1;
   FS.multiPO = () => D.pos.length > 1;
   FS.prodOn = () => FS.state.teamApplied?.prod !== false;
+  // Plannable share (Settings > Forecast, as roadmap_share in 0.8). Plannable = (PLAN - carry-over) x share,
+  // rounded down; the remainder is small stuff.
+  FS.share = () => (FS.state.teamApplied?.share ?? D.plannableShare * 100) / 100;
+  FS.split = (base) => { const f = Math.floor(base * FS.share() + 1e-9); return { free: f, small: base - f }; };
   // Ticket source (Settings > Tickets und Tracker): "jira" = tracker, "local" = work packages kept in
   // Foresprint, "none" = no tickets at all, planning with amounts per product and project.
   // The choice survives a reload of the mockup (per viewer, best effort).
