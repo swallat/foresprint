@@ -1,0 +1,13 @@
+schema: 1
+earmarks:
+- ticket: W-4
+  sprint: '2026.9'
+- ticket: W-3
+  sprint: '2026.8'
+- ticket: W-5
+  sprint: '2026.2'
+- ticket: L-1
+  sprint: '2027.20'
+estimates:
+- ticket: W-13
+  estimate: 8

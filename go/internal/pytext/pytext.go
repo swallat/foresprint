@@ -3,6 +3,8 @@
 package pytext
 
 import (
+	"golang.org/x/text/cases"
+
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -82,3 +84,6 @@ func SplitLines(s string, keepends bool) []string {
 	}
 	return lines
 }
+
+// Casefold is str.casefold(): full Unicode case folding (ß → ss, ς → σ, ﬁ → fi, İ → i̇).
+func Casefold(s string) string { return cases.Fold().String(s) }
