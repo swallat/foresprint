@@ -73,7 +73,9 @@
   FS.normVel = (s) => (s.velocity == null ? null : (s.velocity / s.capacityPD) * FS.refCap());
 
   // Ticket key with tracker link (rule: every ticket links to its tracker)
-  FS.keyLink = (t) => `<span class="key"><a href="${D.team.trackerUrl}${t.key}" target="_blank" rel="noopener" title="In ${D.team.tracker} öffnen">${t.key}${FS.icon("open_in_new")}</a></span>`;
+  // Display key: with work packages kept in Foresprint the demo tickets show as AP-… and link nowhere.
+  FS.dk = (k) => (FS.trk() === "local" ? String(k).replace(/^ATL-/, "AP-") : k);
+  FS.keyLink = (t) => FS.trk() === "local" ? `<span class="key" title="Arbeitspaket in Foresprint, kein Tracker">${FS.dk(t.key)}</span>` : `<span class="key"><a href="${D.team.trackerUrl}${t.key}" target="_blank" rel="noopener" title="In ${D.team.tracker} öffnen">${t.key}${FS.icon("open_in_new")}</a></span>`;
   FS.productChip = (id) => { const p = FS.product(id); return p ? `<span class="chip"><span class="dot" style="background:${p.color}"></span>${FS.esc(p.name)}</span>` : ""; };
   FS.projectChip = (id) => { const p = FS.project(id); return p ? `<span class="chip">${FS.icon("flag", "small")}${FS.esc(p.name)}</span>` : `<span class="chip muted">Tagesgeschäft</span>`; };
   FS.lightChip = (l, text) => { const m = { ok: ["ok", "check_circle", "im Plan"], warn: ["warn", "error", "knapp"], bad: ["bad", "cancel", "gefährdet"] }[l]; return `<span class="chip ${m[0]}">${FS.icon(m[1])}${text || m[2]}</span>`; };
@@ -82,7 +84,7 @@
 
   // Standard ticket row; opts.drag adds a drag handle
   FS.ticketRow = (t, opts = {}) => `
-    <div class="ticket" data-key="${t.key}" ${opts.drag ? 'draggable="true"' : ""} tabindex="0" aria-label="${t.key} ${FS.esc(t.title)}">
+    <div class="ticket" data-key="${t.key}" ${opts.drag ? 'draggable="true"' : ""} tabindex="0" aria-label="${FS.dk(t.key)} ${FS.esc(t.title)}">
       <span class="handle">${opts.drag ? FS.icon("drag_indicator") : ""}</span>
       ${FS.keyLink(t)}
       <span class="title">${FS.esc(t.title)}</span>
@@ -153,7 +155,7 @@
   FS.ticketPanel = (key) => {
     const t = FS.ticket(key);
     const opts = (list, cur, label) => list.map((x) => `<option value="${x.id}" ${x.id === cur ? "selected" : ""}>${FS.esc(x.name)}</option>`).join("");
-    const el = FS.openPanel(`${t.key}`, `
+    const el = FS.openPanel(`${FS.dk(t.key)}`, `
       <div class="row">${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span><span style="flex:1"></span><button class="btn" type="button" id="tp-present" title="Ticket groß im Fenster zeigen, mit Pfeiltasten blättern">${FS.icon("fit_screen")}Großansicht</button></div>
       <h2 style="margin:0">${FS.esc(t.title)}</h2>
       <dl class="kv">
@@ -189,7 +191,7 @@
       const t = FS.ticket(key), d = FS.detail(t), i = keys.indexOf(key), sid = FS.state.sprint, inSp = t.sprint === sid;
       const onPlan = location.hash.slice(1) === "plan";
       const inSprint = D.tickets.filter((x) => x.sprint === sid), pts = FS.sum(inSprint, (x) => x.est), sp = FS.sprint(sid);
-      el.setAttribute("aria-label", `${t.key} ${t.title}`);
+      el.setAttribute("aria-label", `${FS.dk(t.key)} ${t.title}`);
       el.innerHTML = `<div class="present-head">
           ${FS.keyLink(t)}<span class="chip">${FS.esc(t.status)}</span>${FS.refinedChip(t)}${FS.multiProduct() ? FS.productChip(t.product) : ""}${FS.projectChip(t.project)}
           <span style="flex:1"></span>

@@ -239,7 +239,7 @@ button.link { background: none; border: 0; padding: 0; color: var(--primary); te
 [data-prodshare="off"] .col-prod, [data-multiprod="off"] .only-multiprod, [data-multipo="off"] .only-multipo { display: none !important; }
 
 /* Abwesenheits-Status: offenes Schloss = angekündigt, geschlossenes = bestätigt */
-.abs-lk{display:inline-flex;vertical-align:middle;margin-left:4px} .abs-lk.a{color:var(--warn)} .abs-lk.c{color:var(--ok)}
+.abs-lk{display:inline-flex;vertical-align:middle;margin-left:4px;width:20px;justify-content:center} .abs-lk.a{color:var(--warn)} .abs-lk.c{color:var(--ok)}
 .linkbtn { border: 0; background: none; padding: 0; color: var(--primary); text-decoration: underline; cursor: pointer; font: inherit; }
 .prod-sub { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); font-size: 11px; line-height: 18px; vertical-align: middle; }
 .prod-sub .ms { font-size: 13px; }
@@ -250,6 +250,7 @@ p .chip, .small .chip { margin-right: 2px; }
 .t tr.former td { color: var(--text-muted); }
 /* Ticket source: hide what needs a tracker or tickets */
 [data-trk="local"] .only-jira, [data-trk="none"] .only-jira, [data-trk="none"] .need-tickets { display: none !important; }
+:root:not([data-trk="none"]) .only-none, :root:not([data-trk="local"]) .only-local { display: none !important; }
 /* Numbers in input boxes line up with plain numbers in the same column: the box reaches into the cell
    padding by exactly its own border plus inner padding (1px + 6px). */
 table.t td.num input, table.t td.num .input { padding-right: 6px; margin-right: -7px; font: inherit; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }

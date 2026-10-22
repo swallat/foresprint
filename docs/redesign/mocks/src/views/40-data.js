@@ -12,6 +12,9 @@
     { id: "u2", what: "Vormerkung ATL-412", file: "tickets.yaml", before: "nicht vorgemerkt", after: "Sprint 2026.22" },
     { id: "u3", what: "Vorgeplant Kundenportal, Sprint 2026.22", file: "sprints/2026.22.yaml", before: "12", after: "13" },
   ];
+  // Without tickets there are no reservations; show the matching amount change instead. With work packages the keys read AP-….
+  const noneAlt = (o, alt) => { Object.keys(alt).forEach((k) => { const v = o[k]; Object.defineProperty(o, k, { get: () => (FS.trk() === "none" ? alt[k] : typeof v === "string" ? FS.dk(v.replace(/ATL-\d+/g, (m) => FS.dk(m))) : v), enumerable: true, configurable: true }); }); return o; };
+  S.unsaved.forEach((u) => u.id === "u2" && !Object.getOwnPropertyDescriptor(u, "what").get && noneAlt(u, { what: "Self-Service 2.0 in Kundenportal, Sprint 2026.22", file: "sprints/2026.22.yaml", before: "–", after: "5 Punkte" }));
   let uid = 10;
   FS.addUnsaved = (what, before, after, file) => S.unsaved.push({ id: "u" + ++uid, what, before, after, file: file || "team.yaml" });
   S.pending ??= 0; // local saves waiting for the server (offline)
@@ -22,7 +25,7 @@
   S.conflicts ??= newConflicts();
   S.histScope ??= { mode: "team", sprint: "2026.22", file: "personen.yaml" };
   S.storageForm ??= { server: "git.example.com/planung/atlas-daten", branch: "main", name: "Kim Berger", email: "kim.berger@atlas.example", eol: "auto", tokenSet: true, kind: "git", checked: null };
-  S.setup ??= { step: 0, kind: "clone", team: "demo", jira: "later", testOk: false };
+  S.setup ??= { step: 0, kind: "clone", team: "demo", jira: "local", testOk: false };
   const st = () => S.storageState || "incoming";
 
   D.dataDiffs = [
@@ -39,6 +42,7 @@
     { id: "h7", hash: "b9441de", when: "13.10. 17:30", who: "Du", what: "Review 2026.20: Velocity 37, Tag gesetzt", sprint: "2026.20", file: "sprints/2026.20.yaml", tag: "2026.20" },
     { id: "h8", hash: "5d1ec93", when: "09.10. 15:20", who: "Lea Hoffmann", what: "Vorplanung 2026.21 Plattform: 7 auf 8", sprint: "2026.21", file: "sprints/2026.21.yaml" },
   ];
+  noneAlt(D.history[0], { what: "Self-Service 2.0 in Kundenportal: 5 Punkte für Sprint 2026.22", file: "sprints/2026.22.yaml" });
   D.tags = [
     { name: "2026.20", when: "13.10.26", note: "Review 2026.20", hash: "b9441de" },
     { name: "2026.19", when: "29.09.26", note: "Review 2026.19", hash: "8a30c15" },
@@ -260,7 +264,7 @@
   });
 
   // ================= setup wizard (F1, D1) =================
-  const SU_STEPS = ["Speicher", "Anmeldung", "Team", "Jira", "Fertig"];
+  const SU_STEPS = ["Speicher", "Anmeldung", "Team", "Tickets", "Fertig"];
   FS.view("setup", {
     title: "Erster Start",
     render() {
@@ -279,11 +283,12 @@
         `<h2>Team</h2>${w.kind === "clone" ? `<div class="banner info">${ic("search")}<div class="grow">Im Speicher gefunden: <strong>Team Atlas</strong> mit 6 Personen und 4 Produkten. Du kannst es direkt öffnen.</div></div>` : ""}<div class="stack">
           ${opt("team", "demo", w.kind === "clone" ? "Team Atlas öffnen" : "Demo-Team Atlas öffnen", "Beispieldaten zum Ausprobieren, nichts davon ist echt.")}
           ${opt("team", "new", "Neues Team anlegen", "Name, Region für Feiertage und der erste Sprint.", `<div class="grid cols-2" style="margin-top:8px"><div class="field"><label for="su-tn">Teamname</label><input class="input" id="su-tn" placeholder="z. B. Team Nord"></div><div class="field"><label for="su-region">Region</label><select class="input" id="su-region"><option>DE-NW</option><option>DE-BY</option><option>DE-BE</option><option>AT</option><option>CH-ZH</option></select></div><div class="field"><label for="su-sid">Erster Sprint</label><input class="input data" id="su-sid" value="2026.22"></div><div class="field"><label for="su-sd">Beginn</label><input class="input data" id="su-sd" type="date" value="2026-10-28"></div></div>`)}</div>`,
-        `<h2>Jira verbinden (optional)</h2><p class="muted">Foresprint funktioniert auch ohne Tracker. Du kannst das später unter Einstellungen, Jira und Tickets nachholen.</p><div class="stack">
-          ${opt("jira", "later", "Ohne Tracker starten", "Projekte, Produkte und Sprints laufen offline. Tickets pflegst du von Hand.")}
+        `<h2>Woher kommt die Arbeit?</h2><p class="muted">Foresprint funktioniert auch ohne Tracker. Du kannst das später unter Einstellungen, Tickets und Tracker ändern.</p><div class="stack">
+          ${opt("jira", "local", "Arbeitspakete in Foresprint", "Kein Tracker. Du legst Arbeitspakete von Hand an, sonst wie mit Tracker.")}
+          ${opt("jira", "none", "Ohne Tickets", "Kein Backlog. Geplant werden Beträge je Produkt und Projekt, die Zusage ist eine Zahl.")}
           ${opt("jira", "connect", "Jira jetzt verbinden", "Tickets werden nur gelesen, Jira wird nicht verändert.", `<div class="grid cols-2" style="margin-top:8px"><div class="field"><label for="su-ju">Adresse</label><input class="input data" id="su-ju" value="https://jira.example.com"></div><div class="field"><label for="su-jt">Token</label><input class="input data" id="su-jt" type="password" autocomplete="new-password" placeholder="Token"></div><div class="field" style="grid-column:1/-1"><label for="su-jq">Abfrage (JQL)</label><input class="input data" id="su-jq" value="project = ATL AND sprint is EMPTY OR sprint in openSprints()"></div></div><div class="row" style="margin-top:8px"><button class="btn" type="button" data-act="jtest">${ic("network_check")}Testen und ersten Abruf starten</button><span id="su-jres" class="small"></span></div>`)}</div>`,
         `<h2>Fertig</h2><div class="banner" style="background:var(--ok-weak)">${ic("check_circle")}<div class="grow">Alles eingerichtet. Du kannst jeden Punkt später in den Einstellungen ändern.</div></div>
-          <dl class="kv" style="max-width:560px"><dt>Speicher</dt><dd>${{ clone: "Geladen von " + esc(S.storageForm.server), open: "Ordner geöffnet", new: "Neu angelegt" }[w.kind]}</dd><dt>Anmeldung</dt><dd>${w.testOk ? "Token gespeichert" : "übersprungen oder noch nicht getestet"}</dd><dt>Team</dt><dd>${w.team === "demo" ? "Team Atlas" : "Neues Team"}</dd><dt>Jira</dt><dd>${w.jira === "connect" ? "verbunden" : "ohne Tracker"}</dd></dl>`,
+          <dl class="kv" style="max-width:560px"><dt>Speicher</dt><dd>${{ clone: "Geladen von " + esc(S.storageForm.server), open: "Ordner geöffnet", new: "Neu angelegt" }[w.kind]}</dd><dt>Anmeldung</dt><dd>${w.testOk ? "Token gespeichert" : "übersprungen oder noch nicht getestet"}</dd><dt>Team</dt><dd>${w.team === "demo" ? "Team Atlas" : "Neues Team"}</dd><dt>Arbeit</dt><dd>${{ connect: "aus Jira, verbunden", local: "Arbeitspakete in Foresprint", none: "ohne Tickets" }[w.jira] ?? "Arbeitspakete in Foresprint"}</dd></dl>`,
       ][n];
       return `<div class="page-head"><div><h1>Erster Start</h1><p class="lead">Fünf kurze Schritte. Du kannst jederzeit springen, der Stand bleibt als Entwurf erhalten.</p></div></div>
         <nav class="stepper" aria-label="Schritte">${SU_STEPS.map((l, i) => `<a href="#setup" data-step="${i}" class="${i === n ? "active" : i < n ? "done" : ""}" ${i === n ? 'aria-current="step"' : ""}><span class="n">${i < n ? ic("check") : i + 1}</span>${l}</a>`).join("")}</nav>
