@@ -2,12 +2,14 @@ package cli
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
 	"github.com/swallat/foresprint/internal/textfmt"
 	"github.com/swallat/foresprint/internal/validate"
@@ -85,6 +87,32 @@ func baseName(path string) string {
 // refuseInvalid stops a write that would add errors to the affected files (where is the start of
 // the file name); errors that existed before do not block the change.
 func (e *Env) refuseInvalid(before, after *storage.TeamData, where string) error {
+	if e.reportNewErrors(before, after, where) {
+		e.Warnf("%s", i18n.P("Not saved – please fix the errors."))
+		return errExit1
+	}
+	return nil
+}
+
+// cloneData is a copy of the data whose people and sprints can be changed without affecting the
+// original (the state "before" of a change).
+func cloneData(d *storage.TeamData) *storage.TeamData {
+	c := *d
+	c.People = make([]model.Person, len(d.People))
+	for i, p := range d.People {
+		p.Memberships = slices.Clone(p.Memberships)
+		c.People[i] = p
+	}
+	c.Sprints = make([]model.Sprint, len(d.Sprints))
+	for i, s := range d.Sprints {
+		c.Sprints[i] = s.Clone()
+	}
+	return &c
+}
+
+// reportNewErrors prints the errors that the new state adds in the files starting with where and
+// reports whether there were any.
+func (e *Env) reportNewErrors(before, after *storage.TeamData, where string) bool {
 	known := map[[2]string]bool{}
 	for _, i := range validate.CheckTeam(before, e.Today) {
 		known[[2]string{i.Where, i.Message}] = true
@@ -96,9 +124,5 @@ func (e *Env) refuseInvalid(before, after *storage.TeamData, where string) error
 			found = true
 		}
 	}
-	if found {
-		e.Warnf("%s", i18n.P("Not saved – please fix the errors."))
-		return errExit1
-	}
-	return nil
+	return found
 }

@@ -1,0 +1,10 @@
+{
+ "args": [
+  "absences",
+  "demo",
+  "1999.1"
+ ],
+ "input": "",
+ "exit_code": 1,
+ "files": {}
+}

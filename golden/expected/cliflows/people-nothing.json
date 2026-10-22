@@ -1,0 +1,9 @@
+{
+ "args": [
+  "people",
+  "demo"
+ ],
+ "input": "q\n",
+ "exit_code": 0,
+ "files": {}
+}

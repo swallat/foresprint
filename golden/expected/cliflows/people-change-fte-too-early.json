@@ -1,0 +1,9 @@
+{
+ "args": [
+  "people",
+  "demo"
+ ],
+ "input": "f\nanna\n2025-01-01\nq\n",
+ "exit_code": 0,
+ "files": {}
+}

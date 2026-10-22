@@ -1,0 +1,10 @@
+{
+ "args": [
+  "people",
+  "demo",
+  "--former"
+ ],
+ "input": "q\n",
+ "exit_code": 0,
+ "files": {}
+}
