@@ -121,7 +121,7 @@ func readAllowed(t *testing.T) map[string]bool {
 	}
 	out := map[string]bool{}
 	for _, line := range strings.Split(string(raw), "\n") {
-		if line != "" {
+		if line = strings.TrimSpace(line); line != "" { // a Windows checkout may end lines with \r
 			out[line] = true
 		}
 	}

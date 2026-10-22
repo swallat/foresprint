@@ -29,7 +29,7 @@ frontend/             the web frontend (Vite, Svelte 5, TypeScript, Vitest)
 ```
 cd go/internal/desktop/frontend
 npm ci
-npm run dev          # browser, with the demo team from src/lib/mock.ts (no Go needed)
+npm run dev          # browser, with the demo team from src/lib/mock/ (no Go needed)
 npm run check        # svelte-check (types) + every text has its German translation
 npm test             # router, route table, contrast of the design tokens, ...
 npm run build        # to dist/, embedded by desktop.go

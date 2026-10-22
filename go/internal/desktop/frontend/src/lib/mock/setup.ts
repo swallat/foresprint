@@ -2,7 +2,7 @@
 
 import type { Api } from '../api';
 import type { NewTeam, Opened, Problem, Region, ServerCheck, SetupKind, SetupState, SignInGuide } from '../types.setup';
-import { demo, sprints } from './shared';
+import { demo } from './shared';
 
 const noProblem = (): Problem | null => null;
 
