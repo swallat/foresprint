@@ -11,6 +11,7 @@ import (
 	"github.com/swallat/foresprint/internal/capacity"
 	"github.com/swallat/foresprint/internal/engine"
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/planning"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -23,6 +24,9 @@ type TimelineEntry struct {
 	// CapacityDigits are the digits to which this team's capacity is displayed
 	// (Team.Capacity.Rounding, like capacity.Breakdown.Rounded).
 	CapacityDigits int `json:"capacity_digits"`
+	// CarryIn is the rest of earlier sprints that continues in this sprint (team unit); 0 if
+	// none. Only then are Plannable and small items split from PLAN − CarryIn.
+	CarryIn float64 `json:"carry_in,omitempty"`
 }
 
 // Forecast is the calculated timeline of a team.
@@ -366,7 +370,35 @@ func Build(data *storage.TeamData, today time.Time) (*Forecast, error) {
 			CapacityDigits: data.Team.Capacity.Rounding,
 		}
 	}
+	applyCarryIn(data, entries)
 	return &Forecast{Data: data, Today: today, Entries: entries, Absences: history}, nil
+}
+
+// applyCarryIn splits the PLAN of every sprint that takes over a rest from earlier sprints:
+// Plannable = rounded down((PLAN − carry-in) × share), small items = the rest (decision 20,
+// planning.SplitPlan). The whole timeline is searched, so a rest also continues in a sprint
+// generated from the calendar; an assumption of a running sprint counts like in the
+// pre-planning. Sprints without carry-in keep the plain PLAN × share of the engine.
+func applyCarryIn(data *storage.TeamData, entries []TimelineEntry) {
+	fc := data.Team.Forecast
+	sprints := make([]model.Sprint, len(entries))
+	for i := range entries {
+		sprints[i] = entries[i].Sprint
+	}
+	for i := range entries {
+		r := &entries[i].Result
+		if r.Plan == nil {
+			continue
+		}
+		in := planning.CarryInto(sprints, entries[i].Sprint.ID, "").Rest
+		if in <= 0 {
+			continue
+		}
+		split := planning.SplitPlan(*r.Plan, in, fc.RoadmapShare, fc.Rounding)
+		entries[i].CarryIn = in
+		r.Roadmap = model.Ptr(split.Plannable)
+		r.SmallStuff = model.Ptr(split.SmallStuff)
+	}
 }
 
 // ExpectedDone is the velocity an assumption expects for its sprint: the stored expectation,
