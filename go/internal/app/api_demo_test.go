@@ -96,7 +96,13 @@ func TestDemoEnteredTwiceAndDataDirChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	other := t.TempDir()
-	if err := a.SetDataDir(other); err != nil || a.InDemo() || a.DataDir() != other {
-		t.Errorf("SetDataDir in demo: %v %v %q", err, a.InDemo(), a.DataDir())
+	if err := a.SetDataDir(other); err == nil || !a.InDemo() || a.DataDir() == other {
+		t.Errorf("SetDataDir in demo must be refused: %v %v %q", err, a.InDemo(), a.DataDir())
+	}
+	if err := a.LeaveDemo(); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SetDataDir(other); err != nil || a.DataDir() != other {
+		t.Errorf("SetDataDir after the demo: %v %q", err, a.DataDir())
 	}
 }

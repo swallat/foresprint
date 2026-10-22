@@ -122,6 +122,7 @@
   "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}",
   "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein.",
   "Demo data, not saved": "Demodaten, nicht gespeichert",
+  "Leave the demo first: click \"Back to my data\".": "Verlasse zuerst das Demo: Klicke auf „Zurück zu meinen Daten“.",
   "This is demo data: nothing is saved or shared.": "Das sind Demodaten: nichts wird gespeichert oder geteilt.",
   "Up to date.": "Alles aktuell.",
   "Velocity": "Velocity",

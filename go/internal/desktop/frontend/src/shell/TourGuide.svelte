@@ -5,8 +5,8 @@
   import Icon from '../lib/Icon.svelte';
   import { endTour, nextStep, previousStep, tour } from '../lib/tour/tour.svelte';
 
-  const step = $derived(tour.flow?.steps[tour.index]);
-  const last = $derived(!!tour.flow && tour.index === tour.flow.steps.length - 1);
+  const step = $derived(tour.steps[tour.index]);
+  const last = $derived(!!tour.flow && tour.index === tour.steps.length - 1);
 
   // Esc is seen before the palette or the side menu close on it, so that their Esc does not end the tour.
   function key(ev: KeyboardEvent): void {
@@ -28,7 +28,7 @@
 
 {#if tour.flow && step}
   <div class="guide" role="dialog" aria-label={t('Guided flow')} tabindex="-1" bind:this={card}>
-    <div class="step">{tour.flow.id} · {tour.flow.title()} · {tour.index + 1}/{tour.flow.steps.length}</div>
+    <div class="step">{tour.flow.id} · {tour.flow.title()} · {tour.index + 1}/{tour.steps.length}</div>
     <p>{step.text()}</p>
     {#if tour.unmarked}<p class="small muted">{t('The element for this step is not on the page right now.')}</p>{/if}
     <div class="row">
