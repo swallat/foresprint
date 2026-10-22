@@ -11,8 +11,7 @@ import (
 
 // scopePath turns a scope of the window (relative to the data folder, "" = everything) into the
 // path of the folder or file; ok is false when it points outside the data folder.
-func (s *Store) scopePath(scope string) (string, bool) {
-	dir := s.Folder()
+func scopePath(dir, scope string) (string, bool) {
 	if scope == "" {
 		return dir, true
 	}
@@ -31,17 +30,21 @@ func outside() error {
 // History lists who changed what and when, newest first (D6). Scope is a team folder or a file,
 // relative to the data folder; "" is everything. Limit 0 means 40.
 func (s *Store) History(scope string, limit int) ([]Version, error) {
-	path, ok := s.scopePath(scope)
+	dir, err := s.folder()
+	if err != nil {
+		return nil, err
+	}
+	path, ok := scopePath(dir, scope)
 	if !ok {
 		return nil, outside()
 	}
 	ctx := s.ctx()
-	entries, err := githistory.History(ctx, s.Folder(), path, limit)
+	entries, err := githistory.History(ctx, dir, path, limit)
 	if err != nil {
 		return nil, err
 	}
 	tags := map[string][]string{}
-	if list, err := githistory.ListTags(ctx, s.Folder(), false); err == nil {
+	if list, err := githistory.ListTags(ctx, dir, false); err == nil {
 		for _, t := range list {
 			tags[t.Target] = append(tags[t.Target], t.Name)
 		}
@@ -65,18 +68,26 @@ func (s *Store) History(scope string, limit int) ([]Version, error) {
 // save on this computer that Save shares and Revert takes back. It is refused while there are
 // unsaved changes in that area.
 func (s *Store) Restore(scope, version, message string) Done {
-	path, ok := s.scopePath(scope)
+	dir, err := s.folder()
+	if err != nil {
+		return s.undone(err)
+	}
+	path, ok := scopePath(dir, scope)
 	if !ok {
 		return s.undone(outside())
 	}
-	rev, err := githistory.RestoreVersion(s.ctx(), s.Folder(), path, version, message)
+	rev, err := githistory.RestoreVersion(s.ctx(), dir, path, version, message)
 	return s.done(rev, err)
 }
 
 // Revert takes back one change of the history with a new change (D6, "take back this change").
 // Merge entries cannot be taken back.
 func (s *Store) Revert(version string) Done {
-	rev, err := githistory.RevertCommit(s.ctx(), s.Folder(), version)
+	dir, err := s.folder()
+	if err != nil {
+		return s.undone(err)
+	}
+	rev, err := githistory.RevertCommit(s.ctx(), dir, version)
 	return s.done(rev, err)
 }
 
@@ -95,21 +106,29 @@ func (s *Store) undone(err error) Done {
 // Discard throws away the unsaved changes of the listed files (all when empty). Anything thrown
 // away is kept in the trash folder of the data repository; Lost says what would go.
 func (s *Store) Discard(files []string) Done {
-	trash, err := githistory.Discard(s.ctx(), s.Folder(), files)
+	dir, err := s.folder()
+	if err != nil {
+		return s.undone(err)
+	}
+	trash, err := githistory.Discard(s.ctx(), dir, files)
 	git.InvalidateStatus()
 	if err != nil {
 		return s.undone(err)
 	}
 	d := Done{Status: s.Status()}
 	if trash != "" {
-		d.Warning = i18n.T("Ignored files were kept in {folder}.", "folder", trash)
+		d.Warning = i18n.T("What was discarded is kept in {folder}.", "folder", trash)
 	}
 	return d
 }
 
 // Lost lists what Discard would lose: unsaved files and whether they can be recovered.
 func (s *Store) Lost(files []string) ([]LostFile, error) {
-	list, err := githistory.DiscardPreview(s.ctx(), s.Folder(), files)
+	dir, err := s.folder()
+	if err != nil {
+		return nil, err
+	}
+	list, err := githistory.DiscardPreview(s.ctx(), dir, files)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +151,11 @@ type LostFile struct {
 
 // Labels lists the named states (tags), with what the server knows when it can be reached.
 func (s *Store) Labels(checkServer bool) ([]Label, error) {
-	tags, err := githistory.ListTags(s.ctx(), s.Folder(), checkServer)
+	dir, err := s.folder()
+	if err != nil {
+		return nil, err
+	}
+	tags, err := githistory.ListTags(s.ctx(), dir, checkServer)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +170,11 @@ func (s *Store) Labels(checkServer bool) ([]Label, error) {
 // SetLabel names a state ("" = the current one). A server that cannot be reached is a warning,
 // the label stays on this computer.
 func (s *Store) SetLabel(name, version, message string) Done {
-	warning, err := githistory.SetTag(s.ctx(), s.Folder(), name, version, message)
+	dir, err := s.folder()
+	if err != nil {
+		return s.undone(err)
+	}
+	warning, err := githistory.SetTag(s.ctx(), dir, name, version, message)
 	if err != nil {
 		return s.undone(err)
 	}
@@ -160,7 +187,11 @@ func (s *Store) SetLabel(name, version, message string) Done {
 
 // ShareLabel uploads a label to the server.
 func (s *Store) ShareLabel(name string) Done {
-	if err := githistory.UploadTag(s.ctx(), s.Folder(), name); err != nil {
+	dir, err := s.folder()
+	if err != nil {
+		return s.undone(err)
+	}
+	if err := githistory.UploadTag(s.ctx(), dir, name); err != nil {
 		return s.undone(err)
 	}
 	return Done{Status: s.Status()}
@@ -168,7 +199,11 @@ func (s *Store) ShareLabel(name string) Done {
 
 // DeleteLabel removes a label here and, where it can, on the server.
 func (s *Store) DeleteLabel(name string) Done {
-	warning, err := githistory.DeleteTag(s.ctx(), s.Folder(), name)
+	dir, err := s.folder()
+	if err != nil {
+		return s.undone(err)
+	}
+	warning, err := githistory.DeleteTag(s.ctx(), dir, name)
 	if err != nil {
 		return s.undone(err)
 	}

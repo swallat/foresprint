@@ -2,9 +2,11 @@ package datasvc
 
 import (
 	"context"
+	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/swallat/foresprint/internal/git"
 	"github.com/swallat/foresprint/internal/gitsync"
 	"github.com/swallat/foresprint/internal/i18n"
 )
@@ -24,11 +26,18 @@ type Store struct {
 
 // New returns the storage of the data folder dir (the folder with the team folders).
 func New(dir string) *Store {
-	return &Store{dir: dir, today: time.Now}
+	s := &Store{today: time.Now}
+	s.SetFolder(dir)
+	return s
 }
 
 // SetFolder points the storage to another data folder.
 func (s *Store) SetFolder(dir string) {
+	if dir != "" {
+		if abs, err := filepath.Abs(dir); err == nil {
+			dir = abs
+		}
+	}
 	s.mu.Lock()
 	s.dir = dir
 	s.review = ""
@@ -44,6 +53,15 @@ func (s *Store) Folder() string {
 
 func (s *Store) ctx() context.Context { return context.Background() }
 
+// folder is the data folder, or the error "no folder chosen": without one, Git would work on
+// whatever repository holds the current directory of the process.
+func (s *Store) folder() (string, error) {
+	if dir := s.Folder(); dir != "" {
+		return dir, nil
+	}
+	return "", git.New(i18n.T("No data folder chosen."), "path", "")
+}
+
 func (s *Store) setReview(link string) {
 	s.mu.Lock()
 	s.review = link
@@ -58,12 +76,16 @@ func (s *Store) lastReview() string {
 
 // Abort stops the save or refresh that is running (Git is told to stop; what was saved stays).
 func (s *Store) Abort() bool {
-	return gitsync.AbortRunningSync(s.ctx(), s.Folder())
+	dir, err := s.folder()
+	if err != nil {
+		return false
+	}
+	return gitsync.AbortRunningSync(s.ctx(), dir)
 }
 
 // names lists the people who made the commits, each once, in the order they came.
 func names(commits []gitsync.Commit) []string {
-	var out []string
+	out := []string{}
 	seen := map[string]bool{}
 	for _, c := range commits {
 		if c.Author != "" && !seen[c.Author] {

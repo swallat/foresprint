@@ -3,6 +3,7 @@ package datasvc
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/swallat/foresprint/internal/git"
@@ -62,7 +63,12 @@ func (s *Store) Storage() StorageSettings {
 	dir := s.Folder()
 	out := StorageSettings{Kind: "git", Folder: dir, Hosts: gitsync.Hosts, Setup: []SetupItem{}}
 	ctx := s.ctx()
-	root, err := gitsync.Root(ctx, dir)
+	root, err := "", error(nil)
+	if dir == "" {
+		_, err = s.folder()
+	} else {
+		root, err = gitsync.Root(ctx, dir)
+	}
 	if err != nil {
 		out.Problem = problemOf(err)
 		for _, i := range signin.SetupItems(ctx, "") {
@@ -120,7 +126,20 @@ type ServerCheck struct {
 
 // CheckServer tests an address (format and connection) and writes nothing.
 func (s *Store) CheckServer(address string, allowInsecure bool) ServerCheck {
-	c, err := gitsync.CheckRemote(s.ctx(), s.Folder(), address, allowInsecure, 0)
+	ctx := s.ctx()
+	if dir := s.Folder(); dir == "" || !isRepository(ctx, dir) {
+		// First start (D1): the address is checked before there is a folder.
+		address, err := git.ParseRemoteURL(address, allowInsecure)
+		if err != nil {
+			return ServerCheck{Heads: []string{}, Problem: problemOf(err)}
+		}
+		heads, err := git.ProbeRemote(ctx, neutralDir(), address, git.ProbeTimeout, "")
+		if err != nil {
+			return ServerCheck{Heads: []string{}, Problem: problemOf(err)}
+		}
+		return ServerCheck{OK: true, Address: address.URL, Empty: len(heads) == 0, Heads: append([]string{}, heads...)}
+	}
+	c, err := gitsync.CheckRemote(ctx, s.Folder(), address, allowInsecure, 0)
 	if err != nil {
 		return ServerCheck{Heads: []string{}, Problem: problemOf(err)}
 	}
@@ -145,7 +164,11 @@ type ServerSaved struct {
 
 // SaveServer sets the address of the server after checking it again.
 func (s *Store) SaveServer(address string, opts ServerOptions) ServerSaved {
-	saved, err := gitsync.SetRemote(s.ctx(), s.Folder(), address, gitsync.SetRemoteOptions{
+	dir, err := s.folder()
+	if err != nil {
+		return ServerSaved{Problem: problemOf(err)}
+	}
+	saved, err := gitsync.SetRemote(s.ctx(), dir, address, gitsync.SetRemoteOptions{
 		AllowInsecure: opts.AllowInsecure, AcceptNewBranch: opts.AcceptNewBranch, AllowOffline: opts.AllowOffline})
 	git.InvalidateStatus()
 	if err != nil {
@@ -169,7 +192,7 @@ func (s *Store) SetHost(kind string) *Problem {
 
 // SetAutoMerge turns "merge when the checks pass" on or off for merge requests.
 func (s *Store) SetAutoMerge(enabled bool) *Problem {
-	root, err := gitsync.Root(s.ctx(), s.Folder())
+	root, err := s.root()
 	if err == nil {
 		err = gitsync.SetAutoMerge(s.ctx(), root, enabled)
 	}
@@ -178,7 +201,7 @@ func (s *Store) SetAutoMerge(enabled bool) *Problem {
 }
 
 func (s *Store) setting(set func(ctx context.Context, root, value string) error, value string) *Problem {
-	root, err := gitsync.Root(s.ctx(), s.Folder())
+	root, err := s.root()
 	if err == nil {
 		err = set(s.ctx(), root, value)
 	}
@@ -194,6 +217,7 @@ func (s *Store) SetIdentity(name, email string) *Problem {
 
 // EnableHelper turns on the credential helper this computer offers (StorageSettings.SuggestedHelper).
 func (s *Store) EnableHelper(name string) *Problem {
+	// The helper is a setting of the user, not of the folder: it works before a folder exists.
 	return problemOf(signin.EnableHelper(s.ctx(), name))
 }
 
@@ -204,10 +228,7 @@ func (s *Store) SignInGuide(kind string) SignInGuide { return guide(kind) }
 // it. The token is not kept, logged or returned; Git's helper stores it.
 func (s *Store) SignIn(address, username, token string) *Problem {
 	ctx := s.ctx()
-	root, err := gitsync.Root(ctx, s.Folder())
-	if err != nil {
-		return problemOf(err)
-	}
+	root := s.signInRoot()
 	if err := signin.StoreToken(ctx, root, address, username, token); err != nil {
 		return problemOf(err)
 	}
@@ -220,11 +241,7 @@ func (s *Store) SignIn(address, username, token string) *Problem {
 
 // ForgetSignIn removes the stored sign-in for the address from the credential helper.
 func (s *Store) ForgetSignIn(address, username string) *Problem {
-	root, err := gitsync.Root(s.ctx(), s.Folder())
-	if err != nil {
-		return problemOf(err)
-	}
-	return problemOf(signin.ForgetToken(s.ctx(), root, address, username, ""))
+	return problemOf(signin.ForgetToken(s.ctx(), s.signInRoot(), address, username, ""))
 }
 
 // Branch is a version line of the data (a Git branch).
@@ -237,7 +254,11 @@ type Branch struct {
 
 // Branches lists the branches, the current one first.
 func (s *Store) Branches() ([]Branch, error) {
-	list, err := gitsync.Branches(s.ctx(), s.Folder())
+	dir, err := s.folder()
+	if err != nil {
+		return nil, err
+	}
+	list, err := gitsync.Branches(s.ctx(), dir)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +272,11 @@ func (s *Store) Branches() ([]Branch, error) {
 // SwitchBranch moves the data to another branch. Unsaved changes are saved on a rescue branch
 // first by the caller's choice (see Reattach); a plain switch refuses with open changes.
 func (s *Store) SwitchBranch(name string) Done {
-	if _, err := gitsync.SwitchBranch(s.ctx(), s.Folder(), name); err != nil {
+	dir, err := s.folder()
+	if err != nil {
+		return s.undone(err)
+	}
+	if _, err := gitsync.SwitchBranch(s.ctx(), dir, name); err != nil {
 		return s.undone(err)
 	}
 	git.InvalidateStatus()
@@ -271,7 +296,11 @@ type Reattached struct {
 // Reattach goes back to the main branch from a data state that is on no branch; work in it is
 // kept on a rescue branch.
 func (s *Store) Reattach() Reattached {
-	r, err := gitsync.Reattach(s.ctx(), s.Folder())
+	dir, err := s.folder()
+	if err != nil {
+		return Reattached{Problem: problemOf(err)}
+	}
+	r, err := gitsync.Reattach(s.ctx(), dir)
 	git.InvalidateStatus()
 	if err != nil {
 		return Reattached{Rescue: r.Rescue, Commits: r.Commits, Changes: r.Changes, Problem: problemOf(err)}
@@ -285,19 +314,37 @@ type Opened struct {
 	Problem *Problem `json:"problem,omitempty"`
 }
 
+// dataFolder is the folder with the team folders inside a data repository: its subfolder "teams"
+// when there is one, else the folder itself.
+func dataFolder(folder string) string {
+	if info, err := os.Stat(filepath.Join(folder, "teams")); err == nil && info.IsDir() {
+		return filepath.Join(folder, "teams")
+	}
+	return folder
+}
+
 // CloneFrom copies the data from a server address into a new local folder and uses it (D1).
 func (s *Store) CloneFrom(address, folder string) Opened {
-	if err := git.CloneRepository(s.ctx(), address, folder, 0); err != nil {
+	abs, err := filepath.Abs(folder)
+	if err != nil {
 		return Opened{Problem: problemOf(err)}
 	}
-	s.SetFolder(folder)
+	if err := git.CloneRepository(s.ctx(), address, abs, 0); err != nil {
+		return Opened{Problem: problemOf(err)}
+	}
+	data := dataFolder(abs)
+	s.SetFolder(data)
 	git.InvalidateStatus()
-	return Opened{Folder: folder}
+	return Opened{Folder: data}
 }
 
 // CreateFolder starts a new, empty data repository in folder and uses it (D1).
 func (s *Store) CreateFolder(folder string) Opened {
-	data, err := git.InitDataRepository(s.ctx(), folder, true)
+	abs, err := filepath.Abs(folder)
+	if err != nil {
+		return Opened{Problem: problemOf(err)}
+	}
+	data, err := git.InitDataRepository(s.ctx(), abs, true)
 	if err != nil {
 		return Opened{Problem: problemOf(err)}
 	}
@@ -306,12 +353,49 @@ func (s *Store) CreateFolder(folder string) Opened {
 	return Opened{Folder: data}
 }
 
-// OpenFolder uses an existing local data repository (D1).
+// OpenFolder uses an existing local data repository (D1): the folder itself or the repository
+// that contains it.
 func (s *Store) OpenFolder(folder string) Opened {
-	if _, err := gitsync.Root(s.ctx(), folder); err != nil {
+	abs, err := filepath.Abs(folder)
+	if err != nil {
 		return Opened{Problem: problemOf(err)}
 	}
-	s.SetFolder(folder)
+	if _, err := gitsync.Root(s.ctx(), abs); err != nil {
+		return Opened{Problem: problemOf(err)}
+	}
+	data := dataFolder(abs)
+	s.SetFolder(data)
 	git.InvalidateStatus()
-	return Opened{Folder: folder}
+	return Opened{Folder: data}
+}
+
+// root is the root of the data repository.
+func (s *Store) root() (string, error) {
+	dir, err := s.folder()
+	if err != nil {
+		return "", err
+	}
+	return gitsync.Root(s.ctx(), dir)
+}
+
+func isRepository(ctx context.Context, dir string) bool {
+	_, err := gitsync.Root(ctx, dir)
+	return err == nil
+}
+
+// neutralDir is where Git calls run that belong to no repository (sign-in before the first
+// clone): the home folder of the person.
+func neutralDir() string {
+	if home, err := os.UserHomeDir(); err == nil {
+		return home
+	}
+	return os.TempDir()
+}
+
+// signInRoot is the folder the credential calls run in: the repository when there is one.
+func (s *Store) signInRoot() string {
+	if root, err := s.root(); err == nil {
+		return root
+	}
+	return neutralDir()
 }
