@@ -235,19 +235,25 @@ func TestMoveWorkPackage(t *testing.T) {
 		}
 		return strings.Join(out, ",")
 	}
-	if err := api.MoveWorkPackage("t", "AP-3", "AP-1"); err != nil {
+	if err := api.MoveWorkPackage("t", "AP-3", "AP-1", false); err != nil {
 		t.Fatal(err)
 	}
 	if got := keys(); got != "AP-2,AP-3,AP-1" {
 		t.Fatalf("order %s", got)
 	}
-	if err := api.MoveWorkPackage("t", "AP-3", ""); err != nil {
+	if err := api.MoveWorkPackage("t", "AP-3", "", false); err != nil {
 		t.Fatal(err)
 	}
 	if got := keys(); got != "AP-2,AP-1,AP-3" {
 		t.Fatalf("order %s", got)
 	}
-	if err := api.MoveWorkPackage("t", "AP-1", "AP-9"); err == nil {
+	if err := api.MoveWorkPackage("t", "AP-1", "AP-9", false); err == nil {
 		t.Error("an unknown neighbour should be refused")
+	}
+	if err := api.MoveWorkPackage("t", "AP-2", "AP-1", true); err != nil {
+		t.Fatal(err)
+	}
+	if got := keys(); got != "AP-1,AP-2,AP-3" {
+		t.Fatalf("order %s", got)
 	}
 }

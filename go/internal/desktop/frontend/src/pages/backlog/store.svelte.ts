@@ -74,10 +74,10 @@ export async function changed(): Promise<void> {
   await Promise.all([loadBacklog(), refreshStatus()]);
 }
 
-/** Puts a work package before another one in the backlog order (before "" = to the end). */
-export async function reorder(key: string, before: string): Promise<void> {
+/** Puts a work package before (or after) another one in the backlog order; anchor "" = to the end. */
+export async function reorder(key: string, anchor: string, after = false): Promise<void> {
   try {
-    await api.MoveWorkPackage(app.team, key, before);
+    await api.MoveWorkPackage(app.team, key, anchor, after);
   } catch (e) {
     toast(String(e), 'bad');
     return;

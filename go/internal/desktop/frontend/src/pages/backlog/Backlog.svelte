@@ -2,6 +2,7 @@
   // The backlog: all open tickets (or work packages) in planning order, saved views as filters
   // of the one list, and lanes for the coming sprints to earmark into (flows.md F2, F10).
   import { app, syncTracker } from '../../lib/app.svelte';
+  import { tick } from 'svelte';
   import { language } from '../../lib/i18n.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import Icon from '../../lib/Icon.svelte';
@@ -114,6 +115,7 @@
   function dragEnd(): void {
     dragKeys = [];
     overZone = '';
+    overRow = '';
   }
   function dragOver(e: DragEvent, zone: string): void {
     if (dragKeys.length === 0) return;
@@ -138,13 +140,14 @@
   const canReorder = $derived(packages && ui.sort === 'order' && ui.group === 'none');
   let overRow = $state('');
   function rowOver(e: DragEvent, tk: BacklogTicket): void {
-    if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key || !items.some((i) => i.key === dragKeys[0])) return;
+    if (!canReorder || dragKeys.length !== 1 || dragKeys[0] === tk.key) return;
+    if (!items.some((i) => i.key === dragKeys[0]) || !items.some((i) => i.key === tk.key)) return; // a sprint lane row: the lane's drop earmarks
     e.preventDefault();
     e.stopPropagation();
     overRow = tk.key;
   }
   async function rowDrop(e: DragEvent, tk: BacklogTicket): Promise<void> {
-    if (overRow !== tk.key) return;
+    if (overRow !== tk.key || dragKeys.length !== 1) return;
     e.preventDefault();
     e.stopPropagation();
     const key = dragKeys[0] ?? '';
@@ -157,10 +160,15 @@
     const i = items.findIndex((x) => x.key === tk.key);
     if (i < 0) return;
     e.preventDefault();
-    const target = e.key === 'ArrowUp' ? items[i - 1] : items[i + 2];
-    if (e.key === 'ArrowUp' && !target) return;
-    if (e.key === 'ArrowDown' && !items[i + 1]) return;
-    await reorder(tk.key, target?.key ?? '');
+    if (e.key === 'ArrowUp') {
+      if (!items[i - 1]) return;
+      await reorder(tk.key, items[i - 1]!.key);
+    } else {
+      if (!items[i + 1]) return;
+      shown = Math.max(shown, i + 3);
+      await reorder(tk.key, items[i + 1]!.key, true);
+    }
+    await tick();
     document.querySelector<HTMLElement>(`.ticket[data-key="${tk.key}"]`)?.focus();
   }
 

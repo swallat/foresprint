@@ -892,16 +892,20 @@ func (a *API) DeleteWorkPackage(team, key string) error {
 	})
 }
 
-// MoveWorkPackage puts a work package before another one in the backlog order (before ""
-// means to the end). The rank decides only among packages of the same priority and project, so
-// a move across them is refused instead of silently doing nothing. A tracker keeps its own
-// order, which Foresprint never writes back.
-func (a *API) MoveWorkPackage(team, key, before string) error {
+// MoveWorkPackage puts a work package next to another one in the backlog order: before it, or
+// after it when after is set; anchor "" means to the end. The rank decides only among packages
+// of the same priority and project and behind dependencies, so a move the order does not show
+// is refused instead of silently doing nothing. A tracker keeps its own order, which Foresprint
+// never writes back.
+func (a *API) MoveWorkPackage(team, key, anchor string, after bool) error {
 	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
 		if !a.writePackages(data) {
 			return nil, fmt.Errorf("%s", i18n.T("The order of tracker tickets is kept in the tracker."))
 		}
-		if before == key {
+		if tk.Done {
+			return nil, fmt.Errorf("%s", i18n.T("{key} is done and has no place in the backlog.", "key", key))
+		}
+		if anchor == key {
 			return func() error { return nil }, nil
 		}
 		ordered, leftover := preplan.OrderTickets(data)
@@ -912,42 +916,38 @@ func (a *API) MoveWorkPackage(team, key, before string) error {
 			}
 		}
 		at := len(keys)
-		if before != "" {
+		if anchor != "" {
 			at = -1
 			for i, k := range keys {
-				if k == before {
+				if k == anchor {
 					at = i
 				}
 			}
 			if at < 0 {
-				return nil, fmt.Errorf("%s", i18n.T("{key} is not in the backlog.", "key", before))
+				return nil, fmt.Errorf("%s", i18n.T("{key} is not in the backlog.", "key", anchor))
+			}
+			if after {
+				at++
 			}
 		}
 		keys = append(keys[:at], append([]string{key}, keys[at:]...)...)
-		old := map[string]*string{}
-		for i := range data.Tickets {
-			old[data.Tickets[i].Key] = data.Tickets[i].Rank
-		}
 		for n, k := range keys {
 			r := fmt.Sprintf("%08d", (n+1)*10)
 			if t := data.TicketByKey(k); t != nil {
 				t.Rank = &r
 			}
 		}
-		// The new order must show: otherwise priority or project keeps the package where it is.
-		after, rest := preplan.OrderTickets(data)
-		var got []string
-		for _, o := range append(after, rest...) {
-			got = append(got, o.Key)
-		}
+		// The new order must show; otherwise priority, project or a dependency keeps the package
+		// where it is. Nothing is saved then.
+		reordered, rest := preplan.OrderTickets(data)
+		got := append(reordered, rest...)
 		for i := range got {
-			if got[i] == key {
-				if (before == "" && i != len(got)-1) || (before != "" && (i+1 >= len(got) || got[i+1] != before)) {
-					for j := range data.Tickets {
-						data.Tickets[j].Rank = old[data.Tickets[j].Key]
-					}
-					return nil, fmt.Errorf("%s", i18n.T("{key} has another priority or project than its neighbour. Change that in the panel first.", "key", key))
-				}
+			if got[i].Key != key {
+				continue
+			}
+			wantBefore := at+1 < len(keys) && !after
+			if (after && (i == 0 || got[i-1].Key != anchor)) || (wantBefore && (i+1 >= len(got) || got[i+1].Key != anchor)) || (anchor == "" && i != len(got)-1) {
+				return nil, fmt.Errorf("%s", i18n.T("{key} has to stay where it is: priority, project or a dependency decides here. Change that in the panel first.", "key", key))
 			}
 		}
 		return backlogSavePackages(repo, team, data), nil
