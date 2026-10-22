@@ -10,20 +10,20 @@ signed.
 | --- | --- |
 | Windows | Not signed yet. Windows SmartScreen may show a warning for new releases. Free signing through the [SignPath Foundation](https://signpath.org/) will be requested once the project qualifies. |
 | macOS | Not signed or notarized yet. macOS asks you to approve the app under System Settings > Privacy & Security on first start. |
-| Linux | No signature required by the platform. Every release carries a `checksums.txt` (SHA-256). |
+| Linux | No signature required by the platform. From the first Go release on, every release carries a `checksums.txt` (SHA-256). Signing that file with cosign (keyless) is planned. |
 
 Once signing is active, this page is updated and the section "Signed releases"
 below applies.
 
 ## Verify a download
 
-Compare the SHA-256 hash of the downloaded archive with the entry in
-`checksums.txt` of the same release:
+From the first Go release on, compare the SHA-256 hash of the downloaded
+archive with the entry in `checksums.txt` of the same release:
 
 ```sh
 sha256sum -c checksums.txt --ignore-missing      # Linux
 shasum -a 256 -c checksums.txt --ignore-missing  # macOS
-Get-FileHash .\foresprint_<version>_windows_amd64.zip -Algorithm SHA256   # Windows (PowerShell)
+(Get-FileHash .\foresprint_<version>_windows_amd64.zip -Algorithm SHA256).Hash -eq '<hash from checksums.txt>'   # Windows (PowerShell), prints True if equal
 ```
 
 ## Opening an unsigned build
@@ -38,9 +38,9 @@ whose checksum matches.
 
 ## Signed releases (applies once signing is active)
 
-- Free code signing for Windows is provided by the
-  [SignPath Foundation](https://signpath.org/); the certificate is issued by
-  the SignPath Foundation, which is shown as publisher.
+- Free code signing provided by [SignPath.io](https://signpath.io/),
+  certificate by [SignPath Foundation](https://signpath.org/). The
+  SignPath Foundation is shown as publisher on Windows.
 - Only binaries built by the project's GitHub Actions release workflow from the
   public repository are submitted for signing. Nothing is signed from a local
   machine.
@@ -51,18 +51,23 @@ whose checksum matches.
 
 | Role | Who |
 | --- | --- |
-| Committers and reviewers | Contributors who can merge into the default branch, see the repository's collaborators |
+| Committers and reviewers | Contributors with merge rights, listed on the [contributors page](https://github.com/swallat/foresprint/graphs/contributors); changes to the default branch go through pull requests |
 | Approvers | The project maintainer, [@swallat](https://github.com/swallat) |
 
 ### What is signed
 
-Only the Foresprint program itself (`foresprint` / `foresprint.exe`) as built
+Checksums are additionally signed with cosign (planned; the self-update will verify
+that signature). Only the Foresprint program itself (`foresprint` / `foresprint.exe`) as built
 from this repository. Third-party components are not re-signed and keep their
 own signatures where they have one.
 
 ## Privacy
 
-Foresprint does not send data to the project or to third parties on its own.
-The only network access is what you configure: your own Git remote, your own
-issue tracker, and the check for new releases on GitHub, which you can turn off
-in the update settings. Signing itself does not add any data collection.
+Foresprint does not send your planning data to the project or to third parties.
+The only network access is what you configure (your own Git remote, your own
+issue tracker) and the update check: once a day the program asks GitHub for the
+latest release. By default it also installs the update by itself. Switch this
+to report-only or off with `foresprint update --auto notice` or
+`foresprint update --auto off`, or with the environment variable
+`FORESPRINT_AUTOUPDATE` (`on`, `notice`, `off`), which takes precedence.
+Signing itself does not add any data collection.
