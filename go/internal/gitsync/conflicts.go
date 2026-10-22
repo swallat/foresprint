@@ -258,6 +258,17 @@ func ResolveConflicts(ctx context.Context, path string, choices Choices) ([]Conf
 			if !decided {
 				continue
 			}
+			if text, custom := strings.CutPrefix(choice, yamlmerge.CustomPrefix); custom {
+				// The person wrote the file's content themselves.
+				if err := os.WriteFile(filepath.Join(root, file), []byte(text), 0o666); err != nil {
+					return nil, git.New(i18n.T("{file} could not be written ({reason}).",
+						"file", file, "reason", reason(err)), "locked", git.UnwritableFileHint())
+				}
+				if _, err := git.Git(ctx, root, "add", "--", file); err != nil {
+					return nil, err
+				}
+				continue
+			}
 			keep, flag := 3, "--theirs"
 			if choice == yamlmerge.Ours {
 				keep, flag = 2, "--ours"

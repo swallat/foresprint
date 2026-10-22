@@ -25,6 +25,10 @@
   "What was discarded is kept in {folder}.": "Was verworfen wurde, liegt weiter in {folder}.",
   "All decided: Save finishes the merge": "Alles entschieden: Speichern schließt das Zusammenführen ab",
   "An unfinished operation from outside blocks saving.": "Ein unfertiger Vorgang von außen blockiert das Speichern.",
-  "The server only takes changes through a merge request; saves now go to a branch of your own.": "Der Server nimmt Änderungen nur über einen Merge Request an; Speichern geht jetzt auf einen eigenen Zweig."
+  "The server only takes changes through a merge request; saves now go to a branch of your own.": "Der Server nimmt Änderungen nur über einen Merge Request an; Speichern geht jetzt auf einen eigenen Zweig.",
+  "Only values of YAML files can be put back one by one.": "Nur Werte von YAML-Dateien lassen sich einzeln zurücksetzen.",
+  "This file cannot be put back value by value.": "Diese Datei lässt sich nicht Wert für Wert zurücksetzen.",
+  "This value cannot be put back.": "Dieser Wert lässt sich nicht zurücksetzen.",
+  "The value you entered cannot be read: {error}": "Der eingegebene Wert ist nicht lesbar: {error}"
  }
 }

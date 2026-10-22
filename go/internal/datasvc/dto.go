@@ -132,6 +132,9 @@ type Result struct {
 const (
 	Mine   = "ours"
 	Theirs = "theirs"
+	// Custom: the person typed the value (Decision.Value, as YAML text; for a file that can only
+	// be decided as a whole, the content of the file).
+	Custom = "custom"
 )
 
 // Conflict is one value (or one file) that two people changed.
@@ -165,7 +168,8 @@ type ConflictEntry struct {
 type Decision struct {
 	File   string   `json:"file"`
 	Path   []string `json:"path"`
-	Choice string   `json:"choice"` // Mine or Theirs
+	Choice string   `json:"choice"` // Mine, Theirs or Custom
+	Value  string   `json:"value,omitempty"`
 }
 
 // Version is one entry of the history.
