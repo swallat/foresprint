@@ -37,6 +37,7 @@ type API struct {
 	dataDir string
 	// today replaces the clock in tests.
 	today func() time.Time
+	undo  undoLog
 }
 
 // New returns the API for a data folder; "" takes the remembered one.
