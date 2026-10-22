@@ -118,7 +118,7 @@
       <div class="small muted"><a href={link('/projects')}>{t('Projects')}</a> / {t('Project')}</div>
       <h1>{p.name} <LightChip light={p.light} label={closed ? (p.state === 'cancelled' ? t('cancelled') : t('finished')) : undefined} /></h1>
       <p class="lead">
-        {t('Ends {date}.', { date: date(p.end) })}
+        {closed && p.closedAt ? t('Closed {date}.', { date: date(p.closedAt) }) : t('Ends {date}.', { date: date(p.end) })}
         {#if d.source === 'tracker'}
           {#if p.rule}{t('Rule:')} <span class="data rule-txt">{p.rule}</span>{:else}{t('Without a rule you assign tickets by hand.')}{/if}
           {#if !closed}<button class="link" type="button" onclick={() => (panel = 'edit')}>{p.rule ? t('Change rule') : t('Add rule')}</button>{/if}
@@ -126,14 +126,14 @@
       </p>
     </div>
     <div class="actions">
-      <select class="input" aria-label={t('Switch project')} value={p.id} onchange={(e) => go(`/projects/${encodeURIComponent(e.currentTarget.value)}`)}>
+      <select class="input" aria-label={t('Switch project')} disabled={panel !== undefined} value={p.id} onchange={(e) => go(`/projects/${encodeURIComponent(e.currentTarget.value)}`)}>
         {#each [...d.projects, ...d.closed] as x (x.id)}<option value={x.id}>{x.name}</option>{/each}
       </select>
       {#if closed}
         <button class="btn" type="button" onclick={reopen}><Icon name="unarchive" />{t('Reopen')}</button>
       {:else}
         <button class="btn" type="button" onclick={() => (panel = 'edit')}><Icon name="edit" />{t('Edit')}</button>
-        <button class="btn" type="button" onclick={() => (panel = 'close')}>
+        <button class="btn" type="button" disabled={panel !== undefined} onclick={() => (panel = 'close')}>
           <Icon name={p.history ? 'archive' : 'delete'} />{p.history ? t('Finish') : t('Delete')}
         </button>
       {/if}
@@ -168,7 +168,7 @@
     <div class="card">
       <div class="row">
         <div class="small muted" style="flex:1">{t('Contingent (PD)')}</div>
-        {#if estimated}<span class="chip" title={t('Converted from points with the team rate')}>≈ {t('estimate')}</span>{/if}
+        {#if estimated}<span class="chip" title={t('Converted from points with the rate of each sprint')}>≈ {t('estimate')}</span>{/if}
       </div>
       <div class="big">
         <Amount value={spent === null && p.planned === null ? null : (spent ?? 0) + (p.planned ?? 0)} est={spentEst || (estimated && p.planned !== null)} inline />
@@ -303,7 +303,7 @@
   </div>
 
   {#if d.source !== 'none'}
-    <h2 style="margin:24px 0 8px">{t('Tickets by sprint')}</h2>
+    <h2 style="margin:24px 0 8px" data-tour="project-tickets">{t('Tickets by sprint')}</h2>
     {#if lanes.length === 0}
       <Banner>{t('No tickets assigned yet. Assign tickets by hand in the backlog, or add a rule to the project.')}</Banner>
     {:else}
@@ -330,7 +330,7 @@
     {/if}
   {/if}
 
-  <div class="card" style="margin-top:24px">
+  <div class="card" style="margin-top:24px" data-tour="project-report">
     <div class="row">
       <h2 style="margin:0;flex:1">{t('Report for the project lead')}</h2>
       <button class="btn primary" type="button" onclick={copyReport}><Icon name="ios_share" />{t('Copy report')}</button>
@@ -375,7 +375,7 @@
         </table>
       </div>
       <p class="small muted" style="margin:8px 0 0">
-        {t('Booked per sprint: the monthly value split over the sprints ending in that month. Planned and done: points divided by the team rate.')}
+        {t('Booked per sprint: the monthly value split over the sprints ending in that month. Planned and done: points converted with the rate of each sprint.')}
       </p>
     {/if}
   </div>

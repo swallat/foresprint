@@ -105,6 +105,8 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
         absent: 0,
         capacity: DAYS,
         plan: null,
+        planLow: null,
+        planHigh: null,
         past: s.state === 'past',
       },
       unit: 'PT',

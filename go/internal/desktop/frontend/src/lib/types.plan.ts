@@ -57,6 +57,7 @@ export interface PlanProject {
   amount: number;
   needPD: number | null;
   bookedPD: number | null;
+  usedPD: number | null;
   manual: boolean;
 }
 
@@ -144,6 +145,8 @@ export interface PlanSprint {
   carryLater: number;
   preplanned: number;
   earmarked: number;
+  removed: string[];
+  sprintPre: number | null;
   committed: number | null;
   products: PlanProduct[];
   tickets: PlanTicket[];
@@ -170,6 +173,8 @@ export interface PlanApi {
   WhatIf(team: string, sprint: string, assume: Assumption): Promise<WhatIf | null>;
   SaveAssumption(team: string, sprint: string, assume: Assumption): Promise<void>;
   SetPreplanned(team: string, sprint: string, product: string, value: number | null): Promise<void>;
+  SetSprintPreplanned(team: string, sprint: string, value: number | null): Promise<void>;
+  SetRemoved(team: string, sprint: string, ticket: string, removed: boolean): Promise<void>;
   TakeEarmarks(team: string, sprint: string): Promise<void>;
   UseDefaults(team: string, sprint: string): Promise<void>;
   SetProjectAmount(team: string, sprint: string, project: string, value: number | null): Promise<void>;

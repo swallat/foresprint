@@ -1,7 +1,5 @@
 api_data.go adopt
 api_data.go nilIfEmpty
-api_forecast.go productCount
-api_forecast.go row
 api_forecast.go simulationRuns
 api_forecast.go simulationSeed
 api_forecast.go today
@@ -46,12 +44,12 @@ api_projects.go slugRe
 api_projects.go today
 api_projects.go uniqueID
 api_projects.go worse
-api_reports.go changeText
-api_reports.go freeName
 api_reports.go importPreviewLimit
 api_reports.go planImport
 api_reports.go previewImport
 api_reports.go productsHistory
+api_reports.go reportChangeText
+api_reports.go reportFreeName
 api_reports.go reportHistory
 api_review.go addTag
 api_review.go buildReview
@@ -88,11 +86,12 @@ api_sprints.go absenceState
 api_sprints.go allAbsences
 api_sprints.go cellState
 api_sprints.go column
+api_sprints.go displayName
 api_sprints.go editMu
 api_sprints.go editSprint
 api_sprints.go halves
 api_sprints.go nextStep
-api_sprints.go sprintName
+api_sprints.go planSpan
 api_sprints.go sprintWindow
 api_today.go routeOf
 api_today.go sourceOf

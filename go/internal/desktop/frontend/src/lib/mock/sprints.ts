@@ -70,6 +70,8 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
     absent: absent(s.id),
     capacity: Math.round(capacityOf(s.id) * 10) / 10,
     plan: s.state === 'past' ? null : Math.floor(capacityOf(s.id) * RATE),
+    planLow: s.state === 'past' ? null : Math.floor(capacityOf(s.id) * RATE * 0.92),
+    planHigh: s.state === 'past' ? null : Math.floor(capacityOf(s.id) * RATE * 1.08),
     past: s.state === 'past',
   });
 
@@ -103,6 +105,8 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
           absences: col.state,
           capacity: col.capacity,
           plan: col.plan,
+          planLow: col.planLow,
+          planHigh: col.planHigh,
           commitment: done || s.state === 'current' ? velocity + 2 : null,
           velocity: done ? velocity : null,
           normalized: done ? Math.round(((velocity / col.capacity) * fullCapacity()) * 10) / 10 : null,

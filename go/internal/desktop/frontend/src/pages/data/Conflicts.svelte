@@ -9,19 +9,21 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
   import DataTabs from './DataTabs.svelte';
-  import { decisionsOf, entryKey, openCount, shortFile } from './util';
+  import { decisionsOf, entryKey, openCount, shortFile, type Choice } from './util';
 
   let { params }: PageProps = $props();
   void params;
 
   let conflicts = $state<Conflict[]>([]);
-  let choices = $state<Record<string, 'ours' | 'theirs'>>({});
+  let choices = $state<Record<string, Choice>>({});
+  /** The own values typed in, by entry. */
+  let values = $state<Record<string, string>>({});
   let working = $state(false);
   let confirm = $state<'theirs' | 'abort' | undefined>();
   let failed = $state('');
   let seq = 0;
 
-  const open = $derived(openCount(conflicts, choices));
+  const open = $derived(openCount(conflicts, choices, values));
   const total = $derived(conflicts.reduce((n, c) => n + c.entries.length, 0));
   const decided = $derived(app.status.storage === 'decided');
   const key = $derived(`${app.rev}:${app.status.data?.conflicts}:${app.status.storage}`);
@@ -42,6 +44,7 @@
     // Keep only the choices that still belong to an entry.
     const known = new Set(conflicts.flatMap((c) => c.entries.map((e) => entryKey(c.file, e))));
     choices = Object.fromEntries(Object.entries(choices).filter(([k]) => known.has(k)));
+    values = Object.fromEntries(Object.entries(values).filter(([k]) => known.has(k)));
   }
 
   $effect(() => {
@@ -49,12 +52,16 @@
     void load();
   });
 
-  function choose(file: string, entry: ConflictEntry, choice: 'ours' | 'theirs'): void {
-    choices[entryKey(file, entry)] = choice;
+  function choose(file: string, entry: ConflictEntry, choice: Choice): void {
+    const k = entryKey(file, entry);
+    choices[k] = choice;
+    // The own value starts empty: the shown texts are for reading (a diff for whole files, plain text for values) and would change meaning when read back as YAML.
+    if (choice === 'custom' && values[k] === undefined) values[k] = '';
   }
 
-  const result = (entry: ConflictEntry, choice: 'ours' | 'theirs' | undefined): string | undefined => {
+  const result = (entry: ConflictEntry, choice: Choice | undefined, own = ''): string | undefined => {
     if (!choice) return undefined;
+    if (choice === 'custom') return own.trim() ? own : undefined;
     const missing = choice === 'ours' ? entry.mineMissing : entry.theirsMissing;
     return missing ? t('removed') : choice === 'ours' ? entry.mine : entry.theirs;
   };
@@ -62,7 +69,7 @@
   async function applyAndSave(): Promise<void> {
     working = true;
     try {
-      const r = await api.ResolveConflicts(decisionsOf(conflicts, choices));
+      const r = await api.ResolveConflicts(decisionsOf(conflicts, choices, values));
       await refreshStatus();
       if (r.outcome === 'decided') {
         await save();
@@ -176,12 +183,21 @@
               <button class="chip filter" class:on={choice === 'theirs'} type="button" aria-pressed={choice === 'theirs'} onclick={() => choose(c.file, e, 'theirs')}>
                 {#if choice === 'theirs'}<Icon name="check" />{/if}{t('Take from others')}
               </button>
+              <button class="chip filter" class:on={choice === 'custom'} type="button" aria-pressed={choice === 'custom'} onclick={() => choose(c.file, e, 'custom')}>
+                {#if choice === 'custom'}<Icon name="check" />{:else}<Icon name="edit_note" />{/if}{t('Enter own value')}
+              </button>
               <span class="grow"></span>
               <span class="small">
-                {#if choice}{t('Result:')} <strong class="data">{result(e, choice)}</strong>
+                {#if result(e, choice, values[entryKey(c.file, e)])}{t('Result:')} <strong class="data">{result(e, choice, values[entryKey(c.file, e)])}</strong>
                 {:else}<span class="muted">{t('not decided yet')}</span>{/if}
               </span>
             </div>
+            {#if choice === 'custom'}
+              <label class="own">
+                <span class="small muted">{c.whole ? t('Content of the file') : t('Own value (as written in the file)')}</span>
+                <textarea class="input data" rows={c.whole ? 8 : 3} bind:value={values[entryKey(c.file, e)]} spellcheck="false"></textarea>
+              </label>
+            {/if}
           </div>
         {/each}
       </section>
@@ -220,6 +236,16 @@
 {/if}
 
 <style>
+  .own {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .own textarea {
+    width: 100%;
+    resize: vertical;
+  }
   .empty {
     text-align: center;
     padding: 32px;

@@ -16,7 +16,6 @@
   "Amounts in person days need the team rate. It can be measured once three sprints are finished.": "Beträge in Personentagen brauchen die Team-Rate. Sie lässt sich messen, sobald drei Sprints abgeschlossen sind.",
   "As of {date}: {done} of {booked} PD done, another {planned} PD planned (estimate).": "Stand {date}: {done} von {booked} PT erledigt, weitere {planned} PT geplant (Schätzung).",
   "Back to the projects": "Zurück zu den Projekten",
-  "Booked per sprint: the monthly value split over the sprints ending in that month. Planned and done: points divided by the team rate.": "Gebucht je Sprint: der Monatswert, verteilt auf die Sprints, die in diesem Monat enden. Geplant und erledigt: Punkte geteilt durch die Team-Rate.",
   "Booked {booked} PD": "Gebucht {booked} PT",
   "Budget ({unit})": "Budget ({unit})",
   "Change rule": "Regel ändern",
@@ -27,7 +26,6 @@
   "Contingent (PD)": "Kontingent (PT)",
   "Contingent in total (person days)": "Kontingent gesamt (Personentage)",
   "Contingent per month": "Kontingent pro Monat",
-  "Converted from points with the team rate": "Aus Punkten mit der Team-Rate umgerechnet",
   "Copy report": "Bericht kopieren",
   "Create project": "Projekt anlegen",
   "Delete": "Löschen",
@@ -117,8 +115,6 @@
   "Used in {month}": "Verbraucht im {month}",
   "Used so far (person days, entered by hand)": "Bisher verbraucht (Personentage, von Hand eingetragen)",
   "Used {used} PD": "Verbraucht {used} PT",
-  "Values with ≈ are estimates: points divided by the team rate of {rate} points per person day. Booked amounts are entered values.": "Werte mit ≈ sind Schätzungen: Punkte geteilt durch die Team-Rate von {rate} Punkten je Personentag. Gebuchte Beträge sind eingetragene Werte.",
-  "Values with ≈ are estimates: points divided by the team rate.": "Werte mit ≈ sind Schätzungen: Punkte geteilt durch die Team-Rate.",
   "Visible period": "Sichtbarer Zeitraum",
   "What the projects ask of the next sprint, against the pre-planned budget of each product. Everything here is a recommendation. The PO decides.": "Was die Projekte vom nächsten Sprint verlangen, gegen das vorgeplante Budget je Produkt. Alles hier ist eine Empfehlung. Das PO entscheidet.",
   "Without a rule you assign tickets by hand.": "Ohne Regel ordnest du Tickets von Hand zu.",
@@ -168,7 +164,6 @@
   "{n} milestones later": "{n} Meilensteine danach",
   "{n} of {total} projects": "{n} von {total} Projekten",
   "{n} tickets": "{n} Tickets",
-  "{n} tickets late": "{n} Tickets zu spät",
-  "{points} points ÷ {rate} points per person day = {pd} PD (estimate)": "{points} Punkte ÷ {rate} Punkte je Personentag = {pd} PT (Schätzung)"
+  "{n} tickets late": "{n} Tickets zu spät"
  }
 }
