@@ -74,6 +74,8 @@
   "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
   "Unknown source of work: {source}": "Unbekannte Quelle der Arbeit: {source}",
   "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}",
-  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein."
+  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein.",
+  "Demo data, not saved": "Demodaten, nicht gespeichert",
+  "This is demo data: nothing is saved or shared.": "Das sind Demodaten: nichts wird gespeichert oder geteilt."
  }
 }

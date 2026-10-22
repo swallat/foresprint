@@ -186,6 +186,14 @@ export const mockApi: Api = {
   async Refresh() {
     return refreshMock();
   },
+  // The mock is always the demo team; entering and leaving only flips the routing in api.ts.
+  async EnterDemo() {
+    return 'atlas';
+  },
+  async LeaveDemo() {},
+  async InDemo() {
+    return true;
+  },
   async Today() {
     return today();
   },

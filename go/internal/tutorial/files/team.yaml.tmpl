@@ -1,0 +1,31 @@
+name: Team Atlas
+unit: SP
+features:
+  products: true
+  po: true
+  production: true
+  tickets: true
+  projects: true
+product_owners:
+- {id: mara, name: Mara Muster}
+- {id: noel, name: Noel Muster}
+sprint:
+  length_days: 14
+  numbering: sequential
+  first:
+    id: '1'
+    start: {{day -84}}
+forecast:
+  reference_capacity: 40
+  window: 5
+  roadmap_share: 0.8
+  rounding: 1
+  trend_mode: flat
+  horizon: 3
+capacity:
+  overhead_share: 0.0
+  region: NW
+  rounding: 1
+tracker:
+  kind: packages
+  package_prefix: AP

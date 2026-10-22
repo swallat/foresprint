@@ -2,7 +2,7 @@
 // tracker, toasts, the ticket panel. Pages read from `app` and call its functions; they do not
 // keep their own copy of these.
 
-import { api, setDemo } from './api';
+import { api, inProgram, setDemo } from './api';
 import { t, useLanguage } from './i18n.svelte';
 import { go } from './router.svelte';
 import { applyTheme } from './theme';
@@ -197,6 +197,7 @@ export function openTicket(key: string): void {
 
 /** Shows the demo team (Team Atlas) instead of the data folder, until leaveDemo(). */
 export async function enterDemo(): Promise<void> {
+  if (inProgram) await api.EnterDemo(app.prefs?.language ?? ''); // the core writes the tutorial team
   setDemo(true);
   app.demo = true;
   app.team = '';
@@ -207,6 +208,7 @@ export async function enterDemo(): Promise<void> {
 /** Back to the data folder. */
 export async function leaveDemo(): Promise<void> {
   setDemo(false);
+  if (inProgram) await api.LeaveDemo();
   app.demo = false;
   app.team = '';
   await loadTeams();

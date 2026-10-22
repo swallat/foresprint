@@ -43,6 +43,8 @@ type API struct {
 	mu      sync.Mutex
 	dataDir string
 	undo    []projectSnapshot
+	// demo is the demo mode (api_demo.go).
+	demo demoState
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
@@ -147,6 +149,7 @@ func (a *API) SetDataDir(path string) error {
 		return err
 	}
 	a.mu.Lock()
+	a.dropDemoLocked() // a new data folder ends the demo
 	a.dataDir = path
 	a.mu.Unlock()
 	a.data.SetFolder(path)
