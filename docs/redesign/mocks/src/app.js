@@ -70,7 +70,6 @@
   // ---------- absences as periods ----------
   // A period (vacation, training, ...) per person becomes working days per sprint in the absence grid.
   // Cells typed by hand win; sprints whose absences are confirmed ("festgeschrieben") are not changed.
-  FS.ABS_KINDS = ["Urlaub", "Schulung", "Elternzeit", "Krankheit", "Sonstiges"];
   FS.workdays = (from, to, s) => {
     const a = new Date(Math.max(new Date(from), new Date(s.start))), b = new Date(Math.min(new Date(to), new Date(s.end))); let n = 0;
     for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) if (d.getDay() % 6) n++;
@@ -93,28 +92,37 @@
     });
     return Object.assign([...skipped], { kept });
   };
-  FS.periodTitle = (pid, s) => FS.periodsOf(pid, s).map((z) => `${z.kind} ${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`).join(", ");
+  FS.periodTitle = (pid, s) => FS.periodsOf(pid, s).map((z) => `${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`).join(", ");
+  // One panel per person: list, change and add planned absences (only dates; no reason is stored, on purpose).
   FS.periodPanel = (pid, after) => {
-    const ppl = D.people.map((p) => `<option value="${p.id}" ${p.id === pid ? "selected" : ""}>${FS.esc(p.name)}</option>`).join("");
-    const el = FS.openPanel("Abwesenheit als Zeitraum", `<p class="small muted" style="margin:0">Foresprint rechnet daraus die Arbeitstage je Sprint und trägt sie in die Vorbereitung ein. Von Hand eingetragene Tage gehen vor.</p>
-      <div class="field"><label for="zp-p">Person</label><select class="input" id="zp-p">${ppl}</select></div>
-      <div class="field"><label for="zp-k">Art</label><select class="input" id="zp-k">${FS.ABS_KINDS.map((k) => `<option>${k}</option>`).join("")}</select></div>
+    pid = pid || D.people[0].id;
+    const p = FS.person(pid), re = () => (after ? after() : FS.render()), zs = D.absPeriods.filter((z) => z.person === pid).sort((a, b) => a.from.localeCompare(b.from));
+    const note = (what, a, b) => FS.addUnsaved?.(`Abwesenheit ${p.name}: ${what}`, a, b, "abwesenheiten.yaml");
+    const done = (msg) => { const skip = FS.applyPeriods(); re(); FS.periodPanel(pid, after); const extra = `${skip.length ? ` ${skip.join(", ")} ist festgeschrieben und bleibt unverändert; dort bei Bedarf von Hand anpassen.` : ""}${skip.kept.length ? ` Von Hand eingetragene Tage gehen vor (${skip.kept.join(", ")}); bitte prüfen.` : ""}`; if (msg || extra) FS.toast((msg || "") + extra); };
+    const sprintTxt = (f, t) => { const hits = D.sprints.map((s) => [s.id, FS.workdays(f, t, s)]).filter(([, n]) => n); return hits.length ? hits.map(([id, n]) => `<span class="data">${n}</span> T in ${id}`).join(", ") : '<span class="muted">nach dem angelegten Kalender</span>'; };
+    const el = FS.openPanel(`Abwesend geplant: ${p.name}`, `<div class="field"><label for="zp-p">Person</label><select class="input" id="zp-p">${D.people.map((x) => `<option value="${x.id}" ${x.id === pid ? "selected" : ""}>${FS.esc(x.name)}</option>`).join("")}</select></div>
+      <p class="small muted" style="margin:0">Nur der Zeitraum, ohne Grund. Foresprint rechnet die Arbeitstage je Sprint und trägt sie in Vorbereiten ein. Von Hand getippte Tage gehen vor, festgeschriebene Sprints bleiben unverändert.</p>
+      ${zs.length ? `<div class="stack" style="gap:8px">${zs.map((z) => `<div class="card" style="padding:10px 12px"><div class="row" style="gap:8px;flex-wrap:nowrap"><input class="input" type="date" data-zf="${z.id}" value="${z.from}" aria-label="von" style="width:150px"><span class="muted">bis</span><input class="input" type="date" data-zt="${z.id}" value="${z.to}" aria-label="bis" style="width:150px"><span style="flex:1"></span><button class="btn icon ghost" type="button" data-zx="${z.id}" aria-label="Zeitraum entfernen">${FS.icon("delete")}</button></div>
+        <div class="row small" style="margin-top:6px;gap:8px"><button type="button" class="chip ${z.s === "c" ? "ok" : "warn"}" data-zs="${z.id}" title="Klick wechselt">${FS.icon(z.s === "c" ? "lock" : "lock_open", "small")}${z.s === "c" ? "bestätigt" : "angekündigt"}</button><span>${sprintTxt(z.from, z.to)}</span></div></div>`).join("")}</div>` : '<p class="muted small" style="margin:0">Noch nichts geplant.</p>'}
+      <h3 style="margin:0">Neuer Zeitraum</h3>
       <div class="row"><div class="field"><label for="zp-f">von</label><input class="input" id="zp-f" type="date" value="2026-11-23"></div><div class="field"><label for="zp-t">bis</label><input class="input" id="zp-t" type="date" value="2026-11-27"></div></div>
-      <label class="row" style="gap:6px"><input type="checkbox" id="zp-c">schon bestätigt (zum Beispiel genehmigter Urlaub)</label>
+      <label class="row" style="gap:6px"><input type="checkbox" id="zp-c">schon bestätigt</label>
       <p class="small" id="zp-res" style="margin:0"></p>
-      <div class="row"><button class="btn primary" type="button" id="zp-ok">${FS.icon("event_busy")}Eintragen</button><button class="btn ghost" type="button" id="zp-cancel">Abbrechen</button></div>`);
+      <div class="row"><button class="btn primary" type="button" id="zp-ok">${FS.icon("add")}Hinzufügen</button><button class="btn ghost" type="button" id="zp-cancel">Schließen</button></div>`);
     if (!el) return;
-    const q = (id) => el.querySelector(id);
-    const show = () => { const f = q("#zp-f").value, t = q("#zp-t").value; if (!f || !t || t < f) { q("#zp-res").innerHTML = FS.lightChip("warn", "bis liegt vor von"); return; } const hits = D.sprints.map((s) => [s.id, FS.workdays(f, t, s)]).filter(([, n]) => n); q("#zp-res").innerHTML = hits.length ? `Ergibt ${hits.map(([id, n]) => `<span class="data">${n}</span> T in ${id}`).join(", ")}.` : '<span class="muted">Liegt in keinem angelegten Sprint, wird später angerechnet.</span>'; };
+    const q = (id) => el.querySelector(id), zOf = (id) => D.absPeriods.find((z) => z.id === id);
+    const show = () => { const f = q("#zp-f").value, t = q("#zp-t").value; q("#zp-res").innerHTML = !f || !t || t < f ? FS.lightChip("warn", "bis liegt vor von") : `Ergibt ${sprintTxt(f, t)}.`; };
     ["#zp-f", "#zp-t"].forEach((id) => (q(id).oninput = show)); show();
+    q("#zp-p").onchange = (e) => FS.periodPanel(e.target.value, after);
     q("#zp-cancel").onclick = FS.closePanel;
+    el.querySelectorAll("[data-zf]").forEach((i) => (i.onchange = () => { const z = zOf(i.dataset.zf); if (!i.value || i.value > z.to) return FS.toast("von muss vor bis liegen."); note("von", FS.fmtDate(z.from), FS.fmtDate(i.value)); z.from = i.value; done(); }));
+    el.querySelectorAll("[data-zt]").forEach((i) => (i.onchange = () => { const z = zOf(i.dataset.zt); if (!i.value || i.value < z.from) return FS.toast("bis muss nach von liegen."); note("bis", FS.fmtDate(z.to), FS.fmtDate(i.value)); z.to = i.value; done(); }));
+    el.querySelectorAll("[data-zs]").forEach((b) => (b.onclick = () => { const z = zOf(b.dataset.zs); z.s = z.s === "c" ? "a" : "c"; note("Stand", z.s === "c" ? "angekündigt" : "bestätigt", z.s === "c" ? "bestätigt" : "angekündigt"); done(); }));
+    el.querySelectorAll("[data-zx]").forEach((b) => (b.onclick = () => { const z = zOf(b.dataset.zx); D.absPeriods.splice(D.absPeriods.indexOf(z), 1); note("entfernt", `${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`, "–"); done("Zeitraum entfernt, die Tage sind aus den offenen Sprints raus."); }));
     q("#zp-ok").onclick = () => {
-      const z = { id: "z" + Date.now(), person: q("#zp-p").value, kind: q("#zp-k").value, from: q("#zp-f").value, to: q("#zp-t").value, s: q("#zp-c").checked ? "c" : "a" };
+      const z = { id: "z" + Date.now(), person: pid, from: q("#zp-f").value, to: q("#zp-t").value, s: q("#zp-c").checked ? "c" : "a" };
       if (!z.from || !z.to || z.to < z.from) return FS.toast("Bitte einen gültigen Zeitraum wählen.");
-      D.absPeriods.push(z); const skip = FS.applyPeriods();
-      FS.addUnsaved?.(`Abwesenheit ${FS.person(z.person).name}`, "–", `${z.kind} ${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`, "abwesenheiten.yaml");
-      FS.closePanel(); after ? after() : FS.render();
-      FS.toast(`${z.kind} für ${FS.person(z.person).name} eingetragen.${skip.length ? ` ${skip.join(", ")} ist festgeschrieben und bleibt unverändert; dort bei Bedarf von Hand anpassen.` : ""}${skip.kept.length ? ` Von Hand eingetragene Tage gehen vor (${skip.kept.join(", ")}); bitte prüfen.` : ""}`, () => { D.absPeriods.splice(D.absPeriods.indexOf(z), 1); FS.applyPeriods(); FS.render(); });
+      D.absPeriods.push(z); note("neu", "–", `${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`); done("Zeitraum eingetragen.");
     };
   };
   FS.absGhost = () => (FS.state.absGhost ??= {});
