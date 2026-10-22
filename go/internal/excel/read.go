@@ -22,7 +22,7 @@ var (
 		"forecast.reference_capacity", "forecast.roadmap_share", "capacity.overhead_share",
 		"capacity.overhead_days",
 	}
-	settingFlags = []string{"features.products", "features.po", "features.production", "features.tickets"}
+	settingFlags = []string{"features.products", "features.po", "features.production", "features.tickets", "features.projects"}
 	settingDates = []string{"sprint.first.start"}
 	settingTexts = []string{
 		"name", "unit", "sprint.numbering", "sprint.first.id", "forecast.trend_mode",

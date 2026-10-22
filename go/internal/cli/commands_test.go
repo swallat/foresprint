@@ -209,6 +209,33 @@ func TestExcelRoundTrip(t *testing.T) {
 	}
 }
 
+// A team with the 1.0 feature flags exports and imports without an unknown key.
+func TestExcelRoundTripKnowsProjectsFlag(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	path := filepath.Join(data, "demo", "team.yaml")
+	text, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	with := strings.Replace(string(text), "  production: true\n", "  production: true\n  projects: true\n", 1)
+	if with == string(text) {
+		t.Fatal("features not found in team.yaml")
+	}
+	if err := os.WriteFile(path, []byte(with), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	book := filepath.Join(t.TempDir(), "demo.xlsx")
+	if code, _, errOut := run(t, "--data", data, "--as-of", "2026-10-15", "excel", "demo", "-o", book); code != 0 {
+		t.Fatalf("export: %d %q", code, errOut)
+	}
+	code, out, errOut := run(t, "--data", data, "--as-of", "2026-10-15", "excel-import", "demo", book)
+	if code != 0 || out != "No changes compared to the existing files.\n" || errOut != "" {
+		t.Fatalf("import: %d %q %q", code, out, errOut)
+	}
+}
+
 func TestPeopleKinds(t *testing.T) {
 	isolate(t)
 	data := t.TempDir()
