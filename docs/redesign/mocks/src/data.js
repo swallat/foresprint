@@ -127,6 +127,8 @@ window.DEMO = {
     { key: "ATL-405", title: "Release-Pipeline App", product: "mobile", project: null, est: 5, remaining: 3, refined: true, status: "In Arbeit", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
     { key: "ATL-407", title: "Anmeldedienst: Grundgerüst", product: "platform", project: "login", est: 8, remaining: 5, refined: true, status: "Review", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
     { key: "ATL-408", title: "Zahlungsstatus in der App", product: "mobile", project: "ss2", est: 5, refined: true, status: "Fertig", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+    { key: "ATL-409", title: "Mahnstufe im Kundenportal anzeigen", product: "portal", project: null, est: 4, remaining: 1, refined: true, status: "In Arbeit", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21" },
+    { key: "ATL-411", title: "Hotfix: Rundung im Rechnungs-PDF", product: "billing", project: null, est: 3, refined: true, status: "In Arbeit", sprint: "2026.21", rank: 0, inTrackerSprint: "2026.21", added: "2026-10-20" },
   ],
   minutes: [
     { sprint: "2026.21", kind: "Planning", at: "2026-10-14 10:05", by: "Kim Berger", file: "protokolle/2026.21-planning-20261014-100512.md" },
