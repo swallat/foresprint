@@ -146,6 +146,7 @@ func (a *API) SaveProducts(team string, list []ProductDTO) (ProductsView, error)
 			return ProductsView{}, errors.New(i18n.T("{name} has history and cannot be deleted. End it instead.", "name", p.Name))
 		}
 	}
+	a.forget(team)
 	if _, err := storage.NewRepository(a.DataDir()).SaveProducts(team, out); err != nil {
 		return ProductsView{}, err
 	}
@@ -220,9 +221,12 @@ func (a *API) EndProduct(team, id, lastDay string, shares map[string]float64, ta
 	if idx < 0 {
 		return EndResult{}, errors.New(i18n.T("Unknown product '{id}'.", "id", id))
 	}
+	if s := data.Products[idx].Start; s != nil && end.Before(*s) {
+		return EndResult{}, errors.New(i18n.T("The last day of {name} lies before its first day.", "name", data.Products[idx].Name))
+	}
 	var rest []int
 	for i, p := range data.Products {
-		if i != idx && (p.End == nil || !p.End.Before(end)) {
+		if i != idx && (p.End == nil || !p.End.Before(a.day())) { // the same ones the window offers: not ended yet
 			rest = append(rest, i)
 		}
 	}

@@ -139,8 +139,16 @@ func (a *API) SavePeople(team string, people []PersonDTO) (PeopleView, error) {
 			return PeopleView{}, errors.New(i18n.T("{name} stands in sprints and cannot be removed. Enter a leaving day instead.", "name", p.Name))
 		}
 	}
-	if _, err := storage.NewRepository(a.DataDir()).SavePeople(team, out); err != nil {
+	a.forget(team)
+	repo := storage.NewRepository(a.DataDir())
+	if _, err := repo.SavePeople(team, out); err != nil {
 		return PeopleView{}, err
+	}
+	// Absences of people who are gone would make every later save of the absences fail.
+	if abs, changed := dropAbsences(data.AbsencePeriods, seen); changed {
+		if _, err := repo.SaveAbsences(team, abs); err != nil {
+			return PeopleView{}, err
+		}
 	}
 	data.People = out
 	return a.peopleView(data), nil
@@ -240,6 +248,20 @@ func absenceDTOs(abs model.Absences) []AbsencePeriodDTO {
 
 // SaveAbsencePeriods replaces the planned absences of the team (abwesenheiten.yaml). Periods of
 // one person must not overlap; the answer is the list as saved.
+// dropAbsences keeps only the periods of the people in keep.
+func dropAbsences(abs model.Absences, keep map[string]bool) (model.Absences, bool) {
+	var out model.Absences
+	changed := false
+	for _, e := range abs.Entries {
+		if keep[e.Key] {
+			out.Set(e.Key, e.Value)
+		} else {
+			changed = true
+		}
+	}
+	return out, changed
+}
+
 func (a *API) SaveAbsencePeriods(team string, list []AbsencePeriodDTO) ([]AbsencePeriodDTO, error) {
 	data, err := a.loadTeam(team)
 	if err != nil {
@@ -273,6 +295,7 @@ func (a *API) SaveAbsencePeriods(team string, list []AbsencePeriodDTO) ([]Absenc
 		}
 		abs.Set(d.Person, append(periods, model.AbsencePeriod{From: from, To: to, Confirmed: d.Confirmed}))
 	}
+	a.forget(team)
 	if _, err := storage.NewRepository(a.DataDir()).SaveAbsences(team, abs); err != nil {
 		return nil, err
 	}

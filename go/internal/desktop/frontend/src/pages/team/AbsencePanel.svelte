@@ -25,9 +25,13 @@
     return onchange([...others, ...list]);
   }
 
-  function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>) {
+  function edit(a: AbsencePeriod, patch: Partial<AbsencePeriod>, input?: HTMLInputElement) {
     const next = { ...a, ...patch };
-    if (next.from === '' || next.to === '' || next.to < next.from) return; // wait for a complete period
+    if (patch.from && patch.from > next.to) next.to = patch.from; // the period moves with its first day
+    if (next.from === '' || next.to === '' || next.to < next.from) {
+      if (input) input.value = patch.from !== undefined ? a.from : a.to; // keep the field as saved
+      return;
+    }
     return replaceMine(mine.map((x) => (x === a ? next : x)));
   }
 
@@ -51,10 +55,10 @@
           <tr><th>{t('From')}</th><th>{t('To')}</th><th>{t('Status')}</th><th><span class="sr-only">{t('Actions')}</span></th></tr>
         </thead>
         <tbody>
-          {#each mine as a (a.from + a.to)}
+          {#each mine as a, i (i)}
             <tr class:past={a.to < today}>
-              <td><input class="input data date" type="date" value={a.from} aria-label={t('First day')} onchange={(e) => edit(a, { from: e.currentTarget.value })} /></td>
-              <td><input class="input data date" type="date" value={a.to} aria-label={t('Last day')} onchange={(e) => edit(a, { to: e.currentTarget.value })} /></td>
+              <td><input class="input data date" type="date" value={a.from} aria-label={t('First day')} onchange={(e) => edit(a, { from: e.currentTarget.value }, e.currentTarget)} /></td>
+              <td><input class="input data date" type="date" value={a.to} aria-label={t('Last day')} onchange={(e) => edit(a, { to: e.currentTarget.value }, e.currentTarget)} /></td>
               <td>
                 <button
                   type="button"

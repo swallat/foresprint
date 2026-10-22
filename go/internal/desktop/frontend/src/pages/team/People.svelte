@@ -85,9 +85,9 @@
     return save(replace(withShare(p, today, fte)), '', false);
   }
 
-  function setKind(p: Person, kind: PersonKind) {
+  async function setKind(p: Person, kind: PersonKind) {
     const next = { ...p, kind };
-    void save(replace(next), '', false);
+    await save(replace(next), '', false);
     if (needsEnd(next)) {
       panel = { kind: 'times', id: p.id };
       toast(t('{name} is external. Please enter the end of the contract as the leaving day.', { name: p.name }));
@@ -252,13 +252,15 @@
 {#if view && panel}
   {@const person = view.people.find((p) => p.id === panel!.id)}
   {#if person && panel.kind === 'times'}
+    {#key panel.id}
     <TimesPanel
       {person}
       today={view.today}
       onclose={() => (panel = null)}
       onsave={(next, message) => {
         panel = null;
-        return save(replace(next), message);
+        // Only the times come from the panel; the rest of the row may have changed meanwhile.
+        return save(replace({ ...person, memberships: next.memberships }), message);
       }}
       onremove={() => {
         const gone = person;
@@ -269,6 +271,7 @@
         );
       }}
     />
+    {/key}
   {:else if person && panel.kind === 'absences'}
     <AbsencePanel
       {person}

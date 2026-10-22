@@ -332,9 +332,9 @@
     {unit}
     onclose={() => (ending = '')}
     ondone={async (result) => {
+      const name = endingProduct?.name ?? '';
       ending = '';
       view = result.view;
-      const name = endingProduct.name;
       toast(
         result.moved > 0
           ? t('{name} ended. {count} open {unit} moved to another product. Undo until you save.', { name, count: result.moved, unit })

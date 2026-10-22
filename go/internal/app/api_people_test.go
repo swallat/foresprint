@@ -133,3 +133,44 @@ func TestAbsencePeriods(t *testing.T) {
 		t.Errorf("read back = %+v", again)
 	}
 }
+
+func TestRemovingAPersonDropsTheirAbsencesAndUndoStepIsForgotten(t *testing.T) {
+	api, team := demoCopy(t)
+	view, _ := api.People(team)
+	if len(view.People) < 2 {
+		t.Skip("demo team too small")
+	}
+	// Someone without history in a sprint: a new person with a future absence.
+	view.People = append(view.People, PersonDTO{Name: "Zora Neu", Kind: "member", Memberships: []MembershipDTO{{From: "2027-03-01", FTE: 1}}})
+	view, err := api.SavePeople(team, view.People)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var zora PersonDTO
+	for _, p := range view.People {
+		if p.Name == "Zora Neu" {
+			zora = p
+		}
+	}
+	if _, err := api.SaveAbsencePeriods(team, []AbsencePeriodDTO{{Person: zora.ID, From: "2027-03-02", To: "2027-03-03"}}); err != nil {
+		t.Fatal(err)
+	}
+	var rest []PersonDTO
+	for _, p := range view.People {
+		if p.ID != zora.ID {
+			rest = append(rest, p)
+		}
+	}
+	if _, err := api.SavePeople(team, rest); err != nil {
+		t.Fatal(err)
+	}
+	left, _ := api.AbsencePeriods(team)
+	for _, a := range left {
+		if a.Person == zora.ID {
+			t.Errorf("absence of a removed person stays: %+v", a)
+		}
+	}
+	if _, err := api.SaveAbsencePeriods(team, left); err != nil {
+		t.Errorf("saving the absences fails after the removal: %v", err)
+	}
+}

@@ -35,14 +35,24 @@ func (a *API) remember(team string, files ...string) int {
 	a.undo.next++
 	e := undoEntry{token: a.undo.next, files: map[string][]byte{}}
 	for _, f := range files {
-		if b, err := os.ReadFile(f); err == nil {
+		b, err := os.ReadFile(f)
+		switch {
+		case err == nil:
 			e.files[f] = b
-		} else {
-			e.files[f] = nil
+		case os.IsNotExist(err):
+			e.files[f] = nil // Undo removes the file again
 		}
 	}
 	a.undo.steps[team] = e
 	return e.token
+}
+
+// forget drops the undo step of the team. Every write that is not itself a step calls it, so
+// Undo never puts back files over a newer edit.
+func (a *API) forget(team string) {
+	a.undo.mu.Lock()
+	defer a.undo.mu.Unlock()
+	delete(a.undo.steps, team)
 }
 
 func (a *API) teamFile(team, name string) string {

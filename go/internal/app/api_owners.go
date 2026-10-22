@@ -55,9 +55,9 @@ func ownersOf(data *storage.TeamData, today time.Time) []OwnerDTO {
 
 // migrateOwners turns the plain PO names of a file from 0.8 into the list product_owners and
 // the ids into the products. It changes data in memory; the caller writes it.
-func migrateOwners(data *storage.TeamData) {
+func migrateOwners(data *storage.TeamData) map[string]string {
 	if len(data.Team.ProductOwners) > 0 {
-		return
+		return nil
 	}
 	taken := map[string]bool{}
 	byName := map[string]string{}
@@ -80,6 +80,7 @@ func migrateOwners(data *storage.TeamData) {
 			}
 		}
 	}
+	return byName
 }
 
 func (a *API) saveOwners(team string, data *storage.TeamData) error {
@@ -105,13 +106,13 @@ func (a *API) AddOwner(team, name string) (Step, error) {
 	if err != nil {
 		return Step{}, err
 	}
-	token := a.remember(team, ownerFiles(a, team)...)
 	migrateOwners(data)
 	taken := map[string]bool{}
 	for _, po := range data.Team.ProductOwners {
 		taken[po.ID] = true
 	}
 	data.Team.ProductOwners = append(data.Team.ProductOwners, model.ProductOwner{ID: model.NewPersonID(name, taken, "po"), Name: name})
+	token := a.remember(team, ownerFiles(a, team)...)
 	if err := a.saveOwners(team, data); err != nil {
 		return Step{}, err
 	}
@@ -128,7 +129,6 @@ func (a *API) RenameOwner(team, id, name string) (Step, error) {
 	if err != nil {
 		return Step{}, err
 	}
-	token := a.remember(team, ownerFiles(a, team)...)
 	// A legacy PO is named by its name; the first edit migrates, the id is looked up by the old name.
 	oldName := id
 	migrateOwners(data)
@@ -143,6 +143,7 @@ func (a *API) RenameOwner(team, id, name string) (Step, error) {
 	if !found {
 		return Step{}, errors.New(i18n.T("Unknown PO '{id}'.", "id", id))
 	}
+	token := a.remember(team, ownerFiles(a, team)...)
 	if err := a.saveOwners(team, data); err != nil {
 		return Step{}, err
 	}
@@ -156,9 +157,8 @@ func (a *API) RemoveOwner(team, id string, handover map[string]string) (Step, er
 	if err != nil {
 		return Step{}, err
 	}
-	token := a.remember(team, ownerFiles(a, team)...)
 	oldName := id
-	migrateOwners(data)
+	byName := migrateOwners(data)
 	idx := -1
 	for i, po := range data.Team.ProductOwners {
 		if po.ID == id || po.Name == oldName {
@@ -177,6 +177,9 @@ func (a *API) RemoveOwner(team, id string, handover map[string]string) (Step, er
 			continue
 		}
 		to := handover[p.ID]
+		if id2, ok := byName[to]; ok { // a file from 0.8 names its POs
+			to = id2
+		}
 		known := false
 		for _, po := range data.Team.ProductOwners {
 			known = known || (po.ID == to && po.ID != gone.ID)
@@ -187,6 +190,7 @@ func (a *API) RemoveOwner(team, id string, handover map[string]string) (Step, er
 		data.Products[i].PO = &to
 	}
 	data.Team.ProductOwners = append(data.Team.ProductOwners[:idx:idx], data.Team.ProductOwners[idx+1:]...)
+	token := a.remember(team, ownerFiles(a, team)...)
 	if err := a.saveOwners(team, data); err != nil {
 		return Step{}, err
 	}
@@ -203,7 +207,6 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 	if inTeam && !(fte > 0 && fte <= 1) {
 		return Step{}, errors.New(i18n.T("The share must be between 0.1 and 1.0."))
 	}
-	token := a.remember(team, ownerFiles(a, team)...)
 	oldName := id
 	migrateOwners(data)
 	idx := -1
@@ -217,6 +220,7 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 	}
 	po := &data.Team.ProductOwners[idx]
 	today := a.day()
+	gone := ""
 	personIdx := -1
 	if po.Person != nil {
 		for i, p := range data.People {
@@ -234,6 +238,8 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 		pid := model.NewPersonID(po.Name, taken, "person")
 		data.People = append(data.People, model.Person{ID: pid, Name: po.Name, Kind: model.KindMember, Memberships: []model.Membership{{Start: today, FTE: fte}}})
 		po.Person = &pid
+	case inTeam && len(data.People[personIdx].Memberships) == 0:
+		data.People[personIdx].Memberships = []model.Membership{{Start: today, FTE: fte}}
 	case inTeam:
 		p := &data.People[personIdx]
 		last := &p.Memberships[len(p.Memberships)-1]
@@ -244,12 +250,13 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 		default:
 			p.Memberships = append(p.Memberships, model.Membership{Start: today, FTE: fte})
 		}
-	case personIdx >= 0:
+	case personIdx >= 0 && len(data.People[personIdx].Memberships) > 0:
 		p := &data.People[personIdx]
 		last := &p.Memberships[len(p.Memberships)-1]
 		switch {
 		case !last.Start.Before(today) && len(p.Memberships) == 1:
 			// Started today or later and has no history: the person is simply taken out again.
+			gone = data.People[personIdx].ID
 			data.People = append(data.People[:personIdx:personIdx], data.People[personIdx+1:]...)
 			po.Person = nil
 		case last.End == nil || !last.End.Before(today):
@@ -260,9 +267,21 @@ func (a *API) SetOwnerInTeam(team, id string, inTeam bool, fte float64) (Step, e
 			last.End = &end
 		}
 	}
+	token := a.remember(team, append(ownerFiles(a, team), a.teamFile(team, "abwesenheiten.yaml"))...)
 	repo := storage.NewRepository(a.DataDir())
 	if _, err := repo.SavePeople(team, data.People); err != nil {
 		return Step{}, err
+	}
+	if gone != "" {
+		keep := map[string]bool{}
+		for _, p := range data.People {
+			keep[p.ID] = true
+		}
+		if abs, changed := dropAbsences(data.AbsencePeriods, keep); changed {
+			if _, err := repo.SaveAbsences(team, abs); err != nil {
+				return Step{}, err
+			}
+		}
 	}
 	if err := a.saveOwners(team, data); err != nil {
 		return Step{}, err
