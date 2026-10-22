@@ -51,6 +51,11 @@
   const productIndex = (id: string) => d?.products.findIndex((x) => x.id === id) ?? 0;
   const productName = (id: string) => d?.products.find((x) => x.id === id)?.name ?? id;
   const nextMilestone = $derived(p?.milestones.filter((m) => m.date >= (d?.today ?? '')).sort((a, b) => a.date.localeCompare(b.date))[0]);
+  // Consumption entered by hand wins over the estimate from finished tickets.
+  const spent = $derived(p ? (p.used ?? p.done) : null);
+  const spentEst = $derived(estimated && p?.used === null);
+  const useLight = (s: string): 'ok' | 'warn' | 'bad' => (s === 'over' ? 'bad' : s === 'tight' ? 'warn' : 'ok');
+  const hasUsedMonths = $derived(p?.months.some((m) => m.used !== null) ?? false);
   const rate = $derived(d?.rate === null || d?.rate === undefined ? '' : num(d.rate, 2));
 
   // Tickets grouped by sprint; tickets without a sprint come last.
@@ -148,7 +153,11 @@
           {#each p.products as id (id)}<span class="chip"><span class="dot" style:background={productColor(productIndex(id))}></span>{productName(id)}</span>{/each}
         </div>
       {/if}
-      <div class="small muted" style:margin-top={d.products.length > 1 ? '12px' : '0'}>{t('Next milestone')}</div>
+      {#if p.contact}
+        <div class="small muted" style:margin-top={d.products.length > 1 ? '12px' : '0'}>{t('Contact person')}</div>
+        <div style="margin-top:4px">{p.contact}</div>
+      {/if}
+      <div class="small muted" style:margin-top={d.products.length > 1 || p.contact ? '12px' : '0'}>{t('Next milestone')}</div>
       <div style="margin-top:4px">
         {#if nextMilestone}
           {nextMilestone.name} <span class="data">{date(nextMilestone.date)}</span> <LightChip light={nextMilestone.light} />
@@ -162,10 +171,16 @@
         {#if estimated}<span class="chip" title={t('Converted from points with the team rate')}>≈ {t('estimate')}</span>{/if}
       </div>
       <div class="big">
-        <Amount value={p.done === null && p.planned === null ? null : (p.done ?? 0) + (p.planned ?? 0)} est={estimated} inline />
+        <Amount value={spent === null && p.planned === null ? null : (spent ?? 0) + (p.planned ?? 0)} est={spentEst || (estimated && p.planned !== null)} inline />
         {#if p.booked !== null}<span class="muted" style="font-size:14px">{t('of {n}', { n: num(p.booked, 1) })}</span>{/if}
       </div>
-      <Meter booked={p.booked} done={p.done} planned={p.planned} />
+      <Meter booked={p.booked} done={spent} planned={p.planned} />
+      {#if p.used !== null && p.booked !== null}
+        <div class="small" style="margin-top:8px">
+          {t('Used {used} PD', { used: num(p.used, 1) })}{#if p.remaining !== null}, {t('{n} PD left', { n: num(p.remaining, 1) })}{/if}
+          <LightChip light={useLight(p.usedStatus)} label={p.usedStatus === 'over' ? t('over the contingent') : p.usedStatus === 'tight' ? t('nearly used up') : t('within the contingent')} />
+        </div>
+      {/if}
       <div class="small muted" style="margin-top:8px">
         {t('done')} <Amount value={p.done} est={estimated} inline /><ProjectCalc project={p} rate={d.rate} kind="done" />, {t('planned')} <Amount value={p.planned} est={estimated} inline /><ProjectCalc project={p} rate={d.rate} kind="planned" />
         {#if estimated && rate}<span> · {t('rate {rate} points per PD', { rate })}</span>{/if}
@@ -218,7 +233,10 @@
                   <td class="wrap">{m.name}</td>
                   <td class="data">{date(m.date)}</td>
                   {#if d.source !== 'none'}<td class="num">{m.total ? t('{done} of {total} done', { done: m.done, total: m.total }) : '–'}</td>{/if}
-                  <td><LightChip light={m.light} /></td>
+                  <td>
+                    <LightChip light={m.light} />
+                    {#if m.source === 'hand'}<span class="small muted"> {t('set by hand')}</span>{:else if m.late.length > 0}<span class="small muted" title={m.late.join(', ')}> {t('{n} tickets late', { n: m.late.length })}</span>{/if}
+                  </td>
                 </tr>
               {/each}
             </tbody>
@@ -226,7 +244,7 @@
         </div>
       {/if}
       <p class="small muted" style="margin:8px 0">
-        {t('A milestone with tickets gets its own light from the state of its tickets. Without tickets no light is calculated.')}
+        {t('A light set by hand always counts. Without one, a milestone with tickets gets its light from the state of its tickets.')}
       </p>
       {#if !closed}<button class="btn" type="button" onclick={() => (panel = 'edit')}><Icon name="add" />{t('Add milestone')}</button>{/if}
     </div>
@@ -240,6 +258,7 @@
               <tr>
                 <th>{t('Month')}</th>
                 <th class="num">{t('booked')}</th>
+                {#if hasUsedMonths}<th class="num">{t('used')}</th>{/if}
                 <th class="num">{t('done')}</th>
                 <th class="num">{t('planned')}</th>
                 <th class="num">{t('Left')}</th>
@@ -247,13 +266,14 @@
             </thead>
             <tbody>
               {#each p.months as r (r.month)}
-                {@const left = r.booked - (r.done ?? 0) - (r.planned ?? 0)}
+                {@const left = r.used !== null && r.remaining !== null ? r.remaining - (r.planned ?? 0) : r.booked - (r.done ?? 0) - (r.planned ?? 0)}
                 <tr>
                   <td>
                     {month(r.month)}
                     {#if left < -0.05}<span class="over" title={t('Overbooked')}><Icon name="warning" size={14} /><span class="sr">{t('Overbooked')}</span></span>{/if}
                   </td>
                   <td class="num"><Amount value={r.booked} /></td>
+                  {#if hasUsedMonths}<td class="num"><Amount value={r.used} /></td>{/if}
                   <td class="num"><Amount value={r.done} est={estimated} /></td>
                   <td class="num"><Amount value={r.planned} est={estimated} /></td>
                   <td class="num" class:over={left < -0.05}><Amount value={left} est={estimated} /></td>
@@ -262,6 +282,7 @@
               <tr class="sum">
                 <td>{t('Total')}</td>
                 <td class="num"><Amount value={p.months.reduce((a, r) => a + r.booked, 0)} /></td>
+                {#if hasUsedMonths}<td class="num"><Amount value={p.months.reduce((a, r) => a + (r.used ?? 0), 0)} /></td>{/if}
                 <td class="num"><Amount value={p.months.reduce((a, r) => a + (r.done ?? 0), 0)} est={estimated} /></td>
                 <td class="num"><Amount value={p.months.reduce((a, r) => a + (r.planned ?? 0), 0)} est={estimated} /></td>
                 <td class="num"></td>

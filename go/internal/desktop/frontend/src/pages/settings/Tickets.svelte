@@ -303,7 +303,7 @@
           </div>
         </div>
 
-        <div class="card full">
+        <div class="card full" data-tour="settings-writeback">
           <div class="row head">
             <h2>{t('Write to {tracker}', { tracker })}</h2>
             <span class="chip {draft.writeSprint ? 'warn' : ''}">{draft.writeSprint ? t('Writing back on') : t('Read only')}</span>

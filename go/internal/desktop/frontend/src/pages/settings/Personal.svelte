@@ -69,7 +69,7 @@
       <div class="stack gap">
         {@render choice('theme', t('Theme'), themes, app.prefs.theme, setTheme)}
         {@render choice('density', t('Density of tables'), densities, app.prefs.density, setDensity)}
-        <div>
+        <div data-tour="personal-calc">
           {@render choice('calc', t('Calculations next to numbers'), calcModes, app.calcMode, async (code) => setCalcMode(code as CalcMode))}
           <p class="small muted">
             {t('Help > Calculations explains every formula in any case.')}
