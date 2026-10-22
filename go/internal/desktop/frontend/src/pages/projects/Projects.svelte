@@ -95,7 +95,7 @@
   lead={t('All projects on one timeline with milestones, lights and contingent. You keep projects and milestones here yourself, also without a tracker and offline.')}
 >
   {#snippet actions()}
-    <button class="btn primary" type="button" id="pf-new" disabled={!view?.enabled} onclick={() => (panel = { kind: 'new' })}>
+    <button class="btn primary" type="button" id="pf-new" data-tour="projects-new" disabled={!view?.enabled} onclick={() => (panel = { kind: 'new' })}>
       <Icon name="add" />{t('New project')}
     </button>
   {/snippet}
@@ -121,7 +121,7 @@
     <Banner>{t('Amounts in person days need the team rate. It can be measured once three sprints are finished.')}</Banner>
   {/if}
 
-  <section class="card">
+  <section class="card" data-tour="projects-timeline">
     <div class="row head">
       <h2 style="margin:0;flex:1">{t('Project timeline')}</h2>
       <div class="row" role="group" aria-label={t('Visible period')}>
@@ -161,7 +161,7 @@
 
   {#if view.projects.length > 0}
     <h2 style="margin:24px 0 8px">{t('Contingent')}</h2>
-    <div class="tw">
+    <div class="tw" data-tour="projects-table">
       <table class="t">
         <thead>
           <tr>
@@ -216,7 +216,7 @@
   {/if}
 
   {#if view.conflict.length > 0}
-    <section class="card" style="margin-top:16px">
+    <section class="card" style="margin-top:16px" data-tour="projects-conflict">
       <div class="row">
         <h2 style="margin:0;flex:1">{t('Conflict view: demand and product budget')}</h2>
         <span class="chip"><Icon name="event_available" size={16} />{t('Sprint')} <span class="data">{view.conflictSprint}</span></span>
