@@ -243,3 +243,7 @@ button.link { background: none; border: 0; padding: 0; color: var(--primary); te
 .linkbtn { border: 0; background: none; padding: 0; color: var(--primary); text-decoration: underline; cursor: pointer; font: inherit; }
 .prod-sub { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); font-size: 11px; line-height: 18px; vertical-align: middle; }
 .prod-sub .ms { font-size: 13px; }
+/* Inline markers (chips, icon buttons, product subscripts) sit on the text's middle, not its baseline */
+.chip, .btn, .prod-sub, .lt { vertical-align: middle; }
+.t td .btn.icon { height: 28px; width: 28px; margin: -4px 0; }
+p .chip, .small .chip { margin-right: 2px; }
