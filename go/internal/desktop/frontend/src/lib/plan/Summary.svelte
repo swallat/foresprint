@@ -39,7 +39,7 @@
   );
 </script>
 
-<div class="card sum">
+<div class="card sum" data-tour="plan-sumbar">
   <div class="tile">
     <h2>{t('Capacity')}</h2>
     <div class="row">
@@ -143,7 +143,7 @@
         {#each d.projects as p (p.id)}
           <span class="chip"><span class="name">{p.name}</span></span>
           <span class="data small">{p.needPD == null ? '–' : `≈ ${fmt(p.needPD, 1)} ${t('PD')}`}</span>
-          <span class="small muted">{p.bookedPD == null ? t('no contingent') : t('of {n} PD booked', { n: fmt(p.bookedPD) })}</span>
+          <span class="small muted">{p.bookedPD == null ? t('no contingent') : p.usedPD == null ? t('of {n} PD booked', { n: fmt(p.bookedPD) }) : t('of {n} PD booked, {u} used', { n: fmt(p.bookedPD), u: fmt(p.usedPD) })}</span>
         {/each}
       </div>
     </div>

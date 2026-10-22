@@ -81,7 +81,7 @@
 </script>
 
 {#if d.running}
-  <section class="card whatif" id="whatif">
+  <section class="card whatif" id="whatif" data-tour="preplan-whatif">
     <div class="row head">
       <h2>{t('What if: running sprint {sprint}', { sprint: d.running })}</h2>
       <span class="chip">{t('Assumption, final only in the review')}</span>

@@ -97,7 +97,7 @@
 
   {#if d.multiProduct}
     <h2>{t('Amount per product')}</h2>
-    <div class="tw">
+    <div class="tw" data-tour="preplan-table">
       <table class="t" id="product-table">
         <thead>
           <tr>
@@ -205,7 +205,7 @@
   {/if}
 
   {#if !noT}
-    <section id="earmarks" class="gap">
+    <section id="earmarks" class="gap" data-tour="preplan-earmarks">
       <div class="row head">
         <h2>{t('Earmarked {items} by project', { items: itemWord(d) })}</h2>
         <a class="btn" href="#/backlog"><Icon name="view_list" />{t('Earmark in the backlog')}</a>
