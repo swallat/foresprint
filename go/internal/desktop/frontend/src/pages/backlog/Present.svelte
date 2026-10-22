@@ -3,6 +3,7 @@
   // Made for sharing a single window in planning and refinement meetings (flows.md F10), so the
   // ticket details sit here and nothing else has to be opened.
   import { onMount } from 'svelte';
+  import { fmt } from '../../lib/format';
   import { api } from '../../lib/api';
   import { app } from '../../lib/app.svelte';
     import Icon from '../../lib/Icon.svelte';
@@ -156,7 +157,7 @@
       </div>
       <aside class="present-side">
         <div class="present-est">
-          <span class="data">{detail.size ?? '?'}</span><span class="small muted">{unit}</span>
+          <span class="data">{detail.size == null ? '?' : fmt(detail.size)}</span><span class="small muted">{unit}</span>
         </div>
         {#if present.action}
           <div class="card stack">

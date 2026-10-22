@@ -677,6 +677,8 @@ func clonePreplan(in model.Preplan) model.Preplan {
 		Estimates:  slices.Clone(in.Estimates),
 		Production: slices.Clone(in.Production),
 		Overrides:  slices.Clone(in.Overrides),
+		ProForma:   slices.Clone(in.ProForma),
+		Order:      slices.Clone(in.Order),
 	}
 }
 
