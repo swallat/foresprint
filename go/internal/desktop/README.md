@@ -100,3 +100,60 @@ another package needs are named below; the owner builds them first and merges th
 - Code signing.
 - SyncTracker returns a fixed answer until P8 replaces it. Status, Save and Refresh are bound to
   `internal/datasvc` (P7); the tracker part of `Status` stays a placeholder.
+
+## Guided flows: marks on pages
+
+Help > Guided flows (`src/lib/tour/flows.ts`) walks through the flows on the demo team. A step shows a
+page and marks one element with the outline `.hl`. The element is found by the attribute
+`data-tour="name"`; a page adds it to the element a step talks about. A missing element is not an
+error: the step is shown without a mark. Keep the names stable; they are listed here.
+
+| `data-tour` | Page | Package |
+| --- | --- | --- |
+| `firstrun-step` | `/setup` | |
+| `today-running` | `/today` | |
+| `backlog-sync` | `/backlog` | |
+| `backlog-views` | `/backlog` | |
+| `backlog-list` | `/backlog` | |
+| `backlog-ticket` | `/backlog` | |
+| `ticket-panel` | `/backlog` | |
+| `backlog-ruleflag` | `/backlog` | |
+| `sprint-stepper` | `/sprint/prepare` | |
+| `prepare-grid` | `/sprint/prepare` | |
+| `prepare-freeze` | `/sprint/prepare` | |
+| `prepare-ready` | `/sprint/prepare` | |
+| `preplan-whatif` | `/sprint/preplan` | |
+| `preplan-earmarks` | `/sprint/preplan` | |
+| `preplan-table` | `/sprint/preplan` | |
+| `plan-absences` | `/sprint/plan` | |
+| `plan-sumbar` | `/sprint/plan` | |
+| `plan-lanes` | `/sprint/plan` | |
+| `plan-live` | `/sprint/plan` | |
+| `plan-freeze` | `/sprint/plan` | |
+| `review-velocity` | `/sprint/review` | |
+| `review-scope` | `/sprint/review` | |
+| `review-done` | `/sprint/review` | |
+| `review-capacity` | `/sprint/review` | |
+| `review-tag` | `/sprint/review` | |
+| `review-close` | `/sprint/review` | |
+| `forecast-chart` | `/forecast` | |
+| `forecast-table` | `/forecast` | |
+| `forecast-whatif` | `/forecast` | |
+| `forecast-analysis` | `/forecast` | |
+| `forecast-history` | `/forecast` | |
+| `forecast-reports` | `/forecast` | |
+| `projects-new` | `/projects` | |
+| `projects-timeline` | `/projects` | |
+| `projects-table` | `/projects` | |
+| `projects-conflict` | `/projects` | |
+| `project-tickets` | `/projects/atlas-portal` | |
+| `project-report` | `/projects/atlas-portal` | |
+| `calc` | `/sprint/plan` | |
+| `help-calculations` | `/help/calculations` | |
+| `personal-calc` | `/settings/personal` | |
+| `plan-present` | `/sprint/plan` | |
+| `settings-writeback` | `/settings/tickets` | |
+| `plan-jira` | `/sprint/plan` | |
+| `plan-jira-write` | `/sprint/plan` | |
+
+An element that appears only after a click (a panel, a dialog) cannot be marked by a step that comes before the click.
