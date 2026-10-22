@@ -29,6 +29,11 @@
   "All decided. Save finishes the merge.": "Alles entschieden. Speichern schließt das Zusammenführen ab.",
   "You may not write to this storage.": "Du darfst in diesen Speicher nicht schreiben.",
   "Saving did not work.": "Speichern hat nicht geklappt.",
-  "Saved. Your changes wait for approval.": "Gespeichert. Deine Änderungen warten auf die Freigabe."
+  "Saved. Your changes wait for approval.": "Gespeichert. Deine Änderungen warten auf die Freigabe.",
+  "Unknown export format.": "Unbekanntes Exportformat.",
+  "No file dialog in this build.": "Dieser Build hat keinen Dateidialog.",
+  "Choose the folder for the export": "Ordner für den Export wählen",
+  "Choose the Excel workbook": "Excel-Arbeitsmappe wählen",
+  "The workbook changed since the preview. Choose it again.": "Die Arbeitsmappe hat sich seit der Vorschau geändert. Wähle sie erneut."
  }
 }

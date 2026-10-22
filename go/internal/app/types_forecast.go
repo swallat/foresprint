@@ -44,6 +44,8 @@ type ForecastView struct {
 	Horizon           int     `json:"horizon"`
 	Rounding          int     `json:"rounding"`
 	// Samples is the number of sprints behind the range; FewSamples says that is thin.
+	// Products is the number of products; "Products over time" appears for more than one.
+	Products   int  `json:"products"`
 	Samples    int  `json:"samples"`
 	FewSamples bool `json:"fewSamples"`
 	// Rate is the team rate (normalized velocity trend per reference capacity day, i.e.
