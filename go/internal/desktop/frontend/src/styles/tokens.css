@@ -1,0 +1,55 @@
+/* Design tokens of Foresprint 1.0, from DESIGN.md: one accent (indigo), mint = forecast,
+   borders over shadows, 4 px grid, Iosevka for data, Iosevka Aile for text. */
+:root {
+  --bg: #f2f3f8;
+  --surface: #ffffff;
+  --surface-2: #e9ebf3;
+  --surface-3: #e3e6f1;
+  --border: #c6cad9;
+  --border-control: #858aa3;
+  --text: #1b1d2a;
+  --text-muted: #4f546f;
+  --primary: #4646d4;
+  --primary-weak: #e6e6fc;
+  --on-primary: #ffffff;
+  --secondary: #8633d1;
+  --forecast: #0a7660;
+  --forecast-weak: #d8f2eb;
+  --highlight: #ffc233;
+  /* Chart series, validated with the dataviz palette check (light on #fff) */
+  --c-vel: #4646d4; --c-nv: #b4530a; --c-fc: #0b8a70; --c-wif: #8633d1;
+  --ok: #157443;
+  --ok-weak: #dbf1e4;
+  --warn: #835200;
+  --warn-weak: #fcefd2;
+  --bad: #b42536;
+  --bad-weak: #fae0e3;
+  --shadow: 0 8px 24px rgba(27, 29, 42, .16);
+  --font-ui: "Iosevka Aile", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "Iosevka", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r-ctl: 6px;
+  --r-card: 10px;
+  --rail: 232px;
+  --top: 52px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101118; --surface: #181a24; --surface-2: #212433; --surface-3: #2a2e40; --border: #2d3144; --border-control: #6b7190;
+    --text: #e8eaf4; --text-muted: #9aa0bf; --primary: #9494ff; --primary-weak: #2a2b55; --on-primary: #0f1020;
+    --secondary: #bb7bff; --forecast: #2ad9b5; --forecast-weak: #133a33; --highlight: #ffc233;
+    --c-vel: #7b7bf5; --c-nv: #d06a22; --c-fc: #17a88b; --c-wif: #a96ef0;
+    --ok: #3dc07c; --ok-weak: #15301f; --warn: #f0a81c; --warn-weak: #36290f; --bad: #ff6b7a; --bad-weak: #3a1a1f;
+    --shadow: 0 8px 24px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101118; --surface: #181a24; --surface-2: #212433; --surface-3: #2a2e40; --border: #2d3144; --border-control: #6b7190;
+  --text: #e8eaf4; --text-muted: #9aa0bf; --primary: #9494ff; --primary-weak: #2a2b55; --on-primary: #0f1020;
+  --secondary: #bb7bff; --forecast: #2ad9b5; --forecast-weak: #133a33; --highlight: #ffc233;
+    --c-vel: #7b7bf5; --c-nv: #d06a22; --c-fc: #17a88b; --c-wif: #a96ef0;
+  --ok: #3dc07c; --ok-weak: #15301f; --warn: #f0a81c; --warn-weak: #36290f; --bad: #ff6b7a; --bad-weak: #3a1a1f;
+  --shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+

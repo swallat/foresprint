@@ -4,7 +4,7 @@ The 1.0 core of Foresprint, ported from Python (`src/foresprint`). One program, 
 the user's side. The window shell is Wails; this folder has the core, the command line and the
 tests.
 
-Status: the core and the command line are ported; the window (Wails) follows the design approval.
+Status: the core and the command line are ported; the window (Wails) has its scaffold, the pages follow.
 
 ```
 cd go
@@ -25,6 +25,8 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/holidays` | Holidays and weekends of every country and region of the Python `holidays` library, from embedded data (see below). |
 | `internal/i18n` | Texts: English source texts, one JSON file per language in `data/` (see below). |
 | `internal/config` | `settings.json` of the user (language, theme, data folders); same file and format as the Python version. |
+| `internal/app` | The bindings of the window: the Go methods the frontend calls (`API`). No window code, tested without cgo. |
+| `internal/desktop` | The window: Wails shell and the Svelte frontend (build tag `desktop`); see its README. |
 | `internal/cli` | The command line: commands are subcommands of the one program (cobra), plain output. |
 | `internal/pytext` | `str.splitlines` and other places where Python's text functions differ from Go's. |
 | `internal/yamlmerge` | Three-way merge of YAML value trees at key level (lists with `id`, forecasts by timestamp). Works on the tree of `value.go`, not on text. |
