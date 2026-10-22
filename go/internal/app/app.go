@@ -37,8 +37,12 @@ type API struct {
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFile func(title string) (string, error)
 
+	// Now is the clock; nil = the system clock (set in tests).
+	Now func() time.Time
+
 	mu      sync.Mutex
 	dataDir string
+	undo    []projectSnapshot
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).

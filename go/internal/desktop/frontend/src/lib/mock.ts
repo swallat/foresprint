@@ -2,6 +2,7 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
+import { projectsMock } from './mock.projects';
 import type { ForecastRow, ForecastView, ImportPreview, ProductsOverTime, ReportFile, WhatIfRow, WhenDoneView } from './types.forecast';
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
 import { createReviewMock } from './mock.review';
@@ -123,6 +124,7 @@ function today(): TodayData {
 }
 
 export const mockApi: Api = {
+  ...projectsMock,
   ...createReviewMock(sprints),
   ...createSprintsMock(sprints),
   ...dataMock,
