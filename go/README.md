@@ -64,7 +64,7 @@ writes back unchanged (the golden round trips prove it).
 
 | File | Addition |
 | --- | --- |
-| `team.yaml` | `tracker.kind: packages` (work packages kept in Foresprint; no tickets = `features.tickets` off); `features.projects` (read `projects.yaml` without tickets); `sprint.naming` (list of `{from, pattern}`), `sprint.pro_forma` (names); `estimation: {factor, changes: [{from, unit, factor}]}`; tracker: more `fields` (status, acceptance, product, project, refined, production), `production_label`, `production_rules` (`{match, share}`), `write_sprint`, `removed_target` (backlog, pro_forma, next), `package_prefix` |
+| `team.yaml` | `tracker.kind: packages` (work packages kept in Foresprint; no tickets = `features.tickets` off); `features.projects` (read `projects.yaml` without tickets); `features.production_max` (cap of the production time in percent, written only when not 100); `sprint.naming` (list of `{from, pattern}`), `sprint.pro_forma` (names); `estimation: {factor, changes: [{from, unit, factor}]}`; tracker: more `fields` (status, acceptance, product, project, refined, production), `production_label`, `production_rules` (`{match, share}`), `write_sprint`, `removed_target` (backlog, pro_forma, next), `package_prefix` |
 | `people.yaml` | `kind: guest` or `external` (member is not written) |
 | `abwesenheiten.yaml` | `absences: {<person>: [{from, to, confirmed}]}`, dates only, never a reason |
 | `projects.yaml` | `products` (list; with one product the 0.8 key `product` stays), `start`, `end`, `state` (finished, cancelled), `open_scope`, `milestones`, `contingent: {total, per_month}` |
