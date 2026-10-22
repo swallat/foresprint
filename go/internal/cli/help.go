@@ -65,7 +65,7 @@ func printTopic(env *Env, cmd *cobra.Command, topic, title string) {
 		for _, s := range guide.Workflow() {
 			env.Println()
 			env.Println(i18n.T(s.When) + " – " + i18n.T(s.Title))
-			env.Println(wrap(i18n.T(s.Text), "  ", helpWidth))
+			env.Println(wrap(i18n.T(s.Text), "  "))
 			env.Println("  " + s.CLI)
 		}
 	case "terms":
@@ -75,16 +75,16 @@ func printTopic(env *Env, cmd *cobra.Command, topic, title string) {
 		for _, f := range guide.Fields() {
 			env.Println()
 			env.Println(i18n.T(f.Title))
-			env.Println(wrap(i18n.T(f.What), "  ", helpWidth))
-			env.Println(wrap(i18n.T("Source")+": "+i18n.T(f.Source), "  ", helpWidth))
-			env.Println(wrap(i18n.T("Example")+": "+i18n.T(f.Example), "  ", helpWidth))
+			env.Println(wrap(i18n.T(f.What), "  "))
+			env.Println(wrap(i18n.T("Source")+": "+i18n.T(f.Source), "  "))
+			env.Println(wrap(i18n.T("Example")+": "+i18n.T(f.Example), "  "))
 		}
 	case "team":
 		env.Println(title)
 		for _, s := range settings.All {
 			env.Println()
 			env.Println(s.Title() + "  (" + s.Key + ")")
-			env.Println(wrap(s.Text(), "  ", helpWidth))
+			env.Println(wrap(s.Text(), "  "))
 		}
 		env.Println()
 		env.Println(i18n.P("Change interactively: foresprint settings TEAM"))
@@ -118,25 +118,25 @@ func printPairs(env *Env, title string, rows []guide.Pair) {
 	if width > 30 { // a wide left column: the text goes below, indented
 		for i, r := range rows {
 			env.Println("  " + left[i])
-			env.Println(wrap(i18n.T(r[1]), "      ", helpWidth))
+			env.Println(wrap(i18n.T(r[1]), "      "))
 		}
 		return
 	}
 	for i, r := range rows {
 		pad := strings.Repeat(" ", width-utf8.RuneCountInString(left[i]))
 		prefix := strings.Repeat(" ", width+4)
-		text := wrap(i18n.T(r[1]), prefix, helpWidth)
+		text := wrap(i18n.T(r[1]), prefix)
 		env.Println("  " + left[i] + pad + "  " + strings.TrimPrefix(text, prefix))
 	}
 }
 
 // wrap breaks text at word borders so that no line is longer than width; every line starts with
 // the prefix.
-func wrap(text, prefix string, width int) string {
+func wrap(text, prefix string) string {
 	var lines []string
 	line := prefix
 	for _, word := range strings.Fields(text) {
-		if line != prefix && utf8.RuneCountInString(line)+1+utf8.RuneCountInString(word) > width {
+		if line != prefix && utf8.RuneCountInString(line)+1+utf8.RuneCountInString(word) > helpWidth {
 			lines = append(lines, line)
 			line = prefix
 		}
@@ -155,7 +155,7 @@ func (e *Env) explain(key string) {
 		return
 	}
 	e.Println(i18n.T(f.Title))
-	e.Println(wrap(i18n.T(f.What), "  ", helpWidth))
-	e.Println(wrap(i18n.T("Source")+": "+i18n.T(f.Source), "  ", helpWidth))
-	e.Println(wrap(i18n.T("Example")+": "+i18n.T(f.Example), "  ", helpWidth))
+	e.Println(wrap(i18n.T(f.What), "  "))
+	e.Println(wrap(i18n.T("Source")+": "+i18n.T(f.Source), "  "))
+	e.Println(wrap(i18n.T("Example")+": "+i18n.T(f.Example), "  "))
 }
