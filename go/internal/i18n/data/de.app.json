@@ -9,7 +9,7 @@
   "Absence days and focus must not be negative.": "Abwesenheitstage und Fokus dürfen nicht negativ sein.",
   "All decided. Save finishes the merge.": "Alles entschieden. Speichern schließt das Zusammenführen ab.",
   "Carried over": "Übertragen",
-  "Choose the Excel workbook": "Excel-Arbeitsmappe wählen",
+  "Choose the Excel workbook or CSV table": "Excel-Arbeitsmappe oder CSV-Tabelle wählen",
   "Choose the data folder": "Datenordner wählen",
   "Choose the folder for the export": "Ordner für den Export wählen",
   "Choose the sprint the new unit applies from.": "Wähle den Sprint, ab dem die neue Einheit gilt.",
@@ -99,7 +99,7 @@
   "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
   "The tracker section of team.yaml cannot be read. Fix it by hand first; Foresprint does not overwrite it.": "Der Abschnitt tracker in team.yaml lässt sich nicht lesen. Behebe das zuerst von Hand; Foresprint überschreibt ihn nicht.",
   "The window must be between 1 and 52 sprints.": "Das Fenster muss zwischen 1 und 52 Sprints liegen.",
-  "The workbook changed since the preview. Choose it again.": "Die Arbeitsmappe hat sich seit der Vorschau geändert. Wähle sie erneut.",
+  "The file changed since the preview. Choose it again.": "Die Datei hat sich seit der Vorschau geändert. Wähle sie erneut.",
   "There is nothing to undo.": "Es gibt nichts zum Rückgängigmachen.",
   "This change can no longer be undone.": "Diese Änderung lässt sich nicht mehr rückgängig machen.",
   "This is not a minutes file.": "Das ist keine Protokolldatei.",
@@ -137,6 +137,11 @@
   "{name} is listed twice.": "{name} steht doppelt in der Liste.",
   "{name} needs at least one period in the team.": "{name} braucht mindestens einen Zeitraum im Team.",
   "{name} stands in sprints and cannot be removed. Enter a leaving day instead.": "{name} steht in Sprints und lässt sich nicht entfernen. Trage stattdessen einen letzten Tag ein.",
-  "{what}: please enter a date as YYYY-MM-DD.": "{what}: Bitte gib ein Datum als JJJJ-MM-TT ein."
+  "{what}: please enter a date as YYYY-MM-DD.": "{what}: Bitte gib ein Datum als JJJJ-MM-TT ein.",
+  "This team gets its tickets from a tracker. A CSV table can only be imported as work packages.": "Dieses Team bekommt seine Tickets aus einem Ticketsystem. Eine CSV-Tabelle lässt sich nur als Arbeitspakete importieren.",
+  "Row {row}: {msg}": "Zeile {row}: {msg}",
+  "The tickets are switched off for this team.": "Die Tickets sind für dieses Team ausgeschaltet.",
+  "The file is not a regular file or larger than 20 MB.": "Die Datei ist keine normale Datei oder größer als 20 MB.",
+  "… and {n} more rows": "… und {n} weitere zeilen"
  }
 }

@@ -77,6 +77,9 @@ const forecastMock: Partial<Api> = {
       untouched: [],
       noTeam: false,
       cancelled: false,
+      kind: 'workbook',
+      problems: [],
+      unmapped: [],
     };
   },
   async ExcelImportApply() {

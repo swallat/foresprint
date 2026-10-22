@@ -144,7 +144,7 @@ func (a *API) ExcelImportPreview(team string) (ImportPreview, error) {
 	if a.ChooseFile == nil {
 		return ImportPreview{}, errors.New(i18n.T("No file dialog in this build."))
 	}
-	path, err := a.ChooseFile(i18n.T("Choose the Excel workbook"))
+	path, err := a.ChooseFile(i18n.T("Choose the Excel workbook or CSV table"))
 	if err != nil {
 		return ImportPreview{}, err
 	}
@@ -155,11 +155,14 @@ func (a *API) ExcelImportPreview(team string) (ImportPreview, error) {
 }
 
 func (a *API) previewImport(team, path string) (ImportPreview, error) {
+	if csvimportIs(path) {
+		return a.csvimportPreview(team, path)
+	}
 	plan, noTeam, hash, err := a.planImport(team, path)
 	if err != nil {
 		return ImportPreview{}, err
 	}
-	out := ImportPreview{Path: path, Hash: hash, NoTeam: noTeam, Changes: []ImportChange{}, Untouched: plan.Untouched}
+	out := ImportPreview{Kind: "workbook", Problems: []string{}, Unmapped: []string{}, Path: path, Hash: hash, NoTeam: noTeam, Changes: []ImportChange{}, Untouched: plan.Untouched}
 	if out.Untouched == nil {
 		out.Untouched = []string{}
 	}
@@ -197,12 +200,15 @@ func (a *API) planImport(team, path string) (*excel.ImportPlan, bool, string, er
 // files. The window shows the preview first; hash is the one the preview returned, so a file
 // that changed in between is refused instead of writing values nobody saw.
 func (a *API) ExcelImportApply(team, path, hash string) ([]string, error) {
+	if csvimportIs(path) {
+		return a.csvimportApply(team, path, hash)
+	}
 	plan, _, current, err := a.planImport(team, path)
 	if err != nil {
 		return nil, err
 	}
 	if current != hash {
-		return nil, errors.New(i18n.T("The workbook changed since the preview. Choose it again."))
+		return nil, errors.New(i18n.T("The file changed since the preview. Choose it again."))
 	}
 	files, err := excel.Apply(storage.NewRepository(a.DataDir()), plan)
 	if err != nil {
