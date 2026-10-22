@@ -1,0 +1,12 @@
+{
+ "args": [
+  "init",
+  "team-iota"
+ ],
+ "input": "\nyearly\nnot a date\n2026-03-02\n\n2026.9\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+ "exit_code": 0,
+ "files": {
+  "team-iota/people.yaml": "# People. Memberships with period and FTE share (1.0 = full time in the team).\n# Never delete people; end the membership with `to:` instead – otherwise history changes.\npeople: []\n",
+  "team-iota/team.yaml": "# Team settings. Explanations: `foresprint help team`\nname: TEAM-IOTA\nunit: PT\nfeatures:\n  products: false\n  po: false\n  production: false\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: '2026.9'\n    start: 2026-03-02\nforecast:\n  reference_capacity: 67\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: null\n  rounding: 1\n"
+ }
+}
