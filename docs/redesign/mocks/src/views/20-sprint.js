@@ -2,7 +2,7 @@
 (function () {
   const D = window.DEMO;
   const sum = FS.sum, fmt = FS.fmt, esc = FS.esc, ic = FS.icon;
-  const st = () => (FS.state.sp ??= { frozen: {}, closed: {}, noTracker: false, amt: {}, commit: {}, rv: {}, label: true, tagOn: true, mdFilter: "sprint" });
+  const st = () => (FS.state.sp ??= { frozen: {}, closed: {}, noTracker: FS.trk() === "none", amt: {}, commit: {}, rv: {}, label: true, tagOn: true, mdFilter: "sprint" });
 
   // ---------- model ----------
   const BASE = {};
@@ -34,9 +34,9 @@
   const pd = (p) => p / D.rate;
   function projHints(sid) {
     return D.projects.map((pr) => {
-      const l = tix(sid).filter((t) => t.project === pr.id);
-      if (!l.length) return null;
-      const p = pts(l), need = pd(p), free = pr.contingentPD - pr.usedPD, rest = free - need;
+      const l = tix(sid).filter((t) => t.project === pr.id), none = FS.trk() === "none";
+      if (none ? !FS.projPts(sid, pr.id) : !l.length) return null;
+      const p = none ? FS.projPts(sid, pr.id) : pts(l), need = pd(p), free = pr.contingentPD - pr.usedPD, rest = free - need;
       const light = rest < 0 ? "bad" : rest < pr.contingentPD * 0.15 ? "warn" : "ok";
       return { pr, n: l.length, p, need, free, rest, light };
     }).filter(Boolean);
@@ -71,14 +71,14 @@
     const r = cwCalc(sid);
     if (!r) return "";
     const cid = r.cur.id, w = cw(), sets = cwSets(), act = sets.indexOf(w);
-    const cwRow = (t) => { const done = t.status === "Fertig", c = !!w.carry[t.key]; return `<tr><td><button type="button" class="linkbtn data" data-cwt="${t.key}">${t.key}</button> ${esc(t.title)}${t.added ? ` <span class="chip small" title="Nach dem Planning in den ${D.team.tracker}-Sprint aufgenommen">nachgezogen ${FS.fmtDate(t.added).slice(0, 5)}</span>` : ""}</td><td><span class="chip small">${esc(t.status)}</span></td><td class="num">${t.est}</td><td>${done ? `<span class="chip ok small">${ic("check", "small")}erledigt</span>` : `<div class="seg" role="group" aria-label="Erwartung ${t.key}"><button type="button" class="seg-b ${c ? "" : "on"}" data-cw="${t.key}" data-v="0" aria-pressed="${!c}">${ic("check", "small")}wird fertig</button><button type="button" class="seg-b ${c ? "on warn" : ""}" data-cw="${t.key}" data-v="1" aria-pressed="${c}">${ic("redo", "small")}Übertrag</button></div>`}</td><td class="num">${c ? `<input class="input data" data-cwr="${t.key}" inputmode="decimal" value="${fmt(restOf(w, t))}" aria-label="Rest ${t.key} in Punkten" style="width:64px;height:28px;text-align:right">${t.remaining != null && w.rest[t.key] == null ? `<div class="small muted">aus ${D.team.tracker}</div>` : ""}` : '<span class="muted">–</span>'}</td></tr>`; };
+    const cwRow = (t) => { const done = t.status === "Fertig", c = !!w.carry[t.key]; return `<tr><td><button type="button" class="linkbtn data" data-cwt="${t.key}">${t.key}</button> ${esc(t.title)}${t.added ? ` <span class="chip small" title="Nach dem Planning in den ${D.team.tracker}-Sprint aufgenommen">nachgezogen ${FS.fmtDate(t.added).slice(0, 5)}</span>` : ""}</td><td><span class="chip small">${esc(t.status)}</span></td><td class="num">${t.est}</td><td>${done ? `<span class="chip ok small">${ic("check", "small")}erledigt</span>` : `<div class="seg" role="group" aria-label="Erwartung ${t.key}"><button type="button" class="seg-b ${c ? "" : "on"}" data-cw="${t.key}" data-v="0" aria-pressed="${!c}">${ic("check", "small")}wird fertig</button><button type="button" class="seg-b ${c ? "on warn" : ""}" data-cw="${t.key}" data-v="1" aria-pressed="${c}">${ic("redo", "small")}Übertrag</button></div>`}</td><td class="num">${c ? `<input class="input data" data-cwr="${t.key}" inputmode="decimal" value="${fmt(restOf(w, t))}" aria-label="Rest ${t.key} in Punkten" style="width:64px;height:28px;text-align:right">${t.remaining != null && w.rest[t.key] == null && FS.trk() === "jira" ? `<div class="small muted">aus ${D.team.tracker}</div>` : ""}` : '<span class="muted">–</span>'}</td></tr>`; };
     const numIn = (id, v, ph, label, extra = "") => `<div class="field"><label for="${id}">${label}</label><input class="input data" id="${id}" inputmode="decimal" value="${v ?? ""}" placeholder="${ph}" style="width:96px;text-align:right" ${extra}></div>`;
     const tbl = r.noT ? `<div class="row" style="gap:16px;align-items:flex-end;flex-wrap:wrap">
         ${numIn("cw-commit", fmt(r.commit), "", `Commitment ${cid} (Punkte)`)}
         ${numIn("cw-nd", w.notDone || "", "0", "Erwartet nicht fertig (Punkte)")}
         ${numIn("cw-rest", w.restNT ?? "", fmt(w.notDone || 0), "davon Rest übertragen (Punkte)", w.notDone ? "" : "disabled")}
         ${numIn("cw-extra", w.extra || "", "0", "Zusätzlich erledigt (Punkte)")}</div>`
-      : `${tw(`<table class="t"><thead><tr><th>Ticket</th><th>Status in ${D.team.tracker}</th><th class="num">Punkte</th><th>Erwartung</th><th class="num" title="Restaufwand, der in ${sid} weiterläuft. Vorschlag aus dem Restschätzungsfeld des Trackers, sonst die volle Schätzung.">Rest (Punkte)</th></tr></thead><tbody>${r.planned.map(cwRow).join("")}${r.added.length ? `<tr class="sum"><td colspan="5">${ic("call_received", "small")} Nachgezogen nach dem Planning <span class="small muted">(seit dem Einfrieren neu im ${D.team.tracker}-Sprint, zählen nicht zum Commitment)</span></td></tr>${r.added.map(cwRow).join("")}` : ""}</tbody></table>`)}`;
+      : `${tw(`<table class="t"><thead><tr><th>Ticket</th><th>Status${FS.trk() === "jira" ? ` in ${D.team.tracker}` : ""}</th><th class="num">Punkte</th><th>Erwartung</th><th class="num" title="Restaufwand, der in ${sid} weiterläuft. Vorschlag aus dem Restschätzungsfeld des Trackers, sonst die volle Schätzung.">Rest (Punkte)</th></tr></thead><tbody>${r.planned.map(cwRow).join("")}${r.added.length ? `<tr class="sum"><td colspan="5">${ic("call_received", "small")} Nachgezogen nach dem Planning <span class="small muted">(seit dem Einfrieren neu im ${FS.trk() === "jira" ? `${D.team.tracker}-` : ""}Sprint, zählen nicht zum Commitment)</span></td></tr>${r.added.map(cwRow).join("")}` : ""}</tbody></table>`)}`;
     const d = r.fc - r.c.fc;
     const res = `<div class="cw-res">
         <div><div class="small muted">Erwartete Velocity ${cid}</div><div class="data cw-big">${fmt(r.vel)}</div><div class="small muted">${fmt(r.commit)} − ${fmt(r.notDone)} nicht fertig + ${fmt(r.extra)} ${r.noT ? "zusätzlich" : "nachgezogen"}</div></div>
@@ -192,8 +192,8 @@
   const STAGES = [["prepare", "Vorbereiten"], ["preplan", "Vorplanen"], ["plan", "Planen"], ["review", "Review"], ["minutes", "Protokolle"]];
   const LEAD = {
     prepare: "Abwesenheiten eintragen und bestätigen, dann sehen, was für die Planung noch fehlt.",
-    preplan: "Tickets vormerken und den Betrag je Produkt festlegen. Geht jederzeit, auch für spätere Sprints.",
-    plan: "Tickets gemeinsam in den Sprint nehmen, bis Summe, Produkte und Projekte passen.",
+    get preplan() { return `${FS.trk() === "none" ? "Betrag je Produkt und Projekt festlegen." : "Tickets vormerken und den Betrag je Produkt festlegen."} Geht jederzeit, auch für spätere Sprints.`; },
+    get plan() { return FS.trk() === "none" ? "Beträge je Produkt und die Zusage gemeinsam festlegen." : "Tickets gemeinsam in den Sprint nehmen, bis Summe, Produkte und Projekte passen."; },
     review: "Velocity, Scope-Änderung und Erledigtes je Produkt festhalten.",
     minutes: "Jedes Speichern von Vorplanung, Planung und Review schreibt ein Protokoll.",
   };
@@ -232,9 +232,9 @@
         <div class="small muted">${lo != null ? `Spanne <span class="data">${lo} bis ${hi}</span> · ${A ? `ohne Annahme <span class="data">${c.fc}</span>` : `Rate <span class="data">${fmt(D.rate, 2)}</span> je PT`}` : "Plan des abgeschlossenen Sprints"}</div></div>
       ${lo != null ? `<div id="sp-free"><h3>Frei für Neues</h3><div class="row"><span class="big">${fmt(free)} Punkte</span></div>
         <div class="small muted">≈ <span class="data">${fmt(free / D.rate, 1)}</span> PT · ${rest ? `minus Übertrag <span class="data">${fmt(rest)}</span>` : "kein Übertrag angenommen"}</div></div>` : ""}
-      <div><h3>Geplant</h3><div class="row"><span class="big">${fmt(p)} Punkte</span></div>
-        ${FS.capBar(p, fc, lo, hi)}
-        <div class="small muted">${commit != null ? `Zusage <span class="data">${commit}</span> · ` : ""}Vorgeplant <span class="data">${pre || "–"}</span> · ${l.length} Tickets</div></div>
+      <div><h3>${FS.trk() === "none" ? "Vorgeplant" : "Geplant"}</h3><div class="row"><span class="big">${fmt(FS.trk() === "none" ? commit ?? pre : p)} Punkte</span></div>
+        ${FS.capBar(FS.trk() === "none" ? commit ?? pre : p, fc, lo, hi)}
+        <div class="small muted">${commit != null ? `Zusage <span class="data">${commit}</span> · ` : ""}${FS.trk() === "none" ? "Summe der Beträge je Produkt" : `Vorgeplant <span class="data">${pre || "–"}</span> · ${l.length} ${FS.trk() === "jira" ? "Tickets" : "Arbeitspakete"}`}</div></div>
       <div><h3>Kontingente je Projekt <span class="chip small">Schätzung</span></h3>
         ${hints.length ? `<div class="projs">${hints.map((h) => `<div class="proj"><span class="chip" title="${esc(h.pr.name)}">${ic("flag", "small")}${esc(h.pr.name)}</span><span class="data small">≈ ${fmt(h.need)} PT</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT drüber` : `Rest ${fmt(h.rest)} PT`)}</div>`).join("")}</div>` : `<div class="small muted">Keine Projekttickets im Sprint.</div>`}</div>
     </div></div>`;
@@ -365,22 +365,33 @@
   }
 
   // ---------- Pre-plan ----------
+  // Without tickets: the PO splits each product amount into projects by hand; the rest is daily business.
+  function projAmtCard(sid) {
+    const am = (D.projAmt ??= {})[sid] ??= {}, hints = projHints(sid);
+    const cell = (pr, pj) => `<td class="num edit"><input data-pa="${pr.id}|${pj.id}" inputmode="numeric" value="${am[pr.id]?.[pj.id] || ""}" placeholder="–" aria-label="${esc(pr.name)}, ${esc(pj.name)} in Punkten"></td>`;
+    return `<div id="sp-projamt" style="margin-bottom:24px"><h2>Davon für Projekte</h2>
+      ${tw(`<table class="t"><thead><tr><th>${FS.multiProduct() ? "Produkt" : "Team"}</th><th class="num">Vorgeplant</th>${D.projects.map((pj) => `<th class="num">${esc(pj.name)}</th>`).join("")}<th class="num">Tagesgeschäft</th></tr></thead><tbody>
+        ${D.products.map((pr) => { const pre = pp(sid, pr.id).pre ?? pp(sid, pr.id).def, used = sum(D.projects, (pj) => am[pr.id]?.[pj.id] || 0), rest = pre - used; return `<tr><td>${FS.productChip(pr.id)}</td><td class="num">${fmt(pre)}</td>${D.projects.map((pj) => pj.products.includes(pr.id) ? cell(pr, pj) : '<td class="num muted">–</td>').join("")}<td class="num">${rest < 0 ? `<span class="chip warn">${fmt(rest)}</span>` : fmt(rest)}</td></tr>`; }).join("")}
+        <tr class="sum"><td>Summe</td><td class="num">${fmt(sum(D.products, (pr) => pp(sid, pr.id).pre ?? pp(sid, pr.id).def))}</td>${D.projects.map((pj) => { const h = hints.find((x) => x.pr.id === pj.id); return `<td class="num">${fmt(FS.projPts(sid, pj.id))}${h ? ` <span class="small muted">≈ ${fmt(h.need, 1)} PT</span>` : ""}</td>`; }).join("")}<td></td></tr></tbody></table>`)}
+      <p class="small muted" style="margin:8px 0 0">Ohne Tickets teilst du den Betrag je Produkt von Hand auf Projekte auf. Der Rest ist Tagesgeschäft. Kontingente und Ampeln der Projekte rechnen mit diesen Zahlen.</p></div>`;
+  }
   FS.view("preplan", {
     title: "Sprint vorplanen",
     render() {
       const sid = FS.state.sprint, c = calc(sid), l = tix(sid), pre = preSum(sid), ear = pts(l), prod = FS.prodOn();
       const over = c.high != null && Math.max(pre, ear) > c.high;
       const rows = poRows(8, (p) => { const r = pp(sid, p.id), e = earmark(sid, p.id), dv = r.pre == null ? null : r.pre - e; return `<td>${FS.productChip(p.id)}</td><td class="num">${n(r.def)}</td>
-        <td class="num edit"><input aria-label="Vorgeplant ${esc(p.name)}" data-pre="${p.id}" inputmode="numeric" value="${r.pre ?? ""}" placeholder="–"></td><td class="num">${fmt(e)}</td>
-        <td class="num">${dv == null ? n(null) : `<span class="${dv < 0 ? "chip warn" : ""}">${signed(dv)}</span>`}</td><td class="num">${n(r.plan)}</td><td class="num col-prod">${n(r.prodPlan)}</td><td class="num">${n(r.done)}</td>`; },
-        (ps) => { const s = (f) => sum(ps, f), pr = s((p) => pp(sid, p.id).pre), e = s((p) => earmark(sid, p.id)); return `<td class="num">${fmt(s((p) => pp(sid, p.id).def))}</td><td class="num">${fmt(pr)}</td><td class="num">${fmt(e)}</td><td class="num">${signed(pr - e)}</td><td class="num">${fmt(s((p) => pp(sid, p.id).plan))}</td><td class="num col-prod">${fmt(s((p) => pp(sid, p.id).prodPlan))}</td><td class="num">${fmt(s((p) => pp(sid, p.id).done))}</td>`; });
+        <td class="num edit"><input aria-label="Vorgeplant ${esc(p.name)}" data-pre="${p.id}" inputmode="numeric" value="${r.pre ?? ""}" placeholder="–"></td><td class="num need-tickets">${fmt(e)}</td>
+        <td class="num need-tickets">${dv == null ? n(null) : `<span class="${dv < 0 ? "chip warn" : ""}">${signed(dv)}</span>`}</td><td class="num">${n(r.plan)}</td><td class="num col-prod">${n(r.prodPlan)}</td><td class="num">${n(r.done)}</td>`; },
+        (ps) => { const s = (f) => sum(ps, f), pr = s((p) => pp(sid, p.id).pre), e = s((p) => earmark(sid, p.id)); return `<td class="num">${fmt(s((p) => pp(sid, p.id).def))}</td><td class="num">${fmt(pr)}</td><td class="num need-tickets">${fmt(e)}</td><td class="num need-tickets">${signed(pr - e)}</td><td class="num">${fmt(s((p) => pp(sid, p.id).plan))}</td><td class="num col-prod">${fmt(s((p) => pp(sid, p.id).prodPlan))}</td><td class="num">${fmt(s((p) => pp(sid, p.id).done))}</td>`; });
       const groups = [...D.projects.map((p) => p.id), null].map((pid) => ({ pid, list: l.filter((t) => (t.project || null) === pid) })).filter((g) => g.list.length);
-      return `${header(sid, "preplan", `<button class="btn" type="button" id="sp-take">${ic("playlist_add")}Vormerkungen übernehmen</button><button class="btn" type="button" id="sp-std">${ic("restart_alt")}Standard übernehmen</button>`)}${summary(sid)}${cwCard(sid)}
+      return `${header(sid, "preplan", `<button class="btn need-tickets" type="button" id="sp-take">${ic("playlist_add")}Vormerkungen übernehmen</button><button class="btn" type="button" id="sp-std">${ic("restart_alt")}Standard übernehmen</button>`)}${summary(sid)}${cwCard(sid)}
       ${over ? `<div class="banner warn" id="sp-overcap">${ic("warning")}<div class="grow">Vorgeplant <span class="data">${pre}</span> und vorgemerkt <span class="data">${ear}</span> Punkte liegen über der oberen Grenze <span class="data">${c.high}</span> des Forecast PLAN (${c.fc}). Das ist nur eine Warnung. Du kannst weiterarbeiten, im Planning entscheidet das Team.</div></div>` : ""}
       <h2>${FS.multiProduct() ? "Betrag je Produkt" : "Betrag für das Team"}</h2>
-      ${tw(`<table class="t" id="sp-prod-table"><thead><tr><th>${FS.multiProduct() ? "Produkt" : "Team"}</th><th class="num">Standard</th><th class="num">Vorgeplant</th><th class="num">Vormerkungen</th><th class="num">Abweichung</th><th class="num">Geplant</th><th class="num col-prod">davon Prod</th><th class="num">Erledigt</th></tr></thead><tbody>${rows}</tbody></table>`)}
-      <p class="small muted" style="margin:8px 0 24px">Hier editierbar: Vorgeplant. Standard kommt aus dem Budgetanteil, Vormerkungen sind die Summe der vorgemerkten Tickets (Vorschlag). Geplant${FS.prodOn() ? ", davon Prod" : ""} und Erledigt füllen Planning und Review, hier nur lesbar.</p>
-      <div id="sp-earmarks"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Vorgemerkte Tickets nach Projekt</h2><a class="btn" href="#backlog">${ic("view_list")}Im Backlog vormerken</a></div>
+      ${tw(`<table class="t" id="sp-prod-table"><thead><tr><th>${FS.multiProduct() ? "Produkt" : "Team"}</th><th class="num">Standard</th><th class="num">Vorgeplant</th><th class="num need-tickets">Vormerkungen</th><th class="num need-tickets">Abweichung</th><th class="num">Geplant</th><th class="num col-prod">davon Prod</th><th class="num">Erledigt</th></tr></thead><tbody>${rows}</tbody></table>`)}
+      <p class="small muted" style="margin:8px 0 24px">Hier editierbar: Vorgeplant. Standard kommt aus dem Budgetanteil${FS.trk() === "none" ? "" : ", Vormerkungen sind die Summe der vorgemerkten Tickets (Vorschlag)"}. Geplant${FS.prodOn() ? ", davon Prod" : ""} und Erledigt füllen Planning und Review, hier nur lesbar.</p>
+      ${FS.trk() === "none" ? projAmtCard(sid) : ""}
+      <div id="sp-earmarks" class="need-tickets"><div class="row" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Vorgemerkte Tickets nach Projekt</h2><a class="btn" href="#backlog">${ic("view_list")}Im Backlog vormerken</a></div>
       ${groups.length ? `<div class="stack" style="gap:16px">${groups.map((g) => { const pr = g.pid && FS.project(g.pid), h = pr && projHints(sid).find((x) => x.pr.id === g.pid), p = pts(g.list); return `<div class="card" style="padding:0"><div class="row" style="padding:10px 12px;border-bottom:1px solid var(--border)">${FS.projectChip(g.pid)}<span class="small muted">${g.list.length} Tickets · <span class="data">${fmt(p)}</span> Punkte</span>
         <span style="flex:1"></span>${h ? `<span class="small">≈ <span class="data">${fmt(h.need, 1)} PT</span> <span class="chip small">Schätzung</span> von ${pr.contingentPD} PT gebucht, ${pr.usedPD} verbraucht</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT über Kontingent` : `Rest ${fmt(h.rest)} PT`)}${calcBtn("pd", g.pid)}` : `<span class="small muted">Tagesgeschäft: kein Kontingent, läuft über die Produktbeträge</span>`}</div>
         ${g.list.map((t) => FS.ticketRow(t, { noProject: true })).join("")}</div>`; }).join("")}</div>` : `<div class="banner">${ic("inbox")}<div class="grow">Noch nichts für ${sid} vorgemerkt. Im Backlog Tickets in die Spalte dieses Sprints ziehen.</div></div>`}</div>`;
@@ -389,6 +400,7 @@
       wireCommon(main);
       const sid = FS.state.sprint;
       wireCw(main, sid);
+      main.querySelectorAll("[data-pa]").forEach((i) => (i.onchange = () => { const [pr, pj] = i.dataset.pa.split("|"), v = parseInt(i.value, 10); ((D.projAmt[sid] ??= {})[pr] ??= {})[pj] = isNaN(v) ? 0 : Math.max(0, v); rerender(); }));
       main.querySelectorAll("[data-pre]").forEach((i) => (i.onchange = () => { const v = parseInt(i.value, 10); pp(sid, i.dataset.pre).pre = isNaN(v) ? null : Math.max(0, v); rerender(); }));
       main.querySelector("#sp-take").onclick = () => { const prev = D.products.map((p) => pp(sid, p.id).pre); D.products.forEach((p) => (pp(sid, p.id).pre = earmark(sid, p.id))); rerender(); FS.toast("Beträge aus den Vormerkungen übernommen.", () => { D.products.forEach((p, i) => (pp(sid, p.id).pre = prev[i])); rerender(); }); };
       main.querySelector("#sp-std").onclick = () => { const prev = D.products.map((p) => pp(sid, p.id).pre); D.products.forEach((p) => (pp(sid, p.id).pre = pp(sid, p.id).def)); rerender(); FS.toast("Standardbeträge übernommen.", () => { D.products.forEach((p, i) => (pp(sid, p.id).pre = prev[i])); rerender(); }); };
@@ -444,18 +456,18 @@
       return `${header(sid, "plan", actions)}${summary(sid)}
       ${abs !== "confirmed" ? `<div class="banner warn sp-abs-banner">${ic("event_busy")}<div class="grow"><strong>Abwesenheiten sind für ${sid} noch nicht bestätigt.</strong> ${cells.length ? `Angekündigt: ${cells.map(([pid, a]) => `${esc(FS.person(pid).name)} (${a.d} T)`).join(", ")}.` : "Noch nichts erfasst."} Kapazität und Forecast PLAN können sich noch ändern. Das blockiert nichts.<div class="row" style="margin-top:8px"><button class="btn" type="button" data-confirm="${sid}">${ic("lock")}Belegung festschreiben</button><a class="btn ghost" href="#prepare">Im Raster ändern</a></div></div></div>` : ""}
       ${fz ? `<div class="banner info">${ic("lock")}<div class="grow">Eingefroren am <span class="data">${fz.at}</span>: ${fz.noT ? "Zusage" : `${fz.keys.length} Tickets, Zusage`} <span class="data">${fz.commit}</span> Punkte. Planungsprotokoll ist geschrieben.<div class="row" style="margin-top:8px"><button class="btn" type="button" id="sp-reopen">${ic("lock_open")}Plan wieder öffnen</button><a class="btn" href="#minutes">${ic("description")}Protokoll ansehen</a></div></div></div>` : ""}
-      <div class="row" id="sp-mode" style="margin-bottom:12px"><button class="chip filter ${noT ? "" : "on"}" type="button" data-mode="trk">${ic("confirmation_number", "small")}Mit Tracker: Tickets</button><button class="chip filter ${noT ? "on" : ""}" type="button" data-mode="amt">${ic("pin", "small")}Ohne Tracker: Beträge und Zusage</button></div>
+      <div class="row" id="sp-mode" style="margin-bottom:12px"><button class="chip filter ${noT ? "" : "on"}" type="button" data-mode="trk">${ic("confirmation_number", "small")}Mit Tickets</button><button class="chip filter ${noT ? "on" : ""}" type="button" data-mode="amt">${ic("pin", "small")}Ohne Tickets: Beträge und Zusage</button><span class="small muted">gilt für alle Seiten, wie unter <a href="#jira">Einstellungen, Tickets und Tracker</a></span></div>
       ${noT ? noTrackerCard : laneTop}
       <div class="grid cols-2" id="sp-live" style="margin-bottom:16px">${prodTbl}${projTbl}</div>
-      ${noT ? "" : jiraCard(sid, l, jira, fz)}
-      <div class="card"><div class="row"><label class="row" style="gap:8px"><input type="checkbox" id="sp-label" ${S.label ? "checked" : ""}> Label <span class="data">planned_for_${sid.replace(".", "_")}</span> in ${D.team.tracker} setzen (optional)</label></div>
+      ${noT ? "" : `<div class="only-jira">${jiraCard(sid, l, jira, fz)}</div>`}
+      <div class="card only-jira"><div class="row"><label class="row" style="gap:8px"><input type="checkbox" id="sp-label" ${S.label ? "checked" : ""}> Label <span class="data">planned_for_${sid.replace(".", "_")}</span> in ${D.team.tracker} setzen (optional)</label></div>
         <p class="small muted" style="margin:8px 0 0">Der Knopf oben rechts friert die Einigung ein, speichert die Ticketliste lokal und schreibt das Planungsprotokoll.</p></div>`;
     },
     wire(main) {
       wireCommon(main);
       const sid = FS.state.sprint, S = st();
       main.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => { confirmAbs(sid); rerender(); FS.toast("Belegung festgeschrieben. Kapazität und Forecast PLAN sind aktuell."); }));
-      main.querySelectorAll("[data-mode]").forEach((b) => (b.onclick = () => { S.noTracker = b.dataset.mode === "amt"; rerender(); }));
+      main.querySelectorAll("[data-mode]").forEach((b) => (b.onclick = () => { if (b.dataset.mode === "amt") { if (FS.trk() !== "none") FS.state.trkBefore = FS.trk(); FS.setTrk("none"); } else FS.setTrk(FS.state.trkBefore ?? "jira"); rerender(); }));
       main.querySelectorAll("[data-amt]").forEach((i) => (i.onchange = () => { const v = parseInt(i.value, 10); (S.amt[sid] ??= {})[i.dataset.amt] = isNaN(v) ? 0 : v; delete S.commit[sid]; rerender(); }));
       const cm = main.querySelector("#sp-commit"); if (cm) cm.onchange = () => { const v = parseInt(cm.value, 10); S.commit[sid] = isNaN(v) ? 0 : v; rerender(); };
       const lb = main.querySelector("#sp-label"); if (lb) lb.onchange = () => (S.label = lb.checked);

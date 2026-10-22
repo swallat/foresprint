@@ -248,3 +248,5 @@ button.link { background: none; border: 0; padding: 0; color: var(--primary); te
 .t td .btn.icon { height: 28px; width: 28px; margin: -4px 0; }
 p .chip, .small .chip { margin-right: 2px; }
 .t tr.former td { color: var(--text-muted); }
+/* Ticket source: hide what needs a tracker or tickets */
+[data-trk="local"] .only-jira, [data-trk="none"] .only-jira, [data-trk="none"] .need-tickets { display: none !important; }

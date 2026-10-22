@@ -22,6 +22,26 @@
   FS.multiProduct = () => D.products.length > 1;
   FS.multiPO = () => D.pos.length > 1;
   FS.prodOn = () => FS.state.teamApplied?.prod !== false;
+  // Ticket source (Settings > Tickets und Tracker): "jira" = tracker, "local" = work packages kept in
+  // Foresprint, "none" = no tickets at all, planning with amounts per product and project.
+  FS.trk = () => FS.state.trk ?? "jira";
+  FS.setTrk = (v) => {
+    FS.state.trk = v;
+    document.documentElement.dataset.trk = v;
+    if (FS.state.bl) FS.state.bl.notracker = v !== "jira";
+    if (FS.state.sp) FS.state.sp.noTracker = v === "none";
+    if (FS.state.jira) FS.state.jira.off = v !== "jira";
+    if (v === "none" && !D.projAmt) {
+      // Seed the hand-kept amounts from the demo tickets so all numbers stay comparable.
+      D.projAmt = {};
+      Object.keys(D.productPlan).forEach((sid) => D.products.forEach((pr) => D.projects.forEach((pj) => { const v = FS.sum(D.tickets.filter((t) => t.sprint === sid && t.product === pr.id && t.project === pj.id), (t) => t.est); if (v) ((D.projAmt[sid] ??= {})[pr.id] ??= {})[pj.id] = v; })));
+      D.projects.forEach((pj) => (pj.restPts ??= FS.sum(D.tickets.filter((t) => t.project === pj.id && t.status !== "Fertig"), (t) => t.est)));
+    }
+  };
+  // Points a project takes in a sprint (optionally for one product): from tickets, or from the hand-kept amounts.
+  FS.projPts = (sid, pj, pr) => FS.trk() === "none"
+    ? FS.sum(D.products.filter((p) => !pr || p.id === pr), (p) => D.projAmt?.[sid]?.[p.id]?.[pj] || 0)
+    : FS.sum(D.tickets.filter((t) => t.sprint === sid && t.project === pj && (!pr || t.product === pr)), (t) => t.est);
   // Demo switch: Team Atlas with every feature, or a simple team (one PO, one product, no production share)
   FS.setSimple = (on) => {
     FS._full ??= structuredClone(D);
@@ -313,12 +333,12 @@
 
   // ---------- navigation model (flows.md section 5) ----------
   const NAV = [
-    { group: null, items: [["today", "today", "Heute"], ["backlog", "view_list", "Backlog"]] },
+    { group: null, items: [["today", "today", "Heute"], ["backlog", "view_list", "Backlog", false, "need-tickets"]] },
     { group: "Sprints", items: [["sprints", "date_range", "Sprint-Übersicht"], ["prepare", "event_available", "Vorbereiten", true], ["preplan", "low_priority", "Vorplanen", true], ["plan", "checklist", "Planen", true], ["review", "task_alt", "Review", true], ["minutes", "description", "Protokolle", true]] },
     { group: null, items: [["projects", "flag", "Projekte"], ["forecast", "insights", "Forecast"]] },
     { group: "Team", items: [["people", "group", "Personen und Abwesenheiten"], ["products", "category", "Produkte"], ["calendar", "calendar_month", "Sprint-Kalender"]] },
     { group: "Daten", items: [["data", "database", "Übersicht"], ["conflicts", "call_split", "Konflikte"], ["history", "history", "Verlauf und Tags"]] },
-    { group: "Einstellungen", items: [["settings", "tune", "Team"], ["jira", "sync", "Jira und Tickets"], ["storage", "cloud", "Speicher"], ["personal", "person", "Persönlich"]] },
+    { group: "Einstellungen", items: [["settings", "tune", "Team"], ["jira", "sync", "Tickets und Tracker"], ["storage", "cloud", "Speicher"], ["personal", "person", "Persönlich"]] },
     { group: "Hilfe", items: [["help", "calculate", "Rechenwege"]] },
     { group: "Mockups", items: [["flows", "route", "Abläufe durchspielen"]] },
   ];
@@ -348,14 +368,14 @@
         <button class="sel" type="button" id="sprint-sel" title="Sprint wählen">${FS.icon("date_range")}<span class="data">${s.id}</span>${FS.icon("expand_more")}</button>
         <div class="spacer"></div>
         <div class="search" role="button" tabindex="0" title="Suchen und springen (Strg+K)">${FS.icon("search")}<span class="txt">Suchen</span><span class="small data hide-narrow">Strg+K</span></div>
-        <a class="chip-status ${FS.state.trackerOk === false ? "bad" : ""}" href="#jira" title="Letzter Abruf aus ${D.team.tracker}">${FS.icon("sync")}<span class="hide-narrow">${D.team.tracker} ${D.trackerSync.last}</span></a>
+        <a class="chip-status only-jira ${FS.state.trackerOk === false ? "bad" : ""}" href="#jira" title="Letzter Abruf aus ${D.team.tracker}">${FS.icon("sync")}<span class="hide-narrow">${D.team.tracker} ${D.trackerSync.last}</span></a>
         ${FS.storageChip()}
         <button class="btn hide-narrow" type="button" id="btn-refresh" title="Änderungen von anderen holen">${FS.icon("download")}Aktualisieren</button>
         <button class="btn primary" type="button" id="btn-save" title="Speichern und für das Team sichtbar machen" aria-label="Speichern">${FS.icon("save")}<span class="hide-narrow">Speichern</span></button>
         <button class="btn icon ghost" type="button" id="btn-theme" aria-label="Hell oder dunkel">${FS.icon("contrast")}</button>
       </header>
       <nav class="rail" id="rail" aria-label="Hauptnavigation">
-        ${NAV.map((g) => `${g.group ? `<h6>${g.group}${g.group === "Sprints" ? ` <span class="data">${s.id}</span>` : ""}</h6>` : ""}${g.items.map(([id, ic, label, sub]) => `<a href="#${id}" data-nav="${id}">${FS.icon(ic)}<span>${label}</span>${id === "conflicts" && FS.state.storageState === "conflict" ? '<span class="count" style="color:var(--bad)">2</span>' : ""}</a>`).join("")}`).join("")}
+        ${NAV.map((g) => `${g.group ? `<h6>${g.group}${g.group === "Sprints" ? ` <span class="data">${s.id}</span>` : ""}</h6>` : ""}${g.items.map(([id, ic, label, sub, cls]) => `<a href="#${id}" data-nav="${id}" class="${cls || ""}">${FS.icon(ic)}<span>${label}</span>${id === "conflicts" && FS.state.storageState === "conflict" ? '<span class="count" style="color:var(--bad)">2</span>' : ""}</a>`).join("")}`).join("")}
       </nav>
       <main class="main" id="main"></main>
     </div>`;

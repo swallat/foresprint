@@ -6,7 +6,7 @@
   const RULE = { "ATL-440": "Komponente \"Zertifikate\" gehört zu keiner Produktregel", "ATL-446": "Zwei Regeln treffen zu: Kundenportal und Mobile App", "ATL-448": "Label \"monitoring\" gehört zu keiner Produktregel" };
   const BASE = { products: [], projects: [], refined: "all", flag: "", q: "" };
   const VIEWS = [["alle", "Alle", {}], ["tag", "Tagesgeschäft", { projects: [""] }], ["ref", "Refinement", { refined: "open" }], ["unz", "Nicht zugeordnet", { flag: "unassigned" }], ["vor", "Vorgemerkt", { flag: "earmarked" }]];
-  const B = (FS.state.bl ??= { ...BASE, group: "none", sel: [], menu: false, stale: false, notracker: false });
+  const B = (FS.state.bl ??= { ...BASE, group: "none", sel: [], menu: false, stale: false, notracker: FS.trk() !== "jira" });
   const esc = FS.esc, fmt = FS.fmt;
   const go = (view, o = {}) => { if (o.sprint) FS.state.sprint = o.sprint; if (o.bl) setView(o.bl); if (location.hash.slice(1) === view) FS.render(); else location.hash = view; };
   function setView(id) { Object.assign(B, { ...BASE, sel: [] }, VIEWS.find((v) => v[0] === id)[2]); }
@@ -165,6 +165,8 @@
   FS.view("backlog", {
     title: "Backlog",
     render() {
+      if (FS.trk() === "none") return `<div class="page-head"><div><h1>Backlog</h1><p class="lead">Ohne Tickets gibt es keinen Backlog.</p></div></div>
+        <div class="banner info">${FS.icon("info")}<div class="grow">Dein Team plant ohne Tickets: Beträge je Produkt und Projekt in <a href="#preplan">Vorplanen</a>, die Zusage als Zahl in <a href="#plan">Planen</a>. Willst du Arbeit einzeln führen, stelle unter <a href="#jira">Einstellungen, Tickets und Tracker</a> auf Arbeitspakete oder einen Tracker um.</div></div>`;
       return `<style>
         .bl-board{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
         .bl-board .ticket{grid-template-columns:22px 20px 92px minmax(0,1fr);row-gap:2px}.bl-board .ticket .title{white-space:normal}.bl-board .ticket .meta{grid-column:3 / -1;flex-wrap:wrap}.bl-board .ticket .est{margin-left:auto}
@@ -189,6 +191,7 @@
       <div class="bl-board" id="bl-board"></div>`;
     },
     wire(m) {
+      if (FS.trk() === "none") return;
       main = m;
       paint();
       const sel = (key, on) => { B.sel = on ? [...new Set([...B.sel, key])] : B.sel.filter((k) => k !== key); paint(); };
@@ -220,7 +223,7 @@
           else if (a === "workitem") workItemPanel();
         }
       });
-      m.querySelector("#bl-notracker").onclick = () => { B.notracker = !B.notracker; FS.render(); };
+      m.querySelector("#bl-notracker").onclick = () => { FS.setTrk(B.notracker ? "jira" : "local"); FS.render(); };
     },
   });
 
@@ -237,41 +240,41 @@
       const lg = FS.project("login"), lgSum = lg.usedPD + lg.plannedPD;
       const sprint22Abs = Object.keys(D.absences["2026.22"] || {}).length;
       const inc = D.storage.incoming;
-      const finding = (chip, text, btn) => `<li class="row" style="padding:8px 0;border-bottom:1px solid var(--border);align-items:flex-start"><span>${chip}</span><span style="flex:1;min-width:200px">${text}</span>${btn}</li>`;
+      const finding = (chip, text, btn, cls = "") => `<li class="row ${cls}" style="padding:8px 0;border-bottom:1px solid var(--border);align-items:flex-start"><span>${chip}</span><span style="flex:1;min-width:200px">${text}</span>${btn}</li>`;
       return `<div class="page-head"><div><h1>Heute, ${FS.fmtDate(D.today)}</h1><p class="lead">Was als Nächstes ansteht, was andere geändert haben und was auffällt. Jeder Punkt führt in die passende Ansicht. Nichts davon ist Pflicht und nichts sperrt eine Seite.</p></div></div>
       <div class="grid cols-2" style="margin-bottom:16px">
         <section class="card stack" aria-labelledby="td-h21"><div class="row"><h2 id="td-h21" style="margin:0">Sprint <span class="data">2026.21</span></h2><span class="chip fc">läuft</span><span class="muted small data">${FS.fmtDate(cur.start)} bis ${FS.fmtDate(cur.end)}</span></div>
-          ${FS.capBar(done, cur.plan, null, null, cur.plan * 1.15)}
-          <div class="row small"><span class="data">${done} von ${cur.plan} Punkten erledigt (${ts.length} Tickets im Sprint)</span>${calcBtn('data-calc21="1"')}</div>
+          ${FS.trk() === "none" ? `<div class="row small"><span>Zusage <span class="data">${cur.plan}</span> Punkte. Ohne Tickets steht das Ergebnis erst im Review fest.</span></div>` : `${FS.capBar(done, cur.plan, null, null, cur.plan * 1.15)}
+          <div class="row small"><span class="data">${done} von ${cur.plan} Punkten erledigt (${ts.length} ${FS.trk() === "jira" ? "Tickets" : "Arbeitspakete"} im Sprint)</span>${calcBtn('data-calc21="1"')}</div>`}
           <div class="banner warn" style="margin:0"><span>${FS.icon("event_upcoming")}</span><div class="grow"><strong>Review fällig am 27.10.</strong> Noch 6 Tage. Velocity, Scope-Änderung und Erledigtes je Produkt eintragen.</div></div>
           <div class="row">${goBtn("Zum Review", "review", { sprint: "2026.21" })}${goBtn("Sprint-Übersicht", "sprints")}</div></section>
         <section class="card stack" aria-labelledby="td-h22"><div class="row"><h2 id="td-h22" style="margin:0">Sprint <span class="data">2026.22</span></h2><span class="chip">offen</span><span class="muted small data">Start 28.10., Planung 28.10.</span></div>
           <div class="stack" style="gap:0">
             ${[["event_busy", "Abwesenheiten", light(false, "", `nur angekündigt (${sprint22Abs} Personen)`), goBtn("Bestätigen", "prepare", { sprint: "2026.22" })],
                ["low_priority", "Vorplanung", light(false, "", "2 von 4 Produkten"), goBtn("Vorplanen", "preplan", { sprint: "2026.22" })],
-               ["help", "Refinement", light(false, "", "2 Tickets nicht refined"), goBtn("Backlog", "backlog", { bl: "ref" })],
+               ...(FS.trk() === "none" ? [] : [["help", "Refinement", light(false, "", "2 Tickets nicht refined"), goBtn("Backlog", "backlog", { bl: "ref" })]]),
                ["checklist", "Planung", `<span class="chip">28.10.</span>`, goBtn("Planung", "plan", { sprint: "2026.22" })]].map(([ic, l, c, b]) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--border)"><span style="flex:1;min-width:130px">${FS.icon(ic, "small")} ${l}</span>${c}${b}</div>`).join("")}</div>
-          <p class="small muted" style="margin:0">Kundenportal und Mobile App sind vorgeplant, Abrechnung und Plattform fehlen noch. Die Planung geht trotzdem, mit den Daten von jetzt. Danach folgen <span class="data">2026.23</span> (3 Tickets vorgemerkt) und <span class="data">2026.24</span> (noch leer).</p></section>
+          <p class="small muted" style="margin:0">Kundenportal und Mobile App sind vorgeplant, Abrechnung und Plattform fehlen noch. Die Planung geht trotzdem, mit den Daten von jetzt. Danach folgen <span class="data">2026.23</span> ${FS.trk() === "none" ? "" : "(3 Tickets vorgemerkt)"} und <span class="data">2026.24</span> (noch leer).</p></section>
       </div>
       <div class="grid cols-3" style="margin-bottom:16px">
         <section class="card stack" aria-labelledby="td-hi"><h2 id="td-hi" style="margin:0">${FS.icon("cloud_download")} Änderungen von anderen</h2>
           ${FS.state.storageState === "saved" ? `<p class="muted" style="margin:0">Alles aktuell. Nichts Neues von anderen.</p>` : `<ul class="stack" style="margin:0;padding:0;list-style:none">${inc.map((c) => `<li><strong>${esc(c.who)}</strong>: ${esc(c.what)} <span class="muted small">${c.when}</span></li>`).join("")}</ul>
           <div class="row"><button class="btn primary" type="button" id="td-refresh">${FS.icon("download")}Aktualisieren</button><a class="small" href="#data">Details in Daten</a></div>`}</section>
-        <section class="card stack" aria-labelledby="td-hs"><h2 id="td-hs" style="margin:0">${FS.icon("sync")} ${D.team.tracker}-Abruf</h2>
+        <section class="card stack only-jira" aria-labelledby="td-hs"><h2 id="td-hs" style="margin:0">${FS.icon("sync")} ${D.team.tracker}-Abruf</h2>
           <dl class="kv" style="grid-template-columns:110px minmax(0,1fr)"><dt>Letzter Abruf</dt><dd>${D.trackerSync.last}</dd><dt>Tickets</dt><dd class="data">${D.trackerSync.tickets}</dd><dt>Geändert</dt><dd class="data">${D.trackerSync.changed} seit dem letzten Abruf</dd></dl>
           <div class="row"><button class="btn" type="button" id="td-sync">${FS.icon("sync")}Jetzt abrufen</button><a class="small" href="#jira">Jira und Tickets</a></div>
           <p class="small muted" style="margin:0">Ohne Tracker entfällt diese Karte. Dann pflegst du Arbeitspakete von Hand im <a href="#backlog">Backlog</a>.</p></section>
-        <section class="card stack" aria-labelledby="td-ha"><h2 id="td-ha" style="margin:0">${FS.icon("view_list")} Backlog</h2>
+        <section class="card stack need-tickets" aria-labelledby="td-ha"><h2 id="td-ha" style="margin:0">${FS.icon("view_list")} Backlog</h2>
           <dl class="kv" style="grid-template-columns:150px minmax(0,1fr)"><dt>Im Backlog</dt><dd class="data">${D.tickets.filter((t) => !t.sprint).length} Tickets</dd><dt>Vorgemerkt</dt><dd class="data">${D.tickets.filter((t) => LANES.includes(t.sprint)).length} Tickets für 3 Sprints</dd><dt>Nicht refined</dt><dd class="data">${D.tickets.filter((t) => !t.sprint && !t.refined).length} Tickets</dd></dl>
           ${goBtn("Backlog öffnen", "backlog", { bl: "alle" })}</section>
       </div>
-      <section class="card" aria-labelledby="td-hf"><h2 id="td-hf">${FS.icon("fact_check")} Befunde <span class="chip data">5</span></h2>
+      <section class="card" aria-labelledby="td-hf"><h2 id="td-hf">${FS.icon("fact_check")} Befunde <span class="chip data">${{ jira: 5, local: 4, none: 2 }[FS.trk()]}</span></h2>
         <ul style="margin:0;padding:0;list-style:none">
-          ${finding(FS.lightChip("bad", "Gefährdet"), `Projekt <strong>${esc(lg.name)}</strong>: Meilenstein "${esc(lg.milestones[0].name)}" am ${FS.fmtDate(lg.milestones[0].date)} gefährdet, ${lg.milestones[0].done} von ${lg.milestones[0].tickets} Tickets erledigt. Kontingent: ${lg.usedPD} PT gebucht plus ${lg.plannedPD} PT geplant = ${lgSum} von ${lg.contingentPD} PT ${calcBtn('data-calc-login="1"')}`, goBtn("Projekt", "projects"))}
-          ${finding(FS.lightChip("warn", "Hinweis"), `Ticket ohne Schätzung: ${noEst.map((t) => `${FS.keyLink(t)} ${esc(t.title)}`).join(", ")}. Zählt im Sprint als 0 Punkte.`, goBtn("Im Backlog", "backlog", { bl: "alle" }))}
-          ${finding(FS.lightChip("warn", "Hinweis"), `${earmarkedOpen.length} vorgemerktes Ticket nicht refined: ${earmarkedOpen.map((t) => `${FS.keyLink(t)} (${t.sprint})`).join(", ")}.`, goBtn("Refinement", "backlog", { bl: "ref" }))}
+          ${finding(FS.lightChip("bad", "Gefährdet"), `Projekt <strong>${esc(lg.name)}</strong>: Meilenstein "${esc(lg.milestones[0].name)}" am ${FS.fmtDate(lg.milestones[0].date)} gefährdet, ${FS.trk() === "none" ? "Ampel von Hand gesetzt." : `${lg.milestones[0].done} von ${lg.milestones[0].tickets} Tickets erledigt.`} Kontingent: ${lg.usedPD} PT gebucht plus ${lg.plannedPD} PT geplant = ${lgSum} von ${lg.contingentPD} PT ${calcBtn('data-calc-login="1"')}`, goBtn("Projekt", "projects"))}
+          ${finding(FS.lightChip("warn", "Hinweis"), `Ticket ohne Schätzung: ${noEst.map((t) => `${FS.keyLink(t)} ${esc(t.title)}`).join(", ")}. Zählt im Sprint als 0 Punkte.`, goBtn("Im Backlog", "backlog", { bl: "alle" }), "need-tickets")}
+          ${finding(FS.lightChip("warn", "Hinweis"), `${earmarkedOpen.length} vorgemerktes Ticket nicht refined: ${earmarkedOpen.map((t) => `${FS.keyLink(t)} (${t.sprint})`).join(", ")}.`, goBtn("Refinement", "backlog", { bl: "ref" }), "need-tickets")}
           ${finding(FS.lightChip("warn", "Hinweis"), `Abwesenheiten für 2026.22 sind nur angekündigt. Der Forecast rechnet mit ${FS.sprint("2026.22").capacityPD} PT und ändert sich bei Bestätigung.`, goBtn("Bestätigen", "prepare", { sprint: "2026.22" }))}
-          ${finding(FS.lightChip("warn", "Hinweis"), `${Object.keys(RULE).length} Tickets ohne eindeutiges Produkt (Regel ohne Treffer).`, goBtn("Zuordnen", "backlog", { bl: "unz" }))}
+          ${finding(FS.lightChip("warn", "Hinweis"), `${Object.keys(RULE).length} Tickets ohne eindeutiges Produkt (Regel ohne Treffer).`, goBtn("Zuordnen", "backlog", { bl: "unz" }), "only-jira")}
         </ul></section>`;
     },
     wire(m) {
@@ -298,13 +301,13 @@
     id: "F2", title: "Backlog pflegen",
     summary: "Abruf prüfen, filtern, Tickets ordnen und vormerken, Ticket-Panel pflegen, Regelhinweise klären.",
     steps: [
-      { view: "backlog", hl: "#bl-sync", text: "Zuerst der Abruf-Status. Ist er veraltet oder fehlgeschlagen, steht hier ein Banner mit \"Erneut versuchen\". Die Arbeit geht mit den letzten Daten weiter, nichts ist gesperrt.", before() { setView("alle"); B.stale = true; B.notracker = false; B.group = "none"; } },
+      { view: "backlog", hl: "#bl-sync", text: "Zuerst der Abruf-Status. Ist er veraltet oder fehlgeschlagen, steht hier ein Banner mit \"Erneut versuchen\". Die Arbeit geht mit den letzten Daten weiter, nichts ist gesperrt.", before() { setView("alle"); B.stale = true; FS.setTrk("jira"); B.group = "none"; } },
       { view: "backlog", hl: "#bl-chips", text: "Frischer Abruf: Wähle eine gespeicherte Ansicht (zum Beispiel Refinement) oder klicke Filter an. Die Liste reagiert sofort, auch mit der Suche.", before() { B.stale = false; setView("alle"); } },
       { view: "backlog", hl: ".bl-board [data-zone=backlog] .lane-body > .ticket:first-of-type", text: "Ordnen: Ticket am Griff nach oben oder unten ziehen oder Alt+Pfeil nutzen. In einen Sprint rechts ziehen merkt es vor, ein Toast bietet Rückgängig. Ohne Maus: mehrere ankreuzen und \"Vormerken für...\".", before() { setView("alle"); B.sel = []; } },
       { view: "backlog", hl: ".bl-board [data-zone=backlog] .lane-body > .ticket:first-of-type .title", text: "Ein Klick auf den Titel öffnet das Ticket-Panel. Schlüssel und Pfeil öffnen " + D.team.tracker + "." },
       { view: "backlog", text: "Im Panel pflegst du Schätzung, Produkt, Projekt und Vormerkung und siehst, ob das Ticket refined ist. Der Verlauf steht darunter.", before() { setTimeout(() => FS.ticketPanel("ATL-434"), 250); } },
       { view: "backlog", hl: ".bl-ruleflag", text: "Entscheidung Regelkonflikt: Trifft keine oder mehr als eine Produktregel zu, markiert die Zeile es. Der Hinweis erklärt den Grund, das Produkt der Regel entscheidet, du kannst es für dieses Ticket von Hand setzen. Dann zurück zum Backlog.", before() { setView("unz"); } },
-      { view: "backlog", hl: "#bl-notracker", text: "Ohne Tracker: Dieser Schalter zeigt den Backlog mit von Hand angelegten Arbeitspaketen. Es gibt dann keinen Abruf, alles andere bleibt gleich.", before() { setView("alle"); B.notracker = false; } },
+      { view: "backlog", hl: "#bl-notracker", text: "Ohne Tracker: Dieser Schalter zeigt den Backlog mit von Hand angelegten Arbeitspaketen. Es gibt dann keinen Abruf, alles andere bleibt gleich.", before() { setView("alle"); FS.setTrk("jira"); } },
     ],
   });
 })();

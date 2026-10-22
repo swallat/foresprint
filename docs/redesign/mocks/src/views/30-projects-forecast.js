@@ -50,13 +50,15 @@
   const sprintOfMonth = (s) => s.end.slice(0, 7);
 
   function projStats(p) {
-    const ts = D.tickets.filter((t) => t.project === p.id);
+    // Without tickets the project's plan is the hand-kept amount per sprint; the open scope is a number on the project.
+    const none = FS.trk() === "none";
+    const ts = none ? D.sprints.filter((s) => s.state !== "past").map((s) => ({ key: "", sprint: s.id, est: FS.projPts(s.id, p.id), status: "Offen", refined: true })).filter((t) => t.est) : D.tickets.filter((t) => t.project === p.id);
     const open = ts.filter((t) => t.status !== "Fertig");
     const plannedPts = sum(open.filter((t) => FS.sprint(t.sprint)), (t) => t.est);
     const donePts = sum(ts.filter((t) => t.status === "Fertig"), (t) => t.est);
     const plannedPD = pd(plannedPts);
     const total = p.usedPD + plannedPD;
-    return { ts, plannedPts, donePts, plannedPD, used: p.usedPD, total, left: p.contingentPD - total, remPts: sum(open, (t) => t.est), nOpen: open.length };
+    return { ts, plannedPts, donePts, plannedPD, used: p.usedPD, total, left: p.contingentPD - total, remPts: none ? p.restPts ?? 0 : sum(open, (t) => t.est), nOpen: open.length, none };
   }
 
   function meter(p, st) {
@@ -159,10 +161,10 @@
     const plan = D.productPlan[sid];
     const rows = D.products.map((pr) => {
       const budget = plan[pr.id].pre;
-      const dem = D.projects.map((p) => ({ p, pts: sum(D.tickets.filter((t) => t.sprint === sid && t.product === pr.id && t.project === p.id), (t) => t.est) }));
+      const dem = D.projects.map((p) => ({ p, pts: FS.projPts(sid, p.id, pr.id) }));
       const proj = sum(dem, (d) => d.pts);
       const rest = budget - proj;
-      const cand = D.tickets.filter((t) => t.sprint === sid && t.product === pr.id && t.project).sort((a, b) => LIGHT_ORDER[FS.project(a.project).light] - LIGHT_ORDER[FS.project(b.project).light] || b.rank - a.rank)[0];
+      const cand = FS.trk() === "none" ? null : D.tickets.filter((t) => t.sprint === sid && t.product === pr.id && t.project).sort((a, b) => LIGHT_ORDER[FS.project(a.project).light] - LIGHT_ORDER[FS.project(b.project).light] || b.rank - a.rank)[0];
       return { pr, budget, dem, proj, rest, light: rest <= 0 ? "bad" : rest <= 2 ? "warn" : "ok", cand: cand && FS.project(cand.project).light !== "bad" ? cand : null, hasProj: proj > 0 };
     });
     return { sid, rows };
@@ -202,7 +204,7 @@
       ${D.projects.map((p) => { const st = projStats(p); return `<tr><td><a href="#project" data-project="${p.id}"><strong>${esc(p.name)}</strong></a></td><td class="only-multiprod">${p.products.map(FS.productChip).join(" ")}</td><td class="data">${FS.fmtDate(p.end)}</td><td>${FS.lightChip(p.light)}</td>
         <td class="num">${fmt(p.contingentPD)}</td><td class="num">${fmt(st.used)}</td><td class="num">${fmt(st.plannedPD, 1)} ${calcBtn("proj", p.id)}</td><td>${meter(p, st)}</td></tr>`; }).join("")}
       <tr class="pf-sub"><td colspan="8">${FS.multiProduct() ? "Tagesgeschäft je Produkt" : "Tagesgeschäft"}, ohne Ampel: Budget aus der Vorplanung, nicht aus einem Projekt</td></tr>
-      ${D.products.map((pr) => { const sid = "2026.22"; const budget = pd(D.productPlan[sid][pr.id].pre); const used = pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === "2026.21"), (t) => t.est)); const planned = pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === sid), (t) => t.est));
+      ${D.products.map((pr) => { const sid = "2026.22"; const budget = pd(D.productPlan[sid][pr.id].pre); const used = pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === "2026.21"), (t) => t.est)); const planned = FS.trk() === "none" ? pd(Math.max(0, D.productPlan[sid][pr.id].pre - sum(D.projects, (pj) => FS.projPts(sid, pj.id, pr.id)))) : pd(sum(D.tickets.filter((t) => t.product === pr.id && !t.project && t.sprint === sid), (t) => t.est));
         return `<tr><td>${FS.projectChip(null)}</td><td class="only-multiprod">${FS.productChip(pr.id)}</td><td class="muted">laufend</td><td class="muted">${ic("remove")}keine Ampel</td><td class="num">${fmt(budget, 1)}</td><td class="num">${fmt(used, 1)}</td><td class="num">${fmt(planned, 1)}</td>
           <td><span class="small muted">Budget je Sprint ${sid}; verbraucht = Sprint 2026.21</span></td></tr>`; }).join("")}
     </tbody></table></div>
@@ -317,7 +319,7 @@
     });
     return `${STYLE}
     <div class="page-head"><div><div class="small muted"><a href="#projects">Projekte</a> / Projekt</div><h1>${esc(p.name)} ${FS.lightChip(p.light)}</h1>
-      <p class="lead">Ansprechpartner: ${esc(p.lead)}. Ende <span class="data">${FS.fmtDate(p.end)}</span>.${p.rule ? ` Regel: <span class="data rule-txt">${esc(p.rule)}</span>` : ` Ohne Regel: Tickets ordnen Sie von Hand zu.`} <button class="link" type="button" id="pj-rule">${p.rule ? "Regel bearbeiten" : "Regel anlegen"}</button></p></div>
+      <p class="lead">Ansprechpartner: ${esc(p.lead)}. Ende <span class="data">${FS.fmtDate(p.end)}</span>.<span class="only-jira">${p.rule ? ` Regel: <span class="data rule-txt">${esc(p.rule)}</span>` : ` Ohne Regel: Tickets ordnen Sie von Hand zu.`} <button class="link" type="button" id="pj-rule">${p.rule ? "Regel bearbeiten" : "Regel anlegen"}</button></span></p></div>
       <div class="actions"><select class="input" id="pj-pick" aria-label="Projekt wechseln">${D.projects.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>
         <button class="btn" type="button" id="pj-edit">${ic("edit")}Bearbeiten</button></div></div>
     <div class="grid cols-3">
@@ -326,12 +328,13 @@
       <div class="card"><div class="row"><div class="small muted" style="flex:1">Kontingent (PT)</div>${est}${calcBtn("proj", p.id)}</div>
         <div class="pf-big" style="margin:4px 0 8px">${fmt(st.total, 1)} <span class="muted" style="font-size:14px">von ${fmt(p.contingentPD)}</span></div>${meter(p, st)}
         <div class="small muted" style="margin-top:8px">verbraucht <span class="data">${fmt(st.used)}</span>, geplant <span class="data">${fmt(st.plannedPD, 1)}</span></div></div>
-      <div class="card"><div class="small muted">Offener Umfang</div><div class="pf-big" style="margin:4px 0">${fmt(st.remPts)} <span class="muted" style="font-size:14px">Punkte, ${st.nOpen} Tickets</span></div>
-        <div class="small muted">${st.ts.filter((t) => !t.refined).length} noch nicht refined, ${noSprint.length} nicht vorgemerkt</div><div style="margin-top:8px"><a href="#forecast" id="pj-when">${ic("insights")}Wann ist es fertig?</a></div></div>
+      <div class="card"><div class="small muted">Offener Umfang</div>${st.none ? `<div class="row" style="margin:4px 0"><input class="input data" id="pj-rest" inputmode="numeric" value="${fmt(st.remPts)}" aria-label="Offener Umfang in Punkten" style="width:96px;text-align:right;font-size:20px"><span class="muted">Punkte</span></div>
+        <div class="small muted">Ohne Tickets von Hand gepflegt, zum Beispiel nach jedem Review.</div>` : `<div class="pf-big" style="margin:4px 0">${fmt(st.remPts)} <span class="muted" style="font-size:14px">Punkte, ${st.nOpen} Tickets</span></div>
+        <div class="small muted">${st.ts.filter((t) => !t.refined).length} noch nicht refined, ${noSprint.length} nicht vorgemerkt</div>`}<div style="margin-top:8px"><a href="#forecast" id="pj-when">${ic("insights")}Wann ist es fertig?</a></div></div>
     </div>
     <div class="grid cols-2" style="margin-top:16px">
-      <div class="card"><h2>Meilensteine</h2><div class="tw"><table class="t"><thead><tr><th>Meilenstein</th><th>Datum</th><th class="num">Tickets</th><th>Ampel</th></tr></thead><tbody>
-        ${p.milestones.map((m) => `<tr><td>${esc(m.name)}</td><td class="data">${FS.fmtDate(m.date)}</td><td class="num">${m.tickets ? `${m.done} von ${m.tickets} fertig` : "–"}</td><td>${FS.lightChip(m.light)}${m.tickets ? "" : `<div class="small muted">von Hand gesetzt</div>`}</td></tr>`).join("")}</tbody></table></div>
+      <div class="card"><h2>Meilensteine</h2><div class="tw"><table class="t"><thead><tr><th>Meilenstein</th><th>Datum</th><th class="num need-tickets">Tickets</th><th>Ampel</th></tr></thead><tbody>
+        ${p.milestones.map((m) => `<tr><td>${esc(m.name)}</td><td class="data">${FS.fmtDate(m.date)}</td><td class="num need-tickets">${m.tickets ? `${m.done} von ${m.tickets} fertig` : "–"}</td><td>${FS.lightChip(m.light)}${m.tickets ? "" : `<div class="small muted">von Hand gesetzt</div>`}</td></tr>`).join("")}</tbody></table></div>
         <p class="small muted" style="margin:8px 0">Mit zugeordneten Tickets bekommt ein Meilenstein eine eigene Ampel aus dem Stand der Tickets, ohne Tickets setzen Sie sie von Hand.</p>
         <button class="btn" type="button" data-toast="Meilenstein-Formular würde sich öffnen (Mockup).">${ic("add")}Meilenstein hinzufügen</button></div>
       <div class="card"><h2>Kontingent pro Monat</h2>${monthRows ? `<div class="tw"><table class="t"><thead><tr><th>Monat</th><th class="num">gebucht</th><th class="num">verbraucht</th><th class="num">geplant ${ic("calculate")}</th><th class="num">Rest</th></tr></thead><tbody>
@@ -340,7 +343,7 @@
         <p class="small muted" style="margin:8px 0 0">Alle Werte in Personentagen. Geplant ist geschätzt (Punkte durch ${rateTxt()}), zugeordnet nach Sprintende. Frühe Monate sind überbucht, später ist noch Platz: ein Hinweis, Tickets zu verschieben.</p>`
         : `<div class="banner" style="margin:0">${ic("info")}<div class="grow">Nur ein Gesamtkontingent von <span class="data">${fmt(p.contingentPD)} PT</span> gebucht, keine Aufteilung pro Monat. Das ist erlaubt.</div></div><div style="margin-top:8px"><button class="btn" type="button" data-toast="Monatsaufteilung würde sich öffnen (Mockup).">${ic("add")}Aufteilung pro Monat anlegen</button></div>`}</div>
     </div>
-    <div class="pj-tickets" style="margin-top:24px"><h2>Tickets nach Sprint</h2>
+    <div class="pj-tickets need-tickets" style="margin-top:24px"><h2>Tickets nach Sprint</h2>
       ${st.ts.length ? [...sprints.map((s) => [s.id, st.ts.filter((t) => t.sprint === s.id)]), ["offen", noSprint]].filter(([, l]) => l.length).map(([id, l]) => `
         <div class="lane pj-lane" style="margin-bottom:12px"><div class="lane-head"><div class="row"><strong>${id === "offen" ? "Nicht vorgemerkt" : `Sprint <span class="data">${id}</span>`}</strong>${id !== "offen" && FS.sprint(id).state === "current" ? `<span class="chip">läuft</span>` : ""}<span class="muted small">${l.length} Tickets, <span class="data">${sum(l, (t) => t.est)}</span> Punkte, etwa <span class="data">${fmt(pd(sum(l, (t) => t.est)), 1)}</span> PT</span></div></div>
         <div class="lane-body">${l.map((t) => FS.ticketRow(t, { noProject: true })).join("")}</div></div>`).join("")
@@ -360,6 +363,7 @@
     wire(main) {
       document.querySelector('[data-nav="projects"]')?.classList.add("active");
       wireCommon(main);
+      const rs = main.querySelector("#pj-rest"); if (rs) rs.onchange = () => { const p = FS.project(FS.state.project) || D.projects[0], v = parseInt(rs.value, 10); p.restPts = isNaN(v) ? 0 : Math.max(0, v); FS.render(); };
       main.querySelector("#pj-pick").onchange = (e) => { FS.state.project = e.target.value; FS.render(); };
       main.querySelector("#pj-edit").onclick = () => { newProjectPanel(); };
       main.querySelector("#pj-rule").onclick = () => {
@@ -479,7 +483,7 @@
   }
 
   // "Wann ist es fertig?"
-  const defaultShare = (p) => { const f = FS.sprint("2026.22").forecast; const pts = sum(D.tickets.filter((t) => t.project === p.id && t.sprint === "2026.22"), (t) => t.est); return Math.max(10, Math.min(80, Math.round((pts / f) * 20) * 5)); };
+  const defaultShare = (p) => { const f = FS.sprint("2026.22").forecast; const pts = FS.projPts("2026.22", p.id); return Math.max(10, Math.min(80, Math.round((pts / f) * 20) * 5)); };
   function whenData(p, share) {
     const st = projStats(p), rem = st.remPts, rows = [];
     let lo = 0, fc = 0, hi = 0;
