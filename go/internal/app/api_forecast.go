@@ -37,7 +37,7 @@ func today() time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
-func row(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) ForecastRow {
+func forecastRow(fc *forecast.Forecast, e *forecast.TimelineEntry, band bool) ForecastRow {
 	r := e.Result
 	s := e.Sprint
 	state := "future"
@@ -114,17 +114,17 @@ func (a *API) Forecast(team string) (ForecastView, error) {
 		TrendMode:         string(s.TrendMode),
 		Horizon:           s.Horizon,
 		Rounding:          s.Rounding,
-		Products:          productCount(data),
+		Products:          forecastProductCount(data),
 		Samples:           analysis.SampleCount(fc),
 		FewSamples:        analysis.FewSamples(fc),
 		Past:              []ForecastRow{},
 		Upcoming:          []ForecastRow{},
 	}
 	for _, e := range fc.History() {
-		v.Past = append(v.Past, row(fc, e, false))
+		v.Past = append(v.Past, forecastRow(fc, e, false))
 	}
 	for _, e := range fc.Upcoming() {
-		v.Upcoming = append(v.Upcoming, row(fc, e, true))
+		v.Upcoming = append(v.Upcoming, forecastRow(fc, e, true))
 	}
 	for _, r := range v.Upcoming {
 		if r.Trend != nil && s.ReferenceCapacity > 0 {
@@ -193,7 +193,7 @@ func (a *API) ForecastWhenDone(team string, remaining, sharePercent float64) (Wh
 }
 
 // productCount is the number of products the team works with; 0 if the feature is off.
-func productCount(data *storage.TeamData) int {
+func forecastProductCount(data *storage.TeamData) int {
 	if !data.Team.Features.Products {
 		return 0
 	}
