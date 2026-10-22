@@ -88,6 +88,33 @@ func TestTeamV1Fields(t *testing.T) {
 	}
 }
 
+func TestProductionMax(t *testing.T) {
+	read := func(text string) model.Features {
+		team, err := TeamFromDict("t", loadMap(t, text), where)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return team.Features
+	}
+	if f := read("features: {production: true}\n"); f.ProductionMax != nil || f.ProductionCap() != 100 {
+		t.Errorf("default: %+v", f)
+	}
+	f := read("features: {production: true, production_max: 60}\n")
+	if f.ProductionCap() != 60 {
+		t.Errorf("cap %v", f.ProductionCap())
+	}
+	if out := idempotent(t, "team", "features: {production: true, production_max: 60}\n"); !strings.Contains(out, "production_max: 60") {
+		t.Errorf("not written:\n%s", out)
+	}
+	// 100 is the default and is not written
+	if out := idempotent(t, "team", "features: {production: true, production_max: 100}\n"); strings.Contains(out, "production_max") {
+		t.Errorf("100 written:\n%s", out)
+	}
+	if _, err := TeamFromDict("t", loadMap(t, "features: {production_max: -1}\n"), where); err == nil || !strings.Contains(err.Error(), "production_max") {
+		t.Errorf("negative: %v", err)
+	}
+}
+
 func TestTeamV1Errors(t *testing.T) {
 	for name, c := range map[string]struct{ text, want string }{
 		"placeholder": {"sprint:\n  naming:\n    - pattern: \"{XX}\"\n", "unknown placeholder {XX}"},
