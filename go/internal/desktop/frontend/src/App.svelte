@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { app, refresh, save, start } from './lib/app.svelte';
+  import { app, leaveDemo, refresh, save, start } from './lib/app.svelte';
   import { t } from './lib/i18n.svelte';
   import { current, go, match } from './lib/router.svelte';
   import { pages } from './lib/routes';
@@ -68,6 +68,17 @@
       <Rail />
       <main class="main" id="main">
         <div class="page">
+          {#if app.demo}
+            <div class="demo-banner">
+              <Banner tone="info">
+                <strong>{t('Demo team: invented sample data.')}</strong>
+                {t('Nothing is read from or saved to your data while you look around.')}
+                {#snippet action()}
+                  <button class="btn" type="button" onclick={async () => { await leaveDemo(); go(app.teams.length > 0 ? '/today' : '/setup'); }}>{t('Back to my data')}</button>
+                {/snippet}
+              </Banner>
+            </div>
+          {/if}
           {#if app.problem}
             <Banner tone="bad">{t('The data folder could not be read: {problem}', { problem: app.problem })}</Banner>
           {/if}
@@ -111,6 +122,9 @@
   .bare {
     min-height: 100%;
     overflow: auto;
+  }
+  .demo-banner {
+    margin-bottom: 12px;
   }
   .boot {
     padding: 24px;

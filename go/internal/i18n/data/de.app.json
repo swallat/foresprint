@@ -11,6 +11,13 @@
   "announced only ({count} people)": "nur angekündigt ({count} Personen)",
   "not entered yet": "noch nicht eingetragen",
   "{done} of {total} products": "{done} von {total} Produkten",
-  "announced only (1 person)": "nur angekündigt (1 Person)"
+  "announced only (1 person)": "nur angekündigt (1 Person)",
+  "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}",
+  "Enter the address of the tracker and the query that selects the tickets.": "Trage die Adresse des Trackers und die Abfrage ein, die die Tickets auswählt.",
+  "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
+  "Unknown source of work: {source}": "Unbekannte Quelle der Arbeit: {source}",
+  "Enter a name for the team.": "Gib dem Team einen Namen.",
+  "Enter the start of the first sprint as a date (YYYY-MM-DD).": "Trage den Beginn des ersten Sprints als Datum ein (JJJJ-MM-TT).",
+  "Enter the ID of the first sprint.": "Trage die ID des ersten Sprints ein."
  }
 }
