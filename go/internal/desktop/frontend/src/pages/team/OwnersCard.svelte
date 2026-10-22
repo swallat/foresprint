@@ -14,8 +14,10 @@
   interface Props {
     /** Called after a PO step changed the people (a PO joined or left the team). */
     onchange: () => void | Promise<void>;
+    /** Changes whenever the people were reloaded: the card then reads the POs again. */
+    people?: unknown;
   }
-  let { onchange }: Props = $props();
+  let { onchange, people }: Props = $props();
 
   let view = $state<ProductsView>();
   let failed = $state('');
@@ -38,6 +40,9 @@
 
   $effect(() => {
     void app.team;
+    void people;
+    removing = null;
+    handover = {};
     load();
   });
 
@@ -73,27 +78,37 @@
     if (await run(() => api.AddOwner(app.team, name), t('{name} added as PO.', { name }))) newName = '';
   }
 
-  function rename(o: Owner, value: string) {
-    const name = value.trim();
-    if (!name || name === o.name) return load();
-    return run(() => api.RenameOwner(app.team, o.id, name), '');
+  // The inputs are one-way: after a rejected edit the field is put back by hand, because the
+  // value the page shows did not change.
+  async function rename(o: Owner, input: HTMLInputElement) {
+    const name = input.value.trim();
+    if (!name || name === o.name) {
+      input.value = o.name;
+      return;
+    }
+    if (!(await run(() => api.RenameOwner(app.team, o.id, name), ''))) input.value = o.name;
   }
 
-  function setInTeam(o: Owner, inTeam: boolean, fte = o.fte || 0.2) {
-    return run(
+  async function setInTeam(o: Owner, input: HTMLInputElement, inTeam: boolean, fte = o.fte || 0.2) {
+    const done = await run(
       () => api.SetOwnerInTeam(app.team, o.id, inTeam, fte),
       inTeam ? t('{name} now works in the team.', { name: o.name }) : t('{name} no longer works in the team.', { name: o.name }),
     );
+    if (!done) {
+      if (input.type === 'checkbox') input.checked = o.inTeam;
+      else input.value = fmtNum(o.fte);
+    }
   }
 
-  function setShare(o: Owner, text: string) {
-    const fte = parseNum(text);
+  function setShare(o: Owner, input: HTMLInputElement) {
+    const fte = parseNum(input.value);
     if (!(fte > 0 && fte <= 1)) {
       toast(t('Enter a share between 0.1 and 1.0.'), 'bad');
-      return load();
+      input.value = fmtNum(o.fte);
+      return;
     }
     if (fte === o.fte) return;
-    return setInTeam(o, true, fte);
+    return setInTeam(o, input, true, fte);
   }
 
   function askRemove(o: Owner) {
@@ -136,14 +151,14 @@
           <tbody>
             {#each owners as o (o.id)}
               <tr>
-                <td><input class="input name" value={o.name} aria-label={t('Name of PO {name}', { name: o.name })} onchange={(e) => rename(o, e.currentTarget.value)} /></td>
+                <td><input class="input name" value={o.name} aria-label={t('Name of PO {name}', { name: o.name })} onchange={(e) => rename(o, e.currentTarget)} /></td>
                 <td class="num data">{o.products}</td>
                 <td>
-                  <input type="checkbox" checked={o.inTeam} aria-label={t('{name} works in the team', { name: o.name })} onchange={(e) => setInTeam(o, e.currentTarget.checked)} />
+                  <input type="checkbox" checked={o.inTeam} aria-label={t('{name} works in the team', { name: o.name })} onchange={(e) => setInTeam(o, e.currentTarget, e.currentTarget.checked)} />
                 </td>
                 <td class="num">
                   {#if o.inTeam}
-                    <input class="input data share" inputmode="decimal" value={fmtNum(o.fte)} aria-label={t('Share of {name}', { name: o.name })} onchange={(e) => setShare(o, e.currentTarget.value)} />
+                    <input class="input data share" inputmode="decimal" value={fmtNum(o.fte)} aria-label={t('Share of {name}', { name: o.name })} onchange={(e) => setShare(o, e.currentTarget)} />
                   {:else}
                     <span class="muted">–</span>
                   {/if}

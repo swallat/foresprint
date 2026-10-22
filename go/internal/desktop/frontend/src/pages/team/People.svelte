@@ -56,13 +56,31 @@
     }
   });
 
+  // Counts the changes of the people; an Undo only works while nothing else changed them (a step
+  // of the PO card, for instance, adds or ends a person).
+  let generation = 0;
+  const undoAfter = (before: Person[], mine: number) => () => {
+    if (generation !== mine) {
+      toast(t('This change can no longer be undone.'), 'bad');
+      return;
+    }
+    void save(before, t('Change undone.'), false);
+  };
+
+  /** Called by the PO card after one of its steps. */
+  async function poStep() {
+    generation++;
+    await load();
+  }
+
   /** Saves a new list of people; the old list is what Undo brings back. */
   async function save(next: Person[], message: string, undoable = true) {
     const before = view?.people ?? [];
     try {
       view = await api.SavePeople(app.team, next);
+      const mine = ++generation;
       if (message) {
-        toast(message, 'ok', undoable ? { label: t('Undo'), run: () => void save(before, t('Change undone.'), false) } : undefined);
+        toast(message, 'ok', undoable ? { label: t('Undo'), run: undoAfter(before, mine) } : undefined);
       }
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e), 'bad');
@@ -250,7 +268,7 @@
   {/if}
 {/if}
 
-<OwnersCard onchange={load} />
+<OwnersCard people={view} onchange={poStep} />
 
 {#if view && panel}
   {@const person = view.people.find((p) => p.id === panel!.id)}
