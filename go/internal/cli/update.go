@@ -94,7 +94,8 @@ func runUpdate(env *Env, u *selfupdate.Updater, check, force bool) error {
 // reports it (mode notice). It never makes the command fail and stays silent without a
 // connection.
 func AutoUpdate(env *Env, args []string) {
-	if selfupdate.IsDevelopment(Version) || slices.Contains([]string{"update", "completion", "version"}, firstWord(args)) {
+	if selfupdate.IsDevelopment(Version) || slices.Contains([]string{"update", "completion", "version"}, firstWord(args)) ||
+		slices.ContainsFunc(args, func(a string) bool { return a == "--version" || a == "--help" || a == "-h" }) {
 		return
 	}
 	mode := selfupdate.CurrentMode()

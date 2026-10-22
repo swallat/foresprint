@@ -54,9 +54,9 @@ attaches to the release page:
 
 There is no code signing certificate: Windows and macOS warn once, see
 [installation.md](installation.md#not-signed-smartscreen-and-gatekeeper). A tag with a suffix
-(`v1.0.0-beta.1`) becomes a pre-release, which the self-update ignores. The Windows file is linked
-for the GUI subsystem so that a double click opens no console window; the program attaches to
-the console of the caller (`cmd/foresprint/console_windows.go`).
+(`v1.0.0-beta.1`) becomes a pre-release, which the self-update ignores. The Windows file is a console
+program (a terminal waits for it and gets its output); started without arguments from Explorer it
+starts itself again without a console (`cmd/foresprint/console_windows.go`).
 
 "Run workflow" builds the commit it is started on (choose the branch or tag under "Use workflow from") and names the
 release after the input `tag`; a tag that does not exist yet is created at that commit by the release page. For an
