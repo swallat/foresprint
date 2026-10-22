@@ -20,6 +20,7 @@ func init() { Register(absencesCommand) }
 
 func absencesCommand(env *Env) *cobra.Command {
 	var doCommit bool
+	var period periodOptions
 	cmd := &cobra.Command{
 		Use:   "absences TEAM [SPRINT]",
 		Short: i18n.T("Record planned absences per person for a sprint (default: next sprint)."),
@@ -29,6 +30,9 @@ func absencesCommand(env *Env) *cobra.Command {
 			data, err := env.LoadTeam(key)
 			if err != nil {
 				return err
+			}
+			if period.used() {
+				return runAbsencePeriods(env, key, data, period, doCommit)
 			}
 			if len(data.People) == 0 {
 				return Failf("No people recorded. First: {command}", "command", "foresprint people "+key)
@@ -56,6 +60,7 @@ func absencesCommand(env *Env) *cobra.Command {
 	}
 	teamArg(env, cmd)
 	commitFlag(cmd, &doCommit)
+	period.flags(cmd)
 	return cmd
 }
 

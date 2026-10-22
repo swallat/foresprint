@@ -25,8 +25,10 @@ options. It prints plain text instead of panels, has no `web`, `shortcut` or `up
 | `foresprint init TEAM` | create a team with guidance |
 | `foresprint sprints TEAM [--create] [--end SPRINT=DATE]` | sprint calendar: upcoming sprints, end dates |
 | `foresprint rename-sprint TEAM SPRINT NEW` | change a sprint ID; the saved sprints after it count on |
-| `foresprint absences TEAM [SPRINT]` | record absences per person |
-| `foresprint people TEAM [--former]` | maintain the people list |
+| `foresprint absences TEAM [SPRINT]` | record absences per person; with `--person NAME --from DATE [--to DATE] [--confirmed] [--remove]` it works on absence periods (`abwesenheiten.yaml`, dates only, never a reason) and shows the working days per sprint; `--periods` lists them |
+| `foresprint people TEAM [--former] [--kind member\|guest\|external] [--until DATE]` | maintain the people list; `--kind` and `--until` apply to people added in this run (external people need an end date) |
+| `foresprint sprint-naming TEAM [--pattern P [--from SPRINT]] [--clear]` | show or set the sprint naming pattern (`{JJJJ} {JJ} {NN} {N} {LFD} {Q} {MM} {KW}`) with a preview; duplicate names are marked |
+| `foresprint estimation TEAM [--unit SP\|PT [--from SPRINT]] [--factor F] [--remove SPRINT]` | show or change the estimation unit over time and the story points per person day (0 = measured team rate) |
 | `foresprint products TEAM [SPRINT] [--preplanning]` | distribution per product, PO pre-planning, balance |
 | `foresprint product-list TEAM` | maintain products (PO, period) |
 | `foresprint planning TEAM [SPRINT]` | record commitment and planning values |
