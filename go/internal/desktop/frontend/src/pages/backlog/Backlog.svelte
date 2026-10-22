@@ -399,6 +399,7 @@
             </div>
             {#if view.ownOrder}
               <button class="btn ghost" type="button" onclick={() => resetOrder()}><Icon name="undo" />{t('Back to the order of the tracker')}</button>
+              <span class="small muted">{t('The next fetch takes over the order of the tracker again.')}</span>
             {/if}
             <span class="small muted">{ui.sort !== 'order' ? t('Sorted by your choice. Choose the planning order to see the list as planned.') : canReorder ? t('Order: priority, then project, then your order. Drop a ticket on another to put it before, or press Alt+Up or Alt+Down. Alt+Right earmarks for the next sprint.') : t('Order: priority, then project, then your order. To reorder, show the list ungrouped. Alt+Right earmarks for the next sprint.')}</span>
           </div>
