@@ -51,7 +51,7 @@
     shown = { server: st.server, name: st.name, email: st.email };
     user = user || st.guide.username;
     if (st.ready) {
-      branches = (await api.Branches().catch(() => [])) ?? [];
+      branches = await api.Branches().catch(() => []);
       pickBranch = st.branch;
       endings = await api.LineEndings().catch(() => undefined);
     } else {

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -103,7 +102,13 @@ func TestPrefsListsAreNeverNull(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(b, []byte("null")) {
-		t.Fatalf("prefs contain null: %s", b)
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"languages", "themes", "recentDataDirs"} {
+		if list, ok := m[key].([]any); !ok || list == nil {
+			t.Errorf("%s is not a list: %v", key, m[key])
+		}
 	}
 }

@@ -125,13 +125,7 @@ func (a *API) ForgetSignIn(address, username string) *datasvc.Problem {
 }
 
 // Branches lists the branches of the data.
-func (a *API) Branches() ([]datasvc.Branch, error) {
-	list, err := a.data.Branches()
-	if list == nil {
-		list = []datasvc.Branch{} // a list, never null: the window reads its length
-	}
-	return list, err
-}
+func (a *API) Branches() ([]datasvc.Branch, error) { return a.data.Branches() }
 
 // SwitchBranch moves the data to another branch.
 func (a *API) SwitchBranch(name string) datasvc.Done { return a.data.SwitchBranch(name) }
