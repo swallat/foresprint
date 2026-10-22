@@ -2,7 +2,7 @@
  "code": "de",
  "name": "Deutsch",
  "texts": {
-  "Adjust in {tracker}: {count} tickets sit in a different pro-forma sprint here.": "In {tracker} anpassen: {count} Tickets stehen hier in einem anderen Pro-forma-Sprint.",
+  "Adjust in the tracker: the pro-forma sprint differs for {count} tickets.": "Im Tracker anpassen: Der Pro-forma-Sprint weicht bei {count} Tickets ab.",
   "Delete view “{name}”": "Ansicht „{name}“ löschen",
   "Key": "Schlüssel",
   "Largest first": "Größte zuerst",

@@ -151,16 +151,16 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
 
   return {
     async Backlog() {
+      const where = (r: Row) => placed.get(r.key) ?? tracked.get(r.key) ?? '';
       const lanes: BacklogLane[] = upcoming().map((s, i) => ({
         sprint: s.id,
         start: s.start,
         end: s.end,
         plan: forecast[i] ?? null,
         absences: (['announced', 'unknown', 'unknown'] as const)[i] ?? 'unknown',
-        tickets: rows.filter((r) => r.earmark === s.id).sort((a, b) => a.rank - b.rank).map(plain),
+        tickets: rows.filter((r) => r.earmark === s.id && !where(r)).sort((a, b) => a.rank - b.rank).map(plain),
       }));
       const inLane = new Set(lanes.flatMap((l) => l.tickets.map((t) => t.key)));
-      const where = (r: Row) => placed.get(r.key) ?? tracked.get(r.key) ?? '';
       const pro = (name: string) => rows.filter((r) => where(r) === name).map(plain);
       const view: BacklogView = {
         source: kind,
@@ -181,7 +181,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
         multi: true,
         production: true,
         cycles: [],
-        adjust: [...placed].map(([key, to]) => ({ key, title: find(key).title, url: '', from: tracked.get(key) ?? '', to })),
+        adjust: [...placed].filter(([key, to]) => to !== (tracked.get(key) ?? '')).map(([key, to]) => ({ key, title: find(key).title, url: '', from: tracked.get(key) ?? '', to })),
       };
       return clone(view);
     },
@@ -210,6 +210,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
     },
     async MoveToProForma(_team, key, name) {
       const r = find(key);
+      if (kind !== 'tracker') throw new Error('Pro-forma sprints exist only for tickets from a tracker.');
       if (name && !proForma.includes(name)) throw new Error(`${name} is not a pro-forma sprint of this team.`);
       if (name === (tracked.get(key) ?? '')) placed.delete(key);
       else placed.set(key, name);

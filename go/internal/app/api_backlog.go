@@ -85,13 +85,34 @@ func newBacklogContext(data *storage.TeamData) *backlogContext {
 	return c
 }
 
-// proFormaName is the pro-forma sprint the ticket is in: the PO's placement if there is one,
-// else the sprint the tracker has it in; "" = none.
+// proFormaName is the pro-forma sprint the ticket is in: the PO's placement if there is a valid
+// one, else the sprint the tracker has it in; "" = none.
 func (c *backlogContext) proFormaName(tk model.Ticket) string {
-	if pl := c.data.Preplan.ProFormaFor(tk.Key); pl != nil {
+	if pl := c.placement(tk); pl != nil {
 		return c.proForma[strings.ToLower(strings.TrimSpace(pl.Name))]
 	}
 	return c.trackerProForma(tk)
+}
+
+// placement is the PO's placement of the ticket as far as it still counts: it is dropped when the
+// tracker has meanwhile put the ticket into a real sprint or agrees with it, when the ticket is
+// done, or when the pro-forma sprint is not configured any more.
+func (c *backlogContext) placement(tk model.Ticket) *model.ProFormaPlacement {
+	pl := c.data.Preplan.ProFormaFor(tk.Key)
+	if pl == nil || tk.Done {
+		return nil
+	}
+	if backlogStr(tk.InSprint) != "" && c.trackerProForma(tk) == "" {
+		return nil
+	}
+	name, known := "", true
+	if pl.Name != "" {
+		name, known = c.proForma[strings.ToLower(strings.TrimSpace(pl.Name))]
+	}
+	if !known || name == c.trackerProForma(tk) {
+		return nil
+	}
+	return pl
 }
 
 // trackerProForma is the pro-forma sprint the tracker has the ticket in, or "".
@@ -334,7 +355,7 @@ func (a *API) Backlog(team string) (*BacklogView, error) {
 	view.Drift = backlogDrift(data, now)
 	for _, pl := range data.Preplan.ProForma {
 		tk := c.byKey[pl.Ticket]
-		if tk == nil || tk.Done {
+		if tk == nil || c.placement(*tk) == nil {
 			continue
 		}
 		view.Adjust = append(view.Adjust, BacklogAdjust{
@@ -623,7 +644,8 @@ func backlogSetProForma(data *storage.TeamData, c *backlogContext, tk model.Tick
 	pp := &data.Preplan
 	kept := pp.ProForma[:0:0]
 	for _, pl := range pp.ProForma {
-		if pl.Ticket != tk.Key {
+		other := c.byKey[pl.Ticket]
+		if pl.Ticket != tk.Key && other != nil && c.placement(*other) != nil { // drops the stale ones as well
 			kept = append(kept, pl)
 		}
 	}

@@ -99,6 +99,7 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
   const before = new Map(rows.map((tk) => [tk.key, tk.earmark]));
   const notes = new Map(rows.map((tk) => [tk.key, tk.earmarkNote ?? '']));
   const fixed = new Set(rows.filter((tk) => tk.fixed).map((tk) => tk.key));
+  const pro = new Map(rows.map((tk) => [tk.key, proFormaOf(view, tk.key)]));
   const moved: string[] = [];
   try {
     for (const key of keys) {
@@ -128,7 +129,10 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
     label: t('Undo'),
     run: async () => {
       try {
-        for (const key of moved) await api.EarmarkTicket(app.team, key, before.get(key) ?? '', notes.get(key) ?? '');
+        for (const key of moved) {
+          await api.EarmarkTicket(app.team, key, before.get(key) ?? '', notes.get(key) ?? '');
+          if (pro.get(key)) await api.MoveToProForma(app.team, key, pro.get(key) ?? '');
+        }
       } catch (e) {
         toast(String(e), 'bad');
       }
@@ -143,10 +147,12 @@ function proFormaOf(view: BacklogView, key: string): string {
 }
 
 /** Puts tickets into a pro-forma sprint ("" = back to the backlog) and offers to undo it. */
-export async function toProForma(keys: string[], name: string): Promise<void> {
+export async function toProForma(keys: string[], name: string, quiet = false): Promise<void> {
   const view = store.view;
   if (!view || keys.length === 0) return;
   const before = new Map(keys.map((k) => [k, proFormaOf(view, k)]));
+  const rows = allTickets(view);
+  const earmarks = new Map(rows.map((tk) => [tk.key, { sprint: tk.earmark, note: tk.earmarkNote ?? '' }]));
   const moved: string[] = [];
   try {
     for (const key of keys) {
@@ -160,7 +166,7 @@ export async function toProForma(keys: string[], name: string): Promise<void> {
   ui.selection = ui.selection.filter((k) => !moved.includes(k));
   ui.menu = false;
   await changed();
-  if (moved.length === 0) return;
+  if (moved.length === 0 || quiet) return;
   const text =
     moved.length === 1
       ? name
@@ -173,7 +179,11 @@ export async function toProForma(keys: string[], name: string): Promise<void> {
     label: t('Undo'),
     run: async () => {
       try {
-        for (const key of moved) await api.MoveToProForma(app.team, key, before.get(key) ?? '');
+        for (const key of moved) {
+          await api.MoveToProForma(app.team, key, before.get(key) ?? '');
+          const e = earmarks.get(key);
+          if (e?.sprint) await api.EarmarkTicket(app.team, key, e.sprint, e.note);
+        }
       } catch (e) {
         toast(String(e), 'bad');
       }

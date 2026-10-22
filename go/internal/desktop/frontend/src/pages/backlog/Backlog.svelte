@@ -138,9 +138,12 @@
   const fixedKeys = $derived(new Set(allTickets(view).filter((tk) => tk.fixed).map((tk) => tk.key)));
   const proKeys = $derived(new Set((view?.proForma ?? []).flatMap((p) => p.tickets.map((tk) => tk.key))));
   async function sendTo(keys: string[], sprint: string): Promise<void> {
-    const fromPro = keys.filter((k) => proKeys.has(k));
-    if (sprint === '' && fromPro.length) await toProForma(fromPro, '');
-    await earmark(sprint === '' ? keys.filter((k) => !proKeys.has(k)) : keys, sprint);
+    const fromPro = sprint === '' ? keys.filter((k) => proKeys.has(k)) : [];
+    if (fromPro.length === 0) return earmark(keys, sprint);
+    // One notice for the whole move: the earmark (if any) is taken away with it.
+    const earmarked = keys.some((k) => allTickets(view).find((tk) => tk.key === k)?.earmark);
+    await toProForma(fromPro, '', earmarked);
+    if (earmarked) await earmark(keys, '');
   }
   async function step(tk: BacklogTicket, by: -1 | 1): Promise<void> {
     if (tk.fixed) return;
@@ -263,7 +266,7 @@
 
     {#if view.adjust.length}
       <Banner tone="info">
-        <strong>{t('Adjust in {tracker}: {count} tickets sit in a different pro-forma sprint here.', { tracker: view.tracker, count: view.adjust.length })}</strong>
+        <strong>{t('Adjust in the tracker: the pro-forma sprint differs for {count} tickets.', { count: view.adjust.length })}</strong>
         <ul class="adjust">
           {#each view.adjust as a (a.key)}
             <li>
@@ -361,7 +364,7 @@
               {#each lanes as l (l.sprint)}
                 <button class="btn" type="button" role="menuitem" onclick={() => earmark([...ui.selection], l.sprint)}><Icon name="event" />{t('Sprint {id}', { id: l.sprint })}</button>
               {/each}
-              {#each view.proForma as pf (pf.name)}
+              {#each view.source === 'tracker' ? view.proForma : [] as pf (pf.name)}
                 <button class="btn" type="button" role="menuitem" onclick={() => toProForma(ui.selection.filter((k) => !fixedKeys.has(k)), pf.name)}><Icon name="inventory_2" />{pf.name}</button>
               {/each}
               <button class="btn" type="button" role="menuitem" onclick={() => sendTo([...ui.selection], '')}><Icon name="undo" />{t('Back to the backlog')}</button>
@@ -428,7 +431,7 @@
         {#each view.proForma as pf (pf.name)}
           {@const open = ui.open[pf.name] ?? false}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragover={(e) => dragOver(e, `pf:${pf.name}`)} ondragleave={() => (overZone = '')} ondrop={(e) => dropPro(e, pf.name)}>
+          <div class="lane" class:over={overZone === `pf:${pf.name}`} ondragover={(e) => view?.source === 'tracker' && dragOver(e, `pf:${pf.name}`)} ondragleave={() => (overZone = '')} ondrop={(e) => dropPro(e, pf.name)}>
             <div class="lane-head">
               <div class="row">
                 <button class="btn ghost icon" type="button" aria-expanded={open} aria-label={open ? t('Collapse') : t('Expand')} onclick={() => (ui.open[pf.name] = !open)}>

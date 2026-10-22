@@ -366,3 +366,37 @@ func TestMoveToProFormaKeepsOnlyWhatDiffersFromTracker(t *testing.T) {
 		t.Error("an unknown pro-forma sprint should be refused")
 	}
 }
+
+func TestStaleProFormaPlacementsDoNotCount(t *testing.T) {
+	api := packagesTeam(t)
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load("t")
+	data.Team.Tracker.Kind = "jira"
+	data.Team.Sprint.ProForma = []string{"Refinement"}
+	if _, err := repo.SaveTeam(data.Team); err != nil {
+		t.Fatal(err)
+	}
+	refinement, running := "Refinement", "2026.1"
+	save := func(tickets ...model.Ticket) {
+		tf := storage.TicketsFile{Tickets: tickets, Imported: func() *time.Time { n := time.Now(); return &n }()}
+		if _, err := repo.SaveTickets("t", tf); err != nil {
+			t.Fatal(err)
+		}
+	}
+	save(model.Ticket{Key: "X-1", Title: "Free", EstimateSource: model.EstimateNone})
+	if err := api.MoveToProForma("t", "X-1", "Refinement"); err != nil {
+		t.Fatal(err)
+	}
+	// The tracker now agrees: nothing is left to adjust.
+	save(model.Ticket{Key: "X-1", Title: "Free", SprintName: &refinement, EstimateSource: model.EstimateNone})
+	view, _ := api.Backlog("t")
+	if len(view.Adjust) != 0 || len(view.ProForma[0].Tickets) != 1 {
+		t.Errorf("adjust %+v", view.Adjust)
+	}
+	// The tracker put it into a real sprint: that wins over the placement.
+	save(model.Ticket{Key: "X-1", Title: "Free", InSprint: &running, EstimateSource: model.EstimateNone})
+	view, _ = api.Backlog("t")
+	if len(view.Adjust) != 0 || len(view.ProForma[0].Tickets) != 0 {
+		t.Errorf("adjust %+v pro-forma %+v", view.Adjust, view.ProForma)
+	}
+}
