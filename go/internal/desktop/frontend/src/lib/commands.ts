@@ -2,12 +2,13 @@
 // with registerCommands, for example the tickets of the backlog. The palette asks every source
 // each time it opens or the query changes, so a source may read current state.
 
-import { app, refresh, save, setTheme, syncTracker } from './app.svelte';
+import { api } from './api';
+import { app, openTicket, refresh, save, selectSprint, setTheme, syncTracker } from './app.svelte';
 import { t } from './i18n.svelte';
 import { go } from './router.svelte';
 import { pages } from './routes';
 
-export type CommandGroup = 'page' | 'action' | 'help' | 'ticket';
+export type CommandGroup = 'page' | 'action' | 'help' | 'ticket' | 'sprint';
 
 export interface Command {
   /** Stable id, also the key of the list. */
@@ -67,6 +68,52 @@ function actionCommands(): Command[] {
   return out;
 }
 
+function sprintCommands(): Command[] {
+  return app.sprints.map((sp) => ({
+    id: `sprint:${sp.id}`,
+    label: t('Sprint {id}', { id: sp.id }),
+    group: 'sprint' as const,
+    hint: `${sp.start} – ${sp.end}`,
+    words: 'sprint',
+    run: () => {
+      selectSprint(sp.id);
+      go('/sprints');
+    },
+  }));
+}
+
+// The tickets of the team, read once when the palette opens and searched in memory, so that the
+// result of a keystroke never waits for the core.
+let ticketTeam = '';
+let tickets: { key: string; title: string }[] = [];
+
+/** Reads the ticket list of the selected team for the palette; failures leave the list empty. */
+export async function loadTicketIndex(): Promise<void> {
+  const team = app.team;
+  if (!team) return;
+  if (team !== ticketTeam) tickets = [];
+  try {
+    const view = await api.Backlog(team);
+    ticketTeam = team;
+    tickets = view.tickets.map((x) => ({ key: x.key, title: x.title }));
+  } catch {
+    /* the palette still finds pages, sprints and actions */
+  }
+}
+
+function ticketCommands(query: string): Command[] {
+  const q = query.trim().toLowerCase();
+  if (!q || ticketTeam !== app.team) return [];
+  const out: Command[] = [];
+  for (const x of tickets) {
+    if (`${x.key} ${x.title}`.toLowerCase().includes(q)) {
+      out.push({ id: `ticket:${x.key}`, label: `${x.key} ${x.title}`, group: 'ticket', run: () => openTicket(x.key) });
+      if (out.length >= 20) break;
+    }
+  }
+  return out;
+}
+
 /** Scores an entry for a query: 0 = no match, higher is better. */
 export function score(c: Command, query: string): number {
   const q = query.trim().toLowerCase();
@@ -83,7 +130,7 @@ export function score(c: Command, query: string): number {
 
 /** The entries for a query, best first; with an empty query the groups keep their order. */
 export function commandsFor(query: string, limit = 12): Command[] {
-  const all = [...pageCommands(), ...actionCommands(), ...sources.flatMap((s) => s(query))];
+  const all = [...pageCommands(), ...sprintCommands(), ...actionCommands(), ...ticketCommands(query), ...sources.flatMap((s) => s(query))];
   const scored = all.map((c, i) => ({ c, s: score(c, query), i })).filter((x) => x.s > 0);
   scored.sort((a, b) => b.s - a.s || a.i - b.i);
   return scored.slice(0, limit).map((x) => x.c);
