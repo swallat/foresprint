@@ -5,7 +5,7 @@
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import { tour } from '../../lib/tour/tour.svelte';
-  import { go, link } from '../../lib/router.svelte';
+  import { current, go, link } from '../../lib/router.svelte';
   import type { PageProps } from '../../lib/routes';
   import { isDay, joinPath, needsToken, repoName, safeToStore, suggestedSprintId, suggestedStart } from '../../lib/setup';
   import type { Problem, Region, SetupKind, SetupState } from '../../lib/types.setup';
@@ -78,6 +78,15 @@
   }
 
   const d = $state<Draft>(restore());
+  // From the team selection ("Create a new team"): storage and sign-in are done already, so the
+  // wizard starts at the team and offers nothing but a new team. It is not kept as a draft.
+  const addRequested = current.query.add === 'team';
+  let adding = $state(addRequested);
+  if (addRequested) {
+    d.kind = 'keep';
+    d.team = 'new';
+    d.step = 'team';
+  }
   let info = $state<SetupState>();
   let regions = $state<Region[]>([]);
   let os = $state('linux');
@@ -93,6 +102,7 @@
   let applied = '';
 
   $effect(() => {
+    if (adding) return;
     // An address with credentials in it is never written down (the core rejects it anyway).
     const snapshot = JSON.stringify({ ...d, address: safeToStore(d.address) ? d.address : '', trackerUrl: safeToStore(d.trackerUrl) ? d.trackerUrl : '' });
     try {
@@ -127,6 +137,11 @@
       d.name ||= info.name;
       d.email ||= info.email;
       if (info.teams.some((x) => !x.problem) && d.kind === 'clone' && !d.address) d.kind = 'keep';
+      if (adding && !info.teams.some((x) => !x.problem)) {
+        // No team of the real data yet (only the demo was open): the full wizard asks for the storage.
+        adding = false;
+        Object.assign(d, restore());
+      }
     } catch (e) {
       fail(null, String(e));
     }
@@ -135,7 +150,7 @@
   const hasTeams = $derived((info?.teams ?? []).filter((x) => !x.problem));
   const cloneTarget = $derived(d.parent ? joinPath(d.parent, repoName(d.address), os) : '');
   const country = $derived(regions.find((r) => r.country === d.country));
-  const steps = $derived<Step[]>(d.team === 'new' ? ['storage', 'signin', 'team', 'tickets', 'done'] : ['storage', 'signin', 'team', 'done']);
+  const steps = $derived<Step[]>(adding ? ['team', 'tickets', 'done'] : d.team === 'new' ? ['storage', 'signin', 'team', 'tickets', 'done'] : ['storage', 'signin', 'team', 'done']);
   const index = $derived(Math.max(0, steps.indexOf(d.step)));
   const labels: Record<Step, () => string> = {
     storage: () => t('Storage'),
@@ -291,6 +306,7 @@
   }
 
   function back(): void {
+    if (adding && index === 0) return go('/today');
     const prev = steps[index - 1];
     if (prev) goTo(prev);
   }
@@ -363,7 +379,7 @@
 </script>
 
 <div class="wizard">
-  <PageHead title={t('First start')} lead={t('A few short steps. You can go back at any time; everything stays changeable in the settings.')} />
+  <PageHead title={adding ? t('New team') : t('First start')} lead={t('A few short steps. You can go back at any time; everything stays changeable in the settings.')} />
 
   <nav class="stepper" aria-label={t('Steps')}>
     {#each steps as s, i (s)}
@@ -473,7 +489,7 @@
     {:else if d.step === 'team'}
       <h2>{t('Team')}</h2>
       <div class="stack" role="radiogroup" aria-label={t('Team')}>
-        {#if hasTeams.length > 0}
+        {#if hasTeams.length > 0 && !adding}
           <div class="opt" class:on={d.team === 'existing'}>
             <input type="radio" id="opt-team-existing" name="team" value="existing" bind:group={d.team} />
             <span class="grow">
@@ -516,10 +532,12 @@
             {/if}
           </span>
         </div>
+        {#if !adding}
         <div class="opt" class:on={d.team === 'demo'}>
           <input type="radio" id="opt-team-demo" name="team" value="demo" bind:group={d.team} />
           <span><label for="opt-team-demo"><strong>{t('Open the demo team')}</strong></label><span class="block small muted">{t('Invented sample data to try things out. Nothing is read from or written to your data.')}</span></span>
         </div>
+        {/if}
       </div>
     {:else if d.step === 'tickets'}
       <h2>{t('Where does the work come from?')}</h2>
@@ -546,7 +564,7 @@
       <h2>{t('Finish')}</h2>
       <Banner tone="info">{t('Everything is set up. You can change each point later in the settings.')}</Banner>
       <dl class="kv">
-        {#if d.team !== 'demo'}<dt>{t('Storage')}</dt><dd>{summary.storage}</dd>{/if}
+        {#if d.team !== 'demo' && !adding}<dt>{t('Storage')}</dt><dd>{summary.storage}</dd>{/if}
         <dt>{t('Team')}</dt><dd>{summary.team}</dd>
         {#if summary.work}<dt>{t('Work')}</dt><dd>{summary.work}</dd>{/if}
       </dl>
@@ -554,7 +572,7 @@
   </div>
 
   <div class="row nav">
-    <button class="btn" type="button" disabled={index === 0 || busy} onclick={back}><Icon name="arrow_back" />{t('Back')}</button>
+    <button class="btn" type="button" disabled={(index === 0 && !adding) || busy} onclick={back}><Icon name="arrow_back" />{adding && index === 0 ? t('Cancel') : t('Back')}</button>
     <span class="grow small muted">{t('Your choices are kept as a draft.')}</span>
     {#if d.step === 'signin'}
       <button class="btn ghost" type="button" disabled={busy} onclick={next}>{t('Skip')}</button>
@@ -566,7 +584,7 @@
     {/if}
   </div>
 
-  {#if d.step === 'storage'}
+  {#if d.step === 'storage' && !adding}
     <div class="card around stack">
       <h2>{t('Just looking around?')}</h2>
       <p class="muted">{t('Open the demo team with invented data, or follow a guided walk-through. Your own data stays untouched.')}</p>

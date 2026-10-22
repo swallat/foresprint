@@ -2,10 +2,12 @@
   import { app, refresh, save, selectSprint, selectTeam, setTheme, toast } from '../lib/app.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from '../lib/Icon.svelte';
-  import { link } from '../lib/router.svelte';
+  import { go, link } from '../lib/router.svelte';
   import Logo from './Logo.svelte';
   import StatusChip from './StatusChip.svelte';
   import TrackerChip from './TrackerChip.svelte';
+
+  const NEW_TEAM = '\u0000new-team'; // not a team key
 
   const readyTags = $derived(app.pendingTags.filter((x) => x.ready).map((x) => x.name));
 
@@ -29,10 +31,16 @@
   {#if app.teams.length > 0}
     <label class="sel hide-narrow" title={t('Switch team')}>
       <Icon name="groups" />
-      <select aria-label={t('Team')} value={app.team} onchange={(e) => selectTeam(e.currentTarget.value)}>
+      <select aria-label={t('Team')} value={app.team} onchange={(e) => {
+          if (e.currentTarget.value === NEW_TEAM) {
+            e.currentTarget.value = app.team;
+            go('/setup', {}, { add: 'team' });
+          } else void selectTeam(e.currentTarget.value);
+        }}>
         {#each app.teams as team (team.key)}
           <option value={team.key} disabled={!!team.problem}>{team.name}</option>
         {/each}
+        <option value={NEW_TEAM}>+ {t('Create a new team')}</option>
       </select>
       <Icon name="keyboard_arrow_down" />
     </label>
