@@ -85,6 +85,20 @@
   "Sprint naming": "Sprint-Benennung",
   "Pattern from here": "Muster ab hier",
   "(twice)": "(doppelt)",
-  "No naming pattern: the sprints are named by their ID.": "Kein Benennungsmuster: die Sprints heißen wie ihre ID."
+  "No naming pattern: the sprints are named by their ID.": "Kein Benennungsmuster: die Sprints heißen wie ihre ID.",
+  "Show or change the estimation unit (SP or PT) and the conversion factor between them.": "Schätzeinheit (SP oder PT) und Umrechnungsfaktor anzeigen oder ändern.",
+  "The factor must not be negative (0 = use the measured team rate).": "Der Faktor darf nicht negativ sein (0 = gemessene Team-Rate verwenden).",
+  "--unit must be SP or PT.": "--unit muss SP oder PT sein.",
+  "No unit change starts at sprint {id}.": "Bei Sprint {id} beginnt keine Änderung der Einheit.",
+  "--from needs --unit.": "--from braucht --unit.",
+  "{team}: estimation unit updated": "{team}: Schätzeinheit aktualisiert",
+  "New unit: SP (story points) or PT (person days); with --from from that sprint on.": "Neue Einheit: SP (Story Points) oder PT (Personentage); mit --from ab diesem Sprint.",
+  "Sprint ID from which the unit (and factor) applies; past sprints keep their unit.": "Sprint-ID, ab der die Einheit (und der Faktor) gilt; frühere Sprints behalten ihre Einheit.",
+  "Story points per person day (0 = use the measured team rate).": "Story Points pro Personentag (0 = gemessene Team-Rate verwenden).",
+  "Remove the unit change that starts at this sprint.": "Die Änderung der Einheit entfernen, die bei diesem Sprint beginnt.",
+  "Unit": "Einheit",
+  "measured team rate": "gemessene Team-Rate",
+  "points per person day": "Punkte pro Personentag",
+  "Conversion: {factor}. Changes of the unit are listed with the first sprint they apply to.": "Umrechnung: {factor}. Änderungen der Einheit stehen beim ersten Sprint, für den sie gelten."
  }
 }

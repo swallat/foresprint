@@ -311,3 +311,36 @@ func TestSprintNaming(t *testing.T) {
 		t.Errorf("clear: %d %q", code, out)
 	}
 }
+
+func TestEstimationUnit(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	base := []string{"--data", data, "--as-of", "2026-10-15", "estimation", "demo"}
+	with := func(extra ...string) (int, string, string) {
+		return run(t, append(append([]string{}, base...), extra...)...)
+	}
+
+	if code, out, _ := with(); code != 0 || !strings.Contains(out, "measured team rate") {
+		t.Fatalf("show: %d %q", code, out)
+	}
+	code, out, errOut := with("--unit", "pt", "--from", "2026.9", "--factor", "1.5")
+	if code != 0 || !strings.Contains(out, "PT") {
+		t.Fatalf("change: %d %q %q", code, out, errOut)
+	}
+	raw, err := os.ReadFile(filepath.Join(data, "demo", "team.yaml"))
+	if err != nil || !strings.Contains(string(raw), "2026.9") {
+		t.Errorf("team.yaml: %v\n%s", err, raw)
+	}
+	if code, out, _ := with("--factor", "2"); code != 0 || !strings.Contains(out, "2 points per person day") {
+		t.Errorf("team-wide factor: %d %q", code, out)
+	}
+	if code, _, _ := with("--remove", "2026.9"); code != 0 {
+		t.Errorf("remove: %d", code)
+	}
+	for _, bad := range [][]string{{"--unit", "XX"}, {"--unit", "SP", "--from", "9999.9"}, {"--from", "2026.9"}, {"--remove", "2026.9"}, {"--factor", "-1"}} {
+		if code, _, _ := with(bad...); code == 0 {
+			t.Errorf("%v must fail", bad)
+		}
+	}
+}
