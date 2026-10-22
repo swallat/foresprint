@@ -57,7 +57,9 @@ func (a *API) Lost(files []string) ([]datasvc.LostFile, error) { return a.data.L
 func (a *API) UnsavedChanges() ([]datasvc.UnsavedFile, error) { return a.data.UnsavedChanges() }
 
 // DiscardValues puts single values back to what they were at the last save.
-func (a *API) DiscardValues(items []datasvc.ValueRef) datasvc.Done { return a.data.DiscardValues(items) }
+func (a *API) DiscardValues(items []datasvc.ValueRef) datasvc.Done {
+	return a.data.DiscardValues(items)
+}
 
 // LineEndings checks whether the data files keep one kind of line ending on every computer.
 func (a *API) LineEndings() datasvc.LineEndings { return a.data.LineEndings() }
