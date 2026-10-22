@@ -304,12 +304,28 @@
   td.focus {
     background: color-mix(in srgb, var(--primary) 7%, transparent);
   }
+  /* The input is always centred under the column head; the lock or undo button hangs to its
+     right, so a cell with and without a lock line up. */
   .cell {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    position: relative;
+    display: block;
+    width: 56px;
+    height: 28px;
+    margin: 0 auto;
+  }
+  .cell :global(.btn.icon) {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    height: 28px;
+    margin: 0 0 0 2px; /* the table rule .t td .btn.icon would shift it by -4px */
+    display: grid;
+    place-items: center;
+    padding: 0;
+    line-height: 1;
   }
   .cell .input {
+    display: block;
     width: 56px;
     height: 28px;
     text-align: right;
