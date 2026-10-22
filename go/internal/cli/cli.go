@@ -126,6 +126,9 @@ func newRoot(env *Env) *cobra.Command {
 			if len(args) > 0 {
 				return fmt.Errorf("%s", i18n.T("Unknown command {name!r}. Try: {help}", "name", args[0], "help", progName+" --help"))
 			}
+			if GUI != nil { // started without arguments, e.g. by a double click
+				return GUI(env.DataDir())
+			}
 			return cmd.Help()
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
