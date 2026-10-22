@@ -35,6 +35,8 @@ type API struct {
 
 	mu      sync.Mutex
 	dataDir string
+	// today replaces the clock in tests.
+	today func() time.Time
 }
 
 // New returns the API for a data folder; "" takes the remembered one.
