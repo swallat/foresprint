@@ -37,6 +37,9 @@ import i_database from '@material-symbols/svg-400/outlined/database.svg?raw';
 import i_date_range from '@material-symbols/svg-400/outlined/date_range.svg?raw';
 import i_delete from '@material-symbols/svg-400/outlined/delete.svg?raw';
 import i_description from '@material-symbols/svg-400/outlined/description.svg?raw';
+import i_stacked_bar_chart from '@material-symbols/svg-400/outlined/stacked_bar_chart.svg?raw';
+import i_ios_share from '@material-symbols/svg-400/outlined/ios_share.svg?raw';
+import i_upload_file from '@material-symbols/svg-400/outlined/upload_file.svg?raw';
 import i_download from '@material-symbols/svg-400/outlined/download.svg?raw';
 import i_drag_indicator from '@material-symbols/svg-400/outlined/drag_indicator.svg?raw';
 import i_edit from '@material-symbols/svg-400/outlined/edit.svg?raw';
@@ -57,7 +60,6 @@ import i_groups from '@material-symbols/svg-400/outlined/groups.svg?raw';
 import i_help from '@material-symbols/svg-400/outlined/help.svg?raw';
 import i_history from '@material-symbols/svg-400/outlined/history.svg?raw';
 import i_info from '@material-symbols/svg-400/outlined/info.svg?raw';
-import i_ios_share from '@material-symbols/svg-400/outlined/ios_share.svg?raw';
 import i_key from '@material-symbols/svg-400/outlined/key.svg?raw';
 import i_key_off from '@material-symbols/svg-400/outlined/key_off.svg?raw';
 import i_keyboard_arrow_down from '@material-symbols/svg-400/outlined/keyboard_arrow_down.svg?raw';
@@ -138,6 +140,9 @@ const icons = {
   delete: i_delete,
   description: i_description,
   download: i_download,
+  upload_file: i_upload_file,
+  stacked_bar_chart: i_stacked_bar_chart,
+  ios_share: i_ios_share,
   drag_indicator: i_drag_indicator,
   edit: i_edit,
   edit_note: i_edit_note,
@@ -157,7 +162,6 @@ const icons = {
   help: i_help,
   history: i_history,
   info: i_info,
-  ios_share: i_ios_share,
   key: i_key,
   key_off: i_key_off,
   keyboard_arrow_down: i_keyboard_arrow_down,

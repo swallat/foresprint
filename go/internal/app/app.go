@@ -33,6 +33,9 @@ type API struct {
 	// ChooseFolder opens the folder dialog of the system and returns the chosen path ("" if
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFolder func(title string) (string, error)
+	// ChooseFile opens the file dialog for an Excel workbook and returns the chosen path ("" if
+	// cancelled). Set by the window shell; nil in tests.
+	ChooseFile func(title string) (string, error)
 
 	// Now is the clock; nil = the system clock (set in tests).
 	Now func() time.Time
