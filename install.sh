@@ -1,143 +1,103 @@
 #!/bin/sh
-# Installs foresprint (including the web UI and the extras excel and jira) on Linux and
-# macOS.
+# Installs foresprint (command line and window in one program) on Linux and macOS.
 #
 #   curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh | sh
 #
-# Running it again updates. The script asks for plugins and remembers the choice.
-# Without prompting:
-#   FORESPRINT_WITH="owner/repo; name @ git+https://…"  plugins (empty = none)
-#   FORESPRINT_REF=…                                       branch or tag instead of main
-#   FORESPRINT_NO_SHORTCUT=1                               do not create a launcher
-# The former names SPRINTFORECAST_WITH, _REF and _NO_SHORTCUT still work.
+# Running it again updates. The program also updates itself (foresprint update).
+#   FORESPRINT_VERSION=1.0.0      install this version instead of the newest one
+#   FORESPRINT_BIN=~/.local/bin   folder for the program (default: ~/.local/bin)
+#   FORESPRINT_NO_SHORTCUT=1      do not create a launcher
+#   FORESPRINT_DOWNLOAD_BASE=URL  other place for the release files (tests, mirrors)
 set -eu
 
-# Old variable names: use them when the new one is not set.
-for name in WITH REF NO_SHORTCUT; do
-    if eval "[ -z \"\${FORESPRINT_$name+x}\" ] && [ -n \"\${SPRINTFORECAST_$name+x}\" ]"; then
-        eval "FORESPRINT_$name=\$SPRINTFORECAST_$name"
-        eval "export FORESPRINT_$name"
-    fi
-done
-
-REF="${FORESPRINT_REF:-main}"
-KIND=heads
-case "$REF" in v[0-9]*) KIND=tags ;; esac
-CORE="foresprint[web,excel,jira] @ https://github.com/swallat/foresprint/archive/refs/${KIND}/${REF}.zip"
-PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/foresprint/plugins"
-LEGACY_PLUGIN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sprintforecast/plugins"  # before the rename
+REPO="swallat/foresprint"
+BIN="${FORESPRINT_BIN:-$HOME/.local/bin}"
 
 say() { printf '%s\n' "$*"; }
-trim() { printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
+need() { command -v "$1" > /dev/null 2>&1 || fail "$1 is needed"; }
 
-# "owner/repo" -> git+https://github.com/owner/repo; everything else unchanged
-expand() {
-    case "$1" in
-        *[!A-Za-z0-9_./-]* | */*/* | /* | */ | '') printf '%s' "$1" ;;
-        */*) printf 'git+https://github.com/%s' "$1" ;;
-        *) printf '%s' "$1" ;;
-    esac
-}
-
-interactive() { [ -t 1 ] && (exec </dev/tty) 2>/dev/null; }
-
-if ! command -v uv >/dev/null 2>&1; then
-    say "==> installing uv (https://docs.astral.sh/uv/)"
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    PATH="$HOME/.local/bin:$PATH"
-    export PATH
-fi
-
-saved=""
-if [ -f "$PLUGIN_FILE" ]; then
-    saved=$(trim "$(cat "$PLUGIN_FILE")")
-elif [ -f "$LEGACY_PLUGIN_FILE" ]; then
-    saved=$(trim "$(cat "$LEGACY_PLUGIN_FILE")")
-fi
-if [ -n "${FORESPRINT_WITH+x}" ]; then
-    plugins="$FORESPRINT_WITH"
-elif interactive; then
-    {
-        say ""
-        say "Install plugins? Separate several with ';', e.g.:"
-        say "  owner/repo   or   name @ git+https://…"
-        if [ -n "$saved" ]; then
-            printf 'Plugins [Enter = keep: %s | - = none]: ' "$saved"
-        else
-            printf 'Plugins [Enter = none]: '
-        fi
-    } >/dev/tty
-    answer=""
-    read -r answer </dev/tty || answer=""
-    answer=$(trim "$answer")
-    case "$answer" in
-        "") plugins="$saved" ;;
-        -) plugins="" ;;
-        *) plugins="$answer" ;;
-    esac
+need tar
+if command -v curl > /dev/null 2>&1; then
+    fetch() { curl -fsSL "$1" -o "$2"; }
+    fetch_text() { curl -fsSL "$1"; }
+elif command -v wget > /dev/null 2>&1; then
+    fetch() { wget -q "$1" -O "$2"; }
+    fetch_text() { wget -qO- "$1"; }
 else
-    plugins="$saved"
+    fail "curl or wget is needed"
 fi
-
-set -- --force --reinstall --python 3.14
-specs=""
-OLD_IFS=$IFS
-IFS=';'
-for item in $plugins; do
-    IFS=$OLD_IFS
-    item=$(trim "$item")
-    [ -z "$item" ] && continue
-    spec=$(expand "$item")
-    set -- "$@" --with "$spec"
-    specs="${specs:+$specs; }$item"
-done
-IFS=$OLD_IFS
-
-if [ -n "$specs" ]; then
-    if ! command -v git >/dev/null 2>&1; then
-        say "Plugins from Git repositories require Git (e.g. 'brew install git' or 'sudo apt install git')." >&2
-        exit 1
-    fi
-    say "==> with plugins: $specs"
-    # The core's source comes from the plugin ([tool.uv.sources]); otherwise "conflicting URLs".
-    set -- "$@" "foresprint[web,excel,jira]"
+if command -v sha256sum > /dev/null 2>&1; then
+    sha256() { sha256sum "$1" | cut -d ' ' -f 1; }
+elif command -v shasum > /dev/null 2>&1; then
+    sha256() { shasum -a 256 "$1" | cut -d ' ' -f 1; }
 else
-    set -- "$@" "$CORE"
+    fail "sha256sum or shasum is needed"
 fi
 
-say "==> installing foresprint with the extras web, excel and jira (Python 3.14 is downloaded if needed)"
-uv tool install "$@"
-uv tool update-shell >/dev/null 2>&1 || true
-# The environment of the uv tool from before the rename is no longer needed (the commands
-# sprintforecast and sprintforecast-app now belong to the new tool; "uv tool uninstall" would remove them).
-old="$(uv tool dir)/sprintforecast"
-[ -f "$old/uv-receipt.toml" ] && rm -rf "$old"
+case "$(uname -s)" in
+    Linux) os=linux ;;
+    Darwin) os=darwin ;;
+    *) fail "unsupported system $(uname -s); on Windows use install.ps1" ;;
+esac
+case "$(uname -m)" in
+    x86_64 | amd64) arch=amd64 ;;
+    arm64 | aarch64) arch=arm64 ;;
+    *) fail "unsupported processor $(uname -m)" ;;
+esac
 
-# Remember the choice for the next update
-if [ -n "$specs" ]; then
-    mkdir -p "$(dirname "$PLUGIN_FILE")"
-    printf '%s\n' "$specs" >"$PLUGIN_FILE"
-else
-    rm -f "$PLUGIN_FILE" "$LEGACY_PLUGIN_FILE"
+version="${FORESPRINT_VERSION:-}"
+if [ -z "$version" ]; then
+    version=$(fetch_text "https://api.github.com/repos/$REPO/releases/latest" |
+        sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)
+    [ -n "$version" ] || fail "could not find the newest version"
+fi
+version="${version#v}"
+name="foresprint_${version}_${os}_${arch}.tar.gz"
+base="${FORESPRINT_DOWNLOAD_BASE:-https://github.com/$REPO/releases/download}/v$version"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+say "==> downloading foresprint $version ($os/$arch)"
+fetch "$base/$name" "$tmp/$name" || fail "download failed: $base/$name"
+fetch "$base/checksums.txt" "$tmp/checksums.txt" || fail "download failed: $base/checksums.txt"
+
+# Optional, if cosign is installed: the signature of checksums.txt (GitHub build identity).
+if command -v cosign > /dev/null 2>&1 && fetch "$base/checksums.txt.bundle" "$tmp/checksums.txt.bundle" 2> /dev/null; then
+    cosign verify-blob --bundle "$tmp/checksums.txt.bundle" \
+        --certificate-identity-regexp "^https://github.com/$REPO/.github/workflows/release-app.yml@" \
+        --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+        "$tmp/checksums.txt" > /dev/null 2>&1 || fail "the signature of checksums.txt does not match"
+    say "==> signature of checksums.txt verified (cosign)"
 fi
 
-# Double-click launcher (disable with FORESPRINT_NO_SHORTCUT=1)
+want=$(grep "  $name\$" "$tmp/checksums.txt" | cut -d ' ' -f 1)
+[ -n "$want" ] || fail "checksums.txt has no sum for $name"
+[ "$(sha256 "$tmp/$name")" = "$want" ] || fail "checksum of $name does not match; not installing"
+
+tar -xzf "$tmp/$name" -C "$tmp" foresprint
+mkdir -p "$BIN"
+mv -f "$tmp/foresprint" "$BIN/foresprint.new"
+chmod 755 "$BIN/foresprint.new"
+mv -f "$BIN/foresprint.new" "$BIN/foresprint"
+say "==> installed $BIN/foresprint"
+
+if [ "$os" = darwin ]; then
+    # Downloaded with curl there is no quarantine flag, but a copy from a browser has one.
+    xattr -d com.apple.quarantine "$BIN/foresprint" 2> /dev/null || true
+fi
+
 if [ -z "${FORESPRINT_NO_SHORTCUT:-}" ]; then
-    "$(uv tool dir --bin)/foresprint" shortcut || say "Note: launcher not created."
+    "$BIN/foresprint" shortcut || say "(no launcher created; foresprint shortcut tries again)"
 fi
 
-# Tab completion has to detect the user's shell, which fails when piped to sh: only a hint
-say "Tab completion (optional, in your own shell): foresprint --install-completion"
-
-# Git is optional for the installation, but needed to save, share and view the history of data
-if ! command -v git >/dev/null 2>&1; then
-    say ""
-    say "Note: Git was not found. The app runs without it, but committing, sharing with the team,"
-    say "the history and cloning the data repository need Git (no administrator rights required;"
-    say "see the Git section in docs/installation.md)."
+case ":$PATH:" in
+    *":$BIN:"*) ;;
+    *) say "Add $BIN to your PATH to call foresprint from a terminal." ;;
+esac
+if [ "$os" = darwin ]; then
+    say "macOS: the program is not signed. If Gatekeeper blocks the first start of the launcher,"
+    say "open System Settings > Privacy & Security and choose Open Anyway (docs/installation.md)."
 fi
-
-say ""
-say "Done: foresprint $("$(uv tool dir --bin)/foresprint" --version)"
-say "Start by double-clicking \"Foresprint\" or, in a new terminal, e.g.:"
-say "  cd ~/sprint-daten && foresprint web"
+say "Done. Start with: foresprint"

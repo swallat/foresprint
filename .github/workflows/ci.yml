@@ -128,6 +128,56 @@ jobs:
           path: dist/foresprint*
           retention-days: 7
 
+  # The install scripts against a release page on a local web server (no network, no real release):
+  # download, checksum, install, and refusal of a wrong checksum.
+  installers:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache: false
+      - name: Install script (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sh -n install.sh uninstall.sh
+          mkdir -p site/v9.9.9 stage
+          (cd go && go build -o ../stage/foresprint ./cmd/foresprint)
+          tar -czf site/v9.9.9/foresprint_9.9.9_linux_amd64.tar.gz -C stage foresprint
+          (cd site/v9.9.9 && sha256sum foresprint_* > checksums.txt)
+          (cd site && python3 -m http.server 8765 > /dev/null 2>&1 &)
+          sleep 2
+          export FORESPRINT_VERSION=9.9.9 FORESPRINT_DOWNLOAD_BASE=http://localhost:8765 FORESPRINT_NO_SHORTCUT=1 FORESPRINT_BIN="$RUNNER_TEMP/bin"
+          sh install.sh
+          "$FORESPRINT_BIN/foresprint" version
+          echo "bad  foresprint_9.9.9_linux_amd64.tar.gz" > site/v9.9.9/checksums.txt
+          if sh install.sh; then echo "a wrong checksum was accepted"; exit 1; fi
+      - name: Install script (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force site/v9.9.9, stage | Out-Null
+          Push-Location go; go build -o ../stage/foresprint.exe ./cmd/foresprint; Pop-Location
+          Compress-Archive stage/foresprint.exe site/v9.9.9/foresprint_9.9.9_windows_amd64.zip
+          $hash = (Get-FileHash site/v9.9.9/foresprint_9.9.9_windows_amd64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  foresprint_9.9.9_windows_amd64.zip" | Set-Content site/v9.9.9/checksums.txt
+          $server = Start-Process python -ArgumentList "-m","http.server","8765","--directory","site" -PassThru -WindowStyle Hidden
+          Start-Sleep 3
+          $env:FORESPRINT_VERSION = "9.9.9"; $env:FORESPRINT_DOWNLOAD_BASE = "http://localhost:8765"
+          $env:FORESPRINT_NO_SHORTCUT = "1"; $env:FORESPRINT_BIN = Join-Path $env:RUNNER_TEMP "bin"
+          ./install.ps1
+          & (Join-Path $env:FORESPRINT_BIN "foresprint.exe") version
+          "0000  foresprint_9.9.9_windows_amd64.zip" | Set-Content site/v9.9.9/checksums.txt
+          $accepted = $true
+          try { ./install.ps1 } catch { $accepted = $false }
+          Stop-Process $server
+          if ($accepted) { throw "a wrong checksum was accepted" }
+
   build:
     runs-on: ${{ vars.SELF_HOSTED == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","sprintforecast"]') || 'ubuntu-latest' }}
     steps:

@@ -10,7 +10,7 @@ signed.
 | --- | --- |
 | Windows | Not signed yet. Windows SmartScreen may show a warning for new releases. Free signing through the [SignPath Foundation](https://signpath.org/) will be requested once the project qualifies. |
 | macOS | Not signed or notarized yet. macOS asks you to approve the app under System Settings > Privacy & Security on first start. |
-| Linux | No signature required by the platform. From the first Go release on, every release carries a `checksums.txt` (SHA-256). Signing that file with cosign (keyless) is planned. |
+| Linux | No signature required by the platform. From the first Go release on, every release carries a `checksums.txt` (SHA-256). The release workflow signs that file with cosign (keyless, `checksums.txt.bundle`) and attaches a GitHub build attestation to every archive, see [installation.md](installation.md#verify-a-download). |
 
 Once signing is active, this page is updated and the section "Signed releases"
 below applies.
@@ -56,8 +56,9 @@ whose checksum matches.
 
 ### What is signed
 
-Checksums are additionally signed with cosign (planned; the self-update will verify
-that signature). Only the Foresprint program itself (`foresprint` / `foresprint.exe`) as built
+Checksums are additionally signed with cosign. `install.sh` verifies that signature when
+`cosign` is installed; the self-update checks the SHA-256 sums in `checksums.txt` (a check of
+the signature in the self-update is planned). Only the Foresprint program itself (`foresprint` / `foresprint.exe`) as built
 from this repository. Third-party components are not re-signed and keep their
 own signatures where they have one.
 

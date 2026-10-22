@@ -117,9 +117,9 @@ in a minute. The [documentation](#documentation) covers everything after that.
 
 ## Installation
 
-One command installs [uv](https://docs.astral.sh/uv/) if needed, downloads Python 3.14 and installs
-Foresprint with the web UI. Git is needed for everything that commits, shares or clones data; the
-app also finds Git outside the PATH (details in [Installation](docs/installation.md)).
+One command downloads the program for your system from the newest release and checks it against
+the published SHA-256 sums. Foresprint is one file (window and command line); Git is needed only for
+data kept in a Git repository (details in [Installation](docs/installation.md)).
 
 **Windows (PowerShell):**
 
@@ -134,14 +134,12 @@ curl -LsSf https://raw.githubusercontent.com/swallat/foresprint/main/install.sh 
 ```
 
 Then open a new terminal. The script also creates a desktop launcher "Foresprint" (desktop and
-Start menu on Windows, `~/Applications` on macOS, application entry on Linux) that opens the web UI as an app
-window; the first start guides you through setting up the data folder. Running the script again
-updates the installation; it asks about [plugins](docs/plugins.md#plugins-with-the-installer) and
-remembers the answer. The script installs the extras `web`, `excel` (Excel export and import) and
-`jira` (Jira import of the ticket pre-planning, read-only apart from the optional label write-back;
-see [docs/jira.md](docs/jira.md)).
+Start menu on Windows, `~/Applications` on macOS, application entry on Linux). Running the script
+again updates the installation; the program also updates itself (`foresprint update`). The program
+is not signed, so Windows SmartScreen and macOS Gatekeeper warn once on the first start, see
+[Not signed](docs/installation.md#not-signed-smartscreen-and-gatekeeper).
 
-Uninstall (also removes the old name sprintforecast, keeps your data): `uninstall.sh` / `uninstall.ps1`, see
+Uninstall (keeps your data): `uninstall.sh` / `uninstall.ps1`, see
 [Uninstalling](docs/installation.md#uninstalling).
 
 ## Quick start
