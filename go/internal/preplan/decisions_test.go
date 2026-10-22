@@ -114,3 +114,15 @@ func TestCarryRestWithoutProductIsSplit(t *testing.T) {
 		t.Fatalf("rest must be split over the products, got %v", got.Amount)
 	}
 }
+
+func TestSplitByShare(t *testing.T) {
+	d := decisionData() // products a and b without fixed shares
+	got := SplitByShare(d, model.Sprint{ID: "s"}, 10)
+	if len(got) != 2 || got["a"] != 5 || got["b"] != 5 {
+		t.Fatalf("%v", got)
+	}
+	d.Team.Features.Products = false
+	if got := SplitByShare(d, model.Sprint{ID: "s"}, 10); len(got) != 0 {
+		t.Fatalf("without products: %v", got)
+	}
+}

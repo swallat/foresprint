@@ -1007,6 +1007,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 	var commit float64
 	planned := map[string]float64{}
 	prodPlanned := map[string]float64{}
+	var noProduct, noProductProd float64
 	if c.tickets() {
 		keys := []string{}
 		for _, k := range in.Tickets {
@@ -1016,8 +1017,20 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 			}
 			keys = append(keys, k)
 			commit += sizeOf(t)
+			if t.Product == "" && c.data.Team.Features.Products {
+				noProduct += sizeOf(t)
+				noProductProd += sizeOf(t) * t.ProdPct / 100
+				continue
+			}
 			planned[t.Product] += sizeOf(t)
 			prodPlanned[t.Product] += sizeOf(t) * t.ProdPct / 100
+		}
+		// Tickets without a product are split over the products by their shares.
+		for id, v := range preplan.SplitByShare(c.data, s, noProduct) {
+			planned[id] += v
+		}
+		for id, v := range preplan.SplitByShare(c.data, s, noProductProd) {
+			prodPlanned[id] += v
 		}
 		s.CommittedTickets = keys
 	} else {

@@ -87,3 +87,19 @@ func applyCarry(list []Budget, carry carryIns, data *storage.TeamData) {
 func splitRoadmap(plan, carry, share float64, digits int) float64 {
 	return planning.SplitPlan(plan, carry, share, digits).Plannable
 }
+
+// SplitByShare divides an amount that belongs to no product over the products active in the
+// sprint by their shares (the rule for a carried rest without product). Empty without the
+// products feature or without active products.
+func SplitByShare(data *storage.TeamData, sprint model.Sprint, amount float64) map[string]float64 {
+	out := map[string]float64{}
+	if !data.Team.Features.Products {
+		return out
+	}
+	for _, ps := range productShares(data, sprint) {
+		if ps.product != nil {
+			out[*ps.product] = amount * ps.share
+		}
+	}
+	return out
+}
