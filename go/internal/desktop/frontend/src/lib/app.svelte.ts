@@ -42,7 +42,11 @@ export const app = $state({
   railOpen: false,
   /** Set when the data folder could not be read. */
   problem: '',
+  /** Personal setting: calculations next to numbers (see lib/calc/Calc.svelte). */
+  calcMode: 'icon' as CalcMode,
 });
+
+export type CalcMode = 'off' | 'icon' | 'inline';
 
 const store = {
   get(key: string): string {
@@ -60,6 +64,14 @@ const store = {
     }
   },
 };
+
+const calcModes: CalcMode[] = ['off', 'icon', 'inline'];
+
+/** Chooses how calculations show next to numbers; remembered on this machine. */
+export function setCalcMode(mode: CalcMode): void {
+  app.calcMode = mode;
+  store.set('calc', mode);
+}
 
 let nextToast = 1;
 
@@ -179,6 +191,8 @@ export function openTicket(key: string): void {
 let timer: ReturnType<typeof setInterval> | undefined;
 
 export async function start(): Promise<void> {
+  const calc = store.get('calc') as CalcMode;
+  if (calcModes.includes(calc)) app.calcMode = calc;
   await loadPrefs();
   await loadTeams();
   await refreshStatus();
