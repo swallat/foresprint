@@ -26,6 +26,10 @@ const project = (over: Partial<ProjectView>): ProjectView => ({
   donePoints: 0,
   plannedPoints: 0,
   months: [],
+  used: null,
+  remaining: null,
+  usedStatus: '',
+  contact: '',
   openScope: null,
   open: 0,
   milestones: [],
@@ -55,7 +59,7 @@ describe('window', () => {
     expect(windowOf('2026-10-22', sprints, [], '2', '')).toEqual({ from: '2026-10-12', to: '2026-12-22' });
   });
   it('reaches the last end of a project or milestone', () => {
-    const p = project({ end: '2026-12-18', milestones: [{ id: 'm', name: 'x', date: '2027-02-01', tickets: [], done: 0, total: 0, light: 'none' }] });
+    const p = project({ end: '2026-12-18', milestones: [{ id: 'm', name: 'x', date: '2027-02-01', tickets: [], done: 0, total: 0, light: 'none', hand: '', source: 'none', late: [] }] });
     expect(windowOf('2026-10-22', sprints, [p], 'all', '').to).toBe('2027-02-04');
   });
   it('takes a date of the user and is never shorter than 14 days', () => {
@@ -85,7 +89,7 @@ describe('wrapping', () => {
 });
 
 describe('timeline', () => {
-  const ms = (id: string, name: string, date: string) => ({ id, name, date, tickets: [], done: 0, total: 0, light: 'ok' as const });
+  const ms = (id: string, name: string, date: string) => ({ id, name, date, tickets: [], done: 0, total: 0, light: 'ok' as const, hand: '' as const, source: 'derived' as const, late: [] });
   it('puts overlapping milestone labels on separate lines', () => {
     const p = project({ milestones: [ms('1', 'First delivery of the pilot', '2026-11-20'), ms('2', 'Second delivery of the pilot', '2026-11-23')] });
     const tl = buildTimeline({ ...base, projects: [p], range: 'all' });

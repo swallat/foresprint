@@ -18,13 +18,25 @@ export interface MilestoneView {
   done: number;
   total: number;
   light: Light;
+  /** The light set by hand; '' = derived from the tickets. */
+  hand: HandLight;
+  source: 'hand' | 'derived' | 'none';
+  /** Open tickets that end after the date. */
+  late: string[];
 }
+
+export type HandLight = '' | 'green' | 'yellow' | 'red';
+export type UseStatus = '' | 'ok' | 'tight' | 'over';
 
 export interface MonthRow {
   month: string;
   booked: number;
   done: number | null;
   planned: number | null;
+  /** Consumption entered by hand (PD). */
+  used: number | null;
+  remaining: number | null;
+  status: UseStatus;
 }
 
 export interface SprintRow {
@@ -52,6 +64,11 @@ export interface ProjectView {
   donePoints: number;
   plannedPoints: number;
   months: MonthRow[];
+  /** Consumption entered by hand in PD (nil = not entered), what is left, and the core's verdict. */
+  used: number | null;
+  remaining: number | null;
+  usedStatus: UseStatus;
+  contact: string;
   openScope: number | null;
   open: number;
   milestones: MilestoneView[];
@@ -108,6 +125,7 @@ export interface MilestoneInput {
   name: string;
   date: string;
   tickets: string[];
+  light: HandLight;
 }
 
 export interface ProjectInput {
@@ -119,7 +137,10 @@ export interface ProjectInput {
   note: string;
   rule: string;
   booked: number | null;
+  used: number | null;
+  contact: string;
   months: Record<string, number>;
+  usedMonths: Record<string, number>;
   openScope: number | null;
   milestones: MilestoneInput[];
 }

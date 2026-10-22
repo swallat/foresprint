@@ -3,7 +3,7 @@
   import { app, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
-  import type { MilestoneInput, ProjectInput, ProjectsView, ProjectView } from '../../lib/types.projects';
+  import type { HandLight, MilestoneInput, ProjectInput, ProjectsView, ProjectView } from '../../lib/types.projects';
   import { month } from './format';
   import RuleEditor from '../../lib/rules/RuleEditor.svelte';
   import SidePanel from './SidePanel.svelte';
@@ -26,12 +26,21 @@
   let start = $state(p?.start ?? '');
   let end = $state(p?.end ?? addMonths(view.today, 3));
   let booked = $state(p?.booked === null || p?.booked === undefined ? '' : String(p.booked));
+  let used = $state(p?.used === null || p?.used === undefined ? '' : String(p.used));
+  let contact = $state(p?.contact ?? '');
+  let usedMonths = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).filter((m) => m.used !== null).map((m) => [m.month, String(m.used)])));
+  const LIGHTS: { value: HandLight; label: string }[] = [
+    { value: '', label: t('Derive from tickets') },
+    { value: 'green', label: t('on track') },
+    { value: 'yellow', label: t('tight') },
+    { value: 'red', label: t('at risk') },
+  ];
   let openScope = $state(p?.openScope === null || p?.openScope === undefined ? '' : String(p.openScope));
   let rule = $state(p?.rule ?? '');
   let ruleValid = $state(true);
   let note = $state(p?.note ?? '');
   let milestones = $state<MilestoneInput[]>(
-    p ? p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets })) : [{ id: '', name: '', date: addMonths(view.today, 2), tickets: [] }],
+    p ? p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets, light: m.hand })) : [{ id: '', name: '', date: addMonths(view.today, 2), tickets: [], light: '' }],
   );
   let months = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).map((m) => [m.month, String(m.booked)])));
   let error = $state('');
@@ -63,7 +72,8 @@
     error = '';
     const total = number(booked);
     const scope = number(openScope);
-    if (Number.isNaN(total) || Number.isNaN(scope) || (total !== null && total < 0)) {
+    const spent = number(used);
+    if (Number.isNaN(total) || Number.isNaN(scope) || Number.isNaN(spent) || (spent !== null && spent < 0) || (total !== null && total < 0)) {
       error = t('Please enter the amounts as numbers from 0.');
       return;
     }
@@ -77,6 +87,16 @@
       }
       perMonth[ym] = v;
     }
+    const spentMonths: Record<string, number> = {};
+    for (const [ym, text] of Object.entries(usedMonths)) {
+      const v = number(text);
+      if (v === null) continue;
+      if (Number.isNaN(v) || v < 0) {
+        error = t('Please enter the amounts as numbers from 0.');
+        return;
+      }
+      spentMonths[ym] = v;
+    }
     const input: ProjectInput = {
       id: p?.id ?? '',
       name,
@@ -86,7 +106,10 @@
       note,
       rule,
       booked: total,
+      used: spent,
+      contact,
       months: perMonth,
+      usedMonths: spentMonths,
       openScope: scope,
       milestones: milestones.map((m) => ({ ...m, name: m.name.trim() || t('Milestone') })),
     };
@@ -149,6 +172,9 @@
           <div class="ms">
             <input class="input" aria-label={t('Milestone name')} placeholder={t('Name')} bind:value={m.name} />
             <input class="input data" type="date" aria-label={t('Milestone date')} bind:value={m.date} />
+            <select class="input" aria-label={t('Traffic light of the milestone')} bind:value={m.light}>
+              {#each LIGHTS as l (l.value)}<option value={l.value}>{l.label}</option>{/each}
+            </select>
             <button type="button" class="btn icon ghost" aria-label={t('Remove milestone')} onclick={() => (milestones = milestones.filter((_, k) => k !== i))}>
               <Icon name="close" />
             </button>
@@ -164,7 +190,7 @@
           </div>
         {/each}
         <div>
-          <button type="button" class="btn" onclick={() => (milestones = [...milestones, { id: '', name: '', date: end || view.today, tickets: [] }])}>
+          <button type="button" class="btn" onclick={() => (milestones = [...milestones, { id: '', name: '', date: end || view.today, tickets: [], light: '' }])}>
             <Icon name="add" />{t('Milestone')}
           </button>
         </div>
@@ -175,6 +201,10 @@
       <label for="pf-booked">{t('Contingent in total (person days)')}</label>
       <input class="input data narrow" id="pf-booked" inputmode="decimal" bind:value={booked} />
     </div>
+    <div class="field">
+      <label for="pf-used">{t('Used so far (person days, entered by hand)')}</label>
+      <input class="input data narrow" id="pf-used" inputmode="decimal" bind:value={used} />
+    </div>
     <details>
       <summary>{t('Split per month (optional)')}</summary>
       <div class="stack months">
@@ -182,6 +212,7 @@
           <div class="row">
             <label class="muted" for="pf-m-{ym}">{month(ym)}</label>
             <input class="input data narrow" id="pf-m-{ym}" inputmode="decimal" placeholder={t('PD')} bind:value={months[ym]} />
+            <input class="input data narrow" aria-label={t('Used in {month}', { month: month(ym) })} inputmode="decimal" placeholder={t('used')} bind:value={usedMonths[ym]} />
           </div>
         {/each}
         <span class="small muted">{t('Leave empty when only the total is booked.')}</span>
@@ -197,6 +228,11 @@
     {:else if view.source === 'tracker'}
       <RuleEditor team={app.team} owner={{ kind: 'project', id: p?.id ?? '' }} name={name || t('New project')} bind:value={rule} bind:valid={ruleValid} allowEmpty />
     {/if}
+
+    <div class="field">
+      <label for="pf-contact">{t('Contact person (optional)')}</label>
+      <input class="input" id="pf-contact" bind:value={contact} />
+    </div>
 
     <div class="field">
       <label for="pf-note">{t('Note')}</label>
@@ -222,7 +258,7 @@
   }
   .ms {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto 32px;
+    grid-template-columns: minmax(0, 1fr) auto auto 32px;
     gap: 6px;
     align-items: center;
   }

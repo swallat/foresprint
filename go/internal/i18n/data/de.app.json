@@ -66,6 +66,7 @@
   "Milestone date": "Datum des Meilensteins",
   "Please enter a date for every milestone.": "Bitte gib für jeden Meilenstein ein Datum ein.",
   "Please choose how the project ends.": "Bitte wähle, wie das Projekt endet.",
-  "{name} has history and can only be closed.": "{name} hat einen Verlauf und kann nur abgeschlossen werden."
+  "{name} has history and can only be closed.": "{name} hat einen Verlauf und kann nur abgeschlossen werden.",
+  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein."
  }
 }

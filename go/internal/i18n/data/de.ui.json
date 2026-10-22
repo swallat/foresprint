@@ -646,7 +646,6 @@
   "3 months": "3 Monate",
   "6 months": "6 Monate",
   "A click on a row opens the project": "Ein Klick auf eine Zeile öffnet das Projekt",
-  "A milestone with tickets gets its own light from the state of its tickets. Without tickets no light is calculated.": "Ein Meilenstein mit Tickets bekommt eine eigene Ampel aus dem Stand seiner Tickets. Ohne Tickets wird keine Ampel berechnet.",
   "Add a split per month": "Aufteilung pro Monat anlegen",
   "Add milestone": "Meilenstein hinzufügen",
   "Add rule": "Regel anlegen",
@@ -803,6 +802,21 @@
   "{n} milestones later": "{n} Meilensteine danach",
   "{n} of {total} projects": "{n} von {total} Projekten",
   "{n} tickets": "{n} Tickets",
-  "{points} points ÷ {rate} points per person day = {pd} PD (estimate)": "{points} Punkte ÷ {rate} Punkte je Personentag = {pd} PT (Schätzung)"
+  "{points} points ÷ {rate} points per person day = {pd} PD (estimate)": "{points} Punkte ÷ {rate} Punkte je Personentag = {pd} PT (Schätzung)",
+  "Used {used} PD": "Verbraucht {used} PT",
+  "{n} PD left": "noch {n} PT",
+  "over the contingent": "über dem Kontingent",
+  "nearly used up": "fast aufgebraucht",
+  "within the contingent": "im Kontingent",
+  "set by hand": "von Hand gesetzt",
+  "{n} tickets late": "{n} Tickets zu spät",
+  "A light set by hand always counts. Without one, a milestone with tickets gets its light from the state of its tickets.": "Eine von Hand gesetzte Ampel gilt immer. Ohne sie bekommt ein Meilenstein mit Tickets seine Ampel aus dem Stand seiner Tickets.",
+  "used": "verbraucht",
+  "Derive from tickets": "Aus den Tickets ableiten",
+  "Traffic light of the milestone": "Ampel des Meilensteins",
+  "Used so far (person days, entered by hand)": "Bisher verbraucht (Personentage, von Hand eingetragen)",
+  "Used in {month}": "Verbraucht im {month}",
+  "Contact person (optional)": "Ansprechperson (optional)",
+  "Contact person": "Ansprechperson"
  }
 }

@@ -225,3 +225,40 @@ func TestSaveClearsTargetAndUndoChecksState(t *testing.T) {
 		t.Fatal("undo should refuse after an outside change")
 	}
 }
+
+func TestProjectHandValuesFromTheCore(t *testing.T) {
+	api, team := projectDir(t, true)
+	used, booked := 12.0, 20.0
+	in := ProjectInput{
+		ID: "alpha", Name: "Alpha", Products: []string{"portal"}, End: "2026-12-18", Contact: "Dana Example",
+		Booked: &booked, Used: &used, Months: map[string]float64{"2026-10": 10}, UsedMonths: map[string]float64{"2026-10": 11},
+		Milestones: []MilestoneInput{{Name: "Beta", Date: "2026-11-20", Light: "red"}},
+	}
+	if _, err := api.SaveProject(team, in); err != nil {
+		t.Fatal(err)
+	}
+	d, err := api.Project(team, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := d.Project
+	if p.Contact != "Dana Example" || p.Used == nil || *p.Used != 12 || p.UsedStatus != "tight" && p.UsedStatus != "ok" && p.UsedStatus != "over" {
+		t.Fatalf("project = %+v", p)
+	}
+	if len(p.Milestones) != 1 || p.Milestones[0].Light != "bad" || p.Milestones[0].Source != "hand" || p.Milestones[0].Hand != "red" {
+		t.Fatalf("milestone = %+v", p.Milestones)
+	}
+	if len(p.Months) == 0 || p.Months[0].Used == nil || *p.Months[0].Used != 11 || p.Months[0].Status == "" {
+		t.Fatalf("months = %+v", p.Months)
+	}
+	// Saving again without the hand values in the form must not touch what the form keeps.
+	in.Used, in.UsedMonths = nil, map[string]float64{}
+	in.Milestones[0].Light = ""
+	if _, err := api.SaveProject(team, in); err != nil {
+		t.Fatal(err)
+	}
+	d, _ = api.Project(team, "alpha")
+	if d.Project.Used != nil || d.Project.Milestones[0].Hand != "" {
+		t.Fatalf("project = %+v", d.Project)
+	}
+}

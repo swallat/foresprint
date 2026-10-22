@@ -180,48 +180,47 @@ func worse(a, b string) string {
 	return a
 }
 
-// milestoneView calculates the light of a milestone from the placements of its tickets: all
-// finished = ok; the last ticket ends on or before the date = ok, the date lies inside its
-// sprint = warn, later or not distributable = bad. Without tickets no light is calculated.
-func (c *projectCtx) milestoneView(m model.Milestone) MilestoneView {
-	v := MilestoneView{ID: m.ID, Name: m.Name, Date: m.Date.Format(dateLayout), Tickets: append([]string{}, m.Tickets...), Light: "none"}
-	v.Total = len(m.Tickets)
-	if v.Total == 0 || !c.data.Team.Features.Tickets {
-		return v
+// milestoneViews evaluates the milestones of a project with the core (preplan.MilestoneStatuses):
+// a light the PO set by hand wins, otherwise it is derived from the placements of the tickets.
+func (c *projectCtx) milestoneViews(p model.Project) []MilestoneView {
+	var sprints []model.Sprint
+	for _, s := range c.sprint {
+		sprints = append(sprints, s)
 	}
-	light := "ok"
-	unknown := false // open tickets while no distribution exists: no light can be given
-	for _, key := range m.Tickets {
-		t := c.data.TicketByKey(key)
-		if t != nil && t.Done {
-			v.Done++
-			continue
-		}
-		if c.dist == nil {
-			unknown = true
-			continue
-		}
-		p := c.dist.Placement(key)
-		if p == nil || p.Sprint == nil || !p.Distributable() {
-			light = worse(light, "bad")
-			continue
-		}
-		s, ok := c.sprint[*p.Sprint]
-		switch {
-		case !ok:
-			light = worse(light, "bad")
-		case !lastDay(s).After(m.Date):
-		case !s.Start.After(m.Date):
-			light = worse(light, "warn")
-		default:
-			light = worse(light, "bad")
-		}
+	var dist *preplan.Distribution
+	if c.data.Team.Features.Tickets {
+		dist = c.dist
 	}
-	if unknown && light == "ok" {
-		light = "none"
+	status := map[string]preplan.MilestoneStatus{}
+	for _, st := range preplan.MilestoneStatuses(p, dist, c.data, sprints) {
+		status[st.ID] = st
 	}
-	v.Light = light
-	return v
+	out := make([]MilestoneView, 0, len(p.Milestones))
+	for _, m := range p.Milestones {
+		v := MilestoneView{
+			ID: m.ID, Name: m.Name, Date: m.Date.Format(dateLayout), Tickets: append([]string{}, m.Tickets...),
+			Total: len(m.Tickets), Light: "none", Hand: m.Light, Source: preplan.LightNone, Late: []string{},
+		}
+		if c.data.Team.Features.Tickets {
+			for _, key := range m.Tickets {
+				if t := c.data.TicketByKey(key); t != nil && t.Done {
+					v.Done++
+				}
+			}
+		}
+		if st, ok := status[m.ID]; ok {
+			v.Light = map[string]string{model.LightGreen: "ok", model.LightYellow: "warn", model.LightRed: "bad"}[st.Light]
+			if v.Light == "" {
+				v.Light = "none"
+			}
+			v.Source = st.Source
+			if st.Late != nil {
+				v.Late = st.Late
+			}
+		}
+		out = append(out, v)
+	}
+	return out
 }
 
 func ruleText(r *model.Rule) string {
@@ -246,13 +245,17 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 	if p.End == nil && p.Target != nil {
 		v.End = day(p.Target)
 	}
-	for _, m := range p.Milestones {
-		mv := c.milestoneView(m)
-		v.Milestones = append(v.Milestones, mv)
+	v.Milestones = c.milestoneViews(p)
+	for _, mv := range v.Milestones {
 		if !p.Closed() {
 			v.Light = worse(v.Light, mv.Light)
 		}
 	}
+	if p.Contact != nil {
+		v.Contact = *p.Contact
+	}
+	cs := preplan.ContingentStatusOf(p.Contingent)
+	v.Used, v.Remaining, v.UsedStatus = cs.Used, cs.Remaining, string(cs.Status)
 	var plannedPts, donePts float64
 	hasDone := false
 	for _, t := range c.data.Tickets {
@@ -341,6 +344,12 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 	for _, ym := range p.Contingent.PerMonth.Keys() {
 		add(ym)
 	}
+	cs := preplan.ContingentStatusOf(p.Contingent)
+	byMonth := map[string]preplan.MonthStatus{}
+	for _, m := range cs.Months {
+		byMonth[m.Month] = m
+		add(m.Month)
+	}
 	for ym := range planned {
 		add(ym)
 	}
@@ -351,6 +360,9 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 	for _, ym := range months {
 		booked, _ := p.Contingent.PerMonth.Get(ym)
 		r := MonthRow{Month: ym, Booked: booked}
+		if st, ok := byMonth[ym]; ok {
+			r.Used, r.Remaining, r.Status = st.Used, st.Remaining, string(st.Status)
+		}
 		if c.data.Team.Features.Tickets {
 			r.Done = c.toPD(done[ym])
 			r.Planned = c.toPD(planned[ym])
@@ -778,7 +790,18 @@ func (a *API) SaveProject(team string, in ProjectInput) (string, error) {
 		if in.Booked != nil && *in.Booked < 0 {
 			return errors.New(i18n.T("The contingent cannot be negative."))
 		}
-		proj.Contingent = model.Contingent{Total: in.Booked}
+		proj.Contingent = model.Contingent{Total: in.Booked, Used: in.Used, UsedPerMonth: proj.Contingent.UsedPerMonth}
+		if in.UsedMonths != nil {
+			proj.Contingent.UsedPerMonth = model.OrderedMap[float64]{}
+		}
+		if in.Used != nil && *in.Used < 0 {
+			return errors.New(i18n.T("The contingent cannot be negative."))
+		}
+		if n := strings.TrimSpace(in.Contact); n != "" {
+			proj.Contact = &n
+		} else {
+			proj.Contact = nil
+		}
 		months := make([]string, 0, len(in.Months))
 		for ym := range in.Months {
 			months = append(months, ym)
@@ -789,6 +812,17 @@ func (a *API) SaveProject(team string, in ProjectInput) (string, error) {
 				return errors.New(i18n.T("The contingent per month needs a month and a number from 0."))
 			}
 			proj.Contingent.PerMonth.Set(ym, in.Months[ym])
+		}
+		usedMonths := make([]string, 0, len(in.UsedMonths))
+		for ym := range in.UsedMonths {
+			usedMonths = append(usedMonths, ym)
+		}
+		sort.Strings(usedMonths)
+		for _, ym := range usedMonths {
+			if _, err := time.Parse("2006-01", ym); err != nil || in.UsedMonths[ym] < 0 {
+				return errors.New(i18n.T("The contingent per month needs a month and a number from 0."))
+			}
+			proj.Contingent.UsedPerMonth.Set(ym, in.UsedMonths[ym])
 		}
 		proj.OpenScope = in.OpenScope
 		proj.Milestones = nil
@@ -813,7 +847,10 @@ func (a *API) SaveProject(team string, in ProjectInput) (string, error) {
 					}
 				}
 			}
-			proj.Milestones = append(proj.Milestones, model.Milestone{ID: mid, Name: strings.TrimSpace(m.Name), Date: *date, Tickets: m.Tickets})
+			if m.Light != "" && !slices.Contains(model.MilestoneLights, m.Light) {
+				return errors.New(i18n.T("Please choose a traffic light for the milestone."))
+			}
+			proj.Milestones = append(proj.Milestones, model.Milestone{ID: mid, Name: strings.TrimSpace(m.Name), Date: *date, Tickets: m.Tickets, Light: m.Light})
 		}
 		if idx >= 0 {
 			data.Projects[idx] = proj

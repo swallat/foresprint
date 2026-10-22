@@ -19,8 +19,14 @@ type MilestoneView struct {
 	// Done and Total count the tickets of the milestone that are finished, and all that exist.
 	Done  int `json:"done"`
 	Total int `json:"total"`
-	// Light is "ok", "warn", "bad" or "none" (no tickets: no light is calculated).
+	// Light is "ok", "warn", "bad" or "none" (no hand value and no open tickets).
 	Light string `json:"light"`
+	// Hand is the light the PO set by hand ("green", "yellow", "red"), "" = none. Source says
+	// where Light comes from: "hand", "derived" or "none". Late lists the open tickets that end
+	// after the date.
+	Hand   string   `json:"hand"`
+	Source string   `json:"source"`
+	Late   []string `json:"late"`
 }
 
 // MonthRow is one row of the contingent per month.
@@ -30,6 +36,11 @@ type MonthRow struct {
 	Done   *float64 `json:"done"`
 	// Planned is an estimate; nil when the team rate is not known yet.
 	Planned *float64 `json:"planned"`
+	// Used is the consumption entered by hand (PD), Remaining what is left, Status "ok", "tight"
+	// or "over".
+	Used      *float64 `json:"used"`
+	Remaining *float64 `json:"remaining"`
+	Status    string   `json:"status"`
 }
 
 // ProjectSprintRow is one row of the report for the project lead.
@@ -57,12 +68,18 @@ type ProjectView struct {
 	Done     *float64 `json:"done"`    // finished work in PT (estimate), nil = unknown
 	Planned  *float64 `json:"planned"` // planned work in PT (estimate), nil = unknown
 	// DonePoints and PlannedPoints are the sums in the team's unit that the PT values come from.
-	DonePoints    float64         `json:"donePoints"`
-	PlannedPoints float64         `json:"plannedPoints"`
-	Months        []MonthRow      `json:"months"`
-	OpenScope     *float64        `json:"openScope"`
-	Open          int             `json:"open"` // open tickets
-	Milestones    []MilestoneView `json:"milestones"`
+	DonePoints    float64    `json:"donePoints"`
+	PlannedPoints float64    `json:"plannedPoints"`
+	Months        []MonthRow `json:"months"`
+	// Used is the consumption entered by hand in PD, nil = not entered. Remaining is the contingent
+	// minus Used. UsedStatus is "ok", "tight" or "over" (the core's rule).
+	Used       *float64        `json:"used"`
+	Remaining  *float64        `json:"remaining"`
+	UsedStatus string          `json:"usedStatus"`
+	Contact    string          `json:"contact"`
+	OpenScope  *float64        `json:"openScope"`
+	Open       int             `json:"open"` // open tickets
+	Milestones []MilestoneView `json:"milestones"`
 	// State is "", "finished" or "cancelled"; ClosedAt is the end date of a closed project.
 	State string `json:"state"`
 	// History is true when ending the project closes it instead of deleting it.
@@ -133,19 +150,25 @@ type MilestoneInput struct {
 	Name    string   `json:"name"`
 	Date    string   `json:"date"`
 	Tickets []string `json:"tickets"`
+	// Light is the light set by hand ("green", "yellow", "red"), "" = derive it from the tickets.
+	Light string `json:"light"`
 }
 
 // ProjectInput is the form of a project; an empty ID creates a new one.
 type ProjectInput struct {
-	ID         string             `json:"id"`
-	Name       string             `json:"name"`
-	Products   []string           `json:"products"`
-	Start      string             `json:"start"`
-	End        string             `json:"end"`
-	Note       string             `json:"note"`
-	Rule       string             `json:"rule"`
-	Booked     *float64           `json:"booked"`
-	Months     map[string]float64 `json:"months"`
+	ID       string             `json:"id"`
+	Name     string             `json:"name"`
+	Products []string           `json:"products"`
+	Start    string             `json:"start"`
+	End      string             `json:"end"`
+	Note     string             `json:"note"`
+	Rule     string             `json:"rule"`
+	Booked   *float64           `json:"booked"`
+	Used     *float64           `json:"used"`
+	Contact  string             `json:"contact"`
+	Months   map[string]float64 `json:"months"`
+	// UsedMonths replaces the consumption per month when sent (nil keeps it).
+	UsedMonths map[string]float64 `json:"usedMonths"`
 	OpenScope  *float64           `json:"openScope"`
 	Milestones []MilestoneInput   `json:"milestones"`
 }
