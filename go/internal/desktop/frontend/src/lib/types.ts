@@ -20,6 +20,9 @@ export interface Prefs {
   languages: Choice[];
   theme: string;
   themes: Choice[];
+  density: 'compact' | 'normal' | 'roomy';
+  /** How calculations show next to numbers: hidden, as an icon, always open. */
+  calcMode: 'off' | 'icon' | 'inline';
   dataDir: string;
   recentDataDirs: string[];
 }

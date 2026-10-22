@@ -62,6 +62,50 @@ func SaveTheme(code string) error {
 	return &Error{msg: i18n.T("Allowed: {values}", "values", strings.Join(codes, ", "))}
 }
 
+// Densities of tables and the modes of the calculations shown next to numbers (personal
+// settings of the window). The codes are fixed, the window translates the labels.
+var (
+	Densities = []string{"compact", "normal", "roomy"}
+	CalcModes = []string{"off", "icon", "inline"}
+)
+
+// Defaults of the two choices.
+const (
+	DefaultDensity  = "normal"
+	DefaultCalcMode = "icon"
+)
+
+func choiceOf(key string, allowed []string, def string) string {
+	value := String(key)
+	for _, a := range allowed {
+		if a == value {
+			return value
+		}
+	}
+	return def
+}
+
+func saveChoice(key string, allowed []string, code string) error {
+	for _, a := range allowed {
+		if a == code {
+			return Update(map[string]any{key: code})
+		}
+	}
+	return &Error{msg: i18n.T("Allowed: {values}", "values", strings.Join(allowed, ", "))}
+}
+
+// Density is the saved density of tables.
+func Density() string { return choiceOf("density", Densities, DefaultDensity) }
+
+// SaveDensity saves the density of tables.
+func SaveDensity(code string) error { return saveChoice("density", Densities, code) }
+
+// CalcMode is how calculations show next to numbers: hidden, as an icon or always open.
+func CalcMode() string { return choiceOf("calc_mode", CalcModes, DefaultCalcMode) }
+
+// SaveCalcMode saves how calculations show next to numbers.
+func SaveCalcMode(code string) error { return saveChoice("calc_mode", CalcModes, code) }
+
 // DataDir is the remembered data folder, if it still exists.
 func DataDir() (string, bool) {
 	dir := String("data_dir")

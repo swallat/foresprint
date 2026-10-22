@@ -57,10 +57,3 @@ func (a *API) Save() (Result, error) {
 func (a *API) Refresh() (Result, error) {
 	return Result{OK: true, Message: i18n.T("Up to date.")}, nil
 }
-
-// SyncTracker fetches the tickets from the tracker now.
-//
-// Placeholder, see Status.
-func (a *API) SyncTracker() (Result, error) {
-	return Result{OK: true, Message: i18n.T("Tracker synced.")}, nil
-}

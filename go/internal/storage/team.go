@@ -266,6 +266,9 @@ func TeamFromDict(key string, d *yamlx.Map, where string) (model.Team, error) {
 	if c.AbsenceHistory, msg = pyIntConv(getOr(capm, "absence_history", int64(4))); msg != "" {
 		return fail(pyError(msg))
 	}
+	if c.ProductionCap, msg = finiteOf(getOr(capm, "production_cap", 100.0)); msg != "" {
+		return fail(pyError(msg))
+	}
 	return team, nil
 }
 
@@ -300,6 +303,9 @@ func TeamToDict(team model.Team) *yamlx.Map {
 	}
 	if team.Capacity.AbsenceHistory != 4 { // also 0 = off
 		put(capm, "absence_history", int64(team.Capacity.AbsenceHistory))
+	}
+	if team.Capacity.ProductionCap != 100 { // only when set: files of teams without it stay unchanged
+		put(capm, "production_cap", clean(team.Capacity.ProductionCap))
 	}
 	features := omap("products", team.Features.Products, "po", team.Features.PO, "production", team.Features.Production)
 	if team.Features.Tickets { // only when on: files of teams without it stay unchanged

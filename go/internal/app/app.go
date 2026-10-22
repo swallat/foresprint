@@ -35,6 +35,7 @@ type API struct {
 
 	mu      sync.Mutex
 	dataDir string
+	run     trackerRun
 }
 
 // New returns the API for a data folder; "" takes the remembered one.
@@ -85,6 +86,8 @@ type Prefs struct {
 	Languages      []Choice `json:"languages"`
 	Theme          string   `json:"theme"`
 	Themes         []Choice `json:"themes"`
+	Density        string   `json:"density"`  // "compact", "normal" or "roomy"
+	CalcMode       string   `json:"calcMode"` // "off", "icon" or "inline"
 	DataDir        string   `json:"dataDir"`
 	RecentDataDirs []string `json:"recentDataDirs"`
 }
@@ -94,6 +97,8 @@ func (a *API) Prefs() Prefs {
 	p := Prefs{
 		Language:       savedLanguage(),
 		Theme:          config.Theme(),
+		Density:        config.Density(),
+		CalcMode:       config.CalcMode(),
 		DataDir:        a.DataDir(),
 		RecentDataDirs: config.RecentDataDirs(),
 	}
@@ -111,6 +116,12 @@ func (a *API) SetLanguage(code string) error { return config.SaveLanguage(code) 
 
 // SetTheme saves the theme ("system", "light", "dark").
 func (a *API) SetTheme(code string) error { return config.SaveTheme(code) }
+
+// SetDensity saves the density of tables ("compact", "normal", "roomy").
+func (a *API) SetDensity(code string) error { return config.SaveDensity(code) }
+
+// SetCalcMode saves how calculations show next to numbers ("off", "icon", "inline").
+func (a *API) SetCalcMode(code string) error { return config.SaveCalcMode(code) }
 
 // Texts returns the texts of the window for a language: English source text to translation.
 // A text without entry is shown in English by the frontend.

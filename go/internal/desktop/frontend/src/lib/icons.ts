@@ -26,6 +26,7 @@ import i_cloud_done from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import i_cloud_download from '@material-symbols/svg-400/outlined/cloud_download.svg?raw';
 import i_cloud_off from '@material-symbols/svg-400/outlined/cloud_off.svg?raw';
 import i_cloud_upload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw';
+import i_computer from '@material-symbols/svg-400/outlined/computer.svg?raw';
 import i_content_copy from '@material-symbols/svg-400/outlined/content_copy.svg?raw';
 import i_contrast from '@material-symbols/svg-400/outlined/contrast.svg?raw';
 import i_dark_mode from '@material-symbols/svg-400/outlined/dark_mode.svg?raw';
@@ -57,6 +58,7 @@ import i_menu from '@material-symbols/svg-400/outlined/menu.svg?raw';
 import i_merge from '@material-symbols/svg-400/outlined/merge.svg?raw';
 import i_monitoring from '@material-symbols/svg-400/outlined/monitoring.svg?raw';
 import i_more_vert from '@material-symbols/svg-400/outlined/more_vert.svg?raw';
+import i_network_check from '@material-symbols/svg-400/outlined/network_check.svg?raw';
 import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
 import i_play_arrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw';
@@ -73,6 +75,8 @@ import i_task_alt from '@material-symbols/svg-400/outlined/task_alt.svg?raw';
 import i_today from '@material-symbols/svg-400/outlined/today.svg?raw';
 import i_tune from '@material-symbols/svg-400/outlined/tune.svg?raw';
 import i_undo from '@material-symbols/svg-400/outlined/undo.svg?raw';
+import i_unfold_more from '@material-symbols/svg-400/outlined/unfold_more.svg?raw';
+import i_verified_user from '@material-symbols/svg-400/outlined/verified_user.svg?raw';
 import i_view_list from '@material-symbols/svg-400/outlined/view_list.svg?raw';
 import i_visibility from '@material-symbols/svg-400/outlined/visibility.svg?raw';
 import i_visibility_off from '@material-symbols/svg-400/outlined/visibility_off.svg?raw';
@@ -100,6 +104,7 @@ const icons = {
   cloud_download: i_cloud_download,
   cloud_off: i_cloud_off,
   cloud_upload: i_cloud_upload,
+  computer: i_computer,
   content_copy: i_content_copy,
   contrast: i_contrast,
   dark_mode: i_dark_mode,
@@ -131,6 +136,7 @@ const icons = {
   merge: i_merge,
   monitoring: i_monitoring,
   more_vert: i_more_vert,
+  network_check: i_network_check,
   open_in_new: i_open_in_new,
   person: i_person,
   play_arrow: i_play_arrow,
@@ -147,6 +153,8 @@ const icons = {
   today: i_today,
   tune: i_tune,
   undo: i_undo,
+  unfold_more: i_unfold_more,
+  verified_user: i_verified_user,
   view_list: i_view_list,
   visibility: i_visibility,
   visibility_off: i_visibility_off,

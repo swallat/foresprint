@@ -5,8 +5,9 @@
 // `Api` below (or to an area interface that extends it) and an answer to the mock.
 
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
+import type { SettingsApi } from './types.settings';
 
-export interface Api {
+export interface Api extends SettingsApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
@@ -19,7 +20,6 @@ export interface Api {
   Status(): Promise<Status>;
   Save(): Promise<Result>;
   Refresh(): Promise<Result>;
-  SyncTracker(): Promise<Result>;
 }
 
 interface WailsWindow {
