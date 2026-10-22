@@ -274,6 +274,13 @@ func AbsencesKnown(sprint model.Sprint) bool {
 	return sprint.AbsenceStatus() == model.AbsencesConfirmed
 }
 
+// EffectiveSprint is the sprint with the absences of the planned absence periods filled in
+// for calculating (decision 23). The stored sprint is not changed, so nothing derived is
+// saved with it.
+func EffectiveSprint(data *storage.TeamData, sprint model.Sprint) model.Sprint {
+	return capacity.ApplyPeriods(&data.Team, data.People, data.AbsencePeriods, sprint).Sprint
+}
+
 // ResolveCapacity is the capacity of a sprint and its source (nil, nil if it cannot be
 // determined).
 //
@@ -288,6 +295,7 @@ func ResolveCapacity(data *storage.TeamData, sprint model.Sprint, history *capac
 	if len(data.People) == 0 {
 		return nil, nil
 	}
+	sprint = EffectiveSprint(data, sprint)
 	switch sprint.AbsenceStatus() {
 	case model.AbsencesConfirmed:
 		return model.Ptr(capacity.Sprint(&data.Team, data.People, sprint, 0).Capacity), src(engine.SourcePeople)
@@ -357,4 +365,98 @@ func Build(data *storage.TeamData, today time.Time) (*Forecast, error) {
 		}
 	}
 	return &Forecast{Data: data, Today: today, Entries: entries, Absences: history}, nil
+}
+
+// ExpectedDone is the velocity an assumption expects for its sprint: the stored expectation,
+// else Commitment − NotDone + AdditionalDone (missing parts count as 0). ok is false if the
+// assumption says nothing about the outcome.
+func ExpectedDone(p model.Prognosis) (float64, bool) {
+	if p.ExpectedDone != nil {
+		return *p.ExpectedDone, true
+	}
+	if p.Commitment == nil && p.NotDone == nil && p.AdditionalDone == nil {
+		return 0, false
+	}
+	done := func(v *float64) float64 {
+		if v == nil {
+			return 0
+		}
+		return *v
+	}
+	return done(p.Commitment) - done(p.NotDone) + done(p.AdditionalDone), true
+}
+
+// WhatIf builds the forecast as if the assumption came true: the running sprint ends with the
+// velocity the assumption expects, and the sprints after it follow from that. Nothing of data
+// is changed, so several assumptions can be compared side by side.
+func WhatIf(data *storage.TeamData, today time.Time, sprintID string, p model.Prognosis) (*Forecast, error) {
+	velocity, ok := ExpectedDone(p)
+	if !ok {
+		return nil, fmt.Errorf("the assumption has no expected result")
+	}
+	copied := *data
+	copied.Sprints = make([]model.Sprint, len(data.Sprints))
+	found := false
+	for i, s := range data.Sprints {
+		copied.Sprints[i] = s.Clone()
+		if s.ID == sprintID {
+			found = true
+			copied.Sprints[i].Velocity = &velocity
+			if s.Commitment == nil && p.Commitment != nil {
+				copied.Sprints[i].Commitment = p.Commitment
+			}
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("sprint %q not found", sprintID)
+	}
+	return Build(&copied, today)
+}
+
+// PlanSpan is the range of the Forecast PLAN of a sprint: the plan that the lowest and the
+// highest normalized velocity of the window would give with the same capacity.
+type PlanSpan struct {
+	Low, High float64
+	// Samples is the number of sprints with a value inside the window.
+	Samples int
+}
+
+// PlanSpanOf is the range of the Forecast PLAN of the entry at index i. The window is the
+// team's Window sprints before the entry. ok is false for a plan that is not a projection,
+// without a capacity, or without any value in the window.
+func (f *Forecast) PlanSpanOf(i int) (span PlanSpan, ok bool) {
+	if i < 0 || i >= len(f.Entries) {
+		return span, false
+	}
+	r := f.Entries[i].Result
+	settings := f.Data.Team.Forecast
+	if r.PlanSource == nil || *r.PlanSource != engine.PlanForecast || r.PlanCapacity == nil || settings.ReferenceCapacity <= 0 {
+		return span, false
+	}
+	from := i - settings.Window
+	if from < 0 {
+		from = 0
+	}
+	var low, high float64
+	for _, e := range f.Entries[from:i] {
+		v := e.Result.NormalizedVelocity.Value
+		if v == nil {
+			continue
+		}
+		if span.Samples == 0 || *v < low {
+			low = *v
+		}
+		if span.Samples == 0 || *v > high {
+			high = *v
+		}
+		span.Samples++
+	}
+	if span.Samples == 0 {
+		return span, false
+	}
+	plan := func(norm float64) float64 {
+		return math.Max(engine.RoundDown(float64(norm/settings.ReferenceCapacity)*(*r.PlanCapacity), settings.Rounding), 0)
+	}
+	span.Low, span.High = plan(low), plan(high)
+	return span, true
 }

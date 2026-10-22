@@ -3,29 +3,21 @@
   import { app } from '../lib/app.svelte';
   import { t } from '../lib/i18n.svelte';
   import Icon from '../lib/Icon.svelte';
-  import { go, link } from '../lib/router.svelte';
-  import { pages } from '../lib/routes';
+  import { commandsFor, type Command } from '../lib/commands';
 
-  // The command palette (Ctrl+K). It lists the pages of the route table; tickets and actions
-  // are added to `entries` by the packages that own them.
+  // The command palette (Ctrl+K). The entries come from lib/commands.ts: pages, actions, and
+  // whatever a package registers there (tickets, guided flows).
   let query = $state('');
   let index = $state(0);
   let input: HTMLInputElement | undefined = $state();
 
-  interface Entry {
-    label: string;
-    hint?: string;
-    run: () => void;
-  }
-
-  const entries = $derived<Entry[]>(
-    pages
-      .filter((p) => !p.path.includes(':') && !p.bare)
-      .map((p) => ({ label: t(p.title), hint: p.path, run: () => go(p.path) })),
-  );
-  const shown = $derived(
-    entries.filter((e) => e.label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 12),
-  );
+  const shown = $derived(app.paletteOpen ? commandsFor(query) : []);
+  const labels: Record<Command['group'], () => string> = {
+    page: () => t('Page'),
+    action: () => t('Action'),
+    help: () => t('Help'),
+    ticket: () => t('Ticket'),
+  };
 
   $effect(() => {
     if (app.paletteOpen) {
@@ -38,8 +30,12 @@
     void query;
     index = 0;
   });
+  $effect(() => {
+    // Keep the active entry in view while stepping with the arrow keys.
+    if (app.paletteOpen) document.getElementById(`pal-${index}`)?.scrollIntoView?.({ block: 'nearest' });
+  });
 
-  function choose(e: Entry | undefined): void {
+  function choose(e: Command | undefined): void {
     if (!e) return;
     app.paletteOpen = false;
     e.run();
@@ -72,18 +68,21 @@
           role="combobox"
           aria-expanded="true"
           aria-controls="palette-list"
+          aria-activedescendant={shown.length > 0 ? `pal-${index}` : undefined}
           onkeydown={key}
         />
       </div>
       <ul id="palette-list" role="listbox">
-        {#each shown as e, i (e.hint ?? e.label)}
-          <li role="option" aria-selected={i === index}>
-            <a href={link(e.hint ?? '/')} class:on={i === index} onclick={(ev) => { ev.preventDefault(); choose(e); }}>
-              <span>{e.label}</span><span class="muted small data">{e.hint}</span>
-            </a>
+        {#each shown as e, i (e.id)}
+          <li id={`pal-${i}`} role="option" aria-selected={i === index}>
+            <button type="button" tabindex="-1" class:on={i === index} onclick={() => choose(e)} onmousemove={() => (index = i)}>
+              <span class="grow">{e.label}</span>
+              {#if e.hint}<span class="muted small data">{e.hint}</span>{/if}
+              <span class="chip">{labels[e.group]()}</span>
+            </button>
           </li>
         {:else}
-          <li class="muted pad">{t('Nothing found.')}</li>
+          <li class="muted pad" role="option" aria-selected="false" aria-disabled="true">{t('Nothing found.')}</li>
         {/each}
       </ul>
     </div>
@@ -116,16 +115,23 @@
     max-height: 50vh;
     overflow: auto;
   }
-  a {
+  button {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
     padding: 6px 10px;
     border-radius: var(--r-ctl);
     color: var(--text);
     text-decoration: none;
   }
-  a.on,
-  a:hover {
+  button.on,
+  button:hover {
     background: var(--primary-weak);
   }
   .pad {
