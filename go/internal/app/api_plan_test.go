@@ -250,3 +250,68 @@ func TestFreezeAndReopen(t *testing.T) {
 		t.Error("a past sprint was frozen")
 	}
 }
+
+func TestRemovedTicketsLeaveTheLaneAndStayListed(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	_ = api.SetEarmark(team, "T-1", next)
+	_ = api.SetEarmark(team, "T-2", next)
+	if err := api.SetRemoved(team, next, "T-1", true); err != nil {
+		t.Fatal(err)
+	}
+	v, _ := api.PlanSprint(team, next, nil)
+	if len(v.Tickets) != 1 || v.Tickets[0].Key != "T-2" {
+		t.Errorf("lane = %+v", v.Tickets)
+	}
+	if len(v.Removed) != 1 || v.Removed[0] != "T-1" {
+		t.Errorf("removed = %v", v.Removed)
+	}
+	found := false
+	for _, c := range v.Candidates {
+		found = found || c.Key == "T-1"
+	}
+	if !found {
+		t.Error("removed ticket is not a candidate")
+	}
+	if err := api.SetRemoved(team, next, "T-1", false); err != nil {
+		t.Fatal(err)
+	}
+	v, _ = api.PlanSprint(team, next, nil)
+	if len(v.Tickets) != 2 || len(v.Removed) != 0 {
+		t.Errorf("after undo: lane %d, removed %v", len(v.Tickets), v.Removed)
+	}
+	if err := api.SetRemoved(team, next, "nope", true); err == nil {
+		t.Error("unknown ticket accepted")
+	}
+}
+
+func TestSprintPreplannedForTeamsWithoutProducts(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	if err := api.SetSprintPreplanned(team, next, nil); err != nil {
+		t.Fatal(err)
+	}
+	neg := -2.0
+	if err := api.SetSprintPreplanned(team, next, &neg); err == nil {
+		t.Error("negative amount accepted")
+	}
+	// the demo team has products, so the sprint amount is stored but the view sums the products
+	v, _ := api.PlanSprint(team, next, nil)
+	if v.SprintPre != nil {
+		t.Errorf("sprintPre = %v", v.SprintPre)
+	}
+}
