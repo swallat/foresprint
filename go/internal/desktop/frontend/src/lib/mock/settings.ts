@@ -58,6 +58,7 @@ let tracker: TrackerSettings = {
   ruleFields: [],
   fixedSources: ['epic', 'component', 'label', 'priority', 'type', 'status'],
   writeSprint: false,
+  boardId: null,
   removedTarget: 'backlog',
   writeLabels: false,
   packagePrefix: '',
