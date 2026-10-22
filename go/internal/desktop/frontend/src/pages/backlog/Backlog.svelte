@@ -1,7 +1,7 @@
 <script lang="ts">
   // The backlog: all open tickets (or work packages) in planning order, saved views as filters
   // of the one list, and lanes for the coming sprints to earmark into (flows.md F2, F10).
-  import { app, syncTracker } from '../../lib/app.svelte';
+  import { app, selectSprint, syncTracker } from '../../lib/app.svelte';
   import { tick } from 'svelte';
   import { language } from '../../lib/i18n.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
@@ -229,6 +229,22 @@
           {t('{tracker}: no fetch yet.', { tracker: view.tracker })}
         {/if}
       </p>
+    {/if}
+
+    {#if view.drift}
+      <Banner tone="warn">
+        <strong>{t('Sprint {id}: the tracker differs from the frozen plan.', { id: view.drift.sprint })}</strong>
+        {#if view.drift.pulledIn.length}
+          {t('Pulled in after the freeze: {keys}.', { keys: view.drift.pulledIn.join(', ') })}
+        {/if}
+        {#if view.drift.dropped.length}
+          {t('Left the sprint: {keys}.', { keys: view.drift.dropped.join(', ') })}
+        {/if}
+        {#if view.drift.unknown.length}
+          {t('Not in the last fetch: {keys}.', { keys: view.drift.unknown.join(', ') })}
+        {/if}
+        {#snippet action()}<a class="btn" href={link('/sprint/plan')} onclick={() => view?.drift && selectSprint(view.drift.sprint)}>{t('Open Plan')}</a>{/snippet}
+      </Banner>
     {/if}
 
     {#if view.cycles.length}

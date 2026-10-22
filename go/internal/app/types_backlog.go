@@ -93,6 +93,17 @@ type BacklogView struct {
 	Production bool `json:"production"`
 	// Cycles lists dependency cycles; their tickets are in the list, but cannot be distributed.
 	Cycles [][]string `json:"cycles"`
+	// Drift is the difference between the list frozen for the running sprint and the tracker's
+	// sprint at the last fetch; nil without a tracker, a running frozen sprint or a difference.
+	Drift *BacklogDrift `json:"drift,omitempty"`
+}
+
+// BacklogDrift says which tickets came into or left the tracker's sprint after the freeze.
+type BacklogDrift struct {
+	Sprint   string   `json:"sprint"`
+	PulledIn []string `json:"pulledIn"`
+	Dropped  []string `json:"dropped"`
+	Unknown  []string `json:"unknown"`
 }
 
 // Subtask is a part of a work package.
