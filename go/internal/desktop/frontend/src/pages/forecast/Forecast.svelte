@@ -8,6 +8,10 @@
   import type { ForecastView, WhatIfRow, WhenDoneView } from '../../lib/types.forecast';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
+  import { current, link } from '../../lib/router.svelte';
+  import Icon from '../../lib/Icon.svelte';
+  import ProductsOverTime from './ProductsOverTime.svelte';
+  import Reports from './Reports.svelte';
   import ForecastChart from './ForecastChart.svelte';
 
   let { params }: PageProps = $props();
@@ -90,6 +94,12 @@
     doneProblem = '';
   });
 
+  const tabs = $derived([
+    { id: 'forecast', icon: 'monitoring' as const, label: t('Forecast') },
+    ...(view && view.products > 1 ? [{ id: 'products', icon: 'stacked_bar_chart' as const, label: t('Products over time') }] : []),
+    { id: 'reports', icon: 'ios_share' as const, label: t('Reports and export') },
+  ]);
+  const activeTab = $derived(tabs.some((x) => x.id === current.query.tab) ? (current.query.tab ?? 'forecast') : 'forecast');
   const next = $derived(view?.upcoming.find((r) => r.plan !== null));
   function capSource(source: string): string {
     switch (source) {
@@ -114,6 +124,16 @@
 
 <PageHead title={t('Forecast')} lead={t('How many points the coming sprints can take, with a range.')} />
 
+{#if view}
+  <nav class="tabs" aria-label={t('Forecast views')}>
+    {#each tabs as tab (tab.id)}
+      <a href={link('/forecast', {}, tab.id === 'forecast' ? {} : { tab: tab.id })} class:active={activeTab === tab.id} aria-current={activeTab === tab.id ? 'page' : undefined}>
+        <Icon name={tab.icon} size={18} />{tab.label}
+      </a>
+    {/each}
+  </nav>
+{/if}
+
 {#if problem}
   <Banner tone="bad">{problem}</Banner>
 {:else if !view}
@@ -127,6 +147,11 @@
     </Banner>
   {/if}
 
+  {#if activeTab === 'products'}
+    <ProductsOverTime />
+  {:else if activeTab === 'reports'}
+    <Reports />
+  {:else}
   <div class="stack-lg">
     <section class="card" aria-labelledby="fc-chart">
       <h2 id="fc-chart">{t('Velocity and Forecast PLAN')}</h2>
@@ -362,6 +387,7 @@
       {/if}
     </section>
   </div>
+  {/if}
 {/if}
 
 <style>

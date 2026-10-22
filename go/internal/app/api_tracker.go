@@ -284,15 +284,6 @@ func (a *API) applyTracker(t *model.Team, data *storage.TeamData, in TrackerSett
 	return nil
 }
 
-func contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // --- Token, tests and sync ---------------------------------------------------------------
 
 // trackerOf returns the stored tracker settings with the address of the page, for tests that

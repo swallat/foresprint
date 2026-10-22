@@ -33,12 +33,25 @@ type API struct {
 	// ChooseFolder opens the folder dialog of the system and returns the chosen path ("" if
 	// cancelled). Set by the window shell; nil in tests.
 	ChooseFolder func(title string) (string, error)
+	// ChooseFile opens the file dialog for an Excel workbook and returns the chosen path ("" if
+	// cancelled). Set by the window shell; nil in tests.
+	ChooseFile func(title string) (string, error)
+
+	// Now is the clock; nil = the system clock (set in tests).
+	Now func() time.Time
 
 	mu      sync.Mutex
 	dataDir string
 	run     trackerRun
+	undo    []projectSnapshot
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
+	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
+	tagMu sync.Mutex
+	tags  []string
+	// sprintTags remembers the tag each Review asked for, by team/sprint, so that reopening can
+	// take back the right one.
+	sprintTags map[string]string
 }
 
 // New returns the API for a data folder; "" takes the remembered one.
