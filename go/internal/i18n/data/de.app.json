@@ -147,6 +147,15 @@
   "Row {row}: {msg}": "Zeile {row}: {msg}",
   "The tickets are switched off for this team.": "Die Tickets sind für dieses Team ausgeschaltet.",
   "The file is not a regular file or larger than 20 MB.": "Die Datei ist keine normale Datei oder größer als 20 MB.",
-  "… and {n} more rows": "… und {n} weitere zeilen"
+  "… and {n} more rows": "… und {n} weitere zeilen",
+  "Choose the table of work packages": "Tabelle mit Arbeitspaketen wählen",
+  "The table changed since the preview. Choose it again.": "Die Tabelle hat sich seit der Vorschau geändert. Bitte erneut wählen.",
+  "No changes compared to the existing work packages.": "Keine Änderungen gegenüber den vorhandenen Arbeitspaketen.",
+  "{count} work packages imported.": "{count} Arbeitspakete importiert.",
+  "This team does not keep work packages in Foresprint.": "Dieses Team führt seine Arbeitspakete nicht in Foresprint.",
+  "The file is too large for a table of work packages.": "Die Datei ist zu groß für eine Tabelle mit Arbeitspaketen.",
+  "This is not a file.": "Das ist keine Datei.",
+  "The workbook is too large": "Die Arbeitsmappe ist zu groß.",
+  "The sheet is too large for a table (at most {cols} columns and {rows} rows).": "Das Blatt ist für eine Tabelle zu groß (höchstens {cols} Spalten und {rows} Zeilen)."
  }
 }
