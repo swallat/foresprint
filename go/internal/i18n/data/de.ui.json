@@ -964,6 +964,7 @@
   "of which rest in {sprint} ({unit})": "davon Rest in {sprint} ({unit})",
   "of {n}": "von {n}",
   "of {n} PD booked": "von {n} PT gebucht",
+  "of {n} PD booked, {u} used": "von {n} PT gebucht, {u} verbraucht",
   "on plan": "im Plan",
   "on track": "im Plan",
   "open": "offen",

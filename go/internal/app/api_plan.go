@@ -503,7 +503,7 @@ func (c *planCtx) fillProjects(v *PlanSprint) {
 		if p.Closed() {
 			continue
 		}
-		pp := &PlanProject{ID: p.ID, Name: p.Name, Booked: p.Contingent.Total}
+		pp := &PlanProject{ID: p.ID, Name: p.Name, Booked: p.Contingent.Total, UsedPD: preplan.ContingentStatusOf(p.Contingent).Used}
 		byProject[p.ID] = pp
 		if !c.tickets() {
 			if vals, ok := c.sprint.Projects[p.ID]; ok && vals.Preplanned != nil {

@@ -124,7 +124,7 @@
       .map((p) => {
         const amount = noT ? p.amount : sizeSum(lane.filter((x) => x.project === p.id));
         const need = rate > 0 ? amount / rate : null;
-        const rest = p.bookedPD != null && need != null ? p.bookedPD - need : null;
+        const rest = p.bookedPD != null && need != null ? p.bookedPD - (p.usedPD ?? 0) - need : null;
         return { p, amount, need, rest };
       })
       .filter((r) => r.amount > 0);
