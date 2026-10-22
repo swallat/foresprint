@@ -50,6 +50,12 @@ func Run(version, dataDir string) error {
 			api.ChooseFolder = func(title string) (string, error) {
 				return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: title})
 			}
+			api.ChooseFile = func(title string) (string, error) {
+				return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
+					Title:   title,
+					Filters: []runtime.FileFilter{{DisplayName: "Excel (*.xlsx)", Pattern: "*.xlsx"}},
+				})
+			}
 		},
 		Windows: &windows.Options{Theme: windows.SystemDefault},
 	})
