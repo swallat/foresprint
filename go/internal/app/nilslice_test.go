@@ -2,9 +2,12 @@ package app
 
 import (
 	"fmt"
+	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/zalando/go-keyring"
 )
 
 // nilLists walks a value the way encoding/json would and reports every nil slice: it becomes
@@ -82,7 +85,16 @@ func TestPlanAnswersHaveNoNilLists(t *testing.T) {
 // an empty team and checks that no list in an answer is nil (JSON null). New read methods go
 // into readCalls.
 func TestReadAnswersHaveNoNilLists(t *testing.T) {
+	keyring.MockInit() // the tracker settings probe the keychain of the system
 	api, team := planTeam(t)
+	// The data folder is a Git repository, so that the methods of the storage area answer.
+	for _, args := range [][]string{{"init", "-q"}, {"-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "start"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = api.DataDir()
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, out)
+		}
+	}
 	sprints, _ := api.Sprints(team)
 	var future, past string
 	for _, s := range sprints {
@@ -137,7 +149,9 @@ func TestReadAnswersHaveNoNilLists(t *testing.T) {
 			}
 			out := m.Call(in)
 			if n := len(out); n > 0 && out[n-1].Type().Implements(reflect.TypeFor[error]()) && !out[n-1].IsNil() {
-				t.Logf("%s: %s rejected: %v", target.name, name, out[n-1].Interface())
+				if target.name == "demo" {
+					t.Errorf("demo: %s was rejected: %v (the demo team must answer)", name, out[n-1].Interface())
+				}
 				continue // a rejected call carries no answer
 			}
 			for i, o := range out {

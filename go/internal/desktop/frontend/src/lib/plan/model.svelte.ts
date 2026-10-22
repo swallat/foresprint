@@ -65,6 +65,7 @@ export function withLists(d: PlanSprint): PlanSprint {
     notes: list(d.notes),
     assumptions: list(d.assumptions).map((a) => ({ ...a, carry: list(a.carry) })),
     prod: d.prod ? { ...d.prod, people: list(d.prod.people) } : null,
+    matrix: d.matrix ? { projects: list(d.matrix.projects), cells: list(d.matrix.cells) } : null,
   };
 }
 
