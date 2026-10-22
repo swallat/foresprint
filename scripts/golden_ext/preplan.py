@@ -72,20 +72,34 @@ def project(pid: str, **fields: Any) -> Edit:
 
 
 def earmarks(*pairs: tuple[str, str]) -> Edit:
-    return Y("preplan.yaml", lambda d: d.update(earmarks=[{"ticket": t, "sprint": s} for t, s in pairs]))
+    return Y(
+        "preplan.yaml", lambda d: d.update(earmarks=[{"ticket": t, "sprint": s} for t, s in pairs])
+    )
 
 
 CASES: list[tuple[str, list[Edit]]] = [
     ("cycle", [ticket("W-1", depends_on=["W-2"])]),
     ("cycle-chain", [ticket("W-1", depends_on=["W-2"]), ticket("W-14", depends_on=["W-1"])]),
-    ("ended-tracker-sprint", [ticket("W-12", in_sprint="2026.3"), ticket("W-14", in_sprint="2026.7")]),
-    ("tracker-sprint-far", [ticket("W-12", in_sprint="2031.1"), ticket("W-14", in_sprint="9999.9")]),
-    ("earmarks", [earmarks(("W-4", "2026.9"), ("W-3", "2026.8"), ("W-5", "2026.2"), ("L-1", "2027.20"))]),
+    (
+        "ended-tracker-sprint",
+        [ticket("W-12", in_sprint="2026.3"), ticket("W-14", in_sprint="2026.7")],
+    ),
+    (
+        "tracker-sprint-far",
+        [ticket("W-12", in_sprint="2031.1"), ticket("W-14", in_sprint="9999.9")],
+    ),
+    (
+        "earmarks",
+        [earmarks(("W-4", "2026.9"), ("W-3", "2026.8"), ("W-5", "2026.2"), ("L-1", "2027.20"))],
+    ),
     ("dependency-gap", [team(tracker__dependency_gap=2)]),
     ("basis-plan", [team(tracker__budget_basis="plan")]),
     ("basis-roadmap", [team(tracker__budget_basis="roadmap_share", forecast__roadmap_share=0.5)]),
     ("rough-factor", [team(tracker__rough_factor=2.5)]),
-    ("priorities", [team(tracker__priority_order=["Normal", "High"]), ticket("W-3", priority="Blocker")]),
+    (
+        "priorities",
+        [team(tracker__priority_order=["Normal", "High"]), ticket("W-3", priority="Blocker")],
+    ),
     ("products-off", [team(features__products=False)]),
     ("project-late", [project("shop", target="2026-07-10"), project("pay", target="2026-06-01")]),
     ("too-large", [ticket("W-3", estimate=99), ticket("W-14", estimate=0)]),
@@ -94,7 +108,10 @@ CASES: list[tuple[str, list[Edit]]] = [
 
 
 def read_tree(folder: Path) -> Files:
-    return {p.relative_to(folder).as_posix(): p.read_text(encoding="utf-8") for p in sorted(folder.rglob("*.yaml"))}
+    return {
+        p.relative_to(folder).as_posix(): p.read_text(encoding="utf-8")
+        for p in sorted(folder.rglob("*.yaml"))
+    }
 
 
 def generate(ctx) -> None:
