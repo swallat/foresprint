@@ -16,7 +16,7 @@
 
   const W = 760;
   const H = 300;
-  const M = { l: 44, r: 52, t: 16, b: 44 };
+  const M = { l: 44, r: 52, t: 24, b: 44 };
 
   const history = $derived(past.slice(-shown));
   const all = $derived([...history, ...upcoming]);
@@ -57,6 +57,8 @@
     const last = velocityPts.at(-1);
     return last ? [{ x: last.x, y: last.y }, ...planPts] : planPts;
   });
+  // Labels in the plot are rounded to one decimal so they stay short; tooltips keep the team's rounding.
+  const label = (v: number | null) => fmt(v, 1);
   const showEvery = $derived(all.length > 12 ? 2 : 1);
 
   const diamond = (cx: number, cy: number, r: number) => `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
@@ -111,12 +113,12 @@
         ? t('{id}: Forecast PLAN {plan}, range {low} – {high}', { id: p.r.id, plan: fmt(p.r.plan, digits), low: fmt(p.r.low, digits), high: fmt(p.r.high, digits) })
         : t('{id}: Forecast PLAN {plan}', { id: p.r.id, plan: fmt(p.r.plan, digits) })}</title>
     </polygon>
-    <text x={p.x + 11} y={p.y + 4} class="value">{fmt(p.r.plan, digits)}</text>
+    <text x={p.x} y={(p.r.high !== null ? y(p.r.high) : p.y - 7) - 7} text-anchor="middle" class="value">{label(p.r.plan)}</text>
   {/each}
 
   {#each wiPts as p (p.w.id)}
     <polygon points={triangle(p.x, p.y, 7)} class="o wif"><title>{t('{id}: what if {n}', { id: p.w.id, n: fmt(p.w.forecast, digits) })}</title></polygon>
-    <text x={p.x + 11} y={p.y + 4} class="value wiftext">{fmt(p.w.forecast, digits)}</text>
+    <text x={p.x + 11} y={p.y + 4} class="value wiftext">{label(p.w.forecast)}</text>
   {/each}
 </svg>
 
@@ -150,6 +152,10 @@
   .value {
     fill: var(--text);
     font: 600 12px var(--font-data);
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 4px;
+    stroke-linejoin: round;
   }
   .future {
     fill: var(--forecast-weak);
