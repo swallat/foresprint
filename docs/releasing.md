@@ -1,6 +1,6 @@
 # Releasing and publishing on PyPI
 
-A pushed version tag (`v*`) starts the *Release* workflow (`.github/workflows/release.yml`):
+A pushed version tag of the 0.x line (`v0.*`) starts the *Release* workflow (`.github/workflows/release.yml`):
 tests and lint, tag and version comparison, `uv build`, release page on GitHub, and then the job
 `publish-pypi`, which uploads the same files to [PyPI](https://pypi.org/project/foresprint/) via
 Trusted Publishing (OpenID Connect). No API token is stored in the repository or in GitHub.
@@ -38,13 +38,16 @@ CI also builds the packages on every push and stores them as the artifact `dist`
 
 ## The program (GitHub release files)
 
-The same tag starts the workflow *Release app* (`.github/workflows/release-app.yml`). It builds the
+From v1.0.0 on, a pushed tag (`v1.*`) starts only the workflow *Release app* (`.github/workflows/release-app.yml`). It builds the
 program with the window on Windows, macOS (Apple silicon and Intel) and Linux (amd64 and arm64)
 with `-tags desktop,production` (Linux also `webkit2_41`), puts the newest holiday data in, and
 attaches to the release page:
 
 - `foresprint_<version>_<os>_<arch>.tar.gz` (`.zip` on Windows) with the program at the top level
   (the names are what the self-update looks for),
+- `foresprint-cli_<version>_linux_<arch>.tar.gz`: the same program without the window (built
+  without the tag `desktop`, `CGO_ENABLED=0`), which needs no GTK or WebKit; the self-update of that
+  variant looks for these names,
 - `checksums.txt` (SHA-256), which the self-update and the install scripts check,
 - `checksums.txt.bundle`, the cosign signature of `checksums.txt` (keyless, no key to manage),
 - a GitHub build attestation for every archive.

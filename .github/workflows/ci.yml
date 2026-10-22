@@ -158,6 +158,12 @@ jobs:
           export FORESPRINT_VERSION=9.9.9 FORESPRINT_DOWNLOAD_BASE=http://localhost:8765 FORESPRINT_NO_SHORTCUT=1 FORESPRINT_BIN="$RUNNER_TEMP/bin"
           sh install.sh
           "$FORESPRINT_BIN/foresprint" version
+          # The variant without the window
+          tar -czf site/v9.9.9/foresprint-cli_9.9.9_linux_amd64.tar.gz -C stage foresprint
+          (cd site/v9.9.9 && sha256sum foresprint* > checksums.txt)
+          FORESPRINT_VARIANT=cli FORESPRINT_BIN="$RUNNER_TEMP/bin-cli" sh install.sh
+          "$RUNNER_TEMP/bin-cli/foresprint" version
+          if FORESPRINT_VARIANT=nope sh install.sh; then echo "an unknown variant was accepted"; exit 1; fi
           echo "bad  foresprint_9.9.9_linux_amd64.tar.gz" > site/v9.9.9/checksums.txt
           if sh install.sh; then echo "a wrong checksum was accepted"; exit 1; fi
       - name: Install script (Windows)
