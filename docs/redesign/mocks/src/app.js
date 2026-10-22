@@ -48,6 +48,7 @@
   FS.ghostAbs = (sid, pid, cell) => { if (cell) FS.absGhost()[`${sid}|${pid}`] = { ...cell }; };
   FS.restoreAbs = (sid, pid) => { const g = FS.absGhost()[`${sid}|${pid}`]; if (!g) return; (D.absences[sid] ??= {})[pid] = { ...g }; delete FS.absGhost()[`${sid}|${pid}`]; };
   document.addEventListener("click", (e) => { if (e.target.closest("#btn-save") && Object.keys(FS.absGhost()).length) { FS.state.absGhost = {}; setTimeout(() => ["prepare", "people"].includes(location.hash.slice(1)) && FS.render(), 0); } });
+  FS.prodSub = (v) => ` <span class="prod-sub" title="davon ${v} Punkte mit Produktionszugang">${FS.icon("dns", "small")}Prod ${v}</span>`;
   FS.refCap = () => Math.round(FS.sum(D.people, (p) => p.fte) * 10);
   FS.normVel = (s) => (s.velocity == null ? null : (s.velocity / s.capacityPD) * FS.refCap());
 
