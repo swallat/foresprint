@@ -303,7 +303,7 @@
   </div>
 
   {#if d.source !== 'none'}
-    <h2 style="margin:24px 0 8px">{t('Tickets by sprint')}</h2>
+    <h2 style="margin:24px 0 8px" data-tour="project-tickets">{t('Tickets by sprint')}</h2>
     {#if lanes.length === 0}
       <Banner>{t('No tickets assigned yet. Assign tickets by hand in the backlog, or add a rule to the project.')}</Banner>
     {:else}
@@ -330,7 +330,7 @@
     {/if}
   {/if}
 
-  <div class="card" style="margin-top:24px">
+  <div class="card" style="margin-top:24px" data-tour="project-report">
     <div class="row">
       <h2 style="margin:0;flex:1">{t('Report for the project lead')}</h2>
       <button class="btn primary" type="button" onclick={copyReport}><Icon name="ios_share" />{t('Copy report')}</button>
