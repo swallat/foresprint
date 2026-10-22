@@ -1,6 +1,6 @@
 <script lang="ts">
   import { api } from '../../lib/api';
-  import { app, toast } from '../../lib/app.svelte';
+  import { app, refreshStatus, toast } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
   import type { ImportPreview } from '../../lib/types.forecast';
@@ -8,11 +8,12 @@
 
   let report = $state('');
   let problem = $state('');
-  let preview = $state<ImportPreview>();
+  let preview = $state<(ImportPreview & { team: string }) | undefined>();
   let busy = $state(false);
 
   $effect(() => {
     const team = app.team;
+    void app.rev; // saved or imported data: read the report again
     let stale = false;
     report = '';
     problem = '';
@@ -51,9 +52,11 @@
 
   async function pick(): Promise<void> {
     busy = true;
+    const team = app.team;
     try {
-      const p = await api.ExcelImportPreview(app.team);
-      preview = p.cancelled ? undefined : p;
+      const p = await api.ExcelImportPreview(team);
+      if (team !== app.team) return;
+      preview = p.cancelled ? undefined : { ...p, team };
     } catch (e) {
       preview = undefined;
       toast(String(e), 'bad');
@@ -66,9 +69,11 @@
     if (!preview) return;
     busy = true;
     try {
-      const files = await api.ExcelImportApply(app.team, preview.path);
+      const files = await api.ExcelImportApply(preview.team, preview.path, preview.hash);
       toast(t('{n} files written. Check the result and save.', { n: files.length }), 'ok');
       preview = undefined;
+      app.rev++;
+      await refreshStatus();
     } catch (e) {
       toast(String(e), 'bad');
     } finally {

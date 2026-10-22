@@ -193,6 +193,7 @@ export const mockApi: Api = {
   async ExcelImportPreview(): Promise<ImportPreview> {
     return {
       path: '/demo/export/atlas-forecast.xlsx',
+      hash: 'demo',
       changes: [
         { file: 'team.yaml', path: 'forecast.window', old: '5', new: '6' },
         { file: 'sprints/2026.21.yaml', path: 'velocity', old: '–', new: '42' },

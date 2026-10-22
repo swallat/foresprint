@@ -29,6 +29,7 @@
   "Unknown export format.": "Unbekanntes Exportformat.",
   "No file dialog in this build.": "Dieser Build hat keinen Dateidialog.",
   "Choose the folder for the export": "Ordner für den Export wählen",
-  "Choose the Excel workbook": "Excel-Arbeitsmappe wählen"
+  "Choose the Excel workbook": "Excel-Arbeitsmappe wählen",
+  "The workbook changed since the preview. Choose it again.": "Die Arbeitsmappe hat sich seit der Vorschau geändert. Wähle sie erneut."
  }
 }

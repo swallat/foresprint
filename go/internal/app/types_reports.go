@@ -48,7 +48,9 @@ type ImportChange struct {
 
 // ImportPreview is what importing a workbook would do; nothing has been written.
 type ImportPreview struct {
-	Path    string         `json:"path"`
+	Path string `json:"path"`
+	// Hash identifies the content that was previewed; Apply refuses a changed file.
+	Hash    string         `json:"hash"`
 	Changes []ImportChange `json:"changes"`
 	// More counts the changes beyond the first Limit that are not listed.
 	More      int      `json:"more"`

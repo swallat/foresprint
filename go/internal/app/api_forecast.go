@@ -102,7 +102,7 @@ func (a *API) Forecast(team string) (ForecastView, error) {
 		TrendMode:         string(s.TrendMode),
 		Horizon:           s.Horizon,
 		Rounding:          s.Rounding,
-		Products:          len(data.Products),
+		Products:          productCount(data),
 		Samples:           analysis.SampleCount(fc),
 		FewSamples:        analysis.FewSamples(fc),
 		Past:              []ForecastRow{},
@@ -178,4 +178,12 @@ func (a *API) ForecastWhenDone(team string, remaining, sharePercent float64) (Wh
 		v.P85 = *c.P85
 	}
 	return v, nil
+}
+
+// productCount is the number of products the team works with; 0 if the feature is off.
+func productCount(data *storage.TeamData) int {
+	if !data.Team.Features.Products {
+		return 0
+	}
+	return len(data.Products)
 }

@@ -1,9 +1,13 @@
 package app
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/swallat/foresprint/internal/excel"
 	"github.com/swallat/foresprint/internal/i18n"
@@ -30,15 +34,24 @@ func (a *API) ForecastProducts(team string) (ProductsOverTime, error) {
 		return ProductsOverTime{}, err
 	}
 	out := ProductsOverTime{Sprints: []string{}, Lines: []ProductLine{}}
-	if len(fc.Data.Products) < 2 {
+	if !fc.Data.Team.Features.Products || len(fc.Data.Products) < 2 {
 		return out, nil
 	}
 	out.Enabled = true
 	entries := append(fc.HistoryLast(productsHistory), fc.Upcoming()...)
 	byProduct := map[string]*ProductLine{}
+	var order []string
+	lineOf := func(id, name string) *ProductLine {
+		line := byProduct[id]
+		if line == nil {
+			line = &ProductLine{ID: id, Name: name, Cells: make([]ProductCell, len(entries))}
+			byProduct[id] = line
+			order = append(order, id)
+		}
+		return line
+	}
 	for _, p := range fc.Data.Products {
-		line := &ProductLine{ID: p.ID, Name: p.Name, Cells: make([]ProductCell, len(entries))}
-		byProduct[p.ID] = line
+		lineOf(p.ID, p.Name)
 	}
 	for i, e := range entries {
 		out.Sprints = append(out.Sprints, e.Sprint.ID)
@@ -46,18 +59,17 @@ func (a *API) ForecastProducts(team string) (ProductsOverTime, error) {
 			out.Current = e.Sprint.ID
 		}
 		for _, r := range products.Distribute(fc, e).Rows {
-			if line := byProduct[r.Product.ID]; line != nil {
-				line.Cells[i] = ProductCell{Standard: r.Standard, Preplanned: r.Preplanned, Planned: r.Planned, Done: r.Done}
-			}
+			// A value for a product that is not in the list stays visible (as in the report).
+			lineOf(r.Product.ID, r.Product.Name).Cells[i] = ProductCell{Standard: r.Standard, Preplanned: r.Preplanned, Planned: r.Planned, Done: r.Done}
 		}
 	}
-	for _, b := range products.BalanceOf(fc, entries) {
+	for _, b := range products.BalanceOf(fc, fc.HistoryLast(productsHistory)) {
 		if line := byProduct[b.Product.ID]; line != nil {
 			line.Sprints, line.Standard, line.Done, line.Difference, line.Missing = b.Sprints, b.Standard, b.Done, b.Difference(), b.Missing
 		}
 	}
-	for _, p := range fc.Data.Products {
-		out.Lines = append(out.Lines, *byProduct[p.ID])
+	for _, id := range order {
+		out.Lines = append(out.Lines, *byProduct[id])
 	}
 	return out, nil
 }
@@ -105,11 +117,25 @@ func (a *API) ForecastSave(team, kind string) (ReportFile, error) {
 	if dir == "" {
 		return ReportFile{Cancelled: true}, nil
 	}
-	path := filepath.Join(dir, name)
+	path := freeName(dir, name)
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return ReportFile{}, err
 	}
 	return ReportFile{Path: path}, nil
+}
+
+// freeName is the path of name in dir; if the file exists, "name (2).ext" and so on, so that an
+// export never replaces a file.
+func freeName(dir, name string) string {
+	ext := filepath.Ext(name)
+	base := strings.TrimSuffix(name, ext)
+	path := filepath.Join(dir, name)
+	for n := 2; ; n++ {
+		if _, err := os.Lstat(path); err != nil {
+			return path
+		}
+		path = filepath.Join(dir, fmt.Sprintf("%s (%d)%s", base, n, ext))
+	}
 }
 
 // ExcelImportPreview lets the user pick a workbook and lists what importing it would change.
@@ -129,11 +155,11 @@ func (a *API) ExcelImportPreview(team string) (ImportPreview, error) {
 }
 
 func (a *API) previewImport(team, path string) (ImportPreview, error) {
-	plan, noTeam, err := a.planImport(team, path)
+	plan, noTeam, hash, err := a.planImport(team, path)
 	if err != nil {
 		return ImportPreview{}, err
 	}
-	out := ImportPreview{Path: path, NoTeam: noTeam, Changes: []ImportChange{}, Untouched: plan.Untouched}
+	out := ImportPreview{Path: path, Hash: hash, NoTeam: noTeam, Changes: []ImportChange{}, Untouched: plan.Untouched}
 	if out.Untouched == nil {
 		out.Untouched = []string{}
 	}
@@ -150,28 +176,33 @@ func (a *API) previewImport(team, path string) (ImportPreview, error) {
 	return out, nil
 }
 
-func (a *API) planImport(team, path string) (*excel.ImportPlan, bool, error) {
+func (a *API) planImport(team, path string) (*excel.ImportPlan, bool, string, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return nil, false, err
+		return nil, false, "", err
 	}
+	sum := sha256.Sum256(content)
 	data, fileTeam, err := excel.ReadWorkbook(content, team)
 	if err != nil {
-		return nil, false, err
+		return nil, false, "", err
 	}
 	plan, err := excel.Plan(storage.NewRepository(a.DataDir()), data, today())
 	if err != nil {
-		return nil, false, err
+		return nil, false, "", err
 	}
-	return plan, fileTeam == nil, nil
+	return plan, fileTeam == nil, hex.EncodeToString(sum[:]), nil
 }
 
 // ExcelImportApply imports the workbook again and writes the changes; it returns the written
-// files. The window shows the preview first.
-func (a *API) ExcelImportApply(team, path string) ([]string, error) {
-	plan, _, err := a.planImport(team, path)
+// files. The window shows the preview first; hash is the one the preview returned, so a file
+// that changed in between is refused instead of writing values nobody saw.
+func (a *API) ExcelImportApply(team, path, hash string) ([]string, error) {
+	plan, _, current, err := a.planImport(team, path)
 	if err != nil {
 		return nil, err
+	}
+	if current != hash {
+		return nil, errors.New(i18n.T("The workbook changed since the preview. Choose it again."))
 	}
 	files, err := excel.Apply(storage.NewRepository(a.DataDir()), plan)
 	if err != nil {

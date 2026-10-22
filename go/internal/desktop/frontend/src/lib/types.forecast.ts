@@ -101,6 +101,7 @@ export interface ImportChange {
 
 export interface ImportPreview {
   path: string;
+  hash: string;
   changes: ImportChange[];
   more: number;
   untouched: string[];
@@ -113,7 +114,7 @@ export interface ForecastApi {
   ForecastReport(team: string): Promise<string>;
   ForecastSave(team: string, kind: 'markdown' | 'excel'): Promise<ReportFile>;
   ExcelImportPreview(team: string): Promise<ImportPreview>;
-  ExcelImportApply(team: string, path: string): Promise<string[]>;
+  ExcelImportApply(team: string, path: string, hash: string): Promise<string[]>;
   Forecast(team: string): Promise<ForecastView>;
   ForecastWhatIf(team: string, extraAbsenceDays: number, focusPercent: number): Promise<WhatIfRow[]>;
   ForecastWhenDone(team: string, remaining: number, sharePercent: number): Promise<WhenDoneView>;
