@@ -110,6 +110,8 @@ jobs:
         run: |
           tags=desktop,production
           if [ "$RUNNER_OS" = "Linux" ]; then tags=$tags,webkit2_41; fi
+          # Wails on current macOS SDKs: the linker needs UniformTypeIdentifiers (UTType).
+          if [ "$RUNNER_OS" = "macOS" ]; then export CGO_LDFLAGS="-framework UniformTypeIdentifiers"; fi
           exe=foresprint; if [ "$RUNNER_OS" = "Windows" ]; then exe=foresprint.exe; fi
           go build -tags "$tags" -o "../dist/$exe" ./cmd/foresprint
           "../dist/$exe" version

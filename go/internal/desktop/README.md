@@ -40,7 +40,8 @@ The program with the window (Linux needs `libgtk-3-dev libwebkit2gtk-4.1-dev`):
 ```
 cd go
 go build -tags desktop,production,webkit2_41 -o foresprint ./cmd/foresprint   # Linux
-go build -tags desktop,production -o foresprint ./cmd/foresprint               # Windows, macOS
+go build -tags desktop,production -o foresprint ./cmd/foresprint               # Windows
+CGO_LDFLAGS="-framework UniformTypeIdentifiers" go build -tags desktop,production -o foresprint ./cmd/foresprint   # macOS
 ```
 
 Without the tag `desktop` nothing of this is compiled: `go build ./...` and `go test ./...` need
