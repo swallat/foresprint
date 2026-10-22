@@ -1,0 +1,360 @@
+package app
+
+import (
+	"fmt"
+	"math"
+	"sort"
+	"time"
+
+	"github.com/swallat/foresprint/internal/calendar"
+	"github.com/swallat/foresprint/internal/capacity"
+	"github.com/swallat/foresprint/internal/forecast"
+	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/storage"
+)
+
+// Sprint workspace: absences (Prepare, later also Team > People), the readiness list and the
+// figures of the sprint overview. Edits are written to the sprint file at once; "Save" in the
+// top bar shares them. Absences are days per person and sprint, never a reason.
+
+func today() time.Time {
+	y, m, d := time.Now().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+}
+
+// sprintWindow returns count consecutive sprints from the sprint with the id from (recorded or
+// generated from the calendar). An empty from starts at the running sprint, or the next one.
+func sprintWindow(data *storage.TeamData, fc *forecast.Forecast, from string, count int) ([]model.Sprint, error) {
+	if count < 1 {
+		count = 1
+	}
+	if from == "" {
+		e := fc.Current()
+		if e == nil {
+			var err error
+			if e, err = fc.DefaultEntry(forecast.PurposeNext); err != nil {
+				return nil, err
+			}
+		}
+		if e == nil {
+			return nil, nil
+		}
+		from = e.Sprint.ID
+	}
+	first, err := fc.LookupSprint(from, forecast.DefaultLookupAhead)
+	if err != nil {
+		return nil, err
+	}
+	if first == nil {
+		return nil, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", from))
+	}
+	out := []model.Sprint{first.Clone()}
+	for len(out) < count {
+		next, err := calendar.FollowingSprint(&data.Team, &out[len(out)-1])
+		if err != nil {
+			return nil, err
+		}
+		if stored := data.SprintByID(next.ID); stored != nil {
+			next = stored.Clone()
+		}
+		out = append(out, next)
+	}
+	return out, nil
+}
+
+func absenceState(s model.Sprint) string {
+	switch s.AbsenceStatus() {
+	case model.AbsencesConfirmed:
+		return AbsenceConfirmed
+	case model.AbsencesExpected:
+		return AbsenceAnnounced
+	}
+	return AbsenceUnknown
+}
+
+// shownAbsences are the absence days the window shows for a sprint: the confirmed ones, or the
+// announced ones while nothing is confirmed.
+func shownAbsences(s model.Sprint) map[string]float64 {
+	if s.AbsenceStatus() == model.AbsencesConfirmed {
+		return s.Absences
+	}
+	return s.ExpectedAbsences
+}
+
+func sprintName(s model.Sprint) string {
+	if s.Name != nil && *s.Name != "" {
+		return *s.Name
+	}
+	return s.ID
+}
+
+func column(data *storage.TeamData, fc *forecast.Forecast, s model.Sprint) AbsenceColumn {
+	col := AbsenceColumn{
+		ID:       s.ID,
+		Name:     sprintName(s),
+		Start:    s.Start.Format("2006-01-02"),
+		End:      s.End.Add(-24 * time.Hour).Format("2006-01-02"), // the stored end is exclusive
+		State:    absenceState(s),
+		Workdays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)),
+		Past:     !s.End.After(fc.Today),
+	}
+	for _, d := range shownAbsences(s) {
+		if d > 0 {
+			col.Entries++
+			col.Absent += d
+		}
+	}
+	if e := fc.Entry(s.ID); e != nil {
+		if e.Result.Input.Capacity != nil {
+			col.Capacity = *e.Result.Input.Capacity
+		}
+		if !col.Past {
+			col.Plan = e.Result.Plan
+		}
+	} else {
+		col.Capacity = capacity.WithExpectedAbsences(&data.Team, data.People, s)
+	}
+	return col
+}
+
+func halves(v float64) float64 { return math.Round(v*2) / 2 }
+
+// AbsenceGrid returns the absences of count sprints from the sprint from ("" = the running or
+// next sprint).
+func (a *API) AbsenceGrid(team, from string, count int) (AbsenceGrid, error) {
+	data, err := storage.NewRepository(a.DataDir()).Load(team)
+	if err != nil {
+		return AbsenceGrid{}, err
+	}
+	return absenceGrid(data, from, count)
+}
+
+func absenceGrid(data *storage.TeamData, from string, count int) (AbsenceGrid, error) {
+	fc, err := forecast.Build(data, today())
+	if err != nil {
+		return AbsenceGrid{}, err
+	}
+	sprints, err := sprintWindow(data, fc, from, count)
+	if err != nil {
+		return AbsenceGrid{}, err
+	}
+	grid := AbsenceGrid{Columns: []AbsenceColumn{}, Rows: []AbsenceRow{}}
+	for _, s := range sprints {
+		grid.Columns = append(grid.Columns, column(data, fc, s))
+	}
+	for _, p := range data.People {
+		row := AbsenceRow{Person: p.ID, Name: p.Name, FTE: p.FTEOn(today()), Cells: []AbsenceCell{}}
+		if row.FTE == 0 && len(p.Memberships) > 0 {
+			row.FTE = p.Memberships[len(p.Memberships)-1].FTE
+		}
+		any := false
+		for _, s := range sprints {
+			cell := AbsenceCell{Days: shownAbsences(s)[p.ID]}
+			if pc, ok := capacity.PersonOf(&data.Team, p, s, 0); ok {
+				cell.Active = true
+				cell.Max = float64(pc.Workdays - pc.Holidays)
+			}
+			any = any || cell.Active || cell.Days > 0
+			row.Cells = append(row.Cells, cell)
+		}
+		if any {
+			grid.Rows = append(grid.Rows, row)
+		}
+	}
+	return grid, nil
+}
+
+// editSprint loads the team, applies change to the sprint (a copy of the stored one, or the
+// generated one) and writes the sprint file. It returns the updated column.
+func (a *API) editSprint(team, sprintID string, change func(data *storage.TeamData, s *model.Sprint) error) (AbsenceColumn, error) {
+	repo := storage.NewRepository(a.DataDir())
+	data, err := repo.Load(team)
+	if err != nil {
+		return AbsenceColumn{}, err
+	}
+	fc, err := forecast.Build(data, today())
+	if err != nil {
+		return AbsenceColumn{}, err
+	}
+	found, err := fc.LookupSprint(sprintID, forecast.DefaultLookupAhead)
+	if err != nil {
+		return AbsenceColumn{}, err
+	}
+	if found == nil {
+		return AbsenceColumn{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", sprintID))
+	}
+	s := found.Clone()
+	if err := change(data, &s); err != nil {
+		return AbsenceColumn{}, err
+	}
+	if _, err := repo.SaveSprint(team, &s); err != nil {
+		return AbsenceColumn{}, err
+	}
+	data, err = repo.Load(team)
+	if err != nil {
+		return AbsenceColumn{}, err
+	}
+	if fc, err = forecast.Build(data, today()); err != nil {
+		return AbsenceColumn{}, err
+	}
+	saved := data.SprintByID(sprintID)
+	if saved == nil {
+		saved = &s
+	}
+	return column(data, fc, *saved), nil
+}
+
+// SetAbsence sets the absence days of one person in one sprint (half days; 0 removes the
+// entry). The days are cut to the person's working days in the sprint. In a frozen sprint the
+// entry is confirmed, otherwise announced.
+func (a *API) SetAbsence(team, sprintID, person string, days float64) (AbsenceColumn, error) {
+	return a.editSprint(team, sprintID, func(data *storage.TeamData, s *model.Sprint) error {
+		var p *model.Person
+		for i := range data.People {
+			if data.People[i].ID == person {
+				p = &data.People[i]
+			}
+		}
+		if p == nil {
+			return fmt.Errorf("%s", i18n.T("Person {id} does not exist.", "id", person))
+		}
+		if days < 0 || math.IsNaN(days) {
+			return fmt.Errorf("%s", i18n.T("Enter a number of days from 0 to the working days of the sprint."))
+		}
+		days = halves(days)
+		if pc, ok := capacity.PersonOf(&data.Team, *p, *s, 0); ok {
+			days = math.Min(days, float64(pc.Workdays-pc.Holidays))
+		}
+		confirmed := s.AbsenceStatus() == model.AbsencesConfirmed
+		target := &s.ExpectedAbsences
+		if confirmed {
+			target = &s.Absences
+		}
+		if *target == nil {
+			*target = map[string]float64{}
+		}
+		if days == 0 {
+			delete(*target, person)
+		} else {
+			(*target)[person] = days
+		}
+		if !confirmed {
+			if len(s.ExpectedAbsences) > 0 {
+				s.AbsenceState = model.Ptr(model.AbsencesExpected)
+			} else {
+				s.AbsenceState = model.Ptr(model.AbsencesUnknown)
+			}
+		}
+		return nil
+	})
+}
+
+// FreezeAbsences confirms the whole allocation of a sprint: all entries count as confirmed and
+// every empty cell as 0 days, so "nobody is absent" needs no extra step.
+func (a *API) FreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
+	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
+		merged := map[string]float64{}
+		for k, v := range s.ExpectedAbsences {
+			merged[k] = v
+		}
+		for k, v := range s.Absences {
+			merged[k] = v
+		}
+		s.Absences = merged
+		s.ExpectedAbsences = nil
+		s.SetAbsencesConfirmed(true)
+		return nil
+	})
+}
+
+// UnfreezeAbsences opens a frozen sprint again: the entries count as announced.
+func (a *API) UnfreezeAbsences(team, sprintID string) (AbsenceColumn, error) {
+	return a.editSprint(team, sprintID, func(_ *storage.TeamData, s *model.Sprint) error {
+		announced := map[string]float64{}
+		for k, v := range s.Absences {
+			announced[k] = v
+		}
+		for k, v := range s.ExpectedAbsences {
+			announced[k] = v
+		}
+		s.ExpectedAbsences = announced
+		s.Absences = nil
+		s.AbsenceState = model.Ptr(model.AbsencesUnknown)
+		if len(announced) > 0 {
+			s.AbsenceState = model.Ptr(model.AbsencesExpected)
+		}
+		return nil
+	})
+}
+
+// SprintPrepare returns the preview and the readiness list of a sprint.
+func (a *API) SprintPrepare(team, sprintID string) (SprintPrepare, error) {
+	data, err := storage.NewRepository(a.DataDir()).Load(team)
+	if err != nil {
+		return SprintPrepare{}, err
+	}
+	fc, err := forecast.Build(data, today())
+	if err != nil {
+		return SprintPrepare{}, err
+	}
+	s, err := fc.LookupSprint(sprintID, forecast.DefaultLookupAhead)
+	if err != nil {
+		return SprintPrepare{}, err
+	}
+	if s == nil {
+		return SprintPrepare{}, fmt.Errorf("%s", i18n.T("Sprint {id} does not exist.", "id", sprintID))
+	}
+	out := SprintPrepare{Sprint: column(data, fc, *s), Unit: string(data.Team.Unit), Ready: []ReadyItem{}}
+	// The preview compares with the sprint without any absence.
+	bare := s.Clone()
+	bare.Absences, bare.ExpectedAbsences = nil, nil
+	bare.SetAbsencesConfirmed(true)
+	out.CapacityBase = capacity.Sprint(&data.Team, data.People, bare, 0).Capacity
+
+	abs := ReadyItem{Kind: "absences", State: ReadyOpen, Count: out.Sprint.Entries}
+	if out.Sprint.State == AbsenceConfirmed {
+		abs.State = ReadyDone
+	}
+	out.Ready = append(out.Ready, abs)
+
+	if data.Team.Features.Tickets {
+		ref := ReadyItem{Kind: "refinement", State: ReadyDone, Names: []string{}}
+		for _, em := range data.Preplan.Earmarks {
+			if em.Sprint != sprintID {
+				continue
+			}
+			if t := data.TicketByKey(em.Ticket); t != nil && t.EstimateSource != model.EstimateRefined && t.EstimateSource != model.EstimateManual {
+				ref.Names = append(ref.Names, t.Key)
+			}
+		}
+		sort.Strings(ref.Names)
+		if ref.Count = len(ref.Names); ref.Count > 0 {
+			ref.State = ReadyOpen
+		}
+		out.Ready = append(out.Ready, ref)
+	}
+
+	pre := ReadyItem{Kind: "preplan", State: ReadyDone, Names: []string{}}
+	for _, p := range data.Products {
+		if !p.ActiveBetween(s.Start, s.End) {
+			continue
+		}
+		v := s.Products[p.ID]
+		if v.Preplanned == nil {
+			pre.Names = append(pre.Names, p.Name)
+		} else {
+			out.Preplanned += *v.Preplanned
+		}
+	}
+	if pre.Count = len(pre.Names); pre.Count > 0 {
+		pre.State = ReadyOpen
+	}
+	out.Ready = append(out.Ready, pre)
+
+	if e := fc.Entry(sprintID); e != nil && e.Result.Input.Capacity != nil && out.Sprint.Capacity > 0 && out.Sprint.Plan != nil {
+		base := *out.Sprint.Plan / out.Sprint.Capacity * out.CapacityBase
+		out.PlanBase = &base
+	}
+	return out, nil
+}
