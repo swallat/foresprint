@@ -6,6 +6,7 @@
 // Never use emojis in the UI.
 
 import i_add from '@material-symbols/svg-400/outlined/add.svg?raw';
+import i_archive from '@material-symbols/svg-400/outlined/archive.svg?raw';
 import i_arrow_back from '@material-symbols/svg-400/outlined/arrow_back.svg?raw';
 import i_arrow_downward from '@material-symbols/svg-400/outlined/arrow_downward.svg?raw';
 import i_arrow_forward from '@material-symbols/svg-400/outlined/arrow_forward.svg?raw';
@@ -59,7 +60,9 @@ import i_monitoring from '@material-symbols/svg-400/outlined/monitoring.svg?raw'
 import i_more_vert from '@material-symbols/svg-400/outlined/more_vert.svg?raw';
 import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
+import i_person_add from '@material-symbols/svg-400/outlined/person_add.svg?raw';
 import i_play_arrow from '@material-symbols/svg-400/outlined/play_arrow.svg?raw';
+import i_preview from '@material-symbols/svg-400/outlined/preview.svg?raw';
 import i_refresh from '@material-symbols/svg-400/outlined/refresh.svg?raw';
 import i_route from '@material-symbols/svg-400/outlined/route.svg?raw';
 import i_save from '@material-symbols/svg-400/outlined/save.svg?raw';
@@ -72,6 +75,7 @@ import i_sync from '@material-symbols/svg-400/outlined/sync.svg?raw';
 import i_task_alt from '@material-symbols/svg-400/outlined/task_alt.svg?raw';
 import i_today from '@material-symbols/svg-400/outlined/today.svg?raw';
 import i_tune from '@material-symbols/svg-400/outlined/tune.svg?raw';
+import i_unarchive from '@material-symbols/svg-400/outlined/unarchive.svg?raw';
 import i_undo from '@material-symbols/svg-400/outlined/undo.svg?raw';
 import i_view_list from '@material-symbols/svg-400/outlined/view_list.svg?raw';
 import i_visibility from '@material-symbols/svg-400/outlined/visibility.svg?raw';
@@ -80,6 +84,7 @@ import i_warning from '@material-symbols/svg-400/outlined/warning.svg?raw';
 
 const icons = {
   add: i_add,
+  archive: i_archive,
   arrow_back: i_arrow_back,
   arrow_downward: i_arrow_downward,
   arrow_forward: i_arrow_forward,
@@ -133,7 +138,9 @@ const icons = {
   more_vert: i_more_vert,
   open_in_new: i_open_in_new,
   person: i_person,
+  person_add: i_person_add,
   play_arrow: i_play_arrow,
+  preview: i_preview,
   refresh: i_refresh,
   route: i_route,
   save: i_save,
@@ -146,6 +153,7 @@ const icons = {
   task_alt: i_task_alt,
   today: i_today,
   tune: i_tune,
+  unarchive: i_unarchive,
   undo: i_undo,
   view_list: i_view_list,
   visibility: i_visibility,
