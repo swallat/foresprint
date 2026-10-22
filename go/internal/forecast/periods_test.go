@@ -27,8 +27,8 @@ func TestResolveCapacityUsesAbsencePeriods(t *testing.T) {
 	if *got != *calendar-5 {
 		t.Errorf("capacity %v, want %v", *got, *calendar-5)
 	}
-	if *source != engine.SourcePeople {
-		t.Errorf("confirmed period: source %v, want people", *source)
+	if *source != engine.SourceExpected { // decision G1: an open sprint only announces
+		t.Errorf("confirmed period: source %v, want expected", *source)
 	}
 	if sprint.Absences != nil {
 		t.Error("the sprint was changed")

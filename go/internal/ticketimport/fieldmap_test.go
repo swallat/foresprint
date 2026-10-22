@@ -202,3 +202,18 @@ func TestMappedProductionLandsInExtraProduction(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+func TestAdditionalDoneOf(t *testing.T) {
+	est := func(f float64) *float64 { return &f }
+	in := func(k string, done bool, e *float64) model.Ticket {
+		return model.Ticket{Key: k, InSprint: str("2026.1"), Done: done, Estimate: e}
+	}
+	tickets := []model.Ticket{in("A-1", true, est(3)), in("A-8", true, est(2.5)), in("A-9", true, nil), in("A-10", false, est(5))}
+	got := AdditionalDoneOf([]string{"A-1"}, tickets, "2026.1")
+	if !reflect.DeepEqual(got.Keys, []string{"A-8", "A-9"}) || got.Points != 2.5 || !reflect.DeepEqual(got.NoEstimate, []string{"A-9"}) {
+		t.Fatalf("%+v", got)
+	}
+	if got := AdditionalDoneOf(nil, tickets, "2026.1"); len(got.Keys) != 0 || got.Points != 0 {
+		t.Fatalf("unfrozen: %+v", got)
+	}
+}
