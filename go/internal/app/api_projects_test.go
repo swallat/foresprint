@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -140,16 +141,25 @@ func TestProjectNumbersWithTickets(t *testing.T) {
 	if len(d.Tickets) != 3 || len(d.Report) == 0 {
 		t.Errorf("tickets %d, report %d", len(d.Tickets), len(d.Report))
 	}
-	// An open ticket moves to daily business when the project closes.
-	if err := api.CloseProject(team, CloseInput{ID: "alpha", How: "cancelled", At: "2026-10-30"}); err != nil {
+	// The open tickets of a closed project become daily business by themselves; a target project
+	// is a decision per open ticket.
+	save := ProjectInput{Name: "Beta", Products: []string{"portal"}, End: "2027-02-01"}
+	beta, err := api.SaveProject(team, save)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := api.CloseProject(team, CloseInput{ID: "alpha", How: "cancelled", At: "2026-10-30", MoveTo: beta}); err != nil {
 		t.Fatal(err)
 	}
 	data, _ := storage.NewRepository(api.DataDir()).Load(team)
-	if o := data.Preplan.OverrideFor("T-1"); o == nil || !o.Daily {
+	if o := data.Preplan.OverrideFor("T-1"); o == nil || o.Project == nil || *o.Project != beta {
 		t.Errorf("override = %+v", o)
 	}
 	if o := data.Preplan.OverrideFor("T-3"); o != nil {
 		t.Errorf("a finished ticket stays: %+v", o)
+	}
+	if b, _ := api.Project(team, beta); b.Project.Open != 2 {
+		t.Errorf("the target project takes the open tickets: %+v", b.Project)
 	}
 	if err := api.DeleteProject(team, "alpha"); err == nil {
 		t.Error("a project with history cannot be deleted")
@@ -164,5 +174,33 @@ func TestCheckRule(t *testing.T) {
 	c, err := api.CheckRule(team, "alpha", `label != "nothing"`)
 	if err != nil || c.Error != "" || c.Matches != 3 {
 		t.Fatalf("check = %+v, %v", c, err)
+	}
+}
+
+// The window reads these names (frontend/src/lib/types.projects.ts).
+func TestProjectJSONNames(t *testing.T) {
+	api, team := projectDir(t, true)
+	d, err := api.Project(team, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(d)
+	var m map[string]any
+	_ = json.Unmarshal(raw, &m)
+	for _, k := range []string{"today", "enabled", "source", "unit", "rate", "products", "projects", "closed", "sprints", "sprintDays", "conflictSprint", "conflict", "problem", "project", "report", "tickets"} {
+		if _, ok := m[k]; !ok {
+			t.Errorf("missing key %q", k)
+		}
+	}
+	p, _ := m["project"].(map[string]any)
+	for _, k := range []string{"id", "name", "products", "start", "end", "note", "rule", "light", "reason", "priority", "booked", "done", "planned", "donePoints", "plannedPoints", "months", "openScope", "open", "milestones", "state", "history"} {
+		if _, ok := p[k]; !ok {
+			t.Errorf("project: missing key %q", k)
+		}
+	}
+	for _, k := range []string{"products", "milestones", "months"} {
+		if p[k] == nil {
+			t.Errorf("project.%s is null, want a list", k)
+		}
 	}
 }

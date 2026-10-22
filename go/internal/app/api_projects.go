@@ -58,14 +58,15 @@ type projectCtx struct {
 	problem string
 }
 
-// effectiveProject is the project of a ticket after the decisions of the PO.
+// effectiveProject is the project id of a ticket for the project's history: the decision of the
+// PO, else the project the rules found. Unlike preplan.ProjectOf it also names closed projects,
+// so that finished work stays with them.
 func effectiveProject(data *storage.TeamData, t model.Ticket) string {
 	if o := data.Preplan.OverrideFor(t.Key); o != nil {
-		if o.Daily || o.Project == nil {
-			if o.Daily {
-				return ""
-			}
-		} else {
+		switch {
+		case o.Daily:
+			return ""
+		case o.Project != nil && *o.Project != "":
 			return *o.Project
 		}
 	}
@@ -117,26 +118,14 @@ func buildProjectCtx(data *storage.TeamData, now time.Time) *projectCtx {
 	return c
 }
 
-// distributeOpen distributes with the open projects only; end dates act as target dates and
-// the tickets of closed projects count as daily business (their rules no longer apply).
+// distributeOpen distributes the open tickets; end dates act as target dates. The core treats
+// the tickets of closed projects as daily business.
 func distributeOpen(data *storage.TeamData, now time.Time) (*preplan.Distribution, string) {
 	d := *data
-	closed := map[string]bool{}
-	d.Projects = nil
-	for _, p := range data.Projects {
-		if p.Closed() {
-			closed[p.ID] = true
-			continue
-		}
-		if p.Target == nil && p.End != nil {
+	d.Projects = append([]model.Project(nil), data.Projects...)
+	for i := range d.Projects {
+		if p := &d.Projects[i]; p.Target == nil && p.End != nil {
 			p.Target = p.End
-		}
-		d.Projects = append(d.Projects, p)
-	}
-	d.Tickets = append([]model.Ticket(nil), data.Tickets...)
-	for i := range d.Tickets {
-		if t := &d.Tickets[i]; t.Project != nil && closed[*t.Project] {
-			t.Project = nil
 		}
 	}
 	dist, err := preplan.Distribute(&d, now, analysis.DefaultMaxSprints, preplan.Median)
@@ -288,6 +277,7 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 			}
 		}
 	}
+	v.DonePoints, v.PlannedPoints = round1(donePts), round1(plannedPts)
 	if c.data.Team.Features.Tickets {
 		if hasDone || plannedPts > 0 {
 			v.Done = c.toPD(donePts)
@@ -797,11 +787,12 @@ func (a *API) CloseProject(team string, in CloseInput) error {
 		}
 		p.State, p.End = state, end
 		if data.Team.Features.Tickets {
+			// Without a decision the core treats the tickets of a closed project as daily
+			// business; a target project is a decision of the PO per ticket.
 			for _, t := range data.Tickets {
-				if t.Done || effectiveProject(data, t) != in.ID {
-					continue
+				if in.MoveTo != "" && !t.Done && effectiveProject(data, t) == in.ID {
+					setOverride(&data.Preplan, t.Key, in.MoveTo)
 				}
-				setOverride(&data.Preplan, t.Key, in.MoveTo)
 			}
 		} else {
 			p.OpenScope = nil

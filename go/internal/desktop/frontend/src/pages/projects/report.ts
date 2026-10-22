@@ -23,7 +23,7 @@ export function reportMarkdown(d: ProjectDetail): string {
     '',
   );
   if (p.milestones.length > 0) {
-    out.push(`| ${t('Milestone')} | ${t('Date')} | ${t('Light')} |`, '| --- | --- | --- |');
+    out.push(`| ${t('Milestone')} | ${t('Date')} | ${t('Traffic light')} |`, '| --- | --- | --- |');
     for (const m of p.milestones) out.push(`| ${m.name} | ${date(m.date)} | ${lightText(m)} |`);
     out.push('');
   }

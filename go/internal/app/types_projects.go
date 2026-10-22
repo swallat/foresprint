@@ -43,23 +43,26 @@ type SprintRow struct {
 
 // ProjectView is a project for the portfolio and the detail page.
 type ProjectView struct {
-	ID         string          `json:"id"`
-	Name       string          `json:"name"`
-	Products   []string        `json:"products"`
-	Start      string          `json:"start"`
-	End        string          `json:"end"`
-	Note       string          `json:"note"`
-	Rule       string          `json:"rule"`
-	Light      string          `json:"light"` // "ok", "warn", "bad" or "none"
-	Reason     string          `json:"reason"`
-	Priority   int             `json:"priority"`
-	Booked     *float64        `json:"booked"`  // contingent in PT, nil = none booked
-	Done       *float64        `json:"done"`    // finished work in PT (estimate), nil = unknown
-	Planned    *float64        `json:"planned"` // planned work in PT (estimate), nil = unknown
-	Months     []MonthRow      `json:"months"`
-	OpenScope  *float64        `json:"openScope"`
-	Open       int             `json:"open"` // open tickets
-	Milestones []MilestoneView `json:"milestones"`
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Products []string `json:"products"`
+	Start    string   `json:"start"`
+	End      string   `json:"end"`
+	Note     string   `json:"note"`
+	Rule     string   `json:"rule"`
+	Light    string   `json:"light"` // "ok", "warn", "bad" or "none"
+	Reason   string   `json:"reason"`
+	Priority int      `json:"priority"`
+	Booked   *float64 `json:"booked"`  // contingent in PT, nil = none booked
+	Done     *float64 `json:"done"`    // finished work in PT (estimate), nil = unknown
+	Planned  *float64 `json:"planned"` // planned work in PT (estimate), nil = unknown
+	// DonePoints and PlannedPoints are the sums in the team's unit that the PT values come from.
+	DonePoints    float64         `json:"donePoints"`
+	PlannedPoints float64         `json:"plannedPoints"`
+	Months        []MonthRow      `json:"months"`
+	OpenScope     *float64        `json:"openScope"`
+	Open          int             `json:"open"` // open tickets
+	Milestones    []MilestoneView `json:"milestones"`
 	// State is "", "finished" or "cancelled"; ClosedAt is the end date of a closed project.
 	State string `json:"state"`
 	// History is true when ending the project closes it instead of deleting it.

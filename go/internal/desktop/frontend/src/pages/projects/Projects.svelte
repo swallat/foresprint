@@ -13,10 +13,11 @@
   import { date, num, productColor } from './format';
   import LightChip from './LightChip.svelte';
   import Meter from './Meter.svelte';
+  import ProjectCalc from './ProjectCalc.svelte';
   import ProjectForm from './ProjectForm.svelte';
   import { loadRange, saveRange } from './store';
   import Timeline from './Timeline.svelte';
-  import { addDays, type Range } from './timeline';
+  import { addDays, windowOf, type Range } from './timeline';
 
   let { params }: PageProps = $props();
   void params;
@@ -118,7 +119,7 @@
 
   <section class="card">
     <div class="row head">
-      <h2 style="margin:0;flex:1">{t('Timeline')}</h2>
+      <h2 style="margin:0;flex:1">{t('Project timeline')}</h2>
       <div class="row" role="group" aria-label={t('Visible period')}>
         <span class="small muted">{t('Period')}</span>
         {#each ranges as [r] (r)}
@@ -130,7 +131,7 @@
           type="date"
           id="pf-to"
           style="width:150px"
-          value={customTo || addDays(view.today, 90)}
+          value={windowOf(view.today, view.sprints, view.projects, range, customTo).to}
           min={addDays(view.today, 14)}
           onchange={(e) => pickDate(e.currentTarget.value)}
         />
@@ -163,7 +164,7 @@
             <th>{t('Project')}</th>
             {#if view.products.length > 1}<th>{t('Products')}</th>{/if}
             <th>{t('End')}</th>
-            <th>{t('Light')}</th>
+            <th>{t('Traffic light')}</th>
             <th class="num">{t('booked (PD)')}</th>
             <th class="num">{t('done (PD)')}</th>
             <th class="num">{t('planned (PD)')}</th>
@@ -195,8 +196,8 @@
               <td class="data">{date(p.end)}</td>
               <td><LightChip light={p.light} /></td>
               <td class="num"><Amount value={p.booked} digits={1} /></td>
-              <td class="num"><Amount value={p.done} est={estimated} /></td>
-              <td class="num"><Amount value={p.planned} est={estimated} /></td>
+              <td class="num"><Amount value={p.done} est={estimated} /><ProjectCalc project={p} rate={view.rate} kind="done" /></td>
+              <td class="num"><Amount value={p.planned} est={estimated} /><ProjectCalc project={p} rate={view.rate} kind="planned" /></td>
               <td><Meter booked={p.booked} done={p.done} planned={p.planned} /></td>
             </tr>
           {/each}
@@ -261,7 +262,7 @@
           <thead>
             <tr>
               <th>{t('Project')}</th>
-              <th>{t('State')}</th>
+              <th>{t('Closed as')}</th>
               <th>{t('End')}</th>
               <th class="num">{t('done (PD)')}</th>
               <th class="num">{t('booked (PD)')}</th>

@@ -13,6 +13,7 @@
   import { inputOf } from './input';
   import LightChip from './LightChip.svelte';
   import Meter from './Meter.svelte';
+  import ProjectCalc from './ProjectCalc.svelte';
   import ProjectForm from './ProjectForm.svelte';
   import { reportMarkdown } from './report';
 
@@ -161,7 +162,7 @@
       </div>
       <Meter booked={p.booked} done={p.done} planned={p.planned} />
       <div class="small muted" style="margin-top:8px">
-        {t('done')} <Amount value={p.done} est={estimated} inline />, {t('planned')} <Amount value={p.planned} est={estimated} inline />
+        {t('done')} <Amount value={p.done} est={estimated} inline /><ProjectCalc project={p} rate={d.rate} kind="done" />, {t('planned')} <Amount value={p.planned} est={estimated} inline /><ProjectCalc project={p} rate={d.rate} kind="planned" />
         {#if estimated && rate}<span> · {t('rate {rate} points per PD', { rate })}</span>{/if}
       </div>
     </div>
@@ -203,7 +204,7 @@
                 <th>{t('Milestone')}</th>
                 <th>{t('Date')}</th>
                 {#if d.source !== 'none'}<th class="num">{t('Tickets')}</th>{/if}
-                <th>{t('Light')}</th>
+                <th>{t('Traffic light')}</th>
               </tr>
             </thead>
             <tbody>
@@ -333,7 +334,7 @@
             {#each d.report as r (r.sprint)}
               {@const used = (r.planned ?? 0) + (r.done ?? 0)}
               <tr>
-                <td><span class="data">{r.sprint}</span> {#if r.state === 'current'}<span class="chip">{t('running')}</span>{/if}</td>
+                <td><span class="data">{r.sprint}</span> {#if r.state === 'current'}<span class="chip">{t('running now')}</span>{/if}</td>
                 <td class="num"><Amount value={r.booked} /></td>
                 <td class="num"><Amount value={r.planned} est={estimated} /></td>
                 <td class="num"><Amount value={r.done} est={estimated} /></td>

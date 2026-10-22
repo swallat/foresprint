@@ -49,6 +49,8 @@ export interface ProjectView {
   booked: number | null;
   done: number | null;
   planned: number | null;
+  donePoints: number;
+  plannedPoints: number;
   months: MonthRow[];
   openScope: number | null;
   open: number;

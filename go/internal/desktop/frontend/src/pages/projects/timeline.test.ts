@@ -23,6 +23,8 @@ const project = (over: Partial<ProjectView>): ProjectView => ({
   booked: null,
   done: null,
   planned: null,
+  donePoints: 0,
+  plannedPoints: 0,
   months: [],
   openScope: null,
   open: 0,
