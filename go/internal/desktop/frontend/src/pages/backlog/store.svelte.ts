@@ -6,7 +6,7 @@ import { api } from '../../lib/api';
 import { app, refreshStatus, toast } from '../../lib/app.svelte';
 import { language, t as translate } from '../../lib/i18n.svelte';
 import type { BacklogTicket, BacklogView } from '../../lib/types.backlog';
-import { blank, type Group } from './backlog';
+import { addCustom, blank, customKey, readCustom, removeCustom, type CustomView, type Group, type Sort } from './backlog';
 import { localTerms } from './terms';
 
 /** Translates like lib/i18n, and says "work package" for a team without a tracker. */
@@ -27,6 +27,8 @@ export const store = $state({
 export const ui = $state({
   filter: blank(),
   group: 'none' as Group,
+  sort: 'order' as Sort,
+  custom: [] as CustomView[],
   selection: [] as string[],
   menu: false,
   open: {} as Record<string, boolean>,
@@ -146,4 +148,43 @@ export function openPresent(keys: string[], key: string, action?: PresentAction)
   present.from = location.hash.startsWith('#/present') ? present.from : location.hash || '#/backlog';
   app.ticket = '';
   location.hash = '#/present';
+}
+
+function readStored(team: string): CustomView[] {
+  try {
+    return readCustom(localStorage.getItem(`foresprint.${customKey(team)}`) ?? '');
+  } catch {
+    return [];
+  }
+}
+
+function writeStored(): void {
+  try {
+    localStorage.setItem(`foresprint.${customKey(app.team)}`, JSON.stringify(ui.custom));
+  } catch {
+    /* blocked storage: the views last until the window closes */
+  }
+}
+
+/** Loads the custom views of the selected team (kept on this machine, not in the team's data). */
+export function loadCustomViews(): void {
+  ui.custom = app.team ? readStored(app.team) : [];
+}
+
+export function saveCustomView(name: string): void {
+  ui.custom = addCustom(ui.custom, name, ui.filter, ui.group, ui.sort);
+  writeStored();
+}
+
+export function deleteCustomView(id: string): void {
+  ui.custom = removeCustom(ui.custom, id);
+  writeStored();
+}
+
+/** Applies a custom view: its filter, grouping and sorting; the search text stays. */
+export function applyCustomView(v: CustomView): void {
+  ui.filter = { ...blank(), ...v.filter, q: ui.filter.q };
+  ui.group = v.group;
+  ui.sort = v.sort;
+  ui.selection = [];
 }
