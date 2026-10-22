@@ -334,6 +334,9 @@ func prognosesTo(prognoses []model.Prognosis) []any {
 func absenceStateOf(d *yamlx.Map, where string) (*model.AbsenceState, error) {
 	if raw := get(d, "absence_state"); raw != nil {
 		if s, ok := raw.(string); ok {
+			if s == string(model.AbsencesOpen) { // 1.0, not part of the 0.8 list in the message
+				return model.Ptr(model.AbsencesOpen), nil
+			}
 			for _, a := range absenceStates {
 				if string(a) == s {
 					return &a, nil

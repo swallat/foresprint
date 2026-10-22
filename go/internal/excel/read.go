@@ -420,7 +420,7 @@ func sprintsOf(wb *workbook) ([]model.Sprint, error) {
 				return nil, err
 			}
 			if state != nil {
-				if !slices.Contains([]string{string(model.AbsencesUnknown), string(model.AbsencesExpected), string(model.AbsencesConfirmed)}, *state) {
+				if !slices.Contains([]string{string(model.AbsencesUnknown), string(model.AbsencesExpected), string(model.AbsencesConfirmed), string(model.AbsencesOpen)}, *state) {
 					return nil, dataErr("{where}: unknown state of the absences: {value}", "where", sp.where(r.number, 1), "value", yamlx.PyRepr(*state))
 				}
 				put("absence_state", *state)

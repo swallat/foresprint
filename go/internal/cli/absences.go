@@ -116,14 +116,11 @@ func (e *Env) askAbsences(data *storage.TeamData, s *model.Sprint) (string, erro
 	days := calendar.TeamWorkdays(&data.Team, s.Start, s.End)
 	e.Println(sprintSummary(data, s))
 	e.explain("absences")
-	if s.Absences == nil {
-		s.Absences = map[string]float64{}
-	}
 	for _, p := range data.People {
 		if !p.ActiveBetween(s.Start, s.End) {
 			continue
 		}
-		current := s.Absences[p.ID]
+		current := s.CellDays(p.ID)
 		value, err := e.AskNumber(textfmt.BlankControls(p.Name), &current, false, 0)
 		if err != nil {
 			return "", err
@@ -132,12 +129,12 @@ func (e *Env) askAbsences(data *storage.TeamData, s *model.Sprint) (string, erro
 			if limit := float64(len(days)); v > limit {
 				v = limit
 			}
-			s.Absences[p.ID] = v
+			s.SetCell(p.ID, v, model.AbsencesConfirmed)
 		} else {
-			delete(s.Absences, p.ID)
+			s.SetCell(p.ID, 0, model.AbsencesConfirmed)
 		}
 	}
-	s.SetAbsencesConfirmed(true) // all people were asked, including "0"
+	s.Freeze() // all people were asked, including "0": the allocation is confirmed
 	if s.Capacity != nil {
 		ok, err := e.Confirm(i18n.P("A fixed capacity ({capacity}) is recorded for the sprint. Remove it so it is "+
 			"calculated from the absences?", "capacity", textfmt.FmtCapacity(i18n.Language(), s.Capacity, data.Team.Capacity.Rounding)),

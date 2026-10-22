@@ -78,7 +78,7 @@ func ApplyPeriods(team *model.Team, people []model.Person, periods model.Absence
 			delete(announced, d)
 		}
 		if len(confirmed) > 0 {
-			if _, typed := sprint.Absences[person.ID]; typed {
+			if sprint.CellState(person.ID) != model.AbsencesUnknown { // typed in either state
 				result.HandWins = append(result.HandWins, person.ID)
 			} else {
 				applied.Absences[person.ID] = float64(len(confirmed))
@@ -86,7 +86,7 @@ func ApplyPeriods(team *model.Team, people []model.Person, periods model.Absence
 			}
 		}
 		if len(announced) > 0 {
-			if _, typed := sprint.ExpectedAbsences[person.ID]; typed {
+			if sprint.CellState(person.ID) != model.AbsencesUnknown {
 				result.HandWins = append(result.HandWins, person.ID)
 			} else {
 				applied.ExpectedAbsences[person.ID] = float64(len(announced))
@@ -98,6 +98,9 @@ func ApplyPeriods(team *model.Team, people []model.Person, periods model.Absence
 		// One confirmed absence makes the sprint's absences confirmed (as typed days do), and
 		// capacity then reads Absences only: the announced days count with them.
 		for id, days := range applied.ExpectedAbsences {
+			if _, typed := sprint.Absences[id]; typed {
+				continue // a typed confirmed cell wins over announced days of the same person
+			}
 			applied.Absences[id] += days
 		}
 		applied.ExpectedAbsences = nil
