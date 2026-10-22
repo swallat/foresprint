@@ -14,6 +14,7 @@ import type {
   Done,
   Label,
   LineEndings,
+  PendingTag,
   LostFile,
   UnsavedFile,
   ValueRef,
@@ -21,6 +22,9 @@ import type {
   StorageSettings,
   Version,
 } from '../types.data';
+
+/** Tags the sprint reviews asked for (the mock of the review adds to it); Save sets them. */
+export const pendingTagNames: string[] = [];
 
 type Sim = 'saved' | 'incoming' | 'conflict' | 'offline' | 'mr' | 'findings';
 
@@ -137,6 +141,7 @@ function save(anyway: boolean): Result {
     return result({ ok: false, message: 'The data has errors. Fix them or save anyway.', outcome: 'findings', findings: ['Sprint 2026.22: the plan is higher than the capacity', 'Person Felix Braun: the share is 1.2'] });
   if (s.unsaved.length === 0) return result({ ok: true, message: 'Nothing to save.', outcome: 'nothing' });
   s.unsaved = [];
+  pendingTagNames.length = 0;
   if (s.sim === 'findings') s.sim = 'saved';
   if (s.sim === 'offline') {
     s.pending += 1;
@@ -201,6 +206,10 @@ export const dataMock: DataApi = {
     const list: LostFile[] = s.unsaved.filter((f) => files.length === 0 || files.includes(f)).map((file, i) => ({ status: 'M', file, added: 2 + i, removed: 1 }));
     return list;
   },
+  async PendingTags(): Promise<PendingTag[]> {
+    return pendingTagNames.map((name) => ({ name, ready: true }));
+  },
+  async OpenFile(): Promise<void> {},
   async UnsavedChanges() {
     const list: UnsavedFile[] = s.unsaved.map((file, i) => ({
       file,

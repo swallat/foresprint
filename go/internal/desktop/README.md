@@ -111,8 +111,8 @@ another package needs are named below; the owner builds them first and merges th
   of the command line. On Windows the program is built as a console program for now, so the
   command line keeps its output; hiding the console window of a double click is open.
 - Code signing.
-- SyncTracker returns a fixed answer until P8 replaces it. Status, Save and Refresh are bound to
-  `internal/datasvc` (P7); the tracker part of `Status` stays a placeholder.
+- Status, Save and Refresh are bound to `internal/datasvc` (P7); the tracker part of `Status` comes from
+  `TrackerInfo` and `SyncTracker(team)` fetches from the tracker (P8).
 
 ## Guided flows: marks on pages
 

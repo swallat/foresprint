@@ -34,7 +34,6 @@ export interface Api
   Status(): Promise<Status>;
   Save(): Promise<Result>;
   Refresh(): Promise<Result>;
-  SyncTracker(): Promise<Result>;
 }
 
 interface WailsWindow {

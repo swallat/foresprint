@@ -29,6 +29,7 @@ const prefs: Prefs = {
     { code: 'de', label: 'Deutsch' },
     { code: 'en', label: 'English' },
   ],
+  density: 'normal',
   theme: 'system',
   themes: [
     { code: 'system', label: 'As system' },

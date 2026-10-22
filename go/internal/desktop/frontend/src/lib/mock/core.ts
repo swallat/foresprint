@@ -48,9 +48,6 @@ const coreMock: Partial<Api> = {
   async Refresh() {
     return refreshMock();
   },
-  async SyncTracker() {
-    return { ok: true, message: 'Tracker synced.' };
-  },
 };
 
 export default coreMock;
