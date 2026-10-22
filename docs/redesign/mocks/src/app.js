@@ -67,6 +67,56 @@
     FS.state.ruleDraft = { product: "team" };
   };
   // Absences removed since the last save stay visible as a ghost value until Save, so a slip can be undone
+  // ---------- absences as periods ----------
+  // A period (vacation, training, ...) per person becomes working days per sprint in the absence grid.
+  // Cells typed by hand win; sprints whose absences are confirmed ("festgeschrieben") are not changed.
+  FS.ABS_KINDS = ["Urlaub", "Schulung", "Elternzeit", "Krankheit", "Sonstiges"];
+  FS.workdays = (from, to, s) => {
+    const a = new Date(Math.max(new Date(from), new Date(s.start))), b = new Date(Math.min(new Date(to), new Date(s.end))); let n = 0;
+    for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) if (d.getDay() % 6) n++;
+    return n;
+  };
+  FS.periodDays = (pid, s) => FS.sum((D.absPeriods || []).filter((z) => z.person === pid), (z) => FS.workdays(z.from, z.to, s));
+  FS.periodsOf = (pid, s) => (D.absPeriods || []).filter((z) => z.person === pid && FS.workdays(z.from, z.to, s) > 0);
+  FS.periodSprints = (z) => D.sprints.filter((s) => FS.workdays(z.from, z.to, s) > 0).map((s) => s.id);
+  FS.applyPeriods = () => {
+    const skipped = new Set(), kept = [];
+    D.sprints.filter((s) => s.state !== "past").forEach((s) => {
+      const a = (D.absences[s.id] ??= {});
+      D.people.forEach((p) => {
+        const d = Math.min(s.days, FS.periodDays(p.id, s)), e = a[p.id], zs = FS.periodsOf(p.id, s);
+        if (e && !e.src) { if (d > 0 && d !== e.d) kept.push(`${p.name.split(" ")[0]} ${s.id}`); return; }
+        if (s.absences === "confirmed") { if ((e?.d || 0) !== d) skipped.add(s.id); return; }
+        if (d > 0) a[p.id] = { d, s: zs.every((z) => z.s === "c") ? "c" : "a", src: "z" }; else if (e) delete a[p.id];
+      });
+      if (s.absences !== "confirmed") { const c = Object.values(a); s.absences = !c.length ? "unknown" : c.every((x) => x.s === "c") ? "confirmed" : "announced"; }
+    });
+    return Object.assign([...skipped], { kept });
+  };
+  FS.periodTitle = (pid, s) => FS.periodsOf(pid, s).map((z) => `${z.kind} ${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`).join(", ");
+  FS.periodPanel = (pid, after) => {
+    const ppl = D.people.map((p) => `<option value="${p.id}" ${p.id === pid ? "selected" : ""}>${FS.esc(p.name)}</option>`).join("");
+    const el = FS.openPanel("Abwesenheit als Zeitraum", `<p class="small muted" style="margin:0">Foresprint rechnet daraus die Arbeitstage je Sprint und trägt sie in die Vorbereitung ein. Von Hand eingetragene Tage gehen vor.</p>
+      <div class="field"><label for="zp-p">Person</label><select class="input" id="zp-p">${ppl}</select></div>
+      <div class="field"><label for="zp-k">Art</label><select class="input" id="zp-k">${FS.ABS_KINDS.map((k) => `<option>${k}</option>`).join("")}</select></div>
+      <div class="row"><div class="field"><label for="zp-f">von</label><input class="input" id="zp-f" type="date" value="2026-11-23"></div><div class="field"><label for="zp-t">bis</label><input class="input" id="zp-t" type="date" value="2026-11-27"></div></div>
+      <label class="row" style="gap:6px"><input type="checkbox" id="zp-c">schon bestätigt (zum Beispiel genehmigter Urlaub)</label>
+      <p class="small" id="zp-res" style="margin:0"></p>
+      <div class="row"><button class="btn primary" type="button" id="zp-ok">${FS.icon("event_busy")}Eintragen</button><button class="btn ghost" type="button" id="zp-cancel">Abbrechen</button></div>`);
+    if (!el) return;
+    const q = (id) => el.querySelector(id);
+    const show = () => { const f = q("#zp-f").value, t = q("#zp-t").value; if (!f || !t || t < f) { q("#zp-res").innerHTML = FS.lightChip("warn", "bis liegt vor von"); return; } const hits = D.sprints.map((s) => [s.id, FS.workdays(f, t, s)]).filter(([, n]) => n); q("#zp-res").innerHTML = hits.length ? `Ergibt ${hits.map(([id, n]) => `<span class="data">${n}</span> T in ${id}`).join(", ")}.` : '<span class="muted">Liegt in keinem angelegten Sprint, wird später angerechnet.</span>'; };
+    ["#zp-f", "#zp-t"].forEach((id) => (q(id).oninput = show)); show();
+    q("#zp-cancel").onclick = FS.closePanel;
+    q("#zp-ok").onclick = () => {
+      const z = { id: "z" + Date.now(), person: q("#zp-p").value, kind: q("#zp-k").value, from: q("#zp-f").value, to: q("#zp-t").value, s: q("#zp-c").checked ? "c" : "a" };
+      if (!z.from || !z.to || z.to < z.from) return FS.toast("Bitte einen gültigen Zeitraum wählen.");
+      D.absPeriods.push(z); const skip = FS.applyPeriods();
+      FS.addUnsaved?.(`Abwesenheit ${FS.person(z.person).name}`, "–", `${z.kind} ${FS.fmtDate(z.from)} bis ${FS.fmtDate(z.to)}`, "abwesenheiten.yaml");
+      FS.closePanel(); after ? after() : FS.render();
+      FS.toast(`${z.kind} für ${FS.person(z.person).name} eingetragen.${skip.length ? ` ${skip.join(", ")} ist festgeschrieben und bleibt unverändert; dort bei Bedarf von Hand anpassen.` : ""}${skip.kept.length ? ` Von Hand eingetragene Tage gehen vor (${skip.kept.join(", ")}); bitte prüfen.` : ""}`, () => { D.absPeriods.splice(D.absPeriods.indexOf(z), 1); FS.applyPeriods(); FS.render(); });
+    };
+  };
   FS.absGhost = () => (FS.state.absGhost ??= {});
   FS.ghostAbs = (sid, pid, cell) => { if (cell) FS.absGhost()[`${sid}|${pid}`] = { ...cell }; };
   FS.restoreAbs = (sid, pid) => { const g = FS.absGhost()[`${sid}|${pid}`]; if (!g) return; (D.absences[sid] ??= {})[pid] = { ...g }; delete FS.absGhost()[`${sid}|${pid}`]; };
@@ -576,5 +626,5 @@
 
   window.addEventListener("hashchange", render);
   window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); FS.toast("Befehlspalette: Seite, Ticket oder Aktion suchen (im Mockup nicht ausgeführt)."); } });
-  document.addEventListener("DOMContentLoaded", () => { if (FS.state.trk) FS.setTrk(FS.state.trk); render(); });
+  document.addEventListener("DOMContentLoaded", () => { if (FS.state.trk) FS.setTrk(FS.state.trk); FS.applyPeriods(); render(); });
 })();
