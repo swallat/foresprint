@@ -3,6 +3,7 @@
 package git
 
 import (
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -26,4 +27,15 @@ func terminateTree(cmd *exec.Cmd) error {
 		}
 	})
 	return nil
+}
+
+// exitSignal names the signal that ended the process ("" if it exited by itself).
+func exitSignal(ps *os.ProcessState) string {
+	if ps == nil {
+		return "unknown (no process state)"
+	}
+	if ws, ok := ps.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
+		return ws.Signal().String()
+	}
+	return ""
 }

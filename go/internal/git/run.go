@@ -54,6 +54,8 @@ type Result struct {
 	Code   int
 	Stdout string
 	Stderr string
+	// Signal names the signal that ended the process ("" if it exited by itself).
+	Signal string
 }
 
 // env is the environment for Git: English messages (so that they can be recognised) and, for
@@ -259,7 +261,7 @@ func runTracked(ctx context.Context, argv []string, cwd string, timeout time.Dur
 	if cmd.ProcessState != nil {
 		code = cmd.ProcessState.ExitCode()
 	}
-	return &Result{Code: code, Stdout: decode(out.Bytes()), Stderr: decode(errOut.Bytes())}, nil
+	return &Result{Code: code, Stdout: decode(out.Bytes()), Stderr: decode(errOut.Bytes()), Signal: exitSignal(cmd.ProcessState)}, nil
 }
 
 // Errors at startup that make the program permanently unusable: not found, no access, not a
@@ -414,7 +416,7 @@ func With(ctx context.Context, cwd string, opts Opts, args ...string) (string, e
 			message = pytext.Strip(proc.Stdout)
 		}
 		if message == "" {
-			message = SilentFailure(args, proc.Code)
+			message = SilentFailure(args, proc.Code, proc.Signal)
 		}
 		return "", Classify(message, ClassifyOpts{URL: opts.URL, Cwd: cwd})
 	}
@@ -427,14 +429,14 @@ func With(ctx context.Context, cwd string, opts Opts, args ...string) (string, e
 // SilentFailure describes a Git call that failed without any output, so that the message says
 // which call it was: the subcommand, the option names and the exit code. Values and positional
 // arguments (addresses, titles, paths) are left out: they may carry credentials.
-func SilentFailure(args []string, code int) string {
+func SilentFailure(args []string, code int, signal string) string {
 	var shown []string
 	for i, a := range args {
 		switch {
 		case i == 0 && !strings.HasPrefix(a, "-"):
 			shown = append(shown, a)
 		case a == "--":
-			return fmt.Sprintf("git %s ended with exit code %d and no message", strings.Join(shown, " "), code)
+			return silentText(shown, code, signal)
 		case strings.HasPrefix(a, "--"):
 			name, _, _ := strings.Cut(a, "=")
 			shown = append(shown, name)
@@ -442,7 +444,15 @@ func SilentFailure(args []string, code int) string {
 			shown = append(shown, a[:min(len(a), 2)]) // a short option may carry its value: -oValue
 		}
 	}
-	return fmt.Sprintf("git %s ended with exit code %d and no message", strings.Join(shown, " "), code)
+	return silentText(shown, code, signal)
+}
+
+func silentText(shown []string, code int, signal string) string {
+	text := fmt.Sprintf("git %s ended with exit code %d and no message", strings.Join(shown, " "), code)
+	if signal != "" {
+		text += " (ended by signal " + signal + ")"
+	}
+	return text
 }
 
 // Bytes is like Git, but returns the raw output (e.g. an archive).

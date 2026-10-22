@@ -326,7 +326,7 @@ func pushMergeRequest(ctx context.Context, root string, current SyncState, title
 	}
 	if proc.Code != 0 {
 		if message == "" {
-			message = git.SilentFailure(args(options), proc.Code)
+			message = git.SilentFailure(args(options), proc.Code, proc.Signal)
 		}
 		return "", "", git.Classify(message, git.ClassifyOpts{URL: current.URL, Cwd: root})
 	}
