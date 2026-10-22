@@ -23,11 +23,6 @@ import (
 // sprint file, changes it and writes it back.
 var editMu sync.Mutex
 
-func today() time.Time {
-	y, m, d := time.Now().Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
-}
-
 // sprintWindow returns count consecutive sprints from the sprint with the id from (recorded or
 // generated from the calendar). An empty from starts at the running sprint, or the next one.
 func sprintWindow(data *storage.TeamData, fc *forecast.Forecast, from string, count int) ([]model.Sprint, error) {

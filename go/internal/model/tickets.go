@@ -212,6 +212,8 @@ type Project struct {
 	End   *time.Time
 	// OpenScope is the open scope of the project without tickets, kept by hand.
 	OpenScope *float64
+	// Contact is the person to ask about the project (free text).
+	Contact *string
 }
 
 // Products returns all products of the project, Product first.
