@@ -1,0 +1,19 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "sprints",
+  "demo",
+  "--end",
+  "2026.23=2027-01-12"
+ ],
+ "input": "",
+ "exit_code": 0,
+ "files": {
+  "demo/sprints/2026.23.yaml": "# Sprint 2026.23. Explanations of all fields: `foresprint help fields`\nid: '2026.23'\nstart: 2026-11-11\nend: 2027-01-13\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n",
+  "demo/sprints/2027.1.yaml": "# Sprint 2027.1. Explanations of all fields: `foresprint help fields`\nid: '2027.1'\nstart: 2027-01-13\nend: 2027-01-27\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n",
+  "demo/sprints/2027.2.yaml": "# Sprint 2027.2. Explanations of all fields: `foresprint help fields`\nid: '2027.2'\nstart: 2027-01-27\nend: 2027-02-10\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n",
+  "demo/sprints/2027.3.yaml": "# Sprint 2027.3. Explanations of all fields: `foresprint help fields`\nid: '2027.3'\nstart: 2027-02-10\nend: 2027-02-24\nabsences: {}\ncapacity: null\nforecast_ist: null\nvelocity: null\nscope_creep: null\n"
+ },
+ "deleted": [],
+ "seed": {}
+}
