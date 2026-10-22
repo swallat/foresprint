@@ -58,3 +58,5 @@ the console of the caller (`cmd/foresprint/console_windows.go`).
 "Run workflow" builds the commit it is started on (choose the branch or tag under "Use workflow from") and names the
 release after the input `tag`; a tag that does not exist yet is created at that commit by the release page. For an
 existing tag it repeats the build and replaces the files.
+
+A run started by hand that creates the tag does not start the workflow *Release* (events caused by the workflow's own token start no other workflow). To publish the wheel and the source distribution (and PyPI) for such a tag, start *Actions, Release, Run workflow* with that tag afterwards; its check needs the version in `pyproject.toml` at that commit to match the tag. The name must look like `v1.0.0` or `v1.0.0-beta.1`, and for an existing tag the run must be started from that tag.

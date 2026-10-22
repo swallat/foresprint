@@ -40,6 +40,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Check the name and the commit
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::The name $TAG is not a version like v1.0.0 or v1.0.0-beta.1"; exit 1; }
+          # A run started by hand must not replace the files of an existing tag with another commit.
+          if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
+            tagged=$(git rev-parse "$TAG^{commit}")
+            [ "$tagged" = "$GITHUB_SHA" ] || { echo "::error::The tag $TAG is at $tagged, but this run is on $GITHUB_SHA. Start the run from the tag under 'Use workflow from'."; exit 1; }
+          fi
       - uses: jdx/mise-action@v3
       - run: uv sync --locked --all-extras
       - run: uv pip install --upgrade holidays
@@ -157,10 +167,13 @@ jobs:
       - name: Release page
         run: |
           # release.yml (the Python packages) creates the page for the same tag; wait for it.
-          for _ in $(seq 1 40); do
-            gh release view "$TAG" > /dev/null 2>&1 && break
-            sleep 15
-          done
+          # Only a pushed tag starts release.yml; a tag made by this run does not.
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            for _ in $(seq 1 40); do
+              gh release view "$TAG" > /dev/null 2>&1 && break
+              sleep 15
+            done
+          fi
           # A tag with a suffix (v1.0.0-beta.1) is a pre-release: the self-update ignores it.
           pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then
