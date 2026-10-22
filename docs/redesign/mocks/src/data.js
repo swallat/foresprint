@@ -31,12 +31,17 @@ window.DEMO = {
       milestones: [{ name: "Neuer Anmeldedienst live", date: "2026-12-04", tickets: 5, done: 1, light: "bad" }] },
   ],
   people: [
-    { id: "p1", name: "Jonas Weber", fte: 1.0, prod: true },
-    { id: "p2", name: "Mira Schulz", fte: 1.0, prod: false },
-    { id: "p3", name: "Tarek Aydin", fte: 0.8, prod: true },
-    { id: "p4", name: "Paula Neumann", fte: 1.0, prod: false },
-    { id: "p5", name: "Felix Braun", fte: 0.5, prod: false },
-    { id: "p6", name: "Sara Klein", fte: 1.0, prod: true },
+    { id: "p1", name: "Jonas Weber", fte: 1.0, prod: true, since: "2024-02-01" },
+    { id: "p2", name: "Mira Schulz", fte: 1.0, prod: false, since: "2024-02-01" },
+    { id: "p3", name: "Tarek Aydin", fte: 0.8, prod: true, since: "2025-04-01", periods: [{ from: "2025-04-01", to: "2025-12-31", fte: 1.0 }, { from: "2026-01-01", to: null, fte: 0.8 }] },
+    { id: "p4", name: "Paula Neumann", fte: 1.0, prod: false, since: "2024-09-01" },
+    { id: "p5", name: "Felix Braun", fte: 0.5, prod: false, since: "2026-07-01" },
+    { id: "p6", name: "Sara Klein", fte: 1.0, prod: true, since: "2024-02-01", until: "2026-12-22" },
+  ],
+  // People who left: kept for the history (past capacity, velocity, minutes), not in today's capacity.
+  former: [
+    { id: "p7", name: "Ole Brandt", fte: 1.0, prod: true, since: "2024-02-01", until: "2026-09-29" },
+    { id: "p8", name: "Nina Roth", fte: 0.5, prod: false, since: "2025-01-01", until: "2026-06-30" },
   ],
   // state: past = closed, current = running, planned = frozen plan, open = future
   sprints: [
