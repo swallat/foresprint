@@ -164,3 +164,46 @@ func TestExcelDemo(t *testing.T) {
 		t.Errorf("unknown team: %d %q", code, errOut)
 	}
 }
+
+func TestExcelRoundTrip(t *testing.T) {
+	isolate(t)
+	data := t.TempDir()
+	copyTree(t, demoTeams, data)
+	book := filepath.Join(t.TempDir(), "demo.xlsx")
+	if code, _, errOut := run(t, "--data", data, "--as-of", "2026-10-15", "excel", "demo", "-o", book); code != 0 {
+		t.Fatalf("export: %d %q", code, errOut)
+	}
+	code, out, errOut := run(t, "--data", data, "--as-of", "2026-10-15", "excel-import", "demo", book)
+	if code != 0 || out != "No changes compared to the existing files.\n" || errOut != "" {
+		t.Fatalf("import of the unchanged workbook: %d %q %q", code, out, errOut)
+	}
+	// A change in the files shows in the preview and the import takes it back.
+	path := filepath.Join(data, "demo", "team.yaml")
+	text, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(text), "window: 5", "window: 4", 1)
+	if changed == string(text) {
+		t.Fatal("window not found in team.yaml")
+	}
+	if err := os.WriteFile(path, []byte(changed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, out, _ = run(t, "--data", data, "--as-of", "2026-10-15", "excel-import", "demo", book)
+	if code != 0 || !strings.Contains(out, "forecast.window") || !strings.Contains(out, "Preview only") {
+		t.Fatalf("preview: %d %q", code, out)
+	}
+	if after, _ := os.ReadFile(path); string(after) != changed {
+		t.Error("the preview wrote a file")
+	}
+	if code, _, errOut := run(t, "--data", data, "--as-of", "2026-10-15", "excel-import", "demo", book, "--apply"); code != 0 {
+		t.Fatalf("apply: %d %q", code, errOut)
+	}
+	if after, _ := os.ReadFile(path); string(after) != string(text) {
+		t.Errorf("team.yaml not restored:\n%s", after)
+	}
+	if code, _, errOut := run(t, "--data", data, "excel-import", "demo", filepath.Join(data, "nope.xlsx")); code != 1 || errOut == "" {
+		t.Errorf("missing file: %d %q", code, errOut)
+	}
+}
