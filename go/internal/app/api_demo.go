@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"time"
@@ -103,4 +104,20 @@ func demoSweep() {
 			_ = os.RemoveAll(dir)
 		}
 	}
+}
+
+// demoRefusal is the answer to anything that would change the data folder while the demo runs.
+func (a *API) demoRefusal() error {
+	if a.InDemo() {
+		return errors.New(i18n.T("Leave the demo first: click \"Back to my data\"."))
+	}
+	return nil
+}
+
+// demoProblem is demoRefusal as the problem the storage calls report.
+func (a *API) demoProblem() *datasvc.Problem {
+	if err := a.demoRefusal(); err != nil {
+		return &datasvc.Problem{Kind: "error", Message: err.Error()}
+	}
+	return nil
 }

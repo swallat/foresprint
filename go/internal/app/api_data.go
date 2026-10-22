@@ -135,16 +135,25 @@ func (a *API) Reattach() datasvc.Reattached { return a.data.Reattach() }
 
 // CloneFrom copies the data from a server address into a new folder and uses it.
 func (a *API) CloneFrom(address, folder string) datasvc.Opened {
+	if p := a.demoProblem(); p != nil {
+		return datasvc.Opened{Problem: p}
+	}
 	return a.adopt(a.data.CloneFrom(address, folder))
 }
 
 // CreateFolder starts a new, empty data repository in a folder and uses it.
 func (a *API) CreateFolder(folder string) datasvc.Opened {
+	if p := a.demoProblem(); p != nil {
+		return datasvc.Opened{Problem: p}
+	}
 	return a.adopt(a.data.CreateFolder(folder))
 }
 
 // OpenFolder uses an existing local data repository.
 func (a *API) OpenFolder(folder string) datasvc.Opened {
+	if p := a.demoProblem(); p != nil {
+		return datasvc.Opened{Problem: p}
+	}
 	return a.adopt(a.data.OpenFolder(folder))
 }
 

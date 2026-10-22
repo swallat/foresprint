@@ -18,6 +18,8 @@ export interface Step {
   target?: string;
   /** Sprint to select before showing the page. */
   sprint?: SprintPick;
+  /** The page has nothing to show for a team that keeps its work packages in Foresprint. */
+  trackerOnly?: boolean;
   text: () => string;
 }
 
@@ -26,6 +28,8 @@ export interface Flow {
   title: () => string;
   summary: () => string;
   steps: Step[];
+  /** Steps for a team without a tracker; without them the tracker-only steps are left out. */
+  withoutTracker?: Step[];
 }
 
 const tour = (name: string) => `[data-tour="${name}"]`;
@@ -48,12 +52,12 @@ export const flows: Flow[] = [
     title: () => t('Groom the backlog'),
     summary: () => t('Check the sync, filter, order and earmark tickets, maintain the ticket panel, clear rule conflicts.'),
     steps: [
-      { route: '/backlog', target: tour('backlog-sync'), text: () => t('First the sync state. If it is stale or failed, a banner offers a retry. Work continues with the last data; nothing is locked.') },
+      { route: '/backlog', target: tour('backlog-sync'), trackerOnly: true, text: () => t('First the sync state. If it is stale or failed, a banner offers a retry. Work continues with the last data; nothing is locked.') },
       { route: '/backlog', target: tour('backlog-views'), text: () => t('Pick a saved view such as Refinement or click a filter. The list reacts at once, also while you search.') },
       { route: '/backlog', target: tour('backlog-list'), text: () => t('Order the tickets by dragging the handle up or down, or with Alt and the arrow keys. Dragging into a sprint earmarks the ticket; a toast offers Undo.') },
       { route: '/backlog', target: tour('backlog-ticket'), text: () => t('A click on the title opens the ticket panel. The key and the arrow open the ticket in the tracker.') },
       { route: '/backlog', target: tour('ticket-panel'), text: () => t('In the panel you maintain estimate, product, project and earmark and see whether the ticket is refined. The history is below.') },
-      { route: '/backlog', target: tour('backlog-ruleflag'), text: () => t('If no product rule or more than one applies, the row is marked. The product of the rule decides; you can set it by hand for this ticket.') },
+      { route: '/backlog', target: tour('backlog-ruleflag'), trackerOnly: true, text: () => t('If no product rule or more than one applies, the row is marked. The product of the rule decides; you can set it by hand for this ticket.') },
     ],
   },
   {
@@ -80,7 +84,7 @@ export const flows: Flow[] = [
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-sumbar'), text: () => t('At the top is the forecast PLAN with its range. The calculator button shows how it is calculated.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-lanes'), text: () => t('Candidates on the left, the sprint on the right, prefilled from the earmarks. Drag a ticket, or move it with Alt and the arrow keys.') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-live'), text: () => t('Live: the sum against the range, products against their budget, projects against their contingent. This is a hint for the team, not a stop.') },
-      { route: '/sprint/plan', sprint: 'next', target: tour('plan-lanes'), text: () => t('If the team does not want a ticket in the sprint, take it out. It then appears in the list "Adjust in the tracker".') },
+      { route: '/sprint/plan', sprint: 'next', target: tour('plan-lanes'), trackerOnly: true, text: () => t('If the team does not want a ticket in the sprint, take it out. It then appears in the list "Adjust in the tracker".') },
       { route: '/sprint/plan', sprint: 'next', target: tour('plan-freeze'), text: () => t('When everybody agrees, "Freeze the agreement" locks the plan. A planning minute is written and, if you wish, a label is set on the tracker ticket.') },
     ],
   },
@@ -148,9 +152,12 @@ export const flows: Flow[] = [
     title: () => t('Take the planned sprint over into the tracker'),
     summary: () => t('Optional: write the sprint assignment from the planning to the tracker, with preview and undo.'),
     steps: [
-      { route: '/settings/tickets', target: tour('settings-writeback'), text: () => t('By default Foresprint only reads. Here the team switches writing back on and says where tickets that were taken out go.') },
-      { route: '/sprint/plan', sprint: 'next', target: tour('plan-jira'), text: () => t('In the planning, "Reconcile with the tracker" shows which tickets enter or leave the sprint in the tracker.') },
-      { route: '/sprint/plan', sprint: 'next', target: tour('plan-jira-write'), text: () => t('"Take over into the tracker" opens a preview. Untick what should stay, then write. Only the sprint field is written; the step is logged in the planning minutes and can be undone.') },
+      { route: '/settings/tickets', target: tour('settings-writeback'), trackerOnly: true, text: () => t('By default Foresprint only reads. Here the team switches writing back on and says where tickets that were taken out go.') },
+      { route: '/sprint/plan', sprint: 'next', target: tour('plan-jira'), trackerOnly: true, text: () => t('In the planning, "Reconcile with the tracker" shows which tickets enter or leave the sprint in the tracker.') },
+      { route: '/sprint/plan', sprint: 'next', target: tour('plan-jira-write'), trackerOnly: true, text: () => t('"Take over into the tracker" opens a preview. Untick what should stay, then write. Only the sprint field is written; the step is logged in the planning minutes and can be undone.') },
+    ],
+    withoutTracker: [
+      { route: '/settings/tickets', text: () => t('This team keeps its work packages in Foresprint, so there is nothing to write back. A team with a tracker finds the switch for writing back here, and in the planning "Reconcile with the tracker" and "Take over into the tracker".') },
     ],
   },
 ];

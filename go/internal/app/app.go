@@ -160,11 +160,18 @@ func (a *API) SetDataDir(path string) error {
 	if err != nil || !info.IsDir() {
 		return errors.New(i18n.T("The folder {path} does not exist.", "path", path))
 	}
+	// The window shows the demo banner; the person leaves it on purpose.
+	if err := a.demoRefusal(); err != nil {
+		return err
+	}
 	if err := config.SaveDataDir(path); err != nil {
 		return err
 	}
 	a.mu.Lock()
-	a.demoDropLocked() // a new data folder ends the demo
+	if a.demo.on { // the demo started while the folder was being saved
+		a.mu.Unlock()
+		return a.demoRefusal()
+	}
 	changed := a.dataDir != path
 	a.dataDir = path
 	a.mu.Unlock()
