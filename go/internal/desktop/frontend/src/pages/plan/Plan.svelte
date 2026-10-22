@@ -162,9 +162,9 @@
   <SprintHead {d} stage="plan">
     {#snippet actions()}
       {#if !noT}
-        <a class="btn" href="#/present" id="present"><Icon name="fit_screen" />{t('Presentation view')}</a>
+        <a class="btn" href="#/present" id="present" data-tour="plan-present"><Icon name="fit_screen" />{t('Presentation view')}</a>
       {/if}
-      <button class="btn primary" type="button" id="freeze" disabled={frozen || d.stage === 'past' || d.stage === 'current'} onclick={freeze}>
+      <button class="btn primary" type="button" id="freeze" data-tour="plan-freeze" disabled={frozen || d.stage === 'past' || d.stage === 'current'} onclick={freeze}>
         <Icon name="lock" />{t('Record the agreement and freeze')}
       </button>
     {/snippet}
@@ -173,7 +173,7 @@
   <Summary {d} used={used} commitment={frozen ? d.committed : null} count={lane.length} assumption={touched(assumptions.active) ? assumptions.active?.label : ''} whatIf={model.running} />
 
   {#if d.absences !== 'confirmed'}
-    <div class="banner warn">
+    <div class="banner warn" data-tour="plan-absences">
       <Icon name="event_busy" />
       <div class="grow">
         <strong>{t('Absences for {sprint} are not confirmed yet.', { sprint: d.sprint })}</strong>
@@ -236,7 +236,7 @@
       </div>
     </div>
   {:else}
-    <div id="lanes" class="grid cols-2 gapb">
+    <div id="lanes" class="grid cols-2 gapb" data-tour="plan-lanes">
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <div
         class="lane"
@@ -298,7 +298,7 @@
     <p class="small muted hint">{t('Drag, or use the buttons; Alt+arrow left or right moves between the lanes. A click on the key opens the details.')}</p>
   {/if}
 
-  <div class="grid cols-2 gapb" id="live">
+  <div class="grid cols-2 gapb" id="live" data-tour="plan-live">
     {#if d.multiProduct}
       <div class="card">
         <h2>{t('Product against budget')}</h2>
@@ -348,7 +348,7 @@
   <Production {d} {model} readonly={frozen} />
 
   {#if !noT && d.source === 'tracker'}
-    <div class="card gapb" id="adjust">
+    <div class="card gapb" id="adjust" data-tour="plan-jira">
       <h2>{t('Adjust in {tracker}', { tracker: d.trackerName || t('the tracker') })}</h2>
       {#if adjust.length}
         <p class="small muted">{t('These tickets are still in the {tracker} sprint but were taken out here. The tracker ticket stays unchanged; the list goes into the planning minutes.', { tracker: d.trackerName || t('the tracker') })}</p>

@@ -39,7 +39,7 @@
   );
 </script>
 
-<div class="card sum">
+<div class="card sum" data-tour="plan-sumbar">
   <div class="tile">
     <h2>{t('Capacity')}</h2>
     <div class="row">
