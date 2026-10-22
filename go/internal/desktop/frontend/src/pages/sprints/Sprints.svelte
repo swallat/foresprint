@@ -64,6 +64,9 @@
   const absenceText = (r: SprintRow) =>
     ({ confirmed: t('Confirmed'), announced: t('Announced'), unknown: t('Not entered') })[r.absences];
   const num = (v: number | null) => (v === null ? '–' : days(v));
+  const span = (r: { plan: number | null; planLow: number | null; planHigh: number | null }) =>
+    r.plan === null ? '–' : r.planLow !== null && r.planHigh !== null && r.planLow < r.planHigh
+      ? `${days(r.plan)} (${days(r.planLow)}–${days(r.planHigh)})` : days(r.plan);
   const stage = (label: string) => t(label);
   const open = (id: string) => selectSprint(id);
 </script>
@@ -110,7 +113,7 @@
               </span>
             </td>
             <td class="num">{num(r.capacity)}</td>
-            <td class="num fc">{num(r.plan)}</td>
+            <td class="num fc">{span(r)}</td>
             <td class="num">{num(r.commitment)}</td>
             <td class="num">{num(r.velocity)}</td>
             <td class="num">

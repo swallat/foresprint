@@ -124,6 +124,8 @@ type PlanProject struct {
 	Amount  float64  `json:"amount"`   // in the unit
 	NeedPD  *float64 `json:"needPD"`   // estimate via the rate
 	Booked  *float64 `json:"bookedPD"` // contingent for the whole project, in PD
+	// UsedPD is what the contingent already consumed (from the project, nil if not recorded).
+	UsedPD *float64 `json:"usedPD"`
 	// Manual is the split of an amount without tickets: editable.
 	Manual bool `json:"manual"`
 }

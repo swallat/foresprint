@@ -29,6 +29,8 @@ type AbsenceColumn struct {
 	Absent   float64  `json:"absent"`   // sum of absence days
 	Capacity float64  `json:"capacity"` // person days with these absences
 	Plan     *float64 `json:"plan"`     // Forecast PLAN, nil if there is none (past sprint, no history)
+	PlanLow  *float64 `json:"planLow"`  // lowest and highest PLAN of the window, nil without a projection
+	PlanHigh *float64 `json:"planHigh"`
 	Past     bool     `json:"past"`
 }
 
@@ -109,6 +111,8 @@ type SprintRow struct {
 	Absences   string   `json:"absences"` // AbsenceUnknown, AbsenceAnnounced or AbsenceConfirmed
 	Capacity   *float64 `json:"capacity"`
 	Plan       *float64 `json:"plan"`
+	PlanLow    *float64 `json:"planLow"`
+	PlanHigh   *float64 `json:"planHigh"`
 	Commitment *float64 `json:"commitment"`
 	Velocity   *float64 `json:"velocity"`
 	Normalized *float64 `json:"normalized"` // velocity at the reference capacity
