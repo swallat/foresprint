@@ -1,7 +1,7 @@
 // Types of the bindings of the Team area (go/internal/app/api_team*.go, api_rules.go).
 
 export interface RuleOwner {
-  kind: 'product' | 'project';
+  kind: 'product' | 'project' | 'setting';
   id: string;
 }
 
