@@ -315,3 +315,43 @@ func TestSprintPreplannedForTeamsWithoutProducts(t *testing.T) {
 		t.Errorf("sprintPre = %v", v.SprintPre)
 	}
 }
+
+func TestProductionCapLowersWhatIsAvailable(t *testing.T) {
+	api, team := planTeam(t)
+	sprints, _ := api.Sprints(team)
+	var next string
+	for _, s := range sprints {
+		if s.State == "future" {
+			next = s.ID
+			break
+		}
+	}
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	tm := data.Team
+	tm.Features.Production = true
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	people := data.People
+	people[0].ProductionAccess = true
+	if _, err := repo.SavePeople(team, people); err != nil {
+		t.Fatal(err)
+	}
+	before, err := api.PlanSprint(team, next, nil)
+	if err != nil || before.Prod == nil || before.Prod.Time <= 0 {
+		t.Fatalf("no production time to compare with: %+v %v", before.Prod, err)
+	}
+	half := 50.0
+	tm.Features.ProductionMax = &half
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	after, err := api.PlanSprint(team, next, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Prod.CapPercent != 50 || math.Abs(after.Prod.Available-before.Prod.Time/2) > 1e-9 {
+		t.Errorf("cap %v, available %v of %v", after.Prod.CapPercent, after.Prod.Available, before.Prod.Time)
+	}
+}

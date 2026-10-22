@@ -305,6 +305,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	if v.Source == "tracker" && tm.Tracker.Kind == "jira" {
 		v.TrackerName = "Jira"
 	}
+	v.WriteBack = c.writeEnabled()
 	v.Days = workdays(c)
 	v.Stage = c.stage()
 	v.Absences = absenceName(s)
@@ -1072,7 +1073,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 			prodPlanned[id] += v
 		}
 		s.CommittedTickets = keys
-		s.Removed = nil // the minutes list them from here on
+		// s.Removed stays: the write-back to the tracker needs to know what the team took out.
 	} else {
 		for id, v := range in.Amounts {
 			if v < 0 {

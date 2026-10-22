@@ -14,6 +14,7 @@
   import SprintHead from '../../lib/plan/SprintHead.svelte';
   import Summary from '../../lib/plan/Summary.svelte';
   import TicketRow from '../../lib/plan/TicketRow.svelte';
+  import WriteBack from '../../lib/plan/WriteBack.svelte';
   import type { PageProps } from '../../lib/routes';
   import type { PlanTicket } from '../../lib/types.plan';
   import CapacityBar from '../../lib/ui/CapacityBar.svelte';
@@ -366,6 +367,7 @@
         <p class="muted small">{t('Nothing to adjust: the tracker and the plan agree.')}</p>
       {/if}
     </div>
+    {#if d.writeBack}<WriteBack {d} />{/if}
   {/if}
 {:else if model.loading}
   <p class="muted">{t('Loading …')}</p>
