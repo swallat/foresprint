@@ -59,4 +59,10 @@ type ImportPreview struct {
 	NoTeam bool `json:"noTeam"`
 	// Cancelled is true if the user closed the file dialog.
 	Cancelled bool `json:"cancelled"`
+	// Kind is "workbook" for an Excel file and "packages" for a CSV table of work packages.
+	Kind string `json:"kind"`
+	// Problems are the rows of a CSV table that are skipped; Unmapped the columns no field was
+	// found for.
+	Problems []string `json:"problems"`
+	Unmapped []string `json:"unmapped"`
 }

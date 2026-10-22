@@ -112,6 +112,9 @@ type Result struct {
 	Problems []Problem
 	// Unmapped are header names no field was found for (shown so the user can correct the file).
 	Unmapped []string
+	// HasLabels is true if the table has a labels column; without it the labels of a package
+	// are not part of the table and an update must keep the existing ones.
+	HasLabels bool
 }
 
 // ParseTable turns a table (header row first) into work packages. Rows without a title are
@@ -139,6 +142,7 @@ func ParseTable(rows [][]string, opts Options) Result {
 			res.Unmapped = append(res.Unmapped, pytext.Strip(h))
 		}
 	}
+	_, res.HasLabels = columns["labels"]
 	if _, ok := columns["title"]; !ok {
 		res.Problems = append(res.Problems, Problem{Row: 1, Msg: sources.T("The table has no column for the title (expected one of: {names}).",
 			"names", strings.Join(Columns["title"], ", "))})
