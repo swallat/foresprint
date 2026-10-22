@@ -117,7 +117,7 @@
   // ---------- shared pieces ----------
   const CSS = `<style>
     .sp-sum{display:flex;flex-wrap:wrap;gap:16px} .sp-sum > *{flex:1 1 200px;min-width:0} .sp-sum > :last-child{flex:0 1 auto}
-    .sp-sum h3{margin:0 0 4px;font:600 12px/16px var(--font-ui);color:var(--text-muted)}
+    .sp-sum h2{margin:0 0 4px;font:600 12px/16px var(--font-ui);color:var(--text-muted)}
     .sp-sum .big{font:600 22px/28px var(--font-data)}
     .sp-sum .projs{display:grid;grid-template-columns:minmax(0,max-content) auto auto;justify-content:start;gap:6px 8px;align-items:center;margin-top:4px}
     .sp-sum .proj{display:contents} .sp-sum .proj > *{white-space:nowrap} .sp-sum .proj > .data{text-align:right}
@@ -226,16 +226,16 @@
     const a0 = cwCalc(sid), A = a0 && a0.touched ? a0 : null, fc = A ? A.fc : c.fc, lo = A ? A.low : c.low, hi = A ? A.high : c.high;
     const rest = A ? A.rest : sum(D.tickets.filter((t) => t.carryTo === sid), (t) => t.carryRest ?? t.est), free = fc != null ? fc - rest : null;
     return `<div class="card sp-sumbar" style="margin-bottom:16px"><div class="sp-sum">
-      <div><h3>Kapazität</h3><div class="row"><span class="big">${fmt(c.cap)} PT</span>${calcBtn("cap")}</div>
+      <div><h2>Kapazität</h2><div class="row"><span class="big">${fmt(c.cap)} PT</span>${calcBtn("cap")}</div>
         <div class="small muted">${c.abs ? `${fmt(c.abs)} PT Abwesenheit (${ABS[absState(sid)][1]})` : `keine Abwesenheit erfasst`}</div></div>
-      <div><h3>Forecast PLAN${A ? ` <span class="chip small">mit Annahme ${esc(cw().name)}</span>` : ""}</h3><div class="row"><span class="big" style="color:var(--forecast)">${fmt(fc)} Punkte</span>${calcBtn("fc")}</div>
+      <div><h2>Forecast PLAN${A ? ` <span class="chip small">mit Annahme ${esc(cw().name)}</span>` : ""}</h2><div class="row"><span class="big" style="color:var(--forecast)">${fmt(fc)} Punkte</span>${calcBtn("fc")}</div>
         <div class="small muted">${lo != null ? `Spanne <span class="data">${lo} bis ${hi}</span> · ${A ? `ohne Annahme <span class="data">${c.fc}</span>` : `Rate <span class="data">${fmt(D.rate, 2)}</span> je PT`}` : "Plan des abgeschlossenen Sprints"}</div></div>
-      ${lo != null ? `<div id="sp-free"><h3>Frei für Neues</h3><div class="row"><span class="big">${fmt(free)} Punkte</span></div>
+      ${lo != null ? `<div id="sp-free"><h2>Frei für Neues</h2><div class="row"><span class="big">${fmt(free)} Punkte</span></div>
         <div class="small muted">≈ <span class="data">${fmt(free / D.rate, 1)}</span> PT · ${rest ? `minus Übertrag <span class="data">${fmt(rest)}</span>` : "kein Übertrag angenommen"}</div></div>` : ""}
-      <div><h3>${FS.trk() === "none" ? "Vorgeplant" : "Geplant"}</h3><div class="row"><span class="big">${fmt(FS.trk() === "none" ? commit ?? pre : p)} Punkte</span></div>
+      <div><h2>${FS.trk() === "none" ? "Vorgeplant" : "Geplant"}</h2><div class="row"><span class="big">${fmt(FS.trk() === "none" ? commit ?? pre : p)} Punkte</span></div>
         ${FS.capBar(FS.trk() === "none" ? commit ?? pre : p, fc, lo, hi)}
         <div class="small muted">${commit != null ? `Zusage <span class="data">${commit}</span> · ` : ""}${FS.trk() === "none" ? "Summe der Beträge je Produkt" : `Vorgeplant <span class="data">${pre || "–"}</span> · ${l.length} ${FS.trk() === "jira" ? "Tickets" : "Arbeitspakete"}`}</div></div>
-      <div><h3>Kontingente je Projekt <span class="chip small">Schätzung</span></h3>
+      <div><h2>Kontingente je Projekt <span class="chip small">Schätzung</span></h2>
         ${hints.length ? `<div class="projs">${hints.map((h) => `<div class="proj"><span class="chip" title="${esc(h.pr.name)}">${ic("flag", "small")}${esc(h.pr.name)}</span><span class="data small">≈ ${fmt(h.need)} PT</span>${FS.lightChip(h.light, h.rest < 0 ? `${fmt(-h.rest)} PT drüber` : `Rest ${fmt(h.rest)} PT`)}</div>`).join("")}</div>` : `<div class="small muted">${FS.trk() === "none" ? "Keine Projektbeträge im Sprint." : "Keine Projekttickets im Sprint."}</div>`}</div>
     </div></div>`;
   }

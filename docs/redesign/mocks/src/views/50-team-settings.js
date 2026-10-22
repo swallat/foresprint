@@ -7,7 +7,7 @@
   const f1 = (n) => FS.fmt(n, 1);
 
   // ---------- shared mock state ----------
-  S.teamApplied ??= { hist: 6, method: "median", band: "p20", horizon: 4, len: 10, prod: true, projects: true, minutes: true, label: true, absState: true, basis: "forecast" };
+  S.teamApplied ??= { hist: 6, method: "median", band: "p20", horizon: 4, len: 10, prod: true, projects: true, minutes: true, label: true, absState: true, basis: "forecast", unit: "sp", conv: "velocity", factor: 0.85, unitFrom: "2026.22" };
   S.teamDraft ??= { ...S.teamApplied };
   S.rules ??= {
     portal: 'component = "Portal"',
@@ -22,7 +22,8 @@
     map: { ac: "Eigenes Feld: Akzeptanzkriterien", est: "Story Points (customfield_10016)", product: "Komponente", project: "Epic Link", refined: "Label: refined", status: "Status" } };
   S.personal ??= { theme: "system", lang: "de", density: "normal" };
   const HOLIDAYS = { "2026-11-01": "Allerheiligen", "2026-12-24": "Heiligabend (Betriebsruhe)", "2026-12-25": "1. Weihnachtstag", "2026-12-26": "2. Weihnachtstag", "2027-01-01": "Neujahr" };
-  S.cal ??= [...D.sprints.map((s) => ({ ...s, orig: s.id })), { id: "2026.26", start: "2026-12-23", end: "2027-01-05", days: 7, state: "open", orig: "2026.26" }];
+  S.cal ??= [...D.sprints.map((s) => ({ ...s, orig: s.id })), { id: "2026.26", start: "2026-12-23", end: "2027-01-05", days: 7, state: "open", orig: "2026.26" }, { id: "2027.01", start: "2027-01-06", end: "2027-01-19", days: 10, state: "open", orig: "2027.01" }];
+  S.naming ??= { pattern: "{JJJJ}.{NN}", applied: "{JJJJ}.{NN}", from: null, history: "keep" };
 
   // ---------- helpers ----------
   const calc = (title, rows, note) => FS.openPanel(`Rechenweg: ${title}`, `<div class="tw"><table class="t"><tbody>${rows.map((r, i) => `<tr class="${i === rows.length - 1 ? "sum" : ""}"><td style="white-space:normal">${esc(r[0])}</td><td class="num">${esc(r[1])}</td></tr>`).join("")}</tbody></table></div>${note ? `<p class="small muted">${note}</p>` : ""}`);
@@ -208,22 +209,75 @@
     const c = S.cal;
     for (let k = i + 1; k < c.length; k++) { const len = diffDays(c[k].start, c[k].end); c[k].start = addDays(c[k - 1].end, 1); c[k].end = addDays(c[k].start, len); c[k].days = workdays(c[k].start, c[k].end); }
   }
+  // Sprint names from a team pattern. {NN} restarts every calendar year (year of the first day), {LFD} runs on.
+  const NAME_TOKENS = [["{JJJJ}", "Jahr, 4-stellig"], ["{JJ}", "Jahr, 2-stellig"], ["{NN}", "Nummer im Jahr, 2-stellig"], ["{N}", "Nummer im Jahr"], ["{LFD}", "fortlaufende Nummer"], ["{Q}", "Quartal"], ["{MM}", "Monat"], ["{KW}", "Kalenderwoche"]];
+  const isoWeek = (iso) => { const d = new Date(iso + "T00:00:00Z"), day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); const y = d.getUTCFullYear(), f = new Date(Date.UTC(y, 0, 4)); return 1 + Math.round(((d - f) / 864e5 - 3 + ((f.getUTCDay() + 6) % 7)) / 7); };
+  function nameAll(pattern) {
+    let nn = 0, yr = null, lfd = 40; // demo: the team has had 40 sprints before 2026.17
+    return S.cal.map((sp, i) => {
+      const y = sp.start.slice(0, 4);
+      nn = i === 0 ? Number(sp.orig.split(".")[1]) || 1 : y !== yr ? 1 : nn + 1; yr = y; lfd++;
+      const m = Number(sp.start.slice(5, 7)), pad = (v) => String(v).padStart(2, "0");
+      return pattern.replace(/\{JJJJ\}/g, y).replace(/\{JJ\}/g, y.slice(2)).replace(/\{NN\}/g, pad(nn)).replace(/\{N\}/g, nn).replace(/\{LFD\}/g, lfd).replace(/\{Q\}/g, Math.ceil(m / 3)).replace(/\{MM\}/g, pad(m)).replace(/\{KW\}/g, pad(isoWeek(sp.start)));
+    });
+  }
+  function namingCard() {
+    const n = S.naming, names = nameAll(n.pattern), firstOpen = S.cal.findIndex((x) => x.state !== "past" && x.state !== "current");
+    const from = n.from ?? S.cal[firstOpen].id, fi = S.cal.findIndex((x) => x.id === from);
+    const affected = S.cal.map((sp, i) => ({ sp, i, nu: names[i] })).filter(({ sp, i }) => (n.history === "all" || i >= fi) && names[i] !== sp.id);
+    const dup = names.find((x, i) => names.indexOf(x) !== i), bad = !/\{(NN|N|LFD|KW)\}/.test(n.pattern);
+    return `<div class="card" id="cal-naming" style="margin-bottom:16px"><div class="row"><h2 style="margin:0;flex:1">Benennung der Sprints</h2><span class="chip small data">aktuell ${esc(n.applied)}</span></div>
+      <p class="small muted" style="margin:4px 0 12px">Ein Muster für das ganze Team. Platzhalter werden je Sprint ersetzt, alles andere bleibt wörtlich stehen. Die Nummer im Jahr beginnt mit dem ersten Sprint, der im neuen Jahr anfängt, wieder bei 1.</p>
+      <div class="grid cols-2" style="gap:16px">
+        <div class="stack" style="gap:10px">
+          <div class="field"><label for="nm-pat">Muster</label><input class="input data" id="nm-pat" value="${esc(n.pattern)}" placeholder="{JJJJ}.{NN}"></div>
+          <div class="row small" style="gap:6px;flex-wrap:wrap">${NAME_TOKENS.map(([t, l]) => `<button type="button" class="chip filter" data-tok="${t}" title="${l}">${t}</button>`).join("")}</div>
+          <p class="small muted" style="margin:0">${NAME_TOKENS.map(([t, l]) => `<span class="data">${t}</span> ${l}`).join(" · ")}. Beispiele: <span class="data">Atlas {JJ}-{NN}</span>, <span class="data">S{LFD}</span>, <span class="data">{JJJJ}-KW{KW}</span>.</p>
+          <div class="field"><label for="nm-from">Gilt ab Sprint</label><select class="input" id="nm-from" style="max-width:240px">${S.cal.slice(firstOpen).map((x) => `<option value="${x.id}" ${x.id === from ? "selected" : ""}>${x.id} (Beginn ${FS.fmtDate(x.start)})</option>`).join("")}</select></div>
+          <div class="stack" role="radiogroup" aria-label="Frühere Sprints" style="gap:6px">
+            <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="radio" name="nm-hist" value="keep" ${n.history !== "all" ? "checked" : ""} style="margin-top:3px"><span><strong>Frühere Sprints behalten ihren Namen</strong><br><span class="small muted">Empfohlen. Protokolle, Tags und Verlauf bleiben unverändert.</span></span></label>
+            <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="radio" name="nm-hist" value="all" ${n.history === "all" ? "checked" : ""} style="margin-top:3px"><span><strong>Auch laufende und abgeschlossene Sprints umbenennen</strong><br><span class="small muted">Verweise in Tickets, Protokollen und Verlauf ziehen mit, der alte Name bleibt als Alias suchbar. Git-Tags und Dateinamen alter Protokolle bleiben, wie sie sind.</span></span></label></div>
+        </div>
+        <div><div class="small muted" style="margin-bottom:6px">Vorschau</div>
+          <div class="tw"><table class="t"><thead><tr><th>Sprint</th><th>Beginn</th><th>Bisher</th><th>Neu</th></tr></thead><tbody>${S.cal.map((sp, i) => { const hit = affected.some((a) => a.i === i); return `<tr${hit ? "" : ' class="muted"'}><td>${sp.state === "past" ? ic("lock", "small") : ""}</td><td class="data">${FS.fmtDate(sp.start)}</td><td class="data">${esc(sp.id)}</td><td class="data">${hit ? `<strong>${esc(names[i])}</strong>` : '<span class="muted">bleibt</span>'}</td></tr>`; }).join("")}</tbody></table></div>
+          ${dup ? `<div class="banner bad" style="margin-top:8px">${ic("error")}<div class="grow">Das Muster ergibt doppelte Namen (<span class="data">${esc(dup)}</span>). Eine Nummer wie {NN}, {LFD} oder {KW} macht sie eindeutig.</div></div>` : bad ? `<div class="banner warn" style="margin-top:8px">${ic("warning")}<div class="grow">Ohne Nummer im Muster sind Namen nicht eindeutig.</div></div>` : ""}
+          ${FS.trk() === "jira" ? `<p class="small muted" style="margin:8px 0 0">Sprints in ${D.team.tracker} behalten ihren Namen. Die Zuordnung läuft über die Sprint-ID, unter Einstellungen, Tickets und Tracker.</p>` : ""}
+          <div class="row" style="margin-top:12px"><button class="btn primary" type="button" id="nm-apply" ${dup || !affected.length ? "disabled" : ""}>${ic("drive_file_rename_outline")}${affected.length ? `${affected.length} Sprints umbenennen` : "Nichts umzubenennen"}</button></div></div>
+      </div></div>`;
+  }
+  function wireNaming(main) {
+    const n = S.naming, pat = main.querySelector("#nm-pat");
+    const keep = () => { const p = pat.selectionStart; FS.render(); const i = document.querySelector("#nm-pat"); i.focus(); i.setSelectionRange(p, p); };
+    pat.oninput = () => { n.pattern = pat.value; keep(); };
+    main.querySelectorAll("[data-tok]").forEach((b) => (b.onclick = () => { const p = pat.selectionStart ?? pat.value.length; n.pattern = pat.value.slice(0, p) + b.dataset.tok + pat.value.slice(pat.selectionEnd ?? p); FS.render(); }));
+    main.querySelector("#nm-from").onchange = (e) => { n.from = e.target.value; FS.render(); };
+    main.querySelectorAll('[name="nm-hist"]').forEach((r) => (r.onchange = () => { n.history = r.value; FS.render(); }));
+    main.querySelector("#nm-apply").onclick = () => {
+      const names = nameAll(n.pattern), from = n.from ?? S.cal.find((x) => x.state !== "past" && x.state !== "current").id, fi = S.cal.findIndex((x) => x.id === from);
+      const before = S.cal.map((x) => x.id), list = S.cal.map((sp, i) => [sp, i]).filter(([sp, i]) => (n.history === "all" || i >= fi) && names[i] !== sp.id);
+      list.forEach(([sp, i]) => { track(`Sprint-Name ${sp.id}`, sp.id, names[i], "sprints.yaml"); sp.id = names[i]; });
+      track("Namensmuster", n.applied, n.pattern, "team.yaml"); const oldPat = n.applied; n.applied = n.pattern; n.from = null; FS.render();
+      FS.toast(`${list.length} Sprints umbenannt, ab ${from}${n.history === "all" ? " und rückwirkend" : ""}. Noch nicht gespeichert.`, () => { S.cal.forEach((x, i) => (x.id = before[i])); n.applied = oldPat; FS.render(); });
+    };
+  }
   FS.view("calendar", {
     title: "Sprint-Kalender",
     render() {
-      return `${head("Sprint-Kalender", `Beginn, Ende und Arbeitstage jedes Sprints. Region <span class="data">${D.team.region}</span> bestimmt die Feiertage. Abgeschlossene Sprints sind gesperrt.`)}
-        <div class="tw"><table class="t"><thead><tr><th>Sprint-ID</th><th>Beginn</th><th>Letzter Tag</th><th class="num">Arbeitstage</th><th>Freie Tage</th><th>Zustand</th></tr></thead><tbody>
+      return `${head("Sprint-Kalender", `Name, Beginn, Ende und Arbeitstage jedes Sprints. Region <span class="data">${D.team.region}</span> bestimmt die Feiertage. Abgeschlossene Sprints sind gesperrt.`)}
+        ${namingCard()}
+        <div class="tw"><table class="t"><thead><tr><th>Sprint</th><th>Beginn</th><th>Letzter Tag</th><th class="num">Arbeitstage</th><th>Freie Tage</th><th>Zustand</th></tr></thead><tbody>
           ${S.cal.map((s, i) => { const lock = s.state === "past", hol = holidaysIn(s.start, s.end); return `<tr>
-            <td>${lock ? `<span class="data">${s.id}</span>` : `<input class="input data" style="width:90px" data-id="${i}" value="${esc(s.id)}" aria-label="Sprint-ID" pattern="\\d{4}\\.\\d{2}">`}</td>
+            <td>${lock ? `<span class="data">${s.id}</span>` : `<input class="input data" style="width:120px" data-id="${i}" value="${esc(s.id)}" aria-label="Sprint-Name">`}</td>
             <td class="data">${FS.fmtDate(s.start)}</td>
             <td>${lock ? `<span class="data">${FS.fmtDate(s.end)}</span> ${ic("lock", "small")}` : `<input class="input data" type="date" data-end="${i}" value="${s.end}" min="${s.start}" aria-label="Letzter Tag ${s.id}">`}</td>
             <td class="num">${nc(s.days, calcBtn("wd:" + i, "Rechenweg Arbeitstage " + s.id))}</td>
             <td class="small">${hol.length ? hol.map((h) => `${FS.fmtDate(h)} ${HOLIDAYS[h]}`).join(", ") : '<span class="muted">keine</span>'}</td>
             <td>${{ past: '<span class="chip">abgeschlossen</span>', current: '<span class="chip ok">läuft</span>', open: '<span class="chip">offen</span>', planned: '<span class="chip fc">geplant</span>' }[s.state]}</td></tr>`; }).join("")}</tbody></table></div>
         <div class="grid cols-2" style="margin-top:16px"><div class="card"><h2>Letzten Tag ändern</h2><p class="small muted" style="margin:0">Ein neuer letzter Tag verschiebt Beginn und Ende aller folgenden Sprints, ihre Länge bleibt. Arbeitstage werden aus Wochenenden und Feiertagen neu berechnet.</p></div>
-          <div class="card"><h2>Sprint-ID umbenennen</h2><p class="small muted" style="margin:0">Die ID erscheint in Tickets, Protokollen und im Verlauf. Beim Umbenennen werden alle Verweise mit geändert. Format <span class="data">JJJJ.NN</span>, eindeutig.</p></div></div>${unsavedHint()}`;
+          <div class="card"><h2>Einzelnen Sprint umbenennen</h2><p class="small muted" style="margin:0">Für Ausnahmen direkt in der Tabelle. Der Name erscheint in Tickets, Protokollen und im Verlauf; alle Verweise ziehen mit. Er muss eindeutig sein, das Muster oben gilt dann für diesen Sprint nicht.</p></div></div>${unsavedHint()}`;
     },
     wire(main) {
+      wireNaming(main);
       main.querySelectorAll("[data-end]").forEach((i) => (i.onchange = () => {
         const k = +i.dataset.end, s = S.cal[k], old = s.end; if (!i.value || i.value < s.start) return FS.render();
         const startsBefore = S.cal.slice(k + 1).map((x) => x.start);
@@ -234,7 +288,7 @@
       }));
       main.querySelectorAll("[data-id]").forEach((i) => (i.onchange = () => {
         const s = S.cal[+i.dataset.id], v = i.value.trim();
-        if (!/^\d{4}\.\d{2}$/.test(v)) { FS.toast("Format JJJJ.NN, zum Beispiel 2026.23."); return FS.render(); }
+        if (!v) { FS.toast("Der Name darf nicht leer sein."); return FS.render(); }
         if (S.cal.some((x) => x !== s && x.id === v)) { FS.toast(`Die ID ${v} gibt es schon.`); return FS.render(); }
         const old = s.id; track(`Sprint-ID ${s.orig}`, s.orig, v, "sprints.yaml"); s.id = v; FS.render(); FS.toast(`Sprint ${old} heißt jetzt ${v}. Verweise in Tickets und Protokollen werden mit umbenannt.`, () => { s.id = old; FS.render(); });
       }));
@@ -247,8 +301,8 @@
   });
 
   // ================= settings (team) =================
-  const SET_LABEL = { hist: "Sprints für die Velocity", method: "Mittelwert-Art", band: "Spanne", horizon: "Forecast-Horizont (Sprints)", len: "Standard-Sprintlänge (Arbeitstage)", prod: "Produktionszugang", projects: "Projekte und Kontingente", minutes: "Protokolle schreiben", label: "Label planned_for im Tracker", absState: "Abwesenheit: angekündigt und bestätigt", basis: "Budgetbasis" };
-  const fmtV = (v) => (v === true ? "an" : v === false ? "aus" : { median: "Median", mean: "Mittelwert", p20: "mittlere 60 %", sd: "plus/minus Standardabweichung", forecast: "Forecast PLAN", capacity: "Kapazität mal Rate" }[v] || String(v));
+  const SET_LABEL = { hist: "Sprints für die Velocity", method: "Mittelwert-Art", band: "Spanne", horizon: "Forecast-Horizont (Sprints)", len: "Standard-Sprintlänge (Arbeitstage)", prod: "Produktionszugang", projects: "Projekte und Kontingente", minutes: "Protokolle schreiben", label: "Label planned_for im Tracker", absState: "Abwesenheit: angekündigt und bestätigt", basis: "Budgetbasis", unit: "Schätzeinheit", conv: "Umrechnung SP und PT", factor: "Fester Faktor (SP je PT)", unitFrom: "Einheit gilt ab Sprint" };
+  const fmtV = (v) => (v === true ? "an" : v === false ? "aus" : { median: "Median", mean: "Mittelwert", p20: "mittlere 60 %", sd: "plus/minus Standardabweichung", forecast: "Forecast PLAN", capacity: "Kapazität mal Rate", sp: "Story Points", pt: "Personentage", velocity: "aus der Velocity" , fixed: "fester Faktor" }[v] || (typeof v === "number" ? FS.fmt(v, 2) : String(v)));
   const settingsDiff = () => Object.keys(S.teamDraft).filter((k) => S.teamDraft[k] !== S.teamApplied[k]);
   FS.view("settings", {
     title: "Einstellungen, Team",
@@ -272,6 +326,17 @@
             <label class="row" style="flex-wrap:nowrap"><input type="radio" name="basis" data-t="basis" value="forecast" ${d.basis === "forecast" ? "checked" : ""}><span><strong>Forecast PLAN</strong> <span class="small muted">(Standard)</span></span></label>
             <label class="row" style="flex-wrap:nowrap"><input type="radio" name="basis" data-t="basis" value="capacity" ${d.basis === "capacity" ? "checked" : ""}><span><strong>Kapazität mal Rate</strong></span></label>
             <div class="row small muted"><span>Beispiel Kundenportal 2026.22: <span class="data">${FS.fmt(Math.round(0.35 * fcOf("2026.22")))}</span> Punkte nach Forecast, <span class="data">${FS.fmt(Math.round(0.35 * FS.sprint("2026.22").capacityPD * D.rate))}</span> nach Kapazität</span>${calcBtn("basis")}</div></div></div>
+          <div class="card" id="s-unit" data-s="einheit schätzung story points personentage umrechnung faktor sp pt"><h2>Schätzeinheit und Umrechnung</h2><div class="stack" style="gap:12px">
+            <div class="stack" role="radiogroup" aria-label="Schätzeinheit" style="gap:6px"><div class="small muted">Worin schätzt das Team?</div>
+              <label class="row" style="flex-wrap:nowrap"><input type="radio" name="unit" data-t="unit" value="sp" ${d.unit === "sp" ? "checked" : ""}><span><strong>Story Points</strong> <span class="small muted">(Standard)</span></span></label>
+              <label class="row" style="flex-wrap:nowrap"><input type="radio" name="unit" data-t="unit" value="pt" ${d.unit === "pt" ? "checked" : ""}><span><strong>Personentage</strong> <span class="small muted">Schätzung, Velocity und Forecast in PT</span></span></label></div>
+            ${d.unit === "sp" ? `<div class="stack" role="radiogroup" aria-label="Umrechnung" style="gap:6px"><div class="small muted">Wie werden Punkte in PT umgerechnet? Gebraucht für Kontingente der Projekte, die immer in PT laufen.</div>
+              <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="radio" name="conv" data-t="conv" value="velocity" ${d.conv === "velocity" ? "checked" : ""} style="margin-top:3px"><span><strong>Aus der Velocity</strong> <span class="small muted">(Standard)</span><br><span class="small muted">Aktuell <span class="data">${FS.fmt(D.rate, 2)}</span> Punkte je PT, ändert sich mit jedem Review.</span></span></label>
+              <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="radio" name="conv" data-t="conv" value="fixed" ${d.conv === "fixed" ? "checked" : ""} style="margin-top:3px"><span><strong>Fester Faktor</strong><br><span class="small muted">Zum Beispiel aus einer Vereinbarung mit der Projektleitung.</span></span></label>
+              ${d.conv === "fixed" ? `<div class="row" style="gap:6px;margin-left:24px"><input class="input data" data-t="factor" inputmode="decimal" value="${FS.fmt(d.factor, 2)}" style="width:72px;text-align:right" aria-label="Punkte je Personentag"><span class="small">Punkte je PT</span></div>` : ""}
+              <div class="small muted">Beispiel: 21 Punkte ≈ <span class="data">${FS.fmt(21 / (d.conv === "fixed" ? d.factor : D.rate), 1)}</span> PT.</div></div>` : `<p class="small muted" style="margin:0">Bei Schätzung in PT entfällt die Umrechnung: Kontingente, Planung und Forecast rechnen direkt in Personentagen.</p>`}
+            <div class="field" style="max-width:280px"><label for="t-unitFrom">Gilt ab Sprint</label><select class="input" id="t-unitFrom" data-t="unitFrom">${S.cal.filter((x) => x.state !== "past" && x.state !== "current").map((x) => `<option ${x.id === d.unitFrom ? "selected" : ""}>${x.id}</option>`).join("")}</select></div>
+            <p class="small muted" style="margin:0">Abgeschlossene Sprints behalten ihre Einheit. Wechselt die Einheit, rechnet der Forecast ihre Velocity mit dem Faktor um und kennzeichnet das im Rechenweg. Offene Schätzungen bleiben stehen und werden im Backlog als „alte Einheit“ markiert, bis jemand neu schätzt.</p></div></div>
           <div class="card" id="s-diff" data-keep="1"></div></div><p id="s-none" class="muted" hidden>Keine Einstellung gefunden.</p>`;
     },
     wire(main) {
@@ -284,7 +349,7 @@
           reset: () => { S.teamDraft = { ...S.teamApplied }; FS.render(); },
         });
       };
-      main.querySelectorAll("[data-t]").forEach((i) => (i.onchange = () => { const k = i.dataset.t; S.teamDraft[k] = i.type === "checkbox" ? i.checked : i.type === "radio" ? i.value : (isNaN(+i.value) ? i.value : +i.value); draw(); }));
+      main.querySelectorAll("[data-t]").forEach((i) => (i.onchange = () => { const k = i.dataset.t; S.teamDraft[k] = i.type === "checkbox" ? i.checked : i.type === "radio" || k === "unitFrom" ? i.value : k === "factor" ? (parseFloat(i.value.replace(",", ".")) || S.teamDraft.factor) : (isNaN(+i.value) ? i.value : +i.value); if (["unit", "conv", "factor"].includes(k)) FS.render(); else draw(); }));
       draw();
       main.querySelector("#s-q").addEventListener("input", (e) => {
         const q = e.target.value.trim().toLowerCase(); let n = 0;
@@ -322,7 +387,7 @@
             <p class="small muted" style="margin:4px 0 12px">Standard ist nur lesen. Wenn ihr komplett in Foresprint plant, kann die Planung die Sprintzuordnung nach ${D.team.tracker} übernehmen: nur auf Knopfdruck, immer mit Vorschau und Rückgängig. Reihenfolge, Schätzung, Status und Texte bleiben unangetastet. Foresprint legt keine Sprints an und startet oder schließt keine.</p>
             <div class="stack" style="gap:10px">
               <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="j-w-sprint" ${j.write.sprint ? "checked" : ""} style="margin-top:3px"><span><strong>Geplanten Sprint nach ${D.team.tracker} zurückschreiben</strong><br><span class="small muted">In Planen erscheint "In ${D.team.tracker} übernehmen". Gilt für das ganze Team (team.yaml).</span></span></label>
-              <div class="field" style="max-width:420px;${j.write.sprint ? "" : "opacity:.5"}"><label for="j-w-removed">Herausgenommene Tickets landen in ${D.team.tracker}</label><select class="input" id="j-w-removed" ${j.write.sprint ? "" : "disabled"}>${[["backlog", "im Backlog (ohne Sprint)"], ["proforma", 'im Pro-forma-Sprint "Refinement"'], ["next", "im nächsten Sprint"]].map(([v, l]) => `<option value="${v}" ${v === j.write.removed ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+              <div class="field" style="max-width:420px;${j.write.sprint ? "" : "opacity:.5"}" ${j.write.sprint ? "" : 'aria-disabled="true"'}><label for="j-w-removed">Herausgenommene Tickets landen in ${D.team.tracker}</label><select class="input" id="j-w-removed" ${j.write.sprint ? "" : "disabled"}>${[["backlog", "im Backlog (ohne Sprint)"], ["proforma", 'im Pro-forma-Sprint "Refinement"'], ["next", "im nächsten Sprint"]].map(([v, l]) => `<option value="${v}" ${v === j.write.removed ? "selected" : ""}>${l}</option>`).join("")}</select></div>
               <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="j-w-label" ${S.teamApplied.label ? "checked" : ""} style="margin-top:3px"><span>Label <span class="data">planned_for_&lt;sprint&gt;</span> beim Einfrieren vorschlagen<br><span class="small muted">Wie bisher; in Planen je Sprint abwählbar.</span></span></label>
               <div class="row"><button class="btn" type="button" data-act="wcheck" ${j.write.sprint ? "" : "disabled"}>${ic("verified_user")}Schreibrecht prüfen</button><span class="small">${j.write.checked ? FS.lightChip("ok", "Token darf Sprints im Projekt ATL bearbeiten") : '<span class="muted">Der Token braucht dafür das Recht, Sprints zu bearbeiten. Ohne dieses Recht bleibt alles lesend.</span>'}</span></div></div></div>
           <div class="card" style="grid-column:1/-1"><h2>Abfrage (JQL)</h2><div class="field"><label for="j-jql">Welche Tickets Foresprint liest</label><textarea class="input data" id="j-jql" rows="2">${esc(j.jql)}</textarea></div>
