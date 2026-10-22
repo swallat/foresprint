@@ -1,6 +1,6 @@
 // Mock answers of the Team area for a browser without the program (demo team "Atlas").
 
-import type { AbsencePeriod, CalendarResult, CalendarRow, CalendarView, EndResult, LastDay, NamePreview, NamingPreview, Owner, PeopleView, Person, Product, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from './types.team';
+import type { AbsencePeriod, CalendarResult, CalendarRow, CalendarView, EndResult, LastDay, NamePreview, NamingPreview, Owner, PeopleView, Person, Product, ProductsView, RuleOwner, RulePreview, Step, TeamApi } from '../types.team';
 
 const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'in_sprint'];
 
@@ -360,3 +360,5 @@ export const teamMock: TeamApi = {
     };
   },
 };
+
+export default teamMock;

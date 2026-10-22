@@ -16,10 +16,10 @@ import (
 	"github.com/swallat/foresprint/internal/validate"
 )
 
-// pastShown is the number of finished sprints the calendar shows above the running one.
-const pastShown = 3
+// calendarPastShown is the number of finished sprints the calendar shows above the running one.
+const calendarPastShown = 3
 
-func lastDayOf(s model.Sprint) time.Time { return s.End.Add(-24 * time.Hour) }
+func calendarLastDayOf(s model.Sprint) time.Time { return s.End.Add(-24 * time.Hour) }
 
 func calendarState(data *storage.TeamData, s model.Sprint, today time.Time) string {
 	switch {
@@ -33,7 +33,7 @@ func calendarState(data *storage.TeamData, s model.Sprint, today time.Time) stri
 	return CalOpen
 }
 
-func holidaysIn(data *storage.TeamData, s model.Sprint) []HolidayDTO {
+func calendarHolidaysIn(data *storage.TeamData, s model.Sprint) []HolidayDTO {
 	out := []HolidayDTO{}
 	c := data.Team.Capacity
 	region := ""
@@ -48,7 +48,7 @@ func holidaysIn(data *storage.TeamData, s model.Sprint) []HolidayDTO {
 	return out
 }
 
-func namingDTO(rules []model.NamingRule) []NamingRuleDTO {
+func calendarNamingDTO(rules []model.NamingRule) []NamingRuleDTO {
 	out := []NamingRuleDTO{}
 	for _, r := range rules {
 		from := ""
@@ -68,7 +68,7 @@ func (a *API) calendarWindow(data *storage.TeamData, count int) ([]model.Sprint,
 	if count < 1 {
 		count = 1
 	}
-	return sprintcal.AbsenceSprints(data, fc, count, pastShown)
+	return sprintcal.AbsenceSprints(data, fc, count, calendarPastShown)
 }
 
 func (a *API) calendarView(data *storage.TeamData, sprints []model.Sprint) CalendarView {
@@ -77,7 +77,7 @@ func (a *API) calendarView(data *storage.TeamData, sprints []model.Sprint) Calen
 		Today:        today.Format(isoDay),
 		Country:      data.Team.Capacity.Country,
 		Rows:         []CalendarRow{},
-		Naming:       namingDTO(data.Team.Sprint.Naming),
+		Naming:       calendarNamingDTO(data.Team.Sprint.Naming),
 		Placeholders: model.NamingPlaceholders,
 		ProForma:     append([]string{}, data.Team.Sprint.ProForma...),
 	}
@@ -90,9 +90,9 @@ func (a *API) calendarView(data *storage.TeamData, sprints []model.Sprint) Calen
 	for _, s := range sprints {
 		state := calendarState(data, s, today)
 		view.Rows = append(view.Rows, CalendarRow{
-			ID: s.ID, Start: s.Start.Format(isoDay), Last: lastDayOf(s).Format(isoDay),
+			ID: s.ID, Start: s.Start.Format(isoDay), Last: calendarLastDayOf(s).Format(isoDay),
 			Workdays: len(calendar.TeamWorkdays(&data.Team, s.Start, s.End)),
-			Holidays: holidaysIn(data, s),
+			Holidays: calendarHolidaysIn(data, s),
 			State:    state, Locked: state == CalFinished, Saved: data.SprintByID(s.ID) != nil,
 		})
 	}
@@ -208,9 +208,9 @@ func (a *API) SaveLastDays(team string, changes []LastDay, count int) (CalendarR
 	return CalendarResult{View: a.calendarView(fresh, window), Moved: moved, Undo: token}, nil
 }
 
-// numbersOfFirst are the number in the year and the running number of the first recorded
+// calendarNumbersOfFirst are the number in the year and the running number of the first recorded
 // sprint, read from its ID in the form of the numbering (1 and 1 if it has none).
-func numbersOfFirst(data *storage.TeamData) (number, seq int) {
+func calendarNumbersOfFirst(data *storage.TeamData) (number, seq int) {
 	number, seq = 1, 1
 	if len(data.Sprints) == 0 {
 		return
@@ -230,9 +230,9 @@ func numbersOfFirst(data *storage.TeamData) (number, seq int) {
 	return
 }
 
-// namingList is every recorded sprint plus the generated ones up to and including the last
+// calendarNamingList is every recorded sprint plus the generated ones up to and including the last
 // sprint of the window.
-func (a *API) namingList(data *storage.TeamData, window []model.Sprint) ([]model.Sprint, error) {
+func (a *API) calendarNamingList(data *storage.TeamData, window []model.Sprint) ([]model.Sprint, error) {
 	list := append([]model.Sprint(nil), data.Sprints...)
 	if len(window) == 0 {
 		return list, nil
@@ -255,7 +255,7 @@ func (a *API) namingList(data *storage.TeamData, window []model.Sprint) ([]model
 	return list, nil
 }
 
-type namingPlan struct {
+type calendarNamingPlan struct {
 	list     []model.Sprint
 	names    []string
 	fromIdx  int
@@ -263,18 +263,18 @@ type namingPlan struct {
 	windowAt int // index in list of the first sprint of the window
 }
 
-func (a *API) planNaming(data *storage.TeamData, window []model.Sprint, pattern, from string, all bool) (*namingPlan, error) {
-	list, err := a.namingList(data, window)
+func (a *API) calendarPlanNaming(data *storage.TeamData, window []model.Sprint, pattern, from string, all bool) (*calendarNamingPlan, error) {
+	list, err := a.calendarNamingList(data, window)
 	if err != nil {
 		return nil, err
 	}
-	number, seq := numbersOfFirst(data)
+	number, seq := calendarNumbersOfFirst(data)
 	names, err := calendar.NameAll(pattern, list, number, seq)
 	if err != nil {
 		return nil, err
 	}
 	today := a.day()
-	p := &namingPlan{list: list, names: names, changes: make([]bool, len(list))}
+	p := &calendarNamingPlan{list: list, names: names, changes: make([]bool, len(list))}
 	switch {
 	case all:
 		p.fromIdx = 0
@@ -308,7 +308,7 @@ func (a *API) planNaming(data *storage.TeamData, window []model.Sprint, pattern,
 	return p, nil
 }
 
-func hasNumber(pattern string) bool {
+func calendarHasNumber(pattern string) bool {
 	for _, p := range []string{"{NN}", "{N}", "{LFD}", "{KW}"} {
 		if strings.Contains(pattern, p) {
 			return true
@@ -320,7 +320,7 @@ func hasNumber(pattern string) bool {
 // NamingPreview shows what the pattern would do from the sprint from on ("" = the first sprint
 // that has not begun); all also takes the running and finished sprints.
 func (a *API) NamingPreview(team, pattern, from string, all bool, count int) (NamingPreview, error) {
-	prev := NamingPreview{Rows: []NamePreview{}, NoNumber: !hasNumber(pattern)}
+	prev := NamingPreview{Rows: []NamePreview{}, NoNumber: !calendarHasNumber(pattern)}
 	if bad := model.NamingProblem(pattern); bad != "" {
 		prev.Problem = bad
 		return prev, nil
@@ -333,7 +333,7 @@ func (a *API) NamingPreview(team, pattern, from string, all bool, count int) (Na
 	if err != nil {
 		return prev, err
 	}
-	plan, err := a.planNaming(data, window, pattern, from, all)
+	plan, err := a.calendarPlanNaming(data, window, pattern, from, all)
 	if err != nil {
 		return prev, err
 	}
@@ -376,7 +376,7 @@ func (a *API) ApplyNaming(team, pattern, from string, all bool, count int) (Cale
 	if err != nil {
 		return CalendarResult{}, err
 	}
-	plan, err := a.planNaming(data, window, pattern, from, all)
+	plan, err := a.calendarPlanNaming(data, window, pattern, from, all)
 	if err != nil {
 		return CalendarResult{}, err
 	}
