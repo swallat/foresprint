@@ -14,7 +14,7 @@
 <svelte:window onkeydown={key} />
 
 {#if tour.flow && step}
-  <aside class="guide" role="dialog" aria-label={t('Guided flow')} aria-live="polite">
+  <div class="guide" role="dialog" aria-label={t('Guided flow')} aria-live="polite">
     <div class="step">{tour.flow.id} · {tour.flow.title()} · {tour.index + 1}/{tour.flow.steps.length}</div>
     <p>{step.text()}</p>
     {#if tour.unmarked}<p class="small muted">{t('The element for this step is not on the page right now.')}</p>{/if}
@@ -26,7 +26,7 @@
       <span class="grow"></span>
       <button class="btn" type="button" onclick={() => void endTour()}><Icon name="close" />{t('End tour')}</button>
     </div>
-  </aside>
+  </div>
 {/if}
 
 <style>
