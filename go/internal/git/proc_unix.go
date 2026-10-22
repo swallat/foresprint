@@ -32,7 +32,7 @@ func terminateTree(cmd *exec.Cmd) error {
 // exitSignal names the signal that ended the process ("" if it exited by itself).
 func exitSignal(ps *os.ProcessState) string {
 	if ps == nil {
-		return "unknown (no process state)"
+		return ""
 	}
 	if ws, ok := ps.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
 		return ws.Signal().String()
