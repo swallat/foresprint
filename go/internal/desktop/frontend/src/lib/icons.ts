@@ -53,10 +53,7 @@ import i_help from '@material-symbols/svg-400/outlined/help.svg?raw';
 import i_history from '@material-symbols/svg-400/outlined/history.svg?raw';
 import i_info from '@material-symbols/svg-400/outlined/info.svg?raw';
 import i_key from '@material-symbols/svg-400/outlined/key.svg?raw';
-<<<<<<< HEAD
 import i_key_off from '@material-symbols/svg-400/outlined/key_off.svg?raw';
-=======
->>>>>>> origin/v1
 import i_keyboard_arrow_down from '@material-symbols/svg-400/outlined/keyboard_arrow_down.svg?raw';
 import i_keyboard_arrow_up from '@material-symbols/svg-400/outlined/keyboard_arrow_up.svg?raw';
 import i_language from '@material-symbols/svg-400/outlined/language.svg?raw';
@@ -83,11 +80,8 @@ import i_school from '@material-symbols/svg-400/outlined/school.svg?raw';
 import i_search from '@material-symbols/svg-400/outlined/search.svg?raw';
 import i_sell from '@material-symbols/svg-400/outlined/sell.svg?raw';
 import i_settings from '@material-symbols/svg-400/outlined/settings.svg?raw';
-<<<<<<< HEAD
 import i_settings_backup_restore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw';
-=======
 import i_skip_next from '@material-symbols/svg-400/outlined/skip_next.svg?raw';
->>>>>>> origin/v1
 import i_sort from '@material-symbols/svg-400/outlined/sort.svg?raw';
 import i_stop from '@material-symbols/svg-400/outlined/stop.svg?raw';
 import i_sync from '@material-symbols/svg-400/outlined/sync.svg?raw';
@@ -150,10 +144,7 @@ const icons = {
   history: i_history,
   info: i_info,
   key: i_key,
-<<<<<<< HEAD
   key_off: i_key_off,
-=======
->>>>>>> origin/v1
   keyboard_arrow_down: i_keyboard_arrow_down,
   keyboard_arrow_up: i_keyboard_arrow_up,
   language: i_language,
@@ -180,11 +171,8 @@ const icons = {
   search: i_search,
   sell: i_sell,
   settings: i_settings,
-<<<<<<< HEAD
   settings_backup_restore: i_settings_backup_restore,
-=======
   skip_next: i_skip_next,
->>>>>>> origin/v1
   sort: i_sort,
   stop: i_stop,
   sync: i_sync,

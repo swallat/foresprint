@@ -2,13 +2,9 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
-<<<<<<< HEAD
 import { dataMock, refreshMock, saveMock, status } from './mock.data';
 import type { Prefs, SprintInfo } from './types';
-=======
-import type { Prefs, Result, SprintInfo, Status } from './types';
 import type { TodayData, TodaySprint } from './types.today';
->>>>>>> origin/v1
 
 const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
   const n = 12 + i;
@@ -39,17 +35,6 @@ let prefs: Prefs = {
   dataDir: '/demo/teams',
   recentDataDirs: ['/demo/teams'],
 };
-
-<<<<<<< HEAD
-=======
-let incoming = 2;
-const status = (): Status => ({
-  storage: incoming > 0 ? 'incoming' : 'saved',
-  detail: '',
-  incoming,
-  findings: 1,
-  tracker: { enabled: true, name: 'Jira', last: new Date(Date.now() - 4 * 60000).toISOString(), syncing: false, failed: '' },
-});
 
 function today(): TodayData {
   const day = new Date().toISOString().slice(0, 10);
@@ -98,9 +83,6 @@ function today(): TodayData {
   };
 }
 
-const ok = (message: string): Result => ({ ok: true, message });
-
->>>>>>> origin/v1
 export const mockApi: Api = {
   ...dataMock,
   async Info() {
