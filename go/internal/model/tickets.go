@@ -210,6 +210,8 @@ type Project struct {
 	// State and End: a closed project has an end date and is listed under "closed projects".
 	State ProjectState
 	End   *time.Time
+	// ClosedAt is the day the project was finished or cancelled; End keeps the planned end.
+	ClosedAt *time.Time
 	// OpenScope is the open scope of the project without tickets, kept by hand.
 	OpenScope *float64
 	// Contact is the person to ask about the project (free text).

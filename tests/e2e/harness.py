@@ -470,5 +470,9 @@ def share(page: Page) -> Locator:
         button.wait_for(state="visible", timeout=2_000)
     if not button.is_visible():  # no pending changes: "Git" stays closed
         sidebar(page).locator("summary").filter(has_text="Git:").click()
+    # After saving, a trailing run still redraws the sidebar. A click that lands in it can be
+    # lost together with the replaced button (then no sync starts at all, seen on slow CI
+    # runners), so click only once the script has finished.
+    settle(page)
     button.click()
     return sidebar(page).get_by_test_id("stAlert")

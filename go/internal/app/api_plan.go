@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -191,7 +192,7 @@ func (c *planCtx) laneTickets() (in, candidates []PlanTicket) {
 	for _, t := range all {
 		pt := c.planTicket(t)
 		switch {
-		case c.inSprint(t):
+		case c.inSprint(t) && !slices.Contains(c.sprint.Removed, t.Key):
 			in = append(in, pt)
 		case t.Done || strings.EqualFold(str(t.Status), "done"):
 			continue
@@ -299,7 +300,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 		Unit: string(tm.Unit), Source: string(tm.Source()),
 		MultiProduct: tm.Features.Products, Production: tm.Features.Production,
 		Share: tm.Forecast.RoadmapShare, Products: []PlanProduct{}, Tickets: []PlanTicket{},
-		Candidates: []PlanTicket{}, Projects: []PlanProject{}, Assumptions: []Assumption{}, Notes: []string{},
+		Candidates: []PlanTicket{}, Removed: []string{}, Projects: []PlanProject{}, Assumptions: []Assumption{}, Notes: []string{},
 	}
 	if v.Source == "tracker" && tm.Tracker.Kind == "jira" {
 		v.TrackerName = "Jira"
@@ -440,7 +441,12 @@ func absenceName(s model.Sprint) string {
 
 func (c *planCtx) fillProducts(v *PlanSprint) {
 	d, s := c.data, c.sprint
+	v.Removed = append(v.Removed, s.Removed...)
 	if !d.Team.Features.Products {
+		v.SprintPre = s.Preplanned
+		if s.Preplanned != nil {
+			v.Preplanned = *s.Preplanned
+		}
 		return
 	}
 	var active []model.Product
@@ -503,7 +509,7 @@ func (c *planCtx) fillProjects(v *PlanSprint) {
 		if p.Closed() {
 			continue
 		}
-		pp := &PlanProject{ID: p.ID, Name: p.Name, Booked: p.Contingent.Total}
+		pp := &PlanProject{ID: p.ID, Name: p.Name, Booked: p.Contingent.Total, UsedPD: preplan.ContingentStatusOf(p.Contingent).Used}
 		byProject[p.ID] = pp
 		if !c.tickets() {
 			if vals, ok := c.sprint.Projects[p.ID]; ok && vals.Preplanned != nil {
@@ -844,6 +850,39 @@ func (a *API) SetPreplanned(team, sprintID, product string, value *float64) erro
 	})
 }
 
+// SetSprintPreplanned sets (or, with nil, clears) the pre-planned amount of a whole sprint; it
+// is for teams without the products feature.
+func (a *API) SetSprintPreplanned(team, sprintID string, value *float64) error {
+	if err := planNonNegative(value); err != nil {
+		return err
+	}
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+		s.Preplanned = value
+		return nil
+	})
+}
+
+// SetRemoved marks a ticket that the tracker keeps in the sprint as taken out by the team (or
+// takes the mark away again). The plan lists it under "adjust in the tracker" when frozen.
+func (a *API) SetRemoved(team, sprintID, ticket string, removed bool) error {
+	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+		if c.data.TicketByKey(ticket) == nil {
+			return errors.New(i18n.T("The ticket {key} does not exist.", "key", ticket))
+		}
+		kept := make([]string, 0, len(s.Removed)+1)
+		for _, k := range s.Removed {
+			if k != ticket {
+				kept = append(kept, k)
+			}
+		}
+		if removed {
+			kept = append(kept, ticket)
+		}
+		s.Removed = kept
+		return nil
+	})
+}
+
 // TakeEarmarks sets the pre-planned amount of every product to the sum of its earmarked tickets.
 func (a *API) TakeEarmarks(team, sprintID string) error {
 	return a.planEdit(team, sprintID, func(c *planCtx, s *model.Sprint) error {
@@ -1007,6 +1046,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 	var commit float64
 	planned := map[string]float64{}
 	prodPlanned := map[string]float64{}
+	var noProduct, noProductProd float64
 	if c.tickets() {
 		keys := []string{}
 		for _, k := range in.Tickets {
@@ -1016,10 +1056,23 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 			}
 			keys = append(keys, k)
 			commit += sizeOf(t)
+			if t.Product == "" && c.data.Team.Features.Products {
+				noProduct += sizeOf(t)
+				noProductProd += sizeOf(t) * t.ProdPct / 100
+				continue
+			}
 			planned[t.Product] += sizeOf(t)
 			prodPlanned[t.Product] += sizeOf(t) * t.ProdPct / 100
 		}
+		// Tickets without a product are split over the products by their shares.
+		for id, v := range preplan.SplitByShare(c.data, s, noProduct) {
+			planned[id] += v
+		}
+		for id, v := range preplan.SplitByShare(c.data, s, noProductProd) {
+			prodPlanned[id] += v
+		}
 		s.CommittedTickets = keys
+		s.Removed = nil // the minutes list them from here on
 	} else {
 		for id, v := range in.Amounts {
 			if v < 0 {

@@ -39,6 +39,11 @@ func TestMilestoneStatuses(t *testing.T) {
 	if m := MilestoneStatuses(pr2, dist2, data, short)[0]; m.Light != model.LightYellow || m.Open != 1 {
 		t.Errorf("gap case: %+v", m)
 	}
+	// A ticket in the sprint that holds the date but ends after it is yellow, not red.
+	dist4 := &Distribution{Placements: []Placement{{Ticket: "T-2", Sprint: sp("b"), Reason: ReasonPlaced}}}
+	if m := MilestoneStatuses(pr2, dist4, data, short)[0]; m.Light != model.LightYellow {
+		t.Errorf("holding sprint: %+v", m)
+	}
 	// A ticket in the first sprint after the known ones (dist.Later) is yellow after the last one.
 	later := day(55)
 	dist3 := &Distribution{Placements: []Placement{{Ticket: "T-2", Sprint: sp("z"), Reason: ReasonFixedSprint}},

@@ -22,8 +22,6 @@
   void params;
 
   const model = new PlanModel();
-  /** Tickets the tracker still has in the sprint that the team took out. */
-  let removed = $state<string[]>([]);
   /** Amounts and commitment without tickets, typed during the planning. */
   let amounts = $state<Record<string, number>>({});
   let commit = $state<number | null>(null);
@@ -33,7 +31,6 @@
   $effect(() => {
     void app.team;
     void app.sprint;
-    removed = [];
     amounts = {};
     commit = null;
     model.loading = true;
@@ -41,10 +38,12 @@
   });
 
   const d = $derived(model.data);
+  /** Tickets the tracker still has in the sprint that the team took out (saved with the sprint). */
+  const removed = $derived<string[]>(d?.removed ?? []);
   const noT = $derived(d?.source === 'none');
   const frozen = $derived(!!d?.frozen);
-  const lane = $derived<PlanTicket[]>(d ? d.tickets.filter((x) => !removed.includes(x.key)) : []);
-  const candidates = $derived<PlanTicket[]>(d ? [...d.tickets.filter((x) => removed.includes(x.key)), ...d.candidates] : []);
+  const lane = $derived<PlanTicket[]>(d?.tickets ?? []);
+  const candidates = $derived<PlanTicket[]>(d?.candidates ?? []);
   const sizeSum = (l: PlanTicket[]) => l.reduce((a, x) => a + (x.size ?? 0), 0);
   const laneSum = $derived(sizeSum(lane));
   const unrefined = $derived(lane.filter((x) => !x.refined && x.size != null).length);
@@ -57,7 +56,7 @@
 
   const adjust = $derived(
     d && d.source === 'tracker'
-      ? d.tickets.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
+      ? d.candidates.filter((x) => x.inTracker === d.sprint && removed.includes(x.key))
       : [],
   );
 
@@ -69,17 +68,23 @@
     const wasRemoved = removed.includes(key);
     const earmark = x.sprint;
     if (to === 'sprint') {
-      removed = removed.filter((k) => k !== key);
-      await model.change(() => api.SetEarmark(app.team, key, d.sprint));
+      await model.change(async () => {
+        if (wasRemoved) await api.SetRemoved(app.team, d.sprint, key, false);
+        await api.SetEarmark(app.team, key, d.sprint);
+      });
     } else {
-      if (x.inTracker === d.sprint) removed = [...removed, key];
-      await model.change(() => api.SetEarmark(app.team, key, ''));
+      await model.change(async () => {
+        if (x.inTracker === d.sprint) await api.SetRemoved(app.team, d.sprint, key, true);
+        await api.SetEarmark(app.team, key, '');
+      });
     }
     toast(to === 'sprint' ? t('{key} taken into the sprint.', { key }) : t('{key} taken out of the sprint.', { key }), 'info', {
       label: t('Undo'),
       run: () => {
-        removed = wasRemoved ? [...removed.filter((k) => k !== key), key] : removed.filter((k) => k !== key);
-        void model.change(() => api.SetEarmark(app.team, key, earmark));
+        void model.change(async () => {
+          await api.SetRemoved(app.team, d.sprint, key, wasRemoved);
+          await api.SetEarmark(app.team, key, earmark);
+        });
       },
     });
   }
@@ -124,7 +129,7 @@
       .map((p) => {
         const amount = noT ? p.amount : sizeSum(lane.filter((x) => x.project === p.id));
         const need = rate > 0 ? amount / rate : null;
-        const rest = p.bookedPD != null && need != null ? p.bookedPD - need : null;
+        const rest = p.bookedPD != null && need != null ? p.bookedPD - (p.usedPD ?? 0) - need : null;
         return { p, amount, need, rest };
       })
       .filter((r) => r.amount > 0);
@@ -133,7 +138,7 @@
   // --- Freezing -----------------------------------------------------------------------------
   async function freeze(): Promise<void> {
     if (!d) return;
-    const ok = await model.change(async () => {
+    await model.change(async () => {
       const file = await api.FreezePlan(app.team, d.sprint, {
         tickets: lane.map((x) => x.key),
         commitment: noT ? commit : null,
@@ -142,7 +147,6 @@
       });
       toast(t('Plan {sprint} frozen. Planning minutes written: {file}', { sprint: d.sprint, file }), 'ok');
     });
-    if (ok) removed = [];
   }
   const reopen = () =>
     model.change(() => api.ReopenPlan(app.team, d!.sprint), t('Plan opened again. The next freeze marks the old minutes as obsolete.'));
@@ -162,9 +166,9 @@
   <SprintHead {d} stage="plan">
     {#snippet actions()}
       {#if !noT}
-        <a class="btn" href="#/present" id="present"><Icon name="fit_screen" />{t('Presentation view')}</a>
+        <a class="btn" href="#/present" id="present" data-tour="plan-present"><Icon name="fit_screen" />{t('Presentation view')}</a>
       {/if}
-      <button class="btn primary" type="button" id="freeze" disabled={frozen || d.stage === 'past' || d.stage === 'current'} onclick={freeze}>
+      <button class="btn primary" type="button" id="freeze" data-tour="plan-freeze" disabled={frozen || d.stage === 'past' || d.stage === 'current'} onclick={freeze}>
         <Icon name="lock" />{t('Record the agreement and freeze')}
       </button>
     {/snippet}
@@ -173,7 +177,7 @@
   <Summary {d} used={used} commitment={frozen ? d.committed : null} count={lane.length} assumption={touched(assumptions.active) ? assumptions.active?.label : ''} whatIf={model.running} />
 
   {#if d.absences !== 'confirmed'}
-    <div class="banner warn">
+    <div class="banner warn" data-tour="plan-absences">
       <Icon name="event_busy" />
       <div class="grow">
         <strong>{t('Absences for {sprint} are not confirmed yet.', { sprint: d.sprint })}</strong>
@@ -236,7 +240,7 @@
       </div>
     </div>
   {:else}
-    <div id="lanes" class="grid cols-2 gapb">
+    <div id="lanes" class="grid cols-2 gapb" data-tour="plan-lanes">
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <div
         class="lane"
@@ -298,7 +302,7 @@
     <p class="small muted hint">{t('Drag, or use the buttons; Alt+arrow left or right moves between the lanes. A click on the key opens the details.')}</p>
   {/if}
 
-  <div class="grid cols-2 gapb" id="live">
+  <div class="grid cols-2 gapb" id="live" data-tour="plan-live">
     {#if d.multiProduct}
       <div class="card">
         <h2>{t('Product against budget')}</h2>
@@ -348,7 +352,7 @@
   <Production {d} {model} readonly={frozen} />
 
   {#if !noT && d.source === 'tracker'}
-    <div class="card gapb" id="adjust">
+    <div class="card gapb" id="adjust" data-tour="plan-jira">
       <h2>{t('Adjust in {tracker}', { tracker: d.trackerName || t('the tracker') })}</h2>
       {#if adjust.length}
         <p class="small muted">{t('These tickets are still in the {tracker} sprint but were taken out here. The tracker ticket stays unchanged; the list goes into the planning minutes.', { tracker: d.trackerName || t('the tracker') })}</p>
