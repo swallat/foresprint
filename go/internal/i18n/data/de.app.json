@@ -36,6 +36,7 @@
   "Only the latest reviewed sprint can be reopened.": "Nur der zuletzt abgeschlossene Sprint lässt sich wieder öffnen.",
   "Person days (frozen)": "Personentage (eingefroren)",
   "Person {id} does not exist.": "Die Person {id} gibt es nicht.",
+  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein.",
   "Please choose at least one product.": "Bitte wähle mindestens ein Produkt.",
   "Please choose how the project ends.": "Bitte wähle, wie das Projekt endet.",
   "Please enter a date for every milestone.": "Bitte gib für jeden Meilenstein ein Datum ein.",

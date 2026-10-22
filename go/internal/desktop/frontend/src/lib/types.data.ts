@@ -66,7 +66,9 @@ export interface Conflict {
 export interface Decision {
   file: string;
   path: string[];
-  choice: 'ours' | 'theirs';
+  choice: 'ours' | 'theirs' | 'custom';
+  /** With choice 'custom': the own value as YAML text (for a whole-file conflict the file content). */
+  value?: string;
 }
 
 export interface Version {
@@ -95,6 +97,36 @@ export interface LostFile {
   added: number;
   removed: number;
   orig?: string;
+}
+
+export interface ValueChange {
+  path: string[];
+  label: string;
+  kind: 'added' | 'changed' | 'removed';
+  before: string;
+  after: string;
+  hasBefore: boolean;
+  hasAfter: boolean;
+}
+
+export interface UnsavedFile {
+  file: string;
+  status: string;
+  whole: boolean;
+  values: ValueChange[];
+}
+
+export interface ValueRef {
+  file: string;
+  path: string[];
+}
+
+export interface LineEndings {
+  needed: boolean;
+  file: string;
+  rules: string[];
+  affected: string[];
+  problem?: Problem;
 }
 
 export interface Done {
@@ -195,6 +227,10 @@ export interface DataApi {
   Revert(version: string): Promise<Done>;
   Discard(files: string[]): Promise<Done>;
   Lost(files: string[]): Promise<LostFile[]>;
+  UnsavedChanges(): Promise<UnsavedFile[]>;
+  DiscardValues(items: ValueRef[]): Promise<Done>;
+  LineEndings(): Promise<LineEndings>;
+  ApplyLineEndings(): Promise<LineEndings>;
   Labels(checkServer: boolean): Promise<Label[]>;
   SetLabel(name: string, version: string, message: string): Promise<Done>;
   ShareLabel(name: string): Promise<Done>;
