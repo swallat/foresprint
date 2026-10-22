@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, setLanguage, setTheme, toast } from '../../lib/app.svelte';
+  import { app, setCalcMode, setLanguage, setTheme, toast, type CalcMode } from '../../lib/app.svelte';
   import { t } from '../../lib/i18n.svelte';
   import type { PageProps } from '../../lib/routes';
   import PageHead from '../../lib/ui/PageHead.svelte';
@@ -36,7 +36,16 @@
         {/each}
       </select>
     </div>
-    <p class="muted small">{t('Density and calculations next to numbers follow with the settings package.')}</p>
+    <div class="field">
+      <label for="p-calc">{t('Calculations next to numbers')}</label>
+      <select id="p-calc" class="input" value={app.calcMode} onchange={(e) => setCalcMode(e.currentTarget.value as CalcMode)}>
+        <option value="off">{t('Hidden')}</option>
+        <option value="icon">{t('Calculator icon')}</option>
+        <option value="inline">{t('Always shown')}</option>
+      </select>
+      <p class="muted small">{t('Help > Calculations explains every formula in any case.')}</p>
+    </div>
+    <p class="muted small">{t('Density follows with the settings package.')}</p>
   </div>
 {/if}
 
