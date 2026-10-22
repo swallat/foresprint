@@ -127,7 +127,7 @@
 {#if view}
   <nav class="tabs" aria-label={t('Forecast views')}>
     {#each tabs as tab (tab.id)}
-      <a href={link('/forecast', {}, tab.id === 'forecast' ? {} : { tab: tab.id })} class:active={activeTab === tab.id} aria-current={activeTab === tab.id ? 'page' : undefined}>
+      <a href={link('/forecast', {}, tab.id === 'forecast' ? {} : { tab: tab.id })} data-tour={tab.id === 'reports' ? 'forecast-reports' : undefined} class:active={activeTab === tab.id} aria-current={activeTab === tab.id ? 'page' : undefined}>
         <Icon name={tab.icon} size={18} />{tab.label}
       </a>
     {/each}
@@ -153,7 +153,7 @@
     <Reports />
   {:else}
   <div class="stack-lg">
-    <section class="card" aria-labelledby="fc-chart">
+    <section class="card" aria-labelledby="fc-chart" data-tour="forecast-chart">
       <h2 id="fc-chart">{t('Velocity and Forecast PLAN')}</h2>
       <ForecastChart past={view.past} upcoming={view.upcoming} {whatIf} digits={view.rounding} />
       {#if view.rate !== null}
@@ -164,7 +164,7 @@
       {/if}
     </section>
 
-    <section aria-labelledby="fc-next">
+    <section aria-labelledby="fc-next" data-tour="forecast-table">
       <h2 id="fc-next">{t('Coming sprints')}</h2>
       <div class="tw">
         <table class="t">
@@ -262,7 +262,7 @@
     </section>
 
     <div class="grid cols-2">
-      <section class="card stack" aria-labelledby="fc-wif">
+      <section class="card stack" aria-labelledby="fc-wif" data-tour="forecast-whatif">
         <h2 id="fc-wif">{t('What if')}</h2>
         <p class="small muted">{t('Try other assumptions. Nothing is saved; the chart and the table show the result.')}</p>
         <div class="row">
@@ -287,7 +287,7 @@
         {/if}
       </section>
 
-      <section class="card stack" aria-labelledby="fc-done">
+      <section class="card stack" aria-labelledby="fc-done" data-tour="forecast-analysis">
         <h2 id="fc-done">{t('When is it done?')}</h2>
         <p class="small muted">{t('Simulates the coming sprints from the velocities so far. A likelihood, not a promise.')}</p>
         <form
@@ -361,7 +361,7 @@
       </section>
     </div>
 
-    <section aria-labelledby="fc-hist">
+    <section aria-labelledby="fc-hist" data-tour="forecast-history">
       <h2 id="fc-hist">{t('Completed sprints')}</h2>
       {#if view.past.length === 0}
         <p class="muted">{t('No completed sprints yet.')}</p>
