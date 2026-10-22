@@ -46,6 +46,8 @@ type API struct {
 	dataDir string
 	run     trackerRun
 	undo    []projectSnapshot
+	// teamUndo is the last step of the Team area per team (undo.go).
+	teamUndo undoLog
 	// data is the storage of the data folder (area Data, api_data.go).
 	data *datasvc.Store
 	// tagMu guards tags: the tags the next Save sets (asked for in the Review).
