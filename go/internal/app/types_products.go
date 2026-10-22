@@ -43,6 +43,31 @@ type ProductsView struct {
 	Legacy   bool         `json:"legacy"`
 	Products []ProductDTO `json:"products"`
 	Owners   []OwnerDTO   `json:"owners"`
+	// Defaults is the default share per sprint for the running and the next sprints.
+	Defaults []ProductsDefault `json:"defaults"`
+}
+
+// ProductsDefault is the default amount of one sprint: Forecast PLAN (times the plannable share
+// when the team plans on the roadmap basis) times the share of each product, rounded to whole
+// points like the plan page.
+type ProductsDefault struct {
+	Sprint string `json:"sprint"`
+	// Running: the sprint runs today (the next one to plan is the first row that does not).
+	Running bool `json:"running"`
+	// Roadmap: the team plans on the roadmap basis, so RoadmapShare applies (even when it is 0).
+	Roadmap bool `json:"roadmap"`
+	// Plan is the Forecast PLAN of the sprint; nil = no forecast yet.
+	Plan *float64 `json:"plan"`
+	// Available is what is distributed: Plan, or Plan times RoadmapShare on the roadmap basis.
+	Available *float64 `json:"available"`
+	// RoadmapShare is set only on the roadmap basis (0 to 1), otherwise 0.
+	RoadmapShare float64 `json:"roadmapShare"`
+	// Fixed is the sum of the fixed amounts, Rest the number of active products without a fixed
+	// share, which split Available − Fixed (not below 0) evenly.
+	Fixed float64 `json:"fixed"`
+	Rest  int     `json:"rest"`
+	// Values is the default amount per active product id.
+	Values map[string]float64 `json:"values"`
 }
 
 // EndResult is the answer to ending a product.
