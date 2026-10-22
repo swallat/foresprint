@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/swallat/foresprint/internal/model"
+	"github.com/swallat/foresprint/internal/pytext"
 	"github.com/swallat/foresprint/internal/yamlx"
 )
 
@@ -221,7 +222,5 @@ func sameList(a, b []string) bool {
 	return true
 }
 
-// casefold is str.casefold() for the usual letters.
-func casefold(s string) string {
-	return strings.NewReplacer("ß", "ss", "ẞ", "ss", "ſ", "s").Replace(strings.ToLower(s))
-}
+// casefold is str.casefold().
+func casefold(s string) string { return pytext.Casefold(s) }
