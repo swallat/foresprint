@@ -574,6 +574,27 @@ func preplanExtrasFrom(d *yamlx.Map, pp *model.Preplan, where string) error {
 			Daily: truthy(getOr(m, "daily", false)),
 		})
 	}
+	pf, err := sequence(get(d, "proforma"), where, "proforma")
+	if err != nil {
+		return err
+	}
+	for i, item := range pf {
+		at := where + ": proforma[" + idx(i) + "]"
+		m, ok := asMap(item)
+		if !ok || !truthy(get(m, "ticket")) {
+			return dataErr("{where}: field 'ticket' is missing", "where", at)
+		}
+		name := ""
+		if n := text(get(m, "name")); n != nil {
+			name = *n
+		}
+		pp.ProForma = append(pp.ProForma, model.ProFormaPlacement{Ticket: pyStr(get(m, "ticket")), Name: name})
+	}
+	order, err := texts(get(d, "order"), where, "order")
+	if err != nil {
+		return err
+	}
+	pp.Order = order
 	return nil
 }
 
@@ -605,6 +626,20 @@ func preplanExtrasTo(out *yamlx.Map, pp model.Preplan) {
 			list[i] = e
 		}
 		put(out, "overrides", list)
+	}
+	if len(pp.ProForma) > 0 {
+		list := make([]any, len(pp.ProForma))
+		for i, f := range pp.ProForma {
+			list[i] = omap("ticket", f.Ticket, "name", f.Name)
+		}
+		put(out, "proforma", list)
+	}
+	if len(pp.Order) > 0 {
+		list := make([]any, len(pp.Order))
+		for i, k := range pp.Order {
+			list[i] = k
+		}
+		put(out, "order", list)
 	}
 }
 

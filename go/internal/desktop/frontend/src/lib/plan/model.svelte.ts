@@ -52,6 +52,23 @@ export function touched(a: Assumption | undefined): boolean {
   return !!a && (a.carry.length > 0 || (a.notDone ?? 0) > 0 || (a.extra ?? 0) > 0 || a.commitment != null);
 }
 
+/** The lists of an answer as arrays, even when the core sent null for an empty one. */
+export function withLists(d: PlanSprint): PlanSprint {
+  const list = <T>(x: T[] | null | undefined): T[] => x ?? [];
+  return {
+    ...d,
+    removed: list(d.removed),
+    products: list(d.products),
+    tickets: list(d.tickets),
+    candidates: list(d.candidates),
+    projects: list(d.projects),
+    notes: list(d.notes),
+    assumptions: list(d.assumptions).map((a) => ({ ...a, carry: list(a.carry) })),
+    prod: d.prod ? { ...d.prod, people: list(d.prod.people) } : null,
+    matrix: d.matrix ? { projects: list(d.matrix.projects), cells: list(d.matrix.cells) } : null,
+  };
+}
+
 export class PlanModel {
   data = $state<PlanSprint | null>(null);
   error = $state('');
@@ -69,12 +86,12 @@ export class PlanModel {
     }
     const my = ++this.seq;
     try {
-      const first = await api.PlanSprint(team, sprint, null);
+      const first = withLists(await api.PlanSprint(team, sprint, null));
       if (my !== this.seq) return;
       ensureDrafts(first.assumptions);
       const a = assumptions.active;
       const use = touched(a) ? $state.snapshot(a) : null;
-      const data = use ? await api.PlanSprint(team, sprint, use as Assumption) : first;
+      const data = use ? withLists(await api.PlanSprint(team, sprint, use as Assumption)) : first;
       this.running = use && first.running ? await api.WhatIf(team, sprint, use as Assumption) : null;
       if (my !== this.seq) return;
       this.data = data;

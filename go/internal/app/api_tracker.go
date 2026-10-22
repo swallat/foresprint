@@ -65,6 +65,7 @@ func (a *API) TrackerSettings(team string) (TrackerSettings, error) {
 		FixedSources:    append([]string{}, model.RuleSources...),
 		WriteSprint:     t.WriteSprint, RemovedTarget: t.RemovedTarget, WriteLabels: t.WriteLabels,
 		PackagePrefix: t.PackagePrefix,
+		BoardID:       trackerBoardOf(t.BoardID),
 		Token:         tokenState(t.BaseURL),
 		Tickets:       len(data.Tickets),
 	}
@@ -278,6 +279,16 @@ func (a *API) applyTracker(t *model.Team, data *storage.TeamData, in TrackerSett
 	}
 	if in.RemovedTarget != "" && !contains(model.RemovedTargets, in.RemovedTarget) {
 		return bad("Unknown place for removed tickets: {value}", "value", in.RemovedTarget)
+	}
+	if in.BoardID < 0 {
+		return bad("The board number is a positive whole number.")
+	}
+	if in.Kind == "jira" { // the board belongs to Jira; another kind keeps what is there
+		tr.BoardID = nil
+		if in.BoardID > 0 {
+			n := in.BoardID
+			tr.BoardID = &n
+		}
 	}
 	tr.WriteSprint, tr.RemovedTarget, tr.WriteLabels = in.WriteSprint, in.RemovedTarget, in.WriteLabels
 	t.Tracker = tr
@@ -521,4 +532,12 @@ func (a *API) TokenInfo(team, baseURL string) TokenState {
 		return tokenState(&base)
 	}
 	return tokenState(nil)
+}
+
+// trackerBoardOf is the board number of the settings, 0 when none is set.
+func trackerBoardOf(p *int) int {
+	if p == nil {
+		return 0
+	}
+	return *p
 }

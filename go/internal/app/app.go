@@ -125,7 +125,7 @@ func (a *API) Prefs() Prefs {
 		Theme:          config.Theme(),
 		Density:        config.Density(),
 		DataDir:        a.DataDir(),
-		RecentDataDirs: config.RecentDataDirs(),
+		RecentDataDirs: nonNilList(config.RecentDataDirs()),
 	}
 	for _, l := range i18n.Languages() {
 		p.Languages = append(p.Languages, Choice{Code: l.Code, Label: l.Name})
@@ -273,4 +273,13 @@ func savedLanguage() string {
 		return code
 	}
 	return i18n.Language()
+}
+
+// nonNilList turns a nil list into an empty one: a nil slice is JSON null, and the window reads
+// the length of every list it gets.
+func nonNilList[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
 }
