@@ -1,0 +1,21 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "tickets",
+  "demo",
+  "--import",
+  "demo/jira_en.csv",
+  "--apply"
+ ],
+ "input": "",
+ "exit_code": 0,
+ "files": {
+  "demo/tickets.yaml": "# Tickets as last imported from the tracker. Written by the import – do not edit by hand.\nschema: 1\nimported: X\nsource: jira_en.csv\ntickets:\n- key: ABC-1\n  title: 'Checkout: new payment provider'\n  status: To Do\n  issue_type: Story\n  estimate: 5\n  remaining: 3.5\n  estimate_source: refined\n  sprint_name: Sprint 22\n  rank: '0|i0001:'\n  epic: ABC-100\n  labels:\n  - payment\n  - Refined\n  components:\n  - Checkout\n  depends_on:\n  - ABC-2\n  - ABC-3\n  project: payment\n- key: ABC-2\n  title: Schema change, part 1\n  status: Ready\n  issue_type: Task\n  estimate: 8\n  estimate_source: rough\n  rank: '0|i0002:'\n  epic: ABC-200\n  labels: []\n  components:\n  - Database\n  depends_on: []\n  project: migration\n- key: ABC-3\n  title: Done already\n  status: Done\n  issue_type: Bug\n  estimate: 2\n  remaining: 0\n  estimate_source: rough\n  sprint_name: Sprint 20\n  rank: '0|i0003:'\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n  done: true\n- key: ABC-4\n  title: Line one line two\n  status: To Do\n  issue_type: Story\n  estimate: null\n  estimate_source: none\n  rank: '0|i0004:'\n  epic: null\n  labels: []\n  components: []\n  depends_on: []\n"
+ },
+ "deleted": [],
+ "seed": {
+  "demo/team.yaml": "name: Demo-Team\nunit: PT\nfeatures:\n  products: true\n  po: true\n  production: true\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: '2026.1'\n    start: 2026-01-07\nforecast:\n  reference_capacity: 45\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: NW\n  rounding: 1\ntracker:\n  kind: csv\n  fields:\n    estimate: Story Points\n    remaining: Remaining\n    epic: Epic Link\n  refined_label: Refined\n",
+  "demo/projects.yaml": "schema: 1\nprojects:\n- id: payment\n  name: Payment\n  product: webshop\n  target: '2027-03-31'\n  match:\n    epic:\n    - ABC-100\n- id: migration\n  name: Migration\n  product: webshop\n  target: '2026-11-30'\n  match:\n    epic:\n    - ABC-200\n",
+  "demo/jira_en.csv": "Summary,Issue key,Issue id,Issue Type,Status,Resolution,Labels,Labels,Component/s,Sprint,Sprint,Custom field (Rank),Custom field (Story Points),Custom field (Remaining),Custom field (Epic Link),Inward issue link (Blocks),Inward issue link (Blocks),Outward issue link (Blocks)\nCheckout: new payment provider,ABC-1,10001,Story,To Do,,payment,Refined,Checkout,Sprint 21,Sprint 22,0|i0001:,5,3.5,ABC-100,ABC-2,ABC-3,\n\"Schema change, part 1\",ABC-2,10002,Task,Ready,,,,Database,,,0|i0002:,8,,ABC-200,,,ABC-1\nDone already,ABC-3,10003,Bug,Done,Done,,,,Sprint 20,,0|i0003:,2,0,,,,ABC-1\n\"Line one\nline two\",ABC-4,10004,Story,To Do,,,,,,,0|i0004:,,,,,,\n,,,,,,,,,,,,,,,,,\n"
+ }
+}

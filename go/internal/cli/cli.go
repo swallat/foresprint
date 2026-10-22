@@ -19,6 +19,7 @@ import (
 
 	"github.com/swallat/foresprint/internal/config"
 	"github.com/swallat/foresprint/internal/i18n"
+	"github.com/swallat/foresprint/internal/sources"
 	"github.com/swallat/foresprint/internal/storage"
 )
 
@@ -84,6 +85,7 @@ func Register(b Builder) { builders = append(builders, b) }
 func Execute(args []string, in io.Reader, out, errOut io.Writer) int {
 	config.Install()
 	storage.Translate = func(text string) string { return i18n.T(text) }
+	sources.Translate = func(text string) string { return i18n.T(text) }
 	i18n.SetLanguage("") // a language chosen by an earlier run in this process must not stay
 	env := &Env{In: in, Out: out, Err: errOut}
 	root := newRoot(env)

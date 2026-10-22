@@ -1,0 +1,16 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "tickets",
+  "demo"
+ ],
+ "input": "",
+ "exit_code": 0,
+ "files": {},
+ "deleted": [],
+ "seed": {
+  "demo/team.yaml": "name: Demo-Team\nunit: PT\nfeatures:\n  products: true\n  po: true\n  production: true\n  tickets: true\nsprint:\n  length_days: 14\n  numbering: yearly\n  first:\n    id: '2026.1'\n    start: 2026-01-07\nforecast:\n  reference_capacity: 45\n  window: 5\n  roadmap_share: 0.8\n  rounding: 1\n  trend_mode: flat\n  horizon: 3\ncapacity:\n  overhead_share: 0.0\n  region: NW\n  rounding: 1\ntracker:\n  kind: csv\n  fields:\n    estimate: Story Points\n    remaining: Remaining\n    epic: Epic Link\n  refined_label: Refined\n",
+  "demo/projects.yaml": "schema: 1\nprojects:\n- id: payment\n  name: Payment\n  product: webshop\n  target: '2027-03-31'\n  match:\n    epic:\n    - ABC-100\n- id: migration\n  name: Migration\n  product: webshop\n  target: '2026-11-30'\n  match:\n    epic:\n    - ABC-200\n",
+  "demo/jira_en.csv": "Summary,Issue key,Issue id,Issue Type,Status,Resolution,Labels,Labels,Component/s,Sprint,Sprint,Custom field (Rank),Custom field (Story Points),Custom field (Remaining),Custom field (Epic Link),Inward issue link (Blocks),Inward issue link (Blocks),Outward issue link (Blocks)\nCheckout: new payment provider,ABC-1,10001,Story,To Do,,payment,Refined,Checkout,Sprint 21,Sprint 22,0|i0001:,5,3.5,ABC-100,ABC-2,ABC-3,\n\"Schema change, part 1\",ABC-2,10002,Task,Ready,,,,Database,,,0|i0002:,8,,ABC-200,,,ABC-1\nDone already,ABC-3,10003,Bug,Done,Done,,,,Sprint 20,,0|i0003:,2,0,,,,ABC-1\n\"Line one\nline two\",ABC-4,10004,Story,To Do,,,,,,,0|i0004:,,,,,,\n,,,,,,,,,,,,,,,,,\n"
+ }
+}

@@ -166,6 +166,9 @@ func NewJiraSource(settings Settings, token string, transport http.RoundTripper)
 	}, nil
 }
 
+// Host is the host name of the Jira address (for messages).
+func (j *JiraSource) Host() string { return j.host }
+
 // Kind is "jira".
 func (j *JiraSource) Kind() string { return "jira" }
 

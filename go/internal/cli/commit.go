@@ -41,40 +41,47 @@ func issuesFor(data *storage.TeamData, e *Env, files []string) []validate.Issue 
 
 // maybeCommit shows the findings for the changed files and commits when asked to.
 func (e *Env) maybeCommit(team string, paths []string, message, tag string, doCommit bool) error {
+	_, err := e.maybeCommitIssues(team, paths, message, tag, doCommit)
+	return err
+}
+
+// maybeCommitIssues is maybeCommit that also returns the findings it showed.
+func (e *Env) maybeCommitIssues(team string, paths []string, message, tag string, doCommit bool) ([]validate.Issue, error) {
 	data, err := e.LoadTeam(team)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	names := make([]string, len(paths))
 	for i, p := range paths {
 		names[i] = baseName(p)
 	}
 	hasErrors := false
-	for _, i := range issuesFor(data, e, names) {
+	shown := issuesFor(data, e, names)
+	for _, i := range shown {
 		e.Printf("%s %s: %s\n", i18n.T(string(i.Level)), textfmt.BlankControls(i.Where), textfmt.BlankControls(i.Message))
 		hasErrors = hasErrors || i.Level == validate.Error
 	}
 	if !doCommit {
 		e.Println(i18n.P("Tip: with --commit the change is committed to Git right away."))
-		return nil
+		return shown, nil
 	}
 	if hasErrors {
 		e.Warnf("%s", i18n.P("Not committed – please fix the errors first."))
-		return errExit1
+		return shown, errExit1
 	}
 	rev, err := git.Commit(context.Background(), paths, message, tag)
 	if err != nil {
 		if ge := git.As(err); ge != nil {
-			return GitProblem(ge)
+			return shown, GitProblem(ge)
 		}
-		return err
+		return shown, err
 	}
 	suffix := ""
 	if tag != "" {
 		suffix = i18n.P(", tag {tag}", "tag", tag)
 	}
 	e.Println(i18n.P("Committed ({rev}){suffix}.", "rev", rev, "suffix", suffix))
-	return nil
+	return shown, nil
 }
 
 func baseName(path string) string {
