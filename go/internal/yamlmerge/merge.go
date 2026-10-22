@@ -57,6 +57,26 @@ func (p Path) Key() string {
 // Choices holds the decisions for conflicts: the key of the path (Path.Key) to "ours" or "theirs".
 type Choices map[string]string
 
+// CustomPrefix starts a decision with a value typed in by the person: "custom:" followed by the
+// value as YAML text (a plain number or text, or a block of YAML).
+const CustomPrefix = "custom:"
+
+// CustomChoice is the decision for a value typed in by the person.
+func CustomChoice(text string) string { return CustomPrefix + text }
+
+// CustomValue reads the value of a custom decision. ok is false for "ours" and "theirs".
+func CustomValue(choice string) (value any, ok bool, err error) {
+	text, found := strings.CutPrefix(choice, CustomPrefix)
+	if !found {
+		return nil, false, nil
+	}
+	value, err = yamlx.Load(text)
+	if err != nil {
+		return nil, true, err
+	}
+	return value, true, nil
+}
+
 // Choose records the decision for the path.
 func (c Choices) Choose(p Path, side string) { c[p.Key()] = side }
 
@@ -231,11 +251,15 @@ func (m *merger) merge(base, ours, theirs any, path Path) any {
 			}
 		}
 	}
-	switch m.choices[path.Key()] {
+	choice := m.choices[path.Key()]
+	switch choice {
 	case Theirs:
 		return theirs
 	case Ours:
 		return ours
+	}
+	if v, ok, err := CustomValue(choice); ok && err == nil {
+		return v
 	}
 	m.conflicts = append(m.conflicts, KeyConflict{append(Path(nil), path...), ours, theirs, base})
 	return ours
@@ -414,6 +438,10 @@ func (m *merger) mergePrognoses(base, ours, theirs any, path Path) (union []any,
 			chosen, has = o, hasO
 		default:
 			choice, decided := m.choices[sub.Key()]
+			custom, isCustom, cerr := CustomValue(choice)
+			if cerr != nil {
+				isCustom = false
+			}
 			if !decided {
 				c := KeyConflict{Path: sub, Ours: Missing, Theirs: Missing, Base: Missing}
 				if hasB {
@@ -427,9 +455,19 @@ func (m *merger) mergePrognoses(base, ours, theirs any, path Path) (union []any,
 				}
 				m.conflicts = append(m.conflicts, c)
 			}
-			if choice == Theirs {
+			switch item, isItem := custom.(*yamlx.Map); {
+			case choice == Theirs:
 				chosen, has = t, hasT
-			} else {
+			case isCustom && isItem:
+				at, _ := mapGet(item, "at")
+				if stamp, ok := stampOf(at); ok {
+					chosen, has = stamped{stamp, item}, true
+				} else {
+					chosen, has = o, hasO
+				}
+			case isCustom && custom == nil:
+				has = false // an empty value removes the entry
+			default:
 				chosen, has = o, hasO
 			}
 		}
