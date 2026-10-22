@@ -1,0 +1,62 @@
+<script lang="ts">
+  // One ticket (or work package) in a lane: key with link to the tracker, title, product,
+  // project, refinement state, production share and estimate. Drag with the handle, or use the
+  // button; Alt+arrow moves between lanes (handled by the lane).
+  import { openTicket } from '../app.svelte';
+  import { t } from '../i18n.svelte';
+  import Icon from '../Icon.svelte';
+  import type { PlanSprint, PlanTicket } from '../types.plan';
+  import { fmt } from './model.svelte';
+
+  interface Props {
+    ticket: PlanTicket;
+    d: PlanSprint;
+    drag?: boolean;
+    showProduct?: boolean;
+    showProject?: boolean;
+    /** Label of the move button; it is only shown when onmove is given. */
+    moveLabel?: string;
+    moveIcon?: 'arrow_forward' | 'arrow_back';
+    onmove?: () => void;
+    ondragstart?: (e: DragEvent) => void;
+  }
+  let { ticket, d, drag = false, showProduct = true, showProject = true, moveLabel = '', moveIcon = 'arrow_forward', onmove, ondragstart }: Props = $props();
+  const product = $derived(d.products.find((p) => p.id === ticket.product));
+  const project = $derived(d.projects.find((p) => p.id === ticket.project));
+</script>
+
+<div
+  class="ticket"
+  data-key={ticket.key}
+  draggable={drag}
+  role="listitem"
+  tabindex="0"
+  {ondragstart}
+>
+  <span class="handle" aria-hidden="true">{#if drag}<Icon name="drag_indicator" />{/if}</span>
+  <span class="key">
+    <button class="linkbtn data" type="button" onclick={() => openTicket(ticket.key)}>{ticket.key}</button>
+    {#if ticket.url}
+      <a href={ticket.url} target="_blank" rel="noreferrer" aria-label={t('Open {key} in the tracker', { key: ticket.key })}>
+        <Icon name="open_in_new" size={14} />
+      </a>
+    {/if}
+  </span>
+  <span class="title" title={ticket.title}>{ticket.title}</span>
+  <span class="meta">
+    {#if !ticket.refined}
+      <span class="chip warn">{ticket.size == null ? t('no estimate') : t('not refined')}</span>
+    {/if}
+    {#if showProduct && d.multiProduct && product}<span class="chip">{product.name}</span>{/if}
+    {#if showProject && project}<span class="chip"><Icon name="flag" size={14} />{project.name}</span>{/if}
+    {#if d.production && ticket.prodPct > 0}
+      <span class="chip" title={t('Production share')}>{t('Prod {pct} %', { pct: fmt(ticket.prodPct) })}</span>
+    {/if}
+    <span class="est">{ticket.size == null ? '–' : fmt(ticket.size, 1)}</span>
+    {#if onmove}
+      <button class="btn icon ghost" type="button" aria-label={moveLabel} onclick={onmove}>
+        <Icon name={moveIcon} />
+      </button>
+    {/if}
+  </span>
+</div>

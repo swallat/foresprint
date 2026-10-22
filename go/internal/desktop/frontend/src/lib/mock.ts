@@ -2,12 +2,20 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
+import { bindSprints, planMock } from './mock.plan';
 import type { Prefs, Result, SprintInfo, Status } from './types';
 
+// Fourteen sprints of two weeks around today: six past, the running one and seven to come.
+const firstStart = (() => {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) - 14 * 6);
+  return d.getTime();
+})();
 const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
   const n = 12 + i;
-  const start = new Date(Date.UTC(2026, 0, 5 + i * 14));
-  const end = new Date(start.getTime() + 11 * 86400000);
+  const start = new Date(firstStart + i * 14 * 86400000);
+  const end = new Date(start.getTime() + 13 * 86400000);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const now = Date.now();
   return {
@@ -17,6 +25,8 @@ const sprints: SprintInfo[] = Array.from({ length: 14 }, (_, i) => {
     state: end.getTime() < now ? 'past' : start.getTime() <= now ? 'current' : 'future',
   } satisfies SprintInfo;
 });
+
+bindSprints(() => sprints);
 
 let prefs: Prefs = {
   language: navigator.language.startsWith('de') ? 'de' : 'en',
@@ -46,6 +56,7 @@ const status = (): Status => ({
 const ok = (message: string): Result => ({ ok: true, message });
 
 export const mockApi: Api = {
+  ...planMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },

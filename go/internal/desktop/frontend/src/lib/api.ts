@@ -5,8 +5,9 @@
 // `Api` below (or to an area interface that extends it) and an answer to the mock.
 
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
+import type { PlanApi } from './types.plan';
 
-export interface Api {
+export interface Api extends PlanApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;
