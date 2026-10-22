@@ -42,6 +42,8 @@
   "A sync is already running.": "Ein Abruf läuft schon.",
   "{count} tickets read, no changes.": "{count} Tickets gelesen, keine Änderungen.",
   "{count} tickets read, {changes} changes.": "{count} Tickets gelesen, {changes} Änderungen.",
-  "{name} is listed twice.": "{name} steht doppelt in der Liste."
+  "{name} is listed twice.": "{name} steht doppelt in der Liste.",
+  "The sprint {id} is not known.": "Den Sprint {id} gibt es nicht.",
+  "The tracker section of team.yaml cannot be read. Fix it by hand first; Foresprint does not overwrite it.": "Der Abschnitt tracker in team.yaml lässt sich nicht lesen. Behebe das zuerst von Hand; Foresprint überschreibt ihn nicht."
  }
 }

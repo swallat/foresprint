@@ -30,6 +30,7 @@
     if (!team) return;
     try {
       const s = await api.TrackerSettings(team);
+      if (team !== app.team) return; // the team changed while the answer was on its way
       applied = s;
       draft = structuredClone(s);
       if (s.source === 'tracker' && s.kind === 'jira' && (s.token.stored || s.token.fromEnv)) {
@@ -117,6 +118,13 @@
     }
   }
 
+  /** Only the state of the token changes; what the user typed on the page stays. */
+  async function refreshToken(): Promise<void> {
+    const state = await api.TokenInfo(app.team, draft?.baseUrl ?? '');
+    if (applied) applied.token = state;
+    if (draft) draft.token = state;
+  }
+
   const test = () =>
     guarded('test', async () => {
       connection = await api.TestTrackerConnection(app.team, draft?.baseUrl ?? '');
@@ -132,7 +140,7 @@
       await api.SetTrackerToken(app.team, draft?.baseUrl ?? '', token);
       token = '';
       toast(t('Token stored in the keychain.'), 'ok');
-      await load(app.team);
+      await refreshToken();
     });
 
   const removeToken = () =>
@@ -140,7 +148,7 @@
       await api.RemoveTrackerToken(app.team, draft?.baseUrl ?? '');
       connection = undefined;
       toast(t('Token removed. Fetching pauses.'), 'ok');
-      await load(app.team);
+      await refreshToken();
     });
 
   const testQuery = () =>

@@ -3,8 +3,11 @@ package app
 import (
 	"errors"
 	"math"
+	"sort"
 	"strings"
+	"time"
 
+	"github.com/swallat/foresprint/internal/forecast"
 	"github.com/swallat/foresprint/internal/i18n"
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
@@ -18,13 +21,27 @@ func (a *API) loadTeam(key string) (*storage.Repository, *storage.TeamData, erro
 
 func round6(v float64) float64 { return math.Round(v*1e6) / 1e6 }
 
-// effectiveUnit is the unit valid now and the sprint it applies from ("" = from the start).
-func effectiveUnit(t model.Team) (model.Unit, string) {
-	if n := len(t.Estimation.Changes); n > 0 {
-		last := t.Estimation.Changes[n-1]
-		return last.Unit, last.From
+// sprintStart is the start of a recorded sprint or of one the calendar generates up to a year
+// ahead.
+func sprintStart(data *storage.TeamData, id string) (time.Time, bool) {
+	s, err := forecast.FindSprint(data, id, 52)
+	if err != nil || s == nil {
+		return time.Time{}, false
 	}
-	return t.Unit, ""
+	return s.Start, true
+}
+
+// effectiveUnit is the unit valid today and the sprint it applies from ("" = from the start):
+// the latest switch whose sprint has begun.
+func effectiveUnit(data *storage.TeamData, now time.Time) (model.Unit, string) {
+	unit, from := data.Team.Unit, ""
+	var latest time.Time
+	for _, c := range data.Team.Estimation.Changes {
+		if start, ok := sprintStart(data, c.From); ok && !start.After(now) && !start.Before(latest) {
+			unit, from, latest = c.Unit, c.From, start
+		}
+	}
+	return unit, from
 }
 
 // TeamSettings returns the settings of Settings > Team.
@@ -34,7 +51,7 @@ func (a *API) TeamSettings(team string) (TeamSettings, error) {
 		return TeamSettings{}, err
 	}
 	t := data.Team
-	unit, from := effectiveUnit(t)
+	unit, from := effectiveUnit(data, time.Now())
 	basis := "plan"
 	if t.Forecast.ProductBasis == model.BasisRoadmap {
 		basis = "share"
@@ -127,13 +144,21 @@ func (a *API) SaveTeamSettings(team string, in TeamSettings) error {
 	t.Capacity.ProductionCap = round6(in.ProductionCap)
 	t.Estimation.Factor = in.Factor
 
-	if current, _ := effectiveUnit(t); string(current) != in.Unit {
+	if current, _ := effectiveUnit(data, time.Now()); string(current) != in.Unit {
 		unit := model.Unit(in.Unit)
 		switch {
 		case in.UnitFrom != "":
+			if _, ok := sprintStart(data, in.UnitFrom); !ok {
+				return bad("The sprint {id} is not known.", "id", in.UnitFrom)
+			}
 			t.Estimation.Changes = append(withoutChange(t.Estimation.Changes, in.UnitFrom), model.UnitChange{From: in.UnitFrom, Unit: unit})
-		case len(t.Estimation.Changes) == 0:
-			t.Unit = unit // nothing recorded yet: valid from the start
+			sort.SliceStable(t.Estimation.Changes, func(i, j int) bool {
+				a, _ := sprintStart(data, t.Estimation.Changes[i].From)
+				b, _ := sprintStart(data, t.Estimation.Changes[j].From)
+				return a.Before(b)
+			})
+		case len(data.Sprints) == 0 && len(t.Estimation.Changes) == 0:
+			t.Unit = unit // no sprint recorded yet: valid from the start
 		default:
 			return bad("Choose the sprint the new unit applies from.")
 		}

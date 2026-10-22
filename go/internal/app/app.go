@@ -86,7 +86,7 @@ type Prefs struct {
 	Languages      []Choice `json:"languages"`
 	Theme          string   `json:"theme"`
 	Themes         []Choice `json:"themes"`
-	Density        string   `json:"density"`  // "compact", "normal" or "roomy"
+	Density        string   `json:"density"` // "compact", "normal" or "roomy"
 	DataDir        string   `json:"dataDir"`
 	RecentDataDirs []string `json:"recentDataDirs"`
 }

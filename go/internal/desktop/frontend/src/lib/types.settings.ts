@@ -141,6 +141,7 @@ export interface SettingsApi {
   TestTrackerQuery(team: string, baseUrl: string, query: string): Promise<QueryCheck>;
   TrackerFieldNames(team: string, baseUrl: string): Promise<string[]>;
   TrackerInfo(team: string): Promise<TrackerInfo>;
+  TokenInfo(team: string, baseUrl: string): Promise<TokenState>;
   SetDensity(code: string): Promise<void>;
   SyncTracker(team: string): Promise<Result>;
 }

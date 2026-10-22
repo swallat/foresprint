@@ -92,18 +92,33 @@ func TestUnitChangeNeedsASprintOnceRecorded(t *testing.T) {
 	if s.Unit == "SP" {
 		other = "PT"
 	}
-	s.Unit, s.UnitFrom = other, "2099.1"
+	sprints, _ := api.Sprints(team)
+	first, last := sprints[0].ID, sprints[len(sprints)-1].ID
+	s.Unit, s.UnitFrom = other, first
 	if err := api.SaveTeamSettings(team, s); err != nil {
 		t.Fatal(err)
 	}
 	got, _ := api.TeamSettings(team)
-	if got.Unit != other || got.UnitFrom != "2099.1" || len(got.UnitChanges) != 1 {
+	if got.Unit != other || got.UnitFrom != first || len(got.UnitChanges) != 1 {
 		t.Fatalf("after change: %+v", got)
 	}
-	got.Unit = orig // back again: needs a sprint
-	got.UnitFrom = ""
+	got.Unit, got.UnitFrom = orig, ""
 	if err := api.SaveTeamSettings(team, got); err == nil {
-		t.Error("a second switch without a sprint must be refused")
+		t.Error("a switch without a sprint must be refused")
+	}
+	got.UnitFrom = "no-such-sprint"
+	if err := api.SaveTeamSettings(team, got); err == nil {
+		t.Error("an unknown sprint must be refused")
+	}
+	if len(sprints) > 1 { // a later switch is kept in order after the earlier one
+		got.Unit, got.UnitFrom = orig, last
+		if err := api.SaveTeamSettings(team, got); err != nil {
+			t.Fatal(err)
+		}
+		again, _ := api.TeamSettings(team)
+		if len(again.UnitChanges) != 2 || again.UnitChanges[0].From != first || again.UnitChanges[1].From != last {
+			t.Errorf("changes = %+v", again.UnitChanges)
+		}
 	}
 }
 
@@ -234,5 +249,32 @@ func TestTokenStateNeverHoldsTheToken(t *testing.T) {
 	got, _ := api.TrackerSettings(team)
 	if !got.Token.FromEnv || got.Token.Host != "jira.example.org" {
 		t.Errorf("token state = %+v", got.Token)
+	}
+}
+
+func TestManualProductionIgnoresHiddenRules(t *testing.T) {
+	api, team := copyDemo(t)
+	in, _ := api.TrackerSettings(team)
+	in.Source, in.Kind = "tracker", "jira"
+	in.ProductionBy = "manual"
+	in.ProdRules = []ProdRule{{Rule: "", Percent: 100}}
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatalf("hidden rules must not block: %v", err)
+	}
+	got, _ := api.TrackerSettings(team)
+	if got.ProductionBy != "manual" || len(got.ProdRules) != 0 {
+		t.Errorf("got %+v", got)
+	}
+}
+
+func TestCSVTeamHasNoSyncChip(t *testing.T) {
+	api, team := copyDemo(t)
+	in, _ := api.TrackerSettings(team)
+	in.Source, in.Kind = "tracker", "csv"
+	if err := api.SaveTrackerSettings(team, in); err != nil {
+		t.Fatal(err)
+	}
+	if info := api.TrackerInfo(team); info.Enabled {
+		t.Errorf("info = %+v", info)
 	}
 }

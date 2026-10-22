@@ -11,8 +11,10 @@
     max?: number;
     unit?: string;
     width?: string;
+    /** Whole numbers only (the core reads an integer). */
+    integer?: boolean;
   }
-  let { id, label, value = $bindable(), min = 0, max = Number.MAX_SAFE_INTEGER, unit, width }: Props = $props();
+  let { id, label, value = $bindable(), min = 0, max = Number.MAX_SAFE_INTEGER, unit, width, integer = false }: Props = $props();
 
   let text = $state('');
   let wrong = $state(false);
@@ -24,7 +26,7 @@
 
   function take(): void {
     const n = parseNumber(text);
-    wrong = n === undefined || n < min || n > max;
+    wrong = n === undefined || n < min || n > max || (integer && !Number.isInteger(n));
     if (!wrong && n !== undefined) value = n;
   }
 </script>

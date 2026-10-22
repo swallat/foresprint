@@ -2,6 +2,7 @@
   import { link } from '../../lib/router.svelte';
   import { t } from '../../lib/i18n.svelte';
   import Icon from '../../lib/Icon.svelte';
+  import { parseNumber } from '../../lib/settings/diff';
   import RuleInput from '../../lib/settings/RuleInput.svelte';
   import type { TrackerSettings } from '../../lib/types.settings';
 
@@ -171,7 +172,7 @@
                     inputmode="numeric"
                     aria-label={t('Production share of rule {n}', { n: i + 1 })}
                     value={r.percent}
-                    onchange={(e) => (r.percent = Math.max(0, Math.min(100, parseInt(e.currentTarget.value, 10) || 0)))}
+                    onchange={(e) => (r.percent = Math.max(0, Math.min(100, parseNumber(e.currentTarget.value) ?? r.percent)))}
                   />
                 </td>
                 <td>

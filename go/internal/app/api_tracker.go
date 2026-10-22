@@ -143,6 +143,9 @@ func (a *API) SaveTrackerSettings(team string, in TrackerSettings) error {
 	}
 	t := data.Team
 	prefix := strings.TrimSpace(in.PackagePrefix)
+	if t.TrackerRaw != nil && in.Source != "none" {
+		return bad("The tracker section of team.yaml cannot be read. Fix it by hand first; Foresprint does not overwrite it.")
+	}
 	switch in.Source {
 	case "none":
 		t.Features.Tickets = false
@@ -165,7 +168,6 @@ func (a *API) SaveTrackerSettings(team string, in TrackerSettings) error {
 		return bad("Unknown source of the work: {value}", "value", in.Source)
 	}
 	t.Features.Explicit = true
-	t.TrackerRaw = nil
 	if _, err := repo.SaveTeam(t); err != nil {
 		return err
 	}
@@ -228,6 +230,9 @@ func (a *API) applyTracker(t *model.Team, data *storage.TeamData, in TrackerSett
 	}
 	var prod []model.ProductionRule
 	for i, r := range in.ProdRules {
+		if in.ProductionBy == "manual" {
+			break // hidden and removed on apply: no reason to check them
+		}
 		if !(r.Percent >= 0 && r.Percent <= 100) {
 			return bad("Production share of rule {number}: between 0 and 100 percent.", "number", i+1)
 		}
@@ -437,25 +442,22 @@ func (a *API) TrackerFieldNames(team, baseURL string) []string {
 
 // trackerRun is what the top bar shows of the last attempts to sync, kept per run of the program.
 type trackerRun struct {
-	syncing bool
+	syncing map[string]bool
 	failed  map[string]string
 }
 
 // TrackerInfo is the state of the tracker sync of a team for the chip in the top bar.
 func (a *API) TrackerInfo(team string) TrackerStatus {
 	_, data, err := a.loadTeam(team)
-	if err != nil || data.Team.Source() != model.SourceTracker {
-		return TrackerStatus{}
+	if err != nil || data.Team.Source() != model.SourceTracker || data.Team.Tracker.Kind != "jira" {
+		return TrackerStatus{} // a CSV export is read in by hand: nothing to sync
 	}
 	out := TrackerStatus{Enabled: true, Name: "Jira"}
-	if data.Team.Tracker.Kind == "csv" {
-		out.Name = "CSV"
-	}
 	if data.TicketsImported != nil {
 		out.Last = data.TicketsImported.Format(time.RFC3339)
 	}
 	a.mu.Lock()
-	out.Syncing, out.Failed = a.run.syncing, a.run.failed[team]
+	out.Syncing, out.Failed = a.run.syncing[team], a.run.failed[team]
 	a.mu.Unlock()
 	return out
 }
@@ -465,15 +467,18 @@ func (a *API) TrackerInfo(team string) TrackerStatus {
 // wipes the last import.
 func (a *API) SyncTracker(team string) (Result, error) {
 	a.mu.Lock()
-	if a.run.syncing {
+	if a.run.syncing[team] {
 		a.mu.Unlock()
 		return Result{Message: i18n.T("A sync is already running.")}, nil
 	}
-	a.run.syncing = true
+	if a.run.syncing == nil {
+		a.run.syncing = map[string]bool{}
+	}
+	a.run.syncing[team] = true
 	a.mu.Unlock()
 	res, err := a.syncTracker(team)
 	a.mu.Lock()
-	a.run.syncing = false
+	delete(a.run.syncing, team)
 	if a.run.failed == nil {
 		a.run.failed = map[string]string{}
 	}
@@ -540,4 +545,12 @@ func (k knownSprints) End(id string) (time.Time, bool) {
 		return time.Time{}, false
 	}
 	return s.End, true
+}
+
+// TokenInfo says where the token of the address is, for the page after it stored or removed one.
+func (a *API) TokenInfo(team, baseURL string) TokenState {
+	if base := strings.TrimSpace(baseURL); base != "" {
+		return tokenState(&base)
+	}
+	return tokenState(nil)
 }

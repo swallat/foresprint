@@ -27,6 +27,7 @@
     if (!team) return;
     try {
       const s = await api.TeamSettings(team);
+      if (team !== app.team) return; // the team changed while the answer was on its way
       applied = s;
       draft = structuredClone(s);
       factorText = s.factor === null ? '' : String(s.factor).replace('.', ',');
@@ -73,7 +74,8 @@
 
   const futureSprints = $derived(app.sprints.filter((s) => s.state === 'future'));
   const unitChanged = $derived(!!applied && !!draft && applied.unit !== draft.unit);
-  const needsSprint = $derived(unitChanged && (applied?.unitChanges.length ?? 0) > 0);
+  // With sprints recorded the new unit always applies from a sprint: finished ones keep theirs.
+  const needsSprint = $derived(unitChanged && app.sprints.length > 0);
 
   function setFactor(text: string): void {
     factorText = text;
@@ -179,7 +181,7 @@
               {#if ![2, 3, 4, 6, 8, 12].includes(draft.forecast.horizon)}<option value={draft.forecast.horizon}>{t('{n} sprints', { n: draft.forecast.horizon })}</option>{/if}
             </select>
           </div>
-          <NumInput id="t-len" label={t('Default sprint length')} unit={t('working days')} bind:value={draft.lengthDays} min={1} max={60} />
+          <NumInput id="t-len" label={t('Default sprint length')} unit={t('working days')} bind:value={draft.lengthDays} min={1} max={60} integer />
         </div>
         <details>
           <summary>{t('What the settings do')}</summary>
@@ -289,7 +291,7 @@
             <div class="field" style="max-width:280px">
               <label for="t-unitfrom">{t('Applies from sprint')}</label>
               <select id="t-unitfrom" class="input" bind:value={draft.unitFrom}>
-                {#if !needsSprint}<option value="">{t('From the first sprint')}</option>{/if}
+                {#if !needsSprint}<option value="">{t('From the first sprint')}</option>{:else if !draft.unitFrom}<option value="" disabled>{t('Choose a sprint')}</option>{/if}
                 {#each futureSprints as s (s.id)}<option value={s.id}>{s.id}</option>{/each}
               </select>
             </div>

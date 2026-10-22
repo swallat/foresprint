@@ -66,7 +66,7 @@ func SaveTheme(code string) error {
 // translates the labels.
 var (
 	Densities = []string{"compact", "normal", "roomy"}
-	)
+)
 
 // Defaults of the two choices.
 const DefaultDensity = "normal"

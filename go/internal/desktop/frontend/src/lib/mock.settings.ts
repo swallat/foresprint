@@ -9,6 +9,7 @@ import type {
   RuleCheck,
   SettingsApi,
   TeamSettings,
+  TokenState,
   TrackerInfo,
   TrackerSettings,
 } from './types.settings';
@@ -130,6 +131,9 @@ export const settingsMock: SettingsApi = {
       production: team.production,
       projects: team.projects || tracker.source !== 'none',
     };
+  },
+  async TokenInfo(): Promise<TokenState> {
+    return clone(tracker.token);
   },
   async TrackerInfo(): Promise<TrackerInfo> {
     return {

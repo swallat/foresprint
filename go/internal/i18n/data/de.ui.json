@@ -342,6 +342,7 @@
   "Basis of the budget": "Budgetbasis",
   "Access to production": "Produktionszugang",
   "Points in person days": "Punkte in Personentagen",
-  "21 points ÷ {factor} points per PD = {pd} PD": "21 Punkte ÷ {factor} Punkte je PT = {pd} PT"
+  "21 points ÷ {factor} points per PD = {pd} PD": "21 Punkte ÷ {factor} Punkte je PT = {pd} PT",
+  "Choose a sprint": "Sprint wählen"
  }
 }
