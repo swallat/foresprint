@@ -262,3 +262,28 @@ func TestProjectHandValuesFromTheCore(t *testing.T) {
 		t.Fatalf("project = %+v", d.Project)
 	}
 }
+
+func TestMonthlyUseStaysAMonthlyValue(t *testing.T) {
+	api, team := projectDir(t, true)
+	booked := 20.0
+	in := ProjectInput{
+		ID: "alpha", Name: "Alpha", Products: []string{"portal"}, End: "2026-12-18", Booked: &booked,
+		Months: map[string]float64{"2026-10": 10, "2026-11": 10}, UsedMonths: map[string]float64{"2026-10": 4},
+	}
+	if _, err := api.SaveProject(team, in); err != nil {
+		t.Fatal(err)
+	}
+	d, err := api.Project(team, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := d.Project
+	if p.UsedHand != nil || p.Used == nil || *p.Used != 4 {
+		t.Fatalf("hand total must stay empty while the sum shows 4: %+v", p)
+	}
+	for _, m := range p.Months {
+		if m.Month == "2026-11" && (m.Used != nil || m.Remaining != nil || m.Status != "") {
+			t.Fatalf("a month without consumption has no verdict: %+v", m)
+		}
+	}
+}

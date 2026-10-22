@@ -68,6 +68,8 @@ export interface ProjectView {
   used: number | null;
   remaining: number | null;
   usedStatus: UseStatus;
+  /** The total entered by hand (the form edits this one). */
+  usedHand: number | null;
   contact: string;
   openScope: number | null;
   open: number;

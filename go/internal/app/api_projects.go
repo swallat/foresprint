@@ -255,7 +255,7 @@ func (c *projectCtx) projectView(p model.Project) ProjectView {
 		v.Contact = *p.Contact
 	}
 	cs := preplan.ContingentStatusOf(p.Contingent)
-	v.Used, v.Remaining, v.UsedStatus = cs.Used, cs.Remaining, string(cs.Status)
+	v.Used, v.Remaining, v.UsedStatus, v.UsedHand = cs.Used, cs.Remaining, string(cs.Status), p.Contingent.Used
 	var plannedPts, donePts float64
 	hasDone := false
 	for _, t := range c.data.Tickets {
@@ -360,7 +360,7 @@ func (c *projectCtx) monthRows(p model.Project) []MonthRow {
 	for _, ym := range months {
 		booked, _ := p.Contingent.PerMonth.Get(ym)
 		r := MonthRow{Month: ym, Booked: booked}
-		if st, ok := byMonth[ym]; ok {
+		if st, ok := byMonth[ym]; ok && st.Used != nil {
 			r.Used, r.Remaining, r.Status = st.Used, st.Remaining, string(st.Status)
 		}
 		if c.data.Team.Features.Tickets {

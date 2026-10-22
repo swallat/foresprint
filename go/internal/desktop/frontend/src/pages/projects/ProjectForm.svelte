@@ -26,7 +26,7 @@
   let start = $state(p?.start ?? '');
   let end = $state(p?.end ?? addMonths(view.today, 3));
   let booked = $state(p?.booked === null || p?.booked === undefined ? '' : String(p.booked));
-  let used = $state(p?.used === null || p?.used === undefined ? '' : String(p.used));
+  let used = $state(p?.usedHand === null || p?.usedHand === undefined ? '' : String(p.usedHand));
   let contact = $state(p?.contact ?? '');
   let usedMonths = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).filter((m) => m.used !== null).map((m) => [m.month, String(m.used)])));
   const LIGHTS: { value: HandLight; label: string }[] = [
@@ -42,7 +42,7 @@
   let milestones = $state<MilestoneInput[]>(
     p ? p.milestones.map((m) => ({ id: m.id, name: m.name, date: m.date, tickets: m.tickets, light: m.hand })) : [{ id: '', name: '', date: addMonths(view.today, 2), tickets: [], light: '' }],
   );
-  let months = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).map((m) => [m.month, String(m.booked)])));
+  let months = $state<Record<string, string>>(Object.fromEntries((p?.months ?? []).filter((m) => m.booked > 0).map((m) => [m.month, String(m.booked)])));
   let error = $state('');
   let busy = $state(false);
 

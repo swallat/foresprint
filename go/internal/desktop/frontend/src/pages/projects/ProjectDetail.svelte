@@ -171,11 +171,11 @@
         {#if estimated}<span class="chip" title={t('Converted from points with the team rate')}>≈ {t('estimate')}</span>{/if}
       </div>
       <div class="big">
-        <Amount value={spent === null && p.planned === null ? null : (spent ?? 0) + (p.planned ?? 0)} est={estimated} inline />
+        <Amount value={spent === null && p.planned === null ? null : (spent ?? 0) + (p.planned ?? 0)} est={spentEst || (estimated && p.planned !== null)} inline />
         {#if p.booked !== null}<span class="muted" style="font-size:14px">{t('of {n}', { n: num(p.booked, 1) })}</span>{/if}
       </div>
       <Meter booked={p.booked} done={spent} planned={p.planned} />
-      {#if p.used !== null}
+      {#if p.used !== null && p.booked !== null}
         <div class="small" style="margin-top:8px">
           {t('Used {used} PD', { used: num(p.used, 1) })}{#if p.remaining !== null}, {t('{n} PD left', { n: num(p.remaining, 1) })}{/if}
           <LightChip light={useLight(p.usedStatus)} label={p.usedStatus === 'over' ? t('over the contingent') : p.usedStatus === 'tight' ? t('nearly used up') : t('within the contingent')} />
@@ -266,7 +266,7 @@
             </thead>
             <tbody>
               {#each p.months as r (r.month)}
-                {@const left = r.remaining !== null ? r.remaining - (r.planned ?? 0) : r.booked - (r.done ?? 0) - (r.planned ?? 0)}
+                {@const left = r.used !== null && r.remaining !== null ? r.remaining - (r.planned ?? 0) : r.booked - (r.done ?? 0) - (r.planned ?? 0)}
                 <tr>
                   <td>
                     {month(r.month)}

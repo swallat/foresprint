@@ -29,6 +29,7 @@ const project = (over: Partial<ProjectView>): ProjectView => ({
   used: null,
   remaining: null,
   usedStatus: '',
+  usedHand: null,
   contact: '',
   openScope: null,
   open: 0,

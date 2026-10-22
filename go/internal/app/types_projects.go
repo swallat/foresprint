@@ -73,9 +73,11 @@ type ProjectView struct {
 	Months        []MonthRow `json:"months"`
 	// Used is the consumption entered by hand in PD, nil = not entered. Remaining is the contingent
 	// minus Used. UsedStatus is "ok", "tight" or "over" (the core's rule).
-	Used       *float64        `json:"used"`
-	Remaining  *float64        `json:"remaining"`
-	UsedStatus string          `json:"usedStatus"`
+	Used       *float64 `json:"used"`
+	Remaining  *float64 `json:"remaining"`
+	UsedStatus string   `json:"usedStatus"`
+	// UsedHand is the total entered by hand; Used is the same or, without it, the sum of the months.
+	UsedHand   *float64        `json:"usedHand"`
 	Contact    string          `json:"contact"`
 	OpenScope  *float64        `json:"openScope"`
 	Open       int             `json:"open"` // open tickets
