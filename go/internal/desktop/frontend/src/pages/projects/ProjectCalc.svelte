@@ -18,6 +18,6 @@
 
 {#if rate !== null && pd !== null}
   <Calc label={kind === 'done' ? t('Done work of {name}', { name: project.name }) : t('Planned work of {name}', { name: project.name })} topic="rate">
-    {t('{points} points ÷ {rate} points per person day = {pd} PD (estimate)', { points: num(points, 1), rate: num(rate, 2), pd: num(pd, 1) })}
+    {t('{points} points, each sprint converted with its own rate (mean {rate} points per person day) = {pd} PD (estimate)', { points: num(points, 1), rate: num(rate, 2), pd: num(pd, 1) })}
   </Calc>
 {/if}

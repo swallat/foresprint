@@ -287,3 +287,43 @@ func TestMonthlyUseStaysAMonthlyValue(t *testing.T) {
 		}
 	}
 }
+
+func TestRatePerSprint(t *testing.T) {
+	c := &projectCtx{rate: 2, doneRate: map[string]float64{"s1": 4}, planRate: map[string]float64{"s2": 1}}
+	if got := c.pd(8, "s1", false); got != 2 {
+		t.Errorf("done in s1 = %v, want 2 (measured rate 4)", got)
+	}
+	if got := c.pd(8, "s2", true); got != 8 {
+		t.Errorf("planned in s2 = %v, want 8 (forecast rate 1)", got)
+	}
+	if got := c.pd(8, "s3", true); got != 4 {
+		t.Errorf("planned in s3 = %v, want 4 (mean rate 2)", got)
+	}
+	if got := c.pd(8, "s1", true); got != 4 {
+		t.Errorf("planned in s1 = %v, want 4 (the measured rate is not for planned work)", got)
+	}
+	if got := (&projectCtx{}).pdPtr(3); got != nil {
+		t.Errorf("without a rate there is no person day value, got %v", *got)
+	}
+}
+
+func TestClosedKeepsTheEndDate(t *testing.T) {
+	api, team := projectDir(t, true)
+	if err := api.CloseProject(team, CloseInput{ID: "alpha", How: "finished", At: "2026-10-30"}); err != nil {
+		t.Fatal(err)
+	}
+	d, err := api.Project(team, "alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Project.End != "2026-12-18" || d.Project.ClosedAt != "2026-10-30" || d.Project.State != "finished" {
+		t.Fatalf("closed project = end %q closedAt %q state %q", d.Project.End, d.Project.ClosedAt, d.Project.State)
+	}
+	if err := api.ReopenProject(team, "alpha"); err != nil {
+		t.Fatal(err)
+	}
+	d, _ = api.Project(team, "alpha")
+	if d.Project.End != "2026-12-18" || d.Project.ClosedAt != "" || d.Project.State != "" {
+		t.Fatalf("reopened project = end %q closedAt %q state %q", d.Project.End, d.Project.ClosedAt, d.Project.State)
+	}
+}

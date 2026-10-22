@@ -64,6 +64,7 @@ function seed(): { open: ProjectView[]; closed: ProjectView[] } {
     usedStatus: '' as const,
     contact: '',
     state: '' as const,
+    closedAt: '',
   };
   const open: ProjectView[] = [
     {
@@ -153,6 +154,7 @@ function seed(): { open: ProjectView[]; closed: ProjectView[] } {
       open: 0,
       history: true,
       state: 'finished',
+      closedAt: addDays(t, -40),
       milestones: [],
     },
   ];
@@ -266,6 +268,7 @@ export const projectsMock: ProjectsApi = {
       open: old?.open ?? 0,
       milestones: input.milestones.map((m, i) => milestone(m.id || `m${i + 1}`, m.name, m.date, m.light === 'green' ? 'ok' : m.light === 'yellow' ? 'warn' : m.light === 'red' ? 'bad' : 'none', 0, m.tickets.length, m.light)),
       state: '',
+      closedAt: '',
       history: old?.history ?? false,
     };
     state.open = old ? state.open.map((p) => (p.id === id ? next : p)) : [...state.open, next];
@@ -275,13 +278,13 @@ export const projectsMock: ProjectsApi = {
     remember();
     const p = find(input.id);
     state.open = state.open.filter((x) => x.id !== input.id);
-    state.closed = [...state.closed, { ...p, state: input.how, end: input.at || p.end, light: 'none' }];
+    state.closed = [...state.closed, { ...p, state: input.how, closedAt: input.at || today(), light: 'none' }];
   },
   async ReopenProject(_team, id) {
     remember();
     const p = find(id);
     state.closed = state.closed.filter((x) => x.id !== id);
-    state.open = [...state.open, { ...p, state: '' }];
+    state.open = [...state.open, { ...p, state: '', closedAt: '' }];
   },
   async DeleteProject(_team, id) {
     const p = find(id);

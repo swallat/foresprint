@@ -75,6 +75,8 @@ export interface ProjectView {
   open: number;
   milestones: MilestoneView[];
   state: '' | 'finished' | 'cancelled';
+  /** The day a closed project ended; its end keeps the planned end. */
+  closedAt: string;
   history: boolean;
 }
 
