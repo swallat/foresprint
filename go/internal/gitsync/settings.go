@@ -321,6 +321,7 @@ func pushMergeRequest(ctx context.Context, root string, current SyncState, title
 		if proc, err = git.Run(ctx, root, git.Opts{Network: true}, args(nil)...); err != nil {
 			return "", "", err
 		}
+		options = nil
 		message = outputMessage(proc)
 	}
 	if proc.Code != 0 {

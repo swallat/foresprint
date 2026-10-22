@@ -433,9 +433,13 @@ func SilentFailure(args []string, code int) string {
 		switch {
 		case i == 0 && !strings.HasPrefix(a, "-"):
 			shown = append(shown, a)
-		case strings.HasPrefix(a, "-"):
+		case a == "--":
+			return fmt.Sprintf("git %s ended with exit code %d and no message", strings.Join(shown, " "), code)
+		case strings.HasPrefix(a, "--"):
 			name, _, _ := strings.Cut(a, "=")
 			shown = append(shown, name)
+		case strings.HasPrefix(a, "-"):
+			shown = append(shown, a[:min(len(a), 2)]) // a short option may carry its value: -oValue
 		}
 	}
 	return fmt.Sprintf("git %s ended with exit code %d and no message", strings.Join(shown, " "), code)
