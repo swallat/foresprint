@@ -196,26 +196,12 @@ func (c *planCtx) laneTickets() (in, candidates []PlanTicket) {
 		case t.Done || strings.EqualFold(str(t.Status), "done"):
 			continue
 		default:
-			// A candidate has no sprint yet or is planned for a later one.
-			if es := c.earmarkSprint(t); es == "" || c.laterThan(es) {
-				candidates = append(candidates, pt)
-			}
+			// Everything unfinished that is not in this sprint can be taken in: no sprint yet,
+			// planned for a later one, or left over from an earlier one.
+			candidates = append(candidates, pt)
 		}
 	}
 	return in, candidates
-}
-
-// laterThan reports whether the sprint id lies after the sprint of the view (unknown ids
-// count as later: a tracker sprint without a match is not running yet).
-func (c *planCtx) laterThan(id string) bool {
-	s := c.data.SprintByID(id)
-	if s == nil {
-		if e := c.fc.Entry(id); e != nil {
-			return e.Sprint.Start.After(c.sprint.Start)
-		}
-		return true
-	}
-	return s.Start.After(c.sprint.Start)
 }
 
 // --- Figures ----------------------------------------------------------------------------
@@ -393,7 +379,7 @@ func (c *planCtx) view(team string, assume *Assumption) (*PlanSprint, error) {
 	c.fillProducts(v)
 	c.fillProjects(v)
 	v.Prod = c.production(v)
-	if s.CommittedTickets != nil || (v.Source == "none" && s.Commitment != nil && v.Stage != "past" && c.hasPlanned()) {
+	if s.CommittedTickets != nil || (v.Source == "none" && s.Commitment != nil && v.Stage != "past") {
 		v.Frozen = &PlanFrozen{Tickets: len(s.CommittedTickets), Commitment: s.Commitment}
 	}
 	v.Committed = s.Commitment
@@ -417,15 +403,6 @@ func (c *planCtx) previous() *model.Sprint {
 	return nil
 }
 
-func (c *planCtx) hasPlanned() bool {
-	for _, v := range c.sprint.Products {
-		if v.Planned != nil {
-			return true
-		}
-	}
-	return false
-}
-
 func workdays(c *planCtx) int {
 	n := 0
 	for d := c.sprint.Start; !d.After(c.sprint.End); d = d.AddDate(0, 0, 1) {
@@ -445,7 +422,7 @@ func (c *planCtx) stage() string {
 		return "current"
 	case s.CommittedTickets != nil:
 		return "planned"
-	case c.data.Team.Source() == model.SourceNone && s.Commitment != nil && c.hasPlanned():
+	case c.data.Team.Source() == model.SourceNone && s.Commitment != nil:
 		return "planned"
 	}
 	return "open"
@@ -675,7 +652,7 @@ func (c *planCtx) whatIf(as Assumption) (*WhatIf, error) {
 		if as.Commitment != nil {
 			w.Commitment = *as.Commitment
 		}
-		w.Touched = len(as.Carry) > 0
+		w.Touched = len(as.Carry) > 0 || as.Commitment != nil
 	} else {
 		w.Commitment = floatOr(as.Commitment, floatOr(cur.Sprint.Commitment, 0))
 		w.NotDone, w.Extra = floatOr(as.NotDone, 0), floatOr(as.Extra, 0)
@@ -763,13 +740,17 @@ func (a *API) SaveAssumption(team, sprintID string, as Assumption) error {
 		return err
 	}
 	cs := cur.Sprint.Clone()
+	var restNext *float64
+	if !c.tickets() {
+		restNext = &w.Rest // the default (all of "not done") is saved as it counted
+	}
 	label := as.Label
 	if label == "" {
 		label = "A"
 	}
 	p := model.Prognosis{At: time.Date(now().Year(), now().Month(), now().Day(), now().Hour(), now().Minute(), now().Second(), 0, time.UTC),
 		Commitment: &w.Commitment, ExpectedDone: &w.Velocity, Target: &sprintID, Plan: w.Plan, Label: &label,
-		RestNext: as.RestNext}
+		RestNext: restNext}
 	if w.NotDone > 0 {
 		p.NotDone = &w.NotDone
 	}
@@ -1133,6 +1114,9 @@ func (c *planCtx) planNotes(in FreezeInput, byKey map[string]PlanTicket) []proto
 // are marked obsolete by the next freeze.
 func (a *API) ReopenPlan(team, sprintID string) error {
 	return a.editSprint(team, sprintID, func(c *planCtx, s *model.Sprint) error {
+		if st := c.stage(); st == "past" || st == "current" {
+			return errors.New(i18n.T("The sprint {id} has started; its plan cannot be frozen any more.", "id", sprintID))
+		}
 		s.CommittedTickets = nil
 		for id, v := range s.Products {
 			v.Planned, v.ProductionPlanned = nil, nil

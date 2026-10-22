@@ -190,7 +190,9 @@
         {noT ? t('Frozen: commitment') : t('Frozen: {n} {items}, commitment', { n: d.frozen.tickets, items: itemWord(d) })}
         <span class="data">{fmt(d.frozen.commitment)}</span> {unitName(d)}. {t('The planning minutes are written.')}
         <div class="row gap">
-          <button class="btn" type="button" id="reopen" onclick={reopen}><Icon name="lock_open" />{t('Open the plan again')}</button>
+          {#if d.stage === 'planned' || d.stage === 'open'}
+            <button class="btn" type="button" id="reopen" onclick={reopen}><Icon name="lock_open" />{t('Open the plan again')}</button>
+          {/if}
           <a class="btn" href="#/sprint/minutes"><Icon name="description" />{t('View minutes')}</a>
         </div>
       </div>
