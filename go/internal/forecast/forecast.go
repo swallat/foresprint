@@ -274,6 +274,13 @@ func AbsencesKnown(sprint model.Sprint) bool {
 	return sprint.AbsenceStatus() == model.AbsencesConfirmed
 }
 
+// EffectiveSprint is the sprint with the absences of the planned absence periods filled in
+// for calculating (decision 23). The stored sprint is not changed, so nothing derived is
+// saved with it.
+func EffectiveSprint(data *storage.TeamData, sprint model.Sprint) model.Sprint {
+	return capacity.ApplyPeriods(&data.Team, data.People, data.AbsencePeriods, sprint).Sprint
+}
+
 // ResolveCapacity is the capacity of a sprint and its source (nil, nil if it cannot be
 // determined).
 //
@@ -288,6 +295,7 @@ func ResolveCapacity(data *storage.TeamData, sprint model.Sprint, history *capac
 	if len(data.People) == 0 {
 		return nil, nil
 	}
+	sprint = EffectiveSprint(data, sprint)
 	switch sprint.AbsenceStatus() {
 	case model.AbsencesConfirmed:
 		return model.Ptr(capacity.Sprint(&data.Team, data.People, sprint, 0).Capacity), src(engine.SourcePeople)
