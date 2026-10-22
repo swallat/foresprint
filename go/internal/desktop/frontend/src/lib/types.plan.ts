@@ -156,6 +156,8 @@ export interface PlanSprint {
   tickets: PlanTicket[];
   candidates: PlanTicket[];
   projects: PlanProject[];
+  /** The table product x project of the pre-planning; null without products or open projects. */
+  matrix: PlanMatrix | null;
   prod: PlanProduction | null;
   frozen: PlanFrozen | null;
   assumptions: Assumption[];
@@ -186,6 +188,8 @@ export interface PlanApi {
   SetProductionPercent(team: string, ticket: string, percent: number | null): Promise<void>;
   FreezePlan(team: string, sprint: string, input: FreezeInput): Promise<string>;
   ReopenPlan(team: string, sprint: string): Promise<void>;
+  SetMatrixCell(team: string, sprint: string, product: string, project: string, value: number | null): Promise<void>;
+  UseMatrix(team: string, sprint: string): Promise<void>;
   PlanWritePreview(team: string, sprint: string): Promise<WritePreview>;
   PlanWriteApply(team: string, sprint: string, approved: string[]): Promise<WriteResult>;
   PlanWriteUndo(team: string, sprint: string): Promise<WriteResult>;
@@ -216,4 +220,9 @@ export interface WriteResult {
   failed: WriteMove[];
   error: string;
   canUndo: boolean;
+}
+
+export interface PlanMatrix {
+  projects: { id: string; name: string }[];
+  cells: { product: string; project: string; value: number }[];
 }

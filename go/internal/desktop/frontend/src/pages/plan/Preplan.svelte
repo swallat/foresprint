@@ -8,6 +8,7 @@
   import Icon from '../../lib/Icon.svelte';
   import Calc from '../../lib/calc/Calc.svelte';
   import { assumptions, fmt, itemWord, parseAmount, PlanModel, signed, touched, unitName } from '../../lib/plan/model.svelte';
+  import Matrix from '../../lib/plan/Matrix.svelte';
   import Production from '../../lib/plan/Production.svelte';
   import SprintHead from '../../lib/plan/SprintHead.svelte';
   import Summary from '../../lib/plan/Summary.svelte';
@@ -181,6 +182,8 @@
       <input id="sprint-pre" class="num" inputmode="decimal" value={d.sprintPre ?? ''} placeholder="–" onchange={(e) => setSprintPre(e.currentTarget.value)} />
     </div>
   {/if}
+
+  <Matrix {d} {model} readonly={d.stage === 'past' || d.stage === 'current'} />
 
   <Production {d} {model} />
 

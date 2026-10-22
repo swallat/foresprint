@@ -71,6 +71,7 @@ const base: T[] = [
 
 let tickets: T[] = structuredClone(base);
 let pre: Record<string, Record<string, number>> = {};
+let matrixMock: Record<string, Record<string, Record<string, number>>> = {};
 let projAmt: Record<string, Record<string, number>> = {};
 let sprintPre: Record<string, number> = {};
 let removedMock: Record<string, string[]> = {};
@@ -193,6 +194,7 @@ function view(sid: string, as: Assumption | null): PlanSprint {
     split: { plan, carryIn: rest, plannable: free, smallStuff: Math.max(plan - rest, 0) - free, overbooked: rest > plan },
     carryLater: use?.later ?? sw?.later ?? 0, preplanned: multi ? preSum : (sprintPre[sid] ?? 0), removed: removedMock[sid] ?? [], sprintPre: multi ? null : (sprintPre[sid] ?? null), earmarked: lane.reduce((a, x) => a + (x.size ?? 0), 0),
     committed: frozen[sid]?.commitment ?? null, products, tickets: lane, candidates: cand, projects,
+    matrix: multi ? { projects: PROJECTS.map((p) => ({ id: p.id, name: p.name })), cells: Object.entries(matrixMock[sid] ?? {}).flatMap(([product, row]) => Object.entries(row).map(([project, value]) => ({ product, project, value }))) } : null,
     prod: multi ? {
       people: [{ name: 'Jonas Weber', capacity: 6.2, absence: 1 }, { name: 'Tarek Aydin', capacity: 5.2, absence: 0 }], time: avail, capPercent: 100, available: avail,
       demand, demandSet: noT ? prodPT[sid] != null : true, demandAmount: noT ? demand * rate : demandAmount, load, manual: prodPT[sid] ?? null,
@@ -248,6 +250,21 @@ export const planMock: PlanApi = {
   async SetProjectAmount(_t, sprint, project, value) {
     (projAmt[sprint] ??= {})[project] = value ?? 0;
   },
+  async SetMatrixCell(_t, sprint, product, project, value) {
+    const row = ((matrixMock[sprint] ??= {})[product] ??= {});
+    if (value) row[project] = value;
+    else delete row[project];
+  },
+  async UseMatrix(_t, sprint) {
+    const cols: Record<string, number> = {};
+    for (const [product, row] of Object.entries(matrixMock[sprint] ?? {})) {
+      const sum = Object.values(row).reduce((a, v) => a + v, 0);
+      for (const [project, v] of Object.entries(row)) cols[project] = (cols[project] ?? 0) + v;
+      const cur = (pre[sprint] ??= {})[product];
+      if (cur == null || cur < sum) pre[sprint]![product] = sum;
+    }
+    for (const [project, v] of Object.entries(cols)) (projAmt[sprint] ??= {})[project] = v;
+  },
   async SetProductionPT(_t, sprint, value) {
     if (value == null) delete prodPT[sprint];
     else prodPT[sprint] = value;
@@ -300,7 +317,7 @@ export const planMock: PlanApi = {
 /** Resets the answers (tests). */
 export function resetPlanMock(): void {
   tickets = structuredClone(base);
-  pre = {}; projAmt = {}; sprintPre = {}; removedMock = {}; prodPT = {}; saved = {}; frozen = {}; planned = {}; writeDone = {};
+  pre = {}; matrixMock = {}; projAmt = {}; sprintPre = {}; removedMock = {}; prodPT = {}; saved = {}; frozen = {}; planned = {}; writeDone = {};
 }
 
 /** One earmark for both pages: the Backlog and the Plan mock keep their own tickets. */
