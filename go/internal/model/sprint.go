@@ -77,6 +77,14 @@ type Prognosis struct {
 	Target     *string
 	Plan       *float64
 	Preplanned OrderedMap[float64]
+	// Label names the assumption ("A", "B"); several are kept side by side.
+	Label *string
+	// Finish are the keys of the running sprint's tickets marked "will finish"; Carry the rest
+	// of the ones carried over, each with its target.
+	Finish []string
+	Carry  []CarryItem
+	// RestNext is, without tickets, the part of NotDone that continues in the next sprint.
+	RestNext *float64
 }
 
 // Sprint is one sprint (sprints/<id>.yaml).
@@ -114,6 +122,17 @@ type Sprint struct {
 	ExpectedAbsences map[string]float64
 	// Prognoses are the team forecasts from the PO pre-plannings, older first.
 	Prognoses []Prognosis
+	// Name is a name given by hand; otherwise the naming pattern of the team gives one.
+	Name *string
+	// CommittedTickets is the ticket list frozen at Planning (the commitment); nil = not frozen.
+	CommittedTickets []string
+	// Carry and RestNext are the definitive rest entered in the Review; they replace the
+	// assumption (see Prognosis).
+	Carry    []CarryItem
+	RestNext *float64
+	// Projects are the values per project id, for teams without tickets: the split of the
+	// product amounts over the projects.
+	Projects map[string]ProductValues
 }
 
 // legacyKnown: in older files without a stored state, absences counted as known if the sprint
@@ -172,6 +191,9 @@ func (s Sprint) Clone() Sprint {
 	c.Absences = maps.Clone(s.Absences)
 	c.ExpectedAbsences = maps.Clone(s.ExpectedAbsences)
 	c.Products = maps.Clone(s.Products)
+	c.Projects = maps.Clone(s.Projects)
+	c.CommittedTickets = slices.Clone(s.CommittedTickets)
+	c.Carry = slices.Clone(s.Carry)
 	c.Prognoses = slices.Clone(s.Prognoses)
 	if s.Planning != nil {
 		p := *s.Planning

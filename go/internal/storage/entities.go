@@ -99,6 +99,9 @@ func PeopleFromDict(d *yamlx.Map, where string) ([]model.Person, error) {
 		}
 		person.Memberships = memberships
 		person.ProductionAccess = truthy(getOr(p, "production_access", false))
+		if person.Kind, err = choice(get(p, "kind"), personKinds, model.KindMember, at, "kind"); err != nil {
+			return nil, err
+		}
 		people = append(people, person)
 	}
 	return people, nil
@@ -120,6 +123,9 @@ func PeopleToDict(people []model.Person) *yamlx.Map {
 		}
 		if p.ProductionAccess {
 			put(entry, "production_access", true)
+		}
+		if p.Kind != "" && p.Kind != model.KindMember {
+			put(entry, "kind", string(p.Kind))
 		}
 		ms := make([]any, len(p.Memberships))
 		for i, m := range p.Memberships {
@@ -280,6 +286,9 @@ func prognosesFrom(raw any, where string) ([]model.Prognosis, error) {
 			}
 			pr.Preplanned.Set(pyStr(e.Key), v)
 		}
+		if err = prognosisExtrasFrom(p, &pr, at); err != nil {
+			return nil, err
+		}
 		result = append(result, pr)
 	}
 	return result, nil
@@ -314,6 +323,7 @@ func prognosesTo(prognoses []model.Prognosis) []any {
 			}
 			put(entry, "preplanned", pre)
 		}
+		prognosisExtrasTo(entry, p)
 		out = append(out, entry)
 	}
 	return out
@@ -478,6 +488,9 @@ func SprintFromDict(d *yamlx.Map, where string) (model.Sprint, error) {
 	if s.Prognoses, err = prognosesFrom(get(d, "prognoses"), where); err != nil {
 		return model.Sprint{}, err
 	}
+	if err = sprintExtrasFrom(d, &s, where); err != nil {
+		return model.Sprint{}, err
+	}
 	return s, nil
 }
 
@@ -561,5 +574,6 @@ func SprintToDict(s model.Sprint) *yamlx.Map {
 	if s.Note != nil && *s.Note != "" {
 		put(d, "note", *s.Note)
 	}
+	sprintExtrasTo(d, s)
 	return d
 }
