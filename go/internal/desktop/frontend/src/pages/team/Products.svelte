@@ -7,6 +7,7 @@
   import RuleEditor from '../../lib/rules/RuleEditor.svelte';
   import { fmtDay, fmtNum, parseNum } from '../../lib/team/format';
   import { percent, shareSum } from '../../lib/team/products';
+  import { inverse } from '../../lib/team/undo';
   import type { Product, ProductsView } from '../../lib/types.team';
   import Banner from '../../lib/ui/Banner.svelte';
   import PageHead from '../../lib/ui/PageHead.svelte';
@@ -119,9 +120,10 @@
     const rest = (view?.products ?? []).filter((x) => x.id !== p.id);
     const before = view?.products ?? [];
     await save(rest);
+    const undo = inverse(before, view?.products ?? []);
     toast(t('{name} deleted.', { name: p.name }), 'ok', {
       label: t('Undo'),
-      run: () => void save(before),
+      run: () => void save(undo(view?.products ?? [])),
     });
   }
 

@@ -8,6 +8,7 @@
   import Banner from '../../lib/ui/Banner.svelte';
   import { fmtDay, fmtNum, fmtShort, parseNum } from '../../lib/team/format';
   import { currentPeriod, entry, isCurrent, leaving, needsEnd, rejoined, withShare } from '../../lib/team/people';
+  import { inverse } from '../../lib/team/undo';
   import type { AbsencePeriod, PeopleView, Person, PersonKind } from '../../lib/types.team';
   import AbsencePanel from './AbsencePanel.svelte';
   import OwnersCard from './OwnersCard.svelte';
@@ -56,31 +57,19 @@
     }
   });
 
-  // Counts the changes of the people; an Undo only works while nothing else changed them (a step
-  // of the PO card, for instance, adds or ends a person).
-  let generation = 0;
-  const undoAfter = (before: Person[], mine: number) => () => {
-    if (generation !== mine) {
-      toast(t('This change can no longer be undone.'), 'bad');
-      return;
-    }
-    void save(before, t('Change undone.'), false);
-  };
-
   /** Called by the PO card after one of its steps. */
   async function poStep() {
-    generation++;
     await load();
   }
 
-  /** Saves a new list of people; the old list is what Undo brings back. */
+  /** Saves a new list of people. Undo takes back this one change only (see lib/team/undo.ts). */
   async function save(next: Person[], message: string, undoable = true) {
     const before = view?.people ?? [];
     try {
       view = await api.SavePeople(app.team, next);
-      const mine = ++generation;
       if (message) {
-        toast(message, 'ok', undoable ? { label: t('Undo'), run: undoAfter(before, mine) } : undefined);
+        const undo = inverse(before, view.people);
+        toast(message, 'ok', undoable ? { label: t('Undo'), run: () => void save(undo(view?.people ?? []), t('Change undone.'), false) } : undefined);
       }
     } catch (e) {
       toast(e instanceof Error ? e.message : String(e), 'bad');
