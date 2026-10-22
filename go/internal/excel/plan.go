@@ -328,12 +328,15 @@ func normalize(name string, raw *yamlx.Map, key string) (*yamlx.Map, error) {
 }
 
 // carryOver takes what the workbook cannot hold from the existing files, so that reading it back
-// does not delete it: the product owners, the estimation unit and the sprint naming of the team,
-// the kind of each person and the pre-planning details of each sprint (matching ids).
+// does not delete it: the product owners, the estimation unit, the sprint naming and the
+// pro-forma sprints of the team, the kind of each person, the rule of each product, and the
+// hand-given name and pre-planning details of each sprint (matching ids). Values the workbook
+// does hold (a cell can be cleared) are never carried over.
 func carryOver(data, existing *storage.TeamData) {
 	data.Team.ProductOwners = existing.Team.ProductOwners
 	data.Team.Estimation = existing.Team.Estimation
 	data.Team.Sprint.Naming = existing.Team.Sprint.Naming
+	data.Team.Sprint.ProForma = existing.Team.Sprint.ProForma
 	kinds := map[string]model.PersonKind{}
 	for _, p := range existing.People {
 		kinds[p.ID] = p.Kind
@@ -341,6 +344,15 @@ func carryOver(data, existing *storage.TeamData) {
 	for i := range data.People {
 		if kind, ok := kinds[data.People[i].ID]; ok {
 			data.People[i].Kind = kind
+		}
+	}
+	rules := map[string]*model.Rule{}
+	for _, p := range existing.Products {
+		rules[p.ID] = p.Match
+	}
+	for i := range data.Products {
+		if rule, ok := rules[data.Products[i].ID]; ok {
+			data.Products[i].Match = rule
 		}
 	}
 	old := map[string]*model.Sprint{}
@@ -353,14 +365,20 @@ func carryOver(data, existing *storage.TeamData) {
 		if !ok {
 			continue
 		}
+		s.Name = o.Name
 		if s.Preplanned == nil {
 			s.Preplanned = o.Preplanned
 		}
-		if s.ForecastPlan == nil {
-			s.ForecastPlan = o.ForecastPlan
-		}
 		s.Matrix, s.Removed, s.Projects = o.Matrix, o.Removed, o.Projects
 		s.CommittedTickets, s.Carry, s.RestNext = o.CommittedTickets, o.Carry, o.RestNext
+		for j := range s.Prognoses {
+			for _, op := range o.Prognoses {
+				if op.At.Equal(s.Prognoses[j].At) {
+					s.Prognoses[j].Label, s.Prognoses[j].Finish = op.Label, op.Finish
+					s.Prognoses[j].Carry, s.Prognoses[j].RestNext = op.Carry, op.RestNext
+				}
+			}
+		}
 	}
 }
 
