@@ -5,6 +5,7 @@ import (
 
 	"github.com/swallat/foresprint/internal/model"
 	"github.com/swallat/foresprint/internal/storage"
+	"github.com/swallat/foresprint/internal/ticketimport"
 )
 
 func sp(s string) *string { return &s }
@@ -46,16 +47,16 @@ func TestProductionShareOf(t *testing.T) {
 	d := decisionData()
 	label := "prod"
 	d.Team.Tracker.ProductionLabel = &label
-	tk := model.Ticket{Key: "T-1", Labels: []string{"Prod"}}
-	if v, src := ProductionShareOf(tk, d); v != 100 || src != SourceLabel {
+	tk := model.Ticket{Key: "T-1", Labels: []string{"prod"}}
+	if v, src := ProductionShareOf(tk, d); v != 100 || src != ticketimport.ProductionLabel {
 		t.Fatalf("label: %v %v", v, src)
 	}
 	d.Preplan.Production = []model.ProductionShare{{Ticket: "T-1", Percent: 30}}
-	if v, src := ProductionShareOf(tk, d); v != 30 || src != SourceHand {
+	if v, src := ProductionShareOf(tk, d); v != 30 || src != ticketimport.ProductionHand {
 		t.Fatalf("hand: %v %v", v, src)
 	}
 	d.Team.Features.Production = false
-	if v, src := ProductionShareOf(tk, d); v != 0 || src != SourceNone {
+	if v, src := ProductionShareOf(tk, d); v != 0 || src != ticketimport.ProductionNone {
 		t.Fatalf("off: %v %v", v, src)
 	}
 }
