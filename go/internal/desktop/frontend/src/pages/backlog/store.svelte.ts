@@ -90,7 +90,7 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
   try {
     for (const key of keys) {
       if ((before.get(key) ?? '') === sprint || fixed.has(key)) continue;
-      await api.SetEarmark(app.team, key, sprint, '');
+      await api.EarmarkTicket(app.team, key, sprint, '');
       moved.push(key);
     }
   } catch (e) {
@@ -115,7 +115,7 @@ export async function earmark(keys: string[], sprint: string): Promise<void> {
     label: t('Undo'),
     run: async () => {
       try {
-        for (const key of moved) await api.SetEarmark(app.team, key, before.get(key) ?? '', notes.get(key) ?? '');
+        for (const key of moved) await api.EarmarkTicket(app.team, key, before.get(key) ?? '', notes.get(key) ?? '');
       } catch (e) {
         toast(String(e), 'bad');
       }

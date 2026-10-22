@@ -191,7 +191,7 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
       };
       return detail;
     },
-    async SetEarmark(_team, key, sprint, note) {
+    async EarmarkTicket(_team, key, sprint, note) {
       const r = find(key);
       r.earmark = sprint;
       if (note) r.note = note;

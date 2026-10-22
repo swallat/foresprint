@@ -408,7 +408,7 @@
 {#snippet earmarkRow()}
   {#if detail}
     <div class="stack tight">
-      <select class="input" aria-label={t('Earmarked for')} value={detail.earmark} disabled={detail.fixed} onchange={(e) => run(() => api.SetEarmark(app.team, detail!.key, e.currentTarget.value, detail!.note))}>
+      <select class="input" aria-label={t('Earmarked for')} value={detail.earmark} disabled={detail.fixed} onchange={(e) => run(() => api.EarmarkTicket(app.team, detail!.key, e.currentTarget.value, detail!.note))}>
         <option value="">{t('Not earmarked')}</option>
         {#each lanes as s (s)}<option value={s}>{t('Sprint {id}', { id: s })}</option>{/each}
         {#if detail.earmark && !lanes.includes(detail.earmark)}<option value={detail.earmark}>{t('Sprint {id}', { id: detail.earmark })}</option>{/if}

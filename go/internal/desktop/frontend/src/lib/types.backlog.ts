@@ -126,7 +126,7 @@ export interface WorkPackageInput {
 export interface BacklogApi {
   Backlog(team: string): Promise<BacklogView>;
   Ticket(team: string, key: string): Promise<TicketDetail>;
-  SetEarmark(team: string, key: string, sprint: string, note: string): Promise<void>;
+  EarmarkTicket(team: string, key: string, sprint: string, note: string): Promise<void>;
   SetEarmarkNote(team: string, key: string, note: string): Promise<void>;
   SetEstimate(team: string, key: string, value: number | null): Promise<void>;
   SetRefined(team: string, key: string, refined: boolean): Promise<void>;

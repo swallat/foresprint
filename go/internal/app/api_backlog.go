@@ -512,7 +512,7 @@ func (a *API) writePackages(data *storage.TeamData) bool {
 	return data.Team.Source() == model.SourcePackages
 }
 
-func removeEarmark(p *model.Preplan, key string) {
+func backlogRemoveEarmark(p *model.Preplan, key string) {
 	out := p.Earmarks[:0:0]
 	for _, e := range p.Earmarks {
 		if e.Ticket != key {
@@ -522,12 +522,12 @@ func removeEarmark(p *model.Preplan, key string) {
 	p.Earmarks = out
 }
 
-// SetEarmark earmarks the ticket for a coming sprint; "" takes the earmark away. note is the
+// EarmarkTicket earmarks the ticket for a coming sprint; "" takes the earmark away. note is the
 // PO's note on the decision ("" keeps an existing note when only the sprint changes).
-func (a *API) SetEarmark(team, key, sprint, note string) error {
+func (a *API) EarmarkTicket(team, key, sprint, note string) error {
 	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
 		if sprint == "" {
-			removeEarmark(&data.Preplan, key)
+			backlogRemoveEarmark(&data.Preplan, key)
 			return backlogSavePreplan(repo, team, data), nil
 		}
 		if tk.Done {
@@ -555,7 +555,7 @@ func (a *API) SetEarmark(team, key, sprint, note string) error {
 		if e := data.Preplan.EarmarkFor(key); e != nil {
 			prev = backlogStr(e.Note)
 		}
-		removeEarmark(&data.Preplan, key)
+		backlogRemoveEarmark(&data.Preplan, key)
 		if note == "" {
 			note = prev
 		}
@@ -823,7 +823,7 @@ func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) 
 		rankFirst(data, key)
 	}
 	if tk.Done {
-		removeEarmark(&data.Preplan, key)
+		backlogRemoveEarmark(&data.Preplan, key)
 	}
 	if err := backlogSaveBoth(repo, team, data)(); err != nil {
 		return "", err
@@ -866,7 +866,7 @@ func (a *API) DeleteWorkPackage(team, key string) error {
 		}
 		data.Tickets = kept
 		pp := &data.Preplan
-		removeEarmark(pp, key)
+		backlogRemoveEarmark(pp, key)
 		var est []model.ManualEstimate
 		for _, m := range pp.Estimates {
 			if m.Ticket != key {

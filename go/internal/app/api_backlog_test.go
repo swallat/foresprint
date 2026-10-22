@@ -81,14 +81,14 @@ func TestWorkPackageLifecycle(t *testing.T) {
 	}
 
 	lane := view.Lanes[0].Sprint
-	if err := api.SetEarmark("t", second, lane, ""); err != nil {
+	if err := api.EarmarkTicket("t", second, lane, ""); err != nil {
 		t.Fatal(err)
 	}
 	view, _ = api.Backlog("t")
 	if len(view.Lanes[0].Tickets) != 1 || view.Lanes[0].Tickets[0].Key != second || !view.Lanes[0].Tickets[0].Blocked {
 		t.Errorf("lane %+v (AP-2 depends on AP-1, which is not planned: blocked)", view.Lanes[0].Tickets)
 	}
-	if err := api.SetEarmark("t", key, lane, "agreed"); err != nil {
+	if err := api.EarmarkTicket("t", key, lane, "agreed"); err != nil {
 		t.Fatal(err)
 	}
 	view, _ = api.Backlog("t")
@@ -108,10 +108,10 @@ func TestWorkPackageLifecycle(t *testing.T) {
 	if d, _ = api.Ticket("t", key); d.Note != "" || d.EarmarkNote != "" || d.Earmark != lane {
 		t.Errorf("clearing the note keeps the earmark: %+v", d.BacklogTicket)
 	}
-	if err := api.SetEarmark("t", key, "", ""); err != nil {
+	if err := api.EarmarkTicket("t", key, "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := api.SetEarmark("t", key, "2026.1", ""); err == nil {
+	if err := api.EarmarkTicket("t", key, "2026.1", ""); err == nil {
 		t.Error("earmark for a past sprint should fail")
 	}
 
