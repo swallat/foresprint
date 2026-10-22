@@ -6,6 +6,7 @@ import { api, setDemo } from './api';
 import { t, useLanguage } from './i18n.svelte';
 import { go } from './router.svelte';
 import { applyDensity, applyFeatures, applyTheme } from './theme';
+import type { PendingTag } from './types.data';
 import type { Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 import type { Features } from './types.settings';
 
@@ -36,6 +37,8 @@ export const app = $state({
   busy: '' as '' | 'save' | 'refresh' | 'sync',
   /** Data errors that stopped Save; the dialog offers to fix them or to save anyway. */
   findings: undefined as string[] | undefined,
+  /** Tags a sprint review asked for; the next Save sets them. */
+  pendingTags: [] as PendingTag[],
   /** Counts up after every Save or Refresh, so that open pages of the area Data reload. */
   rev: 0,
   toasts: [] as Toast[],
@@ -158,6 +161,11 @@ export async function refreshStatus(): Promise<void> {
     app.status = tracker ? { ...status, tracker } : status;
   } catch {
     /* keep the last known state; a failing status call must not break the window */
+  }
+  try {
+    app.pendingTags = await api.PendingTags();
+  } catch {
+    app.pendingTags = [];
   }
 }
 

@@ -111,6 +111,8 @@
   "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
   "Unknown source of work: {source}": "Unbekannte Quelle der Arbeit: {source}",
   "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}",
-  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein."
+  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein.",
+  "No data folder is open.": "Es ist kein Datenordner geöffnet.",
+  "Only files of the data folder can be opened.": "Es lassen sich nur Dateien des Datenordners öffnen."
  }
 }

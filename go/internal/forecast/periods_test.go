@@ -118,3 +118,85 @@ func TestPlanSpan(t *testing.T) {
 		t.Error("a sprint that is not a projection has no span")
 	}
 }
+
+func TestCarryInSplitsPlan(t *testing.T) {
+	d := func(day int) time.Time { return time.Date(2026, 3, day, 0, 0, 0, 0, time.UTC) }
+	data := &storage.TeamData{Team: model.NewTeam("t", "t")}
+	data.Team.Forecast.Rounding = 0
+	commit := 20.0
+	data.Sprints = []model.Sprint{
+		{ID: "s1", Start: d(2), End: d(13), Commitment: &commit, Velocity: &commit},
+		{ID: "s2", Start: d(16), End: d(27), Commitment: &commit},
+	}
+	today := d(1)
+
+	plain, err := forecast.Build(data, today)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, e := range plain.Entries[:2] {
+		if e.CarryIn != 0 || *e.Result.Roadmap != 16 || *e.Result.SmallStuff != 4 {
+			t.Errorf("entry %d without carry-in: carry %v roadmap %v small %v", i, e.CarryIn, *e.Result.Roadmap, *e.Result.SmallStuff)
+		}
+	}
+
+	data.Sprints[0].Carry = []model.CarryItem{{Rest: 5}}
+	fc, err := forecast.Build(data, today)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e := fc.Entry("s1"); e.CarryIn != 0 || *e.Result.Roadmap != 16 {
+		t.Errorf("s1 takes nothing over: carry %v roadmap %v", e.CarryIn, *e.Result.Roadmap)
+	}
+	e := fc.Entry("s2")
+	if e.CarryIn != 5 || *e.Result.Roadmap != 12 || *e.Result.SmallStuff != 3 {
+		t.Errorf("s2: carry %v roadmap %v small %v, want 5 / 12 / 3", e.CarryIn, *e.Result.Roadmap, *e.Result.SmallStuff)
+	}
+
+	data.Sprints[0].Carry = []model.CarryItem{{Rest: 30}}
+	e = mustBuild(t, data, today).Entry("s2")
+	if *e.Result.Roadmap != 0 || *e.Result.SmallStuff != 0 {
+		t.Errorf("overbooked s2: roadmap %v small %v, want 0 / 0", *e.Result.Roadmap, *e.Result.SmallStuff)
+	}
+}
+
+func mustBuild(t *testing.T, data *storage.TeamData, today time.Time) *forecast.Forecast {
+	t.Helper()
+	fc, err := forecast.Build(data, today)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fc
+}
+
+func TestCarryIntoGeneratedSprint(t *testing.T) {
+	d := func(day int) time.Time { return time.Date(2026, 3, day, 0, 0, 0, 0, time.UTC) }
+	data := &storage.TeamData{Team: model.NewTeam("t", "t")}
+	data.Team.Forecast.Rounding = 1
+	commit := 20.0
+	capa := 40.0
+	hist := func(id string, from int) model.Sprint {
+		return model.Sprint{ID: id, Start: d(from).AddDate(0, 0, 0), End: d(from).AddDate(0, 0, 11), Commitment: &commit, Velocity: &commit, Capacity: &capa}
+	}
+	s3 := hist("s3", 30)
+	s3.Carry = []model.CarryItem{{Rest: 2.5}}
+	data.Sprints = []model.Sprint{hist("s1", 2), hist("s2", 16), s3}
+	fc := mustBuild(t, data, time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC))
+	var next *forecast.TimelineEntry
+	for i := range fc.Entries {
+		if !fc.Entries[i].Recorded && fc.Entries[i].Result.Plan != nil {
+			next = &fc.Entries[i]
+			break
+		}
+	}
+	if next == nil {
+		t.Skip("no generated sprint with a PLAN")
+	}
+	if next.CarryIn != 2.5 {
+		t.Fatalf("carry-in of the generated sprint = %v, want 2.5", next.CarryIn)
+	}
+	want := float64(int(((*next.Result.Plan-2.5)*0.8)*10)) / 10
+	if *next.Result.Roadmap != want {
+		t.Errorf("roadmap %v, want %v", *next.Result.Roadmap, want)
+	}
+}
