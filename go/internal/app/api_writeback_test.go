@@ -14,7 +14,8 @@ import (
 // talks to a network.
 type fakeTracker struct {
 	sprints  []sources.SprintValue
-	where    map[string]string // ticket key -> name of its sprint ("" = backlog)
+	board    []sources.SprintValue // sprints of the board without a ticket
+	where    map[string]string     // ticket key -> name of its sprint ("" = backlog)
 	toSprint map[int][]string
 	backlog  []string
 	enabled  bool
@@ -29,9 +30,10 @@ func (f *fakeTracker) Fetch() ([]sources.RawTicket, error) {
 	}
 	return out, nil
 }
-func (f *fakeTracker) KnownSprints() []sources.SprintValue { return f.sprints }
-func (f *fakeTracker) EnableSprintWrite()                  { f.enabled = true }
-func (f *fakeTracker) Close()                              {}
+func (f *fakeTracker) KnownSprints() []sources.SprintValue                 { return f.sprints }
+func (f *fakeTracker) ListBoardSprints(int) ([]sources.SprintValue, error) { return f.board, nil }
+func (f *fakeTracker) EnableSprintWrite()                                  { f.enabled = true }
+func (f *fakeTracker) Close()                                              {}
 func (f *fakeTracker) MoveToSprint(id int, keys []string) error {
 	if !f.enabled {
 		return errors.New("not switched on")
@@ -225,5 +227,22 @@ func TestWritePlansFromTheTrackerAsItIsNow(t *testing.T) {
 	}
 	if v, _ := api.PlanSprint(team, next, nil); !v.WriteUndo {
 		t.Error("the view does not offer to take the write back")
+	}
+}
+
+func TestWriteFindsAnEmptySprintOfTheBoard(t *testing.T) {
+	api, team, next, fake := writeTeam(t)
+	fake.board, fake.sprints = fake.sprints, nil // no ticket shows the sprint, only the board does
+	repo := storage.NewRepository(api.DataDir())
+	data, _ := repo.Load(team)
+	tm := data.Team
+	id := 3
+	tm.Tracker.BoardID = &id
+	if _, err := repo.SaveTeam(tm); err != nil {
+		t.Fatal(err)
+	}
+	p, err := api.PlanWritePreview(team, next)
+	if err != nil || p.Sprint != next || len(p.Moves) == 0 {
+		t.Fatalf("preview = %+v %v", p, err)
 	}
 }

@@ -24,6 +24,7 @@ type writebackTracker interface {
 	sprintwrite.Mover
 	Fetch() ([]sources.RawTicket, error)
 	KnownSprints() []sources.SprintValue
+	ListBoardSprints(boardID int) ([]sources.SprintValue, error)
 	EnableSprintWrite()
 	Close()
 }
@@ -109,7 +110,10 @@ func (c *planCtx) writePlan(w writebackTracker) (sprintwrite.Plan, sprintwrite.D
 		Tickets: c.data.Tickets, Preplan: c.data.Preplan, Sprints: ticketimport.ForecastSprints{Forecast: c.fc}, Today: c.today,
 	}, raws, nil, false)
 	tracker := c.data.Team.Tracker
-	dir := sprintwrite.NewDirectory(w.KnownSprints(), tracker)
+	dir, err := sprintwrite.LoadDirectory(w.KnownSprints(), w, tracker)
+	if err != nil {
+		return sprintwrite.Plan{}, sprintwrite.Directory{}, err
+	}
 	var next string
 	if n, err := calendar.NewChain(&c.data.Team, c.data.Sprints).After(&c.sprint); err == nil {
 		next = n.ID
