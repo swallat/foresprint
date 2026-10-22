@@ -30,6 +30,7 @@ import i_cloud_off from '@material-symbols/svg-400/outlined/cloud_off.svg?raw';
 import i_cloud_upload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw';
 import i_content_copy from '@material-symbols/svg-400/outlined/content_copy.svg?raw';
 import i_contrast from '@material-symbols/svg-400/outlined/contrast.svg?raw';
+import i_create_new_folder from '@material-symbols/svg-400/outlined/create_new_folder.svg?raw';
 import i_dark_mode from '@material-symbols/svg-400/outlined/dark_mode.svg?raw';
 import i_database from '@material-symbols/svg-400/outlined/database.svg?raw';
 import i_date_range from '@material-symbols/svg-400/outlined/date_range.svg?raw';
@@ -53,6 +54,7 @@ import i_help from '@material-symbols/svg-400/outlined/help.svg?raw';
 import i_history from '@material-symbols/svg-400/outlined/history.svg?raw';
 import i_info from '@material-symbols/svg-400/outlined/info.svg?raw';
 import i_key from '@material-symbols/svg-400/outlined/key.svg?raw';
+import i_key_off from '@material-symbols/svg-400/outlined/key_off.svg?raw';
 import i_keyboard_arrow_down from '@material-symbols/svg-400/outlined/keyboard_arrow_down.svg?raw';
 import i_keyboard_arrow_up from '@material-symbols/svg-400/outlined/keyboard_arrow_up.svg?raw';
 import i_language from '@material-symbols/svg-400/outlined/language.svg?raw';
@@ -66,6 +68,7 @@ import i_monitoring from '@material-symbols/svg-400/outlined/monitoring.svg?raw'
 import i_more_vert from '@material-symbols/svg-400/outlined/more_vert.svg?raw';
 import i_network_check from '@material-symbols/svg-400/outlined/network_check.svg?raw';
 import i_open_in_new from '@material-symbols/svg-400/outlined/open_in_new.svg?raw';
+import i_pending from '@material-symbols/svg-400/outlined/pending.svg?raw';
 import i_person from '@material-symbols/svg-400/outlined/person.svg?raw';
 import i_person_add from '@material-symbols/svg-400/outlined/person_add.svg?raw';
 import i_pin from '@material-symbols/svg-400/outlined/pin.svg?raw';
@@ -78,7 +81,9 @@ import i_save from '@material-symbols/svg-400/outlined/save.svg?raw';
 import i_schedule from '@material-symbols/svg-400/outlined/schedule.svg?raw';
 import i_school from '@material-symbols/svg-400/outlined/school.svg?raw';
 import i_search from '@material-symbols/svg-400/outlined/search.svg?raw';
+import i_sell from '@material-symbols/svg-400/outlined/sell.svg?raw';
 import i_settings from '@material-symbols/svg-400/outlined/settings.svg?raw';
+import i_settings_backup_restore from '@material-symbols/svg-400/outlined/settings_backup_restore.svg?raw';
 import i_skip_next from '@material-symbols/svg-400/outlined/skip_next.svg?raw';
 import i_sort from '@material-symbols/svg-400/outlined/sort.svg?raw';
 import i_stop from '@material-symbols/svg-400/outlined/stop.svg?raw';
@@ -120,6 +125,7 @@ const icons = {
   cloud_upload: i_cloud_upload,
   content_copy: i_content_copy,
   contrast: i_contrast,
+  create_new_folder: i_create_new_folder,
   dark_mode: i_dark_mode,
   database: i_database,
   date_range: i_date_range,
@@ -143,6 +149,7 @@ const icons = {
   history: i_history,
   info: i_info,
   key: i_key,
+  key_off: i_key_off,
   keyboard_arrow_down: i_keyboard_arrow_down,
   keyboard_arrow_up: i_keyboard_arrow_up,
   language: i_language,
@@ -156,6 +163,7 @@ const icons = {
   more_vert: i_more_vert,
   network_check: i_network_check,
   open_in_new: i_open_in_new,
+  pending: i_pending,
   person: i_person,
   person_add: i_person_add,
   pin: i_pin,
@@ -168,7 +176,9 @@ const icons = {
   schedule: i_schedule,
   school: i_school,
   search: i_search,
+  sell: i_sell,
   settings: i_settings,
+  settings_backup_restore: i_settings_backup_restore,
   skip_next: i_skip_next,
   sort: i_sort,
   stop: i_stop,
