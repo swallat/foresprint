@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -46,6 +47,9 @@ func snapshot(t *testing.T, root string) map[string]string {
 
 // TestFlowsMatchPython replays the interactive scenarios of the Python command line (typed
 // answers) on a copy of the demo teams and compares the exit code and every file written.
+// importedAt is the time of a ticket import, which is the wall clock.
+var importedAt = regexp.MustCompile(`(?m)^imported: .*$`)
+
 func TestFlowsMatchPython(t *testing.T) {
 	dir := filepath.Join(golden.Dir(t), "expected", "cliflows")
 	entries, err := os.ReadDir(dir)
@@ -71,6 +75,7 @@ func TestFlowsMatchPython(t *testing.T) {
 				}
 			}
 			before := snapshot(t, data)
+			t.Chdir(data) // relative file names in the arguments
 			var out, errOut bytes.Buffer
 			args := append([]string{"--data", data, "--as-of", want.AsOf}, want.Args...)
 			code := Execute(args, strings.NewReader(want.Input), &out, &errOut)
@@ -81,7 +86,7 @@ func TestFlowsMatchPython(t *testing.T) {
 			after := snapshot(t, data)
 			for rel, text := range after {
 				if before[rel] != text {
-					got[rel] = text
+					got[rel] = importedAt.ReplaceAllString(text, "imported: X") // wall clock
 				}
 			}
 			var deleted []string
