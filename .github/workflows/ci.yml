@@ -22,7 +22,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: No spreadsheets in the repository
         run: |
-          if git ls-files | grep -iE '\.(xlsx|xlsm|xls)$'; then
+          # Except the synthetic workbooks of the Excel import references (demo team only).
+          if git ls-files | grep -v '^golden/expected/excel_import/workbooks/' | grep -iE '\.(xlsx|xlsm|xls)$'; then
             echo "::error::Spreadsheets must not be committed (real team data)."
             exit 1
           fi
