@@ -60,6 +60,12 @@ window.DEMO = {
   plannableShare: 0.85, smallShare: 0.1,
   overheadShare: 0.05,
   // absences in person days per person and sprint; a: announced, c: confirmed
+  // planned absences as periods per person; Foresprint turns them into days per sprint (a: announced, c: confirmed)
+  absPeriods: [
+    { id: "z1", person: "p2", kind: "Urlaub", from: "2026-11-16", to: "2026-11-20", s: "a" },
+    { id: "z2", person: "p5", kind: "Schulung", from: "2026-11-02", to: "2026-11-03", s: "c" },
+    { id: "z3", person: "p4", kind: "Urlaub", from: "2026-12-14", to: "2027-01-08", s: "a" },
+  ],
   absences: {
     "2026.22": { p1: { d: 3, s: "a" }, p3: { d: 2, s: "a" }, p4: { d: 5, s: "a" } },
     "2026.23": {},
