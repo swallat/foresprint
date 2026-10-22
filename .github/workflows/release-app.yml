@@ -8,9 +8,11 @@ name: Release app
 #   checksums.txt.bundle                       cosign signature (keyless, GitHub identity)
 #
 # The files are not signed with a code signing certificate (decision of 22.10.): Windows shows
-# SmartScreen and macOS Gatekeeper on the first start, see docs/install.md. Integrity: checksums.txt,
+# SmartScreen and macOS Gatekeeper on the first start, see docs/installation.md. Integrity: checksums.txt,
 # the cosign bundle and the GitHub build attestation of every archive.
-# "Run workflow" repeats the build for an existing tag and replaces the files.
+# "Run workflow" builds the commit it is started on ("Use workflow from": a branch or a tag) and
+# gives the release the name in "tag"; if that tag does not exist yet, the release page creates it
+# at that commit. For an existing tag it repeats the build and replaces the files.
 
 on:
   push:
@@ -18,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag, e.g. v1.0.0"
+        description: "Name of the release, e.g. v1.0.0 or v1.0.0-beta.1 (tag created if missing)"
         required: true
 
 permissions:
@@ -39,7 +41,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ env.TAG }}
+          fetch-depth: 0
+      - name: Check the name and the commit
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::The name $TAG is not a version like v1.0.0 or v1.0.0-beta.1"; exit 1; }
+          # A run started by hand must not replace the files of an existing tag with another commit.
+          if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
+            tagged=$(git rev-parse "$TAG^{commit}")
+            [ "$tagged" = "$GITHUB_SHA" ] || { echo "::error::The tag $TAG is at $tagged, but this run is on $GITHUB_SHA. Start the run from the tag under 'Use workflow from'."; exit 1; }
+          fi
       - uses: jdx/mise-action@v3
       - run: uv sync --locked --all-extras
       - run: uv pip install --upgrade holidays
@@ -68,8 +78,6 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ env.TAG }}
       - uses: actions/setup-go@v6
         with:
           go-version-file: go/go.mod
@@ -138,7 +146,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ env.TAG }}
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
@@ -160,15 +167,18 @@ jobs:
       - name: Release page
         run: |
           # release.yml (the Python packages) creates the page for the same tag; wait for it.
-          for _ in $(seq 1 40); do
-            gh release view "$TAG" > /dev/null 2>&1 && break
-            sleep 15
-          done
+          # Only a pushed tag starts release.yml; a tag made by this run does not.
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            for _ in $(seq 1 40); do
+              gh release view "$TAG" > /dev/null 2>&1 && break
+              sleep 15
+            done
+          fi
           # A tag with a suffix (v1.0.0-beta.1) is a pre-release: the self-update ignores it.
           pre=""; case "$TAG" in *-*) pre="--prerelease" ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
             if [ -n "$pre" ]; then gh release edit "$TAG" --prerelease; fi
           else
-            gh release create "$TAG" dist/* --verify-tag --title "${TAG#v}" --generate-notes $pre
+            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "${TAG#v}" --generate-notes $pre
           fi

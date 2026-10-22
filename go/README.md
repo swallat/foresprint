@@ -66,6 +66,7 @@ writes back unchanged (the golden round trips prove it).
 | --- | --- |
 | `team.yaml` | `tracker.kind: packages` (work packages kept in Foresprint; no tickets = `features.tickets` off); `features.projects` (read `projects.yaml` without tickets); `features.production_max` (cap of the production time in percent, written only when not 100); `sprint.naming` (list of `{from, pattern}`), `sprint.pro_forma` (names); `product_owners` (list of `{id, name, person}`: the POs of the team, `person` = id of the `people.yaml` entry of a PO who works in the team); `estimation: {factor, changes: [{from, unit, factor}]}`; tracker: more `fields` (status, acceptance, product, project, refined, production), `production_label`, `production_rules` (`{match, share}`), `write_sprint`, `removed_target` (backlog, pro_forma, next), `package_prefix` |
 | `people.yaml` | `kind: guest` or `external` (member is not written) |
+| `sprints/<id>.yaml` | `absence_state: open`: the sprint is not frozen and its cells have their own state: `absences` holds the confirmed cells, `expected_absences` the announced ones (confirmed wins per person). A frozen sprint is `absence_state: confirmed` or, as in 0.8, any sprint with entries in `absences` and no stored state: every cell is confirmed and an empty one means 0 days. Written only for an open sprint with a confirmed cell, so 0.8 files stay unchanged |
 | `abwesenheiten.yaml` | `absences: {<person>: [{from, to, confirmed}]}`, dates only, never a reason |
 | `projects.yaml` | `products` (list; with one product the 0.8 key `product` stays), `start`, `end`, `state` (finished, cancelled), `open_scope`, `contact`, `milestones` (`id`, `name`, `date`, `tickets`, `light`: green, yellow, red by hand), `contingent: {total, per_month, used, used_per_month}` (PD) |
 | `tickets.yaml` / `arbeitspakete.yaml` | work package fields `description`, `acceptance`, `assignee`, `product`, `subtasks`, `comments`; `arbeitspakete.yaml` has the format of `tickets.yaml` and replaces it for `kind: packages` |
@@ -75,6 +76,8 @@ writes back unchanged (the golden round trips prove it).
 `product.po` in `products.yaml` names the id of a PO of `product_owners`; in a file without that list it stays the plain name (0.8). The window migrates a team on the first edit of its POs: it writes the list, one entry per name in use, and the ids into the products. `model.Team.PO` and `POName` resolve both forms.
 
 `model.FormatSprintName` fills a naming pattern ({JJJJ} {JJ} {NN} {N} {LFD} {Q} {MM} {KW}).
+
+`calendar.Chain` creates the sprints after the recorded ones. With a `sprint.naming` rule the ID of a new sprint is the name from the pattern; the number in the year and the running number come from the order of the sprints (continued from the previous ID, read by the pattern or in the numeric form of the numbering), not from the previous ID alone. A rule with `from` begins at that sprint. Without a rule the IDs count on as before.
 `tracker.kind` accepts `packages`, so the message of the check lists it (known deviation from
 the Python reference).
 
