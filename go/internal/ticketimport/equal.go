@@ -69,7 +69,7 @@ func ticketsEqual(a, b []model.Ticket) bool {
 }
 
 func preplanEqual(a, b model.Preplan) bool {
-	if len(a.Earmarks) != len(b.Earmarks) || len(a.Estimates) != len(b.Estimates) {
+	if len(a.Earmarks) != len(b.Earmarks) || len(a.Estimates) != len(b.Estimates) || len(a.Order) != len(b.Order) {
 		return false
 	}
 	for i := range a.Earmarks {

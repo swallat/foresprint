@@ -22,6 +22,7 @@
   "Sort by": "Sortieren nach",
   "Sorted by your choice. Choose the planning order to see the list as planned.": "Nach deiner Wahl sortiert. Wähle die Planungsreihenfolge, um die Liste wie geplant zu sehen.",
   "Sprint {id}: the tracker differs from the frozen plan.": "Sprint {id}: Der Tracker weicht vom festgeschriebenen Plan ab.",
+  "The next fetch takes over the order of the tracker again.": "Der nächste Abruf übernimmt die Reihenfolge des Trackers wieder.",
   "{count} tickets are back in the backlog. Adjust them in the tracker.": "{count} Tickets sind zurück im Backlog. Im Tracker anpassen.",
   "{count} tickets moved to {name}. Adjust them in the tracker.": "{count} Tickets nach {name} verschoben. Im Tracker anpassen.",
   "{key} is back in the backlog. Adjust it in the tracker.": "{key} ist zurück im Backlog. Im Tracker anpassen.",
