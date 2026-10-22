@@ -21,6 +21,9 @@ export interface ForecastRow {
   high: number | null;
   plannable: number | null;
   small: number | null;
+  carryIn: number;
+  carryAssumed: boolean;
+  overbooked: boolean;
 }
 
 export interface ForecastView {

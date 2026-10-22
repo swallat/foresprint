@@ -30,6 +30,12 @@ type ForecastRow struct {
 	// Plannable is the share of the plan for roadmap work; Small is the rest.
 	Plannable *float64 `json:"plannable"`
 	Small     *float64 `json:"small"`
+	// CarryIn is the rest of earlier sprints that continues in this sprint and is taken off
+	// the plan before the share applies; CarryAssumed says it is only an assumption of a
+	// running sprint, Overbooked that it exceeds the plan.
+	CarryIn      float64 `json:"carryIn"`
+	CarryAssumed bool    `json:"carryAssumed"`
+	Overbooked   bool    `json:"overbooked"`
 }
 
 // ForecastView is the data of the forecast page for one team.

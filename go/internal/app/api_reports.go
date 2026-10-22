@@ -117,7 +117,7 @@ func (a *API) ForecastSave(team, kind string) (ReportFile, error) {
 	if dir == "" {
 		return ReportFile{Cancelled: true}, nil
 	}
-	path := freeName(dir, name)
+	path := reportFreeName(dir, name)
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return ReportFile{}, err
 	}
@@ -126,7 +126,7 @@ func (a *API) ForecastSave(team, kind string) (ReportFile, error) {
 
 // freeName is the path of name in dir; if the file exists, "name (2).ext" and so on, so that an
 // export never replaces a file.
-func freeName(dir, name string) string {
+func reportFreeName(dir, name string) string {
 	ext := filepath.Ext(name)
 	base := strings.TrimSuffix(name, ext)
 	path := filepath.Join(dir, name)
@@ -170,7 +170,7 @@ func (a *API) previewImport(team, path string) (ImportPreview, error) {
 		}
 		out.Changes = append(out.Changes, ImportChange{
 			File: textfmt.BlankControls(c.File), Path: textfmt.BlankControls(c.Path),
-			Old: changeText(c.Old), New: changeText(c.New),
+			Old: reportChangeText(c.Old), New: reportChangeText(c.New),
 		})
 	}
 	return out, nil
@@ -212,7 +212,7 @@ func (a *API) ExcelImportApply(team, path, hash string) ([]string, error) {
 	return files, nil
 }
 
-func changeText(v any) string {
+func reportChangeText(v any) string {
 	if v == nil {
 		return "–"
 	}
