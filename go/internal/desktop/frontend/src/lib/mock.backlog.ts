@@ -112,6 +112,12 @@ export function createBacklogMock(sprints: () => SprintInfo[]): BacklogApi {
   const kind = source();
   const prefix = kind === 'packages' ? 'AP' : 'ATL';
   const rows: Row[] = seed(prefix);
+  // ?n=3000 adds many tickets, to try the list with a long backlog
+  const extra = Number(new URLSearchParams(location.search).get('n')) || 0;
+  for (let i = 0; i < extra; i++) {
+    const base = rows[i % 14]!;
+    rows.push({ ...structuredClone(base), key: `${prefix}-${1000 + i}`, title: `${base.title} (${i})`, rank: 100 + i, earmark: '', dependsOn: [] });
+  }
   const forecast = [38, 42, 41, 36];
   const proForma = ['Refinement'];
   if (kind === 'tracker') {

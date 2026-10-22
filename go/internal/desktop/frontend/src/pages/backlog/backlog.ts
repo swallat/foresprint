@@ -49,7 +49,24 @@ export function unassigned(t: BacklogTicket, multi: boolean): boolean {
   return !!t.ruleHint || (multi && !t.product);
 }
 
-export function matches(t: BacklogTicket, f: Filter, names: { product: (id: string) => string; project: (id: string) => string }, multi: boolean): boolean {
+// The text a search looks in, built once per ticket object (a reload makes new objects).
+const haystacks = new WeakMap<BacklogTicket, string>();
+
+function haystack(t: BacklogTicket, names: Names): string {
+  let hay = haystacks.get(t);
+  if (hay === undefined) {
+    hay = `${t.key} ${t.title} ${names.product(t.product)} ${names.project(t.project)} ${t.epic} ${t.labels.join(' ')}`.toLowerCase();
+    haystacks.set(t, hay);
+  }
+  return hay;
+}
+
+export interface Names {
+  product: (id: string) => string;
+  project: (id: string) => string;
+}
+
+export function matches(t: BacklogTicket, f: Filter, names: Names, multi: boolean): boolean {
   if (f.products.length && !f.products.includes(t.product)) return false;
   if (f.projects.length && !f.projects.includes(t.project)) return false;
   if (f.refined === 'yes' && !t.refined) return false;
@@ -57,7 +74,7 @@ export function matches(t: BacklogTicket, f: Filter, names: { product: (id: stri
   if (f.flag === 'unassigned' && !unassigned(t, multi)) return false;
   const q = f.q.trim().toLowerCase();
   if (q) {
-    const hay = `${t.key} ${t.title} ${names.product(t.product)} ${names.project(t.project)} ${t.epic} ${t.labels.join(' ')}`.toLowerCase();
+    const hay = haystack(t, names);
     if (!q.split(/\s+/).every((w) => hay.includes(w))) return false;
   }
   return true;

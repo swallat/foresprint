@@ -35,7 +35,28 @@
     return ui.filter.flag === 'earmarked' ? allTickets(view).filter((tk) => tk.earmark) : view.tickets;
   });
   const items = $derived(pool.filter((tk) => matches(tk, ui.filter, names, view?.multi ?? false)));
-  const sections = $derived(view ? group(items, ui.group, view) : []);
+  // Long lists render in steps (a sentinel at the end asks for the next step as it scrolls into
+  // view), so that the filter stays instant with thousands of tickets.
+  const STEP = 60;
+  let shown = $state(STEP);
+  $effect(() => {
+    void ui.filter.q;
+    void ui.filter.products;
+    void ui.filter.projects;
+    void ui.filter.refined;
+    void ui.filter.flag;
+    void ui.group;
+    shown = STEP;
+  });
+  const visible = $derived(items.slice(0, shown));
+  const sections = $derived(view ? group(visible, ui.group, view) : []);
+  function more(node: HTMLElement): { destroy(): void } {
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) shown += STEP;
+    }, { rootMargin: '400px' });
+    io.observe(node);
+    return { destroy: () => io.disconnect() };
+  }
   const lanes = $derived(view?.lanes ?? []);
   const laneIds = $derived(lanes.map((l) => l.sprint));
   const current = $derived(activeView(ui.filter));
@@ -252,7 +273,7 @@
                 <button class="btn" type="button" onclick={() => { ui.filter = blank(); }}><Icon name="filter_alt_off" />{t('Reset filter')}</button>
               </div>
             {:else if ui.group === 'none'}
-              {#each items as tk (tk.key)}
+              {#each visible as tk (tk.key)}
                 {@render row(tk, true, true)}
               {/each}
             {:else}
@@ -266,6 +287,11 @@
                   {@render row(tk, s.kind !== 'product', s.kind !== 'project')}
                 {/each}
               {/each}
+            {/if}
+            {#if items.length > shown}
+              <div class="more" use:more>
+                <button class="btn" type="button" onclick={() => (shown += STEP)}>{t('Show more ({shown} of {total})', { shown, total: items.length })}</button>
+              </div>
             {/if}
           </div>
         </div>
@@ -456,6 +482,11 @@
   }
   .grow {
     flex: 1;
+  }
+  .more {
+    padding: 12px;
+    display: flex;
+    justify-content: center;
   }
   .selbar {
     margin-top: 6px;

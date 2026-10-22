@@ -161,6 +161,7 @@
   "Several product rules match": "Mehrere Produktregeln treffen zu",
   "Several product rules match: {names}. Set the product here or make the rules exclusive.": "Mehrere Produktregeln treffen zu: {names}. Setze das Produkt hier oder mach die Regeln eindeutig.",
   "Share that needs production access": "Anteil, der Produktionszugang braucht",
+  "Show more ({shown} of {total})": "Mehr anzeigen ({shown} von {total})",
   "Show the ticket large in the window, step with the arrow keys": "Ticket groß im Fenster zeigen, mit den Pfeiltasten blättern",
   "Show the tickets large in the window, for sharing in a meeting": "Tickets groß im Fenster zeigen, zum Teilen im Meeting",
   "Some tickets depend on each other in a circle. They stay in the list but cannot be distributed. Open them and remove one dependency.": "Einige Tickets hängen im Kreis voneinander ab. Sie bleiben in der Liste, lassen sich aber nicht verteilen. Öffne sie und entferne eine Abhängigkeit.",
