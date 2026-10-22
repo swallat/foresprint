@@ -99,24 +99,42 @@
   </section>
 
   <section class="card stack" aria-labelledby="rp-import">
-    <h2 id="rp-import">{t('Import Excel')}</h2>
-    <p class="small muted">{t('Reads a workbook from the Excel export. You see every change first; nothing is written before you confirm.')}</p>
+    <h2 id="rp-import">{t('Import from a file')}</h2>
+    <p class="small muted">{t('Reads a workbook from the Excel export, or a CSV table of work packages. You see every change first; nothing is written before you confirm.')}</p>
+    <p class="small muted">{t('A CSV table is added to the work packages of the team. A row with a known key (column Key or ID) updates that work package; a row without a key becomes a new one, so a table without keys adds its rows again when imported twice.')}</p>
     <div class="row">
-      <button class="btn" type="button" disabled={busy} onclick={pick}><Icon name="upload_file" size={18} />{t('Choose workbook')}</button>
+      <button class="btn" type="button" disabled={busy} onclick={pick}><Icon name="upload_file" size={18} />{t('Choose file')}</button>
     </div>
     {#if preview}
       {#if preview.noTeam}
         <Banner tone="warn">{t('The workbook names no team (older export); it is not checked whether it belongs to this team.')}</Banner>
+      {/if}
+      {#if preview.problems.length > 0}
+        <Banner tone="warn">
+          {t('{n} rows are skipped:', { n: preview.problems.length })}
+          <ul>{#each preview.problems as m (m)}<li>{m}</li>{/each}</ul>
+        </Banner>
+      {/if}
+      {#if preview.unmapped.length > 0}
+        <p class="small muted">{t('No field found for the columns: {names}', { names: preview.unmapped.join(', ') })}</p>
       {/if}
       {#if preview.changes.length === 0}
         <Banner tone="info">{t('No changes compared to the existing files.')}</Banner>
       {:else}
         <div class="tw">
           <table class="t">
-            <thead><tr><th>{t('File')}</th><th>{t('Value')}</th><th>{t('Before')}</th><th>{t('New')}</th></tr></thead>
+            {#if preview.kind === 'packages'}
+              <thead><tr><th scope="col">{t('Work package')}</th><th scope="col">{t('Title before')}</th><th scope="col">{t('Title now')}</th></tr></thead>
+            {:else}
+              <thead><tr><th scope="col">{t('File')}</th><th scope="col">{t('Value')}</th><th scope="col">{t('Before')}</th><th scope="col">{t('New')}</th></tr></thead>
+            {/if}
             <tbody>
               {#each preview.changes as c, i (i)}
-                <tr><td class="data">{c.file}</td><td class="data">{c.path}</td><td class="data">{c.old}</td><td class="data"><strong>{c.new}</strong></td></tr>
+                {#if preview.kind === 'packages'}
+                  <tr><td class="data">{c.path}</td><td class="data">{c.old}</td><td class="data"><strong>{c.new}</strong></td></tr>
+                {:else}
+                  <tr><td class="data">{c.file}</td><td class="data">{c.path}</td><td class="data">{c.old}</td><td class="data"><strong>{c.new}</strong></td></tr>
+                {/if}
               {/each}
             </tbody>
           </table>

@@ -266,6 +266,9 @@ export const mockApi: Api = {
       untouched: [],
       noTeam: false,
       cancelled: false,
+      kind: 'workbook',
+      problems: [],
+      unmapped: [],
     };
   },
   async ExcelImportApply() {

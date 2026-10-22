@@ -33,8 +33,8 @@
   "Unknown export format.": "Unbekanntes Exportformat.",
   "No file dialog in this build.": "Dieser Build hat keinen Dateidialog.",
   "Choose the folder for the export": "Ordner für den Export wählen",
-  "Choose the Excel workbook": "Excel-Arbeitsmappe wählen",
-  "The workbook changed since the preview. Choose it again.": "Die Arbeitsmappe hat sich seit der Vorschau geändert. Wähle sie erneut.",
+  "Choose the Excel workbook or CSV table": "Excel-Arbeitsmappe oder CSV-Tabelle wählen",
+  "The file changed since the preview. Choose it again.": "Die Datei hat sich seit der Vorschau geändert. Wähle sie erneut.",
   "Numbers in the Review must not be negative.": "Zahlen im Review dürfen nicht negativ sein.",
   "Sprint {id} has not begun; it cannot be reviewed yet.": "Der Sprint {id} hat noch nicht begonnen; sein Review ist noch nicht möglich.",
   "The rest that continues cannot be more than what was not done.": "Der Rest, der weiterläuft, kann nicht größer sein als das Nicht-Erledigte.",
@@ -74,6 +74,9 @@
   "The tracker address must be an http or https address without credentials.": "Die Trackeradresse muss eine http- oder https-Adresse ohne Zugangsdaten sein.",
   "Unknown source of work: {source}": "Unbekannte Quelle der Arbeit: {source}",
   "Unknown way to set up the storage: {kind}": "Unbekannte Art, den Speicher einzurichten: {kind}",
-  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein."
+  "Please choose a traffic light for the milestone.": "Bitte wähle eine Ampel für den Meilenstein.",
+  "This team gets its tickets from a tracker. A CSV table can only be imported as work packages.": "Dieses Team bekommt seine Tickets aus einem Ticketsystem. Eine CSV-Tabelle lässt sich nur als Arbeitspakete importieren.",
+  "Row {row}: {msg}": "Zeile {row}: {msg}",
+  "The tickets are switched off for this team.": "Die Tickets sind für dieses Team ausgeschaltet."
  }
 }
