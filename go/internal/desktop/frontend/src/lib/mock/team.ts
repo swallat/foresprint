@@ -1,6 +1,6 @@
 // Mock answers of the Team area for a browser without the program (demo team "Atlas").
 
-import type { RuleOwner, RulePreview, TeamApi } from './types.team';
+import type { RuleOwner, RulePreview, TeamApi } from '../types.team';
 
 const fields = ['epic', 'component', 'label', 'status', 'issue_type', 'priority', 'in_sprint'];
 
@@ -58,3 +58,5 @@ export const teamMock: TeamApi = {
     };
   },
 };
+
+export default teamMock;

@@ -3,7 +3,8 @@
 // not done + additionally done; the Review of the latest reviewed sprint can be reopened; the
 // minutes of a reopened Review stay as obsolete files.
 
-import type { SprintInfo } from './types';
+import type { SprintInfo } from '../types';
+import { sprints as demoSprints } from './shared';
 import type {
   MinutesRow,
   MinutesText,
@@ -13,7 +14,7 @@ import type {
   ReviewProduct,
   ReviewTicket,
   SprintReview,
-} from './types.review';
+} from '../types.review';
 
 const products = [
   { id: 'portal', name: 'Portal', share: 0.34 },
@@ -193,3 +194,5 @@ export function createReviewMock(sprints: SprintInfo[], options: ReviewMockOptio
     },
   };
 }
+
+export default createReviewMock(demoSprints);

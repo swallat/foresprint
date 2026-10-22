@@ -3,7 +3,7 @@
 // `window.__sim('incoming' | 'conflict' | 'offline' | 'mr' | 'saved' | 'findings')`, for screenshots
 // and tests; the program has no such switch.
 
-import type { Result, Status } from './types';
+import type { Result, Status } from '../types';
 import type {
   Branch,
   ChipState,
@@ -17,7 +17,7 @@ import type {
   Problem,
   StorageSettings,
   Version,
-} from './types.data';
+} from '../types.data';
 
 type Sim = 'saved' | 'incoming' | 'conflict' | 'offline' | 'mr' | 'findings';
 
@@ -318,3 +318,5 @@ export { save as saveMock };
   if (state === 'saved') s.unsaved = [];
   if (state === 'findings' && s.unsaved.length === 0) s.unsaved = ['teams/atlas/people.yaml'];
 };
+
+export default dataMock;

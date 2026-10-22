@@ -13,8 +13,9 @@ import type {
   SprintPrepare,
   SprintRow,
   SprintsApi,
-} from './types.sprints';
-import type { SprintInfo } from './types';
+} from '../types.sprints';
+import type { SprintInfo } from '../types';
+import { sprints as demoSprints } from './shared';
 
 const people = [
   { person: 'anna', name: 'Anna', fte: 1 },
@@ -165,3 +166,5 @@ export function createSprintsMock(sprints: SprintInfo[]): SprintsApi {
     },
   };
 }
+
+export default createSprintsMock(demoSprints);

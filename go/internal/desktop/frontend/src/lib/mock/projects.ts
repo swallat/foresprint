@@ -13,8 +13,8 @@ import type {
   ProjectsView,
   ProjectView,
   SprintRow,
-} from './types.projects';
-import type { SprintInfo } from './types';
+} from '../types.projects';
+import type { SprintInfo } from '../types';
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -295,3 +295,5 @@ export const projectsMock: ProjectsApi = {
     state = prev;
   },
 };
+
+export default projectsMock;
