@@ -424,7 +424,7 @@ flowchart LR
 
 ## 8. Tree test (before mocks)
 
-Sebastian plus one or two other scrum masters or POs get the text tree of section 5 and answer "Where do you click to ...?" Target: 80 percent direct success.
+The maintainer plus one or two other scrum masters or POs get the text tree of section 5 and answer "Where do you click to ...?" Target: 80 percent direct success.
 
 1. ... record that Anna is on vacation in the next sprint?
 2. ... move a ticket to the top of the backlog?
@@ -442,7 +442,7 @@ Sebastian plus one or two other scrum masters or POs get the text tree of sectio
 14. ... set the Git server address or sign in again?
 15. ... see what a colleague changed yesterday?
 
-## 9. Decisions (Sebastian, 21.10.2026)
+## 9. Decisions (maintainer, 21.10.2026)
 
 1. **Absences:** announced and confirmed absences in one grid, each cell shows its state. UI only first, data format unchanged. Days are typed in directly (half days allowed). An open lock marks an announced entry, a closed lock a confirmed one. Per sprint, "Freeze" confirms the whole allocation: all entries count as confirmed, empty cells as 0 days, so "nobody absent" needs no extra button. A cleared value stays visible (struck through, with undo) until the next save.
 2. **Contingents and units:** team planning stays in story points as today. Project contingents are booked in person days (PD) for the whole project, optionally split per month. Both live side by side: Foresprint converts points to PD with the team's own rate (points per available person day from the forecast data: normalized velocity). Planned uses the Forecast rate of that sprint, done uses the sprint's actual rate. Converted values are always marked as estimates.
