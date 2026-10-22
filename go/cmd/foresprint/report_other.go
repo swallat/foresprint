@@ -11,3 +11,7 @@ func reportStart([]string) {}
 func reportFailure(what string, err error) { fmt.Printf("%s: %v\n", what, err) }
 
 func reportTrace(string) {}
+
+func reportBegin([]string) {}
+
+func reportEnd([]string, int) {}

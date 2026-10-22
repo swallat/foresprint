@@ -23,6 +23,7 @@ func init() {
 }
 
 func main() {
+	reportBegin(os.Args[1:])
 	defer func() {
 		if r := recover(); r != nil {
 			reportFailure("Foresprint stopped unexpectedly.", fmt.Errorf("%v", r))
@@ -30,7 +31,9 @@ func main() {
 		}
 	}()
 	selfupdate.CleanupOld()
-	os.Exit(cli.Execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+	code := cli.Execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
+	reportEnd(os.Args[1:], code)
+	os.Exit(code)
 }
 
 func versionCommand(env *cli.Env) *cobra.Command {

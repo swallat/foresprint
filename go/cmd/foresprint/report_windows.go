@@ -72,3 +72,20 @@ func reportFailure(what string, err error) {
 
 // reportTrace notes a step of the start in the log.
 func reportTrace(step string) { logLine("%s", step) }
+
+// reportBegin is the first entry of a start without arguments (a double click, the launcher):
+// when the window never opens, the entries after it show how far the program came.
+func reportBegin(args []string) {
+	if len(args) > 0 {
+		return
+	}
+	wd, _ := os.Getwd()
+	logLine("program start: cwd=%q exe=%q", wd, os.Args[0])
+}
+
+// reportEnd notes how a start without arguments ended.
+func reportEnd(args []string, code int) {
+	if len(args) == 0 {
+		logLine("program end: exit code %d", code)
+	}
+}
