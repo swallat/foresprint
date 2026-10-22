@@ -72,3 +72,25 @@ func TestLegacyAbsencesAreFrozen(t *testing.T) {
 		t.Errorf("open: %v %v %v", s.AbsenceStatus(), s.CellState("ben"), s.CellState("anna"))
 	}
 }
+
+func TestEmptyingAFrozenLegacySprintKeepsItFrozen(t *testing.T) {
+	// 0.8 file with entries and a stored "expected": frozen, and still frozen when the last
+	// cell is cleared.
+	s := Sprint{Absences: map[string]float64{"anna": 2}, AbsenceState: Ptr(AbsencesExpected)}
+	s.SetCell("anna", 0, AbsencesConfirmed)
+	if s.AbsenceStatus() != AbsencesConfirmed {
+		t.Errorf("status %v, want confirmed", s.AbsenceStatus())
+	}
+}
+
+func TestOpenStateIsOnlyStoredForConfirmedCells(t *testing.T) {
+	var s Sprint
+	s.SetCell("anna", 1, AbsencesExpected)
+	if *s.AbsenceState != AbsencesExpected { // the 0.8 state
+		t.Errorf("announced only: %v", *s.AbsenceState)
+	}
+	s.SetCell("ben", 1, AbsencesConfirmed)
+	if *s.AbsenceState != AbsencesOpen {
+		t.Errorf("with a confirmed cell: %v", *s.AbsenceState)
+	}
+}

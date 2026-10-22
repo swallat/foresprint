@@ -219,17 +219,22 @@ func (s *Sprint) SetCell(person string, days float64, state AbsenceState) {
 		}
 		(*target)[person] = days
 	}
-	if !frozen {
+	if frozen {
+		s.AbsenceState = Ptr(AbsencesConfirmed) // also when the last cell was removed
+	} else {
 		s.settleOpenState()
 	}
 }
 
-// settleOpenState stores the state of an open sprint: open while any cell is filled, otherwise
-// unknown.
+// settleOpenState stores the state of an open sprint: open while a cell is confirmed (the 1.0
+// state), announced while there are only announced cells (the 0.8 state), otherwise unknown.
 func (s *Sprint) settleOpenState() {
-	if len(s.Absences) > 0 || len(s.ExpectedAbsences) > 0 {
+	switch {
+	case len(s.Absences) > 0:
 		s.AbsenceState = Ptr(AbsencesOpen)
-	} else {
+	case len(s.ExpectedAbsences) > 0:
+		s.AbsenceState = Ptr(AbsencesExpected)
+	default:
 		s.AbsenceState = Ptr(AbsencesUnknown)
 	}
 }
