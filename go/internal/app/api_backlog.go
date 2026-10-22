@@ -34,7 +34,7 @@ func str(p *string) string {
 	return *p
 }
 
-func ptr(s string) *string {
+func strPtr(s string) *string {
 	if s == "" {
 		return nil
 	}
@@ -183,7 +183,7 @@ func (c *backlogContext) row(tk model.Ticket) BacklogTicket {
 	} else {
 		probe := tk
 		if r.ProjectSet {
-			probe.Project = ptr(r.Project)
+			probe.Project = strPtr(r.Project)
 		}
 		product, candidates := preplan.TicketProduct(probe, data)
 		r.Product = str(product)
@@ -559,7 +559,7 @@ func (a *API) SetEarmark(team, key, sprint, note string) error {
 		if note == "" {
 			note = prev
 		}
-		data.Preplan.Earmarks = append(data.Preplan.Earmarks, model.Earmark{Ticket: key, Sprint: sprint, Note: ptr(note)})
+		data.Preplan.Earmarks = append(data.Preplan.Earmarks, model.Earmark{Ticket: key, Sprint: sprint, Note: strPtr(note)})
 		return savePreplan(repo, team, data), nil
 	})
 }
@@ -569,7 +569,7 @@ func (a *API) SetEarmarkNote(team, key, note string) error {
 	return a.change(team, key, func(repo *storage.Repository, data *storage.TeamData, tk *model.Ticket) (func() error, error) {
 		for i := range data.Preplan.Earmarks {
 			if data.Preplan.Earmarks[i].Ticket == key {
-				data.Preplan.Earmarks[i].Note = ptr(note)
+				data.Preplan.Earmarks[i].Note = strPtr(note)
 				return savePreplan(repo, team, data), nil
 			}
 		}
@@ -642,8 +642,8 @@ func (a *API) SetAssignment(team, key, product, project string, daily bool) erro
 			return nil, fmt.Errorf("%s", i18n.T("Project {id} is not known.", "id", project))
 		}
 		if a.writePackages(data) {
-			tk.Product = ptr(product)
-			tk.Project = ptr(project)
+			tk.Product = strPtr(product)
+			tk.Project = strPtr(project)
 			return savePackages(repo, team, data), nil
 		}
 		pp := &data.Preplan
@@ -655,7 +655,7 @@ func (a *API) SetAssignment(team, key, product, project string, daily bool) erro
 		}
 		pp.Overrides = kept
 		if product != "" || project != "" || daily {
-			pp.Overrides = append(pp.Overrides, model.TicketOverride{Ticket: key, Product: ptr(product), Project: ptr(project), Daily: daily && project == ""})
+			pp.Overrides = append(pp.Overrides, model.TicketOverride{Ticket: key, Product: strPtr(product), Project: strPtr(project), Daily: daily && project == ""})
 		}
 		return savePreplan(repo, team, data), nil
 	})
@@ -788,17 +788,17 @@ func (a *API) SaveWorkPackage(team string, in WorkPackageInput) (string, error) 
 	}
 	status := strings.TrimSpace(in.Status)
 	tk.Title = title
-	tk.Status = ptr(status)
-	tk.IssueType = ptr(strings.TrimSpace(in.Type))
-	tk.Priority = ptr(strings.TrimSpace(in.Priority))
-	tk.Assignee = ptr(strings.TrimSpace(in.Assignee))
-	tk.Product = ptr(in.Product)
-	tk.Project = ptr(in.Project)
+	tk.Status = strPtr(status)
+	tk.IssueType = strPtr(strings.TrimSpace(in.Type))
+	tk.Priority = strPtr(strings.TrimSpace(in.Priority))
+	tk.Assignee = strPtr(strings.TrimSpace(in.Assignee))
+	tk.Product = strPtr(in.Product)
+	tk.Project = strPtr(in.Project)
 	tk.Estimate = in.Estimate
 	tk.EstimateSource = estimateSource(in.Estimate, in.Refined)
 	tk.Labels = cleanList(in.Labels)
-	tk.Description = ptr(strings.TrimSpace(in.Description))
-	tk.Acceptance = ptr(strings.TrimSpace(in.Acceptance))
+	tk.Description = strPtr(strings.TrimSpace(in.Description))
+	tk.Acceptance = strPtr(strings.TrimSpace(in.Acceptance))
 	tk.DependsOn = cleanList(in.DependsOn)
 	tk.Done = in.Done || status == "Done"
 	tk.Subtasks = nil

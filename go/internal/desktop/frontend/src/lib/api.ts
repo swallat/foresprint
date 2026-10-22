@@ -6,11 +6,13 @@
 
 import type { BacklogApi } from './types.backlog';
 import type { ForecastApi } from './types.forecast';
+import type { TeamApi } from './types.team';
 import type { Info, Prefs, Result, SprintInfo, Status, TeamSummary } from './types';
 import type { DataApi } from './types.data';
+import type { SprintsApi } from './types.sprints';
 import type { TodayApi } from './types.today';
 
-export interface Api extends BacklogApi, DataApi, TodayApi, ForecastApi {
+export interface Api extends BacklogApi, DataApi, SprintsApi, TodayApi, ForecastApi, TeamApi {
   Info(): Promise<Info>;
   Prefs(): Promise<Prefs>;
   SetLanguage(code: string): Promise<void>;

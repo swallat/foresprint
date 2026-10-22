@@ -530,6 +530,9 @@ func (r *Repository) pinnedAbsenceState(path string, s model.Sprint) (model.Abse
 		if err == nil {
 			var old model.Sprint
 			if old, err = SprintFromDict(m, path); err == nil {
+				if old.AbsenceState != nil && *old.AbsenceState == model.AbsencesOpen {
+					return model.AbsencesOpen, nil
+				}
 				return old.AbsenceStatus(), nil
 			}
 		}
