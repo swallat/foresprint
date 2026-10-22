@@ -1,0 +1,11 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "products",
+  "demo",
+  "--preplanning"
+ ],
+ "input": "\n\n\n",
+ "exit_code": 0,
+ "files": {}
+}

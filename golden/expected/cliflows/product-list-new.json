@@ -1,0 +1,12 @@
+{
+ "as_of": "2026-10-15",
+ "args": [
+  "product-list",
+  "demo"
+ ],
+ "input": "n\n\nn\nwebshop\nn\nDatenschutz\nBea\n2026-11-01\nq\n",
+ "exit_code": 0,
+ "files": {
+  "demo/products.yaml": "# Products of the team. Period (from/to) = when the team works on the product; po optional.\n# Never delete products; end them with `to:` instead – otherwise past evaluations change.\n# match (optional): rule for tickets of the product without a project (same language as the\n# projects' match).\nproducts:\n- id: webshop\n  name: Webshop\n  po: Alex\n  from: null\n  to: null\n- id: app\n  name: Mobile App\n  po: Alex\n  from: null\n  to: null\n- id: portal\n  name: Kundenportal\n  po: Bea\n  from: 2026-09-02\n  to: null\n- id: altsystem\n  name: Altsystem\n  po: Bea\n  from: null\n  to: 2026-09-15\n- id: datenschutz\n  name: Datenschutz\n  po: Bea\n  from: 2026-11-01\n  to: null\n"
+ }
+}
