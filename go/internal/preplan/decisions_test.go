@@ -1,6 +1,7 @@
 package preplan
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -124,5 +125,19 @@ func TestSplitByShare(t *testing.T) {
 	d.Team.Features.Products = false
 	if got := SplitByShare(d, model.Sprint{ID: "s"}, 10); len(got) != 0 {
 		t.Fatalf("without products: %v", got)
+	}
+}
+
+func TestSplitByShareAddsUp(t *testing.T) {
+	d := decisionData()
+	d.Products = []model.Product{{ID: "a", Share: model.Ptr(0.3)}, {ID: "b", Share: model.Ptr(0.5)}}
+	got := SplitByShare(d, model.Sprint{ID: "s"}, 8)
+	if got["a"]+got["b"] != 8 || got["a"] != 3 {
+		t.Fatalf("fixed shares below 100 %% must still add up: %v", got)
+	}
+	d.Products = []model.Product{{ID: "a"}, {ID: "b"}, {ID: "c"}}
+	got = SplitByShare(d, model.Sprint{ID: "s"}, 8)
+	if math.Abs(got["a"]+got["b"]+got["c"]-8) > 1e-9 {
+		t.Fatalf("thirds: %v", got)
 	}
 }

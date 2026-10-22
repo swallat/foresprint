@@ -1033,6 +1033,7 @@ func (a *API) FreezePlan(team, sprintID string, in FreezeInput) (string, error) 
 			prodPlanned[id] += v
 		}
 		s.CommittedTickets = keys
+		s.Removed = nil // the minutes list them from here on
 	} else {
 		for id, v := range in.Amounts {
 			if v < 0 {
