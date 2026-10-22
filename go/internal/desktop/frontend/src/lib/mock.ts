@@ -2,8 +2,9 @@
 // "Team Atlas" (no real data, no real names). Same methods as the Go API.
 
 import type { Api } from './api';
+import { dataMock, refreshMock, saveMock, status } from './mock.data';
 import { createSprintsMock } from './mock.sprints';
-import type { Prefs, Result, SprintInfo, Status } from './types';
+import type { Prefs, SprintInfo } from './types';
 import type { TodayData, TodaySprint } from './types.today';
 
 // Eight finished sprints, the running one and five to come, counted from today.
@@ -38,15 +39,6 @@ let prefs: Prefs = {
   dataDir: '/demo/teams',
   recentDataDirs: ['/demo/teams'],
 };
-
-let incoming = 2;
-const status = (): Status => ({
-  storage: incoming > 0 ? 'incoming' : 'saved',
-  detail: '',
-  incoming,
-  findings: 1,
-  tracker: { enabled: true, name: 'Jira', last: new Date(Date.now() - 4 * 60000).toISOString(), syncing: false, failed: '' },
-});
 
 function today(): TodayData {
   const day = new Date().toISOString().slice(0, 10);
@@ -95,10 +87,9 @@ function today(): TodayData {
   };
 }
 
-const ok = (message: string): Result => ({ ok: true, message });
-
 export const mockApi: Api = {
   ...createSprintsMock(sprints),
+  ...dataMock,
   async Info() {
     return { version: 'dev', os: 'browser', arch: '', dataDir: prefs.dataDir, holidaysVersion: 'mock' };
   },
@@ -132,17 +123,15 @@ export const mockApi: Api = {
     return status();
   },
   async Save() {
-    incoming = 0;
-    return ok('Saved.');
+    return saveMock(false);
   },
   async Refresh() {
-    incoming = 0;
-    return ok('Up to date.');
+    return refreshMock();
   },
   async Today() {
     return today();
   },
   async SyncTracker() {
-    return ok('Tracker synced.');
+    return { ok: true, message: 'Tracker synced.' };
   },
 };

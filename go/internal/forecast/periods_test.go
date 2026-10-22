@@ -78,3 +78,43 @@ func TestWhatIfDoesNotChangeData(t *testing.T) {
 	}
 	t.Skip("no golden case with sprints")
 }
+
+func TestPlanSpan(t *testing.T) {
+	for _, c := range golden.Cases(t) {
+		data := coretest.Load(t, c)
+		fc, err := forecast.Build(data, coretest.Today(t, c))
+		if err != nil {
+			continue
+		}
+		for i, e := range fc.Entries {
+			span, ok := fc.PlanSpanOf(i)
+			if !ok {
+				continue
+			}
+			if span.Low > span.High || span.Samples == 0 {
+				t.Errorf("%s %s: %+v", c.Name, e.Sprint.ID, span)
+			}
+		}
+	}
+	data := &storage.TeamData{Team: model.NewTeam("t", "t")}
+	data.Team.Forecast.ReferenceCapacity = 10
+	data.Team.Forecast.Window = 2
+	data.Team.Forecast.Rounding = 0
+	plan, cap := 20.0, 5.0
+	src := engine.PlanForecast
+	norm := func(v float64) engine.SprintResult {
+		return engine.SprintResult{NormalizedVelocity: engine.Metric{Value: &v}}
+	}
+	// window of 2 before index 3: 20 and 40 (the 8 before is outside); capacity 5, ref 10
+	fc := &forecast.Forecast{Data: data, Entries: []forecast.TimelineEntry{
+		{Result: norm(8)}, {Result: norm(20)}, {Result: norm(40)},
+		{Result: engine.SprintResult{Plan: &plan, PlanSource: &src, PlanCapacity: &cap}},
+	}}
+	span, ok := fc.PlanSpanOf(3)
+	if !ok || span.Low != 10 || span.High != 20 || span.Samples != 2 {
+		t.Errorf("span %+v %v, want 10..20 over 2", span, ok)
+	}
+	if _, ok := fc.PlanSpanOf(1); ok {
+		t.Error("a sprint that is not a projection has no span")
+	}
+}
