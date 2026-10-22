@@ -46,6 +46,7 @@ sources are removed, `go.mod` moves to the repository root and nothing else chan
 | `internal/coretest` | Test helper: loads the golden team folders with `storage` and turns results into the JSON form of the Python references (snake case keys, dates as YYYY-MM-DD). |
 
 | `internal/sources` | Ticket sources: CSV export of Jira, Jira Data Center client (REST v2, token from the environment or the keychain), field resolution, field suggestions, the one label write. Python-compatible CSV reader, float parsing and `difflib`; compared with `golden/expected/sources`. |
+| `internal/ticketimport` | Ticket import: planning what a fetch changes (new, changed, removed, earmarks, projects, sprint end dates), applying it, and planning the `planned_for_*` label writes. Takes the sprint ends through a small interface until the forecast is wired in; compared with `golden/expected/ticketimport`. |
 | `internal/model` | The data types (team, people, products, sprints, ticket pre-planning), port of `model.py`. Optional values are pointers, dates are UTC midnight `time.Time`, maps with a file order are `OrderedMap`. |
 | `cmd/foresprint` | The program. |
 
