@@ -1,0 +1,27 @@
+{
+ "code": "de",
+ "name": "Deutsch",
+ "texts": {
+  "No data folder chosen.": "Es ist kein Datenordner gewählt.",
+  "others": "andere",
+  "{first} and {second}": "{first} und {second}",
+  "{first} and {count} others": "{first} und {count} weitere",
+  "{count} file needs your decision": "{count} Datei braucht Ihre Entscheidung",
+  "{count} files need your decision": "{count} Dateien brauchen Ihre Entscheidung",
+  "The data is not on a working version.": "Die Daten stehen auf keinem Arbeitsstand.",
+  "Offline: saving works, sharing waits": "Offline: Speichern geht, Teilen wartet",
+  "{count} new change from {who}": "{count} neue Änderung von {who}",
+  "{count} new changes from {who}": "{count} neue Änderungen von {who}",
+  "Waiting for review": "Wartet auf Freigabe",
+  "{count} unsaved change": "{count} ungespeicherte Änderung",
+  "{count} unsaved changes": "{count} ungespeicherte Änderungen",
+  "Saved on this computer only": "Nur auf diesem Computer gespeichert",
+  "{count} save not shared yet": "{count} Speicherung noch nicht geteilt",
+  "{count} saves not shared yet": "{count} Speicherungen noch nicht geteilt",
+  "Up to date": "Auf dem neuesten Stand",
+  "Save from Foresprint": "Speichern aus Foresprint",
+  "Ignored files were kept in {folder}.": "Ignorierte Dateien liegen weiter in {folder}.",
+  "Unknown way to share: {mode}": "Unbekannte Art zu teilen: {mode}",
+  "The folder is outside the data repository.": "Der Ordner liegt außerhalb des Daten-Repositorys."
+ }
+}
