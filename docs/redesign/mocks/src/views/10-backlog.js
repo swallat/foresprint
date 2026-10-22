@@ -29,7 +29,7 @@
     let h = FS.ticketRow(t, { drag: true, ...o });
     if (t.key.startsWith("AP-")) h = h.replace(/<span class="key">.*?<\/a><\/span>/, `<span class="key" title="Von Hand angelegt, kein Tracker">${t.key}</span>`);
     const flags = (t.est == null ? `<span class="chip warn">${FS.icon("help", "small")}ohne Schätzung</span>` : "") +
-      (RULE[t.key] && FS.multiProduct() && FS.trk() === "jira" ? `<button type="button" class="chip warn bl-ruleflag" data-rule="${t.key}" title="${esc(RULE[t.key])}">${FS.icon("rule", "small")}Regel ohne Treffer</button>` : "") +
+      (RULE[t.key] && FS.multiProduct() && FS.trk() === "jira" && (FS.state.jira?.src?.product ?? "rule") === "rule" ? `<button type="button" class="chip warn bl-ruleflag" data-rule="${t.key}" title="${esc(RULE[t.key])}">${FS.icon("rule", "small")}Regel ohne Treffer</button>` : "") +
       (B.flag === "earmarked" && t.sprint ? `<span class="chip">${FS.icon("event", "small")}${t.sprint}</span>` : "");
     h = h.replace('<span class="meta">', `<span class="meta">${flags}`).replace('<span class="handle">', `<input type="checkbox" class="bl-sel" data-key="${t.key}" aria-label="${FS.dk(t.key)} auswählen" ${B.sel.includes(t.key) ? "checked" : ""}><span class="handle">`);
     return B.sel.includes(t.key) ? h.replace('class="ticket"', 'class="ticket selected"') : h;

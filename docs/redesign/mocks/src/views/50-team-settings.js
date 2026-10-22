@@ -19,7 +19,8 @@
   S.members ??= { p1: "Mitglied", p2: "Mitglied", p3: "Mitglied", p4: "Mitglied", p5: "Gast", p6: "Mitglied" };
   S.jira ??= { off: false, url: "https://jira.example.com", user: "svc-foresprint", tokenSet: true, jql: "project = ATL AND (sprint is EMPTY OR sprint in openSprints())", interval: "15", checked: null, csv: null,
     write: { sprint: false, removed: "backlog", checked: false },
-    map: { ac: "Eigenes Feld: Akzeptanzkriterien", est: "Story Points (customfield_10016)", product: "Komponente", project: "Epic Link", refined: "Label: refined", status: "Status", prod: "Eigenes Feld: Prod-Anteil" } };
+    map: { ac: "Eigenes Feld: Akzeptanzkriterien", est: "Story Points (customfield_10016)", product: "Komponente", project: "Epic Link", refined: "Label: refined", status: "Status", prod: "Eigenes Feld: Prod-Anteil" },
+    src: { product: "rule", project: "rule", refined: "rule", prod: "field+rule" }, refinedRule: 'label = "refined" OR status = "Bereit"', extra: [["bereich", "Bereich (customfield_10301)"]] };
   S.prodRules ??= [{ expr: 'epic = "Login-Umstellung" AND component = "Plattform"', pct: 25 }, { expr: 'label IN ("betrieb", "deploy")', pct: 100 }];
   S.personal ??= { theme: "system", lang: "de", density: "normal" };
   const HOLIDAYS = { "2026-11-01": "Allerheiligen", "2026-12-24": "Heiligabend (Betriebsruhe)", "2026-12-25": "1. Weihnachtstag", "2026-12-26": "2. Weihnachtstag", "2027-01-01": "Neujahr" };
@@ -162,7 +163,7 @@
     title: "Produkte",
     render() {
       const sum = Math.round(FS.sum(D.products, (p) => p.share) * 100);
-      const rd = S.ruleDraft, trk = FS.trk(), rules = trk === "jira";
+      const rd = S.ruleDraft, trk = FS.trk(), rules = trk === "jira" && (S.jira.src?.product ?? "rule") === "rule";
       const lead = { jira: "Produkte mit Product Owner, Anteil am Sprint und Regel, die Tickets zuordnet.", local: "Produkte mit Product Owner und Anteil am Sprint. Das Produkt wählst du direkt am Arbeitspaket.", none: "Produkte mit Product Owner und Anteil am Sprint. Geplant wird ein Betrag je Produkt, ohne Tickets." }[trk];
       return `${head("Produkte", lead, `<button class="btn" type="button" data-act="add">${ic("add")}Produkt hinzufügen</button>`)}
         ${FS.multiProduct() ? "" : `<div class="banner info">${ic("info")}<div class="grow"><strong>Ein Produkt:</strong> Alle Tickets gehören dem Team, Zuordnungsregeln, Budgets und Bilanz je Produkt sind ausgeblendet. Mit einem zweiten Produkt erscheinen sie überall automatisch.</div></div>`}
@@ -364,12 +365,55 @@
     },
   });
 
+  // Field mapping and rules in one place: per Foresprint value either a tracker field or rules in Foresprint.
+  // Rules per product or project stay with their product or project; the rest is edited here.
+  const ruleHits = (expr) => { try { FS.parseRule(expr || ""); return { n: FS.ruleMatches(expr).length }; } catch (e) { return { err: e.message }; } };
+  const hitCell = (h) => (h.err ? FS.lightChip("bad", esc(h.err)) : `<span class="data">${h.n}</span> <span class="small muted">Treffer</span>`);
+  function mapCard(j) {
+    const T = D.team.tracker, sel = (key, opts, cur, lab) => `<select class="input" data-${key} aria-label="${lab}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    const field = (k, opts, lab) => sel(`map="${k}"`, opts.map((o) => [o, o]), j.map[k], `Feld für ${lab}`);
+    const src = (k, opts, lab) => sel(`src="${k}"`, opts, j.src[k], `Quelle für ${lab}`);
+    const noHit = (kind) => D.tickets.filter((t) => !D[kind === "product" ? "products" : "projects"].some((x) => FS.ruleMatches(kind === "product" ? S.rules[x.id] : x.rule).includes(t))).length;
+    const rows = [
+      ["Schätzung", `<span class="small muted">Feld</span>`, field("est", ["Story Points (customfield_10016)", "Original Estimate"], "Schätzung"), ""],
+      ["Status", `<span class="small muted">Feld</span>`, field("status", ["Status"], "Status"), ""],
+      ["Akzeptanzkriterien", `<span class="small muted">Feld</span>`, field("ac", ["Eigenes Feld: Akzeptanzkriterien", "Teil der Beschreibung", "keins"], "Akzeptanzkriterien"), ""],
+      ["Produkt", src("product", [["rule", "Regeln je Produkt"], ["field", `Feld in ${T}`]], "Produkt"),
+        j.src.product === "rule" ? `<a class="btn" href="#products">${ic("edit")}Regeln unter Produkte</a>` : field("product", ["Komponente", "Label", "Eigenes Feld"], "Produkt"),
+        j.src.product === "rule" ? `<span class="data">${D.products.length}</span> <span class="small muted">Regeln, ${noHit("product")} ohne Treffer</span>` : ""],
+      ["Projekt", src("project", [["rule", "Regeln je Projekt"], ["field", `Feld in ${T}`]], "Projekt"),
+        j.src.project === "rule" ? `<a class="btn" href="#projects">${ic("edit")}Regeln unter Projekte</a>` : field("project", ["Epic Link", "Label", "Parent"], "Projekt"),
+        j.src.project === "rule" ? `<span class="data">${D.projects.length}</span> <span class="small muted">Regeln, ${noHit("project")} Tagesgeschäft</span>` : ""],
+      ["Refined", src("refined", [["rule", "Regel"], ["field", `Feld in ${T}`]], "Refined"),
+        j.src.refined === "rule" ? `<input class="input data" id="j-refrule" value="${esc(j.refinedRule)}" aria-label="Regel für Refined" style="width:100%;min-width:240px">` : field("refined", ["Label: refined", "Status: Bereit"], "Refined"),
+        j.src.refined === "rule" ? hitCell(ruleHits(j.refinedRule)) : ""],
+      ...(FS.prodOn() ? [["Prod-Anteil", src("prod", [["rule", "Regeln"], ["field+rule", `Feld in ${T}, sonst Regeln`], ["manual", "nur von Hand"]], "Prod-Anteil"),
+        j.src.prod === "field+rule" ? field("prod", ["Eigenes Feld: Prod-Anteil", "Label prod-only = 100 %"], "Prod-Anteil") : j.src.prod === "manual" ? `<span class="small muted">in Vorplanen, Planen oder im Ticket</span>` : `<span class="small muted">Liste unten</span>`, ""]] : []),
+    ];
+    const prodRules = FS.prodOn() && j.src.prod !== "manual" ? `<div id="j-prodrules" style="margin-top:16px"><h3 style="margin:0 0 4px">Regeln für den Prod-Anteil</h3>
+      <p class="small muted" style="margin:0 0 8px">Die erste passende Regel zählt.${j.src.prod === "field+rule" ? ` Nur für Tickets ohne Wert im Feld.` : ""} Von Hand gesetzte Werte gehen immer vor.</p>
+      <div class="tw"><table class="t"><thead><tr><th>Regel</th><th class="num">Prod %</th><th class="num">Treffer</th><th aria-label="Aktionen"></th></tr></thead><tbody>
+      ${S.prodRules.map((r, i) => { const h = ruleHits(r.expr); return `<tr><td><input class="input data" data-prr="${i}" value="${esc(r.expr)}" aria-label="Regel ${i + 1}" style="width:100%;min-width:260px">${h.err ? `<div class="small" style="margin-top:4px">${FS.lightChip("bad", esc(h.err))}</div>` : ""}</td><td class="num edit"><input data-prp="${i}" inputmode="numeric" value="${r.pct}" aria-label="Prod-Anteil Regel ${i + 1} in Prozent"></td><td class="num">${h.err ? "–" : h.n}</td><td><button class="btn icon ghost" type="button" data-prx="${i}" aria-label="Regel ${i + 1} entfernen">${ic("delete")}</button></td></tr>`; }).join("")}
+      </tbody></table></div>
+      <div class="row" style="margin-top:8px"><button class="btn" type="button" data-act="prradd">${ic("add")}Regel hinzufügen</button><span class="small muted">Beispiel: <span class="data">component = "Betrieb"</span> → 100 %</span></div></div>` : "";
+    return `<div class="card" id="j-map" style="grid-column:1/-1"><h2>Feldzuordnung und Regeln</h2>
+      <p class="small muted" style="margin:0 0 8px">Für jeden Wert in Foresprint: aus einem Feld in ${T} lesen oder per Regel in Foresprint bestimmen. Die Abfrage oben grenzt nur ein, welche Tickets gelesen werden. Regeln nutzen eine Sprache für alle Tracker.</p>
+      <div class="tw"><table class="t"><thead><tr><th>Foresprint</th><th>Quelle</th><th>Feld oder Regel</th><th>Stand</th></tr></thead><tbody>
+      ${rows.map(([l, a, b, c]) => `<tr><td>${l}</td><td>${a}</td><td>${b}</td><td>${c}</td></tr>`).join("")}</tbody></table></div>
+      ${prodRules}
+      <div id="j-extra" style="margin-top:16px"><h3 style="margin:0 0 4px">Felder für Regeln</h3>
+      <p class="small muted" style="margin:0 0 8px">Immer da: ${FS.ruleFields.slice(0, 6).map((f) => `<span class="data">${f}</span>`).join(", ")}. Weitere Felder aus ${T} hier anmelden, dann gehen sie in allen Regeln.</p>
+      <div class="tw"><table class="t"><thead><tr><th>Name in Regeln</th><th>Feld in ${T}</th><th aria-label="Aktionen"></th></tr></thead><tbody>
+      ${j.extra.map(([n, f], i) => `<tr><td><input class="input data" data-exn="${i}" value="${esc(n)}" aria-label="Name in Regeln" style="width:160px"></td><td><input class="input data" data-exf="${i}" value="${esc(f)}" aria-label="Feld in ${T}" style="width:100%;min-width:220px"></td><td><button class="btn icon ghost" type="button" data-exx="${i}" aria-label="Feld entfernen">${ic("delete")}</button></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="row" style="margin-top:8px"><button class="btn" type="button" data-act="exadd">${ic("add")}Feld hinzufügen</button></div></div></div>`;
+  }
+
   // ================= jira =================
   FS.view("jira", {
     title: "Einstellungen, Jira und Tickets",
     render() {
       const j = S.jira, off = FS.trk() !== "jira";
-      const mapRows = [["Schätzung", "est", ["Story Points (customfield_10016)", "Original Estimate"]], ["Produkt", "product", ["Komponente", "Label", "Eigenes Feld"]], ["Projekt", "project", ["Epic Link", "Label", "Parent"]], ["Refined", "refined", ["Label: refined", "Status: Bereit"]], ["Status", "status", ["Status"]], ["Akzeptanzkriterien", "ac", ["Eigenes Feld: Akzeptanzkriterien", "Teil der Beschreibung", "keins"]], ...(FS.prodOn() ? [["Prod-Anteil (0 bis 100 %)", "prod", ["Eigenes Feld: Prod-Anteil", "Label prod-only = 100 %", "kein Feld (Regeln und von Hand)"]]] : [])];
       return `${head("Tickets und Tracker", off ? "Woher die Arbeit kommt. Gilt für das ganze Team (team.yaml)." : `Woher die Arbeit kommt. Verbindung zu ${D.team.tracker}, Abfrage, Feldzuordnung und Import. ${j.write.sprint ? `${D.team.tracker} wird gelesen; die Sprintzuordnung schreibt Foresprint nur auf Knopfdruck zurück.` : `${D.team.tracker} wird nur gelesen.`}`)}
         <div class="card" id="j-src" data-terms="keep" style="margin-bottom:16px"><h2>Woher kommt die Arbeit?</h2><div class="stack" role="radiogroup" aria-label="Ticketquelle">${[["jira", `Aus ${D.team.tracker}`, "Tickets werden abgerufen und nur gelesen. Backlog, Vormerkungen und Planning arbeiten mit Tickets."], ["local", "Arbeitspakete in Foresprint", "Kein Tracker. Du legst Arbeitspakete von Hand an, sonst wie mit Tracker."], ["none", "Ohne Tickets", "Kein Backlog. Geplant werden Beträge je Produkt und Projekt, die Zusage ist eine Zahl."]].map(([k, l, d]) => `<label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="radio" name="j-src" value="${k}" ${FS.trk() === k ? "checked" : ""} style="margin-top:3px"><span><strong>${l}</strong><br><span class="small muted">${d}</span></span></label>`).join("")}</div></div>
         ${off ? `<div class="banner info">${ic("info")}<div class="grow">${FS.trk() === "local" ? `<strong>Arbeitspakete in Foresprint:</strong> Das Backlog zeigt von Hand angelegte Arbeitspakete, Vorplanen und Planen arbeiten damit wie mit Tickets. Das Produkt steht direkt am Arbeitspaket, Zuordnungsregeln gibt es nicht. Arbeitspakete aus einer Datei übernimmst du unten.` : `<strong>Ohne Tickets:</strong> Es gibt kein Backlog. Vorplanen und Planen arbeiten mit einem Betrag je Produkt, Projekte bekommen ihren Teil davon von Hand, die Zusage ist eine Zahl. Projekte, Meilensteine und Kontingente bleiben nutzbar, Ampeln setzt du von Hand.`} Verbindung, Abruf und Feldzuordnung für ${D.team.tracker} erscheinen, sobald du oben "Aus ${D.team.tracker}" wählst.</div></div>` : ""}
@@ -393,13 +437,7 @@
               <div class="row"><button class="btn" type="button" data-act="wcheck" ${j.write.sprint ? "" : "disabled"}>${ic("verified_user")}Schreibrecht prüfen</button><span class="small">${j.write.checked ? FS.lightChip("ok", "Token darf Sprints im Projekt ATL bearbeiten") : '<span class="muted">Der Token braucht dafür das Recht, Sprints zu bearbeiten. Ohne dieses Recht bleibt alles lesend.</span>'}</span></div></div></div>
           <div class="card" style="grid-column:1/-1"><h2>Abfrage (JQL)</h2><div class="field"><label for="j-jql">Welche Tickets Foresprint liest</label><textarea class="input data" id="j-jql" rows="2">${esc(j.jql)}</textarea></div>
             <div class="row" style="margin-top:8px"><button class="btn" type="button" data-act="jql">${ic("play_arrow")}Abfrage testen</button><span id="j-jql-res" class="small">${j.checked === "jql" ? FS.lightChip("ok", "46 Tickets, 28 mit Schätzung, 6 ohne Produkt") : ""}</span></div></div>
-          <div class="card" style="grid-column:1/-1"><h2>Feldzuordnung</h2><div class="tw"><table class="t"><thead><tr><th>Foresprint</th><th>Feld in ${D.team.tracker}</th></tr></thead><tbody>${mapRows.map(([l, k, o]) => `<tr><td>${l}</td><td><select class="input" data-map="${k}" aria-label="Feld für ${l}">${o.map((x) => `<option ${x === j.map[k] ? "selected" : ""}>${x}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>${FS.prodOn() ? `<p class="small muted" style="margin:8px 0 0">Prod-Anteil: wie viel Prozent der Schätzung Personen mit Produktionszugang brauchen. Eine Zahl je Ticket, oder ein Label, das 100 % bedeutet. Fehlt der Wert, gilt 0 %. In Foresprint gesetzte Werte überschreiben ${D.team.tracker}.</p>` : ""}</div>
-          ${FS.prodOn() ? `<div class="card" id="j-prodrules" style="grid-column:1/-1"><h2>Prod-Anteil per Regel</h2>
-            <p class="small muted" style="margin:0 0 8px">Belegt den Prod-Anteil vor, wenn ${D.team.tracker} kein Feld dafür hat. Gleiche Regelsprache wie bei Produkten und Projekten, die erste passende Regel zählt. Vorrang: in Foresprint von Hand gesetzt, dann das Feld aus der Feldzuordnung, dann die Regel, sonst 0 %.</p>
-            <div class="tw"><table class="t"><thead><tr><th>Regel</th><th class="num">Prod %</th><th class="num">Treffer</th><th aria-label="Aktionen"></th></tr></thead><tbody>
-            ${S.prodRules.map((r, i) => { let err = null; try { FS.parseRule(r.expr); } catch (e) { err = e.message; } const hits = err ? [] : FS.ruleMatches(r.expr); return `<tr><td><input class="input data" data-prr="${i}" value="${esc(r.expr)}" aria-label="Regel ${i + 1}" style="width:100%;min-width:260px">${err ? `<div class="small" style="margin-top:4px">${FS.lightChip("bad", esc(err))}</div>` : ""}</td><td class="num edit"><input data-prp="${i}" inputmode="numeric" value="${r.pct}" aria-label="Prod-Anteil Regel ${i + 1} in Prozent"></td><td class="num" title="${esc(hits.map((t) => t.key).join(", "))}">${hits.length}</td><td><button class="btn icon ghost" type="button" data-prx="${i}" aria-label="Regel ${i + 1} entfernen">${ic("delete")}</button></td></tr>`; }).join("")}
-            </tbody></table></div>
-            <div class="row" style="margin-top:8px"><button class="btn" type="button" data-act="prradd">${ic("add")}Regel hinzufügen</button><span class="small muted">Beispiel: <span class="data">component = "Betrieb"</span> → 100 %</span></div></div>` : ""}
+          ${mapCard(j)}
           </div>
           <div class="card need-tickets" style="grid-column:1/-1"><h2>Import aus CSV oder Excel</h2><p class="small muted" style="margin:0 0 8px">${off ? "Arbeitspakete aus einer Datei übernehmen, zum Beispiel aus einer bisherigen Liste." : "Für Tickets aus anderen Quellen."} Spalten werden erkannt, du prüfst die Vorschau.</p>
             <div class="row"><label class="btn" for="j-file">${ic("upload_file")}Datei wählen</label><input type="file" id="j-file" accept=".csv,.xlsx" hidden><span class="small">${j.csv ? esc(j.csv) : '<span class="muted">noch keine Datei</span>'}</span></div>
@@ -415,6 +453,13 @@
       main.querySelector("#j-w-label").onchange = (e) => { S.teamApplied.label = e.target.checked; };
       main.querySelector("#j-int").onchange = (e) => { track("Abrufintervall", j.interval + " min", e.target.value + " min", "team.yaml"); j.interval = e.target.value; };
       main.querySelector("#j-jql").onchange = (e) => { track("Abfrage (JQL)", "geändert", "geändert", "team.yaml"); j.jql = e.target.value; };
+      const SRC = { rule: "Regeln", field: "Feld", "field+rule": "Feld, sonst Regeln", manual: "nur von Hand" };
+      main.querySelectorAll("[data-src]").forEach((s) => (s.onchange = () => { const k = s.dataset.src; track(`Quelle ${k}`, SRC[j.src[k]], SRC[s.value], "team.yaml"); j.src[k] = s.value; FS.render(); }));
+      const rr = main.querySelector("#j-refrule"); if (rr) rr.onchange = () => { track("Regel Refined", j.refinedRule, rr.value, "team.yaml"); j.refinedRule = rr.value; FS.render(); };
+      const syncExtra = () => { FS.ruleFields.splice(6, Infinity, ...j.extra.map(([n]) => n.toLowerCase()).filter(Boolean)); };
+      main.querySelectorAll("[data-exn]").forEach((i) => (i.onchange = () => { const e = j.extra[i.dataset.exn]; track("Regelfeld", e[0], i.value, "team.yaml"); e[0] = i.value.trim(); syncExtra(); FS.render(); }));
+      main.querySelectorAll("[data-exf]").forEach((i) => (i.onchange = () => { const e = j.extra[i.dataset.exf]; track(`Regelfeld ${e[0]}`, e[1], i.value, "team.yaml"); e[1] = i.value; }));
+      main.querySelectorAll("[data-exx]").forEach((b) => (b.onclick = () => { const e = j.extra[b.dataset.exx], used = [...Object.values(S.rules), ...D.projects.map((p) => p.rule), ...S.prodRules.map((r) => r.expr), j.refinedRule].some((x) => new RegExp(`\\b${e[0]}\\b`, "i").test(x || "")); if (used) return FS.toast(`${e[0]} steckt noch in einer Regel. Erst die Regel ändern.`); j.extra.splice(b.dataset.exx, 1); track("Regelfeld entfernt", e[0], "–", "team.yaml"); syncExtra(); FS.render(); }));
       const prTrack = (what, a, b) => track(`Prod-Regel ${what}`, a, b, "team.yaml");
       main.querySelectorAll("[data-prr]").forEach((i) => (i.onchange = () => { const r = S.prodRules[i.dataset.prr]; prTrack("Ausdruck", r.expr, i.value); r.expr = i.value; FS.render(); }));
       main.querySelectorAll("[data-prp]").forEach((i) => (i.onchange = () => { const r = S.prodRules[i.dataset.prp], v = Math.max(0, Math.min(100, parseInt(i.value, 10) || 0)); prTrack("Anteil", `${r.pct} %`, `${v} %`); r.pct = v; FS.render(); }));
@@ -422,7 +467,7 @@
       main.querySelectorAll("[data-map]").forEach((s) => (s.onchange = () => { track(`Feldzuordnung ${s.dataset.map}`, j.map[s.dataset.map], s.value, "team.yaml"); j.map[s.dataset.map] = s.value; }));
       main.querySelector("#j-file").onchange = (e) => { j.csv = e.target.files[0]?.name || "tickets-export.csv"; FS.render(); };
       acts(main, {
-        test: () => { j.checked = "conn"; FS.render(); }, prradd: () => { S.prodRules.push({ expr: 'component = "Betrieb"', pct: 100 }); prTrack("neu", "–", 'component = "Betrieb"'); FS.render(); document.querySelector(`[data-prr="${S.prodRules.length - 1}"]`)?.select(); }, wcheck: () => { j.write.checked = true; FS.render(); }, jql: () => { j.checked = "jql"; FS.render(); },
+        test: () => { j.checked = "conn"; FS.render(); }, exadd: () => { j.extra.push(["", ""]); FS.render(); document.querySelector(`[data-exn="${j.extra.length - 1}"]`)?.focus(); }, prradd: () => { S.prodRules.push({ expr: 'component = "Betrieb"', pct: 100 }); prTrack("neu", "–", 'component = "Betrieb"'); FS.render(); document.querySelector(`[data-prr="${S.prodRules.length - 1}"]`)?.select(); }, wcheck: () => { j.write.checked = true; FS.render(); }, jql: () => { j.checked = "jql"; FS.render(); },
         setTok: () => { if (!main.querySelector("#j-tok").value) return FS.toast("Bitte zuerst einen Token einfügen."); j.tokenSet = true; FS.render(); FS.toast("Token im Schlüsselbund ersetzt."); },
         rmTok: () => { j.tokenSet = false; S.trackerOk = false; FS.render(); FS.toast("Token entfernt. Abrufe pausieren.", () => { j.tokenSet = true; S.trackerOk = true; FS.render(); }); },
         sync: () => { D.trackerSync.last = "gerade eben"; main.querySelector("#j-last").textContent = "gerade eben"; FS.toast("46 Tickets abgerufen, 0 geändert."); },
