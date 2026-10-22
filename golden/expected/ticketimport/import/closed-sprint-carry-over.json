@@ -1,0 +1,442 @@
+{
+ "today": "2026-11-02",
+ "tracker": {
+  "kind": "jira",
+  "base_url": null,
+  "query": null,
+  "fields": {
+   "estimate": "Story Points",
+   "remaining": "Remaining",
+   "epic": "Epic Link"
+  },
+  "planning_uses": "remaining",
+  "refined_label": "Refined",
+  "refined_also_if": {
+   "op": "any",
+   "source": null,
+   "values": [],
+   "children": [
+    {
+     "op": "leaf",
+     "source": "in_sprint",
+     "values": [
+      "true"
+     ],
+     "children": [],
+     "short": false,
+     "contains": false
+    },
+    {
+     "op": "none",
+     "source": null,
+     "values": [],
+     "children": [
+      {
+       "op": "leaf",
+       "source": "status",
+       "values": [
+        "To Do"
+       ],
+       "children": [],
+       "short": false,
+       "contains": false
+      }
+     ],
+     "short": false,
+     "contains": false
+    }
+   ],
+   "short": false,
+   "contains": false
+  },
+  "project_match_order": [
+   "epic",
+   "component",
+   "label"
+  ],
+  "priority_order": [
+   "Highest",
+   "High",
+   "Medium",
+   "Low",
+   "Lowest"
+  ],
+  "dependency_gap": 1,
+  "budget_basis": "roadmap_share",
+  "rough_factor": 1.5,
+  "write_labels": false,
+  "sprint_names": {
+   "Sprint 22": "2026.22",
+   "Sprint 23": "2026.23"
+  },
+  "link_type": "Blocks",
+  "rule_fields": {}
+ },
+ "projects": [
+  {
+   "id": "payment",
+   "name": "payment",
+   "product": "webshop",
+   "target": "2027-03-31",
+   "priority": 0,
+   "budget_basis": null,
+   "match": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "epic",
+      "values": [
+       "ABC-100"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "payment"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": true,
+    "contains": false
+   },
+   "note": null
+  },
+  {
+   "id": "migration",
+   "name": "migration",
+   "product": "webshop",
+   "target": "2027-03-31",
+   "priority": 0,
+   "budget_basis": null,
+   "match": {
+    "op": "any",
+    "source": null,
+    "values": [],
+    "children": [
+     {
+      "op": "leaf",
+      "source": "component",
+      "values": [
+       "Database"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     },
+     {
+      "op": "leaf",
+      "source": "label",
+      "values": [
+       "migration"
+      ],
+      "children": [],
+      "short": false,
+      "contains": false
+     }
+    ],
+    "short": true,
+    "contains": false
+   },
+   "note": null
+  }
+ ],
+ "tickets": [],
+ "tickets_source": null,
+ "preplan": {
+  "earmarks": [],
+  "estimates": []
+ },
+ "sprints": {
+  "2026.1": "2026-01-21",
+  "2026.2": "2026-02-04",
+  "2026.3": "2026-02-18",
+  "2026.4": "2026-03-04",
+  "2026.5": "2026-03-18",
+  "2026.6": "2026-04-01",
+  "2026.7": "2026-04-15",
+  "2026.8": "2026-04-29",
+  "2026.9": "2026-05-13",
+  "2026.10": "2026-05-27",
+  "2026.11": "2026-06-10",
+  "2026.12": "2026-06-24",
+  "2026.13": "2026-07-08",
+  "2026.14": "2026-07-22",
+  "2026.15": "2026-08-05",
+  "2026.16": "2026-08-19",
+  "2026.17": "2026-09-02",
+  "2026.18": "2026-09-16",
+  "2026.19": "2026-09-30",
+  "2026.20": "2026-10-14",
+  "2026.21": "2026-10-28",
+  "2026.22": "2026-11-11",
+  "2026.23": "2026-11-25",
+  "2026.24": "2026-12-09",
+  "2026.25": "2026-12-23",
+  "2026.26": "2027-01-06",
+  "2027.1": "2027-01-20",
+  "2027.2": "2027-02-03",
+  "2027.3": "2027-02-17",
+  "2027.4": "2027-03-03",
+  "2027.5": "2027-03-17",
+  "2027.6": "2027-03-31",
+  "2027.7": "2027-04-14",
+  "2027.8": "2027-04-28",
+  "2027.9": "2027-05-12",
+  "2027.10": "2027-05-26",
+  "2027.11": "2027-06-09",
+  "2027.12": "2027-06-23",
+  "2027.13": "2027-07-07",
+  "2027.14": "2027-07-21",
+  "2027.15": "2027-08-04",
+  "2027.16": "2027-08-18",
+  "2027.17": "2027-09-01",
+  "2027.18": "2027-09-15",
+  "2027.19": "2027-09-29",
+  "2027.20": "2027-10-13",
+  "2027.21": "2027-10-27",
+  "2027.22": "2027-11-10",
+  "2027.23": "2027-11-24",
+  "2027.24": "2027-12-08",
+  "2027.25": "2027-12-22",
+  "2027.26": "2028-01-05",
+  "2028.1": "2028-01-19",
+  "2028.2": "2028-02-02",
+  "2028.3": "2028-02-16",
+  "2028.4": "2028-03-01",
+  "2028.5": "2028-03-15",
+  "2028.6": "2028-03-29",
+  "2028.7": "2028-04-12",
+  "2028.8": "2028-04-26",
+  "2028.9": "2028-05-10",
+  "2028.10": "2028-05-24",
+  "2028.11": "2028-06-07",
+  "2028.12": "2028-06-21",
+  "2028.13": "2028-07-05",
+  "2028.14": "2028-07-19",
+  "2028.15": "2028-08-02",
+  "2028.16": "2028-08-16",
+  "2028.17": "2028-08-30",
+  "2028.18": "2028-09-13",
+  "2028.19": "2028-09-27",
+  "2028.20": "2028-10-11",
+  "2028.21": "2028-10-25",
+  "2028.22": "2028-11-08",
+  "2028.23": "2028-11-22",
+  "2028.24": "2028-12-06",
+  "2028.25": "2028-12-20",
+  "2028.26": "2029-01-03",
+  "2029.1": "2029-01-17",
+  "2029.2": "2029-01-31",
+  "2029.3": "2029-02-14",
+  "2029.4": "2029-02-28"
+ },
+ "raws": [
+  {
+   "key": "B-1",
+   "title": "Title B-1",
+   "status": "In Progress",
+   "issue_type": "Story",
+   "priority": null,
+   "extra": {},
+   "estimate": 5.0,
+   "remaining": 2.0,
+   "sprint_name": "2026.20",
+   "rank": null,
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  },
+  {
+   "key": "B-2",
+   "title": "Title B-2",
+   "status": "In Progress",
+   "issue_type": "Story",
+   "priority": null,
+   "extra": {},
+   "estimate": 5.0,
+   "remaining": 2.0,
+   "sprint_name": "Sprint 22",
+   "rank": null,
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  },
+  {
+   "key": "B-3",
+   "title": "Title B-3",
+   "status": "To Do",
+   "issue_type": "Story",
+   "priority": null,
+   "extra": {},
+   "estimate": 5.0,
+   "remaining": null,
+   "sprint_name": "2026.21",
+   "rank": null,
+   "epic": null,
+   "labels": [],
+   "components": [],
+   "blocked_by": [],
+   "resolved": false
+  }
+ ],
+ "source": null,
+ "adopt_labels": true,
+ "plan": {
+  "tickets": [
+   {
+    "key": "B-1",
+    "title": "Title B-1",
+    "status": "In Progress",
+    "issue_type": "Story",
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": 2.0,
+    "estimate_source": "rough",
+    "refined_unclear": true,
+    "in_sprint": null,
+    "sprint_name": "2026.20",
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   },
+   {
+    "key": "B-2",
+    "title": "Title B-2",
+    "status": "In Progress",
+    "issue_type": "Story",
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": 2.0,
+    "estimate_source": "rough",
+    "refined_unclear": true,
+    "in_sprint": "2026.22",
+    "sprint_name": "Sprint 22",
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   },
+   {
+    "key": "B-3",
+    "title": "Title B-3",
+    "status": "To Do",
+    "issue_type": "Story",
+    "priority": null,
+    "extra": {},
+    "estimate": 5.0,
+    "remaining": null,
+    "estimate_source": "rough",
+    "refined_unclear": false,
+    "in_sprint": null,
+    "sprint_name": "2026.21",
+    "rank": null,
+    "epic": null,
+    "labels": [],
+    "components": [],
+    "depends_on": [],
+    "project": null,
+    "project_candidates": [],
+    "done": false
+   }
+  ],
+  "preplan": {
+   "earmarks": [],
+   "estimates": []
+  },
+  "preplan_changed": false,
+  "changes": [
+   {
+    "kind": "new",
+    "key": "B-1",
+    "title": "Title B-1",
+    "old": null,
+    "new": null,
+    "note": null
+   },
+   {
+    "kind": "new",
+    "key": "B-2",
+    "title": "Title B-2",
+    "old": null,
+    "new": null,
+    "note": null
+   },
+   {
+    "kind": "new",
+    "key": "B-3",
+    "title": "Title B-3",
+    "old": null,
+    "new": null,
+    "note": null
+   },
+   {
+    "kind": "unassigned",
+    "key": "B-1",
+    "title": "Title B-1",
+    "old": null,
+    "new": [],
+    "note": null
+   },
+   {
+    "kind": "unassigned",
+    "key": "B-2",
+    "title": "Title B-2",
+    "old": null,
+    "new": [],
+    "note": null
+   },
+   {
+    "kind": "unassigned",
+    "key": "B-3",
+    "title": "Title B-3",
+    "old": null,
+    "new": [],
+    "note": null
+   },
+   {
+    "kind": "refined_unclear",
+    "key": "B-1",
+    "title": "Title B-1",
+    "old": null,
+    "new": null,
+    "note": "rule"
+   },
+   {
+    "kind": "refined_unclear",
+    "key": "B-2",
+    "title": "Title B-2",
+    "old": null,
+    "new": null,
+    "note": "rule"
+   }
+  ],
+  "warnings": [],
+  "source": null,
+  "unchanged": false
+ }
+}
