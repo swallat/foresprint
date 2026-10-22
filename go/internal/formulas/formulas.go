@@ -7,6 +7,7 @@ package formulas
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/swallat/foresprint/internal/capacity"
@@ -498,11 +499,20 @@ func (f Formatter) Steps(fc *forecast.Forecast, e *forecast.TimelineEntry, code,
 	}
 	if r.Plan != nil {
 		plan := textfmt.Fmt(f.Lang, *r.Plan, fs.Rounding, "")
-		steps = append(steps,
-			Step{"roadmap", f.t("Plannable"), f.General("roadmap"),
-				fmt.Sprintf("%s × %s = %s", plan, textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
-			Step{"small_stuff", f.t("Small items"), f.General("small_stuff"),
-				fmt.Sprintf("%s − %s = %s", plan, f.np(r.Roadmap), f.np(r.SmallStuff))})
+		if e.CarryIn > 0 {
+			free := math.Max(*r.Plan-e.CarryIn, 0)
+			steps = append(steps,
+				Step{"roadmap", f.t("Plannable"), f.t("Plannable = rounded down((Forecast PLAN − carry-over) × plannable share, {digits} digit(s))", "digits", fs.Rounding),
+					fmt.Sprintf("(%s − %s) × %s = %s", plan, f.nd(e.CarryIn, 2), textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
+				Step{"small_stuff", f.t("Small items"), f.t("Small items = Forecast PLAN − carry-over − plannable"),
+					fmt.Sprintf("%s − %s = %s", f.nd(free, 2), f.np(r.Roadmap), f.np(r.SmallStuff))})
+		} else {
+			steps = append(steps,
+				Step{"roadmap", f.t("Plannable"), f.General("roadmap"),
+					fmt.Sprintf("%s × %s = %s", plan, textfmt.Pct(f.Lang, fs.RoadmapShare), f.np(r.Roadmap))},
+				Step{"small_stuff", f.t("Small items"), f.General("small_stuff"),
+					fmt.Sprintf("%s − %s = %s", plan, f.np(r.Roadmap), f.np(r.SmallStuff))})
+		}
 	}
 	if r.Fulfillment.Value != nil {
 		steps = append(steps, Step{"fulfillment", "Fulfillment", f.General("fulfillment"),
