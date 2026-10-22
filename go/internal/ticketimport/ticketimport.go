@@ -398,6 +398,7 @@ func PlanImport(env Env, raws []sources.RawTicket, source *string, adoptLabels b
 		old[tk.Key] = tk
 	}
 	preplan := clonePreplan(env.Preplan)
+	preplan.Order = nil // a fetch takes over the order of the tracker again
 	plan := Plan{Source: source}
 	epicsKnown := KnownEpics(env.Projects)
 	unknown := map[string][]string{}

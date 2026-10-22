@@ -19,3 +19,11 @@ func TestClonePreplanKeepsWhatTheFetchDoesNotOwn(t *testing.T) {
 		t.Errorf("lost: %+v", out)
 	}
 }
+
+func TestFetchTakesOverTheOrderOfTheTracker(t *testing.T) {
+	env := Env{Preplan: model.Preplan{Order: []string{"A-2", "A-1"}}}
+	plan := PlanImport(env, nil, nil, false)
+	if len(plan.Preplan.Order) != 0 || !plan.PreplanChanged {
+		t.Errorf("order %v changed %v", plan.Preplan.Order, plan.PreplanChanged)
+	}
+}
